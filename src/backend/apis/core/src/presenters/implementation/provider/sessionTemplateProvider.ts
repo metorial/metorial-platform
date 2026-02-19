@@ -11,7 +11,13 @@ export let v1SessionTemplateProviderPresenter = Presenter.create(sessionTemplate
     metadata: sessionTemplateProvider.metadata,
     session_template_id: sessionTemplateProvider.sessionTemplateId,
     provider_id: sessionTemplateProvider.providerId,
-    provider_deployment_id: sessionTemplateProvider.providerDeploymentId,
+    provider_deployment_id:
+      sessionTemplateProvider.providerDeploymentId ??
+      sessionTemplateProvider.deployment?.id ??
+      null,
+    provider_deployment_name: sessionTemplateProvider.deployment?.name ?? null,
+    provider_config_name: sessionTemplateProvider.config?.name ?? null,
+    provider_auth_config_name: sessionTemplateProvider.authConfig?.name ?? null,
     created_at: sessionTemplateProvider.createdAt,
     updated_at: sessionTemplateProvider.updatedAt
   }))
@@ -57,6 +63,27 @@ export let v1SessionTemplateProviderPresenter = Presenter.create(sessionTemplate
           name: 'provider_deployment_id',
           description: 'Provider deployment ID',
           examples: ['pde_1aBcDeFgHjKlMnPq']
+        })
+      ),
+      provider_deployment_name: v.nullable(
+        v.string({
+          name: 'provider_deployment_name',
+          description: 'Provider deployment name',
+          examples: ['Production']
+        })
+      ),
+      provider_config_name: v.nullable(
+        v.string({
+          name: 'provider_config_name',
+          description: 'Provider config name',
+          examples: ['Default Config']
+        })
+      ),
+      provider_auth_config_name: v.nullable(
+        v.string({
+          name: 'provider_auth_config_name',
+          description: 'Provider auth config name',
+          examples: ['OAuth Config']
         })
       ),
       created_at: v.date({

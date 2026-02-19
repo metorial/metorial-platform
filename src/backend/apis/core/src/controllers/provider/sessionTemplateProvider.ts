@@ -12,7 +12,7 @@ import {
 import { checkAccess } from '../../middleware/checkAccess';
 import { instancePath } from '../../middleware/instanceGroup';
 import { sessionTemplateProviderPresenter } from '../../presenters';
-import { SubspaceSessionTemplateProvider } from '../../presenters/types';
+
 import { sessionTemplateGroup } from './sessionTemplate';
 
 export let sessionTemplateProviderGroup = sessionTemplateGroup.use(async ctx => {
@@ -65,15 +65,13 @@ export let sessionTemplateProviderController = Controller.create(
       .do(async ctx => {
         let paginator = await subspaceSessionTemplateProviderService.list({
           instance: ctx.instance,
-          sessionTemplateId: ctx.sessionTemplate.id
+          sessionTemplateIds: [ctx.sessionTemplate.id]
         });
 
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, stp =>
-          sessionTemplateProviderPresenter.present({
-            sessionTemplateProvider: stp as SubspaceSessionTemplateProvider
-          })
+          sessionTemplateProviderPresenter.present({ sessionTemplateProvider: stp })
         );
       }),
 
@@ -136,9 +134,7 @@ export let sessionTemplateProviderController = Controller.create(
             : undefined
         });
 
-        return sessionTemplateProviderPresenter.present({
-          sessionTemplateProvider: stp as SubspaceSessionTemplateProvider
-        });
+        return sessionTemplateProviderPresenter.present({ sessionTemplateProvider: stp });
       }),
 
     update: sessionTemplateProviderGroup
@@ -181,9 +177,7 @@ export let sessionTemplateProviderController = Controller.create(
             : undefined
         });
 
-        return sessionTemplateProviderPresenter.present({
-          sessionTemplateProvider: stp as SubspaceSessionTemplateProvider
-        });
+        return sessionTemplateProviderPresenter.present({ sessionTemplateProvider: stp });
       }),
 
     delete: sessionTemplateProviderGroup

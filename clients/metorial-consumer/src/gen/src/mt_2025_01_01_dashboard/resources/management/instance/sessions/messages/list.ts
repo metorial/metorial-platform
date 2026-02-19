@@ -4,10 +4,10 @@ export type ManagementInstanceSessionsMessagesListOutput = {
   items: {
     object: 'session.message';
     id: string;
-    type: string | null;
+    type: string;
     sender: {
       object: 'session.message.sender';
-      type: string | null;
+      type: string;
       id: string | null;
     };
     mcpMessage: {
@@ -15,7 +15,7 @@ export type ManagementInstanceSessionsMessagesListOutput = {
       id: string;
       originalId: string | null;
       method: string | null;
-      payload: Record<string, any> | null;
+      payload: Record<string, any>;
     };
     sessionId: string;
     serverSessionId: string;
@@ -52,10 +52,7 @@ export let mapManagementInstanceSessionsMessagesListOutput =
             })
           ),
           sessionId: mtMap.objectField('session_id', mtMap.passthrough()),
-          serverSessionId: mtMap.objectField(
-            'server_session_id',
-            mtMap.passthrough()
-          ),
+          serverSessionId: mtMap.objectField('server_session_id', mtMap.passthrough()),
           createdAt: mtMap.objectField('created_at', mtMap.date())
         })
       )
@@ -63,10 +60,7 @@ export let mapManagementInstanceSessionsMessagesListOutput =
     pagination: mtMap.objectField(
       'pagination',
       mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
+        hasMoreBefore: mtMap.objectField('has_more_before', mtMap.passthrough()),
         hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
       })
     )
@@ -117,4 +111,3 @@ export let mapManagementInstanceSessionsMessagesListQuery = mtMap.union([
     })
   )
 ]);
-

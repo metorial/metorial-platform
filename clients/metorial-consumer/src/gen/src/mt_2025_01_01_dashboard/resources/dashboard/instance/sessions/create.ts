@@ -32,10 +32,7 @@ export let mapDashboardInstanceSessionsCreateOutput =
     name: mtMap.objectField('name', mtMap.passthrough()),
     description: mtMap.objectField('description', mtMap.passthrough()),
     status: mtMap.objectField('status', mtMap.passthrough()),
-    connectionStatus: mtMap.objectField(
-      'connection_status',
-      mtMap.passthrough()
-    ),
+    connectionStatus: mtMap.objectField('connection_status', mtMap.passthrough()),
     usage: mtMap.objectField(
       'usage',
       mtMap.object({
@@ -147,15 +144,9 @@ export let mapDashboardInstanceSessionsCreateBody =
                     'provider_deployment_id',
                     mtMap.passthrough()
                   ),
-                  providerId: mtMap.objectField(
-                    'provider_id',
-                    mtMap.passthrough()
-                  ),
+                  providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
                   name: mtMap.objectField('name', mtMap.passthrough()),
-                  description: mtMap.objectField(
-                    'description',
-                    mtMap.passthrough()
-                  ),
+                  description: mtMap.objectField('description', mtMap.passthrough()),
                   metadata: mtMap.objectField('metadata', mtMap.passthrough()),
                   lockedProviderVersionId: mtMap.objectField(
                     'locked_provider_version_id',
@@ -179,14 +170,8 @@ export let mapDashboardInstanceSessionsCreateBody =
                               mtMap.unionOption(
                                 'object',
                                 mtMap.object({
-                                  type: mtMap.objectField(
-                                    'type',
-                                    mtMap.passthrough()
-                                  ),
-                                  data: mtMap.objectField(
-                                    'data',
-                                    mtMap.passthrough()
-                                  ),
+                                  type: mtMap.objectField('type', mtMap.passthrough()),
+                                  data: mtMap.objectField('data', mtMap.passthrough()),
                                   providerConfigVaultId: mtMap.objectField(
                                     'provider_config_vault_id',
                                     mtMap.passthrough()
@@ -253,30 +238,20 @@ export let mapDashboardInstanceSessionsCreateBody =
                     'provider_auth_method_id',
                     mtMap.passthrough()
                   ),
-                  credentials: mtMap.objectField(
-                    'credentials',
-                    mtMap.passthrough()
-                  )
+                  credentials: mtMap.objectField('credentials', mtMap.passthrough())
                 })
               ),
               mtMap.unionOption('string', mtMap.passthrough())
             ])
           ),
-          sessionTemplateId: mtMap.objectField(
-            'session_template_id',
-            mtMap.passthrough()
-          ),
+          sessionTemplateId: mtMap.objectField('session_template_id', mtMap.passthrough()),
           toolFilters: mtMap.objectField(
             'tool_filters',
             mtMap.object({
-              toolKeys: mtMap.objectField(
-                'tool_keys',
-                mtMap.array(mtMap.passthrough())
-              )
+              toolKeys: mtMap.objectField('tool_keys', mtMap.array(mtMap.passthrough()))
             })
           )
         })
       )
     )
   });
-

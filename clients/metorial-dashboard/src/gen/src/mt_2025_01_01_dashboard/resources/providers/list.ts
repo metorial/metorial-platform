@@ -109,4 +109,3 @@ export let mapProvidersListQuery = mtMap.union([
     })
   )
 ]);
-

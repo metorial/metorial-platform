@@ -27,4 +27,3 @@ export let mapManagementInstanceLinksCreateBody =
   mtMap.object<ManagementInstanceLinksCreateBody>({
     expiresAt: mtMap.objectField('expires_at', mtMap.date())
   });
-

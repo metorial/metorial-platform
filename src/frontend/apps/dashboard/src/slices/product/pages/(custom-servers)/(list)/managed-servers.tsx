@@ -1,7 +1,7 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import { useCurrentInstance, useDashboardFlags } from '@metorial/state';
+import { Text } from '@metorial/ui';
 import { ComingSoon, Upgrade } from '../../../../../components/emptyState';
-import { CustomServersTable } from '../../../scenes/customServer/table';
 
 export let ManagedServersPage = () => {
   let instance = useCurrentInstance();
@@ -20,7 +20,9 @@ export let ManagedServersPage = () => {
           description="Deploy custom MCP servers on the same reliable infra that runs every MCP server on Metorial. Implement custom behavior or fork existing servers."
         />
       ) : (
-        <CustomServersTable type={['managed', 'docker']} withSearch />
+        <Text size="2" color="gray600">
+          Managed servers have been moved to the provider API.
+        </Text>
       )}
     </>
   ));

@@ -13,19 +13,23 @@ export let SessionTemplateOverviewPage = () => {
   let instance = useCurrentInstance();
 
   let { sessionTemplateId } = useParams();
-  let template = useSessionTemplate(instance.data?.instanceId, sessionTemplateId);
+  let template = useSessionTemplate(instance.data?.id, sessionTemplateId);
 
   let apiKeys = useApiKeysWithAutoInit(
     instance.data
       ? {
           type: 'instance_access_token',
-          instanceId: instance.data.instanceId
+          instanceId: instance.data.id
         }
       : undefined
   );
 
   let secretApiKey = apiKeys.data?.find(
-    (a: { type: string; status: string; revealInfo?: { forever?: boolean; until?: Date } | null }) =>
+    (a: {
+      type: string;
+      status: string;
+      revealInfo?: { forever?: boolean; until?: Date } | null;
+    }) =>
       a.type === 'instance_access_token_secret' &&
       ((a.status == 'active' && a.revealInfo?.forever) ||
         (a.revealInfo?.until && a.revealInfo?.until > new Date()))

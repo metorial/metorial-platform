@@ -59,10 +59,7 @@ export let mapDashboardInstanceCustomProvidersListOutput =
               object: mtMap.objectField('object', mtMap.passthrough()),
               id: mtMap.objectField('id', mtMap.passthrough()),
               name: mtMap.objectField('name', mtMap.passthrough()),
-              description: mtMap.objectField(
-                'description',
-                mtMap.passthrough()
-              ),
+              description: mtMap.objectField('description', mtMap.passthrough()),
               slug: mtMap.objectField('slug', mtMap.passthrough()),
               publisher: mtMap.objectField(
                 'publisher',
@@ -70,10 +67,7 @@ export let mapDashboardInstanceCustomProvidersListOutput =
                   object: mtMap.objectField('object', mtMap.passthrough()),
                   id: mtMap.objectField('id', mtMap.passthrough()),
                   name: mtMap.objectField('name', mtMap.passthrough()),
-                  description: mtMap.objectField(
-                    'description',
-                    mtMap.passthrough()
-                  ),
+                  description: mtMap.objectField('description', mtMap.passthrough()),
                   slug: mtMap.objectField('slug', mtMap.passthrough()),
                   imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
                   createdAt: mtMap.objectField('created_at', mtMap.date()),
@@ -103,10 +97,7 @@ export let mapDashboardInstanceCustomProvidersListOutput =
     pagination: mtMap.objectField(
       'pagination',
       mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
+        hasMoreBefore: mtMap.objectField('has_more_before', mtMap.passthrough()),
         hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
       })
     )
@@ -119,6 +110,7 @@ export type DashboardInstanceCustomProvidersListQuery = {
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
 } & {
+  search?: string | undefined;
   status?: string | string[] | undefined;
   type?: string | string[] | undefined;
   ids?: string | string[] | undefined;
@@ -133,6 +125,7 @@ export let mapDashboardInstanceCustomProvidersListQuery = mtMap.union([
       before: mtMap.objectField('before', mtMap.passthrough()),
       cursor: mtMap.objectField('cursor', mtMap.passthrough()),
       order: mtMap.objectField('order', mtMap.passthrough()),
+      search: mtMap.objectField('search', mtMap.passthrough()),
       status: mtMap.objectField(
         'status',
         mtMap.union([
@@ -166,4 +159,3 @@ export let mapDashboardInstanceCustomProvidersListQuery = mtMap.union([
     })
   )
 ]);
-

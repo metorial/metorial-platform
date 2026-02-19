@@ -1,7 +1,4 @@
-import {
-  BaseMetorialEndpoint,
-  MetorialEndpointManager
-} from '@metorial/util-endpoint';
+import { BaseMetorialEndpoint, MetorialEndpointManager } from '@metorial/util-endpoint';
 
 import {
   mapDashboardInstanceProvidersAuthConfigsListOutput,
@@ -64,8 +61,6 @@ export class MetorialDashboardInstanceProvidersAuthConfigsEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._get(request).transform(
-      mapDashboardInstanceProvidersAuthConfigsListOutput
-    );
+    return this._get(request).transform(mapDashboardInstanceProvidersAuthConfigsListOutput);
   }
 }

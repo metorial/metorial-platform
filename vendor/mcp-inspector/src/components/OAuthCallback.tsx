@@ -1,12 +1,12 @@
-import { useEffect, useRef } from "react";
-import { InspectorOAuthClientProvider } from "../lib/auth";
-import { SESSION_KEYS } from "../lib/constants";
-import { auth } from "@modelcontextprotocol/sdk/client/auth.js";
-import { useToast } from "@/hooks/use-toast.ts";
+import { useEffect, useRef } from 'react';
+import { InspectorOAuthClientProvider } from '../lib/auth';
+import { SESSION_KEYS } from '../lib/constants';
+import { auth } from '@modelcontextprotocol/sdk/client/auth.js';
+import { useToast } from '@/hooks/use-toast.ts';
 import {
   generateOAuthErrorDescription,
-  parseOAuthCallbackParams,
-} from "@/utils/oauthUtils.ts";
+  parseOAuthCallbackParams
+} from '@/utils/oauthUtils.ts';
 
 interface OAuthCallbackProps {
   onConnect: (serverUrl: string) => void;
@@ -26,9 +26,9 @@ const OAuthCallback = ({ onConnect }: OAuthCallbackProps) => {
 
       const notifyError = (description: string) =>
         void toast({
-          title: "OAuth Authorization Error",
+          title: 'OAuth Authorization Error',
           description,
-          variant: "destructive",
+          variant: 'destructive'
         });
 
       const params = parseOAuthCallbackParams(window.location.search);
@@ -38,7 +38,7 @@ const OAuthCallback = ({ onConnect }: OAuthCallbackProps) => {
 
       const serverUrl = sessionStorage.getItem(SESSION_KEYS.SERVER_URL);
       if (!serverUrl) {
-        return notifyError("Missing Server URL");
+        return notifyError('Missing Server URL');
       }
 
       let result;
@@ -48,30 +48,30 @@ const OAuthCallback = ({ onConnect }: OAuthCallbackProps) => {
 
         result = await auth(serverAuthProvider, {
           serverUrl,
-          authorizationCode: params.code,
+          authorizationCode: params.code
         });
       } catch (error) {
-        console.error("OAuth callback error:", error);
+        console.error('OAuth callback error:', error);
         return notifyError(`Unexpected error occurred: ${error}`);
       }
 
-      if (result !== "AUTHORIZED") {
+      if (result !== 'AUTHORIZED') {
         return notifyError(
-          `Expected to be authorized after providing auth code, got: ${result}`,
+          `Expected to be authorized after providing auth code, got: ${result}`
         );
       }
 
       // Finally, trigger auto-connect
       toast({
-        title: "Success",
-        description: "Successfully authenticated with OAuth",
-        variant: "default",
+        title: 'Success',
+        description: 'Successfully authenticated with OAuth',
+        variant: 'default'
       });
       onConnect(serverUrl);
     };
 
     handleCallback().finally(() => {
-      window.history.replaceState({}, document.title, "/");
+      window.history.replaceState({}, document.title, '/');
     });
   }, [toast, onConnect]);
 

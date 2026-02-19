@@ -53,8 +53,7 @@ export let providerToolController = Controller.create(
       .do(async ctx => {
         let paginator = await subspaceProviderToolService.list({
           instance: ctx.instance,
-          providerId: ctx.provider.id,
-          providerVersion: ctx.query.provider_version_id
+          providerVersion: ctx.query.provider_version_id!
         });
 
         let list = await paginator.run(ctx.query);

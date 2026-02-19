@@ -1,7 +1,4 @@
-import {
-  BaseMetorialEndpoint,
-  MetorialEndpointManager
-} from '@metorial/util-endpoint';
+import { BaseMetorialEndpoint, MetorialEndpointManager } from '@metorial/util-endpoint';
 
 import {
   mapDashboardOrganizationsProjectsCreateBody,
@@ -70,15 +67,11 @@ export class MetorialDashboardOrganizationsProjectsEndpoint {
     let request = {
       path,
 
-      query: query
-        ? mapDashboardOrganizationsProjectsListQuery.transformTo(query)
-        : undefined,
+      query: query ? mapDashboardOrganizationsProjectsListQuery.transformTo(query) : undefined,
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._get(request).transform(
-      mapDashboardOrganizationsProjectsListOutput
-    );
+    return this._get(request).transform(mapDashboardOrganizationsProjectsListOutput);
   }
 
   /**
@@ -105,9 +98,7 @@ export class MetorialDashboardOrganizationsProjectsEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._get(request).transform(
-      mapDashboardOrganizationsProjectsGetOutput
-    );
+    return this._get(request).transform(mapDashboardOrganizationsProjectsGetOutput);
   }
 
   /**
@@ -135,9 +126,7 @@ export class MetorialDashboardOrganizationsProjectsEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._post(request).transform(
-      mapDashboardOrganizationsProjectsCreateOutput
-    );
+    return this._post(request).transform(mapDashboardOrganizationsProjectsCreateOutput);
   }
 
   /**
@@ -164,9 +153,7 @@ export class MetorialDashboardOrganizationsProjectsEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._delete(request).transform(
-      mapDashboardOrganizationsProjectsDeleteOutput
-    );
+    return this._delete(request).transform(mapDashboardOrganizationsProjectsDeleteOutput);
   }
 
   /**
@@ -196,8 +183,6 @@ export class MetorialDashboardOrganizationsProjectsEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._post(request).transform(
-      mapDashboardOrganizationsProjectsUpdateOutput
-    );
+    return this._post(request).transform(mapDashboardOrganizationsProjectsUpdateOutput);
   }
 }

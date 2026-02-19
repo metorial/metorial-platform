@@ -2,25 +2,12 @@ import { createFetchWithRetry } from '@metorial/fetch';
 import { MetorialKeyPrefix, sdkBuilder } from './builder';
 
 import {
-  MetorialConsumerProfileEndpoint,
-  MetorialConsumerProfileGroupsEndpoint,
-  MetorialConsumerServerRequestsEndpoint,
-  MetorialConsumerSessionEndpoint,
-  MetorialMagicMcpGroupsEndpoint,
-  MetorialMagicMcpServersEndpoint,
-  MetorialMagicMcpSessionsEndpoint,
-  MetorialMagicMcpTokensEndpoint,
-  MetorialProviderOauthSessionsEndpoint,
-  MetorialServersCapabilitiesEndpoint,
-  MetorialServersDeploymentsTemplatesEndpoint,
-  MetorialServersEndpoint,
-  MetorialServersListingsCategoriesEndpoint,
-  MetorialServersListingsCollectionsEndpoint,
-  MetorialServersListingsEndpoint,
-  MetorialServersListingsReadmeEndpoint,
-  MetorialServersVariantsEndpoint,
-  MetorialServersVersionsEndpoint
-} from './gen/src/mt_2025_01_01_pulsar';
+  MetorialProviderCategoriesEndpoint,
+  MetorialProviderCollectionsEndpoint,
+  MetorialProviderListingsEndpoint,
+  MetorialProvidersEndpoint,
+  MetorialProvidersVersionsEndpoint
+} from './gen/src/mt_2025_01_01_dashboard';
 
 let fetchWithRetry = createFetchWithRetry();
 
@@ -48,13 +35,13 @@ let fetchWithRetryAndLogging = async (
 export let createMetorialConsumerSDK = sdkBuilder.build(
   (soft: {
     apiKey?: `${MetorialKeyPrefix}${string}` | string;
-    apiVersion?: '2025-01-01-pulsar';
+    apiVersion?: '2025-01-01-dashboard';
     headers?: Record<string, string>;
     apiHost?: string;
     consumerToken: string;
   }) => ({
     ...soft,
-    apiVersion: '2025-01-01-pulsar',
+    apiVersion: '2025-01-01-dashboard',
     fetch: fetchWithRetryAndLogging,
     enableDebugLogging: true,
     headers: {
@@ -63,37 +50,12 @@ export let createMetorialConsumerSDK = sdkBuilder.build(
     }
   })
 )(manager => ({
-  profile: Object.assign(new MetorialConsumerProfileEndpoint(manager), {
-    groups: new MetorialConsumerProfileGroupsEndpoint(manager)
-  }),
-
-  session: new MetorialConsumerSessionEndpoint(manager),
-
-  magicMcp: {
-    groups: new MetorialMagicMcpGroupsEndpoint(manager),
-    servers: new MetorialMagicMcpServersEndpoint(manager),
-    sessions: new MetorialMagicMcpSessionsEndpoint(manager),
-    tokens: new MetorialMagicMcpTokensEndpoint(manager)
-  },
-
-  oauthSessions: new MetorialProviderOauthSessionsEndpoint(manager),
-
-  servers: Object.assign(new MetorialServersEndpoint(manager), {
-    listings: Object.assign(new MetorialServersListingsEndpoint(manager), {
-      collections: new MetorialServersListingsCollectionsEndpoint(manager),
-      categories: new MetorialServersListingsCategoriesEndpoint(manager)
-    }),
-
-    readme: new MetorialServersListingsReadmeEndpoint(manager),
-
-    variants: new MetorialServersVariantsEndpoint(manager),
-    versions: new MetorialServersVersionsEndpoint(manager),
-
-    capabilities: new MetorialServersCapabilitiesEndpoint(manager),
-
-    templates: new MetorialServersDeploymentsTemplatesEndpoint(manager),
-
-    serverRequests: new MetorialConsumerServerRequestsEndpoint(manager)
+  providers: Object.assign(new MetorialProvidersEndpoint(manager), {
+    versions: new MetorialProvidersVersionsEndpoint(manager),
+    listings: Object.assign(new MetorialProviderListingsEndpoint(manager), {
+      collections: new MetorialProviderCollectionsEndpoint(manager),
+      categories: new MetorialProviderCategoriesEndpoint(manager)
+    })
   })
 }));
 

@@ -3,18 +3,14 @@ import { mtMap } from '@metorial/util-resource-mapper';
 export type DashboardInstanceSessionsMessagesGetOutput = {
   object: 'session.message';
   id: string;
-  type: string | null;
-  sender: {
-    object: 'session.message.sender';
-    type: string | null;
-    id: string | null;
-  };
+  type: string;
+  sender: { object: 'session.message.sender'; type: string; id: string | null };
   mcpMessage: {
     object: 'session.message.mcp_message';
     id: string;
     originalId: string | null;
     method: string | null;
-    payload: Record<string, any> | null;
+    payload: Record<string, any>;
   };
   sessionId: string;
   serverSessionId: string;
@@ -45,10 +41,6 @@ export let mapDashboardInstanceSessionsMessagesGetOutput =
       })
     ),
     sessionId: mtMap.objectField('session_id', mtMap.passthrough()),
-    serverSessionId: mtMap.objectField(
-      'server_session_id',
-      mtMap.passthrough()
-    ),
+    serverSessionId: mtMap.objectField('server_session_id', mtMap.passthrough()),
     createdAt: mtMap.objectField('created_at', mtMap.date())
   });
-

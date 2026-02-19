@@ -5,6 +5,7 @@ export type DashboardInstanceProvidersToolsListOutput = {
     object: 'provider.tool';
     id: string;
     name: string;
+    title: string | null;
     description: string | null;
     inputSchema: Record<string, any> | null;
     outputSchema: Record<string, any> | null;
@@ -25,6 +26,7 @@ export let mapDashboardInstanceProvidersToolsListOutput =
           object: mtMap.objectField('object', mtMap.passthrough()),
           id: mtMap.objectField('id', mtMap.passthrough()),
           name: mtMap.objectField('name', mtMap.passthrough()),
+          title: mtMap.objectField('title', mtMap.passthrough()),
           description: mtMap.objectField('description', mtMap.passthrough()),
           inputSchema: mtMap.objectField('input_schema', mtMap.passthrough()),
           outputSchema: mtMap.objectField('output_schema', mtMap.passthrough()),
@@ -41,10 +43,7 @@ export let mapDashboardInstanceProvidersToolsListOutput =
     pagination: mtMap.objectField(
       'pagination',
       mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
+        hasMoreBefore: mtMap.objectField('has_more_before', mtMap.passthrough()),
         hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
       })
     )
@@ -67,11 +66,7 @@ export let mapDashboardInstanceProvidersToolsListQuery = mtMap.union([
       before: mtMap.objectField('before', mtMap.passthrough()),
       cursor: mtMap.objectField('cursor', mtMap.passthrough()),
       order: mtMap.objectField('order', mtMap.passthrough()),
-      providerVersionId: mtMap.objectField(
-        'provider_version_id',
-        mtMap.passthrough()
-      )
+      providerVersionId: mtMap.objectField('provider_version_id', mtMap.passthrough())
     })
   )
 ]);
-

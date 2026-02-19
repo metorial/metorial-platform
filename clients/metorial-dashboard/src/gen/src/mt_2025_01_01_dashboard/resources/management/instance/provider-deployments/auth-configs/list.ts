@@ -46,10 +46,7 @@ export let mapManagementInstanceProviderDeploymentsAuthConfigsListOutput =
     pagination: mtMap.objectField(
       'pagination',
       mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
+        hasMoreBefore: mtMap.objectField('has_more_before', mtMap.passthrough()),
         hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
       })
     )
@@ -66,37 +63,35 @@ export type ManagementInstanceProviderDeploymentsAuthConfigsListQuery = {
   providerAuthCredentialsId?: string | string[] | undefined;
 };
 
-export let mapManagementInstanceProviderDeploymentsAuthConfigsListQuery =
-  mtMap.union([
-    mtMap.unionOption(
-      'object',
-      mtMap.object({
-        limit: mtMap.objectField('limit', mtMap.passthrough()),
-        after: mtMap.objectField('after', mtMap.passthrough()),
-        before: mtMap.objectField('before', mtMap.passthrough()),
-        cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-        order: mtMap.objectField('order', mtMap.passthrough()),
-        providerAuthMethodId: mtMap.objectField(
-          'provider_auth_method_id',
-          mtMap.union([
-            mtMap.unionOption('string', mtMap.passthrough()),
-            mtMap.unionOption(
-              'array',
-              mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-            )
-          ])
-        ),
-        providerAuthCredentialsId: mtMap.objectField(
-          'provider_auth_credentials_id',
-          mtMap.union([
-            mtMap.unionOption('string', mtMap.passthrough()),
-            mtMap.unionOption(
-              'array',
-              mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-            )
-          ])
-        )
-      })
-    )
-  ]);
-
+export let mapManagementInstanceProviderDeploymentsAuthConfigsListQuery = mtMap.union([
+  mtMap.unionOption(
+    'object',
+    mtMap.object({
+      limit: mtMap.objectField('limit', mtMap.passthrough()),
+      after: mtMap.objectField('after', mtMap.passthrough()),
+      before: mtMap.objectField('before', mtMap.passthrough()),
+      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
+      order: mtMap.objectField('order', mtMap.passthrough()),
+      providerAuthMethodId: mtMap.objectField(
+        'provider_auth_method_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      providerAuthCredentialsId: mtMap.objectField(
+        'provider_auth_credentials_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      )
+    })
+  )
+]);

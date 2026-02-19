@@ -43,8 +43,7 @@ export let v1SubspaceSessionEventPresenter = Presenter.create(subspaceSessionEve
       message: v.nullable(
         v.string({
           name: 'message',
-          description: 'Event message',
-          examples: ['Tool execution timed out']
+          description: 'Event message'
         })
       ),
       data: v.nullable(

@@ -1,7 +1,4 @@
-import {
-  BaseMetorialEndpoint,
-  MetorialEndpointManager
-} from '@metorial/util-endpoint';
+import { BaseMetorialEndpoint, MetorialEndpointManager } from '@metorial/util-endpoint';
 
 import {
   mapDashboardInstanceLinksCreateBody,
@@ -162,9 +159,7 @@ export class MetorialManagementInstanceLinksEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._patch(request).transform(
-      mapDashboardInstanceLinksUpdateOutput
-    );
+    return this._patch(request).transform(mapDashboardInstanceLinksUpdateOutput);
   }
 
   /**
@@ -193,8 +188,6 @@ export class MetorialManagementInstanceLinksEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._delete(request).transform(
-      mapDashboardInstanceLinksDeleteOutput
-    );
+    return this._delete(request).transform(mapDashboardInstanceLinksDeleteOutput);
   }
 }

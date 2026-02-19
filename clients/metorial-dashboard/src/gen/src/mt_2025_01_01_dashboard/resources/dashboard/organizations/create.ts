@@ -3,7 +3,8 @@ import { mtMap } from '@metorial/util-resource-mapper';
 export type DashboardOrganizationsCreateOutput = {
   object: 'organization';
   id: string;
-  type: 'default';
+  status: 'active' | 'deleted';
+  type: 'default' | 'user';
   slug: string;
   name: string;
   imageUrl: string;
@@ -15,6 +16,7 @@ export let mapDashboardOrganizationsCreateOutput =
   mtMap.object<DashboardOrganizationsCreateOutput>({
     object: mtMap.objectField('object', mtMap.passthrough()),
     id: mtMap.objectField('id', mtMap.passthrough()),
+    status: mtMap.objectField('status', mtMap.passthrough()),
     type: mtMap.objectField('type', mtMap.passthrough()),
     slug: mtMap.objectField('slug', mtMap.passthrough()),
     name: mtMap.objectField('name', mtMap.passthrough()),
@@ -29,4 +31,3 @@ export let mapDashboardOrganizationsCreateBody =
   mtMap.object<DashboardOrganizationsCreateBody>({
     name: mtMap.objectField('name', mtMap.passthrough())
   });
-

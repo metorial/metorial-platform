@@ -1,8 +1,5 @@
-import { useState, useCallback, useEffect, useRef, useMemo } from "react";
-import {
-  ResourceReference,
-  PromptReference,
-} from "@modelcontextprotocol/sdk/types.js";
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import { ResourceReference, PromptReference } from '@modelcontextprotocol/sdk/types.js';
 
 interface CompletionState {
   completions: Record<string, string[]>;
@@ -12,7 +9,7 @@ interface CompletionState {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function debounce<T extends (...args: any[]) => PromiseLike<void>>(
   func: T,
-  wait: number,
+  wait: number
 ): (...args: Parameters<T>) => void {
   let timeout: ReturnType<typeof setTimeout>;
   return (...args: Parameters<T>) => {
@@ -28,14 +25,14 @@ export function useCompletionState(
     ref: ResourceReference | PromptReference,
     argName: string,
     value: string,
-    signal?: AbortSignal,
+    signal?: AbortSignal
   ) => Promise<string[]>,
   completionsSupported: boolean = true,
-  debounceMs: number = 300,
+  debounceMs: number = 300
 ) {
   const [state, setState] = useState<CompletionState>({
     completions: {},
-    loading: {},
+    loading: {}
   });
 
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -56,17 +53,13 @@ export function useCompletionState(
     cleanup();
     setState({
       completions: {},
-      loading: {},
+      loading: {}
     });
   }, [cleanup]);
 
   const requestCompletions = useMemo(() => {
     return debounce(
-      async (
-        ref: ResourceReference | PromptReference,
-        argName: string,
-        value: string,
-      ) => {
+      async (ref: ResourceReference | PromptReference, argName: string, value: string) => {
         if (!completionsSupported) {
           return;
         }
@@ -76,31 +69,26 @@ export function useCompletionState(
         const abortController = new AbortController();
         abortControllerRef.current = abortController;
 
-        setState((prev) => ({
+        setState(prev => ({
           ...prev,
-          loading: { ...prev.loading, [argName]: true },
+          loading: { ...prev.loading, [argName]: true }
         }));
 
         try {
-          const values = await handleCompletion(
-            ref,
-            argName,
-            value,
-            abortController.signal,
-          );
+          const values = await handleCompletion(ref, argName, value, abortController.signal);
 
           if (!abortController.signal.aborted) {
-            setState((prev) => ({
+            setState(prev => ({
               ...prev,
               completions: { ...prev.completions, [argName]: values },
-              loading: { ...prev.loading, [argName]: false },
+              loading: { ...prev.loading, [argName]: false }
             }));
           }
         } catch {
           if (!abortController.signal.aborted) {
-            setState((prev) => ({
+            setState(prev => ({
               ...prev,
-              loading: { ...prev.loading, [argName]: false },
+              loading: { ...prev.loading, [argName]: false }
             }));
           }
         } finally {
@@ -109,7 +97,7 @@ export function useCompletionState(
           }
         }
       },
-      debounceMs,
+      debounceMs
     );
   }, [handleCompletion, completionsSupported, cleanup, debounceMs]);
 
@@ -124,6 +112,6 @@ export function useCompletionState(
     ...state,
     clearCompletions,
     requestCompletions,
-    completionsSupported,
+    completionsSupported
   };
 }

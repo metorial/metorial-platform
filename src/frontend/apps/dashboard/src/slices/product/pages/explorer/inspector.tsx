@@ -73,7 +73,7 @@ export let InspectorFrame = ({
   providerDeployment: { id: string };
 }) => {
   let instance = useCurrentInstance();
-  let session = useSessionForDeployment(instance.data?.instanceId, providerDeployment.id);
+  let session = useSessionForDeployment(instance.data?.id, providerDeployment.id);
 
   let [isLoading, setIsLoading] = useState(true);
 
@@ -91,6 +91,9 @@ export let InspectorFrame = ({
     url.searchParams.set('sse_url', connectionUrl);
     url.searchParams.set('transport_type', 'sse');
     url.searchParams.set('direction', 'vertical');
+
+    if (session.data.connectionKey)
+      url.searchParams.set('bearer_token', session.data.connectionKey);
 
     return url.toString();
   }, [session.data]);
@@ -152,7 +155,7 @@ export let InspectorFrame = ({
         {session.state == 'auth_required' ? (
           <Center>
             <AuthPanel
-              instanceId={instance.data!.instanceId}
+              instanceId={instance.data!.id}
               deploymentId={providerDeployment.id}
               provider={{
                 id: session.provider?.id ?? '',

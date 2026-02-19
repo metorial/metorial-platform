@@ -5,7 +5,7 @@ import { withAuth } from '../../user';
 export let usageLoader = createLoader({
   name: 'usage',
   parents: [],
-  fetch: (i: DashboardUsageTimelineQuery & { organizationId: string }) =>
+  fetch: (i: { organizationId: string } & DashboardUsageTimelineQuery) =>
     withAuth(sdk => sdk.usage.timeline(i.organizationId, i)),
   mutators: {}
 });

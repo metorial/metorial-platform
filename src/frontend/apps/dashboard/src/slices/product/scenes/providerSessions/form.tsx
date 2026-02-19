@@ -16,7 +16,7 @@ export let ProviderSessionForm = (
 ) => {
   let instance = useCurrentInstance();
   let navigate = useNavigate();
-  let createMutation = useCreateSession(instance.data?.instanceId);
+  let createMutation = useCreateSession(instance.data?.id);
 
   let [name, setName] = useState('');
   let [description, setDescription] = useState('');

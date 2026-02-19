@@ -59,14 +59,10 @@ export let mapSessionsGetOutput = mtMap.object<SessionsGetOutput>({
         id: mtMap.objectField('id', mtMap.passthrough()),
         name: mtMap.objectField('name', mtMap.passthrough()),
         providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-        providerDeploymentId: mtMap.objectField(
-          'provider_deployment_id',
-          mtMap.passthrough()
-        )
+        providerDeploymentId: mtMap.objectField('provider_deployment_id', mtMap.passthrough())
       })
     )
   ),
   createdAt: mtMap.objectField('created_at', mtMap.date()),
   updatedAt: mtMap.objectField('updated_at', mtMap.date())
 });
-

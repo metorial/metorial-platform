@@ -25,7 +25,7 @@ import { useAggregatedMessages } from '../../../scenes/session/hooks/useAggregat
 export let ProviderSessionLogsPage = () => {
   let instance = useCurrentInstance();
   let { sessionId } = useParams();
-  let session = useSession(instance.data?.instanceId, sessionId);
+  let session = useSession(instance.data?.id, sessionId);
 
   return renderWithLoader({ session })(({ session }) => (
     <ProviderSessionLogs session={session.data} />
@@ -34,7 +34,7 @@ export let ProviderSessionLogsPage = () => {
 
 let ProviderSessionLogs = ({ session }: { session: DashboardInstanceSessionsGetOutput }) => {
   let instance = useCurrentInstance();
-  let instanceId = instance.data?.instanceId;
+  let instanceId = instance.data?.id;
 
   let connections = useSessionConnections(instanceId, session.id, {
     limit: 100,

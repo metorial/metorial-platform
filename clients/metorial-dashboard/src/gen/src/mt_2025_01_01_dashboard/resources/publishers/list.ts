@@ -59,4 +59,3 @@ export let mapPublishersListQuery = mtMap.union([
     })
   )
 ]);
-

@@ -19,7 +19,7 @@ export let ServerRunLayout = () => {
   let organization = useCurrentOrganization();
 
   let { serverRunId } = useParams();
-  let run = useProviderRun(instance.data?.instanceId, serverRunId);
+  let run = useProviderRun(instance.data?.id, serverRunId);
 
   let pathname = useLocation().pathname;
 

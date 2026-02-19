@@ -21,6 +21,7 @@
     "@metorial/service": "1.0.0"
   },
   "devDependencies": {
+    "@lowerdeck/rpc-server": "^1.0.7",
     "@metorial/tsconfig": "^1.0.0",
     "typescript": "5.8.2",
     "vitest": "^3.1.2"

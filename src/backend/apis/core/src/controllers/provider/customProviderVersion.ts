@@ -179,6 +179,7 @@ export let customProviderVersionController = Controller.create(
       .do(async ctx => {
         let customProviderVersion = await customProviderVersionService.create({
           instance: ctx.instance,
+          organizationActor: ctx.actor,
           customProviderId: ctx.customProvider.id,
           from: convertKeysToCamelCase(ctx.body.from) as any,
           config: ctx.body.config

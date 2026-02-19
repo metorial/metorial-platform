@@ -5,6 +5,7 @@ import { useBoot } from './loaders/boot';
 import { useInstance, useInstances } from './loaders/instance';
 import { useOrganization } from './loaders/organization';
 import { useProject, useProjects } from './loaders/project';
+import { MetorialInstance, MetorialProject } from './types';
 
 let orgNotFound = new MetorialSDKError({
   status: 404,
@@ -40,7 +41,7 @@ export let useCurrentOrganization = () => {
 
     if (instanceId) {
       let instance = boot.data?.instances.find(
-        instance => instance.instanceId == instanceId || instance.slug == instanceId
+        instance => instance.id == instanceId || instance.slug == instanceId
       );
       if (instance) {
         let org = boot.data?.organizations.find(org => org.id == instance.organizationId);
@@ -104,7 +105,7 @@ export let useCurrentOrganization = () => {
       foundItem?.project.id == projectId ||
       foundItem?.project.slug == projectId) &&
       (!instanceId ||
-        foundItem?.instance.instanceId == instanceId ||
+        foundItem?.instance.id == instanceId ||
         foundItem?.instance.slug == instanceId) &&
       (!organizationId ||
         foundItem?.organization.id == organizationId ||
@@ -150,12 +151,14 @@ export let useCurrentOrganization = () => {
   }
 
   let instances = boot.data.instances.filter(
-    instance => instance.organizationId == foundItem.organization.id
+    (instance: MetorialInstance) => instance.organizationId == foundItem.organization.id
   );
   let projects = boot.data.projects
-    .filter(project => project.organizationId == foundItem.organization.id)
-    .map(project => {
-      let projectInstances = instances.filter(instance => instance.project.id == project.id);
+    .filter((project: MetorialProject) => project.organizationId == foundItem.organization.id)
+    .map((project: MetorialProject) => {
+      let projectInstances = instances.filter(
+        (instance: MetorialInstance) => instance.project.id == project.id
+      );
       return {
         ...project,
         instances: projectInstances
@@ -209,7 +212,7 @@ export let useCurrentProject = () => {
       ...org.data.currentProject,
       organization: org.data,
       instances: org.data.instances.filter(
-        instance => instance.project.id == org.data.currentProject!.id
+        (instance: MetorialInstance) => instance.project.id == org.data.currentProject!.id
       )
     },
     error: org.error,
@@ -219,7 +222,7 @@ export let useCurrentProject = () => {
 
 export let useCurrentInstance = () => {
   let org = useCurrentOrganization();
-  let instance = useInstance(org.data?.id, org.data?.currentInstance?.instanceId);
+  let instance = useInstance(org.data?.id, org.data?.currentInstance?.id);
 
   if (org.error || !org.data) {
     return {

@@ -12,7 +12,7 @@ export let ProviderReadmePage = () => {
   let { selectedVersionId } = useProviderVersionContext();
 
   let { providerId } = useParams();
-  let provider = useProvider(instance.data?.instanceId, providerId);
+  let provider = useProvider(instance.data?.id, providerId);
 
   let listings = useProviderListings(
     providerId

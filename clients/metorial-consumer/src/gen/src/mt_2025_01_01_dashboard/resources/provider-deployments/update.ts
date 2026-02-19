@@ -37,52 +37,51 @@ export type ProviderDeploymentsUpdateOutput = {
   updatedAt: Date;
 };
 
-export let mapProviderDeploymentsUpdateOutput =
-  mtMap.object<ProviderDeploymentsUpdateOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-    providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-    provider: mtMap.objectField(
-      'provider',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        description: mtMap.objectField('description', mtMap.passthrough()),
-        slug: mtMap.objectField('slug', mtMap.passthrough()),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date())
-      })
-    ),
-    lockedVersion: mtMap.objectField(
-      'locked_version',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        version: mtMap.objectField('version', mtMap.passthrough()),
-        status: mtMap.objectField('status', mtMap.passthrough()),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date())
-      })
-    ),
-    defaultConfig: mtMap.objectField(
-      'default_config',
-      mtMap.object({
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        description: mtMap.objectField('description', mtMap.passthrough()),
-        metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-        providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date())
-      })
-    ),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
+export let mapProviderDeploymentsUpdateOutput = mtMap.object<ProviderDeploymentsUpdateOutput>({
+  object: mtMap.objectField('object', mtMap.passthrough()),
+  id: mtMap.objectField('id', mtMap.passthrough()),
+  name: mtMap.objectField('name', mtMap.passthrough()),
+  description: mtMap.objectField('description', mtMap.passthrough()),
+  metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+  providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
+  provider: mtMap.objectField(
+    'provider',
+    mtMap.object({
+      object: mtMap.objectField('object', mtMap.passthrough()),
+      id: mtMap.objectField('id', mtMap.passthrough()),
+      name: mtMap.objectField('name', mtMap.passthrough()),
+      description: mtMap.objectField('description', mtMap.passthrough()),
+      slug: mtMap.objectField('slug', mtMap.passthrough()),
+      createdAt: mtMap.objectField('created_at', mtMap.date()),
+      updatedAt: mtMap.objectField('updated_at', mtMap.date())
+    })
+  ),
+  lockedVersion: mtMap.objectField(
+    'locked_version',
+    mtMap.object({
+      object: mtMap.objectField('object', mtMap.passthrough()),
+      id: mtMap.objectField('id', mtMap.passthrough()),
+      version: mtMap.objectField('version', mtMap.passthrough()),
+      status: mtMap.objectField('status', mtMap.passthrough()),
+      createdAt: mtMap.objectField('created_at', mtMap.date()),
+      updatedAt: mtMap.objectField('updated_at', mtMap.date())
+    })
+  ),
+  defaultConfig: mtMap.objectField(
+    'default_config',
+    mtMap.object({
+      id: mtMap.objectField('id', mtMap.passthrough()),
+      name: mtMap.objectField('name', mtMap.passthrough()),
+      description: mtMap.objectField('description', mtMap.passthrough()),
+      metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+      providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
+      createdAt: mtMap.objectField('created_at', mtMap.date()),
+      updatedAt: mtMap.objectField('updated_at', mtMap.date())
+    })
+  ),
+  createdAt: mtMap.objectField('created_at', mtMap.date()),
+  updatedAt: mtMap.objectField('updated_at', mtMap.date())
+});
 
 export type ProviderDeploymentsUpdateBody = {
   name?: string | undefined;
@@ -90,10 +89,8 @@ export type ProviderDeploymentsUpdateBody = {
   metadata?: Record<string, any> | undefined;
 };
 
-export let mapProviderDeploymentsUpdateBody =
-  mtMap.object<ProviderDeploymentsUpdateBody>({
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    metadata: mtMap.objectField('metadata', mtMap.passthrough())
-  });
-
+export let mapProviderDeploymentsUpdateBody = mtMap.object<ProviderDeploymentsUpdateBody>({
+  name: mtMap.objectField('name', mtMap.passthrough()),
+  description: mtMap.objectField('description', mtMap.passthrough()),
+  metadata: mtMap.objectField('metadata', mtMap.passthrough())
+});

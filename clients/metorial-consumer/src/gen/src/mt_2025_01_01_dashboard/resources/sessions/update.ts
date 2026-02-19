@@ -59,10 +59,7 @@ export let mapSessionsUpdateOutput = mtMap.object<SessionsUpdateOutput>({
         id: mtMap.objectField('id', mtMap.passthrough()),
         name: mtMap.objectField('name', mtMap.passthrough()),
         providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-        providerDeploymentId: mtMap.objectField(
-          'provider_deployment_id',
-          mtMap.passthrough()
-        )
+        providerDeploymentId: mtMap.objectField('provider_deployment_id', mtMap.passthrough())
       })
     )
   ),
@@ -81,4 +78,3 @@ export let mapSessionsUpdateBody = mtMap.object<SessionsUpdateBody>({
   description: mtMap.objectField('description', mtMap.passthrough()),
   metadata: mtMap.objectField('metadata', mtMap.passthrough())
 });
-

@@ -15,13 +15,6 @@ setConfig({
 
   environment: metorialEnvironment as any,
 
-  // enterprise: {
-  //   organizationFrontendUrl: teamFrontendUrl,
-  //   accountFrontendUrl: accountFrontendUrl
-  // },
-
-  microFrontends: {},
-
   auth: {
     authFrontendUrl: undefined,
     loginPath: '/auth/login',

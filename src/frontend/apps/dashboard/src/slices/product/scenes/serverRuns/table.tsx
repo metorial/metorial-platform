@@ -38,13 +38,13 @@ export let ServerRunsTable = (filter?: {
   status?: string;
 }) => {
   let instance = useCurrentInstance();
-  let runs = useAllProviderRuns(instance.data?.instanceId, {
+  let runs = useAllProviderRuns(instance.data?.id, {
     sessionId: filter?.sessionId,
     providerId: filter?.providerId,
     status: filter?.status,
     order: 'desc'
   });
-  let providers = useProviders(instance.data?.instanceId);
+  let providers = useProviders(instance.data?.id);
 
   let providerNameMap = useMemo(() => {
     let map = new Map<string, string>();

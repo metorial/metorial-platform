@@ -2,7 +2,7 @@ import { mtMap } from '@metorial/util-resource-mapper';
 
 export type ManagementOrganizationInstancesCreateOutput = {
   object: 'organization.instance';
-  instanceId: string;
+  id: string;
   slug: string;
   name: string;
   organizationId: string;
@@ -24,7 +24,7 @@ export type ManagementOrganizationInstancesCreateOutput = {
 export let mapManagementOrganizationInstancesCreateOutput =
   mtMap.object<ManagementOrganizationInstancesCreateOutput>({
     object: mtMap.objectField('object', mtMap.passthrough()),
-    instanceId: mtMap.objectField('instance_id', mtMap.passthrough()),
+    id: mtMap.objectField('id', mtMap.passthrough()),
     slug: mtMap.objectField('slug', mtMap.passthrough()),
     name: mtMap.objectField('name', mtMap.passthrough()),
     organizationId: mtMap.objectField('organization_id', mtMap.passthrough()),
@@ -39,10 +39,7 @@ export let mapManagementOrganizationInstancesCreateOutput =
         status: mtMap.objectField('status', mtMap.passthrough()),
         slug: mtMap.objectField('slug', mtMap.passthrough()),
         name: mtMap.objectField('name', mtMap.passthrough()),
-        organizationId: mtMap.objectField(
-          'organization_id',
-          mtMap.passthrough()
-        ),
+        organizationId: mtMap.objectField('organization_id', mtMap.passthrough()),
         createdAt: mtMap.objectField('created_at', mtMap.date()),
         updatedAt: mtMap.objectField('updated_at', mtMap.date())
       })
@@ -61,4 +58,3 @@ export let mapManagementOrganizationInstancesCreateBody =
     type: mtMap.objectField('type', mtMap.passthrough()),
     projectId: mtMap.objectField('project_id', mtMap.passthrough())
   });
-

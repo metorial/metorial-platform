@@ -187,100 +187,6 @@ let SetupProviderPage = dynamicPage(() =>
   import('./pages/setup-provider').then(c => c.SetupProviderPage)
 );
 
-let MagicMcpServerLayout = dynamicPage(() =>
-  import('./pages/magic-mcp/server/_layout').then(c => c.MagicMcpServerLayout)
-);
-let MagicMcpServerConfigPage = dynamicPage(() =>
-  import('./pages/magic-mcp/server/config').then(c => c.MagicMcpServerConfigPage)
-);
-let MagicMcpServerErrorsPage = dynamicPage(() =>
-  import('./pages/magic-mcp/server/errors').then(c => c.MagicMcpServerErrorsPage)
-);
-let MagicMcpServerOauthPage = dynamicPage(() =>
-  import('./pages/magic-mcp/server/oauth').then(c => c.MagicMcpServerOauthPage)
-);
-let MagicMcpServerOverviewPage = dynamicPage(() =>
-  import('./pages/magic-mcp/server/overview').then(c => c.MagicMcpServerOverviewPage)
-);
-let MagicMcpServerRunsPage = dynamicPage(() =>
-  import('./pages/magic-mcp/server/runs').then(c => c.MagicMcpServerRunsPage)
-);
-let MagicMcpServerSessionsPage = dynamicPage(() =>
-  import('./pages/magic-mcp/server/sessions').then(c => c.MagicMcpServerSessionsPage)
-);
-let MagicMcpGroupsPage = dynamicPage(() =>
-  import('./pages/magic-mcp/(list)/groups').then(c => c.MagicMcpGroupsPage)
-);
-let MagicMcpGroupLayout = dynamicPage(() =>
-  import('./pages/magic-mcp/group/_layout').then(c => c.MagicMcpGroupLayout)
-);
-let MagicMcpGroupOverviewPage = dynamicPage(() =>
-  import('./pages/magic-mcp/group/overview').then(c => c.MagicMcpGroupOverviewPage)
-);
-let MagicMcpGroupSettingsPage = dynamicPage(() =>
-  import('./pages/magic-mcp/group/settings').then(c => c.MagicMcpGroupSettingsPage)
-);
-let CustomServerCodePage = dynamicPage(() =>
-  import('./pages/(custom-servers)/custom-server/code').then(c => c.CustomServerCodePage)
-);
-let MagicMcpListLayout = dynamicPage(() =>
-  import('./pages/magic-mcp/(list)/_layout').then(c => c.MagicMcpListLayout)
-);
-let MagicMcpServerPage = dynamicPage(() =>
-  import('./pages/magic-mcp/(list)/servers').then(c => c.MagicMcpServerPage)
-);
-let MagicMcpTokensPage = dynamicPage(() =>
-  import('./pages/magic-mcp/(list)/tokens').then(c => c.MagicMcpTokensPage)
-);
-let MagicMcpSessionsPage = dynamicPage(() =>
-  import('./pages/magic-mcp/(list)/sessions').then(c => c.MagicMcpSessionsPage)
-);
-let ProviderConnectionOverviewPage = dynamicPage(() =>
-  import('./pages/(custom-servers)/provider-connection').then(
-    c => c.ProviderConnectionOverviewPage
-  )
-);
-let ProviderConnectionLogsPage = dynamicPage(() =>
-  import('./pages/(custom-servers)/provider-connection/logs').then(
-    c => c.ProviderConnectionLogsPage
-  )
-);
-let ProviderConnectionProfilesPage = dynamicPage(() =>
-  import('./pages/(custom-servers)/provider-connection/profiles').then(
-    c => c.ProviderConnectionProfilesPage
-  )
-);
-let ProviderConnectionSettingsPage = dynamicPage(() =>
-  import('./pages/(custom-servers)/provider-connection/settings').then(
-    c => c.ProviderConnectionSettingsPage
-  )
-);
-let ProviderConnectionLayout = dynamicPage(() =>
-  import('./pages/(custom-servers)/provider-connection/_layout').then(
-    c => c.ProviderConnectionLayout
-  )
-);
-let ProviderConnectionTestResponsePage = dynamicPage(() =>
-  import('./pages/(custom-servers)/provider-connection/testResponse').then(
-    c => c.ProviderConnectionTestResponsePage
-  )
-);
-let CustomServerOverviewPage = dynamicPage(() =>
-  import('./pages/(custom-servers)/custom-server').then(c => c.CustomServerOverviewPage)
-);
-let CustomServerVersionsPage = dynamicPage(() =>
-  import('./pages/(custom-servers)/custom-server/versions').then(
-    c => c.CustomServerVersionsPage
-  )
-);
-let CustomServerSettingsPage = dynamicPage(() =>
-  import('./pages/(custom-servers)/custom-server/settings/settings').then(
-    c => c.CustomServerSettingsPage
-  )
-);
-let CustomServerLayout = dynamicPage(() =>
-  import('./pages/(custom-servers)/custom-server/_layout').then(c => c.CustomServerLayout)
-);
 let ProviderConnectionsListLayout = dynamicPage(() =>
   import('./pages/(custom-servers)/(list)/_layout').then(c => c.ProviderConnectionsListLayout)
 );
@@ -358,21 +264,8 @@ let ProjectSettingsPage = dynamicPage(() =>
 let ProjectSettingsPageLayout = dynamicPage(() =>
   import('./pages/settings/_layout').then(c => c.ProjectSettingsPageLayout)
 );
-let CustomServerDeploymentsPage = dynamicPage(() =>
-  import('./pages/(custom-servers)/custom-server/deployments').then(
-    c => c.CustomServerDeploymentsPage
-  )
-);
-let CustomServerListingPage = dynamicPage(() =>
-  import('./pages/(custom-servers)/custom-server/settings/listing').then(
-    c => c.CustomServerListingPage
-  )
-);
 let CommunityServersPage = dynamicPage(() =>
   import('./pages/community/communityServers').then(c => c.CommunityServersPage)
-);
-let CommunityProfilePage = dynamicPage(() =>
-  import('./pages/community/profile').then(c => c.CommunityProfilePage)
 );
 let NotFoundPage = dynamicPage(() => import('@metorial/pages').then(c => c.NotFound));
 let FlaggedPage = ({ children, flag }: { children: React.ReactNode; flag: string }) => {
@@ -382,81 +275,12 @@ let FlaggedPage = ({ children, flag }: { children: React.ReactNode; flag: string
     (flags.data.flags as any)[flag] ? children : <NotFound />
   );
 };
-let CallbacksListLayout = dynamicPage(() =>
-  import('./pages/(callbacks)/(list)/_layout').then(c => c.CallbacksListLayout)
-);
-let CallbacksPage = dynamicPage(() =>
-  import('./pages/(callbacks)/(list)/index').then(c => c.CallbacksPage)
-);
-let CallbackLayout = dynamicPage(() =>
-  import('./pages/(callbacks)/_layout').then(c => c.CallbackLayout)
-);
-let CallbackOverviewPage = dynamicPage(() =>
-  import('./pages/(callbacks)/overview').then(c => c.CallbackOverviewPage)
-);
-let CallbackEventsPage = dynamicPage(() =>
-  import('./pages/(callbacks)/events').then(c => c.CallbackEventsPage)
-);
-let CallbackDestinationsPage = dynamicPage(() =>
-  import('./pages/(callbacks)/destinations').then(c => c.CallbackDestinationsPage)
-);
-let CallbackLogsPage = dynamicPage(() =>
-  import('./pages/(callbacks)/logs').then(c => c.CallbackLogsPage)
-);
-let PortalsListLayout = dynamicPage(() =>
-  import('./pages/(portals)/(list)/_layout').then(c => c.PortalsListLayout)
-);
-let PortalsPage = dynamicPage(() =>
-  import('./pages/(portals)/(list)/portals').then(c => c.PortalsPage)
-);
-let PortalLayout = dynamicPage(() =>
-  import('./pages/(portals)/portal/_layout').then(c => c.PortalLayout)
-);
-let PortalGroupSettingsPage = dynamicPage(() =>
-  import('./pages/(portals)/portal/group/settings').then(c => c.PortalGroupSettingsPage)
-);
-let PortalGroupOverviewPage = dynamicPage(() =>
-  import('./pages/(portals)/portal/group/index').then(c => c.PortalGroupOverviewPage)
-);
-let PortalGroupLayout = dynamicPage(() =>
-  import('./pages/(portals)/portal/group/_layout').then(c => c.PortalGroupLayout)
-);
-let PortalSettingsLayout = dynamicPage(() =>
-  import('./pages/(portals)/portal/settings/_layout').then(c => c.PortalSettingsLayout)
-);
-let PortalSettingsOverviewPage = dynamicPage(() =>
-  import('./pages/(portals)/portal/settings/index').then(c => c.PortalSettingsOverviewPage)
-);
-let PortalSettingsAuthPage = dynamicPage(() =>
-  import('./pages/(portals)/portal/settings/auth').then(c => c.PortalSettingsAuthPage)
-);
-let PortalGroupsPage = dynamicPage(() =>
-  import('./pages/(portals)/portal/groups').then(c => c.PortalGroupsPage)
-);
-let PortalOverviewPage = dynamicPage(() =>
-  import('./pages/(portals)/portal/index').then(c => c.PortalOverviewPage)
-);
-let PortalUsersPage = dynamicPage(() =>
-  import('./pages/(portals)/portal/users').then(c => c.PortalUsersPage)
-);
-let PortalUserPage = dynamicPage(() =>
-  import('./pages/(portals)/portal/user').then(c => c.PortalUserPage)
-);
-let PortalServerRequestsPage = dynamicPage(() =>
-  import('./pages/(portals)/portal/server-requests').then(c => c.PortalServerRequestsPage)
-);
-let PortalFeaturedServersPage = dynamicPage(() =>
-  import('./pages/(portals)/portal/settings/featured-servers').then(
-    c => c.PortalFeaturedServersPage
-  )
-);
-
 let ProductWrapper = () => {
   let instance = useCurrentInstance();
 
   useEffect(() => {
     if (!instance.data) return;
-    lastInstanceIdStore.set(instance.data.instanceId);
+    lastInstanceIdStore.set(instance.data.id);
   }, [instance.data]);
 
   return <Outlet />;
@@ -560,74 +384,6 @@ export let productInnerSlice = createSlice([
                 element: <ProviderConnectionsPage />
               }
             ]
-          },
-
-          {
-            path: 'custom-server/:customServerId',
-            element: (
-              <FlaggedPage flag="metorial-gateway-enabled">
-                <CustomServerLayout />
-              </FlaggedPage>
-            ),
-
-            children: [
-              {
-                path: '',
-                element: <CustomServerOverviewPage />
-              },
-              {
-                path: 'versions',
-                element: <CustomServerVersionsPage />
-              },
-              {
-                path: 'code',
-                element: <CustomServerCodePage />
-              },
-              {
-                path: 'deployments',
-                element: <CustomServerDeploymentsPage />
-              },
-              {
-                path: 'settings',
-                element: <CustomServerSettingsPage />
-              },
-              {
-                path: 'listing',
-                element: <CustomServerListingPage />
-              }
-            ]
-          },
-
-          {
-            path: 'provider-connection/:providerConnectionId',
-            element: (
-              <FlaggedPage flag="metorial-gateway-enabled">
-                <ProviderConnectionLayout />
-              </FlaggedPage>
-            ),
-
-            children: [
-              {
-                path: '',
-                element: <ProviderConnectionOverviewPage />
-              },
-              {
-                path: 'logs',
-                element: <ProviderConnectionLogsPage />
-              },
-              {
-                path: 'profiles',
-                element: <ProviderConnectionProfilesPage />
-              },
-              {
-                path: 'settings',
-                element: <ProviderConnectionSettingsPage />
-              },
-              {
-                path: 'test-response',
-                element: <ProviderConnectionTestResponsePage />
-              }
-            ]
           }
         ]
       },
@@ -729,119 +485,6 @@ export let productInnerSlice = createSlice([
               {
                 path: 'runs',
                 element: <SessionServerRunsPage />
-              }
-            ]
-          }
-        ]
-      },
-
-      {
-        path: 'callback/:callbackId',
-        element: <CallbackLayout />,
-
-        children: [
-          {
-            path: '',
-            element: <CallbackOverviewPage />
-          },
-          {
-            path: 'events',
-            element: <CallbackEventsPage />
-          },
-          {
-            path: 'destinations',
-            element: <CallbackDestinationsPage />
-          },
-          {
-            path: 'logs',
-            element: <CallbackLogsPage />
-          }
-        ]
-      },
-
-      {
-        path: 'callbacks',
-        element: <CallbacksListLayout />,
-
-        children: [
-          {
-            path: '',
-            element: <CallbacksPage />
-          }
-        ]
-      },
-
-      {
-        path: 'magic-mcp',
-
-        children: [
-          {
-            element: <MagicMcpListLayout />,
-
-            children: [
-              {
-                path: 'servers',
-                element: <MagicMcpServerPage />
-              },
-              {
-                path: 'tokens',
-                element: <MagicMcpTokensPage />
-              },
-              {
-                path: 'sessions',
-                element: <MagicMcpSessionsPage />
-              },
-              {
-                path: 'groups',
-                element: <MagicMcpGroupsPage />
-              }
-            ]
-          },
-
-          {
-            path: 'server/:magicMcpServerId',
-            element: <MagicMcpServerLayout />,
-
-            children: [
-              {
-                path: '',
-                element: <MagicMcpServerOverviewPage />
-              },
-              {
-                path: 'config',
-                element: <MagicMcpServerConfigPage />
-              },
-              {
-                path: 'runs',
-                element: <MagicMcpServerRunsPage />
-              },
-              {
-                path: 'errors',
-                element: <MagicMcpServerErrorsPage />
-              },
-              {
-                path: 'oauth',
-                element: <MagicMcpServerOauthPage />
-              },
-              {
-                path: 'sessions',
-                element: <MagicMcpServerSessionsPage />
-              }
-            ]
-          },
-
-          {
-            path: 'group/:magicMcpGroupId',
-            element: <MagicMcpGroupLayout />,
-
-            children: [
-              {
-                path: '',
-                element: <MagicMcpGroupOverviewPage />
-              },
-              {
-                path: 'settings',
-                element: <MagicMcpGroupSettingsPage />
               }
             ]
           }
@@ -1073,88 +716,8 @@ export let productInnerSlice = createSlice([
         path: 'community',
         children: [
           {
-            path: 'profile',
-            element: <CommunityProfilePage />
-          },
-          {
             path: 'servers',
             element: <CommunityServersPage />
-          }
-        ]
-      },
-
-      {
-        path: 'portals',
-        element: <PortalsListLayout />,
-
-        children: [
-          {
-            path: '',
-            element: <PortalsPage />
-          }
-        ]
-      },
-
-      {
-        path: 'portal/:portalId',
-        element: <PortalLayout />,
-
-        children: [
-          {
-            path: '',
-            element: <PortalOverviewPage />
-          },
-          {
-            path: 'users',
-            element: <PortalUsersPage />
-          },
-          {
-            path: 'user/:userId',
-            element: <PortalUserPage />
-          },
-          {
-            path: 'groups',
-            element: <PortalGroupsPage />
-          },
-          {
-            path: 'server-requests',
-            element: <PortalServerRequestsPage />
-          },
-
-          {
-            path: 'settings',
-            element: <PortalSettingsLayout />,
-
-            children: [
-              {
-                path: '',
-                element: <PortalSettingsOverviewPage />
-              },
-              {
-                path: 'authentication',
-                element: <PortalSettingsAuthPage />
-              },
-              {
-                path: 'featured-servers',
-                element: <PortalFeaturedServersPage />
-              }
-            ]
-          },
-
-          {
-            path: 'group/:groupId',
-            element: <PortalGroupLayout />,
-
-            children: [
-              {
-                path: '',
-                element: <PortalGroupOverviewPage />
-              },
-              {
-                path: 'settings',
-                element: <PortalGroupSettingsPage />
-              }
-            ]
           }
         ]
       }

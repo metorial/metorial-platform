@@ -8,7 +8,6 @@ import {
 import { Button, Menu } from '@metorial/ui';
 import { Outlet, useLocation } from 'react-router-dom';
 import { showCustomServerRemoteFormModal } from '../../../scenes/customServer/modal';
-import { showProviderConnectionFormModal } from '../../../scenes/providerConnection/modal';
 
 export let ProviderConnectionsListLayout = () => {
   let instance = useCurrentInstance();
@@ -22,11 +21,7 @@ export let ProviderConnectionsListLayout = () => {
       <PageHeader
         title="OAuth Connections"
         description="Use OAuth to seamlessly authenticate with external providers, like Google or GitHub."
-        actions={
-          <Button onClick={() => showProviderConnectionFormModal({})} size="2">
-            Create OAuth Connection
-          </Button>
-        }
+        actions={undefined}
       />
 
       <Outlet />

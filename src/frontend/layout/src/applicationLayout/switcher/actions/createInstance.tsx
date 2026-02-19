@@ -85,7 +85,7 @@ export let createInstance = (
 
 export let updateInstance = (instance_: MetorialInstance) =>
   showModal(({ close, dialogProps }) => {
-    let instance = useInstance(instance_.organizationId, instance_.instanceId);
+    let instance = useInstance(instance_.organizationId, instance_.id);
     let update = instance.updateMutator();
 
     let form = useForm({

@@ -77,7 +77,7 @@ export let Deploy = ({ server }: { server: ServerListing }) => {
   );
 
   let instance = useMemo(
-    () => boot.data?.instances.find(i => i.instanceId == selectedInstanceId),
+    () => boot.data?.instances.find(i => i.id == selectedInstanceId),
     [selectedInstanceId, boot.data]
   );
 

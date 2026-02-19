@@ -91,7 +91,7 @@ export let startPrivateApiServer = async ({ port }: { port: number }) => {
 
             let { organization, member, actor } =
               await organizationService.getOrganizationByIdForUser({
-                organizationId: req.params.organizationId,
+                organizationId: req.params.organizationId as string,
                 user: auth.user
               });
 

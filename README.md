@@ -10,8 +10,8 @@ Connect any AI model to thousands of APIs, data sources, and tools with a single
 </p>
 
 > [!TIP]
-> *Skip the setup and go hosted:* The fasted, simplest and most reliable way to use [Metorial](https://metorial.com) is to sign up to [our hosted platform](https://app.metorial.com/).
-> 
+> _Skip the setup and go hosted:_ The fasted, simplest and most reliable way to use [Metorial](https://metorial.com) is to sign up to [our hosted platform](https://app.metorial.com/).
+>
 > ➡️ **[Get Started (for free)](https://metorial.com)**
 
 ## Introduction
@@ -23,39 +23,39 @@ If you're interested in the MCP serves that power Metorial, check out the [MCP s
 
 ## Features
 
-* **✨ One-liner SDKs**: Connect your AI model to any API, data source, or tool with a single function call.
-* **🛠️ Powered by MCP**: Metorial is built on the Model Context Protocol, a standard for connecting AI models to external data and tools.
-* **🚀 Get started in minutes**: Metorial is designed to be easy to use, with a simple setup process and a unified interface for all your AI integrations.
-* **🕊️ Self-hosting**: Metorial's source code is hosted on GitHub and you can self-host it.
-* **👩‍💻 Built for developers**: Metorial isn't built for end users, but for developers who need high quality tooling, monitoring, and customization options to build agentic AI applications.
+- **✨ One-liner SDKs**: Connect your AI model to any API, data source, or tool with a single function call.
+- **🛠️ Powered by MCP**: Metorial is built on the Model Context Protocol, a standard for connecting AI models to external data and tools.
+- **🚀 Get started in minutes**: Metorial is designed to be easy to use, with a simple setup process and a unified interface for all your AI integrations.
+- **🕊️ Self-hosting**: Metorial's source code is hosted on GitHub and you can self-host it.
+- **👩‍💻 Built for developers**: Metorial isn't built for end users, but for developers who need high quality tooling, monitoring, and customization options to build agentic AI applications.
 
 ## SDKs
 
 Metorial currently provides SDKs for the following languages:
 
-* <img src="assets/typescript.png" width="12px" height="12px" /> [**JavaScript/TypeScript**](https://github.com/metorial/metorial-node)
-* <img src="assets/python.svg" width="12px" height="12px" /> [**Python**](https://github.com/metorial/metorial-python)
+- <img src="assets/typescript.png" width="12px" height="12px" /> [**JavaScript/TypeScript**](https://github.com/metorial/metorial-node)
+- <img src="assets/python.svg" width="12px" height="12px" /> [**Python**](https://github.com/metorial/metorial-python)
 
 If you want to build a custom integration, check out our [API documentation](https://metorial.com/api) for details on how to use the Metorial API directly.
 
 ## Motivation
 
-MCP is a powerful standard for connecting AI models to external data and tools, but it focuses on enabling AI clients (like Claude Desktop or Cursor) to connect to tools and data sources. 
+MCP is a powerful standard for connecting AI models to external data and tools, but it focuses on enabling AI clients (like Claude Desktop or Cursor) to connect to tools and data sources.
 Metorial builds on MCP but makes it a one-liner for developers to connect their AI apps to any API, data source, or tool.
 Thereby we enable developers to create agentic AI applications that can interact with other systems in a reliable, simple, and secure way.
 
 ## Tech Stack
 
-* [**Model Context Protocol (MCP)**](https://modelcontextprotocol.io) - Metorial is powered by the Model Context Protocol, a standard for connecting AI models to external data and tools.
-* [**Docker**](https://www.docker.com) - Metorial uses Docker to run MCP servers in a containerized environment, making it easy to deploy and manage.
-* [**MCP Containers**](https://github.com/metorial/mcp-containers) - Metorial provides a collection of pre-built MCP servers in Docker containers.
-* [**Typescript**](https://www.typescriptlang.org) - Most of Metorial is written in TypeScript.
-* [**Bun**](https://bun.sh) - The core of Metorial runs on Bun, a fast JavaScript runtime that is compatible with Node.js.
-* [**Go**](https://go.dev) - The MCP engine is written in Go, providing a high-performance backend for Metorial.
-* [**PostgreSQL**](https://www.postgresql.org) - Metorial uses PostgreSQL for data storage.
-* [**Redis**](https://redis.io) - Metorial uses Redis for caching and real-time data processing.
-* [**MongoDB**](https://www.mongodb.com) - Metorial uses MongoDB for storing usage data and logs.
-* [**React**](https://reactjs.org) - The Metorial Dashboard is built with React.
+- [**Model Context Protocol (MCP)**](https://modelcontextprotocol.io) - Metorial is powered by the Model Context Protocol, a standard for connecting AI models to external data and tools.
+- [**Docker**](https://www.docker.com) - Metorial uses Docker to run MCP servers in a containerized environment, making it easy to deploy and manage.
+- [**MCP Containers**](https://github.com/metorial/mcp-containers) - Metorial provides a collection of pre-built MCP servers in Docker containers.
+- [**Typescript**](https://www.typescriptlang.org) - Most of Metorial is written in TypeScript.
+- [**Bun**](https://bun.sh) - The core of Metorial runs on Bun, a fast JavaScript runtime that is compatible with Node.js.
+- [**Go**](https://go.dev) - The MCP engine is written in Go, providing a high-performance backend for Metorial.
+- [**PostgreSQL**](https://www.postgresql.org) - Metorial uses PostgreSQL for data storage.
+- [**Redis**](https://redis.io) - Metorial uses Redis for caching and real-time data processing.
+- [**MongoDB**](https://www.mongodb.com) - Metorial uses MongoDB for storing usage data and logs.
+- [**React**](https://reactjs.org) - The Metorial Dashboard is built with React.
 
 ## Features
 
@@ -83,13 +83,13 @@ https://github.com/user-attachments/assets/c676411e-25b6-442a-af22-c8d99e2be25b
 
 Metorial is built from the ground up for developers. Here are some of the key features that make Metorial a great choice for developers:
 
-* **Customizable**: Metorial is highly customizable, allowing you to configure your integrations to fit your needs.
-* **Open source**: Metorial is open source, so you can run it on your own infrastructure or use our hosted platform.
-* **Multi-instance support**: Create multiple instances of your Metorial Projects to test different configurations, environments or versions of your integrations.
-* **Powerful SDKs**: Metorial provides powerful SDKs for JavaScript/TypeScript and Python, making it easy to integrate with your AI applications.
-* **Detailed documentation**: Metorial provides [detailed documentation](https://metorial.com/docs) for all its features, including examples and tutorials to help you get started quickly.
-* **Full API access**: Every feature of Metorial is accessible via the API, allowing you to build custom integrations and automate your workflows. Theoretically, you could build your own dashboard using the API.
-* **Advanced dashboard**: The Metorial Dashboard provides a powerful interface for managing your integrations, monitoring your usage, and debugging your MCP servers.
+- **Customizable**: Metorial is highly customizable, allowing you to configure your integrations to fit your needs.
+- **Open source**: Metorial is open source, so you can run it on your own infrastructure or use our hosted platform.
+- **Multi-instance support**: Create multiple instances of your Metorial Projects to test different configurations, environments or versions of your integrations.
+- **Powerful SDKs**: Metorial provides powerful SDKs for JavaScript/TypeScript and Python, making it easy to integrate with your AI applications.
+- **Detailed documentation**: Metorial provides [detailed documentation](https://metorial.com/docs) for all its features, including examples and tutorials to help you get started quickly.
+- **Full API access**: Every feature of Metorial is accessible via the API, allowing you to build custom integrations and automate your workflows. Theoretically, you could build your own dashboard using the API.
+- **Advanced dashboard**: The Metorial Dashboard provides a powerful interface for managing your integrations, monitoring your usage, and debugging your MCP servers.
 
 ## License
 

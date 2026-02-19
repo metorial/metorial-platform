@@ -19,7 +19,7 @@ export let SessionLayout = () => {
   let organization = useCurrentOrganization();
 
   let { sessionId } = useParams();
-  let session = useSession(instance.data?.instanceId, sessionId);
+  let session = useSession(instance.data?.id, sessionId);
 
   let pathname = useLocation().pathname;
 

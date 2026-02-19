@@ -1,7 +1,4 @@
-import {
-  BaseMetorialEndpoint,
-  MetorialEndpointManager
-} from '@metorial/util-endpoint';
+import { BaseMetorialEndpoint, MetorialEndpointManager } from '@metorial/util-endpoint';
 
 import {
   mapDashboardOrganizationsTeamsProjectsRemoveOutput,
@@ -64,9 +61,7 @@ export class MetorialManagementOrganizationTeamsProjectsEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._post(request).transform(
-      mapDashboardOrganizationsTeamsProjectsSetOutput
-    );
+    return this._post(request).transform(mapDashboardOrganizationsTeamsProjectsSetOutput);
   }
 
   /**
@@ -93,8 +88,6 @@ export class MetorialManagementOrganizationTeamsProjectsEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._delete(request).transform(
-      mapDashboardOrganizationsTeamsProjectsRemoveOutput
-    );
+    return this._delete(request).transform(mapDashboardOrganizationsTeamsProjectsRemoveOutput);
   }
 }

@@ -7,7 +7,7 @@ import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instancePath } from '../../middleware/instanceGroup';
 import { subspaceSessionErrorGroupPresenter } from '../../presenters';
-import { SubspaceSessionErrorGroup } from '../../presenters/types';
+
 import { instanceGroup } from '../../middleware/instanceGroup';
 import { subspaceSessionGroup } from './subspaceSession';
 
@@ -63,9 +63,7 @@ export let subspaceSessionErrorGroupController = Controller.create(
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, sessionErrorGroup =>
-          subspaceSessionErrorGroupPresenter.present({
-            sessionErrorGroup: sessionErrorGroup as SubspaceSessionErrorGroup
-          })
+          subspaceSessionErrorGroupPresenter.present({ sessionErrorGroup })
         );
       }),
 
@@ -94,9 +92,7 @@ export let subspaceSessionErrorGroupController = Controller.create(
           sessionErrorGroupId: ctx.params.sessionErrorGroupId
         });
 
-        return subspaceSessionErrorGroupPresenter.present({
-          sessionErrorGroup: sessionErrorGroup as SubspaceSessionErrorGroup
-        });
+        return subspaceSessionErrorGroupPresenter.present({ sessionErrorGroup });
       }),
 
     list: subspaceSessionGroup
@@ -117,15 +113,13 @@ export let subspaceSessionErrorGroupController = Controller.create(
       .do(async ctx => {
         let paginator = await subspaceSessionErrorGroupService.list({
           instance: ctx.instance,
-          sessionId: ctx.session.id
+          sessionIds: [ctx.session.id]
         });
 
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, sessionErrorGroup =>
-          subspaceSessionErrorGroupPresenter.present({
-            sessionErrorGroup: sessionErrorGroup as SubspaceSessionErrorGroup
-          })
+          subspaceSessionErrorGroupPresenter.present({ sessionErrorGroup })
         );
       }),
 

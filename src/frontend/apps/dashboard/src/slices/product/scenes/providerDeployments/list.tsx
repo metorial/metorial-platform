@@ -38,7 +38,7 @@ export let ProviderDeploymentsList = ({
   onDeploymentClick?: (deployment: ProviderDeployment) => void;
 }) => {
   let instance = useCurrentInstance();
-  let deployments = useProviderDeployments(instance.data?.instanceId, {
+  let deployments = useProviderDeployments(instance.data?.id, {
     providerId: providerId
       ? Array.isArray(providerId)
         ? providerId[0]
@@ -86,7 +86,7 @@ export let ProviderDeploymentsList = ({
                   <Entity.Field
                     title={
                       <Text size="1" color="gray500">
-                        Created <RenderDate date={deployment.createdAt} />
+                        <RenderDate date={deployment.createdAt} />
                       </Text>
                     }
                     right
@@ -98,7 +98,9 @@ export let ProviderDeploymentsList = ({
             return (
               <ItemButton
                 key={deployment.id}
-                onClick={() => onDeploymentClick?.(deployment as unknown as ProviderDeployment)}
+                onClick={() =>
+                  onDeploymentClick?.(deployment as unknown as ProviderDeployment)
+                }
                 type="button"
               >
                 {inner}

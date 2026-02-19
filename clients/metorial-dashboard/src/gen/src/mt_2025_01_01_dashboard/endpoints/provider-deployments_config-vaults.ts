@@ -1,12 +1,8 @@
-import {
-  BaseMetorialEndpoint,
-  MetorialEndpointManager
-} from '@metorial/util-endpoint';
+import { BaseMetorialEndpoint, MetorialEndpointManager } from '@metorial/util-endpoint';
 
 import {
   mapDashboardInstanceProviderDeploymentsConfigVaultsCreateBody,
   mapDashboardInstanceProviderDeploymentsConfigVaultsCreateOutput,
-  mapDashboardInstanceProviderDeploymentsConfigVaultsDeleteOutput,
   mapDashboardInstanceProviderDeploymentsConfigVaultsGetOutput,
   mapDashboardInstanceProviderDeploymentsConfigVaultsListOutput,
   mapDashboardInstanceProviderDeploymentsConfigVaultsListQuery,
@@ -14,7 +10,6 @@ import {
   mapDashboardInstanceProviderDeploymentsConfigVaultsUpdateOutput,
   type DashboardInstanceProviderDeploymentsConfigVaultsCreateBody,
   type DashboardInstanceProviderDeploymentsConfigVaultsCreateOutput,
-  type DashboardInstanceProviderDeploymentsConfigVaultsDeleteOutput,
   type DashboardInstanceProviderDeploymentsConfigVaultsGetOutput,
   type DashboardInstanceProviderDeploymentsConfigVaultsListOutput,
   type DashboardInstanceProviderDeploymentsConfigVaultsListQuery,
@@ -71,9 +66,7 @@ export class MetorialProviderDeploymentsConfigVaultsEndpoint {
       path,
 
       query: query
-        ? mapDashboardInstanceProviderDeploymentsConfigVaultsListQuery.transformTo(
-            query
-          )
+        ? mapDashboardInstanceProviderDeploymentsConfigVaultsListQuery.transformTo(query)
         : undefined,
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
@@ -132,9 +125,7 @@ export class MetorialProviderDeploymentsConfigVaultsEndpoint {
 
     let request = {
       path,
-      body: mapDashboardInstanceProviderDeploymentsConfigVaultsCreateBody.transformTo(
-        body
-      ),
+      body: mapDashboardInstanceProviderDeploymentsConfigVaultsCreateBody.transformTo(body),
 
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
@@ -166,44 +157,13 @@ export class MetorialProviderDeploymentsConfigVaultsEndpoint {
 
     let request = {
       path,
-      body: mapDashboardInstanceProviderDeploymentsConfigVaultsUpdateBody.transformTo(
-        body
-      ),
+      body: mapDashboardInstanceProviderDeploymentsConfigVaultsUpdateBody.transformTo(body),
 
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
     return this._patch(request).transform(
       mapDashboardInstanceProviderDeploymentsConfigVaultsUpdateOutput
-    );
-  }
-
-  /**
-   * @name Delete provider config vault
-   * @description Permanently deletes a provider config vault.
-   *
-   * @param `providerDeploymentId` - string
-   * @param `providerConfigVaultId` - string
-   * @param `opts` - { headers?: Record<string, string> }
-   * @returns DashboardInstanceProviderDeploymentsConfigVaultsDeleteOutput
-   * @see https://metorial.com/api
-   * @see https://metorial.com/docs
-   */
-  delete(
-    providerDeploymentId: string,
-    providerConfigVaultId: string,
-    opts?: { headers?: Record<string, string> }
-  ): Promise<DashboardInstanceProviderDeploymentsConfigVaultsDeleteOutput> {
-    let path = `provider-deployments/${providerDeploymentId}/config-vaults/${providerConfigVaultId}`;
-
-    let request = {
-      path,
-
-      ...(opts?.headers ? { headers: opts.headers } : {})
-    } as any;
-
-    return this._delete(request).transform(
-      mapDashboardInstanceProviderDeploymentsConfigVaultsDeleteOutput
     );
   }
 }

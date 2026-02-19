@@ -1,7 +1,7 @@
 import {
   DashboardInstanceSessionsGetOutput,
   DashboardInstanceSessionsListQuery
-} from '@metorial/dashboard-sdk';
+} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 
@@ -9,7 +9,11 @@ import { useCurrentInstance, useSessions } from '@metorial/state';
 import { Badge, RenderDate, Text, theme } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
 
-export let SessionConnectionStatusBadge = ({ session }: { session: DashboardInstanceSessionsGetOutput }) => {
+export let SessionConnectionStatusBadge = ({
+  session
+}: {
+  session: DashboardInstanceSessionsGetOutput;
+}) => {
   return (
     <Badge
       color={
@@ -29,7 +33,7 @@ export let SessionConnectionStatusBadge = ({ session }: { session: DashboardInst
 
 export let SessionsTable = (filter: DashboardInstanceSessionsListQuery) => {
   let instance = useCurrentInstance();
-  let sessions = useSessions(instance.data?.instanceId, {
+  let sessions = useSessions(instance.data?.id, {
     ...filter,
     order: filter.order ?? 'desc'
   });

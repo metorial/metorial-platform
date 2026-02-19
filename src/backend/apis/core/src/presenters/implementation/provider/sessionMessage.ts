@@ -1,9 +1,70 @@
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
 import { subspaceSessionMessageType } from '../../types';
+import type { SubspaceSessionMessage } from '../../types';
+
+export let presentSubspaceSessionMessageAs = (
+  sessionMessage: SubspaceSessionMessage,
+  view: 'request' | 'response'
+) => {
+  let hasInput = !!sessionMessage.input;
+  let hasOutput = !!sessionMessage.output;
+  let method =
+    ((sessionMessage.input as Record<string, unknown> | null)?.method as string | null) ??
+    null;
+
+  let payload: Record<string, unknown>;
+  let senderType: string;
+  let recordId: string;
+
+  if (view === 'request' && hasInput) {
+    payload = (sessionMessage.input as Record<string, unknown>) ?? {};
+    senderType = 'client';
+    recordId = sessionMessage.id;
+  } else if (view === 'response' && hasOutput) {
+    payload = (sessionMessage.output as Record<string, unknown>) ?? {};
+    senderType = 'server';
+    recordId = `${sessionMessage.id}_response`;
+  } else {
+    return null;
+  }
+
+  let mcpId = sessionMessage.transport?.mcp?.id ?? sessionMessage.id;
+
+  return {
+    object: 'session.message' as const,
+    id: recordId,
+    type: (sessionMessage.type ?? sessionMessage.source ?? 'unknown') as string,
+    sender: {
+      object: 'session.message.sender' as const,
+      type: senderType,
+      id: sessionMessage.senderParticipant?.id ?? null
+    },
+    mcp_message: {
+      object: 'session.message.mcp_message' as const,
+      id: mcpId,
+      original_id: null as string | null,
+      method: view === 'request' ? method : null,
+      payload
+    },
+    session_id: sessionMessage.sessionId,
+    server_session_id:
+      sessionMessage.connectionId ??
+      sessionMessage.sessionProviderId ??
+      sessionMessage.sessionId,
+    created_at: sessionMessage.createdAt
+  };
+};
 
 export let v1SubspaceSessionMessagePresenter = Presenter.create(subspaceSessionMessageType)
   .presenter(async ({ sessionMessage }) => {
+    let hasInput = !!sessionMessage.input;
+    let hasOutput = !!sessionMessage.output;
+
+    if (hasInput && hasOutput) {
+      return presentSubspaceSessionMessageAs(sessionMessage, 'request')!;
+    }
+
     let method =
       ((sessionMessage.input as Record<string, unknown> | null)?.method as string | null) ??
       null;
@@ -29,7 +90,7 @@ export let v1SubspaceSessionMessagePresenter = Presenter.create(subspaceSessionM
         id: mcpId,
         original_id: null as string | null,
         method,
-        payload: payload ?? {}
+        payload: payload ?? null
       },
       session_id: sessionMessage.sessionId,
       server_session_id:
@@ -49,25 +110,21 @@ export let v1SubspaceSessionMessagePresenter = Presenter.create(subspaceSessionM
         description: 'Unique session message identifier',
         examples: ['smg_8hJkLmNpQrStUvWx']
       }),
-      type: v.nullable(
-        v.string({
-          name: 'type',
-          description: 'Message type',
-          examples: ['request', 'response', 'notification']
-        })
-      ),
+      type: v.string({
+        name: 'type',
+        description: 'Message type',
+        examples: ['request', 'response', 'notification']
+      }),
       sender: v.object(
         {
           object: v.literal('session.message.sender', {
             description: "String representing the object's type"
           }),
-          type: v.nullable(
-            v.string({
-              name: 'type',
-              description: 'Sender type',
-              examples: ['client', 'server']
-            })
-          ),
+          type: v.string({
+            name: 'type',
+            description: 'Sender type',
+            examples: ['client', 'server']
+          }),
           id: v.nullable(
             v.string({
               name: 'id',
@@ -100,13 +157,11 @@ export let v1SubspaceSessionMessagePresenter = Presenter.create(subspaceSessionM
               examples: ['tools/list', 'tools/call']
             })
           ),
-          payload: v.nullable(
-            v.record(v.any(), {
-              name: 'payload',
-              description: 'Message payload',
-              examples: [{ jsonrpc: '2.0', method: 'tools/list' }]
-            })
-          )
+          payload: v.record(v.any(), {
+            name: 'payload',
+            description: 'Message payload',
+            examples: [{ jsonrpc: '2.0', method: 'tools/list' }]
+          })
         },
         {
           name: 'mcp_message',

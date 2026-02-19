@@ -1,4 +1,4 @@
-import { DashboardInstanceSessionsGetOutput } from '@metorial/dashboard-sdk';
+import { DashboardInstanceSessionsGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import {
   useCreateSession,
   useProvider,
@@ -30,6 +30,7 @@ export let useSessionForDeployment = (
   let authCredentials = useProviderAuthCredentials(instanceId, deployment.data?.id);
 
   let [session, setSession] = useState<DashboardInstanceSessionsGetOutput | null>(null);
+  let [connectionKey, setConnectionKey] = useState<string | null>(null);
   let [authConfigId, setAuthConfigId] = useState<string | null>(null);
 
   let [state, setState] = useState<'loading' | 'error' | 'ready' | 'auth_required'>('loading');
@@ -53,6 +54,7 @@ export let useSessionForDeployment = (
 
       if (res) {
         setSession(res);
+        if (res.connectionKey) setConnectionKey(res.connectionKey);
         setState('ready');
         return true;
       }
@@ -124,6 +126,9 @@ export let useSessionForDeployment = (
   let sessionGetter = useSession(instanceId, session?.id);
 
   let sessionData = sessionGetter.data ?? session;
+  if (sessionData && connectionKey && !sessionData.connectionKey) {
+    sessionData = { ...sessionData, connectionKey };
+  }
 
   return {
     ...sessionGetter,

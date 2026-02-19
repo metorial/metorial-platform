@@ -91,7 +91,7 @@ export let ProviderSearch = ({
   let [search, setSearch] = useState('');
   let searchDebounced = useDebounced(search, 300);
 
-  let providers = useProviders(instance.data?.instanceId);
+  let providers = useProviders(instance.data?.id);
 
   return (
     <Wrapper>
@@ -125,7 +125,7 @@ export let ProviderSearch = ({
               <Spacer size={20} />
 
               <Popular>
-                {filteredProviders.slice(0, 12).map(provider => (
+                {filteredProviders.map(provider => (
                   <PopularItem
                     key={provider.id}
                     onClick={() => onSelect?.(provider)}

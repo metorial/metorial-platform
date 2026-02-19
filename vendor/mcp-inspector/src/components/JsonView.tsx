@@ -1,10 +1,10 @@
-import { useState, memo, useMemo, useCallback, useEffect } from "react";
-import type { JsonValue } from "@/utils/jsonUtils";
-import clsx from "clsx";
-import { Copy, CheckCheck } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
-import { getDataType, tryParseJson } from "@/utils/jsonUtils";
+import { useState, memo, useMemo, useCallback, useEffect } from 'react';
+import type { JsonValue } from '@/utils/jsonUtils';
+import clsx from 'clsx';
+import { Copy, CheckCheck } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
+import { getDataType, tryParseJson } from '@/utils/jsonUtils';
 
 interface JsonViewProps {
   data: unknown;
@@ -22,7 +22,7 @@ const JsonView = memo(
     initialExpandDepth = 3,
     className,
     withCopyButton = true,
-    isError = false,
+    isError = false
   }: JsonViewProps) => {
     const { toast } = useToast();
     const [copied, setCopied] = useState(false);
@@ -42,7 +42,7 @@ const JsonView = memo(
     }, [copied]);
 
     const normalizedData = useMemo(() => {
-      return typeof data === "string"
+      return typeof data === 'string'
         ? tryParseJson(data).success
           ? tryParseJson(data).data
           : data
@@ -52,22 +52,22 @@ const JsonView = memo(
     const handleCopy = useCallback(() => {
       try {
         navigator.clipboard.writeText(
-          typeof normalizedData === "string"
+          typeof normalizedData === 'string'
             ? normalizedData
-            : JSON.stringify(normalizedData, null, 2),
+            : JSON.stringify(normalizedData, null, 2)
         );
         setCopied(true);
       } catch (error) {
         toast({
-          title: "Error",
+          title: 'Error',
           description: `There was an error coping result into the clipboard: ${error instanceof Error ? error.message : String(error)}`,
-          variant: "destructive",
+          variant: 'destructive'
         });
       }
     }, [toast, normalizedData]);
 
     return (
-      <div className={clsx("p-4 border rounded relative", className)}>
+      <div className={clsx('p-4 border rounded relative', className)}>
         {withCopyButton && (
           <Button
             size="icon"
@@ -93,10 +93,10 @@ const JsonView = memo(
         </div>
       </div>
     );
-  },
+  }
 );
 
-JsonView.displayName = "JsonView";
+JsonView.displayName = 'JsonView';
 
 interface JsonNodeProps {
   data: JsonValue;
@@ -107,22 +107,16 @@ interface JsonNodeProps {
 }
 
 const JsonNode = memo(
-  ({
-    data,
-    name,
-    depth = 0,
-    initialExpandDepth,
-    isError = false,
-  }: JsonNodeProps) => {
+  ({ data, name, depth = 0, initialExpandDepth, isError = false }: JsonNodeProps) => {
     const [isExpanded, setIsExpanded] = useState(depth < initialExpandDepth);
     const [typeStyleMap] = useState<Record<string, string>>({
-      number: "text-blue-600",
-      boolean: "text-amber-600",
-      null: "text-purple-600",
-      undefined: "text-gray-600",
-      string: "text-green-600 group-hover:text-green-500",
-      error: "text-red-600 group-hover:text-red-500",
-      default: "text-gray-700",
+      number: 'text-blue-600',
+      boolean: 'text-amber-600',
+      null: 'text-purple-600',
+      undefined: 'text-gray-600',
+      string: 'text-green-600 group-hover:text-green-500',
+      error: 'text-red-600 group-hover:text-red-500',
+      default: 'text-gray-700'
     });
     const dataType = getDataType(data);
 
@@ -134,20 +128,16 @@ const JsonNode = memo(
       const isEmpty = itemCount === 0;
 
       const symbolMap = {
-        open: isArray ? "[" : "{",
-        close: isArray ? "]" : "}",
-        collapsed: isArray ? "[ ... ]" : "{ ... }",
-        empty: isArray ? "[]" : "{}",
+        open: isArray ? '[' : '{',
+        close: isArray ? ']' : '}',
+        collapsed: isArray ? '[ ... ]' : '{ ... }',
+        empty: isArray ? '[]' : '{}'
       };
 
       if (isEmpty) {
         return (
           <div className="flex items-center">
-            {name && (
-              <span className="mr-1 text-gray-600 dark:text-gray-400">
-                {name}:
-              </span>
-            )}
+            {name && <span className="mr-1 text-gray-600 dark:text-gray-400">{name}:</span>}
             <span className="text-gray-500">{symbolMap.empty}</span>
           </div>
         );
@@ -174,7 +164,7 @@ const JsonNode = memo(
                   {symbolMap.collapsed}
                 </span>
                 <span className="ml-1 text-gray-700 dark:group-hover:text-gray-100 group-hover:text-gray-400">
-                  {itemCount} {itemCount === 1 ? "item" : "items"}
+                  {itemCount} {itemCount === 1 ? 'item' : 'items'}
                 </span>
               </>
             )}
@@ -204,9 +194,7 @@ const JsonNode = memo(
                       </div>
                     ))}
               </div>
-              <div className="text-gray-600 dark:text-gray-400">
-                {symbolMap.close}
-              </div>
+              <div className="text-gray-600 dark:text-gray-400">{symbolMap.close}</div>
             </>
           )}
         </div>
@@ -220,15 +208,11 @@ const JsonNode = memo(
       if (!isTooLong) {
         return (
           <div className="flex mr-1 rounded hover:bg-gray-800/20">
-            {name && (
-              <span className="mr-1 text-gray-600 dark:text-gray-400">
-                {name}:
-              </span>
-            )}
+            {name && <span className="mr-1 text-gray-600 dark:text-gray-400">{name}:</span>}
             <pre
               className={clsx(
                 isError ? typeStyleMap.error : typeStyleMap.string,
-                "break-all whitespace-pre-wrap",
+                'break-all whitespace-pre-wrap'
               )}
             >
               "{value}"
@@ -247,10 +231,10 @@ const JsonNode = memo(
           <pre
             className={clsx(
               isError ? typeStyleMap.error : typeStyleMap.string,
-              "cursor-pointer break-all whitespace-pre-wrap",
+              'cursor-pointer break-all whitespace-pre-wrap'
             )}
             onClick={() => setIsExpanded(!isExpanded)}
-            title={isExpanded ? "Click to collapse" : "Click to expand"}
+            title={isExpanded ? 'Click to collapse' : 'Click to expand'}
           >
             {isExpanded ? `"${value}"` : `"${value.slice(0, maxLength)}..."`}
           </pre>
@@ -259,28 +243,24 @@ const JsonNode = memo(
     };
 
     switch (dataType) {
-      case "object":
-      case "array":
-        return renderCollapsible(dataType === "array");
-      case "string":
+      case 'object':
+      case 'array':
+        return renderCollapsible(dataType === 'array');
+      case 'string':
         return renderString(data as string);
       default:
         return (
           <div className="flex items-center mr-1 rounded hover:bg-gray-800/20">
-            {name && (
-              <span className="mr-1 text-gray-600 dark:text-gray-400">
-                {name}:
-              </span>
-            )}
+            {name && <span className="mr-1 text-gray-600 dark:text-gray-400">{name}:</span>}
             <span className={typeStyleMap[dataType] || typeStyleMap.default}>
-              {data === null ? "null" : String(data)}
+              {data === null ? 'null' : String(data)}
             </span>
           </div>
         );
     }
-  },
+  }
 );
 
-JsonNode.displayName = "JsonNode";
+JsonNode.displayName = 'JsonNode';
 
 export default JsonView;

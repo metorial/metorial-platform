@@ -1,5 +1,6 @@
 export * from './custom-providers';
 export * from './files';
+export * from './instance';
 export * from './links';
 export * from './provider-categories';
 export * from './provider-collections';

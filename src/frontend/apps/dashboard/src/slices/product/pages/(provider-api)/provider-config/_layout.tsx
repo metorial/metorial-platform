@@ -17,12 +17,8 @@ export let ProviderConfigLayout = () => {
   let organization = useCurrentOrganization();
 
   let { providerDeploymentId, providerConfigId } = useParams();
-  let deployment = useProviderDeployment(instance.data?.instanceId, providerDeploymentId);
-  let config = useProviderConfig(
-    instance.data?.instanceId,
-    providerDeploymentId,
-    providerConfigId
-  );
+  let deployment = useProviderDeployment(instance.data?.id, providerDeploymentId);
+  let config = useProviderConfig(instance.data?.id, providerDeploymentId, providerConfigId);
 
   let pathname = useLocation().pathname;
 

@@ -83,15 +83,6 @@ export let providerAuthConfigLoader = createLoader({
           providerAuthConfigId,
           body
         )
-      ),
-
-    delete: (_, { input: { instanceId, providerDeploymentId, providerAuthConfigId } }) =>
-      withAuth(sdk =>
-        sdk.providerDeployments.authConfigs.delete(
-          instanceId,
-          providerDeploymentId,
-          providerAuthConfigId
-        )
       )
   }
 });
@@ -109,7 +100,6 @@ export let useProviderAuthConfig = (
 
   return {
     ...data,
-    useUpdateMutator: data.useMutator('update'),
-    useDeleteMutator: data.useMutator('delete')
+    useUpdateMutator: data.useMutator('update')
   };
 };

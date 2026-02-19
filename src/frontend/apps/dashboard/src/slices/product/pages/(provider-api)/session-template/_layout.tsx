@@ -16,7 +16,7 @@ export let SessionTemplateLayout = () => {
   let organization = useCurrentOrganization();
 
   let { sessionTemplateId } = useParams();
-  let template = useSessionTemplate(instance.data?.instanceId, sessionTemplateId);
+  let template = useSessionTemplate(instance.data?.id, sessionTemplateId);
 
   let pathname = useLocation().pathname;
 

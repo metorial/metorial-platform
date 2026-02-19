@@ -22,10 +22,6 @@ vi.mock('@metorial/db', () => ({
     profileUpdate: {
       create: vi.fn(),
       deleteMany: vi.fn()
-    },
-    serverVariantProvider: {
-      findUnique: vi.fn(),
-      create: vi.fn()
     }
   },
   ID: {

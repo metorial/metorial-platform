@@ -17,10 +17,15 @@ export let subspace: ReturnType<typeof createSubspaceControllerClient> =
   });
 
 (async () => {
+  let client = createSubspaceControllerClient({
+    endpoint: env.subspace.SUBSPACE_URL
+  });
+
   while (true) {
     try {
       console.log('Trying to create subspace solution');
-      let sol = await subspace.solution.upsert({
+
+      let sol = await client.solution.upsert({
         name: 'Metorial Platform',
         identifier: env.subspace.SUBSPACE_SOLUTION
       });

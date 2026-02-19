@@ -17,9 +17,9 @@ export let ProviderAuthConnectionLayout = () => {
   let organization = useCurrentOrganization();
 
   let { providerDeploymentId, providerAuthConfigId } = useParams();
-  let deployment = useProviderDeployment(instance.data?.instanceId, providerDeploymentId);
+  let deployment = useProviderDeployment(instance.data?.id, providerDeploymentId);
   let authConfig = useProviderAuthConfig(
-    instance.data?.instanceId,
+    instance.data?.id,
     providerDeploymentId,
     providerAuthConfigId
   );

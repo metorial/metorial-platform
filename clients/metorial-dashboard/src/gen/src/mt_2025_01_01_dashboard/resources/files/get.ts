@@ -31,4 +31,3 @@ export let mapFilesGetOutput = mtMap.object<FilesGetOutput>({
   createdAt: mtMap.objectField('created_at', mtMap.date()),
   updatedAt: mtMap.objectField('updated_at', mtMap.date())
 });
-

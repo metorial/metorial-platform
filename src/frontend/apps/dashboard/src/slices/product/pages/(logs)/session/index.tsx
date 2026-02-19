@@ -1,12 +1,16 @@
 import { useCurrentInstance, useSession } from '@metorial/state';
+import { Text } from '@metorial/ui';
 import { useParams } from 'react-router-dom';
-import { SessionEvents } from '../../../scenes/session/events';
 
 export let SessionPage = () => {
   let instance = useCurrentInstance();
 
   let { sessionId } = useParams();
-  let session = useSession(instance.data?.instanceId, sessionId);
+  let session = useSession(instance.data?.id, sessionId);
 
-  return <SessionEvents session={session.data} />;
+  return (
+    <Text size="2" color="gray600">
+      Session events view has been removed. Use the provider session logs instead.
+    </Text>
+  );
 };

@@ -1,7 +1,4 @@
-import {
-  BaseMetorialEndpoint,
-  MetorialEndpointManager
-} from '@metorial/util-endpoint';
+import { BaseMetorialEndpoint, MetorialEndpointManager } from '@metorial/util-endpoint';
 
 import {
   mapDashboardInstanceSessionTemplatesProvidersCreateBody,
@@ -73,9 +70,7 @@ export class MetorialManagementInstanceSessionTemplatesProvidersEndpoint {
       path,
 
       query: query
-        ? mapDashboardInstanceSessionTemplatesProvidersListQuery.transformTo(
-            query
-          )
+        ? mapDashboardInstanceSessionTemplatesProvidersListQuery.transformTo(query)
         : undefined,
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
@@ -138,9 +133,7 @@ export class MetorialManagementInstanceSessionTemplatesProvidersEndpoint {
 
     let request = {
       path,
-      body: mapDashboardInstanceSessionTemplatesProvidersCreateBody.transformTo(
-        body
-      ),
+      body: mapDashboardInstanceSessionTemplatesProvidersCreateBody.transformTo(body),
 
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
@@ -174,9 +167,7 @@ export class MetorialManagementInstanceSessionTemplatesProvidersEndpoint {
 
     let request = {
       path,
-      body: mapDashboardInstanceSessionTemplatesProvidersUpdateBody.transformTo(
-        body
-      ),
+      body: mapDashboardInstanceSessionTemplatesProvidersUpdateBody.transformTo(body),
 
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;

@@ -5,7 +5,7 @@ export type ManagementInstanceSessionsEventsGetOutput = {
   id: string;
   type: string | null;
   name: string | null;
-  message: string | null;
+  message: Record<string, any> | null;
   data: Record<string, any> | null;
   metadata: Record<string, any> | null;
   sessionId: string;
@@ -24,11 +24,7 @@ export let mapManagementInstanceSessionsEventsGetOutput =
     data: mtMap.objectField('data', mtMap.passthrough()),
     metadata: mtMap.objectField('metadata', mtMap.passthrough()),
     sessionId: mtMap.objectField('session_id', mtMap.passthrough()),
-    sessionProviderId: mtMap.objectField(
-      'session_provider_id',
-      mtMap.passthrough()
-    ),
+    sessionProviderId: mtMap.objectField('session_provider_id', mtMap.passthrough()),
     providerRunId: mtMap.objectField('provider_run_id', mtMap.passthrough()),
     createdAt: mtMap.objectField('created_at', mtMap.date())
   });
-

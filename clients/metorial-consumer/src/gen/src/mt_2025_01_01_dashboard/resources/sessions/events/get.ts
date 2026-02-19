@@ -23,11 +23,7 @@ export let mapSessionsEventsGetOutput = mtMap.object<SessionsEventsGetOutput>({
   data: mtMap.objectField('data', mtMap.passthrough()),
   metadata: mtMap.objectField('metadata', mtMap.passthrough()),
   sessionId: mtMap.objectField('session_id', mtMap.passthrough()),
-  sessionProviderId: mtMap.objectField(
-    'session_provider_id',
-    mtMap.passthrough()
-  ),
+  sessionProviderId: mtMap.objectField('session_provider_id', mtMap.passthrough()),
   providerRunId: mtMap.objectField('provider_run_id', mtMap.passthrough()),
   createdAt: mtMap.objectField('created_at', mtMap.date())
 });
-

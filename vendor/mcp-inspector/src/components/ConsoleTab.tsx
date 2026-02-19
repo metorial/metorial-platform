@@ -1,4 +1,4 @@
-import { TabsContent } from "@/components/ui/tabs";
+import { TabsContent } from '@/components/ui/tabs';
 
 const ConsoleTab = () => (
   <TabsContent value="console" className="h-96">

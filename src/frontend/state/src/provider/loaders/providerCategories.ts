@@ -13,7 +13,7 @@ export let providerCategoriesLoader = createLoader({
 export let useProviderCategories = () => {
   let instance = useCurrentInstance();
   let data = providerCategoriesLoader.use(
-    instance.data?.instanceId ? { instanceId: instance.data.instanceId } : null
+    instance.data?.id ? { instanceId: instance.data.id } : null
   );
   return data;
 };

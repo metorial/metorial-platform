@@ -24,11 +24,7 @@ export let mapDashboardInstanceSessionsErrorsGetOutput =
     stack: mtMap.objectField('stack', mtMap.passthrough()),
     metadata: mtMap.objectField('metadata', mtMap.passthrough()),
     sessionId: mtMap.objectField('session_id', mtMap.passthrough()),
-    sessionErrorGroupId: mtMap.objectField(
-      'session_error_group_id',
-      mtMap.passthrough()
-    ),
+    sessionErrorGroupId: mtMap.objectField('session_error_group_id', mtMap.passthrough()),
     providerRunId: mtMap.objectField('provider_run_id', mtMap.passthrough()),
     createdAt: mtMap.objectField('created_at', mtMap.date())
   });
-

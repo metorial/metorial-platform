@@ -5,7 +5,6 @@ export type ApiKeysRotateOutput = {
   id: string;
   status: 'active' | 'deleted';
   secretRedacted: string;
-  secretRedactedLong: string;
   secret: string | null;
   type:
     | 'organization_management_token'
@@ -17,10 +16,7 @@ export type ApiKeysRotateOutput = {
     object: 'machine_access';
     id: string;
     status: 'active' | 'deleted';
-    type:
-      | 'organization_management'
-      | 'instance_secret'
-      | 'instance_publishable';
+    type: 'organization_management' | 'instance_secret' | 'instance_publishable';
     name: string;
     lastUsedAt: Date;
     createdAt: Date;
@@ -47,7 +43,7 @@ export type ApiKeysRotateOutput = {
     } | null;
     instance: {
       object: 'organization.instance';
-      instanceId: string;
+      id: string;
       slug: string;
       name: string;
       organizationId: string;
@@ -94,7 +90,6 @@ export type ApiKeysRotateOutput = {
   expiresAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
-  revealInfo: { until: Date; forever: boolean } | null;
 };
 
 export let mapApiKeysRotateOutput = mtMap.object<ApiKeysRotateOutput>({
@@ -102,10 +97,6 @@ export let mapApiKeysRotateOutput = mtMap.object<ApiKeysRotateOutput>({
   id: mtMap.objectField('id', mtMap.passthrough()),
   status: mtMap.objectField('status', mtMap.passthrough()),
   secretRedacted: mtMap.objectField('secret_redacted', mtMap.passthrough()),
-  secretRedactedLong: mtMap.objectField(
-    'secret_redacted_long',
-    mtMap.passthrough()
-  ),
   secret: mtMap.objectField('secret', mtMap.passthrough()),
   type: mtMap.objectField('type', mtMap.passthrough()),
   name: mtMap.objectField('name', mtMap.passthrough()),
@@ -128,10 +119,7 @@ export let mapApiKeysRotateOutput = mtMap.object<ApiKeysRotateOutput>({
           object: mtMap.objectField('object', mtMap.passthrough()),
           id: mtMap.objectField('id', mtMap.passthrough()),
           type: mtMap.objectField('type', mtMap.passthrough()),
-          organizationId: mtMap.objectField(
-            'organization_id',
-            mtMap.passthrough()
-          ),
+          organizationId: mtMap.objectField('organization_id', mtMap.passthrough()),
           name: mtMap.objectField('name', mtMap.passthrough()),
           email: mtMap.objectField('email', mtMap.passthrough()),
           imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
@@ -142,10 +130,7 @@ export let mapApiKeysRotateOutput = mtMap.object<ApiKeysRotateOutput>({
                 id: mtMap.objectField('id', mtMap.passthrough()),
                 name: mtMap.objectField('name', mtMap.passthrough()),
                 slug: mtMap.objectField('slug', mtMap.passthrough()),
-                assignmentId: mtMap.objectField(
-                  'assignment_id',
-                  mtMap.passthrough()
-                ),
+                assignmentId: mtMap.objectField('assignment_id', mtMap.passthrough()),
                 createdAt: mtMap.objectField('created_at', mtMap.date()),
                 updatedAt: mtMap.objectField('updated_at', mtMap.date())
               })
@@ -159,13 +144,10 @@ export let mapApiKeysRotateOutput = mtMap.object<ApiKeysRotateOutput>({
         'instance',
         mtMap.object({
           object: mtMap.objectField('object', mtMap.passthrough()),
-          instanceId: mtMap.objectField('instance_id', mtMap.passthrough()),
+          id: mtMap.objectField('id', mtMap.passthrough()),
           slug: mtMap.objectField('slug', mtMap.passthrough()),
           name: mtMap.objectField('name', mtMap.passthrough()),
-          organizationId: mtMap.objectField(
-            'organization_id',
-            mtMap.passthrough()
-          ),
+          organizationId: mtMap.objectField('organization_id', mtMap.passthrough()),
           type: mtMap.objectField('type', mtMap.passthrough()),
           createdAt: mtMap.objectField('created_at', mtMap.date()),
           updatedAt: mtMap.objectField('updated_at', mtMap.date()),
@@ -177,10 +159,7 @@ export let mapApiKeysRotateOutput = mtMap.object<ApiKeysRotateOutput>({
               status: mtMap.objectField('status', mtMap.passthrough()),
               slug: mtMap.objectField('slug', mtMap.passthrough()),
               name: mtMap.objectField('name', mtMap.passthrough()),
-              organizationId: mtMap.objectField(
-                'organization_id',
-                mtMap.passthrough()
-              ),
+              organizationId: mtMap.objectField('organization_id', mtMap.passthrough()),
               createdAt: mtMap.objectField('created_at', mtMap.date()),
               updatedAt: mtMap.objectField('updated_at', mtMap.date())
             })
@@ -222,14 +201,7 @@ export let mapApiKeysRotateOutput = mtMap.object<ApiKeysRotateOutput>({
   lastUsedAt: mtMap.objectField('last_used_at', mtMap.date()),
   expiresAt: mtMap.objectField('expires_at', mtMap.date()),
   createdAt: mtMap.objectField('created_at', mtMap.date()),
-  updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-  revealInfo: mtMap.objectField(
-    'reveal_info',
-    mtMap.object({
-      until: mtMap.objectField('until', mtMap.date()),
-      forever: mtMap.objectField('forever', mtMap.passthrough())
-    })
-  )
+  updatedAt: mtMap.objectField('updated_at', mtMap.date())
 });
 
 export type ApiKeysRotateBody = { currentExpiresAt?: Date | undefined };
@@ -237,4 +209,3 @@ export type ApiKeysRotateBody = { currentExpiresAt?: Date | undefined };
 export let mapApiKeysRotateBody = mtMap.object<ApiKeysRotateBody>({
   currentExpiresAt: mtMap.objectField('current_expires_at', mtMap.date())
 });
-

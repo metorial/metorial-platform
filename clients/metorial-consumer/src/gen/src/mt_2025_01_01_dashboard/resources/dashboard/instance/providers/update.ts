@@ -79,4 +79,3 @@ export let mapDashboardInstanceProvidersUpdateBody =
     image: mtMap.objectField('image', mtMap.passthrough()),
     skills: mtMap.objectField('skills', mtMap.array(mtMap.passthrough()))
   });
-

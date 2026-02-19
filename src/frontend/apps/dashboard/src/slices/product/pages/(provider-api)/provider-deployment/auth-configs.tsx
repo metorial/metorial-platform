@@ -26,7 +26,7 @@ export let ProviderDeploymentAuthConfigsPage = () => {
       <Spacer size={15} />
 
       <ProviderAuthConfigsTable
-        instanceId={instance.data.instanceId}
+        instanceId={instance.data.id}
         providerDeploymentId={providerDeploymentId!}
       />
     </>

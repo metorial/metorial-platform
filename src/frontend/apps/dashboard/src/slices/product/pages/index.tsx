@@ -17,7 +17,7 @@ export let ProjectHomePage = () => {
 
   let boot = useBoot();
   let otherInstancesFromThisProject = boot.data?.instances.filter(
-    i => i.project.id == instance.data?.project.id && i.instanceId != instance.data?.instanceId
+    i => i.project.id == instance.data?.project.id && i.id != instance.data?.id
   );
   let otherProductionInstance = otherInstancesFromThisProject?.find(
     i => i.type == 'production'
@@ -26,14 +26,14 @@ export let ProjectHomePage = () => {
     i => i.type == 'development'
   );
 
-  let deployments = useProviderDeployments(instance.data?.instanceId);
+  let deployments = useProviderDeployments(instance.data?.id);
   let hasDeployments = !!deployments.data?.items.length;
 
   let apiKeys = useApiKeysWithAutoInit(
     instance.data
       ? {
           type: 'instance_access_token',
-          instanceId: instance.data.instanceId
+          instanceId: instance.data.id
         }
       : undefined
   );
@@ -47,8 +47,9 @@ export let ProjectHomePage = () => {
   let secretApiKey = apiKeys.data?.find(
     a =>
       a.type === 'instance_access_token_secret' &&
-      ((a.status == 'active' && a.revealInfo?.forever) ||
-        (a.revealInfo?.until && a.revealInfo?.until > new Date()))
+      a.status == 'active' &&
+      ((a as any).revealInfo?.forever ||
+        ((a as any).revealInfo?.until && (a as any).revealInfo?.until > new Date()))
   );
 
   return (
@@ -218,7 +219,11 @@ export let ProjectHomePage = () => {
           <ServersGrid
             limit={6}
             providerCollectionId={
-              (window as unknown as { metorial_enterprise?: { landing_collection_ids?: string | string[] } }).metorial_enterprise?.landing_collection_ids
+              (
+                window as unknown as {
+                  metorial_enterprise?: { landing_collection_ids?: string | string[] };
+                }
+              ).metorial_enterprise?.landing_collection_ids
             }
           />
 

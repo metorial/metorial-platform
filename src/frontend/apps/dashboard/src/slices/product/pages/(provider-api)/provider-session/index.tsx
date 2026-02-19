@@ -8,7 +8,7 @@ export let ProviderSessionOverviewPage = () => {
   let instance = useCurrentInstance();
 
   let { sessionId } = useParams();
-  let session = useSession(instance.data?.instanceId, sessionId);
+  let session = useSession(instance.data?.id, sessionId);
 
   return renderWithLoader({ session })(({ session }) => (
     <>
@@ -37,10 +37,7 @@ export let ProviderSessionOverviewPage = () => {
       <Spacer height={15} />
 
       {session.data.connectionUrl && (
-        <SideBox
-          title="Connection URL"
-          description="Use this URL to connect to this session."
-        >
+        <SideBox title="Connection URL" description="Use this URL to connect to this session.">
           <div>
             <strong>URL:</strong>{' '}
             <code style={{ fontSize: '12px', wordBreak: 'break-all' }}>

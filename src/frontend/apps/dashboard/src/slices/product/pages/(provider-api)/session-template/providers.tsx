@@ -677,7 +677,7 @@ let showAddProviderModal = (p: {
 export let SessionTemplateProvidersPage = () => {
   let instance = useCurrentInstance();
   let { sessionTemplateId } = useParams();
-  let template = useSessionTemplate(instance.data?.instanceId, sessionTemplateId);
+  let template = useSessionTemplate(instance.data?.id, sessionTemplateId);
 
   return renderWithLoader({ template })(({ template }) => {
     // Session template providers are fetched separately via the providers sub-resource.
@@ -704,7 +704,7 @@ export let SessionTemplateProvidersPage = () => {
           onClick={() => {
             if (!instance.data) return;
             showAddProviderModal({
-              instanceId: instance.data.instanceId,
+              instanceId: instance.data.id,
               sessionTemplateId: sessionTemplateId!,
               onComplete: () => {
                 // Template data will be refreshed on next navigation or mount
@@ -725,38 +725,37 @@ export let SessionTemplateProvidersPage = () => {
 
         <Flex direction="column" gap={8}>
           {providers.map(p => (
-              <div
-                key={p.id}
-                style={{
-                  border: `1px solid ${theme.colors.gray300}`,
-                  borderRadius: 8,
-                  padding: '14px 16px'
-                }}
-              >
-                <Flex style={{ alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Flex gap={8} style={{ alignItems: 'center' }}>
-                    <Text size="2" weight="strong">
-                      {p.provider?.name ?? p.providerId}
-                    </Text>
-                    <Badge color="gray" size="1">
-                      {p.providerDeployment?.name ?? p.providerDeploymentId}
-                    </Badge>
-                  </Flex>
-
-                  <ID id={p.id} />
+            <div
+              key={p.id}
+              style={{
+                border: `1px solid ${theme.colors.gray300}`,
+                borderRadius: 8,
+                padding: '14px 16px'
+              }}
+            >
+              <Flex style={{ alignItems: 'center', justifyContent: 'space-between' }}>
+                <Flex gap={8} style={{ alignItems: 'center' }}>
+                  <Text size="2" weight="strong">
+                    {p.provider?.name ?? p.providerId}
+                  </Text>
+                  <Badge color="gray" size="1">
+                    {p.providerDeployment?.name ?? p.providerDeploymentId}
+                  </Badge>
                 </Flex>
 
-                <Flex gap={16} style={{ marginTop: 6 }}>
-                  <Text size="1" color="gray600">
-                    Config: {p.providerConfig?.name ?? p.providerConfigId ?? 'None'}
-                  </Text>
-                  <Text size="1" color="gray600">
-                    Auth: {p.providerAuthConfig?.name ?? p.providerAuthConfigId ?? 'None'}
-                  </Text>
-                </Flex>
-              </div>
-            )
-          )}
+                <ID id={p.id} />
+              </Flex>
+
+              <Flex gap={16} style={{ marginTop: 6 }}>
+                <Text size="1" color="gray600">
+                  Config: {p.providerConfig?.name ?? p.providerConfigId ?? 'None'}
+                </Text>
+                <Text size="1" color="gray600">
+                  Auth: {p.providerAuthConfig?.name ?? p.providerAuthConfigId ?? 'None'}
+                </Text>
+              </Flex>
+            </div>
+          ))}
         </Flex>
       </>
     );

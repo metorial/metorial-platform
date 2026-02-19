@@ -555,7 +555,7 @@ export let ProviderDeploymentsListLayout = () => {
           size="2"
           onClick={() => {
             if (instance.data) {
-              showDeploymentPickerThenCreateConfig(instance.data.instanceId);
+              showDeploymentPickerThenCreateConfig(instance.data.id);
             }
           }}
         >
@@ -569,7 +569,7 @@ export let ProviderDeploymentsListLayout = () => {
           size="2"
           onClick={() => {
             if (instance.data) {
-              showDeploymentPickerThenCreateAuthConfig(instance.data.instanceId);
+              showDeploymentPickerThenCreateAuthConfig(instance.data.id);
             }
           }}
         >
@@ -583,7 +583,7 @@ export let ProviderDeploymentsListLayout = () => {
           size="2"
           onClick={() => {
             if (instance.data) {
-              showDeploymentPickerThenConfigureAuth(instance.data.instanceId);
+              showDeploymentPickerThenConfigureAuth(instance.data.id);
             }
           }}
         >

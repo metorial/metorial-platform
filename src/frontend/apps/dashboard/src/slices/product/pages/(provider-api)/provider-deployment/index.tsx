@@ -15,10 +15,10 @@ export let ProviderDeploymentOverviewPage = () => {
   let instance = useCurrentInstance();
 
   let { providerDeploymentId } = useParams();
-  let deployment = useProviderDeployment(instance.data?.instanceId, providerDeploymentId);
+  let deployment = useProviderDeployment(instance.data?.id, providerDeploymentId);
   let [searchParams, setSearchParams] = useSearchParams();
   let authConfigs = useProviderAuthConfigs(
-    instance.data?.instanceId,
+    instance.data?.id,
     deployment.data?.id ?? providerDeploymentId
   );
   let setupOpenedRef = useRef(false);
@@ -35,7 +35,7 @@ export let ProviderDeploymentOverviewPage = () => {
     setSearchParams(nextSearch, { replace: true });
 
     showProviderSetupSessionModal({
-      instanceId: instance.data.instanceId,
+      instanceId: instance.data.id,
       providerId: deployment.data.providerId,
       deploymentId: deployment.data.id,
       onComplete: () => authConfigs.refetch?.()
@@ -77,7 +77,7 @@ export let ProviderDeploymentOverviewPage = () => {
           onClick={() => {
             if (!instance.data) return;
             showProviderSetupSessionModal({
-              instanceId: instance.data.instanceId,
+              instanceId: instance.data.id,
               providerId: deployment.data.providerId,
               deploymentId: deployment.data.id,
               onComplete: () => authConfigs.refetch?.()
@@ -91,7 +91,7 @@ export let ProviderDeploymentOverviewPage = () => {
       <Spacer height={15} />
 
       <ProviderAuthConfigsTable
-        instanceId={instance.data!.instanceId}
+        instanceId={instance.data!.id}
         providerDeploymentId={deployment.data.id}
       />
     </>

@@ -15,6 +15,7 @@ Metorial consists of three main application components and several supporting se
 ### Application Components
 
 **API Service** - The core backend service built with Bun/TypeScript that handles:
+
 - REST API endpoints
 - MCP protocol implementation
 - OAuth provider integration
@@ -22,11 +23,13 @@ Metorial consists of three main application components and several supporting se
 - Integration APIs
 
 **Engine Service** - A Go-based gRPC service that:
+
 - Manages MCP server instances
 - Handles containerized tool execution
 - Provides resource management
 
 **Frontend** - React-based dashboard providing:
+
 - Web interface for managing integrations
 - MCP server explorer
 - Monitoring and debugging tools
@@ -72,6 +75,7 @@ DENO_ORGANIZATION_ID=your-org-id
 The following ports will be exposed on your host:
 
 **Application Ports:**
+
 - 4300 - Dashboard frontend
 - 4310 - Core API
 - 4311 - MCP API
@@ -84,6 +88,7 @@ The following ports will be exposed on your host:
 - 50050 - Engine gRPC
 
 **Service Ports:**
+
 - 35432 - PostgreSQL
 - 36379 - Redis
 - 32707 - MongoDB
@@ -112,6 +117,7 @@ docker compose -f ./deployment/compose/metorial.docker-compose.yml up -d
 ### Initial Startup
 
 On first run, the services will:
+
 1. Download required Docker images
 2. Create data volumes in `deployment/compose/_volumes/`
 3. Build the API and Engine services
@@ -125,6 +131,7 @@ This process may take 5-10 minutes depending on your system.
 Once all services are running, verify the installation:
 
 1. Check service health:
+
 ```bash
 docker compose -f ./deployment/compose/metorial.docker-compose.yml ps
 ```
@@ -162,6 +169,7 @@ Back up this directory regularly to prevent data loss.
 ### Services Won't Start
 
 Check logs for specific services:
+
 ```bash
 docker compose -f ./deployment/compose/metorial.docker-compose.yml logs api
 docker compose -f ./deployment/compose/metorial.docker-compose.yml logs engine
@@ -170,6 +178,7 @@ docker compose -f ./deployment/compose/metorial.docker-compose.yml logs engine
 ### Database Connection Issues
 
 Ensure PostgreSQL is fully initialized before the API starts. If needed, restart the API service:
+
 ```bash
 docker compose -f ./deployment/compose/metorial.docker-compose.yml restart api
 ```

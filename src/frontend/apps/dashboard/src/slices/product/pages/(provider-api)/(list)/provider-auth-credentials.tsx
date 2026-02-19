@@ -59,7 +59,7 @@ export let ProviderAuthCredentialsOverviewPage = () => {
   let [search, setSearch] = useState('');
   let searchDebounced = useDebounced(search, 500);
 
-  let deployments = useProviderDeployments(instance.data?.instanceId, {
+  let deployments = useProviderDeployments(instance.data?.id, {
     search: searchDebounced
   });
 
@@ -99,10 +99,7 @@ export let ProviderAuthCredentialsOverviewPage = () => {
         let perDeployment = await mapWithConcurrency(deploymentItems, 4, async deployment => {
           try {
             let response = await withAuth(sdk =>
-              sdk.providerDeployments.authCredentials.list(
-                instance.data!.instanceId,
-                deployment.id
-              )
+              sdk.providerDeployments.authCredentials.list(instance.data!.id, deployment.id)
             );
 
             return {
@@ -157,7 +154,7 @@ export let ProviderAuthCredentialsOverviewPage = () => {
     return () => {
       isCanceled = true;
     };
-  }, [instance.data?.instanceId, deploymentSignature, reloadKey]);
+  }, [instance.data?.id, deploymentSignature, reloadKey]);
 
   return renderWithLoader({ instance, deployments })(({ instance }) => (
     <>

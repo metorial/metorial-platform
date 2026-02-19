@@ -26,7 +26,7 @@ export let SessionTemplateForm = (
 
     if (props.type === 'create') {
       let [result] = await createMutation.mutate({
-        instanceId: instance.data.instanceId,
+        instanceId: instance.data.id,
         name,
         description: description || undefined
       });

@@ -46,7 +46,7 @@ export let ProjectPageLayout = () => {
 
   useEffect(() => {
     if (!instance.data) return;
-    lastInstanceIdStore.set(instance.data.instanceId);
+    lastInstanceIdStore.set(instance.data.id);
   }, [instance.data]);
 
   let params = [organization.data, instance.data?.project, instance.data] as [

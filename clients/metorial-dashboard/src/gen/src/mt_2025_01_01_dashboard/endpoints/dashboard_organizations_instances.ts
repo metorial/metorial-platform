@@ -1,7 +1,4 @@
-import {
-  BaseMetorialEndpoint,
-  MetorialEndpointManager
-} from '@metorial/util-endpoint';
+import { BaseMetorialEndpoint, MetorialEndpointManager } from '@metorial/util-endpoint';
 
 import {
   mapDashboardOrganizationsInstancesCreateBody,
@@ -76,9 +73,7 @@ export class MetorialDashboardOrganizationsInstancesEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._get(request).transform(
-      mapDashboardOrganizationsInstancesListOutput
-    );
+    return this._get(request).transform(mapDashboardOrganizationsInstancesListOutput);
   }
 
   /**
@@ -105,9 +100,7 @@ export class MetorialDashboardOrganizationsInstancesEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._get(request).transform(
-      mapDashboardOrganizationsInstancesGetOutput
-    );
+    return this._get(request).transform(mapDashboardOrganizationsInstancesGetOutput);
   }
 
   /**
@@ -135,9 +128,7 @@ export class MetorialDashboardOrganizationsInstancesEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._post(request).transform(
-      mapDashboardOrganizationsInstancesCreateOutput
-    );
+    return this._post(request).transform(mapDashboardOrganizationsInstancesCreateOutput);
   }
 
   /**
@@ -164,9 +155,7 @@ export class MetorialDashboardOrganizationsInstancesEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._delete(request).transform(
-      mapDashboardOrganizationsInstancesDeleteOutput
-    );
+    return this._delete(request).transform(mapDashboardOrganizationsInstancesDeleteOutput);
   }
 
   /**
@@ -196,8 +185,6 @@ export class MetorialDashboardOrganizationsInstancesEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._post(request).transform(
-      mapDashboardOrganizationsInstancesUpdateOutput
-    );
+    return this._post(request).transform(mapDashboardOrganizationsInstancesUpdateOutput);
   }
 }

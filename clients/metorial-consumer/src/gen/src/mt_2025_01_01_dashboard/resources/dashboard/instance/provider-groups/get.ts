@@ -20,4 +20,3 @@ export let mapDashboardInstanceProviderGroupsGetOutput =
     createdAt: mtMap.objectField('created_at', mtMap.date()),
     updatedAt: mtMap.objectField('updated_at', mtMap.date())
   });
-

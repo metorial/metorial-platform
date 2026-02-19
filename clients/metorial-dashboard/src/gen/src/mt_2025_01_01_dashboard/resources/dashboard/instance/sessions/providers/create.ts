@@ -24,10 +24,7 @@ export let mapDashboardInstanceSessionsProvidersCreateOutput =
     metadata: mtMap.objectField('metadata', mtMap.passthrough()),
     sessionId: mtMap.objectField('session_id', mtMap.passthrough()),
     providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-    providerDeploymentId: mtMap.objectField(
-      'provider_deployment_id',
-      mtMap.passthrough()
-    ),
+    providerDeploymentId: mtMap.objectField('provider_deployment_id', mtMap.passthrough()),
     createdAt: mtMap.objectField('created_at', mtMap.date()),
     updatedAt: mtMap.objectField('updated_at', mtMap.date())
   });
@@ -124,14 +121,8 @@ export let mapDashboardInstanceSessionsProvidersCreateBody =
                         mtMap.unionOption(
                           'object',
                           mtMap.object({
-                            type: mtMap.objectField(
-                              'type',
-                              mtMap.passthrough()
-                            ),
-                            data: mtMap.objectField(
-                              'data',
-                              mtMap.passthrough()
-                            ),
+                            type: mtMap.objectField('type', mtMap.passthrough()),
+                            data: mtMap.objectField('data', mtMap.passthrough()),
                             providerConfigVaultId: mtMap.objectField(
                               'provider_config_vault_id',
                               mtMap.passthrough()
@@ -156,10 +147,7 @@ export let mapDashboardInstanceSessionsProvidersCreateBody =
           'object',
           mtMap.object({
             type: mtMap.objectField('type', mtMap.passthrough()),
-            providerConfigId: mtMap.objectField(
-              'provider_config_id',
-              mtMap.passthrough()
-            ),
+            providerConfigId: mtMap.objectField('provider_config_id', mtMap.passthrough()),
             name: mtMap.objectField('name', mtMap.passthrough()),
             config: mtMap.objectField(
               'config',
@@ -207,11 +195,7 @@ export let mapDashboardInstanceSessionsProvidersCreateBody =
     toolFilters: mtMap.objectField(
       'tool_filters',
       mtMap.object({
-        toolKeys: mtMap.objectField(
-          'tool_keys',
-          mtMap.array(mtMap.passthrough())
-        )
+        toolKeys: mtMap.objectField('tool_keys', mtMap.array(mtMap.passthrough()))
       })
     )
   });
-

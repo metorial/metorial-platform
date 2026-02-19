@@ -6,6 +6,6 @@
     "jsx": "react",
     "outDir": "dist",
     "module": "ESNext",
-    "target": "ESNext",
+    "target": "ESNext"
   }
 }

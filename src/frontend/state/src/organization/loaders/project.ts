@@ -10,27 +10,27 @@ import { bootLoader } from './boot';
 export let projectsLoader = createLoader({
   name: 'projects',
   parents: [bootLoader],
-  fetch: (i: { organizationId: string } & DashboardOrganizationsProjectsListQuery) =>
+  fetch: (i: { organizationId: string }) =>
     withAuth(sdk =>
       autoPaginate(cursor =>
         sdk.projects.list(i.organizationId, { limit: 100, ...cursor, ...i })
       )
     ),
   mutators: {
-    create: (i: DashboardOrganizationsProjectsCreateBody, { input: { organizationId } }) =>
-      withAuth(sdk => sdk.projects.create(organizationId, i))
+    create: (
+      i: DashboardOrganizationsProjectsCreateBody,
+      { input: { organizationId } }: any
+    ) => withAuth(sdk => sdk.projects.create(organizationId, i))
   }
 });
 
-export let createProject = (
-  d: DashboardOrganizationsProjectsCreateBody & { organizationId: string }
-) => {
+export let createProject = (d: { organizationId: string; name: string }) => {
   return withAuth(sdk => sdk.projects.create(d.organizationId, d));
 };
 
 export let useProjects = (
   organizationId: string | null | undefined,
-  query?: Partial<DashboardOrganizationsProjectsListQuery>
+  query?: DashboardOrganizationsProjectsListQuery
 ) => {
   let projects = projectsLoader.use(organizationId ? { organizationId, ...query } : null);
 

@@ -1,5 +1,4 @@
 import { badRequestError, ServiceError } from '@metorial/error';
-import { subspaceReferenceGroupService } from '@metorial/module-subspace-reference';
 import { subspaceProviderListingGroupService } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
@@ -88,18 +87,6 @@ export let providerGroupController = Controller.create(
           description: ctx.body.description
         });
 
-        await subspaceReferenceGroupService
-          .create({
-            instance: ctx.instance,
-            group: {
-              id: group.id,
-              name: group.name,
-              slug: group.slug,
-              createdAt: group.createdAt
-            }
-          })
-          .catch(err => console.error('Failed to store subspace reference:', err));
-
         return providerGroupPresenter.present({ group: group as SubspaceGroup });
       }),
 
@@ -147,7 +134,7 @@ export let providerGroupController = Controller.create(
       )
       .output(providerGroupPresenter)
       .do(async ctx => {
-        await subspaceProviderListingGroupService.addListing({
+        await subspaceProviderListingGroupService.addProvider({
           instance: ctx.instance,
           providerListingGroupId: ctx.group.id,
           providerListingId: ctx.body.provider_listing_id
@@ -179,7 +166,7 @@ export let providerGroupController = Controller.create(
           );
         }
 
-        await subspaceProviderListingGroupService.removeListing({
+        await subspaceProviderListingGroupService.removeProvider({
           instance: ctx.instance,
           providerListingGroupId: ctx.group.id,
           providerListingId: ctx.params.providerListingId

@@ -25,6 +25,7 @@ export let v1ProviderSessionPresenter = Presenter.create(providerSessionType)
       },
       metadata: session.metadata,
       connection_url: session.connectionUrl ?? null,
+      connection_key: session.connectionKey ?? null,
       provider_deployments: (session.providers ?? []).map(p => ({
         object: 'session.provider_deployment#preview' as const,
         id: p.id,
@@ -90,10 +91,14 @@ export let v1ProviderSessionPresenter = Presenter.create(providerSessionType)
       connection_url: v.nullable(
         v.string({
           name: 'connection_url',
-          description: 'Direct MCP connection URL for this session',
-          examples: [
-            'https://subspace.metorial.io/sol_abc/ten_xyz/sessions/ses_4dEfGhJkLmNpQrSt/mcp'
-          ]
+          description: 'MCP connection URL for this session',
+          examples: ['https://mcp.metorial.com/mcp/ses_4dEfGhJkLmNpQrSt']
+        })
+      ),
+      connection_key: v.nullable(
+        v.string({
+          name: 'connection_key',
+          description: 'API key for authenticating MCP proxy connections to this session'
         })
       ),
       provider_deployments: v.array(

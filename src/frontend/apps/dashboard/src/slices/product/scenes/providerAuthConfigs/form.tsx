@@ -33,16 +33,10 @@ export let ProviderAuthConfigForm = (
   let createMutation = useCreateProviderAuthConfig();
 
   // Get the provider deployment to get the providerId
-  let deployment = useProviderDeployment(
-    instance.data?.instanceId,
-    props.providerDeploymentId
-  );
+  let deployment = useProviderDeployment(instance.data?.id, props.providerDeploymentId);
 
   // Fetch auth methods for the provider
-  let authMethods = useProviderAuthMethods(
-    instance.data?.instanceId,
-    deployment.data?.providerId
-  );
+  let authMethods = useProviderAuthMethods(instance.data?.id, deployment.data?.providerId);
 
   let [name, setName] = useState('');
   let [description, setDescription] = useState('');
@@ -92,7 +86,7 @@ export let ProviderAuthConfigForm = (
       }
 
       let [result, err] = await createMutation.mutate({
-        instanceId: instance.data.instanceId,
+        instanceId: instance.data.id,
         providerDeploymentId: props.providerDeploymentId,
         name,
         description: description || undefined,

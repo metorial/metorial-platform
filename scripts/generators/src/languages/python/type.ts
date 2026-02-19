@@ -5,10 +5,11 @@ import { safePyName, toPyIdentifier, toPyClassName } from './utils';
 export let generateTypeFromIntrospectedType = async (name: string, type: IntrospectedType) => {
   let generatedTypes = new Set<string>();
   // Generate classes for object types AND intersection types (which should be structured)
-  let code = (type.type === 'object' || type.type === 'intersection') 
-    ? generateClass(name, type, generatedTypes) 
-    : generateAlias(name, type);
-  
+  let code =
+    type.type === 'object' || type.type === 'intersection'
+      ? generateClass(name, type, generatedTypes)
+      : generateAlias(name, type);
+
   return code + '\n';
 };
 
@@ -16,7 +17,7 @@ let wrapType = (t: IntrospectedType, hint: string): string => {
   if (t.optional || t.nullable) {
     return `Optional[${hint}]`;
   }
-  
+
   return hint;
 };
 
@@ -61,10 +62,10 @@ let processType = (type: IntrospectedType, typeName?: string): string => {
         }
         return processType(item);
       });
-      
+
       // Remove duplicates
       let uniqueMembers = [...new Set(processedMembers)];
-      
+
       // If union contains None/null, convert to Optional
       if (type.items!.some(item => item.nullable || item.type === 'null')) {
         let nonNullMembers = uniqueMembers.filter(member => member !== 'None');
@@ -74,12 +75,12 @@ let processType = (type: IntrospectedType, typeName?: string): string => {
           return wrapType(type, 'Optional[Any]');
         }
       }
-      
+
       // If only one unique member, return it directly
       if (uniqueMembers.length === 1) {
         return wrapType(type, uniqueMembers[0]);
       }
-      
+
       return wrapType(type, `Union[${uniqueMembers.join(', ')}]`);
     case 'intersection':
       // For intersection types, we'll handle them in generateClass by merging properties
@@ -95,13 +96,17 @@ let processType = (type: IntrospectedType, typeName?: string): string => {
   }
 };
 
-
-let generateClass = (name: string, type: IntrospectedType, generatedTypes: Set<string> = new Set(), isRoot: boolean = true): string => {
+let generateClass = (
+  name: string,
+  type: IntrospectedType,
+  generatedTypes: Set<string> = new Set(),
+  isRoot: boolean = true
+): string => {
   let className = toPyClassName(name);
-  
+
   // Handle intersection types by merging properties
   let mergedProperties: Record<string, IntrospectedType> = {};
-  
+
   if (type.type === 'intersection' && type.items) {
     // Merge properties from all objects in the intersection
     for (let item of type.items) {
@@ -122,30 +127,30 @@ let generateClass = (name: string, type: IntrospectedType, generatedTypes: Set<s
   } else if (type.properties) {
     mergedProperties = type.properties;
   }
-  
+
   // Generate nested types first
-  let nestedTypes = generateNestedTypes({ ...type, properties: mergedProperties }, className, generatedTypes);
-  
+  let nestedTypes = generateNestedTypes(
+    { ...type, properties: mergedProperties },
+    className,
+    generatedTypes
+  );
+
   // Ensure required fields come before optional fields
   let entries = Object.entries(mergedProperties);
-  
+
   // Sort fields based on actual optional/nullable flags
-  let requiredFields = entries.filter(([key, v]) => 
-    !(v.optional || v.nullable)
-  );
-  let optionalFields = entries.filter(([key, v]) => 
-    v.optional || v.nullable
-  );
-  
+  let requiredFields = entries.filter(([key, v]) => !(v.optional || v.nullable));
+  let optionalFields = entries.filter(([key, v]) => v.optional || v.nullable);
+
   // Required fields (no defaults) must come before optional fields (with defaults)
   let ordered = [...requiredFields, ...optionalFields];
-  
+
   let fields = ordered
     .map(([key, value]) => {
       let pyName = safePyName(toPyIdentifier(Cases.toSnakeCase(key)));
       let nestedTypeName = getNestedTypeName(key, value, className);
       let hint = processType(value, nestedTypeName);
-      let defaultVal = (value.optional || value.nullable) ? ' = None' : '';
+      let defaultVal = value.optional || value.nullable ? ' = None' : '';
       return `    ${pyName}: ${hint}${defaultVal}`;
     })
     .join('\n');
@@ -156,14 +161,18 @@ let generateClass = (name: string, type: IntrospectedType, generatedTypes: Set<s
 };
 
 // Generate nested dataclasses for object properties
-let generateNestedTypes = (type: IntrospectedType, parentClassName: string, generatedTypes: Set<string>): string => {
+let generateNestedTypes = (
+  type: IntrospectedType,
+  parentClassName: string,
+  generatedTypes: Set<string>
+): string => {
   let nestedTypes = '';
-  
+
   if (type.properties) {
     for (let [key, value] of Object.entries(type.properties)) {
       if (value.type === 'object' && value.properties) {
         let nestedTypeName = getNestedTypeName(key, value, parentClassName);
-        
+
         // Avoid generating duplicate types
         if (!generatedTypes.has(nestedTypeName)) {
           generatedTypes.add(nestedTypeName);
@@ -171,7 +180,7 @@ let generateNestedTypes = (type: IntrospectedType, parentClassName: string, gene
         }
       } else if (value.type === 'array' && value.items && value.items[0].type === 'object') {
         let nestedTypeName = getNestedTypeName(key, value.items[0], parentClassName);
-        
+
         if (!generatedTypes.has(nestedTypeName)) {
           generatedTypes.add(nestedTypeName);
           nestedTypes += generateClass(nestedTypeName, value.items[0], generatedTypes, false);
@@ -179,12 +188,16 @@ let generateNestedTypes = (type: IntrospectedType, parentClassName: string, gene
       }
     }
   }
-  
+
   return nestedTypes;
 };
 
 // Generate appropriate type name for nested objects
-let getNestedTypeName = (key: string, type: IntrospectedType, parentClassName: string): string => {
+let getNestedTypeName = (
+  key: string,
+  type: IntrospectedType,
+  parentClassName: string
+): string => {
   if (type.type === 'object') {
     // Create a meaningful name for the nested type
     let baseName = Cases.toPascalCase(key);

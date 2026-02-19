@@ -57,7 +57,7 @@ export let ProviderAuthConfigsOverviewPage = () => {
 
       try {
         let response = await withAuth(sdk =>
-          sdk.providers.authConfigs.list(instance.data!.instanceId)
+          sdk.providers.authConfigs.list(instance.data!.id)
         );
 
         if (isCanceled) return;
@@ -101,7 +101,7 @@ export let ProviderAuthConfigsOverviewPage = () => {
     return () => {
       isCanceled = true;
     };
-  }, [instance.data?.instanceId, reloadKey, searchDebounced]);
+  }, [instance.data?.id, reloadKey, searchDebounced]);
 
   return renderWithLoader({ instance })(({ instance }) => (
     <>

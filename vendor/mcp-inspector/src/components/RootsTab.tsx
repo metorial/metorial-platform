@@ -1,32 +1,30 @@
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { TabsContent } from "@/components/ui/tabs";
-import { Root } from "@modelcontextprotocol/sdk/types.js";
-import { Plus, Minus, Save } from "lucide-react";
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { TabsContent } from '@/components/ui/tabs';
+import { Root } from '@modelcontextprotocol/sdk/types.js';
+import { Plus, Minus, Save } from 'lucide-react';
 
 const RootsTab = ({
   roots,
   setRoots,
-  onRootsChange,
+  onRootsChange
 }: {
   roots: Root[];
   setRoots: React.Dispatch<React.SetStateAction<Root[]>>;
   onRootsChange: () => void;
 }) => {
   const addRoot = () => {
-    setRoots((currentRoots) => [...currentRoots, { uri: "file://", name: "" }]);
+    setRoots(currentRoots => [...currentRoots, { uri: 'file://', name: '' }]);
   };
 
   const removeRoot = (index: number) => {
-    setRoots((currentRoots) => currentRoots.filter((_, i) => i !== index));
+    setRoots(currentRoots => currentRoots.filter((_, i) => i !== index));
   };
 
   const updateRoot = (index: number, field: keyof Root, value: string) => {
-    setRoots((currentRoots) =>
-      currentRoots.map((root, i) =>
-        i === index ? { ...root, [field]: value } : root,
-      ),
+    setRoots(currentRoots =>
+      currentRoots.map((root, i) => (i === index ? { ...root, [field]: value } : root))
     );
   };
 
@@ -48,14 +46,10 @@ const RootsTab = ({
             <Input
               placeholder="file:// URI"
               value={root.uri}
-              onChange={(e) => updateRoot(index, "uri", e.target.value)}
+              onChange={e => updateRoot(index, 'uri', e.target.value)}
               className="flex-1"
             />
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => removeRoot(index)}
-            >
+            <Button variant="destructive" size="sm" onClick={() => removeRoot(index)}>
               <Minus className="h-4 w-4" />
             </Button>
           </div>

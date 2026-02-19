@@ -38,53 +38,52 @@ export type CustomProvidersUpdateOutput = {
   updatedAt: Date;
 };
 
-export let mapCustomProvidersUpdateOutput =
-  mtMap.object<CustomProvidersUpdateOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-    provider: mtMap.objectField(
-      'provider',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        description: mtMap.objectField('description', mtMap.passthrough()),
-        slug: mtMap.objectField('slug', mtMap.passthrough()),
-        publisher: mtMap.objectField(
-          'publisher',
-          mtMap.object({
-            object: mtMap.objectField('object', mtMap.passthrough()),
-            id: mtMap.objectField('id', mtMap.passthrough()),
-            name: mtMap.objectField('name', mtMap.passthrough()),
-            description: mtMap.objectField('description', mtMap.passthrough()),
-            slug: mtMap.objectField('slug', mtMap.passthrough()),
-            imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
-            createdAt: mtMap.objectField('created_at', mtMap.date()),
-            updatedAt: mtMap.objectField('updated_at', mtMap.date())
-          })
-        ),
-        currentVersion: mtMap.objectField(
-          'current_version',
-          mtMap.object({
-            object: mtMap.objectField('object', mtMap.passthrough()),
-            id: mtMap.objectField('id', mtMap.passthrough()),
-            version: mtMap.objectField('version', mtMap.passthrough()),
-            status: mtMap.objectField('status', mtMap.passthrough()),
-            createdAt: mtMap.objectField('created_at', mtMap.date()),
-            updatedAt: mtMap.objectField('updated_at', mtMap.date())
-          })
-        ),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date())
-      })
-    ),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
+export let mapCustomProvidersUpdateOutput = mtMap.object<CustomProvidersUpdateOutput>({
+  object: mtMap.objectField('object', mtMap.passthrough()),
+  id: mtMap.objectField('id', mtMap.passthrough()),
+  status: mtMap.objectField('status', mtMap.passthrough()),
+  name: mtMap.objectField('name', mtMap.passthrough()),
+  description: mtMap.objectField('description', mtMap.passthrough()),
+  metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+  provider: mtMap.objectField(
+    'provider',
+    mtMap.object({
+      object: mtMap.objectField('object', mtMap.passthrough()),
+      id: mtMap.objectField('id', mtMap.passthrough()),
+      name: mtMap.objectField('name', mtMap.passthrough()),
+      description: mtMap.objectField('description', mtMap.passthrough()),
+      slug: mtMap.objectField('slug', mtMap.passthrough()),
+      publisher: mtMap.objectField(
+        'publisher',
+        mtMap.object({
+          object: mtMap.objectField('object', mtMap.passthrough()),
+          id: mtMap.objectField('id', mtMap.passthrough()),
+          name: mtMap.objectField('name', mtMap.passthrough()),
+          description: mtMap.objectField('description', mtMap.passthrough()),
+          slug: mtMap.objectField('slug', mtMap.passthrough()),
+          imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
+          createdAt: mtMap.objectField('created_at', mtMap.date()),
+          updatedAt: mtMap.objectField('updated_at', mtMap.date())
+        })
+      ),
+      currentVersion: mtMap.objectField(
+        'current_version',
+        mtMap.object({
+          object: mtMap.objectField('object', mtMap.passthrough()),
+          id: mtMap.objectField('id', mtMap.passthrough()),
+          version: mtMap.objectField('version', mtMap.passthrough()),
+          status: mtMap.objectField('status', mtMap.passthrough()),
+          createdAt: mtMap.objectField('created_at', mtMap.date()),
+          updatedAt: mtMap.objectField('updated_at', mtMap.date())
+        })
+      ),
+      createdAt: mtMap.objectField('created_at', mtMap.date()),
+      updatedAt: mtMap.objectField('updated_at', mtMap.date())
+    })
+  ),
+  createdAt: mtMap.objectField('created_at', mtMap.date()),
+  updatedAt: mtMap.objectField('updated_at', mtMap.date())
+});
 
 export type CustomProvidersUpdateBody = {
   name?: string | undefined;
@@ -92,10 +91,8 @@ export type CustomProvidersUpdateBody = {
   metadata?: Record<string, any> | undefined;
 };
 
-export let mapCustomProvidersUpdateBody =
-  mtMap.object<CustomProvidersUpdateBody>({
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    metadata: mtMap.objectField('metadata', mtMap.passthrough())
-  });
-
+export let mapCustomProvidersUpdateBody = mtMap.object<CustomProvidersUpdateBody>({
+  name: mtMap.objectField('name', mtMap.passthrough()),
+  description: mtMap.objectField('description', mtMap.passthrough()),
+  metadata: mtMap.objectField('metadata', mtMap.passthrough())
+});

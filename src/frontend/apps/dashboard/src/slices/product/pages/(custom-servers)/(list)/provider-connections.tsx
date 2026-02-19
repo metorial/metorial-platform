@@ -1,9 +1,9 @@
-import { renderWithLoader } from '@metorial/data-hooks';
-import { useCurrentInstance } from '@metorial/state';
-import { ProviderConnectionsTable } from '../../../scenes/providerConnection/table';
+import { Text } from '@metorial/ui';
 
 export let ProviderConnectionsPage = () => {
-  let instance = useCurrentInstance();
-
-  return renderWithLoader({ instance })(({ instance }) => <ProviderConnectionsTable />);
+  return (
+    <Text size="2" color="gray600">
+      Provider connections have been moved to the provider API.
+    </Text>
+  );
 };

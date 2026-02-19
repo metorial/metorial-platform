@@ -3,7 +3,6 @@ export * from './auth-credentials';
 export * from './config-vaults';
 export * from './configs';
 export * from './create';
-export * from './delete';
 export * from './get';
 export * from './list';
 export * from './setup-sessions';

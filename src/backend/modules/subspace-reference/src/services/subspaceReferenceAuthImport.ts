@@ -27,10 +27,7 @@ class SubspaceReferenceAuthImportServiceImpl {
   async delete(input: { instance: Instance; id: string }) {
     return db.subspaceReferenceAuthImport.delete({
       where: {
-        instanceOid_id: {
-          instanceOid: input.instance.oid,
-          id: input.id
-        }
+        id: input.id
       }
     });
   }

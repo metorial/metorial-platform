@@ -42,10 +42,7 @@ export let mapManagementInstanceSessionsConnectionsGetOutput =
       mtMap.object({
         object: mtMap.objectField('object', mtMap.passthrough()),
         version: mtMap.objectField('version', mtMap.passthrough()),
-        connectionType: mtMap.objectField(
-          'connection_type',
-          mtMap.passthrough()
-        ),
+        connectionType: mtMap.objectField('connection_type', mtMap.passthrough()),
         client: mtMap.objectField(
           'client',
           mtMap.object({
@@ -68,13 +65,9 @@ export let mapManagementInstanceSessionsConnectionsGetOutput =
     ),
     metadata: mtMap.objectField('metadata', mtMap.passthrough()),
     sessionId: mtMap.objectField('session_id', mtMap.passthrough()),
-    sessionProviderId: mtMap.objectField(
-      'session_provider_id',
-      mtMap.passthrough()
-    ),
+    sessionProviderId: mtMap.objectField('session_provider_id', mtMap.passthrough()),
     startedAt: mtMap.objectField('started_at', mtMap.date()),
     endedAt: mtMap.objectField('ended_at', mtMap.date()),
     createdAt: mtMap.objectField('created_at', mtMap.date()),
     updatedAt: mtMap.objectField('updated_at', mtMap.date())
   });
-

@@ -17,44 +17,33 @@ export type SessionsErrorsListOutput = {
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
-export let mapSessionsErrorsListOutput = mtMap.object<SessionsErrorsListOutput>(
-  {
-    items: mtMap.objectField(
-      'items',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          type: mtMap.objectField('type', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          message: mtMap.objectField('message', mtMap.passthrough()),
-          stack: mtMap.objectField('stack', mtMap.passthrough()),
-          metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-          sessionId: mtMap.objectField('session_id', mtMap.passthrough()),
-          sessionErrorGroupId: mtMap.objectField(
-            'session_error_group_id',
-            mtMap.passthrough()
-          ),
-          providerRunId: mtMap.objectField(
-            'provider_run_id',
-            mtMap.passthrough()
-          ),
-          createdAt: mtMap.objectField('created_at', mtMap.date())
-        })
-      )
-    ),
-    pagination: mtMap.objectField(
-      'pagination',
+export let mapSessionsErrorsListOutput = mtMap.object<SessionsErrorsListOutput>({
+  items: mtMap.objectField(
+    'items',
+    mtMap.array(
       mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
-        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
+        object: mtMap.objectField('object', mtMap.passthrough()),
+        id: mtMap.objectField('id', mtMap.passthrough()),
+        type: mtMap.objectField('type', mtMap.passthrough()),
+        name: mtMap.objectField('name', mtMap.passthrough()),
+        message: mtMap.objectField('message', mtMap.passthrough()),
+        stack: mtMap.objectField('stack', mtMap.passthrough()),
+        metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+        sessionId: mtMap.objectField('session_id', mtMap.passthrough()),
+        sessionErrorGroupId: mtMap.objectField('session_error_group_id', mtMap.passthrough()),
+        providerRunId: mtMap.objectField('provider_run_id', mtMap.passthrough()),
+        createdAt: mtMap.objectField('created_at', mtMap.date())
       })
     )
-  }
-);
+  ),
+  pagination: mtMap.objectField(
+    'pagination',
+    mtMap.object({
+      hasMoreBefore: mtMap.objectField('has_more_before', mtMap.passthrough()),
+      hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
+    })
+  )
+});
 
 export type SessionsErrorsListQuery = {
   limit?: number | undefined;
@@ -101,4 +90,3 @@ export let mapSessionsErrorsListQuery = mtMap.union([
     })
   )
 ]);
-

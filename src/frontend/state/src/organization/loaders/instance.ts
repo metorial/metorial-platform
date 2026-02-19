@@ -10,7 +10,7 @@ export let instancesLoader = createLoader({
     withAuth(sdk =>
       autoPaginate(
         cursor => sdk.instances.list(i.organizationId, { ...cursor, limit: 100 }),
-        item => item.instanceId
+        (item: { id: string }) => item.id
       )
     ),
   mutators: {
@@ -56,16 +56,16 @@ export let instanceLoader = createLoader({
       i: {
         name?: string;
       },
-      { output: { instanceId, organizationId } }
+      { output: { id, organizationId } }
     ) =>
       withAuth(sdk =>
-        sdk.instances.update(organizationId, instanceId, {
+        sdk.instances.update(organizationId, id, {
           name: i.name
         })
       ),
 
-    delete: (_, { output: { instanceId, organizationId } }) =>
-      withAuth(sdk => sdk.instances.delete(organizationId, instanceId))
+    delete: (_, { output: { id, organizationId } }) =>
+      withAuth(sdk => sdk.instances.delete(organizationId, id))
   }
 });
 

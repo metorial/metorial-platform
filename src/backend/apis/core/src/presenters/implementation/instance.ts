@@ -7,13 +7,13 @@ export let v1InstancePresenter = Presenter.create(instanceType)
   .presenter(async ({ instance }, opts) => ({
     object: 'organization.instance',
 
-    instance_id: instance.id,
+    id: instance.id,
     slug: instance.slug,
     name: instance.name,
     organization_id: instance.organization.id,
     type: instance.type,
-    created_at: instance.createdAt,
-    updated_at: instance.updatedAt,
+    created_at: new Date(instance.createdAt),
+    updated_at: new Date(instance.updatedAt),
 
     project: await v1ProjectPresenter
       .present({ project: { ...instance.project, organization: instance.organization } }, opts)
@@ -25,8 +25,8 @@ export let v1InstancePresenter = Presenter.create(instanceType)
         description: "String representing the object's type"
       }),
 
-      instance_id: v.string({
-        name: 'instance_id',
+      id: v.string({
+        name: 'id',
         description: `The instance's unique identifier`,
         examples: ['ins_9sTuVwXyZaBcDeFg']
       }),
@@ -52,12 +52,12 @@ export let v1InstancePresenter = Presenter.create(instanceType)
       created_at: v.date({
         name: 'created_at',
         description: `The instance's creation date`,
-        examples: ['2026-01-29T12:35:22.304Z']
+        examples: [new Date('2026-01-29T12:35:22.304Z')]
       }),
       updated_at: v.date({
         name: 'updated_at',
         description: `The instance's last update date`,
-        examples: ['2026-01-29T12:35:22.304Z']
+        examples: [new Date('2026-01-29T12:35:22.304Z')]
       }),
       project: v1ProjectPresenter.schema
     })

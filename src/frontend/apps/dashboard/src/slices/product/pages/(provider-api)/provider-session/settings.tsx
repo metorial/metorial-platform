@@ -18,7 +18,7 @@ export let ProviderSessionSettingsPage = () => {
   let navigate = useNavigate();
 
   let { sessionId } = useParams();
-  let session = useSession(instance.data?.instanceId, sessionId);
+  let session = useSession(instance.data?.id, sessionId);
 
   let [name, setName] = useState('');
   let [description, setDescription] = useState('');

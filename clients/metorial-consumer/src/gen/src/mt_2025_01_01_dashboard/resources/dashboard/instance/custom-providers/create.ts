@@ -153,10 +153,7 @@ export let mapDashboardInstanceCustomProvidersCreateBody =
                 mtMap.unionOption(
                   'object',
                   mtMap.object({
-                    identifier: mtMap.objectField(
-                      'identifier',
-                      mtMap.passthrough()
-                    ),
+                    identifier: mtMap.objectField('identifier', mtMap.passthrough()),
                     version: mtMap.objectField('version', mtMap.passthrough())
                   })
                 )
@@ -174,4 +171,3 @@ export let mapDashboardInstanceCustomProvidersCreateBody =
       })
     )
   });
-

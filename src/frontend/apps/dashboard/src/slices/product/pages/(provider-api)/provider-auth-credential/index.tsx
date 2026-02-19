@@ -12,9 +12,9 @@ export let ProviderAuthCredentialOverviewPage = () => {
   let instance = useCurrentInstance();
 
   let { providerDeploymentId, providerAuthCredentialsId } = useParams();
-  let deployment = useProviderDeployment(instance.data?.instanceId, providerDeploymentId);
+  let deployment = useProviderDeployment(instance.data?.id, providerDeploymentId);
   let credential = useProviderAuthCredential(
-    instance.data?.instanceId,
+    instance.data?.id,
     providerDeploymentId,
     providerAuthCredentialsId
   );

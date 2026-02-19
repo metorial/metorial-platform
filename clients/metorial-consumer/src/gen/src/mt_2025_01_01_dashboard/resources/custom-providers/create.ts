@@ -38,53 +38,52 @@ export type CustomProvidersCreateOutput = {
   updatedAt: Date;
 };
 
-export let mapCustomProvidersCreateOutput =
-  mtMap.object<CustomProvidersCreateOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-    provider: mtMap.objectField(
-      'provider',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        description: mtMap.objectField('description', mtMap.passthrough()),
-        slug: mtMap.objectField('slug', mtMap.passthrough()),
-        publisher: mtMap.objectField(
-          'publisher',
-          mtMap.object({
-            object: mtMap.objectField('object', mtMap.passthrough()),
-            id: mtMap.objectField('id', mtMap.passthrough()),
-            name: mtMap.objectField('name', mtMap.passthrough()),
-            description: mtMap.objectField('description', mtMap.passthrough()),
-            slug: mtMap.objectField('slug', mtMap.passthrough()),
-            imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
-            createdAt: mtMap.objectField('created_at', mtMap.date()),
-            updatedAt: mtMap.objectField('updated_at', mtMap.date())
-          })
-        ),
-        currentVersion: mtMap.objectField(
-          'current_version',
-          mtMap.object({
-            object: mtMap.objectField('object', mtMap.passthrough()),
-            id: mtMap.objectField('id', mtMap.passthrough()),
-            version: mtMap.objectField('version', mtMap.passthrough()),
-            status: mtMap.objectField('status', mtMap.passthrough()),
-            createdAt: mtMap.objectField('created_at', mtMap.date()),
-            updatedAt: mtMap.objectField('updated_at', mtMap.date())
-          })
-        ),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date())
-      })
-    ),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
+export let mapCustomProvidersCreateOutput = mtMap.object<CustomProvidersCreateOutput>({
+  object: mtMap.objectField('object', mtMap.passthrough()),
+  id: mtMap.objectField('id', mtMap.passthrough()),
+  status: mtMap.objectField('status', mtMap.passthrough()),
+  name: mtMap.objectField('name', mtMap.passthrough()),
+  description: mtMap.objectField('description', mtMap.passthrough()),
+  metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+  provider: mtMap.objectField(
+    'provider',
+    mtMap.object({
+      object: mtMap.objectField('object', mtMap.passthrough()),
+      id: mtMap.objectField('id', mtMap.passthrough()),
+      name: mtMap.objectField('name', mtMap.passthrough()),
+      description: mtMap.objectField('description', mtMap.passthrough()),
+      slug: mtMap.objectField('slug', mtMap.passthrough()),
+      publisher: mtMap.objectField(
+        'publisher',
+        mtMap.object({
+          object: mtMap.objectField('object', mtMap.passthrough()),
+          id: mtMap.objectField('id', mtMap.passthrough()),
+          name: mtMap.objectField('name', mtMap.passthrough()),
+          description: mtMap.objectField('description', mtMap.passthrough()),
+          slug: mtMap.objectField('slug', mtMap.passthrough()),
+          imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
+          createdAt: mtMap.objectField('created_at', mtMap.date()),
+          updatedAt: mtMap.objectField('updated_at', mtMap.date())
+        })
+      ),
+      currentVersion: mtMap.objectField(
+        'current_version',
+        mtMap.object({
+          object: mtMap.objectField('object', mtMap.passthrough()),
+          id: mtMap.objectField('id', mtMap.passthrough()),
+          version: mtMap.objectField('version', mtMap.passthrough()),
+          status: mtMap.objectField('status', mtMap.passthrough()),
+          createdAt: mtMap.objectField('created_at', mtMap.date()),
+          updatedAt: mtMap.objectField('updated_at', mtMap.date())
+        })
+      ),
+      createdAt: mtMap.objectField('created_at', mtMap.date()),
+      updatedAt: mtMap.objectField('updated_at', mtMap.date())
+    })
+  ),
+  createdAt: mtMap.objectField('created_at', mtMap.date()),
+  updatedAt: mtMap.objectField('updated_at', mtMap.date())
+});
 
 export type CustomProvidersCreateBody = {
   name: string;
@@ -118,60 +117,55 @@ export type CustomProvidersCreateBody = {
   config?: { schema: Record<string, any>; transformer: string } | undefined;
 };
 
-export let mapCustomProvidersCreateBody =
-  mtMap.object<CustomProvidersCreateBody>({
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-    from: mtMap.objectField(
-      'from',
-      mtMap.union([
-        mtMap.unionOption(
-          'object',
-          mtMap.object({
-            type: mtMap.objectField('type', mtMap.passthrough()),
-            imageRef: mtMap.objectField('image_ref', mtMap.passthrough()),
-            username: mtMap.objectField('username', mtMap.passthrough()),
-            password: mtMap.objectField('password', mtMap.passthrough()),
-            remoteUrl: mtMap.objectField('remote_url', mtMap.passthrough()),
-            config: mtMap.objectField('config', mtMap.passthrough()),
-            protocol: mtMap.objectField('protocol', mtMap.passthrough()),
-            files: mtMap.objectField(
-              'files',
-              mtMap.array(
+export let mapCustomProvidersCreateBody = mtMap.object<CustomProvidersCreateBody>({
+  name: mtMap.objectField('name', mtMap.passthrough()),
+  description: mtMap.objectField('description', mtMap.passthrough()),
+  metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+  from: mtMap.objectField(
+    'from',
+    mtMap.union([
+      mtMap.unionOption(
+        'object',
+        mtMap.object({
+          type: mtMap.objectField('type', mtMap.passthrough()),
+          imageRef: mtMap.objectField('image_ref', mtMap.passthrough()),
+          username: mtMap.objectField('username', mtMap.passthrough()),
+          password: mtMap.objectField('password', mtMap.passthrough()),
+          remoteUrl: mtMap.objectField('remote_url', mtMap.passthrough()),
+          config: mtMap.objectField('config', mtMap.passthrough()),
+          protocol: mtMap.objectField('protocol', mtMap.passthrough()),
+          files: mtMap.objectField(
+            'files',
+            mtMap.array(
+              mtMap.object({
+                filename: mtMap.objectField('filename', mtMap.passthrough()),
+                content: mtMap.objectField('content', mtMap.passthrough()),
+                encoding: mtMap.objectField('encoding', mtMap.passthrough())
+              })
+            )
+          ),
+          env: mtMap.objectField('env', mtMap.passthrough()),
+          runtime: mtMap.objectField(
+            'runtime',
+            mtMap.union([
+              mtMap.unionOption(
+                'object',
                 mtMap.object({
-                  filename: mtMap.objectField('filename', mtMap.passthrough()),
-                  content: mtMap.objectField('content', mtMap.passthrough()),
-                  encoding: mtMap.objectField('encoding', mtMap.passthrough())
+                  identifier: mtMap.objectField('identifier', mtMap.passthrough()),
+                  version: mtMap.objectField('version', mtMap.passthrough())
                 })
               )
-            ),
-            env: mtMap.objectField('env', mtMap.passthrough()),
-            runtime: mtMap.objectField(
-              'runtime',
-              mtMap.union([
-                mtMap.unionOption(
-                  'object',
-                  mtMap.object({
-                    identifier: mtMap.objectField(
-                      'identifier',
-                      mtMap.passthrough()
-                    ),
-                    version: mtMap.objectField('version', mtMap.passthrough())
-                  })
-                )
-              ])
-            )
-          })
-        )
-      ])
-    ),
-    config: mtMap.objectField(
-      'config',
-      mtMap.object({
-        schema: mtMap.objectField('schema', mtMap.passthrough()),
-        transformer: mtMap.objectField('transformer', mtMap.passthrough())
-      })
-    )
-  });
-
+            ])
+          )
+        })
+      )
+    ])
+  ),
+  config: mtMap.objectField(
+    'config',
+    mtMap.object({
+      schema: mtMap.objectField('schema', mtMap.passthrough()),
+      transformer: mtMap.objectField('transformer', mtMap.passthrough())
+    })
+  )
+});

@@ -17,4 +17,3 @@ export let mapLinksGetOutput = mtMap.object<LinksGetOutput>({
   createdAt: mtMap.objectField('created_at', mtMap.date()),
   expiresAt: mtMap.objectField('expires_at', mtMap.date())
 });
-

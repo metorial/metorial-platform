@@ -12,7 +12,6 @@ import {
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { sessionTemplatePresenter } from '../../presenters';
-import { SubspaceSessionTemplate } from '../../presenters/types';
 
 export let sessionTemplateGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.sessionTemplateId) {
@@ -55,9 +54,7 @@ export let sessionTemplateController = Controller.create(
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, sessionTemplate =>
-          sessionTemplatePresenter.present({
-            sessionTemplate: sessionTemplate as SubspaceSessionTemplate
-          })
+          sessionTemplatePresenter.present({ sessionTemplate })
         );
       }),
 
@@ -119,9 +116,7 @@ export let sessionTemplateController = Controller.create(
           }))
         });
 
-        return sessionTemplatePresenter.present({
-          sessionTemplate: sessionTemplate as SubspaceSessionTemplate
-        });
+        return sessionTemplatePresenter.present({ sessionTemplate });
       }),
 
     update: sessionTemplateGroup
@@ -150,9 +145,7 @@ export let sessionTemplateController = Controller.create(
           metadata: ctx.body.metadata
         });
 
-        return sessionTemplatePresenter.present({
-          sessionTemplate: sessionTemplate as SubspaceSessionTemplate
-        });
+        return sessionTemplatePresenter.present({ sessionTemplate });
       })
   }
 );

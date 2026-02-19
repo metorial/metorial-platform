@@ -7,11 +7,17 @@ export let SessionDeploymentsPage = () => {
   let instance = useCurrentInstance();
 
   let { sessionId } = useParams();
-  let session = useSession(instance.data?.instanceId, sessionId);
+  let session = useSession(instance.data?.id, sessionId);
 
   return renderWithLoader({ session })(({ session }) => (
     <>
-      <ServerDeploymentsListItems deployments={(session.data?.providerDeployments ?? []) as unknown as Parameters<typeof ServerDeploymentsListItems>[0]['deployments']} />
+      <ServerDeploymentsListItems
+        deployments={
+          (session.data?.providerDeployments ?? []) as unknown as Parameters<
+            typeof ServerDeploymentsListItems
+          >[0]['deployments']
+        }
+      />
     </>
   ));
 };

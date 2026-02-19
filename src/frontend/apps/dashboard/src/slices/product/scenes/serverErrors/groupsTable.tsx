@@ -6,7 +6,7 @@ import { Table } from '@metorial/ui-product';
 
 export let ServerErrorGroupsTable = (filter?: { sessionId?: string; type?: string }) => {
   let instance = useCurrentInstance();
-  let errors = useAllSessionErrorGroups(instance.data?.instanceId, {
+  let errors = useAllSessionErrorGroups(instance.data?.id, {
     sessionId: filter?.sessionId,
     type: filter?.type
   });

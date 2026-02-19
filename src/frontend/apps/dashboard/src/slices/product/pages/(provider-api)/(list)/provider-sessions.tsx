@@ -10,7 +10,7 @@ export let ProviderSessionsPage = () => {
     <>
       <Spacer size={15} />
 
-      <ProviderSessionsTable instanceId={instance.data.instanceId} />
+      <ProviderSessionsTable instanceId={instance.data.id} />
     </>
   ));
 };

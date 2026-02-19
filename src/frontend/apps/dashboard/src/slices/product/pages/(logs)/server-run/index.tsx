@@ -7,11 +7,15 @@ export let ServerRunPage = () => {
   let instance = useCurrentInstance();
 
   let { serverRunId } = useParams();
-  let serverRun = useProviderRun(instance.data?.instanceId, serverRunId);
+  let serverRun = useProviderRun(instance.data?.id, serverRunId);
 
   return renderWithLoader({ serverRun })(({ serverRun }) => (
     <>
-      <ServerRunEvents serverRun={serverRun.data as unknown as Parameters<typeof ServerRunEvents>[0]['serverRun']} />
+      <ServerRunEvents
+        serverRun={
+          serverRun.data as unknown as Parameters<typeof ServerRunEvents>[0]['serverRun']
+        }
+      />
     </>
   ));
 };

@@ -1,15 +1,10 @@
 import { Paths } from '@metorial/frontend-config';
 import { SetupLayout } from '@metorial/layout';
-import {
-  useCurrentInstance,
-  useDashboardFlags,
-  useProvider,
-  useProviderListing
-} from '@metorial/state';
+import { useCurrentInstance, useProvider, useProviderListing } from '@metorial/state';
+import { Text } from '@metorial/ui';
 import { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import bg from '../../../assets/bg.webp';
-import { MagicMcpServerForm, ServerDeploymentForm } from '../scenes/serverDeployments/form';
 
 export let DeployPage = () => {
   let instance = useCurrentInstance();
@@ -19,8 +14,6 @@ export let DeployPage = () => {
   let serverId = search.get('server_id');
   let providerId = search.get('provider_id');
   let nextUrl = search.get('next_url');
-
-  let flags = useDashboardFlags();
 
   useEffect(() => {
     if (providerId && instance.data) {
@@ -37,9 +30,8 @@ export let DeployPage = () => {
     }
   }, [providerId, instance.data, nextUrl, navigate]);
 
-  // legacy
-  let serverListing = useProviderListing(instance.data?.instanceId, serverId);
-  let provider = useProvider(instance.data?.instanceId, providerId ?? undefined);
+  let serverListing = useProviderListing(instance.data?.id, serverId);
+  let provider = useProvider(instance.data?.id, providerId ?? undefined);
 
   if (providerId) {
     return (
@@ -55,35 +47,22 @@ export let DeployPage = () => {
     );
   }
 
-  // Legacy server-based deployment flow (for magic-mcp or backwards compatibility)
   return (
     <SetupLayout
       main={
         serverListing.data
           ? {
               title: `Deploy ${serverListing.data.name}`,
-              description: `Let's set up your Magic MCP server.`
+              description: `Let's set up your MCP server.`
             }
           : undefined
       }
       backgroundUrl={bg}
     >
       {serverId && (
-        <>
-          {flags.data?.flags['magic-mcp-enabled'] ? (
-            <MagicMcpServerForm
-              type="create"
-              for={{ serverId }}
-              onCreate={nextUrl ? () => location.replace(nextUrl) : undefined}
-            />
-          ) : (
-            <ServerDeploymentForm
-              type="create"
-              for={{ serverId }}
-              onCreate={nextUrl ? () => location.replace(nextUrl) : undefined}
-            />
-          )}
-        </>
+        <Text size="2" color="gray600">
+          Server deployment forms have been moved to the provider API.
+        </Text>
       )}
     </SetupLayout>
   );

@@ -182,7 +182,7 @@ export let ProviderAuthMethodsPage = () => {
   let instance = useCurrentInstance();
   let { providerId } = useParams();
   let { selectedVersionId } = useProviderVersionContext();
-  let authMethods = useProviderAuthMethods(instance.data?.instanceId, providerId, {
+  let authMethods = useProviderAuthMethods(instance.data?.id, providerId, {
     providerVersionId: selectedVersionId
   });
 

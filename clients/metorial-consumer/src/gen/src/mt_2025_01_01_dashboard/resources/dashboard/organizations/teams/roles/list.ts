@@ -23,17 +23,11 @@ export let mapDashboardOrganizationsTeamsRolesListOutput =
         mtMap.object({
           object: mtMap.objectField('object', mtMap.passthrough()),
           id: mtMap.objectField('id', mtMap.passthrough()),
-          organizationId: mtMap.objectField(
-            'organization_id',
-            mtMap.passthrough()
-          ),
+          organizationId: mtMap.objectField('organization_id', mtMap.passthrough()),
           name: mtMap.objectField('name', mtMap.passthrough()),
           slug: mtMap.objectField('slug', mtMap.passthrough()),
           description: mtMap.objectField('description', mtMap.passthrough()),
-          permissions: mtMap.objectField(
-            'permissions',
-            mtMap.array(mtMap.passthrough())
-          ),
+          permissions: mtMap.objectField('permissions', mtMap.array(mtMap.passthrough())),
           createdAt: mtMap.objectField('created_at', mtMap.date()),
           updatedAt: mtMap.objectField('updated_at', mtMap.date())
         })
@@ -42,10 +36,7 @@ export let mapDashboardOrganizationsTeamsRolesListOutput =
     pagination: mtMap.objectField(
       'pagination',
       mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
+        hasMoreBefore: mtMap.objectField('has_more_before', mtMap.passthrough()),
         hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
       })
     )
@@ -71,4 +62,3 @@ export let mapDashboardOrganizationsTeamsRolesListQuery = mtMap.union([
     })
   )
 ]);
-

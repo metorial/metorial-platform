@@ -10,6 +10,7 @@ export type ManagementInstanceProvidersSpecificationsGetOutput = {
     object: 'provider.tool';
     id: string;
     name: string;
+    title: string | null;
     description: string | null;
     inputSchema: Record<string, any> | null;
     outputSchema: Record<string, any> | null;
@@ -58,6 +59,7 @@ export let mapManagementInstanceProvidersSpecificationsGetOutput =
           object: mtMap.objectField('object', mtMap.passthrough()),
           id: mtMap.objectField('id', mtMap.passthrough()),
           name: mtMap.objectField('name', mtMap.passthrough()),
+          title: mtMap.objectField('title', mtMap.passthrough()),
           description: mtMap.objectField('description', mtMap.passthrough()),
           inputSchema: mtMap.objectField('input_schema', mtMap.passthrough()),
           outputSchema: mtMap.objectField('output_schema', mtMap.passthrough()),
@@ -89,10 +91,7 @@ export let mapManagementInstanceProvidersSpecificationsGetOutput =
                 id: mtMap.objectField('id', mtMap.passthrough()),
                 scope: mtMap.objectField('scope', mtMap.passthrough()),
                 name: mtMap.objectField('name', mtMap.passthrough()),
-                description: mtMap.objectField(
-                  'description',
-                  mtMap.passthrough()
-                )
+                description: mtMap.objectField('description', mtMap.passthrough())
               })
             )
           ),
@@ -110,4 +109,3 @@ export let mapManagementInstanceProvidersSpecificationsGetOutput =
     createdAt: mtMap.objectField('created_at', mtMap.date()),
     updatedAt: mtMap.objectField('updated_at', mtMap.date())
   });
-

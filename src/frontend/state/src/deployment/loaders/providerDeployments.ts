@@ -50,10 +50,7 @@ export let providerDeploymentLoader = createLoader({
       body: DashboardInstanceProviderDeploymentsUpdateBody,
       { input: { instanceId, providerDeploymentId } }
     ) =>
-      withAuth(sdk => sdk.providerDeployments.update(instanceId, providerDeploymentId, body)),
-
-    delete: (_, { input: { instanceId, providerDeploymentId } }) =>
-      withAuth(sdk => sdk.providerDeployments.delete(instanceId, providerDeploymentId))
+      withAuth(sdk => sdk.providerDeployments.update(instanceId, providerDeploymentId, body))
   }
 });
 
@@ -67,7 +64,6 @@ export let useProviderDeployment = (
 
   return {
     ...data,
-    useUpdateMutator: data.useMutator('update'),
-    useDeleteMutator: data.useMutator('delete')
+    useUpdateMutator: data.useMutator('update')
   };
 };

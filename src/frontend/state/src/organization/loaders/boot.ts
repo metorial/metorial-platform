@@ -1,5 +1,6 @@
 import { createLoader } from '@metorial/data-hooks';
 import { withAuth } from '../../user';
+import { MetorialInstance } from '../types';
 
 export let bootLoader = createLoader({
   name: 'boot',
@@ -18,4 +19,6 @@ export let getBoot = () => bootLoader.fetchAndReturn({});
 export let getInstances = () => getBoot().then(boot => boot.instances);
 
 export let getOrgForInstance = (instanceId: string) =>
-  getBoot().then(boot => boot.instances.find(i => i.instanceId === instanceId)?.organization);
+  getBoot().then(
+    boot => boot.instances.find((i: MetorialInstance) => i.id === instanceId)?.organization
+  );

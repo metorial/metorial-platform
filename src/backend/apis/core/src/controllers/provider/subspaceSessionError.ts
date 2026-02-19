@@ -7,7 +7,7 @@ import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instancePath } from '../../middleware/instanceGroup';
 import { subspaceSessionErrorPresenter } from '../../presenters';
-import { SubspaceSessionError } from '../../presenters/types';
+
 import { instanceGroup } from '../../middleware/instanceGroup';
 import { subspaceSessionGroup } from './subspaceSession';
 
@@ -71,9 +71,7 @@ export let subspaceSessionErrorController = Controller.create(
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, sessionError =>
-          subspaceSessionErrorPresenter.present({
-            sessionError: sessionError as SubspaceSessionError
-          })
+          subspaceSessionErrorPresenter.present({ sessionError })
         );
       }),
 
@@ -101,7 +99,7 @@ export let subspaceSessionErrorController = Controller.create(
       .do(async ctx => {
         let paginator = await subspaceSessionErrorService.list({
           instance: ctx.instance,
-          sessionId: ctx.session.id,
+          sessionIds: [ctx.session.id],
           sessionErrorGroupIds: normalizeArrayParam(ctx.query.session_error_group_id),
           providerRunIds: normalizeArrayParam(ctx.query.provider_run_id)
         });
@@ -109,9 +107,7 @@ export let subspaceSessionErrorController = Controller.create(
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, sessionError =>
-          subspaceSessionErrorPresenter.present({
-            sessionError: sessionError as SubspaceSessionError
-          })
+          subspaceSessionErrorPresenter.present({ sessionError })
         );
       }),
 

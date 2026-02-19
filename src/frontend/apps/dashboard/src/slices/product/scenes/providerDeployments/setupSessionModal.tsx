@@ -177,7 +177,7 @@ let ConfigureAuthContent = ({
               }
             }}
             items={[
-              ...(authCredentials.data?.items ?? []).map((cred) => ({
+              ...(authCredentials.data?.items ?? []).map(cred => ({
                 id: cred.id,
                 label: cred.name || cred.id
               })),
