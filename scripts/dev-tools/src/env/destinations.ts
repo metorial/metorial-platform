@@ -50,11 +50,6 @@ export let destinations: Destination[] = [
   {
     type: 'enterprise',
     env: backendEnv,
-    path: 'federation/backend/apps/federation-worker'
-  },
-  {
-    type: 'enterprise',
-    env: backendEnv,
     path: 'federation/backend/apps/worker'
   },
 
