@@ -5,4 +5,5 @@ export * from './loaders/sessionConnections';
 export * from './loaders/sessionEvents';
 export * from './loaders/sessionMessages';
 export * from './loaders/sessions';
+export * from './loaders/sessionTemplateProviders';
 export * from './loaders/sessionTemplates';
