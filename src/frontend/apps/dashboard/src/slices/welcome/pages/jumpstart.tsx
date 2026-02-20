@@ -24,7 +24,7 @@ export let JumpstartPage = () => {
 
     let org = orgs.data[0];
     if (org)
-      return navigate(`/o/${org.slug}?path=${encodeURIComponent(path ?? '')}`, {
+      return navigate(`/p/${org.slug}?path=${encodeURIComponent(path ?? '')}`, {
         replace: true
       });
 
