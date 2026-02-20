@@ -84,7 +84,8 @@ let Content = styled(RadixAccordion.Content)`
   overflow: hidden;
 
   &[data-state='open'] {
-    animation: ${slideDown} 0.3s ease forwards;
+    animation: ${slideDown} 0.3s ease;
+    height: auto;
   }
 
   &[data-state='closed'] {

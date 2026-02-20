@@ -93,11 +93,24 @@ let typeMap: Record<string, string> = {
 
 let formatType = (type?: string) => typeMap[type || ''] || type || 'Any';
 
+let isNullable = (prop: SchemaProperty): boolean => {
+  let variants = prop.oneOf || prop.anyOf;
+  if (!variants) return false;
+  return variants.some(v => v.type === 'null');
+};
+
+let getNonNullVariants = (prop: SchemaProperty): SchemaProperty[] => {
+  let variants = prop.oneOf || prop.anyOf;
+  if (!variants) return [];
+  return variants.filter(v => v.type !== 'null');
+};
+
 let getTypeLabel = (prop: SchemaProperty): string => {
   if (prop.enum) return 'Enum';
   if (prop.oneOf || prop.anyOf) {
-    let variants = (prop.oneOf || prop.anyOf)!;
-    let labels = variants.map(v => formatType(v.type));
+    let nonNull = getNonNullVariants(prop);
+    if (isNullable(prop) && nonNull.length === 1) return formatType(nonNull[0].type);
+    let labels = nonNull.map(v => formatType(v.type));
     if (labels.length <= 3) return labels.join(' | ');
     return 'Union';
   }
@@ -201,13 +214,18 @@ let PropertyList = ({
                   : undefined
             }}
           >
-            <Flex gap={6} style={{ alignItems: 'center' }}>
+            <Flex gap={6} style={{ alignItems: 'center', flexWrap: 'wrap' }}>
               <Text size="2" weight="strong">
                 {name}
               </Text>
               <Badge color={typeColor} size="1">
                 {typeLabel}
               </Badge>
+              {isNullable(prop) && (
+                <Badge color="orange" size="1">
+                  Nullable
+                </Badge>
+              )}
               {required.includes(name) ? (
                 <Badge color="red" size="1">
                   Required
