@@ -146,11 +146,6 @@ let ProviderAuthConnectionSettingsPage = dynamicPage(() =>
 let ProviderSessionLayout = dynamicPage(() =>
   import('./pages/(provider-api)/provider-session/_layout').then(c => c.ProviderSessionLayout)
 );
-let ProviderSessionOverviewPage = dynamicPage(() =>
-  import('./pages/(provider-api)/provider-session/index').then(
-    c => c.ProviderSessionOverviewPage
-  )
-);
 let ProviderSessionProvidersPage = dynamicPage(() =>
   import('./pages/(provider-api)/provider-session/providers').then(
     c => c.ProviderSessionProvidersPage
@@ -704,10 +699,6 @@ export let productInnerSlice = createSlice([
           {
             path: '',
             element: <ProviderSessionLogsPage />
-          },
-          {
-            path: 'overview',
-            element: <ProviderSessionOverviewPage />
           },
           {
             path: 'providers',

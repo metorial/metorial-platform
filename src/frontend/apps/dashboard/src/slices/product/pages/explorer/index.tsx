@@ -9,7 +9,7 @@ import {
 import { Button, CenteredSpinner, Flex, Input, Spacer, Tabs, Text, theme } from '@metorial/ui';
 import { RiArrowLeftLine, RiArrowRightLine, RiCloseLine } from '@remixicon/react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { Explainer } from '../../../../components/explainer';
@@ -111,6 +111,8 @@ export let ExplorerPage = () => {
   let instance = useCurrentInstance();
   let createSession = useCreateSession(instance.data?.id);
 
+  let sessionCreatedRef = useRef(false);
+
   useEffect(() => {
     if (sessionIdParam) setSessionId(sessionIdParam);
   }, [sessionIdParam]);
@@ -155,7 +157,8 @@ export let ExplorerPage = () => {
   useEffect(() => {
     if (providerDeploymentIdParam) {
       setProviderDeploymentId(providerDeploymentIdParam);
-      if (!sessionIdParam) {
+      if (!sessionIdParam && !sessionCreatedRef.current) {
+        sessionCreatedRef.current = true;
         createSessionForDeployment(providerDeploymentIdParam);
       }
     }
