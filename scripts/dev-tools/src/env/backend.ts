@@ -152,6 +152,7 @@ export let backendEnv: Env = [
     defaultValue: `http://${HOSTNAME}:4311`
   },
   { key: 'DASHBOARD_FRONTEND_HOST', defaultValue: `http://${HOSTNAME}:4300` },
+  { key: 'AUTH_FRONTEND_HOST', defaultValue: `http://${HOSTNAME}:4300'},
   {
     key: 'PORTALS_URL',
     defaultValue: `http://${HOSTNAME}:4315`

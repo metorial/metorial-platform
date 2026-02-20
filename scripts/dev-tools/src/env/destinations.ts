@@ -52,6 +52,11 @@ export let destinations: Destination[] = [
     env: backendEnv,
     path: 'federation/backend/apps/federation-worker'
   },
+  {
+    type: 'enterprise',
+    env: backendEnv,
+    path: 'federation/backend/apps/worker'
+  },
 
   ...['admin', 'dashboard'].map(v => ({
     type: 'enterprise' as const,
