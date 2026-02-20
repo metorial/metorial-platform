@@ -20,8 +20,6 @@ setConfig({
   //   accountFrontendUrl: accountFrontendUrl
   // },
 
-  microFrontends: {},
-
   auth: {
     authFrontendUrl: undefined,
     loginPath: '/login',
