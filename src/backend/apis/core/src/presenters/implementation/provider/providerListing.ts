@@ -1,3 +1,4 @@
+import { getImageUrl } from '@metorial/db';
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
 import { providerListingType } from '../../types';
@@ -6,45 +7,54 @@ import { v1CollectionPresenter } from './collection';
 import { v1GroupPresenter } from './group';
 
 export let v1ProviderListingPresenter = Presenter.create(providerListingType)
-  .presenter(async ({ providerListing }, opts) => ({
-    object: 'provider.listing' as const,
-    id: providerListing.id,
-    name: providerListing.name,
-    description: (providerListing.description ?? null) as string | null,
-    slug: providerListing.slug ?? providerListing.identifier ?? '',
-    image_url: (providerListing.image?.url ?? providerListing.source?.url ?? null) as string | null,
-    readme: (providerListing.readme ?? null) as string | null,
-    skills: providerListing.skills ?? [],
-    flags: {
-      is_public: providerListing.isPublic ?? true,
-      is_customized: providerListing.isCustomized ?? false,
-      is_metorial: providerListing.isMetorial ?? false,
-      is_verified: providerListing.isVerified ?? false,
-      is_official: providerListing.isOfficial ?? false
-    },
-    provider_id: (providerListing.provider?.id ?? null) as string | null,
-    categories: providerListing.categories
-      ? await Promise.all(
-          providerListing.categories.map(c =>
-            v1CategoryPresenter.present({ category: c }, opts).run()
+  .presenter(async ({ providerListing }, opts) => {
+    let rawImageUrl =
+      (providerListing.image as any)?.url ?? (providerListing.source as any)?.url;
+
+    return {
+      object: 'provider.listing' as const,
+      id: providerListing.id,
+      name: providerListing.name,
+      description: (providerListing.description ?? null) as string | null,
+      slug: providerListing.slug ?? providerListing.identifier ?? '',
+      image_url: await getImageUrl({
+        id: providerListing.id,
+        name: providerListing.name,
+        image: rawImageUrl ? { type: 'url', url: rawImageUrl } : null
+      }),
+      readme: (providerListing.readme ?? null) as string | null,
+      skills: providerListing.skills ?? [],
+      flags: {
+        is_public: providerListing.isPublic ?? true,
+        is_customized: providerListing.isCustomized ?? false,
+        is_metorial: providerListing.isMetorial ?? false,
+        is_verified: providerListing.isVerified ?? false,
+        is_official: providerListing.isOfficial ?? false
+      },
+      provider_id: (providerListing.provider?.id ?? null) as string | null,
+      categories: providerListing.categories
+        ? await Promise.all(
+            providerListing.categories.map(c =>
+              v1CategoryPresenter.present({ category: c }, opts).run()
+            )
           )
-        )
-      : [],
-    collections: providerListing.collections
-      ? await Promise.all(
-          providerListing.collections.map(c =>
-            v1CollectionPresenter.present({ collection: c }, opts).run()
+        : [],
+      collections: providerListing.collections
+        ? await Promise.all(
+            providerListing.collections.map(c =>
+              v1CollectionPresenter.present({ collection: c }, opts).run()
+            )
           )
-        )
-      : [],
-    groups: providerListing.groups
-      ? await Promise.all(
-          providerListing.groups.map(g => v1GroupPresenter.present({ group: g }, opts).run())
-        )
-      : [],
-    created_at: providerListing.createdAt,
-    updated_at: providerListing.updatedAt
-  }))
+        : [],
+      groups: providerListing.groups
+        ? await Promise.all(
+            providerListing.groups.map(g => v1GroupPresenter.present({ group: g }, opts).run())
+          )
+        : [],
+      created_at: providerListing.createdAt,
+      updated_at: providerListing.updatedAt
+    };
+  })
   .schema(
     v.object({
       object: v.literal('provider.listing', {
@@ -68,13 +78,11 @@ export let v1ProviderListingPresenter = Presenter.create(providerListingType)
         description: 'URL-friendly identifier',
         examples: ['github']
       }),
-      image_url: v.nullable(
-        v.string({
-          name: 'image_url',
-          description: 'URL of the listing logo/icon',
-          examples: ['https://cdn.metorial.com/images/github.png']
-        })
-      ),
+      image_url: v.string({
+        name: 'image_url',
+        description: 'URL of the listing logo/icon',
+        examples: ['https://cdn.metorial.com/images/github.png']
+      }),
       readme: v.nullable(
         v.string({
           name: 'readme',

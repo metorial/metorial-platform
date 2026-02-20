@@ -1,8 +1,14 @@
 import type { Instance, OrganizationActor } from '@metorial/db';
+import type { ProviderEventBase } from '@metorial/fabric';
 import { Service } from '@metorial/service';
 import { getActorForSubspace, getTenantForSubspace } from '../subspace';
 
 export type Tail<T extends any[]> = T extends [any, ...infer U] ? U : [];
+
+export let toEventBase = (params: Record<string, any>): ProviderEventBase => {
+  let { instance, organizationActor, ...input } = params;
+  return { instance, organizationActor, input };
+};
 
 type SubspaceListResult = {
   run: (query: {

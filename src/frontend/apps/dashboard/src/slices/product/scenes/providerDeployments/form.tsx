@@ -10,6 +10,7 @@ export type ProviderDeploymentFormProps =
   | {
       type: 'create';
       providerId?: string;
+      providerName?: string;
       lockedProviderVersionId?: string;
       lockedProviderVersionLabel?: string;
     }
@@ -31,8 +32,12 @@ export let ProviderDeploymentForm = (
   let [providerId, setProviderId] = useState(
     props.type === 'create' ? (props.providerId ?? '') : ''
   );
-  let [providerName, setProviderName] = useState('');
-  let [name, setName] = useState('');
+  let [providerName, setProviderName] = useState(
+    props.type === 'create' ? (props.providerName ?? '') : ''
+  );
+  let [name, setName] = useState(
+    props.type === 'create' ? (props.providerName ?? '') : ''
+  );
   let [description, setDescription] = useState('');
 
   let handleCreate = async () => {

@@ -187,8 +187,34 @@ let SetupProviderPage = dynamicPage(() =>
   import('./pages/setup-provider').then(c => c.SetupProviderPage)
 );
 
-let ProviderConnectionsListLayout = dynamicPage(() =>
-  import('./pages/(custom-servers)/(list)/_layout').then(c => c.ProviderConnectionsListLayout)
+let CustomServerCodePage = dynamicPage(() =>
+  import('./pages/(custom-servers)/custom-server/code').then(c => c.CustomServerCodePage)
+);
+let CustomServerOverviewPage = dynamicPage(() =>
+  import('./pages/(custom-servers)/custom-server').then(c => c.CustomServerOverviewPage)
+);
+let CustomServerVersionsPage = dynamicPage(() =>
+  import('./pages/(custom-servers)/custom-server/versions').then(
+    c => c.CustomServerVersionsPage
+  )
+);
+let CustomServerSettingsPage = dynamicPage(() =>
+  import('./pages/(custom-servers)/custom-server/settings/settings').then(
+    c => c.CustomServerSettingsPage
+  )
+);
+let CustomServerLayout = dynamicPage(() =>
+  import('./pages/(custom-servers)/custom-server/_layout').then(c => c.CustomServerLayout)
+);
+let CustomServerDeploymentsPage = dynamicPage(() =>
+  import('./pages/(custom-servers)/custom-server/deployments').then(
+    c => c.CustomServerDeploymentsPage
+  )
+);
+let CustomServerListingPage = dynamicPage(() =>
+  import('./pages/(custom-servers)/custom-server/settings/listing').then(
+    c => c.CustomServerListingPage
+  )
 );
 let ManagedServersListLayout = dynamicPage(() =>
   import('./pages/(custom-servers)/(list)/_layout').then(c => c.ManagedServersListLayout)
@@ -201,11 +227,6 @@ let ExternalServersPage = dynamicPage(() =>
 );
 let ManagedServersPage = dynamicPage(() =>
   import('./pages/(custom-servers)/(list)/managed-servers').then(c => c.ManagedServersPage)
-);
-let ProviderConnectionsPage = dynamicPage(() =>
-  import('./pages/(custom-servers)/(list)/provider-connections').then(
-    c => c.ProviderConnectionsPage
-  )
 );
 let LogsListLayout = dynamicPage(() =>
   import('./pages/(logs)/(list)/_layout').then(c => c.LogsListLayout)
@@ -346,6 +367,10 @@ export let productInnerSlice = createSlice([
               {
                 path: 'managed-servers',
                 element: <ManagedServersPage />
+              },
+              {
+                path: 'custom-providers',
+                element: <ManagedServersPage />
               }
             ]
           },
@@ -371,20 +396,41 @@ export let productInnerSlice = createSlice([
           },
 
           {
-            path: '',
+            path: 'custom-provider/:customServerId',
             element: (
               <FlaggedPage flag="metorial-gateway-enabled">
-                <ProviderConnectionsListLayout />
+                <CustomServerLayout />
               </FlaggedPage>
             ),
 
             children: [
               {
-                path: 'provider-connections',
-                element: <ProviderConnectionsPage />
+                path: '',
+                element: <CustomServerOverviewPage />
+              },
+              {
+                path: 'versions',
+                element: <CustomServerVersionsPage />
+              },
+              {
+                path: 'code',
+                element: <CustomServerCodePage />
+              },
+              {
+                path: 'deployments',
+                element: <CustomServerDeploymentsPage />
+              },
+              {
+                path: 'settings',
+                element: <CustomServerSettingsPage />
+              },
+              {
+                path: 'listing',
+                element: <CustomServerListingPage />
               }
             ]
-          }
+          },
+
         ]
       },
 

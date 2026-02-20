@@ -1,5 +1,6 @@
+import { Fabric } from '@metorial/fabric';
 import { subspaceReferenceSetupSessionService } from '@metorial/module-subspace-reference';
-import { createSubspaceService } from '../lib/subspaceService';
+import { createSubspaceService, toEventBase } from '../lib/subspaceService';
 import { subspace } from '../subspace';
 
 export let subspaceProviderSetupSessionService = createSubspaceService(
@@ -7,6 +8,9 @@ export let subspaceProviderSetupSessionService = createSubspaceService(
   ['get', 'list', 'create', 'update'],
   inner => ({
     create: async (...params: Parameters<typeof inner.create>) => {
+      let eventBase = toEventBase(params[0]);
+      await Fabric.fire('provider.setup_session.created:before', eventBase);
+
       let setupSession = await inner.create(...params);
 
       await subspaceReferenceSetupSessionService
@@ -22,6 +26,18 @@ export let subspaceProviderSetupSessionService = createSubspaceService(
           }
         })
         .catch(err => console.error('Failed to store subspace reference:', err));
+
+      await Fabric.fire('provider.setup_session.created:after', { ...eventBase, setupSession });
+
+      return setupSession;
+    },
+    update: async (...params: Parameters<typeof inner.update>) => {
+      let eventBase = toEventBase(params[0]);
+      await Fabric.fire('provider.setup_session.updated:before', eventBase);
+
+      let setupSession = await inner.update(...params);
+
+      await Fabric.fire('provider.setup_session.updated:after', { ...eventBase, setupSession });
 
       return setupSession;
     }

@@ -215,6 +215,7 @@ export let ProviderLayout = () => {
                   showProviderDeploymentFormModal({
                     type: 'create',
                     providerId: provider.data?.id,
+                    providerName: provider.data?.name,
                     ...(!isDefaultVersion && selectedVersion
                       ? {
                           lockedProviderVersionId: selectedVersion.id,

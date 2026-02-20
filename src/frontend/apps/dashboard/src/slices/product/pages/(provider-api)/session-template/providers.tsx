@@ -11,6 +11,7 @@ import {
   withAuth
 } from '@metorial/state';
 import {
+  Avatar,
   Badge,
   Button,
   CenteredSpinner,
@@ -206,23 +207,23 @@ let PickProviderStep = ({
   let listingItems = (listings.data?.items ?? []) as Array<{
     providerId: string;
     name: string;
-    imageUrl: string | null;
+    imageUrl: string;
   }>;
-  let listingLookup: Record<string, { name: string; imageUrl: string | null }> = {};
+  let listingLookup: Record<string, { name: string; imageUrl: string }> = {};
   for (let l of listingItems) {
     if (l.providerId) listingLookup[l.providerId] = { name: l.name, imageUrl: l.imageUrl };
   }
 
   let providers: Record<
     string,
-    { name: string; imageUrl: string | null; deploymentCount: number }
+    { name: string; imageUrl: string; deploymentCount: number }
   > = {};
   for (let d of items) {
     if (!providers[d.providerId]) {
       let info = listingLookup[d.providerId];
       providers[d.providerId] = {
         name: d.provider?.name ?? info?.name ?? d.providerId,
-        imageUrl: info?.imageUrl ?? d.provider?.imageUrl ?? null,
+        imageUrl: info?.imageUrl ?? d.provider?.imageUrl ?? '',
         deploymentCount: 0
       };
     }
@@ -300,31 +301,12 @@ let PickProviderStep = ({
               textAlign: 'left'
             }}
           >
-            {provider.imageUrl ? (
-              <img
-                src={provider.imageUrl}
-                alt={provider.name}
-                style={{ width: 28, height: 28, borderRadius: 6, flexShrink: 0 }}
-              />
-            ) : (
-              <div
-                style={{
-                  width: 28,
-                  height: 28,
-                  borderRadius: 6,
-                  background: theme.colors.gray200,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 13,
-                  fontWeight: 600,
-                  color: theme.colors.gray600,
-                  flexShrink: 0
-                }}
-              >
-                {provider.name.charAt(0).toUpperCase()}
-              </div>
-            )}
+            <Avatar
+              entity={{ name: provider.name, photoUrl: provider.imageUrl }}
+              size={28}
+              radius={6}
+              noTooltip
+            />
             <Text size="2">{provider.name}</Text>
           </button>
         ))}
@@ -745,9 +727,9 @@ let ProvidersTable = ({
   let listingItems = (listings.data?.items ?? []) as Array<{
     providerId: string;
     name: string;
-    imageUrl: string | null;
+    imageUrl: string;
   }>;
-  let listingLookup: Record<string, { name: string; imageUrl: string | null }> = {};
+  let listingLookup: Record<string, { name: string; imageUrl: string }> = {};
   for (let l of listingItems) {
     if (l.providerId) listingLookup[l.providerId] = { name: l.name, imageUrl: l.imageUrl };
   }
@@ -851,31 +833,12 @@ let ProvidersTable = ({
         return {
           data: [
             <Flex gap={10} style={{ alignItems: 'center' }}>
-              {listing?.imageUrl ? (
-                <img
-                  src={listing.imageUrl}
-                  alt={providerName}
-                  style={{ width: 24, height: 24, borderRadius: 6, flexShrink: 0 }}
-                />
-              ) : (
-                <div
-                  style={{
-                    width: 24,
-                    height: 24,
-                    borderRadius: 6,
-                    background: theme.colors.gray200,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: 11,
-                    fontWeight: 600,
-                    color: theme.colors.gray600,
-                    flexShrink: 0
-                  }}
-                >
-                  {providerName.charAt(0).toUpperCase()}
-                </div>
-              )}
+              <Avatar
+                entity={{ name: providerName, photoUrl: listing?.imageUrl }}
+                size={24}
+                radius={6}
+                noTooltip
+              />
               <Text size="2" weight="strong">
                 {providerName}
               </Text>

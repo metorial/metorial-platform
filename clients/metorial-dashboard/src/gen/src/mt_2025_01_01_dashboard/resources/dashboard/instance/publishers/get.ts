@@ -6,7 +6,7 @@ export type DashboardInstancePublishersGetOutput = {
   name: string;
   description: string | null;
   slug: string;
-  imageUrl: string | null;
+  imageUrl: string;
   createdAt: Date;
   updatedAt: Date;
 };

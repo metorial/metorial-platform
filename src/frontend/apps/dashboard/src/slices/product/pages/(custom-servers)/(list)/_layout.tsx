@@ -9,26 +9,6 @@ import { Button, Menu } from '@metorial/ui';
 import { Outlet, useLocation } from 'react-router-dom';
 import { showCustomServerRemoteFormModal } from '../../../scenes/customServer/modal';
 
-export let ProviderConnectionsListLayout = () => {
-  let instance = useCurrentInstance();
-  let project = useCurrentProject();
-  let organization = useCurrentOrganization();
-
-  let pathname = useLocation().pathname;
-
-  return (
-    <ContentLayout>
-      <PageHeader
-        title="OAuth Connections"
-        description="Use OAuth to seamlessly authenticate with external providers, like Google or GitHub."
-        actions={undefined}
-      />
-
-      <Outlet />
-    </ContentLayout>
-  );
-};
-
 export let ManagedServersListLayout = () => {
   let instance = useCurrentInstance();
   let project = useCurrentProject();
@@ -41,22 +21,22 @@ export let ManagedServersListLayout = () => {
   return (
     <ContentLayout>
       <PageHeader
-        title="Managed Providers"
-        description="Build custom MCP providers powered by Metorial. Deploy them on your own infrastructure or use our managed providers."
+        title="Custom Providers"
+        description="Build custom MCP providers powered by Metorial. Deploy them on your own infrastructure or use our custom providers."
         actions={
           !!flags.data?.flags['paid-custom-docker-servers'] ? (
             <Menu
-              label="Create Managed Provider"
+              label="Create Custom Provider"
               items={[
                 {
                   id: 'docker',
                   label: 'Docker Provider',
-                  description: 'Deploy a custom Docker image as an MCP provider on Metorial'
+                  description: 'Deploy a custom Docker image as an MCP provider on Metorial.'
                 },
                 {
                   id: 'managed',
-                  label: 'Managed Provider',
-                  description: 'Connect a GitHub repo and deploy to Metorial automatically'
+                  label: 'Custom Provider',
+                  description: 'Connect a GitHub repo and deploy to Metorial automatically.'
                 }
               ]}
               onItemClick={id => {
@@ -65,7 +45,7 @@ export let ManagedServersListLayout = () => {
                 });
               }}
             >
-              <Button size="2">Create Managed Provider</Button>
+              <Button size="2">Create Custom Provider</Button>
             </Menu>
           ) : (
             !!(
@@ -80,7 +60,7 @@ export let ManagedServersListLayout = () => {
                 }
                 size="2"
               >
-                Create Managed Provider
+                Create Custom Provider
               </Button>
             )
           )

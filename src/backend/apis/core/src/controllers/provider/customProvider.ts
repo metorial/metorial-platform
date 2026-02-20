@@ -172,6 +172,7 @@ export let customProviderController = Controller.create(
       .do(async ctx => {
         let customProvider = await customProviderService.create({
           instance: ctx.instance,
+          organizationActor: ctx.actor,
           name: ctx.body.name,
           description: ctx.body.description,
           metadata: ctx.body.metadata,

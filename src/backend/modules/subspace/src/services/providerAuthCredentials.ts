@@ -1,5 +1,6 @@
+import { Fabric } from '@metorial/fabric';
 import { subspaceReferenceAuthCredentialsService } from '@metorial/module-subspace-reference';
-import { createSubspaceService } from '../lib/subspaceService';
+import { createSubspaceService, toEventBase } from '../lib/subspaceService';
 import { subspace } from '../subspace';
 
 export let subspaceProviderAuthCredentialsService = createSubspaceService(
@@ -7,6 +8,9 @@ export let subspaceProviderAuthCredentialsService = createSubspaceService(
   ['get', 'list', 'update', 'create'],
   inner => ({
     create: async (...params: Parameters<typeof inner.create>) => {
+      let eventBase = toEventBase(params[0]);
+      await Fabric.fire('provider.auth_credentials.created:before', eventBase);
+
       let authCredentials = await inner.create(...params);
 
       await subspaceReferenceAuthCredentialsService
@@ -21,6 +25,24 @@ export let subspaceProviderAuthCredentialsService = createSubspaceService(
           }
         })
         .catch(err => console.error('Failed to store subspace reference:', err));
+
+      await Fabric.fire('provider.auth_credentials.created:after', {
+        ...eventBase,
+        authCredentials
+      });
+
+      return authCredentials;
+    },
+    update: async (...params: Parameters<typeof inner.update>) => {
+      let eventBase = toEventBase(params[0]);
+      await Fabric.fire('provider.auth_credentials.updated:before', eventBase);
+
+      let authCredentials = await inner.update(...params);
+
+      await Fabric.fire('provider.auth_credentials.updated:after', {
+        ...eventBase,
+        authCredentials
+      });
 
       return authCredentials;
     }

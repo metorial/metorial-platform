@@ -1,5 +1,6 @@
+import { Fabric } from '@metorial/fabric';
 import { subspaceReferenceConfigVaultService } from '@metorial/module-subspace-reference';
-import { createSubspaceService } from '../lib/subspaceService';
+import { createSubspaceService, toEventBase } from '../lib/subspaceService';
 import { subspace } from '../subspace';
 
 export let subspaceProviderConfigVaultService = createSubspaceService(
@@ -7,6 +8,9 @@ export let subspaceProviderConfigVaultService = createSubspaceService(
   ['get', 'list', 'update', 'create'],
   inner => ({
     create: async (...params: Parameters<typeof inner.create>) => {
+      let eventBase = toEventBase(params[0]);
+      await Fabric.fire('provider.config_vault.created:before', eventBase);
+
       let configVault = await inner.create(...params);
 
       await subspaceReferenceConfigVaultService
@@ -21,6 +25,18 @@ export let subspaceProviderConfigVaultService = createSubspaceService(
           }
         })
         .catch(err => console.error('Failed to store subspace reference:', err));
+
+      await Fabric.fire('provider.config_vault.created:after', { ...eventBase, configVault });
+
+      return configVault;
+    },
+    update: async (...params: Parameters<typeof inner.update>) => {
+      let eventBase = toEventBase(params[0]);
+      await Fabric.fire('provider.config_vault.updated:before', eventBase);
+
+      let configVault = await inner.update(...params);
+
+      await Fabric.fire('provider.config_vault.updated:after', { ...eventBase, configVault });
 
       return configVault;
     }

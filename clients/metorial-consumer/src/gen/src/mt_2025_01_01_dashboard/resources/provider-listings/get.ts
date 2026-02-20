@@ -6,7 +6,7 @@ export type ProviderListingsGetOutput = {
   name: string;
   description: string | null;
   slug: string;
-  imageUrl: string | null;
+  imageUrl: string;
   readme: string | null;
   skills: string[];
   flags: {

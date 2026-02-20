@@ -7,8 +7,8 @@ import {
   useCurrentOrganization
 } from '@metorial/state';
 import {
-  RiArrowLeftRightLine,
   RiBriefcase4Line,
+  RiChatVoiceAiLine,
   RiFileList3Line,
   RiFlowChart,
   RiFunctionLine,
@@ -150,12 +150,12 @@ export let ProjectPageLayout = () => {
               getProps: i => ({ isActive: checkPath(i, { exact: true }) })
             },
 
-            {
-              icon: <RiWebhookLine />,
-              label: 'Callbacks',
-              to: Paths.instance.callbacks(...params),
-              getProps: i => ({ isActive: checkPath(i, { exact: true }) })
-            }
+            // {
+            //   icon: <RiWebhookLine />,
+            //   label: 'Callbacks',
+            //   to: Paths.instance.callbacks(...params),
+            //   getProps: i => ({ isActive: checkPath(i, { exact: true }) })
+            // }
           ]
         },
 
@@ -170,9 +170,9 @@ export let ProjectPageLayout = () => {
               getProps: i => ({ isActive: checkPath(i, { exact: true }) })
             },
             {
-              icon: <RiArrowLeftRightLine />,
-              label: 'OAuth Connections',
-              to: Paths.instance.providerConnections(...params),
+              icon: <RiChatVoiceAiLine />,
+              label: 'Custom Providers',
+              to: Paths.instance.customProviders(...params),
               getProps: i => ({ isActive: checkPath(i, { exact: true }) })
             }
           ]

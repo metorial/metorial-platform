@@ -51,7 +51,7 @@ export let ServersGrid = (filter: DashboardInstanceProviderListingsListQuery) =>
                   <Avatar
                     entity={{
                       name: provider.name,
-                      photoUrl: provider.imageUrl || undefined
+                      photoUrl: provider.imageUrl
                     }}
                     size={30}
                     radius={5}

@@ -1,8 +1,6 @@
 import { Context } from '@metorial/context';
 import {
   ApiKey,
-  // Callback,
-  // CallbackEvent,
   Instance,
   MachineAccess,
   Organization,
@@ -18,6 +16,17 @@ import {
   User,
   UserSession
 } from '@metorial/db';
+import type {
+  SubspaceProviderAuthConfig,
+  SubspaceProviderAuthCredentials,
+  SubspaceProviderAuthExport,
+  SubspaceProviderAuthImport,
+  SubspaceProviderConfig,
+  SubspaceProviderConfigVault,
+  SubspaceProviderDeployment,
+  SubspaceProviderSetupSession,
+  SubspaceSession
+} from '@metorial/module-subspace';
 
 export type MachineAccessInput =
   | {
@@ -32,6 +41,12 @@ export type MachineAccessInput =
       performedBy: OrganizationActor;
     };
 
+export type ProviderEventBase = {
+  instance: Instance;
+  organizationActor?: OrganizationActor;
+  input?: Record<string, any>;
+};
+
 // prettier-ignore
 export interface FabricEvents {
   'user.created:before': { context?: Context };
@@ -43,8 +58,6 @@ export interface FabricEvents {
 
   'user.session.created:before': { user: User, performedBy: User; context?: Context };
   'user.session.created:after': { user: User, session: UserSession, performedBy: User; context?: Context };
-  // 'user.session.updated:before': { user: User, session: UserSession, performedBy: User; context?: Context };
-  // 'user.session.updated:after': { user: User, session: UserSession, performedBy: User; context?: Context };
   'user.session.deleted:before': { user: User, session: UserSession, performedBy: User; context?: Context };
   'user.session.deleted:after': { user: User, session: UserSession, performedBy: User; context?: Context };
 
@@ -59,8 +72,6 @@ export interface FabricEvents {
   'organization.actor.created:after': { organization: Organization, actor: OrganizationActor; performedBy: OrganizationActor; context?: Context };
   'organization.actor.updated:before': { organization: Organization, actor: OrganizationActor; performedBy: OrganizationActor; context?: Context };
   'organization.actor.updated:after': { organization: Organization, actor: OrganizationActor; performedBy: OrganizationActor; context?: Context };
-  // 'organization.actor.deleted:before': { organization: Organization, actor: OrganizationActor; performedBy: OrganizationActor; context?: Context };
-  // 'organization.actor.deleted:after': { organization: Organization, actor: OrganizationActor; performedBy: OrganizationActor; context?: Context };
 
   'organization.member.created:before': { organization: Organization; actor: OrganizationActor; user: User; performedBy: OrganizationActor; context?: Context };
   'organization.member.created:after': { organization: Organization; actor: OrganizationActor; user: User; member: OrganizationMember, performedBy: OrganizationActor; context?: Context };
@@ -141,34 +152,44 @@ export interface FabricEvents {
   'machine_access.api_key.expired:after': { machineAccess: MachineAccess, apiKey: ApiKey; organization: Organization; performedBy: OrganizationActor };
   'machine_access.api_key:revealed': { machineAccess: MachineAccess, apiKey: ApiKey, organization: Organization; performedBy: OrganizationActor; context?: Context };
 
-  // 'server.server_deployment.created:before': { organization: Organization, instance: Instance, performedBy: OrganizationActor; context?: Context, implementation: ServerImplementation };
-  // 'server.server_deployment.created:after': { organization: Organization, instance: Instance, performedBy: OrganizationActor; context?: Context; deployment: ServerDeployment, implementation: ServerImplementation };
-  // 'server.server_deployment.updated:before': { organization: Organization, instance: Instance, deployment: ServerDeployment, performedBy: OrganizationActor; context?: Context, implementation: ServerImplementation };
-  // 'server.server_deployment.updated:after': { organization: Organization, instance: Instance, performedBy: OrganizationActor; context?: Context; deployment: ServerDeployment, implementation: ServerImplementation };
-  // 'server.server_deployment.deleted:before': { organization: Organization, instance: Instance, deployment: ServerDeployment, performedBy: OrganizationActor; context?: Context, implementation: ServerImplementation };
-  // 'server.server_deployment.deleted:after': { organization: Organization, instance: Instance, performedBy: OrganizationActor; context?: Context; deployment: ServerDeployment, implementation: ServerImplementation };
+  'provider.deployment.created:before': ProviderEventBase;
+  'provider.deployment.created:after': ProviderEventBase & { deployment: SubspaceProviderDeployment };
+  'provider.deployment.updated:before': ProviderEventBase;
+  'provider.deployment.updated:after': ProviderEventBase & { deployment: SubspaceProviderDeployment };
 
-  // 'server.server_implementation.created:before': { organization: Organization, instance: Instance, performedBy: OrganizationActor; context?: Context };
-  // 'server.server_implementation.created:after': { organization: Organization, instance: Instance, performedBy: OrganizationActor; context?: Context; implementation: ServerImplementation };
-  // 'server.server_implementation.updated:before': { organization: Organization, instance: Instance, implementation: ServerImplementation, performedBy: OrganizationActor; context?: Context };
-  // 'server.server_implementation.updated:after': { organization: Organization, instance: Instance, performedBy: OrganizationActor; context?: Context; implementation: ServerImplementation };
-  // 'server.server_implementation.deleted:before': { organization: Organization, instance: Instance, implementation: ServerImplementation, performedBy: OrganizationActor; context?: Context };
-  // 'server.server_implementation.deleted:after': { organization: Organization, instance: Instance, performedBy: OrganizationActor; context?: Context; implementation: ServerImplementation };
+  'provider.config.created:before': ProviderEventBase;
+  'provider.config.created:after': ProviderEventBase & { config: SubspaceProviderConfig };
+  'provider.config.updated:before': ProviderEventBase;
+  'provider.config.updated:after': ProviderEventBase & { config: SubspaceProviderConfig };
 
-  // 'session.created:before': { organization: Organization, instance: Instance, performedBy: OrganizationActor; context?: Context };
-  // 'session.created:after': { organization: Organization, instance: Instance, performedBy: OrganizationActor; context?: Context; session: Session };
-  // 'session.deleted:before': { organization: Organization, instance: Instance, session: Session, performedBy: OrganizationActor; context?: Context };
-  // 'session.deleted:after': { organization: Organization, instance: Instance, performedBy: OrganizationActor; context?: Context; session: Session };
+  'provider.auth_config.created:before': ProviderEventBase;
+  'provider.auth_config.created:after': ProviderEventBase & { authConfig: SubspaceProviderAuthConfig };
+  'provider.auth_config.updated:before': ProviderEventBase;
+  'provider.auth_config.updated:after': ProviderEventBase & { authConfig: SubspaceProviderAuthConfig };
 
-  // 'server.server_run.created:before': { organization: Organization, instance: Instance };
-  // 'server.server_run.created:after': { organization: Organization, instance: Instance, serverRun: ServerRun };
+  'provider.auth_credentials.created:before': ProviderEventBase;
+  'provider.auth_credentials.created:after': ProviderEventBase & { authCredentials: SubspaceProviderAuthCredentials };
+  'provider.auth_credentials.updated:before': ProviderEventBase;
+  'provider.auth_credentials.updated:after': ProviderEventBase & { authCredentials: SubspaceProviderAuthCredentials };
 
-  // 'session.session_message.created:before': { organization: Organization, instance: Instance, session: ServerSession, participant: {type: 'client' | 'server'} };
-  // 'session.session_message.created.many:after': { organization: Organization, instance: Instance, session: ServerSession, sessionMessages: SessionMessage[] };
-  // 'session.session_message.client_message_received': { organization: Organization, instance: Instance, session: ServerSession };
+  'provider.auth_export.created:before': ProviderEventBase;
+  'provider.auth_export.created:after': ProviderEventBase & { authExport: SubspaceProviderAuthExport };
 
-  // 'server.engine_session.created:before': { organization: Organization, instance: Instance, serverSession: ServerSession };
-  // 'server.engine_session.created:after': { organization: Organization, instance: Instance, serverSession: ServerSession, engineSession: EngineSession };
+  'provider.auth_import.created:before': ProviderEventBase;
+  'provider.auth_import.created:after': ProviderEventBase & { authImport: SubspaceProviderAuthImport };
 
-  // 'callback.event.received': { event: CallbackEvent; callback: Callback };
+  'provider.config_vault.created:before': ProviderEventBase;
+  'provider.config_vault.created:after': ProviderEventBase & { configVault: SubspaceProviderConfigVault };
+  'provider.config_vault.updated:before': ProviderEventBase;
+  'provider.config_vault.updated:after': ProviderEventBase & { configVault: SubspaceProviderConfigVault };
+
+  'provider.setup_session.created:before': ProviderEventBase;
+  'provider.setup_session.created:after': ProviderEventBase & { setupSession: SubspaceProviderSetupSession };
+  'provider.setup_session.updated:before': ProviderEventBase;
+  'provider.setup_session.updated:after': ProviderEventBase & { setupSession: SubspaceProviderSetupSession };
+
+  'provider.session.created:before': ProviderEventBase;
+  'provider.session.created:after': ProviderEventBase & { session: SubspaceSession };
+  'provider.session.updated:before': ProviderEventBase;
+  'provider.session.updated:after': ProviderEventBase & { session: SubspaceSession };
 }

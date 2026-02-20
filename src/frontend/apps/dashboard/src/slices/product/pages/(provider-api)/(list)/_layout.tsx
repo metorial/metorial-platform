@@ -34,18 +34,6 @@ export let ProvidersHubLayout = () => {
       <PageHeader
         title="Providers"
         description="Browse and deploy MCP server providers."
-        actions={
-          <Button
-            size="2"
-            onClick={() =>
-              showProviderDeploymentFormModal({
-                type: 'create'
-              })
-            }
-          >
-            Setup New Provider
-          </Button>
-        }
       />
 
       <Outlet />

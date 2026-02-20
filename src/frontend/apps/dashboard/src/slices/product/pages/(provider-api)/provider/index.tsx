@@ -125,14 +125,13 @@ export let ProviderOverviewPage = () => {
             showProviderDeploymentFormModal({
               type: 'create',
               providerId: provider.data.id,
+              providerName: provider.data.name,
               ...(selectedVersionId
                 ? {
                     lockedProviderVersionId: selectedVersionId,
                     lockedProviderVersionLabel: selectedVersion?.version
                   }
-                : {}),
-              onCreate: (res: { id: string }) =>
-                setProviderDeployment(res as unknown as NonNullable<typeof providerDeployment>)
+                : {})
             })
           }
         >
