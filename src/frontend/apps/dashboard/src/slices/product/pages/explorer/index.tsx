@@ -1,14 +1,15 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import {
   useCreateProviderDeployment,
+  useCreateSession,
   useCurrentInstance,
   useProvider,
   useProviderDeployments
 } from '@metorial/state';
-import { Button, Flex, Input, Spacer, Tabs, Text, theme } from '@metorial/ui';
+import { Button, CenteredSpinner, Flex, Input, Spacer, Tabs, Text, theme } from '@metorial/ui';
 import { RiArrowLeftLine, RiArrowRightLine, RiCloseLine } from '@remixicon/react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { Explainer } from '../../../../components/explainer';
@@ -98,12 +99,50 @@ export let ExplorerPage = () => {
 
   let [providerTab, setProviderTab] = useState<'create' | 'list'>('create');
   let [providerDeploymentId, setProviderDeploymentId] = useState<string | null>(null);
+  let [sessionId, setSessionId] = useState<string | null>(null);
+  let [isCreatingSession, setIsCreatingSession] = useState(false);
+  let [sessionError, setSessionError] = useState<string | null>(null);
 
   let instance = useCurrentInstance();
+  let createSession = useCreateSession(instance.data?.id);
 
   let [search, setSearch] = useSearchParams();
   let providerIdParam = search.get('provider_id');
   let providerDeploymentIdParam = search.get('provider_deployment_id');
+  let sessionIdParam = search.get('session_id');
+
+  useEffect(() => {
+    if (sessionIdParam) setSessionId(sessionIdParam);
+  }, [sessionIdParam]);
+
+  let createSessionForDeployment = useCallback(
+    async (deploymentId: string) => {
+      if (!instance.data) return;
+      setIsCreatingSession(true);
+      setSessionError(null);
+
+      let [res, error] = await createSession.mutate({
+        providers: [{ providerDeployment: deploymentId }]
+      });
+
+      setIsCreatingSession(false);
+
+      if (res) {
+        setSessionId(res.id);
+        setSearch(
+          v => {
+            v.set('session_id', res.id);
+            v.set('provider_deployment_id', deploymentId);
+            return v;
+          },
+          { replace: true }
+        );
+      } else if (error) {
+        setSessionError((error as any)?.message ?? 'Failed to create session');
+      }
+    },
+    [instance.data?.id, createSession]
+  );
 
   let provider = useProvider(instance.data?.id, providerIdParam ?? undefined);
   let [selectedProvider, _setSelectedProvider] = useState<Provider | null>(null);
@@ -114,22 +153,22 @@ export let ExplorerPage = () => {
   }, [provider.data]);
 
   useEffect(() => {
-    if (providerDeploymentIdParam) setProviderDeploymentId(providerDeploymentIdParam);
+    if (providerDeploymentIdParam) {
+      setProviderDeploymentId(providerDeploymentIdParam);
+      if (!sessionIdParam) {
+        createSessionForDeployment(providerDeploymentIdParam);
+      }
+    }
   }, [providerDeploymentIdParam]);
 
-  useEffect(() => {
-    if (providerDeploymentId) {
+  let selectDeployment = useCallback(
+    (deploymentId: string) => {
+      setProviderDeploymentId(deploymentId);
       setOpen(false);
-
-      setSearch(
-        v => {
-          v.set('provider_deployment_id', providerDeploymentId);
-          return v;
-        },
-        { replace: true }
-      );
-    }
-  }, [providerDeploymentId]);
+      createSessionForDeployment(deploymentId);
+    },
+    [createSessionForDeployment]
+  );
 
   let deploymentsFilter = useMemo(
     () => ({
@@ -174,9 +213,9 @@ export let ExplorerPage = () => {
       console.error('Failed to create deployment:', err);
       setCreateError(err.data?.message || 'Failed to create deployment');
     } else if (result) {
-      setProviderDeploymentId(result.id);
       setDeploymentName('');
       setDeploymentDescription('');
+      selectDeployment(result.id);
     }
   };
 
@@ -352,10 +391,7 @@ export let ExplorerPage = () => {
                         <ProviderDeploymentsList
                           providerId={selectedProvider.id}
                           order="desc"
-                          onDeploymentClick={deployment => {
-                            setOpen(false);
-                            setProviderDeploymentId(deployment.id);
-                          }}
+                          onDeploymentClick={deployment => selectDeployment(deployment.id)}
                         />
                       )}
                     </>
@@ -367,15 +403,25 @@ export let ExplorerPage = () => {
       </Aside>
 
       <Main>
-        {!providerDeploymentId && (
+        {!providerDeploymentId && !sessionId && (
           <MainEmpty>
             <p>Click on a provider to start</p>
           </MainEmpty>
         )}
 
-        {providerDeploymentId && (
-          <InspectorFrame providerDeployment={{ id: providerDeploymentId }} />
+        {isCreatingSession && (
+          <MainEmpty>
+            <CenteredSpinner />
+          </MainEmpty>
         )}
+
+        {sessionError && !isCreatingSession && (
+          <MainEmpty>
+            <p>{sessionError}</p>
+          </MainEmpty>
+        )}
+
+        {sessionId && !isCreatingSession && <InspectorFrame sessionId={sessionId} />}
       </Main>
 
       <Explainer
