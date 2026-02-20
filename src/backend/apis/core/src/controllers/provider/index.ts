@@ -32,6 +32,7 @@ export * from './subspaceSessionProvider';
 
 // Custom Provider controllers
 export * from './customProvider';
+export * from './customProviderCode';
 export * from './customProviderCommit';
 export * from './customProviderDeployment';
 export * from './customProviderEnvironment';

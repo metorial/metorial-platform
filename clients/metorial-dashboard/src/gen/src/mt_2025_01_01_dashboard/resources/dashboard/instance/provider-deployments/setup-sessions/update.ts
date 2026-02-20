@@ -41,8 +41,14 @@ export let mapDashboardInstanceProviderDeploymentsSetupSessionsUpdateOutput =
     description: mtMap.objectField('description', mtMap.passthrough()),
     metadata: mtMap.objectField('metadata', mtMap.passthrough()),
     providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-    providerDeploymentId: mtMap.objectField('provider_deployment_id', mtMap.passthrough()),
-    providerAuthMethodId: mtMap.objectField('provider_auth_method_id', mtMap.passthrough()),
+    providerDeploymentId: mtMap.objectField(
+      'provider_deployment_id',
+      mtMap.passthrough()
+    ),
+    providerAuthMethodId: mtMap.objectField(
+      'provider_auth_method_id',
+      mtMap.passthrough()
+    ),
     redirectUrl: mtMap.objectField('redirect_url', mtMap.passthrough()),
     url: mtMap.objectField('url', mtMap.passthrough()),
     createdAt: mtMap.objectField('created_at', mtMap.date()),
@@ -58,7 +64,10 @@ export let mapDashboardInstanceProviderDeploymentsSetupSessionsUpdateOutput =
         description: mtMap.objectField('description', mtMap.passthrough()),
         metadata: mtMap.objectField('metadata', mtMap.passthrough()),
         providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-        providerDeploymentId: mtMap.objectField('provider_deployment_id', mtMap.passthrough()),
+        providerDeploymentId: mtMap.objectField(
+          'provider_deployment_id',
+          mtMap.passthrough()
+        ),
         providerAuthMethodId: mtMap.objectField(
           'provider_auth_method_id',
           mtMap.passthrough()
@@ -81,3 +90,4 @@ export let mapDashboardInstanceProviderDeploymentsSetupSessionsUpdateBody =
     description: mtMap.objectField('description', mtMap.passthrough()),
     metadata: mtMap.objectField('metadata', mtMap.passthrough())
   });
+

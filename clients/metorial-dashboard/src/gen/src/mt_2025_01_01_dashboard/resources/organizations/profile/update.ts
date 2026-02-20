@@ -44,7 +44,9 @@ export type OrganizationsProfileUpdateBody = {
   description?: string | null | undefined;
 };
 
-export let mapOrganizationsProfileUpdateBody = mtMap.object<OrganizationsProfileUpdateBody>({
-  name: mtMap.objectField('name', mtMap.passthrough()),
-  description: mtMap.objectField('description', mtMap.passthrough())
-});
+export let mapOrganizationsProfileUpdateBody =
+  mtMap.object<OrganizationsProfileUpdateBody>({
+    name: mtMap.objectField('name', mtMap.passthrough()),
+    description: mtMap.objectField('description', mtMap.passthrough())
+  });
+

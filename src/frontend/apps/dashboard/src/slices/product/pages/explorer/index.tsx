@@ -95,7 +95,12 @@ let CreateForm = styled.div`
 `;
 
 export let ExplorerPage = () => {
-  let [open, setOpen] = useState(true);
+  let [search, setSearch] = useSearchParams();
+  let providerIdParam = search.get('provider_id');
+  let providerDeploymentIdParam = search.get('provider_deployment_id');
+  let sessionIdParam = search.get('session_id');
+
+  let [open, setOpen] = useState(!providerDeploymentIdParam && !sessionIdParam);
 
   let [providerTab, setProviderTab] = useState<'create' | 'list'>('create');
   let [providerDeploymentId, setProviderDeploymentId] = useState<string | null>(null);
@@ -105,11 +110,6 @@ export let ExplorerPage = () => {
 
   let instance = useCurrentInstance();
   let createSession = useCreateSession(instance.data?.id);
-
-  let [search, setSearch] = useSearchParams();
-  let providerIdParam = search.get('provider_id');
-  let providerDeploymentIdParam = search.get('provider_deployment_id');
-  let sessionIdParam = search.get('session_id');
 
   useEffect(() => {
     if (sessionIdParam) setSessionId(sessionIdParam);

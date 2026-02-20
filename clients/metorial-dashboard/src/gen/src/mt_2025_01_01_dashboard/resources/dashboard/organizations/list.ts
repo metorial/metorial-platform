@@ -4,8 +4,7 @@ export type DashboardOrganizationsListOutput = {
   items: {
     object: 'organization';
     id: string;
-    status: 'active' | 'deleted';
-    type: 'default' | 'user';
+    type: 'default';
     slug: string;
     name: string;
     imageUrl: string;
@@ -23,7 +22,6 @@ export let mapDashboardOrganizationsListOutput =
         mtMap.object({
           object: mtMap.objectField('object', mtMap.passthrough()),
           id: mtMap.objectField('id', mtMap.passthrough()),
-          status: mtMap.objectField('status', mtMap.passthrough()),
           type: mtMap.objectField('type', mtMap.passthrough()),
           slug: mtMap.objectField('slug', mtMap.passthrough()),
           name: mtMap.objectField('name', mtMap.passthrough()),
@@ -36,7 +34,10 @@ export let mapDashboardOrganizationsListOutput =
     pagination: mtMap.objectField(
       'pagination',
       mtMap.object({
-        hasMoreBefore: mtMap.objectField('has_more_before', mtMap.passthrough()),
+        hasMoreBefore: mtMap.objectField(
+          'has_more_before',
+          mtMap.passthrough()
+        ),
         hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
       })
     )
@@ -62,3 +63,4 @@ export let mapDashboardOrganizationsListQuery = mtMap.union([
     })
   )
 ]);
+

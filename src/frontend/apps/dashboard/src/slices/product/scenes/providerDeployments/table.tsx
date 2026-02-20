@@ -23,7 +23,7 @@ export let ProviderDeploymentsTable = ({
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
-  let deployments = useProviderDeployments(instanceId, { providerId, status, search });
+  let deployments = useProviderDeployments(instanceId, { providerId, status, search, order: 'desc' });
 
   return renderWithPagination(deployments)(deployments => (
     <>

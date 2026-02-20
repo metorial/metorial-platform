@@ -16,7 +16,10 @@ export type ApiKeysCreateOutput = {
     object: 'machine_access';
     id: string;
     status: 'active' | 'deleted';
-    type: 'organization_management' | 'instance_secret' | 'instance_publishable';
+    type:
+      | 'organization_management'
+      | 'instance_secret'
+      | 'instance_publishable';
     name: string;
     lastUsedAt: Date;
     createdAt: Date;
@@ -119,7 +122,10 @@ export let mapApiKeysCreateOutput = mtMap.object<ApiKeysCreateOutput>({
           object: mtMap.objectField('object', mtMap.passthrough()),
           id: mtMap.objectField('id', mtMap.passthrough()),
           type: mtMap.objectField('type', mtMap.passthrough()),
-          organizationId: mtMap.objectField('organization_id', mtMap.passthrough()),
+          organizationId: mtMap.objectField(
+            'organization_id',
+            mtMap.passthrough()
+          ),
           name: mtMap.objectField('name', mtMap.passthrough()),
           email: mtMap.objectField('email', mtMap.passthrough()),
           imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
@@ -130,7 +136,10 @@ export let mapApiKeysCreateOutput = mtMap.object<ApiKeysCreateOutput>({
                 id: mtMap.objectField('id', mtMap.passthrough()),
                 name: mtMap.objectField('name', mtMap.passthrough()),
                 slug: mtMap.objectField('slug', mtMap.passthrough()),
-                assignmentId: mtMap.objectField('assignment_id', mtMap.passthrough()),
+                assignmentId: mtMap.objectField(
+                  'assignment_id',
+                  mtMap.passthrough()
+                ),
                 createdAt: mtMap.objectField('created_at', mtMap.date()),
                 updatedAt: mtMap.objectField('updated_at', mtMap.date())
               })
@@ -147,7 +156,10 @@ export let mapApiKeysCreateOutput = mtMap.object<ApiKeysCreateOutput>({
           id: mtMap.objectField('id', mtMap.passthrough()),
           slug: mtMap.objectField('slug', mtMap.passthrough()),
           name: mtMap.objectField('name', mtMap.passthrough()),
-          organizationId: mtMap.objectField('organization_id', mtMap.passthrough()),
+          organizationId: mtMap.objectField(
+            'organization_id',
+            mtMap.passthrough()
+          ),
           type: mtMap.objectField('type', mtMap.passthrough()),
           createdAt: mtMap.objectField('created_at', mtMap.date()),
           updatedAt: mtMap.objectField('updated_at', mtMap.date()),
@@ -159,7 +171,10 @@ export let mapApiKeysCreateOutput = mtMap.object<ApiKeysCreateOutput>({
               status: mtMap.objectField('status', mtMap.passthrough()),
               slug: mtMap.objectField('slug', mtMap.passthrough()),
               name: mtMap.objectField('name', mtMap.passthrough()),
-              organizationId: mtMap.objectField('organization_id', mtMap.passthrough()),
+              organizationId: mtMap.objectField(
+                'organization_id',
+                mtMap.passthrough()
+              ),
               createdAt: mtMap.objectField('created_at', mtMap.date()),
               updatedAt: mtMap.objectField('updated_at', mtMap.date())
             })
@@ -207,7 +222,9 @@ export let mapApiKeysCreateOutput = mtMap.object<ApiKeysCreateOutput>({
 export type ApiKeysCreateBody = (
   | { type: 'organization_management_token' }
   | {
-      type: 'instance_access_token_secret' | 'instance_access_token_publishable';
+      type:
+        | 'instance_access_token_secret'
+        | 'instance_access_token_publishable';
       instanceId: string;
     }
 ) & {
@@ -228,3 +245,4 @@ export let mapApiKeysCreateBody = mtMap.union([
     })
   )
 ]);
+

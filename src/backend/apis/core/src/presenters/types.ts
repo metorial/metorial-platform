@@ -1081,6 +1081,12 @@ export let customProviderEnvironmentType = PresentableType.create<{
   customProviderEnvironment: SubspaceCustomProviderEnvironment;
 }>()('customProviderEnvironment');
 
+export let customServerCodeEditorTokenType = PresentableType.create<{
+  id: string;
+  token: string;
+  expiresAt: string;
+}>()('customServerCodeEditorToken');
+
 export let providerOAuthSetupType = PresentableType.create<{
   providerOAuthSetup: SubspaceProviderOAuthSetup;
 }>()('providerOAuthSetup');

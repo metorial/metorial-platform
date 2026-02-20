@@ -37,6 +37,7 @@ import {
   v1CustomProviderEnvironmentPresenter,
   // Custom Provider presenters
   v1CustomProviderPresenter,
+  v1CustomServerCodeEditorTokenPresenter,
   v1CustomProviderVersionPresenter,
   v1DeploymentPresenter,
   v1DeploymentPreviewPresenter,
@@ -88,6 +89,7 @@ import {
   customProviderEnvironmentType,
   // Custom Provider types
   customProviderType,
+  customServerCodeEditorTokenType,
   customProviderVersionType,
   deploymentPreviewType,
   deploymentType,
@@ -509,6 +511,14 @@ export let authImportSchemaPresenter = declarePresenter(authImportSchemaType, {
 // =============================================================================
 // Custom Provider Presenters
 // =============================================================================
+
+export let customServerCodeEditorTokenTypePresenter = declarePresenter(
+  customServerCodeEditorTokenType,
+  {
+    mt_2025_01_01_dashboard: v1CustomServerCodeEditorTokenPresenter,
+    mt_2026_01_01_magnetar: v1CustomServerCodeEditorTokenPresenter
+  }
+);
 
 export let subspaceCustomProviderPresenter = declarePresenter(customProviderType, {
   mt_2025_01_01_dashboard: v1CustomProviderPresenter,

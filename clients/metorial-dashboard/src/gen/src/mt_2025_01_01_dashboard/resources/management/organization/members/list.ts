@@ -47,7 +47,10 @@ export let mapManagementOrganizationMembersListOutput =
           status: mtMap.objectField('status', mtMap.passthrough()),
           role: mtMap.objectField('role', mtMap.passthrough()),
           userId: mtMap.objectField('user_id', mtMap.passthrough()),
-          organizationId: mtMap.objectField('organization_id', mtMap.passthrough()),
+          organizationId: mtMap.objectField(
+            'organization_id',
+            mtMap.passthrough()
+          ),
           actorId: mtMap.objectField('actor_id', mtMap.passthrough()),
           lastActiveAt: mtMap.objectField('last_active_at', mtMap.date()),
           createdAt: mtMap.objectField('created_at', mtMap.date()),
@@ -59,7 +62,10 @@ export let mapManagementOrganizationMembersListOutput =
               object: mtMap.objectField('object', mtMap.passthrough()),
               id: mtMap.objectField('id', mtMap.passthrough()),
               type: mtMap.objectField('type', mtMap.passthrough()),
-              organizationId: mtMap.objectField('organization_id', mtMap.passthrough()),
+              organizationId: mtMap.objectField(
+                'organization_id',
+                mtMap.passthrough()
+              ),
               name: mtMap.objectField('name', mtMap.passthrough()),
               email: mtMap.objectField('email', mtMap.passthrough()),
               imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
@@ -70,7 +76,10 @@ export let mapManagementOrganizationMembersListOutput =
                     id: mtMap.objectField('id', mtMap.passthrough()),
                     name: mtMap.objectField('name', mtMap.passthrough()),
                     slug: mtMap.objectField('slug', mtMap.passthrough()),
-                    assignmentId: mtMap.objectField('assignment_id', mtMap.passthrough()),
+                    assignmentId: mtMap.objectField(
+                      'assignment_id',
+                      mtMap.passthrough()
+                    ),
                     createdAt: mtMap.objectField('created_at', mtMap.date()),
                     updatedAt: mtMap.objectField('updated_at', mtMap.date())
                   })
@@ -86,7 +95,10 @@ export let mapManagementOrganizationMembersListOutput =
     pagination: mtMap.objectField(
       'pagination',
       mtMap.object({
-        hasMoreBefore: mtMap.objectField('has_more_before', mtMap.passthrough()),
+        hasMoreBefore: mtMap.objectField(
+          'has_more_before',
+          mtMap.passthrough()
+        ),
         hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
       })
     )
@@ -122,3 +134,4 @@ export let mapManagementOrganizationMembersListQuery = mtMap.union([
     })
   )
 ]);
+

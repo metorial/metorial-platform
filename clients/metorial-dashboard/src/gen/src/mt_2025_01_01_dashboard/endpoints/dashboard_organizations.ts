@@ -1,4 +1,7 @@
-import { BaseMetorialEndpoint, MetorialEndpointManager } from '@metorial/util-endpoint';
+import {
+  BaseMetorialEndpoint,
+  MetorialEndpointManager
+} from '@metorial/util-endpoint';
 
 import {
   mapDashboardOrganizationsCreateBody,
@@ -91,7 +94,9 @@ export class MetorialDashboardOrganizationsEndpoint {
     let request = {
       path,
 
-      query: query ? mapDashboardOrganizationsListQuery.transformTo(query) : undefined,
+      query: query
+        ? mapDashboardOrganizationsListQuery.transformTo(query)
+        : undefined,
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
@@ -148,7 +153,9 @@ export class MetorialDashboardOrganizationsEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._patch(request).transform(mapDashboardOrganizationsUpdateOutput);
+    return this._patch(request).transform(
+      mapDashboardOrganizationsUpdateOutput
+    );
   }
 
   /**
@@ -173,6 +180,8 @@ export class MetorialDashboardOrganizationsEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._delete(request).transform(mapDashboardOrganizationsDeleteOutput);
+    return this._delete(request).transform(
+      mapDashboardOrganizationsDeleteOutput
+    );
   }
 }

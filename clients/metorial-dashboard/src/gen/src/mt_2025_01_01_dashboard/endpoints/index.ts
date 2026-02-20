@@ -6,6 +6,7 @@ export * from './custom-providers_environments';
 export * from './custom-providers_versions';
 export * from './dashboard';
 export * from './dashboard_instance_custom-providers';
+export * from './dashboard_instance_custom-providers_code';
 export * from './dashboard_instance_custom-providers_commits';
 export * from './dashboard_instance_custom-providers_deployments';
 export * from './dashboard_instance_custom-providers_environments';

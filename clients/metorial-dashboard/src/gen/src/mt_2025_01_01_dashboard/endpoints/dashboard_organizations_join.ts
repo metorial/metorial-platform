@@ -1,4 +1,7 @@
-import { BaseMetorialEndpoint, MetorialEndpointManager } from '@metorial/util-endpoint';
+import {
+  BaseMetorialEndpoint,
+  MetorialEndpointManager
+} from '@metorial/util-endpoint';
 
 import {
   mapDashboardOrganizationsJoinAcceptBody,
@@ -61,7 +64,9 @@ export class MetorialDashboardOrganizationsJoinEndpoint {
     let request = {
       path,
 
-      query: query ? mapDashboardOrganizationsJoinGetQuery.transformTo(query) : undefined,
+      query: query
+        ? mapDashboardOrganizationsJoinGetQuery.transformTo(query)
+        : undefined,
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
@@ -91,7 +96,9 @@ export class MetorialDashboardOrganizationsJoinEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._post(request).transform(mapDashboardOrganizationsJoinAcceptOutput);
+    return this._post(request).transform(
+      mapDashboardOrganizationsJoinAcceptOutput
+    );
   }
 
   /**
@@ -117,6 +124,8 @@ export class MetorialDashboardOrganizationsJoinEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._post(request).transform(mapDashboardOrganizationsJoinRejectOutput);
+    return this._post(request).transform(
+      mapDashboardOrganizationsJoinRejectOutput
+    );
   }
 }

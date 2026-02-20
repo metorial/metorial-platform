@@ -49,7 +49,9 @@ export let ProviderSessionForm = (
 
       if (props.onCreate) {
         props.onCreate(result);
+        props.close?.();
       } else {
+        props.close?.();
         navigate(
           Paths.instance.providerSession(
             instance.data.organization,
@@ -59,8 +61,6 @@ export let ProviderSessionForm = (
           )
         );
       }
-
-      props.close?.();
     }
   };
 

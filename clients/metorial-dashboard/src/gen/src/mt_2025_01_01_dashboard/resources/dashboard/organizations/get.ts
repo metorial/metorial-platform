@@ -11,13 +11,15 @@ export type DashboardOrganizationsGetOutput = {
   updatedAt: Date;
 };
 
-export let mapDashboardOrganizationsGetOutput = mtMap.object<DashboardOrganizationsGetOutput>({
-  object: mtMap.objectField('object', mtMap.passthrough()),
-  id: mtMap.objectField('id', mtMap.passthrough()),
-  type: mtMap.objectField('type', mtMap.passthrough()),
-  slug: mtMap.objectField('slug', mtMap.passthrough()),
-  name: mtMap.objectField('name', mtMap.passthrough()),
-  imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
-  createdAt: mtMap.objectField('created_at', mtMap.date()),
-  updatedAt: mtMap.objectField('updated_at', mtMap.date())
-});
+export let mapDashboardOrganizationsGetOutput =
+  mtMap.object<DashboardOrganizationsGetOutput>({
+    object: mtMap.objectField('object', mtMap.passthrough()),
+    id: mtMap.objectField('id', mtMap.passthrough()),
+    type: mtMap.objectField('type', mtMap.passthrough()),
+    slug: mtMap.objectField('slug', mtMap.passthrough()),
+    name: mtMap.objectField('name', mtMap.passthrough()),
+    imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
+    createdAt: mtMap.objectField('created_at', mtMap.date()),
+    updatedAt: mtMap.objectField('updated_at', mtMap.date())
+  });
+

@@ -35,7 +35,9 @@ export let SessionTemplateForm = (
 
       if (props.onCreate) {
         props.onCreate(result);
+        props.close?.();
       } else {
+        props.close?.();
         navigate(
           Paths.instance.sessionTemplate(
             instance.data.organization,
@@ -45,8 +47,6 @@ export let SessionTemplateForm = (
           )
         );
       }
-
-      props.close?.();
     }
   };
 

@@ -39,7 +39,10 @@ export let mapDashboardOrganizationsInstancesUpdateOutput =
         status: mtMap.objectField('status', mtMap.passthrough()),
         slug: mtMap.objectField('slug', mtMap.passthrough()),
         name: mtMap.objectField('name', mtMap.passthrough()),
-        organizationId: mtMap.objectField('organization_id', mtMap.passthrough()),
+        organizationId: mtMap.objectField(
+          'organization_id',
+          mtMap.passthrough()
+        ),
         createdAt: mtMap.objectField('created_at', mtMap.date()),
         updatedAt: mtMap.objectField('updated_at', mtMap.date())
       })
@@ -54,3 +57,4 @@ export let mapDashboardOrganizationsInstancesUpdateBody =
   mtMap.object<DashboardOrganizationsInstancesUpdateBody>({
     name: mtMap.objectField('name', mtMap.passthrough())
   });
+

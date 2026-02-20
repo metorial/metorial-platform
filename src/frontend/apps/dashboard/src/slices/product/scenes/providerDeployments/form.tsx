@@ -35,9 +35,7 @@ export let ProviderDeploymentForm = (
   let [providerName, setProviderName] = useState(
     props.type === 'create' ? (props.providerName ?? '') : ''
   );
-  let [name, setName] = useState(
-    props.type === 'create' ? (props.providerName ?? '') : ''
-  );
+  let [name, setName] = useState(props.type === 'create' ? (props.providerName ?? '') : '');
   let [description, setDescription] = useState('');
 
   let handleCreate = async () => {
@@ -58,7 +56,9 @@ export let ProviderDeploymentForm = (
 
       if (props.onCreate) {
         props.onCreate(result);
+        props.close?.();
       } else {
+        props.close?.();
         let deploymentPath = Paths.instance.providerDeployment(
           instance.data.organization,
           instance.data.project,
@@ -67,8 +67,6 @@ export let ProviderDeploymentForm = (
         );
         navigate(`${deploymentPath}?auth=setup`);
       }
-
-      props.close?.();
     }
   };
 

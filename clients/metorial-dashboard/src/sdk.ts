@@ -6,6 +6,7 @@ import {
   MetorialDashboardEndpoint,
   MetorialDashboardInstanceCustomProvidersCommitsEndpoint,
   MetorialDashboardInstanceCustomProvidersDeploymentsEndpoint,
+  MetorialDashboardInstanceCustomProvidersCodeEndpoint,
   MetorialDashboardInstanceCustomProvidersEndpoint,
   MetorialDashboardInstanceCustomProvidersEnvironmentsEndpoint,
   MetorialDashboardInstanceCustomProvidersVersionsEndpoint,
@@ -133,7 +134,8 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
       versions: new MetorialDashboardInstanceCustomProvidersVersionsEndpoint(manager),
       deployments: new MetorialDashboardInstanceCustomProvidersDeploymentsEndpoint(manager),
       commits: new MetorialDashboardInstanceCustomProvidersCommitsEndpoint(manager),
-      environments: new MetorialDashboardInstanceCustomProvidersEnvironmentsEndpoint(manager)
+      environments: new MetorialDashboardInstanceCustomProvidersEnvironmentsEndpoint(manager),
+      code: new MetorialDashboardInstanceCustomProvidersCodeEndpoint(manager)
     }
   ),
 

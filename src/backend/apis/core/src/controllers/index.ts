@@ -18,6 +18,7 @@ import { teamManagementController } from './management/team';
 import { teamRoleManagementController } from './management/teamRole';
 import { teamRolePermissionsManagementController } from './management/teamRolePermissions';
 import {
+  customProviderCodeController,
   customProviderCommitController,
   customProviderController,
   customProviderDeploymentController,
@@ -101,6 +102,7 @@ export let magnetarController = Controller.create<any>(
     subspaceSessionEventController,
 
     customProviderController,
+    customProviderCodeController,
     customProviderVersionController,
     customProviderDeploymentController,
     customProviderCommitController,
@@ -193,6 +195,7 @@ export let dashboardController = Controller.create<any>(
     subspaceSessionEventController,
 
     customProviderController,
+    customProviderCodeController,
     customProviderVersionController,
     customProviderDeploymentController,
     customProviderCommitController,

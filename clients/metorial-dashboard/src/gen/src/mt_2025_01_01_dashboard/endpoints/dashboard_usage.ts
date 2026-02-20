@@ -1,4 +1,7 @@
-import { BaseMetorialEndpoint, MetorialEndpointManager } from '@metorial/util-endpoint';
+import {
+  BaseMetorialEndpoint,
+  MetorialEndpointManager
+} from '@metorial/util-endpoint';
 
 import {
   mapDashboardUsageTimelineOutput,
@@ -55,7 +58,9 @@ export class MetorialDashboardUsageEndpoint {
     let request = {
       path,
 
-      query: query ? mapDashboardUsageTimelineQuery.transformTo(query) : undefined,
+      query: query
+        ? mapDashboardUsageTimelineQuery.transformTo(query)
+        : undefined,
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 

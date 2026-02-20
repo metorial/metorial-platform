@@ -52,7 +52,10 @@ export let mapDashboardOrganizationsMembersUpdateOutput =
         object: mtMap.objectField('object', mtMap.passthrough()),
         id: mtMap.objectField('id', mtMap.passthrough()),
         type: mtMap.objectField('type', mtMap.passthrough()),
-        organizationId: mtMap.objectField('organization_id', mtMap.passthrough()),
+        organizationId: mtMap.objectField(
+          'organization_id',
+          mtMap.passthrough()
+        ),
         name: mtMap.objectField('name', mtMap.passthrough()),
         email: mtMap.objectField('email', mtMap.passthrough()),
         imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
@@ -63,7 +66,10 @@ export let mapDashboardOrganizationsMembersUpdateOutput =
               id: mtMap.objectField('id', mtMap.passthrough()),
               name: mtMap.objectField('name', mtMap.passthrough()),
               slug: mtMap.objectField('slug', mtMap.passthrough()),
-              assignmentId: mtMap.objectField('assignment_id', mtMap.passthrough()),
+              assignmentId: mtMap.objectField(
+                'assignment_id',
+                mtMap.passthrough()
+              ),
               createdAt: mtMap.objectField('created_at', mtMap.date()),
               updatedAt: mtMap.objectField('updated_at', mtMap.date())
             })
@@ -83,3 +89,4 @@ export let mapDashboardOrganizationsMembersUpdateBody =
   mtMap.object<DashboardOrganizationsMembersUpdateBody>({
     role: mtMap.objectField('role', mtMap.passthrough())
   });
+

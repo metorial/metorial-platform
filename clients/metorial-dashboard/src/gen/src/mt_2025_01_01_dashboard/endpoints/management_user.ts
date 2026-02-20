@@ -1,4 +1,7 @@
-import { BaseMetorialEndpoint, MetorialEndpointManager } from '@metorial/util-endpoint';
+import {
+  BaseMetorialEndpoint,
+  MetorialEndpointManager
+} from '@metorial/util-endpoint';
 
 import {
   mapManagementUserDeleteBody,
@@ -49,7 +52,9 @@ export class MetorialManagementUserEndpoint {
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
-  get(opts?: { headers?: Record<string, string> }): Promise<ManagementUserGetOutput> {
+  get(opts?: {
+    headers?: Record<string, string>;
+  }): Promise<ManagementUserGetOutput> {
     let path = 'user';
 
     let request = {

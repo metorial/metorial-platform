@@ -88,6 +88,8 @@ export let InspectorFrame = ({ sessionId }: { sessionId: string }) => {
     if (session.data.connectionKey)
       url.searchParams.set('bearer_token', session.data.connectionKey);
 
+    url.hash = 'tools';
+
     return url.toString();
   }, [session.data]);
 
