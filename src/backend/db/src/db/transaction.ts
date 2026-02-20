@@ -58,10 +58,6 @@ export let addAfterTransactionHook = (hook: () => any) =>
         return hook();
       });
     } else {
-      console.warn(
-        'WARNING: After hook not running in transaction, will execute after 5 seconds instead'
-      );
-
       setTimeout(
         () =>
           afterQueue.add(async () => {
