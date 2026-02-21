@@ -20,7 +20,10 @@ export let mapManagementOrganizationTeamsRolesCreateOutput =
     name: mtMap.objectField('name', mtMap.passthrough()),
     slug: mtMap.objectField('slug', mtMap.passthrough()),
     description: mtMap.objectField('description', mtMap.passthrough()),
-    permissions: mtMap.objectField('permissions', mtMap.array(mtMap.passthrough())),
+    permissions: mtMap.objectField(
+      'permissions',
+      mtMap.array(mtMap.passthrough())
+    ),
     createdAt: mtMap.objectField('created_at', mtMap.date()),
     updatedAt: mtMap.objectField('updated_at', mtMap.date())
   });
@@ -35,5 +38,9 @@ export let mapManagementOrganizationTeamsRolesCreateBody =
   mtMap.object<ManagementOrganizationTeamsRolesCreateBody>({
     name: mtMap.objectField('name', mtMap.passthrough()),
     description: mtMap.objectField('description', mtMap.passthrough()),
-    permissions: mtMap.objectField('permissions', mtMap.array(mtMap.passthrough()))
+    permissions: mtMap.objectField(
+      'permissions',
+      mtMap.array(mtMap.passthrough())
+    )
   });
+

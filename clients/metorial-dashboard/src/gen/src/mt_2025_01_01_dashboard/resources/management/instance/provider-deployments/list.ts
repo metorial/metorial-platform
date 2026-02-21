@@ -58,7 +58,10 @@ export let mapManagementInstanceProviderDeploymentsListOutput =
               object: mtMap.objectField('object', mtMap.passthrough()),
               id: mtMap.objectField('id', mtMap.passthrough()),
               name: mtMap.objectField('name', mtMap.passthrough()),
-              description: mtMap.objectField('description', mtMap.passthrough()),
+              description: mtMap.objectField(
+                'description',
+                mtMap.passthrough()
+              ),
               slug: mtMap.objectField('slug', mtMap.passthrough()),
               createdAt: mtMap.objectField('created_at', mtMap.date()),
               updatedAt: mtMap.objectField('updated_at', mtMap.date())
@@ -80,7 +83,10 @@ export let mapManagementInstanceProviderDeploymentsListOutput =
             mtMap.object({
               id: mtMap.objectField('id', mtMap.passthrough()),
               name: mtMap.objectField('name', mtMap.passthrough()),
-              description: mtMap.objectField('description', mtMap.passthrough()),
+              description: mtMap.objectField(
+                'description',
+                mtMap.passthrough()
+              ),
               metadata: mtMap.objectField('metadata', mtMap.passthrough()),
               providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
               createdAt: mtMap.objectField('created_at', mtMap.date()),
@@ -95,7 +101,10 @@ export let mapManagementInstanceProviderDeploymentsListOutput =
     pagination: mtMap.objectField(
       'pagination',
       mtMap.object({
-        hasMoreBefore: mtMap.objectField('has_more_before', mtMap.passthrough()),
+        hasMoreBefore: mtMap.objectField(
+          'has_more_before',
+          mtMap.passthrough()
+        ),
         hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
       })
     )
@@ -148,3 +157,4 @@ export let mapManagementInstanceProviderDeploymentsListQuery = mtMap.union([
     })
   )
 ]);
+

@@ -11,6 +11,7 @@ export * from './configSchema';
 export * from './configVault';
 export * from './customProvider';
 export * from './customProviderCommit';
+export * from './customServerCodeEditorToken';
 export * from './customProviderDeployment';
 export * from './customProviderEnvironment';
 export * from './customProviderVersion';

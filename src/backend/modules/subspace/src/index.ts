@@ -2,6 +2,7 @@ import { combineQueueProcessors } from '@metorial/queue';
 
 export let subspaceQueueProcessor = combineQueueProcessors([]);
 
+export * from './proxy';
 export * from './services';
-export { buildSubspaceMcpUrl, getTenantForSubspace } from './subspace';
-export { subspace } from './subspace';
+
+export { getTenantForSubspace } from './subspace';

@@ -22,7 +22,10 @@ export let mapCustomProvidersEnvironmentsListOutput =
         mtMap.object({
           object: mtMap.objectField('object', mtMap.passthrough()),
           id: mtMap.objectField('id', mtMap.passthrough()),
-          customProviderId: mtMap.objectField('custom_provider_id', mtMap.passthrough()),
+          customProviderId: mtMap.objectField(
+            'custom_provider_id',
+            mtMap.passthrough()
+          ),
           providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
           currentProviderVersionId: mtMap.objectField(
             'current_provider_version_id',
@@ -37,7 +40,10 @@ export let mapCustomProvidersEnvironmentsListOutput =
     pagination: mtMap.objectField(
       'pagination',
       mtMap.object({
-        hasMoreBefore: mtMap.objectField('has_more_before', mtMap.passthrough()),
+        hasMoreBefore: mtMap.objectField(
+          'has_more_before',
+          mtMap.passthrough()
+        ),
         hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
       })
     )
@@ -86,3 +92,4 @@ export let mapCustomProvidersEnvironmentsListQuery = mtMap.union([
     })
   )
 ]);
+

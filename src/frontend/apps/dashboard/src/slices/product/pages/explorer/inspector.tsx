@@ -1,13 +1,11 @@
 import { Paths } from '@metorial/frontend-config';
-import { useCurrentInstance } from '@metorial/state';
+import { useCurrentInstance, useSession } from '@metorial/state';
 import { Button, CenteredSpinner, Error, theme } from '@metorial/ui';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
-import { AuthPanel } from './authPanel';
 import { BreathingIndicator } from './breathing';
-import { useSessionForDeployment } from './state';
 
 let Wrapper = styled.div`
   position: relative;
@@ -67,13 +65,9 @@ let Status = styled(motion.div)`
   font-weight: 500;
 `;
 
-export let InspectorFrame = ({
-  providerDeployment
-}: {
-  providerDeployment: { id: string };
-}) => {
+export let InspectorFrame = ({ sessionId }: { sessionId: string }) => {
   let instance = useCurrentInstance();
-  let session = useSessionForDeployment(instance.data?.id, providerDeployment.id);
+  let session = useSession(instance.data?.id, sessionId);
 
   let [isLoading, setIsLoading] = useState(true);
 
@@ -82,9 +76,8 @@ export let InspectorFrame = ({
 
     let url = new URL(
       (window as any).METORIAL_EXPLORER_URL ?? import.meta.env.VITE_EXPLORER_URL!
-    ); // https://inspector.mcp.metorial.com
+    );
 
-    // Use the direct Subspace MCP connection URL from the session response
     let connectionUrl = session.data.connectionUrl;
     if (!connectionUrl) return undefined;
 
@@ -95,25 +88,21 @@ export let InspectorFrame = ({
     if (session.data.connectionKey)
       url.searchParams.set('bearer_token', session.data.connectionKey);
 
+    url.hash = 'tools';
+
     return url.toString();
   }, [session.data]);
+
+  let firstDeploymentId = session.data?.providerDeployments?.[0]?.providerDeploymentId;
 
   return (
     <>
       <ConnectionNav>
         <ConnectionNavSection>
           <Status
-            initial={{
-              y: -10,
-              opacity: 0
-            }}
-            animate={{
-              y: 0,
-              opacity: 1
-            }}
-            transition={{
-              delay: 1
-            }}
+            initial={{ y: -10, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 1 }}
           >
             <BreathingIndicator />
             <span>
@@ -123,25 +112,27 @@ export let InspectorFrame = ({
         </ConnectionNavSection>
 
         <ConnectionNavSection>
-          <Link
-            to={Paths.instance.providerDeployment(
-              instance.data?.organization,
-              instance.data?.project,
-              instance.data,
-              providerDeployment.id
-            )}
-          >
-            <Button as="span" size="2" variant="outline">
-              Open Provider Deployment
-            </Button>
-          </Link>
+          {firstDeploymentId && (
+            <Link
+              to={Paths.instance.providerDeployment(
+                instance.data?.organization,
+                instance.data?.project,
+                instance.data,
+                firstDeploymentId
+              )}
+            >
+              <Button as="span" size="2" variant="outline">
+                Open Provider Deployment
+              </Button>
+            </Link>
+          )}
 
           <Link
             to={Paths.instance.providerSession(
               instance.data?.organization,
               instance.data?.project,
               instance.data,
-              session.data?.id
+              sessionId
             )}
           >
             <Button as="span" size="2" variant="outline">
@@ -152,26 +143,19 @@ export let InspectorFrame = ({
       </ConnectionNav>
 
       <Wrapper>
-        {session.state == 'auth_required' ? (
+        {session.error ? (
           <Center>
-            <AuthPanel
-              instanceId={instance.data!.id}
-              deploymentId={providerDeployment.id}
-              provider={{
-                id: session.provider?.id ?? '',
-                name: session.provider?.name ?? null
-              }}
-              authMethods={session.authMethods}
-              authCredentials={session.authCredentials}
-              onAuthComplete={session.onAuthComplete}
-              refetchAuthCredentials={session.refetchAuthCredentials}
-            />
+            <Error>{session.error?.message ?? 'Unable to load session'}</Error>
           </Center>
-        ) : session.error || session.state == 'error' ? (
-          <Center>
-            <Error>{session.error?.message ?? 'Unable to create session'}</Error>
-          </Center>
-        ) : session.state == 'ready' || session.state == 'loading' ? (
+        ) : session.isLoading || !url ? (
+          <>
+            <AnimatePresence>
+              <Overlay>
+                <CenteredSpinner />
+              </Overlay>
+            </AnimatePresence>
+          </>
+        ) : (
           <>
             <Iframe src={url} onLoad={() => setIsLoading(false)} key={url} />
 
@@ -183,7 +167,7 @@ export let InspectorFrame = ({
               )}
             </AnimatePresence>
           </>
-        ) : null}
+        )}
       </Wrapper>
     </>
   );

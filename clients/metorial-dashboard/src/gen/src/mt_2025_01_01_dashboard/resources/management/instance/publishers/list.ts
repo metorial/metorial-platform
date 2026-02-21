@@ -7,7 +7,7 @@ export type ManagementInstancePublishersListOutput = {
     name: string;
     description: string | null;
     slug: string;
-    imageUrl: string | null;
+    imageUrl: string;
     createdAt: Date;
     updatedAt: Date;
   }[];
@@ -34,7 +34,10 @@ export let mapManagementInstancePublishersListOutput =
     pagination: mtMap.objectField(
       'pagination',
       mtMap.object({
-        hasMoreBefore: mtMap.objectField('has_more_before', mtMap.passthrough()),
+        hasMoreBefore: mtMap.objectField(
+          'has_more_before',
+          mtMap.passthrough()
+        ),
         hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
       })
     )
@@ -60,3 +63,4 @@ export let mapManagementInstancePublishersListQuery = mtMap.union([
     })
   )
 ]);
+

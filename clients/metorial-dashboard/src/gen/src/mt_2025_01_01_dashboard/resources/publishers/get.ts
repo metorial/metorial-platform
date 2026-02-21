@@ -6,7 +6,7 @@ export type PublishersGetOutput = {
   name: string;
   description: string | null;
   slug: string;
-  imageUrl: string | null;
+  imageUrl: string;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -21,3 +21,4 @@ export let mapPublishersGetOutput = mtMap.object<PublishersGetOutput>({
   createdAt: mtMap.objectField('created_at', mtMap.date()),
   updatedAt: mtMap.objectField('updated_at', mtMap.date())
 });
+

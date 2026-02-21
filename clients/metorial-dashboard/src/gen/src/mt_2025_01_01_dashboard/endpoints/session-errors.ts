@@ -1,4 +1,7 @@
-import { BaseMetorialEndpoint, MetorialEndpointManager } from '@metorial/util-endpoint';
+import {
+  BaseMetorialEndpoint,
+  MetorialEndpointManager
+} from '@metorial/util-endpoint';
 
 import {
   mapDashboardInstanceSessionErrorsListOutput,
@@ -53,10 +56,14 @@ export class MetorialSessionErrorsEndpoint {
     let request = {
       path,
 
-      query: query ? mapDashboardInstanceSessionErrorsListQuery.transformTo(query) : undefined,
+      query: query
+        ? mapDashboardInstanceSessionErrorsListQuery.transformTo(query)
+        : undefined,
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._get(request).transform(mapDashboardInstanceSessionErrorsListOutput);
+    return this._get(request).transform(
+      mapDashboardInstanceSessionErrorsListOutput
+    );
   }
 }

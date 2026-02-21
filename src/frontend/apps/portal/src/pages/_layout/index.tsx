@@ -52,25 +52,25 @@ export let Layout = () => {
                 getProps: i => ({ isActive: checkPath(i, { exact: true }) })
               },
 
-              {
-                icon: <RiFlowChart />,
-                label: 'Deployments',
-                to: Paths.magicMcpServers(),
-                getProps: i => ({ isActive: checkPath(i, { exact: true }) }),
+              // {
+              //   icon: <RiFlowChart />,
+              //   label: 'Deployments',
+              //   to: Paths.magicMcpServers(),
+              //   getProps: i => ({ isActive: checkPath(i, { exact: true }) }),
 
-                children: [
-                  {
-                    label: 'Deployments',
-                    to: Paths.magicMcpServers(),
-                    getProps: i => ({ isActive: checkPath(i, { exact: true }) })
-                  },
-                  {
-                    label: 'Connections',
-                    to: Paths.magicMcpSessions(),
-                    getProps: i => ({ isActive: checkPath(i, { exact: true }) })
-                  }
-                ]
-              }
+              //   children: [
+              //     {
+              //       label: 'Deployments',
+              //       to: Paths.magicMcpServers(),
+              //       getProps: i => ({ isActive: checkPath(i, { exact: true }) })
+              //     },
+              //     {
+              //       label: 'Connections',
+              //       to: Paths.magicMcpSessions(),
+              //       getProps: i => ({ isActive: checkPath(i, { exact: true }) })
+              //     }
+              //   ]
+              // }
             ]
           },
 

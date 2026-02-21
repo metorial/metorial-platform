@@ -43,7 +43,10 @@ export let mapManagementInstanceProvidersToolsListOutput =
     pagination: mtMap.objectField(
       'pagination',
       mtMap.object({
-        hasMoreBefore: mtMap.objectField('has_more_before', mtMap.passthrough()),
+        hasMoreBefore: mtMap.objectField(
+          'has_more_before',
+          mtMap.passthrough()
+        ),
         hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
       })
     )
@@ -66,7 +69,11 @@ export let mapManagementInstanceProvidersToolsListQuery = mtMap.union([
       before: mtMap.objectField('before', mtMap.passthrough()),
       cursor: mtMap.objectField('cursor', mtMap.passthrough()),
       order: mtMap.objectField('order', mtMap.passthrough()),
-      providerVersionId: mtMap.objectField('provider_version_id', mtMap.passthrough())
+      providerVersionId: mtMap.objectField(
+        'provider_version_id',
+        mtMap.passthrough()
+      )
     })
   )
 ]);
+

@@ -25,3 +25,4 @@ export let mapDashboardInstanceLinksUpdateBody =
   mtMap.object<DashboardInstanceLinksUpdateBody>({
     expiresAt: mtMap.objectField('expires_at', mtMap.date())
   });
+

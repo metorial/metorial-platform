@@ -1,18 +1,27 @@
+import { getImageUrl } from '@metorial/db';
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
 import { publisherType } from '../../types';
 
 export let v1PublisherPresenter = Presenter.create(publisherType)
-  .presenter(async ({ publisher }) => ({
-    object: 'provider.publisher' as const,
-    id: publisher.id,
-    name: publisher.name,
-    description: publisher.description,
-    slug: publisher.slug ?? publisher.identifier,
-    image_url: publisher.source?.url ?? null,
-    created_at: publisher.createdAt,
-    updated_at: publisher.updatedAt
-  }))
+  .presenter(async ({ publisher }) => {
+    let rawImageUrl = (publisher.source as any)?.url;
+
+    return {
+      object: 'provider.publisher' as const,
+      id: publisher.id,
+      name: publisher.name,
+      description: publisher.description,
+      slug: publisher.slug ?? publisher.identifier,
+      image_url: await getImageUrl({
+        id: publisher.id,
+        name: publisher.name,
+        image: rawImageUrl ? { type: 'url', url: rawImageUrl } : null
+      }),
+      created_at: publisher.createdAt,
+      updated_at: publisher.updatedAt
+    };
+  })
   .schema(
     v.object({
       object: v.literal('provider.publisher', {
@@ -40,13 +49,11 @@ export let v1PublisherPresenter = Presenter.create(publisherType)
         description: 'URL-friendly identifier',
         examples: ['acme-corp']
       }),
-      image_url: v.nullable(
-        v.string({
-          name: 'image_url',
-          description: 'URL of the publisher logo',
-          examples: ['https://cdn.metorial.com/images/acme.png']
-        })
-      ),
+      image_url: v.string({
+        name: 'image_url',
+        description: 'URL of the publisher logo',
+        examples: ['https://cdn.metorial.com/images/acme.png']
+      }),
       created_at: v.date({
         name: 'created_at',
         description: 'Timestamp when created',

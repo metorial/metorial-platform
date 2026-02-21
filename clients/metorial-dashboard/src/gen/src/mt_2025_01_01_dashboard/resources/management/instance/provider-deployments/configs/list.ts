@@ -39,7 +39,10 @@ export let mapManagementInstanceProviderDeploymentsConfigsListOutput =
     pagination: mtMap.objectField(
       'pagination',
       mtMap.object({
-        hasMoreBefore: mtMap.objectField('has_more_before', mtMap.passthrough()),
+        hasMoreBefore: mtMap.objectField(
+          'has_more_before',
+          mtMap.passthrough()
+        ),
         hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
       })
     )
@@ -53,15 +56,17 @@ export type ManagementInstanceProviderDeploymentsConfigsListQuery = {
   order?: 'asc' | 'desc' | undefined;
 } & {};
 
-export let mapManagementInstanceProviderDeploymentsConfigsListQuery = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      limit: mtMap.objectField('limit', mtMap.passthrough()),
-      after: mtMap.objectField('after', mtMap.passthrough()),
-      before: mtMap.objectField('before', mtMap.passthrough()),
-      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough())
-    })
-  )
-]);
+export let mapManagementInstanceProviderDeploymentsConfigsListQuery =
+  mtMap.union([
+    mtMap.unionOption(
+      'object',
+      mtMap.object({
+        limit: mtMap.objectField('limit', mtMap.passthrough()),
+        after: mtMap.objectField('after', mtMap.passthrough()),
+        before: mtMap.objectField('before', mtMap.passthrough()),
+        cursor: mtMap.objectField('cursor', mtMap.passthrough()),
+        order: mtMap.objectField('order', mtMap.passthrough())
+      })
+    )
+  ]);
+

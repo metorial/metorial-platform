@@ -120,7 +120,10 @@ export let mapDashboardInstanceProviderDeploymentsCreateBody =
           'object',
           mtMap.object({
             type: mtMap.objectField('type', mtMap.passthrough()),
-            providerConfigId: mtMap.objectField('provider_config_id', mtMap.passthrough()),
+            providerConfigId: mtMap.objectField(
+              'provider_config_id',
+              mtMap.passthrough()
+            ),
             name: mtMap.objectField('name', mtMap.passthrough()),
             config: mtMap.objectField(
               'config',
@@ -144,3 +147,4 @@ export let mapDashboardInstanceProviderDeploymentsCreateBody =
       ])
     )
   });
+

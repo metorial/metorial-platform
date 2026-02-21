@@ -1,4 +1,7 @@
-import { BaseMetorialEndpoint, MetorialEndpointManager } from '@metorial/util-endpoint';
+import {
+  BaseMetorialEndpoint,
+  MetorialEndpointManager
+} from '@metorial/util-endpoint';
 
 import {
   mapDashboardInstanceSessionErrorGroupsGetOutput,
@@ -61,7 +64,9 @@ export class MetorialSessionErrorGroupsEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._get(request).transform(mapDashboardInstanceSessionErrorGroupsListOutput);
+    return this._get(request).transform(
+      mapDashboardInstanceSessionErrorGroupsListOutput
+    );
   }
 
   /**
@@ -86,6 +91,8 @@ export class MetorialSessionErrorGroupsEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._get(request).transform(mapDashboardInstanceSessionErrorGroupsGetOutput);
+    return this._get(request).transform(
+      mapDashboardInstanceSessionErrorGroupsGetOutput
+    );
   }
 }

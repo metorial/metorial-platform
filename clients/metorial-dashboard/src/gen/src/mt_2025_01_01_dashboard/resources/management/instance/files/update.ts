@@ -39,3 +39,4 @@ export let mapManagementInstanceFilesUpdateBody =
   mtMap.object<ManagementInstanceFilesUpdateBody>({
     title: mtMap.objectField('title', mtMap.passthrough())
   });
+

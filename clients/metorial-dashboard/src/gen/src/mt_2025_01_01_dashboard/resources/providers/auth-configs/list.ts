@@ -17,36 +17,43 @@ export type ProvidersAuthConfigsListOutput = {
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
-export let mapProvidersAuthConfigsListOutput = mtMap.object<ProvidersAuthConfigsListOutput>({
-  items: mtMap.objectField(
-    'items',
-    mtMap.array(
+export let mapProvidersAuthConfigsListOutput =
+  mtMap.object<ProvidersAuthConfigsListOutput>({
+    items: mtMap.objectField(
+      'items',
+      mtMap.array(
+        mtMap.object({
+          object: mtMap.objectField('object', mtMap.passthrough()),
+          id: mtMap.objectField('id', mtMap.passthrough()),
+          type: mtMap.objectField('type', mtMap.passthrough()),
+          name: mtMap.objectField('name', mtMap.passthrough()),
+          description: mtMap.objectField('description', mtMap.passthrough()),
+          metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+          providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
+          providerDeploymentId: mtMap.objectField(
+            'provider_deployment_id',
+            mtMap.passthrough()
+          ),
+          providerAuthMethodId: mtMap.objectField(
+            'provider_auth_method_id',
+            mtMap.passthrough()
+          ),
+          createdAt: mtMap.objectField('created_at', mtMap.date()),
+          updatedAt: mtMap.objectField('updated_at', mtMap.date())
+        })
+      )
+    ),
+    pagination: mtMap.objectField(
+      'pagination',
       mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        type: mtMap.objectField('type', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        description: mtMap.objectField('description', mtMap.passthrough()),
-        metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-        providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-        providerDeploymentId: mtMap.objectField('provider_deployment_id', mtMap.passthrough()),
-        providerAuthMethodId: mtMap.objectField(
-          'provider_auth_method_id',
+        hasMoreBefore: mtMap.objectField(
+          'has_more_before',
           mtMap.passthrough()
         ),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date())
+        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
       })
     )
-  ),
-  pagination: mtMap.objectField(
-    'pagination',
-    mtMap.object({
-      hasMoreBefore: mtMap.objectField('has_more_before', mtMap.passthrough()),
-      hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-    })
-  )
-});
+  });
 
 export type ProvidersAuthConfigsListQuery = {
   limit?: number | undefined;
@@ -102,3 +109,4 @@ export let mapProvidersAuthConfigsListQuery = mtMap.union([
     })
   )
 ]);
+

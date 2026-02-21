@@ -1,4 +1,7 @@
-import { BaseMetorialEndpoint, MetorialEndpointManager } from '@metorial/util-endpoint';
+import {
+  BaseMetorialEndpoint,
+  MetorialEndpointManager
+} from '@metorial/util-endpoint';
 
 import {
   mapDashboardInstanceProvidersSpecificationsGetOutput,
@@ -58,12 +61,16 @@ export class MetorialProvidersSpecificationsEndpoint {
       path,
 
       query: query
-        ? mapDashboardInstanceProvidersSpecificationsListQuery.transformTo(query)
+        ? mapDashboardInstanceProvidersSpecificationsListQuery.transformTo(
+            query
+          )
         : undefined,
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._get(request).transform(mapDashboardInstanceProvidersSpecificationsListOutput);
+    return this._get(request).transform(
+      mapDashboardInstanceProvidersSpecificationsListOutput
+    );
   }
 
   /**
@@ -90,6 +97,8 @@ export class MetorialProvidersSpecificationsEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._get(request).transform(mapDashboardInstanceProvidersSpecificationsGetOutput);
+    return this._get(request).transform(
+      mapDashboardInstanceProvidersSpecificationsGetOutput
+    );
   }
 }

@@ -37,7 +37,10 @@ export let mapCustomProvidersDeploymentsListOutput =
           id: mtMap.objectField('id', mtMap.passthrough()),
           status: mtMap.objectField('status', mtMap.passthrough()),
           trigger: mtMap.objectField('trigger', mtMap.passthrough()),
-          customProviderId: mtMap.objectField('custom_provider_id', mtMap.passthrough()),
+          customProviderId: mtMap.objectField(
+            'custom_provider_id',
+            mtMap.passthrough()
+          ),
           providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
           customProviderVersionId: mtMap.objectField(
             'custom_provider_version_id',
@@ -72,7 +75,10 @@ export let mapCustomProvidersDeploymentsListOutput =
     pagination: mtMap.objectField(
       'pagination',
       mtMap.object({
-        hasMoreBefore: mtMap.objectField('has_more_before', mtMap.passthrough()),
+        hasMoreBefore: mtMap.objectField(
+          'has_more_before',
+          mtMap.passthrough()
+        ),
         hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
       })
     )
@@ -132,3 +138,4 @@ export let mapCustomProvidersDeploymentsListQuery = mtMap.union([
     })
   )
 ]);
+

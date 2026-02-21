@@ -13,14 +13,26 @@ export type DashboardInstanceProviderDeploymentsAuthConfigsImportsGetOutput = {
 };
 
 export let mapDashboardInstanceProviderDeploymentsAuthConfigsImportsGetOutput =
-  mtMap.object<DashboardInstanceProviderDeploymentsAuthConfigsImportsGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    note: mtMap.objectField('note', mtMap.passthrough()),
-    metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-    providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-    providerDeploymentId: mtMap.objectField('provider_deployment_id', mtMap.passthrough()),
-    providerAuthConfigId: mtMap.objectField('provider_auth_config_id', mtMap.passthrough()),
-    providerAuthMethodId: mtMap.objectField('provider_auth_method_id', mtMap.passthrough()),
-    createdAt: mtMap.objectField('created_at', mtMap.date())
-  });
+  mtMap.object<DashboardInstanceProviderDeploymentsAuthConfigsImportsGetOutput>(
+    {
+      object: mtMap.objectField('object', mtMap.passthrough()),
+      id: mtMap.objectField('id', mtMap.passthrough()),
+      note: mtMap.objectField('note', mtMap.passthrough()),
+      metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+      providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
+      providerDeploymentId: mtMap.objectField(
+        'provider_deployment_id',
+        mtMap.passthrough()
+      ),
+      providerAuthConfigId: mtMap.objectField(
+        'provider_auth_config_id',
+        mtMap.passthrough()
+      ),
+      providerAuthMethodId: mtMap.objectField(
+        'provider_auth_method_id',
+        mtMap.passthrough()
+      ),
+      createdAt: mtMap.objectField('created_at', mtMap.date())
+    }
+  );
+

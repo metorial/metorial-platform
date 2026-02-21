@@ -134,7 +134,7 @@ export let customProviderDeploymentController = Controller.create(
         });
 
         return subspaceCustomProviderDeploymentLogsPresenter.present({
-          logs: { logs: (logs as any).steps } as SubspaceCustomProviderDeploymentLogs
+          logs: { steps: (logs as any).steps } as SubspaceCustomProviderDeploymentLogs
         });
       })
   }

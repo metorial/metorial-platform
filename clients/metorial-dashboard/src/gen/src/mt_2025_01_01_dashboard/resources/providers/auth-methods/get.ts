@@ -22,27 +22,32 @@ export type ProvidersAuthMethodsGetOutput = {
   updatedAt: Date;
 };
 
-export let mapProvidersAuthMethodsGetOutput = mtMap.object<ProvidersAuthMethodsGetOutput>({
-  object: mtMap.objectField('object', mtMap.passthrough()),
-  id: mtMap.objectField('id', mtMap.passthrough()),
-  type: mtMap.objectField('type', mtMap.passthrough()),
-  name: mtMap.objectField('name', mtMap.passthrough()),
-  description: mtMap.objectField('description', mtMap.passthrough()),
-  inputSchema: mtMap.objectField('input_schema', mtMap.passthrough()),
-  scopes: mtMap.objectField(
-    'scopes',
-    mtMap.array(
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        scope: mtMap.objectField('scope', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        description: mtMap.objectField('description', mtMap.passthrough())
-      })
-    )
-  ),
-  providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-  providerSpecificationId: mtMap.objectField('provider_specification_id', mtMap.passthrough()),
-  createdAt: mtMap.objectField('created_at', mtMap.date()),
-  updatedAt: mtMap.objectField('updated_at', mtMap.date())
-});
+export let mapProvidersAuthMethodsGetOutput =
+  mtMap.object<ProvidersAuthMethodsGetOutput>({
+    object: mtMap.objectField('object', mtMap.passthrough()),
+    id: mtMap.objectField('id', mtMap.passthrough()),
+    type: mtMap.objectField('type', mtMap.passthrough()),
+    name: mtMap.objectField('name', mtMap.passthrough()),
+    description: mtMap.objectField('description', mtMap.passthrough()),
+    inputSchema: mtMap.objectField('input_schema', mtMap.passthrough()),
+    scopes: mtMap.objectField(
+      'scopes',
+      mtMap.array(
+        mtMap.object({
+          object: mtMap.objectField('object', mtMap.passthrough()),
+          id: mtMap.objectField('id', mtMap.passthrough()),
+          scope: mtMap.objectField('scope', mtMap.passthrough()),
+          name: mtMap.objectField('name', mtMap.passthrough()),
+          description: mtMap.objectField('description', mtMap.passthrough())
+        })
+      )
+    ),
+    providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
+    providerSpecificationId: mtMap.objectField(
+      'provider_specification_id',
+      mtMap.passthrough()
+    ),
+    createdAt: mtMap.objectField('created_at', mtMap.date()),
+    updatedAt: mtMap.objectField('updated_at', mtMap.date())
+  });
+

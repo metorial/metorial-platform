@@ -48,3 +48,4 @@ export let mapLinksListOutput = mtMap.object<LinksListOutput>({
     })
   )
 });
+

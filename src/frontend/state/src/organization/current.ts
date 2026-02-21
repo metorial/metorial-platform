@@ -5,7 +5,6 @@ import { useBoot } from './loaders/boot';
 import { useInstance, useInstances } from './loaders/instance';
 import { useOrganization } from './loaders/organization';
 import { useProject, useProjects } from './loaders/project';
-import { MetorialInstance, MetorialProject } from './types';
 
 let orgNotFound = new MetorialSDKError({
   status: 404,
@@ -45,11 +44,12 @@ export let useCurrentOrganization = () => {
       );
       if (instance) {
         let org = boot.data?.organizations.find(org => org.id == instance.organizationId);
-        if (org) {
+        let project = boot.data?.projects.find(p => p.id == instance.project.id);
+        if (org && project) {
           return {
             type: 'instance' as const,
             instance,
-            project: instance.project,
+            project,
             organization: org
           };
         }
@@ -151,13 +151,13 @@ export let useCurrentOrganization = () => {
   }
 
   let instances = boot.data.instances.filter(
-    (instance: MetorialInstance) => instance.organizationId == foundItem.organization.id
+    instance => instance.organizationId == foundItem.organization.id
   );
   let projects = boot.data.projects
-    .filter((project: MetorialProject) => project.organizationId == foundItem.organization.id)
-    .map((project: MetorialProject) => {
+    .filter(project => project.organizationId == foundItem.organization.id)
+    .map(project => {
       let projectInstances = instances.filter(
-        (instance: MetorialInstance) => instance.project.id == project.id
+        instance => instance.project.id == project.id
       );
       return {
         ...project,
@@ -212,7 +212,7 @@ export let useCurrentProject = () => {
       ...org.data.currentProject,
       organization: org.data,
       instances: org.data.instances.filter(
-        (instance: MetorialInstance) => instance.project.id == org.data.currentProject!.id
+        instance => instance.project.id == org.data.currentProject!.id
       )
     },
     error: org.error,
@@ -249,7 +249,8 @@ export let useCurrentInstance = () => {
     ...instance,
     data: {
       ...org.data.currentInstance,
-      organization: org.data
+      organization: org.data,
+      project: org.data.currentProject!
     },
     error: org.error,
     isLoading: org.isLoading

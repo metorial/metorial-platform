@@ -1,4 +1,7 @@
-import { BaseMetorialEndpoint, MetorialEndpointManager } from '@metorial/util-endpoint';
+import {
+  BaseMetorialEndpoint,
+  MetorialEndpointManager
+} from '@metorial/util-endpoint';
 
 import {
   mapDashboardInstanceSessionTemplatesCreateBody,
@@ -69,7 +72,9 @@ export class MetorialSessionTemplatesEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._get(request).transform(mapDashboardInstanceSessionTemplatesListOutput);
+    return this._get(request).transform(
+      mapDashboardInstanceSessionTemplatesListOutput
+    );
   }
 
   /**
@@ -94,7 +99,9 @@ export class MetorialSessionTemplatesEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._get(request).transform(mapDashboardInstanceSessionTemplatesGetOutput);
+    return this._get(request).transform(
+      mapDashboardInstanceSessionTemplatesGetOutput
+    );
   }
 
   /**
@@ -120,7 +127,9 @@ export class MetorialSessionTemplatesEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._post(request).transform(mapDashboardInstanceSessionTemplatesCreateOutput);
+    return this._post(request).transform(
+      mapDashboardInstanceSessionTemplatesCreateOutput
+    );
   }
 
   /**
@@ -148,6 +157,8 @@ export class MetorialSessionTemplatesEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._patch(request).transform(mapDashboardInstanceSessionTemplatesUpdateOutput);
+    return this._patch(request).transform(
+      mapDashboardInstanceSessionTemplatesUpdateOutput
+    );
   }
 }

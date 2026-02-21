@@ -41,6 +41,8 @@ export let subspace: ReturnType<typeof createSubspaceControllerClient> =
 })();
 
 export let getTenantForSubspace = async (instance: Instance) => {
+  let solution = await solutionProm.promise;
+
   if (!instance.subspaceTenantId || !instance.subspaceEnvironmentId) {
     let subspaceTenant = await subspace.tenant.upsert({
       identifier: `mte-${instance.id}`,
@@ -77,12 +79,9 @@ export let getTenantForSubspace = async (instance: Instance) => {
       id: instance.subspaceTenantId!,
       identifier: instance.subspaceTenantIdentifier!
     },
+    solution,
     environmentId: instance.subspaceEnvironmentId!
   };
-};
-
-export let buildSubspaceMcpUrl = (instance: Instance, sessionId: string) => {
-  return `${env.subspace.SUBSPACE_CONNECTION_URL}/${env.subspace.SUBSPACE_SOLUTION}/${instance.subspaceTenantId}/sessions/${sessionId}/mcp`;
 };
 
 export let getActorForSubspace = async (

@@ -1,5 +1,5 @@
 import { badRequestError, ServiceError } from '@metorial/error';
-import { getTenantForSubspace, subspace } from '@metorial/module-subspace';
+import { subspaceBucketService } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instancePath } from '../../middleware/instanceGroup';
@@ -36,11 +36,8 @@ export let customProviderCodeController = Controller.create(
           );
         }
 
-        let { tenant, environmentId } = await getTenantForSubspace(ctx.instance);
-
-        let editorRes = await (subspace as any).bucket.getEditorUrl({
-          tenantId: tenant.id,
-          environmentId,
+        let editorRes = await subspaceBucketService.getEditorUrl({
+          instance: ctx.instance,
           bucketId: draftBucket.id
         });
 

@@ -6,7 +6,7 @@ export type DashboardInstancePublishersGetOutput = {
   name: string;
   description: string | null;
   slug: string;
-  imageUrl: string | null;
+  imageUrl: string;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -22,3 +22,4 @@ export let mapDashboardInstancePublishersGetOutput =
     createdAt: mtMap.objectField('created_at', mtMap.date()),
     updatedAt: mtMap.objectField('updated_at', mtMap.date())
   });
+

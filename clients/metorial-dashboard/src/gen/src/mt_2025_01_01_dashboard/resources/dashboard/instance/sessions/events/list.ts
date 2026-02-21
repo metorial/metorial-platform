@@ -6,7 +6,7 @@ export type DashboardInstanceSessionsEventsListOutput = {
     id: string;
     type: string | null;
     name: string | null;
-    message: Record<string, any> | null;
+    message: string | null;
     data: Record<string, any> | null;
     metadata: Record<string, any> | null;
     sessionId: string;
@@ -31,8 +31,14 @@ export let mapDashboardInstanceSessionsEventsListOutput =
           data: mtMap.objectField('data', mtMap.passthrough()),
           metadata: mtMap.objectField('metadata', mtMap.passthrough()),
           sessionId: mtMap.objectField('session_id', mtMap.passthrough()),
-          sessionProviderId: mtMap.objectField('session_provider_id', mtMap.passthrough()),
-          providerRunId: mtMap.objectField('provider_run_id', mtMap.passthrough()),
+          sessionProviderId: mtMap.objectField(
+            'session_provider_id',
+            mtMap.passthrough()
+          ),
+          providerRunId: mtMap.objectField(
+            'provider_run_id',
+            mtMap.passthrough()
+          ),
           createdAt: mtMap.objectField('created_at', mtMap.date())
         })
       )
@@ -40,7 +46,10 @@ export let mapDashboardInstanceSessionsEventsListOutput =
     pagination: mtMap.objectField(
       'pagination',
       mtMap.object({
-        hasMoreBefore: mtMap.objectField('has_more_before', mtMap.passthrough()),
+        hasMoreBefore: mtMap.objectField(
+          'has_more_before',
+          mtMap.passthrough()
+        ),
         hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
       })
     )
@@ -91,3 +100,4 @@ export let mapDashboardInstanceSessionsEventsListQuery = mtMap.union([
     })
   )
 ]);
+

@@ -2,9 +2,9 @@ import { createExecutionContext, provideExecutionContext } from '@metorial/execu
 import { createHono, useRequestContext } from '@metorial/hono';
 import { generateSnowflakeId } from '@metorial/id';
 import { AuthInfo } from '@metorial/module-access';
+import { proxyMcpRequestToSubspace } from '@metorial/module-subspace';
 import { Authenticator } from '@metorial/rest';
 import { authenticateAndResolveInstance } from './getSession';
-import { mcpProxyHandler } from './handler';
 
 export let startMcpServer = (d: { port: number; authenticate: Authenticator<AuthInfo> }) => {
   let hono = createHono()
@@ -18,7 +18,7 @@ export let startMcpServer = (d: { port: number; authenticate: Authenticator<Auth
       );
       c.res.headers.set(
         'Access-Control-Allow-Headers',
-        'Content-Type, Authorization, metorial-version, mcp-protocol-version'
+        'Content-Type, Authorization, metorial-version, mcp-protocol-version, MCP-Session-ID, Last-Event-ID'
       );
       c.res.headers.set('Access-Control-Allow-Credentials', 'true');
       c.res.headers.set('Access-Control-Max-Age', '86400');
@@ -27,7 +27,7 @@ export let startMcpServer = (d: { port: number; authenticate: Authenticator<Auth
       return c.text('');
     })
     .get('/ping', c => c.text('OK'))
-    .all('/mcp/:sessionId/:connectionType?', async (c, _next) => {
+    .all('/mcp/:sessionId', async (c, _next) => {
       let { sessionId } = c.req.param();
       let context = useRequestContext(c);
       let url = new URL(c.req.url);
@@ -42,7 +42,7 @@ export let startMcpServer = (d: { port: number; authenticate: Authenticator<Auth
         }),
         async () => {
           let { instance } = await authenticateAndResolveInstance(req, url, d.authenticate);
-          return mcpProxyHandler(c, instance, sessionId);
+          return proxyMcpRequestToSubspace(c, instance, sessionId);
         }
       );
     });

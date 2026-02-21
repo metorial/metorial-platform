@@ -1,4 +1,7 @@
-import { BaseMetorialEndpoint, MetorialEndpointManager } from '@metorial/util-endpoint';
+import {
+  BaseMetorialEndpoint,
+  MetorialEndpointManager
+} from '@metorial/util-endpoint';
 
 import {
   mapDashboardInstanceProvidersVersionsGetOutput,
@@ -63,7 +66,9 @@ export class MetorialProvidersVersionsEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._get(request).transform(mapDashboardInstanceProvidersVersionsListOutput);
+    return this._get(request).transform(
+      mapDashboardInstanceProvidersVersionsListOutput
+    );
   }
 
   /**
@@ -90,6 +95,8 @@ export class MetorialProvidersVersionsEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._get(request).transform(mapDashboardInstanceProvidersVersionsGetOutput);
+    return this._get(request).transform(
+      mapDashboardInstanceProvidersVersionsGetOutput
+    );
   }
 }

@@ -19,7 +19,7 @@ export type ManagementInstanceCustomProvidersCreateOutput = {
       name: string;
       description: string | null;
       slug: string;
-      imageUrl: string | null;
+      imageUrl: string;
       createdAt: Date;
       updatedAt: Date;
     } | null;
@@ -153,7 +153,10 @@ export let mapManagementInstanceCustomProvidersCreateBody =
                 mtMap.unionOption(
                   'object',
                   mtMap.object({
-                    identifier: mtMap.objectField('identifier', mtMap.passthrough()),
+                    identifier: mtMap.objectField(
+                      'identifier',
+                      mtMap.passthrough()
+                    ),
                     version: mtMap.objectField('version', mtMap.passthrough())
                   })
                 )
@@ -171,3 +174,4 @@ export let mapManagementInstanceCustomProvidersCreateBody =
       })
     )
   });
+

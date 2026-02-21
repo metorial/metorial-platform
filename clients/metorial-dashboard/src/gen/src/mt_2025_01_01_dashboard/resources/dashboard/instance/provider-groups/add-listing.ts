@@ -27,5 +27,9 @@ export type DashboardInstanceProviderGroupsAddListingBody = {
 
 export let mapDashboardInstanceProviderGroupsAddListingBody =
   mtMap.object<DashboardInstanceProviderGroupsAddListingBody>({
-    providerListingId: mtMap.objectField('provider_listing_id', mtMap.passthrough())
+    providerListingId: mtMap.objectField(
+      'provider_listing_id',
+      mtMap.passthrough()
+    )
   });
+

@@ -37,3 +37,4 @@ export type FilesUpdateBody = { title?: string | undefined };
 export let mapFilesUpdateBody = mtMap.object<FilesUpdateBody>({
   title: mtMap.objectField('title', mtMap.passthrough())
 });
+

@@ -17,3 +17,4 @@ export let mapLinksDeleteOutput = mtMap.object<LinksDeleteOutput>({
   createdAt: mtMap.objectField('created_at', mtMap.date()),
   expiresAt: mtMap.objectField('expires_at', mtMap.date())
 });
+

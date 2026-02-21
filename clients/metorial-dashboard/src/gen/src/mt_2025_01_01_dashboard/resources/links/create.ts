@@ -23,3 +23,4 @@ export type LinksCreateBody = { expiresAt?: Date | undefined };
 export let mapLinksCreateBody = mtMap.object<LinksCreateBody>({
   expiresAt: mtMap.objectField('expires_at', mtMap.date())
 });
+

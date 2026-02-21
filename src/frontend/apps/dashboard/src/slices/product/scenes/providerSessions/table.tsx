@@ -18,7 +18,8 @@ export let ProviderSessionsTable = ({
   let instance = useCurrentInstance();
   let sessions = useSessions(instanceId, {
     providerId: providerId,
-    status
+    status,
+    order: 'desc'
   });
 
   return renderWithPagination(sessions)(sessions => (

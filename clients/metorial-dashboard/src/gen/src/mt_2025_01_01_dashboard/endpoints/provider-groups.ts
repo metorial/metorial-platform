@@ -1,4 +1,7 @@
-import { BaseMetorialEndpoint, MetorialEndpointManager } from '@metorial/util-endpoint';
+import {
+  BaseMetorialEndpoint,
+  MetorialEndpointManager
+} from '@metorial/util-endpoint';
 
 import {
   mapDashboardInstanceProviderGroupsAddListingBody,
@@ -75,7 +78,9 @@ export class MetorialProviderGroupsEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._get(request).transform(mapDashboardInstanceProviderGroupsListOutput);
+    return this._get(request).transform(
+      mapDashboardInstanceProviderGroupsListOutput
+    );
   }
 
   /**
@@ -100,7 +105,9 @@ export class MetorialProviderGroupsEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._get(request).transform(mapDashboardInstanceProviderGroupsGetOutput);
+    return this._get(request).transform(
+      mapDashboardInstanceProviderGroupsGetOutput
+    );
   }
 
   /**
@@ -126,7 +133,9 @@ export class MetorialProviderGroupsEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._post(request).transform(mapDashboardInstanceProviderGroupsCreateOutput);
+    return this._post(request).transform(
+      mapDashboardInstanceProviderGroupsCreateOutput
+    );
   }
 
   /**
@@ -154,7 +163,9 @@ export class MetorialProviderGroupsEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._patch(request).transform(mapDashboardInstanceProviderGroupsUpdateOutput);
+    return this._patch(request).transform(
+      mapDashboardInstanceProviderGroupsUpdateOutput
+    );
   }
 
   /**
@@ -182,7 +193,9 @@ export class MetorialProviderGroupsEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._post(request).transform(mapDashboardInstanceProviderGroupsAddListingOutput);
+    return this._post(request).transform(
+      mapDashboardInstanceProviderGroupsAddListingOutput
+    );
   }
 
   /**

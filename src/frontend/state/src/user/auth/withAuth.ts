@@ -15,7 +15,7 @@ export let setAuthRequired = (required: boolean) => {
   authRequiredRef.current = required;
 };
 
-let redirectToAuthIfNotAuthenticated = async <R>(fn: () => Promise<R>) => {
+export let redirectToAuthIfNotAuthenticated = async <R>(fn: () => Promise<R>) => {
   if (typeof window === 'undefined') return new Promise(() => {}) as Promise<R>;
 
   if (window.location.pathname.startsWith('/auth/')) {

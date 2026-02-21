@@ -10,15 +10,16 @@ export type SessionTemplatesUpdateOutput = {
   updatedAt: Date;
 };
 
-export let mapSessionTemplatesUpdateOutput = mtMap.object<SessionTemplatesUpdateOutput>({
-  object: mtMap.objectField('object', mtMap.passthrough()),
-  id: mtMap.objectField('id', mtMap.passthrough()),
-  name: mtMap.objectField('name', mtMap.passthrough()),
-  description: mtMap.objectField('description', mtMap.passthrough()),
-  metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-  createdAt: mtMap.objectField('created_at', mtMap.date()),
-  updatedAt: mtMap.objectField('updated_at', mtMap.date())
-});
+export let mapSessionTemplatesUpdateOutput =
+  mtMap.object<SessionTemplatesUpdateOutput>({
+    object: mtMap.objectField('object', mtMap.passthrough()),
+    id: mtMap.objectField('id', mtMap.passthrough()),
+    name: mtMap.objectField('name', mtMap.passthrough()),
+    description: mtMap.objectField('description', mtMap.passthrough()),
+    metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+    createdAt: mtMap.objectField('created_at', mtMap.date()),
+    updatedAt: mtMap.objectField('updated_at', mtMap.date())
+  });
 
 export type SessionTemplatesUpdateBody = {
   name?: string | undefined;
@@ -26,8 +27,10 @@ export type SessionTemplatesUpdateBody = {
   metadata?: Record<string, any> | undefined;
 };
 
-export let mapSessionTemplatesUpdateBody = mtMap.object<SessionTemplatesUpdateBody>({
-  name: mtMap.objectField('name', mtMap.passthrough()),
-  description: mtMap.objectField('description', mtMap.passthrough()),
-  metadata: mtMap.objectField('metadata', mtMap.passthrough())
-});
+export let mapSessionTemplatesUpdateBody =
+  mtMap.object<SessionTemplatesUpdateBody>({
+    name: mtMap.objectField('name', mtMap.passthrough()),
+    description: mtMap.objectField('description', mtMap.passthrough()),
+    metadata: mtMap.objectField('metadata', mtMap.passthrough())
+  });
+

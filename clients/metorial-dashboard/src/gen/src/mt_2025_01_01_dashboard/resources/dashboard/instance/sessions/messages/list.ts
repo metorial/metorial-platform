@@ -52,7 +52,10 @@ export let mapDashboardInstanceSessionsMessagesListOutput =
             })
           ),
           sessionId: mtMap.objectField('session_id', mtMap.passthrough()),
-          serverSessionId: mtMap.objectField('server_session_id', mtMap.passthrough()),
+          serverSessionId: mtMap.objectField(
+            'server_session_id',
+            mtMap.passthrough()
+          ),
           createdAt: mtMap.objectField('created_at', mtMap.date())
         })
       )
@@ -60,7 +63,10 @@ export let mapDashboardInstanceSessionsMessagesListOutput =
     pagination: mtMap.objectField(
       'pagination',
       mtMap.object({
-        hasMoreBefore: mtMap.objectField('has_more_before', mtMap.passthrough()),
+        hasMoreBefore: mtMap.objectField(
+          'has_more_before',
+          mtMap.passthrough()
+        ),
         hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
       })
     )
@@ -111,3 +117,4 @@ export let mapDashboardInstanceSessionsMessagesListQuery = mtMap.union([
     })
   )
 ]);
+

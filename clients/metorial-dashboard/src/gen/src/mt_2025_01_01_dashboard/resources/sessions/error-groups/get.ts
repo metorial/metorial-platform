@@ -13,15 +13,17 @@ export type SessionsErrorGroupsGetOutput = {
   updatedAt: Date;
 };
 
-export let mapSessionsErrorGroupsGetOutput = mtMap.object<SessionsErrorGroupsGetOutput>({
-  object: mtMap.objectField('object', mtMap.passthrough()),
-  id: mtMap.objectField('id', mtMap.passthrough()),
-  type: mtMap.objectField('type', mtMap.passthrough()),
-  name: mtMap.objectField('name', mtMap.passthrough()),
-  message: mtMap.objectField('message', mtMap.passthrough()),
-  count: mtMap.objectField('count', mtMap.passthrough()),
-  metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-  sessionId: mtMap.objectField('session_id', mtMap.passthrough()),
-  createdAt: mtMap.objectField('created_at', mtMap.date()),
-  updatedAt: mtMap.objectField('updated_at', mtMap.date())
-});
+export let mapSessionsErrorGroupsGetOutput =
+  mtMap.object<SessionsErrorGroupsGetOutput>({
+    object: mtMap.objectField('object', mtMap.passthrough()),
+    id: mtMap.objectField('id', mtMap.passthrough()),
+    type: mtMap.objectField('type', mtMap.passthrough()),
+    name: mtMap.objectField('name', mtMap.passthrough()),
+    message: mtMap.objectField('message', mtMap.passthrough()),
+    count: mtMap.objectField('count', mtMap.passthrough()),
+    metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+    sessionId: mtMap.objectField('session_id', mtMap.passthrough()),
+    createdAt: mtMap.objectField('created_at', mtMap.date()),
+    updatedAt: mtMap.objectField('updated_at', mtMap.date())
+  });
+

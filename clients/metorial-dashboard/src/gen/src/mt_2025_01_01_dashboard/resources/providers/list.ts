@@ -13,7 +13,7 @@ export type ProvidersListOutput = {
       name: string;
       description: string | null;
       slug: string;
-      imageUrl: string | null;
+      imageUrl: string;
       createdAt: Date;
       updatedAt: Date;
     } | null;
@@ -109,3 +109,4 @@ export let mapProvidersListQuery = mtMap.union([
     })
   )
 ]);
+

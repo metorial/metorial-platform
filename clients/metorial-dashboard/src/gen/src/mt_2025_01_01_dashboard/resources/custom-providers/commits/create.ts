@@ -162,7 +162,10 @@ export let mapCustomProvidersCommitsCreateOutput =
         message: mtMap.objectField('message', mtMap.passthrough())
       })
     ),
-    customProviderId: mtMap.objectField('custom_provider_id', mtMap.passthrough()),
+    customProviderId: mtMap.objectField(
+      'custom_provider_id',
+      mtMap.passthrough()
+    ),
     providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
     customProviderDeploymentId: mtMap.objectField(
       'custom_provider_deployment_id',
@@ -173,7 +176,10 @@ export let mapCustomProvidersCommitsCreateOutput =
       mtMap.object({
         object: mtMap.objectField('object', mtMap.passthrough()),
         id: mtMap.objectField('id', mtMap.passthrough()),
-        customProviderId: mtMap.objectField('custom_provider_id', mtMap.passthrough()),
+        customProviderId: mtMap.objectField(
+          'custom_provider_id',
+          mtMap.passthrough()
+        ),
         providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
         currentProviderVersionId: mtMap.objectField(
           'current_provider_version_id',
@@ -189,7 +195,10 @@ export let mapCustomProvidersCommitsCreateOutput =
       mtMap.object({
         object: mtMap.objectField('object', mtMap.passthrough()),
         id: mtMap.objectField('id', mtMap.passthrough()),
-        customProviderId: mtMap.objectField('custom_provider_id', mtMap.passthrough()),
+        customProviderId: mtMap.objectField(
+          'custom_provider_id',
+          mtMap.passthrough()
+        ),
         providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
         currentProviderVersionId: mtMap.objectField(
           'current_provider_version_id',
@@ -215,7 +224,10 @@ export let mapCustomProvidersCommitsCreateOutput =
             id: mtMap.objectField('id', mtMap.passthrough()),
             status: mtMap.objectField('status', mtMap.passthrough()),
             trigger: mtMap.objectField('trigger', mtMap.passthrough()),
-            customProviderId: mtMap.objectField('custom_provider_id', mtMap.passthrough()),
+            customProviderId: mtMap.objectField(
+              'custom_provider_id',
+              mtMap.passthrough()
+            ),
             providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
             customProviderVersionId: mtMap.objectField(
               'custom_provider_version_id',
@@ -265,12 +277,18 @@ export let mapCustomProvidersCommitsCreateOutput =
                     'custom_provider_id',
                     mtMap.passthrough()
                   ),
-                  providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
+                  providerId: mtMap.objectField(
+                    'provider_id',
+                    mtMap.passthrough()
+                  ),
                   currentProviderVersionId: mtMap.objectField(
                     'current_provider_version_id',
                     mtMap.passthrough()
                   ),
-                  instanceId: mtMap.objectField('instance_id', mtMap.passthrough()),
+                  instanceId: mtMap.objectField(
+                    'instance_id',
+                    mtMap.passthrough()
+                  ),
                   createdAt: mtMap.objectField('created_at', mtMap.date()),
                   updatedAt: mtMap.objectField('updated_at', mtMap.date())
                 })
@@ -278,7 +296,10 @@ export let mapCustomProvidersCommitsCreateOutput =
             })
           )
         ),
-        customProviderId: mtMap.objectField('custom_provider_id', mtMap.passthrough()),
+        customProviderId: mtMap.objectField(
+          'custom_provider_id',
+          mtMap.passthrough()
+        ),
         providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
         actor: mtMap.objectField(
           'actor',
@@ -311,7 +332,10 @@ export let mapCustomProvidersCommitsCreateOutput =
             id: mtMap.objectField('id', mtMap.passthrough()),
             status: mtMap.objectField('status', mtMap.passthrough()),
             trigger: mtMap.objectField('trigger', mtMap.passthrough()),
-            customProviderId: mtMap.objectField('custom_provider_id', mtMap.passthrough()),
+            customProviderId: mtMap.objectField(
+              'custom_provider_id',
+              mtMap.passthrough()
+            ),
             providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
             customProviderVersionId: mtMap.objectField(
               'custom_provider_version_id',
@@ -361,12 +385,18 @@ export let mapCustomProvidersCommitsCreateOutput =
                     'custom_provider_id',
                     mtMap.passthrough()
                   ),
-                  providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
+                  providerId: mtMap.objectField(
+                    'provider_id',
+                    mtMap.passthrough()
+                  ),
                   currentProviderVersionId: mtMap.objectField(
                     'current_provider_version_id',
                     mtMap.passthrough()
                   ),
-                  instanceId: mtMap.objectField('instance_id', mtMap.passthrough()),
+                  instanceId: mtMap.objectField(
+                    'instance_id',
+                    mtMap.passthrough()
+                  ),
                   createdAt: mtMap.objectField('created_at', mtMap.date()),
                   updatedAt: mtMap.objectField('updated_at', mtMap.date())
                 })
@@ -374,7 +404,10 @@ export let mapCustomProvidersCommitsCreateOutput =
             })
           )
         ),
-        customProviderId: mtMap.objectField('custom_provider_id', mtMap.passthrough()),
+        customProviderId: mtMap.objectField(
+          'custom_provider_id',
+          mtMap.passthrough()
+        ),
         providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
         actor: mtMap.objectField(
           'actor',
@@ -398,7 +431,10 @@ export let mapCustomProvidersCommitsCreateOutput =
         id: mtMap.objectField('id', mtMap.passthrough()),
         name: mtMap.objectField('name', mtMap.passthrough()),
         type: mtMap.objectField('type', mtMap.passthrough()),
-        organizationActorId: mtMap.objectField('organization_actor_id', mtMap.passthrough())
+        organizationActorId: mtMap.objectField(
+          'organization_actor_id',
+          mtMap.passthrough()
+        )
       })
     ),
     createdAt: mtMap.objectField('created_at', mtMap.date()),
@@ -426,12 +462,22 @@ export let mapCustomProvidersCommitsCreateBody =
           'object',
           mtMap.object({
             type: mtMap.objectField('type', mtMap.passthrough()),
-            fromEnvironmentId: mtMap.objectField('from_environment_id', mtMap.passthrough()),
-            toEnvironmentId: mtMap.objectField('to_environment_id', mtMap.passthrough()),
-            environmentId: mtMap.objectField('environment_id', mtMap.passthrough()),
+            fromEnvironmentId: mtMap.objectField(
+              'from_environment_id',
+              mtMap.passthrough()
+            ),
+            toEnvironmentId: mtMap.objectField(
+              'to_environment_id',
+              mtMap.passthrough()
+            ),
+            environmentId: mtMap.objectField(
+              'environment_id',
+              mtMap.passthrough()
+            ),
             versionId: mtMap.objectField('version_id', mtMap.passthrough())
           })
         )
       ])
     )
   });
+

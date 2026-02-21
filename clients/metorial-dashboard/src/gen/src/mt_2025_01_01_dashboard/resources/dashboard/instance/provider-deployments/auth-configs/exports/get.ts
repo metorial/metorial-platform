@@ -11,12 +11,18 @@ export type DashboardInstanceProviderDeploymentsAuthConfigsExportsGetOutput = {
 };
 
 export let mapDashboardInstanceProviderDeploymentsAuthConfigsExportsGetOutput =
-  mtMap.object<DashboardInstanceProviderDeploymentsAuthConfigsExportsGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    note: mtMap.objectField('note', mtMap.passthrough()),
-    metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-    providerAuthConfigId: mtMap.objectField('provider_auth_config_id', mtMap.passthrough()),
-    value: mtMap.objectField('value', mtMap.passthrough()),
-    createdAt: mtMap.objectField('created_at', mtMap.date())
-  });
+  mtMap.object<DashboardInstanceProviderDeploymentsAuthConfigsExportsGetOutput>(
+    {
+      object: mtMap.objectField('object', mtMap.passthrough()),
+      id: mtMap.objectField('id', mtMap.passthrough()),
+      note: mtMap.objectField('note', mtMap.passthrough()),
+      metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+      providerAuthConfigId: mtMap.objectField(
+        'provider_auth_config_id',
+        mtMap.passthrough()
+      ),
+      value: mtMap.objectField('value', mtMap.passthrough()),
+      createdAt: mtMap.objectField('created_at', mtMap.date())
+    }
+  );
+

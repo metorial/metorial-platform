@@ -20,7 +20,7 @@ export type CustomProvidersListOutput = {
         name: string;
         description: string | null;
         slug: string;
-        imageUrl: string | null;
+        imageUrl: string;
         createdAt: Date;
         updatedAt: Date;
       } | null;
@@ -41,66 +41,76 @@ export type CustomProvidersListOutput = {
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
-export let mapCustomProvidersListOutput = mtMap.object<CustomProvidersListOutput>({
-  items: mtMap.objectField(
-    'items',
-    mtMap.array(
+export let mapCustomProvidersListOutput =
+  mtMap.object<CustomProvidersListOutput>({
+    items: mtMap.objectField(
+      'items',
+      mtMap.array(
+        mtMap.object({
+          object: mtMap.objectField('object', mtMap.passthrough()),
+          id: mtMap.objectField('id', mtMap.passthrough()),
+          status: mtMap.objectField('status', mtMap.passthrough()),
+          name: mtMap.objectField('name', mtMap.passthrough()),
+          description: mtMap.objectField('description', mtMap.passthrough()),
+          metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+          provider: mtMap.objectField(
+            'provider',
+            mtMap.object({
+              object: mtMap.objectField('object', mtMap.passthrough()),
+              id: mtMap.objectField('id', mtMap.passthrough()),
+              name: mtMap.objectField('name', mtMap.passthrough()),
+              description: mtMap.objectField(
+                'description',
+                mtMap.passthrough()
+              ),
+              slug: mtMap.objectField('slug', mtMap.passthrough()),
+              publisher: mtMap.objectField(
+                'publisher',
+                mtMap.object({
+                  object: mtMap.objectField('object', mtMap.passthrough()),
+                  id: mtMap.objectField('id', mtMap.passthrough()),
+                  name: mtMap.objectField('name', mtMap.passthrough()),
+                  description: mtMap.objectField(
+                    'description',
+                    mtMap.passthrough()
+                  ),
+                  slug: mtMap.objectField('slug', mtMap.passthrough()),
+                  imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
+                  createdAt: mtMap.objectField('created_at', mtMap.date()),
+                  updatedAt: mtMap.objectField('updated_at', mtMap.date())
+                })
+              ),
+              currentVersion: mtMap.objectField(
+                'current_version',
+                mtMap.object({
+                  object: mtMap.objectField('object', mtMap.passthrough()),
+                  id: mtMap.objectField('id', mtMap.passthrough()),
+                  version: mtMap.objectField('version', mtMap.passthrough()),
+                  status: mtMap.objectField('status', mtMap.passthrough()),
+                  createdAt: mtMap.objectField('created_at', mtMap.date()),
+                  updatedAt: mtMap.objectField('updated_at', mtMap.date())
+                })
+              ),
+              createdAt: mtMap.objectField('created_at', mtMap.date()),
+              updatedAt: mtMap.objectField('updated_at', mtMap.date())
+            })
+          ),
+          createdAt: mtMap.objectField('created_at', mtMap.date()),
+          updatedAt: mtMap.objectField('updated_at', mtMap.date())
+        })
+      )
+    ),
+    pagination: mtMap.objectField(
+      'pagination',
       mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        status: mtMap.objectField('status', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        description: mtMap.objectField('description', mtMap.passthrough()),
-        metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-        provider: mtMap.objectField(
-          'provider',
-          mtMap.object({
-            object: mtMap.objectField('object', mtMap.passthrough()),
-            id: mtMap.objectField('id', mtMap.passthrough()),
-            name: mtMap.objectField('name', mtMap.passthrough()),
-            description: mtMap.objectField('description', mtMap.passthrough()),
-            slug: mtMap.objectField('slug', mtMap.passthrough()),
-            publisher: mtMap.objectField(
-              'publisher',
-              mtMap.object({
-                object: mtMap.objectField('object', mtMap.passthrough()),
-                id: mtMap.objectField('id', mtMap.passthrough()),
-                name: mtMap.objectField('name', mtMap.passthrough()),
-                description: mtMap.objectField('description', mtMap.passthrough()),
-                slug: mtMap.objectField('slug', mtMap.passthrough()),
-                imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
-                createdAt: mtMap.objectField('created_at', mtMap.date()),
-                updatedAt: mtMap.objectField('updated_at', mtMap.date())
-              })
-            ),
-            currentVersion: mtMap.objectField(
-              'current_version',
-              mtMap.object({
-                object: mtMap.objectField('object', mtMap.passthrough()),
-                id: mtMap.objectField('id', mtMap.passthrough()),
-                version: mtMap.objectField('version', mtMap.passthrough()),
-                status: mtMap.objectField('status', mtMap.passthrough()),
-                createdAt: mtMap.objectField('created_at', mtMap.date()),
-                updatedAt: mtMap.objectField('updated_at', mtMap.date())
-              })
-            ),
-            createdAt: mtMap.objectField('created_at', mtMap.date()),
-            updatedAt: mtMap.objectField('updated_at', mtMap.date())
-          })
+        hasMoreBefore: mtMap.objectField(
+          'has_more_before',
+          mtMap.passthrough()
         ),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date())
+        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
       })
     )
-  ),
-  pagination: mtMap.objectField(
-    'pagination',
-    mtMap.object({
-      hasMoreBefore: mtMap.objectField('has_more_before', mtMap.passthrough()),
-      hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-    })
-  )
-});
+  });
 
 export type CustomProvidersListQuery = {
   limit?: number | undefined;
@@ -156,3 +166,4 @@ export let mapCustomProvidersListQuery = mtMap.union([
     })
   )
 ]);
+

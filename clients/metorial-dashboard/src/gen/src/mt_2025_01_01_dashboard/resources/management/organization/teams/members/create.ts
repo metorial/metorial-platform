@@ -65,7 +65,10 @@ export let mapManagementOrganizationTeamsMembersCreateOutput =
               status: mtMap.objectField('status', mtMap.passthrough()),
               slug: mtMap.objectField('slug', mtMap.passthrough()),
               name: mtMap.objectField('name', mtMap.passthrough()),
-              organizationId: mtMap.objectField('organization_id', mtMap.passthrough()),
+              organizationId: mtMap.objectField(
+                'organization_id',
+                mtMap.passthrough()
+              ),
               createdAt: mtMap.objectField('created_at', mtMap.date()),
               updatedAt: mtMap.objectField('updated_at', mtMap.date())
             })
@@ -80,10 +83,16 @@ export let mapManagementOrganizationTeamsMembersCreateOutput =
                   mtMap.object({
                     object: mtMap.objectField('object', mtMap.passthrough()),
                     id: mtMap.objectField('id', mtMap.passthrough()),
-                    organizationId: mtMap.objectField('organization_id', mtMap.passthrough()),
+                    organizationId: mtMap.objectField(
+                      'organization_id',
+                      mtMap.passthrough()
+                    ),
                     name: mtMap.objectField('name', mtMap.passthrough()),
                     slug: mtMap.objectField('slug', mtMap.passthrough()),
-                    description: mtMap.objectField('description', mtMap.passthrough()),
+                    description: mtMap.objectField(
+                      'description',
+                      mtMap.passthrough()
+                    ),
                     permissions: mtMap.objectField(
                       'permissions',
                       mtMap.array(mtMap.passthrough())
@@ -110,3 +119,4 @@ export let mapManagementOrganizationTeamsMembersCreateBody =
   mtMap.object<ManagementOrganizationTeamsMembersCreateBody>({
     actorId: mtMap.objectField('actor_id', mtMap.passthrough())
   });
+

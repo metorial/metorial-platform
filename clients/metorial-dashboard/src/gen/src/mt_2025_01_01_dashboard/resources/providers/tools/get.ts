@@ -23,7 +23,11 @@ export let mapProvidersToolsGetOutput = mtMap.object<ProvidersToolsGetOutput>({
   inputSchema: mtMap.objectField('input_schema', mtMap.passthrough()),
   outputSchema: mtMap.objectField('output_schema', mtMap.passthrough()),
   providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-  providerSpecificationId: mtMap.objectField('provider_specification_id', mtMap.passthrough()),
+  providerSpecificationId: mtMap.objectField(
+    'provider_specification_id',
+    mtMap.passthrough()
+  ),
   createdAt: mtMap.objectField('created_at', mtMap.date()),
   updatedAt: mtMap.objectField('updated_at', mtMap.date())
 });
+

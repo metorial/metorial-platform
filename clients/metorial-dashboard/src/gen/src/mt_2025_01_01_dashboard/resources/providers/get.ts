@@ -12,7 +12,7 @@ export type ProvidersGetOutput = {
     name: string;
     description: string | null;
     slug: string;
-    imageUrl: string | null;
+    imageUrl: string;
     createdAt: Date;
     updatedAt: Date;
   } | null;
@@ -61,3 +61,4 @@ export let mapProvidersGetOutput = mtMap.object<ProvidersGetOutput>({
   createdAt: mtMap.objectField('created_at', mtMap.date()),
   updatedAt: mtMap.objectField('updated_at', mtMap.date())
 });
+

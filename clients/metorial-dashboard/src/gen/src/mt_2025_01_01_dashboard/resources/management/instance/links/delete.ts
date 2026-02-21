@@ -18,3 +18,4 @@ export let mapManagementInstanceLinksDeleteOutput =
     createdAt: mtMap.objectField('created_at', mtMap.date()),
     expiresAt: mtMap.objectField('expires_at', mtMap.date())
   });
+

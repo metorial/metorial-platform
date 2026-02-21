@@ -15,7 +15,10 @@ export let mapManagementInstanceCustomProvidersEnvironmentsGetOutput =
   mtMap.object<ManagementInstanceCustomProvidersEnvironmentsGetOutput>({
     object: mtMap.objectField('object', mtMap.passthrough()),
     id: mtMap.objectField('id', mtMap.passthrough()),
-    customProviderId: mtMap.objectField('custom_provider_id', mtMap.passthrough()),
+    customProviderId: mtMap.objectField(
+      'custom_provider_id',
+      mtMap.passthrough()
+    ),
     providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
     currentProviderVersionId: mtMap.objectField(
       'current_provider_version_id',
@@ -25,3 +28,4 @@ export let mapManagementInstanceCustomProvidersEnvironmentsGetOutput =
     createdAt: mtMap.objectField('created_at', mtMap.date()),
     updatedAt: mtMap.objectField('updated_at', mtMap.date())
   });
+

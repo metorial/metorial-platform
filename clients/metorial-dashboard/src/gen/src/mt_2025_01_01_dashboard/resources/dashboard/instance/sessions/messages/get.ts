@@ -41,6 +41,10 @@ export let mapDashboardInstanceSessionsMessagesGetOutput =
       })
     ),
     sessionId: mtMap.objectField('session_id', mtMap.passthrough()),
-    serverSessionId: mtMap.objectField('server_session_id', mtMap.passthrough()),
+    serverSessionId: mtMap.objectField(
+      'server_session_id',
+      mtMap.passthrough()
+    ),
     createdAt: mtMap.objectField('created_at', mtMap.date())
   });
+

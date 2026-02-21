@@ -1,4 +1,7 @@
-import { BaseMetorialEndpoint, MetorialEndpointManager } from '@metorial/util-endpoint';
+import {
+  BaseMetorialEndpoint,
+  MetorialEndpointManager
+} from '@metorial/util-endpoint';
 
 import {
   mapDashboardInstanceFilesDeleteOutput,
@@ -61,7 +64,9 @@ export class MetorialFilesEndpoint {
     let request = {
       path,
 
-      query: query ? mapDashboardInstanceFilesListQuery.transformTo(query) : undefined,
+      query: query
+        ? mapDashboardInstanceFilesListQuery.transformTo(query)
+        : undefined,
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
@@ -118,7 +123,9 @@ export class MetorialFilesEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._patch(request).transform(mapDashboardInstanceFilesUpdateOutput);
+    return this._patch(request).transform(
+      mapDashboardInstanceFilesUpdateOutput
+    );
   }
 
   /**
@@ -143,6 +150,8 @@ export class MetorialFilesEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._delete(request).transform(mapDashboardInstanceFilesDeleteOutput);
+    return this._delete(request).transform(
+      mapDashboardInstanceFilesDeleteOutput
+    );
   }
 }

@@ -778,7 +778,6 @@ export interface SubspaceSession {
   id: string;
   name: string | null;
   description: string | null;
-  status: string | null;
   connectionState: string | null;
   metadata?: unknown;
   usage?: {
@@ -1086,6 +1085,69 @@ export let customProviderEnvironmentType = PresentableType.create<{
   customProviderEnvironment: SubspaceCustomProviderEnvironment;
 }>()('customProviderEnvironment');
 
+export let customServerCodeEditorTokenType = PresentableType.create<{
+  id: string;
+  token: string;
+  expiresAt: Date;
+}>()('customServerCodeEditorToken');
+
 export let providerOAuthSetupType = PresentableType.create<{
   providerOAuthSetup: SubspaceProviderOAuthSetup;
 }>()('providerOAuthSetup');
+
+export interface ScmInstallation {
+  id: string;
+  provider: string;
+  externalAccountId: string;
+  externalAccountLogin: string;
+  externalAccountName: string | null;
+  externalAccountImageUrl: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export let scmInstallationType = PresentableType.create<{
+  scmInstallation: ScmInstallation;
+}>()('scmInstallation');
+
+export let scmInstallationSetupType = PresentableType.create<{
+  url: string;
+  id: string;
+}>()('scmInstallationSetup');
+
+export interface ScmRepoPreview {
+  provider: string;
+  externalId: string;
+  name: string;
+  identifier: string;
+  lastPushedAt?: Date | null;
+  account?: { externalId: string; name: string; identifier: string; provider: string };
+}
+
+export let scmRepoPreviewType = PresentableType.create<{
+  repoPreview: ScmRepoPreview;
+}>()('scmRepoPreview');
+
+export interface ScmRepo {
+  id: string;
+  provider: { type: string; id: string; name: string; owner: string };
+  url: string;
+  isPrivate: boolean;
+  defaultBranch: string;
+  createdAt: Date;
+}
+
+export let scmRepoType = PresentableType.create<{
+  scmRepo: ScmRepo;
+}>()('scmRepo');
+
+export interface ScmAccountPreview {
+  provider: string;
+  externalId: string;
+  name: string;
+  identifier: string;
+}
+
+export let scmAccountPreviewType = PresentableType.create<{
+  accountPreview: ScmAccountPreview;
+}>()('scmAccountPreview');

@@ -14,6 +14,7 @@ export type ManagementInstanceSessionsDeleteOutput = {
   };
   metadata: Record<string, any> | null;
   connectionUrl: string | null;
+  connectionKey: string | null;
   providerDeployments: {
     object: 'session.provider_deployment#preview';
     id: string;
@@ -32,7 +33,10 @@ export let mapManagementInstanceSessionsDeleteOutput =
     name: mtMap.objectField('name', mtMap.passthrough()),
     description: mtMap.objectField('description', mtMap.passthrough()),
     status: mtMap.objectField('status', mtMap.passthrough()),
-    connectionStatus: mtMap.objectField('connection_status', mtMap.passthrough()),
+    connectionStatus: mtMap.objectField(
+      'connection_status',
+      mtMap.passthrough()
+    ),
     usage: mtMap.objectField(
       'usage',
       mtMap.object({
@@ -52,6 +56,7 @@ export let mapManagementInstanceSessionsDeleteOutput =
     ),
     metadata: mtMap.objectField('metadata', mtMap.passthrough()),
     connectionUrl: mtMap.objectField('connection_url', mtMap.passthrough()),
+    connectionKey: mtMap.objectField('connection_key', mtMap.passthrough()),
     providerDeployments: mtMap.objectField(
       'provider_deployments',
       mtMap.array(
@@ -70,3 +75,4 @@ export let mapManagementInstanceSessionsDeleteOutput =
     createdAt: mtMap.objectField('created_at', mtMap.date()),
     updatedAt: mtMap.objectField('updated_at', mtMap.date())
   });
+

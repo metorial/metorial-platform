@@ -50,7 +50,7 @@ export let destinations: Destination[] = [
   {
     type: 'enterprise',
     env: backendEnv,
-    path: 'federation/backend/apps/federation-worker'
+    path: 'federation/backend/apps/worker'
   },
 
   ...['admin', 'dashboard'].map(v => ({

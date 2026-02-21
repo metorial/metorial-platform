@@ -1,29 +1,18 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
-import { ReadmeHtml } from '@metorial/markdown';
-import { useCurrentInstance, useProvider, useProviderListings } from '@metorial/state';
+import { Readme } from '@metorial/markdown';
+import { useCurrentInstance, useProvider, useProviderListing } from '@metorial/state';
 import { Attributes, Button, Spacer, Text } from '@metorial/ui';
 import { ID, SideBox } from '@metorial/ui-product';
 import { Link, useParams } from 'react-router-dom';
-import { useProviderVersionContext } from './_layout';
 
 export let ProviderReadmePage = () => {
   let instance = useCurrentInstance();
-  let { selectedVersionId } = useProviderVersionContext();
 
   let { providerId } = useParams();
   let provider = useProvider(instance.data?.id, providerId);
 
-  let listings = useProviderListings(
-    providerId
-      ? {
-          providerId,
-          providerVersionId: selectedVersionId,
-          limit: 1
-        }
-      : null
-  );
-  let listing = listings?.data?.items?.[0];
+  let listing = useProviderListing(instance.data?.id, providerId);
 
   return renderWithLoader({ provider })(({ provider }) => (
     <>
@@ -66,8 +55,8 @@ export let ProviderReadmePage = () => {
 
       <Spacer height={15} />
 
-      {listing?.readme ? (
-        <ReadmeHtml readmeHtml={listing.readme} />
+      {listing.data?.readme ? (
+        <Readme readme={listing.data.readme} />
       ) : (
         <Text size="2" color="gray600">
           No readme available for this provider.

@@ -1,4 +1,7 @@
-import { BaseMetorialEndpoint, MetorialEndpointManager } from '@metorial/util-endpoint';
+import {
+  BaseMetorialEndpoint,
+  MetorialEndpointManager
+} from '@metorial/util-endpoint';
 
 import {
   mapDashboardInstanceProviderDeploymentsAuthConfigsImportsCreateBody,
@@ -68,7 +71,9 @@ export class MetorialManagementInstanceProviderDeploymentsAuthConfigsImportsEndp
       path,
 
       query: query
-        ? mapDashboardInstanceProviderDeploymentsAuthConfigsImportsListQuery.transformTo(query)
+        ? mapDashboardInstanceProviderDeploymentsAuthConfigsImportsListQuery.transformTo(
+            query
+          )
         : undefined,
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;

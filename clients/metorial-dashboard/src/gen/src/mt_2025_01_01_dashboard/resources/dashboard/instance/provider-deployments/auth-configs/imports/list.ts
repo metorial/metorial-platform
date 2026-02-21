@@ -16,40 +16,45 @@ export type DashboardInstanceProviderDeploymentsAuthConfigsImportsListOutput = {
 };
 
 export let mapDashboardInstanceProviderDeploymentsAuthConfigsImportsListOutput =
-  mtMap.object<DashboardInstanceProviderDeploymentsAuthConfigsImportsListOutput>({
-    items: mtMap.objectField(
-      'items',
-      mtMap.array(
+  mtMap.object<DashboardInstanceProviderDeploymentsAuthConfigsImportsListOutput>(
+    {
+      items: mtMap.objectField(
+        'items',
+        mtMap.array(
+          mtMap.object({
+            object: mtMap.objectField('object', mtMap.passthrough()),
+            id: mtMap.objectField('id', mtMap.passthrough()),
+            note: mtMap.objectField('note', mtMap.passthrough()),
+            metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+            providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
+            providerDeploymentId: mtMap.objectField(
+              'provider_deployment_id',
+              mtMap.passthrough()
+            ),
+            providerAuthConfigId: mtMap.objectField(
+              'provider_auth_config_id',
+              mtMap.passthrough()
+            ),
+            providerAuthMethodId: mtMap.objectField(
+              'provider_auth_method_id',
+              mtMap.passthrough()
+            ),
+            createdAt: mtMap.objectField('created_at', mtMap.date())
+          })
+        )
+      ),
+      pagination: mtMap.objectField(
+        'pagination',
         mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          note: mtMap.objectField('note', mtMap.passthrough()),
-          metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-          providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-          providerDeploymentId: mtMap.objectField(
-            'provider_deployment_id',
+          hasMoreBefore: mtMap.objectField(
+            'has_more_before',
             mtMap.passthrough()
           ),
-          providerAuthConfigId: mtMap.objectField(
-            'provider_auth_config_id',
-            mtMap.passthrough()
-          ),
-          providerAuthMethodId: mtMap.objectField(
-            'provider_auth_method_id',
-            mtMap.passthrough()
-          ),
-          createdAt: mtMap.objectField('created_at', mtMap.date())
+          hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
         })
       )
-    ),
-    pagination: mtMap.objectField(
-      'pagination',
-      mtMap.object({
-        hasMoreBefore: mtMap.objectField('has_more_before', mtMap.passthrough()),
-        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-      })
-    )
-  });
+    }
+  );
 
 export type DashboardInstanceProviderDeploymentsAuthConfigsImportsListQuery = {
   limit?: number | undefined;
@@ -59,15 +64,17 @@ export type DashboardInstanceProviderDeploymentsAuthConfigsImportsListQuery = {
   order?: 'asc' | 'desc' | undefined;
 } & {};
 
-export let mapDashboardInstanceProviderDeploymentsAuthConfigsImportsListQuery = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      limit: mtMap.objectField('limit', mtMap.passthrough()),
-      after: mtMap.objectField('after', mtMap.passthrough()),
-      before: mtMap.objectField('before', mtMap.passthrough()),
-      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough())
-    })
-  )
-]);
+export let mapDashboardInstanceProviderDeploymentsAuthConfigsImportsListQuery =
+  mtMap.union([
+    mtMap.unionOption(
+      'object',
+      mtMap.object({
+        limit: mtMap.objectField('limit', mtMap.passthrough()),
+        after: mtMap.objectField('after', mtMap.passthrough()),
+        before: mtMap.objectField('before', mtMap.passthrough()),
+        cursor: mtMap.objectField('cursor', mtMap.passthrough()),
+        order: mtMap.objectField('order', mtMap.passthrough())
+      })
+    )
+  ]);
+

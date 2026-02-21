@@ -1,8 +1,12 @@
-import { BaseMetorialEndpoint, MetorialEndpointManager } from '@metorial/util-endpoint';
+import {
+  BaseMetorialEndpoint,
+  MetorialEndpointManager
+} from '@metorial/util-endpoint';
 
 import {
   mapDashboardInstanceProviderDeploymentsAuthCredentialsCreateBody,
   mapDashboardInstanceProviderDeploymentsAuthCredentialsCreateOutput,
+  mapDashboardInstanceProviderDeploymentsAuthCredentialsDeleteOutput,
   mapDashboardInstanceProviderDeploymentsAuthCredentialsGetOutput,
   mapDashboardInstanceProviderDeploymentsAuthCredentialsListOutput,
   mapDashboardInstanceProviderDeploymentsAuthCredentialsListQuery,
@@ -10,6 +14,7 @@ import {
   mapDashboardInstanceProviderDeploymentsAuthCredentialsUpdateOutput,
   type DashboardInstanceProviderDeploymentsAuthCredentialsCreateBody,
   type DashboardInstanceProviderDeploymentsAuthCredentialsCreateOutput,
+  type DashboardInstanceProviderDeploymentsAuthCredentialsDeleteOutput,
   type DashboardInstanceProviderDeploymentsAuthCredentialsGetOutput,
   type DashboardInstanceProviderDeploymentsAuthCredentialsListOutput,
   type DashboardInstanceProviderDeploymentsAuthCredentialsListQuery,
@@ -66,7 +71,9 @@ export class MetorialProviderDeploymentsAuthCredentialsEndpoint {
       path,
 
       query: query
-        ? mapDashboardInstanceProviderDeploymentsAuthCredentialsListQuery.transformTo(query)
+        ? mapDashboardInstanceProviderDeploymentsAuthCredentialsListQuery.transformTo(
+            query
+          )
         : undefined,
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
@@ -125,7 +132,9 @@ export class MetorialProviderDeploymentsAuthCredentialsEndpoint {
 
     let request = {
       path,
-      body: mapDashboardInstanceProviderDeploymentsAuthCredentialsCreateBody.transformTo(body),
+      body: mapDashboardInstanceProviderDeploymentsAuthCredentialsCreateBody.transformTo(
+        body
+      ),
 
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
@@ -157,13 +166,44 @@ export class MetorialProviderDeploymentsAuthCredentialsEndpoint {
 
     let request = {
       path,
-      body: mapDashboardInstanceProviderDeploymentsAuthCredentialsUpdateBody.transformTo(body),
+      body: mapDashboardInstanceProviderDeploymentsAuthCredentialsUpdateBody.transformTo(
+        body
+      ),
 
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
     return this._patch(request).transform(
       mapDashboardInstanceProviderDeploymentsAuthCredentialsUpdateOutput
+    );
+  }
+
+  /**
+   * @name Delete provider auth credentials
+   * @description Permanently deletes provider auth credentials.
+   *
+   * @param `providerDeploymentId` - string
+   * @param `providerAuthCredentialsId` - string
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardInstanceProviderDeploymentsAuthCredentialsDeleteOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  delete(
+    providerDeploymentId: string,
+    providerAuthCredentialsId: string,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceProviderDeploymentsAuthCredentialsDeleteOutput> {
+    let path = `provider-deployments/${providerDeploymentId}/auth-credentials/${providerAuthCredentialsId}`;
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._delete(request).transform(
+      mapDashboardInstanceProviderDeploymentsAuthCredentialsDeleteOutput
     );
   }
 }

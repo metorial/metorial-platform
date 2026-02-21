@@ -67,10 +67,22 @@ export let mapProvidersSpecificationsListOutput =
                 id: mtMap.objectField('id', mtMap.passthrough()),
                 name: mtMap.objectField('name', mtMap.passthrough()),
                 title: mtMap.objectField('title', mtMap.passthrough()),
-                description: mtMap.objectField('description', mtMap.passthrough()),
-                inputSchema: mtMap.objectField('input_schema', mtMap.passthrough()),
-                outputSchema: mtMap.objectField('output_schema', mtMap.passthrough()),
-                providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
+                description: mtMap.objectField(
+                  'description',
+                  mtMap.passthrough()
+                ),
+                inputSchema: mtMap.objectField(
+                  'input_schema',
+                  mtMap.passthrough()
+                ),
+                outputSchema: mtMap.objectField(
+                  'output_schema',
+                  mtMap.passthrough()
+                ),
+                providerId: mtMap.objectField(
+                  'provider_id',
+                  mtMap.passthrough()
+                ),
                 providerSpecificationId: mtMap.objectField(
                   'provider_specification_id',
                   mtMap.passthrough()
@@ -88,8 +100,14 @@ export let mapProvidersSpecificationsListOutput =
                 id: mtMap.objectField('id', mtMap.passthrough()),
                 type: mtMap.objectField('type', mtMap.passthrough()),
                 name: mtMap.objectField('name', mtMap.passthrough()),
-                description: mtMap.objectField('description', mtMap.passthrough()),
-                inputSchema: mtMap.objectField('input_schema', mtMap.passthrough()),
+                description: mtMap.objectField(
+                  'description',
+                  mtMap.passthrough()
+                ),
+                inputSchema: mtMap.objectField(
+                  'input_schema',
+                  mtMap.passthrough()
+                ),
                 scopes: mtMap.objectField(
                   'scopes',
                   mtMap.array(
@@ -98,11 +116,17 @@ export let mapProvidersSpecificationsListOutput =
                       id: mtMap.objectField('id', mtMap.passthrough()),
                       scope: mtMap.objectField('scope', mtMap.passthrough()),
                       name: mtMap.objectField('name', mtMap.passthrough()),
-                      description: mtMap.objectField('description', mtMap.passthrough())
+                      description: mtMap.objectField(
+                        'description',
+                        mtMap.passthrough()
+                      )
                     })
                   )
                 ),
-                providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
+                providerId: mtMap.objectField(
+                  'provider_id',
+                  mtMap.passthrough()
+                ),
                 providerSpecificationId: mtMap.objectField(
                   'provider_specification_id',
                   mtMap.passthrough()
@@ -121,7 +145,10 @@ export let mapProvidersSpecificationsListOutput =
     pagination: mtMap.objectField(
       'pagination',
       mtMap.object({
-        hasMoreBefore: mtMap.objectField('has_more_before', mtMap.passthrough()),
+        hasMoreBefore: mtMap.objectField(
+          'has_more_before',
+          mtMap.passthrough()
+        ),
         hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
       })
     )
@@ -147,3 +174,4 @@ export let mapProvidersSpecificationsListQuery = mtMap.union([
     })
   )
 ]);
+

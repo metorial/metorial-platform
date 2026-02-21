@@ -14,6 +14,7 @@ export type SessionsUpdateOutput = {
   };
   metadata: Record<string, any> | null;
   connectionUrl: string | null;
+  connectionKey: string | null;
   providerDeployments: {
     object: 'session.provider_deployment#preview';
     id: string;
@@ -51,6 +52,7 @@ export let mapSessionsUpdateOutput = mtMap.object<SessionsUpdateOutput>({
   ),
   metadata: mtMap.objectField('metadata', mtMap.passthrough()),
   connectionUrl: mtMap.objectField('connection_url', mtMap.passthrough()),
+  connectionKey: mtMap.objectField('connection_key', mtMap.passthrough()),
   providerDeployments: mtMap.objectField(
     'provider_deployments',
     mtMap.array(
@@ -59,7 +61,10 @@ export let mapSessionsUpdateOutput = mtMap.object<SessionsUpdateOutput>({
         id: mtMap.objectField('id', mtMap.passthrough()),
         name: mtMap.objectField('name', mtMap.passthrough()),
         providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-        providerDeploymentId: mtMap.objectField('provider_deployment_id', mtMap.passthrough())
+        providerDeploymentId: mtMap.objectField(
+          'provider_deployment_id',
+          mtMap.passthrough()
+        )
       })
     )
   ),
@@ -78,3 +83,4 @@ export let mapSessionsUpdateBody = mtMap.object<SessionsUpdateBody>({
   description: mtMap.objectField('description', mtMap.passthrough()),
   metadata: mtMap.objectField('metadata', mtMap.passthrough())
 });
+

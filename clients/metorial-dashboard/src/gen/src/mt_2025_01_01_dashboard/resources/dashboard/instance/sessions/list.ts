@@ -15,6 +15,7 @@ export type DashboardInstanceSessionsListOutput = {
     };
     metadata: Record<string, any> | null;
     connectionUrl: string | null;
+    connectionKey: string | null;
     providerDeployments: {
       object: 'session.provider_deployment#preview';
       id: string;
@@ -39,7 +40,10 @@ export let mapDashboardInstanceSessionsListOutput =
           name: mtMap.objectField('name', mtMap.passthrough()),
           description: mtMap.objectField('description', mtMap.passthrough()),
           status: mtMap.objectField('status', mtMap.passthrough()),
-          connectionStatus: mtMap.objectField('connection_status', mtMap.passthrough()),
+          connectionStatus: mtMap.objectField(
+            'connection_status',
+            mtMap.passthrough()
+          ),
           usage: mtMap.objectField(
             'usage',
             mtMap.object({
@@ -58,7 +62,14 @@ export let mapDashboardInstanceSessionsListOutput =
             })
           ),
           metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-          connectionUrl: mtMap.objectField('connection_url', mtMap.passthrough()),
+          connectionUrl: mtMap.objectField(
+            'connection_url',
+            mtMap.passthrough()
+          ),
+          connectionKey: mtMap.objectField(
+            'connection_key',
+            mtMap.passthrough()
+          ),
           providerDeployments: mtMap.objectField(
             'provider_deployments',
             mtMap.array(
@@ -66,7 +77,10 @@ export let mapDashboardInstanceSessionsListOutput =
                 object: mtMap.objectField('object', mtMap.passthrough()),
                 id: mtMap.objectField('id', mtMap.passthrough()),
                 name: mtMap.objectField('name', mtMap.passthrough()),
-                providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
+                providerId: mtMap.objectField(
+                  'provider_id',
+                  mtMap.passthrough()
+                ),
                 providerDeploymentId: mtMap.objectField(
                   'provider_deployment_id',
                   mtMap.passthrough()
@@ -82,7 +96,10 @@ export let mapDashboardInstanceSessionsListOutput =
     pagination: mtMap.objectField(
       'pagination',
       mtMap.object({
-        hasMoreBefore: mtMap.objectField('has_more_before', mtMap.passthrough()),
+        hasMoreBefore: mtMap.objectField(
+          'has_more_before',
+          mtMap.passthrough()
+        ),
         hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
       })
     )
@@ -142,3 +159,4 @@ export let mapDashboardInstanceSessionsListQuery = mtMap.union([
     })
   )
 ]);
+

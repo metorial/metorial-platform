@@ -106,8 +106,8 @@ export let HomePage = () => {
           <Spacer height={35} />
 
           <PageHeader
-            title="Recent MCP Sessions"
-            description="Your recent MCP sessions are listed below. Click on a session to view its details."
+            title="Recent Sessions"
+            description="Your recent sessions are listed below. Click on a session to view its details."
             size="5"
           />
 

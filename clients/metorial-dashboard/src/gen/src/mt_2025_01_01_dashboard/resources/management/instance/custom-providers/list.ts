@@ -20,7 +20,7 @@ export type ManagementInstanceCustomProvidersListOutput = {
         name: string;
         description: string | null;
         slug: string;
-        imageUrl: string | null;
+        imageUrl: string;
         createdAt: Date;
         updatedAt: Date;
       } | null;
@@ -59,7 +59,10 @@ export let mapManagementInstanceCustomProvidersListOutput =
               object: mtMap.objectField('object', mtMap.passthrough()),
               id: mtMap.objectField('id', mtMap.passthrough()),
               name: mtMap.objectField('name', mtMap.passthrough()),
-              description: mtMap.objectField('description', mtMap.passthrough()),
+              description: mtMap.objectField(
+                'description',
+                mtMap.passthrough()
+              ),
               slug: mtMap.objectField('slug', mtMap.passthrough()),
               publisher: mtMap.objectField(
                 'publisher',
@@ -67,7 +70,10 @@ export let mapManagementInstanceCustomProvidersListOutput =
                   object: mtMap.objectField('object', mtMap.passthrough()),
                   id: mtMap.objectField('id', mtMap.passthrough()),
                   name: mtMap.objectField('name', mtMap.passthrough()),
-                  description: mtMap.objectField('description', mtMap.passthrough()),
+                  description: mtMap.objectField(
+                    'description',
+                    mtMap.passthrough()
+                  ),
                   slug: mtMap.objectField('slug', mtMap.passthrough()),
                   imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
                   createdAt: mtMap.objectField('created_at', mtMap.date()),
@@ -97,7 +103,10 @@ export let mapManagementInstanceCustomProvidersListOutput =
     pagination: mtMap.objectField(
       'pagination',
       mtMap.object({
-        hasMoreBefore: mtMap.objectField('has_more_before', mtMap.passthrough()),
+        hasMoreBefore: mtMap.objectField(
+          'has_more_before',
+          mtMap.passthrough()
+        ),
         hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
       })
     )
@@ -157,3 +166,4 @@ export let mapManagementInstanceCustomProvidersListQuery = mtMap.union([
     })
   )
 ]);
+

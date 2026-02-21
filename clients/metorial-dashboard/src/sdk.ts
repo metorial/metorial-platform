@@ -6,6 +6,7 @@ import {
   MetorialDashboardEndpoint,
   MetorialDashboardInstanceCustomProvidersCommitsEndpoint,
   MetorialDashboardInstanceCustomProvidersDeploymentsEndpoint,
+  MetorialDashboardInstanceCustomProvidersCodeEndpoint,
   MetorialDashboardInstanceCustomProvidersEndpoint,
   MetorialDashboardInstanceCustomProvidersEnvironmentsEndpoint,
   MetorialDashboardInstanceCustomProvidersVersionsEndpoint,
@@ -54,6 +55,9 @@ import {
   MetorialDashboardOrganizationsTeamsMembersEndpoint,
   MetorialDashboardOrganizationsTeamsProjectsEndpoint,
   MetorialDashboardOrganizationsTeamsRolesEndpoint,
+  MetorialDashboardInstanceScmAccountsEndpoint,
+  MetorialDashboardInstanceScmInstallationEndpoint,
+  MetorialDashboardInstanceScmReposEndpoint,
   MetorialDashboardUsageEndpoint,
   MetorialManagementUserEndpoint,
   MetorialOrganizationsProfileEndpoint
@@ -133,7 +137,8 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
       versions: new MetorialDashboardInstanceCustomProvidersVersionsEndpoint(manager),
       deployments: new MetorialDashboardInstanceCustomProvidersDeploymentsEndpoint(manager),
       commits: new MetorialDashboardInstanceCustomProvidersCommitsEndpoint(manager),
-      environments: new MetorialDashboardInstanceCustomProvidersEnvironmentsEndpoint(manager)
+      environments: new MetorialDashboardInstanceCustomProvidersEnvironmentsEndpoint(manager),
+      code: new MetorialDashboardInstanceCustomProvidersCodeEndpoint(manager)
     }
   ),
 
@@ -197,7 +202,13 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
     {
       providers: new MetorialDashboardInstanceSessionTemplatesProvidersEndpoint(manager)
     }
-  )
+  ),
+
+  scm: {
+    installation: new MetorialDashboardInstanceScmInstallationEndpoint(manager),
+    repos: new MetorialDashboardInstanceScmReposEndpoint(manager),
+    accounts: new MetorialDashboardInstanceScmAccountsEndpoint(manager)
+  }
 }));
 
 export type MetorialDashboardSDK = ReturnType<typeof createMetorialDashboardSDK>;

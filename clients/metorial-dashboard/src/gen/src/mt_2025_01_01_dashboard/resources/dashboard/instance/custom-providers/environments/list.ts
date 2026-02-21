@@ -22,7 +22,10 @@ export let mapDashboardInstanceCustomProvidersEnvironmentsListOutput =
         mtMap.object({
           object: mtMap.objectField('object', mtMap.passthrough()),
           id: mtMap.objectField('id', mtMap.passthrough()),
-          customProviderId: mtMap.objectField('custom_provider_id', mtMap.passthrough()),
+          customProviderId: mtMap.objectField(
+            'custom_provider_id',
+            mtMap.passthrough()
+          ),
           providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
           currentProviderVersionId: mtMap.objectField(
             'current_provider_version_id',
@@ -37,7 +40,10 @@ export let mapDashboardInstanceCustomProvidersEnvironmentsListOutput =
     pagination: mtMap.objectField(
       'pagination',
       mtMap.object({
-        hasMoreBefore: mtMap.objectField('has_more_before', mtMap.passthrough()),
+        hasMoreBefore: mtMap.objectField(
+          'has_more_before',
+          mtMap.passthrough()
+        ),
         hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
       })
     )
@@ -54,35 +60,37 @@ export type DashboardInstanceCustomProvidersEnvironmentsListQuery = {
   customProviderVersionIds?: string | string[] | undefined;
 };
 
-export let mapDashboardInstanceCustomProvidersEnvironmentsListQuery = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      limit: mtMap.objectField('limit', mtMap.passthrough()),
-      after: mtMap.objectField('after', mtMap.passthrough()),
-      before: mtMap.objectField('before', mtMap.passthrough()),
-      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough()),
-      ids: mtMap.objectField(
-        'ids',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      customProviderVersionIds: mtMap.objectField(
-        'custom_provider_version_ids',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      )
-    })
-  )
-]);
+export let mapDashboardInstanceCustomProvidersEnvironmentsListQuery =
+  mtMap.union([
+    mtMap.unionOption(
+      'object',
+      mtMap.object({
+        limit: mtMap.objectField('limit', mtMap.passthrough()),
+        after: mtMap.objectField('after', mtMap.passthrough()),
+        before: mtMap.objectField('before', mtMap.passthrough()),
+        cursor: mtMap.objectField('cursor', mtMap.passthrough()),
+        order: mtMap.objectField('order', mtMap.passthrough()),
+        ids: mtMap.objectField(
+          'ids',
+          mtMap.union([
+            mtMap.unionOption('string', mtMap.passthrough()),
+            mtMap.unionOption(
+              'array',
+              mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+            )
+          ])
+        ),
+        customProviderVersionIds: mtMap.objectField(
+          'custom_provider_version_ids',
+          mtMap.union([
+            mtMap.unionOption('string', mtMap.passthrough()),
+            mtMap.unionOption(
+              'array',
+              mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+            )
+          ])
+        )
+      })
+    )
+  ]);
+

@@ -1,4 +1,7 @@
-import { BaseMetorialEndpoint, MetorialEndpointManager } from '@metorial/util-endpoint';
+import {
+  BaseMetorialEndpoint,
+  MetorialEndpointManager
+} from '@metorial/util-endpoint';
 
 import {
   mapDashboardInstanceCustomProvidersCommitsCreateBody,
@@ -69,7 +72,9 @@ export class MetorialDashboardInstanceCustomProvidersCommitsEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._get(request).transform(mapDashboardInstanceCustomProvidersCommitsListOutput);
+    return this._get(request).transform(
+      mapDashboardInstanceCustomProvidersCommitsListOutput
+    );
   }
 
   /**
@@ -98,7 +103,9 @@ export class MetorialDashboardInstanceCustomProvidersCommitsEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._get(request).transform(mapDashboardInstanceCustomProvidersCommitsGetOutput);
+    return this._get(request).transform(
+      mapDashboardInstanceCustomProvidersCommitsGetOutput
+    );
   }
 
   /**
@@ -123,7 +130,9 @@ export class MetorialDashboardInstanceCustomProvidersCommitsEndpoint {
 
     let request = {
       path,
-      body: mapDashboardInstanceCustomProvidersCommitsCreateBody.transformTo(body),
+      body: mapDashboardInstanceCustomProvidersCommitsCreateBody.transformTo(
+        body
+      ),
 
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;

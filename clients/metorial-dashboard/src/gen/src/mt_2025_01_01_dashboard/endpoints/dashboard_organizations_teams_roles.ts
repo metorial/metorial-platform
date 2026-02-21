@@ -1,4 +1,7 @@
-import { BaseMetorialEndpoint, MetorialEndpointManager } from '@metorial/util-endpoint';
+import {
+  BaseMetorialEndpoint,
+  MetorialEndpointManager
+} from '@metorial/util-endpoint';
 
 import {
   mapDashboardOrganizationsTeamsRolesCreateBody,
@@ -71,7 +74,9 @@ export class MetorialDashboardOrganizationsTeamsRolesEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._get(request).transform(mapDashboardOrganizationsTeamsRolesListOutput);
+    return this._get(request).transform(
+      mapDashboardOrganizationsTeamsRolesListOutput
+    );
   }
 
   /**
@@ -98,7 +103,9 @@ export class MetorialDashboardOrganizationsTeamsRolesEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._get(request).transform(mapDashboardOrganizationsTeamsRolesGetOutput);
+    return this._get(request).transform(
+      mapDashboardOrganizationsTeamsRolesGetOutput
+    );
   }
 
   /**
@@ -128,7 +135,9 @@ export class MetorialDashboardOrganizationsTeamsRolesEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._post(request).transform(mapDashboardOrganizationsTeamsRolesUpdateOutput);
+    return this._post(request).transform(
+      mapDashboardOrganizationsTeamsRolesUpdateOutput
+    );
   }
 
   /**
@@ -156,6 +165,8 @@ export class MetorialDashboardOrganizationsTeamsRolesEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._post(request).transform(mapDashboardOrganizationsTeamsRolesCreateOutput);
+    return this._post(request).transform(
+      mapDashboardOrganizationsTeamsRolesCreateOutput
+    );
   }
 }

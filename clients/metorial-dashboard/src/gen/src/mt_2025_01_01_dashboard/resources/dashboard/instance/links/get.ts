@@ -9,11 +9,13 @@ export type DashboardInstanceLinksGetOutput = {
   expiresAt: Date | null;
 };
 
-export let mapDashboardInstanceLinksGetOutput = mtMap.object<DashboardInstanceLinksGetOutput>({
-  object: mtMap.objectField('object', mtMap.passthrough()),
-  id: mtMap.objectField('id', mtMap.passthrough()),
-  fileId: mtMap.objectField('file_id', mtMap.passthrough()),
-  url: mtMap.objectField('url', mtMap.passthrough()),
-  createdAt: mtMap.objectField('created_at', mtMap.date()),
-  expiresAt: mtMap.objectField('expires_at', mtMap.date())
-});
+export let mapDashboardInstanceLinksGetOutput =
+  mtMap.object<DashboardInstanceLinksGetOutput>({
+    object: mtMap.objectField('object', mtMap.passthrough()),
+    id: mtMap.objectField('id', mtMap.passthrough()),
+    fileId: mtMap.objectField('file_id', mtMap.passthrough()),
+    url: mtMap.objectField('url', mtMap.passthrough()),
+    createdAt: mtMap.objectField('created_at', mtMap.date()),
+    expiresAt: mtMap.objectField('expires_at', mtMap.date())
+  });
+

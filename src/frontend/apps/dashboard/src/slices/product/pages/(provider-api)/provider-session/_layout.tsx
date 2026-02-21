@@ -65,10 +65,6 @@ export let ProviderSessionLayout = () => {
             to: Paths.instance.providerSession(...sessionPathParams)
           },
           {
-            label: 'Overview',
-            to: Paths.instance.providerSession(...sessionPathParams, 'overview')
-          },
-          {
             label: 'Deployments',
             to: Paths.instance.providerSession(...sessionPathParams, 'providers')
           },

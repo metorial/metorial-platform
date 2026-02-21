@@ -19,7 +19,7 @@ export type DashboardInstanceCustomProvidersGetOutput = {
       name: string;
       description: string | null;
       slug: string;
-      imageUrl: string | null;
+      imageUrl: string;
       createdAt: Date;
       updatedAt: Date;
     } | null;
@@ -85,3 +85,4 @@ export let mapDashboardInstanceCustomProvidersGetOutput =
     createdAt: mtMap.objectField('created_at', mtMap.date()),
     updatedAt: mtMap.objectField('updated_at', mtMap.date())
   });
+

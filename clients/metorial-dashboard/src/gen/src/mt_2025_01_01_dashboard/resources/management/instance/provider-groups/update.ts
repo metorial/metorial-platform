@@ -31,3 +31,4 @@ export let mapManagementInstanceProviderGroupsUpdateBody =
     name: mtMap.objectField('name', mtMap.passthrough()),
     description: mtMap.objectField('description', mtMap.passthrough())
   });
+

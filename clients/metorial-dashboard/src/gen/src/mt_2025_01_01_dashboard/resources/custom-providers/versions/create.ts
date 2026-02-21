@@ -70,7 +70,10 @@ export let mapCustomProvidersVersionsCreateOutput =
         id: mtMap.objectField('id', mtMap.passthrough()),
         status: mtMap.objectField('status', mtMap.passthrough()),
         trigger: mtMap.objectField('trigger', mtMap.passthrough()),
-        customProviderId: mtMap.objectField('custom_provider_id', mtMap.passthrough()),
+        customProviderId: mtMap.objectField(
+          'custom_provider_id',
+          mtMap.passthrough()
+        ),
         providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
         customProviderVersionId: mtMap.objectField(
           'custom_provider_version_id',
@@ -116,7 +119,10 @@ export let mapCustomProvidersVersionsCreateOutput =
             mtMap.object({
               object: mtMap.objectField('object', mtMap.passthrough()),
               id: mtMap.objectField('id', mtMap.passthrough()),
-              customProviderId: mtMap.objectField('custom_provider_id', mtMap.passthrough()),
+              customProviderId: mtMap.objectField(
+                'custom_provider_id',
+                mtMap.passthrough()
+              ),
               providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
               currentProviderVersionId: mtMap.objectField(
                 'current_provider_version_id',
@@ -130,7 +136,10 @@ export let mapCustomProvidersVersionsCreateOutput =
         })
       )
     ),
-    customProviderId: mtMap.objectField('custom_provider_id', mtMap.passthrough()),
+    customProviderId: mtMap.objectField(
+      'custom_provider_id',
+      mtMap.passthrough()
+    ),
     providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
     actor: mtMap.objectField(
       'actor',
@@ -138,7 +147,10 @@ export let mapCustomProvidersVersionsCreateOutput =
         id: mtMap.objectField('id', mtMap.passthrough()),
         name: mtMap.objectField('name', mtMap.passthrough()),
         type: mtMap.objectField('type', mtMap.passthrough()),
-        organizationActorId: mtMap.objectField('organization_actor_id', mtMap.passthrough())
+        organizationActorId: mtMap.objectField(
+          'organization_actor_id',
+          mtMap.passthrough()
+        )
       })
     ),
     createdAt: mtMap.objectField('created_at', mtMap.date()),
@@ -206,7 +218,10 @@ export let mapCustomProvidersVersionsCreateBody =
                 mtMap.unionOption(
                   'object',
                   mtMap.object({
-                    identifier: mtMap.objectField('identifier', mtMap.passthrough()),
+                    identifier: mtMap.objectField(
+                      'identifier',
+                      mtMap.passthrough()
+                    ),
                     version: mtMap.objectField('version', mtMap.passthrough())
                   })
                 )
@@ -224,3 +239,4 @@ export let mapCustomProvidersVersionsCreateBody =
       })
     )
   });
+

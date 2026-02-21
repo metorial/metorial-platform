@@ -45,7 +45,10 @@ export let mapDashboardInstanceProvidersAuthMethodsListOutput =
                 id: mtMap.objectField('id', mtMap.passthrough()),
                 scope: mtMap.objectField('scope', mtMap.passthrough()),
                 name: mtMap.objectField('name', mtMap.passthrough()),
-                description: mtMap.objectField('description', mtMap.passthrough())
+                description: mtMap.objectField(
+                  'description',
+                  mtMap.passthrough()
+                )
               })
             )
           ),
@@ -62,7 +65,10 @@ export let mapDashboardInstanceProvidersAuthMethodsListOutput =
     pagination: mtMap.objectField(
       'pagination',
       mtMap.object({
-        hasMoreBefore: mtMap.objectField('has_more_before', mtMap.passthrough()),
+        hasMoreBefore: mtMap.objectField(
+          'has_more_before',
+          mtMap.passthrough()
+        ),
         hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
       })
     )
@@ -85,7 +91,11 @@ export let mapDashboardInstanceProvidersAuthMethodsListQuery = mtMap.union([
       before: mtMap.objectField('before', mtMap.passthrough()),
       cursor: mtMap.objectField('cursor', mtMap.passthrough()),
       order: mtMap.objectField('order', mtMap.passthrough()),
-      providerVersionId: mtMap.objectField('provider_version_id', mtMap.passthrough())
+      providerVersionId: mtMap.objectField(
+        'provider_version_id',
+        mtMap.passthrough()
+      )
     })
   )
 ]);
+

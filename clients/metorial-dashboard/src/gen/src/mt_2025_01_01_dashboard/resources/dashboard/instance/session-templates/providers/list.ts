@@ -30,7 +30,10 @@ export let mapDashboardInstanceSessionTemplatesProvidersListOutput =
           name: mtMap.objectField('name', mtMap.passthrough()),
           description: mtMap.objectField('description', mtMap.passthrough()),
           metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-          sessionTemplateId: mtMap.objectField('session_template_id', mtMap.passthrough()),
+          sessionTemplateId: mtMap.objectField(
+            'session_template_id',
+            mtMap.passthrough()
+          ),
           providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
           providerDeploymentId: mtMap.objectField(
             'provider_deployment_id',
@@ -40,7 +43,10 @@ export let mapDashboardInstanceSessionTemplatesProvidersListOutput =
             'provider_deployment_name',
             mtMap.passthrough()
           ),
-          providerConfigName: mtMap.objectField('provider_config_name', mtMap.passthrough()),
+          providerConfigName: mtMap.objectField(
+            'provider_config_name',
+            mtMap.passthrough()
+          ),
           providerAuthConfigName: mtMap.objectField(
             'provider_auth_config_name',
             mtMap.passthrough()
@@ -53,7 +59,10 @@ export let mapDashboardInstanceSessionTemplatesProvidersListOutput =
     pagination: mtMap.objectField(
       'pagination',
       mtMap.object({
-        hasMoreBefore: mtMap.objectField('has_more_before', mtMap.passthrough()),
+        hasMoreBefore: mtMap.objectField(
+          'has_more_before',
+          mtMap.passthrough()
+        ),
         hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
       })
     )
@@ -67,25 +76,28 @@ export type DashboardInstanceSessionTemplatesProvidersListQuery = {
   order?: 'asc' | 'desc' | undefined;
 } & { providerId?: string | string[] | undefined };
 
-export let mapDashboardInstanceSessionTemplatesProvidersListQuery = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      limit: mtMap.objectField('limit', mtMap.passthrough()),
-      after: mtMap.objectField('after', mtMap.passthrough()),
-      before: mtMap.objectField('before', mtMap.passthrough()),
-      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough()),
-      providerId: mtMap.objectField(
-        'provider_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      )
-    })
-  )
-]);
+export let mapDashboardInstanceSessionTemplatesProvidersListQuery = mtMap.union(
+  [
+    mtMap.unionOption(
+      'object',
+      mtMap.object({
+        limit: mtMap.objectField('limit', mtMap.passthrough()),
+        after: mtMap.objectField('after', mtMap.passthrough()),
+        before: mtMap.objectField('before', mtMap.passthrough()),
+        cursor: mtMap.objectField('cursor', mtMap.passthrough()),
+        order: mtMap.objectField('order', mtMap.passthrough()),
+        providerId: mtMap.objectField(
+          'provider_id',
+          mtMap.union([
+            mtMap.unionOption('string', mtMap.passthrough()),
+            mtMap.unionOption(
+              'array',
+              mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+            )
+          ])
+        )
+      })
+    )
+  ]
+);
+

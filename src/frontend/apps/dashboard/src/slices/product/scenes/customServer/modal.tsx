@@ -1,17 +1,47 @@
+import { CustomProvidersGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { Dialog, showModal } from '@metorial/ui';
+import { CustomServerDockerCreateForm } from './createDockerForm';
+import { CustomServerManagedCreateForm } from './createManagedForm';
+import { CustomServerRemoteCreateForm } from './createRemoteForm';
 
-export let showCustomServerRemoteFormModal = (_p: {
+export let showCustomServerRemoteFormModal = (p: {
   type: 'remote' | 'managed' | 'docker';
   templateId?: string;
-  onCreate?: (deal: unknown) => void;
+  onCreate?: (deal: CustomProvidersGetOutput) => any;
 }) =>
-  showModal(({ dialogProps }) => {
+  showModal(({ dialogProps, close }) => {
     return (
       <Dialog.Wrapper {...dialogProps} width={650}>
-        <Dialog.Title>Custom Server</Dialog.Title>
-        <Dialog.Description>
-          Custom server management has been moved to the provider API.
-        </Dialog.Description>
+        {p.type == 'remote' && (
+          <>
+            <Dialog.Title>Link Remote Provider</Dialog.Title>
+            <Dialog.Description>Link a remote MCP provider to Metorial.</Dialog.Description>
+
+            <CustomServerRemoteCreateForm {...p} close={close} onCreate={p.onCreate} />
+          </>
+        )}
+
+        {p.type == 'managed' && (
+          <>
+            <Dialog.Title>Create Custom Provider</Dialog.Title>
+            <Dialog.Description>
+              Create a new custom MCP provider powered by Metorial.
+            </Dialog.Description>
+
+            <CustomServerManagedCreateForm {...p} close={close} onCreate={p.onCreate} />
+          </>
+        )}
+
+        {p.type == 'docker' && (
+          <>
+            <Dialog.Title>Create Docker Provider</Dialog.Title>
+            <Dialog.Description>
+              Deploy a custom Docker image as an MCP provider on Metorial.
+            </Dialog.Description>
+
+            <CustomServerDockerCreateForm {...p} close={close} onCreate={p.onCreate} />
+          </>
+        )}
       </Dialog.Wrapper>
     );
   });

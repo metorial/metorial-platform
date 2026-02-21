@@ -1,8 +1,12 @@
-import { BaseMetorialEndpoint, MetorialEndpointManager } from '@metorial/util-endpoint';
+import {
+  BaseMetorialEndpoint,
+  MetorialEndpointManager
+} from '@metorial/util-endpoint';
 
 import {
   mapDashboardInstanceProviderDeploymentsConfigsCreateBody,
   mapDashboardInstanceProviderDeploymentsConfigsCreateOutput,
+  mapDashboardInstanceProviderDeploymentsConfigsDeleteOutput,
   mapDashboardInstanceProviderDeploymentsConfigsGetConfigSchemaOutput,
   mapDashboardInstanceProviderDeploymentsConfigsGetOutput,
   mapDashboardInstanceProviderDeploymentsConfigsListOutput,
@@ -11,6 +15,7 @@ import {
   mapDashboardInstanceProviderDeploymentsConfigsUpdateOutput,
   type DashboardInstanceProviderDeploymentsConfigsCreateBody,
   type DashboardInstanceProviderDeploymentsConfigsCreateOutput,
+  type DashboardInstanceProviderDeploymentsConfigsDeleteOutput,
   type DashboardInstanceProviderDeploymentsConfigsGetConfigSchemaOutput,
   type DashboardInstanceProviderDeploymentsConfigsGetOutput,
   type DashboardInstanceProviderDeploymentsConfigsListOutput,
@@ -68,7 +73,9 @@ export class MetorialProviderDeploymentsConfigsEndpoint {
       path,
 
       query: query
-        ? mapDashboardInstanceProviderDeploymentsConfigsListQuery.transformTo(query)
+        ? mapDashboardInstanceProviderDeploymentsConfigsListQuery.transformTo(
+            query
+          )
         : undefined,
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
@@ -127,7 +134,9 @@ export class MetorialProviderDeploymentsConfigsEndpoint {
 
     let request = {
       path,
-      body: mapDashboardInstanceProviderDeploymentsConfigsCreateBody.transformTo(body),
+      body: mapDashboardInstanceProviderDeploymentsConfigsCreateBody.transformTo(
+        body
+      ),
 
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
@@ -159,13 +168,44 @@ export class MetorialProviderDeploymentsConfigsEndpoint {
 
     let request = {
       path,
-      body: mapDashboardInstanceProviderDeploymentsConfigsUpdateBody.transformTo(body),
+      body: mapDashboardInstanceProviderDeploymentsConfigsUpdateBody.transformTo(
+        body
+      ),
 
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
     return this._patch(request).transform(
       mapDashboardInstanceProviderDeploymentsConfigsUpdateOutput
+    );
+  }
+
+  /**
+   * @name Delete provider config
+   * @description Permanently deletes a provider config.
+   *
+   * @param `providerDeploymentId` - string
+   * @param `providerConfigId` - string
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardInstanceProviderDeploymentsConfigsDeleteOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  delete(
+    providerDeploymentId: string,
+    providerConfigId: string,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceProviderDeploymentsConfigsDeleteOutput> {
+    let path = `provider-deployments/${providerDeploymentId}/configs/${providerConfigId}`;
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._delete(request).transform(
+      mapDashboardInstanceProviderDeploymentsConfigsDeleteOutput
     );
   }
 

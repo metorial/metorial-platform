@@ -12,7 +12,7 @@ export type ProvidersUpdateOutput = {
     name: string;
     description: string | null;
     slug: string;
-    imageUrl: string | null;
+    imageUrl: string;
     createdAt: Date;
     updatedAt: Date;
   } | null;
@@ -77,3 +77,4 @@ export let mapProvidersUpdateBody = mtMap.object<ProvidersUpdateBody>({
   image: mtMap.objectField('image', mtMap.passthrough()),
   skills: mtMap.objectField('skills', mtMap.array(mtMap.passthrough()))
 });
+

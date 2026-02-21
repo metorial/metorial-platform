@@ -5,16 +5,18 @@ export type ProviderRunsGetLogsOutput = {
   logs: { type: string; line: string; timestamp: Date | null }[];
 };
 
-export let mapProviderRunsGetLogsOutput = mtMap.object<ProviderRunsGetLogsOutput>({
-  object: mtMap.objectField('object', mtMap.passthrough()),
-  logs: mtMap.objectField(
-    'logs',
-    mtMap.array(
-      mtMap.object({
-        type: mtMap.objectField('type', mtMap.passthrough()),
-        line: mtMap.objectField('line', mtMap.passthrough()),
-        timestamp: mtMap.objectField('timestamp', mtMap.date())
-      })
+export let mapProviderRunsGetLogsOutput =
+  mtMap.object<ProviderRunsGetLogsOutput>({
+    object: mtMap.objectField('object', mtMap.passthrough()),
+    logs: mtMap.objectField(
+      'logs',
+      mtMap.array(
+        mtMap.object({
+          type: mtMap.objectField('type', mtMap.passthrough()),
+          line: mtMap.objectField('line', mtMap.passthrough()),
+          timestamp: mtMap.objectField('timestamp', mtMap.date())
+        })
+      )
     )
-  )
-});
+  });
+

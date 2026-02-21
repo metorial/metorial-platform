@@ -1,3 +1,7 @@
+export * from './brand';
+export * from './bucket';
+export * from './containerRegistry';
+export * from './containerRepository';
 export * from './customProvider';
 export * from './customProviderCommit';
 export * from './customProviderDeployment';

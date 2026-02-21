@@ -1,8 +1,12 @@
-import { BaseMetorialEndpoint, MetorialEndpointManager } from '@metorial/util-endpoint';
+import {
+  BaseMetorialEndpoint,
+  MetorialEndpointManager
+} from '@metorial/util-endpoint';
 
 import {
   mapDashboardInstanceProviderDeploymentsAuthConfigsCreateBody,
   mapDashboardInstanceProviderDeploymentsAuthConfigsCreateOutput,
+  mapDashboardInstanceProviderDeploymentsAuthConfigsDeleteOutput,
   mapDashboardInstanceProviderDeploymentsAuthConfigsGetOutput,
   mapDashboardInstanceProviderDeploymentsAuthConfigsListOutput,
   mapDashboardInstanceProviderDeploymentsAuthConfigsListQuery,
@@ -10,6 +14,7 @@ import {
   mapDashboardInstanceProviderDeploymentsAuthConfigsUpdateOutput,
   type DashboardInstanceProviderDeploymentsAuthConfigsCreateBody,
   type DashboardInstanceProviderDeploymentsAuthConfigsCreateOutput,
+  type DashboardInstanceProviderDeploymentsAuthConfigsDeleteOutput,
   type DashboardInstanceProviderDeploymentsAuthConfigsGetOutput,
   type DashboardInstanceProviderDeploymentsAuthConfigsListOutput,
   type DashboardInstanceProviderDeploymentsAuthConfigsListQuery,
@@ -68,7 +73,9 @@ export class MetorialDashboardInstanceProviderDeploymentsAuthConfigsEndpoint {
       path,
 
       query: query
-        ? mapDashboardInstanceProviderDeploymentsAuthConfigsListQuery.transformTo(query)
+        ? mapDashboardInstanceProviderDeploymentsAuthConfigsListQuery.transformTo(
+            query
+          )
         : undefined,
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
@@ -131,7 +138,9 @@ export class MetorialDashboardInstanceProviderDeploymentsAuthConfigsEndpoint {
 
     let request = {
       path,
-      body: mapDashboardInstanceProviderDeploymentsAuthConfigsCreateBody.transformTo(body),
+      body: mapDashboardInstanceProviderDeploymentsAuthConfigsCreateBody.transformTo(
+        body
+      ),
 
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
@@ -165,13 +174,46 @@ export class MetorialDashboardInstanceProviderDeploymentsAuthConfigsEndpoint {
 
     let request = {
       path,
-      body: mapDashboardInstanceProviderDeploymentsAuthConfigsUpdateBody.transformTo(body),
+      body: mapDashboardInstanceProviderDeploymentsAuthConfigsUpdateBody.transformTo(
+        body
+      ),
 
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
     return this._patch(request).transform(
       mapDashboardInstanceProviderDeploymentsAuthConfigsUpdateOutput
+    );
+  }
+
+  /**
+   * @name Delete provider auth config
+   * @description Permanently deletes a provider auth config.
+   *
+   * @param `instanceId` - string
+   * @param `providerDeploymentId` - string
+   * @param `providerAuthConfigId` - string
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardInstanceProviderDeploymentsAuthConfigsDeleteOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  delete(
+    instanceId: string,
+    providerDeploymentId: string,
+    providerAuthConfigId: string,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceProviderDeploymentsAuthConfigsDeleteOutput> {
+    let path = `dashboard/instances/${instanceId}/provider-deployments/${providerDeploymentId}/auth-configs/${providerAuthConfigId}`;
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._delete(request).transform(
+      mapDashboardInstanceProviderDeploymentsAuthConfigsDeleteOutput
     );
   }
 }

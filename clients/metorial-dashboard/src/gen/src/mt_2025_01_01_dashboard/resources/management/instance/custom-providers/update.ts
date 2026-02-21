@@ -19,7 +19,7 @@ export type ManagementInstanceCustomProvidersUpdateOutput = {
       name: string;
       description: string | null;
       slug: string;
-      imageUrl: string | null;
+      imageUrl: string;
       createdAt: Date;
       updatedAt: Date;
     } | null;
@@ -98,3 +98,4 @@ export let mapManagementInstanceCustomProvidersUpdateBody =
     description: mtMap.objectField('description', mtMap.passthrough()),
     metadata: mtMap.objectField('metadata', mtMap.passthrough())
   });
+

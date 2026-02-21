@@ -96,3 +96,4 @@ export let mapDashboardInstanceProviderDeploymentsUpdateBody =
     description: mtMap.objectField('description', mtMap.passthrough()),
     metadata: mtMap.objectField('metadata', mtMap.passthrough())
   });
+

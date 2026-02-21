@@ -6,7 +6,7 @@ export type DashboardInstanceProviderListingsGetOutput = {
   name: string;
   description: string | null;
   slug: string;
-  imageUrl: string | null;
+  imageUrl: string;
   readme: string | null;
   skills: string[];
   flags: {
@@ -114,3 +114,4 @@ export let mapDashboardInstanceProviderListingsGetOutput =
     createdAt: mtMap.objectField('created_at', mtMap.date()),
     updatedAt: mtMap.objectField('updated_at', mtMap.date())
   });
+

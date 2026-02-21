@@ -36,7 +36,10 @@ export let mapManagementInstanceProviderDeploymentsAuthCredentialsListOutput =
     pagination: mtMap.objectField(
       'pagination',
       mtMap.object({
-        hasMoreBefore: mtMap.objectField('has_more_before', mtMap.passthrough()),
+        hasMoreBefore: mtMap.objectField(
+          'has_more_before',
+          mtMap.passthrough()
+        ),
         hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
       })
     )
@@ -50,25 +53,27 @@ export type ManagementInstanceProviderDeploymentsAuthCredentialsListQuery = {
   order?: 'asc' | 'desc' | undefined;
 } & { id?: string | string[] | undefined };
 
-export let mapManagementInstanceProviderDeploymentsAuthCredentialsListQuery = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      limit: mtMap.objectField('limit', mtMap.passthrough()),
-      after: mtMap.objectField('after', mtMap.passthrough()),
-      before: mtMap.objectField('before', mtMap.passthrough()),
-      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough()),
-      id: mtMap.objectField(
-        'id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      )
-    })
-  )
-]);
+export let mapManagementInstanceProviderDeploymentsAuthCredentialsListQuery =
+  mtMap.union([
+    mtMap.unionOption(
+      'object',
+      mtMap.object({
+        limit: mtMap.objectField('limit', mtMap.passthrough()),
+        after: mtMap.objectField('after', mtMap.passthrough()),
+        before: mtMap.objectField('before', mtMap.passthrough()),
+        cursor: mtMap.objectField('cursor', mtMap.passthrough()),
+        order: mtMap.objectField('order', mtMap.passthrough()),
+        id: mtMap.objectField(
+          'id',
+          mtMap.union([
+            mtMap.unionOption('string', mtMap.passthrough()),
+            mtMap.unionOption(
+              'array',
+              mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+            )
+          ])
+        )
+      })
+    )
+  ]);
+

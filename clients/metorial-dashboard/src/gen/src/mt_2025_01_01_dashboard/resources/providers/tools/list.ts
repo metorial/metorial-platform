@@ -17,36 +17,41 @@ export type ProvidersToolsListOutput = {
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
-export let mapProvidersToolsListOutput = mtMap.object<ProvidersToolsListOutput>({
-  items: mtMap.objectField(
-    'items',
-    mtMap.array(
+export let mapProvidersToolsListOutput = mtMap.object<ProvidersToolsListOutput>(
+  {
+    items: mtMap.objectField(
+      'items',
+      mtMap.array(
+        mtMap.object({
+          object: mtMap.objectField('object', mtMap.passthrough()),
+          id: mtMap.objectField('id', mtMap.passthrough()),
+          name: mtMap.objectField('name', mtMap.passthrough()),
+          title: mtMap.objectField('title', mtMap.passthrough()),
+          description: mtMap.objectField('description', mtMap.passthrough()),
+          inputSchema: mtMap.objectField('input_schema', mtMap.passthrough()),
+          outputSchema: mtMap.objectField('output_schema', mtMap.passthrough()),
+          providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
+          providerSpecificationId: mtMap.objectField(
+            'provider_specification_id',
+            mtMap.passthrough()
+          ),
+          createdAt: mtMap.objectField('created_at', mtMap.date()),
+          updatedAt: mtMap.objectField('updated_at', mtMap.date())
+        })
+      )
+    ),
+    pagination: mtMap.objectField(
+      'pagination',
       mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        title: mtMap.objectField('title', mtMap.passthrough()),
-        description: mtMap.objectField('description', mtMap.passthrough()),
-        inputSchema: mtMap.objectField('input_schema', mtMap.passthrough()),
-        outputSchema: mtMap.objectField('output_schema', mtMap.passthrough()),
-        providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-        providerSpecificationId: mtMap.objectField(
-          'provider_specification_id',
+        hasMoreBefore: mtMap.objectField(
+          'has_more_before',
           mtMap.passthrough()
         ),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date())
+        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
       })
     )
-  ),
-  pagination: mtMap.objectField(
-    'pagination',
-    mtMap.object({
-      hasMoreBefore: mtMap.objectField('has_more_before', mtMap.passthrough()),
-      hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-    })
-  )
-});
+  }
+);
 
 export type ProvidersToolsListQuery = {
   limit?: number | undefined;
@@ -65,7 +70,11 @@ export let mapProvidersToolsListQuery = mtMap.union([
       before: mtMap.objectField('before', mtMap.passthrough()),
       cursor: mtMap.objectField('cursor', mtMap.passthrough()),
       order: mtMap.objectField('order', mtMap.passthrough()),
-      providerVersionId: mtMap.objectField('provider_version_id', mtMap.passthrough())
+      providerVersionId: mtMap.objectField(
+        'provider_version_id',
+        mtMap.passthrough()
+      )
     })
   )
 ]);
+

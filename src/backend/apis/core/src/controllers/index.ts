@@ -18,6 +18,12 @@ import { teamManagementController } from './management/team';
 import { teamRoleManagementController } from './management/teamRole';
 import { teamRolePermissionsManagementController } from './management/teamRolePermissions';
 import {
+  scmAccountsController,
+  scmInstallationController,
+  scmReposController
+} from './scm';
+import {
+  customProviderCodeController,
   customProviderCommitController,
   customProviderController,
   customProviderDeploymentController,
@@ -101,10 +107,15 @@ export let magnetarController = Controller.create<any>(
     subspaceSessionEventController,
 
     customProviderController,
+    customProviderCodeController,
     customProviderVersionController,
     customProviderDeploymentController,
     customProviderCommitController,
     customProviderEnvironmentController,
+
+    scmInstallationController,
+    scmReposController,
+    scmAccountsController,
 
     fileController,
     fileLinkController,
@@ -193,10 +204,15 @@ export let dashboardController = Controller.create<any>(
     subspaceSessionEventController,
 
     customProviderController,
+    customProviderCodeController,
     customProviderVersionController,
     customProviderDeploymentController,
     customProviderCommitController,
-    customProviderEnvironmentController
+    customProviderEnvironmentController,
+
+    scmInstallationController,
+    scmReposController,
+    scmAccountsController
 
     // callbackController,
     // callbackEventController,
