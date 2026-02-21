@@ -3,15 +3,13 @@ import {
   subspacePublicProviderListingService,
   subspacePublicProviderToolService,
   subspacePublicProviderVersionService,
-  type SubspaceProviderListing,
   type SubspaceProviderToolListItem
 } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { z } from 'zod';
-import { providerListingPresenter } from '../../../core/src/presenters';
 import { toPaginationQuery } from '../lib/paginationQuery';
-import { runMarketplacePresenter } from '../lib/presenter';
 import { paginatorSchema } from '../lib/paginatorSchema';
+import { presentProviderListing } from '../presenters/provider';
 import { useValidation } from '../lib/validator';
 
 let normalizeSlug = (slug: string) => slug.replaceAll('---', '/').toLowerCase();
@@ -26,9 +24,6 @@ let splitCsv = (value: string | undefined) =>
     ?.split(',')
     .map(v => v.trim())
     .filter(Boolean);
-
-let presentProviderListing = async (providerListing: SubspaceProviderListing) =>
-  await runMarketplacePresenter(providerListingPresenter.present({ providerListing }));
 
 type ListResponse<T> = {
   __typename: 'list';
@@ -88,7 +83,9 @@ let listAllProviderTools = async (d: { providerVersion: string }) =>
     })
   );
 
-let listProviderVariantsForListing = (listing: SubspaceProviderListing) => {
+let listProviderVariantsForListing = (
+  listing: Awaited<ReturnType<typeof subspacePublicProviderListingService.get>>
+) => {
   let defaultVariant = listing.provider?.defaultVariant;
   return defaultVariant ? [defaultVariant] : [];
 };
@@ -128,14 +125,16 @@ export let serversController = createHono()
 
       let list = await paginator.run(toPaginationQuery(query));
 
-      return c.json(await Paginator.presentLight(list, presentProviderListing));
+      return c.json(
+        await Paginator.presentLight(list, provider => presentProviderListing(provider))
+      );
     }
   )
   .get(':slug', async c => {
     let listing = await getPublicProviderListingBySlug({ slug: c.req.param('slug') });
     if (!listing) return c.notFound();
 
-    return c.json(await presentProviderListing(listing));
+    return c.json(presentProviderListing(listing));
   })
   .get(':slug/capabilities', async c => {
     let listing = await getPublicProviderListingBySlug({ slug: c.req.param('slug') });
