@@ -17,6 +17,9 @@ import {
   UserSession
 } from '@metorial/db';
 import type {
+  SubspaceCustomProvider,
+  SubspaceCustomProviderCommit,
+  SubspaceCustomProviderVersion,
   SubspaceProviderAuthConfig,
   SubspaceProviderAuthCredentials,
   SubspaceProviderAuthExport,
@@ -24,8 +27,12 @@ import type {
   SubspaceProviderConfig,
   SubspaceProviderConfigVault,
   SubspaceProviderDeployment,
+  SubspaceProviderListingGroup,
   SubspaceProviderSetupSession,
-  SubspaceSession
+  SubspaceSession,
+  SubspaceSessionProvider,
+  SubspaceSessionTemplate,
+  SubspaceSessionTemplateProvider
 } from '@metorial/module-subspace';
 
 export type MachineAccessInput =
@@ -192,4 +199,37 @@ export interface FabricEvents {
   'provider.session.created:after': ProviderEventBase & { session: SubspaceSession };
   'provider.session.updated:before': ProviderEventBase;
   'provider.session.updated:after': ProviderEventBase & { session: SubspaceSession };
+
+  'provider.session.provider.created:before': ProviderEventBase;
+  'provider.session.provider.created:after': ProviderEventBase & { sessionProvider: SubspaceSessionProvider };
+  'provider.session.provider.updated:before': ProviderEventBase;
+  'provider.session.provider.updated:after': ProviderEventBase & { sessionProvider: SubspaceSessionProvider };
+  'provider.session.provider.deleted:before': ProviderEventBase;
+  'provider.session.provider.deleted:after': ProviderEventBase & { sessionProvider: SubspaceSessionProvider };
+
+  'provider.session_template.created:before': ProviderEventBase;
+  'provider.session_template.created:after': ProviderEventBase & { sessionTemplate: SubspaceSessionTemplate };
+  'provider.session_template.updated:before': ProviderEventBase;
+  'provider.session_template.updated:after': ProviderEventBase & { sessionTemplate: SubspaceSessionTemplate };
+
+  'provider.session_template.provider.created:before': ProviderEventBase;
+  'provider.session_template.provider.created:after': ProviderEventBase & { sessionTemplateProvider: SubspaceSessionTemplateProvider };
+  'provider.session_template.provider.updated:before': ProviderEventBase;
+  'provider.session_template.provider.updated:after': ProviderEventBase & { sessionTemplateProvider: SubspaceSessionTemplateProvider };
+  'provider.session_template.provider.deleted:before': ProviderEventBase;
+  'provider.session_template.provider.deleted:after': ProviderEventBase & { sessionTemplateProvider: SubspaceSessionTemplateProvider };
+
+  'provider.custom_provider.created:before': ProviderEventBase;
+  'provider.custom_provider.created:after': ProviderEventBase & { customProvider: SubspaceCustomProvider };
+  'provider.custom_provider.updated:before': ProviderEventBase;
+  'provider.custom_provider.updated:after': ProviderEventBase & { customProvider: SubspaceCustomProvider };
+
+  'provider.custom_provider.version.created:before': ProviderEventBase;
+  'provider.custom_provider.version.created:after': ProviderEventBase & { customProviderVersion: SubspaceCustomProviderVersion };
+
+  'provider.custom_provider.commit.created:before': ProviderEventBase;
+  'provider.custom_provider.commit.created:after': ProviderEventBase & { customProviderCommit: SubspaceCustomProviderCommit };
+
+  'provider.provider_listing_group.created:before': ProviderEventBase;
+  'provider.provider_listing_group.created:after': ProviderEventBase & { providerGroup: SubspaceProviderListingGroup };
 }

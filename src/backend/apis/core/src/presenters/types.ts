@@ -649,7 +649,11 @@ export interface SubspaceSessionTemplateProvider {
   sessionTemplateId: string;
   providerId: string;
   providerDeploymentId?: string | null;
-  deployment?: { id: string; name?: string | null; provider?: { name?: string | null } } | null;
+  deployment?: {
+    id: string;
+    name?: string | null;
+    provider?: { name?: string | null };
+  } | null;
   config?: { name?: string | null } | null;
   authConfig?: { name?: string | null } | null;
   createdAt: Date;
@@ -1084,7 +1088,7 @@ export let customProviderEnvironmentType = PresentableType.create<{
 export let customServerCodeEditorTokenType = PresentableType.create<{
   id: string;
   token: string;
-  expiresAt: string;
+  expiresAt: Date;
 }>()('customServerCodeEditorToken');
 
 export let providerOAuthSetupType = PresentableType.create<{

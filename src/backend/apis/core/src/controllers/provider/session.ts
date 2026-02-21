@@ -1,6 +1,6 @@
 import { convertKeysToCamelCase } from '@metorial/case';
 import { badRequestError, ServiceError } from '@metorial/error';
-import { buildSubspaceMcpUrl, subspaceSessionService } from '@metorial/module-subspace';
+import { subspaceSessionService } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
@@ -13,13 +13,6 @@ import {
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { providerSessionPresenter } from '../../presenters';
-import { SubspaceSession } from '../../presenters/types';
-
-// @tobias put here or somewhere else?
-let withConnectionUrl = (session: any, instance: any): SubspaceSession => ({
-  ...session,
-  connectionUrl: buildSubspaceMcpUrl(instance, session.id)
-});
 
 export let providerSessionGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.sessionId) {
@@ -66,7 +59,9 @@ export let providerSessionController = Controller.create(
       .do(async ctx => {
         let paginator = await subspaceSessionService.list({
           instance: ctx.instance,
-          status: normalizeArrayParam(ctx.query.status) as ("active" | "archived")[] | undefined,
+          status: normalizeArrayParam(ctx.query.status) as
+            | ('active' | 'archived')[]
+            | undefined,
           providerIds: normalizeArrayParam(ctx.query.provider_id),
           providerDeploymentIds: normalizeArrayParam(ctx.query.provider_deployment_id)
         });
@@ -75,7 +70,7 @@ export let providerSessionController = Controller.create(
 
         return Paginator.present(list, session =>
           providerSessionPresenter.present({
-            session: withConnectionUrl(session, ctx.instance)
+            session
           })
         );
       }),
@@ -89,7 +84,7 @@ export let providerSessionController = Controller.create(
       .output(providerSessionPresenter)
       .do(async ctx => {
         return providerSessionPresenter.present({
-          session: withConnectionUrl(ctx.session, ctx.instance)
+          session: ctx.session
         });
       }),
 

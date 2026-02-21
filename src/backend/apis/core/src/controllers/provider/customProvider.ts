@@ -205,6 +205,8 @@ export let customProviderController = Controller.create(
       .do(async ctx => {
         let customProvider = await customProviderService.update({
           instance: ctx.instance,
+          organizationActor: ctx.actor,
+
           customProviderId: ctx.customProvider.id,
           name: ctx.body.name,
           description: ctx.body.description,
