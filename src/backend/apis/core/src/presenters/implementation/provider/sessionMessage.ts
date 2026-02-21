@@ -1,105 +1,65 @@
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
 import { sessionMessageType } from '../../types';
-import type { SubspaceSessionMessage } from '@metorial/module-subspace';
-
-export let presentSubspaceSessionMessageAs = (
-  sessionMessage: SubspaceSessionMessage,
-  view: 'request' | 'response'
-) => {
-  let hasInput = !!sessionMessage.input;
-  let hasOutput = !!sessionMessage.output;
-  let method =
-    ((sessionMessage.input as Record<string, unknown> | null)?.method as string | null) ??
-    null;
-
-  let payload: Record<string, unknown>;
-  let senderType: string;
-  let recordId: string;
-
-  if (view === 'request' && hasInput) {
-    payload = (sessionMessage.input as Record<string, unknown>) ?? {};
-    senderType = 'client';
-    recordId = sessionMessage.id;
-  } else if (view === 'response' && hasOutput) {
-    payload = (sessionMessage.output as Record<string, unknown>) ?? {};
-    senderType = 'server';
-    recordId = `${sessionMessage.id}_response`;
-  } else {
-    return null;
-  }
-
-  let mcpId = sessionMessage.transport?.mcp?.id ?? sessionMessage.id;
-
-  return {
-    object: 'session.message' as const,
-    id: recordId,
-    type: (sessionMessage.type ?? sessionMessage.source ?? 'unknown') as string,
-    sender: {
-      object: 'session.message.sender' as const,
-      type: senderType,
-      id: sessionMessage.senderParticipant?.id ?? sessionMessage.id
-    },
-    mcp_message: {
-      object: 'session.message.mcp_message' as const,
-      id: mcpId,
-      original_id: null as string | null,
-      method: view === 'request' ? method : null,
-      payload
-    },
-    session_id: sessionMessage.sessionId,
-    server_session_id:
-      sessionMessage.connectionId ??
-      sessionMessage.sessionProviderId ??
-      sessionMessage.sessionId,
-    created_at: sessionMessage.createdAt
-  };
-};
+import { v1SessionErrorPresenter } from './sessionError';
+import { v1SessionParticipantPresenter } from './sessionParticipant';
+import { v1ProviderToolCallPresenter } from './toolCall';
 
 export let v1SubspaceSessionMessagePresenter = Presenter.create(sessionMessageType)
-  .presenter(async ({ sessionMessage }) => {
-    let hasInput = !!sessionMessage.input;
-    let hasOutput = !!sessionMessage.output;
+  .presenter(async ({ sessionMessage }, opts) => ({
+    object: 'session.message' as const,
 
-    if (hasInput && hasOutput) {
-      return presentSubspaceSessionMessageAs(sessionMessage, 'request')!;
-    }
+    id: sessionMessage.id,
+    type: sessionMessage.type,
+    status: sessionMessage.status,
+    source: sessionMessage.source,
 
-    let method =
-      ((sessionMessage.input as Record<string, unknown> | null)?.method as string | null) ??
-      null;
+    session_id: sessionMessage.sessionId,
+    session_provider_id: sessionMessage.sessionProviderId,
+    connection_id: sessionMessage.connectionId,
+    provider_run_id: sessionMessage.providerRunId,
 
-    let payload =
-      sessionMessage.source === 'provider'
-        ? (sessionMessage.output ?? sessionMessage.input)
-        : (sessionMessage.input ?? sessionMessage.output);
+    hierarchy: {
+      object: 'session.message.hierarchy',
+      type: sessionMessage.hierarchy.type,
+      parentMessageId: sessionMessage.hierarchy.parentMessageId ?? null,
+      childMessageIds: sessionMessage.hierarchy.childMessageIds
+    },
 
-    let mcpId = sessionMessage.transport?.mcp?.id ?? sessionMessage.id;
+    transport: {
+      object: 'session.message.transport',
+      type: sessionMessage.transport.type,
+      mcp: sessionMessage.transport.mcp ?? null,
+      toolCall: sessionMessage.transport.toolCall ?? null
+    },
 
-    return {
-      object: 'session.message' as const,
-      id: sessionMessage.id,
-      type: sessionMessage.type ?? sessionMessage.source ?? 'unknown',
-      sender: {
-        object: 'session.message.sender' as const,
-        type: sessionMessage.source ?? 'client',
-        id: sessionMessage.senderParticipant?.id ?? sessionMessage.id
-      },
-      mcp_message: {
-        object: 'session.message.mcp_message' as const,
-        id: mcpId,
-        original_id: null as string | null,
-        method,
-        payload: payload ?? null
-      },
-      session_id: sessionMessage.sessionId,
-      server_session_id:
-        sessionMessage.connectionId ??
-        sessionMessage.sessionProviderId ??
-        sessionMessage.sessionId,
-      created_at: sessionMessage.createdAt
-    };
-  })
+    input: sessionMessage.input as Record<string, any> | null,
+    output: sessionMessage.output as Record<string, any> | null,
+
+    tool_call: sessionMessage.toolCall
+      ? await v1ProviderToolCallPresenter
+          .present({ toolCall: sessionMessage.toolCall as any }, opts)
+          .run()
+      : null,
+
+    sender_participant: await v1SessionParticipantPresenter
+      .present({ sessionParticipant: sessionMessage.senderParticipant as any }, opts)
+      .run(),
+
+    responder_participant: sessionMessage.responderParticipant
+      ? await v1SessionParticipantPresenter
+          .present({ sessionParticipant: sessionMessage.responderParticipant as any }, opts)
+          .run()
+      : null,
+
+    error: sessionMessage.error
+      ? await sessionMessage.error.then(e =>
+          v1SessionErrorPresenter.present({ sessionError: e as any }, opts).run()
+        )
+      : null,
+
+    created_at: sessionMessage.createdAt
+  }))
   .schema(
     v.object({
       object: v.literal('session.message', {
@@ -113,69 +73,126 @@ export let v1SubspaceSessionMessagePresenter = Presenter.create(sessionMessageTy
       type: v.string({
         name: 'type',
         description: 'Message type',
-        examples: ['request', 'response', 'notification']
+        examples: ['tool_call', 'mcp_control', 'mcp_message']
       }),
-      sender: v.object(
-        {
-          object: v.literal('session.message.sender', {
-            description: "String representing the object's type"
-          }),
-          type: v.string({
-            name: 'type',
-            description: 'Sender type',
-            examples: ['client', 'server']
-          }),
-          id: v.string({
-            name: 'id',
-            description: 'Sender ID',
-            examples: ['spr_3cDeFgHjKlMnPqRs']
-          })
-        },
-        { name: 'sender', description: 'Message sender information' }
-      ),
-      mcp_message: v.object(
-        {
-          object: v.literal('session.message.mcp_message', {
-            description: "String representing the object's type"
-          }),
-          id: v.string({
-            name: 'id',
-            description: 'Unified message ID for request/response correlation'
-          }),
-          original_id: v.nullable(
-            v.string({
-              name: 'original_id',
-              description: 'Original message ID from the client'
-            })
-          ),
-          method: v.nullable(
-            v.string({
-              name: 'method',
-              description: 'MCP method name',
-              examples: ['tools/list', 'tools/call']
-            })
-          ),
-          payload: v.record(v.any(), {
-            name: 'payload',
-            description: 'Message payload',
-            examples: [{ jsonrpc: '2.0', method: 'tools/list' }]
-          })
-        },
-        {
-          name: 'mcp_message',
-          description: 'Details of the MCP message'
-        }
-      ),
+      status: v.string({
+        name: 'status',
+        description: 'Message status',
+        examples: ['waiting_for_response', 'succeeded', 'failed']
+      }),
+      source: v.string({
+        name: 'source',
+        description: 'Message source',
+        examples: ['client', 'provider']
+      }),
       session_id: v.string({
         name: 'session_id',
         description: 'Parent session ID',
         examples: ['ses_4dEfGhJkLmNpQrSt']
       }),
-      server_session_id: v.string({
-        name: 'server_session_id',
-        description: 'Server session / session provider ID',
-        examples: ['spr_3cDeFgHjKlMnPqRs']
-      }),
+      session_provider_id: v.nullable(
+        v.string({
+          name: 'session_provider_id',
+          description: 'Session provider ID',
+          examples: ['spr_3cDeFgHjKlMnPqRs']
+        })
+      ),
+      connection_id: v.nullable(
+        v.string({
+          name: 'connection_id',
+          description: 'Connection ID',
+          examples: ['scn_2bCdEfGhJkLmNpQr']
+        })
+      ),
+      provider_run_id: v.nullable(
+        v.string({
+          name: 'provider_run_id',
+          description: 'Provider run ID',
+          examples: ['prn_8hJkLmNpQrStUvWx']
+        })
+      ),
+      hierarchy: v.object(
+        {
+          object: v.literal('session.message.hierarchy'),
+          type: v.string({
+            name: 'type',
+            description: 'Hierarchy type',
+            examples: ['child', 'parent']
+          }),
+          parentMessageId: v.nullable(
+            v.string({
+              name: 'parentMessageId',
+              description: 'Parent message ID'
+            })
+          ),
+          childMessageIds: v.array(
+            v.string({
+              name: 'childMessageId',
+              description: 'Child message ID'
+            }),
+            {
+              name: 'childMessageIds',
+              description: 'List of child message IDs'
+            }
+          )
+        },
+        { name: 'hierarchy', description: 'Message hierarchy information' }
+      ),
+      transport: v.object(
+        {
+          object: v.literal('session.message.transport'),
+          type: v.enumOf(['mcp', 'tool_call', 'metorial_protocol', 'system'] as const, {
+            name: 'type',
+            description: 'Transport type'
+          }),
+          mcp: v.nullable(
+            v.object({
+              object: v.literal('session.message.transport#mcp'),
+              id: v.union([v.string(), v.number()], {
+                name: 'id',
+                description: 'MCP message ID'
+              }),
+              protocolVersion: v.string({
+                name: 'protocolVersion',
+                description: 'MCP protocol version'
+              }),
+              transport: v.string({
+                name: 'transport',
+                description: 'MCP transport type',
+                examples: ['unknown', 'sse', 'streamable_http']
+              })
+            })
+          ),
+          toolCall: v.nullable(
+            v.object({
+              object: v.literal('session.message.transport#tool_call'),
+              id: v.nullable(
+                v.string({
+                  name: 'id',
+                  description: 'Tool call ID'
+                })
+              )
+            })
+          )
+        },
+        { name: 'transport', description: 'Transport information' }
+      ),
+      input: v.nullable(
+        v.record(v.any(), {
+          name: 'input',
+          description: 'Input message data'
+        })
+      ),
+      output: v.nullable(
+        v.record(v.any(), {
+          name: 'output',
+          description: 'Output message data'
+        })
+      ),
+      tool_call: v.nullable(v1ProviderToolCallPresenter.schema),
+      sender_participant: v1SessionParticipantPresenter.schema,
+      responder_participant: v.nullable(v1SessionParticipantPresenter.schema),
+      error: v.nullable(v1SessionErrorPresenter.schema),
       created_at: v.date({
         name: 'created_at',
         description: 'Timestamp when created',
