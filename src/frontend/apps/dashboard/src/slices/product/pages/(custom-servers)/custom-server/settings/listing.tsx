@@ -68,7 +68,7 @@ export let CustomServerListingPage = () => {
                 onConfirm: () => {
                   statusUpdate.mutate({
                     status: 'public'
-                  } as any);
+                  });
                 },
                 onCancel: () => {
                   setIsPublic(false);
@@ -77,7 +77,7 @@ export let CustomServerListingPage = () => {
             } else {
               statusUpdate.mutate({
                 status: 'private'
-              } as any);
+              });
             }
           }}
         />
@@ -214,7 +214,7 @@ export let CustomServerListingPage = () => {
           }}
           mutators={[readmeUpdate]}
           onSubmit={async values => {
-            if (!instance.data) return;
+          if (!instance.data) return;
 
             await readmeUpdate.mutate({
               metadata: { oauthExplainer: values.oauthExplainer }

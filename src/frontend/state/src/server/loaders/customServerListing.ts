@@ -10,7 +10,7 @@ export let customServerListingLoader = createLoader({
     withAuth(sdk => sdk.customProviders.get(i.instanceId, i.customServerId)),
   mutators: {
     update: (
-      i: DashboardInstanceCustomProvidersUpdateBody,
+      i: DashboardInstanceCustomProvidersUpdateBody & { status?: string },
       { input: { instanceId, customServerId } }: { input: { instanceId: string; customServerId: string } }
     ) => withAuth(sdk => sdk.customProviders.update(instanceId, customServerId, i))
   }

@@ -9,21 +9,11 @@ import { createLoader } from '@metorial/data-hooks';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
 
-let emptyList: Promise<any> = Promise.resolve({
-  items: [],
-  pagination: { hasMoreAfter: false, hasMoreBefore: false }
-});
-
-let hasScm = (sdk: any): boolean => !!sdk.scm;
-
 export let scmInstallationsLoader = createLoader({
   name: 'scmInstallations',
   parents: [],
   fetch: (i: { instanceId: string } & DashboardInstanceScmInstallationListQuery) =>
-    withAuth(sdk => {
-      if (!hasScm(sdk)) return emptyList;
-      return sdk.scm.installation.list(i.instanceId, i);
-    }),
+    withAuth(sdk => sdk.scm.installation.list(i.instanceId, i)),
   mutators: {}
 });
 
@@ -42,28 +32,19 @@ export let useScmInstallations = (
 
 export let useCreateScmInstallation = scmInstallationsLoader.createExternalMutator(
   (i: DashboardInstanceScmInstallationCreateBody & { instanceId: string }) =>
-    withAuth(sdk => {
-      if (!hasScm(sdk)) throw new Error('SCM feature not available');
-      return sdk.scm.installation.create(i.instanceId, i);
-    })
+    withAuth(sdk => sdk.scm.installation.create(i.instanceId, i))
 );
 
 export let useCreateScmRepo = scmInstallationsLoader.createExternalMutator(
   (i: DashboardInstanceScmReposCreateBody & { instanceId: string }) =>
-    withAuth(sdk => {
-      if (!hasScm(sdk)) throw new Error('SCM feature not available');
-      return sdk.scm.repos.create(i.instanceId, i);
-    })
+    withAuth(sdk => sdk.scm.repos.create(i.instanceId, i))
 );
 
 export let scmReposLoader = createLoader({
   name: 'scmRepos',
   parents: [],
   fetch: (i: { instanceId: string } & DashboardInstanceScmReposPreviewBody) =>
-    withAuth(sdk => {
-      if (!hasScm(sdk)) return emptyList;
-      return sdk.scm.repos.preview(i.instanceId, i);
-    }),
+    withAuth(sdk => sdk.scm.repos.preview(i.instanceId, i)),
   mutators: {}
 });
 
@@ -80,10 +61,7 @@ export let scmAccountsLoader = createLoader({
   name: 'scmAccounts',
   parents: [],
   fetch: (i: { instanceId: string } & DashboardInstanceScmAccountsPreviewBody) =>
-    withAuth(sdk => {
-      if (!hasScm(sdk)) return emptyList;
-      return sdk.scm.accounts.preview(i.instanceId, i);
-    }),
+    withAuth(sdk => sdk.scm.accounts.preview(i.instanceId, i)),
   mutators: {}
 });
 
