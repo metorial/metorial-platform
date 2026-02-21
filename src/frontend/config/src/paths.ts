@@ -526,12 +526,6 @@ let InstancePaths = Object.assign(
       instance: EntityParam,
       ...subPages: SubPages
     ) => InstancePaths(organization, project, instance, 'external-providers', ...subPages),
-    customProviders: (
-      organization: EntityParam,
-      project: EntityParam,
-      instance: EntityParam,
-      ...subPages: SubPages
-    ) => InstancePaths(organization, project, instance, 'custom-providers', ...subPages),
 
     providerSessions: (
       organization: EntityParam,
