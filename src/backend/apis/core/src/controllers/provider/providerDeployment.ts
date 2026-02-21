@@ -1,4 +1,3 @@
-import { convertKeysToCamelCase } from '@metorial/case';
 import { badRequestError, ServiceError } from '@metorial/error';
 import { subspaceProviderDeploymentService } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
@@ -8,6 +7,60 @@ import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { providerDeploymentPresenter } from '../../presenters';
+
+type ProviderDeploymentCreateConfig = NonNullable<
+  Parameters<typeof subspaceProviderDeploymentService.create>[0]['config']
+>;
+
+let mapProviderDeploymentConfigSource = (
+  config: { type: 'new'; data: Record<string, any> } | { type: 'vault'; provider_config_vault_id: string }
+): NonNullable<Extract<ProviderDeploymentCreateConfig, { type: 'ephemeral' }>['config']> => {
+  if (config.type === 'new') {
+    return {
+      type: 'inline',
+      data: config.data
+    };
+  }
+
+  return {
+    type: 'vault',
+    providerConfigVaultId: config.provider_config_vault_id
+  };
+};
+
+let mapProviderDeploymentConfig = (
+  config:
+    | string
+    | { type: 'reference'; provider_config_id: string }
+    | {
+        type: 'new';
+        name?: string;
+        config: { type: 'new'; data: Record<string, any> } | { type: 'vault'; provider_config_vault_id: string };
+      }
+    | undefined
+): ProviderDeploymentCreateConfig | undefined => {
+  if (!config) return undefined;
+
+  if (typeof config === 'string') {
+    return {
+      type: 'reference',
+      providerConfigId: config
+    };
+  }
+
+  if (config.type === 'reference') {
+    return {
+      type: 'reference',
+      providerConfigId: config.provider_config_id
+    };
+  }
+
+  return {
+    type: 'ephemeral',
+    name: config.name,
+    config: mapProviderDeploymentConfigSource(config.config)
+  };
+};
 
 let providerDeploymentGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerDeploymentId) {
@@ -185,7 +238,7 @@ export let providerDeploymentController = Controller.create(
           name: ctx.body.name,
           description: ctx.body.description,
           lockedProviderVersionId: ctx.body.locked_provider_version_id,
-          config: convertKeysToCamelCase(ctx.body.config),
+          config: mapProviderDeploymentConfig(ctx.body.config),
           metadata: ctx.body.metadata
         });
 

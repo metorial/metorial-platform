@@ -1,4 +1,3 @@
-import { convertKeysToCamelCase } from '@metorial/case';
 import { badRequestError, ServiceError } from '@metorial/error';
 import { subspaceProviderConfigService } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
@@ -8,6 +7,26 @@ import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { configSchemaPresenter, providerConfigPresenter } from '../../presenters';
+
+type ProviderConfigCreateConfig = Parameters<typeof subspaceProviderConfigService.create>[0]['config'];
+
+let mapProviderConfigCreateConfig = (
+  config:
+    | { type: 'inline'; data: Record<string, any> }
+    | { type: 'vault'; provider_config_vault_id: string }
+): ProviderConfigCreateConfig => {
+  if (config.type === 'inline') {
+    return {
+      type: 'inline',
+      data: config.data
+    };
+  }
+
+  return {
+    type: 'vault',
+    providerConfigVaultId: config.provider_config_vault_id
+  };
+};
 
 export let providerConfigGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerConfigId) {
@@ -156,7 +175,7 @@ export let providerConfigController = Controller.create(
           providerDeploymentId: ctx.deployment.id,
           name: ctx.body.name,
           description: ctx.body.description,
-          config: convertKeysToCamelCase(ctx.body.config) as any,
+          config: mapProviderConfigCreateConfig(ctx.body.config),
           metadata: ctx.body.metadata
         });
 

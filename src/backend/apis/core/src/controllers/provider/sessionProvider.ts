@@ -1,4 +1,3 @@
-import { convertKeysToCamelCase } from '@metorial/case';
 import { badRequestError, ServiceError } from '@metorial/error';
 import { subspaceSessionProviderService } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
@@ -13,6 +12,104 @@ import {
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { sessionProviderPresenter } from '../../presenters';
+
+type SessionProviderCreateInput = Parameters<typeof subspaceSessionProviderService.create>[0];
+
+let mapSessionProviderConfigSource = (
+  config:
+    | { type: 'none' }
+    | { type: 'reference'; provider_config_id: string }
+    | {
+        type: 'ephemeral';
+        name?: string;
+        config:
+          | { type: 'inline'; data: Record<string, any> }
+          | { type: 'vault'; provider_config_vault_id: string };
+      }
+    | string
+    | undefined
+): SessionProviderCreateInput['providerConfig'] => {
+  if (!config) return undefined;
+  if (typeof config === 'string') return { type: 'reference', providerConfigId: config };
+  if (config.type === 'none') return undefined;
+  if (config.type === 'reference') {
+    return { type: 'reference', providerConfigId: config.provider_config_id };
+  }
+  return {
+    type: 'ephemeral',
+    name: config.name,
+    config:
+      config.config.type === 'inline'
+        ? { type: 'inline', data: config.config.data }
+        : { type: 'vault', providerConfigVaultId: config.config.provider_config_vault_id }
+  };
+};
+
+let mapSessionProviderDeploymentSource = (
+  deployment:
+    | { type: 'reference'; provider_deployment_id: string }
+    | {
+        type: 'ephemeral';
+        provider_id: string;
+        name?: string;
+        description?: string;
+        metadata?: Record<string, any>;
+        locked_provider_version_id?: string;
+        config?:
+          | { type: 'none' }
+          | { type: 'reference'; provider_config_id: string }
+          | {
+              type: 'ephemeral';
+              name?: string;
+              config:
+                | { type: 'inline'; data: Record<string, any> }
+                | { type: 'vault'; provider_config_vault_id: string };
+            }
+          | string;
+      }
+    | string
+): SessionProviderCreateInput['providerDeployment'] => {
+  if (typeof deployment === 'string') {
+    return { type: 'reference', providerDeploymentId: deployment };
+  }
+  if (deployment.type === 'reference') {
+    return { type: 'reference', providerDeploymentId: deployment.provider_deployment_id };
+  }
+  return {
+    type: 'ephemeral',
+    providerId: deployment.provider_id,
+    name: deployment.name,
+    description: deployment.description,
+    metadata: deployment.metadata,
+    lockedProviderVersionId: deployment.locked_provider_version_id,
+    config: mapSessionProviderConfigSource(deployment.config)
+  };
+};
+
+let mapSessionProviderAuthConfigSource = (
+  auth:
+    | { type: 'reference'; provider_auth_config_id: string }
+    | {
+        type: 'ephemeral';
+        name?: string;
+        provider_auth_method_id: string;
+        credentials: Record<string, any>;
+      }
+    | string
+    | undefined
+): SessionProviderCreateInput['providerAuthConfig'] => {
+  if (!auth) return undefined;
+  if (typeof auth === 'string') return { type: 'reference', providerAuthConfigId: auth };
+  if (auth.type === 'reference') {
+    return { type: 'reference', providerAuthConfigId: auth.provider_auth_config_id };
+  }
+  return {
+    type: 'ephemeral',
+    name: auth.name,
+    providerAuthMethodId: auth.provider_auth_method_id,
+    credentials: auth.credentials
+  };
+};
 
 export let subspaceSessionProviderGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.sessionProviderId) {
@@ -143,11 +240,11 @@ export let subspaceSessionProviderController = Controller.create(
           name: ctx.body.name,
           description: ctx.body.description,
           metadata: ctx.body.metadata,
-          providerDeployment: convertKeysToCamelCase(ctx.body.provider_deployment),
-          providerConfig: convertKeysToCamelCase(ctx.body.provider_config),
-          providerAuthConfig: convertKeysToCamelCase(ctx.body.provider_auth_config),
+          providerDeployment: mapSessionProviderDeploymentSource(ctx.body.provider_deployment),
+          providerConfig: mapSessionProviderConfigSource(ctx.body.provider_config),
+          providerAuthConfig: mapSessionProviderAuthConfigSource(ctx.body.provider_auth_config),
           toolFilters: ctx.body.tool_filters
-            ? { toolKeys: ctx.body.tool_filters.tool_keys }
+            ? { type: 'tool_keys', keys: ctx.body.tool_filters.tool_keys ?? [] }
             : undefined
         });
 
