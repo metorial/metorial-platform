@@ -14,7 +14,6 @@ export let v1ProviderSessionPresenter = Presenter.create(providerSessionType)
       id: session.id,
       name: session.name,
       description: session.description,
-      status: session.status ?? 'active',
       connection_status: session.connectionState ?? 'disconnected',
       usage: {
         total_productive_message_count:
@@ -59,10 +58,6 @@ export let v1ProviderSessionPresenter = Presenter.create(providerSessionType)
           examples: ['Session for production environment']
         })
       ),
-      status: v.enumOf(['active', 'deleted'], {
-        name: 'status',
-        description: 'Session status'
-      }),
       connection_status: v.enumOf(['connected', 'disconnected'], {
         name: 'connection_status',
         description: 'Connection state'

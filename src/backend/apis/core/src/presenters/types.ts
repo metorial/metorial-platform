@@ -777,7 +777,6 @@ export interface SubspaceSession {
   id: string;
   name: string | null;
   description: string | null;
-  status: string | null;
   connectionState: string | null;
   metadata?: unknown;
   usage?: {

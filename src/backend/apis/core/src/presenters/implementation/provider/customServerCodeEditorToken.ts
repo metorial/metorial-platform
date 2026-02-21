@@ -18,7 +18,7 @@ export let v1CustomServerCodeEditorTokenPresenter = Presenter.create(
       }),
       id: v.string({ description: 'The code bucket ID' }),
       token: v.string({ description: 'The code editor access token URL' }),
-      expires_at: v.string({ description: 'When the token expires' })
+      expires_at: v.date({ description: 'When the token expires' })
     })
   )
   .build();

@@ -6,7 +6,7 @@ import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instancePath } from '../../middleware/instanceGroup';
 import { providerAuthImportPresenter, authImportSchemaPresenter } from '../../presenters';
-import { SubspaceAuthImport, SubspaceAuthImportSchema } from '../../presenters/types';
+import { SubspaceAuthImport } from '../../presenters/types';
 import { providerAuthConfigGroup } from './providerAuthConfig';
 
 export let providerAuthImportGroup = providerAuthConfigGroup.use(async ctx => {
@@ -162,7 +162,7 @@ export let providerAuthImportController = Controller.create(
         });
 
         return authImportSchemaPresenter.present({
-          schema: schema as SubspaceAuthImportSchema
+          schema: { schema: schema.authConfigSchema ?? null }
         });
       })
   }
