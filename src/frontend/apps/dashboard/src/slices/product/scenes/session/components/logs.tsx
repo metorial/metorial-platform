@@ -1,4 +1,3 @@
-import { DashboardInstanceSessionsEventsGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { RenderDate } from '@metorial/ui';
 import Ansi from 'ansi-to-react';
 import styled from 'styled-components';
@@ -48,7 +47,7 @@ interface LogLine {
   type?: string;
 }
 
-export let Logs = ({ event }: { event: DashboardInstanceSessionsEventsGetOutput }) => {
+export let Logs = ({ event }: { event: { data: Record<string, any> | null; createdAt: Date } }) => {
   let logLines = (event.data?.logLines ?? event.data?.lines ?? []) as LogLine[];
   if (logLines.length === 0) return null;
 
