@@ -132,6 +132,16 @@ export let providerConfigController = Controller.create(
       .body(
         'default',
         v.object({
+          provider_id: v.string({
+            description: 'Provider ID',
+            examples: ['pro_5gHjKlMnPqRsTuVw']
+          }),
+          provider_deployment_id: v.optional(
+            v.string({
+              description: 'Optional provider deployment ID',
+              examples: ['pdp_4dEfGhJkLmNpQrSt']
+            })
+          ),
           name: v.string({ examples: ['Production Config'] }),
           description: v.optional(
             v.string({ examples: ['Configuration for production environment'] })
@@ -173,8 +183,13 @@ export let providerConfigController = Controller.create(
       .do(async ctx => {
         let config = await subspaceProviderConfigService.create({
           instance: ctx.instance,
-          providerId: ctx.deployment.providerId,
-          providerDeploymentId: ctx.deployment.id,
+          providerId: ctx.body.provider_id,
+          providerDeployment: ctx.body.provider_deployment_id
+            ? {
+                type: 'reference',
+                providerDeploymentId: ctx.body.provider_deployment_id
+              }
+            : undefined,
           name: ctx.body.name,
           description: ctx.body.description,
           config: mapProviderConfigCreateConfig(ctx.body.config),
@@ -246,11 +261,23 @@ export let providerConfigController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.deployment:read'] }))
+      .query(
+        'default',
+        v.object({
+          provider_id: v.optional(v.string()),
+          provider_config_id: v.optional(v.string()),
+          provider_version_id: v.optional(v.string()),
+          provider_deployment_id: v.optional(v.string())
+        })
+      )
       .output(configSchemaPresenter)
       .do(async ctx => {
         let schema = await subspaceProviderConfigService.getConfigSchema({
           instance: ctx.instance,
-          providerDeploymentId: ctx.deployment.id
+          providerId: ctx.query.provider_id,
+          providerConfigId: ctx.query.provider_config_id,
+          providerVersionId: ctx.query.provider_version_id,
+          providerDeploymentId: ctx.query.provider_deployment_id
         });
 
         return configSchemaPresenter.present({

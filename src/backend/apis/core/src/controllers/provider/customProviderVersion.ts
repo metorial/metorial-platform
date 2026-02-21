@@ -97,7 +97,6 @@ export let customProviderVersionController = Controller.create(
       .do(async ctx => {
         let paginator = await subspaceCustomProviderVersionService.list({
           instance: ctx.instance,
-
           status: normalizeArrayParam(ctx.query.status),
           ids: normalizeArrayParam(ctx.query.id),
           providerIds: normalizeArrayParam(ctx.query.provider_id),

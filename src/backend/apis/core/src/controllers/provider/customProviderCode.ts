@@ -1,10 +1,27 @@
 import { badRequestError, ServiceError } from '@metorial/error';
-import { subspaceBucketService } from '@metorial/module-subspace';
+import { subspaceBucketService, subspaceCustomProviderService } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../middleware/checkAccess';
-import { instancePath } from '../../middleware/instanceGroup';
+import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { bucketEditorTokenPresenter } from '../../presenters';
-import { customProviderGroup } from './customProvider';
+
+let customProviderCodeGroup = instanceGroup.use(async ctx => {
+  if (!ctx.params.customProviderId) {
+    throw new ServiceError(
+      badRequestError({
+        message: 'customProviderId is required',
+        description: 'The customProviderId path parameter is required.'
+      })
+    );
+  }
+
+  let customProvider = await subspaceCustomProviderService.get({
+    instance: ctx.instance,
+    customProviderId: ctx.params.customProviderId
+  });
+
+  return { customProvider };
+});
 
 export let customProviderCodeController = Controller.create(
   {
@@ -12,7 +29,7 @@ export let customProviderCodeController = Controller.create(
     description: 'Manage custom provider code editor access.'
   },
   {
-    getCodeEditorToken: customProviderGroup
+    getCodeEditorToken: customProviderCodeGroup
       .get(
         instancePath(
           'custom-providers/:customProviderId/code-editor-token',

@@ -67,6 +67,7 @@ export let providerAuthCredentialsController = Controller.create(
         let paginator = await subspaceProviderAuthCredentialsService.list({
           instance: ctx.instance,
           allowDeleted: false,
+
           status: normalizeArrayParam(ctx.query.status),
           ids: normalizeArrayParam(ctx.query.id),
           providerIds: normalizeArrayParam(ctx.query.provider_id)

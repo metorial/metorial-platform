@@ -128,6 +128,7 @@ export let providerDeploymentController = Controller.create(
         let paginator = await subspaceProviderDeploymentService.list({
           instance: ctx.instance,
           allowDeleted: false,
+
           ids: normalizeArrayParam(ctx.query.id),
           providerIds: normalizeArrayParam(ctx.query.provider_id),
           providerVersionIds: normalizeArrayParam(ctx.query.provider_version_id),

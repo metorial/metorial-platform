@@ -7,6 +7,19 @@ import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup } from '../../middleware/instanceGroup';
 import { providerSetupSessionPresenter } from '../../presenters';
 
+let providerSetupSessionDashboardGroup = instanceGroup.use(async ctx => {
+  if (!ctx.params.providerSetupSessionId) {
+    throw new Error('providerSetupSessionId is required');
+  }
+
+  let setupSession = await subspaceProviderSetupSessionService.get({
+    instance: ctx.instance,
+    providerSetupSessionId: ctx.params.providerSetupSessionId
+  });
+
+  return { setupSession };
+});
+
 export let providerSetupSessionDashboardController = Controller.create(
   {
     name: 'Provider Setup Sessions (Dashboard)',
@@ -64,6 +77,7 @@ export let providerSetupSessionDashboardController = Controller.create(
         let paginator = await subspaceProviderSetupSessionService.list({
           instance: ctx.instance,
           allowDeleted: false,
+
           ids: normalizeArrayParam(ctx.query.id),
           providerIds: normalizeArrayParam(ctx.query.provider_id),
           providerDeploymentIds: normalizeArrayParam(ctx.query.provider_deployment_id),
@@ -84,7 +98,7 @@ export let providerSetupSessionDashboardController = Controller.create(
         );
       }),
 
-    get: instanceGroup
+    get: providerSetupSessionDashboardGroup
       .get(
         Path(
           '/dashboard/instances/:instanceId/setup-sessions/:providerSetupSessionId',
@@ -116,6 +130,16 @@ export let providerSetupSessionDashboardController = Controller.create(
       .body(
         'default',
         v.object({
+          provider_id: v.string({
+            examples: ['pro_5gHjKlMnPqRsTuVw'],
+            description: 'The provider ID'
+          }),
+          provider_deployment_id: v.optional(
+            v.string({
+              examples: ['pdp_4dEfGhJkLmNpQrSt'],
+              description: 'Optional provider deployment ID'
+            })
+          ),
           name: v.optional(v.string({ examples: ['GitHub OAuth Setup'] })),
           description: v.optional(v.string({ examples: ['Connect your GitHub account'] })),
           metadata: v.optional(
@@ -143,8 +167,8 @@ export let providerSetupSessionDashboardController = Controller.create(
       .do(async ctx => {
         let setupSession = await subspaceProviderSetupSessionService.create({
           instance: ctx.instance,
-          providerId: ctx.deployment.providerId,
-          providerDeploymentId: ctx.deployment.id,
+          providerId: ctx.body.provider_id,
+          providerDeploymentId: ctx.body.provider_deployment_id,
           providerAuthMethodId: ctx.body.providerAuthMethodId,
           providerAuthCredentialsId: ctx.body.providerAuthCredentialsId,
           name: ctx.body.name ?? 'Setup Session',
@@ -162,7 +186,7 @@ export let providerSetupSessionDashboardController = Controller.create(
         });
       }),
 
-    update: instanceGroup
+    update: providerSetupSessionDashboardGroup
       .patch(
         Path(
           '/dashboard/instances/:instanceId/setup-sessions/:providerSetupSessionId',
@@ -204,7 +228,7 @@ export let providerSetupSessionDashboardController = Controller.create(
         });
       }),
 
-    delete: instanceGroup
+    delete: providerSetupSessionDashboardGroup
       .delete(
         Path(
           '/dashboard/instances/:instanceId/setup-sessions/:providerSetupSessionId',

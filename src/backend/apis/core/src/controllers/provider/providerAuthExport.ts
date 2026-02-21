@@ -70,6 +70,7 @@ export let providerAuthExportController = Controller.create(
         let paginator = await subspaceProviderAuthExportService.list({
           instance: ctx.instance,
           allowDeleted: false,
+
           ids: normalizeArrayParam(ctx.query.id),
           providerIds: normalizeArrayParam(ctx.query.provider_id),
           providerAuthCredentialsIds: normalizeArrayParam(
@@ -119,6 +120,10 @@ export let providerAuthExportController = Controller.create(
       .body(
         'default',
         v.object({
+          provider_auth_config_id: v.string({
+            description: 'Provider auth config ID',
+            examples: ['pacf_4sTuVwXyZaBcDeFg']
+          }),
           note: v.string(),
           metadata: v.optional(v.record(v.any()), {
             description: 'Custom key-value pairs for storing additional information'
@@ -129,7 +134,7 @@ export let providerAuthExportController = Controller.create(
       .do(async ctx => {
         let authExport = await subspaceProviderAuthExportService.create({
           instance: ctx.instance,
-          providerAuthConfigId: ctx.authConfig.id,
+          providerAuthConfigId: ctx.body.provider_auth_config_id,
           note: ctx.body.note,
           ip: ctx.context.ip,
           ua: ctx.context.ua ?? 'unknown',

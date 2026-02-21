@@ -126,6 +126,7 @@ export let sessionTemplateProviderController = Controller.create(
       .body(
         'default',
         v.object({
+          session_template_id: v.string(),
           provider_deployment_id: v.optional(v.string()),
           provider_config_id: v.optional(v.string()),
           provider_auth_config_id: v.optional(v.string()),
@@ -136,7 +137,7 @@ export let sessionTemplateProviderController = Controller.create(
       .do(async ctx => {
         let stp = await subspaceSessionTemplateProviderService.create({
           instance: ctx.instance,
-          sessionTemplateId: ctx.sessionTemplate.id,
+          sessionTemplateId: ctx.body.session_template_id,
           providerDeploymentId: ctx.body.provider_deployment_id,
           providerConfigId: ctx.body.provider_config_id,
           providerAuthConfigId: ctx.body.provider_auth_config_id,

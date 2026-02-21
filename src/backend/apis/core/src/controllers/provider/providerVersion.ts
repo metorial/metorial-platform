@@ -5,10 +5,10 @@ import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
-import { instancePath } from '../../middleware/instanceGroup';
+import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { providerVersionPresenter } from '../../presenters';
 
-let providerVersionGroup = providerGroup.use(async ctx => {
+let providerVersionGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerVersionId) {
     throw new ServiceError(
       badRequestError({
@@ -33,7 +33,7 @@ export let providerVersionController = Controller.create(
       'A version is a specific release of a provider (e.g., v1.2.0). Each version has its own tools, auth methods, and config schema. Deployments are pinned to a version for security reasons.'
   },
   {
-    list: providerGroup
+    list: instanceGroup
       .get(instancePath('provider-versions', 'providers.versions.list'), {
         name: 'List provider versions',
         description: 'Returns a paginated list of provider versions.'

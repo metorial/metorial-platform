@@ -81,7 +81,6 @@ export let sessionTemplateController = Controller.create(
           instance: ctx.instance,
           allowDeleted: false,
           status: normalizeArrayParam(ctx.query.status),
-
           ids: normalizeArrayParam(ctx.query.id),
           sessionIds: normalizeArrayParam(ctx.query.session_id),
           sessionProviderIds: normalizeArrayParam(ctx.query.session_provider_id),

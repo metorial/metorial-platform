@@ -73,6 +73,7 @@ export let providerAuthImportController = Controller.create(
         let paginator = await subspaceProviderAuthImportService.list({
           instance: ctx.instance,
           allowDeleted: false,
+
           ids: normalizeArrayParam(ctx.query.id),
           providerIds: normalizeArrayParam(ctx.query.provider_id),
           providerAuthCredentialsIds: normalizeArrayParam(
@@ -123,6 +124,11 @@ export let providerAuthImportController = Controller.create(
       .body(
         'default',
         v.object({
+          provider_id: v.optional(v.string({ examples: ['pro_5gHjKlMnPqRsTuVw'] })),
+          provider_deployment_id: v.optional(v.string({ examples: ['pdp_4dEfGhJkLmNpQrSt'] })),
+          provider_auth_config_id: v.optional(
+            v.string({ examples: ['pacf_4sTuVwXyZaBcDeFg'] })
+          ),
           note: v.string({
             description: 'A note describing the import source or reason',
             examples: ['Migrated from legacy OAuth app']
@@ -150,9 +156,9 @@ export let providerAuthImportController = Controller.create(
       .do(async ctx => {
         let authImport = await subspaceProviderAuthImportService.create({
           instance: ctx.instance,
-          providerId: ctx.deployment.providerId,
-          providerDeploymentId: ctx.deployment.id,
-          providerAuthConfigId: ctx.authConfig.id,
+          providerId: ctx.body.provider_id,
+          providerDeploymentId: ctx.body.provider_deployment_id,
+          providerAuthConfigId: ctx.body.provider_auth_config_id,
           providerAuthMethodId: ctx.body.providerAuthMethodId,
           note: ctx.body.note,
           config: ctx.body.value,
@@ -178,11 +184,23 @@ export let providerAuthImportController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
+      .query(
+        'default',
+        v.object({
+          provider_id: v.optional(v.string()),
+          provider_deployment_id: v.optional(v.string()),
+          provider_auth_config_id: v.optional(v.string()),
+          provider_auth_method_id: v.optional(v.string())
+        })
+      )
       .output(authImportSchemaPresenter)
       .do(async ctx => {
         let schema = await subspaceProviderAuthImportService.getSchema({
           instance: ctx.instance,
-          providerAuthConfigId: ctx.authConfig.id
+          providerId: ctx.query.provider_id,
+          providerDeploymentId: ctx.query.provider_deployment_id,
+          providerAuthConfigId: ctx.query.provider_auth_config_id,
+          providerAuthMethodId: ctx.query.provider_auth_method_id
         });
 
         return authImportSchemaPresenter.present({
