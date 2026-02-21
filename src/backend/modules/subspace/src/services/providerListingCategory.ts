@@ -19,5 +19,3 @@ export type SubspaceProviderListingCategory = Awaited<
 export type SubspaceProviderListingCategoryList = Awaited<
   ReturnType<typeof subspace.providerListingCategory.list>
 >;
-export type SubspaceProviderListingCategoryListItem =
-  SubspaceProviderListingCategoryList['items'][number];

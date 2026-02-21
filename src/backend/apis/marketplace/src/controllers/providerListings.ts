@@ -54,6 +54,8 @@ type SubspacePublicPaginator<T> = {
     pagination: { hasNextPage: boolean };
   }>;
 };
+// Hard limit the number of pages to fetch
+let MAX_PAGES = 50;
 let listAllPaginatorItems = async <T extends { id: string }>(
   paginator: SubspacePublicPaginator<T>
 ) => {
@@ -61,7 +63,7 @@ let listAllPaginatorItems = async <T extends { id: string }>(
   let after: string | undefined = undefined;
   let seen = new Set<string>();
 
-  while (true) {
+  for (let page_i = 0; page_i < MAX_PAGES; page_i++) {
     let page = await paginator.run({ limit: 100, after });
     items.push(...page.items);
 
@@ -91,8 +93,14 @@ let listProviderVariantsForListing = (
   return defaultVariant ? [defaultVariant] : [];
 };
 
-let throwNotFound = () => {
+let throwNotFound = (): never => {
   throw new ServiceError(notFoundError('endpoint', null));
+};
+
+let requireListingBySlug = async (slug: string) => {
+  let listing = await getPublicProviderListingBySlug({ slug });
+  if (!listing) throwNotFound();
+  return listing;
 };
 
 export let providerListingsController = createHono()
@@ -136,14 +144,11 @@ export let providerListingsController = createHono()
     }
   )
   .get(':slug', async c => {
-    let listing = await getPublicProviderListingBySlug({ slug: c.req.param('slug') });
-    if (!listing) throwNotFound();
-
+    let listing = await requireListingBySlug(c.req.param('slug'));
     return c.json(presentProviderListing(listing));
   })
   .get(':slug/capabilities', async c => {
-    let listing = await getPublicProviderListingBySlug({ slug: c.req.param('slug') });
-    if (!listing) throwNotFound();
+    let listing = await requireListingBySlug(c.req.param('slug'));
 
     let providerVersion =
       listing.provider?.currentVersion?.id ??
@@ -154,16 +159,12 @@ export let providerListingsController = createHono()
     return c.json(toList(tools));
   })
   .get(':slug/variants', async c => {
-    let listing = await getPublicProviderListingBySlug({ slug: c.req.param('slug') });
-    if (!listing) throwNotFound();
-
+    let listing = await requireListingBySlug(c.req.param('slug'));
     let variants = listProviderVariantsForListing(listing);
     return c.json(toList(variants));
   })
   .get(':slug/variants/:variantId', async c => {
-    let listing = await getPublicProviderListingBySlug({ slug: c.req.param('slug') });
-    if (!listing) throwNotFound();
-
+    let listing = await requireListingBySlug(c.req.param('slug'));
     let variants = listProviderVariantsForListing(listing);
     let variant = variants.find(v => v.id === c.req.param('variantId'));
     if (!variant) throwNotFound();
@@ -172,8 +173,7 @@ export let providerListingsController = createHono()
   })
   .get(':slug/versions', useValidation('query', paginatorSchema), async c => {
     let query = c.req.valid('query');
-    let listing = await getPublicProviderListingBySlug({ slug: c.req.param('slug') });
-    if (!listing) throwNotFound();
+    let listing = await requireListingBySlug(c.req.param('slug'));
 
     let providerId = listing.provider?.id;
     if (!providerId) return c.json(toList());
@@ -186,8 +186,7 @@ export let providerListingsController = createHono()
     return c.json(await Paginator.presentLight(list, version => version));
   })
   .get(':slug/versions/:versionId', async c => {
-    let listing = await getPublicProviderListingBySlug({ slug: c.req.param('slug') });
-    if (!listing) throwNotFound();
+    let listing = await requireListingBySlug(c.req.param('slug'));
 
     let providerId = listing.provider?.id;
     if (!providerId) throwNotFound();

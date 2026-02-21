@@ -118,17 +118,36 @@ let createListMethod = (
   };
 };
 
-export let createSubspaceService = <SubspaceController extends {}, Overrides extends {}>(
-  controller: SubspaceController,
-  methods: (keyof SubspaceController)[],
-  overrides: (subspace: SubspaceService<SubspaceController, {}>) => Overrides
+let buildServiceMethods = (
+  methods: (string | symbol | number)[],
+  makeCallController: (methodName: any) => (args: any[]) => Promise<any>,
+  getFirstArg: (args: any[]) => any
 ) => {
   let methodsObj: any = {};
 
   for (let methodName of methods) {
     if (methodsObj[methodName]) continue;
 
-    let callController = async (args: any[]) => {
+    let callController = makeCallController(methodName);
+
+    if (methodName === 'list') {
+      methodsObj[methodName] = createListMethod(callController, getFirstArg);
+    } else {
+      methodsObj[methodName] = (...args: any[]) => callController(args);
+    }
+  }
+
+  return methodsObj;
+};
+
+export let createSubspaceService = <SubspaceController extends {}, Overrides extends {}>(
+  controller: SubspaceController,
+  methods: (keyof SubspaceController)[],
+  overrides: (subspace: SubspaceService<SubspaceController, {}>) => Overrides
+) => {
+  let methodsObj = buildServiceMethods(
+    methods as any[],
+    methodName => async (args: any[]) => {
       let firstArg = args[0] as {
         instance: Instance;
         organizationActor?: OrganizationActor;
@@ -147,14 +166,9 @@ export let createSubspaceService = <SubspaceController extends {}, Overrides ext
         environmentId
       };
       return (controller as any)[methodName](payload, ...args.slice(1));
-    };
-
-    if (methodName === 'list') {
-      methodsObj[methodName] = createListMethod(callController, args => args[0]);
-    } else {
-      methodsObj[methodName] = (...args: any[]) => callController(args);
-    }
-  }
+    },
+    args => args[0]
+  );
 
   let overRideMethods = overrides(methodsObj);
 
@@ -171,19 +185,11 @@ export let createSubspacePublicService = <SubspaceController extends {}, Overrid
   methods: (keyof SubspaceController)[],
   overrides: (subspace: SubspacePublicService<SubspaceController, {}>) => Overrides
 ) => {
-  let methodsObj: any = {};
-
-  for (let methodName of methods) {
-    if (methodsObj[methodName]) continue;
-
-    let callController = async (args: any[]) => (controller as any)[methodName](...args);
-
-    if (methodName === 'list') {
-      methodsObj[methodName] = createListMethod(callController, args => args[0] ?? {});
-    } else {
-      methodsObj[methodName] = (...args: any[]) => callController(args);
-    }
-  }
+  let methodsObj = buildServiceMethods(
+    methods as any[],
+    methodName => async (args: any[]) => (controller as any)[methodName](...args),
+    args => args[0] ?? {}
+  );
 
   let overRideMethods = overrides(methodsObj);
 

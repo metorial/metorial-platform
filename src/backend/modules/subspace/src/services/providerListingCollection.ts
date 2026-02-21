@@ -19,5 +19,3 @@ export type SubspaceProviderListingCollection = Awaited<
 export type SubspaceProviderListingCollectionList = Awaited<
   ReturnType<typeof subspace.providerListingCollection.list>
 >;
-export type SubspaceProviderListingCollectionListItem =
-  SubspaceProviderListingCollectionList['items'][number];

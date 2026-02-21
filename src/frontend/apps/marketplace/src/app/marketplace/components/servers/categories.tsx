@@ -98,7 +98,7 @@ export let Categories = ({
             >
               <Link
                 prefetch={false}
-                href={`/marketplace/providers/?category_ids=${category.slug}`}
+                href={`/marketplace/providers/?category_ids=${category.id}`}
               >
                 {category.name}
               </Link>
