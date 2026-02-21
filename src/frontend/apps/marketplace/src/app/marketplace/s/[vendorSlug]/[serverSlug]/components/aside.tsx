@@ -1,9 +1,8 @@
 'use client';
 
-import { useBoot } from '@metorial/state';
 import { Datalist, theme } from '@metorial/ui';
 import styled from 'styled-components';
-import { ServerListing } from '../../../../../../state/server';
+import { ProviderListing } from '../../../../../../state/provider';
 
 let Wrapper = styled.aside`
   height: 100%;
@@ -14,73 +13,33 @@ let Wrapper = styled.aside`
   }
 `;
 
-export let ServerAside = ({ server }: { server: ServerListing }) => {
-  let boot = useBoot();
-
+export let ProviderAside = ({ providerListing }: { providerListing: ProviderListing }) => {
   return (
     <Wrapper>
-      {/* {boot.isLoading ? (
-        <CenteredSpinner />
-      ) : (
-        <>
-          <Deploy server={server} /> */}
-
       <Datalist
         variant="large"
         items={[
-          ...(server.repository
-            ? [
-                {
-                  label: 'Repository',
-                  value: (
-                    <a
-                      href={server.repository?.providerUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {server.repository?.identifier.replace('github.com/', '')}
-                    </a>
-                  )
-                },
-                {
-                  label: 'License',
-                  value: server.repository?.licenseName ?? 'Unknown'
-                },
-                {
-                  label: 'Stars',
-                  value: server.repository?.starCount ?? '0'
-                }
-              ]
-            : []),
-          ...(server.vendor
-            ? [
-                {
-                  label: 'Vendor',
-                  value: server.vendor?.name
-                }
-              ]
-            : []),
-          ...(server.profile
+          ...(providerListing.vendor
             ? [
                 {
                   label: 'Created by',
-                  value: server.profile?.name
+                  value: providerListing.vendor.name
                 }
               ]
             : []),
           {
             label: 'Hosted on Metorial',
-            value: server.isHostable ? 'Yes' : 'No'
+            value: providerListing.isHostable ? 'Yes' : 'No'
           },
           {
             label: 'Categories',
-            value: server.categories.map((category, i) => (
+            value: providerListing.categories.map((category, i) => (
               <span key={category.id}>
                 {i > 0 && <span style={{ color: theme.colors.gray600 }}>, </span>}
 
                 <a
                   key={category.id}
-                  href={`/marketplace/servers?category_ids=${category.slug}`}
+                  href={`/marketplace/providers?category_ids=${category.slug}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{ color: 'inherit' }}
@@ -92,8 +51,6 @@ export let ServerAside = ({ server }: { server: ServerListing }) => {
           }
         ]}
       />
-      {/* </>
-      )} */}
     </Wrapper>
   );
 };

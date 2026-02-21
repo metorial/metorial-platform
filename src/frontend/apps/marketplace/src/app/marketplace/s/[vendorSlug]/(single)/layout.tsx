@@ -1,8 +1,8 @@
 'use server';
 
 import { notFound } from 'next/navigation';
-import { serverFetch } from '../../../../../state/sdk';
-import { getServer } from '../../../../../state/server';
+import { providerFetch } from '../../../../../state/sdk';
+import { getProvider } from '../../../../../state/provider';
 import { FullPage } from '../../../components/fullPage';
 import { ClientLayout } from '../[serverSlug]/clientLayout';
 
@@ -14,17 +14,17 @@ export default async ({
   children: React.ReactNode;
 }) => {
   let params = await paramsPromise;
-  let serverRes = await serverFetch(() => getServer([params.vendorSlug]));
-  if (!serverRes.success) {
-    if (serverRes.error.status === 404) return notFound();
-    throw serverRes.error.error;
+  let providerRes = await providerFetch(() => getProvider([params.vendorSlug]));
+  if (!providerRes.success) {
+    if (providerRes.error.status === 404) return notFound();
+    throw providerRes.error.error;
   }
 
-  let server = serverRes.data;
+  let providerListing = providerRes.data;
 
   return (
     <FullPage>
-      <ClientLayout server={server}>{children}</ClientLayout>
+      <ClientLayout providerListing={providerListing}>{children}</ClientLayout>
     </FullPage>
   );
 };

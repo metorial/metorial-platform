@@ -1,8 +1,8 @@
 'use server';
 
 import { notFound } from 'next/navigation';
-import { serverFetch } from '../../../../../../state/sdk';
-import { getServer, listServerVersions } from '../../../../../../state/server';
+import { providerFetch } from '../../../../../../state/sdk';
+import { getProvider, listProviderVersions } from '../../../../../../state/provider';
 import { VersionsPageClient } from '../../[serverSlug]/versions/client';
 
 export default async ({
@@ -15,32 +15,32 @@ export default async ({
   let params = await paramsPromise;
   let searchParams = await searchParamsPromise;
 
-  let [serverRes, versionsRes] = await Promise.all([
-    serverFetch(() => getServer([params.vendorSlug])),
-    serverFetch(() =>
-      listServerVersions([params.vendorSlug], {
+  let [providerListingRes, versionsRes] = await Promise.all([
+    providerFetch(() => getProvider([params.vendorSlug])),
+    providerFetch(() =>
+      listProviderVersions([params.vendorSlug], {
         limit: '50',
         after: searchParams.after,
         before: searchParams.before
       })
     )
   ]);
-  if (!serverRes.success) {
-    if (serverRes.error.status === 404) return notFound();
-    throw serverRes.error.error;
+  if (!providerListingRes.success) {
+    if (providerListingRes.error.status === 404) return notFound();
+    throw providerListingRes.error.error;
   }
   if (!versionsRes.success) {
     if (versionsRes.error.status === 404) return notFound();
     throw versionsRes.error.error;
   }
 
-  let server = serverRes.data;
+  let providerListing = providerListingRes.data;
   let versions = versionsRes.data.items;
 
   return (
     <>
       <VersionsPageClient
-        server={server}
+        providerListing={providerListing}
         versions={versions}
         pagination={{
           hasMoreAfter: versionsRes.data.pagination.has_more_after,

@@ -3,7 +3,7 @@
 import { Cases } from '@metorial/case';
 import { Button, Entity, Text, Title } from '@metorial/ui';
 import styled from 'styled-components';
-import { ServerCapabilities, ServerListing } from '../../../../../../state/server';
+import { ProviderCapabilities, ProviderListing } from '../../../../../../state/provider';
 
 let Wrapper = styled.div`
   display: flex;
@@ -24,18 +24,20 @@ let Group = styled.div`
 `;
 
 export let Tools = ({
-  server,
+  providerListing,
   capabilities
 }: {
-  server: ServerListing;
-  capabilities: ServerCapabilities;
+  providerListing: ProviderListing;
+  capabilities: ProviderCapabilities;
 }) => {
   let tools = capabilities.tools ?? [];
   let prompts = capabilities.prompts ?? [];
   let resourceTemplates = capabilities.resourceTemplates ?? [];
+  let canExplore = providerListing.isHostable;
 
   let openExplorer = () => {
-    let url = `${process.env.DASHBOARD_FRONTEND_URL}/welcome/jumpstart?path=${encodeURIComponent(`/explorer?server_id=${server.serverId}`)}`;
+    if (!canExplore) return;
+    let url = `${process.env.DASHBOARD_FRONTEND_URL}/welcome/jumpstart?path=${encodeURIComponent(`/explorer?provider_id=${providerListing.providerId}`)}`;
     window.open(url, '_blank');
   };
 
@@ -70,9 +72,11 @@ export let Tools = ({
                       flexGrow: 1
                     }}
                   >
-                    <Button size="1" variant="outline" onClick={() => openExplorer()}>
-                      Open in Explorer
-                    </Button>
+                    {canExplore && (
+                      <Button size="1" variant="outline" onClick={() => openExplorer()}>
+                        Open in Explorer
+                      </Button>
+                    )}
 
                     <Text size="1" color="gray600">
                       {tool.name}
@@ -116,9 +120,11 @@ export let Tools = ({
                       flexGrow: 1
                     }}
                   >
-                    <Button size="1" variant="outline" onClick={() => openExplorer()}>
-                      Open in Explorer
-                    </Button>
+                    {canExplore && (
+                      <Button size="1" variant="outline" onClick={() => openExplorer()}>
+                        Open in Explorer
+                      </Button>
+                    )}
 
                     <Text size="1" color="gray600">
                       {template.name}
@@ -160,9 +166,11 @@ export let Tools = ({
                       flexGrow: 1
                     }}
                   >
-                    <Button size="1" variant="outline" onClick={() => openExplorer()}>
-                      Open in Explorer
-                    </Button>
+                    {canExplore && (
+                      <Button size="1" variant="outline" onClick={() => openExplorer()}>
+                        Open in Explorer
+                      </Button>
+                    )}
 
                     <Text size="1" color="gray600">
                       {prompt.name}

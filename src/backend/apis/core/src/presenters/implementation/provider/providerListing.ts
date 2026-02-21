@@ -5,6 +5,7 @@ import { providerListingType } from '../../types';
 import { v1CategoryPresenter } from './category';
 import { v1CollectionPresenter } from './collection';
 import { v1GroupPresenter } from './group';
+import { v1PublisherPresenter } from './publisher';
 
 export let v1ProviderListingPresenter = Presenter.create(providerListingType)
   .presenter(async ({ providerListing }, opts) => {
@@ -15,14 +16,14 @@ export let v1ProviderListingPresenter = Presenter.create(providerListingType)
       object: 'provider.listing' as const,
       id: providerListing.id,
       name: providerListing.name,
-      description: (providerListing.description ?? null) as string | null,
+      description: providerListing.description ?? null,
       slug: providerListing.slug ?? providerListing.identifier ?? '',
       image_url: await getImageUrl({
         id: providerListing.id,
         name: providerListing.name,
         image: rawImageUrl ? { type: 'url', url: rawImageUrl } : null
       }),
-      readme: (providerListing.readme ?? null) as string | null,
+      readme: providerListing.readme ?? null,
       skills: providerListing.skills ?? [],
       flags: {
         is_public: providerListing.isPublic ?? true,
@@ -31,7 +32,12 @@ export let v1ProviderListingPresenter = Presenter.create(providerListingType)
         is_verified: providerListing.isVerified ?? false,
         is_official: providerListing.isOfficial ?? false
       },
-      provider_id: (providerListing.provider?.id ?? null) as string | null,
+      provider_id: providerListing.provider?.id ?? null,
+      publisher: providerListing.publisher
+        ? await v1PublisherPresenter
+            .present({ publisher: providerListing.publisher }, opts)
+            .run()
+        : null,
       categories: providerListing.categories
         ? await Promise.all(
             providerListing.categories.map(c =>
@@ -48,7 +54,9 @@ export let v1ProviderListingPresenter = Presenter.create(providerListingType)
         : [],
       groups: providerListing.groups
         ? await Promise.all(
-            providerListing.groups.map(g => v1GroupPresenter.present({ group: g }, opts).run())
+            providerListing.groups.map(g =>
+              v1GroupPresenter.present({ group: g }, opts).run()
+            )
           )
         : [],
       created_at: providerListing.createdAt,
@@ -78,11 +86,13 @@ export let v1ProviderListingPresenter = Presenter.create(providerListingType)
         description: 'URL-friendly identifier',
         examples: ['github']
       }),
-      image_url: v.string({
-        name: 'image_url',
-        description: 'URL of the listing logo/icon',
-        examples: ['https://cdn.metorial.com/images/github.png']
-      }),
+      image_url: v.nullable(
+        v.string({
+          name: 'image_url',
+          description: 'URL of the listing logo/icon',
+          examples: ['https://cdn.metorial.com/images/github.png']
+        })
+      ),
       readme: v.nullable(
         v.string({
           name: 'readme',
@@ -132,6 +142,7 @@ export let v1ProviderListingPresenter = Presenter.create(providerListingType)
           examples: ['pro_5gHjKlMnPqRsTuVw']
         })
       ),
+      publisher: v.nullable(v1PublisherPresenter.schema),
       categories: v.array(v1CategoryPresenter.schema, {
         name: 'categories',
         description: 'Provider categories for organization and filtering'

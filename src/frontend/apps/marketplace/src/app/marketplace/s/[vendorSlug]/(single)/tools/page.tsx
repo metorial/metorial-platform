@@ -1,8 +1,8 @@
 'use server';
 
 import { notFound } from 'next/navigation';
-import { serverFetch } from '../../../../../../state/sdk';
-import { getServer, getServerCapabilities } from '../../../../../../state/server';
+import { providerFetch } from '../../../../../../state/sdk';
+import { getProvider, getProviderCapabilities } from '../../../../../../state/provider';
 import { NoTools } from '../../[serverSlug]/tools/noTools';
 import { Tools } from '../../[serverSlug]/tools/tools';
 
@@ -12,17 +12,17 @@ export default async ({
   params: Promise<{ vendorSlug: string }>;
 }) => {
   let params = await paramsPromise;
-  let serverRes = await serverFetch(() => getServer([params.vendorSlug]));
-  if (!serverRes.success) {
-    if (serverRes.error.status === 404) return notFound();
-    throw serverRes.error.error;
+  let providerRes = await providerFetch(() => getProvider([params.vendorSlug]));
+  if (!providerRes.success) {
+    if (providerRes.error.status === 404) return notFound();
+    throw providerRes.error.error;
   }
 
-  let server = serverRes.data;
+  let providerListing = providerRes.data;
 
-  let capabilities = await serverFetch(() => getServerCapabilities([params.vendorSlug]));
+  let capabilities = await providerFetch(() => getProviderCapabilities([params.vendorSlug]));
 
-  if (!capabilities.data?.tools?.length) return <NoTools server={server} />;
+  if (!capabilities.data?.tools?.length) return <NoTools providerListing={providerListing} />;
 
-  return <Tools server={server} capabilities={capabilities.data} />;
+  return <Tools providerListing={providerListing} capabilities={capabilities.data} />;
 };

@@ -369,14 +369,15 @@ export interface SubspaceProviderListing {
   description: string | null;
   slug?: string;
   identifier?: string;
-  image?: Record<string, unknown> | null;
-  source?: Record<string, unknown> | null;
+  image?: ({ url?: string | null } & Record<string, unknown>) | null;
+  source?: ({ url?: string | null } & Record<string, unknown>) | null;
   readme?: string | null;
   skills?: string[];
   rank?: number;
   deploymentsCount?: number;
   providerSessionsCount?: number;
   providerMessagesCount?: number;
+  publisher?: SubspacePublisher | null;
   provider?: { id: string };
   categories?: SubspaceCategory[];
   collections?: SubspaceCollection[];

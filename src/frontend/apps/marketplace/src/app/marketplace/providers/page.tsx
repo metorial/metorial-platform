@@ -1,9 +1,9 @@
 'use server';
 
-import { listServerCategories, listServers } from '../../../state/server';
+import { listProviderCategories, listProviders } from '../../../state/provider';
 import { LandingHeader } from '../components/header';
 import { Categories } from '../components/servers/categories';
-import { ServerList } from '../components/servers/list';
+import { ProviderList } from '../components/servers/list';
 
 export default async ({
   searchParams
@@ -24,8 +24,8 @@ export default async ({
   let collectionIds = collection_ids?.split(',').filter(Boolean);
   let profileIds = profile_ids?.split(',').filter(Boolean);
 
-  let [servers, categories] = await Promise.all([
-    listServers({
+  let [providerListings, categories] = await Promise.all([
+    listProviders({
       search,
       after,
       before,
@@ -35,7 +35,7 @@ export default async ({
       collectionIds,
       profileIds
     }),
-    listServerCategories({})
+    listProviderCategories({})
   ]);
 
   return (
@@ -43,7 +43,7 @@ export default async ({
       <LandingHeader search={search} />
 
       <Categories categories={categories.items} currentCategoryIds={categoryIds}>
-        <ServerList servers={servers.items} />
+        <ProviderList providerListings={providerListings.items} />
       </Categories>
     </>
   );
