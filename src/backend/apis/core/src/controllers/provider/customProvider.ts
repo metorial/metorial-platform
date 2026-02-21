@@ -1,15 +1,14 @@
-import { convertKeysToCamelCase } from '@metorial/case';
 import { badRequestError, ServiceError } from '@metorial/error';
-import { customProviderService, type SubspaceCustomProvider } from '@metorial/module-subspace';
+import { subspaceCustomProviderService } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
-import { v } from '@metorial/validation';
+import { v, ValidationTypeValue } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { subspaceCustomProviderPresenter } from '../../presenters';
 
-export let customProviderGroup = instanceGroup.use(async ctx => {
+let customProviderGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.customProviderId) {
     throw new ServiceError(
       badRequestError({
@@ -19,7 +18,7 @@ export let customProviderGroup = instanceGroup.use(async ctx => {
     );
   }
 
-  let customProvider = await customProviderService.get({
+  let customProvider = await subspaceCustomProviderService.get({
     instance: ctx.instance,
     customProviderId: ctx.params.customProviderId
   });
@@ -27,7 +26,7 @@ export let customProviderGroup = instanceGroup.use(async ctx => {
   return { customProvider };
 });
 
-let customProviderFromValidator = v.union([
+export let customProviderFromValidator = v.union([
   v.object(
     {
       type: v.literal('container'),
@@ -72,10 +71,91 @@ let customProviderFromValidator = v.union([
       ])
     },
     { name: 'function', description: 'Deploy as a serverless function' }
+  ),
+  v.object(
+    {
+      type: v.literal('function'),
+      env: v.record(v.string(), { description: 'Environment variables' }),
+      runtime: v.union([
+        v.object({
+          identifier: v.literal('nodejs'),
+          version: v.enumOf(['24.x', '22.x'], { description: 'Node.js version' })
+        }),
+        v.object({
+          identifier: v.literal('python'),
+          version: v.enumOf(['3.14', '3.13', '3.12'], { description: 'Python version' })
+        })
+      ]),
+      repository: v.union([
+        v.object({
+          repository_id: v.string({ description: 'Repository ID' }),
+          branch: v.string({ description: 'Branch name' })
+        }),
+        v.object({
+          type: v.literal('git'),
+          repository_url: v.string({ description: 'Git repository URL' }),
+          branch: v.string({ description: 'Branch name' })
+        })
+      ])
+    },
+    { name: 'function', description: 'Deploy as a serverless function' }
   )
 ]);
 
-let customProviderConfigValidator = v.optional(
+export let mapCustomProviderFrom = (
+  type: ValidationTypeValue<typeof customProviderFromValidator>
+) => {
+  if (type.type === 'container') {
+    return {
+      type: 'container' as const,
+      imageRef: type.image_ref,
+      username: type.username,
+      password: type.password
+    };
+  }
+
+  if (type.type === 'remote') {
+    return {
+      type: 'remote' as const,
+      remoteUrl: type.remote_url,
+      config: type.config,
+      protocol: type.protocol
+    };
+  }
+
+  if (type.type === 'function') {
+    return {
+      type: 'function' as const,
+      files:
+        'files' in type
+          ? type.files.map(file => ({
+              filename: file.filename,
+              content: file.content,
+              encoding: file.encoding
+            }))
+          : undefined,
+      env: type.env,
+      runtime: type.runtime,
+      repository:
+        'repository' in type && 'repository_id' in type.repository
+          ? {
+              repositoryId: type.repository.repository_id,
+              branch: type.repository.branch
+            }
+          : 'repository' in type && 'repository_url' in type.repository
+            ? {
+                type: 'git' as const,
+                repositoryUrl: type.repository.repository_url,
+                branch: type.repository.branch
+              }
+            : undefined
+    };
+  }
+
+  throw new Error('Invalid from type');
+};
+
+export let customProviderConfigValidator = v.optional(
   v.object({
     schema: v.record(v.any(), { description: 'Configuration JSON schema' }),
     transformer: v.string({ description: 'Configuration transformer code' })
@@ -100,35 +180,39 @@ export let customProviderController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            status: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by status (active, archived)'
-            }),
-            type: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by type (container, function, remote)'
-            }),
-            ids: v.optional(v.union([v.string(), v.array(v.string())]), {
+            status: v.optional(
+              v.union([
+                v.enumOf(['active', 'archived']),
+                v.array(v.enumOf(['active', 'archived']))
+              ]),
+              { description: 'Filter by status (active, archived)' }
+            ),
+            type: v.optional(
+              v.union([
+                v.enumOf(['container', 'function', 'remote']),
+                v.array(v.enumOf(['container', 'function', 'remote']))
+              ]),
+              { description: 'Filter by type (container, function, remote)' }
+            ),
+            id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by custom provider IDs'
             })
           })
         )
       )
       .do(async ctx => {
-        let paginator = await customProviderService.list({
+        let paginator = await subspaceCustomProviderService.list({
           instance: ctx.instance,
-          status: normalizeArrayParam(ctx.query.status) as
-            | ('active' | 'archived')[]
-            | undefined,
-          type: normalizeArrayParam(ctx.query.type) as
-            | ('container' | 'function' | 'remote')[]
-            | undefined,
-          ids: normalizeArrayParam(ctx.query.ids)
+          status: normalizeArrayParam(ctx.query.status),
+          type: normalizeArrayParam(ctx.query.type),
+          ids: normalizeArrayParam(ctx.query.id)
         });
 
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, customProvider =>
           subspaceCustomProviderPresenter.present({
-            customProvider: customProvider as SubspaceCustomProvider
+            customProvider: customProvider
           })
         );
       }),
@@ -142,7 +226,7 @@ export let customProviderController = Controller.create(
       .output(subspaceCustomProviderPresenter)
       .do(async ctx => {
         return subspaceCustomProviderPresenter.present({
-          customProvider: ctx.customProvider as SubspaceCustomProvider
+          customProvider: ctx.customProvider
         });
       }),
 
@@ -169,18 +253,18 @@ export let customProviderController = Controller.create(
       )
       .output(subspaceCustomProviderPresenter)
       .do(async ctx => {
-        let customProvider = await customProviderService.create({
+        let customProvider = await subspaceCustomProviderService.create({
           instance: ctx.instance,
           organizationActor: ctx.actor,
           name: ctx.body.name,
           description: ctx.body.description,
           metadata: ctx.body.metadata,
-          from: convertKeysToCamelCase(ctx.body.from) as any,
+          from: mapCustomProviderFrom(ctx.body.from),
           config: ctx.body.config
         });
 
         return subspaceCustomProviderPresenter.present({
-          customProvider: customProvider as SubspaceCustomProvider
+          customProvider: customProvider
         });
       }),
 
@@ -202,7 +286,7 @@ export let customProviderController = Controller.create(
       )
       .output(subspaceCustomProviderPresenter)
       .do(async ctx => {
-        let customProvider = await customProviderService.update({
+        let customProvider = await subspaceCustomProviderService.update({
           instance: ctx.instance,
           organizationActor: ctx.actor,
 
@@ -213,7 +297,7 @@ export let customProviderController = Controller.create(
         });
 
         return subspaceCustomProviderPresenter.present({
-          customProvider: customProvider as SubspaceCustomProvider
+          customProvider: customProvider
         });
       })
   }

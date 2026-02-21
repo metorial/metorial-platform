@@ -1,6 +1,6 @@
 import { badRequestError, ServiceError } from '@metorial/error';
 import {
-  customProviderEnvironmentService,
+  subspaceCustomProviderEnvironmentService,
   type SubspaceCustomProviderEnvironment
 } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
@@ -8,12 +8,10 @@ import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
-import { instancePath } from '../../middleware/instanceGroup';
+import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { subspaceCustomProviderEnvironmentPresenter } from '../../presenters';
 
-import { customProviderGroup } from './customProvider';
-
-export let customProviderEnvironmentGroup = customProviderGroup.use(async ctx => {
+export let customProviderEnvironmentGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.customProviderEnvironmentId) {
     throw new ServiceError(
       badRequestError({
@@ -23,7 +21,7 @@ export let customProviderEnvironmentGroup = customProviderGroup.use(async ctx =>
     );
   }
 
-  let customProviderEnvironment = await customProviderEnvironmentService.get({
+  let customProviderEnvironment = await subspaceCustomProviderEnvironmentService.get({
     instance: ctx.instance,
     customProviderEnvironmentId: ctx.params.customProviderEnvironmentId
   });
@@ -38,17 +36,11 @@ export let customProviderEnvironmentController = Controller.create(
       'Environments represent deployment targets for custom provider versions (e.g., staging, production).'
   },
   {
-    list: customProviderGroup
-      .get(
-        instancePath(
-          'custom-providers/:customProviderId/environments',
-          'customProviders.environments.list'
-        ),
-        {
-          name: 'List custom provider environments',
-          description: 'Returns a paginated list of environments for a custom provider.'
-        }
-      )
+    list: instanceGroup
+      .get(instancePath('custom-provider-environments', 'customProviders.environments.list'), {
+        name: 'List custom provider environments',
+        description: 'Returns a paginated list of environments for a custom provider.'
+      })
       .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
       .outputList(subspaceCustomProviderEnvironmentPresenter)
       .query(
@@ -60,19 +52,20 @@ export let customProviderEnvironmentController = Controller.create(
             }),
             custom_provider_version_ids: v.optional(
               v.union([v.string(), v.array(v.string())]),
-              {
-                description: 'Filter by version IDs'
-              }
-            )
+              { description: 'Filter by version IDs' }
+            ),
+            custom_provider_ids: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by custom provider IDs'
+            })
           })
         )
       )
       .do(async ctx => {
-        let paginator = await customProviderEnvironmentService.list({
+        let paginator = await subspaceCustomProviderEnvironmentService.list({
           instance: ctx.instance,
-          customProviderIds: [ctx.customProvider.id],
           ids: normalizeArrayParam(ctx.query.ids),
-          customProviderVersionIds: normalizeArrayParam(ctx.query.custom_provider_version_ids)
+          customProviderVersionIds: normalizeArrayParam(ctx.query.custom_provider_version_ids),
+          customProviderIds: normalizeArrayParam(ctx.query.custom_provider_ids)
         });
 
         let list = await paginator.run(ctx.query);
@@ -88,7 +81,7 @@ export let customProviderEnvironmentController = Controller.create(
     get: customProviderEnvironmentGroup
       .get(
         instancePath(
-          'custom-providers/:customProviderId/environments/:customProviderEnvironmentId',
+          'custom-provider-environments/:customProviderEnvironmentId',
           'customProviders.environments.get'
         ),
         {

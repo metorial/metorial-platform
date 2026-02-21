@@ -4,6 +4,7 @@ import { subspaceSessionTemplateService } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
+import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import {
   authConfigValidator,
   configValidator,
@@ -45,10 +46,41 @@ export let sessionTemplateController = Controller.create(
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
       .outputList(sessionTemplatePresenter)
-      .query('default', Paginator.validate(v.object({})))
+      .query(
+        'default',
+        Paginator.validate(
+          v.object({
+            id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by session template ID(s)'
+            }),
+            session_ids: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter templates that include sessions with these IDs'
+            }),
+            provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter templates that include providers with these IDs'
+            }),
+            provider_deployment_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter templates that include provider deployments with these IDs'
+            }),
+            provider_config_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter templates that include provider configs with these IDs'
+            }),
+            provider_auth_config_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter templates that include provider auth configs with these IDs'
+            })
+          })
+        )
+      )
       .do(async ctx => {
         let paginator = await subspaceSessionTemplateService.list({
-          instance: ctx.instance
+          instance: ctx.instance,
+
+          ids: normalizeArrayParam(ctx.query.id),
+          sessionIds: normalizeArrayParam(ctx.query.session_ids),
+          providerIds: normalizeArrayParam(ctx.query.provider_id),
+          providerDeploymentIds: normalizeArrayParam(ctx.query.provider_deployment_id),
+          providerConfigIds: normalizeArrayParam(ctx.query.provider_config_id),
+          providerAuthConfigIds: normalizeArrayParam(ctx.query.provider_auth_config_id)
         });
 
         let list = await paginator.run(ctx.query);

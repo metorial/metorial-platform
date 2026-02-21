@@ -7,7 +7,6 @@ import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { publisherPresenter } from '../../presenters';
 
-
 export let providerPublisherGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.publisherId) {
     throw new ServiceError(

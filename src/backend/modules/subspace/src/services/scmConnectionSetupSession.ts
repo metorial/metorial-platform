@@ -1,7 +1,7 @@
 import { createSubspaceService } from '../lib/subspaceService';
 import { subspace } from '../subspace';
 
-export let scmConnectionSetupSessionService = createSubspaceService(
+export let subspaceScmConnectionSetupSessionService = createSubspaceService(
   subspace.scmConnectionSetupSession,
   ['get', 'create'],
   () => ({})

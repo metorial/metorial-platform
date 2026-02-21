@@ -4,15 +4,14 @@ import {
   type SubspaceProviderSetupSession
 } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
-import { Controller, Path } from '@metorial/rest';
+import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
+import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { providerSetupSessionPresenter } from '../../presenters';
 
-import { providerDeploymentGroup } from './providerDeployment';
-
-export let providerSetupSessionGroup = providerDeploymentGroup.use(async ctx => {
+export let providerSetupSessionGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerSetupSessionId) {
     throw new ServiceError(
       badRequestError({
@@ -37,23 +36,11 @@ export let providerSetupSessionController = Controller.create(
       "A setup session tracks an in-progress OAuth flow, storing state during the redirect. On success, it creates an auth config with the user's access token."
   },
   {
-    list: providerDeploymentGroup
-      .get(
-        [
-          Path(
-            '/provider-deployments/:providerDeploymentId/setup-sessions',
-            'providerDeployments.setupSessions.list'
-          ),
-          Path(
-            '/instances/:instanceId/provider-deployments/:providerDeploymentId/setup-sessions',
-            'management.instance.providerDeployments.setupSessions.list'
-          )
-        ],
-        {
-          name: 'List provider setup sessions',
-          description: 'Returns a paginated list of provider setup sessions.'
-        }
-      )
+    list: instanceGroup
+      .get(instancePath('provider-setup-sessions', 'providerDeployments.setupSessions.list'), {
+        name: 'List provider setup sessions',
+        description: 'Returns a paginated list of provider setup sessions.'
+      })
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
       .outputList(providerSetupSessionPresenter)
       .query(
@@ -63,7 +50,16 @@ export let providerSetupSessionController = Controller.create(
             provider_auth_method_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by auth method ID(s)'
             }),
-            status: v.optional(v.string(), { description: 'Filter by session status' })
+            status: v.optional(
+              v.union([
+                v.enumOf(['archived', 'failed', 'completed', 'expired', 'pending']),
+                v.array(v.enumOf(['archived', 'failed', 'completed', 'expired', 'pending']))
+              ]),
+              {
+                description:
+                  'Filter by session status (archived, failed, completed, expired, pending)'
+              }
+            )
           })
         )
       )
@@ -72,7 +68,7 @@ export let providerSetupSessionController = Controller.create(
           instance: ctx.instance,
           providerIds: [ctx.deployment.providerId],
           providerAuthMethodIds: normalizeArrayParam(ctx.query.provider_auth_method_id),
-          status: ctx.query.status ? [ctx.query.status] as ("archived" | "failed" | "completed" | "expired" | "pending")[] : undefined
+          status: normalizeArrayParam(ctx.query.status)
         });
 
         let list = await paginator.run(ctx.query);
@@ -86,16 +82,10 @@ export let providerSetupSessionController = Controller.create(
 
     get: providerSetupSessionGroup
       .get(
-        [
-          Path(
-            '/provider-deployments/:providerDeploymentId/setup-sessions/:providerSetupSessionId',
-            'providerDeployments.setupSessions.get'
-          ),
-          Path(
-            '/instances/:instanceId/provider-deployments/:providerDeploymentId/setup-sessions/:providerSetupSessionId',
-            'management.instance.providerDeployments.setupSessions.get'
-          )
-        ],
+        instancePath(
+          'provider-setup-sessions/:providerSetupSessionId',
+          'providerDeployments.setupSessions.get'
+        ),
         {
           name: 'Get provider setup session',
           description: 'Retrieves a specific provider setup session by ID.'
@@ -107,18 +97,9 @@ export let providerSetupSessionController = Controller.create(
         return providerSetupSessionPresenter.present({ setupSession: ctx.setupSession });
       }),
 
-    create: providerDeploymentGroup
+    create: instanceGroup
       .post(
-        [
-          Path(
-            '/provider-deployments/:providerDeploymentId/setup-sessions',
-            'providerDeployments.setupSessions.create'
-          ),
-          Path(
-            '/instances/:instanceId/provider-deployments/:providerDeploymentId/setup-sessions',
-            'management.instance.providerDeployments.setupSessions.create'
-          )
-        ],
+        instancePath('provider-setup-sessions', 'providerDeployments.setupSessions.create'),
         {
           name: 'Create provider setup session',
           description: 'Creates a new provider setup session for OAuth authentication.'
@@ -176,16 +157,10 @@ export let providerSetupSessionController = Controller.create(
 
     update: providerSetupSessionGroup
       .patch(
-        [
-          Path(
-            '/provider-deployments/:providerDeploymentId/setup-sessions/:providerSetupSessionId',
-            'providerDeployments.setupSessions.update'
-          ),
-          Path(
-            '/instances/:instanceId/provider-deployments/:providerDeploymentId/setup-sessions/:providerSetupSessionId',
-            'management.instance.providerDeployments.setupSessions.update'
-          )
-        ],
+        instancePath(
+          'provider-setup-sessions/:providerSetupSessionId',
+          'providerDeployments.setupSessions.update'
+        ),
         {
           name: 'Update provider setup session',
           description: 'Updates a specific provider setup session.'
@@ -224,16 +199,10 @@ export let providerSetupSessionController = Controller.create(
 
     delete: providerSetupSessionGroup
       .delete(
-        [
-          Path(
-            '/provider-deployments/:providerDeploymentId/setup-sessions/:providerSetupSessionId',
-            'providerDeployments.setupSessions.delete'
-          ),
-          Path(
-            '/instances/:instanceId/provider-deployments/:providerDeploymentId/setup-sessions/:providerSetupSessionId',
-            'management.instance.providerDeployments.setupSessions.delete'
-          )
-        ],
+        instancePath(
+          'provider-setup-sessions/:providerSetupSessionId',
+          'providerDeployments.setupSessions.delete'
+        ),
         {
           name: 'Delete provider setup session',
           description: 'Deletes a provider setup session.'

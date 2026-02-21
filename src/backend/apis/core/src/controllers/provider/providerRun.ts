@@ -10,7 +10,7 @@ import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instancePath } from '../../middleware/instanceGroup';
-import { subspaceProviderRunPresenter, providerRunLogsPresenter } from '../../presenters';
+import { providerRunLogsPresenter, subspaceProviderRunPresenter } from '../../presenters';
 
 import { instanceGroup } from '../../middleware/instanceGroup';
 import { subspaceSessionGroup } from './subspaceSession';
@@ -70,7 +70,9 @@ export let subspaceProviderRunController = Controller.create(
           sessionIds: normalizeArrayParam(ctx.query.session_id),
           providerIds: normalizeArrayParam(ctx.query.provider_id),
           sessionProviderIds: normalizeArrayParam(ctx.query.session_provider_id),
-          status: ctx.query.status ? [ctx.query.status] as ("running" | "stopped")[] : undefined
+          status: ctx.query.status
+            ? ([ctx.query.status] as ('running' | 'stopped')[])
+            : undefined
         });
 
         let list = await paginator.run(ctx.query);
@@ -141,7 +143,9 @@ export let subspaceProviderRunController = Controller.create(
           sessionIds: [ctx.session.id],
           providerIds: normalizeArrayParam(ctx.query.provider_id),
           sessionProviderIds: normalizeArrayParam(ctx.query.session_provider_id),
-          status: ctx.query.status ? [ctx.query.status] as ("running" | "stopped")[] : undefined
+          status: ctx.query.status
+            ? ([ctx.query.status] as ('running' | 'stopped')[])
+            : undefined
         });
 
         let list = await paginator.run(ctx.query);

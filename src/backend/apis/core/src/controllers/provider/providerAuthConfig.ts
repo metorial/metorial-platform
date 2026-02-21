@@ -11,9 +11,7 @@ import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { providerAuthConfigPresenter } from '../../presenters';
 
-import { providerDeploymentGroup } from './providerDeployment';
-
-export let providerAuthConfigGroup = providerDeploymentGroup.use(async ctx => {
+let providerAuthConfigGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerAuthConfigId) {
     throw new ServiceError(
       badRequestError({
@@ -38,17 +36,11 @@ export let providerAuthConfigController = Controller.create(
       "An auth config is a user's authenticated connection to a provider. Created when a user completes OAuth or manually enters an API token."
   },
   {
-    list: providerDeploymentGroup
-      .get(
-        instancePath(
-          'provider-deployments/:providerDeploymentId/auth-configs',
-          'providerDeployments.authConfigs.list'
-        ),
-        {
-          name: 'List provider auth configs',
-          description: 'Returns a paginated list of provider auth configs.'
-        }
-      )
+    list: instanceGroup
+      .get(instancePath('provider-auth-configs', 'providerDeployments.authConfigs.list'), {
+        name: 'List provider auth configs',
+        description: 'Returns a paginated list of provider auth configs.'
+      })
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
       .outputList(providerAuthConfigPresenter)
       .query(
@@ -61,15 +53,21 @@ export let providerAuthConfigController = Controller.create(
             provider_auth_credentials_id: v.optional(
               v.union([v.string(), v.array(v.string())]),
               { description: 'Filter by auth credentials ID(s)' }
-            )
+            ),
+            provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by provider ID(s)'
+            }),
+            provider_deployment_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by deployment ID(s)'
+            })
           })
         )
       )
       .do(async ctx => {
         let paginator = await subspaceProviderAuthConfigService.list({
           instance: ctx.instance,
-          providerIds: [ctx.deployment.providerId],
-          providerDeploymentIds: [ctx.deployment.id],
+          providerIds: normalizeArrayParam(ctx.query.provider_id),
+          providerDeploymentIds: normalizeArrayParam(ctx.query.provider_deployment_id),
           providerAuthMethodIds: normalizeArrayParam(ctx.query.provider_auth_method_id),
           providerAuthCredentialsIds: normalizeArrayParam(
             ctx.query.provider_auth_credentials_id
@@ -79,14 +77,16 @@ export let providerAuthConfigController = Controller.create(
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, authConfig =>
-          providerAuthConfigPresenter.present({ authConfig: authConfig as SubspaceProviderAuthConfig })
+          providerAuthConfigPresenter.present({
+            authConfig: authConfig as SubspaceProviderAuthConfig
+          })
         );
       }),
 
     get: providerAuthConfigGroup
       .get(
         instancePath(
-          'provider-deployments/:providerDeploymentId/auth-configs/:providerAuthConfigId',
+          'provider-auth-configs/:providerAuthConfigId',
           'providerDeployments.authConfigs.get'
         ),
         {
@@ -100,17 +100,11 @@ export let providerAuthConfigController = Controller.create(
         return providerAuthConfigPresenter.present({ authConfig: ctx.authConfig });
       }),
 
-    create: providerDeploymentGroup
-      .post(
-        instancePath(
-          'provider-deployments/:providerDeploymentId/auth-configs',
-          'providerDeployments.authConfigs.create'
-        ),
-        {
-          name: 'Create provider auth config',
-          description: 'Creates a new provider auth config.'
-        }
-      )
+    create: instanceGroup
+      .post(instancePath('provider-auth-configs', 'providerDeployments.authConfigs.create'), {
+        name: 'Create provider auth config',
+        description: 'Creates a new provider auth config.'
+      })
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
       .body(
         'default',
@@ -160,8 +154,6 @@ export let providerAuthConfigController = Controller.create(
       .do(async ctx => {
         let authConfig = await subspaceProviderAuthConfigService.create({
           instance: ctx.instance,
-          providerId: ctx.deployment.providerId,
-          providerDeploymentId: ctx.deployment.id,
           providerAuthMethodId: ctx.body.provider_auth_method_id,
           name: ctx.body.name,
           description: ctx.body.description,
@@ -169,7 +161,7 @@ export let providerAuthConfigController = Controller.create(
           ip: ctx.context.ip,
           ua: ctx.context.ua ?? '',
           metadata: ctx.body.metadata
-        } as any);
+        });
 
         return providerAuthConfigPresenter.present({
           authConfig: authConfig as SubspaceProviderAuthConfig
@@ -179,7 +171,7 @@ export let providerAuthConfigController = Controller.create(
     update: providerAuthConfigGroup
       .patch(
         instancePath(
-          'provider-deployments/:providerDeploymentId/auth-configs/:providerAuthConfigId',
+          'provider-auth-configs/:providerAuthConfigId',
           'providerDeployments.authConfigs.update'
         ),
         {
@@ -223,7 +215,7 @@ export let providerAuthConfigController = Controller.create(
     delete: providerAuthConfigGroup
       .delete(
         instancePath(
-          'provider-deployments/:providerDeploymentId/auth-configs/:providerAuthConfigId',
+          'provider-auth-configs/:providerAuthConfigId',
           'providerDeployments.authConfigs.delete'
         ),
         {
@@ -235,54 +227,6 @@ export let providerAuthConfigController = Controller.create(
       .output(providerAuthConfigPresenter)
       .do(async ctx => {
         return providerAuthConfigPresenter.present({ authConfig: ctx.authConfig });
-      })
-  }
-);
-
-// Provider-scoped auth config list (not deployment-scoped)
-export let providerAuthConfigListController = Controller.create(
-  {
-    name: 'Provider Auth Configs (Provider-scoped)',
-    description: 'List auth configs scoped to a provider, optionally filtered by deployment.'
-  },
-  {
-    list: instanceGroup
-      .get(instancePath('providers/auth-configs', 'providers.authConfigs.list'), {
-        name: 'List provider auth configs',
-        description:
-          'Returns a paginated list of auth configs, optionally filtered by provider and deployment IDs.'
-      })
-      .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
-      .outputList(providerAuthConfigPresenter)
-      .query(
-        'default',
-        Paginator.validate(
-          v.object({
-            provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by provider ID(s)'
-            }),
-            provider_deployment_id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by deployment ID(s)'
-            }),
-            provider_auth_method_id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by auth method ID(s)'
-            })
-          })
-        )
-      )
-      .do(async ctx => {
-        let paginator = await subspaceProviderAuthConfigService.list({
-          instance: ctx.instance,
-          providerIds: normalizeArrayParam(ctx.query.provider_id),
-          providerDeploymentIds: normalizeArrayParam(ctx.query.provider_deployment_id),
-          providerAuthMethodIds: normalizeArrayParam(ctx.query.provider_auth_method_id)
-        });
-
-        let list = await paginator.run(ctx.query);
-
-        return Paginator.present(list, authConfig =>
-          providerAuthConfigPresenter.present({ authConfig: authConfig as SubspaceProviderAuthConfig })
-        );
       })
   }
 );

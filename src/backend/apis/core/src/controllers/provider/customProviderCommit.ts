@@ -1,19 +1,14 @@
 import { badRequestError, ServiceError } from '@metorial/error';
-import {
-  customProviderCommitService,
-  type SubspaceCustomProviderCommit
-} from '@metorial/module-subspace';
+import { subspaceCustomProviderCommitService } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
-import { instancePath } from '../../middleware/instanceGroup';
+import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { subspaceCustomProviderCommitPresenter } from '../../presenters';
 
-import { customProviderGroup } from './customProvider';
-
-export let customProviderCommitGroup = customProviderGroup.use(async ctx => {
+export let customProviderCommitGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.customProviderCommitId) {
     throw new ServiceError(
       badRequestError({
@@ -23,7 +18,7 @@ export let customProviderCommitGroup = customProviderGroup.use(async ctx => {
     );
   }
 
-  let customProviderCommit = await customProviderCommitService.get({
+  let customProviderCommit = await subspaceCustomProviderCommitService.get({
     instance: ctx.instance,
     customProviderCommitId: ctx.params.customProviderCommitId
   });
@@ -38,17 +33,11 @@ export let customProviderCommitController = Controller.create(
       'Commits represent version promotions between environments. Merge versions from one environment to another or rollback to a previous version.'
   },
   {
-    list: customProviderGroup
-      .get(
-        instancePath(
-          'custom-providers/:customProviderId/commits',
-          'customProviders.commits.list'
-        ),
-        {
-          name: 'List custom provider commits',
-          description: 'Returns a paginated list of commits for a custom provider.'
-        }
-      )
+    list: instanceGroup
+      .get(instancePath('custom-provider-commits', 'customProviders.commits.list'), {
+        name: 'List custom provider commits',
+        description: 'Returns a paginated list of commits for a custom provider.'
+      })
       .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
       .outputList(subspaceCustomProviderCommitPresenter)
       .query(
@@ -58,37 +47,36 @@ export let customProviderCommitController = Controller.create(
             ids: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by commit IDs'
             }),
-            custom_provider_version_ids: v.optional(
+            custom_provider_version_id: v.optional(
               v.union([v.string(), v.array(v.string())]),
-              {
-                description: 'Filter by version IDs'
-              }
+              { description: 'Filter by version IDs' }
             ),
-            custom_provider_environment_ids: v.optional(
+            custom_provider_environment_id: v.optional(
               v.union([v.string(), v.array(v.string())]),
-              {
-                description: 'Filter by environment IDs'
-              }
-            )
+              { description: 'Filter by environment IDs' }
+            ),
+            custom_provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by custom provider IDs'
+            })
           })
         )
       )
       .do(async ctx => {
-        let paginator = await customProviderCommitService.list({
+        let paginator = await subspaceCustomProviderCommitService.list({
           instance: ctx.instance,
-          customProviderIds: [ctx.customProvider.id],
           ids: normalizeArrayParam(ctx.query.ids),
-          customProviderVersionIds: normalizeArrayParam(ctx.query.custom_provider_version_ids),
+          customProviderVersionIds: normalizeArrayParam(ctx.query.custom_provider_version_id),
           customProviderEnvironmentIds: normalizeArrayParam(
-            ctx.query.custom_provider_environment_ids
-          )
+            ctx.query.custom_provider_environment_id
+          ),
+          customProviderIds: normalizeArrayParam(ctx.query.custom_provider_id)
         });
 
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, customProviderCommit =>
           subspaceCustomProviderCommitPresenter.present({
-            customProviderCommit: customProviderCommit as SubspaceCustomProviderCommit
+            customProviderCommit: customProviderCommit
           })
         );
       }),
@@ -96,7 +84,7 @@ export let customProviderCommitController = Controller.create(
     get: customProviderCommitGroup
       .get(
         instancePath(
-          'custom-providers/:customProviderId/commits/:customProviderCommitId',
+          'custom-provider-commits/:customProviderCommitId',
           'customProviders.commits.get'
         ),
         {
@@ -108,22 +96,15 @@ export let customProviderCommitController = Controller.create(
       .output(subspaceCustomProviderCommitPresenter)
       .do(async ctx => {
         return subspaceCustomProviderCommitPresenter.present({
-          customProviderCommit: ctx.customProviderCommit as SubspaceCustomProviderCommit
+          customProviderCommit: ctx.customProviderCommit
         });
       }),
 
-    create: customProviderGroup
-      .post(
-        instancePath(
-          'custom-providers/:customProviderId/commits',
-          'customProviders.commits.create'
-        ),
-        {
-          name: 'Create custom provider commit',
-          description:
-            'Creates a new commit to promote or rollback a version in an environment.'
-        }
-      )
+    create: instanceGroup
+      .post(instancePath('custom-provider-commits', 'customProviders.commits.create'), {
+        name: 'Create custom provider commit',
+        description: 'Creates a new commit to promote or rollback a version in an environment.'
+      })
       .use(checkAccess({ possibleScopes: ['instance.provider:write'] }))
       .body(
         'default',
@@ -188,16 +169,16 @@ export let customProviderCommitController = Controller.create(
                 versionId: ctx.body.action.version_id
               };
 
-        let customProviderCommit = await customProviderCommitService.create({
+        let customProviderCommit = await subspaceCustomProviderCommitService.create({
           instance: ctx.instance,
           organizationActor: ctx.actor,
           customProviderId: ctx.customProvider.id,
           message: ctx.body.message,
           action
-        } as any);
+        });
 
         return subspaceCustomProviderCommitPresenter.present({
-          customProviderCommit: customProviderCommit as SubspaceCustomProviderCommit
+          customProviderCommit: customProviderCommit
         });
       })
   }

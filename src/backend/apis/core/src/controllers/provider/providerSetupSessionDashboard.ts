@@ -9,9 +9,6 @@ import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { providerSetupSessionPresenter } from '../../presenters';
 
-import { providerDeploymentGroup } from './providerDeployment';
-import { providerSetupSessionGroup } from './providerSetupSession';
-
 export let providerSetupSessionDashboardController = Controller.create(
   {
     name: 'Provider Setup Sessions (Dashboard)',
@@ -48,7 +45,15 @@ export let providerSetupSessionDashboardController = Controller.create(
           instance: ctx.instance,
           providerIds: [ctx.deployment.providerId],
           providerAuthMethodIds: normalizeArrayParam(ctx.query.provider_auth_method_id),
-          status: ctx.query.status ? [ctx.query.status] as ("archived" | "failed" | "completed" | "expired" | "pending")[] : undefined
+          status: ctx.query.status
+            ? ([ctx.query.status] as (
+                | 'archived'
+                | 'failed'
+                | 'completed'
+                | 'expired'
+                | 'pending'
+              )[])
+            : undefined
         });
 
         let list = await paginator.run(ctx.query);

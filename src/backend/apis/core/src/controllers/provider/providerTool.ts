@@ -1,5 +1,8 @@
 import { badRequestError, ServiceError } from '@metorial/error';
-import { subspaceProviderToolService, type SubspaceProviderTool } from '@metorial/module-subspace';
+import {
+  subspaceProviderToolService,
+  type SubspaceProviderTool
+} from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
@@ -35,7 +38,7 @@ export let providerToolController = Controller.create(
   },
   {
     list: providerGroup
-      .get(instancePath('providers/:providerId/tools', 'providers.tools.list'), {
+      .get(instancePath('providers-tools', 'providers.tools.list'), {
         name: 'List provider tools',
         description:
           'Returns a paginated list of provider tools. By default returns tools from the latest version. Use optional filters to get tools for a specific version.'
@@ -46,14 +49,14 @@ export let providerToolController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            provider_version_id: v.optional(v.string())
+            provider_version_id: v.string()
           })
         )
       )
       .do(async ctx => {
         let paginator = await subspaceProviderToolService.list({
           instance: ctx.instance,
-          providerVersion: ctx.query.provider_version_id!
+          providerVersionId: ctx.query.provider_version_id
         });
 
         let list = await paginator.run(ctx.query);
@@ -64,13 +67,10 @@ export let providerToolController = Controller.create(
       }),
 
     get: providerToolGroup
-      .get(
-        instancePath('providers/:providerId/tools/:providerToolId', 'providers.tools.get'),
-        {
-          name: 'Get provider tool',
-          description: 'Retrieves a specific provider tool by ID.'
-        }
-      )
+      .get(instancePath('providers-tools/:providerToolId', 'providers.tools.get'), {
+        name: 'Get provider tool',
+        description: 'Retrieves a specific provider tool by ID.'
+      })
       .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
       .output(providerToolPresenter)
       .do(async ctx => {

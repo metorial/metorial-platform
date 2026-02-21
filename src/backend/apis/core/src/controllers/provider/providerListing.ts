@@ -1,5 +1,8 @@
 import { badRequestError, ServiceError } from '@metorial/error';
-import { subspaceProviderListingService, type SubspaceProviderListing } from '@metorial/module-subspace';
+import {
+  subspaceProviderListingService,
+  type SubspaceProviderListing
+} from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
@@ -7,7 +10,6 @@ import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { providerListingPresenter } from '../../presenters';
-
 
 export let providerListingGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerListingId) {
@@ -51,19 +53,15 @@ export let providerListingController = Controller.create(
             provider_collection_id: v.optional(v.union([v.string(), v.array(v.string())])),
             provider_group_id: v.optional(v.union([v.string(), v.array(v.string())])),
             publisher_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            flags: v.optional(
-              v.object({
-                is_public: v.optional(v.string()),
-                is_verified: v.optional(v.string()),
-                is_official: v.optional(v.string()),
-                is_metorial: v.optional(v.string())
-              })
-            )
+
+            is_public: v.optional(v.boolean()),
+            is_verified: v.optional(v.boolean()),
+            is_official: v.optional(v.boolean()),
+            is_metorial: v.optional(v.boolean())
           })
         )
       )
       .do(async ctx => {
-        let flags = ctx.query.flags;
         let paginator = await subspaceProviderListingService.list({
           instance: ctx.instance,
           search: ctx.query.search,
@@ -71,30 +69,11 @@ export let providerListingController = Controller.create(
           providerCategoryIds: normalizeArrayParam(ctx.query.provider_category_id),
           providerCollectionIds: normalizeArrayParam(ctx.query.provider_collection_id),
           providerGroupIds: normalizeArrayParam(ctx.query.provider_group_id),
-          isPublic:
-            flags?.is_public === 'true'
-              ? true
-              : flags?.is_public === 'false'
-                ? false
-                : undefined,
-          isVerified:
-            flags?.is_verified === 'true'
-              ? true
-              : flags?.is_verified === 'false'
-                ? false
-                : undefined,
-          isOfficial:
-            flags?.is_official === 'true'
-              ? true
-              : flags?.is_official === 'false'
-                ? false
-                : undefined,
-          isMetorial:
-            flags?.is_metorial === 'true'
-              ? true
-              : flags?.is_metorial === 'false'
-                ? false
-                : undefined
+
+          isPublic: ctx.query.is_public,
+          isVerified: ctx.query.is_verified,
+          isOfficial: ctx.query.is_official,
+          isMetorial: ctx.query.is_metorial
         });
 
         let list = await paginator.run(ctx.query);

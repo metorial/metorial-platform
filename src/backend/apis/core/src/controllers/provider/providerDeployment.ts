@@ -12,8 +12,7 @@ import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { providerDeploymentPresenter } from '../../presenters';
 
-
-export let providerDeploymentGroup = instanceGroup.use(async ctx => {
+let providerDeploymentGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerDeploymentId) {
     throw new ServiceError(
       badRequestError({
@@ -56,7 +55,15 @@ export let providerDeploymentController = Controller.create(
             provider_version_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by version ID(s)'
             }),
-            status: v.optional(v.string(), { description: 'Filter by deployment status' })
+            status: v.optional(
+              v.union([
+                v.enumOf(['active', 'archived']),
+                v.array(v.enumOf(['active', 'archived']))
+              ]),
+              {
+                description: 'Filter by status (active, archived)'
+              }
+            )
           })
         )
       )
@@ -65,13 +72,15 @@ export let providerDeploymentController = Controller.create(
           instance: ctx.instance,
           providerIds: normalizeArrayParam(ctx.query.provider_id),
           providerVersionIds: normalizeArrayParam(ctx.query.provider_version_id),
-          status: ctx.query.status ? [ctx.query.status] as ("active" | "archived")[] : undefined
+          status: normalizeArrayParam(ctx.query.status)
         });
 
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, deployment =>
-          providerDeploymentPresenter.present({ deployment: deployment as SubspaceProviderDeployment })
+          providerDeploymentPresenter.present({
+            deployment: deployment as SubspaceProviderDeployment
+          })
         );
       }),
 

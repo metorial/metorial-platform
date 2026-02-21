@@ -41,17 +41,10 @@ export let sessionTemplateProviderController = Controller.create(
   },
   {
     list: sessionTemplateGroup
-      .get(
-        instancePath(
-          'session-templates/:sessionTemplateId/providers',
-          'sessionTemplates.providers.list'
-        ),
-        {
-          name: 'List session template providers',
-          description:
-            'Returns a paginated list of providers configured for a session template.'
-        }
-      )
+      .get(instancePath('session-template-providers', 'sessionTemplates.providers.list'), {
+        name: 'List session template providers',
+        description: 'Returns a paginated list of providers configured for a session template.'
+      })
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
       .outputList(sessionTemplateProviderPresenter)
       .query(
@@ -78,7 +71,7 @@ export let sessionTemplateProviderController = Controller.create(
     get: sessionTemplateProviderGroup
       .get(
         instancePath(
-          'session-templates/:sessionTemplateId/providers/:sessionTemplateProviderId',
+          'session-template-providers/:sessionTemplateProviderId',
           'sessionTemplates.providers.get'
         ),
         {
@@ -95,16 +88,10 @@ export let sessionTemplateProviderController = Controller.create(
       }),
 
     create: sessionTemplateGroup
-      .post(
-        instancePath(
-          'session-templates/:sessionTemplateId/providers',
-          'sessionTemplates.providers.create'
-        ),
-        {
-          name: 'Create session template provider',
-          description: 'Adds a new provider configuration to a session template.'
-        }
-      )
+      .post(instancePath('session-template-providers', 'sessionTemplates.providers.create'), {
+        name: 'Create session template provider',
+        description: 'Adds a new provider configuration to a session template.'
+      })
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
       .body(
         'default',
@@ -140,7 +127,7 @@ export let sessionTemplateProviderController = Controller.create(
     update: sessionTemplateProviderGroup
       .patch(
         instancePath(
-          'session-templates/:sessionTemplateId/providers/:sessionTemplateProviderId',
+          'session-template-providers/:sessionTemplateProviderId',
           'sessionTemplates.providers.update'
         ),
         {
@@ -183,7 +170,7 @@ export let sessionTemplateProviderController = Controller.create(
     delete: sessionTemplateProviderGroup
       .delete(
         instancePath(
-          'session-templates/:sessionTemplateId/providers/:sessionTemplateProviderId',
+          'session-template-providers/:sessionTemplateProviderId',
           'sessionTemplates.providers.delete'
         ),
         {

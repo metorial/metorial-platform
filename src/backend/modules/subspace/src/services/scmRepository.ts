@@ -1,7 +1,7 @@
 import { createSubspaceService } from '../lib/subspaceService';
 import { subspace } from '../subspace';
 
-export let scmRepositoryService = createSubspaceService(
+export let subspaceScmRepositoryService = createSubspaceService(
   subspace.scmRepository,
   [
     'get',

@@ -10,7 +10,6 @@ import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { providerCollectionPresenter } from '../../presenters';
 
-
 export let providerCollectionGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerCollectionId) {
     throw new ServiceError(
@@ -52,7 +51,9 @@ export let providerCollectionController = Controller.create(
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, collection =>
-          providerCollectionPresenter.present({ collection: collection as SubspaceProviderListingCollection })
+          providerCollectionPresenter.present({
+            collection: collection as SubspaceProviderListingCollection
+          })
         );
       }),
 

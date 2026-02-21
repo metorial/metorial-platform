@@ -8,13 +8,12 @@ import {
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
+import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
-import { instancePath } from '../../middleware/instanceGroup';
+import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { configSchemaPresenter, providerConfigPresenter } from '../../presenters';
 
-import { providerDeploymentGroup } from './providerDeployment';
-
-export let providerConfigGroup = providerDeploymentGroup.use(async ctx => {
+export let providerConfigGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerConfigId) {
     throw new ServiceError(
       badRequestError({
@@ -39,25 +38,31 @@ export let providerConfigController = Controller.create(
       'A config holds settings for a deployment, like API endpoints or feature flags. Create configs with values directly, or from a saved config vault with pre-saved values.'
   },
   {
-    list: providerDeploymentGroup
-      .get(
-        instancePath(
-          'provider-deployments/:providerDeploymentId/configs',
-          'providerDeployments.configs.list'
-        ),
-        {
-          name: 'List provider configs',
-          description: 'Returns a paginated list of provider configs.'
-        }
-      )
+    list: instanceGroup
+      .get(instancePath('provider-configs', 'providerDeployments.configs.list'), {
+        name: 'List provider configs',
+        description: 'Returns a paginated list of provider configs.'
+      })
       .use(checkAccess({ possibleScopes: ['instance.provider.deployment:read'] }))
       .outputList(providerConfigPresenter)
-      .query('default', Paginator.validate())
+      .query(
+        'default',
+        Paginator.validate(
+          v.object({
+            provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by provider ID(s)'
+            }),
+            provider_deployment_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by provider deployment ID(s)'
+            })
+          })
+        )
+      )
       .do(async ctx => {
         let paginator = await subspaceProviderConfigService.list({
           instance: ctx.instance,
-          providerIds: [ctx.deployment.providerId],
-          providerDeploymentIds: [ctx.deployment.id]
+          providerIds: normalizeArrayParam(ctx.query.provider_id),
+          providerDeploymentIds: normalizeArrayParam(ctx.query.provider_deployment_id)
         });
 
         let list = await paginator.run(ctx.query);
@@ -69,10 +74,7 @@ export let providerConfigController = Controller.create(
 
     get: providerConfigGroup
       .get(
-        instancePath(
-          'provider-deployments/:providerDeploymentId/configs/:providerConfigId',
-          'providerDeployments.configs.get'
-        ),
+        instancePath('provider-configs/:providerConfigId', 'providerDeployments.configs.get'),
         {
           name: 'Get provider config',
           description: 'Retrieves a specific provider config by ID.'
@@ -84,17 +86,11 @@ export let providerConfigController = Controller.create(
         return providerConfigPresenter.present({ config: ctx.config });
       }),
 
-    create: providerDeploymentGroup
-      .post(
-        instancePath(
-          'provider-deployments/:providerDeploymentId/configs',
-          'providerDeployments.configs.create'
-        ),
-        {
-          name: 'Create provider config',
-          description: 'Creates a new provider config.'
-        }
-      )
+    create: instanceGroup
+      .post(instancePath('provider-configs', 'providerDeployments.configs.create'), {
+        name: 'Create provider config',
+        description: 'Creates a new provider config.'
+      })
       .use(checkAccess({ possibleScopes: ['instance.provider.deployment:write'] }))
       .body(
         'default',
@@ -154,7 +150,7 @@ export let providerConfigController = Controller.create(
     update: providerConfigGroup
       .patch(
         instancePath(
-          'provider-deployments/:providerDeploymentId/configs/:providerConfigId',
+          'provider-configs/:providerConfigId',
           'providerDeployments.configs.update'
         ),
         {
@@ -189,7 +185,7 @@ export let providerConfigController = Controller.create(
     delete: providerConfigGroup
       .delete(
         instancePath(
-          'provider-deployments/:providerDeploymentId/configs/:providerConfigId',
+          'provider-configs/:providerConfigId',
           'providerDeployments.configs.delete'
         ),
         {
@@ -203,12 +199,9 @@ export let providerConfigController = Controller.create(
         return providerConfigPresenter.present({ config: ctx.config });
       }),
 
-    getConfigSchema: providerDeploymentGroup
+    getConfigSchema: instanceGroup
       .get(
-        instancePath(
-          'provider-deployments/:providerDeploymentId/config-schema',
-          'providerDeployments.configs.getConfigSchema'
-        ),
+        instancePath('provider-config-schema', 'providerDeployments.configs.getConfigSchema'),
         {
           name: 'Get config schema',
           description:
@@ -224,7 +217,9 @@ export let providerConfigController = Controller.create(
         });
 
         return configSchemaPresenter.present({
-          schema: { schema: (schema as any).configSchema ?? null } as SubspaceProviderConfigSchema
+          schema: {
+            schema: (schema as any).configSchema ?? null
+          } as SubspaceProviderConfigSchema
         });
       })
   }

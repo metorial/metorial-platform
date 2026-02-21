@@ -1,19 +1,13 @@
 import { badRequestError, ServiceError } from '@metorial/error';
-import {
-  subspaceProviderAuthMethodService,
-  type SubspaceProviderAuthMethod
-} from '@metorial/module-subspace';
+import { subspaceProviderAuthMethodService } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
-import { instancePath } from '../../middleware/instanceGroup';
+import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { providerAuthMethodPresenter } from '../../presenters';
 
-
-import { providerGroup } from './provider';
-
-export let providerAuthMethodGroup = providerGroup.use(async ctx => {
+export let providerAuthMethodGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerAuthMethodId) {
     throw new ServiceError(
       badRequestError({
@@ -38,8 +32,8 @@ export let providerAuthMethodController = Controller.create(
       'An auth method defines one way to authenticate with a provider (OAuth, API token, or custom credentials). A provider version may support multiple auth methods.'
   },
   {
-    list: providerGroup
-      .get(instancePath('providers/:providerId/auth-methods', 'providers.authMethods.list'), {
+    list: instanceGroup
+      .get(instancePath('provider-auth-methods', 'providers.authMethods.list'), {
         name: 'List provider auth methods',
         description: 'Returns a paginated list of provider auth methods.'
       })
@@ -49,14 +43,14 @@ export let providerAuthMethodController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            provider_version_id: v.optional(v.string())
+            provider_version_id: v.string()
           })
         )
       )
       .do(async ctx => {
         let paginator = await subspaceProviderAuthMethodService.list({
           instance: ctx.instance,
-          providerVersion: ctx.query.provider_version_id ?? ctx.provider.currentVersion!.id
+          providerVersionId: ctx.query.provider_version_id
         });
 
         let list = await paginator.run(ctx.query);
@@ -69,7 +63,7 @@ export let providerAuthMethodController = Controller.create(
     get: providerAuthMethodGroup
       .get(
         instancePath(
-          'providers/:providerId/auth-methods/:providerAuthMethodId',
+          'provider-auth-methods/:providerAuthMethodId',
           'providers.authMethods.get'
         ),
         {
@@ -81,7 +75,7 @@ export let providerAuthMethodController = Controller.create(
       .output(providerAuthMethodPresenter)
       .do(async ctx => {
         return providerAuthMethodPresenter.present({
-          authMethod: ctx.authMethod as unknown as SubspaceProviderAuthMethod
+          authMethod: ctx.authMethod
         });
       })
   }

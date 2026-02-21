@@ -32,6 +32,37 @@ export let providerSessionGroup = instanceGroup.use(async ctx => {
   return { session };
 });
 
+export let toolFilterValidator = v.union([
+  v.object({
+    type: v.literal('tool_keys'),
+    keys: v.array(v.string())
+  }),
+  v.object({
+    type: v.literal('tool_regex'),
+    pattern: v.string()
+  }),
+  v.object({
+    type: v.literal('resource_regex'),
+    pattern: v.string()
+  }),
+  v.object({
+    type: v.literal('resource_uris'),
+    uris: v.array(v.string())
+  }),
+  v.object({
+    type: v.literal('prompt_keys'),
+    keys: v.array(v.string())
+  }),
+  v.object({
+    type: v.literal('prompt_regex'),
+    pattern: v.string()
+  })
+]);
+
+export let toolFiltersValidator = v.nullable(
+  v.optional(v.union([toolFilterValidator, v.array(toolFilterValidator)]))
+);
+
 export let providerSessionController = Controller.create(
   {
     name: 'Sessions',
@@ -50,7 +81,12 @@ export let providerSessionController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            status: v.optional(v.union([v.string(), v.array(v.string())])),
+            status: v.optional(
+              v.union([
+                v.enumOf(['active', 'archived']),
+                v.array(v.enumOf(['active', 'archived']))
+              ])
+            ),
             provider_id: v.optional(v.union([v.string(), v.array(v.string())])),
             provider_deployment_id: v.optional(v.union([v.string(), v.array(v.string())]))
           })
@@ -59,9 +95,7 @@ export let providerSessionController = Controller.create(
       .do(async ctx => {
         let paginator = await subspaceSessionService.list({
           instance: ctx.instance,
-          status: normalizeArrayParam(ctx.query.status) as
-            | ('active' | 'archived')[]
-            | undefined,
+          status: normalizeArrayParam(ctx.query.status),
           providerIds: normalizeArrayParam(ctx.query.provider_id),
           providerDeploymentIds: normalizeArrayParam(ctx.query.provider_deployment_id)
         });
@@ -106,9 +140,7 @@ export let providerSessionController = Controller.create(
               provider_config: v.optional(configValidator),
               provider_auth_config: v.optional(authConfigValidator),
               session_template_id: v.optional(v.string()),
-              tool_filters: v.optional(
-                v.object({ tool_keys: v.optional(v.array(v.string())) })
-              )
+              tool_filters: toolFiltersValidator
             })
           )
         })
@@ -125,7 +157,7 @@ export let providerSessionController = Controller.create(
             providerConfig: convertKeysToCamelCase(p.provider_config),
             providerAuthConfig: convertKeysToCamelCase(p.provider_auth_config),
             sessionTemplateId: p.session_template_id,
-            toolFilters: p.tool_filters ? { toolKeys: p.tool_filters.tool_keys } : undefined
+            toolFilters: p.tool_filters
           }))
         });
 

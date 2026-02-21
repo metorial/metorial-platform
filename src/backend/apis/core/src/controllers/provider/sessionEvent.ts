@@ -1,5 +1,8 @@
 import { badRequestError, ServiceError } from '@metorial/error';
-import { subspaceSessionEventService, type SubspaceSessionEvent } from '@metorial/module-subspace';
+import {
+  subspaceSessionEventService,
+  type SubspaceSessionEvent
+} from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
@@ -7,7 +10,6 @@ import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instancePath } from '../../middleware/instanceGroup';
 import { subspaceSessionEventPresenter } from '../../presenters';
-
 
 import { subspaceSessionGroup } from './subspaceSession';
 

@@ -1,7 +1,6 @@
-import { convertKeysToCamelCase } from '@metorial/case';
 import { badRequestError, ServiceError } from '@metorial/error';
 import {
-  customProviderVersionService,
+  subspaceCustomProviderVersionService,
   type SubspaceCustomProviderVersion
 } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
@@ -9,12 +8,15 @@ import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
-import { instancePath } from '../../middleware/instanceGroup';
+import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { subspaceCustomProviderVersionPresenter } from '../../presenters';
+import {
+  customProviderConfigValidator,
+  customProviderFromValidator,
+  mapCustomProviderFrom
+} from './customProvider';
 
-import { customProviderGroup } from './customProvider';
-
-export let customProviderVersionGroup = customProviderGroup.use(async ctx => {
+export let customProviderVersionGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.customProviderVersionId) {
     throw new ServiceError(
       badRequestError({
@@ -24,68 +26,13 @@ export let customProviderVersionGroup = customProviderGroup.use(async ctx => {
     );
   }
 
-  let customProviderVersion = await customProviderVersionService.get({
+  let customProviderVersion = await subspaceCustomProviderVersionService.get({
     instance: ctx.instance,
     customProviderVersionId: ctx.params.customProviderVersionId
   });
 
   return { customProviderVersion };
 });
-
-let customProviderFromValidator = v.union([
-  v.object(
-    {
-      type: v.literal('container'),
-      image_ref: v.string({ description: 'Container image reference' }),
-      username: v.optional(v.string({ description: 'Registry username' })),
-      password: v.optional(v.string({ description: 'Registry password' }))
-    },
-    { name: 'container', description: 'Deploy from a container image' }
-  ),
-  v.object(
-    {
-      type: v.literal('remote'),
-      remote_url: v.string({ description: 'Remote MCP server URL' }),
-      config: v.optional(v.record(v.any(), { description: 'Remote server configuration' })),
-      protocol: v.enumOf(['sse', 'streamable_http'], { description: 'MCP protocol to use' })
-    },
-    { name: 'remote', description: 'Connect to a remote MCP server' }
-  ),
-  v.object(
-    {
-      type: v.literal('function'),
-      files: v.array(
-        v.object({
-          filename: v.string({ description: 'File name' }),
-          content: v.string({ description: 'File content' }),
-          encoding: v.optional(
-            v.enumOf(['utf-8', 'base64'], { description: 'Content encoding' })
-          )
-        }),
-        { description: 'Source files' }
-      ),
-      env: v.record(v.string(), { description: 'Environment variables' }),
-      runtime: v.union([
-        v.object({
-          identifier: v.literal('nodejs'),
-          version: v.enumOf(['24.x', '22.x'], { description: 'Node.js version' })
-        }),
-        v.object({
-          identifier: v.literal('python'),
-          version: v.enumOf(['3.14', '3.13', '3.12'], { description: 'Python version' })
-        })
-      ])
-    },
-    { name: 'function', description: 'Deploy as a serverless function' }
-  )
-]);
-
-let customProviderConfigValidator = v.optional(
-  v.object({
-    schema: v.record(v.any(), { description: 'Configuration JSON schema' }),
-    transformer: v.string({ description: 'Configuration transformer code' })
-  })
-);
 
 export let customProviderVersionController = Controller.create(
   {
@@ -94,40 +41,48 @@ export let customProviderVersionController = Controller.create(
       'Versions represent different releases of a custom provider. Each version can be deployed to environments.'
   },
   {
-    list: customProviderGroup
-      .get(
-        instancePath(
-          'custom-providers/:customProviderId/versions',
-          'customProviders.versions.list'
-        ),
-        {
-          name: 'List custom provider versions',
-          description: 'Returns a paginated list of versions for a custom provider.'
-        }
-      )
+    list: instanceGroup
+      .get(instancePath('custom-provider-versions', 'customProviders.versions.list'), {
+        name: 'List custom provider versions',
+        description: 'Returns a paginated list of versions for a custom provider.'
+      })
       .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
       .outputList(subspaceCustomProviderVersionPresenter)
       .query(
         'default',
         Paginator.validate(
           v.object({
-            status: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description:
-                'Filter by status (queued, deploying, deployment_succeeded, deployment_failed)'
-            }),
+            status: v.optional(
+              v.union([
+                v.enumOf(['queued', 'deploying', 'deployment_succeeded', 'deployment_failed']),
+                v.array(
+                  v.enumOf([
+                    'queued',
+                    'deploying',
+                    'deployment_succeeded',
+                    'deployment_failed'
+                  ])
+                )
+              ]),
+              {
+                description:
+                  'Filter by status (queued, deploying, deployment_succeeded, deployment_failed)'
+              }
+            ),
             ids: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by version IDs'
+            }),
+            custom_provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by custom provider IDs'
             })
           })
         )
       )
       .do(async ctx => {
-        let paginator = await customProviderVersionService.list({
+        let paginator = await subspaceCustomProviderVersionService.list({
           instance: ctx.instance,
-          customProviderIds: [ctx.customProvider.id],
-          status: normalizeArrayParam(ctx.query.status) as
-            | ('queued' | 'deploying' | 'deployment_succeeded' | 'deployment_failed')[]
-            | undefined,
+          customProviderIds: normalizeArrayParam(ctx.query.custom_provider_id),
+          status: normalizeArrayParam(ctx.query.status),
           ids: normalizeArrayParam(ctx.query.ids)
         });
 
@@ -143,7 +98,7 @@ export let customProviderVersionController = Controller.create(
     get: customProviderVersionGroup
       .get(
         instancePath(
-          'custom-providers/:customProviderId/versions/:customProviderVersionId',
+          'custom-provider-versions/:customProviderVersionId',
           'customProviders.versions.get'
         ),
         {
@@ -159,17 +114,11 @@ export let customProviderVersionController = Controller.create(
         });
       }),
 
-    create: customProviderGroup
-      .post(
-        instancePath(
-          'custom-providers/:customProviderId/versions',
-          'customProviders.versions.create'
-        ),
-        {
-          name: 'Create custom provider version',
-          description: 'Creates a new version for a custom provider.'
-        }
-      )
+    create: instanceGroup
+      .post(instancePath('custom-provider-versions', 'customProviders.versions.create'), {
+        name: 'Create custom provider version',
+        description: 'Creates a new version for a custom provider.'
+      })
       .use(checkAccess({ possibleScopes: ['instance.provider:write'] }))
       .body(
         'default',
@@ -180,11 +129,11 @@ export let customProviderVersionController = Controller.create(
       )
       .output(subspaceCustomProviderVersionPresenter)
       .do(async ctx => {
-        let customProviderVersion = await customProviderVersionService.create({
+        let customProviderVersion = await subspaceCustomProviderVersionService.create({
           instance: ctx.instance,
           organizationActor: ctx.actor,
           customProviderId: ctx.customProvider.id,
-          from: convertKeysToCamelCase(ctx.body.from) as any,
+          from: mapCustomProviderFrom(ctx.body.from),
           config: ctx.body.config
         });
 

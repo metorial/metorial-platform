@@ -2,7 +2,7 @@ import { Fabric } from '@metorial/fabric';
 import { createSubspaceService, toEventBase } from '../lib/subspaceService';
 import { subspace } from '../subspace';
 
-export let customProviderService = createSubspaceService(
+export let subspaceCustomProviderService = createSubspaceService(
   subspace.customProvider,
   ['get', 'list', 'update', 'create'],
   inner => ({

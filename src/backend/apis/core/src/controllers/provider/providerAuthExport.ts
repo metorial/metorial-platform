@@ -6,13 +6,12 @@ import {
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
+import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
-import { instancePath } from '../../middleware/instanceGroup';
+import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { providerAuthExportPresenter } from '../../presenters';
 
-import { providerAuthConfigGroup } from './providerAuthConfig';
-
-export let providerAuthExportGroup = providerAuthConfigGroup.use(async ctx => {
+export let providerAuthExportGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerAuthExportId) {
     throw new ServiceError(
       badRequestError({
@@ -30,10 +29,6 @@ export let providerAuthExportGroup = providerAuthConfigGroup.use(async ctx => {
   return { authExport };
 });
 
-/**
- * Auth exports are immutable audit records representing point-in-time snapshots.
- * Intentionally lacks update/delete operations to preserve data integrity.
- */
 export let providerAuthExportController = Controller.create(
   {
     name: 'Provider Auth Exports',
@@ -41,10 +36,10 @@ export let providerAuthExportController = Controller.create(
       'An auth export lets you extract OAuth tokens or credentials from Metorial to use in other systems, avoiding duplicate authentication flows.'
   },
   {
-    list: providerAuthConfigGroup
+    list: instanceGroup
       .get(
         instancePath(
-          'provider-deployments/:providerDeploymentId/auth-configs/:providerAuthConfigId/exports',
+          'provider-auth-config-exports',
           'providerDeployments.authConfigs.exports.list'
         ),
         {
@@ -54,25 +49,39 @@ export let providerAuthExportController = Controller.create(
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
       .outputList(providerAuthExportPresenter)
-      .query('default', Paginator.validate())
+      .query(
+        'default',
+        Paginator.validate(
+          v.object({
+            provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by provider ID(s)'
+            }),
+            provider_auth_config_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by auth config ID(s)'
+            })
+          })
+        )
+      )
       .do(async ctx => {
         let paginator = await subspaceProviderAuthExportService.list({
           instance: ctx.instance,
-          providerIds: [ctx.deployment.providerId],
-          providerAuthConfigIds: [ctx.authConfig.id]
+          providerIds: normalizeArrayParam(ctx.query.provider_id),
+          providerAuthConfigIds: normalizeArrayParam(ctx.query.provider_auth_config_id)
         });
 
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, authExport =>
-          providerAuthExportPresenter.present({ authExport: authExport as SubspaceProviderAuthExport })
+          providerAuthExportPresenter.present({
+            authExport: authExport as SubspaceProviderAuthExport
+          })
         );
       }),
 
     get: providerAuthExportGroup
       .get(
         instancePath(
-          'provider-deployments/:providerDeploymentId/auth-configs/:providerAuthConfigId/exports/:providerAuthExportId',
+          'provider-auth-config-exports/:providerAuthExportId',
           'providerDeployments.authConfigs.exports.get'
         ),
         {
@@ -86,10 +95,10 @@ export let providerAuthExportController = Controller.create(
         return providerAuthExportPresenter.present({ authExport: ctx.authExport });
       }),
 
-    create: providerAuthConfigGroup
+    create: instanceGroup
       .post(
         instancePath(
-          'provider-deployments/:providerDeploymentId/auth-configs/:providerAuthConfigId/exports',
+          'provider-auth-config-exports',
           'providerDeployments.authConfigs.exports.create'
         ),
         {
@@ -114,7 +123,7 @@ export let providerAuthExportController = Controller.create(
           providerAuthConfigId: ctx.authConfig.id,
           note: ctx.body.note,
           ip: ctx.context.ip,
-          ua: ctx.context.ua ?? '',
+          ua: ctx.context.ua ?? 'unknown',
           metadata: ctx.body.metadata
         });
 

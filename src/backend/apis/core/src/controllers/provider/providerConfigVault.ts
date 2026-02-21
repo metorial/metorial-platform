@@ -6,13 +6,12 @@ import {
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
+import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
-import { instancePath } from '../../middleware/instanceGroup';
+import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { providerConfigVaultPresenter } from '../../presenters';
 
-import { providerDeploymentGroup } from './providerDeployment';
-
-export let providerConfigVaultGroup = providerDeploymentGroup.use(async ctx => {
+export let providerConfigVaultGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerConfigVaultId) {
     throw new ServiceError(
       badRequestError({
@@ -37,32 +36,38 @@ export let providerConfigVaultController = Controller.create(
       'A config vault is a saved, reusable set of configuration values. Use vaults to store credentials once and apply them to multiple deployments without re-entering.'
   },
   {
-    list: providerDeploymentGroup
-      .get(
-        instancePath(
-          'provider-deployments/:providerDeploymentId/config-vaults',
-          'providerDeployments.configVaults.list'
-        ),
-        {
-          name: 'List provider config vaults',
-          description: 'Returns a paginated list of provider config vaults.'
-        }
-      )
+    list: instanceGroup
+      .get(instancePath('provider-config-vaults', 'providerDeployments.configVaults.list'), {
+        name: 'List provider config vaults',
+        description: 'Returns a paginated list of provider config vaults.'
+      })
       .use(checkAccess({ possibleScopes: ['instance.provider.deployment:write'] }))
       .outputList(providerConfigVaultPresenter)
-      .query('default', Paginator.validate())
+      .query(
+        'default',
+        Paginator.validate(
+          v.object({
+            provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by provider ID(s)'
+            }),
+            provider_deployment_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by provider deployment ID(s)'
+            })
+          })
+        )
+      )
       .do(async ctx => {
         let paginator = await subspaceProviderConfigVaultService.list({
           instance: ctx.instance,
-          providerIds: [ctx.deployment.providerId],
-          providerDeploymentIds: [ctx.deployment.id]
+          providerIds: normalizeArrayParam(ctx.query.provider_id),
+          providerDeploymentIds: normalizeArrayParam(ctx.query.provider_deployment_id)
         });
 
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, configVault =>
           providerConfigVaultPresenter.present({
-            configVault: configVault as SubspaceProviderConfigVault
+            configVault: configVault
           })
         );
       }),
@@ -70,7 +75,7 @@ export let providerConfigVaultController = Controller.create(
     get: providerConfigVaultGroup
       .get(
         instancePath(
-          'provider-deployments/:providerDeploymentId/config-vaults/:providerConfigVaultId',
+          'provider-config-vaults/:providerConfigVaultId',
           'providerDeployments.configVaults.get'
         ),
         {
@@ -82,16 +87,13 @@ export let providerConfigVaultController = Controller.create(
       .output(providerConfigVaultPresenter)
       .do(async ctx => {
         return providerConfigVaultPresenter.present({
-          configVault: ctx.configVault as unknown as SubspaceProviderConfigVault
+          configVault: ctx.configVault
         });
       }),
 
-    create: providerDeploymentGroup
+    create: instanceGroup
       .post(
-        instancePath(
-          'provider-deployments/:providerDeploymentId/config-vaults',
-          'providerDeployments.configVaults.create'
-        ),
+        instancePath('provider-config-vaults', 'providerDeployments.configVaults.create'),
         {
           name: 'Create provider config vault',
           description: 'Creates a new provider config vault.'
@@ -138,7 +140,7 @@ export let providerConfigVaultController = Controller.create(
     update: providerConfigVaultGroup
       .patch(
         instancePath(
-          'provider-deployments/:providerDeploymentId/config-vaults/:providerConfigVaultId',
+          'provider-config-vaults/:providerConfigVaultId',
           'providerDeployments.configVaults.update'
         ),
         {
@@ -178,7 +180,7 @@ export let providerConfigVaultController = Controller.create(
     delete: providerConfigVaultGroup
       .delete(
         instancePath(
-          'provider-deployments/:providerDeploymentId/config-vaults/:providerConfigVaultId',
+          'provider-config-vaults/:providerConfigVaultId',
           'providerDeployments.configVaults.delete'
         ),
         {
@@ -190,7 +192,7 @@ export let providerConfigVaultController = Controller.create(
       .output(providerConfigVaultPresenter)
       .do(async ctx => {
         return providerConfigVaultPresenter.present({
-          configVault: ctx.configVault as unknown as SubspaceProviderConfigVault
+          configVault: ctx.configVault
         });
       })
   }

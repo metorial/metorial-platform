@@ -1,11 +1,16 @@
 import { badRequestError, ServiceError } from '@metorial/error';
-import { subspaceProviderVersionService, type SubspaceProviderVersion } from '@metorial/module-subspace';
+import {
+  subspaceProviderVersionService,
+  type SubspaceProviderVersion
+} from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instancePath } from '../../middleware/instanceGroup';
 import { providerVersionPresenter } from '../../presenters';
 
+import { v } from '@metorial/validation';
+import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { providerGroup } from './provider';
 
 export let providerVersionGroup = providerGroup.use(async ctx => {
@@ -34,17 +39,26 @@ export let providerVersionController = Controller.create(
   },
   {
     list: providerGroup
-      .get(instancePath('providers/:providerId/versions', 'providers.versions.list'), {
+      .get(instancePath('provider-versions', 'providers.versions.list'), {
         name: 'List provider versions',
         description: 'Returns a paginated list of provider versions.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
       .outputList(providerVersionPresenter)
-      .query('default', Paginator.validate())
+      .query(
+        'default',
+        Paginator.validate(
+          v.object({
+            provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by provider ID(s)'
+            })
+          })
+        )
+      )
       .do(async ctx => {
         let paginator = await subspaceProviderVersionService.list({
           instance: ctx.instance,
-          providerIds: [ctx.provider.id]
+          providerIds: normalizeArrayParam(ctx.query.provider_id)
         });
 
         let list = await paginator.run(ctx.query);
@@ -55,16 +69,10 @@ export let providerVersionController = Controller.create(
       }),
 
     get: providerVersionGroup
-      .get(
-        instancePath(
-          'providers/:providerId/versions/:providerVersionId',
-          'providers.versions.get'
-        ),
-        {
-          name: 'Get provider version',
-          description: 'Retrieves a specific provider version by ID.'
-        }
-      )
+      .get(instancePath('provider-versions/:providerVersionId', 'providers.versions.get'), {
+        name: 'Get provider version',
+        description: 'Retrieves a specific provider version by ID.'
+      })
       .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
       .output(providerVersionPresenter)
       .do(async ctx => {

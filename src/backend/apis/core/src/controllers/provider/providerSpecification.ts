@@ -9,7 +9,8 @@ import { checkAccess } from '../../middleware/checkAccess';
 import { instancePath } from '../../middleware/instanceGroup';
 import { providerSpecificationPresenter } from '../../presenters';
 
-
+import { v } from '@metorial/validation';
+import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { providerGroup } from './provider';
 
 export let providerSpecificationGroup = providerGroup.use(async ctx => {
@@ -38,20 +39,38 @@ export let providerSpecificationController = Controller.create(
   },
   {
     list: providerGroup
-      .get(
-        instancePath('providers/:providerId/specifications', 'providers.specifications.list'),
-        {
-          name: 'List provider specifications',
-          description: 'Returns a paginated list of provider specifications.'
-        }
-      )
+      .get(instancePath('provider-specifications', 'providers.specifications.list'), {
+        name: 'List provider specifications',
+        description: 'Returns a paginated list of provider specifications.'
+      })
       .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
       .outputList(providerSpecificationPresenter)
-      .query('default', Paginator.validate())
+      .query(
+        'default',
+        Paginator.validate(
+          v.object({
+            provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by provider ID(s)'
+            }),
+            provider_version_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by provider version ID(s)'
+            }),
+            provider_deployment_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by provider deployment ID(s)'
+            }),
+            provider_config_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by provider config ID(s)'
+            })
+          })
+        )
+      )
       .do(async ctx => {
         let paginator = await subspaceProviderSpecificationService.list({
           instance: ctx.instance,
-          providerIds: [ctx.provider.id]
+          providerIds: normalizeArrayParam(ctx.query.provider_id),
+          providerVersionIds: normalizeArrayParam(ctx.query.provider_version_id),
+          providerDeploymentIds: normalizeArrayParam(ctx.query.provider_deployment_id),
+          providerConfigIds: normalizeArrayParam(ctx.query.provider_config_id)
         });
 
         let list = await paginator.run(ctx.query);
@@ -64,7 +83,7 @@ export let providerSpecificationController = Controller.create(
     get: providerSpecificationGroup
       .get(
         instancePath(
-          'providers/:providerId/specifications/:providerSpecificationId',
+          'provider-specifications/:providerSpecificationId',
           'providers.specifications.get'
         ),
         {

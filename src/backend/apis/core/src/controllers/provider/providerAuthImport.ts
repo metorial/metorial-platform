@@ -7,13 +7,12 @@ import {
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
+import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
-import { instancePath } from '../../middleware/instanceGroup';
+import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { authImportSchemaPresenter, providerAuthImportPresenter } from '../../presenters';
 
-import { providerAuthConfigGroup } from './providerAuthConfig';
-
-export let providerAuthImportGroup = providerAuthConfigGroup.use(async ctx => {
+export let providerAuthImportGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerAuthImportId) {
     throw new ServiceError(
       badRequestError({
@@ -31,10 +30,6 @@ export let providerAuthImportGroup = providerAuthConfigGroup.use(async ctx => {
   return { authImport };
 });
 
-/**
- * Auth imports are immutable records of credential migrations.
- * Intentionally lacks update/delete operations for audit trail purposes.
- */
 export let providerAuthImportController = Controller.create(
   {
     name: 'Provider Auth Imports',
@@ -42,10 +37,10 @@ export let providerAuthImportController = Controller.create(
       "An auth import lets you bring in existing OAuth tokens or credentials from another system, so users don't need to re-authenticate to use Metorial."
   },
   {
-    list: providerAuthConfigGroup
+    list: instanceGroup
       .get(
         instancePath(
-          'provider-deployments/:providerDeploymentId/auth-configs/:providerAuthConfigId/imports',
+          'provider-auth-config-imports',
           'providerDeployments.authConfigs.imports.list'
         ),
         {
@@ -55,26 +50,43 @@ export let providerAuthImportController = Controller.create(
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
       .outputList(providerAuthImportPresenter)
-      .query('default', Paginator.validate())
+      .query(
+        'default',
+        Paginator.validate(
+          v.object({
+            provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by provider ID(s)'
+            }),
+            provider_auth_config_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by auth config ID(s)'
+            }),
+            provider_deployment_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by provider deployment ID(s)'
+            })
+          })
+        )
+      )
       .do(async ctx => {
         let paginator = await subspaceProviderAuthImportService.list({
           instance: ctx.instance,
-          providerIds: [ctx.deployment.providerId],
-          providerAuthConfigIds: [ctx.authConfig.id],
-          providerDeploymentIds: [ctx.deployment.id]
+          providerIds: normalizeArrayParam(ctx.query.provider_id),
+          providerAuthConfigIds: normalizeArrayParam(ctx.query.provider_auth_config_id),
+          providerDeploymentIds: normalizeArrayParam(ctx.query.provider_deployment_id)
         });
 
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, authImport =>
-          providerAuthImportPresenter.present({ authImport: authImport as SubspaceProviderAuthImport })
+          providerAuthImportPresenter.present({
+            authImport: authImport as SubspaceProviderAuthImport
+          })
         );
       }),
 
     get: providerAuthImportGroup
       .get(
         instancePath(
-          'provider-deployments/:providerDeploymentId/auth-configs/:providerAuthConfigId/imports/:providerAuthImportId',
+          'provider-auth-config-imports/:providerAuthImportId',
           'providerDeployments.authConfigs.imports.get'
         ),
         {
@@ -88,10 +100,10 @@ export let providerAuthImportController = Controller.create(
         return providerAuthImportPresenter.present({ authImport: ctx.authImport });
       }),
 
-    create: providerAuthConfigGroup
+    create: instanceGroup
       .post(
         instancePath(
-          'provider-deployments/:providerDeploymentId/auth-configs/:providerAuthConfigId/imports',
+          'provider-auth-config-imports',
           'providerDeployments.authConfigs.imports.create'
         ),
         {
@@ -146,10 +158,10 @@ export let providerAuthImportController = Controller.create(
         });
       }),
 
-    getSchema: providerAuthConfigGroup
+    getSchema: instanceGroup
       .get(
         instancePath(
-          'provider-deployments/:providerDeploymentId/auth-configs/:providerAuthConfigId/imports/schema',
+          'provider-auth-config-imports/schema',
           'providerDeployments.authConfigs.imports.getSchema'
         ),
         {

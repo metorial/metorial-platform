@@ -1,7 +1,7 @@
 import { createSubspaceService } from '../lib/subspaceService';
 import { subspace } from '../subspace';
 
-export let customProviderEnvironmentService = createSubspaceService(
+export let subspaceCustomProviderEnvironmentService = createSubspaceService(
   subspace.customProviderEnvironment,
   ['get', 'list'],
   () => ({})

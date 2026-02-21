@@ -8,12 +8,10 @@ import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
-import { instancePath } from '../../middleware/instanceGroup';
+import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { providerAuthCredentialsPresenter } from '../../presenters';
 
-import { providerDeploymentGroup } from './providerDeployment';
-
-export let providerAuthCredentialsGroup = providerDeploymentGroup.use(async ctx => {
+export let providerAuthCredentialsGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerAuthCredentialsId) {
     throw new ServiceError(
       badRequestError({
@@ -38,12 +36,9 @@ export let providerAuthCredentialsController = Controller.create(
       'Auth credentials store your OAuth app registration (client ID, client secret, and scopes). These are the app-level credentials you get from a service like GitHub or Slack.'
   },
   {
-    list: providerDeploymentGroup
+    list: instanceGroup
       .get(
-        instancePath(
-          'provider-deployments/:providerDeploymentId/auth-credentials',
-          'providerDeployments.authCredentials.list'
-        ),
+        instancePath('provider-auth-credentials', 'providerDeployments.authCredentials.list'),
         {
           name: 'List provider auth credentials',
           description: 'Returns a paginated list of provider auth credentials.'
@@ -57,6 +52,9 @@ export let providerAuthCredentialsController = Controller.create(
           v.object({
             id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by credential ID(s)'
+            }),
+            provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by provider ID(s)'
             })
           })
         )
@@ -65,7 +63,7 @@ export let providerAuthCredentialsController = Controller.create(
         let paginator = await subspaceProviderAuthCredentialsService.list({
           instance: ctx.instance,
           ids: normalizeArrayParam(ctx.query.id),
-          providerIds: [ctx.deployment.providerId]
+          providerIds: normalizeArrayParam(ctx.query.provider_id)
         });
 
         let list = await paginator.run(ctx.query);
@@ -80,7 +78,7 @@ export let providerAuthCredentialsController = Controller.create(
     get: providerAuthCredentialsGroup
       .get(
         instancePath(
-          'provider-deployments/:providerDeploymentId/auth-credentials/:providerAuthCredentialsId',
+          'provider-auth-credentials/:providerAuthCredentialsId',
           'providerDeployments.authCredentials.get'
         ),
         {
@@ -96,10 +94,10 @@ export let providerAuthCredentialsController = Controller.create(
         });
       }),
 
-    create: providerDeploymentGroup
+    create: instanceGroup
       .post(
         instancePath(
-          'provider-deployments/:providerDeploymentId/auth-credentials',
+          'provider-auth-credentials',
           'providerDeployments.authCredentials.create'
         ),
         {
@@ -157,7 +155,7 @@ export let providerAuthCredentialsController = Controller.create(
     update: providerAuthCredentialsGroup
       .patch(
         instancePath(
-          'provider-deployments/:providerDeploymentId/auth-credentials/:providerAuthCredentialsId',
+          'provider-auth-credentials/:providerAuthCredentialsId',
           'providerDeployments.authCredentials.update'
         ),
         {
@@ -194,7 +192,7 @@ export let providerAuthCredentialsController = Controller.create(
     delete: providerAuthCredentialsGroup
       .delete(
         instancePath(
-          'provider-deployments/:providerDeploymentId/auth-credentials/:providerAuthCredentialsId',
+          'provider-auth-credentials/:providerAuthCredentialsId',
           'providerDeployments.authCredentials.delete'
         ),
         {

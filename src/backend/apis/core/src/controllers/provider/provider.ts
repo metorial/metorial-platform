@@ -2,11 +2,9 @@ import { badRequestError, ServiceError } from '@metorial/error';
 import { subspaceProviderService, type SubspaceProvider } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
-import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { providerPresenter } from '../../presenters';
-
 
 export let providerGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerId) {
@@ -40,16 +38,7 @@ export let providerController = Controller.create(
       })
       .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
       .outputList(providerPresenter)
-      .query(
-        'default',
-        Paginator.validate(
-          v.object({
-            publisher_id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by publisher ID(s)'
-            })
-          })
-        )
-      )
+      .query('default', Paginator.validate())
       .do(async ctx => {
         let paginator = await subspaceProviderService.list({
           instance: ctx.instance
@@ -71,39 +60,6 @@ export let providerController = Controller.create(
       .output(providerPresenter)
       .do(async ctx => {
         return providerPresenter.present({ provider: ctx.provider });
-      }),
-
-    update: providerGroup
-      .patch(instancePath('providers/:providerId', 'providers.update'), {
-        name: 'Update provider',
-        description: 'Updates a provider.'
-      })
-      .use(checkAccess({ possibleScopes: ['instance.provider:write'] }))
-      .body(
-        'default',
-        v.object({
-          name: v.optional(v.string({ examples: ['Updated GitHub'] })),
-          description: v.optional(v.string({ examples: ['Updated GitHub MCP server'] })),
-          slug: v.optional(v.string({ examples: ['updated-github'] })),
-          image: v.optional(v.string({ examples: ['https://example.com/updated-image.png'] })),
-          skills: v.optional(v.array(v.string()), {
-            description: 'List of skill tags for this provider'
-          })
-        })
-      )
-      .output(providerPresenter)
-      .do(async ctx => {
-        let provider = await subspaceProviderService.update({
-          instance: ctx.instance,
-          providerId: ctx.provider.id,
-          name: ctx.body.name,
-          description: ctx.body.description,
-          slug: ctx.body.slug,
-          image: ctx.body.image,
-          skills: ctx.body.skills
-        });
-
-        return providerPresenter.present({ provider: provider as SubspaceProvider });
       })
   }
 );
