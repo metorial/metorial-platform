@@ -1,4 +1,4 @@
-import { DashboardScmReposCreateOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+import { DashboardInstanceScmReposCreateOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { renderWithLoader } from '@metorial/data-hooks';
 import {
   useCreateScmInstallation,
@@ -78,7 +78,7 @@ export let ConnectGitHubButton = (p: { onConnected: () => void }) => {
     <Button
       onClick={async () => {
         let [res] = await createInstallation.mutate({
-          organizationId: instance.data?.organization.id!,
+          instanceId: instance.data?.id!,
           provider: 'github',
           redirectUrl: window.location.href
         });
@@ -108,12 +108,12 @@ export let ConnectGitHubButton = (p: { onConnected: () => void }) => {
 };
 
 export let SelectRepo = (props: {
-  onSelect: (repo: DashboardScmReposCreateOutput) => void;
+  onSelect: (repo: DashboardInstanceScmReposCreateOutput) => void;
   selectedRepoId?: string;
 }) => {
   let instance = useCurrentInstance();
 
-  let installations = useScmInstallations(instance.data?.organization.id);
+  let installations = useScmInstallations(instance.data?.id);
   let installationsOuter = installations;
   let createInstallation = useCreateScmInstallation();
   let createRepo = useCreateScmRepo();
@@ -127,7 +127,7 @@ export let SelectRepo = (props: {
     }
   }, [installations.data?.items]);
   let accounts = useScmAccounts(
-    instance.data?.organization.id,
+    instance.data?.id,
     selectedInstallationId ? { installationId: selectedInstallationId } : undefined
   );
   let [selectedAccountId, setSelectedAccountId] = useState<string | undefined>(undefined);
@@ -137,7 +137,7 @@ export let SelectRepo = (props: {
     }
   }, [accounts.data?.items]);
   let repos = useScmRepos(
-    instance.data?.organization.id,
+    instance.data?.id,
     selectedInstallationId && selectedAccountId
       ? {
           installationId: selectedInstallationId,
@@ -161,7 +161,7 @@ export let SelectRepo = (props: {
               <>
                 <Select
                   label="GitHub Installation"
-                  items={installations.data.items.map(i => ({
+                  items={installations.data.items.map((i: any) => ({
                     label: i.user.name,
                     id: i.id
                   }))}
@@ -176,7 +176,7 @@ export let SelectRepo = (props: {
               <>
                 <Select
                   label="GitHub Account"
-                  items={accounts.data.items.map(i => ({
+                  items={accounts.data.items.map((i: any) => ({
                     label: i.name,
                     id: i.externalId
                   }))}
@@ -201,17 +201,17 @@ export let SelectRepo = (props: {
               <RepoList>
                 {repos.data.items
                   .filter(
-                    r =>
+                    (r: any) =>
                       repoSearch.trim() === '' ||
                       r.name.toLowerCase().includes(repoSearch.toLowerCase())
                   )
-                  .map(r => (
+                  .map((r: any) => (
                     <RepoItem
                       key={r.externalId}
                       type="button"
                       onClick={async () => {
                         let [res] = await createRepo.mutate({
-                          organizationId: instance.data?.organization.id!,
+                          instanceId: instance.data?.id!,
                           installationId: selectedInstallationId!,
                           externalRepoId: r.externalId
                         });

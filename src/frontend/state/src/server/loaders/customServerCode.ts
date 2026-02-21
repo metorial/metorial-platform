@@ -24,8 +24,7 @@ export let useCustomServerCodeEditorToken = (
     let expiresAt = data.data?.expiresAt;
     if (!expiresAt) return;
 
-    let expiresAtMs =
-      expiresAt instanceof Date ? expiresAt.getTime() : new Date(expiresAt as any).getTime();
+    let expiresAtMs = new Date(expiresAt).getTime();
     let timeUntilExpiry = expiresAtMs - Date.now();
 
     if (timeUntilExpiry <= 0) {

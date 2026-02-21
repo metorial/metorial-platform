@@ -68,7 +68,7 @@ export let CustomServerListingPage = () => {
                 onConfirm: () => {
                   statusUpdate.mutate({
                     status: 'public'
-                  });
+                  } as any);
                 },
                 onCancel: () => {
                   setIsPublic(false);
@@ -77,7 +77,7 @@ export let CustomServerListingPage = () => {
             } else {
               statusUpdate.mutate({
                 status: 'private'
-              });
+              } as any);
             }
           }}
         />
@@ -176,14 +176,14 @@ export let CustomServerListingPage = () => {
           })
         }
         initialValues={{
-          readme: listing.data?.readme ?? ''
+          readme: listing.data?.metadata?.readme ?? ''
         }}
         mutators={[readmeUpdate]}
         onSubmit={async values => {
           if (!instance.data) return;
 
           await readmeUpdate.mutate({
-            readme: values.readme
+            metadata: { readme: values.readme }
           });
         }}
       >
@@ -210,14 +210,14 @@ export let CustomServerListingPage = () => {
             })
           }
           initialValues={{
-            oauthExplainer: listing.data?.oauthExplainer ?? ''
+            oauthExplainer: listing.data?.metadata?.oauthExplainer ?? ''
           }}
           mutators={[readmeUpdate]}
           onSubmit={async values => {
             if (!instance.data) return;
 
             await readmeUpdate.mutate({
-              oauthExplainer: values.oauthExplainer
+              metadata: { oauthExplainer: values.oauthExplainer }
             });
           }}
         >

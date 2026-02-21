@@ -65,6 +65,14 @@ import {
 } from './implementation/provider';
 
 import {
+  v1ScmAccountPreviewPresenter,
+  v1ScmInstallationPresenter,
+  v1ScmInstallationSetupPresenter,
+  v1ScmRepoPresenter,
+  v1ScmRepoPreviewPresenter
+} from './implementation/scm';
+
+import {
   apiKeyType,
   authConfigType,
   authCredentialsType,
@@ -137,7 +145,12 @@ import {
   toolType,
   usageType,
   userType,
-  versionType
+  versionType,
+  scmInstallationType,
+  scmInstallationSetupType,
+  scmRepoType,
+  scmRepoPreviewType,
+  scmAccountPreviewType
 } from './types';
 
 // =============================================================================
@@ -561,5 +574,34 @@ export let subspaceCustomProviderEnvironmentPresenter = declarePresenter(
     mt_2026_01_01_magnetar: v1CustomProviderEnvironmentPresenter
   }
 );
+
+// =============================================================================
+// SCM Presenters
+// =============================================================================
+
+export let scmInstallationPresenter = declarePresenter(scmInstallationType, {
+  mt_2025_01_01_dashboard: v1ScmInstallationPresenter,
+  mt_2026_01_01_magnetar: v1ScmInstallationPresenter
+});
+
+export let scmInstallationSetupPresenter = declarePresenter(scmInstallationSetupType, {
+  mt_2025_01_01_dashboard: v1ScmInstallationSetupPresenter,
+  mt_2026_01_01_magnetar: v1ScmInstallationSetupPresenter
+});
+
+export let scmRepoPresenter = declarePresenter(scmRepoType, {
+  mt_2025_01_01_dashboard: v1ScmRepoPresenter,
+  mt_2026_01_01_magnetar: v1ScmRepoPresenter
+});
+
+export let scmRepoPreviewPresenter = declarePresenter(scmRepoPreviewType, {
+  mt_2025_01_01_dashboard: v1ScmRepoPreviewPresenter,
+  mt_2026_01_01_magnetar: v1ScmRepoPreviewPresenter
+});
+
+export let scmAccountPreviewPresenter = declarePresenter(scmAccountPreviewType, {
+  mt_2025_01_01_dashboard: v1ScmAccountPreviewPresenter,
+  mt_2026_01_01_magnetar: v1ScmAccountPreviewPresenter
+});
 
 export { presentSubspaceSessionMessageAs } from './implementation/provider';

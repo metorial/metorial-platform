@@ -1,4 +1,4 @@
-import { DashboardInstanceCustomServersListingUpdateBody } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+import { DashboardInstanceCustomProvidersUpdateBody } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { createLoader } from '@metorial/data-hooks';
 import { withAuth } from '../../user';
 import { customServerLoader } from './customServers';
@@ -7,12 +7,12 @@ export let customServerListingLoader = createLoader({
   name: 'customServerListing',
   parents: [customServerLoader],
   fetch: (i: { instanceId: string; customServerId: string }) =>
-    withAuth(sdk => sdk.customServers.listing.get(i.instanceId, i.customServerId)),
+    withAuth(sdk => sdk.customProviders.get(i.instanceId, i.customServerId)),
   mutators: {
     update: (
-      i: DashboardInstanceCustomServersListingUpdateBody,
+      i: DashboardInstanceCustomProvidersUpdateBody,
       { input: { instanceId, customServerId } }: { input: { instanceId: string; customServerId: string } }
-    ) => withAuth(sdk => sdk.customServers.listing.update(instanceId, customServerId, i))
+    ) => withAuth(sdk => sdk.customProviders.update(instanceId, customServerId, i))
   }
 });
 

@@ -1,4 +1,4 @@
-import { DashboardScmReposCreateOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+import { DashboardInstanceScmReposCreateOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { renderWithLoader } from '@metorial/data-hooks';
 import { getConfig, Paths } from '@metorial/frontend-config';
 import {
@@ -79,7 +79,7 @@ export let CustomServerCodePage = () => {
       return token;
     }
 
-    let baseUrl = getConfig().microFrontends.codeEditorUrl;
+    let baseUrl = getConfig().microFrontends?.codeEditorUrl;
     if (!baseUrl) return null;
 
     let url = new URL(baseUrl);
@@ -156,7 +156,7 @@ export let CustomServerCodePage = () => {
               onClick={() =>
                 showModal(({ dialogProps, close }) => {
                   let [path, setPath] = useState<string | undefined>(undefined);
-                  let [repo, setRepo] = useState<DashboardScmReposCreateOutput | undefined>(
+                  let [repo, setRepo] = useState<DashboardInstanceScmReposCreateOutput | undefined>(
                     undefined
                   );
 
@@ -171,7 +171,7 @@ export let CustomServerCodePage = () => {
                       </Dialog.Description>
                       <SelectRepo
                         onSelect={repo => setRepo(repo)}
-                        selectedRepoId={repo?.externalId}
+                        selectedRepoId={repo?.id}
                       />
 
                       <Spacer height={15} />

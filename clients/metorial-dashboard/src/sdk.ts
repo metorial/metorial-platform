@@ -55,6 +55,9 @@ import {
   MetorialDashboardOrganizationsTeamsMembersEndpoint,
   MetorialDashboardOrganizationsTeamsProjectsEndpoint,
   MetorialDashboardOrganizationsTeamsRolesEndpoint,
+  MetorialDashboardInstanceScmAccountsEndpoint,
+  MetorialDashboardInstanceScmInstallationEndpoint,
+  MetorialDashboardInstanceScmReposEndpoint,
   MetorialDashboardUsageEndpoint,
   MetorialManagementUserEndpoint,
   MetorialOrganizationsProfileEndpoint
@@ -199,7 +202,13 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
     {
       providers: new MetorialDashboardInstanceSessionTemplatesProvidersEndpoint(manager)
     }
-  )
+  ),
+
+  scm: {
+    installation: new MetorialDashboardInstanceScmInstallationEndpoint(manager),
+    repos: new MetorialDashboardInstanceScmReposEndpoint(manager),
+    accounts: new MetorialDashboardInstanceScmAccountsEndpoint(manager)
+  }
 }));
 
 export type MetorialDashboardSDK = ReturnType<typeof createMetorialDashboardSDK>;

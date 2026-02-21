@@ -10,6 +10,7 @@ export * from './provider-listings';
 export * from './provider-runs';
 export * from './providers';
 export * from './publishers';
+export * from './scm';
 export * from './session-error-groups';
 export * from './session-errors';
 export * from './session-templates';

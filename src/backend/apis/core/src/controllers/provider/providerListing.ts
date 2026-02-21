@@ -67,8 +67,6 @@ export let providerListingController = Controller.create(
         let paginator = await subspaceProviderListingService.list({
           instance: ctx.instance,
           search: ctx.query.search,
-          providerIds: normalizeArrayParam(ctx.query.provider_id),
-          providerVersionId: ctx.query.provider_version_id,
           publisherIds: normalizeArrayParam(ctx.query.publisher_id),
           providerCategoryIds: normalizeArrayParam(ctx.query.provider_category_id),
           providerCollectionIds: normalizeArrayParam(ctx.query.provider_collection_id),

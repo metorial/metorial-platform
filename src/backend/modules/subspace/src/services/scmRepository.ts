@@ -3,7 +3,7 @@ import { subspace } from '../subspace';
 
 export let scmRepositoryService = createSubspaceService(
   subspace.scmRepository,
-  ['get', 'list', 'listAccountPreviews', 'listRepositoryPreviews'],
+  ['get', 'list', 'listAccountPreviews', 'listRepositoryPreviews', 'createRepository', 'linkRepository'],
   () => ({})
 );
 

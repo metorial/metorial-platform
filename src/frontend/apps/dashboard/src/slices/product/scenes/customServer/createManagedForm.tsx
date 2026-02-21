@@ -209,7 +209,7 @@ export let CustomServerManagedCreateForm = (p: {
     </Button>
   );
 
-  let installations = useScmInstallations(instance.data?.organization.id);
+  let installations = useScmInstallations(instance.data?.id);
   let installationsOuter = installations;
   let createRepo = useCreateScmRepo();
   let [selectedInstallationId, setSelectedInstallationId] = useState<string | undefined>(
@@ -221,7 +221,7 @@ export let CustomServerManagedCreateForm = (p: {
     }
   }, [installations.data?.items]);
   let accounts = useScmAccounts(
-    instance.data?.organization.id,
+    instance.data?.id,
     selectedInstallationId ? { installationId: selectedInstallationId } : undefined
   );
   let [selectedAccountId, setSelectedAccountId] = useState<string | undefined>(undefined);
@@ -302,7 +302,7 @@ export let CustomServerManagedCreateForm = (p: {
                     onSelect={repo => {
                       setSelectedRepoId(repo.id);
                       form.resetForm();
-                      form.setFieldValue('name', repo.name);
+                      form.setFieldValue('name', repo.provider.name);
                       setCurrentStep(2);
                       setTemplateId(undefined);
                     }}
@@ -341,7 +341,7 @@ export let CustomServerManagedCreateForm = (p: {
                             <>
                               <Select
                                 label="GitHub Installation"
-                                items={installations.data.items.map(i => ({
+                                items={installations.data.items.map((i: any) => ({
                                   label: i.user.name,
                                   id: i.id
                                 }))}
@@ -356,7 +356,7 @@ export let CustomServerManagedCreateForm = (p: {
                             <>
                               <Select
                                 label="GitHub Account"
-                                items={accounts.data.items.map(i => ({
+                                items={accounts.data.items.map((i: any) => ({
                                   label: i.name,
                                   id: i.externalId
                                 }))}
@@ -408,7 +408,7 @@ export let CustomServerManagedCreateForm = (p: {
                           }
                           onClick={async () => {
                             let [res] = await createRepo.mutate({
-                              organizationId: instance.data?.organization.id!,
+                              instanceId: instance.data?.id!,
                               installationId: selectedInstallationId!,
                               externalAccountId: selectedAccountId!,
                               name: createRepoName,
