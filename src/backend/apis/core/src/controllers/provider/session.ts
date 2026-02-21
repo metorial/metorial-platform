@@ -130,7 +130,7 @@ export let providerSessionController = Controller.create(
         });
 
         return providerSessionPresenter.present({
-          session: withConnectionUrl(subspaceSession, ctx.instance)
+          session: subspaceSession
         });
       }),
 
@@ -161,7 +161,7 @@ export let providerSessionController = Controller.create(
         });
 
         return providerSessionPresenter.present({
-          session: withConnectionUrl(session, ctx.instance)
+          session: session
         });
       }),
 
@@ -180,7 +180,7 @@ export let providerSessionController = Controller.create(
         });
 
         return providerSessionPresenter.present({
-          session: withConnectionUrl(session, ctx.instance)
+          session: session
         });
       })
   }

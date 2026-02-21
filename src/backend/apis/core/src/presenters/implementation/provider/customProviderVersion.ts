@@ -24,13 +24,19 @@ let environmentNestedSchema = v.object({
 export let v1CustomProviderVersionPresenter = Presenter.create(customProviderVersionType)
   .presenter(async ({ customProviderVersion }, opts) => ({
     object: 'custom_provider.version' as const,
+
     id: customProviderVersion.id,
     status: customProviderVersion.status,
     index: customProviderVersion.index,
+
+    custom_provider_id: customProviderVersion.customProviderId,
+    provider_id: customProviderVersion.providerId ?? null,
+
     identifier: customProviderVersion.identifier,
     deployment: await v1CustomProviderDeploymentPresenter
       .present({ customProviderDeployment: customProviderVersion.deployment }, opts)
       .run(),
+
     environments: await Promise.all(
       customProviderVersion.environments.map(async env => ({
         object: 'custom_provider.environment' as const,
@@ -41,11 +47,11 @@ export let v1CustomProviderVersionPresenter = Presenter.create(customProviderVer
           .run()
       }))
     ),
-    custom_provider_id: customProviderVersion.customProviderId,
-    provider_id: customProviderVersion.providerId ?? null,
+
     actor: await v1ActorPreviewPresenter
       .present({ actor: customProviderVersion.actor }, opts)
       .run(),
+
     created_at: customProviderVersion.createdAt,
     updated_at: customProviderVersion.updatedAt
   }))

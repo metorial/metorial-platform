@@ -1,7 +1,7 @@
 import { createSubspaceService } from '../lib/subspaceService';
 import { subspace } from '../subspace';
 
-export let toolCallService = createSubspaceService(
+export let subspaceToolCallService = createSubspaceService(
   subspace.toolCall,
   ['get', 'list', 'create'],
   () => ({})

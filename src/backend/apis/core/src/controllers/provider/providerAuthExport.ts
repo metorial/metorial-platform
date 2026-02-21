@@ -1,12 +1,15 @@
 import { badRequestError, ServiceError } from '@metorial/error';
-import { subspaceProviderAuthExportService } from '@metorial/module-subspace';
+import {
+  subspaceProviderAuthExportService,
+  type SubspaceProviderAuthExport
+} from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instancePath } from '../../middleware/instanceGroup';
 import { providerAuthExportPresenter } from '../../presenters';
-import { SubspaceAuthExport } from '../../presenters/types';
+
 import { providerAuthConfigGroup } from './providerAuthConfig';
 
 export let providerAuthExportGroup = providerAuthConfigGroup.use(async ctx => {
@@ -62,7 +65,7 @@ export let providerAuthExportController = Controller.create(
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, authExport =>
-          providerAuthExportPresenter.present({ authExport: authExport as SubspaceAuthExport })
+          providerAuthExportPresenter.present({ authExport: authExport as SubspaceProviderAuthExport })
         );
       }),
 
@@ -116,7 +119,7 @@ export let providerAuthExportController = Controller.create(
         });
 
         return providerAuthExportPresenter.present({
-          authExport: authExport as SubspaceAuthExport
+          authExport: authExport as SubspaceProviderAuthExport
         });
       })
   }

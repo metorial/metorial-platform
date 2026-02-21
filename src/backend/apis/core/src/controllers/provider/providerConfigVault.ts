@@ -1,12 +1,15 @@
 import { badRequestError, ServiceError } from '@metorial/error';
-import { subspaceProviderConfigVaultService } from '@metorial/module-subspace';
+import {
+  subspaceProviderConfigVaultService,
+  type SubspaceProviderConfigVault
+} from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instancePath } from '../../middleware/instanceGroup';
 import { providerConfigVaultPresenter } from '../../presenters';
-import { SubspaceConfigVault } from '../../presenters/types';
+
 import { providerDeploymentGroup } from './providerDeployment';
 
 export let providerConfigVaultGroup = providerDeploymentGroup.use(async ctx => {
@@ -59,7 +62,7 @@ export let providerConfigVaultController = Controller.create(
 
         return Paginator.present(list, configVault =>
           providerConfigVaultPresenter.present({
-            configVault: configVault as SubspaceConfigVault
+            configVault: configVault as SubspaceProviderConfigVault
           })
         );
       }),
@@ -79,7 +82,7 @@ export let providerConfigVaultController = Controller.create(
       .output(providerConfigVaultPresenter)
       .do(async ctx => {
         return providerConfigVaultPresenter.present({
-          configVault: ctx.configVault as unknown as SubspaceConfigVault
+          configVault: ctx.configVault as unknown as SubspaceProviderConfigVault
         });
       }),
 
@@ -128,7 +131,7 @@ export let providerConfigVaultController = Controller.create(
         });
 
         return providerConfigVaultPresenter.present({
-          configVault: configVault as SubspaceConfigVault
+          configVault: configVault as SubspaceProviderConfigVault
         });
       }),
 
@@ -168,7 +171,7 @@ export let providerConfigVaultController = Controller.create(
         });
 
         return providerConfigVaultPresenter.present({
-          configVault: configVault as SubspaceConfigVault
+          configVault: configVault as SubspaceProviderConfigVault
         });
       }),
 
@@ -187,7 +190,7 @@ export let providerConfigVaultController = Controller.create(
       .output(providerConfigVaultPresenter)
       .do(async ctx => {
         return providerConfigVaultPresenter.present({
-          configVault: ctx.configVault as unknown as SubspaceConfigVault
+          configVault: ctx.configVault as unknown as SubspaceProviderConfigVault
         });
       })
   }

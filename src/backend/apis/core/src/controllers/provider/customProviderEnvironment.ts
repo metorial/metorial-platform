@@ -1,5 +1,8 @@
 import { badRequestError, ServiceError } from '@metorial/error';
-import { customProviderEnvironmentService } from '@metorial/module-subspace';
+import {
+  customProviderEnvironmentService,
+  type SubspaceCustomProviderEnvironment
+} from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
@@ -7,7 +10,7 @@ import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instancePath } from '../../middleware/instanceGroup';
 import { subspaceCustomProviderEnvironmentPresenter } from '../../presenters';
-import { SubspaceCustomProviderEnvironment } from '../../presenters/types';
+
 import { customProviderGroup } from './customProvider';
 
 export let customProviderEnvironmentGroup = customProviderGroup.use(async ctx => {

@@ -1,12 +1,15 @@
 import { badRequestError, ServiceError } from '@metorial/error';
-import { subspaceProviderSetupSessionService } from '@metorial/module-subspace';
+import {
+  subspaceProviderSetupSessionService,
+  type SubspaceProviderSetupSession
+} from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller, Path } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { providerSetupSessionPresenter } from '../../presenters';
-import { SubspaceSetupSession } from '../../presenters/types';
+
 import { providerDeploymentGroup } from './providerDeployment';
 
 export let providerSetupSessionGroup = providerDeploymentGroup.use(async ctx => {
@@ -76,7 +79,7 @@ export let providerSetupSessionController = Controller.create(
 
         return Paginator.present(list, setupSession =>
           providerSetupSessionPresenter.present({
-            setupSession: setupSession as SubspaceSetupSession
+            setupSession: setupSession as SubspaceProviderSetupSession
           })
         );
       }),
@@ -167,7 +170,7 @@ export let providerSetupSessionController = Controller.create(
         });
 
         return providerSetupSessionPresenter.present({
-          setupSession: setupSession as SubspaceSetupSession
+          setupSession: setupSession as SubspaceProviderSetupSession
         });
       }),
 
@@ -215,7 +218,7 @@ export let providerSetupSessionController = Controller.create(
         });
 
         return providerSetupSessionPresenter.present({
-          setupSession: setupSession as SubspaceSetupSession
+          setupSession: setupSession as SubspaceProviderSetupSession
         });
       }),
 

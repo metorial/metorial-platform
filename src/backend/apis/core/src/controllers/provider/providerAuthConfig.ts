@@ -1,5 +1,8 @@
 import { badRequestError, ServiceError } from '@metorial/error';
-import { subspaceProviderAuthConfigService } from '@metorial/module-subspace';
+import {
+  subspaceProviderAuthConfigService,
+  type SubspaceProviderAuthConfig
+} from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
@@ -7,7 +10,7 @@ import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { providerAuthConfigPresenter } from '../../presenters';
-import { SubspaceAuthConfig } from '../../presenters/types';
+
 import { providerDeploymentGroup } from './providerDeployment';
 
 export let providerAuthConfigGroup = providerDeploymentGroup.use(async ctx => {
@@ -76,7 +79,7 @@ export let providerAuthConfigController = Controller.create(
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, authConfig =>
-          providerAuthConfigPresenter.present({ authConfig: authConfig as SubspaceAuthConfig })
+          providerAuthConfigPresenter.present({ authConfig: authConfig as SubspaceProviderAuthConfig })
         );
       }),
 
@@ -158,18 +161,18 @@ export let providerAuthConfigController = Controller.create(
         let authConfig = await subspaceProviderAuthConfigService.create({
           instance: ctx.instance,
           providerId: ctx.deployment.providerId,
-          providerDeployment: ctx.deployment.id,
+          providerDeploymentId: ctx.deployment.id,
           providerAuthMethodId: ctx.body.provider_auth_method_id,
           name: ctx.body.name,
           description: ctx.body.description,
-          config: ctx.body.credentials.type === 'new' ? ctx.body.credentials.data : {},
+          credentials: ctx.body.credentials.type === 'new' ? ctx.body.credentials.data : {},
           ip: ctx.context.ip,
           ua: ctx.context.ua ?? '',
           metadata: ctx.body.metadata
-        });
+        } as any);
 
         return providerAuthConfigPresenter.present({
-          authConfig: authConfig as SubspaceAuthConfig
+          authConfig: authConfig as SubspaceProviderAuthConfig
         });
       }),
 
@@ -213,7 +216,7 @@ export let providerAuthConfigController = Controller.create(
         });
 
         return providerAuthConfigPresenter.present({
-          authConfig: authConfig as SubspaceAuthConfig
+          authConfig: authConfig as SubspaceProviderAuthConfig
         });
       }),
 
@@ -278,7 +281,7 @@ export let providerAuthConfigListController = Controller.create(
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, authConfig =>
-          providerAuthConfigPresenter.present({ authConfig: authConfig as SubspaceAuthConfig })
+          providerAuthConfigPresenter.present({ authConfig: authConfig as SubspaceProviderAuthConfig })
         );
       })
   }

@@ -1,6 +1,9 @@
 import { convertKeysToCamelCase } from '@metorial/case';
 import { badRequestError, ServiceError } from '@metorial/error';
-import { subspaceSessionProviderService } from '@metorial/module-subspace';
+import {
+  subspaceSessionProviderService,
+  type SubspaceSessionProvider
+} from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
@@ -13,7 +16,7 @@ import {
 import { checkAccess } from '../../middleware/checkAccess';
 import { instancePath } from '../../middleware/instanceGroup';
 import { sessionProviderPresenter } from '../../presenters';
-import { SubspaceSessionProvider } from '../../presenters/types';
+
 import { subspaceSessionGroup } from './subspaceSession';
 
 export let subspaceSessionProviderGroup = subspaceSessionGroup.use(async ctx => {

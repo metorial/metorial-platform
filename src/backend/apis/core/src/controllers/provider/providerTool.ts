@@ -1,12 +1,12 @@
 import { badRequestError, ServiceError } from '@metorial/error';
-import { subspaceProviderToolService } from '@metorial/module-subspace';
+import { subspaceProviderToolService, type SubspaceProviderTool } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instancePath } from '../../middleware/instanceGroup';
 import { providerToolPresenter } from '../../presenters';
-import { SubspaceTool } from '../../presenters/types';
+
 import { providerGroup } from './provider';
 
 export let providerToolGroup = providerGroup.use(async ctx => {
@@ -59,7 +59,7 @@ export let providerToolController = Controller.create(
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, tool =>
-          providerToolPresenter.present({ tool: tool as SubspaceTool })
+          providerToolPresenter.present({ tool: tool as SubspaceProviderTool })
         );
       }),
 

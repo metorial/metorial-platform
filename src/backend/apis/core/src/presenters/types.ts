@@ -514,7 +514,6 @@ export let bucketEditorTokenType = PresentableType.create<{
   token: {
     id: string;
     url: string;
-    token: string;
     expiresAt: Date;
   };
 }>()('bucketEditorToken');

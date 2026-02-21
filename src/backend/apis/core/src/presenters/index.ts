@@ -63,7 +63,8 @@ import {
   v1SessionTemplateProviderPresenter,
   v1SetupSessionPresenter,
   v1SubspaceSessionEventPresenter,
-  v1SubspaceSessionMessagePresenter
+  v1SubspaceSessionMessagePresenter,
+  v1ProviderToolCallPresenter
 } from './implementation/provider';
 
 import {
@@ -157,6 +158,7 @@ import {
   teamRolePermissionsType,
   teamRoleType,
   teamType,
+  toolCallType,
   usageType,
   userType
 } from './types';
@@ -586,6 +588,11 @@ export let subspaceCustomProviderEnvironmentPresenter = declarePresenter(
     mt_2026_01_01_magnetar: v1CustomProviderEnvironmentPresenter
   }
 );
+
+export let toolCallPresenter = declarePresenter(toolCallType, {
+  mt_2025_01_01_dashboard: v1ProviderToolCallPresenter,
+  mt_2026_01_01_magnetar: v1ProviderToolCallPresenter
+});
 
 // =============================================================================
 // SCM Presenters

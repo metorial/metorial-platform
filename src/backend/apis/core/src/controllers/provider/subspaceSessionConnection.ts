@@ -1,5 +1,8 @@
 import { badRequestError, ServiceError } from '@metorial/error';
-import { subspaceSessionConnectionService } from '@metorial/module-subspace';
+import {
+  subspaceSessionConnectionService,
+  type SubspaceSessionConnection
+} from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
@@ -7,7 +10,7 @@ import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instancePath } from '../../middleware/instanceGroup';
 import { subspaceSessionConnectionPresenter } from '../../presenters';
-import { SubspaceSessionConnection } from '../../presenters/types';
+
 import { subspaceSessionGroup } from './subspaceSession';
 
 export let subspaceSessionConnectionGroup = subspaceSessionGroup.use(async ctx => {

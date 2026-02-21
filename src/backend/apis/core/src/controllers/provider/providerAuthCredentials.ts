@@ -1,5 +1,8 @@
 import { badRequestError, ServiceError } from '@metorial/error';
-import { subspaceProviderAuthCredentialsService } from '@metorial/module-subspace';
+import {
+  subspaceProviderAuthCredentialsService,
+  type SubspaceProviderAuthCredentials
+} from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
@@ -7,7 +10,7 @@ import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instancePath } from '../../middleware/instanceGroup';
 import { providerAuthCredentialsPresenter } from '../../presenters';
-import { SubspaceAuthCredentials } from '../../presenters/types';
+
 import { providerDeploymentGroup } from './providerDeployment';
 
 export let providerAuthCredentialsGroup = providerDeploymentGroup.use(async ctx => {
@@ -69,7 +72,7 @@ export let providerAuthCredentialsController = Controller.create(
 
         return Paginator.present(list, authCredentials =>
           providerAuthCredentialsPresenter.present({
-            authCredentials: authCredentials as SubspaceAuthCredentials
+            authCredentials: authCredentials as SubspaceProviderAuthCredentials
           })
         );
       }),
@@ -147,7 +150,7 @@ export let providerAuthCredentialsController = Controller.create(
         });
 
         return providerAuthCredentialsPresenter.present({
-          authCredentials: authCredentials as SubspaceAuthCredentials
+          authCredentials: authCredentials as SubspaceProviderAuthCredentials
         });
       }),
 
@@ -184,7 +187,7 @@ export let providerAuthCredentialsController = Controller.create(
         });
 
         return providerAuthCredentialsPresenter.present({
-          authCredentials: authCredentials as SubspaceAuthCredentials
+          authCredentials: authCredentials as SubspaceProviderAuthCredentials
         });
       }),
 

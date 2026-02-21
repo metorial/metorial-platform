@@ -1,14 +1,14 @@
 import {
   scmConnectionService,
-  scmConnectionSetupSessionService
+  scmConnectionSetupSessionService,
+  type SubspaceScmConnection
 } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
-import { scmInstallationPresenter, scmInstallationSetupPresenter } from '../../presenters';
-import { ScmInstallation } from '../../presenters/types';
+import { scmConnectionPresenter, scmConnectionSetupPresenter } from '../../presenters';
 
 export let scmInstallationController = Controller.create(
   {
@@ -22,7 +22,7 @@ export let scmInstallationController = Controller.create(
         description: 'Returns a paginated list of SCM installations.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
-      .outputList(scmInstallationPresenter)
+      .outputList(scmConnectionPresenter)
       .query('default', Paginator.validate())
       .do(async ctx => {
         let paginator = await scmConnectionService.list({
@@ -33,8 +33,8 @@ export let scmInstallationController = Controller.create(
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, connection =>
-          scmInstallationPresenter.present({
-            scmInstallation: connection as unknown as ScmInstallation
+          scmConnectionPresenter.present({
+            scmConnection: connection as unknown as SubspaceScmConnection
           })
         );
       }),
@@ -52,7 +52,7 @@ export let scmInstallationController = Controller.create(
           redirect_url: v.optional(v.string({ description: 'URL to redirect after authorization' }))
         })
       )
-      .output(scmInstallationSetupPresenter)
+      .output(scmConnectionSetupPresenter)
       .do(async ctx => {
         let session = await scmConnectionSetupSessionService.create({
           instance: ctx.instance,
@@ -62,9 +62,8 @@ export let scmInstallationController = Controller.create(
 
         let setupSession = (session as any).scmConnectionSetupSession ?? session;
 
-        return scmInstallationSetupPresenter.present({
-          id: setupSession.id,
-          url: setupSession.url
+        return scmConnectionSetupPresenter.present({
+          scmConnectionSetup: setupSession
         });
       })
   }

@@ -1,6 +1,9 @@
 import { convertKeysToCamelCase } from '@metorial/case';
 import { badRequestError, ServiceError } from '@metorial/error';
-import { customProviderVersionService } from '@metorial/module-subspace';
+import {
+  customProviderVersionService,
+  type SubspaceCustomProviderVersion
+} from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
@@ -8,7 +11,7 @@ import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instancePath } from '../../middleware/instanceGroup';
 import { subspaceCustomProviderVersionPresenter } from '../../presenters';
-import { SubspaceCustomProviderVersion } from '../../presenters/types';
+
 import { customProviderGroup } from './customProvider';
 
 export let customProviderVersionGroup = customProviderGroup.use(async ctx => {

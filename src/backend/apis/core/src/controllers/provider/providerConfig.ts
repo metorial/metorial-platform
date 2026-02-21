@@ -1,13 +1,17 @@
 import { convertKeysToCamelCase } from '@metorial/case';
 import { badRequestError, ServiceError } from '@metorial/error';
-import { subspaceProviderConfigService } from '@metorial/module-subspace';
+import {
+  subspaceProviderConfigService,
+  type SubspaceProviderConfig,
+  type SubspaceProviderConfigSchema
+} from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instancePath } from '../../middleware/instanceGroup';
-import { providerConfigPresenter, configSchemaPresenter } from '../../presenters';
-import { SubspaceConfig, SubspaceConfigSchema } from '../../presenters/types';
+import { configSchemaPresenter, providerConfigPresenter } from '../../presenters';
+
 import { providerDeploymentGroup } from './providerDeployment';
 
 export let providerConfigGroup = providerDeploymentGroup.use(async ctx => {
@@ -59,7 +63,7 @@ export let providerConfigController = Controller.create(
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, config =>
-          providerConfigPresenter.present({ config: config as SubspaceConfig })
+          providerConfigPresenter.present({ config: config as SubspaceProviderConfig })
         );
       }),
 
@@ -109,13 +113,13 @@ export let providerConfigController = Controller.create(
             [
               v.object(
                 {
-                  type: v.literal('new'),
+                  type: v.literal('inline'),
                   data: v.record(v.any(), {
                     description: 'Provider-specific configuration values',
                     examples: [{ api_key: 'sk-xxx', base_url: 'https://api.example.com' }]
                   })
                 },
-                { name: 'new', description: 'Provide configuration values directly' }
+                { name: 'inline', description: 'Provide configuration values directly' }
               ),
               v.object(
                 {
@@ -134,23 +138,17 @@ export let providerConfigController = Controller.create(
       )
       .output(providerConfigPresenter)
       .do(async ctx => {
-        let converted = convertKeysToCamelCase(ctx.body.config);
-        let transformedConfig =
-          converted.type === 'new'
-            ? { type: 'inline' as const, data: converted.data }
-            : converted;
-
         let config = await subspaceProviderConfigService.create({
           instance: ctx.instance,
           providerId: ctx.deployment.providerId,
           providerDeploymentId: ctx.deployment.id,
           name: ctx.body.name,
           description: ctx.body.description,
-          config: transformedConfig,
+          config: convertKeysToCamelCase(ctx.body.config) as any,
           metadata: ctx.body.metadata
         });
 
-        return providerConfigPresenter.present({ config: config as SubspaceConfig });
+        return providerConfigPresenter.present({ config: config as SubspaceProviderConfig });
       }),
 
     update: providerConfigGroup
@@ -185,7 +183,7 @@ export let providerConfigController = Controller.create(
           metadata: ctx.body.metadata
         });
 
-        return providerConfigPresenter.present({ config: config as SubspaceConfig });
+        return providerConfigPresenter.present({ config: config as SubspaceProviderConfig });
       }),
 
     delete: providerConfigGroup
@@ -226,7 +224,7 @@ export let providerConfigController = Controller.create(
         });
 
         return configSchemaPresenter.present({
-          schema: { schema: (schema as any).configSchema ?? null } as SubspaceConfigSchema
+          schema: { schema: (schema as any).configSchema ?? null } as SubspaceProviderConfigSchema
         });
       })
   }

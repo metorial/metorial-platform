@@ -1,5 +1,8 @@
 import { badRequestError, ServiceError } from '@metorial/error';
-import { customProviderCommitService } from '@metorial/module-subspace';
+import {
+  customProviderCommitService,
+  type SubspaceCustomProviderCommit
+} from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
@@ -7,7 +10,7 @@ import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instancePath } from '../../middleware/instanceGroup';
 import { subspaceCustomProviderCommitPresenter } from '../../presenters';
-import { SubspaceCustomProviderCommit } from '../../presenters/types';
+
 import { customProviderGroup } from './customProvider';
 
 export let customProviderCommitGroup = customProviderGroup.use(async ctx => {
@@ -191,7 +194,7 @@ export let customProviderCommitController = Controller.create(
           customProviderId: ctx.customProvider.id,
           message: ctx.body.message,
           action
-        });
+        } as any);
 
         return subspaceCustomProviderCommitPresenter.present({
           customProviderCommit: customProviderCommit as SubspaceCustomProviderCommit

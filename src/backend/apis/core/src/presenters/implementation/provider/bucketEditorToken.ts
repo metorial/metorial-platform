@@ -7,7 +7,6 @@ export let v1BucketEditorTokenPresenter = Presenter.create(bucketEditorTokenType
     object: 'bucket.editor_token' as const,
     id: token.id,
     url: token.url,
-    token: token.token,
     expires_at: token.expiresAt
   }))
   .schema(
@@ -17,7 +16,6 @@ export let v1BucketEditorTokenPresenter = Presenter.create(bucketEditorTokenType
       }),
       id: v.string({ description: 'The code bucket ID' }),
       url: v.string({ description: 'The code editor URL' }),
-      token: v.string({ description: 'The code editor access token' }),
       expires_at: v.date({ description: 'When the token expires' })
     })
   )

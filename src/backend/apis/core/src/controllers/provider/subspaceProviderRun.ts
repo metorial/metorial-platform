@@ -1,5 +1,9 @@
 import { badRequestError, ServiceError } from '@metorial/error';
-import { subspaceProviderRunService } from '@metorial/module-subspace';
+import {
+  subspaceProviderRunService,
+  type SubspaceProviderRun,
+  type SubspaceProviderRunLogs
+} from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
@@ -7,7 +11,7 @@ import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instancePath } from '../../middleware/instanceGroup';
 import { subspaceProviderRunPresenter, providerRunLogsPresenter } from '../../presenters';
-import { SubspaceProviderRun, SubspaceProviderRunLogs } from '../../presenters/types';
+
 import { instanceGroup } from '../../middleware/instanceGroup';
 import { subspaceSessionGroup } from './subspaceSession';
 

@@ -1,13 +1,12 @@
 import { badRequestError, ServiceError } from '@metorial/error';
-import { subspaceToolCallService } from '@metorial/module-subspace';
+import { subspaceToolCallService, type SubspaceToolCall } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
-import { instancePath, instanceGroup } from '../../middleware/instanceGroup';
-import { subspaceToolCallPresenter } from '../../presenters';
-import { SubspaceToolCall } from '../../presenters/types';
+import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
+import { toolCallPresenter } from '../../presenters';
 import { subspaceSessionGroup } from './subspaceSession';
 
 export let subspaceToolCallGroup = subspaceSessionGroup.use(async ctx => {
@@ -67,7 +66,7 @@ export let subspaceToolCallController = Controller.create(
         description: 'Returns a paginated list of tool calls across all sessions.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
-      .outputList(subspaceToolCallPresenter)
+      .outputList(toolCallPresenter)
       .query('default', toolCallListQuery)
       .do(async ctx => {
         let paginator = await subspaceToolCallService.list({
@@ -84,7 +83,7 @@ export let subspaceToolCallController = Controller.create(
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, toolCall =>
-          subspaceToolCallPresenter.present({
+          toolCallPresenter.present({
             toolCall: toolCall as SubspaceToolCall
           })
         );
@@ -96,13 +95,13 @@ export let subspaceToolCallController = Controller.create(
         description: 'Retrieves a specific tool call by ID.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
-      .output(subspaceToolCallPresenter)
+      .output(toolCallPresenter)
       .do(async ctx => {
         let toolCall = await subspaceToolCallService.get({
           instance: ctx.instance,
           toolCallId: ctx.params.toolCallId
         });
-        return subspaceToolCallPresenter.present({
+        return toolCallPresenter.present({
           toolCall: toolCall as SubspaceToolCall
         });
       }),
@@ -113,7 +112,7 @@ export let subspaceToolCallController = Controller.create(
         description: 'Returns a paginated list of tool calls for a session.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
-      .outputList(subspaceToolCallPresenter)
+      .outputList(toolCallPresenter)
       .query('default', toolCallListQuery)
       .do(async ctx => {
         let paginator = await subspaceToolCallService.list({
@@ -131,7 +130,7 @@ export let subspaceToolCallController = Controller.create(
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, toolCall =>
-          subspaceToolCallPresenter.present({
+          toolCallPresenter.present({
             toolCall: toolCall as SubspaceToolCall
           })
         );
@@ -146,9 +145,9 @@ export let subspaceToolCallController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
-      .output(subspaceToolCallPresenter)
+      .output(toolCallPresenter)
       .do(async ctx => {
-        return subspaceToolCallPresenter.present({ toolCall: ctx.toolCall });
+        return toolCallPresenter.present({ toolCall: ctx.toolCall });
       }),
 
     create: subspaceSessionGroup
@@ -157,7 +156,7 @@ export let subspaceToolCallController = Controller.create(
         description: 'Creates a new tool call in a session by invoking a specific tool.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
-      .output(subspaceToolCallPresenter)
+      .output(toolCallPresenter)
       .body(
         'default',
         v.object({
@@ -177,7 +176,7 @@ export let subspaceToolCallController = Controller.create(
           metadata: ctx.body.metadata
         });
 
-        return subspaceToolCallPresenter.present({
+        return toolCallPresenter.present({
           toolCall: toolCall as SubspaceToolCall
         });
       })

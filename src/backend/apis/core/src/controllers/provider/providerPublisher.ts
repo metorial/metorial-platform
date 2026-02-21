@@ -1,12 +1,12 @@
 import { badRequestError, ServiceError } from '@metorial/error';
-import { subspacePublisherService } from '@metorial/module-subspace';
+import { subspacePublisherService, type SubspacePublisher } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { publisherPresenter } from '../../presenters';
-import { SubspacePublisher } from '../../presenters/types';
+
 
 export let providerPublisherGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.publisherId) {

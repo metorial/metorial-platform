@@ -3,7 +3,7 @@ import { subspaceBucketService } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instancePath } from '../../middleware/instanceGroup';
-import { customServerCodeEditorTokenTypePresenter } from '../../presenters';
+import { bucketEditorTokenPresenter } from '../../presenters';
 import { customProviderGroup } from './customProvider';
 
 export let customProviderCodeController = Controller.create(
@@ -24,7 +24,7 @@ export let customProviderCodeController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider:write'] }))
-      .output(customServerCodeEditorTokenTypePresenter)
+      .output(bucketEditorTokenPresenter)
       .do(async ctx => {
         let draftBucket = (ctx.customProvider as any).draftBucket;
 
@@ -41,10 +41,12 @@ export let customProviderCodeController = Controller.create(
           bucketId: draftBucket.id
         });
 
-        return customServerCodeEditorTokenTypePresenter.present({
-          id: draftBucket.id,
-          token: editorRes.url,
-          expiresAt: editorRes.expiresAt
+        return bucketEditorTokenPresenter.present({
+          token: {
+            id: draftBucket.id,
+            url: editorRes.url,
+            expiresAt: editorRes.expiresAt
+          }
         });
       })
   }

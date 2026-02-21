@@ -1,12 +1,15 @@
 import { badRequestError, ServiceError } from '@metorial/error';
-import { subspaceProviderAuthMethodService } from '@metorial/module-subspace';
+import {
+  subspaceProviderAuthMethodService,
+  type SubspaceProviderAuthMethod
+} from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instancePath } from '../../middleware/instanceGroup';
 import { providerAuthMethodPresenter } from '../../presenters';
-import type { SubspaceAuthMethod } from '../../presenters/types';
+
 
 import { providerGroup } from './provider';
 
@@ -78,7 +81,7 @@ export let providerAuthMethodController = Controller.create(
       .output(providerAuthMethodPresenter)
       .do(async ctx => {
         return providerAuthMethodPresenter.present({
-          authMethod: ctx.authMethod as unknown as SubspaceAuthMethod
+          authMethod: ctx.authMethod as unknown as SubspaceProviderAuthMethod
         });
       })
   }

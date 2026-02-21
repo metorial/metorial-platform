@@ -1,12 +1,15 @@
 import { badRequestError, ServiceError } from '@metorial/error';
-import { subspaceProviderListingCategoryService } from '@metorial/module-subspace';
+import {
+  subspaceProviderListingCategoryService,
+  type SubspaceProviderListingCategory
+} from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { providerCategoryPresenter } from '../../presenters';
-import { SubspaceCategory } from '../../presenters/types';
+
 
 export let providerCategoryGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerCategoryId) {
@@ -48,7 +51,7 @@ export let providerCategoryController = Controller.create(
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, category =>
-          providerCategoryPresenter.present({ category: category as SubspaceCategory })
+          providerCategoryPresenter.present({ category: category as SubspaceProviderListingCategory })
         );
       }),
 

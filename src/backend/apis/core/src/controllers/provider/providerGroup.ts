@@ -1,12 +1,15 @@
 import { badRequestError, ServiceError } from '@metorial/error';
-import { subspaceProviderListingGroupService } from '@metorial/module-subspace';
+import {
+  subspaceProviderListingGroupService,
+  type SubspaceProviderListingGroup
+} from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { providerGroupPresenter } from '../../presenters';
-import { SubspaceGroup } from '../../presenters/types';
+
 
 export let providerGroupGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerGroupId) {
@@ -49,7 +52,7 @@ export let providerGroupController = Controller.create(
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, group =>
-          providerGroupPresenter.present({ group: group as SubspaceGroup })
+          providerGroupPresenter.present({ group: group as SubspaceProviderListingGroup })
         );
       }),
 
@@ -87,7 +90,7 @@ export let providerGroupController = Controller.create(
           description: ctx.body.description
         });
 
-        return providerGroupPresenter.present({ group: group as SubspaceGroup });
+        return providerGroupPresenter.present({ group: group as SubspaceProviderListingGroup });
       }),
 
     update: providerGroupGroup
@@ -114,7 +117,7 @@ export let providerGroupController = Controller.create(
           description: ctx.body.description
         });
 
-        return providerGroupPresenter.present({ group: group as SubspaceGroup });
+        return providerGroupPresenter.present({ group: group as SubspaceProviderListingGroup });
       }),
 
     addListing: providerGroupGroup

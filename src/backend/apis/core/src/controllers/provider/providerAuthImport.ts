@@ -1,12 +1,16 @@
 import { badRequestError, ServiceError } from '@metorial/error';
-import { subspaceProviderAuthImportService } from '@metorial/module-subspace';
+import {
+  subspaceProviderAuthImportService,
+  type SubspaceProviderAuthImport,
+  type SubspaceProviderAuthImportSchema
+} from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instancePath } from '../../middleware/instanceGroup';
-import { providerAuthImportPresenter, authImportSchemaPresenter } from '../../presenters';
-import { SubspaceAuthImport, SubspaceAuthImportSchema } from '../../presenters/types';
+import { authImportSchemaPresenter, providerAuthImportPresenter } from '../../presenters';
+
 import { providerAuthConfigGroup } from './providerAuthConfig';
 
 export let providerAuthImportGroup = providerAuthConfigGroup.use(async ctx => {
@@ -63,7 +67,7 @@ export let providerAuthImportController = Controller.create(
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, authImport =>
-          providerAuthImportPresenter.present({ authImport: authImport as SubspaceAuthImport })
+          providerAuthImportPresenter.present({ authImport: authImport as SubspaceProviderAuthImport })
         );
       }),
 
@@ -138,7 +142,7 @@ export let providerAuthImportController = Controller.create(
         });
 
         return providerAuthImportPresenter.present({
-          authImport: authImport as SubspaceAuthImport
+          authImport: authImport as SubspaceProviderAuthImport
         });
       }),
 
@@ -162,7 +166,7 @@ export let providerAuthImportController = Controller.create(
         });
 
         return authImportSchemaPresenter.present({
-          schema: schema as SubspaceAuthImportSchema
+          schema: schema as SubspaceProviderAuthImportSchema
         });
       })
   }

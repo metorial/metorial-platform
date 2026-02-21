@@ -8,12 +8,12 @@ export let configSourceValidator = v.union([
   ),
   v.object(
     {
-      type: v.literal('new'),
+      type: v.literal('ephemeral'),
       name: v.optional(v.string()),
       config: v.union([
         v.object(
-          { type: v.literal('new'), data: v.record(v.any()) },
-          { name: 'new', description: 'Provide configuration data directly' }
+          { type: v.literal('inline'), data: v.record(v.any()) },
+          { name: 'inline', description: 'Provide configuration data directly' }
         ),
         v.object(
           { type: v.literal('vault'), provider_config_vault_id: v.string() },
@@ -21,7 +21,7 @@ export let configSourceValidator = v.union([
         )
       ])
     },
-    { name: 'new', description: 'Create a new ephemeral provider config' }
+    { name: 'ephemeral', description: 'Create a new ephemeral provider config' }
   )
 ]);
 
@@ -32,7 +32,7 @@ export let deploymentValidator = v.union([
   ),
   v.object(
     {
-      type: v.literal('new'),
+      type: v.literal('ephemeral'),
       provider_id: v.string(),
       name: v.optional(v.string()),
       description: v.optional(v.string()),
@@ -40,7 +40,7 @@ export let deploymentValidator = v.union([
       locked_provider_version_id: v.optional(v.string()),
       config: v.optional(configSourceValidator)
     },
-    { name: 'new', description: 'Create a new ephemeral provider deployment' }
+    { name: 'ephemeral', description: 'Create a new ephemeral provider deployment' }
   ),
   v.string({ description: 'Shorthand: deployment ID' })
 ]);
@@ -52,12 +52,12 @@ export let configValidator = v.union([
   ),
   v.object(
     {
-      type: v.literal('new'),
+      type: v.literal('ephemeral'),
       name: v.optional(v.string()),
       config: v.union([
         v.object(
-          { type: v.literal('new'), data: v.record(v.any()) },
-          { name: 'new', description: 'Provide configuration data directly' }
+          { type: v.literal('inline'), data: v.record(v.any()) },
+          { name: 'inline', description: 'Provide configuration data directly' }
         ),
         v.object(
           { type: v.literal('vault'), provider_config_vault_id: v.string() },
@@ -65,7 +65,7 @@ export let configValidator = v.union([
         )
       ])
     },
-    { name: 'new', description: 'Create a new ephemeral provider config' }
+    { name: 'ephemeral', description: 'Create a new ephemeral provider config' }
   ),
   v.string({ description: 'Shorthand: config ID' })
 ]);
@@ -77,12 +77,12 @@ export let authConfigValidator = v.union([
   ),
   v.object(
     {
-      type: v.literal('new'),
+      type: v.literal('ephemeral'),
       name: v.optional(v.string()),
       provider_auth_method_id: v.string(),
       credentials: v.record(v.any())
     },
-    { name: 'new', description: 'Create a new ephemeral provider auth config' }
+    { name: 'ephemeral', description: 'Create a new ephemeral provider auth config' }
   ),
   v.string({ description: 'Shorthand: auth config ID' })
 ]);

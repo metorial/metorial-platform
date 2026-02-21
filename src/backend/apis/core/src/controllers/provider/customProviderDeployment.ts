@@ -1,5 +1,9 @@
 import { badRequestError, ServiceError } from '@metorial/error';
-import { customProviderDeploymentService } from '@metorial/module-subspace';
+import {
+  customProviderDeploymentService,
+  type SubspaceCustomProviderDeployment,
+  type SubspaceCustomProviderDeploymentLogs
+} from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
@@ -7,13 +11,10 @@ import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instancePath } from '../../middleware/instanceGroup';
 import {
-  subspaceCustomProviderDeploymentPresenter,
-  subspaceCustomProviderDeploymentLogsPresenter
+  subspaceCustomProviderDeploymentLogsPresenter,
+  subspaceCustomProviderDeploymentPresenter
 } from '../../presenters';
-import {
-  SubspaceCustomProviderDeployment,
-  SubspaceCustomProviderDeploymentLogs
-} from '../../presenters/types';
+
 import { customProviderGroup } from './customProvider';
 
 export let customProviderDeploymentGroup = customProviderGroup.use(async ctx => {

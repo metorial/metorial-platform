@@ -18,12 +18,11 @@ export let v1CustomProviderCommitPresenter = Presenter.create(customProviderComm
 
     custom_provider_id: customProviderCommit.customProviderId,
     provider_id: customProviderCommit.providerId ?? null,
-    custom_provider_deployment_id: customProviderCommit.customProviderDeploymentId,
+    custom_provider_deployment_id: customProviderCommit.customProviderDeploymentId ?? null,
 
     to_environment: await v1CustomProviderEnvironmentPresenter
       .present({ customProviderEnvironment: customProviderCommit.toEnvironment }, opts)
       .run(),
-
     from_environment: customProviderCommit.fromEnvironment
       ? await v1CustomProviderEnvironmentPresenter
           .present({ customProviderEnvironment: customProviderCommit.fromEnvironment }, opts)

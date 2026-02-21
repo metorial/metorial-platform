@@ -1,11 +1,11 @@
 import { badRequestError, ServiceError } from '@metorial/error';
-import { subspaceProviderVersionService } from '@metorial/module-subspace';
+import { subspaceProviderVersionService, type SubspaceProviderVersion } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instancePath } from '../../middleware/instanceGroup';
 import { providerVersionPresenter } from '../../presenters';
-import { SubspaceVersion } from '../../presenters/types';
+
 import { providerGroup } from './provider';
 
 export let providerVersionGroup = providerGroup.use(async ctx => {
@@ -50,7 +50,7 @@ export let providerVersionController = Controller.create(
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, version =>
-          providerVersionPresenter.present({ version: version as SubspaceVersion })
+          providerVersionPresenter.present({ version: version as SubspaceProviderVersion })
         );
       }),
 

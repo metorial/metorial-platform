@@ -1,6 +1,9 @@
 import { convertKeysToCamelCase } from '@metorial/case';
 import { badRequestError, ServiceError } from '@metorial/error';
-import { subspaceProviderDeploymentService } from '@metorial/module-subspace';
+import {
+  subspaceProviderDeploymentService,
+  type SubspaceProviderDeployment
+} from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
@@ -8,7 +11,7 @@ import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { providerDeploymentPresenter } from '../../presenters';
-import { SubspaceDeployment } from '../../presenters/types';
+
 
 export let providerDeploymentGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerDeploymentId) {
@@ -68,7 +71,7 @@ export let providerDeploymentController = Controller.create(
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, deployment =>
-          providerDeploymentPresenter.present({ deployment: deployment as SubspaceDeployment })
+          providerDeploymentPresenter.present({ deployment: deployment as SubspaceProviderDeployment })
         );
       }),
 
@@ -176,7 +179,7 @@ export let providerDeploymentController = Controller.create(
         });
 
         return providerDeploymentPresenter.present({
-          deployment: deployment as SubspaceDeployment
+          deployment: deployment as SubspaceProviderDeployment
         });
       }),
 
@@ -216,7 +219,7 @@ export let providerDeploymentController = Controller.create(
         });
 
         return providerDeploymentPresenter.present({
-          deployment: deployment as SubspaceDeployment
+          deployment: deployment as SubspaceProviderDeployment
         });
       }),
 
@@ -235,7 +238,7 @@ export let providerDeploymentController = Controller.create(
       .output(providerDeploymentPresenter)
       .do(async ctx => {
         return providerDeploymentPresenter.present({
-          deployment: ctx.deployment as SubspaceDeployment
+          deployment: ctx.deployment as SubspaceProviderDeployment
         });
       })
   }
