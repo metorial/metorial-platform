@@ -70,6 +70,8 @@ import {
   v1ScmAccountPreviewPresenter,
   v1ScmConnectionPresenter,
   v1ScmConnectionSetupPresenter,
+  v1ScmProviderPresenter,
+  v1ScmProviderSetupPresenter,
   v1ScmRepoPresenter,
   v1ScmRepoPreviewPresenter
 } from './implementation/scm';
@@ -134,6 +136,8 @@ import {
   scmAccountPreviewType,
   scmConnectionSetupType,
   scmConnectionType,
+  scmProviderSetupType,
+  scmProviderType,
   scmRepoPreviewType,
   scmRepoType,
   secretType,
@@ -610,4 +614,14 @@ export let scmRepoPreviewPresenter = declarePresenter(scmRepoPreviewType, {
 export let scmAccountPreviewPresenter = declarePresenter(scmAccountPreviewType, {
   mt_2025_01_01_dashboard: v1ScmAccountPreviewPresenter,
   mt_2026_01_01_magnetar: v1ScmAccountPreviewPresenter
+});
+
+export let scmProviderPresenter = declarePresenter(scmProviderType, {
+  mt_2025_01_01_dashboard: v1ScmProviderPresenter,
+  mt_2026_01_01_magnetar: v1ScmProviderPresenter
+});
+
+export let scmProviderSetupPresenter = declarePresenter(scmProviderSetupType, {
+  mt_2025_01_01_dashboard: v1ScmProviderSetupPresenter,
+  mt_2026_01_01_magnetar: v1ScmProviderSetupPresenter
 });
