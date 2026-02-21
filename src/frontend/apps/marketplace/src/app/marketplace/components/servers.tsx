@@ -3,7 +3,7 @@
 import { Text } from '@metorial/ui';
 import styled from 'styled-components';
 import { Card } from '../../../components/cards-carousel';
-import { ServerListing } from '../../../state/server';
+import { ProviderListing } from '../../../state/provider';
 
 let Grid = styled.div`
   display: grid;
@@ -29,7 +29,7 @@ let EmptyState = styled.div`
   padding: 2.5rem;
 `;
 
-export let LandingServers = ({ servers }: { servers: ServerListing[] }) => {
+export let LandingServers = ({ servers }: { servers: ProviderListing[] }) => {
   return (
     <>
       {!!servers.length && (
@@ -38,9 +38,7 @@ export let LandingServers = ({ servers }: { servers: ServerListing[] }) => {
             <CardWrapper key={server.id}>
               <Card
                 card={{
-                  category: server.isMetorial
-                    ? ''
-                    : (server.vendor?.name ?? server.profile?.name ?? 'External'),
+                  category: server.isMetorial ? '' : (server.vendor?.name ?? 'External'),
                   title: server.name,
                   src: `https://avatar-cdn.metorial.com/${server.id}`
                 }}

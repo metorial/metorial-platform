@@ -3,7 +3,7 @@
 import { theme } from '@metorial/ui';
 import Link from 'next/link';
 import { styled } from 'styled-components';
-import { ServerListing } from '../../../../state/server';
+import { ProviderListing } from '../../../../state/provider';
 import { RenderMarkdown } from './markdown';
 
 let Wrapper = styled(Link)`
@@ -97,33 +97,32 @@ let FigAvatar = styled.img`
   border-radius: 4px;
 `;
 
-export let ServerEntry = ({ server }: { server: ServerListing }) => {
+export let ProviderEntry = ({ providerListing }: { providerListing: ProviderListing }) => {
   return (
     <Wrapper
       onClick={() => {
         if (typeof window == 'undefined') return;
       }}
-      href={`/marketplace/s/${server.slug}`}
+      href={`/marketplace/s/${providerListing.slug}`}
       prefetch={false}
     >
       <ImageOuter
         style={{
-          backgroundImage: `url(https://avatar-cdn.metorial.com/${server.id})`,
+          backgroundImage: `url(https://avatar-cdn.metorial.com/${providerListing.id})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat'
         }}
       >
-        {server.isMetorial ? (
+        {providerListing.isMetorial ? (
           <Figcaption>
             <FigAvatar
               src={
-                server.imageUrl ??
-                server.vendor?.imageUrl ??
-                server.profile?.imageUrl ??
-                `https://avatar-cdn.metorial.com/vendor_${server.id}`
+                providerListing.imageUrl ??
+                providerListing.vendor?.imageUrl ??
+                `https://avatar-cdn.metorial.com/vendor_${providerListing.id}`
               }
-              alt={server.vendor?.name ?? server.profile?.name ?? server.name}
+              alt={providerListing.vendor?.name ?? providerListing.name}
             />
             <span>Official</span>
           </Figcaption>
@@ -131,28 +130,23 @@ export let ServerEntry = ({ server }: { server: ServerListing }) => {
           <Figcaption>
             <FigAvatar
               src={
-                server.imageUrl ??
-                server.vendor?.imageUrl ??
-                server.profile?.imageUrl ??
-                `https://avatar-cdn.metorial.com/vendor_${server.id}`
+                providerListing.imageUrl ??
+                providerListing.vendor?.imageUrl ??
+                `https://avatar-cdn.metorial.com/vendor_${providerListing.id}`
               }
-              alt={server.vendor?.name ?? server.profile?.name}
+              alt={providerListing.vendor?.name ?? providerListing.name}
             />
-            <span>
-              {server.vendor?.name ??
-                server.profile?.name ??
-                server.slug.split('/').join(' / ')}
-            </span>
+            <span>{providerListing.vendor?.name ?? providerListing.slug.split('/').join(' / ')}</span>
           </Figcaption>
         )}
       </ImageOuter>
 
       <Content>
-        <Title>{server.name}</Title>
+        <Title>{providerListing.name}</Title>
 
-        {server.description && (
+        {providerListing.description && (
           <Excerpt>
-            <RenderMarkdown text={server.description} mode="no-formatting" />
+            <RenderMarkdown text={providerListing.description} mode="no-formatting" />
           </Excerpt>
         )}
       </Content>

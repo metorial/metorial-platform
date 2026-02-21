@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useMedia } from 'react-use';
 import { styled } from 'styled-components';
-import { ServerCategory } from '../../state/server';
+import { ProviderCategory } from '../../state/provider';
 import { LandingButton } from '../button';
 import { UserMenu } from '../user/menu';
 import { MobileNavInner } from './mobile';
@@ -113,7 +113,7 @@ let NavLink = styled(Link)`
   }
 `;
 
-export let Nav = ({ categories }: { categories: ServerCategory[] }) => {
+export let Nav = ({ categories }: { categories: ProviderCategory[] }) => {
   let isMobile = useMedia(`(max-width: ${DESKTOP_NAV_MIN_WIDTH}px)`, false);
   let [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -147,7 +147,7 @@ export let Nav = ({ categories }: { categories: ServerCategory[] }) => {
                 {
                   links: categories.map(category => ({
                     label: category.name,
-                    href: `/marketplace/servers?categories_ids=${category.id}`
+                    href: `/marketplace/providers?category_ids=${category.id}`
                   }))
                 }
               ]
@@ -216,7 +216,7 @@ export let Nav = ({ categories }: { categories: ServerCategory[] }) => {
                   let value = input.value;
                   if (!value) return;
 
-                  router.push(`/marketplace/servers?search=${value}`);
+                  router.push(`/marketplace/providers?search=${value}`);
                 }}
               >
                 <SearchInput placeholder="Server MCP servers" />

@@ -1,7 +1,6 @@
 import { createLoader } from '@metorial/data-hooks';
 import { withDashboardSDK } from '../../sdk';
 import { redirectToAuthIfNotAuthenticated } from '../../user/auth/withAuth';
-import { MetorialInstance } from '../types';
 
 export let bootLoader = createLoader({
   name: 'boot',
@@ -22,5 +21,5 @@ export let getInstances = () => getBoot().then(boot => boot.instances);
 
 export let getOrgForInstance = (instanceId: string) =>
   getBoot().then(
-    boot => boot.instances.find((i: MetorialInstance) => i.id === instanceId)?.organization
+    boot => boot.instances.find(i => i.id === instanceId)?.organization
   );

@@ -2,8 +2,8 @@
 
 import { Metadata, ResolvingMetadata } from 'next';
 import { notFound } from 'next/navigation';
-import { serverFetch } from '../../../../../state/sdk';
-import { getServer } from '../../../../../state/server';
+import { providerFetch } from '../../../../../state/sdk';
+import { getProvider } from '../../../../../state/provider';
 import { ServerReadme } from '../[serverSlug]/components/readme';
 import { Skills } from '../[serverSlug]/components/skills';
 
@@ -13,33 +13,24 @@ export default async ({
   params: Promise<{ vendorSlug: string }>;
 }) => {
   let params = await paramsPromise;
-  let serverRes = await serverFetch(() => getServer([params.vendorSlug]));
+  let providerRes = await providerFetch(() => getProvider([params.vendorSlug]));
 
-  if (!serverRes.success) {
-    if (serverRes.error.status === 404) return notFound();
-    throw serverRes.error.error;
+  if (!providerRes.success) {
+    if (providerRes.error.status === 404) return notFound();
+    throw providerRes.error.error;
   }
 
-  let server = serverRes.data;
+  let providerListing = providerRes.data;
 
   return (
     <>
-      <Skills skills={server.skills} />
+      <Skills skills={providerListing.skills} />
 
-      {server.readme && (
+      {providerListing.readme && (
         <ServerReadme
-          readme={server.readme}
-          imageRoot={
-            server.repository
-              ? `https://raw.githubusercontent.com/${server.repository.identifier.replace('github.com/', '')}/${server.repository.defaultBranch ?? 'main'}`
-              : 'https://metorial.com'
-          }
-          linkRoot={
-            server.repository
-              ? `https://github.com/${server.repository.identifier.replace('github.com/', '')}/blob/${server.repository.defaultBranch ?? 'main'}`
-              : 'https://metorial.com'
-          }
-          rootPath={server.subdirectory ?? undefined}
+          readme={providerListing.readme}
+          imageRoot="https://metorial.com"
+          linkRoot="https://metorial.com"
         />
       )}
     </>
@@ -51,13 +42,12 @@ export async function generateMetadata(
   parent: ResolvingMetadata
 ): Promise<Metadata> {
   let params = await paramsPromise;
-  let serverRes = await serverFetch(() => getServer([params.vendorSlug]));
+  let providerRes = await providerFetch(() => getProvider([params.vendorSlug]));
 
   return {
-    title: `${serverRes.data?.name ?? 'Not Found'} • Metorial Marketplace`,
+    title: `${providerRes.data?.name ?? 'Not Found'} • Metorial Marketplace`,
     description: 'The open source integration platform for agentic AI.',
     metadataBase: new URL('https://metorial.com'),
-    alternates: { canonical: serverRes.data?.repository?.providerUrl },
     openGraph: {
       images: { url: '/opengraph-image.jpg', alt: 'Metorial' },
       title: 'Metorial',
