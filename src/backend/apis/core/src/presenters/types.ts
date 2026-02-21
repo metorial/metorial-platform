@@ -22,6 +22,7 @@ import {
   User
 } from '@metorial/db';
 import {
+  SubspaceBucket,
   SubspaceCustomProvider,
   SubspaceCustomProviderCommit,
   SubspaceCustomProviderDeployment,
@@ -517,6 +518,18 @@ export let bucketEditorTokenType = PresentableType.create<{
     expiresAt: Date;
   };
 }>()('bucketEditorToken');
+
+export let bucketType = PresentableType.create<{
+  bucket: SubspaceBucket;
+}>()('bucket');
+
+export let actorPreviewType = PresentableType.create<{
+  actor: SubspaceCustomProviderCommit['actor'];
+}>()('actorPreview');
+
+export let scmPushType = PresentableType.create<{
+  scmPush: NonNullable<SubspaceCustomProviderCommit['scmPush']>;
+}>()('scmPush');
 
 export let providerOAuthSetupType = PresentableType.create<{
   providerOAuthSetup: SubspaceProviderOAuthSetup;

@@ -1,70 +1,35 @@
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
 import { customProviderCommitType } from '../../types';
+import { v1ActorPreviewPresenter } from './actorPreview';
 import { v1CustomProviderEnvironmentPresenter } from './customProviderEnvironment';
 import { v1CustomProviderVersionPresenter } from './customProviderVersion';
-
-let actorSchema = v.object({
-  id: v.string({
-    name: 'id',
-    description: 'Actor identifier',
-    examples: ['act_1aBcDeFgHjKlMnPq']
-  }),
-  name: v.string({
-    name: 'name',
-    description: 'Actor display name',
-    examples: ['John Doe']
-  }),
-  type: v.string({
-    name: 'type',
-    description: 'Actor type',
-    examples: ['external', 'system']
-  }),
-  organization_actor_id: v.nullable(
-    v.string({
-      name: 'organization_actor_id',
-      description: 'Organization actor ID if linked',
-      examples: ['orgact_1aBcDeFgHjKlMnPq']
-    })
-  )
-});
-
-let errorSchema = v.object({
-  code: v.string({
-    name: 'code',
-    description: 'Error code',
-    examples: ['deployment_failed']
-  }),
-  message: v.string({
-    name: 'message',
-    description: 'Error message',
-    examples: ['Deployment failed due to timeout']
-  })
-});
+import { v1ScmPushPresenter } from './scmPush';
 
 export let v1CustomProviderCommitPresenter = Presenter.create(customProviderCommitType)
   .presenter(async ({ customProviderCommit }, opts) => ({
     object: 'custom_provider.commit' as const,
+
     id: customProviderCommit.id,
     status: customProviderCommit.status,
     trigger: customProviderCommit.trigger,
-    error: customProviderCommit.error
-      ? {
-          code: customProviderCommit.error.code,
-          message: customProviderCommit.error.message
-        }
-      : null,
+
+    error: customProviderCommit.error,
+
     custom_provider_id: customProviderCommit.customProviderId,
     provider_id: customProviderCommit.providerId ?? null,
-    custom_provider_deployment_id: customProviderCommit.customProviderDeploymentId ?? null,
+    custom_provider_deployment_id: customProviderCommit.customProviderDeploymentId,
+
     to_environment: await v1CustomProviderEnvironmentPresenter
       .present({ customProviderEnvironment: customProviderCommit.toEnvironment }, opts)
       .run(),
+
     from_environment: customProviderCommit.fromEnvironment
       ? await v1CustomProviderEnvironmentPresenter
           .present({ customProviderEnvironment: customProviderCommit.fromEnvironment }, opts)
           .run()
       : null,
+
     target_custom_provider_version: await v1CustomProviderVersionPresenter
       .present(
         { customProviderVersion: customProviderCommit.targetCustomProviderVersion },
@@ -79,12 +44,15 @@ export let v1CustomProviderCommitPresenter = Presenter.create(customProviderComm
           )
           .run()
       : null,
-    actor: {
-      id: customProviderCommit.actor.id,
-      name: customProviderCommit.actor.name,
-      type: customProviderCommit.actor.type,
-      organization_actor_id: customProviderCommit.actor.organizationActorId
-    },
+
+    actor: await v1ActorPreviewPresenter
+      .present({ actor: customProviderCommit.actor }, opts)
+      .run(),
+
+    scm_push: customProviderCommit.scmPush
+      ? await v1ScmPushPresenter.present({ scmPush: customProviderCommit.scmPush }, opts).run()
+      : null,
+
     created_at: customProviderCommit.createdAt,
     applied_at: customProviderCommit.appliedAt
   }))
@@ -108,7 +76,20 @@ export let v1CustomProviderCommitPresenter = Presenter.create(customProviderComm
         description: 'What triggered this commit',
         examples: ['manual', 'automatic']
       }),
-      error: v.nullable(errorSchema),
+      error: v.nullable(
+        v.object({
+          code: v.string({
+            name: 'code',
+            description: 'Error code',
+            examples: ['deployment_failed']
+          }),
+          message: v.string({
+            name: 'message',
+            description: 'Error message',
+            examples: ['Deployment failed due to timeout']
+          })
+        })
+      ),
       custom_provider_id: v.string({
         name: 'custom_provider_id',
         description: 'ID of the parent custom provider',
@@ -132,7 +113,8 @@ export let v1CustomProviderCommitPresenter = Presenter.create(customProviderComm
       from_environment: v.nullable(v1CustomProviderEnvironmentPresenter.schema),
       target_custom_provider_version: v1CustomProviderVersionPresenter.schema,
       previous_custom_provider_version: v.nullable(v1CustomProviderVersionPresenter.schema),
-      actor: actorSchema,
+      actor: v1ActorPreviewPresenter.schema,
+      scm_push: v.nullable(v1ScmPushPresenter.schema),
       created_at: v.date({
         name: 'created_at',
         description: 'Timestamp when created',

@@ -1,6 +1,8 @@
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
 import { customProviderType } from '../../types';
+import { v1ScmRepoPresenter } from '../scm/repos';
+import { v1BucketPresenter } from './bucket';
 import { v1ProviderPresenter } from './provider';
 
 export let v1CustomProviderPresenter = Presenter.create(customProviderType)
@@ -13,6 +15,14 @@ export let v1CustomProviderPresenter = Presenter.create(customProviderType)
     name: customProvider.name,
     description: customProvider.description,
     metadata: customProvider.metadata,
+
+    scm_repo: customProvider.scmRepo
+      ? await v1ScmRepoPresenter.present({ scmRepo: customProvider.scmRepo }, opts).run()
+      : null,
+
+    draft_bucket: customProvider.draftBucket
+      ? await v1BucketPresenter.present({ bucket: customProvider.draftBucket }, opts).run()
+      : null,
 
     provider: customProvider.provider
       ? await v1ProviderPresenter.present({ provider: customProvider.provider }, opts).run()
@@ -55,6 +65,8 @@ export let v1CustomProviderPresenter = Presenter.create(customProviderType)
           examples: [{ environment: 'production' }]
         })
       ),
+      scm_repo: v.nullable(v1ScmRepoPresenter.schema),
+      draft_bucket: v.nullable(v1BucketPresenter.schema),
       provider: v.nullable(v1ProviderPresenter.schema),
       created_at: v.date({
         name: 'created_at',

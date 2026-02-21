@@ -1,33 +1,9 @@
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
 import { customProviderVersionType } from '../../types';
+import { v1ActorPreviewPresenter } from './actorPreview';
 import { v1CustomProviderDeploymentPresenter } from './customProviderDeployment';
 import { v1CustomProviderEnvironmentPresenter } from './customProviderEnvironment';
-
-let actorSchema = v.object({
-  id: v.string({
-    name: 'id',
-    description: 'Actor identifier',
-    examples: ['act_1aBcDeFgHjKlMnPq']
-  }),
-  name: v.string({
-    name: 'name',
-    description: 'Actor display name',
-    examples: ['John Doe']
-  }),
-  type: v.string({
-    name: 'type',
-    description: 'Actor type',
-    examples: ['external', 'system']
-  }),
-  organization_actor_id: v.nullable(
-    v.string({
-      name: 'organization_actor_id',
-      description: 'Organization actor ID if linked',
-      examples: ['orgact_1aBcDeFgHjKlMnPq']
-    })
-  )
-});
 
 let environmentNestedSchema = v.object({
   object: v.literal('custom_provider.environment', {
@@ -67,12 +43,9 @@ export let v1CustomProviderVersionPresenter = Presenter.create(customProviderVer
     ),
     custom_provider_id: customProviderVersion.customProviderId,
     provider_id: customProviderVersion.providerId ?? null,
-    actor: {
-      id: customProviderVersion.actor.id,
-      name: customProviderVersion.actor.name,
-      type: customProviderVersion.actor.type,
-      organization_actor_id: customProviderVersion.actor.organizationActorId
-    },
+    actor: await v1ActorPreviewPresenter
+      .present({ actor: customProviderVersion.actor }, opts)
+      .run(),
     created_at: customProviderVersion.createdAt,
     updated_at: customProviderVersion.updatedAt
   }))
@@ -118,7 +91,7 @@ export let v1CustomProviderVersionPresenter = Presenter.create(customProviderVer
           examples: ['pro_5gHjKlMnPqRsTuVw']
         })
       ),
-      actor: actorSchema,
+      actor: v1ActorPreviewPresenter.schema,
       created_at: v.date({
         name: 'created_at',
         description: 'Timestamp when created',
