@@ -8,7 +8,7 @@ import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { providerGroupPresenter } from '../../presenters';
 
-export let providerGroupGroup = instanceGroup.use(async ctx => {
+let providerGroupGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerGroupId) {
     throw new ServiceError(
       badRequestError({

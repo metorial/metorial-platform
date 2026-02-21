@@ -8,7 +8,7 @@ import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { providerRunLogsPresenter, subspaceProviderRunPresenter } from '../../presenters';
 
-export let subspaceProviderRunGroup = instanceGroup.use(async ctx => {
+let subspaceProviderRunGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerRunId) {
     throw new ServiceError(
       badRequestError({

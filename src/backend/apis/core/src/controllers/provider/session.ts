@@ -13,7 +13,7 @@ import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { providerSessionPresenter } from '../../presenters';
 
-export let providerSessionGroup = instanceGroup.use(async ctx => {
+let providerSessionGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.sessionId) {
     throw new ServiceError(
       badRequestError({

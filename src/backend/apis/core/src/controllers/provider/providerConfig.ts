@@ -8,7 +8,27 @@ import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { configSchemaPresenter, providerConfigPresenter } from '../../presenters';
 
-type ProviderConfigCreateConfig = Parameters<typeof subspaceProviderConfigService.create>[0]['config'];
+let providerConfigGroup = instanceGroup.use(async ctx => {
+  if (!ctx.params.providerConfigId) {
+    throw new ServiceError(
+      badRequestError({
+        message: 'providerConfigId is required',
+        description: 'The providerConfigId path parameter is required.'
+      })
+    );
+  }
+
+  let config = await subspaceProviderConfigService.get({
+    instance: ctx.instance,
+    providerConfigId: ctx.params.providerConfigId
+  });
+
+  return { config };
+});
+
+type ProviderConfigCreateConfig = Parameters<
+  typeof subspaceProviderConfigService.create
+>[0]['config'];
 
 let mapProviderConfigCreateConfig = (
   config:
@@ -27,24 +47,6 @@ let mapProviderConfigCreateConfig = (
     providerConfigVaultId: config.provider_config_vault_id
   };
 };
-
-export let providerConfigGroup = instanceGroup.use(async ctx => {
-  if (!ctx.params.providerConfigId) {
-    throw new ServiceError(
-      badRequestError({
-        message: 'providerConfigId is required',
-        description: 'The providerConfigId path parameter is required.'
-      })
-    );
-  }
-
-  let config = await subspaceProviderConfigService.get({
-    instance: ctx.instance,
-    providerConfigId: ctx.params.providerConfigId
-  });
-
-  return { config };
-});
 
 export let providerConfigController = Controller.create(
   {

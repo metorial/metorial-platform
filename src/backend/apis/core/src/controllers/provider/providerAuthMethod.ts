@@ -7,7 +7,7 @@ import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { providerAuthMethodPresenter } from '../../presenters';
 
-export let providerAuthMethodGroup = instanceGroup.use(async ctx => {
+let providerAuthMethodGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerAuthMethodId) {
     throw new ServiceError(
       badRequestError({

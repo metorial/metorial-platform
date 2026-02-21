@@ -2,15 +2,13 @@ import { badRequestError, ServiceError } from '@metorial/error';
 import { subspaceProviderVersionService } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
+import { v } from '@metorial/validation';
+import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instancePath } from '../../middleware/instanceGroup';
 import { providerVersionPresenter } from '../../presenters';
 
-import { v } from '@metorial/validation';
-import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
-import { providerGroup } from './provider';
-
-export let providerVersionGroup = providerGroup.use(async ctx => {
+let providerVersionGroup = providerGroup.use(async ctx => {
   if (!ctx.params.providerVersionId) {
     throw new ServiceError(
       badRequestError({

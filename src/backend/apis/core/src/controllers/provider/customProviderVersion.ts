@@ -13,7 +13,7 @@ import {
   mapCustomProviderFrom
 } from './customProvider';
 
-export let customProviderVersionGroup = instanceGroup.use(async ctx => {
+let customProviderVersionGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.customProviderVersionId) {
     throw new ServiceError(
       badRequestError({

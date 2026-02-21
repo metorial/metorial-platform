@@ -8,7 +8,7 @@ import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { subspaceSessionConnectionPresenter } from '../../presenters';
 
-export let subspaceSessionConnectionGroup = instanceGroup.use(async ctx => {
+let subspaceSessionConnectionGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.sessionConnectionId) {
     throw new ServiceError(
       badRequestError({

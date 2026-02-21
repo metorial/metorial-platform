@@ -14,6 +14,24 @@ import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { sessionProviderPresenter } from '../../presenters';
 import { toolFiltersValidator } from './session';
 
+let subspaceSessionProviderGroup = instanceGroup.use(async ctx => {
+  if (!ctx.params.sessionProviderId) {
+    throw new ServiceError(
+      badRequestError({
+        message: 'sessionProviderId is required',
+        description: 'The sessionProviderId path parameter is required.'
+      })
+    );
+  }
+
+  let sessionProvider = await subspaceSessionProviderService.get({
+    instance: ctx.instance,
+    sessionProviderId: ctx.params.sessionProviderId
+  });
+
+  return { sessionProvider };
+});
+
 type SessionProviderCreateInput = Parameters<typeof subspaceSessionProviderService.create>[0];
 
 let mapSessionProviderConfigSource = (
@@ -111,24 +129,6 @@ let mapSessionProviderAuthConfigSource = (
     credentials: auth.credentials
   };
 };
-
-export let subspaceSessionProviderGroup = instanceGroup.use(async ctx => {
-  if (!ctx.params.sessionProviderId) {
-    throw new ServiceError(
-      badRequestError({
-        message: 'sessionProviderId is required',
-        description: 'The sessionProviderId path parameter is required.'
-      })
-    );
-  }
-
-  let sessionProvider = await subspaceSessionProviderService.get({
-    instance: ctx.instance,
-    sessionProviderId: ctx.params.sessionProviderId
-  });
-
-  return { sessionProvider };
-});
 
 export let subspaceSessionProviderController = Controller.create(
   {
@@ -236,7 +236,9 @@ export let subspaceSessionProviderController = Controller.create(
           sessionId: ctx.body.session_id,
           providerDeployment: mapSessionProviderDeploymentSource(ctx.body.provider_deployment),
           providerConfig: mapSessionProviderConfigSource(ctx.body.provider_config),
-          providerAuthConfig: mapSessionProviderAuthConfigSource(ctx.body.provider_auth_config),
+          providerAuthConfig: mapSessionProviderAuthConfigSource(
+            ctx.body.provider_auth_config
+          ),
           toolFilters: ctx.body.tool_filters
         });
 

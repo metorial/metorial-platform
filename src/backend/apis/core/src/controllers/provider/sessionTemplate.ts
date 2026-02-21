@@ -9,7 +9,7 @@ import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { sessionTemplatePresenter } from '../../presenters';
 import { toolFiltersValidator } from './session';
 
-export let sessionTemplateGroup = instanceGroup.use(async ctx => {
+let sessionTemplateGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.sessionTemplateId) {
     throw new ServiceError(
       badRequestError({

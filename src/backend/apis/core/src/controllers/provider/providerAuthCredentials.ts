@@ -8,7 +8,7 @@ import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { providerAuthCredentialsPresenter } from '../../presenters';
 
-export let providerAuthCredentialsGroup = instanceGroup.use(async ctx => {
+let providerAuthCredentialsGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerAuthCredentialsId) {
     throw new ServiceError(
       badRequestError({
@@ -115,6 +115,10 @@ export let providerAuthCredentialsController = Controller.create(
       .body(
         'default',
         v.object({
+          provider_id: v.string({
+            description: 'Provider ID',
+            examples: ['pro_5gHjKlMnPqRsTuVw']
+          }),
           name: v.string({ examples: ['GitHub OAuth'] }),
           description: v.optional(
             v.string({ examples: ['OAuth credentials for GitHub API'] })
@@ -146,7 +150,7 @@ export let providerAuthCredentialsController = Controller.create(
       .do(async ctx => {
         let authCredentials = await subspaceProviderAuthCredentialsService.create({
           instance: ctx.instance,
-          providerId: ctx.deployment.providerId,
+          providerId: ctx.body.provider_id,
           name: ctx.body.name,
           description: ctx.body.description,
           config: ctx.body.config,

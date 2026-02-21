@@ -8,7 +8,7 @@ import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { providerConfigVaultPresenter } from '../../presenters';
 
-export let providerConfigVaultGroup = instanceGroup.use(async ctx => {
+let providerConfigVaultGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerConfigVaultId) {
     throw new ServiceError(
       badRequestError({
@@ -121,6 +121,16 @@ export let providerConfigVaultController = Controller.create(
       .body(
         'default',
         v.object({
+          provider_id: v.string({
+            description: 'Provider ID',
+            examples: ['pro_5gHjKlMnPqRsTuVw']
+          }),
+          provider_deployment_id: v.optional(
+            v.string({
+              description: 'Provider deployment ID',
+              examples: ['pdp_4dEfGhJkLmNpQrSt']
+            })
+          ),
           name: v.string({ examples: ['Production Secrets'] }),
           description: v.optional(
             v.string({ examples: ['Secure storage for production credentials'] })
@@ -139,8 +149,8 @@ export let providerConfigVaultController = Controller.create(
       .do(async ctx => {
         let configVault = await subspaceProviderConfigVaultService.create({
           instance: ctx.instance,
-          providerId: ctx.deployment.providerId,
-          providerDeploymentId: ctx.deployment.id,
+          providerId: ctx.body.provider_id,
+          providerDeploymentId: ctx.body.provider_deployment_id,
           name: ctx.body.name,
           description: ctx.body.description,
           config: {

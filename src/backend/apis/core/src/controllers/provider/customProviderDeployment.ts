@@ -11,7 +11,7 @@ import {
   subspaceCustomProviderDeploymentPresenter
 } from '../../presenters';
 
-export let customProviderDeploymentGroup = instanceGroup.use(async ctx => {
+let customProviderDeploymentGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.customProviderDeploymentId) {
     throw new ServiceError(
       badRequestError({

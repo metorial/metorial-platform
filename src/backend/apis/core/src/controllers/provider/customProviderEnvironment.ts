@@ -8,7 +8,7 @@ import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { subspaceCustomProviderEnvironmentPresenter } from '../../presenters';
 
-export let customProviderEnvironmentGroup = instanceGroup.use(async ctx => {
+let customProviderEnvironmentGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.customProviderEnvironmentId) {
     throw new ServiceError(
       badRequestError({

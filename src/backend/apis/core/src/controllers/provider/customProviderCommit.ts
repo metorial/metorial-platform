@@ -8,7 +8,7 @@ import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { subspaceCustomProviderCommitPresenter } from '../../presenters';
 
-export let customProviderCommitGroup = instanceGroup.use(async ctx => {
+let customProviderCommitGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.customProviderCommitId) {
     throw new ServiceError(
       badRequestError({
