@@ -1,16 +1,14 @@
+import { SubspaceProvider } from '@metorial/module-subspace';
 import { v } from '@metorial/validation';
-import { SubspaceDeployment } from '../../types';
-
-type ProviderPreviewInput = NonNullable<SubspaceDeployment['provider']>;
 
 export let v1ProviderPreview = Object.assign(
-  (provider: ProviderPreviewInput) => ({
+  (provider: SubspaceProvider) => ({
     object: 'provider#preview' as const,
-
     id: provider.id,
+
     name: provider.name,
-    description: provider.description ?? null,
-    slug: provider.slug ?? provider.tag ?? provider.identifier,
+    description: provider.description,
+    slug: provider.slug,
 
     created_at: provider.createdAt,
     updated_at: provider.updatedAt

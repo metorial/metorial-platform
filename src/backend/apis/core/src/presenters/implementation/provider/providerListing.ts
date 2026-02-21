@@ -5,54 +5,58 @@ import { providerListingType } from '../../types';
 import { v1ProviderListingCategoryPresenter } from './category';
 import { v1ProviderListingCollectionPresenter } from './collection';
 import { v1ProviderListingGroupPresenter } from './group';
+import { v1ProviderPresenter } from './provider';
 
 export let v1ProviderListingPresenter = Presenter.create(providerListingType)
   .presenter(async ({ providerListing }, opts) => {
-    let rawImageUrl =
-      (providerListing.image as any)?.url ?? (providerListing.source as any)?.url;
-
     return {
       object: 'provider.listing' as const,
       id: providerListing.id,
-      name: providerListing.name,
-      description: (providerListing.description ?? null) as string | null,
-      slug: providerListing.slug ?? providerListing.identifier ?? '',
-      image_url: await getImageUrl({
-        id: providerListing.id,
-        name: providerListing.name,
-        image: rawImageUrl ? { type: 'url', url: rawImageUrl } : null
-      }),
-      readme: (providerListing.readme ?? null) as string | null,
-      skills: providerListing.skills ?? [],
-      flags: {
-        is_public: providerListing.isPublic ?? true,
-        is_customized: providerListing.isCustomized ?? false,
-        is_metorial: providerListing.isMetorial ?? false,
-        is_verified: providerListing.isVerified ?? false,
-        is_official: providerListing.isOfficial ?? false
+
+      attributes: {
+        is_public: providerListing.isPublic,
+        is_customized: providerListing.isCustomized,
+        is_metorial: providerListing.isMetorial,
+        is_verified: providerListing.isVerified,
+        is_official: providerListing.isOfficial
+
+        // deployments_count: providerListing.deploymentsCount,
+        // provider_sessions_count: providerListing.providerSessionsCount,
+        // provider_messages_count: providerListing.providerMessagesCount,
+        // rank: providerListing.rank,
       },
-      provider_id: (providerListing.provider?.id ?? null) as string | null,
-      categories: providerListing.categories
-        ? await Promise.all(
-            providerListing.categories.map(c =>
-              v1ProviderListingCategoryPresenter.present({ category: c }, opts).run()
-            )
-          )
-        : [],
-      collections: providerListing.collections
-        ? await Promise.all(
-            providerListing.collections.map(c =>
-              v1ProviderListingCollectionPresenter.present({ collection: c }, opts).run()
-            )
-          )
-        : [],
-      groups: providerListing.groups
-        ? await Promise.all(
-            providerListing.groups.map(g =>
-              v1ProviderListingGroupPresenter.present({ group: g }, opts).run()
-            )
-          )
-        : [],
+
+      name: providerListing.name,
+      description: providerListing.description,
+      slug: providerListing.slug,
+
+      image_url: await getImageUrl(providerListing),
+
+      readme: providerListing.readme,
+      skills: providerListing.skills,
+
+      provider: await v1ProviderPresenter
+        .present({ provider: providerListing.provider }, opts)
+        .run(),
+
+      categories: await Promise.all(
+        providerListing.categories.map(c =>
+          v1ProviderListingCategoryPresenter.present({ category: c }, opts).run()
+        )
+      ),
+
+      collections: await Promise.all(
+        providerListing.collections.map(c =>
+          v1ProviderListingCollectionPresenter.present({ collection: c }, opts).run()
+        )
+      ),
+
+      groups: await Promise.all(
+        providerListing.groups.map(g =>
+          v1ProviderListingGroupPresenter.present({ group: g }, opts).run()
+        )
+      ),
+
       created_at: providerListing.createdAt,
       updated_at: providerListing.updatedAt
     };
@@ -67,6 +71,25 @@ export let v1ProviderListingPresenter = Presenter.create(providerListingType)
         description: 'Unique listing identifier',
         examples: ['plg_8kLmNpQrStUvWxYz']
       }),
+      attributes: v.object(
+        {
+          is_public: v.boolean({ name: 'is_public', description: 'Whether publicly visible' }),
+          is_customized: v.boolean({
+            name: 'is_customized',
+            description: 'Whether has custom config'
+          }),
+          is_metorial: v.boolean({
+            name: 'is_metorial',
+            description: 'Whether Metorial-maintained'
+          }),
+          is_verified: v.boolean({ name: 'is_verified', description: 'Whether verified' }),
+          is_official: v.boolean({
+            name: 'is_official',
+            description: 'Whether official integration'
+          })
+        },
+        { name: 'attributes', description: 'Listing attribute flags' }
+      ),
       name: v.string({ name: 'name', description: 'Display name', examples: ['GitHub'] }),
       description: v.nullable(
         v.string({
@@ -97,43 +120,7 @@ export let v1ProviderListingPresenter = Presenter.create(providerListingType)
         description: 'Capability tags',
         examples: [['code-review', 'pull-requests']]
       }),
-      flags: v.object(
-        {
-          is_public: v.boolean({
-            name: 'is_public',
-            description: 'Whether publicly visible',
-            examples: [true]
-          }),
-          is_customized: v.boolean({
-            name: 'is_customized',
-            description: 'Whether has custom config',
-            examples: [false]
-          }),
-          is_metorial: v.boolean({
-            name: 'is_metorial',
-            description: 'Whether Metorial-maintained',
-            examples: [true]
-          }),
-          is_verified: v.boolean({
-            name: 'is_verified',
-            description: 'Whether verified',
-            examples: [true]
-          }),
-          is_official: v.boolean({
-            name: 'is_official',
-            description: 'Whether official integration',
-            examples: [false]
-          })
-        },
-        { name: 'flags', description: 'Status flags for the listing' }
-      ),
-      provider_id: v.nullable(
-        v.string({
-          name: 'provider_id',
-          description: 'Associated provider ID',
-          examples: ['pro_5gHjKlMnPqRsTuVw']
-        })
-      ),
+      provider: v1ProviderPresenter.schema,
       categories: v.array(v1ProviderListingCategoryPresenter.schema, {
         name: 'categories',
         description: 'Provider categories for organization and filtering'

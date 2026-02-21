@@ -50,6 +50,7 @@ import {
   v1ProviderRunPresenter,
   v1ProviderSpecificationPresenter,
   v1ProviderToolPresenter,
+  v1ProviderTypePresenter,
   v1ProviderVersionPresenter,
   v1PublisherPresenter,
   v1SessionConnectionPresenter,
@@ -130,6 +131,7 @@ import {
   providerSpecificationType,
   providerToolType,
   providerType,
+  providerTypeType,
   providerVersionType,
   publisherType,
   scmAccountPreviewType,
@@ -357,6 +359,11 @@ export let providerVersionPresenter = declarePresenter(providerVersionType, {
 export let providerPresenter = declarePresenter(providerType, {
   mt_2025_01_01_dashboard: v1ProviderPresenter,
   mt_2026_01_01_magnetar: v1ProviderPresenter
+});
+
+export let providerTypePresenter = declarePresenter(providerTypeType, {
+  mt_2025_01_01_dashboard: v1ProviderTypePresenter,
+  mt_2026_01_01_magnetar: v1ProviderTypePresenter
 });
 
 export let providerCategoryPresenter = declarePresenter(providerListingCategoryType, {

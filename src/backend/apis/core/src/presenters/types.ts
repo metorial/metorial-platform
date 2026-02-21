@@ -50,6 +50,7 @@ import {
   SubspaceProviderSetupSession,
   SubspaceProviderSpecification,
   SubspaceProviderTool,
+  SubspaceProviderType,
   SubspaceProviderVersion,
   SubspacePublisher,
   SubspaceScmAccountPreviews,
@@ -353,6 +354,10 @@ export let providerVersionType = PresentableType.create<{
 
 export let providerType = PresentableType.create<{ provider: SubspaceProvider }>()('provider');
 
+export let providerTypeType = PresentableType.create<{
+  providerType: SubspaceProviderType;
+}>()('provider.type');
+
 export let providerListingCategoryType = PresentableType.create<{
   category: SubspaceProviderListingCategory;
 }>()('category');
@@ -503,11 +508,11 @@ export let customProviderEnvironmentType = PresentableType.create<{
   customProviderEnvironment: SubspaceCustomProviderEnvironment;
 }>()('customProviderEnvironment');
 
-export let customServerCodeEditorTokenType = PresentableType.create<{
+export let bucketEditorTokenType = PresentableType.create<{
   id: string;
   token: string;
   expiresAt: Date;
-}>()('customServerCodeEditorToken');
+}>()('bucketEditorToken');
 
 export let providerOAuthSetupType = PresentableType.create<{
   providerOAuthSetup: SubspaceProviderOAuthSetup;

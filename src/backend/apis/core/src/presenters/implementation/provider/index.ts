@@ -25,6 +25,7 @@ export * from './providerListing';
 export * from './providerRun';
 export * from './providerRunLogs';
 export * from './providerTool';
+export * from './providerType';
 export * from './providerVersion';
 export * from './publisher';
 export * from './session';
