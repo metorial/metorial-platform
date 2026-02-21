@@ -1,8 +1,8 @@
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
-import { authImportSchemaType } from '../../types';
+import { authConfigSchemaType } from '../../types';
 
-export let v1ProviderAuthImportSchemaPresenter = Presenter.create(authImportSchemaType)
+export let v1ProviderAuthConfigSchemaPresenter = Presenter.create(authConfigSchemaType)
   .presenter(async ({ schema }) => ({
     object: 'provider.capabilities.auth_config.schema' as const,
 
@@ -28,12 +28,13 @@ export let v1ProviderAuthImportSchemaPresenter = Presenter.create(authImportSche
           type: v.literal('json_schema'),
           schema: v.record(v.any(), {
             name: 'schema',
-            description: 'JSON Schema for auth import data',
+            description: 'JSON Schema for auth config data',
             examples: [{ type: 'object', properties: { access_token: { type: 'string' } } }]
           })
         })
       ),
       visibility: v.enumOf(['encrypted'], {
+        name: 'visibility',
         description: 'Visibility of the auth config data'
       }),
       specification_id: v.string({

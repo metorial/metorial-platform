@@ -4,7 +4,7 @@ import { subspace } from '../subspace';
 
 export let subspaceProviderAuthConfigService = createSubspaceService(
   subspace.providerAuthConfig,
-  ['get', 'list', 'update', 'create'],
+  ['get', 'list', 'update', 'create', 'getConfigSchema'],
   inner => ({
     create: async (...params: Parameters<typeof inner.create>) => {
       let eventBase = toEventBase(params[0]);
@@ -31,4 +31,8 @@ export let subspaceProviderAuthConfigService = createSubspaceService(
 
 export type SubspaceProviderAuthConfig = Awaited<
   ReturnType<typeof subspace.providerAuthConfig.get>
+>;
+
+export type SubspaceProviderAuthConfigSchema = Awaited<
+  ReturnType<typeof subspace.providerAuthConfig.getConfigSchema>
 >;

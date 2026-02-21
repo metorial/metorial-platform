@@ -30,6 +30,7 @@ import {
   SubspaceCustomProviderVersion,
   SubspaceProvider,
   SubspaceProviderAuthConfig,
+  SubspaceProviderAuthConfigSchema,
   SubspaceProviderAuthCredentials,
   SubspaceProviderAuthExport,
   SubspaceProviderAuthImport,
@@ -473,6 +474,10 @@ export let configSchemaType = PresentableType.create<{
 export let authImportSchemaType = PresentableType.create<{
   schema: SubspaceProviderAuthImportSchema;
 }>()('authImportSchema');
+
+export let authConfigSchemaType = PresentableType.create<{
+  schema: SubspaceProviderAuthConfigSchema;
+}>()('authConfigSchema');
 
 export let customProviderType = PresentableType.create<{
   customProvider: SubspaceCustomProvider;

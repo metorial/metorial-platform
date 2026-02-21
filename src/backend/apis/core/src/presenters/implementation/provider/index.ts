@@ -1,4 +1,5 @@
 export * from './authConfig';
+export * from './authConfigSchema';
 export * from './authCredentials';
 export * from './authExport';
 export * from './authImport';

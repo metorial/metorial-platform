@@ -30,6 +30,7 @@ import {
   v1CustomProviderVersionPresenter,
   v1CustomServerCodeEditorTokenPresenter,
   v1ProviderAuthConfigPresenter,
+  v1ProviderAuthConfigSchemaPresenter,
   v1ProviderAuthCredentialsPresenter,
   v1ProviderAuthExportPresenter,
   v1ProviderAuthImportPresenter,
@@ -74,6 +75,7 @@ import {
 
 import {
   apiKeyType,
+  authConfigSchemaType,
   authImportSchemaType,
   bootType,
   configPreviewType,
@@ -522,6 +524,11 @@ export let configSchemaPresenter = declarePresenter(configSchemaType, {
 export let authImportSchemaPresenter = declarePresenter(authImportSchemaType, {
   mt_2025_01_01_dashboard: v1ProviderAuthImportSchemaPresenter,
   mt_2026_01_01_magnetar: v1ProviderAuthImportSchemaPresenter
+});
+
+export let authConfigSchemaPresenter = declarePresenter(authConfigSchemaType, {
+  mt_2025_01_01_dashboard: v1ProviderAuthConfigSchemaPresenter,
+  mt_2026_01_01_magnetar: v1ProviderAuthConfigSchemaPresenter
 });
 
 // =============================================================================
