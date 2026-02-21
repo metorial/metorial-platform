@@ -3,11 +3,12 @@ import { v } from '@metorial/validation';
 import { bucketEditorTokenType } from '../../types';
 
 export let v1BucketEditorTokenPresenter = Presenter.create(bucketEditorTokenType)
-  .presenter(async ({ id, token, expiresAt }) => ({
+  .presenter(async ({ token }) => ({
     object: 'bucket.editor_token' as const,
-    id,
-    token,
-    expires_at: expiresAt
+    id: token.id,
+    url: token.url,
+    token: token.token,
+    expires_at: token.expiresAt
   }))
   .schema(
     v.object({
@@ -15,8 +16,9 @@ export let v1BucketEditorTokenPresenter = Presenter.create(bucketEditorTokenType
         description: "String representing the object's type"
       }),
       id: v.string({ description: 'The code bucket ID' }),
-      token: v.string({ description: 'The code editor access token URL' }),
-      expires_at: v.string({ description: 'When the token expires' })
+      url: v.string({ description: 'The code editor URL' }),
+      token: v.string({ description: 'The code editor access token' }),
+      expires_at: v.date({ description: 'When the token expires' })
     })
   )
   .build();

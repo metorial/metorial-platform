@@ -1,14 +1,23 @@
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
-import { providerSessionTemplateType } from '../../types';
+import { sessionTemplateType } from '../../types';
+import { v1SessionTemplateProviderPresenter } from './sessionTemplateProvider';
 
-export let v1SessionTemplatePresenter = Presenter.create(providerSessionTemplateType)
-  .presenter(async ({ sessionTemplate }) => ({
+export let v1SessionTemplatePresenter = Presenter.create(sessionTemplateType)
+  .presenter(async ({ sessionTemplate }, opts) => ({
     object: 'session.template' as const,
     id: sessionTemplate.id,
+
     name: sessionTemplate.name,
     description: sessionTemplate.description,
     metadata: sessionTemplate.metadata,
+
+    providers: await Promise.all(
+      sessionTemplate.providers.map(p =>
+        v1SessionTemplateProviderPresenter.present({ sessionTemplateProvider: p }, opts).run()
+      )
+    ),
+
     created_at: sessionTemplate.createdAt,
     updated_at: sessionTemplate.updatedAt
   }))
@@ -41,6 +50,10 @@ export let v1SessionTemplatePresenter = Presenter.create(providerSessionTemplate
           examples: [{ environment: 'production' }]
         })
       ),
+      providers: v.array(v1SessionTemplateProviderPresenter.schema, {
+        name: 'providers',
+        description: 'Template providers'
+      }),
       created_at: v.date({
         name: 'created_at',
         description: 'Timestamp when created',

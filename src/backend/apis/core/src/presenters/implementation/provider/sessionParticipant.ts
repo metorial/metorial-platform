@@ -5,14 +5,17 @@ import { sessionParticipantType } from '../../types';
 export let v1SessionParticipantPresenter = Presenter.create(sessionParticipantType)
   .presenter(async ({ sessionParticipant }) => ({
     object: 'session.participant' as const,
+
     id: sessionParticipant.id,
     type: sessionParticipant.type,
+
+    identifier: sessionParticipant.identifier,
     name: sessionParticipant.name,
-    description: sessionParticipant.description,
-    metadata: sessionParticipant.metadata,
-    session_id: sessionParticipant.sessionId,
-    created_at: sessionParticipant.createdAt,
-    updated_at: sessionParticipant.updatedAt
+    data: sessionParticipant.data,
+
+    provider_id: sessionParticipant.providerId ?? null,
+
+    created_at: sessionParticipant.createdAt
   }))
   .schema(
     v.object({
@@ -24,40 +27,37 @@ export let v1SessionParticipantPresenter = Presenter.create(sessionParticipantTy
         description: 'Unique session participant identifier',
         examples: ['spt_5eFgHjKlMnPqRsTu']
       }),
-      type: v.nullable(
-        v.string({ name: 'type', description: 'Participant type', examples: ['client'] })
-      ),
-      name: v.nullable(
-        v.string({ name: 'name', description: 'Display name', examples: ['Claude Desktop'] })
-      ),
-      description: v.nullable(
-        v.string({
-          name: 'description',
-          description: 'Description',
-          examples: ['Claude desktop client connection']
-        })
-      ),
-      metadata: v.nullable(
-        v.record(v.any(), {
-          name: 'metadata',
-          description: 'Custom key-value pairs',
-          examples: [{ client_version: '1.2.3' }]
-        })
-      ),
-      session_id: v.string({
-        name: 'session_id',
-        description: 'Parent session ID',
-        examples: ['ses_4dEfGhJkLmNpQrSt']
+      type: v.string({
+        name: 'type',
+        description: 'Participant type',
+        examples: ['client', 'server']
       }),
+      identifier: v.string({
+        name: 'identifier',
+        description: 'Participant identifier',
+        examples: ['claude-desktop']
+      }),
+      name: v.string({
+        name: 'name',
+        description: 'Display name',
+        examples: ['Claude Desktop']
+      }),
+      data: v.record(v.any(), {
+        name: 'data',
+        description: 'Participant payload data',
+        examples: [{ client_version: '1.2.3' }]
+      }),
+      provider_id: v.nullable(
+        v.string({
+          name: 'provider_id',
+          description: 'Provider ID if associated',
+          examples: ['pro_5gHjKlMnPqRsTuVw']
+        })
+      ),
       created_at: v.date({
         name: 'created_at',
         description: 'Timestamp when created',
         examples: [new Date('2025-09-15T10:30:00Z')]
-      }),
-      updated_at: v.date({
-        name: 'updated_at',
-        description: 'Timestamp when last updated',
-        examples: [new Date('2026-01-10T14:45:00Z')]
       })
     })
   )

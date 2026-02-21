@@ -6,14 +6,18 @@ import { v1ProviderPresenter } from './provider';
 export let v1CustomProviderPresenter = Presenter.create(customProviderType)
   .presenter(async ({ customProvider }, opts) => ({
     object: 'custom_provider' as const,
+
     id: customProvider.id,
     status: customProvider.status,
+
     name: customProvider.name,
     description: customProvider.description,
     metadata: customProvider.metadata,
+
     provider: customProvider.provider
       ? await v1ProviderPresenter.present({ provider: customProvider.provider }, opts).run()
       : null,
+
     created_at: customProvider.createdAt,
     updated_at: customProvider.updatedAt
   }))
@@ -27,20 +31,16 @@ export let v1CustomProviderPresenter = Presenter.create(customProviderType)
         description: 'Unique custom provider identifier',
         examples: ['cpr_1aBcDeFgHjKlMnPq']
       }),
-      status: v.nullable(
-        v.string({
-          name: 'status',
-          description: 'Current status of the custom provider',
-          examples: ['active', 'archived']
-        })
-      ),
-      name: v.nullable(
-        v.string({
-          name: 'name',
-          description: 'Display name of the custom provider',
-          examples: ['My Custom Provider']
-        })
-      ),
+      status: v.string({
+        name: 'status',
+        description: 'Current status of the custom provider',
+        examples: ['active', 'archived']
+      }),
+      name: v.string({
+        name: 'name',
+        description: 'Display name of the custom provider',
+        examples: ['My Custom Provider']
+      }),
       description: v.nullable(
         v.string({
           name: 'description',

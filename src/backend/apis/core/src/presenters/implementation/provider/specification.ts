@@ -7,25 +7,28 @@ import { v1ProviderToolPresenter } from './providerTool';
 export let v1ProviderSpecificationPresenter = Presenter.create(providerSpecificationType)
   .presenter(async ({ specification }, opts) => ({
     object: 'provider.specification' as const,
+
     id: specification.id,
+    key: specification.key,
+
     name: specification.name,
     description: specification.description,
-    config_schema: specification.configSchema ?? specification.configJsonSchema,
-    tools: specification.tools
-      ? await Promise.all(
-          specification.tools.map(t =>
-            v1ProviderToolPresenter.present({ tool: t }, opts).run()
-          )
-        )
-      : [],
-    auth_methods: specification.authMethods
-      ? await Promise.all(
-          specification.authMethods.map(a =>
-            v1ProviderAuthMethodPresenter.present({ authMethod: a }, opts).run()
-          )
-        )
-      : [],
+
+    config_schema: specification.configSchema,
+    config_visibility: specification.configVisibility,
+
+    tools: await Promise.all(
+      specification.tools.map(t => v1ProviderToolPresenter.present({ tool: t }, opts).run())
+    ),
+
+    auth_methods: await Promise.all(
+      specification.authMethods.map(a =>
+        v1ProviderAuthMethodPresenter.present({ authMethod: a }, opts).run()
+      )
+    ),
+
     provider_id: specification.providerId,
+
     created_at: specification.createdAt,
     updated_at: specification.updatedAt
   }))
@@ -39,6 +42,11 @@ export let v1ProviderSpecificationPresenter = Presenter.create(providerSpecifica
         description: 'Unique specification identifier',
         examples: ['psp_9gHjKlMnPqRsTuVw']
       }),
+      key: v.string({
+        name: 'key',
+        description: 'Unique specification key',
+        examples: ['github']
+      }),
       name: v.string({ name: 'name', description: 'Display name', examples: ['GitHub'] }),
       description: v.nullable(
         v.string({
@@ -47,23 +55,23 @@ export let v1ProviderSpecificationPresenter = Presenter.create(providerSpecifica
           examples: ['GitHub API integration']
         })
       ),
-      config_schema: v.nullable(
-        v.record(v.any(), {
-          name: 'config_schema',
-          description:
-            'JSON Schema defining the configuration structure. Contains standard JSON Schema fields like type, properties, required, etc.',
-          examples: [
-            {
-              type: 'object',
-              properties: {
-                base_url: { type: 'string', description: 'Base URL for the API' },
-                timeout: { type: 'number', description: 'Request timeout in milliseconds' }
-              },
-              required: ['base_url']
-            }
-          ]
-        })
-      ),
+      config_schema: v.record(v.any(), {
+        name: 'config_schema',
+        description: 'JSON Schema defining the configuration structure',
+        examples: [
+          {
+            type: 'object',
+            properties: {
+              base_url: { type: 'string', description: 'Base URL for the API' }
+            },
+            required: ['base_url']
+          }
+        ]
+      }),
+      config_visibility: v.enumOf(['encrypted', 'plain'] as const, {
+        name: 'config_visibility',
+        description: 'Visibility level of the configuration'
+      }),
       tools: v.array(v1ProviderToolPresenter.schema, {
         name: 'tools',
         description: 'Available tools'

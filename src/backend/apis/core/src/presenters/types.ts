@@ -69,7 +69,8 @@ import {
   SubspaceSessionParticipant,
   SubspaceSessionProvider,
   SubspaceSessionTemplate,
-  SubspaceSessionTemplateProvider
+  SubspaceSessionTemplateProvider,
+  SubspaceToolCall
 } from '@metorial/module-subspace';
 import { PresentableType } from '@metorial/presenter';
 
@@ -509,14 +510,21 @@ export let customProviderEnvironmentType = PresentableType.create<{
 }>()('customProviderEnvironment');
 
 export let bucketEditorTokenType = PresentableType.create<{
-  id: string;
-  token: string;
-  expiresAt: Date;
+  token: {
+    id: string;
+    url: string;
+    token: string;
+    expiresAt: Date;
+  };
 }>()('bucketEditorToken');
 
 export let providerOAuthSetupType = PresentableType.create<{
   providerOAuthSetup: SubspaceProviderOAuthSetup;
 }>()('providerOAuthSetup');
+
+export let toolCallType = PresentableType.create<{
+  toolCall: SubspaceToolCall;
+}>()('toolCall');
 
 export let scmConnectionType = PresentableType.create<{
   scmConnection: SubspaceScmConnection;
@@ -538,10 +546,16 @@ export let scmRepoType = PresentableType.create<{
   scmRepo: SubspaceScmRepository;
 }>()('scmRepo');
 
+export type ScmRepo = SubspaceScmRepository;
+
 export let scmRepoPreviewType = PresentableType.create<{
-  repoPreview: SubspaceScmRepositoryPreviews;
+  repoPreview: SubspaceScmRepositoryPreviews[number];
 }>()('scmRepoPreview');
 
+export type ScmRepoPreview = SubspaceScmRepositoryPreviews[number];
+
 export let scmAccountPreviewType = PresentableType.create<{
-  accountPreview: SubspaceScmAccountPreviews;
+  accountPreview: SubspaceScmAccountPreviews[number];
 }>()('scmAccountPreview');
+
+export type ScmAccountPreview = SubspaceScmAccountPreviews[number];

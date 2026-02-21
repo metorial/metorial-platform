@@ -6,25 +6,31 @@ import { v1ProviderAuthConfigPresenter } from './authConfig';
 export let v1SetupSessionPresenter = Presenter.create(providerSetupSessionType)
   .presenter(async ({ setupSession }, opts) => ({
     object: 'provider.setup_session' as const,
+
     id: setupSession.id,
-    type: setupSession.type ?? 'oauth',
-    status: setupSession.status ?? 'pending',
+    type: setupSession.type,
+    status: setupSession.status,
+
+    url: setupSession.url,
+
     name: setupSession.name,
     description: setupSession.description,
     metadata: setupSession.metadata,
-    provider_id: setupSession.providerId,
-    provider_deployment_id: setupSession.providerDeploymentId ?? setupSession.deploymentId,
-    provider_auth_method_id: setupSession.providerAuthMethodId ?? setupSession.authMethodId,
+
+    ui_mode: setupSession.uiMode,
     redirect_url: setupSession.redirectUrl,
-    url: setupSession.setupUrl ?? setupSession.url,
-    created_at: setupSession.createdAt,
-    updated_at: setupSession.updatedAt,
-    expires_at: setupSession.expiresAt ?? null,
+
+    provider_id: setupSession.providerId,
+
     auth_config: setupSession.authConfig
       ? await v1ProviderAuthConfigPresenter
           .present({ authConfig: setupSession.authConfig }, opts)
           .run()
-      : null
+      : null,
+
+    created_at: setupSession.createdAt,
+    updated_at: setupSession.updatedAt,
+    expires_at: setupSession.expiresAt
   }))
   .schema(
     v.object({
@@ -36,11 +42,20 @@ export let v1SetupSessionPresenter = Presenter.create(providerSetupSessionType)
         description: 'Unique setup session identifier',
         examples: ['pas_6eFgHjKlMnPqRsTu']
       }),
-      type: v.literal('oauth'),
+      type: v.string({
+        name: 'type',
+        description: 'Setup session type',
+        examples: ['oauth']
+      }),
       status: v.string({
         name: 'status',
-        description: 'Session status (pending, in_progress, completed, failed, expired)',
-        examples: ['pending', 'completed']
+        description: 'Session status',
+        examples: ['pending', 'completed', 'expired']
+      }),
+      url: v.string({
+        name: 'url',
+        description: 'URL where user completes authentication',
+        examples: ['https://provider.metorial.com/setup/pas_6eFgHjKlMnPqRsTu']
       }),
       name: v.nullable(
         v.string({
@@ -59,13 +74,8 @@ export let v1SetupSessionPresenter = Presenter.create(providerSetupSessionType)
       metadata: v.nullable(
         v.record(v.any(), {
           name: 'metadata',
-          description: 'Custom key-value pairs for storing additional information',
-          examples: [
-            {
-              redirect_uri: 'https://app.example.com/callback',
-              requested_scopes: ['repo', 'user']
-            }
-          ]
+          description: 'Custom key-value pairs',
+          examples: [{ redirect_uri: 'https://app.example.com/callback' }]
         })
       ),
       provider_id: v.string({
@@ -73,32 +83,17 @@ export let v1SetupSessionPresenter = Presenter.create(providerSetupSessionType)
         description: 'Provider ID',
         examples: ['pro_5gHjKlMnPqRsTuVw']
       }),
-      provider_deployment_id: v.nullable(
-        v.string({
-          name: 'provider_deployment_id',
-          description: 'Deployment ID',
-          examples: ['pde_1aBcDeFgHjKlMnPq']
-        })
-      ),
-      provider_auth_method_id: v.string({
-        name: 'provider_auth_method_id',
-        description: 'Auth method ID',
-        examples: ['pam_2mNpQrStUvWxYzAb']
+      ui_mode: v.string({
+        name: 'ui_mode',
+        description: 'UI mode for setup',
+        examples: ['redirect', 'popup']
       }),
-      redirect_url: v.nullable(
-        v.string({
-          name: 'redirect_url',
-          description: 'URL to redirect after setup',
-          examples: ['https://app.example.com/callback']
-        })
-      ),
-      url: v.nullable(
-        v.string({
-          name: 'url',
-          description: 'URL where user completes authentication',
-          examples: ['https://provider.metorial.com/setup/pas_6eFgHjKlMnPqRsTu']
-        })
-      ),
+      redirect_url: v.string({
+        name: 'redirect_url',
+        description: 'URL to redirect after setup',
+        examples: ['https://app.example.com/callback']
+      }),
+      auth_config: v.nullable(v1ProviderAuthConfigPresenter.schema),
       created_at: v.date({
         name: 'created_at',
         description: 'Timestamp when created',
@@ -109,14 +104,11 @@ export let v1SetupSessionPresenter = Presenter.create(providerSetupSessionType)
         description: 'Timestamp when last updated',
         examples: [new Date('2026-01-10T14:45:00Z')]
       }),
-      expires_at: v.nullable(
-        v.date({
-          name: 'expires_at',
-          description: 'Timestamp when the session expires',
-          examples: [new Date('2025-09-15T11:30:00Z')]
-        })
-      ),
-      auth_config: v.nullable(v1ProviderAuthConfigPresenter.schema)
+      expires_at: v.date({
+        name: 'expires_at',
+        description: 'Timestamp when the session expires',
+        examples: [new Date('2025-09-15T11:30:00Z')]
+      })
     })
   )
   .build();

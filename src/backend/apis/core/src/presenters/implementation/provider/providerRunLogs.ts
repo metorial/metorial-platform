@@ -5,10 +5,13 @@ import { providerRunLogsType } from '../../types';
 export let v1ProviderRunLogsPresenter = Presenter.create(providerRunLogsType)
   .presenter(async ({ logs }) => ({
     object: 'session.provider_run.logs' as const,
+
+    provider_run_id: logs.providerRunId,
     logs: logs.logs.map(log => ({
-      type: log.outputType,
-      line: log.message,
-      timestamp: log.timestamp ?? null
+      object: 'session.provider_run.item' as const,
+      timestamp: log.timestamp,
+      message: log.message,
+      output_type: log.outputType
     }))
   }))
   .schema(
@@ -16,24 +19,32 @@ export let v1ProviderRunLogsPresenter = Presenter.create(providerRunLogsType)
       object: v.literal('session.provider_run.logs', {
         description: "String representing the object's type"
       }),
+      provider_run_id: v.string({
+        name: 'provider_run_id',
+        description: 'Provider run ID',
+        examples: ['prn_8hJkLmNpQrStUvWx']
+      }),
       logs: v.array(
         v.object({
-          type: v.string({
-            name: 'type',
-            description: 'Log type',
-            examples: ['stdout', 'stderr']
+          object: v.literal('session.provider_run.item', {
+            description: "String representing the object's type"
           }),
-          line: v.string({
-            name: 'line',
-            description: 'Log line content',
+          timestamp: v.date({
+            name: 'timestamp',
+            description: 'Log timestamp',
+            examples: [new Date('2025-09-15T10:30:00Z')]
+          }),
+          message: v.string({
+            name: 'message',
+            description: 'Log message content',
             examples: ['Server started on port 3000']
           }),
-          timestamp: v.nullable(
-            v.date({
-              name: 'timestamp',
-              description: 'Log timestamp',
-              examples: [new Date('2025-09-15T10:30:00Z')]
-            })
+          output_type: v.enumOf(
+            ['stdout', 'stderr', 'debug.info', 'debug.warning', 'debug.error'] as const,
+            {
+              name: 'output_type',
+              description: 'Output type of the log entry'
+            }
           )
         }),
         { name: 'logs', description: 'Array of log entries' }

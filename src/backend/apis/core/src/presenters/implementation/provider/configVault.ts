@@ -15,9 +15,9 @@ export let v1ProviderConfigVaultPresenter = Presenter.create(providerConfigVault
 
     provider_id: configVault.providerId,
 
-    deployment: configVault.deployment
+    deployment: configVault.deploymentId
       ? await v1ProviderDeploymentPreviewPresenter
-          .present({ deployment: configVault.deployment }, opts)
+          .present({ deployment: configVault.deploymentId }, opts)
           .run()
       : null,
 
@@ -34,13 +34,11 @@ export let v1ProviderConfigVaultPresenter = Presenter.create(providerConfigVault
         description: 'Unique config vault identifier',
         examples: ['pcvt_3bCdEfGhJkLmNpQr']
       }),
-      name: v.nullable(
-        v.string({
-          name: 'name',
-          description: 'Display name',
-          examples: ['Production Secrets']
-        })
-      ),
+      name: v.string({
+        name: 'name',
+        description: 'Display name',
+        examples: ['Production Secrets']
+      }),
       description: v.nullable(
         v.string({
           name: 'description',

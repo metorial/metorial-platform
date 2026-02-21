@@ -8,16 +8,7 @@ export let v1ScmRepoPreviewPresenter = Presenter.create(scmRepoPreviewType)
     provider: repoPreview.provider,
     external_id: repoPreview.externalId,
     name: repoPreview.name,
-    identifier: repoPreview.identifier,
-    last_pushed_at: repoPreview.lastPushedAt ?? null,
-    account: repoPreview.account
-      ? {
-          external_id: repoPreview.account.externalId,
-          name: repoPreview.account.name,
-          identifier: repoPreview.account.identifier,
-          provider: repoPreview.account.provider
-        }
-      : null
+    identifier: repoPreview.identifier
   }))
   .schema(
     v.object({
@@ -25,16 +16,7 @@ export let v1ScmRepoPreviewPresenter = Presenter.create(scmRepoPreviewType)
       provider: v.string(),
       external_id: v.string(),
       name: v.string(),
-      identifier: v.string(),
-      last_pushed_at: v.nullable(v.date()),
-      account: v.nullable(
-        v.object({
-          external_id: v.string(),
-          name: v.string(),
-          identifier: v.string(),
-          provider: v.string()
-        })
-      )
+      identifier: v.string()
     })
   )
   .build();

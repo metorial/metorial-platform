@@ -1,6 +1,6 @@
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
-import { customProviderDeploymentType, customProviderDeploymentLogsType } from '../../types';
+import { customProviderDeploymentLogsType, customProviderDeploymentType } from '../../types';
 
 let actorSchema = v.object({
   id: v.string({
@@ -8,20 +8,16 @@ let actorSchema = v.object({
     description: 'Actor identifier',
     examples: ['act_1aBcDeFgHjKlMnPq']
   }),
-  name: v.nullable(
-    v.string({
-      name: 'name',
-      description: 'Actor display name',
-      examples: ['John Doe']
-    })
-  ),
-  type: v.nullable(
-    v.string({
-      name: 'type',
-      description: 'Actor type',
-      examples: ['external', 'system']
-    })
-  ),
+  name: v.string({
+    name: 'name',
+    description: 'Actor display name',
+    examples: ['John Doe']
+  }),
+  type: v.string({
+    name: 'type',
+    description: 'Actor type',
+    examples: ['external', 'system']
+  }),
   organization_actor_id: v.nullable(
     v.string({
       name: 'organization_actor_id',
@@ -37,20 +33,16 @@ let commitSchema = v.object({
     description: 'Commit identifier',
     examples: ['cpcm_1aBcDeFgHjKlMnPq']
   }),
-  type: v.nullable(
-    v.string({
-      name: 'type',
-      description: 'Commit type',
-      examples: ['merge', 'rollback']
-    })
-  ),
-  message: v.nullable(
-    v.string({
-      name: 'message',
-      description: 'Commit message',
-      examples: ['Deploy new version']
-    })
-  ),
+  type: v.string({
+    name: 'type',
+    description: 'Commit type',
+    examples: ['merge', 'rollback']
+  }),
+  message: v.string({
+    name: 'message',
+    description: 'Commit message',
+    examples: ['Deploy new version']
+  }),
   created_at: v.date({
     name: 'created_at',
     description: 'Timestamp when commit was created',
@@ -139,14 +131,12 @@ export let v1CustomProviderDeploymentPresenter = Presenter.create(customProvider
           created_at: customProviderDeployment.commit.createdAt
         }
       : null,
-    actor: customProviderDeployment.actor
-      ? {
-          id: customProviderDeployment.actor.id,
-          name: customProviderDeployment.actor.name,
-          type: customProviderDeployment.actor.type,
-          organization_actor_id: customProviderDeployment.actor.organizationActorId
-        }
-      : null,
+    actor: {
+      id: customProviderDeployment.actor.id,
+      name: customProviderDeployment.actor.name,
+      type: customProviderDeployment.actor.type,
+      organization_actor_id: customProviderDeployment.actor.organizationActorId
+    },
     created_at: customProviderDeployment.createdAt,
     updated_at: customProviderDeployment.updatedAt
   }))
@@ -160,20 +150,16 @@ export let v1CustomProviderDeploymentPresenter = Presenter.create(customProvider
         description: 'Unique custom provider deployment identifier',
         examples: ['cpd_1aBcDeFgHjKlMnPq']
       }),
-      status: v.nullable(
-        v.string({
-          name: 'status',
-          description: 'Current deployment status',
-          examples: ['queued', 'deploying', 'succeeded', 'failed']
-        })
-      ),
-      trigger: v.nullable(
-        v.string({
-          name: 'trigger',
-          description: 'What triggered this deployment',
-          examples: ['manual', 'commit']
-        })
-      ),
+      status: v.string({
+        name: 'status',
+        description: 'Current deployment status',
+        examples: ['queued', 'deploying', 'succeeded', 'failed']
+      }),
+      trigger: v.string({
+        name: 'trigger',
+        description: 'What triggered this deployment',
+        examples: ['manual', 'commit']
+      }),
       custom_provider_id: v.string({
         name: 'custom_provider_id',
         description: 'ID of the parent custom provider',
@@ -194,7 +180,7 @@ export let v1CustomProviderDeploymentPresenter = Presenter.create(customProvider
         })
       ),
       commit: v.nullable(commitSchema),
-      actor: v.nullable(actorSchema),
+      actor: actorSchema,
       created_at: v.date({
         name: 'created_at',
         description: 'Timestamp when created',
@@ -234,12 +220,12 @@ export let v1CustomProviderDeploymentLogsPresenter = Presenter.create(
 )
   .presenter(async ({ logs }) => ({
     object: 'custom_provider.deployment.logs' as const,
-    logs: (logs.logs ?? flattenStepLogs(logs.steps)).map(log => ({
+    logs: ((logs as any).logs ?? flattenStepLogs((logs as any).steps)).map((log: any) => ({
       type: log.type,
-      line: log.line,
+      line: log.line ?? log.message ?? '',
       timestamp: log.timestamp ?? null
     })),
-    steps: (logs.steps ?? []).map(presentStep)
+    steps: ((logs as any).steps ?? []).map(presentStep)
   }))
   .schema(
     v.object({

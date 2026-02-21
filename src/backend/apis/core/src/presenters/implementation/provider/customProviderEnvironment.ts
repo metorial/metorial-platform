@@ -7,11 +7,15 @@ export let v1CustomProviderEnvironmentPresenter = Presenter.create(
 )
   .presenter(async ({ customProviderEnvironment }) => ({
     object: 'custom_provider.environment' as const,
+
     id: customProviderEnvironment.id,
+
     custom_provider_id: customProviderEnvironment.customProviderId,
     provider_id: customProviderEnvironment.providerId ?? null,
     current_provider_version_id: customProviderEnvironment.currentProviderVersionId ?? null,
-    instance_id: customProviderEnvironment.instanceId ?? null,
+
+    instance_id: customProviderEnvironment.instanceId,
+
     created_at: customProviderEnvironment.createdAt,
     updated_at: customProviderEnvironment.updatedAt
   }))
@@ -44,13 +48,11 @@ export let v1CustomProviderEnvironmentPresenter = Presenter.create(
           examples: ['prv_4dEfGhJkLmNpQrSt']
         })
       ),
-      instance_id: v.nullable(
-        v.string({
-          name: 'instance_id',
-          description: 'ID of the instance this environment is associated with',
-          examples: ['ins_2cDeFgHjKlMnPqRs']
-        })
-      ),
+      instance_id: v.string({
+        name: 'instance_id',
+        description: 'ID of the instance this environment is associated with',
+        examples: ['ins_2cDeFgHjKlMnPqRs']
+      }),
       created_at: v.date({
         name: 'created_at',
         description: 'Timestamp when created',

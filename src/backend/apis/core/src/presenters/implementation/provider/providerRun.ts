@@ -6,16 +6,14 @@ export let v1ProviderRunPresenter = Presenter.create(providerRunType)
   .presenter(async ({ providerRun }) => ({
     object: 'session.provider_run' as const,
     id: providerRun.id,
+
     status: providerRun.status,
-    name: providerRun.name,
-    description: providerRun.description,
-    metadata: providerRun.metadata,
+
     session_id: providerRun.sessionId,
     session_provider_id: providerRun.sessionProviderId,
     provider_id: providerRun.providerId,
-    provider_deployment_id: providerRun.providerDeploymentId,
-    provider_version_id: providerRun.providerVersionId,
-    started_at: providerRun.startedAt,
+    connection_id: providerRun.connectionId,
+
     completed_at: providerRun.completedAt,
     created_at: providerRun.createdAt,
     updated_at: providerRun.updatedAt
@@ -30,66 +28,31 @@ export let v1ProviderRunPresenter = Presenter.create(providerRunType)
         description: 'Unique provider run identifier',
         examples: ['prn_8hJkLmNpQrStUvWx']
       }),
-      status: v.nullable(
-        v.string({ name: 'status', description: 'Run status', examples: ['completed'] })
-      ),
-      name: v.nullable(
-        v.string({ name: 'name', description: 'Display name', examples: ['Tool execution'] })
-      ),
-      description: v.nullable(
-        v.string({
-          name: 'description',
-          description: 'Description',
-          examples: ['Executing search_files tool']
-        })
-      ),
-      metadata: v.nullable(
-        v.record(v.any(), {
-          name: 'metadata',
-          description: 'Custom key-value pairs',
-          examples: [{ tool_name: 'search_files' }]
-        })
-      ),
+      status: v.string({
+        name: 'status',
+        description: 'Run status',
+        examples: ['running', 'stopped']
+      }),
       session_id: v.string({
         name: 'session_id',
         description: 'Parent session ID',
         examples: ['ses_4dEfGhJkLmNpQrSt']
       }),
-      session_provider_id: v.nullable(
-        v.string({
-          name: 'session_provider_id',
-          description: 'Session provider ID',
-          examples: ['spr_3cDeFgHjKlMnPqRs']
-        })
-      ),
-      provider_id: v.nullable(
-        v.string({
-          name: 'provider_id',
-          description: 'Provider ID',
-          examples: ['pro_5gHjKlMnPqRsTuVw']
-        })
-      ),
-      provider_deployment_id: v.nullable(
-        v.string({
-          name: 'provider_deployment_id',
-          description: 'Provider deployment ID',
-          examples: ['pde_1aBcDeFgHjKlMnPq']
-        })
-      ),
-      provider_version_id: v.nullable(
-        v.string({
-          name: 'provider_version_id',
-          description: 'Provider version ID',
-          examples: ['prv_4dEfGhJkLmNpQrSt']
-        })
-      ),
-      started_at: v.nullable(
-        v.date({
-          name: 'started_at',
-          description: 'Timestamp when run started',
-          examples: [new Date('2025-09-15T10:30:00Z')]
-        })
-      ),
+      session_provider_id: v.string({
+        name: 'session_provider_id',
+        description: 'Session provider ID',
+        examples: ['spr_3cDeFgHjKlMnPqRs']
+      }),
+      provider_id: v.string({
+        name: 'provider_id',
+        description: 'Provider ID',
+        examples: ['pro_5gHjKlMnPqRsTuVw']
+      }),
+      connection_id: v.string({
+        name: 'connection_id',
+        description: 'Connection ID',
+        examples: ['scn_8hJkLmNpQrStUvWx']
+      }),
       completed_at: v.nullable(
         v.date({
           name: 'completed_at',

@@ -1,41 +1,38 @@
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
 import { toolCallType } from '../../types';
+import { v1ProviderToolPresenter } from './providerTool';
+import { v1SessionErrorPresenter } from './sessionError';
 
 export let v1ProviderToolCallPresenter = Presenter.create(toolCallType)
-  .presenter(async ({ toolCall }) => ({
+  .presenter(async ({ toolCall }, opts) => ({
     object: 'session.tool_call' as const,
+
     id: toolCall.id,
     tool_key: toolCall.toolKey,
+
     type: toolCall.type,
     status: toolCall.status,
     source: toolCall.source,
+
     transport: toolCall.transport,
+
     session_id: toolCall.sessionId,
     message_id: toolCall.messageId,
     session_provider_id: toolCall.sessionProviderId,
     connection_id: toolCall.connectionId,
     provider_run_id: toolCall.providerRunId,
-    tool: toolCall.tool
-      ? {
-          object: 'provider.tool' as const,
-          id: toolCall.tool.id,
-          name: toolCall.tool.name,
-          title: toolCall.tool.title ?? null,
-          description: toolCall.tool.description,
-          input_schema: toolCall.tool.inputSchema ?? toolCall.tool.inputJsonSchema ?? null,
-          output_schema: toolCall.tool.outputSchema ?? toolCall.tool.outputJsonSchema ?? null,
-          provider_id: toolCall.tool.providerId,
-          provider_specification_id:
-            toolCall.tool.providerSpecificationId ?? toolCall.tool.specificationId ?? null,
-          created_at: toolCall.tool.createdAt,
-          updated_at: toolCall.tool.updatedAt
-        }
-      : null,
+
+    tool: await v1ProviderToolPresenter.present({ tool: toolCall.tool }, opts).run(),
+
     input: toolCall.input,
     output: toolCall.output,
-    error: toolCall.error,
-    metadata: toolCall.metadata,
+    error: toolCall.error
+      ? await toolCall.error.then(e =>
+          v1SessionErrorPresenter.present({ sessionError: e as any }, opts).run()
+        )
+      : null,
+
     created_at: toolCall.createdAt
   }))
   .schema(
@@ -104,12 +101,7 @@ export let v1ProviderToolCallPresenter = Presenter.create(toolCallType)
           examples: ['prn_8hJkLmNpQrStUvWx']
         })
       ),
-      tool: v.nullable(
-        v.record(v.any(), {
-          name: 'tool',
-          description: 'The tool definition that was called'
-        })
-      ),
+      tool: v1ProviderToolPresenter.schema,
       input: v.nullable(
         v.record(v.any(), {
           name: 'input',
@@ -122,19 +114,7 @@ export let v1ProviderToolCallPresenter = Presenter.create(toolCallType)
           description: 'Output data returned from the tool call'
         })
       ),
-      error: v.nullable(
-        v.record(v.any(), {
-          name: 'error',
-          description: 'Error details if the tool call failed'
-        })
-      ),
-      metadata: v.nullable(
-        v.record(v.any(), {
-          name: 'metadata',
-          description: 'Custom key-value metadata',
-          examples: [{ source: 'manual' }]
-        })
-      ),
+      error: v.nullable(v1SessionErrorPresenter.schema),
       created_at: v.date({
         name: 'created_at',
         description: 'Timestamp when created',

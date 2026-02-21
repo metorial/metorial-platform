@@ -10,20 +10,16 @@ let actorSchema = v.object({
     description: 'Actor identifier',
     examples: ['act_1aBcDeFgHjKlMnPq']
   }),
-  name: v.nullable(
-    v.string({
-      name: 'name',
-      description: 'Actor display name',
-      examples: ['John Doe']
-    })
-  ),
-  type: v.nullable(
-    v.string({
-      name: 'type',
-      description: 'Actor type',
-      examples: ['external', 'system']
-    })
-  ),
+  name: v.string({
+    name: 'name',
+    description: 'Actor display name',
+    examples: ['John Doe']
+  }),
+  type: v.string({
+    name: 'type',
+    description: 'Actor type',
+    examples: ['external', 'system']
+  }),
   organization_actor_id: v.nullable(
     v.string({
       name: 'organization_actor_id',
@@ -61,24 +57,20 @@ export let v1CustomProviderCommitPresenter = Presenter.create(customProviderComm
     custom_provider_id: customProviderCommit.customProviderId,
     provider_id: customProviderCommit.providerId ?? null,
     custom_provider_deployment_id: customProviderCommit.customProviderDeploymentId ?? null,
-    to_environment: customProviderCommit.toEnvironment
-      ? await v1CustomProviderEnvironmentPresenter
-          .present({ customProviderEnvironment: customProviderCommit.toEnvironment }, opts)
-          .run()
-      : null,
+    to_environment: await v1CustomProviderEnvironmentPresenter
+      .present({ customProviderEnvironment: customProviderCommit.toEnvironment }, opts)
+      .run(),
     from_environment: customProviderCommit.fromEnvironment
       ? await v1CustomProviderEnvironmentPresenter
           .present({ customProviderEnvironment: customProviderCommit.fromEnvironment }, opts)
           .run()
       : null,
-    target_custom_provider_version: customProviderCommit.targetCustomProviderVersion
-      ? await v1CustomProviderVersionPresenter
-          .present(
-            { customProviderVersion: customProviderCommit.targetCustomProviderVersion },
-            opts
-          )
-          .run()
-      : null,
+    target_custom_provider_version: await v1CustomProviderVersionPresenter
+      .present(
+        { customProviderVersion: customProviderCommit.targetCustomProviderVersion },
+        opts
+      )
+      .run(),
     previous_custom_provider_version: customProviderCommit.previousCustomProviderVersion
       ? await v1CustomProviderVersionPresenter
           .present(
@@ -87,16 +79,14 @@ export let v1CustomProviderCommitPresenter = Presenter.create(customProviderComm
           )
           .run()
       : null,
-    actor: customProviderCommit.actor
-      ? {
-          id: customProviderCommit.actor.id,
-          name: customProviderCommit.actor.name,
-          type: customProviderCommit.actor.type,
-          organization_actor_id: customProviderCommit.actor.organizationActorId
-        }
-      : null,
+    actor: {
+      id: customProviderCommit.actor.id,
+      name: customProviderCommit.actor.name,
+      type: customProviderCommit.actor.type,
+      organization_actor_id: customProviderCommit.actor.organizationActorId
+    },
     created_at: customProviderCommit.createdAt,
-    applied_at: customProviderCommit.appliedAt ?? null
+    applied_at: customProviderCommit.appliedAt
   }))
   .schema(
     v.object({
@@ -108,20 +98,16 @@ export let v1CustomProviderCommitPresenter = Presenter.create(customProviderComm
         description: 'Unique custom provider commit identifier',
         examples: ['cpcm_1aBcDeFgHjKlMnPq']
       }),
-      status: v.nullable(
-        v.string({
-          name: 'status',
-          description: 'Current commit status',
-          examples: ['pending', 'in_progress', 'completed', 'failed']
-        })
-      ),
-      trigger: v.nullable(
-        v.string({
-          name: 'trigger',
-          description: 'What triggered this commit',
-          examples: ['manual', 'automatic']
-        })
-      ),
+      status: v.string({
+        name: 'status',
+        description: 'Current commit status',
+        examples: ['pending', 'in_progress', 'completed', 'failed']
+      }),
+      trigger: v.string({
+        name: 'trigger',
+        description: 'What triggered this commit',
+        examples: ['manual', 'automatic']
+      }),
       error: v.nullable(errorSchema),
       custom_provider_id: v.string({
         name: 'custom_provider_id',
@@ -142,11 +128,11 @@ export let v1CustomProviderCommitPresenter = Presenter.create(customProviderComm
           examples: ['cpd_1aBcDeFgHjKlMnPq']
         })
       ),
-      to_environment: v.nullable(v1CustomProviderEnvironmentPresenter.schema),
+      to_environment: v1CustomProviderEnvironmentPresenter.schema,
       from_environment: v.nullable(v1CustomProviderEnvironmentPresenter.schema),
-      target_custom_provider_version: v.nullable(v1CustomProviderVersionPresenter.schema),
+      target_custom_provider_version: v1CustomProviderVersionPresenter.schema,
       previous_custom_provider_version: v.nullable(v1CustomProviderVersionPresenter.schema),
-      actor: v.nullable(actorSchema),
+      actor: actorSchema,
       created_at: v.date({
         name: 'created_at',
         description: 'Timestamp when created',

@@ -20,6 +20,7 @@ import { v1UserPresenter } from './implementation/user';
 
 // Provider API presenters
 import {
+  v1BucketEditorTokenPresenter,
   v1ConfigPresenter,
   v1CustomProviderCommitPresenter,
   v1CustomProviderDeploymentLogsPresenter,
@@ -28,7 +29,6 @@ import {
   // Custom Provider presenters
   v1CustomProviderPresenter,
   v1CustomProviderVersionPresenter,
-  v1CustomServerCodeEditorTokenPresenter,
   v1ProviderAuthConfigPresenter,
   v1ProviderAuthConfigSchemaPresenter,
   v1ProviderAuthCredentialsPresenter,
@@ -68,8 +68,8 @@ import {
 
 import {
   v1ScmAccountPreviewPresenter,
-  v1ScmInstallationPresenter,
-  v1ScmInstallationSetupPresenter,
+  v1ScmConnectionPresenter,
+  v1ScmConnectionSetupPresenter,
   v1ScmRepoPresenter,
   v1ScmRepoPreviewPresenter
 } from './implementation/scm';
@@ -79,6 +79,7 @@ import {
   authConfigSchemaType,
   authImportSchemaType,
   bootType,
+  bucketEditorTokenType,
   configPreviewType,
   configSchemaType,
   customProviderCommitType,
@@ -88,7 +89,6 @@ import {
   // Custom Provider types
   customProviderType,
   customProviderVersionType,
-  customServerCodeEditorTokenType,
   deploymentPreviewType,
   fileLinkType,
   fileType,
@@ -123,9 +123,6 @@ import {
   providerListingType,
   providerRunLogsType,
   providerRunType,
-  providerSessionProviderType,
-  providerSessionTemplateProviderType,
-  providerSessionTemplateType,
   providerSessionType,
   providerSetupSessionType,
   providerSpecificationType,
@@ -135,21 +132,24 @@ import {
   providerVersionType,
   publisherType,
   scmAccountPreviewType,
-  scmInstallationSetupType,
-  scmInstallationType,
+  scmConnectionSetupType,
+  scmConnectionType,
   scmRepoPreviewType,
   scmRepoType,
   secretType,
-  sessionErrorGroupType,
-  sessionErrorType,
-  sessionParticipantType,
   // ssoTenantSetupType,
   // ssoTenantType,
   // ssoUserProfileType,
   // ssoUserType,
-  subspaceSessionConnectionType,
-  subspaceSessionEventType,
-  subspaceSessionMessageType,
+  sessionConnectionType,
+  sessionErrorGroupType,
+  sessionErrorType,
+  sessionEventType,
+  sessionMessageType,
+  sessionParticipantType,
+  sessionProviderType,
+  sessionTemplateProviderType,
+  sessionTemplateType,
   teamRolePermissionsType,
   teamRoleType,
   teamType,
@@ -455,20 +455,17 @@ export let providerAuthExportPresenter = declarePresenter(providerAuthExportType
 // Session Template & Session-Nested Presenters
 // =============================================================================
 
-export let sessionTemplatePresenter = declarePresenter(providerSessionTemplateType, {
+export let sessionTemplatePresenter = declarePresenter(sessionTemplateType, {
   mt_2025_01_01_dashboard: v1SessionTemplatePresenter,
   mt_2026_01_01_magnetar: v1SessionTemplatePresenter
 });
 
-export let sessionTemplateProviderPresenter = declarePresenter(
-  providerSessionTemplateProviderType,
-  {
-    mt_2025_01_01_dashboard: v1SessionTemplateProviderPresenter,
-    mt_2026_01_01_magnetar: v1SessionTemplateProviderPresenter
-  }
-);
+export let sessionTemplateProviderPresenter = declarePresenter(sessionTemplateProviderType, {
+  mt_2025_01_01_dashboard: v1SessionTemplateProviderPresenter,
+  mt_2026_01_01_magnetar: v1SessionTemplateProviderPresenter
+});
 
-export let sessionProviderPresenter = declarePresenter(providerSessionProviderType, {
+export let sessionProviderPresenter = declarePresenter(sessionProviderType, {
   mt_2025_01_01_dashboard: v1SessionProviderPresenter,
   mt_2026_01_01_magnetar: v1SessionProviderPresenter
 });
@@ -500,20 +497,17 @@ export let providerSessionPresenter = declarePresenter(providerSessionType, {
 });
 
 // Provider API session-nested presenters (Magnetar only)
-export let subspaceSessionMessagePresenter = declarePresenter(subspaceSessionMessageType, {
+export let subspaceSessionMessagePresenter = declarePresenter(sessionMessageType, {
   mt_2025_01_01_dashboard: v1SubspaceSessionMessagePresenter,
   mt_2026_01_01_magnetar: v1SubspaceSessionMessagePresenter
 });
 
-export let subspaceSessionConnectionPresenter = declarePresenter(
-  subspaceSessionConnectionType,
-  {
-    mt_2025_01_01_dashboard: v1SessionConnectionPresenter,
-    mt_2026_01_01_magnetar: v1SessionConnectionPresenter
-  }
-);
+export let subspaceSessionConnectionPresenter = declarePresenter(sessionConnectionType, {
+  mt_2025_01_01_dashboard: v1SessionConnectionPresenter,
+  mt_2026_01_01_magnetar: v1SessionConnectionPresenter
+});
 
-export let subspaceSessionEventPresenter = declarePresenter(subspaceSessionEventType, {
+export let subspaceSessionEventPresenter = declarePresenter(sessionEventType, {
   mt_2025_01_01_dashboard: v1SubspaceSessionEventPresenter,
   mt_2026_01_01_magnetar: v1SubspaceSessionEventPresenter
 });
@@ -542,13 +536,10 @@ export let authConfigSchemaPresenter = declarePresenter(authConfigSchemaType, {
 // Custom Provider Presenters
 // =============================================================================
 
-export let customServerCodeEditorTokenTypePresenter = declarePresenter(
-  customServerCodeEditorTokenType,
-  {
-    mt_2025_01_01_dashboard: v1CustomServerCodeEditorTokenPresenter,
-    mt_2026_01_01_magnetar: v1CustomServerCodeEditorTokenPresenter
-  }
-);
+export let bucketEditorTokenPresenter = declarePresenter(bucketEditorTokenType, {
+  mt_2025_01_01_dashboard: v1BucketEditorTokenPresenter,
+  mt_2026_01_01_magnetar: v1BucketEditorTokenPresenter
+});
 
 export let subspaceCustomProviderPresenter = declarePresenter(customProviderType, {
   mt_2025_01_01_dashboard: v1CustomProviderPresenter,
@@ -596,14 +587,14 @@ export let subspaceCustomProviderEnvironmentPresenter = declarePresenter(
 // SCM Presenters
 // =============================================================================
 
-export let scmInstallationPresenter = declarePresenter(scmInstallationType, {
-  mt_2025_01_01_dashboard: v1ScmInstallationPresenter,
-  mt_2026_01_01_magnetar: v1ScmInstallationPresenter
+export let scmConnectionPresenter = declarePresenter(scmConnectionType, {
+  mt_2025_01_01_dashboard: v1ScmConnectionPresenter,
+  mt_2026_01_01_magnetar: v1ScmConnectionPresenter
 });
 
-export let scmInstallationSetupPresenter = declarePresenter(scmInstallationSetupType, {
-  mt_2025_01_01_dashboard: v1ScmInstallationSetupPresenter,
-  mt_2026_01_01_magnetar: v1ScmInstallationSetupPresenter
+export let scmConnectionSetupPresenter = declarePresenter(scmConnectionSetupType, {
+  mt_2025_01_01_dashboard: v1ScmConnectionSetupPresenter,
+  mt_2026_01_01_magnetar: v1ScmConnectionSetupPresenter
 });
 
 export let scmRepoPresenter = declarePresenter(scmRepoType, {
@@ -620,5 +611,3 @@ export let scmAccountPreviewPresenter = declarePresenter(scmAccountPreviewType, 
   mt_2025_01_01_dashboard: v1ScmAccountPreviewPresenter,
   mt_2026_01_01_magnetar: v1ScmAccountPreviewPresenter
 });
-
-export { presentSubspaceSessionMessageAs } from './implementation/provider';

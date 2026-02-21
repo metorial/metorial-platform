@@ -1,7 +1,7 @@
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
-import { subspaceSessionMessageType } from '../../types';
-import type { SubspaceSessionMessage } from '../../types';
+import { sessionMessageType } from '../../types';
+import type { SubspaceSessionMessage } from '@metorial/module-subspace';
 
 export let presentSubspaceSessionMessageAs = (
   sessionMessage: SubspaceSessionMessage,
@@ -38,7 +38,7 @@ export let presentSubspaceSessionMessageAs = (
     sender: {
       object: 'session.message.sender' as const,
       type: senderType,
-      id: sessionMessage.senderParticipant?.id ?? null
+      id: sessionMessage.senderParticipant?.id ?? sessionMessage.id
     },
     mcp_message: {
       object: 'session.message.mcp_message' as const,
@@ -56,7 +56,7 @@ export let presentSubspaceSessionMessageAs = (
   };
 };
 
-export let v1SubspaceSessionMessagePresenter = Presenter.create(subspaceSessionMessageType)
+export let v1SubspaceSessionMessagePresenter = Presenter.create(sessionMessageType)
   .presenter(async ({ sessionMessage }) => {
     let hasInput = !!sessionMessage.input;
     let hasOutput = !!sessionMessage.output;
@@ -83,7 +83,7 @@ export let v1SubspaceSessionMessagePresenter = Presenter.create(subspaceSessionM
       sender: {
         object: 'session.message.sender' as const,
         type: sessionMessage.source ?? 'client',
-        id: sessionMessage.senderParticipant?.id ?? null
+        id: sessionMessage.senderParticipant?.id ?? sessionMessage.id
       },
       mcp_message: {
         object: 'session.message.mcp_message' as const,
@@ -125,13 +125,11 @@ export let v1SubspaceSessionMessagePresenter = Presenter.create(subspaceSessionM
             description: 'Sender type',
             examples: ['client', 'server']
           }),
-          id: v.nullable(
-            v.string({
-              name: 'id',
-              description: 'Sender ID',
-              examples: ['spr_3cDeFgHjKlMnPqRs']
-            })
-          )
+          id: v.string({
+            name: 'id',
+            description: 'Sender ID',
+            examples: ['spr_3cDeFgHjKlMnPqRs']
+          })
         },
         { name: 'sender', description: 'Message sender information' }
       ),

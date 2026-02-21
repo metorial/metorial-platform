@@ -1,19 +1,42 @@
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
-import { subspaceSessionEventType } from '../../types';
+import { sessionEventType } from '../../types';
+import { v1ProviderRunPresenter } from './providerRun';
+import { v1SessionConnectionPresenter } from './sessionConnection';
+import { v1SessionErrorPresenter } from './sessionError';
+import { v1SubspaceSessionMessagePresenter } from './sessionMessage';
 
-export let v1SubspaceSessionEventPresenter = Presenter.create(subspaceSessionEventType)
-  .presenter(async ({ sessionEvent }) => ({
+export let v1SubspaceSessionEventPresenter = Presenter.create(sessionEventType)
+  .presenter(async ({ sessionEvent }, opts) => ({
     object: 'session.event' as const,
+
     id: sessionEvent.id,
     type: sessionEvent.type,
-    name: sessionEvent.name,
-    message: sessionEvent.message,
-    data: sessionEvent.data,
-    metadata: sessionEvent.metadata,
+
+    connection: sessionEvent.connection
+      ? await v1SessionConnectionPresenter
+          .present({ sessionConnection: sessionEvent.connection }, opts)
+          .run()
+      : null,
+
+    provider_run: sessionEvent.providerRun
+      ? await v1ProviderRunPresenter
+          .present({ providerRun: sessionEvent.providerRun }, opts)
+          .run()
+      : null,
+
+    message: sessionEvent.message
+      ? await v1SubspaceSessionMessagePresenter
+          .present({ sessionMessage: sessionEvent.message }, opts)
+          .run()
+      : null,
+
+    error: sessionEvent.error
+      ? await v1SessionErrorPresenter.present({ sessionError: sessionEvent.error }, opts).run()
+      : null,
+
     session_id: sessionEvent.sessionId,
-    session_provider_id: sessionEvent.sessionProviderId,
-    provider_run_id: sessionEvent.providerRunId,
+
     created_at: sessionEvent.createdAt
   }))
   .schema(
@@ -26,59 +49,20 @@ export let v1SubspaceSessionEventPresenter = Presenter.create(subspaceSessionEve
         description: 'Unique session event identifier',
         examples: ['sev_8hJkLmNpQrStUvWx']
       }),
-      type: v.nullable(
-        v.string({
-          name: 'type',
-          description: 'Event type',
-          examples: ['error', 'warning', 'info']
-        })
-      ),
-      name: v.nullable(
-        v.string({
-          name: 'name',
-          description: 'Event name',
-          examples: ['tool_execution_failed']
-        })
-      ),
-      message: v.nullable(
-        v.string({
-          name: 'message',
-          description: 'Event message'
-        })
-      ),
-      data: v.nullable(
-        v.record(v.any(), {
-          name: 'data',
-          description: 'Event data',
-          examples: [{ tool_name: 'search_files', error_code: 'TIMEOUT' }]
-        })
-      ),
-      metadata: v.nullable(
-        v.record(v.any(), {
-          name: 'metadata',
-          description: 'Custom key-value pairs',
-          examples: [{ severity: 'high' }]
-        })
-      ),
+      type: v.string({
+        name: 'type',
+        description: 'Event type',
+        examples: ['connection.opened', 'message.created', 'error.occurred']
+      }),
       session_id: v.string({
         name: 'session_id',
         description: 'Parent session ID',
         examples: ['ses_4dEfGhJkLmNpQrSt']
       }),
-      session_provider_id: v.nullable(
-        v.string({
-          name: 'session_provider_id',
-          description: 'Session provider ID',
-          examples: ['spr_3cDeFgHjKlMnPqRs']
-        })
-      ),
-      provider_run_id: v.nullable(
-        v.string({
-          name: 'provider_run_id',
-          description: 'Provider run ID',
-          examples: ['prn_8hJkLmNpQrStUvWx']
-        })
-      ),
+      connection: v.nullable(v1SessionConnectionPresenter.schema),
+      provider_run: v.nullable(v1ProviderRunPresenter.schema),
+      message: v.nullable(v1SubspaceSessionMessagePresenter.schema),
+      error: v.nullable(v1SessionErrorPresenter.schema),
       created_at: v.date({
         name: 'created_at',
         description: 'Timestamp when created',

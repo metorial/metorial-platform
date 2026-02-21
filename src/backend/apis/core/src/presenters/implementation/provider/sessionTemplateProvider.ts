@@ -1,25 +1,36 @@
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
-import { providerSessionTemplateProviderType } from '../../types';
+import { sessionTemplateProviderType } from '../../types';
+import { v1ProviderConfigPreviewPresenter } from './configPreview';
+import { v1ProviderDeploymentPreviewPresenter } from './deploymentPreview';
 
-export let v1SessionTemplateProviderPresenter = Presenter.create(
-  providerSessionTemplateProviderType
-)
-  .presenter(async ({ sessionTemplateProvider }) => ({
+export let v1SessionTemplateProviderPresenter = Presenter.create(sessionTemplateProviderType)
+  .presenter(async ({ sessionTemplateProvider }, opts) => ({
     object: 'session.template.provider' as const,
+
     id: sessionTemplateProvider.id,
-    name: sessionTemplateProvider.name,
-    description: sessionTemplateProvider.description,
-    metadata: sessionTemplateProvider.metadata,
-    session_template_id: sessionTemplateProvider.sessionTemplateId,
+
+    status: sessionTemplateProvider.status,
+    tool_filter: sessionTemplateProvider.toolFilter,
+
     provider_id: sessionTemplateProvider.providerId,
-    provider_deployment_id:
-      sessionTemplateProvider.providerDeploymentId ??
-      sessionTemplateProvider.deployment?.id ??
-      null,
-    provider_deployment_name: sessionTemplateProvider.deployment?.name ?? null,
-    provider_config_name: sessionTemplateProvider.config?.name ?? null,
-    provider_auth_config_name: sessionTemplateProvider.authConfig?.name ?? null,
+    session_template_id: sessionTemplateProvider.sessionTemplateId,
+
+    deployment: await v1ProviderDeploymentPreviewPresenter
+      .present({ deployment: sessionTemplateProvider.deployment }, opts)
+      .run(),
+
+    config: await v1ProviderConfigPreviewPresenter
+      .present({ config: sessionTemplateProvider.config }, opts)
+      .run(),
+
+    auth_config: sessionTemplateProvider.authConfig
+      ? {
+          object: 'provider.auth_config#preview' as const,
+          id: sessionTemplateProvider.authConfig.id
+        }
+      : null,
+
     created_at: sessionTemplateProvider.createdAt,
     updated_at: sessionTemplateProvider.updatedAt
   }))
@@ -33,59 +44,31 @@ export let v1SessionTemplateProviderPresenter = Presenter.create(
         description: 'Unique session template provider identifier',
         examples: ['stp_3cDeFgHjKlMnPqRs']
       }),
-      name: v.nullable(
-        v.string({ name: 'name', description: 'Display name', examples: ['GitHub Provider'] })
-      ),
-      description: v.nullable(
-        v.string({
-          name: 'description',
-          description: 'Description',
-          examples: ['GitHub integration for this template']
-        })
-      ),
-      metadata: v.nullable(
-        v.record(v.any(), {
-          name: 'metadata',
-          description: 'Custom key-value pairs',
-          examples: [{ priority: 1 }]
-        })
-      ),
-      session_template_id: v.string({
-        name: 'session_template_id',
-        description: 'Parent session template ID',
-        examples: ['stm_2bCdEfGhJkLmNpQr']
+      status: v.string({
+        name: 'status',
+        description: 'Provider status',
+        examples: ['active', 'archived']
+      }),
+      tool_filter: v.record(v.any(), {
+        name: 'tool_filter',
+        description: 'Tool filter configuration'
       }),
       provider_id: v.string({
         name: 'provider_id',
         description: 'Provider ID',
         examples: ['pro_5gHjKlMnPqRsTuVw']
       }),
-      provider_deployment_id: v.nullable(
-        v.string({
-          name: 'provider_deployment_id',
-          description: 'Provider deployment ID',
-          examples: ['pde_1aBcDeFgHjKlMnPq']
-        })
-      ),
-      provider_deployment_name: v.nullable(
-        v.string({
-          name: 'provider_deployment_name',
-          description: 'Provider deployment name',
-          examples: ['Production']
-        })
-      ),
-      provider_config_name: v.nullable(
-        v.string({
-          name: 'provider_config_name',
-          description: 'Provider config name',
-          examples: ['Default Config']
-        })
-      ),
-      provider_auth_config_name: v.nullable(
-        v.string({
-          name: 'provider_auth_config_name',
-          description: 'Provider auth config name',
-          examples: ['OAuth Config']
+      session_template_id: v.string({
+        name: 'session_template_id',
+        description: 'Parent session template ID',
+        examples: ['stm_2bCdEfGhJkLmNpQr']
+      }),
+      deployment: v1ProviderDeploymentPreviewPresenter.schema,
+      config: v1ProviderConfigPreviewPresenter.schema,
+      auth_config: v.nullable(
+        v.object({
+          object: v.literal('provider.auth_config#preview'),
+          id: v.string()
         })
       ),
       created_at: v.date({
