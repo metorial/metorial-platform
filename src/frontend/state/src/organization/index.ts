@@ -10,4 +10,3 @@ export * from './loaders/teamRole';
 export * from './loaders/teamRolePermissions';
 
 export * from './current';
-export * from './types';
