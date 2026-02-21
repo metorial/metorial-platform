@@ -63,6 +63,12 @@ export let providerAuthImportController = Controller.create(
             provider_deployment_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by provider deployment ID(s)'
             })
+
+            // ids: string[] | undefined;
+            // providerIds: string[] | undefined;
+            // providerAuthCredentialsIds: string[] | undefined;
+            // providerAuthConfigIds: string[] | undefined;
+            // providerDeploymentIds: string[] | undefined;
           })
         )
       )

@@ -58,6 +58,18 @@ export let providerListingController = Controller.create(
             is_verified: v.optional(v.boolean()),
             is_official: v.optional(v.boolean()),
             is_metorial: v.optional(v.boolean())
+
+            //           search: string | undefined;
+            // providerCollectionIds: string[] | undefined;
+            // providerCategoryIds: string[] | undefined;
+            // providerGroupIds: string[] | undefined;
+            // publisherIds: string[] | undefined;
+            // isPublic: boolean | undefined;
+            // onlyFromTenant: boolean | undefined;
+            // isVerified: boolean | undefined;
+            // isOfficial: boolean | undefined;
+            // isMetorial: boolean | undefined;
+            // orderByRank: boolean | undefined;
           })
         )
       )

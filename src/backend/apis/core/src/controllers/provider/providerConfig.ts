@@ -55,6 +55,13 @@ export let providerConfigController = Controller.create(
             provider_deployment_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by provider deployment ID(s)'
             })
+
+            //             status: ("active" | "archived")[] | undefined;
+            // ids: string[] | undefined;
+            // providerIds: string[] | undefined;
+            // providerSpecificationIds: string[] | undefined;
+            // providerDeploymentIds: string[] | undefined;
+            // providerConfigVaultIds: string[] | undefined;
           })
         )
       )

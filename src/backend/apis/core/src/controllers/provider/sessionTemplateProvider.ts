@@ -10,12 +10,10 @@ import {
   deploymentValidator
 } from '../../lib/providerValidators';
 import { checkAccess } from '../../middleware/checkAccess';
-import { instancePath } from '../../middleware/instanceGroup';
+import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { sessionTemplateProviderPresenter } from '../../presenters';
 
-import { sessionTemplateGroup } from './sessionTemplate';
-
-export let sessionTemplateProviderGroup = sessionTemplateGroup.use(async ctx => {
+let sessionTemplateProviderGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.sessionTemplateProviderId) {
     throw new ServiceError(
       badRequestError({
@@ -40,7 +38,7 @@ export let sessionTemplateProviderController = Controller.create(
       'Session template providers define which providers should be included when a session is created from a template.'
   },
   {
-    list: sessionTemplateGroup
+    list: instanceGroup
       .get(instancePath('session-template-providers', 'sessionTemplates.providers.list'), {
         name: 'List session template providers',
         description: 'Returns a paginated list of providers configured for a session template.'
@@ -53,6 +51,15 @@ export let sessionTemplateProviderController = Controller.create(
           v.object({
             provider_id: v.optional(v.union([v.string(), v.array(v.string())]))
           })
+
+          //           status: ("active" | "archived")[] | undefined;
+          // ids: string[] | undefined;
+          // sessionTemplateIds: string[] | undefined;
+          // sessionTemplateTemplateIds: string[] | undefined;
+          // providerIds: string[] | undefined;
+          // providerDeploymentIds: string[] | undefined;
+          // providerConfigIds: string[] | undefined;
+          // providerAuthConfigIds: string[] | undefined;
         )
       )
       .do(async ctx => {
@@ -87,7 +94,7 @@ export let sessionTemplateProviderController = Controller.create(
         });
       }),
 
-    create: sessionTemplateGroup
+    create: instanceGroup
       .post(instancePath('session-template-providers', 'sessionTemplates.providers.create'), {
         name: 'Create session template provider',
         description: 'Adds a new provider configuration to a session template.'

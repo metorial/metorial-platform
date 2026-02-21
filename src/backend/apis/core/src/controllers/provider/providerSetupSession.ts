@@ -11,7 +11,7 @@ import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { providerSetupSessionPresenter } from '../../presenters';
 
-export let providerSetupSessionGroup = instanceGroup.use(async ctx => {
+let providerSetupSessionGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerSetupSessionId) {
     throw new ServiceError(
       badRequestError({
@@ -60,6 +60,14 @@ export let providerSetupSessionController = Controller.create(
                   'Filter by session status (archived, failed, completed, expired, pending)'
               }
             )
+
+            //             status: ("archived" | "failed" | "pending" | "completed" | "expired")[] | undefined;
+            // ids: string[] | undefined;
+            // providerIds: string[] | undefined;
+            // providerAuthMethodIds: string[] | undefined;
+            // providerDeploymentIds: string[] | undefined;
+            // providerAuthConfigIds: string[] | undefined;
+            // providerAuthCredentialsIds: string[] | undefined;
           })
         )
       )

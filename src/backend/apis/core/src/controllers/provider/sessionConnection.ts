@@ -8,12 +8,10 @@ import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
-import { instancePath } from '../../middleware/instanceGroup';
+import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { subspaceSessionConnectionPresenter } from '../../presenters';
 
-import { subspaceSessionGroup } from './subspaceSession';
-
-export let subspaceSessionConnectionGroup = subspaceSessionGroup.use(async ctx => {
+export let subspaceSessionConnectionGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.sessionConnectionId) {
     throw new ServiceError(
       badRequestError({
@@ -38,8 +36,8 @@ export let subspaceSessionConnectionController = Controller.create(
       'Session connections represent the MCP connections established within a session. This read-only resource provides visibility into the connection state and capabilities.'
   },
   {
-    list: subspaceSessionGroup
-      .get(instancePath('sessions/:sessionId/connections', 'sessions.connections.list'), {
+    list: instanceGroup
+      .get(instancePath('session-connections', 'sessions.connections.list'), {
         name: 'List session connections',
         description: 'Returns a paginated list of connections for a session.'
       })
@@ -56,6 +54,13 @@ export let subspaceSessionConnectionController = Controller.create(
             session_provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by session provider ID(s)'
             })
+
+            //             status: ("active" | "archived")[] | undefined;
+            // connectionState: ("connected" | "disconnected")[] | undefined;
+            // ids: string[] | undefined;
+            // sessionIds: string[] | undefined;
+            // sessionProviderIds: string[] | undefined;
+            // participantIds: string[] | undefined;
           })
         )
       )
@@ -83,10 +88,7 @@ export let subspaceSessionConnectionController = Controller.create(
 
     get: subspaceSessionConnectionGroup
       .get(
-        instancePath(
-          'sessions/:sessionId/connections/:sessionConnectionId',
-          'sessions.connections.get'
-        ),
+        instancePath('session-connections/:sessionConnectionId', 'sessions.connections.get'),
         {
           name: 'Get session connection',
           description: 'Retrieves a specific connection from a session.'

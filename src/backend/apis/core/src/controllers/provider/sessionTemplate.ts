@@ -1,18 +1,13 @@
-import { convertKeysToCamelCase } from '@metorial/case';
 import { badRequestError, ServiceError } from '@metorial/error';
 import { subspaceSessionTemplateService } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
-import {
-  authConfigValidator,
-  configValidator,
-  deploymentValidator
-} from '../../lib/providerValidators';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { sessionTemplatePresenter } from '../../presenters';
+import { toolFiltersValidator } from './session';
 
 export let sessionTemplateGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.sessionTemplateId) {
@@ -68,6 +63,15 @@ export let sessionTemplateController = Controller.create(
             provider_auth_config_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter templates that include provider auth configs with these IDs'
             })
+
+            //             status: ("active" | "archived")[] | undefined;
+            // ids: string[] | undefined;
+            // sessionIds: string[] | undefined;
+            // sessionProviderIds: string[] | undefined;
+            // providerIds: string[] | undefined;
+            // providerDeploymentIds: string[] | undefined;
+            // providerConfigIds: string[] | undefined;
+            // providerAuthConfigIds: string[] | undefined;
           })
         )
       )
@@ -121,12 +125,10 @@ export let sessionTemplateController = Controller.create(
           providers: v.optional(
             v.array(
               v.object({
-                provider_deployment: deploymentValidator,
-                provider_config: v.optional(configValidator),
-                provider_auth_config: v.optional(authConfigValidator),
-                tool_filters: v.optional(
-                  v.object({ tool_keys: v.optional(v.array(v.string())) })
-                )
+                provider_deployment_id: v.optional(v.string()),
+                provider_config_id: v.optional(v.string()),
+                provider_auth_config_id: v.optional(v.string()),
+                tool_filters: toolFiltersValidator
               })
             ),
             { description: 'Optional list of providers to include in the template' }
@@ -140,12 +142,13 @@ export let sessionTemplateController = Controller.create(
           name: ctx.body.name,
           description: ctx.body.description,
           metadata: ctx.body.metadata,
-          providers: ctx.body.providers?.map(p => ({
-            providerDeployment: convertKeysToCamelCase(p.provider_deployment),
-            providerConfig: convertKeysToCamelCase(p.provider_config),
-            providerAuthConfig: convertKeysToCamelCase(p.provider_auth_config),
-            toolFilters: p.tool_filters ? { toolKeys: p.tool_filters.tool_keys } : undefined
-          }))
+          providers:
+            ctx.body.providers?.map(p => ({
+              providerDeploymentId: p.provider_deployment_id,
+              providerConfigId: p.provider_config_id,
+              providerAuthConfigId: p.provider_auth_config_id,
+              toolFilters: p.tool_filters
+            })) ?? []
         });
 
         return sessionTemplatePresenter.present({ sessionTemplate });

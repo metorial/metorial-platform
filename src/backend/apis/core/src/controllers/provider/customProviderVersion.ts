@@ -69,12 +69,20 @@ export let customProviderVersionController = Controller.create(
                   'Filter by status (queued, deploying, deployment_succeeded, deployment_failed)'
               }
             ),
-            ids: v.optional(v.union([v.string(), v.array(v.string())]), {
+            id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by version IDs'
             }),
             custom_provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by custom provider IDs'
             })
+
+            //         status: ("queued" | "deploying" | "deployment_succeeded" | "deployment_failed")[] | undefined;
+            // ids: string[] | undefined;
+            // providerIds: string[] | undefined;
+            // providerVersionIds: string[] | undefined;
+            // customProviderIds: string[] | undefined;
+            // customProviderDeploymentIds: string[] | undefined;
+            // customProviderEnvironmentIds: string[] | undefined;
           })
         )
       )
@@ -83,7 +91,7 @@ export let customProviderVersionController = Controller.create(
           instance: ctx.instance,
           customProviderIds: normalizeArrayParam(ctx.query.custom_provider_id),
           status: normalizeArrayParam(ctx.query.status),
-          ids: normalizeArrayParam(ctx.query.ids)
+          ids: normalizeArrayParam(ctx.query.id)
         });
 
         let list = await paginator.run(ctx.query);
@@ -123,6 +131,10 @@ export let customProviderVersionController = Controller.create(
       .body(
         'default',
         v.object({
+          custom_provider_id: v.string({
+            description: 'Custom provider ID',
+            examples: ['cp_1aBcDeFgHjKlMnPq']
+          }),
           from: customProviderFromValidator,
           config: customProviderConfigValidator
         })
@@ -132,7 +144,7 @@ export let customProviderVersionController = Controller.create(
         let customProviderVersion = await subspaceCustomProviderVersionService.create({
           instance: ctx.instance,
           organizationActor: ctx.actor,
-          customProviderId: ctx.customProvider.id,
+          customProviderId: ctx.body.custom_provider_id,
           from: mapCustomProviderFrom(ctx.body.from),
           config: ctx.body.config
         });

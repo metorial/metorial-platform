@@ -4,12 +4,10 @@ import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
-import { instancePath } from '../../middleware/instanceGroup';
+import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { sessionParticipantPresenter } from '../../presenters';
 
-import { subspaceSessionGroup } from './subspaceSession';
-
-export let subspaceSessionParticipantGroup = subspaceSessionGroup.use(async ctx => {
+export let subspaceSessionParticipantGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.sessionParticipantId) {
     throw new ServiceError(
       badRequestError({
@@ -34,8 +32,8 @@ export let subspaceSessionParticipantController = Controller.create(
       'Session participants represent the clients and other entities that are connected to a session. This read-only resource tracks who is participating in a session.'
   },
   {
-    list: subspaceSessionGroup
-      .get(instancePath('sessions/:sessionId/participants', 'sessions.participants.list'), {
+    list: instanceGroup
+      .get(instancePath('session-participants', 'sessions.participants.list'), {
         name: 'List session participants',
         description: 'Returns a paginated list of participants in a session.'
       })
@@ -46,6 +44,12 @@ export let subspaceSessionParticipantController = Controller.create(
         Paginator.validate(
           v.object({
             type: v.optional(v.string(), { description: 'Filter by participant type' })
+
+            //             types: ("unknown" | "provider" | "system" | "tool_call" | "mcp_client" | "metorial_protocol_client")[] | undefined;
+            // ids: string[] | undefined;
+            // sessionIds: string[] | undefined;
+            // sessionConnectionIds: string[] | undefined;
+            // sessionMessageIds: string[] | undefined;
           })
         )
       )
@@ -65,7 +69,7 @@ export let subspaceSessionParticipantController = Controller.create(
     get: subspaceSessionParticipantGroup
       .get(
         instancePath(
-          'sessions/:sessionId/participants/:sessionParticipantId',
+          'session-participants/:sessionParticipantId',
           'sessions.participants.get'
         ),
         {

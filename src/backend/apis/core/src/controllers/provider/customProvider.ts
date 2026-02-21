@@ -8,7 +8,7 @@ import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { subspaceCustomProviderPresenter } from '../../presenters';
 
-let customProviderGroup = instanceGroup.use(async ctx => {
+export let customProviderGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.customProviderId) {
     throw new ServiceError(
       badRequestError({
@@ -40,7 +40,9 @@ export let customProviderFromValidator = v.union([
     {
       type: v.literal('remote'),
       remote_url: v.string({ description: 'Remote MCP server URL' }),
-      config: v.optional(v.record(v.any(), { description: 'Remote server configuration' })),
+      oauth_config: v.optional(
+        v.record(v.any(), { description: 'Remote server configuration' })
+      ),
       protocol: v.enumOf(['sse', 'streamable_http'], { description: 'MCP protocol to use' })
     },
     { name: 'remote', description: 'Connect to a remote MCP server' }
@@ -102,54 +104,64 @@ export let customProviderFromValidator = v.union([
   )
 ]);
 
+type CustomProviderFromInput = Parameters<
+  typeof subspaceCustomProviderService.create
+>[0]['from'];
+
 export let mapCustomProviderFrom = (
   type: ValidationTypeValue<typeof customProviderFromValidator>
-) => {
+): CustomProviderFromInput => {
   if (type.type === 'container') {
     return {
       type: 'container' as const,
-      imageRef: type.image_ref,
-      username: type.username,
-      password: type.password
-    };
+      repository: {
+        imageRef: type.image_ref,
+        username: type.username,
+        password: type.password
+      }
+    } satisfies CustomProviderFromInput;
   }
 
   if (type.type === 'remote') {
     return {
       type: 'remote' as const,
       remoteUrl: type.remote_url,
-      config: type.config,
+      oauthConfig: type.oauth_config,
       protocol: type.protocol
-    };
+    } satisfies CustomProviderFromInput;
   }
 
   if (type.type === 'function') {
+    if ('files' in type) {
+      return {
+        type: 'function' as const,
+        files: type.files.map(file => ({
+          filename: file.filename,
+          content: file.content,
+          encoding: file.encoding
+        })),
+        env: type.env,
+        runtime: type.runtime
+      } satisfies CustomProviderFromInput;
+    }
+
     return {
       type: 'function' as const,
-      files:
-        'files' in type
-          ? type.files.map(file => ({
-              filename: file.filename,
-              content: file.content,
-              encoding: file.encoding
-            }))
-          : undefined,
       env: type.env,
       runtime: type.runtime,
+      files: [],
       repository:
-        'repository' in type && 'repository_id' in type.repository
+        'repository_id' in type.repository
           ? {
               repositoryId: type.repository.repository_id,
               branch: type.repository.branch
             }
-          : 'repository' in type && 'repository_url' in type.repository
-            ? {
-                type: 'git' as const,
-                repositoryUrl: type.repository.repository_url,
-                branch: type.repository.branch
-              }
-            : undefined
-    };
+          : {
+              type: 'git' as const,
+              repositoryUrl: type.repository.repository_url,
+              branch: type.repository.branch
+            }
+    } satisfies CustomProviderFromInput;
   }
 
   throw new Error('Invalid from type');
@@ -196,13 +208,23 @@ export let customProviderController = Controller.create(
             ),
             id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by custom provider IDs'
+            }),
+            provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by provider IDs (matches providers connected to sessions)'
             })
+
+            //             status: ("active" | "archived")[] | undefined;
+            // type: ("function" | "container" | "remote")[] | undefined;
+            // ids: string[] | undefined;
+            // providerIds: string[] | undefined;
           })
         )
       )
       .do(async ctx => {
         let paginator = await subspaceCustomProviderService.list({
           instance: ctx.instance,
+          allowDeleted: false,
+          providerIds: normalizeArrayParam(ctx.query.provider_id),
           status: normalizeArrayParam(ctx.query.status),
           type: normalizeArrayParam(ctx.query.type),
           ids: normalizeArrayParam(ctx.query.id)

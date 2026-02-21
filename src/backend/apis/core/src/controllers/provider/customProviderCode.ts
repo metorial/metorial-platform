@@ -26,8 +26,7 @@ export let customProviderCodeController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.provider:write'] }))
       .output(bucketEditorTokenPresenter)
       .do(async ctx => {
-        let draftBucket = (ctx.customProvider as any).draftBucket;
-
+        let draftBucket = ctx.customProvider.draftBucket;
         if (!draftBucket?.id) {
           throw new ServiceError(
             badRequestError({

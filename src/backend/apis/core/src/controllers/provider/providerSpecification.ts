@@ -5,15 +5,13 @@ import {
 } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
-import { checkAccess } from '../../middleware/checkAccess';
-import { instancePath } from '../../middleware/instanceGroup';
-import { providerSpecificationPresenter } from '../../presenters';
-
 import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
-import { providerGroup } from './provider';
+import { checkAccess } from '../../middleware/checkAccess';
+import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
+import { providerSpecificationPresenter } from '../../presenters';
 
-export let providerSpecificationGroup = providerGroup.use(async ctx => {
+export let providerSpecificationGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerSpecificationId) {
     throw new ServiceError(
       badRequestError({
@@ -38,7 +36,7 @@ export let providerSpecificationController = Controller.create(
       'A specification defines what a provider version can do: its tools, auth methods, and required configuration fields.'
   },
   {
-    list: providerGroup
+    list: instanceGroup
       .get(instancePath('provider-specifications', 'providers.specifications.list'), {
         name: 'List provider specifications',
         description: 'Returns a paginated list of provider specifications.'
@@ -61,6 +59,12 @@ export let providerSpecificationController = Controller.create(
             provider_config_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by provider config ID(s)'
             })
+
+            //             ids: string[] | undefined;
+            // providerIds: string[] | undefined;
+            // providerVersionIds: string[] | undefined;
+            // providerDeploymentIds: string[] | undefined;
+            // providerConfigIds: string[] | undefined;
           })
         )
       )

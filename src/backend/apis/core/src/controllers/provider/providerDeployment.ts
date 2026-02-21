@@ -64,6 +64,11 @@ export let providerDeploymentController = Controller.create(
                 description: 'Filter by status (active, archived)'
               }
             )
+
+            //             status: ("active" | "archived")[] | undefined;
+            // ids: string[] | undefined;
+            // providerIds: string[] | undefined;
+            // providerVersionIds: string[] | undefined;
           })
         )
       )

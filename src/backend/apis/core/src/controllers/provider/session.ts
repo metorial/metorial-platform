@@ -89,6 +89,15 @@ export let providerSessionController = Controller.create(
             ),
             provider_id: v.optional(v.union([v.string(), v.array(v.string())])),
             provider_deployment_id: v.optional(v.union([v.string(), v.array(v.string())]))
+
+            //             status: ("active" | "archived")[] | undefined;
+            // ids: string[] | undefined;
+            // sessionTemplateIds: string[] | undefined;
+            // sessionProviderIds: string[] | undefined;
+            // providerIds: string[] | undefined;
+            // providerDeploymentIds: string[] | undefined;
+            // providerConfigIds: string[] | undefined;
+            // providerAuthConfigIds: string[] | undefined;
           })
         )
       )

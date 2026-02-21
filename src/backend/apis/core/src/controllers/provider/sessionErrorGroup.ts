@@ -5,13 +5,10 @@ import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
-import { instancePath } from '../../middleware/instanceGroup';
+import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { subspaceSessionErrorGroupPresenter } from '../../presenters';
 
-import { instanceGroup } from '../../middleware/instanceGroup';
-import { subspaceSessionGroup } from './subspaceSession';
-
-export let subspaceSessionErrorGroupGroup = subspaceSessionGroup.use(async ctx => {
+export let subspaceSessionErrorGroupGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.sessionErrorGroupId) {
     throw new ServiceError(
       badRequestError({
@@ -51,6 +48,11 @@ export let subspaceSessionErrorGroupController = Controller.create(
             session_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by session ID(s)'
             })
+
+            //             types: ("message_processing_timeout" | "message_processing_provider_error" | "message_processing_system_error")[] | undefined;
+            // ids: string[] | undefined;
+            // sessionIds: string[] | undefined;
+            // providerIds: string[] | undefined;
           })
         )
       )
@@ -95,7 +97,7 @@ export let subspaceSessionErrorGroupController = Controller.create(
         return subspaceSessionErrorGroupPresenter.present({ sessionErrorGroup });
       }),
 
-    list: subspaceSessionGroup
+    list: instanceGroup
       .get(instancePath('sessions/:sessionId/error-groups', 'sessions.errorGroups.list'), {
         name: 'List session error groups',
         description: 'Returns a paginated list of error groups for a session.'

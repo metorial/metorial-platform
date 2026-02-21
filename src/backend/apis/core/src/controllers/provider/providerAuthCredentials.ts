@@ -56,6 +56,10 @@ export let providerAuthCredentialsController = Controller.create(
             provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by provider ID(s)'
             })
+
+            //             status: ("active" | "archived")[] | undefined;
+            // ids: string[] | undefined;
+            // providerIds: string[] | undefined;
           })
         )
       )

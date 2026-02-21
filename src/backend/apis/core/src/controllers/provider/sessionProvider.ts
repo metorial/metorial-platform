@@ -14,12 +14,10 @@ import {
   deploymentValidator
 } from '../../lib/providerValidators';
 import { checkAccess } from '../../middleware/checkAccess';
-import { instancePath } from '../../middleware/instanceGroup';
+import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { sessionProviderPresenter } from '../../presenters';
 
-import { subspaceSessionGroup } from './subspaceSession';
-
-export let subspaceSessionProviderGroup = subspaceSessionGroup.use(async ctx => {
+export let subspaceSessionProviderGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.sessionProviderId) {
     throw new ServiceError(
       badRequestError({
@@ -44,8 +42,8 @@ export let subspaceSessionProviderController = Controller.create(
       'Session providers represent the providers that are actively connected to a session. Each session can have multiple providers, and providers can be added or removed during the session lifecycle.'
   },
   {
-    list: subspaceSessionGroup
-      .get(instancePath('sessions/:sessionId/providers', 'sessions.providers.list'), {
+    list: instanceGroup
+      .get(instancePath('session-providers', 'sessions.providers.list'), {
         name: 'List session providers',
         description: 'Returns a paginated list of providers connected to a session.'
       })
@@ -59,6 +57,15 @@ export let subspaceSessionProviderController = Controller.create(
               description: 'Filter by provider ID(s)'
             }),
             status: v.optional(v.string(), { description: 'Filter by provider status' })
+
+            //             status: ("active" | "archived")[] | undefined;
+            // ids: string[] | undefined;
+            // sessionIds: string[] | undefined;
+            // sessionTemplateIds: string[] | undefined;
+            // providerIds: string[] | undefined;
+            // providerDeploymentIds: string[] | undefined;
+            // providerConfigIds: string[] | undefined;
+            // providerAuthConfigIds: string[] | undefined;
           })
         )
       )
@@ -82,24 +89,18 @@ export let subspaceSessionProviderController = Controller.create(
       }),
 
     get: subspaceSessionProviderGroup
-      .get(
-        instancePath(
-          'sessions/:sessionId/providers/:sessionProviderId',
-          'sessions.providers.get'
-        ),
-        {
-          name: 'Get session provider',
-          description: 'Retrieves a specific provider connected to a session.'
-        }
-      )
+      .get(instancePath('session-providers/:sessionProviderId', 'sessions.providers.get'), {
+        name: 'Get session provider',
+        description: 'Retrieves a specific provider connected to a session.'
+      })
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
       .output(sessionProviderPresenter)
       .do(async ctx => {
         return sessionProviderPresenter.present({ sessionProvider: ctx.sessionProvider });
       }),
 
-    create: subspaceSessionGroup
-      .post(instancePath('sessions/:sessionId/providers', 'sessions.providers.create'), {
+    create: instanceGroup
+      .post(instancePath('session-providers', 'sessions.providers.create'), {
         name: 'Create session provider',
         description: 'Adds a new provider to an active session.'
       })
@@ -141,10 +142,7 @@ export let subspaceSessionProviderController = Controller.create(
 
     update: subspaceSessionProviderGroup
       .patch(
-        instancePath(
-          'sessions/:sessionId/providers/:sessionProviderId',
-          'sessions.providers.update'
-        ),
+        instancePath('session-providers/:sessionProviderId', 'sessions.providers.update'),
         {
           name: 'Update session provider',
           description: 'Updates a provider connected to a session.'
@@ -178,10 +176,7 @@ export let subspaceSessionProviderController = Controller.create(
 
     delete: subspaceSessionProviderGroup
       .delete(
-        instancePath(
-          'sessions/:sessionId/providers/:sessionProviderId',
-          'sessions.providers.delete'
-        ),
+        instancePath('session-providers/:sessionProviderId', 'sessions.providers.delete'),
         {
           name: 'Delete session provider',
           description: 'Removes a provider from a session.'

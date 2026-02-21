@@ -8,12 +8,10 @@ import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
-import { instancePath } from '../../middleware/instanceGroup';
+import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { subspaceSessionMessagePresenter } from '../../presenters';
 
-import { subspaceSessionGroup } from './subspaceSession';
-
-export let subspaceSessionMessageGroup = subspaceSessionGroup.use(async ctx => {
+export let subspaceSessionMessageGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.sessionMessageId) {
     throw new ServiceError(
       badRequestError({
@@ -38,8 +36,8 @@ export let subspaceSessionMessageController = Controller.create(
       'Session messages represent the MCP protocol messages exchanged during a session. This read-only resource provides visibility into the communication between clients and providers.'
   },
   {
-    list: subspaceSessionGroup
-      .get(instancePath('sessions/:sessionId/messages', 'sessions.messages.list'), {
+    list: instanceGroup
+      .get(instancePath('session-messages', 'sessions.messages.list'), {
         name: 'List session messages',
         description: 'Returns a paginated list of messages for a session.'
       })
@@ -56,6 +54,18 @@ export let subspaceSessionMessageController = Controller.create(
             provider_run_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by provider run ID(s)'
             })
+
+            //             types: ("unknown" | "tool_call" | "mcp_control" | "mcp_message")[] | undefined;
+            // source: ("provider" | "client")[] | undefined;
+            // hierarchy: ("child" | "parent")[] | undefined;
+            // ids: string[] | undefined;
+            // sessionIds: string[] | undefined;
+            // sessionProviderIds: string[] | undefined;
+            // sessionConnectionIds: string[] | undefined;
+            // providerRunIds: string[] | undefined;
+            // errorIds: string[] | undefined;
+            // participantIds: string[] | undefined;
+            // parentMessageIds: string[] | undefined;
           })
         )
       )
@@ -78,16 +88,10 @@ export let subspaceSessionMessageController = Controller.create(
       }),
 
     get: subspaceSessionMessageGroup
-      .get(
-        instancePath(
-          'sessions/:sessionId/messages/:sessionMessageId',
-          'sessions.messages.get'
-        ),
-        {
-          name: 'Get session message',
-          description: 'Retrieves a specific message from a session.'
-        }
-      )
+      .get(instancePath('session-messages/:sessionMessageId', 'sessions.messages.get'), {
+        name: 'Get session message',
+        description: 'Retrieves a specific message from a session.'
+      })
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
       .output(subspaceSessionMessagePresenter)
       .do(async ctx => {

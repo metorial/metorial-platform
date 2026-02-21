@@ -42,7 +42,16 @@ export let providerCollectionController = Controller.create(
       })
       .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
       .outputList(providerCollectionPresenter)
-      .query('default', Paginator.validate(v.object({})))
+      .query(
+        'default',
+        Paginator.validate(
+          v.object({
+            //       ids: string[] | undefined;
+            // providerIds: string[] | undefined;
+            // providerListingIds: string[] | undefined;
+          })
+        )
+      )
       .do(async ctx => {
         let paginator = await subspaceProviderListingCollectionService.list({
           instance: ctx.instance

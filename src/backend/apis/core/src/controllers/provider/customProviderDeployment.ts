@@ -54,7 +54,7 @@ export let customProviderDeploymentController = Controller.create(
               ]),
               { description: 'Filter by status (queued, deploying, succeeded, failed)' }
             ),
-            ids: v.optional(v.union([v.string(), v.array(v.string())]), {
+            id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by deployment IDs'
             }),
             custom_provider_version_id: v.optional(
@@ -64,6 +64,11 @@ export let customProviderDeploymentController = Controller.create(
             custom_provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by custom provider IDs'
             })
+
+            //          status: ("failed" | "succeeded" | "queued" | "deploying")[] | undefined;
+            // ids: string[] | undefined;
+            // customProviderIds: string[] | undefined;
+            // customProviderVersionIds: string[] | undefined;
           })
         )
       )
@@ -71,7 +76,7 @@ export let customProviderDeploymentController = Controller.create(
         let paginator = await subspaceCustomProviderDeploymentService.list({
           instance: ctx.instance,
           status: normalizeArrayParam(ctx.query.status),
-          ids: normalizeArrayParam(ctx.query.ids),
+          ids: normalizeArrayParam(ctx.query.id),
           customProviderVersionIds: normalizeArrayParam(ctx.query.custom_provider_version_id),
           customProviderIds: normalizeArrayParam(ctx.query.custom_provider_id)
         });

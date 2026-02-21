@@ -58,6 +58,12 @@ export let customProviderCommitController = Controller.create(
             custom_provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by custom provider IDs'
             })
+
+            //          ids: string[] | undefined;
+            // providerIds: string[] | undefined;
+            // customProviderIds: string[] | undefined;
+            // customProviderVersionIds: string[] | undefined;
+            // customProviderEnvironmentIds: string[] | undefined;
           })
         )
       )
@@ -172,7 +178,6 @@ export let customProviderCommitController = Controller.create(
         let customProviderCommit = await subspaceCustomProviderCommitService.create({
           instance: ctx.instance,
           organizationActor: ctx.actor,
-          customProviderId: ctx.customProvider.id,
           message: ctx.body.message,
           action
         });

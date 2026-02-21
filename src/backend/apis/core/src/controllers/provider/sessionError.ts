@@ -5,13 +5,10 @@ import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
-import { instancePath } from '../../middleware/instanceGroup';
+import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { subspaceSessionErrorPresenter } from '../../presenters';
 
-import { instanceGroup } from '../../middleware/instanceGroup';
-import { subspaceSessionGroup } from './subspaceSession';
-
-export let subspaceSessionErrorGroup = subspaceSessionGroup.use(async ctx => {
+export let subspaceSessionErrorGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.sessionErrorId) {
     throw new ServiceError(
       badRequestError({
@@ -57,6 +54,16 @@ export let subspaceSessionErrorController = Controller.create(
             provider_run_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by provider run ID(s)'
             })
+
+            //             types: ("message_processing_timeout" | "message_processing_provider_error" | "message_processing_system_error")[] | undefined;
+            // ids: string[] | undefined;
+            // sessionIds: string[] | undefined;
+            // sessionProviderIds: string[] | undefined;
+            // sessionConnectionIds: string[] | undefined;
+            // providerRunIds: string[] | undefined;
+            // providerIds: string[] | undefined;
+            // sessionMessageIds: string[] | undefined;
+            // sessionErrorGroupIds: string[] | undefined;
           })
         )
       )
@@ -75,7 +82,7 @@ export let subspaceSessionErrorController = Controller.create(
         );
       }),
 
-    list: subspaceSessionGroup
+    list: instanceGroup
       .get(instancePath('sessions/:sessionId/errors', 'sessions.errors.list'), {
         name: 'List session errors',
         description: 'Returns a paginated list of errors that occurred in a session.'

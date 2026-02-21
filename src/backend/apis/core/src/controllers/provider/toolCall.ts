@@ -7,9 +7,8 @@ import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { toolCallPresenter } from '../../presenters';
-import { subspaceSessionGroup } from './subspaceSession';
 
-export let subspaceToolCallGroup = subspaceSessionGroup.use(async ctx => {
+let subspaceToolCallGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.toolCallId) {
     throw new ServiceError(
       badRequestError({
@@ -27,32 +26,6 @@ export let subspaceToolCallGroup = subspaceSessionGroup.use(async ctx => {
   return { toolCall };
 });
 
-let toolCallListQuery = Paginator.validate(
-  v.object({
-    session_template_id: v.optional(v.union([v.string(), v.array(v.string())]), {
-      description: 'Filter by session template ID(s)'
-    }),
-    session_provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
-      description: 'Filter by session provider ID(s)'
-    }),
-    provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
-      description: 'Filter by provider ID(s)'
-    }),
-    provider_deployment_id: v.optional(v.union([v.string(), v.array(v.string())]), {
-      description: 'Filter by provider deployment ID(s)'
-    }),
-    provider_config_id: v.optional(v.union([v.string(), v.array(v.string())]), {
-      description: 'Filter by provider config ID(s)'
-    }),
-    provider_auth_config_id: v.optional(v.union([v.string(), v.array(v.string())]), {
-      description: 'Filter by provider auth config ID(s)'
-    }),
-    tool_id: v.optional(v.union([v.string(), v.array(v.string())]), {
-      description: 'Filter by tool ID(s)'
-    })
-  })
-);
-
 export let subspaceToolCallController = Controller.create(
   {
     name: 'Tool Calls',
@@ -60,64 +33,56 @@ export let subspaceToolCallController = Controller.create(
       'Tool calls represent individual tool invocations within a session. They track the input, output, and status of each tool execution.'
   },
   {
-    listAll: instanceGroup
+    list: instanceGroup
       .get(instancePath('tool-calls', 'toolCalls.list'), {
         name: 'List all tool calls',
         description: 'Returns a paginated list of tool calls across all sessions.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
       .outputList(toolCallPresenter)
-      .query('default', toolCallListQuery)
-      .do(async ctx => {
-        let paginator = await subspaceToolCallService.list({
-          instance: ctx.instance,
-          sessionTemplateIds: normalizeArrayParam(ctx.query.session_template_id),
-          sessionProviderIds: normalizeArrayParam(ctx.query.session_provider_id),
-          providerIds: normalizeArrayParam(ctx.query.provider_id),
-          providerDeploymentIds: normalizeArrayParam(ctx.query.provider_deployment_id),
-          providerConfigIds: normalizeArrayParam(ctx.query.provider_config_id),
-          providerAuthConfigIds: normalizeArrayParam(ctx.query.provider_auth_config_id),
-          toolIds: normalizeArrayParam(ctx.query.tool_id)
-        });
+      .query(
+        'default',
+        Paginator.validate(
+          v.object({
+            session_template_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by session template ID(s)'
+            }),
+            session_provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by session provider ID(s)'
+            }),
+            provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by provider ID(s)'
+            }),
+            provider_deployment_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by provider deployment ID(s)'
+            }),
+            provider_config_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by provider config ID(s)'
+            }),
+            provider_auth_config_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by provider auth config ID(s)'
+            }),
+            tool_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by tool ID(s)'
+            });
 
-        let list = await paginator.run(ctx.query);
 
-        return Paginator.present(list, toolCall =>
-          toolCallPresenter.present({
-            toolCall: toolCall as SubspaceToolCall
+
+    //             status: ("active" | "archived")[] | undefined;
+    // ids: string[] | undefined;
+    // sessionTemplateIds: string[] | undefined;
+    // sessionProviderIds: string[] | undefined;
+    // providerIds: string[] | undefined;
+    // providerDeploymentIds: string[] | undefined;
+    // providerConfigIds: string[] | undefined;
+    // providerAuthConfigIds: string[] | undefined;
+    // toolIds: string[] | undefined;
           })
-        );
-      }),
-
-    getById: instanceGroup
-      .get(instancePath('tool-calls/:toolCallId', 'toolCalls.get'), {
-        name: 'Get tool call',
-        description: 'Retrieves a specific tool call by ID.'
-      })
-      .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
-      .output(toolCallPresenter)
-      .do(async ctx => {
-        let toolCall = await subspaceToolCallService.get({
-          instance: ctx.instance,
-          toolCallId: ctx.params.toolCallId
-        });
-        return toolCallPresenter.present({
-          toolCall: toolCall as SubspaceToolCall
-        });
-      }),
-
-    list: subspaceSessionGroup
-      .get(instancePath('sessions/:sessionId/tool-calls', 'sessions.toolCalls.list'), {
-        name: 'List tool calls',
-        description: 'Returns a paginated list of tool calls for a session.'
-      })
-      .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
-      .outputList(toolCallPresenter)
-      .query('default', toolCallListQuery)
+        )
+      )
       .do(async ctx => {
         let paginator = await subspaceToolCallService.list({
           instance: ctx.instance,
-          sessionIds: [ctx.session.id],
           sessionTemplateIds: normalizeArrayParam(ctx.query.session_template_id),
           sessionProviderIds: normalizeArrayParam(ctx.query.session_provider_id),
           providerIds: normalizeArrayParam(ctx.query.provider_id),
@@ -137,21 +102,20 @@ export let subspaceToolCallController = Controller.create(
       }),
 
     get: subspaceToolCallGroup
-      .get(
-        instancePath('sessions/:sessionId/tool-calls/:toolCallId', 'sessions.toolCalls.get'),
-        {
-          name: 'Get tool call',
-          description: 'Retrieves a specific tool call for a session.'
-        }
-      )
+      .get(instancePath('tool-calls/:toolCallId', 'toolCalls.get'), {
+        name: 'Get tool call',
+        description: 'Retrieves a specific tool call by ID.'
+      })
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
       .output(toolCallPresenter)
       .do(async ctx => {
-        return toolCallPresenter.present({ toolCall: ctx.toolCall });
+        return toolCallPresenter.present({
+          toolCall: ctx.toolCall
+        });
       }),
 
-    create: subspaceSessionGroup
-      .post(instancePath('sessions/:sessionId/tool-calls', 'sessions.toolCalls.create'), {
+    create: instanceGroup
+      .post(instancePath('tool-calls', 'toolCalls.create'), {
         name: 'Create tool call',
         description: 'Creates a new tool call in a session by invoking a specific tool.'
       })
@@ -164,13 +128,16 @@ export let subspaceToolCallController = Controller.create(
           input: v.record(v.any(), { description: 'Input data to pass to the tool' }),
           metadata: v.optional(
             v.record(v.any(), { description: 'Optional metadata for the tool call' })
-          )
+          ),
+          session_id: v.string({
+            description: 'The ID of the session to which this tool call belongs'
+          })
         })
       )
       .do(async ctx => {
         let toolCall = await subspaceToolCallService.create({
           instance: ctx.instance,
-          sessionId: ctx.session.id,
+          sessionId: ctx.body.session_id,
           toolId: ctx.body.tool_id,
           input: ctx.body.input,
           metadata: ctx.body.metadata

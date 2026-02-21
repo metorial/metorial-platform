@@ -59,6 +59,11 @@ export let providerAuthExportController = Controller.create(
             provider_auth_config_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by auth config ID(s)'
             })
+
+            //             ids: string[] | undefined;
+            // providerIds: string[] | undefined;
+            // providerAuthCredentialsIds: string[] | undefined;
+            // providerAuthConfigIds: string[] | undefined;
           })
         )
       )

@@ -7,6 +7,7 @@ import { Controller, Path } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
+import { instanceGroup } from '../../middleware/instanceGroup';
 import { providerSetupSessionPresenter } from '../../presenters';
 
 export let providerSetupSessionDashboardController = Controller.create(
@@ -16,7 +17,7 @@ export let providerSetupSessionDashboardController = Controller.create(
       "A setup session tracks an in-progress OAuth flow, storing state during the redirect. On success, it creates an auth config with the user's access token."
   },
   {
-    list: providerDeploymentGroup
+    list: instanceGroup
       .get(
         Path(
           '/dashboard/instances/:instanceId/provider-deployments/:providerDeploymentId/setup-sessions',
@@ -37,6 +38,14 @@ export let providerSetupSessionDashboardController = Controller.create(
               description: 'Filter by auth method ID(s)'
             }),
             status: v.optional(v.string(), { description: 'Filter by session status' })
+
+            //             status: ("archived" | "failed" | "pending" | "completed" | "expired")[] | undefined;
+            // ids: string[] | undefined;
+            // providerIds: string[] | undefined;
+            // providerAuthMethodIds: string[] | undefined;
+            // providerDeploymentIds: string[] | undefined;
+            // providerAuthConfigIds: string[] | undefined;
+            // providerAuthCredentialsIds: string[] | undefined;
           })
         )
       )
@@ -65,7 +74,7 @@ export let providerSetupSessionDashboardController = Controller.create(
         );
       }),
 
-    get: providerSetupSessionGroup
+    get: instanceGroup
       .get(
         Path(
           '/dashboard/instances/:instanceId/provider-deployments/:providerDeploymentId/setup-sessions/:providerSetupSessionId',
@@ -82,7 +91,7 @@ export let providerSetupSessionDashboardController = Controller.create(
         return providerSetupSessionPresenter.present({ setupSession: ctx.setupSession });
       }),
 
-    create: providerDeploymentGroup
+    create: instanceGroup
       .post(
         Path(
           '/dashboard/instances/:instanceId/provider-deployments/:providerDeploymentId/setup-sessions',
@@ -143,7 +152,7 @@ export let providerSetupSessionDashboardController = Controller.create(
         });
       }),
 
-    update: providerSetupSessionGroup
+    update: instanceGroup
       .patch(
         Path(
           '/dashboard/instances/:instanceId/provider-deployments/:providerDeploymentId/setup-sessions/:providerSetupSessionId',
@@ -185,7 +194,7 @@ export let providerSetupSessionDashboardController = Controller.create(
         });
       }),
 
-    delete: providerSetupSessionGroup
+    delete: instanceGroup
       .delete(
         Path(
           '/dashboard/instances/:instanceId/provider-deployments/:providerDeploymentId/setup-sessions/:providerSetupSessionId',

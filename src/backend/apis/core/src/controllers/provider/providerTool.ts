@@ -7,12 +7,10 @@ import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
-import { instancePath } from '../../middleware/instanceGroup';
+import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { providerToolPresenter } from '../../presenters';
 
-import { providerGroup } from './provider';
-
-export let providerToolGroup = providerGroup.use(async ctx => {
+export let providerToolGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerToolId) {
     throw new ServiceError(
       badRequestError({
@@ -37,7 +35,7 @@ export let providerToolController = Controller.create(
       "A tool is a single action a provider can perform like 'search_issues' or 'send_message'. Tools are what AI agents call via MCP. By default, tools from the latest provider version are returned. Use the optional version filter to get tools for a specific version."
   },
   {
-    list: providerGroup
+    list: instanceGroup
       .get(instancePath('providers-tools', 'providers.tools.list'), {
         name: 'List provider tools',
         description:

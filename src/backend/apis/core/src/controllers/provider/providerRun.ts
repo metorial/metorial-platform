@@ -9,13 +9,10 @@ import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
-import { instancePath } from '../../middleware/instanceGroup';
+import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { providerRunLogsPresenter, subspaceProviderRunPresenter } from '../../presenters';
 
-import { instanceGroup } from '../../middleware/instanceGroup';
-import { subspaceSessionGroup } from './subspaceSession';
-
-export let subspaceProviderRunGroup = subspaceSessionGroup.use(async ctx => {
+export let subspaceProviderRunGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerRunId) {
     throw new ServiceError(
       badRequestError({
@@ -61,6 +58,14 @@ export let subspaceProviderRunController = Controller.create(
             session_provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by session provider ID(s)'
             })
+
+            //             status: ("running" | "stopped")[] | undefined;
+            // ids: string[] | undefined;
+            // sessionIds: string[] | undefined;
+            // sessionProviderIds: string[] | undefined;
+            // sessionConnectionIds: string[] | undefined;
+            // providerIds: string[] | undefined;
+            // providerVersionIds: string[] | undefined;
           })
         )
       )
@@ -116,7 +121,7 @@ export let subspaceProviderRunController = Controller.create(
         return providerRunLogsPresenter.present({ logs: logs as SubspaceProviderRunLogs });
       }),
 
-    list: subspaceSessionGroup
+    list: instanceGroup
       .get(instancePath('sessions/:sessionId/provider-runs', 'sessions.providerRuns.list'), {
         name: 'List provider runs',
         description: 'Returns a paginated list of provider runs for a session.'

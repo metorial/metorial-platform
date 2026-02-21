@@ -8,12 +8,10 @@ import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
-import { instancePath } from '../../middleware/instanceGroup';
+import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { subspaceSessionEventPresenter } from '../../presenters';
 
-import { subspaceSessionGroup } from './subspaceSession';
-
-export let subspaceSessionEventGroup = subspaceSessionGroup.use(async ctx => {
+export let subspaceSessionEventGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.sessionEventId) {
     throw new ServiceError(
       badRequestError({
@@ -38,8 +36,8 @@ export let subspaceSessionEventController = Controller.create(
       'Session events represent significant occurrences during a session, such as errors or state changes. This read-only resource provides visibility into session activity.'
   },
   {
-    list: subspaceSessionGroup
-      .get(instancePath('sessions/:sessionId/events', 'sessions.events.list'), {
+    list: instanceGroup
+      .get(instancePath('session-events', 'sessions.events.list'), {
         name: 'List session events',
         description: 'Returns a paginated list of events for a session.'
       })
@@ -56,6 +54,15 @@ export let subspaceSessionEventController = Controller.create(
             provider_run_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by provider run ID(s)'
             })
+
+            //             types: (string | number | boolean)[] | undefined;
+            // ids: string[] | undefined;
+            // sessionIds: string[] | undefined;
+            // sessionProviderIds: string[] | undefined;
+            // sessionConnectionIds: string[] | undefined;
+            // providerRunIds: string[] | undefined;
+            // sessionMessageIds: string[] | undefined;
+            // sessionErrorIds: string[] | undefined;
           })
         )
       )
@@ -75,7 +82,7 @@ export let subspaceSessionEventController = Controller.create(
       }),
 
     get: subspaceSessionEventGroup
-      .get(instancePath('sessions/:sessionId/events/:sessionEventId', 'sessions.events.get'), {
+      .get(instancePath('session-events/:sessionEventId', 'sessions.events.get'), {
         name: 'Get session event',
         description: 'Retrieves a specific event from a session.'
       })

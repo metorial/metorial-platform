@@ -57,6 +57,10 @@ export let customProviderEnvironmentController = Controller.create(
             custom_provider_ids: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by custom provider IDs'
             })
+
+            //          ids: string[] | undefined;
+            // customProviderIds: string[] | undefined;
+            // customProviderVersionIds: string[] | undefined;
           })
         )
       )
