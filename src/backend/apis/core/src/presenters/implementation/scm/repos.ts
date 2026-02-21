@@ -4,6 +4,7 @@ import { scmRepoPreviewType, scmRepoType } from '../../types';
 
 export let v1ScmRepoPreviewPresenter = Presenter.create(scmRepoPreviewType)
   .presenter(async ({ repoPreview }) => ({
+    object: 'scm.repo_preview' as const,
     provider: repoPreview.provider,
     external_id: repoPreview.externalId,
     name: repoPreview.name,
@@ -20,6 +21,7 @@ export let v1ScmRepoPreviewPresenter = Presenter.create(scmRepoPreviewType)
   }))
   .schema(
     v.object({
+      object: v.literal('scm.repo_preview'),
       provider: v.string(),
       external_id: v.string(),
       name: v.string(),

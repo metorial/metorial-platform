@@ -4,6 +4,7 @@ import { scmAccountPreviewType } from '../../types';
 
 export let v1ScmAccountPreviewPresenter = Presenter.create(scmAccountPreviewType)
   .presenter(async ({ accountPreview }) => ({
+    object: 'scm.account_preview' as const,
     provider: accountPreview.provider,
     external_id: accountPreview.externalId,
     name: accountPreview.name,
@@ -11,6 +12,7 @@ export let v1ScmAccountPreviewPresenter = Presenter.create(scmAccountPreviewType
   }))
   .schema(
     v.object({
+      object: v.literal('scm.account_preview'),
       provider: v.string(),
       external_id: v.string(),
       name: v.string(),

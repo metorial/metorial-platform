@@ -23,7 +23,7 @@ export let v1ScmInstallationPresenter = Presenter.create(scmInstallationType)
       provider: v.string(),
       user: v.object({
         id: v.string(),
-        name: v.nullable(v.string()),
+        name: v.string(),
         email: v.string(),
         image_url: v.nullable(v.string())
       }),

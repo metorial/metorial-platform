@@ -31,7 +31,7 @@ type SubspaceMethodArgs<SubspaceController extends {}, K extends keyof SubspaceC
     ? [
         arg0: { instance: Instance } & Omit<
           Parameters<SubspaceController[K]>[0],
-          'tenantId' | 'environmentId'
+          'tenantId' | 'environmentId' | 'actorId'
         > &
           (Parameters<SubspaceController[K]>[0] extends { actorId: any }
             ? { organizationActor: OrganizationActor }

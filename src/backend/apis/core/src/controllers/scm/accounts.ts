@@ -39,7 +39,6 @@ export let scmAccountsController = Controller.create(
             (Array.isArray(items) ? items : []).map((a: any) =>
               scmAccountPreviewPresenter
                 .present({ accountPreview: a as ScmAccountPreview })
-                .run()
             )
           )
         };

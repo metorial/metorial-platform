@@ -41,7 +41,7 @@ export let scmReposController = Controller.create(
           object: 'list' as const,
           items: await Promise.all(
             (Array.isArray(items) ? items : []).map((r: any) =>
-              scmRepoPreviewPresenter.present({ repoPreview: r as ScmRepoPreview }).run()
+              scmRepoPreviewPresenter.present({ repoPreview: r as ScmRepoPreview })
             )
           )
         };
