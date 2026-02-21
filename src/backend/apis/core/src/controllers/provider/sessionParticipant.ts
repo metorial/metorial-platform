@@ -3,6 +3,7 @@ import { subspaceSessionParticipantService } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
+import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { sessionParticipantPresenter } from '../../presenters';
@@ -43,20 +44,52 @@ export let subspaceSessionParticipantController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            type: v.optional(v.string(), { description: 'Filter by participant type' })
-
-            //             types: ("unknown" | "provider" | "system" | "tool_call" | "mcp_client" | "metorial_protocol_client")[] | undefined;
-            // ids: string[] | undefined;
-            // sessionIds: string[] | undefined;
-            // sessionConnectionIds: string[] | undefined;
-            // sessionMessageIds: string[] | undefined;
+            type: v.optional(
+              v.union([
+                v.enumOf([
+                  'unknown',
+                  'provider',
+                  'system',
+                  'tool_call',
+                  'mcp_client',
+                  'metorial_protocol_client'
+                ]),
+                v.array(
+                  v.enumOf([
+                    'unknown',
+                    'provider',
+                    'system',
+                    'tool_call',
+                    'mcp_client',
+                    'metorial_protocol_client'
+                  ])
+                )
+              ]),
+              { description: 'Filter by participant type(s)' }
+            ),
+            id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by participant ID(s)'
+            }),
+            session_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by session ID(s)'
+            }),
+            session_connection_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by session connection ID(s)'
+            }),
+            session_message_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by session message ID(s)'
+            })
           })
         )
       )
       .do(async ctx => {
         let paginator = await subspaceSessionParticipantService.list({
           instance: ctx.instance,
-          sessionIds: [ctx.session.id]
+          types: normalizeArrayParam(ctx.query.type),
+          ids: normalizeArrayParam(ctx.query.id),
+          sessionIds: normalizeArrayParam(ctx.query.session_id),
+          sessionConnectionIds: normalizeArrayParam(ctx.query.session_connection_id),
+          sessionMessageIds: normalizeArrayParam(ctx.query.session_message_id)
         });
 
         let list = await paginator.run(ctx.query);

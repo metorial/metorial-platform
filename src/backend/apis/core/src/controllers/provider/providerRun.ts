@@ -48,7 +48,16 @@ export let subspaceProviderRunController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            status: v.optional(v.string(), { description: 'Filter by run status' }),
+            status: v.optional(
+              v.union([
+                v.enumOf(['running', 'stopped']),
+                v.array(v.enumOf(['running', 'stopped']))
+              ]),
+              { description: 'Filter by run status' }
+            ),
+            id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by provider run ID(s)'
+            }),
             session_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by session ID(s)'
             }),
@@ -57,27 +66,27 @@ export let subspaceProviderRunController = Controller.create(
             }),
             session_provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by session provider ID(s)'
+            }),
+            session_connection_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by session connection ID(s)'
+            }),
+            provider_version_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by provider version ID(s)'
             })
-
-            //             status: ("running" | "stopped")[] | undefined;
-            // ids: string[] | undefined;
-            // sessionIds: string[] | undefined;
-            // sessionProviderIds: string[] | undefined;
-            // sessionConnectionIds: string[] | undefined;
-            // providerIds: string[] | undefined;
-            // providerVersionIds: string[] | undefined;
           })
         )
       )
       .do(async ctx => {
         let paginator = await subspaceProviderRunService.list({
           instance: ctx.instance,
+          allowDeleted: false,
+          ids: normalizeArrayParam(ctx.query.id),
           sessionIds: normalizeArrayParam(ctx.query.session_id),
           providerIds: normalizeArrayParam(ctx.query.provider_id),
           sessionProviderIds: normalizeArrayParam(ctx.query.session_provider_id),
-          status: ctx.query.status
-            ? ([ctx.query.status] as ('running' | 'stopped')[])
-            : undefined
+          sessionConnectionIds: normalizeArrayParam(ctx.query.session_connection_id),
+          providerVersionIds: normalizeArrayParam(ctx.query.provider_version_id),
+          status: normalizeArrayParam(ctx.query.status)
         });
 
         let list = await paginator.run(ctx.query);
@@ -132,12 +141,30 @@ export let subspaceProviderRunController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            status: v.optional(v.string(), { description: 'Filter by run status' }),
+            status: v.optional(
+              v.union([
+                v.enumOf(['running', 'stopped']),
+                v.array(v.enumOf(['running', 'stopped']))
+              ]),
+              { description: 'Filter by run status' }
+            ),
+            id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by provider run ID(s)'
+            }),
+            session_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by session ID(s)'
+            }),
             provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by provider ID(s)'
             }),
             session_provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by session provider ID(s)'
+            }),
+            session_connection_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by session connection ID(s)'
+            }),
+            provider_version_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by provider version ID(s)'
             })
           })
         )
@@ -145,12 +172,14 @@ export let subspaceProviderRunController = Controller.create(
       .do(async ctx => {
         let paginator = await subspaceProviderRunService.list({
           instance: ctx.instance,
-          sessionIds: [ctx.session.id],
+          allowDeleted: false,
+          ids: normalizeArrayParam(ctx.query.id),
+          sessionIds: normalizeArrayParam(ctx.query.session_id),
           providerIds: normalizeArrayParam(ctx.query.provider_id),
           sessionProviderIds: normalizeArrayParam(ctx.query.session_provider_id),
-          status: ctx.query.status
-            ? ([ctx.query.status] as ('running' | 'stopped')[])
-            : undefined
+          sessionConnectionIds: normalizeArrayParam(ctx.query.session_connection_id),
+          providerVersionIds: normalizeArrayParam(ctx.query.provider_version_id),
+          status: normalizeArrayParam(ctx.query.status)
         });
 
         let list = await paginator.run(ctx.query);

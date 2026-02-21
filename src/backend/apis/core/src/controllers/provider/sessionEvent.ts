@@ -47,31 +47,45 @@ export let subspaceSessionEventController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            type: v.optional(v.string(), { description: 'Filter by event type' }),
+            type: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by event type(s)'
+            }),
+            id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by session event ID(s)'
+            }),
+            session_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by session ID(s)'
+            }),
             session_provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by session provider ID(s)'
             }),
+            session_connection_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by session connection ID(s)'
+            }),
             provider_run_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by provider run ID(s)'
+            }),
+            session_message_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by session message ID(s)'
+            }),
+            session_error_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by session error ID(s)'
             })
-
-            //             types: (string | number | boolean)[] | undefined;
-            // ids: string[] | undefined;
-            // sessionIds: string[] | undefined;
-            // sessionProviderIds: string[] | undefined;
-            // sessionConnectionIds: string[] | undefined;
-            // providerRunIds: string[] | undefined;
-            // sessionMessageIds: string[] | undefined;
-            // sessionErrorIds: string[] | undefined;
           })
         )
       )
       .do(async ctx => {
         let paginator = await subspaceSessionEventService.list({
           instance: ctx.instance,
-          sessionIds: [ctx.session.id],
+          allowDeleted: false,
+          types: normalizeArrayParam(ctx.query.type),
+          ids: normalizeArrayParam(ctx.query.id),
+          sessionIds: normalizeArrayParam(ctx.query.session_id),
           sessionProviderIds: normalizeArrayParam(ctx.query.session_provider_id),
-          providerRunIds: normalizeArrayParam(ctx.query.provider_run_id)
+          sessionConnectionIds: normalizeArrayParam(ctx.query.session_connection_id),
+          providerRunIds: normalizeArrayParam(ctx.query.provider_run_id),
+          sessionMessageIds: normalizeArrayParam(ctx.query.session_message_id),
+          sessionErrorIds: normalizeArrayParam(ctx.query.session_error_id)
         });
 
         let list = await paginator.run(ctx.query);

@@ -44,22 +44,43 @@ export let subspaceSessionErrorGroupController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            type: v.optional(v.string(), { description: 'Filter by error type' }),
+            type: v.optional(
+              v.union([
+                v.enumOf([
+                  'message_processing_timeout',
+                  'message_processing_provider_error',
+                  'message_processing_system_error'
+                ]),
+                v.array(
+                  v.enumOf([
+                    'message_processing_timeout',
+                    'message_processing_provider_error',
+                    'message_processing_system_error'
+                  ])
+                )
+              ]),
+              { description: 'Filter by error type(s)' }
+            ),
+            id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by error group ID(s)'
+            }),
             session_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by session ID(s)'
+            }),
+            provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by provider ID(s)'
             })
-
-            //             types: ("message_processing_timeout" | "message_processing_provider_error" | "message_processing_system_error")[] | undefined;
-            // ids: string[] | undefined;
-            // sessionIds: string[] | undefined;
-            // providerIds: string[] | undefined;
           })
         )
       )
       .do(async ctx => {
         let paginator = await subspaceSessionErrorGroupService.list({
           instance: ctx.instance,
-          sessionIds: normalizeArrayParam(ctx.query.session_id)
+          allowDeleted: false,
+          types: normalizeArrayParam(ctx.query.type),
+          ids: normalizeArrayParam(ctx.query.id),
+          sessionIds: normalizeArrayParam(ctx.query.session_id),
+          providerIds: normalizeArrayParam(ctx.query.provider_id)
         });
 
         let list = await paginator.run(ctx.query);
@@ -108,14 +129,43 @@ export let subspaceSessionErrorGroupController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            type: v.optional(v.string(), { description: 'Filter by error type' })
+            type: v.optional(
+              v.union([
+                v.enumOf([
+                  'message_processing_timeout',
+                  'message_processing_provider_error',
+                  'message_processing_system_error'
+                ]),
+                v.array(
+                  v.enumOf([
+                    'message_processing_timeout',
+                    'message_processing_provider_error',
+                    'message_processing_system_error'
+                  ])
+                )
+              ]),
+              { description: 'Filter by error type(s)' }
+            ),
+            id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by error group ID(s)'
+            }),
+            session_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by session ID(s)'
+            }),
+            provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by provider ID(s)'
+            })
           })
         )
       )
       .do(async ctx => {
         let paginator = await subspaceSessionErrorGroupService.list({
           instance: ctx.instance,
-          sessionIds: [ctx.session.id]
+          allowDeleted: false,
+          types: normalizeArrayParam(ctx.query.type),
+          ids: normalizeArrayParam(ctx.query.id),
+          sessionIds: normalizeArrayParam(ctx.query.session_id),
+          providerIds: normalizeArrayParam(ctx.query.provider_id)
         });
 
         let list = await paginator.run(ctx.query);

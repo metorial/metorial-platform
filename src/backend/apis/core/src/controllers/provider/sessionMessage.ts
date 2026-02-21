@@ -47,35 +47,69 @@ export let subspaceSessionMessageController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            type: v.optional(v.string(), { description: 'Filter by message type' }),
+            type: v.optional(
+              v.union([
+                v.enumOf(['unknown', 'tool_call', 'mcp_control', 'mcp_message']),
+                v.array(v.enumOf(['unknown', 'tool_call', 'mcp_control', 'mcp_message']))
+              ]),
+              { description: 'Filter by message type(s)' }
+            ),
+            source: v.optional(
+              v.union([
+                v.enumOf(['provider', 'client']),
+                v.array(v.enumOf(['provider', 'client']))
+              ]),
+              { description: 'Filter by message source(s)' }
+            ),
+            hierarchy: v.optional(
+              v.union([
+                v.enumOf(['child', 'parent']),
+                v.array(v.enumOf(['child', 'parent']))
+              ]),
+              { description: 'Filter by message hierarchy' }
+            ),
+            id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by message ID(s)'
+            }),
+            session_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by session ID(s)'
+            }),
             session_provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by session provider ID(s)'
             }),
+            session_connection_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by session connection ID(s)'
+            }),
             provider_run_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by provider run ID(s)'
+            }),
+            error_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by error ID(s)'
+            }),
+            participant_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by participant ID(s)'
+            }),
+            parent_message_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by parent message ID(s)'
             })
-
-            //             types: ("unknown" | "tool_call" | "mcp_control" | "mcp_message")[] | undefined;
-            // source: ("provider" | "client")[] | undefined;
-            // hierarchy: ("child" | "parent")[] | undefined;
-            // ids: string[] | undefined;
-            // sessionIds: string[] | undefined;
-            // sessionProviderIds: string[] | undefined;
-            // sessionConnectionIds: string[] | undefined;
-            // providerRunIds: string[] | undefined;
-            // errorIds: string[] | undefined;
-            // participantIds: string[] | undefined;
-            // parentMessageIds: string[] | undefined;
           })
         )
       )
       .do(async ctx => {
         let paginator = await subspaceSessionMessageService.list({
           instance: ctx.instance,
-          sessionIds: [ctx.session.id],
-          hierarchy: ['parent', 'child'],
+          allowDeleted: false,
+          types: normalizeArrayParam(ctx.query.type),
+          source: normalizeArrayParam(ctx.query.source),
+          hierarchy: normalizeArrayParam(ctx.query.hierarchy),
+          ids: normalizeArrayParam(ctx.query.id),
+          sessionIds: normalizeArrayParam(ctx.query.session_id),
           sessionProviderIds: normalizeArrayParam(ctx.query.session_provider_id),
-          providerRunIds: normalizeArrayParam(ctx.query.provider_run_id)
+          sessionConnectionIds: normalizeArrayParam(ctx.query.session_connection_id),
+          providerRunIds: normalizeArrayParam(ctx.query.provider_run_id),
+          errorIds: normalizeArrayParam(ctx.query.error_id),
+          participantIds: normalizeArrayParam(ctx.query.participant_id),
+          parentMessageIds: normalizeArrayParam(ctx.query.parent_message_id)
         });
 
         let list = await paginator.run(ctx.query);

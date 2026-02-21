@@ -60,11 +60,6 @@ export let providerSpecificationController = Controller.create(
               description: 'Filter by provider config ID(s)'
             })
 
-            //             ids: string[] | undefined;
-            // providerIds: string[] | undefined;
-            // providerVersionIds: string[] | undefined;
-            // providerDeploymentIds: string[] | undefined;
-            // providerConfigIds: string[] | undefined;
           })
         )
       )

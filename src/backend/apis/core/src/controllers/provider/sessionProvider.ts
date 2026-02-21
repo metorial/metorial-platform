@@ -53,30 +53,49 @@ export let subspaceSessionProviderController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
+            id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by session provider ID(s)'
+            }),
+            session_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by session ID(s)'
+            }),
+            session_template_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by session template ID(s)'
+            }),
             provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by provider ID(s)'
             }),
-            status: v.optional(v.string(), { description: 'Filter by provider status' })
-
-            //             status: ("active" | "archived")[] | undefined;
-            // ids: string[] | undefined;
-            // sessionIds: string[] | undefined;
-            // sessionTemplateIds: string[] | undefined;
-            // providerIds: string[] | undefined;
-            // providerDeploymentIds: string[] | undefined;
-            // providerConfigIds: string[] | undefined;
-            // providerAuthConfigIds: string[] | undefined;
+            provider_deployment_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by provider deployment ID(s)'
+            }),
+            provider_config_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by provider config ID(s)'
+            }),
+            provider_auth_config_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by provider auth config ID(s)'
+            }),
+            status: v.optional(
+              v.union([
+                v.enumOf(['active', 'archived']),
+                v.array(v.enumOf(['active', 'archived']))
+              ]),
+              { description: 'Filter by provider status' }
+            )
           })
         )
       )
       .do(async ctx => {
         let paginator = await subspaceSessionProviderService.list({
           instance: ctx.instance,
-          sessionIds: [ctx.session.id],
+          allowDeleted: false,
+          ids: normalizeArrayParam(ctx.query.id),
+          sessionIds: normalizeArrayParam(ctx.query.session_id),
+          sessionTemplateIds: normalizeArrayParam(ctx.query.session_template_id),
           providerIds: normalizeArrayParam(ctx.query.provider_id),
-          status: ctx.query.status
-            ? ([ctx.query.status] as ('active' | 'archived')[])
-            : undefined
+          providerDeploymentIds: normalizeArrayParam(ctx.query.provider_deployment_id),
+          providerConfigIds: normalizeArrayParam(ctx.query.provider_config_id),
+          providerAuthConfigIds: normalizeArrayParam(ctx.query.provider_auth_config_id),
+          status: normalizeArrayParam(ctx.query.status)
         });
 
         let list = await paginator.run(ctx.query);

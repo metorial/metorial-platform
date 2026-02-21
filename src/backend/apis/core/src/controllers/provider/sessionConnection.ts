@@ -47,34 +47,47 @@ export let subspaceSessionConnectionController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            status: v.optional(v.string(), { description: 'Filter by connection status' }),
-            connection_state: v.optional(v.string(), {
-              description: 'Filter by connection state'
+            status: v.optional(
+              v.union([
+                v.enumOf(['active', 'archived']),
+                v.array(v.enumOf(['active', 'archived']))
+              ]),
+              { description: 'Filter by connection status' }
+            ),
+            connection_state: v.optional(
+              v.union([
+                v.enumOf(['connected', 'disconnected']),
+                v.array(v.enumOf(['connected', 'disconnected']))
+              ]),
+              {
+                description: 'Filter by connection state'
+              }
+            ),
+            id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by session connection ID(s)'
+            }),
+            session_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by session ID(s)'
             }),
             session_provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by session provider ID(s)'
+            }),
+            participant_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by participant ID(s)'
             })
-
-            //             status: ("active" | "archived")[] | undefined;
-            // connectionState: ("connected" | "disconnected")[] | undefined;
-            // ids: string[] | undefined;
-            // sessionIds: string[] | undefined;
-            // sessionProviderIds: string[] | undefined;
-            // participantIds: string[] | undefined;
           })
         )
       )
       .do(async ctx => {
         let paginator = await subspaceSessionConnectionService.list({
           instance: ctx.instance,
-          sessionIds: [ctx.session.id],
-          status: ctx.query.status
-            ? ([ctx.query.status] as ('active' | 'archived')[])
-            : undefined,
-          connectionState: ctx.query.connection_state
-            ? ([ctx.query.connection_state] as ('connected' | 'disconnected')[])
-            : undefined,
-          sessionProviderIds: normalizeArrayParam(ctx.query.session_provider_id)
+          allowDeleted: false,
+          ids: normalizeArrayParam(ctx.query.id),
+          sessionIds: normalizeArrayParam(ctx.query.session_id),
+          status: normalizeArrayParam(ctx.query.status),
+          connectionState: normalizeArrayParam(ctx.query.connection_state),
+          sessionProviderIds: normalizeArrayParam(ctx.query.session_provider_id),
+          participantIds: normalizeArrayParam(ctx.query.participant_id)
         });
 
         let list = await paginator.run(ctx.query);

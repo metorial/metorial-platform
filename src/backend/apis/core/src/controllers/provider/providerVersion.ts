@@ -53,8 +53,6 @@ export let providerVersionController = Controller.create(
               description: 'Filter by provider ID(s)'
             })
 
-            //             ids: string[] | undefined;
-            // providerIds: string[] | undefined;
           })
         )
       )

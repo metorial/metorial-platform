@@ -45,11 +45,21 @@ export let sessionTemplateController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
+            status: v.optional(
+              v.union([
+                v.enumOf(['active', 'archived']),
+                v.array(v.enumOf(['active', 'archived']))
+              ]),
+              { description: 'Filter by status (active, archived)' }
+            ),
             id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by session template ID(s)'
             }),
             session_ids: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter templates that include sessions with these IDs'
+            }),
+            session_provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter templates that include session providers with these IDs'
             }),
             provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter templates that include providers with these IDs'
@@ -64,23 +74,18 @@ export let sessionTemplateController = Controller.create(
               description: 'Filter templates that include provider auth configs with these IDs'
             })
 
-            //             status: ("active" | "archived")[] | undefined;
-            // ids: string[] | undefined;
-            // sessionIds: string[] | undefined;
-            // sessionProviderIds: string[] | undefined;
-            // providerIds: string[] | undefined;
-            // providerDeploymentIds: string[] | undefined;
-            // providerConfigIds: string[] | undefined;
-            // providerAuthConfigIds: string[] | undefined;
           })
         )
       )
       .do(async ctx => {
         let paginator = await subspaceSessionTemplateService.list({
           instance: ctx.instance,
+          allowDeleted: false,
+          status: normalizeArrayParam(ctx.query.status),
 
           ids: normalizeArrayParam(ctx.query.id),
           sessionIds: normalizeArrayParam(ctx.query.session_ids),
+          sessionProviderIds: normalizeArrayParam(ctx.query.session_provider_id),
           providerIds: normalizeArrayParam(ctx.query.provider_id),
           providerDeploymentIds: normalizeArrayParam(ctx.query.provider_deployment_id),
           providerConfigIds: normalizeArrayParam(ctx.query.provider_config_id),
