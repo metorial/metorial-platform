@@ -30,13 +30,11 @@ export let v1ProviderListingCategoryPresenter = Presenter.create(providerListing
         description: 'Display name of the category',
         examples: ['Developer Tools']
       }),
-      description: v.nullable(
-        v.string({
-          name: 'description',
-          description: 'Description of providers in this category',
-          examples: ['Tools for software development and CI/CD']
-        })
-      ),
+      description: v.string({
+        name: 'description',
+        description: 'Description of providers in this category',
+        examples: ['Tools for software development and CI/CD']
+      }),
       slug: v.string({
         name: 'slug',
         description: 'URL-friendly identifier',

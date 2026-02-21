@@ -14,7 +14,7 @@ export let v1ProviderListingGroupPresenter = Presenter.create(providerListingGro
   }))
   .schema(
     v.object({
-      object: v.literal('provider.group', {
+      object: v.literal('provider.listing_group', {
         description: "String representing the object's type"
       }),
       id: v.string({

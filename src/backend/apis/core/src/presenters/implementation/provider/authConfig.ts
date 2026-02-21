@@ -1,22 +1,42 @@
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
 import { providerAuthConfigType } from '../../types';
+import { v1ProviderAuthCredentialsPresenter } from './authCredentials';
+import { v1ProviderAuthMethodPresenter } from './authMethod';
+import { v1ProviderDeploymentPreviewPresenter } from './deployment';
 
 export let v1ProviderAuthConfigPresenter = Presenter.create(providerAuthConfigType)
-  .presenter(async ({ authConfig }) => ({
+  .presenter(async ({ authConfig }, opts) => ({
     object: 'provider.auth_config' as const,
 
     id: authConfig.id,
     type: authConfig.type,
+    source: authConfig.source,
+    status: authConfig.status,
+
+    is_default: authConfig.isDefault,
+
+    provider_id: authConfig.providerId,
 
     name: authConfig.name,
     description: authConfig.description,
     metadata: authConfig.metadata,
 
-    provider_id: authConfig.providerId,
+    deployment_preview: authConfig.deploymentPreview
+      ? await v1ProviderDeploymentPreviewPresenter
+          .present({ deployment: authConfig.deploymentPreview }, opts)
+          .run()
+      : null,
 
-    provider_deployment_id: authConfig.providerDeploymentId ?? authConfig.deploymentId,
-    provider_auth_method_id: authConfig.providerAuthMethodId ?? authConfig.authMethodId,
+    credentials: authConfig.credentials
+      ? await v1ProviderAuthCredentialsPresenter
+          .present({ authCredentials: authConfig.credentials }, opts)
+          .run()
+      : null,
+
+    auth_method: await v1ProviderAuthMethodPresenter
+      .present({ authMethod: authConfig.authMethod }, opts)
+      .run(),
 
     created_at: authConfig.createdAt,
     updated_at: authConfig.updatedAt
@@ -34,6 +54,23 @@ export let v1ProviderAuthConfigPresenter = Presenter.create(providerAuthConfigTy
       type: v.enumOf(['manual', 'oauth_automated', 'oauth_manual'], {
         name: 'type',
         description: 'Authentication type'
+      }),
+      source: v.enumOf(['manual', 'setup_session', 'system'], {
+        name: 'source',
+        description: 'Auth config source'
+      }),
+      status: v.enumOf(['active', 'archived'], {
+        name: 'status',
+        description: 'Auth config status'
+      }),
+      is_default: v.boolean({
+        name: 'is_default',
+        description: 'Whether this is the default auth config'
+      }),
+      provider_id: v.string({
+        name: 'provider_id',
+        description: 'Provider ID',
+        examples: ['pro_5gHjKlMnPqRsTuVw']
       }),
       name: v.nullable(
         v.string({
@@ -56,23 +93,9 @@ export let v1ProviderAuthConfigPresenter = Presenter.create(providerAuthConfigTy
           examples: [{ connected_by: 'alex@company.com', purpose: 'ci-pipeline' }]
         })
       ),
-      provider_id: v.string({
-        name: 'provider_id',
-        description: 'Provider ID',
-        examples: ['pro_5gHjKlMnPqRsTuVw']
-      }),
-      provider_deployment_id: v.nullable(
-        v.string({
-          name: 'provider_deployment_id',
-          description: 'Deployment ID',
-          examples: ['pde_1aBcDeFgHjKlMnPq']
-        })
-      ),
-      provider_auth_method_id: v.string({
-        name: 'provider_auth_method_id',
-        description: 'Auth method ID',
-        examples: ['pam_2mNpQrStUvWxYzAb']
-      }),
+      deployment_preview: v.nullable(v1ProviderDeploymentPreviewPresenter.schema),
+      credentials: v.nullable(v1ProviderAuthCredentialsPresenter.schema),
+      auth_method: v1ProviderAuthMethodPresenter.schema,
       created_at: v.date({
         name: 'created_at',
         description: 'Timestamp when created',

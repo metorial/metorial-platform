@@ -12,14 +12,20 @@ export let v1ProviderAuthMethodPresenter = Presenter.create(providerAuthMethodTy
     name: authMethod.name,
     description: authMethod.description,
 
-    input_schema: {
-      type: 'json_schema',
-      schema: authMethod.inputJsonSchema
-    },
-    output_schema: {
-      type: 'json_schema',
-      schema: authMethod.outputJsonSchema
-    },
+    capabilities: authMethod.capabilities,
+
+    input_schema: authMethod.inputJsonSchema
+      ? {
+          type: 'json_schema',
+          schema: authMethod.inputJsonSchema
+        }
+      : null,
+    output_schema: authMethod.outputJsonSchema
+      ? {
+          type: 'json_schema',
+          schema: authMethod.outputJsonSchema
+        }
+      : null,
 
     scopes:
       authMethod.scopes?.map(scope => ({
@@ -27,7 +33,7 @@ export let v1ProviderAuthMethodPresenter = Presenter.create(providerAuthMethodTy
         id: scope.id,
         name: scope.title,
         scope: scope.scope,
-        description: scope.description
+        description: scope.description ?? null
       })) ?? null,
 
     provider_id: authMethod.providerId,
@@ -50,6 +56,11 @@ export let v1ProviderAuthMethodPresenter = Presenter.create(providerAuthMethodTy
         name: 'type',
         description: 'Authentication type'
       }),
+      key: v.string({
+        name: 'key',
+        description: 'Auth method key',
+        examples: ['oauth2']
+      }),
       name: v.string({ name: 'name', description: 'Display name', examples: ['OAuth 2.0'] }),
       description: v.nullable(
         v.string({
@@ -58,21 +69,26 @@ export let v1ProviderAuthMethodPresenter = Presenter.create(providerAuthMethodTy
           examples: ['Authenticate using OAuth 2.0']
         })
       ),
+      capabilities: v.record(v.any(), {
+        name: 'capabilities',
+        description: 'Auth method capabilities'
+      }),
       input_schema: v.nullable(
-        v.record(v.any(), {
-          name: 'input_schema',
-          description:
-            'JSON Schema defining the required auth input fields. Contains standard JSON Schema fields like type, properties, required, etc.',
-          examples: [
-            {
-              type: 'object',
-              properties: {
-                client_id: { type: 'string', description: 'OAuth client ID' },
-                client_secret: { type: 'string', description: 'OAuth client secret' }
-              },
-              required: ['client_id', 'client_secret']
-            }
-          ]
+        v.object({
+          type: v.literal('json_schema'),
+          schema: v.record(v.any(), {
+            name: 'schema',
+            description: 'JSON Schema defining the required auth input fields'
+          })
+        })
+      ),
+      output_schema: v.nullable(
+        v.object({
+          type: v.literal('json_schema'),
+          schema: v.record(v.any(), {
+            name: 'schema',
+            description: 'JSON Schema defining the auth output fields'
+          })
         })
       ),
       scopes: v.nullable(

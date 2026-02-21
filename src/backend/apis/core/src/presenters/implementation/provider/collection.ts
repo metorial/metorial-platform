@@ -18,7 +18,7 @@ export let v1ProviderListingCollectionPresenter = Presenter.create(
   }))
   .schema(
     v.object({
-      object: v.literal('provider.collection', {
+      object: v.literal('provider.listing_collection', {
         description: "String representing the object's type"
       }),
       id: v.string({
@@ -31,13 +31,11 @@ export let v1ProviderListingCollectionPresenter = Presenter.create(
         description: 'Display name of the collection',
         examples: ['CRM Integrations']
       }),
-      description: v.nullable(
-        v.string({
-          name: 'description',
-          description: 'Description of the collection',
-          examples: ['Providers for customer relationship management']
-        })
-      ),
+      description: v.string({
+        name: 'description',
+        description: 'Description of the collection',
+        examples: ['Providers for customer relationship management']
+      }),
       slug: v.string({
         name: 'slug',
         description: 'URL-friendly identifier',

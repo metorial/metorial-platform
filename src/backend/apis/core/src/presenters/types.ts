@@ -378,13 +378,13 @@ export let providerSpecificationType = PresentableType.create<{
   specification: SubspaceProviderSpecification;
 }>()('specification');
 
-// export let deploymentPreviewType = PresentableType.create<{
-//   deployment: SubspaceProviderDeployment;
-// }>()('deploymentPreview');
+export let deploymentPreviewType = PresentableType.create<{
+  deployment: NonNullable<SubspaceProviderAuthConfig['deploymentPreview']>;
+}>()('deploymentPreview');
 
-// export let configPreviewType = PresentableType.create<{
-//   config: SubspaceProviderConfig;
-// }>()('configPreview');
+export let configPreviewType = PresentableType.create<{
+  config: SubspaceProviderConfig;
+}>()('configPreview');
 
 export let providerDeploymentType = PresentableType.create<{
   deployment: SubspaceProviderDeployment;

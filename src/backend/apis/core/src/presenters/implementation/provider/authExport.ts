@@ -1,16 +1,29 @@
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
 import { providerAuthExportType } from '../../types';
+import { v1ProviderAuthConfigPresenter } from './authConfig';
 
 export let v1ProviderAuthExportPresenter = Presenter.create(providerAuthExportType)
-  .presenter(async ({ authExport }) => ({
+  .presenter(async ({ authExport }, opts) => ({
     object: 'provider.auth_export' as const,
+
     id: authExport.id,
     note: authExport.note,
+    ip: authExport.ip,
+    user_agent: authExport.userAgent,
     metadata: authExport.metadata,
-    provider_auth_config_id: authExport.providerAuthConfigId ?? authExport.authConfigId,
-    value: authExport.value,
-    created_at: authExport.createdAt
+
+    auth_config: await v1ProviderAuthConfigPresenter
+      .present({ authConfig: authExport.authConfig }, opts)
+      .run(),
+
+    provider_id: authExport.providerId,
+    provider_deployment_id: authExport.providerDeploymentId,
+    auth_method_id: authExport.authMethodId,
+    credentials_id: authExport.credentialsId,
+
+    created_at: authExport.createdAt,
+    expires_at: authExport.expiresAt
   }))
   .schema(
     v.object({
@@ -27,6 +40,19 @@ export let v1ProviderAuthExportPresenter = Presenter.create(providerAuthExportTy
         description: 'Note explaining the export reason',
         examples: ['Exported for backup purposes']
       }),
+      ip: v.nullable(
+        v.string({
+          name: 'ip',
+          description: 'IP address of the export request',
+          examples: ['192.168.1.1']
+        })
+      ),
+      user_agent: v.nullable(
+        v.string({
+          name: 'user_agent',
+          description: 'User agent of the export request'
+        })
+      ),
       metadata: v.nullable(
         v.record(v.any(), {
           name: 'metadata',
@@ -34,28 +60,43 @@ export let v1ProviderAuthExportPresenter = Presenter.create(providerAuthExportTy
           examples: [{ exported_by: 'admin@company.com', reason: 'backup' }]
         })
       ),
-      provider_auth_config_id: v.string({
-        name: 'provider_auth_config_id',
-        description: 'Auth config ID that was exported',
-        examples: ['pac_8pQrStUvWxYzAbCd']
+      auth_config: v1ProviderAuthConfigPresenter.schema,
+      provider_id: v.string({
+        name: 'provider_id',
+        description: 'Provider ID',
+        examples: ['pro_5gHjKlMnPqRsTuVw']
       }),
-      value: v.record(v.any(), {
-        name: 'value',
-        description: 'The exported credential data (access token, refresh token, etc.)',
-        examples: [
-          {
-            access_token: 'gho_xxxxxxxxxxxxxxxxxxxx',
-            refresh_token: 'ghr_xxxxxxxxxxxxxxxxxxxx',
-            token_type: 'bearer',
-            scope: 'repo,read:user'
-          }
-        ]
+      provider_deployment_id: v.nullable(
+        v.string({
+          name: 'provider_deployment_id',
+          description: 'Deployment ID',
+          examples: ['pde_1aBcDeFgHjKlMnPq']
+        })
+      ),
+      auth_method_id: v.string({
+        name: 'auth_method_id',
+        description: 'Auth method ID',
+        examples: ['pam_2mNpQrStUvWxYzAb']
       }),
+      credentials_id: v.nullable(
+        v.string({
+          name: 'credentials_id',
+          description: 'Auth credentials ID',
+          examples: ['par_4sTuVwXyZaBcDeFg']
+        })
+      ),
       created_at: v.date({
         name: 'created_at',
         description: 'Timestamp when created',
         examples: [new Date('2025-09-15T10:30:00Z')]
-      })
+      }),
+      expires_at: v.nullable(
+        v.date({
+          name: 'expires_at',
+          description: 'Timestamp when the export expires',
+          examples: [new Date('2026-03-15T10:30:00Z')]
+        })
+      )
     })
   )
   .build();
