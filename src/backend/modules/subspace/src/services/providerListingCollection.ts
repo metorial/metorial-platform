@@ -3,7 +3,7 @@ import { subspace } from '../subspace';
 
 export let subspaceProviderListingCollectionService = createSubspaceService(
   subspace.providerListingCollection,
-  ['get', 'list'],
+  ['get', 'list', 'upsert'],
   () => ({})
 );
 

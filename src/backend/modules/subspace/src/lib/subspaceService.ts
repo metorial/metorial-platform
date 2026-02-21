@@ -5,6 +5,11 @@ import { getActorForSubspace, getTenantForSubspace } from '../subspace';
 
 export type Tail<T extends any[]> = T extends [any, ...infer U] ? U : [];
 
+export let toEventBase = (params: Record<string, any>): ProviderEventBase => {
+  let { instance, organizationActor, ...input } = params;
+  return { instance, organizationActor, input };
+};
+
 type PaginatorRunQuery = {
   limit?: number;
   after?: string;
@@ -38,7 +43,7 @@ type SubspaceMethodArgs<
   ? [
       arg0: { instance: Instance } & Omit<
         Parameters<SubspaceController[K]>[0],
-        'tenantId' | 'environmentId'
+        'tenantId' | 'environmentId' | 'actorId'
       > &
         (Parameters<SubspaceController[K]>[0] extends { actorId: any }
           ? { organizationActor: OrganizationActor }
