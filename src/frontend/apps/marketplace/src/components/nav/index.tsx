@@ -147,7 +147,7 @@ export let Nav = ({ categories }: { categories: ServerCategory[] }) => {
                 {
                   links: categories.map(category => ({
                     label: category.name,
-                    href: `/marketplace/servers?categories_ids=${category.id}`
+                    href: `/marketplace/servers?category_ids=${category.id}`
                   }))
                 }
               ]

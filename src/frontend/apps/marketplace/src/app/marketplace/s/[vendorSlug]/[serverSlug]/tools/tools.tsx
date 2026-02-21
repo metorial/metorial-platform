@@ -33,9 +33,11 @@ export let Tools = ({
   let tools = capabilities.tools ?? [];
   let prompts = capabilities.prompts ?? [];
   let resourceTemplates = capabilities.resourceTemplates ?? [];
+  let canExplore = server.isHostable;
 
   let openExplorer = () => {
-    let url = `${process.env.DASHBOARD_FRONTEND_URL}/welcome/jumpstart?path=${encodeURIComponent(`/explorer?server_id=${server.serverId}`)}`;
+    if (!canExplore) return;
+    let url = `${process.env.DASHBOARD_FRONTEND_URL}/welcome/jumpstart?path=${encodeURIComponent(`/explorer?provider_id=${server.providerId}`)}`;
     window.open(url, '_blank');
   };
 
@@ -70,9 +72,11 @@ export let Tools = ({
                       flexGrow: 1
                     }}
                   >
-                    <Button size="1" variant="outline" onClick={() => openExplorer()}>
-                      Open in Explorer
-                    </Button>
+                    {canExplore && (
+                      <Button size="1" variant="outline" onClick={() => openExplorer()}>
+                        Open in Explorer
+                      </Button>
+                    )}
 
                     <Text size="1" color="gray600">
                       {tool.name}
@@ -116,9 +120,11 @@ export let Tools = ({
                       flexGrow: 1
                     }}
                   >
-                    <Button size="1" variant="outline" onClick={() => openExplorer()}>
-                      Open in Explorer
-                    </Button>
+                    {canExplore && (
+                      <Button size="1" variant="outline" onClick={() => openExplorer()}>
+                        Open in Explorer
+                      </Button>
+                    )}
 
                     <Text size="1" color="gray600">
                       {template.name}
@@ -160,9 +166,11 @@ export let Tools = ({
                       flexGrow: 1
                     }}
                   >
-                    <Button size="1" variant="outline" onClick={() => openExplorer()}>
-                      Open in Explorer
-                    </Button>
+                    {canExplore && (
+                      <Button size="1" variant="outline" onClick={() => openExplorer()}>
+                        Open in Explorer
+                      </Button>
+                    )}
 
                     <Text size="1" color="gray600">
                       {prompt.name}

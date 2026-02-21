@@ -1,4 +1,4 @@
-import type { MarketplaceApp } from '@metorial/api-marketplace/src/client';
+import type { MarketplaceApp } from '@metorial/api-marketplace/client';
 
 import { hc } from 'hono/client';
 
@@ -31,9 +31,12 @@ export let client = hc<MarketplaceApp>(process.env.MARKETPLACE_API_URL!, {
 });
 
 export let withSdk = async <O>(
-  fn: (
-    sdk: typeof client
-  ) => Promise<{ json: () => Promise<O>; ok: boolean; status: number; statusText: string }>
+  fn: (sdk: typeof client) => Promise<{
+    json: () => Promise<unknown>;
+    ok: boolean;
+    status: number;
+    statusText: string;
+  }>
 ) => {
   let res = await fn(client);
   if (!res.ok) {
@@ -53,7 +56,7 @@ export let withSdk = async <O>(
     });
   }
 
-  let json = await res.json();
+  let json = (await res.json()) as O;
   return json;
 };
 

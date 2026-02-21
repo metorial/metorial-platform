@@ -4,16 +4,17 @@ import { providerListingType } from '../../types';
 import { v1CategoryPresenter } from './category';
 import { v1CollectionPresenter } from './collection';
 import { v1GroupPresenter } from './group';
+import { v1PublisherPresenter } from './publisher';
 
 export let v1ProviderListingPresenter = Presenter.create(providerListingType)
   .presenter(async ({ providerListing }, opts) => ({
     object: 'provider.listing' as const,
     id: providerListing.id,
     name: providerListing.name,
-    description: (providerListing.description ?? null) as string | null,
+    description: providerListing.description ?? null,
     slug: providerListing.slug ?? providerListing.identifier ?? '',
-    image_url: (providerListing.image?.url ?? providerListing.source?.url ?? null) as string | null,
-    readme: (providerListing.readme ?? null) as string | null,
+    image_url: providerListing.image?.url ?? providerListing.source?.url ?? null,
+    readme: providerListing.readme ?? null,
     skills: providerListing.skills ?? [],
     flags: {
       is_public: providerListing.isPublic ?? true,
@@ -22,7 +23,12 @@ export let v1ProviderListingPresenter = Presenter.create(providerListingType)
       is_verified: providerListing.isVerified ?? false,
       is_official: providerListing.isOfficial ?? false
     },
-    provider_id: (providerListing.provider?.id ?? null) as string | null,
+    provider_id: providerListing.provider?.id ?? null,
+    publisher: providerListing.publisher
+      ? await v1PublisherPresenter
+          .present({ publisher: providerListing.publisher }, opts)
+          .run()
+      : null,
     categories: providerListing.categories
       ? await Promise.all(
           providerListing.categories.map(c =>
@@ -124,6 +130,7 @@ export let v1ProviderListingPresenter = Presenter.create(providerListingType)
           examples: ['pro_5gHjKlMnPqRsTuVw']
         })
       ),
+      publisher: v.nullable(v1PublisherPresenter.schema),
       categories: v.array(v1CategoryPresenter.schema, {
         name: 'categories',
         description: 'Provider categories for organization and filtering'

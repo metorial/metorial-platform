@@ -1,4 +1,7 @@
 import { createHono } from '@metorial/hono';
+import { serverCategoriesController } from './controllers/serverCategories';
+import { serverCollectionsController } from './controllers/serverCollections';
+import { serversController } from './controllers/servers';
 
 export let marketplaceApp = createHono()
   .use(async (c, next) => {
@@ -13,7 +16,7 @@ export let marketplaceApp = createHono()
     c.res.headers.set('Access-Control-Allow-Credentials', 'true');
   })
   .options('*', c => c.text(''))
-  .get('/ping', c => c.text('OK'));
-// .route('/servers', serversController)
-// .route('/server-categories', serverCategoriesController)
-// .route('/server-collections', serverCollectionsController);
+  .get('/ping', c => c.text('OK'))
+  .route('/provider-listings', serversController)
+  .route('/provider-categories', serverCategoriesController)
+  .route('/provider-collections', serverCollectionsController);

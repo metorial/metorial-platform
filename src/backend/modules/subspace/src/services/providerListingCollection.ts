@@ -1,4 +1,4 @@
-import { createSubspaceService } from '../lib/subspaceService';
+import { createSubspacePublicService, createSubspaceService } from '../lib/subspaceService';
 import { subspace } from '../subspace';
 
 export let subspaceProviderListingCollectionService = createSubspaceService(
@@ -7,6 +7,17 @@ export let subspaceProviderListingCollectionService = createSubspaceService(
   () => ({})
 );
 
+export let subspacePublicProviderListingCollectionService = createSubspacePublicService(
+  subspace.providerListingCollection,
+  ['get', 'list'],
+  () => ({})
+);
+
 export type SubspaceProviderListingCollection = Awaited<
   ReturnType<typeof subspace.providerListingCollection.get>
 >;
+export type SubspaceProviderListingCollectionList = Awaited<
+  ReturnType<typeof subspace.providerListingCollection.list>
+>;
+export type SubspaceProviderListingCollectionListItem =
+  SubspaceProviderListingCollectionList['items'][number];

@@ -4,14 +4,24 @@ import { getActorForSubspace, getTenantForSubspace } from '../subspace';
 
 export type Tail<T extends any[]> = T extends [any, ...infer U] ? U : [];
 
+type PaginatorRunQuery = {
+  limit?: number;
+  after?: string;
+  before?: string;
+  cursor?: string;
+  order?: 'asc' | 'desc';
+};
+
+type SubspaceRawListResponse = {
+  items: any[];
+  pagination: {
+    has_more_after: boolean;
+    has_more_before: boolean;
+  };
+};
+
 type SubspaceListResult = {
-  run: (query: {
-    limit?: number;
-    after?: string;
-    before?: string;
-    cursor?: string;
-    order?: 'asc' | 'desc';
-  }) => Promise<{
+  run: (query: PaginatorRunQuery) => Promise<{
     items: any[];
     pagination: {
       hasNextPage: boolean;
@@ -20,19 +30,37 @@ type SubspaceListResult = {
   }>;
 };
 
-type SubspaceMethodArgs<SubspaceController extends {}, K extends keyof SubspaceController> =
-  SubspaceController[K] extends (...args: any[]) => any
-    ? [
-        arg0: { instance: Instance } & Omit<
-          Parameters<SubspaceController[K]>[0],
-          'tenantId' | 'environmentId'
-        > &
-          (Parameters<SubspaceController[K]>[0] extends { actorId: any }
-            ? { organizationActor: OrganizationActor }
-            : {}),
-        ...args: Tail<Parameters<SubspaceController[K]>>
-      ]
-    : never;
+type SubspaceMethodArgs<
+  SubspaceController extends {},
+  K extends keyof SubspaceController
+> = SubspaceController[K] extends (...args: any[]) => any
+  ? [
+      arg0: { instance: Instance } & Omit<
+        Parameters<SubspaceController[K]>[0],
+        'tenantId' | 'environmentId'
+      > &
+        (Parameters<SubspaceController[K]>[0] extends { actorId: any }
+          ? { organizationActor: OrganizationActor }
+          : {}),
+      ...args: Tail<Parameters<SubspaceController[K]>>
+    ]
+  : never;
+
+type OptionalTenantEnvironment<T> = T extends object
+  ? Omit<T, 'tenantId' | 'environmentId'> & {
+      tenantId?: string;
+      environmentId?: string;
+    }
+  : T;
+
+type SubspacePublicMethodArgs<
+  SubspaceController extends {},
+  K extends keyof SubspaceController
+> = SubspaceController[K] extends (...args: any[]) => any
+  ? Parameters<SubspaceController[K]> extends [infer Arg0, ...infer Rest]
+    ? [arg0: OptionalTenantEnvironment<Arg0>, ...args: Rest]
+    : Parameters<SubspaceController[K]>
+  : never;
 
 export type SubspaceService<SubspaceController extends {}, Overrides extends {}> = {
   [K in Exclude<keyof SubspaceController, keyof Overrides>]: SubspaceController[K] extends (
@@ -40,9 +68,55 @@ export type SubspaceService<SubspaceController extends {}, Overrides extends {}>
   ) => any
     ? K extends 'list'
       ? (...args: SubspaceMethodArgs<SubspaceController, K>) => Promise<SubspaceListResult>
-      : (...args: SubspaceMethodArgs<SubspaceController, K>) => ReturnType<SubspaceController[K]>
+      : (
+          ...args: SubspaceMethodArgs<SubspaceController, K>
+        ) => ReturnType<SubspaceController[K]>
     : never;
 } & Overrides;
+
+export type SubspacePublicService<SubspaceController extends {}, Overrides extends {}> = {
+  [K in Exclude<keyof SubspaceController, keyof Overrides>]: SubspaceController[K] extends (
+    ...args: any[]
+  ) => any
+    ? K extends 'list'
+      ? (
+          ...args: SubspacePublicMethodArgs<SubspaceController, K>
+        ) => Promise<SubspaceListResult>
+      : (
+          ...args: SubspacePublicMethodArgs<SubspaceController, K>
+        ) => ReturnType<SubspaceController[K]>
+    : never;
+} & Overrides;
+
+let toSubspaceListResponse = (result: SubspaceRawListResponse) => ({
+  items: result.items,
+  pagination: {
+    hasNextPage: result.pagination.has_more_after,
+    hasPreviousPage: result.pagination.has_more_before
+  }
+});
+
+let createListMethod = (
+  callController: (args: any[]) => Promise<SubspaceRawListResponse>,
+  getFirstArg: (args: any[]) => any
+) => {
+  return async (...args: any[]) => {
+    let firstArg = getFirstArg(args);
+
+    return {
+      async run(query: PaginatorRunQuery) {
+        let result = await callController([
+          {
+            ...firstArg,
+            ...query
+          }
+        ]);
+
+        return toSubspaceListResponse(result);
+      }
+    };
+  };
+};
 
 export let createSubspaceService = <SubspaceController extends {}, Overrides extends {}>(
   controller: SubspaceController,
@@ -76,37 +150,7 @@ export let createSubspaceService = <SubspaceController extends {}, Overrides ext
     };
 
     if (methodName === 'list') {
-      // make Paginator-compatible object with a .run() method
-      methodsObj[methodName] = async (...args: any[]) => {
-        let firstArg = args[0];
-        return {
-          async run(query: {
-            limit?: number;
-            after?: string;
-            before?: string;
-            cursor?: string;
-            order?: 'asc' | 'desc';
-          }) {
-            let result = await callController([
-              {
-                ...firstArg,
-                limit: query.limit,
-                after: query.after,
-                before: query.before,
-                cursor: query.cursor,
-                order: query.order
-              }
-            ]);
-            return {
-              items: result.items,
-              pagination: {
-                hasNextPage: result.pagination.has_more_after,
-                hasPreviousPage: result.pagination.has_more_before
-              }
-            };
-          }
-        };
-      };
+      methodsObj[methodName] = createListMethod(callController, args => args[0]);
     } else {
       methodsObj[methodName] = (...args: any[]) => callController(args);
     }
@@ -120,4 +164,33 @@ export let createSubspaceService = <SubspaceController extends {}, Overrides ext
   } as SubspaceService<SubspaceController, {}>;
 
   return Service.create('subspace', () => methodsTyped).build();
+};
+
+export let createSubspacePublicService = <SubspaceController extends {}, Overrides extends {}>(
+  controller: SubspaceController,
+  methods: (keyof SubspaceController)[],
+  overrides: (subspace: SubspacePublicService<SubspaceController, {}>) => Overrides
+) => {
+  let methodsObj: any = {};
+
+  for (let methodName of methods) {
+    if (methodsObj[methodName]) continue;
+
+    let callController = async (args: any[]) => (controller as any)[methodName](...args);
+
+    if (methodName === 'list') {
+      methodsObj[methodName] = createListMethod(callController, args => args[0] ?? {});
+    } else {
+      methodsObj[methodName] = (...args: any[]) => callController(args);
+    }
+  }
+
+  let overRideMethods = overrides(methodsObj);
+
+  let methodsTyped = {
+    ...methodsObj,
+    ...overRideMethods
+  } as SubspacePublicService<SubspaceController, {}>;
+
+  return Service.create('subspacePublic', () => methodsTyped).build();
 };

@@ -1,19 +1,17 @@
 import { createHono } from '@metorial/hono';
 import {
-  serverCapabilitiesService,
-  serverListingService,
-  serverService,
-  serverVariantService,
-  serverVersionService
-} from '@metorial/module-catalog';
+  subspacePublicProviderListingService,
+  subspacePublicProviderToolService,
+  subspacePublicProviderVersionService,
+  type SubspaceProviderListing,
+  type SubspaceProviderToolListItem
+} from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { z } from 'zod';
+import { providerListingPresenter } from '../../../core/src/presenters';
+import { toPaginationQuery } from '../lib/paginationQuery';
 import { paginatorSchema } from '../lib/paginatorSchema';
 import { useValidation } from '../lib/validator';
-import { serverCapabilitiesPresenter } from '../presenters/serverCapabilities';
-import { serverListingPresenter } from '../presenters/serverListing';
-import { serverVariantPresenter } from '../presenters/serverVariant';
-import { serverVersionPresenter } from '../presenters/serverVersion';
 
 let normalizeSlug = (slug: string) => slug.replaceAll('---', '/').toLowerCase();
 let stringToBoolean = (str: string | undefined) => {
@@ -21,6 +19,66 @@ let stringToBoolean = (str: string | undefined) => {
   if (str === 'true') return true;
   if (str === 'false') return false;
   return undefined;
+};
+let splitCsv = (value: string | undefined) =>
+  value
+    ?.split(',')
+    .map(v => v.trim())
+    .filter(Boolean);
+
+let presentProviderListing = async (providerListing: SubspaceProviderListing) =>
+  await providerListingPresenter
+    .present({ providerListing })({
+      apiVersion: 'mt_2025_01_01_dashboard',
+      accessType: 'instance_publishable'
+    })
+    .run({});
+
+type ListResponse<T> = {
+  __typename: 'list';
+  items: T[];
+  pagination: {
+    has_more_after: false;
+    has_more_before: false;
+  };
+};
+let toList = <T>(items: T[] = []): ListResponse<T> => ({
+  __typename: 'list',
+  items,
+  pagination: {
+    has_more_after: false,
+    has_more_before: false
+  }
+});
+
+let getPublicProviderListingBySlug = async (d: { slug: string }) =>
+  await subspacePublicProviderListingService.get({
+    providerListingId: normalizeSlug(d.slug)
+  });
+
+let listAllProviderTools = async (d: { providerVersion: string }) => {
+  let paginator = await subspacePublicProviderToolService.list({
+    providerVersion: d.providerVersion
+  });
+
+  let items: SubspaceProviderToolListItem[] = [];
+  let after: string | undefined = undefined;
+  let seen = new Set<string>();
+
+  while (true) {
+    let page = await paginator.run({ limit: 100, after });
+    items.push(...page.items);
+
+    if (!page.pagination.hasNextPage) break;
+
+    let nextAfter = page.items[page.items.length - 1]?.id;
+    if (!nextAfter || seen.has(nextAfter)) break;
+
+    seen.add(nextAfter);
+    after = nextAfter;
+  }
+
+  return items;
 };
 
 export let serversController = createHono()
@@ -35,7 +93,6 @@ export let serversController = createHono()
           collectionIds: z.optional(z.string()),
           categoryIds: z.optional(z.string()),
           profileIds: z.optional(z.string()),
-          providerIds: z.optional(z.string()),
           isVerified: z.optional(z.string()),
           isOfficial: z.optional(z.string()),
           isMetorial: z.optional(z.string())
@@ -43,101 +100,91 @@ export let serversController = createHono()
       )
     ),
     async c => {
-      let query = c.req.query();
+      let query = c.req.valid('query');
 
-      let paginator = await serverListingService.listServerListings({
+      let paginator = await subspacePublicProviderListingService.list({
         search: query.search,
-
-        collectionIds: query.collectionIds?.split(','),
-        categoryIds: query.categoryIds?.split(','),
-        profileIds: query.profileIds?.split(','),
-        providerIds: query.providerIds?.split(','),
-
+        providerCollectionIds: splitCsv(query.collectionIds),
+        providerCategoryIds: splitCsv(query.categoryIds),
+        publisherIds: splitCsv(query.profileIds),
         isMetorial: stringToBoolean(query.isMetorial),
         isOfficial: stringToBoolean(query.isOfficial),
         isVerified: stringToBoolean(query.isVerified),
-
         isPublic: true,
-
         orderByRank: true
       });
-      let list = await paginator.run(query);
 
-      return c.json(await Paginator.presentLight(list, serverListingPresenter));
+      let list = await paginator.run(toPaginationQuery(query));
+
+      return c.json(await Paginator.presentLight(list, presentProviderListing));
     }
   )
   .get(':slug', async c => {
-    let listing = await serverListingService.getServerListingById({
-      serverListingId: normalizeSlug(c.req.param('slug'))
-    });
+    let listing = await getPublicProviderListingBySlug({ slug: c.req.param('slug') });
+    if (!listing) return c.notFound();
 
-    return c.json({
-      ...(await serverListingPresenter(listing)),
-      readme: listing.readme
-    });
+    return c.json(await presentProviderListing(listing));
   })
   .get(':slug/capabilities', async c => {
-    let listing = await serverListingService.getServerListingById({
-      serverListingId: normalizeSlug(c.req.param('slug'))
-    });
+    let listing = await getPublicProviderListingBySlug({ slug: c.req.param('slug') });
+    if (!listing) return c.notFound();
 
-    let [capabilities] = await serverCapabilitiesService.getManyServerCapabilities({
-      serverIds: [listing.server.id]
-    });
+    let providerVersion =
+      listing.provider?.currentVersion?.id ??
+      listing.provider?.defaultVariant?.currentVersion?.id;
+    if (!providerVersion) return c.json(toList());
 
-    if (!capabilities) return c.json(null);
-
-    return c.json(await serverCapabilitiesPresenter(capabilities));
+    let tools = await listAllProviderTools({ providerVersion });
+    return c.json(toList(tools));
   })
-  .get(':slug/variants', useValidation('query', paginatorSchema), async c => {
-    let query = c.req.query();
+  .get(':slug/variants', async c => {
+    let listing = await getPublicProviderListingBySlug({ slug: c.req.param('slug') });
+    if (!listing) return c.notFound();
 
-    let server = await serverService.getServerById({
-      serverId: normalizeSlug(c.req.param('slug'))
-    });
+    let defaultVariant = listing.provider?.defaultVariant;
+    if (!defaultVariant) return c.json(toList());
 
-    let paginator = await serverVariantService.listServerVariants({
-      server
-    });
-    let list = await paginator.run(query);
-
-    return c.json(await Paginator.presentLight(list, serverVariantPresenter));
+    return c.json(toList([defaultVariant]));
   })
   .get(':slug/variants/:variantId', async c => {
-    let server = await serverService.getServerById({
-      serverId: normalizeSlug(c.req.param('slug'))
-    });
+    let listing = await getPublicProviderListingBySlug({ slug: c.req.param('slug') });
+    if (!listing) return c.notFound();
 
-    let collection = await serverVariantService.getServerVariantById({
-      serverVariantId: c.req.param('variantId'),
-      server
-    });
+    let defaultVariant = listing.provider?.defaultVariant;
+    if (!defaultVariant) return c.notFound();
+    if (c.req.param('variantId') !== defaultVariant.id) return c.notFound();
 
-    return c.json(await serverVariantPresenter(collection));
+    return c.json(defaultVariant);
   })
   .get(':slug/versions', useValidation('query', paginatorSchema), async c => {
-    let query = c.req.query();
+    let query = c.req.valid('query');
+    let listing = await getPublicProviderListingBySlug({ slug: c.req.param('slug') });
+    if (!listing) return c.notFound();
 
-    let server = await serverService.getServerById({
-      serverId: normalizeSlug(c.req.param('slug'))
+    let providerId = listing.provider?.id;
+    if (!providerId) return c.json(toList());
+
+    let paginator = await subspacePublicProviderVersionService.list({
+      providerIds: [providerId]
     });
+    let list = await paginator.run(toPaginationQuery(query));
 
-    let paginator = await serverVersionService.listServerVersions({
-      server
-    });
-    let list = await paginator.run(query);
-
-    return c.json(await Paginator.presentLight(list, serverVersionPresenter));
+    return c.json(await Paginator.presentLight(list, version => version));
   })
   .get(':slug/versions/:versionId', async c => {
-    let server = await serverService.getServerById({
-      serverId: normalizeSlug(c.req.param('slug'))
-    });
+    let listing = await getPublicProviderListingBySlug({ slug: c.req.param('slug') });
+    if (!listing) return c.notFound();
 
-    let collection = await serverVersionService.getServerVersionById({
-      serverVersionId: c.req.param('versionId'),
-      server
-    });
+    let providerId = listing.provider?.id;
+    if (!providerId) return c.notFound();
 
-    return c.json(await serverVersionPresenter(collection));
+    let paginator = await subspacePublicProviderVersionService.list({
+      providerIds: [providerId],
+      ids: [c.req.param('versionId')]
+    });
+    let list = await paginator.run({ limit: 1 });
+    let version = list.items[0];
+    if (!version) return c.notFound();
+
+    return c.json(version);
   });

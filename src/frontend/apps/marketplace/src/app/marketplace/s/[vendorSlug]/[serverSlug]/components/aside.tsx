@@ -1,6 +1,5 @@
 'use client';
 
-import { useBoot } from '@metorial/state';
 import { Datalist, theme } from '@metorial/ui';
 import styled from 'styled-components';
 import { ServerListing } from '../../../../../../state/server';
@@ -15,56 +14,16 @@ let Wrapper = styled.aside`
 `;
 
 export let ServerAside = ({ server }: { server: ServerListing }) => {
-  let boot = useBoot();
-
   return (
     <Wrapper>
-      {/* {boot.isLoading ? (
-        <CenteredSpinner />
-      ) : (
-        <>
-          <Deploy server={server} /> */}
-
       <Datalist
         variant="large"
         items={[
-          ...(server.repository
-            ? [
-                {
-                  label: 'Repository',
-                  value: (
-                    <a
-                      href={server.repository?.providerUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {server.repository?.identifier.replace('github.com/', '')}
-                    </a>
-                  )
-                },
-                {
-                  label: 'License',
-                  value: server.repository?.licenseName ?? 'Unknown'
-                },
-                {
-                  label: 'Stars',
-                  value: server.repository?.starCount ?? '0'
-                }
-              ]
-            : []),
           ...(server.vendor
             ? [
                 {
-                  label: 'Vendor',
-                  value: server.vendor?.name
-                }
-              ]
-            : []),
-          ...(server.profile
-            ? [
-                {
                   label: 'Created by',
-                  value: server.profile?.name
+                  value: server.vendor.name
                 }
               ]
             : []),
@@ -92,8 +51,6 @@ export let ServerAside = ({ server }: { server: ServerListing }) => {
           }
         ]}
       />
-      {/* </>
-      )} */}
     </Wrapper>
   );
 };

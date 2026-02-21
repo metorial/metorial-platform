@@ -29,17 +29,8 @@ export default async ({
       {server.readme && (
         <ServerReadme
           readme={server.readme}
-          imageRoot={
-            server.repository
-              ? `https://raw.githubusercontent.com/${server.repository.identifier.replace('github.com/', '')}/${server.repository.defaultBranch ?? 'main'}`
-              : 'https://metorial.com'
-          }
-          linkRoot={
-            server.repository
-              ? `https://github.com/${server.repository.identifier.replace('github.com/', '')}/blob/${server.repository.defaultBranch ?? 'main'}`
-              : 'https://metorial.com'
-          }
-          rootPath={server.subdirectory ?? undefined}
+          imageRoot="https://metorial.com"
+          linkRoot="https://metorial.com"
         />
       )}
     </>
@@ -57,7 +48,6 @@ export async function generateMetadata(
     title: `${serverRes.data?.name ?? 'Not Found'} • Metorial Marketplace`,
     description: 'The open source integration platform for agentic AI.',
     metadataBase: new URL('https://metorial.com'),
-    alternates: { canonical: serverRes.data?.repository?.providerUrl },
     openGraph: {
       images: { url: '/opengraph-image.jpg', alt: 'Metorial' },
       title: 'Metorial',
