@@ -37,8 +37,8 @@ import {
   v1CustomProviderEnvironmentPresenter,
   // Custom Provider presenters
   v1CustomProviderPresenter,
-  v1CustomServerCodeEditorTokenPresenter,
   v1CustomProviderVersionPresenter,
+  v1CustomServerCodeEditorTokenPresenter,
   v1DeploymentPresenter,
   v1DeploymentPreviewPresenter,
   v1GroupPresenter,
@@ -97,8 +97,8 @@ import {
   customProviderEnvironmentType,
   // Custom Provider types
   customProviderType,
-  customServerCodeEditorTokenType,
   customProviderVersionType,
+  customServerCodeEditorTokenType,
   deploymentPreviewType,
   deploymentType,
   fileLinkType,
@@ -123,6 +123,11 @@ import {
   providerSessionType,
   providerType,
   publisherType,
+  scmAccountPreviewType,
+  scmInstallationSetupType,
+  scmInstallationType,
+  scmRepoPreviewType,
+  scmRepoType,
   secretType,
   sessionErrorGroupType,
   sessionErrorType,
@@ -145,12 +150,7 @@ import {
   toolType,
   usageType,
   userType,
-  versionType,
-  scmInstallationType,
-  scmInstallationSetupType,
-  scmRepoType,
-  scmRepoPreviewType,
-  scmAccountPreviewType
+  versionType
 } from './types';
 
 // =============================================================================
@@ -159,7 +159,7 @@ import {
 
 export let apiKeyPresenter = declarePresenter(apiKeyType, {
   mt_2025_01_01_dashboard: v1ApiKeyPresenter,
-  mt_2026_01_01_magnetar: v1ApiKeyPresenter
+  mt_2026_01_01_magnetar: dashboardApiKeyPresenter
 });
 
 export let instancePresenter = declarePresenter(instanceType, {

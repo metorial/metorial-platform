@@ -1,10 +1,12 @@
 import { createLoader } from '@metorial/data-hooks';
-import { withAuth } from '../../user';
+import { withDashboardSDK } from '../../sdk';
+import { redirectToAuthIfNotAuthenticated } from '../../user/auth/withAuth';
 import { MetorialInstance } from '../types';
 
 export let bootLoader = createLoader({
   name: 'boot',
-  fetch: (i: {}) => withAuth(sdk => sdk.dashboard.boot({})),
+  fetch: (i: {}) =>
+    redirectToAuthIfNotAuthenticated(() => withDashboardSDK(sdk => sdk.dashboard.boot({}))),
   mutators: {}
 });
 
