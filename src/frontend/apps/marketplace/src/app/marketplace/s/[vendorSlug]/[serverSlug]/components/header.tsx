@@ -1,28 +1,28 @@
 'use client';
 
-import { ServerListing } from '../../../../../../state/server';
+import { ProviderListing } from '../../../../../../state/provider';
 import { LocalHeader } from '../../../../components/localHeader';
 
-export let ServerHeader = ({ server }: { server: ServerListing }) => {
-  let basePath = `/marketplace/s/${server.slug}`;
+export let ProviderHeader = ({ providerListing }: { providerListing: ProviderListing }) => {
+  let basePath = `/marketplace/s/${providerListing.slug}`;
   let items: { label: string; href?: string; onClick?: () => void }[] = [
     { label: 'Overview', href: '' },
     { label: 'Versions', href: `/versions` }
   ];
 
-  if (server.isHostable) {
+  if (providerListing.isHostable) {
     items.push(
       {
         label: 'Deploy',
         onClick: () => {
-          let url = `${process.env.DASHBOARD_FRONTEND_URL}/welcome/jumpstart?path=${encodeURIComponent(`/deploy?provider_id=${server.providerId}`)}`;
+          let url = `${process.env.DASHBOARD_FRONTEND_URL}/welcome/jumpstart?path=${encodeURIComponent(`/deploy?provider_id=${providerListing.providerId}`)}`;
           window.open(url, '_blank');
         }
       },
       {
         label: 'Explore',
         onClick: () => {
-          let url = `${process.env.DASHBOARD_FRONTEND_URL}/welcome/jumpstart?path=${encodeURIComponent(`/explorer?provider_id=${server.providerId}`)}`;
+          let url = `${process.env.DASHBOARD_FRONTEND_URL}/welcome/jumpstart?path=${encodeURIComponent(`/explorer?provider_id=${providerListing.providerId}`)}`;
           window.open(url, '_blank');
         }
       }
@@ -31,15 +31,15 @@ export let ServerHeader = ({ server }: { server: ServerListing }) => {
 
   return (
     <LocalHeader
-      headerImageHash={server.id}
+      headerImageHash={providerListing.id}
       basePath={basePath}
       extra={
         <>
-          {!server.isOfficial && server.vendor && <span>{server.vendor.name}</span>}
-          <span>{server.slug}</span>
+          {!providerListing.isOfficial && providerListing.vendor && <span>{providerListing.vendor.name}</span>}
+          <span>{providerListing.slug}</span>
         </>
       }
-      title={server.name}
+      title={providerListing.name}
       items={items}
     />
   );

@@ -1,25 +1,14 @@
-import type {
-  MarketplaceListDto,
-  MarketplaceProviderCategoriesListDto,
-  MarketplaceProviderCategoryDto,
-  MarketplaceProviderCollectionDto,
-  MarketplaceProviderCollectionsListDto,
-  MarketplaceProviderListingDto,
-  MarketplaceProviderListingsListDto,
-  MarketplaceProviderToolsListDto,
-  MarketplaceProviderVersionDto,
-  MarketplaceProviderVersionsListDto
-} from '@metorial/api-marketplace/types';
-import { withSdk } from './sdk';
+import type { InferResponseType } from 'hono/client';
+import { withSdk, type MarketplaceClient } from './sdk';
 
-type MarketplaceServerVendor = {
+type MarketplaceProviderVendor = {
   id: string;
   name: string;
   slug: string;
   imageUrl: string | null;
 };
 
-type MarketplaceServerCategory = {
+type MarketplaceProviderCategory = {
   object: string;
   id: string;
   name: string;
@@ -29,7 +18,7 @@ type MarketplaceServerCategory = {
   updatedAt: Date | string | null;
 };
 
-type MarketplaceServerCollection = {
+type MarketplaceProviderCollection = {
   object: string;
   id: string;
   name: string;
@@ -39,7 +28,7 @@ type MarketplaceServerCollection = {
   updatedAt: Date | string | null;
 };
 
-type MarketplaceServerListing = {
+type MarketplaceProviderListing = {
   object: string;
   id: string;
   status: string;
@@ -49,18 +38,18 @@ type MarketplaceServerListing = {
   readme: string | null;
   skills: string[];
   providerId: string;
-  categories: MarketplaceServerCategory[];
+  categories: MarketplaceProviderCategory[];
   imageUrl: string | null;
   isVerified: boolean;
   isMetorial: boolean;
   isOfficial: boolean;
   isHostable: boolean;
-  vendor: MarketplaceServerVendor | null;
+  vendor: MarketplaceProviderVendor | null;
   createdAt: Date | string | null;
   updatedAt: Date | string | null;
 };
 
-type MarketplaceServerVersion = {
+type MarketplaceProviderVersion = {
   object: string;
   id: string;
   identifier: string;
@@ -74,7 +63,7 @@ type MarketplaceCapabilityItem = {
   title?: string | null;
 };
 
-type MarketplaceServerCapabilities = {
+type MarketplaceProviderCapabilities = {
   object: string;
   prompts: MarketplaceCapabilityItem[];
   tools: MarketplaceCapabilityItem[];
@@ -90,6 +79,42 @@ let fetchOpts = {
   }
 };
 
+type ProviderListingsSdk = MarketplaceClient['provider-listings'];
+type ProviderCategoriesSdk = MarketplaceClient['provider-categories'];
+type ProviderCollectionsSdk = MarketplaceClient['provider-collections'];
+
+type MarketplaceProviderListingDto = InferResponseType<
+  ProviderListingsSdk[':slug']['$get'],
+  200
+>;
+type MarketplaceProviderListingsListDto = InferResponseType<ProviderListingsSdk['$get'], 200>;
+type MarketplaceProviderToolsListDto = InferResponseType<
+  ProviderListingsSdk[':slug']['capabilities']['$get'],
+  200
+>;
+type MarketplaceProviderVersionsListDto = InferResponseType<
+  ProviderListingsSdk[':slug']['versions']['$get'],
+  200
+>;
+type MarketplaceProviderVersionDto = MarketplaceProviderVersionsListDto['items'][number];
+type MarketplaceProviderCategoryDto = InferResponseType<
+  ProviderCategoriesSdk[':categoryId']['$get'],
+  200
+>;
+type MarketplaceProviderCategoriesListDto = InferResponseType<ProviderCategoriesSdk['$get'], 200>;
+type MarketplaceProviderCollectionDto = InferResponseType<
+  ProviderCollectionsSdk[':collectionId']['$get'],
+  200
+>;
+type MarketplaceProviderCollectionsListDto = InferResponseType<
+  ProviderCollectionsSdk['$get'],
+  200
+>;
+
+type MarketplaceListDto<T> = Omit<MarketplaceProviderListingsListDto, 'items'> & {
+  items: T[];
+};
+
 let mapList = <I, O>(
   list: MarketplaceListDto<I> | null | undefined,
   mapItem: (item: I) => O
@@ -102,9 +127,9 @@ let mapList = <I, O>(
   }
 });
 
-let toServerVendor = (
+let toProviderVendor = (
   listing: MarketplaceProviderListingDto
-): MarketplaceServerVendor | null => {
+): MarketplaceProviderVendor | null => {
   let publisher = listing.publisher;
   if (publisher) {
     return {
@@ -116,8 +141,8 @@ let toServerVendor = (
   }
 
   let slug = listing.slug;
-  let [vendorSlug, serverSlug] = slug.split('/');
-  if (!vendorSlug || !serverSlug) return null;
+  let [vendorSlug, providerSlug] = slug.split('/');
+  if (!vendorSlug || !providerSlug) return null;
 
   return {
     id: vendorSlug,
@@ -127,10 +152,10 @@ let toServerVendor = (
   };
 };
 
-let toServerCategory = (
+let toProviderCategory = (
   category: MarketplaceProviderCategoryDto
-): MarketplaceServerCategory => ({
-  object: 'marketplace*server_listing.category',
+): MarketplaceProviderCategory => ({
+  object: 'marketplace*provider_listing.category',
   id: category.id,
   name: category.name,
   slug: category.slug ?? category.id,
@@ -139,10 +164,10 @@ let toServerCategory = (
   updatedAt: category.updated_at ?? null
 });
 
-let toServerCollection = (
+let toProviderCollection = (
   collection: MarketplaceProviderCollectionDto
-): MarketplaceServerCollection => ({
-  object: 'marketplace*server_listing.collection',
+): MarketplaceProviderCollection => ({
+  object: 'marketplace*provider_listing.collection',
   id: collection.id,
   name: collection.name,
   slug: collection.slug ?? collection.id,
@@ -151,12 +176,12 @@ let toServerCollection = (
   updatedAt: collection.updated_at ?? null
 });
 
-let toServerListing = (listing: MarketplaceProviderListingDto): MarketplaceServerListing => {
+let toProviderListing = (listing: MarketplaceProviderListingDto): MarketplaceProviderListing => {
   let providerId = listing.provider_id ?? null;
-  let vendor = toServerVendor(listing);
+  let vendor = toProviderVendor(listing);
 
   return {
-    object: 'marketplace*server_listing',
+    object: 'marketplace*provider_listing',
     id: listing.id,
     status: 'active',
     slug: listing.slug,
@@ -166,7 +191,7 @@ let toServerListing = (listing: MarketplaceProviderListingDto): MarketplaceServe
     skills: listing.skills ?? [],
     providerId: providerId ?? listing.id,
     categories: Array.isArray(listing.categories)
-      ? listing.categories.map(category => toServerCategory(category))
+      ? listing.categories.map(category => toProviderCategory(category))
       : [],
     imageUrl: listing.image_url ?? null,
     isVerified: listing.flags?.is_verified ?? false,
@@ -179,16 +204,16 @@ let toServerListing = (listing: MarketplaceProviderListingDto): MarketplaceServe
   };
 };
 
-let toServerVersion = (version: MarketplaceProviderVersionDto): MarketplaceServerVersion => ({
-  object: 'marketplace*server.version',
+let toProviderVersion = (version: MarketplaceProviderVersionDto): MarketplaceProviderVersion => ({
+  object: 'marketplace*provider.version',
   id: version.id,
   identifier: version.identifier ?? version.tag ?? version.id,
   createdAt: version.createdAt ?? null,
   updatedAt: version.updatedAt ?? null
 });
 
-export let getServer = async (slug: string[]) =>
-  toServerListing(
+export let getProvider = async (slug: string[]) =>
+  toProviderListing(
     await withSdk<MarketplaceProviderListingDto>(
       async client =>
         await client['provider-listings'][':slug'].$get(
@@ -202,7 +227,7 @@ export let getServer = async (slug: string[]) =>
     )
   );
 
-export let listServers = async (input: {
+export let listProviders = async (input: {
   after?: string;
   before?: string;
   limit?: string;
@@ -226,10 +251,10 @@ export let listServers = async (input: {
           fetchOpts
         )
     ),
-    toServerListing
+    toProviderListing
   );
 
-export let getServerCapabilities = async (slug: string[]) => {
+export let getProviderCapabilities = async (slug: string[]) => {
   let tools = await withSdk<MarketplaceProviderToolsListDto>(
     async client =>
       await client['provider-listings'][':slug'].capabilities.$get(
@@ -242,15 +267,23 @@ export let getServerCapabilities = async (slug: string[]) => {
       )
   );
 
-  let parsedTools: MarketplaceCapabilityItem[] = Array.isArray(tools?.items)
-    ? tools.items.map(tool => ({
-        name: tool.name,
-        description: tool.description ?? null
-      }))
-    : [];
+  let parsedTools: MarketplaceCapabilityItem[] = [];
+  if (Array.isArray(tools?.items)) {
+    for (let value of tools.items) {
+      if (!value || typeof value !== 'object') continue;
 
-  let capabilities: MarketplaceServerCapabilities = {
-    object: 'marketplace*server.capabilities',
+      let tool = value as { name?: unknown; description?: unknown };
+      if (typeof tool.name !== 'string') continue;
+
+      parsedTools.push({
+        name: tool.name,
+        description: typeof tool.description === 'string' ? tool.description : null
+      });
+    }
+  }
+
+  let capabilities: MarketplaceProviderCapabilities = {
+    object: 'marketplace*provider.capabilities',
     prompts: [],
     tools: parsedTools,
     resourceTemplates: [],
@@ -261,7 +294,7 @@ export let getServerCapabilities = async (slug: string[]) => {
   return capabilities;
 };
 
-export let listServerVersions = async (
+export let listProviderVersions = async (
   slug: string[],
   input: {
     after?: string;
@@ -282,10 +315,10 @@ export let listServerVersions = async (
           fetchOpts
         )
     ),
-    toServerVersion
+    toProviderVersion
   );
 
-export let listServerCategories = async (input: { after?: string; before?: string }) =>
+export let listProviderCategories = async (input: { after?: string; before?: string }) =>
   mapList(
     await withSdk<MarketplaceProviderCategoriesListDto>(
       async client =>
@@ -299,11 +332,11 @@ export let listServerCategories = async (input: { after?: string; before?: strin
           fetchOpts
         )
     ),
-    toServerCategory
+    toProviderCategory
   );
 
-export let getServerCategory = async (categoryId: string) =>
-  toServerCategory(
+export let getProviderCategory = async (categoryId: string) =>
+  toProviderCategory(
     await withSdk<MarketplaceProviderCategoryDto>(
       async client =>
         await client['provider-categories'][':categoryId'].$get(
@@ -317,7 +350,7 @@ export let getServerCategory = async (categoryId: string) =>
     )
   );
 
-export let listServerCollections = async (input: {
+export let listProviderCollections = async (input: {
   after?: string;
   before?: string;
   limit?: string;
@@ -326,11 +359,11 @@ export let listServerCollections = async (input: {
     await withSdk<MarketplaceProviderCollectionsListDto>(
       async client => await client['provider-collections'].$get({ query: input }, fetchOpts)
     ),
-    toServerCollection
+    toProviderCollection
   );
 
-export let getServerCollection = async (collectionId: string) =>
-  toServerCollection(
+export let getProviderCollection = async (collectionId: string) =>
+  toProviderCollection(
     await withSdk<MarketplaceProviderCollectionDto>(
       async client =>
         await client['provider-collections'][':collectionId'].$get(
@@ -344,10 +377,10 @@ export let getServerCollection = async (collectionId: string) =>
     )
   );
 
-export type ServerListing = Omit<Awaited<ReturnType<typeof getServer>>, 'readme'>;
-export type ServerVersion = Awaited<ReturnType<typeof listServerVersions>>['items'][number];
-export type ServerCategory = Awaited<ReturnType<typeof getServerCategory>>;
-export type ServerCollection = Awaited<ReturnType<typeof getServerCollection>>;
-export type ServerCapabilities = NonNullable<
-  Awaited<ReturnType<typeof getServerCapabilities>>
+export type ProviderListing = Omit<Awaited<ReturnType<typeof getProvider>>, 'readme'>;
+export type ProviderVersion = Awaited<ReturnType<typeof listProviderVersions>>['items'][number];
+export type ProviderCategory = Awaited<ReturnType<typeof getProviderCategory>>;
+export type ProviderCollection = Awaited<ReturnType<typeof getProviderCollection>>;
+export type ProviderCapabilities = NonNullable<
+  Awaited<ReturnType<typeof getProviderCapabilities>>
 >;

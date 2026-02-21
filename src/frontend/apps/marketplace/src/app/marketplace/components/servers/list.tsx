@@ -1,8 +1,8 @@
 'use client';
 
 import { styled } from 'styled-components';
-import { ServerListing } from '../../../../state/server';
-import { ServerEntry } from './entry';
+import { ProviderListing } from '../../../../state/provider';
+import { ProviderEntry } from './entry';
 
 let Wrapper = styled.div`
   display: flex;
@@ -15,11 +15,11 @@ let Wrapper = styled.div`
   }
 `;
 
-export let ServerList = ({ servers }: { servers: ServerListing[] }) => {
+export let ProviderList = ({ providerListings }: { providerListings: ProviderListing[] }) => {
   return (
     <Wrapper>
-      {servers.map(server => (
-        <ServerEntry key={server.id} server={server} />
+      {providerListings.map(providerListing => (
+        <ProviderEntry key={providerListing.id} providerListing={providerListing} />
       ))}
     </Wrapper>
   );

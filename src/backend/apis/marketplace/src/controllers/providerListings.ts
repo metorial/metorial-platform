@@ -1,4 +1,5 @@
 import { createHono } from '@metorial/hono';
+import { notFoundError, ServiceError } from '@metorial/error';
 import {
   subspacePublicProviderListingService,
   subspacePublicProviderToolService,
@@ -90,6 +91,10 @@ let listProviderVariantsForListing = (
   return defaultVariant ? [defaultVariant] : [];
 };
 
+let throwNotFound = () => {
+  throw new ServiceError(notFoundError('endpoint', null));
+};
+
 export let providerListingsController = createHono()
   .get(
     '',
@@ -132,13 +137,13 @@ export let providerListingsController = createHono()
   )
   .get(':slug', async c => {
     let listing = await getPublicProviderListingBySlug({ slug: c.req.param('slug') });
-    if (!listing) return c.notFound();
+    if (!listing) throwNotFound();
 
     return c.json(presentProviderListing(listing));
   })
   .get(':slug/capabilities', async c => {
     let listing = await getPublicProviderListingBySlug({ slug: c.req.param('slug') });
-    if (!listing) return c.notFound();
+    if (!listing) throwNotFound();
 
     let providerVersion =
       listing.provider?.currentVersion?.id ??
@@ -150,25 +155,25 @@ export let providerListingsController = createHono()
   })
   .get(':slug/variants', async c => {
     let listing = await getPublicProviderListingBySlug({ slug: c.req.param('slug') });
-    if (!listing) return c.notFound();
+    if (!listing) throwNotFound();
 
     let variants = listProviderVariantsForListing(listing);
     return c.json(toList(variants));
   })
   .get(':slug/variants/:variantId', async c => {
     let listing = await getPublicProviderListingBySlug({ slug: c.req.param('slug') });
-    if (!listing) return c.notFound();
+    if (!listing) throwNotFound();
 
     let variants = listProviderVariantsForListing(listing);
     let variant = variants.find(v => v.id === c.req.param('variantId'));
-    if (!variant) return c.notFound();
+    if (!variant) throwNotFound();
 
     return c.json(variant);
   })
   .get(':slug/versions', useValidation('query', paginatorSchema), async c => {
     let query = c.req.valid('query');
     let listing = await getPublicProviderListingBySlug({ slug: c.req.param('slug') });
-    if (!listing) return c.notFound();
+    if (!listing) throwNotFound();
 
     let providerId = listing.provider?.id;
     if (!providerId) return c.json(toList());
@@ -182,10 +187,10 @@ export let providerListingsController = createHono()
   })
   .get(':slug/versions/:versionId', async c => {
     let listing = await getPublicProviderListingBySlug({ slug: c.req.param('slug') });
-    if (!listing) return c.notFound();
+    if (!listing) throwNotFound();
 
     let providerId = listing.provider?.id;
-    if (!providerId) return c.notFound();
+    if (!providerId) throwNotFound();
 
     let paginator = await subspacePublicProviderVersionService.list({
       providerIds: [providerId],
@@ -193,7 +198,7 @@ export let providerListingsController = createHono()
     });
     let list = await paginator.run({ limit: 1 });
     let version = list.items[0];
-    if (!version) return c.notFound();
+    if (!version) throwNotFound();
 
     return c.json(version);
   });

@@ -1,9 +1,9 @@
 'use client';
 
 import styled from 'styled-components';
-import { ServerListing } from '../../../../../state/server';
-import { ServerAside } from './components/aside';
-import { ServerHeader } from './components/header';
+import { ProviderListing } from '../../../../../state/provider';
+import { ProviderAside } from './components/aside';
+import { ProviderHeader } from './components/header';
 
 let Wrapper = styled.div`
   padding: 60px 20px;
@@ -38,14 +38,14 @@ let AsideWrapper = styled.aside`
 
 export let ClientLayout = ({
   children,
-  server
+  providerListing
 }: {
   children: React.ReactNode;
-  server: ServerListing;
+  providerListing: ProviderListing;
 }) => {
   return (
     <>
-      <ServerHeader server={server} />
+      <ProviderHeader providerListing={providerListing} />
 
       <Wrapper>
         <Inner>
@@ -53,7 +53,7 @@ export let ClientLayout = ({
             <Main>{children}</Main>
 
             <AsideWrapper>
-              <ServerAside server={server} />
+              <ProviderAside providerListing={providerListing} />
             </AsideWrapper>
           </Grid>
         </Inner>

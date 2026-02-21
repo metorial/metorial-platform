@@ -4,7 +4,7 @@ import { Button, Spacer, theme } from '@metorial/ui';
 import Link from 'next/link';
 import { useState } from 'react';
 import styled from 'styled-components';
-import { ServerCategory } from '../../../../state/server';
+import { ProviderCategory } from '../../../../state/provider';
 
 let Wrapper = styled.div`
   max-width: 80rem;
@@ -78,7 +78,7 @@ export let Categories = ({
   children,
   currentCategoryIds
 }: {
-  categories: ServerCategory[];
+  categories: ProviderCategory[];
   children: React.ReactNode;
   currentCategoryIds?: string[];
 }) => {
@@ -98,7 +98,7 @@ export let Categories = ({
             >
               <Link
                 prefetch={false}
-                href={`/marketplace/servers/?category_ids=${category.slug}`}
+                href={`/marketplace/providers/?category_ids=${category.slug}`}
               >
                 {category.name}
               </Link>

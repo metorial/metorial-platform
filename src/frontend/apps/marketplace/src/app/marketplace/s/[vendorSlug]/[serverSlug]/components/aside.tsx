@@ -2,7 +2,7 @@
 
 import { Datalist, theme } from '@metorial/ui';
 import styled from 'styled-components';
-import { ServerListing } from '../../../../../../state/server';
+import { ProviderListing } from '../../../../../../state/provider';
 
 let Wrapper = styled.aside`
   height: 100%;
@@ -13,33 +13,33 @@ let Wrapper = styled.aside`
   }
 `;
 
-export let ServerAside = ({ server }: { server: ServerListing }) => {
+export let ProviderAside = ({ providerListing }: { providerListing: ProviderListing }) => {
   return (
     <Wrapper>
       <Datalist
         variant="large"
         items={[
-          ...(server.vendor
+          ...(providerListing.vendor
             ? [
                 {
                   label: 'Created by',
-                  value: server.vendor.name
+                  value: providerListing.vendor.name
                 }
               ]
             : []),
           {
             label: 'Hosted on Metorial',
-            value: server.isHostable ? 'Yes' : 'No'
+            value: providerListing.isHostable ? 'Yes' : 'No'
           },
           {
             label: 'Categories',
-            value: server.categories.map((category, i) => (
+            value: providerListing.categories.map((category, i) => (
               <span key={category.id}>
                 {i > 0 && <span style={{ color: theme.colors.gray600 }}>, </span>}
 
                 <a
                   key={category.id}
-                  href={`/marketplace/servers?category_ids=${category.slug}`}
+                  href={`/marketplace/providers?category_ids=${category.slug}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{ color: 'inherit' }}

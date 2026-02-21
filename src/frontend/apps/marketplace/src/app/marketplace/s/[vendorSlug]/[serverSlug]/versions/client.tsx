@@ -4,7 +4,7 @@ import { useIsSSR } from '@looped/hooks';
 import { Button, CenteredSpinner, Entity, RenderDate, Text } from '@metorial/ui';
 import Link from 'next/link';
 import styled from 'styled-components';
-import { ServerListing, ServerVersion } from '../../../../../../state/server';
+import { ProviderListing, ProviderVersion } from '../../../../../../state/provider';
 
 let Wrapper = styled.div`
   display: flex;
@@ -13,12 +13,12 @@ let Wrapper = styled.div`
 `;
 
 export let VersionsPageClient = ({
-  server,
+  providerListing,
   versions,
   pagination
 }: {
-  server: ServerListing;
-  versions: ServerVersion[];
+  providerListing: ProviderListing;
+  versions: ProviderVersion[];
   pagination: {
     hasMoreAfter?: boolean;
     hasMoreBefore?: boolean;
@@ -59,7 +59,7 @@ export let VersionsPageClient = ({
         {pagination.hasMoreBefore && (
           <Link
             prefetch={false}
-            href={`/marketplace/s/${server.slug}/versions?before=${versions[0]?.id}`}
+            href={`/marketplace/s/${providerListing.slug}/versions?before=${versions[0]?.id}`}
           >
             <Button variant="outline" as="span" size="1">
               Previous
@@ -70,7 +70,7 @@ export let VersionsPageClient = ({
         {pagination.hasMoreAfter && (
           <Link
             prefetch={false}
-            href={`/marketplace/s/${server.slug}/versions?after=${versions[versions.length - 1]?.id}`}
+            href={`/marketplace/s/${providerListing.slug}/versions?after=${versions[versions.length - 1]?.id}`}
           >
             <Button variant="outline" as="span" size="1">
               Next

@@ -2,7 +2,7 @@
 
 import styled from 'styled-components';
 import { Card, Carousel } from '../../../../components/cards-carousel';
-import { ServerCategory, ServerCollection, ServerListing } from '../../../../state/server';
+import { ProviderCategory, ProviderCollection, ProviderListing } from '../../../../state/provider';
 
 export let CategoriesSectionWrapper = styled.div`
   width: 100%;
@@ -26,25 +26,25 @@ export let CategoriesSectionHeading = styled.h2`
 
 export let ServerCarouselWithGroup = ({
   group,
-  servers
+  providerListings
 }: {
-  group: ServerCategory | ServerCollection;
-  servers: ServerListing[];
+  group: ProviderCategory | ProviderCollection;
+  providerListings: ProviderListing[];
 }) => {
   return (
     <CategoriesSectionWrapper>
       <CategoriesSectionHeading>{group.name}</CategoriesSectionHeading>
       <Carousel
-        items={servers.map((server, index) => (
+        items={providerListings.map((provider, index) => (
           <Card
-            key={server.id}
+            key={provider.id}
             card={{
               // category: server.vendor?.name ?? 'External',
-              title: server.name,
-              src: `https://avatar-cdn.metorial.com/${server.id}`
+              title: provider.name,
+              src: `https://avatar-cdn.metorial.com/${provider.id}`
             }}
             index={index}
-            href={`/marketplace/s/${server.slug}`}
+            href={`/marketplace/s/${provider.slug}`}
           />
         ))}
       />

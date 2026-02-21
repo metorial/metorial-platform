@@ -1,16 +1,16 @@
 'use server';
 
-import { listServerCategories, listServers } from '../../state/server';
+import { listProviderCategories, listProviders } from '../../state/provider';
 import { LandingAbout } from './components/about';
 import { CollectionCarousel } from './components/carousel';
 import { LandingHeader } from './components/header';
 import { Categories } from './components/servers/categories';
-import { ServerList } from './components/servers/list';
+import { ProviderList } from './components/servers/list';
 
 export default async () => {
-  let [categories, servers] = await Promise.all([
-    listServerCategories({}),
-    listServers({
+  let [categories, providerListings] = await Promise.all([
+    listProviderCategories({}),
+    listProviders({
       collectionIds: process.env.LANDING_COLLECTION_IDS?.split(',')
     })
   ]);
@@ -25,7 +25,7 @@ export default async () => {
         ))}
 
       <Categories categories={categories.items}>
-        <ServerList servers={servers.items} />
+        <ProviderList providerListings={providerListings.items} />
       </Categories>
 
       <LandingAbout />
