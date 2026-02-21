@@ -1,4 +1,4 @@
-import type { DashboardInstanceProviderListingsListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+import type { DashboardInstanceProviderListingsListQuery } from '@metorial/dashboard-sdk';
 import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, useProviderListings } from '@metorial/state';
@@ -34,64 +34,69 @@ export let ServersGrid = (filter: DashboardInstanceProviderListingsListQuery) =>
     <>
       {providers.data.items.length > 0 && (
         <ItemGrid.Root width="300px">
-          {providers.data.items.map(provider => (
-            <ItemGrid.Item
-              key={provider.id}
-              entity={{ id: provider.id, hasUsage: true }}
-              title={provider.name}
-              description={
-                provider.description
-                  ? provider.description.slice(0, 100) +
-                    (provider.description.length > 100 ? '...' : '')
-                  : ''
-              }
-              height={250}
-              icon={
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <Avatar
-                    entity={{
-                      name: provider.name,
-                      photoUrl: provider.imageUrl
-                    }}
-                    size={30}
-                    radius={5}
-                    withInitials
-                  />
+          {providers.data.items.map(listing => {
+            let providerId = listing.provider?.id;
+            if (!providerId) return null;
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                    {provider.flags.isVerified && (
-                      <Badge size="1" color="blue">
-                        <RiCheckLine size={12} style={{ marginRight: 3 }} /> Verified
-                      </Badge>
-                    )}
+            let description = listing.description
+              ? listing.description.slice(0, 100) +
+                (listing.description.length > 100 ? '...' : '')
+              : '';
 
-                    {(provider.flags.isMetorial || provider.flags.isOfficial) && (
-                      <Badge size="1" color="gray">
-                        Official
-                      </Badge>
-                    )}
+            return (
+              <ItemGrid.Item
+                key={listing.id}
+                entity={{ id: listing.id, hasUsage: true }}
+                title={listing.name}
+                description={description}
+                height={250}
+                icon={
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <Avatar
+                      entity={{
+                        name: listing.name,
+                        photoUrl: listing.imageUrl
+                      }}
+                      size={30}
+                      radius={5}
+                      withInitials
+                    />
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                      {listing.attributes.isVerified && (
+                        <Badge size="1" color="blue">
+                          <RiCheckLine size={12} style={{ marginRight: 3 }} /> Verified
+                        </Badge>
+                      )}
+
+                      {(listing.attributes.isMetorial || listing.attributes.isOfficial) && (
+                        <Badge size="1" color="gray">
+                          Official
+                        </Badge>
+                      )}
+                    </div>
                   </div>
-                </div>
-              }
-              onClick={() =>
-                navigate(
-                  Paths.instance.provider(
-                    instance.data?.organization,
-                    instance.data?.project,
-                    instance.data,
-                    provider.providerId ?? undefined
+                }
+                onClick={() =>
+                  navigate(
+                    Paths.instance.provider(
+                      instance.data?.organization,
+                      instance.data?.project,
+                      instance.data,
+                      providerId
+                    )
                   )
-                )
-              }
-              bottom={
-                <Categories>
-                  {provider.categories.map(category => (
-                    <Category key={category.id}>{category.name}</Category>
-                  ))}
-                </Categories>
-              }
-            />
-          ))}
+                }
+                bottom={
+                  <Categories>
+                    {listing.categories.map(category => (
+                      <Category key={category.id}>{category.name}</Category>
+                    ))}
+                  </Categories>
+                }
+              />
+            );
+          })}
         </ItemGrid.Root>
       )}
 

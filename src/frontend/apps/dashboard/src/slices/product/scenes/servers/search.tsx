@@ -1,4 +1,4 @@
-import { DashboardInstanceProviderListingsGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+import { DashboardInstanceProviderListingsGetOutput } from '@metorial/dashboard-sdk';
 import { renderWithLoader } from '@metorial/data-hooks';
 import { useProviderListings } from '@metorial/state';
 import {

@@ -1,7 +1,7 @@
 import {
   DashboardInstanceProviderListingsGetOutput,
   DashboardInstanceProviderListingsListQuery
-} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+} from '@metorial/dashboard-sdk';
 import { renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, useProviderListings } from '@metorial/state';
@@ -33,9 +33,9 @@ export let ServersTable = (
                 </Text>
               )}
             </div>,
-            listing.flags.isOfficial
+            listing.attributes.isOfficial
               ? 'Official'
-              : listing.flags.isVerified
+              : listing.attributes.isVerified
                 ? 'Verified'
                 : 'Community',
             <RenderDate date={listing.createdAt} />
@@ -46,7 +46,7 @@ export let ServersTable = (
                 instance.data?.organization,
                 instance.data?.project,
                 instance.data,
-                listing.providerId ?? listing.id
+                listing.provider?.id ?? listing.id
               )
         }))}
       />

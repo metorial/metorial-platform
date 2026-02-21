@@ -162,13 +162,13 @@ export let ProviderLayout = () => {
           title={listing?.name ?? provider.data?.name ?? '...'}
           description={listing?.description ?? provider.data?.description ?? undefined}
           top={
-            listing?.flags?.isVerified ||
-            listing?.flags?.isOfficial ||
-            listing?.flags?.isMetorial ||
+            listing?.attributes?.isVerified ||
+            listing?.attributes?.isOfficial ||
+            listing?.attributes?.isMetorial ||
             (selectedVersion && !isDefaultVersion) ? (
               <Flex gap={8} style={{ alignItems: 'center', marginTop: 6 }}>
-                {listing?.flags?.isVerified && <Badge color="blue">Verified</Badge>}
-                {(listing?.flags?.isOfficial || listing?.flags?.isMetorial) && (
+                {listing?.attributes?.isVerified && <Badge color="blue">Verified</Badge>}
+                {(listing?.attributes?.isOfficial || listing?.attributes?.isMetorial) && (
                   <Badge color="gray">Official</Badge>
                 )}
                 {selectedVersion && !isDefaultVersion && (

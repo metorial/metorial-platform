@@ -204,14 +204,12 @@ let PickProviderStep = ({
 
   let items = (deployments.data?.items ?? []) as Deployment[];
 
-  let listingItems = (listings.data?.items ?? []) as Array<{
-    providerId: string;
-    name: string;
-    imageUrl: string;
-  }>;
+  let listingItems = listings.data?.items ?? [];
   let listingLookup: Record<string, { name: string; imageUrl: string }> = {};
   for (let l of listingItems) {
-    if (l.providerId) listingLookup[l.providerId] = { name: l.name, imageUrl: l.imageUrl };
+    let providerId = l.provider?.id;
+    if (!providerId) continue;
+    listingLookup[providerId] = { name: l.name, imageUrl: l.imageUrl };
   }
 
   let providers: Record<
@@ -724,14 +722,12 @@ let ProvidersTable = ({
   let listings = useProviderListings({});
   let deployments = useProviderDeployments(instanceId);
 
-  let listingItems = (listings.data?.items ?? []) as Array<{
-    providerId: string;
-    name: string;
-    imageUrl: string;
-  }>;
+  let listingItems = listings.data?.items ?? [];
   let listingLookup: Record<string, { name: string; imageUrl: string }> = {};
   for (let l of listingItems) {
-    if (l.providerId) listingLookup[l.providerId] = { name: l.name, imageUrl: l.imageUrl };
+    let providerId = l.provider?.id;
+    if (!providerId) continue;
+    listingLookup[providerId] = { name: l.name, imageUrl: l.imageUrl };
   }
 
   let deploymentItems = (deployments.data?.items ?? []) as Array<{

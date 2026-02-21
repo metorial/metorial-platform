@@ -132,11 +132,10 @@ export let ProviderDeploymentForm = (
           render: () => (
             <ServerSearch
               onSelect={server => {
-                setProviderId(
-                  server.providerId ??
-                    (server as { server?: { id?: string } }).server?.id ??
-                    server.id
-                );
+                let providerId = server.provider?.id;
+                if (!providerId) return;
+
+                setProviderId(providerId);
                 setProviderName(server.name);
                 if (!name) setName(server.name);
                 setStep(1);

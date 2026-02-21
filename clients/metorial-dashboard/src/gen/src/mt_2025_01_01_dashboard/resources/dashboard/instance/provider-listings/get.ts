@@ -9,16 +9,19 @@ export type DashboardInstanceProviderListingsGetOutput = {
   imageUrl: string;
   readme: string | null;
   skills: string[];
-  flags: {
+  attributes: {
     isPublic: boolean;
     isCustomized: boolean;
     isMetorial: boolean;
     isVerified: boolean;
     isOfficial: boolean;
   };
-  providerId: string | null;
+  provider: {
+    id: string;
+    [key: string]: unknown;
+  } | null;
   categories: {
-    object: 'provider.category';
+    object: 'provider.listing_category';
     id: string;
     name: string;
     description: string | null;
@@ -27,7 +30,7 @@ export type DashboardInstanceProviderListingsGetOutput = {
     updatedAt: Date;
   }[];
   collections: {
-    object: 'provider.collection';
+    object: 'provider.listing_collection';
     id: string;
     name: string;
     description: string | null;
@@ -36,7 +39,7 @@ export type DashboardInstanceProviderListingsGetOutput = {
     updatedAt: Date;
   }[];
   groups: {
-    object: 'provider.group';
+    object: 'provider.listing_group';
     id: string;
     name: string;
     description: string | null;
@@ -58,8 +61,8 @@ export let mapDashboardInstanceProviderListingsGetOutput =
     imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
     readme: mtMap.objectField('readme', mtMap.passthrough()),
     skills: mtMap.objectField('skills', mtMap.array(mtMap.passthrough())),
-    flags: mtMap.objectField(
-      'flags',
+    attributes: mtMap.objectField(
+      'attributes',
       mtMap.object({
         isPublic: mtMap.objectField('is_public', mtMap.passthrough()),
         isCustomized: mtMap.objectField('is_customized', mtMap.passthrough()),
@@ -68,7 +71,7 @@ export let mapDashboardInstanceProviderListingsGetOutput =
         isOfficial: mtMap.objectField('is_official', mtMap.passthrough())
       })
     ),
-    providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
+    provider: mtMap.objectField('provider', mtMap.passthrough()),
     categories: mtMap.objectField(
       'categories',
       mtMap.array(
@@ -114,4 +117,3 @@ export let mapDashboardInstanceProviderListingsGetOutput =
     createdAt: mtMap.objectField('created_at', mtMap.date()),
     updatedAt: mtMap.objectField('updated_at', mtMap.date())
   });
-
