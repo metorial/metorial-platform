@@ -90,7 +90,7 @@ let listProviderVariantsForListing = (
   return defaultVariant ? [defaultVariant] : [];
 };
 
-export let serversController = createHono()
+export let providerListingsController = createHono()
   .get(
     '',
     useValidation(

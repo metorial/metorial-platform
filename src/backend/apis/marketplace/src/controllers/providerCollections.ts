@@ -6,7 +6,7 @@ import { paginatorSchema } from '../lib/paginatorSchema';
 import { presentProviderCollection } from '../presenters/provider';
 import { useValidation } from '../lib/validator';
 
-export let serverCollectionsController = createHono()
+export let providerCollectionsController = createHono()
   .get('', useValidation('query', paginatorSchema), async c => {
     let query = c.req.valid('query');
 

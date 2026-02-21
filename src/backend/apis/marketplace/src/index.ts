@@ -1,7 +1,7 @@
 import { createHono } from '@metorial/hono';
-import { serverCategoriesController } from './controllers/serverCategories';
-import { serverCollectionsController } from './controllers/serverCollections';
-import { serversController } from './controllers/servers';
+import { providerCategoriesController } from './controllers/providerCategories';
+import { providerCollectionsController } from './controllers/providerCollections';
+import { providerListingsController } from './controllers/providerListings';
 
 export let marketplaceApp = createHono()
   .use(async (c, next) => {
@@ -17,6 +17,6 @@ export let marketplaceApp = createHono()
   })
   .options('*', c => c.text(''))
   .get('/ping', c => c.text('OK'))
-  .route('/provider-listings', serversController)
-  .route('/provider-categories', serverCategoriesController)
-  .route('/provider-collections', serverCollectionsController);
+  .route('/provider-listings', providerListingsController)
+  .route('/provider-categories', providerCategoriesController)
+  .route('/provider-collections', providerCollectionsController);
