@@ -5,19 +5,16 @@ import { publisherType } from '../../types';
 
 export let v1PublisherPresenter = Presenter.create(publisherType)
   .presenter(async ({ publisher }) => {
-    let rawImageUrl = (publisher.source as any)?.url;
-
     return {
       object: 'provider.publisher' as const,
       id: publisher.id,
+
       name: publisher.name,
       description: publisher.description,
-      slug: publisher.slug ?? publisher.identifier,
-      image_url: await getImageUrl({
-        id: publisher.id,
-        name: publisher.name,
-        image: rawImageUrl ? { type: 'url', url: rawImageUrl } : null
-      }),
+      slug: publisher.identifier,
+
+      image_url: await getImageUrl(publisher),
+
       created_at: publisher.createdAt,
       updated_at: publisher.updatedAt
     };

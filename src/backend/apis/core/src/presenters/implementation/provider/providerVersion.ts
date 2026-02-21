@@ -5,16 +5,18 @@ import { providerVersionType } from '../../types';
 export let v1ProviderVersionPresenter = Presenter.create(providerVersionType)
   .presenter(async ({ version }) => ({
     object: 'provider.version' as const,
-    id: version.id,
 
+    id: version.id,
     version: version.identifier,
-    isCurrent: version.isCurrent,
+
+    is_current: version.isCurrent,
 
     name: version.name,
     description: version.description,
     metadata: version.metadata,
 
-    specificationId: version.specificationId,
+    specification_id: version.specificationId,
+    provider_id: version.providerId,
 
     created_at: version.createdAt,
     updated_at: version.updatedAt
@@ -30,15 +32,44 @@ export let v1ProviderVersionPresenter = Presenter.create(providerVersionType)
         examples: ['prv_4dEfGhJkLmNpQrSt']
       }),
       version: v.string({
-        name: 'version',
-        description: 'Semantic version string',
-        examples: ['1.0.0', '2.1.3']
+        name: 'identifier',
+        description: 'Version identifier string',
+        examples: ['1.0.0']
       }),
-      status: v.string({
-        name: 'status',
-        description: 'Version status (released, draft, deprecated)',
-        examples: ['released']
+      provider_id: v.string({
+        name: 'provider_id',
+        description: 'Provider ID',
+        examples: ['pro_5gHjKlMnPqRsTuVw']
       }),
+      is_current: v.boolean({
+        name: 'is_current',
+        description: 'Whether this is the current version'
+      }),
+      name: v.string({
+        name: 'name',
+        description: 'Version name',
+        examples: ['Version 1.0.0']
+      }),
+      description: v.nullable(
+        v.string({
+          name: 'description',
+          description: 'Version description'
+        })
+      ),
+      metadata: v.nullable(
+        v.record(v.any(), {
+          name: 'metadata',
+          description: 'Custom key-value pairs for storing additional information',
+          examples: [{ imported_from: 'legacy-system', migration_date: '2025-09-01' }]
+        })
+      ),
+      specification_id: v.nullable(
+        v.string({
+          name: 'specification_id',
+          description: 'Specification ID',
+          examples: ['psp_9gHjKlMnPqRsTuVw']
+        })
+      ),
       created_at: v.date({
         name: 'created_at',
         description: 'Timestamp when created',

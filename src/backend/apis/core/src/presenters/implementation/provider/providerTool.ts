@@ -6,13 +6,33 @@ export let v1ProviderToolPresenter = Presenter.create(providerToolType)
   .presenter(async ({ tool }) => ({
     object: 'provider.tool' as const,
     id: tool.id,
+
+    key: tool.key,
     name: tool.name,
-    title: tool.title ?? null,
     description: tool.description,
-    input_schema: tool.inputSchema ?? tool.inputJsonSchema,
-    output_schema: tool.outputSchema ?? tool.outputJsonSchema,
+
+    capabilities: tool.capabilities,
+    constraints: tool.constraints,
+    instructions: tool.instructions,
+
+    input_schema: tool.inputJsonSchema
+      ? {
+          type: 'json_schema',
+          schema: tool.inputJsonSchema
+        }
+      : null,
+    output_schema: tool.outputJsonSchema
+      ? {
+          type: 'json_schema',
+          schema: tool.outputJsonSchema
+        }
+      : null,
+
+    tags: tool.tags ?? null,
+
+    specification_id: tool.specificationId,
     provider_id: tool.providerId,
-    provider_specification_id: tool.providerSpecificationId ?? tool.specificationId,
+
     created_at: tool.createdAt,
     updated_at: tool.updatedAt
   }))
@@ -26,18 +46,16 @@ export let v1ProviderToolPresenter = Presenter.create(providerToolType)
         description: 'Unique tool identifier',
         examples: ['pto_5jKlMnPqRsTuVwXy']
       }),
+      key: v.string({
+        name: 'key',
+        description: 'Tool key',
+        examples: ['create_issue']
+      }),
       name: v.string({
         name: 'name',
-        description: 'Programmatic name of the tool',
-        examples: ['create_issue', 'search_code']
+        description: 'Display name of the tool',
+        examples: ['Create Issue']
       }),
-      title: v.nullable(
-        v.string({
-          name: 'title',
-          description: 'Human-readable display title for the tool',
-          examples: ['Create Issue', 'Search Code']
-        })
-      ),
       description: v.nullable(
         v.string({
           name: 'description',
@@ -45,48 +63,55 @@ export let v1ProviderToolPresenter = Presenter.create(providerToolType)
           examples: ['Creates a new issue in a GitHub repository']
         })
       ),
+      capabilities: v.record(v.any(), {
+        name: 'capabilities',
+        description: 'Tool capabilities'
+      }),
+      constraints: v.array(v.string(), {
+        name: 'constraints',
+        description: 'Tool constraints'
+      }),
+      instructions: v.array(v.string(), {
+        name: 'instructions',
+        description: 'Tool usage instructions'
+      }),
       input_schema: v.nullable(
-        v.record(v.any(), {
-          name: 'input_schema',
-          description:
-            'JSON Schema defining the tool input parameters. Contains standard JSON Schema fields like type, properties, required, etc.',
-          examples: [
-            {
-              type: 'object',
-              properties: {
-                repo: { type: 'string', description: 'Repository name' },
-                title: { type: 'string', description: 'Issue title' }
-              },
-              required: ['repo', 'title']
-            }
-          ]
+        v.object({
+          type: v.literal('json_schema'),
+          schema: v.record(v.any(), {
+            name: 'schema',
+            description: 'JSON Schema defining the tool input parameters'
+          })
         })
       ),
       output_schema: v.nullable(
-        v.record(v.any(), {
-          name: 'output_schema',
-          description:
-            'JSON Schema defining the tool output format. Contains standard JSON Schema fields like type, properties, required, etc.',
-          examples: [
-            {
-              type: 'object',
-              properties: {
-                id: { type: 'number', description: 'Issue ID' },
-                url: { type: 'string', description: 'Issue URL' }
-              }
-            }
-          ]
+        v.object({
+          type: v.literal('json_schema'),
+          schema: v.record(v.any(), {
+            name: 'schema',
+            description: 'JSON Schema defining the tool output format'
+          })
         })
       ),
+      tags: v.nullable(
+        v.object({
+          destructive: v.optional(
+            v.boolean({ name: 'destructive', description: 'Whether the tool is destructive' })
+          ),
+          readOnly: v.optional(
+            v.boolean({ name: 'readOnly', description: 'Whether the tool is read-only' })
+          )
+        })
+      ),
+      specification_id: v.string({
+        name: 'specification_id',
+        description: 'Specification ID',
+        examples: ['psp_9gHjKlMnPqRsTuVw']
+      }),
       provider_id: v.string({
         name: 'provider_id',
         description: 'Provider ID',
         examples: ['pro_5gHjKlMnPqRsTuVw']
-      }),
-      provider_specification_id: v.string({
-        name: 'provider_specification_id',
-        description: 'Specification ID',
-        examples: ['psp_9gHjKlMnPqRsTuVw']
       }),
       created_at: v.date({
         name: 'created_at',
