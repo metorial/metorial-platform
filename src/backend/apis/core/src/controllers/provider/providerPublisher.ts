@@ -1,5 +1,5 @@
 import { badRequestError, ServiceError } from '@metorial/error';
-import { subspacePublisherService, type SubspacePublisher } from '@metorial/module-subspace';
+import { subspacePublisherService } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
@@ -47,9 +47,7 @@ export let providerPublisherController = Controller.create(
 
         let list = await paginator.run(ctx.query);
 
-        return Paginator.present(list, publisher =>
-          publisherPresenter.present({ publisher: publisher as SubspacePublisher })
-        );
+        return Paginator.present(list, publisher => publisherPresenter.present({ publisher }));
       }),
 
     get: providerPublisherGroup

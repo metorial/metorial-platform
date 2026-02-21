@@ -1,9 +1,5 @@
 import { badRequestError, ServiceError } from '@metorial/error';
-import {
-  subspaceProviderAuthImportService,
-  type SubspaceProviderAuthImport,
-  type SubspaceProviderAuthImportSchema
-} from '@metorial/module-subspace';
+import { subspaceProviderAuthImportService } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
@@ -90,7 +86,7 @@ export let providerAuthImportController = Controller.create(
 
         return Paginator.present(list, authImport =>
           providerAuthImportPresenter.present({
-            authImport: authImport as SubspaceProviderAuthImport
+            authImport
           })
         );
       }),
@@ -166,7 +162,7 @@ export let providerAuthImportController = Controller.create(
         });
 
         return providerAuthImportPresenter.present({
-          authImport: authImport as SubspaceProviderAuthImport
+          authImport
         });
       }),
 
@@ -190,7 +186,7 @@ export let providerAuthImportController = Controller.create(
         });
 
         return authImportSchemaPresenter.present({
-          schema: schema as SubspaceProviderAuthImportSchema
+          schema
         });
       })
   }

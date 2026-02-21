@@ -1,8 +1,5 @@
 import { badRequestError, ServiceError } from '@metorial/error';
-import {
-  subspaceProviderAuthConfigService,
-  type SubspaceProviderAuthConfig
-} from '@metorial/module-subspace';
+import { subspaceProviderAuthConfigService } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
@@ -96,7 +93,7 @@ export let providerAuthConfigController = Controller.create(
 
         return Paginator.present(list, authConfig =>
           providerAuthConfigPresenter.present({
-            authConfig: authConfig as SubspaceProviderAuthConfig
+            authConfig
           })
         );
       }),
@@ -182,7 +179,7 @@ export let providerAuthConfigController = Controller.create(
         });
 
         return providerAuthConfigPresenter.present({
-          authConfig: authConfig as SubspaceProviderAuthConfig
+          authConfig
         });
       }),
 
@@ -226,7 +223,7 @@ export let providerAuthConfigController = Controller.create(
         });
 
         return providerAuthConfigPresenter.present({
-          authConfig: authConfig as SubspaceProviderAuthConfig
+          authConfig
         });
       }),
 

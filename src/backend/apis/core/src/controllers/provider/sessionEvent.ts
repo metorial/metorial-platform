@@ -1,8 +1,5 @@
 import { badRequestError, ServiceError } from '@metorial/error';
-import {
-  subspaceSessionEventService,
-  type SubspaceSessionEvent
-} from '@metorial/module-subspace';
+import { subspaceSessionEventService } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
@@ -104,7 +101,7 @@ export let subspaceSessionEventController = Controller.create(
       .output(subspaceSessionEventPresenter)
       .do(async ctx => {
         return subspaceSessionEventPresenter.present({
-          sessionEvent: ctx.sessionEvent as SubspaceSessionEvent
+          sessionEvent: ctx.sessionEvent
         });
       })
   }

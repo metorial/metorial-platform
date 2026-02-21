@@ -1,4 +1,4 @@
-import { scmRepositoryService } from '@metorial/module-subspace';
+import { subspaceScmRepositoryService } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
@@ -26,7 +26,7 @@ export let scmAccountsController = Controller.create(
       )
       .outputList(scmAccountPreviewPresenter)
       .do(async ctx => {
-        let accounts = await (scmRepositoryService as any).listAccountPreviews({
+        let accounts = await (subspaceScmRepositoryService as any).listAccountPreviews({
           instance: ctx.instance,
           scmConnectionId: ctx.body.installation_id
         });

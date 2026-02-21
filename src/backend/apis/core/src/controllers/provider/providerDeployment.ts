@@ -1,9 +1,6 @@
 import { convertKeysToCamelCase } from '@metorial/case';
 import { badRequestError, ServiceError } from '@metorial/error';
-import {
-  subspaceProviderDeploymentService,
-  type SubspaceProviderDeployment
-} from '@metorial/module-subspace';
+import { subspaceProviderDeploymentService } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
@@ -84,7 +81,7 @@ export let providerDeploymentController = Controller.create(
 
         return Paginator.present(list, deployment =>
           providerDeploymentPresenter.present({
-            deployment: deployment as SubspaceProviderDeployment
+            deployment
           })
         );
       }),
@@ -193,7 +190,7 @@ export let providerDeploymentController = Controller.create(
         });
 
         return providerDeploymentPresenter.present({
-          deployment: deployment as SubspaceProviderDeployment
+          deployment
         });
       }),
 
@@ -233,7 +230,7 @@ export let providerDeploymentController = Controller.create(
         });
 
         return providerDeploymentPresenter.present({
-          deployment: deployment as SubspaceProviderDeployment
+          deployment
         });
       }),
 
@@ -252,7 +249,7 @@ export let providerDeploymentController = Controller.create(
       .output(providerDeploymentPresenter)
       .do(async ctx => {
         return providerDeploymentPresenter.present({
-          deployment: ctx.deployment as SubspaceProviderDeployment
+          deployment: ctx.deployment
         });
       })
   }

@@ -1,8 +1,5 @@
 import { badRequestError, ServiceError } from '@metorial/error';
-import {
-  subspaceCustomProviderVersionService,
-  type SubspaceCustomProviderVersion
-} from '@metorial/module-subspace';
+import { subspaceCustomProviderVersionService } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
@@ -118,7 +115,7 @@ export let customProviderVersionController = Controller.create(
 
         return Paginator.present(list, customProviderVersion =>
           subspaceCustomProviderVersionPresenter.present({
-            customProviderVersion: customProviderVersion as SubspaceCustomProviderVersion
+            customProviderVersion
           })
         );
       }),
@@ -138,7 +135,7 @@ export let customProviderVersionController = Controller.create(
       .output(subspaceCustomProviderVersionPresenter)
       .do(async ctx => {
         return subspaceCustomProviderVersionPresenter.present({
-          customProviderVersion: ctx.customProviderVersion as SubspaceCustomProviderVersion
+          customProviderVersion: ctx.customProviderVersion
         });
       }),
 
@@ -170,7 +167,7 @@ export let customProviderVersionController = Controller.create(
         });
 
         return subspaceCustomProviderVersionPresenter.present({
-          customProviderVersion: customProviderVersion as SubspaceCustomProviderVersion
+          customProviderVersion
         });
       })
   }

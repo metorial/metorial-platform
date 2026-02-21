@@ -1,8 +1,5 @@
 import { badRequestError, ServiceError } from '@metorial/error';
-import {
-  subspaceSessionConnectionService,
-  type SubspaceSessionConnection
-} from '@metorial/module-subspace';
+import { subspaceSessionConnectionService } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
@@ -94,7 +91,7 @@ export let subspaceSessionConnectionController = Controller.create(
 
         return Paginator.present(list, sessionConnection =>
           subspaceSessionConnectionPresenter.present({
-            sessionConnection: sessionConnection as SubspaceSessionConnection
+            sessionConnection
           })
         );
       }),

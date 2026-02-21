@@ -1,8 +1,5 @@
 import { badRequestError, ServiceError } from '@metorial/error';
-import {
-  subspaceCustomProviderEnvironmentService,
-  type SubspaceCustomProviderEnvironment
-} from '@metorial/module-subspace';
+import { subspaceCustomProviderEnvironmentService } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
@@ -72,8 +69,7 @@ export let customProviderEnvironmentController = Controller.create(
 
         return Paginator.present(list, customProviderEnvironment =>
           subspaceCustomProviderEnvironmentPresenter.present({
-            customProviderEnvironment:
-              customProviderEnvironment as SubspaceCustomProviderEnvironment
+            customProviderEnvironment
           })
         );
       }),
@@ -93,8 +89,7 @@ export let customProviderEnvironmentController = Controller.create(
       .output(subspaceCustomProviderEnvironmentPresenter)
       .do(async ctx => {
         return subspaceCustomProviderEnvironmentPresenter.present({
-          customProviderEnvironment:
-            ctx.customProviderEnvironment as SubspaceCustomProviderEnvironment
+          customProviderEnvironment: ctx.customProviderEnvironment
         });
       })
   }

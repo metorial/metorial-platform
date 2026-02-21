@@ -1,9 +1,6 @@
 import { convertKeysToCamelCase } from '@metorial/case';
 import { badRequestError, ServiceError } from '@metorial/error';
-import {
-  subspaceSessionProviderService,
-  type SubspaceSessionProvider
-} from '@metorial/module-subspace';
+import { subspaceSessionProviderService } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
@@ -102,7 +99,7 @@ export let subspaceSessionProviderController = Controller.create(
 
         return Paginator.present(list, sessionProvider =>
           sessionProviderPresenter.present({
-            sessionProvider: sessionProvider as SubspaceSessionProvider
+            sessionProvider
           })
         );
       }),
@@ -155,7 +152,7 @@ export let subspaceSessionProviderController = Controller.create(
         });
 
         return sessionProviderPresenter.present({
-          sessionProvider: sessionProvider as SubspaceSessionProvider
+          sessionProvider
         });
       }),
 
@@ -189,7 +186,7 @@ export let subspaceSessionProviderController = Controller.create(
         });
 
         return sessionProviderPresenter.present({
-          sessionProvider: sessionProvider as SubspaceSessionProvider
+          sessionProvider
         });
       }),
 

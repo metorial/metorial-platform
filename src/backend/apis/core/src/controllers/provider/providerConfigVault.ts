@@ -1,8 +1,5 @@
 import { badRequestError, ServiceError } from '@metorial/error';
-import {
-  subspaceProviderConfigVaultService,
-  type SubspaceProviderConfigVault
-} from '@metorial/module-subspace';
+import { subspaceProviderConfigVaultService } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
@@ -154,7 +151,7 @@ export let providerConfigVaultController = Controller.create(
         });
 
         return providerConfigVaultPresenter.present({
-          configVault: configVault as SubspaceProviderConfigVault
+          configVault
         });
       }),
 
@@ -194,7 +191,7 @@ export let providerConfigVaultController = Controller.create(
         });
 
         return providerConfigVaultPresenter.present({
-          configVault: configVault as SubspaceProviderConfigVault
+          configVault
         });
       }),
 

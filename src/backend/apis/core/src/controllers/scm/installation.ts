@@ -1,6 +1,6 @@
 import {
-  scmConnectionService,
-  scmConnectionSetupSessionService,
+  subspaceScmConnectionService,
+  subspaceScmConnectionSetupSessionService,
   type SubspaceScmConnection
 } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
@@ -25,7 +25,7 @@ export let scmInstallationController = Controller.create(
       .outputList(scmConnectionPresenter)
       .query('default', Paginator.validate())
       .do(async ctx => {
-        let paginator = await scmConnectionService.list({
+        let paginator = await subspaceScmConnectionService.list({
           instance: ctx.instance,
           organizationActor: ctx.actor
         });
@@ -54,7 +54,7 @@ export let scmInstallationController = Controller.create(
       )
       .output(scmConnectionSetupPresenter)
       .do(async ctx => {
-        let session = await scmConnectionSetupSessionService.create({
+        let session = await subspaceScmConnectionSetupSessionService.create({
           instance: ctx.instance,
           organizationActor: ctx.actor,
           redirectUrl: ctx.body.redirect_url

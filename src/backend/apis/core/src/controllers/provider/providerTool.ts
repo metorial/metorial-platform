@@ -1,8 +1,5 @@
 import { badRequestError, ServiceError } from '@metorial/error';
-import {
-  subspaceProviderToolService,
-  type SubspaceProviderTool
-} from '@metorial/module-subspace';
+import { subspaceProviderToolService } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
@@ -59,9 +56,7 @@ export let providerToolController = Controller.create(
 
         let list = await paginator.run(ctx.query);
 
-        return Paginator.present(list, tool =>
-          providerToolPresenter.present({ tool: tool as SubspaceProviderTool })
-        );
+        return Paginator.present(list, tool => providerToolPresenter.present({ tool }));
       }),
 
     get: providerToolGroup

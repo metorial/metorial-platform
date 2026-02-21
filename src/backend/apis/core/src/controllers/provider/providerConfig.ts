@@ -1,10 +1,6 @@
 import { convertKeysToCamelCase } from '@metorial/case';
 import { badRequestError, ServiceError } from '@metorial/error';
-import {
-  subspaceProviderConfigService,
-  type SubspaceProviderConfig,
-  type SubspaceProviderConfigSchema
-} from '@metorial/module-subspace';
+import { subspaceProviderConfigService } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
@@ -89,9 +85,7 @@ export let providerConfigController = Controller.create(
 
         let list = await paginator.run(ctx.query);
 
-        return Paginator.present(list, config =>
-          providerConfigPresenter.present({ config: config as SubspaceProviderConfig })
-        );
+        return Paginator.present(list, config => providerConfigPresenter.present({ config }));
       }),
 
     get: providerConfigGroup
@@ -166,7 +160,7 @@ export let providerConfigController = Controller.create(
           metadata: ctx.body.metadata
         });
 
-        return providerConfigPresenter.present({ config: config as SubspaceProviderConfig });
+        return providerConfigPresenter.present({ config });
       }),
 
     update: providerConfigGroup
@@ -201,7 +195,7 @@ export let providerConfigController = Controller.create(
           metadata: ctx.body.metadata
         });
 
-        return providerConfigPresenter.present({ config: config as SubspaceProviderConfig });
+        return providerConfigPresenter.present({ config });
       }),
 
     delete: providerConfigGroup
@@ -239,9 +233,7 @@ export let providerConfigController = Controller.create(
         });
 
         return configSchemaPresenter.present({
-          schema: {
-            schema: (schema as any).configSchema ?? null
-          } as SubspaceProviderConfigSchema
+          schema
         });
       })
   }

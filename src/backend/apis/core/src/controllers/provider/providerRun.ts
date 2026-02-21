@@ -1,9 +1,5 @@
 import { badRequestError, ServiceError } from '@metorial/error';
-import {
-  subspaceProviderRunService,
-  type SubspaceProviderRun,
-  type SubspaceProviderRunLogs
-} from '@metorial/module-subspace';
+import { subspaceProviderRunService } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
@@ -94,7 +90,7 @@ export let subspaceProviderRunController = Controller.create(
 
         return Paginator.present(list, providerRun =>
           subspaceProviderRunPresenter.present({
-            providerRun: providerRun as SubspaceProviderRun
+            providerRun
           })
         );
       }),
@@ -112,7 +108,7 @@ export let subspaceProviderRunController = Controller.create(
           providerRunId: ctx.params.providerRunId
         });
         return subspaceProviderRunPresenter.present({
-          providerRun: providerRun as SubspaceProviderRun
+          providerRun
         });
       }),
 
@@ -128,7 +124,7 @@ export let subspaceProviderRunController = Controller.create(
           instance: ctx.instance,
           providerRunId: ctx.params.providerRunId
         });
-        return providerRunLogsPresenter.present({ logs: logs as SubspaceProviderRunLogs });
+        return providerRunLogsPresenter.present({ logs: logsLogs });
       }),
 
     list: instanceGroup
@@ -187,7 +183,7 @@ export let subspaceProviderRunController = Controller.create(
 
         return Paginator.present(list, providerRun =>
           subspaceProviderRunPresenter.present({
-            providerRun: providerRun as SubspaceProviderRun
+            providerRun
           })
         );
       }),
@@ -228,7 +224,7 @@ export let subspaceProviderRunController = Controller.create(
           providerRunId: ctx.providerRun.id
         });
 
-        return providerRunLogsPresenter.present({ logs: logs as SubspaceProviderRunLogs });
+        return providerRunLogsPresenter.present({ logs: logsLogs });
       })
   }
 );

@@ -1,5 +1,5 @@
 import { badRequestError, ServiceError } from '@metorial/error';
-import { subspaceToolCallService, type SubspaceToolCall } from '@metorial/module-subspace';
+import { subspaceToolCallService } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
@@ -85,7 +85,7 @@ export let subspaceToolCallController = Controller.create(
 
         return Paginator.present(list, toolCall =>
           toolCallPresenter.present({
-            toolCall: toolCall as SubspaceToolCall
+            toolCall
           })
         );
       }),
@@ -133,7 +133,7 @@ export let subspaceToolCallController = Controller.create(
         });
 
         return toolCallPresenter.present({
-          toolCall: toolCall as SubspaceToolCall
+          toolCall
         });
       })
   }

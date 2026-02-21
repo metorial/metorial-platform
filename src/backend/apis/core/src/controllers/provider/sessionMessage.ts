@@ -1,8 +1,5 @@
 import { badRequestError, ServiceError } from '@metorial/error';
-import {
-  subspaceSessionMessageService,
-  type SubspaceSessionMessage
-} from '@metorial/module-subspace';
+import { subspaceSessionMessageService } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
@@ -113,7 +110,7 @@ export let subspaceSessionMessageController = Controller.create(
 
         return Paginator.present(list, sessionMessage =>
           subspaceSessionMessagePresenter.present({
-            sessionMessage: sessionMessage as SubspaceSessionMessage
+            sessionMessage
           })
         );
       }),

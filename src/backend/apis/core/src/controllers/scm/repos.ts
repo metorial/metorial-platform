@@ -1,4 +1,4 @@
-import { scmRepositoryService } from '@metorial/module-subspace';
+import { subspaceScmRepositoryService } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
@@ -29,7 +29,7 @@ export let scmReposController = Controller.create(
       )
       .outputList(scmRepoPreviewPresenter)
       .do(async ctx => {
-        let repos = await (scmRepositoryService as any).listRepositoryPreviews({
+        let repos = await (subspaceScmRepositoryService as any).listRepositoryPreviews({
           instance: ctx.instance,
           scmConnectionId: ctx.body.installation_id,
           externalAccountId: ctx.body.external_account_id
@@ -72,7 +72,7 @@ export let scmReposController = Controller.create(
         let repo: any;
 
         if (ctx.body.external_repo_id) {
-          repo = await (scmRepositoryService as any).linkRepository({
+          repo = await (subspaceScmRepositoryService as any).linkRepository({
             instance: ctx.instance,
             organizationActor: ctx.actor,
             scmConnectionId: ctx.body.installation_id,
@@ -80,7 +80,7 @@ export let scmReposController = Controller.create(
             name: ctx.body.name
           });
         } else {
-          repo = await (scmRepositoryService as any).createRepository({
+          repo = await (subspaceScmRepositoryService as any).createRepository({
             instance: ctx.instance,
             organizationActor: ctx.actor,
             scmConnectionId: ctx.body.installation_id,

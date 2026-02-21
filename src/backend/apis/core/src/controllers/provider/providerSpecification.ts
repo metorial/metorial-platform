@@ -1,8 +1,5 @@
 import { badRequestError, ServiceError } from '@metorial/error';
-import {
-  subspaceProviderSpecificationService,
-  type SubspaceProviderSpecification
-} from '@metorial/module-subspace';
+import { subspaceProviderSpecificationService } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
@@ -97,7 +94,7 @@ export let providerSpecificationController = Controller.create(
       .output(providerSpecificationPresenter)
       .do(async ctx => {
         return providerSpecificationPresenter.present({
-          specification: ctx.specification as unknown as SubspaceProviderSpecification
+          specification: ctx.specification
         });
       })
   }
