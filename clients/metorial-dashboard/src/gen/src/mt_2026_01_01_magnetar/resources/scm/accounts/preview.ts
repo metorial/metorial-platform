@@ -2,6 +2,7 @@ import { mtMap } from '@metorial/util-resource-mapper';
 
 export type ScmAccountsPreviewOutput = {
   items: {
+    object: 'scm.account_preview';
     provider: string;
     externalId: string;
     name: string;
@@ -16,6 +17,7 @@ export let mapScmAccountsPreviewOutput = mtMap.object<ScmAccountsPreviewOutput>(
       'items',
       mtMap.array(
         mtMap.object({
+          object: mtMap.objectField('object', mtMap.passthrough()),
           provider: mtMap.objectField('provider', mtMap.passthrough()),
           externalId: mtMap.objectField('external_id', mtMap.passthrough()),
           name: mtMap.objectField('name', mtMap.passthrough()),

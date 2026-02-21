@@ -1,6 +1,5 @@
 export * from './custom-providers';
 export * from './files';
-export * from './instance';
 export * from './links';
 export * from './provider-categories';
 export * from './provider-collections';
@@ -10,6 +9,7 @@ export * from './provider-listings';
 export * from './provider-runs';
 export * from './providers';
 export * from './publishers';
+export * from './scm';
 export * from './session-error-groups';
 export * from './session-errors';
 export * from './session-templates';

@@ -5,12 +5,7 @@ export type ScmInstallationListOutput = {
     object: 'scm.installation';
     id: string;
     provider: string;
-    user: {
-      id: string;
-      name: string | null;
-      email: string;
-      imageUrl: string | null;
-    };
+    user: { id: string; name: string; email: string; imageUrl: string | null };
     createdAt: Date;
     updatedAt: Date;
   }[];
