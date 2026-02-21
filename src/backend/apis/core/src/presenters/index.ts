@@ -158,8 +158,8 @@ import {
 // =============================================================================
 
 export let apiKeyPresenter = declarePresenter(apiKeyType, {
-  mt_2025_01_01_dashboard: v1ApiKeyPresenter,
-  mt_2026_01_01_magnetar: dashboardApiKeyPresenter
+  mt_2025_01_01_dashboard: dashboardApiKeyPresenter,
+  mt_2026_01_01_magnetar: v1ApiKeyPresenter
 });
 
 export let instancePresenter = declarePresenter(instanceType, {

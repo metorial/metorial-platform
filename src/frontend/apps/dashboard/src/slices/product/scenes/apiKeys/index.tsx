@@ -1,12 +1,8 @@
 import { capitalize } from '@metorial/case';
+import { ApiKeysGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { renderWithLoader, useForm } from '@metorial/data-hooks';
 import { PageHeader } from '@metorial/layout';
-import {
-  ApiKeysFilter,
-  MetorialApiKey,
-  useCurrentOrganization,
-  useRevealableApiKey
-} from '@metorial/state';
+import { ApiKeysFilter, useCurrentOrganization, useRevealableApiKey } from '@metorial/state';
 import {
   Badge,
   Button,
@@ -534,7 +530,7 @@ let Action = styled('div')`
   flex-shrink: 0;
 `;
 
-export let ApiKeySecret = ({ apiKey }: { apiKey: MetorialApiKey }) => {
+export let ApiKeySecret = ({ apiKey }: { apiKey: ApiKeysGetOutput }) => {
   let reveal = useRevealableApiKey({
     apiKeyId: apiKey.id
   });

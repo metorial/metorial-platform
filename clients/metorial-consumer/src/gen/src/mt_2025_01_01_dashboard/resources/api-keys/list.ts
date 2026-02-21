@@ -6,6 +6,7 @@ export type ApiKeysListOutput = {
     id: string;
     status: 'active' | 'deleted';
     secretRedacted: string;
+    secretRedactedLong: string;
     secret: string | null;
     type:
       | 'organization_management_token'
@@ -94,6 +95,7 @@ export type ApiKeysListOutput = {
     expiresAt: Date | null;
     createdAt: Date;
     updatedAt: Date;
+    revealInfo: { until: Date; forever: boolean } | null;
   }[];
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
@@ -108,6 +110,10 @@ export let mapApiKeysListOutput = mtMap.object<ApiKeysListOutput>({
         status: mtMap.objectField('status', mtMap.passthrough()),
         secretRedacted: mtMap.objectField(
           'secret_redacted',
+          mtMap.passthrough()
+        ),
+        secretRedactedLong: mtMap.objectField(
+          'secret_redacted_long',
           mtMap.passthrough()
         ),
         secret: mtMap.objectField('secret', mtMap.passthrough()),
@@ -226,7 +232,14 @@ export let mapApiKeysListOutput = mtMap.object<ApiKeysListOutput>({
         lastUsedAt: mtMap.objectField('last_used_at', mtMap.date()),
         expiresAt: mtMap.objectField('expires_at', mtMap.date()),
         createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date())
+        updatedAt: mtMap.objectField('updated_at', mtMap.date()),
+        revealInfo: mtMap.objectField(
+          'reveal_info',
+          mtMap.object({
+            until: mtMap.objectField('until', mtMap.date()),
+            forever: mtMap.objectField('forever', mtMap.passthrough())
+          })
+        )
       })
     )
   ),
