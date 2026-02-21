@@ -2,6 +2,10 @@ import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
 import { providerSetupSessionType } from '../../types';
 import { v1ProviderAuthConfigPresenter } from './authConfig';
+import { v1ProviderAuthCredentialsPresenter } from './authCredentials';
+import { v1ProviderAuthMethodPresenter } from './authMethod';
+import { v1ConfigPresenter } from './config';
+import { v1ProviderDeploymentPreviewPresenter } from './deploymentPreview';
 
 export let v1SetupSessionPresenter = Presenter.create(providerSetupSessionType)
   .presenter(async ({ setupSession }, opts) => ({
@@ -17,16 +21,36 @@ export let v1SetupSessionPresenter = Presenter.create(providerSetupSessionType)
     description: setupSession.description,
     metadata: setupSession.metadata,
 
-    ui_mode: setupSession.uiMode,
-    redirect_url: setupSession.redirectUrl,
-
     provider_id: setupSession.providerId,
+
+    auth_method: await v1ProviderAuthMethodPresenter
+      .present({ authMethod: setupSession.authMethod }, opts)
+      .run(),
+
+    deployment: setupSession.deployment
+      ? await v1ProviderDeploymentPreviewPresenter
+          .present({ deployment: setupSession.deployment }, opts)
+          .run()
+      : null,
+
+    credentials: setupSession.credentials
+      ? await v1ProviderAuthCredentialsPresenter
+          .present({ authCredentials: setupSession.credentials }, opts)
+          .run()
+      : null,
 
     auth_config: setupSession.authConfig
       ? await v1ProviderAuthConfigPresenter
           .present({ authConfig: setupSession.authConfig }, opts)
           .run()
       : null,
+
+    config: setupSession.config
+      ? await v1ConfigPresenter.present({ config: setupSession.config }, opts).run()
+      : null,
+
+    ui_mode: setupSession.uiMode,
+    redirect_url: setupSession.redirectUrl,
 
     created_at: setupSession.createdAt,
     updated_at: setupSession.updatedAt,
@@ -83,17 +107,23 @@ export let v1SetupSessionPresenter = Presenter.create(providerSetupSessionType)
         description: 'Provider ID',
         examples: ['pro_5gHjKlMnPqRsTuVw']
       }),
+      auth_method: v1ProviderAuthMethodPresenter.schema,
+      deployment: v.nullable(v1ProviderDeploymentPreviewPresenter.schema),
+      credentials: v.nullable(v1ProviderAuthCredentialsPresenter.schema),
+      auth_config: v.nullable(v1ProviderAuthConfigPresenter.schema),
+      config: v.nullable(v1ConfigPresenter.schema),
       ui_mode: v.string({
         name: 'ui_mode',
         description: 'UI mode for setup',
         examples: ['redirect', 'popup']
       }),
-      redirect_url: v.string({
-        name: 'redirect_url',
-        description: 'URL to redirect after setup',
-        examples: ['https://app.example.com/callback']
-      }),
-      auth_config: v.nullable(v1ProviderAuthConfigPresenter.schema),
+      redirect_url: v.nullable(
+        v.string({
+          name: 'redirect_url',
+          description: 'URL to redirect after setup',
+          examples: ['https://app.example.com/callback']
+        })
+      ),
       created_at: v.date({
         name: 'created_at',
         description: 'Timestamp when created',

@@ -30,7 +30,14 @@ export let v1SessionParticipantPresenter = Presenter.create(sessionParticipantTy
       type: v.string({
         name: 'type',
         description: 'Participant type',
-        examples: ['client', 'server']
+        examples: [
+          'unknown',
+          'provider',
+          'mcp_client',
+          'metorial_protocol_client',
+          'system',
+          'tool_call'
+        ]
       }),
       identifier: v.string({
         name: 'identifier',

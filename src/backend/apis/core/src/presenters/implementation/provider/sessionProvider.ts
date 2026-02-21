@@ -1,25 +1,30 @@
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
 import { sessionProviderType } from '../../types';
-import { v1ProviderDeploymentPreviewPresenter } from './deploymentPreview';
 import { v1ProviderConfigPreviewPresenter } from './configPreview';
+import { v1ProviderDeploymentPreviewPresenter } from './deploymentPreview';
 
 export let v1SessionProviderPresenter = Presenter.create(sessionProviderType)
   .presenter(async ({ sessionProvider }, opts) => ({
     object: 'session.provider' as const,
+
     id: sessionProvider.id,
     status: sessionProvider.status,
+
     usage: {
       total_productive_client_message_count:
         sessionProvider.usage.totalProductiveClientMessageCount,
       total_productive_server_message_count:
         sessionProvider.usage.totalProductiveServerMessageCount
     },
+
     tool_filter: sessionProvider.toolFilter,
+
     provider_id: sessionProvider.providerId,
     session_id: sessionProvider.sessionId,
     from_template_id: sessionProvider.fromTemplateId,
     from_template_provider_id: sessionProvider.fromTemplateProviderId,
+
     deployment: await v1ProviderDeploymentPreviewPresenter
       .present({ deployment: sessionProvider.deployment }, opts)
       .run(),
@@ -32,6 +37,7 @@ export let v1SessionProviderPresenter = Presenter.create(sessionProviderType)
           id: sessionProvider.authConfig.id
         }
       : null,
+
     created_at: sessionProvider.createdAt,
     updated_at: sessionProvider.updatedAt
   }))
@@ -63,10 +69,46 @@ export let v1SessionProviderPresenter = Presenter.create(sessionProviderType)
         },
         { name: 'usage', description: 'Usage statistics' }
       ),
-      tool_filter: v.record(v.any(), {
-        name: 'tool_filter',
-        description: 'Tool filter configuration'
-      }),
+      tool_filter: v.union(
+        [
+          v.object({ type: v.literal('v1.allow_all') }),
+          v.object({
+            type: v.literal('v1.filter'),
+            filters: v.array(
+              v.union(
+                [
+                  v.object({
+                    type: v.literal('tool_keys'),
+                    keys: v.array(v.string())
+                  }),
+                  v.object({
+                    type: v.literal('tool_regex'),
+                    pattern: v.string()
+                  }),
+                  v.object({
+                    type: v.literal('resource_regex'),
+                    pattern: v.string()
+                  }),
+                  v.object({
+                    type: v.literal('resource_uris'),
+                    uris: v.array(v.string())
+                  }),
+                  v.object({
+                    type: v.literal('prompt_keys'),
+                    keys: v.array(v.string())
+                  }),
+                  v.object({
+                    type: v.literal('prompt_regex'),
+                    pattern: v.string()
+                  })
+                ],
+                { name: 'filter', description: 'A tool filter entry' }
+              )
+            )
+          })
+        ],
+        { name: 'tool_filter', description: 'Tool filter configuration' }
+      ),
       provider_id: v.string({
         name: 'provider_id',
         description: 'Provider ID',
