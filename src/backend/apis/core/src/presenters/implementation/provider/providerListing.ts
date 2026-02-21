@@ -1,3 +1,4 @@
+import { getImageUrl } from '@metorial/db';
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
 import { providerListingType } from '../../types';
@@ -7,50 +8,61 @@ import { v1GroupPresenter } from './group';
 import { v1PublisherPresenter } from './publisher';
 
 export let v1ProviderListingPresenter = Presenter.create(providerListingType)
-  .presenter(async ({ providerListing }, opts) => ({
-    object: 'provider.listing' as const,
-    id: providerListing.id,
-    name: providerListing.name,
-    description: providerListing.description ?? null,
-    slug: providerListing.slug ?? providerListing.identifier ?? '',
-    image_url: providerListing.image?.url ?? providerListing.source?.url ?? null,
-    readme: providerListing.readme ?? null,
-    skills: providerListing.skills ?? [],
-    flags: {
-      is_public: providerListing.isPublic ?? true,
-      is_customized: providerListing.isCustomized ?? false,
-      is_metorial: providerListing.isMetorial ?? false,
-      is_verified: providerListing.isVerified ?? false,
-      is_official: providerListing.isOfficial ?? false
-    },
-    provider_id: providerListing.provider?.id ?? null,
-    publisher: providerListing.publisher
-      ? await v1PublisherPresenter
-          .present({ publisher: providerListing.publisher }, opts)
-          .run()
-      : null,
-    categories: providerListing.categories
-      ? await Promise.all(
-          providerListing.categories.map(c =>
-            v1CategoryPresenter.present({ category: c }, opts).run()
+  .presenter(async ({ providerListing }, opts) => {
+    let rawImageUrl =
+      (providerListing.image as any)?.url ?? (providerListing.source as any)?.url;
+
+    return {
+      object: 'provider.listing' as const,
+      id: providerListing.id,
+      name: providerListing.name,
+      description: providerListing.description ?? null,
+      slug: providerListing.slug ?? providerListing.identifier ?? '',
+      image_url: await getImageUrl({
+        id: providerListing.id,
+        name: providerListing.name,
+        image: rawImageUrl ? { type: 'url', url: rawImageUrl } : null
+      }),
+      readme: providerListing.readme ?? null,
+      skills: providerListing.skills ?? [],
+      flags: {
+        is_public: providerListing.isPublic ?? true,
+        is_customized: providerListing.isCustomized ?? false,
+        is_metorial: providerListing.isMetorial ?? false,
+        is_verified: providerListing.isVerified ?? false,
+        is_official: providerListing.isOfficial ?? false
+      },
+      provider_id: providerListing.provider?.id ?? null,
+      publisher: providerListing.publisher
+        ? await v1PublisherPresenter
+            .present({ publisher: providerListing.publisher }, opts)
+            .run()
+        : null,
+      categories: providerListing.categories
+        ? await Promise.all(
+            providerListing.categories.map(c =>
+              v1CategoryPresenter.present({ category: c }, opts).run()
+            )
           )
-        )
-      : [],
-    collections: providerListing.collections
-      ? await Promise.all(
-          providerListing.collections.map(c =>
-            v1CollectionPresenter.present({ collection: c }, opts).run()
+        : [],
+      collections: providerListing.collections
+        ? await Promise.all(
+            providerListing.collections.map(c =>
+              v1CollectionPresenter.present({ collection: c }, opts).run()
+            )
           )
-        )
-      : [],
-    groups: providerListing.groups
-      ? await Promise.all(
-          providerListing.groups.map(g => v1GroupPresenter.present({ group: g }, opts).run())
-        )
-      : [],
-    created_at: providerListing.createdAt,
-    updated_at: providerListing.updatedAt
-  }))
+        : [],
+      groups: providerListing.groups
+        ? await Promise.all(
+            providerListing.groups.map(g =>
+              v1GroupPresenter.present({ group: g }, opts).run()
+            )
+          )
+        : [],
+      created_at: providerListing.createdAt,
+      updated_at: providerListing.updatedAt
+    };
+  })
   .schema(
     v.object({
       object: v.literal('provider.listing', {
