@@ -73,7 +73,6 @@ export let sessionTemplateController = Controller.create(
             provider_auth_config_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter templates that include provider auth configs with these IDs'
             })
-
           })
         )
       )

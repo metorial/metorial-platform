@@ -3,6 +3,7 @@ import { subspaceProviderListingGroupService } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
+import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { providerGroupPresenter } from '../../presenters';
@@ -43,15 +44,24 @@ export let providerGroupController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            //         ids: string[] | undefined;
-            // providerIds: string[] | undefined;
-            // providerListingIds: string[] | undefined;
+            id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by group ID(s)'
+            }),
+            provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by provider ID(s)'
+            }),
+            provider_listing_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by provider listing ID(s)'
+            })
           })
         )
       )
       .do(async ctx => {
         let paginator = await subspaceProviderListingGroupService.list({
-          instance: ctx.instance
+          instance: ctx.instance,
+          ids: normalizeArrayParam(ctx.query.id),
+          providerIds: normalizeArrayParam(ctx.query.provider_id),
+          providerListingIds: normalizeArrayParam(ctx.query.provider_listing_id)
         });
 
         let list = await paginator.run(ctx.query);

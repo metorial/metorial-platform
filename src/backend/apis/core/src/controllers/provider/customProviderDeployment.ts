@@ -64,11 +64,6 @@ export let customProviderDeploymentController = Controller.create(
             custom_provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by custom provider IDs'
             })
-
-            //          status: ("failed" | "succeeded" | "queued" | "deploying")[] | undefined;
-            // ids: string[] | undefined;
-            // customProviderIds: string[] | undefined;
-            // customProviderVersionIds: string[] | undefined;
           })
         )
       )

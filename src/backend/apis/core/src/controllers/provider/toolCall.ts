@@ -64,25 +64,14 @@ export let subspaceToolCallController = Controller.create(
             }),
             tool_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by tool ID(s)'
-            });
-
-
-
-    //             status: ("active" | "archived")[] | undefined;
-    // ids: string[] | undefined;
-    // sessionTemplateIds: string[] | undefined;
-    // sessionProviderIds: string[] | undefined;
-    // providerIds: string[] | undefined;
-    // providerDeploymentIds: string[] | undefined;
-    // providerConfigIds: string[] | undefined;
-    // providerAuthConfigIds: string[] | undefined;
-    // toolIds: string[] | undefined;
+            })
           })
         )
       )
       .do(async ctx => {
         let paginator = await subspaceToolCallService.list({
           instance: ctx.instance,
+          allowDeleted: false,
           sessionTemplateIds: normalizeArrayParam(ctx.query.session_template_id),
           sessionProviderIds: normalizeArrayParam(ctx.query.session_provider_id),
           providerIds: normalizeArrayParam(ctx.query.provider_id),

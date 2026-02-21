@@ -47,6 +47,9 @@ export let providerSpecificationController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
+            id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by specification ID(s)'
+            }),
             provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by provider ID(s)'
             }),
@@ -59,13 +62,13 @@ export let providerSpecificationController = Controller.create(
             provider_config_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by provider config ID(s)'
             })
-
           })
         )
       )
       .do(async ctx => {
         let paginator = await subspaceProviderSpecificationService.list({
           instance: ctx.instance,
+          ids: normalizeArrayParam(ctx.query.id),
           providerIds: normalizeArrayParam(ctx.query.provider_id),
           providerVersionIds: normalizeArrayParam(ctx.query.provider_version_id),
           providerDeploymentIds: normalizeArrayParam(ctx.query.provider_deployment_id),

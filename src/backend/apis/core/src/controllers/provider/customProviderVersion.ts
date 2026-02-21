@@ -64,34 +64,54 @@ export let customProviderVersionController = Controller.create(
                   ])
                 )
               ]),
-              {
-                description:
-                  'Filter by status (queued, deploying, deployment_succeeded, deployment_failed)'
-              }
+              { description: 'Filter by deployment status' }
             ),
             id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by version IDs'
+              description: 'Filter by version ID(s)'
+            }),
+            provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by provider IDs (matches providers connected to sessions)'
+            }),
+            provider_version_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description:
+                'Filter by provider version IDs (matches providers connected to sessions)'
             }),
             custom_provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by custom provider IDs'
-            })
-
-            //         status: ("queued" | "deploying" | "deployment_succeeded" | "deployment_failed")[] | undefined;
-            // ids: string[] | undefined;
-            // providerIds: string[] | undefined;
-            // providerVersionIds: string[] | undefined;
-            // customProviderIds: string[] | undefined;
-            // customProviderDeploymentIds: string[] | undefined;
-            // customProviderEnvironmentIds: string[] | undefined;
+              description:
+                'Filter by custom provider IDs (matches providers connected to sessions)'
+            }),
+            custom_provider_deployment_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              {
+                description:
+                  'Filter by custom provider deployment IDs (matches providers connected to sessions)'
+              }
+            ),
+            custom_provider_environment_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              {
+                description:
+                  'Filter by custom provider environment IDs (matches providers connected to sessions)'
+              }
+            )
           })
         )
       )
       .do(async ctx => {
         let paginator = await subspaceCustomProviderVersionService.list({
           instance: ctx.instance,
-          customProviderIds: normalizeArrayParam(ctx.query.custom_provider_id),
+
           status: normalizeArrayParam(ctx.query.status),
-          ids: normalizeArrayParam(ctx.query.id)
+          ids: normalizeArrayParam(ctx.query.id),
+          providerIds: normalizeArrayParam(ctx.query.provider_id),
+          providerVersionIds: normalizeArrayParam(ctx.query.provider_version_id),
+          customProviderIds: normalizeArrayParam(ctx.query.custom_provider_id),
+          customProviderDeploymentIds: normalizeArrayParam(
+            ctx.query.custom_provider_deployment_id
+          ),
+          customProviderEnvironmentIds: normalizeArrayParam(
+            ctx.query.custom_provider_environment_id
+          )
         });
 
         let list = await paginator.run(ctx.query);

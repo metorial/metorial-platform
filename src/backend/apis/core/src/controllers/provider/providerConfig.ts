@@ -49,27 +49,42 @@ export let providerConfigController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
+            status: v.optional(
+              v.union([
+                v.enumOf(['active', 'archived']),
+                v.array(v.enumOf(['active', 'archived']))
+              ]),
+              { description: 'Filter by status (active, archived)' }
+            ),
+            id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by config ID(s)'
+            }),
             provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by provider ID(s)'
             }),
+            provider_specification_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by provider specification ID(s)'
+            }),
             provider_deployment_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by provider deployment ID(s)'
+            }),
+            provider_config_vault_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by config vault ID(s)'
             })
-
-            //             status: ("active" | "archived")[] | undefined;
-            // ids: string[] | undefined;
-            // providerIds: string[] | undefined;
-            // providerSpecificationIds: string[] | undefined;
-            // providerDeploymentIds: string[] | undefined;
-            // providerConfigVaultIds: string[] | undefined;
           })
         )
       )
       .do(async ctx => {
         let paginator = await subspaceProviderConfigService.list({
           instance: ctx.instance,
+          allowDeleted: false,
+
+          status: normalizeArrayParam(ctx.query.status),
+          ids: normalizeArrayParam(ctx.query.id),
           providerIds: normalizeArrayParam(ctx.query.provider_id),
-          providerDeploymentIds: normalizeArrayParam(ctx.query.provider_deployment_id)
+          providerSpecificationIds: normalizeArrayParam(ctx.query.provider_specification_id),
+          providerDeploymentIds: normalizeArrayParam(ctx.query.provider_deployment_id),
+          providerConfigVaultIds: normalizeArrayParam(ctx.query.provider_config_vault_id)
         });
 
         let list = await paginator.run(ctx.query);

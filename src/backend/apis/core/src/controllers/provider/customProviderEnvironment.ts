@@ -47,29 +47,25 @@ export let customProviderEnvironmentController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            ids: v.optional(v.union([v.string(), v.array(v.string())]), {
+            id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by environment IDs'
             }),
-            custom_provider_version_ids: v.optional(
+            custom_provider_version_id: v.optional(
               v.union([v.string(), v.array(v.string())]),
               { description: 'Filter by version IDs' }
             ),
-            custom_provider_ids: v.optional(v.union([v.string(), v.array(v.string())]), {
+            custom_provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by custom provider IDs'
             })
-
-            //          ids: string[] | undefined;
-            // customProviderIds: string[] | undefined;
-            // customProviderVersionIds: string[] | undefined;
           })
         )
       )
       .do(async ctx => {
         let paginator = await subspaceCustomProviderEnvironmentService.list({
           instance: ctx.instance,
-          ids: normalizeArrayParam(ctx.query.ids),
-          customProviderVersionIds: normalizeArrayParam(ctx.query.custom_provider_version_ids),
-          customProviderIds: normalizeArrayParam(ctx.query.custom_provider_ids)
+          ids: normalizeArrayParam(ctx.query.id),
+          customProviderVersionIds: normalizeArrayParam(ctx.query.custom_provider_version_id),
+          customProviderIds: normalizeArrayParam(ctx.query.custom_provider_id)
         });
 
         let list = await paginator.run(ctx.query);

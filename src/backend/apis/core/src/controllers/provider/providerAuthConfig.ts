@@ -47,38 +47,49 @@ export let providerAuthConfigController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            provider_auth_method_id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by auth method ID(s)'
-            }),
-            provider_auth_credentials_id: v.optional(
-              v.union([v.string(), v.array(v.string())]),
-              { description: 'Filter by auth credentials ID(s)' }
+            status: v.optional(
+              v.union([
+                v.enumOf(['active', 'archived']),
+                v.array(v.enumOf(['active', 'archived']))
+              ]),
+              {
+                description: 'Filter by status (active, archived)'
+              }
             ),
+            id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by auth config ID(s)'
+            }),
             provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by provider ID(s)'
             }),
             provider_deployment_id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by deployment ID(s)'
+              description: 'Filter by provider deployment ID(s)'
+            }),
+            provider_auth_credentials_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              {
+                description: 'Filter by auth credentials ID(s)'
+              }
+            ),
+            provider_auth_method_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by auth method ID(s)'
             })
-
-            //  status: ("active" | "archived")[] | undefined;
-            // ids: string[] | undefined;
-            // providerIds: string[] | undefined;
-            // providerDeploymentIds: string[] | undefined;
-            // providerAuthCredentialsIds: string[] | undefined;
-            // providerAuthMethodIds: string[] | undefined;
           })
         )
       )
       .do(async ctx => {
         let paginator = await subspaceProviderAuthConfigService.list({
           instance: ctx.instance,
+          allowDeleted: false,
+
+          status: normalizeArrayParam(ctx.query.status),
+          ids: normalizeArrayParam(ctx.query.id),
           providerIds: normalizeArrayParam(ctx.query.provider_id),
           providerDeploymentIds: normalizeArrayParam(ctx.query.provider_deployment_id),
-          providerAuthMethodIds: normalizeArrayParam(ctx.query.provider_auth_method_id),
           providerAuthCredentialsIds: normalizeArrayParam(
             ctx.query.provider_auth_credentials_id
-          )
+          ),
+          providerAuthMethodIds: normalizeArrayParam(ctx.query.provider_auth_method_id)
         });
 
         let list = await paginator.run(ctx.query);

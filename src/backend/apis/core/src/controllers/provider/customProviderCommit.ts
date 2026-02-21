@@ -44,7 +44,7 @@ export let customProviderCommitController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            ids: v.optional(v.union([v.string(), v.array(v.string())]), {
+            id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by commit IDs'
             }),
             custom_provider_version_id: v.optional(
@@ -57,25 +57,23 @@ export let customProviderCommitController = Controller.create(
             ),
             custom_provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by custom provider IDs'
+            }),
+            provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by provider ID(s)'
             })
-
-            //          ids: string[] | undefined;
-            // providerIds: string[] | undefined;
-            // customProviderIds: string[] | undefined;
-            // customProviderVersionIds: string[] | undefined;
-            // customProviderEnvironmentIds: string[] | undefined;
           })
         )
       )
       .do(async ctx => {
         let paginator = await subspaceCustomProviderCommitService.list({
           instance: ctx.instance,
-          ids: normalizeArrayParam(ctx.query.ids),
+          ids: normalizeArrayParam(ctx.query.id),
           customProviderVersionIds: normalizeArrayParam(ctx.query.custom_provider_version_id),
           customProviderEnvironmentIds: normalizeArrayParam(
             ctx.query.custom_provider_environment_id
           ),
-          customProviderIds: normalizeArrayParam(ctx.query.custom_provider_id)
+          customProviderIds: normalizeArrayParam(ctx.query.custom_provider_id),
+          providerIds: normalizeArrayParam(ctx.query.provider_id)
         });
 
         let list = await paginator.run(ctx.query);

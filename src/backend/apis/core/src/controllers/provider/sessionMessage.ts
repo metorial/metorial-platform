@@ -62,10 +62,7 @@ export let subspaceSessionMessageController = Controller.create(
               { description: 'Filter by message source(s)' }
             ),
             hierarchy: v.optional(
-              v.union([
-                v.enumOf(['child', 'parent']),
-                v.array(v.enumOf(['child', 'parent']))
-              ]),
+              v.union([v.enumOf(['child', 'parent']), v.array(v.enumOf(['child', 'parent']))]),
               { description: 'Filter by message hierarchy' }
             ),
             id: v.optional(v.union([v.string(), v.array(v.string())]), {

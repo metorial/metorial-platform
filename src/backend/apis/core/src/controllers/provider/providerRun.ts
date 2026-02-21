@@ -80,6 +80,7 @@ export let subspaceProviderRunController = Controller.create(
         let paginator = await subspaceProviderRunService.list({
           instance: ctx.instance,
           allowDeleted: false,
+
           ids: normalizeArrayParam(ctx.query.id),
           sessionIds: normalizeArrayParam(ctx.query.session_id),
           providerIds: normalizeArrayParam(ctx.query.provider_id),

@@ -20,7 +20,7 @@ export let providerSetupSessionDashboardController = Controller.create(
     list: instanceGroup
       .get(
         Path(
-          '/dashboard/instances/:instanceId/provider-deployments/:providerDeploymentId/setup-sessions',
+          '/dashboard/instances/:instanceId/setup-sessions',
           'dashboard.instance.providerDeployments.setupSessions.list'
         ),
         {
@@ -90,7 +90,7 @@ export let providerSetupSessionDashboardController = Controller.create(
     get: instanceGroup
       .get(
         Path(
-          '/dashboard/instances/:instanceId/provider-deployments/:providerDeploymentId/setup-sessions/:providerSetupSessionId',
+          '/dashboard/instances/:instanceId/setup-sessions/:providerSetupSessionId',
           'dashboard.instance.providerDeployments.setupSessions.get'
         ),
         {
@@ -107,7 +107,7 @@ export let providerSetupSessionDashboardController = Controller.create(
     create: instanceGroup
       .post(
         Path(
-          '/dashboard/instances/:instanceId/provider-deployments/:providerDeploymentId/setup-sessions',
+          '/dashboard/instances/:instanceId/setup-sessions',
           'dashboard.instance.providerDeployments.setupSessions.create'
         ),
         {
@@ -168,7 +168,7 @@ export let providerSetupSessionDashboardController = Controller.create(
     update: instanceGroup
       .patch(
         Path(
-          '/dashboard/instances/:instanceId/provider-deployments/:providerDeploymentId/setup-sessions/:providerSetupSessionId',
+          '/dashboard/instances/:instanceId/setup-sessions/:providerSetupSessionId',
           'dashboard.instance.providerDeployments.setupSessions.update'
         ),
         {
@@ -210,7 +210,7 @@ export let providerSetupSessionDashboardController = Controller.create(
     delete: instanceGroup
       .delete(
         Path(
-          '/dashboard/instances/:instanceId/provider-deployments/:providerDeploymentId/setup-sessions/:providerSetupSessionId',
+          '/dashboard/instances/:instanceId/setup-sessions/:providerSetupSessionId',
           'dashboard.instance.providerDeployments.setupSessions.delete'
         ),
         {

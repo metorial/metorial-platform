@@ -212,11 +212,6 @@ export let customProviderController = Controller.create(
             provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by provider IDs (matches providers connected to sessions)'
             })
-
-            //             status: ("active" | "archived")[] | undefined;
-            // type: ("function" | "container" | "remote")[] | undefined;
-            // ids: string[] | undefined;
-            // providerIds: string[] | undefined;
           })
         )
       )

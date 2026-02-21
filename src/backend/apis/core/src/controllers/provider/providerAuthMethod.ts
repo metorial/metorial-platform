@@ -50,7 +50,7 @@ export let providerAuthMethodController = Controller.create(
       .do(async ctx => {
         let paginator = await subspaceProviderAuthMethodService.list({
           instance: ctx.instance,
-          providerVersionId: ctx.query.provider_version_id
+          providerVersion: ctx.query.provider_version_id
         });
 
         let list = await paginator.run(ctx.query);

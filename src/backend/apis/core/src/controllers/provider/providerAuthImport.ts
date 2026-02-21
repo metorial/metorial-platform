@@ -54,28 +54,34 @@ export let providerAuthImportController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
+            id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by import ID(s)'
+            }),
             provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by provider ID(s)'
             }),
+            provider_auth_credentials_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Filter by auth credentials ID(s)' }
+            ),
             provider_auth_config_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by auth config ID(s)'
             }),
             provider_deployment_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by provider deployment ID(s)'
             })
-
-            // ids: string[] | undefined;
-            // providerIds: string[] | undefined;
-            // providerAuthCredentialsIds: string[] | undefined;
-            // providerAuthConfigIds: string[] | undefined;
-            // providerDeploymentIds: string[] | undefined;
           })
         )
       )
       .do(async ctx => {
         let paginator = await subspaceProviderAuthImportService.list({
           instance: ctx.instance,
+          allowDeleted: false,
+          ids: normalizeArrayParam(ctx.query.id),
           providerIds: normalizeArrayParam(ctx.query.provider_id),
+          providerAuthCredentialsIds: normalizeArrayParam(
+            ctx.query.provider_auth_credentials_id
+          ),
           providerAuthConfigIds: normalizeArrayParam(ctx.query.provider_auth_config_id),
           providerDeploymentIds: normalizeArrayParam(ctx.query.provider_deployment_id)
         });

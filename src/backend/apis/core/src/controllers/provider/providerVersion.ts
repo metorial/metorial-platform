@@ -49,16 +49,19 @@ export let providerVersionController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
+            id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by version ID(s)'
+            }),
             provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by provider ID(s)'
             })
-
           })
         )
       )
       .do(async ctx => {
         let paginator = await subspaceProviderVersionService.list({
           instance: ctx.instance,
+          ids: normalizeArrayParam(ctx.query.id),
           providerIds: normalizeArrayParam(ctx.query.provider_id)
         });
 
