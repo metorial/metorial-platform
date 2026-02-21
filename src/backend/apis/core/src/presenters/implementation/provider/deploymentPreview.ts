@@ -1,13 +1,10 @@
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
-import { providerDeploymentType } from '../../types';
-import { v1ProviderConfigPreviewPresenter } from './configPreview';
-import { v1ProviderVersionPresenter } from './providerVersion';
+import { deploymentPreviewType } from '../../types';
 
-export let v1ProviderDeploymentPresenter = Presenter.create(providerDeploymentType)
-  .presenter(async ({ deployment }, opts) => ({
-    object: 'provider.deployment' as const,
-
+export let v1ProviderDeploymentPreviewPresenter = Presenter.create(deploymentPreviewType)
+  .presenter(async ({ deployment }) => ({
+    object: 'provider.deployment#preview' as const,
     id: deployment.id,
 
     is_default: deployment.isDefault,
@@ -18,29 +15,17 @@ export let v1ProviderDeploymentPresenter = Presenter.create(providerDeploymentTy
 
     provider_id: deployment.providerId,
 
-    locked_version: deployment.lockedVersion
-      ? await v1ProviderVersionPresenter
-          .present({ version: deployment.lockedVersion }, opts)
-          .run()
-      : null,
-
-    default_config: deployment.defaultConfig
-      ? await v1ProviderConfigPreviewPresenter
-          .present({ config: deployment.defaultConfig }, opts)
-          .run()
-      : null,
-
     created_at: deployment.createdAt,
     updated_at: deployment.updatedAt
   }))
   .schema(
     v.object({
-      object: v.literal('provider.deployment', {
+      object: v.literal('provider.deployment#preview', {
         description: "String representing the object's type"
       }),
       id: v.string({
         name: 'id',
-        description: 'Unique deployment identifier',
+        description: 'Deployment ID',
         examples: ['pde_1aBcDeFgHjKlMnPq']
       }),
       is_default: v.boolean({
@@ -48,7 +33,7 @@ export let v1ProviderDeploymentPresenter = Presenter.create(providerDeploymentTy
         description: 'Whether this is the default deployment'
       }),
       name: v.nullable(
-        v.string({ name: 'name', description: 'Display name', examples: ['Production'] })
+        v.string({ name: 'name', description: 'Deployment name', examples: ['Production'] })
       ),
       description: v.nullable(
         v.string({
@@ -60,8 +45,7 @@ export let v1ProviderDeploymentPresenter = Presenter.create(providerDeploymentTy
       metadata: v.nullable(
         v.record(v.any(), {
           name: 'metadata',
-          description: 'Custom key-value pairs for storing additional information',
-          examples: [{ notes: 'Main deployment' }]
+          description: 'Custom key-value pairs for storing additional information'
         })
       ),
       provider_id: v.string({
@@ -69,8 +53,6 @@ export let v1ProviderDeploymentPresenter = Presenter.create(providerDeploymentTy
         description: 'Provider ID',
         examples: ['pro_5gHjKlMnPqRsTuVw']
       }),
-      locked_version: v.nullable(v1ProviderVersionPresenter.schema),
-      default_config: v.nullable(v1ProviderConfigPreviewPresenter.schema),
       created_at: v.date({
         name: 'created_at',
         description: 'Timestamp when created',

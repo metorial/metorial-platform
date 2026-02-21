@@ -1,12 +1,10 @@
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
-import { providerConfigType } from '../../types';
-import { v1ProviderConfigVaultPresenter } from './configVault';
-import { v1ProviderDeploymentPreviewPresenter } from './deploymentPreview';
+import { configPreviewType } from '../../types';
 
-export let v1ConfigPresenter = Presenter.create(providerConfigType)
-  .presenter(async ({ config }, opts) => ({
-    object: 'provider.config' as const,
+export let v1ProviderConfigPreviewPresenter = Presenter.create(configPreviewType)
+  .presenter(async ({ config }) => ({
+    object: 'provider.config#preview' as const,
 
     id: config.id,
 
@@ -17,31 +15,18 @@ export let v1ConfigPresenter = Presenter.create(providerConfigType)
     metadata: config.metadata,
 
     provider_id: config.providerId,
-    specification_id: config.specificationId,
-
-    deployment: config.deployment
-      ? await v1ProviderDeploymentPreviewPresenter
-          .present({ deployment: config.deployment }, opts)
-          .run()
-      : null,
-
-    from_vault: config.fromVault
-      ? await v1ProviderConfigVaultPresenter
-          .present({ configVault: config.fromVault }, opts)
-          .run()
-      : null,
 
     created_at: config.createdAt,
     updated_at: config.updatedAt
   }))
   .schema(
     v.object({
-      object: v.literal('provider.config', {
+      object: v.literal('provider.config#preview', {
         description: "String representing the object's type"
       }),
       id: v.string({
         name: 'id',
-        description: 'Unique config identifier',
+        description: 'Config ID',
         examples: ['pcf_7dEfGhJkLmNpQrSt']
       }),
       is_default: v.boolean({
@@ -49,11 +34,7 @@ export let v1ConfigPresenter = Presenter.create(providerConfigType)
         description: 'Whether this is the default config'
       }),
       name: v.nullable(
-        v.string({
-          name: 'name',
-          description: 'Display name',
-          examples: ['Production Config']
-        })
+        v.string({ name: 'name', description: 'Config name', examples: ['Production Config'] })
       ),
       description: v.nullable(
         v.string({
@@ -65,8 +46,7 @@ export let v1ConfigPresenter = Presenter.create(providerConfigType)
       metadata: v.nullable(
         v.record(v.any(), {
           name: 'metadata',
-          description: 'Custom key-value pairs for storing additional information',
-          examples: [{ label: 'primary', notes: 'Default production config' }]
+          description: 'Custom key-value pairs for storing additional information'
         })
       ),
       provider_id: v.string({
@@ -74,13 +54,6 @@ export let v1ConfigPresenter = Presenter.create(providerConfigType)
         description: 'Provider ID',
         examples: ['pro_5gHjKlMnPqRsTuVw']
       }),
-      specification_id: v.string({
-        name: 'specification_id',
-        description: 'Specification ID',
-        examples: ['psp_9gHjKlMnPqRsTuVw']
-      }),
-      deployment: v.nullable(v1ProviderDeploymentPreviewPresenter.schema),
-      from_vault: v.nullable(v1ProviderConfigVaultPresenter.schema),
       created_at: v.date({
         name: 'created_at',
         description: 'Timestamp when created',

@@ -1,16 +1,26 @@
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
 import { providerConfigVaultType } from '../../types';
+import { v1ProviderDeploymentPreviewPresenter } from './deploymentPreview';
 
 export let v1ProviderConfigVaultPresenter = Presenter.create(providerConfigVaultType)
-  .presenter(async ({ configVault }) => ({
+  .presenter(async ({ configVault }, opts) => ({
     object: 'provider.config_vault' as const,
+
     id: configVault.id,
+
     name: configVault.name,
     description: configVault.description,
     metadata: configVault.metadata,
+
     provider_id: configVault.providerId,
-    provider_deployment_id: configVault.providerDeploymentId ?? configVault.deploymentId,
+
+    deployment: configVault.deployment
+      ? await v1ProviderDeploymentPreviewPresenter
+          .present({ deployment: configVault.deployment }, opts)
+          .run()
+      : null,
+
     created_at: configVault.createdAt,
     updated_at: configVault.updatedAt
   }))
@@ -50,13 +60,7 @@ export let v1ProviderConfigVaultPresenter = Presenter.create(providerConfigVault
         description: 'Provider ID',
         examples: ['pro_5gHjKlMnPqRsTuVw']
       }),
-      provider_deployment_id: v.nullable(
-        v.string({
-          name: 'provider_deployment_id',
-          description: 'Deployment ID',
-          examples: ['pde_1aBcDeFgHjKlMnPq']
-        })
-      ),
+      deployment: v.nullable(v1ProviderDeploymentPreviewPresenter.schema),
       created_at: v.date({
         name: 'created_at',
         description: 'Timestamp when created',

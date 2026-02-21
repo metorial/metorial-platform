@@ -3,7 +3,7 @@ import { v } from '@metorial/validation';
 import { providerAuthConfigType } from '../../types';
 import { v1ProviderAuthCredentialsPresenter } from './authCredentials';
 import { v1ProviderAuthMethodPresenter } from './authMethod';
-import { v1ProviderDeploymentPreviewPresenter } from './deployment';
+import { v1ProviderDeploymentPreviewPresenter } from './deploymentPreview';
 
 export let v1ProviderAuthConfigPresenter = Presenter.create(providerAuthConfigType)
   .presenter(async ({ authConfig }, opts) => ({

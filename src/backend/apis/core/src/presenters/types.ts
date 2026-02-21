@@ -384,7 +384,7 @@ export let deploymentPreviewType = PresentableType.create<{
 }>()('deploymentPreview');
 
 export let configPreviewType = PresentableType.create<{
-  config: SubspaceProviderConfig;
+  config: NonNullable<SubspaceProviderDeployment['defaultConfig']>;
 }>()('configPreview');
 
 export let providerDeploymentType = PresentableType.create<{
