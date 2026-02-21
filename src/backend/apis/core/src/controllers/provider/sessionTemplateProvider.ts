@@ -4,112 +4,9 @@ import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
-import {
-  authConfigValidator,
-  configValidator,
-  deploymentValidator
-} from '../../lib/providerValidators';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { sessionTemplateProviderPresenter } from '../../presenters';
-
-let mapSessionTemplateProviderConfigSource = (
-  config:
-    | { type: 'none' }
-    | { type: 'reference'; provider_config_id: string }
-    | {
-        type: 'ephemeral';
-        name?: string;
-        config:
-          | { type: 'inline'; data: Record<string, any> }
-          | { type: 'vault'; provider_config_vault_id: string };
-      }
-    | string
-    | undefined
-): any => {
-  if (!config) return undefined;
-  if (typeof config === 'string') return { type: 'reference', providerConfigId: config };
-  if (config.type === 'none') return undefined;
-  if (config.type === 'reference') {
-    return { type: 'reference', providerConfigId: config.provider_config_id };
-  }
-  return {
-    type: 'ephemeral',
-    name: config.name,
-    config:
-      config.config.type === 'inline'
-        ? { type: 'inline', data: config.config.data }
-        : { type: 'vault', providerConfigVaultId: config.config.provider_config_vault_id }
-  };
-};
-
-let mapSessionTemplateProviderDeploymentSource = (
-  deployment:
-    | { type: 'reference'; provider_deployment_id: string }
-    | {
-        type: 'ephemeral';
-        provider_id: string;
-        name?: string;
-        description?: string;
-        metadata?: Record<string, any>;
-        locked_provider_version_id?: string;
-        config?:
-          | { type: 'none' }
-          | { type: 'reference'; provider_config_id: string }
-          | {
-              type: 'ephemeral';
-              name?: string;
-              config:
-                | { type: 'inline'; data: Record<string, any> }
-                | { type: 'vault'; provider_config_vault_id: string };
-            }
-          | string;
-      }
-    | string
-    | undefined
-): any => {
-  if (!deployment) return undefined;
-  if (typeof deployment === 'string') {
-    return { type: 'reference', providerDeploymentId: deployment };
-  }
-  if (deployment.type === 'reference') {
-    return { type: 'reference', providerDeploymentId: deployment.provider_deployment_id };
-  }
-  return {
-    type: 'ephemeral',
-    providerId: deployment.provider_id,
-    name: deployment.name,
-    description: deployment.description,
-    metadata: deployment.metadata,
-    lockedProviderVersionId: deployment.locked_provider_version_id,
-    config: mapSessionTemplateProviderConfigSource(deployment.config)
-  };
-};
-
-let mapSessionTemplateProviderAuthConfigSource = (
-  auth:
-    | { type: 'reference'; provider_auth_config_id: string }
-    | {
-        type: 'ephemeral';
-        name?: string;
-        provider_auth_method_id: string;
-        credentials: Record<string, any>;
-      }
-    | string
-    | undefined
-): any => {
-  if (!auth) return undefined;
-  if (typeof auth === 'string') return { type: 'reference', providerAuthConfigId: auth };
-  if (auth.type === 'reference') {
-    return { type: 'reference', providerAuthConfigId: auth.provider_auth_config_id };
-  }
-  return {
-    type: 'ephemeral',
-    name: auth.name,
-    providerAuthMethodId: auth.provider_auth_method_id,
-    credentials: auth.credentials
-  };
-};
 
 let sessionTemplateProviderGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.sessionTemplateProviderId) {
@@ -229,12 +126,9 @@ export let sessionTemplateProviderController = Controller.create(
       .body(
         'default',
         v.object({
-          name: v.optional(v.string()),
-          description: v.optional(v.string()),
-          metadata: v.optional(v.record(v.any())),
-          provider_deployment: deploymentValidator,
-          provider_config: v.optional(configValidator),
-          provider_auth_config: v.optional(authConfigValidator),
+          provider_deployment_id: v.optional(v.string()),
+          provider_config_id: v.optional(v.string()),
+          provider_auth_config_id: v.optional(v.string()),
           tool_filters: v.optional(v.object({ tool_keys: v.optional(v.array(v.string())) }))
         })
       )
@@ -243,16 +137,9 @@ export let sessionTemplateProviderController = Controller.create(
         let stp = await subspaceSessionTemplateProviderService.create({
           instance: ctx.instance,
           sessionTemplateId: ctx.sessionTemplate.id,
-          name: ctx.body.name,
-          description: ctx.body.description,
-          metadata: ctx.body.metadata,
-          providerDeployment: mapSessionTemplateProviderDeploymentSource(
-            ctx.body.provider_deployment
-          ),
-          providerConfig: mapSessionTemplateProviderConfigSource(ctx.body.provider_config),
-          providerAuthConfig: mapSessionTemplateProviderAuthConfigSource(
-            ctx.body.provider_auth_config
-          ),
+          providerDeploymentId: ctx.body.provider_deployment_id,
+          providerConfigId: ctx.body.provider_config_id,
+          providerAuthConfigId: ctx.body.provider_auth_config_id,
           toolFilters: ctx.body.tool_filters
             ? { toolKeys: ctx.body.tool_filters.tool_keys }
             : undefined
@@ -276,12 +163,6 @@ export let sessionTemplateProviderController = Controller.create(
       .body(
         'default',
         v.object({
-          name: v.optional(v.string()),
-          description: v.optional(v.string()),
-          metadata: v.optional(v.record(v.any())),
-          provider_deployment: v.optional(deploymentValidator),
-          provider_config: v.optional(configValidator),
-          provider_auth_config: v.optional(authConfigValidator),
           tool_filters: v.optional(v.object({ tool_keys: v.optional(v.array(v.string())) }))
         })
       )
@@ -290,16 +171,6 @@ export let sessionTemplateProviderController = Controller.create(
         let stp = await subspaceSessionTemplateProviderService.update({
           instance: ctx.instance,
           sessionTemplateProviderId: ctx.sessionTemplateProvider.id,
-          name: ctx.body.name,
-          description: ctx.body.description,
-          metadata: ctx.body.metadata,
-          providerDeployment: mapSessionTemplateProviderDeploymentSource(
-            ctx.body.provider_deployment
-          ),
-          providerConfig: mapSessionTemplateProviderConfigSource(ctx.body.provider_config),
-          providerAuthConfig: mapSessionTemplateProviderAuthConfigSource(
-            ctx.body.provider_auth_config
-          ),
           toolFilters: ctx.body.tool_filters
             ? { toolKeys: ctx.body.tool_filters.tool_keys }
             : undefined

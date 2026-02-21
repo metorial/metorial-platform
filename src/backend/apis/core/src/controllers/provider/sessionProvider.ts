@@ -12,6 +12,7 @@ import {
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { sessionProviderPresenter } from '../../presenters';
+import { toolFiltersValidator } from './session';
 
 type SessionProviderCreateInput = Parameters<typeof subspaceSessionProviderService.create>[0];
 
@@ -221,31 +222,22 @@ export let subspaceSessionProviderController = Controller.create(
       .body(
         'default',
         v.object({
-          name: v.optional(v.string({ examples: ['GitHub Provider'] })),
-          description: v.optional(v.string({ examples: ['GitHub integration'] })),
-          metadata: v.optional(v.record(v.any(), { examples: [{ version: '1.0' }] }), {
-            description: 'Custom key-value pairs'
-          }),
+          session_id: v.string(),
           provider_deployment: deploymentValidator,
           provider_config: v.optional(configValidator),
           provider_auth_config: v.optional(authConfigValidator),
-          tool_filters: v.optional(v.object({ tool_keys: v.optional(v.array(v.string())) }))
+          tool_filters: toolFiltersValidator
         })
       )
       .output(sessionProviderPresenter)
       .do(async ctx => {
         let sessionProvider = await subspaceSessionProviderService.create({
           instance: ctx.instance,
-          sessionId: ctx.session.id,
-          name: ctx.body.name,
-          description: ctx.body.description,
-          metadata: ctx.body.metadata,
+          sessionId: ctx.body.session_id,
           providerDeployment: mapSessionProviderDeploymentSource(ctx.body.provider_deployment),
           providerConfig: mapSessionProviderConfigSource(ctx.body.provider_config),
           providerAuthConfig: mapSessionProviderAuthConfigSource(ctx.body.provider_auth_config),
           toolFilters: ctx.body.tool_filters
-            ? { type: 'tool_keys', keys: ctx.body.tool_filters.tool_keys ?? [] }
-            : undefined
         });
 
         return sessionProviderPresenter.present({
@@ -265,11 +257,7 @@ export let subspaceSessionProviderController = Controller.create(
       .body(
         'default',
         v.object({
-          name: v.optional(v.string({ examples: ['Updated Provider Name'] })),
-          description: v.optional(v.string({ examples: ['Updated description'] })),
-          metadata: v.optional(v.record(v.any(), { examples: [{ version: '2.0' }] }), {
-            description: 'Custom key-value pairs'
-          })
+          tool_filters: toolFiltersValidator
         })
       )
       .output(sessionProviderPresenter)
@@ -277,9 +265,7 @@ export let subspaceSessionProviderController = Controller.create(
         let sessionProvider = await subspaceSessionProviderService.update({
           instance: ctx.instance,
           sessionProviderId: ctx.sessionProvider.id,
-          name: ctx.body.name,
-          description: ctx.body.description,
-          metadata: ctx.body.metadata
+          toolFilters: ctx.body.tool_filters
         });
 
         return sessionProviderPresenter.present({

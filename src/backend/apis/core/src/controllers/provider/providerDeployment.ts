@@ -8,12 +8,32 @@ import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { providerDeploymentPresenter } from '../../presenters';
 
+let providerDeploymentGroup = instanceGroup.use(async ctx => {
+  if (!ctx.params.providerDeploymentId) {
+    throw new ServiceError(
+      badRequestError({
+        message: 'providerDeploymentId is required',
+        description: 'The providerDeploymentId path parameter is required.'
+      })
+    );
+  }
+
+  let deployment = await subspaceProviderDeploymentService.get({
+    instance: ctx.instance,
+    providerDeploymentId: ctx.params.providerDeploymentId
+  });
+
+  return { deployment };
+});
+
 type ProviderDeploymentCreateConfig = NonNullable<
   Parameters<typeof subspaceProviderDeploymentService.create>[0]['config']
 >;
 
 let mapProviderDeploymentConfigSource = (
-  config: { type: 'new'; data: Record<string, any> } | { type: 'vault'; provider_config_vault_id: string }
+  config:
+    | { type: 'new'; data: Record<string, any> }
+    | { type: 'vault'; provider_config_vault_id: string }
 ): NonNullable<Extract<ProviderDeploymentCreateConfig, { type: 'ephemeral' }>['config']> => {
   if (config.type === 'new') {
     return {
@@ -35,7 +55,9 @@ let mapProviderDeploymentConfig = (
     | {
         type: 'new';
         name?: string;
-        config: { type: 'new'; data: Record<string, any> } | { type: 'vault'; provider_config_vault_id: string };
+        config:
+          | { type: 'new'; data: Record<string, any> }
+          | { type: 'vault'; provider_config_vault_id: string };
       }
     | undefined
 ): ProviderDeploymentCreateConfig | undefined => {
@@ -61,24 +83,6 @@ let mapProviderDeploymentConfig = (
     config: mapProviderDeploymentConfigSource(config.config)
   };
 };
-
-let providerDeploymentGroup = instanceGroup.use(async ctx => {
-  if (!ctx.params.providerDeploymentId) {
-    throw new ServiceError(
-      badRequestError({
-        message: 'providerDeploymentId is required',
-        description: 'The providerDeploymentId path parameter is required.'
-      })
-    );
-  }
-
-  let deployment = await subspaceProviderDeploymentService.get({
-    instance: ctx.instance,
-    providerDeploymentId: ctx.params.providerDeploymentId
-  });
-
-  return { deployment };
-});
 
 export let providerDeploymentController = Controller.create(
   {

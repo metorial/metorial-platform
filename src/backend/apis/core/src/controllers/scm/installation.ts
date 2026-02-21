@@ -13,7 +13,8 @@ import { scmConnectionPresenter, scmConnectionSetupPresenter } from '../../prese
 export let scmInstallationController = Controller.create(
   {
     name: 'SCM Installations',
-    description: 'Manage source control management installations (e.g. GitHub App installations).'
+    description:
+      'Manage source control management installations (e.g. GitHub App installations).'
   },
   {
     list: instanceGroup
@@ -49,7 +50,9 @@ export let scmInstallationController = Controller.create(
         'default',
         v.object({
           provider: v.optional(v.string({ description: 'SCM provider type (e.g. github)' })),
-          redirect_url: v.optional(v.string({ description: 'URL to redirect after authorization' }))
+          redirect_url: v.optional(
+            v.string({ description: 'URL to redirect after authorization' })
+          )
         })
       )
       .output(scmConnectionSetupPresenter)

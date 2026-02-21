@@ -37,8 +37,7 @@ export let scmAccountsController = Controller.create(
           object: 'list' as const,
           items: await Promise.all(
             (Array.isArray(items) ? items : []).map((a: any) =>
-              scmAccountPreviewPresenter
-                .present({ accountPreview: a as ScmAccountPreview })
+              scmAccountPreviewPresenter.present({ accountPreview: a as ScmAccountPreview })
             )
           )
         };

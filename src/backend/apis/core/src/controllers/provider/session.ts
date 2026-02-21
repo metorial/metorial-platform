@@ -62,7 +62,9 @@ export let toolFiltersValidator = v.nullable(
   v.optional(v.union([toolFilterValidator, v.array(toolFilterValidator)]))
 );
 
-type SessionCreateProviderInput = Parameters<typeof subspaceSessionService.create>[0]['providers'][number];
+type SessionCreateProviderInput = Parameters<
+  typeof subspaceSessionService.create
+>[0]['providers'][number];
 
 let mapSessionConfigSource = (
   config:
@@ -326,25 +328,6 @@ export let providerSessionController = Controller.create(
           name: ctx.body.name,
           description: ctx.body.description,
           metadata: ctx.body.metadata
-        });
-
-        return providerSessionPresenter.present({
-          session: session
-        });
-      }),
-
-    delete: providerSessionGroup
-      .delete(instancePath('sessions/:sessionId', 'sessions.delete'), {
-        name: 'Delete session',
-        description: 'Deletes a session.'
-      })
-      .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
-      .output(providerSessionPresenter)
-      .do(async ctx => {
-        let session = await subspaceSessionService.update({
-          instance: ctx.instance,
-          sessionId: ctx.session.id,
-          status: 'deleted'
         });
 
         return providerSessionPresenter.present({
