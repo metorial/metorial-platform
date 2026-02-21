@@ -341,8 +341,8 @@ export let CustomServerManagedCreateForm = (p: {
                             <>
                               <Select
                                 label="GitHub Installation"
-                                items={installations.data.items.map((i: any) => ({
-                                  label: i.user.name,
+                                items={installations.data.items.map(i => ({
+                                  label: i.user.name ?? i.user.email,
                                   id: i.id
                                 }))}
                                 value={selectedInstallationId}
@@ -356,7 +356,7 @@ export let CustomServerManagedCreateForm = (p: {
                             <>
                               <Select
                                 label="GitHub Account"
-                                items={accounts.data.items.map((i: any) => ({
+                                items={accounts.data.items.map(i => ({
                                   label: i.name,
                                   id: i.externalId
                                 }))}
