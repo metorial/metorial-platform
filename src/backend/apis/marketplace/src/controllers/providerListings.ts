@@ -1,5 +1,5 @@
-import { createHono } from '@metorial/hono';
 import { notFoundError, ServiceError } from '@metorial/error';
+import { createHono } from '@metorial/hono';
 import {
   subspacePublicProviderListingService,
   subspacePublicProviderToolService,
@@ -10,8 +10,8 @@ import { Paginator } from '@metorial/pagination';
 import { z } from 'zod';
 import { toPaginationQuery } from '../lib/paginationQuery';
 import { paginatorSchema } from '../lib/paginatorSchema';
-import { presentProviderListing } from '../presenters/provider';
 import { useValidation } from '../lib/validator';
+import { presentProviderListing } from '../presenters/provider';
 
 let normalizeSlug = (slug: string) => slug.replaceAll('---', '/').toLowerCase();
 let stringToBoolean = (str: string | undefined) => {
@@ -79,10 +79,10 @@ let listAllPaginatorItems = async <T extends { id: string }>(
   return items;
 };
 
-let listAllProviderTools = async (d: { providerVersion: string }) =>
+let listAllProviderTools = async (d: { providerVersionId: string }) =>
   await listAllPaginatorItems<SubspaceProviderToolListItem>(
     await subspacePublicProviderToolService.list({
-      providerVersion: d.providerVersion
+      providerVersionId: d.providerVersionId
     })
   );
 
@@ -150,12 +150,13 @@ export let providerListingsController = createHono()
   .get(':slug/capabilities', async c => {
     let listing = await requireListingBySlug(c.req.param('slug'));
 
-    let providerVersion =
+    let providerVersionId =
       listing.provider?.currentVersion?.id ??
       listing.provider?.defaultVariant?.currentVersion?.id;
-    if (!providerVersion) return c.json(toList());
+    if (!providerVersionId) return c.json(toList());
 
-    let tools = await listAllProviderTools({ providerVersion });
+    let tools = await listAllProviderTools({ providerVersionId });
+
     return c.json(toList(tools));
   })
   .get(':slug/variants', async c => {

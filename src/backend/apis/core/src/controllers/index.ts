@@ -18,11 +18,6 @@ import { teamManagementController } from './management/team';
 import { teamRoleManagementController } from './management/teamRole';
 import { teamRolePermissionsManagementController } from './management/teamRolePermissions';
 import {
-  scmAccountsController,
-  scmInstallationController,
-  scmReposController
-} from './scm';
-import {
   customProviderCodeController,
   customProviderCommitController,
   customProviderController,
@@ -30,7 +25,6 @@ import {
   customProviderEnvironmentController,
   customProviderVersionController,
   providerAuthConfigController,
-  providerAuthConfigListController,
   providerAuthCredentialsController,
   providerAuthExportController,
   providerAuthImportController,
@@ -61,6 +55,7 @@ import {
   subspaceSessionParticipantController,
   subspaceSessionProviderController
 } from './provider';
+import { scmAccountsController, scmInstallationController, scmReposController } from './scm';
 
 export let magnetarController = Controller.create<any>(
   {
@@ -69,8 +64,6 @@ export let magnetarController = Controller.create<any>(
   },
   {
     instanceController,
-
-    providerAuthConfigListController,
 
     providerPublisherController,
     providerController,
@@ -171,8 +164,6 @@ export let dashboardController = Controller.create<any>(
     teamRolePermissionsManagementController,
     teamRoleManagementController,
     teamManagementController,
-
-    providerAuthConfigListController,
 
     providerController,
     providerListingController,

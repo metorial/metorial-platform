@@ -3,8 +3,8 @@ import { subspacePublicProviderListingCategoryService } from '@metorial/module-s
 import { Paginator } from '@metorial/pagination';
 import { toPaginationQuery } from '../lib/paginationQuery';
 import { paginatorSchema } from '../lib/paginatorSchema';
-import { presentProviderCategory } from '../presenters/provider';
 import { useValidation } from '../lib/validator';
+import { presentProviderCategory } from '../presenters/provider';
 
 export let providerCategoriesController = createHono()
   .get('', useValidation('query', paginatorSchema), async c => {
