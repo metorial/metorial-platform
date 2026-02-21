@@ -2,9 +2,11 @@ import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
 import { authImportSchemaType } from '../../types';
 
-export let v1AuthImportSchemaPresenter = Presenter.create(authImportSchemaType)
+export let v1ProviderAuthImportSchemaPresenter = Presenter.create(authImportSchemaType)
   .presenter(async ({ schema }) => ({
     object: 'provider_auth_config.import_schema' as const,
+
+    type: 'json_schema' as const,
     schema: schema.schema
   }))
   .schema(

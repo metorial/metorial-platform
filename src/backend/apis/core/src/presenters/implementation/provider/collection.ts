@@ -1,14 +1,18 @@
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
-import { collectionType } from '../../types';
+import { providerListingCollectionType } from '../../types';
 
-export let v1CollectionPresenter = Presenter.create(collectionType)
+export let v1ProviderListingCollectionPresenter = Presenter.create(
+  providerListingCollectionType
+)
   .presenter(async ({ collection }) => ({
-    object: 'provider.collection' as const,
+    object: 'provider.listing_collection' as const,
     id: collection.id,
+
     name: collection.name,
     description: collection.description,
-    slug: collection.slug ?? collection.identifier,
+    slug: collection.slug,
+
     created_at: collection.createdAt,
     updated_at: collection.updatedAt
   }))

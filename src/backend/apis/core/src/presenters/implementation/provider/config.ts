@@ -1,8 +1,8 @@
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
-import { configType, configPreviewType } from '../../types';
+import { configPreviewType, providerConfigType } from '../../types';
 
-export let v1ConfigPreviewPresenter = Presenter.create(configPreviewType)
+export let v1ProviderConfigPreviewPresenter = Presenter.create(configPreviewType)
   .presenter(async ({ config }) => ({
     object: 'provider.config' as const,
     id: config.id,
@@ -33,7 +33,7 @@ export let v1ConfigPreviewPresenter = Presenter.create(configPreviewType)
   )
   .build();
 
-export let v1ConfigPresenter = Presenter.create(configType)
+export let v1ConfigPresenter = Presenter.create(providerConfigType)
   .presenter(async ({ config }) => ({
     object: 'provider.config' as const,
     id: config.id,

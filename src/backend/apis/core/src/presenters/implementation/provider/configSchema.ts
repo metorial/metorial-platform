@@ -2,10 +2,12 @@ import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
 import { configSchemaType } from '../../types';
 
-export let v1ConfigSchemaPresenter = Presenter.create(configSchemaType)
+export let v1ProviderConfigSchemaPresenter = Presenter.create(configSchemaType)
   .presenter(async ({ schema }) => ({
     object: 'provider_deployment.config_schema' as const,
-    schema: schema.schema
+
+    type: 'json_schema' as const,
+    schema: schema.
   }))
   .schema(
     v.object({

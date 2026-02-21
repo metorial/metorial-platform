@@ -8,3 +8,5 @@ export let subspaceProviderRunService = createSubspaceService(
 );
 
 export type SubspaceProviderRun = Awaited<ReturnType<typeof subspace.providerRun.get>>;
+
+export type SubspaceProviderRunLogs = Awaited<ReturnType<typeof subspace.providerRun.getLogs>>;

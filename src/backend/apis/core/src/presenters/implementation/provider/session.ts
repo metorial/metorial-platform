@@ -2,7 +2,7 @@ import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
 import { providerSessionType } from '../../types';
 
-export let v1ProviderSessionPresenter = Presenter.create(providerSessionType)
+export let v1SessionPresenter = Presenter.create(providerSessionType)
   .presenter(async ({ session }) => {
     let usage = session.usage ?? {
       totalProductiveClientMessageCount: 0,

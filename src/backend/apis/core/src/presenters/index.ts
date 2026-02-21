@@ -20,17 +20,7 @@ import { v1UserPresenter } from './implementation/user';
 
 // Provider API presenters
 import {
-  v1AuthConfigPresenter,
-  v1AuthCredentialsPresenter,
-  v1AuthExportPresenter,
-  v1AuthImportPresenter,
-  v1AuthImportSchemaPresenter,
-  v1AuthMethodPresenter,
-  v1CategoryPresenter,
-  v1CollectionPresenter,
   v1ConfigPresenter,
-  v1ConfigPreviewPresenter,
-  v1ConfigSchemaPresenter,
   v1CustomProviderCommitPresenter,
   v1CustomProviderDeploymentLogsPresenter,
   v1CustomProviderDeploymentPresenter,
@@ -39,29 +29,39 @@ import {
   v1CustomProviderPresenter,
   v1CustomProviderVersionPresenter,
   v1CustomServerCodeEditorTokenPresenter,
-  v1DeploymentPresenter,
-  v1DeploymentPreviewPresenter,
-  v1GroupPresenter,
+  v1ProviderAuthConfigPresenter,
+  v1ProviderAuthCredentialsPresenter,
+  v1ProviderAuthExportPresenter,
+  v1ProviderAuthImportPresenter,
+  v1ProviderAuthImportSchemaPresenter,
+  v1ProviderAuthMethodPresenter,
+  v1ProviderConfigPreviewPresenter,
+  v1ProviderConfigSchemaPresenter,
   v1ProviderConfigVaultPresenter,
+  v1ProviderDeploymentPresenter,
+  v1ProviderDeploymentPreviewPresenter,
+  v1ProviderListingCategoryPresenter,
+  v1ProviderListingCollectionPresenter,
+  v1ProviderListingGroupPresenter,
   v1ProviderListingPresenter,
   v1ProviderPresenter,
   v1ProviderRunLogsPresenter,
   v1ProviderRunPresenter,
-  v1ProviderSessionPresenter,
+  v1ProviderSpecificationPresenter,
+  v1ProviderToolPresenter,
+  v1ProviderVersionPresenter,
   v1PublisherPresenter,
+  v1SessionConnectionPresenter,
   v1SessionErrorGroupPresenter,
   v1SessionErrorPresenter,
   v1SessionParticipantPresenter,
+  v1SessionPresenter,
   v1SessionProviderPresenter,
   v1SessionTemplatePresenter,
   v1SessionTemplateProviderPresenter,
   v1SetupSessionPresenter,
-  v1SpecificationPresenter,
-  v1SubspaceSessionConnectionPresenter,
   v1SubspaceSessionEventPresenter,
-  v1SubspaceSessionMessagePresenter,
-  v1ToolPresenter,
-  v1VersionPresenter
+  v1SubspaceSessionMessagePresenter
 } from './implementation/provider';
 
 import {
@@ -74,23 +74,10 @@ import {
 
 import {
   apiKeyType,
-  authConfigType,
-  authCredentialsType,
-  authExportType,
   authImportSchemaType,
-  authImportType,
-  authMethodType,
   bootType,
-  // callbackDestinationType,
-  // callbackEventType,
-  // callbackNotificationType,
-  // callbackType,
-  categoryType,
-  collectionType,
   configPreviewType,
   configSchemaType,
-  configType,
-  configVaultType,
   customProviderCommitType,
   customProviderDeploymentLogsType,
   customProviderDeploymentType,
@@ -100,10 +87,8 @@ import {
   customProviderVersionType,
   customServerCodeEditorTokenType,
   deploymentPreviewType,
-  deploymentType,
   fileLinkType,
   fileType,
-  groupType,
   instanceType,
   machineAccessType,
   // magicMcpGroupType,
@@ -117,11 +102,33 @@ import {
   // portalType,
   profileType,
   projectType,
+  providerAuthConfigType,
+  providerAuthCredentialsType,
+  providerAuthExportType,
+  providerAuthImportType,
+  providerAuthMethodType,
+  providerConfigType,
+  providerConfigVaultType,
+  providerDeploymentType,
+  // callbackDestinationType,
+  // callbackEventType,
+  // callbackNotificationType,
+  // callbackType,
+  providerListingCategoryType,
+  providerListingCollectionType,
+  providerListingGroupType,
   providerListingType,
   providerRunLogsType,
   providerRunType,
+  providerSessionProviderType,
+  providerSessionTemplateProviderType,
+  providerSessionTemplateType,
   providerSessionType,
+  providerSetupSessionType,
+  providerSpecificationType,
+  providerToolType,
   providerType,
+  providerVersionType,
   publisherType,
   scmAccountPreviewType,
   scmInstallationSetupType,
@@ -132,11 +139,6 @@ import {
   sessionErrorGroupType,
   sessionErrorType,
   sessionParticipantType,
-  sessionProviderType,
-  sessionTemplateProviderType,
-  sessionTemplateType,
-  setupSessionType,
-  specificationType,
   // ssoTenantSetupType,
   // ssoTenantType,
   // ssoUserProfileType,
@@ -147,10 +149,8 @@ import {
   teamRolePermissionsType,
   teamRoleType,
   teamType,
-  toolType,
   usageType,
-  userType,
-  versionType
+  userType
 } from './types';
 
 // =============================================================================
@@ -347,9 +347,9 @@ export let publisherPresenter = declarePresenter(publisherType, {
   mt_2026_01_01_magnetar: v1PublisherPresenter
 });
 
-export let providerVersionPresenter = declarePresenter(versionType, {
-  mt_2025_01_01_dashboard: v1VersionPresenter,
-  mt_2026_01_01_magnetar: v1VersionPresenter
+export let providerVersionPresenter = declarePresenter(providerVersionType, {
+  mt_2025_01_01_dashboard: v1ProviderVersionPresenter,
+  mt_2026_01_01_magnetar: v1ProviderVersionPresenter
 });
 
 export let providerPresenter = declarePresenter(providerType, {
@@ -357,19 +357,19 @@ export let providerPresenter = declarePresenter(providerType, {
   mt_2026_01_01_magnetar: v1ProviderPresenter
 });
 
-export let providerCategoryPresenter = declarePresenter(categoryType, {
-  mt_2025_01_01_dashboard: v1CategoryPresenter,
-  mt_2026_01_01_magnetar: v1CategoryPresenter
+export let providerCategoryPresenter = declarePresenter(providerListingCategoryType, {
+  mt_2025_01_01_dashboard: v1ProviderListingCategoryPresenter,
+  mt_2026_01_01_magnetar: v1ProviderListingCategoryPresenter
 });
 
-export let providerCollectionPresenter = declarePresenter(collectionType, {
-  mt_2025_01_01_dashboard: v1CollectionPresenter,
-  mt_2026_01_01_magnetar: v1CollectionPresenter
+export let providerCollectionPresenter = declarePresenter(providerListingCollectionType, {
+  mt_2025_01_01_dashboard: v1ProviderListingCollectionPresenter,
+  mt_2026_01_01_magnetar: v1ProviderListingCollectionPresenter
 });
 
-export let providerGroupPresenter = declarePresenter(groupType, {
-  mt_2025_01_01_dashboard: v1GroupPresenter,
-  mt_2026_01_01_magnetar: v1GroupPresenter
+export let providerGroupPresenter = declarePresenter(providerListingGroupType, {
+  mt_2025_01_01_dashboard: v1ProviderListingGroupPresenter,
+  mt_2026_01_01_magnetar: v1ProviderListingGroupPresenter
 });
 
 export let providerListingPresenter = declarePresenter(providerListingType, {
@@ -377,86 +377,89 @@ export let providerListingPresenter = declarePresenter(providerListingType, {
   mt_2026_01_01_magnetar: v1ProviderListingPresenter
 });
 
-export let providerToolPresenter = declarePresenter(toolType, {
-  mt_2025_01_01_dashboard: v1ToolPresenter,
-  mt_2026_01_01_magnetar: v1ToolPresenter
+export let providerToolPresenter = declarePresenter(providerToolType, {
+  mt_2025_01_01_dashboard: v1ProviderToolPresenter,
+  mt_2026_01_01_magnetar: v1ProviderToolPresenter
 });
 
-export let providerAuthMethodPresenter = declarePresenter(authMethodType, {
-  mt_2025_01_01_dashboard: v1AuthMethodPresenter,
-  mt_2026_01_01_magnetar: v1AuthMethodPresenter
+export let providerAuthMethodPresenter = declarePresenter(providerAuthMethodType, {
+  mt_2025_01_01_dashboard: v1ProviderAuthMethodPresenter,
+  mt_2026_01_01_magnetar: v1ProviderAuthMethodPresenter
 });
 
-export let providerSpecificationPresenter = declarePresenter(specificationType, {
-  mt_2025_01_01_dashboard: v1SpecificationPresenter,
-  mt_2026_01_01_magnetar: v1SpecificationPresenter
+export let providerSpecificationPresenter = declarePresenter(providerSpecificationType, {
+  mt_2025_01_01_dashboard: v1ProviderSpecificationPresenter,
+  mt_2026_01_01_magnetar: v1ProviderSpecificationPresenter
 });
 
-export let providerDeploymentPresenter = declarePresenter(deploymentType, {
-  mt_2025_01_01_dashboard: v1DeploymentPresenter,
-  mt_2026_01_01_magnetar: v1DeploymentPresenter
+export let providerDeploymentPresenter = declarePresenter(providerDeploymentType, {
+  mt_2025_01_01_dashboard: v1ProviderDeploymentPresenter,
+  mt_2026_01_01_magnetar: v1ProviderDeploymentPresenter
 });
 
 export let providerDeploymentPreviewPresenter = declarePresenter(deploymentPreviewType, {
-  mt_2025_01_01_dashboard: v1DeploymentPreviewPresenter,
-  mt_2026_01_01_magnetar: v1DeploymentPreviewPresenter
+  mt_2025_01_01_dashboard: v1ProviderDeploymentPreviewPresenter,
+  mt_2026_01_01_magnetar: v1ProviderDeploymentPreviewPresenter
 });
 
-export let providerConfigPresenter = declarePresenter(configType, {
+export let providerConfigPresenter = declarePresenter(providerConfigType, {
   mt_2025_01_01_dashboard: v1ConfigPresenter,
   mt_2026_01_01_magnetar: v1ConfigPresenter
 });
 
 export let providerConfigPreviewPresenter = declarePresenter(configPreviewType, {
-  mt_2025_01_01_dashboard: v1ConfigPreviewPresenter,
-  mt_2026_01_01_magnetar: v1ConfigPreviewPresenter
+  mt_2025_01_01_dashboard: v1ProviderConfigPreviewPresenter,
+  mt_2026_01_01_magnetar: v1ProviderConfigPreviewPresenter
 });
 
-export let providerConfigVaultPresenter = declarePresenter(configVaultType, {
+export let providerConfigVaultPresenter = declarePresenter(providerConfigVaultType, {
   mt_2025_01_01_dashboard: v1ProviderConfigVaultPresenter,
   mt_2026_01_01_magnetar: v1ProviderConfigVaultPresenter
 });
 
-export let providerAuthConfigPresenter = declarePresenter(authConfigType, {
-  mt_2025_01_01_dashboard: v1AuthConfigPresenter,
-  mt_2026_01_01_magnetar: v1AuthConfigPresenter
+export let providerAuthConfigPresenter = declarePresenter(providerAuthConfigType, {
+  mt_2025_01_01_dashboard: v1ProviderAuthConfigPresenter,
+  mt_2026_01_01_magnetar: v1ProviderAuthConfigPresenter
 });
 
-export let providerAuthCredentialsPresenter = declarePresenter(authCredentialsType, {
-  mt_2025_01_01_dashboard: v1AuthCredentialsPresenter,
-  mt_2026_01_01_magnetar: v1AuthCredentialsPresenter
+export let providerAuthCredentialsPresenter = declarePresenter(providerAuthCredentialsType, {
+  mt_2025_01_01_dashboard: v1ProviderAuthCredentialsPresenter,
+  mt_2026_01_01_magnetar: v1ProviderAuthCredentialsPresenter
 });
 
-export let providerSetupSessionPresenter = declarePresenter(setupSessionType, {
+export let providerSetupSessionPresenter = declarePresenter(providerSetupSessionType, {
   mt_2025_01_01_dashboard: v1SetupSessionPresenter,
   mt_2026_01_01_magnetar: v1SetupSessionPresenter
 });
 
-export let providerAuthImportPresenter = declarePresenter(authImportType, {
-  mt_2025_01_01_dashboard: v1AuthImportPresenter,
-  mt_2026_01_01_magnetar: v1AuthImportPresenter
+export let providerAuthImportPresenter = declarePresenter(providerAuthImportType, {
+  mt_2025_01_01_dashboard: v1ProviderAuthImportPresenter,
+  mt_2026_01_01_magnetar: v1ProviderAuthImportPresenter
 });
 
-export let providerAuthExportPresenter = declarePresenter(authExportType, {
-  mt_2025_01_01_dashboard: v1AuthExportPresenter,
-  mt_2026_01_01_magnetar: v1AuthExportPresenter
+export let providerAuthExportPresenter = declarePresenter(providerAuthExportType, {
+  mt_2025_01_01_dashboard: v1ProviderAuthExportPresenter,
+  mt_2026_01_01_magnetar: v1ProviderAuthExportPresenter
 });
 
 // =============================================================================
 // Session Template & Session-Nested Presenters
 // =============================================================================
 
-export let sessionTemplatePresenter = declarePresenter(sessionTemplateType, {
+export let sessionTemplatePresenter = declarePresenter(providerSessionTemplateType, {
   mt_2025_01_01_dashboard: v1SessionTemplatePresenter,
   mt_2026_01_01_magnetar: v1SessionTemplatePresenter
 });
 
-export let sessionTemplateProviderPresenter = declarePresenter(sessionTemplateProviderType, {
-  mt_2025_01_01_dashboard: v1SessionTemplateProviderPresenter,
-  mt_2026_01_01_magnetar: v1SessionTemplateProviderPresenter
-});
+export let sessionTemplateProviderPresenter = declarePresenter(
+  providerSessionTemplateProviderType,
+  {
+    mt_2025_01_01_dashboard: v1SessionTemplateProviderPresenter,
+    mt_2026_01_01_magnetar: v1SessionTemplateProviderPresenter
+  }
+);
 
-export let sessionProviderPresenter = declarePresenter(sessionProviderType, {
+export let sessionProviderPresenter = declarePresenter(providerSessionProviderType, {
   mt_2025_01_01_dashboard: v1SessionProviderPresenter,
   mt_2026_01_01_magnetar: v1SessionProviderPresenter
 });
@@ -483,8 +486,8 @@ export let subspaceProviderRunPresenter = declarePresenter(providerRunType, {
 
 // Provider Session presenter (Magnetar only - uses provider_deployments instead of server_deployments)
 export let providerSessionPresenter = declarePresenter(providerSessionType, {
-  mt_2025_01_01_dashboard: v1ProviderSessionPresenter,
-  mt_2026_01_01_magnetar: v1ProviderSessionPresenter
+  mt_2025_01_01_dashboard: v1SessionPresenter,
+  mt_2026_01_01_magnetar: v1SessionPresenter
 });
 
 // Provider API session-nested presenters (Magnetar only)
@@ -496,8 +499,8 @@ export let subspaceSessionMessagePresenter = declarePresenter(subspaceSessionMes
 export let subspaceSessionConnectionPresenter = declarePresenter(
   subspaceSessionConnectionType,
   {
-    mt_2025_01_01_dashboard: v1SubspaceSessionConnectionPresenter,
-    mt_2026_01_01_magnetar: v1SubspaceSessionConnectionPresenter
+    mt_2025_01_01_dashboard: v1SessionConnectionPresenter,
+    mt_2026_01_01_magnetar: v1SessionConnectionPresenter
   }
 );
 
@@ -512,13 +515,13 @@ export let providerRunLogsPresenter = declarePresenter(providerRunLogsType, {
 });
 
 export let configSchemaPresenter = declarePresenter(configSchemaType, {
-  mt_2025_01_01_dashboard: v1ConfigSchemaPresenter,
-  mt_2026_01_01_magnetar: v1ConfigSchemaPresenter
+  mt_2025_01_01_dashboard: v1ProviderConfigSchemaPresenter,
+  mt_2026_01_01_magnetar: v1ProviderConfigSchemaPresenter
 });
 
 export let authImportSchemaPresenter = declarePresenter(authImportSchemaType, {
-  mt_2025_01_01_dashboard: v1AuthImportSchemaPresenter,
-  mt_2026_01_01_magnetar: v1AuthImportSchemaPresenter
+  mt_2025_01_01_dashboard: v1ProviderAuthImportSchemaPresenter,
+  mt_2026_01_01_magnetar: v1ProviderAuthImportSchemaPresenter
 });
 
 // =============================================================================

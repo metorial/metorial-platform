@@ -1,13 +1,21 @@
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
-import { versionType } from '../../types';
+import { providerVersionType } from '../../types';
 
-export let v1VersionPresenter = Presenter.create(versionType)
+export let v1ProviderVersionPresenter = Presenter.create(providerVersionType)
   .presenter(async ({ version }) => ({
     object: 'provider.version' as const,
     id: version.id,
-    version: version.tag ?? version.identifier,
-    status: version.isCurrent ? 'released' : 'draft',
+
+    version: version.identifier,
+    isCurrent: version.isCurrent,
+
+    name: version.name,
+    description: version.description,
+    metadata: version.metadata,
+
+    specificationId: version.specificationId,
+
     created_at: version.createdAt,
     updated_at: version.updatedAt
   }))

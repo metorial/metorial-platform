@@ -1,8 +1,8 @@
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
-import { sessionProviderType } from '../../types';
+import { providerSessionProviderType } from '../../types';
 
-export let v1SessionProviderPresenter = Presenter.create(sessionProviderType)
+export let v1SessionProviderPresenter = Presenter.create(providerSessionProviderType)
   .presenter(async ({ sessionProvider }) => ({
     object: 'session.provider' as const,
     id: sessionProvider.id,

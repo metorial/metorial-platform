@@ -1,14 +1,14 @@
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
-import { groupType } from '../../types';
+import { providerListingGroupType } from '../../types';
 
-export let v1GroupPresenter = Presenter.create(groupType)
+export let v1ProviderListingGroupPresenter = Presenter.create(providerListingGroupType)
   .presenter(async ({ group }) => ({
-    object: 'provider.group' as const,
+    object: 'provider.listing_group' as const,
     id: group.id,
     name: group.name,
     description: group.description,
-    slug: group.slug ?? group.identifier,
+    slug: group.slug,
     created_at: group.createdAt,
     updated_at: group.updatedAt
   }))

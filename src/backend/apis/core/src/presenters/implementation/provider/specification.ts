@@ -1,10 +1,10 @@
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
-import { specificationType } from '../../types';
-import { v1ToolPresenter } from './tool';
-import { v1AuthMethodPresenter } from './authMethod';
+import { providerSpecificationType } from '../../types';
+import { v1ProviderAuthMethodPresenter } from './authMethod';
+import { v1ProviderToolPresenter } from './providerTool';
 
-export let v1SpecificationPresenter = Presenter.create(specificationType)
+export let v1ProviderSpecificationPresenter = Presenter.create(providerSpecificationType)
   .presenter(async ({ specification }, opts) => ({
     object: 'provider.specification' as const,
     id: specification.id,
@@ -13,13 +13,15 @@ export let v1SpecificationPresenter = Presenter.create(specificationType)
     config_schema: specification.configSchema ?? specification.configJsonSchema,
     tools: specification.tools
       ? await Promise.all(
-          specification.tools.map(t => v1ToolPresenter.present({ tool: t }, opts).run())
+          specification.tools.map(t =>
+            v1ProviderToolPresenter.present({ tool: t }, opts).run()
+          )
         )
       : [],
     auth_methods: specification.authMethods
       ? await Promise.all(
           specification.authMethods.map(a =>
-            v1AuthMethodPresenter.present({ authMethod: a }, opts).run()
+            v1ProviderAuthMethodPresenter.present({ authMethod: a }, opts).run()
           )
         )
       : [],
@@ -62,11 +64,11 @@ export let v1SpecificationPresenter = Presenter.create(specificationType)
           ]
         })
       ),
-      tools: v.array(v1ToolPresenter.schema, {
+      tools: v.array(v1ProviderToolPresenter.schema, {
         name: 'tools',
         description: 'Available tools'
       }),
-      auth_methods: v.array(v1AuthMethodPresenter.schema, {
+      auth_methods: v.array(v1ProviderAuthMethodPresenter.schema, {
         name: 'auth_methods',
         description: 'Authentication methods'
       }),

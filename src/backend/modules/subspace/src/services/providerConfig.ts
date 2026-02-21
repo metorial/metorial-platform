@@ -30,3 +30,7 @@ export let subspaceProviderConfigService = createSubspaceService(
 );
 
 export type SubspaceProviderConfig = Awaited<ReturnType<typeof subspace.providerConfig.get>>;
+
+export type SubspaceProviderConfigSchema = Awaited<
+  ReturnType<typeof subspace.providerConfig.getConfigSchema>
+>;

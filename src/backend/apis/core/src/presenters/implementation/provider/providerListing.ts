@@ -2,9 +2,9 @@ import { getImageUrl } from '@metorial/db';
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
 import { providerListingType } from '../../types';
-import { v1CategoryPresenter } from './category';
-import { v1CollectionPresenter } from './collection';
-import { v1GroupPresenter } from './group';
+import { v1ProviderListingCategoryPresenter } from './category';
+import { v1ProviderListingCollectionPresenter } from './collection';
+import { v1ProviderListingGroupPresenter } from './group';
 
 export let v1ProviderListingPresenter = Presenter.create(providerListingType)
   .presenter(async ({ providerListing }, opts) => {
@@ -35,20 +35,22 @@ export let v1ProviderListingPresenter = Presenter.create(providerListingType)
       categories: providerListing.categories
         ? await Promise.all(
             providerListing.categories.map(c =>
-              v1CategoryPresenter.present({ category: c }, opts).run()
+              v1ProviderListingCategoryPresenter.present({ category: c }, opts).run()
             )
           )
         : [],
       collections: providerListing.collections
         ? await Promise.all(
             providerListing.collections.map(c =>
-              v1CollectionPresenter.present({ collection: c }, opts).run()
+              v1ProviderListingCollectionPresenter.present({ collection: c }, opts).run()
             )
           )
         : [],
       groups: providerListing.groups
         ? await Promise.all(
-            providerListing.groups.map(g => v1GroupPresenter.present({ group: g }, opts).run())
+            providerListing.groups.map(g =>
+              v1ProviderListingGroupPresenter.present({ group: g }, opts).run()
+            )
           )
         : [],
       created_at: providerListing.createdAt,
@@ -132,15 +134,15 @@ export let v1ProviderListingPresenter = Presenter.create(providerListingType)
           examples: ['pro_5gHjKlMnPqRsTuVw']
         })
       ),
-      categories: v.array(v1CategoryPresenter.schema, {
+      categories: v.array(v1ProviderListingCategoryPresenter.schema, {
         name: 'categories',
         description: 'Provider categories for organization and filtering'
       }),
-      collections: v.array(v1CollectionPresenter.schema, {
+      collections: v.array(v1ProviderListingCollectionPresenter.schema, {
         name: 'collections',
         description: 'Provider collections this provider belongs to'
       }),
-      groups: v.array(v1GroupPresenter.schema, {
+      groups: v.array(v1ProviderListingGroupPresenter.schema, {
         name: 'groups',
         description: 'User groups with access to this provider'
       }),

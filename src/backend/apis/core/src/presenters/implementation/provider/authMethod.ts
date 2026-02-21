@@ -1,60 +1,44 @@
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
-import { authMethodType } from '../../types';
+import { providerAuthMethodType } from '../../types';
 
-let authMethodScopeSchema = v.object({
-  object: v.literal('provider.auth_method.scope', {
-    description: "String representing the object's type"
-  }),
-  id: v.string({
-    name: 'id',
-    description: 'Unique scope identifier',
-    examples: ['pams_8tUvWxYzAbCdEfGh']
-  }),
-  scope: v.string({
-    name: 'scope',
-    description: 'OAuth scope string',
-    examples: ['repo', 'user:email']
-  }),
-  name: v.string({
-    name: 'name',
-    description: 'Display name of the scope',
-    examples: ['Repository Access']
-  }),
-  description: v.nullable(
-    v.string({
-      name: 'description',
-      description: 'Scope description',
-      examples: ['Full control of private repositories']
-    })
-  )
-});
-
-export let v1AuthMethodPresenter = Presenter.create(authMethodType)
+export let v1ProviderAuthMethodPresenter = Presenter.create(providerAuthMethodType)
   .presenter(async ({ authMethod }) => ({
-    object: 'provider.auth_method' as const,
+    object: 'provider.capabilities.auth_method' as const,
     id: authMethod.id,
     type: authMethod.type,
+
+    key: authMethod.key,
     name: authMethod.name,
     description: authMethod.description,
-    input_schema: authMethod.inputSchema ?? authMethod.inputJsonSchema,
+
+    input_schema: {
+      type: 'json_schema',
+      schema: authMethod.inputJsonSchema
+    },
+    output_schema: {
+      type: 'json_schema',
+      schema: authMethod.outputJsonSchema
+    },
+
     scopes:
       authMethod.scopes?.map(scope => ({
-        object: 'provider.auth_method.scope' as const,
+        object: 'provider.capabilities.auth_method.scope' as const,
         id: scope.id,
+        name: scope.title,
         scope: scope.scope,
-        name: scope.title ?? scope.name,
         description: scope.description
       })) ?? null,
+
     provider_id: authMethod.providerId,
-    provider_specification_id:
-      authMethod.providerSpecificationId ?? authMethod.specificationId,
+    provider_specification_id: authMethod.specificationId,
+
     created_at: authMethod.createdAt,
     updated_at: authMethod.updatedAt
   }))
   .schema(
     v.object({
-      object: v.literal('provider.auth_method', {
+      object: v.literal('provider.capabilities.auth_method', {
         description: "String representing the object's type"
       }),
       id: v.string({
@@ -92,10 +76,39 @@ export let v1AuthMethodPresenter = Presenter.create(authMethodType)
         })
       ),
       scopes: v.nullable(
-        v.array(authMethodScopeSchema, {
-          name: 'scopes',
-          description: 'Available OAuth scopes'
-        })
+        v.array(
+          v.object({
+            object: v.literal('provider.capabilities.auth_method.scope', {
+              description: "String representing the object's type"
+            }),
+            id: v.string({
+              name: 'id',
+              description: 'Unique scope identifier',
+              examples: ['pams_8tUvWxYzAbCdEfGh']
+            }),
+            scope: v.string({
+              name: 'scope',
+              description: 'OAuth scope string',
+              examples: ['repo', 'user:email']
+            }),
+            name: v.string({
+              name: 'name',
+              description: 'Display name of the scope',
+              examples: ['Repository Access']
+            }),
+            description: v.nullable(
+              v.string({
+                name: 'description',
+                description: 'Scope description',
+                examples: ['Full control of private repositories']
+              })
+            )
+          }),
+          {
+            name: 'scopes',
+            description: 'Available OAuth scopes'
+          }
+        )
       ),
       provider_id: v.string({
         name: 'provider_id',

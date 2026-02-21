@@ -1,16 +1,22 @@
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
-import { authCredentialsType } from '../../types';
+import { providerAuthCredentialsType } from '../../types';
 
-export let v1AuthCredentialsPresenter = Presenter.create(authCredentialsType)
+export let v1ProviderAuthCredentialsPresenter = Presenter.create(providerAuthCredentialsType)
   .presenter(async ({ authCredentials }) => ({
     object: 'provider.auth_credentials' as const,
+
     id: authCredentials.id,
-    type: authCredentials.type ?? 'oauth',
+    type: authCredentials.type,
+
+    is_default: authCredentials.isDefault,
+
     name: authCredentials.name,
     description: authCredentials.description,
     metadata: authCredentials.metadata,
+
     provider_id: authCredentials.providerId,
+
     created_at: authCredentials.createdAt,
     updated_at: authCredentials.updatedAt
   }))
@@ -25,6 +31,11 @@ export let v1AuthCredentialsPresenter = Presenter.create(authCredentialsType)
         examples: ['par_4sTuVwXyZaBcDeFg']
       }),
       type: v.literal('oauth'),
+      is_default: v.boolean({
+        name: 'is_default',
+        description: 'Whether this is the default credentials for the provider',
+        examples: [true, false]
+      }),
       name: v.nullable(
         v.string({ name: 'name', description: 'Display name', examples: ['GitHub OAuth'] })
       ),

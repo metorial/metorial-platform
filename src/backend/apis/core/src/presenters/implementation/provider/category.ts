@@ -1,20 +1,23 @@
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
-import { categoryType } from '../../types';
+import { providerListingCategoryType } from '../../types';
 
-export let v1CategoryPresenter = Presenter.create(categoryType)
+export let v1ProviderListingCategoryPresenter = Presenter.create(providerListingCategoryType)
   .presenter(async ({ category }) => ({
-    object: 'provider.category' as const,
+    object: 'provider.listing_category' as const,
+
     id: category.id,
+
     name: category.name,
     description: category.description,
-    slug: category.slug ?? category.identifier,
+    slug: category.slug,
+
     created_at: category.createdAt,
     updated_at: category.updatedAt
   }))
   .schema(
     v.object({
-      object: v.literal('provider.category', {
+      object: v.literal('provider.listing_category', {
         description: "String representing the object's type"
       }),
       id: v.string({

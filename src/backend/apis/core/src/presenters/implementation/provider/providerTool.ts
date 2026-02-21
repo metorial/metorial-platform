@@ -1,8 +1,8 @@
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
-import { toolType } from '../../types';
+import { providerToolType } from '../../types';
 
-export let v1ToolPresenter = Presenter.create(toolType)
+export let v1ProviderToolPresenter = Presenter.create(providerToolType)
   .presenter(async ({ tool }) => ({
     object: 'provider.tool' as const,
     id: tool.id,

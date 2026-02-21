@@ -1,8 +1,8 @@
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
-import { configVaultType } from '../../types';
+import { providerConfigVaultType } from '../../types';
 
-export let v1ProviderConfigVaultPresenter = Presenter.create(configVaultType)
+export let v1ProviderConfigVaultPresenter = Presenter.create(providerConfigVaultType)
   .presenter(async ({ configVault }) => ({
     object: 'provider.config_vault' as const,
     id: configVault.id,

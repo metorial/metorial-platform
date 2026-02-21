@@ -1,9 +1,9 @@
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
-import { setupSessionType } from '../../types';
-import { v1AuthConfigPresenter } from './authConfig';
+import { providerSetupSessionType } from '../../types';
+import { v1ProviderAuthConfigPresenter } from './authConfig';
 
-export let v1SetupSessionPresenter = Presenter.create(setupSessionType)
+export let v1SetupSessionPresenter = Presenter.create(providerSetupSessionType)
   .presenter(async ({ setupSession }, opts) => ({
     object: 'provider.setup_session' as const,
     id: setupSession.id,
@@ -21,7 +21,7 @@ export let v1SetupSessionPresenter = Presenter.create(setupSessionType)
     updated_at: setupSession.updatedAt,
     expires_at: setupSession.expiresAt ?? null,
     auth_config: setupSession.authConfig
-      ? await v1AuthConfigPresenter
+      ? await v1ProviderAuthConfigPresenter
           .present({ authConfig: setupSession.authConfig }, opts)
           .run()
       : null
@@ -116,7 +116,7 @@ export let v1SetupSessionPresenter = Presenter.create(setupSessionType)
           examples: [new Date('2025-09-15T11:30:00Z')]
         })
       ),
-      auth_config: v.nullable(v1AuthConfigPresenter.schema)
+      auth_config: v.nullable(v1ProviderAuthConfigPresenter.schema)
     })
   )
   .build();

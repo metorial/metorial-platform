@@ -1,8 +1,8 @@
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
 import { providerType } from '../../types';
+import { v1ProviderVersionPresenter } from './providerVersion';
 import { v1PublisherPresenter } from './publisher';
-import { v1VersionPresenter } from './version';
 
 export let v1ProviderPresenter = Presenter.create(providerType)
   .presenter(async ({ provider }, opts) => ({
@@ -15,7 +15,9 @@ export let v1ProviderPresenter = Presenter.create(providerType)
       ? await v1PublisherPresenter.present({ publisher: provider.publisher }, opts).run()
       : null,
     current_version: provider.currentVersion
-      ? await v1VersionPresenter.present({ version: provider.currentVersion }, opts).run()
+      ? await v1ProviderVersionPresenter
+          .present({ version: provider.currentVersion }, opts)
+          .run()
       : null,
     created_at: provider.createdAt,
     updated_at: provider.updatedAt
@@ -46,7 +48,7 @@ export let v1ProviderPresenter = Presenter.create(providerType)
         examples: ['github']
       }),
       publisher: v.nullable(v1PublisherPresenter.schema),
-      current_version: v.nullable(v1VersionPresenter.schema),
+      current_version: v.nullable(v1ProviderVersionPresenter.schema),
       created_at: v.date({
         name: 'created_at',
         description: 'Timestamp when created',

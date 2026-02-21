@@ -2,9 +2,7 @@ import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
 import { subspaceSessionConnectionType } from '../../types';
 
-export let v1SubspaceSessionConnectionPresenter = Presenter.create(
-  subspaceSessionConnectionType
-)
+export let v1SessionConnectionPresenter = Presenter.create(subspaceSessionConnectionType)
   .presenter(async ({ sessionConnection }) => ({
     object: 'session.connection' as const,
     id: sessionConnection.id,

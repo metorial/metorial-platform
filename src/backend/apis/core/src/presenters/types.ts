@@ -21,6 +21,54 @@ import {
   TeamRole,
   User
 } from '@metorial/db';
+import {
+  SubspaceCustomProvider,
+  SubspaceCustomProviderCommit,
+  SubspaceCustomProviderDeployment,
+  SubspaceCustomProviderDeploymentLogs,
+  SubspaceCustomProviderEnvironment,
+  SubspaceCustomProviderVersion,
+  SubspaceProvider,
+  SubspaceProviderAuthConfig,
+  SubspaceProviderAuthCredentials,
+  SubspaceProviderAuthExport,
+  SubspaceProviderAuthImport,
+  SubspaceProviderAuthImportSchema,
+  SubspaceProviderAuthMethod,
+  SubspaceProviderConfig,
+  SubspaceProviderConfigSchema,
+  SubspaceProviderConfigVault,
+  SubspaceProviderDeployment,
+  SubspaceProviderListing,
+  SubspaceProviderListingCategory,
+  SubspaceProviderListingCollection,
+  SubspaceProviderListingGroup,
+  SubspaceProviderOAuthSetup,
+  SubspaceProviderRun,
+  SubspaceProviderRunLogs,
+  SubspaceProviderSetupSession,
+  SubspaceProviderSpecification,
+  SubspaceProviderTool,
+  SubspaceProviderVersion,
+  SubspacePublisher,
+  SubspaceScmAccountPreviews,
+  SubspaceScmConnection,
+  SubspaceScmConnectionSetupSession,
+  SubspaceScmProvider,
+  SubspaceScmProviderSetupSession,
+  SubspaceScmRepository,
+  SubspaceScmRepositoryPreviews,
+  SubspaceSession,
+  SubspaceSessionConnection,
+  SubspaceSessionError,
+  SubspaceSessionErrorGroup,
+  SubspaceSessionEvent,
+  SubspaceSessionMessage,
+  SubspaceSessionParticipant,
+  SubspaceSessionProvider,
+  SubspaceSessionTemplate,
+  SubspaceSessionTemplateProvider
+} from '@metorial/module-subspace';
 import { PresentableType } from '@metorial/presenter';
 
 export let bootType = PresentableType.create<{
@@ -294,437 +342,81 @@ export let teamRolePermissionsType = PresentableType.create<{
 //   };
 // }>()('sso.user_profile');
 
-export interface SubspacePublisher {
-  id: string;
-  name: string;
-  description: string | null;
-  slug?: string;
-  identifier?: string;
-  source: Record<string, unknown> | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface SubspaceVersion {
-  id: string;
-  tag?: string | null;
-  identifier?: string | null;
-  isCurrent?: boolean;
-  createdAt: Date | null;
-  updatedAt: Date;
-}
-
-export interface SubspaceProvider {
-  id: string;
-  name?: string | null;
-  description?: string | null;
-  slug?: string | null;
-  tag?: string | null;
-  identifier?: string | null;
-  entry?: { name?: string | null; description?: string | null };
-  publisher: SubspacePublisher;
-  currentVersion?: SubspaceVersion | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface SubspaceCategory {
-  id: string;
-  name: string;
-  description: string | null;
-  slug?: string;
-  identifier?: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface SubspaceCollection {
-  id: string;
-  name: string;
-  description: string | null;
-  slug?: string;
-  identifier?: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface SubspaceGroup {
-  id: string;
-  name: string;
-  description: string | null;
-  slug?: string;
-  identifier?: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface SubspaceProviderListing {
-  id: string;
-  isPublic?: boolean;
-  isCustomized?: boolean;
-  isMetorial?: boolean;
-  isVerified?: boolean;
-  isOfficial?: boolean;
-  name: string;
-  description: string | null;
-  slug?: string;
-  identifier?: string;
-  image?: Record<string, unknown> | null;
-  source?: Record<string, unknown> | null;
-  readme?: string | null;
-  skills?: string[];
-  rank?: number;
-  deploymentsCount?: number;
-  providerSessionsCount?: number;
-  providerMessagesCount?: number;
-  provider?: { id: string };
-  categories?: SubspaceCategory[];
-  collections?: SubspaceCollection[];
-  groups?: SubspaceGroup[];
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface SubspaceAuthMethodScope {
-  id: string;
-  scope: string;
-  name?: string;
-  title?: string;
-  description: string | null;
-}
-
-export interface SubspaceTool {
-  id: string;
-  name: string;
-  title?: string | null;
-  description: string | null;
-  inputSchema?: Record<string, unknown> | null;
-  inputJsonSchema?: Record<string, unknown> | null;
-  outputSchema?: Record<string, unknown> | null;
-  outputJsonSchema?: Record<string, unknown> | null;
-  providerId?: string;
-  providerSpecificationId?: string;
-  specificationId?: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface SubspaceAuthMethod {
-  id: string;
-  type: string;
-  name: string;
-  description: string | null;
-  inputSchema?: Record<string, unknown> | null;
-  inputJsonSchema?: Record<string, unknown> | null;
-  scopes?: SubspaceAuthMethodScope[] | null;
-  providerId?: string;
-  providerSpecificationId?: string;
-  specificationId?: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface SubspaceSpecification {
-  id: string;
-  name: string;
-  description: string | null;
-  configSchema?: Record<string, unknown> | null;
-  configJsonSchema?: Record<string, unknown> | null;
-  tools?: SubspaceTool[];
-  authMethods?: SubspaceAuthMethod[];
-  providerId?: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface SubspaceConfig {
-  id: string;
-  isEphemeral?: boolean;
-  isDefault?: boolean;
-  name: string | null;
-  description: string | null;
-  metadata?: unknown;
-  providerId: string;
-  providerDeploymentId?: string | null;
-  deploymentId?: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface SubspaceDeployment {
-  id: string;
-  isEphemeral?: boolean;
-  isDefault?: boolean;
-  name: string | null;
-  description: string | null;
-  metadata?: unknown;
-  providerId: string;
-  provider?: {
-    id: string;
-    name: string;
-    slug?: string;
-    identifier?: string;
-    description?: string | null;
-    tag?: string;
-    metadata?: Record<string, unknown> | null;
-    createdAt: Date;
-    updatedAt: Date;
-  } | null;
-  lockedVersion?: SubspaceVersion | null;
-  defaultConfig?: SubspaceConfig | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface SubspaceConfigVault {
-  id: string;
-  name: string | null;
-  description: string | null;
-  metadata?: unknown;
-  providerId: string;
-  providerDeploymentId?: string | null;
-  deploymentId?: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface SubspaceAuthConfig {
-  id: string;
-  isEphemeral?: boolean;
-  type?: string;
-  status?: string;
-  name: string | null;
-  description: string | null;
-  metadata?: unknown;
-  providerId: string;
-  providerDeploymentId?: string | null;
-  deploymentId?: string | null;
-  providerAuthMethodId?: string;
-  authMethodId?: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface SubspaceAuthCredentials {
-  id: string;
-  type?: string;
-  name: string | null;
-  description: string | null;
-  metadata?: unknown;
-  providerId: string;
-  clientId?: string | null;
-  scopes?: SubspaceAuthMethodScope[] | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface SubspaceSetupSession {
-  id: string;
-  type?: string;
-  status?: string;
-  name: string | null;
-  description: string | null;
-  metadata?: unknown;
-  providerId: string;
-  providerDeploymentId?: string | null;
-  deploymentId?: string | null;
-  providerAuthMethodId?: string;
-  authMethodId?: string;
-  uiMode?: string | null;
-  redirectUrl?: string | null;
-  setupUrl?: string | null;
-  url?: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-  expiresAt?: Date | null;
-  authConfig?: SubspaceAuthConfig | null;
-}
-
-export interface SubspaceAuthImport {
-  id: string;
-  note: string | null;
-  metadata?: unknown;
-  providerId?: string | null;
-  providerDeploymentId?: string | null;
-  deploymentId?: string | null;
-  providerAuthConfigId?: string | null;
-  authConfigId?: string | null;
-  providerAuthMethodId?: string | null;
-  authMethodId?: string | null;
-  createdAt: Date;
-}
-
-export interface SubspaceAuthExport {
-  id: string;
-  note: string | null;
-  metadata?: unknown;
-  providerAuthConfigId?: string;
-  authConfigId?: string;
-  value?: Record<string, unknown>;
-  createdAt: Date;
-}
-
 export let publisherType = PresentableType.create<{ publisher: SubspacePublisher }>()(
   'publisher'
 );
 
-export let versionType = PresentableType.create<{ version: SubspaceVersion }>()('version');
+export let providerVersionType = PresentableType.create<{
+  version: SubspaceProviderVersion;
+}>()('version');
 
 export let providerType = PresentableType.create<{ provider: SubspaceProvider }>()('provider');
 
-export let categoryType = PresentableType.create<{ category: SubspaceCategory }>()('category');
+export let providerListingCategoryType = PresentableType.create<{
+  category: SubspaceProviderListingCategory;
+}>()('category');
 
-export let collectionType = PresentableType.create<{ collection: SubspaceCollection }>()(
-  'collection'
-);
+export let providerListingCollectionType = PresentableType.create<{
+  collection: SubspaceProviderListingCollection;
+}>()('collection');
 
-export let groupType = PresentableType.create<{ group: SubspaceGroup }>()('group');
+export let providerListingGroupType = PresentableType.create<{
+  group: SubspaceProviderListingGroup;
+}>()('group');
 
 export let providerListingType = PresentableType.create<{
   providerListing: SubspaceProviderListing;
 }>()('providerListing');
 
-export let toolType = PresentableType.create<{ tool: SubspaceTool }>()('tool');
+export let providerToolType = PresentableType.create<{ tool: SubspaceProviderTool }>()('tool');
 
-export let authMethodType = PresentableType.create<{ authMethod: SubspaceAuthMethod }>()(
-  'authMethod'
-);
+export let providerAuthMethodType = PresentableType.create<{
+  authMethod: SubspaceProviderAuthMethod;
+}>()('provider.capabilities.auth_method');
 
-export let specificationType = PresentableType.create<{
-  specification: SubspaceSpecification;
+export let providerSpecificationType = PresentableType.create<{
+  specification: SubspaceProviderSpecification;
 }>()('specification');
 
-export let deploymentPreviewType = PresentableType.create<{
-  deployment: SubspaceDeployment;
-}>()('deploymentPreview');
+// export let deploymentPreviewType = PresentableType.create<{
+//   deployment: SubspaceProviderDeployment;
+// }>()('deploymentPreview');
 
-export let configPreviewType = PresentableType.create<{
-  config: SubspaceConfig;
-}>()('configPreview');
+// export let configPreviewType = PresentableType.create<{
+//   config: SubspaceProviderConfig;
+// }>()('configPreview');
 
-export let deploymentType = PresentableType.create<{ deployment: SubspaceDeployment }>()(
-  'deployment'
+export let providerDeploymentType = PresentableType.create<{
+  deployment: SubspaceProviderDeployment;
+}>()('deployment');
+
+export let providerConfigVaultType = PresentableType.create<{
+  configVault: SubspaceProviderConfigVault;
+}>()('configVault');
+
+export let providerConfigType = PresentableType.create<{ config: SubspaceProviderConfig }>()(
+  'config'
 );
 
-export let configVaultType = PresentableType.create<{ configVault: SubspaceConfigVault }>()(
-  'configVault'
-);
+export let providerAuthConfigType = PresentableType.create<{
+  authConfig: SubspaceProviderAuthConfig;
+}>()('provider.auth_config');
 
-export let configType = PresentableType.create<{ config: SubspaceConfig }>()('config');
+export let providerAuthCredentialsType = PresentableType.create<{
+  authCredentials: SubspaceProviderAuthCredentials;
+}>()('provider.auth_credentials');
 
-export let authConfigType = PresentableType.create<{ authConfig: SubspaceAuthConfig }>()(
-  'authConfig'
-);
+export let providerSetupSessionType = PresentableType.create<{
+  setupSession: SubspaceProviderSetupSession;
+}>()('setupSession');
 
-export let authCredentialsType = PresentableType.create<{
-  authCredentials: SubspaceAuthCredentials;
-}>()('authCredentials');
+export let providerAuthImportType = PresentableType.create<{
+  authImport: SubspaceProviderAuthImport;
+}>()('authImport');
 
-export let setupSessionType = PresentableType.create<{ setupSession: SubspaceSetupSession }>()(
-  'setupSession'
-);
-
-export let authImportType = PresentableType.create<{ authImport: SubspaceAuthImport }>()(
-  'authImport'
-);
-
-export let authExportType = PresentableType.create<{ authExport: SubspaceAuthExport }>()(
-  'authExport'
-);
-
-export interface SubspaceSessionTemplate {
-  id: string;
-  name: string | null;
-  description: string | null;
-  metadata?: unknown;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface SubspaceSessionTemplateProvider {
-  id: string;
-  name?: string | null;
-  description?: string | null;
-  metadata?: unknown;
-  sessionTemplateId: string;
-  providerId: string;
-  providerDeploymentId?: string | null;
-  deployment?: {
-    id: string;
-    name?: string | null;
-    provider?: { name?: string | null };
-  } | null;
-  config?: { name?: string | null } | null;
-  authConfig?: { name?: string | null } | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface SubspaceSessionProvider {
-  id: string;
-  name?: string | null;
-  description?: string | null;
-  status: string | null;
-  metadata?: unknown;
-  sessionId: string;
-  providerId: string;
-  providerDeploymentId?: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface SubspaceSessionParticipant {
-  id: string;
-  type: string | null;
-  name: string | null;
-  description?: string | null;
-  metadata?: unknown;
-  sessionId?: string;
-  createdAt: Date;
-  updatedAt?: Date;
-}
-
-export interface SubspaceSessionError {
-  id: string;
-  type?: string | null;
-  name?: string | null;
-  message: string | null;
-  stack?: string | null;
-  metadata?: unknown;
-  sessionId: string;
-  sessionErrorGroupId?: string | null;
-  providerRunId: string | null;
-  createdAt: Date;
-}
-
-export interface SubspaceSessionErrorGroup {
-  id: string;
-  type?: string | null;
-  name?: string | null;
-  message: string | null;
-  count?: number;
-  metadata?: unknown;
-  sessionId?: string;
-  createdAt: Date;
-  updatedAt?: Date;
-}
-
-export interface SubspaceProviderRun {
-  id: string;
-  status: string | null;
-  name?: string | null;
-  description?: string | null;
-  metadata?: unknown;
-  sessionId: string;
-  sessionProviderId: string | null;
-  providerId: string | null;
-  providerDeploymentId?: string | null;
-  providerVersionId?: string | null;
-  startedAt?: Date | null;
-  completedAt: Date | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
+export let providerAuthExportType = PresentableType.create<{
+  authExport: SubspaceProviderAuthExport;
+}>()('authExport');
 
 export let sessionTemplateType = PresentableType.create<{
   sessionTemplate: SubspaceSessionTemplate;
@@ -754,312 +446,33 @@ export let providerRunType = PresentableType.create<{
   providerRun: SubspaceProviderRun;
 }>()('providerRun');
 
-export interface SubspaceSessionProvider {
-  id: string;
-  status: string | null;
-  providerId: string;
-  sessionId: string;
-  deployment?: {
-    id: string;
-    name: string | null;
-    providerId: string;
-    provider?: { id: string; name: string } | null;
-  } | null;
-  usage?: {
-    totalProductiveClientMessageCount: number;
-    totalProductiveServerMessageCount: number;
-  };
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface SubspaceSession {
-  id: string;
-  name: string | null;
-  description: string | null;
-  status: string | null;
-  connectionState: string | null;
-  metadata?: unknown;
-  usage?: {
-    totalProductiveClientMessageCount: number;
-    totalProductiveServerMessageCount: number;
-  };
-  providers?: SubspaceSessionProvider[];
-  connectionUrl?: string;
-  connectionKey?: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
+export let providerRunLogsType = PresentableType.create<{
+  logs: SubspaceProviderRunLogs;
+}>()('providerRunLogs');
 
 export let providerSessionType = PresentableType.create<{
   session: SubspaceSession;
 }>()('providerSession');
 
-export interface SubspaceSessionMessage {
-  id: string;
-  type: string | null;
-  source: string | null;
-  status?: string | null;
-  sessionId: string;
-  sessionProviderId: string | null;
-  connectionId: string | null;
-  providerRunId: string | null;
-  input: Record<string, unknown> | null;
-  output: Record<string, unknown> | null;
-  transport?: {
-    type: string;
-    mcp?: {
-      id: string;
-      protocolVersion: string;
-      transport: string;
-    };
-  } | null;
-  senderParticipant?: {
-    id: string;
-    type: string | null;
-    name: string | null;
-    provider?: { id: string } | null;
-  } | null;
-  createdAt: Date;
-}
-
-export interface SubspaceSessionConnection {
-  id: string;
-  status: string | null;
-  connectionState: string | null;
-  mcpVersion?: string | null;
-  mcpConnectionType?: string | null;
-  clientInfo?: Record<string, unknown> | null;
-  serverInfo?: Record<string, unknown> | null;
-  clientCapabilities?: Record<string, unknown> | null;
-  serverCapabilities?: Record<string, unknown> | null;
-  metadata?: unknown;
-  sessionId?: string;
-  sessionProviderId?: string | null;
-  startedAt?: Date | null;
-  endedAt?: Date | null;
-  createdAt: Date;
-  updatedAt?: Date;
-}
-
-export interface SubspaceSessionEvent {
-  id: string;
-  type: string | null;
-  name?: string | null;
-  message?: string | null;
-  data?: Record<string, unknown> | null;
-  metadata?: unknown;
-  sessionId: string;
-  sessionProviderId?: string | null;
-  providerRunId?: string | null;
-  createdAt: Date;
-}
-
-export interface SubspaceProviderRunLogs {
-  logs: Array<{
-    timestamp?: Date | null;
-    message: string;
-    outputType: string;
-  }>;
-}
-
-export interface SubspaceConfigSchema {
-  schema: Record<string, unknown> | null;
-}
-
-export interface SubspaceAuthImportSchema {
-  schema: Record<string, unknown> | null;
-}
-
-export let subspaceSessionMessageType = PresentableType.create<{
+export let sessionMessageType = PresentableType.create<{
   sessionMessage: SubspaceSessionMessage;
 }>()('subspaceSessionMessage');
 
-export let subspaceSessionConnectionType = PresentableType.create<{
+export let sessionConnectionType = PresentableType.create<{
   sessionConnection: SubspaceSessionConnection;
 }>()('subspaceSessionConnection');
 
-export let subspaceSessionEventType = PresentableType.create<{
+export let sessionEventType = PresentableType.create<{
   sessionEvent: SubspaceSessionEvent;
 }>()('subspaceSessionEvent');
 
-export let providerRunLogsType = PresentableType.create<{
-  logs: SubspaceProviderRunLogs;
-}>()('providerRunLogs');
-
 export let configSchemaType = PresentableType.create<{
-  schema: SubspaceConfigSchema;
+  schema: SubspaceProviderConfigSchema;
 }>()('configSchema');
 
 export let authImportSchemaType = PresentableType.create<{
-  schema: SubspaceAuthImportSchema;
+  schema: SubspaceProviderAuthImportSchema;
 }>()('authImportSchema');
-
-// =============================================================================
-// Custom Provider Types
-// =============================================================================
-
-export interface SubspaceCustomProviderActor {
-  id: string;
-  name: string | null;
-  type: string | null;
-  organizationActorId: string | null;
-}
-
-export interface SubspaceCustomProvider {
-  id: string;
-  status: string | null;
-  name: string | null;
-  description: string | null;
-  metadata?: unknown;
-  provider?: SubspaceProvider | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface SubspaceCustomProviderDeploymentCommit {
-  id: string;
-  type: string | null;
-  message: string | null;
-  createdAt: Date;
-}
-
-export interface SubspaceCustomProviderDeployment {
-  id: string;
-  status: string | null;
-  trigger: string | null;
-  customProviderId: string;
-  providerId?: string | null;
-  customProviderVersionId?: string | null;
-  commit?: SubspaceCustomProviderDeploymentCommit | null;
-  actor?: SubspaceCustomProviderActor | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface SubspaceCustomProviderEnvironmentNested {
-  id: string;
-  isCurrentVersionForEnvironment?: boolean;
-  environment: SubspaceCustomProviderEnvironment;
-}
-
-export interface SubspaceCustomProviderVersion {
-  id: string;
-  status: string | null;
-  index?: number | null;
-  identifier?: string | null;
-  deployment?: SubspaceCustomProviderDeployment | null;
-  environments?: SubspaceCustomProviderEnvironmentNested[];
-  customProviderId: string;
-  providerId?: string | null;
-  actor?: SubspaceCustomProviderActor | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface SubspaceCustomProviderDeploymentLogs {
-  logs?: Array<{
-    type: string;
-    line: string;
-    timestamp?: Date | null;
-  }>;
-  steps?: Array<{
-    id?: string | null;
-    type?: string | null;
-    status?: string | null;
-    source?: {
-      provider?: string | null;
-      workflowRunId?: string | null;
-      workflowId?: string | null;
-      functionDeploymentId?: string | null;
-    } | null;
-    logs?: Array<{ type: string; line: string; timestamp?: Date | null }>;
-    createdAt?: Date | null;
-  }>;
-}
-
-export interface SubspaceCustomProviderCommitError {
-  code: string;
-  message: string;
-}
-
-export interface SubspaceCustomProviderCommit {
-  id: string;
-  status: string | null;
-  trigger: string | null;
-  error?: SubspaceCustomProviderCommitError | null;
-  customProviderId: string;
-  providerId?: string | null;
-  customProviderDeploymentId?: string | null;
-  toEnvironment?: SubspaceCustomProviderEnvironment | null;
-  fromEnvironment?: SubspaceCustomProviderEnvironment | null;
-  targetCustomProviderVersion?: SubspaceCustomProviderVersion | null;
-  previousCustomProviderVersion?: SubspaceCustomProviderVersion | null;
-  actor?: SubspaceCustomProviderActor | null;
-  createdAt: Date;
-  appliedAt?: Date | null;
-}
-
-export interface SubspaceCustomProviderEnvironment {
-  id: string;
-  customProviderId: string;
-  providerId?: string | null;
-  currentProviderVersionId?: string | null;
-  instanceId?: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface SubspaceProviderOAuthSetupAuthConfig {
-  id: string;
-  status?: string | null;
-  type?: string | null;
-  name: string | null;
-  description: string | null;
-  metadata?: unknown;
-  providerId: string;
-  providerDeploymentId?: string | null;
-  providerAuthMethodId?: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface SubspaceProviderOAuthSetupCredentials {
-  id: string;
-  type?: string | null;
-  name: string | null;
-  description: string | null;
-  metadata?: unknown;
-  providerId: string;
-  clientId?: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface SubspaceProviderOAuthSetupDeployment {
-  id: string;
-  name: string | null;
-  providerId: string;
-}
-
-export interface SubspaceProviderOAuthSetup {
-  id: string;
-  status: string | null;
-  isEphemeral?: boolean;
-  providerId: string;
-  name: string | null;
-  description: string | null;
-  metadata?: unknown;
-  redirectUrl?: string | null;
-  url?: string | null;
-  authConfig?: SubspaceProviderOAuthSetupAuthConfig | null;
-  credentials?: SubspaceProviderOAuthSetupCredentials | null;
-  authMethod?: SubspaceAuthMethod | null;
-  deployment?: SubspaceProviderOAuthSetupDeployment | null;
-  createdAt: Date;
-  updatedAt: Date;
-  expiresAt?: Date | null;
-}
 
 export let customProviderType = PresentableType.create<{
   customProvider: SubspaceCustomProvider;
@@ -1095,59 +508,30 @@ export let providerOAuthSetupType = PresentableType.create<{
   providerOAuthSetup: SubspaceProviderOAuthSetup;
 }>()('providerOAuthSetup');
 
-export interface ScmInstallation {
-  id: string;
-  provider: string;
-  externalAccountId: string;
-  externalAccountLogin: string;
-  externalAccountName: string | null;
-  externalAccountImageUrl: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
+export let scmConnectionType = PresentableType.create<{
+  scmConnection: SubspaceScmConnection;
+}>()('scmConnection');
 
-export let scmInstallationType = PresentableType.create<{
-  scmInstallation: ScmInstallation;
-}>()('scmInstallation');
+export let scmConnectionSetupType = PresentableType.create<{
+  scmConnectionSetup: SubspaceScmConnectionSetupSession;
+}>()('scmConnectionSetup');
 
-export let scmInstallationSetupType = PresentableType.create<{
-  url: string;
-  id: string;
-}>()('scmInstallationSetup');
+export let scmProviderType = PresentableType.create<{
+  scmProvider: SubspaceScmProvider;
+}>()('scmProvider');
 
-export interface ScmRepoPreview {
-  provider: string;
-  externalId: string;
-  name: string;
-  identifier: string;
-  lastPushedAt?: Date | null;
-  account?: { externalId: string; name: string; identifier: string; provider: string };
-}
-
-export let scmRepoPreviewType = PresentableType.create<{
-  repoPreview: ScmRepoPreview;
-}>()('scmRepoPreview');
-
-export interface ScmRepo {
-  id: string;
-  provider: { type: string; id: string; name: string; owner: string };
-  url: string;
-  isPrivate: boolean;
-  defaultBranch: string;
-  createdAt: Date;
-}
+export let scmProviderSetupType = PresentableType.create<{
+  scmProviderSetup: SubspaceScmProviderSetupSession;
+}>()('scmProviderSetup');
 
 export let scmRepoType = PresentableType.create<{
-  scmRepo: ScmRepo;
+  scmRepo: SubspaceScmRepository;
 }>()('scmRepo');
 
-export interface ScmAccountPreview {
-  provider: string;
-  externalId: string;
-  name: string;
-  identifier: string;
-}
+export let scmRepoPreviewType = PresentableType.create<{
+  repoPreview: SubspaceScmRepositoryPreviews;
+}>()('scmRepoPreview');
 
 export let scmAccountPreviewType = PresentableType.create<{
-  accountPreview: ScmAccountPreview;
+  accountPreview: SubspaceScmAccountPreviews;
 }>()('scmAccountPreview');

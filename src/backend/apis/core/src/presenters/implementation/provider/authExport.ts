@@ -1,8 +1,8 @@
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
-import { authExportType } from '../../types';
+import { providerAuthExportType } from '../../types';
 
-export let v1AuthExportPresenter = Presenter.create(authExportType)
+export let v1ProviderAuthExportPresenter = Presenter.create(providerAuthExportType)
   .presenter(async ({ authExport }) => ({
     object: 'provider.auth_export' as const,
     id: authExport.id,

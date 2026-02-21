@@ -1,18 +1,23 @@
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
-import { authConfigType } from '../../types';
+import { providerAuthConfigType } from '../../types';
 
-export let v1AuthConfigPresenter = Presenter.create(authConfigType)
+export let v1ProviderAuthConfigPresenter = Presenter.create(providerAuthConfigType)
   .presenter(async ({ authConfig }) => ({
     object: 'provider.auth_config' as const,
+
     id: authConfig.id,
-    type: authConfig.type ?? 'manual',
+    type: authConfig.type,
+
     name: authConfig.name,
     description: authConfig.description,
     metadata: authConfig.metadata,
+
     provider_id: authConfig.providerId,
+
     provider_deployment_id: authConfig.providerDeploymentId ?? authConfig.deploymentId,
     provider_auth_method_id: authConfig.providerAuthMethodId ?? authConfig.authMethodId,
+
     created_at: authConfig.createdAt,
     updated_at: authConfig.updatedAt
   }))

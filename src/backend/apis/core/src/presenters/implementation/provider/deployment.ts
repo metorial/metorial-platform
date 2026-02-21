@@ -1,8 +1,8 @@
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
-import { deploymentType, deploymentPreviewType } from '../../types';
+import { deploymentPreviewType, providerDeploymentType } from '../../types';
 import { v1ProviderPreview } from './providerPreview';
-import { v1VersionPresenter } from './version';
+import { v1ProviderVersionPresenter } from './providerVersion';
 
 let deploymentConfigPreviewSchema = v.object({
   id: v.string({
@@ -44,7 +44,7 @@ let deploymentConfigPreviewSchema = v.object({
   })
 });
 
-export let v1DeploymentPreviewPresenter = Presenter.create(deploymentPreviewType)
+export let v1ProviderDeploymentPreviewPresenter = Presenter.create(deploymentPreviewType)
   .presenter(async ({ deployment }) => ({
     object: 'provider.deployment' as const,
     id: deployment.id,
@@ -73,7 +73,7 @@ export let v1DeploymentPreviewPresenter = Presenter.create(deploymentPreviewType
   )
   .build();
 
-export let v1DeploymentPresenter = Presenter.create(deploymentType)
+export let v1ProviderDeploymentPresenter = Presenter.create(providerDeploymentType)
   .presenter(async ({ deployment }, opts) => ({
     object: 'provider.deployment' as const,
     id: deployment.id,
@@ -83,7 +83,9 @@ export let v1DeploymentPresenter = Presenter.create(deploymentType)
     provider_id: deployment.providerId,
     provider: deployment.provider ? v1ProviderPreview(deployment.provider) : null,
     locked_version: deployment.lockedVersion
-      ? await v1VersionPresenter.present({ version: deployment.lockedVersion }, opts).run()
+      ? await v1ProviderVersionPresenter
+          .present({ version: deployment.lockedVersion }, opts)
+          .run()
       : null,
     default_config: deployment.defaultConfig
       ? {
@@ -132,7 +134,7 @@ export let v1DeploymentPresenter = Presenter.create(deploymentType)
         examples: ['pro_5gHjKlMnPqRsTuVw']
       }),
       provider: v.nullable(v1ProviderPreview.schema),
-      locked_version: v.nullable(v1VersionPresenter.schema),
+      locked_version: v.nullable(v1ProviderVersionPresenter.schema),
       default_config: v.nullable(deploymentConfigPreviewSchema),
       created_at: v.date({
         name: 'created_at',
