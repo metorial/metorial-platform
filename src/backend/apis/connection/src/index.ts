@@ -2,9 +2,9 @@ import { createExecutionContext, provideExecutionContext } from '@metorial/execu
 import { createHono, useRequestContext } from '@metorial/hono';
 import { generateSnowflakeId } from '@metorial/id';
 import { AuthInfo } from '@metorial/module-access';
+import { proxyMcpRequestToSubspace } from '@metorial/module-subspace';
 import { Authenticator } from '@metorial/rest';
 import { authenticateAndResolveInstance } from './getSession';
-import { proxyToSubspace } from './subspaceProxy';
 
 export let startMcpServer = (d: { port: number; authenticate: Authenticator<AuthInfo> }) => {
   let hono = createHono()
@@ -18,7 +18,7 @@ export let startMcpServer = (d: { port: number; authenticate: Authenticator<Auth
       );
       c.res.headers.set(
         'Access-Control-Allow-Headers',
-        'Content-Type, Authorization, metorial-version, mcp-protocol-version, Metorial-Proxy-URL, MCP-Session-ID, Last-Event-ID'
+        'Content-Type, Authorization, metorial-version, mcp-protocol-version, MCP-Session-ID, Last-Event-ID'
       );
       c.res.headers.set('Access-Control-Allow-Credentials', 'true');
       c.res.headers.set('Access-Control-Max-Age', '86400');
@@ -42,7 +42,7 @@ export let startMcpServer = (d: { port: number; authenticate: Authenticator<Auth
         }),
         async () => {
           let { instance } = await authenticateAndResolveInstance(req, url, d.authenticate);
-          return proxyToSubspace(c, instance, sessionId);
+          return proxyMcpRequestToSubspace(c, instance, sessionId);
         }
       );
     });
