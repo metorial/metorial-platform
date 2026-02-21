@@ -6,16 +6,12 @@ import {
 import { Paginator } from '@metorial/pagination';
 import { providerCollectionPresenter } from '../../../core/src/presenters';
 import { toPaginationQuery } from '../lib/paginationQuery';
+import { runMarketplacePresenter } from '../lib/presenter';
 import { paginatorSchema } from '../lib/paginatorSchema';
 import { useValidation } from '../lib/validator';
 
 let presentProviderCollection = async (collection: SubspaceProviderListingCollection) =>
-  await providerCollectionPresenter
-    .present({ collection })({
-      apiVersion: 'mt_2025_01_01_dashboard',
-      accessType: 'instance_publishable'
-    })
-    .run({});
+  await runMarketplacePresenter(providerCollectionPresenter.present({ collection }));
 
 export let serverCollectionsController = createHono()
   .get('', useValidation('query', paginatorSchema), async c => {

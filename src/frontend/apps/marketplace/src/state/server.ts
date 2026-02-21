@@ -76,9 +76,6 @@ type MarketplaceCapabilityItem = {
 
 type MarketplaceServerCapabilities = {
   object: string;
-  serverId: string | null;
-  serverVariantId: string | null;
-  serverVersionId: string | null;
   prompts: MarketplaceCapabilityItem[];
   tools: MarketplaceCapabilityItem[];
   resourceTemplates: MarketplaceCapabilityItem[];
@@ -254,9 +251,6 @@ export let getServerCapabilities = async (slug: string[]) => {
 
   let capabilities: MarketplaceServerCapabilities = {
     object: 'marketplace*server.capabilities',
-    serverId: null,
-    serverVariantId: null,
-    serverVersionId: null,
     prompts: [],
     tools: parsedTools,
     resourceTemplates: [],

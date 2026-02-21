@@ -10,6 +10,7 @@ import { Paginator } from '@metorial/pagination';
 import { z } from 'zod';
 import { providerListingPresenter } from '../../../core/src/presenters';
 import { toPaginationQuery } from '../lib/paginationQuery';
+import { runMarketplacePresenter } from '../lib/presenter';
 import { paginatorSchema } from '../lib/paginatorSchema';
 import { useValidation } from '../lib/validator';
 
@@ -27,12 +28,7 @@ let splitCsv = (value: string | undefined) =>
     .filter(Boolean);
 
 let presentProviderListing = async (providerListing: SubspaceProviderListing) =>
-  await providerListingPresenter
-    .present({ providerListing })({
-      apiVersion: 'mt_2025_01_01_dashboard',
-      accessType: 'instance_publishable'
-    })
-    .run({});
+  await runMarketplacePresenter(providerListingPresenter.present({ providerListing }));
 
 type ListResponse<T> = {
   __typename: 'list';
@@ -56,12 +52,16 @@ let getPublicProviderListingBySlug = async (d: { slug: string }) =>
     providerListingId: normalizeSlug(d.slug)
   });
 
-let listAllProviderTools = async (d: { providerVersion: string }) => {
-  let paginator = await subspacePublicProviderToolService.list({
-    providerVersion: d.providerVersion
-  });
-
-  let items: SubspaceProviderToolListItem[] = [];
+type SubspacePublicPaginator<T> = {
+  run: (query: { limit?: number; after?: string }) => Promise<{
+    items: T[];
+    pagination: { hasNextPage: boolean };
+  }>;
+};
+let listAllPaginatorItems = async <T extends { id: string }>(
+  paginator: SubspacePublicPaginator<T>
+) => {
+  let items: T[] = [];
   let after: string | undefined = undefined;
   let seen = new Set<string>();
 
@@ -79,6 +79,18 @@ let listAllProviderTools = async (d: { providerVersion: string }) => {
   }
 
   return items;
+};
+
+let listAllProviderTools = async (d: { providerVersion: string }) =>
+  await listAllPaginatorItems<SubspaceProviderToolListItem>(
+    await subspacePublicProviderToolService.list({
+      providerVersion: d.providerVersion
+    })
+  );
+
+let listProviderVariantsForListing = (listing: SubspaceProviderListing) => {
+  let defaultVariant = listing.provider?.defaultVariant;
+  return defaultVariant ? [defaultVariant] : [];
 };
 
 export let serversController = createHono()
@@ -141,20 +153,18 @@ export let serversController = createHono()
     let listing = await getPublicProviderListingBySlug({ slug: c.req.param('slug') });
     if (!listing) return c.notFound();
 
-    let defaultVariant = listing.provider?.defaultVariant;
-    if (!defaultVariant) return c.json(toList());
-
-    return c.json(toList([defaultVariant]));
+    let variants = listProviderVariantsForListing(listing);
+    return c.json(toList(variants));
   })
   .get(':slug/variants/:variantId', async c => {
     let listing = await getPublicProviderListingBySlug({ slug: c.req.param('slug') });
     if (!listing) return c.notFound();
 
-    let defaultVariant = listing.provider?.defaultVariant;
-    if (!defaultVariant) return c.notFound();
-    if (c.req.param('variantId') !== defaultVariant.id) return c.notFound();
+    let variants = listProviderVariantsForListing(listing);
+    let variant = variants.find(v => v.id === c.req.param('variantId'));
+    if (!variant) return c.notFound();
 
-    return c.json(defaultVariant);
+    return c.json(variant);
   })
   .get(':slug/versions', useValidation('query', paginatorSchema), async c => {
     let query = c.req.valid('query');
