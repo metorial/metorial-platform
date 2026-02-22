@@ -130,7 +130,7 @@ export let SelectRepo = (props: {
     instance.data?.id,
     selectedInstallationId ? { installationId: selectedInstallationId } : undefined
   );
-  let accountItems = (accounts.data?.items ?? []).filter(Boolean);
+  let accountItems = (accounts.data?.accounts ?? []).filter(Boolean);
   let [selectedAccountId, setSelectedAccountId] = useState<string | undefined>(undefined);
   useEffect(() => {
     if (accountItems.length) {
@@ -203,7 +203,7 @@ export let SelectRepo = (props: {
               </RepoSearch>
 
               <RepoList>
-                {repos.data.items
+                {repos.data.repos
                   .filter(
                     r =>
                       repoSearch.trim() === '' ||
@@ -228,7 +228,7 @@ export let SelectRepo = (props: {
                         <h3>
                           {r.identifier}
                         </h3>
-                        <p>{r.provider.toUpperCase()}</p>
+                        <p>{r.provider.type.toUpperCase()}</p>
                       </main>
 
                       <Button
@@ -250,7 +250,7 @@ export let SelectRepo = (props: {
                     </RepoItem>
                   ))}
 
-                {repos.data.items.length === 0 && <div>No repositories found</div>}
+                {repos.data.repos.length === 0 && <div>No repositories found</div>}
               </RepoList>
             </RepoBox>
           </div>

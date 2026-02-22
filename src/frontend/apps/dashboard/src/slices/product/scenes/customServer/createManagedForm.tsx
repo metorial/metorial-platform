@@ -266,7 +266,7 @@ export let CustomServerManagedCreateForm = (p: {
     instance.data?.id,
     selectedInstallationId ? { installationId: selectedInstallationId } : undefined
   );
-  let accountItems = (accounts.data?.items ?? []).filter(Boolean);
+  let accountItems = (accounts.data?.accounts ?? []).filter(Boolean);
   let [selectedAccountId, setSelectedAccountId] = useState<string | undefined>(undefined);
   useEffect(() => {
     if (accountItems.length) {
