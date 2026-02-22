@@ -11,10 +11,7 @@ export type ManagementInstanceProvidersToolsGetOutput = {
   instructions: string[];
   inputSchema: { type: 'json_schema'; schema: Record<string, any> } | null;
   outputSchema: { type: 'json_schema'; schema: Record<string, any> } | null;
-  tags: {
-    destructive?: boolean | undefined;
-    readOnly?: boolean | undefined;
-  } | null;
+  tags: { destructive: boolean | null; readOnly: boolean | null } | null;
   specificationId: string;
   providerId: string;
   createdAt: Date;

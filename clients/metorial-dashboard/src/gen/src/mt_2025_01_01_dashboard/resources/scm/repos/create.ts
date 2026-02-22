@@ -35,22 +35,27 @@ export let mapScmReposCreateOutput = mtMap.object<ScmReposCreateOutput>({
   createdAt: mtMap.objectField('created_at', mtMap.date())
 });
 
-export type ScmReposCreateBody = {
-  installationId: string;
-  externalRepoId?: string | undefined;
-  externalAccountId?: string | undefined;
-  name?: string | undefined;
-  isPrivate?: boolean | undefined;
-};
+export type ScmReposCreateBody = { installationId: string } & (
+  | { externalRepoId: string }
+  | { externalAccountId: string; name: string; isPrivate?: boolean | undefined }
+);
 
-export let mapScmReposCreateBody = mtMap.object<ScmReposCreateBody>({
-  installationId: mtMap.objectField('installation_id', mtMap.passthrough()),
-  externalRepoId: mtMap.objectField('external_repo_id', mtMap.passthrough()),
-  externalAccountId: mtMap.objectField(
-    'external_account_id',
-    mtMap.passthrough()
-  ),
-  name: mtMap.objectField('name', mtMap.passthrough()),
-  isPrivate: mtMap.objectField('is_private', mtMap.passthrough())
-});
+export let mapScmReposCreateBody = mtMap.union([
+  mtMap.unionOption(
+    'object',
+    mtMap.object({
+      installationId: mtMap.objectField('installation_id', mtMap.passthrough()),
+      externalRepoId: mtMap.objectField(
+        'external_repo_id',
+        mtMap.passthrough()
+      ),
+      externalAccountId: mtMap.objectField(
+        'external_account_id',
+        mtMap.passthrough()
+      ),
+      name: mtMap.objectField('name', mtMap.passthrough()),
+      isPrivate: mtMap.objectField('is_private', mtMap.passthrough())
+    })
+  )
+]);
 

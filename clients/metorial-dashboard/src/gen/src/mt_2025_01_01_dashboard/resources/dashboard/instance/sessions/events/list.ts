@@ -111,8 +111,8 @@ export type DashboardInstanceSessionsEventsListOutput = {
             schema: Record<string, any>;
           } | null;
           tags: {
-            destructive?: boolean | undefined;
-            readOnly?: boolean | undefined;
+            destructive: boolean | null;
+            readOnly: boolean | null;
           } | null;
           specificationId: string;
           providerId: string;
