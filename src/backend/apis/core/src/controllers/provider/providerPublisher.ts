@@ -7,7 +7,7 @@ import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { publisherPresenter } from '../../presenters';
 
-let providerPublisherGroup = instanceGroup.use(async ctx => {
+let publisherGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.publisherId) {
     throw new ServiceError(
       badRequestError({
@@ -25,7 +25,7 @@ let providerPublisherGroup = instanceGroup.use(async ctx => {
   return { publisher };
 });
 
-export let providerPublisherController = Controller.create(
+export let publisherController = Controller.create(
   {
     name: 'Publishers',
     description:
@@ -50,7 +50,7 @@ export let providerPublisherController = Controller.create(
         return Paginator.present(list, publisher => publisherPresenter.present({ publisher }));
       }),
 
-    get: providerPublisherGroup
+    get: publisherGroup
       .get(instancePath('publishers/:publisherId', 'publishers.get'), {
         name: 'Get publisher',
         description: 'Retrieves a specific publisher by ID.'

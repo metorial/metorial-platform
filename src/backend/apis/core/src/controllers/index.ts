@@ -37,23 +37,23 @@ import {
   providerDeploymentController,
   providerGroupController,
   providerListingController,
-  providerPublisherController,
-  providerSessionController,
+  providerRunController,
   providerSetupSessionController,
   providerSetupSessionDashboardController,
   providerSpecificationController,
   providerToolController,
   providerVersionController,
+  publisherController,
+  sessionConnectionController,
+  sessionController,
+  sessionErrorController,
+  sessionErrorGroupController,
+  sessionEventController,
+  sessionMessageController,
+  sessionParticipantController,
+  sessionProviderController,
   sessionTemplateController,
-  sessionTemplateProviderController,
-  subspaceProviderRunController,
-  subspaceSessionConnectionController,
-  subspaceSessionErrorController,
-  subspaceSessionErrorGroupController,
-  subspaceSessionEventController,
-  subspaceSessionMessageController,
-  subspaceSessionParticipantController,
-  subspaceSessionProviderController
+  sessionTemplateProviderController
 } from './provider';
 import { scmAccountsController, scmInstallationController, scmReposController } from './scm';
 
@@ -65,7 +65,7 @@ export let magnetarController = Controller.create<any>(
   {
     instanceController,
 
-    providerPublisherController,
+    publisherController,
     providerController,
     providerCategoryController,
     providerCollectionController,
@@ -87,35 +87,30 @@ export let magnetarController = Controller.create<any>(
     providerAuthImportController,
     providerAuthExportController,
 
-    providerSessionController,
+    sessionController,
     sessionTemplateController,
     sessionTemplateProviderController,
-    subspaceSessionProviderController,
-    subspaceSessionParticipantController,
-    subspaceSessionErrorController,
-    subspaceSessionErrorGroupController,
-    subspaceProviderRunController,
-    subspaceSessionMessageController,
-    subspaceSessionConnectionController,
-    subspaceSessionEventController,
+    sessionProviderController,
+    sessionParticipantController,
+    sessionErrorController,
+    sessionErrorGroupController,
+    providerRunController,
+    sessionMessageController,
+    sessionConnectionController,
+    sessionEventController,
 
     customProviderController,
-    customProviderCodeController,
     customProviderVersionController,
     customProviderDeploymentController,
     customProviderCommitController,
     customProviderEnvironmentController,
 
-    scmInstallationController,
-    scmReposController,
-    scmAccountsController,
-
     fileController,
-    fileLinkController,
+    fileLinkController
 
-    teamManagementController,
-    teamRoleManagementController,
-    teamRolePermissionsManagementController
+    // teamManagementController,
+    // teamRoleManagementController,
+    // teamRolePermissionsManagementController
 
     // magicMcpServerController,
     // magicMcpSessionController,
@@ -157,7 +152,7 @@ export let dashboardController = Controller.create<any>(
     fileController,
     fileLinkController,
 
-    providerSessionController,
+    sessionController,
 
     profileController,
 
@@ -170,29 +165,33 @@ export let dashboardController = Controller.create<any>(
     providerCategoryController,
     providerCollectionController,
     providerGroupController,
-    providerPublisherController,
+    publisherController,
+
     providerVersionController,
     providerSpecificationController,
     providerToolController,
     providerAuthMethodController,
+
     providerDeploymentController,
     providerConfigController,
     providerConfigVaultController,
     providerAuthConfigController,
     providerAuthCredentialsController,
     providerSetupSessionDashboardController,
+
     providerAuthImportController,
     providerAuthExportController,
+
     sessionTemplateController,
     sessionTemplateProviderController,
-    subspaceSessionProviderController,
-    subspaceSessionParticipantController,
-    subspaceSessionErrorController,
-    subspaceSessionErrorGroupController,
-    subspaceProviderRunController,
-    subspaceSessionMessageController,
-    subspaceSessionConnectionController,
-    subspaceSessionEventController,
+    sessionProviderController,
+    sessionParticipantController,
+    sessionErrorController,
+    sessionErrorGroupController,
+    providerRunController: providerRunController,
+    sessionMessageController,
+    sessionConnectionController,
+    sessionEventController,
 
     customProviderController,
     customProviderCodeController,

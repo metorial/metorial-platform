@@ -8,7 +8,7 @@ import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { subspaceSessionConnectionPresenter } from '../../presenters';
 
-let subspaceSessionConnectionGroup = instanceGroup.use(async ctx => {
+let sessionConnectionGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.sessionConnectionId) {
     throw new ServiceError(
       badRequestError({
@@ -26,7 +26,7 @@ let subspaceSessionConnectionGroup = instanceGroup.use(async ctx => {
   return { sessionConnection };
 });
 
-export let subspaceSessionConnectionController = Controller.create(
+export let sessionConnectionController = Controller.create(
   {
     name: 'Session Connections',
     description:
@@ -96,7 +96,7 @@ export let subspaceSessionConnectionController = Controller.create(
         );
       }),
 
-    get: subspaceSessionConnectionGroup
+    get: sessionConnectionGroup
       .get(
         instancePath('session-connections/:sessionConnectionId', 'sessions.connections.get'),
         {

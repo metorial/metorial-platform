@@ -126,6 +126,34 @@ export let v1CustomProviderDeploymentPresenter = Presenter.create(customProvider
   )
   .build();
 
+export let dashboardCustomProviderDeploymentPresenter = Presenter.create(
+  customProviderDeploymentType
+)
+  .presenter(async ({ customProviderDeployment }, opts) => {
+    let inner = await v1CustomProviderDeploymentPresenter
+      .present({ customProviderDeployment }, opts)
+      .run();
+
+    return {
+      ...inner,
+
+      immutable_bucket: customProviderDeployment.immutableBucket
+        ? await v1BucketPresenter
+            .present({ bucket: customProviderDeployment.immutableBucket }, opts)
+            .run()
+        : null
+    };
+  })
+  .schema(
+    v.intersection([
+      v1CustomProviderDeploymentPresenter.schema,
+      v.object({
+        immutable_bucket: v.nullable(v1BucketPresenter.schema)
+      })
+    ])
+  )
+  .build();
+
 export let v1CustomProviderDeploymentLogsPresenter = Presenter.create(
   customProviderDeploymentLogsType
 )

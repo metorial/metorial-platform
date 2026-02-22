@@ -116,7 +116,7 @@ let mapSessionProviderAuthConfigSource = (
   }
 };
 
-export let subspaceSessionProviderController = Controller.create(
+export let sessionProviderController = Controller.create(
   {
     name: 'Session Providers',
     description:

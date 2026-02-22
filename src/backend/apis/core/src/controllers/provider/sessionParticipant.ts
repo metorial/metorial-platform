@@ -8,7 +8,7 @@ import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { sessionParticipantPresenter } from '../../presenters';
 
-let subspaceSessionParticipantGroup = instanceGroup.use(async ctx => {
+let sessionParticipantGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.sessionParticipantId) {
     throw new ServiceError(
       badRequestError({
@@ -26,7 +26,7 @@ let subspaceSessionParticipantGroup = instanceGroup.use(async ctx => {
   return { sessionParticipant };
 });
 
-export let subspaceSessionParticipantController = Controller.create(
+export let sessionParticipantController = Controller.create(
   {
     name: 'Session Participants',
     description:
@@ -99,7 +99,7 @@ export let subspaceSessionParticipantController = Controller.create(
         );
       }),
 
-    get: subspaceSessionParticipantGroup
+    get: sessionParticipantGroup
       .get(
         instancePath(
           'session-participants/:sessionParticipantId',

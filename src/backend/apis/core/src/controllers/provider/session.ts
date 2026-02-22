@@ -13,7 +13,7 @@ import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { providerSessionPresenter } from '../../presenters';
 
-let providerSessionGroup = instanceGroup.use(async ctx => {
+let sessionGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.sessionId) {
     throw new ServiceError(
       badRequestError({
@@ -151,7 +151,7 @@ export let mapSessionAuthConfigSource = (
   }
 };
 
-export let providerSessionController = Controller.create(
+export let sessionController = Controller.create(
   {
     name: 'Sessions',
     description:
@@ -224,7 +224,7 @@ export let providerSessionController = Controller.create(
         );
       }),
 
-    get: providerSessionGroup
+    get: sessionGroup
       .get(instancePath('sessions/:sessionId', 'sessions.get'), {
         name: 'Get session',
         description: 'Retrieves a specific session by ID.'
@@ -273,7 +273,7 @@ export let providerSessionController = Controller.create(
         });
       }),
 
-    update: providerSessionGroup
+    update: sessionGroup
       .patch(instancePath('sessions/:sessionId', 'sessions.update'), {
         name: 'Update session',
         description: 'Updates a session.'

@@ -8,7 +8,7 @@ import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { providerRunLogsPresenter, subspaceProviderRunPresenter } from '../../presenters';
 
-let subspaceProviderRunGroup = instanceGroup.use(async ctx => {
+let providerRunGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerRunId) {
     throw new ServiceError(
       badRequestError({
@@ -26,7 +26,7 @@ let subspaceProviderRunGroup = instanceGroup.use(async ctx => {
   return { providerRun };
 });
 
-export let subspaceProviderRunController = Controller.create(
+export let providerRunController = Controller.create(
   {
     name: 'Provider Runs',
     description:
@@ -95,7 +95,7 @@ export let subspaceProviderRunController = Controller.create(
         );
       }),
 
-    get: subspaceProviderRunGroup
+    get: providerRunGroup
       .get(instancePath('provider-runs/:providerRunId', 'providerRuns.get'), {
         name: 'Get provider run',
         description: 'Retrieves a specific provider run by ID.'

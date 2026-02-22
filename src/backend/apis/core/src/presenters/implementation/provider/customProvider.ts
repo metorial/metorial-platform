@@ -20,10 +20,6 @@ export let v1CustomProviderPresenter = Presenter.create(customProviderType)
       ? await v1ScmRepoPresenter.present({ scmRepo: customProvider.scmRepo }, opts).run()
       : null,
 
-    draft_bucket: customProvider.draftBucket
-      ? await v1BucketPresenter.present({ bucket: customProvider.draftBucket }, opts).run()
-      : null,
-
     provider: customProvider.provider
       ? await v1ProviderPresenter.present({ provider: customProvider.provider }, opts).run()
       : null,
@@ -79,5 +75,26 @@ export let v1CustomProviderPresenter = Presenter.create(customProviderType)
         examples: [new Date('2026-01-10T14:45:00Z')]
       })
     })
+  )
+  .build();
+
+export let dashboardCustomProviderPresenter = Presenter.create(customProviderType)
+  .presenter(async ({ customProvider }, opts) => {
+    let inner = await v1CustomProviderPresenter.present({ customProvider }, opts).run();
+
+    return {
+      ...inner,
+      draft_bucket: customProvider.draftBucket
+        ? await v1BucketPresenter.present({ bucket: customProvider.draftBucket }, opts).run()
+        : null
+    };
+  })
+  .schema(
+    v.intersection([
+      v1CustomProviderPresenter.schema,
+      v.object({
+        draft_bucket: v.nullable(v1BucketPresenter.schema)
+      })
+    ])
   )
   .build();

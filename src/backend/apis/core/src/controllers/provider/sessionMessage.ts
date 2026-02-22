@@ -8,7 +8,7 @@ import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { subspaceSessionMessagePresenter } from '../../presenters';
 
-let subspaceSessionMessageGroup = instanceGroup.use(async ctx => {
+let sessionMessageGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.sessionMessageId) {
     throw new ServiceError(
       badRequestError({
@@ -26,7 +26,7 @@ let subspaceSessionMessageGroup = instanceGroup.use(async ctx => {
   return { sessionMessage };
 });
 
-export let subspaceSessionMessageController = Controller.create(
+export let sessionMessageController = Controller.create(
   {
     name: 'Session Messages',
     description:
@@ -115,7 +115,7 @@ export let subspaceSessionMessageController = Controller.create(
         );
       }),
 
-    get: subspaceSessionMessageGroup
+    get: sessionMessageGroup
       .get(instancePath('session-messages/:sessionMessageId', 'sessions.messages.get'), {
         name: 'Get session message',
         description: 'Retrieves a specific message from a session.'

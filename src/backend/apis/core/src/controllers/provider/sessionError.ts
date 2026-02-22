@@ -8,7 +8,7 @@ import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { subspaceSessionErrorPresenter } from '../../presenters';
 
-let subspaceSessionErrorGroup = instanceGroup.use(async ctx => {
+let sessionErrorGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.sessionErrorId) {
     throw new ServiceError(
       badRequestError({
@@ -26,7 +26,7 @@ let subspaceSessionErrorGroup = instanceGroup.use(async ctx => {
   return { sessionError };
 });
 
-export let subspaceSessionErrorController = Controller.create(
+export let sessionErrorController = Controller.create(
   {
     name: 'Session Errors',
     description:
@@ -187,7 +187,7 @@ export let subspaceSessionErrorController = Controller.create(
         );
       }),
 
-    get: subspaceSessionErrorGroup
+    get: sessionErrorGroup
       .get(instancePath('sessions/:sessionId/errors/:sessionErrorId', 'sessions.errors.get'), {
         name: 'Get session error',
         description: 'Retrieves a specific error that occurred in a session.'
