@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { TabsContent } from '@/components/ui/tabs';
 import { Root } from '@modelcontextprotocol/sdk/types.js';
-import { Plus, Minus, Save } from 'lucide-react';
+import { Minus, Plus, Save } from 'lucide-react';
 
 const RootsTab = ({
   roots,

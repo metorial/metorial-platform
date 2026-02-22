@@ -132,7 +132,7 @@ const ResourcesTab = ({
             <div className="flex items-center w-full">
               <FileText className="w-4 h-4 mr-2 flex-shrink-0 text-gray-500" />
               <span className="flex-1 truncate" title={resource.uri.toString()}>
-                {resource.title ?? resource.name}
+                {(resource.title ?? resource.name) as string}
               </span>
               <ChevronRight className="w-4 h-4 flex-shrink-0 text-gray-400" />
             </div>
@@ -162,7 +162,7 @@ const ResourcesTab = ({
             <div className="flex items-center w-full">
               <FileText className="w-4 h-4 mr-2 flex-shrink-0 text-gray-500" />
               <span className="flex-1 truncate" title={template.uriTemplate}>
-                {template.title ?? template.name}
+                {(template.title ?? template.name) as string}
               </span>
               <ChevronRight className="w-4 h-4 flex-shrink-0 text-gray-400" />
             </div>
@@ -177,17 +177,19 @@ const ResourcesTab = ({
             <h3
               className="font-semibold truncate"
               title={
-                selectedResource?.title ??
-                selectedResource?.name ??
-                selectedTemplate?.title ??
-                selectedTemplate?.name
+                (selectedResource?.title ??
+                  selectedResource?.name ??
+                  selectedTemplate?.title ??
+                  selectedTemplate?.name) as string
               }
             >
-              {selectedResource
-                ? (selectedResource.title ?? selectedResource.name)
-                : selectedTemplate
-                  ? (selectedTemplate.title ?? selectedTemplate.name)
-                  : 'Select a resource or template'}
+              {
+                (selectedResource
+                  ? (selectedResource.title ?? selectedResource.name)
+                  : selectedTemplate
+                    ? (selectedTemplate.title ?? selectedTemplate.name)
+                    : 'Select a resource or template') as string
+              }
             </h3>
             {selectedResource && (
               <div className="flex row-auto gap-1 justify-end w-2/5">

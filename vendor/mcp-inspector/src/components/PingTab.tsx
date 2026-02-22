@@ -1,5 +1,5 @@
-import { TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
+import { TabsContent } from '@/components/ui/tabs';
 
 const PingTab = ({ onPingClick }: { onPingClick: () => void }) => {
   return (

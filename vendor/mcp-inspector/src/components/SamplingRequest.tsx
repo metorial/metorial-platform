@@ -1,14 +1,14 @@
 import { Button } from '@/components/ui/button';
-import JsonView from './JsonView';
-import { useMemo, useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
+import { JsonSchemaType, JsonValue } from '@/utils/jsonUtils';
 import {
   CreateMessageResult,
   CreateMessageResultSchema
 } from '@modelcontextprotocol/sdk/types.js';
-import { PendingRequest } from './SamplingTab';
+import { useMemo, useState } from 'react';
 import DynamicJsonForm from './DynamicJsonForm';
-import { useToast } from '@/hooks/use-toast';
-import { JsonSchemaType, JsonValue } from '@/utils/jsonUtils';
+import JsonView from './JsonView';
+import { PendingRequest } from './SamplingTab';
 
 export type SamplingRequestProps = {
   request: PendingRequest;
