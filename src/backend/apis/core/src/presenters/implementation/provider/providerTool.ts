@@ -9,11 +9,11 @@ export let v1ProviderToolPresenter = Presenter.create(providerToolType)
 
     key: tool.key,
     name: tool.name,
-    description: tool.description,
+    description: tool.description ?? null,
 
-    capabilities: tool.capabilities,
-    constraints: tool.constraints,
-    instructions: tool.instructions,
+    capabilities: tool.capabilities ?? {},
+    constraints: tool.constraints ?? [],
+    instructions: tool.instructions ?? [],
 
     input_schema: tool.inputJsonSchema
       ? {
@@ -30,8 +30,8 @@ export let v1ProviderToolPresenter = Presenter.create(providerToolType)
 
     tags: tool.tags
       ? {
-          destructive: tool.tags.destructive,
-          read_only: tool.tags.readOnly
+          destructive: tool.tags.destructive ?? null,
+          read_only: tool.tags.readOnly ?? null
         }
       : null,
 
@@ -100,10 +100,10 @@ export let v1ProviderToolPresenter = Presenter.create(providerToolType)
       ),
       tags: v.nullable(
         v.object({
-          destructive: v.optional(
+          destructive: v.nullable(
             v.boolean({ name: 'destructive', description: 'Whether the tool is destructive' })
           ),
-          read_only: v.optional(
+          read_only: v.nullable(
             v.boolean({ name: 'read_only', description: 'Whether the tool is read-only' })
           )
         })
