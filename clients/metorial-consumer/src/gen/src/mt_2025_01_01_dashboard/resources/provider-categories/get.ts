@@ -1,10 +1,10 @@
 import { mtMap } from '@metorial/util-resource-mapper';
 
 export type ProviderCategoriesGetOutput = {
-  object: 'provider.category';
+  object: 'provider.listing_category';
   id: string;
   name: string;
-  description: string | null;
+  description: string;
   slug: string;
   createdAt: Date;
   updatedAt: Date;

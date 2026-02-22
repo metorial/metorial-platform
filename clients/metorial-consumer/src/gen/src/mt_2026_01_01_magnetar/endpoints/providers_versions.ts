@@ -43,7 +43,6 @@ export class MetorialProvidersVersionsEndpoint {
    * @name List provider versions
    * @description Returns a paginated list of provider versions.
    *
-   * @param `providerId` - string
    * @param `query` - DashboardInstanceProvidersVersionsListQuery
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceProvidersVersionsListOutput
@@ -51,11 +50,10 @@ export class MetorialProvidersVersionsEndpoint {
    * @see https://metorial.com/docs
    */
   list(
-    providerId: string,
     query?: DashboardInstanceProvidersVersionsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProvidersVersionsListOutput> {
-    let path = `providers/${providerId}/versions`;
+    let path = 'provider-versions';
 
     let request = {
       path,
@@ -75,7 +73,6 @@ export class MetorialProvidersVersionsEndpoint {
    * @name Get provider version
    * @description Retrieves a specific provider version by ID.
    *
-   * @param `providerId` - string
    * @param `providerVersionId` - string
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceProvidersVersionsGetOutput
@@ -83,11 +80,10 @@ export class MetorialProvidersVersionsEndpoint {
    * @see https://metorial.com/docs
    */
   get(
-    providerId: string,
     providerVersionId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProvidersVersionsGetOutput> {
-    let path = `providers/${providerId}/versions/${providerVersionId}`;
+    let path = `provider-versions/${providerVersionId}`;
 
     let request = {
       path,

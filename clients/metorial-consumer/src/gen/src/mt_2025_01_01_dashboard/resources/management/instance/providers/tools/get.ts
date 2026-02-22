@@ -3,13 +3,20 @@ import { mtMap } from '@metorial/util-resource-mapper';
 export type ManagementInstanceProvidersToolsGetOutput = {
   object: 'provider.tool';
   id: string;
+  key: string;
   name: string;
-  title: string | null;
   description: string | null;
-  inputSchema: Record<string, any> | null;
-  outputSchema: Record<string, any> | null;
+  capabilities: Record<string, any>;
+  constraints: string[];
+  instructions: string[];
+  inputSchema: { type: 'json_schema'; schema: Record<string, any> } | null;
+  outputSchema: { type: 'json_schema'; schema: Record<string, any> } | null;
+  tags: {
+    destructive?: boolean | undefined;
+    readOnly?: boolean | undefined;
+  } | null;
+  specificationId: string;
   providerId: string;
-  providerSpecificationId: string;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -18,16 +25,41 @@ export let mapManagementInstanceProvidersToolsGetOutput =
   mtMap.object<ManagementInstanceProvidersToolsGetOutput>({
     object: mtMap.objectField('object', mtMap.passthrough()),
     id: mtMap.objectField('id', mtMap.passthrough()),
+    key: mtMap.objectField('key', mtMap.passthrough()),
     name: mtMap.objectField('name', mtMap.passthrough()),
-    title: mtMap.objectField('title', mtMap.passthrough()),
     description: mtMap.objectField('description', mtMap.passthrough()),
-    inputSchema: mtMap.objectField('input_schema', mtMap.passthrough()),
-    outputSchema: mtMap.objectField('output_schema', mtMap.passthrough()),
-    providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-    providerSpecificationId: mtMap.objectField(
-      'provider_specification_id',
-      mtMap.passthrough()
+    capabilities: mtMap.objectField('capabilities', mtMap.passthrough()),
+    constraints: mtMap.objectField(
+      'constraints',
+      mtMap.array(mtMap.passthrough())
     ),
+    instructions: mtMap.objectField(
+      'instructions',
+      mtMap.array(mtMap.passthrough())
+    ),
+    inputSchema: mtMap.objectField(
+      'input_schema',
+      mtMap.object({
+        type: mtMap.objectField('type', mtMap.passthrough()),
+        schema: mtMap.objectField('schema', mtMap.passthrough())
+      })
+    ),
+    outputSchema: mtMap.objectField(
+      'output_schema',
+      mtMap.object({
+        type: mtMap.objectField('type', mtMap.passthrough()),
+        schema: mtMap.objectField('schema', mtMap.passthrough())
+      })
+    ),
+    tags: mtMap.objectField(
+      'tags',
+      mtMap.object({
+        destructive: mtMap.objectField('destructive', mtMap.passthrough()),
+        readOnly: mtMap.objectField('readOnly', mtMap.passthrough())
+      })
+    ),
+    specificationId: mtMap.objectField('specification_id', mtMap.passthrough()),
+    providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
     createdAt: mtMap.objectField('created_at', mtMap.date()),
     updatedAt: mtMap.objectField('updated_at', mtMap.date())
   });

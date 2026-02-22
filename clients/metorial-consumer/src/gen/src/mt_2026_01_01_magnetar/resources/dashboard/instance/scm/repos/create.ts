@@ -1,9 +1,15 @@
 import { mtMap } from '@metorial/util-resource-mapper';
 
 export type DashboardInstanceScmReposCreateOutput = {
-  object: 'scm.repo';
+  object: 'scm.repository';
   id: string;
-  provider: { type: string; id: string; name: string; owner: string };
+  provider: {
+    object: 'scm.provider';
+    type: 'github' | 'gitlab';
+    id: string;
+    name: string;
+    owner: string;
+  };
   url: string;
   isPrivate: boolean;
   defaultBranch: string;
@@ -17,6 +23,7 @@ export let mapDashboardInstanceScmReposCreateOutput =
     provider: mtMap.objectField(
       'provider',
       mtMap.object({
+        object: mtMap.objectField('object', mtMap.passthrough()),
         type: mtMap.objectField('type', mtMap.passthrough()),
         id: mtMap.objectField('id', mtMap.passthrough()),
         name: mtMap.objectField('name', mtMap.passthrough()),

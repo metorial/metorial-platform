@@ -48,7 +48,6 @@ export class MetorialManagementInstanceCustomProvidersVersionsEndpoint {
    * @description Returns a paginated list of versions for a custom provider.
    *
    * @param `instanceId` - string
-   * @param `customProviderId` - string
    * @param `query` - DashboardInstanceCustomProvidersVersionsListQuery
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceCustomProvidersVersionsListOutput
@@ -57,11 +56,10 @@ export class MetorialManagementInstanceCustomProvidersVersionsEndpoint {
    */
   list(
     instanceId: string,
-    customProviderId: string,
     query?: DashboardInstanceCustomProvidersVersionsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCustomProvidersVersionsListOutput> {
-    let path = `instances/${instanceId}/custom-providers/${customProviderId}/versions`;
+    let path = `instances/${instanceId}/custom-provider-versions`;
 
     let request = {
       path,
@@ -84,7 +82,6 @@ export class MetorialManagementInstanceCustomProvidersVersionsEndpoint {
    * @description Retrieves a specific version of a custom provider.
    *
    * @param `instanceId` - string
-   * @param `customProviderId` - string
    * @param `customProviderVersionId` - string
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceCustomProvidersVersionsGetOutput
@@ -93,11 +90,10 @@ export class MetorialManagementInstanceCustomProvidersVersionsEndpoint {
    */
   get(
     instanceId: string,
-    customProviderId: string,
     customProviderVersionId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCustomProvidersVersionsGetOutput> {
-    let path = `instances/${instanceId}/custom-providers/${customProviderId}/versions/${customProviderVersionId}`;
+    let path = `instances/${instanceId}/custom-provider-versions/${customProviderVersionId}`;
 
     let request = {
       path,
@@ -115,7 +111,6 @@ export class MetorialManagementInstanceCustomProvidersVersionsEndpoint {
    * @description Creates a new version for a custom provider.
    *
    * @param `instanceId` - string
-   * @param `customProviderId` - string
    * @param `body` - DashboardInstanceCustomProvidersVersionsCreateBody
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceCustomProvidersVersionsCreateOutput
@@ -124,11 +119,10 @@ export class MetorialManagementInstanceCustomProvidersVersionsEndpoint {
    */
   create(
     instanceId: string,
-    customProviderId: string,
     body: DashboardInstanceCustomProvidersVersionsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCustomProvidersVersionsCreateOutput> {
-    let path = `instances/${instanceId}/custom-providers/${customProviderId}/versions`;
+    let path = `instances/${instanceId}/custom-provider-versions`;
 
     let request = {
       path,

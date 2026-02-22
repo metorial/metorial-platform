@@ -5,6 +5,7 @@ export type ManagementInstanceProviderDeploymentsAuthCredentialsListOutput = {
     object: 'provider.auth_credentials';
     id: string;
     type: 'oauth';
+    isDefault: boolean;
     name: string | null;
     description: string | null;
     metadata: Record<string, any> | null;
@@ -24,6 +25,7 @@ export let mapManagementInstanceProviderDeploymentsAuthCredentialsListOutput =
           object: mtMap.objectField('object', mtMap.passthrough()),
           id: mtMap.objectField('id', mtMap.passthrough()),
           type: mtMap.objectField('type', mtMap.passthrough()),
+          isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
           name: mtMap.objectField('name', mtMap.passthrough()),
           description: mtMap.objectField('description', mtMap.passthrough()),
           metadata: mtMap.objectField('metadata', mtMap.passthrough()),
@@ -51,7 +53,11 @@ export type ManagementInstanceProviderDeploymentsAuthCredentialsListQuery = {
   before?: string | undefined;
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
-} & { id?: string | string[] | undefined };
+} & {
+  status?: 'active' | 'archived' | ('active' | 'archived')[] | undefined;
+  id?: string | string[] | undefined;
+  providerId?: string | string[] | undefined;
+};
 
 export let mapManagementInstanceProviderDeploymentsAuthCredentialsListQuery =
   mtMap.union([
@@ -63,8 +69,22 @@ export let mapManagementInstanceProviderDeploymentsAuthCredentialsListQuery =
         before: mtMap.objectField('before', mtMap.passthrough()),
         cursor: mtMap.objectField('cursor', mtMap.passthrough()),
         order: mtMap.objectField('order', mtMap.passthrough()),
+        status: mtMap.objectField(
+          'status',
+          mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
+        ),
         id: mtMap.objectField(
           'id',
+          mtMap.union([
+            mtMap.unionOption('string', mtMap.passthrough()),
+            mtMap.unionOption(
+              'array',
+              mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+            )
+          ])
+        ),
+        providerId: mtMap.objectField(
+          'provider_id',
           mtMap.union([
             mtMap.unionOption('string', mtMap.passthrough()),
             mtMap.unionOption(

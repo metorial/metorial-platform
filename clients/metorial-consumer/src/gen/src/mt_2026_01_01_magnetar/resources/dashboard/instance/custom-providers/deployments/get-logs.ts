@@ -2,68 +2,53 @@ import { mtMap } from '@metorial/util-resource-mapper';
 
 export type DashboardInstanceCustomProvidersDeploymentsGetLogsOutput = {
   object: 'custom_provider.deployment.logs';
-  logs: { type: string; line: string; timestamp: Date | null }[];
+  customProviderDeploymentId: string;
   steps: {
-    id: string | null;
-    type: string | null;
-    status: string | null;
-    source: {
-      provider: string | null;
-      workflowRunId: string | null;
-      workflowId: string | null;
-      functionDeploymentId: string | null;
-    } | null;
-    logs: { type: string; line: string; timestamp: Date | null }[];
-    createdAt: Date | null;
+    object: 'custom_provider.deployment.logs.step';
+    id: string;
+    name: string;
+    type: string;
+    status: string;
+    logs: {
+      object: 'custom_provider.deployment.logs.step.log';
+      timestamp: Date;
+      message: string;
+    }[];
+    createdAt: Date;
+    startedAt: Date | null;
+    endedAt: Date | null;
   }[];
 };
 
 export let mapDashboardInstanceCustomProvidersDeploymentsGetLogsOutput =
   mtMap.object<DashboardInstanceCustomProvidersDeploymentsGetLogsOutput>({
     object: mtMap.objectField('object', mtMap.passthrough()),
-    logs: mtMap.objectField(
-      'logs',
-      mtMap.array(
-        mtMap.object({
-          type: mtMap.objectField('type', mtMap.passthrough()),
-          line: mtMap.objectField('line', mtMap.passthrough()),
-          timestamp: mtMap.objectField('timestamp', mtMap.date())
-        })
-      )
+    customProviderDeploymentId: mtMap.objectField(
+      'custom_provider_deployment_id',
+      mtMap.passthrough()
     ),
     steps: mtMap.objectField(
       'steps',
       mtMap.array(
         mtMap.object({
+          object: mtMap.objectField('object', mtMap.passthrough()),
           id: mtMap.objectField('id', mtMap.passthrough()),
+          name: mtMap.objectField('name', mtMap.passthrough()),
           type: mtMap.objectField('type', mtMap.passthrough()),
           status: mtMap.objectField('status', mtMap.passthrough()),
-          source: mtMap.objectField(
-            'source',
-            mtMap.object({
-              provider: mtMap.objectField('provider', mtMap.passthrough()),
-              workflowRunId: mtMap.objectField(
-                'workflow_run_id',
-                mtMap.passthrough()
-              ),
-              workflowId: mtMap.objectField('workflow_id', mtMap.passthrough()),
-              functionDeploymentId: mtMap.objectField(
-                'function_deployment_id',
-                mtMap.passthrough()
-              )
-            })
-          ),
           logs: mtMap.objectField(
             'logs',
             mtMap.array(
               mtMap.object({
-                type: mtMap.objectField('type', mtMap.passthrough()),
-                line: mtMap.objectField('line', mtMap.passthrough()),
-                timestamp: mtMap.objectField('timestamp', mtMap.date())
+                object: mtMap.objectField('object', mtMap.passthrough()),
+                timestamp: mtMap.objectField('timestamp', mtMap.date()),
+                message: mtMap.objectField('message', mtMap.passthrough())
               })
             )
           ),
-          createdAt: mtMap.objectField('created_at', mtMap.date())
+          createdAt: mtMap.objectField('created_at', mtMap.date()),
+          startedAt: mtMap.objectField('started_at', mtMap.date()),
+          endedAt: mtMap.objectField('ended_at', mtMap.date())
         })
       )
     )

@@ -44,7 +44,6 @@ export class MetorialDashboardInstanceSessionsConnectionsEndpoint {
    * @description Returns a paginated list of connections for a session.
    *
    * @param `instanceId` - string
-   * @param `sessionId` - string
    * @param `query` - DashboardInstanceSessionsConnectionsListQuery
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceSessionsConnectionsListOutput
@@ -53,11 +52,10 @@ export class MetorialDashboardInstanceSessionsConnectionsEndpoint {
    */
   list(
     instanceId: string,
-    sessionId: string,
     query?: DashboardInstanceSessionsConnectionsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionsConnectionsListOutput> {
-    let path = `dashboard/instances/${instanceId}/sessions/${sessionId}/connections`;
+    let path = `dashboard/instances/${instanceId}/session-connections`;
 
     let request = {
       path,
@@ -78,7 +76,6 @@ export class MetorialDashboardInstanceSessionsConnectionsEndpoint {
    * @description Retrieves a specific connection from a session.
    *
    * @param `instanceId` - string
-   * @param `sessionId` - string
    * @param `sessionConnectionId` - string
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceSessionsConnectionsGetOutput
@@ -87,11 +84,10 @@ export class MetorialDashboardInstanceSessionsConnectionsEndpoint {
    */
   get(
     instanceId: string,
-    sessionId: string,
     sessionConnectionId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionsConnectionsGetOutput> {
-    let path = `dashboard/instances/${instanceId}/sessions/${sessionId}/connections/${sessionConnectionId}`;
+    let path = `dashboard/instances/${instanceId}/session-connections/${sessionConnectionId}`;
 
     let request = {
       path,

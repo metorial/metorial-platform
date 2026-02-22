@@ -2,10 +2,18 @@ import { mtMap } from '@metorial/util-resource-mapper';
 
 export type ScmInstallationListOutput = {
   items: {
-    object: 'scm.installation';
+    object: 'scm.connection';
     id: string;
     provider: string;
-    user: { id: string; name: string; email: string; imageUrl: string | null };
+    externalInstallationId: string | null;
+    accountType: string | null;
+    externalAccount: {
+      id: string;
+      login: string;
+      name: string | null;
+      email: string | null;
+      imageUrl: string | null;
+    };
     createdAt: Date;
     updatedAt: Date;
   }[];
@@ -21,10 +29,16 @@ export let mapScmInstallationListOutput =
           object: mtMap.objectField('object', mtMap.passthrough()),
           id: mtMap.objectField('id', mtMap.passthrough()),
           provider: mtMap.objectField('provider', mtMap.passthrough()),
-          user: mtMap.objectField(
-            'user',
+          externalInstallationId: mtMap.objectField(
+            'external_installation_id',
+            mtMap.passthrough()
+          ),
+          accountType: mtMap.objectField('account_type', mtMap.passthrough()),
+          externalAccount: mtMap.objectField(
+            'external_account',
             mtMap.object({
               id: mtMap.objectField('id', mtMap.passthrough()),
+              login: mtMap.objectField('login', mtMap.passthrough()),
               name: mtMap.objectField('name', mtMap.passthrough()),
               email: mtMap.objectField('email', mtMap.passthrough()),
               imageUrl: mtMap.objectField('image_url', mtMap.passthrough())

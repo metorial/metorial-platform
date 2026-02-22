@@ -7,7 +7,7 @@ export type DashboardInstanceCustomProvidersEnvironmentsListOutput = {
     customProviderId: string;
     providerId: string | null;
     currentProviderVersionId: string | null;
-    instanceId: string | null;
+    instanceId: string;
     createdAt: Date;
     updatedAt: Date;
   }[];
@@ -56,8 +56,9 @@ export type DashboardInstanceCustomProvidersEnvironmentsListQuery = {
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
 } & {
-  ids?: string | string[] | undefined;
-  customProviderVersionIds?: string | string[] | undefined;
+  id?: string | string[] | undefined;
+  customProviderVersionId?: string | string[] | undefined;
+  customProviderId?: string | string[] | undefined;
 };
 
 export let mapDashboardInstanceCustomProvidersEnvironmentsListQuery =
@@ -70,8 +71,8 @@ export let mapDashboardInstanceCustomProvidersEnvironmentsListQuery =
         before: mtMap.objectField('before', mtMap.passthrough()),
         cursor: mtMap.objectField('cursor', mtMap.passthrough()),
         order: mtMap.objectField('order', mtMap.passthrough()),
-        ids: mtMap.objectField(
-          'ids',
+        id: mtMap.objectField(
+          'id',
           mtMap.union([
             mtMap.unionOption('string', mtMap.passthrough()),
             mtMap.unionOption(
@@ -80,8 +81,18 @@ export let mapDashboardInstanceCustomProvidersEnvironmentsListQuery =
             )
           ])
         ),
-        customProviderVersionIds: mtMap.objectField(
-          'custom_provider_version_ids',
+        customProviderVersionId: mtMap.objectField(
+          'custom_provider_version_id',
+          mtMap.union([
+            mtMap.unionOption('string', mtMap.passthrough()),
+            mtMap.unionOption(
+              'array',
+              mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+            )
+          ])
+        ),
+        customProviderId: mtMap.objectField(
+          'custom_provider_id',
           mtMap.union([
             mtMap.unionOption('string', mtMap.passthrough()),
             mtMap.unionOption(

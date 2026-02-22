@@ -6,7 +6,7 @@ export type DashboardInstanceCustomProvidersEnvironmentsGetOutput = {
   customProviderId: string;
   providerId: string | null;
   currentProviderVersionId: string | null;
-  instanceId: string | null;
+  instanceId: string;
   createdAt: Date;
   updatedAt: Date;
 };

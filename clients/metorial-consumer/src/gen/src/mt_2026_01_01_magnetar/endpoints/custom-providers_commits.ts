@@ -47,7 +47,6 @@ export class MetorialCustomProvidersCommitsEndpoint {
    * @name List custom provider commits
    * @description Returns a paginated list of commits for a custom provider.
    *
-   * @param `customProviderId` - string
    * @param `query` - DashboardInstanceCustomProvidersCommitsListQuery
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceCustomProvidersCommitsListOutput
@@ -55,11 +54,10 @@ export class MetorialCustomProvidersCommitsEndpoint {
    * @see https://metorial.com/docs
    */
   list(
-    customProviderId: string,
     query?: DashboardInstanceCustomProvidersCommitsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCustomProvidersCommitsListOutput> {
-    let path = `custom-providers/${customProviderId}/commits`;
+    let path = 'custom-provider-commits';
 
     let request = {
       path,
@@ -79,7 +77,6 @@ export class MetorialCustomProvidersCommitsEndpoint {
    * @name Get custom provider commit
    * @description Retrieves a specific commit.
    *
-   * @param `customProviderId` - string
    * @param `customProviderCommitId` - string
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceCustomProvidersCommitsGetOutput
@@ -87,11 +84,10 @@ export class MetorialCustomProvidersCommitsEndpoint {
    * @see https://metorial.com/docs
    */
   get(
-    customProviderId: string,
     customProviderCommitId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCustomProvidersCommitsGetOutput> {
-    let path = `custom-providers/${customProviderId}/commits/${customProviderCommitId}`;
+    let path = `custom-provider-commits/${customProviderCommitId}`;
 
     let request = {
       path,
@@ -108,7 +104,6 @@ export class MetorialCustomProvidersCommitsEndpoint {
    * @name Create custom provider commit
    * @description Creates a new commit to promote or rollback a version in an environment.
    *
-   * @param `customProviderId` - string
    * @param `body` - DashboardInstanceCustomProvidersCommitsCreateBody
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceCustomProvidersCommitsCreateOutput
@@ -116,11 +111,10 @@ export class MetorialCustomProvidersCommitsEndpoint {
    * @see https://metorial.com/docs
    */
   create(
-    customProviderId: string,
     body: DashboardInstanceCustomProvidersCommitsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCustomProvidersCommitsCreateOutput> {
-    let path = `custom-providers/${customProviderId}/commits`;
+    let path = 'custom-provider-commits';
 
     let request = {
       path,

@@ -106,36 +106,26 @@ export type ProviderDeploymentsConfigsCreateBody = {
   name: string;
   description?: string | undefined;
   metadata?: Record<string, any> | undefined;
-  config:
-    | { type: 'inline'; data: Record<string, any> }
-    | { type: 'vault'; providerConfigVaultId: string };
-};
+} & ({ value: Record<string, any> } | { providerConfigVaultId: string });
 
-export let mapProviderDeploymentsConfigsCreateBody =
-  mtMap.object<ProviderDeploymentsConfigsCreateBody>({
-    providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-    providerDeploymentId: mtMap.objectField(
-      'provider_deployment_id',
-      mtMap.passthrough()
-    ),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-    config: mtMap.objectField(
-      'config',
-      mtMap.union([
-        mtMap.unionOption(
-          'object',
-          mtMap.object({
-            type: mtMap.objectField('type', mtMap.passthrough()),
-            data: mtMap.objectField('data', mtMap.passthrough()),
-            providerConfigVaultId: mtMap.objectField(
-              'provider_config_vault_id',
-              mtMap.passthrough()
-            )
-          })
-        )
-      ])
-    )
-  });
+export let mapProviderDeploymentsConfigsCreateBody = mtMap.union([
+  mtMap.unionOption(
+    'object',
+    mtMap.object({
+      providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
+      providerDeploymentId: mtMap.objectField(
+        'provider_deployment_id',
+        mtMap.passthrough()
+      ),
+      name: mtMap.objectField('name', mtMap.passthrough()),
+      description: mtMap.objectField('description', mtMap.passthrough()),
+      metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+      value: mtMap.objectField('value', mtMap.passthrough()),
+      providerConfigVaultId: mtMap.objectField(
+        'provider_config_vault_id',
+        mtMap.passthrough()
+      )
+    })
+  )
+]);
 

@@ -35,7 +35,7 @@ export type ManagementInstanceProviderDeploymentsAuthCredentialsCreateBody = {
   description?: string | undefined;
   metadata?: Record<string, any> | undefined;
   config: {
-    type: 'oauth';
+    type?: 'oauth' | undefined;
     clientId: string;
     clientSecret: string;
     scopes: string[];

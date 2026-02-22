@@ -4,16 +4,11 @@ export type ManagementInstanceProviderRunsListOutput = {
   items: {
     object: 'session.provider_run';
     id: string;
-    status: string | null;
-    name: string | null;
-    description: string | null;
-    metadata: Record<string, any> | null;
+    status: string;
     sessionId: string;
-    sessionProviderId: string | null;
-    providerId: string | null;
-    providerDeploymentId: string | null;
-    providerVersionId: string | null;
-    startedAt: Date | null;
+    sessionProviderId: string;
+    providerId: string;
+    connectionId: string;
     completedAt: Date | null;
     createdAt: Date;
     updatedAt: Date;
@@ -30,24 +25,13 @@ export let mapManagementInstanceProviderRunsListOutput =
           object: mtMap.objectField('object', mtMap.passthrough()),
           id: mtMap.objectField('id', mtMap.passthrough()),
           status: mtMap.objectField('status', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          description: mtMap.objectField('description', mtMap.passthrough()),
-          metadata: mtMap.objectField('metadata', mtMap.passthrough()),
           sessionId: mtMap.objectField('session_id', mtMap.passthrough()),
           sessionProviderId: mtMap.objectField(
             'session_provider_id',
             mtMap.passthrough()
           ),
           providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-          providerDeploymentId: mtMap.objectField(
-            'provider_deployment_id',
-            mtMap.passthrough()
-          ),
-          providerVersionId: mtMap.objectField(
-            'provider_version_id',
-            mtMap.passthrough()
-          ),
-          startedAt: mtMap.objectField('started_at', mtMap.date()),
+          connectionId: mtMap.objectField('connection_id', mtMap.passthrough()),
           completedAt: mtMap.objectField('completed_at', mtMap.date()),
           createdAt: mtMap.objectField('created_at', mtMap.date()),
           updatedAt: mtMap.objectField('updated_at', mtMap.date())
@@ -73,10 +57,13 @@ export type ManagementInstanceProviderRunsListQuery = {
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
 } & {
-  status?: string | undefined;
+  status?: 'running' | 'stopped' | ('running' | 'stopped')[] | undefined;
+  id?: string | string[] | undefined;
   sessionId?: string | string[] | undefined;
   providerId?: string | string[] | undefined;
   sessionProviderId?: string | string[] | undefined;
+  sessionConnectionId?: string | string[] | undefined;
+  providerVersionId?: string | string[] | undefined;
 };
 
 export let mapManagementInstanceProviderRunsListQuery = mtMap.union([
@@ -88,7 +75,20 @@ export let mapManagementInstanceProviderRunsListQuery = mtMap.union([
       before: mtMap.objectField('before', mtMap.passthrough()),
       cursor: mtMap.objectField('cursor', mtMap.passthrough()),
       order: mtMap.objectField('order', mtMap.passthrough()),
-      status: mtMap.objectField('status', mtMap.passthrough()),
+      status: mtMap.objectField(
+        'status',
+        mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
+      ),
+      id: mtMap.objectField(
+        'id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
       sessionId: mtMap.objectField(
         'session_id',
         mtMap.union([
@@ -111,6 +111,26 @@ export let mapManagementInstanceProviderRunsListQuery = mtMap.union([
       ),
       sessionProviderId: mtMap.objectField(
         'session_provider_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      sessionConnectionId: mtMap.objectField(
+        'session_connection_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      providerVersionId: mtMap.objectField(
+        'provider_version_id',
         mtMap.union([
           mtMap.unionOption('string', mtMap.passthrough()),
           mtMap.unionOption(

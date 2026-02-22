@@ -72,6 +72,7 @@ export type ProviderDeploymentsAuthConfigsExportsGetOutput = {
   providerDeploymentId: string | null;
   authMethodId: string;
   credentialsId: string | null;
+  value: Record<string, any> | null;
   createdAt: Date;
   expiresAt: Date | null;
 };
@@ -188,6 +189,7 @@ export let mapProviderDeploymentsAuthConfigsExportsGetOutput =
     ),
     authMethodId: mtMap.objectField('auth_method_id', mtMap.passthrough()),
     credentialsId: mtMap.objectField('credentials_id', mtMap.passthrough()),
+    value: mtMap.objectField('value', mtMap.passthrough()),
     createdAt: mtMap.objectField('created_at', mtMap.date()),
     expiresAt: mtMap.objectField('expires_at', mtMap.date())
   });

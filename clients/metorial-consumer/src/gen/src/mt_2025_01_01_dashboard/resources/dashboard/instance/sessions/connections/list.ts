@@ -4,32 +4,32 @@ export type DashboardInstanceSessionsConnectionsListOutput = {
   items: {
     object: 'session.connection';
     id: string;
-    status: string | null;
-    connectionState: string | null;
-    mcp: {
-      object: 'session.connection.mcp';
-      version: string | null;
-      connectionType: string | null;
-      client: {
-        object: 'session.connection.client';
-        name?: string | undefined;
-        version?: string | undefined;
-        capabilities: Record<string, any>;
-      } | null;
-      server: {
-        object: 'session.connection.server';
-        name?: string | undefined;
-        version?: string | undefined;
-        capabilities: Record<string, any>;
-      } | null;
+    status: string;
+    connectionState: string;
+    transport: string;
+    usage: {
+      totalProductiveClientMessageCount: number;
+      totalProductiveServerMessageCount: number;
     };
-    metadata: Record<string, any> | null;
+    mcp: {
+      capabilities: Record<string, any>;
+      protocolVersion: string;
+      transport: string;
+    } | null;
     sessionId: string;
-    sessionProviderId: string | null;
-    startedAt: Date | null;
-    endedAt: Date | null;
+    participant: {
+      object: 'session.participant';
+      id: string;
+      type: string;
+      identifier: string;
+      name: string;
+      data: Record<string, any>;
+      providerId: string | null;
+      createdAt: Date;
+    } | null;
     createdAt: Date;
-    updatedAt: Date;
+    lastMessageAt: Date;
+    lastActiveAt: Date;
   }[];
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
@@ -47,51 +47,51 @@ export let mapDashboardInstanceSessionsConnectionsListOutput =
             'connection_state',
             mtMap.passthrough()
           ),
-          mcp: mtMap.objectField(
-            'mcp',
+          transport: mtMap.objectField('transport', mtMap.passthrough()),
+          usage: mtMap.objectField(
+            'usage',
             mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              version: mtMap.objectField('version', mtMap.passthrough()),
-              connectionType: mtMap.objectField(
-                'connection_type',
+              totalProductiveClientMessageCount: mtMap.objectField(
+                'total_productive_client_message_count',
                 mtMap.passthrough()
               ),
-              client: mtMap.objectField(
-                'client',
-                mtMap.object({
-                  object: mtMap.objectField('object', mtMap.passthrough()),
-                  name: mtMap.objectField('name', mtMap.passthrough()),
-                  version: mtMap.objectField('version', mtMap.passthrough()),
-                  capabilities: mtMap.objectField(
-                    'capabilities',
-                    mtMap.passthrough()
-                  )
-                })
-              ),
-              server: mtMap.objectField(
-                'server',
-                mtMap.object({
-                  object: mtMap.objectField('object', mtMap.passthrough()),
-                  name: mtMap.objectField('name', mtMap.passthrough()),
-                  version: mtMap.objectField('version', mtMap.passthrough()),
-                  capabilities: mtMap.objectField(
-                    'capabilities',
-                    mtMap.passthrough()
-                  )
-                })
+              totalProductiveServerMessageCount: mtMap.objectField(
+                'total_productive_server_message_count',
+                mtMap.passthrough()
               )
             })
           ),
-          metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-          sessionId: mtMap.objectField('session_id', mtMap.passthrough()),
-          sessionProviderId: mtMap.objectField(
-            'session_provider_id',
-            mtMap.passthrough()
+          mcp: mtMap.objectField(
+            'mcp',
+            mtMap.object({
+              capabilities: mtMap.objectField(
+                'capabilities',
+                mtMap.passthrough()
+              ),
+              protocolVersion: mtMap.objectField(
+                'protocol_version',
+                mtMap.passthrough()
+              ),
+              transport: mtMap.objectField('transport', mtMap.passthrough())
+            })
           ),
-          startedAt: mtMap.objectField('started_at', mtMap.date()),
-          endedAt: mtMap.objectField('ended_at', mtMap.date()),
+          sessionId: mtMap.objectField('session_id', mtMap.passthrough()),
+          participant: mtMap.objectField(
+            'participant',
+            mtMap.object({
+              object: mtMap.objectField('object', mtMap.passthrough()),
+              id: mtMap.objectField('id', mtMap.passthrough()),
+              type: mtMap.objectField('type', mtMap.passthrough()),
+              identifier: mtMap.objectField('identifier', mtMap.passthrough()),
+              name: mtMap.objectField('name', mtMap.passthrough()),
+              data: mtMap.objectField('data', mtMap.passthrough()),
+              providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
+              createdAt: mtMap.objectField('created_at', mtMap.date())
+            })
+          ),
           createdAt: mtMap.objectField('created_at', mtMap.date()),
-          updatedAt: mtMap.objectField('updated_at', mtMap.date())
+          lastMessageAt: mtMap.objectField('last_message_at', mtMap.date()),
+          lastActiveAt: mtMap.objectField('last_active_at', mtMap.date())
         })
       )
     ),
@@ -114,9 +114,16 @@ export type DashboardInstanceSessionsConnectionsListQuery = {
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
 } & {
-  status?: string | undefined;
-  connectionState?: string | undefined;
+  status?: 'active' | 'archived' | ('active' | 'archived')[] | undefined;
+  connectionState?:
+    | 'connected'
+    | 'disconnected'
+    | ('connected' | 'disconnected')[]
+    | undefined;
+  id?: string | string[] | undefined;
+  sessionId?: string | string[] | undefined;
   sessionProviderId?: string | string[] | undefined;
+  participantId?: string | string[] | undefined;
 };
 
 export let mapDashboardInstanceSessionsConnectionsListQuery = mtMap.union([
@@ -128,13 +135,46 @@ export let mapDashboardInstanceSessionsConnectionsListQuery = mtMap.union([
       before: mtMap.objectField('before', mtMap.passthrough()),
       cursor: mtMap.objectField('cursor', mtMap.passthrough()),
       order: mtMap.objectField('order', mtMap.passthrough()),
-      status: mtMap.objectField('status', mtMap.passthrough()),
+      status: mtMap.objectField(
+        'status',
+        mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
+      ),
       connectionState: mtMap.objectField(
         'connection_state',
-        mtMap.passthrough()
+        mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
+      ),
+      id: mtMap.objectField(
+        'id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      sessionId: mtMap.objectField(
+        'session_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
       ),
       sessionProviderId: mtMap.objectField(
         'session_provider_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      participantId: mtMap.objectField(
+        'participant_id',
         mtMap.union([
           mtMap.unionOption('string', mtMap.passthrough()),
           mtMap.unionOption(

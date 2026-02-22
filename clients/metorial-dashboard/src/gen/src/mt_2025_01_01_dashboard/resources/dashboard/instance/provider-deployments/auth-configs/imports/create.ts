@@ -214,9 +214,9 @@ export type DashboardInstanceProviderDeploymentsAuthConfigsImportsCreateBody = {
   providerId?: string | undefined;
   providerDeploymentId?: string | undefined;
   providerAuthConfigId?: string | undefined;
+  providerAuthMethodId?: string | undefined;
   note: string;
   metadata?: Record<string, any> | undefined;
-  providerAuthMethodId?: string | undefined;
   value: Record<string, any>;
 };
 
@@ -232,12 +232,12 @@ export let mapDashboardInstanceProviderDeploymentsAuthConfigsImportsCreateBody =
         'provider_auth_config_id',
         mtMap.passthrough()
       ),
-      note: mtMap.objectField('note', mtMap.passthrough()),
-      metadata: mtMap.objectField('metadata', mtMap.passthrough()),
       providerAuthMethodId: mtMap.objectField(
-        'providerAuthMethodId',
+        'provider_auth_method_id',
         mtMap.passthrough()
       ),
+      note: mtMap.objectField('note', mtMap.passthrough()),
+      metadata: mtMap.objectField('metadata', mtMap.passthrough()),
       value: mtMap.objectField('value', mtMap.passthrough())
     }
   );

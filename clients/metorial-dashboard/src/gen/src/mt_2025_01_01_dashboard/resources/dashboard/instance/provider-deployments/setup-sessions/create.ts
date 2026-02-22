@@ -429,7 +429,7 @@ export type DashboardInstanceProviderDeploymentsSetupSessionsCreateBody = {
   name?: string | undefined;
   description?: string | undefined;
   metadata?: Record<string, any> | undefined;
-  providerAuthMethodId: string;
+  providerAuthMethodId?: string | undefined;
   providerAuthCredentialsId?: string | undefined;
   redirectUrl?: string | undefined;
 };
@@ -445,13 +445,13 @@ export let mapDashboardInstanceProviderDeploymentsSetupSessionsCreateBody =
     description: mtMap.objectField('description', mtMap.passthrough()),
     metadata: mtMap.objectField('metadata', mtMap.passthrough()),
     providerAuthMethodId: mtMap.objectField(
-      'providerAuthMethodId',
+      'provider_auth_method_id',
       mtMap.passthrough()
     ),
     providerAuthCredentialsId: mtMap.objectField(
-      'providerAuthCredentialsId',
+      'provider_auth_credentials_id',
       mtMap.passthrough()
     ),
-    redirectUrl: mtMap.objectField('redirectUrl', mtMap.passthrough())
+    redirectUrl: mtMap.objectField('redirect_url', mtMap.passthrough())
   });
 

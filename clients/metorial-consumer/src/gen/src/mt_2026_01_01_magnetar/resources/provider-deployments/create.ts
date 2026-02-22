@@ -3,29 +3,28 @@ import { mtMap } from '@metorial/util-resource-mapper';
 export type ProviderDeploymentsCreateOutput = {
   object: 'provider.deployment';
   id: string;
+  isDefault: boolean;
   name: string | null;
   description: string | null;
   metadata: Record<string, any> | null;
   providerId: string;
-  provider: {
-    object: 'provider#preview';
-    id: string;
-    name: string;
-    description: string | null;
-    slug: string;
-    createdAt: Date;
-    updatedAt: Date;
-  } | null;
   lockedVersion: {
     object: 'provider.version';
     id: string;
     version: string;
-    status: string;
+    providerId: string;
+    isCurrent: boolean;
+    name: string;
+    description: string | null;
+    metadata: Record<string, any> | null;
+    specificationId: string | null;
     createdAt: Date;
     updatedAt: Date;
   } | null;
   defaultConfig: {
+    object: 'provider.config#preview';
     id: string;
+    isDefault: boolean;
     name: string | null;
     description: string | null;
     metadata: Record<string, any> | null;
@@ -41,29 +40,26 @@ export let mapProviderDeploymentsCreateOutput =
   mtMap.object<ProviderDeploymentsCreateOutput>({
     object: mtMap.objectField('object', mtMap.passthrough()),
     id: mtMap.objectField('id', mtMap.passthrough()),
+    isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
     name: mtMap.objectField('name', mtMap.passthrough()),
     description: mtMap.objectField('description', mtMap.passthrough()),
     metadata: mtMap.objectField('metadata', mtMap.passthrough()),
     providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-    provider: mtMap.objectField(
-      'provider',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        description: mtMap.objectField('description', mtMap.passthrough()),
-        slug: mtMap.objectField('slug', mtMap.passthrough()),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date())
-      })
-    ),
     lockedVersion: mtMap.objectField(
       'locked_version',
       mtMap.object({
         object: mtMap.objectField('object', mtMap.passthrough()),
         id: mtMap.objectField('id', mtMap.passthrough()),
         version: mtMap.objectField('version', mtMap.passthrough()),
-        status: mtMap.objectField('status', mtMap.passthrough()),
+        providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
+        isCurrent: mtMap.objectField('is_current', mtMap.passthrough()),
+        name: mtMap.objectField('name', mtMap.passthrough()),
+        description: mtMap.objectField('description', mtMap.passthrough()),
+        metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+        specificationId: mtMap.objectField(
+          'specification_id',
+          mtMap.passthrough()
+        ),
         createdAt: mtMap.objectField('created_at', mtMap.date()),
         updatedAt: mtMap.objectField('updated_at', mtMap.date())
       })
@@ -71,7 +67,9 @@ export let mapProviderDeploymentsCreateOutput =
     defaultConfig: mtMap.objectField(
       'default_config',
       mtMap.object({
+        object: mtMap.objectField('object', mtMap.passthrough()),
         id: mtMap.objectField('id', mtMap.passthrough()),
+        isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
         name: mtMap.objectField('name', mtMap.passthrough()),
         description: mtMap.objectField('description', mtMap.passthrough()),
         metadata: mtMap.objectField('metadata', mtMap.passthrough()),
@@ -90,61 +88,49 @@ export type ProviderDeploymentsCreateBody = {
   metadata?: Record<string, any> | undefined;
   providerId: string;
   lockedProviderVersionId?: string | undefined;
-  config?:
-    | { type: 'reference'; providerConfigId: string }
-    | {
-        type: 'new';
-        name?: string | undefined;
-        config:
-          | { type: 'new'; data: Record<string, any> }
-          | { type: 'vault'; providerConfigVaultId: string };
-      }
-    | string
-    | undefined;
-};
+} & (
+  | { providerConfigId?: string | undefined }
+  | {
+      providerConfig?:
+        | { name?: string | undefined; value: Record<string, any> }
+        | { name?: string | undefined; providerConfigVaultId: string }
+        | undefined;
+    }
+);
 
-export let mapProviderDeploymentsCreateBody =
-  mtMap.object<ProviderDeploymentsCreateBody>({
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-    providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-    lockedProviderVersionId: mtMap.objectField(
-      'locked_provider_version_id',
-      mtMap.passthrough()
-    ),
-    config: mtMap.objectField(
-      'config',
-      mtMap.union([
-        mtMap.unionOption(
-          'object',
-          mtMap.object({
-            type: mtMap.objectField('type', mtMap.passthrough()),
-            providerConfigId: mtMap.objectField(
-              'provider_config_id',
-              mtMap.passthrough()
-            ),
-            name: mtMap.objectField('name', mtMap.passthrough()),
-            config: mtMap.objectField(
-              'config',
-              mtMap.union([
-                mtMap.unionOption(
-                  'object',
-                  mtMap.object({
-                    type: mtMap.objectField('type', mtMap.passthrough()),
-                    data: mtMap.objectField('data', mtMap.passthrough()),
-                    providerConfigVaultId: mtMap.objectField(
-                      'provider_config_vault_id',
-                      mtMap.passthrough()
-                    )
-                  })
-                )
-              ])
-            )
-          })
-        ),
-        mtMap.unionOption('string', mtMap.passthrough())
-      ])
-    )
-  });
+export let mapProviderDeploymentsCreateBody = mtMap.union([
+  mtMap.unionOption(
+    'object',
+    mtMap.object({
+      name: mtMap.objectField('name', mtMap.passthrough()),
+      description: mtMap.objectField('description', mtMap.passthrough()),
+      metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+      providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
+      lockedProviderVersionId: mtMap.objectField(
+        'locked_provider_version_id',
+        mtMap.passthrough()
+      ),
+      providerConfigId: mtMap.objectField(
+        'provider_config_id',
+        mtMap.passthrough()
+      ),
+      providerConfig: mtMap.objectField(
+        'provider_config',
+        mtMap.union([
+          mtMap.unionOption(
+            'object',
+            mtMap.object({
+              name: mtMap.objectField('name', mtMap.passthrough()),
+              value: mtMap.objectField('value', mtMap.passthrough()),
+              providerConfigVaultId: mtMap.objectField(
+                'provider_config_vault_id',
+                mtMap.passthrough()
+              )
+            })
+          )
+        ])
+      )
+    })
+  )
+]);
 

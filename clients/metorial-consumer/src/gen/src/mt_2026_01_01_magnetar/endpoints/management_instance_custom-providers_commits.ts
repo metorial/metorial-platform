@@ -48,7 +48,6 @@ export class MetorialManagementInstanceCustomProvidersCommitsEndpoint {
    * @description Returns a paginated list of commits for a custom provider.
    *
    * @param `instanceId` - string
-   * @param `customProviderId` - string
    * @param `query` - DashboardInstanceCustomProvidersCommitsListQuery
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceCustomProvidersCommitsListOutput
@@ -57,11 +56,10 @@ export class MetorialManagementInstanceCustomProvidersCommitsEndpoint {
    */
   list(
     instanceId: string,
-    customProviderId: string,
     query?: DashboardInstanceCustomProvidersCommitsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCustomProvidersCommitsListOutput> {
-    let path = `instances/${instanceId}/custom-providers/${customProviderId}/commits`;
+    let path = `instances/${instanceId}/custom-provider-commits`;
 
     let request = {
       path,
@@ -82,7 +80,6 @@ export class MetorialManagementInstanceCustomProvidersCommitsEndpoint {
    * @description Retrieves a specific commit.
    *
    * @param `instanceId` - string
-   * @param `customProviderId` - string
    * @param `customProviderCommitId` - string
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceCustomProvidersCommitsGetOutput
@@ -91,11 +88,10 @@ export class MetorialManagementInstanceCustomProvidersCommitsEndpoint {
    */
   get(
     instanceId: string,
-    customProviderId: string,
     customProviderCommitId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCustomProvidersCommitsGetOutput> {
-    let path = `instances/${instanceId}/custom-providers/${customProviderId}/commits/${customProviderCommitId}`;
+    let path = `instances/${instanceId}/custom-provider-commits/${customProviderCommitId}`;
 
     let request = {
       path,
@@ -113,7 +109,6 @@ export class MetorialManagementInstanceCustomProvidersCommitsEndpoint {
    * @description Creates a new commit to promote or rollback a version in an environment.
    *
    * @param `instanceId` - string
-   * @param `customProviderId` - string
    * @param `body` - DashboardInstanceCustomProvidersCommitsCreateBody
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceCustomProvidersCommitsCreateOutput
@@ -122,11 +117,10 @@ export class MetorialManagementInstanceCustomProvidersCommitsEndpoint {
    */
   create(
     instanceId: string,
-    customProviderId: string,
     body: DashboardInstanceCustomProvidersCommitsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCustomProvidersCommitsCreateOutput> {
-    let path = `instances/${instanceId}/custom-providers/${customProviderId}/commits`;
+    let path = `instances/${instanceId}/custom-provider-commits`;
 
     let request = {
       path,

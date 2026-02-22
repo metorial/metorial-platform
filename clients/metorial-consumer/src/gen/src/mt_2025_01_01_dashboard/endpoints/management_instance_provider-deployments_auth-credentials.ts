@@ -54,7 +54,6 @@ export class MetorialManagementInstanceProviderDeploymentsAuthCredentialsEndpoin
    * @description Returns a paginated list of provider auth credentials.
    *
    * @param `instanceId` - string
-   * @param `providerDeploymentId` - string
    * @param `query` - DashboardInstanceProviderDeploymentsAuthCredentialsListQuery
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceProviderDeploymentsAuthCredentialsListOutput
@@ -63,11 +62,10 @@ export class MetorialManagementInstanceProviderDeploymentsAuthCredentialsEndpoin
    */
   list(
     instanceId: string,
-    providerDeploymentId: string,
     query?: DashboardInstanceProviderDeploymentsAuthCredentialsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsAuthCredentialsListOutput> {
-    let path = `instances/${instanceId}/provider-deployments/${providerDeploymentId}/auth-credentials`;
+    let path = `instances/${instanceId}/provider-auth-credentials`;
 
     let request = {
       path,
@@ -90,7 +88,6 @@ export class MetorialManagementInstanceProviderDeploymentsAuthCredentialsEndpoin
    * @description Retrieves specific provider auth credentials by ID.
    *
    * @param `instanceId` - string
-   * @param `providerDeploymentId` - string
    * @param `providerAuthCredentialsId` - string
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceProviderDeploymentsAuthCredentialsGetOutput
@@ -99,11 +96,10 @@ export class MetorialManagementInstanceProviderDeploymentsAuthCredentialsEndpoin
    */
   get(
     instanceId: string,
-    providerDeploymentId: string,
     providerAuthCredentialsId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsAuthCredentialsGetOutput> {
-    let path = `instances/${instanceId}/provider-deployments/${providerDeploymentId}/auth-credentials/${providerAuthCredentialsId}`;
+    let path = `instances/${instanceId}/provider-auth-credentials/${providerAuthCredentialsId}`;
 
     let request = {
       path,
@@ -121,7 +117,6 @@ export class MetorialManagementInstanceProviderDeploymentsAuthCredentialsEndpoin
    * @description Creates new provider auth credentials.
    *
    * @param `instanceId` - string
-   * @param `providerDeploymentId` - string
    * @param `body` - DashboardInstanceProviderDeploymentsAuthCredentialsCreateBody
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceProviderDeploymentsAuthCredentialsCreateOutput
@@ -130,11 +125,10 @@ export class MetorialManagementInstanceProviderDeploymentsAuthCredentialsEndpoin
    */
   create(
     instanceId: string,
-    providerDeploymentId: string,
     body: DashboardInstanceProviderDeploymentsAuthCredentialsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsAuthCredentialsCreateOutput> {
-    let path = `instances/${instanceId}/provider-deployments/${providerDeploymentId}/auth-credentials`;
+    let path = `instances/${instanceId}/provider-auth-credentials`;
 
     let request = {
       path,
@@ -155,7 +149,6 @@ export class MetorialManagementInstanceProviderDeploymentsAuthCredentialsEndpoin
    * @description Updates specific provider auth credentials.
    *
    * @param `instanceId` - string
-   * @param `providerDeploymentId` - string
    * @param `providerAuthCredentialsId` - string
    * @param `body` - DashboardInstanceProviderDeploymentsAuthCredentialsUpdateBody
    * @param `opts` - { headers?: Record<string, string> }
@@ -165,12 +158,11 @@ export class MetorialManagementInstanceProviderDeploymentsAuthCredentialsEndpoin
    */
   update(
     instanceId: string,
-    providerDeploymentId: string,
     providerAuthCredentialsId: string,
     body: DashboardInstanceProviderDeploymentsAuthCredentialsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsAuthCredentialsUpdateOutput> {
-    let path = `instances/${instanceId}/provider-deployments/${providerDeploymentId}/auth-credentials/${providerAuthCredentialsId}`;
+    let path = `instances/${instanceId}/provider-auth-credentials/${providerAuthCredentialsId}`;
 
     let request = {
       path,
@@ -191,7 +183,6 @@ export class MetorialManagementInstanceProviderDeploymentsAuthCredentialsEndpoin
    * @description Permanently deletes provider auth credentials.
    *
    * @param `instanceId` - string
-   * @param `providerDeploymentId` - string
    * @param `providerAuthCredentialsId` - string
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceProviderDeploymentsAuthCredentialsDeleteOutput
@@ -200,11 +191,10 @@ export class MetorialManagementInstanceProviderDeploymentsAuthCredentialsEndpoin
    */
   delete(
     instanceId: string,
-    providerDeploymentId: string,
     providerAuthCredentialsId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsAuthCredentialsDeleteOutput> {
-    let path = `instances/${instanceId}/provider-deployments/${providerDeploymentId}/auth-credentials/${providerAuthCredentialsId}`;
+    let path = `instances/${instanceId}/provider-auth-credentials/${providerAuthCredentialsId}`;
 
     let request = {
       path,

@@ -80,6 +80,7 @@ export type ManagementInstanceProviderDeploymentsAuthConfigsExportsListOutput =
       providerDeploymentId: string | null;
       authMethodId: string;
       credentialsId: string | null;
+      value: Record<string, any> | null;
       createdAt: Date;
       expiresAt: Date | null;
     }[];
@@ -251,6 +252,7 @@ export let mapManagementInstanceProviderDeploymentsAuthConfigsExportsListOutput 
               'credentials_id',
               mtMap.passthrough()
             ),
+            value: mtMap.objectField('value', mtMap.passthrough()),
             createdAt: mtMap.objectField('created_at', mtMap.date()),
             expiresAt: mtMap.objectField('expires_at', mtMap.date())
           })

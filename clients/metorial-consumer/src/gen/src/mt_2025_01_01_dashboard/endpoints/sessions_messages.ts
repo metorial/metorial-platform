@@ -43,7 +43,6 @@ export class MetorialSessionsMessagesEndpoint {
    * @name List session messages
    * @description Returns a paginated list of messages for a session.
    *
-   * @param `sessionId` - string
    * @param `query` - DashboardInstanceSessionsMessagesListQuery
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceSessionsMessagesListOutput
@@ -51,11 +50,10 @@ export class MetorialSessionsMessagesEndpoint {
    * @see https://metorial.com/docs
    */
   list(
-    sessionId: string,
     query?: DashboardInstanceSessionsMessagesListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionsMessagesListOutput> {
-    let path = `sessions/${sessionId}/messages`;
+    let path = 'session-messages';
 
     let request = {
       path,
@@ -75,7 +73,6 @@ export class MetorialSessionsMessagesEndpoint {
    * @name Get session message
    * @description Retrieves a specific message from a session.
    *
-   * @param `sessionId` - string
    * @param `sessionMessageId` - string
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceSessionsMessagesGetOutput
@@ -83,11 +80,10 @@ export class MetorialSessionsMessagesEndpoint {
    * @see https://metorial.com/docs
    */
   get(
-    sessionId: string,
     sessionMessageId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionsMessagesGetOutput> {
-    let path = `sessions/${sessionId}/messages/${sessionMessageId}`;
+    let path = `session-messages/${sessionMessageId}`;
 
     let request = {
       path,

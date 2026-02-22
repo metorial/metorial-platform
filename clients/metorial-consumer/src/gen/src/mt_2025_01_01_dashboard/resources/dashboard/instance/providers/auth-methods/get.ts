@@ -1,15 +1,18 @@
 import { mtMap } from '@metorial/util-resource-mapper';
 
 export type DashboardInstanceProvidersAuthMethodsGetOutput = {
-  object: 'provider.auth_method';
+  object: 'provider.capabilities.auth_method';
   id: string;
   type: 'oauth' | 'token' | 'custom';
+  key: string;
   name: string;
   description: string | null;
-  inputSchema: Record<string, any> | null;
+  capabilities: Record<string, any>;
+  inputSchema: { type: 'json_schema'; schema: Record<string, any> } | null;
+  outputSchema: { type: 'json_schema'; schema: Record<string, any> } | null;
   scopes:
     | {
-        object: 'provider.auth_method.scope';
+        object: 'provider.capabilities.auth_method.scope';
         id: string;
         scope: string;
         name: string;
@@ -27,9 +30,24 @@ export let mapDashboardInstanceProvidersAuthMethodsGetOutput =
     object: mtMap.objectField('object', mtMap.passthrough()),
     id: mtMap.objectField('id', mtMap.passthrough()),
     type: mtMap.objectField('type', mtMap.passthrough()),
+    key: mtMap.objectField('key', mtMap.passthrough()),
     name: mtMap.objectField('name', mtMap.passthrough()),
     description: mtMap.objectField('description', mtMap.passthrough()),
-    inputSchema: mtMap.objectField('input_schema', mtMap.passthrough()),
+    capabilities: mtMap.objectField('capabilities', mtMap.passthrough()),
+    inputSchema: mtMap.objectField(
+      'input_schema',
+      mtMap.object({
+        type: mtMap.objectField('type', mtMap.passthrough()),
+        schema: mtMap.objectField('schema', mtMap.passthrough())
+      })
+    ),
+    outputSchema: mtMap.objectField(
+      'output_schema',
+      mtMap.object({
+        type: mtMap.objectField('type', mtMap.passthrough()),
+        schema: mtMap.objectField('schema', mtMap.passthrough())
+      })
+    ),
     scopes: mtMap.objectField(
       'scopes',
       mtMap.array(

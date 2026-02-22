@@ -53,7 +53,6 @@ export class MetorialProviderDeploymentsConfigVaultsEndpoint {
    * @name List provider config vaults
    * @description Returns a paginated list of provider config vaults.
    *
-   * @param `providerDeploymentId` - string
    * @param `query` - DashboardInstanceProviderDeploymentsConfigVaultsListQuery
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceProviderDeploymentsConfigVaultsListOutput
@@ -61,11 +60,10 @@ export class MetorialProviderDeploymentsConfigVaultsEndpoint {
    * @see https://metorial.com/docs
    */
   list(
-    providerDeploymentId: string,
     query?: DashboardInstanceProviderDeploymentsConfigVaultsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsConfigVaultsListOutput> {
-    let path = `provider-deployments/${providerDeploymentId}/config-vaults`;
+    let path = 'provider-config-vaults';
 
     let request = {
       path,
@@ -87,7 +85,6 @@ export class MetorialProviderDeploymentsConfigVaultsEndpoint {
    * @name Get provider config vault
    * @description Retrieves a specific provider config vault by ID.
    *
-   * @param `providerDeploymentId` - string
    * @param `providerConfigVaultId` - string
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceProviderDeploymentsConfigVaultsGetOutput
@@ -95,11 +92,10 @@ export class MetorialProviderDeploymentsConfigVaultsEndpoint {
    * @see https://metorial.com/docs
    */
   get(
-    providerDeploymentId: string,
     providerConfigVaultId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsConfigVaultsGetOutput> {
-    let path = `provider-deployments/${providerDeploymentId}/config-vaults/${providerConfigVaultId}`;
+    let path = `provider-config-vaults/${providerConfigVaultId}`;
 
     let request = {
       path,
@@ -116,7 +112,6 @@ export class MetorialProviderDeploymentsConfigVaultsEndpoint {
    * @name Create provider config vault
    * @description Creates a new provider config vault.
    *
-   * @param `providerDeploymentId` - string
    * @param `body` - DashboardInstanceProviderDeploymentsConfigVaultsCreateBody
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceProviderDeploymentsConfigVaultsCreateOutput
@@ -124,11 +119,10 @@ export class MetorialProviderDeploymentsConfigVaultsEndpoint {
    * @see https://metorial.com/docs
    */
   create(
-    providerDeploymentId: string,
     body: DashboardInstanceProviderDeploymentsConfigVaultsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsConfigVaultsCreateOutput> {
-    let path = `provider-deployments/${providerDeploymentId}/config-vaults`;
+    let path = 'provider-config-vaults';
 
     let request = {
       path,
@@ -148,7 +142,6 @@ export class MetorialProviderDeploymentsConfigVaultsEndpoint {
    * @name Update provider config vault
    * @description Updates a specific provider config vault.
    *
-   * @param `providerDeploymentId` - string
    * @param `providerConfigVaultId` - string
    * @param `body` - DashboardInstanceProviderDeploymentsConfigVaultsUpdateBody
    * @param `opts` - { headers?: Record<string, string> }
@@ -157,12 +150,11 @@ export class MetorialProviderDeploymentsConfigVaultsEndpoint {
    * @see https://metorial.com/docs
    */
   update(
-    providerDeploymentId: string,
     providerConfigVaultId: string,
     body: DashboardInstanceProviderDeploymentsConfigVaultsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsConfigVaultsUpdateOutput> {
-    let path = `provider-deployments/${providerDeploymentId}/config-vaults/${providerConfigVaultId}`;
+    let path = `provider-config-vaults/${providerConfigVaultId}`;
 
     let request = {
       path,
@@ -182,7 +174,6 @@ export class MetorialProviderDeploymentsConfigVaultsEndpoint {
    * @name Delete provider config vault
    * @description Permanently deletes a provider config vault.
    *
-   * @param `providerDeploymentId` - string
    * @param `providerConfigVaultId` - string
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceProviderDeploymentsConfigVaultsDeleteOutput
@@ -190,11 +181,10 @@ export class MetorialProviderDeploymentsConfigVaultsEndpoint {
    * @see https://metorial.com/docs
    */
   delete(
-    providerDeploymentId: string,
     providerConfigVaultId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsConfigVaultsDeleteOutput> {
-    let path = `provider-deployments/${providerDeploymentId}/config-vaults/${providerConfigVaultId}`;
+    let path = `provider-config-vaults/${providerConfigVaultId}`;
 
     let request = {
       path,

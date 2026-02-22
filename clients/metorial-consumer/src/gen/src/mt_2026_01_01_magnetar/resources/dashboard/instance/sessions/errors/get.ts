@@ -3,14 +3,14 @@ import { mtMap } from '@metorial/util-resource-mapper';
 export type DashboardInstanceSessionsErrorsGetOutput = {
   object: 'session.error';
   id: string;
-  type: string | null;
-  name: string | null;
-  message: string | null;
-  stack: string | null;
-  metadata: Record<string, any> | null;
+  code: string;
+  message: string;
+  data: Record<string, any>;
   sessionId: string;
-  sessionErrorGroupId: string | null;
   providerRunId: string | null;
+  connectionId: string | null;
+  groupId: string;
+  similarErrorCount: number;
   createdAt: Date;
 };
 
@@ -18,17 +18,17 @@ export let mapDashboardInstanceSessionsErrorsGetOutput =
   mtMap.object<DashboardInstanceSessionsErrorsGetOutput>({
     object: mtMap.objectField('object', mtMap.passthrough()),
     id: mtMap.objectField('id', mtMap.passthrough()),
-    type: mtMap.objectField('type', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
+    code: mtMap.objectField('code', mtMap.passthrough()),
     message: mtMap.objectField('message', mtMap.passthrough()),
-    stack: mtMap.objectField('stack', mtMap.passthrough()),
-    metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+    data: mtMap.objectField('data', mtMap.passthrough()),
     sessionId: mtMap.objectField('session_id', mtMap.passthrough()),
-    sessionErrorGroupId: mtMap.objectField(
-      'session_error_group_id',
+    providerRunId: mtMap.objectField('provider_run_id', mtMap.passthrough()),
+    connectionId: mtMap.objectField('connection_id', mtMap.passthrough()),
+    groupId: mtMap.objectField('group_id', mtMap.passthrough()),
+    similarErrorCount: mtMap.objectField(
+      'similar_error_count',
       mtMap.passthrough()
     ),
-    providerRunId: mtMap.objectField('provider_run_id', mtMap.passthrough()),
     createdAt: mtMap.objectField('created_at', mtMap.date())
   });
 

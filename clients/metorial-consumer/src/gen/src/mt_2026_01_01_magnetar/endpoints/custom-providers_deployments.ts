@@ -45,7 +45,6 @@ export class MetorialCustomProvidersDeploymentsEndpoint {
    * @name List custom provider deployments
    * @description Returns a paginated list of deployments for a custom provider.
    *
-   * @param `customProviderId` - string
    * @param `query` - DashboardInstanceCustomProvidersDeploymentsListQuery
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceCustomProvidersDeploymentsListOutput
@@ -53,11 +52,10 @@ export class MetorialCustomProvidersDeploymentsEndpoint {
    * @see https://metorial.com/docs
    */
   list(
-    customProviderId: string,
     query?: DashboardInstanceCustomProvidersDeploymentsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCustomProvidersDeploymentsListOutput> {
-    let path = `custom-providers/${customProviderId}/deployments`;
+    let path = 'custom-provider-deployments';
 
     let request = {
       path,
@@ -79,7 +77,6 @@ export class MetorialCustomProvidersDeploymentsEndpoint {
    * @name Get custom provider deployment
    * @description Retrieves a specific deployment.
    *
-   * @param `customProviderId` - string
    * @param `customProviderDeploymentId` - string
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceCustomProvidersDeploymentsGetOutput
@@ -87,11 +84,10 @@ export class MetorialCustomProvidersDeploymentsEndpoint {
    * @see https://metorial.com/docs
    */
   get(
-    customProviderId: string,
     customProviderDeploymentId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCustomProvidersDeploymentsGetOutput> {
-    let path = `custom-providers/${customProviderId}/deployments/${customProviderDeploymentId}`;
+    let path = `custom-provider-deployments/${customProviderDeploymentId}`;
 
     let request = {
       path,
@@ -108,7 +104,6 @@ export class MetorialCustomProvidersDeploymentsEndpoint {
    * @name Get deployment logs
    * @description Retrieves the build and deployment logs for a deployment.
    *
-   * @param `customProviderId` - string
    * @param `customProviderDeploymentId` - string
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceCustomProvidersDeploymentsGetLogsOutput
@@ -116,11 +111,10 @@ export class MetorialCustomProvidersDeploymentsEndpoint {
    * @see https://metorial.com/docs
    */
   getLogs(
-    customProviderId: string,
     customProviderDeploymentId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCustomProvidersDeploymentsGetLogsOutput> {
-    let path = `custom-providers/${customProviderId}/deployments/${customProviderDeploymentId}/logs`;
+    let path = `custom-provider-deployments/${customProviderDeploymentId}/logs`;
 
     let request = {
       path,

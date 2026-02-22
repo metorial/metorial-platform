@@ -157,7 +157,8 @@ export type ProviderDeploymentsAuthConfigsCreateBody = {
   description?: string | undefined;
   metadata?: Record<string, any> | undefined;
   providerAuthMethodId: string;
-  config: Record<string, any>;
+  providerDeploymentId?: string | undefined;
+  value: Record<string, any>;
 };
 
 export let mapProviderDeploymentsAuthConfigsCreateBody =
@@ -169,6 +170,10 @@ export let mapProviderDeploymentsAuthConfigsCreateBody =
       'provider_auth_method_id',
       mtMap.passthrough()
     ),
-    config: mtMap.objectField('config', mtMap.passthrough())
+    providerDeploymentId: mtMap.objectField(
+      'provider_deployment_id',
+      mtMap.passthrough()
+    ),
+    value: mtMap.objectField('value', mtMap.passthrough())
   });
 

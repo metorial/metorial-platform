@@ -54,7 +54,7 @@ export type ManagementInstanceProviderDeploymentsConfigVaultsCreateBody = {
   name: string;
   description?: string | undefined;
   metadata?: Record<string, any> | undefined;
-  data: Record<string, any>;
+  value: Record<string, any>;
 };
 
 export let mapManagementInstanceProviderDeploymentsConfigVaultsCreateBody =
@@ -67,6 +67,6 @@ export let mapManagementInstanceProviderDeploymentsConfigVaultsCreateBody =
     name: mtMap.objectField('name', mtMap.passthrough()),
     description: mtMap.objectField('description', mtMap.passthrough()),
     metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-    data: mtMap.objectField('data', mtMap.passthrough())
+    value: mtMap.objectField('value', mtMap.passthrough())
   });
 

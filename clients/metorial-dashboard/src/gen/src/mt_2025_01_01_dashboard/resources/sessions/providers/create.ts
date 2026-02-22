@@ -154,48 +154,41 @@ export let mapSessionsProvidersCreateOutput =
 
 export type SessionsProvidersCreateBody = {
   sessionId: string;
-  providerDeployment:
-    | { type: 'reference'; providerDeploymentId: string }
+  providerDeployment?:
+    | { providerDeploymentId?: string | undefined }
     | {
-        type: 'ephemeral';
-        providerId: string;
-        name?: string | undefined;
-        description?: string | undefined;
-        metadata?: Record<string, any> | undefined;
-        lockedProviderVersionId?: string | undefined;
-        config?:
-          | { type: 'none' }
-          | { type: 'reference'; providerConfigId: string }
+        providerDeployment?:
           | {
-              type: 'ephemeral';
+              providerId: string;
               name?: string | undefined;
-              config:
-                | { type: 'inline'; data: Record<string, any> }
-                | { type: 'vault'; providerConfigVaultId: string };
+              description?: string | undefined;
+              metadata?: Record<string, any> | undefined;
+              lockedProviderVersionId?: string | undefined;
             }
           | undefined;
       }
-    | string;
+    | undefined;
   providerConfig?:
-    | { type: 'reference'; providerConfigId: string }
+    | { providerConfigId?: string | undefined }
     | {
-        type: 'ephemeral';
-        name?: string | undefined;
-        config:
-          | { type: 'inline'; data: Record<string, any> }
-          | { type: 'vault'; providerConfigVaultId: string };
+        providerConfig?:
+          | { name?: string | undefined; value: Record<string, any> }
+          | {
+              name?: string | undefined;
+              providerConfigVaultId: string;
+              providerId?: string | undefined;
+            }
+          | undefined;
       }
-    | string
     | undefined;
   providerAuthConfig?:
-    | { type: 'reference'; providerAuthConfigId: string }
+    | { providerAuthConfigId?: string | undefined }
     | {
-        type: 'ephemeral';
         name?: string | undefined;
         providerAuthMethodId: string;
         credentials: Record<string, any>;
+        providerId?: string | undefined;
       }
-    | string
     | undefined;
   toolFilters?:
     | (
@@ -227,60 +220,31 @@ export let mapSessionsProvidersCreateBody =
         mtMap.unionOption(
           'object',
           mtMap.object({
-            type: mtMap.objectField('type', mtMap.passthrough()),
             providerDeploymentId: mtMap.objectField(
               'provider_deployment_id',
               mtMap.passthrough()
             ),
-            providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-            name: mtMap.objectField('name', mtMap.passthrough()),
-            description: mtMap.objectField('description', mtMap.passthrough()),
-            metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-            lockedProviderVersionId: mtMap.objectField(
-              'locked_provider_version_id',
-              mtMap.passthrough()
-            ),
-            config: mtMap.objectField(
-              'config',
-              mtMap.union([
-                mtMap.unionOption(
-                  'object',
-                  mtMap.object({
-                    type: mtMap.objectField('type', mtMap.passthrough()),
-                    providerConfigId: mtMap.objectField(
-                      'provider_config_id',
-                      mtMap.passthrough()
-                    ),
-                    name: mtMap.objectField('name', mtMap.passthrough()),
-                    config: mtMap.objectField(
-                      'config',
-                      mtMap.union([
-                        mtMap.unionOption(
-                          'object',
-                          mtMap.object({
-                            type: mtMap.objectField(
-                              'type',
-                              mtMap.passthrough()
-                            ),
-                            data: mtMap.objectField(
-                              'data',
-                              mtMap.passthrough()
-                            ),
-                            providerConfigVaultId: mtMap.objectField(
-                              'provider_config_vault_id',
-                              mtMap.passthrough()
-                            )
-                          })
-                        )
-                      ])
-                    )
-                  })
+            providerDeployment: mtMap.objectField(
+              'provider_deployment',
+              mtMap.object({
+                providerId: mtMap.objectField(
+                  'provider_id',
+                  mtMap.passthrough()
+                ),
+                name: mtMap.objectField('name', mtMap.passthrough()),
+                description: mtMap.objectField(
+                  'description',
+                  mtMap.passthrough()
+                ),
+                metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+                lockedProviderVersionId: mtMap.objectField(
+                  'locked_provider_version_id',
+                  mtMap.passthrough()
                 )
-              ])
+              })
             )
           })
-        ),
-        mtMap.unionOption('string', mtMap.passthrough())
+        )
       ])
     ),
     providerConfig: mtMap.objectField(
@@ -289,22 +253,24 @@ export let mapSessionsProvidersCreateBody =
         mtMap.unionOption(
           'object',
           mtMap.object({
-            type: mtMap.objectField('type', mtMap.passthrough()),
             providerConfigId: mtMap.objectField(
               'provider_config_id',
               mtMap.passthrough()
             ),
-            name: mtMap.objectField('name', mtMap.passthrough()),
-            config: mtMap.objectField(
-              'config',
+            providerConfig: mtMap.objectField(
+              'provider_config',
               mtMap.union([
                 mtMap.unionOption(
                   'object',
                   mtMap.object({
-                    type: mtMap.objectField('type', mtMap.passthrough()),
-                    data: mtMap.objectField('data', mtMap.passthrough()),
+                    name: mtMap.objectField('name', mtMap.passthrough()),
+                    value: mtMap.objectField('value', mtMap.passthrough()),
                     providerConfigVaultId: mtMap.objectField(
                       'provider_config_vault_id',
+                      mtMap.passthrough()
+                    ),
+                    providerId: mtMap.objectField(
+                      'provider_id',
                       mtMap.passthrough()
                     )
                   })
@@ -312,8 +278,7 @@ export let mapSessionsProvidersCreateBody =
               ])
             )
           })
-        ),
-        mtMap.unionOption('string', mtMap.passthrough())
+        )
       ])
     ),
     providerAuthConfig: mtMap.objectField(
@@ -322,7 +287,6 @@ export let mapSessionsProvidersCreateBody =
         mtMap.unionOption(
           'object',
           mtMap.object({
-            type: mtMap.objectField('type', mtMap.passthrough()),
             providerAuthConfigId: mtMap.objectField(
               'provider_auth_config_id',
               mtMap.passthrough()
@@ -332,10 +296,10 @@ export let mapSessionsProvidersCreateBody =
               'provider_auth_method_id',
               mtMap.passthrough()
             ),
-            credentials: mtMap.objectField('credentials', mtMap.passthrough())
+            credentials: mtMap.objectField('credentials', mtMap.passthrough()),
+            providerId: mtMap.objectField('provider_id', mtMap.passthrough())
           })
-        ),
-        mtMap.unionOption('string', mtMap.passthrough())
+        )
       ])
     ),
     toolFilters: mtMap.objectField(

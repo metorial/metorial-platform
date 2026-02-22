@@ -2,7 +2,7 @@ import { mtMap } from '@metorial/util-resource-mapper';
 
 export type DashboardInstanceProviderGroupsListOutput = {
   items: {
-    object: 'provider.group';
+    object: 'provider.listing_group';
     id: string;
     name: string;
     description: string | null;
@@ -47,7 +47,11 @@ export type DashboardInstanceProviderGroupsListQuery = {
   before?: string | undefined;
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
-} & {};
+} & {
+  id?: string | string[] | undefined;
+  providerId?: string | string[] | undefined;
+  providerListingId?: string | string[] | undefined;
+};
 
 export let mapDashboardInstanceProviderGroupsListQuery = mtMap.union([
   mtMap.unionOption(
@@ -57,7 +61,37 @@ export let mapDashboardInstanceProviderGroupsListQuery = mtMap.union([
       after: mtMap.objectField('after', mtMap.passthrough()),
       before: mtMap.objectField('before', mtMap.passthrough()),
       cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough())
+      order: mtMap.objectField('order', mtMap.passthrough()),
+      id: mtMap.objectField(
+        'id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      providerId: mtMap.objectField(
+        'provider_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      providerListingId: mtMap.objectField(
+        'provider_listing_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      )
     })
   )
 ]);

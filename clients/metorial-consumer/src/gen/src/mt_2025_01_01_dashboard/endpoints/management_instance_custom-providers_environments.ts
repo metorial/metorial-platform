@@ -44,7 +44,6 @@ export class MetorialManagementInstanceCustomProvidersEnvironmentsEndpoint {
    * @description Returns a paginated list of environments for a custom provider.
    *
    * @param `instanceId` - string
-   * @param `customProviderId` - string
    * @param `query` - DashboardInstanceCustomProvidersEnvironmentsListQuery
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceCustomProvidersEnvironmentsListOutput
@@ -53,11 +52,10 @@ export class MetorialManagementInstanceCustomProvidersEnvironmentsEndpoint {
    */
   list(
     instanceId: string,
-    customProviderId: string,
     query?: DashboardInstanceCustomProvidersEnvironmentsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCustomProvidersEnvironmentsListOutput> {
-    let path = `instances/${instanceId}/custom-providers/${customProviderId}/environments`;
+    let path = `instances/${instanceId}/custom-provider-environments`;
 
     let request = {
       path,
@@ -80,7 +78,6 @@ export class MetorialManagementInstanceCustomProvidersEnvironmentsEndpoint {
    * @description Retrieves a specific environment.
    *
    * @param `instanceId` - string
-   * @param `customProviderId` - string
    * @param `customProviderEnvironmentId` - string
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceCustomProvidersEnvironmentsGetOutput
@@ -89,11 +86,10 @@ export class MetorialManagementInstanceCustomProvidersEnvironmentsEndpoint {
    */
   get(
     instanceId: string,
-    customProviderId: string,
     customProviderEnvironmentId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCustomProvidersEnvironmentsGetOutput> {
-    let path = `instances/${instanceId}/custom-providers/${customProviderId}/environments/${customProviderEnvironmentId}`;
+    let path = `instances/${instanceId}/custom-provider-environments/${customProviderEnvironmentId}`;
 
     let request = {
       path,

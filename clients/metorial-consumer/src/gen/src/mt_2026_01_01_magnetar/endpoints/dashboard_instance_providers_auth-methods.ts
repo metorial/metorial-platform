@@ -44,7 +44,6 @@ export class MetorialDashboardInstanceProvidersAuthMethodsEndpoint {
    * @description Returns a paginated list of provider auth methods.
    *
    * @param `instanceId` - string
-   * @param `providerId` - string
    * @param `query` - DashboardInstanceProvidersAuthMethodsListQuery
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceProvidersAuthMethodsListOutput
@@ -53,11 +52,10 @@ export class MetorialDashboardInstanceProvidersAuthMethodsEndpoint {
    */
   list(
     instanceId: string,
-    providerId: string,
     query?: DashboardInstanceProvidersAuthMethodsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProvidersAuthMethodsListOutput> {
-    let path = `dashboard/instances/${instanceId}/providers/${providerId}/auth-methods`;
+    let path = `dashboard/instances/${instanceId}/provider-auth-methods`;
 
     let request = {
       path,
@@ -78,7 +76,6 @@ export class MetorialDashboardInstanceProvidersAuthMethodsEndpoint {
    * @description Retrieves a specific provider auth method by ID.
    *
    * @param `instanceId` - string
-   * @param `providerId` - string
    * @param `providerAuthMethodId` - string
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceProvidersAuthMethodsGetOutput
@@ -87,11 +84,10 @@ export class MetorialDashboardInstanceProvidersAuthMethodsEndpoint {
    */
   get(
     instanceId: string,
-    providerId: string,
     providerAuthMethodId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProvidersAuthMethodsGetOutput> {
-    let path = `dashboard/instances/${instanceId}/providers/${providerId}/auth-methods/${providerAuthMethodId}`;
+    let path = `dashboard/instances/${instanceId}/provider-auth-methods/${providerAuthMethodId}`;
 
     let request = {
       path,
