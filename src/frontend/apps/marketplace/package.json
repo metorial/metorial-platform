@@ -47,7 +47,7 @@
     "lodash-es": "^4.17.21",
     "lucide-react": "^0.503.0",
     "motion": "^12.8.0",
-    "next": "15.3.1",
+    "next": "15.3.9",
     "prism-react-renderer": "^2.4.1",
     "qss": "^3.0.0",
     "re-resizable": "^6.11.2",
