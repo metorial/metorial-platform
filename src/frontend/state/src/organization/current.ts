@@ -1,6 +1,6 @@
 import { MetorialSDKError } from '@metorial/util-endpoint';
-import { useMemo } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { useEffect, useMemo } from 'react';
+import { useLocation, useParams, useSearchParams } from 'react-router-dom';
 import { useBoot } from './loaders/boot';
 import { useInstance, useInstances } from './loaders/instance';
 import { useOrganization } from './loaders/organization';
@@ -89,7 +89,16 @@ export let useCurrentOrganization = () => {
 
   let org = useOrganization(foundItem?.organization.id);
 
-  if (!foundItem && boot.data && (organizationId || projectId || instanceId)) {
+  let entityNotFound = !foundItem && boot.data && (organizationId || projectId || instanceId);
+  let location = useLocation();
+
+  useEffect(() => {
+    if (location.pathname.length > 2 && entityNotFound) {
+      window.location.replace('/');
+    }
+  }, [entityNotFound, location.pathname]);
+
+  if (entityNotFound) {
     return {
       ...boot,
       ...org,
@@ -156,9 +165,7 @@ export let useCurrentOrganization = () => {
   let projects = boot.data.projects
     .filter(project => project.organizationId == foundItem.organization.id)
     .map(project => {
-      let projectInstances = instances.filter(
-        instance => instance.project.id == project.id
-      );
+      let projectInstances = instances.filter(instance => instance.project.id == project.id);
       return {
         ...project,
         instances: projectInstances
@@ -184,6 +191,12 @@ export let useCurrentOrganization = () => {
 export let useCurrentProject = () => {
   let org = useCurrentOrganization();
   let project = useProject(org.data?.id, org.data?.currentProject?.id);
+
+  useEffect(() => {
+    if (org.data && !org.data.currentProject) {
+      window.location.replace(`/i/${org.data.slug}`);
+    }
+  }, [org.data]);
 
   if (org.error || !org.data) {
     return {
@@ -223,6 +236,12 @@ export let useCurrentProject = () => {
 export let useCurrentInstance = () => {
   let org = useCurrentOrganization();
   let instance = useInstance(org.data?.id, org.data?.currentInstance?.id);
+
+  useEffect(() => {
+    if (org.data && (!org.data.currentInstance || !org.data.currentProject)) {
+      window.location.replace(`/i/${org.data.slug}`);
+    }
+  }, [org.data]);
 
   if (org.error || !org.data) {
     return {
