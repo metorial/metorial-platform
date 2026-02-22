@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import JsonEditor from './JsonEditor';
+import type { JsonSchemaType, JsonValue } from '@/utils/jsonUtils';
 import { updateValueAtPath } from '@/utils/jsonUtils';
 import { generateDefaultValue } from '@/utils/schemaUtils';
-import type { JsonValue, JsonSchemaType } from '@/utils/jsonUtils';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import JsonEditor from './JsonEditor';
 
 interface DynamicJsonFormProps {
   schema: JsonSchemaType;

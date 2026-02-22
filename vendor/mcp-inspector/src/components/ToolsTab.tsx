@@ -137,7 +137,7 @@ const ToolsTab = ({
           renderItem={tool => (
             <div className="flex flex-col space-y-1">
               <span className="flex-1 text-sm font-semibold text-gray-900 dark:text-white">
-                {tool.title ?? tool.name}
+                {(tool.title ?? tool.name) as string}
               </span>
               <span className="text-sm text-gray-500">{tool.description}</span>
             </div>
@@ -150,7 +150,11 @@ const ToolsTab = ({
         <div className="bg-card rounded-lg border border-gray-200">
           <div className="p-4 border-b border-gray-200 dark:border-gray-800">
             <h3 className="font-semibold">
-              {selectedTool ? (selectedTool.title ?? selectedTool.name) : 'Select a tool'}
+              {
+                (selectedTool
+                  ? (selectedTool.title ?? selectedTool.name)
+                  : 'Select a tool') as string
+              }
             </h3>
           </div>
           <div className="p-4">
