@@ -291,11 +291,11 @@ export let mapDashboardInstanceSessionsEventsGetOutput =
             object: mtMap.objectField('object', mtMap.passthrough()),
             type: mtMap.objectField('type', mtMap.passthrough()),
             parentMessageId: mtMap.objectField(
-              'parentMessageId',
+              'parent_message_id',
               mtMap.passthrough()
             ),
             childMessageIds: mtMap.objectField(
-              'childMessageIds',
+              'child_message_ids',
               mtMap.array(mtMap.passthrough())
             )
           })
@@ -317,14 +317,14 @@ export let mapDashboardInstanceSessionsEventsGetOutput =
                   ])
                 ),
                 protocolVersion: mtMap.objectField(
-                  'protocolVersion',
+                  'protocol_version',
                   mtMap.passthrough()
                 ),
                 transport: mtMap.objectField('transport', mtMap.passthrough())
               })
             ),
             toolCall: mtMap.objectField(
-              'toolCall',
+              'tool_call',
               mtMap.object({
                 object: mtMap.objectField('object', mtMap.passthrough()),
                 id: mtMap.objectField('id', mtMap.passthrough())
@@ -402,7 +402,10 @@ export let mapDashboardInstanceSessionsEventsGetOutput =
                       'destructive',
                       mtMap.passthrough()
                     ),
-                    readOnly: mtMap.objectField('readOnly', mtMap.passthrough())
+                    readOnly: mtMap.objectField(
+                      'read_only',
+                      mtMap.passthrough()
+                    )
                   })
                 ),
                 specificationId: mtMap.objectField(

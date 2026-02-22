@@ -50,8 +50,8 @@ export let mapProviderDeploymentsAuthCredentialsCreateBody =
       'config',
       mtMap.object({
         type: mtMap.objectField('type', mtMap.passthrough()),
-        clientId: mtMap.objectField('clientId', mtMap.passthrough()),
-        clientSecret: mtMap.objectField('clientSecret', mtMap.passthrough()),
+        clientId: mtMap.objectField('client_id', mtMap.passthrough()),
+        clientSecret: mtMap.objectField('client_secret', mtMap.passthrough()),
         scopes: mtMap.objectField('scopes', mtMap.array(mtMap.passthrough()))
       })
     )

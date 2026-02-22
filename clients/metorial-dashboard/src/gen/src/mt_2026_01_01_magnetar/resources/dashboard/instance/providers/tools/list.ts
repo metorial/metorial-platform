@@ -65,7 +65,7 @@ export let mapDashboardInstanceProvidersToolsListOutput =
                 'destructive',
                 mtMap.passthrough()
               ),
-              readOnly: mtMap.objectField('readOnly', mtMap.passthrough())
+              readOnly: mtMap.objectField('read_only', mtMap.passthrough())
             })
           ),
           specificationId: mtMap.objectField(
