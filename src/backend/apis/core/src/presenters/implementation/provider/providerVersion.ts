@@ -7,7 +7,7 @@ export let v1ProviderVersionPresenter = Presenter.create(providerVersionType)
     object: 'provider.version' as const,
 
     id: version.id,
-    version: version.identifier,
+    version: version.name,
 
     is_current: version.isCurrent,
 

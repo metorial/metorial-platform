@@ -101,7 +101,10 @@ type MarketplaceProviderCategoryDto = InferResponseType<
   ProviderCategoriesSdk[':categoryId']['$get'],
   200
 >;
-type MarketplaceProviderCategoriesListDto = InferResponseType<ProviderCategoriesSdk['$get'], 200>;
+type MarketplaceProviderCategoriesListDto = InferResponseType<
+  ProviderCategoriesSdk['$get'],
+  200
+>;
 type MarketplaceProviderCollectionDto = InferResponseType<
   ProviderCollectionsSdk[':collectionId']['$get'],
   200
@@ -176,7 +179,9 @@ let toProviderCollection = (
   updatedAt: collection.updated_at ?? null
 });
 
-let toProviderListing = (listing: MarketplaceProviderListingDto): MarketplaceProviderListing => {
+let toProviderListing = (
+  listing: MarketplaceProviderListingDto
+): MarketplaceProviderListing => {
   let providerId = listing.provider_id ?? null;
   let vendor = toProviderVendor(listing);
 
@@ -204,10 +209,12 @@ let toProviderListing = (listing: MarketplaceProviderListingDto): MarketplacePro
   };
 };
 
-let toProviderVersion = (version: MarketplaceProviderVersionDto): MarketplaceProviderVersion => ({
+let toProviderVersion = (
+  version: MarketplaceProviderVersionDto
+): MarketplaceProviderVersion => ({
   object: 'marketplace*provider.version',
   id: version.id,
-  identifier: version.identifier ?? version.tag ?? version.id,
+  identifier: version.name ?? version.identifier ?? version.tag ?? version.id,
   createdAt: version.createdAt ?? null,
   updatedAt: version.updatedAt ?? null
 });
@@ -378,7 +385,9 @@ export let getProviderCollection = async (collectionId: string) =>
   );
 
 export type ProviderListing = Omit<Awaited<ReturnType<typeof getProvider>>, 'readme'>;
-export type ProviderVersion = Awaited<ReturnType<typeof listProviderVersions>>['items'][number];
+export type ProviderVersion = Awaited<
+  ReturnType<typeof listProviderVersions>
+>['items'][number];
 export type ProviderCategory = Awaited<ReturnType<typeof getProviderCategory>>;
 export type ProviderCollection = Awaited<ReturnType<typeof getProviderCollection>>;
 export type ProviderCapabilities = NonNullable<

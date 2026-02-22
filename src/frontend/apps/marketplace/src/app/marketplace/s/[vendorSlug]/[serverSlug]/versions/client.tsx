@@ -38,7 +38,7 @@ export let VersionsPageClient = ({
         {versions.map(version => (
           <Entity.Wrapper key={version.id}>
             <Entity.Content>
-              <Entity.Field title={version.identifier.slice(0, 20)} />
+              <Entity.Field title={version.name.slice(0, 20)} />
               <Entity.Field
                 title="Added"
                 value={<RenderDate date={version.createdAt ?? undefined} />}
