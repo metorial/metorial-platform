@@ -41,14 +41,4 @@ model Instance {
   secrets         Secret[]
   uploads         Upload[]
   accessTags      AccessTag[]
-
-  subspaceReferenceDeployments     SubspaceReferenceDeployment[]
-  subspaceReferenceConfigs         SubspaceReferenceConfig[]
-  subspaceReferenceConfigVaults    SubspaceReferenceConfigVault[]
-  subspaceReferenceAuthConfigs     SubspaceReferenceAuthConfig[]
-  subspaceReferenceAuthCredentials SubspaceReferenceAuthCredentials[]
-  subspaceReferenceGroups          SubspaceReferenceGroup[]
-  subspaceReferenceSetupSessions   SubspaceReferenceSetupSession[]
-  subspaceReferenceAuthImports     SubspaceReferenceAuthImport[]
-  subspaceReferenceAuthExports     SubspaceReferenceAuthExport[]
 }
