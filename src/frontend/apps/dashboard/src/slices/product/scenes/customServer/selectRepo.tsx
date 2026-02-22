@@ -130,12 +130,13 @@ export let SelectRepo = (props: {
     instance.data?.id,
     selectedInstallationId ? { installationId: selectedInstallationId } : undefined
   );
+  let accountItems = (accounts.data?.items ?? []).filter(Boolean);
   let [selectedAccountId, setSelectedAccountId] = useState<string | undefined>(undefined);
   useEffect(() => {
-    if (accounts.data?.items.length) {
-      setSelectedAccountId(accounts.data.items[0].externalId);
+    if (accountItems.length) {
+      setSelectedAccountId(accountItems[0].externalId);
     }
-  }, [accounts.data?.items]);
+  }, [accountItems]);
   let repos = useScmRepos(
     instance.data?.id,
     selectedInstallationId && selectedAccountId
@@ -175,11 +176,11 @@ export let SelectRepo = (props: {
               </>
             )}
 
-            {accounts.data.items.length > 0 && (
+            {accountItems.length > 0 && (
               <>
                 <Select
                   label="GitHub Account"
-                  items={accounts.data.items.map(i => ({
+                  items={accountItems.map(i => ({
                     label: i.name,
                     id: i.externalId
                   }))}

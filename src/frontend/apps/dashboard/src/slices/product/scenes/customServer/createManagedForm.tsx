@@ -112,15 +112,56 @@ export let CustomServerManagedCreateForm = (p: {
           content: [
             `import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";`,
             `import { createMcpServer } from "@metorial/mcp-server";`,
+            `import { z } from "zod";`,
             ``,
             `let server = new McpServer({ name: "${values.name || 'mcp-server'}", version: "1.0.0" });`,
-            `let mcpServer: any = server;`,
             ``,
-            `mcpServer.tool(`,
-            `  "hello",`,
-            `  "Return a simple greeting.",`,
-            `  async () => ({`,
-            `    content: [{ type: "text", text: "Hello from Metorial custom provider." }]`,
+            `let numberPairSchema = {`,
+            `  a: z.number().describe("First number"),`,
+            `  b: z.number().describe("Second number")`,
+            `};`,
+            ``,
+            `server.tool(`,
+            `  "add",`,
+            `  "Add two numbers.",`,
+            `  numberPairSchema,`,
+            `  async ({ a, b }) => ({`,
+            `    content: [{ type: "text", text: String(a + b) }]`,
+            `  })`,
+            `);`,
+            ``,
+            `server.resource(`,
+            `  "calculator-help",`,
+            `  "memory://calculator/help",`,
+            `  { description: "Example inputs for the calculator tools." },`,
+            `  async uri => ({`,
+            `    contents: [{`,
+            `      uri: uri.toString(),`,
+            `      mimeType: "application/json",`,
+            `      text: JSON.stringify(`,
+            `        {`,
+            `          tools: {`,
+            `            add: { a: 2, b: 3 },`,
+            `            multiply: { a: 2, b: 3 }`,
+            `          },`,
+            `          examples: [`,
+            `            "add(a=2, b=3) => 5",`,
+            `            "multiply(a=2, b=3) => 6"`,
+            `          ]`,
+            `        },`,
+            `        null,`,
+            `        2`,
+            `      )`,
+            `    }]`,
+            `  })`,
+            `);`,
+            ``,
+            `server.tool(`,
+            `  "multiply",`,
+            `  "Multiply two numbers.",`,
+            `  numberPairSchema,`,
+            `  async ({ a, b }) => ({`,
+            `    content: [{ type: "text", text: String(a * b) }]`,
             `  })`,
             `);`,
             ``,
@@ -139,7 +180,8 @@ export let CustomServerManagedCreateForm = (p: {
               main: 'index.ts',
               dependencies: {
                 '@metorial/mcp-server': 'latest',
-                '@modelcontextprotocol/sdk': 'latest'
+                '@modelcontextprotocol/sdk': 'latest',
+                zod: 'latest'
               }
             },
             null,
@@ -224,12 +266,13 @@ export let CustomServerManagedCreateForm = (p: {
     instance.data?.id,
     selectedInstallationId ? { installationId: selectedInstallationId } : undefined
   );
+  let accountItems = (accounts.data?.items ?? []).filter(Boolean);
   let [selectedAccountId, setSelectedAccountId] = useState<string | undefined>(undefined);
   useEffect(() => {
-    if (accounts.data?.items.length) {
-      setSelectedAccountId(accounts.data.items[0].externalId);
+    if (accountItems.length) {
+      setSelectedAccountId(accountItems[0].externalId);
     }
-  }, [accounts.data?.items]);
+  }, [accountItems]);
 
   let setTemplate = (templateId: string) => {
     let template = managedServerTemplates.data?.items.find(
@@ -355,11 +398,11 @@ export let CustomServerManagedCreateForm = (p: {
                             </>
                           )}
 
-                          {accounts.data && accounts.data.items.length > 0 && (
+                          {accountItems.length > 0 && (
                             <>
                               <Select
                                 label="GitHub Account"
-                                items={accounts.data.items.map(i => ({
+                                items={accountItems.map(i => ({
                                   label: i.name,
                                   id: i.externalId
                                 }))}

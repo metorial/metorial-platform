@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   DashboardInstanceCustomProvidersGetOutput,
+  DashboardInstanceCustomProvidersDeploymentsGetLogsOutput,
   DashboardInstanceCustomProvidersVersionsGetOutput
 } from '@metorial/dashboard-sdk';
 import { renderWithLoader } from '@metorial/data-hooks';
@@ -72,23 +73,23 @@ export let CustomServerVersion = ({
     deployment.data?.status
   );
 
-  let logsData = deploymentLogs.data as any;
+  let logsData: DashboardInstanceCustomProvidersDeploymentsGetLogsOutput = deploymentLogs.data;
   let steps: Step[] = (() => {
     if (logsData.steps && logsData.steps.length > 0) {
-      let rawSteps = logsData.steps.map((s: any, i: number) => ({
+      let rawSteps = logsData.steps.map((s, i) => ({
         id: s.id ?? `step-${i}`,
         type: s.type ?? 'unknown',
         status: s.status ?? deploymentStatusToStepStatus(deployment.data?.status),
         index: i,
-        logs: (s.logs ?? []).map((l: any) => ({
-          type: l.type ?? 'info',
-          line: l.line ?? '',
-          timestamp: l.timestamp ? new Date(l.timestamp) : null
+        logs: (s.logs ?? []).map(l => ({
+          type: 'info',
+          line: l.message ?? '',
+          timestamp: l.timestamp ?? null
         }))
       }));
 
       let activeSteps = rawSteps.filter(
-        (s: any) => s.logs.length > 0 || s.status === 'running' || s.status === 'failed'
+        s => s.logs.length > 0 || s.status === 'running' || s.status === 'failed'
       );
 
       let merged: Step[] = [];
@@ -107,14 +108,19 @@ export let CustomServerVersion = ({
       return merged;
     }
 
-    if ((logsData.logs ?? []).length > 0) {
+    let legacyLogs = (logsData as unknown as LegacyCustomServerDeploymentLogs).logs ?? [];
+    if (legacyLogs.length > 0) {
       return [
         {
           id: `deployment-log-step-${versionId}`,
           type: 'lambda_deploy_build',
           status: deploymentStatusToStepStatus(deployment.data?.status),
           index: 0,
-          logs: logsData.logs
+          logs: legacyLogs.map(log => ({
+            type: log.type ?? 'info',
+            line: log.line ?? log.message ?? '',
+            timestamp: log.timestamp ?? null
+          }))
         }
       ];
     }
@@ -191,7 +197,9 @@ export let CustomServerVersion = ({
         )}
       </Group.Wrapper>
 
-      {(version.data.status == 'current' || version.data.status == 'available') && (
+      {['current', 'available', 'deployment_succeeded', 'succeeded'].includes(
+        version.data.status ?? ''
+      ) && (
         <>
           <Spacer height={15} />
 
@@ -215,6 +223,15 @@ type Step = {
   status: string;
   index: number;
   logs: { type: string; line: string; timestamp: Date | null }[];
+};
+
+type LegacyCustomServerDeploymentLogs = {
+  logs?: {
+    type?: string;
+    line?: string;
+    message?: string;
+    timestamp?: Date | null;
+  }[];
 };
 
 let deploymentStatusToStepStatus = (status: string | null | undefined): string =>
