@@ -4,7 +4,6 @@ import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { scmRepoPresenter, scmRepoPreviewPresenter } from '../../presenters';
-import { ScmRepo, ScmRepoPreview } from '../../presenters/types';
 
 export let scmReposController = Controller.create(
   {
@@ -27,24 +26,17 @@ export let scmReposController = Controller.create(
           )
         })
       )
-      .outputList(scmRepoPreviewPresenter)
+      .output(scmRepoPreviewPresenter)
       .do(async ctx => {
-        let repos = await (subspaceScmRepositoryService as any).listRepositoryPreviews({
+        let repoPreviews = await subspaceScmRepositoryService.listRepositoryPreviews({
           instance: ctx.instance,
           scmConnectionId: ctx.body.installation_id,
           externalAccountId: ctx.body.external_account_id
         });
 
-        let items = (repos as any)?.items ?? repos ?? [];
-
-        return {
-          object: 'list' as const,
-          items: await Promise.all(
-            (Array.isArray(items) ? items : []).map((r: any) =>
-              scmRepoPreviewPresenter.present({ repoPreview: r as ScmRepoPreview })
-            )
-          )
-        };
+        return scmRepoPreviewPresenter.present({
+          repoPreviews
+        });
       }),
 
     create: instanceGroup
@@ -55,45 +47,53 @@ export let scmReposController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.provider:write'] }))
       .body(
         'default',
-        v.object({
-          installation_id: v.string({ description: 'SCM installation ID' }),
-          external_repo_id: v.optional(
-            v.string({ description: 'External repo ID to link an existing repo' })
-          ),
-          external_account_id: v.optional(
-            v.string({ description: 'External account ID for creating a new repo' })
-          ),
-          name: v.optional(v.string({ description: 'Name for a new repository' })),
-          is_private: v.optional(v.boolean({ description: 'Whether the new repo is private' }))
-        })
+        v.intersection([
+          v.object({
+            installation_id: v.string({ description: 'SCM installation ID' })
+          }),
+          v.union([
+            v.object({
+              external_repo_id: v.string({
+                description: 'External repo ID to link an existing repo'
+              })
+            }),
+
+            v.object({
+              external_account_id: v.string({
+                description: 'External account ID for creating a new repo'
+              }),
+              name: v.string({ description: 'Name for a new repository' }),
+              is_private: v.optional(
+                v.boolean({ description: 'Whether the new repo is private' })
+              )
+            })
+          ])
+        ])
       )
       .output(scmRepoPresenter)
       .do(async ctx => {
-        let repo: any;
-
-        if (ctx.body.external_repo_id) {
-          repo = await (subspaceScmRepositoryService as any).linkRepository({
+        if ('external_repo_id' in ctx.body) {
+          let scmRepo = await subspaceScmRepositoryService.linkRepository({
             instance: ctx.instance,
-            organizationActor: ctx.actor,
             scmConnectionId: ctx.body.installation_id,
-            externalId: ctx.body.external_repo_id,
-            name: ctx.body.name
+            externalId: ctx.body.external_repo_id
           });
-        } else {
-          repo = await (subspaceScmRepositoryService as any).createRepository({
-            instance: ctx.instance,
-            organizationActor: ctx.actor,
-            scmConnectionId: ctx.body.installation_id,
-            externalAccountId: ctx.body.external_account_id,
-            name: ctx.body.name ?? 'untitled',
-            isPrivate: ctx.body.is_private ?? true
+
+          return scmRepoPresenter.present({
+            scmRepo
           });
         }
 
-        let scmRepo = repo?.scmRepository ?? repo;
+        let scmRepo = await subspaceScmRepositoryService.createRepository({
+          instance: ctx.instance,
+          scmConnectionId: ctx.body.installation_id,
+          externalAccountId: ctx.body.external_account_id,
+          name: ctx.body.name,
+          isPrivate: !!ctx.body.is_private
+        });
 
         return scmRepoPresenter.present({
-          scmRepo: scmRepo as ScmRepo
+          scmRepo
         });
       })
   }

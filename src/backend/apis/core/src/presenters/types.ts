@@ -562,13 +562,9 @@ export let scmRepoType = PresentableType.create<{
 export type ScmRepo = SubspaceScmRepository;
 
 export let scmRepoPreviewType = PresentableType.create<{
-  repoPreview: SubspaceScmRepositoryPreviews[number];
+  repoPreviews: SubspaceScmRepositoryPreviews;
 }>()('scmRepoPreview');
 
-export type ScmRepoPreview = SubspaceScmRepositoryPreviews[number];
-
 export let scmAccountPreviewType = PresentableType.create<{
-  accountPreview: SubspaceScmAccountPreviews[number];
+  accountPreviews: SubspaceScmAccountPreviews;
 }>()('scmAccountPreview');
-
-export type ScmAccountPreview = SubspaceScmAccountPreviews[number];

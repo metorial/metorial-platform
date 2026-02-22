@@ -4,7 +4,6 @@ import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { scmAccountPreviewPresenter } from '../../presenters';
-import { ScmAccountPreview } from '../../presenters/types';
 
 export let scmAccountsController = Controller.create(
   {
@@ -24,23 +23,16 @@ export let scmAccountsController = Controller.create(
           installation_id: v.string({ description: 'SCM installation ID' })
         })
       )
-      .outputList(scmAccountPreviewPresenter)
+      .output(scmAccountPreviewPresenter)
       .do(async ctx => {
-        let accounts = await (subspaceScmRepositoryService as any).listAccountPreviews({
+        let accountPreviews = await subspaceScmRepositoryService.listAccountPreviews({
           instance: ctx.instance,
           scmConnectionId: ctx.body.installation_id
         });
 
-        let items = (accounts as any)?.items ?? accounts ?? [];
-
-        return {
-          object: 'list' as const,
-          items: await Promise.all(
-            (Array.isArray(items) ? items : []).map((a: any) =>
-              scmAccountPreviewPresenter.present({ accountPreview: a as ScmAccountPreview })
-            )
-          )
-        };
+        return scmAccountPreviewPresenter.present({
+          accountPreviews
+        });
       })
   }
 );

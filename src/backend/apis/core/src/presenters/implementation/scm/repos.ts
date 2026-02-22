@@ -3,20 +3,36 @@ import { v } from '@metorial/validation';
 import { scmRepoPreviewType, scmRepoType } from '../../types';
 
 export let v1ScmRepoPreviewPresenter = Presenter.create(scmRepoPreviewType)
-  .presenter(async ({ repoPreview }) => ({
-    object: 'scm.repository#preview' as const,
-    provider: repoPreview.provider,
-    external_id: repoPreview.externalId,
-    name: repoPreview.name,
-    identifier: repoPreview.identifier
+  .presenter(async ({ repoPreviews }) => ({
+    object: 'scm.repository.list#preview' as const,
+
+    repos: repoPreviews.map(r => ({
+      object: 'scm.repository.item#preview' as const,
+
+      provider: r.provider,
+      external_id: r.externalId,
+      name: r.name,
+      identifier: r.identifier
+    }))
   }))
   .schema(
     v.object({
-      object: v.literal('scm.repository#preview'),
-      provider: v.enumOf(['github', 'gitlab'], { description: 'SCM provider type' }),
-      external_id: v.string({ description: 'External repository identifier' }),
-      name: v.string({ description: 'Repository name' }),
-      identifier: v.string({ description: 'Repository identifier' })
+      object: v.literal('scm.repository.list#preview'),
+      repos: v.array(
+        v.object({
+          object: v.literal('scm.repository.item#preview', {
+            description: "String representing the repository preview item's type"
+          }),
+          provider: v.object({
+            type: v.enumOf(['github', 'gitlab'], { description: 'SCM provider type' }),
+            name: v.string({ description: 'Repository name on the provider' }),
+            owner: v.string({ description: 'Repository owner on the provider' })
+          }),
+          external_id: v.string({ description: 'External repository identifier' }),
+          name: v.string({ description: 'Repository name' }),
+          identifier: v.string({ description: 'Repository identifier (e.g. full name)' })
+        })
+      )
     })
   )
   .build();
