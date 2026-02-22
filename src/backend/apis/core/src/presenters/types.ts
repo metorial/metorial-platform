@@ -424,6 +424,7 @@ export let providerAuthImportType = PresentableType.create<{
 
 export let providerAuthExportType = PresentableType.create<{
   authExport: SubspaceProviderAuthExport;
+  value?: Record<string, any>;
 }>()('authExport');
 
 export let sessionTemplateType = PresentableType.create<{

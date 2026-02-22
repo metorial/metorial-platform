@@ -131,6 +131,7 @@ export let providerConfigVaultController = Controller.create(
               examples: ['pdp_4dEfGhJkLmNpQrSt']
             })
           ),
+
           name: v.string({ examples: ['Production Secrets'] }),
           description: v.optional(
             v.string({ examples: ['Secure storage for production credentials'] })
@@ -139,7 +140,8 @@ export let providerConfigVaultController = Controller.create(
             v.record(v.any(), { examples: [{ owner: 'platform-team', sensitivity: 'high' }] }),
             { description: 'Custom key-value pairs for storing additional information' }
           ),
-          data: v.record(v.any(), {
+
+          value: v.record(v.any(), {
             description: 'Secure configuration values to store in the vault',
             examples: [{ api_key: 'sk-xxx', base_url: 'https://api.example.com' }]
           })
@@ -155,7 +157,7 @@ export let providerConfigVaultController = Controller.create(
           description: ctx.body.description,
           config: {
             type: 'inline',
-            data: ctx.body.data
+            data: ctx.body.value
           },
           metadata: ctx.body.metadata
         });

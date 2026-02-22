@@ -95,7 +95,7 @@ export let subspaceProviderRunController = Controller.create(
         );
       }),
 
-    get: instanceGroup
+    get: subspaceProviderRunGroup
       .get(instancePath('provider-runs/:providerRunId', 'providerRuns.get'), {
         name: 'Get provider run',
         description: 'Retrieves a specific provider run by ID.'
@@ -103,12 +103,8 @@ export let subspaceProviderRunController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
       .output(subspaceProviderRunPresenter)
       .do(async ctx => {
-        let providerRun = await subspaceProviderRunService.get({
-          instance: ctx.instance,
-          providerRunId: ctx.params.providerRunId
-        });
         return subspaceProviderRunPresenter.present({
-          providerRun
+          providerRun: ctx.providerRun
         });
       }),
 

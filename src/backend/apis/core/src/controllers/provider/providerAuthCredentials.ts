@@ -130,8 +130,9 @@ export let providerAuthCredentialsController = Controller.create(
             }),
             { description: 'Custom key-value pairs for storing additional information' }
           ),
+
           config: v.object({
-            type: v.literal('oauth'),
+            type: v.optional(v.literal('oauth')),
             clientId: v.string({
               description: 'OAuth client ID',
               examples: ['Iv1.abc123def456']
@@ -154,7 +155,10 @@ export let providerAuthCredentialsController = Controller.create(
           providerId: ctx.body.provider_id,
           name: ctx.body.name,
           description: ctx.body.description,
-          config: ctx.body.config,
+          config: {
+            type: 'oauth',
+            ...ctx.body.config
+          },
           metadata: ctx.body.metadata
         });
 

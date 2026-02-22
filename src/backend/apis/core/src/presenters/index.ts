@@ -49,6 +49,7 @@ import {
   v1ProviderRunLogsPresenter,
   v1ProviderRunPresenter,
   v1ProviderSpecificationPresenter,
+  v1ProviderToolCallPresenter,
   v1ProviderToolPresenter,
   v1ProviderTypePresenter,
   v1ProviderVersionPresenter,
@@ -63,8 +64,7 @@ import {
   v1SessionTemplateProviderPresenter,
   v1SetupSessionPresenter,
   v1SubspaceSessionEventPresenter,
-  v1SubspaceSessionMessagePresenter,
-  v1ProviderToolCallPresenter
+  v1SubspaceSessionMessagePresenter
 } from './implementation/provider';
 
 import {

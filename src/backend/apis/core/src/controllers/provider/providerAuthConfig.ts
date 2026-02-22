@@ -141,7 +141,16 @@ export let providerAuthConfigController = Controller.create(
             examples: ['pam_2mNpQrStUvWxYzAb'],
             description: 'The authentication method this config uses (e.g., OAuth, API key)'
           }),
-          config: v.record(v.any(), {
+
+          provider_deployment_id: v.optional(
+            v.string({
+              description:
+                'The provider deployment this auth config is associated with (if applicable)',
+              examples: ['pd_2mNpQrStUvWxYzAb']
+            })
+          ),
+
+          value: v.record(v.any(), {
             description: 'Authentication config payload',
             examples: [{ client_id: 'xxx', client_secret: 'xxx' }]
           })
@@ -158,12 +167,21 @@ export let providerAuthConfigController = Controller.create(
           instance: ctx.instance,
           providerId: authMethod.providerId,
           providerAuthMethodId: ctx.body.provider_auth_method_id,
+
+          providerDeployment: ctx.body.provider_deployment_id
+            ? {
+                type: 'reference',
+                providerDeploymentId: ctx.body.provider_deployment_id
+              }
+            : undefined,
+
           name: ctx.body.name,
           description: ctx.body.description,
-          config: ctx.body.config,
           ip: ctx.context.ip,
           ua: ctx.context.ua ?? '',
-          metadata: ctx.body.metadata
+          metadata: ctx.body.metadata,
+
+          config: ctx.body.value
         });
 
         return providerAuthConfigPresenter.present({

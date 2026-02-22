@@ -2,7 +2,7 @@ import { badRequestError, ServiceError } from '@metorial/error';
 import { subspaceProviderDeploymentService } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
-import { v } from '@metorial/validation';
+import { v, ValidationTypeValue } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
@@ -26,62 +26,97 @@ let providerDeploymentGroup = instanceGroup.use(async ctx => {
   return { deployment };
 });
 
+let createSchema = v.intersection([
+  v.object({
+    name: v.string({ examples: ['Production Deployment'] }),
+    description: v.optional(
+      v.string({ examples: ['Main production environment configuration'] })
+    ),
+    metadata: v.optional(
+      v.record(v.any(), {
+        examples: [{ team: 'platform', environment: 'production' }]
+      }),
+      { description: 'Custom key-value pairs for storing additional information' }
+    ),
+    provider_id: v.string({
+      examples: ['pro_5gHjKlMnPqRsTuVw'],
+      description: 'The provider to deploy'
+    }),
+    locked_provider_version_id: v.optional(v.string({ examples: ['prv_4dEfGhJkLmNpQrSt'] }), {
+      description: 'Pin this deployment to a specific provider version'
+    })
+  }),
+  v.union([
+    v.object({
+      provider_config_id: v.optional(
+        v.string({
+          description: 'Existing provider config ID',
+          examples: ['pcf_7dEfGhJkLmNpQrSt']
+        })
+      )
+    }),
+    v.object({
+      provider_config: v.optional(
+        v.union([
+          v.object({
+            name: v.optional(v.string({ examples: ['Default Config'] })),
+            value: v.record(v.any(), {
+              description: 'Provider-specific configuration values',
+              examples: [{ api_key: 'sk-xxx', base_url: 'https://api.example.com' }]
+            })
+          }),
+          v.object({
+            name: v.optional(v.string({ examples: ['Default Config'] })),
+            provider_config_vault_id: v.string({
+              description: 'Provider config vault ID',
+              examples: ['pcvt_3bCdEfGhJkLmNpQr']
+            })
+          })
+        ])
+      )
+    })
+  ])
+]);
+
 type ProviderDeploymentCreateConfig = NonNullable<
   Parameters<typeof subspaceProviderDeploymentService.create>[0]['config']
 >;
 
-let mapProviderDeploymentConfigSource = (
-  config:
-    | { type: 'new'; data: Record<string, any> }
-    | { type: 'vault'; provider_config_vault_id: string }
-): NonNullable<Extract<ProviderDeploymentCreateConfig, { type: 'ephemeral' }>['config']> => {
-  if (config.type === 'new') {
-    return {
-      type: 'inline',
-      data: config.data
-    };
-  }
-
-  return {
-    type: 'vault',
-    providerConfigVaultId: config.provider_config_vault_id
-  };
-};
-
 let mapProviderDeploymentConfig = (
-  config:
-    | string
-    | { type: 'reference'; provider_config_id: string }
-    | {
-        type: 'new';
-        name?: string;
-        config:
-          | { type: 'new'; data: Record<string, any> }
-          | { type: 'vault'; provider_config_vault_id: string };
-      }
-    | undefined
+  config: ValidationTypeValue<typeof createSchema>
 ): ProviderDeploymentCreateConfig | undefined => {
-  if (!config) return undefined;
-
-  if (typeof config === 'string') {
-    return {
-      type: 'reference',
-      providerConfigId: config
-    };
-  }
-
-  if (config.type === 'reference') {
+  if ('provider_config_id' in config && config.provider_config_id) {
     return {
       type: 'reference',
       providerConfigId: config.provider_config_id
     };
   }
 
-  return {
-    type: 'ephemeral',
-    name: config.name,
-    config: mapProviderDeploymentConfigSource(config.config)
-  };
+  if ('provider_config' in config && config.provider_config) {
+    let conf = config.provider_config;
+
+    if ('value' in conf && conf.value) {
+      return {
+        type: 'ephemeral',
+        config: {
+          type: 'inline',
+          data: conf.value
+        }
+      };
+    }
+
+    if ('provider_config_vault_id' in conf && conf.provider_config_vault_id) {
+      return {
+        type: 'ephemeral',
+        config: {
+          type: 'vault',
+          providerConfigVaultId: conf.provider_config_vault_id
+        }
+      };
+    }
+  }
+
+  return undefined;
 };
 
 export let providerDeploymentController = Controller.create(
@@ -164,77 +199,7 @@ export let providerDeploymentController = Controller.create(
         description: 'Creates a new provider deployment.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.deployment:write'] }))
-      .body(
-        'default',
-        v.object({
-          name: v.string({ examples: ['Production Deployment'] }),
-          description: v.optional(
-            v.string({ examples: ['Main production environment configuration'] })
-          ),
-          metadata: v.optional(
-            v.record(v.any(), { examples: [{ team: 'platform', environment: 'production' }] }),
-            { description: 'Custom key-value pairs for storing additional information' }
-          ),
-          provider_id: v.string({
-            examples: ['pro_5gHjKlMnPqRsTuVw'],
-            description: 'The provider to deploy'
-          }),
-          locked_provider_version_id: v.optional(
-            v.string({ examples: ['prv_4dEfGhJkLmNpQrSt'] }),
-            { description: 'Pin this deployment to a specific provider version' }
-          ),
-          config: v.optional(
-            v.union(
-              [
-                v.object(
-                  {
-                    type: v.literal('reference'),
-                    provider_config_id: v.string({
-                      description: 'Existing provider config ID',
-                      examples: ['pcf_7dEfGhJkLmNpQrSt']
-                    })
-                  },
-                  { name: 'reference', description: 'Reference an existing provider config' }
-                ),
-                v.object(
-                  {
-                    type: v.literal('new'),
-                    name: v.optional(v.string({ examples: ['Default Config'] })),
-                    config: v.union([
-                      v.object(
-                        {
-                          type: v.literal('new'),
-                          data: v.record(v.any(), {
-                            description: 'Provider-specific configuration values',
-                            examples: [{ api_key: 'sk-xxx' }]
-                          })
-                        },
-                        { name: 'new', description: 'Provide configuration data directly' }
-                      ),
-                      v.object(
-                        {
-                          type: v.literal('vault'),
-                          provider_config_vault_id: v.string({
-                            description: 'Provider config vault ID',
-                            examples: ['pcvt_3bCdEfGhJkLmNpQr']
-                          })
-                        },
-                        { name: 'vault', description: 'Use a config vault template' }
-                      )
-                    ])
-                  },
-                  { name: 'new', description: 'Create a new ephemeral provider config' }
-                ),
-                v.string({ description: 'Shorthand: config ID' })
-              ],
-              {
-                description:
-                  'Deployment configuration. If omitted, defaults to no configuration.'
-              }
-            )
-          )
-        })
-      )
+      .body('default', createSchema)
       .output(providerDeploymentPresenter)
       .do(async ctx => {
         let deployment = await subspaceProviderDeploymentService.create({
@@ -243,7 +208,7 @@ export let providerDeploymentController = Controller.create(
           name: ctx.body.name,
           description: ctx.body.description,
           lockedProviderVersionId: ctx.body.locked_provider_version_id,
-          config: mapProviderDeploymentConfig(ctx.body.config),
+          config: mapProviderDeploymentConfig(ctx.body),
           metadata: ctx.body.metadata
         });
 

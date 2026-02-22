@@ -142,7 +142,8 @@ export let providerAuthExportController = Controller.create(
         });
 
         return providerAuthExportPresenter.present({
-          authExport
+          authExport,
+          value: authExport.value
         });
       })
   }

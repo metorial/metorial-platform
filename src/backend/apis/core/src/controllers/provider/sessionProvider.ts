@@ -2,7 +2,7 @@ import { badRequestError, ServiceError } from '@metorial/error';
 import { subspaceSessionProviderService } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
-import { v } from '@metorial/validation';
+import { v, ValidationTypeValue } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import {
   authConfigValidator,
@@ -33,100 +33,91 @@ let subspaceSessionProviderGroup = instanceGroup.use(async ctx => {
 });
 
 type SessionProviderCreateInput = Parameters<typeof subspaceSessionProviderService.create>[0];
+let sessionProviderCreateBodyValidator = v.object({
+  session_id: v.string(),
+  provider_deployment: v.optional(deploymentValidator),
+  provider_config: v.optional(configValidator),
+  provider_auth_config: v.optional(authConfigValidator),
+  tool_filters: toolFiltersValidator
+});
+
+type SessionProviderCreateBody = ValidationTypeValue<
+  typeof sessionProviderCreateBodyValidator
+>;
 
 let mapSessionProviderConfigSource = (
-  config:
-    | { type: 'none' }
-    | { type: 'reference'; provider_config_id: string }
-    | {
-        type: 'ephemeral';
-        name?: string;
-        config:
-          | { type: 'inline'; data: Record<string, any> }
-          | { type: 'vault'; provider_config_vault_id: string };
-      }
-    | string
-    | undefined
+  config: SessionProviderCreateBody['provider_config']
 ): SessionProviderCreateInput['providerConfig'] => {
   if (!config) return undefined;
-  if (typeof config === 'string') return { type: 'reference', providerConfigId: config };
-  if (config.type === 'none') return undefined;
-  if (config.type === 'reference') {
-    return { type: 'reference', providerConfigId: config.provider_config_id };
+  let source = config as any;
+
+  if ('provider_config_id' in source) {
+    return source.provider_config_id
+      ? { type: 'reference', providerConfigId: source.provider_config_id }
+      : undefined;
   }
+
+  if (!source.provider_config) return undefined;
+
+  let providerConfig = source.provider_config;
+
   return {
     type: 'ephemeral',
-    name: config.name,
+    name: providerConfig.name,
     config:
-      config.config.type === 'inline'
-        ? { type: 'inline', data: config.config.data }
-        : { type: 'vault', providerConfigVaultId: config.config.provider_config_vault_id }
+      'value' in providerConfig
+        ? { type: 'inline', data: providerConfig.value }
+        : {
+            type: 'vault',
+            providerConfigVaultId: providerConfig.provider_config_vault_id
+          }
   };
 };
 
 let mapSessionProviderDeploymentSource = (
-  deployment:
-    | { type: 'reference'; provider_deployment_id: string }
-    | {
-        type: 'ephemeral';
-        provider_id: string;
-        name?: string;
-        description?: string;
-        metadata?: Record<string, any>;
-        locked_provider_version_id?: string;
-        config?:
-          | { type: 'none' }
-          | { type: 'reference'; provider_config_id: string }
-          | {
-              type: 'ephemeral';
-              name?: string;
-              config:
-                | { type: 'inline'; data: Record<string, any> }
-                | { type: 'vault'; provider_config_vault_id: string };
-            }
-          | string;
-      }
-    | string
+  deployment: SessionProviderCreateBody['provider_deployment']
 ): SessionProviderCreateInput['providerDeployment'] => {
-  if (typeof deployment === 'string') {
-    return { type: 'reference', providerDeploymentId: deployment };
+  if (!deployment) return undefined;
+  let source = deployment as any;
+
+  if ('provider_deployment_id' in source) {
+    return source.provider_deployment_id
+      ? { type: 'reference', providerDeploymentId: source.provider_deployment_id }
+      : undefined;
   }
-  if (deployment.type === 'reference') {
-    return { type: 'reference', providerDeploymentId: deployment.provider_deployment_id };
-  }
+
+  if (!source.provider_deployment) return undefined;
+
+  let providerDeployment = source.provider_deployment;
+
   return {
     type: 'ephemeral',
-    providerId: deployment.provider_id,
-    name: deployment.name,
-    description: deployment.description,
-    metadata: deployment.metadata,
-    lockedProviderVersionId: deployment.locked_provider_version_id,
-    config: mapSessionProviderConfigSource(deployment.config)
+    providerId: providerDeployment.provider_id,
+    name: providerDeployment.name,
+    description: providerDeployment.description,
+    metadata: providerDeployment.metadata,
+    lockedProviderVersionId: providerDeployment.locked_provider_version_id
   };
 };
 
 let mapSessionProviderAuthConfigSource = (
-  auth:
-    | { type: 'reference'; provider_auth_config_id: string }
-    | {
-        type: 'ephemeral';
-        name?: string;
-        provider_auth_method_id: string;
-        credentials: Record<string, any>;
-      }
-    | string
-    | undefined
+  auth: SessionProviderCreateBody['provider_auth_config']
 ): SessionProviderCreateInput['providerAuthConfig'] => {
   if (!auth) return undefined;
-  if (typeof auth === 'string') return { type: 'reference', providerAuthConfigId: auth };
-  if (auth.type === 'reference') {
-    return { type: 'reference', providerAuthConfigId: auth.provider_auth_config_id };
+  let source = auth as any;
+
+  if ('provider_auth_config_id' in source) {
+    return source.provider_auth_config_id
+      ? { type: 'reference', providerAuthConfigId: source.provider_auth_config_id }
+      : undefined;
   }
+
   return {
     type: 'ephemeral',
-    name: auth.name,
-    providerAuthMethodId: auth.provider_auth_method_id,
-    credentials: auth.credentials
+    name: source.name,
+    providerAuthMethodId: source.provider_auth_method_id,
+    providerId: source.provider_id,
+    credentials: source.credentials
   };
 };
 
@@ -219,16 +210,7 @@ export let subspaceSessionProviderController = Controller.create(
         description: 'Adds a new provider to an active session.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
-      .body(
-        'default',
-        v.object({
-          session_id: v.string(),
-          provider_deployment: deploymentValidator,
-          provider_config: v.optional(configValidator),
-          provider_auth_config: v.optional(authConfigValidator),
-          tool_filters: toolFiltersValidator
-        })
-      )
+      .body('default', sessionProviderCreateBodyValidator)
       .output(sessionProviderPresenter)
       .do(async ctx => {
         let sessionProvider = await subspaceSessionProviderService.create({

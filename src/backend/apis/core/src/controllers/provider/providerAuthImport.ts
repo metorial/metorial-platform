@@ -125,10 +125,18 @@ export let providerAuthImportController = Controller.create(
         'default',
         v.object({
           provider_id: v.optional(v.string({ examples: ['pro_5gHjKlMnPqRsTuVw'] })),
+
           provider_deployment_id: v.optional(v.string({ examples: ['pdp_4dEfGhJkLmNpQrSt'] })),
           provider_auth_config_id: v.optional(
             v.string({ examples: ['pacf_4sTuVwXyZaBcDeFg'] })
           ),
+          provider_auth_method_id: v.optional(
+            v.string({ examples: ['pam_3cDeFgHjKlMnPqRs'] }),
+            {
+              description: 'The authentication method used by these credentials'
+            }
+          ),
+
           note: v.string({
             description: 'A note describing the import source or reason',
             examples: ['Migrated from legacy OAuth app']
@@ -136,9 +144,7 @@ export let providerAuthImportController = Controller.create(
           metadata: v.optional(v.record(v.any()), {
             description: 'Custom key-value pairs for storing additional information'
           }),
-          providerAuthMethodId: v.optional(v.string({ examples: ['pam_3cDeFgHjKlMnPqRs'] }), {
-            description: 'The authentication method used by these credentials'
-          }),
+
           value: v.record(v.any(), {
             description: 'The credential data to import',
             examples: [
@@ -159,7 +165,8 @@ export let providerAuthImportController = Controller.create(
           providerId: ctx.body.provider_id,
           providerDeploymentId: ctx.body.provider_deployment_id,
           providerAuthConfigId: ctx.body.provider_auth_config_id,
-          providerAuthMethodId: ctx.body.providerAuthMethodId,
+          providerAuthMethodId: ctx.body.provider_auth_method_id,
+
           note: ctx.body.note,
           config: ctx.body.value,
           ip: ctx.context.ip,

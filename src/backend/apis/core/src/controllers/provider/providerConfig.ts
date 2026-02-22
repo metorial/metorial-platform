@@ -26,28 +26,6 @@ let providerConfigGroup = instanceGroup.use(async ctx => {
   return { config };
 });
 
-type ProviderConfigCreateConfig = Parameters<
-  typeof subspaceProviderConfigService.create
->[0]['config'];
-
-let mapProviderConfigCreateConfig = (
-  config:
-    | { type: 'inline'; data: Record<string, any> }
-    | { type: 'vault'; provider_config_vault_id: string }
-): ProviderConfigCreateConfig => {
-  if (config.type === 'inline') {
-    return {
-      type: 'inline',
-      data: config.data
-    };
-  }
-
-  return {
-    type: 'vault',
-    providerConfigVaultId: config.provider_config_vault_id
-  };
-};
-
 export let providerConfigController = Controller.create(
   {
     name: 'Provider Configs',
@@ -131,53 +109,44 @@ export let providerConfigController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.provider.deployment:write'] }))
       .body(
         'default',
-        v.object({
-          provider_id: v.string({
-            description: 'Provider ID',
-            examples: ['pro_5gHjKlMnPqRsTuVw']
-          }),
-          provider_deployment_id: v.optional(
-            v.string({
-              description: 'Optional provider deployment ID',
-              examples: ['pdp_4dEfGhJkLmNpQrSt']
-            })
-          ),
-          name: v.string({ examples: ['Production Config'] }),
-          description: v.optional(
-            v.string({ examples: ['Configuration for production environment'] })
-          ),
-          metadata: v.optional(
-            v.record(v.any(), {
-              examples: [{ label: 'primary', notes: 'Default production config' }]
+        v.intersection([
+          v.object({
+            provider_id: v.string({
+              description: 'Provider ID',
+              examples: ['pro_5gHjKlMnPqRsTuVw']
             }),
-            { description: 'Custom key-value pairs for storing additional information' }
-          ),
-          config: v.union(
-            [
-              v.object(
-                {
-                  type: v.literal('inline'),
-                  data: v.record(v.any(), {
-                    description: 'Provider-specific configuration values',
-                    examples: [{ api_key: 'sk-xxx', base_url: 'https://api.example.com' }]
-                  })
-                },
-                { name: 'inline', description: 'Provide configuration values directly' }
-              ),
-              v.object(
-                {
-                  type: v.literal('vault'),
-                  provider_config_vault_id: v.string({
-                    description: 'Config vault ID to use as template',
-                    examples: ['pcvt_3bCdEfGhJkLmNpQr']
-                  })
-                },
-                { name: 'vault', description: 'Create config from a vault template' }
-              )
-            ],
-            { description: 'Configuration data source' }
-          )
-        })
+            provider_deployment_id: v.optional(
+              v.string({
+                description: 'Optional provider deployment ID',
+                examples: ['pdp_4dEfGhJkLmNpQrSt']
+              })
+            ),
+            name: v.string({ examples: ['Production Config'] }),
+            description: v.optional(
+              v.string({ examples: ['Configuration for production environment'] })
+            ),
+            metadata: v.optional(
+              v.record(v.any(), {
+                examples: [{ label: 'primary', notes: 'Default production config' }]
+              }),
+              { description: 'Custom key-value pairs for storing additional information' }
+            )
+          }),
+          v.union([
+            v.object({
+              value: v.record(v.any(), {
+                description: 'Provider-specific configuration values',
+                examples: [{ api_key: 'sk-xxx', base_url: 'https://api.example.com' }]
+              })
+            }),
+            v.object({
+              provider_config_vault_id: v.string({
+                description: 'Config vault ID to use as template',
+                examples: ['pcvt_3bCdEfGhJkLmNpQr']
+              })
+            })
+          ])
+        ])
       )
       .output(providerConfigPresenter)
       .do(async ctx => {
@@ -190,10 +159,21 @@ export let providerConfigController = Controller.create(
                 providerDeploymentId: ctx.body.provider_deployment_id
               }
             : undefined,
+
           name: ctx.body.name,
           description: ctx.body.description,
-          config: mapProviderConfigCreateConfig(ctx.body.config),
-          metadata: ctx.body.metadata
+          metadata: ctx.body.metadata,
+
+          config:
+            'value' in ctx.body
+              ? {
+                  type: 'inline',
+                  data: ctx.body.value
+                }
+              : {
+                  type: 'vault',
+                  providerConfigVaultId: ctx.body.provider_config_vault_id
+                }
         });
 
         return providerConfigPresenter.present({ config });

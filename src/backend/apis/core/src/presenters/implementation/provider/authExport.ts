@@ -4,7 +4,7 @@ import { providerAuthExportType } from '../../types';
 import { v1ProviderAuthConfigPresenter } from './authConfig';
 
 export let v1ProviderAuthExportPresenter = Presenter.create(providerAuthExportType)
-  .presenter(async ({ authExport }, opts) => ({
+  .presenter(async ({ authExport, value }, opts) => ({
     object: 'provider.auth_export' as const,
 
     id: authExport.id,
@@ -21,6 +21,8 @@ export let v1ProviderAuthExportPresenter = Presenter.create(providerAuthExportTy
     provider_deployment_id: authExport.providerDeploymentId,
     auth_method_id: authExport.authMethodId,
     credentials_id: authExport.credentialsId,
+
+    value: value ?? null,
 
     created_at: authExport.createdAt,
     expires_at: authExport.expiresAt
@@ -83,6 +85,20 @@ export let v1ProviderAuthExportPresenter = Presenter.create(providerAuthExportTy
           name: 'credentials_id',
           description: 'Auth credentials ID',
           examples: ['par_4sTuVwXyZaBcDeFg']
+        })
+      ),
+      value: v.nullable(
+        v.record(v.any(), {
+          name: 'value',
+          description: 'The exported credential data',
+          examples: [
+            {
+              access_token: 'gho_xxxxxxxxxxxxxxxxxxxx',
+              refresh_token: 'ghr_xxxxxxxxxxxxxxxxxxxx',
+              token_type: 'bearer',
+              scope: 'repo,read:user,read:org'
+            }
+          ]
         })
       ),
       created_at: v.date({

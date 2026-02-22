@@ -148,17 +148,19 @@ export let providerSetupSessionDashboardController = Controller.create(
             }),
             { description: 'Custom key-value pairs for storing additional information' }
           ),
-          providerAuthMethodId: v.string({
-            examples: ['pam_2mNpQrStUvWxYzAb'],
-            description: 'The authentication method to use (e.g., OAuth flow)'
-          }),
-          providerAuthCredentialsId: v.optional(
+          provider_auth_method_id: v.optional(
+            v.string({
+              examples: ['pam_2mNpQrStUvWxYzAb'],
+              description: 'The authentication method to use (e.g., OAuth flow)'
+            })
+          ),
+          provider_auth_credentials_id: v.optional(
             v.string({
               examples: ['pac_3nOpRsTuVwXyZaBc'],
               description: 'Optional OAuth app credentials to use instead of defaults'
             })
           ),
-          redirectUrl: v.optional(
+          redirect_url: v.optional(
             v.string({ examples: ['https://app.example.com/oauth/callback'] })
           )
         })
@@ -169,15 +171,15 @@ export let providerSetupSessionDashboardController = Controller.create(
           instance: ctx.instance,
           providerId: ctx.body.provider_id,
           providerDeploymentId: ctx.body.provider_deployment_id,
-          providerAuthMethodId: ctx.body.providerAuthMethodId,
-          providerAuthCredentialsId: ctx.body.providerAuthCredentialsId,
+          providerAuthMethodId: ctx.body.provider_auth_method_id,
+          providerAuthCredentialsId: ctx.body.provider_auth_credentials_id,
           name: ctx.body.name ?? 'Setup Session',
           description: ctx.body.description,
           uiMode: 'metorial_elements',
           type: 'auth_only',
           ip: ctx.context.ip,
           ua: ctx.context.ua ?? '',
-          redirectUrl: ctx.body.redirectUrl,
+          redirectUrl: ctx.body.redirect_url,
           metadata: ctx.body.metadata
         });
 
