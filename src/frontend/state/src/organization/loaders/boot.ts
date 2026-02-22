@@ -5,7 +5,13 @@ import { redirectToAuthIfNotAuthenticated } from '../../user/auth/withAuth';
 export let bootLoader = createLoader({
   name: 'boot',
   fetch: (i: {}) =>
-    redirectToAuthIfNotAuthenticated(() => withDashboardSDK(sdk => sdk.dashboard.boot({}))),
+    redirectToAuthIfNotAuthenticated(async () => {
+      if ((window as any).enterpriseUserPromise) {
+        await (window as any).enterpriseUserPromise;
+      }
+
+      return await withDashboardSDK(sdk => sdk.dashboard.boot({}));
+    }),
   mutators: {}
 });
 
@@ -20,6 +26,4 @@ export let getBoot = () => bootLoader.fetchAndReturn({});
 export let getInstances = () => getBoot().then(boot => boot.instances);
 
 export let getOrgForInstance = (instanceId: string) =>
-  getBoot().then(
-    boot => boot.instances.find(i => i.id === instanceId)?.organization
-  );
+  getBoot().then(boot => boot.instances.find(i => i.id === instanceId)?.organization);
