@@ -192,12 +192,6 @@ export let useCurrentProject = () => {
   let org = useCurrentOrganization();
   let project = useProject(org.data?.id, org.data?.currentProject?.id);
 
-  useEffect(() => {
-    if (org.data && !org.data.currentProject) {
-      window.location.replace(`/i/${org.data.slug}`);
-    }
-  }, [org.data]);
-
   if (org.error || !org.data) {
     return {
       ...org,
@@ -236,12 +230,6 @@ export let useCurrentProject = () => {
 export let useCurrentInstance = () => {
   let org = useCurrentOrganization();
   let instance = useInstance(org.data?.id, org.data?.currentInstance?.id);
-
-  useEffect(() => {
-    if (org.data && (!org.data.currentInstance || !org.data.currentProject)) {
-      window.location.replace(`/i/${org.data.slug}`);
-    }
-  }, [org.data]);
 
   if (org.error || !org.data) {
     return {
