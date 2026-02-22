@@ -22,15 +22,22 @@ export let v1SubspaceSessionMessagePresenter = Presenter.create(sessionMessageTy
     hierarchy: {
       object: 'session.message.hierarchy',
       type: sessionMessage.hierarchy.type,
-      parentMessageId: sessionMessage.hierarchy.parentMessageId ?? null,
-      childMessageIds: sessionMessage.hierarchy.childMessageIds
+      parent_message_id: sessionMessage.hierarchy.parentMessageId ?? null,
+      child_message_ids: sessionMessage.hierarchy.childMessageIds
     },
 
     transport: {
       object: 'session.message.transport',
       type: sessionMessage.transport.type,
-      mcp: sessionMessage.transport.mcp ?? null,
-      toolCall: sessionMessage.transport.toolCall ?? null
+      mcp: sessionMessage.transport.mcp
+        ? {
+            object: 'session.message.transport#mcp' as const,
+            id: sessionMessage.transport.mcp.id,
+            protocol_version: sessionMessage.transport.mcp.protocolVersion,
+            transport: sessionMessage.transport.mcp.transport
+          }
+        : null,
+      tool_call: sessionMessage.transport.toolCall ?? null
     },
 
     input: sessionMessage.input as Record<string, any> | null,
@@ -119,19 +126,19 @@ export let v1SubspaceSessionMessagePresenter = Presenter.create(sessionMessageTy
             description: 'Hierarchy type',
             examples: ['child', 'parent']
           }),
-          parentMessageId: v.nullable(
+          parent_message_id: v.nullable(
             v.string({
-              name: 'parentMessageId',
+              name: 'parent_message_id',
               description: 'Parent message ID'
             })
           ),
-          childMessageIds: v.array(
+          child_message_ids: v.array(
             v.string({
-              name: 'childMessageId',
+              name: 'child_message_id',
               description: 'Child message ID'
             }),
             {
-              name: 'childMessageIds',
+              name: 'child_message_ids',
               description: 'List of child message IDs'
             }
           )
@@ -152,8 +159,8 @@ export let v1SubspaceSessionMessagePresenter = Presenter.create(sessionMessageTy
                 name: 'id',
                 description: 'MCP message ID'
               }),
-              protocolVersion: v.string({
-                name: 'protocolVersion',
+              protocol_version: v.string({
+                name: 'protocol_version',
                 description: 'MCP protocol version'
               }),
               transport: v.string({
@@ -163,7 +170,7 @@ export let v1SubspaceSessionMessagePresenter = Presenter.create(sessionMessageTy
               })
             })
           ),
-          toolCall: v.nullable(
+          tool_call: v.nullable(
             v.object({
               object: v.literal('session.message.transport#tool_call'),
               id: v.nullable(

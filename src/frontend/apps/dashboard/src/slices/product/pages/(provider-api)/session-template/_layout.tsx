@@ -62,7 +62,7 @@ export let SessionTemplateLayout = () => {
       .map(p => getTemplateProviderDeploymentId(p))
       .filter((providerDeploymentId): providerDeploymentId is string => !!providerDeploymentId)
       .map(providerDeploymentId => ({
-        providerDeployment: providerDeploymentId,
+        providerDeployment: { providerDeploymentId },
         sessionTemplateId: sessionTemplateId!
       }));
 
@@ -76,7 +76,7 @@ export let SessionTemplateLayout = () => {
 
     if (res) {
       let firstDeploymentId =
-        getFirstSessionDeploymentId(res) ?? providerEntries[0]?.providerDeployment ?? null;
+        getFirstSessionDeploymentId(res) ?? providerEntries[0]?.providerDeployment?.providerDeploymentId ?? null;
       if (firstDeploymentId) {
         navigate(
           Paths.instance.explorer(organization.data, project.data, instance.data, {

@@ -84,19 +84,23 @@ export let authConfigValidator = v.union([
     )
   }),
   v.object({
-    name: v.optional(v.string({ examples: ['Default Auth Config'] })),
-    provider_auth_method_id: v.string({
-      description: 'The authentication method to use (e.g., OAuth flow)',
-      examples: ['pam_2mNpQrStUvWxYzAb']
-    }),
-    credentials: v.record(v.any(), {
-      description: 'Provider-specific authentication credentials',
-      examples: [{ client_id: 'abc123', client_secret: 'def456' }]
-    }),
-    provider_id: v.optional(
-      v.string({
-        description: 'Explicitly specify provider ID to associate with this auth config',
-        examples: ['pro_5gHjKlMnPqRsTuVw']
+    provider_auth_config: v.optional(
+      v.object({
+        name: v.optional(v.string({ examples: ['Default Auth Config'] })),
+        provider_auth_method_id: v.string({
+          description: 'The authentication method to use (e.g., OAuth flow)',
+          examples: ['pam_2mNpQrStUvWxYzAb']
+        }),
+        credentials: v.record(v.any(), {
+          description: 'Provider-specific authentication credentials',
+          examples: [{ client_id: 'abc123', client_secret: 'def456' }]
+        }),
+        provider_id: v.optional(
+          v.string({
+            description: 'Explicitly specify provider ID to associate with this auth config',
+            examples: ['pro_5gHjKlMnPqRsTuVw']
+          })
+        )
       })
     )
   })

@@ -20,13 +20,13 @@ export let dashboardOrganizationInviteController = Controller.create(
       .query(
         'default',
         v.object({
-          inviteKey: v.string()
+          invite_key: v.string()
         })
       )
       .output(organizationInvitePresenter)
       .do(async ctx => {
         let { invite } = await organizationInviteJoinService.getOrganizationInvite({
-          inviteKey: ctx.query.inviteKey
+          inviteKey: ctx.query.invite_key
         });
 
         return organizationInvitePresenter.present({ organizationInvite: invite });

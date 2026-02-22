@@ -124,7 +124,7 @@ export let ExplorerPage = () => {
       setSessionError(null);
 
       let [res, error] = await createSession.mutate({
-        providers: [{ providerDeployment: deploymentId }]
+        providers: [{ providerDeploymentId: deploymentId }]
       });
 
       setIsCreatingSession(false);

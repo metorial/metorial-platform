@@ -94,7 +94,7 @@ export let ProviderAuthConfigForm = (
         name,
         description: description || undefined,
         providerAuthMethodId: authMethodId,
-        config: parsedCredentials
+        value: parsedCredentials
       });
 
       if (err) {

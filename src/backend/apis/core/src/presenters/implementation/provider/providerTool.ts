@@ -28,7 +28,12 @@ export let v1ProviderToolPresenter = Presenter.create(providerToolType)
         }
       : null,
 
-    tags: tool.tags ?? null,
+    tags: tool.tags
+      ? {
+          destructive: tool.tags.destructive,
+          read_only: tool.tags.readOnly
+        }
+      : null,
 
     specification_id: tool.specificationId,
     provider_id: tool.providerId,
@@ -98,8 +103,8 @@ export let v1ProviderToolPresenter = Presenter.create(providerToolType)
           destructive: v.optional(
             v.boolean({ name: 'destructive', description: 'Whether the tool is destructive' })
           ),
-          readOnly: v.optional(
-            v.boolean({ name: 'readOnly', description: 'Whether the tool is read-only' })
+          read_only: v.optional(
+            v.boolean({ name: 'read_only', description: 'Whether the tool is read-only' })
           )
         })
       ),

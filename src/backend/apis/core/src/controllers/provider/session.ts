@@ -62,65 +62,71 @@ export let toolFiltersValidator = v.nullable(
   v.optional(v.union([toolFilterValidator, v.array(toolFilterValidator)]))
 );
 
+let providerInput = v.intersection([
+  v.union([
+    deploymentValidator,
+    configValidator,
+    authConfigValidator,
+    v.object({
+      session_template_id: v.optional(v.string())
+    })
+  ]),
+  v.object({
+    tool_filters: toolFiltersValidator
+  })
+]);
+
 type SessionCreateProviderInput = Parameters<
   typeof subspaceSessionService.create
 >[0]['providers'][number];
 
 export let mapSessionConfigSource = (
-  config: ValidationTypeValue<typeof configValidator> | undefined
+  config: ValidationTypeValue<typeof providerInput> | undefined
 ): SessionCreateProviderInput['providerConfig'] => {
   if (!config) return undefined;
 
-  let source = config as any;
-
-  if ('provider_config_id' in source) {
-    return source.provider_config_id
-      ? { type: 'reference', providerConfigId: source.provider_config_id }
-      : undefined;
+  if ('provider_config_id' in config && config.provider_config_id) {
+    return { type: 'reference', providerConfigId: config.provider_config_id };
   }
 
-  if (!source.provider_config) return undefined;
+  if ('provider_config' in config && config.provider_config) {
+    let providerConfig = config.provider_config;
 
-  let providerConfig = source.provider_config;
-
-  return {
-    type: 'ephemeral',
-    name: providerConfig.name,
-    config:
-      'value' in providerConfig
-        ? { type: 'inline', data: providerConfig.value }
-        : {
-            type: 'vault',
-            providerConfigVaultId: providerConfig.provider_config_vault_id
-          }
-  };
+    return {
+      type: 'ephemeral',
+      name: providerConfig.name,
+      config:
+        'value' in providerConfig
+          ? { type: 'inline', data: providerConfig.value }
+          : {
+              type: 'vault',
+              providerConfigVaultId: providerConfig.provider_config_vault_id
+            }
+    };
+  }
 };
 
 export let mapSessionDeploymentSource = (
-  deployment: ValidationTypeValue<typeof deploymentValidator> | undefined
+  deployment: ValidationTypeValue<typeof providerInput> | undefined
 ): SessionCreateProviderInput['providerDeployment'] => {
   if (!deployment) return undefined;
 
-  let source = deployment as any;
-
-  if ('provider_deployment_id' in source) {
-    return source.provider_deployment_id
-      ? { type: 'reference', providerDeploymentId: source.provider_deployment_id }
-      : undefined;
+  if ('provider_deployment_id' in deployment && deployment.provider_deployment_id) {
+    return { type: 'reference', providerDeploymentId: deployment.provider_deployment_id };
   }
 
-  if (!source.provider_deployment) return undefined;
+  if ('provider_deployment' in deployment && deployment.provider_deployment) {
+    let providerDeployment = deployment.provider_deployment;
 
-  let providerDeployment = source.provider_deployment;
-
-  return {
-    type: 'ephemeral',
-    providerId: providerDeployment.provider_id,
-    name: providerDeployment.name,
-    description: providerDeployment.description,
-    metadata: providerDeployment.metadata,
-    lockedProviderVersionId: providerDeployment.locked_provider_version_id
-  };
+    return {
+      type: 'ephemeral',
+      providerId: providerDeployment.provider_id,
+      name: providerDeployment.name,
+      description: providerDeployment.description,
+      metadata: providerDeployment.metadata,
+      lockedProviderVersionId: providerDeployment.locked_provider_version_id
+    };
+  }
 };
 
 export let mapSessionAuthConfigSource = (
@@ -128,21 +134,21 @@ export let mapSessionAuthConfigSource = (
 ): SessionCreateProviderInput['providerAuthConfig'] => {
   if (!auth) return undefined;
 
-  let source = auth as any;
-
-  if ('provider_auth_config_id' in source) {
-    return source.provider_auth_config_id
-      ? { type: 'reference', providerAuthConfigId: source.provider_auth_config_id }
-      : undefined;
+  if ('provider_auth_config_id' in auth && auth.provider_auth_config_id) {
+    return { type: 'reference', providerAuthConfigId: auth.provider_auth_config_id };
   }
 
-  return {
-    type: 'ephemeral',
-    name: source.name,
-    providerAuthMethodId: source.provider_auth_method_id,
-    providerId: source.provider_id,
-    credentials: source.credentials
-  };
+  if ('provider_auth_config' in auth && auth.provider_auth_config) {
+    let inner = auth.provider_auth_config;
+
+    return {
+      type: 'ephemeral',
+      name: inner.name,
+      providerAuthMethodId: inner.provider_auth_method_id,
+      providerId: inner.provider_id,
+      credentials: inner.credentials
+    };
+  }
 };
 
 export let providerSessionController = Controller.create(
@@ -243,15 +249,7 @@ export let providerSessionController = Controller.create(
           name: v.optional(v.string()),
           description: v.optional(v.string()),
           metadata: v.optional(v.record(v.any())),
-          providers: v.array(
-            v.object({
-              provider_deployment: v.optional(deploymentValidator),
-              provider_config: v.optional(configValidator),
-              provider_auth_config: v.optional(authConfigValidator),
-              session_template_id: v.optional(v.string()),
-              tool_filters: toolFiltersValidator
-            })
-          )
+          providers: v.array(providerInput)
         })
       )
       .output(providerSessionPresenter)
@@ -262,10 +260,10 @@ export let providerSessionController = Controller.create(
           description: ctx.body.description,
           metadata: ctx.body.metadata,
           providers: ctx.body.providers.map(p => ({
-            providerDeployment: mapSessionDeploymentSource(p.provider_deployment),
-            providerConfig: mapSessionConfigSource(p.provider_config),
-            providerAuthConfig: mapSessionAuthConfigSource(p.provider_auth_config),
-            sessionTemplateId: p.session_template_id,
+            providerDeployment: mapSessionDeploymentSource(p),
+            providerConfig: mapSessionConfigSource(p),
+            providerAuthConfig: mapSessionAuthConfigSource(p),
+            sessionTemplateId: 'session_template_id' in p ? p.session_template_id : undefined,
             toolFilters: p.tool_filters
           }))
         });

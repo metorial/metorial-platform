@@ -33,92 +33,87 @@ let subspaceSessionProviderGroup = instanceGroup.use(async ctx => {
 });
 
 type SessionProviderCreateInput = Parameters<typeof subspaceSessionProviderService.create>[0];
-let sessionProviderCreateBodyValidator = v.object({
-  session_id: v.string(),
-  provider_deployment: v.optional(deploymentValidator),
-  provider_config: v.optional(configValidator),
-  provider_auth_config: v.optional(authConfigValidator),
-  tool_filters: toolFiltersValidator
-});
+
+let sessionProviderCreateBodyValidator = v.intersection([
+  v.object({
+    session_id: v.string(),
+    tool_filters: toolFiltersValidator
+  }),
+  v.union([deploymentValidator, configValidator, authConfigValidator])
+]);
 
 type SessionProviderCreateBody = ValidationTypeValue<
   typeof sessionProviderCreateBodyValidator
 >;
 
 let mapSessionProviderConfigSource = (
-  config: SessionProviderCreateBody['provider_config']
+  config: SessionProviderCreateBody
 ): SessionProviderCreateInput['providerConfig'] => {
   if (!config) return undefined;
-  let source = config as any;
 
-  if ('provider_config_id' in source) {
-    return source.provider_config_id
-      ? { type: 'reference', providerConfigId: source.provider_config_id }
-      : undefined;
+  if ('provider_config_id' in config && config.provider_config_id) {
+    return { type: 'reference', providerConfigId: config.provider_config_id };
   }
 
-  if (!source.provider_config) return undefined;
-
-  let providerConfig = source.provider_config;
-
-  return {
-    type: 'ephemeral',
-    name: providerConfig.name,
-    config:
-      'value' in providerConfig
-        ? { type: 'inline', data: providerConfig.value }
-        : {
-            type: 'vault',
-            providerConfigVaultId: providerConfig.provider_config_vault_id
-          }
-  };
+  if ('provider_config' in config && config.provider_config) {
+    let providerConfig = config.provider_config;
+    return {
+      type: 'ephemeral',
+      name: providerConfig.name,
+      config:
+        'value' in providerConfig
+          ? { type: 'inline', data: providerConfig.value }
+          : {
+              type: 'vault',
+              providerConfigVaultId: providerConfig.provider_config_vault_id
+            }
+    };
+  }
 };
 
 let mapSessionProviderDeploymentSource = (
-  deployment: SessionProviderCreateBody['provider_deployment']
+  deployment: SessionProviderCreateBody
 ): SessionProviderCreateInput['providerDeployment'] => {
   if (!deployment) return undefined;
-  let source = deployment as any;
 
-  if ('provider_deployment_id' in source) {
-    return source.provider_deployment_id
-      ? { type: 'reference', providerDeploymentId: source.provider_deployment_id }
-      : undefined;
+  if ('provider_deployment_id' in deployment && deployment.provider_deployment_id) {
+    return { type: 'reference', providerDeploymentId: deployment.provider_deployment_id };
   }
 
-  if (!source.provider_deployment) return undefined;
+  if ('provider_deployment' in deployment && deployment.provider_deployment) {
+    let providerDeployment = deployment.provider_deployment;
 
-  let providerDeployment = source.provider_deployment;
-
-  return {
-    type: 'ephemeral',
-    providerId: providerDeployment.provider_id,
-    name: providerDeployment.name,
-    description: providerDeployment.description,
-    metadata: providerDeployment.metadata,
-    lockedProviderVersionId: providerDeployment.locked_provider_version_id
-  };
+    return {
+      type: 'ephemeral',
+      providerId: providerDeployment.provider_id,
+      name: providerDeployment.name,
+      description: providerDeployment.description,
+      metadata: providerDeployment.metadata,
+      lockedProviderVersionId: providerDeployment.locked_provider_version_id
+    };
+  }
 };
 
 let mapSessionProviderAuthConfigSource = (
-  auth: SessionProviderCreateBody['provider_auth_config']
+  auth: SessionProviderCreateBody
 ): SessionProviderCreateInput['providerAuthConfig'] => {
   if (!auth) return undefined;
-  let source = auth as any;
 
-  if ('provider_auth_config_id' in source) {
-    return source.provider_auth_config_id
-      ? { type: 'reference', providerAuthConfigId: source.provider_auth_config_id }
-      : undefined;
+  if ('provider_auth_config_id' in auth && auth.provider_auth_config_id) {
+    return { type: 'reference', providerAuthConfigId: auth.provider_auth_config_id };
   }
 
-  return {
-    type: 'ephemeral',
-    name: source.name,
-    providerAuthMethodId: source.provider_auth_method_id,
-    providerId: source.provider_id,
-    credentials: source.credentials
-  };
+  if ('provider_auth_config' in auth && auth.provider_auth_config) {
+    let inner = auth.provider_auth_config;
+
+    return {
+      type: 'ephemeral',
+      name: inner.name,
+      providerAuthMethodId: inner.provider_auth_method_id,
+      providerId: inner.provider_id,
+      credentials: inner.credentials
+    };
+  }
 };
 
 export let subspaceSessionProviderController = Controller.create(
@@ -216,11 +211,9 @@ export let subspaceSessionProviderController = Controller.create(
         let sessionProvider = await subspaceSessionProviderService.create({
           instance: ctx.instance,
           sessionId: ctx.body.session_id,
-          providerDeployment: mapSessionProviderDeploymentSource(ctx.body.provider_deployment),
-          providerConfig: mapSessionProviderConfigSource(ctx.body.provider_config),
-          providerAuthConfig: mapSessionProviderAuthConfigSource(
-            ctx.body.provider_auth_config
-          ),
+          providerDeployment: mapSessionProviderDeploymentSource(ctx.body),
+          providerConfig: mapSessionProviderConfigSource(ctx.body),
+          providerAuthConfig: mapSessionProviderAuthConfigSource(ctx.body),
           toolFilters: ctx.body.tool_filters
         });
 

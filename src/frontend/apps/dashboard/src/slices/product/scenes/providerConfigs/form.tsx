@@ -53,7 +53,7 @@ export let ProviderConfigForm = (
         name,
         description: description || undefined,
         providerId: deployment.data!.providerId,
-        config: { type: 'inline', data: parsedConfig }
+        value: parsedConfig
       });
 
       if (!result) return;
