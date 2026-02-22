@@ -1,4 +1,4 @@
-import { CustomProvidersGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+import { CustomProvidersGetOutput } from '@metorial/dashboard-sdk';
 import { renderWithLoader, useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
@@ -342,7 +342,10 @@ export let CustomServerManagedCreateForm = (p: {
                               <Select
                                 label="GitHub Installation"
                                 items={installations.data.items.map(i => ({
-                                  label: i.user.name ?? i.user.email,
+                                  label:
+                                    i.externalAccount.name ??
+                                    i.externalAccount.email ??
+                                    i.externalAccount.login,
                                   id: i.id
                                 }))}
                                 value={selectedInstallationId}

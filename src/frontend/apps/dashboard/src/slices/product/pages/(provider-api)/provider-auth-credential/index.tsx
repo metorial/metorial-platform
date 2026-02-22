@@ -13,11 +13,7 @@ export let ProviderAuthCredentialOverviewPage = () => {
 
   let { providerDeploymentId, providerAuthCredentialsId } = useParams();
   let deployment = useProviderDeployment(instance.data?.id, providerDeploymentId);
-  let credential = useProviderAuthCredential(
-    instance.data?.id,
-    providerDeploymentId,
-    providerAuthCredentialsId
-  );
+  let credential = useProviderAuthCredential(instance.data?.id, providerAuthCredentialsId);
 
   return renderWithLoader({ credential })(({ credential }) => (
     <>
@@ -42,7 +38,7 @@ export let ProviderAuthCredentialOverviewPage = () => {
           },
           {
             label: 'Provider',
-            content: deployment.data?.provider?.name ?? deployment.data?.providerId ?? '—'
+            content: deployment.data?.providerId ?? '—'
           },
           {
             label: 'Deployment',

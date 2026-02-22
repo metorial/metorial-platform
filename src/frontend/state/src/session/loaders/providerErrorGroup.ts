@@ -1,10 +1,15 @@
 import {
   DashboardInstanceSessionErrorGroupsListQuery,
   DashboardInstanceSessionsErrorGroupsListQuery
-} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+} from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
+
+type SessionErrorGroupsQuery = Omit<
+  DashboardInstanceSessionsErrorGroupsListQuery,
+  'sessionId'
+>;
 
 // Instance-level single error group get (no session ID needed)
 export let sessionErrorGroupLoader = createLoader({
@@ -56,7 +61,7 @@ export let sessionErrorGroupsLoader = createLoader({
     i: {
       instanceId: string;
       sessionId: string;
-    } & DashboardInstanceSessionsErrorGroupsListQuery
+    } & SessionErrorGroupsQuery
   ) => withAuth(sdk => sdk.sessions.errorGroups.list(i.instanceId, i.sessionId, i)),
   mutators: {}
 });
@@ -64,7 +69,7 @@ export let sessionErrorGroupsLoader = createLoader({
 export let useSessionErrorGroups = (
   instanceId: string | null | undefined,
   sessionId: string | null | undefined,
-  query?: DashboardInstanceSessionsErrorGroupsListQuery
+  query?: SessionErrorGroupsQuery
 ) => {
   let data = usePaginator(pagination =>
     sessionErrorGroupsLoader.use(

@@ -3,13 +3,51 @@ import { mtMap } from '@metorial/util-resource-mapper';
 export type DashboardInstanceSessionsProvidersCreateOutput = {
   object: 'session.provider';
   id: string;
-  name: string | null;
-  description: string | null;
-  status: string | null;
-  metadata: Record<string, any> | null;
-  sessionId: string;
+  status: string;
+  usage: {
+    totalProductiveClientMessageCount: number;
+    totalProductiveServerMessageCount: number;
+  };
+  toolFilter:
+    | { type: 'v1.allow_all' }
+    | {
+        type: 'v1.filter';
+        filters: (
+          | { type: 'tool_keys'; keys: string[] }
+          | { type: 'tool_regex'; pattern: string }
+          | { type: 'resource_regex'; pattern: string }
+          | { type: 'resource_uris'; uris: string[] }
+          | { type: 'prompt_keys'; keys: string[] }
+          | { type: 'prompt_regex'; pattern: string }
+        )[];
+      };
   providerId: string;
-  providerDeploymentId: string | null;
+  sessionId: string;
+  fromTemplateId: string | null;
+  fromTemplateProviderId: string | null;
+  deployment: {
+    object: 'provider.deployment#preview';
+    id: string;
+    isDefault: boolean;
+    name: string | null;
+    description: string | null;
+    metadata: Record<string, any> | null;
+    providerId: string;
+    createdAt: Date;
+    updatedAt: Date;
+  };
+  config: {
+    object: 'provider.config#preview';
+    id: string;
+    isDefault: boolean;
+    name: string | null;
+    description: string | null;
+    metadata: Record<string, any> | null;
+    providerId: string;
+    createdAt: Date;
+    updatedAt: Date;
+  };
+  authConfig: { object: 'provider.auth_config#preview'; id: string } | null;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -18,28 +56,108 @@ export let mapDashboardInstanceSessionsProvidersCreateOutput =
   mtMap.object<DashboardInstanceSessionsProvidersCreateOutput>({
     object: mtMap.objectField('object', mtMap.passthrough()),
     id: mtMap.objectField('id', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
     status: mtMap.objectField('status', mtMap.passthrough()),
-    metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-    sessionId: mtMap.objectField('session_id', mtMap.passthrough()),
+    usage: mtMap.objectField(
+      'usage',
+      mtMap.object({
+        totalProductiveClientMessageCount: mtMap.objectField(
+          'total_productive_client_message_count',
+          mtMap.passthrough()
+        ),
+        totalProductiveServerMessageCount: mtMap.objectField(
+          'total_productive_server_message_count',
+          mtMap.passthrough()
+        )
+      })
+    ),
+    toolFilter: mtMap.objectField(
+      'tool_filter',
+      mtMap.union([
+        mtMap.unionOption(
+          'object',
+          mtMap.object({
+            type: mtMap.objectField('type', mtMap.passthrough()),
+            filters: mtMap.objectField(
+              'filters',
+              mtMap.array(
+                mtMap.union([
+                  mtMap.unionOption(
+                    'object',
+                    mtMap.object({
+                      type: mtMap.objectField('type', mtMap.passthrough()),
+                      keys: mtMap.objectField(
+                        'keys',
+                        mtMap.array(mtMap.passthrough())
+                      ),
+                      pattern: mtMap.objectField(
+                        'pattern',
+                        mtMap.passthrough()
+                      ),
+                      uris: mtMap.objectField(
+                        'uris',
+                        mtMap.array(mtMap.passthrough())
+                      )
+                    })
+                  )
+                ])
+              )
+            )
+          })
+        )
+      ])
+    ),
     providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-    providerDeploymentId: mtMap.objectField(
-      'provider_deployment_id',
+    sessionId: mtMap.objectField('session_id', mtMap.passthrough()),
+    fromTemplateId: mtMap.objectField('from_template_id', mtMap.passthrough()),
+    fromTemplateProviderId: mtMap.objectField(
+      'from_template_provider_id',
       mtMap.passthrough()
+    ),
+    deployment: mtMap.objectField(
+      'deployment',
+      mtMap.object({
+        object: mtMap.objectField('object', mtMap.passthrough()),
+        id: mtMap.objectField('id', mtMap.passthrough()),
+        isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
+        name: mtMap.objectField('name', mtMap.passthrough()),
+        description: mtMap.objectField('description', mtMap.passthrough()),
+        metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+        providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
+        createdAt: mtMap.objectField('created_at', mtMap.date()),
+        updatedAt: mtMap.objectField('updated_at', mtMap.date())
+      })
+    ),
+    config: mtMap.objectField(
+      'config',
+      mtMap.object({
+        object: mtMap.objectField('object', mtMap.passthrough()),
+        id: mtMap.objectField('id', mtMap.passthrough()),
+        isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
+        name: mtMap.objectField('name', mtMap.passthrough()),
+        description: mtMap.objectField('description', mtMap.passthrough()),
+        metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+        providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
+        createdAt: mtMap.objectField('created_at', mtMap.date()),
+        updatedAt: mtMap.objectField('updated_at', mtMap.date())
+      })
+    ),
+    authConfig: mtMap.objectField(
+      'auth_config',
+      mtMap.object({
+        object: mtMap.objectField('object', mtMap.passthrough()),
+        id: mtMap.objectField('id', mtMap.passthrough())
+      })
     ),
     createdAt: mtMap.objectField('created_at', mtMap.date()),
     updatedAt: mtMap.objectField('updated_at', mtMap.date())
   });
 
 export type DashboardInstanceSessionsProvidersCreateBody = {
-  name?: string | undefined;
-  description?: string | undefined;
-  metadata?: Record<string, any> | undefined;
+  sessionId: string;
   providerDeployment:
     | { type: 'reference'; providerDeploymentId: string }
     | {
-        type: 'new';
+        type: 'ephemeral';
         providerId: string;
         name?: string | undefined;
         description?: string | undefined;
@@ -49,10 +167,10 @@ export type DashboardInstanceSessionsProvidersCreateBody = {
           | { type: 'none' }
           | { type: 'reference'; providerConfigId: string }
           | {
-              type: 'new';
+              type: 'ephemeral';
               name?: string | undefined;
               config:
-                | { type: 'new'; data: Record<string, any> }
+                | { type: 'inline'; data: Record<string, any> }
                 | { type: 'vault'; providerConfigVaultId: string };
             }
           | undefined;
@@ -61,10 +179,10 @@ export type DashboardInstanceSessionsProvidersCreateBody = {
   providerConfig?:
     | { type: 'reference'; providerConfigId: string }
     | {
-        type: 'new';
+        type: 'ephemeral';
         name?: string | undefined;
         config:
-          | { type: 'new'; data: Record<string, any> }
+          | { type: 'inline'; data: Record<string, any> }
           | { type: 'vault'; providerConfigVaultId: string };
       }
     | string
@@ -72,21 +190,37 @@ export type DashboardInstanceSessionsProvidersCreateBody = {
   providerAuthConfig?:
     | { type: 'reference'; providerAuthConfigId: string }
     | {
-        type: 'new';
+        type: 'ephemeral';
         name?: string | undefined;
         providerAuthMethodId: string;
         credentials: Record<string, any>;
       }
     | string
     | undefined;
-  toolFilters?: { toolKeys?: string[] | undefined } | undefined;
+  toolFilters?:
+    | (
+        | { type: 'tool_keys'; keys: string[] }
+        | { type: 'tool_regex'; pattern: string }
+        | { type: 'resource_regex'; pattern: string }
+        | { type: 'resource_uris'; uris: string[] }
+        | { type: 'prompt_keys'; keys: string[] }
+        | { type: 'prompt_regex'; pattern: string }
+      )
+    | (
+        | { type: 'tool_keys'; keys: string[] }
+        | { type: 'tool_regex'; pattern: string }
+        | { type: 'resource_regex'; pattern: string }
+        | { type: 'resource_uris'; uris: string[] }
+        | { type: 'prompt_keys'; keys: string[] }
+        | { type: 'prompt_regex'; pattern: string }
+      )[]
+    | null
+    | undefined;
 };
 
 export let mapDashboardInstanceSessionsProvidersCreateBody =
   mtMap.object<DashboardInstanceSessionsProvidersCreateBody>({
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+    sessionId: mtMap.objectField('session_id', mtMap.passthrough()),
     providerDeployment: mtMap.objectField(
       'provider_deployment',
       mtMap.union([
@@ -206,12 +340,37 @@ export let mapDashboardInstanceSessionsProvidersCreateBody =
     ),
     toolFilters: mtMap.objectField(
       'tool_filters',
-      mtMap.object({
-        toolKeys: mtMap.objectField(
-          'tool_keys',
-          mtMap.array(mtMap.passthrough())
+      mtMap.union([
+        mtMap.unionOption(
+          'object',
+          mtMap.object({
+            type: mtMap.objectField('type', mtMap.passthrough()),
+            keys: mtMap.objectField('keys', mtMap.array(mtMap.passthrough())),
+            pattern: mtMap.objectField('pattern', mtMap.passthrough()),
+            uris: mtMap.objectField('uris', mtMap.array(mtMap.passthrough()))
+          })
+        ),
+        mtMap.unionOption(
+          'array',
+          mtMap.union([
+            mtMap.unionOption(
+              'object',
+              mtMap.object({
+                type: mtMap.objectField('type', mtMap.passthrough()),
+                keys: mtMap.objectField(
+                  'keys',
+                  mtMap.array(mtMap.passthrough())
+                ),
+                pattern: mtMap.objectField('pattern', mtMap.passthrough()),
+                uris: mtMap.objectField(
+                  'uris',
+                  mtMap.array(mtMap.passthrough())
+                )
+              })
+            )
+          ])
         )
-      })
+      ])
     )
   });
 

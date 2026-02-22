@@ -1,7 +1,12 @@
-import { DashboardInstanceSessionsConnectionsListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+import { DashboardInstanceSessionsConnectionsListQuery } from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
+
+type SessionConnectionsQuery = Omit<
+  DashboardInstanceSessionsConnectionsListQuery,
+  'sessionId'
+>;
 
 export let sessionConnectionsLoader = createLoader({
   name: 'sessionConnections',
@@ -10,15 +15,21 @@ export let sessionConnectionsLoader = createLoader({
     i: {
       instanceId: string;
       sessionId: string;
-    } & DashboardInstanceSessionsConnectionsListQuery
-  ) => withAuth(sdk => sdk.sessions.connections.list(i.instanceId, i.sessionId, i)),
+    } & SessionConnectionsQuery
+  ) =>
+    withAuth(sdk =>
+      sdk.sessions.connections.list(i.instanceId, {
+        ...i,
+        sessionId: i.sessionId
+      })
+    ),
   mutators: {}
 });
 
 export let useSessionConnections = (
   instanceId: string | null | undefined,
   sessionId: string | null | undefined,
-  query?: DashboardInstanceSessionsConnectionsListQuery
+  query?: SessionConnectionsQuery
 ) => {
   let data = usePaginator(pagination =>
     sessionConnectionsLoader.use(
@@ -32,22 +43,17 @@ export let useSessionConnections = (
 export let sessionConnectionLoader = createLoader({
   name: 'sessionConnection',
   parents: [],
-  fetch: (i: { instanceId: string; sessionId: string; sessionConnectionId: string }) =>
-    withAuth(sdk =>
-      sdk.sessions.connections.get(i.instanceId, i.sessionId, i.sessionConnectionId)
-    ),
+  fetch: (i: { instanceId: string; sessionConnectionId: string }) =>
+    withAuth(sdk => sdk.sessions.connections.get(i.instanceId, i.sessionConnectionId)),
   mutators: {}
 });
 
 export let useSessionConnection = (
   instanceId: string | null | undefined,
-  sessionId: string | null | undefined,
   sessionConnectionId: string | null | undefined
 ) => {
   let data = sessionConnectionLoader.use(
-    instanceId && sessionId && sessionConnectionId
-      ? { instanceId, sessionId, sessionConnectionId }
-      : null
+    instanceId && sessionConnectionId ? { instanceId, sessionConnectionId } : null
   );
 
   return data;

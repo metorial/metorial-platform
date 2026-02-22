@@ -44,7 +44,6 @@ export class MetorialDashboardInstanceProvidersVersionsEndpoint {
    * @description Returns a paginated list of provider versions.
    *
    * @param `instanceId` - string
-   * @param `providerId` - string
    * @param `query` - DashboardInstanceProvidersVersionsListQuery
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceProvidersVersionsListOutput
@@ -53,11 +52,10 @@ export class MetorialDashboardInstanceProvidersVersionsEndpoint {
    */
   list(
     instanceId: string,
-    providerId: string,
     query?: DashboardInstanceProvidersVersionsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProvidersVersionsListOutput> {
-    let path = `dashboard/instances/${instanceId}/providers/${providerId}/versions`;
+    let path = `dashboard/instances/${instanceId}/provider-versions`;
 
     let request = {
       path,
@@ -78,7 +76,6 @@ export class MetorialDashboardInstanceProvidersVersionsEndpoint {
    * @description Retrieves a specific provider version by ID.
    *
    * @param `instanceId` - string
-   * @param `providerId` - string
    * @param `providerVersionId` - string
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceProvidersVersionsGetOutput
@@ -87,11 +84,10 @@ export class MetorialDashboardInstanceProvidersVersionsEndpoint {
    */
   get(
     instanceId: string,
-    providerId: string,
     providerVersionId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProvidersVersionsGetOutput> {
-    let path = `dashboard/instances/${instanceId}/providers/${providerId}/versions/${providerVersionId}`;
+    let path = `dashboard/instances/${instanceId}/provider-versions/${providerVersionId}`;
 
     let request = {
       path,

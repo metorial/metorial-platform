@@ -4,13 +4,12 @@ export type SessionsParticipantsListOutput = {
   items: {
     object: 'session.participant';
     id: string;
-    type: string | null;
-    name: string | null;
-    description: string | null;
-    metadata: Record<string, any> | null;
-    sessionId: string;
+    type: string;
+    identifier: string;
+    name: string;
+    data: Record<string, any>;
+    providerId: string | null;
     createdAt: Date;
-    updatedAt: Date;
   }[];
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
@@ -24,12 +23,11 @@ export let mapSessionsParticipantsListOutput =
           object: mtMap.objectField('object', mtMap.passthrough()),
           id: mtMap.objectField('id', mtMap.passthrough()),
           type: mtMap.objectField('type', mtMap.passthrough()),
+          identifier: mtMap.objectField('identifier', mtMap.passthrough()),
           name: mtMap.objectField('name', mtMap.passthrough()),
-          description: mtMap.objectField('description', mtMap.passthrough()),
-          metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-          sessionId: mtMap.objectField('session_id', mtMap.passthrough()),
-          createdAt: mtMap.objectField('created_at', mtMap.date()),
-          updatedAt: mtMap.objectField('updated_at', mtMap.date())
+          data: mtMap.objectField('data', mtMap.passthrough()),
+          providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
+          createdAt: mtMap.objectField('created_at', mtMap.date())
         })
       )
     ),
@@ -51,7 +49,28 @@ export type SessionsParticipantsListQuery = {
   before?: string | undefined;
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
-} & { type?: string | undefined };
+} & {
+  type?:
+    | 'unknown'
+    | 'provider'
+    | 'system'
+    | 'tool_call'
+    | 'mcp_client'
+    | 'metorial_protocol_client'
+    | (
+        | 'unknown'
+        | 'provider'
+        | 'system'
+        | 'tool_call'
+        | 'mcp_client'
+        | 'metorial_protocol_client'
+      )[]
+    | undefined;
+  id?: string | string[] | undefined;
+  sessionId?: string | string[] | undefined;
+  sessionConnectionId?: string | string[] | undefined;
+  sessionMessageId?: string | string[] | undefined;
+};
 
 export let mapSessionsParticipantsListQuery = mtMap.union([
   mtMap.unionOption(
@@ -62,7 +81,50 @@ export let mapSessionsParticipantsListQuery = mtMap.union([
       before: mtMap.objectField('before', mtMap.passthrough()),
       cursor: mtMap.objectField('cursor', mtMap.passthrough()),
       order: mtMap.objectField('order', mtMap.passthrough()),
-      type: mtMap.objectField('type', mtMap.passthrough())
+      type: mtMap.objectField(
+        'type',
+        mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
+      ),
+      id: mtMap.objectField(
+        'id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      sessionId: mtMap.objectField(
+        'session_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      sessionConnectionId: mtMap.objectField(
+        'session_connection_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      sessionMessageId: mtMap.objectField(
+        'session_message_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      )
     })
   )
 ]);

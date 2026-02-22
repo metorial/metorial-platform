@@ -19,9 +19,12 @@ export let proxyMcpRequestToSubspace = async (
 ): Promise<Response> => {
   let subspaceUrl = await getSubspaceMcpUrl(instance, sessionId, c.req.url);
 
+  let headers = new Headers(c.req.raw.headers);
+  headers.set('Metorial-Proxy-URL', c.req.url);
+
   let response = await fetch(subspaceUrl, {
     method: c.req.method,
-    headers: c.req.raw.headers,
+    headers,
     signal: c.req.raw.signal,
     body: c.req.raw.body
   });

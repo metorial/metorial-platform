@@ -7,13 +7,9 @@ import {
   mapDashboardInstanceProvidersGetOutput,
   mapDashboardInstanceProvidersListOutput,
   mapDashboardInstanceProvidersListQuery,
-  mapDashboardInstanceProvidersUpdateBody,
-  mapDashboardInstanceProvidersUpdateOutput,
   type DashboardInstanceProvidersGetOutput,
   type DashboardInstanceProvidersListOutput,
-  type DashboardInstanceProvidersListQuery,
-  type DashboardInstanceProvidersUpdateBody,
-  type DashboardInstanceProvidersUpdateOutput
+  type DashboardInstanceProvidersListQuery
 } from '../resources';
 
 /**
@@ -96,35 +92,5 @@ export class MetorialProvidersEndpoint {
     } as any;
 
     return this._get(request).transform(mapDashboardInstanceProvidersGetOutput);
-  }
-
-  /**
-   * @name Update provider
-   * @description Updates a provider.
-   *
-   * @param `providerId` - string
-   * @param `body` - DashboardInstanceProvidersUpdateBody
-   * @param `opts` - { headers?: Record<string, string> }
-   * @returns DashboardInstanceProvidersUpdateOutput
-   * @see https://metorial.com/api
-   * @see https://metorial.com/docs
-   */
-  update(
-    providerId: string,
-    body: DashboardInstanceProvidersUpdateBody,
-    opts?: { headers?: Record<string, string> }
-  ): Promise<DashboardInstanceProvidersUpdateOutput> {
-    let path = `providers/${providerId}`;
-
-    let request = {
-      path,
-      body: mapDashboardInstanceProvidersUpdateBody.transformTo(body),
-
-      ...(opts?.headers ? { headers: opts.headers } : {})
-    } as any;
-
-    return this._patch(request).transform(
-      mapDashboardInstanceProvidersUpdateOutput
-    );
   }
 }

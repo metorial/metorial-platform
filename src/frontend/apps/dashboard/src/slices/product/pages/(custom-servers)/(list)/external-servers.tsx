@@ -15,7 +15,7 @@ export let ExternalServersPage = () => {
           description="Connect external MCP providers to Metorial and enjoy managed OAuth, monitoring and more."
         />
       ) : (
-        <CustomServersTable type="remote" withSearch />
+        <CustomServersTable type={['remote']} withSearch />
       )}
     </>
   ));

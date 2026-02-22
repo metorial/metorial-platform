@@ -1,7 +1,7 @@
 import {
-  DashboardInstanceProviderDeploymentsGetOutput,
+  DashboardInstanceProviderDeploymentsListOutput,
   DashboardInstanceProviderDeploymentsListQuery
-} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+} from '@metorial/dashboard-sdk';
 import { renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, useProviderDeployments } from '@metorial/state';
@@ -10,6 +10,8 @@ import { Table } from '@metorial/ui-product';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useDebounced } from '../../../../hooks/useDebounced';
+
+export type ServerDeployment = DashboardInstanceProviderDeploymentsListOutput['items'][number];
 
 export let ServerDeploymentsTable = (
   filter: DashboardInstanceProviderDeploymentsListQuery & {
@@ -68,7 +70,7 @@ export let ServerDeploymentsTable = (
                   )}
                 </Text>,
                 <Text size="2" weight="strong">
-                  {(deployment as any).server?.name ?? deployment.name ?? 'N/A'}
+                  {deployment.providerId}
                 </Text>,
                 <RenderDate date={deployment.createdAt} />
               ],
@@ -94,7 +96,7 @@ export let ServerDeploymentsTable = (
 
 export let ServerDeploymentsList = (
   filter: DashboardInstanceProviderDeploymentsListQuery & {
-    onDeploymentClick?: (deployment: DashboardInstanceProviderDeploymentsGetOutput) => void;
+    onDeploymentClick?: (deployment: ServerDeployment) => void;
   }
 ) => {
   let instance = useCurrentInstance();
@@ -106,33 +108,11 @@ export let ServerDeploymentsList = (
 
   return renderWithPagination(deployments)(deployments => (
     <ServerDeploymentsListItems
-      deployments={deployments.data.items as unknown as ServerDeployment[]}
-      onDeploymentClick={
-        filter.onDeploymentClick as unknown as
-          | ((deployment: ServerDeployment) => void)
-          | undefined
-      }
+      deployments={deployments.data.items}
+      onDeploymentClick={filter.onDeploymentClick}
     />
   ));
 };
-
-export interface ServerDeployment {
-  id: string;
-  name: string | null;
-  description: string | null;
-  metadata: Record<string, any>;
-  createdAt: Date;
-  updatedAt: Date;
-  server: {
-    object: 'server#preview';
-    id: string;
-    name: string;
-    description: string | null;
-    type: 'public' | 'custom';
-    createdAt: Date;
-    updatedAt: Date;
-  };
-}
 
 export let ServerDeploymentsListItems = ({
   deployments,
@@ -167,9 +147,7 @@ export let ServerDeploymentsListItems = ({
 
               <Entity.Field
                 title={
-                  <Text size="2">
-                    {(deployment as any).server?.name ?? deployment.name ?? 'N/A'}
-                  </Text>
+                  <Text size="2">{deployment.providerId}</Text>
                 }
                 value={<RenderDate date={deployment.createdAt} />}
               />
@@ -199,6 +177,7 @@ export let ServerDeploymentsListItems = ({
 
         return (
           <Link
+            key={deployment.id}
             to={Paths.instance.serverDeployment(
               instance.data?.organization,
               instance.data?.project,

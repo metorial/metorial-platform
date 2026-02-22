@@ -49,7 +49,7 @@ export let ProviderAuthConnectionOverviewPage = () => {
           },
           {
             label: 'Provider',
-            content: deployment.data?.provider?.name ?? deployment.data?.providerId ?? '—'
+            content: deployment.data?.providerId ?? '—'
           },
           {
             label: 'Deployment',

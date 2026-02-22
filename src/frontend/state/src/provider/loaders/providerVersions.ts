@@ -1,4 +1,4 @@
-import { DashboardInstanceProvidersVersionsListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+import { DashboardInstanceProvidersVersionsListQuery } from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
@@ -8,7 +8,7 @@ export let providerVersionsLoader = createLoader({
   parents: [],
   fetch: (
     i: { instanceId: string; providerId: string } & DashboardInstanceProvidersVersionsListQuery
-  ) => withAuth(sdk => sdk.providers.versions.list(i.instanceId, i.providerId, i)),
+  ) => withAuth(sdk => sdk.providers.versions.list(i.instanceId, i)),
   mutators: {}
 });
 
@@ -19,7 +19,9 @@ export let useProviderVersions = (
 ) => {
   let data = usePaginator(pagination =>
     providerVersionsLoader.use(
-      instanceId && providerId ? { instanceId, providerId, ...pagination, ...query } : null
+      instanceId && providerId
+        ? { ...pagination, ...query, instanceId, providerId }
+        : null
     )
   );
 
@@ -30,9 +32,7 @@ export let providerVersionLoader = createLoader({
   name: 'providerVersion',
   parents: [providerVersionsLoader],
   fetch: (i: { instanceId: string; providerId: string; providerVersionId: string }) =>
-    withAuth(sdk =>
-      sdk.providers.versions.get(i.instanceId, i.providerId, i.providerVersionId)
-    ),
+    withAuth(sdk => sdk.providers.versions.get(i.instanceId, i.providerVersionId)),
   mutators: {}
 });
 

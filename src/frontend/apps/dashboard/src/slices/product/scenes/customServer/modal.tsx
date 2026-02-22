@@ -1,4 +1,4 @@
-import { CustomProvidersGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+import { CustomProvidersGetOutput } from '@metorial/dashboard-sdk';
 import { Dialog, showModal } from '@metorial/ui';
 import { CustomServerDockerCreateForm } from './createDockerForm';
 import { CustomServerManagedCreateForm } from './createManagedForm';

@@ -35,15 +35,34 @@ export let SessionTemplateLayout = () => {
     template.data?.id ?? sessionTemplateId
   ] as const;
 
+  let getTemplateProviderDeploymentId = (provider: any): string | null =>
+    provider?.providerDeploymentId ??
+    provider?.provider_deployment_id ??
+    provider?.deployment?.id ??
+    null;
+
+  let getFirstSessionDeploymentId = (session: any): string | null =>
+    session?.providerDeployments?.[0]?.providerDeploymentId ??
+    session?.providerDeployments?.[0]?.provider_deployment_id ??
+    session?.provider_deployments?.[0]?.providerDeploymentId ??
+    session?.provider_deployments?.[0]?.provider_deployment_id ??
+    session?.providers?.[0]?.providerDeploymentId ??
+    session?.providers?.[0]?.provider_deployment_id ??
+    session?.providers?.[0]?.deploymentId ??
+    session?.providers?.[0]?.deployment_id ??
+    session?.providers?.[0]?.deployment?.id ??
+    null;
+
   let handleOpenExplorer = async () => {
-    if (!instance.data || !providers.data?.items.length) return;
+    if (isCreatingSession || !instance.data || !providers.data?.items.length) return;
 
     setIsCreatingSession(true);
 
     let providerEntries = providers.data.items
-      .filter(p => p.providerDeploymentId)
-      .map(p => ({
-        providerDeployment: p.providerDeploymentId!,
+      .map(p => getTemplateProviderDeploymentId(p))
+      .filter((providerDeploymentId): providerDeploymentId is string => !!providerDeploymentId)
+      .map(providerDeploymentId => ({
+        providerDeployment: providerDeploymentId,
         sessionTemplateId: sessionTemplateId!
       }));
 
@@ -56,7 +75,8 @@ export let SessionTemplateLayout = () => {
     setIsCreatingSession(false);
 
     if (res) {
-      let firstDeploymentId = res.providerDeployments?.[0]?.providerDeploymentId;
+      let firstDeploymentId =
+        getFirstSessionDeploymentId(res) ?? providerEntries[0]?.providerDeployment ?? null;
       if (firstDeploymentId) {
         navigate(
           Paths.instance.explorer(organization.data, project.data, instance.data, {
@@ -99,6 +119,7 @@ export let SessionTemplateLayout = () => {
                 size="2"
                 variant="outline"
                 onClick={handleOpenExplorer}
+                disabled={isCreatingSession || !providers.data?.items?.length}
                 loading={isCreatingSession}
               >
                 Open Explorer

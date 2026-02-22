@@ -1,28 +1,30 @@
-import { DashboardInstanceProvidersToolsListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+import { DashboardInstanceProvidersToolsListQuery } from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
+
+type ProviderToolsQuery = Omit<DashboardInstanceProvidersToolsListQuery, 'providerVersionId'>;
 
 export let providerToolsLoader = createLoader({
   name: 'providerTools',
   parents: [],
   fetch: (
-    i: { instanceId: string; providerId: string } & DashboardInstanceProvidersToolsListQuery
-  ) => withAuth(sdk => sdk.providers.tools.list(i.instanceId, i.providerId, i)),
+    i: { instanceId: string; providerVersionId: string } & ProviderToolsQuery
+  ) => withAuth(sdk => sdk.providers.tools.list(i.instanceId, i)),
   mutators: {}
 });
 
 export let useProviderTools = (
   instanceId: string | null | undefined,
-  providerId: string | null | undefined,
-  opts?: DashboardInstanceProvidersToolsListQuery
+  providerVersionId: string | null | undefined,
+  opts?: ProviderToolsQuery
 ) => {
   let data = usePaginator(pagination =>
     providerToolsLoader.use(
-      instanceId && providerId
+      instanceId && providerVersionId
         ? {
             instanceId,
-            providerId,
+            providerVersionId,
             ...opts,
             ...pagination
           }
@@ -36,20 +38,17 @@ export let useProviderTools = (
 export let providerToolLoader = createLoader({
   name: 'providerTool',
   parents: [providerToolsLoader],
-  fetch: (i: { instanceId: string; providerId: string; providerToolId: string }) =>
-    withAuth(sdk => sdk.providers.tools.get(i.instanceId, i.providerId, i.providerToolId)),
+  fetch: (i: { instanceId: string; providerToolId: string }) =>
+    withAuth(sdk => sdk.providers.tools.get(i.instanceId, i.providerToolId)),
   mutators: {}
 });
 
 export let useProviderTool = (
   instanceId: string | null | undefined,
-  providerId: string | null | undefined,
   providerToolId: string | null | undefined
 ) => {
   let data = providerToolLoader.use(
-    instanceId && providerId && providerToolId
-      ? { instanceId, providerId, providerToolId }
-      : null
+    instanceId && providerToolId ? { instanceId, providerToolId } : null
   );
 
   return data;

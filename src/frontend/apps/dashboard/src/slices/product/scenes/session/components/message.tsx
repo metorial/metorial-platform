@@ -1,5 +1,5 @@
 import { CodeBlock } from '@metorial/code';
-import { SessionsMessagesGetOutput } from '@metorial/generated';
+import { DashboardInstanceSessionsMessagesGetOutput } from '@metorial/dashboard-sdk';
 import { RenderDate, theme } from '@metorial/ui';
 import styled from 'styled-components';
 import { AggregatedMessages } from '../hooks/useAggregatedMessages';
@@ -72,23 +72,27 @@ export let Message = ({
   message,
   aggregatedMessages
 }: {
-  message: SessionsMessagesGetOutput;
+  message: DashboardInstanceSessionsMessagesGetOutput;
   aggregatedMessages: Map<string, AggregatedMessages>;
 }) => {
-  let mcpMsg = message.mcpMessage;
-  if (!mcpMsg) return null;
+  let transportMcp = message.transport?.mcp;
+  if (!transportMcp) return null;
 
-  let agg = aggregatedMessages.get(String(mcpMsg.id));
-  let isResponse = !mcpMsg.method;
+  let agg = aggregatedMessages.get(String(transportMcp.id));
+  let payload = (message.input ?? message.output ?? {}) as Record<string, any>;
+  let method =
+    agg?.method ??
+    (typeof payload.method === 'string' ? payload.method : message.type ?? 'message');
+  let isResponse = !payload.method;
 
   return (
-    <Output data-position={message.sender.type}>
+    <Output data-position={message.senderParticipant?.type ?? 'server'}>
       <Wrapper>
         <Header>
           <HeaderSection>
             {agg?.originalId && <ID>{shorten(agg?.originalId)}</ID>}
             <p>
-              {agg?.method} {isResponse && '(response)'}
+              {method} {isResponse && '(response)'}
             </p>
           </HeaderSection>
 
@@ -99,8 +103,8 @@ export let Message = ({
           <CodeBlock
             code={JSON.stringify(
               {
-                ...mcpMsg.payload,
-                id: agg?.originalId
+                ...payload,
+                id: agg?.originalId ?? payload.id ?? transportMcp.id
               },
               null,
               2

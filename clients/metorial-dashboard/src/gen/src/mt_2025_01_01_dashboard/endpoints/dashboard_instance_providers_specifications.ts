@@ -44,7 +44,6 @@ export class MetorialDashboardInstanceProvidersSpecificationsEndpoint {
    * @description Returns a paginated list of provider specifications.
    *
    * @param `instanceId` - string
-   * @param `providerId` - string
    * @param `query` - DashboardInstanceProvidersSpecificationsListQuery
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceProvidersSpecificationsListOutput
@@ -53,11 +52,10 @@ export class MetorialDashboardInstanceProvidersSpecificationsEndpoint {
    */
   list(
     instanceId: string,
-    providerId: string,
     query?: DashboardInstanceProvidersSpecificationsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProvidersSpecificationsListOutput> {
-    let path = `dashboard/instances/${instanceId}/providers/${providerId}/specifications`;
+    let path = `dashboard/instances/${instanceId}/provider-specifications`;
 
     let request = {
       path,
@@ -80,7 +78,6 @@ export class MetorialDashboardInstanceProvidersSpecificationsEndpoint {
    * @description Retrieves a specific provider specification by ID.
    *
    * @param `instanceId` - string
-   * @param `providerId` - string
    * @param `providerSpecificationId` - string
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceProvidersSpecificationsGetOutput
@@ -89,11 +86,10 @@ export class MetorialDashboardInstanceProvidersSpecificationsEndpoint {
    */
   get(
     instanceId: string,
-    providerId: string,
     providerSpecificationId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProvidersSpecificationsGetOutput> {
-    let path = `dashboard/instances/${instanceId}/providers/${providerId}/specifications/${providerSpecificationId}`;
+    let path = `dashboard/instances/${instanceId}/provider-specifications/${providerSpecificationId}`;
 
     let request = {
       path,

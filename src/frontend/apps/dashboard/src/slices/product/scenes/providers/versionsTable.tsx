@@ -23,7 +23,13 @@ export let ProviderVersionsTable = ({
                 <span style={{ color: theme.colors.gray600 }}>No version</span>
               )}
             </Text>,
-            <Text size="2">{version.status}</Text>,
+            <Text size="2">
+              {'status' in version && typeof version.status === 'string'
+                ? version.status
+                : version.isCurrent
+                  ? 'current'
+                  : '—'}
+            </Text>,
             <RenderDate date={version.createdAt} />
           ]
         }))}

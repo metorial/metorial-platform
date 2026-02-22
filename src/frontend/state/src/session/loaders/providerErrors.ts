@@ -1,10 +1,12 @@
 import {
   DashboardInstanceSessionErrorsListQuery,
   DashboardInstanceSessionsErrorsListQuery
-} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+} from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
+
+type SessionErrorsQuery = Omit<DashboardInstanceSessionsErrorsListQuery, 'sessionId'>;
 
 // Instance-level session errors (cross-session)
 export let allSessionErrorsLoader = createLoader({
@@ -31,7 +33,7 @@ export let sessionErrorsLoader = createLoader({
   name: 'sessionErrors',
   parents: [],
   fetch: (
-    i: { instanceId: string; sessionId: string } & DashboardInstanceSessionsErrorsListQuery
+    i: { instanceId: string; sessionId: string } & SessionErrorsQuery
   ) => withAuth(sdk => sdk.sessions.errors.list(i.instanceId, i.sessionId, i)),
   mutators: {}
 });
@@ -39,7 +41,7 @@ export let sessionErrorsLoader = createLoader({
 export let useSessionErrors = (
   instanceId: string | null | undefined,
   sessionId: string | null | undefined,
-  query?: DashboardInstanceSessionsErrorsListQuery
+  query?: SessionErrorsQuery
 ) => {
   let data = usePaginator(pagination =>
     sessionErrorsLoader.use(

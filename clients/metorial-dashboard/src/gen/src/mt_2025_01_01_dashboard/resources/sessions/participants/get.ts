@@ -3,13 +3,12 @@ import { mtMap } from '@metorial/util-resource-mapper';
 export type SessionsParticipantsGetOutput = {
   object: 'session.participant';
   id: string;
-  type: string | null;
-  name: string | null;
-  description: string | null;
-  metadata: Record<string, any> | null;
-  sessionId: string;
+  type: string;
+  identifier: string;
+  name: string;
+  data: Record<string, any>;
+  providerId: string | null;
   createdAt: Date;
-  updatedAt: Date;
 };
 
 export let mapSessionsParticipantsGetOutput =
@@ -17,11 +16,10 @@ export let mapSessionsParticipantsGetOutput =
     object: mtMap.objectField('object', mtMap.passthrough()),
     id: mtMap.objectField('id', mtMap.passthrough()),
     type: mtMap.objectField('type', mtMap.passthrough()),
+    identifier: mtMap.objectField('identifier', mtMap.passthrough()),
     name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-    sessionId: mtMap.objectField('session_id', mtMap.passthrough()),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
+    data: mtMap.objectField('data', mtMap.passthrough()),
+    providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
+    createdAt: mtMap.objectField('created_at', mtMap.date())
   });
 

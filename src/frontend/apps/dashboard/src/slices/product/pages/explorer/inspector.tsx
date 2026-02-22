@@ -1,5 +1,5 @@
 import { Paths } from '@metorial/frontend-config';
-import { useCurrentInstance, useSession } from '@metorial/state';
+import { useApiKeys, useCurrentInstance, useRevealedApiKey, useSession } from '@metorial/state';
 import { Button, CenteredSpinner, Error, theme } from '@metorial/ui';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useMemo, useState } from 'react';
@@ -65,35 +65,53 @@ let Status = styled(motion.div)`
   font-weight: 500;
 `;
 
+type ExplorerRuntimeWindow = Window & {
+  METORIAL_EXPLORER_URL?: string;
+  METORIAL_MCP_API_URL?: string;
+};
+
 export let InspectorFrame = ({ sessionId }: { sessionId: string }) => {
   let instance = useCurrentInstance();
   let session = useSession(instance.data?.id, sessionId);
 
+  let apiKeys = useApiKeys(
+    instance.data ? { type: 'instance_access_token', instanceId: instance.data.id } : null
+  );
+
+  let firstActiveKeyId = apiKeys.data?.find(
+    k => k.status === 'active' && k.type === 'instance_access_token_secret'
+  )?.id;
+
+  let revealedKey = useRevealedApiKey({ apiKeyId: firstActiveKeyId });
+
   let [isLoading, setIsLoading] = useState(true);
 
   let url = useMemo(() => {
-    if (!session.data) return undefined;
+    if (!session.data || !instance.data) return undefined;
 
-    let url = new URL(
-      (window as any).METORIAL_EXPLORER_URL ?? import.meta.env.VITE_EXPLORER_URL!
-    );
+    let runtimeWindow = window as ExplorerRuntimeWindow;
+    let explorerBase = runtimeWindow.METORIAL_EXPLORER_URL ?? import.meta.env.VITE_EXPLORER_URL!;
+    let url = new URL(explorerBase);
 
-    let connectionUrl = session.data.connectionUrl;
+    let mcpApiUrl = runtimeWindow.METORIAL_MCP_API_URL ?? import.meta.env.VITE_MCP_API_URL;
+
+    let connectionUrl = session.data.connectionUrl ?? `${mcpApiUrl}/mcp/${session.data.id}`;
     if (!connectionUrl) return undefined;
 
     url.searchParams.set('sse_url', connectionUrl);
     url.searchParams.set('transport_type', 'sse');
     url.searchParams.set('direction', 'vertical');
 
-    if (session.data.connectionKey)
-      url.searchParams.set('bearer_token', session.data.connectionKey);
+    if (revealedKey.value) {
+      url.searchParams.set('bearer_token', revealedKey.value);
+    }
 
     url.hash = 'tools';
 
     return url.toString();
-  }, [session.data]);
+  }, [session.data, instance.data, revealedKey.value]);
 
-  let firstDeploymentId = session.data?.providerDeployments?.[0]?.providerDeploymentId;
+  let firstDeploymentId = session.data?.providers?.[0]?.deployment?.id;
 
   return (
     <>

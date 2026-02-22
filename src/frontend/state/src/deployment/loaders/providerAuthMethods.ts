@@ -1,7 +1,12 @@
-import { DashboardInstanceProvidersAuthMethodsListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+import { DashboardInstanceProvidersAuthMethodsListQuery } from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
+
+type ProviderAuthMethodsQuery = Omit<
+  DashboardInstanceProvidersAuthMethodsListQuery,
+  'providerVersionId'
+>;
 
 export let providerAuthMethodsLoader = createLoader({
   name: 'providerAuthMethods',
@@ -9,23 +14,23 @@ export let providerAuthMethodsLoader = createLoader({
   fetch: (
     i: {
       instanceId: string;
-      providerId: string;
-    } & DashboardInstanceProvidersAuthMethodsListQuery
-  ) => withAuth(sdk => sdk.providers.authMethods.list(i.instanceId, i.providerId, i)),
+      providerVersionId: string;
+    } & ProviderAuthMethodsQuery
+  ) => withAuth(sdk => sdk.providers.authMethods.list(i.instanceId, i)),
   mutators: {}
 });
 
 export let useProviderAuthMethods = (
   instanceId: string | null | undefined,
-  providerId: string | null | undefined,
-  opts?: DashboardInstanceProvidersAuthMethodsListQuery
+  providerVersionId: string | null | undefined,
+  opts?: ProviderAuthMethodsQuery
 ) => {
   let data = usePaginator(pagination =>
     providerAuthMethodsLoader.use(
-      instanceId && providerId
+      instanceId && providerVersionId
         ? {
             instanceId,
-            providerId,
+            providerVersionId,
             ...pagination,
             ...opts
           }
@@ -39,22 +44,17 @@ export let useProviderAuthMethods = (
 export let providerAuthMethodLoader = createLoader({
   name: 'providerAuthMethod',
   parents: [providerAuthMethodsLoader],
-  fetch: (i: { instanceId: string; providerId: string; providerAuthMethodId: string }) =>
-    withAuth(sdk =>
-      sdk.providers.authMethods.get(i.instanceId, i.providerId, i.providerAuthMethodId)
-    ),
+  fetch: (i: { instanceId: string; providerAuthMethodId: string }) =>
+    withAuth(sdk => sdk.providers.authMethods.get(i.instanceId, i.providerAuthMethodId)),
   mutators: {}
 });
 
 export let useProviderAuthMethod = (
   instanceId: string | null | undefined,
-  providerId: string | null | undefined,
   providerAuthMethodId: string | null | undefined
 ) => {
   let data = providerAuthMethodLoader.use(
-    instanceId && providerId && providerAuthMethodId
-      ? { instanceId, providerId, providerAuthMethodId }
-      : null
+    instanceId && providerAuthMethodId ? { instanceId, providerAuthMethodId } : null
   );
 
   return data;

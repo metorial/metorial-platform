@@ -9,11 +9,7 @@ export let ProviderAuthCredentialSettingsPage = () => {
   let instance = useCurrentInstance();
 
   let { providerDeploymentId, providerAuthCredentialsId } = useParams();
-  let credential = useProviderAuthCredential(
-    instance.data?.id,
-    providerDeploymentId,
-    providerAuthCredentialsId
-  );
+  let credential = useProviderAuthCredential(instance.data?.id, providerAuthCredentialsId);
   let updateMutator = credential.useUpdateMutator();
 
   let [name, setName] = useState('');

@@ -1,4 +1,4 @@
-import { DashboardInstanceProviderDeploymentsGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+import { DashboardInstanceProviderDeploymentsGetOutput } from '@metorial/dashboard-sdk';
 import { Dialog, showModal, Text } from '@metorial/ui';
 
 export type ServerDeploymentFormProps =

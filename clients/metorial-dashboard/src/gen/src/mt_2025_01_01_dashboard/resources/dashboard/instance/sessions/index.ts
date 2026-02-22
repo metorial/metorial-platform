@@ -1,6 +1,5 @@
 export * from './connections';
 export * from './create';
-export * from './delete';
 export * from './error-groups';
 export * from './errors';
 export * from './events';
@@ -8,6 +7,5 @@ export * from './get';
 export * from './list';
 export * from './messages';
 export * from './participants';
-export * from './provider-runs';
 export * from './providers';
 export * from './update';

@@ -45,7 +45,7 @@ export let ProviderAuthCredentialAuthConfigsPage = () => {
               {config.name ?? <span style={{ color: theme.colors.gray600 }}>Unnamed</span>}
             </Text>,
             <Text size="2">{formatType(config.type)}</Text>,
-            <Text size="2">{config.providerAuthMethodId}</Text>,
+            <Text size="2">{config.authMethod?.name ?? config.authMethod?.key ?? '—'}</Text>,
             <RenderDate date={config.createdAt} />
           ]
         }))}

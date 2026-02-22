@@ -1,4 +1,5 @@
 export type * from '@metorial/dashboard-sdk';
+export type { MetorialEnterpriseWindow } from './types/metorialEnterpriseWindow';
 
 export * from './dashboard';
 export * from './deployment';

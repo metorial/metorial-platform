@@ -43,7 +43,6 @@ export class MetorialProvidersAuthMethodsEndpoint {
    * @name List provider auth methods
    * @description Returns a paginated list of provider auth methods.
    *
-   * @param `providerId` - string
    * @param `query` - DashboardInstanceProvidersAuthMethodsListQuery
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceProvidersAuthMethodsListOutput
@@ -51,11 +50,10 @@ export class MetorialProvidersAuthMethodsEndpoint {
    * @see https://metorial.com/docs
    */
   list(
-    providerId: string,
     query?: DashboardInstanceProvidersAuthMethodsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProvidersAuthMethodsListOutput> {
-    let path = `providers/${providerId}/auth-methods`;
+    let path = 'provider-auth-methods';
 
     let request = {
       path,
@@ -75,7 +73,6 @@ export class MetorialProvidersAuthMethodsEndpoint {
    * @name Get provider auth method
    * @description Retrieves a specific provider auth method by ID.
    *
-   * @param `providerId` - string
    * @param `providerAuthMethodId` - string
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceProvidersAuthMethodsGetOutput
@@ -83,11 +80,10 @@ export class MetorialProvidersAuthMethodsEndpoint {
    * @see https://metorial.com/docs
    */
   get(
-    providerId: string,
     providerAuthMethodId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProvidersAuthMethodsGetOutput> {
-    let path = `providers/${providerId}/auth-methods/${providerAuthMethodId}`;
+    let path = `provider-auth-methods/${providerAuthMethodId}`;
 
     let request = {
       path,

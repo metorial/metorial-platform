@@ -1,7 +1,7 @@
 import {
   DashboardInstanceCustomProvidersCommitsListQuery,
   DashboardInstanceCustomProvidersGetOutput
-} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+} from '@metorial/dashboard-sdk';
 import { renderWithLoader } from '@metorial/data-hooks';
 import { useCurrentInstance, useCustomServerEvents } from '@metorial/state';
 import { RenderDate, Text } from '@metorial/ui';

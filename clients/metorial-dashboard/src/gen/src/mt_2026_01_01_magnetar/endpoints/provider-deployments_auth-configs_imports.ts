@@ -8,12 +8,14 @@ import {
   mapDashboardInstanceProviderDeploymentsAuthConfigsImportsCreateOutput,
   mapDashboardInstanceProviderDeploymentsAuthConfigsImportsGetOutput,
   mapDashboardInstanceProviderDeploymentsAuthConfigsImportsGetSchemaOutput,
+  mapDashboardInstanceProviderDeploymentsAuthConfigsImportsGetSchemaQuery,
   mapDashboardInstanceProviderDeploymentsAuthConfigsImportsListOutput,
   mapDashboardInstanceProviderDeploymentsAuthConfigsImportsListQuery,
   type DashboardInstanceProviderDeploymentsAuthConfigsImportsCreateBody,
   type DashboardInstanceProviderDeploymentsAuthConfigsImportsCreateOutput,
   type DashboardInstanceProviderDeploymentsAuthConfigsImportsGetOutput,
   type DashboardInstanceProviderDeploymentsAuthConfigsImportsGetSchemaOutput,
+  type DashboardInstanceProviderDeploymentsAuthConfigsImportsGetSchemaQuery,
   type DashboardInstanceProviderDeploymentsAuthConfigsImportsListOutput,
   type DashboardInstanceProviderDeploymentsAuthConfigsImportsListQuery
 } from '../resources';
@@ -49,8 +51,6 @@ export class MetorialProviderDeploymentsAuthConfigsImportsEndpoint {
    * @name List provider auth imports
    * @description Returns a paginated list of provider auth imports.
    *
-   * @param `providerDeploymentId` - string
-   * @param `providerAuthConfigId` - string
    * @param `query` - DashboardInstanceProviderDeploymentsAuthConfigsImportsListQuery
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceProviderDeploymentsAuthConfigsImportsListOutput
@@ -58,12 +58,10 @@ export class MetorialProviderDeploymentsAuthConfigsImportsEndpoint {
    * @see https://metorial.com/docs
    */
   list(
-    providerDeploymentId: string,
-    providerAuthConfigId: string,
     query?: DashboardInstanceProviderDeploymentsAuthConfigsImportsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsAuthConfigsImportsListOutput> {
-    let path = `provider-deployments/${providerDeploymentId}/auth-configs/${providerAuthConfigId}/imports`;
+    let path = 'provider-auth-config-imports';
 
     let request = {
       path,
@@ -85,8 +83,6 @@ export class MetorialProviderDeploymentsAuthConfigsImportsEndpoint {
    * @name Get provider auth import
    * @description Retrieves a specific provider auth import by ID.
    *
-   * @param `providerDeploymentId` - string
-   * @param `providerAuthConfigId` - string
    * @param `providerAuthImportId` - string
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceProviderDeploymentsAuthConfigsImportsGetOutput
@@ -94,12 +90,10 @@ export class MetorialProviderDeploymentsAuthConfigsImportsEndpoint {
    * @see https://metorial.com/docs
    */
   get(
-    providerDeploymentId: string,
-    providerAuthConfigId: string,
     providerAuthImportId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsAuthConfigsImportsGetOutput> {
-    let path = `provider-deployments/${providerDeploymentId}/auth-configs/${providerAuthConfigId}/imports/${providerAuthImportId}`;
+    let path = `provider-auth-config-imports/${providerAuthImportId}`;
 
     let request = {
       path,
@@ -116,8 +110,6 @@ export class MetorialProviderDeploymentsAuthConfigsImportsEndpoint {
    * @name Create provider auth import
    * @description Imports authentication credentials for a provider.
    *
-   * @param `providerDeploymentId` - string
-   * @param `providerAuthConfigId` - string
    * @param `body` - DashboardInstanceProviderDeploymentsAuthConfigsImportsCreateBody
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceProviderDeploymentsAuthConfigsImportsCreateOutput
@@ -125,12 +117,10 @@ export class MetorialProviderDeploymentsAuthConfigsImportsEndpoint {
    * @see https://metorial.com/docs
    */
   create(
-    providerDeploymentId: string,
-    providerAuthConfigId: string,
     body: DashboardInstanceProviderDeploymentsAuthConfigsImportsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsAuthConfigsImportsCreateOutput> {
-    let path = `provider-deployments/${providerDeploymentId}/auth-configs/${providerAuthConfigId}/imports`;
+    let path = 'provider-auth-config-imports';
 
     let request = {
       path,
@@ -150,23 +140,26 @@ export class MetorialProviderDeploymentsAuthConfigsImportsEndpoint {
    * @name Get auth import schema
    * @description Retrieves the JSON Schema for importing authentication credentials.
    *
-   * @param `providerDeploymentId` - string
-   * @param `providerAuthConfigId` - string
+   * @param `query` - DashboardInstanceProviderDeploymentsAuthConfigsImportsGetSchemaQuery
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceProviderDeploymentsAuthConfigsImportsGetSchemaOutput
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   getSchema(
-    providerDeploymentId: string,
-    providerAuthConfigId: string,
+    query?: DashboardInstanceProviderDeploymentsAuthConfigsImportsGetSchemaQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsAuthConfigsImportsGetSchemaOutput> {
-    let path = `provider-deployments/${providerDeploymentId}/auth-configs/${providerAuthConfigId}/imports/schema`;
+    let path = 'provider-auth-config-imports/schema';
 
     let request = {
       path,
 
+      query: query
+        ? mapDashboardInstanceProviderDeploymentsAuthConfigsImportsGetSchemaQuery.transformTo(
+            query
+          )
+        : undefined,
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 

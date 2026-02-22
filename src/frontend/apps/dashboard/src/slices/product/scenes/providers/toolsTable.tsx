@@ -5,14 +5,12 @@ import { Table } from '@metorial/ui-product';
 
 export let ProviderToolsTable = ({
   instanceId,
-  providerId,
   providerVersionId
 }: {
   instanceId: string;
-  providerId: string;
   providerVersionId?: string;
 }) => {
-  let tools = useProviderTools(instanceId, providerId, { providerVersionId });
+  let tools = useProviderTools(instanceId, providerVersionId);
 
   return renderWithPagination(tools)(tools => (
     <>

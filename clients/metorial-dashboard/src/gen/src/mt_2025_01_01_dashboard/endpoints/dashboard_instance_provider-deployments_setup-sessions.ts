@@ -54,7 +54,6 @@ export class MetorialDashboardInstanceProviderDeploymentsSetupSessionsEndpoint {
    * @description Returns a paginated list of provider setup sessions.
    *
    * @param `instanceId` - string
-   * @param `providerDeploymentId` - string
    * @param `query` - DashboardInstanceProviderDeploymentsSetupSessionsListQuery
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceProviderDeploymentsSetupSessionsListOutput
@@ -63,11 +62,10 @@ export class MetorialDashboardInstanceProviderDeploymentsSetupSessionsEndpoint {
    */
   list(
     instanceId: string,
-    providerDeploymentId: string,
     query?: DashboardInstanceProviderDeploymentsSetupSessionsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsSetupSessionsListOutput> {
-    let path = `dashboard/instances/${instanceId}/provider-deployments/${providerDeploymentId}/setup-sessions`;
+    let path = `dashboard/instances/${instanceId}/provider-setup-sessions`;
 
     let request = {
       path,
@@ -90,7 +88,6 @@ export class MetorialDashboardInstanceProviderDeploymentsSetupSessionsEndpoint {
    * @description Retrieves a specific provider setup session by ID.
    *
    * @param `instanceId` - string
-   * @param `providerDeploymentId` - string
    * @param `providerSetupSessionId` - string
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceProviderDeploymentsSetupSessionsGetOutput
@@ -99,11 +96,10 @@ export class MetorialDashboardInstanceProviderDeploymentsSetupSessionsEndpoint {
    */
   get(
     instanceId: string,
-    providerDeploymentId: string,
     providerSetupSessionId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsSetupSessionsGetOutput> {
-    let path = `dashboard/instances/${instanceId}/provider-deployments/${providerDeploymentId}/setup-sessions/${providerSetupSessionId}`;
+    let path = `dashboard/instances/${instanceId}/provider-setup-sessions/${providerSetupSessionId}`;
 
     let request = {
       path,
@@ -121,7 +117,6 @@ export class MetorialDashboardInstanceProviderDeploymentsSetupSessionsEndpoint {
    * @description Creates a new provider setup session for OAuth authentication.
    *
    * @param `instanceId` - string
-   * @param `providerDeploymentId` - string
    * @param `body` - DashboardInstanceProviderDeploymentsSetupSessionsCreateBody
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceProviderDeploymentsSetupSessionsCreateOutput
@@ -130,11 +125,10 @@ export class MetorialDashboardInstanceProviderDeploymentsSetupSessionsEndpoint {
    */
   create(
     instanceId: string,
-    providerDeploymentId: string,
     body: DashboardInstanceProviderDeploymentsSetupSessionsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsSetupSessionsCreateOutput> {
-    let path = `dashboard/instances/${instanceId}/provider-deployments/${providerDeploymentId}/setup-sessions`;
+    let path = `dashboard/instances/${instanceId}/provider-setup-sessions`;
 
     let request = {
       path,
@@ -155,7 +149,6 @@ export class MetorialDashboardInstanceProviderDeploymentsSetupSessionsEndpoint {
    * @description Updates a specific provider setup session.
    *
    * @param `instanceId` - string
-   * @param `providerDeploymentId` - string
    * @param `providerSetupSessionId` - string
    * @param `body` - DashboardInstanceProviderDeploymentsSetupSessionsUpdateBody
    * @param `opts` - { headers?: Record<string, string> }
@@ -165,12 +158,11 @@ export class MetorialDashboardInstanceProviderDeploymentsSetupSessionsEndpoint {
    */
   update(
     instanceId: string,
-    providerDeploymentId: string,
     providerSetupSessionId: string,
     body: DashboardInstanceProviderDeploymentsSetupSessionsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsSetupSessionsUpdateOutput> {
-    let path = `dashboard/instances/${instanceId}/provider-deployments/${providerDeploymentId}/setup-sessions/${providerSetupSessionId}`;
+    let path = `dashboard/instances/${instanceId}/provider-setup-sessions/${providerSetupSessionId}`;
 
     let request = {
       path,
@@ -191,7 +183,6 @@ export class MetorialDashboardInstanceProviderDeploymentsSetupSessionsEndpoint {
    * @description Deletes a provider setup session.
    *
    * @param `instanceId` - string
-   * @param `providerDeploymentId` - string
    * @param `providerSetupSessionId` - string
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceProviderDeploymentsSetupSessionsDeleteOutput
@@ -200,11 +191,10 @@ export class MetorialDashboardInstanceProviderDeploymentsSetupSessionsEndpoint {
    */
   delete(
     instanceId: string,
-    providerDeploymentId: string,
     providerSetupSessionId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsSetupSessionsDeleteOutput> {
-    let path = `dashboard/instances/${instanceId}/provider-deployments/${providerDeploymentId}/setup-sessions/${providerSetupSessionId}`;
+    let path = `dashboard/instances/${instanceId}/provider-setup-sessions/${providerSetupSessionId}`;
 
     let request = {
       path,

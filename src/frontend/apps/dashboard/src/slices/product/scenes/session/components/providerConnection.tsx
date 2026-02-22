@@ -83,6 +83,9 @@ export let ProviderConnection = ({
       client?: { name?: string; version?: string } | null;
       server?: { name?: string; version?: string } | null;
       connectionType?: string | null;
+      protocolVersion?: string;
+      transport?: string;
+      capabilities?: Record<string, any>;
     } | null;
     createdAt: Date;
     startedAt?: Date | null;
@@ -98,6 +101,7 @@ export let ProviderConnection = ({
     providerName ??
     connection.mcp?.server?.name ??
     connection.mcp?.client?.name ??
+    connection.mcp?.transport ??
     'MCP Connection';
 
   let allItems = [

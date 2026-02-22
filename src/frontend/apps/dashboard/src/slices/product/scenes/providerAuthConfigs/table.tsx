@@ -20,7 +20,7 @@ export let ProviderAuthConfigsTable = ({
   return renderWithPagination(authConfigs)(authConfigs => (
     <>
       <Table
-        headers={['Name', 'Auth Method', 'Type', 'Ephemeral', 'Created']}
+        headers={['Name', 'Auth Method', 'Type', 'Created']}
         data={authConfigs.data.items.map(config => ({
           data: [
             <Text size="2" weight="strong">
@@ -32,7 +32,7 @@ export let ProviderAuthConfigsTable = ({
                 </Text>
               )}
             </Text>,
-            <Text size="2">{config.providerAuthMethodId}</Text>,
+            <Text size="2">{config.authMethod?.name ?? config.authMethod?.key ?? '—'}</Text>,
             <Text size="2">{formatType(config.type)}</Text>,
             <RenderDate date={config.createdAt} />
           ]

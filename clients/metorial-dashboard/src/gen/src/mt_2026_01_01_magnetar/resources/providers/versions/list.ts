@@ -5,7 +5,12 @@ export type ProvidersVersionsListOutput = {
     object: 'provider.version';
     id: string;
     version: string;
-    status: string;
+    providerId: string;
+    isCurrent: boolean;
+    name: string;
+    description: string | null;
+    metadata: Record<string, any> | null;
+    specificationId: string | null;
     createdAt: Date;
     updatedAt: Date;
   }[];
@@ -21,7 +26,15 @@ export let mapProvidersVersionsListOutput =
           object: mtMap.objectField('object', mtMap.passthrough()),
           id: mtMap.objectField('id', mtMap.passthrough()),
           version: mtMap.objectField('version', mtMap.passthrough()),
-          status: mtMap.objectField('status', mtMap.passthrough()),
+          providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
+          isCurrent: mtMap.objectField('is_current', mtMap.passthrough()),
+          name: mtMap.objectField('name', mtMap.passthrough()),
+          description: mtMap.objectField('description', mtMap.passthrough()),
+          metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+          specificationId: mtMap.objectField(
+            'specification_id',
+            mtMap.passthrough()
+          ),
           createdAt: mtMap.objectField('created_at', mtMap.date()),
           updatedAt: mtMap.objectField('updated_at', mtMap.date())
         })
@@ -45,7 +58,10 @@ export type ProvidersVersionsListQuery = {
   before?: string | undefined;
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
-} & {};
+} & {
+  id?: string | string[] | undefined;
+  providerId?: string | string[] | undefined;
+};
 
 export let mapProvidersVersionsListQuery = mtMap.union([
   mtMap.unionOption(
@@ -55,7 +71,27 @@ export let mapProvidersVersionsListQuery = mtMap.union([
       after: mtMap.objectField('after', mtMap.passthrough()),
       before: mtMap.objectField('before', mtMap.passthrough()),
       cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough())
+      order: mtMap.objectField('order', mtMap.passthrough()),
+      id: mtMap.objectField(
+        'id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      providerId: mtMap.objectField(
+        'provider_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      )
     })
   )
 ]);

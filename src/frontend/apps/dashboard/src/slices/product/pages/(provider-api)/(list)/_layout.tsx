@@ -65,7 +65,6 @@ let DeploymentPicker = ({
     let query = search.toLowerCase();
     return (
       (dep.name ?? '').toLowerCase().includes(query) ||
-      (dep.provider?.name ?? '').toLowerCase().includes(query) ||
       dep.providerId.toLowerCase().includes(query)
     );
   });
@@ -102,7 +101,7 @@ let DeploymentPicker = ({
           <SmallItemGrid
             items={filteredItems.map(dep => ({
               id: dep.id,
-              label: dep.name ?? dep.provider?.name ?? 'Unnamed',
+              label: dep.name ?? dep.providerId ?? 'Unnamed',
               onSelect: () => {
                 close();
                 onSelect(dep.id);
@@ -148,7 +147,7 @@ let ProviderPicker = ({
       if (!byId.has(dep.providerId)) {
         byId.set(dep.providerId, {
           providerId: dep.providerId,
-          label: dep.provider?.name ?? dep.name ?? dep.providerId
+          label: dep.name ?? dep.providerId
         });
       }
     }

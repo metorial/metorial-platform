@@ -2,6 +2,7 @@ import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, createInstance, PageHeader } from '@metorial/layout';
 import { useBoot, useCurrentInstance, useProviderDeployments, useUser } from '@metorial/state';
+import type { MetorialEnterpriseWindow } from '@metorial/state';
 import { Button, Spacer } from '@metorial/ui';
 import { SideBox } from '@metorial/ui-product';
 import { Link } from 'react-router-dom';
@@ -10,6 +11,12 @@ import { ApiKeySecret } from '../scenes/apiKeys';
 import { useApiKeysWithAutoInit } from '../scenes/apiKeys/useApiKeysWithAutoInit';
 import { ServersGrid } from '../scenes/servers/grid';
 import { SessionsTable } from '../scenes/sessions/table';
+
+declare global {
+  interface Window {
+    metorial_enterprise?: MetorialEnterpriseWindow;
+  }
+}
 
 export let ProjectHomePage = () => {
   let instance = useCurrentInstance();
@@ -102,10 +109,8 @@ export let ProjectHomePage = () => {
               <Button
                 size="2"
                 onClick={() => {
-                  // @ts-ignore
-                  if (window.metorial_enterprise) {
-                    // @ts-ignore
-                    window.metorial_enterprise?.chrome.showDocs();
+                  if (window.metorial_enterprise?.chrome?.showDocs) {
+                    window.metorial_enterprise.chrome.showDocs();
                   } else {
                     window.open('https://metorial.com/docs', '_blank');
                   }
@@ -218,13 +223,7 @@ export let ProjectHomePage = () => {
 
           <ServersGrid
             limit={6}
-            providerCollectionId={
-              (
-                window as unknown as {
-                  metorial_enterprise?: { landing_collection_ids?: string | string[] };
-                }
-              ).metorial_enterprise?.landing_collection_ids
-            }
+            providerCollectionId={window.metorial_enterprise?.landing_collection_ids}
           />
 
           <Spacer height={35} />

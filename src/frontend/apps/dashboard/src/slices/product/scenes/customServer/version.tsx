@@ -2,7 +2,7 @@ import React from 'react';
 import {
   DashboardInstanceCustomProvidersGetOutput,
   DashboardInstanceCustomProvidersVersionsGetOutput
-} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+} from '@metorial/dashboard-sdk';
 import { renderWithLoader } from '@metorial/data-hooks';
 import {
   useCurrentInstance,
@@ -107,14 +107,14 @@ export let CustomServerVersion = ({
       return merged;
     }
 
-    if (deploymentLogs.data.logs.length > 0) {
+    if ((logsData.logs ?? []).length > 0) {
       return [
         {
           id: `deployment-log-step-${versionId}`,
           type: 'lambda_deploy_build',
           status: deploymentStatusToStepStatus(deployment.data?.status),
           index: 0,
-          logs: deploymentLogs.data.logs
+          logs: logsData.logs
         }
       ];
     }

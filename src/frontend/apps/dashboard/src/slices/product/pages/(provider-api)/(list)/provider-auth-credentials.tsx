@@ -5,6 +5,7 @@ import {
   useCurrentOrganization,
   useCurrentProject,
   useProviderDeployments,
+  useProviders,
   withAuth
 } from '@metorial/state';
 import { Badge, Button, Flex, Input, RenderDate, Spacer, Text } from '@metorial/ui';
@@ -62,6 +63,14 @@ export let ProviderAuthCredentialsOverviewPage = () => {
   let deployments = useProviderDeployments(instance.data?.id, {
     search: searchDebounced
   });
+  let providers = useProviders(instance.data?.id, { limit: 100 });
+  let providerNameMap = useMemo(() => {
+    let map = new Map<string, string>();
+    for (let provider of providers.data?.items ?? []) {
+      if (provider.id && provider.name) map.set(provider.id, provider.name);
+    }
+    return map;
+  }, [providers.data?.items]);
 
   let [rows, setRows] = useState<CredentialOverviewRow[]>([]);
   let [isLoadingCredentials, setIsLoadingCredentials] = useState(false);
@@ -99,7 +108,9 @@ export let ProviderAuthCredentialsOverviewPage = () => {
         let perDeployment = await mapWithConcurrency(deploymentItems, 4, async deployment => {
           try {
             let response = await withAuth(sdk =>
-              sdk.providerDeployments.authCredentials.list(instance.data!.id, deployment.id)
+              sdk.providerDeployments.authCredentials.list(instance.data!.id, {
+                providerId: deployment.providerId
+              })
             );
 
             return {
@@ -196,7 +207,9 @@ export let ProviderAuthCredentialsOverviewPage = () => {
                 {row.name || '—'}
               </Text>,
               <Text size="2">
-                {row.deployment.provider?.name ?? row.deployment.providerId}
+                {row.deployment.provider?.name ??
+                  providerNameMap.get(row.deployment.providerId) ??
+                  row.deployment.providerId}
               </Text>,
               row.deployment.lockedVersion ? (
                 <Badge color="purple" size="1">

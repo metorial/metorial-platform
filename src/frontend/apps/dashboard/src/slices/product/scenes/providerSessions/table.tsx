@@ -1,8 +1,19 @@
+import { DashboardInstanceSessionsListQuery } from '@metorial/dashboard-sdk';
 import { renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, useSessions } from '@metorial/state';
 import { RenderDate, Text, theme } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
+
+type SessionStatusFilter = Extract<
+  DashboardInstanceSessionsListQuery['status'],
+  'active' | 'archived'
+>;
+
+let normalizeSessionStatus = (status?: string): SessionStatusFilter | undefined => {
+  if (status === 'active' || status === 'archived') return status;
+  return undefined;
+};
 
 export let ProviderSessionsTable = ({
   instanceId,
@@ -18,7 +29,7 @@ export let ProviderSessionsTable = ({
   let instance = useCurrentInstance();
   let sessions = useSessions(instanceId, {
     providerId: providerId,
-    status,
+    status: normalizeSessionStatus(status),
     order: 'desc'
   });
 
@@ -41,8 +52,8 @@ export let ProviderSessionsTable = ({
                 </Text>
               )}
             </Text>,
-            <Text size="2">{session.status}</Text>,
-            <Text size="2">{session.providerDeployments?.length ?? 0} providers</Text>,
+            <Text size="2">{session.connectionState}</Text>,
+            <Text size="2">{session.providers?.length ?? 0} providers</Text>,
             <RenderDate date={session.createdAt} />
           ],
           href: Paths.instance.providerSession(

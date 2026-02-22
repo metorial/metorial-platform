@@ -99,7 +99,9 @@ export let ProviderConfigsOverviewPage = () => {
         let perDeployment = await mapWithConcurrency(deploymentItems, 4, async deployment => {
           try {
             let response = await withAuth(sdk =>
-              sdk.providerDeployments.configs.list(instance.data!.id, deployment.id)
+              sdk.providerDeployments.configs.list(instance.data!.id, {
+                providerDeploymentId: deployment.id
+              })
             );
 
             return {

@@ -1,35 +1,53 @@
+import { DashboardInstanceSessionErrorGroupsListQuery } from '@metorial/dashboard-sdk';
 import { renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, useAllSessionErrorGroups } from '@metorial/state';
 import { Badge, RenderDate, Text } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
 
+type SessionErrorGroupTypeFilter = Extract<
+  DashboardInstanceSessionErrorGroupsListQuery['type'],
+  | 'message_processing_timeout'
+  | 'message_processing_provider_error'
+  | 'message_processing_system_error'
+>;
+
+let normalizeSessionErrorGroupType = (
+  type?: string
+): SessionErrorGroupTypeFilter | undefined => {
+  if (
+    type === 'message_processing_timeout' ||
+    type === 'message_processing_provider_error' ||
+    type === 'message_processing_system_error'
+  ) {
+    return type;
+  }
+  return undefined;
+};
+
 export let ServerErrorGroupsTable = (filter?: { sessionId?: string; type?: string }) => {
   let instance = useCurrentInstance();
   let errors = useAllSessionErrorGroups(instance.data?.id, {
     sessionId: filter?.sessionId,
-    type: filter?.type
+    type: normalizeSessionErrorGroupType(filter?.type)
   });
 
   return renderWithPagination(errors)(errors => (
     <>
       <Table
-        headers={['Type', 'Name', 'Message', 'Count', 'Created']}
+        headers={['Code', 'Message', 'Count', 'Created']}
         data={errors.data.items.map(error => ({
           data: [
-            error.type ? (
-              <Badge color="red">{error.type}</Badge>
+            error.code ? (
+              <Badge color="red">{error.code}</Badge>
             ) : (
               <Badge color="gray">Unknown</Badge>
             ),
-            <Text size="2" weight="strong">
-              {error.name ?? '—'}
-            </Text>,
             <Text size="2">
               {error.message?.slice(0, 80)}
               {error.message && error.message.length > 80 ? '...' : ''}
             </Text>,
-            <Text size="2">{error.count ?? '—'}</Text>,
+            <Text size="2">{error.occurrenceCount ?? '—'}</Text>,
             <RenderDate date={error.createdAt} />
           ],
           href: Paths.instance.providerError(

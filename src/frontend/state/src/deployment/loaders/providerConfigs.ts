@@ -2,10 +2,15 @@ import {
   DashboardInstanceProviderDeploymentsConfigsCreateBody,
   DashboardInstanceProviderDeploymentsConfigsListQuery,
   DashboardInstanceProviderDeploymentsConfigsUpdateBody
-} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+} from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
+
+type ProviderConfigsQuery = Omit<
+  DashboardInstanceProviderDeploymentsConfigsListQuery,
+  'providerDeploymentId'
+>;
 
 export let providerConfigsLoader = createLoader({
   name: 'providerConfigs',
@@ -14,11 +19,8 @@ export let providerConfigsLoader = createLoader({
     i: {
       instanceId: string;
       providerDeploymentId: string;
-    } & DashboardInstanceProviderDeploymentsConfigsListQuery
-  ) =>
-    withAuth(sdk =>
-      sdk.providerDeployments.configs.list(i.instanceId, i.providerDeploymentId, i)
-    ),
+    } & ProviderConfigsQuery
+  ) => withAuth(sdk => sdk.providerDeployments.configs.list(i.instanceId, i)),
   mutators: {}
 });
 
@@ -28,17 +30,14 @@ export let useCreateProviderConfig = providerConfigsLoader.createExternalMutator
       instanceId: string;
       providerDeploymentId: string;
     }
-  ) =>
-    withAuth(sdk =>
-      sdk.providerDeployments.configs.create(i.instanceId, i.providerDeploymentId, i)
-    ),
+  ) => withAuth(sdk => sdk.providerDeployments.configs.create(i.instanceId, i)),
   { disableToast: true }
 );
 
 export let useProviderConfigs = (
   instanceId: string | null | undefined,
   providerDeploymentId: string | null | undefined,
-  query?: DashboardInstanceProviderDeploymentsConfigsListQuery
+  query?: ProviderConfigsQuery
 ) => {
   let data = usePaginator(pagination =>
     providerConfigsLoader.use(
@@ -55,25 +54,14 @@ export let providerConfigLoader = createLoader({
   name: 'providerConfig',
   parents: [providerConfigsLoader],
   fetch: (i: { instanceId: string; providerDeploymentId: string; providerConfigId: string }) =>
-    withAuth(sdk =>
-      sdk.providerDeployments.configs.get(
-        i.instanceId,
-        i.providerDeploymentId,
-        i.providerConfigId
-      )
-    ),
+    withAuth(sdk => sdk.providerDeployments.configs.get(i.instanceId, i.providerConfigId)),
   mutators: {
     update: (
       body: DashboardInstanceProviderDeploymentsConfigsUpdateBody,
-      { input: { instanceId, providerDeploymentId, providerConfigId } }
+      { input: { instanceId, providerConfigId } }
     ) =>
       withAuth(sdk =>
-        sdk.providerDeployments.configs.update(
-          instanceId,
-          providerDeploymentId,
-          providerConfigId,
-          body
-        )
+        sdk.providerDeployments.configs.update(instanceId, providerConfigId, body)
       )
   }
 });

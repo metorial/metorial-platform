@@ -1,4 +1,4 @@
-import { DashboardInstanceCustomProvidersCommitsListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+import { DashboardInstanceCustomProvidersCommitsListQuery } from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
@@ -11,7 +11,16 @@ export let customServerEventsLoader = createLoader({
       instanceId: string;
       customServerId: string;
     } & DashboardInstanceCustomProvidersCommitsListQuery
-  ) => withAuth(sdk => sdk.customProviders.commits.list(i.instanceId, i.customServerId, i)),
+  ) =>
+    withAuth(sdk =>
+      {
+        let { customServerId, ...query } = i;
+        return sdk.customProviders.commits.list(i.instanceId, {
+          ...query,
+          customProviderId: customServerId
+        });
+      }
+    ),
   mutators: {}
 });
 
@@ -36,7 +45,7 @@ export let customServerEventLoader = createLoader({
   parents: [customServerEventsLoader],
   fetch: (i: { instanceId: string; customServerId: string; customServerEventId: string }) =>
     withAuth(sdk =>
-      sdk.customProviders.commits.get(i.instanceId, i.customServerId, i.customServerEventId)
+      sdk.customProviders.commits.get(i.instanceId, i.customServerEventId)
     ),
   mutators: {}
 });

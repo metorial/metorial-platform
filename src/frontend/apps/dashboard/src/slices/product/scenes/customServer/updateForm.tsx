@@ -1,5 +1,5 @@
 import { CodeEditor } from '@metorial/code-editor';
-import { CustomProvidersGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+import { CustomProvidersGetOutput } from '@metorial/dashboard-sdk';
 import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
@@ -109,6 +109,7 @@ export let CustomServerUpdateForm = (p: { customServer?: CustomProvidersGetOutpu
           let [res] = await createVersionMutator.mutate({
             instanceId: instance.data.id,
             customServerId: p.customServer.id,
+            customProviderId: p.customServer.id,
             from: {
               type: 'remote',
               remoteUrl: values.remoteUri ?? '',
@@ -175,6 +176,7 @@ export let CustomServerUpdateForm = (p: { customServer?: CustomProvidersGetOutpu
                   let [res] = await createVersionMutatorSchema.mutate({
                     instanceId: instance.data.id,
                     customServerId: p.customServer.id,
+                    customProviderId: p.customServer.id,
                     from: {
                       type: 'function',
                       files: [],

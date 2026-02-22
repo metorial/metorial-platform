@@ -70,7 +70,11 @@ export let SessionLayout = () => {
           items={[
             {
               label: 'Status',
-              value: <SessionConnectionStatusBadge session={session.data} />
+              value: (
+                <SessionConnectionStatusBadge
+                  connectionStatus={session.data.connectionState}
+                />
+              )
             },
             { label: 'Session ID', value: <ID id={session.data.id} /> },
             { label: 'Created At', value: <RenderDate date={session.data.createdAt} /> },

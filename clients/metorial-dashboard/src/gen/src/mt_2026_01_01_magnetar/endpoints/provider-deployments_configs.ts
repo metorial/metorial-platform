@@ -8,6 +8,7 @@ import {
   mapDashboardInstanceProviderDeploymentsConfigsCreateOutput,
   mapDashboardInstanceProviderDeploymentsConfigsDeleteOutput,
   mapDashboardInstanceProviderDeploymentsConfigsGetConfigSchemaOutput,
+  mapDashboardInstanceProviderDeploymentsConfigsGetConfigSchemaQuery,
   mapDashboardInstanceProviderDeploymentsConfigsGetOutput,
   mapDashboardInstanceProviderDeploymentsConfigsListOutput,
   mapDashboardInstanceProviderDeploymentsConfigsListQuery,
@@ -17,6 +18,7 @@ import {
   type DashboardInstanceProviderDeploymentsConfigsCreateOutput,
   type DashboardInstanceProviderDeploymentsConfigsDeleteOutput,
   type DashboardInstanceProviderDeploymentsConfigsGetConfigSchemaOutput,
+  type DashboardInstanceProviderDeploymentsConfigsGetConfigSchemaQuery,
   type DashboardInstanceProviderDeploymentsConfigsGetOutput,
   type DashboardInstanceProviderDeploymentsConfigsListOutput,
   type DashboardInstanceProviderDeploymentsConfigsListQuery,
@@ -55,7 +57,6 @@ export class MetorialProviderDeploymentsConfigsEndpoint {
    * @name List provider configs
    * @description Returns a paginated list of provider configs.
    *
-   * @param `providerDeploymentId` - string
    * @param `query` - DashboardInstanceProviderDeploymentsConfigsListQuery
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceProviderDeploymentsConfigsListOutput
@@ -63,11 +64,10 @@ export class MetorialProviderDeploymentsConfigsEndpoint {
    * @see https://metorial.com/docs
    */
   list(
-    providerDeploymentId: string,
     query?: DashboardInstanceProviderDeploymentsConfigsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsConfigsListOutput> {
-    let path = `provider-deployments/${providerDeploymentId}/configs`;
+    let path = 'provider-configs';
 
     let request = {
       path,
@@ -89,7 +89,6 @@ export class MetorialProviderDeploymentsConfigsEndpoint {
    * @name Get provider config
    * @description Retrieves a specific provider config by ID.
    *
-   * @param `providerDeploymentId` - string
    * @param `providerConfigId` - string
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceProviderDeploymentsConfigsGetOutput
@@ -97,11 +96,10 @@ export class MetorialProviderDeploymentsConfigsEndpoint {
    * @see https://metorial.com/docs
    */
   get(
-    providerDeploymentId: string,
     providerConfigId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsConfigsGetOutput> {
-    let path = `provider-deployments/${providerDeploymentId}/configs/${providerConfigId}`;
+    let path = `provider-configs/${providerConfigId}`;
 
     let request = {
       path,
@@ -118,7 +116,6 @@ export class MetorialProviderDeploymentsConfigsEndpoint {
    * @name Create provider config
    * @description Creates a new provider config.
    *
-   * @param `providerDeploymentId` - string
    * @param `body` - DashboardInstanceProviderDeploymentsConfigsCreateBody
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceProviderDeploymentsConfigsCreateOutput
@@ -126,11 +123,10 @@ export class MetorialProviderDeploymentsConfigsEndpoint {
    * @see https://metorial.com/docs
    */
   create(
-    providerDeploymentId: string,
     body: DashboardInstanceProviderDeploymentsConfigsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsConfigsCreateOutput> {
-    let path = `provider-deployments/${providerDeploymentId}/configs`;
+    let path = 'provider-configs';
 
     let request = {
       path,
@@ -150,7 +146,6 @@ export class MetorialProviderDeploymentsConfigsEndpoint {
    * @name Update provider config
    * @description Updates a specific provider config.
    *
-   * @param `providerDeploymentId` - string
    * @param `providerConfigId` - string
    * @param `body` - DashboardInstanceProviderDeploymentsConfigsUpdateBody
    * @param `opts` - { headers?: Record<string, string> }
@@ -159,12 +154,11 @@ export class MetorialProviderDeploymentsConfigsEndpoint {
    * @see https://metorial.com/docs
    */
   update(
-    providerDeploymentId: string,
     providerConfigId: string,
     body: DashboardInstanceProviderDeploymentsConfigsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsConfigsUpdateOutput> {
-    let path = `provider-deployments/${providerDeploymentId}/configs/${providerConfigId}`;
+    let path = `provider-configs/${providerConfigId}`;
 
     let request = {
       path,
@@ -184,7 +178,6 @@ export class MetorialProviderDeploymentsConfigsEndpoint {
    * @name Delete provider config
    * @description Permanently deletes a provider config.
    *
-   * @param `providerDeploymentId` - string
    * @param `providerConfigId` - string
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceProviderDeploymentsConfigsDeleteOutput
@@ -192,11 +185,10 @@ export class MetorialProviderDeploymentsConfigsEndpoint {
    * @see https://metorial.com/docs
    */
   delete(
-    providerDeploymentId: string,
     providerConfigId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsConfigsDeleteOutput> {
-    let path = `provider-deployments/${providerDeploymentId}/configs/${providerConfigId}`;
+    let path = `provider-configs/${providerConfigId}`;
 
     let request = {
       path,
@@ -213,21 +205,26 @@ export class MetorialProviderDeploymentsConfigsEndpoint {
    * @name Get config schema
    * @description Retrieves the JSON Schema for configuration of this provider deployment.
    *
-   * @param `providerDeploymentId` - string
+   * @param `query` - DashboardInstanceProviderDeploymentsConfigsGetConfigSchemaQuery
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceProviderDeploymentsConfigsGetConfigSchemaOutput
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   getConfigSchema(
-    providerDeploymentId: string,
+    query?: DashboardInstanceProviderDeploymentsConfigsGetConfigSchemaQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsConfigsGetConfigSchemaOutput> {
-    let path = `provider-deployments/${providerDeploymentId}/config-schema`;
+    let path = 'provider-config-schema';
 
     let request = {
       path,
 
+      query: query
+        ? mapDashboardInstanceProviderDeploymentsConfigsGetConfigSchemaQuery.transformTo(
+            query
+          )
+        : undefined,
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 

@@ -24,8 +24,8 @@ export let ProviderSessionOverviewPage = () => {
             content: <ID id={session.data.id} />
           },
           {
-            label: 'Status',
-            content: session.data.status
+            label: 'Connection State',
+            content: session.data.connectionState
           },
           {
             label: 'Created At',
@@ -37,9 +37,8 @@ export let ProviderSessionOverviewPage = () => {
       <Spacer height={15} />
 
       {session.data.connectionUrl && (
-        <SideBox title="Connection URL" description="Use this URL to connect to this session.">
+        <SideBox title="Connection URL" description="Use this URL to connect to this session via MCP.">
           <div>
-            <strong>URL:</strong>{' '}
             <code style={{ fontSize: '12px', wordBreak: 'break-all' }}>
               {session.data.connectionUrl}
             </code>

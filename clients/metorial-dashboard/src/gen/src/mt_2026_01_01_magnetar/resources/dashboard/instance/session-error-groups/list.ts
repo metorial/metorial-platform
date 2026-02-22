@@ -4,14 +4,12 @@ export type DashboardInstanceSessionErrorGroupsListOutput = {
   items: {
     object: 'session.error_group';
     id: string;
-    type: string | null;
-    name: string | null;
-    message: string | null;
-    count: number;
-    metadata: Record<string, any> | null;
-    sessionId: string;
+    code: string;
+    message: string;
+    data: Record<string, any>;
+    providerId: string | null;
+    occurrenceCount: number;
     createdAt: Date;
-    updatedAt: Date;
   }[];
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
@@ -24,14 +22,15 @@ export let mapDashboardInstanceSessionErrorGroupsListOutput =
         mtMap.object({
           object: mtMap.objectField('object', mtMap.passthrough()),
           id: mtMap.objectField('id', mtMap.passthrough()),
-          type: mtMap.objectField('type', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough()),
+          code: mtMap.objectField('code', mtMap.passthrough()),
           message: mtMap.objectField('message', mtMap.passthrough()),
-          count: mtMap.objectField('count', mtMap.passthrough()),
-          metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-          sessionId: mtMap.objectField('session_id', mtMap.passthrough()),
-          createdAt: mtMap.objectField('created_at', mtMap.date()),
-          updatedAt: mtMap.objectField('updated_at', mtMap.date())
+          data: mtMap.objectField('data', mtMap.passthrough()),
+          providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
+          occurrenceCount: mtMap.objectField(
+            'occurrence_count',
+            mtMap.passthrough()
+          ),
+          createdAt: mtMap.objectField('created_at', mtMap.date())
         })
       )
     ),
@@ -53,7 +52,21 @@ export type DashboardInstanceSessionErrorGroupsListQuery = {
   before?: string | undefined;
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
-} & { type?: string | undefined; sessionId?: string | string[] | undefined };
+} & {
+  type?:
+    | 'message_processing_timeout'
+    | 'message_processing_provider_error'
+    | 'message_processing_system_error'
+    | (
+        | 'message_processing_timeout'
+        | 'message_processing_provider_error'
+        | 'message_processing_system_error'
+      )[]
+    | undefined;
+  id?: string | string[] | undefined;
+  sessionId?: string | string[] | undefined;
+  providerId?: string | string[] | undefined;
+};
 
 export let mapDashboardInstanceSessionErrorGroupsListQuery = mtMap.union([
   mtMap.unionOption(
@@ -64,9 +77,32 @@ export let mapDashboardInstanceSessionErrorGroupsListQuery = mtMap.union([
       before: mtMap.objectField('before', mtMap.passthrough()),
       cursor: mtMap.objectField('cursor', mtMap.passthrough()),
       order: mtMap.objectField('order', mtMap.passthrough()),
-      type: mtMap.objectField('type', mtMap.passthrough()),
+      type: mtMap.objectField(
+        'type',
+        mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
+      ),
+      id: mtMap.objectField(
+        'id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
       sessionId: mtMap.objectField(
         'session_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      providerId: mtMap.objectField(
+        'provider_id',
         mtMap.union([
           mtMap.unionOption('string', mtMap.passthrough()),
           mtMap.unionOption(

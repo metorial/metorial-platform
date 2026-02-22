@@ -2,7 +2,7 @@ import {
   DashboardInstanceCustomProvidersCreateBody,
   DashboardInstanceCustomProvidersListQuery,
   DashboardInstanceCustomProvidersUpdateBody
-} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+} from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
 import { useEffect, useRef } from 'react';
 import { usePaginator } from '../../lib/usePaginator';
@@ -10,11 +10,22 @@ import { withAuth } from '../../user';
 
 let customServerDoneStatuses = new Set(['active', 'archived']);
 
+let toArrayIfString = <T extends string>(value: T | T[] | undefined) =>
+  typeof value === 'string' ? [value] : value;
+
+let normalizeCustomServersListQuery = (
+  query: DashboardInstanceCustomProvidersListQuery
+): DashboardInstanceCustomProvidersListQuery => ({
+  ...query,
+  status: toArrayIfString(query.status),
+  type: toArrayIfString(query.type)
+});
+
 export let customServersLoader = createLoader({
   name: 'customServers',
   parents: [],
   fetch: (i: { instanceId: string } & DashboardInstanceCustomProvidersListQuery) =>
-    withAuth(sdk => sdk.customProviders.list(i.instanceId, i)),
+    withAuth(sdk => sdk.customProviders.list(i.instanceId, normalizeCustomServersListQuery(i))),
   mutators: {}
 });
 

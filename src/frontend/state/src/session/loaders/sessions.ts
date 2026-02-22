@@ -1,7 +1,7 @@
 import {
   DashboardInstanceSessionsCreateBody,
   DashboardInstanceSessionsListQuery
-} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+} from '@metorial/dashboard-sdk';
 import { createLoader, useMutation } from '@metorial/data-hooks';
 import { useMemo } from 'react';
 import { usePaginator } from '../../lib/usePaginator';

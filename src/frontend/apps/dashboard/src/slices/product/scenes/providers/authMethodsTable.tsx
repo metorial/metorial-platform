@@ -5,12 +5,12 @@ import { Table } from '@metorial/ui-product';
 
 export let ProviderAuthMethodsTable = ({
   instanceId,
-  providerId
+  providerVersionId
 }: {
   instanceId: string;
-  providerId: string;
+  providerVersionId?: string;
 }) => {
-  let authMethods = useProviderAuthMethods(instanceId, providerId);
+  let authMethods = useProviderAuthMethods(instanceId, providerVersionId);
 
   return renderWithPagination(authMethods)(authMethods => (
     <>

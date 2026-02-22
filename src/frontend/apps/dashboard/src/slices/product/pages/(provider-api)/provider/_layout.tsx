@@ -19,7 +19,8 @@ import { showProviderDeploymentFormModal } from '../../../scenes/providerDeploym
 type VersionItem = {
   id: string;
   version: string;
-  status: string;
+  status?: string;
+  isCurrent?: boolean;
   createdAt: Date;
 };
 
@@ -110,15 +111,13 @@ export let ProviderLayout = () => {
 
   // Fetch listing metadata for the selected provider version.
   let listings = useProviderListings(
-    providerId
-      ? {
-          providerId,
-          providerVersionId: effectiveVersionId,
-          limit: 1
-        }
-      : null
+    providerId ? { limit: 100 } : null
   );
-  let listing = listings?.data?.items?.[0];
+  let listing = (listings?.data?.items ?? []).find(
+    item =>
+      item.provider?.id === providerId &&
+      (!effectiveVersionId || item.provider?.currentVersion?.id === effectiveVersionId)
+  );
 
   let resetToDefault = () => {
     if (currentVersionId) setSelectedVersionId(currentVersionId);

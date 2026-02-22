@@ -1,5 +1,5 @@
 import { capitalize } from '@metorial/case';
-import { ApiKeysGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+import { ApiKeysGetOutput } from '@metorial/dashboard-sdk';
 import { renderWithLoader, useForm } from '@metorial/data-hooks';
 import { PageHeader } from '@metorial/layout';
 import { ApiKeysFilter, useCurrentOrganization, useRevealableApiKey } from '@metorial/state';

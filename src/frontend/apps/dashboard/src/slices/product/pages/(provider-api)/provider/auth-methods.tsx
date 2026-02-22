@@ -1,7 +1,6 @@
 import { renderWithPagination } from '@metorial/data-hooks';
 import { useCurrentInstance, useProviderAuthMethods } from '@metorial/state';
 import { AccordionSingle, Badge, Flex, Spacer, Text, theme } from '@metorial/ui';
-import { useParams } from 'react-router-dom';
 import { useProviderVersionContext } from './_layout';
 
 type Scope = {
@@ -180,11 +179,8 @@ let getScopeDisplay = (scope: Scope) => {
 
 export let ProviderAuthMethodsPage = () => {
   let instance = useCurrentInstance();
-  let { providerId } = useParams();
   let { selectedVersionId } = useProviderVersionContext();
-  let authMethods = useProviderAuthMethods(instance.data?.id, providerId, {
-    providerVersionId: selectedVersionId
-  });
+  let authMethods = useProviderAuthMethods(instance.data?.id, selectedVersionId);
 
   return renderWithPagination(authMethods)(authMethods => {
     let authMethodsToRender = authMethods.data.items as Array<{

@@ -4,11 +4,12 @@ import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
+  useProviders,
   withAuth
 } from '@metorial/state';
 import { Input, RenderDate, Spacer, Text } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useDebounced } from '../../../../../hooks/useDebounced';
 
 type AuthConnectionRow = {
@@ -16,6 +17,7 @@ type AuthConnectionRow = {
   name: string | null;
   type: string | null;
   providerId: string;
+  providerName: string | null;
   providerDeploymentId: string | null;
   createdAt: string | null;
 };
@@ -39,6 +41,14 @@ export let ProviderAuthConnectionsOverviewPage = () => {
   let [isLoading, setIsLoading] = useState(false);
   let [error, setError] = useState<string | null>(null);
   let [reloadKey, setReloadKey] = useState(0);
+  let providers = useProviders(instance.data?.id, { limit: 100 });
+  let providerNameMap = useMemo(() => {
+    let map = new Map<string, string>();
+    for (let provider of providers.data?.items ?? []) {
+      if (provider.id && provider.name) map.set(provider.id, provider.name);
+    }
+    return map;
+  }, [providers.data?.items]);
 
   useEffect(() => {
     let onCreated = () => setReloadKey(key => key + 1);
@@ -68,10 +78,13 @@ export let ProviderAuthConnectionsOverviewPage = () => {
           .filter((config: any) => {
             if (!searchDebounced.trim()) return true;
             let q = searchDebounced.toLowerCase();
+            let providerId = config.providerId ?? '';
+            let providerName = providerNameMap.get(providerId) ?? '';
             return (
               (config.name ?? '').toLowerCase().includes(q) ||
               (config.type ?? '').toLowerCase().includes(q) ||
-              (config.providerId ?? '').toLowerCase().includes(q)
+              providerId.toLowerCase().includes(q) ||
+              providerName.toLowerCase().includes(q)
             );
           })
           .map((config: any) => ({
@@ -79,6 +92,7 @@ export let ProviderAuthConnectionsOverviewPage = () => {
             name: config.name ?? null,
             type: config.type ?? null,
             providerId: config.providerId ?? '',
+            providerName: providerNameMap.get(config.providerId ?? '') ?? null,
             providerDeploymentId: config.providerDeploymentId ?? null,
             createdAt: config.createdAt ?? null
           }));
@@ -101,7 +115,7 @@ export let ProviderAuthConnectionsOverviewPage = () => {
     return () => {
       isCanceled = true;
     };
-  }, [instance.data?.id, reloadKey, searchDebounced]);
+  }, [instance.data?.id, providerNameMap, reloadKey, searchDebounced]);
 
   return renderWithLoader({ instance })(({ instance }) => (
     <>
@@ -145,7 +159,7 @@ export let ProviderAuthConnectionsOverviewPage = () => {
                 {row.name || '\u2014'}
               </Text>,
               <Text size="2">{formatType(row.type)}</Text>,
-              <Text size="2">{row.providerId}</Text>,
+              <Text size="2">{row.providerName ?? row.providerId}</Text>,
               row.createdAt ? (
                 <RenderDate date={row.createdAt} />
               ) : (

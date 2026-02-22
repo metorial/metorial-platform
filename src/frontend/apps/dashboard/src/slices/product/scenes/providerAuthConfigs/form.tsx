@@ -35,8 +35,11 @@ export let ProviderAuthConfigForm = (
   // Get the provider deployment to get the providerId
   let deployment = useProviderDeployment(instance.data?.id, props.providerDeploymentId);
 
-  // Fetch auth methods for the provider
-  let authMethods = useProviderAuthMethods(instance.data?.id, deployment.data?.providerId);
+  // Fetch auth methods for the deployment's locked provider version
+  let authMethods = useProviderAuthMethods(
+    instance.data?.id,
+    deployment.data?.lockedVersion?.id
+  );
 
   let [name, setName] = useState('');
   let [description, setDescription] = useState('');
@@ -91,7 +94,7 @@ export let ProviderAuthConfigForm = (
         name,
         description: description || undefined,
         providerAuthMethodId: authMethodId,
-        credentials: { type: 'new', data: parsedCredentials }
+        config: parsedCredentials
       });
 
       if (err) {

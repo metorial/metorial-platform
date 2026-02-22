@@ -7,7 +7,6 @@ import {
   useCurrentProject,
   useSession
 } from '@metorial/state';
-import { SessionsGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { LinkTabs, RenderDate } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import { Outlet, useLocation, useParams } from 'react-router-dom';
@@ -81,21 +80,15 @@ export let ProviderSessionLayout = () => {
           items={[
             {
               label: 'Status',
-              value: (
-                <SessionConnectionStatusBadge
-                  session={
-                    session.data as unknown as Parameters<
-                      typeof SessionConnectionStatusBadge
-                    >[0]['session']
-                  }
-                />
-              )
+              value: <SessionConnectionStatusBadge connectionStatus={session.data.connectionState} />
             },
             { label: 'Session ID', value: <ID id={session.data.id} /> },
             { label: 'Created At', value: <RenderDate date={session.data.createdAt} /> },
             {
               label: 'Messages',
-              value: session.data.usage?.totalProductiveMessageCount ?? 0
+              value:
+                (session.data.usage?.totalProductiveClientMessageCount ?? 0) +
+                (session.data.usage?.totalProductiveServerMessageCount ?? 0)
             }
           ]}
         >

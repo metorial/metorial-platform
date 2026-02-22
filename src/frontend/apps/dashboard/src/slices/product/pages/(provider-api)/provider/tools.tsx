@@ -4,7 +4,6 @@ import { AccordionSingle, Badge, Flex, Spacer, Text, theme } from '@metorial/ui'
 import { RiArrowDownSLine } from '@remixicon/react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useState } from 'react';
-import { useParams } from 'react-router-dom';
 import { styled } from 'styled-components';
 import { useProviderVersionContext } from './_layout';
 
@@ -335,11 +334,8 @@ let SchemaViewer = ({
 
 export let ProviderToolsPage = () => {
   let instance = useCurrentInstance();
-  let { providerId } = useParams();
   let { selectedVersionId } = useProviderVersionContext();
-  let tools = useProviderTools(instance.data?.id, providerId, {
-    providerVersionId: selectedVersionId
-  });
+  let tools = useProviderTools(instance.data?.id, selectedVersionId);
 
   return renderWithPagination(tools)(tools => (
     <>

@@ -1,4 +1,4 @@
-import { DashboardInstanceCustomProvidersListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+import { DashboardInstanceCustomProvidersListQuery } from '@metorial/dashboard-sdk';
 import { renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, useCustomServers } from '@metorial/state';
@@ -29,17 +29,18 @@ export let CustomServersTable = (
 ) => {
   let [search, setSearch] = useState('');
   let searchDebounced = useDebounced(search, 300);
+  let normalizedSearch = searchDebounced.trim().toLowerCase();
+  let { withSearch, ...query } = filter;
 
   let instance = useCurrentInstance();
   let customServers = useCustomServers(instance.data?.id, {
-    ...(({ withSearch, ...rest }) => rest)(filter),
-    search: searchDebounced || undefined,
+    ...query,
     order: 'desc'
-  } as Record<string, unknown>);
+  });
 
   return (
     <>
-      {filter.withSearch && (
+      {withSearch && (
         <>
           <Input
             label="Search Providers"
@@ -53,51 +54,72 @@ export let CustomServersTable = (
         </>
       )}
 
-      {renderWithPagination(customServers)(customServers => (
-        <>
-          <Table
-            headers={[
-              'Provider',
-              'Status',
-              'Version',
-              'Created'
-            ]}
-            data={customServers.data.items.map(customServer => ({
-              data: [
-                <Text size="2" weight="strong">
-                  {customServer.name ?? (
-                    <span style={{ color: theme.colors.gray600 }}>Untitled</span>
-                  )}
+      {renderWithPagination(customServers)(customServers => {
+        let items = normalizedSearch
+          ? customServers.data.items.filter(customServer => {
+              let haystack = [
+                customServer.name,
+                customServer.description,
+                customServer.provider?.name,
+                customServer.provider?.slug,
+                customServer.provider?.identifier
+              ]
+                .filter(Boolean)
+                .join(' ')
+                .toLowerCase();
 
-                  {customServer.description && (
-                    <Text size="2" color="gray600">
-                      {customServer.description.slice(0, 60)}
-                      {customServer.description.length > 60 ? '...' : ''}
-                    </Text>
-                  )}
-                </Text>,
-                <Badge color={statusColor(customServer.status)}>{customServer.status ?? 'unknown'}</Badge>,
-                <Text size="2" color="gray600">
-                  {customServer.provider?.currentVersion?.version ?? '-'}
-                </Text>,
-                <RenderDate date={customServer.createdAt} />
-              ],
-              href: Paths.instance.customServer(
-                instance.data?.organization,
-                instance.data?.project,
-                instance.data,
-                customServer.id
-              )
-            }))}
-          />
+              return haystack.includes(normalizedSearch);
+            })
+          : customServers.data.items;
 
-          {customServers.data.items.length == 0 && (
-            <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-              {searchDebounced ? 'No providers match your search.' : 'No providers found.'}
-            </Text>
-          )}
-        </>
-      ))}
+        return (
+          <>
+            <Table
+              headers={[
+                'Provider',
+                'Status',
+                'Version',
+                'Created'
+              ]}
+              data={items.map(customServer => ({
+                data: [
+                  <Text size="2" weight="strong">
+                    {customServer.name ?? (
+                      <span style={{ color: theme.colors.gray600 }}>Untitled</span>
+                    )}
+
+                    {customServer.description && (
+                      <Text size="2" color="gray600">
+                        {customServer.description.slice(0, 60)}
+                        {customServer.description.length > 60 ? '...' : ''}
+                      </Text>
+                    )}
+                  </Text>,
+                  <Badge color={statusColor(customServer.status)}>
+                    {customServer.status ?? 'unknown'}
+                  </Badge>,
+                  <Text size="2" color="gray600">
+                    {customServer.provider?.currentVersion?.version ?? '-'}
+                  </Text>,
+                  <RenderDate date={customServer.createdAt} />
+                ],
+                href: Paths.instance.customServer(
+                  instance.data?.organization,
+                  instance.data?.project,
+                  instance.data,
+                  customServer.id
+                )
+              }))}
+            />
+
+            {items.length == 0 && (
+              <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
+                {searchDebounced ? 'No providers match your search.' : 'No providers found.'}
+              </Text>
+            )}
+          </>
+        );
+      })}
     </>
   );
 };

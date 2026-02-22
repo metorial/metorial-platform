@@ -2,7 +2,7 @@ import {
   DashboardInstanceSessionTemplatesCreateBody,
   DashboardInstanceSessionTemplatesListQuery,
   DashboardInstanceSessionTemplatesUpdateBody
-} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+} from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
 import { mutation } from '../../lib/mutation';
 import { usePaginator } from '../../lib/usePaginator';

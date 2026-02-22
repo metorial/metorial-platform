@@ -1,15 +1,10 @@
+import { DashboardInstanceProviderDeploymentsListOutput } from '@metorial/dashboard-sdk';
 import { renderWithPagination } from '@metorial/data-hooks';
 import { useCurrentInstance, useProviderDeployments } from '@metorial/state';
 import { Entity, RenderDate, Spacer, Text } from '@metorial/ui';
 import styled from 'styled-components';
 
-type ProviderDeployment = {
-  id: string;
-  name: string | null;
-  description: string | null;
-  providerId: string;
-  createdAt: string;
-};
+type ProviderDeployment = DashboardInstanceProviderDeploymentsListOutput['items'][number];
 
 let Items = styled.div`
   display: flex;
@@ -98,9 +93,7 @@ export let ProviderDeploymentsList = ({
             return (
               <ItemButton
                 key={deployment.id}
-                onClick={() =>
-                  onDeploymentClick?.(deployment as unknown as ProviderDeployment)
-                }
+                onClick={() => onDeploymentClick?.(deployment)}
                 type="button"
               >
                 {inner}

@@ -1,4 +1,4 @@
-import { DashboardInstanceCustomProvidersUpdateBody } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+import { DashboardInstanceCustomProvidersUpdateBody } from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
 import { withAuth } from '../../user';
 import { customServerLoader } from './customServers';

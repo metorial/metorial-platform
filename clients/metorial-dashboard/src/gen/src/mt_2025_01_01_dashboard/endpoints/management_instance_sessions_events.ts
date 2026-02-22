@@ -44,7 +44,6 @@ export class MetorialManagementInstanceSessionsEventsEndpoint {
    * @description Returns a paginated list of events for a session.
    *
    * @param `instanceId` - string
-   * @param `sessionId` - string
    * @param `query` - DashboardInstanceSessionsEventsListQuery
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceSessionsEventsListOutput
@@ -53,11 +52,10 @@ export class MetorialManagementInstanceSessionsEventsEndpoint {
    */
   list(
     instanceId: string,
-    sessionId: string,
     query?: DashboardInstanceSessionsEventsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionsEventsListOutput> {
-    let path = `instances/${instanceId}/sessions/${sessionId}/events`;
+    let path = `instances/${instanceId}/session-events`;
 
     let request = {
       path,
@@ -78,7 +76,6 @@ export class MetorialManagementInstanceSessionsEventsEndpoint {
    * @description Retrieves a specific event from a session.
    *
    * @param `instanceId` - string
-   * @param `sessionId` - string
    * @param `sessionEventId` - string
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceSessionsEventsGetOutput
@@ -87,11 +84,10 @@ export class MetorialManagementInstanceSessionsEventsEndpoint {
    */
   get(
     instanceId: string,
-    sessionId: string,
     sessionEventId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionsEventsGetOutput> {
-    let path = `instances/${instanceId}/sessions/${sessionId}/events/${sessionEventId}`;
+    let path = `instances/${instanceId}/session-events/${sessionEventId}`;
 
     let request = {
       path,

@@ -19,7 +19,7 @@ export let ProviderSessionProvidersPage = () => {
   let session = useSession(instance.data?.id, sessionId);
 
   return renderWithLoader({ session })(({ session }) => {
-    let deployments = session.data?.providerDeployments ?? [];
+    let deployments = session.data?.providers ?? [];
 
     return (
       <>
@@ -34,22 +34,22 @@ export let ProviderSessionProvidersPage = () => {
             <Link
               key={dep.id}
               to={
-                dep.providerDeploymentId
+                dep.deployment?.id
                   ? Paths.instance.providerDeployment(
                       organization.data,
                       project.data,
                       instance.data,
-                      dep.providerDeploymentId
+                      dep.deployment.id
                     )
                   : '#'
               }
             >
               <Entity.Wrapper>
                 <Entity.Content>
-                  <Entity.Field title={dep.name ?? 'Unnamed'} />
+                  <Entity.Field title={dep.deployment?.name ?? 'Unnamed'} />
 
                   <Entity.Field
-                    title={<Text size="2">{dep.name ?? dep.providerId}</Text>}
+                    title={<Text size="2">{dep.deployment?.name ?? dep.providerId}</Text>}
                     value={<RenderDate date={session.data.createdAt} />}
                   />
                 </Entity.Content>

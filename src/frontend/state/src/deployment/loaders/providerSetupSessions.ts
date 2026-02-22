@@ -1,31 +1,33 @@
 import {
   DashboardInstanceProviderDeploymentsSetupSessionsCreateBody,
   DashboardInstanceProviderDeploymentsSetupSessionsGetOutput
-} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+} from '@metorial/dashboard-sdk';
 import { createLoader, useMutation } from '@metorial/data-hooks';
 import { delay } from '@metorial/delay';
 import { useMemo } from 'react';
 import { withAuth } from '../../user';
 
+type ProviderSetupSessionCreateInput = Omit<
+  DashboardInstanceProviderDeploymentsSetupSessionsCreateBody,
+  'providerId' | 'providerDeploymentId'
+> & { providerDeploymentId?: string };
+
 export let providerSetupSessionLoader = createLoader({
   name: 'providerSetupSession',
   parents: [],
-  fetch: (i: { instanceId: string; deploymentId: string; setupSessionId: string }) =>
+  fetch: (i: { instanceId: string; setupSessionId: string }) =>
     withAuth(sdk =>
-      sdk.providerDeployments.setupSessions.get(i.instanceId, i.deploymentId, i.setupSessionId)
+      sdk.providerDeployments.setupSessions.get(i.instanceId, i.setupSessionId)
     ),
   mutators: {}
 });
 
 export let useProviderSetupSession = (
   instanceId: string | null | undefined,
-  deploymentId: string | null | undefined,
   setupSessionId: string | null | undefined
 ) => {
   let data = providerSetupSessionLoader.use(
-    instanceId && deploymentId && setupSessionId
-      ? { instanceId, deploymentId, setupSessionId }
-      : null
+    instanceId && setupSessionId ? { instanceId, setupSessionId } : null
   );
 
   return data;
@@ -33,35 +35,38 @@ export let useProviderSetupSession = (
 
 export let useCreateProviderSetupSession = (
   instanceId: string | null | undefined,
-  deploymentId: string | null | undefined
+  providerId: string | null | undefined,
+  providerDeploymentId?: string | null | undefined
 ) => {
   return useMutation(
     useMemo(
-      () => (body: DashboardInstanceProviderDeploymentsSetupSessionsCreateBody) =>
-        withAuth(sdk =>
-          sdk.providerDeployments.setupSessions.create(instanceId!, deploymentId!, body)
-        ),
-      [instanceId, deploymentId]
+      () => (body: ProviderSetupSessionCreateInput) => {
+        if (!instanceId || !providerId) {
+          throw new Error('Missing required setup session context');
+        }
+
+        return withAuth(sdk =>
+          sdk.providerDeployments.setupSessions.create(instanceId, {
+            ...body,
+            providerId,
+            providerDeploymentId: body.providerDeploymentId ?? providerDeploymentId ?? undefined
+          })
+        );
+      },
+      [instanceId, providerId, providerDeploymentId]
     ),
     { disableToast: true }
   );
 };
 
-export let useGetProviderSetupSession = (
-  instanceId: string | null | undefined,
-  deploymentId: string | null | undefined
-) => {
+export let useGetProviderSetupSession = (instanceId: string | null | undefined) => {
   return useMutation(
     useMemo(
       () => (input: { setupSessionId: string }) =>
         withAuth(sdk =>
-          sdk.providerDeployments.setupSessions.get(
-            instanceId!,
-            deploymentId!,
-            input.setupSessionId
-          )
+          sdk.providerDeployments.setupSessions.get(instanceId!, input.setupSessionId)
         ),
-      [instanceId, deploymentId]
+      [instanceId]
     ),
     { disableToast: true }
   );
@@ -69,28 +74,24 @@ export let useGetProviderSetupSession = (
 
 export let createProviderSetupSession = (input: {
   instanceId: string;
-  deploymentId: string;
-  body: DashboardInstanceProviderDeploymentsSetupSessionsCreateBody;
+  providerId: string;
+  providerDeploymentId?: string;
+  body: ProviderSetupSessionCreateInput;
 }) =>
   withAuth(sdk =>
-    sdk.providerDeployments.setupSessions.create(
-      input.instanceId,
-      input.deploymentId,
-      input.body
-    )
+    sdk.providerDeployments.setupSessions.create(input.instanceId, {
+      ...input.body,
+      providerId: input.providerId,
+      providerDeploymentId: input.body.providerDeploymentId ?? input.providerDeploymentId
+    })
   );
 
 export let getProviderSetupSession = (input: {
   instanceId: string;
-  deploymentId: string;
   setupSessionId: string;
 }) =>
   withAuth(sdk =>
-    sdk.providerDeployments.setupSessions.get(
-      input.instanceId,
-      input.deploymentId,
-      input.setupSessionId
-    )
+    sdk.providerDeployments.setupSessions.get(input.instanceId, input.setupSessionId)
   );
 
 /**
@@ -99,7 +100,8 @@ export let getProviderSetupSession = (input: {
  */
 export let authenticateWithSetupSession = async (d: {
   instanceId: string;
-  deploymentId: string;
+  providerId: string;
+  deploymentId?: string;
   providerAuthMethodId: string;
   providerAuthCredentialsId?: string;
   openWindow: (url: string) => {
@@ -111,7 +113,8 @@ export let authenticateWithSetupSession = async (d: {
 }): Promise<DashboardInstanceProviderDeploymentsSetupSessionsGetOutput> => {
   let setupSession = await createProviderSetupSession({
     instanceId: d.instanceId,
-    deploymentId: d.deploymentId,
+    providerId: d.providerId,
+    providerDeploymentId: d.deploymentId,
     body: {
       providerAuthMethodId: d.providerAuthMethodId,
       providerAuthCredentialsId: d.providerAuthCredentialsId
@@ -155,7 +158,6 @@ export let authenticateWithSetupSession = async (d: {
           try {
             let res = await getProviderSetupSession({
               instanceId: d.instanceId,
-              deploymentId: d.deploymentId,
               setupSessionId: setupSession.id
             });
             if (res?.status === 'completed') {
@@ -188,7 +190,6 @@ export let authenticateWithSetupSession = async (d: {
           try {
             let res = await getProviderSetupSession({
               instanceId: d.instanceId,
-              deploymentId: d.deploymentId,
               setupSessionId: setupSession.id
             });
             doneRef.current = true;

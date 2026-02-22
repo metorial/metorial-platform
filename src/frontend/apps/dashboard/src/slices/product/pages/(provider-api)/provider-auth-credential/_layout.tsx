@@ -18,11 +18,7 @@ export let ProviderAuthCredentialLayout = () => {
 
   let { providerDeploymentId, providerAuthCredentialsId } = useParams();
   let deployment = useProviderDeployment(instance.data?.id, providerDeploymentId);
-  let credential = useProviderAuthCredential(
-    instance.data?.id,
-    providerDeploymentId,
-    providerAuthCredentialsId
-  );
+  let credential = useProviderAuthCredential(instance.data?.id, providerAuthCredentialsId);
 
   let pathname = useLocation().pathname;
 

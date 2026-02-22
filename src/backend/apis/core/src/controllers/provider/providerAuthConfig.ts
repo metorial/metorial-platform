@@ -1,5 +1,8 @@
 import { badRequestError, ServiceError } from '@metorial/error';
-import { subspaceProviderAuthConfigService } from '@metorial/module-subspace';
+import {
+  subspaceProviderAuthConfigService,
+  subspaceProviderAuthMethodService
+} from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
@@ -138,41 +141,26 @@ export let providerAuthConfigController = Controller.create(
             examples: ['pam_2mNpQrStUvWxYzAb'],
             description: 'The authentication method this config uses (e.g., OAuth, API key)'
           }),
-          credentials: v.union(
-            [
-              v.object(
-                {
-                  type: v.literal('reference'),
-                  provider_auth_credentials_id: v.string({
-                    description: 'Existing credentials ID',
-                    examples: ['par_4sTuVwXyZaBcDeFg']
-                  })
-                },
-                { name: 'reference', description: 'Reference existing credentials by ID' }
-              ),
-              v.object(
-                {
-                  type: v.literal('new'),
-                  data: v.record(v.any(), {
-                    description: 'Authentication credentials',
-                    examples: [{ client_id: 'xxx', client_secret: 'xxx' }]
-                  })
-                },
-                { name: 'new', description: 'Provide credentials directly' }
-              )
-            ],
-            { description: 'Authentication credentials source' }
-          )
+          config: v.record(v.any(), {
+            description: 'Authentication config payload',
+            examples: [{ client_id: 'xxx', client_secret: 'xxx' }]
+          })
         })
       )
       .output(providerAuthConfigPresenter)
       .do(async ctx => {
+        let authMethod = await subspaceProviderAuthMethodService.get({
+          instance: ctx.instance,
+          providerAuthMethodId: ctx.body.provider_auth_method_id
+        });
+
         let authConfig = await subspaceProviderAuthConfigService.create({
           instance: ctx.instance,
+          providerId: authMethod.providerId,
           providerAuthMethodId: ctx.body.provider_auth_method_id,
           name: ctx.body.name,
           description: ctx.body.description,
-          credentials: ctx.body.credentials.type === 'new' ? ctx.body.credentials.data : {},
+          config: ctx.body.config,
           ip: ctx.context.ip,
           ua: ctx.context.ua ?? '',
           metadata: ctx.body.metadata

@@ -43,7 +43,6 @@ export class MetorialSessionsParticipantsEndpoint {
    * @name List session participants
    * @description Returns a paginated list of participants in a session.
    *
-   * @param `sessionId` - string
    * @param `query` - DashboardInstanceSessionsParticipantsListQuery
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceSessionsParticipantsListOutput
@@ -51,11 +50,10 @@ export class MetorialSessionsParticipantsEndpoint {
    * @see https://metorial.com/docs
    */
   list(
-    sessionId: string,
     query?: DashboardInstanceSessionsParticipantsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionsParticipantsListOutput> {
-    let path = `sessions/${sessionId}/participants`;
+    let path = 'session-participants';
 
     let request = {
       path,
@@ -75,7 +73,6 @@ export class MetorialSessionsParticipantsEndpoint {
    * @name Get session participant
    * @description Retrieves a specific participant in a session.
    *
-   * @param `sessionId` - string
    * @param `sessionParticipantId` - string
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceSessionsParticipantsGetOutput
@@ -83,11 +80,10 @@ export class MetorialSessionsParticipantsEndpoint {
    * @see https://metorial.com/docs
    */
   get(
-    sessionId: string,
     sessionParticipantId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionsParticipantsGetOutput> {
-    let path = `sessions/${sessionId}/participants/${sessionParticipantId}`;
+    let path = `session-participants/${sessionParticipantId}`;
 
     let request = {
       path,

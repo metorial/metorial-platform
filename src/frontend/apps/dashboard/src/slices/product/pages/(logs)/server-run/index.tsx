@@ -11,11 +11,7 @@ export let ServerRunPage = () => {
 
   return renderWithLoader({ serverRun })(({ serverRun }) => (
     <>
-      <ServerRunEvents
-        serverRun={
-          serverRun.data as unknown as Parameters<typeof ServerRunEvents>[0]['serverRun']
-        }
-      />
+      <ServerRunEvents serverRun={serverRun.data} />
     </>
   ));
 };

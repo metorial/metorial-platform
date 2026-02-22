@@ -4,6 +4,7 @@ export type DashboardInstanceProviderDeploymentsAuthCredentialsDeleteOutput = {
   object: 'provider.auth_credentials';
   id: string;
   type: 'oauth';
+  isDefault: boolean;
   name: string | null;
   description: string | null;
   metadata: Record<string, any> | null;
@@ -18,6 +19,7 @@ export let mapDashboardInstanceProviderDeploymentsAuthCredentialsDeleteOutput =
       object: mtMap.objectField('object', mtMap.passthrough()),
       id: mtMap.objectField('id', mtMap.passthrough()),
       type: mtMap.objectField('type', mtMap.passthrough()),
+      isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
       name: mtMap.objectField('name', mtMap.passthrough()),
       description: mtMap.objectField('description', mtMap.passthrough()),
       metadata: mtMap.objectField('metadata', mtMap.passthrough()),

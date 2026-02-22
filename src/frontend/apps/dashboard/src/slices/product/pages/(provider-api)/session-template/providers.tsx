@@ -1,7 +1,14 @@
+import {
+  DashboardInstanceProviderDeploymentsAuthConfigsListOutput,
+  DashboardInstanceProviderDeploymentsConfigsListQuery,
+  DashboardInstanceSessionTemplatesProvidersListOutput
+} from '@metorial/dashboard-sdk';
 import { renderWithLoader } from '@metorial/data-hooks';
 import {
   useCurrentInstance,
   useProviderAuthConfigs,
+  useProvider,
+  useProviderDeployment,
   useProviderConfigs,
   useProviderDeployments,
   useProviderListings,
@@ -26,7 +33,7 @@ import {
   theme
 } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Stepper } from '../../../scenes/stepper';
 
@@ -42,17 +49,8 @@ type Deployment = {
   } | null;
 };
 
-type TemplateProvider = {
-  id: string;
-  name: string | null;
-  description: string | null;
-  providerId: string;
-  providerDeploymentId: string | null;
-  providerDeploymentName: string | null;
-  providerConfigName: string | null;
-  providerAuthConfigName: string | null;
-  createdAt: Date;
-};
+type SessionTemplateProviderRow =
+  DashboardInstanceSessionTemplatesProvidersListOutput['items'][number];
 
 let AddProviderModalContent = ({
   instanceId,
@@ -77,30 +75,30 @@ let AddProviderModalContent = ({
   let [toolFilterMode, setToolFilterMode] = useState<'all' | 'select'>('all');
   let [selectedToolKeys, setSelectedToolKeys] = useState<string[]>([]);
 
+  let resetConfigurationState = () => {
+    setSelectedConfigId('');
+    setSelectedAuthConfigId('');
+    setToolFilterMode('all');
+    setSelectedToolKeys([]);
+    setError(null);
+  };
+
   let handleSave = async () => {
     setSaving(true);
     setError(null);
     try {
       await withAuth(sdk =>
-        sdk.sessionTemplates.providers.create(instanceId, sessionTemplateId, {
-          providerDeployment: {
-            type: 'reference' as const,
-            providerDeploymentId: selectedDeploymentId
-          },
+        sdk.sessionTemplates.providers.create(instanceId, {
+          sessionTemplateId,
+          providerDeploymentId: selectedDeploymentId,
           ...(selectedConfigId
             ? {
-                providerConfig: {
-                  type: 'reference' as const,
-                  providerConfigId: selectedConfigId
-                }
+                providerConfigId: selectedConfigId
               }
             : {}),
           ...(selectedAuthConfigId
             ? {
-                providerAuthConfig: {
-                  type: 'reference' as const,
-                  providerAuthConfigId: selectedAuthConfigId
-                }
+                providerAuthConfigId: selectedAuthConfigId
               }
             : {}),
           ...(toolFilterMode === 'select' && selectedToolKeys.length > 0
@@ -110,10 +108,32 @@ let AddProviderModalContent = ({
       );
       onComplete();
     } catch (e: unknown) {
+      let sdkError = e as {
+        response?: { code?: string; entityId?: string; message?: string };
+        data?: { code?: string; entityId?: string; message?: string };
+        message?: string;
+      };
+      let errorCode = sdkError.response?.code ?? sdkError.data?.code;
+      let entityId = sdkError.response?.entityId ?? sdkError.data?.entityId;
+
+      if (errorCode === 'use_after_delete' && entityId) {
+        if (entityId === selectedConfigId) {
+          setSelectedConfigId('');
+        }
+        if (entityId === selectedAuthConfigId) {
+          setSelectedAuthConfigId('');
+        }
+      }
+
       let message =
-        (e as { data?: { message?: string } })?.data?.message ||
-        (e as { message?: string })?.message ||
-        'Failed to add provider.';
+        errorCode === 'use_after_delete' && entityId === selectedConfigId
+          ? 'Selected provider config was deleted or archived. Choose another config or leave Config empty.'
+          : errorCode === 'use_after_delete' && entityId === selectedAuthConfigId
+            ? 'Selected auth config was deleted or archived. Choose another auth config or leave Auth Config empty.'
+            : sdkError.data?.message ||
+              sdkError.response?.message ||
+              sdkError.message ||
+              'Failed to add provider.';
       setError(message);
     } finally {
       setSaving(false);
@@ -134,6 +154,8 @@ let AddProviderModalContent = ({
               onSelect={(providerId, providerName) => {
                 setSelectedProviderId(providerId);
                 setSelectedProviderName(providerName);
+                setSelectedDeploymentId('');
+                resetConfigurationState();
                 setCurrentStep(1);
               }}
               onCancel={onCancel}
@@ -149,7 +171,10 @@ let AddProviderModalContent = ({
               providerId={selectedProviderId}
               providerName={selectedProviderName}
               selectedDeploymentId={selectedDeploymentId}
-              onSelect={setSelectedDeploymentId}
+              onSelect={deploymentId => {
+                setSelectedDeploymentId(deploymentId);
+                resetConfigurationState();
+              }}
               onBack={() => setCurrentStep(0)}
               onCancel={onCancel}
               onNext={() => setCurrentStep(2)}
@@ -339,10 +364,16 @@ let PickDeploymentStep = ({
   onNext: () => void;
 }) => {
   let deployments = useProviderDeployments(instanceId, { providerId });
+  let items = (deployments.data?.items ?? []) as Deployment[];
+  let singleDeploymentId = items.length === 1 ? items[0]?.id : null;
+
+  useEffect(() => {
+    if (singleDeploymentId && !selectedDeploymentId) {
+      onSelect(singleDeploymentId);
+    }
+  }, [onSelect, selectedDeploymentId, singleDeploymentId]);
 
   if (deployments.isLoading) return <CenteredSpinner />;
-
-  let items = (deployments.data?.items ?? []) as Deployment[];
 
   if (items.length === 0) {
     return (
@@ -360,10 +391,6 @@ let PickDeploymentStep = ({
         </Dialog.Actions>
       </Flex>
     );
-  }
-
-  if (items.length === 1 && !selectedDeploymentId) {
-    onSelect(items[0].id);
   }
 
   return (
@@ -501,21 +528,164 @@ let DeploymentConfigureStep = ({
 }) => {
   let configs = useProviderConfigs(instanceId, deploymentId);
   let authConfigs = useProviderAuthConfigs(instanceId, deploymentId);
-  let tools = useProviderTools(instanceId, providerId);
+  let deployment = useProviderDeployment(instanceId, deploymentId);
+  let provider = useProvider(instanceId, providerId);
+  let providerVersionId =
+    deployment.data?.lockedVersion?.id ?? provider.data?.currentVersion?.id ?? null;
+  let tools = useProviderTools(instanceId, providerVersionId);
+  let [fallbackConfigItems, setFallbackConfigItems] = useState<
+    Array<{ id: string; name: string | null }>
+  >([]);
+  let [isLoadingFallbackConfigs, setIsLoadingFallbackConfigs] = useState(false);
+  let [fallbackAuthConfigItems, setFallbackAuthConfigItems] = useState<
+    Array<{ id: string; name: string | null }>
+  >([]);
+  let [isLoadingFallbackAuthConfigs, setIsLoadingFallbackAuthConfigs] = useState(false);
 
-  let configItems = (configs.data?.items ?? []) as Array<{ id: string; name: string | null }>;
-  let authConfigItems = (authConfigs.data?.items ?? []) as Array<{
+  let scopedConfigItems = (configs.data?.items ?? []) as Array<{ id: string; name: string | null }>;
+  let configItems = scopedConfigItems.length > 0 ? scopedConfigItems : fallbackConfigItems;
+  let scopedAuthConfigItems = (authConfigs.data?.items ?? []) as Array<{
     id: string;
     name: string | null;
   }>;
+  let authConfigItems = scopedAuthConfigItems.length > 0 ? scopedAuthConfigItems : fallbackAuthConfigItems;
   let toolItems = (tools.data?.items ?? []) as Array<{
     id: string;
     name: string;
     title?: string | null;
     key?: string;
   }>;
+  let shouldLoadFallbackConfigs = !configs.isLoading && scopedConfigItems.length === 0;
+  let shouldLoadFallbackAuthConfigs = !authConfigs.isLoading && scopedAuthConfigItems.length === 0;
 
-  if (configs.isLoading || authConfigs.isLoading || tools.isLoading) {
+  useEffect(() => {
+    if (!instanceId || !providerId || !shouldLoadFallbackConfigs) {
+      setFallbackConfigItems([]);
+      setIsLoadingFallbackConfigs(false);
+      return;
+    }
+
+    let isCanceled = false;
+    setIsLoadingFallbackConfigs(true);
+
+    withAuth(sdk => {
+      let query: DashboardInstanceProviderDeploymentsConfigsListQuery = {
+        providerId,
+        status: ['active']
+      };
+      return sdk.providerDeployments.configs.list(instanceId, query);
+    })
+      .then(response => {
+        if (isCanceled) return;
+        setFallbackConfigItems(
+          ((response.items ?? []) as Array<{ id: string; name: string | null }>).map(item => ({
+            id: item.id,
+            name: item.name ?? null
+          }))
+        );
+      })
+      .catch(() => {
+        if (isCanceled) return;
+        setFallbackConfigItems([]);
+      })
+      .finally(() => {
+        if (isCanceled) return;
+        setIsLoadingFallbackConfigs(false);
+      });
+
+    return () => {
+      isCanceled = true;
+    };
+  }, [instanceId, providerId, shouldLoadFallbackConfigs]);
+
+  useEffect(() => {
+    if (!instanceId || !providerId || !shouldLoadFallbackAuthConfigs) {
+      setFallbackAuthConfigItems([]);
+      setIsLoadingFallbackAuthConfigs(false);
+      return;
+    }
+
+    let isCanceled = false;
+    setIsLoadingFallbackAuthConfigs(true);
+
+    withAuth(sdk =>
+      sdk.providerDeployments.authConfigs.list(instanceId, {
+        providerId
+      })
+    )
+      .then(response => {
+        if (isCanceled) return;
+        setFallbackAuthConfigItems(
+          ((response.items ?? []) as Array<{ id: string; name: string | null }>).map(item => ({
+            id: item.id,
+            name: item.name ?? null
+          }))
+        );
+      })
+      .catch(() => {
+        if (isCanceled) return;
+        setFallbackAuthConfigItems([]);
+      })
+      .finally(() => {
+        if (isCanceled) return;
+        setIsLoadingFallbackAuthConfigs(false);
+      });
+
+    return () => {
+      isCanceled = true;
+    };
+  }, [instanceId, providerId, shouldLoadFallbackAuthConfigs]);
+
+  useEffect(() => {
+    if (configs.isLoading || isLoadingFallbackConfigs || !selectedConfigId) return;
+    if (!configItems.some(item => item.id === selectedConfigId)) {
+      setSelectedConfigId('');
+    }
+  }, [
+    configs.isLoading,
+    isLoadingFallbackConfigs,
+    configItems,
+    selectedConfigId,
+    setSelectedConfigId
+  ]);
+
+  useEffect(() => {
+    if (configs.isLoading || isLoadingFallbackConfigs || selectedConfigId) return;
+    if (scopedConfigItems.length > 0) return;
+    if (fallbackConfigItems.length > 0) {
+      setSelectedConfigId(fallbackConfigItems[0].id);
+    }
+  }, [
+    configs.isLoading,
+    isLoadingFallbackConfigs,
+    scopedConfigItems,
+    fallbackConfigItems,
+    selectedConfigId,
+    setSelectedConfigId
+  ]);
+
+  useEffect(() => {
+    if (authConfigs.isLoading || isLoadingFallbackAuthConfigs || !selectedAuthConfigId) return;
+    if (!authConfigItems.some(item => item.id === selectedAuthConfigId)) {
+      setSelectedAuthConfigId('');
+    }
+  }, [
+    authConfigs.isLoading,
+    isLoadingFallbackAuthConfigs,
+    authConfigItems,
+    selectedAuthConfigId,
+    setSelectedAuthConfigId
+  ]);
+
+  if (
+    deployment.isLoading ||
+    configs.isLoading ||
+    isLoadingFallbackConfigs ||
+    authConfigs.isLoading ||
+    (deployment.data && !deployment.data.lockedVersion?.id && provider.isLoading) ||
+    tools.isLoading ||
+    isLoadingFallbackAuthConfigs
+  ) {
     return <CenteredSpinner />;
   }
 
@@ -663,7 +833,7 @@ export let showAddProviderModal = (p: {
 let showRemoveProviderModal = (p: {
   instanceId: string;
   sessionTemplateId: string;
-  provider: TemplateProvider;
+  provider: SessionTemplateProviderRow;
   displayName: string;
   onComplete: () => void;
 }) =>
@@ -691,11 +861,7 @@ let showRemoveProviderModal = (p: {
               setLoading(true);
               try {
                 await withAuth(sdk =>
-                  sdk.sessionTemplates.providers.delete(
-                    p.instanceId,
-                    p.sessionTemplateId,
-                    p.provider.id
-                  )
+                  sdk.sessionTemplates.providers.delete(p.instanceId, p.provider.id)
                 );
                 p.onComplete();
                 close();
@@ -721,6 +887,7 @@ let ProvidersTable = ({
   let providers = useSessionTemplateProviders(instanceId, sessionTemplateId);
   let listings = useProviderListings({});
   let deployments = useProviderDeployments(instanceId);
+  let [authConfigNameLookup, setAuthConfigNameLookup] = useState<Record<string, string>>({});
 
   let listingItems = listings.data?.items ?? [];
   let listingLookup: Record<string, { name: string; imageUrl: string }> = {};
@@ -738,10 +905,75 @@ let ProvidersTable = ({
   for (let d of deploymentItems) {
     if (d.name) deploymentLookup[d.id] = d.name;
   }
+  let items = providers.data?.items ?? [];
+  let authConfigLookupKey = items
+    .map(item => {
+      let authConfigId = item.authConfig?.id ?? null;
+      let providerId = item.providerId ?? null;
+
+      return authConfigId && providerId ? `${providerId}:${authConfigId}` : null;
+    })
+    .filter((v): v is string => !!v)
+    .sort()
+    .join('|');
+
+  useEffect(() => {
+    let rowsNeedingLookup = items.filter(item => {
+      let authConfigId = item.authConfig?.id ?? null;
+      let providerId = item.providerId ?? null;
+
+      return !!providerId && !!authConfigId;
+    });
+
+    if (!instanceId || rowsNeedingLookup.length === 0) {
+      setAuthConfigNameLookup(prev => (Object.keys(prev).length === 0 ? prev : {}));
+      return;
+    }
+
+    let cancelled = false;
+    let providerIds = Array.from(
+      new Set(
+        rowsNeedingLookup
+          .map(item => item.providerId ?? null)
+          .filter((v): v is string => !!v)
+      )
+    );
+
+    (async () => {
+      try {
+        let results = await Promise.all(
+          providerIds.map(providerId =>
+            withAuth(sdk =>
+              sdk.providerDeployments.authConfigs.list(instanceId, { providerId })
+            ).catch(() => null)
+          )
+        );
+
+        if (cancelled) return;
+
+        let nextLookup: Record<string, string> = {};
+        for (let result of results) {
+          let authConfigItems: DashboardInstanceProviderDeploymentsAuthConfigsListOutput['items'] =
+            result?.items ?? [];
+
+          for (let item of authConfigItems) {
+            nextLookup[item.id] =
+              item.name ?? (item.isDefault ? 'Default Auth Config' : 'Unnamed Auth Config');
+          }
+        }
+
+        setAuthConfigNameLookup(nextLookup);
+      } catch {
+        if (!cancelled) setAuthConfigNameLookup({});
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [instanceId, authConfigLookupKey]);
 
   if (providers.isLoading) return <CenteredSpinner />;
-
-  let items = (providers.data?.items ?? []) as TemplateProvider[];
 
   if (items.length === 0) {
     return (
@@ -816,15 +1048,21 @@ let ProvidersTable = ({
 
   return (
     <Table
-      headers={['Provider', 'Deployment', 'Config', 'Auth Credential', '']}
+      headers={['Provider', 'Deployment', 'Config', 'Auth Config', '']}
       data={items.map(provider => {
-        let listing = listingLookup[provider.providerId];
-        let providerName = provider.name ?? listing?.name ?? provider.providerId;
+        let providerId = provider.providerId;
+        let listing = providerId ? listingLookup[providerId] : undefined;
+        let providerName = listing?.name ?? providerId;
+        let deploymentId = provider.deployment.id;
         let deploymentName =
-          provider.providerDeploymentName ??
-          (provider.providerDeploymentId
-            ? (deploymentLookup[provider.providerDeploymentId] ?? null)
+          provider.deployment.name ??
+          (deploymentId
+            ? (deploymentLookup[deploymentId] ?? null)
             : null);
+        let configName = provider.config.name ?? null;
+        let configId = provider.config.id;
+        let authConfigId = provider.authConfig?.id ?? null;
+        let authConfigLabel = authConfigId ? (authConfigNameLookup[authConfigId] ?? null) : null;
 
         return {
           data: [
@@ -848,16 +1086,16 @@ let ProvidersTable = ({
               </Text>
             ),
 
-            provider.providerConfigName ? (
-              <Text size="2">{provider.providerConfigName}</Text>
+            configName || configId ? (
+              <Text size="2">{configName ?? configId}</Text>
             ) : (
               <Text size="2" color="gray500">
                 —
               </Text>
             ),
 
-            provider.providerAuthConfigName ? (
-              <Text size="2">{provider.providerAuthConfigName}</Text>
+            authConfigLabel ? (
+              <Text size="2">{authConfigLabel}</Text>
             ) : (
               <Text size="2" color="gray500">
                 —

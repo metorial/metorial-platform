@@ -1,4 +1,4 @@
-import { DashboardInstanceSessionsProvidersGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+import { DashboardInstanceSessionsProvidersGetOutput } from '@metorial/dashboard-sdk';
 import { renderWithLoader } from '@metorial/data-hooks';
 import { useCurrentInstance, useProviderRuns } from '@metorial/state';
 import { Button, theme } from '@metorial/ui';
@@ -125,7 +125,7 @@ export let ServerSession = ({
         )}
 
         <Header>
-          <span>{serverSession.name ?? 'Unknown'}</span>
+          <span>{serverSession.deployment?.name ?? serverSession.providerId ?? 'Unknown'}</span>
           <span>
             <ID id={serverSession.id} />
           </span>
@@ -160,18 +160,18 @@ export let ServerSession = ({
                 {
                   component: (
                     <Entry
-                      title={`Provider ${serverRun.name ?? serverRun.providerId ?? 'Unknown'} started`}
+                      title={`Provider ${serverRun.providerId ?? 'Unknown'} started`}
                       icon={<RiServerLine />}
-                      time={serverRun.startedAt ?? serverRun.createdAt}
+                      time={serverRun.createdAt}
                     />
                   ),
-                  time: serverRun.startedAt ?? serverRun.createdAt
+                  time: serverRun.createdAt
                 },
 
                 serverRun.completedAt && {
                   component: (
                     <Entry
-                      title={`Provider ${serverRun.name ?? serverRun.providerId ?? 'Unknown'} stopped`}
+                      title={`Provider ${serverRun.providerId ?? 'Unknown'} stopped`}
                       icon={<RiServerLine />}
                       time={serverRun.completedAt}
                     />

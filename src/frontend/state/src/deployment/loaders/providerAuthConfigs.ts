@@ -2,7 +2,7 @@ import {
   DashboardInstanceProviderDeploymentsAuthConfigsCreateBody,
   DashboardInstanceProviderDeploymentsAuthConfigsListQuery,
   DashboardInstanceProviderDeploymentsAuthConfigsUpdateBody
-} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+} from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
@@ -16,9 +16,7 @@ export let providerAuthConfigsLoader = createLoader({
       providerDeploymentId: string;
     } & DashboardInstanceProviderDeploymentsAuthConfigsListQuery
   ) =>
-    withAuth(sdk =>
-      sdk.providerDeployments.authConfigs.list(i.instanceId, i.providerDeploymentId, i)
-    ),
+    withAuth(sdk => sdk.providerDeployments.authConfigs.list(i.instanceId, i)),
   mutators: {}
 });
 
@@ -29,9 +27,7 @@ export let useCreateProviderAuthConfig = providerAuthConfigsLoader.createExterna
       providerDeploymentId: string;
     }
   ) =>
-    withAuth(sdk =>
-      sdk.providerDeployments.authConfigs.create(i.instanceId, i.providerDeploymentId, i)
-    ),
+    withAuth(sdk => sdk.providerDeployments.authConfigs.create(i.instanceId, i)),
   { disableToast: true }
 );
 
@@ -44,10 +40,10 @@ export let useProviderAuthConfigs = (
     providerAuthConfigsLoader.use(
       instanceId && providerDeploymentId
         ? {
-            instanceId,
-            providerDeploymentId,
             ...opts,
-            ...pagination
+            ...pagination,
+            instanceId,
+            providerDeploymentId
           }
         : null
     )
@@ -65,21 +61,16 @@ export let providerAuthConfigLoader = createLoader({
     providerAuthConfigId: string;
   }) =>
     withAuth(sdk =>
-      sdk.providerDeployments.authConfigs.get(
-        i.instanceId,
-        i.providerDeploymentId,
-        i.providerAuthConfigId
-      )
+      sdk.providerDeployments.authConfigs.get(i.instanceId, i.providerAuthConfigId)
     ),
   mutators: {
     update: (
       body: DashboardInstanceProviderDeploymentsAuthConfigsUpdateBody,
-      { input: { instanceId, providerDeploymentId, providerAuthConfigId } }
+      { input: { instanceId, providerAuthConfigId } }
     ) =>
       withAuth(sdk =>
         sdk.providerDeployments.authConfigs.update(
           instanceId,
-          providerDeploymentId,
           providerAuthConfigId,
           body
         )

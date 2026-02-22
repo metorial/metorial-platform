@@ -4,32 +4,44 @@ export type ManagementInstanceProvidersSpecificationsListOutput = {
   items: {
     object: 'provider.specification';
     id: string;
+    key: string;
     name: string;
     description: string | null;
-    configSchema: Record<string, any> | null;
+    configSchema: Record<string, any>;
+    configVisibility: 'encrypted' | 'plain';
     tools: {
       object: 'provider.tool';
       id: string;
+      key: string;
       name: string;
-      title: string | null;
       description: string | null;
-      inputSchema: Record<string, any> | null;
-      outputSchema: Record<string, any> | null;
+      capabilities: Record<string, any>;
+      constraints: string[];
+      instructions: string[];
+      inputSchema: { type: 'json_schema'; schema: Record<string, any> } | null;
+      outputSchema: { type: 'json_schema'; schema: Record<string, any> } | null;
+      tags: {
+        destructive?: boolean | undefined;
+        readOnly?: boolean | undefined;
+      } | null;
+      specificationId: string;
       providerId: string;
-      providerSpecificationId: string;
       createdAt: Date;
       updatedAt: Date;
     }[];
     authMethods: {
-      object: 'provider.auth_method';
+      object: 'provider.capabilities.auth_method';
       id: string;
       type: 'oauth' | 'token' | 'custom';
+      key: string;
       name: string;
       description: string | null;
-      inputSchema: Record<string, any> | null;
+      capabilities: Record<string, any>;
+      inputSchema: { type: 'json_schema'; schema: Record<string, any> } | null;
+      outputSchema: { type: 'json_schema'; schema: Record<string, any> } | null;
       scopes:
         | {
-            object: 'provider.auth_method.scope';
+            object: 'provider.capabilities.auth_method.scope';
             id: string;
             scope: string;
             name: string;
@@ -56,35 +68,68 @@ export let mapManagementInstanceProvidersSpecificationsListOutput =
         mtMap.object({
           object: mtMap.objectField('object', mtMap.passthrough()),
           id: mtMap.objectField('id', mtMap.passthrough()),
+          key: mtMap.objectField('key', mtMap.passthrough()),
           name: mtMap.objectField('name', mtMap.passthrough()),
           description: mtMap.objectField('description', mtMap.passthrough()),
           configSchema: mtMap.objectField('config_schema', mtMap.passthrough()),
+          configVisibility: mtMap.objectField(
+            'config_visibility',
+            mtMap.passthrough()
+          ),
           tools: mtMap.objectField(
             'tools',
             mtMap.array(
               mtMap.object({
                 object: mtMap.objectField('object', mtMap.passthrough()),
                 id: mtMap.objectField('id', mtMap.passthrough()),
+                key: mtMap.objectField('key', mtMap.passthrough()),
                 name: mtMap.objectField('name', mtMap.passthrough()),
-                title: mtMap.objectField('title', mtMap.passthrough()),
                 description: mtMap.objectField(
                   'description',
                   mtMap.passthrough()
                 ),
+                capabilities: mtMap.objectField(
+                  'capabilities',
+                  mtMap.passthrough()
+                ),
+                constraints: mtMap.objectField(
+                  'constraints',
+                  mtMap.array(mtMap.passthrough())
+                ),
+                instructions: mtMap.objectField(
+                  'instructions',
+                  mtMap.array(mtMap.passthrough())
+                ),
                 inputSchema: mtMap.objectField(
                   'input_schema',
-                  mtMap.passthrough()
+                  mtMap.object({
+                    type: mtMap.objectField('type', mtMap.passthrough()),
+                    schema: mtMap.objectField('schema', mtMap.passthrough())
+                  })
                 ),
                 outputSchema: mtMap.objectField(
                   'output_schema',
+                  mtMap.object({
+                    type: mtMap.objectField('type', mtMap.passthrough()),
+                    schema: mtMap.objectField('schema', mtMap.passthrough())
+                  })
+                ),
+                tags: mtMap.objectField(
+                  'tags',
+                  mtMap.object({
+                    destructive: mtMap.objectField(
+                      'destructive',
+                      mtMap.passthrough()
+                    ),
+                    readOnly: mtMap.objectField('readOnly', mtMap.passthrough())
+                  })
+                ),
+                specificationId: mtMap.objectField(
+                  'specification_id',
                   mtMap.passthrough()
                 ),
                 providerId: mtMap.objectField(
                   'provider_id',
-                  mtMap.passthrough()
-                ),
-                providerSpecificationId: mtMap.objectField(
-                  'provider_specification_id',
                   mtMap.passthrough()
                 ),
                 createdAt: mtMap.objectField('created_at', mtMap.date()),
@@ -99,14 +144,29 @@ export let mapManagementInstanceProvidersSpecificationsListOutput =
                 object: mtMap.objectField('object', mtMap.passthrough()),
                 id: mtMap.objectField('id', mtMap.passthrough()),
                 type: mtMap.objectField('type', mtMap.passthrough()),
+                key: mtMap.objectField('key', mtMap.passthrough()),
                 name: mtMap.objectField('name', mtMap.passthrough()),
                 description: mtMap.objectField(
                   'description',
                   mtMap.passthrough()
                 ),
+                capabilities: mtMap.objectField(
+                  'capabilities',
+                  mtMap.passthrough()
+                ),
                 inputSchema: mtMap.objectField(
                   'input_schema',
-                  mtMap.passthrough()
+                  mtMap.object({
+                    type: mtMap.objectField('type', mtMap.passthrough()),
+                    schema: mtMap.objectField('schema', mtMap.passthrough())
+                  })
+                ),
+                outputSchema: mtMap.objectField(
+                  'output_schema',
+                  mtMap.object({
+                    type: mtMap.objectField('type', mtMap.passthrough()),
+                    schema: mtMap.objectField('schema', mtMap.passthrough())
+                  })
                 ),
                 scopes: mtMap.objectField(
                   'scopes',
@@ -160,7 +220,13 @@ export type ManagementInstanceProvidersSpecificationsListQuery = {
   before?: string | undefined;
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
-} & {};
+} & {
+  id?: string | string[] | undefined;
+  providerId?: string | string[] | undefined;
+  providerVersionId?: string | string[] | undefined;
+  providerDeploymentId?: string | string[] | undefined;
+  providerConfigId?: string | string[] | undefined;
+};
 
 export let mapManagementInstanceProvidersSpecificationsListQuery = mtMap.union([
   mtMap.unionOption(
@@ -170,7 +236,57 @@ export let mapManagementInstanceProvidersSpecificationsListQuery = mtMap.union([
       after: mtMap.objectField('after', mtMap.passthrough()),
       before: mtMap.objectField('before', mtMap.passthrough()),
       cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough())
+      order: mtMap.objectField('order', mtMap.passthrough()),
+      id: mtMap.objectField(
+        'id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      providerId: mtMap.objectField(
+        'provider_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      providerVersionId: mtMap.objectField(
+        'provider_version_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      providerDeploymentId: mtMap.objectField(
+        'provider_deployment_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      providerConfigId: mtMap.objectField(
+        'provider_config_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      )
     })
   )
 ]);

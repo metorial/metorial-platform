@@ -1,4 +1,4 @@
-import { DashboardInstanceSessionsGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+import { DashboardInstanceSessionsGetOutput } from '@metorial/dashboard-sdk';
 import { renderWithLoader } from '@metorial/data-hooks';
 import {
   useCurrentInstance,
@@ -51,7 +51,11 @@ let ProviderSessionLogs = ({ session }: { session: DashboardInstanceSessionsGetO
     for (let conn of connections.data?.items ?? []) {
       let m = conn.mcp;
       if (!m) continue;
-      if (m.client?.name || m.server?.name || m.connectionType) return m;
+      return m as typeof m & {
+        client?: { name?: string; version?: string } | null;
+        server?: { name?: string; version?: string } | null;
+        connectionType?: string | null;
+      };
     }
     return undefined;
   }, [connections.data?.items]);
@@ -63,7 +67,7 @@ let ProviderSessionLogs = ({ session }: { session: DashboardInstanceSessionsGetO
     let items = messages.data?.items ?? [];
     let map = new Map<string, typeof items>();
     for (let msg of messages.data?.items ?? []) {
-      let connId = msg.serverSessionId ?? '__ungrouped';
+      let connId = msg.connectionId ?? '__ungrouped';
       let list = map.get(connId);
       if (!list) {
         list = [];
@@ -101,7 +105,7 @@ let ProviderSessionLogs = ({ session }: { session: DashboardInstanceSessionsGetO
     return connMessages.map(msg => ({
       component: (
         <Message
-          message={msg as Parameters<typeof Message>[0]['message']}
+          message={msg}
           aggregatedMessages={aggregatedMessages}
         />
       ),
@@ -159,8 +163,8 @@ let ProviderSessionLogs = ({ session }: { session: DashboardInstanceSessionsGetO
   };
 
   // Get provider name from session deployments
-  let providers = session.providerDeployments ?? [];
-  let providerName = providers[0]?.name ?? undefined;
+  let providers = session.providers ?? [];
+  let providerName = providers[0]?.deployment?.name ?? undefined;
 
   let isLoading = connections.isLoading || messages.isLoading || events.isLoading;
 
@@ -217,7 +221,7 @@ let ProviderSessionLogs = ({ session }: { session: DashboardInstanceSessionsGetO
             component: (
               <Entry
                 icon={<RiCornerUpRightDoubleLine />}
-                title={`Provider ${dep.name ?? dep.providerId ?? 'Unknown'} connected`}
+                title={`Provider ${dep.deployment?.name ?? dep.providerId ?? 'Unknown'} connected`}
                 time={session.createdAt}
               />
             ),
@@ -227,7 +231,10 @@ let ProviderSessionLogs = ({ session }: { session: DashboardInstanceSessionsGetO
           ...connectionItems.map(connection => ({
             component: (
               <ProviderConnection
-                connection={connection}
+                connection={{
+                  ...connection,
+                  startedAt: connection.createdAt
+                }}
                 providerName={providerName}
                 messageItems={buildMessageItems(connection.id)}
                 eventItems={buildEventItems(connection.id)}

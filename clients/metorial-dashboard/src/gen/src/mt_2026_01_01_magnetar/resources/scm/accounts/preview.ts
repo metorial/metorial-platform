@@ -2,8 +2,8 @@ import { mtMap } from '@metorial/util-resource-mapper';
 
 export type ScmAccountsPreviewOutput = {
   items: {
-    object: 'scm.account_preview';
-    provider: string;
+    object: 'scm.account#preview';
+    provider: 'github' | 'gitlab';
     externalId: string;
     name: string;
     identifier: string;

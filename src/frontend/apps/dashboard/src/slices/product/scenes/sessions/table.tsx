@@ -1,7 +1,7 @@
 import {
   DashboardInstanceSessionsGetOutput,
   DashboardInstanceSessionsListQuery
-} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+} from '@metorial/dashboard-sdk';
 import { renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 
@@ -10,23 +10,26 @@ import { Badge, RenderDate, Text, theme } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
 
 export let SessionConnectionStatusBadge = ({
-  session
+  connectionStatus
 }: {
-  session: Pick<DashboardInstanceSessionsGetOutput, 'connectionStatus'>;
+  connectionStatus: DashboardInstanceSessionsGetOutput['connectionState'] | undefined;
 }) => {
+  let colorByState: Record<string, 'blue' | 'gray'> = {
+    connected: 'blue',
+    disconnected: 'gray'
+  };
+  let labelByState: Record<string, string> = {
+    connected: 'Connected',
+    disconnected: 'Disconnected'
+  };
+
+  if (!connectionStatus) {
+    return <Badge color="gray">Unknown</Badge>;
+  }
+
   return (
-    <Badge
-      color={
-        {
-          connected: 'blue' as const,
-          disconnected: 'gray' as const
-        }[session.connectionStatus]
-      }
-    >
-      {{
-        connected: 'Connected',
-        disconnected: 'Disconnected'
-      }[session.connectionStatus] ?? session.connectionStatus}
+    <Badge color={colorByState[connectionStatus] ?? 'gray'}>
+      {labelByState[connectionStatus] ?? connectionStatus}
     </Badge>
   );
 };
@@ -44,10 +47,12 @@ export let SessionsTable = (filter: DashboardInstanceSessionsListQuery) => {
         headers={['Status', 'Deployments', 'Name', 'Created']}
         data={sessions.data.items.map(session => ({
           data: [
-            <SessionConnectionStatusBadge session={session} />,
+            <SessionConnectionStatusBadge
+              connectionStatus={session.connectionState}
+            />,
             <Text size="2" weight="strong">
-              {session.providerDeployments
-                ?.map(s => s.name ?? s.providerId ?? 'Unknown')
+              {session.providers
+                ?.map(s => s.deployment?.name ?? s.providerId ?? 'Unknown')
                 .join(', ') || 'No deployments'}
             </Text>,
             <Text size="2">

@@ -1,7 +1,7 @@
 import {
   DashboardInstanceCustomProvidersVersionsCreateBody,
   DashboardInstanceCustomProvidersVersionsListQuery
-} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+} from '@metorial/dashboard-sdk';
 import { createLoader, useMutation } from '@metorial/data-hooks';
 import { useEffect, useRef } from 'react';
 import { usePaginator } from '../../lib/usePaginator';
@@ -15,7 +15,13 @@ export let customServerVersionsLoader = createLoader({
       instanceId: string;
       customServerId: string;
     } & DashboardInstanceCustomProvidersVersionsListQuery
-  ) => withAuth(sdk => sdk.customProviders.versions.list(i.instanceId, i.customServerId, i)),
+  ) =>
+    withAuth(sdk =>
+      sdk.customProviders.versions.list(i.instanceId, {
+        ...i,
+        customProviderId: i.customServerId
+      })
+    ),
   mutators: {}
 });
 
@@ -25,7 +31,13 @@ export let useCreateCustomServerVersion = customServerVersionsLoader.createExter
       instanceId: string;
       customServerId: string;
     }
-  ) => withAuth(sdk => sdk.customProviders.versions.create(i.instanceId, i.customServerId, i))
+  ) =>
+    withAuth(sdk =>
+      sdk.customProviders.versions.create(i.instanceId, {
+        ...i,
+        customProviderId: i.customServerId
+      })
+    )
 );
 
 export let useListServerVersions = () =>
@@ -35,7 +47,13 @@ export let useListServerVersions = () =>
         instanceId: string;
         customServerId: string;
       }
-    ) => withAuth(sdk => sdk.customProviders.versions.list(i.instanceId, i.customServerId, i))
+    ) =>
+      withAuth(sdk =>
+        sdk.customProviders.versions.list(i.instanceId, {
+          ...i,
+          customProviderId: i.customServerId
+        })
+      )
   );
 
 export let useCustomServerVersions = (
@@ -70,9 +88,7 @@ export let customServerVersionLoader = createLoader({
   name: 'customServerVersion',
   parents: [customServerVersionsLoader],
   fetch: (i: { instanceId: string; customServerId: string; customServerVersionId: string }) =>
-    withAuth(sdk =>
-      sdk.customProviders.versions.get(i.instanceId, i.customServerId, i.customServerVersionId)
-    ),
+    withAuth(sdk => sdk.customProviders.versions.get(i.instanceId, i.customServerVersionId)),
   mutators: {}
 });
 

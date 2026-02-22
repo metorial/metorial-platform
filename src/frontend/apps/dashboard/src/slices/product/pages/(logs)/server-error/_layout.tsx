@@ -39,7 +39,7 @@ export let ServerErrorLayout = () => {
             href: Paths.instance.providerErrors(organization.data, project.data, instance.data)
           },
           {
-            label: error.data?.type ?? error.data?.name ?? 'Error',
+            label: error.data?.code ?? 'Error',
             href: Paths.instance.providerError(...serverPathParams)
           }
         ]}
@@ -67,10 +67,10 @@ export let ServerErrorLayout = () => {
             { label: 'First Seen', value: <RenderDate date={error.data.createdAt} /> },
             {
               label: 'Occurrences',
-              value: error.data.count ?? '—'
+              value: error.data.occurrenceCount ?? '—'
             },
-            { label: 'Type', value: error.data.type ?? '—' },
-            { label: 'Name', value: error.data.name ?? '—' }
+            { label: 'Code', value: error.data.code ?? '—' },
+            { label: 'Provider', value: error.data.providerId ?? '—' }
           ]}
         >
           <Outlet />

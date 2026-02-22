@@ -1,7 +1,7 @@
 import { mtMap } from '@metorial/util-resource-mapper';
 
 export type DashboardInstanceProviderGroupsRemoveListingOutput = {
-  object: 'provider.group';
+  object: 'provider.listing_group';
   id: string;
   name: string;
   description: string | null;

@@ -6,8 +6,7 @@ import {
 } from '@metorial/state';
 import { Attributes, Button, RenderDate, Spacer } from '@metorial/ui';
 import { ID, SideBox } from '@metorial/ui-product';
-import { useEffect, useRef } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { ProviderAuthConfigsTable } from '../../../scenes/providerAuthConfigs/table';
 import { showProviderSetupSessionModal } from '../../../scenes/providerDeployments/setupSessionModal';
 
@@ -16,31 +15,10 @@ export let ProviderDeploymentOverviewPage = () => {
 
   let { providerDeploymentId } = useParams();
   let deployment = useProviderDeployment(instance.data?.id, providerDeploymentId);
-  let [searchParams, setSearchParams] = useSearchParams();
   let authConfigs = useProviderAuthConfigs(
     instance.data?.id,
     deployment.data?.id ?? providerDeploymentId
   );
-  let setupOpenedRef = useRef(false);
-
-  useEffect(() => {
-    if (searchParams.get('auth') !== 'setup') return;
-    if (setupOpenedRef.current) return;
-    if (!instance.data || !deployment.data) return;
-
-    setupOpenedRef.current = true;
-
-    let nextSearch = new URLSearchParams(searchParams);
-    nextSearch.delete('auth');
-    setSearchParams(nextSearch, { replace: true });
-
-    showProviderSetupSessionModal({
-      instanceId: instance.data.id,
-      providerId: deployment.data.providerId,
-      deploymentId: deployment.data.id,
-      onComplete: () => authConfigs.refetch?.()
-    });
-  }, [searchParams, setSearchParams, instance.data, deployment.data, authConfigs]);
 
   return renderWithLoader({ deployment })(({ deployment }) => (
     <>
@@ -53,7 +31,7 @@ export let ProviderDeploymentOverviewPage = () => {
           },
           {
             label: 'Provider',
-            content: deployment.data.provider?.name ?? deployment.data.providerId
+            content: deployment.data.providerId
           },
           {
             label: 'ID',

@@ -1,7 +1,6 @@
 import {
-  DashboardInstanceProviderRunsListQuery,
-  DashboardInstanceSessionsProviderRunsListQuery
-} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+  DashboardInstanceProviderRunsListQuery
+} from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
@@ -20,7 +19,7 @@ export let useAllProviderRuns = (
   query?: DashboardInstanceProviderRunsListQuery
 ) => {
   let data = usePaginator(pagination =>
-    allProviderRunsLoader.use(instanceId ? { instanceId, ...pagination, ...query } : null)
+    allProviderRunsLoader.use(instanceId ? { ...pagination, ...query, instanceId } : null)
   );
 
   return data;
@@ -34,19 +33,27 @@ export let providerRunsLoader = createLoader({
     i: {
       instanceId: string;
       sessionId: string;
-    } & DashboardInstanceSessionsProviderRunsListQuery
-  ) => withAuth(sdk => sdk.sessions.providerRuns.list(i.instanceId, i.sessionId, i)),
+    } & DashboardInstanceProviderRunsListQuery
+  ) =>
+    withAuth(sdk =>
+      sdk.providerRuns.list(i.instanceId, {
+        ...i,
+        sessionId: i.sessionId
+      })
+    ),
   mutators: {}
 });
 
 export let useProviderRuns = (
   instanceId: string | null | undefined,
   sessionId: string | null | undefined,
-  query?: DashboardInstanceSessionsProviderRunsListQuery
+  query?: DashboardInstanceProviderRunsListQuery
 ) => {
   let data = usePaginator(pagination =>
     providerRunsLoader.use(
-      instanceId && sessionId ? { instanceId, sessionId, ...pagination, ...query } : null
+      instanceId && sessionId
+        ? { ...pagination, ...query, instanceId, sessionId }
+        : null
     )
   );
 

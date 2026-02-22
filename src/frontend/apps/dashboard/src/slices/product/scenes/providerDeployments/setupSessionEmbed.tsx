@@ -1,5 +1,7 @@
 import {
   useCreateProviderAuthCredentials,
+  useProviderDeployment,
+  useProvider,
   useCreateProviderSetupSession,
   useGetProviderSetupSession,
   useProviderAuthCredentials,
@@ -46,12 +48,16 @@ export let ProviderSetupSessionEmbed = ({
   onCancel?: () => void;
   cancelLabel?: string;
 }) => {
-  let authMethods = useProviderAuthMethods(instanceId, providerId);
-  let authCredentials = useProviderAuthCredentials(instanceId, deploymentId);
+  let deployment = useProviderDeployment(instanceId, deploymentId);
+  let lockedVersionId = deployment.data?.lockedVersion?.id;
+  let provider = useProvider(instanceId, providerId);
+  let effectiveVersionId = lockedVersionId ?? provider.data?.currentVersion?.id;
+  let authMethods = useProviderAuthMethods(instanceId, effectiveVersionId);
+  let authCredentials = useProviderAuthCredentials(instanceId, providerId);
 
   let createCredentials = useCreateProviderAuthCredentials();
-  let createSetupSession = useCreateProviderSetupSession(instanceId, deploymentId);
-  let getSetupSession = useGetProviderSetupSession(instanceId, deploymentId);
+  let createSetupSession = useCreateProviderSetupSession(instanceId, providerId, deploymentId);
+  let getSetupSession = useGetProviderSetupSession(instanceId);
 
   let [selectedMethodId, setSelectedMethodId] = useState<string>('');
   let [selectedCredentialsId, setSelectedCredentialsId] = useState<string>('');
@@ -65,6 +71,7 @@ export let ProviderSetupSessionEmbed = ({
   let pollingRef = useRef(false);
   let onCompleteRef = useRef(onComplete);
   let getSetupSessionRef = useRef(getSetupSession);
+  let setupWindowRef = useRef<Window | null>(null);
 
   useEffect(() => {
     onCompleteRef.current = onComplete;
@@ -74,10 +81,31 @@ export let ProviderSetupSessionEmbed = ({
     getSetupSessionRef.current = getSetupSession;
   }, [getSetupSession]);
 
+  let openSetupWindow = (url: string) => {
+    if (typeof window === 'undefined') return false;
+
+    let popup = setupWindowRef.current;
+    if (!popup || popup.closed) {
+      popup = window.open('', 'metorial_provider_setup', 'popup,width=560,height=760');
+      setupWindowRef.current = popup;
+    }
+
+    if (!popup) return false;
+
+    try {
+      popup.location.href = url;
+      popup.focus();
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
   // New credentials form state
   let [newCredName, setNewCredName] = useState('');
   let [newCredClientId, setNewCredClientId] = useState('');
   let [newCredClientSecret, setNewCredClientSecret] = useState('');
+  let [setupWindowBlocked, setSetupWindowBlocked] = useState(false);
 
   let selectedMethod = useMemo(
     () =>
@@ -90,19 +118,12 @@ export let ProviderSetupSessionEmbed = ({
   let isOAuth = selectedMethod?.type === 'oauth';
 
   let hasSingleMethod = (authMethods.data?.items?.length ?? 0) === 1;
-  let connectStepIndex = isOAuth ? 2 : 1;
 
   useEffect(() => {
     if (!selectedMethodId && hasSingleMethod) {
       setSelectedMethodId(authMethods.data!.items![0].id);
     }
   }, [selectedMethodId, hasSingleMethod, authMethods.data?.items]);
-
-  useEffect(() => {
-    if (selectedMethodId) {
-      setStep(hasSingleMethod ? connectStepIndex : 0);
-    }
-  }, [selectedMethodId, hasSingleMethod, connectStepIndex]);
 
   let handleCreateCredentials = async (): Promise<boolean> => {
     if (!newCredName || !newCredClientId || !newCredClientSecret) return false;
@@ -112,7 +133,7 @@ export let ProviderSetupSessionEmbed = ({
 
     let [result, err] = await createCredentials.mutate({
       instanceId,
-      providerDeploymentId: deploymentId,
+      providerId,
       name: newCredName,
       config: {
         type: 'oauth',
@@ -142,7 +163,16 @@ export let ProviderSetupSessionEmbed = ({
     if (!selectedMethodId) return;
 
     setError(null);
+    setSetupWindowBlocked(false);
     setIsStarting(true);
+
+    if (isOAuth && typeof window !== 'undefined') {
+      setupWindowRef.current = window.open(
+        '',
+        'metorial_provider_setup',
+        'popup,width=560,height=760'
+      );
+    }
 
     let [session, err] = await createSetupSession.mutate({
       providerAuthMethodId: selectedMethodId,
@@ -152,6 +182,10 @@ export let ProviderSetupSessionEmbed = ({
     setIsStarting(false);
 
     if (err) {
+      if (setupWindowRef.current && !setupWindowRef.current.closed) {
+        setupWindowRef.current.close();
+      }
+      setupWindowRef.current = null;
       console.error('Failed to create setup session:', err);
       setError(err.data?.message || 'Failed to create setup session');
       return;
@@ -161,6 +195,11 @@ export let ProviderSetupSessionEmbed = ({
       completedRef.current = false;
       pollingRef.current = false;
       setSetupSession(session as SetupSession);
+
+      if (session.url) {
+        let opened = openSetupWindow(session.url);
+        setSetupWindowBlocked(!opened);
+      }
     }
   };
 
@@ -215,11 +254,84 @@ export let ProviderSetupSessionEmbed = ({
     };
   }, [setupSession?.id]);
 
-  if (authMethods.isLoading || authCredentials.isLoading) {
+  if (
+    deployment.isLoading ||
+    (!lockedVersionId && provider.isLoading) ||
+    (effectiveVersionId ? authMethods.isLoading : false) ||
+    authCredentials.isLoading
+  ) {
     return (
       <Text size="2" color="gray600">
         Loading authentication methods...
       </Text>
+    );
+  }
+
+  if (deployment.error) {
+    return (
+      <Flex direction="column" gap={8}>
+        <Text size="2" color="red500">
+          {deployment.error.message ?? 'Failed to load deployment.'}
+        </Text>
+        {onCancel && (
+          <Button variant="outline" onClick={onCancel}>
+            {cancelLabel}
+          </Button>
+        )}
+      </Flex>
+    );
+  }
+
+  if (!deployment.data) {
+    return (
+      <Text size="2" color="gray600">
+        Loading deployment details...
+      </Text>
+    );
+  }
+
+  if (!lockedVersionId && provider.error) {
+    return (
+      <Flex direction="column" gap={8}>
+        <Text size="2" color="red500">
+          {provider.error.message ?? 'Failed to load provider details.'}
+        </Text>
+        {onCancel && (
+          <Button variant="outline" onClick={onCancel}>
+            {cancelLabel}
+          </Button>
+        )}
+      </Flex>
+    );
+  }
+
+  if (!effectiveVersionId) {
+    return (
+      <Flex direction="column" gap={8}>
+        <Text size="2" color="gray600">
+          No provider version is available yet, so authentication cannot be configured.
+        </Text>
+        {onCancel && (
+          <Button variant="outline" onClick={onCancel}>
+            {cancelLabel}
+          </Button>
+        )}
+      </Flex>
+    );
+  }
+
+  if (authMethods.error) {
+    return (
+      <Flex direction="column" gap={8}>
+        <Text size="2" color="red500">
+          {authMethods.error.message ?? 'Failed to load authentication methods.'}
+        </Text>
+        {onCancel && (
+          <Button variant="outline" onClick={onCancel}>
+            {cancelLabel}
+          </Button>
+        )}
+      </Flex>
     );
   }
 
@@ -267,12 +379,21 @@ export let ProviderSetupSessionEmbed = ({
     );
   }
 
-  let steps = useMemo(() => {
+  let steps = (() => {
     let methodStep = {
       title: 'Method',
       subtitle: 'Select auth method',
       render: () => (
         <>
+          {!lockedVersionId && (
+            <>
+              <Text size="1" color="gray600">
+                This deployment is not pinned. Authentication methods are being loaded from the
+                provider&apos;s current version.
+              </Text>
+              <Spacer size={6} />
+            </>
+          )}
           <Select
             label="Authentication Method"
             value={selectedMethodId}
@@ -427,29 +548,36 @@ export let ProviderSetupSessionEmbed = ({
           return (
             <>
               <Text size="2" weight="strong">
-                Complete authentication
+                Continue in the authentication window
               </Text>
               <Text size="2" color="gray600">
-                Finish the setup below. This window will update once authentication completes.
+                Complete the provider sign-in flow in the popup window. This modal will update
+                automatically when authentication finishes.
               </Text>
-              <Spacer size={5} />
-              <iframe
-                title="Provider Setup"
-                src={setupSession.url}
-                style={{
-                  width: '100%',
-                  height: 560,
-                  borderRadius: 8,
-                  border: '1px solid var(--color-gray300)'
-                }}
-              />
+              {setupWindowBlocked && (
+                <>
+                  <Spacer size={5} />
+                  <Text size="2" color="red600">
+                    The popup window was blocked by your browser. Open it manually to continue.
+                  </Text>
+                </>
+              )}
               <Spacer size={8} />
               <Flex gap={8}>
+                <Button
+                  onClick={() => {
+                    let opened = openSetupWindow(setupSession.url!);
+                    setSetupWindowBlocked(!opened);
+                  }}
+                >
+                  Open Authentication Window
+                </Button>
                 <Button
                   variant="outline"
                   onClick={() => {
                     setSetupSession(null);
                     pollingRef.current = false;
+                    setSetupWindowBlocked(false);
                   }}
                 >
                   Change Method
@@ -473,13 +601,22 @@ export let ProviderSetupSessionEmbed = ({
         }
         return (
           <>
+            <Text size="2" weight="strong">
+              {isOAuth ? 'Start OAuth authentication' : 'Start setup'}
+            </Text>
+            <Text size="2" color="gray600">
+              {isOAuth
+                ? 'A separate authentication window will open so you can authorize this deployment.'
+                : 'Start the setup session for this authentication method.'}
+            </Text>
+            <Spacer size={6} />
             <Button
               type="button"
               onClick={handleStartSetup}
               loading={isStarting || createSetupSession.isPending}
               disabled={!selectedMethodId}
             >
-              {isOAuth ? 'Connect with OAuth' : 'Start Setup'}
+              {isOAuth ? 'Open Authentication Window' : 'Start Setup'}
             </Button>
             {error && (
               <>
@@ -519,20 +656,7 @@ export let ProviderSetupSessionEmbed = ({
         subtitle: 'Start setup'
       }
     ];
-  }, [
-    selectedMethodId,
-    selectedMethod,
-    selectedCredentialsId,
-    isCreatingCredentials,
-    newCredName,
-    newCredClientId,
-    newCredClientSecret,
-    setupSession,
-    error,
-    isOAuth,
-    authMethods.data?.items,
-    authCredentials.data?.items
-  ]);
+  })();
 
   return <Stepper steps={steps} currentStep={step} setCurrentStep={setStep} />;
 };

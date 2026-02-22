@@ -23,8 +23,8 @@ let ProviderDeploymentsPage = dynamicPage(() =>
   )
 );
 let ProviderAuthConfigsOverviewPage = dynamicPage(() =>
-  import('./pages/(provider-api)/(list)/provider-auth-credentials').then(
-    c => c.ProviderAuthCredentialsOverviewPage
+  import('./pages/(provider-api)/(list)/provider-auth-configs').then(
+    c => c.ProviderAuthConfigsOverviewPage
   )
 );
 let ProviderAuthCredentialsOverviewPage = dynamicPage(() =>

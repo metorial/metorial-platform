@@ -1,4 +1,4 @@
-import { DashboardInstanceScmReposCreateOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+import { DashboardInstanceScmReposCreateOutput } from '@metorial/dashboard-sdk';
 import { renderWithLoader } from '@metorial/data-hooks';
 import { getConfig, Paths } from '@metorial/frontend-config';
 import {
@@ -71,21 +71,8 @@ export let CustomServerCodePage = () => {
 
   let url = useMemo(() => {
     if (!editorToken.data) return null;
-
-    let token = editorToken.data?.token ?? '';
-
-    // If the token is already a full URL (from subspace bucket editor), use it directly
-    if (token.startsWith('http://') || token.startsWith('https://')) {
-      return token;
-    }
-
-    let baseUrl = getConfig().microFrontends?.codeEditorUrl;
-    if (!baseUrl) return null;
-
-    let url = new URL(baseUrl);
-    url.searchParams.set('token', token);
-    url.searchParams.set('id', editorToken.data?.id ?? '');
-    return url.toString();
+    if (editorToken.data.url) return editorToken.data.url;
+    return getConfig().microFrontends?.codeEditorUrl ?? null;
   }, [editorToken.data]);
 
   let createVersion = useCreateCustomServerVersion();
@@ -95,6 +82,7 @@ export let CustomServerCodePage = () => {
     let [version] = await createVersion.mutate({
       instanceId: instance.data!.id,
       customServerId: customServer.data!.id,
+      customProviderId: customServer.data!.id,
       from: {
         type: 'function',
         files: [],
@@ -199,6 +187,7 @@ export let CustomServerCodePage = () => {
                             let [res] = await createVersion.mutate({
                               instanceId: instance.data!.id,
                               customServerId: customServer.data!.id,
+                              customProviderId: customServer.data!.id,
                               from: {
                                 type: 'function',
                                 files: [],

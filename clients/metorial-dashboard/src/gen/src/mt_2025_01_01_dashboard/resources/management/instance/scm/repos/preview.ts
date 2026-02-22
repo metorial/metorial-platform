@@ -2,18 +2,11 @@ import { mtMap } from '@metorial/util-resource-mapper';
 
 export type ManagementInstanceScmReposPreviewOutput = {
   items: {
-    object: 'scm.repo_preview';
-    provider: string;
+    object: 'scm.repository#preview';
+    provider: 'github' | 'gitlab';
     externalId: string;
     name: string;
     identifier: string;
-    lastPushedAt: Date | null;
-    account: {
-      externalId: string;
-      name: string;
-      identifier: string;
-      provider: string;
-    } | null;
   }[];
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
@@ -28,17 +21,7 @@ export let mapManagementInstanceScmReposPreviewOutput =
           provider: mtMap.objectField('provider', mtMap.passthrough()),
           externalId: mtMap.objectField('external_id', mtMap.passthrough()),
           name: mtMap.objectField('name', mtMap.passthrough()),
-          identifier: mtMap.objectField('identifier', mtMap.passthrough()),
-          lastPushedAt: mtMap.objectField('last_pushed_at', mtMap.date()),
-          account: mtMap.objectField(
-            'account',
-            mtMap.object({
-              externalId: mtMap.objectField('external_id', mtMap.passthrough()),
-              name: mtMap.objectField('name', mtMap.passthrough()),
-              identifier: mtMap.objectField('identifier', mtMap.passthrough()),
-              provider: mtMap.objectField('provider', mtMap.passthrough())
-            })
-          )
+          identifier: mtMap.objectField('identifier', mtMap.passthrough())
         })
       )
     ),

@@ -1,7 +1,8 @@
 import {
   useCurrentInstance,
   useCreateProviderConfig,
-  useProviderConfigSchema
+  useProviderConfigSchema,
+  useProviderDeployment
 } from '@metorial/state';
 import { Button, CenteredSpinner, Dialog, Input, Spacer, Text } from '@metorial/ui';
 import { JSONSchema7 } from 'json-schema';
@@ -21,6 +22,7 @@ export let ProviderConfigForm = (
 ) => {
   let instance = useCurrentInstance();
   let createMutation = useCreateProviderConfig();
+  let deployment = useProviderDeployment(instance.data?.id, props.providerDeploymentId);
 
   // Fetch config schema for the provider deployment
   let configSchema = useProviderConfigSchema(instance.data?.id, props.providerDeploymentId);
@@ -30,6 +32,7 @@ export let ProviderConfigForm = (
   let [configData, setConfigData] = useState<Record<string, any>>({});
 
   let hasSchema = configSchema.data?.schema && typeof configSchema.data.schema === 'object';
+  let jsonSchema = configSchema.data?.schema?.schema;
 
   let handleSubmit = async () => {
     if (!instance.data) return;
@@ -49,7 +52,8 @@ export let ProviderConfigForm = (
         providerDeploymentId: props.providerDeploymentId,
         name,
         description: description || undefined,
-        config: { type: 'new', data: parsedConfig }
+        providerId: deployment.data!.providerId,
+        config: { type: 'inline', data: parsedConfig }
       });
 
       if (!result) return;
@@ -80,7 +84,7 @@ export let ProviderConfigForm = (
           <Spacer size={10} />
 
           <JsonSchemaInput
-            schema={configSchema.data!.schema as JSONSchema7}
+            schema={(jsonSchema ?? {}) as JSONSchema7}
             value={configData}
             onChange={setConfigData}
             label="Configuration"

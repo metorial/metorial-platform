@@ -22,22 +22,20 @@ import { Skills } from './components/skills';
 
 export let ProviderOverviewPage = () => {
   let instance = useCurrentInstance();
-  let { selectedVersionId, selectedVersion } = useProviderVersionContext();
+  let { selectedVersionId, selectedVersion, isDefaultVersion } = useProviderVersionContext();
 
   let { providerId } = useParams();
   let provider = useProvider(instance.data?.id, providerId);
 
   // Fetch the listing for rich metadata (skills, readme, etc.)
   let listings = useProviderListings(
-    providerId
-      ? {
-          providerId,
-          providerVersionId: selectedVersionId,
-          limit: 1
-        }
-      : null
+    providerId ? { limit: 100 } : null
   );
-  let listing = listings?.data?.items?.[0];
+  let listing = (listings?.data?.items ?? []).find(
+    item =>
+      item.provider?.id === providerId &&
+      (!selectedVersionId || item.provider?.currentVersion?.id === selectedVersionId)
+  );
 
   let apiKeys = useApiKeysWithAutoInit(
     instance.data
@@ -70,7 +68,7 @@ export let ProviderOverviewPage = () => {
 
   let deployments = useProviderDeployments(instance.data?.id, {
     providerId: provider.data?.id,
-    providerVersionId: selectedVersionId
+    ...(!isDefaultVersion && selectedVersionId ? { providerVersionId: selectedVersionId } : {})
   });
   let [providerDeployment, setProviderDeployment] = useState(() => deployments.data?.items[0]);
   useEffect(() => {
@@ -126,9 +124,9 @@ export let ProviderOverviewPage = () => {
               type: 'create',
               providerId: provider.data.id,
               providerName: provider.data.name,
-              ...(selectedVersionId
+              ...(!isDefaultVersion && selectedVersion
                 ? {
-                    lockedProviderVersionId: selectedVersionId,
+                    lockedProviderVersionId: selectedVersion.id,
                     lockedProviderVersionLabel: selectedVersion?.version
                   }
                 : {})

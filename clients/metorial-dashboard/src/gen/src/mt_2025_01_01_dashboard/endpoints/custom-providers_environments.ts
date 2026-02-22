@@ -43,7 +43,6 @@ export class MetorialCustomProvidersEnvironmentsEndpoint {
    * @name List custom provider environments
    * @description Returns a paginated list of environments for a custom provider.
    *
-   * @param `customProviderId` - string
    * @param `query` - DashboardInstanceCustomProvidersEnvironmentsListQuery
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceCustomProvidersEnvironmentsListOutput
@@ -51,11 +50,10 @@ export class MetorialCustomProvidersEnvironmentsEndpoint {
    * @see https://metorial.com/docs
    */
   list(
-    customProviderId: string,
     query?: DashboardInstanceCustomProvidersEnvironmentsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCustomProvidersEnvironmentsListOutput> {
-    let path = `custom-providers/${customProviderId}/environments`;
+    let path = 'custom-provider-environments';
 
     let request = {
       path,
@@ -77,7 +75,6 @@ export class MetorialCustomProvidersEnvironmentsEndpoint {
    * @name Get custom provider environment
    * @description Retrieves a specific environment.
    *
-   * @param `customProviderId` - string
    * @param `customProviderEnvironmentId` - string
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceCustomProvidersEnvironmentsGetOutput
@@ -85,11 +82,10 @@ export class MetorialCustomProvidersEnvironmentsEndpoint {
    * @see https://metorial.com/docs
    */
   get(
-    customProviderId: string,
     customProviderEnvironmentId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCustomProvidersEnvironmentsGetOutput> {
-    let path = `custom-providers/${customProviderId}/environments/${customProviderEnvironmentId}`;
+    let path = `custom-provider-environments/${customProviderEnvironmentId}`;
 
     let request = {
       path,

@@ -54,7 +54,6 @@ export class MetorialDashboardInstanceSessionsProvidersEndpoint {
    * @description Returns a paginated list of providers connected to a session.
    *
    * @param `instanceId` - string
-   * @param `sessionId` - string
    * @param `query` - DashboardInstanceSessionsProvidersListQuery
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceSessionsProvidersListOutput
@@ -63,11 +62,10 @@ export class MetorialDashboardInstanceSessionsProvidersEndpoint {
    */
   list(
     instanceId: string,
-    sessionId: string,
     query?: DashboardInstanceSessionsProvidersListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionsProvidersListOutput> {
-    let path = `dashboard/instances/${instanceId}/sessions/${sessionId}/providers`;
+    let path = `dashboard/instances/${instanceId}/session-providers`;
 
     let request = {
       path,
@@ -88,7 +86,6 @@ export class MetorialDashboardInstanceSessionsProvidersEndpoint {
    * @description Retrieves a specific provider connected to a session.
    *
    * @param `instanceId` - string
-   * @param `sessionId` - string
    * @param `sessionProviderId` - string
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceSessionsProvidersGetOutput
@@ -97,11 +94,10 @@ export class MetorialDashboardInstanceSessionsProvidersEndpoint {
    */
   get(
     instanceId: string,
-    sessionId: string,
     sessionProviderId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionsProvidersGetOutput> {
-    let path = `dashboard/instances/${instanceId}/sessions/${sessionId}/providers/${sessionProviderId}`;
+    let path = `dashboard/instances/${instanceId}/session-providers/${sessionProviderId}`;
 
     let request = {
       path,
@@ -119,7 +115,6 @@ export class MetorialDashboardInstanceSessionsProvidersEndpoint {
    * @description Adds a new provider to an active session.
    *
    * @param `instanceId` - string
-   * @param `sessionId` - string
    * @param `body` - DashboardInstanceSessionsProvidersCreateBody
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceSessionsProvidersCreateOutput
@@ -128,11 +123,10 @@ export class MetorialDashboardInstanceSessionsProvidersEndpoint {
    */
   create(
     instanceId: string,
-    sessionId: string,
     body: DashboardInstanceSessionsProvidersCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionsProvidersCreateOutput> {
-    let path = `dashboard/instances/${instanceId}/sessions/${sessionId}/providers`;
+    let path = `dashboard/instances/${instanceId}/session-providers`;
 
     let request = {
       path,
@@ -151,7 +145,6 @@ export class MetorialDashboardInstanceSessionsProvidersEndpoint {
    * @description Updates a provider connected to a session.
    *
    * @param `instanceId` - string
-   * @param `sessionId` - string
    * @param `sessionProviderId` - string
    * @param `body` - DashboardInstanceSessionsProvidersUpdateBody
    * @param `opts` - { headers?: Record<string, string> }
@@ -161,12 +154,11 @@ export class MetorialDashboardInstanceSessionsProvidersEndpoint {
    */
   update(
     instanceId: string,
-    sessionId: string,
     sessionProviderId: string,
     body: DashboardInstanceSessionsProvidersUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionsProvidersUpdateOutput> {
-    let path = `dashboard/instances/${instanceId}/sessions/${sessionId}/providers/${sessionProviderId}`;
+    let path = `dashboard/instances/${instanceId}/session-providers/${sessionProviderId}`;
 
     let request = {
       path,
@@ -185,7 +177,6 @@ export class MetorialDashboardInstanceSessionsProvidersEndpoint {
    * @description Removes a provider from a session.
    *
    * @param `instanceId` - string
-   * @param `sessionId` - string
    * @param `sessionProviderId` - string
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceSessionsProvidersDeleteOutput
@@ -194,11 +185,10 @@ export class MetorialDashboardInstanceSessionsProvidersEndpoint {
    */
   delete(
     instanceId: string,
-    sessionId: string,
     sessionProviderId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionsProvidersDeleteOutput> {
-    let path = `dashboard/instances/${instanceId}/sessions/${sessionId}/providers/${sessionProviderId}`;
+    let path = `dashboard/instances/${instanceId}/session-providers/${sessionProviderId}`;
 
     let request = {
       path,

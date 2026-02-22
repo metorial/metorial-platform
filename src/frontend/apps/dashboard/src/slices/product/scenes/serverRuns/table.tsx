@@ -1,4 +1,7 @@
-import { DashboardInstanceProviderRunsListOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+import {
+  DashboardInstanceProviderRunsListOutput,
+  DashboardInstanceProviderRunsListQuery
+} from '@metorial/dashboard-sdk';
 import { renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { useAllProviderRuns, useCurrentInstance, useProviders } from '@metorial/state';
@@ -7,6 +10,15 @@ import { Table } from '@metorial/ui-product';
 import { useMemo } from 'react';
 
 type ProviderRun = DashboardInstanceProviderRunsListOutput['items'][number];
+type ProviderRunStatusFilter = Extract<
+  DashboardInstanceProviderRunsListQuery['status'],
+  'running' | 'stopped'
+>;
+
+let normalizeProviderRunStatus = (status?: string): ProviderRunStatusFilter | undefined => {
+  if (status === 'running' || status === 'stopped') return status;
+  return undefined;
+};
 
 export let ServerRunStatusBadge = ({ run }: { run: ProviderRun | { status: string } }) => {
   let statusColorMap: Record<string, 'orange' | 'red' | 'blue' | 'green' | 'gray'> = {
@@ -41,7 +53,7 @@ export let ServerRunsTable = (filter?: {
   let runs = useAllProviderRuns(instance.data?.id, {
     sessionId: filter?.sessionId,
     providerId: filter?.providerId,
-    status: filter?.status,
+    status: normalizeProviderRunStatus(filter?.status),
     order: 'desc'
   });
   let providers = useProviders(instance.data?.id);

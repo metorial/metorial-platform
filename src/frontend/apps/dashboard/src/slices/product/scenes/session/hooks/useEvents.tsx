@@ -1,3 +1,4 @@
+import { DashboardInstanceSessionsEventsListOutput } from '@metorial/dashboard-sdk';
 import { useCurrentInstance, useSessionEvents, useSessionMessages } from '@metorial/state';
 import { RiErrorWarningLine } from '@remixicon/react';
 import { useMemo } from 'react';
@@ -5,6 +6,17 @@ import { Entry } from '../components/entry';
 import { Logs } from '../components/logs';
 import { Message } from '../components/message';
 import { useAggregatedMessages } from './useAggregatedMessages';
+
+type SessionEvent = DashboardInstanceSessionsEventsListOutput['items'][number];
+
+let isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null;
+
+let getServerLogEventData = (event: SessionEvent): Record<string, unknown> | null => {
+  if ('data' in event && isRecord(event.data)) return event.data;
+  if (isRecord(event.message?.output)) return event.message.output;
+  return null;
+};
 
 export let useEvents = (
   sessionId: string | undefined | null,
@@ -30,20 +42,24 @@ export let useEvents = (
       isLoading: events.isLoading || messages.isLoading,
       error: events.error || messages.error,
       data: [
-        ...(messages.data?.items ?? []).map((message, i) => ({
+        ...(messages.data?.items ?? []).map(message => ({
           component: (
-            <Message
-              message={message as Parameters<typeof Message>[0]['message']}
-              aggregatedMessages={aggregatedMessages}
-            />
+            <Message message={message} aggregatedMessages={aggregatedMessages} />
           ),
           time: message.createdAt
         })),
 
-        ...(events.data?.items ?? []).map((event, i) => {
+        ...(events.data?.items ?? []).map(event => {
           if (event.type === 'server_logs') {
             return {
-              component: <Logs event={event} />,
+              component: (
+                <Logs
+                  event={{
+                    data: getServerLogEventData(event),
+                    createdAt: event.createdAt
+                  }}
+                />
+              ),
               time: event.createdAt
             };
           }
@@ -53,7 +69,9 @@ export let useEvents = (
               component: (
                 <Entry
                   icon={<RiErrorWarningLine />}
-                  title={`${event.name ?? 'Error'} - ${event.message ?? 'Unknown error'}`}
+                  title={`${event.error?.code ?? 'Error'} - ${
+                    event.error?.message ?? event.message?.error?.message ?? 'Unknown error'
+                  }`}
                   time={event.createdAt}
                   variant="error"
                 />
@@ -64,7 +82,7 @@ export let useEvents = (
 
           return null;
         })
-      ]
+      ].filter(Boolean)
     };
   }, [events, messages, aggregatedMessages]);
 };

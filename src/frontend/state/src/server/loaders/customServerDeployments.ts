@@ -1,7 +1,7 @@
 import {
   DashboardInstanceCustomProvidersDeploymentsGetLogsOutput,
   DashboardInstanceCustomProvidersDeploymentsListQuery
-} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+} from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
 import { useEffect, useRef } from 'react';
 import { usePaginator } from '../../lib/usePaginator';
@@ -17,7 +17,15 @@ export let customServerDeploymentsLoader = createLoader({
       customServerId: string;
     } & DashboardInstanceCustomProvidersDeploymentsListQuery
   ) =>
-    withAuth(sdk => sdk.customProviders.deployments.list(i.instanceId, i.customServerId, i)),
+    withAuth(sdk =>
+      {
+        let { customServerId, ...query } = i;
+        return sdk.customProviders.deployments.list(i.instanceId, {
+          ...query,
+          customProviderId: customServerId
+        });
+      }
+    ),
   mutators: {}
 });
 
@@ -59,7 +67,6 @@ export let customServerDeploymentLoader = createLoader({
     withAuth(sdk =>
       sdk.customProviders.deployments.get(
         i.instanceId,
-        i.customServerId,
         i.customServerDeploymentId
       )
     ),
@@ -116,7 +123,6 @@ export let customServerDeploymentLogsLoader = createLoader({
     withAuth(sdk =>
       sdk.customProviders.deployments.getLogs(
         i.instanceId,
-        i.customServerId,
         i.customServerDeploymentId
       )
     ),
@@ -155,7 +161,7 @@ export let useCustomServerDeploymentLogs = (
       data.data ??
       ({
         object: 'custom_provider.deployment.logs',
-        logs: [],
+        customProviderDeploymentId: customServerDeploymentId ?? '',
         steps: []
       } as DashboardInstanceCustomProvidersDeploymentsGetLogsOutput & { steps: any[] })
   };

@@ -1,13 +1,28 @@
+import { DashboardInstanceProviderDeploymentsListQuery } from '@metorial/dashboard-sdk';
 import { renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
-  useProviderDeployments
+  useProviderDeployments,
+  useProviders
 } from '@metorial/state';
 import { Badge, RenderDate, Text, theme } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
+import { useMemo } from 'react';
+
+type ProviderDeploymentStatusFilter = Extract<
+  DashboardInstanceProviderDeploymentsListQuery['status'],
+  'active' | 'archived'
+>;
+
+let normalizeProviderDeploymentStatus = (
+  status?: string
+): ProviderDeploymentStatusFilter | undefined => {
+  if (status === 'active' || status === 'archived') return status;
+  return undefined;
+};
 
 export let ProviderDeploymentsTable = ({
   instanceId,
@@ -23,7 +38,20 @@ export let ProviderDeploymentsTable = ({
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
-  let deployments = useProviderDeployments(instanceId, { providerId, status, search, order: 'desc' });
+  let deployments = useProviderDeployments(instanceId, {
+    providerId,
+    status: normalizeProviderDeploymentStatus(status),
+    search,
+    order: 'desc'
+  });
+  let providers = useProviders(instanceId, { limit: 100 });
+  let providerNameMap = useMemo(() => {
+    let map = new Map<string, string>();
+    for (let provider of providers.data?.items ?? []) {
+      if (provider.id && provider.name) map.set(provider.id, provider.name);
+    }
+    return map;
+  }, [providers.data?.items]);
 
   return renderWithPagination(deployments)(deployments => (
     <>
@@ -34,7 +62,9 @@ export let ProviderDeploymentsTable = ({
             <Text size="2" weight="strong">
               {deployment.name ?? <span style={{ color: theme.colors.gray600 }}>Unnamed</span>}
             </Text>,
-            <Text size="2">{deployment.provider?.name ?? deployment.providerId}</Text>,
+            <Text size="2">
+              {providerNameMap.get(deployment.providerId) ?? deployment.providerId}
+            </Text>,
             deployment.lockedVersion ? (
               <Badge color="purple" size="1">
                 {deployment.lockedVersion.version}

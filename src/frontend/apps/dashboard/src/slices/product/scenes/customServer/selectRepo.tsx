@@ -1,4 +1,4 @@
-import { DashboardInstanceScmReposCreateOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+import { DashboardInstanceScmReposCreateOutput } from '@metorial/dashboard-sdk';
 import { renderWithLoader } from '@metorial/data-hooks';
 import {
   useCreateScmInstallation,
@@ -86,7 +86,7 @@ export let ConnectGitHubButton = (p: { onConnected: () => void }) => {
         let toastShownRef = { current: false };
 
         if (res) {
-          openWindow(res?.authorizationUrl!).onMessage(msg => {
+          openWindow(res?.url!).onMessage(msg => {
             if (msg.data.type === 'scm_complete') {
               p.onConnected();
 
@@ -162,7 +162,10 @@ export let SelectRepo = (props: {
                 <Select
                   label="GitHub Installation"
                   items={installations.data.items.map(i => ({
-                    label: i.user.name ?? i.user.email,
+                    label:
+                      i.externalAccount.name ??
+                      i.externalAccount.email ??
+                      i.externalAccount.login,
                     id: i.id
                   }))}
                   value={selectedInstallationId}
@@ -222,18 +225,9 @@ export let SelectRepo = (props: {
                     >
                       <main>
                         <h3>
-                          {r.account?.name} &middot; {r.name}
+                          {r.identifier}
                         </h3>
-                        <p>
-                          Last pushed:{' '}
-                          {r.lastPushedAt
-                            ? new Date(r.lastPushedAt).toLocaleDateString(undefined, {
-                                year: 'numeric',
-                                month: 'short',
-                                day: 'numeric'
-                              })
-                            : 'N/A'}
-                        </p>
+                        <p>{r.provider.toUpperCase()}</p>
                       </main>
 
                       <Button

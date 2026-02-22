@@ -1,4 +1,4 @@
-import { DashboardInstanceSessionErrorsListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+import { DashboardInstanceSessionErrorsListQuery } from '@metorial/dashboard-sdk';
 import { renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { useAllSessionErrors, useCurrentInstance } from '@metorial/state';
@@ -15,7 +15,7 @@ export let ServerErrorsTable = (filter: DashboardInstanceSessionErrorsListQuery)
         headers={['Type', 'Message', 'Provider Run', 'Occurred At']}
         data={errors.data.items.map(error => ({
           data: [
-            <Badge color="red">{error.type ?? 'Unknown'}</Badge>,
+            <Badge color="red">{error.code ?? 'Unknown'}</Badge>,
             <Text size="2" weight="strong">
               {error.message ?? 'No message'}
             </Text>,

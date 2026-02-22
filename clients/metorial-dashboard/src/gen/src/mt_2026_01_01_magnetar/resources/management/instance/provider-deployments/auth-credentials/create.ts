@@ -4,6 +4,7 @@ export type ManagementInstanceProviderDeploymentsAuthCredentialsCreateOutput = {
   object: 'provider.auth_credentials';
   id: string;
   type: 'oauth';
+  isDefault: boolean;
   name: string | null;
   description: string | null;
   metadata: Record<string, any> | null;
@@ -18,6 +19,7 @@ export let mapManagementInstanceProviderDeploymentsAuthCredentialsCreateOutput =
       object: mtMap.objectField('object', mtMap.passthrough()),
       id: mtMap.objectField('id', mtMap.passthrough()),
       type: mtMap.objectField('type', mtMap.passthrough()),
+      isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
       name: mtMap.objectField('name', mtMap.passthrough()),
       description: mtMap.objectField('description', mtMap.passthrough()),
       metadata: mtMap.objectField('metadata', mtMap.passthrough()),
@@ -28,6 +30,7 @@ export let mapManagementInstanceProviderDeploymentsAuthCredentialsCreateOutput =
   );
 
 export type ManagementInstanceProviderDeploymentsAuthCredentialsCreateBody = {
+  providerId: string;
   name: string;
   description?: string | undefined;
   metadata?: Record<string, any> | undefined;
@@ -41,6 +44,7 @@ export type ManagementInstanceProviderDeploymentsAuthCredentialsCreateBody = {
 
 export let mapManagementInstanceProviderDeploymentsAuthCredentialsCreateBody =
   mtMap.object<ManagementInstanceProviderDeploymentsAuthCredentialsCreateBody>({
+    providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
     name: mtMap.objectField('name', mtMap.passthrough()),
     description: mtMap.objectField('description', mtMap.passthrough()),
     metadata: mtMap.objectField('metadata', mtMap.passthrough()),

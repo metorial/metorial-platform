@@ -6,7 +6,9 @@ export let providerConfigSchemaLoader = createLoader({
   parents: [],
   fetch: (i: { instanceId: string; providerDeploymentId: string }) =>
     withAuth(sdk =>
-      sdk.providerDeployments.configs.getConfigSchema(i.instanceId, i.providerDeploymentId)
+      sdk.providerDeployments.configs.getConfigSchema(i.instanceId, {
+        providerDeploymentId: i.providerDeploymentId
+      })
     ),
   mutators: {}
 });

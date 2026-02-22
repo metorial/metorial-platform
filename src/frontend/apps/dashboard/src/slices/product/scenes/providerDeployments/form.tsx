@@ -48,7 +48,7 @@ export let ProviderDeploymentForm = (
         description: description || undefined,
         providerId: providerId,
         ...(props.type === 'create' && props.lockedProviderVersionId
-          ? { locked_provider_version_id: props.lockedProviderVersionId }
+          ? { lockedProviderVersionId: props.lockedProviderVersionId }
           : {})
       });
 
@@ -65,7 +65,7 @@ export let ProviderDeploymentForm = (
           instance.data,
           result.id
         );
-        navigate(`${deploymentPath}?auth=setup`);
+        navigate(deploymentPath);
       }
     }
   };

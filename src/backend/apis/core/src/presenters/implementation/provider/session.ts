@@ -1,3 +1,4 @@
+import { getConfig } from '@metorial/config';
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
 import { providerSessionType } from '../../types';
@@ -11,6 +12,7 @@ export let v1SessionPresenter = Presenter.create(providerSessionType)
     description: session.description,
     metadata: session.metadata,
     connection_state: session.connectionState,
+    connection_url: `${getConfig().urls.mcpUrl}/mcp/${session.id}`,
     usage: {
       total_productive_client_message_count: session.usage.totalProductiveClientMessageCount,
       total_productive_server_message_count: session.usage.totalProductiveServerMessageCount
@@ -57,6 +59,11 @@ export let v1SessionPresenter = Presenter.create(providerSessionType)
         name: 'connection_state',
         description: 'Session connection state',
         examples: ['connected', 'disconnected']
+      }),
+      connection_url: v.string({
+        name: 'connection_url',
+        description: 'MCP connection URL for this session',
+        examples: ['https://mcp.metorial.com/mcp/ses_4dEfGhJkLmNpQrSt']
       }),
       usage: v.object({
         total_productive_client_message_count: v.number({

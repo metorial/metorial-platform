@@ -1,4 +1,4 @@
-import { DashboardInstanceProviderRunsGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+import { DashboardInstanceProviderRunsGetOutput } from '@metorial/dashboard-sdk';
 import { useCurrentInstance, useProvider, useSessionErrors } from '@metorial/state';
 import { Button, Callout, Spacer, theme } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
@@ -91,8 +91,8 @@ export let ServerRunEvents = ({
 
   let providerId = serverRun.providerId;
   let provider = useProvider(instance.data?.id, providerId);
-  let providerName = provider.data?.name ?? serverRun.name ?? providerId ?? 'Unknown';
-  let startTime = serverRun.startedAt ?? serverRun.createdAt;
+  let providerName = provider.data?.name ?? providerId ?? 'Unknown';
+  let startTime = serverRun.createdAt;
   let endTime = serverRun.completedAt;
 
   let allItems = [

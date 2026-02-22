@@ -54,7 +54,6 @@ export class MetorialManagementInstanceSessionTemplatesProvidersEndpoint {
    * @description Returns a paginated list of providers configured for a session template.
    *
    * @param `instanceId` - string
-   * @param `sessionTemplateId` - string
    * @param `query` - DashboardInstanceSessionTemplatesProvidersListQuery
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceSessionTemplatesProvidersListOutput
@@ -63,11 +62,10 @@ export class MetorialManagementInstanceSessionTemplatesProvidersEndpoint {
    */
   list(
     instanceId: string,
-    sessionTemplateId: string,
     query?: DashboardInstanceSessionTemplatesProvidersListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionTemplatesProvidersListOutput> {
-    let path = `instances/${instanceId}/session-templates/${sessionTemplateId}/providers`;
+    let path = `instances/${instanceId}/session-template-providers`;
 
     let request = {
       path,
@@ -90,7 +88,6 @@ export class MetorialManagementInstanceSessionTemplatesProvidersEndpoint {
    * @description Retrieves a specific provider configuration from a session template.
    *
    * @param `instanceId` - string
-   * @param `sessionTemplateId` - string
    * @param `sessionTemplateProviderId` - string
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceSessionTemplatesProvidersGetOutput
@@ -99,11 +96,10 @@ export class MetorialManagementInstanceSessionTemplatesProvidersEndpoint {
    */
   get(
     instanceId: string,
-    sessionTemplateId: string,
     sessionTemplateProviderId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionTemplatesProvidersGetOutput> {
-    let path = `instances/${instanceId}/session-templates/${sessionTemplateId}/providers/${sessionTemplateProviderId}`;
+    let path = `instances/${instanceId}/session-template-providers/${sessionTemplateProviderId}`;
 
     let request = {
       path,
@@ -121,7 +117,6 @@ export class MetorialManagementInstanceSessionTemplatesProvidersEndpoint {
    * @description Adds a new provider configuration to a session template.
    *
    * @param `instanceId` - string
-   * @param `sessionTemplateId` - string
    * @param `body` - DashboardInstanceSessionTemplatesProvidersCreateBody
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceSessionTemplatesProvidersCreateOutput
@@ -130,11 +125,10 @@ export class MetorialManagementInstanceSessionTemplatesProvidersEndpoint {
    */
   create(
     instanceId: string,
-    sessionTemplateId: string,
     body: DashboardInstanceSessionTemplatesProvidersCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionTemplatesProvidersCreateOutput> {
-    let path = `instances/${instanceId}/session-templates/${sessionTemplateId}/providers`;
+    let path = `instances/${instanceId}/session-template-providers`;
 
     let request = {
       path,
@@ -155,7 +149,6 @@ export class MetorialManagementInstanceSessionTemplatesProvidersEndpoint {
    * @description Updates a provider configuration in a session template.
    *
    * @param `instanceId` - string
-   * @param `sessionTemplateId` - string
    * @param `sessionTemplateProviderId` - string
    * @param `body` - DashboardInstanceSessionTemplatesProvidersUpdateBody
    * @param `opts` - { headers?: Record<string, string> }
@@ -165,12 +158,11 @@ export class MetorialManagementInstanceSessionTemplatesProvidersEndpoint {
    */
   update(
     instanceId: string,
-    sessionTemplateId: string,
     sessionTemplateProviderId: string,
     body: DashboardInstanceSessionTemplatesProvidersUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionTemplatesProvidersUpdateOutput> {
-    let path = `instances/${instanceId}/session-templates/${sessionTemplateId}/providers/${sessionTemplateProviderId}`;
+    let path = `instances/${instanceId}/session-template-providers/${sessionTemplateProviderId}`;
 
     let request = {
       path,
@@ -191,7 +183,6 @@ export class MetorialManagementInstanceSessionTemplatesProvidersEndpoint {
    * @description Removes a provider configuration from a session template.
    *
    * @param `instanceId` - string
-   * @param `sessionTemplateId` - string
    * @param `sessionTemplateProviderId` - string
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceSessionTemplatesProvidersDeleteOutput
@@ -200,11 +191,10 @@ export class MetorialManagementInstanceSessionTemplatesProvidersEndpoint {
    */
   delete(
     instanceId: string,
-    sessionTemplateId: string,
     sessionTemplateProviderId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionTemplatesProvidersDeleteOutput> {
-    let path = `instances/${instanceId}/session-templates/${sessionTemplateId}/providers/${sessionTemplateProviderId}`;
+    let path = `instances/${instanceId}/session-template-providers/${sessionTemplateProviderId}`;
 
     let request = {
       path,

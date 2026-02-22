@@ -1,21 +1,29 @@
-import { DashboardInstanceSessionsMessagesListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+import { DashboardInstanceSessionsMessagesListQuery } from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
+
+type SessionMessagesQuery = Omit<DashboardInstanceSessionsMessagesListQuery, 'sessionId'>;
 
 export let sessionMessagesLoader = createLoader({
   name: 'sessionMessages',
   parents: [],
   fetch: (
-    i: { instanceId: string; sessionId: string } & DashboardInstanceSessionsMessagesListQuery
-  ) => withAuth(sdk => sdk.sessions.messages.list(i.instanceId, i.sessionId, i)),
+    i: { instanceId: string; sessionId: string } & SessionMessagesQuery
+  ) =>
+    withAuth(sdk =>
+      sdk.sessions.messages.list(i.instanceId, {
+        ...i,
+        sessionId: i.sessionId
+      })
+    ),
   mutators: {}
 });
 
 export let useSessionMessages = (
   instanceId: string | null | undefined,
   sessionId: string | null | undefined,
-  query?: DashboardInstanceSessionsMessagesListQuery
+  query?: SessionMessagesQuery
 ) => {
   let data = usePaginator(pagination =>
     sessionMessagesLoader.use(
@@ -29,20 +37,17 @@ export let useSessionMessages = (
 export let sessionMessageLoader = createLoader({
   name: 'sessionMessage',
   parents: [],
-  fetch: (i: { instanceId: string; sessionId: string; sessionMessageId: string }) =>
-    withAuth(sdk => sdk.sessions.messages.get(i.instanceId, i.sessionId, i.sessionMessageId)),
+  fetch: (i: { instanceId: string; sessionMessageId: string }) =>
+    withAuth(sdk => sdk.sessions.messages.get(i.instanceId, i.sessionMessageId)),
   mutators: {}
 });
 
 export let useSessionMessage = (
   instanceId: string | null | undefined,
-  sessionId: string | null | undefined,
   sessionMessageId: string | null | undefined
 ) => {
   let data = sessionMessageLoader.use(
-    instanceId && sessionId && sessionMessageId
-      ? { instanceId, sessionId, sessionMessageId }
-      : null
+    instanceId && sessionMessageId ? { instanceId, sessionMessageId } : null
   );
 
   return data;
