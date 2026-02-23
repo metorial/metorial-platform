@@ -324,10 +324,14 @@ export function useConnection({
       };
       const clientTransport =
         transportType === 'streamable-http'
-          ? new StreamableHTTPClientTransport(mcpProxyServerUrl as URL, {
-              sessionId: undefined
-            })
+          ? new StreamableHTTPClientTransport(mcpProxyServerUrl as URL, transportOptions)
           : new SSEClientTransport(mcpProxyServerUrl as URL, transportOptions);
+
+      console.log(
+        'Connecting to MCP Server via the MCP Inspector Proxy:',
+        transportType,
+        clientTransport
+      );
 
       if (onNotification) {
         [

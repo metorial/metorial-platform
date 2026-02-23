@@ -17,7 +17,7 @@ import {
   ServerNotification,
   Tool
 } from '@modelcontextprotocol/sdk/types.js';
-import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useConnection } from './lib/hooks/useConnection';
 import { useDraggablePane } from './lib/hooks/useDraggablePane';
 import { StdErrNotification } from './lib/notificationTypes';
@@ -200,14 +200,14 @@ const App = () => {
   // }, [config]);
 
   // Auto-connect to previously saved serverURL after OAuth callback
-  const onOAuthConnect = useCallback(
-    (serverUrl: string) => {
-      setSseUrl(serverUrl);
-      setTransportType('sse');
-      void connectMcpServer();
-    },
-    [connectMcpServer]
-  );
+  // const onOAuthConnect = useCallback(
+  //   (serverUrl: string) => {
+  //     setSseUrl(serverUrl);
+  //     setTransportType('sse');
+  //     void connectMcpServer();
+  //   },
+  //   [connectMcpServer]
+  // );
 
   // useEffect(() => {
   //   fetch(`${getMCPProxyAddress(config)}/config`)
@@ -457,6 +457,8 @@ const App = () => {
     let bearerToken = search.get('bearer_token');
 
     if (transportType && sseUrl) {
+      console.log('Auto-connecting to MCP server with URL parameters', transportType);
+
       setTransportType(transportType as 'sse' | 'streamable-http');
       setSseUrl(sseUrl);
 
@@ -474,14 +476,14 @@ const App = () => {
     }
   }, []);
 
-  if (window.location.pathname === '/oauth/callback') {
-    const OAuthCallback = React.lazy(() => import('./components/OAuthCallback'));
-    return (
-      <Suspense fallback={<div>Loading...</div>}>
-        <OAuthCallback onConnect={onOAuthConnect} />
-      </Suspense>
-    );
-  }
+  // if (window.location.pathname === '/oauth/callback') {
+  //   const OAuthCallback = React.lazy(() => import('./components/OAuthCallback'));
+  //   return (
+  //     <Suspense fallback={<div>Loading...</div>}>
+  //       <OAuthCallback onConnect={onOAuthConnect} />
+  //     </Suspense>
+  //   );
+  // }
 
   return (
     <div className="flex h-screen bg-background w-full">
