@@ -17,7 +17,7 @@ export let CustomServerOverviewPage = () => {
   return renderWithLoader({ customServer })(({ customServer }) => (
     <>
       <Attributes
-        itemWidth="250px"
+        itemWidth="380px"
         attributes={[
           {
             label: 'Name',
