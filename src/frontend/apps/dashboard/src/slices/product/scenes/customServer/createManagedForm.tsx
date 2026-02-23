@@ -1,4 +1,7 @@
-import { CustomProvidersGetOutput } from '@metorial/dashboard-sdk';
+import {
+  type DashboardInstanceScmReposCreateOutput,
+  CustomProvidersGetOutput
+} from '@metorial/dashboard-sdk';
 import { renderWithLoader, useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
@@ -82,7 +85,10 @@ export let CustomServerManagedCreateForm = (p: {
     error: null
   };
 
-  let [selectedRepoId, setSelectedRepoId] = useState<string | undefined>(undefined);
+  let [selectedRepo, setSelectedRepo] = useState<
+    DashboardInstanceScmReposCreateOutput | undefined
+  >(undefined);
+  let selectedRepoId = selectedRepo?.id;
 
   let [currentStep, setCurrentStep] = useState(0);
 
@@ -190,16 +196,28 @@ export let CustomServerManagedCreateForm = (p: {
         }
       ];
 
+      let runtime = { identifier: 'nodejs' as const, version: '22.x' as const };
+
       let [customServerRes] = await createCustomServer.mutate({
         instanceId: instance.data.id,
         name: values.name,
         description: values.description,
-        from: {
-          type: 'function',
-          files: starterFiles,
-          env: {},
-          runtime: { identifier: 'nodejs' as const, version: '22.x' as const }
-        }
+        from: selectedRepo
+          ? {
+              type: 'function',
+              env: {},
+              runtime,
+              repository: {
+                repositoryId: selectedRepo.id,
+                branch: selectedRepo.defaultBranch || 'main'
+              }
+            }
+          : {
+              type: 'function',
+              files: starterFiles,
+              env: {},
+              runtime
+            }
       });
 
       if (customServerRes) {
@@ -284,6 +302,7 @@ export let CustomServerManagedCreateForm = (p: {
     form.setFieldValue('name', template?.name ?? '');
     setCreateRepoName(template?.slug ?? '');
     setTemplateId(template?.id ?? templateId);
+    setSelectedRepo(undefined);
 
     setCurrentStep(1);
   };
@@ -343,7 +362,7 @@ export let CustomServerManagedCreateForm = (p: {
 
                   <SelectRepo
                     onSelect={repo => {
-                      setSelectedRepoId(repo.id);
+                      setSelectedRepo(repo);
                       form.resetForm();
                       form.setFieldValue('name', repo.provider.name);
                       setCurrentStep(2);
@@ -358,6 +377,7 @@ export let CustomServerManagedCreateForm = (p: {
                       type="button"
                       size="2"
                       onClick={() => {
+                        setSelectedRepo(undefined);
                         setTemplateId(undefined);
                         setCurrentStep(2);
                       }}
@@ -462,7 +482,7 @@ export let CustomServerManagedCreateForm = (p: {
                             });
 
                             if (res) {
-                              setSelectedRepoId(res.id);
+                              setSelectedRepo(res);
                               form.resetForm();
                               form.setFieldValue('name', createRepoName);
                               setCurrentStep(2);
@@ -478,7 +498,7 @@ export let CustomServerManagedCreateForm = (p: {
                           variant="outline"
                           disabled={createRepo.isLoading}
                           onClick={() => {
-                            setSelectedRepoId(undefined);
+                            setSelectedRepo(undefined);
                             form.resetForm();
                             setCurrentStep(2);
                           }}
