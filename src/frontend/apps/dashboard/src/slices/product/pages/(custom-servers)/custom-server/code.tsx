@@ -78,17 +78,56 @@ export let CustomServerCodePage = () => {
   let createVersion = useCreateCustomServerVersion();
   let navigate = useNavigate();
 
+  let linkedRepo = useMemo(() => {
+    let repoFromApi =
+      customServer.data?.scmRepo ?? customServer.data?.draftBucket?.scmRepoLink?.repository;
+    if (repoFromApi) {
+      return {
+        id: repoFromApi.id,
+        url: repoFromApi.url,
+        defaultBranch: repoFromApi.defaultBranch
+      };
+    }
+
+    let metadataRepo = customServer.data?.metadata?.repository as
+      | { url?: string; branch?: string }
+      | undefined;
+    if (!metadataRepo?.url) return null;
+
+    return {
+      id: undefined,
+      url: metadataRepo.url,
+      defaultBranch: metadataRepo.branch ?? 'main'
+    };
+  }, [customServer.data]);
+
+  let publishFrom = useMemo(() => {
+    if (linkedRepo?.id) {
+      return {
+        type: 'function' as const,
+        env: {},
+        runtime: { identifier: 'nodejs' as const, version: '22.x' as const },
+        repository: {
+          repositoryId: linkedRepo.id,
+          branch: linkedRepo.defaultBranch || 'main'
+        }
+      };
+    }
+
+    return {
+      type: 'function' as const,
+      files: [],
+      env: {},
+      runtime: { identifier: 'nodejs' as const, version: '22.x' as const }
+    };
+  }, [linkedRepo]);
+
   let publishNewVersion = async () => {
     let [version] = await createVersion.mutate({
       instanceId: instance.data!.id,
       customServerId: customServer.data!.id,
       customProviderId: customServer.data!.id,
-      from: {
-        type: 'function',
-        files: [],
-        env: {},
-        runtime: { identifier: 'nodejs' as const, version: '22.x' as const }
-      }
+      from: publishFrom
     });
 
     if (version) {
@@ -107,7 +146,7 @@ export let CustomServerCodePage = () => {
 
   return renderWithLoader({ customServer })(({ customServer }) => (
     <>
-      {customServer.data.metadata?.repository ? (
+      {linkedRepo ? (
         <>
           <SideBox
             title="Repository"
@@ -122,7 +161,7 @@ export let CustomServerCodePage = () => {
                 as="span"
                 size="2"
                 onClick={async () => {
-                  window.open(String((customServer.data.metadata?.repository as Record<string, unknown>)?.url ?? ''), '_blank');
+                  if (linkedRepo.url) window.open(linkedRepo.url, '_blank');
                 }}
                 iconRight={<RiArrowRightSLine />}
               >
@@ -190,9 +229,15 @@ export let CustomServerCodePage = () => {
                               customProviderId: customServer.data!.id,
                               from: {
                                 type: 'function',
-                                files: [],
                                 env: {},
-                                runtime: { identifier: 'nodejs' as const, version: '22.x' as const }
+                                runtime: {
+                                  identifier: 'nodejs' as const,
+                                  version: '22.x' as const
+                                },
+                                repository: {
+                                  repositoryId: repo!.id,
+                                  branch: repo!.defaultBranch
+                                }
                               }
                             });
 
