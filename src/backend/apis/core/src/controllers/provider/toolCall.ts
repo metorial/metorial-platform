@@ -8,7 +8,7 @@ import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { toolCallPresenter } from '../../presenters';
 
-let subspaceToolCallGroup = instanceGroup.use(async ctx => {
+let toolCallGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.toolCallId) {
     throw new ServiceError(
       badRequestError({
@@ -26,7 +26,7 @@ let subspaceToolCallGroup = instanceGroup.use(async ctx => {
   return { toolCall };
 });
 
-export let subspaceToolCallController = Controller.create(
+export let toolCallController = Controller.create(
   {
     name: 'Tool Calls',
     description:
@@ -90,7 +90,7 @@ export let subspaceToolCallController = Controller.create(
         );
       }),
 
-    get: subspaceToolCallGroup
+    get: toolCallGroup
       .get(instancePath('tool-calls/:toolCallId', 'toolCalls.get'), {
         name: 'Get tool call',
         description: 'Retrieves a specific tool call by ID.'
