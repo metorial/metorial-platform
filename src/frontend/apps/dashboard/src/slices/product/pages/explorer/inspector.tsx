@@ -1,5 +1,10 @@
 import { Paths } from '@metorial/frontend-config';
-import { useApiKeys, useCurrentInstance, useRevealedApiKey, useSession } from '@metorial/state';
+import {
+  useApiKeys,
+  useCurrentInstance,
+  useRevealedApiKey,
+  useSession
+} from '@metorial/state';
 import { Button, CenteredSpinner, Error, theme } from '@metorial/ui';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useMemo, useState } from 'react';
@@ -90,7 +95,8 @@ export let InspectorFrame = ({ sessionId }: { sessionId: string }) => {
     if (!session.data || !instance.data) return undefined;
 
     let runtimeWindow = window as ExplorerRuntimeWindow;
-    let explorerBase = runtimeWindow.METORIAL_EXPLORER_URL ?? import.meta.env.VITE_EXPLORER_URL!;
+    let explorerBase =
+      runtimeWindow.METORIAL_EXPLORER_URL ?? import.meta.env.VITE_EXPLORER_URL!;
     let url = new URL(explorerBase);
 
     let mcpApiUrl = runtimeWindow.METORIAL_MCP_API_URL ?? import.meta.env.VITE_MCP_API_URL;
@@ -99,7 +105,7 @@ export let InspectorFrame = ({ sessionId }: { sessionId: string }) => {
     if (!connectionUrl) return undefined;
 
     url.searchParams.set('sse_url', connectionUrl);
-    url.searchParams.set('transport_type', 'sse');
+    url.searchParams.set('transport_type', 'streamable-http');
     url.searchParams.set('direction', 'vertical');
 
     if (revealedKey.value) {
