@@ -228,7 +228,7 @@ export let SelectRepo = (props: {
                         <h3>
                           {r.identifier}
                         </h3>
-                        <p>{r.provider.type.toUpperCase()}</p>
+                        <p>{(r.provider?.type ?? '').toUpperCase()}</p>
                       </main>
 
                       <Button
