@@ -29,23 +29,42 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 
+const CUSTOM_SERVER_VERSION_STATUS_BADGES = {
+  current: <Badge color="blue">Current</Badge>,
+  available: <Badge color="gray">Available</Badge>,
+  deployment_succeeded: <Badge color="gray">Available</Badge>,
+  succeeded: <Badge color="gray">Available</Badge>,
+  queued: <Badge color="orange">Deploying</Badge>,
+  deploying: <Badge color="orange">Deploying</Badge>,
+  failed: <Badge color="red">Deployment Failed</Badge>,
+  deployment_failed: <Badge color="red">Deployment Failed</Badge>
+} satisfies Record<string, React.ReactNode>;
+
+const CUSTOM_SERVER_VERSION_STATUS_BADGES_BY_KEY: Record<string, React.ReactNode> =
+  CUSTOM_SERVER_VERSION_STATUS_BADGES;
+
 export let CustomServerVersionStatus = ({
   version
 }: {
   version: DashboardInstanceCustomProvidersVersionsGetOutput;
-}) =>
-  (
-    ({
-      current: <Badge color="blue">Current</Badge>,
-      available: <Badge color="gray">Available</Badge>,
-      deployment_succeeded: <Badge color="gray">Available</Badge>,
-      succeeded: <Badge color="gray">Available</Badge>,
-      queued: <Badge color="orange">Deploying</Badge>,
-      deploying: <Badge color="orange">Deploying</Badge>,
-      failed: <Badge color="red">Deployment Failed</Badge>,
-      deployment_failed: <Badge color="red">Deployment Failed</Badge>
-    }) as Record<string, React.ReactElement>
-  )[version.status ?? ''] ?? version.status;
+}) => {
+  let status = CUSTOM_SERVER_VERSION_STATUS_BADGES_BY_KEY[version.status ?? ''] ?? version.status;
+
+  let isCurrentForEnvironment = version.environments?.some(
+    environment => environment.isCurrentVersionForEnvironment
+  );
+
+  if (!isCurrentForEnvironment || version.status === 'current') {
+    return status;
+  }
+
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+      {status}
+      <Badge color="blue">Current</Badge>
+    </span>
+  );
+};
 
 export let CustomServerVersion = ({
   versionId,

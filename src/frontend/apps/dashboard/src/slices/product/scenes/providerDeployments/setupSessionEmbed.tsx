@@ -456,11 +456,18 @@ export let ProviderSetupSessionEmbed = ({
           <Spacer size={6} />
           <Select
             label="OAuth App Credentials"
-            value={isCreatingCredentials ? '__create_new__' : selectedCredentialsId}
+            value={
+              isCreatingCredentials
+                ? '__create_new__'
+                : (selectedCredentialsId || '__use_default_credentials__')
+            }
             placeholder="Use default credentials"
             onChange={value => {
               if (value === '__create_new__') {
                 setIsCreatingCredentials(true);
+                setSelectedCredentialsId('');
+              } else if (value === '__use_default_credentials__') {
+                setIsCreatingCredentials(false);
                 setSelectedCredentialsId('');
               } else {
                 setIsCreatingCredentials(false);
@@ -468,6 +475,10 @@ export let ProviderSetupSessionEmbed = ({
               }
             }}
             items={[
+              {
+                id: '__use_default_credentials__',
+                label: 'Use default credentials'
+              },
               ...(authCredentials.data?.items ?? []).map(
                 (cred: { id: string; name?: string | null; clientId?: string | null }) => ({
                   id: cred.id,
@@ -488,6 +499,7 @@ export let ProviderSetupSessionEmbed = ({
                 placeholder="My OAuth App"
                 required
               />
+              <Spacer size={8} />
               <Input
                 label="Client ID"
                 value={newCredClientId}
@@ -495,6 +507,7 @@ export let ProviderSetupSessionEmbed = ({
                 placeholder="Enter client ID from provider"
                 required
               />
+              <Spacer size={8} />
               <Input
                 label="Client Secret"
                 value={newCredClientSecret}

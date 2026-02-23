@@ -3,17 +3,39 @@ import {
   useCreateProviderDeployment,
   useCreateSession,
   useCurrentInstance,
+  useProviderAuthConfigs,
   useProvider,
+  useProviderConfigSchema,
+  useProviderConfigs,
+  useProviderDeployment,
   useProviderDeployments
 } from '@metorial/state';
-import { Button, CenteredSpinner, Flex, Input, Spacer, Tabs, Text, theme } from '@metorial/ui';
-import { RiArrowLeftLine, RiArrowRightLine, RiCloseLine } from '@remixicon/react';
+import {
+  Button,
+  CenteredSpinner,
+  Flex,
+  Input,
+  Select,
+  Spacer,
+  Tabs,
+  Text,
+  theme
+} from '@metorial/ui';
+import {
+  RiAddLine,
+  RiArrowLeftLine,
+  RiArrowRightLine,
+  RiCloseLine
+} from '@remixicon/react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { Explainer } from '../../../../components/explainer';
+import { showProviderConfigFormModal } from '../../scenes/providerConfigs/modal';
 import { ProviderDeploymentsList } from '../../scenes/providerDeployments/list';
+import { showProviderSetupSessionModal } from '../../scenes/providerDeployments/setupSessionModal';
+import { Stepper } from '../../scenes/stepper';
 import { ProviderSearch } from '../../scenes/providers/search';
 import { InspectorFrame } from './inspector';
 
@@ -94,6 +116,24 @@ let CreateForm = styled.div`
   padding-top: 15px;
 `;
 
+let MainSetup = styled.div`
+  height: 100%;
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 28px;
+  overflow: auto;
+`;
+
+let SetupCard = styled.div`
+  width: min(760px, 100%);
+  border: 1px solid ${theme.colors.gray400};
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+`;
+
 export let ExplorerPage = () => {
   let [search, setSearch] = useSearchParams();
   let providerIdParam = search.get('provider_id');
@@ -103,7 +143,10 @@ export let ExplorerPage = () => {
   let [open, setOpen] = useState(!providerDeploymentIdParam && !sessionIdParam);
 
   let [providerTab, setProviderTab] = useState<'create' | 'list'>('create');
+  let [setupWizardStep, setSetupWizardStep] = useState(0);
   let [providerDeploymentId, setProviderDeploymentId] = useState<string | null>(null);
+  let [selectedConfigId, setSelectedConfigId] = useState('');
+  let [selectedAuthConfigId, setSelectedAuthConfigId] = useState('');
   let [sessionId, setSessionId] = useState<string | null>(null);
   let [isCreatingSession, setIsCreatingSession] = useState(false);
   let [sessionError, setSessionError] = useState<string | null>(null);
@@ -111,26 +154,48 @@ export let ExplorerPage = () => {
   let instance = useCurrentInstance();
   let createSession = useCreateSession(instance.data?.id);
 
-  let sessionCreatedRef = useRef(false);
-
   useEffect(() => {
     if (sessionIdParam) setSessionId(sessionIdParam);
   }, [sessionIdParam]);
 
+  let resetSessionSetupSelections = useCallback(() => {
+    setSetupWizardStep(0);
+    setSelectedConfigId('');
+    setSelectedAuthConfigId('');
+    setSessionError(null);
+  }, []);
+
   let createSessionForDeployment = useCallback(
-    async (deploymentId: string) => {
+    async (
+      deploymentId: string,
+      options?: {
+        providerConfigId?: string;
+        providerAuthConfigId?: string;
+      }
+    ) => {
       if (!instance.data) return;
       setIsCreatingSession(true);
       setSessionError(null);
 
       let [res, error] = await createSession.mutate({
-        providers: [{ providerDeploymentId: deploymentId }]
+        providers: [
+          {
+            providerDeploymentId: deploymentId,
+            ...(options?.providerConfigId
+              ? { providerConfigId: options.providerConfigId }
+              : {}),
+            ...(options?.providerAuthConfigId
+              ? { providerAuthConfigId: options.providerAuthConfigId }
+              : {})
+          }
+        ]
       });
 
       setIsCreatingSession(false);
 
       if (res) {
         setSessionId(res.id);
+        setOpen(false);
         setSearch(
           v => {
             v.set('session_id', res.id);
@@ -143,7 +208,7 @@ export let ExplorerPage = () => {
         setSessionError((error as any)?.message ?? 'Failed to create session');
       }
     },
-    [instance.data?.id, createSession]
+    [createSession, instance.data, setSearch]
   );
 
   let provider = useProvider(instance.data?.id, providerIdParam ?? undefined);
@@ -157,20 +222,19 @@ export let ExplorerPage = () => {
   useEffect(() => {
     if (providerDeploymentIdParam) {
       setProviderDeploymentId(providerDeploymentIdParam);
-      if (!sessionIdParam && !sessionCreatedRef.current) {
-        sessionCreatedRef.current = true;
-        createSessionForDeployment(providerDeploymentIdParam);
-      }
+      resetSessionSetupSelections();
+      if (!sessionIdParam) setOpen(true);
     }
-  }, [providerDeploymentIdParam]);
+  }, [providerDeploymentIdParam, resetSessionSetupSelections, sessionIdParam]);
 
   let selectDeployment = useCallback(
     (deploymentId: string) => {
       setProviderDeploymentId(deploymentId);
-      setOpen(false);
-      createSessionForDeployment(deploymentId);
+      setSessionId(null);
+      resetSessionSetupSelections();
+      setOpen(true);
     },
-    [createSessionForDeployment]
+    [resetSessionSetupSelections]
   );
 
   let deploymentsFilter = useMemo(
@@ -181,6 +245,19 @@ export let ExplorerPage = () => {
   );
 
   let deployments = useProviderDeployments(instance.data?.id, deploymentsFilter);
+  let selectedDeployment = useProviderDeployment(
+    instance.data?.id,
+    providerDeploymentId ?? undefined
+  );
+  let providerConfigs = useProviderConfigs(instance.data?.id, providerDeploymentId ?? undefined);
+  let providerConfigSchema = useProviderConfigSchema(
+    instance.data?.id,
+    providerDeploymentId ?? undefined
+  );
+  let providerAuthConfigs = useProviderAuthConfigs(
+    instance.data?.id,
+    providerDeploymentId ?? undefined
+  );
 
   useEffect(() => {
     let deploymentsForCurrentProvider = deployments.data?.items.filter(
@@ -189,7 +266,26 @@ export let ExplorerPage = () => {
 
     if (!deployments.isLoading && deploymentsForCurrentProvider?.length)
       setProviderTab('list');
-  }, [deployments.data, deployments.isLoading]);
+  }, [deployments.data, deployments.isLoading, providerIdParam, selectedProvider?.id]);
+
+  useEffect(() => {
+    if (!providerDeploymentId) {
+      resetSessionSetupSelections();
+      return;
+    }
+  }, [providerDeploymentId, resetSessionSetupSelections]);
+
+  useEffect(() => {
+    if (providerConfigs.isLoading || !selectedConfigId) return;
+    let exists = (providerConfigs.data?.items ?? []).some(c => c.id === selectedConfigId);
+    if (!exists) setSelectedConfigId('');
+  }, [providerConfigs.data, providerConfigs.isLoading, selectedConfigId]);
+
+  useEffect(() => {
+    if (providerAuthConfigs.isLoading || !selectedAuthConfigId) return;
+    let exists = (providerAuthConfigs.data?.items ?? []).some(c => c.id === selectedAuthConfigId);
+    if (!exists) setSelectedAuthConfigId('');
+  }, [providerAuthConfigs.data, providerAuthConfigs.isLoading, selectedAuthConfigId]);
 
   let [deploymentName, setDeploymentName] = useState('');
   let [deploymentDescription, setDeploymentDescription] = useState('');
@@ -222,6 +318,237 @@ export let ExplorerPage = () => {
     }
   };
 
+  let activeProviderId =
+    selectedProvider?.id ??
+    providerIdParam ??
+    (selectedDeployment.data as { providerId?: string } | null | undefined)?.providerId ??
+    null;
+  let renderSetupPanel = () => {
+    if (!providerDeploymentId || !instance.data) return null;
+
+    let configItems = providerConfigs.data?.items ?? [];
+    let authConfigItems = providerAuthConfigs.data?.items ?? [];
+    let hasConfigSchema =
+      !!providerConfigSchema.data?.schema &&
+      typeof providerConfigSchema.data.schema === 'object';
+    let configPlusTooltip = providerConfigSchema.isLoading
+      ? 'Loading configuration schema...'
+      : providerConfigSchema.error
+        ? providerConfigSchema.error.message ?? 'Failed to load configuration schema.'
+        : hasConfigSchema
+          ? 'Create Config'
+          : 'No configuration schema is provided for this deployment, so this config cannot be created from the dashboard.';
+
+    return (
+      <MainSetup>
+        <SetupCard>
+          <Text as="p" size="4" weight="strong" color="gray900">
+            Complete Setup To Open The Explorer
+          </Text>
+
+          <Spacer height={6} />
+
+          <Text size="2" color="gray600">
+            Choose or create configuration and authentication for this deployment, then open the
+            Explorer session.
+          </Text>
+
+          <Spacer height={16} />
+
+          <Stepper
+            currentStep={setupWizardStep}
+            setCurrentStep={setSetupWizardStep}
+            steps={[
+              {
+                title: 'Config',
+                subtitle: 'Select or create config',
+                render: () => (
+                  <Flex direction="column" gap={12}>
+                    {selectedDeployment.isLoading ? (
+                      <Flex align="center" gap={8}>
+                        <CenteredSpinner />
+                        <Text size="2" color="gray600">
+                          Loading deployment details...
+                        </Text>
+                      </Flex>
+                    ) : (
+                      <>
+                        <Flex gap={8} align="end">
+                          <div style={{ flex: 1 }}>
+                            <Select
+                              label="Config"
+                              value={selectedConfigId || '__none__'}
+                              onChange={value =>
+                                setSelectedConfigId(value === '__none__' ? '' : value)
+                              }
+                              items={[
+                                { id: '__none__', label: 'None' },
+                                ...configItems.map(config => ({
+                                  id: config.id,
+                                  label: config.name ?? config.id
+                                }))
+                              ]}
+                            />
+                          </div>
+
+                          <div title={configPlusTooltip} style={{ display: 'inline-flex' }}>
+                            <Button
+                              type="button"
+                              size="3"
+                              iconLeft={<RiAddLine />}
+                              aria-label="Create Config"
+                              disabled={!hasConfigSchema || providerConfigSchema.isLoading}
+                              onClick={() =>
+                              showProviderConfigFormModal({
+                                type: 'create',
+                                providerDeploymentId,
+                                onCreate: config => {
+                                  setSessionError(null);
+                                  setSelectedConfigId(config.id);
+                                  providerConfigs.refetch();
+                                  setSetupWizardStep(1);
+                                }
+                              })
+                              }
+                              style={
+                                hasConfigSchema && !providerConfigSchema.isLoading
+                                  ? {
+                                      background: theme.colors.gray900,
+                                      borderColor: theme.colors.gray900,
+                                      color: 'white'
+                                    }
+                                  : {
+                                      background: theme.colors.gray200,
+                                      borderColor: theme.colors.gray300,
+                                      color: theme.colors.gray600
+                                    }
+                              }
+                            />
+                          </div>
+                        </Flex>
+                      </>
+                    )}
+
+                    {providerConfigs.error && (
+                      <Text size="2" color="red500">
+                        {providerConfigs.error.message ?? 'Failed to load configs.'}
+                      </Text>
+                    )}
+
+                    <Flex gap={10}>
+                      <Button type="button" onClick={() => setSetupWizardStep(1)}>
+                        Next
+                      </Button>
+                    </Flex>
+                  </Flex>
+                )
+              },
+              {
+                title: 'Auth',
+                subtitle: 'Credentials and auth config',
+                render: () => (
+                  <Flex direction="column" gap={12}>
+                    <Text size="2" color="gray600">
+                      Pick an existing auth config, or create a new one.
+                    </Text>
+
+                    <Flex gap={8} align="end">
+                      <div style={{ flex: 1 }}>
+                        <Select
+                          label="Auth Config"
+                          value={selectedAuthConfigId || '__none__'}
+                          onChange={value =>
+                            setSelectedAuthConfigId(value === '__none__' ? '' : value)
+                          }
+                          items={[
+                            { id: '__none__', label: 'None' },
+                            ...authConfigItems.map(config => ({
+                              id: config.id,
+                              label: config.name ?? config.id
+                            }))
+                          ]}
+                        />
+                      </div>
+
+                      <Button
+                        type="button"
+                        size="3"
+                        iconLeft={<RiAddLine />}
+                        title="Connect / Create Auth Config"
+                        aria-label="Connect / Create Auth Config"
+                        disabled={!activeProviderId}
+                        onClick={() => {
+                          if (!activeProviderId) return;
+                          showProviderSetupSessionModal({
+                            instanceId: instance.data.id,
+                            providerId: activeProviderId,
+                            deploymentId: providerDeploymentId,
+                            onComplete: (result: any) => {
+                              setSessionError(null);
+                              let authConfigId = result?.authConfig?.id;
+                              if (authConfigId) setSelectedAuthConfigId(authConfigId);
+                              providerAuthConfigs.refetch();
+                            }
+                          });
+                        }}
+                        style={{
+                          background: theme.colors.gray900,
+                          borderColor: theme.colors.gray900,
+                          color: 'white'
+                        }}
+                      />
+                    </Flex>
+
+                    {!activeProviderId && !selectedDeployment.isLoading && (
+                      <Text size="2" color="red500">
+                        Could not resolve the provider for this deployment yet. Re-open the
+                        sidebar and re-select the deployment.
+                      </Text>
+                    )}
+
+                    {providerAuthConfigs.error && (
+                      <Text size="2" color="red500">
+                        {providerAuthConfigs.error.message ?? 'Failed to load auth configs.'}
+                      </Text>
+                    )}
+
+                    {sessionError && (
+                      <Text size="2" color="red500">
+                        {sessionError}
+                      </Text>
+                    )}
+
+                    <Flex gap={10}>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setSetupWizardStep(0)}
+                      >
+                        Back
+                      </Button>
+                      <Button
+                        type="button"
+                        onClick={() =>
+                          createSessionForDeployment(providerDeploymentId, {
+                            providerConfigId: selectedConfigId || undefined,
+                            providerAuthConfigId: selectedAuthConfigId || undefined
+                          })
+                        }
+                        loading={isCreatingSession}
+                      >
+                        Open Explorer
+                      </Button>
+                    </Flex>
+                  </Flex>
+                )
+              }
+            ]}
+          />
+        </SetupCard>
+      </MainSetup>
+    );
+  };
+
   return (
     <Wrapper>
       <Aside
@@ -231,9 +558,7 @@ export let ExplorerPage = () => {
       >
         <AnimatePresence>
           <AsideInner
-            key={
-              open ? (selectedProvider ? 'select_deployment' : 'select_provider') : 'closed'
-            }
+            key={open ? (selectedProvider ? 'select_deployment' : 'select_provider') : 'closed'}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -273,6 +598,9 @@ export let ExplorerPage = () => {
 
                     <ProviderSearch
                       onSelect={provider => {
+                        setProviderDeploymentId(null);
+                        setSessionId(null);
+                        resetSessionSetupSelections();
                         _setSelectedProvider(provider);
                         setSearch(
                           v => {
@@ -294,6 +622,9 @@ export let ExplorerPage = () => {
                           iconLeft={<RiArrowLeftLine />}
                           onClick={() => {
                             _setSelectedProvider(null);
+                            setProviderDeploymentId(null);
+                            setSessionId(null);
+                            resetSessionSetupSelections();
                             setSearch(v => new URLSearchParams(), { replace: true });
                             setOpen(true);
                           }}
@@ -371,6 +702,9 @@ export let ExplorerPage = () => {
                               size="2"
                               onClick={() => {
                                 _setSelectedProvider(null);
+                                setProviderDeploymentId(null);
+                                setSessionId(null);
+                                resetSessionSetupSelections();
                                 setSearch(v => new URLSearchParams(), { replace: true });
                                 setOpen(true);
                               }}
@@ -384,7 +718,7 @@ export let ExplorerPage = () => {
                               loading={isCreating}
                               disabled={!deploymentName.trim()}
                             >
-                              Create & Connect
+                              Create Deployment
                             </Button>
                           </Flex>
                         </CreateForm>
@@ -412,13 +746,15 @@ export let ExplorerPage = () => {
           </MainEmpty>
         )}
 
+        {providerDeploymentId && !sessionId && !isCreatingSession && renderSetupPanel()}
+
         {isCreatingSession && (
           <MainEmpty>
             <CenteredSpinner />
           </MainEmpty>
         )}
 
-        {sessionError && !isCreatingSession && (
+        {sessionError && !providerDeploymentId && !isCreatingSession && (
           <MainEmpty>
             <p>{sessionError}</p>
           </MainEmpty>
