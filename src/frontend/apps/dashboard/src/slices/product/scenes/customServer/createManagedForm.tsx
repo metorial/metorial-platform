@@ -197,6 +197,7 @@ export let CustomServerManagedCreateForm = (p: {
       ];
 
       let runtime = { identifier: 'nodejs' as const, version: '22.x' as const };
+      let repoPath = values.path?.trim() || undefined;
 
       let [customServerRes] = await createCustomServer.mutate({
         instanceId: instance.data.id,
@@ -209,7 +210,8 @@ export let CustomServerManagedCreateForm = (p: {
               runtime,
               repository: {
                 repositoryId: selectedRepo.id,
-                branch: selectedRepo.defaultBranch || 'main'
+                branch: selectedRepo.defaultBranch || 'main',
+                path: repoPath
               }
             }
           : {

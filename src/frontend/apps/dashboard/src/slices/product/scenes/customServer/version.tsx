@@ -28,7 +28,6 @@ import { RiArrowDownSLine } from '@remixicon/react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
-import { CustomServerEventsTable } from './events';
 
 export let CustomServerVersionStatus = ({
   version
@@ -196,21 +195,6 @@ export let CustomServerVersion = ({
           </Group.Row>
         )}
       </Group.Wrapper>
-
-      {['current', 'available', 'deployment_succeeded', 'succeeded'].includes(
-        version.data.status ?? ''
-      ) && (
-        <>
-          <Spacer height={15} />
-
-          <Box title="Events" description="Important events related to this provider version.">
-            <CustomServerEventsTable
-              customServer={customServer}
-              filters={{ limit: 15, order: 'desc' }}
-            />
-          </Box>
-        </>
-      )}
 
       <link rel="stylesheet" href="https://fonts.metorial.com/jetbrains-mono.css" />
     </>

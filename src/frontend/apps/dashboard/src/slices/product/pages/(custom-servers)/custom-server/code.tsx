@@ -56,6 +56,11 @@ let Iframe = styled.iframe`
   background: #fff;
 `;
 
+let normalizeRepoPath = (path: string | null | undefined) => {
+  let trimmed = path?.trim();
+  return trimmed ? trimmed : undefined;
+};
+
 export let CustomServerCodePage = () => {
   let instance = useCurrentInstance();
 
@@ -85,19 +90,21 @@ export let CustomServerCodePage = () => {
       return {
         id: repoFromApi.id,
         url: repoFromApi.url,
-        defaultBranch: repoFromApi.defaultBranch
+        defaultBranch: repoFromApi.defaultBranch,
+        path: customServer.data?.draftBucket?.scmRepoLink?.path ?? undefined
       };
     }
 
     let metadataRepo = customServer.data?.metadata?.repository as
-      | { url?: string; branch?: string }
+      | { url?: string; branch?: string; path?: string }
       | undefined;
     if (!metadataRepo?.url) return null;
 
     return {
       id: undefined,
       url: metadataRepo.url,
-      defaultBranch: metadataRepo.branch ?? 'main'
+      defaultBranch: metadataRepo.branch ?? 'main',
+      path: metadataRepo.path
     };
   }, [customServer.data]);
 
@@ -109,7 +116,8 @@ export let CustomServerCodePage = () => {
         runtime: { identifier: 'nodejs' as const, version: '22.x' as const },
         repository: {
           repositoryId: linkedRepo.id,
-          branch: linkedRepo.defaultBranch || 'main'
+          branch: linkedRepo.defaultBranch || 'main',
+          path: normalizeRepoPath(linkedRepo.path)
         }
       };
     }
@@ -236,7 +244,8 @@ export let CustomServerCodePage = () => {
                                 },
                                 repository: {
                                   repositoryId: repo!.id,
-                                  branch: repo!.defaultBranch
+                                  branch: repo!.defaultBranch,
+                                  path: normalizeRepoPath(path)
                                 }
                               }
                             });

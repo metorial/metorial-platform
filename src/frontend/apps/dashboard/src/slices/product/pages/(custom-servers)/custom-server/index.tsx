@@ -77,7 +77,10 @@ export let CustomServerOverviewPage = () => {
 
       <Spacer height={15} />
 
-      <Box title="Provider Events" description="Important events about this provider.">
+      <Box
+        title="Provider Commits"
+        description="Recent commit/apply history for this provider."
+      >
         <CustomServerEventsTable customServer={customServer.data as any} />
       </Box>
     </>

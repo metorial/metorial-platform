@@ -91,12 +91,14 @@ export let customProviderFromValidator = v.union([
       repository: v.union([
         v.object({
           repository_id: v.string({ description: 'Repository ID' }),
-          branch: v.string({ description: 'Branch name' })
+          branch: v.string({ description: 'Branch name' }),
+          path: v.optional(v.string({ description: 'Repository path' }))
         }),
         v.object({
           type: v.literal('git'),
           repository_url: v.string({ description: 'Git repository URL' }),
-          branch: v.string({ description: 'Branch name' })
+          branch: v.string({ description: 'Branch name' }),
+          path: v.optional(v.string({ description: 'Repository path' }))
         })
       ])
     },
@@ -154,12 +156,14 @@ export let mapCustomProviderFrom = (
         'repository_id' in type.repository
           ? {
               repositoryId: type.repository.repository_id,
-              branch: type.repository.branch
+              branch: type.repository.branch,
+              path: type.repository.path
             }
           : {
               type: 'git' as const,
               repositoryUrl: type.repository.repository_url,
-              branch: type.repository.branch
+              branch: type.repository.branch,
+              path: type.repository.path
             }
     } satisfies CustomProviderFromInput;
   }

@@ -20,7 +20,7 @@ export let CustomServerEventsTable = ({
   return renderWithLoader({ events })(({ events }) => (
     <>
       <Table
-        headers={['Event', 'Message', 'Created']}
+        headers={['Trigger', 'Status', 'Created']}
         data={events.data.items.map(event => ({
           data: [
             <Text size="2" weight="strong">
@@ -40,7 +40,7 @@ export let CustomServerEventsTable = ({
 
       {events.data.items.length == 0 && (
         <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-          No recent events for this provider.
+          No recent commits for this provider.
         </Text>
       )}
     </>
