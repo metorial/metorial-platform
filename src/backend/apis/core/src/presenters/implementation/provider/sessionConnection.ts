@@ -35,6 +35,9 @@ export let v1SessionConnectionPresenter = Presenter.create(sessionConnectionType
           .run()
       : null,
 
+    has_errors: sessionConnection.hasErrors,
+    has_warnings: sessionConnection.hasWarnings,
+
     created_at: sessionConnection.createdAt,
     last_message_at: sessionConnection.lastMessageAt,
     last_active_at: sessionConnection.lastActiveAt
@@ -104,6 +107,14 @@ export let v1SessionConnectionPresenter = Presenter.create(sessionConnectionType
         examples: ['ses_4dEfGhJkLmNpQrSt']
       }),
       participant: v.nullable(v1SessionParticipantPresenter.schema),
+      has_errors: v.boolean({
+        name: 'has_errors',
+        description: 'Whether the connection has any errors'
+      }),
+      has_warnings: v.boolean({
+        name: 'has_warnings',
+        description: 'Whether the connection has any warnings'
+      }),
       created_at: v.date({
         name: 'created_at',
         description: 'Timestamp when created',

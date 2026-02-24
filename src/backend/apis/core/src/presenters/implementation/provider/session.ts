@@ -23,6 +23,8 @@ export let v1SessionPresenter = Presenter.create(providerSessionType)
       )
     ),
     from_templates_ids: session.fromTemplatesIds,
+    has_errors: session.hasErrors,
+    has_warnings: session.hasWarnings,
     created_at: session.createdAt,
     updated_at: session.updatedAt
   }))
@@ -82,6 +84,14 @@ export let v1SessionPresenter = Presenter.create(providerSessionType)
       from_templates_ids: v.array(v.string(), {
         name: 'from_templates_ids',
         description: 'Template IDs this session was created from'
+      }),
+      has_errors: v.boolean({
+        name: 'has_errors',
+        description: 'Whether the session has any errors'
+      }),
+      has_warnings: v.boolean({
+        name: 'has_warnings',
+        description: 'Whether the session has any warnings'
       }),
       created_at: v.date({
         name: 'created_at',

@@ -11,6 +11,7 @@ export let v1SessionErrorPresenter = Presenter.create(sessionErrorType)
     code: sessionError.code,
     message: sessionError.message,
     data: sessionError.data,
+    status: sessionError.status,
 
     session_id: sessionError.sessionId,
     provider_run_id: sessionError.providerRunId,
@@ -46,6 +47,11 @@ export let v1SessionErrorPresenter = Presenter.create(sessionErrorType)
         description: 'Error payload data',
         examples: [{ timeout_ms: 30000 }]
       }),
+      status: v.enumOf(['processing', 'processed'], {
+        name: 'status',
+        description:
+          'Indicates whether the error is still being processed or has been fully processed and grouped.'
+      }),
       session_id: v.string({
         name: 'session_id',
         description: 'Parent session ID',
@@ -65,11 +71,13 @@ export let v1SessionErrorPresenter = Presenter.create(sessionErrorType)
           examples: ['scn_8hJkLmNpQrStUvWx']
         })
       ),
-      group_id: v.string({
-        name: 'group_id',
-        description: 'Error group ID',
-        examples: ['seg_7gHjKlMnPqRsTuVw']
-      }),
+      group_id: v.nullable(
+        v.string({
+          name: 'group_id',
+          description: 'Error group ID',
+          examples: ['seg_7gHjKlMnPqRsTuVw']
+        })
+      ),
       similar_error_count: v.number({
         name: 'similar_error_count',
         description: 'Count of similar errors in the group',
