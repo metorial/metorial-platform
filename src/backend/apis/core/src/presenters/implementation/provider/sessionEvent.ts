@@ -5,6 +5,7 @@ import { v1ProviderRunPresenter } from './providerRun';
 import { v1SessionConnectionPresenter } from './sessionConnection';
 import { v1SessionErrorPresenter } from './sessionError';
 import { v1SubspaceSessionMessagePresenter } from './sessionMessage';
+import { v1SessionWarningPresenter } from './sessionWarning';
 
 export let v1SubspaceSessionEventPresenter = Presenter.create(sessionEventType)
   .presenter(async ({ sessionEvent }, opts) => ({
@@ -35,6 +36,12 @@ export let v1SubspaceSessionEventPresenter = Presenter.create(sessionEventType)
       ? await v1SessionErrorPresenter.present({ sessionError: sessionEvent.error }, opts).run()
       : null,
 
+    warning: sessionEvent.warning
+      ? await v1SessionWarningPresenter
+          .present({ sessionWarning: sessionEvent.warning }, opts)
+          .run()
+      : null,
+
     session_id: sessionEvent.sessionId,
 
     created_at: sessionEvent.createdAt
@@ -63,6 +70,7 @@ export let v1SubspaceSessionEventPresenter = Presenter.create(sessionEventType)
       provider_run: v.nullable(v1ProviderRunPresenter.schema),
       message: v.nullable(v1SubspaceSessionMessagePresenter.schema),
       error: v.nullable(v1SessionErrorPresenter.schema),
+      warning: v.nullable(v1SessionWarningPresenter.schema),
       created_at: v.date({
         name: 'created_at',
         description: 'Timestamp when created',

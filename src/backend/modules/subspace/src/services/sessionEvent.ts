@@ -8,3 +8,5 @@ export let subspaceSessionEventService = createSubspaceService(
 );
 
 export type SubspaceSessionEvent = Awaited<ReturnType<typeof subspace.sessionEvent.get>>;
+
+export type SubspaceSessionWarning = NonNullable<SubspaceSessionEvent['warning']>;
