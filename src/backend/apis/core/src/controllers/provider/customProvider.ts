@@ -215,7 +215,8 @@ export let customProviderController = Controller.create(
             }),
             provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by provider IDs (matches providers connected to sessions)'
-            })
+            }),
+            search: v.optional(v.string({ description: 'Search by name or description' }))
           })
         )
       )
@@ -223,6 +224,7 @@ export let customProviderController = Controller.create(
         let paginator = await subspaceCustomProviderService.list({
           instance: ctx.instance,
           allowDeleted: false,
+          search: ctx.query.search,
           providerIds: normalizeArrayParam(ctx.query.provider_id),
           status: normalizeArrayParam(ctx.query.status),
           type: normalizeArrayParam(ctx.query.type),

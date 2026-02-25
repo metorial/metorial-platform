@@ -137,7 +137,6 @@ export let providerDeploymentController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            search: v.optional(v.string(), { description: 'Search by name' }),
             id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by deployment ID(s)'
             }),
@@ -155,7 +154,8 @@ export let providerDeploymentController = Controller.create(
               {
                 description: 'Filter by status (active, archived)'
               }
-            )
+            ),
+            search: v.optional(v.string({ description: 'Search by name or description' }))
           })
         )
       )
@@ -164,6 +164,7 @@ export let providerDeploymentController = Controller.create(
           instance: ctx.instance,
           allowDeleted: false,
 
+          search: ctx.query.search,
           ids: normalizeArrayParam(ctx.query.id),
           providerIds: normalizeArrayParam(ctx.query.provider_id),
           providerVersionIds: normalizeArrayParam(ctx.query.provider_version_id),
