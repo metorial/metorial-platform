@@ -1,8 +1,8 @@
 import { createSlice } from '@metorial/microfrontend';
 import { OrganizationRedirect } from './pages/organizationRedirect';
 import { ProjectRedirect } from './pages/projectRedirect';
+import { ProviderRedirect } from './pages/providerRedirect';
 import { RootRedirect } from './pages/rootRedirect';
-import { ServerRedirect } from './pages/serverRedirect';
 
 export let indexSlice = createSlice([
   {
@@ -31,7 +31,7 @@ export let indexSlice = createSlice([
   },
 
   {
-    path: 'server/:serverId',
-    element: <ServerRedirect />
+    path: 'provider/:providerId',
+    element: <ProviderRedirect />
   }
 ]);
