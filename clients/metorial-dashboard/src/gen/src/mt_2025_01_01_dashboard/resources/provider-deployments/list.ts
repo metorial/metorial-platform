@@ -115,11 +115,11 @@ export type ProviderDeploymentsListQuery = {
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
 } & {
-  search?: string | undefined;
   id?: string | string[] | undefined;
   providerId?: string | string[] | undefined;
   providerVersionId?: string | string[] | undefined;
   status?: 'active' | 'archived' | ('active' | 'archived')[] | undefined;
+  search?: string | undefined;
 };
 
 export let mapProviderDeploymentsListQuery = mtMap.union([
@@ -131,7 +131,6 @@ export let mapProviderDeploymentsListQuery = mtMap.union([
       before: mtMap.objectField('before', mtMap.passthrough()),
       cursor: mtMap.objectField('cursor', mtMap.passthrough()),
       order: mtMap.objectField('order', mtMap.passthrough()),
-      search: mtMap.objectField('search', mtMap.passthrough()),
       id: mtMap.objectField(
         'id',
         mtMap.union([
@@ -165,7 +164,8 @@ export let mapProviderDeploymentsListQuery = mtMap.union([
       status: mtMap.objectField(
         'status',
         mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
-      )
+      ),
+      search: mtMap.objectField('search', mtMap.passthrough())
     })
   )
 ]);

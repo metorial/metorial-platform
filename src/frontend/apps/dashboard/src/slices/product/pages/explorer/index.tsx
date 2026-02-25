@@ -34,7 +34,7 @@ import {
   RiCloseLine
 } from '@remixicon/react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { Explainer } from '../../../../components/explainer';
@@ -251,6 +251,13 @@ export let ExplorerPage = () => {
     providerDeploymentId ?? undefined
   );
 
+  let providerConfigsRef = useRef(providerConfigs);
+  providerConfigsRef.current = providerConfigs;
+  let providerAuthConfigsRef = useRef(providerAuthConfigs);
+  providerAuthConfigsRef.current = providerAuthConfigs;
+
+  let pendingAuthConfigIdRef = useRef<string | null>(null);
+
   useEffect(() => {
     let deploymentsForCurrentProvider = deployments.data?.items.filter(
       d => d.providerId == (selectedProvider?.id ?? providerIdParam)
@@ -275,6 +282,11 @@ export let ExplorerPage = () => {
 
   useEffect(() => {
     if (providerAuthConfigs.isLoading || !selectedAuthConfigId) return;
+    if (pendingAuthConfigIdRef.current === selectedAuthConfigId) {
+      let exists = (providerAuthConfigs.data?.items ?? []).some(c => c.id === selectedAuthConfigId);
+      if (exists) pendingAuthConfigIdRef.current = null;
+      return;
+    }
     let exists = (providerAuthConfigs.data?.items ?? []).some(c => c.id === selectedAuthConfigId);
     if (!exists) setSelectedAuthConfigId('');
   }, [providerAuthConfigs.data, providerAuthConfigs.isLoading, selectedAuthConfigId]);
@@ -460,7 +472,7 @@ export let ExplorerPage = () => {
                             providerDeploymentId,
                             onCreate: config => {
                               setSelectedConfigId(config.id);
-                              providerConfigs.refetch();
+                              providerConfigsRef.current.refetch();
                             }
                           })
                         }
@@ -527,8 +539,11 @@ export let ExplorerPage = () => {
                             result: DashboardInstanceProviderDeploymentsSetupSessionsGetOutput | null
                           ) => {
                             let authConfigId = result?.authConfig?.id;
-                            if (authConfigId) setSelectedAuthConfigId(authConfigId);
-                            providerAuthConfigs.refetch();
+                            if (authConfigId) {
+                              pendingAuthConfigIdRef.current = authConfigId;
+                              setSelectedAuthConfigId(authConfigId);
+                            }
+                            providerAuthConfigsRef.current.refetch();
                           }
                         });
                       }}

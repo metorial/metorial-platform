@@ -40,6 +40,7 @@ export let useProviderAuthConfigs = (
     providerAuthConfigsLoader.use(
       instanceId && providerDeploymentId
         ? {
+            order: 'desc',
             ...opts,
             ...pagination,
             instanceId,
