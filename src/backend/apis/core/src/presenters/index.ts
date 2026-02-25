@@ -20,6 +20,7 @@ import { v1UserPresenter } from './implementation/user';
 
 // Provider API presenters
 import {
+  dashboardCustomProviderDeploymentPresenter,
   dashboardCustomProviderPresenter,
   v1BucketEditorTokenPresenter,
   v1ConfigPresenter,
@@ -565,7 +566,7 @@ export let subspaceCustomProviderDeploymentPresenter = declarePresenter(
   customProviderDeploymentType,
   {
     mt_2025_01_01_dashboard: v1CustomProviderDeploymentPresenter,
-    mt_2026_01_01_magnetar: v1CustomProviderDeploymentPresenter
+    mt_2026_01_01_magnetar: dashboardCustomProviderDeploymentPresenter
   }
 );
 

@@ -8,6 +8,18 @@ export type DashboardInstanceCustomProvidersListOutput = {
     name: string;
     description: string | null;
     metadata: Record<string, any> | null;
+    draft: {
+      containerImage?:
+        | {
+            containerRegistry: string;
+            containerImageTag: string;
+            containerImage: string;
+          }
+        | undefined;
+      remoteMcpServer?:
+        | { url: string; transport: 'sse' | 'streamable_http' }
+        | undefined;
+    };
     scmRepo: {
       object: 'scm.repository';
       id: string;
@@ -21,33 +33,6 @@ export type DashboardInstanceCustomProvidersListOutput = {
       url: string;
       isPrivate: boolean;
       defaultBranch: string;
-      createdAt: Date;
-    } | null;
-    draftBucket: {
-      object: 'bucket';
-      id: string;
-      isImmutable: boolean;
-      isReadOnly: boolean;
-      scmRepoLink: {
-        object: 'bucket.scm_repo';
-        isLinked: 'true';
-        path: string | null;
-        repository: {
-          object: 'scm.repository';
-          id: string;
-          provider: {
-            object: 'scm.provider';
-            type: 'github' | 'gitlab';
-            id: string;
-            name: string;
-            owner: string;
-          };
-          url: string;
-          isPrivate: boolean;
-          defaultBranch: string;
-          createdAt: Date;
-        };
-      } | null;
       createdAt: Date;
     } | null;
     provider: {
@@ -138,6 +123,35 @@ export let mapDashboardInstanceCustomProvidersListOutput =
           name: mtMap.objectField('name', mtMap.passthrough()),
           description: mtMap.objectField('description', mtMap.passthrough()),
           metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+          draft: mtMap.objectField(
+            'draft',
+            mtMap.object({
+              containerImage: mtMap.objectField(
+                'container_image',
+                mtMap.object({
+                  containerRegistry: mtMap.objectField(
+                    'container_registry',
+                    mtMap.passthrough()
+                  ),
+                  containerImageTag: mtMap.objectField(
+                    'container_image_tag',
+                    mtMap.passthrough()
+                  ),
+                  containerImage: mtMap.objectField(
+                    'container_image',
+                    mtMap.passthrough()
+                  )
+                })
+              ),
+              remoteMcpServer: mtMap.objectField(
+                'remote_mcp_server',
+                mtMap.object({
+                  url: mtMap.objectField('url', mtMap.passthrough()),
+                  transport: mtMap.objectField('transport', mtMap.passthrough())
+                })
+              )
+            })
+          ),
           scmRepo: mtMap.objectField(
             'scm_repo',
             mtMap.object({
@@ -158,60 +172,6 @@ export let mapDashboardInstanceCustomProvidersListOutput =
               defaultBranch: mtMap.objectField(
                 'default_branch',
                 mtMap.passthrough()
-              ),
-              createdAt: mtMap.objectField('created_at', mtMap.date())
-            })
-          ),
-          draftBucket: mtMap.objectField(
-            'draft_bucket',
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              isImmutable: mtMap.objectField(
-                'is_immutable',
-                mtMap.passthrough()
-              ),
-              isReadOnly: mtMap.objectField(
-                'is_read_only',
-                mtMap.passthrough()
-              ),
-              scmRepoLink: mtMap.objectField(
-                'scm_repo_link',
-                mtMap.object({
-                  object: mtMap.objectField('object', mtMap.passthrough()),
-                  isLinked: mtMap.objectField('is_linked', mtMap.passthrough()),
-                  path: mtMap.objectField('path', mtMap.passthrough()),
-                  repository: mtMap.objectField(
-                    'repository',
-                    mtMap.object({
-                      object: mtMap.objectField('object', mtMap.passthrough()),
-                      id: mtMap.objectField('id', mtMap.passthrough()),
-                      provider: mtMap.objectField(
-                        'provider',
-                        mtMap.object({
-                          object: mtMap.objectField(
-                            'object',
-                            mtMap.passthrough()
-                          ),
-                          type: mtMap.objectField('type', mtMap.passthrough()),
-                          id: mtMap.objectField('id', mtMap.passthrough()),
-                          name: mtMap.objectField('name', mtMap.passthrough()),
-                          owner: mtMap.objectField('owner', mtMap.passthrough())
-                        })
-                      ),
-                      url: mtMap.objectField('url', mtMap.passthrough()),
-                      isPrivate: mtMap.objectField(
-                        'is_private',
-                        mtMap.passthrough()
-                      ),
-                      defaultBranch: mtMap.objectField(
-                        'default_branch',
-                        mtMap.passthrough()
-                      ),
-                      createdAt: mtMap.objectField('created_at', mtMap.date())
-                    })
-                  )
-                })
               ),
               createdAt: mtMap.objectField('created_at', mtMap.date())
             })
@@ -438,6 +398,7 @@ export type DashboardInstanceCustomProvidersListQuery = {
     | undefined;
   id?: string | string[] | undefined;
   providerId?: string | string[] | undefined;
+  search?: string | undefined;
 };
 
 export let mapDashboardInstanceCustomProvidersListQuery = mtMap.union([
@@ -476,7 +437,8 @@ export let mapDashboardInstanceCustomProvidersListQuery = mtMap.union([
             mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
           )
         ])
-      )
+      ),
+      search: mtMap.objectField('search', mtMap.passthrough())
     })
   )
 ]);

@@ -150,6 +150,14 @@ export type DashboardInstanceCustomProvidersCommitsCreateOutput = {
       organizationActorId: string | null;
       createdAt: Date;
     };
+    containerImage?:
+      | {
+          containerRegistry: string;
+          containerImageTag: string;
+          containerImage: string;
+        }
+      | undefined;
+    remoteMcpServer?: { url: string; transport: string } | undefined;
     createdAt: Date;
     updatedAt: Date;
   };
@@ -274,6 +282,14 @@ export type DashboardInstanceCustomProvidersCommitsCreateOutput = {
       organizationActorId: string | null;
       createdAt: Date;
     };
+    containerImage?:
+      | {
+          containerRegistry: string;
+          containerImageTag: string;
+          containerImage: string;
+        }
+      | undefined;
+    remoteMcpServer?: { url: string; transport: string } | undefined;
     createdAt: Date;
     updatedAt: Date;
   } | null;
@@ -630,6 +646,30 @@ export let mapDashboardInstanceCustomProvidersCommitsCreateOutput =
             createdAt: mtMap.objectField('created_at', mtMap.date())
           })
         ),
+        containerImage: mtMap.objectField(
+          'container_image',
+          mtMap.object({
+            containerRegistry: mtMap.objectField(
+              'container_registry',
+              mtMap.passthrough()
+            ),
+            containerImageTag: mtMap.objectField(
+              'container_image_tag',
+              mtMap.passthrough()
+            ),
+            containerImage: mtMap.objectField(
+              'container_image',
+              mtMap.passthrough()
+            )
+          })
+        ),
+        remoteMcpServer: mtMap.objectField(
+          'remote_mcp_server',
+          mtMap.object({
+            url: mtMap.objectField('url', mtMap.passthrough()),
+            transport: mtMap.objectField('transport', mtMap.passthrough())
+          })
+        ),
         createdAt: mtMap.objectField('created_at', mtMap.date()),
         updatedAt: mtMap.objectField('updated_at', mtMap.date())
       })
@@ -877,6 +917,30 @@ export let mapDashboardInstanceCustomProvidersCommitsCreateOutput =
               mtMap.passthrough()
             ),
             createdAt: mtMap.objectField('created_at', mtMap.date())
+          })
+        ),
+        containerImage: mtMap.objectField(
+          'container_image',
+          mtMap.object({
+            containerRegistry: mtMap.objectField(
+              'container_registry',
+              mtMap.passthrough()
+            ),
+            containerImageTag: mtMap.objectField(
+              'container_image_tag',
+              mtMap.passthrough()
+            ),
+            containerImage: mtMap.objectField(
+              'container_image',
+              mtMap.passthrough()
+            )
+          })
+        ),
+        remoteMcpServer: mtMap.objectField(
+          'remote_mcp_server',
+          mtMap.object({
+            url: mtMap.objectField('url', mtMap.passthrough()),
+            transport: mtMap.objectField('transport', mtMap.passthrough())
           })
         ),
         createdAt: mtMap.objectField('created_at', mtMap.date()),

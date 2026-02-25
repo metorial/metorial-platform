@@ -57,6 +57,7 @@ export type ProviderDeploymentsAuthCredentialsListQuery = {
   status?: 'active' | 'archived' | ('active' | 'archived')[] | undefined;
   id?: string | string[] | undefined;
   providerId?: string | string[] | undefined;
+  search?: string | undefined;
 };
 
 export let mapProviderDeploymentsAuthCredentialsListQuery = mtMap.union([
@@ -91,7 +92,8 @@ export let mapProviderDeploymentsAuthCredentialsListQuery = mtMap.union([
             mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
           )
         ])
-      )
+      ),
+      search: mtMap.objectField('search', mtMap.passthrough())
     })
   )
 ]);

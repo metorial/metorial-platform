@@ -84,6 +84,7 @@ export type ManagementInstanceProviderDeploymentsConfigVaultsListQuery = {
   providerDeploymentId?: string | string[] | undefined;
   providerConfigId?: string | string[] | undefined;
   providerConfigVaultId?: string | string[] | undefined;
+  search?: string | undefined;
 };
 
 export let mapManagementInstanceProviderDeploymentsConfigVaultsListQuery =
@@ -149,7 +150,8 @@ export let mapManagementInstanceProviderDeploymentsConfigVaultsListQuery =
               mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
             )
           ])
-        )
+        ),
+        search: mtMap.objectField('search', mtMap.passthrough())
       })
     )
   ]);

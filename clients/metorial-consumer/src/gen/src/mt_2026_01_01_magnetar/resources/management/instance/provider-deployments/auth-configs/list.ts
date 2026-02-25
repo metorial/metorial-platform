@@ -200,6 +200,7 @@ export type ManagementInstanceProviderDeploymentsAuthConfigsListQuery = {
   providerDeploymentId?: string | string[] | undefined;
   providerAuthCredentialsId?: string | string[] | undefined;
   providerAuthMethodId?: string | string[] | undefined;
+  search?: string | undefined;
 };
 
 export let mapManagementInstanceProviderDeploymentsAuthConfigsListQuery =
@@ -265,7 +266,8 @@ export let mapManagementInstanceProviderDeploymentsAuthConfigsListQuery =
               mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
             )
           ])
-        )
+        ),
+        search: mtMap.objectField('search', mtMap.passthrough())
       })
     )
   ]);
