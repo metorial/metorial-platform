@@ -610,7 +610,8 @@ let DeploymentConfigureStep = ({
 
     withAuth(sdk =>
       sdk.providerDeployments.authConfigs.list(instanceId, {
-        providerId
+        providerId,
+        order: 'desc'
       })
     )
       .then(response => {

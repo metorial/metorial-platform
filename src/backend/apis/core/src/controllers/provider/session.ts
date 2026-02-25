@@ -63,13 +63,14 @@ export let toolFiltersValidator = v.nullable(
 );
 
 let providerInput = v.intersection([
-  v.union([
-    deploymentValidator,
-    configValidator,
-    authConfigValidator,
-    v.object({
-      session_template_id: v.optional(v.string())
-    })
+  v.intersection([
+    v.intersection([deploymentValidator, configValidator]),
+    v.intersection([
+      authConfigValidator,
+      v.object({
+        session_template_id: v.optional(v.string())
+      })
+    ])
   ]),
   v.object({
     tool_filters: toolFiltersValidator

@@ -550,8 +550,8 @@ export let bucketEditorTokenPresenter = declarePresenter(bucketEditorTokenType, 
 });
 
 export let subspaceCustomProviderPresenter = declarePresenter(customProviderType, {
-  mt_2025_01_01_dashboard: v1CustomProviderPresenter,
-  mt_2026_01_01_magnetar: dashboardCustomProviderPresenter
+  mt_2025_01_01_dashboard: dashboardCustomProviderPresenter,
+  mt_2026_01_01_magnetar: v1CustomProviderPresenter
 });
 
 export let subspaceCustomProviderVersionPresenter = declarePresenter(
@@ -565,8 +565,8 @@ export let subspaceCustomProviderVersionPresenter = declarePresenter(
 export let subspaceCustomProviderDeploymentPresenter = declarePresenter(
   customProviderDeploymentType,
   {
-    mt_2025_01_01_dashboard: v1CustomProviderDeploymentPresenter,
-    mt_2026_01_01_magnetar: dashboardCustomProviderDeploymentPresenter
+    mt_2025_01_01_dashboard: dashboardCustomProviderDeploymentPresenter,
+    mt_2026_01_01_magnetar: v1CustomProviderDeploymentPresenter
   }
 );
 
