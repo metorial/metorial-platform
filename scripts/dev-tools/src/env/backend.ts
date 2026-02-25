@@ -152,7 +152,7 @@ export let backendEnv: Env = [
     defaultValue: `http://${HOSTNAME}:4311`
   },
   { key: 'DASHBOARD_FRONTEND_HOST', defaultValue: `http://${HOSTNAME}:4300` },
-  { key: 'AUTH_FRONTEND_HOST', defaultValue: `http://${HOSTNAME}:4300`},
+  { key: 'AUTH_FRONTEND_HOST', defaultValue: `http://${HOSTNAME}:4300` },
   {
     key: 'PORTALS_URL',
     defaultValue: `http://${HOSTNAME}:4315`
@@ -199,11 +199,11 @@ export let backendEnv: Env = [
 
   {
     key: 'ARES_INTERNAL_URL',
-    defaultValue: 'http://localhost:52123/metorial-ares-internal/api'
+    defaultValue: 'http://services:52123/metorial-ares-internal/api'
   },
   {
     key: 'ARES_AUTH_URL',
-    defaultValue: 'http://localhost:52120'
+    defaultValue: 'http://services:52120'
   },
 
   { key: 'SUBSPACE_SOLUTION', defaultValue: 'metorial-dev' },
