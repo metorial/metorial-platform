@@ -260,19 +260,49 @@ let PopoverInner = ({
         {!currentProject ? (
           <PopoverPart style={{ width: 300 }}>
             <PopoverItems>
-              {organizations?.map(organization => (
-                <PopoverButton
-                  onClick={() =>
-                    navigate(
-                      new URL(Paths.organization.settings(organization), window.location.href)
-                        .pathname
-                    )
-                  }
-                  key={organization.id}
-                >
-                  <TriggerEntity entity={organization} height={30} />
-                </PopoverButton>
-              ))}
+              {[
+                ...(organizations ?? []).map(organization => ({
+                  component: (
+                    <PopoverButton
+                      onClick={() =>
+                        navigate(
+                          new URL(
+                            Paths.organization.settings(organization),
+                            window.location.href
+                          ).pathname
+                        )
+                      }
+                      key={organization.id}
+                    >
+                      <TriggerEntity entity={organization} height={30} />
+                    </PopoverButton>
+                  ),
+                  name: organization.name
+                })),
+
+                ...(((window as any).foreignOrgs ?? []) as any[]).map(
+                  (organization: {
+                    id: string;
+                    name: string;
+                    imageUrl: string;
+                    url: string;
+                  }) => ({
+                    component: (
+                      <PopoverButton
+                        onClick={() => {
+                          location.href = organization.url;
+                        }}
+                        key={organization.id}
+                      >
+                        <TriggerEntity entity={organization} height={30} />
+                      </PopoverButton>
+                    ),
+                    name: organization.name
+                  })
+                )
+              ]
+                .sort((a, b) => a.name.localeCompare(b.name))
+                .map(x => x.component)}
             </PopoverItems>
 
             <PopoverSectionFooter>
@@ -289,11 +319,42 @@ let PopoverInner = ({
           <>
             <PopoverPart>
               <PopoverItems>
-                {organizations?.map(organization => (
-                  <PopoverButton onClick={() => selectOrg(organization)} key={organization.id}>
-                    <TriggerEntity entity={organization} />
-                  </PopoverButton>
-                ))}
+                {[
+                  ...(organizations ?? []).map(organization => ({
+                    component: (
+                      <PopoverButton
+                        onClick={() => selectOrg(organization)}
+                        key={organization.id}
+                      >
+                        <TriggerEntity entity={organization} />
+                      </PopoverButton>
+                    ),
+                    name: organization.name
+                  })),
+
+                  ...(((window as any).foreignOrgs ?? []) as any[]).map(
+                    (organization: {
+                      id: string;
+                      name: string;
+                      imageUrl: string;
+                      url: string;
+                    }) => ({
+                      component: (
+                        <PopoverButton
+                          onClick={() => {
+                            location.href = organization.url;
+                          }}
+                          key={organization.id}
+                        >
+                          <TriggerEntity entity={organization} />
+                        </PopoverButton>
+                      ),
+                      name: organization.name
+                    })
+                  )
+                ]
+                  .sort((a, b) => a.name.localeCompare(b.name))
+                  .map(x => x.component)}
               </PopoverItems>
 
               <PopoverSectionFooter>
