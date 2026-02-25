@@ -71,6 +71,7 @@ import {
   SubspaceSessionProvider,
   SubspaceSessionTemplate,
   SubspaceSessionTemplateProvider,
+  SubspaceSessionWarning,
   SubspaceToolCall
 } from '@metorial/module-subspace';
 import { PresentableType } from '@metorial/presenter';
@@ -442,6 +443,10 @@ export let sessionProviderType = PresentableType.create<{
 export let sessionParticipantType = PresentableType.create<{
   sessionParticipant: SubspaceSessionParticipant;
 }>()('sessionParticipant');
+
+export let sessionWarningType = PresentableType.create<{
+  sessionWarning: SubspaceSessionWarning;
+}>()('sessionWarning');
 
 export let sessionErrorType = PresentableType.create<{
   sessionError: SubspaceSessionError;
