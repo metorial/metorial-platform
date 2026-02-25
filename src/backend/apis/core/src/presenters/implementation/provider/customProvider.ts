@@ -62,7 +62,6 @@ export let v1CustomProviderPresenter = Presenter.create(customProviderType)
         })
       ),
       scm_repo: v.nullable(v1ScmRepoPresenter.schema),
-      draft_bucket: v.nullable(v1BucketPresenter.schema),
       provider: v.nullable(v1ProviderPresenter.schema),
       created_at: v.date({
         name: 'created_at',
