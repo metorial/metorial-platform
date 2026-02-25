@@ -73,7 +73,8 @@ export let providerAuthConfigController = Controller.create(
             ),
             provider_auth_method_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by auth method ID(s)'
-            })
+            }),
+            search: v.optional(v.string({ description: 'Search by name or description' }))
           })
         )
       )
@@ -82,6 +83,7 @@ export let providerAuthConfigController = Controller.create(
           instance: ctx.instance,
           allowDeleted: false,
 
+          search: ctx.query.search,
           status: normalizeArrayParam(ctx.query.status),
           ids: normalizeArrayParam(ctx.query.id),
           providerIds: normalizeArrayParam(ctx.query.provider_id),

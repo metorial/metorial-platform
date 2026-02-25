@@ -65,7 +65,8 @@ export let providerConfigVaultController = Controller.create(
             }),
             provider_config_vault_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by config vault ID(s)'
-            })
+            }),
+            search: v.optional(v.string({ description: 'Search by name or description' }))
           })
         )
       )
@@ -74,6 +75,7 @@ export let providerConfigVaultController = Controller.create(
           instance: ctx.instance,
           allowDeleted: false,
 
+          search: ctx.query.search,
           status: normalizeArrayParam(ctx.query.status),
           ids: normalizeArrayParam(ctx.query.id),
           providerIds: normalizeArrayParam(ctx.query.provider_id),

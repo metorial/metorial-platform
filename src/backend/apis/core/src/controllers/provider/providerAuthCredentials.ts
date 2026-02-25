@@ -59,7 +59,8 @@ export let providerAuthCredentialsController = Controller.create(
             }),
             provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by provider ID(s)'
-            })
+            }),
+            search: v.optional(v.string({ description: 'Search by name or description' }))
           })
         )
       )
@@ -68,6 +69,7 @@ export let providerAuthCredentialsController = Controller.create(
           instance: ctx.instance,
           allowDeleted: false,
 
+          search: ctx.query.search,
           status: normalizeArrayParam(ctx.query.status),
           ids: normalizeArrayParam(ctx.query.id),
           providerIds: normalizeArrayParam(ctx.query.provider_id)
