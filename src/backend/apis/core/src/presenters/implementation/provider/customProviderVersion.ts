@@ -52,6 +52,25 @@ export let v1CustomProviderVersionPresenter = Presenter.create(customProviderVer
       .present({ actor: customProviderVersion.actor }, opts)
       .run(),
 
+    container_image:
+      customProviderVersion.containerTag &&
+      customProviderVersion.containerRegistry &&
+      customProviderVersion.containerRepository
+        ? {
+            container_registry: customProviderVersion.containerRegistry.url!,
+            container_image_tag: customProviderVersion.containerTag.name!,
+            container_image: customProviderVersion.containerRepository.name!
+          }
+        : undefined,
+
+    remote_mcp_server:
+      customProviderVersion.remoteProtocol && customProviderVersion.remoteUrl
+        ? {
+            url: customProviderVersion.remoteUrl,
+            transport: customProviderVersion.remoteProtocol
+          }
+        : undefined,
+
     created_at: customProviderVersion.createdAt,
     updated_at: customProviderVersion.updatedAt
   }))
@@ -98,6 +117,39 @@ export let v1CustomProviderVersionPresenter = Presenter.create(customProviderVer
         })
       ),
       actor: v1ActorPreviewPresenter.schema,
+      container_image: v.optional(
+        v.object({
+          container_registry: v.string({
+            name: 'container_registry',
+            description: 'URL of the container registry',
+            examples: ['https://index.docker.io/v1/']
+          }),
+          container_image_tag: v.string({
+            name: 'container_image_tag',
+            description: 'Tag of the container image',
+            examples: ['v1.0.0']
+          }),
+          container_image: v.string({
+            name: 'container_image',
+            description: 'Name of the container image',
+            examples: ['my-app-image']
+          })
+        })
+      ),
+      remote_mcp_server: v.optional(
+        v.object({
+          url: v.string({
+            name: 'url',
+            description: 'URL of the remote MCP server',
+            examples: ['https://mcp.example.com']
+          }),
+          transport: v.string({
+            name: 'transport',
+            description: 'Transport protocol for the remote MCP server',
+            examples: ['grpc', 'http']
+          })
+        })
+      ),
       created_at: v.date({
         name: 'created_at',
         description: 'Timestamp when created',
@@ -108,6 +160,6 @@ export let v1CustomProviderVersionPresenter = Presenter.create(customProviderVer
         description: 'Timestamp when last updated',
         examples: [new Date('2026-01-10T14:45:00Z')]
       })
-    })
+    }) as any
   )
   .build();
