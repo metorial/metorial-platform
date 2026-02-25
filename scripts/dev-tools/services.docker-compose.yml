@@ -49,54 +49,54 @@ services:
     command: postgres -c 'max_connections=1000'
     restart: unless-stopped
 
-  minio:
-    image: minio/minio:latest
-    container_name: minio
-    ports:
-      - '9000:9000'
-      - '9001:9001' # MinIO Console
-    volumes:
-      - ./_volumes/minio:/data
-    environment:
-      MINIO_ROOT_USER: minio
-      MINIO_ROOT_PASSWORD: minio123
-    command: server --console-address ":9001" /data
-    restart: unless-stopped
+  # minio:
+  #   image: minio/minio:latest
+  #   container_name: minio
+  #   ports:
+  #     - '9000:9000'
+  #     - '9001:9001' # MinIO Console
+  #   volumes:
+  #     - ./_volumes/minio:/data
+  #   environment:
+  #     MINIO_ROOT_USER: minio
+  #     MINIO_ROOT_PASSWORD: minio123
+  #   command: server --console-address ":9001" /data
+  #   restart: unless-stopped
 
-  opensearch:
-    image: opensearchproject/opensearch:2.9.0
-    container_name: opensearch
-    environment:
-      - discovery.type=single-node
-      - bootstrap.memory_lock=true
-      - DISABLE_SECURITY_PLUGIN=true # disable SSL & auth
-      - 'OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m'
-      - OPENSEARCH_USERNAME=admin
-      - OPENSEARCH_PASSWORD=admin
-    ulimits:
-      memlock:
-        soft: -1
-        hard: -1
-    ports:
-      - '9200:9200'
-      - '9600:9600' # Performance analyzer
-    volumes:
-      - open_search_1:/usr/share/opensearch/data
-    restart: unless-stopped
+  # opensearch:
+  #   image: opensearchproject/opensearch:2.9.0
+  #   container_name: opensearch
+  #   environment:
+  #     - discovery.type=single-node
+  #     - bootstrap.memory_lock=true
+  #     - DISABLE_SECURITY_PLUGIN=true # disable SSL & auth
+  #     - 'OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m'
+  #     - OPENSEARCH_USERNAME=admin
+  #     - OPENSEARCH_PASSWORD=admin
+  #   ulimits:
+  #     memlock:
+  #       soft: -1
+  #       hard: -1
+  #   ports:
+  #     - '9200:9200'
+  #     - '9600:9600' # Performance analyzer
+  #   volumes:
+  #     - open_search_1:/usr/share/opensearch/data
+  #   restart: unless-stopped
 
-  opensearch-dashboards:
-    image: opensearchproject/opensearch-dashboards:2.9.0
-    container_name: opensearch-dashboards
-    ports:
-      - '5601:5601'
-    environment:
-      - OPENSEARCH_HOSTS=http://opensearch:9200
-      - OPENSEARCH_USERNAME=admin
-      - OPENSEARCH_PASSWORD=admin
-      - DISABLE_SECURITY_DASHBOARDS_PLUGIN=true # disable SSL & auth
-    depends_on:
-      - opensearch
-    restart: unless-stopped
+  # opensearch-dashboards:
+  #   image: opensearchproject/opensearch-dashboards:2.9.0
+  #   container_name: opensearch-dashboards
+  #   ports:
+  #     - '5601:5601'
+  #   environment:
+  #     - OPENSEARCH_HOSTS=http://opensearch:9200
+  #     - OPENSEARCH_USERNAME=admin
+  #     - OPENSEARCH_PASSWORD=admin
+  #     - DISABLE_SECURITY_DASHBOARDS_PLUGIN=true # disable SSL & auth
+  #   depends_on:
+  #     - opensearch
+  #   restart: unless-stopped
 
 volumes:
   mongodb_1:
