@@ -7,7 +7,7 @@ import {
 } from '@metorial/state';
 import { Button, CenteredSpinner, Dialog, Input, Select, Spacer, Text } from '@metorial/ui';
 import { JSONSchema7 } from 'json-schema';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { JsonSchemaInput } from '../jsonSchemaInput';
 import { Stepper } from '../stepper';
 
@@ -117,6 +117,13 @@ export let ProviderAuthConfigForm = (
     label: `${method.name} (${method.type})`
   }));
   let hasAuthMethods = authMethodItems.length > 0;
+  let hasSingleMethod = authMethodItems.length === 1;
+
+  useEffect(() => {
+    if (!authMethodId && hasSingleMethod) {
+      setAuthMethodId(authMethods.data!.items![0].id);
+    }
+  }, [authMethods.data?.items, hasSingleMethod, authMethodId]);
 
   let credentialsSection = hasSchema ? (
     <JsonSchemaInput
@@ -142,114 +149,155 @@ export let ProviderAuthConfigForm = (
     />
   );
 
-  let authMethodStep = (
-    <>
-      {hasAuthMethods ? (
-        <Select
-          label="Authentication Method"
-          value={authMethodId}
-          placeholder="Select an authentication method..."
-          onChange={value => {
-            setAuthMethodId(value);
-            setCredentialsData({});
-            setCredentialsDataJson('{}');
-            setOauthClientId('');
-            setOauthClientSecret('');
-          }}
-          items={authMethodItems}
-        />
-      ) : (
-        <Text size="2" color="gray600">
-          No auth methods found for this provider.
-        </Text>
-      )}
-
-      {selectedMethod?.description && (
+  if (props.type === 'create') {
+    let methodStep = {
+      title: 'Authentication',
+      subtitle: 'Select auth method',
+      render: () => (
         <>
-          <Spacer size={5} />
-          <Text size="1" color="gray600">
-            {selectedMethod.description}
-          </Text>
+          {hasAuthMethods ? (
+            <Select
+              label="Authentication Method"
+              value={authMethodId}
+              placeholder="Select an authentication method..."
+              onChange={value => {
+                setAuthMethodId(value);
+                setCredentialsData({});
+                setCredentialsDataJson('{}');
+                setOauthClientId('');
+                setOauthClientSecret('');
+              }}
+              items={authMethodItems}
+            />
+          ) : (
+            <Text size="2" color="gray600">
+              No auth methods found for this provider.
+            </Text>
+          )}
+
+          {selectedMethod?.description && (
+            <>
+              <Spacer size={5} />
+              <Text size="1" color="gray600">
+                {selectedMethod.description}
+              </Text>
+            </>
+          )}
+
+          <Spacer size={10} />
+
+          <Dialog.Actions>
+            {hasAuthMethods ? (
+              <>
+                <Button variant="outline" onClick={props.close}>
+                  Cancel
+                </Button>
+                <Button onClick={() => setStep(1)} disabled={!authMethodId}>
+                  Continue
+                </Button>
+              </>
+            ) : (
+              <Button variant="outline" onClick={props.onBack ?? props.close}>
+                Back
+              </Button>
+            )}
+          </Dialog.Actions>
         </>
-      )}
+      )
+    };
 
-      <Spacer size={10} />
+    let credentialsStepIndex = hasSingleMethod ? 0 : 1;
+    let detailsStepIndex = hasSingleMethod ? 1 : 2;
 
-      <Dialog.Actions>
-        {hasAuthMethods ? (
-          <>
-            <Button variant="outline" onClick={props.close}>
-              Cancel
-            </Button>
-            <Button onClick={() => setStep(1)} disabled={!authMethodId}>
+    let credentialsStep = {
+      title: 'Credentials',
+      subtitle: 'Provide credential values',
+      render: () => (
+        <>
+          {selectedMethod && (
+            <Text size="1" color="gray600">
+              Configuring <strong>{selectedMethod.name}</strong> ({selectedMethod.type})
+            </Text>
+          )}
+
+          <Spacer size={10} />
+
+          {credentialsSection}
+
+          <Spacer size={15} />
+
+          <Dialog.Actions>
+            {!hasSingleMethod && (
+              <Button variant="outline" onClick={() => setStep(0)}>
+                Back
+              </Button>
+            )}
+            {hasSingleMethod && (
+              <Button variant="outline" onClick={props.close}>
+                Cancel
+              </Button>
+            )}
+            <Button onClick={() => setStep(detailsStepIndex)}>
               Continue
             </Button>
-          </>
-        ) : (
-          <Button variant="outline" onClick={props.onBack ?? props.close}>
-            Back
-          </Button>
-        )}
-      </Dialog.Actions>
-    </>
-  );
-
-  let configStep = (
-    <>
-      <Input label="Name" value={name} onChange={e => setName(e.target.value)} required />
-
-      <Spacer size={10} />
-
-      <Input
-        label="Description"
-        value={description}
-        onChange={e => setDescription(e.target.value)}
-      />
-
-      <Spacer size={10} />
-
-      {credentialsSection}
-
-      <Spacer size={15} />
-
-      <Dialog.Actions>
-        <Button variant="outline" onClick={() => setStep(0)}>
-          Back
-        </Button>
-        <Button
-          onClick={handleSubmit}
-          loading={createMutation.isPending}
-          disabled={!name || !authMethodId}
-        >
-          {props.type === 'create' ? 'Create' : 'Update'}
-        </Button>
-      </Dialog.Actions>
-      {submitError && (
-        <>
-          <Spacer size={8} />
-          <Text size="2" color="red500">
-            {submitError}
-          </Text>
+          </Dialog.Actions>
         </>
-      )}
-    </>
-  );
+      )
+    };
 
-  if (props.type === 'create') {
+    let detailsStep = {
+      title: 'Details',
+      subtitle: 'Name and create',
+      render: () => (
+        <>
+          <Input
+            label="Name"
+            value={name}
+            onChange={e => setName(e.target.value)}
+            required
+          />
+
+          <Spacer size={10} />
+
+          <Input
+            label="Description"
+            value={description}
+            onChange={e => setDescription(e.target.value)}
+          />
+
+          <Spacer size={15} />
+
+          <Dialog.Actions>
+            <Button variant="outline" onClick={() => setStep(credentialsStepIndex)}>
+              Back
+            </Button>
+            <Button
+              onClick={handleSubmit}
+              loading={createMutation.isPending}
+              disabled={!name || !authMethodId}
+            >
+              Create
+            </Button>
+          </Dialog.Actions>
+          {submitError && (
+            <>
+              <Spacer size={8} />
+              <Text size="2" color="red500">
+                {submitError}
+              </Text>
+            </>
+          )}
+        </>
+      )
+    };
+
+    let steps = hasSingleMethod
+      ? [credentialsStep, detailsStep]
+      : [methodStep, credentialsStep, detailsStep];
+
     return (
       <Stepper
-        steps={[
-          {
-            title: 'Authentication',
-            subtitle: 'Select auth method',
-            render: () => authMethodStep
-          },
-          {
-            title: 'Configuration',
-            subtitle: 'Set auth config details',
-            render: () => configStep
-          }
-        ]}
+        steps={steps}
         currentStep={step}
         setCurrentStep={setStep}
       />

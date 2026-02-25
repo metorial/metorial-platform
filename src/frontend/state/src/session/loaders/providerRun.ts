@@ -78,3 +78,22 @@ export let useProviderRun = (
 
   return data;
 };
+
+export let providerRunLogsLoader = createLoader({
+  name: 'providerRunLogs',
+  parents: [providerRunLoader],
+  fetch: (i: { instanceId: string; providerRunId: string }) =>
+    withAuth(sdk => sdk.providerRuns.getLogs(i.instanceId, i.providerRunId)),
+  mutators: {}
+});
+
+export let useProviderRunLogs = (
+  instanceId: string | null | undefined,
+  providerRunId: string | null | undefined
+) => {
+  let data = providerRunLogsLoader.use(
+    instanceId && providerRunId ? { instanceId, providerRunId } : null
+  );
+
+  return data;
+};

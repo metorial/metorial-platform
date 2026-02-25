@@ -15,6 +15,7 @@ import styled from 'styled-components';
 import { useEvents } from '../hooks/useEvents';
 import { Entry } from './entry';
 import { ItemList } from './itemList';
+import { ProviderRunLogs } from './providerRunLogs';
 
 let Wrapper = styled.div`
   border-radius: 8px;
@@ -187,7 +188,16 @@ export let ServerSession = ({
               items = items.slice(0, 10);
             }
 
-            return <ItemList items={items} />;
+            return (
+              <>
+                <ItemList items={items} />
+                {serverRuns.data.items.map(run => (
+                  <div key={run.id} style={{ marginTop: 16 }}>
+                    <ProviderRunLogs providerRunId={run.id} lazy />
+                  </div>
+                ))}
+              </>
+            );
           })}
         </Main>
       </Wrapper>

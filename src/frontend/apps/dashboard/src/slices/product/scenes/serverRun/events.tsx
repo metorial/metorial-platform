@@ -7,6 +7,7 @@ import { useState } from 'react';
 import styled from 'styled-components';
 import { Entry } from '../session/components/entry';
 import { ItemList } from '../session/components/itemList';
+import { ProviderRunLogs } from '../session/components/providerRunLogs';
 import { useEvents } from '../session/hooks/useEvents';
 
 let Wrapper = styled.div`
@@ -144,6 +145,10 @@ export let ServerRunEvents = ({
           <ItemList items={displayItems} />
         </Main>
       </Wrapper>
+
+      <Spacer height={16} />
+
+      <ProviderRunLogs providerRunId={serverRun.id} />
     </>
   );
 };
