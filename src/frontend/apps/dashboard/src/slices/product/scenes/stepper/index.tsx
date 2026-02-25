@@ -10,7 +10,6 @@ let Wrapper = styled.div`
 
 let Header = styled.header`
   display: grid;
-  border: 1px solid ${theme.colors.gray400};
   border-radius: 8px;
   overflow: hidden;
 `;

@@ -5,7 +5,7 @@ import { useCurrentInstance, useProviderListings } from '@metorial/state';
 import { Avatar, Badge, Text } from '@metorial/ui';
 import { ItemGrid } from '@metorial/ui-product';
 import { RiCheckLine } from '@remixicon/react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 
 let Categories = styled.div`
@@ -28,7 +28,6 @@ let Category = styled.div`
 export let ServersGrid = (filter: DashboardInstanceProviderListingsListQuery) => {
   let instance = useCurrentInstance();
   let providers = useProviderListings(filter);
-  let navigate = useNavigate();
 
   return renderWithPagination(providers)(providers => (
     <>
@@ -43,58 +42,60 @@ export let ServersGrid = (filter: DashboardInstanceProviderListingsListQuery) =>
                 (listing.description.length > 100 ? '...' : '')
               : '';
 
+            let href = Paths.instance.provider(
+              instance.data?.organization,
+              instance.data?.project,
+              instance.data,
+              providerId
+            );
+
             return (
-              <ItemGrid.Item
+              <Link
                 key={listing.id}
-                entity={{ id: listing.id, hasUsage: true }}
-                title={listing.name}
-                description={description}
-                height={250}
-                icon={
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <Avatar
-                      entity={{
-                        name: listing.name,
-                        photoUrl: listing.imageUrl
-                      }}
-                      size={30}
-                      radius={5}
-                      withInitials
-                    />
+                to={href}
+                style={{ textDecoration: 'none', color: 'inherit' }}
+              >
+                <ItemGrid.Item
+                  entity={{ id: listing.id, hasUsage: true }}
+                  title={listing.name}
+                  description={description}
+                  height={250}
+                  icon={
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <Avatar
+                        entity={{
+                          name: listing.name,
+                          photoUrl: listing.imageUrl
+                        }}
+                        size={30}
+                        radius={5}
+                        withInitials
+                      />
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                      {listing.attributes.isVerified && (
-                        <Badge size="1" color="blue">
-                          <RiCheckLine size={12} style={{ marginRight: 3 }} /> Verified
-                        </Badge>
-                      )}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                        {listing.attributes.isVerified && (
+                          <Badge size="1" color="blue">
+                            <RiCheckLine size={12} style={{ marginRight: 3 }} /> Verified
+                          </Badge>
+                        )}
 
-                      {(listing.attributes.isMetorial || listing.attributes.isOfficial) && (
-                        <Badge size="1" color="gray">
-                          Official
-                        </Badge>
-                      )}
+                        {(listing.attributes.isMetorial || listing.attributes.isOfficial) && (
+                          <Badge size="1" color="gray">
+                            Official
+                          </Badge>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                }
-                onClick={() =>
-                  navigate(
-                    Paths.instance.provider(
-                      instance.data?.organization,
-                      instance.data?.project,
-                      instance.data,
-                      providerId
-                    )
-                  )
-                }
-                bottom={
-                  <Categories>
-                    {listing.categories.map(category => (
-                      <Category key={category.id}>{category.name}</Category>
-                    ))}
-                  </Categories>
-                }
-              />
+                  }
+                  bottom={
+                    <Categories>
+                      {listing.categories.map(category => (
+                        <Category key={category.id}>{category.name}</Category>
+                      ))}
+                    </Categories>
+                  }
+                />
+              </Link>
             );
           })}
         </ItemGrid.Root>

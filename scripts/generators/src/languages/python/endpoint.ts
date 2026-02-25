@@ -264,7 +264,6 @@ let createEndpoint = (i: {
   }
 
   let bodyType = i.endpoint.bodyId ? i.typeIdToName.get(i.endpoint.bodyId)! : undefined;
-  let bodyTypeDef = i.endpoint.bodyId ? i.typeDefinitions.get(i.endpoint.bodyId) : undefined;
   let queryType = i.endpoint.queryId ? i.typeIdToName.get(i.endpoint.queryId)! : undefined;
   let outputType = i.typeIdToName.get(i.endpoint.outputId)!;
 
@@ -571,10 +570,6 @@ let createEndpoint = (i: {
 
   // join arguments with commas and newlines for valid Python syntax
   let requestArgsJoined = requestArgs.join(',\n            ');
-
-  let methodBody = bodyConstructionCode
-    ? `${bodyConstructionCode}\n        \n        request = MetorialRequest(\n            ${requestArgsJoined}\n        )`
-    : `request = MetorialRequest(\n            ${requestArgsJoined}\n        )`;
 
   let source = dedent`
     def ${Cases.toSnakeCase(methodName)}(${methodSignature}) -> ${outputType.typeName}:

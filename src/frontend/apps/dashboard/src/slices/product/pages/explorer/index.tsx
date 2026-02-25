@@ -1,9 +1,15 @@
-import { renderWithLoader } from '@metorial/data-hooks';
+import type {
+  DashboardInstanceProviderDeploymentsSetupSessionsGetOutput,
+  DashboardInstanceProvidersGetOutput,
+  DashboardInstanceProvidersListOutput
+} from '@metorial/dashboard-sdk';
+import { renderWithLoader, useForm } from '@metorial/data-hooks';
 import {
   useCreateProviderDeployment,
   useCreateSession,
   useCurrentInstance,
   useProviderAuthConfigs,
+  useProviderAuthMethods,
   useProvider,
   useProviderConfigSchema,
   useProviderConfigs,
@@ -39,12 +45,9 @@ import { Stepper } from '../../scenes/stepper';
 import { ProviderSearch } from '../../scenes/providers/search';
 import { InspectorFrame } from './inspector';
 
-type Provider = {
-  id: string;
-  name: string | null;
-  slug: string | null;
-  description: string | null;
-};
+type ProviderSelection =
+  | DashboardInstanceProvidersListOutput['items'][number]
+  | DashboardInstanceProvidersGetOutput;
 
 let Wrapper = styled.div`
   display: flex;
@@ -109,7 +112,7 @@ let Providers = styled.div`
   padding: 20px;
 `;
 
-let CreateForm = styled.div`
+let CreateForm = styled.form`
   display: flex;
   flex-direction: column;
   gap: 15px;
@@ -128,9 +131,6 @@ let MainSetup = styled.div`
 
 let SetupCard = styled.div`
   width: min(760px, 100%);
-  border: 1px solid ${theme.colors.gray400};
-  background: white;
-  border-radius: 12px;
   padding: 20px;
 `;
 
@@ -205,14 +205,14 @@ export let ExplorerPage = () => {
           { replace: true }
         );
       } else if (error) {
-        setSessionError((error as any)?.message ?? 'Failed to create session');
+        setSessionError(error.data?.message ?? error.message ?? 'Failed to create session');
       }
     },
     [createSession, instance.data, setSearch]
   );
 
   let provider = useProvider(instance.data?.id, providerIdParam ?? undefined);
-  let [selectedProvider, _setSelectedProvider] = useState<Provider | null>(null);
+  let [selectedProvider, _setSelectedProvider] = useState<ProviderSelection | null>(null);
   useEffect(() => {
     if (provider.data) {
       _setSelectedProvider(provider.data);
@@ -287,50 +287,89 @@ export let ExplorerPage = () => {
     if (!exists) setSelectedAuthConfigId('');
   }, [providerAuthConfigs.data, providerAuthConfigs.isLoading, selectedAuthConfigId]);
 
-  let [deploymentName, setDeploymentName] = useState('');
-  let [deploymentDescription, setDeploymentDescription] = useState('');
-  let [isCreating, setIsCreating] = useState(false);
-  let [createError, setCreateError] = useState<string | null>(null);
   let createMutation = useCreateProviderDeployment();
+  let createDeploymentForm = useForm({
+    initialValues: {
+      deploymentName: '',
+      deploymentDescription: ''
+    },
+    onSubmit: async values => {
+      if (!instance.data || !selectedProvider || !values.deploymentName.trim()) return;
 
-  let handleCreateDeployment = async () => {
-    if (!instance.data || !selectedProvider || !deploymentName.trim()) return;
+      let [result, err] = await createMutation.mutate({
+        instanceId: instance.data.id,
+        name: values.deploymentName.trim(),
+        description: values.deploymentDescription.trim() || undefined,
+        providerId: selectedProvider.id
+      });
 
-    setIsCreating(true);
-    setCreateError(null);
-
-    let [result, err] = await createMutation.mutate({
-      instanceId: instance.data.id,
-      name: deploymentName.trim(),
-      description: deploymentDescription.trim() || undefined,
-      providerId: selectedProvider.id
-    });
-
-    setIsCreating(false);
-
-    if (err) {
-      console.error('Failed to create deployment:', err);
-      setCreateError(err.data?.message || 'Failed to create deployment');
-    } else if (result) {
-      setDeploymentName('');
-      setDeploymentDescription('');
-      selectDeployment(result.id);
-    }
-  };
+      if (err) {
+        console.error('Failed to create deployment:', err);
+      } else if (result) {
+        createDeploymentForm.resetForm();
+        selectDeployment(result.id);
+      }
+    },
+    schema: yup =>
+      yup.object({
+        deploymentName: yup.string().required('Deployment name is required'),
+        deploymentDescription: yup.string().optional().default('')
+      })
+  });
 
   let activeProviderId =
     selectedProvider?.id ??
     providerIdParam ??
-    (selectedDeployment.data as { providerId?: string } | null | undefined)?.providerId ??
+    selectedDeployment.data?.providerId ??
     null;
+  let activeProvider = useProvider(instance.data?.id, activeProviderId ?? undefined);
+
+  let effectiveVersionIdForAuth =
+    selectedDeployment.data?.lockedVersion?.id ?? activeProvider.data?.currentVersion?.id;
+  let providerAuthMethods = useProviderAuthMethods(
+    instance.data?.id,
+    effectiveVersionIdForAuth
+  );
+
+  let hasAuthMethods = (providerAuthMethods.data?.items?.length ?? 0) > 0;
+  let hasConfigSchema =
+    !!providerConfigSchema.data?.schema &&
+    typeof providerConfigSchema.data.schema === 'object';
+  let hasExistingConfigs = (providerConfigs.data?.items?.length ?? 0) > 0;
+  let needsConfigStep = hasConfigSchema || hasExistingConfigs;
+  let needsAuthStep = hasAuthMethods || (providerAuthConfigs.data?.items?.length ?? 0) > 0;
+
+  useEffect(() => {
+    if (
+      providerDeploymentId &&
+      !sessionId &&
+      !isCreatingSession &&
+      !providerConfigs.isLoading &&
+      !providerConfigSchema.isLoading &&
+      !providerAuthMethods.isLoading &&
+      !providerAuthConfigs.isLoading &&
+      !needsConfigStep &&
+      !needsAuthStep
+    ) {
+      createSessionForDeployment(providerDeploymentId);
+    }
+  }, [
+    providerDeploymentId,
+    sessionId,
+    isCreatingSession,
+    providerConfigs.isLoading,
+    providerConfigSchema.isLoading,
+    providerAuthMethods.isLoading,
+    providerAuthConfigs.isLoading,
+    needsConfigStep,
+    needsAuthStep
+  ]);
+
   let renderSetupPanel = () => {
     if (!providerDeploymentId || !instance.data) return null;
 
     let configItems = providerConfigs.data?.items ?? [];
     let authConfigItems = providerAuthConfigs.data?.items ?? [];
-    let hasConfigSchema =
-      !!providerConfigSchema.data?.schema &&
-      typeof providerConfigSchema.data.schema === 'object';
     let configPlusTooltip = providerConfigSchema.isLoading
       ? 'Loading configuration schema...'
       : providerConfigSchema.error
@@ -338,12 +377,31 @@ export let ExplorerPage = () => {
         : hasConfigSchema
           ? 'Create Config'
           : 'No configuration schema is provided for this deployment, so this config cannot be created from the dashboard.';
+    let lockedProviderVersionId = selectedDeployment.data?.lockedVersion?.id ?? null;
+    let currentProviderVersionId = activeProvider.data?.currentVersion?.id ?? null;
+    let effectiveProviderVersionId = lockedProviderVersionId ?? currentProviderVersionId;
+    let isAuthSetupLoadingVersion = !!activeProviderId && !lockedProviderVersionId && activeProvider.isLoading;
+    let authPlusTooltip = !activeProviderId
+      ? 'Could not resolve the provider for this deployment yet.'
+      : selectedDeployment.isLoading || isAuthSetupLoadingVersion
+        ? 'Loading provider version...'
+        : activeProvider.error && !lockedProviderVersionId
+          ? activeProvider.error.message ?? 'Failed to load provider details.'
+          : !effectiveProviderVersionId
+            ? 'No provider version is available yet, so authentication cannot be configured.'
+            : 'Connect / Create Auth Config';
+    let authPlusDisabled =
+      !activeProviderId ||
+      selectedDeployment.isLoading ||
+      isAuthSetupLoadingVersion ||
+      (!!activeProvider.error && !lockedProviderVersionId) ||
+      !effectiveProviderVersionId;
 
     return (
       <MainSetup>
         <SetupCard>
           <Text as="p" size="4" weight="strong" color="gray900">
-            Complete Setup To Open The Explorer
+            Complete setup to open the Explorer
           </Text>
 
           <Spacer height={6} />
@@ -355,11 +413,11 @@ export let ExplorerPage = () => {
 
           <Spacer height={16} />
 
-          <Stepper
-            currentStep={setupWizardStep}
-            setCurrentStep={setSetupWizardStep}
-            steps={[
-              {
+          {(() => {
+            let steps: { title: string; subtitle?: string; render: () => React.ReactNode }[] = [];
+
+            if (needsConfigStep) {
+              steps.push({
                 title: 'Config',
                 subtitle: 'Select or create config',
                 render: () => (
@@ -406,7 +464,8 @@ export let ExplorerPage = () => {
                                   setSessionError(null);
                                   setSelectedConfigId(config.id);
                                   providerConfigs.refetch();
-                                  setSetupWizardStep(1);
+                                  if (needsAuthStep) setSetupWizardStep(steps.indexOf(steps.find(s => s.title === 'Auth')!));
+                                  else createSessionForDeployment(providerDeploymentId, { providerConfigId: config.id });
                                 }
                               })
                               }
@@ -436,14 +495,31 @@ export let ExplorerPage = () => {
                     )}
 
                     <Flex gap={10}>
-                      <Button type="button" onClick={() => setSetupWizardStep(1)}>
-                        Next
-                      </Button>
+                      {needsAuthStep ? (
+                        <Button type="button" onClick={() => setSetupWizardStep(steps.indexOf(steps.find(s => s.title === 'Auth')!))}>
+                          Next
+                        </Button>
+                      ) : (
+                        <Button
+                          type="button"
+                          onClick={() =>
+                            createSessionForDeployment(providerDeploymentId, {
+                              providerConfigId: selectedConfigId || undefined
+                            })
+                          }
+                          loading={isCreatingSession}
+                        >
+                          Open Explorer
+                        </Button>
+                      )}
                     </Flex>
                   </Flex>
                 )
-              },
-              {
+              });
+            }
+
+            if (needsAuthStep) {
+              steps.push({
                 title: 'Auth',
                 subtitle: 'Credentials and auth config',
                 render: () => (
@@ -470,39 +546,67 @@ export let ExplorerPage = () => {
                         />
                       </div>
 
-                      <Button
-                        type="button"
-                        size="3"
-                        iconLeft={<RiAddLine />}
-                        title="Connect / Create Auth Config"
-                        aria-label="Connect / Create Auth Config"
-                        disabled={!activeProviderId}
-                        onClick={() => {
-                          if (!activeProviderId) return;
-                          showProviderSetupSessionModal({
-                            instanceId: instance.data.id,
-                            providerId: activeProviderId,
-                            deploymentId: providerDeploymentId,
-                            onComplete: (result: any) => {
-                              setSessionError(null);
-                              let authConfigId = result?.authConfig?.id;
-                              if (authConfigId) setSelectedAuthConfigId(authConfigId);
-                              providerAuthConfigs.refetch();
-                            }
-                          });
-                        }}
-                        style={{
-                          background: theme.colors.gray900,
-                          borderColor: theme.colors.gray900,
-                          color: 'white'
-                        }}
-                      />
+                      <div title={authPlusTooltip} style={{ display: 'inline-flex' }}>
+                        <Button
+                          type="button"
+                          size="3"
+                          iconLeft={<RiAddLine />}
+                          aria-label="Connect / Create Auth Config"
+                          disabled={authPlusDisabled}
+                          onClick={() => {
+                            if (!activeProviderId) return;
+                            showProviderSetupSessionModal({
+                              instanceId: instance.data.id,
+                              providerId: activeProviderId,
+                              deploymentId: providerDeploymentId,
+                              onComplete: (
+                                result: DashboardInstanceProviderDeploymentsSetupSessionsGetOutput | null
+                              ) => {
+                                setSessionError(null);
+                                let authConfigId = result?.authConfig?.id;
+                                if (authConfigId) setSelectedAuthConfigId(authConfigId);
+                                providerAuthConfigs.refetch();
+                              }
+                            });
+                          }}
+                          style={
+                            !authPlusDisabled
+                              ? {
+                                  background: theme.colors.gray900,
+                                  borderColor: theme.colors.gray900,
+                                  color: 'white'
+                                }
+                              : {
+                                  background: theme.colors.gray200,
+                                  borderColor: theme.colors.gray300,
+                                  color: theme.colors.gray600
+                                }
+                          }
+                        />
+                      </div>
                     </Flex>
 
                     {!activeProviderId && !selectedDeployment.isLoading && (
                       <Text size="2" color="red500">
                         Could not resolve the provider for this deployment yet. Re-open the
                         sidebar and re-select the deployment.
+                      </Text>
+                    )}
+
+                    {activeProviderId &&
+                      !selectedDeployment.isLoading &&
+                      !isAuthSetupLoadingVersion &&
+                      !effectiveProviderVersionId &&
+                      !(activeProvider.error && !lockedProviderVersionId) && (
+                        <Text size="2" color="gray600">
+                          No provider version is available yet, so authentication cannot be
+                          configured.
+                        </Text>
+                      )}
+
+                    {activeProvider.error && !lockedProviderVersionId && (
+                      <Text size="2" color="red500">
+                        {activeProvider.error.message ?? 'Failed to load provider details.'}
                       </Text>
                     )}
 
@@ -519,13 +623,15 @@ export let ExplorerPage = () => {
                     )}
 
                     <Flex gap={10}>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => setSetupWizardStep(0)}
-                      >
-                        Back
-                      </Button>
+                      {needsConfigStep && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setSetupWizardStep(0)}
+                        >
+                          Back
+                        </Button>
+                      )}
                       <Button
                         type="button"
                         onClick={() =>
@@ -541,9 +647,19 @@ export let ExplorerPage = () => {
                     </Flex>
                   </Flex>
                 )
-              }
-            ]}
-          />
+              });
+            }
+
+            if (steps.length === 0) return null;
+
+            return (
+              <Stepper
+                currentStep={setupWizardStep}
+                setCurrentStep={setSetupWizardStep}
+                steps={steps}
+              />
+            );
+          })()}
         </SetupCard>
       </MainSetup>
     );
@@ -671,29 +787,23 @@ export let ExplorerPage = () => {
                       />
 
                       {providerTab == 'create' && (
-                        <CreateForm>
+                        <CreateForm onSubmit={createDeploymentForm.handleSubmit}>
                           <Input
                             label="Deployment Name"
-                            value={deploymentName}
-                            onChange={e => setDeploymentName(e.target.value)}
+                            {...createDeploymentForm.getFieldProps('deploymentName')}
                             placeholder="My Deployment"
-                            required
+                            autoFocus
                           />
+                          <createDeploymentForm.RenderError field="deploymentName" />
 
                           <Input
                             label="Description"
-                            value={deploymentDescription}
-                            onChange={e => setDeploymentDescription(e.target.value)}
+                            {...createDeploymentForm.getFieldProps('deploymentDescription')}
                             placeholder="Optional description"
                             as="textarea"
                             minRows={2}
                           />
-
-                          {createError && (
-                            <Text size="2" color="red500">
-                              {createError}
-                            </Text>
-                          )}
+                          <createMutation.RenderError />
 
                           <Flex gap={10}>
                             <Button
@@ -712,11 +822,10 @@ export let ExplorerPage = () => {
                               Back
                             </Button>
                             <Button
-                              type="button"
+                              type="submit"
                               size="2"
-                              onClick={handleCreateDeployment}
-                              loading={isCreating}
-                              disabled={!deploymentName.trim()}
+                              loading={createMutation.isPending}
+                              disabled={!createDeploymentForm.values.deploymentName.trim()}
                             >
                               Create Deployment
                             </Button>

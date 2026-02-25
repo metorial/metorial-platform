@@ -84,19 +84,18 @@ export let CustomServerLayout = () => {
                 to: Paths.instance.customServer(...pathParams)
               },
 
-              ...(customServer.data?.status === 'active'
+              ...(customServer.data?.scmRepo
                 ? [
                     {
                       label: 'Code',
                       to: Paths.instance.customServer(...pathParams, 'code')
+                    },
+                    {
+                      label: 'Versions',
+                      to: Paths.instance.customServer(...pathParams, 'versions')
                     }
                   ]
                 : []),
-
-              {
-                label: 'Versions',
-                to: Paths.instance.customServer(...pathParams, 'versions')
-              },
               {
                 label: 'Deployments',
                 to: Paths.instance.customServer(...pathParams, 'deployments')

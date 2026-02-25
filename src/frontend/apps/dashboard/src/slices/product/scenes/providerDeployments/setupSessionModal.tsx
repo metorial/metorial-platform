@@ -1,3 +1,4 @@
+import type { DashboardInstanceProviderDeploymentsSetupSessionsGetOutput } from '@metorial/dashboard-sdk';
 import { Dialog, showModal } from '@metorial/ui';
 import { ProviderSetupSessionEmbed } from './setupSessionEmbed';
 
@@ -5,7 +6,7 @@ export let showProviderSetupSessionModal = (p: {
   instanceId: string;
   providerId: string;
   deploymentId: string;
-  onComplete?: (result: unknown) => void;
+  onComplete?: (result: DashboardInstanceProviderDeploymentsSetupSessionsGetOutput | null) => void;
 }) =>
   showModal(({ dialogProps, close }) => {
     return (

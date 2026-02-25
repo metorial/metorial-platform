@@ -6,9 +6,9 @@ import {
   useCurrentProject,
   useSession
 } from '@metorial/state';
-import { Entity, RenderDate, Spacer, Text } from '@metorial/ui';
+import { RenderDate, Text } from '@metorial/ui';
+import { Table } from '@metorial/ui-product';
 import { useParams } from 'react-router-dom';
-import { Link } from 'react-router-dom';
 
 export let ProviderSessionProvidersPage = () => {
   let instance = useCurrentInstance();
@@ -23,39 +23,31 @@ export let ProviderSessionProvidersPage = () => {
 
     return (
       <>
-        <Spacer size={15} />
+        <Table
+          headers={['Deployment', 'Provider', 'Created']}
+          data={deployments.map(dep => ({
+            data: [
+              <Text size="2" weight="strong">
+                {dep.deployment?.name ?? 'Unnamed'}
+              </Text>,
+              <Text size="2">{dep.providerId}</Text>,
+              <RenderDate date={session.data.createdAt} />
+            ],
+            href: dep.deployment?.id
+              ? Paths.instance.providerDeployment(
+                  organization.data,
+                  project.data,
+                  instance.data,
+                  dep.deployment.id
+                )
+              : undefined
+          }))}
+        />
 
-        {deployments.length === 0 ? (
+        {deployments.length === 0 && (
           <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
             No provider deployments in this session.
           </Text>
-        ) : (
-          deployments.map(dep => (
-            <Link
-              key={dep.id}
-              to={
-                dep.deployment?.id
-                  ? Paths.instance.providerDeployment(
-                      organization.data,
-                      project.data,
-                      instance.data,
-                      dep.deployment.id
-                    )
-                  : '#'
-              }
-            >
-              <Entity.Wrapper>
-                <Entity.Content>
-                  <Entity.Field title={dep.deployment?.name ?? 'Unnamed'} />
-
-                  <Entity.Field
-                    title={<Text size="2">{dep.deployment?.name ?? dep.providerId}</Text>}
-                    value={<RenderDate date={session.data.createdAt} />}
-                  />
-                </Entity.Content>
-              </Entity.Wrapper>
-            </Link>
-          ))
         )}
       </>
     );

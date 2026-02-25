@@ -5,6 +5,7 @@ import {
   useCurrentOrganization,
   useCurrentProject,
   useProviderDeployments,
+  useProviders,
   withAuth
 } from '@metorial/state';
 import { Badge, Input, RenderDate, Spacer, Text, theme } from '@metorial/ui';
@@ -62,6 +63,15 @@ export let ProviderConfigsOverviewPage = () => {
   let deployments = useProviderDeployments(instance.data?.id, {
     search: searchDebounced
   });
+
+  let providers = useProviders(instance.data?.id);
+  let providerNameMap = useMemo(() => {
+    let map = new Map<string, string>();
+    for (let provider of providers.data?.items ?? []) {
+      map.set(provider.id, provider.name);
+    }
+    return map;
+  }, [providers.data?.items]);
 
   let [rows, setRows] = useState<ConfigOverviewRow[]>([]);
   let [isLoadingConfigs, setIsLoadingConfigs] = useState(false);
@@ -199,7 +209,9 @@ export let ProviderConfigsOverviewPage = () => {
                 {row.configName}
               </Text>,
               <Text size="2">
-                {row.deployment.provider?.name ?? row.deployment.providerId}
+                {row.deployment.provider?.name ??
+                  providerNameMap.get(row.deployment.providerId) ??
+                  row.deployment.providerId}
               </Text>,
               row.deployment.lockedVersion ? (
                 <Badge color="purple" size="1">

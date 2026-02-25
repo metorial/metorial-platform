@@ -1,3 +1,10 @@
+import type {
+  DashboardInstanceProviderDeploymentsAuthCredentialsListOutput,
+  DashboardInstanceProviderDeploymentsSetupSessionsCreateOutput,
+  DashboardInstanceProviderDeploymentsSetupSessionsGetOutput,
+  DashboardInstanceProvidersAuthMethodsListOutput
+} from '@metorial/dashboard-sdk';
+import { useForm } from '@metorial/data-hooks';
 import {
   useCreateProviderAuthCredentials,
   useProviderDeployment,
@@ -11,27 +18,12 @@ import { Button, Flex, Input, Select, Spacer, Text } from '@metorial/ui';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Stepper } from '../stepper';
 
-type AuthMethod = {
-  id: string;
-  type: 'oauth' | 'token' | 'custom';
-  name: string;
-  description: string | null;
-  inputSchema: Record<string, any> | null;
-  scopes: { id: string; scope: string; name: string; description: string | null }[] | null;
-};
-
-type AuthCredential = {
-  id: string;
-  name: string | null;
-  clientId: string | null;
-};
-
-type SetupSession = {
-  id: string;
-  status: string;
-  url: string | null;
-  authConfig?: { id: string } | null;
-};
+type AuthMethod = DashboardInstanceProvidersAuthMethodsListOutput['items'][number];
+type AuthCredential =
+  DashboardInstanceProviderDeploymentsAuthCredentialsListOutput['items'][number];
+type SetupSessionState =
+  | DashboardInstanceProviderDeploymentsSetupSessionsCreateOutput
+  | DashboardInstanceProviderDeploymentsSetupSessionsGetOutput;
 
 export let ProviderSetupSessionEmbed = ({
   instanceId,
@@ -44,7 +36,9 @@ export let ProviderSetupSessionEmbed = ({
   instanceId: string;
   providerId: string;
   deploymentId: string;
-  onComplete: (setupSession: SetupSession | null) => void;
+  onComplete: (
+    setupSession: DashboardInstanceProviderDeploymentsSetupSessionsGetOutput | null
+  ) => void;
   onCancel?: () => void;
   cancelLabel?: string;
 }) => {
@@ -58,14 +52,50 @@ export let ProviderSetupSessionEmbed = ({
   let createCredentials = useCreateProviderAuthCredentials();
   let createSetupSession = useCreateProviderSetupSession(instanceId, providerId, deploymentId);
   let getSetupSession = useGetProviderSetupSession(instanceId);
-
-  let [selectedMethodId, setSelectedMethodId] = useState<string>('');
-  let [selectedCredentialsId, setSelectedCredentialsId] = useState<string>('');
   let [isCreatingCredentials, setIsCreatingCredentials] = useState(false);
+
+  let methodForm = useForm({
+    initialValues: {
+      selectedMethodId: ''
+    },
+    onSubmit: async () => {},
+    schema: yup =>
+      yup.object({
+        selectedMethodId: yup.string().required('Authentication method is required')
+      })
+  });
+  let credentialsForm = useForm({
+    initialValues: {
+      selectedCredentialsId: '',
+      newCredName: '',
+      newCredClientId: '',
+      newCredClientSecret: ''
+    },
+    schemaDependencies: [isCreatingCredentials],
+    onSubmit: async () => {},
+    schema: yup =>
+      yup.object({
+        selectedCredentialsId: yup.string().defined(),
+        newCredName: isCreatingCredentials
+          ? yup.string().required('Name is required')
+          : yup.string().defined(),
+        newCredClientId: isCreatingCredentials
+          ? yup.string().required('Client ID is required')
+          : yup.string().defined(),
+        newCredClientSecret: isCreatingCredentials
+          ? yup.string().required('Client secret is required')
+          : yup.string().defined()
+      })
+  });
+
   let [isStarting, setIsStarting] = useState(false);
   let [error, setError] = useState<string | null>(null);
-  let [setupSession, setSetupSession] = useState<SetupSession | null>(null);
+  let [setupSession, setSetupSession] = useState<SetupSessionState | null>(null);
   let [step, setStep] = useState(0);
+  let [setupWindowBlocked, setSetupWindowBlocked] = useState(false);
+
+  let selectedMethodId = methodForm.values.selectedMethodId;
+  let selectedCredentialsId = credentialsForm.values.selectedCredentialsId;
 
   let completedRef = useRef(false);
   let pollingRef = useRef(false);
@@ -101,17 +131,9 @@ export let ProviderSetupSessionEmbed = ({
     }
   };
 
-  // New credentials form state
-  let [newCredName, setNewCredName] = useState('');
-  let [newCredClientId, setNewCredClientId] = useState('');
-  let [newCredClientSecret, setNewCredClientSecret] = useState('');
-  let [setupWindowBlocked, setSetupWindowBlocked] = useState(false);
-
   let selectedMethod = useMemo(
     () =>
-      (authMethods.data?.items ?? []).find((m: AuthMethod) => m.id === selectedMethodId) as
-        | AuthMethod
-        | undefined,
+      (authMethods.data?.items ?? []).find(m => m.id === selectedMethodId),
     [authMethods.data?.items, selectedMethodId]
   );
 
@@ -121,11 +143,17 @@ export let ProviderSetupSessionEmbed = ({
 
   useEffect(() => {
     if (!selectedMethodId && hasSingleMethod) {
-      setSelectedMethodId(authMethods.data!.items![0].id);
+      methodForm.setFieldValue('selectedMethodId', authMethods.data!.items![0].id);
     }
-  }, [selectedMethodId, hasSingleMethod, authMethods.data?.items]);
+  }, [
+    authMethods.data?.items,
+    hasSingleMethod,
+    methodForm.setFieldValue,
+    selectedMethodId
+  ]);
 
   let handleCreateCredentials = async (): Promise<boolean> => {
+    let { newCredName, newCredClientId, newCredClientSecret } = credentialsForm.values;
     if (!newCredName || !newCredClientId || !newCredClientSecret) return false;
     if (!selectedMethod) return false;
 
@@ -145,17 +173,16 @@ export let ProviderSetupSessionEmbed = ({
 
     if (err) {
       console.error('Failed to create credentials:', err);
-      setError(err.data?.message || 'Failed to create credentials');
       return false;
     }
 
     if (!result) return false;
 
-    setSelectedCredentialsId(result.id);
+    credentialsForm.setFieldValue('selectedCredentialsId', result.id);
+    credentialsForm.setFieldValue('newCredName', '');
+    credentialsForm.setFieldValue('newCredClientId', '');
+    credentialsForm.setFieldValue('newCredClientSecret', '');
     setIsCreatingCredentials(false);
-    setNewCredName('');
-    setNewCredClientId('');
-    setNewCredClientSecret('');
     return true;
   };
 
@@ -187,14 +214,13 @@ export let ProviderSetupSessionEmbed = ({
       }
       setupWindowRef.current = null;
       console.error('Failed to create setup session:', err);
-      setError(err.data?.message || 'Failed to create setup session');
       return;
     }
 
     if (session) {
       completedRef.current = false;
       pollingRef.current = false;
-      setSetupSession(session as SetupSession);
+      setSetupSession(session);
 
       if (session.url) {
         let opened = openSetupWindow(session.url);
@@ -220,11 +246,11 @@ export let ProviderSetupSessionEmbed = ({
       if (err) {
         console.warn('Failed to poll setup session:', err);
       } else {
-        if (res) setSetupSession(res as SetupSession);
+        if (res) setSetupSession(res);
 
         if (res?.status === 'completed') {
           completedRef.current = true;
-          onCompleteRef.current(res as SetupSession);
+          onCompleteRef.current(res);
           return;
         }
 
@@ -399,8 +425,8 @@ export let ProviderSetupSessionEmbed = ({
             value={selectedMethodId}
             placeholder="Select an authentication method..."
             onChange={value => {
-              setSelectedMethodId(value);
-              setSelectedCredentialsId('');
+              methodForm.setFieldValue('selectedMethodId', value);
+              credentialsForm.resetForm();
               setIsCreatingCredentials(false);
               setError(null);
             }}
@@ -409,6 +435,7 @@ export let ProviderSetupSessionEmbed = ({
               label: `${method.name} (${method.type})`
             }))}
           />
+          <methodForm.RenderError field="selectedMethodId" />
           {selectedMethod?.description && (
             <>
               <Spacer size={5} />
@@ -465,13 +492,13 @@ export let ProviderSetupSessionEmbed = ({
             onChange={value => {
               if (value === '__create_new__') {
                 setIsCreatingCredentials(true);
-                setSelectedCredentialsId('');
+                credentialsForm.setFieldValue('selectedCredentialsId', '');
               } else if (value === '__use_default_credentials__') {
                 setIsCreatingCredentials(false);
-                setSelectedCredentialsId('');
+                credentialsForm.setFieldValue('selectedCredentialsId', '');
               } else {
                 setIsCreatingCredentials(false);
-                setSelectedCredentialsId(value);
+                credentialsForm.setFieldValue('selectedCredentialsId', value);
               }
             }}
             items={[
@@ -479,14 +506,10 @@ export let ProviderSetupSessionEmbed = ({
                 id: '__use_default_credentials__',
                 label: 'Use default credentials'
               },
-              ...(authCredentials.data?.items ?? []).map(
-                (cred: { id: string; name?: string | null; clientId?: string | null }) => ({
-                  id: cred.id,
-                  label: cred.name || cred.clientId || cred.id
-                })
-              ),
-              { type: 'separator' as const },
-              { id: '__create_new__', label: '+ Create new credentials' }
+              ...(authCredentials.data?.items ?? []).map((cred: AuthCredential) => ({
+                id: cred.id,
+                label: cred.name || cred.id
+              }))
             ]}
           />
           {isCreatingCredentials && (
@@ -494,30 +517,40 @@ export let ProviderSetupSessionEmbed = ({
               <Spacer size={8} />
               <Input
                 label="Name"
-                value={newCredName}
-                onChange={e => setNewCredName(e.target.value)}
+                value={credentialsForm.values.newCredName}
+                onChange={e =>
+                  credentialsForm.setFieldValue('newCredName', e.target.value)
+                }
                 placeholder="My OAuth App"
                 required
               />
+              <credentialsForm.RenderError field="newCredName" />
               <Spacer size={8} />
               <Input
                 label="Client ID"
-                value={newCredClientId}
-                onChange={e => setNewCredClientId(e.target.value)}
+                value={credentialsForm.values.newCredClientId}
+                onChange={e =>
+                  credentialsForm.setFieldValue('newCredClientId', e.target.value)
+                }
                 placeholder="Enter client ID from provider"
                 required
               />
+              <credentialsForm.RenderError field="newCredClientId" />
               <Spacer size={8} />
               <Input
                 label="Client Secret"
-                value={newCredClientSecret}
-                onChange={e => setNewCredClientSecret(e.target.value)}
+                value={credentialsForm.values.newCredClientSecret}
+                onChange={e =>
+                  credentialsForm.setFieldValue('newCredClientSecret', e.target.value)
+                }
                 placeholder="Enter client secret from provider"
                 type="password"
                 required
               />
+              <credentialsForm.RenderError field="newCredClientSecret" />
             </>
           )}
+          <createCredentials.RenderError />
           {error && (
             <>
               <Spacer size={5} />
@@ -543,7 +576,9 @@ export let ProviderSetupSessionEmbed = ({
               loading={createCredentials.isPending}
               disabled={
                 isCreatingCredentials &&
-                (!newCredName || !newCredClientId || !newCredClientSecret)
+                (!credentialsForm.values.newCredName ||
+                  !credentialsForm.values.newCredClientId ||
+                  !credentialsForm.values.newCredClientSecret)
               }
             >
               Continue
@@ -631,6 +666,7 @@ export let ProviderSetupSessionEmbed = ({
             >
               {isOAuth ? 'Open Authentication Window' : 'Start Setup'}
             </Button>
+            <createSetupSession.RenderError />
             {error && (
               <>
                 <Spacer size={5} />

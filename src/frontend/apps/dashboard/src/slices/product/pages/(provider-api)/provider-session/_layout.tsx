@@ -68,8 +68,8 @@ export let ProviderSessionLayout = () => {
             to: Paths.instance.providerSession(...sessionPathParams, 'providers')
           },
           {
-            label: 'Settings',
-            to: Paths.instance.providerSession(...sessionPathParams, 'settings')
+            label: 'Provider Runs',
+            to: Paths.instance.providerSession(...sessionPathParams, 'runs')
           }
         ]}
       />

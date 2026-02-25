@@ -1,4 +1,5 @@
-import { renderWithLoader, renderWithPagination } from '@metorial/data-hooks';
+import type { DashboardInstanceProvidersListOutput } from '@metorial/dashboard-sdk';
+import { renderWithLoader, renderWithPagination, useForm } from '@metorial/data-hooks';
 import { useCurrentInstance, useProviders } from '@metorial/state';
 import {
   Avatar,
@@ -18,13 +19,7 @@ import { useMeasure } from 'react-use';
 import styled from 'styled-components';
 import { useDebounced } from '../../../../hooks/useDebounced';
 
-type Provider = {
-  id: string;
-  name: string | null;
-  slug: string | null;
-  description: string | null;
-  iconUrl?: string | null;
-};
+type Provider = DashboardInstanceProvidersListOutput['items'][number];
 
 let Wrapper = styled.div``;
 
@@ -88,8 +83,17 @@ export let ProviderSearch = ({
   stickyTop?: number;
 }) => {
   let instance = useCurrentInstance();
-  let [search, setSearch] = useState('');
-  let searchDebounced = useDebounced(search, 300);
+  let form = useForm({
+    initialValues: {
+      search: ''
+    },
+    onSubmit: async () => {},
+    schema: yup =>
+      yup.object({
+        search: yup.string().defined()
+      })
+  });
+  let searchDebounced = useDebounced(form.values.search, 300);
 
   let providers = useProviders(instance.data?.id);
 
@@ -100,8 +104,8 @@ export let ProviderSearch = ({
           label="Search"
           hideLabel
           placeholder="Search for providers"
-          value={search}
-          onInput={v => setSearch(v)}
+          value={form.values.search}
+          onInput={value => form.setFieldValue('search', value)}
         />
       </div>
 
@@ -114,7 +118,7 @@ export let ProviderSearch = ({
             p.description?.toLowerCase().includes(searchDebounced.toLowerCase())
         );
 
-        if (search === '') {
+        if (form.values.search === '') {
           // Show popular/all providers when no search
           return (
             <>
@@ -231,7 +235,7 @@ export let ProviderSearchField = ({
 
   let [isOpen, setIsOpen] = useState(false);
 
-  let [ref, { width }] = useMeasure();
+  let [ref, { width }] = useMeasure<HTMLDivElement>();
 
   return (
     <>
@@ -239,7 +243,7 @@ export let ProviderSearchField = ({
 
       <Popover.Root
         trigger={
-          <FieldWrapper style={sizeStyles} ref={ref as any}>
+          <FieldWrapper style={sizeStyles} ref={ref}>
             {value?.name ?? (
               <span style={{ color: theme.colors.gray700 }}>Select provider</span>
             )}

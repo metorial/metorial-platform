@@ -151,9 +151,9 @@ let ProviderSessionProvidersPage = dynamicPage(() =>
     c => c.ProviderSessionProvidersPage
   )
 );
-let ProviderSessionSettingsPage = dynamicPage(() =>
-  import('./pages/(provider-api)/provider-session/settings').then(
-    c => c.ProviderSessionSettingsPage
+let ProviderSessionRunsPage = dynamicPage(() =>
+  import('./pages/(provider-api)/provider-session/runs').then(
+    c => c.ProviderSessionRunsPage
   )
 );
 let ProviderSessionLogsPage = dynamicPage(() =>
@@ -705,8 +705,8 @@ export let productInnerSlice = createSlice([
             element: <ProviderSessionProvidersPage />
           },
           {
-            path: 'settings',
-            element: <ProviderSessionSettingsPage />
+            path: 'runs',
+            element: <ProviderSessionRunsPage />
           }
         ]
       },

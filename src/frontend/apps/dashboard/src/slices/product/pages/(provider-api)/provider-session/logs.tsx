@@ -1,4 +1,7 @@
-import { DashboardInstanceSessionsGetOutput } from '@metorial/dashboard-sdk';
+import {
+  DashboardInstanceSessionsGetOutput,
+  DashboardInstanceSessionsMessagesGetOutput
+} from '@metorial/dashboard-sdk';
 import { renderWithLoader } from '@metorial/data-hooks';
 import {
   useCurrentInstance,
@@ -44,7 +47,35 @@ let ProviderSessionLogs = ({ session }: { session: DashboardInstanceSessionsGetO
   let messages = useSessionMessages(instanceId, session.id, { limit: 100 });
   let events = useSessionEvents(instanceId, session.id, { limit: 100 });
 
-  let aggregatedMessages = useAggregatedMessages(messages.data?.items);
+  // Merge messages from both the messages API and event messages to ensure completeness
+  let allMessages = useMemo(() => {
+    let messageMap = new Map<string, DashboardInstanceSessionsMessagesGetOutput>();
+
+    // Add messages from messages API
+    for (let msg of messages.data?.items ?? []) {
+      messageMap.set(msg.id, msg);
+    }
+
+    // Add/merge messages from events (events may have more complete data with output)
+    for (let evt of events.data?.items ?? []) {
+      if (evt.type === 'message_created' && evt.message) {
+        let evtMsg = evt.message as DashboardInstanceSessionsMessagesGetOutput;
+        let existing = messageMap.get(evtMsg.id);
+        if (!existing || (!existing.output && evtMsg.output)) {
+          messageMap.set(evtMsg.id, evtMsg);
+        }
+      }
+    }
+
+    return Array.from(messageMap.values()).sort((a, b) => {
+      let aId = Number(a.transport?.mcp?.id ?? 0);
+      let bId = Number(b.transport?.mcp?.id ?? 0);
+      if (aId !== bId) return aId - bId;
+      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    });
+  }, [messages.data?.items, events.data?.items]);
+
+  let aggregatedMessages = useAggregatedMessages(allMessages);
 
   // Find MCP client/server info from first connection
   let mcp = useMemo(() => {
@@ -62,11 +93,10 @@ let ProviderSessionLogs = ({ session }: { session: DashboardInstanceSessionsGetO
 
   let connectionItems = connections.data?.items ?? [];
 
-  // Group messages by connectionId (mapped to serverSessionId)
+  // Group messages by connectionId
   let messagesByConnection = useMemo(() => {
-    let items = messages.data?.items ?? [];
-    let map = new Map<string, typeof items>();
-    for (let msg of messages.data?.items ?? []) {
+    let map = new Map<string, typeof allMessages>();
+    for (let msg of allMessages) {
       let connId = msg.connectionId ?? '__ungrouped';
       let list = map.get(connId);
       if (!list) {
@@ -76,7 +106,7 @@ let ProviderSessionLogs = ({ session }: { session: DashboardInstanceSessionsGetO
       list.push(msg);
     }
     return map;
-  }, [messages.data?.items]);
+  }, [allMessages]);
 
   // Group events by connection (using raw connectionId from event data)
   let eventsByConnection = useMemo(() => {
@@ -170,8 +200,8 @@ let ProviderSessionLogs = ({ session }: { session: DashboardInstanceSessionsGetO
 
   return (
     <>
-      {mcp && (
-        <>
+      {mcp &&
+        (mcp.client?.name || mcp.client?.version || mcp.server?.name || mcp.server?.version || mcp.connectionType) && (
           <Entity.Wrapper>
             <Entity.Content>
               {(mcp.client?.name || mcp.client?.version) && (
@@ -200,9 +230,7 @@ let ProviderSessionLogs = ({ session }: { session: DashboardInstanceSessionsGetO
               )}
             </Entity.Content>
           </Entity.Wrapper>
-          <Spacer height={20} />
-        </>
-      )}
+        )}
 
       <ItemList
         items={[

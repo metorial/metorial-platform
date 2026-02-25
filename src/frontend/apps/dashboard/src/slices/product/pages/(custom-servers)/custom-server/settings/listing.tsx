@@ -113,7 +113,7 @@ export let CustomServerListingPage = () => {
             readmeUpdate.isLoading ||
             forkUpdate.isLoading
           }
-          checked={false}
+          checked={!!customServer.data?.metadata?.isForkable}
           onCheckedChange={async checked => {
             if (checked) {
               confirm({

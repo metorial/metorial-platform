@@ -1,6 +1,7 @@
 import {
   useCurrentInstance,
   useCreateProviderAuthConfig,
+  useProvider,
   useProviderAuthMethods,
   useProviderDeployment
 } from '@metorial/state';
@@ -32,14 +33,12 @@ export let ProviderAuthConfigForm = (
   let instance = useCurrentInstance();
   let createMutation = useCreateProviderAuthConfig();
 
-  // Get the provider deployment to get the providerId
   let deployment = useProviderDeployment(instance.data?.id, props.providerDeploymentId);
+  let provider = useProvider(instance.data?.id, deployment.data?.providerId);
+  let effectiveVersionId =
+    deployment.data?.lockedVersion?.id ?? provider.data?.currentVersion?.id;
 
-  // Fetch auth methods for the deployment's locked provider version
-  let authMethods = useProviderAuthMethods(
-    instance.data?.id,
-    deployment.data?.lockedVersion?.id
-  );
+  let authMethods = useProviderAuthMethods(instance.data?.id, effectiveVersionId);
 
   let [name, setName] = useState('');
   let [description, setDescription] = useState('');

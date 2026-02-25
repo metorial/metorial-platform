@@ -52,21 +52,107 @@ let Main = styled.main`
   max-height: 400px;
 `;
 
-// let Code = styled.pre`
-//   color: ${theme.colors.gray800};
-//   font-size: 12px;
+let MessageGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+`;
 
-//   white-space: pre-wrap;
-//   word-wrap: break-word;
-//   word-break: break-word;
-//   overflow-wrap: break-word;
-// `;
+let ErrorSection = styled.div`
+  padding: 10px 15px;
+  background: ${theme.colors.red100};
+  border-top: 1px solid ${theme.colors.red300};
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+`;
+
+let ErrorRow = styled.div`
+  display: flex;
+  gap: 8px;
+`;
+
+let ErrorLabel = styled.span`
+  font-weight: 600;
+  color: ${theme.colors.red700};
+  min-width: 60px;
+  flex-shrink: 0;
+`;
+
+let ErrorValue = styled.span`
+  color: ${theme.colors.red800};
+  word-break: break-word;
+`;
 
 let shorten = (id: string | number, length = 15) => {
   let s = String(id);
   if (s.length <= length) return s;
   return `${s.substring(0, length)}...`;
 };
+
+let MessageCard = ({
+  id,
+  label,
+  payload,
+  date,
+  position,
+  error
+}: {
+  id?: string;
+  label: string;
+  payload: Record<string, any>;
+  date: Date;
+  position: string;
+  error?: DashboardInstanceSessionsMessagesGetOutput['error'];
+}) => (
+  <Output data-position={position}>
+    <Wrapper>
+      <Header>
+        <HeaderSection>
+          {id && <ID>{shorten(id)}</ID>}
+          <p>{label}</p>
+        </HeaderSection>
+        <RenderDate date={date} />
+      </Header>
+
+      <Main>
+        <CodeBlock
+          code={JSON.stringify(payload, null, 2)}
+          language="json"
+          lineNumbers={false}
+          variant="seamless"
+        />
+      </Main>
+
+      {error && (
+        <ErrorSection>
+          <ErrorRow>
+            <ErrorLabel>Code</ErrorLabel>
+            <ErrorValue>{error.code}</ErrorValue>
+          </ErrorRow>
+          <ErrorRow>
+            <ErrorLabel>Message</ErrorLabel>
+            <ErrorValue>{error.message}</ErrorValue>
+          </ErrorRow>
+          {error.data && Object.keys(error.data).length > 0 && (
+            <ErrorRow>
+              <ErrorLabel>Data</ErrorLabel>
+              <ErrorValue>
+                <CodeBlock
+                  code={JSON.stringify(error.data, null, 2)}
+                  language="json"
+                  lineNumbers={false}
+                  variant="seamless"
+                />
+              </ErrorValue>
+            </ErrorRow>
+          )}
+        </ErrorSection>
+      )}
+    </Wrapper>
+  </Output>
+);
 
 export let Message = ({
   message,
@@ -79,42 +165,48 @@ export let Message = ({
   if (!transportMcp) return null;
 
   let agg = aggregatedMessages.get(String(transportMcp.id));
-  let payload = (message.input ?? message.output ?? {}) as Record<string, any>;
+  let input = message.input as Record<string, any> | null | undefined;
+  let output = message.output as Record<string, any> | null | undefined;
+  let payload = (input ?? output ?? {}) as Record<string, any>;
   let method =
     agg?.method ??
     (typeof payload.method === 'string' ? payload.method : message.type ?? 'message');
+  let resolvedId = agg?.originalId ?? payload.id ?? transportMcp.id;
+
+  // Message has both input and output — render as two separate cards
+  if (input && output) {
+    return (
+      <MessageGroup>
+        <MessageCard
+          id={String(resolvedId)}
+          label={method}
+          payload={{ ...input, id: resolvedId }}
+          date={message.createdAt}
+          position={message.senderParticipant?.type ?? 'client'}
+        />
+        <MessageCard
+          id={String(resolvedId)}
+          label={`${method} (response)`}
+          payload={{ ...output, id: resolvedId }}
+          date={message.createdAt}
+          position="server"
+          error={message.error ?? undefined}
+        />
+      </MessageGroup>
+    );
+  }
+
+  // Message has only input or only output
   let isResponse = !payload.method;
 
   return (
-    <Output data-position={message.senderParticipant?.type ?? 'server'}>
-      <Wrapper>
-        <Header>
-          <HeaderSection>
-            {agg?.originalId && <ID>{shorten(agg?.originalId)}</ID>}
-            <p>
-              {method} {isResponse && '(response)'}
-            </p>
-          </HeaderSection>
-
-          <RenderDate date={message.createdAt} />
-        </Header>
-
-        <Main>
-          <CodeBlock
-            code={JSON.stringify(
-              {
-                ...payload,
-                id: agg?.originalId ?? payload.id ?? transportMcp.id
-              },
-              null,
-              2
-            )}
-            language="json"
-            lineNumbers={false}
-            variant="seamless"
-          />
-        </Main>
-      </Wrapper>
-    </Output>
+    <MessageCard
+      id={agg?.originalId ? String(agg.originalId) : undefined}
+      label={`${method}${isResponse ? ' (response)' : ''}`}
+      payload={{ ...payload, id: resolvedId }}
+      date={message.createdAt}
+      position={isResponse ? 'server' : (message.senderParticipant?.type ?? 'server')}
+      error={message.error ?? undefined}
+    />
   );
 };
