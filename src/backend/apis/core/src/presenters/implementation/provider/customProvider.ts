@@ -24,6 +24,27 @@ export let v1CustomProviderPresenter = Presenter.create(customProviderType)
       ? await v1ProviderPresenter.present({ provider: customProvider.provider }, opts).run()
       : null,
 
+    draft: {
+      container_image:
+        customProvider.draft.containerTag &&
+        customProvider.draft.containerRegistry &&
+        customProvider.draft.containerRepository
+          ? {
+              container_registry: customProvider.draft.containerRegistry.url!,
+              container_image_tag: customProvider.draft.containerTag.name!,
+              container_image: customProvider.draft.containerRepository.name!
+            }
+          : undefined,
+
+      remote_mcp_server:
+        customProvider.draft.remoteProtocol && customProvider.draft.remoteUrl
+          ? {
+              url: customProvider.draft.remoteUrl,
+              transport: customProvider.draft.remoteProtocol
+            }
+          : undefined
+    } as any,
+
     created_at: customProvider.createdAt,
     updated_at: customProvider.updatedAt
   }))
@@ -61,6 +82,42 @@ export let v1CustomProviderPresenter = Presenter.create(customProviderType)
           examples: [{ environment: 'production' }]
         })
       ),
+      draft: v.object({
+        container_image: v.optional(
+          v.object({
+            container_registry: v.string({
+              name: 'container_registry',
+              description: 'URL of the container registry',
+              examples: ['https://index.docker.io/v1/']
+            }),
+            container_image_tag: v.string({
+              name: 'container_image_tag',
+              description: 'Tag of the container image',
+              examples: ['v1.0.0']
+            }),
+            container_image: v.string({
+              name: 'container_image',
+              description: 'Name of the container image',
+              examples: ['my-app-image']
+            })
+          })
+        ),
+
+        remote_mcp_server: v.optional(
+          v.object({
+            url: v.string({
+              name: 'url',
+              description: 'URL of the remote MCP server',
+              examples: ['https://mcp.example.com']
+            }),
+            transport: v.enumOf(['sse', 'streamable_http'], {
+              name: 'transport',
+              description: 'Transport protocol for connecting to the remote MCP server'
+            })
+          })
+        )
+      }),
+
       scm_repo: v.nullable(v1ScmRepoPresenter.schema),
       provider: v.nullable(v1ProviderPresenter.schema),
       created_at: v.date({
