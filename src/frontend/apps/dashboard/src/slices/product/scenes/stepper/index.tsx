@@ -89,8 +89,8 @@ export let Stepper = ({
   currentStep: number;
   setCurrentStep: (step: number) => void;
 }) => {
-  let currentStepContent = steps[currentStep];
-  let children = currentStepContent.render();
+  let currentStepContent = steps[currentStep] ?? steps[steps.length - 1];
+  let children = currentStepContent ? currentStepContent.render() : null;
 
   let [maxSeen, setMaxSeen] = useState(currentStep);
   useEffect(() => {

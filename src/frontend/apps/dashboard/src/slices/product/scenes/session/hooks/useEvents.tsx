@@ -1,22 +1,9 @@
-import { DashboardInstanceSessionsEventsListOutput } from '@metorial/dashboard-sdk';
 import { useCurrentInstance, useSessionEvents, useSessionMessages } from '@metorial/state';
 import { RiErrorWarningLine } from '@remixicon/react';
 import { useMemo } from 'react';
 import { Entry } from '../components/entry';
-import { Logs } from '../components/logs';
 import { Message } from '../components/message';
 import { useAggregatedMessages } from './useAggregatedMessages';
-
-type SessionEvent = DashboardInstanceSessionsEventsListOutput['items'][number];
-
-let isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null;
-
-let getServerLogEventData = (event: SessionEvent): Record<string, unknown> | null => {
-  if ('data' in event && isRecord(event.data)) return event.data;
-  if (isRecord(event.message?.output)) return event.message.output;
-  return null;
-};
 
 export let useEvents = (
   sessionId: string | undefined | null,
@@ -50,28 +37,16 @@ export let useEvents = (
         })),
 
         ...(events.data?.items ?? []).map(event => {
-          if (event.type === 'server_logs') {
-            return {
-              component: (
-                <Logs
-                  event={{
-                    data: getServerLogEventData(event),
-                    createdAt: event.createdAt
-                  }}
-                />
-              ),
-              time: event.createdAt
-            };
-          }
-
-          if (event.type === 'server_run_error') {
+          if (event.type === 'error_occurred') {
+            let errorMsg =
+              event.error?.code && event.error?.message
+                ? `${event.error.code} - ${event.error.message}`
+                : event.error?.message ?? 'Unknown error';
             return {
               component: (
                 <Entry
                   icon={<RiErrorWarningLine />}
-                  title={`${event.error?.code ?? 'Error'} - ${
-                    event.error?.message ?? event.message?.error?.message ?? 'Unknown error'
-                  }`}
+                  title={`Error: ${errorMsg}`}
                   time={event.createdAt}
                   variant="error"
                 />

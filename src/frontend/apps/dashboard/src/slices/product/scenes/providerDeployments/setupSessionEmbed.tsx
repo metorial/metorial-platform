@@ -250,6 +250,10 @@ export let ProviderSetupSessionEmbed = ({
 
         if (res?.status === 'completed') {
           completedRef.current = true;
+          if (setupWindowRef.current && !setupWindowRef.current.closed) {
+            setupWindowRef.current.close();
+            setupWindowRef.current = null;
+          }
           onCompleteRef.current(res);
           return;
         }
@@ -295,15 +299,18 @@ export let ProviderSetupSessionEmbed = ({
 
   if (deployment.error) {
     return (
-      <Flex direction="column" gap={8}>
+      <Flex direction="column" gap={12}>
         <Text size="2" color="red500">
           {deployment.error.message ?? 'Failed to load deployment.'}
         </Text>
-        {onCancel && (
-          <Button variant="outline" onClick={onCancel}>
-            {cancelLabel}
-          </Button>
-        )}
+        <Flex gap={10}>
+          {onCancel && (
+            <Button variant="outline" onClick={onCancel}>
+              {cancelLabel}
+            </Button>
+          )}
+          <Button onClick={() => onComplete(null)}>Close</Button>
+        </Flex>
       </Flex>
     );
   }
@@ -318,52 +325,61 @@ export let ProviderSetupSessionEmbed = ({
 
   if (!lockedVersionId && provider.error) {
     return (
-      <Flex direction="column" gap={8}>
+      <Flex direction="column" gap={12}>
         <Text size="2" color="red500">
           {provider.error.message ?? 'Failed to load provider details.'}
         </Text>
-        {onCancel && (
-          <Button variant="outline" onClick={onCancel}>
-            {cancelLabel}
-          </Button>
-        )}
+        <Flex gap={10}>
+          {onCancel && (
+            <Button variant="outline" onClick={onCancel}>
+              {cancelLabel}
+            </Button>
+          )}
+          <Button onClick={() => onComplete(null)}>Close</Button>
+        </Flex>
       </Flex>
     );
   }
 
   if (!effectiveVersionId) {
     return (
-      <Flex direction="column" gap={8}>
+      <Flex direction="column" gap={12}>
         <Text size="2" color="gray600">
           No provider version is available yet, so authentication cannot be configured.
         </Text>
-        {onCancel && (
-          <Button variant="outline" onClick={onCancel}>
-            {cancelLabel}
-          </Button>
-        )}
+        <Flex gap={10}>
+          {onCancel && (
+            <Button variant="outline" onClick={onCancel}>
+              {cancelLabel}
+            </Button>
+          )}
+          <Button onClick={() => onComplete(null)}>Close</Button>
+        </Flex>
       </Flex>
     );
   }
 
   if (authMethods.error) {
     return (
-      <Flex direction="column" gap={8}>
+      <Flex direction="column" gap={12}>
         <Text size="2" color="red500">
           {authMethods.error.message ?? 'Failed to load authentication methods.'}
         </Text>
-        {onCancel && (
-          <Button variant="outline" onClick={onCancel}>
-            {cancelLabel}
-          </Button>
-        )}
+        <Flex gap={10}>
+          {onCancel && (
+            <Button variant="outline" onClick={onCancel}>
+              {cancelLabel}
+            </Button>
+          )}
+          <Button onClick={() => onComplete(null)}>Close</Button>
+        </Flex>
       </Flex>
     );
   }
 
   if (!authMethods.data?.items?.length) {
     return (
-      <Flex direction="column" gap={8}>
+      <Flex direction="column" gap={12}>
         <Text size="2" color="gray600">
           This provider does not require authentication.
         </Text>
@@ -373,7 +389,7 @@ export let ProviderSetupSessionEmbed = ({
               {cancelLabel}
             </Button>
           )}
-          <Button onClick={() => onComplete(null)}>Continue</Button>
+          <Button onClick={() => onComplete(null)}>Close</Button>
         </Flex>
       </Flex>
     );
@@ -381,7 +397,7 @@ export let ProviderSetupSessionEmbed = ({
 
   if (setupSession && !setupSession.url) {
     return (
-      <Flex direction="column" gap={8}>
+      <Flex direction="column" gap={12}>
         <Text size="2" color="red600">
           Setup session did not return a URL. Please try again.
         </Text>
@@ -459,13 +475,14 @@ export let ProviderSetupSessionEmbed = ({
       )
     };
 
+    let connectStepIndex = hasSingleMethod ? 1 : 2;
     let handleCredentialsContinue = async () => {
       if (isCreatingCredentials) {
         let ok = await handleCreateCredentials();
-        if (ok) setStep(2);
-      } else {
-        setStep(2);
+        if (!ok) return;
       }
+      setStep(connectStepIndex);
+      await handleStartSetup();
     };
 
     let credentialsStep = {
@@ -486,7 +503,9 @@ export let ProviderSetupSessionEmbed = ({
             value={
               isCreatingCredentials
                 ? '__create_new__'
-                : (selectedCredentialsId || '__use_default_credentials__')
+                : (selectedCredentialsId ||
+                    (authCredentials.data?.items ?? []).find(c => c.isDefault)?.id ||
+                    '__use_default_credentials__')
             }
             placeholder="Use default credentials"
             onChange={value => {
@@ -502,14 +521,17 @@ export let ProviderSetupSessionEmbed = ({
               }
             }}
             items={[
-              {
-                id: '__use_default_credentials__',
-                label: 'Use default credentials'
-              },
+              ...((authCredentials.data?.items ?? []).some(c => c.isDefault)
+                ? []
+                : [{ id: '__use_default_credentials__', label: 'Use default credentials' }]),
               ...(authCredentials.data?.items ?? []).map((cred: AuthCredential) => ({
                 id: cred.id,
-                label: cred.name || cred.id
-              }))
+                label: cred.isDefault ? (cred.name || 'Default credentials') : (cred.name || cred.id)
+              })),
+              {
+                id: '__create_new__',
+                label: 'Add your own credentials'
+              }
             ]}
           />
           {isCreatingCredentials && (
@@ -561,15 +583,17 @@ export let ProviderSetupSessionEmbed = ({
           )}
           <Spacer size={12} />
           <Flex gap={8}>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() =>
-                isCreatingCredentials ? setIsCreatingCredentials(false) : setStep(0)
-              }
-            >
-              Back
-            </Button>
+            {(!hasSingleMethod || isCreatingCredentials) && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() =>
+                  isCreatingCredentials ? setIsCreatingCredentials(false) : setStep(0)
+                }
+              >
+                Back
+              </Button>
+            )}
             <Button
               type="button"
               onClick={handleCredentialsContinue}
@@ -611,7 +635,7 @@ export let ProviderSetupSessionEmbed = ({
                 </>
               )}
               <Spacer size={8} />
-              <Flex gap={8}>
+              <Flex gap={8} align="center">
                 <Button
                   onClick={() => {
                     let opened = openSetupWindow(setupSession.url!);
@@ -620,22 +644,26 @@ export let ProviderSetupSessionEmbed = ({
                 >
                   Open Authentication Window
                 </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setSetupSession(null);
-                    pollingRef.current = false;
-                    setSetupWindowBlocked(false);
-                  }}
-                >
-                  Change Method
-                </Button>
                 {onCancel && (
                   <Button variant="outline" onClick={onCancel}>
                     {cancelLabel}
                   </Button>
                 )}
               </Flex>
+              {!hasSingleMethod && (
+                <span
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => {
+                    setSetupSession(null);
+                    pollingRef.current = false;
+                    setSetupWindowBlocked(false);
+                  }}
+                >
+                  <Text size="1" color="gray500" style={{ textDecoration: 'underline' }}>
+                    Change method
+                  </Text>
+                </span>
+              )}
               {error && (
                 <>
                   <Spacer size={5} />
@@ -677,13 +705,15 @@ export let ProviderSetupSessionEmbed = ({
             )}
             <Spacer size={8} />
             <Flex gap={8}>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setStep(prev => prev - 1)}
-              >
-                Back
-              </Button>
+              {step > 0 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setStep(prev => prev - 1)}
+                >
+                  Back
+                </Button>
+              )}
               {onCancel && (
                 <Button type="button" variant="outline" onClick={onCancel}>
                   {cancelLabel}
@@ -696,15 +726,17 @@ export let ProviderSetupSessionEmbed = ({
     };
 
     if (isOAuth) {
-      return [methodStep, credentialsStep, connectStep];
+      return hasSingleMethod ? [credentialsStep, connectStep] : [methodStep, credentialsStep, connectStep];
     }
-    return [
-      methodStep,
-      {
-        ...connectStep,
-        subtitle: 'Start setup'
-      }
-    ];
+    return hasSingleMethod
+      ? [{ ...connectStep, subtitle: 'Start setup' }]
+      : [
+          methodStep,
+          {
+            ...connectStep,
+            subtitle: 'Start setup'
+          }
+        ];
   })();
 
   return <Stepper steps={steps} currentStep={step} setCurrentStep={setStep} />;

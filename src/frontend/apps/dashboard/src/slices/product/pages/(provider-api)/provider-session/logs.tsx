@@ -5,6 +5,7 @@ import {
 import { renderWithLoader } from '@metorial/data-hooks';
 import {
   useCurrentInstance,
+  useProviderRuns,
   useSession,
   useSessionConnections,
   useSessionEvents,
@@ -23,6 +24,7 @@ import { Entry } from '../../../scenes/session/components/entry';
 import { ItemList } from '../../../scenes/session/components/itemList';
 import { Message } from '../../../scenes/session/components/message';
 import { ProviderConnection } from '../../../scenes/session/components/providerConnection';
+import { ProviderRunLogs } from '../../../scenes/session/components/providerRunLogs';
 import { useAggregatedMessages } from '../../../scenes/session/hooks/useAggregatedMessages';
 
 export let ProviderSessionLogsPage = () => {
@@ -46,6 +48,7 @@ let ProviderSessionLogs = ({ session }: { session: DashboardInstanceSessionsGetO
 
   let messages = useSessionMessages(instanceId, session.id, { limit: 100 });
   let events = useSessionEvents(instanceId, session.id, { limit: 100 });
+  let providerRuns = useProviderRuns(instanceId, session.id, { limit: 100 });
 
   // Merge messages from both the messages API and event messages to ensure completeness
   let allMessages = useMemo(() => {
@@ -143,39 +146,57 @@ let ProviderSessionLogs = ({ session }: { session: DashboardInstanceSessionsGetO
     }));
   };
 
+  let providerRunItems = providerRuns.data?.items ?? [];
+
   // Build event UI items for a specific connection
   let buildEventItems = (connId: string) => {
     let connEvents = eventsByConnection.get(connId) ?? [];
     let items: { component: React.ReactNode; time: Date }[] = [];
+    let seenProviderRunIds = new Set<string>();
+
     for (let evt of connEvents) {
       let type = evt.type as string;
 
-      if (type === 'provider_run_started') {
-        items.push({
-          component: (
-            <Entry icon={<RiServerLine />} title="Provider started" time={evt.createdAt} />
-          ),
-          time: evt.createdAt
-        });
-      } else if (type === 'provider_run_stopped') {
-        items.push({
-          component: (
-            <Entry icon={<RiServerLine />} title="Provider stopped" time={evt.createdAt} />
-          ),
-          time: evt.createdAt
-        });
-      } else if (type === 'error_occurred') {
+      if (type === 'error_occurred') {
+        let errorMsg =
+          evt.error?.code && evt.error?.message
+            ? `${evt.error.code} - ${evt.error.message}`
+            : evt.error?.message ?? evt.warning?.message ?? null;
         items.push({
           component: (
             <Entry
               icon={<RiErrorWarningLine />}
-              title="Error occurred"
+              title={errorMsg ? `Error: ${errorMsg}` : 'Error occurred'}
               time={evt.createdAt}
               variant="error"
             />
           ),
           time: evt.createdAt
         });
+      } else if (type === 'provider_run_started') {
+        let runId = evt.providerRun?.id;
+        items.push({
+          component: (
+            <Entry icon={<RiServerLine />} title="Provider started" time={evt.createdAt} />
+          ),
+          time: evt.createdAt
+        });
+        if (runId) seenProviderRunIds.add(runId);
+      } else if (type === 'provider_run_stopped') {
+        let runId = evt.providerRun?.id;
+        items.push({
+          component: (
+            <Entry icon={<RiServerLine />} title="Provider stopped" time={evt.createdAt} />
+          ),
+          time: evt.createdAt
+        });
+        if (runId) {
+          seenProviderRunIds.add(runId);
+          items.push({
+            component: <ProviderRunLogs providerRunId={runId} lazy />,
+            time: evt.createdAt
+          });
+        }
       } else if (type === 'connection_disconnected') {
         items.push({
           component: (
@@ -189,6 +210,22 @@ let ProviderSessionLogs = ({ session }: { session: DashboardInstanceSessionsGetO
         });
       }
     }
+
+    // Also show logs for provider runs that only have a started event (still running)
+    for (let run of providerRunItems) {
+      if (!seenProviderRunIds.has(run.id)) {
+        let evtForConn = connEvents.some(
+          e => e.providerRun?.id === run.id
+        );
+        if (evtForConn) {
+          items.push({
+            component: <ProviderRunLogs providerRunId={run.id} lazy />,
+            time: run.createdAt
+          });
+        }
+      }
+    }
+
     return items;
   };
 

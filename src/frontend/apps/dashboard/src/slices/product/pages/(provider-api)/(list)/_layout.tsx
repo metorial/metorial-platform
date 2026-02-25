@@ -1,14 +1,20 @@
+import { useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
 import {
+  useCreateProviderAuthCredentials,
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
+  useProvider,
+  useProviderAuthMethods,
+  useProviderDeployment,
   useProviderDeployments
 } from '@metorial/state';
 import {
   Badge,
   Button,
+  CenteredSpinner,
   Dialog,
   Input,
   LinkTabs,
@@ -18,8 +24,9 @@ import {
   Text,
   theme
 } from '@metorial/ui';
+import { RiAddLine } from '@remixicon/react';
 import { useMemo, useState } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { showProviderConfigFormModal } from '../../../scenes/providerConfigs/modal';
 import { showProviderDeploymentFormModal } from '../../../scenes/providerDeployments/modal';
@@ -27,6 +34,7 @@ import { ProviderSetupSessionEmbed } from '../../../scenes/providerDeployments/s
 import { showProviderSetupSessionModal } from '../../../scenes/providerDeployments/setupSessionModal';
 import { SmallItemGrid } from '../../../scenes/shared/smallItemGrid';
 import { showSessionTemplateFormModal } from '../../../scenes/sessionTemplates/modal';
+import { Stepper } from '../../../scenes/stepper';
 
 export let ProvidersHubLayout = () => {
   return (
@@ -399,6 +407,224 @@ let showDeploymentPickerThenCreateConfig = (instanceId: string) =>
     </Dialog.Wrapper>
   ));
 
+let AuthCredentialsForm = ({
+  instanceId,
+  providerId,
+  deploymentId,
+  close,
+  onBack,
+  onCreate
+}: {
+  instanceId: string;
+  providerId: string;
+  deploymentId: string;
+  close: () => void;
+  onBack?: () => void;
+  onCreate?: () => void;
+}) => {
+  let deployment = useProviderDeployment(instanceId, deploymentId);
+  let provider = useProvider(instanceId, providerId);
+  let versionId =
+    deployment.data?.lockedVersion?.id ?? provider.data?.currentVersion?.id;
+  let authMethods = useProviderAuthMethods(instanceId, versionId);
+  let oauthMethod = useMemo(
+    () => (authMethods.data?.items ?? []).find(m => m.type === 'oauth'),
+    [authMethods.data?.items]
+  );
+
+  let createCredentials = useCreateProviderAuthCredentials();
+
+  let form = useForm({
+    initialValues: {
+      name: '',
+      clientId: '',
+      clientSecret: ''
+    },
+    onSubmit: async values => {
+      let [result, err] = await createCredentials.mutate({
+        instanceId,
+        providerId,
+        name: values.name,
+        config: {
+          type: 'oauth',
+          clientId: values.clientId,
+          clientSecret: values.clientSecret,
+          scopes: oauthMethod?.scopes?.map((s: any) => s.scope) ?? []
+        }
+      });
+
+      if (err) return;
+
+      close();
+      onCreate?.();
+    },
+    schema: yup =>
+      yup.object({
+        name: yup.string().required('Name is required'),
+        clientId: yup.string().required('Client ID is required'),
+        clientSecret: yup.string().required('Client Secret is required')
+      })
+  });
+
+  if (deployment.isLoading || authMethods.isLoading) {
+    return (
+      <>
+        <Dialog.Title>Create Auth Credentials</Dialog.Title>
+        <Dialog.Description>Loading provider details...</Dialog.Description>
+        <Spacer size={15} />
+        <CenteredSpinner />
+      </>
+    );
+  }
+
+  return (
+    <>
+      <Dialog.Title>Create Auth Credentials</Dialog.Title>
+      <Dialog.Description>
+        Enter your OAuth app credentials for{' '}
+        {deployment.data?.name ?? provider.data?.name ?? providerId}.
+      </Dialog.Description>
+
+      <Spacer size={15} />
+
+      <form onSubmit={form.handleSubmit}>
+        <Input
+          label="Name"
+          placeholder="My OAuth App"
+          required
+          {...form.getFieldProps('name')}
+        />
+        <form.RenderError field="name" />
+
+        <Spacer size={10} />
+
+        <Input
+          label="Client ID"
+          placeholder="Enter client ID from provider"
+          required
+          {...form.getFieldProps('clientId')}
+        />
+        <form.RenderError field="clientId" />
+
+        <Spacer size={10} />
+
+        <Input
+          label="Client Secret"
+          placeholder="Enter client secret from provider"
+          type="password"
+          required
+          {...form.getFieldProps('clientSecret')}
+        />
+        <form.RenderError field="clientSecret" />
+
+        <createCredentials.RenderError />
+
+        <Spacer size={15} />
+
+        <Dialog.Actions>
+          {onBack && (
+            <Button type="button" size="2" variant="outline" onClick={onBack}>
+              Back
+            </Button>
+          )}
+          <Button type="button" size="2" variant="outline" onClick={close}>
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            size="2"
+            loading={createCredentials.isPending}
+            disabled={!form.values.name || !form.values.clientId || !form.values.clientSecret}
+          >
+            Create
+          </Button>
+        </Dialog.Actions>
+      </form>
+    </>
+  );
+};
+
+let showCreateAuthCredentialsFlow = (instanceId: string) =>
+  showModal(({ dialogProps, close }) => (
+    <Dialog.Wrapper {...dialogProps} width={550}>
+      <ProviderPicker
+        instanceId={instanceId}
+        title="Create Auth Credentials"
+        description="Select a provider to create OAuth credentials for."
+        close={close}
+        onSelect={providerId =>
+          showModal(({ dialogProps: depDialogProps, close: depClose }) => (
+            <Dialog.Wrapper {...depDialogProps} width={550}>
+              <DeploymentPickerForProvider
+                instanceId={instanceId}
+                providerId={providerId}
+                title="Select Deployment"
+                description="Choose a deployment to associate these credentials with."
+                close={depClose}
+                onBack={() => showCreateAuthCredentialsFlow(instanceId)}
+                onSelect={deploymentId =>
+                  showModal(({ dialogProps: formDialogProps, close: formClose }) => (
+                    <Dialog.Wrapper {...formDialogProps} width={550}>
+                      <AuthCredentialsForm
+                        instanceId={instanceId}
+                        providerId={providerId}
+                        deploymentId={deploymentId}
+                        close={formClose}
+                        onBack={() =>
+                          showModal(({ dialogProps: backDialogProps, close: backClose }) => (
+                            <Dialog.Wrapper {...backDialogProps} width={550}>
+                              <DeploymentPickerForProvider
+                                instanceId={instanceId}
+                                providerId={providerId}
+                                title="Select Deployment"
+                                description="Choose a deployment to associate these credentials with."
+                                close={backClose}
+                                onBack={() => showCreateAuthCredentialsFlow(instanceId)}
+                                onSelect={newDeploymentId =>
+                                  showModal(
+                                    ({
+                                      dialogProps: innerFormDialogProps,
+                                      close: innerFormClose
+                                    }) => (
+                                      <Dialog.Wrapper {...innerFormDialogProps} width={550}>
+                                        <AuthCredentialsForm
+                                          instanceId={instanceId}
+                                          providerId={providerId}
+                                          deploymentId={newDeploymentId}
+                                          close={innerFormClose}
+                                          onCreate={() => {
+                                            if (typeof window !== 'undefined') {
+                                              window.dispatchEvent(
+                                                new Event('provider-auth-config-created')
+                                              );
+                                            }
+                                          }}
+                                        />
+                                      </Dialog.Wrapper>
+                                    )
+                                  )
+                                }
+                              />
+                            </Dialog.Wrapper>
+                          ))
+                        }
+                        onCreate={() => {
+                          if (typeof window !== 'undefined') {
+                            window.dispatchEvent(new Event('provider-auth-config-created'));
+                          }
+                        }}
+                      />
+                    </Dialog.Wrapper>
+                  ))
+                }
+              />
+            </Dialog.Wrapper>
+          ))
+        }
+      />
+    </Dialog.Wrapper>
+  ));
+
 let showDeploymentPickerThenCreateAuthConfig = (instanceId: string) =>
   showModal(({ dialogProps, close }) => (
     <Dialog.Wrapper {...dialogProps} width={550}>
@@ -437,52 +663,382 @@ let showDeploymentPickerThenCreateAuthConfig = (instanceId: string) =>
     </Dialog.Wrapper>
   ));
 
-let showDeploymentPickerThenConfigureAuth = (instanceId: string) =>
-  showModal(({ dialogProps, close }) => (
-    <Dialog.Wrapper {...dialogProps} width={550}>
-      <ProviderPicker
-        instanceId={instanceId}
-        title="Connect Provider"
-        description="Select a provider to set up an authenticated connection."
-        close={close}
-        onSelect={providerId =>
-          showModal(({ dialogProps: depDialogProps, close: depClose }) => (
-            <Dialog.Wrapper {...depDialogProps} width={550}>
-              <DeploymentPickerForProvider
-                instanceId={instanceId}
-                providerId={providerId}
-                title="Select Deployment"
-                description="Choose a deployment for this connection."
-                close={depClose}
-                onBack={() => showDeploymentPickerThenConfigureAuth(instanceId)}
-                onSelect={deploymentId =>
-                  showModal(({ dialogProps: innerDialogProps, close: innerClose }) => (
-                    <Dialog.Wrapper {...innerDialogProps} width={700}>
-                      <Dialog.Title>Connect via OAuth</Dialog.Title>
-                      <Dialog.Description>
-                        Complete the authentication flow to create a connection.
-                      </Dialog.Description>
+let CredentialsFormStep = ({
+  instanceId,
+  providerId,
+  deploymentId,
+  close,
+  onBack,
+  onCreated
+}: {
+  instanceId: string;
+  providerId: string;
+  deploymentId: string;
+  close: () => void;
+  onBack: () => void;
+  onCreated?: () => void;
+}) => {
+  let deployment = useProviderDeployment(instanceId, deploymentId);
+  let provider = useProvider(instanceId, providerId);
+  let versionId = deployment.data?.lockedVersion?.id ?? provider.data?.currentVersion?.id;
+  let authMethods = useProviderAuthMethods(instanceId, versionId);
+  let oauthMethod = useMemo(
+    () => (authMethods.data?.items ?? []).find(m => m.type === 'oauth'),
+    [authMethods.data?.items]
+  );
 
-                      <ProviderSetupSessionEmbed
-                        instanceId={instanceId}
-                        providerId={providerId}
-                        deploymentId={deploymentId}
-                        cancelLabel="Close"
-                        onCancel={innerClose}
-                        onComplete={() => {
-                          innerClose();
-                          if (typeof window !== 'undefined') {
-                            window.dispatchEvent(new Event('provider-auth-config-created'));
-                          }
-                        }}
-                      />
-                    </Dialog.Wrapper>
-                  ))
-                }
-              />
-            </Dialog.Wrapper>
-          ))
+  let createCredentials = useCreateProviderAuthCredentials();
+
+  let form = useForm({
+    initialValues: {
+      name: '',
+      clientId: '',
+      clientSecret: ''
+    },
+    onSubmit: async values => {
+      let [, err] = await createCredentials.mutate({
+        instanceId,
+        providerId,
+        name: values.name,
+        config: {
+          type: 'oauth',
+          clientId: values.clientId,
+          clientSecret: values.clientSecret,
+          scopes: oauthMethod?.scopes?.map((s: any) => s.scope) ?? []
         }
+      });
+
+      if (err) return;
+
+      close();
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('provider-auth-config-created'));
+      }
+      onCreated?.();
+    },
+    schema: yup =>
+      yup.object({
+        name: yup.string().required('Name is required'),
+        clientId: yup.string().required('Client ID is required'),
+        clientSecret: yup.string().required('Client Secret is required')
+      })
+  });
+
+  if (deployment.isLoading || authMethods.isLoading) {
+    return <CenteredSpinner />;
+  }
+
+  return (
+    <form onSubmit={form.handleSubmit}>
+      <Text size="2" color="gray600">
+        Enter your OAuth app credentials for{' '}
+        {deployment.data?.name ?? provider.data?.name ?? providerId}.
+      </Text>
+
+      <Spacer size={15} />
+
+      <Input
+        label="Name"
+        placeholder="My OAuth App"
+        required
+        {...form.getFieldProps('name')}
+      />
+      <form.RenderError field="name" />
+
+      <Spacer size={10} />
+
+      <Input
+        label="Client ID"
+        placeholder="Enter client ID from provider"
+        required
+        {...form.getFieldProps('clientId')}
+      />
+      <form.RenderError field="clientId" />
+
+      <Spacer size={10} />
+
+      <Input
+        label="Client Secret"
+        placeholder="Enter client secret from provider"
+        type="password"
+        required
+        {...form.getFieldProps('clientSecret')}
+      />
+      <form.RenderError field="clientSecret" />
+
+      <createCredentials.RenderError />
+
+      <Spacer size={15} />
+
+      <Dialog.Actions>
+        <Button type="button" variant="outline" onClick={onBack}>
+          Back
+        </Button>
+        <Button
+          type="submit"
+          loading={createCredentials.isPending}
+          disabled={!form.values.name || !form.values.clientId || !form.values.clientSecret}
+        >
+          Create
+        </Button>
+      </Dialog.Actions>
+    </form>
+  );
+};
+
+let ConfigureAuthFlow = ({
+  instanceId,
+  close,
+  onCreated,
+  variant = 'credentials'
+}: {
+  instanceId: string;
+  close: () => void;
+  onCreated?: (deploymentId: string, authConfigId: string) => void;
+  variant?: 'credentials' | 'setup-session';
+}) => {
+  let deployments = useProviderDeployments(instanceId);
+  let items = deployments.data?.items ?? [];
+
+  let [step, setStep] = useState(0);
+  let [selectedProviderId, setSelectedProviderId] = useState<string | null>(null);
+  let [selectedDeploymentId, setSelectedDeploymentId] = useState<string | null>(null);
+  let [providerSearch, setProviderSearch] = useState('');
+  let [deploymentSearch, setDeploymentSearch] = useState('');
+
+  let providers = useMemo(() => {
+    let byId = new Map<string, { providerId: string; label: string }>();
+    for (let dep of items) {
+      if (!byId.has(dep.providerId)) {
+        byId.set(dep.providerId, {
+          providerId: dep.providerId,
+          label: dep.name ?? dep.providerId
+        });
+      }
+    }
+    return Array.from(byId.values());
+  }, [items]);
+
+  let filteredProviders = providers.filter(provider => {
+    if (!providerSearch.trim()) return true;
+    let query = providerSearch.toLowerCase();
+    return (
+      provider.label.toLowerCase().includes(query) ||
+      provider.providerId.toLowerCase().includes(query)
+    );
+  });
+
+  let allDeploymentsForProvider = useMemo(() => {
+    if (!selectedProviderId) return [];
+    return items.filter(dep => dep.providerId === selectedProviderId);
+  }, [items, selectedProviderId]);
+
+  let filteredDeployments = useMemo(() => {
+    if (!deploymentSearch.trim()) return allDeploymentsForProvider;
+    let query = deploymentSearch.toLowerCase();
+    return allDeploymentsForProvider.filter(
+      dep =>
+        (dep.name ?? '').toLowerCase().includes(query) ||
+        (dep.description ?? '').toLowerCase().includes(query)
+    );
+  }, [allDeploymentsForProvider, deploymentSearch]);
+
+  if (deployments.isLoading) {
+    return <CenteredSpinner />;
+  }
+
+  if (
+    step === 2 &&
+    variant === 'setup-session' &&
+    selectedProviderId &&
+    selectedDeploymentId
+  ) {
+    return (
+      <ProviderSetupSessionEmbed
+        instanceId={instanceId}
+        providerId={selectedProviderId}
+        deploymentId={selectedDeploymentId}
+        cancelLabel="Back"
+        onCancel={() => setStep(1)}
+        onComplete={result => {
+          close();
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new Event('provider-auth-config-created'));
+          }
+          let authConfigId = result?.authConfig?.id;
+          if (authConfigId) {
+            onCreated?.(selectedDeploymentId!, authConfigId);
+          }
+        }}
+      />
+    );
+  }
+
+  return (
+    <Stepper
+      steps={[
+        {
+          title: 'Provider',
+          subtitle: 'Select provider',
+          render: () => (
+            <>
+              {providers.length === 0 ? (
+                <Text size="2" color="gray600">
+                  No providers found. Create a deployment first.
+                </Text>
+              ) : (
+                <>
+                  <Input
+                    label="Search providers"
+                    hideLabel
+                    placeholder="Search providers..."
+                    value={providerSearch}
+                    onChange={e => setProviderSearch(e.target.value)}
+                  />
+                  <Spacer size={10} />
+                  <SmallItemGrid
+                    items={filteredProviders.map(provider => ({
+                      id: provider.providerId,
+                      label: provider.label,
+                      onSelect: () => {
+                        setSelectedProviderId(provider.providerId);
+                        setSelectedDeploymentId(null);
+                        setDeploymentSearch('');
+                        setStep(1);
+                      }
+                    }))}
+                    emptyText="No providers found matching your search."
+                  />
+                </>
+              )}
+
+              <Spacer size={10} />
+
+              <Dialog.Actions>
+                <Button variant="outline" onClick={close}>
+                  Cancel
+                </Button>
+              </Dialog.Actions>
+            </>
+          )
+        },
+        {
+          title: 'Deployment',
+          subtitle: 'Select deployment',
+          render: () => (
+            <>
+              {allDeploymentsForProvider.length === 0 ? (
+                <Text size="2" color="gray600">
+                  No deployments found for this provider.
+                </Text>
+              ) : (
+                <>
+                  {allDeploymentsForProvider.length > 4 && (
+                    <>
+                      <Input
+                        label="Search deployments"
+                        hideLabel
+                        placeholder="Search deployments..."
+                        value={deploymentSearch}
+                        onChange={e => setDeploymentSearch(e.target.value)}
+                      />
+                      <Spacer size={10} />
+                    </>
+                  )}
+                  <DeploymentList>
+                    {filteredDeployments.map(dep => (
+                      <DeploymentCard
+                        key={dep.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedDeploymentId(dep.id);
+                          setStep(2);
+                        }}
+                      >
+                        <DeploymentCardRow>
+                          <Text size="2" weight="strong">
+                            {dep.name ?? 'Unnamed Deployment'}
+                          </Text>
+                          {dep.lockedVersion ? (
+                            <Badge color="purple" size="1">
+                              {dep.lockedVersion.version}
+                            </Badge>
+                          ) : (
+                            <Badge color="gray" size="1">
+                              Default
+                            </Badge>
+                          )}
+                        </DeploymentCardRow>
+                        <Text size="1" color="gray500">
+                          <RenderDate date={dep.createdAt} />
+                        </Text>
+                      </DeploymentCard>
+                    ))}
+                  </DeploymentList>
+                </>
+              )}
+
+              <Spacer size={10} />
+
+              <Dialog.Actions>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setStep(0);
+                    setSelectedProviderId(null);
+                    setProviderSearch('');
+                  }}
+                >
+                  Back
+                </Button>
+                <Button variant="outline" onClick={close}>
+                  Cancel
+                </Button>
+              </Dialog.Actions>
+            </>
+          )
+        },
+        {
+          title: variant === 'setup-session' ? 'Configure' : 'Credentials',
+          subtitle: variant === 'setup-session' ? 'Set up authentication' : 'Create credentials',
+          render: () =>
+            selectedProviderId && selectedDeploymentId ? (
+              <CredentialsFormStep
+                instanceId={instanceId}
+                providerId={selectedProviderId}
+                deploymentId={selectedDeploymentId}
+                close={close}
+                onBack={() => setStep(1)}
+                onCreated={() => onCreated?.(selectedDeploymentId!, '')}
+              />
+            ) : null
+        }
+      ]}
+      currentStep={step}
+      setCurrentStep={setStep}
+    />
+  );
+};
+
+let showConfigureAuthFlow = (
+  instanceId: string,
+  options?: {
+    variant?: 'credentials' | 'setup-session';
+    onCreated?: (deploymentId: string, authConfigId: string) => void;
+  }
+) =>
+  showModal(({ dialogProps, close }) => (
+    <Dialog.Wrapper {...dialogProps} width={700}>
+      <Dialog.Title>Configure Authentication</Dialog.Title>
+      <Dialog.Description>
+        Set up an authenticated connection for a provider deployment.
+      </Dialog.Description>
+
+      <ConfigureAuthFlow
+        instanceId={instanceId}
+        close={close}
+        variant={options?.variant}
+        onCreated={options?.onCreated}
       />
     </Dialog.Wrapper>
   ));
@@ -492,6 +1048,7 @@ export let ProviderDeploymentsListLayout = () => {
   let project = useCurrentProject();
   let organization = useCurrentOrganization();
   let pathname = useLocation().pathname;
+  let navigate = useNavigate();
 
   let pathParams = [organization.data, project.data, instance.data] as const;
 
@@ -554,9 +1111,14 @@ export let ProviderDeploymentsListLayout = () => {
       return (
         <Button
           size="2"
+          style={{
+            background: theme.colors.gray900,
+            borderColor: theme.colors.gray900,
+            color: 'white'
+          }}
           onClick={() => {
             if (instance.data) {
-              showDeploymentPickerThenCreateAuthConfig(instance.data.id);
+              showConfigureAuthFlow(instance.data.id);
             }
           }}
         >
@@ -570,11 +1132,24 @@ export let ProviderDeploymentsListLayout = () => {
           size="2"
           onClick={() => {
             if (instance.data) {
-              showDeploymentPickerThenConfigureAuth(instance.data.id);
+              showConfigureAuthFlow(instance.data.id, {
+                variant: 'setup-session',
+                onCreated: (deploymentId, authConfigId) => {
+                  navigate(
+                    Paths.instance.providerAuthConnection(
+                      organization.data,
+                      project.data,
+                      instance.data,
+                      deploymentId,
+                      authConfigId
+                    )
+                  );
+                }
+              });
             }
           }}
         >
-          Connect
+          Create Auth Config
         </Button>
       );
     }
@@ -590,7 +1165,7 @@ export let ProviderDeploymentsListLayout = () => {
         Create Deployment
       </Button>
     );
-  }, [activeTab, instance.data]);
+  }, [activeTab, instance.data, navigate, organization.data, project.data]);
 
   return (
     <ContentLayout>
