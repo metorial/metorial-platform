@@ -7,10 +7,11 @@ export type SessionErrorsListOutput = {
     code: string;
     message: string;
     data: Record<string, any>;
+    status: 'processing' | 'processed';
     sessionId: string;
     providerRunId: string | null;
     connectionId: string | null;
-    groupId: string;
+    groupId: string | null;
     similarErrorCount: number;
     createdAt: Date;
   }[];
@@ -27,6 +28,7 @@ export let mapSessionErrorsListOutput = mtMap.object<SessionErrorsListOutput>({
         code: mtMap.objectField('code', mtMap.passthrough()),
         message: mtMap.objectField('message', mtMap.passthrough()),
         data: mtMap.objectField('data', mtMap.passthrough()),
+        status: mtMap.objectField('status', mtMap.passthrough()),
         sessionId: mtMap.objectField('session_id', mtMap.passthrough()),
         providerRunId: mtMap.objectField(
           'provider_run_id',

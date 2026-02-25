@@ -371,8 +371,13 @@ export type DashboardInstanceCustomProvidersVersionsCreateBody = {
           | { identifier: 'nodejs'; version: '24.x' | '22.x' }
           | { identifier: 'python'; version: '3.14' | '3.13' | '3.12' };
         repository:
-          | { repositoryId: string; branch: string }
-          | { type: 'git'; repositoryUrl: string; branch: string };
+          | { repositoryId: string; branch: string; path?: string | undefined }
+          | {
+              type: 'git';
+              repositoryUrl: string;
+              branch: string;
+              path?: string | undefined;
+            };
       };
   config?: { schema: Record<string, any>; transformer: string } | undefined;
 };
@@ -433,6 +438,7 @@ export let mapDashboardInstanceCustomProvidersVersionsCreateBody =
                       mtMap.passthrough()
                     ),
                     branch: mtMap.objectField('branch', mtMap.passthrough()),
+                    path: mtMap.objectField('path', mtMap.passthrough()),
                     type: mtMap.objectField('type', mtMap.passthrough()),
                     repositoryUrl: mtMap.objectField(
                       'repository_url',

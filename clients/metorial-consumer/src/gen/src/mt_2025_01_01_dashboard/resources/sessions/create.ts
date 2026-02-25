@@ -64,6 +64,8 @@ export type SessionsCreateOutput = {
     updatedAt: Date;
   }[];
   fromTemplatesIds: string[];
+  hasErrors: boolean;
+  hasWarnings: boolean;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -199,6 +201,8 @@ export let mapSessionsCreateOutput = mtMap.object<SessionsCreateOutput>({
     'from_templates_ids',
     mtMap.array(mtMap.passthrough())
   ),
+  hasErrors: mtMap.objectField('has_errors', mtMap.passthrough()),
+  hasWarnings: mtMap.objectField('has_warnings', mtMap.passthrough()),
   createdAt: mtMap.objectField('created_at', mtMap.date()),
   updatedAt: mtMap.objectField('updated_at', mtMap.date())
 });

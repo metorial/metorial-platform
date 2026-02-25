@@ -27,6 +27,8 @@ export type DashboardInstanceSessionsConnectionsListOutput = {
       providerId: string | null;
       createdAt: Date;
     } | null;
+    hasErrors: boolean;
+    hasWarnings: boolean;
     createdAt: Date;
     lastMessageAt: Date;
     lastActiveAt: Date;
@@ -89,6 +91,8 @@ export let mapDashboardInstanceSessionsConnectionsListOutput =
               createdAt: mtMap.objectField('created_at', mtMap.date())
             })
           ),
+          hasErrors: mtMap.objectField('has_errors', mtMap.passthrough()),
+          hasWarnings: mtMap.objectField('has_warnings', mtMap.passthrough()),
           createdAt: mtMap.objectField('created_at', mtMap.date()),
           lastMessageAt: mtMap.objectField('last_message_at', mtMap.date()),
           lastActiveAt: mtMap.objectField('last_active_at', mtMap.date())

@@ -59,70 +59,7 @@ export let v1ProviderPresenter = Presenter.create(providerType)
         description: 'Current status of the provider',
         examples: ['active', 'archived']
       }),
-      owner_tenant: v.nullable(
-        v.object({
-          object: v.string({ name: 'object', description: 'Object type' }),
-          id: v.string({ name: 'id', description: 'Tenant identifier' }),
-          identifier: v.string({
-            name: 'identifier',
-            description: 'Tenant identifier string'
-          }),
-          name: v.string({ name: 'name', description: 'Tenant name' }),
-          created_at: v.date({ name: 'created_at', description: 'Timestamp when created' })
-        })
-      ),
       publisher: v1PublisherPresenter.schema,
-      entry: v.object({
-        object: v.string({ name: 'object', description: 'Object type' }),
-        id: v.string({ name: 'id', description: 'Entry identifier' }),
-        identifier: v.string({ name: 'identifier', description: 'Entry identifier string' }),
-        name: v.string({ name: 'name', description: 'Entry name' }),
-        description: v.nullable(
-          v.string({ name: 'description', description: 'Entry description' })
-        ),
-        metadata: v.nullable(
-          v.record(v.any(), {
-            name: 'metadata',
-            description: 'Custom key-value pairs for storing additional information',
-            examples: [{ imported_from: 'legacy-system', migration_date: '2025-09-01' }]
-          })
-        ),
-        created_at: v.date({ name: 'created_at', description: 'Timestamp when created' }),
-        updated_at: v.date({ name: 'updated_at', description: 'Timestamp when last updated' })
-      }),
-      default_variant: v.nullable(
-        v.object({
-          object: v.string({ name: 'object', description: 'Object type' }),
-          id: v.string({ name: 'id', description: 'Variant identifier' }),
-          tag: v.string({ name: 'tag', description: 'Variant tag' }),
-          identifier: v.string({
-            name: 'identifier',
-            description: 'Variant identifier string'
-          }),
-          provider_id: v.string({ name: 'provider_id', description: 'Provider ID' }),
-          is_default: v.boolean({
-            name: 'is_default',
-            description: 'Whether this is the default variant'
-          }),
-          name: v.string({ name: 'name', description: 'Variant name' }),
-          description: v.nullable(
-            v.string({ name: 'description', description: 'Variant description' })
-          ),
-          metadata: v.nullable(
-            v.record(v.any(), {
-              name: 'metadata',
-              description: 'Custom key-value pairs for storing additional information',
-              examples: [{ imported_from: 'legacy-system', migration_date: '2025-09-01' }]
-            })
-          ),
-          current_version: v.nullable(v1ProviderVersionPresenter.schema),
-          created_at: v.date({ name: 'created_at', description: 'Timestamp when created' }),
-          updated_at: v.date({
-            name: 'updated_at',
-            description: 'Timestamp when last updated'
-          })
-        })
-      ),
       current_version: v.nullable(v1ProviderVersionPresenter.schema),
       type: v1ProviderTypePresenter.schema,
       oauth: v.nullable(

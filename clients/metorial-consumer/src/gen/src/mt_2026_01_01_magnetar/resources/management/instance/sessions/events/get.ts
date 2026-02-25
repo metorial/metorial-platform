@@ -31,6 +31,8 @@ export type ManagementInstanceSessionsEventsGetOutput = {
       providerId: string | null;
       createdAt: Date;
     } | null;
+    hasErrors: boolean;
+    hasWarnings: boolean;
     createdAt: Date;
     lastMessageAt: Date;
     lastActiveAt: Date;
@@ -121,10 +123,11 @@ export type ManagementInstanceSessionsEventsGetOutput = {
         code: string;
         message: string;
         data: Record<string, any>;
+        status: 'processing' | 'processed';
         sessionId: string;
         providerRunId: string | null;
         connectionId: string | null;
-        groupId: string;
+        groupId: string | null;
         similarErrorCount: number;
         createdAt: Date;
       } | null;
@@ -158,10 +161,11 @@ export type ManagementInstanceSessionsEventsGetOutput = {
       code: string;
       message: string;
       data: Record<string, any>;
+      status: 'processing' | 'processed';
       sessionId: string;
       providerRunId: string | null;
       connectionId: string | null;
-      groupId: string;
+      groupId: string | null;
       similarErrorCount: number;
       createdAt: Date;
     } | null;
@@ -173,11 +177,22 @@ export type ManagementInstanceSessionsEventsGetOutput = {
     code: string;
     message: string;
     data: Record<string, any>;
+    status: 'processing' | 'processed';
     sessionId: string;
     providerRunId: string | null;
     connectionId: string | null;
-    groupId: string;
+    groupId: string | null;
     similarErrorCount: number;
+    createdAt: Date;
+  } | null;
+  warning: {
+    object: 'session.warning';
+    id: string;
+    code: string;
+    message: string;
+    data: Record<string, any>;
+    sessionId: string;
+    connectionId: string | null;
     createdAt: Date;
   } | null;
   createdAt: Date;
@@ -241,6 +256,8 @@ export let mapManagementInstanceSessionsEventsGetOutput =
             createdAt: mtMap.objectField('created_at', mtMap.date())
           })
         ),
+        hasErrors: mtMap.objectField('has_errors', mtMap.passthrough()),
+        hasWarnings: mtMap.objectField('has_warnings', mtMap.passthrough()),
         createdAt: mtMap.objectField('created_at', mtMap.date()),
         lastMessageAt: mtMap.objectField('last_message_at', mtMap.date()),
         lastActiveAt: mtMap.objectField('last_active_at', mtMap.date())
@@ -425,6 +442,7 @@ export let mapManagementInstanceSessionsEventsGetOutput =
                 code: mtMap.objectField('code', mtMap.passthrough()),
                 message: mtMap.objectField('message', mtMap.passthrough()),
                 data: mtMap.objectField('data', mtMap.passthrough()),
+                status: mtMap.objectField('status', mtMap.passthrough()),
                 sessionId: mtMap.objectField('session_id', mtMap.passthrough()),
                 providerRunId: mtMap.objectField(
                   'provider_run_id',
@@ -481,6 +499,7 @@ export let mapManagementInstanceSessionsEventsGetOutput =
             code: mtMap.objectField('code', mtMap.passthrough()),
             message: mtMap.objectField('message', mtMap.passthrough()),
             data: mtMap.objectField('data', mtMap.passthrough()),
+            status: mtMap.objectField('status', mtMap.passthrough()),
             sessionId: mtMap.objectField('session_id', mtMap.passthrough()),
             providerRunId: mtMap.objectField(
               'provider_run_id',
@@ -509,6 +528,7 @@ export let mapManagementInstanceSessionsEventsGetOutput =
         code: mtMap.objectField('code', mtMap.passthrough()),
         message: mtMap.objectField('message', mtMap.passthrough()),
         data: mtMap.objectField('data', mtMap.passthrough()),
+        status: mtMap.objectField('status', mtMap.passthrough()),
         sessionId: mtMap.objectField('session_id', mtMap.passthrough()),
         providerRunId: mtMap.objectField(
           'provider_run_id',
@@ -520,6 +540,19 @@ export let mapManagementInstanceSessionsEventsGetOutput =
           'similar_error_count',
           mtMap.passthrough()
         ),
+        createdAt: mtMap.objectField('created_at', mtMap.date())
+      })
+    ),
+    warning: mtMap.objectField(
+      'warning',
+      mtMap.object({
+        object: mtMap.objectField('object', mtMap.passthrough()),
+        id: mtMap.objectField('id', mtMap.passthrough()),
+        code: mtMap.objectField('code', mtMap.passthrough()),
+        message: mtMap.objectField('message', mtMap.passthrough()),
+        data: mtMap.objectField('data', mtMap.passthrough()),
+        sessionId: mtMap.objectField('session_id', mtMap.passthrough()),
+        connectionId: mtMap.objectField('connection_id', mtMap.passthrough()),
         createdAt: mtMap.objectField('created_at', mtMap.date())
       })
     ),
