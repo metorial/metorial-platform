@@ -1,7 +1,8 @@
 import { ProgrammablePromise } from '@lowerdeck/programmable-promise';
 import { createSubspaceControllerClient } from '@metorial-services/subspace-client';
-import { db, OrganizationActor, type Instance } from '@metorial/db';
+import { db, OrganizationActor, withTransaction, type Instance } from '@metorial/db';
 import { delay } from '@metorial/delay';
+import { createLock } from '@metorial/lock';
 import { env } from './env';
 
 let solutionProm = new ProgrammablePromise<
@@ -40,37 +41,63 @@ export let subspace: ReturnType<typeof createSubspaceControllerClient> =
   }
 })();
 
+let lock = createLock({
+  name: 'mte/sub/up-ten'
+});
+
 export let getTenantForSubspace = async (instance: Instance) => {
   let solution = await solutionProm.promise;
 
   if (!instance.subspaceTenantId || !instance.subspaceEnvironmentId) {
-    let subspaceTenant = await subspace.tenant.upsert({
-      identifier: `mte-${instance.id}`,
-      name: instance.name,
-      environments: [
-        {
+    instance = await lock.usingLock(String(instance.organizationOid), async () => {
+      let currentInstance = await db.instance.findUniqueOrThrow({
+        where: { oid: instance.oid },
+        include: { organization: { include: { instances: true } } }
+      });
+      if (currentInstance.subspaceTenantId && currentInstance.subspaceEnvironmentId) {
+        return currentInstance;
+      }
+
+      let organization = currentInstance.organization;
+
+      let subspaceTenant = await subspace.tenant.upsert({
+        identifier: `mteo-${organization.id}`,
+        name: organization.name,
+        environments: currentInstance.organization.instances.map(instance => ({
           identifier: `mtei-${instance.id}`,
           name: instance.name,
           type: instance.type
-        }
-      ]
-    });
+        }))
+      });
 
-    let subspaceEnvironment = await subspace.environment.upsert({
-      tenantId: subspaceTenant.id,
-      identifier: `mtei-${instance.id}`,
-      name: instance.name,
-      type: instance.type
-    });
+      let subspaceEnvironment = await subspace.environment.upsert({
+        tenantId: subspaceTenant.id,
+        identifier: `mtei-${instance.id}`,
+        name: instance.name,
+        type: instance.type
+      });
 
-    instance = await db.instance.update({
-      where: { oid: instance.oid },
-      data: {
-        subspaceTenantId: subspaceTenant.id,
-        subspaceTenantIdentifier: subspaceTenant.identifier,
-        subspaceEnvironmentId: subspaceEnvironment.id,
-        subspaceEnvironmentIdentifier: subspaceEnvironment.identifier
-      }
+      return await withTransaction(async db => {
+        instance = await db.instance.update({
+          where: { oid: instance.oid },
+          data: {
+            subspaceTenantId: subspaceTenant.id,
+            subspaceTenantIdentifier: subspaceTenant.identifier,
+            subspaceEnvironmentId: subspaceEnvironment.id,
+            subspaceEnvironmentIdentifier: subspaceEnvironment.identifier
+          }
+        });
+
+        await db.organization.update({
+          where: { oid: instance.organizationOid },
+          data: {
+            subspaceTenantId: subspaceTenant.id,
+            subspaceTenantIdentifier: subspaceTenant.identifier
+          }
+        });
+
+        return instance;
+      });
     });
   }
 

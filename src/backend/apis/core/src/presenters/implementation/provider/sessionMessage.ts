@@ -60,9 +60,9 @@ export let v1SubspaceSessionMessagePresenter = Presenter.create(sessionMessageTy
       : null,
 
     error: sessionMessage.error
-      ? await sessionMessage.error.then(e =>
-          v1SessionErrorPresenter.present({ sessionError: e as any }, opts).run()
-        )
+      ? await v1SessionErrorPresenter
+          .present({ sessionError: sessionMessage.error }, opts)
+          .run()
       : null,
 
     created_at: sessionMessage.createdAt

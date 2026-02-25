@@ -13,7 +13,7 @@ export let v1SessionWarningPresenter = Presenter.create(sessionWarningType)
     data: sessionWarning.data,
 
     session_id: sessionWarning.sessionId,
-    connection_id: null as string | null, // TODO: add connection_id to session warnings
+    connection_id: sessionWarning.connectionId,
 
     created_at: sessionWarning.createdAt
   }))
@@ -24,22 +24,22 @@ export let v1SessionWarningPresenter = Presenter.create(sessionWarningType)
       }),
       id: v.string({
         name: 'id',
-        description: 'Unique session error identifier',
+        description: 'Unique session warning identifier',
         examples: ['ser_6fGhJkLmNpQrStUv']
       }),
       code: v.string({
         name: 'code',
-        description: 'Error code',
+        description: 'Warning code',
         examples: ['CONNECTION_TIMEOUT']
       }),
       message: v.string({
         name: 'message',
-        description: 'Error message',
+        description: 'Warning message',
         examples: ['Connection timed out after 30 seconds']
       }),
       data: v.record(v.any(), {
         name: 'data',
-        description: 'Error payload data',
+        description: 'Warning payload data',
         examples: [{ timeout_ms: 30000 }]
       }),
       session_id: v.string({
