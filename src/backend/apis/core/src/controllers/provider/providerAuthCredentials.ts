@@ -122,7 +122,7 @@ export let providerAuthCredentialsController = Controller.create(
             description: 'Provider ID',
             examples: ['pro_5gHjKlMnPqRsTuVw']
           }),
-          name: v.string({ examples: ['GitHub OAuth'] }),
+          name: v.optional(v.string({ examples: ['GitHub OAuth'] })),
           description: v.optional(
             v.string({ examples: ['OAuth credentials for GitHub API'] })
           ),

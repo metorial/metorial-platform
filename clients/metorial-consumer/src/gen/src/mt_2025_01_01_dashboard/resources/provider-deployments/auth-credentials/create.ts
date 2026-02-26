@@ -29,7 +29,7 @@ export let mapProviderDeploymentsAuthCredentialsCreateOutput =
 
 export type ProviderDeploymentsAuthCredentialsCreateBody = {
   providerId: string;
-  name: string;
+  name?: string | undefined;
   description?: string | undefined;
   metadata?: Record<string, any> | undefined;
   config: {

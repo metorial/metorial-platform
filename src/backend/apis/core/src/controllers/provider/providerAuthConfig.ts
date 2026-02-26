@@ -129,7 +129,7 @@ export let providerAuthConfigController = Controller.create(
       .body(
         'default',
         v.object({
-          name: v.string({ examples: ['GitHub OAuth Token'] }),
+          name: v.optional(v.string({ examples: ['GitHub OAuth Token'] })),
           description: v.optional(
             v.string({ examples: ['OAuth token for GitHub API access'] })
           ),

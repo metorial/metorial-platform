@@ -83,7 +83,7 @@ export let mapProviderDeploymentsCreateOutput =
   });
 
 export type ProviderDeploymentsCreateBody = {
-  name: string;
+  name?: string | undefined;
   description?: string | undefined;
   metadata?: Record<string, any> | undefined;
   providerId: string;

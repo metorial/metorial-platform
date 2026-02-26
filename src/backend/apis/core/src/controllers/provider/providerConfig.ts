@@ -123,7 +123,7 @@ export let providerConfigController = Controller.create(
                 examples: ['pdp_4dEfGhJkLmNpQrSt']
               })
             ),
-            name: v.string({ examples: ['Production Config'] }),
+            name: v.optional(v.string({ examples: ['Production Config'] })),
             description: v.optional(
               v.string({ examples: ['Configuration for production environment'] })
             ),

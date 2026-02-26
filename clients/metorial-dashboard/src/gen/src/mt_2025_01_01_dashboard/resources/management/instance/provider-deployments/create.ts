@@ -83,7 +83,7 @@ export let mapManagementInstanceProviderDeploymentsCreateOutput =
   });
 
 export type ManagementInstanceProviderDeploymentsCreateBody = {
-  name: string;
+  name?: string | undefined;
   description?: string | undefined;
   metadata?: Record<string, any> | undefined;
   providerId: string;

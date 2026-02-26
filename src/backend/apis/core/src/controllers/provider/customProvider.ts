@@ -304,7 +304,8 @@ export let customProviderController = Controller.create(
           description: v.optional(v.string({ examples: ['Updated description'] })),
           metadata: v.optional(v.record(v.any(), { examples: [{ environment: 'staging' }] }), {
             description: 'Custom key-value pairs for storing additional information'
-          })
+          }),
+          readme: v.optional(v.string({ description: 'README content in markdown format' }))
         })
       )
       .output(subspaceCustomProviderPresenter)
@@ -316,7 +317,8 @@ export let customProviderController = Controller.create(
           customProviderId: ctx.customProvider.id,
           name: ctx.body.name,
           description: ctx.body.description,
-          metadata: ctx.body.metadata
+          metadata: ctx.body.metadata,
+          readme: ctx.body.readme
         });
 
         return subspaceCustomProviderPresenter.present({
