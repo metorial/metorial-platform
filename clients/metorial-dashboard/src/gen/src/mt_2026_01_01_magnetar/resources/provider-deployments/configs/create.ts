@@ -103,7 +103,7 @@ export let mapProviderDeploymentsConfigsCreateOutput =
 export type ProviderDeploymentsConfigsCreateBody = {
   providerId: string;
   providerDeploymentId?: string | undefined;
-  name: string;
+  name?: string | undefined;
   description?: string | undefined;
   metadata?: Record<string, any> | undefined;
 } & ({ value: Record<string, any> } | { providerConfigVaultId: string });

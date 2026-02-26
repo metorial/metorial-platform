@@ -153,7 +153,7 @@ export let mapManagementInstanceProviderDeploymentsAuthConfigsCreateOutput =
   });
 
 export type ManagementInstanceProviderDeploymentsAuthConfigsCreateBody = {
-  name: string;
+  name?: string | undefined;
   description?: string | undefined;
   metadata?: Record<string, any> | undefined;
   providerAuthMethodId: string;
