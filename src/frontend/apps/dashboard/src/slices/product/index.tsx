@@ -90,6 +90,11 @@ let ProviderDeploymentConfigsPage = dynamicPage(() =>
     c => c.ProviderDeploymentConfigsPage
   )
 );
+let ProviderDeploymentAuthMethodsPage = dynamicPage(() =>
+  import('./pages/(provider-api)/provider-deployment/auth-methods').then(
+    c => c.ProviderDeploymentAuthMethodsPage
+  )
+);
 let ProviderDeploymentAuthConfigsPage = dynamicPage(() =>
   import('./pages/(provider-api)/provider-deployment/auth-configs').then(
     c => c.ProviderDeploymentAuthConfigsPage
@@ -607,6 +612,10 @@ export let productInnerSlice = createSlice([
           {
             path: 'configs',
             element: <ProviderDeploymentConfigsPage />
+          },
+          {
+            path: 'auth-methods',
+            element: <ProviderDeploymentAuthMethodsPage />
           },
           {
             path: 'auth-configs',

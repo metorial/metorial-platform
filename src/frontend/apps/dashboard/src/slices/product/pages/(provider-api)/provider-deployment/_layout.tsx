@@ -78,6 +78,10 @@ export let ProviderDeploymentLayout = () => {
                 to: Paths.instance.providerDeployment(...deploymentPathParams, 'configs')
               },
               {
+                label: 'Auth Methods',
+                to: Paths.instance.providerDeployment(...deploymentPathParams, 'auth-methods')
+              },
+              {
                 label: 'Auth Configs',
                 to: Paths.instance.providerDeployment(...deploymentPathParams, 'auth-configs')
               },
