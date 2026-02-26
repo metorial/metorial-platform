@@ -295,12 +295,14 @@ export type CustomProvidersUpdateBody = {
   name?: string | undefined;
   description?: string | undefined;
   metadata?: Record<string, any> | undefined;
+  readme?: string | undefined;
 };
 
 export let mapCustomProvidersUpdateBody =
   mtMap.object<CustomProvidersUpdateBody>({
     name: mtMap.objectField('name', mtMap.passthrough()),
     description: mtMap.objectField('description', mtMap.passthrough()),
-    metadata: mtMap.objectField('metadata', mtMap.passthrough())
+    metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+    readme: mtMap.objectField('readme', mtMap.passthrough())
   });
 
