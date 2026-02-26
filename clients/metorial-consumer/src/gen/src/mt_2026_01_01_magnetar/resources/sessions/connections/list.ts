@@ -9,7 +9,7 @@ export type SessionsConnectionsListOutput = {
     transport: string;
     usage: {
       totalProductiveClientMessageCount: number;
-      totalProductiveServerMessageCount: number;
+      totalProductiveProviderMessageCount: number;
     };
     mcp: {
       capabilities: Record<string, any>;
@@ -57,8 +57,8 @@ export let mapSessionsConnectionsListOutput =
                 'total_productive_client_message_count',
                 mtMap.passthrough()
               ),
-              totalProductiveServerMessageCount: mtMap.objectField(
-                'total_productive_server_message_count',
+              totalProductiveProviderMessageCount: mtMap.objectField(
+                'total_productive_provider_message_count',
                 mtMap.passthrough()
               )
             })

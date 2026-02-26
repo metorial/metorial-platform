@@ -15,8 +15,8 @@ export let v1SessionConnectionPresenter = Presenter.create(sessionConnectionType
     usage: {
       total_productive_client_message_count:
         sessionConnection.usage.totalProductiveClientMessageCount,
-      total_productive_server_message_count:
-        sessionConnection.usage.totalProductiveServerMessageCount
+      total_productive_provider_message_count:
+        sessionConnection.usage.totalProductiveProviderMessageCount
     },
 
     mcp: sessionConnection.mcp
@@ -73,9 +73,9 @@ export let v1SessionConnectionPresenter = Presenter.create(sessionConnectionType
             name: 'total_productive_client_message_count',
             description: 'Total productive client messages'
           }),
-          total_productive_server_message_count: v.number({
-            name: 'total_productive_server_message_count',
-            description: 'Total productive server messages'
+          total_productive_provider_message_count: v.number({
+            name: 'total_productive_provider_message_count',
+            description: 'Total productive provider messages'
           })
         },
         { name: 'usage', description: 'Usage statistics' }

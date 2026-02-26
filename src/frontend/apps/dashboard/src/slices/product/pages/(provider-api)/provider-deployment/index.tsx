@@ -8,7 +8,16 @@ import {
   useProviderDeployment,
   useSessions
 } from '@metorial/state';
-import { Attributes, Badge, Button, DatePicker, RenderDate, Select, Spacer, Text } from '@metorial/ui';
+import {
+  Attributes,
+  Badge,
+  Button,
+  DatePicker,
+  RenderDate,
+  Select,
+  Spacer,
+  Text
+} from '@metorial/ui';
 import { Box, ID, SideBox } from '@metorial/ui-product';
 import { endOfDay, startOfDay, subDays } from 'date-fns';
 import { useMemo, useState } from 'react';
@@ -20,7 +29,13 @@ import { SessionsTable } from '../../../scenes/sessions/table';
 type Interval = { unit: 'day' | 'hour'; count: number };
 
 let aggregateByInterval = (
-  items: { createdAt: Date; usage?: { totalProductiveClientMessageCount: number; totalProductiveServerMessageCount: number } }[],
+  items: {
+    createdAt: Date;
+    usage?: {
+      totalProductiveClientMessageCount: number;
+      totalProductiveProviderMessageCount: number;
+    };
+  }[],
   from: Date,
   to: Date,
   interval: Interval
@@ -51,7 +66,7 @@ let aggregateByInterval = (
     let key = bucketKey(d);
     let msgs =
       (item.usage?.totalProductiveClientMessageCount ?? 0) +
-      (item.usage?.totalProductiveServerMessageCount ?? 0);
+      (item.usage?.totalProductiveProviderMessageCount ?? 0);
     buckets.set(key, (buckets.get(key) ?? 0) + msgs);
   }
 

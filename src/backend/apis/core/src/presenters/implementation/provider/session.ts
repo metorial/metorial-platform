@@ -15,7 +15,8 @@ export let v1SessionPresenter = Presenter.create(providerSessionType)
     connection_url: `${getConfig().urls.mcpUrl}/mcp/${session.id}`,
     usage: {
       total_productive_client_message_count: session.usage.totalProductiveClientMessageCount,
-      total_productive_server_message_count: session.usage.totalProductiveServerMessageCount
+      total_productive_provider_message_count:
+        session.usage.totalProductiveProviderMessageCount
     },
     providers: await Promise.all(
       session.providers.map(p =>
@@ -72,9 +73,9 @@ export let v1SessionPresenter = Presenter.create(providerSessionType)
           name: 'total_productive_client_message_count',
           description: 'Total productive client messages'
         }),
-        total_productive_server_message_count: v.number({
-          name: 'total_productive_server_message_count',
-          description: 'Total productive server messages'
+        total_productive_provider_message_count: v.number({
+          name: 'total_productive_provider_message_count',
+          description: 'Total productive provider messages'
         })
       }),
       providers: v.array(v1SessionProviderPresenter.schema, {

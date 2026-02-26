@@ -80,7 +80,11 @@ export let ProviderSessionLayout = () => {
           items={[
             {
               label: 'Status',
-              value: <SessionConnectionStatusBadge connectionStatus={session.data.connectionState} />
+              value: (
+                <SessionConnectionStatusBadge
+                  connectionStatus={session.data.connectionState}
+                />
+              )
             },
             { label: 'Session ID', value: <ID id={session.data.id} /> },
             { label: 'Created At', value: <RenderDate date={session.data.createdAt} /> },
@@ -88,7 +92,7 @@ export let ProviderSessionLayout = () => {
               label: 'Messages',
               value:
                 (session.data.usage?.totalProductiveClientMessageCount ?? 0) +
-                (session.data.usage?.totalProductiveServerMessageCount ?? 0)
+                (session.data.usage?.totalProductiveProviderMessageCount ?? 0)
             }
           ]}
         >

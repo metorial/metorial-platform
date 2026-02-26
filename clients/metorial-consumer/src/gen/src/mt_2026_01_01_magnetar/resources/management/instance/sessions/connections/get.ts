@@ -8,7 +8,7 @@ export type ManagementInstanceSessionsConnectionsGetOutput = {
   transport: string;
   usage: {
     totalProductiveClientMessageCount: number;
-    totalProductiveServerMessageCount: number;
+    totalProductiveProviderMessageCount: number;
   };
   mcp: {
     capabilities: Record<string, any>;
@@ -47,8 +47,8 @@ export let mapManagementInstanceSessionsConnectionsGetOutput =
           'total_productive_client_message_count',
           mtMap.passthrough()
         ),
-        totalProductiveServerMessageCount: mtMap.objectField(
-          'total_productive_server_message_count',
+        totalProductiveProviderMessageCount: mtMap.objectField(
+          'total_productive_provider_message_count',
           mtMap.passthrough()
         )
       })
