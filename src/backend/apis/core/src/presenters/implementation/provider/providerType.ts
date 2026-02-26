@@ -18,15 +18,6 @@ export let v1ProviderTypePresenter = Presenter.create(providerTypeType)
         : {
             status: 'disabled' as const
           },
-    triggers:
-      providerType.triggers.status === 'enabled'
-        ? {
-            status: 'enabled' as const,
-            receiver_url: providerType.triggers.receiverUrl
-          }
-        : {
-            status: 'disabled' as const
-          },
     auth:
       providerType.auth.status === 'enabled'
         ? {
@@ -40,7 +31,9 @@ export let v1ProviderTypePresenter = Presenter.create(providerTypeType)
                       ? {
                           status: providerType.auth.oauth.oauthAutoRegistration.status
                         }
-                      : null
+                      : {
+                          status: 'disabled' as const
+                        }
                   }
                 : {
                     status: 'disabled' as const
@@ -92,24 +85,6 @@ export let v1ProviderTypePresenter = Presenter.create(providerTypeType)
           description: 'Configuration capabilities for this provider type'
         }
       ),
-      triggers: v.union(
-        [
-          v.object({
-            status: v.literal('enabled'),
-            receiver_url: v.string({
-              name: 'receiver_url',
-              description: 'URL for receiving trigger events'
-            })
-          }),
-          v.object({
-            status: v.literal('disabled')
-          })
-        ],
-        {
-          name: 'triggers',
-          description: 'Trigger capabilities for this provider type'
-        }
-      ),
       auth: v.union(
         [
           v.object({
@@ -124,14 +99,12 @@ export let v1ProviderTypePresenter = Presenter.create(providerTypeType)
                       description: 'OAuth callback URL'
                     })
                   ),
-                  oauth_auto_registration: v.nullable(
-                    v.object({
-                      status: v.enumOf(['supported', 'unsupported'], {
-                        name: 'status',
-                        description: 'Whether OAuth auto-registration is supported'
-                      })
+                  oauth_auto_registration: v.object({
+                    status: v.enumOf(['supported', 'unsupported'], {
+                      name: 'status',
+                      description: 'Whether OAuth auto-registration is supported'
                     })
-                  )
+                  })
                 }),
                 v.object({
                   status: v.literal('disabled')

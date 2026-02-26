@@ -35,9 +35,6 @@ export type ProvidersGetOutput = {
     config:
       | { status: 'enabled'; read: { status: 'enabled' | 'disabled' } }
       | { status: 'disabled' };
-    triggers:
-      | { status: 'enabled'; receiverUrl: string }
-      | { status: 'disabled' };
     auth:
       | {
           status: 'enabled';
@@ -45,9 +42,7 @@ export type ProvidersGetOutput = {
             | {
                 status: 'enabled';
                 oauthCallbackUrl: string | null;
-                oauthAutoRegistration: {
-                  status: 'supported' | 'unsupported';
-                } | null;
+                oauthAutoRegistration: { status: 'supported' | 'unsupported' };
               }
             | { status: 'disabled' };
           export: { status: 'enabled' | 'disabled' };
@@ -59,7 +54,7 @@ export type ProvidersGetOutput = {
   oauth: {
     status: string;
     callbackUrl: string | null;
-    autoRegistration: { status: string } | null;
+    autoRegistration: { status: 'enabled' | 'disabled' };
   } | null;
   identifier: string;
   tag: string;
@@ -126,21 +121,6 @@ export let mapProvidersGetOutput = mtMap.object<ProvidersGetOutput>({
                 mtMap.object({
                   status: mtMap.objectField('status', mtMap.passthrough())
                 })
-              )
-            })
-          )
-        ])
-      ),
-      triggers: mtMap.objectField(
-        'triggers',
-        mtMap.union([
-          mtMap.unionOption(
-            'object',
-            mtMap.object({
-              status: mtMap.objectField('status', mtMap.passthrough()),
-              receiverUrl: mtMap.objectField(
-                'receiver_url',
-                mtMap.passthrough()
               )
             })
           )

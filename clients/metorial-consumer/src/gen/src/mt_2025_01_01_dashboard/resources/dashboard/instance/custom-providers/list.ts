@@ -70,9 +70,6 @@ export type DashboardInstanceCustomProvidersListOutput = {
         config:
           | { status: 'enabled'; read: { status: 'enabled' | 'disabled' } }
           | { status: 'disabled' };
-        triggers:
-          | { status: 'enabled'; receiverUrl: string }
-          | { status: 'disabled' };
         auth:
           | {
               status: 'enabled';
@@ -82,7 +79,7 @@ export type DashboardInstanceCustomProvidersListOutput = {
                     oauthCallbackUrl: string | null;
                     oauthAutoRegistration: {
                       status: 'supported' | 'unsupported';
-                    } | null;
+                    };
                   }
                 | { status: 'disabled' };
               export: { status: 'enabled' | 'disabled' };
@@ -94,7 +91,7 @@ export type DashboardInstanceCustomProvidersListOutput = {
       oauth: {
         status: string;
         callbackUrl: string | null;
-        autoRegistration: { status: string } | null;
+        autoRegistration: { status: 'enabled' | 'disabled' };
       } | null;
       identifier: string;
       tag: string;
@@ -300,24 +297,6 @@ export let mapDashboardInstanceCustomProvidersListOutput =
                                     mtMap.passthrough()
                                   )
                                 })
-                              )
-                            })
-                          )
-                        ])
-                      ),
-                      triggers: mtMap.objectField(
-                        'triggers',
-                        mtMap.union([
-                          mtMap.unionOption(
-                            'object',
-                            mtMap.object({
-                              status: mtMap.objectField(
-                                'status',
-                                mtMap.passthrough()
-                              ),
-                              receiverUrl: mtMap.objectField(
-                                'receiver_url',
-                                mtMap.passthrough()
                               )
                             })
                           )

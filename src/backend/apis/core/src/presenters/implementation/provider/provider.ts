@@ -28,7 +28,14 @@ export let v1ProviderPresenter = Presenter.create(providerType)
       ? {
           status: provider.oauth.status,
           callback_url: provider.oauth.callbackUrl,
-          auto_registration: provider.oauth.autoRegistration
+          auto_registration:
+            provider.oauth.autoRegistration?.status == 'enabled'
+              ? {
+                  status: 'enabled'
+                }
+              : {
+                  status: 'disabled'
+                }
         }
       : null,
 
@@ -68,11 +75,12 @@ export let v1ProviderPresenter = Presenter.create(providerType)
           callback_url: v.nullable(
             v.string({ name: 'callback_url', description: 'OAuth callback URL' })
           ),
-          auto_registration: v.nullable(
-            v.object({
-              status: v.string({ name: 'status', description: 'Auto-registration status' })
+          auto_registration: v.object({
+            status: v.enumOf(['enabled', 'disabled'], {
+              name: 'status',
+              description: 'Auto-registration status'
             })
-          )
+          })
         })
       ),
       identifier: v.string({ name: 'identifier', description: 'Provider identifier' }),
