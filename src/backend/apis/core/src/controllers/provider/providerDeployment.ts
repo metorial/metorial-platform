@@ -28,7 +28,7 @@ let providerDeploymentGroup = instanceGroup.use(async ctx => {
 
 let createSchema = v.intersection([
   v.object({
-    name: v.string({ examples: ['Production Deployment'] }),
+    name: v.optional(v.string({ examples: ['Production Deployment'] })),
     description: v.optional(
       v.string({ examples: ['Main production environment configuration'] })
     ),
