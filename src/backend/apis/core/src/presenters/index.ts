@@ -22,6 +22,7 @@ import { v1UserPresenter } from './implementation/user';
 import {
   dashboardCustomProviderDeploymentPresenter,
   dashboardCustomProviderPresenter,
+  dashboardProviderPresenter,
   v1BucketEditorTokenPresenter,
   v1ConfigPresenter,
   v1CustomProviderCommitPresenter,
@@ -365,7 +366,7 @@ export let providerVersionPresenter = declarePresenter(providerVersionType, {
 });
 
 export let providerPresenter = declarePresenter(providerType, {
-  mt_2025_01_01_dashboard: v1ProviderPresenter,
+  mt_2025_01_01_dashboard: dashboardProviderPresenter,
   mt_2026_01_01_magnetar: v1ProviderPresenter
 });
 

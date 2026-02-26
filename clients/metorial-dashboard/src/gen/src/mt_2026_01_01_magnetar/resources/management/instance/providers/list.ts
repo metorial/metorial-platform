@@ -29,38 +29,12 @@ export type ManagementInstanceProvidersListOutput = {
       createdAt: Date;
       updatedAt: Date;
     } | null;
-    type: {
-      object: 'provider.type';
-      id: string;
-      name: string;
-      config:
-        | { status: 'enabled'; read: { status: 'enabled' | 'disabled' } }
-        | { status: 'disabled' };
-      auth:
-        | {
-            status: 'enabled';
-            oauth:
-              | {
-                  status: 'enabled';
-                  oauthCallbackUrl: string | null;
-                  oauthAutoRegistration: {
-                    status: 'supported' | 'unsupported';
-                  };
-                }
-              | { status: 'disabled' };
-            export: { status: 'enabled' | 'disabled' };
-            import: { status: 'enabled' | 'disabled' };
-          }
-        | { status: 'disabled' };
-      createdAt: Date;
-    };
     oauth: {
       status: string;
       callbackUrl: string | null;
       autoRegistration: { status: 'enabled' | 'disabled' };
     } | null;
     identifier: string;
-    tag: string;
     name: string;
     description: string | null;
     slug: string;
@@ -119,91 +93,6 @@ export let mapManagementInstanceProvidersListOutput =
               updatedAt: mtMap.objectField('updated_at', mtMap.date())
             })
           ),
-          type: mtMap.objectField(
-            'type',
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              name: mtMap.objectField('name', mtMap.passthrough()),
-              config: mtMap.objectField(
-                'config',
-                mtMap.union([
-                  mtMap.unionOption(
-                    'object',
-                    mtMap.object({
-                      status: mtMap.objectField('status', mtMap.passthrough()),
-                      read: mtMap.objectField(
-                        'read',
-                        mtMap.object({
-                          status: mtMap.objectField(
-                            'status',
-                            mtMap.passthrough()
-                          )
-                        })
-                      )
-                    })
-                  )
-                ])
-              ),
-              auth: mtMap.objectField(
-                'auth',
-                mtMap.union([
-                  mtMap.unionOption(
-                    'object',
-                    mtMap.object({
-                      status: mtMap.objectField('status', mtMap.passthrough()),
-                      oauth: mtMap.objectField(
-                        'oauth',
-                        mtMap.union([
-                          mtMap.unionOption(
-                            'object',
-                            mtMap.object({
-                              status: mtMap.objectField(
-                                'status',
-                                mtMap.passthrough()
-                              ),
-                              oauthCallbackUrl: mtMap.objectField(
-                                'oauth_callback_url',
-                                mtMap.passthrough()
-                              ),
-                              oauthAutoRegistration: mtMap.objectField(
-                                'oauth_auto_registration',
-                                mtMap.object({
-                                  status: mtMap.objectField(
-                                    'status',
-                                    mtMap.passthrough()
-                                  )
-                                })
-                              )
-                            })
-                          )
-                        ])
-                      ),
-                      export: mtMap.objectField(
-                        'export',
-                        mtMap.object({
-                          status: mtMap.objectField(
-                            'status',
-                            mtMap.passthrough()
-                          )
-                        })
-                      ),
-                      import: mtMap.objectField(
-                        'import',
-                        mtMap.object({
-                          status: mtMap.objectField(
-                            'status',
-                            mtMap.passthrough()
-                          )
-                        })
-                      )
-                    })
-                  )
-                ])
-              ),
-              createdAt: mtMap.objectField('created_at', mtMap.date())
-            })
-          ),
           oauth: mtMap.objectField(
             'oauth',
             mtMap.object({
@@ -221,7 +110,6 @@ export let mapManagementInstanceProvidersListOutput =
             })
           ),
           identifier: mtMap.objectField('identifier', mtMap.passthrough()),
-          tag: mtMap.objectField('tag', mtMap.passthrough()),
           name: mtMap.objectField('name', mtMap.passthrough()),
           description: mtMap.objectField('description', mtMap.passthrough()),
           slug: mtMap.objectField('slug', mtMap.passthrough()),

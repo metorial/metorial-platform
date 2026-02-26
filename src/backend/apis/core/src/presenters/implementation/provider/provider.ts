@@ -22,8 +22,6 @@ export let v1ProviderPresenter = Presenter.create(providerType)
           .run()
       : null,
 
-    type: await v1ProviderTypePresenter.present({ providerType: provider.type }, opts).run(),
-
     oauth: provider.oauth
       ? {
           status: provider.oauth.status,
@@ -68,7 +66,6 @@ export let v1ProviderPresenter = Presenter.create(providerType)
       }),
       publisher: v1PublisherPresenter.schema,
       current_version: v.nullable(v1ProviderVersionPresenter.schema),
-      type: v1ProviderTypePresenter.schema,
       oauth: v.nullable(
         v.object({
           status: v.string({ name: 'status', description: 'OAuth status' }),
@@ -84,7 +81,6 @@ export let v1ProviderPresenter = Presenter.create(providerType)
         })
       ),
       identifier: v.string({ name: 'identifier', description: 'Provider identifier' }),
-      tag: v.string({ name: 'tag', description: 'Provider tag' }),
       name: v.string({ name: 'name', description: 'Display name of the provider' }),
       description: v.nullable(
         v.string({ name: 'description', description: 'Brief description of the provider' })
@@ -108,5 +104,28 @@ export let v1ProviderPresenter = Presenter.create(providerType)
         examples: [new Date('2026-01-10T14:45:00Z')]
       })
     })
+  )
+  .build();
+
+export let dashboardProviderPresenter = Presenter.create(providerType)
+  .presenter(async (input, opts) => {
+    let inner = await v1ProviderPresenter.present(input, opts).run();
+
+    return {
+      ...inner,
+      type: await v1ProviderTypePresenter
+        .present({ providerType: input.provider.type }, opts)
+        .run(),
+      tag: input.provider.tag
+    };
+  })
+  .schema(
+    v.intersection([
+      v1ProviderPresenter.schema,
+      v.object({
+        type: v1ProviderTypePresenter.schema,
+        tag: v.string({ name: 'tag', description: 'Provider tag' })
+      })
+    ])
   )
   .build();
