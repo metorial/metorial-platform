@@ -84,7 +84,7 @@ export let SessionLayout = () => {
             },
             {
               label: 'Provider Messages',
-              value: session.data.usage?.totalProductiveServerMessageCount ?? 0
+              value: session.data.usage?.totalProductiveProviderMessageCount ?? 0
             }
           ]}
         >
