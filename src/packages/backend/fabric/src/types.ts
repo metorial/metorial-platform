@@ -32,7 +32,8 @@ import type {
   SubspaceSession,
   SubspaceSessionProvider,
   SubspaceSessionTemplate,
-  SubspaceSessionTemplateProvider
+  SubspaceSessionTemplateProvider,
+  SubspaceToolCall
 } from '@metorial/module-subspace';
 
 export type MachineAccessInput =
@@ -218,6 +219,10 @@ export interface FabricEvents {
   'provider.session_template.provider.updated:after': ProviderEventBase & { sessionTemplateProvider: SubspaceSessionTemplateProvider };
   'provider.session_template.provider.deleted:before': ProviderEventBase;
   'provider.session_template.provider.deleted:after': ProviderEventBase & { sessionTemplateProvider: SubspaceSessionTemplateProvider };
+
+  'provider.session_message.created:before': ProviderEventBase;
+  'provider.tool_call.created:before': ProviderEventBase;
+  'provider.tool_call.created:after': ProviderEventBase & { toolCall: SubspaceToolCall };
 
   'provider.custom_provider.created:before': ProviderEventBase;
   'provider.custom_provider.created:after': ProviderEventBase & { customProvider: SubspaceCustomProvider };

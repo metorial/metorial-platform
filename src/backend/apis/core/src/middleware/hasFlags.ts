@@ -22,7 +22,7 @@ export let hasFlags = apiGroup.createMiddleware(
       if (missingFlags.some(f => f.startsWith('paid'))) {
         throw new ServiceError(
           paymentRequiredError({
-            message: 'Upgrade to a different plan to access this feature'
+            message: 'Please upgrade to a different plan to access this feature'
           })
         );
       }
