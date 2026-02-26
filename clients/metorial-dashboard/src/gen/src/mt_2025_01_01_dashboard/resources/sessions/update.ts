@@ -10,7 +10,7 @@ export type SessionsUpdateOutput = {
   connectionUrl: string;
   usage: {
     totalProductiveClientMessageCount: number;
-    totalProductiveServerMessageCount: number;
+    totalProductiveProviderMessageCount: number;
   };
   providers: {
     object: 'session.provider';
@@ -85,8 +85,8 @@ export let mapSessionsUpdateOutput = mtMap.object<SessionsUpdateOutput>({
         'total_productive_client_message_count',
         mtMap.passthrough()
       ),
-      totalProductiveServerMessageCount: mtMap.objectField(
-        'total_productive_server_message_count',
+      totalProductiveProviderMessageCount: mtMap.objectField(
+        'total_productive_provider_message_count',
         mtMap.passthrough()
       )
     })
