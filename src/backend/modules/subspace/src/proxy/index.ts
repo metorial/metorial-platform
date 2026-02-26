@@ -1,4 +1,5 @@
 import type { Instance } from '@metorial/db';
+import { Fabric } from '@metorial/fabric';
 import { Context } from 'hono';
 import { env } from '../env';
 import { getTenantForSubspace } from '../subspace';
@@ -26,6 +27,8 @@ export let proxyMcpRequestToSubspace = async (
       ? `https://${inputUrl.hostname}${inputUrl.pathname}${inputUrl.search}`
       : `http://${inputUrl.host}${inputUrl.pathname}${inputUrl.search}`
   );
+
+  await Fabric.fire('provider.session_message.created:before', { instance });
 
   let response = await fetch(subspaceUrl, {
     method: c.req.method,

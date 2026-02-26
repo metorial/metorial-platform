@@ -9,6 +9,8 @@ let solutionProm = new ProgrammablePromise<
   Awaited<ReturnType<typeof subspace.solution.upsert>>
 >();
 
+export let getSolution = () => solutionProm.promise;
+
 export let subspace: ReturnType<typeof createSubspaceControllerClient> =
   createSubspaceControllerClient({
     getHeaders: async () => ({
