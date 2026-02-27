@@ -1,10 +1,14 @@
 import type { Instance } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
+import { usageService } from '@metorial/module-usage';
+import { getSentry } from '@metorial/sentry';
 import { Context } from 'hono';
 import { env } from '../env';
 import { getTenantForSubspace } from '../subspace';
 
 let baseConnectionUrl = env.subspace.SUBSPACE_CONNECTION_URL;
+
+let Sentry = getSentry();
 
 let getSubspaceMcpUrl = async (instance: Instance, sessionId: string, inputUrl: URL) => {
   let { tenant, solution } = await getTenantForSubspace(instance);
@@ -29,6 +33,20 @@ export let proxyMcpRequestToSubspace = async (
   );
 
   await Fabric.fire('provider.session_message.created:before', { instance });
+
+  usageService
+    .ingestUsageRecord({
+      owner: {
+        id: instance.id,
+        type: 'instance'
+      },
+      entity: {
+        id: sessionId,
+        type: 'session'
+      },
+      type: 'session.connected'
+    })
+    .catch(e => Sentry.captureException(e));
 
   let response = await fetch(subspaceUrl, {
     method: c.req.method,

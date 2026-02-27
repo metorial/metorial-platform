@@ -1,6 +1,10 @@
 import { Fabric } from '@metorial/fabric';
+import { usageService } from '@metorial/module-usage';
+import { getSentry } from '@metorial/sentry';
 import { createSubspaceService, toEventBase } from '../lib/subspaceService';
 import { subspace } from '../subspace';
+
+let Sentry = getSentry();
 
 export let subspaceProviderConfigService = createSubspaceService(
   subspace.providerConfig,
@@ -13,6 +17,22 @@ export let subspaceProviderConfigService = createSubspaceService(
       let config = await inner.create(...params);
 
       await Fabric.fire('provider.config.created:after', { ...eventBase, config });
+
+      if (config.fromVault) {
+        usageService
+          .ingestUsageRecord({
+            owner: {
+              id: eventBase.instance.id,
+              type: 'instance'
+            },
+            entity: {
+              id: config.fromVault.id,
+              type: 'provider_config_vault'
+            },
+            type: 'provider_config_vault.used'
+          })
+          .catch(e => Sentry.captureException(e));
+      }
 
       return config;
     },
