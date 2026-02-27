@@ -1,6 +1,10 @@
 import { Fabric } from '@metorial/fabric';
+import { usageService } from '@metorial/module-usage';
+import { getSentry } from '@metorial/sentry';
 import { createSubspaceService, toEventBase } from '../lib/subspaceService';
 import { subspace } from '../subspace';
+
+let Sentry = getSentry();
 
 export let subspaceProviderAuthExportService = createSubspaceService(
   subspace.providerAuthExport,
@@ -13,6 +17,20 @@ export let subspaceProviderAuthExportService = createSubspaceService(
       let authExport = await inner.create(...params);
 
       await Fabric.fire('provider.auth_export.created:after', { ...eventBase, authExport });
+
+      usageService
+        .ingestUsageRecord({
+          owner: {
+            id: eventBase.instance.id,
+            type: 'instance'
+          },
+          entity: {
+            id: authExport.authConfig.id,
+            type: 'provider_oauth_config'
+          },
+          type: 'provider_oauth_config.exported'
+        })
+        .catch(e => Sentry.captureException(e));
 
       return authExport;
     }
