@@ -2,8 +2,6 @@
 
 set -e
 
-ENGINE_DIR=$OSS_DIR/src/mcp-engine
-
 source ./dbInit.sh
 
 export DATABASE_URL=$MIGRATION_DATABASE_URL

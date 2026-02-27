@@ -14,11 +14,7 @@ if [ "$1" = "start" ]; then
 
   cd ./scripts
 
-  if [ "$2" = "engine" ]; then
-    ./startEngineMinicluster.sh
-  else
-    ./dev.sh
-  fi
+  ./dev.sh
 
   exit 0
 fi
@@ -52,8 +48,6 @@ if [ "$1" = "build" ]; then
   
   if [ "$2" = "server" ]; then
     ./buildServer.sh
-  elif [ "$2" = "engine" ]; then
-    ./buildEngine.sh
   else
     echo "Unknown build target: $2. Supported targets are 'server' and 'engine'."
     exit 1

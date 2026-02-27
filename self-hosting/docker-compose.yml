@@ -143,20 +143,6 @@ services:
       - opensearch
     restart: unless-stopped
 
-  engine:
-    image: ghcr.io/metorial/metorial-mcp-engine-unified:dev
-    ports:
-      - '50050:50050'
-    depends_on:
-      - postgres-db
-      - redis-db
-    environment:
-      - REDIS_ENDPOINTS=redis://:@redis-db:6379
-      - ENGINE_DATABASE_DSN=host=postgres-db user=postgres password=postgres dbname=engine port=5432 sslmode=disable
-      - ENGINE_MANAGER_ADDRESSES=localhost:50050
-      - ENABLE_RESOURCE_CHECK=false
-    restart: unless-stopped
-
 volumes:
   mongodb_data:
   redis_data:
