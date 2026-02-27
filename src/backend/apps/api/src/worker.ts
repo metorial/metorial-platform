@@ -11,7 +11,6 @@ import { machineAccessQueueProcessor } from '@metorial/module-machine-access';
 import { magicQueueProcessor } from '@metorial/module-magic';
 import { organizationQueueProcessor } from '@metorial/module-organization';
 import { protectQueueProcessor } from '@metorial/module-protect';
-import { searchQueueProcessor } from '@metorial/module-search';
 import { secretQueueProcessor } from '@metorial/module-secret';
 import { subspaceQueueProcessor } from '@metorial/module-subspace';
 import { usageQueueProcessor } from '@metorial/module-usage';
@@ -25,7 +24,6 @@ export let worker = runQueueProcessors([
   accessQueueProcessor,
   fileQueueProcessor,
   eventQueueProcessor,
-  searchQueueProcessor,
   secretQueueProcessor,
   usageQueueProcessor,
   communityQueueProcessor,
