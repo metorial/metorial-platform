@@ -1,3 +1,12 @@
-export * from './components';
-export * from './lib/email';
-export * from './template';
+export {
+  Button,
+  Code,
+  createEmail,
+  createTemplate,
+  DataList,
+  Layout,
+  Text,
+  Wrapper,
+  type IEmail,
+  type ITemplate
+} from '@metorial-services/relay-client';
