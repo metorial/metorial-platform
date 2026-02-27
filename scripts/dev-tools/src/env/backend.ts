@@ -206,6 +206,19 @@ export let backendEnv: Env = [
     defaultValue: 'http://services:52120'
   },
 
+  {
+    key: 'RELAY_URL',
+    defaultValue: 'http://services:52110/metorial-relay'
+  },
+  {
+    key: 'EMAIL_NAME',
+    defaultValue: 'Metorial DEV'
+  },
+  {
+    key: 'EMAIL_ADDRESS',
+    defaultValue: 'dev@metorial.com'
+  },
+
   { key: 'SUBSPACE_SOLUTION', defaultValue: 'metorial-dev' },
   { key: 'SUBSPACE_URL', defaultValue: 'http://localhost:52070/subspace-controller' },
   {
