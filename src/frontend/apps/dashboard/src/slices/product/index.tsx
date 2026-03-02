@@ -187,6 +187,52 @@ let SetupProviderPage = dynamicPage(() =>
   import('./pages/setup-provider').then(c => c.SetupProviderPage)
 );
 
+let MagicMcpListLayout = dynamicPage(() =>
+  import('./pages/magic-mcp/(list)/_layout').then(c => c.MagicMcpListLayout)
+);
+let MagicMcpServerPage = dynamicPage(() =>
+  import('./pages/magic-mcp/(list)/servers').then(c => c.MagicMcpServerPage)
+);
+let MagicMcpTokensPage = dynamicPage(() =>
+  import('./pages/magic-mcp/(list)/tokens').then(c => c.MagicMcpTokensPage)
+);
+let MagicMcpSessionsPage = dynamicPage(() =>
+  import('./pages/magic-mcp/(list)/sessions').then(c => c.MagicMcpSessionsPage)
+);
+let MagicMcpGroupsPage = dynamicPage(() =>
+  import('./pages/magic-mcp/(list)/groups').then(c => c.MagicMcpGroupsPage)
+);
+let MagicMcpServerLayout = dynamicPage(() =>
+  import('./pages/magic-mcp/server/_layout').then(c => c.MagicMcpServerLayout)
+);
+let MagicMcpServerOverviewPage = dynamicPage(() =>
+  import('./pages/magic-mcp/server/overview').then(c => c.MagicMcpServerOverviewPage)
+);
+let MagicMcpServerConfigPage = dynamicPage(() =>
+  import('./pages/magic-mcp/server/config').then(c => c.MagicMcpServerConfigPage)
+);
+let MagicMcpServerRunsPage = dynamicPage(() =>
+  import('./pages/magic-mcp/server/runs').then(c => c.MagicMcpServerRunsPage)
+);
+let MagicMcpServerErrorsPage = dynamicPage(() =>
+  import('./pages/magic-mcp/server/errors').then(c => c.MagicMcpServerErrorsPage)
+);
+let MagicMcpServerOauthPage = dynamicPage(() =>
+  import('./pages/magic-mcp/server/oauth').then(c => c.MagicMcpServerOauthPage)
+);
+let MagicMcpServerSessionsPage = dynamicPage(() =>
+  import('./pages/magic-mcp/server/sessions').then(c => c.MagicMcpServerSessionsPage)
+);
+let MagicMcpGroupLayout = dynamicPage(() =>
+  import('./pages/magic-mcp/group/_layout').then(c => c.MagicMcpGroupLayout)
+);
+let MagicMcpGroupOverviewPage = dynamicPage(() =>
+  import('./pages/magic-mcp/group/overview').then(c => c.MagicMcpGroupOverviewPage)
+);
+let MagicMcpGroupSettingsPage = dynamicPage(() =>
+  import('./pages/magic-mcp/group/settings').then(c => c.MagicMcpGroupSettingsPage)
+);
+
 let CustomServerCodePage = dynamicPage(() =>
   import('./pages/(custom-servers)/custom-server/code').then(c => c.CustomServerCodePage)
 );
@@ -746,6 +792,92 @@ export let productInnerSlice = createSlice([
           {
             path: 'settings',
             element: <SessionTemplateSettingsPage />
+          }
+        ]
+      },
+
+      /***************
+       * Magic MCP
+       *************** */
+      {
+        path: 'magic-mcp',
+        children: [
+          {
+            element: (
+              <FlaggedPage flag="magic-mcp-enabled">
+                <MagicMcpListLayout />
+              </FlaggedPage>
+            ),
+            children: [
+              {
+                path: 'servers',
+                element: <MagicMcpServerPage />
+              },
+              {
+                path: 'tokens',
+                element: <MagicMcpTokensPage />
+              },
+              {
+                path: 'sessions',
+                element: <MagicMcpSessionsPage />
+              },
+              {
+                path: 'groups',
+                element: <MagicMcpGroupsPage />
+              }
+            ]
+          },
+          {
+            path: 'server/:magicMcpServerId',
+            element: (
+              <FlaggedPage flag="magic-mcp-enabled">
+                <MagicMcpServerLayout />
+              </FlaggedPage>
+            ),
+            children: [
+              {
+                path: '',
+                element: <MagicMcpServerOverviewPage />
+              },
+              {
+                path: 'config',
+                element: <MagicMcpServerConfigPage />
+              },
+              {
+                path: 'sessions',
+                element: <MagicMcpServerSessionsPage />
+              },
+              {
+                path: 'runs',
+                element: <MagicMcpServerRunsPage />
+              },
+              {
+                path: 'errors',
+                element: <MagicMcpServerErrorsPage />
+              },
+              {
+                path: 'oauth',
+                element: <MagicMcpServerOauthPage />
+              }
+            ]
+          },
+          {
+            path: 'group/:magicMcpGroupId',
+            element: (
+              <FlaggedPage flag="magic-mcp-enabled">
+                <MagicMcpGroupLayout />
+              </FlaggedPage>
+            ),
+            children: [
+              {
+                path: '',
+                element: <MagicMcpGroupOverviewPage />
+              },
+              {
+                path: 'settings',
+                element: <MagicMcpGroupSettingsPage />
+              }
+            ]
           }
         ]
       },

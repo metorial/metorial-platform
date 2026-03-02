@@ -1,0 +1,67 @@
+import { mtMap } from '@metorial/util-resource-mapper';
+
+export type MagicMcpServersCreateOutput = {
+  object: 'magic_mcp.server';
+  id: string;
+  status: 'active' | 'archived' | 'deleted';
+  sessionTemplateId: string;
+  endpoints: {
+    id: string;
+    alias: string;
+    urls: { sse: string; streamableHttp: string };
+  }[];
+  name: string | null;
+  description: string | null;
+  metadata: Record<string, any>;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export let mapMagicMcpServersCreateOutput =
+  mtMap.object<MagicMcpServersCreateOutput>({
+    object: mtMap.objectField('object', mtMap.passthrough()),
+    id: mtMap.objectField('id', mtMap.passthrough()),
+    status: mtMap.objectField('status', mtMap.passthrough()),
+    sessionTemplateId: mtMap.objectField(
+      'session_template_id',
+      mtMap.passthrough()
+    ),
+    endpoints: mtMap.objectField(
+      'endpoints',
+      mtMap.array(
+        mtMap.object({
+          id: mtMap.objectField('id', mtMap.passthrough()),
+          alias: mtMap.objectField('alias', mtMap.passthrough()),
+          urls: mtMap.objectField(
+            'urls',
+            mtMap.object({
+              sse: mtMap.objectField('sse', mtMap.passthrough()),
+              streamableHttp: mtMap.objectField(
+                'streamable_http',
+                mtMap.passthrough()
+              )
+            })
+          )
+        })
+      )
+    ),
+    name: mtMap.objectField('name', mtMap.passthrough()),
+    description: mtMap.objectField('description', mtMap.passthrough()),
+    metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+    createdAt: mtMap.objectField('created_at', mtMap.date()),
+    updatedAt: mtMap.objectField('updated_at', mtMap.date())
+  });
+
+export type MagicMcpServersCreateBody = {
+  name?: string | undefined;
+  description?: string | undefined;
+  metadata?: Record<string, any> | undefined;
+};
+
+export let mapMagicMcpServersCreateBody =
+  mtMap.object<MagicMcpServersCreateBody>({
+    name: mtMap.objectField('name', mtMap.passthrough()),
+    description: mtMap.objectField('description', mtMap.passthrough()),
+    metadata: mtMap.objectField('metadata', mtMap.passthrough())
+  });
+

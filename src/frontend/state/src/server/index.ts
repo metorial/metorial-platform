@@ -4,4 +4,8 @@ export * from './loaders/customServerEvents';
 export * from './loaders/customServerListing';
 export * from './loaders/customServers';
 export * from './loaders/customServerVersions';
+export * from './loaders/magicMcpGroup';
+export * from './loaders/magicMcpServer';
+export * from './loaders/magicMcpSession';
+export * from './loaders/magicMcpToken';
 export * from './loaders/repos';
