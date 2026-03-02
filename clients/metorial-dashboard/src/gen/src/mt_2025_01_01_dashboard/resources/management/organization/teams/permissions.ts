@@ -2,7 +2,12 @@ import { mtMap } from '@metorial/util-resource-mapper';
 
 export type ManagementOrganizationTeamsPermissionsOutput = {
   object: 'management.team.role_permissions';
-  permissions: { id: string; name: string }[];
+  permissions: {
+    identifier: string;
+    name: string;
+    description: string;
+    dependencies: string[];
+  }[];
 };
 
 export let mapManagementOrganizationTeamsPermissionsOutput =
@@ -12,8 +17,13 @@ export let mapManagementOrganizationTeamsPermissionsOutput =
       'permissions',
       mtMap.array(
         mtMap.object({
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough())
+          identifier: mtMap.objectField('identifier', mtMap.passthrough()),
+          name: mtMap.objectField('name', mtMap.passthrough()),
+          description: mtMap.objectField('description', mtMap.passthrough()),
+          dependencies: mtMap.objectField(
+            'dependencies',
+            mtMap.array(mtMap.passthrough())
+          )
         })
       )
     )
