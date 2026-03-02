@@ -11,7 +11,6 @@ export let v1PublisherPresenter = Presenter.create(publisherType)
 
       name: publisher.name,
       description: publisher.description,
-      slug: publisher.identifier,
 
       image_url: await getImageUrl(publisher),
 
@@ -41,11 +40,6 @@ export let v1PublisherPresenter = Presenter.create(publisherType)
           examples: ['A leading provider of developer tools']
         })
       ),
-      slug: v.string({
-        name: 'slug',
-        description: 'URL-friendly identifier',
-        examples: ['acme-corp']
-      }),
       image_url: v.string({
         name: 'image_url',
         description: 'URL of the publisher logo',
