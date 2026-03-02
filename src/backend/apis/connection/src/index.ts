@@ -5,6 +5,7 @@ import { AuthInfo } from '@metorial/module-access';
 import { proxyMcpRequestToSubspace } from '@metorial/module-subspace';
 import { Authenticator } from '@metorial/rest';
 import { authenticateAndResolveInstance } from './getSession';
+import { resolveMagicMcpSubspaceSession } from './magic';
 
 export let startMcpServer = (d: { port: number; authenticate: Authenticator<AuthInfo> }) => {
   let hono = createHono()
@@ -43,6 +44,35 @@ export let startMcpServer = (d: { port: number; authenticate: Authenticator<Auth
         async () => {
           let { instance } = await authenticateAndResolveInstance(req, url, d.authenticate);
           return proxyMcpRequestToSubspace(c, instance, sessionId);
+        }
+      );
+    })
+    .all('/magic/:magicMcpServerId', async (c, _next) => {
+      let { magicMcpServerId } = c.req.param();
+      let context = useRequestContext(c);
+      let url = new URL(c.req.url);
+      let req = c.req.raw;
+
+      return provideExecutionContext(
+        createExecutionContext({
+          userAgent: context.ua ?? 'unknown',
+          ip: context.ip,
+          contextId: generateSnowflakeId('mreq'),
+          type: 'request'
+        }),
+        async () => {
+          let sessionInfo = await resolveMagicMcpSubspaceSession({
+            magicMcpServerIdOrAlias: magicMcpServerId,
+            request: req,
+            url,
+            authenticate: d.authenticate
+          });
+
+          return await proxyMcpRequestToSubspace(
+            c,
+            sessionInfo.magicMcpServer.instance,
+            sessionInfo.subspaceSessionMapping.subspaceSessionId
+          );
         }
       );
     });

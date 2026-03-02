@@ -24,6 +24,10 @@ import {
   customProviderDeploymentController,
   customProviderEnvironmentController,
   customProviderVersionController,
+  magicMcpGroupController,
+  magicMcpServerController,
+  magicMcpSessionController,
+  magicMcpTokenController,
   providerAuthConfigController,
   providerAuthCredentialsController,
   providerAuthExportController,
@@ -102,6 +106,11 @@ export let magnetarController = Controller.create<any>(
 
     toolCallController,
 
+    magicMcpServerController,
+    magicMcpSessionController,
+    magicMcpTokenController,
+    magicMcpGroupController,
+
     customProviderController,
     customProviderVersionController,
     customProviderDeploymentController,
@@ -114,11 +123,6 @@ export let magnetarController = Controller.create<any>(
     // teamManagementController,
     // teamRoleManagementController,
     // teamRolePermissionsManagementController
-
-    // magicMcpServerController,
-    // magicMcpSessionController,
-    // magicMcpTokenController,
-    // magicMcpGroupController,
 
     // portalController,
     // portalConsumerGroupController,
@@ -198,6 +202,11 @@ export let dashboardController = Controller.create<any>(
 
     toolCallController,
 
+    magicMcpServerController,
+    magicMcpSessionController,
+    magicMcpTokenController,
+    magicMcpGroupController,
+
     customProviderController,
     customProviderCodeController,
     customProviderVersionController,
@@ -226,10 +235,6 @@ export let dashboardController = Controller.create<any>(
     // portalConsumerServerRequestController,
     // portalFeaturedServersController,
 
-    // magicMcpServerController,
-    // magicMcpSessionController,
-    // magicMcpTokenController,
-    // magicMcpGroupController,
   }
 );
 
