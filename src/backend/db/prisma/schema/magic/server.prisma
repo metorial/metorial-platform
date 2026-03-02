@@ -1,0 +1,42 @@
+enum MagicMcpServerStatus {
+  active
+  archived
+  deleted
+}
+
+model MagicMcpServer {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status MagicMcpServerStatus
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  subspaceSessionTemplateId String
+  subspaceTenantId          String?
+  subspaceEnvironmentId     String?
+
+  defaultOauthSessionId String?
+
+  name        String?
+  description String?
+  metadata    Json
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+  deletedAt DateTime?
+
+  aliases         MagicMcpServerAlias[]
+  subspaceSession MagicMcpServerSubspaceSession?
+
+  groups MagicMcpGroupServer[]
+}
+
+model MagicMcpServerAlias {
+  oid  BigInt @id @default(autoincrement())
+  slug String @unique
+
+  serverOid BigInt
+  server    MagicMcpServer @relation(fields: [serverOid], references: [oid], onDelete: Cascade)
+}

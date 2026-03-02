@@ -41,4 +41,8 @@ model Instance {
   secrets         Secret[]
   uploads         Upload[]
   accessTags      AccessTag[]
+  magicMcpGroups  MagicMcpGroup[]
+  magicMcpServers MagicMcpServer[]
+  magicMcpTokens  MagicMcpToken[]
+  magicMcpServerSubspaceSessions MagicMcpServerSubspaceSession[]
 }
