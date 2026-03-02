@@ -120,7 +120,7 @@ export let providerAuthImportController = Controller.create(
           description: 'Imports authentication credentials for a provider.'
         }
       )
-      .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.auth:import'] }))
       .body(
         'default',
         v.object({

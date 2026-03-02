@@ -41,7 +41,7 @@ export let customProviderDeploymentController = Controller.create(
         name: 'List custom provider deployments',
         description: 'Returns a paginated list of deployments for a custom provider.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.custom.deployment:read'] }))
       .outputList(subspaceCustomProviderDeploymentPresenter)
       .query(
         'default',
@@ -96,7 +96,7 @@ export let customProviderDeploymentController = Controller.create(
           description: 'Retrieves a specific deployment.'
         }
       )
-      .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.custom.deployment:read'] }))
       .output(subspaceCustomProviderDeploymentPresenter)
       .do(async ctx => {
         return subspaceCustomProviderDeploymentPresenter.present({
@@ -115,7 +115,7 @@ export let customProviderDeploymentController = Controller.create(
           description: 'Retrieves the build and deployment logs for a deployment.'
         }
       )
-      .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.custom.deployment:read'] }))
       .output(subspaceCustomProviderDeploymentLogsPresenter)
       .do(async ctx => {
         let logs = await subspaceCustomProviderDeploymentService.getLogs({

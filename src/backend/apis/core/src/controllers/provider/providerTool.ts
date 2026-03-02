@@ -38,7 +38,7 @@ export let providerToolController = Controller.create(
         description:
           'Returns a paginated list of provider tools. By default returns tools from the latest version. Use optional filters to get tools for a specific version.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.specification:read'] }))
       .outputList(providerToolPresenter)
       .query(
         'default',
@@ -69,7 +69,7 @@ export let providerToolController = Controller.create(
         name: 'Get provider tool',
         description: 'Retrieves a specific provider tool by ID.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.specification:read'] }))
       .output(providerToolPresenter)
       .do(async ctx => {
         return providerToolPresenter.present({ tool: ctx.tool });

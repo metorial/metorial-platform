@@ -37,7 +37,7 @@ export let providerCategoryController = Controller.create(
         name: 'List provider categories',
         description: 'Returns a paginated list of provider categories.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.category:read'] }))
       .outputList(providerCategoryPresenter)
       .query(
         'default',
@@ -77,7 +77,7 @@ export let providerCategoryController = Controller.create(
         name: 'Get provider category',
         description: 'Retrieves a specific provider category by ID.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.category:read'] }))
       .output(providerCategoryPresenter)
       .do(async ctx => {
         return providerCategoryPresenter.present({ category: ctx.category });

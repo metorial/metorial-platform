@@ -16,7 +16,7 @@ export let scmReposController = Controller.create(
         name: 'Preview SCM repos',
         description: 'Lists available repositories from an SCM installation.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
+      .use(checkAccess({ possibleScopes: ['instance.scm.repo:read'] }))
       .body(
         'default',
         v.object({
@@ -44,7 +44,7 @@ export let scmReposController = Controller.create(
         name: 'Create SCM repo',
         description: 'Links or creates a repository in an SCM installation.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider:write'] }))
+      .use(checkAccess({ possibleScopes: ['instance.scm.repo:write'] }))
       .body(
         'default',
         v.intersection([

@@ -16,7 +16,7 @@ export let scmAccountsController = Controller.create(
         name: 'Preview SCM accounts',
         description: 'Lists available accounts from an SCM installation.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
+      .use(checkAccess({ possibleScopes: ['instance.scm.account:read'] }))
       .body(
         'default',
         v.object({

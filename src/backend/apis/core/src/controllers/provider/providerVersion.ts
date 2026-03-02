@@ -38,7 +38,7 @@ export let providerVersionController = Controller.create(
         name: 'List provider versions',
         description: 'Returns a paginated list of provider versions.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.version:read'] }))
       .outputList(providerVersionPresenter)
       .query(
         'default',
@@ -72,7 +72,7 @@ export let providerVersionController = Controller.create(
         name: 'Get provider version',
         description: 'Retrieves a specific provider version by ID.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.version:read'] }))
       .output(providerVersionPresenter)
       .do(async ctx => {
         return providerVersionPresenter.present({ version: ctx.version });

@@ -40,7 +40,7 @@ export let customProviderCodeController = Controller.create(
           description: 'Get a token to access the code editor for a custom provider.'
         }
       )
-      .use(checkAccess({ possibleScopes: ['instance.provider:write'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.custom.code:write'] }))
       .output(bucketEditorTokenPresenter)
       .do(async ctx => {
         let draftBucket = ctx.customProvider.draftBucket;

@@ -190,7 +190,7 @@ export let customProviderController = Controller.create(
         name: 'List custom providers',
         description: 'Returns a paginated list of custom providers.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.custom:read'] }))
       .outputList(subspaceCustomProviderPresenter)
       .query(
         'default',
@@ -245,7 +245,7 @@ export let customProviderController = Controller.create(
         name: 'Get custom provider',
         description: 'Retrieves a specific custom provider by ID.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.custom:read'] }))
       .output(subspaceCustomProviderPresenter)
       .do(async ctx => {
         return subspaceCustomProviderPresenter.present({
@@ -258,7 +258,7 @@ export let customProviderController = Controller.create(
         name: 'Create custom provider',
         description: 'Creates a new custom provider.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider:write'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.custom:write'] }))
       .body(
         'default',
         v.object({
@@ -296,7 +296,7 @@ export let customProviderController = Controller.create(
         name: 'Update custom provider',
         description: 'Updates a specific custom provider.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider:write'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.custom:write'] }))
       .body(
         'default',
         v.object({

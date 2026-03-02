@@ -38,7 +38,7 @@ export let customProviderEnvironmentController = Controller.create(
         name: 'List custom provider environments',
         description: 'Returns a paginated list of environments for a custom provider.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.custom.environment:read'] }))
       .outputList(subspaceCustomProviderEnvironmentPresenter)
       .query(
         'default',
@@ -85,7 +85,7 @@ export let customProviderEnvironmentController = Controller.create(
           description: 'Retrieves a specific environment.'
         }
       )
-      .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.custom.environment:read'] }))
       .output(subspaceCustomProviderEnvironmentPresenter)
       .do(async ctx => {
         return subspaceCustomProviderEnvironmentPresenter.present({

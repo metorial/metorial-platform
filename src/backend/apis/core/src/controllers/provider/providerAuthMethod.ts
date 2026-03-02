@@ -37,7 +37,7 @@ export let providerAuthMethodController = Controller.create(
         name: 'List provider auth methods',
         description: 'Returns a paginated list of provider auth methods.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.specification:read'] }))
       .outputList(providerAuthMethodPresenter)
       .query(
         'default',
@@ -71,7 +71,7 @@ export let providerAuthMethodController = Controller.create(
           description: 'Retrieves a specific provider auth method by ID.'
         }
       )
-      .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.specification:read'] }))
       .output(providerAuthMethodPresenter)
       .do(async ctx => {
         return providerAuthMethodPresenter.present({

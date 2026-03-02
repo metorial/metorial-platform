@@ -21,7 +21,7 @@ export let scmInstallationController = Controller.create(
         name: 'List SCM installations',
         description: 'Returns a paginated list of SCM installations.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
+      .use(checkAccess({ possibleScopes: ['instance.scm.installation:read'] }))
       .outputList(scmConnectionPresenter)
       .query('default', Paginator.validate())
       .do(async ctx => {
@@ -44,7 +44,7 @@ export let scmInstallationController = Controller.create(
         name: 'Create SCM installation',
         description: 'Initiates an SCM installation setup (e.g. GitHub App authorization).'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider:write'] }))
+      .use(checkAccess({ possibleScopes: ['instance.scm.installation:write'] }))
       .body(
         'default',
         v.object({
