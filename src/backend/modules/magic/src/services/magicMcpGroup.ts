@@ -6,7 +6,8 @@ import {
   MagicMcpGroup,
   MagicMcpGroupStatus,
   Organization,
-  OrganizationActor
+  OrganizationActor,
+  withTransaction
 } from '@metorial/db';
 import {
   goneError,
@@ -132,17 +133,8 @@ class MagicMcpGroupImpl {
               d.status
                 ? { status: { in: d.status } }
                 : { status: { notIn: ['archived', 'deleted'] as MagicMcpGroupStatus[] } },
-              searchedGroupIds !== undefined ? { id: { in: searchedGroupIds } } : undefined!
-            ].filter(Boolean),
-            OR:
-              normalizedSearch && searchedGroupIds === undefined
-                ? [
-                    { id: { contains: normalizedSearch, mode: 'insensitive' } },
-                    { name: { contains: normalizedSearch, mode: 'insensitive' } },
-                    { description: { contains: normalizedSearch, mode: 'insensitive' } },
-                    { slug: { contains: normalizedSearch, mode: 'insensitive' } }
-                  ]
-                : undefined
+              normalizedSearch ? { id: { in: searchedGroupIds } } : undefined!
+            ].filter(Boolean)
           }
         });
       })
@@ -166,9 +158,9 @@ class MagicMcpGroupImpl {
       );
     }
 
-    let deletedGroup = await db.$transaction(async tx => {
+    let deletedGroup = await withTransaction(async db => {
       let affectedTokenOids = (
-        await tx.magicMcpGroupToken.findMany({
+        await db.magicMcpGroupToken.findMany({
           where: {
             magicMcpGroupOid: d.group.oid
           },
@@ -179,19 +171,19 @@ class MagicMcpGroupImpl {
         })
       ).map(link => link.magicMcpTokenOid);
 
-      await tx.magicMcpGroupServer.deleteMany({
+      await db.magicMcpGroupServer.deleteMany({
         where: {
           magicMcpGroupOid: d.group.oid
         }
       });
 
-      await tx.magicMcpGroupToken.deleteMany({
+      await db.magicMcpGroupToken.deleteMany({
         where: {
           magicMcpGroupOid: d.group.oid
         }
       });
 
-      let deletedGroup = await tx.magicMcpGroup.update({
+      let deletedGroup = await db.magicMcpGroup.update({
         where: { id: d.group.id },
         data: {
           status: 'deleted',
@@ -201,7 +193,7 @@ class MagicMcpGroupImpl {
 
       if (affectedTokenOids.length > 0) {
         let linkedAfterDelete = (
-          await tx.magicMcpGroupToken.groupBy({
+          await db.magicMcpGroupToken.groupBy({
             by: ['magicMcpTokenOid'],
             where: {
               magicMcpTokenOid: {
@@ -211,7 +203,7 @@ class MagicMcpGroupImpl {
           })
         ).map(entry => entry.magicMcpTokenOid);
 
-        await tx.magicMcpToken.updateMany({
+        await db.magicMcpToken.updateMany({
           where: {
             oid: {
               in: affectedTokenOids
@@ -223,7 +215,7 @@ class MagicMcpGroupImpl {
         });
 
         if (linkedAfterDelete.length > 0) {
-          await tx.magicMcpToken.updateMany({
+          await db.magicMcpToken.updateMany({
             where: {
               oid: {
                 in: linkedAfterDelete

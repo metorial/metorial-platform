@@ -132,6 +132,7 @@
       "name": "@metorial/api-core",
       "version": "1.0.0",
       "dependencies": {
+        "@lowerdeck/shadow-id": "^1.0.7",
         "@metorial/auth": "^1.0.0",
         "@metorial/config": "^1.0.0",
         "@metorial/db": "^1.0.0",
@@ -2307,6 +2308,8 @@
     "@lowerdeck/sentry": ["@lowerdeck/sentry@1.0.2", "", { "dependencies": { "@sentry/core": "^10.32.1" } }, "sha512-HYNcxpC1ZOEGn8+wxoTNU0Y9e3tVHE5Wb0W9etRCu589uv3VD+1InMyLypBZdgnrJI5KRpPdJcMHm+aj7WEjig=="],
 
     "@lowerdeck/serialize": ["@lowerdeck/serialize@1.0.4", "", { "dependencies": { "superjson": "^2.2.5" } }, "sha512-IlCBKiIHma9Pd+HBG9mwrLN9ySi4/Z/8fi40YBGS4X5iu5uhl9wfkr5ttTOrBiwOFhSc+WWCD8J7cO9hs9yE2w=="],
+
+    "@lowerdeck/shadow-id": ["@lowerdeck/shadow-id@1.0.7", "", { "dependencies": { "@lowerdeck/base62": "^1.0.4" } }, "sha512-xmMWAtTeSH8doR9F7YCWTE6q+wCECJJMV9RS9ccRgLO8aMnQmnBdp6piSrfWQn1UNDOFzE5NO/i5USqvwPb5IQ=="],
 
     "@lowerdeck/snowflake": ["@lowerdeck/snowflake@1.0.2", "", {}, "sha512-Wcv5unEv0ZvPT2146NzaqRAadbPQgpYzL5VeVy8MttLZ5PgfSSr225iTz+cNQoVeP9SxkeOXgTHtm6ISABAdfw=="],
 
