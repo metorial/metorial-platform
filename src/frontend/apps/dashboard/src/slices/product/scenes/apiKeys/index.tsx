@@ -132,12 +132,21 @@ export let ApiKeysScene = ({
           }) as any
       });
 
+      let handleSubmit = async () => {
+        await form.submitForm();
+      };
+
       return (
         <Dialog.Wrapper {...dialogProps}>
           <Dialog.Title>Create {name}</Dialog.Title>
           <Dialog.Description>Create a new {name} for the application.</Dialog.Description>
 
-          <form onSubmit={form.handleSubmit}>
+          <form
+            onSubmit={e => {
+              e.preventDefault();
+              void handleSubmit();
+            }}
+          >
             <Input label="Name" {...form.getFieldProps('name')} />
             <form.RenderError field="name" />
 
@@ -180,7 +189,7 @@ export let ApiKeysScene = ({
               <Button size="1" variant="soft" onClick={close} type="button">
                 Cancel
               </Button>
-              <Button size="1" type="submit">
+              <Button size="1" type="button" onClick={handleSubmit}>
                 Create
               </Button>
             </Dialog.Actions>
@@ -220,12 +229,21 @@ export let ApiKeysScene = ({
           }) as any
       });
 
+      let handleSubmit = async () => {
+        await form.submitForm();
+      };
+
       return (
         <Dialog.Wrapper {...dialogProps}>
           <Dialog.Title>Update {name}</Dialog.Title>
           <Dialog.Description>Update the {name} details.</Dialog.Description>
 
-          <form onSubmit={form.handleSubmit}>
+          <form
+            onSubmit={e => {
+              e.preventDefault();
+              void handleSubmit();
+            }}
+          >
             <Input label="Name" {...form.getFieldProps('name')} />
             <form.RenderError field="name" />
 
@@ -264,7 +282,7 @@ export let ApiKeysScene = ({
               <Button size="1" variant="soft" onClick={close} type="button">
                 Cancel
               </Button>
-              <Button size="1" type="submit">
+              <Button size="1" type="button" onClick={handleSubmit}>
                 Update
               </Button>
             </Dialog.Actions>

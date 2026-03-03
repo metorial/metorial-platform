@@ -99,7 +99,9 @@ export let CustomServersTable = (
                     {customServer.status ?? 'unknown'}
                   </Badge>,
                   <Text size="2" color="gray600">
-                    {customServer.provider?.currentVersion?.version ?? '-'}
+                    {customServer.draft?.remoteMcpServer
+                      ? '-'
+                      : customServer.provider?.currentVersion?.version ?? '-'}
                   </Text>,
                   <RenderDate date={customServer.createdAt} />
                 ],

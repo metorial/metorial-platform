@@ -99,8 +99,8 @@ export let CustomServerUpdateForm = (p: { customServer?: CustomProvidersGetOutpu
           })
         }
         initialValues={{
-          remoteUri: '',
-          remoteProtocol: 'sse'
+          remoteUri: customServer.data?.draft?.remoteMcpServer?.url ?? '',
+          remoteProtocol: customServer.data?.draft?.remoteMcpServer?.transport ?? 'sse'
         }}
         mutators={[createVersionMutator]}
         onSubmit={async values => {

@@ -42,6 +42,11 @@ export let CustomServerLayout = () => {
   ] as const;
 
   let flags = useDashboardFlags();
+  let hasCodeManagement = Boolean(
+    customServer.data?.scmRepo &&
+      !customServer.data?.draft?.remoteMcpServer &&
+      !customServer.data?.draft?.containerImage
+  );
 
   return (
     <ContentLayout>
@@ -84,7 +89,7 @@ export let CustomServerLayout = () => {
                 to: Paths.instance.customServer(...pathParams)
               },
 
-              ...(customServer.data?.scmRepo
+              ...(hasCodeManagement
                 ? [
                     {
                       label: 'Code',
@@ -143,6 +148,10 @@ export let DeployServerButton = ({
   providerId: string | undefined;
   disabled?: boolean;
 }) => {
+  let instance = useCurrentInstance();
+  let organization = useCurrentOrganization();
+  let project = useCurrentProject();
+  let navigate = useNavigate();
   let flags = useDashboardFlags();
   let isDisabled = disabled || !providerId;
 
@@ -179,9 +188,20 @@ export let DeployServerButton = ({
       ]}
       onItemClick={item => {
         if (item === 'server-deployment') {
+          if (!instance.data) return;
           showProviderDeploymentFormModal({
             type: 'create',
-            providerId
+            instanceId: instance.data.id,
+            providerId,
+            onCreate: deployment =>
+              navigate(
+                Paths.instance.providerDeployment(
+                  organization.data,
+                  project.data,
+                  instance.data,
+                  deployment.id
+                )
+              )
           });
         } else if (item === 'magic-mcp-server') {
           showMagicMcpServerFormModal({
@@ -202,9 +222,20 @@ export let DeployServerButton = ({
       disabled={isDisabled}
       size="2"
       onClick={() =>
+        instance.data &&
         showProviderDeploymentFormModal({
           type: 'create',
-          providerId
+          instanceId: instance.data.id,
+          providerId,
+          onCreate: deployment =>
+            navigate(
+              Paths.instance.providerDeployment(
+                organization.data,
+                project.data,
+                instance.data,
+                deployment.id
+              )
+            )
         })
       }
     >

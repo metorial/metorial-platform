@@ -7,7 +7,7 @@ import {
   useCustomServer,
   useCustomServerCodeEditorToken
 } from '@metorial/state';
-import { Button, Dialog, Flex, Input, showModal, Spacer, theme } from '@metorial/ui';
+import { Button, Dialog, Flex, Input, showModal, Spacer, Text, theme } from '@metorial/ui';
 import { SideBox } from '@metorial/ui-product';
 import { RiArrowRightSLine, RiExpandDiagonal2Line, RiUpload2Line } from '@remixicon/react';
 import { motion } from 'framer-motion';
@@ -107,6 +107,9 @@ export let CustomServerCodePage = () => {
       path: metadataRepo.path
     };
   }, [customServer.data]);
+  let codeManagementUnavailable =
+    Boolean(customServer.data?.draft?.remoteMcpServer) ||
+    Boolean(customServer.data?.draft?.containerImage);
 
   let publishFrom = useMemo(() => {
     if (linkedRepo?.id) {
@@ -154,7 +157,16 @@ export let CustomServerCodePage = () => {
 
   return renderWithLoader({ customServer })(({ customServer }) => (
     <>
-      {linkedRepo ? (
+      {codeManagementUnavailable ? (
+        <SideBox
+          title="Code Management Unavailable"
+          description="Remote and Docker-backed providers do not support repository or in-dashboard code management."
+        >
+          <Text size="2" color="gray600">
+            Manage code and releases outside Metorial for this provider type.
+          </Text>
+        </SideBox>
+      ) : linkedRepo ? (
         <>
           <SideBox
             title="Repository"
@@ -218,61 +230,50 @@ export let CustomServerCodePage = () => {
                         value={path}
                         onChange={e => setPath(e.target.value)}
                       />
-
                       <Spacer height={15} />
 
-                      <Dialog.Actions>
-                        <Button onClick={close} variant="outline" size="2">
-                          Cancel
+                      <Flex justify="end" gap={10}>
+                        <Button variant="outline" onClick={close}>
+                          Close
                         </Button>
+
                         <Button
-                          size="2"
                           disabled={!repo}
                           loading={createVersion.isLoading}
-                          success={createVersion.isSuccess}
                           onClick={async () => {
-                            let [res] = await createVersion.mutate({
+                            if (!repo || !customServer.data) return;
+
+                            let [version] = await createVersion.mutate({
                               instanceId: instance.data!.id,
-                              customServerId: customServer.data!.id,
-                              customProviderId: customServer.data!.id,
+                              customServerId: customServer.data.id,
+                              customProviderId: customServer.data.id,
                               from: {
                                 type: 'function',
                                 env: {},
                                 runtime: {
-                                  identifier: 'nodejs' as const,
-                                  version: '22.x' as const
+                                  identifier: 'nodejs',
+                                  version: '22.x'
                                 },
                                 repository: {
-                                  repositoryId: repo!.id,
-                                  branch: repo!.defaultBranch,
+                                  repositoryId: repo.id,
+                                  branch: repo.defaultBranch || 'main',
                                   path: normalizeRepoPath(path)
                                 }
                               }
                             });
 
-                            if (res) {
-                              navigate(
-                                Paths.instance.customServer(
-                                  instance.data?.organization,
-                                  instance.data?.project,
-                                  instance.data,
-                                  res.customProviderId,
-                                  'versions',
-                                  { version_id: res.id }
-                                )
-                              );
-                              setTimeout(() => close(), 500);
+                            if (version) {
+                              close();
                             }
                           }}
                         >
                           Connect Repository
                         </Button>
-                      </Dialog.Actions>
+                      </Flex>
                     </Dialog.Wrapper>
                   );
                 })
               }
-              iconRight={<RiArrowRightSLine />}
             >
               Connect Repository
             </Button>
@@ -281,27 +282,35 @@ export let CustomServerCodePage = () => {
         </>
       )}
 
-      {url && (
+      {!codeManagementUnavailable && url && (
         <Wrapper data-expanded={isExpanded}>
           <Nav
-            initial={{ y: -40, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 2 }}
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
           >
             <Button
               size="1"
-              iconLeft={<RiExpandDiagonal2Line />}
-              onClick={() => setIsExpanded(v => !v)}
+              variant="outline"
+              iconLeft={<RiUpload2Line />}
+              onClick={publishNewVersion}
             >
-              {isExpanded ? 'Exit Fullscreen' : 'Fullscreen'}
+              Publish New Version
             </Button>
 
-            <Button size="1" iconLeft={<RiUpload2Line />} onClick={publishNewVersion}>
-              Publish New Version
+            <Button
+              size="1"
+              variant="outline"
+              iconLeft={<RiExpandDiagonal2Line />}
+              onClick={() => setIsExpanded(expanded => !expanded)}
+            >
+              {isExpanded ? 'Collapse' : 'Expand'}
             </Button>
           </Nav>
 
-          <Iframe src={url!} title={customServer.data?.name ?? 'Code Editor'} />
+          <Iframe
+            src={editorToken.data?.url ?? url}
+          />
         </Wrapper>
       )}
     </>

@@ -29,29 +29,6 @@ type ConfigOverviewRow = {
   createdAt: Date | string | null;
 };
 
-let mapWithConcurrency = async <I, O>(
-  items: I[],
-  limit: number,
-  worker: (item: I) => Promise<O>
-) => {
-  if (!items.length) return [] as O[];
-
-  let results = new Array<O>(items.length);
-  let next = 0;
-
-  let run = async () => {
-    while (true) {
-      let current = next++;
-      if (current >= items.length) return;
-      results[current] = await worker(items[current]);
-    }
-  };
-
-  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, run));
-
-  return results;
-};
-
 export let ProviderConfigsOverviewPage = () => {
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
@@ -64,7 +41,20 @@ export let ProviderConfigsOverviewPage = () => {
     search: searchDebounced
   });
 
-  let providers = useProviders(instance.data?.id);
+  let [rows, setRows] = useState<ConfigOverviewRow[]>([]);
+  let [isLoadingConfigs, setIsLoadingConfigs] = useState(false);
+  let [error, setError] = useState<string | null>(null);
+  let [reloadKey, setReloadKey] = useState(0);
+
+  let deploymentItems = deployments.data?.items ?? [];
+  let providerIds = useMemo(
+    () => [...new Set(deploymentItems.map(deployment => deployment.providerId).filter(Boolean))],
+    [deploymentItems]
+  );
+  let providers = useProviders(
+    instance.data?.id,
+    providerIds.length > 0 ? { id: providerIds } : null
+  );
   let providerNameMap = useMemo(() => {
     let map = new Map<string, string>();
     for (let provider of providers.data?.items ?? []) {
@@ -72,13 +62,6 @@ export let ProviderConfigsOverviewPage = () => {
     }
     return map;
   }, [providers.data?.items]);
-
-  let [rows, setRows] = useState<ConfigOverviewRow[]>([]);
-  let [isLoadingConfigs, setIsLoadingConfigs] = useState(false);
-  let [error, setError] = useState<string | null>(null);
-  let [reloadKey, setReloadKey] = useState(0);
-
-  let deploymentItems = deployments.data?.items ?? [];
   let deploymentSignature = useMemo(
     () => deploymentItems.map(deployment => deployment.id).join(','),
     [deploymentItems]
@@ -106,50 +89,37 @@ export let ProviderConfigsOverviewPage = () => {
       setError(null);
 
       try {
-        let perDeployment = await mapWithConcurrency(deploymentItems, 4, async deployment => {
-          try {
-            let response = await withAuth(sdk =>
-              sdk.providerDeployments.configs.list(instance.data!.id, {
-                providerDeploymentId: deployment.id
-              })
-            );
+        let deploymentIds = deploymentItems.map(d => d.id);
 
-            return {
-              deployment,
-              configs: response.items ?? [],
-              failed: false
-            };
-          } catch {
-            return {
-              deployment,
-              configs: [],
-              failed: true
-            };
-          }
-        });
+        let response = await withAuth(sdk =>
+          sdk.providerDeployments.configs.list(instance.data!.id, {
+            providerDeploymentId: deploymentIds
+          })
+        );
 
         if (isCanceled) return;
 
-        let nextRows: ConfigOverviewRow[] = [];
+        let deploymentById = new Map<string, DeploymentPreview>();
+        for (let d of deploymentItems) {
+          deploymentById.set(d.id, d);
+        }
 
-        let failedCount = 0;
-        for (let item of perDeployment) {
-          if (item.failed) failedCount++;
-          for (let config of item.configs) {
-            nextRows.push({
-              key: config.id,
-              deployment: item.deployment,
-              configName: config.name ?? 'Unnamed',
-              description: config.description ?? null,
-              createdAt: config.createdAt ?? null
-            });
-          }
+        let nextRows: ConfigOverviewRow[] = [];
+        for (let config of response.items ?? []) {
+          let deployment =
+            (config.deployment?.id ? deploymentById.get(config.deployment.id) : null) ??
+            deploymentById.values().next().value;
+          if (!deployment) continue;
+          nextRows.push({
+            key: config.id,
+            deployment,
+            configName: config.name ?? 'Unnamed',
+            description: config.description ?? null,
+            createdAt: config.createdAt ?? null
+          });
         }
 
         setRows(nextRows);
-        if (failedCount > 0 && nextRows.length === 0) {
-          setError('Failed to load configs for one or more deployments.');
-        }
       } catch (e: any) {
         if (!isCanceled) {
           setError(e?.data?.message || e?.message || 'Failed to load configurations.');

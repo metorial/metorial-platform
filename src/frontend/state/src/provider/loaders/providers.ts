@@ -14,10 +14,12 @@ export let providersLoader = createLoader({
 
 export let useProviders = (
   instanceId: string | null | undefined,
-  query?: DashboardInstanceProvidersListQuery
+  query?: DashboardInstanceProvidersListQuery | null
 ) => {
   let data = usePaginator(pagination =>
-    providersLoader.use(instanceId ? { instanceId, ...pagination, ...query } : null)
+    providersLoader.use(
+      instanceId && query !== null ? { instanceId, ...pagination, ...(query ?? {}) } : null
+    )
   );
 
   return data;

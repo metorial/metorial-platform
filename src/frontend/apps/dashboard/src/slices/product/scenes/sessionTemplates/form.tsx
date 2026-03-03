@@ -1,12 +1,10 @@
-import { Paths } from '@metorial/frontend-config';
-import { useCurrentInstance, useCreateSessionTemplate } from '@metorial/state';
+import { useForm } from '@metorial/data-hooks';
+import { useCreateSessionTemplate } from '@metorial/state';
 import { Button, Dialog, Input, Spacer } from '@metorial/ui';
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 
 export type SessionTemplateFormProps =
-  | { type: 'create' }
-  | { type: 'update'; templateId: string };
+  | { type: 'create'; instanceId: string }
+  | { type: 'update'; templateId: string; instanceId: string };
 
 export let SessionTemplateForm = (
   props: SessionTemplateFormProps & {
@@ -14,64 +12,71 @@ export let SessionTemplateForm = (
     onCreate?: (template: any) => void;
   }
 ) => {
-  let instance = useCurrentInstance();
-  let navigate = useNavigate();
   let createMutation = useCreateSessionTemplate();
-
-  let [name, setName] = useState('');
-  let [description, setDescription] = useState('');
+  let form = useForm({
+    initialValues: {
+      name: '',
+      description: ''
+    },
+    onSubmit: async () => {},
+    schema: yup =>
+      yup.object({
+        name: yup.string().required('Name is required'),
+        description: yup.string().defined()
+      })
+  });
 
   let handleSubmit = async () => {
-    if (!instance.data) return;
+    let name = form.values.name.trim();
+
+    if (!name) {
+      form.setFieldTouched('name', true);
+      form.setFieldError('name', 'Name is required');
+      return;
+    }
+
+    form.setFieldError('name', undefined);
 
     if (props.type === 'create') {
       let [result] = await createMutation.mutate({
-        instanceId: instance.data.id,
+        instanceId: props.instanceId,
         name,
-        description: description || undefined
+        description: form.values.description || undefined
       });
 
       if (!result) return;
 
-      if (props.onCreate) {
-        props.onCreate(result);
-        props.close?.();
-      } else {
-        props.close?.();
-        navigate(
-          Paths.instance.sessionTemplate(
-            instance.data.organization,
-            instance.data.project,
-            instance.data,
-            result.id
-          )
-        );
-      }
+      props.onCreate?.(result);
+      props.close?.();
     }
   };
 
   return (
-    <>
-      <Input label="Name" value={name} onChange={e => setName(e.target.value)} required />
+    <form
+      onSubmit={e => {
+        e.preventDefault();
+        handleSubmit();
+      }}
+    >
+      <Input label="Name" required {...form.getFieldProps('name')} />
+      <form.RenderError field="name" />
 
       <Spacer size={10} />
 
-      <Input
-        label="Description"
-        value={description}
-        onChange={e => setDescription(e.target.value)}
-      />
+      <Input label="Description" {...form.getFieldProps('description')} />
 
       <Spacer size={15} />
 
       <Dialog.Actions>
-        <Button variant="outline" onClick={props.close}>
+        <Button type="button" variant="outline" onClick={props.close}>
           Cancel
         </Button>
-        <Button onClick={handleSubmit} loading={createMutation.isPending} disabled={!name}>
+        <Button type="button" onClick={handleSubmit} loading={createMutation.isPending}>
           {props.type === 'create' ? 'Create' : 'Update'}
         </Button>
       </Dialog.Actions>
-    </>
+
+      <createMutation.RenderError />
+    </form>
   );
 };

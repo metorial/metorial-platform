@@ -1,6 +1,14 @@
+import {
+  DashboardInstanceProvidersAuthMethodsListOutput
+} from '@metorial/dashboard-sdk';
 import { renderWithPagination } from '@metorial/data-hooks';
 import { useCurrentInstance, useProviderAuthMethods } from '@metorial/state';
 import { AccordionSingle, Badge, Flex, Spacer, Text, theme } from '@metorial/ui';
+import {
+  getJsonSchema,
+  hasJsonSchemaProperties,
+  JsonSchemaEnvelope
+} from '../../../lib/jsonSchema';
 import { useProviderVersionContext } from './_layout';
 
 type Scope = {
@@ -181,16 +189,10 @@ export let ProviderAuthMethodsPage = () => {
   let instance = useCurrentInstance();
   let { selectedVersionId } = useProviderVersionContext();
   let authMethods = useProviderAuthMethods(instance.data?.id, selectedVersionId);
+  type ProviderAuthMethod = DashboardInstanceProvidersAuthMethodsListOutput['items'][number];
 
   return renderWithPagination(authMethods)(authMethods => {
-    let authMethodsToRender = authMethods.data.items as Array<{
-      id: string;
-      type: 'oauth' | 'token' | 'custom';
-      name: string;
-      description: string | null;
-      inputSchema: Record<string, unknown> | null;
-      scopes: Scope[] | null;
-    }>;
+    let authMethodsToRender = authMethods.data.items as Array<ProviderAuthMethod>;
 
     return (
       <>
@@ -203,19 +205,13 @@ export let ProviderAuthMethodsPage = () => {
         )}
 
         <Flex direction="column" gap={4}>
-          {authMethodsToRender.map(
-            (method: {
-              id: string;
-              type: 'oauth' | 'token' | 'custom';
-              name: string;
-              description: string | null;
-              inputSchema: Record<string, unknown> | null;
-              scopes: Scope[] | null;
-            }) => {
-              let hasSchemaFields =
-                method.inputSchema &&
-                (method.inputSchema as JsonSchema).properties &&
-                Object.keys((method.inputSchema as JsonSchema).properties!).length > 0;
+          {authMethodsToRender.map((method: ProviderAuthMethod) => {
+              let inputSchema = getJsonSchema(
+                method.inputSchema as JsonSchemaEnvelope | Record<string, unknown> | null
+              );
+              let hasSchemaFields = hasJsonSchemaProperties(
+                method.inputSchema as JsonSchemaEnvelope | Record<string, unknown> | null
+              );
 
               return (
                 <AccordionSingle
@@ -286,14 +282,13 @@ export let ProviderAuthMethodsPage = () => {
                         >
                           Required Fields
                         </Text>
-                        <SchemaFields schema={method.inputSchema} />
+                        <SchemaFields schema={inputSchema} />
                       </>
                     )}
                   </Flex>
                 </AccordionSingle>
               );
-            }
-          )}
+            })}
         </Flex>
       </>
     );

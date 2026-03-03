@@ -1,3 +1,4 @@
+import { useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, useCreateSession } from '@metorial/state';
 import { Button, Dialog, Input, Spacer } from '@metorial/ui';
@@ -5,8 +6,13 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 export type ProviderSessionFormProps =
-  | { type: 'create'; providerDeploymentId?: string; sessionTemplateId?: string }
-  | { type: 'update'; sessionId: string };
+  | {
+      type: 'create';
+      providerDeploymentId?: string;
+      sessionTemplateId?: string;
+      instanceId?: string;
+    }
+  | { type: 'update'; sessionId: string; instanceId?: string };
 
 export let ProviderSessionForm = (
   props: ProviderSessionFormProps & {
@@ -15,66 +21,75 @@ export let ProviderSessionForm = (
   }
 ) => {
   let instance = useCurrentInstance();
+  let instanceId = props.instanceId ?? instance.data?.id;
   let navigate = useNavigate();
-  let createMutation = useCreateSession(instance.data?.id);
+  let createMutation = useCreateSession(instanceId);
 
-  let [name, setName] = useState('');
-  let [description, setDescription] = useState('');
   let [deploymentId, setDeploymentId] = useState(
     props.type === 'create' ? (props.providerDeploymentId ?? '') : ''
   );
+  let form = useForm({
+    initialValues: {
+      name: '',
+      description: ''
+    },
+    onSubmit: async () => {},
+    schema: yup =>
+      yup.object({
+        name: yup.string().defined(),
+        description: yup.string().defined()
+      })
+  });
 
   let handleSubmit = async () => {
+    if (props.type !== 'create' || !instanceId) return;
+
+    let providers = [];
+    if (deploymentId) {
+      providers.push({
+        providerDeploymentId: deploymentId
+      });
+    }
+
+    let [result] = await createMutation.mutate({
+      name: form.values.name || undefined,
+      description: form.values.description || undefined,
+      providers
+    });
+
+    if (!result) return;
+
+    if (props.onCreate) {
+      props.onCreate(result);
+      props.close?.();
+      return;
+    }
+
+    props.close?.();
     if (!instance.data) return;
 
-    if (props.type === 'create') {
-      let providers = [];
-
-      if (deploymentId) {
-        providers.push({
-          providerDeployment: {
-            type: 'reference' as const,
-            providerDeploymentId: deploymentId
-          }
-        });
-      }
-
-      let [result] = await createMutation.mutate({
-        name: name || undefined,
-        description: description || undefined,
-        providers
-      });
-
-      if (!result) return;
-
-      if (props.onCreate) {
-        props.onCreate(result);
-        props.close?.();
-      } else {
-        props.close?.();
-        navigate(
-          Paths.instance.providerSession(
-            instance.data.organization,
-            instance.data.project,
-            instance.data,
-            result.id
-          )
-        );
-      }
-    }
+    navigate(
+      Paths.instance.providerSession(
+        instance.data.organization,
+        instance.data.project,
+        instance.data,
+        result.id
+      )
+    );
   };
 
   return (
-    <>
-      <Input label="Name (optional)" value={name} onChange={e => setName(e.target.value)} />
+    <form
+      onSubmit={e => {
+        e.preventDefault();
+        handleSubmit();
+      }}
+    >
+      <Input label="Name (optional)" {...form.getFieldProps('name')} />
 
       <Spacer size={10} />
 
-      <Input
-        label="Description"
-        value={description}
-        onChange={e => setDescription(e.target.value)}
-      />
+      <Input label="Description" {...form.getFieldProps('description')} />
 
       <Spacer size={10} />
 
@@ -91,13 +106,15 @@ export let ProviderSessionForm = (
       )}
 
       <Dialog.Actions>
-        <Button variant="outline" onClick={props.close}>
+        <Button type="button" variant="outline" onClick={props.close}>
           Cancel
         </Button>
-        <Button onClick={handleSubmit} loading={createMutation.isPending}>
+        <Button type="button" onClick={handleSubmit} loading={createMutation.isPending}>
           {props.type === 'create' ? 'Create Session' : 'Update Session'}
         </Button>
       </Dialog.Actions>
-    </>
+
+      <createMutation.RenderError />
+    </form>
   );
 };

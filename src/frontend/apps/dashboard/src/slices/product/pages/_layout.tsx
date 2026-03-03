@@ -99,6 +99,11 @@ export let ProjectPageLayout = () => {
                   getProps: i => ({ isActive: checkPath(i, { exact: true }) })
                 },
                 {
+                  label: 'Vaults',
+                  to: Paths.instance.providerDeployments(...params, 'config-vaults'),
+                  getProps: i => ({ isActive: checkPath(i, { exact: true }) })
+                },
+                {
                   label: 'Auth Credentials',
                   to: Paths.instance.providerDeployments(...params, 'auth-credentials'),
                   getProps: i => ({ isActive: checkPath(i, { exact: true }) })

@@ -32,8 +32,6 @@ export let CustomServerListingPage = () => {
   let statusUpdate = listing.useUpdateMutator();
   let generalUpdate = listing.useUpdateMutator();
   let readmeUpdate = listing.useUpdateMutator();
-  let forkUpdate = customServer.useUpdateMutator();
-
   let [isPublic, setIsPublic] = useState(false);
   useEffect(
     () => setIsPublic(customServer.data?.status == 'active'),
@@ -101,40 +99,6 @@ export let CustomServerListingPage = () => {
         </Link>
       </Box>
 
-      <Box
-        title="Enable forking"
-        description="Let other users fork this provider to their own Metorial instance."
-      >
-        <Switch
-          label="Enable forking"
-          disabled={
-            statusUpdate.isLoading ||
-            generalUpdate.isLoading ||
-            readmeUpdate.isLoading ||
-            forkUpdate.isLoading
-          }
-          checked={!!customServer.data?.metadata?.isForkable}
-          onCheckedChange={async checked => {
-            if (checked) {
-              confirm({
-                title: 'Are you sure you want to enable forking for this provider?',
-                description:
-                  'This will let other users fork this provider to their own Metorial instance. This might expose sensitive information, so make sure you understand the implications.',
-                onConfirm: async () => {
-                  await forkUpdate.mutate({
-                    metadata: { isForkable: true }
-                  });
-                }
-              });
-            } else {
-              await forkUpdate.mutate({
-                metadata: { isForkable: false }
-              });
-            }
-          }}
-        />
-      </Box>
-
       <FormBox
         title="Listing"
         description="Update how this provider is listed in the Metorial catalog."
@@ -183,7 +147,7 @@ export let CustomServerListingPage = () => {
           if (!instance.data) return;
 
           await readmeUpdate.mutate({
-            metadata: { readme: values.readme }
+            readme: values.readme
           });
         }}
       >

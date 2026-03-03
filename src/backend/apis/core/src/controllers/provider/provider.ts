@@ -2,6 +2,8 @@ import { badRequestError, ServiceError } from '@metorial/error';
 import { subspaceProviderService } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
+import { v } from '@metorial/validation';
+import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { providerPresenter } from '../../presenters';
@@ -38,13 +40,41 @@ export let providerController = Controller.create(
       })
       .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
       .outputList(providerPresenter)
-      .query('default', Paginator.validate())
+      .query(
+        'default',
+        Paginator.validate(
+          v.object({
+            id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by provider ID(s)'
+            })
+          })
+        )
+      )
       .do(async ctx => {
-        let paginator = await subspaceProviderService.list({
-          instance: ctx.instance
-        });
+        let ids = normalizeArrayParam(ctx.query.id);
+        let list =
+          ids && ids.length > 0
+            ? {
+                items: await Promise.all(
+                  ids.map(providerId =>
+                    subspaceProviderService.get({
+                      instance: ctx.instance,
+                      providerId
+                    })
+                  )
+                ),
+                pagination: {
+                  hasNextPage: false,
+                  hasPreviousPage: false
+                }
+              }
+            : await (async () => {
+                let paginator = await subspaceProviderService.list({
+                  instance: ctx.instance
+                });
 
-        let list = await paginator.run(ctx.query);
+                return await paginator.run(ctx.query);
+              })();
 
         return Paginator.present(list, provider => providerPresenter.present({ provider }));
       }),

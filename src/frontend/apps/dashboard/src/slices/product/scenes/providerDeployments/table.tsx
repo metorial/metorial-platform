@@ -44,7 +44,11 @@ export let ProviderDeploymentsTable = ({
     search,
     order: 'desc'
   });
-  let providers = useProviders(instanceId, { limit: 100 });
+  let providerIds = useMemo(
+    () => [...new Set((deployments.data?.items ?? []).map(deployment => deployment.providerId))],
+    [deployments.data?.items]
+  );
+  let providers = useProviders(instanceId, providerIds.length > 0 ? { id: providerIds } : null);
   let providerNameMap = useMemo(() => {
     let map = new Map<string, string>();
     for (let provider of providers.data?.items ?? []) {

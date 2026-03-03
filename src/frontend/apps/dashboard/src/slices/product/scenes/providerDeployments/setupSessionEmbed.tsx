@@ -14,7 +14,7 @@ import {
   useProviderAuthCredentials,
   useProviderAuthMethods
 } from '@metorial/state';
-import { Button, Flex, Input, Select, Spacer, Text } from '@metorial/ui';
+import { Button, Copy, Flex, Input, Select, Spacer, Text } from '@metorial/ui';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Stepper } from '../stepper';
 
@@ -136,8 +136,22 @@ export let ProviderSetupSessionEmbed = ({
       (authMethods.data?.items ?? []).find(m => m.id === selectedMethodId),
     [authMethods.data?.items, selectedMethodId]
   );
-
+  let providerName = deployment.data?.name ?? provider.data?.name ?? providerId;
+  let oauthMethodName = selectedMethod?.name ?? 'OAuth';
+  let redirectUri = provider.data?.oauth?.callbackUrl;
   let isOAuth = selectedMethod?.type === 'oauth';
+  let oauthAutoRegistrationEnabled =
+    provider.data?.oauth?.autoRegistration?.status === 'enabled';
+  let visibleAuthCredentials = isOAuth
+    ? (authCredentials.data?.items ?? []).filter(
+        credential => oauthAutoRegistrationEnabled || !credential.isDefault
+      )
+    : (authCredentials.data?.items ?? []);
+  let defaultCredentials =
+    visibleAuthCredentials.find(c => c.isDefault) ?? null;
+  let hasDefaultCredentials = Boolean(defaultCredentials);
+  let requiresManualOAuthCredentials =
+    isOAuth && (!oauthAutoRegistrationEnabled || !hasDefaultCredentials);
 
   let hasSingleMethod = (authMethods.data?.items?.length ?? 0) === 1;
 
@@ -487,33 +501,44 @@ export let ProviderSetupSessionEmbed = ({
 
     let credentialsStep = {
       title: 'Credentials',
-      subtitle: 'OAuth app credentials',
+      subtitle: `${oauthMethodName} app credentials`,
       render: () => (
         <>
           <Text size="2" weight="strong">
-            OAuth Credentials (Optional)
+            {oauthMethodName} Credentials
           </Text>
           <Text size="2" color="gray600">
-            If you have your own OAuth app, select or create credentials. Otherwise, use the
-            default.
+            {oauthAutoRegistrationEnabled && hasDefaultCredentials
+              ? `Select existing ${oauthMethodName} credentials or add your own for ${providerName}.`
+              : !oauthAutoRegistrationEnabled
+                ? `${oauthMethodName} auto-registration is disabled for ${providerName}. Select your own credentials or add new ones to continue.`
+              : `No default ${oauthMethodName} credentials are configured for ${providerName}. Add your own credentials to continue.`}
           </Text>
           <Spacer size={6} />
+          {redirectUri && isCreatingCredentials && (
+            <>
+              <Copy label="Redirect URI" value={redirectUri} />
+              <Text size="1" color="gray600">
+                Use this redirect URI when configuring your OAuth app.
+              </Text>
+              <Spacer size={8} />
+            </>
+          )}
           <Select
-            label="OAuth App Credentials"
+            label={`${oauthMethodName} App Credentials`}
             value={
               isCreatingCredentials
                 ? '__create_new__'
-                : (selectedCredentialsId ||
-                    (authCredentials.data?.items ?? []).find(c => c.isDefault)?.id ||
-                    '__use_default_credentials__')
+                : selectedCredentialsId || defaultCredentials?.id || ''
             }
-            placeholder="Use default credentials"
+            placeholder={
+              oauthAutoRegistrationEnabled && hasDefaultCredentials
+                ? 'Select or use default credentials'
+                : 'Select credentials or add your own'
+            }
             onChange={value => {
               if (value === '__create_new__') {
                 setIsCreatingCredentials(true);
-                credentialsForm.setFieldValue('selectedCredentialsId', '');
-              } else if (value === '__use_default_credentials__') {
-                setIsCreatingCredentials(false);
                 credentialsForm.setFieldValue('selectedCredentialsId', '');
               } else {
                 setIsCreatingCredentials(false);
@@ -521,12 +546,11 @@ export let ProviderSetupSessionEmbed = ({
               }
             }}
             items={[
-              ...((authCredentials.data?.items ?? []).some(c => c.isDefault)
-                ? []
-                : [{ id: '__use_default_credentials__', label: 'Use default credentials' }]),
-              ...(authCredentials.data?.items ?? []).map((cred: AuthCredential) => ({
+              ...visibleAuthCredentials.map((cred: AuthCredential) => ({
                 id: cred.id,
-                label: cred.isDefault ? (cred.name || 'Default credentials') : (cred.name || cred.id)
+                label: cred.isDefault
+                  ? cred.name || `Default ${oauthMethodName} credentials`
+                  : cred.name || cred.id
               })),
               {
                 id: '__create_new__',
@@ -534,6 +558,16 @@ export let ProviderSetupSessionEmbed = ({
               }
             ]}
           />
+          {requiresManualOAuthCredentials && !isCreatingCredentials && (
+            <>
+              <Spacer size={5} />
+              <Text size="2" color="gray600">
+                {oauthAutoRegistrationEnabled
+                  ? 'Default credentials are unavailable. Add your own credentials to continue.'
+                  : 'Default credentials are unavailable because OAuth auto-registration is disabled. Add your own credentials to continue.'}
+              </Text>
+            </>
+          )}
           {isCreatingCredentials && (
             <>
               <Spacer size={8} />
@@ -599,10 +633,13 @@ export let ProviderSetupSessionEmbed = ({
               onClick={handleCredentialsContinue}
               loading={createCredentials.isPending}
               disabled={
-                isCreatingCredentials &&
-                (!credentialsForm.values.newCredName ||
-                  !credentialsForm.values.newCredClientId ||
-                  !credentialsForm.values.newCredClientSecret)
+                (isCreatingCredentials &&
+                  (!credentialsForm.values.newCredName ||
+                    !credentialsForm.values.newCredClientId ||
+                    !credentialsForm.values.newCredClientSecret)) ||
+                (!isCreatingCredentials &&
+                  requiresManualOAuthCredentials &&
+                  !selectedCredentialsId)
               }
             >
               Continue
@@ -620,11 +657,11 @@ export let ProviderSetupSessionEmbed = ({
           return (
             <>
               <Text size="2" weight="strong">
-                Continue in the authentication window
+                Continue in the {oauthMethodName} window
               </Text>
               <Text size="2" color="gray600">
-                Complete the provider sign-in flow in the popup window. This modal will update
-                automatically when authentication finishes.
+                Complete the {providerName} sign-in flow in the popup window. This modal
+                will update automatically when authentication finishes.
               </Text>
               {setupWindowBlocked && (
                 <>
@@ -642,7 +679,7 @@ export let ProviderSetupSessionEmbed = ({
                     setSetupWindowBlocked(!opened);
                   }}
                 >
-                  Open Authentication Window
+                  Open {oauthMethodName} Window
                 </Button>
                 {onCancel && (
                   <Button variant="outline" onClick={onCancel}>
@@ -678,11 +715,11 @@ export let ProviderSetupSessionEmbed = ({
         return (
           <>
             <Text size="2" weight="strong">
-              {isOAuth ? 'Start OAuth authentication' : 'Start setup'}
+              {isOAuth ? `Start ${oauthMethodName}` : 'Start setup'}
             </Text>
             <Text size="2" color="gray600">
               {isOAuth
-                ? 'A separate authentication window will open so you can authorize this deployment.'
+                ? `A separate ${oauthMethodName} window will open so you can authorize ${providerName}.`
                 : 'Start the setup session for this authentication method.'}
             </Text>
             <Spacer size={6} />
@@ -692,7 +729,7 @@ export let ProviderSetupSessionEmbed = ({
               loading={isStarting || createSetupSession.isPending}
               disabled={!selectedMethodId}
             >
-              {isOAuth ? 'Open Authentication Window' : 'Start Setup'}
+              {isOAuth ? `Open ${oauthMethodName} Window` : 'Start Setup'}
             </Button>
             <createSetupSession.RenderError />
             {error && (

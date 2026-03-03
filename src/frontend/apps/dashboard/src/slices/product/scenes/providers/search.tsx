@@ -1,10 +1,14 @@
 import type { DashboardInstanceProvidersListOutput } from '@metorial/dashboard-sdk';
-import { renderWithLoader, renderWithPagination, useForm } from '@metorial/data-hooks';
-import { useCurrentInstance, useProviders } from '@metorial/state';
+import { renderWithPagination, useForm } from '@metorial/data-hooks';
+import {
+  useCurrentInstance,
+  useProviderDeployments,
+  useProviderListings,
+  useProviders
+} from '@metorial/state';
 import {
   Avatar,
   ButtonSize,
-  Entity,
   getButtonSize,
   Input,
   InputLabel,
@@ -14,189 +18,54 @@ import {
   Text,
   theme
 } from '@metorial/ui';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useMeasure } from 'react-use';
 import styled from 'styled-components';
 import { useDebounced } from '../../../../hooks/useDebounced';
 
 type Provider = DashboardInstanceProvidersListOutput['items'][number];
 
+export type ProviderSearchItem = {
+  id: string;
+  name?: string | null;
+  slug?: string | null;
+  description?: string | null;
+  imageUrl?: string | null;
+};
+
 let Wrapper = styled.div``;
 
-let Items = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-`;
-
-let ItemButton = styled.button`
-  display: flex;
-  padding: 0;
-  border: none;
-  background: none;
-  text-align: left;
-  width: 100%;
-  flex-direction: column;
-`;
-
-let Popular = styled.div`
+let Grid = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: 10px;
 `;
 
-let PopularItem = styled.button`
+let GridButton = styled.button`
   display: flex;
   align-items: center;
+  gap: 10px;
   padding: 10px;
   background: none;
-  border: ${theme.colors.gray300} 1px solid;
+  border: 1px solid ${theme.colors.gray300};
   border-radius: 8px;
   text-align: left;
-  gap: 10px;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+  min-width: 0;
 
-  span {
-    font-size: 14px;
-    font-weight: 600;
-    color: ${theme.colors.gray800};
+  &:hover {
+    border-color: ${theme.colors.gray500};
   }
 `;
 
-let ProviderIcon = styled.div`
-  width: 24px;
-  height: 24px;
-  border-radius: 6px;
-  background: ${theme.colors.gray200};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
+let ProviderName = styled.span`
+  font-size: 14px;
   font-weight: 600;
-  color: ${theme.colors.gray700};
+  color: ${theme.colors.gray800};
+  min-width: 0;
 `;
-
-export let ProviderSearch = ({
-  onSelect,
-  stickyTop
-}: {
-  onSelect?: (provider: Provider) => void;
-  stickyTop?: number;
-}) => {
-  let instance = useCurrentInstance();
-  let form = useForm({
-    initialValues: {
-      search: ''
-    },
-    onSubmit: async () => {},
-    schema: yup =>
-      yup.object({
-        search: yup.string().defined()
-      })
-  });
-  let searchDebounced = useDebounced(form.values.search, 300);
-
-  let providers = useProviders(instance.data?.id);
-
-  return (
-    <Wrapper>
-      <div style={{ position: 'sticky', top: stickyTop ?? 0, zIndex: 1 }}>
-        <Input
-          label="Search"
-          hideLabel
-          placeholder="Search for providers"
-          value={form.values.search}
-          onInput={value => form.setFieldValue('search', value)}
-        />
-      </div>
-
-      {renderWithPagination(providers)(providers => {
-        let filteredProviders = providers.data.items.filter(
-          p =>
-            !searchDebounced ||
-            p.name?.toLowerCase().includes(searchDebounced.toLowerCase()) ||
-            p.slug?.toLowerCase().includes(searchDebounced.toLowerCase()) ||
-            p.description?.toLowerCase().includes(searchDebounced.toLowerCase())
-        );
-
-        if (form.values.search === '') {
-          // Show popular/all providers when no search
-          return (
-            <>
-              <Spacer size={20} />
-
-              <Or text="Available Providers" />
-
-              <Spacer size={20} />
-
-              <Popular>
-                {filteredProviders.map(provider => (
-                  <PopularItem
-                    key={provider.id}
-                    onClick={() => onSelect?.(provider)}
-                    type="button"
-                  >
-                    <ProviderIcon>
-                      {(provider.name ?? provider.slug ?? 'P').charAt(0).toUpperCase()}
-                    </ProviderIcon>
-
-                    <span>{provider.name ?? provider.slug ?? 'Provider'}</span>
-                  </PopularItem>
-                ))}
-              </Popular>
-
-              {filteredProviders.length === 0 && (
-                <Text size="1" color="gray600">
-                  No providers available
-                </Text>
-              )}
-            </>
-          );
-        }
-
-        return (
-          <>
-            <Spacer size={10} />
-
-            {filteredProviders.length === 0 && (
-              <Text size="1" color="gray600">
-                No providers found
-              </Text>
-            )}
-
-            <Items>
-              {filteredProviders.map(provider => (
-                <ItemButton
-                  key={provider.id}
-                  onClick={() => onSelect?.(provider)}
-                  type="button"
-                >
-                  <Entity.Wrapper>
-                    <Entity.Content>
-                      <Entity.Field
-                        prefix={
-                          <ProviderIcon>
-                            {(provider.name ?? provider.slug ?? 'P').charAt(0).toUpperCase()}
-                          </ProviderIcon>
-                        }
-                        title={provider.name ?? provider.slug ?? 'Provider'}
-                        description={
-                          provider.description
-                            ? provider.description.substring(0, 100) +
-                              (provider.description.length > 100 ? '...' : '')
-                            : undefined
-                        }
-                      />
-                    </Entity.Content>
-                  </Entity.Wrapper>
-                </ItemButton>
-              ))}
-            </Items>
-          </>
-        );
-      })}
-    </Wrapper>
-  );
-};
 
 let FieldWrapper = styled.div`
   display: flex;
@@ -219,6 +88,179 @@ let FieldWrapper = styled.div`
     outline: 1px solid ${theme.colors.gray600};
   }
 `;
+
+let ProviderSearchGrid = ({
+  items,
+  onSelect,
+  stickyTop,
+  placeholder = 'Search for providers',
+  emptyText = 'No providers found',
+  sectionLabel = 'Providers'
+}: {
+  items: ProviderSearchItem[];
+  onSelect?: (provider: ProviderSearchItem) => void;
+  stickyTop?: number;
+  placeholder?: string;
+  emptyText?: string;
+  sectionLabel?: string;
+}) => {
+  let form = useForm({
+    initialValues: {
+      search: ''
+    },
+    onSubmit: async () => {},
+    schema: yup =>
+      yup.object({
+        search: yup.string().defined()
+      })
+  });
+  let searchDebounced = useDebounced(form.values.search, 300);
+
+  let filteredItems = items.filter(item => {
+    if (!searchDebounced) return true;
+    let query = searchDebounced.toLowerCase();
+    return (
+      (item.name ?? '').toLowerCase().includes(query) ||
+      (item.slug ?? '').toLowerCase().includes(query) ||
+      (item.description ?? '').toLowerCase().includes(query)
+    );
+  });
+
+  return (
+    <Wrapper>
+      <div style={{ position: 'sticky', top: stickyTop ?? 0, zIndex: 1 }}>
+        <Input
+          label="Search"
+          hideLabel
+          placeholder={placeholder}
+          value={form.values.search}
+          onInput={value => form.setFieldValue('search', value)}
+        />
+      </div>
+
+      <Spacer size={10} />
+
+      <Or text={sectionLabel} />
+
+      <Spacer size={10} />
+
+      {filteredItems.length === 0 ? (
+        <Text size="1" color="gray600">
+          {emptyText}
+        </Text>
+      ) : (
+        <Grid>
+          {filteredItems.map(provider => (
+            <GridButton
+              key={provider.id}
+              type="button"
+              onClick={() => onSelect?.(provider)}
+            >
+              <Avatar
+                entity={{
+                  name: provider.name ?? provider.slug ?? 'Provider',
+                  photoUrl: provider.imageUrl ?? undefined
+                }}
+                size={24}
+                radius={8}
+                noTooltip
+              />
+
+              <ProviderName>{provider.name ?? provider.slug ?? 'Provider'}</ProviderName>
+            </GridButton>
+          ))}
+        </Grid>
+      )}
+    </Wrapper>
+  );
+};
+
+export let ProviderSearch = ({
+  onSelect,
+  stickyTop
+}: {
+  onSelect?: (provider: Provider) => void;
+  stickyTop?: number;
+}) => {
+  let instance = useCurrentInstance();
+  let providers = useProviders(instance.data?.id);
+
+  return renderWithPagination(providers)(providers => (
+    <ProviderSearchGrid
+      items={providers.data.items.map(provider => ({
+        id: provider.id,
+        name: provider.name,
+        slug: provider.slug,
+        description: provider.description,
+        imageUrl: (provider as any).imageUrl ?? null
+      }))}
+      stickyTop={stickyTop}
+      sectionLabel="Providers"
+      onSelect={provider => {
+        let selectedProvider = providers.data.items.find(item => item.id === provider.id);
+        if (selectedProvider) onSelect?.(selectedProvider);
+      }}
+    />
+  ));
+};
+
+export let ProvidersWithDeploymentsSearch = ({
+  instanceId,
+  onSelect,
+  stickyTop,
+  emptyText = 'No providers found. Create a deployment first.'
+}: {
+  instanceId: string;
+  onSelect?: (provider: ProviderSearchItem) => void;
+  stickyTop?: number;
+  emptyText?: string;
+}) => {
+  let deployments = useProviderDeployments(instanceId);
+  let listings = useProviderListings({});
+
+  return renderWithPagination(deployments)(deployments => {
+    let listingLookup = new Map<
+      string,
+      { name?: string | null; imageUrl?: string | null }
+    >();
+
+    for (let listing of listings.data?.items ?? []) {
+      let providerId = listing.provider?.id;
+      if (!providerId) continue;
+      listingLookup.set(providerId, {
+        name: listing.name,
+        imageUrl: listing.imageUrl
+      });
+    }
+
+    let seen = new Set<string>();
+    let items: ProviderSearchItem[] = [];
+
+    for (let deployment of deployments.data.items) {
+      if (seen.has(deployment.providerId)) continue;
+      seen.add(deployment.providerId);
+
+      let listing = listingLookup.get(deployment.providerId);
+
+      items.push({
+        id: deployment.providerId,
+        name: listing?.name ?? deployment.name ?? deployment.providerId,
+        slug: null,
+        imageUrl: listing?.imageUrl ?? null
+      });
+    }
+
+    return (
+      <ProviderSearchGrid
+        items={items}
+        stickyTop={stickyTop}
+        sectionLabel="Providers"
+        emptyText={emptyText}
+        onSelect={onSelect}
+      />
+    );
+  });
+};
 
 export let ProviderSearchField = ({
   value,

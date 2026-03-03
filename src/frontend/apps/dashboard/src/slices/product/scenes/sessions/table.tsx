@@ -10,10 +10,22 @@ import { Badge, RenderDate, Text, theme } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
 
 export let SessionConnectionStatusBadge = ({
-  connectionStatus
+  connectionStatus,
+  hasErrors,
+  hasWarnings
 }: {
   connectionStatus: DashboardInstanceSessionsGetOutput['connectionState'] | undefined;
+  hasErrors?: boolean | null;
+  hasWarnings?: boolean | null;
 }) => {
+  if (hasErrors) {
+    return <Badge color="red">Error</Badge>;
+  }
+
+  if (hasWarnings) {
+    return <Badge color="orange">Warning</Badge>;
+  }
+
   let colorByState: Record<string, 'blue' | 'gray'> = {
     connected: 'blue',
     disconnected: 'gray'
@@ -49,6 +61,8 @@ export let SessionsTable = (filter: DashboardInstanceSessionsListQuery) => {
           data: [
             <SessionConnectionStatusBadge
               connectionStatus={session.connectionState}
+              hasErrors={session.hasErrors}
+              hasWarnings={session.hasWarnings}
             />,
             <Text size="2" weight="strong">
               {session.providers

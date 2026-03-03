@@ -1,7 +1,7 @@
 import { useForm } from '@metorial/data-hooks';
 import {
+  useCreateProviderConfigVault,
   useCurrentInstance,
-  useCreateProviderConfig,
   useProviderConfigSchema,
   useProviderDeployment
 } from '@metorial/state';
@@ -10,26 +10,26 @@ import { JSONSchema7 } from 'json-schema';
 import { useState } from 'react';
 import { JsonSchemaInput } from '../jsonSchemaInput';
 
-export type ProviderConfigFormProps =
-  | { type: 'create'; providerDeploymentId: string; instanceId?: string }
-  | { type: 'update'; providerDeploymentId: string; configId: string; instanceId?: string };
+export type ProviderConfigVaultFormProps = {
+  type: 'create';
+  providerDeploymentId: string;
+  instanceId?: string;
+};
 
-export let ProviderConfigForm = (
-  props: ProviderConfigFormProps & {
+export let ProviderConfigVaultForm = (
+  props: ProviderConfigVaultFormProps & {
     close?: () => void;
-    onCreate?: (config: any) => void;
+    onCreate?: (vault: any) => void;
     onBack?: () => void;
   }
 ) => {
   let instance = useCurrentInstance();
   let instanceId = props.instanceId ?? instance.data?.id;
-  let createMutation = useCreateProviderConfig();
+  let createMutation = useCreateProviderConfigVault();
   let deployment = useProviderDeployment(instanceId, props.providerDeploymentId);
-
-  // Fetch config schema for the provider deployment
   let configSchema = useProviderConfigSchema(instanceId, props.providerDeploymentId);
 
-  let [configData, setConfigData] = useState<Record<string, any>>({});
+  let [vaultData, setVaultData] = useState<Record<string, any>>({});
 
   let hasSchema = configSchema.data?.schema && typeof configSchema.data.schema === 'object';
   let jsonSchema = configSchema.data?.schema?.schema;
@@ -58,17 +58,15 @@ export let ProviderConfigForm = (
 
     form.setFieldError('name', undefined);
 
-    if (props.type !== 'create' || !instanceId || !deployment.data?.providerId || !hasSchema) {
-      return;
-    }
+    if (!instanceId || !deployment.data?.providerId || !hasSchema) return;
 
     let [result] = await createMutation.mutate({
       instanceId,
+      providerId: deployment.data.providerId,
       providerDeploymentId: props.providerDeploymentId,
       name,
       description: form.values.description || undefined,
-      providerId: deployment.data.providerId,
-      value: configData
+      value: vaultData
     });
 
     if (!result) return;
@@ -77,7 +75,7 @@ export let ProviderConfigForm = (
     props.close?.();
   };
 
-  if (configSchema.isLoading) {
+  if (configSchema.isLoading || deployment.isLoading) {
     return <CenteredSpinner />;
   }
 
@@ -101,9 +99,9 @@ export let ProviderConfigForm = (
 
           <JsonSchemaInput
             schema={(jsonSchema ?? {}) as JSONSchema7}
-            value={configData}
-            onChange={setConfigData}
-            label="Configuration"
+            value={vaultData}
+            onChange={setVaultData}
+            label="Vault Values"
           />
 
           <Spacer size={15} />
@@ -118,7 +116,7 @@ export let ProviderConfigForm = (
               loading={createMutation.isPending}
               disabled={!hasSchema}
             >
-              {props.type === 'create' ? 'Create' : 'Update'}
+              Create
             </Button>
           </Dialog.Actions>
 
@@ -126,8 +124,8 @@ export let ProviderConfigForm = (
         </form>
       ) : (
         <Text size="2" color="gray600">
-          No configuration schema is provided for this deployment, so this config cannot be
-          created from the dashboard.
+          No configuration schema is available for this deployment, so a vault cannot be created
+          from the dashboard yet.
         </Text>
       )}
 
