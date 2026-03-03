@@ -16,6 +16,7 @@ model AccessTagPolicy {
 
   name  String
   roles String[]
+  systemIdentifier String?
 
   organizationOid BigInt
   organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
@@ -23,6 +24,8 @@ model AccessTagPolicy {
   accessTagEntities AccessTagEntity[]
 
   createdAt DateTime @default(now())
+
+  @@unique([organizationOid, systemIdentifier])
 }
 
 model AccessTagEntity {

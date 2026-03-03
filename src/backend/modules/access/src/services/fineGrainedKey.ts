@@ -1,7 +1,14 @@
 import { UnifiedApiKey } from '@metorial/api-keys';
 import { getConfig } from '@metorial/config';
 import { Context } from '@metorial/context';
-import { AccessTag, db, FineGrainedKey, ID, Instance, withTransaction } from '@metorial/db';
+import {
+  AccessTag,
+  db,
+  FineGrainedKey,
+  ID,
+  Instance,
+  withTransaction
+} from '@metorial/db';
 import { forbiddenError, notFoundError, ServiceError } from '@metorial/error';
 import { Service } from '@metorial/service';
 
@@ -25,7 +32,7 @@ class FineGrainedKeyService {
     input: {
       expiresAt?: Date;
     };
-    context: Context;
+    context?: Context;
     instance: Instance;
     accessTag: AccessTag;
   }) {
@@ -120,7 +127,8 @@ class FineGrainedKeyService {
       },
       include: includeFineGrainedKey
     });
-    if (!fineGrainedKey) throw new ServiceError(notFoundError('fine_grained_key', d.fineGrainedKeyId));
+    if (!fineGrainedKey)
+      throw new ServiceError(notFoundError('fine_grained_key', d.fineGrainedKeyId));
 
     return fineGrainedKey;
   }

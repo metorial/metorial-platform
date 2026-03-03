@@ -1,18 +1,16 @@
-import { UnifiedApiKey } from '@metorial/api-keys';
-import { getConfig } from '@metorial/config';
-import { AccessTag, db, ID, Instance, withTransaction } from '@metorial/db';
+import { db, ID, Instance, withTransaction } from '@metorial/db';
 import { Service } from '@metorial/service';
 import { accessTagService } from './accessTag';
+import { fineGrainedKeyService } from './fineGrainedKey';
 
-let SESSION_CLIENT_SECRET_POLICY_NAME = 'Session Client Secret Policy';
+let SESSION_CLIENT_SECRET_POLICY_NAME = 'Metorial: Session Client Secret Policy';
+let SESSION_CLIENT_SECRET_POLICY_SYSTEM_IDENTIFIER = 'session_client_secret';
 
 let includeSessionClientSecretReference = { fineGrainedKey: true } as const;
 
 class SessionClientSecretReferenceService {
   async createForSession(d: { instance: Instance; sessionId: string }) {
-    let dbAny = db as any;
-
-    let existing = await dbAny.sessionClientSecretReference.findFirst({
+    let existing = await db.sessionClientSecretReference.findFirst({
       where: {
         instanceOid: d.instance.oid,
         sessionId: d.sessionId
@@ -30,18 +28,26 @@ class SessionClientSecretReferenceService {
       let accessTagPolicy = await db.accessTagPolicy.findFirst({
         where: {
           organizationOid: d.instance.organizationOid,
-          name: SESSION_CLIENT_SECRET_POLICY_NAME
+          systemIdentifier: SESSION_CLIENT_SECRET_POLICY_SYSTEM_IDENTIFIER
         }
       });
 
       if (!accessTagPolicy) {
-        accessTagPolicy = await db.accessTagPolicy.create({
-          data: {
+        accessTagPolicy = await db.accessTagPolicy.upsert({
+          where: {
+            organizationOid_systemIdentifier: {
+              systemIdentifier: SESSION_CLIENT_SECRET_POLICY_SYSTEM_IDENTIFIER,
+              organizationOid: d.instance.organizationOid
+            }
+          },
+          create: {
             id: await ID.generateId('accessTagPolicy'),
             name: SESSION_CLIENT_SECRET_POLICY_NAME,
+            systemIdentifier: SESSION_CLIENT_SECRET_POLICY_SYSTEM_IDENTIFIER,
             organizationOid: d.instance.organizationOid,
             roles: ['instance.provider.session:read']
-          }
+          },
+          update: {}
         });
       }
 
@@ -55,21 +61,10 @@ class SessionClientSecretReferenceService {
         }
       });
 
-      let secretKey = UnifiedApiKey.create({
-        type: 'fine_grained_token',
-        config: { url: getConfig().urls.apiUrl, instance: 'v2-us1' }
-      });
-
-      let fineGrainedKey = await db.fineGrainedKey.create({
-        data: {
-          id: await ID.generateId('fineGrainedKey'),
-          status: 'active',
-          instanceOid: d.instance.oid,
-          accessTagOid: (accessTag as AccessTag).oid,
-          secret: secretKey.toString(),
-          secretRedacted: UnifiedApiKey.redact(secretKey),
-          secretLength: secretKey.toString().length
-        }
+      let { fineGrainedKey } = await fineGrainedKeyService.createFineGrainedKey({
+        input: {},
+        instance: d.instance,
+        accessTag
       });
 
       let reference = await db.sessionClientSecretReference.create({
