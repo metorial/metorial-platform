@@ -150,7 +150,7 @@ export let createSubspaceService = <SubspaceController extends {}, Overrides ext
   controller: SubspaceController,
   methods: (keyof SubspaceController)[],
   overrides: (subspace: SubspaceService<SubspaceController, {}>) => Overrides
-): SubspaceService<SubspaceController, Overrides> => {
+) => {
   let methodsObj = buildServiceMethods(
     methods as any[],
     methodName => async (args: any[]) => {
@@ -190,7 +190,7 @@ export let createSubspacePublicService = <SubspaceController extends {}, Overrid
   controller: SubspaceController,
   methods: (keyof SubspaceController)[],
   overrides: (subspace: SubspacePublicService<SubspaceController, {}>) => Overrides
-): SubspacePublicService<SubspaceController, Overrides> => {
+) => {
   let methodsObj = buildServiceMethods(
     methods as any[],
     methodName => async (args: any[]) => (controller as any)[methodName](...args),

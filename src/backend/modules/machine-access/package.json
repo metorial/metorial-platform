@@ -16,7 +16,7 @@
     "@metorial/fabric": "^1.0.0",
     "@lowerdeck/pagination": "^1.0.6",
     "@metorial/queue": "^1.0.0",
-    "@lowerdeck/service": "^1.0.5",
+    "@lowerdeck/service": "^1.0.7",
     "@metorial/api-keys": "^1.0.0",
     "@metorial/config": "^1.0.0",
     "@lowerdeck/hash": "^1.0.4",
