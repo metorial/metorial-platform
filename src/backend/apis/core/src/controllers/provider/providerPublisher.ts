@@ -37,7 +37,7 @@ export let publisherController = Controller.create(
         name: 'List publishers',
         description: 'Returns a paginated list of publishers.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.publisher:read'] }))
       .outputList(publisherPresenter)
       .query('default', Paginator.validate(v.object({})))
       .do(async ctx => {
@@ -55,7 +55,7 @@ export let publisherController = Controller.create(
         name: 'Get publisher',
         description: 'Retrieves a specific publisher by ID.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.publisher:read'] }))
       .output(publisherPresenter)
       .do(async ctx => {
         return publisherPresenter.present({ publisher: ctx.publisher });

@@ -158,3 +158,15 @@ let SortableItem = ({
     </ListItem>
   );
 };
+
+export let CheckList = (p: {
+  items: {
+    id: string;
+    label: React.ReactNode;
+    isChecked: boolean;
+  }[];
+  onChange: (items: { id: string; label: React.ReactNode; isChecked: boolean }[]) => void;
+  syncItems?: boolean;
+}) => {
+  return <SortableCheckList {...p} sortable={false} />;
+};

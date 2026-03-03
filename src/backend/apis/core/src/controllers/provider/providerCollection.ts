@@ -38,7 +38,7 @@ export let providerCollectionController = Controller.create(
         name: 'List provider collections',
         description: 'Returns a paginated list of provider collections.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.collection:read'] }))
       .outputList(providerCollectionPresenter)
       .query(
         'default',
@@ -81,7 +81,7 @@ export let providerCollectionController = Controller.create(
           description: 'Retrieves a specific provider collection by ID.'
         }
       )
-      .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.collection:read'] }))
       .output(providerCollectionPresenter)
       .do(async ctx => {
         return providerCollectionPresenter.present({ collection: ctx.collection });

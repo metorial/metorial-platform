@@ -38,7 +38,7 @@ export let providerConfigVaultController = Controller.create(
         name: 'List provider config vaults',
         description: 'Returns a paginated list of provider config vaults.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider.deployment:write'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.config_vault:read'] }))
       .outputList(providerConfigVaultPresenter)
       .query(
         'default',
@@ -103,7 +103,7 @@ export let providerConfigVaultController = Controller.create(
           description: 'Retrieves a specific provider config vault by ID.'
         }
       )
-      .use(checkAccess({ possibleScopes: ['instance.provider.deployment:write'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.config_vault:read'] }))
       .output(providerConfigVaultPresenter)
       .do(async ctx => {
         return providerConfigVaultPresenter.present({
@@ -119,7 +119,7 @@ export let providerConfigVaultController = Controller.create(
           description: 'Creates a new provider config vault.'
         }
       )
-      .use(checkAccess({ possibleScopes: ['instance.provider.deployment:write'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.config_vault:write'] }))
       .body(
         'default',
         v.object({
@@ -180,7 +180,7 @@ export let providerConfigVaultController = Controller.create(
           description: 'Updates a specific provider config vault.'
         }
       )
-      .use(checkAccess({ possibleScopes: ['instance.provider.deployment:write'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.config_vault:write'] }))
       .body(
         'default',
         v.object({
@@ -220,7 +220,7 @@ export let providerConfigVaultController = Controller.create(
           description: 'Permanently deletes a provider config vault.'
         }
       )
-      .use(checkAccess({ possibleScopes: ['instance.provider.deployment:write'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.config_vault:write'] }))
       .output(providerConfigVaultPresenter)
       .do(async ctx => {
         return providerConfigVaultPresenter.present({

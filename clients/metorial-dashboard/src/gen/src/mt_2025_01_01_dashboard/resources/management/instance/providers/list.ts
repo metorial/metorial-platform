@@ -11,7 +11,6 @@ export type ManagementInstanceProvidersListOutput = {
       id: string;
       name: string;
       description: string | null;
-      slug: string;
       imageUrl: string;
       createdAt: Date;
       updatedAt: Date;
@@ -95,7 +94,6 @@ export let mapManagementInstanceProvidersListOutput =
                     'description',
                     mtMap.passthrough()
                   ),
-                  slug: mtMap.objectField('slug', mtMap.passthrough()),
                   imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
                   createdAt: mtMap.objectField('created_at', mtMap.date()),
                   updatedAt: mtMap.objectField('updated_at', mtMap.date())

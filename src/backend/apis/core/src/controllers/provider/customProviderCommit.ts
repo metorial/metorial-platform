@@ -38,7 +38,7 @@ export let customProviderCommitController = Controller.create(
         name: 'List custom provider commits',
         description: 'Returns a paginated list of commits for a custom provider.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.custom.commit:read'] }))
       .outputList(subspaceCustomProviderCommitPresenter)
       .query(
         'default',
@@ -96,7 +96,7 @@ export let customProviderCommitController = Controller.create(
           description: 'Retrieves a specific commit.'
         }
       )
-      .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.custom.commit:read'] }))
       .output(subspaceCustomProviderCommitPresenter)
       .do(async ctx => {
         return subspaceCustomProviderCommitPresenter.present({
@@ -109,7 +109,7 @@ export let customProviderCommitController = Controller.create(
         name: 'Create custom provider commit',
         description: 'Creates a new commit to promote or rollback a version in an environment.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider:write'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.custom.commit:write'] }))
       .body(
         'default',
         v.object({

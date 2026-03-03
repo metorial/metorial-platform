@@ -43,7 +43,7 @@ export let customProviderVersionController = Controller.create(
         name: 'List custom provider versions',
         description: 'Returns a paginated list of versions for a custom provider.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.custom.version:read'] }))
       .outputList(subspaceCustomProviderVersionPresenter)
       .query(
         'default',
@@ -130,7 +130,7 @@ export let customProviderVersionController = Controller.create(
           description: 'Retrieves a specific version of a custom provider.'
         }
       )
-      .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.custom.version:read'] }))
       .output(subspaceCustomProviderVersionPresenter)
       .do(async ctx => {
         return subspaceCustomProviderVersionPresenter.present({
@@ -143,7 +143,7 @@ export let customProviderVersionController = Controller.create(
         name: 'Create custom provider version',
         description: 'Creates a new version for a custom provider.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider:write'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.custom.version:write'] }))
       .body(
         'default',
         v.object({
