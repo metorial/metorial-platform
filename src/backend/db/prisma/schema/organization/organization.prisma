@@ -48,4 +48,5 @@ model Organization {
   accessLimiters  AccessLimiter[]
   team            Team[]
   teamRole        TeamRole[]
+  accessTagPolicies AccessTagPolicy[]
 }

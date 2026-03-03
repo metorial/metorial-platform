@@ -1,0 +1,48 @@
+enum FineGrainedKeyStatus {
+  active
+  deleted
+  expired
+}
+
+model FineGrainedKey {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status FineGrainedKeyStatus
+
+  secret       String @unique
+  secretRedacted String
+  secretLength   Int
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  accessTagOid BigInt
+  accessTag    AccessTag @relation(fields: [accessTagOid], references: [oid], onDelete: Cascade)
+
+  deletedAt  DateTime?
+  lastUsedAt DateTime?
+  expiresAt  DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
+
+  sessionClientSecretReferences SessionClientSecretReference[]
+
+  @@index([instanceOid])
+  @@index([accessTagOid])
+  @@index([expiresAt])
+  @@index([status])
+}
+
+model SessionClientSecretReference {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  sessionId String @unique
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  fineGrainedKeyOid BigInt
+  fineGrainedKey    FineGrainedKey @relation(fields: [fineGrainedKeyOid], references: [oid], onDelete: Cascade)
+}

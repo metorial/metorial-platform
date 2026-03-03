@@ -27,7 +27,7 @@ export let scmInstallationController = Controller.create(
       .do(async ctx => {
         let paginator = await subspaceScmConnectionService.list({
           instance: ctx.instance,
-          organizationActor: ctx.actor
+          organizationActor: ctx.actor!
         });
 
         let list = await paginator.run(ctx.query);
@@ -58,7 +58,7 @@ export let scmInstallationController = Controller.create(
       .do(async ctx => {
         let scmConnectionSetup = await subspaceScmConnectionSetupSessionService.create({
           instance: ctx.instance,
-          organizationActor: ctx.actor,
+          organizationActor: ctx.actor!,
           redirectUrl: ctx.body.redirect_url
         });
 

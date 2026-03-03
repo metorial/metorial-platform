@@ -13,6 +13,7 @@ export let v1SessionPresenter = Presenter.create(providerSessionType)
     metadata: session.metadata,
     connection_state: session.connectionState,
     connection_url: `${getConfig().urls.mcpUrl}/mcp/${session.id}`,
+    client_secret: session.clientSecret ?? null,
     usage: {
       total_productive_client_message_count: session.usage.totalProductiveClientMessageCount,
       total_productive_provider_message_count:
@@ -68,6 +69,13 @@ export let v1SessionPresenter = Presenter.create(providerSessionType)
         description: 'MCP connection URL for this session',
         examples: ['https://mcp.metorial.com/mcp/ses_4dEfGhJkLmNpQrSt']
       }),
+      client_secret: v.nullable(
+        v.string({
+          name: 'client_secret',
+          description: 'Session-scoped fine grained client secret token',
+          examples: ['metorial_fk_4eC39HqLyjWDarjtT1zdp7dc']
+        })
+      ),
       usage: v.object({
         total_productive_client_message_count: v.number({
           name: 'total_productive_client_message_count',

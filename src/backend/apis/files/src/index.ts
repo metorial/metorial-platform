@@ -31,7 +31,10 @@ export let fileApi = createHono()
   .post('/files', async c => {
     let { auth } = await authenticate(c.req.raw, new URL(c.req.url));
 
-    if (auth.type == 'machine' && auth.restrictions.type == 'instance') {
+    if (
+      auth.type == 'fine_grained' ||
+      (auth.type == 'machine' && auth.restrictions.type == 'instance')
+    ) {
       throw new ServiceError(
         forbiddenError({
           message: 'Instance API keys are not allowed to upload files'

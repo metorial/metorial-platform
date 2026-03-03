@@ -8,7 +8,9 @@ export let restServer = new RestServerBuilder<AuthInfo, ApiVersion>()
   .authenticate(authenticate)
   .checkCors(
     ({ auth, origin }) =>
-      auth.machineAccess?.type == 'instance_publishable' || auth.type == 'user'
+      auth.type == 'fine_grained' ||
+      auth.machineAccess?.type == 'instance_publishable' ||
+      auth.type == 'user'
   )
   .rateLimiter(
     new RateLimiter(
@@ -16,6 +18,8 @@ export let restServer = new RestServerBuilder<AuthInfo, ApiVersion>()
       ({ auth, context }) =>
         auth.type == 'user'
           ? auth.user.id
+          : auth.type == 'fine_grained'
+            ? auth.fineGrainedKey.id
           : (auth.machineAccess.organizationOid?.toString() ?? auth.machineAccess.id),
 
       ({ auth }) => 5000
@@ -23,6 +27,7 @@ export let restServer = new RestServerBuilder<AuthInfo, ApiVersion>()
   )
   .providePresenterContext(c => ({
     apiVersion: c.apiVersion,
-    accessType: c.machineAccess?.type ?? 'user_auth_token'
+    accessType:
+      c.type == 'fine_grained' ? 'fine_grained_token' : c.machineAccess?.type ?? 'user_auth_token'
   }))
   .build();

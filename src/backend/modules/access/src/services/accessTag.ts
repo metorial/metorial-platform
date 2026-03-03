@@ -1,6 +1,7 @@
-import { AccessTagAccessLevel, db, Instance } from '@metorial/db';
+import { db, Instance } from '@metorial/db';
 import { forbiddenError, ServiceError } from '@metorial/error';
 import { Service } from '@metorial/service';
+import { Scope } from '../definitions';
 
 export type AccessTagSelector = bigint | { oid: bigint } | { accessTagOid: bigint };
 export type AccessTagSelectorList = AccessTagSelector[];
@@ -32,12 +33,17 @@ class accessTagServiceImpl {
     return getAccessTagSelectorListOids(d.tags);
   }
 
-  async linkAccessTagToEntity(d: { tags: AnyAccessTagSelector; level: AccessTagAccessLevel }) {
+  async linkAccessTagToEntity(d: {
+    tags: AnyAccessTagSelector;
+    accessTagPolicyOid: bigint;
+    subspaceSessionId?: string | null;
+  }) {
     let oids = getAccessTagSelectorListOids(d.tags);
 
     return {
       create: oids.map(accessTagOid => ({
-        level: d.level,
+        accessTagPolicyOid: d.accessTagPolicyOid,
+        subspaceSessionId: d.subspaceSessionId ?? null,
         accessTagOid
       }))
     };
@@ -45,7 +51,8 @@ class accessTagServiceImpl {
 
   async getAccessTagFilter(d: {
     tags: AnyAccessTagSelector | undefined;
-    level: AccessTagAccessLevel;
+    roles: Scope[];
+    subspaceSessionId?: string;
   }) {
     if (!d.tags) return undefined;
 
@@ -54,22 +61,33 @@ class accessTagServiceImpl {
     return {
       some: {
         accessTagOid: { in: oids },
-        level: d.level == 'read' ? { in: ['read' as const, 'read_write' as const] } : d.level
+        accessTagPolicy: {
+          roles: { hasSome: d.roles }
+        },
+        ...(d.subspaceSessionId ? { subspaceSessionId: d.subspaceSessionId } : {})
       }
     };
   }
 
   async checkResourceAccess(d: {
     tags?: AnyAccessTagSelector;
-    level: AccessTagAccessLevel;
+    roles: Scope[];
+    subspaceSessionId?: string;
     checker: (filter: {
       some: {
         accessTagOid: { in: bigint[] };
-        level: AccessTagAccessLevel | { in: AccessTagAccessLevel[] };
+        accessTagPolicy: {
+          roles: { hasSome: Scope[] };
+        };
+        subspaceSessionId?: string;
       };
     }) => Promise<any>;
   }) {
-    let filter = await this.getAccessTagFilter({ tags: d.tags, level: d.level });
+    let filter = await this.getAccessTagFilter({
+      tags: d.tags,
+      roles: d.roles,
+      subspaceSessionId: d.subspaceSessionId
+    });
     if (!filter) return;
 
     let ok = await d.checker({

@@ -65,7 +65,7 @@ export let dashboardUserController = Controller.create(
       )
       .output(userPresenter)
       .do(async ctx => {
-        if (ctx.auth.machineAccess) {
+        if (ctx.auth.type != 'user' || ctx.auth.machineAccess) {
           throw new ServiceError(
             badRequestError({
               message: 'Cannot delete user using API'

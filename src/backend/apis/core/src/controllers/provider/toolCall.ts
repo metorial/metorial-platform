@@ -8,23 +8,24 @@ import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { toolCallPresenter } from '../../presenters';
 
-let toolCallGroup = instanceGroup.use(async ctx => {
-  if (!ctx.params.toolCallId) {
-    throw new ServiceError(
-      badRequestError({
-        message: 'toolCallId is required',
-        description: 'The toolCallId path parameter is required.'
-      })
-    );
-  }
+let toolCallGroup = instanceGroup
+  .use(async ctx => {
+    if (!ctx.params.toolCallId) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'toolCallId is required',
+          description: 'The toolCallId path parameter is required.'
+        })
+      );
+    }
 
-  let toolCall = await subspaceToolCallService.get({
-    instance: ctx.instance,
-    toolCallId: ctx.params.toolCallId
+    let toolCall = await subspaceToolCallService.get({
+      instance: ctx.instance,
+      toolCallId: ctx.params.toolCallId
+    });
+
+    return { toolCall };
   });
-
-  return { toolCall };
-});
 
 export let toolCallController = Controller.create(
   {

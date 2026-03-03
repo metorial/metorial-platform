@@ -1,6 +1,7 @@
 import { Fabric } from '@metorial/fabric';
 import { usageService } from '@metorial/module-usage';
 import { getSentry } from '@metorial/sentry';
+import { narrowSessionIdFilter } from '../lib/fineGrainedSessionFilter';
 import { createSubspaceService, toEventBase } from '../lib/subspaceService';
 import { subspace } from '../subspace';
 
@@ -10,6 +11,19 @@ export let subspaceSessionProviderService = createSubspaceService(
   subspace.sessionProvider,
   ['get', 'list', 'create', 'update', 'delete'],
   inner => ({
+    list: async (
+      input: Parameters<typeof inner.list>[0] & { accessTagSessionIds?: string[] }
+    ) => {
+      let sessionIds = narrowSessionIdFilter({
+        allowedSessionIds: input.accessTagSessionIds,
+        requestedSessionIds: input.sessionIds
+      });
+
+      return await inner.list({
+        ...input,
+        sessionIds
+      });
+    },
     create: async (...params: Parameters<typeof inner.create>) => {
       let eventBase = toEventBase(params[0]);
       await Fabric.fire('provider.session.provider.created:before', eventBase);

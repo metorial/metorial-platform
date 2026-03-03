@@ -9,11 +9,13 @@ export let checkAccess = apiGroup.createMiddleware(
     ctx,
     input: {
       possibleScopes: Scope[];
+      fineGrainedPolicy?: 'allow' | 'deny';
     }
   ) => {
     await accessService.checkAccess({
       authInfo: ctx.auth,
-      possibleScopes: input.possibleScopes
+      possibleScopes: input.possibleScopes,
+      fineGrainedPolicy: input.fineGrainedPolicy
     });
 
     if (ctx.auth.type == 'user' && 'instance' in ctx && ctx.instance) {
