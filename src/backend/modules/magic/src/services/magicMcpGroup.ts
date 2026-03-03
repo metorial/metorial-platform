@@ -8,19 +8,22 @@ import {
   Organization,
   OrganizationActor
 } from '@metorial/db';
-import { notFoundError, preconditionFailedError, ServiceError } from '@metorial/error';
+import {
+  goneError,
+  notFoundError,
+  preconditionFailedError,
+  ServiceError
+} from '@metorial/error';
 import { generatePlainId } from '@metorial/id';
+import { searchMagicMcpGroupIds } from '@metorial/module-search';
 import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
-
-let include = {};
-
-let toSlug = (value: string) =>
-  value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
+import { slugify } from '@metorial/slugify';
+import {
+  enqueueMagicMcpGroupCreated,
+  enqueueMagicMcpGroupDeleted,
+  enqueueMagicMcpGroupUpdated
+} from '../queues/lifecycle/magicMcpGroup';
 
 class MagicMcpGroupImpl {
   async getMagicMcpGroupById(d: { instance: Instance; magicMcpGroupId: string }) {
@@ -28,8 +31,7 @@ class MagicMcpGroupImpl {
       where: {
         instanceOid: d.instance.oid,
         id: d.magicMcpGroupId
-      },
-      include
+      }
     });
     if (!magicMcpGroup) throw new ServiceError(notFoundError('magic_mcp.group'));
 
@@ -47,9 +49,9 @@ class MagicMcpGroupImpl {
       metadata?: Record<string, any>;
     };
   }) {
-    let slug = `${toSlug(d.input.name ?? 'group')}-${generatePlainId(6).toLowerCase()}`;
+    let slug = `${slugify(d.input.name ?? 'group')}-${generatePlainId(6).toLowerCase()}`;
 
-    return await db.magicMcpGroup.create({
+    let magicMcpGroup = await db.magicMcpGroup.create({
       data: {
         id: await ID.generateId('magicMcpGroup'),
         status: 'active',
@@ -58,9 +60,12 @@ class MagicMcpGroupImpl {
         description: d.input.description,
         metadata: d.input.metadata || {},
         slug
-      },
-      include
+      }
     });
+
+    await enqueueMagicMcpGroupCreated(magicMcpGroup.id);
+
+    return magicMcpGroup;
   }
 
   async updateMagicMcpGroup(d: {
@@ -71,6 +76,14 @@ class MagicMcpGroupImpl {
       metadata?: Record<string, any> | null;
     };
   }) {
+    if (d.group.status === 'deleted') {
+      throw new ServiceError(
+        goneError({
+          message: 'This magic MCP group has been deleted'
+        })
+      );
+    }
+
     if (d.group.status != 'active') {
       throw new ServiceError(
         preconditionFailedError({
@@ -79,16 +92,19 @@ class MagicMcpGroupImpl {
       );
     }
 
-    return await db.magicMcpGroup.update({
+    let magicMcpGroup = await db.magicMcpGroup.update({
       where: { id: d.group.id },
       data: {
         name: d.input.name === undefined ? d.group.name : d.input.name,
         description:
           d.input.description === undefined ? d.group.description : d.input.description,
         metadata: d.input.metadata === undefined ? d.group.metadata : d.input.metadata
-      },
-      include
+      }
     });
+
+    await enqueueMagicMcpGroupUpdated(magicMcpGroup.id);
+
+    return magicMcpGroup;
   }
 
   async listMagicMcpGroups(d: {
@@ -96,6 +112,16 @@ class MagicMcpGroupImpl {
     instance: Instance;
     status?: MagicMcpGroupStatus[];
   }) {
+    let normalizedSearch = d.search?.trim();
+    if (!normalizedSearch?.length) normalizedSearch = undefined;
+
+    let searchedGroupIds = normalizedSearch
+      ? await searchMagicMcpGroupIds({
+          instanceId: d.instance.id,
+          query: normalizedSearch
+        })
+      : undefined;
+
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
         return await db.magicMcpGroup.findMany({
@@ -105,24 +131,33 @@ class MagicMcpGroupImpl {
             AND: [
               d.status
                 ? { status: { in: d.status } }
-                : { status: { not: 'archived' as const } }
+                : { status: { notIn: ['archived', 'deleted'] as MagicMcpGroupStatus[] } },
+              searchedGroupIds !== undefined ? { id: { in: searchedGroupIds } } : undefined!
             ].filter(Boolean),
-            OR: d.search
-              ? [
-                  { id: { contains: d.search, mode: 'insensitive' } },
-                  { name: { contains: d.search, mode: 'insensitive' } },
-                  { description: { contains: d.search, mode: 'insensitive' } },
-                  { slug: { contains: d.search, mode: 'insensitive' } }
-                ]
-              : undefined
-          },
-          include
+            OR:
+              normalizedSearch && searchedGroupIds === undefined
+                ? [
+                    { id: { contains: normalizedSearch, mode: 'insensitive' } },
+                    { name: { contains: normalizedSearch, mode: 'insensitive' } },
+                    { description: { contains: normalizedSearch, mode: 'insensitive' } },
+                    { slug: { contains: normalizedSearch, mode: 'insensitive' } }
+                  ]
+                : undefined
+          }
         });
       })
     );
   }
 
   async deleteMagicMcpGroup(d: { group: MagicMcpGroup }) {
+    if (d.group.status === 'deleted') {
+      throw new ServiceError(
+        goneError({
+          message: 'This magic MCP group has been deleted'
+        })
+      );
+    }
+
     if (d.group.status != 'active') {
       throw new ServiceError(
         preconditionFailedError({
@@ -131,7 +166,7 @@ class MagicMcpGroupImpl {
       );
     }
 
-    return await db.$transaction(async tx => {
+    let deletedGroup = await db.$transaction(async tx => {
       let affectedTokenOids = (
         await tx.magicMcpGroupToken.findMany({
           where: {
@@ -144,8 +179,24 @@ class MagicMcpGroupImpl {
         })
       ).map(link => link.magicMcpTokenOid);
 
-      let deletedGroup = await tx.magicMcpGroup.delete({
-        where: { id: d.group.id }
+      await tx.magicMcpGroupServer.deleteMany({
+        where: {
+          magicMcpGroupOid: d.group.oid
+        }
+      });
+
+      await tx.magicMcpGroupToken.deleteMany({
+        where: {
+          magicMcpGroupOid: d.group.oid
+        }
+      });
+
+      let deletedGroup = await tx.magicMcpGroup.update({
+        where: { id: d.group.id },
+        data: {
+          status: 'deleted',
+          deletedAt: new Date()
+        }
       });
 
       if (affectedTokenOids.length > 0) {
@@ -187,9 +238,21 @@ class MagicMcpGroupImpl {
 
       return deletedGroup;
     });
+
+    await enqueueMagicMcpGroupDeleted(deletedGroup.id);
+
+    return deletedGroup;
   }
 
   async addServersToGroup(d: { group: MagicMcpGroup; serverIds: string[] }) {
+    if (d.group.status === 'deleted') {
+      throw new ServiceError(
+        goneError({
+          message: 'This magic MCP group has been deleted'
+        })
+      );
+    }
+
     let servers = await db.magicMcpServer.findMany({
       where: {
         id: { in: d.serverIds },
@@ -209,6 +272,14 @@ class MagicMcpGroupImpl {
   }
 
   async removeServersFromGroup(d: { group: MagicMcpGroup; serverIds: string[] }) {
+    if (d.group.status === 'deleted') {
+      throw new ServiceError(
+        goneError({
+          message: 'This magic MCP group has been deleted'
+        })
+      );
+    }
+
     let servers = await db.magicMcpServer.findMany({
       where: {
         id: { in: d.serverIds },
@@ -235,8 +306,7 @@ class MagicMcpGroupImpl {
       where: {
         id: { in: d.groupIds },
         instanceOid: d.instance.oid
-      },
-      include
+      }
     });
 
     if (groups.length !== idSet.length) {

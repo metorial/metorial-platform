@@ -1,3 +1,5 @@
+import { UnifiedApiKey } from '@metorial/api-keys';
+import { getConfig } from '@metorial/config';
 import {
   db,
   ID,
@@ -12,11 +14,14 @@ import {
   ServiceError,
   unauthorizedError
 } from '@metorial/error';
-import { generatePlainId } from '@metorial/id';
 import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
 
-let createMagicMcpSecret = () => `metorial_mk_${generatePlainId(32)}`;
+let createMagicMcpSecret = () =>
+  UnifiedApiKey.create({
+    type: 'magic_mcp_token_secret',
+    config: { url: getConfig().urls.apiUrl, instance: 'v2-us1' }
+  }).toString();
 
 let include = {
   groups: {
@@ -187,6 +192,7 @@ class MagicMcpTokenImpl {
 
     let group = await db.magicMcpGroup.findFirst({
       where: {
+        status: 'active',
         servers: {
           some: {
             magicMcpServerOid: d.server.oid
@@ -201,18 +207,6 @@ class MagicMcpTokenImpl {
     });
 
     return !!group;
-  }
-
-  async getManyMagicMcpTokens(d: { magicMcpTokenId: string[]; instance: Instance }) {
-    if (d.magicMcpTokenId.length === 0) return [];
-
-    return await db.magicMcpToken.findMany({
-      where: {
-        id: { in: d.magicMcpTokenId },
-        instanceOid: d.instance.oid
-      },
-      include
-    });
   }
 
   async addGroupsToToken(d: { token: MagicMcpToken; groupIds: string[] }) {

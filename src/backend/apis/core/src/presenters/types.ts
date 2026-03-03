@@ -197,7 +197,8 @@ export let magicMcpServerType = PresentableType.create<{
 export let magicMcpSessionType = PresentableType.create<{
   magicMcpSession: MagicMcpServerSubspaceSession & {
     magicMcpServer: MagicMcpServer & {
-      aliases?: MagicMcpServerAlias[];
+      aliases: MagicMcpServerAlias[];
+      subspaceSession: MagicMcpServerSubspaceSession | null;
     };
   };
 }>()('magic_mcp.session');

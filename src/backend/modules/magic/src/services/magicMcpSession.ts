@@ -6,16 +6,14 @@ import { Service } from '@metorial/service';
 let include = {
   magicMcpServer: {
     include: {
-      aliases: true
+      aliases: true,
+      subspaceSession: true
     }
   }
 } satisfies Prisma.MagicMcpServerSubspaceSessionInclude;
 
 class MagicMcpSessionImpl {
-  async getMagicMcpSessionById(d: {
-    instance: Instance;
-    magicMcpSessionId: string;
-  }) {
+  async getMagicMcpSessionById(d: { instance: Instance; magicMcpSessionId: string }) {
     let magicMcpSession = await db.magicMcpServerSubspaceSession.findFirst({
       where: {
         id: d.magicMcpSessionId,
@@ -59,18 +57,6 @@ class MagicMcpSessionImpl {
         });
       })
     );
-  }
-
-  async getManyMagicMcpSessions(d: { magicMcpSessionId: string[]; instance: Instance }) {
-    if (d.magicMcpSessionId.length === 0) return [];
-
-    return await db.magicMcpServerSubspaceSession.findMany({
-      where: {
-        id: { in: d.magicMcpSessionId },
-        instanceOid: d.instance.oid
-      },
-      include
-    });
   }
 }
 

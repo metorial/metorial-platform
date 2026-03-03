@@ -14,8 +14,6 @@ model MagicMcpServer {
   instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
 
   subspaceSessionTemplateId String
-  subspaceTenantId          String?
-  subspaceEnvironmentId     String?
 
   defaultOauthSessionId String?
 

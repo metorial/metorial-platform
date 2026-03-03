@@ -16,8 +16,14 @@ import {
   ServiceError
 } from '@metorial/error';
 import { generatePlainId } from '@metorial/id';
+import { searchMagicMcpServerIds } from '@metorial/module-search';
 import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
+import { slugify } from '@metorial/slugify';
+import {
+  enqueueMagicMcpServerCreated,
+  enqueueMagicMcpServerUpdated
+} from '../queues/lifecycle/magicMcpServer';
 
 let include = {
   aliases: true,
@@ -28,15 +34,8 @@ type MagicMcpServerWithRelations = Prisma.MagicMcpServerGetPayload<{
   include: typeof include;
 }>;
 
-let toSlug = (value: string) =>
-  value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-
 let buildAlias = (name?: string | null) => {
-  let base = toSlug(name ?? '');
+  let base = slugify(name ?? '');
   if (base.length > 0) return `${base}-${generatePlainId(4)}`;
 
   return `magic-${generatePlainId(10)}`;
@@ -67,18 +66,6 @@ class MagicMcpServerImpl {
     return magicMcpServer;
   }
 
-  async getManyMagicMcpServers(d: { magicMcpServerId: string[]; instance: Instance }) {
-    if (d.magicMcpServerId.length === 0) return [];
-
-    return await db.magicMcpServer.findMany({
-      where: {
-        id: { in: d.magicMcpServerId },
-        instanceOid: d.instance.oid
-      },
-      include
-    });
-  }
-
   async createMagicMcpServer(d: {
     organization: Organization;
     performedBy: OrganizationActor;
@@ -91,13 +78,11 @@ class MagicMcpServerImpl {
       sessionTemplateId: string;
     };
   }) {
-    return await db.magicMcpServer.create({
+    let magicMcpServer = await db.magicMcpServer.create({
       data: {
         id: await ID.generateId('magicMcpServer'),
         status: 'active',
         subspaceSessionTemplateId: d.input.sessionTemplateId,
-        subspaceTenantId: d.instance.subspaceTenantId,
-        subspaceEnvironmentId: d.instance.subspaceEnvironmentId,
         name: d.input.name,
         description: d.input.description,
         metadata: d.input.metadata ?? {},
@@ -110,6 +95,10 @@ class MagicMcpServerImpl {
       },
       include
     });
+
+    await enqueueMagicMcpServerCreated(magicMcpServer.id);
+
+    return magicMcpServer;
   }
 
   async checkWriteAccess(d: { server: MagicMcpServer; instance: Instance }) {
@@ -127,11 +116,15 @@ class MagicMcpServerImpl {
       );
     }
 
-    return await db.magicMcpServer.update({
+    let magicMcpServer = await db.magicMcpServer.update({
       where: { id: d.server.id },
       data: { status: 'archived', deletedAt: new Date() },
       include
     });
+
+    await enqueueMagicMcpServerUpdated(magicMcpServer.id);
+
+    return magicMcpServer;
   }
 
   async updateMagicMcpServer(d: {
@@ -154,8 +147,10 @@ class MagicMcpServerImpl {
 
     let existingAliases = new Set(d.server.aliases.map(a => a.slug));
     let normalizedAliases =
-      d.input.aliases?.map(alias => toSlug(alias)).filter(alias => alias.length > 0) ?? [];
-    let nextAliases = [...new Set(normalizedAliases)].filter(alias => !existingAliases.has(alias));
+      d.input.aliases?.map(alias => slugify(alias)).filter(alias => alias.length > 0) ?? [];
+    let nextAliases = [...new Set(normalizedAliases)].filter(
+      alias => !existingAliases.has(alias)
+    );
 
     if (nextAliases.length > 0) {
       let conflictingAliases = await db.magicMcpServerAlias.findMany({
@@ -224,6 +219,8 @@ class MagicMcpServerImpl {
       });
     }
 
+    await enqueueMagicMcpServerUpdated(server.id);
+
     return server;
   }
 
@@ -233,6 +230,16 @@ class MagicMcpServerImpl {
     search?: string;
     groupIds?: string[];
   }) {
+    let normalizedSearch = d.search?.trim();
+    if (!normalizedSearch?.length) normalizedSearch = undefined;
+
+    let searchedServerIds = normalizedSearch
+      ? await searchMagicMcpServerIds({
+          instanceId: d.instance.id,
+          query: normalizedSearch
+        })
+      : undefined;
+
     let shouldFilterByGroups = !!d.groupIds?.length;
     let groupOids = shouldFilterByGroups
       ? (
@@ -260,20 +267,24 @@ class MagicMcpServerImpl {
                   }
                 }
               : undefined,
-            OR: d.search
-              ? [
-                  { id: { contains: d.search, mode: 'insensitive' } },
-                  { name: { contains: d.search, mode: 'insensitive' } },
-                  { description: { contains: d.search, mode: 'insensitive' } },
-                  {
-                    aliases: {
-                      some: {
-                        slug: { contains: d.search, mode: 'insensitive' }
+            AND: [
+              searchedServerIds !== undefined ? { id: { in: searchedServerIds } } : undefined!
+            ].filter(Boolean),
+            OR:
+              normalizedSearch && searchedServerIds === undefined
+                ? [
+                    { id: { contains: normalizedSearch, mode: 'insensitive' } },
+                    { name: { contains: normalizedSearch, mode: 'insensitive' } },
+                    { description: { contains: normalizedSearch, mode: 'insensitive' } },
+                    {
+                      aliases: {
+                        some: {
+                          slug: { contains: normalizedSearch, mode: 'insensitive' }
+                        }
                       }
                     }
-                  }
-                ]
-              : undefined
+                  ]
+                : undefined
           },
           include
         });
