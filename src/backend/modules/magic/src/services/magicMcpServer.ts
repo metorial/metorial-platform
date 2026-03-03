@@ -16,9 +16,14 @@ import {
   ServiceError
 } from '@metorial/error';
 import { generatePlainId } from '@metorial/id';
+import { searchMagicMcpServerIds } from '@metorial/module-search';
 import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
 import { slugify } from '@metorial/slugify';
+import {
+  enqueueMagicMcpServerCreated,
+  enqueueMagicMcpServerUpdated
+} from '../queues/lifecycle/magicMcpServer';
 
 let include = {
   aliases: true,
@@ -73,7 +78,7 @@ class MagicMcpServerImpl {
       sessionTemplateId: string;
     };
   }) {
-    return await db.magicMcpServer.create({
+    let magicMcpServer = await db.magicMcpServer.create({
       data: {
         id: await ID.generateId('magicMcpServer'),
         status: 'active',
@@ -90,6 +95,10 @@ class MagicMcpServerImpl {
       },
       include
     });
+
+    await enqueueMagicMcpServerCreated(magicMcpServer.id);
+
+    return magicMcpServer;
   }
 
   async checkWriteAccess(d: { server: MagicMcpServer; instance: Instance }) {
@@ -107,11 +116,15 @@ class MagicMcpServerImpl {
       );
     }
 
-    return await db.magicMcpServer.update({
+    let magicMcpServer = await db.magicMcpServer.update({
       where: { id: d.server.id },
       data: { status: 'archived', deletedAt: new Date() },
       include
     });
+
+    await enqueueMagicMcpServerUpdated(magicMcpServer.id);
+
+    return magicMcpServer;
   }
 
   async updateMagicMcpServer(d: {
@@ -206,6 +219,8 @@ class MagicMcpServerImpl {
       });
     }
 
+    await enqueueMagicMcpServerUpdated(server.id);
+
     return server;
   }
 
@@ -215,6 +230,16 @@ class MagicMcpServerImpl {
     search?: string;
     groupIds?: string[];
   }) {
+    let normalizedSearch = d.search?.trim();
+    if (!normalizedSearch?.length) normalizedSearch = undefined;
+
+    let searchedServerIds = normalizedSearch
+      ? await searchMagicMcpServerIds({
+          instanceId: d.instance.id,
+          query: normalizedSearch
+        })
+      : undefined;
+
     let shouldFilterByGroups = !!d.groupIds?.length;
     let groupOids = shouldFilterByGroups
       ? (
@@ -242,20 +267,24 @@ class MagicMcpServerImpl {
                   }
                 }
               : undefined,
-            OR: d.search
-              ? [
-                  { id: { contains: d.search, mode: 'insensitive' } },
-                  { name: { contains: d.search, mode: 'insensitive' } },
-                  { description: { contains: d.search, mode: 'insensitive' } },
-                  {
-                    aliases: {
-                      some: {
-                        slug: { contains: d.search, mode: 'insensitive' }
+            AND: [
+              searchedServerIds !== undefined ? { id: { in: searchedServerIds } } : undefined!
+            ].filter(Boolean),
+            OR:
+              normalizedSearch && searchedServerIds === undefined
+                ? [
+                    { id: { contains: normalizedSearch, mode: 'insensitive' } },
+                    { name: { contains: normalizedSearch, mode: 'insensitive' } },
+                    { description: { contains: normalizedSearch, mode: 'insensitive' } },
+                    {
+                      aliases: {
+                        some: {
+                          slug: { contains: normalizedSearch, mode: 'insensitive' }
+                        }
                       }
                     }
-                  }
-                ]
-              : undefined
+                  ]
+                : undefined
           },
           include
         });

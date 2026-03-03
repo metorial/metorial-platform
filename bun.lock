@@ -1,6 +1,5 @@
 {
   "lockfileVersion": 1,
-  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "@metorial/oss",
@@ -461,6 +460,7 @@
       "dependencies": {
         "@metorial/anonymize-ip": "^1.0.0",
         "@metorial/api-keys": "^1.0.0",
+        "@metorial/config": "^1.0.0",
         "@metorial/context": "^1.0.0",
         "@metorial/cron": "^1.0.0",
         "@metorial/db": "^1.0.0",
@@ -471,6 +471,7 @@
         "@metorial/id": "^1.0.0",
         "@metorial/mcp-utils": "1.0.0",
         "@metorial/module-event": "1.0.0",
+        "@metorial/module-search": "^1.0.0",
         "@metorial/pagination": "^1.0.0",
         "@metorial/programmable-promise": "1.0.0",
         "@metorial/queue": "^1.0.0",
@@ -562,6 +563,20 @@
         "@metorial/module-user": "1.0.0",
         "@metorial/queue": "1.0.0",
         "@metorial/service": "1.0.0",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.8.2",
+        "vitest": "^3.1.2",
+      },
+    },
+    "src/backend/modules/search": {
+      "name": "@metorial/module-search",
+      "version": "1.0.0",
+      "dependencies": {
+        "@metorial-services/voyager-client": "^1.0.1",
+        "@metorial/env": "^1.0.0",
+        "@metorial/validation": "^1.0.0",
       },
       "devDependencies": {
         "@metorial/tsconfig": "^1.0.0",
@@ -2305,6 +2320,8 @@
 
     "@metorial-services/subspace-client": ["@metorial-services/subspace-client@1.0.29", "", { "dependencies": { "@lowerdeck/rpc-client": "^1.0.3", "@lowerdeck/validation": "^1.0.4" } }, "sha512-LTKvQm+QqbjnAcK2nljFCzh+R+aGONowQFPr54vkPcikDqCYZQEWkzq8MqCEXKLITqlF4OGHbQ12iN8dNgkUnA=="],
 
+    "@metorial-services/voyager-client": ["@metorial-services/voyager-client@1.0.1", "", { "dependencies": { "@lowerdeck/rpc-client": "^1.0.2" } }, "sha512-KBMgQr4/Hb3YOyMmSVbXZle1N1tVPqJr1fdG0DSGCJEAUHebUUZjgOf4pJTjh/BGUFLgEEJ65gDSDPd9V/VjWw=="],
+
     "@metorial/anonymize-ip": ["@metorial/anonymize-ip@workspace:src/packages/shared/anonymize-ip"],
 
     "@metorial/api-auth": ["@metorial/api-auth@workspace:src/backend/apis/auth"],
@@ -2442,6 +2459,8 @@
     "@metorial/module-organization": ["@metorial/module-organization@workspace:src/backend/modules/organization"],
 
     "@metorial/module-protect": ["@metorial/module-protect@workspace:src/backend/modules/protect"],
+
+    "@metorial/module-search": ["@metorial/module-search@workspace:src/backend/modules/search"],
 
     "@metorial/module-subspace": ["@metorial/module-subspace@workspace:src/backend/modules/subspace"],
 
