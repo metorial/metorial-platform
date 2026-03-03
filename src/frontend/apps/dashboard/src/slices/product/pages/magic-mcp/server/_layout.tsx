@@ -54,18 +54,6 @@ export let MagicMcpServerLayout = () => {
             to: Paths.instance.magicMcp.server(...serverPathParams, 'sessions')
           },
           {
-            label: 'Runs',
-            to: Paths.instance.magicMcp.server(...serverPathParams, 'runs')
-          },
-          {
-            label: 'Errors',
-            to: Paths.instance.magicMcp.server(...serverPathParams, 'errors')
-          },
-          {
-            label: 'OAuth',
-            to: Paths.instance.magicMcp.server(...serverPathParams, 'oauth')
-          },
-          {
             label: 'Settings',
             to: Paths.instance.magicMcp.server(...serverPathParams, 'config')
           }

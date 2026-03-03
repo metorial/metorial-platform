@@ -157,9 +157,7 @@ let ProviderSessionProvidersPage = dynamicPage(() =>
   )
 );
 let ProviderSessionRunsPage = dynamicPage(() =>
-  import('./pages/(provider-api)/provider-session/runs').then(
-    c => c.ProviderSessionRunsPage
-  )
+  import('./pages/(provider-api)/provider-session/runs').then(c => c.ProviderSessionRunsPage)
 );
 let ProviderSessionLogsPage = dynamicPage(() =>
   import('./pages/(provider-api)/provider-session/logs').then(c => c.ProviderSessionLogsPage)
@@ -210,15 +208,6 @@ let MagicMcpServerOverviewPage = dynamicPage(() =>
 );
 let MagicMcpServerConfigPage = dynamicPage(() =>
   import('./pages/magic-mcp/server/config').then(c => c.MagicMcpServerConfigPage)
-);
-let MagicMcpServerRunsPage = dynamicPage(() =>
-  import('./pages/magic-mcp/server/runs').then(c => c.MagicMcpServerRunsPage)
-);
-let MagicMcpServerErrorsPage = dynamicPage(() =>
-  import('./pages/magic-mcp/server/errors').then(c => c.MagicMcpServerErrorsPage)
-);
-let MagicMcpServerOauthPage = dynamicPage(() =>
-  import('./pages/magic-mcp/server/oauth').then(c => c.MagicMcpServerOauthPage)
 );
 let MagicMcpServerSessionsPage = dynamicPage(() =>
   import('./pages/magic-mcp/server/sessions').then(c => c.MagicMcpServerSessionsPage)
@@ -475,8 +464,7 @@ export let productInnerSlice = createSlice([
                 element: <CustomServerListingPage />
               }
             ]
-          },
-
+          }
         ]
       },
 
@@ -846,18 +834,6 @@ export let productInnerSlice = createSlice([
               {
                 path: 'sessions',
                 element: <MagicMcpServerSessionsPage />
-              },
-              {
-                path: 'runs',
-                element: <MagicMcpServerRunsPage />
-              },
-              {
-                path: 'errors',
-                element: <MagicMcpServerErrorsPage />
-              },
-              {
-                path: 'oauth',
-                element: <MagicMcpServerOauthPage />
               }
             ]
           },
