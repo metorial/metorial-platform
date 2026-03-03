@@ -17,7 +17,7 @@
     "@lowerdeck/hash": "^1.0.4",
     "@lowerdeck/pagination": "^1.0.6",
     "@metorial/queue": "^1.0.0",
-    "@lowerdeck/service": "^1.0.4",
+    "@lowerdeck/service": "^1.0.5",
     "@types/fs-extra": "^11.0.4",
     "fs-extra": "^11.3.0"
   },

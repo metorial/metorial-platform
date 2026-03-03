@@ -18,7 +18,7 @@
     "@metorial/id": "^1.0.0",
     "@metorial/queue": "^1.0.0",
     "@lowerdeck/sentry": "^1.0.2",
-    "@lowerdeck/service": "^1.0.4",
+    "@lowerdeck/service": "^1.0.5",
     "@lowerdeck/validation": "^1.0.8",
     "date-fns": "^4.1.0",
     "mongoose": "^8.14.2",

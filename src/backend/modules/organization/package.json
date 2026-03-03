@@ -18,7 +18,7 @@
     "@metorial/module-email": "^1.0.0",
     "@lowerdeck/pagination": "^1.0.6",
     "@metorial/queue": "^1.0.0",
-    "@lowerdeck/service": "^1.0.4",
+    "@lowerdeck/service": "^1.0.5",
     "@lowerdeck/slugify": "^1.0.5",
     "date-fns": "^4.1.0",
     "react": "^19.1.0"
