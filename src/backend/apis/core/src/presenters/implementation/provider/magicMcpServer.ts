@@ -12,10 +12,7 @@ export let v1MagicMcpServerPresenter = Presenter.create(magicMcpServerType)
     endpoints: magicMcpServer.aliases.map(a => ({
       id: `${magicMcpServer.id}:${a.slug}`,
       alias: a.slug,
-      urls: {
-        sse: `${getConfig().urls.mcpUrl}/magic/${a.slug}/sse`,
-        streamable_http: `${getConfig().urls.mcpUrl}/magic/${a.slug}/mcp`
-      }
+      url: `${getConfig().urls.mcpUrl}/magic/${a.slug}`
     })),
     name: magicMcpServer.name,
     description: magicMcpServer.description,
@@ -33,10 +30,7 @@ export let v1MagicMcpServerPresenter = Presenter.create(magicMcpServerType)
         v.object({
           id: v.string(),
           alias: v.string(),
-          urls: v.object({
-            sse: v.string(),
-            streamable_http: v.string()
-          })
+          url: v.string()
         })
       ),
       name: v.nullable(v.string()),

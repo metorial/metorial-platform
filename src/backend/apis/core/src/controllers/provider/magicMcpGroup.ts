@@ -28,11 +28,7 @@ export let magicMcpGroupGroup = instanceGroup.use(async ctx => {
   return { magicMcpGroup };
 });
 
-let magicMcpGroupStatusValues: ['active', 'archived', 'deleted'] = [
-  'active',
-  'archived',
-  'deleted'
-];
+let magicMcpGroupStatusValues = ['active', 'archived', 'deleted'] as const;
 
 export let magicMcpGroupController = Controller.create(
   {
@@ -53,8 +49,8 @@ export let magicMcpGroupController = Controller.create(
           v.object({
             status: v.optional(
               v.union([
-                v.enumOf(magicMcpGroupStatusValues),
-                v.array(v.enumOf(magicMcpGroupStatusValues))
+                v.enumOf([...magicMcpGroupStatusValues]),
+                v.array(v.enumOf([...magicMcpGroupStatusValues]))
               ])
             ),
             search: v.optional(v.string())
@@ -167,7 +163,10 @@ export let magicMcpGroupController = Controller.create(
 
     addServers: magicMcpGroupGroup
       .post(
-        instancePath('magic-mcp-groups/:magicMcpGroupId/add-servers', 'magicMcpGroups.addServers'),
+        instancePath(
+          'magic-mcp-groups/:magicMcpGroupId/add-servers',
+          'magicMcpGroups.addServers'
+        ),
         {
           name: 'Add servers to magic MCP group',
           description: 'Adds magic MCP servers to a group.'

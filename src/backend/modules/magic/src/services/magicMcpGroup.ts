@@ -8,7 +8,12 @@ import {
   Organization,
   OrganizationActor
 } from '@metorial/db';
-import { notFoundError, preconditionFailedError, ServiceError } from '@metorial/error';
+import {
+  goneError,
+  notFoundError,
+  preconditionFailedError,
+  ServiceError
+} from '@metorial/error';
 import { generatePlainId } from '@metorial/id';
 import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
@@ -61,6 +66,14 @@ class MagicMcpGroupImpl {
       metadata?: Record<string, any> | null;
     };
   }) {
+    if (d.group.status === 'deleted') {
+      throw new ServiceError(
+        goneError({
+          message: 'This magic MCP group has been deleted'
+        })
+      );
+    }
+
     if (d.group.status != 'active') {
       throw new ServiceError(
         preconditionFailedError({
@@ -94,7 +107,7 @@ class MagicMcpGroupImpl {
             AND: [
               d.status
                 ? { status: { in: d.status } }
-                : { status: { not: 'archived' as const } }
+                : { status: { notIn: ['archived', 'deleted'] as MagicMcpGroupStatus[] } }
             ].filter(Boolean),
             OR: d.search
               ? [
@@ -111,6 +124,14 @@ class MagicMcpGroupImpl {
   }
 
   async deleteMagicMcpGroup(d: { group: MagicMcpGroup }) {
+    if (d.group.status === 'deleted') {
+      throw new ServiceError(
+        goneError({
+          message: 'This magic MCP group has been deleted'
+        })
+      );
+    }
+
     if (d.group.status != 'active') {
       throw new ServiceError(
         preconditionFailedError({
@@ -132,8 +153,24 @@ class MagicMcpGroupImpl {
         })
       ).map(link => link.magicMcpTokenOid);
 
-      let deletedGroup = await tx.magicMcpGroup.delete({
-        where: { id: d.group.id }
+      await tx.magicMcpGroupServer.deleteMany({
+        where: {
+          magicMcpGroupOid: d.group.oid
+        }
+      });
+
+      await tx.magicMcpGroupToken.deleteMany({
+        where: {
+          magicMcpGroupOid: d.group.oid
+        }
+      });
+
+      let deletedGroup = await tx.magicMcpGroup.update({
+        where: { id: d.group.id },
+        data: {
+          status: 'deleted',
+          deletedAt: new Date()
+        }
       });
 
       if (affectedTokenOids.length > 0) {
@@ -178,6 +215,14 @@ class MagicMcpGroupImpl {
   }
 
   async addServersToGroup(d: { group: MagicMcpGroup; serverIds: string[] }) {
+    if (d.group.status === 'deleted') {
+      throw new ServiceError(
+        goneError({
+          message: 'This magic MCP group has been deleted'
+        })
+      );
+    }
+
     let servers = await db.magicMcpServer.findMany({
       where: {
         id: { in: d.serverIds },
@@ -197,6 +242,14 @@ class MagicMcpGroupImpl {
   }
 
   async removeServersFromGroup(d: { group: MagicMcpGroup; serverIds: string[] }) {
+    if (d.group.status === 'deleted') {
+      throw new ServiceError(
+        goneError({
+          message: 'This magic MCP group has been deleted'
+        })
+      );
+    }
+
     let servers = await db.magicMcpServer.findMany({
       where: {
         id: { in: d.serverIds },

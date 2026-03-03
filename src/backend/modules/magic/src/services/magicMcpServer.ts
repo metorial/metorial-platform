@@ -78,8 +78,6 @@ class MagicMcpServerImpl {
         id: await ID.generateId('magicMcpServer'),
         status: 'active',
         subspaceSessionTemplateId: d.input.sessionTemplateId,
-        subspaceTenantId: d.instance.subspaceTenantId,
-        subspaceEnvironmentId: d.instance.subspaceEnvironmentId,
         name: d.input.name,
         description: d.input.description,
         metadata: d.input.metadata ?? {},
@@ -137,7 +135,9 @@ class MagicMcpServerImpl {
     let existingAliases = new Set(d.server.aliases.map(a => a.slug));
     let normalizedAliases =
       d.input.aliases?.map(alias => slugify(alias)).filter(alias => alias.length > 0) ?? [];
-    let nextAliases = [...new Set(normalizedAliases)].filter(alias => !existingAliases.has(alias));
+    let nextAliases = [...new Set(normalizedAliases)].filter(
+      alias => !existingAliases.has(alias)
+    );
 
     if (nextAliases.length > 0) {
       let conflictingAliases = await db.magicMcpServerAlias.findMany({
