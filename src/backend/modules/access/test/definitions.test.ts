@@ -56,30 +56,15 @@ describe('definitions', () => {
       expect(scopes).toContain('instance.secret:write');
     });
 
-    it('should contain instance.server scopes', () => {
-      expect(scopes).toContain('instance.server:read');
-      expect(scopes).toContain('instance.server:write');
-      expect(scopes).toContain('instance.server_listing:read');
-    });
-
-    it('should contain instance.server.implementation scopes', () => {
-      expect(scopes).toContain('instance.server.implementation:read');
-      expect(scopes).toContain('instance.server.implementation:write');
-    });
-
-    it('should contain instance.server.deployment scopes', () => {
-      expect(scopes).toContain('instance.server.deployment:read');
-      expect(scopes).toContain('instance.server.deployment:write');
+    it('should contain instance.provider scopes', () => {
+      expect(scopes).toContain('instance.provider:read');
+      expect(scopes).toContain('instance.provider:write');
+      expect(scopes).toContain('instance.provider.listing:read');
     });
 
     it('should contain instance.session scopes', () => {
       expect(scopes).toContain('instance.session:read');
       expect(scopes).toContain('instance.session:write');
-    });
-
-    it('should contain instance.server monitoring scopes', () => {
-      expect(scopes).toContain('instance.server.server_run:read');
-      expect(scopes).toContain('instance.server.server_error:read');
     });
 
     it('should contain instance.provider_oauth.connection scopes', () => {
@@ -146,7 +131,7 @@ describe('definitions', () => {
 
     it('should contain instance scopes', () => {
       expect(orgManagementTokenScopes).toContain('instance.file:read');
-      expect(orgManagementTokenScopes).toContain('instance.server:write');
+      expect(orgManagementTokenScopes).toContain('instance.provider:write');
     });
 
     it('should have fewer scopes than all scopes', () => {
@@ -193,10 +178,10 @@ describe('definitions', () => {
       expect(instanceSecretTokenScopes).toContain('instance.secret:write');
     });
 
-    it('should contain instance server scopes', () => {
-      expect(instanceSecretTokenScopes).toContain('instance.server:read');
-      expect(instanceSecretTokenScopes).toContain('instance.server:write');
-      expect(instanceSecretTokenScopes).toContain('instance.server_listing:read');
+    it('should contain instance provider scopes', () => {
+      expect(instanceSecretTokenScopes).toContain('instance.provider:read');
+      expect(instanceSecretTokenScopes).toContain('instance.provider:write');
+      expect(instanceSecretTokenScopes).toContain('instance.provider.listing:read');
     });
 
     it('should contain instance provider oauth scopes', () => {
@@ -218,12 +203,12 @@ describe('definitions', () => {
     });
 
     it('should contain required read scopes', () => {
-      expect(instancePublishableTokenScopes).toHaveLength(5);
-      expect(instancePublishableTokenScopes).toContain('instance.server_listing:read');
+      expect(instancePublishableTokenScopes).toHaveLength(10);
+      expect(instancePublishableTokenScopes).toContain('instance.provider.listing:read');
       expect(instancePublishableTokenScopes).toContain('organization.instance:read');
       expect(instancePublishableTokenScopes).toContain('instance.portal:read');
       expect(instancePublishableTokenScopes).toContain('instance.portal.access:read');
-      expect(instancePublishableTokenScopes).toContain('instance.server:read');
+      expect(instancePublishableTokenScopes).toContain('instance.provider:read');
     });
 
     it('should be the most restrictive scope set', () => {

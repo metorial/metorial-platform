@@ -102,7 +102,7 @@ describe('AccessService', () => {
         type: 'machine',
         apiKey: { id: 'key-1' } as any,
         machineAccess: { type: 'organization_management' } as any,
-        orgScopes: ['organization:read', 'instance.server:write'],
+        orgScopes: ['organization:read', 'instance.provider:write'],
         restrictions: {
           type: 'organization',
           organization: { id: 'org-1' } as any,
@@ -113,7 +113,7 @@ describe('AccessService', () => {
       await expect(
         accessService.checkAccess({
           authInfo,
-          possibleScopes: ['instance.server:write']
+          possibleScopes: ['instance.provider:write']
         })
       ).resolves.not.toThrow();
     });
@@ -122,7 +122,7 @@ describe('AccessService', () => {
       let authInfo: AuthInfo = {
         type: 'user',
         user: { id: 'user-1' } as any,
-        orgScopes: ['organization:read', 'instance.file:read', 'instance.server:read']
+        orgScopes: ['organization:read', 'instance.file:read', 'instance.provider:read']
       };
 
       await expect(
@@ -346,7 +346,7 @@ describe('AccessService', () => {
         let authInfo: AuthInfo = {
           type: 'user',
           user: mockUser as any,
-          orgScopes: ['instance.server:read']
+          orgScopes: ['instance.provider:read']
         };
 
         let result = await accessService.accessInstance({
@@ -380,7 +380,7 @@ describe('AccessService', () => {
         let authInfo: AuthInfo = {
           type: 'user',
           user: mockUser as any,
-          orgScopes: ['instance.server:read']
+          orgScopes: ['instance.provider:read']
         };
 
         await accessService.accessInstance({
@@ -402,7 +402,7 @@ describe('AccessService', () => {
         let authInfo: AuthInfo = {
           type: 'user',
           user: { id: 'user-1' } as any,
-          orgScopes: ['instance.server:read']
+          orgScopes: ['instance.provider:read']
         };
 
         await expect(
@@ -431,7 +431,7 @@ describe('AccessService', () => {
           type: 'machine',
           apiKey: { id: 'key-1' } as any,
           machineAccess: { type: 'organization_management' } as any,
-          orgScopes: ['instance.server:read'],
+          orgScopes: ['instance.provider:read'],
           restrictions: {
             type: 'organization',
             organization: mockOrg as any,
@@ -462,7 +462,7 @@ describe('AccessService', () => {
           type: 'machine',
           apiKey: { id: 'key-1' } as any,
           machineAccess: { type: 'organization_management' } as any,
-          orgScopes: ['instance.server:read'],
+          orgScopes: ['instance.provider:read'],
           restrictions: {
             type: 'organization',
             organization: { id: 'org-1' } as any,
@@ -497,7 +497,7 @@ describe('AccessService', () => {
             type: 'instance_secret',
             instance: mockInstance
           } as any,
-          orgScopes: ['instance.server:read'],
+          orgScopes: ['instance.provider:read'],
           restrictions: {
             type: 'instance',
             organization: mockOrg as any,
@@ -535,7 +535,7 @@ describe('AccessService', () => {
           type: 'machine',
           apiKey: { id: 'key-1' } as any,
           machineAccess: { type: 'instance_secret' } as any,
-          orgScopes: ['instance.server:read'],
+          orgScopes: ['instance.provider:read'],
           restrictions: {
             type: 'instance',
             organization: mockOrg as any,
@@ -561,7 +561,7 @@ describe('AccessService', () => {
           type: 'machine',
           apiKey: { id: 'key-1' } as any,
           machineAccess: { type: 'instance_secret' } as any,
-          orgScopes: ['instance.server:read'],
+          orgScopes: ['instance.provider:read'],
           restrictions: {
             type: 'instance',
             organization: mockOrg as any,
@@ -585,7 +585,7 @@ describe('AccessService', () => {
           type: 'machine',
           apiKey: { id: 'key-1' } as any,
           machineAccess: { type: 'instance_publishable' } as any,
-          orgScopes: ['instance.server_listing:read'],
+          orgScopes: ['instance.provider.listing:read'],
           restrictions: {
             type: 'instance',
             organization: { id: 'org-1' } as any,
@@ -609,7 +609,7 @@ describe('AccessService', () => {
           machineAccess: {
             type: 'instance_publishable' // Type suggests instance, but restrictions don't match
           } as any,
-          orgScopes: ['instance.server_listing:read'],
+          orgScopes: ['instance.provider.listing:read'],
           restrictions: {
             type: 'organization', // Wrong restriction type
             organization: { id: 'org-1' } as any,
@@ -635,7 +635,7 @@ describe('AccessService', () => {
         let authInfo: AuthInfo = {
           type: 'user',
           user: { id: 'user-1' } as any,
-          orgScopes: ['instance.server:read']
+          orgScopes: ['instance.provider:read']
         };
 
         await expect(
@@ -666,7 +666,7 @@ describe('AccessService', () => {
         let authInfo: AuthInfo = {
           type: 'user',
           user: { id: 'user-1' } as any,
-          orgScopes: ['instance.server:read']
+          orgScopes: ['instance.provider:read']
         };
 
         let result = await accessService.accessInstance({
@@ -684,7 +684,7 @@ describe('AccessService', () => {
       let authInfo: AuthInfo = {
         type: 'user',
         user: { id: 'user-1' } as any,
-        orgScopes: ['organization:read', 'instance.server:read']
+        orgScopes: ['organization:read', 'instance.provider:read']
       };
 
       // First check
@@ -699,7 +699,7 @@ describe('AccessService', () => {
       await expect(
         accessService.checkAccess({
           authInfo,
-          possibleScopes: ['instance.server:read']
+          possibleScopes: ['instance.provider:read']
         })
       ).resolves.not.toThrow();
 
@@ -734,7 +734,7 @@ describe('AccessService', () => {
       let authInfo: AuthInfo = {
         type: 'user',
         user: mockUser as any,
-        orgScopes: ['organization:read', 'instance.server:read']
+        orgScopes: ['organization:read', 'instance.provider:read']
       };
 
       let orgResult = await accessService.accessOrganization({
