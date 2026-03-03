@@ -12,6 +12,7 @@ import {
   useProviderAuthMethods,
   useProvider,
   useProviderConfigSchema,
+  useProviderConfigVaults,
   useProviderConfigs,
   useProviderDeployment,
   useProviderDeployments
@@ -38,7 +39,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { Explainer } from '../../../../components/explainer';
-import { showProviderConfigFormModal } from '../../scenes/providerConfigs/modal';
+import {
+  emptyConfigurationSelection,
+  type ConfigurationSelection
+} from '../../lib/configSelection';
+import { ProviderConfigurationSelection } from '../../scenes/providerConfigs/selection';
 import { ProviderDeploymentsList } from '../../scenes/providerDeployments/list';
 import { showProviderSetupSessionModal } from '../../scenes/providerDeployments/setupSessionModal';
 import { ProviderSearch } from '../../scenes/providers/search';
@@ -143,7 +148,9 @@ export let ExplorerPage = () => {
 
   let [providerTab, setProviderTab] = useState<'create' | 'list'>('create');
   let [providerDeploymentId, setProviderDeploymentId] = useState<string | null>(null);
-  let [selectedConfigId, setSelectedConfigId] = useState('');
+  let [selectedConfiguration, setSelectedConfiguration] = useState<ConfigurationSelection>(
+    emptyConfigurationSelection()
+  );
   let [selectedAuthConfigId, setSelectedAuthConfigId] = useState('');
   let [sessionId, setSessionId] = useState<string | null>(null);
   let [isCreatingSession, setIsCreatingSession] = useState(false);
@@ -156,7 +163,7 @@ export let ExplorerPage = () => {
   }, [sessionIdParam]);
 
   let resetSessionSetupSelections = useCallback(() => {
-    setSelectedConfigId('');
+    setSelectedConfiguration(emptyConfigurationSelection());
     setSelectedAuthConfigId('');
   }, []);
 
@@ -165,6 +172,7 @@ export let ExplorerPage = () => {
       deploymentId: string,
       options?: {
         providerConfigId?: string;
+        providerConfigVaultId?: string;
         providerAuthConfigId?: string;
       }
     ) => {
@@ -177,6 +185,9 @@ export let ExplorerPage = () => {
             providerDeploymentId: deploymentId,
             ...(options?.providerConfigId
               ? { providerConfigId: options.providerConfigId }
+              : {}),
+            ...(options?.providerConfigVaultId
+              ? { providerConfigVaultId: options.providerConfigVaultId }
               : {}),
             ...(options?.providerAuthConfigId
               ? { providerAuthConfigId: options.providerAuthConfigId }
@@ -242,6 +253,9 @@ export let ExplorerPage = () => {
     providerDeploymentId ?? undefined
   );
   let providerConfigs = useProviderConfigs(instance.data?.id, providerDeploymentId ?? undefined);
+  let providerConfigVaults = useProviderConfigVaults(instance.data?.id, {
+    providerDeploymentId: providerDeploymentId ?? undefined
+  });
   let providerConfigSchema = useProviderConfigSchema(
     instance.data?.id,
     providerDeploymentId ?? undefined
@@ -251,8 +265,6 @@ export let ExplorerPage = () => {
     providerDeploymentId ?? undefined
   );
 
-  let providerConfigsRef = useRef(providerConfigs);
-  providerConfigsRef.current = providerConfigs;
   let providerAuthConfigsRef = useRef(providerAuthConfigs);
   providerAuthConfigsRef.current = providerAuthConfigs;
 
@@ -275,10 +287,18 @@ export let ExplorerPage = () => {
   }, [providerDeploymentId, resetSessionSetupSelections]);
 
   useEffect(() => {
-    if (providerConfigs.isLoading || !selectedConfigId) return;
-    let exists = (providerConfigs.data?.items ?? []).some(c => c.id === selectedConfigId);
-    if (!exists) setSelectedConfigId('');
-  }, [providerConfigs.data, providerConfigs.isLoading, selectedConfigId]);
+    if (providerConfigs.isLoading || selectedConfiguration.kind !== 'config') return;
+    let exists = (providerConfigs.data?.items ?? []).some(c => c.id === selectedConfiguration.id);
+    if (!exists) setSelectedConfiguration(emptyConfigurationSelection());
+  }, [providerConfigs.data, providerConfigs.isLoading, selectedConfiguration]);
+
+  useEffect(() => {
+    if (providerConfigVaults.isLoading || selectedConfiguration.kind !== 'vault') return;
+    let exists = (providerConfigVaults.data?.items ?? []).some(
+      vault => vault.id === selectedConfiguration.id
+    );
+    if (!exists) setSelectedConfiguration(emptyConfigurationSelection());
+  }, [providerConfigVaults.data, providerConfigVaults.isLoading, selectedConfiguration]);
 
   useEffect(() => {
     if (providerAuthConfigs.isLoading || !selectedAuthConfigId) return;
@@ -357,7 +377,8 @@ export let ExplorerPage = () => {
     !!providerConfigSchema.data?.schema &&
     typeof providerConfigSchema.data.schema === 'object';
   let hasExistingConfigs = (providerConfigs.data?.items?.length ?? 0) > 0;
-  let needsConfigStep = hasConfigSchema || hasExistingConfigs;
+  let hasExistingVaults = (providerConfigVaults.data?.items?.length ?? 0) > 0;
+  let needsConfigStep = hasConfigSchema || hasExistingConfigs || hasExistingVaults;
   let needsAuthStep = hasAuthMethods || (providerAuthConfigs.data?.items?.length ?? 0) > 0;
 
   useEffect(() => {
@@ -389,15 +410,7 @@ export let ExplorerPage = () => {
   let renderSetupPanel = () => {
     if (!providerDeploymentId || !instance.data) return null;
 
-    let configItems = providerConfigs.data?.items ?? [];
     let authConfigItems = providerAuthConfigs.data?.items ?? [];
-    let configPlusTooltip = providerConfigSchema.isLoading
-      ? 'Loading configuration schema...'
-      : providerConfigSchema.error
-        ? providerConfigSchema.error.message ?? 'Failed to load configuration schema.'
-        : hasConfigSchema
-          ? 'Create Config'
-          : 'No configuration schema is provided for this deployment, so this config cannot be created from the dashboard.';
     let lockedProviderVersionId = selectedDeployment.data?.lockedVersion?.id ?? null;
     let currentProviderVersionId = activeProvider.data?.currentVersion?.id ?? null;
     let effectiveProviderVersionId = lockedProviderVersionId ?? currentProviderVersionId;
@@ -445,63 +458,20 @@ export let ExplorerPage = () => {
                     </Text>
                   </Flex>
                 ) : (
-                  <Flex gap={8} align="end">
-                    <div style={{ flex: 1 }}>
-                      <Select
-                        label="Config (optional)"
-                        value={selectedConfigId || '__none__'}
-                        onChange={value =>
-                          setSelectedConfigId(value === '__none__' ? '' : value)
-                        }
-                        items={[
-                          { id: '__none__', label: 'None' },
-                          ...configItems.map(config => ({
-                            id: config.id,
-                            label: config.name ?? config.id
-                          }))
-                        ]}
-                      />
-                    </div>
-
-                    <div title={configPlusTooltip} style={{ display: 'inline-flex' }}>
-                      <Button
-                        type="button"
-                        size="3"
-                        iconLeft={<RiAddLine />}
-                        aria-label="Create Config"
-                        disabled={!hasConfigSchema || providerConfigSchema.isLoading}
-                        onClick={() =>
-                          showProviderConfigFormModal({
-                            type: 'create',
-                            instanceId: instance.data?.id,
-                            providerDeploymentId,
-                            onCreate: config => {
-                              setSelectedConfigId(config.id);
-                              providerConfigsRef.current.refetch();
-                            }
-                          })
-                        }
-                        style={
-                          hasConfigSchema && !providerConfigSchema.isLoading
-                            ? {
-                                background: theme.colors.gray900,
-                                borderColor: theme.colors.gray900,
-                                color: 'white'
-                              }
-                            : {
-                                background: theme.colors.gray200,
-                                borderColor: theme.colors.gray300,
-                                color: theme.colors.gray600
-                              }
-                        }
-                      />
-                    </div>
-                  </Flex>
+                  <ProviderConfigurationSelection
+                    instanceId={instance.data.id}
+                    providerDeploymentId={providerDeploymentId}
+                    value={selectedConfiguration}
+                    onChange={setSelectedConfiguration}
+                    label="Config (optional)"
+                  />
                 )}
 
-                {providerConfigs.error && (
+                {(providerConfigs.error || providerConfigVaults.error) && (
                   <Text size="2" color="red500">
-                    {providerConfigs.error.message ?? 'Failed to load configs.'}
+                    {providerConfigs.error?.message ??
+                      providerConfigVaults.error?.message ??
+                      'Failed to load configs and config vaults.'}
                   </Text>
                 )}
               </Flex>
@@ -609,7 +579,14 @@ export let ExplorerPage = () => {
                   type="button"
                   onClick={() =>
                     createSessionForDeployment(providerDeploymentId, {
-                      providerConfigId: selectedConfigId || undefined,
+                      providerConfigId:
+                        selectedConfiguration.kind === 'config'
+                          ? selectedConfiguration.id
+                          : undefined,
+                      providerConfigVaultId:
+                        selectedConfiguration.kind === 'vault'
+                          ? selectedConfiguration.id
+                          : undefined,
                       providerAuthConfigId: selectedAuthConfigId || undefined
                     })
                   }

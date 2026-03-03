@@ -11,7 +11,7 @@ import {
 import { LinkTabs } from '@metorial/ui';
 import { Outlet, useLocation, useParams } from 'react-router-dom';
 
-export let ProviderAuthConnectionLayout = () => {
+export let ProviderAuthConfigLayout = () => {
   let instance = useCurrentInstance();
   let project = useCurrentProject();
   let organization = useCurrentOrganization();
@@ -26,7 +26,7 @@ export let ProviderAuthConnectionLayout = () => {
 
   let pathname = useLocation().pathname;
 
-  let connectionPathParams = [
+  let authConfigPathParams = [
     organization.data,
     project.data,
     instance.data,
@@ -60,7 +60,7 @@ export let ProviderAuthConnectionLayout = () => {
           },
           {
             label: authConfig.data?.name ?? '...',
-            href: Paths.instance.providerAuthConnection(...connectionPathParams)
+            href: Paths.instance.providerAuthConfig(...authConfigPathParams)
           }
         ]}
       />
@@ -72,11 +72,11 @@ export let ProviderAuthConnectionLayout = () => {
             links={[
               {
                 label: 'Overview',
-                to: Paths.instance.providerAuthConnection(...connectionPathParams)
+                to: Paths.instance.providerAuthConfig(...authConfigPathParams)
               },
               {
                 label: 'Settings',
-                to: Paths.instance.providerAuthConnection(...connectionPathParams, 'settings')
+                to: Paths.instance.providerAuthConfig(...authConfigPathParams, 'settings')
               }
             ]}
           />

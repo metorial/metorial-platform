@@ -1,9 +1,10 @@
+import { DashboardInstanceSessionsCreateOutput } from '@metorial/dashboard-sdk';
 import { Dialog, showModal } from '@metorial/ui';
 import { ProviderSessionForm, ProviderSessionFormProps } from './form';
 
 export let showProviderSessionFormModal = (
   p: ProviderSessionFormProps & {
-    onCreate?: (session: any) => any;
+    onCreate?: (session: DashboardInstanceSessionsCreateOutput) => void;
   }
 ) =>
   showModal(({ dialogProps, close }) => (

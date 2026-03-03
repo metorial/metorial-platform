@@ -1,9 +1,10 @@
+import { DashboardInstanceProviderDeploymentsAuthConfigsCreateOutput } from '@metorial/dashboard-sdk';
 import { Dialog, showModal } from '@metorial/ui';
 import { ProviderAuthConfigForm, ProviderAuthConfigFormProps } from './form';
 
 export let showProviderAuthConfigFormModal = (
   p: ProviderAuthConfigFormProps & {
-    onCreate?: (authConfig: any) => any;
+    onCreate?: (authConfig: DashboardInstanceProviderDeploymentsAuthConfigsCreateOutput) => void;
     onBack?: () => void;
   }
 ) =>

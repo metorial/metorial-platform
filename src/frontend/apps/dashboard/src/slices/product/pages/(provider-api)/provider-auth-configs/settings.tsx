@@ -4,7 +4,7 @@ import { Button, Input, Spacer } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
 import { useParams } from 'react-router-dom';
 
-export let ProviderAuthConnectionSettingsPage = () => {
+export let ProviderAuthConfigSettingsPage = () => {
   let instance = useCurrentInstance();
 
   let { providerDeploymentId, providerAuthConfigId } = useParams();
@@ -48,8 +48,8 @@ export let ProviderAuthConnectionSettingsPage = () => {
   return renderWithLoader({ authConfig })(({ authConfig }) => (
     <>
       <Box
-        title="Auth Connection Settings"
-        description="Modify the settings of this auth connection."
+        title="Auth Config Settings"
+        description="Modify the settings of this auth config."
       >
         <form
           onSubmit={e => {

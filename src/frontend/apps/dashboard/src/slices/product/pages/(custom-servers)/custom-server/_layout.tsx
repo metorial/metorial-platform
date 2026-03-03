@@ -43,9 +43,9 @@ export let CustomServerLayout = () => {
 
   let flags = useDashboardFlags();
   let hasCodeManagement = Boolean(
-    customServer.data?.scmRepo &&
-      !customServer.data?.draft?.remoteMcpServer &&
-      !customServer.data?.draft?.containerImage
+    customServer.data &&
+      !customServer.data.draft?.remoteMcpServer &&
+      !customServer.data.draft?.containerImage
   );
 
   return (

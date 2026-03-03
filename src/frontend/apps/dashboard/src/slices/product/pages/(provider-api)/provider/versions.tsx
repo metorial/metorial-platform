@@ -48,9 +48,6 @@ export let ProviderVersionsPage = () => {
                     <Text size="2" weight="strong">
                       {version.version}
                     </Text>
-                    <Badge color={version.status === 'released' ? 'green' : 'gray'} size="1">
-                      {version.status}
-                    </Badge>
                     {isCurrent && (
                       <Badge color="blue" size="1">
                         default

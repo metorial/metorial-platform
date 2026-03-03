@@ -416,7 +416,7 @@ let InstancePaths = Object.assign(
         ...subPages
       );
     },
-    providerAuthConnection: (
+    providerAuthConfig: (
       organization: EntityParam,
       project: EntityParam,
       instance: EntityParam,
@@ -431,7 +431,7 @@ let InstancePaths = Object.assign(
         instance,
         'configurations',
         deploymentId,
-        'auth-connection',
+        'auth-config',
         authConfigId,
         ...subPages
       );

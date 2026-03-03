@@ -2,11 +2,7 @@ import { CodeEditor } from '@metorial/code-editor';
 import { CustomProvidersGetOutput } from '@metorial/dashboard-sdk';
 import { useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
-import {
-  useCreateCustomServer,
-  useCurrentInstance,
-  useListServerVersions
-} from '@metorial/state';
+import { useCreateCustomServer, useCurrentInstance } from '@metorial/state';
 import { Button, Input, Spacer, toast } from '@metorial/ui';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -32,7 +28,6 @@ export let CustomServerDockerCreateForm = (p: {
 }) => {
   let instance = useCurrentInstance();
   let createCustomServer = useCreateCustomServer();
-  let listServerVersions = useListServerVersions();
 
   let [currentStep, setCurrentStep] = useState(0);
 
@@ -68,20 +63,6 @@ export let CustomServerDockerCreateForm = (p: {
       });
 
       if (customServerRes) {
-        let firstVersionId: string | undefined = undefined;
-
-        for (let i = 0; i < 5; i++) {
-          let [versionsRes] = await listServerVersions.mutate({
-            limit: 1,
-            instanceId: instance.data.id,
-            customServerId: customServerRes.id
-          });
-          if (versionsRes && versionsRes.items.length > 0) {
-            firstVersionId = versionsRes?.items[0]?.id;
-            break;
-          }
-        }
-
         toast.success('Provider created successfully');
 
         if (p.onCreate) {
@@ -92,8 +73,7 @@ export let CustomServerDockerCreateForm = (p: {
               instance.data.organization,
               instance.data.project,
               instance.data,
-              customServerRes.id,
-              ...(firstVersionId ? ['versions', { version_id: firstVersionId }] : [])
+              customServerRes.id
             )
           );
         }

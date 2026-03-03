@@ -1,9 +1,10 @@
+import { DashboardInstanceProviderDeploymentsConfigVaultsCreateOutput } from '@metorial/dashboard-sdk';
 import { Dialog, showModal } from '@metorial/ui';
 import { ProviderConfigVaultForm, ProviderConfigVaultFormProps } from './form';
 
 export let showProviderConfigVaultFormModal = (
   p: ProviderConfigVaultFormProps & {
-    onCreate?: (vault: any) => any;
+    onCreate?: (vault: DashboardInstanceProviderDeploymentsConfigVaultsCreateOutput) => void;
     onBack?: () => void;
   }
 ) =>

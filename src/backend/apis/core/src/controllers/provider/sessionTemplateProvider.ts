@@ -129,6 +129,7 @@ export let sessionTemplateProviderController = Controller.create(
           session_template_id: v.string(),
           provider_deployment_id: v.optional(v.string()),
           provider_config_id: v.optional(v.string()),
+          provider_config_vault_id: v.optional(v.string()),
           provider_auth_config_id: v.optional(v.string()),
           tool_filters: v.optional(v.object({ tool_keys: v.optional(v.array(v.string())) }))
         })
@@ -140,6 +141,7 @@ export let sessionTemplateProviderController = Controller.create(
           sessionTemplateId: ctx.body.session_template_id,
           providerDeploymentId: ctx.body.provider_deployment_id,
           providerConfigId: ctx.body.provider_config_id,
+          providerConfigVaultId: ctx.body.provider_config_vault_id,
           providerAuthConfigId: ctx.body.provider_auth_config_id,
           toolFilters: ctx.body.tool_filters
             ? { toolKeys: ctx.body.tool_filters.tool_keys }

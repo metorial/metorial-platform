@@ -81,9 +81,9 @@ export let ProviderDeploymentsTable = ({
             <RenderDate date={deployment.createdAt} />
           ],
           href: Paths.instance.providerDeployment(
-            organization.data as any,
-            project.data as any,
-            instance.data as any,
+            organization.data,
+            project.data,
+            instance.data,
             deployment.id
           )
         }))}

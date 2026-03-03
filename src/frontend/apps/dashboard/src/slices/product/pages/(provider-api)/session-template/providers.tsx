@@ -1,15 +1,15 @@
 import {
-  DashboardInstanceProviderDeploymentsConfigsListQuery,
+  DashboardInstanceProviderDeploymentsListOutput,
   DashboardInstanceSessionTemplatesProvidersListOutput
 } from '@metorial/dashboard-sdk';
 import { renderWithLoader, useForm } from '@metorial/data-hooks';
 import {
   useCurrentInstance,
   useCreateSessionTemplateProvider,
+  useInstanceProviderAuthConfigs,
   useProviderAuthConfigs,
   useProvider,
   useProviderDeployment,
-  useProviderConfigs,
   useProviderDeployments,
   useProviderListings,
   useProviderTools,
@@ -32,23 +32,16 @@ import {
   theme
 } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
-import { type ReactNode, useEffect, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import {
+  emptyConfigurationSelection,
+  type ConfigurationSelection
+} from '../../../lib/configSelection';
+import { ProviderConfigurationSelection } from '../../../scenes/providerConfigs/selection';
 import { ProviderDeploymentsList } from '../../../scenes/providerDeployments/list';
 import { ProvidersWithDeploymentsSearch } from '../../../scenes/providers/search';
 import { Stepper } from '../../../scenes/stepper';
-
-type Deployment = {
-  id: string;
-  name: string | null;
-  providerId: string;
-  provider?: {
-    id: string;
-    name: string;
-    slug?: string | null;
-    imageUrl?: string | null;
-  } | null;
-};
 
 type SessionTemplateProviderRow =
   DashboardInstanceSessionTemplatesProvidersListOutput['items'][number];
@@ -57,10 +50,16 @@ type AddProviderFormValues = {
   selectedProviderId: string;
   selectedProviderName: string;
   selectedDeploymentId: string;
-  selectedConfigId: string;
+  selectedConfiguration: ConfigurationSelection;
   selectedAuthConfigId: string;
   toolFilterMode: 'all' | 'select';
   selectedToolKeys: string[];
+};
+
+type AddProviderFormRef = {
+  setFieldValue: (field: string, value: unknown) => void;
+  setFieldTouched: (field: string, touched: boolean, shouldValidate?: boolean) => void;
+  setFieldError: (field: string, message?: string) => void;
 };
 
 let AddProviderModalContent = ({
@@ -76,13 +75,13 @@ let AddProviderModalContent = ({
 }) => {
   let [currentStep, setCurrentStep] = useState(0);
   let createMutation = useCreateSessionTemplateProvider();
-  let formRef = useRef<any>(null);
+  let formRef = useRef<AddProviderFormRef | null>(null);
   let form = useForm<AddProviderFormValues>({
     initialValues: {
       selectedProviderId: '',
       selectedProviderName: '',
       selectedDeploymentId: '',
-      selectedConfigId: '',
+      selectedConfiguration: emptyConfigurationSelection(),
       selectedAuthConfigId: '',
       toolFilterMode: 'all' as const,
       selectedToolKeys: [] as string[]
@@ -92,9 +91,14 @@ let AddProviderModalContent = ({
         instanceId,
         sessionTemplateId,
         providerDeploymentId: values.selectedDeploymentId,
-        ...(values.selectedConfigId
+        ...(values.selectedConfiguration.kind === 'config'
           ? {
-              providerConfigId: values.selectedConfigId
+              providerConfigId: values.selectedConfiguration.id
+            }
+          : {}),
+        ...(values.selectedConfiguration.kind === 'vault'
+          ? {
+              providerConfigVaultId: values.selectedConfiguration.id
             }
           : {}),
         ...(values.selectedAuthConfigId
@@ -117,12 +121,17 @@ let AddProviderModalContent = ({
       let currentForm = formRef.current;
       if (!currentForm || errorCode !== 'use_after_delete' || !entityId) return;
 
-      if (entityId === values.selectedConfigId) {
-        currentForm.setFieldValue('selectedConfigId', '');
-        currentForm.setFieldTouched('selectedConfigId', true, false);
+      if (
+        values.selectedConfiguration.kind !== 'none' &&
+        entityId === values.selectedConfiguration.id
+      ) {
+        currentForm.setFieldValue('selectedConfiguration', emptyConfigurationSelection());
+        currentForm.setFieldTouched('selectedConfiguration', true, false);
         currentForm.setFieldError(
-          'selectedConfigId',
-          'Selected provider config was deleted or archived. Choose another config or leave Config empty.'
+          'selectedConfiguration',
+          values.selectedConfiguration.kind === 'vault'
+            ? 'Selected config vault was deleted or archived. Choose another vault or leave Config empty.'
+            : 'Selected provider config was deleted or archived. Choose another config or leave Config empty.'
         );
       }
 
@@ -140,7 +149,7 @@ let AddProviderModalContent = ({
         selectedProviderId: yup.string().defined(),
         selectedProviderName: yup.string().defined(),
         selectedDeploymentId: yup.string().required('Deployment is required'),
-        selectedConfigId: yup.string().defined(),
+        selectedConfiguration: yup.mixed<ConfigurationSelection>().defined(),
         selectedAuthConfigId: yup.string().defined(),
         toolFilterMode: yup
           .mixed<'all' | 'select'>()
@@ -152,13 +161,13 @@ let AddProviderModalContent = ({
   formRef.current = form;
 
   let resetConfigurationState = () => {
-    form.setFieldValue('selectedConfigId', '');
+    form.setFieldValue('selectedConfiguration', emptyConfigurationSelection());
     form.setFieldValue('selectedAuthConfigId', '');
     form.setFieldValue('toolFilterMode', 'all');
     form.setFieldValue('selectedToolKeys', []);
-    form.setFieldTouched('selectedConfigId', false, false);
+    form.setFieldTouched('selectedConfiguration', false, false);
     form.setFieldTouched('selectedAuthConfigId', false, false);
-    form.setFieldError('selectedConfigId', undefined);
+    form.setFieldError('selectedConfiguration', undefined);
     form.setFieldError('selectedAuthConfigId', undefined);
   };
 
@@ -223,11 +232,11 @@ let AddProviderModalContent = ({
               deploymentId={form.values.selectedDeploymentId}
               providerId={form.values.selectedProviderId}
               providerName={form.values.selectedProviderName}
-              selectedConfigId={form.values.selectedConfigId}
-              setSelectedConfigId={value => {
-                form.setFieldValue('selectedConfigId', value);
-                form.setFieldTouched('selectedConfigId', false, false);
-                form.setFieldError('selectedConfigId', undefined);
+              selectedConfiguration={form.values.selectedConfiguration}
+              setSelectedConfiguration={value => {
+                form.setFieldValue('selectedConfiguration', value);
+                form.setFieldTouched('selectedConfiguration', false, false);
+                form.setFieldError('selectedConfiguration', undefined);
               }}
               selectedAuthConfigId={form.values.selectedAuthConfigId}
               setSelectedAuthConfigId={value => {
@@ -240,7 +249,7 @@ let AddProviderModalContent = ({
               selectedToolKeys={form.values.selectedToolKeys}
               setSelectedToolKeys={value => form.setFieldValue('selectedToolKeys', value)}
               saving={createMutation.isPending}
-              configError={<form.RenderError field="selectedConfigId" />}
+              configError={<form.RenderError field="selectedConfiguration" />}
               authConfigError={<form.RenderError field="selectedAuthConfigId" />}
               mutationError={<createMutation.RenderError />}
               onBack={() => setCurrentStep(1)}
@@ -305,7 +314,7 @@ let PickDeploymentStep = ({
   error: ReactNode;
 }) => {
   let deployments = useProviderDeployments(instanceId, { providerId });
-  let items = (deployments.data?.items ?? []) as Deployment[];
+  let items: DashboardInstanceProviderDeploymentsListOutput['items'] = deployments.data?.items ?? [];
   let singleDeploymentId = items.length === 1 ? items[0]?.id : null;
 
   useEffect(() => {
@@ -370,8 +379,8 @@ let DeploymentConfigureStep = ({
   deploymentId,
   providerId,
   providerName,
-  selectedConfigId,
-  setSelectedConfigId,
+  selectedConfiguration,
+  setSelectedConfiguration,
   selectedAuthConfigId,
   setSelectedAuthConfigId,
   toolFilterMode,
@@ -391,8 +400,8 @@ let DeploymentConfigureStep = ({
   deploymentId: string;
   providerId: string;
   providerName: string;
-  selectedConfigId: string;
-  setSelectedConfigId: (v: string) => void;
+  selectedConfiguration: ConfigurationSelection;
+  setSelectedConfiguration: (v: ConfigurationSelection) => void;
   selectedAuthConfigId: string;
   setSelectedAuthConfigId: (v: string) => void;
   toolFilterMode: 'all' | 'select';
@@ -407,153 +416,22 @@ let DeploymentConfigureStep = ({
   onCancel: () => void;
   onSave: () => void;
 }) => {
-  let configs = useProviderConfigs(instanceId, deploymentId);
   let authConfigs = useProviderAuthConfigs(instanceId, deploymentId);
   let deployment = useProviderDeployment(instanceId, deploymentId);
   let provider = useProvider(instanceId, providerId);
   let providerVersionId =
     deployment.data?.lockedVersion?.id ?? provider.data?.currentVersion?.id ?? null;
   let tools = useProviderTools(instanceId, providerVersionId);
-  let [fallbackConfigItems, setFallbackConfigItems] = useState<
-    Array<{ id: string; name: string | null }>
-  >([]);
-  let [isLoadingFallbackConfigs, setIsLoadingFallbackConfigs] = useState(false);
-  let [fallbackAuthConfigItems, setFallbackAuthConfigItems] = useState<
-    Array<{ id: string; name: string | null }>
-  >([]);
-  let [isLoadingFallbackAuthConfigs, setIsLoadingFallbackAuthConfigs] = useState(false);
-
-  let scopedConfigItems = (configs.data?.items ?? []) as Array<{ id: string; name: string | null }>;
-  let configItems = scopedConfigItems.length > 0 ? scopedConfigItems : fallbackConfigItems;
-  let scopedAuthConfigItems = (authConfigs.data?.items ?? []) as Array<{
-    id: string;
-    name: string | null;
-  }>;
-  let authConfigItems = scopedAuthConfigItems.length > 0 ? scopedAuthConfigItems : fallbackAuthConfigItems;
-  let toolItems = (tools.data?.items ?? []) as Array<{
-    id: string;
-    name: string;
-    title?: string | null;
-    key?: string;
-  }>;
-  let shouldLoadFallbackConfigs = !configs.isLoading && scopedConfigItems.length === 0;
-  let shouldLoadFallbackAuthConfigs = !authConfigs.isLoading && scopedAuthConfigItems.length === 0;
+  let authConfigItems = authConfigs.data?.items ?? [];
+  let toolItems = tools.data?.items ?? [];
 
   useEffect(() => {
-    if (!instanceId || !providerId || !shouldLoadFallbackConfigs) {
-      setFallbackConfigItems([]);
-      setIsLoadingFallbackConfigs(false);
-      return;
-    }
-
-    let isCanceled = false;
-    setIsLoadingFallbackConfigs(true);
-
-    withAuth(sdk => {
-      let query: DashboardInstanceProviderDeploymentsConfigsListQuery = {
-        providerId,
-        status: ['active']
-      };
-      return sdk.providerDeployments.configs.list(instanceId, query);
-    })
-      .then(response => {
-        if (isCanceled) return;
-        setFallbackConfigItems(
-          ((response.items ?? []) as Array<{ id: string; name: string | null }>).map(item => ({
-            id: item.id,
-            name: item.name ?? null
-          }))
-        );
-      })
-      .catch(() => {
-        if (isCanceled) return;
-        setFallbackConfigItems([]);
-      })
-      .finally(() => {
-        if (isCanceled) return;
-        setIsLoadingFallbackConfigs(false);
-      });
-
-    return () => {
-      isCanceled = true;
-    };
-  }, [instanceId, providerId, shouldLoadFallbackConfigs]);
-
-  useEffect(() => {
-    if (!instanceId || !providerId || !shouldLoadFallbackAuthConfigs) {
-      setFallbackAuthConfigItems([]);
-      setIsLoadingFallbackAuthConfigs(false);
-      return;
-    }
-
-    let isCanceled = false;
-    setIsLoadingFallbackAuthConfigs(true);
-
-    withAuth(sdk =>
-      sdk.providerDeployments.authConfigs.list(instanceId, {
-        providerId,
-        order: 'desc'
-      })
-    )
-      .then(response => {
-        if (isCanceled) return;
-        setFallbackAuthConfigItems(
-          ((response.items ?? []) as Array<{ id: string; name: string | null }>).map(item => ({
-            id: item.id,
-            name: item.name ?? null
-          }))
-        );
-      })
-      .catch(() => {
-        if (isCanceled) return;
-        setFallbackAuthConfigItems([]);
-      })
-      .finally(() => {
-        if (isCanceled) return;
-        setIsLoadingFallbackAuthConfigs(false);
-      });
-
-    return () => {
-      isCanceled = true;
-    };
-  }, [instanceId, providerId, shouldLoadFallbackAuthConfigs]);
-
-  useEffect(() => {
-    if (configs.isLoading || isLoadingFallbackConfigs || !selectedConfigId) return;
-    if (!configItems.some(item => item.id === selectedConfigId)) {
-      setSelectedConfigId('');
-    }
-  }, [
-    configs.isLoading,
-    isLoadingFallbackConfigs,
-    configItems,
-    selectedConfigId,
-    setSelectedConfigId
-  ]);
-
-  useEffect(() => {
-    if (configs.isLoading || isLoadingFallbackConfigs || selectedConfigId) return;
-    if (scopedConfigItems.length > 0) return;
-    if (fallbackConfigItems.length > 0) {
-      setSelectedConfigId(fallbackConfigItems[0].id);
-    }
-  }, [
-    configs.isLoading,
-    isLoadingFallbackConfigs,
-    scopedConfigItems,
-    fallbackConfigItems,
-    selectedConfigId,
-    setSelectedConfigId
-  ]);
-
-  useEffect(() => {
-    if (authConfigs.isLoading || isLoadingFallbackAuthConfigs || !selectedAuthConfigId) return;
+    if (authConfigs.isLoading || !selectedAuthConfigId) return;
     if (!authConfigItems.some(item => item.id === selectedAuthConfigId)) {
       setSelectedAuthConfigId('');
     }
   }, [
     authConfigs.isLoading,
-    isLoadingFallbackAuthConfigs,
     authConfigItems,
     selectedAuthConfigId,
     setSelectedAuthConfigId
@@ -561,12 +439,9 @@ let DeploymentConfigureStep = ({
 
   if (
     deployment.isLoading ||
-    configs.isLoading ||
-    isLoadingFallbackConfigs ||
     authConfigs.isLoading ||
     (deployment.data && !deployment.data.lockedVersion?.id && provider.isLoading) ||
-    tools.isLoading ||
-    isLoadingFallbackAuthConfigs
+    tools.isLoading
   ) {
     return <CenteredSpinner />;
   }
@@ -577,12 +452,12 @@ let DeploymentConfigureStep = ({
         Configure <strong>{providerName}</strong>
       </Text>
 
-      <Select
+      <ProviderConfigurationSelection
+        instanceId={instanceId}
+        providerDeploymentId={deploymentId}
+        value={selectedConfiguration}
+        onChange={setSelectedConfiguration}
         label="Config"
-        value={selectedConfigId}
-        placeholder="None"
-        onChange={v => setSelectedConfigId(v)}
-        items={configItems.map(c => ({ id: c.id, label: c.name ?? c.id }))}
       />
       {configError}
 
@@ -591,7 +466,7 @@ let DeploymentConfigureStep = ({
         value={selectedAuthConfigId}
         placeholder="None"
         onChange={v => setSelectedAuthConfigId(v)}
-        items={authConfigItems.map(c => ({ id: c.id, label: c.name ?? c.id }))}
+        items={authConfigItems.map(config => ({ id: config.id, label: config.name ?? config.id }))}
       />
       {authConfigError}
 
@@ -660,7 +535,7 @@ let DeploymentConfigureStep = ({
                         }
                       }}
                     />
-                    <Text size="1">{tool.title ?? tool.name}</Text>
+                    <Text size="1">{tool.name}</Text>
                   </label>
                 ))}
               </Flex>
@@ -767,7 +642,17 @@ let ProvidersTable = ({
   let providers = useSessionTemplateProviders(instanceId, sessionTemplateId);
   let listings = useProviderListings({});
   let deployments = useProviderDeployments(instanceId);
-  let [authConfigNameLookup, setAuthConfigNameLookup] = useState<Record<string, string>>({});
+  let items = providers.data?.items ?? [];
+  let authConfigProviderIds = useMemo(
+    () =>
+      Array.from(
+        new Set(items.map(item => item.providerId ?? null).filter((v): v is string => !!v))
+      ),
+    [items]
+  );
+  let authConfigs = useInstanceProviderAuthConfigs(instanceId, {
+    providerId: authConfigProviderIds.length > 0 ? authConfigProviderIds : undefined
+  });
 
   let listingItems = listings.data?.items ?? [];
   let listingLookup: Record<string, { name: string; imageUrl: string }> = {};
@@ -777,72 +662,19 @@ let ProvidersTable = ({
     listingLookup[providerId] = { name: l.name, imageUrl: l.imageUrl };
   }
 
-  let deploymentItems = (deployments.data?.items ?? []) as Array<{
-    id: string;
-    name: string | null;
-  }>;
+  let deploymentItems = deployments.data?.items ?? [];
   let deploymentLookup: Record<string, string> = {};
   for (let d of deploymentItems) {
     if (d.name) deploymentLookup[d.id] = d.name;
   }
-  let items = providers.data?.items ?? [];
-  let authConfigLookupKey = items
-    .map(item => {
-      let authConfigId = item.authConfig?.id ?? null;
-      let providerId = item.providerId ?? null;
-
-      return authConfigId && providerId ? `${providerId}:${authConfigId}` : null;
-    })
-    .filter((v): v is string => !!v)
-    .sort()
-    .join('|');
-
-  useEffect(() => {
-    let rowsNeedingLookup = items.filter(item => {
-      let authConfigId = item.authConfig?.id ?? null;
-      let providerId = item.providerId ?? null;
-
-      return !!providerId && !!authConfigId;
-    });
-
-    if (!instanceId || rowsNeedingLookup.length === 0) {
-      setAuthConfigNameLookup(prev => (Object.keys(prev).length === 0 ? prev : {}));
-      return;
+  let authConfigNameLookup = useMemo(() => {
+    let lookup: Record<string, string> = {};
+    for (let item of authConfigs.data?.items ?? []) {
+      lookup[item.id] =
+        item.name ?? (item.isDefault ? 'Default Auth Config' : 'Unnamed Auth Config');
     }
-
-    let cancelled = false;
-    let providerIds = Array.from(
-      new Set(
-        rowsNeedingLookup
-          .map(item => item.providerId ?? null)
-          .filter((v): v is string => !!v)
-      )
-    );
-
-    (async () => {
-      try {
-        let result = await withAuth(sdk =>
-          sdk.providerDeployments.authConfigs.list(instanceId, { providerId: providerIds })
-        );
-
-        if (cancelled) return;
-
-        let nextLookup: Record<string, string> = {};
-        for (let item of result.items ?? []) {
-          nextLookup[item.id] =
-            item.name ?? (item.isDefault ? 'Default Auth Config' : 'Unnamed Auth Config');
-        }
-
-        setAuthConfigNameLookup(nextLookup);
-      } catch {
-        if (!cancelled) setAuthConfigNameLookup({});
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [instanceId, authConfigLookupKey]);
+    return lookup;
+  }, [authConfigs.data?.items]);
 
   if (providers.isLoading) return <CenteredSpinner />;
 

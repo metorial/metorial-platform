@@ -1,3 +1,4 @@
+import { DashboardInstanceProviderDeploymentsConfigVaultsCreateOutput } from '@metorial/dashboard-sdk';
 import { useForm } from '@metorial/data-hooks';
 import {
   useCreateProviderConfigVault,
@@ -19,7 +20,7 @@ export type ProviderConfigVaultFormProps = {
 export let ProviderConfigVaultForm = (
   props: ProviderConfigVaultFormProps & {
     close?: () => void;
-    onCreate?: (vault: any) => void;
+    onCreate?: (vault: DashboardInstanceProviderDeploymentsConfigVaultsCreateOutput) => void;
     onBack?: () => void;
   }
 ) => {
@@ -29,7 +30,7 @@ export let ProviderConfigVaultForm = (
   let deployment = useProviderDeployment(instanceId, props.providerDeploymentId);
   let configSchema = useProviderConfigSchema(instanceId, props.providerDeploymentId);
 
-  let [vaultData, setVaultData] = useState<Record<string, any>>({});
+  let [vaultData, setVaultData] = useState<Record<string, unknown>>({});
 
   let hasSchema = configSchema.data?.schema && typeof configSchema.data.schema === 'object';
   let jsonSchema = configSchema.data?.schema?.schema;

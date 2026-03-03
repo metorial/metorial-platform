@@ -1,4 +1,7 @@
-import { DashboardInstanceProvidersAuthMethodsListOutput } from '@metorial/dashboard-sdk';
+import {
+  DashboardInstanceProviderDeploymentsAuthConfigsCreateOutput,
+  DashboardInstanceProvidersAuthMethodsListOutput
+} from '@metorial/dashboard-sdk';
 import { useForm } from '@metorial/data-hooks';
 import {
   useCurrentInstance,
@@ -28,7 +31,7 @@ export type ProviderAuthConfigFormProps =
 export let ProviderAuthConfigForm = (
   props: ProviderAuthConfigFormProps & {
     close?: () => void;
-    onCreate?: (authConfig: any) => void;
+    onCreate?: (authConfig: DashboardInstanceProviderDeploymentsAuthConfigsCreateOutput) => void;
     onBack?: () => void;
   }
 ) => {
@@ -45,7 +48,7 @@ export let ProviderAuthConfigForm = (
 
   let authMethods = useProviderAuthMethods(instanceId, effectiveVersionId);
 
-  let [credentialsData, setCredentialsData] = useState<Record<string, any>>({});
+  let [credentialsData, setCredentialsData] = useState<Record<string, unknown>>({});
   let [step, setStep] = useState(0);
 
   let form = useForm({
@@ -74,7 +77,7 @@ export let ProviderAuthConfigForm = (
             let schemaObj = getJsonSchema(
               selectedMethod?.inputSchema as
                 | JsonSchemaEnvelope
-                | Record<string, any>
+                | Record<string, unknown>
                 | null
                 | undefined
             );
@@ -118,7 +121,7 @@ export let ProviderAuthConfigForm = (
 
     form.setFieldError('name', undefined);
 
-    let parsedCredentials: Record<string, any> = {};
+    let parsedCredentials: Record<string, unknown> = {};
     if (hasSchema) {
       parsedCredentials = credentialsData;
     } else if (isOAuthWithoutSchema) {
@@ -159,7 +162,7 @@ export let ProviderAuthConfigForm = (
   let schemaObj = getJsonSchema(
     selectedMethod?.inputSchema as
       | JsonSchemaEnvelope
-      | Record<string, any>
+      | Record<string, unknown>
       | null
       | undefined
   );

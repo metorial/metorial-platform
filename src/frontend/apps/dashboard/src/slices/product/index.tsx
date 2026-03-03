@@ -8,8 +8,8 @@ import { Outlet } from 'react-router-dom';
 import { ProjectHomePage } from './pages';
 
 // Provider API pages
-let ProvidersHubLayout = dynamicPage(() =>
-  import('./pages/(provider-api)/(list)/_layout').then(c => c.ProvidersHubLayout)
+let ProvidersListLayout = dynamicPage(() =>
+  import('./pages/(provider-api)/(list)/_layout').then(c => c.ProvidersListLayout)
 );
 let ProvidersPage = dynamicPage(() =>
   import('./pages/(provider-api)/(list)/providers').then(c => c.ProvidersPage)
@@ -95,6 +95,11 @@ let ProviderDeploymentConfigsPage = dynamicPage(() =>
     c => c.ProviderDeploymentConfigsPage
   )
 );
+let ProviderDeploymentConfigVaultsPage = dynamicPage(() =>
+  import('./pages/(provider-api)/provider-deployment/config-vaults').then(
+    c => c.ProviderDeploymentConfigVaultsPage
+  )
+);
 let ProviderDeploymentAuthMethodsPage = dynamicPage(() =>
   import('./pages/(provider-api)/provider-deployment/auth-methods').then(
     c => c.ProviderDeploymentAuthMethodsPage
@@ -153,19 +158,19 @@ let ProviderAuthCredentialSettingsPage = dynamicPage(() =>
     c => c.ProviderAuthCredentialSettingsPage
   )
 );
-let ProviderAuthConnectionLayout = dynamicPage(() =>
+let ProviderAuthConfigLayout = dynamicPage(() =>
   import('./pages/(provider-api)/provider-auth-configs/_layout').then(
-    c => c.ProviderAuthConnectionLayout
+    c => c.ProviderAuthConfigLayout
   )
 );
-let ProviderAuthConnectionOverviewPage = dynamicPage(() =>
+let ProviderAuthConfigOverviewPage = dynamicPage(() =>
   import('./pages/(provider-api)/provider-auth-configs/index').then(
-    c => c.ProviderAuthConnectionOverviewPage
+    c => c.ProviderAuthConfigOverviewPage
   )
 );
-let ProviderAuthConnectionSettingsPage = dynamicPage(() =>
+let ProviderAuthConfigSettingsPage = dynamicPage(() =>
   import('./pages/(provider-api)/provider-auth-configs/settings').then(
-    c => c.ProviderAuthConnectionSettingsPage
+    c => c.ProviderAuthConfigSettingsPage
   )
 );
 let ProviderSessionLayout = dynamicPage(() =>
@@ -177,9 +182,7 @@ let ProviderSessionProvidersPage = dynamicPage(() =>
   )
 );
 let ProviderSessionRunsPage = dynamicPage(() =>
-  import('./pages/(provider-api)/provider-session/runs').then(
-    c => c.ProviderSessionRunsPage
-  )
+  import('./pages/(provider-api)/provider-session/runs').then(c => c.ProviderSessionRunsPage)
 );
 let ProviderSessionLogsPage = dynamicPage(() =>
   import('./pages/(provider-api)/provider-session/logs').then(c => c.ProviderSessionLogsPage)
@@ -449,8 +452,7 @@ export let productInnerSlice = createSlice([
                 element: <CustomServerListingPage />
               }
             ]
-          },
-
+          }
         ]
       },
 
@@ -562,7 +564,7 @@ export let productInnerSlice = createSlice([
        *************** */
       {
         path: 'providers',
-        element: <ProvidersHubLayout />,
+        element: <ProvidersListLayout />,
         children: [
           {
             path: '',
@@ -638,6 +640,10 @@ export let productInnerSlice = createSlice([
             element: <ProviderDeploymentConfigsPage />
           },
           {
+            path: 'config-vaults',
+            element: <ProviderDeploymentConfigVaultsPage />
+          },
+          {
             path: 'auth-methods',
             element: <ProviderDeploymentAuthMethodsPage />
           },
@@ -694,16 +700,16 @@ export let productInnerSlice = createSlice([
         ]
       },
       {
-        path: 'configurations/:providerDeploymentId/auth-connection/:providerAuthConfigId',
-        element: <ProviderAuthConnectionLayout />,
+        path: 'configurations/:providerDeploymentId/auth-config/:providerAuthConfigId',
+        element: <ProviderAuthConfigLayout />,
         children: [
           {
             path: '',
-            element: <ProviderAuthConnectionOverviewPage />
+            element: <ProviderAuthConfigOverviewPage />
           },
           {
             path: 'settings',
-            element: <ProviderAuthConnectionSettingsPage />
+            element: <ProviderAuthConfigSettingsPage />
           }
         ]
       },

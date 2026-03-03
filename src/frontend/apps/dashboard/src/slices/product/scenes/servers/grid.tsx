@@ -69,7 +69,6 @@ export let ServersGrid = (filter: DashboardInstanceProviderListingsListQuery) =>
                         }}
                         size={30}
                         radius={5}
-                        withInitials
                       />
 
                       <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>

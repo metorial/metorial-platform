@@ -1,17 +1,14 @@
 import { CustomProvidersGetOutput } from '@metorial/dashboard-sdk';
 import { useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
-import {
-  useCreateCustomServer,
-  useCurrentInstance,
-  useListServerVersions
-} from '@metorial/state';
+import { useCreateCustomServer, useCurrentInstance } from '@metorial/state';
 import { Avatar, Button, Input, Or, Select, Spacer, theme, toast } from '@metorial/ui';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { Stepper } from '../stepper';
-import { defaultServerConfigRemote, remoteServerTemplates } from './config';
+import { remoteServerTemplates } from './config';
+import { getCustomServerRemoteProtocolFromUrl } from './utils';
 
 let TemplateWrapper = styled.div`
   display: flex;
@@ -60,9 +57,9 @@ export let CustomServerRemoteCreateForm = (p: {
 }) => {
   let instance = useCurrentInstance();
   let createCustomServer = useCreateCustomServer();
-  let listServerVersions = useListServerVersions();
 
   let [currentStep, setCurrentStep] = useState(0);
+  let [hasManualRemoteProtocol, setHasManualRemoteProtocol] = useState(false);
 
   let navigate = useNavigate();
 
@@ -72,7 +69,7 @@ export let CustomServerRemoteCreateForm = (p: {
       remoteUrl: '',
       description: '',
       metadata: {},
-      remoteProtocol: 'sse'
+      remoteProtocol: getCustomServerRemoteProtocolFromUrl('')
     },
     schema: yup =>
       yup.object({
@@ -91,26 +88,12 @@ export let CustomServerRemoteCreateForm = (p: {
         description: values.description,
         from: {
           type: 'remote',
-          remoteUrl: values.remoteUrl,
+          remoteUrl: values.remoteUrl.trim(),
           protocol: values.remoteProtocol == 'sse' ? 'sse' : 'streamable_http'
         }
       });
 
       if (customServerRes) {
-        let firstVersionId: string | undefined = undefined;
-
-        for (let i = 0; i < 5; i++) {
-          let [versionsRes] = await listServerVersions.mutate({
-            limit: 1,
-            instanceId: instance.data.id,
-            customServerId: customServerRes.id
-          });
-          if (versionsRes && versionsRes.items.length > 0) {
-            firstVersionId = versionsRes?.items[0]?.id;
-            break;
-          }
-        }
-
         toast.success('Provider linked successfully');
 
         if (p.onCreate) {
@@ -121,14 +104,22 @@ export let CustomServerRemoteCreateForm = (p: {
               instance.data.organization,
               instance.data.project,
               instance.data,
-              customServerRes.id,
-              ...(firstVersionId ? ['versions', { version_id: firstVersionId }] : [])
+              customServerRes.id
             )
           );
         }
       }
     }
   });
+
+  useEffect(() => {
+    if (hasManualRemoteProtocol) return;
+
+    let nextRemoteProtocol = getCustomServerRemoteProtocolFromUrl(form.values.remoteUrl);
+    if (form.values.remoteProtocol === nextRemoteProtocol) return;
+
+    void form.setFieldValue('remoteProtocol', nextRemoteProtocol);
+  }, [form.values.remoteProtocol, form.values.remoteUrl, hasManualRemoteProtocol]);
 
   let close = p.close && (
     <Button
@@ -186,7 +177,10 @@ export let CustomServerRemoteCreateForm = (p: {
                       { label: 'SSE (Server-Sent Events)', id: 'sse' },
                       { label: 'Streamable HTTP', id: 'streamable_http' }
                     ]}
-                    onChange={v => form.setFieldValue('remoteProtocol', v)}
+                    onChange={v => {
+                      setHasManualRemoteProtocol(true);
+                      void form.setFieldValue('remoteProtocol', v);
+                    }}
                   />
                   <form.RenderError field="remoteProtocol" />
 
@@ -204,9 +198,14 @@ export let CustomServerRemoteCreateForm = (p: {
                         onClick={() => {
                           form.resetForm();
 
-                          form.setFieldValue('remoteUrl', template.remoteUrl);
-                          form.setFieldValue('remoteProtocol', template.protocol ?? 'sse');
-                          form.setFieldValue('name', template.name);
+                          let remoteProtocol = getCustomServerRemoteProtocolFromUrl(
+                            template.remoteUrl
+                          );
+
+                          setHasManualRemoteProtocol(false);
+                          void form.setFieldValue('remoteUrl', template.remoteUrl);
+                          void form.setFieldValue('remoteProtocol', remoteProtocol);
+                          void form.setFieldValue('name', template.name);
 
                           setCurrentStep(1);
                         }}

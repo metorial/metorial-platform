@@ -1,4 +1,5 @@
 import {
+  DashboardInstanceProviderDeploymentsAuthConfigsListOutput,
   DashboardInstanceProviderDeploymentsAuthConfigsCreateBody,
   DashboardInstanceProviderDeploymentsAuthConfigsListQuery,
   DashboardInstanceProviderDeploymentsAuthConfigsUpdateBody
@@ -7,20 +8,18 @@ import { createLoader } from '@metorial/data-hooks';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
 
-export let providerAuthConfigsLoader = createLoader({
-  name: 'providerAuthConfigs',
+export let instanceProviderAuthConfigsLoader = createLoader({
+  name: 'instanceProviderAuthConfigs',
   parents: [],
-  fetch: (
-    i: {
-      instanceId: string;
-      providerDeploymentId: string;
-    } & DashboardInstanceProviderDeploymentsAuthConfigsListQuery
-  ) =>
-    withAuth(sdk => sdk.providerDeployments.authConfigs.list(i.instanceId, i)),
+  fetch: (i: { instanceId: string } & DashboardInstanceProviderDeploymentsAuthConfigsListQuery) =>
+    withAuth(sdk => sdk.providerDeployments.authConfigs.list(i.instanceId, i)) as Promise<
+      DashboardInstanceProviderDeploymentsAuthConfigsListOutput
+    >,
   mutators: {}
 });
 
-export let useCreateProviderAuthConfig = providerAuthConfigsLoader.createExternalMutator(
+export let useCreateProviderAuthConfig =
+  instanceProviderAuthConfigsLoader.createExternalMutator(
   (
     i: DashboardInstanceProviderDeploymentsAuthConfigsCreateBody & {
       instanceId: string;
@@ -29,22 +28,20 @@ export let useCreateProviderAuthConfig = providerAuthConfigsLoader.createExterna
   ) =>
     withAuth(sdk => sdk.providerDeployments.authConfigs.create(i.instanceId, i)),
   { disableToast: true }
-);
+  );
 
-export let useProviderAuthConfigs = (
+export let useInstanceProviderAuthConfigs = (
   instanceId: string | null | undefined,
-  providerDeploymentId: string | null | undefined,
   opts?: DashboardInstanceProviderDeploymentsAuthConfigsListQuery
 ) => {
   let data = usePaginator(pagination =>
-    providerAuthConfigsLoader.use(
-      instanceId && providerDeploymentId
+    instanceProviderAuthConfigsLoader.use(
+      instanceId
         ? {
             order: 'desc',
             ...opts,
             ...pagination,
-            instanceId,
-            providerDeploymentId
+            instanceId
           }
         : null
     )
@@ -53,9 +50,25 @@ export let useProviderAuthConfigs = (
   return data;
 };
 
+export let useProviderAuthConfigs = (
+  instanceId: string | null | undefined,
+  providerDeploymentId: string | null | undefined,
+  opts?: DashboardInstanceProviderDeploymentsAuthConfigsListQuery
+) => {
+  return useInstanceProviderAuthConfigs(
+    instanceId,
+    providerDeploymentId
+      ? {
+          ...opts,
+          providerDeploymentId
+        }
+      : undefined
+  );
+};
+
 export let providerAuthConfigLoader = createLoader({
   name: 'providerAuthConfig',
-  parents: [providerAuthConfigsLoader],
+  parents: [instanceProviderAuthConfigsLoader],
   fetch: (i: {
     instanceId: string;
     providerDeploymentId: string;

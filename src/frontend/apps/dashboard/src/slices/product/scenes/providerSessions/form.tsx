@@ -1,3 +1,4 @@
+import { DashboardInstanceSessionsCreateOutput } from '@metorial/dashboard-sdk';
 import { useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, useCreateSession } from '@metorial/state';
@@ -17,7 +18,7 @@ export type ProviderSessionFormProps =
 export let ProviderSessionForm = (
   props: ProviderSessionFormProps & {
     close?: () => void;
-    onCreate?: (session: any) => void;
+    onCreate?: (session: DashboardInstanceSessionsCreateOutput) => void;
   }
 ) => {
   let instance = useCurrentInstance();

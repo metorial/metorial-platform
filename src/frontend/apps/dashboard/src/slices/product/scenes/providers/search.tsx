@@ -1,11 +1,6 @@
 import type { DashboardInstanceProvidersListOutput } from '@metorial/dashboard-sdk';
 import { renderWithPagination, useForm } from '@metorial/data-hooks';
-import {
-  useCurrentInstance,
-  useProviderDeployments,
-  useProviderListings,
-  useProviders
-} from '@metorial/state';
+import { useCurrentInstance, useProviderDeployments, useProviders } from '@metorial/state';
 import {
   Avatar,
   ButtonSize,
@@ -30,7 +25,6 @@ export type ProviderSearchItem = {
   name?: string | null;
   slug?: string | null;
   description?: string | null;
-  imageUrl?: string | null;
 };
 
 let Wrapper = styled.div``;
@@ -151,15 +145,10 @@ let ProviderSearchGrid = ({
       ) : (
         <Grid>
           {filteredItems.map(provider => (
-            <GridButton
-              key={provider.id}
-              type="button"
-              onClick={() => onSelect?.(provider)}
-            >
+            <GridButton key={provider.id} type="button" onClick={() => onSelect?.(provider)}>
               <Avatar
                 entity={{
-                  name: provider.name ?? provider.slug ?? 'Provider',
-                  photoUrl: provider.imageUrl ?? undefined
+                  name: provider.name ?? provider.slug ?? 'Provider'
                 }}
                 size={24}
                 radius={8}
@@ -191,8 +180,7 @@ export let ProviderSearch = ({
         id: provider.id,
         name: provider.name,
         slug: provider.slug,
-        description: provider.description,
-        imageUrl: (provider as any).imageUrl ?? null
+        description: provider.description
       }))}
       stickyTop={stickyTop}
       sectionLabel="Providers"
@@ -216,20 +204,28 @@ export let ProvidersWithDeploymentsSearch = ({
   emptyText?: string;
 }) => {
   let deployments = useProviderDeployments(instanceId);
-  let listings = useProviderListings({});
+  let providerIds = useMemo(
+    () =>
+      [
+        ...new Set((deployments.data?.items ?? []).map(deployment => deployment.providerId))
+      ].sort(),
+    [deployments.data?.items]
+  );
+  let providers = useProviders(
+    instanceId,
+    providerIds.length > 0 ? { id: providerIds } : null
+  );
 
   return renderWithPagination(deployments)(deployments => {
-    let listingLookup = new Map<
+    let providerLookup = new Map<
       string,
-      { name?: string | null; imageUrl?: string | null }
+      { name?: string | null; slug?: string | null }
     >();
 
-    for (let listing of listings.data?.items ?? []) {
-      let providerId = listing.provider?.id;
-      if (!providerId) continue;
-      listingLookup.set(providerId, {
-        name: listing.name,
-        imageUrl: listing.imageUrl
+    for (let provider of providers.data?.items ?? []) {
+      providerLookup.set(provider.id, {
+        name: provider.name,
+        slug: provider.slug
       });
     }
 
@@ -240,13 +236,12 @@ export let ProvidersWithDeploymentsSearch = ({
       if (seen.has(deployment.providerId)) continue;
       seen.add(deployment.providerId);
 
-      let listing = listingLookup.get(deployment.providerId);
+      let provider = providerLookup.get(deployment.providerId);
 
       items.push({
         id: deployment.providerId,
-        name: listing?.name ?? deployment.name ?? deployment.providerId,
-        slug: null,
-        imageUrl: listing?.imageUrl ?? null
+        name: provider?.name ?? deployment.providerId,
+        slug: provider?.slug ?? null
       });
     }
 

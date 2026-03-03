@@ -55,8 +55,7 @@ export let ProjectHomePage = () => {
     a =>
       a.type === 'instance_access_token_secret' &&
       a.status == 'active' &&
-      ((a as any).revealInfo?.forever ||
-        ((a as any).revealInfo?.until && (a as any).revealInfo?.until > new Date()))
+      (a.revealInfo?.forever || (a.revealInfo?.until && a.revealInfo?.until > new Date()))
   );
 
   return (
@@ -238,12 +237,15 @@ export let ProjectHomePage = () => {
         </>
       ))}
 
-      <Explainer
-        title="Welcome to Metorial"
-        description="Head to the providers page to deploy your first provider."
-        youtubeId="1QAFqyxSX5E"
-        id="home"
+      {/* 
+        * Need to make new videos @RahmeKarim
+        <Explainer
+          title="Welcome to Metorial"
+          description="Head to the providers page to deploy your first provider."
+          youtubeId="1QAFqyxSX5E"
+          id="home"
       />
+      */}
     </ContentLayout>
   );
 };

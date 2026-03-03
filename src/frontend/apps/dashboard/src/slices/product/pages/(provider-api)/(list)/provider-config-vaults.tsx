@@ -1,3 +1,4 @@
+import { DashboardInstanceProviderDeploymentsConfigVaultsListOutput } from '@metorial/dashboard-sdk';
 import { renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
@@ -9,7 +10,7 @@ import {
 } from '@metorial/state';
 import { Input, RenderDate, Spacer, Text } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useDebounced } from '../../../../../hooks/useDebounced';
 
 export let ProviderConfigVaultsOverviewPage = () => {
@@ -39,13 +40,6 @@ export let ProviderConfigVaultsOverviewPage = () => {
     }
     return map;
   }, [providers.data?.items]);
-
-  useEffect(() => {
-    let onCreated = () => vaults.refetch?.();
-    window.addEventListener('provider-config-vault-created', onCreated);
-    return () => window.removeEventListener('provider-config-vault-created', onCreated);
-  }, [vaults.refetch]);
-
   return (
     <>
       <Input
@@ -63,30 +57,32 @@ export let ProviderConfigVaultsOverviewPage = () => {
           {vaults.data.items.length > 0 && (
             <Table
               headers={['Name', 'Provider', 'Deployment', 'Created']}
-              data={vaults.data.items.map((vault: any) => ({
-                href: Paths.instance.providerConfigVault(
-                  organization.data,
-                  project.data,
-                  instance.data,
-                  vault.id
-                ),
-                data: [
-                  <Text size="2" weight="strong">
-                    {vault.name ?? 'Unnamed Vault'}
-                  </Text>,
-                  <Text size="2">
-                    {providerNameMap.get(vault.providerId) ?? vault.providerId ?? '—'}
-                  </Text>,
-                  <Text size="2">{vault.deployment?.name ?? '—'}</Text>,
-                  vault.createdAt ? (
-                    <RenderDate date={vault.createdAt} />
-                  ) : (
-                    <Text size="2" color="gray600">
-                      —
-                    </Text>
-                  )
-                ]
-              }))}
+              data={vaults.data.items.map(
+                (vault: DashboardInstanceProviderDeploymentsConfigVaultsListOutput['items'][number]) => ({
+                  href: Paths.instance.providerConfigVault(
+                    organization.data,
+                    project.data,
+                    instance.data,
+                    vault.id
+                  ),
+                  data: [
+                    <Text size="2" weight="strong">
+                      {vault.name ?? 'Unnamed Vault'}
+                    </Text>,
+                    <Text size="2">
+                      {providerNameMap.get(vault.providerId) ?? vault.providerId ?? '—'}
+                    </Text>,
+                    <Text size="2">{vault.deployment?.name ?? '—'}</Text>,
+                    vault.createdAt ? (
+                      <RenderDate date={vault.createdAt} />
+                    ) : (
+                      <Text size="2" color="gray600">
+                        —
+                      </Text>
+                    )
+                  ]
+                })
+              )}
             />
           )}
 

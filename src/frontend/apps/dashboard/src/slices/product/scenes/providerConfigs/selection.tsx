@@ -1,0 +1,103 @@
+import {
+  DashboardInstanceProviderDeploymentsConfigsListOutput,
+  DashboardInstanceProviderDeploymentsConfigVaultsListOutput
+} from '@metorial/dashboard-sdk';
+import { useProviderConfigVaults, useProviderConfigs } from '@metorial/state';
+import { Button, Flex, Select, Text } from '@metorial/ui';
+import { RiAddLine, RiSafeLine } from '@remixicon/react';
+import {
+  ConfigurationSelection,
+  decodeConfigurationSelection,
+  encodeConfigurationSelection
+} from '../../lib/configSelection';
+import { showProviderConfigVaultFormModal } from '../providerConfigVaults/modal';
+import { showProviderConfigFormModal } from './modal';
+
+type ConfigItem = DashboardInstanceProviderDeploymentsConfigsListOutput['items'][number];
+type VaultItem = DashboardInstanceProviderDeploymentsConfigVaultsListOutput['items'][number];
+
+export let ProviderConfigurationSelection = ({
+  instanceId,
+  providerDeploymentId,
+  value,
+  onChange,
+  label = 'Config'
+}: {
+  instanceId: string;
+  providerDeploymentId: string;
+  value: ConfigurationSelection;
+  onChange: (value: ConfigurationSelection) => void;
+  label?: string;
+}) => {
+  let configs = useProviderConfigs(instanceId, providerDeploymentId);
+  let vaults = useProviderConfigVaults(instanceId, { providerDeploymentId });
+
+  let items = [
+    { id: '__none__', label: 'None' },
+    ...(configs.data?.items ?? []).map((config: ConfigItem) => ({
+      id: `config:${config.id}`,
+      label: `Config · ${config.name ?? config.id}`
+    })),
+    ...(vaults.data?.items ?? []).map((vault: VaultItem) => ({
+      id: `vault:${vault.id}`,
+      label: `Vault · ${vault.name ?? vault.id}`
+    }))
+  ];
+
+  return (
+    <Flex direction="column" gap={8}>
+      <Flex gap={8} align="end">
+        <div style={{ flex: 1 }}>
+          <Select
+            label={label}
+            value={encodeConfigurationSelection(value)}
+            onChange={next => onChange(decodeConfigurationSelection(next))}
+            items={items}
+          />
+        </div>
+
+        <Button
+          type="button"
+          size="3"
+          iconLeft={<RiAddLine />}
+          onClick={() =>
+            showProviderConfigFormModal({
+              type: 'create',
+              instanceId,
+              providerDeploymentId,
+              onCreate: config => {
+                configs.refetch?.();
+                onChange({ kind: 'config', id: config.id });
+              }
+            })
+          }
+        />
+
+        <Button
+          type="button"
+          size="3"
+          iconLeft={<RiSafeLine />}
+          onClick={() =>
+            showProviderConfigVaultFormModal({
+              type: 'create',
+              instanceId,
+              providerDeploymentId,
+              onCreate: vault => {
+                vaults.refetch?.();
+                onChange({ kind: 'vault', id: vault.id });
+              }
+            })
+          }
+        />
+      </Flex>
+
+      {(configs.error || vaults.error) && (
+        <Text size="2" color="red500">
+          {configs.error?.message ??
+            vaults.error?.message ??
+            'Failed to load configs and config vaults.'}
+        </Text>
+      )}
+    </Flex>
+  );
+};

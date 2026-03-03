@@ -1,3 +1,4 @@
+import { DashboardInstanceProviderDeploymentsCreateOutput } from '@metorial/dashboard-sdk';
 import { useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, useCreateProviderDeployment } from '@metorial/state';
@@ -21,7 +22,7 @@ export type ProviderDeploymentFormProps =
 export let ProviderDeploymentForm = (
   props: ProviderDeploymentFormProps & {
     close?: () => void;
-    onCreate?: (deployment: unknown) => void;
+    onCreate?: (deployment: DashboardInstanceProviderDeploymentsCreateOutput) => void;
   }
 ) => {
   let instance = useCurrentInstance();

@@ -7,20 +7,13 @@ import { createLoader } from '@metorial/data-hooks';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
 
-type ProviderConfigsQuery = Omit<
-  DashboardInstanceProviderDeploymentsConfigsListQuery,
-  'providerDeploymentId'
->;
+type ProviderConfigsQuery = DashboardInstanceProviderDeploymentsConfigsListQuery;
 
 export let providerConfigsLoader = createLoader({
   name: 'providerConfigs',
   parents: [],
-  fetch: (
-    i: {
-      instanceId: string;
-      providerDeploymentId: string;
-    } & ProviderConfigsQuery
-  ) => withAuth(sdk => sdk.providerDeployments.configs.list(i.instanceId, i)),
+  fetch: (i: { instanceId: string } & ProviderConfigsQuery) =>
+    withAuth(sdk => sdk.providerDeployments.configs.list(i.instanceId, i)),
   mutators: {}
 });
 
@@ -34,21 +27,33 @@ export let useCreateProviderConfig = providerConfigsLoader.createExternalMutator
   { disableToast: true }
 );
 
-export let useProviderConfigs = (
+export let useInstanceProviderConfigs = (
   instanceId: string | null | undefined,
-  providerDeploymentId: string | null | undefined,
-  query?: ProviderConfigsQuery
+  query?: ProviderConfigsQuery | null
 ) => {
   let data = usePaginator(pagination =>
     providerConfigsLoader.use(
-      instanceId && providerDeploymentId
-        ? { instanceId, providerDeploymentId, ...pagination, ...query }
-        : null
+      instanceId && query !== null ? { instanceId, ...pagination, ...(query ?? {}) } : null
     )
   );
 
   return data;
 };
+
+export let useProviderConfigs = (
+  instanceId: string | null | undefined,
+  providerDeploymentId: string | null | undefined,
+  query?: ProviderConfigsQuery
+) =>
+  useInstanceProviderConfigs(
+    instanceId,
+    providerDeploymentId
+      ? {
+          ...query,
+          providerDeploymentId
+        }
+      : null
+  );
 
 export let providerConfigLoader = createLoader({
   name: 'providerConfig',

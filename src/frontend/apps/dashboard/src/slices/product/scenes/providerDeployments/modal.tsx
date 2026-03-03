@@ -1,9 +1,10 @@
+import { DashboardInstanceProviderDeploymentsCreateOutput } from '@metorial/dashboard-sdk';
 import { Dialog, showModal } from '@metorial/ui';
 import { ProviderDeploymentForm, ProviderDeploymentFormProps } from './form';
 
 export let showProviderDeploymentFormModal = (
   p: ProviderDeploymentFormProps & {
-    onCreate?: (deployment: any) => any;
+    onCreate?: (deployment: DashboardInstanceProviderDeploymentsCreateOutput) => void;
     onClose?: () => void;
   }
 ) =>

@@ -32,8 +32,11 @@ export let createInstance = (
       schema: yup =>
         yup.object().shape({
           name: yup.string().required('Name is required'),
-          type: yup.string().required('Environment is required')
-        }) as any
+          type: yup
+            .string()
+            .oneOf(['development', 'production'] as const)
+            .required('Environment is required')
+        })
     });
 
     return (
@@ -100,8 +103,12 @@ export let updateInstance = (instance_: MetorialInstance) =>
       },
       schema: yup =>
         yup.object().shape({
-          name: yup.string().required('Name is required')
-        }) as any
+          name: yup.string().required('Name is required'),
+          environment: yup
+            .string()
+            .oneOf(['development', 'production'] as const)
+            .required('Environment is required')
+        })
     });
 
     return (

@@ -27,8 +27,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { Stepper } from '../stepper';
-import { defaultServerConfigManaged } from './config';
 import { ConnectGitHubButton, SelectRepo } from './selectRepo';
+import { waitForCustomServerVersionId } from './utils';
 
 let PageWrapper = styled.div`
   display: flex;
@@ -224,19 +224,15 @@ export let CustomServerManagedCreateForm = (p: {
       });
 
       if (customServerRes) {
-        let firstVersionId: string | undefined = undefined;
-
-        for (let i = 0; i < 5; i++) {
+        let firstVersionId = await waitForCustomServerVersionId(async () => {
           let [versionsRes] = await listServerVersions.mutate({
             limit: 1,
             instanceId: instance.data.id,
             customServerId: customServerRes.id
           });
-          if (versionsRes && versionsRes.items.length > 0) {
-            firstVersionId = versionsRes?.items[0]?.id;
-            break;
-          }
-        }
+
+          return versionsRes?.items[0]?.id;
+        });
 
         toast.success('Provider created successfully');
 

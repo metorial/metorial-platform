@@ -1,10 +1,10 @@
 export type JsonSchemaEnvelope = {
   type: 'json_schema';
-  schema: Record<string, any> | null;
+  schema: Record<string, unknown> | null;
 };
 
 export let isJsonSchemaEnvelope = (
-  value: JsonSchemaEnvelope | Record<string, any> | null | undefined
+  value: JsonSchemaEnvelope | Record<string, unknown> | null | undefined
 ): value is JsonSchemaEnvelope => {
   return Boolean(
     value &&
@@ -16,7 +16,7 @@ export let isJsonSchemaEnvelope = (
 };
 
 export let getJsonSchema = (
-  value: JsonSchemaEnvelope | Record<string, any> | null | undefined
+  value: JsonSchemaEnvelope | Record<string, unknown> | null | undefined
 ) => {
   if (!value) return null;
   if (isJsonSchemaEnvelope(value)) return value.schema ?? null;
@@ -24,7 +24,7 @@ export let getJsonSchema = (
 };
 
 export let hasJsonSchemaProperties = (
-  value: JsonSchemaEnvelope | Record<string, any> | null | undefined
+  value: JsonSchemaEnvelope | Record<string, unknown> | null | undefined
 ) => {
   let schema = getJsonSchema(value);
   if (!schema || typeof schema !== 'object') return false;

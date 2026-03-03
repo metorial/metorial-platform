@@ -1,3 +1,8 @@
+import type {
+  DashboardInstanceProviderListingsListOutput,
+  DashboardInstanceProvidersGetOutput,
+  DashboardInstanceProvidersVersionsListOutput
+} from '@metorial/dashboard-sdk';
 import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
@@ -16,20 +21,17 @@ import { showProviderDeploymentFormModal } from '../../../scenes/providerDeploym
 
 // ── Provider version context ─────────────────────────────────────────
 
-type VersionItem = {
-  id: string;
-  version: string;
-  status?: string;
-  isCurrent?: boolean;
-  createdAt: Date;
-};
+type ProviderVersion = DashboardInstanceProvidersVersionsListOutput['items'][number];
+type ProviderVersionId = ProviderVersion['id'];
+type ProviderListing = DashboardInstanceProviderListingsListOutput['items'][number];
+type ProviderData = DashboardInstanceProvidersGetOutput;
 
 type ProviderVersionContextValue = {
-  selectedVersionId: string | undefined;
-  setSelectedVersionId: (id: string) => void;
-  currentVersionId: string | undefined;
-  selectedVersion: VersionItem | undefined;
-  allVersions: VersionItem[];
+  selectedVersionId: ProviderVersionId | undefined;
+  setSelectedVersionId: (id: ProviderVersionId | undefined) => void;
+  currentVersionId: ProviderVersionId | undefined;
+  selectedVersion: ProviderVersion | undefined;
+  allVersions: ProviderVersion[];
   isDefaultVersion: boolean;
   resetToDefault: () => void;
 };
@@ -52,15 +54,18 @@ export let ProviderLayout = () => {
 
   let { providerId } = useParams();
   let provider = useProvider(instance.data?.id, providerId);
+  let providerData: ProviderData | null = provider.data;
 
   let pathname = useLocation().pathname;
 
   // ── Version state (persists across tab navigation) ───────────────
   let versions = useProviderVersions(instance.data?.id, providerId);
-  let allVersions = (versions.data?.items ?? []) as VersionItem[];
-  let currentVersionId = provider.data?.currentVersion?.id;
+  let allVersions: ProviderVersion[] = versions.data?.items ?? [];
+  let currentVersionId = providerData?.currentVersion?.id;
 
-  let [selectedVersionId, setSelectedVersionId] = useState<string | undefined>(undefined);
+  let [selectedVersionId, setSelectedVersionIdState] = useState<ProviderVersionId | undefined>(
+    undefined
+  );
   let versionStorageKey =
     instance.data?.id && providerId
       ? `provider:selected-version:${instance.data.id}:${providerId}`
@@ -76,13 +81,13 @@ export let ProviderLayout = () => {
         storedVersionId &&
         (allVersions.length === 0 || allVersions.some(v => v.id === storedVersionId))
       ) {
-        setSelectedVersionId(storedVersionId);
+        setSelectedVersionIdState(storedVersionId);
         return;
       }
     }
 
     if (currentVersionId) {
-      setSelectedVersionId(currentVersionId);
+      setSelectedVersionIdState(currentVersionId);
     }
   }, [allVersions, currentVersionId, selectedVersionId, versionStorageKey]);
 
@@ -93,7 +98,7 @@ export let ProviderLayout = () => {
       allVersions.length > 0 &&
       !allVersions.some(v => v.id === selectedVersionId)
     ) {
-      setSelectedVersionId(currentVersionId);
+      setSelectedVersionIdState(currentVersionId);
       return;
     }
 
@@ -110,18 +115,11 @@ export let ProviderLayout = () => {
   let selectedVersion = allVersions.find(v => v.id === effectiveVersionId);
   let isDefaultVersion = effectiveVersionId === currentVersionId;
 
-  // Fetch listing metadata for the selected provider version.
-  let listings = useProviderListings(
-    providerId ? { limit: 100 } : null
-  );
-  let listing = (listings?.data?.items ?? []).find(
-    item =>
-      item.provider?.id === providerId &&
-      (!effectiveVersionId || item.provider?.currentVersion?.id === effectiveVersionId)
-  );
+  let listings = useProviderListings(providerId ? { providerId, limit: 1 } : null);
+  let listing: ProviderListing | undefined = listings.data?.items[0];
 
   let resetToDefault = () => {
-    if (currentVersionId) setSelectedVersionId(currentVersionId);
+    if (currentVersionId) setSelectedVersionIdState(currentVersionId);
   };
 
   // Sort: current version first, then by date descending
@@ -138,7 +136,9 @@ export let ProviderLayout = () => {
   let versionContext = useMemo<ProviderVersionContextValue>(
     () => ({
       selectedVersionId: effectiveVersionId,
-      setSelectedVersionId,
+      setSelectedVersionId: (id: ProviderVersionId | undefined) => {
+        setSelectedVersionIdState(id);
+      },
       currentVersionId,
       selectedVersion,
       allVersions: sortedVersions,
@@ -152,15 +152,15 @@ export let ProviderLayout = () => {
     organization.data,
     project.data,
     instance.data,
-    provider.data?.id ?? providerId
+    providerData?.id ?? providerId
   ] as const;
 
   return (
     <ProviderVersionContext.Provider value={versionContext}>
       <ContentLayout>
         <PageHeader
-          title={listing?.name ?? provider.data?.name ?? '...'}
-          description={listing?.description ?? provider.data?.description ?? undefined}
+          title={listing?.name ?? providerData?.name ?? '...'}
+          description={listing?.description ?? providerData?.description ?? undefined}
           top={
             listing?.attributes?.isVerified ||
             listing?.attributes?.isOfficial ||
@@ -188,12 +188,12 @@ export let ProviderLayout = () => {
               href: Paths.instance.providers(organization.data, project.data, instance.data)
             },
             {
-              label: provider.data?.name,
+              label: providerData?.name,
               href: Paths.instance.provider(
                 organization.data,
                 project.data,
                 instance.data,
-                provider.data?.id ?? providerId
+                providerData?.id ?? providerId
               )
             }
           ]}
@@ -201,7 +201,7 @@ export let ProviderLayout = () => {
             <>
               <Link
                 to={Paths.instance.explorer(organization.data, project.data, instance.data, {
-                  provider_id: provider.data?.id
+                  provider_id: providerData?.id
                 })}
               >
                 <Button as="span" size="2" variant="outline">
@@ -216,8 +216,8 @@ export let ProviderLayout = () => {
                   showProviderDeploymentFormModal({
                     type: 'create',
                     instanceId: instance.data.id,
-                    providerId: provider.data?.id,
-                    providerName: provider.data?.name,
+                    providerId: providerData?.id,
+                    providerName: providerData?.name,
                     ...(!isDefaultVersion && selectedVersion
                       ? {
                           lockedProviderVersionId: selectedVersion.id,

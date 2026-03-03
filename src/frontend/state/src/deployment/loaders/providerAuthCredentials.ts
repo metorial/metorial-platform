@@ -11,10 +11,7 @@ export let providerAuthCredentialsLoader = createLoader({
   name: 'providerAuthCredentials',
   parents: [],
   fetch: (
-    i: {
-      instanceId: string;
-      providerId: string;
-    } & DashboardInstanceProviderDeploymentsAuthCredentialsListQuery
+    i: { instanceId: string } & DashboardInstanceProviderDeploymentsAuthCredentialsListQuery
   ) =>
     withAuth(sdk => sdk.providerDeployments.authCredentials.list(i.instanceId, i)),
   mutators: {}
@@ -33,26 +30,33 @@ export let useCreateProviderAuthCredentials =
     { disableToast: true }
   );
 
-export let useProviderAuthCredentials = (
+export let useInstanceProviderAuthCredentials = (
   instanceId: string | null | undefined,
-  providerId: string | null | undefined,
-  query?: DashboardInstanceProviderDeploymentsAuthCredentialsListQuery
+  query?: DashboardInstanceProviderDeploymentsAuthCredentialsListQuery | null
 ) => {
   let data = usePaginator(pagination =>
     providerAuthCredentialsLoader.use(
-      instanceId && providerId
-        ? {
-            ...pagination,
-            ...query,
-            instanceId,
-            providerId
-          }
-        : null
+      instanceId && query !== null ? { ...pagination, ...(query ?? {}), instanceId } : null
     )
   );
 
   return data;
 };
+
+export let useProviderAuthCredentials = (
+  instanceId: string | null | undefined,
+  providerId: string | null | undefined,
+  query?: DashboardInstanceProviderDeploymentsAuthCredentialsListQuery
+) =>
+  useInstanceProviderAuthCredentials(
+    instanceId,
+    providerId
+      ? {
+          ...query,
+          providerId
+        }
+      : null
+  );
 
 export let providerAuthCredentialLoader = createLoader({
   name: 'providerAuthCredential',

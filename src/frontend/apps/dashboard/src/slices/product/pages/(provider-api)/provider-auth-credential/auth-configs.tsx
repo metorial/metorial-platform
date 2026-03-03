@@ -33,10 +33,10 @@ export let ProviderAuthCredentialAuthConfigsPage = () => {
       <Table
         headers={['Name', 'Type', 'Auth Method', 'Created']}
         data={authConfigs.data.items.map(config => ({
-          href: Paths.instance.providerAuthConnection(
-            organization.data as any,
-            project.data as any,
-            instance.data as any,
+          href: Paths.instance.providerAuthConfig(
+            organization.data,
+            project.data,
+            instance.data,
             providerDeploymentId,
             config.id
           ),

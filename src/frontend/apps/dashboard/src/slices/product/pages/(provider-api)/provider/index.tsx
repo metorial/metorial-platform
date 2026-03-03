@@ -28,15 +28,8 @@ export let ProviderOverviewPage = () => {
   let { providerId } = useParams();
   let provider = useProvider(instance.data?.id, providerId);
 
-  // Fetch the listing for rich metadata (skills, readme, etc.)
-  let listings = useProviderListings(
-    providerId ? { limit: 100 } : null
-  );
-  let listing = (listings?.data?.items ?? []).find(
-    item =>
-      item.provider?.id === providerId &&
-      (!selectedVersionId || item.provider?.currentVersion?.id === selectedVersionId)
-  );
+  let listings = useProviderListings(providerId ? { providerId, limit: 1 } : null);
+  let listing = listings.data?.items[0];
 
   let apiKeys = useApiKeysWithAutoInit(
     instance.data
@@ -67,16 +60,15 @@ export let ProviderOverviewPage = () => {
   }, [key.value]);
   if (key.value) apiKeySecret = key.value;
 
-  let deployments = useProviderDeployments(instance.data?.id, {
-    providerId: provider.data?.id,
-    ...(!isDefaultVersion && selectedVersionId ? { providerVersionId: selectedVersionId } : {})
-  });
-  let [providerDeployment, setProviderDeployment] = useState(() => deployments.data?.items[0]);
-  useEffect(() => {
-    if (deployments.data?.items.length) {
-      setProviderDeployment(deployments.data.items[0]);
+  let deployments = useProviderDeployments(
+    instance.data?.id && providerId ? instance.data.id : null,
+    {
+      limit: 1,
+      providerId,
+      ...(!isDefaultVersion && selectedVersionId ? { providerVersionId: selectedVersionId } : {})
     }
-  }, [deployments.data?.items]);
+  );
+  let providerDeployment = deployments.data?.items[0];
 
   let deployProvider = {
     title: 'Deploy the Provider',
@@ -337,7 +329,7 @@ export let ProviderOverviewPage = () => {
             ],
             codeViewer: getCodeViewer({
               repo: 'metorial-node',
-              path: 'examples/typescript-ai-sdk',
+              path: 'examples/v2/v2/typescript-ai-sdk',
               initialFile: 'index.ts'
             })
           },
@@ -354,7 +346,7 @@ export let ProviderOverviewPage = () => {
             ],
             codeViewer: getCodeViewer({
               repo: 'metorial-node',
-              path: 'examples/typescript-openai',
+              path: 'examples/v2/typescript-openai',
               initialFile: 'index.ts'
             })
           },
@@ -369,7 +361,7 @@ export let ProviderOverviewPage = () => {
             instructions: [...getJSStartInstructions()],
             codeViewer: getCodeViewer({
               repo: 'metorial-node',
-              path: 'examples/typescript-openai',
+              path: 'examples/v2/typescript-openai',
               initialFile: 'index.ts'
             })
           },

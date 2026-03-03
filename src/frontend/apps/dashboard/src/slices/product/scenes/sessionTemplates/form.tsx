@@ -1,3 +1,4 @@
+import { DashboardInstanceSessionTemplatesCreateOutput } from '@metorial/dashboard-sdk';
 import { useForm } from '@metorial/data-hooks';
 import { useCreateSessionTemplate } from '@metorial/state';
 import { Button, Dialog, Input, Spacer } from '@metorial/ui';
@@ -9,7 +10,7 @@ export type SessionTemplateFormProps =
 export let SessionTemplateForm = (
   props: SessionTemplateFormProps & {
     close?: () => void;
-    onCreate?: (template: any) => void;
+    onCreate?: (template: DashboardInstanceSessionTemplatesCreateOutput) => void;
   }
 ) => {
   let createMutation = useCreateSessionTemplate();

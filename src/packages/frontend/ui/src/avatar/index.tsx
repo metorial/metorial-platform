@@ -63,7 +63,7 @@ export let Avatar = ({
           style={{
             width: size,
             aspectRatio: '1 / 1',
-            borderRadius: '50%',
+            borderRadius: typeof radius == 'number' ? radius : '50%',
             objectFit: 'cover',
             opacity: loaded ? 1 : 0,
             transition: 'opacity 0.2s'
