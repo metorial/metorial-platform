@@ -5,7 +5,21 @@ import { Scope } from '../definitions';
 import { AuthInfo } from './authentication';
 
 class AccessService {
-  async checkAccess(d: { authInfo: AuthInfo; possibleScopes: Scope[] }) {
+  async checkAccess(d: {
+    authInfo: AuthInfo;
+    possibleScopes: Scope[];
+    fineGrainedPolicy?: 'allow' | 'deny';
+  }) {
+    if (d.authInfo.type == 'fine_grained') {
+      if ((d.fineGrainedPolicy ?? 'deny') != 'allow') {
+        throw new ServiceError(
+          forbiddenError({
+            message: `Fine grained token is not allowed to access this endpoint`
+          })
+        );
+      }
+    }
+
     if (!d.authInfo.orgScopes.some(scope => d.possibleScopes.includes(scope))) {
       throw new ServiceError(
         forbiddenError({
@@ -28,6 +42,14 @@ class AccessService {
         actor: res.actor,
         member: res.member
       };
+    }
+
+    if (d.authInfo.type == 'fine_grained') {
+      throw new ServiceError(
+        forbiddenError({
+          message: `You don't have the required permissions to perform this action`
+        })
+      );
     }
 
     let org = d.authInfo.restrictions.organization;
@@ -57,6 +79,24 @@ class AccessService {
         actor: res.actor,
         project: res.project,
         member: res.member
+      };
+    }
+
+    if (d.authInfo.type == 'fine_grained') {
+      let instance = d.authInfo.restrictions.instance;
+      if (d.instanceId != instance.id && d.instanceId != instance.slug) {
+        throw new ServiceError(notFoundError('instance', d.instanceId));
+      }
+
+      return {
+        type: 'fine_grained' as const,
+        instance: {
+          ...instance,
+          organization: d.authInfo.restrictions.organization
+        },
+        organization: d.authInfo.restrictions.organization,
+        project: instance.project,
+        accessTagGrants: d.authInfo.restrictions.accessTagGrants
       };
     }
 

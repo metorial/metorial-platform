@@ -6,6 +6,7 @@ export interface PresenterContext {
     | 'instance_secret'
     | 'instance_publishable'
     | 'organization_management'
+    | 'fine_grained_token'
     | 'user_auth_token'
     | 'event_system';
 }

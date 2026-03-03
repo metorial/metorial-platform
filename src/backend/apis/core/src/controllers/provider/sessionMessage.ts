@@ -5,26 +5,37 @@ import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
+import {
+  constrainFineGrainedSessionQuery,
+  getFineGrainedAllowedSessionIds,
+  requireFineGrainedSessionFromResource
+} from '../../middleware/checkFineGrainedSessionAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { subspaceSessionMessagePresenter } from '../../presenters';
 
-let sessionMessageGroup = instanceGroup.use(async ctx => {
-  if (!ctx.params.sessionMessageId) {
-    throw new ServiceError(
-      badRequestError({
-        message: 'sessionMessageId is required',
-        description: 'The sessionMessageId path parameter is required.'
-      })
-    );
-  }
+let sessionMessageGroup = instanceGroup
+  .use(async ctx => {
+    if (!ctx.params.sessionMessageId) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'sessionMessageId is required',
+          description: 'The sessionMessageId path parameter is required.'
+        })
+      );
+    }
 
-  let sessionMessage = await subspaceSessionMessageService.get({
-    instance: ctx.instance,
-    sessionMessageId: ctx.params.sessionMessageId
-  });
+    let sessionMessage = await subspaceSessionMessageService.get({
+      instance: ctx.instance,
+      sessionMessageId: ctx.params.sessionMessageId
+    });
 
-  return { sessionMessage };
-});
+    return { sessionMessage };
+  })
+  .use(
+    requireFineGrainedSessionFromResource(
+      ctx => ctx.sessionMessage?.sessionId ?? ctx.sessionMessage?.session_id ?? ctx.sessionMessage?.session?.id
+    )()
+  );
 
 export let sessionMessageController = Controller.create(
   {
@@ -38,7 +49,8 @@ export let sessionMessageController = Controller.create(
         name: 'List session messages',
         description: 'Returns a paginated list of messages for a session.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.session:read'], fineGrainedPolicy: 'allow' }))
+      .use(constrainFineGrainedSessionQuery('session_id')())
       .outputList(subspaceSessionMessagePresenter)
       .query(
         'default',
@@ -92,6 +104,7 @@ export let sessionMessageController = Controller.create(
       .do(async ctx => {
         let paginator = await subspaceSessionMessageService.list({
           instance: ctx.instance,
+          accessTagSessionIds: getFineGrainedAllowedSessionIds(ctx),
           allowDeleted: false,
           types: normalizeArrayParam(ctx.query.type),
           source: normalizeArrayParam(ctx.query.source),
@@ -120,7 +133,7 @@ export let sessionMessageController = Controller.create(
         name: 'Get session message',
         description: 'Retrieves a specific message from a session.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.session:read'], fineGrainedPolicy: 'allow' }))
       .output(subspaceSessionMessagePresenter)
       .do(async ctx => {
         return subspaceSessionMessagePresenter.present({ sessionMessage: ctx.sessionMessage });

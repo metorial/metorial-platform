@@ -159,7 +159,7 @@ export let customProviderVersionController = Controller.create(
       .do(async ctx => {
         let customProviderVersion = await subspaceCustomProviderVersionService.create({
           instance: ctx.instance,
-          organizationActor: ctx.actor,
+          organizationActor: ctx.actor!,
           customProviderId: ctx.body.custom_provider_id,
           from: mapCustomProviderFrom(ctx.body.from),
           config: ctx.body.config

@@ -139,6 +139,92 @@ describe('AccessService', () => {
         })
       ).rejects.toThrow(ServiceError);
     });
+
+    it('should deny fine grained token when fineGrainedPolicy is deny by default', async () => {
+      let authInfo: AuthInfo = {
+        type: 'fine_grained',
+        fineGrainedKey: { id: 'fgk_1' } as any,
+        orgScopes: ['instance.provider.session:read'],
+        restrictions: {
+          type: 'instance',
+          organization: { id: 'org-1' } as any,
+          instance: { id: 'ins-1', slug: 'ins-one', project: { id: 'prj-1' } } as any,
+          accessTagGrants: [{ resourceType: 'subspace.session', resourceId: 'ses_1', roles: ['instance.provider.session:read'] }]
+        }
+      };
+
+      await expect(
+        accessService.checkAccess({
+          authInfo,
+          possibleScopes: ['instance.provider.session:read']
+        })
+      ).rejects.toThrow(ServiceError);
+    });
+
+    it('should allow fine grained token when fineGrainedPolicy is allow', async () => {
+      let authInfo: AuthInfo = {
+        type: 'fine_grained',
+        fineGrainedKey: { id: 'fgk_1' } as any,
+        orgScopes: ['instance.provider.session:read'],
+        restrictions: {
+          type: 'instance',
+          organization: { id: 'org-1' } as any,
+          instance: { id: 'ins-1', slug: 'ins-one', project: { id: 'prj-1' } } as any,
+          accessTagGrants: [{ resourceType: 'subspace.session', resourceId: 'ses_1', roles: ['instance.provider.session:read'] }]
+        }
+      };
+
+      await expect(
+        accessService.checkAccess({
+          authInfo,
+          possibleScopes: ['instance.provider.session:read'],
+          fineGrainedPolicy: 'allow'
+        })
+      ).resolves.not.toThrow();
+    });
+
+    it('should deny fine grained token for non-session scopes by default', async () => {
+      let authInfo: AuthInfo = {
+        type: 'fine_grained',
+        fineGrainedKey: { id: 'fgk_1' } as any,
+        orgScopes: ['organization.instance:read'],
+        restrictions: {
+          type: 'instance',
+          organization: { id: 'org-1' } as any,
+          instance: { id: 'ins-1', slug: 'ins-one', project: { id: 'prj-1' } } as any,
+          accessTagGrants: [{ resourceType: 'subspace.session', resourceId: 'ses_1', roles: ['instance.provider.session:read'] }]
+        }
+      };
+
+      await expect(
+        accessService.checkAccess({
+          authInfo,
+          possibleScopes: ['organization.instance:read']
+        })
+      ).rejects.toThrow(ServiceError);
+    });
+
+    it('should allow fine grained token for write scopes when allowed for endpoint', async () => {
+      let authInfo: AuthInfo = {
+        type: 'fine_grained',
+        fineGrainedKey: { id: 'fgk_1' } as any,
+        orgScopes: ['instance.provider.session:write'],
+        restrictions: {
+          type: 'instance',
+          organization: { id: 'org-1' } as any,
+          instance: { id: 'ins-1', slug: 'ins-one', project: { id: 'prj-1' } } as any,
+          accessTagGrants: [{ resourceType: 'subspace.session', resourceId: 'ses_1', roles: ['instance.provider.session:read'] }]
+        }
+      };
+
+      await expect(
+        accessService.checkAccess({
+          authInfo,
+          possibleScopes: ['instance.provider.session:write'],
+          fineGrainedPolicy: 'allow'
+        })
+      ).resolves.not.toThrow();
+    });
   });
 
   describe('accessOrganization', () => {

@@ -16,6 +16,32 @@ export let authenticateAndResolveInstance = async (
   let result = await authenticate(request, url);
   let auth = result.auth;
 
+  let requestedSessionId = url.pathname.split('/').pop();
+
+  if (auth.type === 'fine_grained') {
+    let allowedSessionIds = auth.restrictions.accessTagGrants
+      .filter(grant => grant.resourceType == 'subspace.session')
+      .map(grant => grant.resourceId);
+
+    if (!requestedSessionId || !allowedSessionIds.includes(requestedSessionId)) {
+      throw new ServiceError(
+        forbiddenError({
+          message: 'Fine grained token is not authorized for this session',
+          description:
+            'This fine grained token can only be used with explicitly tagged sessions.'
+        })
+      );
+    }
+
+    return {
+      instance: {
+        ...auth.restrictions.instance,
+        organization: auth.restrictions.organization
+      } as Instance,
+      auth
+    };
+  }
+
   if (auth.type === 'machine') {
     if ('instance' in auth.restrictions) {
       return {

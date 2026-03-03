@@ -181,7 +181,7 @@ export let createSubspaceService = <SubspaceController extends {}, Overrides ext
   let methodsTyped = {
     ...methodsObj,
     ...overRideMethods
-  } as SubspaceService<SubspaceController, {}>;
+  } as SubspaceService<SubspaceController, Overrides>;
 
   return Service.create('subspace', () => methodsTyped).build();
 };
@@ -202,7 +202,7 @@ export let createSubspacePublicService = <SubspaceController extends {}, Overrid
   let methodsTyped = {
     ...methodsObj,
     ...overRideMethods
-  } as SubspacePublicService<SubspaceController, {}>;
+  } as SubspacePublicService<SubspaceController, Overrides>;
 
   return Service.create('subspacePublic', () => methodsTyped).build();
 };

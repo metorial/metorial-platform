@@ -175,7 +175,7 @@ export let customProviderCommitController = Controller.create(
 
         let customProviderCommit = await subspaceCustomProviderCommitService.create({
           instance: ctx.instance,
-          organizationActor: ctx.actor,
+          organizationActor: ctx.actor!,
           message: ctx.body.message,
           action
         });

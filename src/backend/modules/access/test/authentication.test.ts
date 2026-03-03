@@ -23,6 +23,18 @@ vi.mock('@metorial/module-machine-access', () => ({
   }
 }));
 
+vi.mock('@metorial/api-keys', () => ({
+  UnifiedApiKey: {
+    from: vi.fn()
+  }
+}));
+
+vi.mock('../src/services/fineGrainedAuth', () => ({
+  fineGrainedAuthService: {
+    authenticateWithFineGrainedToken: vi.fn()
+  }
+}));
+
 vi.mock('@metorial/module-consumer', () => ({
   consumerAuthService: {
     authenticateWithConsumerToken: vi.fn(),
@@ -36,12 +48,15 @@ vi.mock('@metorial/module-consumer', () => ({
 
 import { userAuthService } from '@metorial/module-user';
 import { machineAccessAuthService } from '@metorial/module-machine-access';
+import { UnifiedApiKey } from '@metorial/api-keys';
+import { fineGrainedAuthService } from '../src/services/fineGrainedAuth';
 
 describe('AuthenticationService', () => {
   let mockContext: Context;
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(UnifiedApiKey.from).mockReturnValue(null);
     mockContext = {
       requestId: 'test-request-id',
       ip: '127.0.0.1'
@@ -106,6 +121,38 @@ describe('AuthenticationService', () => {
           context: mockContext
         }
       );
+    });
+
+    it('should authenticate with fine grained token when token type is fine_grained_token', async () => {
+      vi.mocked(UnifiedApiKey.from).mockReturnValue({
+        type: 'fine_grained_token'
+      } as any);
+
+      vi.mocked(fineGrainedAuthService.authenticateWithFineGrainedToken).mockResolvedValue({
+        orgScopes: ['instance.provider.session:read'],
+        accessTagGrants: [{ resourceType: 'subspace.session', resourceId: 'ses_1', roles: ['instance.provider.session:read'] }],
+        fineGrainedKey: {
+          id: 'fgk_1',
+          instance: {
+            id: 'ins_1',
+            project: { id: 'prj_1' },
+            organization: { id: 'org_1' }
+          }
+        }
+      } as any);
+
+      let result = await authenticationService.authenticate({
+        type: 'api_key',
+        apiKey: 'metorial_fk_abc',
+        context: mockContext
+      });
+
+      expect(result.type).toBe('fine_grained');
+      expect(fineGrainedAuthService.authenticateWithFineGrainedToken).toHaveBeenCalledWith({
+        token: 'metorial_fk_abc',
+        context: mockContext
+      });
+      expect(machineAccessAuthService.authenticateWithMachineAccessToken).not.toHaveBeenCalled();
     });
 
     it('should throw error for invalid authentication type', async () => {

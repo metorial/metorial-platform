@@ -5,26 +5,40 @@ import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
+import {
+  constrainFineGrainedSessionQuery,
+  getFineGrainedAllowedSessionIds,
+  requireFineGrainedSessionFromResource
+} from '../../middleware/checkFineGrainedSessionAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { subspaceSessionConnectionPresenter } from '../../presenters';
 
-let sessionConnectionGroup = instanceGroup.use(async ctx => {
-  if (!ctx.params.sessionConnectionId) {
-    throw new ServiceError(
-      badRequestError({
-        message: 'sessionConnectionId is required',
-        description: 'The sessionConnectionId path parameter is required.'
-      })
-    );
-  }
+let sessionConnectionGroup = instanceGroup
+  .use(async ctx => {
+    if (!ctx.params.sessionConnectionId) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'sessionConnectionId is required',
+          description: 'The sessionConnectionId path parameter is required.'
+        })
+      );
+    }
 
-  let sessionConnection = await subspaceSessionConnectionService.get({
-    instance: ctx.instance,
-    sessionConnectionId: ctx.params.sessionConnectionId
-  });
+    let sessionConnection = await subspaceSessionConnectionService.get({
+      instance: ctx.instance,
+      sessionConnectionId: ctx.params.sessionConnectionId
+    });
 
-  return { sessionConnection };
-});
+    return { sessionConnection };
+  })
+  .use(
+    requireFineGrainedSessionFromResource(
+      ctx =>
+        ctx.sessionConnection?.sessionId ??
+        ctx.sessionConnection?.session_id ??
+        ctx.sessionConnection?.session?.id
+    )()
+  );
 
 export let sessionConnectionController = Controller.create(
   {
@@ -38,7 +52,8 @@ export let sessionConnectionController = Controller.create(
         name: 'List session connections',
         description: 'Returns a paginated list of connections for a session.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.session:read'], fineGrainedPolicy: 'allow' }))
+      .use(constrainFineGrainedSessionQuery('session_id')())
       .outputList(subspaceSessionConnectionPresenter)
       .query(
         'default',
@@ -78,6 +93,7 @@ export let sessionConnectionController = Controller.create(
       .do(async ctx => {
         let paginator = await subspaceSessionConnectionService.list({
           instance: ctx.instance,
+          accessTagSessionIds: getFineGrainedAllowedSessionIds(ctx),
           allowDeleted: false,
           ids: normalizeArrayParam(ctx.query.id),
           sessionIds: normalizeArrayParam(ctx.query.session_id),
@@ -104,7 +120,7 @@ export let sessionConnectionController = Controller.create(
           description: 'Retrieves a specific connection from a session.'
         }
       )
-      .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.session:read'], fineGrainedPolicy: 'allow' }))
       .output(subspaceSessionConnectionPresenter)
       .do(async ctx => {
         return subspaceSessionConnectionPresenter.present({

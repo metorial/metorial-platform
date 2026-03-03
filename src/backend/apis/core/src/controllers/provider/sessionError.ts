@@ -5,26 +5,41 @@ import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
+import {
+  constrainFineGrainedSessionQuery,
+  getFineGrainedAllowedSessionIds,
+  requireFineGrainedSessionFromResource,
+  requireFineGrainedSessionParam
+} from '../../middleware/checkFineGrainedSessionAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { subspaceSessionErrorPresenter } from '../../presenters';
 
-let sessionErrorGroup = instanceGroup.use(async ctx => {
-  if (!ctx.params.sessionErrorId) {
-    throw new ServiceError(
-      badRequestError({
-        message: 'sessionErrorId is required',
-        description: 'The sessionErrorId path parameter is required.'
-      })
-    );
-  }
+let sessionErrorGroup = instanceGroup
+  .use(async ctx => {
+    if (!ctx.params.sessionErrorId) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'sessionErrorId is required',
+          description: 'The sessionErrorId path parameter is required.'
+        })
+      );
+    }
 
-  let sessionError = await subspaceSessionErrorService.get({
-    instance: ctx.instance,
-    sessionErrorId: ctx.params.sessionErrorId
-  });
+    let sessionError = await subspaceSessionErrorService.get({
+      instance: ctx.instance,
+      sessionErrorId: ctx.params.sessionErrorId
+    });
 
-  return { sessionError };
-});
+    return { sessionError };
+  })
+  .use(
+    requireFineGrainedSessionFromResource(
+      ctx =>
+        ctx.sessionError?.sessionId ??
+        ctx.sessionError?.session_id ??
+        ctx.sessionError?.session?.id
+    )()
+  );
 
 export let sessionErrorController = Controller.create(
   {
@@ -38,7 +53,13 @@ export let sessionErrorController = Controller.create(
         name: 'List all session errors',
         description: 'Returns a paginated list of errors across all sessions.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.provider.session:read'],
+          fineGrainedPolicy: 'allow'
+        })
+      )
+      .use(constrainFineGrainedSessionQuery('session_id')())
       .outputList(subspaceSessionErrorPresenter)
       .query(
         'default',
@@ -91,6 +112,7 @@ export let sessionErrorController = Controller.create(
       .do(async ctx => {
         let paginator = await subspaceSessionErrorService.list({
           instance: ctx.instance,
+          accessTagSessionIds: getFineGrainedAllowedSessionIds(ctx),
           allowDeleted: false,
           types: normalizeArrayParam(ctx.query.type),
           ids: normalizeArrayParam(ctx.query.id),
@@ -115,7 +137,14 @@ export let sessionErrorController = Controller.create(
         name: 'List session errors',
         description: 'Returns a paginated list of errors that occurred in a session.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.provider.session:read'],
+          fineGrainedPolicy: 'allow'
+        })
+      )
+      .use(requireFineGrainedSessionParam('sessionId')())
+      .use(constrainFineGrainedSessionQuery('session_id')())
       .outputList(subspaceSessionErrorPresenter)
       .query(
         'default',
@@ -168,6 +197,7 @@ export let sessionErrorController = Controller.create(
       .do(async ctx => {
         let paginator = await subspaceSessionErrorService.list({
           instance: ctx.instance,
+          accessTagSessionIds: getFineGrainedAllowedSessionIds(ctx),
           allowDeleted: false,
           types: normalizeArrayParam(ctx.query.type),
           ids: normalizeArrayParam(ctx.query.id),
@@ -192,7 +222,13 @@ export let sessionErrorController = Controller.create(
         name: 'Get session error',
         description: 'Retrieves a specific error that occurred in a session.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.provider.session:read'],
+          fineGrainedPolicy: 'allow'
+        })
+      )
+      .use(requireFineGrainedSessionParam('sessionId')())
       .output(subspaceSessionErrorPresenter)
       .do(async ctx => {
         return subspaceSessionErrorPresenter.present({ sessionError: ctx.sessionError });

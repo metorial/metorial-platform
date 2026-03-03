@@ -5,22 +5,36 @@ model AccessTag {
   instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
 
   accessTagEntities AccessTagEntity[]
+  fineGrainedKeys   FineGrainedKey[]
   // consumerProfiles  ConsumerProfile[]
   // consumerGroups    ConsumerGroup[]
 }
 
-enum AccessTagAccessLevel {
-  read
-  read_write
+model AccessTagPolicy {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  name  String
+  roles String[]
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  accessTagEntities AccessTagEntity[]
+
+  createdAt DateTime @default(now())
 }
 
 model AccessTagEntity {
   oid BigInt @id @default(autoincrement())
 
-  level AccessTagAccessLevel
+  subspaceSessionId String?
 
   accessTagOid BigInt
   accessTag    AccessTag @relation(fields: [accessTagOid], references: [oid], onDelete: Cascade)
+
+  accessTagPolicyOid BigInt
+  accessTagPolicy    AccessTagPolicy @relation(fields: [accessTagPolicyOid], references: [oid], onDelete: Cascade)
 
   // magicMcpToken    MagicMcpToken? @relation(fields: [magicMcpTokenOid], references: [oid])
   // magicMcpTokenOid BigInt?

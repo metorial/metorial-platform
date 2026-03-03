@@ -10,6 +10,14 @@ import { Path } from '@metorial/rest';
 import { managementGroup } from './managementGroup';
 
 export let organizationGroup = managementGroup.use(async ctx => {
+  if (ctx.auth.type == 'fine_grained') {
+    throw new ServiceError(
+      forbiddenError({
+        message: 'Fine grained token is not allowed to access this endpoint'
+      })
+    );
+  }
+
   if (ctx.auth.type == 'machine') {
     if (ctx.auth.restrictions.type == 'instance') {
       throw new ServiceError(

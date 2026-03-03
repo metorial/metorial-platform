@@ -37,6 +37,8 @@ model Instance {
   updatedAt DateTime  @default(now()) @updatedAt
 
   machineAccesses MachineAccess[]
+  fineGrainedKeys FineGrainedKey[]
+  sessionClientSecretReferences SessionClientSecretReference[]
   files           File[]
   secrets         Secret[]
   uploads         Upload[]
