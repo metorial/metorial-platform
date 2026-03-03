@@ -132,17 +132,8 @@ class MagicMcpGroupImpl {
               d.status
                 ? { status: { in: d.status } }
                 : { status: { notIn: ['archived', 'deleted'] as MagicMcpGroupStatus[] } },
-              searchedGroupIds !== undefined ? { id: { in: searchedGroupIds } } : undefined!
-            ].filter(Boolean),
-            OR:
-              normalizedSearch && searchedGroupIds === undefined
-                ? [
-                    { id: { contains: normalizedSearch, mode: 'insensitive' } },
-                    { name: { contains: normalizedSearch, mode: 'insensitive' } },
-                    { description: { contains: normalizedSearch, mode: 'insensitive' } },
-                    { slug: { contains: normalizedSearch, mode: 'insensitive' } }
-                  ]
-                : undefined
+              normalizedSearch ? { id: { in: searchedGroupIds } } : undefined!
+            ].filter(Boolean)
           }
         });
       })

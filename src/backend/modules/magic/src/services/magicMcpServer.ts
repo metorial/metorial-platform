@@ -267,24 +267,9 @@ class MagicMcpServerImpl {
                   }
                 }
               : undefined,
-            AND: [
-              searchedServerIds !== undefined ? { id: { in: searchedServerIds } } : undefined!
-            ].filter(Boolean),
-            OR:
-              normalizedSearch && searchedServerIds === undefined
-                ? [
-                    { id: { contains: normalizedSearch, mode: 'insensitive' } },
-                    { name: { contains: normalizedSearch, mode: 'insensitive' } },
-                    { description: { contains: normalizedSearch, mode: 'insensitive' } },
-                    {
-                      aliases: {
-                        some: {
-                          slug: { contains: normalizedSearch, mode: 'insensitive' }
-                        }
-                      }
-                    }
-                  ]
-                : undefined
+            AND: [normalizedSearch ? { id: { in: searchedServerIds } } : undefined!].filter(
+              Boolean
+            )
           },
           include
         });

@@ -102,14 +102,14 @@ let ensureVoyagerIndex = async (index: MagicVoyagerIndex) => {
   return await voyagerIndexPromises[index];
 };
 
-let searchByIndex = async (d: VoyagerSearchInput): Promise<string[] | undefined> => {
-  if (!voyager) return undefined;
-  if (!d.query.trim()) return undefined;
+let searchByIndex = async (d: VoyagerSearchInput): Promise<string[]> => {
+  if (!voyager) return [];
+  if (!d.query.trim()) return [];
 
   try {
     let source = await ensureVoyagerSource();
     let index = await ensureVoyagerIndex(d.index);
-    if (!source || !index) return undefined;
+    if (!source || !index) return [];
 
     let records = await voyager.record.search({
       tenantId: d.instanceId,
@@ -118,14 +118,10 @@ let searchByIndex = async (d: VoyagerSearchInput): Promise<string[] | undefined>
       query: d.query.trim()
     });
 
-    return records
-      .map((record: any) =>
-        typeof record?.documentId === 'string' ? (record.documentId as string) : null
-      )
-      .filter((id: string | null): id is string => !!id);
+    return records;
   } catch (error) {
     console.error(`[module-search] Voyager search failed for ${d.index}`, error);
-    return undefined;
+    return [];
   }
 };
 
