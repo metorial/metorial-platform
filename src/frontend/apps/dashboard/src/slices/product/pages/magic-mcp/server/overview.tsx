@@ -21,7 +21,7 @@ export let MagicMcpServerOverviewPage = () => {
   let copy = useCopy();
 
   return renderWithLoader({ server, tokens })(({ server, tokens }) => {
-    let streamableHttpUrl = server.data.endpoints[0]?.urls.streamableHttp;
+    let streamableHttpUrl = server.data.endpoints[0]?.url;
     let activeToken = tokens.data.items.find(
       t => t.status === 'active' && t.groups.length === 0
     );
