@@ -74,7 +74,7 @@ export let providerListingController = Controller.create(
           isVerified: ctx.query.is_verified,
           isOfficial: ctx.query.is_official,
           isMetorial: ctx.query.is_metorial,
-          orderByRank: ctx.query.order_by_rank
+          orderByRank: ctx.query.order_by_rank !== false
         });
 
         let list = await paginator.run(ctx.query);
