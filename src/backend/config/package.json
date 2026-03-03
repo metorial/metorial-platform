@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@lowerdeck/env": "^1.0.4",
-    "@lowerdeck/validation": "^1.0.6"
+    "@lowerdeck/validation": "^1.0.8"
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",

@@ -19,7 +19,7 @@
     "@lowerdeck/pagination": "^1.0.6",
     "@metorial/queue": "^1.0.0",
     "@lowerdeck/service": "^1.0.4",
-    "@lowerdeck/validation": "^1.0.6"
+    "@lowerdeck/validation": "^1.0.8"
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",
