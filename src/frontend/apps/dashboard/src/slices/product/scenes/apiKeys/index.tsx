@@ -1,4 +1,4 @@
-import { capitalize } from '@metorial/case';
+import { capitalize } from '@lowerdeck/case';
 import { ApiKeysGetOutput } from '@metorial/dashboard-sdk';
 import { renderWithLoader, useForm } from '@metorial/data-hooks';
 import { PageHeader } from '@metorial/layout';

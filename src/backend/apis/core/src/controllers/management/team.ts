@@ -1,13 +1,13 @@
-import { forbiddenError, ServiceError } from '@metorial/error';
+import { forbiddenError, ServiceError } from '@lowerdeck/error';
+import { Paginator } from '@lowerdeck/pagination';
+import { v } from '@lowerdeck/validation';
 import {
   organizationActorService,
   projectService,
   teamRoleService,
   teamService
 } from '@metorial/module-organization';
-import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
-import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
 import { hasFlags } from '../../middleware/hasFlags';
 import {

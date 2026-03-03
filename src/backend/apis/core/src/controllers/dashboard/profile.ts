@@ -1,6 +1,6 @@
+import { v } from '@lowerdeck/validation';
 import { profileService } from '@metorial/module-community';
 import { Controller, Path } from '@metorial/rest';
-import { v } from '@metorial/validation';
 import { isDashboardGroup } from '../../middleware/isDashboard';
 import { organizationGroup } from '../../middleware/organizationGroup';
 import { profilePresenter } from '../../presenters';

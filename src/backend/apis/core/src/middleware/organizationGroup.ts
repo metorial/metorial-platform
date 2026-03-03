@@ -3,7 +3,7 @@ import {
   ServiceError,
   unauthorizedError,
   forbiddenError
-} from '@metorial/error';
+} from '@lowerdeck/error';
 import { accessService } from '@metorial/module-access';
 import { flagService } from '@metorial/module-flags';
 import { Path } from '@metorial/rest';

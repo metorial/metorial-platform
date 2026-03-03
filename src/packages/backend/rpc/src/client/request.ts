@@ -1,7 +1,7 @@
-import { canonicalize } from '@metorial/canonicalize';
-import { internalServerError, isServiceError, ServiceError } from '@metorial/error';
-import { getSentry } from '@metorial/sentry';
-import { serialize } from '@metorial/serialize';
+import { canonicalize } from '@lowerdeck/canonicalize';
+import { internalServerError, isServiceError, ServiceError } from '@lowerdeck/error';
+import { getSentry } from '@lowerdeck/sentry';
+import { serialize } from '@lowerdeck/serialize';
 import { Call, generateRequestId, Requester } from './shared/requester';
 
 let Sentry = getSentry();

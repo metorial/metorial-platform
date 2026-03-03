@@ -1,8 +1,8 @@
-import { badRequestError, ServiceError } from '@metorial/error';
+import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { Paginator } from '@lowerdeck/pagination';
+import { v } from '@lowerdeck/validation';
 import { subspaceSessionMessageService } from '@metorial/module-subspace';
-import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
-import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import {
@@ -33,7 +33,10 @@ let sessionMessageGroup = instanceGroup
   })
   .use(
     requireFineGrainedSessionFromResource(
-      ctx => ctx.sessionMessage?.sessionId ?? ctx.sessionMessage?.session_id ?? ctx.sessionMessage?.session?.id
+      ctx =>
+        ctx.sessionMessage?.sessionId ??
+        ctx.sessionMessage?.session_id ??
+        ctx.sessionMessage?.session?.id
     )()
   );
 
@@ -49,7 +52,12 @@ export let sessionMessageController = Controller.create(
         name: 'List session messages',
         description: 'Returns a paginated list of messages for a session.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider.session:read'], fineGrainedPolicy: 'allow' }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.provider.session:read'],
+          fineGrainedPolicy: 'allow'
+        })
+      )
       .use(constrainFineGrainedSessionQuery('session_id')())
       .outputList(subspaceSessionMessagePresenter)
       .query(
@@ -133,7 +141,12 @@ export let sessionMessageController = Controller.create(
         name: 'Get session message',
         description: 'Retrieves a specific message from a session.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider.session:read'], fineGrainedPolicy: 'allow' }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.provider.session:read'],
+          fineGrainedPolicy: 'allow'
+        })
+      )
       .output(subspaceSessionMessagePresenter)
       .do(async ctx => {
         return subspaceSessionMessagePresenter.present({ sessionMessage: ctx.sessionMessage });

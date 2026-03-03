@@ -1,5 +1,5 @@
+import { memo } from '@lowerdeck/memo';
 import { generatePlainId } from '@metorial/id';
-import { memo } from '@metorial/memo';
 
 let index = 0;
 let rootId = memo(() => generatePlainId(10));

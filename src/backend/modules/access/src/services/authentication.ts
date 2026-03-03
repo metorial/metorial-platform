@@ -1,3 +1,4 @@
+import { ServiceError, unauthorizedError } from '@lowerdeck/error';
 import { UnifiedApiKey } from '@metorial/api-keys';
 import { Context } from '@metorial/context';
 import {
@@ -14,11 +15,10 @@ import {
   User,
   UserSession
 } from '@metorial/db';
-import { ServiceError, unauthorizedError } from '@metorial/error';
 // import { consumerAuthService } from '@metorial/module-consumer';
+import { Service } from '@lowerdeck/service';
 import { machineAccessAuthService } from '@metorial/module-machine-access';
 import { userAuthService } from '@metorial/module-user';
-import { Service } from '@metorial/service';
 import {
   instancePublishableTokenScopes,
   instanceSecretTokenScopes,

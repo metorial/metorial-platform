@@ -1,4 +1,4 @@
-import { ServiceError, notFoundError } from '@metorial/error';
+import { ServiceError, notFoundError } from '@lowerdeck/error';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { accessService } from '../src/services/access';
 import { AuthInfo } from '../src/services/authentication';
@@ -149,7 +149,13 @@ describe('AccessService', () => {
           type: 'instance',
           organization: { id: 'org-1' } as any,
           instance: { id: 'ins-1', slug: 'ins-one', project: { id: 'prj-1' } } as any,
-          accessTagGrants: [{ resourceType: 'subspace.session', resourceId: 'ses_1', roles: ['instance.provider.session:read'] }]
+          accessTagGrants: [
+            {
+              resourceType: 'subspace.session',
+              resourceId: 'ses_1',
+              roles: ['instance.provider.session:read']
+            }
+          ]
         }
       };
 
@@ -170,7 +176,13 @@ describe('AccessService', () => {
           type: 'instance',
           organization: { id: 'org-1' } as any,
           instance: { id: 'ins-1', slug: 'ins-one', project: { id: 'prj-1' } } as any,
-          accessTagGrants: [{ resourceType: 'subspace.session', resourceId: 'ses_1', roles: ['instance.provider.session:read'] }]
+          accessTagGrants: [
+            {
+              resourceType: 'subspace.session',
+              resourceId: 'ses_1',
+              roles: ['instance.provider.session:read']
+            }
+          ]
         }
       };
 
@@ -192,7 +204,13 @@ describe('AccessService', () => {
           type: 'instance',
           organization: { id: 'org-1' } as any,
           instance: { id: 'ins-1', slug: 'ins-one', project: { id: 'prj-1' } } as any,
-          accessTagGrants: [{ resourceType: 'subspace.session', resourceId: 'ses_1', roles: ['instance.provider.session:read'] }]
+          accessTagGrants: [
+            {
+              resourceType: 'subspace.session',
+              resourceId: 'ses_1',
+              roles: ['instance.provider.session:read']
+            }
+          ]
         }
       };
 
@@ -213,7 +231,13 @@ describe('AccessService', () => {
           type: 'instance',
           organization: { id: 'org-1' } as any,
           instance: { id: 'ins-1', slug: 'ins-one', project: { id: 'prj-1' } } as any,
-          accessTagGrants: [{ resourceType: 'subspace.session', resourceId: 'ses_1', roles: ['instance.provider.session:read'] }]
+          accessTagGrants: [
+            {
+              resourceType: 'subspace.session',
+              resourceId: 'ses_1',
+              roles: ['instance.provider.session:read']
+            }
+          ]
         }
       };
 

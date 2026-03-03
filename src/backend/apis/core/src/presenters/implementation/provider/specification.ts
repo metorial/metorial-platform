@@ -1,5 +1,5 @@
-import { Presenter } from '@metorial/presenter';
-import { v } from '@metorial/validation';
+import { Presenter } from '@lowerdeck/presenter';
+import { v } from '@lowerdeck/validation';
 import { providerSpecificationType } from '../../types';
 import { v1ProviderAuthMethodPresenter } from './authMethod';
 import { v1ProviderToolPresenter } from './providerTool';

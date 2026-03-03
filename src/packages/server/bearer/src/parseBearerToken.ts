@@ -1,4 +1,4 @@
-import { ServiceError, unauthorizedError } from '@metorial/error';
+import { ServiceError, unauthorizedError } from '@lowerdeck/error';
 
 export let parseBearerToken = (request: Request) => {
   let authorization = request.headers.get('Authorization');

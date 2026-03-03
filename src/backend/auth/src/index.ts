@@ -1,9 +1,9 @@
 import { extractToken } from '@metorial/bearer';
 import { getConfig } from '@metorial/config';
 import { Context } from '@metorial/context';
-import { ServiceError, unauthorizedError } from '@metorial/error';
-import { updateExecutionContext } from '@metorial/execution-context';
-import { parseForwardedFor } from '@metorial/forwarded-for';
+import { ServiceError, unauthorizedError } from '@lowerdeck/error';
+import { updateExecutionContext } from '@lowerdeck/execution-context';
+import { parseForwardedFor } from '@lowerdeck/forwarded-for';
 import { authenticationService } from '@metorial/module-access';
 import * as Cookies from 'cookie';
 import http from 'node:http';

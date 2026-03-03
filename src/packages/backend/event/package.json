@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "p-queue": "^8.0.1",
-    "@metorial/memo": "^1.0.0",
+    "@lowerdeck/memo": "^1.0.4",
     "@metorial/redis": "^1.0.0"
   },
   "devDependencies": {

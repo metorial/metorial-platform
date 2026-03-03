@@ -1,5 +1,5 @@
-import { ServiceError, internalServerError, isServiceError } from '@metorial/error';
-import { getSentry } from '@metorial/sentry';
+import { getSentry } from '@lowerdeck/sentry';
+import { ServiceError, internalServerError, isServiceError } from '@lowerdeck/error';
 import { Error } from '@metorial/ui';
 import { isMetorialSDKError } from '@metorial/util-endpoint';
 import React, { useEffect, useRef, useState } from 'react';

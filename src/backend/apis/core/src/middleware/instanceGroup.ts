@@ -1,4 +1,4 @@
-import { badRequestError, ServiceError } from '@metorial/error';
+import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { accessService } from '@metorial/module-access';
 // import { consumerAuthService, consumerProfileService } from '@metorial/module-consumer';
 import { Path } from '@metorial/rest';

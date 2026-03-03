@@ -1,4 +1,4 @@
-import { Service } from '@metorial/service';
+import { Service } from '@lowerdeck/service';
 import { FlagProviderParams, getFlags } from '../definitions';
 
 class FlagServiceImpl {

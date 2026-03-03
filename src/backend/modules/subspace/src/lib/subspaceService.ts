@@ -1,6 +1,6 @@
+import { Service } from '@lowerdeck/service';
 import type { Instance, OrganizationActor } from '@metorial/db';
 import type { ProviderEventBase } from '@metorial/fabric';
-import { Service } from '@metorial/service';
 import { getActorForSubspace, getTenantForSubspace } from '../subspace';
 
 export type Tail<T extends any[]> = T extends [any, ...infer U] ? U : [];

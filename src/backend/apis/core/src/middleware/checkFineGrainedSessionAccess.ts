@@ -1,4 +1,4 @@
-import { forbiddenError, ServiceError } from '@metorial/error';
+import { forbiddenError, ServiceError } from '@lowerdeck/error';
 import { AuthInfo, Scope } from '@metorial/module-access';
 import { apiGroup } from './apiGroup';
 
@@ -28,8 +28,7 @@ let getAllowedSessionIds = (
 export let getFineGrainedAllowedSessionIds = (
   ctx: FineGrainedSessionCtx,
   requiredRoles?: Scope[]
-) =>
-  getAllowedSessionIds(ctx, requiredRoles);
+) => getAllowedSessionIds(ctx, requiredRoles);
 
 let ensureSessionAllowed = (d: {
   ctx: FineGrainedSessionCtx;

@@ -1,6 +1,6 @@
-import { createHono } from '@metorial/hono';
+import { createHono } from '@lowerdeck/hono';
+import { Paginator } from '@lowerdeck/pagination';
 import { subspacePublicProviderListingCategoryService } from '@metorial/module-subspace';
-import { Paginator } from '@metorial/pagination';
 import { toPaginationQuery } from '../lib/paginationQuery';
 import { paginatorSchema } from '../lib/paginatorSchema';
 import { useValidation } from '../lib/validator';

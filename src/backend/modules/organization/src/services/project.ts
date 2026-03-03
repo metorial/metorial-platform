@@ -1,3 +1,12 @@
+import {
+  forbiddenError,
+  notFoundError,
+  notImplementedError,
+  ServiceError
+} from '@lowerdeck/error';
+import { Paginator } from '@lowerdeck/pagination';
+import { Service } from '@lowerdeck/service';
+import { createSlugGenerator } from '@lowerdeck/slugify';
 import { Context } from '@metorial/context';
 import {
   db,
@@ -8,16 +17,7 @@ import {
   Project,
   withTransaction
 } from '@metorial/db';
-import {
-  forbiddenError,
-  notFoundError,
-  notImplementedError,
-  ServiceError
-} from '@metorial/error';
 import { Fabric } from '@metorial/fabric';
-import { Paginator } from '@metorial/pagination';
-import { Service } from '@metorial/service';
-import { createSlugGenerator } from '@metorial/slugify';
 import { instanceService } from './instance';
 
 let getProjectSlug = createSlugGenerator(

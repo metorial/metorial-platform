@@ -1,4 +1,4 @@
-import { ProgrammablePromise } from '@metorial/programmable-promise';
+import { ProgrammablePromise } from '@lowerdeck/programmable-promise';
 import { defaultConfig, FrontendConfig, RequiredFrontendConfig } from './type';
 
 let configRef: { current: FrontendConfig | null } = { current: null };

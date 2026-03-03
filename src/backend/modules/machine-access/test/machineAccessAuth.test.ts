@@ -1,6 +1,6 @@
 import { UnifiedApiKey } from '@metorial/api-keys';
 import { db } from '@metorial/db';
-import { ServiceError } from '@metorial/error';
+import { ServiceError } from '@lowerdeck/error';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { machineAccessAuthService } from '../src/services/machineAccessAuth';
 

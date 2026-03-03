@@ -1,8 +1,8 @@
+import { ServiceError, unauthorizedError } from '@lowerdeck/error';
+import { Service } from '@lowerdeck/service';
 import { UnifiedApiKey } from '@metorial/api-keys';
 import { Context } from '@metorial/context';
 import { db } from '@metorial/db';
-import { ServiceError, unauthorizedError } from '@metorial/error';
-import { Service } from '@metorial/service';
 import { differenceInMinutes } from 'date-fns';
 import { getScopeDefinition, Scope, scopes } from '../definitions';
 import type { FineGrainedAccessTagGrant } from './authentication';
@@ -88,7 +88,9 @@ class FineGrainedAuthService {
 
     let directScopes = new Set(
       fineGrainedKey.accessTag.accessTagEntities.flatMap(entity =>
-        entity.accessTagPolicy.roles.filter((role): role is Scope => scopes.includes(role as Scope))
+        entity.accessTagPolicy.roles.filter((role): role is Scope =>
+          scopes.includes(role as Scope)
+        )
       )
     );
     let orgScopes = new Set<Scope>();

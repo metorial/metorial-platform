@@ -1,10 +1,10 @@
+import { delay } from '@lowerdeck/delay';
+import { ProgrammablePromise } from '@lowerdeck/programmable-promise';
 import {
   createRelayClient,
   type EmailIdentity,
   type ITemplate
 } from '@metorial-services/relay-client';
-import { delay } from '@metorial/delay';
-import { ProgrammablePromise } from '@metorial/programmable-promise';
 import { env } from './env';
 
 export let relay: ReturnType<typeof createRelayClient> = createRelayClient({

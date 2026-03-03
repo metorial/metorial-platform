@@ -1,5 +1,5 @@
 import type { Instance } from '@metorial/db';
-import { forbiddenError, ServiceError, unauthorizedError } from '@metorial/error';
+import { forbiddenError, ServiceError, unauthorizedError } from '@lowerdeck/error';
 import { AuthInfo } from '@metorial/module-access';
 import { Authenticator } from '@metorial/rest';
 

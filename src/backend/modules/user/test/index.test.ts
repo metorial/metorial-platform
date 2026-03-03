@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock all dependencies before importing
 vi.mock('@metorial/queue', () => ({
@@ -36,7 +36,7 @@ vi.mock('@metorial/fabric', () => ({
   }
 }));
 
-vi.mock('@metorial/error', () => ({
+vi.mock('@lowerdeck/error', () => ({
   conflictError: vi.fn(),
   forbiddenError: vi.fn(),
   notFoundError: vi.fn(),
@@ -46,7 +46,7 @@ vi.mock('@metorial/error', () => ({
   ServiceError: class ServiceError extends Error {}
 }));
 
-vi.mock('@metorial/service', () => ({
+vi.mock('@lowerdeck/service', () => ({
   Service: {
     create: vi.fn(() => ({
       build: vi.fn(() => ({}))

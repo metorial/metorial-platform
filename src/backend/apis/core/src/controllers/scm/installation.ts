@@ -1,10 +1,10 @@
+import { Paginator } from '@lowerdeck/pagination';
+import { v } from '@lowerdeck/validation';
 import {
   subspaceScmConnectionService,
   subspaceScmConnectionSetupSessionService
 } from '@metorial/module-subspace';
-import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
-import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { scmConnectionPresenter, scmConnectionSetupPresenter } from '../../presenters';

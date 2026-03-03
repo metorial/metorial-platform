@@ -1,10 +1,10 @@
 process.env.TZ = 'UTC';
 
+import { apiMux } from '@lowerdeck/api-mux';
 import { authApi } from '@metorial/api-auth';
 import { apiServer } from '@metorial/api-core';
 import { fileApi } from '@metorial/api-files';
 import { marketplaceApp } from '@metorial/api-marketplace';
-import { apiMux } from '@metorial/api-mux';
 import { startPrivateApiServer } from '@metorial/api-private';
 import { initLogger } from '@metorial/logging';
 

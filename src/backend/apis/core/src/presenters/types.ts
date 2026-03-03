@@ -1,3 +1,4 @@
+import { PresentableType } from '@lowerdeck/presenter';
 import {
   ApiKey,
   ApiKeySecret,
@@ -74,7 +75,6 @@ import {
   SubspaceSessionWarning,
   SubspaceToolCall
 } from '@metorial/module-subspace';
-import { PresentableType } from '@metorial/presenter';
 
 export let bootType = PresentableType.create<{
   user: User;

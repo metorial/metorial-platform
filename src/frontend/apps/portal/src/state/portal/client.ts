@@ -1,7 +1,7 @@
 import { createCustomPortalClient } from '@metorial/api-custom-portal/client';
 import { createLoader } from '@metorial/data-hooks';
-import { delay } from '@metorial/delay';
-import { isServiceError, ServiceError, unauthorizedError } from '@metorial/error';
+import { delay } from '@lowerdeck/delay';
+import { isServiceError, ServiceError, unauthorizedError } from '@lowerdeck/error';
 import { useEffect } from 'react';
 
 export let portalClient = createCustomPortalClient(import.meta.env.VITE_CUSTOM_PORTAL_API_URL);

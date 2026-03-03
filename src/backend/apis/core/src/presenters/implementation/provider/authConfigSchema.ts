@@ -1,5 +1,5 @@
-import { Presenter } from '@metorial/presenter';
-import { v } from '@metorial/validation';
+import { Presenter } from '@lowerdeck/presenter';
+import { v } from '@lowerdeck/validation';
 import { authConfigSchemaType } from '../../types';
 
 export let v1ProviderAuthConfigSchemaPresenter = Presenter.create(authConfigSchemaType)

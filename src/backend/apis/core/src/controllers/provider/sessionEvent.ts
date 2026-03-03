@@ -1,8 +1,8 @@
-import { badRequestError, ServiceError } from '@metorial/error';
+import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { Paginator } from '@lowerdeck/pagination';
+import { v } from '@lowerdeck/validation';
 import { subspaceSessionEventService } from '@metorial/module-subspace';
-import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
-import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import {
@@ -33,7 +33,10 @@ let sessionEventGroup = instanceGroup
   })
   .use(
     requireFineGrainedSessionFromResource(
-      ctx => ctx.sessionEvent?.sessionId ?? ctx.sessionEvent?.session_id ?? ctx.sessionEvent?.session?.id
+      ctx =>
+        ctx.sessionEvent?.sessionId ??
+        ctx.sessionEvent?.session_id ??
+        ctx.sessionEvent?.session?.id
     )()
   );
 
@@ -49,7 +52,12 @@ export let sessionEventController = Controller.create(
         name: 'List session events',
         description: 'Returns a paginated list of events for a session.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider.session:read'], fineGrainedPolicy: 'allow' }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.provider.session:read'],
+          fineGrainedPolicy: 'allow'
+        })
+      )
       .use(constrainFineGrainedSessionQuery('session_id')())
       .outputList(subspaceSessionEventPresenter)
       .query(
@@ -110,7 +118,12 @@ export let sessionEventController = Controller.create(
         name: 'Get session event',
         description: 'Retrieves a specific event from a session.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider.session:read'], fineGrainedPolicy: 'allow' }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.provider.session:read'],
+          fineGrainedPolicy: 'allow'
+        })
+      )
       .output(subspaceSessionEventPresenter)
       .do(async ctx => {
         return subspaceSessionEventPresenter.present({

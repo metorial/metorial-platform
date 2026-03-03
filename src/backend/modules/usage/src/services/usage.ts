@@ -1,4 +1,4 @@
-import { Service } from '@metorial/service';
+import { Service } from '@lowerdeck/service';
 import { getUsageTimeline, ingestUsage } from '../db';
 
 class UsageServiceImpl {

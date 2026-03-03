@@ -1,6 +1,6 @@
 'use client';
 
-import { Cases } from '@metorial/case';
+import { Cases } from '@lowerdeck/case';
 import { Button, Entity, Text, Title } from '@metorial/ui';
 import styled from 'styled-components';
 import { ProviderCapabilities, ProviderListing } from '../../../../../../state/provider';

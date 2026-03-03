@@ -1,5 +1,5 @@
+import { Service } from '@lowerdeck/service';
 import { Instance, Organization, OrganizationActor } from '@metorial/db';
-import { Service } from '@metorial/service';
 import { EventTypes } from '../definitions';
 
 class IngestEventServiceImpl {

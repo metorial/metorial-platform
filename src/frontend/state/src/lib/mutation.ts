@@ -1,4 +1,4 @@
-import { isServiceError } from '@metorial/error';
+import { isServiceError } from '@lowerdeck/error';
 import { toast } from 'sonner';
 
 export let mutation = async <T>(cb: () => Promise<T>) => {

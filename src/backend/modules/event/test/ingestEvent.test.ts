@@ -1,9 +1,9 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { ingestEventService } from '../src/services/ingestEvent';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { EventTypes } from '../src/definitions';
+import { ingestEventService } from '../src/services/ingestEvent';
 
 // Mock the Service module
-vi.mock('@metorial/service', () => ({
+vi.mock('@lowerdeck/service', () => ({
   Service: {
     create: vi.fn((name: string, factory: () => any) => ({
       build: vi.fn(() => factory())

@@ -1,8 +1,8 @@
+import { Service } from '@lowerdeck/service';
 import { Context } from '@metorial/context';
 import { db, ID, User, UserSession, withTransaction } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { generateCustomId } from '@metorial/id';
-import { Service } from '@metorial/service';
 
 class UserSessionService {
   async createUserSession(d: { user: User; context: Context }) {

@@ -1,8 +1,8 @@
-import { badRequestError, ServiceError } from '@metorial/error';
+import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { Paginator } from '@lowerdeck/pagination';
+import { v, ValidationTypeValue } from '@lowerdeck/validation';
 import { subspaceSessionProviderService } from '@metorial/module-subspace';
-import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
-import { v, ValidationTypeValue } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import {
   authConfigValidator,
@@ -143,7 +143,12 @@ export let sessionProviderController = Controller.create(
         name: 'List session providers',
         description: 'Returns a paginated list of providers connected to a session.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider.session:read'], fineGrainedPolicy: 'allow' }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.provider.session:read'],
+          fineGrainedPolicy: 'allow'
+        })
+      )
       .use(constrainFineGrainedSessionQuery('session_id')())
       .outputList(sessionProviderPresenter)
       .query(
@@ -210,7 +215,12 @@ export let sessionProviderController = Controller.create(
         name: 'Get session provider',
         description: 'Retrieves a specific provider connected to a session.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider.session:read'], fineGrainedPolicy: 'allow' }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.provider.session:read'],
+          fineGrainedPolicy: 'allow'
+        })
+      )
       .output(sessionProviderPresenter)
       .do(async ctx => {
         return sessionProviderPresenter.present({ sessionProvider: ctx.sessionProvider });
@@ -221,7 +231,12 @@ export let sessionProviderController = Controller.create(
         name: 'Create session provider',
         description: 'Adds a new provider to an active session.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider.session:write'], fineGrainedPolicy: 'allow' }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.provider.session:write'],
+          fineGrainedPolicy: 'allow'
+        })
+      )
       .use(requireFineGrainedSessionBody('session_id')())
       .body('default', sessionProviderCreateBodyValidator)
       .output(sessionProviderPresenter)
@@ -248,7 +263,12 @@ export let sessionProviderController = Controller.create(
           description: 'Updates a provider connected to a session.'
         }
       )
-      .use(checkAccess({ possibleScopes: ['instance.provider.session:write'], fineGrainedPolicy: 'allow' }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.provider.session:write'],
+          fineGrainedPolicy: 'allow'
+        })
+      )
       .body(
         'default',
         v.object({
@@ -276,7 +296,12 @@ export let sessionProviderController = Controller.create(
           description: 'Removes a provider from a session.'
         }
       )
-      .use(checkAccess({ possibleScopes: ['instance.provider.session:write'], fineGrainedPolicy: 'allow' }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.provider.session:write'],
+          fineGrainedPolicy: 'allow'
+        })
+      )
       .output(sessionProviderPresenter)
       .do(async ctx => {
         await subspaceSessionProviderService.delete({

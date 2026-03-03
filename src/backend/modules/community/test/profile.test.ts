@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+import { beforeEach, describe, expect, it, Mock, vi } from 'vitest';
 import { profileService } from '../src/services/profile';
 
 // Mock dependencies
@@ -23,13 +23,13 @@ vi.mock('@metorial/db', () => ({
   }
 }));
 
-vi.mock('@metorial/slugify', () => ({
+vi.mock('@lowerdeck/slugify', () => ({
   createSlugGenerator: vi.fn(() =>
     vi.fn(async ({ input }: { input: string }) => `${input}-slug`)
   )
 }));
 
-vi.mock('@metorial/service', () => ({
+vi.mock('@lowerdeck/service', () => ({
   Service: {
     create: vi.fn((name: string, factory: () => any) => ({
       build: vi.fn(() => factory())
@@ -529,5 +529,4 @@ describe('ProfileService', () => {
       );
     });
   });
-
 });
