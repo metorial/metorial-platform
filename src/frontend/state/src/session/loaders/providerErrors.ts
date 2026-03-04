@@ -1,25 +1,20 @@
-import {
-  DashboardInstanceSessionErrorsListQuery,
-  DashboardInstanceSessionsErrorsListQuery
-} from '@metorial/dashboard-sdk';
+import { DashboardInstanceSessionsErrorsListQuery } from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
-
-type SessionErrorsQuery = Omit<DashboardInstanceSessionsErrorsListQuery, 'sessionId'>;
 
 // Instance-level session errors (cross-session)
 export let allSessionErrorsLoader = createLoader({
   name: 'allSessionErrors',
   parents: [],
-  fetch: (i: { instanceId: string } & DashboardInstanceSessionErrorsListQuery) =>
+  fetch: (i: { instanceId: string } & DashboardInstanceSessionsErrorsListQuery) =>
     withAuth(sdk => sdk.sessionErrors.list(i.instanceId, i)),
   mutators: {}
 });
 
 export let useAllSessionErrors = (
   instanceId: string | null | undefined,
-  query?: DashboardInstanceSessionErrorsListQuery
+  query?: DashboardInstanceSessionsErrorsListQuery
 ) => {
   let data = usePaginator(pagination =>
     allSessionErrorsLoader.use(instanceId ? { instanceId, ...pagination, ...query } : null)
@@ -32,21 +27,17 @@ export let useAllSessionErrors = (
 export let sessionErrorsLoader = createLoader({
   name: 'sessionErrors',
   parents: [],
-  fetch: (
-    i: { instanceId: string; sessionId: string } & SessionErrorsQuery
-  ) => withAuth(sdk => sdk.sessions.errors.list(i.instanceId, i.sessionId, i)),
+  fetch: (i: { instanceId: string } & DashboardInstanceSessionsErrorsListQuery) =>
+    withAuth(sdk => sdk.sessions.errors.list(i.instanceId, i)),
   mutators: {}
 });
 
 export let useSessionErrors = (
   instanceId: string | null | undefined,
-  sessionId: string | null | undefined,
-  query?: SessionErrorsQuery
+  query?: DashboardInstanceSessionsErrorsListQuery
 ) => {
   let data = usePaginator(pagination =>
-    sessionErrorsLoader.use(
-      instanceId && sessionId ? { instanceId, sessionId, ...pagination, ...query } : null
-    )
+    sessionErrorsLoader.use(instanceId ? { instanceId, ...pagination, ...query } : null)
   );
 
   return data;
@@ -55,20 +46,17 @@ export let useSessionErrors = (
 export let sessionErrorLoader = createLoader({
   name: 'sessionError',
   parents: [],
-  fetch: (i: { instanceId: string; sessionId: string; sessionErrorId: string }) =>
-    withAuth(sdk => sdk.sessions.errors.get(i.instanceId, i.sessionId, i.sessionErrorId)),
+  fetch: (i: { instanceId: string; sessionErrorId: string }) =>
+    withAuth(sdk => sdk.sessions.errors.get(i.instanceId, i.sessionErrorId)),
   mutators: {}
 });
 
 export let useSessionError = (
   instanceId: string | null | undefined,
-  sessionId: string | null | undefined,
   sessionErrorId: string | null | undefined
 ) => {
   let data = sessionErrorLoader.use(
-    instanceId && sessionId && sessionErrorId
-      ? { instanceId, sessionId, sessionErrorId }
-      : null
+    instanceId && sessionErrorId ? { instanceId, sessionErrorId } : null
   );
 
   return data;

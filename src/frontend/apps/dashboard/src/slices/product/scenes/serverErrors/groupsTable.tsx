@@ -1,12 +1,12 @@
-import { DashboardInstanceSessionErrorGroupsListQuery } from '@metorial/dashboard-sdk';
+import { DashboardInstanceSessionsErrorGroupsListQuery } from '@metorial/dashboard-sdk';
 import { renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
-import { useCurrentInstance, useAllSessionErrorGroups } from '@metorial/state';
+import { useCurrentInstance, useSessionErrorGroups } from '@metorial/state';
 import { Badge, RenderDate, Text } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
 
 type SessionErrorGroupTypeFilter = Extract<
-  DashboardInstanceSessionErrorGroupsListQuery['type'],
+  DashboardInstanceSessionsErrorGroupsListQuery['type'],
   | 'message_processing_timeout'
   | 'message_processing_provider_error'
   | 'message_processing_system_error'
@@ -27,7 +27,7 @@ let normalizeSessionErrorGroupType = (
 
 export let ServerErrorGroupsTable = (filter?: { sessionId?: string; type?: string }) => {
   let instance = useCurrentInstance();
-  let errors = useAllSessionErrorGroups(instance.data?.id, {
+  let errors = useSessionErrorGroups(instance.data?.id, {
     sessionId: filter?.sessionId,
     type: normalizeSessionErrorGroupType(filter?.type)
   });

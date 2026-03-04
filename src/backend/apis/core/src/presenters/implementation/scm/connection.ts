@@ -1,5 +1,5 @@
-import { Presenter } from '@lowerdeck/presenter';
 import { v } from '@lowerdeck/validation';
+import { Presenter } from '@metorial/presenter';
 import { scmConnectionSetupType, scmConnectionType } from '../../types';
 
 export let v1ScmConnectionPresenter = Presenter.create(scmConnectionType)

@@ -1,5 +1,5 @@
-import { Presenter } from '@lowerdeck/presenter';
 import { v } from '@lowerdeck/validation';
+import { Presenter } from '@metorial/presenter';
 import { customProviderType } from '../../types';
 import { v1ScmRepoPresenter } from '../scm/repos';
 import { v1BucketPresenter } from './bucket';
