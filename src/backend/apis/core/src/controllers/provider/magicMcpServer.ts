@@ -121,7 +121,7 @@ export let magicMcpServerController = Controller.create(
 
         let magicMcpServer = await magicMcpServerService.createMagicMcpServer({
           organization: ctx.organization,
-          performedBy: ctx.actor,
+          performedBy: ctx.actor!,
           instance: ctx.instance,
           context: ctx.context,
           input: {
