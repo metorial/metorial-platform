@@ -253,7 +253,7 @@ let InstancePaths = Object.assign(
     ) => InstancePaths(organization, project, instance, 'explorer', ...subPages),
 
     magicMcp: {
-      provider: (
+      server: (
         organization: EntityParam,
         project: EntityParam,
         instance: EntityParam,
@@ -265,13 +265,13 @@ let InstancePaths = Object.assign(
           organization,
           project,
           instance,
-          'magic-mcp/provider',
+          'magic-mcp/server',
           id,
           ...subPages
         );
       },
 
-      providers: (
+      servers: (
         organization: EntityParam,
         project: EntityParam,
         instance: EntityParam,
@@ -281,7 +281,7 @@ let InstancePaths = Object.assign(
           organization,
           project,
           instance,
-          'magic-mcp/providers',
+          'magic-mcp/servers',
           ...subPages
         );
       },

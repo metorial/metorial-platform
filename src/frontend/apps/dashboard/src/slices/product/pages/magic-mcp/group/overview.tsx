@@ -84,7 +84,7 @@ let MagicMcpGroupServersTable = ({
               </Button>
             </div>
           ],
-          href: Paths.instance.magicMcp.provider(
+          href: Paths.instance.magicMcp.server(
             instance.data?.organization,
             instance.data?.project,
             instance.data,

@@ -158,7 +158,7 @@ export let ProjectPageLayout = () => {
             {
               icon: <RiWebhookLine />,
               label: 'Magic MCP',
-              to: Paths.instance.magicMcp.providers(...params),
+              to: Paths.instance.magicMcp.servers(...params),
               getProps: i => ({ isActive: i.pathname.includes('/magic-mcp/') })
             },
 

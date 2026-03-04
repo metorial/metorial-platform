@@ -126,7 +126,7 @@ export let MagicMcpServersGrid = (filter: DashboardInstanceMagicMcpServersListQu
               }
               onClick={() =>
                 navigate(
-                  Paths.instance.magicMcp.provider(
+                  Paths.instance.magicMcp.server(
                     instance.data?.organization,
                     instance.data?.project,
                     instance.data,
@@ -205,7 +205,7 @@ export let MagicMcpServersTable = (filter: DashboardInstanceMagicMcpServersListQ
 
             <RenderDate date={server.createdAt} />
           ],
-          href: Paths.instance.magicMcp.provider(
+          href: Paths.instance.magicMcp.server(
             instance.data?.organization,
             instance.data?.project,
             instance.data,

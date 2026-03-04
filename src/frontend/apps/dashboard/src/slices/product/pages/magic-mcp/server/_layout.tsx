@@ -29,7 +29,7 @@ export let MagicMcpServerLayout = () => {
         pagination={[
           {
             label: 'Magic MCP Servers',
-            href: Paths.instance.magicMcp.providers(
+            href: Paths.instance.magicMcp.servers(
               organization.data,
               project.data,
               instance.data
@@ -37,7 +37,7 @@ export let MagicMcpServerLayout = () => {
           },
           {
             label: magicMcpServerId,
-            href: Paths.instance.magicMcp.provider(...serverPathParams)
+            href: Paths.instance.magicMcp.server(...serverPathParams)
           }
         ]}
       />
@@ -47,15 +47,15 @@ export let MagicMcpServerLayout = () => {
         links={[
           {
             label: 'Overview',
-            to: Paths.instance.magicMcp.provider(...serverPathParams)
+            to: Paths.instance.magicMcp.server(...serverPathParams)
           },
           {
             label: 'Sessions',
-            to: Paths.instance.magicMcp.provider(...serverPathParams, 'sessions')
+            to: Paths.instance.magicMcp.server(...serverPathParams, 'sessions')
           },
           {
             label: 'Settings',
-            to: Paths.instance.magicMcp.provider(...serverPathParams, 'config')
+            to: Paths.instance.magicMcp.server(...serverPathParams, 'config')
           }
         ]}
       />
