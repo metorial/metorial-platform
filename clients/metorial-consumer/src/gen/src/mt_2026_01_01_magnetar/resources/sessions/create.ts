@@ -8,6 +8,7 @@ export type SessionsCreateOutput = {
   metadata: Record<string, any> | null;
   connectionState: string;
   connectionUrl: string;
+  clientSecret: string | null;
   usage: {
     totalProductiveClientMessageCount: number;
     totalProductiveProviderMessageCount: number;
@@ -78,6 +79,7 @@ export let mapSessionsCreateOutput = mtMap.object<SessionsCreateOutput>({
   metadata: mtMap.objectField('metadata', mtMap.passthrough()),
   connectionState: mtMap.objectField('connection_state', mtMap.passthrough()),
   connectionUrl: mtMap.objectField('connection_url', mtMap.passthrough()),
+  clientSecret: mtMap.objectField('client_secret', mtMap.passthrough()),
   usage: mtMap.objectField(
     'usage',
     mtMap.object({

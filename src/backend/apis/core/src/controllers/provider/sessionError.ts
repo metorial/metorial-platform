@@ -48,8 +48,8 @@ export let sessionErrorController = Controller.create(
       'Session errors track errors that occurred during a session. This read-only resource provides visibility into issues that happened during provider execution.'
   },
   {
-    listAll: instanceGroup
-      .get(instancePath('session-errors', 'sessionErrors.list'), {
+    list: instanceGroup
+      .get(instancePath('session-errors', 'sessions.errors.list'), {
         name: 'List all session errors',
         description: 'Returns a paginated list of errors across all sessions.'
       })
@@ -132,93 +132,8 @@ export let sessionErrorController = Controller.create(
         );
       }),
 
-    list: instanceGroup
-      .get(instancePath('sessions/:sessionId/errors', 'sessions.errors.list'), {
-        name: 'List session errors',
-        description: 'Returns a paginated list of errors that occurred in a session.'
-      })
-      .use(
-        checkAccess({
-          possibleScopes: ['instance.provider.session:read'],
-          fineGrainedPolicy: 'allow'
-        })
-      )
-      .use(requireFineGrainedSessionParam('sessionId')())
-      .use(constrainFineGrainedSessionQuery('session_id')())
-      .outputList(subspaceSessionErrorPresenter)
-      .query(
-        'default',
-        Paginator.validate(
-          v.object({
-            type: v.optional(
-              v.union([
-                v.enumOf([
-                  'message_processing_timeout',
-                  'message_processing_provider_error',
-                  'message_processing_system_error'
-                ]),
-                v.array(
-                  v.enumOf([
-                    'message_processing_timeout',
-                    'message_processing_provider_error',
-                    'message_processing_system_error'
-                  ])
-                )
-              ]),
-              { description: 'Filter by error type(s)' }
-            ),
-            id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by session error ID(s)'
-            }),
-            session_id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by session ID(s)'
-            }),
-            session_provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by session provider ID(s)'
-            }),
-            session_connection_id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by session connection ID(s)'
-            }),
-            session_error_group_id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by error group ID(s)'
-            }),
-            provider_run_id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by provider run ID(s)'
-            }),
-            provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by provider ID(s)'
-            }),
-            session_message_id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by session message ID(s)'
-            })
-          })
-        )
-      )
-      .do(async ctx => {
-        let paginator = await subspaceSessionErrorService.list({
-          instance: ctx.instance,
-          accessTagSessionIds: getFineGrainedAllowedSessionIds(ctx),
-          allowDeleted: false,
-          types: normalizeArrayParam(ctx.query.type),
-          ids: normalizeArrayParam(ctx.query.id),
-          sessionIds: normalizeArrayParam(ctx.query.session_id),
-          sessionProviderIds: normalizeArrayParam(ctx.query.session_provider_id),
-          sessionConnectionIds: normalizeArrayParam(ctx.query.session_connection_id),
-          sessionErrorGroupIds: normalizeArrayParam(ctx.query.session_error_group_id),
-          providerRunIds: normalizeArrayParam(ctx.query.provider_run_id),
-          providerIds: normalizeArrayParam(ctx.query.provider_id),
-          sessionMessageIds: normalizeArrayParam(ctx.query.session_message_id)
-        });
-
-        let list = await paginator.run(ctx.query);
-
-        return Paginator.present(list, sessionError =>
-          subspaceSessionErrorPresenter.present({ sessionError })
-        );
-      }),
-
     get: sessionErrorGroup
-      .get(instancePath('sessions/:sessionId/errors/:sessionErrorId', 'sessions.errors.get'), {
+      .get(instancePath('session-errors/:sessionErrorId', 'sessions.errors.get'), {
         name: 'Get session error',
         description: 'Retrieves a specific error that occurred in a session.'
       })

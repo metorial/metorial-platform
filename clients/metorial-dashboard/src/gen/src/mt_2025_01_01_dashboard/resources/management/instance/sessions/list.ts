@@ -9,6 +9,7 @@ export type ManagementInstanceSessionsListOutput = {
     metadata: Record<string, any> | null;
     connectionState: string;
     connectionUrl: string;
+    clientSecret: string | null;
     usage: {
       totalProductiveClientMessageCount: number;
       totalProductiveProviderMessageCount: number;
@@ -92,6 +93,7 @@ export let mapManagementInstanceSessionsListOutput =
             'connection_url',
             mtMap.passthrough()
           ),
+          clientSecret: mtMap.objectField('client_secret', mtMap.passthrough()),
           usage: mtMap.objectField(
             'usage',
             mtMap.object({
