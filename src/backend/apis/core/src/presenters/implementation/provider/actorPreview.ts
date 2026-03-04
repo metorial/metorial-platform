@@ -1,5 +1,5 @@
-import { Presenter } from '@lowerdeck/presenter';
 import { v } from '@lowerdeck/validation';
+import { Presenter } from '@metorial/presenter';
 import { actorPreviewType } from '../../types';
 
 export let v1ActorPreviewPresenter = Presenter.create(actorPreviewType)

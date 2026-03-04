@@ -1,5 +1,5 @@
-import { Presenter } from '@lowerdeck/presenter';
 import { v } from '@lowerdeck/validation';
+import { Presenter } from '@metorial/presenter';
 import { configPreviewType } from '../../types';
 
 export let v1ProviderConfigPreviewPresenter = Presenter.create(configPreviewType)

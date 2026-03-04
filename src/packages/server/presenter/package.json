@@ -1,5 +1,5 @@
 {
-  "name": "@metorial/module-email",
+  "name": "@metorial/presenter",
   "version": "1.0.0",
   "author": "Tobias Herber",
   "license": "FSL-1.1",
@@ -8,13 +8,7 @@
     "test": "vitest run --passWithNoTests",
     "lint": "prettier src/**/*.ts --check"
   },
-  "dependencies": {
-    "@lowerdeck/programmable-promise": "latest",
-    "@metorial-services/relay-client": "^1.0.5",
-    "@metorial/db": "^1.0.0",
-    "@metorial/queue": "^1.0.0",
-    "@lowerdeck/service": "^1.0.7"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",
     "typescript": "5.8.2",
