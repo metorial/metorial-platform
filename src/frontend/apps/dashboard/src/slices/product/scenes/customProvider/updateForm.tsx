@@ -254,12 +254,12 @@ export let CustomServerUpdateForm = (p: { customServer?: CustomProvidersGetOutpu
                   toast.success('Custom provider deleted successfully.');
                   navigate(
                     p.customServer?.status == 'active'
-                      ? Paths.instance.externalServers(
+                      ? Paths.instance.externalProviders(
                           instance.data?.organization,
                           instance.data?.project,
                           instance.data
                         )
-                      : Paths.instance.managedServers(
+                      : Paths.instance.customProviders(
                           instance.data?.organization,
                           instance.data?.project,
                           instance.data

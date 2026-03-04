@@ -74,7 +74,7 @@ export let ServerDeploymentsTable = (
                 </Text>,
                 <RenderDate date={deployment.createdAt} />
               ],
-              href: Paths.instance.serverDeployment(
+              href: Paths.instance.providerDeployment(
                 instance.data?.organization,
                 instance.data?.project,
                 instance.data,
@@ -178,7 +178,7 @@ export let ServerDeploymentsListItems = ({
         return (
           <Link
             key={deployment.id}
-            to={Paths.instance.serverDeployment(
+            to={Paths.instance.providerDeployment(
               instance.data?.organization,
               instance.data?.project,
               instance.data,

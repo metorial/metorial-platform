@@ -42,7 +42,7 @@ export let SessionDeploymentsPage = () => {
           return (
             <Link
               key={deployment.id}
-              to={Paths.instance.serverDeployment(
+              to={Paths.instance.providerDeployment(
                 instance.data?.organization,
                 instance.data?.project,
                 instance.data,

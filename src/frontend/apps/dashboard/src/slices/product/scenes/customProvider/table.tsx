@@ -100,7 +100,7 @@ export let CustomProvidersTable = (
                   </Text>,
                   <RenderDate date={customServer.createdAt} />
                 ],
-                href: Paths.instance.customServer(
+                href: Paths.instance.customProvider(
                   instance.data?.organization,
                   instance.data?.project,
                   instance.data,

@@ -48,7 +48,7 @@ export let CustomProviderDeploymentsPage = () => {
                 <RenderDate date={deployment.createdAt} />
               ],
               href: deployment.customProviderVersionId
-                ? Paths.instance.customServer(
+                ? Paths.instance.customProvider(
                     instance.data?.organization,
                     instance.data?.project,
                     instance.data,

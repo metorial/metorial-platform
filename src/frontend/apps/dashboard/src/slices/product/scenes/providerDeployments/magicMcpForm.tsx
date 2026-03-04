@@ -75,7 +75,7 @@ export let MagicMcpServerForm = (
       }
 
       navigate(
-        Paths.instance.magicMcp.server(
+        Paths.instance.magicMcp.provider(
           instance.data.organization,
           instance.data.project,
           instance.data,
@@ -141,7 +141,7 @@ export let MagicMcpServerForm = (
 
                   toast.success('Magic MCP server deleted');
                   navigate(
-                    Paths.instance.magicMcp.servers(
+                    Paths.instance.magicMcp.providers(
                       instance.data.organization,
                       instance.data.project,
                       instance.data

@@ -60,16 +60,16 @@ export let CustomProviderLayout = () => {
                 : 'Custom Providers',
             href:
               customServer.data?.status == 'active'
-                ? Paths.instance.externalServers(
+                ? Paths.instance.externalProviders(
                     organization.data,
                     project.data,
                     instance.data
                   )
-                : Paths.instance.managedServers(organization.data, project.data, instance.data)
+                : Paths.instance.customProviders(organization.data, project.data, instance.data)
           },
           {
             label: customServer.data?.name,
-            href: Paths.instance.customServer(...pathParams)
+            href: Paths.instance.customProvider(...pathParams)
           }
         ]}
         actions={
@@ -86,38 +86,38 @@ export let CustomProviderLayout = () => {
             links={[
               {
                 label: 'Overview',
-                to: Paths.instance.customServer(...pathParams)
+                to: Paths.instance.customProvider(...pathParams)
               },
 
               ...(hasCodeManagement
                 ? [
                     {
                       label: 'Code',
-                      to: Paths.instance.customServer(...pathParams, 'code')
+                      to: Paths.instance.customProvider(...pathParams, 'code')
                     },
                     {
                       label: 'Versions',
-                      to: Paths.instance.customServer(...pathParams, 'versions')
+                      to: Paths.instance.customProvider(...pathParams, 'versions')
                     }
                   ]
                 : []),
               {
                 label: 'Deployments',
-                to: Paths.instance.customServer(...pathParams, 'deployments')
+                to: Paths.instance.customProvider(...pathParams, 'deployments')
               },
 
               ...(flags.data?.flags['community-profiles-enabled']
                 ? [
                     {
                       label: 'Listing',
-                      to: Paths.instance.customServer(...pathParams, 'listing')
+                      to: Paths.instance.customProvider(...pathParams, 'listing')
                     }
                   ]
                 : []),
 
               {
                 label: 'Settings',
-                to: Paths.instance.customServer(...pathParams, 'settings')
+                to: Paths.instance.customProvider(...pathParams, 'settings')
               }
             ]}
           />

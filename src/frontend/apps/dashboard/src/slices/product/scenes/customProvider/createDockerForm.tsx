@@ -69,7 +69,7 @@ export let CustomServerDockerCreateForm = (p: {
           p.onCreate(customServerRes);
         } else {
           navigate(
-            Paths.instance.customServer(
+            Paths.instance.customProvider(
               instance.data.organization,
               instance.data.project,
               instance.data,
