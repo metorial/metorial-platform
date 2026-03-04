@@ -103,7 +103,7 @@ export let magicMcpGroupController = Controller.create(
       .do(async ctx => {
         let magicMcpGroup = await magicMcpGroupService.createMagicMcpGroup({
           organization: ctx.organization,
-          performedBy: ctx.actor,
+          performedBy: ctx.actor!,
           instance: ctx.instance,
           context: ctx.context,
           input: {
