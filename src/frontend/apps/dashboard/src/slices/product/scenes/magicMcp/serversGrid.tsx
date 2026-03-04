@@ -117,7 +117,8 @@ export let MagicMcpServersGrid = (filter: DashboardInstanceMagicMcpServersListQu
               icon={
                 <Avatar
                   entity={{
-                    name: server.name ?? 'Magic MCP Server',
+                    ...server,
+                    name: server.name ?? 'Unknown Server',
                     imageUrl: `https://avatar-cdn.metorial.com/${server.id}`
                   }}
                   size={30}
