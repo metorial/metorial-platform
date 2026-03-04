@@ -40,11 +40,10 @@ export class MetorialManagementInstanceSessionsErrorsEndpoint {
   }
 
   /**
-   * @name List session errors
-   * @description Returns a paginated list of errors that occurred in a session.
+   * @name List all session errors
+   * @description Returns a paginated list of errors across all sessions.
    *
    * @param `instanceId` - string
-   * @param `sessionId` - string
    * @param `query` - DashboardInstanceSessionsErrorsListQuery
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceSessionsErrorsListOutput
@@ -53,11 +52,10 @@ export class MetorialManagementInstanceSessionsErrorsEndpoint {
    */
   list(
     instanceId: string,
-    sessionId: string,
     query?: DashboardInstanceSessionsErrorsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionsErrorsListOutput> {
-    let path = `instances/${instanceId}/sessions/${sessionId}/errors`;
+    let path = `instances/${instanceId}/session-errors`;
 
     let request = {
       path,
@@ -78,7 +76,6 @@ export class MetorialManagementInstanceSessionsErrorsEndpoint {
    * @description Retrieves a specific error that occurred in a session.
    *
    * @param `instanceId` - string
-   * @param `sessionId` - string
    * @param `sessionErrorId` - string
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceSessionsErrorsGetOutput
@@ -87,11 +84,10 @@ export class MetorialManagementInstanceSessionsErrorsEndpoint {
    */
   get(
     instanceId: string,
-    sessionId: string,
     sessionErrorId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionsErrorsGetOutput> {
-    let path = `instances/${instanceId}/sessions/${sessionId}/errors/${sessionErrorId}`;
+    let path = `instances/${instanceId}/session-errors/${sessionErrorId}`;
 
     let request = {
       path,

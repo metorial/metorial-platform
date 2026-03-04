@@ -1,6 +1,6 @@
+import { v } from '@lowerdeck/validation';
 import { getImageUrl } from '@metorial/db';
 import { Presenter } from '@metorial/presenter';
-import { v } from '@metorial/validation';
 import { providerListingType } from '../../types';
 import { v1ProviderListingCategoryPresenter } from './category';
 import { v1ProviderListingCollectionPresenter } from './collection';

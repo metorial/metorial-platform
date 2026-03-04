@@ -1,4 +1,4 @@
-import { forbiddenError, paymentRequiredError, ServiceError } from '@metorial/error';
+import { forbiddenError, paymentRequiredError, ServiceError } from '@lowerdeck/error';
 import { Flags, flagService } from '@metorial/module-flags';
 import { apiGroup } from './apiGroup';
 

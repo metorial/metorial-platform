@@ -1,8 +1,8 @@
-import { badRequestError, ServiceError } from '@metorial/error';
+import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { Paginator } from '@lowerdeck/pagination';
+import { v } from '@lowerdeck/validation';
 import { subspaceCustomProviderVersionService } from '@metorial/module-subspace';
-import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
-import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
@@ -43,7 +43,7 @@ export let customProviderVersionController = Controller.create(
         name: 'List custom provider versions',
         description: 'Returns a paginated list of versions for a custom provider.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.custom.version:read'] }))
       .outputList(subspaceCustomProviderVersionPresenter)
       .query(
         'default',
@@ -130,7 +130,7 @@ export let customProviderVersionController = Controller.create(
           description: 'Retrieves a specific version of a custom provider.'
         }
       )
-      .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.custom.version:read'] }))
       .output(subspaceCustomProviderVersionPresenter)
       .do(async ctx => {
         return subspaceCustomProviderVersionPresenter.present({
@@ -143,7 +143,7 @@ export let customProviderVersionController = Controller.create(
         name: 'Create custom provider version',
         description: 'Creates a new version for a custom provider.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider:write'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.custom.version:write'] }))
       .body(
         'default',
         v.object({
@@ -159,7 +159,7 @@ export let customProviderVersionController = Controller.create(
       .do(async ctx => {
         let customProviderVersion = await subspaceCustomProviderVersionService.create({
           instance: ctx.instance,
-          organizationActor: ctx.actor,
+          organizationActor: ctx.actor!,
           customProviderId: ctx.body.custom_provider_id,
           from: mapCustomProviderFrom(ctx.body.from),
           config: ctx.body.config

@@ -1,4 +1,4 @@
-import { ServiceError, notFoundError } from '@metorial/error';
+import { ServiceError, notFoundError } from '@lowerdeck/error';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { accessService } from '../src/services/access';
 import { AuthInfo } from '../src/services/authentication';
@@ -102,7 +102,7 @@ describe('AccessService', () => {
         type: 'machine',
         apiKey: { id: 'key-1' } as any,
         machineAccess: { type: 'organization_management' } as any,
-        orgScopes: ['organization:read', 'instance.server:write'],
+        orgScopes: ['organization:read', 'instance.provider:write'],
         restrictions: {
           type: 'organization',
           organization: { id: 'org-1' } as any,
@@ -113,7 +113,7 @@ describe('AccessService', () => {
       await expect(
         accessService.checkAccess({
           authInfo,
-          possibleScopes: ['instance.server:write']
+          possibleScopes: ['instance.provider:write']
         })
       ).resolves.not.toThrow();
     });
@@ -122,7 +122,7 @@ describe('AccessService', () => {
       let authInfo: AuthInfo = {
         type: 'user',
         user: { id: 'user-1' } as any,
-        orgScopes: ['organization:read', 'instance.file:read', 'instance.server:read']
+        orgScopes: ['organization:read', 'instance.file:read', 'instance.provider:read']
       };
 
       await expect(
@@ -138,6 +138,116 @@ describe('AccessService', () => {
           possibleScopes: ['user:write', 'organization:write']
         })
       ).rejects.toThrow(ServiceError);
+    });
+
+    it('should deny fine grained token when fineGrainedPolicy is deny by default', async () => {
+      let authInfo: AuthInfo = {
+        type: 'fine_grained',
+        fineGrainedKey: { id: 'fgk_1' } as any,
+        orgScopes: ['instance.provider.session:read'],
+        restrictions: {
+          type: 'instance',
+          organization: { id: 'org-1' } as any,
+          instance: { id: 'ins-1', slug: 'ins-one', project: { id: 'prj-1' } } as any,
+          accessTagGrants: [
+            {
+              resourceType: 'subspace.session',
+              resourceId: 'ses_1',
+              roles: ['instance.provider.session:read']
+            }
+          ]
+        }
+      };
+
+      await expect(
+        accessService.checkAccess({
+          authInfo,
+          possibleScopes: ['instance.provider.session:read']
+        })
+      ).rejects.toThrow(ServiceError);
+    });
+
+    it('should allow fine grained token when fineGrainedPolicy is allow', async () => {
+      let authInfo: AuthInfo = {
+        type: 'fine_grained',
+        fineGrainedKey: { id: 'fgk_1' } as any,
+        orgScopes: ['instance.provider.session:read'],
+        restrictions: {
+          type: 'instance',
+          organization: { id: 'org-1' } as any,
+          instance: { id: 'ins-1', slug: 'ins-one', project: { id: 'prj-1' } } as any,
+          accessTagGrants: [
+            {
+              resourceType: 'subspace.session',
+              resourceId: 'ses_1',
+              roles: ['instance.provider.session:read']
+            }
+          ]
+        }
+      };
+
+      await expect(
+        accessService.checkAccess({
+          authInfo,
+          possibleScopes: ['instance.provider.session:read'],
+          fineGrainedPolicy: 'allow'
+        })
+      ).resolves.not.toThrow();
+    });
+
+    it('should deny fine grained token for non-session scopes by default', async () => {
+      let authInfo: AuthInfo = {
+        type: 'fine_grained',
+        fineGrainedKey: { id: 'fgk_1' } as any,
+        orgScopes: ['organization.instance:read'],
+        restrictions: {
+          type: 'instance',
+          organization: { id: 'org-1' } as any,
+          instance: { id: 'ins-1', slug: 'ins-one', project: { id: 'prj-1' } } as any,
+          accessTagGrants: [
+            {
+              resourceType: 'subspace.session',
+              resourceId: 'ses_1',
+              roles: ['instance.provider.session:read']
+            }
+          ]
+        }
+      };
+
+      await expect(
+        accessService.checkAccess({
+          authInfo,
+          possibleScopes: ['organization.instance:read']
+        })
+      ).rejects.toThrow(ServiceError);
+    });
+
+    it('should allow fine grained token for write scopes when allowed for endpoint', async () => {
+      let authInfo: AuthInfo = {
+        type: 'fine_grained',
+        fineGrainedKey: { id: 'fgk_1' } as any,
+        orgScopes: ['instance.provider.session:write'],
+        restrictions: {
+          type: 'instance',
+          organization: { id: 'org-1' } as any,
+          instance: { id: 'ins-1', slug: 'ins-one', project: { id: 'prj-1' } } as any,
+          accessTagGrants: [
+            {
+              resourceType: 'subspace.session',
+              resourceId: 'ses_1',
+              roles: ['instance.provider.session:read']
+            }
+          ]
+        }
+      };
+
+      await expect(
+        accessService.checkAccess({
+          authInfo,
+          possibleScopes: ['instance.provider.session:write'],
+          fineGrainedPolicy: 'allow'
+        })
+      ).resolves.not.toThrow();
     });
   });
 
@@ -346,7 +456,7 @@ describe('AccessService', () => {
         let authInfo: AuthInfo = {
           type: 'user',
           user: mockUser as any,
-          orgScopes: ['instance.server:read']
+          orgScopes: ['instance.provider:read']
         };
 
         let result = await accessService.accessInstance({
@@ -380,7 +490,7 @@ describe('AccessService', () => {
         let authInfo: AuthInfo = {
           type: 'user',
           user: mockUser as any,
-          orgScopes: ['instance.server:read']
+          orgScopes: ['instance.provider:read']
         };
 
         await accessService.accessInstance({
@@ -402,7 +512,7 @@ describe('AccessService', () => {
         let authInfo: AuthInfo = {
           type: 'user',
           user: { id: 'user-1' } as any,
-          orgScopes: ['instance.server:read']
+          orgScopes: ['instance.provider:read']
         };
 
         await expect(
@@ -431,7 +541,7 @@ describe('AccessService', () => {
           type: 'machine',
           apiKey: { id: 'key-1' } as any,
           machineAccess: { type: 'organization_management' } as any,
-          orgScopes: ['instance.server:read'],
+          orgScopes: ['instance.provider:read'],
           restrictions: {
             type: 'organization',
             organization: mockOrg as any,
@@ -462,7 +572,7 @@ describe('AccessService', () => {
           type: 'machine',
           apiKey: { id: 'key-1' } as any,
           machineAccess: { type: 'organization_management' } as any,
-          orgScopes: ['instance.server:read'],
+          orgScopes: ['instance.provider:read'],
           restrictions: {
             type: 'organization',
             organization: { id: 'org-1' } as any,
@@ -497,7 +607,7 @@ describe('AccessService', () => {
             type: 'instance_secret',
             instance: mockInstance
           } as any,
-          orgScopes: ['instance.server:read'],
+          orgScopes: ['instance.provider:read'],
           restrictions: {
             type: 'instance',
             organization: mockOrg as any,
@@ -535,7 +645,7 @@ describe('AccessService', () => {
           type: 'machine',
           apiKey: { id: 'key-1' } as any,
           machineAccess: { type: 'instance_secret' } as any,
-          orgScopes: ['instance.server:read'],
+          orgScopes: ['instance.provider:read'],
           restrictions: {
             type: 'instance',
             organization: mockOrg as any,
@@ -561,7 +671,7 @@ describe('AccessService', () => {
           type: 'machine',
           apiKey: { id: 'key-1' } as any,
           machineAccess: { type: 'instance_secret' } as any,
-          orgScopes: ['instance.server:read'],
+          orgScopes: ['instance.provider:read'],
           restrictions: {
             type: 'instance',
             organization: mockOrg as any,
@@ -585,7 +695,7 @@ describe('AccessService', () => {
           type: 'machine',
           apiKey: { id: 'key-1' } as any,
           machineAccess: { type: 'instance_publishable' } as any,
-          orgScopes: ['instance.server_listing:read'],
+          orgScopes: ['instance.provider.listing:read'],
           restrictions: {
             type: 'instance',
             organization: { id: 'org-1' } as any,
@@ -609,7 +719,7 @@ describe('AccessService', () => {
           machineAccess: {
             type: 'instance_publishable' // Type suggests instance, but restrictions don't match
           } as any,
-          orgScopes: ['instance.server_listing:read'],
+          orgScopes: ['instance.provider.listing:read'],
           restrictions: {
             type: 'organization', // Wrong restriction type
             organization: { id: 'org-1' } as any,
@@ -635,7 +745,7 @@ describe('AccessService', () => {
         let authInfo: AuthInfo = {
           type: 'user',
           user: { id: 'user-1' } as any,
-          orgScopes: ['instance.server:read']
+          orgScopes: ['instance.provider:read']
         };
 
         await expect(
@@ -666,7 +776,7 @@ describe('AccessService', () => {
         let authInfo: AuthInfo = {
           type: 'user',
           user: { id: 'user-1' } as any,
-          orgScopes: ['instance.server:read']
+          orgScopes: ['instance.provider:read']
         };
 
         let result = await accessService.accessInstance({
@@ -684,7 +794,7 @@ describe('AccessService', () => {
       let authInfo: AuthInfo = {
         type: 'user',
         user: { id: 'user-1' } as any,
-        orgScopes: ['organization:read', 'instance.server:read']
+        orgScopes: ['organization:read', 'instance.provider:read']
       };
 
       // First check
@@ -699,7 +809,7 @@ describe('AccessService', () => {
       await expect(
         accessService.checkAccess({
           authInfo,
-          possibleScopes: ['instance.server:read']
+          possibleScopes: ['instance.provider:read']
         })
       ).resolves.not.toThrow();
 
@@ -734,7 +844,7 @@ describe('AccessService', () => {
       let authInfo: AuthInfo = {
         type: 'user',
         user: mockUser as any,
-        orgScopes: ['organization:read', 'instance.server:read']
+        orgScopes: ['organization:read', 'instance.provider:read']
       };
 
       let orgResult = await accessService.accessOrganization({

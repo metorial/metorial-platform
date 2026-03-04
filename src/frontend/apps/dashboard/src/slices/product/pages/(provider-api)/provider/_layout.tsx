@@ -11,7 +11,7 @@ import {
 } from '@metorial/state';
 import { Badge, Button, Flex, LinkTabs } from '@metorial/ui';
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { Link, Outlet, useLocation, useParams } from 'react-router-dom';
+import { Link, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { showProviderDeploymentFormModal } from '../../../scenes/providerDeployments/modal';
 
 // ── Provider version context ─────────────────────────────────────────
@@ -48,6 +48,7 @@ export let ProviderLayout = () => {
   let instance = useCurrentInstance();
   let project = useCurrentProject();
   let organization = useCurrentOrganization();
+  let navigate = useNavigate();
 
   let { providerId } = useParams();
   let provider = useProvider(instance.data?.id, providerId);
@@ -211,8 +212,10 @@ export let ProviderLayout = () => {
               <Button
                 size="2"
                 onClick={() =>
+                  instance.data &&
                   showProviderDeploymentFormModal({
                     type: 'create',
+                    instanceId: instance.data.id,
                     providerId: provider.data?.id,
                     providerName: provider.data?.name,
                     ...(!isDefaultVersion && selectedVersion
@@ -220,7 +223,16 @@ export let ProviderLayout = () => {
                           lockedProviderVersionId: selectedVersion.id,
                           lockedProviderVersionLabel: selectedVersion.version
                         }
-                      : {})
+                      : {}),
+                    onCreate: deployment =>
+                      navigate(
+                        Paths.instance.providerDeployment(
+                          organization.data,
+                          project.data,
+                          instance.data,
+                          deployment.id
+                        )
+                      )
                   })
                 }
               >

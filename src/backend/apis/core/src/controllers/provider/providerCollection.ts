@@ -1,8 +1,8 @@
-import { badRequestError, ServiceError } from '@metorial/error';
+import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { Paginator } from '@lowerdeck/pagination';
+import { v } from '@lowerdeck/validation';
 import { subspaceProviderListingCollectionService } from '@metorial/module-subspace';
-import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
-import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
@@ -38,7 +38,7 @@ export let providerCollectionController = Controller.create(
         name: 'List provider collections',
         description: 'Returns a paginated list of provider collections.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.collection:read'] }))
       .outputList(providerCollectionPresenter)
       .query(
         'default',
@@ -81,7 +81,7 @@ export let providerCollectionController = Controller.create(
           description: 'Retrieves a specific provider collection by ID.'
         }
       )
-      .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.collection:read'] }))
       .output(providerCollectionPresenter)
       .do(async ctx => {
         return providerCollectionPresenter.present({ collection: ctx.collection });

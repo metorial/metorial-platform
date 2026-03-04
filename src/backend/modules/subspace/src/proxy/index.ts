@@ -1,7 +1,7 @@
+import { getSentry } from '@lowerdeck/sentry';
 import type { Instance } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { usageService } from '@metorial/module-usage';
-import { getSentry } from '@metorial/sentry';
 import { Context } from 'hono';
 import { env } from '../env';
 import { getTenantForSubspace } from '../subspace';

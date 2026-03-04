@@ -1,4 +1,4 @@
-import { provideExecutionContext } from '@metorial/execution-context';
+import { provideExecutionContext } from '@lowerdeck/execution-context';
 import { DContext } from './context';
 import { wrapPrivateError } from './error';
 

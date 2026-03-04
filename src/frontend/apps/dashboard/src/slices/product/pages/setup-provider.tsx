@@ -20,6 +20,7 @@ export let SetupProviderPage = () => {
 
     showProviderDeploymentFormModal({
       type: 'create',
+      instanceId: instance.data.id,
       providerId: providerId ?? undefined,
       onCreate: deployment => {
         createdRef.current = true;

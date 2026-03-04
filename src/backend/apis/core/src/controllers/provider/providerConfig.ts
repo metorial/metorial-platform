@@ -1,8 +1,8 @@
-import { badRequestError, ServiceError } from '@metorial/error';
+import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { Paginator } from '@lowerdeck/pagination';
+import { v } from '@lowerdeck/validation';
 import { subspaceProviderConfigService } from '@metorial/module-subspace';
-import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
-import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
@@ -38,7 +38,7 @@ export let providerConfigController = Controller.create(
         name: 'List provider configs',
         description: 'Returns a paginated list of provider configs.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider.deployment:read'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.config:read'] }))
       .outputList(providerConfigPresenter)
       .query(
         'default',
@@ -97,7 +97,7 @@ export let providerConfigController = Controller.create(
           description: 'Retrieves a specific provider config by ID.'
         }
       )
-      .use(checkAccess({ possibleScopes: ['instance.provider.deployment:read'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.config:read'] }))
       .output(providerConfigPresenter)
       .do(async ctx => {
         return providerConfigPresenter.present({ config: ctx.config });
@@ -108,7 +108,7 @@ export let providerConfigController = Controller.create(
         name: 'Create provider config',
         description: 'Creates a new provider config.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider.deployment:write'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.config:write'] }))
       .body(
         'default',
         v.intersection([
@@ -192,7 +192,7 @@ export let providerConfigController = Controller.create(
           description: 'Updates a specific provider config.'
         }
       )
-      .use(checkAccess({ possibleScopes: ['instance.provider.deployment:write'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.config:write'] }))
       .body(
         'default',
         v.object({
@@ -227,7 +227,7 @@ export let providerConfigController = Controller.create(
           description: 'Permanently deletes a provider config.'
         }
       )
-      .use(checkAccess({ possibleScopes: ['instance.provider.deployment:write'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.config:write'] }))
       .output(providerConfigPresenter)
       .do(async ctx => {
         return providerConfigPresenter.present({ config: ctx.config });
@@ -242,7 +242,7 @@ export let providerConfigController = Controller.create(
             'Retrieves the JSON Schema for configuration of this provider deployment.'
         }
       )
-      .use(checkAccess({ possibleScopes: ['instance.provider.deployment:read'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.config:read'] }))
       .query(
         'default',
         v.object({

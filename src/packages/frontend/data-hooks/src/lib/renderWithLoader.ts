@@ -1,4 +1,4 @@
-import { ServiceError } from '@metorial/error';
+import { ServiceError } from '@lowerdeck/error';
 import { Button, CenteredSpinner, Error } from '@metorial/ui';
 import { MetorialSDKError } from '@metorial/util-endpoint';
 import React, { Fragment, useEffect, useRef, useState } from 'react';

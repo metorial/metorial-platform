@@ -1,6 +1,9 @@
+import { ServiceError, unauthorizedError } from '@lowerdeck/error';
+import { UnifiedApiKey } from '@metorial/api-keys';
 import { Context } from '@metorial/context';
 import {
   ApiKey,
+  FineGrainedKey,
   // ConsumerProfile,
   // ConsumerSession,
   // ConsumerSurface,
@@ -12,11 +15,10 @@ import {
   User,
   UserSession
 } from '@metorial/db';
-import { ServiceError, unauthorizedError } from '@metorial/error';
 // import { consumerAuthService } from '@metorial/module-consumer';
+import { Service } from '@lowerdeck/service';
 import { machineAccessAuthService } from '@metorial/module-machine-access';
 import { userAuthService } from '@metorial/module-user';
-import { Service } from '@metorial/service';
 import {
   instancePublishableTokenScopes,
   instanceSecretTokenScopes,
@@ -24,6 +26,13 @@ import {
   Scope,
   scopes
 } from '../definitions';
+import { fineGrainedAuthService } from './fineGrainedAuth';
+
+export type FineGrainedAccessTagGrant = {
+  resourceType: 'subspace.session';
+  resourceId: string;
+  roles: Scope[];
+};
 
 export type AuthInfo =
   | {
@@ -58,6 +67,17 @@ export type AuthInfo =
             //     }
             //   | undefined;
           };
+    }
+  | {
+      type: 'fine_grained';
+      fineGrainedKey: FineGrainedKey;
+      orgScopes: Scope[];
+      restrictions: {
+        type: 'instance';
+        organization: Organization;
+        instance: Instance & { project: Project };
+        accessTagGrants: FineGrainedAccessTagGrant[];
+      };
     };
 
 class AuthenticationService {
@@ -72,7 +92,7 @@ class AuthenticationService {
           type: 'api_key';
           apiKey: string;
           context: Context;
-          consumerSessionClientSecret: string | null | undefined;
+          consumerSessionClientSecret?: string | null | undefined;
         }
   ) {
     if (d.type == 'user_session') {
@@ -120,8 +140,28 @@ class AuthenticationService {
   private async authenticateApiKey(d: {
     apiKey: string;
     context: Context;
-    consumerSessionClientSecret: string | null | undefined;
+    consumerSessionClientSecret?: string | null | undefined;
   }): Promise<AuthInfo> {
+    let parsed = UnifiedApiKey.from(d.apiKey);
+    if (parsed?.type == 'fine_grained_token') {
+      let res = await fineGrainedAuthService.authenticateWithFineGrainedToken({
+        token: d.apiKey,
+        context: d.context
+      });
+
+      return {
+        type: 'fine_grained',
+        fineGrainedKey: res.fineGrainedKey,
+        orgScopes: res.orgScopes,
+        restrictions: {
+          type: 'instance',
+          organization: res.fineGrainedKey.instance.organization,
+          instance: res.fineGrainedKey.instance,
+          accessTagGrants: res.accessTagGrants
+        }
+      };
+    }
+
     let res = await machineAccessAuthService.authenticateWithMachineAccessToken({
       token: d.apiKey,
       context: d.context

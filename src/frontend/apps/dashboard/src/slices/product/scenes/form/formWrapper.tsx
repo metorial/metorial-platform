@@ -49,6 +49,12 @@ export let FormWrapper = ({
   let isLoading = mutators.some(m => m.isLoading);
   let isSuccess = mutators.every(m => m.isSuccess);
 
+  let handleSubmit = async () => {
+    setSubmittedRecently(true);
+    setTimeout(() => setSubmittedRecently(false), 5000);
+    await form.submitForm();
+  };
+
   useEffect(() => {
     if (!isSuccess) setSubmittedRecently(false);
   }, [isSuccess]);
@@ -65,11 +71,14 @@ export let FormWrapper = ({
 
       <Actions>
         <Button
-          type="submit"
+          type="button"
           size="2"
           disabled={isLoading && !submittedRecently}
           loading={isLoading && !submittedRecently}
           success={isSuccess && submittedRecently}
+          onClick={() => {
+            void handleSubmit();
+          }}
         >
           {submitName ?? 'Save'}
         </Button>
@@ -86,9 +95,8 @@ export let FormWrapper = ({
     <Wrapper
       {...props}
       onSubmit={e => {
-        setSubmittedRecently(true);
-        setTimeout(() => setSubmittedRecently(false), 5000);
-        return form.handleSubmit(e);
+        e.preventDefault();
+        void handleSubmit();
       }}
       style={{ gap: props.gap ?? 10 }}
     >

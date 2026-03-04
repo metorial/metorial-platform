@@ -1,3 +1,5 @@
+import { DashboardInstanceProvidersAuthMethodsListOutput } from '@metorial/dashboard-sdk';
+import { useForm } from '@metorial/data-hooks';
 import {
   useCurrentInstance,
   useCreateProviderAuthConfig,
@@ -8,20 +10,20 @@ import {
 import { Button, CenteredSpinner, Dialog, Input, Select, Spacer, Text } from '@metorial/ui';
 import { JSONSchema7 } from 'json-schema';
 import { useEffect, useState } from 'react';
+import { getJsonSchema, JsonSchemaEnvelope } from '../../lib/jsonSchema';
 import { JsonSchemaInput } from '../jsonSchemaInput';
 import { Stepper } from '../stepper';
 
-type AuthMethod = {
-  id: string;
-  type: 'oauth' | 'token' | 'custom';
-  name: string;
-  description: string | null;
-  inputSchema: Record<string, any> | null;
-};
+type AuthMethod = DashboardInstanceProvidersAuthMethodsListOutput['items'][number];
 
 export type ProviderAuthConfigFormProps =
-  | { type: 'create'; providerDeploymentId: string }
-  | { type: 'update'; providerDeploymentId: string; authConfigId: string };
+  | { type: 'create'; providerDeploymentId: string; instanceId?: string }
+  | {
+      type: 'update';
+      providerDeploymentId: string;
+      authConfigId: string;
+      instanceId?: string;
+    };
 
 export let ProviderAuthConfigForm = (
   props: ProviderAuthConfigFormProps & {
@@ -31,82 +33,147 @@ export let ProviderAuthConfigForm = (
   }
 ) => {
   let instance = useCurrentInstance();
+  let instanceId = props.instanceId ?? instance.data?.id;
   let createMutation = useCreateProviderAuthConfig();
 
-  let deployment = useProviderDeployment(instance.data?.id, props.providerDeploymentId);
-  let provider = useProvider(instance.data?.id, deployment.data?.providerId);
+  let deployment = useProviderDeployment(instanceId, props.providerDeploymentId);
+  let provider = useProvider(instanceId, deployment.data?.providerId);
   let effectiveVersionId =
     deployment.data?.lockedVersion?.id ?? provider.data?.currentVersion?.id;
+  let oauthAutoRegistrationEnabled =
+    provider.data?.oauth?.autoRegistration?.status === 'enabled';
 
-  let authMethods = useProviderAuthMethods(instance.data?.id, effectiveVersionId);
+  let authMethods = useProviderAuthMethods(instanceId, effectiveVersionId);
 
-  let [name, setName] = useState('');
-  let [description, setDescription] = useState('');
-  let [authMethodId, setAuthMethodId] = useState('');
   let [credentialsData, setCredentialsData] = useState<Record<string, any>>({});
-  let [credentialsDataJson, setCredentialsDataJson] = useState('{}');
-  let [oauthClientId, setOauthClientId] = useState('');
-  let [oauthClientSecret, setOauthClientSecret] = useState('');
   let [step, setStep] = useState(0);
-  let [submitError, setSubmitError] = useState<string | null>(null);
 
-  // Find the selected auth method
+  let form = useForm({
+    initialValues: {
+      name: '',
+      description: '',
+      authMethodId: '',
+      credentialsDataJson: '{}'
+    },
+    onSubmit: async () => {},
+    schemaDependencies: [authMethods.data?.items, oauthAutoRegistrationEnabled],
+    schema: yup =>
+      yup.object({
+        name: yup.string().required('Name is required'),
+        description: yup.string().defined(),
+        authMethodId: yup.string().required('Authentication method is required'),
+        credentialsDataJson: yup
+          .string()
+          .defined()
+          .test('valid-json', 'Credentials data must be valid JSON', function (value) {
+            let authMethodId = this.parent.authMethodId;
+            let selectedMethod = authMethods.data?.items?.find(
+              (method: AuthMethod) => method.id === authMethodId
+            ) as AuthMethod | undefined;
+
+            let schemaObj = getJsonSchema(
+              selectedMethod?.inputSchema as
+                | JsonSchemaEnvelope
+                | Record<string, any>
+                | null
+                | undefined
+            );
+            let hasSchema =
+              schemaObj &&
+              typeof schemaObj === 'object' &&
+              schemaObj.type === 'object' &&
+              schemaObj.properties &&
+              Object.keys(schemaObj.properties).length > 0;
+            let isOAuthWithoutSchema =
+              !!authMethodId &&
+              selectedMethod?.type === 'oauth' &&
+              !hasSchema &&
+              oauthAutoRegistrationEnabled;
+
+            if (!authMethodId || hasSchema || isOAuthWithoutSchema) return true;
+
+            try {
+              JSON.parse(value ?? '{}');
+              return true;
+            } catch {
+              return false;
+            }
+          })
+      })
+  });
+
+  let handleSubmit = async () => {
+    let name = form.values.name.trim();
+
+    form.setFieldTouched('authMethodId', true, false);
+    await form.validateField('authMethodId');
+
+    if (!form.values.authMethodId) return;
+
+    if (!name) {
+      form.setFieldTouched('name', true);
+      form.setFieldError('name', 'Name is required');
+      return;
+    }
+
+    form.setFieldError('name', undefined);
+
+    let parsedCredentials: Record<string, any> = {};
+    if (hasSchema) {
+      parsedCredentials = credentialsData;
+    } else if (isOAuthWithoutSchema) {
+      parsedCredentials = {};
+    } else {
+      form.setFieldTouched('credentialsDataJson', true, false);
+      await form.validateField('credentialsDataJson');
+
+      try {
+        parsedCredentials = JSON.parse(form.values.credentialsDataJson);
+      } catch {
+        form.setFieldError('credentialsDataJson', 'Credentials data must be valid JSON');
+        return;
+      }
+    }
+
+    if (props.type !== 'create' || !instanceId) return;
+
+    let [result] = await createMutation.mutate({
+      instanceId,
+      providerDeploymentId: props.providerDeploymentId,
+      name,
+      description: form.values.description || undefined,
+      providerAuthMethodId: form.values.authMethodId,
+      value: parsedCredentials
+    });
+
+    if (!result) return;
+
+    props.onCreate?.(result);
+    props.close?.();
+  };
+
   let selectedMethod = authMethods.data?.items?.find(
-    (m: AuthMethod) => m.id === authMethodId
+    (method: AuthMethod) => method.id === form.values.authMethodId
   ) as AuthMethod | undefined;
 
-  // Check if selected method has a non-empty input schema
-  let schemaObj = selectedMethod?.inputSchema;
+  let schemaObj = getJsonSchema(
+    selectedMethod?.inputSchema as
+      | JsonSchemaEnvelope
+      | Record<string, any>
+      | null
+      | undefined
+  );
   let hasSchema =
     schemaObj &&
     typeof schemaObj === 'object' &&
     schemaObj.type === 'object' &&
     schemaObj.properties &&
     Object.keys(schemaObj.properties).length > 0;
-  let isOAuthWithoutSchema = !!authMethodId && selectedMethod?.type === 'oauth' && !hasSchema;
-
-  let handleSubmit = async () => {
-    if (!instance.data) return;
-    setSubmitError(null);
-
-    if (props.type === 'create') {
-      let parsedCredentials: Record<string, any> = {};
-
-      if (hasSchema) {
-        // Use structured credentials from JsonSchemaInput
-        parsedCredentials = credentialsData;
-      } else if (isOAuthWithoutSchema) {
-        // OAuth methods with no input schema should use the OAuth setup flow instead
-        parsedCredentials = {};
-      } else {
-        // Parse from JSON textarea
-        try {
-          parsedCredentials = JSON.parse(credentialsDataJson);
-        } catch (e) {
-          return;
-        }
-      }
-
-      let [result, err] = await createMutation.mutate({
-        instanceId: instance.data.id,
-        providerDeploymentId: props.providerDeploymentId,
-        name,
-        description: description || undefined,
-        providerAuthMethodId: authMethodId,
-        value: parsedCredentials
-      });
-
-      if (err) {
-        setSubmitError(
-          err.data?.message ??
-            'Failed to create auth config. Please check the inputs and try again.'
-        );
-      } else if (result) {
-        props.onCreate?.(result);
-        props.close?.();
-      }
-    }
-  };
+  let isOAuthWithoutSchema =
+    !!form.values.authMethodId &&
+    selectedMethod?.type === 'oauth' &&
+    !hasSchema &&
+    oauthAutoRegistrationEnabled;
 
   if (deployment.isLoading || authMethods.isLoading) {
     return <CenteredSpinner />;
@@ -118,16 +185,29 @@ export let ProviderAuthConfigForm = (
   }));
   let hasAuthMethods = authMethodItems.length > 0;
   let hasSingleMethod = authMethodItems.length === 1;
+  let singleMethodId = authMethods.data?.items?.[0]?.id ?? '';
 
   useEffect(() => {
-    if (!authMethodId && hasSingleMethod) {
-      setAuthMethodId(authMethods.data!.items![0].id);
+    if (!form.values.authMethodId && hasSingleMethod && singleMethodId) {
+      form.setFieldValue('authMethodId', singleMethodId);
     }
-  }, [authMethods.data?.items, hasSingleMethod, authMethodId]);
+  }, [form.values.authMethodId, hasSingleMethod, singleMethodId]);
+
+  let resetCredentials = () => {
+    setCredentialsData({});
+    form.setFieldValue('credentialsDataJson', '{}');
+    form.setFieldTouched('credentialsDataJson', false, false);
+    form.setFieldError('credentialsDataJson', undefined);
+  };
+
+  let handleAuthMethodChange = (value: string) => {
+    form.setFieldValue('authMethodId', value);
+    resetCredentials();
+  };
 
   let credentialsSection = hasSchema ? (
     <JsonSchemaInput
-      schema={selectedMethod!.inputSchema as JSONSchema7}
+      schema={schemaObj as JSONSchema7}
       value={credentialsData}
       onChange={setCredentialsData}
       label="Credentials"
@@ -139,17 +219,46 @@ export let ProviderAuthConfigForm = (
       credentials below.
     </Text>
   ) : (
-    <Input
-      label="Credentials Data (JSON)"
-      value={credentialsDataJson}
-      onChange={e => setCredentialsDataJson(e.target.value)}
-      as="textarea"
-      minRows={5}
-      style={{ fontFamily: 'monospace' }}
-    />
+    <>
+      <Input
+        label="Credentials Data (JSON)"
+        as="textarea"
+        minRows={5}
+        style={{ fontFamily: 'monospace' }}
+        {...form.getFieldProps('credentialsDataJson')}
+      />
+      <form.RenderError field="credentialsDataJson" />
+    </>
   );
 
   if (props.type === 'create') {
+    let credentialsStepIndex = hasSingleMethod ? 0 : 1;
+    let detailsStepIndex = hasSingleMethod ? 1 : 2;
+
+    let goToCredentialsStep = async () => {
+      form.setFieldTouched('authMethodId', true, false);
+      await form.validateField('authMethodId');
+
+      if (!form.values.authMethodId) return;
+
+      setStep(credentialsStepIndex);
+    };
+
+    let goToDetailsStep = async () => {
+      if (!hasSchema && !isOAuthWithoutSchema) {
+        form.setFieldTouched('credentialsDataJson', true, false);
+        await form.validateField('credentialsDataJson');
+
+        try {
+          JSON.parse(form.values.credentialsDataJson);
+        } catch {
+          return;
+        }
+      }
+
+      setStep(detailsStepIndex);
+    };
+
     let methodStep = {
       title: 'Authentication',
       subtitle: 'Select auth method',
@@ -158,15 +267,9 @@ export let ProviderAuthConfigForm = (
           {hasAuthMethods ? (
             <Select
               label="Authentication Method"
-              value={authMethodId}
+              value={form.values.authMethodId}
               placeholder="Select an authentication method..."
-              onChange={value => {
-                setAuthMethodId(value);
-                setCredentialsData({});
-                setCredentialsDataJson('{}');
-                setOauthClientId('');
-                setOauthClientSecret('');
-              }}
+              onChange={handleAuthMethodChange}
               items={authMethodItems}
             />
           ) : (
@@ -174,6 +277,7 @@ export let ProviderAuthConfigForm = (
               No auth methods found for this provider.
             </Text>
           )}
+          <form.RenderError field="authMethodId" />
 
           {selectedMethod?.description && (
             <>
@@ -192,7 +296,7 @@ export let ProviderAuthConfigForm = (
                 <Button variant="outline" onClick={props.close}>
                   Cancel
                 </Button>
-                <Button onClick={() => setStep(1)} disabled={!authMethodId}>
+                <Button onClick={goToCredentialsStep} disabled={!form.values.authMethodId}>
                   Continue
                 </Button>
               </>
@@ -205,9 +309,6 @@ export let ProviderAuthConfigForm = (
         </>
       )
     };
-
-    let credentialsStepIndex = hasSingleMethod ? 0 : 1;
-    let detailsStepIndex = hasSingleMethod ? 1 : 2;
 
     let credentialsStep = {
       title: 'Credentials',
@@ -237,9 +338,7 @@ export let ProviderAuthConfigForm = (
                 Cancel
               </Button>
             )}
-            <Button onClick={() => setStep(detailsStepIndex)}>
-              Continue
-            </Button>
+            <Button onClick={goToDetailsStep}>Continue</Button>
           </Dialog.Actions>
         </>
       )
@@ -249,21 +348,18 @@ export let ProviderAuthConfigForm = (
       title: 'Details',
       subtitle: 'Name and create',
       render: () => (
-        <>
-          <Input
-            label="Name"
-            value={name}
-            onChange={e => setName(e.target.value)}
-            required
-          />
+        <form
+          onSubmit={e => {
+            e.preventDefault();
+            handleSubmit();
+          }}
+        >
+          <Input label="Name" required {...form.getFieldProps('name')} />
+          <form.RenderError field="name" />
 
           <Spacer size={10} />
 
-          <Input
-            label="Description"
-            value={description}
-            onChange={e => setDescription(e.target.value)}
-          />
+          <Input label="Description" {...form.getFieldProps('description')} />
 
           <Spacer size={15} />
 
@@ -272,22 +368,17 @@ export let ProviderAuthConfigForm = (
               Back
             </Button>
             <Button
+              type="button"
               onClick={handleSubmit}
               loading={createMutation.isPending}
-              disabled={!name || !authMethodId}
+              disabled={!form.values.authMethodId}
             >
               Create
             </Button>
           </Dialog.Actions>
-          {submitError && (
-            <>
-              <Spacer size={8} />
-              <Text size="2" color="red500">
-                {submitError}
-              </Text>
-            </>
-          )}
-        </>
+
+          <createMutation.RenderError />
+        </form>
       )
     };
 
@@ -305,31 +396,27 @@ export let ProviderAuthConfigForm = (
   }
 
   return (
-    <>
-      <Input label="Name" value={name} onChange={e => setName(e.target.value)} required />
+    <form
+      onSubmit={e => {
+        e.preventDefault();
+        handleSubmit();
+      }}
+    >
+      <Input label="Name" required {...form.getFieldProps('name')} />
+      <form.RenderError field="name" />
 
       <Spacer size={10} />
 
-      <Input
-        label="Description"
-        value={description}
-        onChange={e => setDescription(e.target.value)}
-      />
+      <Input label="Description" {...form.getFieldProps('description')} />
 
       <Spacer size={10} />
 
       {hasAuthMethods ? (
         <Select
           label="Authentication Method"
-          value={authMethodId}
+          value={form.values.authMethodId}
           placeholder="Select an authentication method..."
-          onChange={value => {
-            setAuthMethodId(value);
-            setCredentialsData({});
-            setCredentialsDataJson('{}');
-            setOauthClientId('');
-            setOauthClientSecret('');
-          }}
+          onChange={handleAuthMethodChange}
           items={authMethodItems}
         />
       ) : (
@@ -337,6 +424,7 @@ export let ProviderAuthConfigForm = (
           No auth methods found for this provider.
         </Text>
       )}
+      <form.RenderError field="authMethodId" />
 
       {selectedMethod?.description && (
         <>
@@ -349,7 +437,7 @@ export let ProviderAuthConfigForm = (
 
       <Spacer size={10} />
 
-      {authMethodId && credentialsSection}
+      {form.values.authMethodId && credentialsSection}
 
       <Spacer size={15} />
 
@@ -358,13 +446,16 @@ export let ProviderAuthConfigForm = (
           Cancel
         </Button>
         <Button
+          type="button"
           onClick={handleSubmit}
           loading={createMutation.isPending}
-          disabled={!name || !authMethodId}
+          disabled={!form.values.authMethodId}
         >
           Update
         </Button>
       </Dialog.Actions>
-    </>
+
+      <createMutation.RenderError />
+    </form>
   );
 };

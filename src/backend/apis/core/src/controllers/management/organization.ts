@@ -1,6 +1,6 @@
+import { v } from '@lowerdeck/validation';
 import { organizationService } from '@metorial/module-organization';
 import { Controller, Path } from '@metorial/rest';
-import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
 import { organizationGroup } from '../../middleware/organizationGroup';
 import { organizationPresenter } from '../../presenters';

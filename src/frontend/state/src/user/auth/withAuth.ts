@@ -1,8 +1,8 @@
+import { ProgrammablePromise } from '@lowerdeck/programmable-promise';
+import { getSentry } from '@lowerdeck/sentry';
 import { PrivateClient } from '@metorial/api-private/client';
 import { MetorialDashboardSDK, MetorialUser } from '@metorial/dashboard-sdk';
-import { isServiceError } from '@metorial/error';
-import { ProgrammablePromise } from '@metorial/programmable-promise';
-import { getSentry } from '@metorial/sentry';
+import { isServiceError } from '@lowerdeck/error';
 import { isMetorialSDKError } from '@metorial/util-endpoint';
 import { getOrgForInstance } from '../../organization';
 import { withDashboardSDK, withPrivateClient } from '../../sdk';

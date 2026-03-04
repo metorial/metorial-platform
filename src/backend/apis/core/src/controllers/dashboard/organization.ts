@@ -1,7 +1,7 @@
+import { Paginator } from '@lowerdeck/pagination';
+import { v } from '@lowerdeck/validation';
 import { organizationService } from '@metorial/module-organization';
-import { Paginator } from '@metorial/pagination';
 import { Controller, Path } from '@metorial/rest';
-import { v } from '@metorial/validation';
 import { isDashboardGroup } from '../../middleware/isDashboard';
 import { organizationGroup } from '../../middleware/organizationGroup';
 import { userGroup } from '../../middleware/userGroup';

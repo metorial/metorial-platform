@@ -11,8 +11,6 @@ let Wrapper = styled.div`
   border: 1px solid ${theme.colors.gray400};
   background: ${theme.colors.background};
   overflow: hidden;
-  margin-left: -20px;
-  margin-right: -20px;
 
   &[data-collapsed='true'] {
     max-height: 900px;

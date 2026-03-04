@@ -1,4 +1,4 @@
-import { joinPaths } from '@metorial/join-paths';
+import { joinPaths } from '@lowerdeck/join-paths';
 import { useMemo } from 'react';
 import { useBoot } from './client';
 

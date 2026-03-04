@@ -1,8 +1,8 @@
-import { badRequestError, ServiceError } from '@metorial/error';
+import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { Paginator } from '@lowerdeck/pagination';
+import { v } from '@lowerdeck/validation';
 import { subspaceProviderListingService } from '@metorial/module-subspace';
-import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
-import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
@@ -37,7 +37,7 @@ export let providerListingController = Controller.create(
         name: 'List provider listings',
         description: 'Returns a paginated list of provider listings.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.listing:read'] }))
       .outputList(providerListingPresenter)
       .query(
         'default',
@@ -74,7 +74,7 @@ export let providerListingController = Controller.create(
           isVerified: ctx.query.is_verified,
           isOfficial: ctx.query.is_official,
           isMetorial: ctx.query.is_metorial,
-          orderByRank: ctx.query.order_by_rank
+          orderByRank: ctx.query.order_by_rank !== false
         });
 
         let list = await paginator.run(ctx.query);
@@ -91,7 +91,7 @@ export let providerListingController = Controller.create(
         name: 'Get provider listing',
         description: 'Retrieves a specific provider listing by ID.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.listing:read'] }))
       .output(providerListingPresenter)
       .do(async ctx => {
         return providerListingPresenter.present({ providerListing: ctx.providerListing });

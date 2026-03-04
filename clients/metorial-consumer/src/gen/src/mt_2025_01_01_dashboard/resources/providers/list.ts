@@ -11,7 +11,6 @@ export type ProvidersListOutput = {
       id: string;
       name: string;
       description: string | null;
-      slug: string;
       imageUrl: string;
       createdAt: Date;
       updatedAt: Date;
@@ -94,7 +93,6 @@ export let mapProvidersListOutput = mtMap.object<ProvidersListOutput>({
                   'description',
                   mtMap.passthrough()
                 ),
-                slug: mtMap.objectField('slug', mtMap.passthrough()),
                 imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
                 createdAt: mtMap.objectField('created_at', mtMap.date()),
                 updatedAt: mtMap.objectField('updated_at', mtMap.date())
@@ -260,7 +258,7 @@ export type ProvidersListQuery = {
   before?: string | undefined;
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
-} & {};
+} & { id?: string | string[] | undefined };
 
 export let mapProvidersListQuery = mtMap.union([
   mtMap.unionOption(
@@ -270,7 +268,17 @@ export let mapProvidersListQuery = mtMap.union([
       after: mtMap.objectField('after', mtMap.passthrough()),
       before: mtMap.objectField('before', mtMap.passthrough()),
       cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough())
+      order: mtMap.objectField('order', mtMap.passthrough()),
+      id: mtMap.objectField(
+        'id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      )
     })
   )
 ]);

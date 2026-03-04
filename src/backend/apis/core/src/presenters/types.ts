@@ -310,7 +310,12 @@ export let teamRoleType = PresentableType.create<{
 }>()('management.team.role');
 
 export let teamRolePermissionsType = PresentableType.create<{
-  permissions: string[];
+  permissions: {
+    identifier: string;
+    name: string;
+    description: string;
+    dependencies: string[];
+  }[];
 }>()('management.team.role_permissions');
 
 // export let ssoTenantType = PresentableType.create<{

@@ -4,9 +4,9 @@ import { MetorialKeyPrefix, sdkBuilder } from './builder';
 import {
   MetorialApiKeysEndpoint,
   MetorialDashboardEndpoint,
+  MetorialDashboardInstanceCustomProvidersCodeEndpoint,
   MetorialDashboardInstanceCustomProvidersCommitsEndpoint,
   MetorialDashboardInstanceCustomProvidersDeploymentsEndpoint,
-  MetorialDashboardInstanceCustomProvidersCodeEndpoint,
   MetorialDashboardInstanceCustomProvidersEndpoint,
   MetorialDashboardInstanceCustomProvidersEnvironmentsEndpoint,
   MetorialDashboardInstanceCustomProvidersVersionsEndpoint,
@@ -35,8 +35,9 @@ import {
   MetorialDashboardInstanceProvidersToolsEndpoint,
   MetorialDashboardInstanceProvidersVersionsEndpoint,
   MetorialDashboardInstancePublishersEndpoint,
-  MetorialDashboardInstanceSessionErrorGroupsEndpoint,
-  MetorialDashboardInstanceSessionErrorsEndpoint,
+  MetorialDashboardInstanceScmAccountsEndpoint,
+  MetorialDashboardInstanceScmInstallationEndpoint,
+  MetorialDashboardInstanceScmReposEndpoint,
   MetorialDashboardInstanceSessionsConnectionsEndpoint,
   MetorialDashboardInstanceSessionsEndpoint,
   MetorialDashboardInstanceSessionsErrorGroupsEndpoint,
@@ -57,9 +58,6 @@ import {
   MetorialDashboardOrganizationsTeamsMembersEndpoint,
   MetorialDashboardOrganizationsTeamsProjectsEndpoint,
   MetorialDashboardOrganizationsTeamsRolesEndpoint,
-  MetorialDashboardInstanceScmAccountsEndpoint,
-  MetorialDashboardInstanceScmInstallationEndpoint,
-  MetorialDashboardInstanceScmReposEndpoint,
   MetorialDashboardUsageEndpoint,
   MetorialManagementUserEndpoint,
   MetorialOrganizationsProfileEndpoint
@@ -202,8 +200,8 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
   }),
 
   providerRuns: new MetorialDashboardInstanceProviderRunsEndpoint(manager),
-  sessionErrors: new MetorialDashboardInstanceSessionErrorsEndpoint(manager),
-  sessionErrorGroups: new MetorialDashboardInstanceSessionErrorGroupsEndpoint(manager),
+  sessionErrors: new MetorialDashboardInstanceSessionsErrorsEndpoint(manager),
+  sessionErrorGroups: new MetorialDashboardInstanceSessionsErrorGroupsEndpoint(manager),
 
   sessionTemplates: Object.assign(
     new MetorialDashboardInstanceSessionTemplatesEndpoint(manager),

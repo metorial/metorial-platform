@@ -1,5 +1,5 @@
-import { delay } from '@metorial/delay';
-import { getSentry } from '@metorial/sentry';
+import { delay } from '@lowerdeck/delay';
+import { getSentry } from '@lowerdeck/sentry';
 import { endOfDay, endOfHour, startOfDay, startOfHour } from 'date-fns';
 import mongoose from 'mongoose';
 import { env } from './env';

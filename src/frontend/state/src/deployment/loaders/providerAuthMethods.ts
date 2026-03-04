@@ -11,12 +11,14 @@ type ProviderAuthMethodsQuery = Omit<
 export let providerAuthMethodsLoader = createLoader({
   name: 'providerAuthMethods',
   parents: [],
-  fetch: (
+  fetch: async (
     i: {
       instanceId: string;
       providerVersionId: string;
     } & ProviderAuthMethodsQuery
-  ) => withAuth(sdk => sdk.providers.authMethods.list(i.instanceId, i)),
+  ) => {
+    return await withAuth(sdk => sdk.providers.authMethods.list(i.instanceId, i));
+  },
   mutators: {}
 });
 
@@ -44,8 +46,11 @@ export let useProviderAuthMethods = (
 export let providerAuthMethodLoader = createLoader({
   name: 'providerAuthMethod',
   parents: [providerAuthMethodsLoader],
-  fetch: (i: { instanceId: string; providerAuthMethodId: string }) =>
-    withAuth(sdk => sdk.providers.authMethods.get(i.instanceId, i.providerAuthMethodId)),
+  fetch: async (i: { instanceId: string; providerAuthMethodId: string }) => {
+    return await withAuth(sdk =>
+      sdk.providers.authMethods.get(i.instanceId, i.providerAuthMethodId)
+    );
+  },
   mutators: {}
 });
 

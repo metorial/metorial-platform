@@ -1,4 +1,4 @@
-import { joinPaths } from '@metorial/join-paths';
+import { joinPaths } from '@lowerdeck/join-paths';
 import { ErrorPage, NotFound } from '@metorial/pages';
 import { ModalRoot, Toaster } from '@metorial/ui';
 import React, { ReactNode, useEffect } from 'react';

@@ -1,11 +1,11 @@
 import {
-  DashboardInstanceProviderDeploymentsAuthConfigsListOutput,
   DashboardInstanceProviderDeploymentsConfigsListQuery,
   DashboardInstanceSessionTemplatesProvidersListOutput
 } from '@metorial/dashboard-sdk';
-import { renderWithLoader } from '@metorial/data-hooks';
+import { renderWithLoader, useForm } from '@metorial/data-hooks';
 import {
   useCurrentInstance,
+  useCreateSessionTemplateProvider,
   useProviderAuthConfigs,
   useProvider,
   useProviderDeployment,
@@ -24,7 +24,6 @@ import {
   CenteredSpinner,
   Dialog,
   Flex,
-  Or,
   RenderDate,
   Select,
   showModal,
@@ -33,8 +32,10 @@ import {
   theme
 } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
-import { useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { ProviderDeploymentsList } from '../../../scenes/providerDeployments/list';
+import { ProvidersWithDeploymentsSearch } from '../../../scenes/providers/search';
 import { Stepper } from '../../../scenes/stepper';
 
 type Deployment = {
@@ -52,6 +53,16 @@ type Deployment = {
 type SessionTemplateProviderRow =
   DashboardInstanceSessionTemplatesProvidersListOutput['items'][number];
 
+type AddProviderFormValues = {
+  selectedProviderId: string;
+  selectedProviderName: string;
+  selectedDeploymentId: string;
+  selectedConfigId: string;
+  selectedAuthConfigId: string;
+  toolFilterMode: 'all' | 'select';
+  selectedToolKeys: string[];
+};
+
 let AddProviderModalContent = ({
   instanceId,
   sessionTemplateId,
@@ -64,80 +75,91 @@ let AddProviderModalContent = ({
   onCancel: () => void;
 }) => {
   let [currentStep, setCurrentStep] = useState(0);
-  let [selectedProviderId, setSelectedProviderId] = useState('');
-  let [selectedProviderName, setSelectedProviderName] = useState('');
-  let [selectedDeploymentId, setSelectedDeploymentId] = useState('');
-  let [saving, setSaving] = useState(false);
-  let [error, setError] = useState<string | null>(null);
+  let createMutation = useCreateSessionTemplateProvider();
+  let formRef = useRef<any>(null);
+  let form = useForm<AddProviderFormValues>({
+    initialValues: {
+      selectedProviderId: '',
+      selectedProviderName: '',
+      selectedDeploymentId: '',
+      selectedConfigId: '',
+      selectedAuthConfigId: '',
+      toolFilterMode: 'all' as const,
+      selectedToolKeys: [] as string[]
+    },
+    onSubmit: async values => {
+      let [result, err] = await createMutation.mutate({
+        instanceId,
+        sessionTemplateId,
+        providerDeploymentId: values.selectedDeploymentId,
+        ...(values.selectedConfigId
+          ? {
+              providerConfigId: values.selectedConfigId
+            }
+          : {}),
+        ...(values.selectedAuthConfigId
+          ? {
+              providerAuthConfigId: values.selectedAuthConfigId
+            }
+          : {}),
+        ...(values.toolFilterMode === 'select' && values.selectedToolKeys.length > 0
+          ? { toolFilters: { toolKeys: values.selectedToolKeys } }
+          : {})
+      });
 
-  let [selectedConfigId, setSelectedConfigId] = useState('');
-  let [selectedAuthConfigId, setSelectedAuthConfigId] = useState('');
-  let [toolFilterMode, setToolFilterMode] = useState<'all' | 'select'>('all');
-  let [selectedToolKeys, setSelectedToolKeys] = useState<string[]>([]);
-
-  let resetConfigurationState = () => {
-    setSelectedConfigId('');
-    setSelectedAuthConfigId('');
-    setToolFilterMode('all');
-    setSelectedToolKeys([]);
-    setError(null);
-  };
-
-  let handleSave = async () => {
-    setSaving(true);
-    setError(null);
-    try {
-      await withAuth(sdk =>
-        sdk.sessionTemplates.providers.create(instanceId, {
-          sessionTemplateId,
-          providerDeploymentId: selectedDeploymentId,
-          ...(selectedConfigId
-            ? {
-                providerConfigId: selectedConfigId
-              }
-            : {}),
-          ...(selectedAuthConfigId
-            ? {
-                providerAuthConfigId: selectedAuthConfigId
-              }
-            : {}),
-          ...(toolFilterMode === 'select' && selectedToolKeys.length > 0
-            ? { toolFilters: { toolKeys: selectedToolKeys } }
-            : {})
-        })
-      );
-      onComplete();
-    } catch (e: unknown) {
-      let sdkError = e as {
-        response?: { code?: string; entityId?: string; message?: string };
-        data?: { code?: string; entityId?: string; message?: string };
-        message?: string;
-      };
-      let errorCode = sdkError.response?.code ?? sdkError.data?.code;
-      let entityId = sdkError.response?.entityId ?? sdkError.data?.entityId;
-
-      if (errorCode === 'use_after_delete' && entityId) {
-        if (entityId === selectedConfigId) {
-          setSelectedConfigId('');
-        }
-        if (entityId === selectedAuthConfigId) {
-          setSelectedAuthConfigId('');
-        }
+      if (!err) {
+        if (result) onComplete();
+        return;
       }
 
-      let message =
-        errorCode === 'use_after_delete' && entityId === selectedConfigId
-          ? 'Selected provider config was deleted or archived. Choose another config or leave Config empty.'
-          : errorCode === 'use_after_delete' && entityId === selectedAuthConfigId
-            ? 'Selected auth config was deleted or archived. Choose another auth config or leave Auth Config empty.'
-            : sdkError.data?.message ||
-              sdkError.response?.message ||
-              sdkError.message ||
-              'Failed to add provider.';
-      setError(message);
-    } finally {
-      setSaving(false);
-    }
+      let errorCode = err.data?.code;
+      let entityId = err.data?.entityId;
+      let currentForm = formRef.current;
+      if (!currentForm || errorCode !== 'use_after_delete' || !entityId) return;
+
+      if (entityId === values.selectedConfigId) {
+        currentForm.setFieldValue('selectedConfigId', '');
+        currentForm.setFieldTouched('selectedConfigId', true, false);
+        currentForm.setFieldError(
+          'selectedConfigId',
+          'Selected provider config was deleted or archived. Choose another config or leave Config empty.'
+        );
+      }
+
+      if (entityId === values.selectedAuthConfigId) {
+        currentForm.setFieldValue('selectedAuthConfigId', '');
+        currentForm.setFieldTouched('selectedAuthConfigId', true, false);
+        currentForm.setFieldError(
+          'selectedAuthConfigId',
+          'Selected auth config was deleted or archived. Choose another auth config or leave Auth Config empty.'
+        );
+      }
+    },
+    schema: yup =>
+      yup.object({
+        selectedProviderId: yup.string().defined(),
+        selectedProviderName: yup.string().defined(),
+        selectedDeploymentId: yup.string().required('Deployment is required'),
+        selectedConfigId: yup.string().defined(),
+        selectedAuthConfigId: yup.string().defined(),
+        toolFilterMode: yup
+          .mixed<'all' | 'select'>()
+          .oneOf(['all', 'select'])
+          .required(),
+        selectedToolKeys: yup.array().of(yup.string().required()).defined()
+      })
+  });
+  formRef.current = form;
+
+  let resetConfigurationState = () => {
+    form.setFieldValue('selectedConfigId', '');
+    form.setFieldValue('selectedAuthConfigId', '');
+    form.setFieldValue('toolFilterMode', 'all');
+    form.setFieldValue('selectedToolKeys', []);
+    form.setFieldTouched('selectedConfigId', false, false);
+    form.setFieldTouched('selectedAuthConfigId', false, false);
+    form.setFieldError('selectedConfigId', undefined);
+    form.setFieldError('selectedAuthConfigId', undefined);
   };
 
   return (
@@ -152,9 +174,11 @@ let AddProviderModalContent = ({
             <PickProviderStep
               instanceId={instanceId}
               onSelect={(providerId, providerName) => {
-                setSelectedProviderId(providerId);
-                setSelectedProviderName(providerName);
-                setSelectedDeploymentId('');
+                form.setFieldValue('selectedProviderId', providerId);
+                form.setFieldValue('selectedProviderName', providerName);
+                form.setFieldValue('selectedDeploymentId', '');
+                form.setFieldTouched('selectedDeploymentId', false, false);
+                form.setFieldError('selectedDeploymentId', undefined);
                 resetConfigurationState();
                 setCurrentStep(1);
               }}
@@ -168,16 +192,24 @@ let AddProviderModalContent = ({
           render: () => (
             <PickDeploymentStep
               instanceId={instanceId}
-              providerId={selectedProviderId}
-              providerName={selectedProviderName}
-              selectedDeploymentId={selectedDeploymentId}
+              providerId={form.values.selectedProviderId}
+              providerName={form.values.selectedProviderName}
+              selectedDeploymentId={form.values.selectedDeploymentId}
               onSelect={deploymentId => {
-                setSelectedDeploymentId(deploymentId);
+                form.setFieldValue('selectedDeploymentId', deploymentId);
+                form.setFieldTouched('selectedDeploymentId', false, false);
+                form.setFieldError('selectedDeploymentId', undefined);
                 resetConfigurationState();
               }}
               onBack={() => setCurrentStep(0)}
               onCancel={onCancel}
-              onNext={() => setCurrentStep(2)}
+              onNext={async () => {
+                form.setFieldTouched('selectedDeploymentId', true, false);
+                await form.validateField('selectedDeploymentId');
+                if (!form.values.selectedDeploymentId) return;
+                setCurrentStep(2);
+              }}
+              error={<form.RenderError field="selectedDeploymentId" />}
             />
           )
         },
@@ -188,22 +220,32 @@ let AddProviderModalContent = ({
             <DeploymentConfigureStep
               instanceId={instanceId}
               sessionTemplateId={sessionTemplateId}
-              deploymentId={selectedDeploymentId}
-              providerId={selectedProviderId}
-              providerName={selectedProviderName}
-              selectedConfigId={selectedConfigId}
-              setSelectedConfigId={setSelectedConfigId}
-              selectedAuthConfigId={selectedAuthConfigId}
-              setSelectedAuthConfigId={setSelectedAuthConfigId}
-              toolFilterMode={toolFilterMode}
-              setToolFilterMode={setToolFilterMode}
-              selectedToolKeys={selectedToolKeys}
-              setSelectedToolKeys={setSelectedToolKeys}
-              saving={saving}
-              error={error}
+              deploymentId={form.values.selectedDeploymentId}
+              providerId={form.values.selectedProviderId}
+              providerName={form.values.selectedProviderName}
+              selectedConfigId={form.values.selectedConfigId}
+              setSelectedConfigId={value => {
+                form.setFieldValue('selectedConfigId', value);
+                form.setFieldTouched('selectedConfigId', false, false);
+                form.setFieldError('selectedConfigId', undefined);
+              }}
+              selectedAuthConfigId={form.values.selectedAuthConfigId}
+              setSelectedAuthConfigId={value => {
+                form.setFieldValue('selectedAuthConfigId', value);
+                form.setFieldTouched('selectedAuthConfigId', false, false);
+                form.setFieldError('selectedAuthConfigId', undefined);
+              }}
+              toolFilterMode={form.values.toolFilterMode}
+              setToolFilterMode={value => form.setFieldValue('toolFilterMode', value)}
+              selectedToolKeys={form.values.selectedToolKeys}
+              setSelectedToolKeys={value => form.setFieldValue('selectedToolKeys', value)}
+              saving={createMutation.isPending}
+              configError={<form.RenderError field="selectedConfigId" />}
+              authConfigError={<form.RenderError field="selectedAuthConfigId" />}
+              mutationError={<createMutation.RenderError />}
               onBack={() => setCurrentStep(1)}
               onCancel={onCancel}
-              onSave={handleSave}
+              onSave={form.submitForm}
             />
           )
         }
@@ -221,125 +263,22 @@ let PickProviderStep = ({
   onSelect: (providerId: string, providerName: string) => void;
   onCancel: () => void;
 }) => {
-  let deployments = useProviderDeployments(instanceId);
-  let listings = useProviderListings({});
-  let [search, setSearch] = useState('');
-
-  if (deployments.isLoading) return <CenteredSpinner />;
-
-  let items = (deployments.data?.items ?? []) as Deployment[];
-
-  let listingItems = listings.data?.items ?? [];
-  let listingLookup: Record<string, { name: string; imageUrl: string }> = {};
-  for (let l of listingItems) {
-    let providerId = l.provider?.id;
-    if (!providerId) continue;
-    listingLookup[providerId] = { name: l.name, imageUrl: l.imageUrl };
-  }
-
-  let providers: Record<
-    string,
-    { name: string; imageUrl: string; deploymentCount: number }
-  > = {};
-  for (let d of items) {
-    if (!providers[d.providerId]) {
-      let info = listingLookup[d.providerId];
-      providers[d.providerId] = {
-        name: d.provider?.name ?? info?.name ?? d.providerId,
-        imageUrl: info?.imageUrl ?? d.provider?.imageUrl ?? '',
-        deploymentCount: 0
-      };
-    }
-    providers[d.providerId].deploymentCount++;
-  }
-
-  let providerList = Object.entries(providers);
-
-  let needle = search.toLowerCase().trim();
-  if (needle) {
-    providerList = providerList.filter(([, p]) => p.name.toLowerCase().includes(needle));
-  }
-
-  if (Object.keys(providers).length === 0) {
-    return (
-      <Flex direction="column" gap={12}>
-        <Text size="2" color="gray600">
-          No providers with deployments found. Create a deployment first.
-        </Text>
-        <Dialog.Actions>
-          <Button variant="outline" onClick={onCancel}>
-            Close
-          </Button>
-        </Dialog.Actions>
-      </Flex>
-    );
-  }
-
   return (
     <Flex direction="column" gap={12}>
-      <input
-        type="text"
-        placeholder="Search providers..."
-        value={search}
-        onChange={e => setSearch(e.target.value)}
-        style={{
-          padding: '10px 14px',
-          border: 'none',
-          borderRadius: 8,
-          fontSize: 14,
-          outline: 'none',
-          width: '100%',
-          boxSizing: 'border-box',
-          background: theme.colors.gray200
-        }}
+      <ProvidersWithDeploymentsSearch
+        instanceId={instanceId}
+        onSelect={provider =>
+          onSelect(provider.id, provider.name ?? provider.slug ?? 'Provider')
+        }
       />
 
-      <Or text="Providers" />
+      <Spacer size={10} />
 
-      <Spacer size={4} />
-
-      <div
-        style={{
-          maxHeight: 350,
-          overflow: 'auto',
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: 8
-        }}
-      >
-        {providerList.map(([providerId, provider]) => (
-          <button
-            key={providerId}
-            type="button"
-            onClick={() => onSelect(providerId, provider.name)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              padding: '10px 12px',
-              border: `1px solid ${theme.colors.gray300}`,
-              borderRadius: 8,
-              background: 'white',
-              cursor: 'pointer',
-              textAlign: 'left'
-            }}
-          >
-            <Avatar
-              entity={{ name: provider.name, photoUrl: provider.imageUrl }}
-              size={28}
-              radius={6}
-              noTooltip
-            />
-            <Text size="2">{provider.name}</Text>
-          </button>
-        ))}
-      </div>
-
-      {providerList.length === 0 && needle && (
-        <Text size="2" color="gray600" align="center" style={{ padding: 12 }}>
-          No providers match "{search}"
-        </Text>
-      )}
+      <Flex justify="end">
+        <Button onClick={onCancel} variant="outline">
+          Close
+        </Button>
+      </Flex>
     </Flex>
   );
 };
@@ -352,7 +291,8 @@ let PickDeploymentStep = ({
   onSelect,
   onBack,
   onCancel,
-  onNext
+  onNext,
+  error
 }: {
   instanceId: string;
   providerId: string;
@@ -362,6 +302,7 @@ let PickDeploymentStep = ({
   onBack: () => void;
   onCancel: () => void;
   onNext: () => void;
+  error: ReactNode;
 }) => {
   let deployments = useProviderDeployments(instanceId, { providerId });
   let items = (deployments.data?.items ?? []) as Deployment[];
@@ -399,78 +340,13 @@ let PickDeploymentStep = ({
         Select a deployment for <strong>{providerName}</strong>
       </Text>
 
-      <Flex direction="column" gap={6}>
-        {items.map(
-          (
-            d: Deployment & {
-              description?: string | null;
-              lockedVersion?: { version: string; status: string } | null;
-              createdAt?: Date;
-              status?: string;
-            }
-          ) => {
-            let isSelected = selectedDeploymentId === d.id;
-
-            return (
-              <label
-                key={d.id}
-                style={{
-                  display: 'flex',
-                  gap: 12,
-                  padding: '12px 14px',
-                  cursor: 'pointer',
-                  border: `1px solid ${isSelected ? '#3b82f6' : theme.colors.gray300}`,
-                  borderRadius: 8,
-                  background: isSelected ? 'rgba(59, 130, 246, 0.04)' : undefined
-                }}
-              >
-                <input
-                  type="radio"
-                  name="deployment"
-                  checked={isSelected}
-                  onChange={() => onSelect(d.id)}
-                  style={{ accentColor: '#3b82f6', marginTop: 2 }}
-                />
-
-                <Flex direction="column" gap={2} style={{ flex: 1 }}>
-                  <Flex gap={8} style={{ alignItems: 'center' }}>
-                    <Text size="2" weight="strong">
-                      {d.name ?? 'Unnamed deployment'}
-                    </Text>
-                    {d.status && (
-                      <Badge color={d.status === 'active' ? 'green' : 'gray'} size="1">
-                        {d.status}
-                      </Badge>
-                    )}
-                  </Flex>
-
-                  {d.description && (
-                    <Text size="1" color="gray600">
-                      {d.description.length > 80
-                        ? d.description.slice(0, 80) + '…'
-                        : d.description}
-                    </Text>
-                  )}
-
-                  <Flex gap={10} style={{ marginTop: 2 }}>
-                    {d.lockedVersion && (
-                      <Text size="1" color="gray600">
-                        Version:{' '}
-                        <span style={{ fontFamily: 'monospace' }}>
-                          {d.lockedVersion.version}
-                        </span>
-                      </Text>
-                    )}
-                    <Text size="1" color="gray600" style={{ fontFamily: 'monospace' }}>
-                      {d.id.slice(0, 20)}…
-                    </Text>
-                  </Flex>
-                </Flex>
-              </label>
-            );
-          }
-        )}
-      </Flex>
+      <ProviderDeploymentsList
+        providerId={providerId}
+        searchable
+        selectedDeploymentId={selectedDeploymentId}
+        emptyText={`No deployments found for ${providerName}. Create a deployment first.`}
+        onDeploymentClick={deployment => onSelect(deployment.id)}
+      />
 
       <Dialog.Actions>
         <Button variant="outline" onClick={onBack}>
@@ -483,6 +359,7 @@ let PickDeploymentStep = ({
           Next
         </Button>
       </Dialog.Actions>
+      {error}
     </Flex>
   );
 };
@@ -502,7 +379,9 @@ let DeploymentConfigureStep = ({
   selectedToolKeys,
   setSelectedToolKeys,
   saving,
-  error,
+  configError,
+  authConfigError,
+  mutationError,
   onBack,
   onCancel,
   onSave
@@ -521,7 +400,9 @@ let DeploymentConfigureStep = ({
   selectedToolKeys: string[];
   setSelectedToolKeys: (v: string[]) => void;
   saving: boolean;
-  error: string | null;
+  configError: ReactNode;
+  authConfigError: ReactNode;
+  mutationError: ReactNode;
   onBack: () => void;
   onCancel: () => void;
   onSave: () => void;
@@ -703,6 +584,7 @@ let DeploymentConfigureStep = ({
         onChange={v => setSelectedConfigId(v)}
         items={configItems.map(c => ({ id: c.id, label: c.name ?? c.id }))}
       />
+      {configError}
 
       <Select
         label="Auth Config"
@@ -711,6 +593,7 @@ let DeploymentConfigureStep = ({
         onChange={v => setSelectedAuthConfigId(v)}
         items={authConfigItems.map(c => ({ id: c.id, label: c.name ?? c.id }))}
       />
+      {authConfigError}
 
       {toolItems.length > 0 && (
         <div>
@@ -786,11 +669,7 @@ let DeploymentConfigureStep = ({
         </div>
       )}
 
-      {error && (
-        <Text size="2" color="red500">
-          {error}
-        </Text>
-      )}
+      {mutationError}
 
       <Dialog.Actions>
         <Button variant="outline" onClick={onBack}>
@@ -942,25 +821,16 @@ let ProvidersTable = ({
 
     (async () => {
       try {
-        let results = await Promise.all(
-          providerIds.map(providerId =>
-            withAuth(sdk =>
-              sdk.providerDeployments.authConfigs.list(instanceId, { providerId })
-            ).catch(() => null)
-          )
+        let result = await withAuth(sdk =>
+          sdk.providerDeployments.authConfigs.list(instanceId, { providerId: providerIds })
         );
 
         if (cancelled) return;
 
         let nextLookup: Record<string, string> = {};
-        for (let result of results) {
-          let authConfigItems: DashboardInstanceProviderDeploymentsAuthConfigsListOutput['items'] =
-            result?.items ?? [];
-
-          for (let item of authConfigItems) {
-            nextLookup[item.id] =
-              item.name ?? (item.isDefault ? 'Default Auth Config' : 'Unnamed Auth Config');
-          }
+        for (let item of result.items ?? []) {
+          nextLookup[item.id] =
+            item.name ?? (item.isDefault ? 'Default Auth Config' : 'Unnamed Auth Config');
         }
 
         setAuthConfigNameLookup(nextLookup);

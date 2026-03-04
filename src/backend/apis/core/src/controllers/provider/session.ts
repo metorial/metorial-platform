@@ -1,8 +1,8 @@
-import { badRequestError, ServiceError } from '@metorial/error';
+import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { Paginator } from '@lowerdeck/pagination';
+import { v, ValidationTypeValue } from '@lowerdeck/validation';
 import { subspaceSessionService } from '@metorial/module-subspace';
-import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
-import { v, ValidationTypeValue } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import {
   authConfigValidator,
@@ -10,26 +10,33 @@ import {
   deploymentValidator
 } from '../../lib/providerValidators';
 import { checkAccess } from '../../middleware/checkAccess';
+import {
+  constrainFineGrainedSessionQuery,
+  getFineGrainedAllowedSessionIds,
+  requireFineGrainedSessionParam
+} from '../../middleware/checkFineGrainedSessionAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { providerSessionPresenter } from '../../presenters';
 
-let sessionGroup = instanceGroup.use(async ctx => {
-  if (!ctx.params.sessionId) {
-    throw new ServiceError(
-      badRequestError({
-        message: 'sessionId is required',
-        description: 'The sessionId path parameter is required.'
-      })
-    );
-  }
+let sessionGroup = instanceGroup
+  .use(requireFineGrainedSessionParam('sessionId')())
+  .use(async ctx => {
+    if (!ctx.params.sessionId) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'sessionId is required',
+          description: 'The sessionId path parameter is required.'
+        })
+      );
+    }
 
-  let session = await subspaceSessionService.get({
-    instance: ctx.instance,
-    sessionId: ctx.params.sessionId
+    let session = await subspaceSessionService.get({
+      instance: ctx.instance,
+      sessionId: ctx.params.sessionId
+    });
+
+    return { session };
   });
-
-  return { session };
-});
 
 export let toolFilterValidator = v.union([
   v.object({
@@ -164,7 +171,13 @@ export let sessionController = Controller.create(
         name: 'List sessions',
         description: 'Returns a paginated list of sessions.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.provider.session:read'],
+          fineGrainedPolicy: 'allow'
+        })
+      )
+      .use(constrainFineGrainedSessionQuery('session_id')())
       .outputList(providerSessionPresenter)
       .query(
         'default',
@@ -204,6 +217,7 @@ export let sessionController = Controller.create(
       .do(async ctx => {
         let paginator = await subspaceSessionService.list({
           instance: ctx.instance,
+          accessTagSessionIds: getFineGrainedAllowedSessionIds(ctx),
           allowDeleted: false,
 
           status: normalizeArrayParam(ctx.query.status),
@@ -230,7 +244,12 @@ export let sessionController = Controller.create(
         name: 'Get session',
         description: 'Retrieves a specific session by ID.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.provider.session:read'],
+          fineGrainedPolicy: 'allow'
+        })
+      )
       .output(providerSessionPresenter)
       .do(async ctx => {
         return providerSessionPresenter.present({
@@ -279,7 +298,12 @@ export let sessionController = Controller.create(
         name: 'Update session',
         description: 'Updates a session.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.provider.session:write'],
+          fineGrainedPolicy: 'allow'
+        })
+      )
       .body(
         'default',
         v.object({

@@ -1,5 +1,5 @@
-import { ServiceError, validationError } from '@metorial/error';
-import { ValidationType } from '@metorial/validation';
+import { ValidationType } from '@lowerdeck/validation';
+import { ServiceError, validationError } from '@lowerdeck/error';
 import * as Cookie from 'cookie';
 
 export type Method = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';

@@ -1,6 +1,6 @@
+import { v } from '@lowerdeck/validation';
 import { subspaceScmRepositoryService } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
-import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { scmAccountPreviewPresenter } from '../../presenters';
@@ -16,7 +16,7 @@ export let scmAccountsController = Controller.create(
         name: 'Preview SCM accounts',
         description: 'Lists available accounts from an SCM installation.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
+      .use(checkAccess({ possibleScopes: ['instance.scm.account:read'] }))
       .body(
         'default',
         v.object({

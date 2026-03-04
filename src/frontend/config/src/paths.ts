@@ -1,4 +1,4 @@
-import { joinPaths } from '@metorial/join-paths';
+import { joinPaths } from '@lowerdeck/join-paths';
 
 export type EntityParam = { slug: string } | null | undefined;
 export type SubPages = (string | null | undefined | object)[];
@@ -240,7 +240,14 @@ let InstancePaths = Object.assign(
       ...subPages: SubPages
     ) => {
       if (!id) return '#';
-      return InstancePaths(organization, project, instance, 'custom-provider', id, ...subPages);
+      return InstancePaths(
+        organization,
+        project,
+        instance,
+        'custom-provider',
+        id,
+        ...subPages
+      );
     },
 
     explorer: (

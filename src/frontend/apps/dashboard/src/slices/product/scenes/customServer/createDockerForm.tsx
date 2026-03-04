@@ -113,17 +113,20 @@ export let CustomServerDockerCreateForm = (p: {
     </Button>
   );
 
+  let handleSubmit = async () => {
+    await form.submitForm();
+  };
+
   return (
     <Form
       onSubmit={e => {
+        e.preventDefault();
         if (currentStep < 1) {
-          e.preventDefault();
-          e.stopPropagation();
           setCurrentStep(currentStep + 1);
           return;
         }
 
-        return form.handleSubmit(e);
+        void handleSubmit();
       }}
     >
       <Stepper
@@ -193,7 +196,8 @@ export let CustomServerDockerCreateForm = (p: {
                     <Button
                       loading={createCustomServer.isLoading}
                       success={createCustomServer.isSuccess}
-                      type="submit"
+                      type="button"
+                      onClick={handleSubmit}
                       size="2"
                     >
                       Create

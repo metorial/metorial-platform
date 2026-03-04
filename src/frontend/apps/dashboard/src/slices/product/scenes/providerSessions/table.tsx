@@ -4,6 +4,7 @@ import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, useSessions } from '@metorial/state';
 import { RenderDate, Text, theme } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
+import { SessionConnectionStatusBadge } from '../sessions/table';
 
 type SessionStatusFilter = Extract<
   DashboardInstanceSessionsListQuery['status'],
@@ -52,7 +53,11 @@ export let ProviderSessionsTable = ({
                 </Text>
               )}
             </Text>,
-            <Text size="2">{session.connectionState}</Text>,
+            <SessionConnectionStatusBadge
+              connectionStatus={session.connectionState}
+              hasErrors={session.hasErrors}
+              hasWarnings={session.hasWarnings}
+            />,
             <Text size="2">{session.providers?.length ?? 0} providers</Text>,
             <RenderDate date={session.createdAt} />
           ],

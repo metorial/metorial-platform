@@ -12,7 +12,7 @@ import { Button, Spacer, Text } from '@metorial/ui';
 import { ID, SideBox } from '@metorial/ui-product';
 import dedent from 'dedent';
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useApiKeysWithAutoInit } from '../../../scenes/apiKeys/useApiKeysWithAutoInit';
 import { showProviderDeploymentFormModal } from '../../../scenes/providerDeployments/modal';
 import { useProviderVersionContext } from './_layout';
@@ -22,6 +22,7 @@ import { Skills } from './components/skills';
 
 export let ProviderOverviewPage = () => {
   let instance = useCurrentInstance();
+  let navigate = useNavigate();
   let { selectedVersionId, selectedVersion, isDefaultVersion } = useProviderVersionContext();
 
   let { providerId } = useParams();
@@ -120,8 +121,10 @@ export let ProviderOverviewPage = () => {
           size="2"
           onClick={() =>
             provider.data?.id &&
+            instance.data &&
             showProviderDeploymentFormModal({
               type: 'create',
+              instanceId: instance.data.id,
               providerId: provider.data.id,
               providerName: provider.data.name,
               ...(!isDefaultVersion && selectedVersion
@@ -129,7 +132,16 @@ export let ProviderOverviewPage = () => {
                     lockedProviderVersionId: selectedVersion.id,
                     lockedProviderVersionLabel: selectedVersion?.version
                   }
-                : {})
+                : {}),
+              onCreate: deployment =>
+                navigate(
+                  Paths.instance.providerDeployment(
+                    instance.data.organization,
+                    instance.data.project,
+                    instance.data,
+                    deployment.id
+                  )
+                )
             })
           }
         >

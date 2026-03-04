@@ -1,8 +1,8 @@
-import { badRequestError, ServiceError } from '@metorial/error';
+import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { Paginator } from '@lowerdeck/pagination';
+import { v } from '@lowerdeck/validation';
 import { subspaceProviderSpecificationService } from '@metorial/module-subspace';
-import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
-import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
@@ -38,7 +38,7 @@ export let providerSpecificationController = Controller.create(
         name: 'List provider specifications',
         description: 'Returns a paginated list of provider specifications.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.specification:read'] }))
       .outputList(providerSpecificationPresenter)
       .query(
         'default',
@@ -90,7 +90,7 @@ export let providerSpecificationController = Controller.create(
           description: 'Retrieves a specific provider specification by ID.'
         }
       )
-      .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.specification:read'] }))
       .output(providerSpecificationPresenter)
       .do(async ctx => {
         return providerSpecificationPresenter.present({

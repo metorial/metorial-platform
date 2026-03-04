@@ -45,7 +45,6 @@ export type ManagementInstanceCustomProvidersListOutput = {
         id: string;
         name: string;
         description: string | null;
-        slug: string;
         imageUrl: string;
         createdAt: Date;
         updatedAt: Date;
@@ -204,7 +203,6 @@ export let mapManagementInstanceCustomProvidersListOutput =
                         'description',
                         mtMap.passthrough()
                       ),
-                      slug: mtMap.objectField('slug', mtMap.passthrough()),
                       imageUrl: mtMap.objectField(
                         'image_url',
                         mtMap.passthrough()

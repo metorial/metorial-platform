@@ -1,8 +1,8 @@
-import { badRequestError, ServiceError } from '@metorial/error';
+import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { Paginator } from '@lowerdeck/pagination';
+import { v } from '@lowerdeck/validation';
 import { subspaceProviderVersionService } from '@metorial/module-subspace';
-import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
-import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
@@ -38,7 +38,7 @@ export let providerVersionController = Controller.create(
         name: 'List provider versions',
         description: 'Returns a paginated list of provider versions.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.version:read'] }))
       .outputList(providerVersionPresenter)
       .query(
         'default',
@@ -72,7 +72,7 @@ export let providerVersionController = Controller.create(
         name: 'Get provider version',
         description: 'Retrieves a specific provider version by ID.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.version:read'] }))
       .output(providerVersionPresenter)
       .do(async ctx => {
         return providerVersionPresenter.present({ version: ctx.version });

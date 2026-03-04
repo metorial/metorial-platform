@@ -1,5 +1,5 @@
+import { Service } from '@lowerdeck/service';
 import { createCachedFunction } from '@metorial/cache';
-import { Service } from '@metorial/service';
 import { Markdown, MarkdownOptions } from '../lib/markdown';
 
 let getMarkdownHtml = createCachedFunction({

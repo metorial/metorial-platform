@@ -83,8 +83,18 @@ export let ProviderSessionLayout = () => {
               value: (
                 <SessionConnectionStatusBadge
                   connectionStatus={session.data.connectionState}
+                  hasErrors={session.data.hasErrors}
+                  hasWarnings={session.data.hasWarnings}
                 />
               )
+            },
+            {
+              label: 'Health',
+              value: session.data.hasErrors
+                ? 'Error'
+                : session.data.hasWarnings
+                  ? 'Warning'
+                  : 'Healthy'
             },
             { label: 'Session ID', value: <ID id={session.data.id} /> },
             { label: 'Created At', value: <RenderDate date={session.data.createdAt} /> },

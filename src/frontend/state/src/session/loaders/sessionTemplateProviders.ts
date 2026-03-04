@@ -1,4 +1,5 @@
 import {
+  DashboardInstanceSessionTemplatesProvidersCreateBody,
   DashboardInstanceSessionTemplatesProvidersListOutput,
   DashboardInstanceSessionTemplatesProvidersListQuery
 } from '@metorial/dashboard-sdk';
@@ -57,6 +58,13 @@ export let useSessionTemplateProviders = (
       : data.data
   };
 };
+
+export let useCreateSessionTemplateProvider =
+  sessionTemplateProvidersLoader.createExternalMutator(
+    (i: { instanceId: string } & DashboardInstanceSessionTemplatesProvidersCreateBody) =>
+      withAuth(sdk => sdk.sessionTemplates.providers.create(i.instanceId, i)),
+    { disableToast: true }
+  );
 
 export let useDeleteSessionTemplateProvider =
   sessionTemplateProvidersLoader.createExternalMutator(

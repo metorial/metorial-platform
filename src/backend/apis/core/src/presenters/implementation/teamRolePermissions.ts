@@ -1,15 +1,12 @@
+import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
-import { v } from '@metorial/validation';
 import { teamRolePermissionsType } from '../types';
 
 export let v1TeamRolePermissionsPresenter = Presenter.create(teamRolePermissionsType)
   .presenter(async ({ permissions }, opts) => ({
     object: 'management.team.role_permissions',
 
-    permissions: permissions.map(p => ({
-      id: p,
-      name: p
-    }))
+    permissions
   }))
   .schema(
     v.object({
@@ -19,14 +16,19 @@ export let v1TeamRolePermissionsPresenter = Presenter.create(teamRolePermissions
 
       permissions: v.array(
         v.object({
-          id: v.string({
-            name: 'id',
-            description: `The permission's unique identifier`
+          identifier: v.string({
+            name: 'identifier',
+            description: `The permission identifier`
           }),
           name: v.string({
             name: 'name',
             description: `The permission's name`
-          })
+          }),
+          description: v.string({
+            name: 'description',
+            description: `A short description of what the permission allows`
+          }),
+          dependencies: v.array(v.string())
         })
       )
     })

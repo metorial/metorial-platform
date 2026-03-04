@@ -22,6 +22,16 @@ type AuthConnectionRow = {
   createdAt: string | null;
 };
 
+type AuthConnectionItem = {
+  id: string;
+  name: string | null;
+  type: string | null;
+  providerId: string;
+  providerDeploymentId: string | null;
+  deploymentPreview?: { id: string } | null;
+  createdAt: string | null;
+};
+
 let formatType = (type: string | null | undefined) => {
   if (type === 'oauth_automated') return 'OAuth (Automated)';
   if (type === 'oauth_manual') return 'OAuth (Manual)';
@@ -37,11 +47,18 @@ export let ProviderAuthConnectionsOverviewPage = () => {
   let [search, setSearch] = useState('');
   let searchDebounced = useDebounced(search, 500);
 
-  let [rows, setRows] = useState<AuthConnectionRow[]>([]);
+  let [items, setItems] = useState<AuthConnectionItem[]>([]);
   let [isLoading, setIsLoading] = useState(false);
   let [error, setError] = useState<string | null>(null);
   let [reloadKey, setReloadKey] = useState(0);
-  let providers = useProviders(instance.data?.id, { limit: 100 });
+  let providerIds = useMemo(
+    () => [...new Set(items.map(item => item.providerId).filter(Boolean))],
+    [items]
+  );
+  let providers = useProviders(
+    instance.data?.id,
+    providerIds.length > 0 ? { id: providerIds } : null
+  );
   let providerNameMap = useMemo(() => {
     let map = new Map<string, string>();
     for (let provider of providers.data?.items ?? []) {
@@ -49,6 +66,29 @@ export let ProviderAuthConnectionsOverviewPage = () => {
     }
     return map;
   }, [providers.data?.items]);
+  let rows = useMemo<AuthConnectionRow[]>(() => {
+    return items
+      .filter(config => {
+        if (!searchDebounced.trim()) return true;
+        let q = searchDebounced.toLowerCase();
+        let providerName = providerNameMap.get(config.providerId) ?? '';
+        return (
+          (config.name ?? '').toLowerCase().includes(q) ||
+          (config.type ?? '').toLowerCase().includes(q) ||
+          config.providerId.toLowerCase().includes(q) ||
+          providerName.toLowerCase().includes(q)
+        );
+      })
+      .map(config => ({
+        key: config.id,
+        name: config.name,
+        type: config.type,
+        providerId: config.providerId,
+        providerName: providerNameMap.get(config.providerId) ?? null,
+        providerDeploymentId: config.providerDeploymentId ?? config.deploymentPreview?.id ?? null,
+        createdAt: config.createdAt
+      }));
+  }, [items, providerNameMap, searchDebounced]);
 
   useEffect(() => {
     let onCreated = () => setReloadKey(key => key + 1);
@@ -72,36 +112,21 @@ export let ProviderAuthConnectionsOverviewPage = () => {
 
         if (isCanceled) return;
 
-        let items = (response?.items ?? []) as any[];
-
-        let nextRows: AuthConnectionRow[] = items
-          .filter((config: any) => {
-            if (!searchDebounced.trim()) return true;
-            let q = searchDebounced.toLowerCase();
-            let providerId = config.providerId ?? '';
-            let providerName = providerNameMap.get(providerId) ?? '';
-            return (
-              (config.name ?? '').toLowerCase().includes(q) ||
-              (config.type ?? '').toLowerCase().includes(q) ||
-              providerId.toLowerCase().includes(q) ||
-              providerName.toLowerCase().includes(q)
-            );
-          })
-          .map((config: any) => ({
-            key: config.id,
+        setItems(
+          ((response?.items ?? []) as any[]).map(config => ({
+            id: config.id,
             name: config.name ?? null,
             type: config.type ?? null,
             providerId: config.providerId ?? '',
-            providerName: providerNameMap.get(config.providerId ?? '') ?? null,
             providerDeploymentId: config.providerDeploymentId ?? null,
+            deploymentPreview: config.deploymentPreview ?? null,
             createdAt: config.createdAt ?? null
-          }));
-
-        setRows(nextRows);
+          }))
+        );
       } catch (e: any) {
         if (!isCanceled) {
           setError(e?.data?.message || e?.message || 'Failed to load auth connections.');
-          setRows([]);
+          setItems([]);
         }
       } finally {
         if (!isCanceled) {
@@ -115,7 +140,7 @@ export let ProviderAuthConnectionsOverviewPage = () => {
     return () => {
       isCanceled = true;
     };
-  }, [instance.data?.id, providerNameMap, reloadKey, searchDebounced]);
+  }, [instance.data?.id, reloadKey]);
 
   return renderWithLoader({ instance })(({ instance }) => (
     <>

@@ -1,7 +1,7 @@
+import { memo } from '@lowerdeck/memo';
+import { getSentry } from '@lowerdeck/sentry';
 import { getConfig } from '@metorial/config';
-import { memo } from '@metorial/memo';
 import { RedisStreams } from '@metorial/redis';
-import { getSentry } from '@metorial/sentry';
 import PQueue from 'p-queue';
 
 let Sentry = getSentry();

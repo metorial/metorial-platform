@@ -1,12 +1,12 @@
-import { canonicalize } from '@metorial/canonicalize';
+import { canonicalize } from '@lowerdeck/canonicalize';
+import { memo } from '@lowerdeck/memo';
+import { getSentry } from '@lowerdeck/sentry';
 import {
   createError,
   internalServerError,
   isServiceError,
   ServiceError
-} from '@metorial/error';
-import { memo } from '@metorial/memo';
-import { getSentry } from '@metorial/sentry';
+} from '@lowerdeck/error';
 import { isMetorialSDKError } from '@metorial/util-endpoint';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { onFocus } from '../lib/onFocus';

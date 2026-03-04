@@ -20,6 +20,9 @@ export let ID = createIdGenerator({
   apiKey: idType.sorted('apk'),
   apiKeySecret: idType.sorted('aks'),
   apiApplication: idType.sorted('aap'),
+  fineGrainedKey: idType.sorted('fgk'),
+  sessionClientSecretReference: idType.sorted('fgr'),
+  accessTagPolicy: idType.sorted('atp'),
 
   filePurpose: idType.sorted('fpu'),
   file: idType.sorted('fil'),

@@ -1,3 +1,7 @@
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
+import { Paginator } from '@lowerdeck/pagination';
+import { Service } from '@lowerdeck/service';
+import { createSlugGenerator } from '@lowerdeck/slugify';
 import { Context } from '@metorial/context';
 import {
   db,
@@ -7,17 +11,33 @@ import {
   TeamRole,
   withTransaction
 } from '@metorial/db';
-import { badRequestError, notFoundError, ServiceError } from '@metorial/error';
 import { Fabric } from '@metorial/fabric';
-import { instanceScopes } from '@metorial/module-access';
-import { Paginator } from '@metorial/pagination';
-import { Service } from '@metorial/service';
-import { createSlugGenerator } from '@metorial/slugify';
+import { instanceScopes, scopeDefinitions } from '@metorial/module-access';
 
 let getTeamRoleSlug = createSlugGenerator(
   async (slug, d: { organization: Organization }) =>
     !(await db.teamRole.findFirst({ where: { slug, organizationOid: d.organization.oid } }))
 );
+
+let scopeDependencyMap = new Map(
+  scopeDefinitions.map(scope => [scope.identifier, scope.dependencies])
+);
+
+let getMissingScopeDependencies = (permissionSet: string[]) => {
+  let permissionSetLookup = new Set(permissionSet);
+  let missingDependencies = new Set<string>();
+
+  permissionSet.forEach(permission => {
+    let dependencies = scopeDependencyMap.get(permission as any) || [];
+    dependencies.forEach(dependency => {
+      if (!permissionSetLookup.has(dependency)) {
+        missingDependencies.add(dependency);
+      }
+    });
+  });
+
+  return [...missingDependencies];
+};
 
 class teamRoleServiceImpl {
   async createTeamRole(d: {
@@ -35,6 +55,14 @@ class teamRoleServiceImpl {
       throw new ServiceError(
         badRequestError({
           message: 'One or more permissions are invalid'
+        })
+      );
+    }
+    let missingDependencies = getMissingScopeDependencies(permissionSet);
+    if (missingDependencies.length > 0) {
+      throw new ServiceError(
+        badRequestError({
+          message: `Missing permission dependencies: ${missingDependencies.join(', ')}`
         })
       );
     }
@@ -87,6 +115,16 @@ class teamRoleServiceImpl {
           message: 'One or more permissions are invalid'
         })
       );
+    }
+    if (permissionSet) {
+      let missingDependencies = getMissingScopeDependencies(permissionSet);
+      if (missingDependencies.length > 0) {
+        throw new ServiceError(
+          badRequestError({
+            message: `Missing permission dependencies: ${missingDependencies.join(', ')}`
+          })
+        );
+      }
     }
 
     return withTransaction(async db => {

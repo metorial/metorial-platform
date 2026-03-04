@@ -1,8 +1,8 @@
-import { badRequestError, ServiceError } from '@metorial/error';
+import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { Paginator } from '@lowerdeck/pagination';
+import { v } from '@lowerdeck/validation';
 import { subspaceProviderListingGroupService } from '@metorial/module-subspace';
-import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
-import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
@@ -38,7 +38,7 @@ export let providerGroupController = Controller.create(
         name: 'List provider groups',
         description: 'Returns a paginated list of provider groups.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.group:read'] }))
       .outputList(providerGroupPresenter)
       .query(
         'default',
@@ -74,7 +74,7 @@ export let providerGroupController = Controller.create(
         name: 'Get provider group',
         description: 'Retrieves a specific provider group by ID.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.group:read'] }))
       .output(providerGroupPresenter)
       .do(async ctx => {
         return providerGroupPresenter.present({ group: ctx.group });
@@ -85,7 +85,7 @@ export let providerGroupController = Controller.create(
         name: 'Create provider group',
         description: 'Creates a new custom provider group.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider:write'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.group:write'] }))
       .body(
         'default',
         v.object({
@@ -113,7 +113,7 @@ export let providerGroupController = Controller.create(
         name: 'Update provider group',
         description: 'Updates an existing provider group.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider:write'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.group:write'] }))
       .body(
         'default',
         v.object({
@@ -145,7 +145,7 @@ export let providerGroupController = Controller.create(
           description: 'Adds a provider listing to a group.'
         }
       )
-      .use(checkAccess({ possibleScopes: ['instance.provider:write'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.group:write'] }))
       .body(
         'default',
         v.object({
@@ -174,7 +174,7 @@ export let providerGroupController = Controller.create(
           description: 'Removes a provider listing from a group.'
         }
       )
-      .use(checkAccess({ possibleScopes: ['instance.provider:write'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.group:write'] }))
       .output(providerGroupPresenter)
       .do(async ctx => {
         if (!ctx.params.providerListingId) {

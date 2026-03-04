@@ -37,6 +37,11 @@ let ProviderConfigsOverviewPage = dynamicPage(() =>
     c => c.ProviderConfigsOverviewPage
   )
 );
+let ProviderConfigVaultsOverviewPage = dynamicPage(() =>
+  import('./pages/(provider-api)/(list)/provider-config-vaults').then(
+    c => c.ProviderConfigVaultsOverviewPage
+  )
+);
 let ProviderSessionsListLayout = dynamicPage(() =>
   import('./pages/(provider-api)/(list)/_layout').then(c => c.ProviderSessionsListLayout)
 );
@@ -116,6 +121,21 @@ let ProviderConfigOverviewPage = dynamicPage(() =>
 let ProviderConfigSettingsPage = dynamicPage(() =>
   import('./pages/(provider-api)/provider-config/settings').then(
     c => c.ProviderConfigSettingsPage
+  )
+);
+let ProviderConfigVaultLayout = dynamicPage(() =>
+  import('./pages/(provider-api)/provider-config-vault/_layout').then(
+    c => c.ProviderConfigVaultLayout
+  )
+);
+let ProviderConfigVaultOverviewPage = dynamicPage(() =>
+  import('./pages/(provider-api)/provider-config-vault/index').then(
+    c => c.ProviderConfigVaultOverviewPage
+  )
+);
+let ProviderConfigVaultSettingsPage = dynamicPage(() =>
+  import('./pages/(provider-api)/provider-config-vault/settings').then(
+    c => c.ProviderConfigVaultSettingsPage
   )
 );
 let ProviderAuthCredentialLayout = dynamicPage(() =>
@@ -598,6 +618,10 @@ export let productInnerSlice = createSlice([
             element: <ProviderConfigsOverviewPage />
           },
           {
+            path: 'config-vaults',
+            element: <ProviderConfigVaultsOverviewPage />
+          },
+          {
             path: 'auth-credentials',
             element: <ProviderAuthCredentialsOverviewPage />
           },
@@ -658,6 +682,20 @@ export let productInnerSlice = createSlice([
           {
             path: 'settings',
             element: <ProviderDeploymentSettingsPage />
+          }
+        ]
+      },
+      {
+        path: 'provider-config-vault/:providerConfigVaultId',
+        element: <ProviderConfigVaultLayout />,
+        children: [
+          {
+            path: '',
+            element: <ProviderConfigVaultOverviewPage />
+          },
+          {
+            path: 'settings',
+            element: <ProviderConfigVaultSettingsPage />
           }
         ]
       },

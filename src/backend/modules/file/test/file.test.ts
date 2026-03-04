@@ -1,5 +1,5 @@
+import { ServiceError } from '@lowerdeck/error';
 import { db, File, Instance, Organization, User } from '@metorial/db';
-import { ServiceError } from '@metorial/error';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fileService } from '../src/services/file';
 
@@ -19,7 +19,7 @@ vi.mock('@metorial/db', () => ({
     generateId: vi.fn().mockResolvedValue('file_123')
   }
 }));
-vi.mock('@metorial/pagination', () => ({
+vi.mock('@lowerdeck/pagination', () => ({
   Paginator: {
     create: vi.fn(fn => fn({ prisma: (cb: any) => cb({}) }))
   }

@@ -1,8 +1,8 @@
-import { badRequestError, ServiceError } from '@metorial/error';
+import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { Paginator } from '@lowerdeck/pagination';
+import { v } from '@lowerdeck/validation';
 import { subspaceProviderAuthMethodService } from '@metorial/module-subspace';
-import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
-import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { providerAuthMethodPresenter } from '../../presenters';
@@ -37,7 +37,7 @@ export let providerAuthMethodController = Controller.create(
         name: 'List provider auth methods',
         description: 'Returns a paginated list of provider auth methods.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.specification:read'] }))
       .outputList(providerAuthMethodPresenter)
       .query(
         'default',
@@ -71,7 +71,7 @@ export let providerAuthMethodController = Controller.create(
           description: 'Retrieves a specific provider auth method by ID.'
         }
       )
-      .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.specification:read'] }))
       .output(providerAuthMethodPresenter)
       .do(async ctx => {
         return providerAuthMethodPresenter.present({

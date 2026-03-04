@@ -8,11 +8,10 @@ import {
   useProviders,
   withAuth
 } from '@metorial/state';
-import { Badge, Button, Flex, Input, RenderDate, Spacer, Text } from '@metorial/ui';
+import { Badge, Input, RenderDate, Spacer, Text } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
 import { useEffect, useMemo, useState } from 'react';
 import { useDebounced } from '../../../../../hooks/useDebounced';
-import { showProviderSetupSessionModal } from '../../../scenes/providerDeployments/setupSessionModal';
 
 type DeploymentPreview = {
   id: string;
@@ -29,29 +28,6 @@ type CredentialOverviewRow = {
   createdAt: Date | string | null;
 };
 
-let mapWithConcurrency = async <I, O>(
-  items: I[],
-  limit: number,
-  worker: (item: I) => Promise<O>
-) => {
-  if (!items.length) return [] as O[];
-
-  let results = new Array<O>(items.length);
-  let next = 0;
-
-  let run = async () => {
-    while (true) {
-      let current = next++;
-      if (current >= items.length) return;
-      results[current] = await worker(items[current]);
-    }
-  };
-
-  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, run));
-
-  return results;
-};
-
 export let ProviderAuthCredentialsOverviewPage = () => {
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
@@ -63,14 +39,6 @@ export let ProviderAuthCredentialsOverviewPage = () => {
   let deployments = useProviderDeployments(instance.data?.id, {
     search: searchDebounced
   });
-  let providers = useProviders(instance.data?.id, { limit: 100 });
-  let providerNameMap = useMemo(() => {
-    let map = new Map<string, string>();
-    for (let provider of providers.data?.items ?? []) {
-      if (provider.id && provider.name) map.set(provider.id, provider.name);
-    }
-    return map;
-  }, [providers.data?.items]);
 
   let [rows, setRows] = useState<CredentialOverviewRow[]>([]);
   let [isLoadingCredentials, setIsLoadingCredentials] = useState(false);
@@ -78,6 +46,21 @@ export let ProviderAuthCredentialsOverviewPage = () => {
   let [reloadKey, setReloadKey] = useState(0);
 
   let deploymentItems = deployments.data?.items ?? [];
+  let providerIds = useMemo(
+    () => [...new Set(deploymentItems.map(deployment => deployment.providerId).filter(Boolean))],
+    [deploymentItems]
+  );
+  let providers = useProviders(
+    instance.data?.id,
+    providerIds.length > 0 ? { id: providerIds } : null
+  );
+  let providerNameMap = useMemo(() => {
+    let map = new Map<string, string>();
+    for (let provider of providers.data?.items ?? []) {
+      if (provider.id && provider.name) map.set(provider.id, provider.name);
+    }
+    return map;
+  }, [providers.data?.items]);
   let deploymentSignature = useMemo(
     () => deploymentItems.map(deployment => deployment.id).join(','),
     [deploymentItems]
@@ -85,8 +68,9 @@ export let ProviderAuthCredentialsOverviewPage = () => {
 
   useEffect(() => {
     let onCreated = () => setReloadKey(key => key + 1);
-    window.addEventListener('provider-auth-config-created', onCreated);
-    return () => window.removeEventListener('provider-auth-config-created', onCreated);
+    window.addEventListener('provider-auth-credentials-created', onCreated);
+    return () =>
+      window.removeEventListener('provider-auth-credentials-created', onCreated);
   }, []);
 
   useEffect(() => {
@@ -105,49 +89,38 @@ export let ProviderAuthCredentialsOverviewPage = () => {
       setError(null);
 
       try {
-        let perDeployment = await mapWithConcurrency(deploymentItems, 4, async deployment => {
-          try {
-            let response = await withAuth(sdk =>
-              sdk.providerDeployments.authCredentials.list(instance.data!.id, {
-                providerId: deployment.providerId
-              })
-            );
+        let uniqueProviderIds = [
+          ...new Set(deploymentItems.map(d => d.providerId))
+        ];
 
-            return {
-              deployment,
-              credentials: response.items ?? [],
-              failed: false
-            };
-          } catch {
-            return {
-              deployment,
-              credentials: [],
-              failed: true
-            };
-          }
-        });
+        let response = await withAuth(sdk =>
+          sdk.providerDeployments.authCredentials.list(instance.data!.id, {
+            providerId: uniqueProviderIds
+          })
+        );
 
         if (isCanceled) return;
 
-        let nextRows: CredentialOverviewRow[] = [];
-
-        let failedCount = 0;
-        for (let item of perDeployment) {
-          if (item.failed) failedCount++;
-          for (let cred of item.credentials) {
-            nextRows.push({
-              key: cred.id,
-              deployment: item.deployment,
-              name: cred.name ?? null,
-              createdAt: cred.createdAt ?? null
-            });
+        let deploymentByProviderId = new Map<string, DeploymentPreview>();
+        for (let d of deploymentItems) {
+          if (!deploymentByProviderId.has(d.providerId)) {
+            deploymentByProviderId.set(d.providerId, d);
           }
         }
 
-        setRows(nextRows);
-        if (failedCount > 0 && nextRows.length === 0) {
-          setError('Failed to load auth credentials for one or more deployments.');
+        let nextRows: CredentialOverviewRow[] = [];
+        for (let cred of response.items ?? []) {
+          let deployment = deploymentByProviderId.get(cred.providerId);
+          if (!deployment) continue;
+          nextRows.push({
+            key: cred.id,
+            deployment,
+            name: cred.name ?? null,
+            createdAt: cred.createdAt ?? null
+          });
         }
+
+        setRows(nextRows);
       } catch (e: any) {
         if (!isCanceled) {
           setError(e?.data?.message || e?.message || 'Failed to load auth credentials.');

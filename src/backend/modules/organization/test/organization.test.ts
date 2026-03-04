@@ -1,4 +1,4 @@
-import { ServiceError } from '@metorial/error';
+import { ServiceError } from '@lowerdeck/error';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock external dependencies
@@ -39,13 +39,13 @@ vi.mock('@metorial/fabric', () => ({
   }
 }));
 
-vi.mock('@metorial/pagination', () => ({
+vi.mock('@lowerdeck/pagination', () => ({
   Paginator: {
     create: vi.fn(fn => fn)
   }
 }));
 
-vi.mock('@metorial/service', () => ({
+vi.mock('@lowerdeck/service', () => ({
   Service: {
     create: vi.fn((name, factory) => ({
       build: () => factory()
@@ -53,7 +53,7 @@ vi.mock('@metorial/service', () => ({
   }
 }));
 
-vi.mock('@metorial/slugify', () => ({
+vi.mock('@lowerdeck/slugify', () => ({
   createSlugGenerator: vi.fn(() => vi.fn().mockResolvedValue('test-org-slug'))
 }));
 

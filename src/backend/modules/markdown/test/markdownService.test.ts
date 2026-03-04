@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { Markdown } from '../src/lib/markdown';
 
 // Mock external dependencies
 vi.mock('@metorial/db/src/lib/getImageUrl', () => ({
@@ -27,7 +26,7 @@ vi.mock('@metorial/cache', () => ({
   })
 }));
 
-vi.mock('@metorial/service', () => ({
+vi.mock('@lowerdeck/service', () => ({
   Service: {
     create: vi.fn((name: string, factory: () => any) => ({
       build: () => factory()

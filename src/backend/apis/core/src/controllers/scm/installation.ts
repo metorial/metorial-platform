@@ -1,10 +1,10 @@
+import { Paginator } from '@lowerdeck/pagination';
+import { v } from '@lowerdeck/validation';
 import {
   subspaceScmConnectionService,
   subspaceScmConnectionSetupSessionService
 } from '@metorial/module-subspace';
-import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
-import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { scmConnectionPresenter, scmConnectionSetupPresenter } from '../../presenters';
@@ -21,13 +21,13 @@ export let scmInstallationController = Controller.create(
         name: 'List SCM installations',
         description: 'Returns a paginated list of SCM installations.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
+      .use(checkAccess({ possibleScopes: ['instance.scm.installation:read'] }))
       .outputList(scmConnectionPresenter)
       .query('default', Paginator.validate())
       .do(async ctx => {
         let paginator = await subspaceScmConnectionService.list({
           instance: ctx.instance,
-          organizationActor: ctx.actor
+          organizationActor: ctx.actor!
         });
 
         let list = await paginator.run(ctx.query);
@@ -44,7 +44,7 @@ export let scmInstallationController = Controller.create(
         name: 'Create SCM installation',
         description: 'Initiates an SCM installation setup (e.g. GitHub App authorization).'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider:write'] }))
+      .use(checkAccess({ possibleScopes: ['instance.scm.installation:write'] }))
       .body(
         'default',
         v.object({
@@ -58,7 +58,7 @@ export let scmInstallationController = Controller.create(
       .do(async ctx => {
         let scmConnectionSetup = await subspaceScmConnectionSetupSessionService.create({
           instance: ctx.instance,
-          organizationActor: ctx.actor,
+          organizationActor: ctx.actor!,
           redirectUrl: ctx.body.redirect_url
         });
 

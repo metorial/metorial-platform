@@ -9,6 +9,7 @@ export type ApiKeyType =
   | 'organization_app_access_token'
   | 'instance_access_token_secret'
   | 'instance_access_token_publishable'
+  | 'fine_grained_token'
   | 'ephemeral_client_secret'
   | 'magic_mcp_token_secret';
 
@@ -18,6 +19,7 @@ let keyTypes = {
   ak: 'organization_app_access_token',
   sk: 'instance_access_token_secret',
   pk: 'instance_access_token_publishable',
+  fk: 'fine_grained_token',
   ek: 'ephemeral_client_secret',
   mk: 'magic_mcp_token_secret'
 } as const;

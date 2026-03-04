@@ -19,7 +19,7 @@ vi.mock('@metorial/db', () => ({
   )
 }));
 
-vi.mock('@metorial/error', () => ({
+vi.mock('@lowerdeck/error', () => ({
   badRequestError: vi.fn(opts => ({ type: 'bad_request', ...opts })),
   unauthorizedError: vi.fn(opts => ({ type: 'unauthorized', ...opts })),
   ServiceError: class ServiceError extends Error {

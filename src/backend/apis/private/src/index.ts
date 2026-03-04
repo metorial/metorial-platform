@@ -1,13 +1,13 @@
 import { expressMiddleware } from '@as-integrations/express5';
 import { getDashboardAuthCookieFromNodeReq } from '@metorial/auth';
 import { Context } from '@metorial/context';
-import { notFoundError, ServiceError, unauthorizedError } from '@metorial/error';
+import { notFoundError, ServiceError, unauthorizedError } from '@lowerdeck/error';
 import {
   createExecutionContext,
   provideExecutionContext,
   updateExecutionContext
-} from '@metorial/execution-context';
-import { extractIp } from '@metorial/forwarded-for';
+} from '@lowerdeck/execution-context';
+import { extractIp } from '@lowerdeck/forwarded-for';
 import { generateCustomId } from '@metorial/id';
 import { authenticationService } from '@metorial/module-access';
 import { organizationService } from '@metorial/module-organization';

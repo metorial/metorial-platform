@@ -1,6 +1,6 @@
+import { v } from '@lowerdeck/validation';
 import { organizationInviteJoinService } from '@metorial/module-organization';
 import { Controller, Path } from '@metorial/rest';
-import { v } from '@metorial/validation';
 import { isDashboardGroup } from '../../middleware/isDashboard';
 import { userGroup } from '../../middleware/userGroup';
 import { organizationInvitePresenter } from '../../presenters';

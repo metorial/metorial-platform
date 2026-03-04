@@ -1,6 +1,6 @@
+import { v } from '@lowerdeck/validation';
 import { getConfig } from '@metorial/config';
 import { Presenter } from '@metorial/presenter';
-import { v } from '@metorial/validation';
 import { fileLinkType } from '../types';
 
 export let v1FileLinkPresenter = Presenter.create(fileLinkType)

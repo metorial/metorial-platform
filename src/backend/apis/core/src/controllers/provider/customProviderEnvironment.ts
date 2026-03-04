@@ -1,8 +1,8 @@
-import { badRequestError, ServiceError } from '@metorial/error';
+import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { Paginator } from '@lowerdeck/pagination';
+import { v } from '@lowerdeck/validation';
 import { subspaceCustomProviderEnvironmentService } from '@metorial/module-subspace';
-import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
-import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
@@ -38,7 +38,7 @@ export let customProviderEnvironmentController = Controller.create(
         name: 'List custom provider environments',
         description: 'Returns a paginated list of environments for a custom provider.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.custom.environment:read'] }))
       .outputList(subspaceCustomProviderEnvironmentPresenter)
       .query(
         'default',
@@ -85,7 +85,7 @@ export let customProviderEnvironmentController = Controller.create(
           description: 'Retrieves a specific environment.'
         }
       )
-      .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.custom.environment:read'] }))
       .output(subspaceCustomProviderEnvironmentPresenter)
       .do(async ctx => {
         return subspaceCustomProviderEnvironmentPresenter.present({

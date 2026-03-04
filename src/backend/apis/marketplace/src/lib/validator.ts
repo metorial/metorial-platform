@@ -1,5 +1,5 @@
 import { zValidator } from '@hono/zod-validator';
-import { validationError } from '@metorial/error';
+import { validationError } from '@lowerdeck/error';
 import { ValidationTargets } from 'hono';
 import { ZodSchema } from 'zod';
 

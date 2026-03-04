@@ -1,12 +1,12 @@
-import { notFoundError, ServiceError } from '@metorial/error';
-import { createHono } from '@metorial/hono';
+import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { createHono } from '@lowerdeck/hono';
+import { Paginator } from '@lowerdeck/pagination';
 import {
   subspacePublicProviderListingService,
   subspacePublicProviderToolService,
   subspacePublicProviderVersionService,
   type SubspaceProviderToolListItem
 } from '@metorial/module-subspace';
-import { Paginator } from '@metorial/pagination';
 import { z } from 'zod';
 import { toPaginationQuery } from '../lib/paginationQuery';
 import { paginatorSchema } from '../lib/paginatorSchema';

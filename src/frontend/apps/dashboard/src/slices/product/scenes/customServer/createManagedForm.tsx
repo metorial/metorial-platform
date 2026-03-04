@@ -94,6 +94,7 @@ export let CustomServerManagedCreateForm = (p: {
 
   let navigate = useNavigate();
   let [templateId, setTemplateId] = useState<string | undefined>(undefined);
+  let hasTemplates = managedServerTemplates.data.items.length > 0;
 
   let form = useForm({
     initialValues: {
@@ -321,199 +322,240 @@ export let CustomServerManagedCreateForm = (p: {
 
   if (p.templateId && !templateId) return <CenteredSpinner />;
 
+  let handleSubmit = async () => {
+    await form.submitForm();
+  };
+
   return (
     <Form
       onSubmit={e => {
-        if (currentStep < 1) {
-          e.preventDefault();
-          e.stopPropagation();
+        e.preventDefault();
+        let lastStepIndex = hasTemplates ? 2 : 1;
+
+        if (currentStep < lastStepIndex) {
           setCurrentStep(currentStep + 1);
           return;
         }
 
-        return form.handleSubmit(e);
+        void handleSubmit();
       }}
     >
       <Stepper
         currentStep={currentStep}
         setCurrentStep={setCurrentStep}
         steps={[
-          {
-            title: 'Choose Template',
-            subtitle: 'Choose a template for your MCP provider',
-            render: () => {
-              return (
-                <PageWrapper>
-                  <Templates>
-                    {managedServerTemplates.data.items.map(template => (
-                      <TemplatesItem
-                        key={template.id}
-                        type="button"
-                        onClick={() => setTemplate(template.id)}
-                      >
-                        <span>{template.name}</span>
-                      </TemplatesItem>
-                    ))}
-                  </Templates>
+          ...(hasTemplates
+            ? [
+                {
+                  title: 'Choose Template',
+                  subtitle: 'Choose a template for your MCP provider',
+                  render: () => {
+                    return (
+                      <PageWrapper>
+                        <Templates>
+                          {managedServerTemplates.data.items.map(template => (
+                            <TemplatesItem
+                              key={template.id}
+                              type="button"
+                              onClick={() => setTemplate(template.id)}
+                            >
+                              <span>{template.name}</span>
+                            </TemplatesItem>
+                          ))}
+                        </Templates>
 
-                  <Spacer size={10} />
+                        <Spacer size={10} />
 
-                  <Or />
+                        <Or />
 
-                  <Spacer size={10} />
+                        <Spacer size={10} />
 
-                  <SelectRepo
-                    onSelect={repo => {
-                      setSelectedRepo(repo);
-                      form.resetForm();
-                      form.setFieldValue('name', repo.provider.name);
-                      setCurrentStep(2);
-                      setTemplateId(undefined);
-                    }}
-                  />
-
-                  <Actions>
-                    {close}
-
-                    <Button
-                      type="button"
-                      size="2"
-                      onClick={() => {
-                        setSelectedRepo(undefined);
-                        setTemplateId(undefined);
-                        setCurrentStep(2);
-                      }}
-                    >
-                      Continue without template
-                    </Button>
-                  </Actions>
-                </PageWrapper>
-              );
-            }
-          },
-
-          {
-            title: 'Connect Repository',
-            subtitle: 'Connect a GitHub repository',
-            render: () => {
-              return (
-                <>
-                  {renderWithLoader({ installations })(({ installations }) => (
-                    <>
-                      {installations.data?.items.length ? (
-                        <>
-                          {installations.data.items.length > 1 && (
-                            <>
-                              <Select
-                                label="GitHub Installation"
-                                items={installations.data.items.map(i => ({
-                                  label:
-                                    i.externalAccount.name ??
-                                    i.externalAccount.email ??
-                                    i.externalAccount.login,
-                                  id: i.id
-                                }))}
-                                value={selectedInstallationId}
-                                onChange={v => setSelectedInstallationId(v)}
-                              />
-                              <Spacer size={10} />
-                            </>
-                          )}
-
-                          {accountItems.length > 0 && (
-                            <>
-                              <Select
-                                label="GitHub Account"
-                                items={accountItems.map(i => ({
-                                  label: i.name,
-                                  id: i.externalId
-                                }))}
-                                value={selectedAccountId}
-                                onChange={v => setSelectedAccountId(v)}
-                              />
-                              <Spacer size={10} />
-                            </>
-                          )}
-
-                          <Input
-                            label="Repository Name"
-                            placeholder="e.g. my-repo"
-                            value={createRepoName}
-                            onChange={e => setCreateRepoName(e.target.value)}
-                          />
-
-                          <Spacer size={10} />
-
-                          <Select
-                            label="Repository Visibility"
-                            items={[
-                              { label: 'Private', id: 'private' },
-                              { label: 'Public', id: 'public' }
-                            ]}
-                            value={createRepoIsPrivate ? 'private' : 'public'}
-                            onChange={v => setCreateRepoIsPrivate(v === 'private')}
-                          />
-                        </>
-                      ) : (
-                        <>
-                          <ConnectGitHubButton
-                            onConnected={() => {
-                              installationsOuter.refetch();
-                            }}
-                          />
-                        </>
-                      )}
-
-                      <Spacer size={10} />
-
-                      <Flex align="center" gap="10px">
-                        <Button
-                          size="2"
-                          disabled={
-                            !selectedInstallationId ||
-                            !selectedAccountId ||
-                            !createRepoName.trim()
-                          }
-                          onClick={async () => {
-                            let [res] = await createRepo.mutate({
-                              instanceId: instance.data?.id!,
-                              installationId: selectedInstallationId!,
-                              externalAccountId: selectedAccountId!,
-                              name: createRepoName,
-                              isPrivate: createRepoIsPrivate
-                            });
-
-                            if (res) {
-                              setSelectedRepo(res);
-                              form.resetForm();
-                              form.setFieldValue('name', createRepoName);
-                              setCurrentStep(2);
-                            }
-                          }}
-                          loading={createRepo.isLoading}
-                        >
-                          Continue
-                        </Button>
-
-                        <Button
-                          size="2"
-                          variant="outline"
-                          disabled={createRepo.isLoading}
-                          onClick={() => {
-                            setSelectedRepo(undefined);
+                        <SelectRepo
+                          onSelect={repo => {
+                            setSelectedRepo(repo);
                             form.resetForm();
+                            form.setFieldValue('name', repo.provider.name);
                             setCurrentStep(2);
+                            setTemplateId(undefined);
                           }}
-                        >
-                          Continue without Repo
-                        </Button>
-                      </Flex>
-                    </>
-                  ))}
-                </>
-              );
-            }
-          },
+                        />
+
+                        <Actions>
+                          {close}
+
+                          <Button
+                            type="button"
+                            size="2"
+                            onClick={() => {
+                              setSelectedRepo(undefined);
+                              setTemplateId(undefined);
+                              setCurrentStep(2);
+                            }}
+                          >
+                            Continue without template
+                          </Button>
+                        </Actions>
+                      </PageWrapper>
+                    );
+                  }
+                },
+                {
+                  title: 'Connect Repository',
+                  subtitle: 'Connect a GitHub repository',
+                  render: () => {
+                    return (
+                      <>
+                        {renderWithLoader({ installations })(({ installations }) => (
+                          <>
+                            {installations.data?.items.length ? (
+                              <>
+                                {installations.data.items.length > 1 && (
+                                  <>
+                                    <Select
+                                      label="GitHub Installation"
+                                      items={installations.data.items.map(i => ({
+                                        label:
+                                          i.externalAccount.name ??
+                                          i.externalAccount.email ??
+                                          i.externalAccount.login,
+                                        id: i.id
+                                      }))}
+                                      value={selectedInstallationId}
+                                      onChange={v => setSelectedInstallationId(v)}
+                                    />
+                                    <Spacer size={10} />
+                                  </>
+                                )}
+
+                                {accountItems.length > 0 && (
+                                  <>
+                                    <Select
+                                      label="GitHub Account"
+                                      items={accountItems.map(i => ({
+                                        label: i.name,
+                                        id: i.externalId
+                                      }))}
+                                      value={selectedAccountId}
+                                      onChange={v => setSelectedAccountId(v)}
+                                    />
+                                    <Spacer size={10} />
+                                  </>
+                                )}
+
+                                <Input
+                                  label="Repository Name"
+                                  placeholder="e.g. my-repo"
+                                  value={createRepoName}
+                                  onChange={e => setCreateRepoName(e.target.value)}
+                                />
+
+                                <Spacer size={10} />
+
+                                <Select
+                                  label="Repository Visibility"
+                                  items={[
+                                    { label: 'Private', id: 'private' },
+                                    { label: 'Public', id: 'public' }
+                                  ]}
+                                  value={createRepoIsPrivate ? 'private' : 'public'}
+                                  onChange={v => setCreateRepoIsPrivate(v === 'private')}
+                                />
+                              </>
+                            ) : (
+                              <ConnectGitHubButton
+                                onConnected={() => {
+                                  installationsOuter.refetch();
+                                }}
+                              />
+                            )}
+
+                            <Spacer size={10} />
+
+                            <Flex align="center" gap="10px">
+                              <Button
+                                size="2"
+                                disabled={
+                                  !selectedInstallationId ||
+                                  !selectedAccountId ||
+                                  !createRepoName.trim()
+                                }
+                                onClick={async () => {
+                                  let [res] = await createRepo.mutate({
+                                    instanceId: instance.data?.id!,
+                                    installationId: selectedInstallationId!,
+                                    externalAccountId: selectedAccountId!,
+                                    name: createRepoName,
+                                    isPrivate: createRepoIsPrivate
+                                  });
+
+                                  if (res) {
+                                    setSelectedRepo(res);
+                                    form.resetForm();
+                                    form.setFieldValue('name', createRepoName);
+                                    setCurrentStep(hasTemplates ? 2 : 1);
+                                  }
+                                }}
+                                loading={createRepo.isLoading}
+                              >
+                                Continue
+                              </Button>
+
+                              <Button
+                                size="2"
+                                variant="outline"
+                                disabled={createRepo.isLoading}
+                                onClick={() => {
+                                  setSelectedRepo(undefined);
+                                  form.resetForm();
+                                  setCurrentStep(hasTemplates ? 2 : 1);
+                                }}
+                              >
+                                Continue without Repo
+                              </Button>
+                            </Flex>
+                          </>
+                        ))}
+                      </>
+                    );
+                  }
+                }
+              ]
+            : [
+                {
+                  title: 'Connect Repository',
+                  subtitle: 'Connect a GitHub repository',
+                  render: () => {
+                    return (
+                      <>
+                        <SelectRepo
+                          onSelect={repo => {
+                            setSelectedRepo(repo);
+                            form.resetForm();
+                            form.setFieldValue('name', repo.provider.name);
+                            setCurrentStep(1);
+                          }}
+                        />
+
+                        <Actions>
+                          {close}
+
+                          <Button
+                            type="button"
+                            size="2"
+                            onClick={() => {
+                              setSelectedRepo(undefined);
+                              form.resetForm();
+                              setCurrentStep(1);
+                            }}
+                          >
+                            Continue without repository
+                          </Button>
+                        </Actions>
+                      </>
+                    );
+                  }
+                }
+              ]),
 
           {
             title: 'Finish',
@@ -550,7 +592,8 @@ export let CustomServerManagedCreateForm = (p: {
                       loading={createCustomServer.isLoading}
                       success={createCustomServer.isSuccess}
                       disabled={createRepo.isLoading || createCustomServer.isLoading}
-                      type="submit"
+                      type="button"
+                      onClick={handleSubmit}
                       size="2"
                     >
                       Create

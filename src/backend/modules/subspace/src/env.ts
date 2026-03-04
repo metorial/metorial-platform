@@ -1,5 +1,5 @@
-import { createValidatedEnv } from '@metorial/env';
-import { v } from '@metorial/validation';
+import { createValidatedEnv } from '@lowerdeck/env';
+import { v } from '@lowerdeck/validation';
 
 export let env = createValidatedEnv({
   subspace: {

@@ -1,13 +1,8 @@
 import { Paths } from '@metorial/frontend-config';
-import {
-  useApiKeys,
-  useCurrentInstance,
-  useRevealedApiKey,
-  useSession
-} from '@metorial/state';
+import { useCurrentInstance, useSession } from '@metorial/state';
 import { Button, CenteredSpinner, Error, theme } from '@metorial/ui';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { BreathingIndicator } from './breathing';
@@ -75,47 +70,67 @@ type ExplorerRuntimeWindow = Window & {
   METORIAL_MCP_API_URL?: string;
 };
 
+type ExplorerConfigMessage = {
+  type: 'metorial.explorer.config';
+  payload: {
+    transport_type: 'sse' | 'streamable-http';
+    sse_url: string;
+    bearer_token?: string;
+  };
+};
+
 export let InspectorFrame = ({ sessionId }: { sessionId: string }) => {
   let instance = useCurrentInstance();
   let session = useSession(instance.data?.id, sessionId);
-
-  let apiKeys = useApiKeys(
-    instance.data ? { type: 'instance_access_token', instanceId: instance.data.id } : null
-  );
-
-  let firstActiveKeyId = apiKeys.data?.find(
-    k => k.status === 'active' && k.type === 'instance_access_token_secret'
-  )?.id;
-
-  let revealedKey = useRevealedApiKey({ apiKeyId: firstActiveKeyId });
+  let iframeRef = useRef<HTMLIFrameElement | null>(null);
+  let runtimeWindow = window as ExplorerRuntimeWindow;
 
   let [isLoading, setIsLoading] = useState(true);
 
-  let url = useMemo(() => {
+  let explorerConfig = useMemo(() => {
     if (!session.data || !instance.data) return undefined;
 
-    let runtimeWindow = window as ExplorerRuntimeWindow;
-    let explorerBase =
-      runtimeWindow.METORIAL_EXPLORER_URL ?? import.meta.env.VITE_EXPLORER_URL!;
-    let url = new URL(explorerBase);
-
     let mcpApiUrl = runtimeWindow.METORIAL_MCP_API_URL ?? import.meta.env.VITE_MCP_API_URL;
-
     let connectionUrl = session.data.connectionUrl ?? `${mcpApiUrl}/mcp/${session.data.id}`;
     if (!connectionUrl) return undefined;
 
-    url.searchParams.set('sse_url', connectionUrl);
+    return {
+      transport_type: 'streamable-http' as const,
+      sse_url: connectionUrl,
+      bearer_token:
+        ((session.data as any).clientSecret ?? (session.data as any).client_secret) || undefined
+    };
+  }, [session.data, instance.data]);
+
+  let url = useMemo(() => {
+    let explorerBase =
+      runtimeWindow.METORIAL_EXPLORER_URL ?? import.meta.env.VITE_EXPLORER_URL!;
+    let url = new URL(explorerBase);
     url.searchParams.set('transport_type', 'streamable-http');
     url.searchParams.set('direction', 'vertical');
-
-    if (revealedKey.value) {
-      url.searchParams.set('bearer_token', revealedKey.value);
-    }
-
     url.hash = 'tools';
-
     return url.toString();
-  }, [session.data, instance.data, revealedKey.value]);
+  }, []);
+
+  useEffect(() => {
+    if (!iframeRef.current?.contentWindow || !explorerConfig) return;
+
+    let targetOrigin = new URL(url).origin;
+    let message: ExplorerConfigMessage = {
+      type: 'metorial.explorer.config',
+      payload: explorerConfig
+    };
+
+    let tries = 0;
+    let timer = window.setInterval(() => {
+      if (!iframeRef.current?.contentWindow) return;
+      iframeRef.current.contentWindow.postMessage(message, targetOrigin);
+      tries++;
+      if (tries >= 10) window.clearInterval(timer);
+    }, 250);
+
+    return () => window.clearInterval(timer);
+  }, [explorerConfig, url]);
 
   let firstDeploymentId = session.data?.providers?.[0]?.deployment?.id;
 
@@ -171,7 +186,7 @@ export let InspectorFrame = ({ sessionId }: { sessionId: string }) => {
           <Center>
             <Error>{session.error?.message ?? 'Unable to load session'}</Error>
           </Center>
-        ) : session.isLoading || !url ? (
+        ) : session.isLoading || !url || !explorerConfig ? (
           <>
             <AnimatePresence>
               <Overlay>
@@ -181,7 +196,7 @@ export let InspectorFrame = ({ sessionId }: { sessionId: string }) => {
           </>
         ) : (
           <>
-            <Iframe src={url} onLoad={() => setIsLoading(false)} key={url} />
+            <Iframe ref={iframeRef} src={url} onLoad={() => setIsLoading(false)} key={url} />
 
             <AnimatePresence>
               {isLoading && (

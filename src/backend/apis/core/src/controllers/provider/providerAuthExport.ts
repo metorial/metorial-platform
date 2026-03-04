@@ -1,8 +1,8 @@
-import { badRequestError, ServiceError } from '@metorial/error';
+import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { Paginator } from '@lowerdeck/pagination';
+import { v } from '@lowerdeck/validation';
 import { subspaceProviderAuthExportService } from '@metorial/module-subspace';
-import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
-import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
@@ -116,7 +116,7 @@ export let providerAuthExportController = Controller.create(
           description: 'Exports authentication credentials from a provider.'
         }
       )
-      .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.auth:export'] }))
       .body(
         'default',
         v.object({

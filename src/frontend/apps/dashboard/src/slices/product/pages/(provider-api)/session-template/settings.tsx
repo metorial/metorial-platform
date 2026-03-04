@@ -1,4 +1,4 @@
-import { renderWithLoader } from '@metorial/data-hooks';
+import { renderWithLoader, useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
   useCurrentInstance,
@@ -20,9 +20,36 @@ export let SessionTemplateSettingsPage = () => {
   let { sessionTemplateId } = useParams();
   let template = useSessionTemplate(instance.data?.id, sessionTemplateId);
   let updateMutator = template.useUpdateMutator();
+  let form = useForm({
+    initialValues: {
+      name: template.data?.name ?? '',
+      description: template.data?.description ?? ''
+    },
+    updateInitialValues: true,
+    onSubmit: async () => {},
+    schema: yup =>
+      yup.object({
+        name: yup.string().required('Name is required'),
+        description: yup.string().defined()
+      })
+  });
 
-  let [name, setName] = useState('');
-  let [description, setDescription] = useState('');
+  let handleSubmit = async () => {
+    let name = form.values.name.trim();
+
+    if (!name) {
+      form.setFieldTouched('name', true);
+      form.setFieldError('name', 'Name is required');
+      return;
+    }
+
+    form.setFieldError('name', undefined);
+
+    await updateMutator.mutate({
+      name,
+      description: form.values.description || undefined
+    });
+  };
 
   return renderWithLoader({ template })(({ template }) => (
     <>
@@ -30,36 +57,29 @@ export let SessionTemplateSettingsPage = () => {
         title="Template Settings"
         description="Modify the settings of this session template."
       >
-        <Input
-          label="Name"
-          value={name || template.data.name || ''}
-          onChange={e => setName(e.target.value)}
-        />
+        <form
+          onSubmit={e => {
+            e.preventDefault();
+            handleSubmit();
+          }}
+        >
+          <Input label="Name" {...form.getFieldProps('name')} />
+          <form.RenderError field="name" />
 
-        <Spacer size={15} />
+          <Spacer size={15} />
 
-        <Input
-          label="Description"
-          value={description || template.data.description || ''}
-          onChange={e => setDescription(e.target.value)}
-        />
+          <Input label="Description" {...form.getFieldProps('description')} />
 
-        <Spacer size={15} />
+          <Spacer size={15} />
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-          <Button
-            size="2"
-            onClick={() =>
-              updateMutator.mutate({
-                name: name || template.data.name || undefined,
-                description: description || template.data.description || undefined
-              })
-            }
-            loading={updateMutator.isPending}
-          >
-            Save
-          </Button>
-        </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <Button size="2" type="button" onClick={handleSubmit} loading={updateMutator.isPending}>
+              Save
+            </Button>
+          </div>
+
+          <updateMutator.RenderError />
+        </form>
       </Box>
 
       <Spacer size={20} />

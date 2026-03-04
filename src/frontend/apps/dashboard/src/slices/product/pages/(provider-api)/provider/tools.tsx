@@ -1,3 +1,6 @@
+import {
+  DashboardInstanceProvidersToolsListOutput
+} from '@metorial/dashboard-sdk';
 import { renderWithPagination } from '@metorial/data-hooks';
 import { useCurrentInstance, useProviderTools } from '@metorial/state';
 import { AccordionSingle, Badge, Flex, Spacer, Text, theme } from '@metorial/ui';
@@ -5,6 +8,7 @@ import { RiArrowDownSLine } from '@remixicon/react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useState } from 'react';
 import { styled } from 'styled-components';
+import { getJsonSchema, JsonSchemaEnvelope } from '../../../lib/jsonSchema';
 import { useProviderVersionContext } from './_layout';
 
 type SchemaProperty = {
@@ -134,22 +138,26 @@ let getCollapsibleLabel = (prop: SchemaProperty): string => {
   return 'Properties';
 };
 
-let getToolModeBadge = (tool: { name: string; description: string | null }) => {
-  let haystack = `${tool.name} ${tool.description ?? ''}`.toLowerCase();
+let getToolModeBadges = (tool: {
+  tags?:
+    | {
+        destructive?: boolean | null;
+        readOnly?: boolean | null;
+        read_only?: boolean | null;
+      }
+    | null;
+}) => {
+  let badges: { label: string; color: 'red' | 'green' }[] = [];
 
-  if (/(delete|destroy|remove|revoke|wipe|purge|reset|terminate)\b/.test(haystack)) {
-    return { label: 'Destructive', color: 'red' as const };
+  if (tool.tags?.destructive) {
+    badges.push({ label: 'Destructive', color: 'red' });
   }
 
-  if (
-    /(create|update|edit|set|write|insert|add|submit|send|upload|post|put|patch|enable|disable)\b/.test(
-      haystack
-    )
-  ) {
-    return { label: 'Write', color: 'orange' as const };
+  if (tool.tags?.readOnly || tool.tags?.read_only) {
+    badges.push({ label: 'Read-only', color: 'green' });
   }
 
-  return { label: 'Read-only', color: 'green' as const };
+  return badges;
 };
 
 let PropertyList = ({
@@ -336,6 +344,7 @@ export let ProviderToolsPage = () => {
   let instance = useCurrentInstance();
   let { selectedVersionId } = useProviderVersionContext();
   let tools = useProviderTools(instance.data?.id, selectedVersionId);
+  type ProviderTool = DashboardInstanceProvidersToolsListOutput['items'][number];
 
   return renderWithPagination(tools)(tools => (
     <>
@@ -349,14 +358,14 @@ export let ProviderToolsPage = () => {
 
       <Flex direction="column" gap={4}>
         {tools.data.items.map(
-          (tool: {
-            id: string;
-            name: string;
-            description: string | null;
-            inputSchema: Record<string, unknown> | null;
-            outputSchema: Record<string, unknown> | null;
-          }) => {
-            let modeBadge = getToolModeBadge(tool);
+          (tool: ProviderTool) => {
+            let modeBadges = getToolModeBadges(tool);
+            let inputSchema = getJsonSchema(
+              tool.inputSchema as JsonSchemaEnvelope | Record<string, unknown> | null
+            );
+            let outputSchema = getJsonSchema(
+              tool.outputSchema as JsonSchemaEnvelope | Record<string, unknown> | null
+            );
 
             return (
               <AccordionSingle
@@ -366,9 +375,11 @@ export let ProviderToolsPage = () => {
                     <Text size="2" weight="strong">
                       {tool.name}
                     </Text>
-                    <Badge color={modeBadge.color} size="1">
-                      {modeBadge.label}
-                    </Badge>
+                    {modeBadges.map(modeBadge => (
+                      <Badge key={modeBadge.label} color={modeBadge.color} size="1">
+                        {modeBadge.label}
+                      </Badge>
+                    ))}
                   </Flex>
                 }
               >
@@ -380,19 +391,19 @@ export let ProviderToolsPage = () => {
                   )}
 
                   <Flex gap={32} style={{ flexWrap: 'wrap' }}>
-                    {tool.inputSchema && (
+                    {inputSchema && (
                       <div style={{ flex: 1, minWidth: 280 }}>
-                        <SchemaViewer schema={tool.inputSchema} title="Input Parameters" />
+                        <SchemaViewer schema={inputSchema} title="Input Parameters" />
                       </div>
                     )}
-                    {tool.outputSchema && (
+                    {outputSchema && (
                       <div style={{ flex: 1, minWidth: 280 }}>
-                        <SchemaViewer schema={tool.outputSchema} title="Output" />
+                        <SchemaViewer schema={outputSchema} title="Output" />
                       </div>
                     )}
                   </Flex>
 
-                  {!tool.inputSchema && !tool.outputSchema && (
+                  {!inputSchema && !outputSchema && (
                     <Text size="1" color="gray600">
                       No schema defined.
                     </Text>

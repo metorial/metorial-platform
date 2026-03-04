@@ -1,5 +1,8 @@
-import { badRequestError, ServiceError } from '@metorial/error';
-import { subspaceBucketService, subspaceCustomProviderService } from '@metorial/module-subspace';
+import { badRequestError, ServiceError } from '@lowerdeck/error';
+import {
+  subspaceBucketService,
+  subspaceCustomProviderService
+} from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
@@ -40,7 +43,7 @@ export let customProviderCodeController = Controller.create(
           description: 'Get a token to access the code editor for a custom provider.'
         }
       )
-      .use(checkAccess({ possibleScopes: ['instance.provider:write'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.custom.code:write'] }))
       .output(bucketEditorTokenPresenter)
       .do(async ctx => {
         let draftBucket = ctx.customProvider.draftBucket;

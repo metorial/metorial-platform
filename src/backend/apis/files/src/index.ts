@@ -1,8 +1,8 @@
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { badRequestError, forbiddenError, ServiceError } from '@lowerdeck/error';
+import { cors, createHono } from '@lowerdeck/hono';
 import { authenticate } from '@metorial/auth';
 import { getConfig } from '@metorial/config';
-import { badRequestError, forbiddenError, ServiceError } from '@metorial/error';
-import { cors, createHono } from '@metorial/hono';
 import { generatePlainId } from '@metorial/id';
 import { fileService, purposeSlugs } from '@metorial/module-file';
 import { organizationService } from '@metorial/module-organization';
@@ -31,7 +31,10 @@ export let fileApi = createHono()
   .post('/files', async c => {
     let { auth } = await authenticate(c.req.raw, new URL(c.req.url));
 
-    if (auth.type == 'machine' && auth.restrictions.type == 'instance') {
+    if (
+      auth.type == 'fine_grained' ||
+      (auth.type == 'machine' && auth.restrictions.type == 'instance')
+    ) {
       throw new ServiceError(
         forbiddenError({
           message: 'Instance API keys are not allowed to upload files'

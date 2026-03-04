@@ -1,5 +1,5 @@
 // @ts-nocheck - Dynamic imports used in tests are supported by vitest but not by tsc with current module settings
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock dependencies before importing the module
 vi.mock('@metorial/queue', () => ({
@@ -9,7 +9,7 @@ vi.mock('@metorial/queue', () => ({
   }))
 }));
 
-vi.mock('@metorial/service', () => ({
+vi.mock('@lowerdeck/service', () => ({
   Service: {
     create: vi.fn((name: string, factory: () => any) => ({
       build: vi.fn(() => factory())
@@ -34,8 +34,8 @@ vi.mock('@metorial/db', () => ({
   OrganizationActor: {}
 }));
 
-import { eventQueueProcessor, ingestEventService } from '../src/index';
 import { combineQueueProcessors } from '@metorial/queue';
+import { eventQueueProcessor, ingestEventService } from '../src/index';
 
 describe('Event Module Exports', () => {
   beforeEach(() => {

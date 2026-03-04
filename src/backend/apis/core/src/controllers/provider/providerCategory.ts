@@ -1,8 +1,8 @@
-import { badRequestError, ServiceError } from '@metorial/error';
+import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { Paginator } from '@lowerdeck/pagination';
+import { v } from '@lowerdeck/validation';
 import { subspaceProviderListingCategoryService } from '@metorial/module-subspace';
-import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
-import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
@@ -37,7 +37,7 @@ export let providerCategoryController = Controller.create(
         name: 'List provider categories',
         description: 'Returns a paginated list of provider categories.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.category:read'] }))
       .outputList(providerCategoryPresenter)
       .query(
         'default',
@@ -77,7 +77,7 @@ export let providerCategoryController = Controller.create(
         name: 'Get provider category',
         description: 'Retrieves a specific provider category by ID.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.category:read'] }))
       .output(providerCategoryPresenter)
       .do(async ctx => {
         return providerCategoryPresenter.present({ category: ctx.category });

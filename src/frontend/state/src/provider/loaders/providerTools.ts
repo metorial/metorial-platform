@@ -8,9 +8,11 @@ type ProviderToolsQuery = Omit<DashboardInstanceProvidersToolsListQuery, 'provid
 export let providerToolsLoader = createLoader({
   name: 'providerTools',
   parents: [],
-  fetch: (
+  fetch: async (
     i: { instanceId: string; providerVersionId: string } & ProviderToolsQuery
-  ) => withAuth(sdk => sdk.providers.tools.list(i.instanceId, i)),
+  ) => {
+    return await withAuth(sdk => sdk.providers.tools.list(i.instanceId, i));
+  },
   mutators: {}
 });
 
@@ -38,8 +40,9 @@ export let useProviderTools = (
 export let providerToolLoader = createLoader({
   name: 'providerTool',
   parents: [providerToolsLoader],
-  fetch: (i: { instanceId: string; providerToolId: string }) =>
-    withAuth(sdk => sdk.providers.tools.get(i.instanceId, i.providerToolId)),
+  fetch: async (i: { instanceId: string; providerToolId: string }) => {
+    return await withAuth(sdk => sdk.providers.tools.get(i.instanceId, i.providerToolId));
+  },
   mutators: {}
 });
 

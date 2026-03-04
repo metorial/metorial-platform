@@ -1,8 +1,8 @@
-import { badRequestError, ServiceError } from '@metorial/error';
+import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { Paginator } from '@lowerdeck/pagination';
+import { v, ValidationTypeValue } from '@lowerdeck/validation';
 import { subspaceCustomProviderService } from '@metorial/module-subspace';
-import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
-import { v, ValidationTypeValue } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
@@ -190,7 +190,7 @@ export let customProviderController = Controller.create(
         name: 'List custom providers',
         description: 'Returns a paginated list of custom providers.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.custom:read'] }))
       .outputList(subspaceCustomProviderPresenter)
       .query(
         'default',
@@ -245,7 +245,7 @@ export let customProviderController = Controller.create(
         name: 'Get custom provider',
         description: 'Retrieves a specific custom provider by ID.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.custom:read'] }))
       .output(subspaceCustomProviderPresenter)
       .do(async ctx => {
         return subspaceCustomProviderPresenter.present({
@@ -258,7 +258,7 @@ export let customProviderController = Controller.create(
         name: 'Create custom provider',
         description: 'Creates a new custom provider.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider:write'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.custom:write'] }))
       .body(
         'default',
         v.object({
@@ -278,7 +278,7 @@ export let customProviderController = Controller.create(
       .do(async ctx => {
         let customProvider = await subspaceCustomProviderService.create({
           instance: ctx.instance,
-          organizationActor: ctx.actor,
+          organizationActor: ctx.actor!,
           name: ctx.body.name,
           description: ctx.body.description,
           metadata: ctx.body.metadata,
@@ -296,7 +296,7 @@ export let customProviderController = Controller.create(
         name: 'Update custom provider',
         description: 'Updates a specific custom provider.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider:write'] }))
+      .use(checkAccess({ possibleScopes: ['instance.provider.custom:write'] }))
       .body(
         'default',
         v.object({
@@ -312,7 +312,7 @@ export let customProviderController = Controller.create(
       .do(async ctx => {
         let customProvider = await subspaceCustomProviderService.update({
           instance: ctx.instance,
-          organizationActor: ctx.actor,
+          organizationActor: ctx.actor!,
 
           customProviderId: ctx.customProvider.id,
           name: ctx.body.name,

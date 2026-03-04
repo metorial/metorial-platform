@@ -1,8 +1,8 @@
+import { slugify } from '@lowerdeck/slugify';
 import {
   MagicMcpServersGetOutput,
   MagicMcpTokensGetOutput
 } from '@metorial/consumer-sdk/src/gen/src/mt_2025_01_01_pulsar';
-import { slugify } from '@metorial/slugify';
 
 export let getCursorConnection = (
   server: MagicMcpServersGetOutput,

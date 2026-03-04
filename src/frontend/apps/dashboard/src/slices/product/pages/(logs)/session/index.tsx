@@ -1,16 +1,28 @@
-import { useCurrentInstance, useSession } from '@metorial/state';
-import { Text } from '@metorial/ui';
-import { useParams } from 'react-router-dom';
+import { Paths } from '@metorial/frontend-config';
+import {
+  useCurrentInstance,
+  useCurrentOrganization,
+  useCurrentProject
+} from '@metorial/state';
+import { Navigate, useParams } from 'react-router-dom';
 
 export let SessionPage = () => {
   let instance = useCurrentInstance();
+  let organization = useCurrentOrganization();
+  let project = useCurrentProject();
 
   let { sessionId } = useParams();
-  let session = useSession(instance.data?.id, sessionId);
+  if (!instance.data || !sessionId) return null;
 
   return (
-    <Text size="2" color="gray600">
-      Session events view has been removed. Use the provider session logs instead.
-    </Text>
+    <Navigate
+      replace
+      to={Paths.instance.providerSession(
+        organization.data,
+        project.data,
+        instance.data,
+        sessionId
+      )}
+    />
   );
 };

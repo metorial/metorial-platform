@@ -1,5 +1,5 @@
+import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
-import { v } from '@metorial/validation';
 import { sessionConnectionType } from '../../types';
 import { v1SessionParticipantPresenter } from './sessionParticipant';
 
