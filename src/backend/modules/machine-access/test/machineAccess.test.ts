@@ -14,7 +14,7 @@ vi.mock('@metorial/module-organization', () => ({
     createOrganizationActor: vi.fn().mockResolvedValue({ oid: 'actor-oid' })
   }
 }));
-vi.mock('@metorial/service', () => ({
+vi.mock('@lowerdeck/service', () => ({
   Service: {
     create: (_: string, factory: any) => ({
       build: () => factory()

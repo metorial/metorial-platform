@@ -1,7 +1,7 @@
-import { badRequestError, ServiceError } from '@metorial/error';
+import { v } from '@lowerdeck/validation';
+import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { userService } from '@metorial/module-user';
 import { Controller, Path } from '@metorial/rest';
-import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
 import { userGroup } from '../../middleware/userGroup';
 import { userPresenter } from '../../presenters';
@@ -65,7 +65,7 @@ export let dashboardUserController = Controller.create(
       )
       .output(userPresenter)
       .do(async ctx => {
-        if (ctx.auth.machineAccess) {
+        if (ctx.auth.type != 'user' || ctx.auth.machineAccess) {
           throw new ServiceError(
             badRequestError({
               message: 'Cannot delete user using API'

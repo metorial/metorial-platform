@@ -3,7 +3,7 @@ import {
   ProviderOauthSessionsListQuery
 } from '@metorial/consumer-sdk/src/gen/src/mt_2025_01_01_pulsar';
 import { createLoader, useMutation } from '@metorial/data-hooks';
-import { delay } from '@metorial/delay';
+import { delay } from '@lowerdeck/delay';
 import { useMemo } from 'react';
 import { openWindow } from '../../lib/openWindows';
 import { usePaginator } from '../lib/usePaginator';

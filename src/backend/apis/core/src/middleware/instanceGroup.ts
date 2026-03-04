@@ -1,4 +1,4 @@
-import { badRequestError, ServiceError } from '@metorial/error';
+import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { accessService } from '@metorial/module-access';
 // import { consumerAuthService, consumerProfileService } from '@metorial/module-consumer';
 import { Path } from '@metorial/rest';
@@ -12,6 +12,21 @@ export let instanceGroup = apiGroup.use(async ctx => {
     consumerProfile: undefined,
     accessTags: undefined
   };
+
+  if (ctx.auth.type == 'fine_grained' && ctx.auth.restrictions.type == 'instance') {
+    return {
+      type: 'fine_grained' as const,
+      instance: {
+        ...ctx.auth.restrictions.instance,
+        organization: ctx.auth.restrictions.organization
+      },
+      organization: ctx.auth.restrictions.organization,
+      project: ctx.auth.restrictions.instance.project,
+      accessTagGrants: ctx.auth.restrictions.accessTagGrants,
+      member: undefined,
+      ...consumerPlaceholder
+    };
+  }
 
   if (ctx.auth.type == 'machine' && ctx.auth.restrictions.type == 'instance') {
     let base = {
@@ -57,6 +72,7 @@ export let instanceGroup = apiGroup.use(async ctx => {
   }
 
   let instanceId = ctx.headers['metorial-instance-id'] ?? ctx.params.instanceId;
+
   if (!instanceId) {
     throw new ServiceError(
       badRequestError({

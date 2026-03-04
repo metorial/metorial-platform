@@ -1,4 +1,4 @@
-import { joinPaths } from '@metorial/join-paths';
+import { joinPaths } from '@lowerdeck/join-paths';
 
 export type EntityParam = { slug: string } | null | undefined;
 export type SubPages = (string | null | undefined | object)[];

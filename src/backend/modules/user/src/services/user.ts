@@ -1,14 +1,14 @@
-import { Context } from '@metorial/context';
-import { db, ID, User, withTransaction } from '@metorial/db';
 import {
   conflictError,
   forbiddenError,
   notFoundError,
   notImplementedError,
   ServiceError
-} from '@metorial/error';
+} from '@lowerdeck/error';
+import { Service } from '@lowerdeck/service';
+import { Context } from '@metorial/context';
+import { db, ID, User, withTransaction } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
-import { Service } from '@metorial/service';
 import { syncUserUpdateQueue } from '../queues/syncUserUpdate';
 
 class UserService {

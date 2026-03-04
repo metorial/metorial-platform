@@ -1,15 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { startOfDay, endOfDay, startOfHour, endOfHour } from 'date-fns';
 import type { UsageRecord } from '../src/db';
 
 // Mock dependencies
 import { vi } from 'vitest';
 
-vi.mock('@metorial/delay', () => ({
+vi.mock('@lowerdeck/delay', () => ({
   delay: vi.fn().mockResolvedValue(undefined)
 }));
 
-vi.mock('@metorial/sentry', () => ({
+vi.mock('@lowerdeck/sentry', () => ({
   getSentry: vi.fn(() => ({
     captureException: vi.fn()
   }))
@@ -39,7 +38,7 @@ vi.mock('mongoose', () => {
   };
 });
 
-import { ingestUsage, getUsageTimeline, UsageRecordSchema } from '../src/db';
+import { getUsageTimeline, ingestUsage, UsageRecordSchema } from '../src/db';
 
 describe('db', () => {
   describe('UsageRecordSchema', () => {

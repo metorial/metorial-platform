@@ -1,6 +1,6 @@
+import { v } from '@lowerdeck/validation';
 import { subspaceScmRepositoryService } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
-import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { scmAccountPreviewPresenter } from '../../presenters';

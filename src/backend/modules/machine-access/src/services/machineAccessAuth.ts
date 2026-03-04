@@ -1,8 +1,8 @@
+import { ServiceError, unauthorizedError } from '@lowerdeck/error';
+import { Service } from '@lowerdeck/service';
 import { UnifiedApiKey } from '@metorial/api-keys';
 import { Context } from '@metorial/context';
 import { db } from '@metorial/db';
-import { ServiceError, unauthorizedError } from '@metorial/error';
-import { Service } from '@metorial/service';
 import { differenceInMinutes } from 'date-fns';
 
 class MachineAccessAuthService {

@@ -1,5 +1,5 @@
+import { ValidationType } from '@lowerdeck/validation';
 import { useForm } from '@metorial/data-hooks';
-import { ValidationType } from '@metorial/validation';
 import { FormikConfig } from 'formik';
 import React from 'react';
 import * as Yup from 'yup';

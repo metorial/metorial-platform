@@ -1,4 +1,4 @@
-import { ServiceError, forbiddenError } from '@metorial/error';
+import { ServiceError, forbiddenError } from '@lowerdeck/error';
 import { apiGroup } from './apiGroup';
 
 export let userGroup = apiGroup.use(async ctx => {

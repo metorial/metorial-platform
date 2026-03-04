@@ -1,4 +1,4 @@
-import { Cases } from '@metorial/case';
+import { Cases } from '@lowerdeck/case';
 import { Scope } from './scopeValues';
 
 export type ScopeDefinition = {

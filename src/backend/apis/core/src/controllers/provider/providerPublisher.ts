@@ -1,8 +1,8 @@
-import { badRequestError, ServiceError } from '@metorial/error';
+import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { Paginator } from '@lowerdeck/pagination';
+import { v } from '@lowerdeck/validation';
 import { subspacePublisherService } from '@metorial/module-subspace';
-import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
-import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { publisherPresenter } from '../../presenters';

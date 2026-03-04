@@ -1,4 +1,4 @@
-import { memo } from '@metorial/memo';
+import { memo } from '@lowerdeck/memo';
 import { theme } from '../theme';
 import { ColorType, getColorKey, getForegroundColor } from '../theme/colors';
 import { linearGradient } from '../theme/gradient';

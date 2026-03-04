@@ -1,5 +1,9 @@
-import { capitalize } from '@metorial/case';
-import { ApiKeysCreateBody, ApiKeysGetOutput, ApiKeysUpdateBody } from '@metorial/dashboard-sdk';
+import { capitalize } from '@lowerdeck/case';
+import {
+  ApiKeysCreateBody,
+  ApiKeysGetOutput,
+  ApiKeysUpdateBody
+} from '@metorial/dashboard-sdk';
 import { renderWithLoader, useForm } from '@metorial/data-hooks';
 import { PageHeader } from '@metorial/layout';
 import { ApiKeysFilter, useCurrentOrganization, useRevealableApiKey } from '@metorial/state';

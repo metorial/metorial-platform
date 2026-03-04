@@ -1,5 +1,5 @@
+import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
-import { v } from '@metorial/validation';
 import { teamRolePermissionsType } from '../types';
 
 export let v1TeamRolePermissionsPresenter = Presenter.create(teamRolePermissionsType)

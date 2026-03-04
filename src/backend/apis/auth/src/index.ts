@@ -1,8 +1,8 @@
+import { cors, createHono, useRequestContext, useValidatedBody } from '@lowerdeck/hono';
+import { v } from '@lowerdeck/validation';
 import { getDashboardAuthCookie, setDashboardAuthCookie } from '@metorial/auth';
 import { Context } from '@metorial/context';
-import { cors, createHono, useRequestContext, useValidatedBody } from '@metorial/hono';
 import { userAuthService } from '@metorial/module-user';
-import { v } from '@metorial/validation';
 
 let removeCurrentSession = async (req: Request, context: Context) => {
   let currentSession = getDashboardAuthCookie(req);

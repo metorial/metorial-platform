@@ -1,5 +1,5 @@
+import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
-import { v } from '@metorial/validation';
 import { sessionParticipantType } from '../../types';
 
 export let v1SessionParticipantPresenter = Presenter.create(sessionParticipantType)

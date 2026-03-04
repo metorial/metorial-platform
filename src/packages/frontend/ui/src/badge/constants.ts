@@ -1,4 +1,4 @@
-import { memo } from '@metorial/memo';
+import { memo } from '@lowerdeck/memo';
 import { theme } from '..';
 import { ColorType, getColorKey } from '../theme/colors';
 

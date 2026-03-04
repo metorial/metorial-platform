@@ -443,37 +443,84 @@ const App = () => {
     setStdErrNotifications([]);
   };
 
+  type ExplorerConfigPayload = {
+    transport_type: 'sse' | 'streamable-http';
+    sse_url: string;
+    bearer_token?: string;
+  };
+
   let autoConnectedRef = useRef(false);
   let connectMcpServerRef = useRef(connectMcpServer);
   connectMcpServerRef.current = connectMcpServer;
-  useEffect(() => {
+
+  let applyAutoConnectConfig = (input: ExplorerConfigPayload) => {
     if (autoConnectedRef.current) return;
     autoConnectedRef.current = true;
 
+    setTransportType(input.transport_type);
+    setSseUrl(input.sse_url);
+    setBearerToken(input.bearer_token ?? '');
+
+    setTimeout(() => {
+      connectMcpServerRef.current();
+    }, 100);
+  };
+
+  useEffect(() => {
     let search = new URLSearchParams(window.location.search);
 
     let transportType = search.get('transport_type');
     let sseUrl = search.get('sse_url');
     let bearerToken = search.get('bearer_token');
 
-    if (transportType && sseUrl) {
-      console.log('Auto-connecting to MCP server with URL parameters', transportType);
+    if (
+      sseUrl &&
+      (transportType === 'sse' || transportType === 'streamable-http')
+    ) {
+      applyAutoConnectConfig({
+        transport_type: transportType,
+        sse_url: sseUrl,
+        bearer_token: bearerToken ?? undefined
+      });
+    }
+  }, []);
 
-      setTransportType(transportType as 'sse' | 'streamable-http');
-      setSseUrl(sseUrl);
+  useEffect(() => {
+    let onMessage = (event: MessageEvent) => {
+      if (!event.data || typeof event.data !== 'object') return;
 
-      if (bearerToken) {
-        setBearerToken(bearerToken);
+      let data = event.data as {
+        type?: string;
+        payload?: {
+          transport_type?: string;
+          sse_url?: string;
+          bearer_token?: string;
+        };
+      };
+
+      if (data.type !== 'metorial.explorer.config' || !data.payload) return;
+
+      let transportType = data.payload.transport_type;
+      let sseUrl = data.payload.sse_url;
+      let bearerToken = data.payload.bearer_token;
+
+      if (
+        (transportType !== 'sse' && transportType !== 'streamable-http') ||
+        typeof sseUrl !== 'string' ||
+        sseUrl.length === 0
+      ) {
+        return;
       }
 
-      setTimeout(() => {
-        connectMcpServerRef.current();
-      }, 100);
+      applyAutoConnectConfig({
+        transport_type: transportType,
+        sse_url: sseUrl,
+        bearer_token: typeof bearerToken === 'string' ? bearerToken : undefined
+      });
+    };
 
-      console.log(
-        `Connected to MCP server with transportType: ${transportType}, sseUrl: ${sseUrl}, bearerToken: ${bearerToken}`
-      );
-    }
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
   }, []);
 
   // if (window.location.pathname === '/oauth/callback') {

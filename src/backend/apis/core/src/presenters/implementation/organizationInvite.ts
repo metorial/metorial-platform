@@ -1,6 +1,6 @@
+import { v } from '@lowerdeck/validation';
 import { getConfig } from '@metorial/config';
 import { Presenter } from '@metorial/presenter';
-import { v } from '@metorial/validation';
 import { organizationInviteType } from '../types';
 import { v1OrganizationPresenter } from './organization';
 import { v1OrganizationActorPresenter } from './organizationActor';

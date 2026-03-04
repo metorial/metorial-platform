@@ -1,8 +1,8 @@
-import { badRequestError, ServiceError } from '@metorial/error';
+import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { Paginator } from '@lowerdeck/pagination';
+import { v } from '@lowerdeck/validation';
 import { subspaceCustomProviderVersionService } from '@metorial/module-subspace';
-import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
-import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
@@ -159,7 +159,7 @@ export let customProviderVersionController = Controller.create(
       .do(async ctx => {
         let customProviderVersion = await subspaceCustomProviderVersionService.create({
           instance: ctx.instance,
-          organizationActor: ctx.actor,
+          organizationActor: ctx.actor!,
           customProviderId: ctx.body.custom_provider_id,
           from: mapCustomProviderFrom(ctx.body.from),
           config: ctx.body.config

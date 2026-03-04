@@ -1,7 +1,7 @@
+import { v } from '@lowerdeck/validation';
 import { instanceService } from '@metorial/module-organization';
 import { usageService } from '@metorial/module-usage';
 import { Controller, Path } from '@metorial/rest';
-import { v } from '@metorial/validation';
 import { isDashboardGroup } from '../../middleware/isDashboard';
 import { organizationGroup } from '../../middleware/organizationGroup';
 import { usagePresenter } from '../../presenters';

@@ -1,6 +1,4 @@
-import {
-  DashboardInstanceProviderRunsListQuery
-} from '@metorial/dashboard-sdk';
+import { DashboardInstanceProviderRunsListQuery } from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
@@ -51,9 +49,7 @@ export let useProviderRuns = (
 ) => {
   let data = usePaginator(pagination =>
     providerRunsLoader.use(
-      instanceId && sessionId
-        ? { ...pagination, ...query, instanceId, sessionId }
-        : null
+      instanceId && sessionId ? { ...pagination, ...query, instanceId, sessionId } : null
     )
   );
 

@@ -1,6 +1,6 @@
 import { ApolloServerErrorCode } from '@apollo/server/errors';
-import { internalServerError, isServiceError, ServiceError } from '@metorial/error';
-import { getSentry } from '@metorial/sentry';
+import { getSentry } from '@lowerdeck/sentry';
+import { internalServerError, isServiceError, ServiceError } from '@lowerdeck/error';
 import { GraphQLError } from 'graphql';
 
 let Sentry = getSentry();

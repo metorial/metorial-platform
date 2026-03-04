@@ -1,4 +1,4 @@
-import { createHono } from '@metorial/hono';
+import { createHono } from '@lowerdeck/hono';
 import { providerCategoriesController } from './controllers/providerCategories';
 import { providerCollectionsController } from './controllers/providerCollections';
 import { providerListingsController } from './controllers/providerListings';

@@ -1,4 +1,4 @@
-import { ServiceError } from '@metorial/error';
+import { ServiceError } from '@lowerdeck/error';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { apiKeyService } from '../src/services/apiKey';
 
@@ -28,7 +28,7 @@ vi.mock('@metorial/db', () => ({
   addAfterTransactionHook: vi.fn(),
   ID: { generateId: vi.fn().mockResolvedValue('mock-id') }
 }));
-vi.mock('@metorial/service', () => ({
+vi.mock('@lowerdeck/service', () => ({
   Service: { create: (_: string, fn: any) => ({ build: () => fn() }) }
 }));
 vi.mock('@metorial/api-keys', () => ({
@@ -42,7 +42,7 @@ vi.mock('@metorial/api-keys', () => ({
 vi.mock('@metorial/config', () => ({
   getConfig: () => ({ urls: { apiUrl: 'http://api' } })
 }));
-vi.mock('@metorial/hash', () => ({
+vi.mock('@lowerdeck/hash', () => ({
   Hash: { sha512: vi.fn(() => Promise.resolve('sha512')) }
 }));
 vi.mock('@metorial/fabric', () => ({
@@ -55,7 +55,7 @@ vi.mock('../src/services/machineAccess', () => ({
     deleteMachineAccess: vi.fn(() => Promise.resolve())
   }
 }));
-vi.mock('@metorial/pagination', () => ({
+vi.mock('@lowerdeck/pagination', () => ({
   Paginator: { create: (fn: any) => fn({ prisma: (cb: any) => cb({}) }) }
 }));
 

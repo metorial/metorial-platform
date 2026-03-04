@@ -1,13 +1,15 @@
-import { introspectType, ValidationType } from '@metorial/validation';
+import { introspectType, ValidationType } from '@lowerdeck/validation';
 
 export interface PresenterContext {
-  apiVersion: 'mt_2025_01_01_dashboard' | 'mt_2026_01_01_magnetar';
+  // instance: Instance;
+  apiVersion: 'mt_2026_01_01_magnetar' | 'mt_2025_01_01_dashboard';
   accessType:
     | 'instance_secret'
     | 'instance_publishable'
     | 'organization_management'
     | 'user_auth_token'
-    | 'event_system';
+    | 'event_system'
+    | 'fine_grained_token';
 }
 
 export interface PresenterResult<Output extends {} = {}> {
@@ -166,27 +168,18 @@ export class PresenterBuilder<Type extends PresentableType<any, any>, Output ext
   }
 }
 
-export type PresenterOrNotAvailable<Type extends PresentableType<any, any>> = Presenter<
-  Type,
-  any
->;
-
 export let declarePresenter = <Type extends PresentableType<any, any>>(
   type: Type,
   presenters: {
-    mt_2025_01_01_dashboard?: PresenterOrNotAvailable<Type>;
-    mt_2026_01_01_magnetar?: PresenterOrNotAvailable<Type>;
+    mt_2026_01_01_magnetar: Presenter<Type, any>;
+    mt_2025_01_01_dashboard: Presenter<Type, any>;
   }
 ) => ({
   type,
   present:
     (input: GetTypeOfPresentable<Type>) =>
-    (context: PresenterContext): PresenterResult => {
-      let presenter = (presenters as any)[context.apiVersion];
-      return presenter.present(input, context);
-    },
-  introspect: ({ apiVersion }: { apiVersion: string }) => {
-    let presenter = (presenters as any)[apiVersion];
-    return presenter.introspect();
-  }
+    (context: PresenterContext): PresenterResult =>
+      presenters[context.apiVersion].present(input, context),
+  introspect: ({ apiVersion }: { apiVersion: string }) =>
+    (presenters as any)[apiVersion].introspect()
 });

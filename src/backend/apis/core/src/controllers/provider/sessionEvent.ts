@@ -1,30 +1,44 @@
-import { badRequestError, ServiceError } from '@metorial/error';
+import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { Paginator } from '@lowerdeck/pagination';
+import { v } from '@lowerdeck/validation';
 import { subspaceSessionEventService } from '@metorial/module-subspace';
-import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
-import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
+import {
+  constrainFineGrainedSessionQuery,
+  getFineGrainedAllowedSessionIds,
+  requireFineGrainedSessionFromResource
+} from '../../middleware/checkFineGrainedSessionAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { subspaceSessionEventPresenter } from '../../presenters';
 
-let sessionEventGroup = instanceGroup.use(async ctx => {
-  if (!ctx.params.sessionEventId) {
-    throw new ServiceError(
-      badRequestError({
-        message: 'sessionEventId is required',
-        description: 'The sessionEventId path parameter is required.'
-      })
-    );
-  }
+let sessionEventGroup = instanceGroup
+  .use(async ctx => {
+    if (!ctx.params.sessionEventId) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'sessionEventId is required',
+          description: 'The sessionEventId path parameter is required.'
+        })
+      );
+    }
 
-  let sessionEvent = await subspaceSessionEventService.get({
-    instance: ctx.instance,
-    sessionEventId: ctx.params.sessionEventId
-  });
+    let sessionEvent = await subspaceSessionEventService.get({
+      instance: ctx.instance,
+      sessionEventId: ctx.params.sessionEventId
+    });
 
-  return { sessionEvent };
-});
+    return { sessionEvent };
+  })
+  .use(
+    requireFineGrainedSessionFromResource(
+      ctx =>
+        ctx.sessionEvent?.sessionId ??
+        ctx.sessionEvent?.session_id ??
+        ctx.sessionEvent?.session?.id
+    )()
+  );
 
 export let sessionEventController = Controller.create(
   {
@@ -38,7 +52,13 @@ export let sessionEventController = Controller.create(
         name: 'List session events',
         description: 'Returns a paginated list of events for a session.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.provider.session:read'],
+          fineGrainedPolicy: 'allow'
+        })
+      )
+      .use(constrainFineGrainedSessionQuery('session_id')())
       .outputList(subspaceSessionEventPresenter)
       .query(
         'default',
@@ -74,6 +94,7 @@ export let sessionEventController = Controller.create(
       .do(async ctx => {
         let paginator = await subspaceSessionEventService.list({
           instance: ctx.instance,
+          accessTagSessionIds: getFineGrainedAllowedSessionIds(ctx),
           allowDeleted: false,
           types: normalizeArrayParam(ctx.query.type),
           ids: normalizeArrayParam(ctx.query.id),
@@ -97,7 +118,12 @@ export let sessionEventController = Controller.create(
         name: 'Get session event',
         description: 'Retrieves a specific event from a session.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.provider.session:read'],
+          fineGrainedPolicy: 'allow'
+        })
+      )
       .output(subspaceSessionEventPresenter)
       .do(async ctx => {
         return subspaceSessionEventPresenter.present({

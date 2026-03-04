@@ -1,4 +1,4 @@
-import { v } from '@metorial/validation';
+import { v } from '@lowerdeck/validation';
 
 export let deploymentValidator = v.union([
   v.object({

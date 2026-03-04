@@ -5,11 +5,11 @@ vi.mock('@metorial/queue', () => ({
   combineQueueProcessors: vi.fn(processors => processors)
 }));
 
-vi.mock('@metorial/delay', () => ({
+vi.mock('@lowerdeck/delay', () => ({
   delay: vi.fn().mockResolvedValue(undefined)
 }));
 
-vi.mock('@metorial/sentry', () => ({
+vi.mock('@lowerdeck/sentry', () => ({
   getSentry: vi.fn(() => ({
     captureException: vi.fn()
   }))
@@ -37,7 +37,7 @@ vi.mock('mongoose', () => {
   };
 });
 
-import { usageService, usageQueueProcessor } from '../src/index';
+import { usageQueueProcessor, usageService } from '../src/index';
 
 describe('index', () => {
   it('should export usageService from services', () => {

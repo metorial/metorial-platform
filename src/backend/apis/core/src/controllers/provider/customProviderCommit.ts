@@ -1,8 +1,8 @@
-import { badRequestError, ServiceError } from '@metorial/error';
+import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { Paginator } from '@lowerdeck/pagination';
+import { v } from '@lowerdeck/validation';
 import { subspaceCustomProviderCommitService } from '@metorial/module-subspace';
-import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
-import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
@@ -175,7 +175,7 @@ export let customProviderCommitController = Controller.create(
 
         let customProviderCommit = await subspaceCustomProviderCommitService.create({
           instance: ctx.instance,
-          organizationActor: ctx.actor,
+          organizationActor: ctx.actor!,
           message: ctx.body.message,
           action
         });

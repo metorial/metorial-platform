@@ -1,5 +1,5 @@
+import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
-import { v } from '@metorial/validation';
 import { customProviderDeploymentLogsType, customProviderDeploymentType } from '../../types';
 import { v1ActorPreviewPresenter } from './actorPreview';
 import { v1BucketPresenter } from './bucket';

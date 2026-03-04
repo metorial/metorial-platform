@@ -40,10 +40,9 @@ export class MetorialSessionsErrorGroupsEndpoint {
   }
 
   /**
-   * @name List session error groups
-   * @description Returns a paginated list of error groups for a session.
+   * @name List all session error groups
+   * @description Returns a paginated list of error groups across all sessions.
    *
-   * @param `sessionId` - string
    * @param `query` - DashboardInstanceSessionsErrorGroupsListQuery
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceSessionsErrorGroupsListOutput
@@ -51,11 +50,10 @@ export class MetorialSessionsErrorGroupsEndpoint {
    * @see https://metorial.com/docs
    */
   list(
-    sessionId: string,
     query?: DashboardInstanceSessionsErrorGroupsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionsErrorGroupsListOutput> {
-    let path = `sessions/${sessionId}/error-groups`;
+    let path = 'session-error-groups';
 
     let request = {
       path,
@@ -73,9 +71,8 @@ export class MetorialSessionsErrorGroupsEndpoint {
 
   /**
    * @name Get session error group
-   * @description Retrieves a specific error group for a session.
+   * @description Retrieves a specific error group by ID across all sessions.
    *
-   * @param `sessionId` - string
    * @param `sessionErrorGroupId` - string
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceSessionsErrorGroupsGetOutput
@@ -83,11 +80,10 @@ export class MetorialSessionsErrorGroupsEndpoint {
    * @see https://metorial.com/docs
    */
   get(
-    sessionId: string,
     sessionErrorGroupId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionsErrorGroupsGetOutput> {
-    let path = `sessions/${sessionId}/error-groups/${sessionErrorGroupId}`;
+    let path = `session-error-groups/${sessionErrorGroupId}`;
 
     let request = {
       path,

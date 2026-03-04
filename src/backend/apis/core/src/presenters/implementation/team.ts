@@ -1,5 +1,5 @@
+import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
-import { v } from '@metorial/validation';
 import { teamType } from '../types';
 import { v1ProjectPresenter } from './project';
 import { v1TeamRolePresenter } from './teamRole';

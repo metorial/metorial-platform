@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('@metorial/env', () => ({
+vi.mock('@lowerdeck/env', () => ({
   createValidatedEnv: vi.fn((schema: any) => {
     return {
       db: {
@@ -10,7 +10,7 @@ vi.mock('@metorial/env', () => ({
   })
 }));
 
-vi.mock('@metorial/validation', () => ({
+vi.mock('@lowerdeck/validation', () => ({
   v: {
     optional: vi.fn((validator: any) => validator),
     string: vi.fn(() => 'string')

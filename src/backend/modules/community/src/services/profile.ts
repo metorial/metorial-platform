@@ -1,6 +1,6 @@
+import { Service } from '@lowerdeck/service';
+import { createSlugGenerator } from '@lowerdeck/slugify';
 import { db, ID, Organization, OrganizationActor, Profile, User } from '@metorial/db';
-import { Service } from '@metorial/service';
-import { createSlugGenerator } from '@metorial/slugify';
 
 let ensureProfileSlug = createSlugGenerator(
   async slug => !(await db.profile.findFirst({ where: { slug } }))
@@ -125,8 +125,6 @@ class ProfileService {
       }
     });
   }
-
-
 }
 
 export let profileService = Service.create(

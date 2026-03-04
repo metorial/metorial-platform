@@ -1,6 +1,6 @@
+import { v } from '@lowerdeck/validation';
 import { getImageUrl } from '@metorial/db';
 import { Presenter } from '@metorial/presenter';
-import { v } from '@metorial/validation';
 import { publisherType } from '../../types';
 
 export let v1PublisherPresenter = Presenter.create(publisherType)

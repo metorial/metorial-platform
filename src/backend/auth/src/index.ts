@@ -1,9 +1,9 @@
 import { extractToken } from '@metorial/bearer';
 import { getConfig } from '@metorial/config';
 import { Context } from '@metorial/context';
-import { ServiceError, unauthorizedError } from '@metorial/error';
-import { updateExecutionContext } from '@metorial/execution-context';
-import { parseForwardedFor } from '@metorial/forwarded-for';
+import { ServiceError, unauthorizedError } from '@lowerdeck/error';
+import { updateExecutionContext } from '@lowerdeck/execution-context';
+import { parseForwardedFor } from '@lowerdeck/forwarded-for';
 import { authenticationService } from '@metorial/module-access';
 import * as Cookies from 'cookie';
 import http from 'node:http';
@@ -75,9 +75,14 @@ export let authenticate = async (req: Request, url: URL) => {
   );
 
   await updateExecutionContext({
-    apiKeyId: auth.type == 'machine' ? auth.apiKey.id : undefined,
+    apiKeyId:
+      auth.type == 'machine'
+        ? auth.apiKey.id
+        : auth.type == 'fine_grained'
+          ? auth.fineGrainedKey.id
+          : undefined,
     userId: auth.type == 'user' ? auth.user.id : undefined,
-    machineAccessId: auth.machineAccess?.id,
+    machineAccessId: auth.type == 'machine' ? auth.machineAccess.id : undefined,
     ip: context.ip,
     userAgent: context.ua ?? 'unknown'
   });

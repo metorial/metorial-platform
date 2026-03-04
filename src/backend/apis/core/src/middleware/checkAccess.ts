@@ -1,5 +1,5 @@
 import { Instance, Organization, OrganizationMember } from '@metorial/db';
-import { badRequestError, ServiceError } from '@metorial/error';
+import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { accessService, Scope } from '@metorial/module-access';
 import { teamService } from '@metorial/module-organization';
 import { apiGroup } from './apiGroup';
@@ -9,11 +9,13 @@ export let checkAccess = apiGroup.createMiddleware(
     ctx,
     input: {
       possibleScopes: Scope[];
+      fineGrainedPolicy?: 'allow' | 'deny';
     }
   ) => {
     await accessService.checkAccess({
       authInfo: ctx.auth,
-      possibleScopes: input.possibleScopes
+      possibleScopes: input.possibleScopes,
+      fineGrainedPolicy: input.fineGrainedPolicy
     });
 
     if (ctx.auth.type == 'user' && 'instance' in ctx && ctx.instance) {

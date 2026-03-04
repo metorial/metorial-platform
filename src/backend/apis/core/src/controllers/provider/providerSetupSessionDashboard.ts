@@ -1,7 +1,7 @@
+import { Paginator } from '@lowerdeck/pagination';
+import { v } from '@lowerdeck/validation';
 import { subspaceProviderSetupSessionService } from '@metorial/module-subspace';
-import { Paginator } from '@metorial/pagination';
 import { Controller, Path } from '@metorial/rest';
-import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup } from '../../middleware/instanceGroup';

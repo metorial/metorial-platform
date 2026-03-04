@@ -1,6 +1,6 @@
+import { Service } from '@lowerdeck/service';
 import type { Instance, OrganizationActor } from '@metorial/db';
 import type { ProviderEventBase } from '@metorial/fabric';
-import { Service } from '@metorial/service';
 import { getActorForSubspace, getTenantForSubspace } from '../subspace';
 
 export type Tail<T extends any[]> = T extends [any, ...infer U] ? U : [];
@@ -181,7 +181,7 @@ export let createSubspaceService = <SubspaceController extends {}, Overrides ext
   let methodsTyped = {
     ...methodsObj,
     ...overRideMethods
-  } as SubspaceService<SubspaceController, {}>;
+  } as SubspaceService<SubspaceController, Overrides>;
 
   return Service.create('subspace', () => methodsTyped).build();
 };
@@ -202,7 +202,7 @@ export let createSubspacePublicService = <SubspaceController extends {}, Overrid
   let methodsTyped = {
     ...methodsObj,
     ...overRideMethods
-  } as SubspacePublicService<SubspaceController, {}>;
+  } as SubspacePublicService<SubspaceController, Overrides>;
 
   return Service.create('subspacePublic', () => methodsTyped).build();
 };
