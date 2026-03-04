@@ -1,0 +1,21 @@
+{
+  "name": "@metorial/module-search",
+  "version": "1.0.0",
+  "author": "Tobias Herber",
+  "license": "FSL-1.1",
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "vitest run --passWithNoTests",
+    "lint": "prettier src/**/*.ts --check"
+  },
+  "dependencies": {
+    "@metorial-services/voyager-client": "^1.0.1",
+    "@lowerdeck/env": "^1.0.4",
+    "@lowerdeck/validation": "^1.0.8"
+  },
+  "devDependencies": {
+    "@metorial/tsconfig": "^1.0.0",
+    "typescript": "5.8.2",
+    "vitest": "^3.1.2"
+  }
+}

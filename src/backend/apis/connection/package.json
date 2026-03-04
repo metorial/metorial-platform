@@ -14,7 +14,9 @@
     "@metorial/id": "^1.0.0",
     "@metorial/mcp-utils": "^1.0.0",
     "@metorial/module-access": "^1.0.0",
+    "@metorial/module-magic": "^1.0.0",
     "@metorial/module-protect": "^1.0.0",
+    "@metorial/module-subspace": "1.0.0",
     "@metorial/rest": "^1.0.0",
     "hono": "^4.0.0"
   }
