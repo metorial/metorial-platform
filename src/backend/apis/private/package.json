@@ -8,6 +8,7 @@
     "build": "bunx -y @genql/cli@latest --schema ./schema.graphql --output ./generated"
   },
   "dependencies": {
+    "@lowerdeck/shadow-id": "latest",
     "@apollo/server": "^5.0.0",
     "@as-integrations/express5": "^1.1.2",
     "@genql/cli": "^6.3.3",
