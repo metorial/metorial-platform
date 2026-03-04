@@ -1,12 +1,13 @@
-import { DashboardInstanceProviderDeploymentsGetOutput } from '@metorial/dashboard-sdk';
+import { DashboardInstanceMagicMcpServersGetOutput } from '@metorial/dashboard-sdk';
 import { Dialog, showModal, Text } from '@metorial/ui';
+import { MagicMcpServerForm } from './magicMcpForm';
 
 export type ServerDeploymentFormProps =
   | { type: 'update'; serverDeploymentId: string }
   | { type: 'create'; for?: { serverId: string } };
 
 export type MagicMcpServerFormProps =
-  | { type: 'update'; serverDeploymentId: string }
+  | { type: 'update'; magicMcpServerId: string }
   | { type: 'create'; for?: { serverId: string } };
 
 export let showServerDeploymentFormModal = (
@@ -26,17 +27,23 @@ export let showServerDeploymentFormModal = (
   ));
 
 export let showMagicMcpServerFormModal = (
-  _p: MagicMcpServerFormProps & {
-    onCreate?: (deal: DashboardInstanceProviderDeploymentsGetOutput) => void;
+  p: MagicMcpServerFormProps & {
+    onCreate?: (deal: DashboardInstanceMagicMcpServersGetOutput) => void;
   }
 ) =>
-  showModal(({ dialogProps }) => (
+  showModal(({ dialogProps, close }) => (
     <Dialog.Wrapper {...dialogProps} width={650}>
-      <Dialog.Title>Magic MCP Server</Dialog.Title>
+      <Dialog.Title>
+        {p.type === 'update' ? 'Update Magic MCP Server' : 'Create Magic MCP Server'}
+      </Dialog.Title>
       <Dialog.Description>
         <Text size="2" color="gray600">
-          Magic MCP server management has been moved to the provider API.
+          {p.type === 'update'
+            ? 'Update the Magic MCP server details. The linked Subspace session is created on first connection and reused.'
+            : 'Create a new Magic MCP server to get started. A new session template is created automatically, and the Subspace session is created on first connection.'}
         </Text>
       </Dialog.Description>
+
+      <MagicMcpServerForm {...p} close={close} onCreate={p.onCreate} />
     </Dialog.Wrapper>
   ));

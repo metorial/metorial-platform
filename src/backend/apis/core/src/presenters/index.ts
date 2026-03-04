@@ -29,6 +29,10 @@ import {
   v1CustomProviderDeploymentLogsPresenter,
   v1CustomProviderDeploymentPresenter,
   v1CustomProviderEnvironmentPresenter,
+  v1MagicMcpGroupPresenter,
+  v1MagicMcpServerPresenter,
+  v1MagicMcpSessionPresenter,
+  v1MagicMcpTokenPresenter,
   // Custom Provider presenters
   v1CustomProviderPresenter,
   v1CustomProviderVersionPresenter,
@@ -100,10 +104,10 @@ import {
   fileType,
   instanceType,
   machineAccessType,
-  // magicMcpGroupType,
-  // magicMcpServerType,
-  // magicMcpSessionType,
-  // magicMcpTokenType,
+  magicMcpGroupType,
+  magicMcpServerType,
+  magicMcpSessionType,
+  magicMcpTokenType,
   organizationActorType,
   organizationInviteType,
   organizationMemberType,
@@ -335,25 +339,25 @@ export let teamRolePermissionsPresenter = declarePresenter(teamRolePermissionsTy
 //   mt_2026_01_01_magnetar: v1ConsumerServerRequestPresenter,
 // });
 
-// export let magicMcpServerPresenter = declarePresenter(magicMcpServerType, {
-//   mt_2025_01_01_dashboard: v1DashboardMagicMcpServerPresenter,
-//   mt_2026_01_01_magnetar: v1DashboardMagicMcpServerPresenter,
-// });
+export let magicMcpServerPresenter = declarePresenter(magicMcpServerType, {
+  mt_2025_01_01_dashboard: v1MagicMcpServerPresenter,
+  mt_2026_01_01_magnetar: v1MagicMcpServerPresenter
+});
 
-// export let magicMcpSessionPresenter = declarePresenter(magicMcpSessionType, {
-//   mt_2025_01_01_dashboard: v1DashboardMagicMcpSessionPresenter,
-//   mt_2026_01_01_magnetar: v1DashboardMagicMcpSessionPresenter,
-// });
+export let magicMcpSessionPresenter = declarePresenter(magicMcpSessionType, {
+  mt_2025_01_01_dashboard: v1MagicMcpSessionPresenter,
+  mt_2026_01_01_magnetar: v1MagicMcpSessionPresenter
+});
 
-// export let magicMcpTokenPresenter = declarePresenter(magicMcpTokenType, {
-//   mt_2025_01_01_dashboard: v1MagicMcpTokenPresenter,
-//   mt_2026_01_01_magnetar: v1MagicMcpTokenPresenter,
-// });
+export let magicMcpTokenPresenter = declarePresenter(magicMcpTokenType, {
+  mt_2025_01_01_dashboard: v1MagicMcpTokenPresenter,
+  mt_2026_01_01_magnetar: v1MagicMcpTokenPresenter
+});
 
-// export let magicMcpGroupPresenter = declarePresenter(magicMcpGroupType, {
-//   mt_2025_01_01_dashboard: v1MagicMcpGroupPresenter,
-//   mt_2026_01_01_magnetar: v1MagicMcpGroupPresenter,
-// });
+export let magicMcpGroupPresenter = declarePresenter(magicMcpGroupType, {
+  mt_2025_01_01_dashboard: v1MagicMcpGroupPresenter,
+  mt_2026_01_01_magnetar: v1MagicMcpGroupPresenter
+});
 
 export let publisherPresenter = declarePresenter(publisherType, {
   mt_2025_01_01_dashboard: v1PublisherPresenter,

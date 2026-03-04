@@ -6,6 +6,12 @@ import {
   FilePurpose,
   Instance,
   MachineAccess,
+  MagicMcpGroup,
+  MagicMcpGroupToken,
+  MagicMcpServer,
+  MagicMcpServerAlias,
+  MagicMcpServerSubspaceSession,
+  MagicMcpToken,
   Organization,
   OrganizationActor,
   OrganizationInvite,
@@ -181,40 +187,33 @@ export let profileType = PresentableType.create<{
   profile: Profile;
 }>()('profile');
 
-// export let magicMcpServerType = PresentableType.create<{
-//   magicMcpServer: MagicMcpServer & {
-//     serverDeployment:
-//       | (MagicMcpServerDeployment & {
-//           serverDeployment: ServerDeployment & {
-//             server: Server;
-//           };
-//         })
-//       | null;
-//     aliases: MagicMcpServerAlias[];
-//     defaultServerOauthSession: ServerOAuthSession | null;
-//   };
-// }>()('magic_mcp.server');
+export let magicMcpServerType = PresentableType.create<{
+  magicMcpServer: MagicMcpServer & {
+    aliases: MagicMcpServerAlias[];
+    subspaceSession: MagicMcpServerSubspaceSession | null;
+  };
+}>()('magic_mcp.server');
 
-// export let magicMcpSessionType = PresentableType.create<{
-//   magicMcpSession: MagicMcpSession & {
-//     session: Session & {
-//       serverSessions: ServerSession[];
-//     };
-//     magicMcpServer: MagicMcpServer;
-//   };
-// }>()('magic_mcp.session');
+export let magicMcpSessionType = PresentableType.create<{
+  magicMcpSession: MagicMcpServerSubspaceSession & {
+    magicMcpServer: MagicMcpServer & {
+      aliases: MagicMcpServerAlias[];
+      subspaceSession: MagicMcpServerSubspaceSession | null;
+    };
+  };
+}>()('magic_mcp.session');
 
-// export let magicMcpTokenType = PresentableType.create<{
-//   magicMcpToken: MagicMcpToken & {
-//     groups: (MagicMcpGroupToken & {
-//       magicMcpGroup: MagicMcpGroup;
-//     })[];
-//   };
-// }>()('magic_mcp.token');
+export let magicMcpTokenType = PresentableType.create<{
+  magicMcpToken: MagicMcpToken & {
+    groups: (MagicMcpGroupToken & {
+      magicMcpGroup: MagicMcpGroup;
+    })[];
+  };
+}>()('magic_mcp.token');
 
-// export let magicMcpGroupType = PresentableType.create<{
-//   magicMcpGroup: MagicMcpGroup;
-// }>()('magic_mcp.group');
+export let magicMcpGroupType = PresentableType.create<{
+  magicMcpGroup: MagicMcpGroup;
+}>()('magic_mcp.group');
 
 // export let callbackType = PresentableType.create<{
 //   callback: Callback & {

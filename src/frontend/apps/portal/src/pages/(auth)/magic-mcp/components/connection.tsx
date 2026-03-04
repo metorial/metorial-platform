@@ -28,7 +28,7 @@ export let getCursorConnection = (
     config: {
       mcpServers: {
         [last]: {
-          url: server.endpoints[0].urls.streamableHttp,
+          url: server.endpoints[0].url,
           headers: {
             Authorization: `Bearer ${token.secret}`
           }
@@ -48,7 +48,7 @@ export let getClaudeCodeConnection = (
     steps: [
       {
         text: 'Run the following command in the Claude Code CLI',
-        command: `claude mcp add --transport http ${last} ${server.endpoints[0].urls.streamableHttp} -H "Authorization: Bearer ${token.secret}"`
+        command: `claude mcp add --transport http ${last} ${server.endpoints[0].url} -H "Authorization: Bearer ${token.secret}"`
       },
       {
         text: 'Restart Claude Code'
@@ -78,7 +78,7 @@ export let getGeminiCliConnection = (
     config: {
       mcpServers: {
         [last]: {
-          url: server.endpoints[0].urls.streamableHttp,
+          url: server.endpoints[0].url,
           trust: true,
           headers: {
             Authorization: `Bearer ${token.secret}`
@@ -110,7 +110,7 @@ export let getVisualStudioConnection = (
     config: {
       servers: {
         [last]: {
-          url: server.endpoints[0].urls.streamableHttp,
+          url: server.endpoints[0].url,
           headers: {
             Authorization: `Bearer ${token.secret}`
           }
@@ -138,7 +138,7 @@ export let getWindsurfConnection = (
     config: {
       mcpServers: {
         [last]: {
-          serverUrl: server.endpoints[0].urls.streamableHttp,
+          serverUrl: server.endpoints[0].url,
           headers: {
             Authorization: `Bearer ${token.secret}`
           }

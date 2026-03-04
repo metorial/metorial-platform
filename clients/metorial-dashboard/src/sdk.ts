@@ -12,6 +12,10 @@ import {
   MetorialDashboardInstanceCustomProvidersVersionsEndpoint,
   MetorialDashboardInstanceFilesEndpoint,
   MetorialDashboardInstanceLinksEndpoint,
+  MetorialDashboardInstanceMagicMcpGroupsEndpoint,
+  MetorialDashboardInstanceMagicMcpServersEndpoint,
+  MetorialDashboardInstanceMagicMcpSessionsEndpoint,
+  MetorialDashboardInstanceMagicMcpTokensEndpoint,
   MetorialDashboardInstanceProviderCategoriesEndpoint,
   MetorialDashboardInstanceProviderCollectionsEndpoint,
   MetorialDashboardInstanceProviderDeploymentsAuthConfigsEndpoint,
@@ -118,6 +122,13 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
   files: Object.assign(new MetorialDashboardInstanceFilesEndpoint(manager), {
     links: new MetorialDashboardInstanceLinksEndpoint(manager)
   }),
+
+  magicMcp: {
+    servers: new MetorialDashboardInstanceMagicMcpServersEndpoint(manager),
+    sessions: new MetorialDashboardInstanceMagicMcpSessionsEndpoint(manager),
+    tokens: new MetorialDashboardInstanceMagicMcpTokensEndpoint(manager),
+    groups: new MetorialDashboardInstanceMagicMcpGroupsEndpoint(manager)
+  },
 
   usage: new MetorialDashboardUsageEndpoint(manager),
 

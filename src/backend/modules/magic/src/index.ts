@@ -1,10 +1,7 @@
 import { combineQueueProcessors } from '@metorial/queue';
-// import { syncMagicMcpGroupQueueProcessor } from './queues/syncGroup';
-// import { syncMagicMcpServerQueueProcessor } from './queues/syncServer';
+import { magicQueues } from './queues';
 
 export * from './services';
+export * from './queues';
 
-export let magicQueueProcessor = combineQueueProcessors([
-  // syncMagicMcpGroupQueueProcessor,
-  // syncMagicMcpServerQueueProcessor
-]);
+export let magicQueueProcessor = combineQueueProcessors([magicQueues]);
