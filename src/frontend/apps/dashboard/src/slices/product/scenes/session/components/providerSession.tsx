@@ -99,7 +99,7 @@ export let ProviderSession = ({
   }, [inView]);
 
   let instance = useCurrentInstance();
-  let serverRuns = useProviderRuns(
+  let providerRuns = useProviderRuns(
     canFetch ? instance.data?.id : undefined,
     canFetch ? providerSession.sessionId : undefined,
     {
@@ -135,7 +135,7 @@ export let ProviderSession = ({
         </Header>
 
         <Main>
-          {renderWithLoader({ serverRuns, eventItems })(({ serverRuns, eventItems }) => {
+          {renderWithLoader({ providerRuns, eventItems })(({ providerRuns, eventItems }) => {
             let items = [
               {
                 component: (
@@ -159,27 +159,27 @@ export let ProviderSession = ({
                 time: providerSession.createdAt
               },
 
-              ...serverRuns.data.items.flatMap(serverRun => [
+              ...providerRuns.data.items.flatMap(providerRun => [
                 {
                   component: (
                     <Entry
-                      title={`Provider ${serverRun.providerId ?? 'Unknown'} started`}
+                      title={`Provider ${providerRun.providerId ?? 'Unknown'} started`}
                       icon={<RiServerLine />}
-                      time={serverRun.createdAt}
+                      time={providerRun.createdAt}
                     />
                   ),
-                  time: serverRun.createdAt
+                  time: providerRun.createdAt
                 },
 
-                serverRun.completedAt && {
+                providerRun.completedAt && {
                   component: (
                     <Entry
-                      title={`Provider ${serverRun.providerId ?? 'Unknown'} stopped`}
+                      title={`Provider ${providerRun.providerId ?? 'Unknown'} stopped`}
                       icon={<RiServerLine />}
-                      time={serverRun.completedAt}
+                      time={providerRun.completedAt}
                     />
                   ),
-                  time: serverRun.completedAt
+                  time: providerRun.completedAt
                 }
               ]),
 
@@ -193,7 +193,7 @@ export let ProviderSession = ({
             return (
               <>
                 <ItemList items={items} />
-                {serverRuns.data.items.map(run => (
+                {providerRuns.data.items.map(run => (
                   <div key={run.id} style={{ marginTop: 16 }}>
                     <ProviderRunLogs providerRunId={run.id} lazy />
                   </div>

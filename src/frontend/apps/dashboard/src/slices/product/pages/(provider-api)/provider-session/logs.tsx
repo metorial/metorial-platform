@@ -313,10 +313,7 @@ let ProviderSessionLogs = ({ session }: { session: DashboardInstanceSessionsGetO
           ...connectionItems.map(connection => ({
             component: (
               <ProviderConnection
-                connection={{
-                  ...connection,
-                  startedAt: connection.createdAt
-                }}
+                connection={connection}
                 providerName={providerName}
                 messageItems={buildMessageItems(connection.id)}
                 eventItems={buildEventItems(connection.id)}

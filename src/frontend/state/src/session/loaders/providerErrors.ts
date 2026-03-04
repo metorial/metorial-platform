@@ -8,7 +8,10 @@ export let allSessionErrorsLoader = createLoader({
   name: 'allSessionErrors',
   parents: [],
   fetch: (i: { instanceId: string } & DashboardInstanceSessionsErrorsListQuery) =>
-    withAuth(sdk => sdk.sessionErrors.list(i.instanceId, i)),
+    withAuth(sdk => {
+      let { instanceId, ...query } = i;
+      return sdk.sessionErrors.list(instanceId, query);
+    }),
   mutators: {}
 });
 
@@ -28,7 +31,10 @@ export let sessionErrorsLoader = createLoader({
   name: 'sessionErrors',
   parents: [],
   fetch: (i: { instanceId: string } & DashboardInstanceSessionsErrorsListQuery) =>
-    withAuth(sdk => sdk.sessions.errors.list(i.instanceId, i)),
+    withAuth(sdk => {
+      let { instanceId, ...query } = i;
+      return sdk.sessionErrors.list(instanceId, query);
+    }),
   mutators: {}
 });
 
@@ -46,17 +52,20 @@ export let useSessionErrors = (
 export let sessionErrorLoader = createLoader({
   name: 'sessionError',
   parents: [],
-  fetch: (i: { instanceId: string; sessionErrorId: string }) =>
-    withAuth(sdk => sdk.sessions.errors.get(i.instanceId, i.sessionErrorId)),
+  fetch: (i: { instanceId: string; sessionId: string; sessionErrorId: string }) =>
+    withAuth(sdk => sdk.sessions.errors.get(i.instanceId, i.sessionId, i.sessionErrorId)),
   mutators: {}
 });
 
 export let useSessionError = (
   instanceId: string | null | undefined,
+  sessionId: string | null | undefined,
   sessionErrorId: string | null | undefined
 ) => {
   let data = sessionErrorLoader.use(
-    instanceId && sessionErrorId ? { instanceId, sessionErrorId } : null
+    instanceId && sessionId && sessionErrorId
+      ? { instanceId, sessionId, sessionErrorId }
+      : null
   );
 
   return data;

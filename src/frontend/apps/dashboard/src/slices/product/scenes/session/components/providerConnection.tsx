@@ -1,3 +1,4 @@
+import { DashboardInstanceSessionsConnectionsListOutput } from '@metorial/dashboard-sdk';
 import { Button, theme } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import { RiArrowDownLine, RiRadarLine, RiSendPlane2Line } from '@remixicon/react';
@@ -5,6 +6,8 @@ import { useState } from 'react';
 import styled from 'styled-components';
 import { Entry } from './entry';
 import { ItemList } from './itemList';
+
+type ConnectionItem = DashboardInstanceSessionsConnectionsListOutput['items'][number];
 
 let Wrapper = styled.div`
   border-radius: 8px;
@@ -75,20 +78,7 @@ export let ProviderConnection = ({
   messageItems,
   eventItems
 }: {
-  connection: {
-    id: string;
-    mcp?: {
-      client?: { name?: string; version?: string } | null;
-      server?: { name?: string; version?: string } | null;
-      connectionType?: string | null;
-      protocolVersion?: string;
-      transport?: string;
-      capabilities?: Record<string, any>;
-    } | null;
-    createdAt: Date;
-    startedAt?: Date | null;
-    endedAt?: Date | null;
-  };
+  connection: ConnectionItem;
   providerName?: string;
   messageItems?: { component: React.ReactNode; time: Date }[];
   eventItems?: { component: React.ReactNode; time: Date }[];
@@ -97,8 +87,7 @@ export let ProviderConnection = ({
 
   let name =
     providerName ??
-    connection.mcp?.server?.name ??
-    connection.mcp?.client?.name ??
+    connection.participant?.name ??
     connection.mcp?.transport ??
     'MCP Connection';
 
@@ -110,20 +99,16 @@ export let ProviderConnection = ({
       time: connection.createdAt
     },
 
-    ...(connection.startedAt
-      ? [
-          {
-            component: (
-              <Entry
-                icon={<RiSendPlane2Line />}
-                title="Session connection created"
-                time={connection.startedAt}
-              />
-            ),
-            time: connection.startedAt
-          }
-        ]
-      : []),
+    {
+      component: (
+        <Entry
+          icon={<RiSendPlane2Line />}
+          title="Session connection created"
+          time={connection.createdAt}
+        />
+      ),
+      time: connection.createdAt
+    },
 
     ...(eventItems ?? []),
     ...(messageItems ?? [])
