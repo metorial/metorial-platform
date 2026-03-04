@@ -1,6 +1,6 @@
+import { IntrospectedType, introspectType, v, ValidationType } from '@lowerdeck/validation';
 import { Context } from '@metorial/context';
-import { ServiceError, validationError } from '@metorial/error';
-import { IntrospectedType, introspectType, v, ValidationType } from '@metorial/validation';
+import { ServiceError, validationError } from '@lowerdeck/error';
 
 export interface ServiceRequest<AuthInfo> {
   body: any;

@@ -5,7 +5,7 @@ vi.mock('@metorial/queue', () => ({
   combineQueueProcessors: vi.fn(() => ({}))
 }));
 
-vi.mock('@metorial/service', () => ({
+vi.mock('@lowerdeck/service', () => ({
   Service: {
     create: vi.fn((name, factory) => ({
       build: vi.fn(() => factory())

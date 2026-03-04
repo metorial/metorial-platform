@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Context } from '@metorial/context';
-import { ServiceError, unauthorizedError } from '@metorial/error';
+import { ServiceError, unauthorizedError } from '@lowerdeck/error';
 import { authenticationService } from '../src/services/authentication';
 import {
   scopes,
@@ -130,7 +130,13 @@ describe('AuthenticationService', () => {
 
       vi.mocked(fineGrainedAuthService.authenticateWithFineGrainedToken).mockResolvedValue({
         orgScopes: ['instance.provider.session:read'],
-        accessTagGrants: [{ resourceType: 'subspace.session', resourceId: 'ses_1', roles: ['instance.provider.session:read'] }],
+        accessTagGrants: [
+          {
+            resourceType: 'subspace.session',
+            resourceId: 'ses_1',
+            roles: ['instance.provider.session:read']
+          }
+        ],
         fineGrainedKey: {
           id: 'fgk_1',
           instance: {
@@ -152,7 +158,9 @@ describe('AuthenticationService', () => {
         token: 'metorial_fk_abc',
         context: mockContext
       });
-      expect(machineAccessAuthService.authenticateWithMachineAccessToken).not.toHaveBeenCalled();
+      expect(
+        machineAccessAuthService.authenticateWithMachineAccessToken
+      ).not.toHaveBeenCalled();
     });
 
     it('should throw error for invalid authentication type', async () => {

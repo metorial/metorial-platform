@@ -1,8 +1,8 @@
-import { badRequestError, ServiceError } from '@metorial/error';
+import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { Paginator } from '@lowerdeck/pagination';
+import { v, ValidationTypeValue } from '@lowerdeck/validation';
 import { subspaceSessionService } from '@metorial/module-subspace';
-import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
-import { v, ValidationTypeValue } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import {
   authConfigValidator,
@@ -171,7 +171,12 @@ export let sessionController = Controller.create(
         name: 'List sessions',
         description: 'Returns a paginated list of sessions.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider.session:read'], fineGrainedPolicy: 'allow' }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.provider.session:read'],
+          fineGrainedPolicy: 'allow'
+        })
+      )
       .use(constrainFineGrainedSessionQuery('session_id')())
       .outputList(providerSessionPresenter)
       .query(
@@ -239,7 +244,12 @@ export let sessionController = Controller.create(
         name: 'Get session',
         description: 'Retrieves a specific session by ID.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider.session:read'], fineGrainedPolicy: 'allow' }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.provider.session:read'],
+          fineGrainedPolicy: 'allow'
+        })
+      )
       .output(providerSessionPresenter)
       .do(async ctx => {
         return providerSessionPresenter.present({
@@ -288,7 +298,12 @@ export let sessionController = Controller.create(
         name: 'Update session',
         description: 'Updates a session.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider.session:write'], fineGrainedPolicy: 'allow' }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.provider.session:write'],
+          fineGrainedPolicy: 'allow'
+        })
+      )
       .body(
         'default',
         v.object({

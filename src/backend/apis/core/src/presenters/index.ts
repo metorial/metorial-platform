@@ -1,4 +1,4 @@
-import { declarePresenter } from '@metorial/presenter';
+import { declarePresenter } from '@lowerdeck/presenter';
 import { dashboardApiKeyPresenter, v1ApiKeyPresenter } from './implementation/apiKey';
 import { v1BootPresenter } from './implementation/boot';
 import { v1FilePresenter } from './implementation/file';

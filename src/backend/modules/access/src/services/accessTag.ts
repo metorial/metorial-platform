@@ -1,6 +1,6 @@
+import { forbiddenError, ServiceError } from '@lowerdeck/error';
+import { Service } from '@lowerdeck/service';
 import { db, Instance } from '@metorial/db';
-import { forbiddenError, ServiceError } from '@metorial/error';
-import { Service } from '@metorial/service';
 import { Scope } from '../definitions';
 
 export type AccessTagSelector = bigint | { oid: bigint } | { accessTagOid: bigint };

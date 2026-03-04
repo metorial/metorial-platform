@@ -1,5 +1,5 @@
-import { internalServerError, isServiceError, notFoundError } from '@metorial/error';
-import { getSentry } from '@metorial/sentry';
+import { getSentry } from '@lowerdeck/sentry';
+import { internalServerError, isServiceError, notFoundError } from '@lowerdeck/error';
 import { Controller, Handler, ServiceRequest } from './controller';
 
 let Sentry = getSentry();

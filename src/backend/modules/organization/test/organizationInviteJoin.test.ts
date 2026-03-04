@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ServiceError, badRequestError, notFoundError } from '@metorial/error';
+import { ServiceError, notFoundError } from '@lowerdeck/error';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock external dependencies
 vi.mock('@metorial/db', () => ({
@@ -40,7 +40,7 @@ vi.mock('@metorial/fabric', () => ({
   }
 }));
 
-vi.mock('@metorial/service', () => ({
+vi.mock('@lowerdeck/service', () => ({
   Service: {
     create: vi.fn((name, factory) => ({
       build: () => factory()
@@ -63,8 +63,8 @@ vi.mock('../src/services/organizationMember', () => ({
 import { ID, withTransaction } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { organizationInviteService } from '../src/services/organizationInvite';
-import { organizationMemberService } from '../src/services/organizationMember';
 import { organizationInviteJoinService } from '../src/services/organizationInviteJoin';
+import { organizationMemberService } from '../src/services/organizationMember';
 
 describe('OrganizationInviteJoinService', () => {
   beforeEach(() => {

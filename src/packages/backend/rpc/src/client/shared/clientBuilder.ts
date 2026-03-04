@@ -1,4 +1,4 @@
-import { proxy } from '@metorial/proxy';
+import { proxy } from '@lowerdeck/proxy';
 import { Requester } from './requester';
 
 export interface ClientOpts {

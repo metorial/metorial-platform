@@ -1,5 +1,5 @@
 import { Context } from '@metorial/context';
-import { createError } from '@metorial/error';
+import { createError } from '@lowerdeck/error';
 import { parseRedisUrl } from '@metorial/redis';
 import ARL from 'async-ratelimiter';
 import Redis from 'ioredis';

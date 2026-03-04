@@ -1,31 +1,30 @@
-import { badRequestError, ServiceError } from '@metorial/error';
+import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { Paginator } from '@lowerdeck/pagination';
+import { v } from '@lowerdeck/validation';
 import { subspaceSessionErrorGroupService } from '@metorial/module-subspace';
-import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
-import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { subspaceSessionErrorGroupPresenter } from '../../presenters';
 
-let sessionErrorGroupGroup = instanceGroup
-  .use(async ctx => {
-    if (!ctx.params.sessionErrorGroupId) {
-      throw new ServiceError(
-        badRequestError({
-          message: 'sessionErrorGroupId is required',
-          description: 'The sessionErrorGroupId path parameter is required.'
-        })
-      );
-    }
+let sessionErrorGroupGroup = instanceGroup.use(async ctx => {
+  if (!ctx.params.sessionErrorGroupId) {
+    throw new ServiceError(
+      badRequestError({
+        message: 'sessionErrorGroupId is required',
+        description: 'The sessionErrorGroupId path parameter is required.'
+      })
+    );
+  }
 
-    let sessionErrorGroup = await subspaceSessionErrorGroupService.get({
-      instance: ctx.instance,
-      sessionErrorGroupId: ctx.params.sessionErrorGroupId
-    });
-
-    return { sessionErrorGroup };
+  let sessionErrorGroup = await subspaceSessionErrorGroupService.get({
+    instance: ctx.instance,
+    sessionErrorGroupId: ctx.params.sessionErrorGroupId
   });
+
+  return { sessionErrorGroup };
+});
 
 export let sessionErrorGroupController = Controller.create(
   {
@@ -34,8 +33,8 @@ export let sessionErrorGroupController = Controller.create(
       'Session error groups aggregate similar errors that occurred during a session. This read-only resource helps identify patterns in errors.'
   },
   {
-    listAll: instanceGroup
-      .get(instancePath('session-error-groups', 'sessionErrorGroups.list'), {
+    list: instanceGroup
+      .get(instancePath('session-error-groups', 'sessions.errorGroups.list'), {
         name: 'List all session error groups',
         description: 'Returns a paginated list of error groups across all sessions.'
       })
@@ -91,9 +90,9 @@ export let sessionErrorGroupController = Controller.create(
         );
       }),
 
-    getOne: sessionErrorGroupGroup
+    get: sessionErrorGroupGroup
       .get(
-        instancePath('session-error-groups/:sessionErrorGroupId', 'sessionErrorGroups.get'),
+        instancePath('session-error-groups/:sessionErrorGroupId', 'sessions.errorGroups.get'),
         {
           name: 'Get session error group',
           description: 'Retrieves a specific error group by ID across all sessions.'

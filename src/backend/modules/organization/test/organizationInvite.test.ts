@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ServiceError, notFoundError, forbiddenError, conflictError } from '@metorial/error';
-import { addDays, subDays } from 'date-fns';
+import { ServiceError } from '@lowerdeck/error';
+import { addDays } from 'date-fns';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock external dependencies
 vi.mock('@metorial/db', () => ({
@@ -39,13 +39,13 @@ vi.mock('@metorial/fabric', () => ({
   }
 }));
 
-vi.mock('@metorial/pagination', () => ({
+vi.mock('@lowerdeck/pagination', () => ({
   Paginator: {
     create: vi.fn(fn => fn)
   }
 }));
 
-vi.mock('@metorial/service', () => ({
+vi.mock('@lowerdeck/service', () => ({
   Service: {
     create: vi.fn((name, factory) => ({
       build: () => factory()
@@ -66,8 +66,8 @@ vi.mock('../src/email/invite', () => ({
 import { db, ID, withTransaction } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { generateCustomId } from '@metorial/id';
-import { organizationInviteService } from '../src/services/organizationInvite';
 import { sendOrgInviteEmail } from '../src/email/invite';
+import { organizationInviteService } from '../src/services/organizationInvite';
 
 describe('OrganizationInviteService', () => {
   beforeEach(() => {

@@ -1,5 +1,5 @@
 import { Organization, User } from '@metorial/db';
-import { shadowId } from '@metorial/shadow-id';
+import { shadowId } from '@lowerdeck/shadow-id';
 import { DOrganization } from './organization';
 
 export class DFlag {

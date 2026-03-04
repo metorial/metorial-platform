@@ -1,3 +1,5 @@
+import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { Service } from '@lowerdeck/service';
 import {
   AccessLimiter,
   AccessLimiterTarget,
@@ -6,8 +8,6 @@ import {
   Organization,
   OrganizationActor
 } from '@metorial/db';
-import { badRequestError, ServiceError } from '@metorial/error';
-import { Service } from '@metorial/service';
 import { isIpInList } from '../lib/isIpInList';
 import { isIpOrCidr } from '../lib/isIpOrCidr';
 

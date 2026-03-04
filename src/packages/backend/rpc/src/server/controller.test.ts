@@ -1,4 +1,4 @@
-import { v } from '@metorial/validation';
+import { v } from '@lowerdeck/validation';
 import { describe, expect, test } from 'vitest';
 import { Group } from './controller';
 

@@ -1,6 +1,6 @@
+import { memo } from '@lowerdeck/memo';
+import { getSentry } from '@lowerdeck/sentry';
 import { getConfig } from '@metorial/config';
-import { memo } from '@metorial/memo';
-import { getSentry } from '@metorial/sentry';
 import { createClient, RedisClientOptions } from 'redis';
 import { parseRedisUrl } from './utils/parseRedisUrl';
 

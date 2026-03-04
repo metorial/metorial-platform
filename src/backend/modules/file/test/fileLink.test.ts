@@ -1,4 +1,4 @@
-import { ServiceError } from '@metorial/error';
+import { ServiceError } from '@lowerdeck/error';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fileLinkService } from '../src/services/fileLink';
 
@@ -30,13 +30,13 @@ vi.mock('@metorial/id', () => ({
   generatePlainId: vi.fn()
 }));
 
-vi.mock('@metorial/pagination', () => ({
+vi.mock('@lowerdeck/pagination', () => ({
   Paginator: {
     create: vi.fn(fn => fn({ prisma: (cb: any) => cb({}) }))
   }
 }));
 
-vi.mock('@metorial/service', () => ({
+vi.mock('@lowerdeck/service', () => ({
   Service: {
     create: vi.fn((_name: string, factory: any) => ({
       build: () => factory()
@@ -44,8 +44,8 @@ vi.mock('@metorial/service', () => ({
   }
 }));
 
-vi.mock('@metorial/error', async () => {
-  const actual = await vi.importActual('@metorial/error');
+vi.mock('@lowerdeck/error', async () => {
+  const actual = await vi.importActual('@lowerdeck/error');
   return {
     ...actual,
     forbiddenError: vi.fn((args: any) => ({ ...args, type: 'forbidden' })),

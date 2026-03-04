@@ -1,7 +1,12 @@
+import {
+  badRequestError,
+  forbiddenError,
+  notFoundError,
+  ServiceError
+} from '@lowerdeck/error';
+import { Paginator } from '@lowerdeck/pagination';
+import { Service } from '@lowerdeck/service';
 import { db, File, ID, Instance, Organization } from '@metorial/db';
-import { badRequestError, forbiddenError, notFoundError, ServiceError } from '@metorial/error';
-import { Paginator } from '@metorial/pagination';
-import { Service } from '@metorial/service';
 import { purposes } from '../definitions';
 
 export type FileOwner =

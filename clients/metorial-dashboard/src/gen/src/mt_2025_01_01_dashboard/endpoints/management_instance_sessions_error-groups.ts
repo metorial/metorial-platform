@@ -40,11 +40,10 @@ export class MetorialManagementInstanceSessionsErrorGroupsEndpoint {
   }
 
   /**
-   * @name List session error groups
-   * @description Returns a paginated list of error groups for a session.
+   * @name List all session error groups
+   * @description Returns a paginated list of error groups across all sessions.
    *
    * @param `instanceId` - string
-   * @param `sessionId` - string
    * @param `query` - DashboardInstanceSessionsErrorGroupsListQuery
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceSessionsErrorGroupsListOutput
@@ -53,11 +52,10 @@ export class MetorialManagementInstanceSessionsErrorGroupsEndpoint {
    */
   list(
     instanceId: string,
-    sessionId: string,
     query?: DashboardInstanceSessionsErrorGroupsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionsErrorGroupsListOutput> {
-    let path = `instances/${instanceId}/sessions/${sessionId}/error-groups`;
+    let path = `instances/${instanceId}/session-error-groups`;
 
     let request = {
       path,
@@ -75,10 +73,9 @@ export class MetorialManagementInstanceSessionsErrorGroupsEndpoint {
 
   /**
    * @name Get session error group
-   * @description Retrieves a specific error group for a session.
+   * @description Retrieves a specific error group by ID across all sessions.
    *
    * @param `instanceId` - string
-   * @param `sessionId` - string
    * @param `sessionErrorGroupId` - string
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceSessionsErrorGroupsGetOutput
@@ -87,11 +84,10 @@ export class MetorialManagementInstanceSessionsErrorGroupsEndpoint {
    */
   get(
     instanceId: string,
-    sessionId: string,
     sessionErrorGroupId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionsErrorGroupsGetOutput> {
-    let path = `instances/${instanceId}/sessions/${sessionId}/error-groups/${sessionErrorGroupId}`;
+    let path = `instances/${instanceId}/session-error-groups/${sessionErrorGroupId}`;
 
     let request = {
       path,

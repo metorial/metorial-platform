@@ -1,8 +1,8 @@
+import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { Service } from '@lowerdeck/service';
 import { Context } from '@metorial/context';
 import { ID, User, withTransaction } from '@metorial/db';
-import { badRequestError, ServiceError } from '@metorial/error';
 import { Fabric } from '@metorial/fabric';
-import { Service } from '@metorial/service';
 import { organizationInviteService } from './organizationInvite';
 import { organizationMemberService } from './organizationMember';
 

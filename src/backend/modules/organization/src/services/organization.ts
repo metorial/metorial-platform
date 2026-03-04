@@ -1,15 +1,15 @@
-import { Context } from '@metorial/context';
-import { db, ID, Organization, OrganizationActor, User, withTransaction } from '@metorial/db';
 import {
   forbiddenError,
   notFoundError,
   notImplementedError,
   ServiceError
-} from '@metorial/error';
+} from '@lowerdeck/error';
+import { Paginator } from '@lowerdeck/pagination';
+import { Service } from '@lowerdeck/service';
+import { createSlugGenerator } from '@lowerdeck/slugify';
+import { Context } from '@metorial/context';
+import { db, ID, Organization, OrganizationActor, User, withTransaction } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
-import { Paginator } from '@metorial/pagination';
-import { Service } from '@metorial/service';
-import { createSlugGenerator } from '@metorial/slugify';
 import { differenceInMinutes } from 'date-fns';
 import { syncProfileQueue } from '../queues/syncProfile';
 import { organizationActorService } from './organizationActor';

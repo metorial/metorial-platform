@@ -1,5 +1,5 @@
 import { Instance, Organization, OrganizationMember } from '@metorial/db';
-import { badRequestError, ServiceError } from '@metorial/error';
+import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { accessService, Scope } from '@metorial/module-access';
 import { teamService } from '@metorial/module-organization';
 import { apiGroup } from './apiGroup';

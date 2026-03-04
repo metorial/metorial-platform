@@ -1,8 +1,8 @@
-import { badRequestError, ServiceError } from '@metorial/error';
+import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { Paginator } from '@lowerdeck/pagination';
+import { v } from '@lowerdeck/validation';
 import { subspaceSessionParticipantService } from '@metorial/module-subspace';
-import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
-import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import {
@@ -52,7 +52,12 @@ export let sessionParticipantController = Controller.create(
         name: 'List session participants',
         description: 'Returns a paginated list of participants in a session.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider.session:read'], fineGrainedPolicy: 'allow' }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.provider.session:read'],
+          fineGrainedPolicy: 'allow'
+        })
+      )
       .use(constrainFineGrainedSessionQuery('session_id')())
       .outputList(sessionParticipantPresenter)
       .query(
@@ -126,7 +131,12 @@ export let sessionParticipantController = Controller.create(
           description: 'Retrieves a specific participant in a session.'
         }
       )
-      .use(checkAccess({ possibleScopes: ['instance.provider.session:read'], fineGrainedPolicy: 'allow' }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.provider.session:read'],
+          fineGrainedPolicy: 'allow'
+        })
+      )
       .output(sessionParticipantPresenter)
       .do(async ctx => {
         return sessionParticipantPresenter.present({

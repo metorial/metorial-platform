@@ -1,31 +1,30 @@
-import { badRequestError, ServiceError } from '@metorial/error';
+import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { Paginator } from '@lowerdeck/pagination';
+import { v } from '@lowerdeck/validation';
 import { subspaceToolCallService } from '@metorial/module-subspace';
-import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
-import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { toolCallPresenter } from '../../presenters';
 
-let toolCallGroup = instanceGroup
-  .use(async ctx => {
-    if (!ctx.params.toolCallId) {
-      throw new ServiceError(
-        badRequestError({
-          message: 'toolCallId is required',
-          description: 'The toolCallId path parameter is required.'
-        })
-      );
-    }
+let toolCallGroup = instanceGroup.use(async ctx => {
+  if (!ctx.params.toolCallId) {
+    throw new ServiceError(
+      badRequestError({
+        message: 'toolCallId is required',
+        description: 'The toolCallId path parameter is required.'
+      })
+    );
+  }
 
-    let toolCall = await subspaceToolCallService.get({
-      instance: ctx.instance,
-      toolCallId: ctx.params.toolCallId
-    });
-
-    return { toolCall };
+  let toolCall = await subspaceToolCallService.get({
+    instance: ctx.instance,
+    toolCallId: ctx.params.toolCallId
   });
+
+  return { toolCall };
+});
 
 export let toolCallController = Controller.create(
   {

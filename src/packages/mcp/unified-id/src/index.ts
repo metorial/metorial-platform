@@ -1,4 +1,4 @@
-import { base62 } from '@metorial/base62';
+import { base62 } from '@lowerdeck/base62';
 import type { SessionMessageType } from '@metorial/db';
 import { MCP_IDS } from '@metorial/mcp-utils';
 

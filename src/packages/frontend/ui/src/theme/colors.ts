@@ -1,4 +1,4 @@
-import { memo } from '@metorial/memo';
+import { memo } from '@lowerdeck/memo';
 import { ThemeTokenFactory, createThemeToken } from './tokens';
 
 export let colors = {

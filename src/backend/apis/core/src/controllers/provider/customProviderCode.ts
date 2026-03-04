@@ -1,5 +1,8 @@
-import { badRequestError, ServiceError } from '@metorial/error';
-import { subspaceBucketService, subspaceCustomProviderService } from '@metorial/module-subspace';
+import { badRequestError, ServiceError } from '@lowerdeck/error';
+import {
+  subspaceBucketService,
+  subspaceCustomProviderService
+} from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';

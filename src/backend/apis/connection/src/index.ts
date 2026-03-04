@@ -1,5 +1,5 @@
-import { createExecutionContext, provideExecutionContext } from '@metorial/execution-context';
-import { createHono, useRequestContext } from '@metorial/hono';
+import { createExecutionContext, provideExecutionContext } from '@lowerdeck/execution-context';
+import { createHono, useRequestContext } from '@lowerdeck/hono';
 import { generateSnowflakeId } from '@metorial/id';
 import { AuthInfo } from '@metorial/module-access';
 import { proxyMcpRequestToSubspace } from '@metorial/module-subspace';

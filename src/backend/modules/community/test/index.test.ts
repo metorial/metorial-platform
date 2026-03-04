@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Create a mock function that we can track
 const mockCombineQueueProcessors = vi.fn(processors => ({
@@ -29,13 +29,13 @@ vi.mock('@metorial/db', () => ({
   }
 }));
 
-vi.mock('@metorial/slugify', () => ({
+vi.mock('@lowerdeck/slugify', () => ({
   createSlugGenerator: vi.fn(() =>
     vi.fn(async ({ input }: { input: string }) => `${input}-slug`)
   )
 }));
 
-vi.mock('@metorial/service', () => ({
+vi.mock('@lowerdeck/service', () => ({
   Service: {
     create: vi.fn((name: string, factory: () => any) => ({
       build: vi.fn(() => factory())

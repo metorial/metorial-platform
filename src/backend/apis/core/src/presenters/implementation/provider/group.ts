@@ -1,5 +1,5 @@
-import { Presenter } from '@metorial/presenter';
-import { v } from '@metorial/validation';
+import { Presenter } from '@lowerdeck/presenter';
+import { v } from '@lowerdeck/validation';
 import { providerListingGroupType } from '../../types';
 
 export let v1ProviderListingGroupPresenter = Presenter.create(providerListingGroupType)

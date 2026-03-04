@@ -1,4 +1,4 @@
-import { ServiceError } from '@metorial/error';
+import { ServiceError } from '@lowerdeck/error';
 
 export let useStack = (
   ..._loaders: (

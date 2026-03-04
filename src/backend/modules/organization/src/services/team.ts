@@ -1,3 +1,7 @@
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
+import { Paginator } from '@lowerdeck/pagination';
+import { Service } from '@lowerdeck/service';
+import { createSlugGenerator } from '@lowerdeck/slugify';
 import { Context } from '@metorial/context';
 import {
   db,
@@ -11,11 +15,7 @@ import {
   User,
   withTransaction
 } from '@metorial/db';
-import { badRequestError, notFoundError, ServiceError } from '@metorial/error';
 import { Fabric } from '@metorial/fabric';
-import { Paginator } from '@metorial/pagination';
-import { Service } from '@metorial/service';
-import { createSlugGenerator } from '@metorial/slugify';
 
 let getTeamSlug = createSlugGenerator(
   async (slug, d: { organization: Organization }) =>

@@ -1,6 +1,6 @@
+import { Presenter } from '@lowerdeck/presenter';
+import { v } from '@lowerdeck/validation';
 import { ApiKey } from '@metorial/db';
-import { Presenter } from '@metorial/presenter';
-import { v } from '@metorial/validation';
 import { apiKeyType } from '../types';
 import { v1MachineAccessPresenter } from './machineAccess';
 

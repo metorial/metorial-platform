@@ -1,8 +1,8 @@
+import { getSentry } from '@lowerdeck/sentry';
 import { Instance } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { sessionClientSecretReferenceService } from '@metorial/module-access';
 import { usageService } from '@metorial/module-usage';
-import { getSentry } from '@metorial/sentry';
 import { narrowSessionIdFilter } from '../lib/fineGrainedSessionFilter';
 import { createSubspaceService, toEventBase } from '../lib/subspaceService';
 import { subspace } from '../subspace';

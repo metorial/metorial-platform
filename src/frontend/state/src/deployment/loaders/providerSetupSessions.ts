@@ -3,7 +3,7 @@ import {
   DashboardInstanceProviderDeploymentsSetupSessionsGetOutput
 } from '@metorial/dashboard-sdk';
 import { createLoader, useMutation } from '@metorial/data-hooks';
-import { delay } from '@metorial/delay';
+import { delay } from '@lowerdeck/delay';
 import { useMemo } from 'react';
 import { withAuth } from '../../user';
 
@@ -16,9 +16,7 @@ export let providerSetupSessionLoader = createLoader({
   name: 'providerSetupSession',
   parents: [],
   fetch: (i: { instanceId: string; setupSessionId: string }) =>
-    withAuth(sdk =>
-      sdk.providerDeployments.setupSessions.get(i.instanceId, i.setupSessionId)
-    ),
+    withAuth(sdk => sdk.providerDeployments.setupSessions.get(i.instanceId, i.setupSessionId)),
   mutators: {}
 });
 
@@ -49,7 +47,8 @@ export let useCreateProviderSetupSession = (
           sdk.providerDeployments.setupSessions.create(instanceId, {
             ...body,
             providerId,
-            providerDeploymentId: body.providerDeploymentId ?? providerDeploymentId ?? undefined
+            providerDeploymentId:
+              body.providerDeploymentId ?? providerDeploymentId ?? undefined
           })
         );
       },
@@ -86,10 +85,7 @@ export let createProviderSetupSession = (input: {
     })
   );
 
-export let getProviderSetupSession = (input: {
-  instanceId: string;
-  setupSessionId: string;
-}) =>
+export let getProviderSetupSession = (input: { instanceId: string; setupSessionId: string }) =>
   withAuth(sdk =>
     sdk.providerDeployments.setupSessions.get(input.instanceId, input.setupSessionId)
   );
