@@ -1,5 +1,5 @@
 import { Presenter } from '@metorial/presenter';
-import { v } from '@metorial/validation';
+import { v } from '@lowerdeck/validation';
 import { magicMcpSessionType } from '../../types';
 import { v1MagicMcpServerPresenter } from './magicMcpServer';
 

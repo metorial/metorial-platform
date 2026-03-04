@@ -1,7 +1,7 @@
 import { db, Instance, Prisma } from '@metorial/db';
-import { notFoundError, ServiceError } from '@metorial/error';
-import { Paginator } from '@metorial/pagination';
-import { Service } from '@metorial/service';
+import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { Paginator } from '@lowerdeck/pagination';
+import { Service } from '@lowerdeck/service';
 
 let include = {
   magicMcpServer: {

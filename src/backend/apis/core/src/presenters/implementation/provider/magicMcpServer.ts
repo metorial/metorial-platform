@@ -1,7 +1,7 @@
 import { getConfig } from '@metorial/config';
 import { shadowId } from '@lowerdeck/shadow-id';
 import { Presenter } from '@metorial/presenter';
-import { v } from '@metorial/validation';
+import { v } from '@lowerdeck/validation';
 import { magicMcpServerType } from '../../types';
 
 export let v1MagicMcpServerPresenter = Presenter.create(magicMcpServerType)

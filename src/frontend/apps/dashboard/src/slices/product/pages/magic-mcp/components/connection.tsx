@@ -2,7 +2,7 @@ import {
   DashboardInstanceMagicMcpServersGetOutput,
   DashboardInstanceMagicMcpTokensGetOutput
 } from '@metorial/dashboard-sdk';
-import { slugify } from '@metorial/slugify';
+import { slugify } from '@lowerdeck/slugify';
 
 export let getCursorConnection = (
   server: DashboardInstanceMagicMcpServersGetOutput,

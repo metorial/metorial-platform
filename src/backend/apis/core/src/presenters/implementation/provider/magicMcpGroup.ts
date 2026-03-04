@@ -1,5 +1,5 @@
 import { Presenter } from '@metorial/presenter';
-import { v } from '@metorial/validation';
+import { v } from '@lowerdeck/validation';
 import { magicMcpGroupType } from '../../types';
 
 export let v1MagicMcpGroupPresenter = Presenter.create(magicMcpGroupType)

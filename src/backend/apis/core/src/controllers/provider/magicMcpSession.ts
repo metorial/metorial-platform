@@ -1,8 +1,8 @@
-import { badRequestError, ServiceError } from '@metorial/error';
+import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { magicMcpSessionService } from '@metorial/module-magic';
-import { Paginator } from '@metorial/pagination';
+import { Paginator } from '@lowerdeck/pagination';
 import { Controller } from '@metorial/rest';
-import { v } from '@metorial/validation';
+import { v } from '@lowerdeck/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { hasFlags } from '../../middleware/hasFlags';

@@ -1,6 +1,6 @@
 import { extractToken } from '@metorial/bearer';
 import { db, ID, Prisma } from '@metorial/db';
-import { badRequestError, forbiddenError, notFoundError, ServiceError, unauthorizedError } from '@metorial/error';
+import { badRequestError, forbiddenError, notFoundError, ServiceError, unauthorizedError } from '@lowerdeck/error';
 import { AuthInfo } from '@metorial/module-access';
 import { magicMcpTokenService } from '@metorial/module-magic';
 import {

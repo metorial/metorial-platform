@@ -13,9 +13,9 @@ import {
   preconditionFailedError,
   ServiceError,
   unauthorizedError
-} from '@metorial/error';
-import { Paginator } from '@metorial/pagination';
-import { Service } from '@metorial/service';
+} from '@lowerdeck/error';
+import { Paginator } from '@lowerdeck/pagination';
+import { Service } from '@lowerdeck/service';
 
 let createMagicMcpSecret = () =>
   UnifiedApiKey.create({
