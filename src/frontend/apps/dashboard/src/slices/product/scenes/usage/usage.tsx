@@ -26,6 +26,10 @@ export let UsageScene = ({
   };
   entityNames: Record<string, string>;
 }) => {
+  let isUsageIntervalUnit = (value: string): value is 'day' | 'hour' => {
+    return value === 'day' || value === 'hour';
+  };
+
   let org = useCurrentOrganization();
   let [usage, range] = useUsageState({
     entities,
@@ -62,7 +66,8 @@ export let UsageScene = ({
             value={`${range.interval.count}-${range.interval.unit}`}
             onChange={value => {
               let [count, unit] = value.split('-');
-              range.setInterval({ count: Number(count), unit: unit as any });
+              if (!isUsageIntervalUnit(unit)) return;
+              range.setInterval({ count: Number(count), unit });
             }}
           />
         </>

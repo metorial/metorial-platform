@@ -1,9 +1,24 @@
-import { useForm, useMutation } from '@metorial/data-hooks';
-import { createContext, useContext } from 'react';
+import { useForm } from '@metorial/data-hooks';
+import { ReactNode, createContext, useContext } from 'react';
+
+type FormValues = Record<string, unknown>;
+type DashboardForm = ReturnType<typeof useForm<FormValues>>;
+
+export type FormContextForm = Pick<
+  DashboardForm,
+  'values' | 'submitForm' | 'getFieldProps' | 'setFieldValue' | 'RenderError'
+>;
+
+export type FormContextMutator = {
+  RenderError: () => ReactNode;
+  error: unknown;
+  isLoading: boolean;
+  isSuccess: boolean;
+};
 
 let FormContext = createContext<{
-  form: ReturnType<typeof useForm>;
-  mutators: ReturnType<typeof useMutation>[];
+  form: FormContextForm;
+  mutators: FormContextMutator[];
   submitName: string | null;
 } | null>(null);
 

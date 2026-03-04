@@ -31,7 +31,7 @@ let List = styled.ol`
   }
 `;
 
-export let MagicMcpServerOverviewPage = () => {
+export let MagicMcpProviderOverviewPage = () => {
   let { magicMcpServerId } = useParams();
   let server = useMagicMcpServer(magicMcpServerId);
   let serverDeployment = server.data?.serverDeployments[0];

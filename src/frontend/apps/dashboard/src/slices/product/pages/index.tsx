@@ -9,7 +9,7 @@ import { Link } from 'react-router-dom';
 import { Explainer } from '../../../components/explainer';
 import { ApiKeySecret } from '../scenes/apiKeys';
 import { useApiKeysWithAutoInit } from '../scenes/apiKeys/useApiKeysWithAutoInit';
-import { ServersGrid } from '../scenes/servers/grid';
+import { ProvidersGrid } from '../scenes/providers/grid_';
 import { SessionsTable } from '../scenes/sessions/table';
 
 declare global {
@@ -220,7 +220,7 @@ export let ProjectHomePage = () => {
             size="5"
           />
 
-          <ServersGrid
+          <ProvidersGrid
             limit={6}
             providerCollectionId={window.metorial_enterprise?.landing_collection_ids}
           />

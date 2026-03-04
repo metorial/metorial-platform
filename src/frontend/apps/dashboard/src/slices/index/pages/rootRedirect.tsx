@@ -7,7 +7,7 @@ export let RootRedirect = () => {
   let boot = useBoot();
   let navigate = useNavigate();
   let [params] = useSearchParams();
-  let organizationId = params.get('organization_id') ?? params.get('organizationId');
+  let organizationId = params.get('organization_id');
   let path = params.get('path');
 
   let navigatedRef = useRef(false);

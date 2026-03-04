@@ -59,10 +59,42 @@ let Nav = styled.div`
 `;
 
 // Declare YouTube types
+type YouTubePlayerStateChangeEvent = {
+  data: number;
+};
+
+type YouTubePlayer = {
+  destroy: () => void;
+  setSize: (width: string | number, height: string | number) => void;
+};
+
+type YouTubePlayerConstructor = new (
+  element: HTMLDivElement,
+  config: {
+    videoId: string;
+    width: string;
+    height: string;
+    playerVars: {
+      modestbranding: number;
+      rel: number;
+    };
+    events: {
+      onStateChange: (event: YouTubePlayerStateChangeEvent) => void;
+    };
+  }
+) => YouTubePlayer;
+
+type YouTubeApi = {
+  Player?: YouTubePlayerConstructor;
+  PlayerState: {
+    PLAYING: number;
+  };
+};
+
 declare global {
   interface Window {
-    YT: any;
-    onYouTubeIframeAPIReady: () => void;
+    YT?: YouTubeApi;
+    onYouTubeIframeAPIReady?: () => void;
   }
 }
 
@@ -71,10 +103,10 @@ export let Explainer = (p: {
   title: string;
   description: string;
   youtubeId: string;
-}) => {
+  }) => {
   let [isOpen, setIsOpen] = useLocalStorage(`explainer-${p.id}`, true);
   let [isExpanded, setIsExpanded] = useState(false);
-  let playerRef = useRef<any>(null);
+  let playerRef = useRef<YouTubePlayer | null>(null);
   let containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -90,31 +122,33 @@ export let Explainer = (p: {
 
     // Initialize player when API is ready
     let initPlayer = () => {
-      if (window.YT && containerRef.current) {
-        playerRef.current = new window.YT.Player(containerRef.current, {
-          videoId: p.youtubeId,
-          width: '100%',
-          height: isExpanded ? '100%' : '197',
-          playerVars: {
-            modestbranding: 1,
-            rel: 0
-          },
-          events: {
-            onStateChange: (event: any) => {
-              // Expand when video starts playing
-              if (event.data === window.YT.PlayerState.PLAYING) {
-                // setIsExpanded(true);
-              }
+      let Player = window.YT?.Player;
+      let playerState = window.YT?.PlayerState;
+      if (!Player || !containerRef.current) return;
+
+      playerRef.current = new Player(containerRef.current, {
+        videoId: p.youtubeId,
+        width: '100%',
+        height: isExpanded ? '100%' : '197',
+        playerVars: {
+          modestbranding: 1,
+          rel: 0
+        },
+        events: {
+          onStateChange: (event: YouTubePlayerStateChangeEvent) => {
+            // Expand when video starts playing
+            if (playerState && event.data === playerState.PLAYING) {
+              // setIsExpanded(true);
             }
           }
-        });
-      }
+        }
+      });
     };
 
-    if (window.YT && window.YT.Player) {
-      initPlayer();
-    } else {
-      window.onYouTubeIframeAPIReady = initPlayer;
+      if (window.YT?.Player) {
+        initPlayer();
+      } else {
+        window.onYouTubeIframeAPIReady = initPlayer;
     }
 
     return () => {

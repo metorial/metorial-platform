@@ -1,4 +1,5 @@
 import {
+  DashboardInstanceSessionsEventsListOutput,
   DashboardInstanceSessionsGetOutput,
   DashboardInstanceSessionsMessagesGetOutput
 } from '@metorial/dashboard-sdk';
@@ -26,6 +27,16 @@ import { Message } from '../../../scenes/session/components/message';
 import { ProviderConnection } from '../../../scenes/session/components/providerConnection';
 import { ProviderRunLogs } from '../../../scenes/session/components/providerRunLogs';
 import { useAggregatedMessages } from '../../../scenes/session/hooks/useAggregatedMessages';
+
+type SessionEvent = DashboardInstanceSessionsEventsListOutput['items'][number];
+
+let getEventConnectionId = (evt: SessionEvent) =>
+  evt.connection?.id ??
+  evt.providerRun?.connectionId ??
+  evt.message?.connectionId ??
+  evt.error?.connectionId ??
+  evt.warning?.connectionId ??
+  '__ungrouped';
 
 export let ProviderSessionLogsPage = () => {
   let instance = useCurrentInstance();
@@ -111,17 +122,12 @@ let ProviderSessionLogs = ({ session }: { session: DashboardInstanceSessionsGetO
     return map;
   }, [allMessages]);
 
-  // Group events by connection (using raw connectionId from event data)
+  // Group events by connection using canonical SDK fields.
   let eventsByConnection = useMemo(() => {
     let eventItems = events.data?.items ?? [];
     let map = new Map<string, typeof eventItems>();
     for (let evt of eventItems) {
-      let raw = evt as Record<string, unknown>;
-      // Events have connection info in the raw data
-      let connId =
-        (raw.connectionId as string) ??
-        ((raw.connection as Record<string, unknown>)?.id as string) ??
-        '__ungrouped';
+      let connId = getEventConnectionId(evt);
       let list = map.get(connId);
       if (!list) {
         list = [];

@@ -7,8 +7,8 @@ import {
   useProviderDeployment
 } from '@metorial/state';
 import { Button, CenteredSpinner, Dialog, Input, Spacer, Text } from '@metorial/ui';
-import { JSONSchema7 } from 'json-schema';
 import { useState } from 'react';
+import { getJsonSchemaObject } from '../../lib/jsonSchema';
 import { JsonSchemaInput } from '../jsonSchemaInput';
 
 export type ProviderConfigVaultFormProps = {
@@ -32,8 +32,8 @@ export let ProviderConfigVaultForm = (
 
   let [vaultData, setVaultData] = useState<Record<string, unknown>>({});
 
-  let hasSchema = configSchema.data?.schema && typeof configSchema.data.schema === 'object';
-  let jsonSchema = configSchema.data?.schema?.schema;
+  let jsonSchema = getJsonSchemaObject(configSchema.data?.schema);
+  let hasSchema = !!jsonSchema;
 
   let form = useForm({
     initialValues: {
@@ -99,7 +99,7 @@ export let ProviderConfigVaultForm = (
           <Spacer size={10} />
 
           <JsonSchemaInput
-            schema={(jsonSchema ?? {}) as JSONSchema7}
+            schema={jsonSchema}
             value={vaultData}
             onChange={setVaultData}
             label="Vault Values"

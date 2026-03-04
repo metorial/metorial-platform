@@ -14,6 +14,29 @@ import { JSONSchema7 } from 'json-schema';
 import { useEffect, useState } from 'react';
 import styled from 'styled-components';
 
+type JsonSchemaInputValue = Record<string, unknown>;
+type JsonSchemaPrimitive = string | number | boolean | null;
+
+let isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+let toRecord = (value: unknown): JsonSchemaInputValue => (isRecord(value) ? value : {});
+
+let getEnumItems = (values: JSONSchema7['enum']) =>
+  (values ?? [])
+    .filter(
+      (value): value is JsonSchemaPrimitive =>
+        value === null ||
+        typeof value === 'string' ||
+        typeof value === 'number' ||
+        typeof value === 'boolean'
+    )
+    .map(value => ({
+      id: JSON.stringify(value),
+      label: String(value),
+      value
+    }));
+
 let Wrapper = styled.div`
   padding: 18px 20px 20px 20px;
   border: 1px solid ${theme.colors.gray400};
@@ -53,8 +76,8 @@ export let JsonSchemaInput = ({
   variant
 }: {
   schema: JSONSchema7 | null | undefined;
-  value: any;
-  onChange: (value: any) => any;
+  value: JsonSchemaInputValue;
+  onChange: (value: JsonSchemaInputValue) => unknown;
   label?: string;
   variant?: 'input' | 'raw';
 }) => {
@@ -74,8 +97,8 @@ export let JsonSchemaInput = ({
   let properties = schema.properties ?? {};
   let required = schema.required ?? [];
 
-  let [value, setValue] = useState<any>(() => {
-    let initial = initialValue ?? {};
+  let [value, setValue] = useState<JsonSchemaInputValue>(() => {
+    let initial = { ...toRecord(initialValue) };
 
     Object.entries(properties).forEach(([key, property]) => {
       if (
@@ -91,7 +114,7 @@ export let JsonSchemaInput = ({
 
   useEffect(() => {
     if (initialValue != value) {
-      let merged = initialValue ?? {};
+      let merged = { ...toRecord(initialValue) };
 
       Object.entries(properties).forEach(([key, property]) => {
         if (
@@ -106,8 +129,8 @@ export let JsonSchemaInput = ({
     }
   }, [initialValue]);
 
-  let updateField = (key: string, newValue: any) => {
-    setValue((oldValue: any) => {
+  let updateField = (key: string, newValue: unknown) => {
+    setValue(oldValue => {
       let newObject = { ...oldValue, [key]: newValue };
       setTimeout(() => onChange(newObject), 0);
       return newObject;
@@ -157,8 +180,8 @@ let RenderField = ({
   fieldKey: string;
   property: JSONSchema7;
   isRequired: boolean;
-  value: any;
-  updateField: (key: string, value: any) => void;
+  value: JsonSchemaInputValue;
+  updateField: (key: string, value: unknown) => void;
   depth?: number;
 }) => {
   let [invalidJson, setInvalidJson] = useState(false);
@@ -168,9 +191,9 @@ let RenderField = ({
   if (property.type === 'object' && property.properties) {
     let nestedProperties = property.properties;
     let nestedRequired = property.required ?? [];
-    let nestedValue = value[key] ?? {};
+    let nestedValue = toRecord(value[key]);
 
-    let updateNestedField = (nestedKey: string, newValue: any) => {
+    let updateNestedField = (nestedKey: string, newValue: unknown) => {
       updateField(key, { ...nestedValue, [nestedKey]: newValue });
     };
 
@@ -231,21 +254,23 @@ let RenderField = ({
     property.items &&
     typeof property.items === 'object' &&
     !Array.isArray(property.items) &&
-    (property.items as JSONSchema7).type === 'string'
+    property.items.type === 'string'
   ) {
+    let itemExamples = Array.isArray(property.items.examples) ? property.items.examples : [];
+    let arrayValue = Array.isArray(value[key])
+      ? value[key].filter((item): item is string => typeof item === 'string')
+      : [];
+
     return (
       <FieldWrapper>
         <TextArrayInput
           label={label}
           description={property.description}
-          value={value[key] ?? []}
+          value={arrayValue}
           onChange={v => updateField(key, v)}
           placeholder={
-            Array.isArray((property.items as Record<string, unknown>)?.examples)
-              ? String(
-                  ((property.items as Record<string, unknown>).examples as unknown[])[0] ??
-                    'Enter a value'
-                )
+            itemExamples.length > 0
+              ? String(itemExamples[0] ?? 'Enter a value')
               : 'Enter a value'
           }
         />
@@ -281,12 +306,19 @@ let RenderField = ({
   }
 
   if (property.type == 'boolean') {
+    let checkedValue =
+      typeof value[key] === 'boolean'
+        ? value[key]
+        : typeof property.default === 'boolean'
+          ? property.default
+          : false;
+
     return (
       <FieldWrapper>
         <Checkbox
           label={label}
           description={property.description}
-          checked={value[key] ?? property.default ?? false}
+          checked={checkedValue}
           onCheckedChange={v => updateField(key, v)}
         />
       </FieldWrapper>
@@ -301,12 +333,19 @@ let RenderField = ({
         <Select
           label={label}
           description={property.description}
-          value={value[key] ?? property.default ?? ''}
-          items={property.enum.map((v: any) => ({
-            id: v,
-            label: v
+          value={
+            getEnumItems(property.enum).find(option =>
+              Object.is(option.value, value[key] ?? property.default)
+            )?.id ?? ''
+          }
+          items={getEnumItems(property.enum).map(option => ({
+            id: option.id,
+            label: option.label
           }))}
-          onChange={v => updateField(key, v)}
+          onChange={selectedId => {
+            let selectedOption = getEnumItems(property.enum).find(option => option.id === selectedId);
+            updateField(key, selectedOption?.value ?? property.default ?? '');
+          }}
           placeholder="Select an option"
         />
       </FieldWrapper>
@@ -314,23 +353,29 @@ let RenderField = ({
   }
 
   let inputType: 'text' | 'number' | 'password' = 'text';
-  if (property.type === 'string') {
-    if ((property as any).format === 'password') {
-      inputType = 'password';
-    }
+  if (property.type === 'string' && property.format === 'password') {
+    inputType = 'password';
   } else if (property.type === 'number' || property.type === 'integer') {
     inputType = 'number';
   }
 
   return (
     <FieldWrapper>
+      {(() => {
+        let currentValue = value[key] ?? property.default ?? '';
+        let inputValue =
+          typeof currentValue === 'string' || typeof currentValue === 'number'
+            ? currentValue
+            : '';
+
+        return (
       <Input
         label={label}
         description={property.description}
         type={inputType}
-        value={value[key] ?? property.default ?? ''}
+        value={inputValue}
         onChange={e => {
-          let val: any = String(e.target.value);
+          let val: string | number = e.target.value;
 
           if (property.type == 'number') {
             val = parseFloat(val);
@@ -343,6 +388,8 @@ let RenderField = ({
           updateField(key, val);
         }}
       />
+        );
+      })()}
     </FieldWrapper>
   );
 };

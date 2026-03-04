@@ -5,32 +5,22 @@ import { renderWithPagination } from '@metorial/data-hooks';
 import { useCurrentInstance, useProviderAuthMethods } from '@metorial/state';
 import { AccordionSingle, Badge, Flex, Spacer, Text, theme } from '@metorial/ui';
 import {
-  getJsonSchema,
+  getJsonSchemaObject,
   hasJsonSchemaProperties,
-  JsonSchemaEnvelope
+  type JsonSchemaObject
 } from '../../../lib/jsonSchema';
 import { useProviderVersionContext } from './_layout';
 
-type Scope = {
-  id: string;
-  scope: string;
-  name: string;
-  description: string | null;
-};
+type ProviderAuthMethod = DashboardInstanceProvidersAuthMethodsListOutput['items'][number];
+type ProviderAuthScope = NonNullable<ProviderAuthMethod['scopes']>[number];
+type SchemaProperty = NonNullable<JsonSchemaObject['properties']>[string] & JsonSchemaObject;
 
-type SchemaProperty = {
-  type?: string;
-  enum?: string[];
-  oneOf?: Array<{ type?: string }>;
-  anyOf?: Array<{ type?: string }>;
-  items?: { type?: string };
-  description?: string;
-  default?: unknown;
-};
+let isSchemaProperty = (value: unknown): value is SchemaProperty =>
+  !!value && typeof value === 'object' && !Array.isArray(value);
 
-type JsonSchema = {
-  properties?: Record<string, SchemaProperty>;
-  required?: string[];
+let getSchemaType = (prop: SchemaProperty) => {
+  let type = Array.isArray(prop.type) ? prop.type[0] : prop.type;
+  return typeof type === 'string' ? type : 'any';
 };
 
 let getTypeColor = (
@@ -56,8 +46,10 @@ let getTypeColor = (
 let getTypeLabel = (prop: SchemaProperty): string => {
   if (prop.enum) return 'enum';
   if (prop.oneOf || prop.anyOf) return 'union';
-  if (prop.type === 'array' && prop.items?.type) return `${prop.items.type}[]`;
-  return prop.type || 'any';
+  if (getSchemaType(prop) === 'array' && isSchemaProperty(prop.items)) {
+    return `${getSchemaType(prop.items)}[]`;
+  }
+  return getSchemaType(prop);
 };
 
 let getAuthTypeBadgeLabel = (type: 'oauth' | 'token' | 'custom') => {
@@ -78,7 +70,7 @@ let PropertyRow = ({
 }) => {
   let typeLabel = getTypeLabel(prop);
   let typeColor =
-    prop.enum || prop.oneOf || prop.anyOf ? 'cyan' : getTypeColor(prop.type || 'any');
+    prop.enum || prop.oneOf || prop.anyOf ? 'cyan' : getTypeColor(getSchemaType(prop));
 
   return (
     <Flex
@@ -125,7 +117,13 @@ let PropertyRow = ({
   );
 };
 
-let ScopeRow = ({ scope, showBorder = true }: { scope: Scope; showBorder?: boolean }) => {
+let ScopeRow = ({
+  scope,
+  showBorder = true
+}: {
+  scope: ProviderAuthScope;
+  showBorder?: boolean;
+}) => {
   let { primary, secondary } = getScopeDisplay(scope);
 
   return (
@@ -151,13 +149,14 @@ let ScopeRow = ({ scope, showBorder = true }: { scope: Scope; showBorder?: boole
   );
 };
 
-let SchemaFields = ({ schema }: { schema: Record<string, unknown> | null | undefined }) => {
+let SchemaFields = ({ schema }: { schema: JsonSchemaObject | null | undefined }) => {
   if (!schema) return null;
 
-  let jsonSchema = schema as JsonSchema;
-  let properties = jsonSchema.properties || {};
-  let required = jsonSchema.required || [];
-  let entries = Object.entries(properties);
+  let properties = schema.properties || {};
+  let required = schema.required || [];
+  let entries = Object.entries(properties).flatMap(([name, prop]) =>
+    isSchemaProperty(prop) ? ([[name, prop]] as const) : []
+  );
 
   if (entries.length === 0) return null;
 
@@ -178,7 +177,7 @@ let SchemaFields = ({ schema }: { schema: Record<string, unknown> | null | undef
   );
 };
 
-let getScopeDisplay = (scope: Scope) => {
+let getScopeDisplay = (scope: ProviderAuthScope) => {
   let primary = scope.description ?? scope.name ?? scope.scope;
   let secondary = primary !== scope.scope ? scope.scope : null;
 
@@ -189,29 +188,21 @@ export let ProviderAuthMethodsPage = () => {
   let instance = useCurrentInstance();
   let { selectedVersionId } = useProviderVersionContext();
   let authMethods = useProviderAuthMethods(instance.data?.id, selectedVersionId);
-  type ProviderAuthMethod = DashboardInstanceProvidersAuthMethodsListOutput['items'][number];
 
-  return renderWithPagination(authMethods)(authMethods => {
-    let authMethodsToRender = authMethods.data.items as Array<ProviderAuthMethod>;
-
-    return (
+  return renderWithPagination(authMethods)(authMethods => (
       <>
         <Spacer size={10} />
 
-        {authMethodsToRender.length === 0 && (
+        {authMethods.data.items.length === 0 && (
           <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
             No authentication methods found for this provider.
           </Text>
         )}
 
         <Flex direction="column" gap={4}>
-          {authMethodsToRender.map((method: ProviderAuthMethod) => {
-              let inputSchema = getJsonSchema(
-                method.inputSchema as JsonSchemaEnvelope | Record<string, unknown> | null
-              );
-              let hasSchemaFields = hasJsonSchemaProperties(
-                method.inputSchema as JsonSchemaEnvelope | Record<string, unknown> | null
-              );
+          {authMethods.data.items.map((method: ProviderAuthMethod) => {
+              let inputSchema = getJsonSchemaObject(method.inputSchema);
+              let hasSchemaFields = hasJsonSchemaProperties(method.inputSchema);
 
               return (
                 <AccordionSingle
@@ -262,7 +253,7 @@ export let ProviderAuthMethodsPage = () => {
                           Requested Scopes
                         </Text>
                         <Flex direction="column">
-                          {method.scopes.map((scope: Scope, index: number) => (
+                          {method.scopes.map((scope: ProviderAuthScope, index: number) => (
                             <ScopeRow
                               key={scope.id}
                               scope={scope}
@@ -288,9 +279,8 @@ export let ProviderAuthMethodsPage = () => {
                   </Flex>
                 </AccordionSingle>
               );
-            })}
+          })}
         </Flex>
       </>
-    );
-  });
+    ));
 };

@@ -3,12 +3,15 @@ import { ValidationType } from '@metorial/validation';
 import { FormikConfig } from 'formik';
 import React from 'react';
 import * as Yup from 'yup';
-import { FormProvider } from './context';
+import { FormContextMutator, FormProvider } from './context';
 import { FormWrapper } from './formWrapper';
 
-export type FormProps<Values extends {}> = Omit<FormikConfig<Values>, 'validationSchema'> & {
-  schemaDependencies?: any[];
-  typeDependencies?: any[];
+export type FormProps<Values extends Record<string, unknown>> = Omit<
+  FormikConfig<Values>,
+  'validationSchema'
+> & {
+  schemaDependencies?: unknown[];
+  typeDependencies?: unknown[];
   updateInitialValues?: boolean;
   autoSubmit?: { delay?: number };
   actionsWrapper?: ({ children }: { children: React.ReactNode }) => React.ReactNode;
@@ -21,15 +24,10 @@ export type FormProps<Values extends {}> = Omit<FormikConfig<Values>, 'validatio
       | React.ReactNode
       | ((form: ReturnType<typeof useForm<Values>>) => React.ReactNode);
     submitName?: string | null;
-    mutators: {
-      RenderError: () => React.ReactNode;
-      error: any;
-      isLoading: boolean;
-      isSuccess: boolean;
-    }[];
+    mutators: FormContextMutator[];
   };
 
-export let Form = <Values extends {}>(p: FormProps<Values>) => {
+export let Form = <Values extends Record<string, unknown>>(p: FormProps<Values>) => {
   let form = useForm(p);
 
   let children = typeof p.children === 'function' ? p.children(form) : p.children;
@@ -38,9 +36,9 @@ export let Form = <Values extends {}>(p: FormProps<Values>) => {
     FormProvider,
     {
       value: {
-        form: form as any,
+        form,
         submitName: p.submitName ?? null,
-        mutators: (p.mutators ?? []) as any
+        mutators: p.mutators ?? []
       }
     },
     React.createElement(

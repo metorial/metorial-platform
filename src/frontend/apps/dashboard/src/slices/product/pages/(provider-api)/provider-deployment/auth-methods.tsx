@@ -9,9 +9,8 @@ import {
 import { AccordionSingle, Badge, Button, Flex, Spacer, Text } from '@metorial/ui';
 import { useParams } from 'react-router-dom';
 import {
-  getJsonSchema,
+  getJsonSchemaObject,
   hasJsonSchemaProperties,
-  type JsonSchemaEnvelope
 } from '../../../lib/jsonSchema';
 import { showProviderAuthConfigFormModal } from '../../../scenes/providerAuthConfigs/modal';
 import { showProviderAuthCredentialsFormModal } from '../../../scenes/providerAuthCredentials/modal';
@@ -39,12 +38,8 @@ export let ProviderDeploymentAuthMethodsPage = () => {
 
         <Flex direction="column" gap={6}>
           {authMethods.data.items.map((method: ProviderAuthMethod) => {
-            let inputSchema = getJsonSchema(
-              method.inputSchema as JsonSchemaEnvelope | Record<string, unknown> | null
-            );
-            let hasRequiredFields = hasJsonSchemaProperties(
-              method.inputSchema as JsonSchemaEnvelope | Record<string, unknown> | null
-            );
+            let inputSchema = getJsonSchemaObject(method.inputSchema);
+            let hasRequiredFields = hasJsonSchemaProperties(method.inputSchema);
             let schemaProperties =
               inputSchema &&
               typeof inputSchema === 'object' &&

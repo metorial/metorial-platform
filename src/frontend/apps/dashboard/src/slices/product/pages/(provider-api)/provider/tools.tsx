@@ -4,28 +4,26 @@ import {
 import { renderWithPagination } from '@metorial/data-hooks';
 import { useCurrentInstance, useProviderTools } from '@metorial/state';
 import { AccordionSingle, Badge, Flex, Spacer, Text, theme } from '@metorial/ui';
+import { JSONSchema7, JSONSchema7Definition } from 'json-schema';
 import { RiArrowDownSLine } from '@remixicon/react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useState } from 'react';
 import { styled } from 'styled-components';
-import { getJsonSchema, JsonSchemaEnvelope } from '../../../lib/jsonSchema';
+import { getJsonSchemaObject } from '../../../lib/jsonSchema';
 import { useProviderVersionContext } from './_layout';
 
-type SchemaProperty = {
-  type?: string;
-  enum?: string[];
-  oneOf?: Array<SchemaProperty>;
-  anyOf?: Array<SchemaProperty>;
-  items?: SchemaProperty;
-  properties?: Record<string, SchemaProperty>;
-  required?: string[];
-  description?: string;
-  default?: unknown;
-};
+type SchemaProperty = JSONSchema7;
+type ProviderTool = DashboardInstanceProvidersToolsListOutput['items'][number];
+type ToolModeBadge = { label: string; color: 'red' | 'green' };
 
-type JsonSchema = {
-  properties?: Record<string, SchemaProperty>;
-  required?: string[];
+let isSchemaObject = (
+  value: JSONSchema7Definition | JSONSchema7Definition[] | undefined
+): value is JSONSchema7 =>
+  !!value && typeof value === 'object' && !Array.isArray(value);
+
+let getSchemaType = (prop: SchemaProperty) => {
+  let type = Array.isArray(prop.type) ? prop.type[0] : prop.type;
+  return typeof type === 'string' ? type : 'any';
 };
 
 let CollapsibleBox = styled(motion.div)`
@@ -97,63 +95,61 @@ let typeMap: Record<string, string> = {
 let formatType = (type?: string) => typeMap[type || ''] || type || 'Any';
 
 let isNullable = (prop: SchemaProperty): boolean => {
-  let variants = prop.oneOf || prop.anyOf;
+  let variants =
+    (Array.isArray(prop.oneOf) ? prop.oneOf : undefined) ||
+    (Array.isArray(prop.anyOf) ? prop.anyOf : undefined);
   if (!variants) return false;
-  return variants.some(v => v.type === 'null');
+  return variants.some(v => typeof v === 'object' && v?.type === 'null');
 };
 
 let getNonNullVariants = (prop: SchemaProperty): SchemaProperty[] => {
-  let variants = prop.oneOf || prop.anyOf;
+  let variants =
+    (Array.isArray(prop.oneOf) ? prop.oneOf : undefined) ||
+    (Array.isArray(prop.anyOf) ? prop.anyOf : undefined);
   if (!variants) return [];
-  return variants.filter(v => v.type !== 'null');
+  return variants.filter((v): v is SchemaProperty => typeof v === 'object' && v?.type !== 'null');
 };
 
 let getTypeLabel = (prop: SchemaProperty): string => {
   if (prop.enum) return 'Enum';
   if (prop.oneOf || prop.anyOf) {
     let nonNull = getNonNullVariants(prop);
-    if (isNullable(prop) && nonNull.length === 1) return formatType(nonNull[0].type);
-    let labels = nonNull.map(v => formatType(v.type));
+    if (isNullable(prop) && nonNull.length === 1) return formatType(getSchemaType(nonNull[0]));
+    let labels = nonNull.map(v => formatType(getSchemaType(v)));
     if (labels.length <= 3) return labels.join(' | ');
     return 'Union';
   }
-  if (prop.type === 'array') {
-    if (prop.items?.properties) return 'Array of Objects';
-    if (prop.items?.type) return `Array of ${formatType(prop.items.type)}s`;
+  if (getSchemaType(prop) === 'array') {
+    if (isSchemaObject(prop.items) && prop.items.properties) return 'Array of Objects';
+    if (isSchemaObject(prop.items)) return `Array of ${formatType(getSchemaType(prop.items))}s`;
     return 'Array';
   }
-  return formatType(prop.type);
+  return formatType(getSchemaType(prop));
 };
 
 let getCollapsibleLabel = (prop: SchemaProperty): string => {
   if (prop.enum) return 'Possible values';
-  if (prop.type === 'array') {
-    let itemType = prop.items?.type;
-    if (itemType) return `Array of ${itemType}s`;
-    if (prop.items?.properties) return 'Array of objects';
+  if (getSchemaType(prop) === 'array') {
+    if (isSchemaObject(prop.items)) {
+      let itemType = getSchemaType(prop.items);
+      if (itemType !== 'any') return `Array of ${itemType}s`;
+      if (prop.items.properties) return 'Array of objects';
+    }
     return 'Array items';
   }
-  if (prop.type === 'object') return 'Object properties';
+  if (getSchemaType(prop) === 'object') return 'Object properties';
   if (prop.oneOf || prop.anyOf) return 'Union types';
   return 'Properties';
 };
 
-let getToolModeBadges = (tool: {
-  tags?:
-    | {
-        destructive?: boolean | null;
-        readOnly?: boolean | null;
-        read_only?: boolean | null;
-      }
-    | null;
-}) => {
-  let badges: { label: string; color: 'red' | 'green' }[] = [];
+let getToolModeBadges = (tool: Pick<ProviderTool, 'tags'>) => {
+  let badges: ToolModeBadge[] = [];
 
   if (tool.tags?.destructive) {
     badges.push({ label: 'Destructive', color: 'red' });
   }
 
-  if (tool.tags?.readOnly || tool.tags?.read_only) {
+  if (tool.tags?.readOnly) {
     badges.push({ label: 'Read-only', color: 'green' });
   }
 
@@ -167,13 +163,15 @@ let PropertyList = ({
   setOpen,
   parentId
 }: {
-  properties: Record<string, SchemaProperty>;
+  properties: Record<string, JSONSchema7Definition>;
   required?: string[];
   open: string[];
   setOpen: React.Dispatch<React.SetStateAction<string[]>>;
   parentId?: string;
 }) => {
-  let entries = Object.entries(properties);
+  let entries = Object.entries(properties).flatMap(([name, prop]) =>
+    isSchemaObject(prop) ? ([[name, prop]] as const) : []
+  );
   if (entries.length === 0) return null;
 
   return (
@@ -183,9 +181,9 @@ let PropertyList = ({
         let isOpen = open.includes(id);
         let typeLabel = getTypeLabel(prop);
         let typeColor =
-          prop.enum || prop.oneOf || prop.anyOf ? 'cyan' : getTypeColor(prop.type || 'any');
+          prop.enum || prop.oneOf || prop.anyOf ? 'cyan' : getTypeColor(getSchemaType(prop));
 
-        let nestedProps: Record<string, SchemaProperty> | undefined;
+        let nestedProps: Record<string, JSONSchema7Definition> | undefined;
         let nestedRequired: string[] | undefined;
         let collapsibleLabel: string | undefined;
 
@@ -193,13 +191,23 @@ let PropertyList = ({
           nestedProps = prop.properties;
           nestedRequired = prop.required;
           collapsibleLabel = getCollapsibleLabel(prop);
-        } else if (prop.type === 'array' && prop.items?.properties && Object.keys(prop.items.properties).length > 0) {
+        } else if (
+          getSchemaType(prop) === 'array' &&
+          isSchemaObject(prop.items) &&
+          prop.items.properties &&
+          Object.keys(prop.items.properties).length > 0
+        ) {
           nestedProps = prop.items.properties;
           nestedRequired = prop.items.required;
           collapsibleLabel = getCollapsibleLabel(prop);
         } else if (prop.oneOf || prop.anyOf) {
-          let variant = (prop.oneOf || prop.anyOf)!.find(
-            v => v.properties && Object.keys(v.properties).length > 0
+          let variants =
+            (Array.isArray(prop.oneOf) ? prop.oneOf : undefined) ||
+            (Array.isArray(prop.anyOf) ? prop.anyOf : undefined) ||
+            [];
+          let variant = variants.find(
+            (v): v is JSONSchema7 =>
+              isSchemaObject(v) && !!v.properties && Object.keys(v.properties).length > 0
           );
           if (variant) {
             nestedProps = variant.properties;
@@ -311,16 +319,14 @@ let SchemaViewer = ({
   schema,
   title
 }: {
-  schema: Record<string, unknown> | null | undefined;
+  schema: ReturnType<typeof getJsonSchemaObject>;
   title: string;
 }) => {
   let [open, setOpen] = useState<string[]>([]);
 
-  if (!schema) return null;
-
-  let jsonSchema = schema as JsonSchema;
-  let properties = jsonSchema.properties || {};
-  let required = jsonSchema.required || [];
+  if (!schema?.properties) return null;
+  let properties = schema.properties || {};
+  let required = schema.required || [];
   let entries = Object.entries(properties);
 
   if (entries.length === 0) return null;
@@ -344,7 +350,6 @@ export let ProviderToolsPage = () => {
   let instance = useCurrentInstance();
   let { selectedVersionId } = useProviderVersionContext();
   let tools = useProviderTools(instance.data?.id, selectedVersionId);
-  type ProviderTool = DashboardInstanceProvidersToolsListOutput['items'][number];
 
   return renderWithPagination(tools)(tools => (
     <>
@@ -360,12 +365,8 @@ export let ProviderToolsPage = () => {
         {tools.data.items.map(
           (tool: ProviderTool) => {
             let modeBadges = getToolModeBadges(tool);
-            let inputSchema = getJsonSchema(
-              tool.inputSchema as JsonSchemaEnvelope | Record<string, unknown> | null
-            );
-            let outputSchema = getJsonSchema(
-              tool.outputSchema as JsonSchemaEnvelope | Record<string, unknown> | null
-            );
+            let inputSchema = getJsonSchemaObject(tool.inputSchema);
+            let outputSchema = getJsonSchemaObject(tool.outputSchema);
 
             return (
               <AccordionSingle

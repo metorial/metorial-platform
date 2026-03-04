@@ -1,6 +1,14 @@
+import { JSONSchema7 } from 'json-schema';
+
 export type JsonSchemaEnvelope = {
   type: 'json_schema';
   schema: Record<string, unknown> | null;
+};
+
+export type JsonSchemaValue = JSONSchema7;
+export type JsonSchemaObject = JSONSchema7 & {
+  type?: 'object';
+  properties?: Record<string, JSONSchema7>;
 };
 
 export let isJsonSchemaEnvelope = (
@@ -17,10 +25,19 @@ export let isJsonSchemaEnvelope = (
 
 export let getJsonSchema = (
   value: JsonSchemaEnvelope | Record<string, unknown> | null | undefined
-) => {
+): JsonSchemaValue | null => {
   if (!value) return null;
-  if (isJsonSchemaEnvelope(value)) return value.schema ?? null;
-  return value;
+  if (isJsonSchemaEnvelope(value)) return (value.schema as JsonSchemaValue | null) ?? null;
+  return value as JsonSchemaValue;
+};
+
+export let getJsonSchemaObject = (
+  value: JsonSchemaEnvelope | Record<string, unknown> | null | undefined
+): JsonSchemaObject | null => {
+  let schema = getJsonSchema(value);
+  if (!schema || typeof schema !== 'object') return null;
+  if (schema.type && schema.type !== 'object') return null;
+  return schema as JsonSchemaObject;
 };
 
 export let hasJsonSchemaProperties = (

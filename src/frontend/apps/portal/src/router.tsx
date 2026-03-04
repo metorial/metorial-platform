@@ -11,7 +11,7 @@ import { ServerServerDeploymentsPage } from './pages/(auth)/(servers)/server/dep
 // import { MagicMcpTokensPage } from './pages/(auth)/magic-mcp/(list)/tokens';
 // import { MagicMcpServerLayout } from './pages/(auth)/magic-mcp/server/_layout';
 // import { MagicMcpServerConfigPage } from './pages/(auth)/magic-mcp/server/config';
-// import { MagicMcpServerOverviewPage } from './pages/(auth)/magic-mcp/server/overview';
+// import { MagicMcpProviderOverviewPage } from './pages/(auth)/magic-mcp/server/overview';
 // import { MagicMcpServerSessionsPage } from './pages/(auth)/magic-mcp/server/sessions';
 import { LoginPage } from './pages/(unauthenticated)/login';
 import { RouterErrorPage } from './pages/_error/routerError';
@@ -76,7 +76,7 @@ export let App = () => {
                       { path: '', element: <ServerPage /> },
                       { path: 'deployments', element: <ServerServerDeploymentsPage /> }
                     ]
-                  },
+                  }
 
                   // { path: 'magic-mcp-servers', element: <MagicMcpServerPage /> },
                   // { path: 'magic-mcp-sessions', element: <MagicMcpSessionsPage /> },
@@ -85,7 +85,7 @@ export let App = () => {
                   //   path: 'magic-mcp-server/:magicMcpServerId',
                   //   element: <MagicMcpServerLayout />,
                   //   children: [
-                  //     { path: '', element: <MagicMcpServerOverviewPage /> },
+                  //     { path: '', element: <MagicMcpProviderOverviewPage /> },
                   //     { path: 'sessions', element: <MagicMcpServerSessionsPage /> },
                   //     { path: 'config', element: <MagicMcpServerConfigPage /> }
                   //   ]

@@ -89,7 +89,7 @@ export let MagicMcpServersGrid = (filter: MagicMcpServersListQuery) => {
   ));
 };
 
-export let MagicMcpServersTable = (filter: MagicMcpServersListQuery) => {
+export let MagicMcpProviderTable = (filter: MagicMcpServersListQuery) => {
   let Paths = usePaths();
   let servers = useMagicMcpServers({
     ...filter,

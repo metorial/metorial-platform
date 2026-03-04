@@ -14,6 +14,6 @@ export let validatePropertyName = (name: string) => {
   return null;
 };
 
-export let formatJsonSchema = (schema: any) => {
+export let formatJsonSchema = (schema: unknown) => {
   return JSON.stringify(schema, null, 2);
 };

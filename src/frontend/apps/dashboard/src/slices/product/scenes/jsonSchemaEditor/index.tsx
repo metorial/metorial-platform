@@ -1,5 +1,6 @@
 import { CodeBlock } from '@metorial/code';
 import { Button, Input, theme } from '@metorial/ui';
+import { JSONSchema7 } from 'json-schema';
 import { RiAddLine, RiFullscreenExitLine } from '@remixicon/react';
 import { throttle } from 'lodash';
 import { useEffect, useMemo, useState } from 'react';
@@ -119,7 +120,7 @@ let Header = styled.header`
   }
 `;
 
-let getSchema = (title: string, input: any) =>
+let getSchema = (title: string, input?: JSONSchema7 | null) =>
   fromJsonSchema(
     input
       ? {
@@ -141,8 +142,8 @@ let getSchema = (title: string, input: any) =>
 export let SchemaEditor = (p: {
   title: string;
 
-  onChange?: (schema: any) => void;
-  value?: any;
+  onChange?: (schema: JSONSchema7) => void;
+  value?: JSONSchema7;
 }) => {
   let [schema, setSchema] = useState<JsonSchema>(() => getSchema(p.title, p.value));
   useEffect(() => setSchema(getSchema(p.title, p.value)), [p.value]);
@@ -190,7 +191,7 @@ export let SchemaEditor = (p: {
   let onChangeThrottled = useMemo(
     () =>
       throttle(
-        (newSchema: JsonSchema) => {
+        (newSchema: JSONSchema7) => {
           p.onChange?.(newSchema);
         },
         500,
@@ -198,7 +199,7 @@ export let SchemaEditor = (p: {
       ),
     [p.onChange]
   );
-  useEffect(() => onChangeThrottled(currentSchema as any), [currentSchema]);
+  useEffect(() => onChangeThrottled(currentSchema), [currentSchema, onChangeThrottled]);
 
   return (
     <Container data-view={view}>

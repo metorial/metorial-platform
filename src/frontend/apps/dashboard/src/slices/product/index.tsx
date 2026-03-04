@@ -210,70 +210,76 @@ let SetupProviderPage = dynamicPage(() =>
   import('./pages/setup-provider').then(c => c.SetupProviderPage)
 );
 
-let CustomServerCodePage = dynamicPage(() =>
-  import('./pages/(custom-servers)/custom-server/code').then(c => c.CustomServerCodePage)
+let CustomProviderCodePage = dynamicPage(() =>
+  import('./pages/(custom-providers)/custom-provider/code').then(c => c.CustomProviderCodePage)
 );
-let CustomServerOverviewPage = dynamicPage(() =>
-  import('./pages/(custom-servers)/custom-server').then(c => c.CustomServerOverviewPage)
+let CustomProviderOverviewPage = dynamicPage(() =>
+  import('./pages/(custom-providers)/custom-provider').then(c => c.CustomProviderOverviewPage)
 );
-let CustomServerVersionsPage = dynamicPage(() =>
-  import('./pages/(custom-servers)/custom-server/versions').then(
-    c => c.CustomServerVersionsPage
+let CustomProviderVersionsPage = dynamicPage(() =>
+  import('./pages/(custom-providers)/custom-provider/versions').then(
+    c => c.CustomProviderVersionsPage
   )
 );
-let CustomServerSettingsPage = dynamicPage(() =>
-  import('./pages/(custom-servers)/custom-server/settings/settings').then(
-    c => c.CustomServerSettingsPage
+let CustomProviderSettingsPage = dynamicPage(() =>
+  import('./pages/(custom-providers)/custom-provider/settings/settings').then(
+    c => c.CustomProviderSettingsPage
   )
 );
-let CustomServerLayout = dynamicPage(() =>
-  import('./pages/(custom-servers)/custom-server/_layout').then(c => c.CustomServerLayout)
-);
-let CustomServerDeploymentsPage = dynamicPage(() =>
-  import('./pages/(custom-servers)/custom-server/deployments').then(
-    c => c.CustomServerDeploymentsPage
+let CustomProviderLayout = dynamicPage(() =>
+  import('./pages/(custom-providers)/custom-provider/_layout').then(
+    c => c.CustomProviderLayout
   )
 );
-let CustomServerListingPage = dynamicPage(() =>
-  import('./pages/(custom-servers)/custom-server/settings/listing').then(
-    c => c.CustomServerListingPage
+let CustomProviderDeploymentsPage = dynamicPage(() =>
+  import('./pages/(custom-providers)/custom-provider/deployments').then(
+    c => c.CustomProviderDeploymentsPage
   )
 );
-let ManagedServersListLayout = dynamicPage(() =>
-  import('./pages/(custom-servers)/(list)/_layout').then(c => c.ManagedServersListLayout)
+let CustomProviderListingPage = dynamicPage(() =>
+  import('./pages/(custom-providers)/custom-provider/settings/listing').then(
+    c => c.CustomProviderListingPage
+  )
 );
-let ExternalServersListLayout = dynamicPage(() =>
-  import('./pages/(custom-servers)/(list)/_layout').then(c => c.ExternalServersListLayout)
+let ManagedProvidersListLayout = dynamicPage(() =>
+  import('./pages/(custom-providers)/(list)/_layout').then(c => c.ManagedProvidersListLayout)
 );
-let ExternalServersPage = dynamicPage(() =>
-  import('./pages/(custom-servers)/(list)/external-servers').then(c => c.ExternalServersPage)
+let ExternalProvidersListLayout = dynamicPage(() =>
+  import('./pages/(custom-providers)/(list)/_layout').then(c => c.ExternalProvidersListLayout)
 );
-let ManagedServersPage = dynamicPage(() =>
-  import('./pages/(custom-servers)/(list)/managed-servers').then(c => c.ManagedServersPage)
+let ExternalProvidersPage = dynamicPage(() =>
+  import('./pages/(custom-providers)/(list)/external-providers').then(
+    c => c.ExternalProvidersPage
+  )
+);
+let CustomerProvidersPage = dynamicPage(() =>
+  import('./pages/(custom-providers)/(list)/custom-providers').then(
+    c => c.CustomerProvidersPage
+  )
 );
 let LogsListLayout = dynamicPage(() =>
   import('./pages/(logs)/(list)/_layout').then(c => c.LogsListLayout)
 );
-let ServerErrorsPage = dynamicPage(() =>
-  import('./pages/(logs)/(list)/server-errors').then(c => c.ServerErrorsPage)
+let ProviderErrorsPage = dynamicPage(() =>
+  import('./pages/(logs)/(list)/provider-errors').then(c => c.ProviderErrorsPage)
 );
-let ServerRunsPage = dynamicPage(() =>
-  import('./pages/(logs)/(list)/server-runs').then(c => c.ServerRunsPage)
+let ProviderRunsPage = dynamicPage(() =>
+  import('./pages/(logs)/(list)/provider-runs').then(c => c.ProviderRunsPage)
 );
 let SessionsPage = dynamicPage(() =>
   import('./pages/(logs)/(list)/sessions').then(c => c.SessionsPage)
 );
-let ServerErrorPage = dynamicPage(() =>
-  import('./pages/(logs)/server-error').then(c => c.ServerErrorPage)
+let ProviderErrorPage = dynamicPage(() =>
+  import('./pages/(logs)/provider-error').then(c => c.ProviderErrorPage)
 );
-let ServerErrorLayout = dynamicPage(() =>
-  import('./pages/(logs)/server-error/_layout').then(c => c.ServerErrorLayout)
+let ProviderErrorLayout = dynamicPage(() =>
+  import('./pages/(logs)/provider-error/_layout').then(c => c.ProviderErrorLayout)
 );
-let ServerRunPage = dynamicPage(() =>
-  import('./pages/(logs)/server-run').then(c => c.ServerRunPage)
+let ProviderRunPage = dynamicPage(() =>
+  import('./pages/(logs)/provider-run').then(c => c.ProviderRunPage)
 );
-let ServerRunLayout = dynamicPage(() =>
-  import('./pages/(logs)/server-run/_layout').then(c => c.ServerRunLayout)
+let ProviderRunLayout = dynamicPage(() =>
+  import('./pages/(logs)/provider-run/_layout').then(c => c.ProviderRunLayout)
 );
 let SessionPage = dynamicPage(() => import('./pages/(logs)/session').then(c => c.SessionPage));
 let SessionLayout = dynamicPage(() =>
@@ -282,13 +288,9 @@ let SessionLayout = dynamicPage(() =>
 let SessionDeploymentsPage = dynamicPage(() =>
   import('./pages/(logs)/session/deployments').then(c => c.SessionDeploymentsPage)
 );
-let SessionServerRunsPage = dynamicPage(() =>
-  import('./pages/(logs)/session/serverRuns').then(c => c.SessionServerRunsPage)
-);
 let ProjectPageLayout = dynamicPage(() =>
   import('./pages/_layout').then(c => c.ProjectPageLayout)
 );
-let DeployPage = dynamicPage(() => import('./pages/deploy').then(c => c.DeployPage));
 let ProjectDeveloperPage = dynamicPage(() =>
   import('./pages/developer').then(c => c.ProjectDeveloperPage)
 );
@@ -308,15 +310,15 @@ let ProjectSettingsPage = dynamicPage(() =>
 let ProjectSettingsPageLayout = dynamicPage(() =>
   import('./pages/settings/_layout').then(c => c.ProjectSettingsPageLayout)
 );
-let CommunityServersPage = dynamicPage(() =>
-  import('./pages/community/communityServers').then(c => c.CommunityServersPage)
+let CommunityProvidersPage = dynamicPage(() =>
+  import('./pages/community/communityProviders').then(c => c.CommunityProvidersPage)
 );
 let NotFoundPage = dynamicPage(() => import('@metorial/pages').then(c => c.NotFound));
 let FlaggedPage = ({ children, flag }: { children: React.ReactNode; flag: string }) => {
   let flags = useDashboardFlags();
 
   return renderWithLoader({ flags })(({ flags }) =>
-    (flags.data.flags as any)[flag] ? children : <NotFound />
+    flags.data.flags[flag as keyof typeof flags.data.flags] ? children : <NotFound />
   );
 };
 let ProductWrapper = () => {
@@ -374,7 +376,7 @@ export let productInnerSlice = createSlice([
       },
 
       /***************
-       * Servers
+       * Providers
        *************** */
       {
         children: [
@@ -382,18 +384,18 @@ export let productInnerSlice = createSlice([
             path: '',
             element: (
               <FlaggedPage flag="metorial-gateway-enabled">
-                <ManagedServersListLayout />
+                <ManagedProvidersListLayout />
               </FlaggedPage>
             ),
 
             children: [
               {
-                path: 'managed-servers',
-                element: <ManagedServersPage />
+                path: 'custom-providers',
+                element: <CustomerProvidersPage />
               },
               {
                 path: 'custom-providers',
-                element: <ManagedServersPage />
+                element: <CustomerProvidersPage />
               }
             ]
           },
@@ -402,54 +404,54 @@ export let productInnerSlice = createSlice([
             path: '',
             element: (
               <FlaggedPage flag="metorial-gateway-enabled">
-                <ExternalServersListLayout />
+                <ExternalProvidersListLayout />
               </FlaggedPage>
             ),
 
             children: [
               {
-                path: 'external-servers',
-                element: <ExternalServersPage />
+                path: 'external-providers',
+                element: <ExternalProvidersPage />
               },
               {
                 path: 'external-providers',
-                element: <ExternalServersPage />
+                element: <ExternalProvidersPage />
               }
             ]
           },
 
           {
-            path: 'custom-provider/:customServerId',
+            path: 'custom-provider/:customProviderId',
             element: (
               <FlaggedPage flag="metorial-gateway-enabled">
-                <CustomServerLayout />
+                <CustomProviderLayout />
               </FlaggedPage>
             ),
 
             children: [
               {
                 path: '',
-                element: <CustomServerOverviewPage />
+                element: <CustomProviderOverviewPage />
               },
               {
                 path: 'versions',
-                element: <CustomServerVersionsPage />
+                element: <CustomProviderVersionsPage />
               },
               {
                 path: 'code',
-                element: <CustomServerCodePage />
+                element: <CustomProviderCodePage />
               },
               {
                 path: 'deployments',
-                element: <CustomServerDeploymentsPage />
+                element: <CustomProviderDeploymentsPage />
               },
               {
                 path: 'settings',
-                element: <CustomServerSettingsPage />
+                element: <CustomProviderSettingsPage />
               },
               {
                 path: 'listing',
-                element: <CustomServerListingPage />
+                element: <CustomProviderListingPage />
               }
             ]
           }
@@ -471,68 +473,60 @@ export let productInnerSlice = createSlice([
                 element: <SessionsPage />
               },
               {
-                path: 'server-runs',
-                element: <ServerRunsPage />
-              },
-              {
                 path: 'provider-runs',
-                element: <ServerRunsPage />
-              },
-              {
-                path: 'server-errors',
-                element: <ServerErrorsPage />
+                element: <ProviderRunsPage />
               },
               {
                 path: 'provider-errors',
-                element: <ServerErrorsPage />
+                element: <ProviderErrorsPage />
               }
             ]
           },
 
           {
-            path: 'server-error/:serverErrorId',
-            element: <ServerErrorLayout />,
+            path: 'provider-error/:providerErrorId',
+            element: <ProviderErrorLayout />,
 
             children: [
               {
                 path: '',
-                element: <ServerErrorPage />
+                element: <ProviderErrorPage />
               }
             ]
           },
 
           {
-            path: 'provider-error/:serverErrorId',
-            element: <ServerErrorLayout />,
+            path: 'provider-error/:providerErrorId',
+            element: <ProviderErrorLayout />,
 
             children: [
               {
                 path: '',
-                element: <ServerErrorPage />
+                element: <ProviderErrorPage />
               }
             ]
           },
 
           {
-            path: 'server-run/:serverRunId',
-            element: <ServerRunLayout />,
+            path: 'provider-run/:providerRunId',
+            element: <ProviderRunLayout />,
 
             children: [
               {
                 path: '',
-                element: <ServerRunPage />
+                element: <ProviderRunPage />
               }
             ]
           },
 
           {
-            path: 'provider-run/:serverRunId',
-            element: <ServerRunLayout />,
+            path: 'provider-run/:providerRunId',
+            element: <ProviderRunLayout />,
 
             children: [
               {
                 path: '',
-                element: <ServerRunPage />
+                element: <ProviderRunPage />
               }
             ]
           },
@@ -552,7 +546,7 @@ export let productInnerSlice = createSlice([
               },
               {
                 path: 'runs',
-                element: <SessionServerRunsPage />
+                element: <ProviderRunsPage />
               }
             ]
           }
@@ -730,7 +724,7 @@ export let productInnerSlice = createSlice([
         children: [
           {
             path: '',
-            element: <ServerRunsPage />
+            element: <ProviderRunsPage />
           }
         ]
       },
@@ -740,7 +734,7 @@ export let productInnerSlice = createSlice([
         children: [
           {
             path: '',
-            element: <ServerErrorsPage />
+            element: <ProviderErrorsPage />
           }
         ]
       },
@@ -806,8 +800,8 @@ export let productInnerSlice = createSlice([
         path: 'community',
         children: [
           {
-            path: 'servers',
-            element: <CommunityServersPage />
+            path: 'providers',
+            element: <CommunityProvidersPage />
           }
         ]
       }
@@ -815,23 +809,9 @@ export let productInnerSlice = createSlice([
   }
 ]);
 
-export let deploySlice = createSlice([
-  {
-    path: ':organizationId/:projectId/:instanceId/deploy',
-    element: <DeployPage />
-  },
-  {
-    path: ':organizationId/:projectId/:instanceId/setup-provider',
-    element: <SetupProviderPage />
-  }
-]);
-
 export let productSlice = createSlice([
   {
     element: <ProjectPageLayout />,
     children: productInnerSlice.routes
-  },
-  {
-    children: deploySlice.routes
   }
 ]);

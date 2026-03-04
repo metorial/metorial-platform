@@ -36,6 +36,6 @@ export let openWindow = (url: string) => {
   };
 };
 
-export let sendMessageToOpener = (message: any) => {
+export let sendMessageToOpener = (message: unknown) => {
   window.opener.postMessage(message, window.location.origin);
 };

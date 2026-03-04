@@ -8,8 +8,8 @@ import { useAggregatedMessages } from './useAggregatedMessages';
 export let useEvents = (
   sessionId: string | undefined | null,
   opts: {
-    serverSessionId?: string[] | string;
-    serverRunId?: string[] | string;
+    providerSessionId?: string[] | string;
+    providerRunId?: string[] | string;
     limit?: number;
   }
 ) => {
@@ -30,9 +30,7 @@ export let useEvents = (
       error: events.error || messages.error,
       data: [
         ...(messages.data?.items ?? []).map(message => ({
-          component: (
-            <Message message={message} aggregatedMessages={aggregatedMessages} />
-          ),
+          component: <Message message={message} aggregatedMessages={aggregatedMessages} />,
           time: message.createdAt
         })),
 
@@ -41,7 +39,7 @@ export let useEvents = (
             let errorMsg =
               event.error?.code && event.error?.message
                 ? `${event.error.code} - ${event.error.message}`
-                : event.error?.message ?? 'Unknown error';
+                : (event.error?.message ?? 'Unknown error');
             return {
               component: (
                 <Entry

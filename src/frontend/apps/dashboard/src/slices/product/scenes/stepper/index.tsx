@@ -1,5 +1,5 @@
 import { AnimatePanes, theme } from '@metorial/ui';
-import React, { useEffect, useState } from 'react';
+import React, { CSSProperties, useEffect, useState } from 'react';
 import styled from 'styled-components';
 
 let Wrapper = styled.div`
@@ -123,7 +123,7 @@ export let Stepper = ({
             style={
               {
                 '--bg': index <= currentStep ? theme.colors.gray300 : theme.colors.gray100
-              } as any
+              } as CSSProperties
             }
           >
             <div className="inner">

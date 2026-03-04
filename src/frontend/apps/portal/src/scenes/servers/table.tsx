@@ -8,7 +8,7 @@ import { Table } from '@metorial/ui-product';
 import { useServerListings } from '../../state/consumer/listings';
 import { usePaths } from '../../state/portal/path';
 
-export let ServersTable = (
+export let ProviderTable = (
   filter: ServersListingsListQuery & {
     getUrl: (listing: ServersListingsGetOutput) => string;
   }

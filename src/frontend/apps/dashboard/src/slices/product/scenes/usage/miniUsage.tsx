@@ -17,7 +17,7 @@ export let MiniUsageScene = ({
     id: string;
   }[];
 }) => {
-  let [ref, { width }] = useMeasure();
+  let [ref, { width }] = useMeasure<HTMLDivElement>();
 
   let [usage] = useUsageState({
     entities,
@@ -34,7 +34,7 @@ export let MiniUsageScene = ({
   );
 
   return (
-    <Wrapper ref={ref as any}>
+    <Wrapper ref={ref}>
       <Trend
         data={usage.data?.[0]?.entries.map(e => e.count) ?? [0, 0]}
         smooth

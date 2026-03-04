@@ -1,9 +1,9 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import { useCurrentInstance, useSession } from '@metorial/state';
 import { useParams } from 'react-router-dom';
-import { ServerRunsTable } from '../../../scenes/serverRuns/table';
+import { ServerRunsTable } from '../../../scenes/providerRun/table';
 
-export let SessionServerRunsPage = () => {
+export let ProviderRunsPage = () => {
   let instance = useCurrentInstance();
 
   let { sessionId } = useParams();

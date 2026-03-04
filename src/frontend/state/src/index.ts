@@ -6,7 +6,7 @@ export * from './deployment';
 export * from './developer';
 export * from './organization';
 export * from './provider';
-export * from './server';
+export * from './custom-provider';
 export * from './session';
 export * from './stores';
 export * from './usage';

@@ -1,5 +1,5 @@
 import { capitalize } from '@metorial/case';
-import { ApiKeysGetOutput } from '@metorial/dashboard-sdk';
+import { ApiKeysCreateBody, ApiKeysGetOutput, ApiKeysUpdateBody } from '@metorial/dashboard-sdk';
 import { renderWithLoader, useForm } from '@metorial/data-hooks';
 import { PageHeader } from '@metorial/layout';
 import { ApiKeysFilter, useCurrentOrganization, useRevealableApiKey } from '@metorial/state';
@@ -31,6 +31,55 @@ import styled from 'styled-components';
 import { useNow } from '../../../../hooks/useNow';
 import { useApiKeysWithAutoInit } from './useApiKeysWithAutoInit';
 
+type ApiKeyType = ApiKeysGetOutput['type'];
+type ApiKeyFilterType = ApiKeysFilter['type'];
+type CreateApiKeyFormValues = {
+  name: string;
+  description: string;
+  expiresAt: Date | undefined;
+  type: ApiKeyType;
+};
+type UpdateApiKeyFormValues = {
+  name: string | undefined;
+  description: string | undefined;
+  expiresAt: Date | undefined;
+  type: ApiKeyType | undefined;
+};
+
+let isApiKeyType = (value: string): value is ApiKeyType =>
+  value === 'organization_management_token' ||
+  value === 'instance_access_token_secret' ||
+  value === 'instance_access_token_publishable';
+
+let getApiKeySceneName = (type: ApiKeyFilterType) => {
+  switch (type) {
+    case 'organization_management_token':
+      return 'Organization Token';
+    case 'instance_access_token':
+      return 'API Key';
+  }
+};
+
+let getDefaultCreateApiKeyType = (type: ApiKeyFilterType): ApiKeyType => {
+  switch (type) {
+    case 'organization_management_token':
+      return 'organization_management_token';
+    case 'instance_access_token':
+      return 'instance_access_token_secret';
+  }
+};
+
+let getApiKeyTypeLabel = (type: ApiKeyType) => {
+  switch (type) {
+    case 'organization_management_token':
+      return 'Admin Token';
+    case 'instance_access_token_secret':
+      return 'Secret Key';
+    case 'instance_access_token_publishable':
+      return 'Publishable Key';
+  }
+};
+
 export let ApiKeysScene = ({
   filter,
   header,
@@ -43,11 +92,21 @@ export let ApiKeysScene = ({
   };
   extra?: React.ReactNode;
 }) => {
-  let name = {
-    organization_management_token: 'Organization Token',
-    user_auth_token: 'User Access Token',
-    instance_access_token: 'API Key'
-  }[filter.type];
+  let name = getApiKeySceneName(filter.type);
+  let apiKeyTypeItems: Array<{ id: ApiKeyType; label: string }> = [
+    {
+      id: 'organization_management_token',
+      label: getApiKeyTypeLabel('organization_management_token')
+    },
+    {
+      id: 'instance_access_token_secret',
+      label: getApiKeyTypeLabel('instance_access_token_secret')
+    },
+    {
+      id: 'instance_access_token_publishable',
+      label: getApiKeyTypeLabel('instance_access_token_publishable')
+    }
+  ];
 
   let apiKeys = useApiKeysWithAutoInit(filter);
   let org = useCurrentOrganization();
@@ -56,34 +115,31 @@ export let ApiKeysScene = ({
     showModal(({ dialogProps, close }) => {
       let mutator = apiKeys.createMutator();
 
-      let form = useForm({
+      let form = useForm<CreateApiKeyFormValues>({
         initialValues: {
           name: '',
           description: '',
           expiresAt: undefined,
-          type: {
-            organization_management_token: 'organization_management_token' as const,
-            user_auth_token: 'organization_management_token' as const, // user_auth_token don't exist anymore
-            instance_access_token: 'instance_access_token_secret' as const
-          }[filter.type] as
-            | 'organization_management_token'
-            | 'instance_access_token_secret'
-            | 'instance_access_token_publishable'
+          type: getDefaultCreateApiKeyType(filter.type)
         },
         onSubmit: async values => {
-          let [res] = await mutator.mutate({
-            type: values.type,
-            instanceId:
-              filter.type === 'instance_access_token' ? filter.instanceId : undefined,
-            organizationId:
-              filter.type === 'organization_management_token'
-                ? filter.organizationId
-                : undefined,
+          let input: ApiKeysCreateBody =
+            filter.type === 'instance_access_token'
+              ? {
+                  type: values.type,
+                  instanceId: filter.instanceId,
+                  name: values.name,
+                  description: values.description,
+                  expiresAt: values.expiresAt
+                }
+              : {
+                  type: 'organization_management_token',
+                  name: values.name,
+                  description: values.description,
+                  expiresAt: values.expiresAt
+                };
 
-            name: values.name,
-            description: values.description,
-            expiresAt: values.expiresAt
-          } as any);
+          let [res] = await mutator.mutate(input);
 
           if (res) {
             close();
@@ -115,21 +171,22 @@ export let ApiKeysScene = ({
           }
         },
         schema: yup =>
-          yup.object().shape({
+          yup.object({
             name: yup.string().required('Name is required'),
-            description: yup.string(),
+            description: yup.string().defined(),
             expiresAt: yup
               .date()
               .optional()
               .min(new Date(), 'Expires at must be in the future'),
             type: yup
-              .string()
+              .mixed<ApiKeyType>()
               .oneOf([
                 'organization_management_token',
                 'instance_access_token_secret',
                 'instance_access_token_publishable'
               ])
-          }) as any
+              .required('Type is required')
+          })
       });
 
       let handleSubmit = async () => {
@@ -173,11 +230,14 @@ export let ApiKeysScene = ({
                 <Select
                   label="Type"
                   value={form.values.type}
-                  items={[
-                    { id: 'instance_access_token_secret', label: 'Secret' },
-                    { id: 'instance_access_token_publishable', label: 'Publishable' }
-                  ]}
-                  onChange={v => form.setFieldValue('type', v)}
+                  items={apiKeyTypeItems.filter(
+                    item => item.id !== 'organization_management_token'
+                  )}
+                  onChange={v => {
+                    if (isApiKeyType(v)) {
+                      form.setFieldValue('type', v);
+                    }
+                  }}
                 />
                 <form.RenderError field="type" />
               </>
@@ -203,7 +263,7 @@ export let ApiKeysScene = ({
       let apiKey = apiKeys.data?.find(k => k.id === apiKeyId);
       let mutator = apiKeys.updateMutator();
 
-      let form = useForm({
+      let form = useForm<UpdateApiKeyFormValues>({
         initialValues: {
           name: apiKey?.name ?? undefined,
           description: apiKey?.description ?? undefined,
@@ -212,21 +272,30 @@ export let ApiKeysScene = ({
         },
         onSubmit: async values => {
           let [res] = await mutator.mutate({
-            ...values,
-            apiKeyId
-          });
+            apiKeyId,
+            name: values.name,
+            description: values.description,
+            expiresAt: values.expiresAt
+          } satisfies ApiKeysUpdateBody & { apiKeyId: string });
           if (res) close();
         },
         schema: yup =>
-          yup.object().shape({
+          yup.object({
             name: yup.string().required('Name is required'),
-            description: yup.string(),
+            description: yup.string().defined(),
             expiresAt: yup
               .date()
               .optional()
               .min(new Date(), 'Expires at must be in the future'),
-            type: yup.string().oneOf(['publishable', 'secret'])
-          }) as any
+            type: yup
+              .mixed<ApiKeyType>()
+              .oneOf([
+                'organization_management_token',
+                'instance_access_token_secret',
+                'instance_access_token_publishable'
+              ])
+              .optional()
+          })
       });
 
       let handleSubmit = async () => {
@@ -267,12 +336,13 @@ export let ApiKeysScene = ({
 
             <Select
               label="Type"
-              value={form.values.type}
-              items={[
-                { id: 'secret', label: 'Secret' },
-                { id: 'publishable', label: 'Publishable' }
-              ]}
-              onChange={v => form.setFieldValue('type', v)}
+              value={form.values.type ?? ''}
+              items={apiKeyTypeItems}
+              onChange={v => {
+                if (isApiKeyType(v)) {
+                  form.setFieldValue('type', v);
+                }
+              }}
             />
             <form.RenderError field="type" />
 
@@ -420,12 +490,7 @@ export let ApiKeysScene = ({
                     size="1"
                     color={apiKey.type.includes('publishable') ? 'blue' : 'purple'}
                   >
-                    {{
-                      organization_management_token: 'Admin Token',
-                      user_auth_token: 'User Token',
-                      instance_access_token_secret: 'Secret Key',
-                      instance_access_token_publishable: 'Publishable Key'
-                    }[apiKey.type] ?? apiKey.type}
+                    {getApiKeyTypeLabel(apiKey.type)}
                   </Badge>,
                   <Flex gap={3} direction="column">
                     <Text size="2" weight="strong">

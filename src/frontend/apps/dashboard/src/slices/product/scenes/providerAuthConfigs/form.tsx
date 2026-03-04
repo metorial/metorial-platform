@@ -11,9 +11,8 @@ import {
   useProviderDeployment
 } from '@metorial/state';
 import { Button, CenteredSpinner, Dialog, Input, Select, Spacer, Text } from '@metorial/ui';
-import { JSONSchema7 } from 'json-schema';
 import { useEffect, useState } from 'react';
-import { getJsonSchema, JsonSchemaEnvelope } from '../../lib/jsonSchema';
+import { getJsonSchemaObject } from '../../lib/jsonSchema';
 import { JsonSchemaInput } from '../jsonSchemaInput';
 import { Stepper } from '../stepper';
 
@@ -72,15 +71,9 @@ export let ProviderAuthConfigForm = (
             let authMethodId = this.parent.authMethodId;
             let selectedMethod = authMethods.data?.items?.find(
               (method: AuthMethod) => method.id === authMethodId
-            ) as AuthMethod | undefined;
-
-            let schemaObj = getJsonSchema(
-              selectedMethod?.inputSchema as
-                | JsonSchemaEnvelope
-                | Record<string, unknown>
-                | null
-                | undefined
             );
+
+            let schemaObj = getJsonSchemaObject(selectedMethod?.inputSchema);
             let hasSchema =
               schemaObj &&
               typeof schemaObj === 'object' &&
@@ -157,15 +150,9 @@ export let ProviderAuthConfigForm = (
 
   let selectedMethod = authMethods.data?.items?.find(
     (method: AuthMethod) => method.id === form.values.authMethodId
-  ) as AuthMethod | undefined;
-
-  let schemaObj = getJsonSchema(
-    selectedMethod?.inputSchema as
-      | JsonSchemaEnvelope
-      | Record<string, unknown>
-      | null
-      | undefined
   );
+
+  let schemaObj = getJsonSchemaObject(selectedMethod?.inputSchema);
   let hasSchema =
     schemaObj &&
     typeof schemaObj === 'object' &&
@@ -210,7 +197,7 @@ export let ProviderAuthConfigForm = (
 
   let credentialsSection = hasSchema ? (
     <JsonSchemaInput
-      schema={schemaObj as JSONSchema7}
+      schema={schemaObj}
       value={credentialsData}
       onChange={setCredentialsData}
       label="Credentials"

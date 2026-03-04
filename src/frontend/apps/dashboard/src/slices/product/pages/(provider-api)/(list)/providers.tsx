@@ -1,7 +1,7 @@
 import { useForm } from '@metorial/data-hooks';
 import { Input, Spacer } from '@metorial/ui';
 import { useDebounced } from '../../../../../hooks/useDebounced';
-import { ServersGrid } from '../../../scenes/servers/grid';
+import { ProvidersGrid } from '../../../scenes/providers/grid_';
 
 export let ProvidersPage = () => {
   let form = useForm({
@@ -27,7 +27,7 @@ export let ProvidersPage = () => {
 
       <Spacer size={15} />
 
-      <ServersGrid search={searchDebounced} limit={21} />
+      <ProvidersGrid search={searchDebounced} limit={21} />
     </>
   );
 };

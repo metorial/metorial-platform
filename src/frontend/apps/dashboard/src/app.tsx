@@ -5,7 +5,13 @@ import { App } from './router';
 
 import './reset.css';
 
-(window as any).LinkComponent = Link;
+declare global {
+  interface Window {
+    LinkComponent?: typeof Link;
+  }
+}
+
+window.LinkComponent = Link;
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

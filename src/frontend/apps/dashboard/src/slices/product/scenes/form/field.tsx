@@ -1,7 +1,6 @@
-import { useForm } from '@metorial/data-hooks';
 import { useCallback, useMemo } from 'react';
 import styled from 'styled-components';
-import { useFormContext } from './context';
+import { FormContextForm, useFormContext } from './context';
 
 let Wrapper = styled.fieldset`
   display: flex;
@@ -16,18 +15,18 @@ let Wrapper = styled.fieldset`
 export let Field = (p: {
   field: string;
   children: (d: {
-    form: ReturnType<typeof useForm>;
-    getFieldProps: () => ReturnType<ReturnType<typeof useForm>['getFieldProps']>;
-    value: any;
-    setValue: (value: any) => void;
+    form: FormContextForm;
+    getFieldProps: () => ReturnType<FormContextForm['getFieldProps']>;
+    value: unknown;
+    setValue: (value: unknown) => void;
   }) => React.ReactNode;
 }) => {
   let { form } = useFormContext();
 
   let getFieldProps = useCallback(() => form.getFieldProps(p.field), [form, p.field]);
-  let value = form.values[p.field as keyof typeof form.values];
+  let value = form.values[p.field];
   let setValue = useCallback(
-    (value: any) => {
+    (value: unknown) => {
       form.setFieldValue(p.field, value);
     },
     [form, p.field]
@@ -38,7 +37,7 @@ export let Field = (p: {
   return (
     <Wrapper>
       <Children form={form} getFieldProps={getFieldProps} value={value} setValue={setValue} />
-      <form.RenderError field={p.field as never} />
+      <form.RenderError field={p.field} />
     </Wrapper>
   );
 };

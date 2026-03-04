@@ -30,10 +30,9 @@ export let useCurrentOrganization = () => {
   let params = useParams<{ organizationId: string; projectId: string; instanceId: string }>();
   let [search] = useSearchParams();
 
-  let organizationId =
-    params.organizationId || search.get('organizationId') || search.get('organization_id');
-  let projectId = params.projectId || search.get('projectId') || search.get('project_id');
-  let instanceId = params.instanceId || search.get('instanceId') || search.get('instance_id');
+  let organizationId = params.organizationId || search.get('organization_id');
+  let projectId = params.projectId || search.get('project_id');
+  let instanceId = params.instanceId || search.get('instance_id');
 
   let foundItem = useMemo(() => {
     // return orgs.data?.find(org => org.id == organizationId || org.slug == organizationId);
