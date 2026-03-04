@@ -2,8 +2,9 @@ import {
   DashboardInstanceCustomProvidersVersionsCreateBody,
   DashboardInstanceCustomProvidersVersionsListQuery
 } from '@metorial/dashboard-sdk';
-import { createLoader, useMutation } from '@metorial/data-hooks';
+import { createLoader } from '@metorial/data-hooks';
 import { useEffect, useRef } from 'react';
+import { mutation } from '../../lib/mutation';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
 
@@ -26,7 +27,7 @@ export let customProviderVersionsLoader = createLoader({
         ...i,
         customProviderId: i.customProviderId
       })
-    ),
+  ),
   mutators: {}
 });
 
@@ -45,20 +46,19 @@ export let useCreateCustomProviderVersion = customProviderVersionsLoader.createE
     )
 );
 
-export let useListProviderVersions = () =>
-  useMutation(
-    (
-      i: DashboardInstanceCustomProvidersVersionsListQuery & {
-        instanceId: string;
-        customProviderId: string;
-      }
-    ) =>
-      withAuth(sdk =>
-        sdk.customProviders.versions.list(i.instanceId, {
-          ...i,
-          customProviderId: i.customProviderId
-        })
-      )
+export let listCustomProviderVersions = (
+  i: {
+    instanceId: string;
+    customProviderId: string;
+  } & CustomProviderVersionsQuery
+) =>
+  mutation(() =>
+    withAuth(sdk =>
+      sdk.customProviders.versions.list(i.instanceId, {
+        ...i,
+        customProviderId: i.customProviderId
+      })
+    )
   );
 
 export let useCustomProviderVersions = (

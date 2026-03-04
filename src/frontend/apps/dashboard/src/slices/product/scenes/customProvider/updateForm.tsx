@@ -3,7 +3,7 @@ import { CustomProvidersGetOutput } from '@metorial/dashboard-sdk';
 import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
-  useCreateCustomServerVersion,
+  useCreateCustomProviderVersion,
   useCurrentInstance,
   useCustomProvider,
   useCustomProviderVersion,
@@ -31,8 +31,8 @@ export let CustomServerUpdateForm = (p: { customServer?: CustomProvidersGetOutpu
 
   let updateMutator = customServer.useUpdateMutator();
   let deleteMutator = customServer.useUpdateMutator();
-  let createVersionMutator = useCreateCustomServerVersion();
-  let createVersionMutatorSchema = useCreateCustomServerVersion();
+  let createVersionMutator = useCreateCustomProviderVersion();
+  let createVersionMutatorSchema = useCreateCustomProviderVersion();
 
   let currentVersion = useCustomProviderVersion(
     instance.data?.id,
@@ -111,7 +111,6 @@ export let CustomServerUpdateForm = (p: { customServer?: CustomProvidersGetOutpu
 
           let [res] = await createVersionMutator.mutate({
             instanceId: instance.data.id,
-            customServerId: p.customServer.id,
             customProviderId: p.customServer.id,
             from: {
               type: 'remote',
@@ -178,7 +177,6 @@ export let CustomServerUpdateForm = (p: { customServer?: CustomProvidersGetOutpu
 
                   let [res] = await createVersionMutatorSchema.mutate({
                     instanceId: instance.data.id,
-                    customServerId: p.customServer.id,
                     customProviderId: p.customServer.id,
                     from: {
                       type: 'function',

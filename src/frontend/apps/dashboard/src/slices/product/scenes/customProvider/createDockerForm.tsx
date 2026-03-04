@@ -2,7 +2,7 @@ import { CodeEditor } from '@metorial/code-editor';
 import { CustomProvidersGetOutput } from '@metorial/dashboard-sdk';
 import { useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
-import { useCreateCustomServer, useCurrentInstance } from '@metorial/state';
+import { useCreateCustomProvider, useCurrentInstance } from '@metorial/state';
 import { Button, Input, Spacer, toast } from '@metorial/ui';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -27,7 +27,7 @@ export let CustomServerDockerCreateForm = (p: {
   onCreate?: (out: CustomProvidersGetOutput) => any;
 }) => {
   let instance = useCurrentInstance();
-  let createCustomServer = useCreateCustomServer();
+  let createCustomServer = useCreateCustomProvider();
 
   let [currentStep, setCurrentStep] = useState(0);
 

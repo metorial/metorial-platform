@@ -4,16 +4,18 @@ import { usePaginator } from '../../lib/usePaginator';
 import { useCurrentInstance } from '../../organization';
 import { withAuth } from '../../user';
 
+type ProviderListingsListInput = Omit<DashboardInstanceProviderListingsListQuery, 'providerId'>;
+
 export let providerListingsLoader = createLoader({
   name: 'providerListings',
   parents: [],
-  fetch: (i: DashboardInstanceProviderListingsListQuery & { instanceId: string }) =>
+  fetch: (i: ProviderListingsListInput & { instanceId: string }) =>
     withAuth(sdk => sdk.providers.listings.list(i.instanceId, i)),
   mutators: {}
 });
 
 export let useProviderListings = (
-  input: DashboardInstanceProviderListingsListQuery | null | undefined
+  input: ProviderListingsListInput | null | undefined
 ) => {
   let instance = useCurrentInstance();
   let data = usePaginator(pagination =>

@@ -94,7 +94,12 @@ export let magicMcpServerController = Controller.create(
         description:
           'Creates a magic MCP server with a new session template. A Subspace session is created automatically on first connection and then reused.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.provider.session:write'],
+          fineGrainedPolicy: 'deny'
+        })
+      )
       .body(
         'default',
         v.object({
@@ -121,7 +126,7 @@ export let magicMcpServerController = Controller.create(
 
         let magicMcpServer = await magicMcpServerService.createMagicMcpServer({
           organization: ctx.organization,
-          performedBy: ctx.actor,
+          performedBy: ctx.actor!,
           instance: ctx.instance,
           context: ctx.context,
           input: {
@@ -140,7 +145,12 @@ export let magicMcpServerController = Controller.create(
         name: 'Delete magic MCP server',
         description: 'Archives a magic MCP server.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.provider.session:write'],
+          fineGrainedPolicy: 'deny'
+        })
+      )
       .output(magicMcpServerPresenter)
       .use(hasFlags(['magic-mcp-enabled']))
       .do(async ctx => {
@@ -161,7 +171,12 @@ export let magicMcpServerController = Controller.create(
         name: 'Update magic MCP server',
         description: 'Updates a magic MCP server.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.provider.session:write'],
+          fineGrainedPolicy: 'deny'
+        })
+      )
       .body(
         'default',
         v.object({

@@ -1,5 +1,5 @@
 import type {
-  DashboardInstanceProviderListingsListOutput,
+  DashboardInstanceProviderListingsGetOutput,
   DashboardInstanceProvidersGetOutput,
   DashboardInstanceProvidersVersionsListOutput
 } from '@metorial/dashboard-sdk';
@@ -11,8 +11,8 @@ import {
   useCurrentOrganization,
   useCurrentProject,
   useProvider,
-  useProviderVersions,
-  useProviderListings
+  useProviderListing,
+  useProviderVersions
 } from '@metorial/state';
 import { Badge, Button, Flex, LinkTabs } from '@metorial/ui';
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
@@ -23,7 +23,7 @@ import { showProviderDeploymentFormModal } from '../../../scenes/providerDeploym
 
 type ProviderVersion = DashboardInstanceProvidersVersionsListOutput['items'][number];
 type ProviderVersionId = ProviderVersion['id'];
-type ProviderListing = DashboardInstanceProviderListingsListOutput['items'][number];
+type ProviderListing = DashboardInstanceProviderListingsGetOutput;
 type ProviderData = DashboardInstanceProvidersGetOutput;
 
 type ProviderVersionContextValue = {
@@ -115,8 +115,8 @@ export let ProviderLayout = () => {
   let selectedVersion = allVersions.find(v => v.id === effectiveVersionId);
   let isDefaultVersion = effectiveVersionId === currentVersionId;
 
-  let listings = useProviderListings(providerId ? { providerId, limit: 1 } : null);
-  let listing: ProviderListing | undefined = listings.data?.items[0];
+  let listingData = useProviderListing(instance.data?.id, providerId);
+  let listing: ProviderListing | undefined = listingData.data ?? undefined;
 
   let resetToDefault = () => {
     if (currentVersionId) setSelectedVersionIdState(currentVersionId);

@@ -1,7 +1,7 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import { useCurrentInstance, useMagicMcpServer } from '@metorial/state';
 import { useParams } from 'react-router-dom';
-import { MagicMcpServerForm } from '../../../scenes/serverDeployments/magicMcpForm';
+import { MagicMcpServerForm } from '../../../scenes/providerDeployments/magicMcpForm';
 
 export let MagicMcpServerConfigPage = () => {
   let instance = useCurrentInstance();

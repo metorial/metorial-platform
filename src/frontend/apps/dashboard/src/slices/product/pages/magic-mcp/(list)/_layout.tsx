@@ -9,7 +9,7 @@ import { Button, LinkTabs } from '@metorial/ui';
 import { Outlet, useLocation } from 'react-router-dom';
 import { createMagicMcpGroupModal } from '../../../scenes/magicMcp/groupsTable';
 import { createMagicMcpTokenModal } from '../../../scenes/magicMcp/tokensTable';
-import { showMagicMcpServerFormModal } from '../../../scenes/serverDeployments/modal';
+import { showMagicMcpServerFormModal } from '../../../scenes/providerDeployments/modal_';
 
 export let MagicMcpListLayout = () => {
   let instance = useCurrentInstance();

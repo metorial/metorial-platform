@@ -155,17 +155,17 @@ let ProviderAuthCredentialSettingsPage = dynamicPage(() =>
 );
 let ProviderAuthConnectionLayout = dynamicPage(() =>
   import('./pages/(provider-api)/provider-auth-configs/_layout').then(
-    c => c.ProviderAuthConnectionLayout
+    c => c.ProviderAuthConfigLayout
   )
 );
 let ProviderAuthConnectionOverviewPage = dynamicPage(() =>
   import('./pages/(provider-api)/provider-auth-configs/index').then(
-    c => c.ProviderAuthConnectionOverviewPage
+    c => c.ProviderAuthConfigOverviewPage
   )
 );
 let ProviderAuthConnectionSettingsPage = dynamicPage(() =>
   import('./pages/(provider-api)/provider-auth-configs/settings').then(
-    c => c.ProviderAuthConnectionSettingsPage
+    c => c.ProviderAuthConfigSettingsPage
   )
 );
 let ProviderSessionLayout = dynamicPage(() =>
@@ -243,69 +243,73 @@ let MagicMcpGroupSettingsPage = dynamicPage(() =>
 );
 
 let CustomServerCodePage = dynamicPage(() =>
-  import('./pages/(custom-servers)/custom-server/code').then(c => c.CustomServerCodePage)
+  import('./pages/(custom-providers)/custom-provider/code').then(c => c.CustomProviderCodePage)
 );
 let CustomServerOverviewPage = dynamicPage(() =>
-  import('./pages/(custom-servers)/custom-server').then(c => c.CustomServerOverviewPage)
+  import('./pages/(custom-providers)/custom-provider').then(c => c.CustomProviderOverviewPage)
 );
 let CustomServerVersionsPage = dynamicPage(() =>
-  import('./pages/(custom-servers)/custom-server/versions').then(
-    c => c.CustomServerVersionsPage
+  import('./pages/(custom-providers)/custom-provider/versions').then(
+    c => c.CustomProviderVersionsPage
   )
 );
 let CustomServerSettingsPage = dynamicPage(() =>
-  import('./pages/(custom-servers)/custom-server/settings/settings').then(
-    c => c.CustomServerSettingsPage
+  import('./pages/(custom-providers)/custom-provider/settings/settings').then(
+    c => c.CustomProviderSettingsPage
   )
 );
 let CustomServerLayout = dynamicPage(() =>
-  import('./pages/(custom-servers)/custom-server/_layout').then(c => c.CustomServerLayout)
+  import('./pages/(custom-providers)/custom-server/_layout').then(c => c.CustomProviderLayout)
 );
 let CustomServerDeploymentsPage = dynamicPage(() =>
-  import('./pages/(custom-servers)/custom-server/deployments').then(
-    c => c.CustomServerDeploymentsPage
+  import('./pages/(custom-providers)/custom-provider/deployments').then(
+    c => c.CustomProviderDeploymentsPage
   )
 );
 let CustomServerListingPage = dynamicPage(() =>
-  import('./pages/(custom-servers)/custom-server/settings/listing').then(
-    c => c.CustomServerListingPage
+  import('./pages/(custom-providers)/custom-provider/settings/listing').then(
+    c => c.CustomProviderListingPage
   )
 );
 let ManagedServersListLayout = dynamicPage(() =>
-  import('./pages/(custom-servers)/(list)/_layout').then(c => c.ManagedServersListLayout)
+  import('./pages/(custom-providers)/(list)/_layout').then(c => c.ManagedProvidersListLayout)
 );
 let ExternalServersListLayout = dynamicPage(() =>
-  import('./pages/(custom-servers)/(list)/_layout').then(c => c.ExternalServersListLayout)
+  import('./pages/(custom-providers)/(list)/_layout').then(c => c.ExternalProvidersListLayout)
 );
 let ExternalServersPage = dynamicPage(() =>
-  import('./pages/(custom-servers)/(list)/external-servers').then(c => c.ExternalServersPage)
+  import('./pages/(custom-providers)/(list)/external-providers').then(
+    c => c.ExternalProvidersPage
+  )
 );
 let ManagedServersPage = dynamicPage(() =>
-  import('./pages/(custom-servers)/(list)/managed-servers').then(c => c.ManagedServersPage)
+  import('./pages/(custom-providers)/(list)/custom-providers').then(
+    c => c.CustomerProvidersPage
+  )
 );
 let LogsListLayout = dynamicPage(() =>
   import('./pages/(logs)/(list)/_layout').then(c => c.LogsListLayout)
 );
 let ServerErrorsPage = dynamicPage(() =>
-  import('./pages/(logs)/(list)/server-errors').then(c => c.ServerErrorsPage)
+  import('./pages/(logs)/(list)/provider-errors').then(c => c.ProviderErrorsPage)
 );
 let ServerRunsPage = dynamicPage(() =>
-  import('./pages/(logs)/(list)/server-runs').then(c => c.ServerRunsPage)
+  import('./pages/(logs)/(list)/provider-runs').then(c => c.ProviderRunsPage)
 );
 let SessionsPage = dynamicPage(() =>
   import('./pages/(logs)/(list)/sessions').then(c => c.SessionsPage)
 );
 let ServerErrorPage = dynamicPage(() =>
-  import('./pages/(logs)/server-error').then(c => c.ServerErrorPage)
+  import('./pages/(logs)/provider-error').then(c => c.ProviderErrorPage)
 );
 let ServerErrorLayout = dynamicPage(() =>
-  import('./pages/(logs)/server-error/_layout').then(c => c.ServerErrorLayout)
+  import('./pages/(logs)/provider-error/_layout').then(c => c.ProviderErrorLayout)
 );
 let ServerRunPage = dynamicPage(() =>
-  import('./pages/(logs)/server-run').then(c => c.ServerRunPage)
+  import('./pages/(logs)/provider-run').then(c => c.ProviderRunPage)
 );
 let ServerRunLayout = dynamicPage(() =>
-  import('./pages/(logs)/server-run/_layout').then(c => c.ServerRunLayout)
+  import('./pages/(logs)/provider-run/_layout').then(c => c.ProviderRunLayout)
 );
 let SessionPage = dynamicPage(() => import('./pages/(logs)/session').then(c => c.SessionPage));
 let SessionLayout = dynamicPage(() =>
@@ -315,12 +319,14 @@ let SessionDeploymentsPage = dynamicPage(() =>
   import('./pages/(logs)/session/deployments').then(c => c.SessionDeploymentsPage)
 );
 let SessionServerRunsPage = dynamicPage(() =>
-  import('./pages/(logs)/session/serverRuns').then(c => c.SessionServerRunsPage)
+  import('./pages/(logs)/session/serverRuns').then(c => c.ProviderRunsPage)
 );
 let ProjectPageLayout = dynamicPage(() =>
   import('./pages/_layout').then(c => c.ProjectPageLayout)
 );
-let DeployPage = dynamicPage(() => import('./pages/deploy').then(c => c.DeployPage));
+let DeployPage = dynamicPage(() =>
+  import('./pages/setup-provider').then(c => c.SetupProviderPage)
+);
 let ProjectDeveloperPage = dynamicPage(() =>
   import('./pages/developer').then(c => c.ProjectDeveloperPage)
 );
@@ -341,7 +347,7 @@ let ProjectSettingsPageLayout = dynamicPage(() =>
   import('./pages/settings/_layout').then(c => c.ProjectSettingsPageLayout)
 );
 let CommunityServersPage = dynamicPage(() =>
-  import('./pages/community/communityServers').then(c => c.CommunityServersPage)
+  import('./pages/community/communityProviders').then(c => c.CommunityProvidersPage)
 );
 let NotFoundPage = dynamicPage(() => import('@metorial/pages').then(c => c.NotFound));
 let FlaggedPage = ({ children, flag }: { children: React.ReactNode; flag: string }) => {

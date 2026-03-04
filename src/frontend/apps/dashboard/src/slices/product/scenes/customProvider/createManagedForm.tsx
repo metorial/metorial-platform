@@ -5,10 +5,10 @@ import {
 import { renderWithLoader, useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
-  useCreateCustomServer,
+  listCustomProviderVersions,
+  useCreateCustomProvider,
   useCreateScmRepo,
   useCurrentInstance,
-  useListServerVersions,
   useScmAccounts,
   useScmInstallations
 } from '@metorial/state';
@@ -77,8 +77,7 @@ export let CustomServerManagedCreateForm = (p: {
   onCreate?: (out: CustomProvidersGetOutput) => any;
 }) => {
   let instance = useCurrentInstance();
-  let createCustomServer = useCreateCustomServer();
-  let listServerVersions = useListServerVersions();
+  let createCustomServer = useCreateCustomProvider();
   let managedServerTemplates = {
     data: { items: [] as { id: string; name: string | null; slug: string | null }[] },
     isLoading: false,
@@ -225,10 +224,10 @@ export let CustomServerManagedCreateForm = (p: {
 
       if (customServerRes) {
         let firstVersionId = await waitForCustomServerVersionId(async () => {
-          let [versionsRes] = await listServerVersions.mutate({
+          let [versionsRes] = await listCustomProviderVersions({
             limit: 1,
             instanceId: instance.data.id,
-            customServerId: customServerRes.id
+            customProviderId: customServerRes.id
           });
 
           return versionsRes?.items[0]?.id;

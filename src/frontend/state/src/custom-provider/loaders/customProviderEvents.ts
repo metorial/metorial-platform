@@ -3,36 +3,39 @@ import { createLoader } from '@metorial/data-hooks';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
 
-export let customServerEventsLoader = createLoader({
-  name: 'customServerEvents',
+type CustomProviderEventsQuery = Omit<
+  DashboardInstanceCustomProvidersCommitsListQuery,
+  'customProviderId'
+>;
+
+export let customProviderEventsLoader = createLoader({
+  name: 'customProviderEvents',
   parents: [],
   fetch: (
     i: {
       instanceId: string;
-      customServerId: string;
-    } & DashboardInstanceCustomProvidersCommitsListQuery
+      customProviderId: string;
+    } & CustomProviderEventsQuery
   ) =>
-    withAuth(sdk =>
-      {
-        let { customServerId, ...query } = i;
-        return sdk.customProviders.commits.list(i.instanceId, {
-          ...query,
-          customProviderId: customServerId
-        });
-      }
-    ),
+    withAuth(sdk => {
+      let { customProviderId, ...query } = i;
+      return sdk.customProviders.commits.list(i.instanceId, {
+        ...query,
+        customProviderId: customProviderId
+      });
+    }),
   mutators: {}
 });
 
-export let useCustomServerEvents = (
+export let useCustomProviderEvents = (
   instanceId: string | null | undefined,
-  customServerId: string | null | undefined,
-  query?: DashboardInstanceCustomProvidersCommitsListQuery
+  customProviderId: string | null | undefined,
+  query?: CustomProviderEventsQuery
 ) => {
   let data = usePaginator(pagination =>
-    customServerEventsLoader.use(
-      instanceId && customServerId
-        ? { instanceId, customServerId, ...pagination, ...query }
+    customProviderEventsLoader.use(
+      instanceId && customProviderId
+        ? { instanceId, customProviderId, ...pagination, ...query }
         : null
     )
   );
@@ -40,24 +43,26 @@ export let useCustomServerEvents = (
   return data;
 };
 
-export let customServerEventLoader = createLoader({
-  name: 'customServerEvent',
-  parents: [customServerEventsLoader],
-  fetch: (i: { instanceId: string; customServerId: string; customServerEventId: string }) =>
-    withAuth(sdk =>
-      sdk.customProviders.commits.get(i.instanceId, i.customServerEventId)
-    ),
+export let customProviderEventLoader = createLoader({
+  name: 'customProviderEvent',
+  parents: [customProviderEventsLoader],
+  fetch: (i: {
+    instanceId: string;
+    customProviderId: string;
+    customProviderEventId: string;
+  }) =>
+    withAuth(sdk => sdk.customProviders.commits.get(i.instanceId, i.customProviderEventId)),
   mutators: {}
 });
 
-export let useCustomServerEvent = (
+export let useCustomProviderEvent = (
   instanceId: string | null | undefined,
-  customServerId: string | null | undefined,
-  customServerEventId: string | null | undefined
+  customProviderId: string | null | undefined,
+  customProviderEventId: string | null | undefined
 ) => {
-  let data = customServerEventLoader.use(
-    instanceId && customServerEventId && customServerId
-      ? { instanceId, customServerId, customServerEventId }
+  let data = customProviderEventLoader.use(
+    instanceId && customProviderEventId && customProviderId
+      ? { instanceId, customProviderId, customProviderEventId }
       : null
   );
 

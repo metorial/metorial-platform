@@ -89,7 +89,12 @@ export let magicMcpGroupController = Controller.create(
         name: 'Create magic MCP group',
         description: 'Creates a magic MCP group.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.provider.session:write'],
+          fineGrainedPolicy: 'deny'
+        })
+      )
       .body(
         'default',
         v.object({
@@ -103,7 +108,7 @@ export let magicMcpGroupController = Controller.create(
       .do(async ctx => {
         let magicMcpGroup = await magicMcpGroupService.createMagicMcpGroup({
           organization: ctx.organization,
-          performedBy: ctx.actor,
+          performedBy: ctx.actor!,
           instance: ctx.instance,
           context: ctx.context,
           input: {
@@ -121,7 +126,12 @@ export let magicMcpGroupController = Controller.create(
         name: 'Delete magic MCP group',
         description: 'Deletes a magic MCP group.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.provider.session:write'],
+          fineGrainedPolicy: 'deny'
+        })
+      )
       .output(magicMcpGroupPresenter)
       .use(hasFlags(['magic-mcp-enabled']))
       .do(async ctx => {
@@ -137,7 +147,12 @@ export let magicMcpGroupController = Controller.create(
         name: 'Update magic MCP group',
         description: 'Updates a magic MCP group.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.provider.session:write'],
+          fineGrainedPolicy: 'deny'
+        })
+      )
       .body(
         'default',
         v.object({
@@ -172,7 +187,12 @@ export let magicMcpGroupController = Controller.create(
           description: 'Adds magic MCP servers to a group.'
         }
       )
-      .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.provider.session:write'],
+          fineGrainedPolicy: 'deny'
+        })
+      )
       .body(
         'default',
         v.object({
@@ -201,7 +221,12 @@ export let magicMcpGroupController = Controller.create(
           description: 'Removes magic MCP servers from a group.'
         }
       )
-      .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.provider.session:write'],
+          fineGrainedPolicy: 'deny'
+        })
+      )
       .body(
         'default',
         v.object({

@@ -5,7 +5,7 @@ import {
   useCurrentInstance,
   useProvider,
   useProviderDeployments,
-  useProviderListings,
+  useProviderListing,
   useRevealedApiKey
 } from '@metorial/state';
 import { Button, Spacer, Text } from '@metorial/ui';
@@ -28,8 +28,7 @@ export let ProviderOverviewPage = () => {
   let { providerId } = useParams();
   let provider = useProvider(instance.data?.id, providerId);
 
-  let listings = useProviderListings(providerId ? { providerId, limit: 1 } : null);
-  let listing = listings.data?.items[0];
+  let listing = useProviderListing(instance.data?.id, providerId);
 
   let apiKeys = useApiKeysWithAutoInit(
     instance.data
@@ -307,9 +306,9 @@ export let ProviderOverviewPage = () => {
 
       <Spacer height={15} />
 
-      {listing?.skills && listing.skills.length > 0 && (
+      {listing.data?.skills && listing.data.skills.length > 0 && (
         <>
-          <Skills skills={listing.skills} />
+          <Skills skills={listing.data.skills} />
           <Spacer height={15} />
         </>
       )}

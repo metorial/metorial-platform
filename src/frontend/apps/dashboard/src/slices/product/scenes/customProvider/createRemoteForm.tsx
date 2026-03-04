@@ -1,7 +1,7 @@
 import { CustomProvidersGetOutput } from '@metorial/dashboard-sdk';
 import { useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
-import { useCreateCustomServer, useCurrentInstance } from '@metorial/state';
+import { useCreateCustomProvider, useCurrentInstance } from '@metorial/state';
 import { Avatar, Button, Input, Or, Select, Spacer, theme, toast } from '@metorial/ui';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -56,7 +56,7 @@ export let CustomServerRemoteCreateForm = (p: {
   onCreate?: (out: CustomProvidersGetOutput) => any;
 }) => {
   let instance = useCurrentInstance();
-  let createCustomServer = useCreateCustomServer();
+  let createCustomServer = useCreateCustomProvider();
 
   let [currentStep, setCurrentStep] = useState(0);
   let [hasManualRemoteProtocol, setHasManualRemoteProtocol] = useState(false);

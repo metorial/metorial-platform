@@ -6,7 +6,7 @@ import { Avatar, Button, RenderDate, Spacer, Text } from '@metorial/ui';
 import { ItemGrid, Table } from '@metorial/ui-product';
 import { useNavigate } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
-import { showMagicMcpServerFormModal } from '../serverDeployments/modal';
+import { showMagicMcpServerFormModal } from '../providerDeployments/modal_';
 
 let Aliases = styled.div`
   display: flex;
@@ -117,7 +117,7 @@ export let MagicMcpServersGrid = (filter: DashboardInstanceMagicMcpServersListQu
               icon={
                 <Avatar
                   entity={{
-                    ...server,
+                    name: server.name ?? 'Magic MCP Server',
                     imageUrl: `https://avatar-cdn.metorial.com/${server.id}`
                   }}
                   size={30}

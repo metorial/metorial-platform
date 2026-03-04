@@ -1,4 +1,3 @@
-import { createVoyagerClient } from '@metorial-services/voyager-client';
 import { env } from './env';
 
 type MagicVoyagerIndex = 'magicMcpGroup' | 'magicMcpServer';
@@ -41,11 +40,13 @@ type MagicMcpServerIndexInput = {
 let getIndexName = (suffix: string) =>
   [env.service.VOYAGER_INDEX_PREFIX, 'metorial', suffix].filter(Boolean).join('_');
 
-export let voyager: any = env.service.VOYAGER_URL
-  ? createVoyagerClient({
-      endpoint: env.service.VOYAGER_URL
-    })
-  : null;
+let loadModule = new Function('specifier', 'return import(specifier)') as (
+  specifier: string
+) => Promise<any>;
+
+export let voyager: any = null;
+let voyagerPromise: Promise<any> | null = null;
+let voyagerLoadFailed = false;
 
 let voyagerSourcePromise: Promise<any> | null = null;
 let voyagerIndexPromises: Partial<Record<MagicVoyagerIndex, Promise<any>>> = {};
@@ -61,11 +62,38 @@ let voyagerIndexes = {
   }
 } satisfies Record<MagicVoyagerIndex, { identifier: string; name: string }>;
 
+let getVoyager = async () => {
+  if (!env.service.VOYAGER_URL || voyagerLoadFailed) return null;
+  if (voyager) return voyager;
+
+  if (!voyagerPromise) {
+    voyagerPromise = loadModule('@metorial-services/voyager-client')
+      .then(module =>
+        module.createVoyagerClient({
+          endpoint: env.service.VOYAGER_URL!
+        })
+      )
+      .then(client => {
+        voyager = client;
+        return client;
+      })
+      .catch((error: unknown) => {
+        voyagerPromise = null;
+        voyagerLoadFailed = true;
+        console.warn('[module-search] Voyager client is unavailable, disabling search', error);
+        return null;
+      });
+  }
+
+  return await voyagerPromise;
+};
+
 let ensureVoyagerSource = async () => {
-  if (!voyager) return null;
+  let voyagerClient = await getVoyager();
+  if (!voyagerClient) return null;
 
   if (!voyagerSourcePromise) {
-    voyagerSourcePromise = voyager.source
+    voyagerSourcePromise = voyagerClient.source
       .upsert({
         name: 'Metorial Platform',
         identifier: getIndexName('source')
@@ -80,7 +108,7 @@ let ensureVoyagerSource = async () => {
 };
 
 let ensureVoyagerIndex = async (index: MagicVoyagerIndex) => {
-  let voyagerClient = voyager;
+  let voyagerClient = await getVoyager();
   if (!voyagerClient) return null;
 
   if (!voyagerIndexPromises[index]) {
@@ -103,15 +131,17 @@ let ensureVoyagerIndex = async (index: MagicVoyagerIndex) => {
 };
 
 let searchByIndex = async (d: VoyagerSearchInput): Promise<string[]> => {
-  if (!voyager) return [];
   if (!d.query.trim()) return [];
 
   try {
+    let voyagerClient = await getVoyager();
+    if (!voyagerClient) return [];
+
     let source = await ensureVoyagerSource();
     let index = await ensureVoyagerIndex(d.index);
     if (!source || !index) return [];
 
-    let records = await voyager.record.search({
+    let records = await voyagerClient.record.search({
       tenantId: d.instanceId,
       sourceId: source.id,
       indexId: index.id,
@@ -126,14 +156,15 @@ let searchByIndex = async (d: VoyagerSearchInput): Promise<string[]> => {
 };
 
 let indexByType = async (d: VoyagerIndexInput) => {
-  if (!voyager) return;
-
   try {
+    let voyagerClient = await getVoyager();
+    if (!voyagerClient) return;
+
     let source = await ensureVoyagerSource();
     let index = await ensureVoyagerIndex(d.index);
     if (!source || !index) return;
 
-    await voyager.record.index({
+    await voyagerClient.record.index({
       sourceId: source.id,
       indexId: index.id,
       documentId: d.id,
@@ -147,14 +178,15 @@ let indexByType = async (d: VoyagerIndexInput) => {
 };
 
 let deleteByType = async (d: VoyagerDeleteInput) => {
-  if (!voyager) return;
-
   try {
+    let voyagerClient = await getVoyager();
+    if (!voyagerClient) return;
+
     let source = await ensureVoyagerSource();
     let index = await ensureVoyagerIndex(d.index);
     if (!source || !index) return;
 
-    await voyager.record.delete({
+    await voyagerClient.record.delete({
       sourceId: source.id,
       indexId: index.id,
       documentIds: [d.id]

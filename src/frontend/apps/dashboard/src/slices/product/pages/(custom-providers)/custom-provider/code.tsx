@@ -2,7 +2,7 @@ import { DashboardInstanceScmReposCreateOutput } from '@metorial/dashboard-sdk';
 import { renderWithLoader } from '@metorial/data-hooks';
 import { getConfig, Paths } from '@metorial/frontend-config';
 import {
-  useCreateCustomServerVersion,
+  useCreateCustomProviderVersion,
   useCurrentInstance,
   useCustomProvider,
   useCustomProviderCodeEditorToken
@@ -77,7 +77,7 @@ export let CustomProviderCodePage = () => {
     return getConfig().microFrontends?.codeEditorUrl ?? null;
   }, [editorToken.data]);
 
-  let createVersion = useCreateCustomServerVersion();
+  let createVersion = useCreateCustomProviderVersion();
   let navigate = useNavigate();
 
   let linkedRepo = useMemo(() => {
@@ -133,7 +133,6 @@ export let CustomProviderCodePage = () => {
   let publishNewVersion = async () => {
     let [version] = await createVersion.mutate({
       instanceId: instance.data!.id,
-      customServerId: customServer.data!.id,
       customProviderId: customServer.data!.id,
       from: publishFrom
     });
@@ -204,7 +203,7 @@ export let CustomProviderCodePage = () => {
                     DashboardInstanceScmReposCreateOutput | undefined
                   >(undefined);
 
-                  let createVersion = useCreateCustomServerVersion();
+                  let createVersion = useCreateCustomProviderVersion();
 
                   return (
                     <Dialog.Wrapper {...dialogProps} width={600}>
@@ -239,7 +238,6 @@ export let CustomProviderCodePage = () => {
 
                             let [version] = await createVersion.mutate({
                               instanceId: instance.data!.id,
-                              customServerId: customServer.data.id,
                               customProviderId: customServer.data.id,
                               from: {
                                 type: 'function',

@@ -53,7 +53,7 @@ export let sessionErrorLoader = createLoader({
   name: 'sessionError',
   parents: [],
   fetch: (i: { instanceId: string; sessionId: string; sessionErrorId: string }) =>
-    withAuth(sdk => sdk.sessions.errors.get(i.instanceId, i.sessionId, i.sessionErrorId)),
+    withAuth(sdk => sdk.sessionErrors.get(i.instanceId, i.sessionErrorId)),
   mutators: {}
 });
 
