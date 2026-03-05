@@ -6,6 +6,7 @@ import { lastInstanceIdStore, useCurrentInstance, useDashboardFlags } from '@met
 import { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import { ProjectHomePage } from './pages';
+import { InstanceLayout } from './pages/_instanceLayout';
 
 // Provider API pages
 let ProvidersHubLayout = dynamicPage(() =>
@@ -339,19 +340,7 @@ let ProjectDeveloperPageLayout = dynamicPage(() =>
 let ProjectDeveloperAPIPage = dynamicPage(() =>
   import('./pages/developer/api').then(c => c.ProjectDeveloperAPIPage)
 );
-let ProjectDeveloperEnvironmentsPage = dynamicPage(() =>
-  import('./pages/developer/environments').then(c => c.ProjectDeveloperEnvironmentsPage)
-);
 let ExplorerPage = dynamicPage(() => import('./pages/explorer').then(c => c.ExplorerPage));
-let ProjectSettingsPage = dynamicPage(() =>
-  import('./pages/settings').then(c => c.ProjectSettingsPage)
-);
-let ProjectSettingsPageLayout = dynamicPage(() =>
-  import('./pages/settings/_layout').then(c => c.ProjectSettingsPageLayout)
-);
-let CommunityServersPage = dynamicPage(() =>
-  import('./pages/community/communityProviders').then(c => c.CommunityProvidersPage)
-);
 let NotFoundPage = dynamicPage(() => import('@metorial/pages').then(c => c.NotFound));
 let FlaggedPage = ({ children, flag }: { children: React.ReactNode; flag: string }) => {
   let flags = useDashboardFlags();
@@ -374,42 +363,453 @@ let ProductWrapper = () => {
 export let productInnerSlice = createSlice([
   {
     path: ':organizationId/:projectId/:instanceId',
+
     element: <ProductWrapper />,
 
     children: [
       {
-        path: '',
-        element: <ProjectHomePage />
-      },
-
-      {
-        path: 'settings',
-        element: <ProjectSettingsPageLayout />,
+        element: <InstanceLayout />,
 
         children: [
           {
             path: '',
-            element: <ProjectSettingsPage />
-          }
-        ]
-      },
+            element: <ProjectHomePage />
+          },
 
-      {
-        path: 'developer',
-        element: <ProjectDeveloperPageLayout />,
-
-        children: [
+          /***************
+           * Logs
+           *************** */
           {
-            path: '',
-            element: <ProjectDeveloperPage />
+            children: [
+              {
+                path: '',
+                element: <LogsListLayout />,
+
+                children: [
+                  {
+                    path: 'sessions',
+                    element: <SessionsPage />
+                  },
+                  {
+                    path: 'server-runs',
+                    element: <ServerRunsPage />
+                  },
+                  {
+                    path: 'provider-runs',
+                    element: <ServerRunsPage />
+                  },
+                  {
+                    path: 'server-errors',
+                    element: <ServerErrorsPage />
+                  },
+                  {
+                    path: 'provider-errors',
+                    element: <ServerErrorsPage />
+                  }
+                ]
+              },
+
+              {
+                path: 'server-error/:serverErrorId',
+                element: <ServerErrorLayout />,
+
+                children: [
+                  {
+                    path: '',
+                    element: <ServerErrorPage />
+                  }
+                ]
+              },
+
+              {
+                path: 'provider-error/:serverErrorId',
+                element: <ServerErrorLayout />,
+
+                children: [
+                  {
+                    path: '',
+                    element: <ServerErrorPage />
+                  }
+                ]
+              },
+
+              {
+                path: 'server-run/:serverRunId',
+                element: <ServerRunLayout />,
+
+                children: [
+                  {
+                    path: '',
+                    element: <ServerRunPage />
+                  }
+                ]
+              },
+
+              {
+                path: 'provider-run/:serverRunId',
+                element: <ServerRunLayout />,
+
+                children: [
+                  {
+                    path: '',
+                    element: <ServerRunPage />
+                  }
+                ]
+              },
+
+              {
+                path: 'session/:sessionId',
+                element: <SessionLayout />,
+
+                children: [
+                  {
+                    path: '',
+                    element: <SessionPage />
+                  },
+                  {
+                    path: 'deployments',
+                    element: <SessionDeploymentsPage />
+                  },
+                  {
+                    path: 'runs',
+                    element: <SessionServerRunsPage />
+                  }
+                ]
+              }
+            ]
+          },
+
+          /***************
+           * Provider API (Magnetar)
+           *************** */
+          {
+            path: 'providers',
+            element: <ProvidersHubLayout />,
+            children: [
+              {
+                path: '',
+                element: <ProvidersPage />
+              }
+            ]
+          },
+
+          {
+            path: 'configurations',
+            element: <ProviderDeploymentsListLayout />,
+            children: [
+              {
+                path: '',
+                element: <ProviderDeploymentsPage />
+              },
+              {
+                path: 'configs',
+                element: <ProviderConfigsOverviewPage />
+              },
+              {
+                path: 'config-vaults',
+                element: <ProviderConfigVaultsOverviewPage />
+              },
+              {
+                path: 'auth-credentials',
+                element: <ProviderAuthCredentialsOverviewPage />
+              },
+              {
+                path: 'auth-configs',
+                element: <ProviderAuthConfigsOverviewPage />
+              }
+            ]
+          },
+
+          {
+            path: 'provider/:providerId',
+            element: <ProviderLayout />,
+            children: [
+              {
+                path: '',
+                element: <ProviderOverviewPage />
+              },
+              {
+                path: 'readme',
+                element: <ProviderReadmePage />
+              },
+              {
+                path: 'tools',
+                element: <ProviderToolsPage />
+              },
+              {
+                path: 'deployments',
+                element: <ProviderDetailsDeploymentsPage />
+              },
+              {
+                path: 'auth-methods',
+                element: <ProviderAuthMethodsPage />
+              },
+              {
+                path: 'versions',
+                element: <ProviderVersionsPage />
+              }
+            ]
+          },
+
+          {
+            path: 'configurations/:providerDeploymentId',
+            element: <ProviderDeploymentLayout />,
+            children: [
+              {
+                path: '',
+                element: <ProviderDeploymentOverviewPage />
+              },
+              {
+                path: 'configs',
+                element: <ProviderDeploymentConfigsPage />
+              },
+              {
+                path: 'auth-methods',
+                element: <ProviderDeploymentAuthMethodsPage />
+              },
+              {
+                path: 'auth-configs',
+                element: <ProviderDeploymentAuthConfigsPage />
+              },
+              {
+                path: 'settings',
+                element: <ProviderDeploymentSettingsPage />
+              }
+            ]
           },
           {
-            path: 'api',
-            element: <ProjectDeveloperAPIPage />
+            path: 'provider-config-vault/:providerConfigVaultId',
+            element: <ProviderConfigVaultLayout />,
+            children: [
+              {
+                path: '',
+                element: <ProviderConfigVaultOverviewPage />
+              },
+              {
+                path: 'settings',
+                element: <ProviderConfigVaultSettingsPage />
+              }
+            ]
           },
           {
-            path: 'environments',
-            element: <ProjectDeveloperEnvironmentsPage />
+            path: 'configurations/:providerDeploymentId/config/:providerConfigId',
+            element: <ProviderConfigLayout />,
+            children: [
+              {
+                path: '',
+                element: <ProviderConfigOverviewPage />
+              },
+              {
+                path: 'settings',
+                element: <ProviderConfigSettingsPage />
+              }
+            ]
+          },
+          {
+            path: 'configurations/:providerDeploymentId/auth-credential/:providerAuthCredentialsId',
+            element: <ProviderAuthCredentialLayout />,
+            children: [
+              {
+                path: '',
+                element: <ProviderAuthCredentialOverviewPage />
+              },
+              {
+                path: 'settings',
+                element: <ProviderAuthCredentialSettingsPage />
+              }
+            ]
+          },
+          {
+            path: 'configurations/:providerDeploymentId/auth-connection/:providerAuthConfigId',
+            element: <ProviderAuthConnectionLayout />,
+            children: [
+              {
+                path: '',
+                element: <ProviderAuthConnectionOverviewPage />
+              },
+              {
+                path: 'settings',
+                element: <ProviderAuthConnectionSettingsPage />
+              }
+            ]
+          },
+
+          {
+            path: 'provider-sessions',
+            element: <ProviderSessionsListLayout />,
+            children: [
+              {
+                path: '',
+                element: <ProviderSessionsPage />
+              }
+            ]
+          },
+          {
+            path: 'provider-runs',
+            element: <ProviderSessionsListLayout />,
+            children: [
+              {
+                path: '',
+                element: <ServerRunsPage />
+              }
+            ]
+          },
+          {
+            path: 'provider-errors',
+            element: <ProviderSessionsListLayout />,
+            children: [
+              {
+                path: '',
+                element: <ServerErrorsPage />
+              }
+            ]
+          },
+
+          {
+            path: 'provider-session/:sessionId',
+            element: <ProviderSessionLayout />,
+            children: [
+              {
+                path: '',
+                element: <ProviderSessionLogsPage />
+              },
+              {
+                path: 'providers',
+                element: <ProviderSessionProvidersPage />
+              },
+              {
+                path: 'runs',
+                element: <ProviderSessionRunsPage />
+              }
+            ]
+          },
+
+          {
+            path: 'session-templates',
+            element: <SessionTemplatesListLayout />,
+            children: [
+              {
+                path: '',
+                element: <SessionTemplatesPage />
+              }
+            ]
+          },
+
+          {
+            path: 'session-template/:sessionTemplateId',
+            element: <SessionTemplateLayout />,
+            children: [
+              {
+                path: '',
+                element: <SessionTemplateOverviewPage />
+              },
+              {
+                path: 'providers',
+                element: <SessionTemplateProvidersPage />
+              },
+              {
+                path: 'settings',
+                element: <SessionTemplateSettingsPage />
+              }
+            ]
+          },
+
+          /***************
+           * Magic MCP
+           *************** */
+          {
+            path: 'magic-mcp',
+            children: [
+              {
+                element: (
+                  <FlaggedPage flag="magic-mcp-enabled">
+                    <MagicMcpListLayout />
+                  </FlaggedPage>
+                ),
+                children: [
+                  {
+                    path: 'servers',
+                    element: <MagicMcpServerPage />
+                  },
+                  {
+                    path: 'tokens',
+                    element: <MagicMcpTokensPage />
+                  },
+                  {
+                    path: 'sessions',
+                    element: <MagicMcpSessionsPage />
+                  },
+                  {
+                    path: 'groups',
+                    element: <MagicMcpGroupsPage />
+                  }
+                ]
+              },
+              {
+                path: 'server/:magicMcpServerId',
+                element: (
+                  <FlaggedPage flag="magic-mcp-enabled">
+                    <MagicMcpServerLayout />
+                  </FlaggedPage>
+                ),
+                children: [
+                  {
+                    path: '',
+                    element: <MagicMcpServerOverviewPage />
+                  },
+                  {
+                    path: 'config',
+                    element: <MagicMcpServerConfigPage />
+                  },
+                  {
+                    path: 'sessions',
+                    element: <MagicMcpServerSessionsPage />
+                  }
+                ]
+              },
+              {
+                path: 'group/:magicMcpGroupId',
+                element: (
+                  <FlaggedPage flag="magic-mcp-enabled">
+                    <MagicMcpGroupLayout />
+                  </FlaggedPage>
+                ),
+                children: [
+                  {
+                    path: '',
+                    element: <MagicMcpGroupOverviewPage />
+                  },
+                  {
+                    path: 'settings',
+                    element: <MagicMcpGroupSettingsPage />
+                  }
+                ]
+              }
+            ]
+          },
+
+          /***************
+           * Explorer
+           *************** */
+          {
+            path: 'explorer',
+            element: <ExplorerPage />
+          },
+
+          {
+            path: 'developer',
+            element: <ProjectDeveloperPageLayout />,
+
+            children: [
+              {
+                path: '',
+                element: <ProjectDeveloperPage />
+              },
+              {
+                path: 'api',
+                element: <ProjectDeveloperAPIPage />
+              }
+            ]
           }
         ]
       },
@@ -493,436 +893,6 @@ export let productInnerSlice = createSlice([
                 element: <CustomServerListingPage />
               }
             ]
-          }
-        ]
-      },
-
-      /***************
-       * Logs
-       *************** */
-      {
-        children: [
-          {
-            path: '',
-            element: <LogsListLayout />,
-
-            children: [
-              {
-                path: 'sessions',
-                element: <SessionsPage />
-              },
-              {
-                path: 'server-runs',
-                element: <ServerRunsPage />
-              },
-              {
-                path: 'provider-runs',
-                element: <ServerRunsPage />
-              },
-              {
-                path: 'server-errors',
-                element: <ServerErrorsPage />
-              },
-              {
-                path: 'provider-errors',
-                element: <ServerErrorsPage />
-              }
-            ]
-          },
-
-          {
-            path: 'server-error/:serverErrorId',
-            element: <ServerErrorLayout />,
-
-            children: [
-              {
-                path: '',
-                element: <ServerErrorPage />
-              }
-            ]
-          },
-
-          {
-            path: 'provider-error/:serverErrorId',
-            element: <ServerErrorLayout />,
-
-            children: [
-              {
-                path: '',
-                element: <ServerErrorPage />
-              }
-            ]
-          },
-
-          {
-            path: 'server-run/:serverRunId',
-            element: <ServerRunLayout />,
-
-            children: [
-              {
-                path: '',
-                element: <ServerRunPage />
-              }
-            ]
-          },
-
-          {
-            path: 'provider-run/:serverRunId',
-            element: <ServerRunLayout />,
-
-            children: [
-              {
-                path: '',
-                element: <ServerRunPage />
-              }
-            ]
-          },
-
-          {
-            path: 'session/:sessionId',
-            element: <SessionLayout />,
-
-            children: [
-              {
-                path: '',
-                element: <SessionPage />
-              },
-              {
-                path: 'deployments',
-                element: <SessionDeploymentsPage />
-              },
-              {
-                path: 'runs',
-                element: <SessionServerRunsPage />
-              }
-            ]
-          }
-        ]
-      },
-
-      /***************
-       * Provider API (Magnetar)
-       *************** */
-      {
-        path: 'providers',
-        element: <ProvidersHubLayout />,
-        children: [
-          {
-            path: '',
-            element: <ProvidersPage />
-          }
-        ]
-      },
-
-      {
-        path: 'configurations',
-        element: <ProviderDeploymentsListLayout />,
-        children: [
-          {
-            path: '',
-            element: <ProviderDeploymentsPage />
-          },
-          {
-            path: 'configs',
-            element: <ProviderConfigsOverviewPage />
-          },
-          {
-            path: 'config-vaults',
-            element: <ProviderConfigVaultsOverviewPage />
-          },
-          {
-            path: 'auth-credentials',
-            element: <ProviderAuthCredentialsOverviewPage />
-          },
-          {
-            path: 'auth-configs',
-            element: <ProviderAuthConfigsOverviewPage />
-          }
-        ]
-      },
-
-      {
-        path: 'provider/:providerId',
-        element: <ProviderLayout />,
-        children: [
-          {
-            path: '',
-            element: <ProviderOverviewPage />
-          },
-          {
-            path: 'readme',
-            element: <ProviderReadmePage />
-          },
-          {
-            path: 'tools',
-            element: <ProviderToolsPage />
-          },
-          {
-            path: 'deployments',
-            element: <ProviderDetailsDeploymentsPage />
-          },
-          {
-            path: 'auth-methods',
-            element: <ProviderAuthMethodsPage />
-          },
-          {
-            path: 'versions',
-            element: <ProviderVersionsPage />
-          }
-        ]
-      },
-
-      {
-        path: 'configurations/:providerDeploymentId',
-        element: <ProviderDeploymentLayout />,
-        children: [
-          {
-            path: '',
-            element: <ProviderDeploymentOverviewPage />
-          },
-          {
-            path: 'configs',
-            element: <ProviderDeploymentConfigsPage />
-          },
-          {
-            path: 'auth-methods',
-            element: <ProviderDeploymentAuthMethodsPage />
-          },
-          {
-            path: 'auth-configs',
-            element: <ProviderDeploymentAuthConfigsPage />
-          },
-          {
-            path: 'settings',
-            element: <ProviderDeploymentSettingsPage />
-          }
-        ]
-      },
-      {
-        path: 'provider-config-vault/:providerConfigVaultId',
-        element: <ProviderConfigVaultLayout />,
-        children: [
-          {
-            path: '',
-            element: <ProviderConfigVaultOverviewPage />
-          },
-          {
-            path: 'settings',
-            element: <ProviderConfigVaultSettingsPage />
-          }
-        ]
-      },
-      {
-        path: 'configurations/:providerDeploymentId/config/:providerConfigId',
-        element: <ProviderConfigLayout />,
-        children: [
-          {
-            path: '',
-            element: <ProviderConfigOverviewPage />
-          },
-          {
-            path: 'settings',
-            element: <ProviderConfigSettingsPage />
-          }
-        ]
-      },
-      {
-        path: 'configurations/:providerDeploymentId/auth-credential/:providerAuthCredentialsId',
-        element: <ProviderAuthCredentialLayout />,
-        children: [
-          {
-            path: '',
-            element: <ProviderAuthCredentialOverviewPage />
-          },
-          {
-            path: 'settings',
-            element: <ProviderAuthCredentialSettingsPage />
-          }
-        ]
-      },
-      {
-        path: 'configurations/:providerDeploymentId/auth-connection/:providerAuthConfigId',
-        element: <ProviderAuthConnectionLayout />,
-        children: [
-          {
-            path: '',
-            element: <ProviderAuthConnectionOverviewPage />
-          },
-          {
-            path: 'settings',
-            element: <ProviderAuthConnectionSettingsPage />
-          }
-        ]
-      },
-
-      {
-        path: 'provider-sessions',
-        element: <ProviderSessionsListLayout />,
-        children: [
-          {
-            path: '',
-            element: <ProviderSessionsPage />
-          }
-        ]
-      },
-      {
-        path: 'provider-runs',
-        element: <ProviderSessionsListLayout />,
-        children: [
-          {
-            path: '',
-            element: <ServerRunsPage />
-          }
-        ]
-      },
-      {
-        path: 'provider-errors',
-        element: <ProviderSessionsListLayout />,
-        children: [
-          {
-            path: '',
-            element: <ServerErrorsPage />
-          }
-        ]
-      },
-
-      {
-        path: 'provider-session/:sessionId',
-        element: <ProviderSessionLayout />,
-        children: [
-          {
-            path: '',
-            element: <ProviderSessionLogsPage />
-          },
-          {
-            path: 'providers',
-            element: <ProviderSessionProvidersPage />
-          },
-          {
-            path: 'runs',
-            element: <ProviderSessionRunsPage />
-          }
-        ]
-      },
-
-      {
-        path: 'session-templates',
-        element: <SessionTemplatesListLayout />,
-        children: [
-          {
-            path: '',
-            element: <SessionTemplatesPage />
-          }
-        ]
-      },
-
-      {
-        path: 'session-template/:sessionTemplateId',
-        element: <SessionTemplateLayout />,
-        children: [
-          {
-            path: '',
-            element: <SessionTemplateOverviewPage />
-          },
-          {
-            path: 'providers',
-            element: <SessionTemplateProvidersPage />
-          },
-          {
-            path: 'settings',
-            element: <SessionTemplateSettingsPage />
-          }
-        ]
-      },
-
-      /***************
-       * Magic MCP
-       *************** */
-      {
-        path: 'magic-mcp',
-        children: [
-          {
-            element: (
-              <FlaggedPage flag="magic-mcp-enabled">
-                <MagicMcpListLayout />
-              </FlaggedPage>
-            ),
-            children: [
-              {
-                path: 'servers',
-                element: <MagicMcpServerPage />
-              },
-              {
-                path: 'tokens',
-                element: <MagicMcpTokensPage />
-              },
-              {
-                path: 'sessions',
-                element: <MagicMcpSessionsPage />
-              },
-              {
-                path: 'groups',
-                element: <MagicMcpGroupsPage />
-              }
-            ]
-          },
-          {
-            path: 'server/:magicMcpServerId',
-            element: (
-              <FlaggedPage flag="magic-mcp-enabled">
-                <MagicMcpServerLayout />
-              </FlaggedPage>
-            ),
-            children: [
-              {
-                path: '',
-                element: <MagicMcpServerOverviewPage />
-              },
-              {
-                path: 'config',
-                element: <MagicMcpServerConfigPage />
-              },
-              {
-                path: 'sessions',
-                element: <MagicMcpServerSessionsPage />
-              }
-            ]
-          },
-          {
-            path: 'group/:magicMcpGroupId',
-            element: (
-              <FlaggedPage flag="magic-mcp-enabled">
-                <MagicMcpGroupLayout />
-              </FlaggedPage>
-            ),
-            children: [
-              {
-                path: '',
-                element: <MagicMcpGroupOverviewPage />
-              },
-              {
-                path: 'settings',
-                element: <MagicMcpGroupSettingsPage />
-              }
-            ]
-          }
-        ]
-      },
-
-      /***************
-       * Explorer
-       *************** */
-      {
-        path: 'explorer',
-        element: <ExplorerPage />
-      },
-
-      {
-        path: 'community',
-        children: [
-          {
-            path: 'servers',
-            element: <CommunityServersPage />
           }
         ]
       }
