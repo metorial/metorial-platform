@@ -145,36 +145,36 @@ let ensureMagicMcpSubspaceSession = async (magicMcpServer: MagicMcpServerForRout
 
   if (mapping) return mapping;
 
-  let templateProvidersPaginator = await subspaceSessionTemplateProviderService.list({
+  let templateProviders = await subspaceSessionTemplateProviderService.getMany({
     instance: magicMcpServer.instance,
     sessionTemplateIds: [magicMcpServer.subspaceSessionTemplateId],
     allowDeleted: false
   });
-  let templateProviders = await templateProvidersPaginator.run({
-    limit: 100
-  });
 
-  let providers = templateProviders.items.map(templateProvider => ({
+  let providers = templateProviders.map(templateProvider => ({
     sessionTemplateId: magicMcpServer.subspaceSessionTemplateId,
-    providerDeployment: templateProvider.providerDeploymentId
+    providerDeployment: templateProvider.deployment?.id
       ? {
-          type: 'reference' as const,
-          providerDeploymentId: templateProvider.providerDeploymentId
+          type: 'reference',
+          providerDeploymentId: templateProvider.deployment.id
         }
       : undefined,
-    providerConfig: templateProvider.providerConfigId
+    providerConfig: templateProvider.config?.id
       ? {
-          type: 'reference' as const,
-          providerConfigId: templateProvider.providerConfigId
+          type: 'reference',
+          providerConfigId: templateProvider.config.id
         }
       : undefined,
-    providerAuthConfig: templateProvider.providerAuthConfigId
+    providerAuthConfig: templateProvider.authConfig?.id
       ? {
-          type: 'reference' as const,
-          providerAuthConfigId: templateProvider.providerAuthConfigId
+          type: 'reference',
+          providerAuthConfigId: templateProvider.authConfig.id
         }
       : undefined,
-    toolFilters: templateProvider.toolFilters ?? undefined
+    toolFilters:
+      templateProvider.toolFilter?.type === 'v1.filter'
+        ? templateProvider.toolFilter.filters
+        : undefined
   }));
 
   let subspaceSession = await subspaceSessionService.create({
