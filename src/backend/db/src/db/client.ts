@@ -8,6 +8,7 @@ import type {
   Tool
 } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaPg } from '@prisma/adapter-pg';
+import { readReplicas } from '@prisma/extension-read-replicas';
 import type { JSONSchema4, JSONSchema6, JSONSchema7 } from 'json-schema';
 import { PrismaClient } from '../../prisma/generated/client.js';
 import { EntityImage as ImportedEntityImage } from '../lib';
@@ -38,14 +39,33 @@ let getSecureRandomInt = (max: number) => {
 };
 
 let createClient = () => {
-  let adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+  let mainAdapter = new PrismaPg({
+    connectionString: process.env.DATABASE_URL
+  });
+
+  let replicaAdapter = process.env.DATABASE_URL_READER
+    ? new PrismaPg({
+        connectionString: process.env.DATABASE_URL_READER
+      })
+    : undefined;
+
+  let replicaClient = replicaAdapter
+    ? new PrismaClient({ adapter: replicaAdapter })
+    : undefined;
+
   let baseClient = new PrismaClient({
-    adapter,
+    adapter: mainAdapter,
     transactionOptions: {
       maxWait: 10000,
       timeout: 12000
     }
   });
+
+  if (replicaClient) {
+    baseClient = baseClient.$extends(
+      readReplicas({ replicas: [replicaClient] })
+    ) as any as PrismaClient;
+  }
 
   return baseClient.$extends({
     query: {
