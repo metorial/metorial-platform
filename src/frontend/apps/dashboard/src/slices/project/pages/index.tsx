@@ -1,5 +1,5 @@
-import { renderWithLoader, useForm } from '@metorial/data-hooks';
-import { PageHeader } from '@metorial/layout';
+import { useForm } from '@metorial/data-hooks';
+import { ContentLayout, PageHeader } from '@metorial/layout';
 import { useCurrentProject } from '@metorial/state';
 import { Button, Input, Spacer } from '@metorial/ui';
 
@@ -32,8 +32,8 @@ export let ProjectSettingsPage = () => {
     await update.mutate({ name });
   };
 
-  return renderWithLoader({ project })(({ project }) => (
-    <>
+  return (
+    <ContentLayout variant="medium">
       <PageHeader title="Project Settings" description="Update your project settings." />
 
       <form
@@ -47,11 +47,16 @@ export let ProjectSettingsPage = () => {
 
         <Spacer size={15} />
 
-        <Button type="button" onClick={handleSubmit} loading={update.isLoading} success={update.isSuccess}>
+        <Button
+          type="button"
+          onClick={handleSubmit}
+          loading={update.isLoading}
+          success={update.isSuccess}
+        >
           Save
         </Button>
         <update.RenderError />
       </form>
-    </>
-  ));
+    </ContentLayout>
+  );
 };

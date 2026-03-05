@@ -17,12 +17,6 @@ let InstancePaths = Object.assign(
   {
     home: (organization: EntityParam, project: EntityParam, instance: EntityParam) =>
       InstancePaths(organization, project, instance),
-    settings: (
-      organization: EntityParam,
-      project: EntityParam,
-      instance: EntityParam,
-      ...subPages: SubPages
-    ) => InstancePaths(organization, project, instance, 'settings', ...subPages),
     developer: (
       organization: EntityParam,
       project: EntityParam,
@@ -475,7 +469,10 @@ let ProjectPaths = Object.assign(
 
     return joinPaths('p', organization?.slug, project.slug, ...subPages);
   },
-  {}
+  {
+    settings: (organization: EntityParam, project: EntityParam, ...subPages: SubPages) =>
+      ProjectPaths(organization, project, 'settings', ...subPages)
+  }
 );
 
 let AccountPaths = Object.assign(
