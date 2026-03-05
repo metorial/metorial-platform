@@ -69,7 +69,7 @@ let InstancePaths = Object.assign(
       project: EntityParam,
       instance: EntityParam,
       ...subPages: SubPages
-    ) => InstancePaths(organization, project, instance, 'provider-deployments', ...subPages),
+    ) => InstancePaths(organization, project, instance, 'configurations', ...subPages),
     providerDeployment: (
       organization: EntityParam,
       project: EntityParam,
@@ -78,14 +78,7 @@ let InstancePaths = Object.assign(
       ...subPages: SubPages
     ) => {
       if (!id) return '#';
-      return InstancePaths(
-        organization,
-        project,
-        instance,
-        'provider-deployment',
-        id,
-        ...subPages
-      );
+      return InstancePaths(organization, project, instance, 'configurations', id, ...subPages);
     },
 
     providerImplementations: (
@@ -118,7 +111,15 @@ let InstancePaths = Object.assign(
       project: EntityParam,
       instance: EntityParam,
       ...subPages: SubPages
-    ) => InstancePaths(organization, project, instance, 'provider-config-vaults', ...subPages),
+    ) =>
+      InstancePaths(
+        organization,
+        project,
+        instance,
+        'configurations',
+        'config-vaults',
+        ...subPages
+      ),
     providerConfigVault: (
       organization: EntityParam,
       project: EntityParam,
@@ -213,7 +214,7 @@ let InstancePaths = Object.assign(
       project: EntityParam,
       instance: EntityParam,
       ...subPages: SubPages
-    ) => InstancePaths(organization, project, instance, 'community', 'providers', ...subPages),
+    ) => InstancePaths(organization, project, instance, 'community', 'servers', ...subPages),
 
     externalProviders: (
       organization: EntityParam,
@@ -399,7 +400,7 @@ let InstancePaths = Object.assign(
         instance,
         'configurations',
         deploymentId,
-        'auth-config',
+        'auth-connection',
         authConfigId,
         ...subPages
       );

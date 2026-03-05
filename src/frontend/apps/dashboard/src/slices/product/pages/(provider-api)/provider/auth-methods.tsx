@@ -1,9 +1,10 @@
 import {
   DashboardInstanceProvidersAuthMethodsListOutput
 } from '@metorial/dashboard-sdk';
-import { renderWithPagination } from '@metorial/data-hooks';
+import { renderWithLoader, renderWithPagination } from '@metorial/data-hooks';
 import { useCurrentInstance, useProviderAuthMethods } from '@metorial/state';
-import { AccordionSingle, Badge, Flex, Spacer, Text, theme } from '@metorial/ui';
+import { Badge, Button, Dialog, Flex, Text, showModal, theme } from '@metorial/ui';
+import { Table } from '@metorial/ui-product';
 import {
   getJsonSchemaObject,
   hasJsonSchemaProperties,
@@ -189,98 +190,127 @@ export let ProviderAuthMethodsPage = () => {
   let { selectedVersionId } = useProviderVersionContext();
   let authMethods = useProviderAuthMethods(instance.data?.id, selectedVersionId);
 
-  return renderWithPagination(authMethods)(authMethods => (
+  let onViewDetails = (method: ProviderAuthMethod) => {
+    let inputSchema = getJsonSchemaObject(method.inputSchema);
+    let hasSchemaFields = hasJsonSchemaProperties(method.inputSchema);
+
+    showModal(({ dialogProps }) => (
+      <Dialog.Wrapper {...dialogProps} width={760}>
+        <Dialog.Title>{method.name}</Dialog.Title>
+        <Dialog.Description>{method.description ?? 'No description.'}</Dialog.Description>
+
+        <Flex direction="column" gap={12} style={{ paddingTop: 8, paddingBottom: 14 }}>
+          <Flex gap={8} style={{ alignItems: 'center', flexWrap: 'wrap' }}>
+            <Badge
+              color={
+                method.type === 'oauth'
+                  ? 'blue'
+                  : method.type === 'token'
+                    ? 'green'
+                    : 'gray'
+              }
+              size="1"
+            >
+              {getAuthTypeBadgeLabel(method.type)}
+            </Badge>
+            {method.type === 'oauth' && (
+              <Badge color="gray" size="1">
+                {method.scopes?.length ?? 0} Scopes
+              </Badge>
+            )}
+          </Flex>
+
+          {method.type === 'oauth' && method.scopes && method.scopes.length > 0 && (
+            <div>
+              <Text size="2" weight="strong" style={{ display: 'block', marginBottom: 8 }}>
+                Requested Scopes
+              </Text>
+              <Flex direction="column">
+                {method.scopes.map((scope: ProviderAuthScope, index: number) => (
+                  <ScopeRow
+                    key={scope.id}
+                    scope={scope}
+                    showBorder={index < method.scopes!.length - 1}
+                  />
+                ))}
+              </Flex>
+            </div>
+          )}
+
+          {hasSchemaFields && (
+            <div>
+              <Text size="2" weight="strong" style={{ display: 'block', marginBottom: 8 }}>
+                Input Fields
+              </Text>
+              <SchemaFields schema={inputSchema} />
+            </div>
+          )}
+        </Flex>
+      </Dialog.Wrapper>
+    ));
+  };
+
+  return renderWithLoader({ instance })(() =>
+    renderWithPagination(authMethods)(authMethods => (
       <>
-        <Spacer size={10} />
+        <Table
+          headers={['Name', 'Type', '']}
+          data={authMethods.data.items.map(method => {
+            let description =
+              method.description && method.description.length > 110
+                ? `${method.description.slice(0, 110)}...`
+                : (method.description ?? '');
+
+            return {
+              data: [
+                <Flex direction="column" gap={2}>
+                  <Text size="2" weight="strong">
+                    {method.name}
+                  </Text>
+                  <Text
+                    size="2"
+                    color="gray600"
+                    style={{
+                      display: 'block',
+                      maxWidth: '100%',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}
+                  >
+                    {description}
+                  </Text>
+                </Flex>,
+                <Flex gap={6} style={{ alignItems: 'center', flexWrap: 'wrap' }}>
+                  <Badge
+                    color={
+                      method.type === 'oauth'
+                        ? 'blue'
+                        : method.type === 'token'
+                          ? 'green'
+                          : 'gray'
+                    }
+                    size="1"
+                  >
+                    {getAuthTypeBadgeLabel(method.type)}
+                  </Badge>
+                </Flex>,
+                <Flex style={{ width: '100%', justifyContent: 'flex-end' }}>
+                  <Button size="1" variant="outline" onClick={() => onViewDetails(method)}>
+                    View Details
+                  </Button>
+                </Flex>
+              ]
+            };
+          })}
+        />
 
         {authMethods.data.items.length === 0 && (
           <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
             No authentication methods found for this provider.
           </Text>
         )}
-
-        <Flex direction="column" gap={4}>
-          {authMethods.data.items.map((method: ProviderAuthMethod) => {
-              let inputSchema = getJsonSchemaObject(method.inputSchema);
-              let hasSchemaFields = hasJsonSchemaProperties(method.inputSchema);
-
-              return (
-                <AccordionSingle
-                  key={method.id}
-                  title={
-                    <Flex gap={8} style={{ alignItems: 'center', flexWrap: 'wrap' }}>
-                      <Badge
-                        color={
-                          method.type === 'oauth'
-                            ? 'blue'
-                            : method.type === 'token'
-                              ? 'green'
-                              : 'gray'
-                        }
-                        size="1"
-                      >
-                        {getAuthTypeBadgeLabel(method.type)}
-                      </Badge>
-                      <Text size="2" weight="strong">
-                        {method.name}
-                      </Text>
-                      {method.type === 'oauth' && (
-                        <Badge color="gray" size="1">
-                          {method.scopes?.length ?? 0} Scopes
-                        </Badge>
-                      )}
-                    </Flex>
-                  }
-                >
-                  <Flex direction="column" gap={12} style={{ padding: '4px 0' }}>
-                    {method.description && (
-                      <Text
-                        size="1"
-                        color="gray600"
-                        style={{ display: 'block', marginTop: 4 }}
-                      >
-                        {method.description}
-                      </Text>
-                    )}
-
-                    {method.type === 'oauth' && method.scopes && method.scopes.length > 0 && (
-                      <div>
-                        <Text
-                          size="2"
-                          weight="strong"
-                          style={{ display: 'block', marginBottom: 16 }}
-                        >
-                          Requested Scopes
-                        </Text>
-                        <Flex direction="column">
-                          {method.scopes.map((scope: ProviderAuthScope, index: number) => (
-                            <ScopeRow
-                              key={scope.id}
-                              scope={scope}
-                              showBorder={index < method.scopes!.length - 1}
-                            />
-                          ))}
-                        </Flex>
-                      </div>
-                    )}
-
-                    {hasSchemaFields && (
-                      <>
-                        <Text
-                          size="2"
-                          weight="strong"
-                          style={{ display: 'block', marginBottom: 4 }}
-                        >
-                          Required Fields
-                        </Text>
-                        <SchemaFields schema={inputSchema} />
-                      </>
-                    )}
-                  </Flex>
-                </AccordionSingle>
-              );
-          })}
-        </Flex>
       </>
-    ));
+    ))
+  );
 };

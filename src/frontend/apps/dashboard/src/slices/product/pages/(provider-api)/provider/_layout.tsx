@@ -256,6 +256,10 @@ export let ProviderLayout = () => {
                   to: Paths.instance.provider(...providerPathParams, 'readme')
                 },
                 {
+                  label: 'Deployments',
+                  to: Paths.instance.provider(...providerPathParams, 'deployments')
+                },
+                {
                   label: 'Tools',
                   to: Paths.instance.provider(...providerPathParams, 'tools')
                 },

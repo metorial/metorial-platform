@@ -74,6 +74,9 @@ let ProviderVersionsPage = dynamicPage(() =>
 let ProviderToolsPage = dynamicPage(() =>
   import('./pages/(provider-api)/provider/tools').then(c => c.ProviderToolsPage)
 );
+let ProviderDetailsDeploymentsPage = dynamicPage(() =>
+  import('./pages/(provider-api)/provider/deployments').then(c => c.ProviderDeploymentsPage)
+);
 let ProviderAuthMethodsPage = dynamicPage(() =>
   import('./pages/(provider-api)/provider/auth-methods').then(c => c.ProviderAuthMethodsPage)
 );
@@ -653,6 +656,10 @@ export let productInnerSlice = createSlice([
           {
             path: 'tools',
             element: <ProviderToolsPage />
+          },
+          {
+            path: 'deployments',
+            element: <ProviderDetailsDeploymentsPage />
           },
           {
             path: 'auth-methods',

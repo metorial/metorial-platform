@@ -36,7 +36,9 @@ export let ProviderAuthCredentialsOverviewPage = () => {
 
   let deploymentItems = deployments.data?.items ?? [];
   let providerIds = useMemo(
-    () => [...new Set(deploymentItems.map(deployment => deployment.providerId).filter(Boolean))],
+    () => [
+      ...new Set(deploymentItems.map(deployment => deployment.providerId).filter(Boolean))
+    ],
     [deploymentItems]
   );
   let authCredentials = useInstanceProviderAuthCredentials(
@@ -83,77 +85,70 @@ export let ProviderAuthCredentialsOverviewPage = () => {
 
     return nextRows;
   }, [authCredentials.data?.items, deploymentItems]);
-
-  return renderWithLoader({ organization, project, instance, deployments })(
-    ({ organization, project, instance }) => (
-      <>
-        <Input
-          label="Search"
-          hideLabel
-          placeholder="Search auth credentials..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-        />
-
-        <Spacer size={15} />
-
-        {providerIds.length === 0 ? (
-          <Text size="2" color="gray600">
-            No auth credentials found.
-          </Text>
-        ) : (
-          renderWithPagination(authCredentials, {
-            emptyState: (
-              <Text size="2" color="gray600">
-                No auth credentials found.
-              </Text>
-            )
-          })(() =>
-            rows.length > 0 ? (
-              <Table
-                headers={['Name', 'Provider', 'Version', 'Created']}
-                data={rows.map(row => ({
-                  href: Paths.instance.providerAuthCredential(
-                    organization.data,
-                    project.data,
-                    instance.data,
-                    row.deployment.id,
-                    row.credential.id
-                  ),
-                  data: [
-                    <Text size="2" weight="strong">
-                      {row.credential.name || '—'}
-                    </Text>,
-                    <Text size="2">
-                      {providerNameMap.get(row.deployment.providerId) ?? row.deployment.providerId}
-                    </Text>,
-                    row.deployment.lockedVersion ? (
-                      <Badge color="purple" size="1">
-                        {row.deployment.lockedVersion.version}
-                      </Badge>
-                    ) : (
-                      <Badge color="gray" size="1">
-                        Default
-                      </Badge>
-                    ),
-                    row.credential.createdAt ? (
-                      <RenderDate date={row.credential.createdAt} />
-                    ) : (
-                      <Text size="2" color="gray600">
-                        —
-                      </Text>
-                    )
-                  ]
-                }))}
-              />
+  let authCredentialsContent = renderWithPagination(authCredentials, {
+    emptyState: (
+      <Text size="2" color="gray600">
+        No auth credentials found.
+      </Text>
+    )
+  })(() =>
+    rows.length > 0 && providerIds.length > 0 ? (
+      <Table
+        headers={['Name', 'Provider', 'Version', 'Created']}
+        data={rows.map(row => ({
+          href: Paths.instance.providerAuthCredential(
+            organization.data,
+            project.data,
+            instance.data,
+            row.deployment.id,
+            row.credential.id
+          ),
+          data: [
+            <Text size="2" weight="strong">
+              {row.credential.name || '—'}
+            </Text>,
+            <Text size="2">
+              {providerNameMap.get(row.deployment.providerId) ?? row.deployment.providerId}
+            </Text>,
+            row.deployment.lockedVersion ? (
+              <Badge color="purple" size="1">
+                {row.deployment.lockedVersion.version}
+              </Badge>
+            ) : (
+              <Badge color="gray" size="1">
+                Default
+              </Badge>
+            ),
+            row.credential.createdAt ? (
+              <RenderDate date={row.credential.createdAt} />
             ) : (
               <Text size="2" color="gray600">
-                No auth credentials found.
+                —
               </Text>
             )
-          )
-        )}
-      </>
+          ]
+        }))}
+      />
+    ) : (
+      <Text size="2" color="gray600">
+        No auth credentials found.
+      </Text>
     )
   );
+
+  return renderWithLoader({ organization, project, instance, deployments })(() => (
+    <>
+      <Input
+        label="Search"
+        hideLabel
+        placeholder="Search auth credentials..."
+        value={search}
+        onChange={e => setSearch(e.target.value)}
+      />
+
+      <Spacer size={15} />
+
+      {authCredentialsContent}
+    </>
+  ));
 };

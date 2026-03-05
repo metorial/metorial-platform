@@ -21,6 +21,7 @@
     "json-schema": "^0.4.0",
     "lru-cache": "^11.1.0",
     "p-queue": "^8.1.0",
+    "@prisma/extension-read-replicas": "^0.5.0",
     "prisma": "^7.4.1",
     "prisma-json-types-generator": "^4.1.1"
   },

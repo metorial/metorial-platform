@@ -49,7 +49,9 @@ export let ProviderConfigsOverviewPage = () => {
       : null
   );
   let providerIds = useMemo(
-    () => [...new Set(deploymentItems.map(deployment => deployment.providerId).filter(Boolean))],
+    () => [
+      ...new Set(deploymentItems.map(deployment => deployment.providerId).filter(Boolean))
+    ],
     [deploymentItems]
   );
   let providers = useProviders(
@@ -87,77 +89,70 @@ export let ProviderConfigsOverviewPage = () => {
 
     return nextRows;
   }, [configs.data?.items, deploymentItems]);
-
-  return renderWithLoader({ organization, project, instance, deployments })(
-    ({ organization, project, instance }) => (
-      <>
-        <Input
-          label="Search"
-          hideLabel
-          placeholder="Search configs..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-        />
-
-        <Spacer size={15} />
-
-        {deploymentItems.length === 0 ? (
-          <Text size="2" color="gray600">
-            No configs found.
-          </Text>
-        ) : (
-          renderWithPagination(configs, {
-            emptyState: (
-              <Text size="2" color="gray600">
-                No configs found.
-              </Text>
-            )
-          })(() =>
-            rows.length > 0 ? (
-              <Table
-                headers={['Config Name', 'Provider', 'Version', 'Created']}
-                data={rows.map(row => ({
-                  href: Paths.instance.providerConfig(
-                    organization.data,
-                    project.data,
-                    instance.data,
-                    row.deployment.id,
-                    row.config.id
-                  ),
-                  data: [
-                    <Text size="2" weight="strong">
-                      {row.config.name ?? 'Unnamed'}
-                    </Text>,
-                    <Text size="2">
-                      {providerNameMap.get(row.deployment.providerId) ?? row.deployment.providerId}
-                    </Text>,
-                    row.deployment.lockedVersion ? (
-                      <Badge color="purple" size="1">
-                        {row.deployment.lockedVersion.version}
-                      </Badge>
-                    ) : (
-                      <Badge color="gray" size="1">
-                        Default
-                      </Badge>
-                    ),
-                    row.config.createdAt ? (
-                      <RenderDate date={row.config.createdAt} />
-                    ) : (
-                      <Text size="2" color="gray600">
-                        —
-                      </Text>
-                    )
-                  ]
-                }))}
-              />
+  let configsContent = renderWithPagination(configs, {
+    emptyState: (
+      <Text size="2" color="gray600">
+        No configs found.
+      </Text>
+    )
+  })(() =>
+    rows.length > 0 ? (
+      <Table
+        headers={['Config Name', 'Provider', 'Version', 'Created']}
+        data={rows.map(row => ({
+          href: Paths.instance.providerConfig(
+            organization.data,
+            project.data,
+            instance.data,
+            row.deployment.id,
+            row.config.id
+          ),
+          data: [
+            <Text size="2" weight="strong">
+              {row.config.name ?? 'Unnamed'}
+            </Text>,
+            <Text size="2">
+              {providerNameMap.get(row.deployment.providerId) ?? row.deployment.providerId}
+            </Text>,
+            row.deployment.lockedVersion ? (
+              <Badge color="purple" size="1">
+                {row.deployment.lockedVersion.version}
+              </Badge>
+            ) : (
+              <Badge color="gray" size="1">
+                Default
+              </Badge>
+            ),
+            row.config.createdAt ? (
+              <RenderDate date={row.config.createdAt} />
             ) : (
               <Text size="2" color="gray600">
-                No configs found.
+                —
               </Text>
             )
-          )
-        )}
-      </>
+          ]
+        }))}
+      />
+    ) : (
+      <Text size="2" color="gray600">
+        No configs found.
+      </Text>
     )
   );
+
+  return renderWithLoader({ organization, project, instance, deployments })(() => (
+    <>
+      <Input
+        label="Search"
+        hideLabel
+        placeholder="Search configs..."
+        value={search}
+        onChange={e => setSearch(e.target.value)}
+      />
+
+      <Spacer size={15} />
+
+      {configsContent}
+    </>
+  ));
 };

@@ -52,15 +52,30 @@ export let ProviderDeploymentLayout = () => {
           }
         ]}
         actions={
-          <Link
-            to={Paths.instance.explorer(organization.data, project.data, instance.data, {
-              provider_deployment_id: deployment.data?.id ?? providerDeploymentId
-            })}
-          >
-            <Button as="span" size="2">
-              Open Explorer
-            </Button>
-          </Link>
+          <>
+            <Link
+              to={Paths.instance.provider(
+                organization.data,
+                project.data,
+                instance.data,
+                deployment.data?.providerId
+              )}
+            >
+              <Button as="span" size="2" variant="outline">
+                View Provider
+              </Button>
+            </Link>
+
+            <Link
+              to={Paths.instance.explorer(organization.data, project.data, instance.data, {
+                provider_deployment_id: deployment.data?.id ?? providerDeploymentId
+              })}
+            >
+              <Button as="span" size="2">
+                Open Explorer
+              </Button>
+            </Link>
+          </>
         }
       />
 
