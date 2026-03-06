@@ -1,16 +1,17 @@
 import type {
   DashboardInstanceProviderDeploymentsSetupSessionsGetOutput,
   DashboardInstanceProvidersGetOutput,
-  DashboardInstanceProvidersListOutput
+  DashboardInstanceProvidersListOutput,
+  ProviderListingsGetOutput
 } from '@metorial/dashboard-sdk';
 import { renderWithLoader, useForm } from '@metorial/data-hooks';
 import {
   useCreateProviderDeployment,
   useCreateSession,
   useCurrentInstance,
+  useProvider,
   useProviderAuthConfigs,
   useProviderAuthMethods,
-  useProvider,
   useProviderConfigSchema,
   useProviderConfigVaults,
   useProviderConfigs,
@@ -28,12 +29,7 @@ import {
   Text,
   theme
 } from '@metorial/ui';
-import {
-  RiAddLine,
-  RiArrowLeftLine,
-  RiArrowRightLine,
-  RiCloseLine
-} from '@remixicon/react';
+import { RiAddLine, RiArrowLeftLine, RiArrowRightLine, RiCloseLine } from '@remixicon/react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
@@ -51,7 +47,8 @@ import { InspectorFrame } from './inspector';
 
 type ProviderSelection =
   | DashboardInstanceProvidersListOutput['items'][number]
-  | DashboardInstanceProvidersGetOutput;
+  | DashboardInstanceProvidersGetOutput
+  | ProviderListingsGetOutput['provider'];
 
 let Wrapper = styled.div`
   display: flex;
@@ -252,7 +249,10 @@ export let ExplorerPage = () => {
     instance.data?.id,
     providerDeploymentId ?? undefined
   );
-  let providerConfigs = useProviderConfigs(instance.data?.id, providerDeploymentId ?? undefined);
+  let providerConfigs = useProviderConfigs(
+    instance.data?.id,
+    providerDeploymentId ?? undefined
+  );
   let providerConfigVaults = useProviderConfigVaults(instance.data?.id, {
     providerDeploymentId: providerDeploymentId ?? undefined
   });
@@ -288,7 +288,9 @@ export let ExplorerPage = () => {
 
   useEffect(() => {
     if (providerConfigs.isLoading || selectedConfiguration.kind !== 'config') return;
-    let exists = (providerConfigs.data?.items ?? []).some(c => c.id === selectedConfiguration.id);
+    let exists = (providerConfigs.data?.items ?? []).some(
+      c => c.id === selectedConfiguration.id
+    );
     if (!exists) setSelectedConfiguration(emptyConfigurationSelection());
   }, [providerConfigs.data, providerConfigs.isLoading, selectedConfiguration]);
 
@@ -303,11 +305,15 @@ export let ExplorerPage = () => {
   useEffect(() => {
     if (providerAuthConfigs.isLoading || !selectedAuthConfigId) return;
     if (pendingAuthConfigIdRef.current === selectedAuthConfigId) {
-      let exists = (providerAuthConfigs.data?.items ?? []).some(c => c.id === selectedAuthConfigId);
+      let exists = (providerAuthConfigs.data?.items ?? []).some(
+        c => c.id === selectedAuthConfigId
+      );
       if (exists) pendingAuthConfigIdRef.current = null;
       return;
     }
-    let exists = (providerAuthConfigs.data?.items ?? []).some(c => c.id === selectedAuthConfigId);
+    let exists = (providerAuthConfigs.data?.items ?? []).some(
+      c => c.id === selectedAuthConfigId
+    );
     if (!exists) setSelectedAuthConfigId('');
   }, [providerAuthConfigs.data, providerAuthConfigs.isLoading, selectedAuthConfigId]);
 
@@ -346,10 +352,7 @@ export let ExplorerPage = () => {
   };
 
   let activeProviderId =
-    selectedProvider?.id ??
-    providerIdParam ??
-    selectedDeployment.data?.providerId ??
-    null;
+    selectedProvider?.id ?? providerIdParam ?? selectedDeployment.data?.providerId ?? null;
   let activeProvider = useProvider(instance.data?.id, activeProviderId ?? undefined);
 
   useEffect(() => {
@@ -414,13 +417,14 @@ export let ExplorerPage = () => {
     let lockedProviderVersionId = selectedDeployment.data?.lockedVersion?.id ?? null;
     let currentProviderVersionId = activeProvider.data?.currentVersion?.id ?? null;
     let effectiveProviderVersionId = lockedProviderVersionId ?? currentProviderVersionId;
-    let isAuthSetupLoadingVersion = !!activeProviderId && !lockedProviderVersionId && activeProvider.isLoading;
+    let isAuthSetupLoadingVersion =
+      !!activeProviderId && !lockedProviderVersionId && activeProvider.isLoading;
     let authPlusTooltip = !activeProviderId
       ? 'Could not resolve the provider for this deployment yet.'
       : selectedDeployment.isLoading || isAuthSetupLoadingVersion
         ? 'Loading provider version...'
         : activeProvider.error && !lockedProviderVersionId
-          ? activeProvider.error.message ?? 'Failed to load provider details.'
+          ? (activeProvider.error.message ?? 'Failed to load provider details.')
           : !effectiveProviderVersionId
             ? 'No provider version is available yet, so authentication cannot be configured.'
             : 'Connect / Create Auth Config';
@@ -441,8 +445,8 @@ export let ExplorerPage = () => {
           <Spacer height={6} />
 
           <Text size="2" color="gray600">
-            Choose or create configuration and authentication for this deployment, then open the
-            Explorer session.
+            Choose or create configuration and authentication for this deployment, then open
+            the Explorer session.
           </Text>
 
           <Spacer height={16} />
@@ -482,7 +486,9 @@ export let ExplorerPage = () => {
                 <Flex gap={8} align="end">
                   <div style={{ flex: 1 }}>
                     <Select
-                      label={hasAuthMethods ? 'Auth Config (required)' : 'Auth Config (optional)'}
+                      label={
+                        hasAuthMethods ? 'Auth Config (required)' : 'Auth Config (optional)'
+                      }
                       value={selectedAuthConfigId || '__none__'}
                       onChange={value =>
                         setSelectedAuthConfigId(value === '__none__' ? '' : value)
@@ -541,8 +547,8 @@ export let ExplorerPage = () => {
 
                 {!activeProviderId && !selectedDeployment.isLoading && (
                   <Text size="2" color="red500">
-                    Could not resolve the provider for this deployment yet. Re-open the
-                    sidebar and re-select the deployment.
+                    Could not resolve the provider for this deployment yet. Re-open the sidebar
+                    and re-select the deployment.
                   </Text>
                 )}
 
@@ -612,7 +618,9 @@ export let ExplorerPage = () => {
       >
         <AnimatePresence>
           <AsideInner
-            key={open ? (selectedProvider ? 'select_deployment' : 'select_provider') : 'closed'}
+            key={
+              open ? (selectedProvider ? 'select_deployment' : 'select_provider') : 'closed'
+            }
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
