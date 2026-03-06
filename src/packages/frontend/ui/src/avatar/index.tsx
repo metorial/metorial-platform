@@ -10,7 +10,8 @@ export let Avatar = ({
   size = 30,
   noTooltip,
   withInitials,
-  radius
+  radius,
+  imageFit = 'cover'
 }: {
   entity: {
     name: string;
@@ -21,15 +22,16 @@ export let Avatar = ({
   noTooltip?: boolean;
   withInitials?: boolean;
   radius?: number | 'round';
+  imageFit?: 'cover' | 'contain';
 }) => {
-  let src = entity?.photoUrl || entity?.imageUrl!;
+  let src = entity?.photoUrl || entity?.imageUrl;
   let name = entity?.name;
   let ref = useRef<HTMLImageElement>(null);
 
-  let [loaded, setLoaded] = useState(() => loadedSet.has(src));
+  let [loaded, setLoaded] = useState(() => (src ? loadedSet.has(src) : false));
 
   useInterval(() => {
-    if (loaded || !ref.current) return;
+    if (loaded || !ref.current || !src) return;
 
     if (ref.current.complete) {
       setLoaded(true);
@@ -52,7 +54,8 @@ export let Avatar = ({
         borderRadius: typeof radius == 'number' ? radius : '50%',
         backgroundColor: theme.colors.gray200,
         display: 'flex',
-        position: 'relative'
+        position: 'relative',
+        overflow: 'hidden'
       }}
     >
       {src && (
@@ -61,14 +64,16 @@ export let Avatar = ({
           alt={name}
           ref={ref}
           style={{
-            width: size,
-            aspectRatio: '1 / 1',
+            width: '100%',
+            height: '100%',
             borderRadius: typeof radius == 'number' ? radius : '50%',
-            objectFit: 'cover',
+            objectFit: imageFit,
             opacity: loaded ? 1 : 0,
-            transition: 'opacity 0.2s'
+            transition: 'opacity 0.2s',
+            display: 'block'
           }}
           onLoad={() => {
+            if (!src) return;
             setLoaded(true);
             loadedSet.add(src);
           }}

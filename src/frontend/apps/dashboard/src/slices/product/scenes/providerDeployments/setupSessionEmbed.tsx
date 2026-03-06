@@ -144,14 +144,10 @@ export let ProviderSetupSessionEmbed = ({
     provider.data?.oauth?.autoRegistration?.status === 'enabled';
   let visibleAuthCredentials = isOAuth
     ? (authCredentials.data?.items ?? []).filter(
-        credential => oauthAutoRegistrationEnabled || !credential.isDefault
+        credential => !credential.isDefault
       )
     : (authCredentials.data?.items ?? []);
-  let defaultCredentials =
-    visibleAuthCredentials.find(c => c.isDefault) ?? null;
-  let hasDefaultCredentials = Boolean(defaultCredentials);
-  let requiresManualOAuthCredentials =
-    isOAuth && (!oauthAutoRegistrationEnabled || !hasDefaultCredentials);
+  let requiresManualOAuthCredentials = isOAuth && !oauthAutoRegistrationEnabled;
 
   let hasSingleMethod = (authMethods.data?.items?.length ?? 0) === 1;
 
@@ -508,11 +504,7 @@ export let ProviderSetupSessionEmbed = ({
             {oauthMethodName} Credentials
           </Text>
           <Text size="2" color="gray600">
-            {oauthAutoRegistrationEnabled && hasDefaultCredentials
-              ? `Select existing ${oauthMethodName} credentials or add your own for ${providerName}.`
-              : !oauthAutoRegistrationEnabled
-                ? `${oauthMethodName} auto-registration is disabled for ${providerName}. Select your own credentials or add new ones to continue.`
-              : `No default ${oauthMethodName} credentials are configured for ${providerName}. Add your own credentials to continue.`}
+            {`${oauthMethodName} auto-registration is disabled for ${providerName}. Select your own credentials or add new ones to continue.`}
           </Text>
           <Spacer size={6} />
           {redirectUri && isCreatingCredentials && (
@@ -526,16 +518,8 @@ export let ProviderSetupSessionEmbed = ({
           )}
           <Select
             label={`${oauthMethodName} App Credentials`}
-            value={
-              isCreatingCredentials
-                ? '__create_new__'
-                : selectedCredentialsId || defaultCredentials?.id || ''
-            }
-            placeholder={
-              oauthAutoRegistrationEnabled && hasDefaultCredentials
-                ? 'Select or use default credentials'
-                : 'Select credentials or add your own'
-            }
+            value={isCreatingCredentials ? '__create_new__' : selectedCredentialsId || ''}
+            placeholder="Select credentials or add your own"
             onChange={value => {
               if (value === '__create_new__') {
                 setIsCreatingCredentials(true);
@@ -562,9 +546,7 @@ export let ProviderSetupSessionEmbed = ({
             <>
               <Spacer size={5} />
               <Text size="2" color="gray600">
-                {oauthAutoRegistrationEnabled
-                  ? 'Default credentials are unavailable. Add your own credentials to continue.'
-                  : 'Default credentials are unavailable because OAuth auto-registration is disabled. Add your own credentials to continue.'}
+                Select an existing credential or add your own to continue.
               </Text>
             </>
           )}
@@ -763,7 +745,21 @@ export let ProviderSetupSessionEmbed = ({
     };
 
     if (isOAuth) {
-      return hasSingleMethod ? [credentialsStep, connectStep] : [methodStep, credentialsStep, connectStep];
+      if (oauthAutoRegistrationEnabled) {
+        return hasSingleMethod
+          ? [connectStep]
+          : [
+              methodStep,
+              {
+                ...connectStep,
+                subtitle: 'Complete authentication'
+              }
+            ];
+      }
+
+      return hasSingleMethod
+        ? [credentialsStep, connectStep]
+        : [methodStep, credentialsStep, connectStep];
     }
     return hasSingleMethod
       ? [{ ...connectStep, subtitle: 'Start setup' }]

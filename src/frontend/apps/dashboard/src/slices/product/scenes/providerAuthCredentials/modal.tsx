@@ -49,6 +49,8 @@ export let ProviderAuthCredentialsForm = ({
   let redirectUri = provider.data?.oauth?.callbackUrl;
   let providerName = deployment.data?.name ?? provider.data?.name ?? providerId;
   let oauthMethodName = oauthMethod?.name ?? 'OAuth';
+  let oauthAutoRegistrationEnabled =
+    provider.data?.oauth?.autoRegistration?.status === 'enabled';
 
   let createCredentials = useCreateProviderAuthCredentials();
 
@@ -103,6 +105,31 @@ export let ProviderAuthCredentialsForm = ({
         <Dialog.Description>Loading provider details...</Dialog.Description>
         <Spacer size={15} />
         <CenteredSpinner />
+      </>
+    );
+  }
+
+  if (oauthAutoRegistrationEnabled) {
+    return (
+      <>
+        <Dialog.Title>Create Auth Credentials</Dialog.Title>
+        <Dialog.Description>
+          {providerName} uses {oauthMethodName} auto-registration, so manual app
+          credentials are not supported for this provider.
+        </Dialog.Description>
+
+        <Spacer size={15} />
+
+        <Dialog.Actions>
+          {onBack && (
+            <Button type="button" size="2" variant="outline" onClick={onBack}>
+              Back
+            </Button>
+          )}
+          <Button type="button" size="2" onClick={close}>
+            Close
+          </Button>
+        </Dialog.Actions>
       </>
     );
   }

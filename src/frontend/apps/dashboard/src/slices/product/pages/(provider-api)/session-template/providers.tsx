@@ -775,6 +775,7 @@ let ProvidersTable = ({
                 size={24}
                 radius={6}
                 noTooltip
+                imageFit="contain"
               />
               <Text size="2" weight="strong">
                 {providerName}

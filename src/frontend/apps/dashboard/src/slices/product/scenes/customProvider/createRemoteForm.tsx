@@ -210,7 +210,7 @@ export let CustomServerRemoteCreateForm = (p: {
                           setCurrentStep(1);
                         }}
                       >
-                        <Avatar entity={template} size={24} />
+                        <Avatar entity={template} size={24} imageFit="contain" />
                         <span>{template.name}</span>
                       </TemplatesItem>
                     ))}

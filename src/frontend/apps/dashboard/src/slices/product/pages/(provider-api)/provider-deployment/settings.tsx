@@ -3,6 +3,7 @@ import { useCurrentInstance, useProviderDeployment } from '@metorial/state';
 import { Button, Input, Spacer } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
 import { useParams } from 'react-router-dom';
+import { ProviderDeploymentTabSection } from '../../../scenes/providerDeployments/tabSection';
 
 export let ProviderDeploymentSettingsPage = () => {
   let instance = useCurrentInstance();
@@ -42,32 +43,34 @@ export let ProviderDeploymentSettingsPage = () => {
   };
 
   return renderWithLoader({ deployment })(({ deployment }) => (
-    <>
-      <Box title="Deployment Settings" description="Modify the settings of this deployment.">
-        <form
-          onSubmit={e => {
-            e.preventDefault();
-            handleSubmit();
-          }}
-        >
-          <Input label="Name" {...form.getFieldProps('name')} />
-          <form.RenderError field="name" />
+    <ProviderDeploymentTabSection intro="Update the deployment metadata used throughout this instance.">
+      <div style={{ maxWidth: 760 }}>
+        <Box title="Deployment Settings" description="Modify the settings of this deployment.">
+          <form
+            onSubmit={e => {
+              e.preventDefault();
+              handleSubmit();
+            }}
+          >
+            <Input label="Name" {...form.getFieldProps('name')} />
+            <form.RenderError field="name" />
 
-          <Spacer size={15} />
+            <Spacer size={15} />
 
-          <Input label="Description" {...form.getFieldProps('description')} />
+            <Input label="Description" {...form.getFieldProps('description')} />
 
-          <Spacer size={15} />
+            <Spacer size={15} />
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <Button size="2" type="button" onClick={handleSubmit} loading={updateMutator.isPending}>
-              Save
-            </Button>
-          </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <Button size="2" type="button" onClick={handleSubmit} loading={updateMutator.isPending}>
+                Save
+              </Button>
+            </div>
 
-          <updateMutator.RenderError />
-        </form>
-      </Box>
-    </>
+            <updateMutator.RenderError />
+          </form>
+        </Box>
+      </div>
+    </ProviderDeploymentTabSection>
   ));
 };

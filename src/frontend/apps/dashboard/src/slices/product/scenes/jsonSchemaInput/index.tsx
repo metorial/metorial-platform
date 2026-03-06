@@ -1,26 +1,94 @@
 import { CodeEditor } from '@metorial/code-editor';
 import {
   AccordionSingle,
+  Button,
   Checkbox,
   Error,
   Input,
   InputLabel,
   Select,
+  Tabs,
   Text,
   TextArrayInput,
   theme
 } from '@metorial/ui';
 import { JSONSchema7 } from 'json-schema';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import styled from 'styled-components';
 
 type JsonSchemaInputValue = Record<string, unknown>;
 type JsonSchemaPrimitive = string | number | boolean | null;
+type GenericObjectEntryType = 'string' | 'number' | 'boolean' | 'json';
+type GenericObjectEntry = {
+  id: string;
+  key: string;
+  type: GenericObjectEntryType;
+  value: string;
+};
 
 let isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
 let toRecord = (value: unknown): JsonSchemaInputValue => (isRecord(value) ? value : {});
+
+let createGenericObjectEntryId = () => Math.random().toString(36).slice(2, 10);
+
+let formatGenericObjectTabLabel = (value: string) =>
+  value
+    .replace(/[_-]+/g, ' ')
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/\b\w/g, letter => letter.toUpperCase());
+
+let getGenericObjectEntryType = (value: unknown): GenericObjectEntryType => {
+  if (typeof value === 'string') return 'string';
+  if (typeof value === 'number') return 'number';
+  if (typeof value === 'boolean') return 'boolean';
+  return 'json';
+};
+
+let toGenericObjectEntries = (value: unknown): GenericObjectEntry[] => {
+  let record = toRecord(value);
+
+  return Object.entries(record).map(([key, entryValue]) => ({
+    id: createGenericObjectEntryId(),
+    key,
+    type: getGenericObjectEntryType(entryValue),
+    value:
+      typeof entryValue === 'string'
+        ? entryValue
+        : typeof entryValue === 'number' || typeof entryValue === 'boolean'
+          ? String(entryValue)
+          : JSON.stringify(entryValue ?? null, null, 2)
+  }));
+};
+
+let parseGenericObjectEntry = (entry: GenericObjectEntry) => {
+  if (entry.type === 'string') {
+    return { valid: true as const, value: entry.value };
+  }
+
+  if (entry.type === 'number') {
+    let trimmed = entry.value.trim();
+    if (!trimmed) return { valid: false as const, error: 'Enter a number.' };
+
+    let parsed = Number(trimmed);
+    if (Number.isNaN(parsed)) {
+      return { valid: false as const, error: 'Enter a valid number.' };
+    }
+
+    return { valid: true as const, value: parsed };
+  }
+
+  if (entry.type === 'boolean') {
+    return { valid: true as const, value: entry.value === 'true' };
+  }
+
+  try {
+    return { valid: true as const, value: JSON.parse(entry.value || 'null') };
+  } catch (error) {
+    return { valid: false as const, error: 'Enter valid JSON.' };
+  }
+};
 
 let getEnumItems = (values: JSONSchema7['enum']) =>
   (values ?? [])
@@ -38,13 +106,9 @@ let getEnumItems = (values: JSONSchema7['enum']) =>
     }));
 
 let Wrapper = styled.div`
-  padding: 18px 20px 20px 20px;
-  border: 1px solid ${theme.colors.gray400};
-  border-radius: 12px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  box-shadow: 0 0 10px ${theme.colors.gray300};
+  gap: 12px;
 `;
 
 let Inner = styled.div`
@@ -67,6 +131,133 @@ let NestedWrapper = styled.div`
   flex-direction: column;
   gap: 10px;
 `;
+
+let GenericObjectLayout = styled.div`
+  display: flex;
+  flex-direction: column;
+  border: 1px solid ${theme.colors.gray300};
+  border-radius: 10px;
+  overflow: hidden;
+  background: ${theme.colors.background};
+`;
+
+let GenericObjectEditor = styled.div`
+  padding: 16px;
+  background: ${theme.colors.gray100};
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+`;
+
+let GenericObjectPreview = styled.div`
+  padding: 16px;
+  background: ${theme.colors.background};
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-top: 1px solid ${theme.colors.gray300};
+`;
+
+let GenericObjectEntryLabels = styled.div`
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(140px, 0.8fr) auto;
+  gap: 10px;
+  align-items: center;
+  color: ${theme.colors.gray700};
+  font-size: 12px;
+  font-weight: 600;
+
+  @media (max-width: 720px) {
+    display: none;
+  }
+`;
+
+let GenericObjectHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+`;
+
+let GenericObjectEntries = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+`;
+
+let GenericObjectEntryCard = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid ${theme.colors.gray300};
+  border-radius: 8px;
+  background: ${theme.colors.background};
+`;
+
+let GenericObjectEntryTop = styled.div`
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(140px, 0.8fr) auto;
+  gap: 10px;
+  align-items: center;
+
+  @media (max-width: 720px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+`;
+
+let GenericObjectEmptyState = styled.div`
+  border: 1px dashed ${theme.colors.gray400};
+  border-radius: 8px;
+  padding: 18px;
+  text-align: center;
+  color: ${theme.colors.gray600};
+  font-size: 14px;
+`;
+
+let GenericObjectValueLabel = styled.div`
+  color: ${theme.colors.gray700};
+  font-size: 12px;
+  font-weight: 600;
+`;
+
+let GenericObjectTabs = styled.div`
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 8px;
+  margin-left: 10px;
+  margin-bottom: 8px;
+  
+  & > div {
+    width: auto !important;
+  }
+
+  & > div > div:first-child {
+    width: auto !important;
+    justify-content: flex-start;
+    overflow: visible;
+    padding-bottom: 6px !important;
+    margin-bottom: 0 !important;
+  }
+
+  & > div > div:first-child > ul {
+    width: auto !important;
+    max-width: none !important;
+  }
+
+  & li {
+    z-index: 2 !important;
+  }
+
+  & > div > div:nth-child(3) {
+    z-index: 1 !important;
+  }
+`;
+
+let isGenericObjectProperty = (property: JSONSchema7 | boolean) =>
+  typeof property === 'object' &&
+  property.type === 'object' &&
+  !property.properties;
 
 export let JsonSchemaInput = ({
   schema,
@@ -96,6 +287,12 @@ export let JsonSchemaInput = ({
 
   let properties = schema.properties ?? {};
   let required = schema.required ?? [];
+  let genericObjectFields = Object.entries(properties).filter(([, property]) =>
+    isGenericObjectProperty(property)
+  );
+  let nonGenericFields = Object.entries(properties).filter(([, property]) =>
+    typeof property === 'object' && !isGenericObjectProperty(property)
+  );
 
   let [value, setValue] = useState<JsonSchemaInputValue>(() => {
     let initial = { ...toRecord(initialValue) };
@@ -137,11 +334,21 @@ export let JsonSchemaInput = ({
     });
   };
 
+  let [currentGenericField, setCurrentGenericField] = useState(genericObjectFields[0]?.[0] ?? '');
+
+  useEffect(() => {
+    if (!genericObjectFields.length) return;
+    if (genericObjectFields.some(([key]) => key === currentGenericField)) return;
+
+    setCurrentGenericField(genericObjectFields[0]![0]);
+  }, [currentGenericField, genericObjectFields]);
+
+  let activeGenericField =
+    genericObjectFields.find(([key]) => key === currentGenericField) ?? genericObjectFields[0];
+
   let inner = (
     <Inner>
-      {Object.entries(properties).map(([key, property], i) => {
-        if (typeof property != 'object') return null;
-
+      {nonGenericFields.map(([key, property], i) => {
         let isRequired = required.includes(key);
 
         return (
@@ -155,6 +362,35 @@ export let JsonSchemaInput = ({
           />
         );
       })}
+
+      {genericObjectFields.length > 0 && activeGenericField && (
+        <FieldWrapper>
+          {genericObjectFields.length > 1 && (
+            <GenericObjectTabs>
+              <Tabs
+                current={activeGenericField[0]}
+                action={setCurrentGenericField}
+                tabs={genericObjectFields.map(([key, property]) => ({
+                  id: key,
+                  label: formatGenericObjectTabLabel(property.title ?? key)
+                }))}
+                gap={20}
+                margin={{ top: 0, bottom: 10 }}
+                maxWidth="fit-content"
+              />
+            </GenericObjectTabs>
+          )}
+
+          <RenderField
+            fieldKey={activeGenericField[0]}
+            property={activeGenericField[1]}
+            isRequired={required.includes(activeGenericField[0])}
+            value={value}
+            updateField={updateField}
+            hideLabel={genericObjectFields.length > 1}
+          />
+        </FieldWrapper>
+      )}
     </Inner>
   );
 
@@ -169,12 +405,243 @@ export let JsonSchemaInput = ({
   );
 };
 
+let GenericObjectInput = ({
+  label,
+  description,
+  value: initialValue,
+  onChange,
+  hideLabel = false
+}: {
+  label: string;
+  description?: string;
+  value: unknown;
+  onChange: (value: unknown) => void;
+  hideLabel?: boolean;
+}) => {
+  let initialSerialized = JSON.stringify(toRecord(initialValue));
+  let [entries, setEntries] = useState<GenericObjectEntry[]>(() => toGenericObjectEntries(initialValue));
+  let onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+
+  useEffect(() => {
+    setEntries(toGenericObjectEntries(initialValue));
+  }, [initialSerialized]);
+
+  let validation = useMemo(() => {
+    let keyCounts = new Map<string, number>();
+    entries.forEach(entry => {
+      let key = entry.key.trim();
+      if (!key) return;
+      keyCounts.set(key, (keyCounts.get(key) ?? 0) + 1);
+    });
+
+    let errors: Record<string, string> = {};
+    let output: Record<string, unknown> = {};
+
+    entries.forEach(entry => {
+      let key = entry.key.trim();
+      if (!key) return;
+
+      if ((keyCounts.get(key) ?? 0) > 1) {
+        errors[entry.id] = 'Property names must be unique.';
+        return;
+      }
+
+      let parsed = parseGenericObjectEntry(entry);
+      if (!parsed.valid) {
+        errors[entry.id] = parsed.error;
+        return;
+      }
+
+      output[key] = parsed.value;
+    });
+
+    return {
+      errors,
+      output,
+      hasErrors: Object.keys(errors).length > 0
+    };
+  }, [entries]);
+
+  let outputSerialized = useMemo(() => JSON.stringify(validation.output), [validation.output]);
+  let lastEmittedValue = useRef(outputSerialized);
+
+  useEffect(() => {
+    if (validation.hasErrors) return;
+    if (lastEmittedValue.current === outputSerialized) return;
+
+    lastEmittedValue.current = outputSerialized;
+    onChangeRef.current(JSON.parse(outputSerialized));
+  }, [outputSerialized, validation.hasErrors]);
+
+  let updateEntry = (id: string, patch: Partial<GenericObjectEntry>) => {
+    setEntries(current => current.map(entry => (entry.id === id ? { ...entry, ...patch } : entry)));
+  };
+
+  let previewLabel = formatGenericObjectTabLabel(label.replace(/\s+\*$/, ''));
+
+  return (
+    <FieldWrapper>
+      {!hideLabel && <InputLabel>{label}</InputLabel>}
+      {description && (
+        <Text size="1" color="gray600" style={{ marginBottom: 8 }}>
+          {description}
+        </Text>
+      )}
+
+      <GenericObjectLayout>
+        <GenericObjectEditor>
+          <GenericObjectHeader>
+            <Text size="2" weight="strong">
+              Properties
+            </Text>
+
+            <Button
+              type="button"
+              size="1"
+              variant="outline"
+              onClick={() =>
+                setEntries(current => [
+                  ...current,
+                  {
+                    id: createGenericObjectEntryId(),
+                    key: '',
+                    type: 'string',
+                    value: ''
+                  }
+                ])
+              }
+            >
+              Add Property
+            </Button>
+          </GenericObjectHeader>
+
+          {entries.length === 0 ? (
+            <GenericObjectEmptyState>No properties defined yet.</GenericObjectEmptyState>
+          ) : (
+            <GenericObjectEntries>
+              <GenericObjectEntryLabels>
+                <div>Property Name</div>
+                <div>Type</div>
+                <div />
+              </GenericObjectEntryLabels>
+
+              {entries.map(entry => (
+                <GenericObjectEntryCard key={entry.id}>
+                  <GenericObjectEntryTop>
+                    <Input
+                      label="Property Name"
+                      hideLabel
+                      size="2"
+                      value={entry.key}
+                      placeholder="Property name"
+                      onChange={e => updateEntry(entry.id, { key: e.target.value })}
+                    />
+
+                    <Select
+                      label="Type"
+                      hideLabel
+                      size="2"
+                      value={entry.type}
+                      onChange={value =>
+                        updateEntry(entry.id, {
+                          type: value as GenericObjectEntryType,
+                          value:
+                            value === 'boolean'
+                              ? 'true'
+                              : value === 'json'
+                                ? entry.type === 'json' ? entry.value : '{}'
+                                : entry.type === 'boolean'
+                                  ? ''
+                                  : entry.value
+                        })
+                      }
+                      items={[
+                        { id: 'string', label: 'String' },
+                        { id: 'number', label: 'Number' },
+                        { id: 'boolean', label: 'Boolean' },
+                        { id: 'json', label: 'JSON' }
+                      ]}
+                    />
+
+                    <Button
+                      type="button"
+                      size="1"
+                      variant="outline"
+                      onClick={() =>
+                        setEntries(current => current.filter(currentEntry => currentEntry.id !== entry.id))
+                      }
+                    >
+                      Remove
+                    </Button>
+                  </GenericObjectEntryTop>
+
+                  <GenericObjectValueLabel>Value</GenericObjectValueLabel>
+
+                  {entry.type === 'boolean' ? (
+                    <Select
+                      label="Value"
+                      hideLabel
+                      size="2"
+                      value={entry.value || 'true'}
+                      onChange={value => updateEntry(entry.id, { value })}
+                      items={[
+                        { id: 'true', label: 'True' },
+                        { id: 'false', label: 'False' }
+                      ]}
+                    />
+                  ) : entry.type === 'json' ? (
+                    <CodeEditor
+                      lang="json"
+                      height="120px"
+                      value={entry.value}
+                      onChange={value => updateEntry(entry.id, { value })}
+                    />
+                  ) : (
+                    <Input
+                      label="Value"
+                      hideLabel
+                      size="2"
+                      type={entry.type === 'number' ? 'number' : 'text'}
+                      value={entry.value}
+                      placeholder={entry.type === 'number' ? '0' : 'Value'}
+                      onChange={e => updateEntry(entry.id, { value: e.target.value })}
+                    />
+                  )}
+
+                  {validation.errors[entry.id] && (
+                    <Error>{validation.errors[entry.id]}</Error>
+                  )}
+                </GenericObjectEntryCard>
+              ))}
+            </GenericObjectEntries>
+          )}
+        </GenericObjectEditor>
+
+        <GenericObjectPreview>
+          <Text size="2" weight="strong">
+            {`${previewLabel} Preview`}
+          </Text>
+
+          <CodeEditor
+            readOnly
+            lang="json"
+            height="140px"
+            value={JSON.stringify(validation.output, null, 2)}
+          />
+        </GenericObjectPreview>
+      </GenericObjectLayout>
+    </FieldWrapper>
+  );
+};
+
 let RenderField = ({
   fieldKey: key,
   property,
   isRequired,
   value,
   updateField,
+  hideLabel = false,
   depth = 0
 }: {
   fieldKey: string;
@@ -182,6 +649,7 @@ let RenderField = ({
   isRequired: boolean;
   value: JsonSchemaInputValue;
   updateField: (key: string, value: unknown) => void;
+  hideLabel?: boolean;
   depth?: number;
 }) => {
   let [invalidJson, setInvalidJson] = useState(false);
@@ -249,6 +717,18 @@ let RenderField = ({
     );
   }
 
+  if (property.type === 'object') {
+    return (
+      <GenericObjectInput
+        label={label}
+        description={property.description}
+        value={value[key]}
+        onChange={newValue => updateField(key, newValue)}
+        hideLabel={hideLabel}
+      />
+    );
+  }
+
   if (
     property.type === 'array' &&
     property.items &&
@@ -278,7 +758,7 @@ let RenderField = ({
     );
   }
 
-  if (property.type == 'object' || property.type == undefined || property.type == 'array') {
+  if (property.type == undefined || property.type == 'array') {
     return (
       <FieldWrapper>
         <CodeEditor
@@ -369,25 +849,25 @@ let RenderField = ({
             : '';
 
         return (
-      <Input
-        label={label}
-        description={property.description}
-        type={inputType}
-        value={inputValue}
-        onChange={e => {
-          let val: string | number = e.target.value;
+          <Input
+            label={label}
+            description={property.description}
+            type={inputType}
+            value={inputValue}
+            onChange={e => {
+              let val: string | number = e.target.value;
 
-          if (property.type == 'number') {
-            val = parseFloat(val);
-            if (isNaN(val)) return;
-          } else if (property.type == 'integer') {
-            val = parseInt(val);
-            if (isNaN(val)) return;
-          }
+              if (property.type == 'number') {
+                val = parseFloat(val);
+                if (isNaN(val)) return;
+              } else if (property.type == 'integer') {
+                val = parseInt(val);
+                if (isNaN(val)) return;
+              }
 
-          updateField(key, val);
-        }}
-      />
+              updateField(key, val);
+            }}
+          />
         );
       })()}
     </FieldWrapper>

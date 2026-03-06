@@ -111,7 +111,7 @@ export let ServerSearch = ({
                         //   </Badge>
                         // ) : undefined
 
-                        <Avatar entity={server} />
+                        <Avatar entity={server} imageFit="contain" />
                       }
                       title={server.name}
                       description={

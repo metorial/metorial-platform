@@ -69,6 +69,7 @@ export let ProvidersGrid = (filter: DashboardInstanceProviderListingsListQuery) 
                         }}
                         size={30}
                         radius={5}
+                        imageFit="contain"
                       />
 
                       <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>

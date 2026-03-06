@@ -1,11 +1,13 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, useCurrentOrganization, useCurrentProject } from '@metorial/state';
-import { Button, Flex, Spacer } from '@metorial/ui';
+import { Button, Input } from '@metorial/ui';
+import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useDebounced } from '../../../../../hooks/useDebounced';
 import { ProviderConfigsTable } from '../../../scenes/providerConfigs/table';
 import { showProviderConfigFormModal } from '../../../scenes/providerConfigs/modal';
-import { showProviderConfigVaultFormModal } from '../../../scenes/providerConfigVaults/modal';
+import { ProviderDeploymentTabSection } from '../../../scenes/providerDeployments/tabSection';
 
 export let ProviderDeploymentConfigsPage = () => {
   let instance = useCurrentInstance();
@@ -13,20 +15,21 @@ export let ProviderDeploymentConfigsPage = () => {
   let project = useCurrentProject();
   let navigate = useNavigate();
   let { providerDeploymentId } = useParams();
+  let [search, setSearch] = useState('');
+  let searchDebounced = useDebounced(search, 500);
 
   return renderWithLoader({ instance })(({ instance }) => (
-    <>
-      <Flex gap={10}>
+    <ProviderDeploymentTabSection
+      intro="Configs are deployment-specific configuration profiles."
+      actions={
         <Button
           size="2"
           onClick={() =>
             showProviderConfigFormModal({
               type: 'create',
-              instanceId: instance.data?.id,
+              instanceId: instance.data.id,
               providerDeploymentId: providerDeploymentId!,
               onCreate: config => {
-                if (!instance.data) return;
-
                 navigate(
                   Paths.instance.providerConfig(
                     organization.data,
@@ -42,40 +45,23 @@ export let ProviderDeploymentConfigsPage = () => {
         >
           Add Config
         </Button>
-
-        <Button
+      }
+      search={
+        <Input
+          label="Search"
+          hideLabel
           size="2"
-          variant="outline"
-          onClick={() =>
-            showProviderConfigVaultFormModal({
-              type: 'create',
-              instanceId: instance.data?.id,
-              providerDeploymentId: providerDeploymentId!,
-              onCreate: vault => {
-                if (!instance.data) return;
-
-                navigate(
-                  Paths.instance.providerConfigVault(
-                    organization.data,
-                    project.data,
-                    instance.data,
-                    vault.id
-                  )
-                );
-              }
-            })
-          }
-        >
-          Create Vault
-        </Button>
-      </Flex>
-
-      <Spacer size={15} />
-
+          placeholder="Search configs..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
+      }
+    >
       <ProviderConfigsTable
         instanceId={instance.data.id}
         providerDeploymentId={providerDeploymentId!}
+        search={searchDebounced}
       />
-    </>
+    </ProviderDeploymentTabSection>
   ));
 };

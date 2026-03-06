@@ -5,6 +5,7 @@ import {
 import { useProviderConfigVaults, useProviderConfigs } from '@metorial/state';
 import { Button, Flex, Select, Text } from '@metorial/ui';
 import { RiAddLine, RiSafeLine } from '@remixicon/react';
+import { useEffect, useRef } from 'react';
 import {
   ConfigurationSelection,
   decodeConfigurationSelection,
@@ -31,6 +32,32 @@ export let ProviderConfigurationSelection = ({
 }) => {
   let configs = useProviderConfigs(instanceId, providerDeploymentId);
   let vaults = useProviderConfigVaults(instanceId, { providerDeploymentId });
+  let handledAutoSelectionRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    handledAutoSelectionRef.current = null;
+  }, [providerDeploymentId]);
+
+  useEffect(() => {
+    if (value.kind !== 'none') {
+      handledAutoSelectionRef.current = providerDeploymentId;
+      return;
+    }
+
+    if (configs.isLoading || handledAutoSelectionRef.current === providerDeploymentId) return;
+
+    let defaultConfig = (configs.data?.items ?? []).find(config => config.isDefault);
+    if (!defaultConfig) return;
+
+    handledAutoSelectionRef.current = providerDeploymentId;
+    onChange({ kind: 'config', id: defaultConfig.id });
+  }, [
+    configs.data?.items,
+    configs.isLoading,
+    onChange,
+    providerDeploymentId,
+    value.kind
+  ]);
 
   let items = [
     { id: '__none__', label: 'None' },
