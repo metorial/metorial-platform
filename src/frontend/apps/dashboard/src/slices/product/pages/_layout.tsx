@@ -11,6 +11,7 @@ import {
   RiChatVoiceAiLine,
   RiFileList3Line,
   RiFlowChart,
+  RiFolderSettingsLine,
   RiFunctionLine,
   RiGroupLine,
   RiHome6Line,
@@ -84,15 +85,17 @@ export let ProjectPageLayout = () => {
 
             {
               icon: <RiFlowChart />,
-              label: 'Configurations',
+              label: 'Deployments',
               to: Paths.instance.providerDeployments(...params),
+              getProps: i => ({ isActive: checkPath(i, { exact: true }) })
+            },
+
+            {
+              icon: <RiFolderSettingsLine />,
+              label: 'Configurations',
+              to: Paths.instance.providerDeployments(...params, 'configs'),
               getProps: i => ({ isActive: checkPath(i) }),
               children: [
-                {
-                  label: 'Deployments',
-                  to: Paths.instance.providerDeployments(...params),
-                  getProps: i => ({ isActive: checkPath(i, { exact: true }) })
-                },
                 {
                   label: 'Configs',
                   to: Paths.instance.providerDeployments(...params, 'configs'),

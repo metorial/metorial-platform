@@ -54,41 +54,39 @@ export let ProviderConfigVaultsOverviewPage = () => {
 
       {renderWithPagination(vaults)(vaults => (
         <>
-          {vaults.data.items.length > 0 && (
-            <Table
-              headers={['Name', 'Provider', 'Deployment', 'Created']}
-              data={vaults.data.items.map(
-                (vault: DashboardInstanceProviderDeploymentsConfigVaultsListOutput['items'][number]) => ({
-                  href: Paths.instance.providerConfigVault(
-                    organization.data,
-                    project.data,
-                    instance.data,
-                    vault.id
-                  ),
-                  data: [
-                    <Text size="2" weight="strong">
-                      {vault.name ?? 'Unnamed Vault'}
-                    </Text>,
-                    <Text size="2">
-                      {providerNameMap.get(vault.providerId) ?? vault.providerId ?? '—'}
-                    </Text>,
-                    <Text size="2">{vault.deployment?.name ?? '—'}</Text>,
-                    vault.createdAt ? (
-                      <RenderDate date={vault.createdAt} />
-                    ) : (
-                      <Text size="2" color="gray600">
-                        —
-                      </Text>
-                    )
-                  ]
-                })
-              )}
-            />
-          )}
+          <Table
+            headers={['Name', 'Provider', 'Deployment', 'Created']}
+            data={vaults.data.items.map(
+              (vault: DashboardInstanceProviderDeploymentsConfigVaultsListOutput['items'][number]) => ({
+                href: Paths.instance.providerConfigVault(
+                  organization.data,
+                  project.data,
+                  instance.data,
+                  vault.id
+                ),
+                data: [
+                  <Text size="2" weight="strong">
+                    {vault.name ?? 'Unnamed Vault'}
+                  </Text>,
+                  <Text size="2">
+                    {providerNameMap.get(vault.providerId) ?? vault.providerId ?? '—'}
+                  </Text>,
+                  <Text size="2">{vault.deployment?.name ?? '—'}</Text>,
+                  vault.createdAt ? (
+                    <RenderDate date={vault.createdAt} />
+                  ) : (
+                    <Text size="2" color="gray600">
+                      —
+                    </Text>
+                  )
+                ]
+              })
+            )}
+          />
 
           {vaults.data.items.length === 0 && (
-            <Text size="2" color="gray600">
-              No config vaults found.
+            <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
+              No config vaults for this instance.
             </Text>
           )}
         </>
