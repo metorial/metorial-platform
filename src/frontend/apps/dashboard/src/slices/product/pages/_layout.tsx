@@ -1,5 +1,5 @@
-import { Paths } from '@metorial/frontend-config';
 import type { EntityParam } from '@metorial/frontend-config';
+import { Paths } from '@metorial/frontend-config';
 import { AppLayout, OssApplicationLayoutNav } from '@metorial/layout';
 import {
   lastInstanceIdStore,
@@ -160,7 +160,7 @@ export let ProjectPageLayout = () => {
               label: 'Magic MCP',
               to: Paths.instance.magicMcp.servers(...params),
               getProps: i => ({ isActive: i.pathname.includes('/magic-mcp/') })
-            },
+            }
 
             // {
             //   icon: <RiWebhookLine />,
@@ -222,7 +222,7 @@ export let ProjectPageLayout = () => {
             {
               icon: <RiSettings2Line />,
               label: 'Settings',
-              to: Paths.instance.settings(...params),
+              to: Paths.project.settings(organization.data, instance.data?.project),
               getProps: i => ({ isActive: checkPath(i, { exact: true }) })
             },
 

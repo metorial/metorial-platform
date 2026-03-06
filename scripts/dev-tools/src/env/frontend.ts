@@ -40,7 +40,7 @@ export let frontendEnv: Env = [
   },
   {
     key: 'FEATURED_COLLECTION_IDS',
-    defaultValue: 'landing_featured,landing_popular',
+    defaultValue: 'landing-featured,landing-popular',
     isEnterprise: true
   },
   {
