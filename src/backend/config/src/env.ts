@@ -33,12 +33,9 @@ export let env = createValidatedEnv({
     NODE_ENV: v.enumOf(['development', 'production'])
   },
 
-  s3: {
-    S3_ACCESS_KEY_ID: v.optional(v.string()),
-    S3_SECRET_ACCESS_KEY: v.optional(v.string()),
-    S3_REGION: v.optional(v.string()),
-    S3_BUCKET: v.optional(v.string()),
-    S3_ENDPOINT: v.optional(v.string())
+  objectStorage: {
+    OBJECT_STORAGE_URL: v.string(),
+    OSS_FILES_BUCKET_NAME: v.string()
   },
 
   encryption: {

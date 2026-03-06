@@ -30,6 +30,11 @@ vi.mock('../src/definitions', () => ({
     'org-doc': { oid: 'purpose_org_doc', ownerType: 'organization' }
   }
 }));
+vi.mock('../src/services/fileReference', () => ({
+  fileReferenceService: {
+    hasReferencesForFile: vi.fn().mockResolvedValue(false)
+  }
+}));
 
 const user: User = { oid: 'user_1' } as any;
 const organization: Organization = { oid: 'org_1' } as any;
@@ -119,8 +124,22 @@ describe('fileService', () => {
   });
 
   describe('deleteFile', () => {
-    it('always throws badRequestError', async () => {
-      const file: File = { id: 'file_1', status: 'active' } as any;
+    it('soft-deletes file when no references exist', async () => {
+      const file: File = { id: 'file_1', status: 'active', oid: BigInt(1) } as any;
+      (db.file.update as any).mockResolvedValue({ ...file, status: 'deleted', purpose: {} });
+      const result = await fileService.deleteFile({ file });
+      expect(result.status).toBe('deleted');
+    });
+
+    it('throws when file has active references', async () => {
+      const { fileReferenceService } = await import('../src/services/fileReference');
+      (fileReferenceService.hasReferencesForFile as any).mockResolvedValueOnce(true);
+      const file: File = { id: 'file_1', status: 'active', oid: BigInt(1) } as any;
+      await expect(fileService.deleteFile({ file })).rejects.toThrow(ServiceError);
+    });
+
+    it('throws if file is already deleted', async () => {
+      const file: File = { id: 'file_1', status: 'deleted', oid: BigInt(1) } as any;
       await expect(fileService.deleteFile({ file })).rejects.toThrow(ServiceError);
     });
   });
@@ -168,6 +187,27 @@ describe('fileService', () => {
       expect(db.file.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
+            status: 'active'
+          })
+        })
+      );
+    });
+
+    it('lists files for instance owner using organization ownership', async () => {
+      (db.file.findMany as any).mockResolvedValue([{ id: 'file_1', purpose: {} }]);
+
+      await fileService.listFiles({
+        owner: {
+          type: 'instance',
+          instance,
+          organization
+        }
+      });
+
+      expect(db.file.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            organizationOid: organization.oid,
             status: 'active'
           })
         })

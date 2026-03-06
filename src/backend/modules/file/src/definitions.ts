@@ -4,13 +4,15 @@ export let purposes = {
   user_image: ensureFilePurpose(() => ({
     name: 'User Image',
     slug: 'user_image',
-    ownerType: 'user'
+    ownerType: 'user',
+    canHaveLinks: true
   })),
 
   organization_image: ensureFilePurpose(() => ({
     name: 'Organization Image',
     slug: 'organization_image',
-    ownerType: 'organization'
+    ownerType: 'organization',
+    canHaveLinks: true
   }))
 };
 

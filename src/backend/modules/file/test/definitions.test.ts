@@ -20,6 +20,7 @@ describe('definitions', () => {
       name: 'User Image',
       slug: 'user_image',
       ownerType: 'user',
+      canHaveLinks: true,
       oid: 'oid_user_image'
     });
   });
@@ -32,6 +33,7 @@ describe('definitions', () => {
       name: 'Organization Image',
       slug: 'organization_image',
       ownerType: 'organization',
+      canHaveLinks: true,
       oid: 'oid_organization_image'
     });
   });
@@ -49,6 +51,7 @@ describe('definitions', () => {
       expect(purpose).toHaveProperty('name');
       expect(purpose).toHaveProperty('slug');
       expect(purpose).toHaveProperty('ownerType');
+      expect(purpose).toHaveProperty('canHaveLinks');
       expect(purpose).toHaveProperty('oid');
       expect(typeof purpose.name).toBe('string');
       expect(typeof purpose.slug).toBe('string');

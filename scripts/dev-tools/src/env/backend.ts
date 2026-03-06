@@ -118,6 +118,8 @@ export let backendEnv: Env = [
   { key: 'LOG_AWS_ACCESS_KEY', defaultValue: 'minio' },
   { key: 'LOG_AWS_SECRET_KEY', defaultValue: 'minio123' },
   { key: 'LOG_AWS_ENDPOINT', defaultValue: 'http://localhost:9000' },
+  { key: 'OBJECT_STORAGE_URL', defaultValue: 'http://services:52010' },
+  { key: 'OSS_FILES_BUCKET_NAME', defaultValue: 'metorial-oss-files-dev' },
 
   { key: 'CODE_BUCKET_HTTP_ADDRESS', defaultValue: ':4040' },
   { key: 'CODE_BUCKET_RPC_ADDRESS', defaultValue: ':4041' },

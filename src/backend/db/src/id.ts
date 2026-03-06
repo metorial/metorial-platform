@@ -27,6 +27,7 @@ export let ID = createIdGenerator({
   filePurpose: idType.sorted('fpu'),
   file: idType.sorted('fil'),
   fileLink: idType.sorted('flk'),
+  fileRef: idType.sorted('frf'),
 
   secretType: idType.sorted('sty'),
   secret: idType.sorted('sec'),

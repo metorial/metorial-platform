@@ -41,9 +41,6 @@ export let fileController = Controller.create(
           v.object({
             purpose: v.optional(v.enumOf(purposeSlugs as any), {
               description: 'Filter by file purpose'
-            }),
-            organization_id: v.optional(v.string(), {
-              description: 'Filter by organization ID'
             })
           })
         )
@@ -71,30 +68,6 @@ export let fileController = Controller.create(
       .output(filePresenter)
       .do(async ctx => {
         return filePresenter.present({ file: ctx.file });
-      }),
-
-    update: fileGroup
-      .patch(instancePath('files/:fileId', 'files.update'), {
-        name: 'Update file by ID',
-        description: 'Updates editable fields of a specific file by its ID.'
-      })
-      .use(checkAccess({ possibleScopes: ['instance.file:write'] }))
-      .body(
-        'default',
-        v.object({
-          title: v.optional(v.string())
-        })
-      )
-      .output(filePresenter)
-      .do(async ctx => {
-        let file = await fileService.updateFile({
-          input: {
-            title: ctx.body.title
-          },
-          file: ctx.file
-        });
-
-        return filePresenter.present({ file });
       }),
 
     delete: fileGroup

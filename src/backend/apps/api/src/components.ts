@@ -4,7 +4,7 @@ import { apiMux } from '@lowerdeck/api-mux';
 import { authApi } from '@metorial/api-auth';
 import { startMcpServer } from '@metorial/api-connection';
 import { apiServer } from '@metorial/api-core';
-import { fileApi } from '@metorial/api-files';
+import { fileApi, shouldUseFileApi } from '@metorial/api-files';
 import { marketplaceApp } from '@metorial/api-marketplace';
 import { authenticate } from '@metorial/auth';
 import { startPrivateApiServer } from '@metorial/api-private';
@@ -19,6 +19,14 @@ let marketplaceApiPort = parseInt(process.env.MARKETPLACE_API_PORT || '4312');
 let integrationsApiPort = parseInt(process.env.INTEGRATIONS_API_PORT || '4316');
 let callbacksApiPort = parseInt(process.env.CALLBACKS_API_PORT || '4317');
 
+let fileApiProxy = (req: Request) => {
+  if (shouldUseFileApi(req)) {
+    return fileApi.fetch(req as any);
+  }
+
+  return (apiServer.fetch as any)(req as any);
+};
+
 let server = apiMux(
   [
     {
@@ -28,10 +36,10 @@ let server = apiMux(
       }
     },
     {
-      methods: ['POST'],
+      methods: ['GET', 'POST', 'OPTIONS'],
       endpoint: {
         path: '/files',
-        fetch: fileApi.fetch as any
+        fetch: fileApiProxy as any
       }
     }
   ],
