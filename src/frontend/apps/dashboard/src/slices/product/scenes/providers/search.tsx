@@ -1,6 +1,9 @@
-import type { DashboardInstanceProvidersListOutput } from '@metorial/dashboard-sdk';
+import type {
+  DashboardInstanceProvidersListOutput,
+  ProviderListingsGetOutput
+} from '@metorial/dashboard-sdk';
 import { renderWithPagination, useForm } from '@metorial/data-hooks';
-import { useCurrentInstance, useProviderDeployments, useProviders } from '@metorial/state';
+import { useProviderDeployments, useProviderListings, useProviders } from '@metorial/state';
 import {
   Avatar,
   ButtonSize,
@@ -168,11 +171,12 @@ export let ProviderSearch = ({
   onSelect,
   stickyTop
 }: {
-  onSelect?: (provider: Provider) => void;
+  onSelect?: (provider: ProviderListingsGetOutput['provider']) => void;
   stickyTop?: number;
 }) => {
-  let instance = useCurrentInstance();
-  let providers = useProviders(instance.data?.id);
+  let providers = useProviderListings({
+    orderByRank: true
+  });
 
   return renderWithPagination(providers)(providers => (
     <ProviderSearchGrid
@@ -186,7 +190,7 @@ export let ProviderSearch = ({
       sectionLabel="Providers"
       onSelect={provider => {
         let selectedProvider = providers.data.items.find(item => item.id === provider.id);
-        if (selectedProvider) onSelect?.(selectedProvider);
+        if (selectedProvider) onSelect?.(selectedProvider.provider);
       }}
     />
   ));
@@ -217,10 +221,7 @@ export let ProvidersWithDeploymentsSearch = ({
   );
 
   return renderWithPagination(deployments)(deployments => {
-    let providerLookup = new Map<
-      string,
-      { name?: string | null; slug?: string | null }
-    >();
+    let providerLookup = new Map<string, { name?: string | null; slug?: string | null }>();
 
     for (let provider of providers.data?.items ?? []) {
       providerLookup.set(provider.id, {
@@ -265,7 +266,7 @@ export let ProviderSearchField = ({
 }: {
   value?: { id: string; name: string };
   label?: string;
-  onChange?: (provider: Provider) => void;
+  onChange?: (provider: ProviderListingsGetOutput['provider']) => void;
   size?: ButtonSize;
 }) => {
   let sizeStyles = getButtonSize(size);
