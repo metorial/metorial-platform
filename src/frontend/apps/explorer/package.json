@@ -5,8 +5,7 @@
   "type": "module",
   "scripts": {
     "enterprise:dev": "vite --port 4350 --host",
-    "frontend:build": "./build.sh",
-    "frontend:build:inner": "tsc -b && vite build",
+    "frontend:build": "tsc -b && vite build",
     "preview": "vite preview",
     "deploy:only": "rm -f dist/**/*.map && wrangler pages deploy",
     "deploy": "bun run frontend:build && bun run deploy:only"
