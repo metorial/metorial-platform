@@ -18,8 +18,27 @@ import { Stepper } from '../stepper';
 
 type AuthMethod = DashboardInstanceProvidersAuthMethodsListOutput['items'][number];
 
+let getAuthMethodHasSchema = (method: AuthMethod | undefined) => {
+  let schemaObj = getJsonSchemaObject(method?.inputSchema);
+
+  return !!(
+    schemaObj &&
+    typeof schemaObj === 'object' &&
+    schemaObj.type === 'object' &&
+    schemaObj.properties &&
+    Object.keys(schemaObj.properties).length > 0
+  );
+};
+
 export type ProviderAuthConfigFormProps =
-  | { type: 'create'; providerDeploymentId: string; instanceId?: string }
+  | {
+      type: 'create';
+      providerDeploymentId: string;
+      instanceId?: string;
+      initialAuthMethodId?: string;
+      hideAuthMethodStep?: boolean;
+      showAuthMethodStepInStepper?: boolean;
+    }
   | {
       type: 'update';
       providerDeploymentId: string;
@@ -46,15 +65,25 @@ export let ProviderAuthConfigForm = (
     provider.data?.oauth?.autoRegistration?.status === 'enabled';
 
   let authMethods = useProviderAuthMethods(instanceId, effectiveVersionId);
+  let manualAuthMethods = (authMethods.data?.items ?? []).filter((method: AuthMethod) => {
+    if (method.type !== 'oauth') return true;
+    return getAuthMethodHasSchema(method);
+  });
 
   let [credentialsData, setCredentialsData] = useState<Record<string, unknown>>({});
-  let [step, setStep] = useState(0);
+  let [step, setStep] = useState(
+    props.type === 'create' &&
+      !!props.hideAuthMethodStep &&
+      !!props.showAuthMethodStepInStepper
+      ? 1
+      : 0
+  );
 
   let form = useForm({
     initialValues: {
       name: '',
       description: '',
-      authMethodId: '',
+      authMethodId: props.type === 'create' ? props.initialAuthMethodId ?? '' : '',
       credentialsDataJson: '{}'
     },
     onSubmit: async () => {},
@@ -69,17 +98,11 @@ export let ProviderAuthConfigForm = (
           .defined()
           .test('valid-json', 'Credentials data must be valid JSON', function (value) {
             let authMethodId = this.parent.authMethodId;
-            let selectedMethod = authMethods.data?.items?.find(
+            let selectedMethod = manualAuthMethods.find(
               (method: AuthMethod) => method.id === authMethodId
             );
 
-            let schemaObj = getJsonSchemaObject(selectedMethod?.inputSchema);
-            let hasSchema =
-              schemaObj &&
-              typeof schemaObj === 'object' &&
-              schemaObj.type === 'object' &&
-              schemaObj.properties &&
-              Object.keys(schemaObj.properties).length > 0;
+            let hasSchema = getAuthMethodHasSchema(selectedMethod);
             let isOAuthWithoutSchema =
               !!authMethodId &&
               selectedMethod?.type === 'oauth' &&
@@ -148,17 +171,12 @@ export let ProviderAuthConfigForm = (
     props.close?.();
   };
 
-  let selectedMethod = authMethods.data?.items?.find(
+  let selectedMethod = manualAuthMethods.find(
     (method: AuthMethod) => method.id === form.values.authMethodId
   );
 
   let schemaObj = getJsonSchemaObject(selectedMethod?.inputSchema);
-  let hasSchema =
-    schemaObj &&
-    typeof schemaObj === 'object' &&
-    schemaObj.type === 'object' &&
-    schemaObj.properties &&
-    Object.keys(schemaObj.properties).length > 0;
+  let hasSchema = getAuthMethodHasSchema(selectedMethod);
   let isOAuthWithoutSchema =
     !!form.values.authMethodId &&
     selectedMethod?.type === 'oauth' &&
@@ -169,19 +187,20 @@ export let ProviderAuthConfigForm = (
     return <CenteredSpinner />;
   }
 
-  let authMethodItems = (authMethods.data?.items ?? []).map((method: AuthMethod) => ({
+  let authMethodItems = manualAuthMethods.map((method: AuthMethod) => ({
     id: method.id,
-    label: `${method.name} (${method.type})`
+    label: method.name
   }));
   let hasAuthMethods = authMethodItems.length > 0;
   let hasSingleMethod = authMethodItems.length === 1;
-  let singleMethodId = authMethods.data?.items?.[0]?.id ?? '';
-
-  useEffect(() => {
-    if (!form.values.authMethodId && hasSingleMethod && singleMethodId) {
-      form.setFieldValue('authMethodId', singleMethodId);
-    }
-  }, [form.values.authMethodId, hasSingleMethod, singleMethodId]);
+  let singleMethodId = manualAuthMethods[0]?.id ?? '';
+  let initialAuthMethodId = props.type === 'create' ? props.initialAuthMethodId : undefined;
+  let skipAuthMethodStep = props.type === 'create' && !!props.hideAuthMethodStep;
+  let showHiddenAuthMethodStep =
+    props.type === 'create' &&
+    !!props.hideAuthMethodStep &&
+    !!props.showAuthMethodStepInStepper;
+  let includeAuthMethodStep = (!hasSingleMethod && !skipAuthMethodStep) || showHiddenAuthMethodStep;
 
   let resetCredentials = () => {
     setCredentialsData({});
@@ -189,6 +208,25 @@ export let ProviderAuthConfigForm = (
     form.setFieldTouched('credentialsDataJson', false, false);
     form.setFieldError('credentialsDataJson', undefined);
   };
+
+  useEffect(() => {
+    if (!form.values.authMethodId && hasSingleMethod && singleMethodId) {
+      form.setFieldValue('authMethodId', singleMethodId);
+    }
+  }, [form.values.authMethodId, hasSingleMethod, singleMethodId]);
+
+  useEffect(() => {
+    if (!initialAuthMethodId) return;
+    if (form.values.authMethodId) return;
+    form.setFieldValue('authMethodId', initialAuthMethodId);
+  }, [initialAuthMethodId, form.values.authMethodId]);
+
+  useEffect(() => {
+    if (!form.values.authMethodId) return;
+    if (manualAuthMethods.some(method => method.id === form.values.authMethodId)) return;
+    form.setFieldValue('authMethodId', '');
+    resetCredentials();
+  }, [form.values.authMethodId, manualAuthMethods]);
 
   let handleAuthMethodChange = (value: string) => {
     form.setFieldValue('authMethodId', value);
@@ -200,7 +238,7 @@ export let ProviderAuthConfigForm = (
       schema={schemaObj}
       value={credentialsData}
       onChange={setCredentialsData}
-      label="Credentials"
+      variant="raw"
     />
   ) : isOAuthWithoutSchema ? (
     <Text size="2" color="gray600">
@@ -222,8 +260,8 @@ export let ProviderAuthConfigForm = (
   );
 
   if (props.type === 'create') {
-    let credentialsStepIndex = hasSingleMethod ? 0 : 1;
-    let detailsStepIndex = hasSingleMethod ? 1 : 2;
+    let credentialsStepIndex = includeAuthMethodStep ? 1 : 0;
+    let detailsStepIndex = includeAuthMethodStep ? 2 : 1;
 
     let goToCredentialsStep = async () => {
       form.setFieldTouched('authMethodId', true, false);
@@ -307,7 +345,7 @@ export let ProviderAuthConfigForm = (
         <>
           {selectedMethod && (
             <Text size="1" color="gray600">
-              Configuring <strong>{selectedMethod.name}</strong> ({selectedMethod.type})
+              Configuring <strong>{selectedMethod.name}</strong>
             </Text>
           )}
 
@@ -318,14 +356,14 @@ export let ProviderAuthConfigForm = (
           <Spacer size={15} />
 
           <Dialog.Actions>
-            {!hasSingleMethod && (
+            {!hasSingleMethod && !skipAuthMethodStep && (
               <Button variant="outline" onClick={() => setStep(0)}>
                 Back
               </Button>
             )}
-            {hasSingleMethod && (
-              <Button variant="outline" onClick={props.close}>
-                Cancel
+            {(hasSingleMethod || skipAuthMethodStep) && (
+              <Button variant="outline" onClick={props.onBack ?? props.close}>
+                {props.onBack ? 'Back' : 'Cancel'}
               </Button>
             )}
             <Button onClick={goToDetailsStep}>Continue</Button>
@@ -372,15 +410,24 @@ export let ProviderAuthConfigForm = (
       )
     };
 
-    let steps = hasSingleMethod
-      ? [credentialsStep, detailsStep]
-      : [methodStep, credentialsStep, detailsStep];
+    let steps = includeAuthMethodStep
+      ? [methodStep, credentialsStep, detailsStep]
+      : [credentialsStep, detailsStep];
+
+    let handleStepChange = (nextStep: number) => {
+      if (showHiddenAuthMethodStep && nextStep === 0) {
+        props.onBack?.();
+        return;
+      }
+
+      setStep(nextStep);
+    };
 
     return (
       <Stepper
         steps={steps}
         currentStep={step}
-        setCurrentStep={setStep}
+        setCurrentStep={handleStepChange}
       />
     );
   }

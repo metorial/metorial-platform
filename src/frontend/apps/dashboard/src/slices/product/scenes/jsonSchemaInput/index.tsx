@@ -37,7 +37,28 @@ let formatGenericObjectTabLabel = (value: string) =>
   value
     .replace(/[_-]+/g, ' ')
     .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/\bJson\b/g, 'JSON')
+    .replace(/\bOauth\b/g, 'OAuth')
+    .replace(/\bUri\b/g, 'URI')
+    .replace(/\bApi\b/g, 'API')
+    .replace(/\bId\b/g, 'ID')
     .replace(/\b\w/g, letter => letter.toUpperCase());
+
+let formatSchemaFieldLabel = (value: string) => formatGenericObjectTabLabel(value);
+
+let isJsonStringField = (p: {
+  key: string;
+  property: JSONSchema7;
+}) => {
+  if (p.property.type !== 'string') return false;
+  if (p.property.format === 'password') return false;
+
+  let haystack = [p.key, p.property.title, p.property.description]
+    .filter((part): part is string => typeof part === 'string')
+    .join(' ');
+
+  return /\bjson\b/i.test(haystack);
+};
 
 let getGenericObjectEntryType = (value: unknown): GenericObjectEntryType => {
   if (typeof value === 'string') return 'string';
@@ -652,7 +673,8 @@ let RenderField = ({
 }) => {
   let [invalidJson, setInvalidJson] = useState(false);
 
-  let label = (property.title ?? key) + (isRequired ? ' *' : '');
+  let baseLabel = property.title ?? formatSchemaFieldLabel(key);
+  let label = baseLabel + (isRequired ? ' *' : '');
 
   if (property.type === 'object' && property.properties) {
     let nestedProperties = property.properties;
@@ -837,6 +859,8 @@ let RenderField = ({
     inputType = 'number';
   }
 
+  let renderAsTextarea = isJsonStringField({ key, property });
+
   return (
     <FieldWrapper>
       {(() => {
@@ -850,7 +874,10 @@ let RenderField = ({
           <Input
             label={label}
             description={property.description}
-            type={inputType}
+            type={renderAsTextarea ? undefined : inputType}
+            as={renderAsTextarea ? 'textarea' : undefined}
+            minRows={renderAsTextarea ? 10 : undefined}
+            style={renderAsTextarea ? { fontFamily: 'monospace' } : undefined}
             value={inputValue}
             onChange={e => {
               let val: string | number = e.target.value;

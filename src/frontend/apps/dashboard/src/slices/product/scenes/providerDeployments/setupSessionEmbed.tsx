@@ -31,7 +31,11 @@ export let ProviderSetupSessionEmbed = ({
   deploymentId,
   onComplete,
   onCancel,
-  cancelLabel = 'Cancel'
+  cancelLabel = 'Cancel',
+  initialMethodId,
+  hideMethodStep = false,
+  onBackToMethodSelection,
+  showMethodStepInStepper = false
 }: {
   instanceId: string;
   providerId: string;
@@ -41,6 +45,10 @@ export let ProviderSetupSessionEmbed = ({
   ) => void;
   onCancel?: () => void;
   cancelLabel?: string;
+  initialMethodId?: string;
+  hideMethodStep?: boolean;
+  onBackToMethodSelection?: () => void;
+  showMethodStepInStepper?: boolean;
 }) => {
   let deployment = useProviderDeployment(instanceId, deploymentId);
   let lockedVersionId = deployment.data?.lockedVersion?.id;
@@ -56,7 +64,7 @@ export let ProviderSetupSessionEmbed = ({
 
   let methodForm = useForm({
     initialValues: {
-      selectedMethodId: ''
+      selectedMethodId: initialMethodId ?? ''
     },
     onSubmit: async () => {},
     schema: yup =>
@@ -91,7 +99,7 @@ export let ProviderSetupSessionEmbed = ({
   let [isStarting, setIsStarting] = useState(false);
   let [error, setError] = useState<string | null>(null);
   let [setupSession, setSetupSession] = useState<SetupSessionState | null>(null);
-  let [step, setStep] = useState(0);
+  let [step, setStep] = useState(hideMethodStep && showMethodStepInStepper ? 1 : 0);
   let [setupWindowBlocked, setSetupWindowBlocked] = useState(false);
 
   let selectedMethodId = methodForm.values.selectedMethodId;
@@ -132,8 +140,7 @@ export let ProviderSetupSessionEmbed = ({
   };
 
   let selectedMethod = useMemo(
-    () =>
-      (authMethods.data?.items ?? []).find(m => m.id === selectedMethodId),
+    () => (authMethods.data?.items ?? []).find(m => m.id === selectedMethodId),
     [authMethods.data?.items, selectedMethodId]
   );
   let providerName = deployment.data?.name ?? provider.data?.name ?? providerId;
@@ -143,22 +150,54 @@ export let ProviderSetupSessionEmbed = ({
   let oauthAutoRegistrationEnabled =
     provider.data?.oauth?.autoRegistration?.status === 'enabled';
   let visibleAuthCredentials = isOAuth
-    ? (authCredentials.data?.items ?? []).filter(
-        credential => !credential.isDefault
-      )
+    ? (authCredentials.data?.items ?? []).filter(credential => !credential.isDefault)
     : (authCredentials.data?.items ?? []);
   let requiresManualOAuthCredentials = isOAuth && !oauthAutoRegistrationEnabled;
 
   let hasSingleMethod = (authMethods.data?.items?.length ?? 0) === 1;
+  let skipMethodStep = hideMethodStep || hasSingleMethod;
+  let showHiddenMethodStep = hideMethodStep && showMethodStepInStepper;
+  let includeMethodStep = !skipMethodStep || showHiddenMethodStep;
 
   useEffect(() => {
     if (!selectedMethodId && hasSingleMethod) {
       methodForm.setFieldValue('selectedMethodId', authMethods.data!.items![0].id);
     }
+  }, [authMethods.data?.items, hasSingleMethod, methodForm.setFieldValue, selectedMethodId]);
+
+  useEffect(() => {
+    if (!requiresManualOAuthCredentials) return;
+    if (visibleAuthCredentials.length > 0) return;
+    if (selectedCredentialsId) return;
+
+    setIsCreatingCredentials(true);
+  }, [requiresManualOAuthCredentials, selectedCredentialsId, visibleAuthCredentials.length]);
+
+  useEffect(() => {
+    if (!provider.data || !isOAuth) return;
+
+    console.debug('[ProviderSetupSessionEmbed] OAuth source', {
+      providerId,
+      deploymentId,
+      providerName,
+      selectedMethodId,
+      selectedMethodName: selectedMethod?.name ?? null,
+      providerOAuth: provider.data.oauth ?? null,
+      providerTypeOAuth:
+        provider.data.type?.auth?.status === 'enabled' ? provider.data.type.auth.oauth : null,
+      redirectUri,
+      oauthAutoRegistrationStatus: provider.data.oauth?.autoRegistration?.status ?? null,
+      oauthAutoRegistrationEnabled
+    });
   }, [
-    authMethods.data?.items,
-    hasSingleMethod,
-    methodForm.setFieldValue,
+    deploymentId,
+    isOAuth,
+    oauthAutoRegistrationEnabled,
+    provider.data,
+    providerId,
+    providerName,
+    redirectUri,
+    selectedMethod?.name,
     selectedMethodId
   ]);
 
@@ -433,7 +472,7 @@ export let ProviderSetupSessionEmbed = ({
 
   let steps = (() => {
     let methodStep = {
-      title: 'Method',
+      title: 'Authentication',
       subtitle: 'Select auth method',
       render: () => (
         <>
@@ -458,7 +497,7 @@ export let ProviderSetupSessionEmbed = ({
             }}
             items={(authMethods.data?.items ?? []).map((method: AuthMethod) => ({
               id: method.id,
-              label: `${method.name} (${method.type})`
+              label: method.name
             }))}
           />
           <methodForm.RenderError field="selectedMethodId" />
@@ -477,7 +516,11 @@ export let ProviderSetupSessionEmbed = ({
                 {cancelLabel}
               </Button>
             )}
-            <Button type="button" onClick={() => setStep(1)} disabled={!selectedMethodId}>
+            <Button
+              type="button"
+              onClick={() => setStep(includeMethodStep ? 1 : 0)}
+              disabled={!selectedMethodId}
+            >
               Continue
             </Button>
           </Flex>
@@ -485,7 +528,7 @@ export let ProviderSetupSessionEmbed = ({
       )
     };
 
-    let connectStepIndex = hasSingleMethod ? 1 : 2;
+    let connectStepIndex = includeMethodStep ? 2 : 1;
     let handleCredentialsContinue = async () => {
       if (isCreatingCredentials) {
         let ok = await handleCreateCredentials();
@@ -504,7 +547,8 @@ export let ProviderSetupSessionEmbed = ({
             {oauthMethodName} Credentials
           </Text>
           <Text size="2" color="gray600">
-            {`${oauthMethodName} auto-registration is disabled for ${providerName}. Select your own credentials or add new ones to continue.`}
+            Auto-registration is disabled. Select your own credentials or add new ones to
+            continue.
           </Text>
           <Spacer size={6} />
           {redirectUri && isCreatingCredentials && (
@@ -556,9 +600,7 @@ export let ProviderSetupSessionEmbed = ({
               <Input
                 label="Name"
                 value={credentialsForm.values.newCredName}
-                onChange={e =>
-                  credentialsForm.setFieldValue('newCredName', e.target.value)
-                }
+                onChange={e => credentialsForm.setFieldValue('newCredName', e.target.value)}
                 placeholder="My OAuth App"
                 required
               />
@@ -599,12 +641,16 @@ export let ProviderSetupSessionEmbed = ({
           )}
           <Spacer size={12} />
           <Flex gap={8}>
-            {(!hasSingleMethod || isCreatingCredentials) && (
+            {(!skipMethodStep || isCreatingCredentials || onBackToMethodSelection) && (
               <Button
                 type="button"
                 variant="outline"
                 onClick={() =>
-                  isCreatingCredentials ? setIsCreatingCredentials(false) : setStep(0)
+                  isCreatingCredentials
+                    ? setIsCreatingCredentials(false)
+                    : skipMethodStep
+                      ? onBackToMethodSelection?.()
+                      : setStep(0)
                 }
               >
                 Back
@@ -642,8 +688,8 @@ export let ProviderSetupSessionEmbed = ({
                 Continue in the {oauthMethodName} window
               </Text>
               <Text size="2" color="gray600">
-                Complete the {providerName} sign-in flow in the popup window. This modal
-                will update automatically when authentication finishes.
+                Complete the sign-in flow. This modal will update automatically when
+                authentication finishes.
               </Text>
               {setupWindowBlocked && (
                 <>
@@ -661,7 +707,7 @@ export let ProviderSetupSessionEmbed = ({
                     setSetupWindowBlocked(!opened);
                   }}
                 >
-                  Open {oauthMethodName} Window
+                  Open Window
                 </Button>
                 {onCancel && (
                   <Button variant="outline" onClick={onCancel}>
@@ -669,19 +715,26 @@ export let ProviderSetupSessionEmbed = ({
                   </Button>
                 )}
               </Flex>
-              {!hasSingleMethod && (
-                <span
-                  style={{ cursor: 'pointer' }}
-                  onClick={() => {
-                    setSetupSession(null);
-                    pollingRef.current = false;
-                    setSetupWindowBlocked(false);
-                  }}
-                >
-                  <Text size="1" color="gray500" style={{ textDecoration: 'underline' }}>
-                    Change method
-                  </Text>
-                </span>
+              {(!skipMethodStep || onBackToMethodSelection) && (
+                <>
+                  <Spacer size={8} />
+                  <span
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => {
+                      if (skipMethodStep) {
+                        onBackToMethodSelection?.();
+                      } else {
+                        setSetupSession(null);
+                        pollingRef.current = false;
+                        setSetupWindowBlocked(false);
+                      }
+                    }}
+                  >
+                    <Text size="1" color="gray500" style={{ textDecoration: 'underline' }}>
+                      Change method
+                    </Text>
+                  </span>
+                </>
               )}
               {error && (
                 <>
@@ -724,11 +777,17 @@ export let ProviderSetupSessionEmbed = ({
             )}
             <Spacer size={8} />
             <Flex gap={8}>
-              {step > 0 && (
+              {(step > 0 || (skipMethodStep && onBackToMethodSelection)) && (
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setStep(prev => prev - 1)}
+                  onClick={() => {
+                    if (step > 0) {
+                      setStep(prev => prev - 1);
+                      return;
+                    }
+                    onBackToMethodSelection?.();
+                  }}
                 >
                   Back
                 </Button>
@@ -746,31 +805,40 @@ export let ProviderSetupSessionEmbed = ({
 
     if (isOAuth) {
       if (oauthAutoRegistrationEnabled) {
-        return hasSingleMethod
-          ? [connectStep]
-          : [
+        return includeMethodStep
+          ? [
               methodStep,
               {
                 ...connectStep,
                 subtitle: 'Complete authentication'
               }
-            ];
+            ]
+          : [connectStep];
       }
 
-      return hasSingleMethod
-        ? [credentialsStep, connectStep]
-        : [methodStep, credentialsStep, connectStep];
+      return includeMethodStep
+        ? [methodStep, credentialsStep, connectStep]
+        : [credentialsStep, connectStep];
     }
-    return hasSingleMethod
-      ? [{ ...connectStep, subtitle: 'Start setup' }]
-      : [
+    return includeMethodStep
+      ? [
           methodStep,
           {
             ...connectStep,
             subtitle: 'Start setup'
           }
-        ];
+        ]
+      : [{ ...connectStep, subtitle: 'Start setup' }];
   })();
 
-  return <Stepper steps={steps} currentStep={step} setCurrentStep={setStep} />;
+  let handleStepChange = (nextStep: number) => {
+    if (showHiddenMethodStep && nextStep === 0) {
+      onBackToMethodSelection?.();
+      return;
+    }
+
+    setStep(nextStep);
+  };
+
+  return <Stepper steps={steps} currentStep={step} setCurrentStep={handleStepChange} />;
 };

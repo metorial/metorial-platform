@@ -107,7 +107,6 @@ export let useProviderAuthCreationCapabilities = (
   let hasOAuthMethod = authMethodItems.some(method => method.type === 'oauth');
   let hasManualAuthConfigMethod = authMethodItems.some(method => {
     if (method.type !== 'oauth') return true;
-    if (!oauthAutoRegistrationEnabled) return true;
     return getAuthMethodHasSchema(method.inputSchema);
   });
   let isLoading =

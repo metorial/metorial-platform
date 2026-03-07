@@ -1,9 +1,65 @@
-import { DashboardInstanceProviderDeploymentsAuthConfigsCreateOutput } from '@metorial/dashboard-sdk';
+import {
+  DashboardInstanceProviderDeploymentsAuthConfigsCreateOutput,
+  DashboardInstanceProvidersAuthMethodsListOutput
+} from '@metorial/dashboard-sdk';
 import { useProviderDeployment } from '@metorial/state';
-import { Button, CenteredSpinner, Dialog, Spacer, Text, showModal } from '@metorial/ui';
+import {
+  Button,
+  CenteredSpinner,
+  Dialog,
+  Select,
+  Spacer,
+  Text,
+  showModal
+} from '@metorial/ui';
+import { useState } from 'react';
 import { useProviderAuthCreationCapabilities } from '../../lib/providerCreationCapabilities';
 import { ProviderSetupSessionEmbed } from '../providerDeployments/setupSessionEmbed';
+import { Stepper } from '../stepper';
 import { ProviderAuthConfigForm, ProviderAuthConfigFormProps } from './form';
+
+type AuthMethod = DashboardInstanceProvidersAuthMethodsListOutput['items'][number];
+
+let getAuthMethodHasSchema = (method: AuthMethod | undefined) => {
+  let schema = method?.inputSchema?.schema;
+  return !!(
+    schema &&
+    typeof schema === 'object' &&
+    'type' in schema &&
+    schema.type === 'object' &&
+    'properties' in schema &&
+    schema.properties &&
+    typeof schema.properties === 'object' &&
+    Object.keys(schema.properties).length > 0
+  );
+};
+
+let isSetupFlowAuthMethod = (method: AuthMethod | undefined) =>
+  method?.type === 'oauth' && !getAuthMethodHasSchema(method);
+
+let getAuthMethodSelectionSteps = (p: {
+  method: AuthMethod | undefined;
+  oauthAutoRegistrationEnabled: boolean;
+}) => {
+  if (isSetupFlowAuthMethod(p.method)) {
+    return p.oauthAutoRegistrationEnabled
+      ? [
+          { title: 'Authentication', subtitle: 'Select auth method', render: () => null },
+          { title: 'Connect', subtitle: 'Complete authentication', render: () => null }
+        ]
+      : [
+          { title: 'Authentication', subtitle: 'Select auth method', render: () => null },
+          { title: 'Credentials', subtitle: 'Provide credential values', render: () => null },
+          { title: 'Connect', subtitle: 'Complete authentication', render: () => null }
+        ];
+  }
+
+  return [
+    { title: 'Authentication', subtitle: 'Select auth method', render: () => null },
+    { title: 'Credentials', subtitle: 'Provide credential values', render: () => null },
+    { title: 'Details', subtitle: 'Name and create', render: () => null }
+  ];
+};
 
 export let showProviderAuthConfigFormModal = (
   p: ProviderAuthConfigFormProps & {
@@ -50,6 +106,16 @@ let ProviderAuthConfigCreateModalContent = (p: {
   );
   let providerName =
     authCreation.provider.data?.name ?? deployment.data?.name ?? 'provider';
+  let providerId = deployment.data?.providerId ?? authCreation.provider.data?.id;
+  let authMethods = authCreation.authMethodItems;
+  let manualMethods = authMethods.filter(method => !isSetupFlowAuthMethod(method));
+  let setupFlowMethods = authMethods.filter(method => isSetupFlowAuthMethod(method));
+  let [draftMethodId, setDraftMethodId] = useState('');
+  let [activeMethodId, setActiveMethodId] = useState('');
+  let activeMethod = authMethods.find(method => method.id === activeMethodId);
+  let draftMethod = authMethods.find(method => method.id === draftMethodId);
+  let oauthAutoRegistrationEnabled =
+    authCreation.provider.data?.oauth?.autoRegistration?.status === 'enabled';
 
   if (authCreation.isLoading) {
     return <CenteredSpinner />;
@@ -75,8 +141,7 @@ let ProviderAuthConfigCreateModalContent = (p: {
     );
   }
 
-  if (!authCreation.hasManualAuthConfigMethod && authCreation.hasSetupAuthFlow) {
-    let providerId = deployment.data?.providerId ?? authCreation.provider.data?.id;
+  if (!manualMethods.length && setupFlowMethods.length) {
     if (!providerId) {
       return (
         <>
@@ -108,6 +173,7 @@ let ProviderAuthConfigCreateModalContent = (p: {
           instanceId={p.instanceId}
           providerId={providerId}
           deploymentId={p.providerDeploymentId}
+          hideMethodStep={false}
           onComplete={result => {
             let authConfigId = result?.authConfig?.id;
             if (authConfigId) {
@@ -116,6 +182,132 @@ let ProviderAuthConfigCreateModalContent = (p: {
             p.close();
           }}
           onCancel={p.close}
+        />
+      </>
+    );
+  }
+
+  if (manualMethods.length && setupFlowMethods.length) {
+    if (activeMethod && isSetupFlowAuthMethod(activeMethod)) {
+      if (!providerId) {
+        return (
+          <>
+            <Dialog.Title>Create Auth Config</Dialog.Title>
+            <Dialog.Description>
+              Could not resolve the provider for this deployment.
+            </Dialog.Description>
+
+            <Spacer size={15} />
+
+            <Dialog.Actions>
+              <Button variant="outline" onClick={() => setActiveMethodId('')}>
+                Back
+              </Button>
+            </Dialog.Actions>
+          </>
+        );
+      }
+
+      return (
+        <>
+          <Dialog.Title>Configure {providerName} Authentication</Dialog.Title>
+          <Dialog.Description>
+            Complete the {activeMethod.name} flow to create an auth config for this deployment.
+          </Dialog.Description>
+
+          <ProviderSetupSessionEmbed
+            instanceId={p.instanceId}
+            providerId={providerId}
+            deploymentId={p.providerDeploymentId}
+            initialMethodId={activeMethod.id}
+            hideMethodStep
+            showMethodStepInStepper
+            onBackToMethodSelection={() => setActiveMethodId('')}
+            onComplete={result => {
+              let authConfigId = result?.authConfig?.id;
+              if (authConfigId) {
+                p.onCreate?.({ id: authConfigId });
+              }
+              p.close();
+            }}
+            onCancel={p.close}
+          />
+        </>
+      );
+    }
+
+    if (activeMethod) {
+      return (
+        <>
+          <Dialog.Title>Create Auth Config</Dialog.Title>
+          <Dialog.Description>
+            Create a new authentication configuration for the selected provider.
+          </Dialog.Description>
+
+          <ProviderAuthConfigForm
+            type="create"
+            instanceId={p.instanceId}
+            providerDeploymentId={p.providerDeploymentId}
+            initialAuthMethodId={activeMethod.id}
+            hideAuthMethodStep
+            showAuthMethodStepInStepper
+            close={p.close}
+            onBack={() => setActiveMethodId('')}
+            onCreate={authConfig => {
+              p.onCreate?.({ id: authConfig.id });
+            }}
+          />
+        </>
+      );
+    }
+
+    return (
+      <>
+        <Dialog.Title>Create Auth Config</Dialog.Title>
+        <Dialog.Description>
+          Choose an authentication method for this deployment.
+        </Dialog.Description>
+
+        <Stepper
+          steps={[
+            {
+              ...getAuthMethodSelectionSteps({
+                method: draftMethod,
+                oauthAutoRegistrationEnabled
+              })[0],
+              render: () => (
+                <>
+                  <Select
+                    label="Authentication Method"
+                    value={draftMethodId}
+                    placeholder="Select an authentication method..."
+                    onChange={setDraftMethodId}
+                    items={authMethods.map(method => ({
+                      id: method.id,
+                      label: method.name
+                    }))}
+                  />
+
+                  <Spacer size={10} />
+
+                  <Dialog.Actions>
+                    <Button variant="outline" onClick={p.close}>
+                      Cancel
+                    </Button>
+                    <Button onClick={() => setActiveMethodId(draftMethodId)} disabled={!draftMethodId}>
+                      Continue
+                    </Button>
+                  </Dialog.Actions>
+                </>
+              )
+            },
+            ...getAuthMethodSelectionSteps({
+              method: draftMethod,
+              oauthAutoRegistrationEnabled
+            }).slice(1)
+          ]}
+          currentStep={0}
+          setCurrentStep={() => {}}
         />
       </>
     );
