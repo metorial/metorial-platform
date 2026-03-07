@@ -1,6 +1,7 @@
 import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, useSession } from '@metorial/state';
-import { Button, CenteredSpinner, Error, theme } from '@metorial/ui';
+import { Button, CenteredSpinner, Error, Menu, theme } from '@metorial/ui';
+import { RiArrowDownSLine } from '@remixicon/react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -85,7 +86,15 @@ export let InspectorFrame = ({ sessionId }: { sessionId: string }) => {
   let iframeRef = useRef<HTMLIFrameElement | null>(null);
   let runtimeWindow = window as ExplorerRuntimeWindow;
 
+  let [explorerVersion, setExplorerVersion] = useState<'v1' | 'v2'>('v1');
+
   let [isLoading, setIsLoading] = useState(true);
+
+  let name = session.data?.providers
+    .map(p => p.deployment.name)
+    .filter(Boolean)
+    .sort()
+    .join(', ');
 
   let explorerConfig = useMemo(() => {
     if (!session.data || !instance.data) return undefined;
@@ -98,7 +107,8 @@ export let InspectorFrame = ({ sessionId }: { sessionId: string }) => {
       transport_type: 'streamable-http' as const,
       sse_url: connectionUrl,
       bearer_token:
-        ((session.data as any).clientSecret ?? (session.data as any).client_secret) || undefined
+        ((session.data as any).clientSecret ?? (session.data as any).client_secret) ||
+        undefined
     };
   }, [session.data, instance.data]);
 
@@ -145,12 +155,29 @@ export let InspectorFrame = ({ sessionId }: { sessionId: string }) => {
           >
             <BreathingIndicator />
             <span>
-              Connected via <i>mcp.metorial.com</i>
+              Connected via <i>connect.metorial.com</i>
             </span>
           </Status>
         </ConnectionNavSection>
 
         <ConnectionNavSection>
+          <Menu
+            items={[
+              { id: 'v1', label: 'MCP Inspector' },
+              { id: 'v2', label: 'Metorial Explorer' }
+            ]}
+            onItemClick={v => setExplorerVersion(v as 'v1' | 'v2')}
+          >
+            <Button size="2" variant="outline" iconRight={<RiArrowDownSLine />}>
+              {
+                {
+                  v1: 'MCP Inspector',
+                  v2: 'Metorial Explorer'
+                }[explorerVersion]
+              }
+            </Button>
+          </Menu>
+
           {firstDeploymentId && (
             <Link
               to={Paths.instance.providerDeployment(

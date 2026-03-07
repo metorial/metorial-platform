@@ -16,6 +16,10 @@ export let frontendEnv: Env = [
     defaultValue: `http://${HOSTNAME}:6050`
   },
   {
+    key: 'VITE_EXPLORER_V2_URL',
+    defaultValue: `http://${HOSTNAME}:4350`
+  },
+  {
     key: 'VITE_MCP_API_URL',
     defaultValue: `http://${HOSTNAME}:4311`
   },

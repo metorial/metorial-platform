@@ -1,12 +1,12 @@
 import { canonicalize } from '@lowerdeck/canonicalize';
-import { memo } from '@lowerdeck/memo';
-import { getSentry } from '@lowerdeck/sentry';
 import {
   createError,
   internalServerError,
   isServiceError,
   ServiceError
 } from '@lowerdeck/error';
+import { memo } from '@lowerdeck/memo';
+import { getSentry } from '@lowerdeck/sentry';
 import { isMetorialSDKError } from '@metorial/util-endpoint';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { onFocus } from '../lib/onFocus';
@@ -323,7 +323,12 @@ export let createLoader = <
     return {
       input: state?.input,
       data: state?.output,
-      error: state?.error,
+      error: state?.error
+        ? ({
+            ...state.error,
+            message: state.error.data.message ?? state.error.message
+          } as typeof state.error)
+        : null,
       isLoading: !state || (!state.output && !state.error),
       mutators: (currentInstance?.mutators ?? {}) as ReturnType<typeof getMutators>,
 
