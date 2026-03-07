@@ -13,9 +13,13 @@ export let v1SessionTemplatePresenter = Presenter.create(sessionTemplateType)
     metadata: sessionTemplate.metadata,
 
     providers: await Promise.all(
-      sessionTemplate.providers.map(p =>
-        v1SessionTemplateProviderPresenter.present({ sessionTemplateProvider: p }, opts).run()
-      )
+      sessionTemplate.providers
+        .sort((a, b) => a.id.localeCompare(b.id))
+        .map(p =>
+          v1SessionTemplateProviderPresenter
+            .present({ sessionTemplateProvider: p }, opts)
+            .run()
+        )
     ),
 
     created_at: sessionTemplate.createdAt,

@@ -172,6 +172,7 @@ services:
       - VITE_METORIAL_ENV=production
       - METORIAL_ENV=production
       - VITE_EXPLORER_URL=https://explorer.metorial.com
+      - VITE_EXPLORER_V2_URL=https://explorer-v2.metorial.com
       - VITE_MCP_API_URL=${HOST}:4311
       - VITE_CORE_API_URL=${HOST}:4310
       - VITE_PRIVATE_API_URL=${HOST}:4314
