@@ -1,6 +1,6 @@
 import { Dialog, Button, showModal, Spacer } from '@metorial/ui';
 import { type ReactNode } from 'react';
-import { showProviderAuthConfigFormModal } from '../../../scenes/providerAuthConfigs/modal';
+import { showProviderAuthConfigCreateModal } from '../../../scenes/providerAuthConfigs/modal';
 import { showProviderAuthCredentialsFormModal } from '../../../scenes/providerAuthCredentials/modal';
 import { showProviderConfigVaultFormModal } from '../../../scenes/providerConfigVaults/modal';
 import { showProviderConfigFormModal } from '../../../scenes/providerConfigs/modal';
@@ -59,7 +59,8 @@ let DeploymentPicker = ({
   close,
   onSelect,
   onBack,
-  providerId
+  providerId,
+  selectionMode = 'default'
 }: {
   title: string;
   description: string;
@@ -67,6 +68,12 @@ let DeploymentPicker = ({
   onSelect: (deploymentId: string) => void;
   onBack?: () => void;
   providerId?: string;
+  selectionMode?:
+    | 'default'
+    | 'configCreate'
+    | 'configVaultCreate'
+    | 'authConfigCreate'
+    | 'authCredentialsCreate';
 }) => {
   return (
     <PickerDialogScaffold
@@ -77,6 +84,7 @@ let DeploymentPicker = ({
     >
       <ProviderDeploymentsList
         providerId={providerId}
+        selectionMode={selectionMode}
         searchable
         emptyText={
           providerId
@@ -97,18 +105,21 @@ let ProviderPicker = ({
   title,
   description,
   close,
-  onSelect
+  onSelect,
+  selectionMode = 'default'
 }: {
   instanceId: string;
   title: string;
   description: string;
   close: () => void;
   onSelect: (providerId: string) => void;
+  selectionMode?: 'default' | 'authCredentialsCreate';
 }) => {
   return (
     <PickerDialogScaffold title={title} description={description} close={close}>
       <ProvidersWithDeploymentsSearch
         instanceId={instanceId}
+        selectionMode={selectionMode}
         emptyText="No providers found. Create a deployment first."
         onSelect={provider => {
           close();
@@ -132,6 +143,7 @@ export let showCreateProviderConfigFlow = (instanceId: string) =>
       title="Create Config"
       description="Select a deployment to create a configuration for."
       close={close}
+      selectionMode="configCreate"
       onSelect={deploymentId =>
         showProviderConfigFormModal({
           type: 'create',
@@ -149,6 +161,7 @@ export let showCreateProviderConfigVaultFlow = (instanceId: string) =>
       title="Create Config Vault"
       description="Select a deployment to create a reusable config vault for."
       close={close}
+      selectionMode="configVaultCreate"
       onSelect={deploymentId =>
         showProviderConfigVaultFormModal({
           type: 'create',
@@ -167,6 +180,7 @@ export let showCreateProviderAuthCredentialsFlow = (instanceId: string) => {
         title="Select Deployment"
         description="Choose a deployment to associate these credentials with."
         close={close}
+        selectionMode="authCredentialsCreate"
         providerId={providerId}
         onBack={() => showCreateProviderAuthCredentialsFlow(instanceId)}
         onSelect={deploymentId =>
@@ -186,6 +200,7 @@ export let showCreateProviderAuthCredentialsFlow = (instanceId: string) => {
       title="Create Auth Credentials"
       description="Select a provider to create OAuth credentials for."
       close={close}
+      selectionMode="authCredentialsCreate"
       onSelect={providerId => showDeploymentStep(providerId)}
     />
   ));
@@ -203,11 +218,11 @@ export let showCreateProviderAuthConfigFlow = (
         title="Select Deployment"
         description="Choose a deployment to attach this auth configuration to."
         close={close}
+        selectionMode="authConfigCreate"
         providerId={providerId}
         onBack={() => showCreateProviderAuthConfigFlow(instanceId, options)}
         onSelect={deploymentId =>
-          showProviderAuthConfigFormModal({
-            type: 'create',
+          showProviderAuthConfigCreateModal({
             instanceId,
             providerDeploymentId: deploymentId,
             onBack: () => showDeploymentStep(providerId),

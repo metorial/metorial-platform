@@ -6,11 +6,12 @@ import {
   useCurrentProject,
   useProviderConfigVaults
 } from '@metorial/state';
-import { Button, Input, RenderDate, Text } from '@metorial/ui';
+import { Button, Input, RenderDate, Text, Tooltip } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useDebounced } from '../../../../../hooks/useDebounced';
+import { useProviderConfigCreationCapabilities } from '../../../lib/providerCreationCapabilities';
 import { showProviderConfigVaultFormModal } from '../../../scenes/providerConfigVaults/modal';
 import { ProviderDeploymentTabSection } from '../../../scenes/providerDeployments/tabSection';
 
@@ -83,33 +84,46 @@ export let ProviderDeploymentConfigVaultsPage = () => {
   let { providerDeploymentId } = useParams();
   let [search, setSearch] = useState('');
   let searchDebounced = useDebounced(search, 500);
+  let configCreation = useProviderConfigCreationCapabilities(
+    instance.data?.id,
+    providerDeploymentId
+  );
 
   return renderWithLoader({ instance, organization, project })(({ instance }) => (
     <ProviderDeploymentTabSection
       intro="Vaults store reusable secret or shared configuration values for this deployment."
       actions={
-        <Button
-          size="2"
-          onClick={() =>
-            showProviderConfigVaultFormModal({
-              type: 'create',
-              instanceId: instance.data.id,
-              providerDeploymentId: providerDeploymentId!,
-              onCreate: vault => {
-                navigate(
-                  Paths.instance.providerConfigVault(
-                    organization.data,
-                    project.data,
-                    instance.data,
-                    vault.id
-                  )
-                );
-              }
-            })
-          }
+        <Tooltip
+          content={configCreation.configVaultDisabledReason ?? ''}
+          enabled={!configCreation.canCreateConfigVault}
+          delayDuration={0}
         >
-          Create Vault
-        </Button>
+          <div style={{ display: 'inline-flex' }}>
+            <Button
+              size="2"
+              disabled={!configCreation.canCreateConfigVault}
+              onClick={() =>
+                showProviderConfigVaultFormModal({
+                  type: 'create',
+                  instanceId: instance.data.id,
+                  providerDeploymentId: providerDeploymentId!,
+                  onCreate: vault => {
+                    navigate(
+                      Paths.instance.providerConfigVault(
+                        organization.data,
+                        project.data,
+                        instance.data,
+                        vault.id
+                      )
+                    );
+                  }
+                })
+              }
+            >
+              Create Vault
+            </Button>
+          </div>
+        </Tooltip>
       }
       search={
         <Input

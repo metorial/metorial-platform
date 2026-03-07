@@ -29,7 +29,7 @@ export let ProviderConfigsTable = ({
   return renderWithPagination(configs)(configs => (
     <>
       <Table
-        headers={['Name', 'Source', 'Default', 'Updated']}
+        headers={['Name', 'Source', 'Type', 'Updated']}
         data={configs.data.items.map(config => ({
           href: Paths.instance.providerConfig(
             organization.data,
@@ -78,9 +78,9 @@ export let ProviderConfigsTable = ({
                 Default
               </Badge>
             ) : (
-              <Text size="2" color="gray600">
-                -
-              </Text>
+              <Badge color="gray" size="1">
+                Custom
+              </Badge>
             ),
             <RenderDate date={config.updatedAt} />
           ]

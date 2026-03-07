@@ -37,12 +37,11 @@ export let ProviderConfigLayout = () => {
         description={config.data?.description ?? undefined}
         pagination={[
           {
-            label: 'Configurations',
+            label: 'Deployments',
             href: Paths.instance.providerDeployments(
               organization.data,
               project.data,
-              instance.data,
-              'configs'
+              instance.data
             )
           },
           {
@@ -52,6 +51,16 @@ export let ProviderConfigLayout = () => {
               project.data,
               instance.data,
               deployment.data?.id ?? providerDeploymentId
+            )
+          },
+          {
+            label: 'Configs',
+            href: Paths.instance.providerDeployment(
+              organization.data,
+              project.data,
+              instance.data,
+              deployment.data?.id ?? providerDeploymentId,
+              'configs'
             )
           },
           {

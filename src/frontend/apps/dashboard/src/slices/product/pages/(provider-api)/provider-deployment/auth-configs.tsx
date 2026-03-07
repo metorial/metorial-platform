@@ -8,7 +8,8 @@ import { Button, Input } from '@metorial/ui';
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useDebounced } from '../../../../../hooks/useDebounced';
-import { showProviderAuthConfigFormModal } from '../../../scenes/providerAuthConfigs/modal';
+import { useProviderAuthCreationCapabilities } from '../../../lib/providerCreationCapabilities';
+import { showProviderAuthConfigCreateModal } from '../../../scenes/providerAuthConfigs/modal';
 import { ProviderAuthConfigsTable } from '../../../scenes/providerAuthConfigs/table';
 import { ProviderDeploymentTabSection } from '../../../scenes/providerDeployments/tabSection';
 
@@ -21,24 +22,34 @@ export let ProviderDeploymentAuthConfigsPage = () => {
   let authConfigs = useProviderAuthConfigs(instance.data?.id, providerDeploymentId, {
     search: searchDebounced
   });
+  let authCreation = useProviderAuthCreationCapabilities(
+    instance.data?.id,
+    providerDeploymentId,
+    deployment.data?.providerId
+  );
 
   return renderWithLoader({ instance, deployment })(({ instance, deployment }) => (
     <ProviderDeploymentTabSection
       intro="Auth configs connect this deployment's auth methods to credentials and runtime behavior."
       actions={
-        <Button
-          size="2"
-          onClick={() =>
-            showProviderAuthConfigFormModal({
-              type: 'create',
-              instanceId: instance.data.id,
-              providerDeploymentId: deployment.data.id,
-              onCreate: () => authConfigs.refetch?.()
-            })
-          }
+        <div
+          title={authCreation.authConfigDisabledReason ?? undefined}
+          style={{ display: 'inline-flex' }}
         >
-          Create Auth Config
-        </Button>
+          <Button
+            size="2"
+            disabled={!authCreation.canCreateAuthConfig}
+            onClick={() =>
+              showProviderAuthConfigCreateModal({
+                instanceId: instance.data.id,
+                providerDeploymentId: deployment.data.id,
+                onCreate: () => authConfigs.refetch?.()
+              })
+            }
+          >
+            Create Auth Config
+          </Button>
+        </div>
       }
       search={
         <Input

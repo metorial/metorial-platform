@@ -64,7 +64,9 @@ export let ProviderOverviewPage = () => {
     {
       limit: 1,
       providerId,
-      ...(!isDefaultVersion && selectedVersionId ? { providerVersionId: selectedVersionId } : {})
+      ...(!isDefaultVersion && selectedVersionId
+        ? { providerVersionId: selectedVersionId }
+        : {})
     }
   );
   let providerDeployment = deployments.data?.items[0];
@@ -328,7 +330,7 @@ export let ProviderOverviewPage = () => {
             ],
             codeViewer: getCodeViewer({
               repo: 'metorial-node',
-              path: 'examples/v2/v2/typescript-ai-sdk',
+              path: 'examples/v2/typescript-ai-sdk',
               initialFile: 'index.ts'
             })
           },

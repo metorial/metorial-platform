@@ -135,10 +135,8 @@ let NestedWrapper = styled.div`
 let GenericObjectLayout = styled.div`
   display: flex;
   flex-direction: column;
-  border: 1px solid ${theme.colors.gray300};
-  border-radius: 10px;
   overflow: hidden;
-  background: ${theme.colors.background};
+  background: transparent;
 `;
 
 let GenericObjectEditor = styled.div`

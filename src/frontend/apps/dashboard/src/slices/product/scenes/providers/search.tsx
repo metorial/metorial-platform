@@ -28,6 +28,7 @@ export type ProviderSearchItem = {
   name?: string | null;
   slug?: string | null;
   description?: string | null;
+  oauthAutoRegistrationEnabled?: boolean;
 };
 
 let Wrapper = styled.div``;
@@ -54,6 +55,11 @@ let GridButton = styled.button`
 
   &:hover {
     border-color: ${theme.colors.gray500};
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
   }
 `;
 
@@ -92,7 +98,8 @@ let ProviderSearchGrid = ({
   stickyTop,
   placeholder = 'Search for providers',
   emptyText = 'No providers found',
-  sectionLabel = 'Providers'
+  sectionLabel = 'Providers',
+  selectionMode = 'default'
 }: {
   items: ProviderSearchItem[];
   onSelect?: (provider: ProviderSearchItem) => void;
@@ -100,6 +107,7 @@ let ProviderSearchGrid = ({
   placeholder?: string;
   emptyText?: string;
   sectionLabel?: string;
+  selectionMode?: 'default' | 'authCredentialsCreate';
 }) => {
   let form = useForm({
     initialValues: {
@@ -147,20 +155,39 @@ let ProviderSearchGrid = ({
         </Text>
       ) : (
         <Grid>
-          {filteredItems.map(provider => (
-            <GridButton key={provider.id} type="button" onClick={() => onSelect?.(provider)}>
-              <Avatar
-                entity={{
-                  name: provider.name ?? provider.slug ?? 'Provider'
-                }}
-                size={24}
-                radius={8}
-                noTooltip
-              />
+          {filteredItems.map(provider => {
+            let isDisabled =
+              selectionMode === 'authCredentialsCreate' &&
+              provider.oauthAutoRegistrationEnabled;
+            let disabledReason = isDisabled
+              ? 'This provider uses OAuth auto-registration, so manual app credentials are not supported.'
+              : undefined;
 
-              <ProviderName>{provider.name ?? provider.slug ?? 'Provider'}</ProviderName>
-            </GridButton>
-          ))}
+            return (
+              <div
+                key={provider.id}
+                title={disabledReason}
+                style={{ display: 'flex' }}
+              >
+                <GridButton
+                  type="button"
+                  disabled={isDisabled}
+                  onClick={() => onSelect?.(provider)}
+                >
+                  <Avatar
+                    entity={{
+                      name: provider.name ?? provider.slug ?? 'Provider'
+                    }}
+                    size={24}
+                    radius={8}
+                    noTooltip
+                  />
+
+                  <ProviderName>{provider.name ?? provider.slug ?? 'Provider'}</ProviderName>
+                </GridButton>
+              </div>
+            );
+          })}
         </Grid>
       )}
     </Wrapper>
@@ -200,12 +227,14 @@ export let ProvidersWithDeploymentsSearch = ({
   instanceId,
   onSelect,
   stickyTop,
-  emptyText = 'No providers found. Create a deployment first.'
+  emptyText = 'No providers found. Create a deployment first.',
+  selectionMode = 'default'
 }: {
   instanceId: string;
   onSelect?: (provider: ProviderSearchItem) => void;
   stickyTop?: number;
   emptyText?: string;
+  selectionMode?: 'default' | 'authCredentialsCreate';
 }) => {
   let deployments = useProviderDeployments(instanceId);
   let providerIds = useMemo(
@@ -221,12 +250,21 @@ export let ProvidersWithDeploymentsSearch = ({
   );
 
   return renderWithPagination(deployments)(deployments => {
-    let providerLookup = new Map<string, { name?: string | null; slug?: string | null }>();
+    let providerLookup = new Map<
+      string,
+      {
+        name?: string | null;
+        slug?: string | null;
+        oauthAutoRegistrationEnabled?: boolean;
+      }
+    >();
 
     for (let provider of providers.data?.items ?? []) {
       providerLookup.set(provider.id, {
         name: provider.name,
-        slug: provider.slug
+        slug: provider.slug,
+        oauthAutoRegistrationEnabled:
+          provider.oauth?.autoRegistration?.status === 'enabled'
       });
     }
 
@@ -242,7 +280,8 @@ export let ProvidersWithDeploymentsSearch = ({
       items.push({
         id: deployment.providerId,
         name: provider?.name ?? deployment.providerId,
-        slug: provider?.slug ?? null
+        slug: provider?.slug ?? null,
+        oauthAutoRegistrationEnabled: provider?.oauthAutoRegistrationEnabled
       });
     }
 
@@ -253,6 +292,7 @@ export let ProvidersWithDeploymentsSearch = ({
         sectionLabel="Providers"
         emptyText={emptyText}
         onSelect={onSelect}
+        selectionMode={selectionMode}
       />
     );
   });

@@ -1,10 +1,11 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, useCurrentOrganization, useCurrentProject } from '@metorial/state';
-import { Button, Input } from '@metorial/ui';
+import { Button, Input, Tooltip } from '@metorial/ui';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useDebounced } from '../../../../../hooks/useDebounced';
+import { useProviderConfigCreationCapabilities } from '../../../lib/providerCreationCapabilities';
 import { ProviderConfigsTable } from '../../../scenes/providerConfigs/table';
 import { showProviderConfigFormModal } from '../../../scenes/providerConfigs/modal';
 import { ProviderDeploymentTabSection } from '../../../scenes/providerDeployments/tabSection';
@@ -17,34 +18,47 @@ export let ProviderDeploymentConfigsPage = () => {
   let { providerDeploymentId } = useParams();
   let [search, setSearch] = useState('');
   let searchDebounced = useDebounced(search, 500);
+  let configCreation = useProviderConfigCreationCapabilities(
+    instance.data?.id,
+    providerDeploymentId
+  );
 
   return renderWithLoader({ instance })(({ instance }) => (
     <ProviderDeploymentTabSection
       intro="Configs are deployment-specific configuration profiles."
       actions={
-        <Button
-          size="2"
-          onClick={() =>
-            showProviderConfigFormModal({
-              type: 'create',
-              instanceId: instance.data.id,
-              providerDeploymentId: providerDeploymentId!,
-              onCreate: config => {
-                navigate(
-                  Paths.instance.providerConfig(
-                    organization.data,
-                    project.data,
-                    instance.data,
-                    providerDeploymentId!,
-                    config.id
-                  )
-                );
-              }
-            })
-          }
+        <Tooltip
+          content={configCreation.configDisabledReason ?? ''}
+          enabled={!configCreation.canCreateConfig}
+          delayDuration={0}
         >
-          Add Config
-        </Button>
+          <div style={{ display: 'inline-flex' }}>
+            <Button
+              size="2"
+              disabled={!configCreation.canCreateConfig}
+              onClick={() =>
+                showProviderConfigFormModal({
+                  type: 'create',
+                  instanceId: instance.data.id,
+                  providerDeploymentId: providerDeploymentId!,
+                  onCreate: config => {
+                    navigate(
+                      Paths.instance.providerConfig(
+                        organization.data,
+                        project.data,
+                        instance.data,
+                        providerDeploymentId!,
+                        config.id
+                      )
+                    );
+                  }
+                })
+              }
+            >
+              Add Config
+            </Button>
+          </div>
+        </Tooltip>
       }
       search={
         <Input

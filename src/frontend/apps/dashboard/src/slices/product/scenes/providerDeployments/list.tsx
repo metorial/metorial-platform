@@ -1,12 +1,19 @@
 import { DashboardInstanceProviderDeploymentsListOutput } from '@metorial/dashboard-sdk';
 import { renderWithPagination } from '@metorial/data-hooks';
 import { useCurrentInstance, useProviderDeployments } from '@metorial/state';
-import { Entity, Input, RenderDate, Spacer, Text, theme } from '@metorial/ui';
+import { Entity, Input, RenderDate, Spacer, Text, theme, Tooltip } from '@metorial/ui';
 import { useState } from 'react';
 import styled from 'styled-components';
 import { useDebounced } from '../../../../hooks/useDebounced';
+import { useProviderAuthCreationCapabilities, useProviderConfigCreationCapabilities } from '../../lib/providerCreationCapabilities';
 
 type ProviderDeployment = DashboardInstanceProviderDeploymentsListOutput['items'][number];
+type DeploymentSelectionMode =
+  | 'default'
+  | 'configCreate'
+  | 'configVaultCreate'
+  | 'authConfigCreate'
+  | 'authCredentialsCreate';
 
 let Items = styled.div`
   display: flex;
@@ -23,7 +30,123 @@ let ItemButton = styled.button`
   width: 100%;
   flex-direction: column;
   cursor: pointer;
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
+  }
 `;
+
+let ProviderDeploymentListItem = ({
+  deployment,
+  selectedDeploymentId,
+  onDeploymentClick,
+  selectionMode
+}: {
+  deployment: ProviderDeployment;
+  selectedDeploymentId?: string;
+  onDeploymentClick?: (deployment: ProviderDeployment) => void;
+  selectionMode: DeploymentSelectionMode;
+}) => {
+  let instance = useCurrentInstance();
+  let configCreation = useProviderConfigCreationCapabilities(
+    selectionMode === 'configCreate' || selectionMode === 'configVaultCreate'
+      ? instance.data?.id
+      : null,
+    selectionMode === 'configCreate' || selectionMode === 'configVaultCreate'
+      ? deployment.id
+      : null
+  );
+  let authCreation = useProviderAuthCreationCapabilities(
+    selectionMode === 'authConfigCreate' || selectionMode === 'authCredentialsCreate'
+      ? instance.data?.id
+      : null,
+    selectionMode === 'authConfigCreate' || selectionMode === 'authCredentialsCreate'
+      ? deployment.id
+      : null,
+    selectionMode === 'authConfigCreate' || selectionMode === 'authCredentialsCreate'
+      ? deployment.providerId
+      : null
+  );
+
+  let disabledReason =
+    selectionMode === 'configCreate'
+      ? configCreation.configDisabledReason
+      : selectionMode === 'configVaultCreate'
+        ? configCreation.configVaultDisabledReason
+      : selectionMode === 'authConfigCreate'
+        ? authCreation.authConfigDisabledReason
+        : selectionMode === 'authCredentialsCreate'
+          ? authCreation.authCredentialsDisabledReason
+          : null;
+  let isDisabled =
+    selectionMode === 'configCreate'
+      ? !configCreation.canCreateConfig
+      : selectionMode === 'configVaultCreate'
+        ? !configCreation.canCreateConfigVault
+      : selectionMode === 'authConfigCreate'
+        ? !authCreation.canCreateAuthConfig
+        : selectionMode === 'authCredentialsCreate'
+          ? !authCreation.canCreateAuthCredentials
+          : false;
+  let description = deployment.description ? (
+    <>
+      {deployment.description.substring(0, 80)}
+      {deployment.description.length > 80 ? '...' : ''}
+    </>
+  ) : undefined;
+
+  return (
+    <Tooltip content={disabledReason ?? ''} enabled={!!disabledReason} delayDuration={0}>
+      <div style={{ display: 'flex' }}>
+        <ItemButton
+          key={deployment.id}
+          onClick={() => onDeploymentClick?.(deployment)}
+          type="button"
+          disabled={isDisabled}
+        >
+          <Entity.Wrapper
+            style={
+              selectedDeploymentId === deployment.id
+                ? {
+                    borderColor: theme.colors.blue500,
+                    background: 'rgba(59, 130, 246, 0.04)'
+                  }
+                : undefined
+            }
+          >
+            <Entity.Content>
+              <Entity.Field
+                title={deployment.name ?? 'Unnamed Deployment'}
+                description={
+                  <>
+                    {description}
+                    {disabledReason && (
+                      <>
+                        {description ? <br /> : null}
+                        <Text size="1" color="gray500">
+                          {disabledReason}
+                        </Text>
+                      </>
+                    )}
+                  </>
+                }
+              />
+              <Entity.Field
+                title={
+                  <Text size="1" color="gray500">
+                    <RenderDate date={deployment.createdAt} />
+                  </Text>
+                }
+                right
+              />
+            </Entity.Content>
+          </Entity.Wrapper>
+        </ItemButton>
+      </div>
+    </Tooltip>
+  );
+};
 
 export let ProviderDeploymentsList = ({
   providerId,
@@ -31,7 +154,8 @@ export let ProviderDeploymentsList = ({
   onDeploymentClick,
   searchable = false,
   selectedDeploymentId,
-  emptyText = 'No deployments found. Create one to get started.'
+  emptyText = 'No deployments found. Create one to get started.',
+  selectionMode = 'default'
 }: {
   providerId?: string | string[];
   order?: 'asc' | 'desc';
@@ -39,6 +163,7 @@ export let ProviderDeploymentsList = ({
   searchable?: boolean;
   selectedDeploymentId?: string;
   emptyText?: string;
+  selectionMode?: DeploymentSelectionMode;
 }) => {
   let instance = useCurrentInstance();
   let [search, setSearch] = useState('');
@@ -102,52 +227,15 @@ export let ProviderDeploymentsList = ({
 
         {filteredDeployments.length > 0 && <Spacer size={15} />}
         <Items>
-          {filteredDeployments.map(deployment => {
-            let inner = (
-              <Entity.Wrapper
-                style={
-                  selectedDeploymentId === deployment.id
-                    ? {
-                        borderColor: theme.colors.blue500,
-                        background: 'rgba(59, 130, 246, 0.04)'
-                      }
-                    : undefined
-                }
-              >
-                <Entity.Content>
-                  <Entity.Field
-                    title={deployment.name ?? 'Unnamed Deployment'}
-                    description={
-                      deployment.description ? (
-                        <>
-                          {deployment.description.substring(0, 80)}
-                          {deployment.description.length > 80 ? '...' : ''}
-                        </>
-                      ) : undefined
-                    }
-                  />
-                  <Entity.Field
-                    title={
-                      <Text size="1" color="gray500">
-                        <RenderDate date={deployment.createdAt} />
-                      </Text>
-                    }
-                    right
-                  />
-                </Entity.Content>
-              </Entity.Wrapper>
-            );
-
-            return (
-              <ItemButton
-                key={deployment.id}
-                onClick={() => onDeploymentClick?.(deployment)}
-                type="button"
-              >
-                {inner}
-              </ItemButton>
-            );
-          })}
+          {filteredDeployments.map(deployment => (
+            <ProviderDeploymentListItem
+              key={deployment.id}
+              deployment={deployment}
+              onDeploymentClick={onDeploymentClick}
+              selectedDeploymentId={selectedDeploymentId}
+              selectionMode={selectionMode}
+            />
+          ))}
         </Items>
       </>
     );

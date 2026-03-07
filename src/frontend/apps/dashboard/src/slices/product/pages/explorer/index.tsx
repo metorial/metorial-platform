@@ -39,6 +39,7 @@ import {
   emptyConfigurationSelection,
   type ConfigurationSelection
 } from '../../lib/configSelection';
+import { getProviderConfigSchemaCapabilities } from '../../lib/providerCreationCapabilities';
 import { ProviderConfigurationSelection } from '../../scenes/providerConfigs/selection';
 import { ProviderDeploymentsList } from '../../scenes/providerDeployments/list';
 import { showProviderSetupSessionModal } from '../../scenes/providerDeployments/setupSessionModal';
@@ -376,12 +377,15 @@ export let ExplorerPage = () => {
   );
 
   let hasAuthMethods = (providerAuthMethods.data?.items?.length ?? 0) > 0;
-  let hasConfigSchema =
-    !!providerConfigSchema.data?.schema &&
-    typeof providerConfigSchema.data.schema === 'object';
   let hasExistingConfigs = (providerConfigs.data?.items?.length ?? 0) > 0;
   let hasExistingVaults = (providerConfigVaults.data?.items?.length ?? 0) > 0;
-  let needsConfigStep = hasConfigSchema || hasExistingConfigs || hasExistingVaults;
+  let configCreation = getProviderConfigSchemaCapabilities({
+    schemaValue: providerConfigSchema.data?.schema,
+    hasVaults: hasExistingVaults,
+    isLoading: providerConfigSchema.isLoading || providerConfigVaults.isLoading
+  });
+  let needsConfigStep =
+    configCreation.hasSchemaFields || hasExistingConfigs || hasExistingVaults;
   let needsAuthStep = hasAuthMethods || (providerAuthConfigs.data?.items?.length ?? 0) > 0;
 
   useEffect(() => {

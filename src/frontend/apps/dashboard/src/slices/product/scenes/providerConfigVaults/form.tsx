@@ -6,9 +6,16 @@ import {
   useProviderConfigSchema,
   useProviderDeployment
 } from '@metorial/state';
-import { Button, CenteredSpinner, Dialog, Input, Spacer, Text } from '@metorial/ui';
+import {
+  Button,
+  CenteredSpinner,
+  Dialog,
+  Input,
+  Spacer,
+  Text
+} from '@metorial/ui';
 import { useState } from 'react';
-import { getJsonSchemaObject } from '../../lib/jsonSchema';
+import { getProviderConfigSchemaCapabilities } from '../../lib/providerCreationCapabilities';
 import { JsonSchemaInput } from '../jsonSchemaInput';
 
 export type ProviderConfigVaultFormProps = {
@@ -31,9 +38,15 @@ export let ProviderConfigVaultForm = (
   let configSchema = useProviderConfigSchema(instanceId, props.providerDeploymentId);
 
   let [vaultData, setVaultData] = useState<Record<string, unknown>>({});
-
-  let jsonSchema = getJsonSchemaObject(configSchema.data?.schema);
-  let hasSchema = !!jsonSchema;
+  let schemaCapabilities = getProviderConfigSchemaCapabilities({
+    schemaValue: configSchema.data?.schema,
+    hasVaults: false,
+    isLoading: configSchema.isLoading || deployment.isLoading
+  });
+  let showEmptyState = !schemaCapabilities.canCreateConfigVault;
+  let emptyStateMessage = schemaCapabilities.hasExplicitEmptySchema
+    ? schemaCapabilities.configVaultDisabledReason
+    : 'No editable configuration schema is available for this deployment, so a vault cannot be created from the dashboard yet.';
 
   let form = useForm({
     initialValues: {
@@ -59,7 +72,13 @@ export let ProviderConfigVaultForm = (
 
     form.setFieldError('name', undefined);
 
-    if (!instanceId || !deployment.data?.providerId || !hasSchema) return;
+    if (
+      !instanceId ||
+      !deployment.data?.providerId ||
+      !schemaCapabilities.canCreateConfigVault
+    ) {
+      return;
+    }
 
     let [result] = await createMutation.mutate({
       instanceId,
@@ -82,7 +101,7 @@ export let ProviderConfigVaultForm = (
 
   return (
     <>
-      {hasSchema ? (
+      {!showEmptyState ? (
         <form
           onSubmit={e => {
             e.preventDefault();
@@ -99,7 +118,7 @@ export let ProviderConfigVaultForm = (
           <Spacer size={10} />
 
           <JsonSchemaInput
-            schema={jsonSchema}
+            schema={schemaCapabilities.schemaObject}
             value={vaultData}
             onChange={setVaultData}
             label="Vault Values"
@@ -115,7 +134,7 @@ export let ProviderConfigVaultForm = (
               type="button"
               onClick={handleSubmit}
               loading={createMutation.isPending}
-              disabled={!hasSchema}
+              disabled={!schemaCapabilities.canCreateConfigVault}
             >
               Create
             </Button>
@@ -125,18 +144,17 @@ export let ProviderConfigVaultForm = (
         </form>
       ) : (
         <Text size="2" color="gray600">
-          No configuration schema is available for this deployment, so a vault cannot be created
-          from the dashboard yet.
+          {emptyStateMessage}
         </Text>
       )}
 
-      {!hasSchema && (
+      {showEmptyState && (
         <>
           <Spacer size={15} />
 
           <Dialog.Actions>
             <Button variant="outline" onClick={props.onBack ?? props.close}>
-              Back
+              {props.onBack ? 'Back' : 'Close'}
             </Button>
           </Dialog.Actions>
         </>
