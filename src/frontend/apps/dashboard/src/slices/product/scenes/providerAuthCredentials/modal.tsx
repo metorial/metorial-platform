@@ -20,6 +20,7 @@ import {
   showModal
 } from '@metorial/ui';
 import { useMemo } from 'react';
+import { ProviderContextCard } from '../providerContextCard';
 
 type AuthMethod = DashboardInstanceProvidersAuthMethodsListOutput['items'][number];
 
@@ -120,6 +121,16 @@ export let ProviderAuthCredentialsForm = ({
 
         <Spacer size={15} />
 
+        <ProviderContextCard
+          providerId={providerId}
+          providerName={provider.data?.name ?? providerName}
+          providerImageUrl={provider.data?.publisher.imageUrl}
+          deploymentName={deployment.data?.name}
+          deploymentDescription={deployment.data?.description}
+        />
+
+        <Spacer size={15} />
+
         <Dialog.Actions>
           {onBack && (
             <Button type="button" size="2" variant="outline" onClick={onBack}>
@@ -140,6 +151,16 @@ export let ProviderAuthCredentialsForm = ({
       <Dialog.Description>
         Enter your {oauthMethodName} app credentials for {providerName}.
       </Dialog.Description>
+
+      <Spacer size={15} />
+
+      <ProviderContextCard
+        providerId={providerId}
+        providerName={provider.data?.name ?? providerName}
+        providerImageUrl={provider.data?.publisher.imageUrl}
+        deploymentName={deployment.data?.name}
+        deploymentDescription={deployment.data?.description}
+      />
 
       <Spacer size={15} />
 

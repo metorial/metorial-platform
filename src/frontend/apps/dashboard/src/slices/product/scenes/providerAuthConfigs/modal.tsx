@@ -14,6 +14,7 @@ import {
 } from '@metorial/ui';
 import { useState } from 'react';
 import { useProviderAuthCreationCapabilities } from '../../lib/providerCreationCapabilities';
+import { ProviderContextCard } from '../providerContextCard';
 import { ProviderSetupSessionEmbed } from '../providerDeployments/setupSessionEmbed';
 import { Stepper } from '../stepper';
 import { ProviderAuthConfigForm, ProviderAuthConfigFormProps } from './form';
@@ -116,6 +117,15 @@ let ProviderAuthConfigCreateModalContent = (p: {
   let draftMethod = authMethods.find(method => method.id === draftMethodId);
   let oauthAutoRegistrationEnabled =
     authCreation.provider.data?.oauth?.autoRegistration?.status === 'enabled';
+  let providerContextCard = providerId ? (
+    <ProviderContextCard
+      providerId={providerId}
+      providerName={authCreation.provider.data?.name ?? providerName}
+      providerImageUrl={authCreation.provider.data?.publisher.imageUrl}
+      deploymentName={deployment.data?.name}
+      deploymentDescription={deployment.data?.description}
+    />
+  ) : null;
 
   if (authCreation.isLoading) {
     return <CenteredSpinner />;
@@ -129,6 +139,13 @@ let ProviderAuthConfigCreateModalContent = (p: {
           {authCreation.authConfigDisabledReason ??
             'This deployment cannot create an auth config from the dashboard.'}
         </Dialog.Description>
+
+        {providerContextCard && (
+          <>
+            <Spacer size={15} />
+            {providerContextCard}
+          </>
+        )}
 
         <Spacer size={15} />
 
@@ -168,6 +185,12 @@ let ProviderAuthConfigCreateModalContent = (p: {
           Complete the {providerName} authentication flow to create an auth config
           for this deployment.
         </Dialog.Description>
+
+        <Spacer size={15} />
+
+        {providerContextCard}
+
+        <Spacer size={15} />
 
         <ProviderSetupSessionEmbed
           instanceId={p.instanceId}
@@ -214,6 +237,12 @@ let ProviderAuthConfigCreateModalContent = (p: {
           <Dialog.Description>
             Complete the {activeMethod.name} flow to create an auth config for this deployment.
           </Dialog.Description>
+
+          <Spacer size={15} />
+
+          {providerContextCard}
+
+          <Spacer size={15} />
 
           <ProviderSetupSessionEmbed
             instanceId={p.instanceId}
@@ -267,6 +296,14 @@ let ProviderAuthConfigCreateModalContent = (p: {
         <Dialog.Description>
           Choose an authentication method for this deployment.
         </Dialog.Description>
+
+        {providerContextCard && (
+          <>
+            <Spacer size={15} />
+            {providerContextCard}
+            <Spacer size={15} />
+          </>
+        )}
 
         <Stepper
           steps={[

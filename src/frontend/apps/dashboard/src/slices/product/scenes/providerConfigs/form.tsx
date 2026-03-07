@@ -6,6 +6,7 @@ import { useForm } from '@metorial/data-hooks';
 import {
   useCurrentInstance,
   useCreateProviderConfig,
+  useProvider,
   useProviderConfigVaults,
   useProviderConfigSchema,
   useProviderDeployment
@@ -22,6 +23,7 @@ import {
 import { useEffect, useState } from 'react';
 import { getProviderConfigSchemaCapabilities } from '../../lib/providerCreationCapabilities';
 import { JsonSchemaInput } from '../jsonSchemaInput';
+import { ProviderContextCard } from '../providerContextCard';
 
 export type ProviderConfigFormProps =
   | { type: 'create'; providerDeploymentId: string; instanceId?: string }
@@ -38,6 +40,7 @@ export let ProviderConfigForm = (
   let instanceId = props.instanceId ?? instance.data?.id;
   let createMutation = useCreateProviderConfig();
   let deployment = useProviderDeployment(instanceId, props.providerDeploymentId);
+  let provider = useProvider(instanceId, deployment.data?.providerId);
   let vaults = useProviderConfigVaults(instanceId, { providerDeploymentId: props.providerDeploymentId });
 
   // Fetch config schema for the provider deployment
@@ -152,6 +155,20 @@ export let ProviderConfigForm = (
 
   return (
     <>
+      {deployment.data?.providerId && (
+        <>
+          <ProviderContextCard
+            providerId={deployment.data.providerId}
+            providerName={provider.data?.name ?? deployment.data?.providerId}
+            providerImageUrl={provider.data?.publisher.imageUrl}
+            deploymentName={deployment.data?.name}
+            deploymentDescription={deployment.data?.description}
+          />
+
+          <Spacer size={10} />
+        </>
+      )}
+
       {!showEmptyState ? (
         <form
           onSubmit={e => {

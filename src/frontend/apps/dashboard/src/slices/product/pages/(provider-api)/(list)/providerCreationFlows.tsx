@@ -20,6 +20,8 @@ let PickerDialogScaffold = ({
   onBack?: () => void;
   children: ReactNode;
 }) => {
+  let hasFooterActions = !!onBack;
+
   return (
     <>
       <Dialog.Title>{title}</Dialog.Title>
@@ -29,26 +31,24 @@ let PickerDialogScaffold = ({
 
       {children}
 
-      <Spacer size={10} />
+      {hasFooterActions && (
+        <>
+          <Spacer size={10} />
 
-      <Dialog.Actions>
-        {onBack && (
-          <Button
-            size="2"
-            variant="outline"
-            onClick={() => {
-              close();
-              onBack();
-            }}
-          >
-            Back
-          </Button>
-        )}
-
-        <Button size="2" variant="outline" onClick={close}>
-          Cancel
-        </Button>
-      </Dialog.Actions>
+          <Dialog.Actions>
+            <Button
+              size="2"
+              variant="outline"
+              onClick={() => {
+                close();
+                onBack();
+              }}
+            >
+              Back
+            </Button>
+          </Dialog.Actions>
+        </>
+      )}
     </>
   );
 };
@@ -86,6 +86,10 @@ let DeploymentPicker = ({
         providerId={providerId}
         selectionMode={selectionMode}
         searchable
+        compact
+        columns={3}
+        limit={18}
+        sectionLabel="Deployments"
         emptyText={
           providerId
             ? 'No deployments found for this provider.'
@@ -119,6 +123,8 @@ let ProviderPicker = ({
     <PickerDialogScaffold title={title} description={description} close={close}>
       <ProvidersWithDeploymentsSearch
         instanceId={instanceId}
+        columns={3}
+        limit={18}
         selectionMode={selectionMode}
         emptyText="No providers found. Create a deployment first."
         onSelect={provider => {
@@ -220,7 +226,6 @@ export let showCreateProviderAuthConfigFlow = (
         close={close}
         selectionMode="authConfigCreate"
         providerId={providerId}
-        onBack={() => showCreateProviderAuthConfigFlow(instanceId, options)}
         onSelect={deploymentId =>
           showProviderAuthConfigCreateModal({
             instanceId,

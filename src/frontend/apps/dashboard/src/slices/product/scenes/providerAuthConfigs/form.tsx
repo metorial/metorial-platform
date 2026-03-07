@@ -14,6 +14,7 @@ import { Button, CenteredSpinner, Dialog, Input, Select, Spacer, Text } from '@m
 import { useEffect, useState } from 'react';
 import { getJsonSchemaObject } from '../../lib/jsonSchema';
 import { JsonSchemaInput } from '../jsonSchemaInput';
+import { ProviderContextCard } from '../providerContextCard';
 import { Stepper } from '../stepper';
 
 type AuthMethod = DashboardInstanceProvidersAuthMethodsListOutput['items'][number];
@@ -259,6 +260,20 @@ export let ProviderAuthConfigForm = (
     </>
   );
 
+  let providerContext = deployment.data?.providerId ? (
+    <>
+      <ProviderContextCard
+        providerId={deployment.data.providerId}
+        providerName={provider.data?.name ?? deployment.data?.providerId}
+        providerImageUrl={provider.data?.publisher.imageUrl}
+        deploymentName={deployment.data?.name}
+        deploymentDescription={deployment.data?.description}
+      />
+
+      <Spacer size={10} />
+    </>
+  ) : null;
+
   if (props.type === 'create') {
     let credentialsStepIndex = includeAuthMethodStep ? 1 : 0;
     let detailsStepIndex = includeAuthMethodStep ? 2 : 1;
@@ -424,75 +439,83 @@ export let ProviderAuthConfigForm = (
     };
 
     return (
-      <Stepper
-        steps={steps}
-        currentStep={step}
-        setCurrentStep={handleStepChange}
-      />
+      <>
+        {providerContext}
+
+        <Stepper
+          steps={steps}
+          currentStep={step}
+          setCurrentStep={handleStepChange}
+        />
+      </>
     );
   }
 
   return (
-    <form
-      onSubmit={e => {
-        e.preventDefault();
-        handleSubmit();
-      }}
-    >
-      <Input label="Name" required {...form.getFieldProps('name')} />
-      <form.RenderError field="name" />
+    <>
+      {providerContext}
 
-      <Spacer size={10} />
+      <form
+        onSubmit={e => {
+          e.preventDefault();
+          handleSubmit();
+        }}
+      >
+        <Input label="Name" required {...form.getFieldProps('name')} />
+        <form.RenderError field="name" />
 
-      <Input label="Description" {...form.getFieldProps('description')} />
+        <Spacer size={10} />
 
-      <Spacer size={10} />
+        <Input label="Description" {...form.getFieldProps('description')} />
 
-      {hasAuthMethods ? (
-        <Select
-          label="Authentication Method"
-          value={form.values.authMethodId}
-          placeholder="Select an authentication method..."
-          onChange={handleAuthMethodChange}
-          items={authMethodItems}
-        />
-      ) : (
-        <Text size="2" color="gray600">
-          No auth methods found for this provider.
-        </Text>
-      )}
-      <form.RenderError field="authMethodId" />
+        <Spacer size={10} />
 
-      {selectedMethod?.description && (
-        <>
-          <Spacer size={5} />
-          <Text size="1" color="gray600">
-            {selectedMethod.description}
+        {hasAuthMethods ? (
+          <Select
+            label="Authentication Method"
+            value={form.values.authMethodId}
+            placeholder="Select an authentication method..."
+            onChange={handleAuthMethodChange}
+            items={authMethodItems}
+          />
+        ) : (
+          <Text size="2" color="gray600">
+            No auth methods found for this provider.
           </Text>
-        </>
-      )}
+        )}
+        <form.RenderError field="authMethodId" />
 
-      <Spacer size={10} />
+        {selectedMethod?.description && (
+          <>
+            <Spacer size={5} />
+            <Text size="1" color="gray600">
+              {selectedMethod.description}
+            </Text>
+          </>
+        )}
 
-      {form.values.authMethodId && credentialsSection}
+        <Spacer size={10} />
 
-      <Spacer size={15} />
+        {form.values.authMethodId && credentialsSection}
 
-      <Dialog.Actions>
-        <Button variant="outline" onClick={props.close}>
-          Cancel
-        </Button>
-        <Button
-          type="button"
-          onClick={handleSubmit}
-          loading={createMutation.isPending}
-          disabled={!form.values.authMethodId}
-        >
-          Update
-        </Button>
-      </Dialog.Actions>
+        <Spacer size={15} />
 
-      <createMutation.RenderError />
-    </form>
+        <Dialog.Actions>
+          <Button variant="outline" onClick={props.close}>
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            onClick={handleSubmit}
+            loading={createMutation.isPending}
+            disabled={!form.values.authMethodId}
+          >
+            Update
+          </Button>
+        </Dialog.Actions>
+
+        <createMutation.RenderError />
+      </form>
+    </>
   );
 };

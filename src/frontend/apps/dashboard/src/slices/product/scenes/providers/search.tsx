@@ -3,7 +3,7 @@ import type {
   ProviderListingsGetOutput
 } from '@metorial/dashboard-sdk';
 import { renderWithPagination, useForm } from '@metorial/data-hooks';
-import { useProviderDeployments, useProviderListings, useProviders } from '@metorial/state';
+import { useProviderDeployments, useProviderListings } from '@metorial/state';
 import {
   Avatar,
   ButtonSize,
@@ -28,21 +28,32 @@ export type ProviderSearchItem = {
   name?: string | null;
   slug?: string | null;
   description?: string | null;
+  imageUrl?: string | null;
   oauthAutoRegistrationEnabled?: boolean;
 };
 
 let Wrapper = styled.div``;
 
-let Grid = styled.div`
+let Grid = styled.div<{ $columns?: number }>`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-template-columns: ${({ $columns }) =>
+    $columns ? `repeat(${$columns}, minmax(0, 1fr))` : 'repeat(auto-fill, minmax(150px, 1fr))'};
   gap: 10px;
+
+  @media (max-width: 700px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (max-width: 520px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
 `;
 
 let GridButton = styled.button`
   display: flex;
   align-items: center;
   gap: 10px;
+  width: 100%;
   padding: 10px;
   background: none;
   border: 1px solid ${theme.colors.gray300};
@@ -99,6 +110,7 @@ let ProviderSearchGrid = ({
   placeholder = 'Search for providers',
   emptyText = 'No providers found',
   sectionLabel = 'Providers',
+  columns,
   selectionMode = 'default'
 }: {
   items: ProviderSearchItem[];
@@ -107,6 +119,7 @@ let ProviderSearchGrid = ({
   placeholder?: string;
   emptyText?: string;
   sectionLabel?: string;
+  columns?: number;
   selectionMode?: 'default' | 'authCredentialsCreate';
 }) => {
   let form = useForm({
@@ -154,7 +167,7 @@ let ProviderSearchGrid = ({
           {emptyText}
         </Text>
       ) : (
-        <Grid>
+        <Grid $columns={columns}>
           {filteredItems.map(provider => {
             let isDisabled =
               selectionMode === 'authCredentialsCreate' &&
@@ -176,11 +189,13 @@ let ProviderSearchGrid = ({
                 >
                   <Avatar
                     entity={{
-                      name: provider.name ?? provider.slug ?? 'Provider'
+                      name: provider.name ?? provider.slug ?? 'Provider',
+                      imageUrl: provider.imageUrl
                     }}
                     size={24}
                     radius={8}
                     noTooltip
+                    imageFit="contain"
                   />
 
                   <ProviderName>{provider.name ?? provider.slug ?? 'Provider'}</ProviderName>
@@ -196,13 +211,18 @@ let ProviderSearchGrid = ({
 
 export let ProviderSearch = ({
   onSelect,
-  stickyTop
+  stickyTop,
+  columns,
+  limit
 }: {
   onSelect?: (provider: ProviderListingsGetOutput['provider']) => void;
   stickyTop?: number;
+  columns?: number;
+  limit?: number;
 }) => {
   let providers = useProviderListings({
-    orderByRank: true
+    orderByRank: true,
+    ...(limit ? { limit } : {})
   });
 
   return renderWithPagination(providers)(providers => (
@@ -211,10 +231,12 @@ export let ProviderSearch = ({
         id: provider.id,
         name: provider.name,
         slug: provider.slug,
-        description: provider.description
+        description: provider.description,
+        imageUrl: provider.imageUrl
       }))}
       stickyTop={stickyTop}
       sectionLabel="Providers"
+      columns={columns}
       onSelect={provider => {
         let selectedProvider = providers.data.items.find(item => item.id === provider.id);
         if (selectedProvider) onSelect?.(selectedProvider.provider);
@@ -228,25 +250,32 @@ export let ProvidersWithDeploymentsSearch = ({
   onSelect,
   stickyTop,
   emptyText = 'No providers found. Create a deployment first.',
+  columns,
+  limit,
   selectionMode = 'default'
 }: {
   instanceId: string;
   onSelect?: (provider: ProviderSearchItem) => void;
   stickyTop?: number;
   emptyText?: string;
+  columns?: number;
+  limit?: number;
   selectionMode?: 'default' | 'authCredentialsCreate';
 }) => {
-  let deployments = useProviderDeployments(instanceId);
+  let deployments = useProviderDeployments(instanceId, limit ? { limit } : undefined);
   let providerIds = useMemo(
     () =>
-      [
-        ...new Set((deployments.data?.items ?? []).map(deployment => deployment.providerId))
-      ].sort(),
+      [...new Set((deployments.data?.items ?? []).map(deployment => deployment.providerId))].sort(),
     [deployments.data?.items]
   );
-  let providers = useProviders(
-    instanceId,
-    providerIds.length > 0 ? { id: providerIds } : null
+  let providerListings = useProviderListings(
+    providerIds.length > 0
+      ? {
+          orderByRank: true,
+          providerId: providerIds,
+          limit: providerIds.length
+        }
+      : null
   );
 
   return renderWithPagination(deployments)(deployments => {
@@ -255,16 +284,18 @@ export let ProvidersWithDeploymentsSearch = ({
       {
         name?: string | null;
         slug?: string | null;
+        imageUrl?: string | null;
         oauthAutoRegistrationEnabled?: boolean;
       }
     >();
 
-    for (let provider of providers.data?.items ?? []) {
-      providerLookup.set(provider.id, {
-        name: provider.name,
-        slug: provider.slug,
+    for (let providerListing of providerListings.data?.items ?? []) {
+      providerLookup.set(providerListing.provider.id, {
+        name: providerListing.name ?? providerListing.provider.name,
+        slug: providerListing.slug ?? providerListing.provider.slug,
+        imageUrl: providerListing.imageUrl,
         oauthAutoRegistrationEnabled:
-          provider.oauth?.autoRegistration?.status === 'enabled'
+          providerListing.provider.oauth?.autoRegistration?.status === 'enabled'
       });
     }
 
@@ -281,6 +312,7 @@ export let ProvidersWithDeploymentsSearch = ({
         id: deployment.providerId,
         name: provider?.name ?? deployment.providerId,
         slug: provider?.slug ?? null,
+        imageUrl: provider?.imageUrl ?? null,
         oauthAutoRegistrationEnabled: provider?.oauthAutoRegistrationEnabled
       });
     }
@@ -291,6 +323,7 @@ export let ProvidersWithDeploymentsSearch = ({
         stickyTop={stickyTop}
         sectionLabel="Providers"
         emptyText={emptyText}
+        columns={columns}
         onSelect={onSelect}
         selectionMode={selectionMode}
       />
