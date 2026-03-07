@@ -172,6 +172,11 @@ let ProviderAuthConnectionOverviewPage = dynamicPage(() =>
     c => c.ProviderAuthConfigOverviewPage
   )
 );
+let ProviderAuthConnectionAuthenticationPage = dynamicPage(() =>
+  import('./pages/(provider-api)/provider-auth-configs/authentication').then(
+    c => c.ProviderAuthConfigAuthenticationPage
+  )
+);
 let ProviderAuthConnectionSettingsPage = dynamicPage(() =>
   import('./pages/(provider-api)/provider-auth-configs/settings').then(
     c => c.ProviderAuthConfigSettingsPage
@@ -635,6 +640,10 @@ export let productInnerSlice = createSlice([
               {
                 path: '',
                 element: <ProviderAuthConnectionOverviewPage />
+              },
+              {
+                path: 'authentication',
+                element: <ProviderAuthConnectionAuthenticationPage />
               },
               {
                 path: 'settings',
