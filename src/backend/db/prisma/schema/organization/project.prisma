@@ -15,6 +15,9 @@ model Project {
   organizationOid BigInt
   organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
 
+  subspaceTenantId         String?
+  subspaceTenantIdentifier String?
+
   createdAt DateTime  @default(now())
   deletedAt DateTime?
   updatedAt DateTime  @default(now()) @updatedAt

@@ -27,26 +27,25 @@ model Organization {
   /// [EntityImage]
   image Json
 
-  subspaceTenantId         String?
-  subspaceTenantIdentifier String?
+  subspaceTenantIds String[]
 
   deletedAt DateTime?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @default(now()) @updatedAt
 
-  invites         OrganizationInvite[]
-  members         OrganizationMember[]
-  actors          OrganizationActor[]
-  instances       Instance[]
-  userConfigs     OrganizationUserConfig[]
-  projects        Project[]
-  machineAccesses MachineAccess[]
-  files           File[]
-  secrets         Secret[]
-  profile         Profile?
-  uploads         Upload[]
-  accessLimiters  AccessLimiter[]
-  team            Team[]
-  teamRole        TeamRole[]
+  invites           OrganizationInvite[]
+  members           OrganizationMember[]
+  actors            OrganizationActor[]
+  instances         Instance[]
+  userConfigs       OrganizationUserConfig[]
+  projects          Project[]
+  machineAccesses   MachineAccess[]
+  files             File[]
+  secrets           Secret[]
+  profile           Profile?
+  uploads           Upload[]
+  accessLimiters    AccessLimiter[]
+  team              Team[]
+  teamRole          TeamRole[]
   accessTagPolicies AccessTagPolicy[]
 }

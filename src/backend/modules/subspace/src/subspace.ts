@@ -1,7 +1,14 @@
+import { delay } from '@lowerdeck/delay';
 import { ProgrammablePromise } from '@lowerdeck/programmable-promise';
 import { createSubspaceControllerClient } from '@metorial-services/subspace-client';
-import { db, OrganizationActor, withTransaction, type Instance } from '@metorial/db';
-import { delay } from '@lowerdeck/delay';
+import {
+  db,
+  Organization,
+  OrganizationActor,
+  Project,
+  withTransaction,
+  type Instance
+} from '@metorial/db';
 import { createLock } from '@metorial/lock';
 import { env } from './env';
 
@@ -47,26 +54,39 @@ let lock = createLock({
   name: 'mte/sub/up-ten'
 });
 
-export let getTenantForSubspace = async (instance: Instance) => {
+let getSubspaceTenantIdentifier = (project: Project) => `mte-pro-${project.oid}`;
+let getSubspaceEnvironmentIdentifier = (instance: Instance) => `mte-ins-${instance.oid}`;
+
+export let getTenantForSubspace = async (
+  instance: Instance & { organization?: Organization }
+) => {
   let solution = await solutionProm.promise;
 
-  if (!instance.subspaceTenantId || !instance.subspaceEnvironmentId) {
+  if (
+    !instance.subspaceTenantId ||
+    !instance.subspaceEnvironmentId ||
+    (instance.organization && !instance.organization.subspaceTenantIds.length)
+  ) {
     instance = await lock.usingLock(String(instance.organizationOid), async () => {
       let currentInstance = await db.instance.findUniqueOrThrow({
         where: { oid: instance.oid },
-        include: { organization: { include: { instances: true } } }
+        include: { project: { include: { instances: true } } }
       });
-      if (currentInstance.subspaceTenantId && currentInstance.subspaceEnvironmentId) {
-        return currentInstance;
-      }
 
-      let organization = currentInstance.organization;
+      let instanceTenantIdentifier =
+        currentInstance.subspaceTenantIdentifier ??
+        getSubspaceTenantIdentifier(currentInstance.project);
+      let instanceEnvironmentIdentifier =
+        currentInstance.subspaceEnvironmentIdentifier ??
+        getSubspaceEnvironmentIdentifier(currentInstance);
+
+      let project = currentInstance.project;
 
       let subspaceTenant = await subspace.tenant.upsert({
-        identifier: `mteo-${organization.id}`,
-        name: organization.name,
-        environments: currentInstance.organization.instances.map(instance => ({
-          identifier: `mtei-${instance.id}`,
+        identifier: instanceTenantIdentifier,
+        name: project.name,
+        environments: currentInstance.project.instances.map(instance => ({
+          identifier: getSubspaceEnvironmentIdentifier(instance),
           name: instance.name,
           type: instance.type
         }))
@@ -74,7 +94,7 @@ export let getTenantForSubspace = async (instance: Instance) => {
 
       let subspaceEnvironment = await subspace.environment.upsert({
         tenantId: subspaceTenant.id,
-        identifier: `mtei-${instance.id}`,
+        identifier: instanceEnvironmentIdentifier,
         name: instance.name,
         type: instance.type
       });
@@ -90,11 +110,20 @@ export let getTenantForSubspace = async (instance: Instance) => {
           }
         });
 
-        await db.organization.update({
-          where: { oid: instance.organizationOid },
+        await db.project.update({
+          where: { oid: instance.projectOid },
           data: {
             subspaceTenantId: subspaceTenant.id,
             subspaceTenantIdentifier: subspaceTenant.identifier
+          }
+        });
+
+        await db.organization.update({
+          where: { oid: instance.organizationOid },
+          data: {
+            subspaceTenantIds: {
+              push: subspaceTenant.id
+            }
           }
         });
 
@@ -119,7 +148,7 @@ export let getActorForSubspace = async (
 ) => {
   return await subspace.actor.upsert({
     tenantId: tenant.id,
-    identifier: `mtea-${organizationActor.id}`,
+    identifier: `mte-oac-${organizationActor.id}`,
     name: organizationActor.name,
     organizationActorId: organizationActor.id,
     type: 'external'
