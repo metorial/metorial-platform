@@ -19,7 +19,7 @@ import {
   Text,
   showModal
 } from '@metorial/ui';
-import { useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 
 type AuthMethod = DashboardInstanceProvidersAuthMethodsListOutput['items'][number];
 
@@ -53,36 +53,6 @@ export let ProviderAuthCredentialsForm = ({
     provider.data?.oauth?.autoRegistration?.status === 'enabled';
 
   let createCredentials = useCreateProviderAuthCredentials();
-
-  useEffect(() => {
-    if (!provider.data) return;
-
-    console.debug('[ProviderAuthCredentialsForm] OAuth source', {
-      providerId,
-      deploymentId,
-      providerName,
-      oauthMethodId: oauthMethod?.id ?? null,
-      oauthMethodName: oauthMethod?.name ?? null,
-      providerOAuth: provider.data.oauth ?? null,
-      providerTypeOAuth:
-        provider.data.type?.auth?.status === 'enabled'
-          ? provider.data.type.auth.oauth
-          : null,
-      redirectUri,
-      oauthAutoRegistrationStatus:
-        provider.data.oauth?.autoRegistration?.status ?? null,
-      oauthAutoRegistrationEnabled
-    });
-  }, [
-    deploymentId,
-    oauthAutoRegistrationEnabled,
-    oauthMethod?.id,
-    oauthMethod?.name,
-    provider.data,
-    providerId,
-    providerName,
-    redirectUri
-  ]);
 
   let form = useForm({
     initialValues: {

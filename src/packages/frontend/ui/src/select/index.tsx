@@ -145,6 +145,7 @@ export let Select = ({
 }) => {
   let id = useId();
   let sizeStyles = getButtonSize(size);
+  let normalizedValue = value === '' ? undefined : value;
 
   let disabledItems = useMemo(
     () =>
@@ -157,7 +158,8 @@ export let Select = ({
   );
   useEffect(() => {
     let disabledSelected = (items as any).find(
-      (item: { id: string; disabled: boolean }) => item.id === value && item.disabled
+      (item: { id: string; disabled: boolean }) =>
+        item.id === normalizedValue && item.disabled
     );
     if (disabledSelected) {
       let notDisabled = (items as any).find(
@@ -166,7 +168,7 @@ export let Select = ({
 
       if (notDisabled) onChange?.(notDisabled.id);
     }
-  }, [value, disabledItems]);
+  }, [normalizedValue, disabledItems, items, onChange]);
 
   return (
     <div
@@ -183,7 +185,7 @@ export let Select = ({
 
       {description && <InputDescription>{description}</InputDescription>}
 
-      <RadixSelect.Root value={value} onValueChange={onChange}>
+      <RadixSelect.Root value={normalizedValue} onValueChange={onChange}>
         <Trigger
           id={id}
           disabled={disabled}

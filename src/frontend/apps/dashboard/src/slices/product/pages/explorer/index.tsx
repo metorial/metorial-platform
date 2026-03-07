@@ -1,5 +1,4 @@
 import type {
-  DashboardInstanceProviderDeploymentsSetupSessionsGetOutput,
   DashboardInstanceProvidersGetOutput,
   DashboardInstanceProvidersListOutput,
   ProviderListingsGetOutput
@@ -40,9 +39,9 @@ import {
   type ConfigurationSelection
 } from '../../lib/configSelection';
 import { getProviderConfigSchemaCapabilities } from '../../lib/providerCreationCapabilities';
+import { showProviderAuthConfigCreateModal } from '../../scenes/providerAuthConfigs/modal';
 import { ProviderConfigurationSelection } from '../../scenes/providerConfigs/selection';
 import { ProviderDeploymentsList } from '../../scenes/providerDeployments/list';
-import { showProviderSetupSessionModal } from '../../scenes/providerDeployments/setupSessionModal';
 import { ProviderSearch } from '../../scenes/providers/search';
 import { InspectorFrame } from './inspector';
 
@@ -224,7 +223,7 @@ export let ExplorerPage = () => {
     if (providerDeploymentIdParam) {
       setProviderDeploymentId(providerDeploymentIdParam);
       resetSessionSetupSelections();
-      if (!sessionIdParam) setOpen(true);
+      if (!sessionIdParam) setOpen(false);
     }
   }, [providerDeploymentIdParam, resetSessionSetupSelections, sessionIdParam]);
 
@@ -233,7 +232,7 @@ export let ExplorerPage = () => {
       setProviderDeploymentId(deploymentId);
       setSessionId(null);
       resetSessionSetupSelections();
-      setOpen(true);
+      setOpen(false);
     },
     [resetSessionSetupSelections]
   );
@@ -417,6 +416,9 @@ export let ExplorerPage = () => {
   let renderSetupPanel = () => {
     if (!providerDeploymentId || !instance.data) return null;
 
+    let emptyAuthConfigLabel = hasAuthMethods
+      ? 'Select an auth config to continue'
+      : 'None';
     let authConfigItems = providerAuthConfigs.data?.items ?? [];
     let lockedProviderVersionId = selectedDeployment.data?.lockedVersion?.id ?? null;
     let currentProviderVersionId = activeProvider.data?.currentVersion?.id ?? null;
@@ -498,7 +500,7 @@ export let ExplorerPage = () => {
                         setSelectedAuthConfigId(value === '__none__' ? '' : value)
                       }
                       items={[
-                        { id: '__none__', label: 'None' },
+                        { id: '__none__', label: emptyAuthConfigLabel },
                         ...authConfigItems.map(config => ({
                           id: config.id,
                           label: config.name ?? config.id
@@ -515,19 +517,13 @@ export let ExplorerPage = () => {
                       aria-label="Connect / Create Auth Config"
                       disabled={authPlusDisabled}
                       onClick={() => {
-                        if (!activeProviderId) return;
-                        showProviderSetupSessionModal({
+                        if (!providerDeploymentId) return;
+                        showProviderAuthConfigCreateModal({
                           instanceId: instance.data.id,
-                          providerId: activeProviderId,
-                          deploymentId: providerDeploymentId,
-                          onComplete: (
-                            result: DashboardInstanceProviderDeploymentsSetupSessionsGetOutput | null
-                          ) => {
-                            let authConfigId = result?.authConfig?.id;
-                            if (authConfigId) {
-                              pendingAuthConfigIdRef.current = authConfigId;
-                              setSelectedAuthConfigId(authConfigId);
-                            }
+                          providerDeploymentId,
+                          onCreate: authConfig => {
+                            pendingAuthConfigIdRef.current = authConfig.id;
+                            setSelectedAuthConfigId(authConfig.id);
                             providerAuthConfigsRef.current.refetch();
                           }
                         });
@@ -601,7 +597,6 @@ export let ExplorerPage = () => {
                     })
                   }
                   loading={isCreatingSession}
-                  disabled={hasAuthMethods && !selectedAuthConfigId}
                 >
                   Open Explorer
                 </Button>

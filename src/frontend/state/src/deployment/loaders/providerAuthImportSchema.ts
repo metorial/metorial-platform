@@ -3,6 +3,7 @@ import {
   DashboardInstanceProviderDeploymentsAuthConfigsImportsGetSchemaQuery
 } from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
+import { isMetorialSDKError } from '@metorial/util-endpoint';
 import { withAuth } from '../../user';
 
 export let providerAuthImportSchemaLoader = createLoader({
@@ -13,14 +14,26 @@ export let providerAuthImportSchemaLoader = createLoader({
       instanceId: string;
     } & DashboardInstanceProviderDeploymentsAuthConfigsImportsGetSchemaQuery
   ) =>
-    withAuth(sdk =>
-      sdk.providerDeployments.authConfigs.imports.getSchema(i.instanceId, {
-        providerId: i.providerId,
-        providerDeploymentId: i.providerDeploymentId,
-        providerAuthConfigId: i.providerAuthConfigId,
-        providerAuthMethodId: i.providerAuthMethodId
-      })
-    ) as Promise<DashboardInstanceProviderDeploymentsAuthConfigsImportsGetSchemaOutput>,
+    withAuth(async sdk => {
+      try {
+        return await sdk.providerDeployments.authConfigs.imports.getSchema(i.instanceId, {
+          providerId: i.providerId,
+          providerDeploymentId: i.providerDeploymentId,
+          providerAuthConfigId: i.providerAuthConfigId,
+          providerAuthMethodId: i.providerAuthMethodId
+        });
+      } catch (error) {
+        if (
+          isMetorialSDKError(error) &&
+          error.code === 'not_found' &&
+          error.response?.entity === 'provider.auth_import'
+        ) {
+          return null;
+        }
+
+        throw error;
+      }
+    }) as Promise<DashboardInstanceProviderDeploymentsAuthConfigsImportsGetSchemaOutput | null>,
   mutators: {}
 });
 

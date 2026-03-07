@@ -64,15 +64,18 @@ export let ProviderConfigurationSelection = ({
     value.kind
   ]);
 
+  let defaultConfig = (configs.data?.items ?? []).find(config => config.isDefault);
+  let effectiveValue: ConfigurationSelection =
+    value.kind === 'none' && defaultConfig ? { kind: 'config', id: defaultConfig.id } : value;
   let items = [
-    { id: '__none__', label: 'None' },
+    ...(!defaultConfig ? [{ id: '__none__', label: 'None' }] : []),
     ...(configs.data?.items ?? []).map((config: ConfigItem) => ({
       id: `config:${config.id}`,
-      label: `Config · ${config.name ?? config.id}`
+      label: config.name ?? config.id
     })),
     ...(vaults.data?.items ?? []).map((vault: VaultItem) => ({
       id: `vault:${vault.id}`,
-      label: `Vault · ${vault.name ?? vault.id}`
+      label: `${vault.name ?? vault.id} (Vault)`
     }))
   ];
 
@@ -82,7 +85,7 @@ export let ProviderConfigurationSelection = ({
         <div style={{ flex: 1 }}>
           <Select
             label={label}
-            value={encodeConfigurationSelection(value)}
+            value={encodeConfigurationSelection(effectiveValue)}
             onChange={next => onChange(decodeConfigurationSelection(next))}
             items={items}
           />

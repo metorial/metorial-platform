@@ -124,6 +124,8 @@ export let ProviderAuthConfigAuthenticationPage = () => {
         authConfig.data.deploymentPreview?.id ?? deployment.data.id;
       let encryptionContent = authConfig.data.source === 'manual' ? (
         '—'
+      ) : authImportSchema.data === null ? (
+        '—'
       ) : authImportSchema.error ? (
         <Badge color="gray">Unavailable</Badge>
       ) : authImportSchema.isLoading ? (

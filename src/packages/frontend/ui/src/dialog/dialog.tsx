@@ -20,11 +20,11 @@ let Wrapper = styled(Content)`
   transition: all 0.2s ease-in-out;
 `;
 
-let Inner = styled('div')<{ variant: 'slim' | 'padded' }>`
+let Inner = styled('div')<{ $variant: 'slim' | 'padded' }>`
   color: ${theme.colors.gray900};
 
-  ${({ variant }: any) =>
-    variant === 'padded'
+  ${({ $variant }: any) =>
+    $variant === 'padded'
       ? `
     padding: 120px 60px;
 
@@ -92,7 +92,7 @@ export let Dialog = {
                 ...style
               }}
             >
-              <Inner variant={variant}>
+              <Inner $variant={variant}>
                 {children}
 
                 <RadixDialogDialog.Close asChild>

@@ -61,6 +61,8 @@ export let ProviderSetupSessionEmbed = ({
   let createSetupSession = useCreateProviderSetupSession(instanceId, providerId, deploymentId);
   let getSetupSession = useGetProviderSetupSession(instanceId);
   let [isCreatingCredentials, setIsCreatingCredentials] = useState(false);
+  let [selectedCredentialsId, setSelectedCredentialsId] = useState<string | undefined>(undefined);
+  let selectedCredentialsIdRef = useRef<string | undefined>(undefined);
 
   let methodForm = useForm({
     initialValues: {
@@ -74,7 +76,6 @@ export let ProviderSetupSessionEmbed = ({
   });
   let credentialsForm = useForm({
     initialValues: {
-      selectedCredentialsId: '',
       newCredName: '',
       newCredClientId: '',
       newCredClientSecret: ''
@@ -83,7 +84,6 @@ export let ProviderSetupSessionEmbed = ({
     onSubmit: async () => {},
     schema: yup =>
       yup.object({
-        selectedCredentialsId: yup.string().defined(),
         newCredName: isCreatingCredentials
           ? yup.string().required('Name is required')
           : yup.string().defined(),
@@ -103,7 +103,6 @@ export let ProviderSetupSessionEmbed = ({
   let [setupWindowBlocked, setSetupWindowBlocked] = useState(false);
 
   let selectedMethodId = methodForm.values.selectedMethodId;
-  let selectedCredentialsId = credentialsForm.values.selectedCredentialsId;
 
   let completedRef = useRef(false);
   let pollingRef = useRef(false);
@@ -139,6 +138,19 @@ export let ProviderSetupSessionEmbed = ({
     }
   };
 
+  let resetSetupSession = () => {
+    if (setupWindowRef.current && !setupWindowRef.current.closed) {
+      setupWindowRef.current.close();
+    }
+
+    setupWindowRef.current = null;
+    completedRef.current = false;
+    pollingRef.current = false;
+    setSetupSession(null);
+    setSetupWindowBlocked(false);
+    setError(null);
+  };
+
   let selectedMethod = useMemo(
     () => (authMethods.data?.items ?? []).find(m => m.id === selectedMethodId),
     [authMethods.data?.items, selectedMethodId]
@@ -153,6 +165,12 @@ export let ProviderSetupSessionEmbed = ({
     ? (authCredentials.data?.items ?? []).filter(credential => !credential.isDefault)
     : (authCredentials.data?.items ?? []);
   let requiresManualOAuthCredentials = isOAuth && !oauthAutoRegistrationEnabled;
+  let preferredVisibleCredential =
+    visibleAuthCredentials.find(credential => credential.isDefault) ??
+    (visibleAuthCredentials.length === 1 ? visibleAuthCredentials[0] : null);
+  let effectiveSelectedCredentialsId = isCreatingCredentials
+    ? undefined
+    : (selectedCredentialsId ?? preferredVisibleCredential?.id);
 
   let hasSingleMethod = (authMethods.data?.items?.length ?? 0) === 1;
   let skipMethodStep = hideMethodStep || hasSingleMethod;
@@ -174,37 +192,21 @@ export let ProviderSetupSessionEmbed = ({
   }, [requiresManualOAuthCredentials, selectedCredentialsId, visibleAuthCredentials.length]);
 
   useEffect(() => {
-    if (!provider.data || !isOAuth) return;
+    if (isCreatingCredentials) return;
+    if (selectedCredentialsId) {
+      selectedCredentialsIdRef.current = selectedCredentialsId;
+      return;
+    }
+    if (!preferredVisibleCredential) return;
 
-    console.debug('[ProviderSetupSessionEmbed] OAuth source', {
-      providerId,
-      deploymentId,
-      providerName,
-      selectedMethodId,
-      selectedMethodName: selectedMethod?.name ?? null,
-      providerOAuth: provider.data.oauth ?? null,
-      providerTypeOAuth:
-        provider.data.type?.auth?.status === 'enabled' ? provider.data.type.auth.oauth : null,
-      redirectUri,
-      oauthAutoRegistrationStatus: provider.data.oauth?.autoRegistration?.status ?? null,
-      oauthAutoRegistrationEnabled
-    });
-  }, [
-    deploymentId,
-    isOAuth,
-    oauthAutoRegistrationEnabled,
-    provider.data,
-    providerId,
-    providerName,
-    redirectUri,
-    selectedMethod?.name,
-    selectedMethodId
-  ]);
+    setSelectedCredentialsId(preferredVisibleCredential.id);
+    selectedCredentialsIdRef.current = preferredVisibleCredential.id;
+  }, [isCreatingCredentials, preferredVisibleCredential, selectedCredentialsId]);
 
-  let handleCreateCredentials = async (): Promise<boolean> => {
+  let handleCreateCredentials = async (): Promise<string | null> => {
     let { newCredName, newCredClientId, newCredClientSecret } = credentialsForm.values;
-    if (!newCredName || !newCredClientId || !newCredClientSecret) return false;
-    if (!selectedMethod) return false;
+    if (!newCredName || !newCredClientId || !newCredClientSecret) return null;
+    if (!selectedMethod) return null;
 
     setError(null);
 
@@ -222,24 +224,24 @@ export let ProviderSetupSessionEmbed = ({
 
     if (err) {
       console.error('Failed to create credentials:', err);
-      return false;
+      return null;
     }
 
-    if (!result) return false;
+    if (!result) return null;
 
-    credentialsForm.setFieldValue('selectedCredentialsId', result.id);
+    setSelectedCredentialsId(result.id);
+    selectedCredentialsIdRef.current = result.id;
     credentialsForm.setFieldValue('newCredName', '');
     credentialsForm.setFieldValue('newCredClientId', '');
     credentialsForm.setFieldValue('newCredClientSecret', '');
     setIsCreatingCredentials(false);
-    return true;
+    return result.id;
   };
 
-  let handleStartSetup = async () => {
-    if (!selectedMethodId) return;
+  let handleStartSetup = async (providerAuthCredentialsId?: string) => {
+    if (!selectedMethodId) return null;
 
-    setError(null);
-    setSetupWindowBlocked(false);
+    resetSetupSession();
     setIsStarting(true);
 
     if (isOAuth && typeof window !== 'undefined') {
@@ -252,7 +254,7 @@ export let ProviderSetupSessionEmbed = ({
 
     let [session, err] = await createSetupSession.mutate({
       providerAuthMethodId: selectedMethodId,
-      providerAuthCredentialsId: selectedCredentialsId || undefined
+      providerAuthCredentialsId
     });
 
     setIsStarting(false);
@@ -262,13 +264,18 @@ export let ProviderSetupSessionEmbed = ({
         setupWindowRef.current.close();
       }
       setupWindowRef.current = null;
+      let errorMessage =
+        'response' in err
+          ? (err as { response?: { message?: string } }).response?.message
+          : 'message' in err
+            ? String((err as { message?: string }).message ?? '')
+            : 'Failed to create setup session.';
+      setError(errorMessage ?? 'Failed to create setup session.');
       console.error('Failed to create setup session:', err);
-      return;
+      return null;
     }
 
     if (session) {
-      completedRef.current = false;
-      pollingRef.current = false;
       setSetupSession(session);
 
       if (session.url) {
@@ -276,6 +283,8 @@ export let ProviderSetupSessionEmbed = ({
         setSetupWindowBlocked(!opened);
       }
     }
+
+    return session ?? null;
   };
 
   useEffect(() => {
@@ -492,8 +501,10 @@ export let ProviderSetupSessionEmbed = ({
             onChange={value => {
               methodForm.setFieldValue('selectedMethodId', value);
               credentialsForm.resetForm();
+              setSelectedCredentialsId(undefined);
+              selectedCredentialsIdRef.current = undefined;
               setIsCreatingCredentials(false);
-              setError(null);
+              resetSetupSession();
             }}
             items={(authMethods.data?.items ?? []).map((method: AuthMethod) => ({
               id: method.id,
@@ -530,12 +541,22 @@ export let ProviderSetupSessionEmbed = ({
 
     let connectStepIndex = includeMethodStep ? 2 : 1;
     let handleCredentialsContinue = async () => {
+      let providerAuthCredentialsId =
+        selectedCredentialsIdRef.current ?? effectiveSelectedCredentialsId;
+
       if (isCreatingCredentials) {
-        let ok = await handleCreateCredentials();
-        if (!ok) return;
+        providerAuthCredentialsId = (await handleCreateCredentials()) ?? undefined;
       }
-      setStep(connectStepIndex);
-      await handleStartSetup();
+
+      if (requiresManualOAuthCredentials && !providerAuthCredentialsId) {
+        setError('Select an existing credential or add your own to continue.');
+        return;
+      }
+
+      let session = await handleStartSetup(providerAuthCredentialsId);
+      if (session) {
+        setStep(connectStepIndex);
+      }
     };
 
     let credentialsStep = {
@@ -547,7 +568,7 @@ export let ProviderSetupSessionEmbed = ({
             {oauthMethodName} Credentials
           </Text>
           <Text size="2" color="gray600">
-            Auto-registration is disabled. Select your own credentials or add new ones to
+            Auto-registration is disabled. Use an existing credential or add credentials to
             continue.
           </Text>
           <Spacer size={6} />
@@ -562,15 +583,19 @@ export let ProviderSetupSessionEmbed = ({
           )}
           <Select
             label={`${oauthMethodName} App Credentials`}
-            value={isCreatingCredentials ? '__create_new__' : selectedCredentialsId || ''}
-            placeholder="Select credentials or add your own"
+            value={isCreatingCredentials ? '__create_new__' : effectiveSelectedCredentialsId}
+            placeholder="Use or add credentials"
             onChange={value => {
+              setError(null);
+
               if (value === '__create_new__') {
                 setIsCreatingCredentials(true);
-                credentialsForm.setFieldValue('selectedCredentialsId', '');
+                setSelectedCredentialsId(undefined);
+                selectedCredentialsIdRef.current = undefined;
               } else {
                 setIsCreatingCredentials(false);
-                credentialsForm.setFieldValue('selectedCredentialsId', value);
+                setSelectedCredentialsId(value);
+                selectedCredentialsIdRef.current = value;
               }
             }}
             items={[
@@ -582,18 +607,10 @@ export let ProviderSetupSessionEmbed = ({
               })),
               {
                 id: '__create_new__',
-                label: 'Add your own credentials'
+                label: 'Add credentials'
               }
             ]}
           />
-          {requiresManualOAuthCredentials && !isCreatingCredentials && (
-            <>
-              <Spacer size={5} />
-              <Text size="2" color="gray600">
-                Select an existing credential or add your own to continue.
-              </Text>
-            </>
-          )}
           {isCreatingCredentials && (
             <>
               <Spacer size={8} />
@@ -645,13 +662,19 @@ export let ProviderSetupSessionEmbed = ({
               <Button
                 type="button"
                 variant="outline"
-                onClick={() =>
-                  isCreatingCredentials
-                    ? setIsCreatingCredentials(false)
-                    : skipMethodStep
-                      ? onBackToMethodSelection?.()
-                      : setStep(0)
-                }
+                onClick={() => {
+                  if (isCreatingCredentials) {
+                    setIsCreatingCredentials(false);
+                    return;
+                  }
+
+                  if (skipMethodStep) {
+                    onBackToMethodSelection?.();
+                    return;
+                  }
+
+                  setStep(0);
+                }}
               >
                 Back
               </Button>
@@ -667,7 +690,7 @@ export let ProviderSetupSessionEmbed = ({
                     !credentialsForm.values.newCredClientSecret)) ||
                 (!isCreatingCredentials &&
                   requiresManualOAuthCredentials &&
-                  !selectedCredentialsId)
+                  !effectiveSelectedCredentialsId)
               }
             >
               Continue
@@ -722,11 +745,10 @@ export let ProviderSetupSessionEmbed = ({
                     style={{ cursor: 'pointer' }}
                     onClick={() => {
                       if (skipMethodStep) {
+                        resetSetupSession();
                         onBackToMethodSelection?.();
                       } else {
-                        setSetupSession(null);
-                        pollingRef.current = false;
-                        setSetupWindowBlocked(false);
+                        resetSetupSession();
                       }
                     }}
                   >
@@ -760,7 +782,11 @@ export let ProviderSetupSessionEmbed = ({
             <Spacer size={6} />
             <Button
               type="button"
-              onClick={handleStartSetup}
+              onClick={() =>
+                void handleStartSetup(
+                  selectedCredentialsIdRef.current ?? effectiveSelectedCredentialsId
+                )
+              }
               loading={isStarting || createSetupSession.isPending}
               disabled={!selectedMethodId}
             >
