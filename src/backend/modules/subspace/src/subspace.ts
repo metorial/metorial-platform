@@ -65,7 +65,9 @@ export let getTenantForSubspace = async (
   if (
     !instance.subspaceTenantId ||
     !instance.subspaceEnvironmentId ||
-    (instance.organization && !instance.organization.subspaceTenantIds.length)
+    (instance.organization && !instance.organization.subspaceTenantIds.length) ||
+    !instance.lastSubspaceSyncAt ||
+    Date.now() - instance.lastSubspaceSyncAt.getTime() > 1000 * 60 * 60 * 24
   ) {
     instance = await lock.usingLock(String(instance.organizationOid), async () => {
       let currentInstance = await db.instance.findUniqueOrThrow({
