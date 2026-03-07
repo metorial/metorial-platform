@@ -20,9 +20,9 @@ export let v1SessionPresenter = Presenter.create(providerSessionType)
         session.usage.totalProductiveProviderMessageCount
     },
     providers: await Promise.all(
-      session.providers.map(p =>
-        v1SessionProviderPresenter.present({ sessionProvider: p }, opts).run()
-      )
+      session.providers
+        .sort((a, b) => a.id.localeCompare(b.id))
+        .map(p => v1SessionProviderPresenter.present({ sessionProvider: p }, opts).run())
     ),
     from_templates_ids: session.fromTemplatesIds,
     has_errors: session.hasErrors,
