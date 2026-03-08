@@ -24,6 +24,7 @@ vi.mock('@metorial/db', () => ({
     organizationMember: {},
     organizationActor: {}
   },
+  ensureFilePurpose: vi.fn(factory => factory()),
   ID: {
     generateId: vi.fn()
   },
@@ -56,6 +57,13 @@ vi.mock('@lowerdeck/service', () => ({
 
 vi.mock('@metorial/id', () => ({
   generateCustomId: vi.fn()
+}));
+
+vi.mock('@metorial/module-file', () => ({
+  fileReferenceService: {
+    createImageEntityImage: vi.fn(),
+    cleanupImageEntityImage: vi.fn()
+  }
 }));
 
 // Mock Bun

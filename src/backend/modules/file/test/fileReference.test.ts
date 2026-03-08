@@ -2,20 +2,22 @@ import { ServiceError } from '@lowerdeck/error';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fileReferenceService } from '../src/services/fileReference';
 
-let mockDb = {
-  file: {
-    findFirst: vi.fn()
-  },
-  fileLink: {
-    create: vi.fn(),
-    deleteMany: vi.fn()
-  },
-  fileReference: {
-    create: vi.fn(),
-    deleteMany: vi.fn(),
-    count: vi.fn()
+let { mockDb } = vi.hoisted(() => ({
+  mockDb: {
+    file: {
+      findFirst: vi.fn()
+    },
+    fileLink: {
+      create: vi.fn(),
+      deleteMany: vi.fn()
+    },
+    fileReference: {
+      create: vi.fn(),
+      deleteMany: vi.fn(),
+      count: vi.fn()
+    }
   }
-};
+}));
 
 vi.mock('@metorial/db', () => ({
   db: mockDb,
