@@ -32,19 +32,21 @@ model Instance {
   subspaceEnvironmentId         String?
   subspaceEnvironmentIdentifier String?
 
+  lastSubspaceSyncAt DateTime?
+
   createdAt DateTime  @default(now())
   deletedAt DateTime?
   updatedAt DateTime  @default(now()) @updatedAt
 
-  machineAccesses MachineAccess[]
-  fineGrainedKeys FineGrainedKey[]
-  sessionClientSecretReferences SessionClientSecretReference[]
-  files           File[]
-  secrets         Secret[]
-  uploads         Upload[]
-  accessTags      AccessTag[]
-  magicMcpGroups  MagicMcpGroup[]
-  magicMcpServers MagicMcpServer[]
-  magicMcpTokens  MagicMcpToken[]
+  machineAccesses                MachineAccess[]
+  fineGrainedKeys                FineGrainedKey[]
+  sessionClientSecretReferences  SessionClientSecretReference[]
+  files                          File[]
+  secrets                        Secret[]
+  uploads                        Upload[]
+  accessTags                     AccessTag[]
+  magicMcpGroups                 MagicMcpGroup[]
+  magicMcpServers                MagicMcpServer[]
+  magicMcpTokens                 MagicMcpToken[]
   magicMcpServerSubspaceSessions MagicMcpServerSubspaceSession[]
 }

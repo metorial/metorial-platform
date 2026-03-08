@@ -1,6 +1,7 @@
 import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, useSession } from '@metorial/state';
-import { Button, CenteredSpinner, Error, theme } from '@metorial/ui';
+import { Button, CenteredSpinner, Error, Menu, theme } from '@metorial/ui';
+import { RiArrowDownSLine } from '@remixicon/react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -67,6 +68,7 @@ let Status = styled(motion.div)`
 
 type ExplorerRuntimeWindow = Window & {
   METORIAL_EXPLORER_URL?: string;
+  METORIAL_EXPLORER_V2_URL?: string;
   METORIAL_MCP_API_URL?: string;
 };
 
@@ -76,6 +78,8 @@ type ExplorerConfigMessage = {
     transport_type: 'sse' | 'streamable-http';
     sse_url: string;
     bearer_token?: string;
+    name?: string;
+    description?: string;
   };
 };
 
@@ -85,7 +89,15 @@ export let InspectorFrame = ({ sessionId }: { sessionId: string }) => {
   let iframeRef = useRef<HTMLIFrameElement | null>(null);
   let runtimeWindow = window as ExplorerRuntimeWindow;
 
+  let [explorerVersion, setExplorerVersion] = useState<'v1' | 'v2'>('v2');
+
   let [isLoading, setIsLoading] = useState(true);
+
+  let name = session.data?.providers
+    .map(p => p.deployment.name)
+    .filter(Boolean)
+    .sort()
+    .join(', ');
 
   let explorerConfig = useMemo(() => {
     if (!session.data || !instance.data) return undefined;
@@ -97,20 +109,51 @@ export let InspectorFrame = ({ sessionId }: { sessionId: string }) => {
     return {
       transport_type: 'streamable-http' as const,
       sse_url: connectionUrl,
+      name,
+      description: session.data.description ?? undefined,
       bearer_token:
-        ((session.data as any).clientSecret ?? (session.data as any).client_secret) || undefined
+        ((session.data as any).clientSecret ?? (session.data as any).client_secret) ||
+        undefined
     };
-  }, [session.data, instance.data]);
+  }, [session.data, instance.data, name]);
 
   let url = useMemo(() => {
     let explorerBase =
-      runtimeWindow.METORIAL_EXPLORER_URL ?? import.meta.env.VITE_EXPLORER_URL!;
+      explorerVersion === 'v2'
+        ? (runtimeWindow.METORIAL_EXPLORER_V2_URL ?? import.meta.env.VITE_EXPLORER_V2_URL!)
+        : (runtimeWindow.METORIAL_EXPLORER_URL ?? import.meta.env.VITE_EXPLORER_URL!);
+
     let url = new URL(explorerBase);
-    url.searchParams.set('transport_type', 'streamable-http');
-    url.searchParams.set('direction', 'vertical');
-    url.hash = 'tools';
+
+    if (explorerVersion === 'v2') {
+      url.searchParams.set('transport', 'streamable-http');
+      url.searchParams.set('endpoint', explorerConfig?.sse_url ?? '');
+
+      if (name) {
+        url.searchParams.set('name', name);
+      }
+
+      if (session.data?.description) {
+        url.searchParams.set('description', session.data.description);
+      }
+    } else {
+      url.searchParams.set('transport_type', 'streamable-http');
+      url.searchParams.set('direction', 'vertical');
+      url.hash = 'tools';
+    }
+
     return url.toString();
-  }, []);
+  }, [
+    explorerConfig?.sse_url,
+    explorerVersion,
+    name,
+    runtimeWindow,
+    session.data?.description
+  ]);
+
+  useEffect(() => {
+    setIsLoading(true);
+  }, [url]);
 
   useEffect(() => {
     if (!iframeRef.current?.contentWindow || !explorerConfig) return;
@@ -145,12 +188,29 @@ export let InspectorFrame = ({ sessionId }: { sessionId: string }) => {
           >
             <BreathingIndicator />
             <span>
-              Connected via <i>mcp.metorial.com</i>
+              Connected via <i>connect.metorial.com</i>
             </span>
           </Status>
         </ConnectionNavSection>
 
         <ConnectionNavSection>
+          <Menu
+            items={[
+              { id: 'v2', label: 'Metorial Explorer' },
+              { id: 'v1', label: 'MCP Inspector' }
+            ]}
+            onItemClick={v => setExplorerVersion(v as 'v1' | 'v2')}
+          >
+            <Button size="2" variant="outline" iconRight={<RiArrowDownSLine />}>
+              {
+                {
+                  v1: 'MCP Inspector',
+                  v2: 'Metorial Explorer'
+                }[explorerVersion]
+              }
+            </Button>
+          </Menu>
+
           {firstDeploymentId && (
             <Link
               to={Paths.instance.providerDeployment(
@@ -196,7 +256,12 @@ export let InspectorFrame = ({ sessionId }: { sessionId: string }) => {
           </>
         ) : (
           <>
-            <Iframe ref={iframeRef} src={url} onLoad={() => setIsLoading(false)} key={url} />
+            <Iframe
+              ref={iframeRef}
+              src={url}
+              onLoad={() => setIsLoading(false)}
+              key={`${explorerVersion}:${url}`}
+            />
 
             <AnimatePresence>
               {isLoading && (
