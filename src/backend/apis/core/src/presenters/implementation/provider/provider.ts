@@ -64,12 +64,15 @@ export let v1ProviderPresenter = Presenter.create(providerType)
       current_version: v.nullable(v1ProviderVersionPresenter.schema),
       oauth: v.nullable(
         v.object({
-          status: v.string({ name: 'status', description: 'OAuth status' }),
+          status: v.enumOf(['enabled', 'disabled'], {
+            name: 'status',
+            description: 'OAuth status'
+          }),
           callback_url: v.nullable(
             v.string({ name: 'callback_url', description: 'OAuth callback URL' })
           ),
           auto_registration: v.object({
-            status: v.enumOf(['enabled', 'disabled'], {
+            status: v.enumOf(['supported', 'unsupported'], {
               name: 'status',
               description: 'Auto-registration status'
             })
