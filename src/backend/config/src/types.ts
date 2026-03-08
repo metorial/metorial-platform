@@ -41,12 +41,9 @@ export interface MetorialConfig {
     portalsUrl: string;
   };
 
-  s3?: {
-    accessKeyId: string;
-    secretAccessKey: string;
-    region: string;
-    bucket: string;
-    endpoint?: string;
+  objectStorage: {
+    url: string;
+    filesBucketName: string;
   };
 
   encryptionSecret: string;

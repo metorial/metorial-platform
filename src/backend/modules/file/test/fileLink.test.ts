@@ -7,6 +7,7 @@ vi.mock('@metorial/db', () => ({
     fileLink: {
       create: vi.fn(),
       findUnique: vi.fn(),
+      findFirst: vi.fn(),
       delete: vi.fn(),
       update: vi.fn(),
       findMany: vi.fn()
@@ -41,6 +42,12 @@ vi.mock('@lowerdeck/service', () => ({
     create: vi.fn((_name: string, factory: any) => ({
       build: () => factory()
     }))
+  }
+}));
+
+vi.mock('../src/services/fileReference', () => ({
+  fileReferenceService: {
+    hasReferences: vi.fn().mockResolvedValue(false)
   }
 }));
 
@@ -168,28 +175,6 @@ describe('fileLinkService', () => {
     });
   });
 
-  describe('getFileLinkById', () => {
-    it('returns file link if found', async () => {
-      (db.fileLink.findUnique as any).mockResolvedValue(fileLink);
-      const result = await fileLinkService.getFileLinkById({
-        fileLinkId: 'link-id',
-        file
-      });
-      expect(result).toBe(fileLink);
-      expect(db.fileLink.findUnique).toHaveBeenCalledWith({
-        where: { id: 'link-id', fileOid: file.oid },
-        include: { file: true }
-      });
-    });
-
-    it('throws if not found', async () => {
-      (db.fileLink.findUnique as any).mockResolvedValue(null);
-      await expect(
-        fileLinkService.getFileLinkById({ fileLinkId: 'bad-id', file })
-      ).rejects.toThrow(ServiceError);
-    });
-  });
-
   describe('deleteFileLink', () => {
     it('deletes file link', async () => {
       (db.fileLink.delete as any).mockResolvedValue(fileLink);
@@ -203,92 +188,15 @@ describe('fileLinkService', () => {
     });
   });
 
-  describe('updateFileLink', () => {
-    it('updates file link', async () => {
-      (db.fileLink.update as any).mockResolvedValue(fileLink);
-      const result = await fileLinkService.updateFileLink({
-        // @ts-ignore
-        fileLink,
-        input: { expiresAt: fileLink.expiresAt }
-      });
-      expect(result).toBe(fileLink);
-      expect(db.fileLink.update).toHaveBeenCalledWith({
-        where: { id: fileLink.id },
-        data: { expiresAt: fileLink.expiresAt },
-        include: { file: true }
-      });
-    });
-
-    it('updates file link with new expiresAt', async () => {
-      const newExpiresAt = new Date('2026-01-01');
-      const updatedLink = { ...fileLink, expiresAt: newExpiresAt };
-      (db.fileLink.update as any).mockResolvedValue(updatedLink);
-
-      const result = await fileLinkService.updateFileLink({
-        // @ts-ignore
-        fileLink,
-        input: { expiresAt: newExpiresAt }
-      });
-
-      expect(result.expiresAt).toBe(newExpiresAt);
-    });
-
-    it('updates file link to remove expiresAt', async () => {
-      const updatedLink = { ...fileLink, expiresAt: undefined };
-      (db.fileLink.update as any).mockResolvedValue(updatedLink);
-
-      const result = await fileLinkService.updateFileLink({
-        // @ts-ignore
-        fileLink,
-        input: { expiresAt: undefined }
-      });
-
-      expect(result.expiresAt).toBeUndefined();
-    });
-  });
-
-  describe('listFileLinks', () => {
-    it('returns paginator', async () => {
-      (db.fileLink.findMany as any).mockResolvedValue([fileLink]);
-      const paginator = await fileLinkService.listFileLinks({ file });
-      expect(Array.isArray(await paginator)).toBe(true);
-    });
-
-    it('lists multiple file links', async () => {
-      const fileLink2 = { ...fileLink, id: 'link-id-2', key: 'link-key-2' };
-      (db.fileLink.findMany as any).mockResolvedValue([fileLink, fileLink2]);
-      const paginator = await fileLinkService.listFileLinks({ file });
-      const result = await paginator;
-      expect(Array.isArray(result)).toBe(true);
-    });
-
-    it('lists empty array when no links exist', async () => {
-      (db.fileLink.findMany as any).mockResolvedValue([]);
-      const paginator = await fileLinkService.listFileLinks({ file });
-      const result = await paginator;
-      expect(Array.isArray(result)).toBe(true);
-    });
-
-    it('filters by file oid', async () => {
-      (db.fileLink.findMany as any).mockResolvedValue([fileLink]);
-      await fileLinkService.listFileLinks({ file });
-      expect(db.fileLink.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { fileOid: file.oid }
-        })
-      );
-    });
-  });
-
   describe('getFileLinkByKey', () => {
     it('returns file link and file if found', async () => {
-      (db.fileLink.findUnique as any).mockResolvedValue(fileLink);
+      (db.fileLink.findFirst as any).mockResolvedValue(fileLink);
       const result = await fileLinkService.getFileLinkByKey({
         fileId: file.id,
         key: fileLink.key
       });
       expect(result).toEqual({ link: fileLink, file });
-      expect(db.fileLink.findUnique).toHaveBeenCalledWith({
+      expect(db.fileLink.findFirst).toHaveBeenCalledWith({
         where: {
           key: fileLink.key,
           file: { id: file.id, status: 'active' }
@@ -298,19 +206,19 @@ describe('fileLinkService', () => {
     });
 
     it('throws if not found', async () => {
-      (db.fileLink.findUnique as any).mockResolvedValue(null);
+      (db.fileLink.findFirst as any).mockResolvedValue(null);
       await expect(
         fileLinkService.getFileLinkByKey({ fileId: file.id, key: 'bad-key' })
       ).rejects.toThrow(ServiceError);
     });
 
     it('only returns links for active files', async () => {
-      (db.fileLink.findUnique as any).mockResolvedValue(fileLink);
+      (db.fileLink.findFirst as any).mockResolvedValue(fileLink);
       await fileLinkService.getFileLinkByKey({
         fileId: file.id,
         key: fileLink.key
       });
-      expect(db.fileLink.findUnique).toHaveBeenCalledWith(
+      expect(db.fileLink.findFirst).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
             file: expect.objectContaining({ status: 'active' })
@@ -320,7 +228,7 @@ describe('fileLinkService', () => {
     });
 
     it('returns correct file object structure', async () => {
-      (db.fileLink.findUnique as any).mockResolvedValue(fileLink);
+      (db.fileLink.findFirst as any).mockResolvedValue(fileLink);
       const result = await fileLinkService.getFileLinkByKey({
         fileId: file.id,
         key: fileLink.key
@@ -330,13 +238,58 @@ describe('fileLinkService', () => {
     });
 
     it('throws with correct error for invalid key', async () => {
-      (db.fileLink.findUnique as any).mockResolvedValue(null);
+      (db.fileLink.findFirst as any).mockResolvedValue(null);
       try {
         await fileLinkService.getFileLinkByKey({ fileId: file.id, key: 'invalid-key' });
         expect.fail('Should have thrown an error');
       } catch (error) {
         expect(error).toBeInstanceOf(ServiceError);
       }
+    });
+  });
+
+  describe('organization-scoped lookups', () => {
+    it('lists links for an organization', async () => {
+      (db.fileLink.findMany as any).mockResolvedValue([fileLink]);
+
+      const paginator = await fileLinkService.listFileLinksForOrganization({
+        organizationOid: BigInt(1),
+        fileId: file.id
+      });
+
+      expect(Array.isArray(await paginator)).toBe(true);
+      expect(db.fileLink.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            file: {
+              organizationOid: BigInt(1),
+              status: 'active',
+              id: file.id
+            }
+          }
+        })
+      );
+    });
+
+    it('gets a link by id for an organization', async () => {
+      (db.fileLink.findFirst as any).mockResolvedValue(fileLink);
+
+      const result = await fileLinkService.getFileLinkByIdForOrganization({
+        fileLinkId: fileLink.id,
+        organizationOid: BigInt(1)
+      });
+
+      expect(result).toBe(fileLink);
+      expect(db.fileLink.findFirst).toHaveBeenCalledWith({
+        where: {
+          id: fileLink.id,
+          file: {
+            organizationOid: BigInt(1),
+            status: 'active'
+          }
+        },
+        include: { file: true }
+      });
     });
   });
 });

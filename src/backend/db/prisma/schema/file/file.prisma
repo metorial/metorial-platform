@@ -65,4 +65,19 @@ model FileLink {
 
   createdAt DateTime  @default(now())
   expiresAt DateTime?
+
+  references FileReference[]
+}
+
+model FileReference {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  fileLinkOid BigInt
+  fileLink    FileLink @relation(fields: [fileLinkOid], references: [oid], onDelete: Cascade)
+
+  entityType String
+  entityId   String
+
+  createdAt DateTime @default(now())
 }

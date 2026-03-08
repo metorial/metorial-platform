@@ -9,6 +9,7 @@ import { Service } from '@lowerdeck/service';
 import { Context } from '@metorial/context';
 import { db, ID, User, withTransaction } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
+import { fileReferenceService } from '@metorial/module-file';
 import { syncUserUpdateQueue } from '../queues/syncUserUpdate';
 
 class UserService {
@@ -75,6 +76,7 @@ class UserService {
       firstName?: string;
       lastName?: string;
       image?: PrismaJson.EntityImage;
+      imageFileId?: string | null;
       password?: string;
     };
     context: Context;
@@ -84,12 +86,30 @@ class UserService {
     return withTransaction(async db => {
       await Fabric.fire('user.updated:before', { ...d, performedBy: d.user });
 
+      let nextImage = d.input.image;
+      if (d.input.imageFileId !== undefined) {
+        nextImage =
+          d.input.imageFileId === null
+            ? { type: 'default' }
+            : await fileReferenceService.createImageEntityImage({
+                fileId: d.input.imageFileId,
+                owner: {
+                  type: 'user',
+                  userId: d.user.id
+                },
+                purpose: 'user_image',
+                entityType: 'user',
+                entityId: d.user.id,
+                database: db
+              });
+      }
+
       let user = await db.user.update({
         where: { id: d.user.id },
         data: {
           name: d.input.name,
           email: d.input.email,
-          image: d.input.image,
+          image: nextImage,
           firstName: d.input.firstName,
           lastName: d.input.lastName,
 
@@ -98,6 +118,16 @@ class UserService {
             : undefined
         }
       });
+
+      if (d.input.image !== undefined || d.input.imageFileId !== undefined) {
+        await fileReferenceService.cleanupImageEntityImage({
+          image:
+            d.user.image && JSON.stringify(d.user.image) !== JSON.stringify(nextImage)
+              ? (d.user.image as any)
+              : undefined,
+          database: db
+        });
+      }
 
       await syncUserUpdateQueue.add({
         userId: user.id

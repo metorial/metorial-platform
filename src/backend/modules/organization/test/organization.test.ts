@@ -11,6 +11,9 @@ vi.mock('@metorial/db', () => ({
       findMany: vi.fn(),
       findUnique: vi.fn()
     },
+    fileReference: {
+      deleteMany: vi.fn()
+    },
     organizationMember: {
       update: vi.fn()
     }
@@ -25,6 +28,9 @@ vi.mock('@metorial/db', () => ({
         update: vi.fn(),
         findFirst: vi.fn(),
         findMany: vi.fn()
+      },
+      fileReference: {
+        deleteMany: vi.fn()
       },
       organizationMember: {
         update: vi.fn()
@@ -59,6 +65,13 @@ vi.mock('@lowerdeck/slugify', () => ({
 
 vi.mock('date-fns', () => ({
   differenceInMinutes: vi.fn()
+}));
+
+vi.mock('@metorial/module-file', () => ({
+  fileReferenceService: {
+    createImageEntityImage: vi.fn(),
+    cleanupImageEntityImage: vi.fn()
+  }
 }));
 
 // Mock organizationActorService
@@ -97,6 +110,7 @@ import { organizationService } from '../src/services/organization';
 import { organizationActorService } from '../src/services/organizationActor';
 import { organizationMemberService } from '../src/services/organizationMember';
 import { projectService } from '../src/services/project';
+import { fileReferenceService } from '@metorial/module-file';
 
 describe('OrganizationService', () => {
   beforeEach(() => {
@@ -534,6 +548,46 @@ describe('OrganizationService', () => {
       });
 
       expect(result.image).toEqual(newImage);
+    });
+
+    it('should release the previous file reference when image changes', async () => {
+      let mockOrg = {
+        id: 'org-1',
+        oid: 1,
+        status: 'active',
+        image: {
+          type: 'file',
+          fileId: 'fil_old',
+          fileLinkId: 'flk_old',
+          fileReferenceId: 'frf_old',
+          fileUrl: 'https://files.example.com/files/fil_old/key'
+        }
+      };
+      vi.mocked(withTransaction).mockImplementation(async callback => {
+        let mockDb = {
+          organization: {
+            update: vi.fn().mockResolvedValue({
+              ...mockOrg,
+              image: { type: 'default' }
+            })
+          }
+        };
+        return callback(mockDb as any);
+      });
+
+      await organizationService.updateOrganization({
+        input: {
+          image: { type: 'default' } as any
+        },
+        organization: mockOrg as any,
+        context: {} as any,
+        performedBy: { id: 'actor-1', oid: 1 } as any
+      });
+
+      expect(fileReferenceService.cleanupImageEntityImage).toHaveBeenCalledWith({
+        image: mockOrg.image,
+        database: expect.anything()
+      });
     });
 
     it('should update both name and image', async () => {
