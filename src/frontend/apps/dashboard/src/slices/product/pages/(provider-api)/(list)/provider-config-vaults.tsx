@@ -1,5 +1,5 @@
 import { DashboardInstanceProviderDeploymentsConfigVaultsListOutput } from '@metorial/dashboard-sdk';
-import { renderWithPagination } from '@metorial/data-hooks';
+import { renderWithLoader, renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
   useCurrentInstance,
@@ -40,7 +40,7 @@ export let ProviderConfigVaultsOverviewPage = () => {
     }
     return map;
   }, [providers.data?.items]);
-  return (
+  return renderWithLoader({ organization, project, instance, providers })(() => (
     <>
       <Input
         label="Search"
@@ -92,5 +92,5 @@ export let ProviderConfigVaultsOverviewPage = () => {
         </>
       ))}
     </>
-  );
+  ));
 };

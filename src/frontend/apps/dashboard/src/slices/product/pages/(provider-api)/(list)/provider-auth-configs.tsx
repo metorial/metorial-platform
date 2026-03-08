@@ -115,7 +115,7 @@ export let ProviderAuthConfigsOverviewPage = () => {
     />
   ));
 
-  return renderWithLoader({ organization, project, instance })(() => (
+  return renderWithLoader({ organization, project, instance, providers })(() => (
     <>
       <Input
         label="Search"

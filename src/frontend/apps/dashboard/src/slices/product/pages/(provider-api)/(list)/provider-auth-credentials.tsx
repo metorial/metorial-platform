@@ -123,7 +123,13 @@ export let ProviderAuthCredentialsOverviewPage = () => {
   );
   let authCredentialsContent = renderWithPagination(authCredentials)(() => table);
 
-  return renderWithLoader({ organization, project, instance, deployments })(() => (
+  return renderWithLoader({
+    organization,
+    project,
+    instance,
+    deployments,
+    providers
+  })(() => (
     <>
       <Input
         label="Search"

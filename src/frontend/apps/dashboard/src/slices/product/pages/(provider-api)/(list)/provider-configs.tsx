@@ -127,7 +127,13 @@ export let ProviderConfigsOverviewPage = () => {
   );
   let configsContent = renderWithPagination(configs)(() => table);
 
-  return renderWithLoader({ organization, project, instance, deployments })(() => (
+  return renderWithLoader({
+    organization,
+    project,
+    instance,
+    deployments,
+    providers
+  })(() => (
     <>
       <Input
         label="Search"
