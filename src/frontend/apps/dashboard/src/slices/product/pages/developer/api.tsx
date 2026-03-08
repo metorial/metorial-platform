@@ -32,11 +32,11 @@ export let ProjectDeveloperAPIPage = () => {
               description="Select the default version of the Metorial API you would like to use. This determines the formatting of events, but can be overridden on a per-request basis. In most cases, you should use the latest version."
               items={[
                 {
-                  label: '2025-01-01 (Magnetar)',
-                  id: '2025-01-01'
+                  label: '2026-01-01 (Magnetar)',
+                  id: '2026-01-01'
                 }
               ]}
-              value="2025-01-01"
+              value="2026-01-01"
             />
           </>
         ))}
