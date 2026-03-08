@@ -82,11 +82,9 @@ export let getTenantForSubspace = async (
         currentInstance.subspaceEnvironmentIdentifier ??
         getSubspaceEnvironmentIdentifier(currentInstance);
 
-      let project = currentInstance.project;
-
       let subspaceTenant = await subspace.tenant.upsert({
         identifier: instanceTenantIdentifier,
-        name: project.name,
+        name: currentInstance.project.name,
         environments: currentInstance.project.instances.map(instance => ({
           identifier: getSubspaceEnvironmentIdentifier(instance),
           name: instance.name,
@@ -97,23 +95,24 @@ export let getTenantForSubspace = async (
       let subspaceEnvironment = await subspace.environment.upsert({
         tenantId: subspaceTenant.id,
         identifier: instanceEnvironmentIdentifier,
-        name: instance.name,
-        type: instance.type
+        name: currentInstance.name,
+        type: currentInstance.type
       });
 
       return await withTransaction(async db => {
         instance = await db.instance.update({
-          where: { oid: instance.oid },
+          where: { oid: currentInstance.oid },
           data: {
             subspaceTenantId: subspaceTenant.id,
             subspaceTenantIdentifier: subspaceTenant.identifier,
             subspaceEnvironmentId: subspaceEnvironment.id,
-            subspaceEnvironmentIdentifier: subspaceEnvironment.identifier
+            subspaceEnvironmentIdentifier: subspaceEnvironment.identifier,
+            lastSubspaceSyncAt: new Date()
           }
         });
 
         await db.project.update({
-          where: { oid: instance.projectOid },
+          where: { oid: currentInstance.projectOid },
           data: {
             subspaceTenantId: subspaceTenant.id,
             subspaceTenantIdentifier: subspaceTenant.identifier
@@ -121,11 +120,9 @@ export let getTenantForSubspace = async (
         });
 
         await db.organization.update({
-          where: { oid: instance.organizationOid },
+          where: { oid: currentInstance.organizationOid },
           data: {
-            subspaceTenantIds: {
-              push: subspaceTenant.id
-            }
+            subspaceTenantIds: { push: subspaceTenant.id }
           }
         });
 
