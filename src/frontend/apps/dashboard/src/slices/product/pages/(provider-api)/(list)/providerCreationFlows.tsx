@@ -41,7 +41,7 @@ let PickerDialogScaffold = ({
               variant="outline"
               onClick={() => {
                 close();
-                onBack();
+                onBack?.();
               }}
             >
               Back

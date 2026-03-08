@@ -12,7 +12,7 @@ import {
   TextArrayInput,
   theme
 } from '@metorial/ui';
-import { JSONSchema7 } from 'json-schema';
+import { JSONSchema7, JSONSchema7Definition } from 'json-schema';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import styled from 'styled-components';
 
@@ -45,6 +45,9 @@ let formatGenericObjectTabLabel = (value: string) =>
     .replace(/\b\w/g, letter => letter.toUpperCase());
 
 let formatSchemaFieldLabel = (value: string) => formatGenericObjectTabLabel(value);
+
+let isObjectSchema = (property: JSONSchema7Definition): property is JSONSchema7 =>
+  typeof property === 'object' && property !== null;
 
 let isJsonStringField = (p: {
   key: string;
@@ -273,10 +276,8 @@ let GenericObjectTabs = styled.div`
   }
 `;
 
-let isGenericObjectProperty = (property: JSONSchema7 | boolean) =>
-  typeof property === 'object' &&
-  property.type === 'object' &&
-  !property.properties;
+let isGenericObjectProperty = (property: JSONSchema7Definition): property is JSONSchema7 =>
+  isObjectSchema(property) && property.type === 'object' && !property.properties;
 
 export let JsonSchemaInput = ({
   schema,
@@ -306,11 +307,21 @@ export let JsonSchemaInput = ({
 
   let properties = schema.properties ?? {};
   let required = schema.required ?? [];
-  let genericObjectFields = Object.entries(properties).filter(([, property]) =>
-    isGenericObjectProperty(property)
+  let genericObjectFields = Object.entries(properties).reduce<Array<[string, JSONSchema7]>>(
+    (acc, [key, property]) => {
+      if (isGenericObjectProperty(property)) acc.push([key, property]);
+      return acc;
+    },
+    []
   );
-  let nonGenericFields = Object.entries(properties).filter(([, property]) =>
-    typeof property === 'object' && !isGenericObjectProperty(property)
+  let nonGenericFields = Object.entries(properties).reduce<Array<[string, JSONSchema7]>>(
+    (acc, [key, property]) => {
+      if (isObjectSchema(property) && !isGenericObjectProperty(property)) {
+        acc.push([key, property]);
+      }
+      return acc;
+    },
+    []
   );
 
   let [value, setValue] = useState<JsonSchemaInputValue>(() => {
@@ -318,7 +329,7 @@ export let JsonSchemaInput = ({
 
     Object.entries(properties).forEach(([key, property]) => {
       if (
-        typeof property === 'object' &&
+        isObjectSchema(property) &&
         property.default !== undefined &&
         initial[key] === undefined
       ) {
@@ -334,7 +345,7 @@ export let JsonSchemaInput = ({
 
       Object.entries(properties).forEach(([key, property]) => {
         if (
-          typeof property === 'object' &&
+          isObjectSchema(property) &&
           property.default !== undefined &&
           merged[key] === undefined
         ) {
@@ -688,7 +699,7 @@ let RenderField = ({
 
     Object.entries(nestedProperties).forEach(([nestedKey, nestedProp]) => {
       if (
-        typeof nestedProp === 'object' &&
+        isObjectSchema(nestedProp) &&
         nestedProp.default !== undefined &&
         nestedValue[nestedKey] === undefined
       ) {
@@ -699,7 +710,7 @@ let RenderField = ({
     let nestedContent = (
       <NestedWrapper>
         {Object.entries(nestedProperties).map(([nestedKey, nestedProp], i) => {
-          if (typeof nestedProp !== 'object') return null;
+          if (!isObjectSchema(nestedProp)) return null;
           return (
             <RenderField
               key={i}

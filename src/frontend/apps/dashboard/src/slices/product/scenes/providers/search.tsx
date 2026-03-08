@@ -277,8 +277,7 @@ export let ProvidersWithDeploymentsSearch = ({
     providerIds.length > 0
       ? {
           orderByRank: true,
-          providerId: providerIds,
-          limit: providerIds.length
+          limit: Math.max(providerIds.length, 100)
         }
       : null
   );
@@ -295,6 +294,7 @@ export let ProvidersWithDeploymentsSearch = ({
     >();
 
     for (let providerListing of providerListings.data?.items ?? []) {
+      if (!providerIds.includes(providerListing.provider.id)) continue;
       providerLookup.set(providerListing.provider.id, {
         name: providerListing.name ?? providerListing.provider.name,
         slug: providerListing.slug ?? providerListing.provider.slug,
