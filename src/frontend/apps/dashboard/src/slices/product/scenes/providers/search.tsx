@@ -20,6 +20,7 @@ import { useMemo, useState } from 'react';
 import { useMeasure } from 'react-use';
 import styled from 'styled-components';
 import { useDebounced } from '../../../../hooks/useDebounced';
+import { getProviderOAuthAutoRegistrationEnabled } from '../../lib/providerOAuthAutoRegistration';
 
 type Provider = DashboardInstanceProvidersListOutput['items'][number];
 
@@ -299,8 +300,9 @@ export let ProvidersWithDeploymentsSearch = ({
         name: providerListing.name ?? providerListing.provider.name,
         slug: providerListing.slug ?? providerListing.provider.slug,
         imageUrl: providerListing.imageUrl,
-        oauthAutoRegistrationEnabled:
-          providerListing.provider.oauth?.autoRegistration?.status === 'enabled'
+        oauthAutoRegistrationEnabled: getProviderOAuthAutoRegistrationEnabled(
+          providerListing.provider
+        )
       });
     }
 
