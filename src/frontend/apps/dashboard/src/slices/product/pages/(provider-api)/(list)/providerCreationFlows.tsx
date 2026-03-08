@@ -143,23 +143,51 @@ let showPickerModal = (children: (d: { close: () => void }) => ReactNode) =>
     </Dialog.Wrapper>
   ));
 
-export let showCreateProviderConfigFlow = (instanceId: string) =>
-  showPickerModal(({ close }) => (
-    <DeploymentPicker
+export let showCreateProviderConfigFlow = (instanceId: string) => {
+  let scope = 'provider' as const;
+  let showDeploymentStep = (providerId: string) =>
+    showPickerModal(({ close }) => (
+      <DeploymentPicker
+        title="Select Deployment"
+        description="Choose a deployment to create a configuration for."
+        close={close}
+        selectionMode="configCreate"
+        providerId={providerId}
+        onBack={() => showCreateProviderConfigFlow(instanceId)}
+        onSelect={deploymentId =>
+          showProviderConfigFormModal({
+            type: 'create',
+            instanceId,
+            providerId,
+            providerDeploymentId: deploymentId,
+            onBack: () => showDeploymentStep(providerId)
+          })
+        }
+      />
+    ));
+
+  return showPickerModal(({ close }) => (
+    <ProviderPicker
+      instanceId={instanceId}
       title="Create Config"
-      description="Select a deployment to create a configuration for."
+      description="Select a provider to create a configuration for."
       close={close}
-      selectionMode="configCreate"
-      onSelect={deploymentId =>
-        showProviderConfigFormModal({
-          type: 'create',
-          instanceId,
-          providerDeploymentId: deploymentId,
-          onBack: () => showCreateProviderConfigFlow(instanceId)
-        })
-      }
+      onSelect={providerId => {
+        if (scope === 'provider') {
+          showProviderConfigFormModal({
+            type: 'create',
+            instanceId,
+            providerId,
+            onBack: () => showCreateProviderConfigFlow(instanceId)
+          });
+          return;
+        }
+
+        showDeploymentStep(providerId);
+      }}
     />
   ));
+};
 
 export let showCreateProviderConfigVaultFlow = (instanceId: string) => {
   let scope = 'provider' as const;

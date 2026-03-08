@@ -8,7 +8,7 @@ import {
   useCreateProviderConfig,
   useProvider,
   useProviderConfigVaults,
-  useProviderConfigSchema,
+  useProviderConfigSchemaTarget,
   useProviderDeployment
 } from '@metorial/state';
 import {
@@ -20,13 +20,18 @@ import {
   Spacer,
   Text
 } from '@metorial/ui';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { getProviderConfigSchemaCapabilities } from '../../lib/providerCreationCapabilities';
 import { JsonSchemaInput } from '../jsonSchemaInput';
 import { ProviderContextCard } from '../providerContextCard';
 
 export type ProviderConfigFormProps =
-  | { type: 'create'; providerDeploymentId: string; instanceId?: string }
+  | {
+      type: 'create';
+      providerId?: string;
+      providerDeploymentId?: string;
+      instanceId?: string;
+    }
   | { type: 'update'; providerDeploymentId: string; configId: string; instanceId?: string };
 
 export let ProviderConfigForm = (
@@ -40,13 +45,43 @@ export let ProviderConfigForm = (
   let instanceId = props.instanceId ?? instance.data?.id;
   let createMutation = useCreateProviderConfig();
   let deployment = useProviderDeployment(instanceId, props.providerDeploymentId);
-  let provider = useProvider(instanceId, deployment.data?.providerId);
-  let vaults = useProviderConfigVaults(instanceId, { providerDeploymentId: props.providerDeploymentId });
+  let providerId =
+    props.type === 'create'
+      ? props.providerId ?? deployment.data?.providerId
+      : deployment.data?.providerId;
+  let provider = useProvider(instanceId, providerId);
+  let vaults = useProviderConfigVaults(
+    instanceId,
+    props.type === 'create'
+      ? {
+          ...(providerId ? { providerId } : {}),
+          ...(props.providerDeploymentId
+            ? { providerDeploymentId: props.providerDeploymentId }
+            : {})
+        }
+      : { providerDeploymentId: props.providerDeploymentId }
+  );
 
-  // Fetch config schema for the provider deployment
-  let configSchema = useProviderConfigSchema(instanceId, props.providerDeploymentId);
+  let configSchema = useProviderConfigSchemaTarget(
+    instanceId,
+    props.type === 'create'
+      ? providerId || props.providerDeploymentId
+        ? {
+            ...(providerId ? { providerId } : {}),
+            ...(props.providerDeploymentId
+              ? { providerDeploymentId: props.providerDeploymentId }
+              : {})
+          }
+        : null
+      : props.providerDeploymentId
+        ? { providerDeploymentId: props.providerDeploymentId }
+        : null
+  );
+  let isDeploymentScoped =
+    props.type === 'update' || !!props.providerDeploymentId;
 
   let [configData, setConfigData] = useState<Record<string, unknown>>({});
+  let hasInitializedSourceMode = useRef(false);
 
   let form = useForm({
     initialValues: {
@@ -72,8 +107,7 @@ export let ProviderConfigForm = (
   });
   let vaultItems: DashboardInstanceProviderDeploymentsConfigVaultsListOutput['items'] =
     vaults.data?.items ?? [];
-  let canCreateFromVault =
-    vaultItems.length > 0 && !schemaCapabilities.hasExplicitEmptySchema;
+  let canCreateFromVault = vaultItems.length > 0;
   let shouldUseVaultOnly =
     !schemaCapabilities.hasSchemaFields && canCreateFromVault;
   let createFromVault =
@@ -81,11 +115,10 @@ export let ProviderConfigForm = (
   let showSourceSelect =
     schemaCapabilities.hasSchemaFields && canCreateFromVault;
   let showEmptyState =
-    schemaCapabilities.hasExplicitEmptySchema ||
     (!schemaCapabilities.hasSchemaFields && !canCreateFromVault);
-  let emptyStateMessage = schemaCapabilities.hasExplicitEmptySchema
-    ? schemaCapabilities.configDisabledReason
-    : 'No configuration schema or config vault is available for this deployment, so this config cannot be created from the dashboard.';
+  let emptyStateMessage = isDeploymentScoped
+      ? 'No configuration schema or config vault is available for this deployment, so this config cannot be created from the dashboard.'
+      : 'No configuration schema or config vault is available for this provider, so this config cannot be created from the dashboard.';
 
   useEffect(() => {
     if (shouldUseVaultOnly && form.values.sourceMode !== 'vault') {
@@ -98,6 +131,20 @@ export let ProviderConfigForm = (
     }
   }, [canCreateFromVault, form, form.values.sourceMode, shouldUseVaultOnly]);
 
+  useEffect(() => {
+    if (hasInitializedSourceMode.current) return;
+
+    if (canCreateFromVault && !shouldUseVaultOnly) {
+      hasInitializedSourceMode.current = true;
+      form.setFieldValue('sourceMode', 'vault');
+      return;
+    }
+
+    if (!canCreateFromVault) {
+      hasInitializedSourceMode.current = true;
+    }
+  }, [canCreateFromVault, form, shouldUseVaultOnly]);
+
   let handleSubmit = async () => {
     let name = form.values.name.trim();
 
@@ -109,7 +156,7 @@ export let ProviderConfigForm = (
 
     form.setFieldError('name', undefined);
 
-    if (props.type !== 'create' || !instanceId || !deployment.data?.providerId) {
+    if (props.type !== 'create' || !instanceId || !providerId) {
       return;
     }
 
@@ -127,18 +174,22 @@ export let ProviderConfigForm = (
       createFromVault
         ? {
             instanceId,
-            providerDeploymentId: props.providerDeploymentId,
             name,
             description: form.values.description || undefined,
-            providerId: deployment.data.providerId,
+            providerId,
+            ...(props.providerDeploymentId
+              ? { providerDeploymentId: props.providerDeploymentId }
+              : {}),
             providerConfigVaultId: form.values.providerConfigVaultId
           }
         : {
             instanceId,
-            providerDeploymentId: props.providerDeploymentId,
             name,
             description: form.values.description || undefined,
-            providerId: deployment.data.providerId,
+            providerId,
+            ...(props.providerDeploymentId
+              ? { providerDeploymentId: props.providerDeploymentId }
+              : {}),
             value: configData
           }
     );
@@ -155,11 +206,11 @@ export let ProviderConfigForm = (
 
   return (
     <>
-      {deployment.data?.providerId && (
+      {providerId && (
         <>
           <ProviderContextCard
-            providerId={deployment.data.providerId}
-            providerName={provider.data?.name ?? deployment.data?.providerId}
+            providerId={providerId}
+            providerName={provider.data?.name ?? providerId}
             providerImageUrl={provider.data?.publisher.imageUrl}
             deploymentName={deployment.data?.name}
             deploymentDescription={deployment.data?.description}

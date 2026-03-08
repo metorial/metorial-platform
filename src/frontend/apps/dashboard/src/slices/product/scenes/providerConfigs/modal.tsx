@@ -15,7 +15,9 @@ export let showProviderConfigFormModal = (
       <Dialog.Description>
         {p.type == 'update'
           ? 'Update the config details.'
-          : 'Create a new configuration for this deployment.'}
+          : p.providerDeploymentId
+            ? 'Create a new configuration for this deployment.'
+            : 'Create a new configuration for this provider.'}
       </Dialog.Description>
 
       <ProviderConfigForm

@@ -21,7 +21,6 @@ export let useCreateProviderConfig = providerConfigsLoader.createExternalMutator
   (
     i: DashboardInstanceProviderDeploymentsConfigsCreateBody & {
       instanceId: string;
-      providerDeploymentId: string;
     }
   ) => withAuth(sdk => sdk.providerDeployments.configs.create(i.instanceId, i)),
   { disableToast: true }
