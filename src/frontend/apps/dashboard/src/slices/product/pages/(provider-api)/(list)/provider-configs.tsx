@@ -41,12 +41,10 @@ export let ProviderConfigsOverviewPage = () => {
   );
   let configs = useInstanceProviderConfigs(
     instance.data?.id,
-    deploymentIds.length > 0
-      ? {
-          providerDeploymentId: deploymentIds,
-          search: searchDebounced
-        }
-      : null
+    {
+      providerDeploymentId: deploymentIds.length > 0 ? deploymentIds : ['__none__'],
+      search: searchDebounced
+    }
   );
   let providerIds = useMemo(
     () => [
@@ -89,56 +87,45 @@ export let ProviderConfigsOverviewPage = () => {
 
     return nextRows;
   }, [configs.data?.items, deploymentItems]);
-  let configsContent = renderWithPagination(configs, {
-    emptyState: (
-      <Text size="2" color="gray600">
-        No configs found.
-      </Text>
-    )
-  })(() =>
-    rows.length > 0 ? (
-      <Table
-        headers={['Config Name', 'Provider', 'Version', 'Created']}
-        data={rows.map(row => ({
-          href: Paths.instance.providerConfig(
-            organization.data,
-            project.data,
-            instance.data,
-            row.deployment.id,
-            row.config.id
+  let table = (
+    <Table
+      headers={['Config Name', 'Provider', 'Version', 'Created']}
+      data={rows.map(row => ({
+        href: Paths.instance.providerConfig(
+          organization.data,
+          project.data,
+          instance.data,
+          row.deployment.id,
+          row.config.id
+        ),
+        data: [
+          <Text size="2" weight="strong">
+            {row.config.name ?? 'Unnamed'}
+          </Text>,
+          <Text size="2">
+            {providerNameMap.get(row.deployment.providerId) ?? row.deployment.providerId}
+          </Text>,
+          row.deployment.lockedVersion ? (
+            <Badge color="purple" size="1">
+              {row.deployment.lockedVersion.version}
+            </Badge>
+          ) : (
+            <Badge color="gray" size="1">
+              Default
+            </Badge>
           ),
-          data: [
-            <Text size="2" weight="strong">
-              {row.config.name ?? 'Unnamed'}
-            </Text>,
-            <Text size="2">
-              {providerNameMap.get(row.deployment.providerId) ?? row.deployment.providerId}
-            </Text>,
-            row.deployment.lockedVersion ? (
-              <Badge color="purple" size="1">
-                {row.deployment.lockedVersion.version}
-              </Badge>
-            ) : (
-              <Badge color="gray" size="1">
-                Default
-              </Badge>
-            ),
-            row.config.createdAt ? (
-              <RenderDate date={row.config.createdAt} />
-            ) : (
-              <Text size="2" color="gray600">
-                —
-              </Text>
-            )
-          ]
-        }))}
-      />
-    ) : (
-      <Text size="2" color="gray600">
-        No configs found.
-      </Text>
-    )
+          row.config.createdAt ? (
+            <RenderDate date={row.config.createdAt} />
+          ) : (
+            <Text size="2" color="gray600">
+              —
+            </Text>
+          )
+        ]
+      }))}
+    />
   );
+  let configsContent = renderWithPagination(configs)(() => table);
 
   return renderWithLoader({ organization, project, instance, deployments })(() => (
     <>
@@ -153,6 +140,12 @@ export let ProviderConfigsOverviewPage = () => {
       <Spacer size={15} />
 
       {configsContent}
+
+      {!configs.isLoading && !configs.error && rows.length === 0 && (
+        <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
+          No configs for this instance.
+        </Text>
+      )}
     </>
   ));
 };

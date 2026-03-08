@@ -130,8 +130,8 @@ export let ProviderAuthConfigsOverviewPage = () => {
       {authConfigsContent}
 
       {!authConfigs.isLoading && !authConfigs.error && rows.length === 0 && (
-        <Text size="2" color="gray600">
-          No auth configs found. Create an auth config from a deployment or setup flow.
+        <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
+          No auth configs for this instance.
         </Text>
       )}
     </>

@@ -6,17 +6,32 @@ import { useForm } from '@metorial/data-hooks';
 import {
   useCurrentInstance,
   useCreateProviderConfig,
+  useProvider,
   useProviderConfigVaults,
-  useProviderConfigSchema,
+  useProviderConfigSchemaTarget,
   useProviderDeployment
 } from '@metorial/state';
-import { Button, CenteredSpinner, Dialog, Input, Select, Spacer, Text } from '@metorial/ui';
-import { useState } from 'react';
-import { getJsonSchemaObject } from '../../lib/jsonSchema';
+import {
+  Button,
+  CenteredSpinner,
+  Dialog,
+  Input,
+  Select,
+  Spacer,
+  Text
+} from '@metorial/ui';
+import { useEffect, useRef, useState } from 'react';
+import { getProviderConfigSchemaCapabilities } from '../../lib/providerCreationCapabilities';
 import { JsonSchemaInput } from '../jsonSchemaInput';
+import { ProviderContextCard } from '../providerContextCard';
 
 export type ProviderConfigFormProps =
-  | { type: 'create'; providerDeploymentId: string; instanceId?: string }
+  | {
+      type: 'create';
+      providerId?: string;
+      providerDeploymentId?: string;
+      instanceId?: string;
+    }
   | { type: 'update'; providerDeploymentId: string; configId: string; instanceId?: string };
 
 export let ProviderConfigForm = (
@@ -30,15 +45,43 @@ export let ProviderConfigForm = (
   let instanceId = props.instanceId ?? instance.data?.id;
   let createMutation = useCreateProviderConfig();
   let deployment = useProviderDeployment(instanceId, props.providerDeploymentId);
-  let vaults = useProviderConfigVaults(instanceId, { providerDeploymentId: props.providerDeploymentId });
+  let providerId =
+    props.type === 'create'
+      ? props.providerId ?? deployment.data?.providerId
+      : deployment.data?.providerId;
+  let provider = useProvider(instanceId, providerId);
+  let vaults = useProviderConfigVaults(
+    instanceId,
+    props.type === 'create'
+      ? {
+          ...(providerId ? { providerId } : {}),
+          ...(props.providerDeploymentId
+            ? { providerDeploymentId: props.providerDeploymentId }
+            : {})
+        }
+      : { providerDeploymentId: props.providerDeploymentId }
+  );
 
-  // Fetch config schema for the provider deployment
-  let configSchema = useProviderConfigSchema(instanceId, props.providerDeploymentId);
+  let configSchema = useProviderConfigSchemaTarget(
+    instanceId,
+    props.type === 'create'
+      ? providerId || props.providerDeploymentId
+        ? {
+            ...(providerId ? { providerId } : {}),
+            ...(props.providerDeploymentId
+              ? { providerDeploymentId: props.providerDeploymentId }
+              : {})
+          }
+        : null
+      : props.providerDeploymentId
+        ? { providerDeploymentId: props.providerDeploymentId }
+        : null
+  );
+  let isDeploymentScoped =
+    props.type === 'update' || !!props.providerDeploymentId;
 
   let [configData, setConfigData] = useState<Record<string, unknown>>({});
-
-  let jsonSchema = getJsonSchemaObject(configSchema.data?.schema);
-  let hasSchema = !!jsonSchema;
+  let hasInitializedSourceMode = useRef(false);
 
   let form = useForm({
     initialValues: {
@@ -57,8 +100,50 @@ export let ProviderConfigForm = (
       })
   });
 
-  let canCreateFromVault = (vaults.data?.items?.length ?? 0) > 0;
-  let createFromVault = form.values.sourceMode === 'vault';
+  let schemaCapabilities = getProviderConfigSchemaCapabilities({
+    schemaValue: configSchema.data?.schema,
+    hasVaults: (vaults.data?.items?.length ?? 0) > 0,
+    isLoading: configSchema.isLoading || vaults.isLoading
+  });
+  let vaultItems: DashboardInstanceProviderDeploymentsConfigVaultsListOutput['items'] =
+    vaults.data?.items ?? [];
+  let canCreateFromVault = vaultItems.length > 0;
+  let shouldUseVaultOnly =
+    !schemaCapabilities.hasSchemaFields && canCreateFromVault;
+  let createFromVault =
+    shouldUseVaultOnly || form.values.sourceMode === 'vault';
+  let showSourceSelect =
+    schemaCapabilities.hasSchemaFields && canCreateFromVault;
+  let showEmptyState =
+    (!schemaCapabilities.hasSchemaFields && !canCreateFromVault);
+  let emptyStateMessage = isDeploymentScoped
+      ? 'No configuration schema or config vault is available for this deployment, so this config cannot be created from the dashboard.'
+      : 'No configuration schema or config vault is available for this provider, so this config cannot be created from the dashboard.';
+
+  useEffect(() => {
+    if (shouldUseVaultOnly && form.values.sourceMode !== 'vault') {
+      form.setFieldValue('sourceMode', 'vault');
+      return;
+    }
+
+    if (!canCreateFromVault && form.values.sourceMode === 'vault') {
+      form.setFieldValue('sourceMode', 'raw');
+    }
+  }, [canCreateFromVault, form, form.values.sourceMode, shouldUseVaultOnly]);
+
+  useEffect(() => {
+    if (hasInitializedSourceMode.current) return;
+
+    if (canCreateFromVault && !shouldUseVaultOnly) {
+      hasInitializedSourceMode.current = true;
+      form.setFieldValue('sourceMode', 'vault');
+      return;
+    }
+
+    if (!canCreateFromVault) {
+      hasInitializedSourceMode.current = true;
+    }
+  }, [canCreateFromVault, form, shouldUseVaultOnly]);
 
   let handleSubmit = async () => {
     let name = form.values.name.trim();
@@ -71,7 +156,7 @@ export let ProviderConfigForm = (
 
     form.setFieldError('name', undefined);
 
-    if (props.type !== 'create' || !instanceId || !deployment.data?.providerId) {
+    if (props.type !== 'create' || !instanceId || !providerId) {
       return;
     }
 
@@ -81,22 +166,30 @@ export let ProviderConfigForm = (
       return;
     }
 
+    if (!createFromVault && !schemaCapabilities.hasSchemaFields) {
+      return;
+    }
+
     let [result] = await createMutation.mutate(
       createFromVault
         ? {
             instanceId,
-            providerDeploymentId: props.providerDeploymentId,
             name,
             description: form.values.description || undefined,
-            providerId: deployment.data.providerId,
+            providerId,
+            ...(props.providerDeploymentId
+              ? { providerDeploymentId: props.providerDeploymentId }
+              : {}),
             providerConfigVaultId: form.values.providerConfigVaultId
           }
         : {
             instanceId,
-            providerDeploymentId: props.providerDeploymentId,
             name,
             description: form.values.description || undefined,
-            providerId: deployment.data.providerId,
+            providerId,
+            ...(props.providerDeploymentId
+              ? { providerDeploymentId: props.providerDeploymentId }
+              : {}),
             value: configData
           }
     );
@@ -111,12 +204,22 @@ export let ProviderConfigForm = (
     return <CenteredSpinner />;
   }
 
-  let vaultItems: DashboardInstanceProviderDeploymentsConfigVaultsListOutput['items'] =
-    vaults.data?.items ?? [];
-  let showEmptyState = !hasSchema && !canCreateFromVault;
-
   return (
     <>
+      {providerId && (
+        <>
+          <ProviderContextCard
+            providerId={providerId}
+            providerName={provider.data?.name ?? providerId}
+            providerImageUrl={provider.data?.publisher.imageUrl}
+            deploymentName={deployment.data?.name}
+            deploymentDescription={deployment.data?.description}
+          />
+
+          <Spacer size={10} />
+        </>
+      )}
+
       {!showEmptyState ? (
         <form
           onSubmit={e => {
@@ -133,14 +236,16 @@ export let ProviderConfigForm = (
 
           <Spacer size={10} />
 
-          {canCreateFromVault && (
+          {showSourceSelect && (
             <>
               <Select
                 label="Source"
                 value={form.values.sourceMode}
                 onChange={value => form.setFieldValue('sourceMode', value as 'raw' | 'vault')}
                 items={[
-                  ...(hasSchema ? [{ id: 'raw', label: 'Manual values' }] : []),
+                  ...(schemaCapabilities.hasSchemaFields
+                    ? [{ id: 'raw', label: 'Manual values' }]
+                    : []),
                   ...(canCreateFromVault ? [{ id: 'vault', label: 'Use config vault' }] : [])
                 ]}
               />
@@ -169,7 +274,7 @@ export let ProviderConfigForm = (
             </>
           ) : (
             <JsonSchemaInput
-              schema={jsonSchema}
+              schema={schemaCapabilities.schemaObject}
               value={configData}
               onChange={setConfigData}
               label="Configuration"
@@ -186,7 +291,7 @@ export let ProviderConfigForm = (
               type="button"
               onClick={handleSubmit}
               loading={createMutation.isPending}
-              disabled={!createFromVault && !hasSchema}
+              disabled={!createFromVault && !schemaCapabilities.hasSchemaFields}
             >
               {props.type === 'create' ? 'Create' : 'Update'}
             </Button>
@@ -196,8 +301,7 @@ export let ProviderConfigForm = (
         </form>
       ) : (
         <Text size="2" color="gray600">
-          No configuration schema or config vault is available for this deployment, so this config
-          cannot be created from the dashboard.
+          {emptyStateMessage}
         </Text>
       )}
 
@@ -207,7 +311,7 @@ export let ProviderConfigForm = (
 
           <Dialog.Actions>
             <Button variant="outline" onClick={props.onBack ?? props.close}>
-              Back
+              {props.onBack ? 'Back' : 'Close'}
             </Button>
           </Dialog.Actions>
         </>

@@ -32,12 +32,15 @@ import {
   theme
 } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
+import { RiAddLine } from '@remixicon/react';
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import {
   emptyConfigurationSelection,
   type ConfigurationSelection
 } from '../../../lib/configSelection';
+import { useProviderAuthCreationCapabilities } from '../../../lib/providerCreationCapabilities';
+import { showProviderAuthConfigCreateModal } from '../../../scenes/providerAuthConfigs/modal';
 import { ProviderConfigurationSelection } from '../../../scenes/providerConfigs/selection';
 import { ProviderDeploymentsList } from '../../../scenes/providerDeployments/list';
 import { ProvidersWithDeploymentsSearch } from '../../../scenes/providers/search';
@@ -422,6 +425,11 @@ let DeploymentConfigureStep = ({
   let providerVersionId =
     deployment.data?.lockedVersion?.id ?? provider.data?.currentVersion?.id ?? null;
   let tools = useProviderTools(instanceId, providerVersionId);
+  let authCreation = useProviderAuthCreationCapabilities(
+    instanceId,
+    deploymentId,
+    providerId
+  );
   let authConfigItems = authConfigs.data?.items ?? [];
   let toolItems = tools.data?.items ?? [];
 
@@ -461,13 +469,43 @@ let DeploymentConfigureStep = ({
       />
       {configError}
 
-      <Select
-        label="Auth Config"
-        value={selectedAuthConfigId}
-        placeholder="None"
-        onChange={v => setSelectedAuthConfigId(v)}
-        items={authConfigItems.map(config => ({ id: config.id, label: config.name ?? config.id }))}
-      />
+      <Flex gap={8} align="end">
+        <div style={{ flex: 1 }}>
+          <Select
+            label="Auth Config"
+            value={selectedAuthConfigId}
+            placeholder="None"
+            onChange={v => setSelectedAuthConfigId(v)}
+            items={authConfigItems.map(config => ({
+              id: config.id,
+              label: config.name ?? config.id
+            }))}
+          />
+        </div>
+
+        <div
+          title={authCreation.authConfigDisabledReason ?? undefined}
+          style={{ display: 'inline-flex' }}
+        >
+          <Button
+            type="button"
+            size="3"
+            iconLeft={<RiAddLine />}
+            aria-label="Create Auth Config"
+            disabled={!authCreation.canCreateAuthConfig}
+            onClick={() =>
+              showProviderAuthConfigCreateModal({
+                instanceId,
+                providerDeploymentId: deploymentId,
+                onCreate: authConfig => {
+                  authConfigs.refetch?.();
+                  setSelectedAuthConfigId(authConfig.id);
+                }
+              })
+            }
+          />
+        </div>
+      </Flex>
       {authConfigError}
 
       {toolItems.length > 0 && (
@@ -775,6 +813,7 @@ let ProvidersTable = ({
                 size={24}
                 radius={6}
                 noTooltip
+                imageFit="contain"
               />
               <Text size="2" weight="strong">
                 {providerName}

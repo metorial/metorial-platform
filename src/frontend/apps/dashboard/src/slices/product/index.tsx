@@ -99,6 +99,11 @@ let ProviderDeploymentConfigsPage = dynamicPage(() =>
     c => c.ProviderDeploymentConfigsPage
   )
 );
+let ProviderDeploymentConfigVaultsPage = dynamicPage(() =>
+  import('./pages/(provider-api)/provider-deployment/config-vaults').then(
+    c => c.ProviderDeploymentConfigVaultsPage
+  )
+);
 let ProviderDeploymentAuthMethodsPage = dynamicPage(() =>
   import('./pages/(provider-api)/provider-deployment/auth-methods').then(
     c => c.ProviderDeploymentAuthMethodsPage
@@ -165,6 +170,11 @@ let ProviderAuthConnectionLayout = dynamicPage(() =>
 let ProviderAuthConnectionOverviewPage = dynamicPage(() =>
   import('./pages/(provider-api)/provider-auth-configs/index').then(
     c => c.ProviderAuthConfigOverviewPage
+  )
+);
+let ProviderAuthConnectionAuthenticationPage = dynamicPage(() =>
+  import('./pages/(provider-api)/provider-auth-configs/authentication').then(
+    c => c.ProviderAuthConfigAuthenticationPage
   )
 );
 let ProviderAuthConnectionSettingsPage = dynamicPage(() =>
@@ -564,6 +574,10 @@ export let productInnerSlice = createSlice([
                 element: <ProviderDeploymentConfigsPage />
               },
               {
+                path: 'config-vaults',
+                element: <ProviderDeploymentConfigVaultsPage />
+              },
+              {
                 path: 'auth-methods',
                 element: <ProviderDeploymentAuthMethodsPage />
               },
@@ -626,6 +640,10 @@ export let productInnerSlice = createSlice([
               {
                 path: '',
                 element: <ProviderAuthConnectionOverviewPage />
+              },
+              {
+                path: 'authentication',
+                element: <ProviderAuthConnectionAuthenticationPage />
               },
               {
                 path: 'settings',

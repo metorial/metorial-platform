@@ -23,7 +23,7 @@ export let useCreateProviderAuthConfig =
   (
     i: DashboardInstanceProviderDeploymentsAuthConfigsCreateBody & {
       instanceId: string;
-      providerDeploymentId: string;
+      providerDeploymentId?: string;
     }
   ) =>
     withAuth(sdk => sdk.providerDeployments.authConfigs.create(i.instanceId, i)),

@@ -5,7 +5,7 @@ import {
   useCurrentOrganization,
   useCurrentProject,
   useProviderConfigVault,
-  useProviderConfigs
+  useInstanceProviderConfigs
 } from '@metorial/state';
 import { Attributes, RenderDate, Spacer, Text } from '@metorial/ui';
 import { ID, Table } from '@metorial/ui-product';
@@ -19,10 +19,12 @@ export let ProviderConfigVaultOverviewPage = () => {
 
   let { providerConfigVaultId } = useParams();
   let vault = useProviderConfigVault(instance.data?.id, providerConfigVaultId);
-  let configs = useProviderConfigs(
+  let configs = useInstanceProviderConfigs(
     instance.data?.id,
-    vault.data?.deployment?.id,
-    vault.data?.id ? { providerConfigVaultId: vault.data.id } : undefined
+    vault.data?.providerId ? { providerId: vault.data.providerId } : null
+  );
+  let usedByConfigs = (configs.data?.items ?? []).filter(
+    config => config.fromVault?.id === vault.data?.id
   );
 
   return renderWithLoader({ vault })(({ vault }) => (
@@ -84,14 +86,17 @@ export let ProviderConfigVaultOverviewPage = () => {
 
       <Table
         headers={['Name', 'Default', 'Created']}
-        data={(configs.data?.items ?? []).map(config => ({
-          href: Paths.instance.providerConfig(
-            organization.data,
-            project.data,
-            instance.data,
-            vault.data.deployment?.id,
-            config.id
-          ),
+        data={usedByConfigs.map(config => ({
+          href:
+            config.deployment?.id ?? vault.data.deployment?.id
+              ? Paths.instance.providerConfig(
+                  organization.data,
+                  project.data,
+                  instance.data,
+                  config.deployment?.id ?? vault.data.deployment?.id!,
+                  config.id
+                )
+              : undefined,
           data: [
             <Text size="2" weight="strong">
               {config.name ?? config.id}
@@ -102,7 +107,7 @@ export let ProviderConfigVaultOverviewPage = () => {
         }))}
       />
 
-      {(configs.data?.items?.length ?? 0) === 0 && (
+      {usedByConfigs.length === 0 && (
         <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
           No configs are currently using this vault.
         </Text>

@@ -74,7 +74,12 @@ export let CustomServerDockerCreateForm = (p: {
               instance.data.project,
               instance.data,
               customServerRes.id
-            )
+            ),
+            {
+              state: {
+                category: 'custom'
+              }
+            }
           );
         }
       }

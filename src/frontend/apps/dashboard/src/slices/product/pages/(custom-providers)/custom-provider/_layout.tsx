@@ -54,22 +54,12 @@ export let CustomProviderLayout = () => {
         title={customProvider.data?.name ?? '...'}
         pagination={[
           {
-            label:
-              customProvider.data?.status == 'active'
-                ? 'External Providers'
-                : 'Custom Providers',
-            href:
-              customProvider.data?.status == 'active'
-                ? Paths.instance.externalProviders(
-                    organization.data,
-                    project.data,
-                    instance.data
-                  )
-                : Paths.instance.customProviders(
-                    organization.data,
-                    project.data,
-                    instance.data
-                  )
+            label: 'Custom Providers',
+            href: Paths.instance.customProviders(
+              organization.data,
+              project.data,
+              instance.data
+            )
           },
           {
             label: customProvider.data?.name,

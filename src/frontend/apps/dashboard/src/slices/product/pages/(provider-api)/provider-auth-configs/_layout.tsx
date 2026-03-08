@@ -41,12 +41,11 @@ export let ProviderAuthConfigLayout = () => {
         description={authConfig.data?.description ?? undefined}
         pagination={[
           {
-            label: 'Configurations',
+            label: 'Deployments',
             href: Paths.instance.providerDeployments(
               organization.data,
               project.data,
-              instance.data,
-              'auth-configs'
+              instance.data
             )
           },
           {
@@ -56,6 +55,16 @@ export let ProviderAuthConfigLayout = () => {
               project.data,
               instance.data,
               deployment.data?.id ?? providerDeploymentId
+            )
+          },
+          {
+            label: 'Auth Configs',
+            href: Paths.instance.providerDeployment(
+              organization.data,
+              project.data,
+              instance.data,
+              deployment.data?.id ?? providerDeploymentId,
+              'auth-configs'
             )
           },
           {
@@ -73,6 +82,13 @@ export let ProviderAuthConfigLayout = () => {
               {
                 label: 'Overview',
                 to: Paths.instance.providerAuthConfig(...authConfigPathParams)
+              },
+              {
+                label: 'Authentication',
+                to: Paths.instance.providerAuthConfig(
+                  ...authConfigPathParams,
+                  'authentication'
+                )
               },
               {
                 label: 'Settings',

@@ -1,5 +1,6 @@
 export * from './loaders/providerAuthConfigs';
 export * from './loaders/providerAuthCredentials';
+export * from './loaders/providerAuthImportSchema';
 export * from './loaders/providerAuthMethods';
 export * from './loaders/providerConfigs';
 export * from './loaders/providerConfigVaults';

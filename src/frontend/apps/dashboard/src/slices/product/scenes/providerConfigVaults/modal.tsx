@@ -13,7 +13,9 @@ export let showProviderConfigVaultFormModal = (
       <Dialog.Title>Create Config Vault</Dialog.Title>
 
       <Dialog.Description>
-        Save a reusable set of configuration values for this deployment.
+        {p.providerDeploymentId
+          ? 'Save a reusable set of configuration values for this deployment.'
+          : 'Save a reusable set of configuration values for this provider.'}
       </Dialog.Description>
 
       <ProviderConfigVaultForm

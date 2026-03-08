@@ -1,4 +1,3 @@
-import { DashboardInstanceProvidersAuthMethodsListOutput } from '@metorial/dashboard-sdk';
 import { renderWithLoader, renderWithPagination } from '@metorial/data-hooks';
 import {
   useCurrentInstance,
@@ -6,163 +5,136 @@ import {
   useProviderAuthMethods,
   useProviderDeployment
 } from '@metorial/state';
-import { AccordionSingle, Badge, Button, Flex, Spacer, Text } from '@metorial/ui';
+import { Badge, Button, Flex, Input, Text } from '@metorial/ui';
+import { useState } from 'react';
+import { Table } from '@metorial/ui-product';
 import { useParams } from 'react-router-dom';
 import {
-  getJsonSchemaObject,
-  hasJsonSchemaProperties,
-} from '../../../lib/jsonSchema';
-import { showProviderAuthConfigFormModal } from '../../../scenes/providerAuthConfigs/modal';
-import { showProviderAuthCredentialsFormModal } from '../../../scenes/providerAuthCredentials/modal';
-import { showProviderSetupSessionModal } from '../../../scenes/providerDeployments/setupSessionModal';
-
-type ProviderAuthMethod = DashboardInstanceProvidersAuthMethodsListOutput['items'][number];
+  getProviderAuthMethodSchemaFieldCount,
+  getProviderAuthMethodTypeColor,
+  getProviderAuthMethodTypeLabel,
+  hasProviderAuthMethodSchemaFields,
+  showProviderAuthMethodDetailsModal
+} from '../../../scenes/providers/authMethodDetails';
+import { ProviderDeploymentTabSection } from '../../../scenes/providerDeployments/tabSection';
 
 export let ProviderDeploymentAuthMethodsPage = () => {
   let instance = useCurrentInstance();
   let { providerDeploymentId } = useParams();
+  let [search, setSearch] = useState('');
   let deployment = useProviderDeployment(instance.data?.id, providerDeploymentId);
   let provider = useProvider(instance.data?.id, deployment.data?.providerId);
   let effectiveVersionId =
     deployment.data?.lockedVersion?.id ?? provider.data?.currentVersion?.id;
   let authMethods = useProviderAuthMethods(instance.data?.id, effectiveVersionId);
 
-  return renderWithLoader({ instance, deployment, provider })(({ instance, deployment, provider }) =>
-    renderWithPagination(authMethods)(authMethods => (
+  let authMethodsContent = renderWithPagination(authMethods)(authMethods => {
+    let normalizedSearch = search.trim().toLowerCase();
+    let methods = authMethods.data.items.filter(method => {
+      if (!normalizedSearch) return true;
+
+      return [method.name, method.description ?? '', getProviderAuthMethodTypeLabel(method.type)]
+        .join(' ')
+        .toLowerCase()
+        .includes(normalizedSearch);
+    });
+
+    return (
       <>
-        {authMethods.data.items.length === 0 && (
-          <Text size="2" color="gray600" align="center">
-            No auth methods found.
+        <Table
+          headers={['Name', 'Type', 'Details', 'Action']}
+          data={methods.map(method => {
+            let description =
+              method.description && method.description.length > 110
+                ? `${method.description.slice(0, 110)}...`
+                : (method.description ?? '');
+            let hasInputFields = hasProviderAuthMethodSchemaFields(method.inputSchema);
+            let hasOutputFields = hasProviderAuthMethodSchemaFields(method.outputSchema);
+            let scopeCount = method.type === 'oauth' ? (method.scopes?.length ?? 0) : 0;
+
+            return {
+              data: [
+                <Flex direction="column" gap={2}>
+                  <Text size="2" weight="strong">
+                    {method.name}
+                  </Text>
+                  <Text
+                    size="2"
+                    color="gray600"
+                    style={{
+                      display: 'block',
+                      maxWidth: '100%',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}
+                  >
+                    {description}
+                  </Text>
+                </Flex>,
+                <Badge color={getProviderAuthMethodTypeColor(method.type)} size="1">
+                  {getProviderAuthMethodTypeLabel(method.type)}
+                </Badge>,
+                <Flex gap={6} style={{ alignItems: 'center', flexWrap: 'wrap' }}>
+                  {scopeCount > 0 ? (
+                    <Badge color="gray" size="1">
+                      {scopeCount} Scopes
+                    </Badge>
+                  ) : null}
+                  {hasInputFields ? (
+                    <Badge color="cyan" size="1">
+                      {getProviderAuthMethodSchemaFieldCount(method.inputSchema)} Input Fields
+                    </Badge>
+                  ) : null}
+                  {hasOutputFields ? (
+                    <Badge color="purple" size="1">
+                      {getProviderAuthMethodSchemaFieldCount(method.outputSchema)} Output Fields
+                    </Badge>
+                  ) : null}
+                  {scopeCount === 0 && !hasInputFields && !hasOutputFields ? (
+                    <Text size="2" color="gray600">
+                      -
+                    </Text>
+                  ) : null}
+                </Flex>,
+                <Flex style={{ width: '100%', justifyContent: 'flex-end' }}>
+                  <Button
+                    size="1"
+                    variant="outline"
+                    onClick={() => showProviderAuthMethodDetailsModal(method)}
+                  >
+                    View Details
+                  </Button>
+                </Flex>
+              ]
+            };
+          })}
+        />
+
+        {methods.length === 0 && (
+          <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
+            No auth methods for this deployment.
           </Text>
         )}
-
-        <Flex direction="column" gap={6}>
-          {authMethods.data.items.map((method: ProviderAuthMethod) => {
-            let inputSchema = getJsonSchemaObject(method.inputSchema);
-            let hasRequiredFields = hasJsonSchemaProperties(method.inputSchema);
-            let schemaProperties =
-              inputSchema &&
-              typeof inputSchema === 'object' &&
-              'properties' in inputSchema &&
-              inputSchema.properties &&
-              typeof inputSchema.properties === 'object'
-                ? Object.entries(inputSchema.properties as Record<string, { description?: string }>)
-                : [];
-            let isOAuth = method.type === 'oauth';
-
-            return (
-              <AccordionSingle
-                key={method.id}
-                title={
-                  <Flex gap={8} style={{ alignItems: 'center', flexWrap: 'wrap' }}>
-                    <Badge color={isOAuth ? 'blue' : method.type === 'token' ? 'green' : 'gray'}>
-                      {method.type === 'oauth'
-                        ? 'OAuth'
-                        : method.type.charAt(0).toUpperCase() + method.type.slice(1)}
-                    </Badge>
-                    <Text size="2" weight="strong">
-                      {method.name}
-                    </Text>
-                    {isOAuth && (
-                      <Badge color="gray" size="1">
-                        {method.scopes?.length ?? 0} Scopes
-                      </Badge>
-                    )}
-                  </Flex>
-                }
-              >
-                <Flex direction="column" gap={12}>
-                  {method.description && (
-                    <Text size="2" color="gray600">
-                      {method.description}
-                    </Text>
-                  )}
-
-                  {isOAuth && (method.scopes?.length ?? 0) > 0 && (
-                    <div>
-                      <Text size="2" weight="strong">
-                        Requested Scopes
-                      </Text>
-                      <Spacer size={6} />
-                      <Flex direction="column" gap={4}>
-                        {(method.scopes ?? []).map(scope => (
-                          <Text key={scope.id} size="1" color="gray600">
-                            {scope.description ?? scope.name ?? scope.scope}
-                          </Text>
-                        ))}
-                      </Flex>
-                    </div>
-                  )}
-
-                  {hasRequiredFields && schemaProperties.length > 0 && (
-                    <div>
-                      <Text size="2" weight="strong">
-                        Required Fields
-                      </Text>
-                      <Spacer size={6} />
-                      <Flex direction="column" gap={4}>
-                        {schemaProperties.map(([name, property]) => (
-                          <Text key={name} size="1" color="gray600">
-                            <strong>{name}</strong>
-                            {property.description ? ` · ${property.description}` : ''}
-                          </Text>
-                        ))}
-                      </Flex>
-                    </div>
-                  )}
-
-                  <Flex gap={10} wrap="wrap">
-                    <Button
-                      size="2"
-                      onClick={() =>
-                        showProviderAuthConfigFormModal({
-                          type: 'create',
-                          instanceId: instance.data.id,
-                          providerDeploymentId: deployment.data.id
-                        })
-                      }
-                    >
-                      Create Auth Config
-                    </Button>
-
-                    {isOAuth && (
-                      <Button
-                        size="2"
-                        variant="outline"
-                        onClick={() =>
-                          showProviderAuthCredentialsFormModal({
-                            instanceId: instance.data.id,
-                            providerId: provider.data.id,
-                            deploymentId: deployment.data.id
-                          })
-                        }
-                      >
-                        Create Credentials
-                      </Button>
-                    )}
-
-                    {isOAuth && (
-                      <Button
-                        size="2"
-                        variant="outline"
-                        onClick={() =>
-                          showProviderSetupSessionModal({
-                            instanceId: instance.data.id,
-                            providerId: provider.data.id,
-                            deploymentId: deployment.data.id
-                          })
-                        }
-                      >
-                        Connect
-                      </Button>
-                    )}
-                  </Flex>
-                </Flex>
-              </AccordionSingle>
-            );
-          })}
-        </Flex>
       </>
-    ))
-  );
+    );
+  });
+
+  return renderWithLoader({ instance, deployment, provider })(() => (
+    <ProviderDeploymentTabSection
+      intro="Auth methods define how this deployment can be connected and authorized."
+      search={
+        <Input
+          label="Search"
+          hideLabel
+          size="2"
+          placeholder="Search auth methods..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
+      }
+    >
+      {authMethodsContent}
+    </ProviderDeploymentTabSection>
+  ));
 };

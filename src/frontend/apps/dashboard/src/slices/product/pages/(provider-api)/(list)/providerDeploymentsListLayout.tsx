@@ -23,12 +23,11 @@ type ProviderDeploymentsTabId =
   | 'auth-credentials'
   | 'auth-configs';
 
-let providerDeploymentsTabOrder: ProviderDeploymentsTabId[] = [
-  'deployments',
+let providerConfigurationsTabOrder: Exclude<ProviderDeploymentsTabId, 'deployments'>[] = [
   'configs',
+  'auth-configs',
   'config-vaults',
-  'auth-credentials',
-  'auth-configs'
+  'auth-credentials'
 ];
 
 let getActiveTab = (pathname: string): ProviderDeploymentsTabId => {
@@ -143,8 +142,9 @@ let providerDeploymentsTabs: Record<
         onClick={() => {
           if (instance?.id) {
             showCreateProviderAuthConfigFlow(instance.id, {
+              scope: 'provider',
               onCreated: (deploymentId, authConfigId) => {
-                if (!instance) return;
+                if (!instance || !deploymentId) return;
 
                 navigate(
                   Paths.instance.providerAuthConfig(
@@ -176,11 +176,12 @@ export let ProviderDeploymentsListLayout = () => {
   let activeTab = getActiveTab(pathname);
   let currentTab = providerDeploymentsTabs[activeTab];
   let pathParams = [organization.data, project.data, instance.data] as const;
+  let isDeploymentsPage = activeTab === 'deployments';
 
   return (
     <ContentLayout>
       <PageHeader
-        title="Configuration"
+        title={isDeploymentsPage ? 'Deployments' : 'Configuration'}
         description={currentTab.description}
         actions={
           currentTab.renderAction({
@@ -192,19 +193,19 @@ export let ProviderDeploymentsListLayout = () => {
         }
       />
 
-      <LinkTabs
-        current={pathname}
-        links={providerDeploymentsTabOrder.map(tabId => {
-          let tab = providerDeploymentsTabs[tabId];
+      {!isDeploymentsPage && (
+        <LinkTabs
+          current={pathname}
+          links={providerConfigurationsTabOrder.map(tabId => {
+            let tab = providerDeploymentsTabs[tabId];
 
-          return {
-            label: tab.label,
-            to: tab.segment
-              ? Paths.instance.providerDeployments(...pathParams, tab.segment)
-              : Paths.instance.providerDeployments(...pathParams)
-          };
-        })}
-      />
+            return {
+              label: tab.label,
+              to: Paths.instance.providerDeployments(...pathParams, tab.segment)
+            };
+          })}
+        />
+      )}
 
       <Outlet />
     </ContentLayout>

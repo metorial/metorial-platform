@@ -1,14 +1,21 @@
 import { CustomProvidersGetOutput } from '@metorial/dashboard-sdk';
 import { useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
-import { useCreateCustomProvider, useCurrentInstance } from '@metorial/state';
+import {
+  listCustomProviderVersions,
+  useCreateCustomProvider,
+  useCurrentInstance
+} from '@metorial/state';
 import { Avatar, Button, Input, Or, Select, Spacer, theme, toast } from '@metorial/ui';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { Stepper } from '../stepper';
 import { remoteServerTemplates } from './config';
-import { getCustomServerRemoteProtocolFromUrl } from './utils';
+import {
+  getCustomServerRemoteProtocolFromUrl,
+  waitForCustomServerVersionId
+} from './utils';
 
 let TemplateWrapper = styled.div`
   display: flex;
@@ -94,6 +101,16 @@ export let CustomServerRemoteCreateForm = (p: {
       });
 
       if (customServerRes) {
+        let firstVersionId = await waitForCustomServerVersionId(async () => {
+          let [versionsRes] = await listCustomProviderVersions({
+            limit: 1,
+            instanceId: instance.data.id,
+            customProviderId: customServerRes.id
+          });
+
+          return versionsRes?.items[0]?.id;
+        });
+
         toast.success('Provider linked successfully');
 
         if (p.onCreate) {
@@ -104,8 +121,14 @@ export let CustomServerRemoteCreateForm = (p: {
               instance.data.organization,
               instance.data.project,
               instance.data,
-              customServerRes.id
-            )
+              customServerRes.id,
+              ...(firstVersionId ? ['versions', { version_id: firstVersionId }] : [])
+            ),
+            {
+              state: {
+                category: 'external'
+              }
+            }
           );
         }
       }
@@ -210,7 +233,7 @@ export let CustomServerRemoteCreateForm = (p: {
                           setCurrentStep(1);
                         }}
                       >
-                        <Avatar entity={template} size={24} />
+                        <Avatar entity={template} size={24} imageFit="contain" />
                         <span>{template.name}</span>
                       </TemplatesItem>
                     ))}

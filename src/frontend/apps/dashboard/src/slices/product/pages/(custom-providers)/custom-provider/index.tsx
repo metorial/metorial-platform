@@ -17,7 +17,7 @@ export let CustomProviderOverviewPage = () => {
   return renderWithLoader({ customServer })(({ customServer }) => (
     <>
       <Attributes
-        itemWidth="380px"
+        columns={3}
         attributes={[
           {
             label: 'Name',
@@ -49,22 +49,14 @@ export let CustomProviderOverviewPage = () => {
               'N/A'
             )
           },
-          ...(customServer.data.provider?.currentVersion
-            ? [
-                {
-                  label: 'Current Version',
-                  content: customServer.data.provider.currentVersion.version
-                }
-              ]
-            : []),
-          ...(customServer.data.provider?.publisher
-            ? [
-                {
-                  label: 'Publisher',
-                  content: customServer.data.provider.publisher.name
-                }
-              ]
-            : []),
+          {
+            label: 'Current Version',
+            content: customServer.data.provider?.currentVersion?.version ?? 'N/A'
+          },
+          {
+            label: 'Publisher',
+            content: customServer.data.provider?.publisher?.name ?? 'N/A'
+          },
           {
             label: 'Created At',
             content: <RenderDate date={customServer.data.createdAt!} />

@@ -3,6 +3,7 @@ import type {
   DashboardInstanceProvidersGetOutput,
   DashboardInstanceProvidersVersionsListOutput
 } from '@metorial/dashboard-sdk';
+import { RiArrowDownSLine } from '@remixicon/react';
 import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
@@ -14,9 +15,10 @@ import {
   useProviderListing,
   useProviderVersions
 } from '@metorial/state';
-import { Badge, Button, Flex, LinkTabs } from '@metorial/ui';
+import { Badge, Button, Flex, LinkTabs, Menu, theme } from '@metorial/ui';
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
+import styled from 'styled-components';
 import { showProviderDeploymentFormModal } from '../../../scenes/providerDeployments/modal';
 
 // ── Provider version context ─────────────────────────────────────────
@@ -38,6 +40,25 @@ type ProviderVersionContextValue = {
 
 let ProviderVersionContext = createContext<ProviderVersionContextValue | null>(null);
 
+let VersionButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 32px;
+  padding: 0 4px 0 6px;
+  border: none;
+  background: transparent;
+  color: ${theme.colors.gray700};
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  transition: color 0.15s ease;
+
+  &:hover {
+    color: ${theme.colors.gray900};
+  }
+`;
+
 export let useProviderVersionContext = () => {
   let ctx = useContext(ProviderVersionContext);
   if (!ctx) throw new Error('useProviderVersionContext must be used within ProviderLayout');
@@ -58,7 +79,6 @@ export let ProviderLayout = () => {
 
   let pathname = useLocation().pathname;
 
-  // ── Version state (persists across tab navigation) ───────────────
   let versions = useProviderVersions(instance.data?.id, providerId);
   let allVersions: ProviderVersion[] = versions.data?.items ?? [];
   let currentVersionId = providerData?.currentVersion?.id;
@@ -71,7 +91,6 @@ export let ProviderLayout = () => {
       ? `provider:selected-version:${instance.data.id}:${providerId}`
       : undefined;
 
-  // Initialize from persisted selection (per provider) and fallback to current version.
   useEffect(() => {
     if (selectedVersionId) return;
 
@@ -154,6 +173,11 @@ export let ProviderLayout = () => {
     instance.data,
     providerData?.id ?? providerId
   ] as const;
+  let showTopRow =
+    !!listing?.attributes?.isVerified ||
+    !!listing?.attributes?.isOfficial ||
+    !!listing?.attributes?.isMetorial ||
+    sortedVersions.length > 0;
 
   return (
     <ProviderVersionContext.Provider value={versionContext}>
@@ -162,22 +186,36 @@ export let ProviderLayout = () => {
           title={listing?.name ?? providerData?.name ?? '...'}
           description={listing?.description ?? providerData?.description ?? undefined}
           top={
-            listing?.attributes?.isVerified ||
-            listing?.attributes?.isOfficial ||
-            listing?.attributes?.isMetorial ||
-            (selectedVersion && !isDefaultVersion) ? (
-              <Flex gap={8} style={{ alignItems: 'center', marginTop: 6 }}>
+            showTopRow ? (
+              <Flex gap={8} style={{ alignItems: 'center', marginTop: 6, flexWrap: 'wrap' }}>
                 {listing?.attributes?.isVerified && <Badge color="blue">Verified</Badge>}
                 {(listing?.attributes?.isOfficial || listing?.attributes?.isMetorial) && (
                   <Badge color="gray">Official</Badge>
                 )}
-                {selectedVersion && !isDefaultVersion && (
-                  <>
-                    <Badge color="purple">{selectedVersion.version}</Badge>
-                    <Button size="1" variant="ghost" onClick={resetToDefault}>
-                      Back to default version
-                    </Button>
-                  </>
+                {sortedVersions.length > 0 && (
+                  <Menu
+                    label="Select version"
+                    title="Versions"
+                    onItemClick={id => setSelectedVersionIdState(id)}
+                    items={sortedVersions.map(version => ({
+                      id: version.id,
+                      label:
+                        version.id === currentVersionId
+                          ? `${version.version} (default)`
+                          : version.version,
+                      description:
+                        version.id === effectiveVersionId
+                          ? 'Selected version'
+                          : version.id === currentVersionId
+                            ? 'Current default version'
+                            : undefined
+                    }))}
+                  >
+                    <VersionButton type="button">
+                      <span>{selectedVersion?.version ?? 'v-'}</span>
+                      <RiArrowDownSLine size={14} style={{ opacity: 0.6 }} />
+                    </VersionButton>
+                  </Menu>
                 )}
               </Flex>
             ) : undefined

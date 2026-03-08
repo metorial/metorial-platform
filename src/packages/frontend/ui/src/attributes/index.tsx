@@ -3,15 +3,31 @@ import { styled } from 'styled-components';
 import { Text } from '../text';
 import { theme } from '../theme';
 
-let Wrapper = styled('div')`
+let Wrapper = styled('div')<{ $columns?: number }>`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(var(--width), 1fr));
+  grid-template-columns: ${({ $columns }) =>
+    $columns
+      ? `repeat(${$columns}, minmax(0, 1fr))`
+      : 'repeat(auto-fill, minmax(var(--width), 1fr))'};
   gap: 1px;
 
   background: ${theme.colors.gray300};
   border: 1px solid ${theme.colors.gray300};
   border-radius: 10px;
   overflow: hidden;
+
+  ${({ $columns }) =>
+    $columns
+      ? `
+    @media (max-width: 720px) {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    @media (max-width: 520px) {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  `
+      : ''}
 `;
 
 let Attribute = styled('div')`
@@ -30,16 +46,19 @@ let Inner = styled('div')`
 
 export let Attributes = ({
   attributes,
-  itemWidth = '300px'
+  itemWidth = '300px',
+  columns
 }: {
   attributes: {
     label: React.ReactNode;
     content: React.ReactNode;
   }[];
   itemWidth?: string;
+  columns?: number;
 }) => {
   return (
     <Wrapper
+      $columns={columns}
       style={
         {
           '--width': itemWidth

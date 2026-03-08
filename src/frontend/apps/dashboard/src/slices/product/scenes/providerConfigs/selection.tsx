@@ -3,13 +3,15 @@ import {
   DashboardInstanceProviderDeploymentsConfigVaultsListOutput
 } from '@metorial/dashboard-sdk';
 import { useProviderConfigVaults, useProviderConfigs } from '@metorial/state';
-import { Button, Flex, Select, Text } from '@metorial/ui';
+import { Button, Flex, Select, Text, Tooltip } from '@metorial/ui';
 import { RiAddLine, RiSafeLine } from '@remixicon/react';
+import { useEffect, useRef } from 'react';
 import {
   ConfigurationSelection,
   decodeConfigurationSelection,
   encodeConfigurationSelection
 } from '../../lib/configSelection';
+import { useProviderConfigCreationCapabilities } from '../../lib/providerCreationCapabilities';
 import { showProviderConfigVaultFormModal } from '../providerConfigVaults/modal';
 import { showProviderConfigFormModal } from './modal';
 
@@ -31,16 +33,49 @@ export let ProviderConfigurationSelection = ({
 }) => {
   let configs = useProviderConfigs(instanceId, providerDeploymentId);
   let vaults = useProviderConfigVaults(instanceId, { providerDeploymentId });
+  let configCreation = useProviderConfigCreationCapabilities(
+    instanceId,
+    providerDeploymentId
+  );
+  let handledAutoSelectionRef = useRef<string | null>(null);
 
+  useEffect(() => {
+    handledAutoSelectionRef.current = null;
+  }, [providerDeploymentId]);
+
+  useEffect(() => {
+    if (value.kind !== 'none') {
+      handledAutoSelectionRef.current = providerDeploymentId;
+      return;
+    }
+
+    if (configs.isLoading || handledAutoSelectionRef.current === providerDeploymentId) return;
+
+    let defaultConfig = (configs.data?.items ?? []).find(config => config.isDefault);
+    if (!defaultConfig) return;
+
+    handledAutoSelectionRef.current = providerDeploymentId;
+    onChange({ kind: 'config', id: defaultConfig.id });
+  }, [
+    configs.data?.items,
+    configs.isLoading,
+    onChange,
+    providerDeploymentId,
+    value.kind
+  ]);
+
+  let defaultConfig = (configs.data?.items ?? []).find(config => config.isDefault);
+  let effectiveValue: ConfigurationSelection =
+    value.kind === 'none' && defaultConfig ? { kind: 'config', id: defaultConfig.id } : value;
   let items = [
-    { id: '__none__', label: 'None' },
+    ...(!defaultConfig ? [{ id: '__none__', label: 'None' }] : []),
     ...(configs.data?.items ?? []).map((config: ConfigItem) => ({
       id: `config:${config.id}`,
-      label: `Config · ${config.name ?? config.id}`
+      label: config.name ?? config.id
     })),
     ...(vaults.data?.items ?? []).map((vault: VaultItem) => ({
       id: `vault:${vault.id}`,
-      label: `Vault · ${vault.name ?? vault.id}`
+      label: `${vault.name ?? vault.id} (Vault)`
     }))
   ];
 
@@ -50,45 +85,63 @@ export let ProviderConfigurationSelection = ({
         <div style={{ flex: 1 }}>
           <Select
             label={label}
-            value={encodeConfigurationSelection(value)}
+            value={encodeConfigurationSelection(effectiveValue)}
             onChange={next => onChange(decodeConfigurationSelection(next))}
             items={items}
           />
         </div>
 
-        <Button
-          type="button"
-          size="3"
-          iconLeft={<RiAddLine />}
-          onClick={() =>
-            showProviderConfigFormModal({
-              type: 'create',
-              instanceId,
-              providerDeploymentId,
-              onCreate: config => {
-                configs.refetch?.();
-                onChange({ kind: 'config', id: config.id });
+        <Tooltip
+          content={configCreation.configDisabledReason ?? ''}
+          enabled={!configCreation.canCreateConfig}
+          delayDuration={0}
+        >
+          <div style={{ display: 'inline-flex' }}>
+            <Button
+              type="button"
+              size="3"
+              iconLeft={<RiAddLine />}
+              disabled={!configCreation.canCreateConfig}
+              onClick={() =>
+                showProviderConfigFormModal({
+                  type: 'create',
+                  instanceId,
+                  providerDeploymentId,
+                  onCreate: config => {
+                    configs.refetch?.();
+                    onChange({ kind: 'config', id: config.id });
+                  }
+                })
               }
-            })
-          }
-        />
+            />
+          </div>
+        </Tooltip>
 
-        <Button
-          type="button"
-          size="3"
-          iconLeft={<RiSafeLine />}
-          onClick={() =>
-            showProviderConfigVaultFormModal({
-              type: 'create',
-              instanceId,
-              providerDeploymentId,
-              onCreate: vault => {
-                vaults.refetch?.();
-                onChange({ kind: 'vault', id: vault.id });
+        <Tooltip
+          content={configCreation.configVaultDisabledReason ?? ''}
+          enabled={!configCreation.canCreateConfigVault}
+          delayDuration={0}
+        >
+          <div style={{ display: 'inline-flex' }}>
+            <Button
+              type="button"
+              size="3"
+              iconLeft={<RiSafeLine />}
+              disabled={!configCreation.canCreateConfigVault}
+              onClick={() =>
+                showProviderConfigVaultFormModal({
+                  type: 'create',
+                  instanceId,
+                  providerDeploymentId,
+                  onCreate: vault => {
+                    vaults.refetch?.();
+                    onChange({ kind: 'vault', id: vault.id });
+                  }
+                })
               }
-            })
-          }
-        />
+            />
+          </div>
+        </Tooltip>
       </Flex>
 
       {(configs.error || vaults.error) && (

@@ -43,12 +43,10 @@ export let ProviderAuthCredentialsOverviewPage = () => {
   );
   let authCredentials = useInstanceProviderAuthCredentials(
     instance.data?.id,
-    providerIds.length > 0
-      ? {
-          providerId: providerIds,
-          search: searchDebounced
-        }
-      : null
+    {
+      providerId: providerIds.length > 0 ? providerIds : ['__none__'],
+      search: searchDebounced
+    }
   );
   let providers = useProviders(
     instance.data?.id,
@@ -85,56 +83,45 @@ export let ProviderAuthCredentialsOverviewPage = () => {
 
     return nextRows;
   }, [authCredentials.data?.items, deploymentItems]);
-  let authCredentialsContent = renderWithPagination(authCredentials, {
-    emptyState: (
-      <Text size="2" color="gray600">
-        No auth credentials found.
-      </Text>
-    )
-  })(() =>
-    rows.length > 0 && providerIds.length > 0 ? (
-      <Table
-        headers={['Name', 'Provider', 'Version', 'Created']}
-        data={rows.map(row => ({
-          href: Paths.instance.providerAuthCredential(
-            organization.data,
-            project.data,
-            instance.data,
-            row.deployment.id,
-            row.credential.id
+  let table = (
+    <Table
+      headers={['Name', 'Provider', 'Version', 'Created']}
+      data={rows.map(row => ({
+        href: Paths.instance.providerAuthCredential(
+          organization.data,
+          project.data,
+          instance.data,
+          row.deployment.id,
+          row.credential.id
+        ),
+        data: [
+          <Text size="2" weight="strong">
+            {row.credential.name || '—'}
+          </Text>,
+          <Text size="2">
+            {providerNameMap.get(row.deployment.providerId) ?? row.deployment.providerId}
+          </Text>,
+          row.deployment.lockedVersion ? (
+            <Badge color="purple" size="1">
+              {row.deployment.lockedVersion.version}
+            </Badge>
+          ) : (
+            <Badge color="gray" size="1">
+              Default
+            </Badge>
           ),
-          data: [
-            <Text size="2" weight="strong">
-              {row.credential.name || '—'}
-            </Text>,
-            <Text size="2">
-              {providerNameMap.get(row.deployment.providerId) ?? row.deployment.providerId}
-            </Text>,
-            row.deployment.lockedVersion ? (
-              <Badge color="purple" size="1">
-                {row.deployment.lockedVersion.version}
-              </Badge>
-            ) : (
-              <Badge color="gray" size="1">
-                Default
-              </Badge>
-            ),
-            row.credential.createdAt ? (
-              <RenderDate date={row.credential.createdAt} />
-            ) : (
-              <Text size="2" color="gray600">
-                —
-              </Text>
-            )
-          ]
-        }))}
-      />
-    ) : (
-      <Text size="2" color="gray600">
-        No auth credentials found.
-      </Text>
-    )
+          row.credential.createdAt ? (
+            <RenderDate date={row.credential.createdAt} />
+          ) : (
+            <Text size="2" color="gray600">
+              —
+            </Text>
+          )
+        ]
+      }))}
+    />
   );
+  let authCredentialsContent = renderWithPagination(authCredentials)(() => table);
 
   return renderWithLoader({ organization, project, instance, deployments })(() => (
     <>
@@ -149,6 +136,12 @@ export let ProviderAuthCredentialsOverviewPage = () => {
       <Spacer size={15} />
 
       {authCredentialsContent}
+
+      {!authCredentials.isLoading && !authCredentials.error && rows.length === 0 && (
+        <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
+          No auth credentials for this instance.
+        </Text>
+      )}
     </>
   ));
 };

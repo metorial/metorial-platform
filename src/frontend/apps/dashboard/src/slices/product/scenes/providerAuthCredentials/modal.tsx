@@ -20,6 +20,7 @@ import {
   showModal
 } from '@metorial/ui';
 import { useMemo } from 'react';
+import { ProviderContextCard } from '../providerContextCard';
 
 type AuthMethod = DashboardInstanceProvidersAuthMethodsListOutput['items'][number];
 
@@ -33,7 +34,7 @@ export let ProviderAuthCredentialsForm = ({
 }: {
   instanceId: string;
   providerId: string;
-  deploymentId: string;
+  deploymentId?: string;
   close: () => void;
   onBack?: () => void;
   onCreate?: (credentials: DashboardInstanceProviderDeploymentsAuthCredentialsCreateOutput) => void;
@@ -49,6 +50,8 @@ export let ProviderAuthCredentialsForm = ({
   let redirectUri = provider.data?.oauth?.callbackUrl;
   let providerName = deployment.data?.name ?? provider.data?.name ?? providerId;
   let oauthMethodName = oauthMethod?.name ?? 'OAuth';
+  let oauthAutoRegistrationEnabled =
+    provider.data?.oauth?.autoRegistration?.status === 'enabled';
 
   let createCredentials = useCreateProviderAuthCredentials();
 
@@ -96,7 +99,7 @@ export let ProviderAuthCredentialsForm = ({
     close();
   };
 
-  if (deployment.isLoading || authMethods.isLoading) {
+  if ((!!deploymentId && deployment.isLoading) || authMethods.isLoading) {
     return (
       <>
         <Dialog.Title>Create Auth Credentials</Dialog.Title>
@@ -107,12 +110,57 @@ export let ProviderAuthCredentialsForm = ({
     );
   }
 
+  if (oauthAutoRegistrationEnabled) {
+    return (
+      <>
+        <Dialog.Title>Create Auth Credentials</Dialog.Title>
+      <Dialog.Description>
+        {providerName} uses {oauthMethodName} auto-registration, so manual app
+        credentials are not supported for this provider.
+        </Dialog.Description>
+
+        <Spacer size={15} />
+
+        <ProviderContextCard
+          providerId={providerId}
+          providerName={provider.data?.name ?? providerName}
+          providerImageUrl={provider.data?.publisher.imageUrl}
+          deploymentName={deployment.data?.name}
+          deploymentDescription={deployment.data?.description}
+        />
+
+        <Spacer size={15} />
+
+        <Dialog.Actions>
+          {onBack && (
+            <Button type="button" size="2" variant="outline" onClick={onBack}>
+              Back
+            </Button>
+          )}
+          <Button type="button" size="2" onClick={close}>
+            Close
+          </Button>
+        </Dialog.Actions>
+      </>
+    );
+  }
+
   return (
     <>
       <Dialog.Title>Create Auth Credentials</Dialog.Title>
       <Dialog.Description>
         Enter your {oauthMethodName} app credentials for {providerName}.
       </Dialog.Description>
+
+      <Spacer size={15} />
+
+      <ProviderContextCard
+        providerId={providerId}
+        providerName={provider.data?.name ?? providerName}
+        providerImageUrl={provider.data?.publisher.imageUrl}
+        deploymentName={deployment.data?.name}
+        deploymentDescription={deployment.data?.description}
+      />
 
       <Spacer size={15} />
 
@@ -172,9 +220,6 @@ export let ProviderAuthCredentialsForm = ({
               Back
             </Button>
           )}
-          <Button type="button" size="2" variant="outline" onClick={close}>
-            Cancel
-          </Button>
           <Button
             type="button"
             size="2"
@@ -193,7 +238,7 @@ export let ProviderAuthCredentialsForm = ({
 export let showProviderAuthCredentialsFormModal = (p: {
   instanceId: string;
   providerId: string;
-  deploymentId: string;
+  deploymentId?: string;
   onBack?: () => void;
   onCreate?: (credentials: DashboardInstanceProviderDeploymentsAuthCredentialsCreateOutput) => void;
 }) =>
