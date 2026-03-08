@@ -22,6 +22,10 @@ export let CustomProviderLayout = () => {
 
   let { customServerId } = useParams();
   let customServer = useCustomProvider(instance.data?.id, customServerId);
+  let location = useLocation();
+  let pathname = location.pathname;
+  let initialCategory = (location.state as { category?: 'custom' | 'external' } | null)
+    ?.category;
 
   let navigate = useNavigate();
   useEffect(() => {
@@ -30,9 +34,7 @@ export let CustomProviderLayout = () => {
         replace: true
       });
     }
-  }, [customServer.data, customServerId]);
-
-  let pathname = useLocation().pathname;
+  }, [customServer.data, customServerId, location.pathname, navigate]);
 
   let pathParams = [
     organization.data,
@@ -42,11 +44,14 @@ export let CustomProviderLayout = () => {
   ] as const;
 
   let flags = useDashboardFlags();
+  let isExternalProvider =
+    !!customServer.data?.draft?.remoteMcpServer || initialCategory === 'external';
   let hasCodeManagement = Boolean(
     customServer.data &&
-      !customServer.data.draft?.remoteMcpServer &&
+      !isExternalProvider &&
       !customServer.data.draft?.containerImage
   );
+  let hasVersionManagement = Boolean(customServer.data);
 
   return (
     <ContentLayout>
@@ -54,18 +59,18 @@ export let CustomProviderLayout = () => {
         title={customServer.data?.name ?? '...'}
         pagination={[
           {
-            label:
-              customServer.data?.status == 'active'
-                ? 'External Providers'
-                : 'Custom Providers',
-            href:
-              customServer.data?.status == 'active'
-                ? Paths.instance.externalProviders(
-                    organization.data,
-                    project.data,
-                    instance.data
-                  )
-                : Paths.instance.customProviders(organization.data, project.data, instance.data)
+            label: isExternalProvider ? 'External Providers' : 'Custom Providers',
+            href: isExternalProvider
+              ? Paths.instance.externalProviders(
+                  organization.data,
+                  project.data,
+                  instance.data
+                )
+              : Paths.instance.customProviders(
+                  organization.data,
+                  project.data,
+                  instance.data
+                )
           },
           {
             label: customServer.data?.name,
@@ -94,7 +99,11 @@ export let CustomProviderLayout = () => {
                     {
                       label: 'Code',
                       to: Paths.instance.customProvider(...pathParams, 'code')
-                    },
+                    }
+                  ]
+                : []),
+              ...(hasVersionManagement
+                ? [
                     {
                       label: 'Versions',
                       to: Paths.instance.customProvider(...pathParams, 'versions')

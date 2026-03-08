@@ -245,7 +245,12 @@ export let CustomServerManagedCreateForm = (p: {
               instance.data,
               customServerRes.id,
               ...(firstVersionId ? ['versions', { version_id: firstVersionId }] : [])
-            )
+            ),
+            {
+              state: {
+                category: 'custom'
+              }
+            }
           );
         }
       }
