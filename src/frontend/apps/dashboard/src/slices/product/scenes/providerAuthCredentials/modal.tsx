@@ -34,7 +34,7 @@ export let ProviderAuthCredentialsForm = ({
 }: {
   instanceId: string;
   providerId: string;
-  deploymentId: string;
+  deploymentId?: string;
   close: () => void;
   onBack?: () => void;
   onCreate?: (credentials: DashboardInstanceProviderDeploymentsAuthCredentialsCreateOutput) => void;
@@ -99,7 +99,7 @@ export let ProviderAuthCredentialsForm = ({
     close();
   };
 
-  if (deployment.isLoading || authMethods.isLoading) {
+  if ((!!deploymentId && deployment.isLoading) || authMethods.isLoading) {
     return (
       <>
         <Dialog.Title>Create Auth Credentials</Dialog.Title>
@@ -114,9 +114,9 @@ export let ProviderAuthCredentialsForm = ({
     return (
       <>
         <Dialog.Title>Create Auth Credentials</Dialog.Title>
-        <Dialog.Description>
-          {providerName} uses {oauthMethodName} auto-registration, so manual app
-          credentials are not supported for this provider.
+      <Dialog.Description>
+        {providerName} uses {oauthMethodName} auto-registration, so manual app
+        credentials are not supported for this provider.
         </Dialog.Description>
 
         <Spacer size={15} />
@@ -220,9 +220,6 @@ export let ProviderAuthCredentialsForm = ({
               Back
             </Button>
           )}
-          <Button type="button" size="2" variant="outline" onClick={close}>
-            Cancel
-          </Button>
           <Button
             type="button"
             size="2"
@@ -241,7 +238,7 @@ export let ProviderAuthCredentialsForm = ({
 export let showProviderAuthCredentialsFormModal = (p: {
   instanceId: string;
   providerId: string;
-  deploymentId: string;
+  deploymentId?: string;
   onBack?: () => void;
   onCreate?: (credentials: DashboardInstanceProviderDeploymentsAuthCredentialsCreateOutput) => void;
 }) =>

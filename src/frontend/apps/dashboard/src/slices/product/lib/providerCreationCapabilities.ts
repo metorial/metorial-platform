@@ -93,13 +93,15 @@ export let useProviderAuthCreationCapabilities = (
   providerDeploymentId: string | null | undefined,
   providerId?: string | null | undefined
 ) => {
-  let scopedInstanceId = instanceId && providerDeploymentId ? instanceId : null;
-  let deployment = useProviderDeployment(scopedInstanceId, providerDeploymentId);
+  let scopedDeploymentInstanceId = instanceId && providerDeploymentId ? instanceId : null;
+  let scopedProviderInstanceId =
+    instanceId && (providerId || providerDeploymentId) ? instanceId : null;
+  let deployment = useProviderDeployment(scopedDeploymentInstanceId, providerDeploymentId);
   let resolvedProviderId = providerId ?? deployment.data?.providerId ?? null;
-  let provider = useProvider(scopedInstanceId, resolvedProviderId);
+  let provider = useProvider(scopedProviderInstanceId, resolvedProviderId);
   let effectiveVersionId =
     deployment.data?.lockedVersion?.id ?? provider.data?.currentVersion?.id ?? null;
-  let authMethods = useProviderAuthMethods(scopedInstanceId, effectiveVersionId);
+  let authMethods = useProviderAuthMethods(scopedProviderInstanceId, effectiveVersionId);
   let authMethodItems = authMethods.data?.items ?? [];
   let oauthAutoRegistrationEnabled =
     provider.data?.oauth?.autoRegistration?.status === 'enabled';
@@ -110,7 +112,7 @@ export let useProviderAuthCreationCapabilities = (
     return getAuthMethodHasSchema(method.inputSchema);
   });
   let isLoading =
-    deployment.isLoading ||
+    (!!providerDeploymentId && deployment.isLoading) ||
     (!deployment.data?.lockedVersion?.id && provider.isLoading) ||
     (effectiveVersionId ? authMethods.isLoading : false);
 
@@ -119,18 +121,24 @@ export let useProviderAuthCreationCapabilities = (
     : !effectiveVersionId
       ? 'No provider version is available yet, so authentication cannot be configured.'
       : !hasAuthMethods
-        ? 'This deployment does not have any authentication methods.'
+        ? providerDeploymentId
+          ? 'This deployment does not have any authentication methods.'
+          : 'This provider does not have any authentication methods.'
         : null;
 
   let authConfigDisabledReason =
     baseDisabledReason ??
     (!hasManualAuthConfigMethod && !hasOAuthMethod
-      ? 'No supported authentication creation flow is available for this deployment.'
+      ? providerDeploymentId
+        ? 'No supported authentication creation flow is available for this deployment.'
+        : 'No supported authentication creation flow is available for this provider.'
       : null);
   let authCredentialsDisabledReason =
     baseDisabledReason ??
     (!hasOAuthMethod
-      ? 'This deployment does not have any OAuth authentication methods.'
+      ? providerDeploymentId
+        ? 'This deployment does not have any OAuth authentication methods.'
+        : 'This provider does not have any OAuth authentication methods.'
       : oauthAutoRegistrationEnabled
         ? 'This provider uses OAuth auto-registration, so manual app credentials are not supported.'
         : null);

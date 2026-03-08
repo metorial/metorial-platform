@@ -161,25 +161,54 @@ export let showCreateProviderConfigFlow = (instanceId: string) =>
     />
   ));
 
-export let showCreateProviderConfigVaultFlow = (instanceId: string) =>
-  showPickerModal(({ close }) => (
-    <DeploymentPicker
+export let showCreateProviderConfigVaultFlow = (instanceId: string) => {
+  let scope = 'provider' as const;
+  let showDeploymentStep = (providerId: string) =>
+    showPickerModal(({ close }) => (
+      <DeploymentPicker
+        title="Select Deployment"
+        description="Choose a deployment to create a reusable config vault for."
+        close={close}
+        selectionMode="configVaultCreate"
+        providerId={providerId}
+        onBack={() => showCreateProviderConfigVaultFlow(instanceId)}
+        onSelect={deploymentId =>
+          showProviderConfigVaultFormModal({
+            type: 'create',
+            instanceId,
+            providerId,
+            providerDeploymentId: deploymentId,
+            onBack: () => showDeploymentStep(providerId)
+          })
+        }
+      />
+    ));
+
+  return showPickerModal(({ close }) => (
+    <ProviderPicker
+      instanceId={instanceId}
       title="Create Config Vault"
-      description="Select a deployment to create a reusable config vault for."
+      description="Select a provider to create a reusable config vault for."
       close={close}
-      selectionMode="configVaultCreate"
-      onSelect={deploymentId =>
-        showProviderConfigVaultFormModal({
-          type: 'create',
-          instanceId,
-          providerDeploymentId: deploymentId,
-          onBack: () => showCreateProviderConfigVaultFlow(instanceId)
-        })
-      }
+      onSelect={providerId => {
+        if (scope === 'provider') {
+          showProviderConfigVaultFormModal({
+            type: 'create',
+            instanceId,
+            providerId,
+            onBack: () => showCreateProviderConfigVaultFlow(instanceId)
+          });
+          return;
+        }
+
+        showDeploymentStep(providerId);
+      }}
     />
   ));
+};
 
 export let showCreateProviderAuthCredentialsFlow = (instanceId: string) => {
+  let scope = 'provider' as const;
   let showDeploymentStep = (providerId: string) =>
     showPickerModal(({ close }) => (
       <DeploymentPicker
@@ -207,7 +236,18 @@ export let showCreateProviderAuthCredentialsFlow = (instanceId: string) => {
       description="Select a provider to create OAuth credentials for."
       close={close}
       selectionMode="authCredentialsCreate"
-      onSelect={providerId => showDeploymentStep(providerId)}
+      onSelect={providerId => {
+        if (scope === 'provider') {
+          showProviderAuthCredentialsFormModal({
+            instanceId,
+            providerId,
+            onBack: () => showCreateProviderAuthCredentialsFlow(instanceId)
+          });
+          return;
+        }
+
+        showDeploymentStep(providerId);
+      }}
     />
   ));
 };
@@ -215,9 +255,11 @@ export let showCreateProviderAuthCredentialsFlow = (instanceId: string) => {
 export let showCreateProviderAuthConfigFlow = (
   instanceId: string,
   options?: {
-    onCreated?: (deploymentId: string, authConfigId: string) => void;
+    onCreated?: (deploymentId: string | null, authConfigId: string) => void;
+    scope?: 'provider' | 'deployment';
   }
 ) => {
+  let scope = options?.scope ?? 'provider';
   let showDeploymentStep = (providerId: string) =>
     showPickerModal(({ close }) => (
       <DeploymentPicker
@@ -245,7 +287,21 @@ export let showCreateProviderAuthConfigFlow = (
       title="Create Auth Config"
       description="Select a provider to create an authentication configuration for."
       close={close}
-      onSelect={providerId => showDeploymentStep(providerId)}
+      onSelect={providerId => {
+        if (scope === 'provider') {
+          showProviderAuthConfigCreateModal({
+            instanceId,
+            providerId,
+            onBack: () => showCreateProviderAuthConfigFlow(instanceId, options),
+            onCreate: authConfig => {
+              options?.onCreated?.(null, authConfig.id);
+            }
+          });
+          return;
+        }
+
+        showDeploymentStep(providerId);
+      }}
     />
   ));
 };

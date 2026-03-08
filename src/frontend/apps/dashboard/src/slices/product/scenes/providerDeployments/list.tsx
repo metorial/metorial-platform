@@ -61,6 +61,8 @@ let CompactCard = styled.div`
   border: 1px solid ${theme.colors.gray300};
   border-radius: 8px;
   background: none;
+  min-width: 0;
+  overflow: hidden;
   transition:
     border-color 0.15s,
     background 0.15s;
@@ -71,6 +73,11 @@ let CompactName = styled.span`
   font-weight: 600;
   color: ${theme.colors.gray800};
   line-height: 14px;
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 let ProviderDeploymentListItem = ({

@@ -269,6 +269,21 @@ export let ExplorerPage = () => {
   providerAuthConfigsRef.current = providerAuthConfigs;
 
   let pendingAuthConfigIdRef = useRef<string | null>(null);
+  let openAuthConfigCreateModal = useCallback(() => {
+    if (!instance.data || !providerDeploymentId) return false;
+
+    showProviderAuthConfigCreateModal({
+      instanceId: instance.data.id,
+      providerDeploymentId,
+      onCreate: authConfig => {
+        pendingAuthConfigIdRef.current = authConfig.id;
+        setSelectedAuthConfigId(authConfig.id);
+        providerAuthConfigsRef.current.refetch();
+      }
+    });
+
+    return true;
+  }, [instance.data, providerDeploymentId]);
 
   useEffect(() => {
     let deploymentsForCurrentProvider = deployments.data?.items.filter(
@@ -517,16 +532,7 @@ export let ExplorerPage = () => {
                       aria-label="Connect / Create Auth Config"
                       disabled={authPlusDisabled}
                       onClick={() => {
-                        if (!providerDeploymentId) return;
-                        showProviderAuthConfigCreateModal({
-                          instanceId: instance.data.id,
-                          providerDeploymentId,
-                          onCreate: authConfig => {
-                            pendingAuthConfigIdRef.current = authConfig.id;
-                            setSelectedAuthConfigId(authConfig.id);
-                            providerAuthConfigsRef.current.refetch();
-                          }
-                        });
+                        openAuthConfigCreateModal();
                       }}
                       style={
                         !authPlusDisabled
@@ -583,7 +589,12 @@ export let ExplorerPage = () => {
               <Flex gap={10}>
                 <Button
                   type="button"
-                  onClick={() =>
+                  onClick={() => {
+                    if (hasAuthMethods && !selectedAuthConfigId) {
+                      openAuthConfigCreateModal();
+                      return;
+                    }
+
                     createSessionForDeployment(providerDeploymentId, {
                       providerConfigId:
                         selectedConfiguration.kind === 'config'
@@ -594,8 +605,8 @@ export let ExplorerPage = () => {
                           ? selectedConfiguration.id
                           : undefined,
                       providerAuthConfigId: selectedAuthConfigId || undefined
-                    })
-                  }
+                    });
+                  }}
                   loading={isCreatingSession}
                 >
                   Open Explorer

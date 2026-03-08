@@ -142,8 +142,9 @@ let providerDeploymentsTabs: Record<
         onClick={() => {
           if (instance?.id) {
             showCreateProviderAuthConfigFlow(instance.id, {
+              scope: 'provider',
               onCreated: (deploymentId, authConfigId) => {
-                if (!instance) return;
+                if (!instance || !deploymentId) return;
 
                 navigate(
                   Paths.instance.providerAuthConfig(

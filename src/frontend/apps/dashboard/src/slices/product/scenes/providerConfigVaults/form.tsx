@@ -4,7 +4,7 @@ import {
   useCreateProviderConfigVault,
   useCurrentInstance,
   useProvider,
-  useProviderConfigSchema,
+  useProviderConfigSchemaTarget,
   useProviderDeployment
 } from '@metorial/state';
 import {
@@ -22,8 +22,9 @@ import { ProviderContextCard } from '../providerContextCard';
 
 export type ProviderConfigVaultFormProps = {
   type: 'create';
-  providerDeploymentId: string;
   instanceId?: string;
+  providerId?: string;
+  providerDeploymentId?: string;
 };
 
 export let ProviderConfigVaultForm = (
@@ -37,19 +38,33 @@ export let ProviderConfigVaultForm = (
   let instanceId = props.instanceId ?? instance.data?.id;
   let createMutation = useCreateProviderConfigVault();
   let deployment = useProviderDeployment(instanceId, props.providerDeploymentId);
-  let provider = useProvider(instanceId, deployment.data?.providerId);
-  let configSchema = useProviderConfigSchema(instanceId, props.providerDeploymentId);
+  let providerId = props.providerId ?? deployment.data?.providerId;
+  let provider = useProvider(instanceId, providerId);
+  let configSchema = useProviderConfigSchemaTarget(
+    instanceId,
+    providerId || props.providerDeploymentId
+      ? {
+          providerId: providerId ?? undefined,
+          providerDeploymentId: props.providerDeploymentId
+        }
+      : null
+  );
+  let isDeploymentScoped = !!props.providerDeploymentId;
 
   let [vaultData, setVaultData] = useState<Record<string, unknown>>({});
   let schemaCapabilities = getProviderConfigSchemaCapabilities({
     schemaValue: configSchema.data?.schema,
     hasVaults: false,
-    isLoading: configSchema.isLoading || deployment.isLoading
+    isLoading: configSchema.isLoading || (!!props.providerDeploymentId && deployment.isLoading)
   });
   let showEmptyState = !schemaCapabilities.canCreateConfigVault;
   let emptyStateMessage = schemaCapabilities.hasExplicitEmptySchema
-    ? schemaCapabilities.configVaultDisabledReason
-    : 'No editable configuration schema is available for this deployment, so a vault cannot be created from the dashboard yet.';
+    ? isDeploymentScoped
+      ? schemaCapabilities.configVaultDisabledReason
+      : 'This provider has no configurable values, so config vaults are not needed.'
+    : isDeploymentScoped
+      ? 'No editable configuration schema is available for this deployment, so a vault cannot be created from the dashboard yet.'
+      : 'No editable configuration schema is available for this provider, so a vault cannot be created from the dashboard yet.';
 
   let form = useForm({
     initialValues: {
@@ -77,7 +92,7 @@ export let ProviderConfigVaultForm = (
 
     if (
       !instanceId ||
-      !deployment.data?.providerId ||
+      !providerId ||
       !schemaCapabilities.canCreateConfigVault
     ) {
       return;
@@ -85,8 +100,10 @@ export let ProviderConfigVaultForm = (
 
     let [result] = await createMutation.mutate({
       instanceId,
-      providerId: deployment.data.providerId,
-      providerDeploymentId: props.providerDeploymentId,
+      providerId,
+      ...(props.providerDeploymentId
+        ? { providerDeploymentId: props.providerDeploymentId }
+        : {}),
       name,
       description: form.values.description || undefined,
       value: vaultData
@@ -98,17 +115,17 @@ export let ProviderConfigVaultForm = (
     props.close?.();
   };
 
-  if (configSchema.isLoading || deployment.isLoading) {
+  if (configSchema.isLoading || (!!props.providerDeploymentId && deployment.isLoading)) {
     return <CenteredSpinner />;
   }
 
   return (
     <>
-      {deployment.data?.providerId && (
+      {providerId && (
         <>
           <ProviderContextCard
-            providerId={deployment.data.providerId}
-            providerName={provider.data?.name ?? deployment.data?.providerId}
+            providerId={providerId}
+            providerName={provider.data?.name ?? providerId}
             providerImageUrl={provider.data?.publisher.imageUrl}
             deploymentName={deployment.data?.name}
             deploymentDescription={deployment.data?.description}
@@ -144,8 +161,12 @@ export let ProviderConfigVaultForm = (
           <Spacer size={15} />
 
           <Dialog.Actions>
-            <Button type="button" variant="outline" onClick={props.close}>
-              Cancel
+            <Button
+              type="button"
+              variant="outline"
+              onClick={props.onBack ?? props.close}
+            >
+              {props.onBack ? 'Back' : 'Cancel'}
             </Button>
             <Button
               type="button"

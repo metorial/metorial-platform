@@ -34,7 +34,8 @@ let getAuthMethodHasSchema = (method: AuthMethod | undefined) => {
 export type ProviderAuthConfigFormProps =
   | {
       type: 'create';
-      providerDeploymentId: string;
+      providerDeploymentId?: string;
+      providerId?: string;
       instanceId?: string;
       initialAuthMethodId?: string;
       hideAuthMethodStep?: boolean;
@@ -58,8 +59,15 @@ export let ProviderAuthConfigForm = (
   let instanceId = props.instanceId ?? instance.data?.id;
   let createMutation = useCreateProviderAuthConfig();
 
-  let deployment = useProviderDeployment(instanceId, props.providerDeploymentId);
-  let provider = useProvider(instanceId, deployment.data?.providerId);
+  let deployment =
+    props.type === 'create'
+      ? useProviderDeployment(instanceId, props.providerDeploymentId)
+      : useProviderDeployment(instanceId, props.providerDeploymentId);
+  let resolvedProviderId =
+    props.type === 'create'
+      ? props.providerId ?? deployment.data?.providerId
+      : deployment.data?.providerId;
+  let provider = useProvider(instanceId, resolvedProviderId);
   let effectiveVersionId =
     deployment.data?.lockedVersion?.id ?? provider.data?.currentVersion?.id;
   let oauthAutoRegistrationEnabled =
@@ -159,7 +167,9 @@ export let ProviderAuthConfigForm = (
 
     let [result] = await createMutation.mutate({
       instanceId,
-      providerDeploymentId: props.providerDeploymentId,
+      ...(props.providerDeploymentId
+        ? { providerDeploymentId: props.providerDeploymentId }
+        : {}),
       name,
       description: form.values.description || undefined,
       providerAuthMethodId: form.values.authMethodId,
@@ -184,7 +194,7 @@ export let ProviderAuthConfigForm = (
     !hasSchema &&
     oauthAutoRegistrationEnabled;
 
-  if (deployment.isLoading || authMethods.isLoading) {
+  if ((props.providerDeploymentId && deployment.isLoading) || authMethods.isLoading) {
     return <CenteredSpinner />;
   }
 
@@ -260,11 +270,11 @@ export let ProviderAuthConfigForm = (
     </>
   );
 
-  let providerContext = deployment.data?.providerId ? (
+  let providerContext = resolvedProviderId ? (
     <>
       <ProviderContextCard
-        providerId={deployment.data.providerId}
-        providerName={provider.data?.name ?? deployment.data?.providerId}
+        providerId={resolvedProviderId}
+        providerName={provider.data?.name ?? resolvedProviderId}
         providerImageUrl={provider.data?.publisher.imageUrl}
         deploymentName={deployment.data?.name}
         deploymentDescription={deployment.data?.description}

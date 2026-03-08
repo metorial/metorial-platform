@@ -39,7 +39,7 @@ export let ProviderSetupSessionEmbed = ({
 }: {
   instanceId: string;
   providerId: string;
-  deploymentId: string;
+  deploymentId?: string;
   onComplete: (
     setupSession: DashboardInstanceProviderDeploymentsSetupSessionsGetOutput | null
   ) => void;
@@ -343,7 +343,7 @@ export let ProviderSetupSessionEmbed = ({
   }, [setupSession?.id]);
 
   if (
-    deployment.isLoading ||
+    (!!deploymentId && deployment.isLoading) ||
     (!lockedVersionId && provider.isLoading) ||
     (effectiveVersionId ? authMethods.isLoading : false) ||
     authCredentials.isLoading
@@ -355,7 +355,7 @@ export let ProviderSetupSessionEmbed = ({
     );
   }
 
-  if (deployment.error) {
+  if (deploymentId && deployment.error) {
     return (
       <Flex direction="column" gap={12}>
         <Text size="2" color="red500">
@@ -373,7 +373,7 @@ export let ProviderSetupSessionEmbed = ({
     );
   }
 
-  if (!deployment.data) {
+  if (deploymentId && !deployment.data) {
     return (
       <Text size="2" color="gray600">
         Loading deployment details...
@@ -560,16 +560,16 @@ export let ProviderSetupSessionEmbed = ({
     };
 
     let credentialsStep = {
-      title: 'Credentials',
-      subtitle: `${oauthMethodName} app credentials`,
+      title: 'Select',
+      subtitle: 'Select existing or add credentials',
       render: () => (
         <>
           <Text size="2" weight="strong">
-            {oauthMethodName} Credentials
+            Select {oauthMethodName} Credentials
           </Text>
           <Text size="2" color="gray600">
-            Auto-registration is disabled. Use an existing credential or add credentials to
-            continue.
+            Auto-registration is disabled. Select existing credentials or add new
+            credentials to continue.
           </Text>
           <Spacer size={6} />
           {redirectUri && isCreatingCredentials && (
@@ -582,9 +582,9 @@ export let ProviderSetupSessionEmbed = ({
             </>
           )}
           <Select
-            label={`${oauthMethodName} App Credentials`}
+            label={`${oauthMethodName} Existing Credentials`}
             value={isCreatingCredentials ? '__create_new__' : effectiveSelectedCredentialsId}
-            placeholder="Use or add credentials"
+            placeholder="Select or add credentials"
             onChange={value => {
               setError(null);
 

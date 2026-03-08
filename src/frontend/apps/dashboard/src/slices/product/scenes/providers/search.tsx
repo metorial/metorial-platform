@@ -63,6 +63,7 @@ let GridButton = styled.button`
     border-color 0.15s,
     background 0.15s;
   min-width: 0;
+  overflow: hidden;
 
   &:hover {
     border-color: ${theme.colors.gray500};
@@ -79,6 +80,10 @@ let ProviderName = styled.span`
   font-weight: 600;
   color: ${theme.colors.gray800};
   min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 let FieldWrapper = styled.div`

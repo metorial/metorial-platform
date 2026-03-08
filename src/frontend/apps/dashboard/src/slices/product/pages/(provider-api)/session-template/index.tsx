@@ -201,6 +201,7 @@ export let SessionTemplateOverviewPage = () => {
       }
     ];
 
+    /*
     let getCodeViewer = (opts: { repo: string; path: string; initialFile?: string }) => {
       if (apiKeys.isLoading || key.isLoading) return undefined;
 
@@ -216,6 +217,7 @@ export let SessionTemplateOverviewPage = () => {
         }
       };
     };
+    */
 
     return (
       <>
@@ -244,12 +246,14 @@ export let SessionTemplateOverviewPage = () => {
                   alt="AI SDK"
                 />
               ),
-              instructions: getJSInstructions({ additionalPackages: ['@metorial/ai-sdk'] }),
+              instructions: getJSInstructions({ additionalPackages: ['@metorial/ai-sdk'] })
+              /*
               codeViewer: getCodeViewer({
                 repo: 'metorial-node',
                 path: 'examples/typescript-ai-sdk',
                 initialFile: 'index.ts'
               })
+              */
             },
             {
               title: 'JS & OpenAI',
@@ -259,12 +263,14 @@ export let SessionTemplateOverviewPage = () => {
                   alt="OpenAI"
                 />
               ),
-              instructions: getJSInstructions({ additionalPackages: ['@metorial/openai'] }),
+              instructions: getJSInstructions({ additionalPackages: ['@metorial/openai'] })
+              /*
               codeViewer: getCodeViewer({
                 repo: 'metorial-node',
                 path: 'examples/typescript-openai',
                 initialFile: 'index.ts'
               })
+              */
             },
             {
               title: 'Node.js',
@@ -274,12 +280,14 @@ export let SessionTemplateOverviewPage = () => {
                   alt="TypeScript"
                 />
               ),
-              instructions: getJSInstructions(),
+              instructions: getJSInstructions()
+              /*
               codeViewer: getCodeViewer({
                 repo: 'metorial-node',
                 path: 'examples/typescript-openai',
                 initialFile: 'index.ts'
               })
+              */
             },
             {
               title: 'Python',
@@ -289,12 +297,14 @@ export let SessionTemplateOverviewPage = () => {
                   alt="Python"
                 />
               ),
-              instructions: getPythonInstructions(),
+              instructions: getPythonInstructions()
+              /*
               codeViewer: getCodeViewer({
                 repo: 'metorial-python',
                 path: 'examples',
                 initialFile: 'python-openai.py'
               })
+              */
             }
           ]}
         />

@@ -94,7 +94,8 @@ export let showProviderAuthConfigFormModal = (
 
 let ProviderAuthConfigCreateModalContent = (p: {
   instanceId: string;
-  providerDeploymentId: string;
+  providerDeploymentId?: string;
+  providerId?: string;
   close: () => void;
   onCreate?: (authConfig: { id: string }) => void;
   onBack?: () => void;
@@ -103,11 +104,13 @@ let ProviderAuthConfigCreateModalContent = (p: {
   let authCreation = useProviderAuthCreationCapabilities(
     p.instanceId,
     p.providerDeploymentId,
-    deployment.data?.providerId
+    p.providerId ?? deployment.data?.providerId
   );
+  let isDeploymentScoped = !!p.providerDeploymentId;
   let providerName =
     authCreation.provider.data?.name ?? deployment.data?.name ?? 'provider';
-  let providerId = deployment.data?.providerId ?? authCreation.provider.data?.id;
+  let providerId =
+    p.providerId ?? deployment.data?.providerId ?? authCreation.provider.data?.id;
   let authMethods = authCreation.authMethodItems;
   let manualMethods = authMethods.filter(method => !isSetupFlowAuthMethod(method));
   let setupFlowMethods = authMethods.filter(method => isSetupFlowAuthMethod(method));
@@ -137,7 +140,9 @@ let ProviderAuthConfigCreateModalContent = (p: {
         <Dialog.Title>Create Auth Config</Dialog.Title>
         <Dialog.Description>
           {authCreation.authConfigDisabledReason ??
-            'This deployment cannot create an auth config from the dashboard.'}
+            (isDeploymentScoped
+              ? 'This deployment cannot create an auth config from the dashboard.'
+              : 'This provider cannot create an auth config from the dashboard.')}
         </Dialog.Description>
 
         {providerContextCard && (
@@ -161,11 +166,13 @@ let ProviderAuthConfigCreateModalContent = (p: {
   if (!manualMethods.length && setupFlowMethods.length) {
     if (!providerId) {
       return (
-        <>
-          <Dialog.Title>Create Auth Config</Dialog.Title>
-          <Dialog.Description>
-            Could not resolve the provider for this deployment.
-          </Dialog.Description>
+          <>
+            <Dialog.Title>Create Auth Config</Dialog.Title>
+            <Dialog.Description>
+              {isDeploymentScoped
+                ? 'Could not resolve the provider for this deployment.'
+                : 'Could not resolve the selected provider.'}
+            </Dialog.Description>
 
           <Spacer size={15} />
 
@@ -183,7 +190,7 @@ let ProviderAuthConfigCreateModalContent = (p: {
         <Dialog.Title>Configure {providerName} Authentication</Dialog.Title>
         <Dialog.Description>
           Complete the {providerName} authentication flow to create an auth config
-          for this deployment.
+          {isDeploymentScoped ? ' for this deployment.' : '.'}
         </Dialog.Description>
 
         <Spacer size={15} />
@@ -196,7 +203,8 @@ let ProviderAuthConfigCreateModalContent = (p: {
           instanceId={p.instanceId}
           providerId={providerId}
           deploymentId={p.providerDeploymentId}
-          hideMethodStep={false}
+          initialMethodId={!isDeploymentScoped && setupFlowMethods.length === 1 ? setupFlowMethods[0]?.id : undefined}
+          hideMethodStep={!isDeploymentScoped && setupFlowMethods.length === 1}
           onComplete={result => {
             let authConfigId = result?.authConfig?.id;
             if (authConfigId) {
@@ -217,7 +225,9 @@ let ProviderAuthConfigCreateModalContent = (p: {
           <>
             <Dialog.Title>Create Auth Config</Dialog.Title>
             <Dialog.Description>
-              Could not resolve the provider for this deployment.
+              {isDeploymentScoped
+                ? 'Could not resolve the provider for this deployment.'
+                : 'Could not resolve the selected provider.'}
             </Dialog.Description>
 
             <Spacer size={15} />
@@ -235,7 +245,8 @@ let ProviderAuthConfigCreateModalContent = (p: {
         <>
           <Dialog.Title>Configure {providerName} Authentication</Dialog.Title>
           <Dialog.Description>
-            Complete the {activeMethod.name} flow to create an auth config for this deployment.
+            Complete the {activeMethod.name} flow to create an auth config
+            {isDeploymentScoped ? ' for this deployment.' : '.'}
           </Dialog.Description>
 
           <Spacer size={15} />
@@ -277,6 +288,7 @@ let ProviderAuthConfigCreateModalContent = (p: {
             type="create"
             instanceId={p.instanceId}
             providerDeploymentId={p.providerDeploymentId}
+            providerId={providerId}
             initialAuthMethodId={activeMethod.id}
             hideAuthMethodStep
             showAuthMethodStepInStepper
@@ -294,7 +306,9 @@ let ProviderAuthConfigCreateModalContent = (p: {
       <>
         <Dialog.Title>Create Auth Config</Dialog.Title>
         <Dialog.Description>
-          Choose an authentication method for this deployment.
+          {isDeploymentScoped
+            ? 'Choose an authentication method for this deployment.'
+            : 'Choose an authentication method for this provider.'}
         </Dialog.Description>
 
         {providerContextCard && (
@@ -328,8 +342,14 @@ let ProviderAuthConfigCreateModalContent = (p: {
                   <Spacer size={10} />
 
                   <Dialog.Actions>
-                    <Button variant="outline" onClick={p.close}>
-                      Cancel
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        p.close();
+                        p.onBack?.();
+                      }}
+                    >
+                      {p.onBack ? 'Back' : 'Cancel'}
                     </Button>
                     <Button onClick={() => setActiveMethodId(draftMethodId)} disabled={!draftMethodId}>
                       Continue
@@ -361,6 +381,7 @@ let ProviderAuthConfigCreateModalContent = (p: {
         type="create"
         instanceId={p.instanceId}
         providerDeploymentId={p.providerDeploymentId}
+        providerId={providerId}
         close={p.close}
         onBack={() => {
           p.close();
@@ -376,7 +397,8 @@ let ProviderAuthConfigCreateModalContent = (p: {
 
 export let showProviderAuthConfigCreateModal = (p: {
   instanceId: string;
-  providerDeploymentId: string;
+  providerDeploymentId?: string;
+  providerId?: string;
   onCreate?: (authConfig: { id: string }) => void;
   onBack?: () => void;
 }) =>

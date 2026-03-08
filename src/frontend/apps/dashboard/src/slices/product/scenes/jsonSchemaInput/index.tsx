@@ -440,9 +440,11 @@ let GenericObjectInput = ({
   let initialSerialized = JSON.stringify(toRecord(initialValue));
   let [entries, setEntries] = useState<GenericObjectEntry[]>(() => toGenericObjectEntries(initialValue));
   let onChangeRef = useRef(onChange);
+  let lastEmittedValue = useRef(initialSerialized);
   onChangeRef.current = onChange;
 
   useEffect(() => {
+    if (lastEmittedValue.current === initialSerialized) return;
     setEntries(toGenericObjectEntries(initialValue));
   }, [initialSerialized]);
 
@@ -483,7 +485,6 @@ let GenericObjectInput = ({
   }, [entries]);
 
   let outputSerialized = useMemo(() => JSON.stringify(validation.output), [validation.output]);
-  let lastEmittedValue = useRef(outputSerialized);
 
   useEffect(() => {
     if (validation.hasErrors) return;
