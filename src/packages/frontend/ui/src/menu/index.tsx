@@ -55,6 +55,7 @@ let Content = styled(RadixMenu.Content)`
   border-radius: 10px;
   min-width: 200px;
   gap: 5px;
+  z-index: 11;
 
   &[data-state='open'][data-side='top'] {
     animation: ${fadeInTop} 0.2s ease forwards;
