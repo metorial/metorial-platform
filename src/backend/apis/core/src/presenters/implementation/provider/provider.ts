@@ -27,13 +27,9 @@ export let v1ProviderPresenter = Presenter.create(providerType)
           status: provider.oauth.status,
           callback_url: provider.oauth.callbackUrl,
           auto_registration:
-            provider.oauth.autoRegistration?.status == 'enabled'
-              ? {
-                  status: 'enabled'
-                }
-              : {
-                  status: 'disabled'
-                }
+            provider.oauth.autoRegistration?.status == 'supported'
+              ? { status: 'supported' }
+              : { status: 'unsupported' }
         }
       : null,
 
