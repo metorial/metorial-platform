@@ -16,7 +16,7 @@ let getUrlFromUnknown = (value: unknown): string | null => {
 
 let getEntityImageUrl = (image: SubspaceProviderListing['image']): string | null => {
   if (!image) return null;
-  if (image.type === 'file' || image.type === 'url') return image.url;
+  if (image.type === 'file' || image.type === 'url') return image.url ?? null;
   return null;
 };
 
