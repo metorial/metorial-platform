@@ -10,11 +10,18 @@ vi.mock('../src/definitions', () => ({
 
 vi.mock('../src/services', () => ({
   fileService: { name: 'fileService' },
-  fileLinkService: { name: 'fileLinkService' }
+  fileLinkService: { name: 'fileLinkService' },
+  fileReferenceService: { name: 'fileReferenceService' }
 }));
 
 // Import after mocking
-import { purposeSlugs, fileService, fileLinkService, fileQueueProcessor } from '../src/index';
+import {
+  purposeSlugs,
+  fileService,
+  fileLinkService,
+  fileReferenceService,
+  fileQueueProcessor
+} from '../src/index';
 
 describe('index', () => {
   it('exports purposeSlugs from definitions', () => {
@@ -27,6 +34,7 @@ describe('index', () => {
   it('exports services from services module', () => {
     expect(fileService).toBeDefined();
     expect(fileLinkService).toBeDefined();
+    expect(fileReferenceService).toBeDefined();
   });
 
   it('exports fileQueueProcessor', () => {

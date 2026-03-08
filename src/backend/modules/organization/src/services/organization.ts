@@ -10,6 +10,7 @@ import { createSlugGenerator } from '@lowerdeck/slugify';
 import { Context } from '@metorial/context';
 import { db, ID, Organization, OrganizationActor, User, withTransaction } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
+import { fileReferenceService } from '@metorial/module-file';
 import { differenceInMinutes } from 'date-fns';
 import { syncProfileQueue } from '../queues/syncProfile';
 import { organizationActorService } from './organizationActor';
@@ -95,6 +96,7 @@ class OrganizationService {
     input: {
       name?: string;
       image?: PrismaJson.EntityImage;
+      imageFileId?: string | null;
     };
     organization: Organization;
     context: Context;
@@ -105,13 +107,42 @@ class OrganizationService {
     return withTransaction(async db => {
       await Fabric.fire('organization.updated:before', d);
 
+      let nextImage = d.input.image;
+      if (d.input.imageFileId !== undefined) {
+        nextImage =
+          d.input.imageFileId === null
+            ? { type: 'default' }
+            : await fileReferenceService.createImageEntityImage({
+                fileId: d.input.imageFileId,
+                owner: {
+                  type: 'organization',
+                  organizationId: d.organization.id
+                },
+                purpose: 'organization_image',
+                entityType: 'organization',
+                entityId: d.organization.id,
+                database: db
+              });
+      }
+
       let organization = await db.organization.update({
         where: { id: d.organization.id },
         data: {
           name: d.input.name,
-          image: d.input.image
+          image: nextImage
         }
       });
+
+      if (d.input.image !== undefined || d.input.imageFileId !== undefined) {
+        await fileReferenceService.cleanupImageEntityImage({
+          image:
+            d.organization.image &&
+            JSON.stringify(d.organization.image) !== JSON.stringify(nextImage)
+              ? (d.organization.image as any)
+              : undefined,
+          database: db
+        });
+      }
 
       await Fabric.fire('organization.updated:after', {
         ...d,

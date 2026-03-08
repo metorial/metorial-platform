@@ -271,7 +271,6 @@ export type ManagementInstanceProviderListingsListQuery = {
   order?: 'asc' | 'desc' | undefined;
 } & {
   search?: string | undefined;
-  providerId?: string | string[] | undefined;
   providerCategoryId?: string | string[] | undefined;
   providerCollectionId?: string | string[] | undefined;
   providerGroupId?: string | string[] | undefined;
@@ -294,16 +293,6 @@ export let mapManagementInstanceProviderListingsListQuery = mtMap.union([
       cursor: mtMap.objectField('cursor', mtMap.passthrough()),
       order: mtMap.objectField('order', mtMap.passthrough()),
       search: mtMap.objectField('search', mtMap.passthrough()),
-      providerId: mtMap.objectField(
-        'provider_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
       providerCategoryId: mtMap.objectField(
         'provider_category_id',
         mtMap.union([

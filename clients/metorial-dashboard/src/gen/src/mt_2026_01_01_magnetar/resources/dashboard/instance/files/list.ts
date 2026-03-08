@@ -59,10 +59,7 @@ export type DashboardInstanceFilesListQuery = {
   before?: string | undefined;
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
-} & {
-  purpose?: 'user_image' | 'organization_image' | undefined;
-  organizationId?: string | undefined;
-};
+} & { purpose?: 'user_image' | 'organization_image' | undefined };
 
 export let mapDashboardInstanceFilesListQuery = mtMap.union([
   mtMap.unionOption(
@@ -73,8 +70,7 @@ export let mapDashboardInstanceFilesListQuery = mtMap.union([
       before: mtMap.objectField('before', mtMap.passthrough()),
       cursor: mtMap.objectField('cursor', mtMap.passthrough()),
       order: mtMap.objectField('order', mtMap.passthrough()),
-      purpose: mtMap.objectField('purpose', mtMap.passthrough()),
-      organizationId: mtMap.objectField('organization_id', mtMap.passthrough())
+      purpose: mtMap.objectField('purpose', mtMap.passthrough())
     })
   )
 ]);

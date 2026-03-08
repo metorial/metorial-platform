@@ -135,6 +135,7 @@ export type ManagementInstanceSessionTemplatesProvidersCreateBody = {
   sessionTemplateId: string;
   providerDeploymentId?: string | undefined;
   providerConfigId?: string | undefined;
+  providerConfigVaultId?: string | undefined;
   providerAuthConfigId?: string | undefined;
   toolFilters?: { toolKeys?: string[] | undefined } | undefined;
 };
@@ -151,6 +152,10 @@ export let mapManagementInstanceSessionTemplatesProvidersCreateBody =
     ),
     providerConfigId: mtMap.objectField(
       'provider_config_id',
+      mtMap.passthrough()
+    ),
+    providerConfigVaultId: mtMap.objectField(
+      'provider_config_vault_id',
       mtMap.passthrough()
     ),
     providerAuthConfigId: mtMap.objectField(

@@ -9,6 +9,9 @@ vi.mock('@metorial/db', () => ({
       findUnique: vi.fn(),
       create: vi.fn(),
       update: vi.fn()
+    },
+    fileReference: {
+      deleteMany: vi.fn()
     }
   },
   ID: {
@@ -21,6 +24,9 @@ vi.mock('@metorial/db', () => ({
         findUnique: vi.fn(),
         create: vi.fn(),
         update: vi.fn()
+      },
+      fileReference: {
+        deleteMany: vi.fn()
       }
     })
   )
@@ -50,6 +56,13 @@ vi.mock('../src/queues/syncUserUpdate', () => ({
   }
 }));
 
+vi.mock('@metorial/module-file', () => ({
+  fileReferenceService: {
+    createImageEntityImage: vi.fn(),
+    cleanupImageEntityImage: vi.fn()
+  }
+}));
+
 // Mock Bun.password
 global.Bun = {
   password: {
@@ -61,6 +74,7 @@ global.Bun = {
 describe('userService', () => {
   let db: any;
   let Fabric: any;
+  let fileReferenceService: any;
   let withTransaction: any;
   let syncUserUpdateQueue: any;
 
@@ -73,6 +87,9 @@ describe('userService', () => {
 
     const fabricModule = await import('@metorial/fabric');
     Fabric = fabricModule.Fabric;
+
+    const fileModule = await import('@metorial/module-file');
+    fileReferenceService = fileModule.fileReferenceService;
 
     const queueModule = await import('../src/queues/syncUserUpdate');
     syncUserUpdateQueue = queueModule.syncUserUpdateQueue;
@@ -386,6 +403,46 @@ describe('userService', () => {
       });
 
       expect(result.image).toEqual(newImage);
+    });
+
+    it('should release the previous file reference when image changes', async () => {
+      const mockUser = {
+        id: 'user_123',
+        status: 'active',
+        image: {
+          type: 'file',
+          fileId: 'fil_old',
+          fileLinkId: 'flk_old',
+          fileReferenceId: 'frf_old',
+          fileUrl: 'https://files.example.com/files/fil_old/key'
+        }
+      };
+      const newImage = { type: 'default' };
+
+      withTransaction.mockImplementation(async (cb: any) => {
+        const mockDb = {
+          user: {
+            update: vi.fn().mockResolvedValue({
+              ...mockUser,
+              image: newImage
+            })
+          }
+        };
+        return cb(mockDb);
+      });
+
+      await userService.updateUser({
+        user: mockUser as any,
+        input: {
+          image: newImage as any
+        },
+        context: mockContext
+      });
+
+      expect(fileReferenceService.cleanupImageEntityImage).toHaveBeenCalledWith({
+        image: mockUser.image,
+        database: expect.anything()
+      });
     });
   });
 

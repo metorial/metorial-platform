@@ -1,5 +1,5 @@
 export type EntityImage =
-  | { type: 'file'; fileId: string; fileLinkId: string; url: string }
+  | { type: 'file'; fileId: string; fileLinkId: string; fileReferenceId: string; fileUrl: string; url?: string }
   | { type: 'enterprise_file'; fileId: string }
   | { type: 'url'; url: string }
   | { type: 'default' };
@@ -17,7 +17,7 @@ export let getImageFieldsDefaultImpl = async (entity: GetImageFieldsParams) => {
 
   if (entity.image?.type == 'file') {
     return {
-      imageUrl: entity.image.url
+      imageUrl: entity.image.fileUrl ?? entity.image.url ?? ''
     };
   }
 

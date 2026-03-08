@@ -8,6 +8,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { db, File, ID, Instance, Organization } from '@metorial/db';
 import { purposes } from '../definitions';
+import { fileReferenceService } from './fileReference';
 
 export type FileOwner =
   | {
@@ -158,13 +159,18 @@ class FileServiceImpl {
   }
 
   async deleteFile(d: { file: File }) {
-    throw new ServiceError(
-      badRequestError({
-        message: 'You cannot delete this file'
-      })
-    );
-
     await this.ensureFileActive(d.file);
+
+    let hasRefs = await fileReferenceService.hasReferencesForFile({
+      fileOid: d.file.oid
+    });
+    if (hasRefs) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Cannot delete file: it has active references'
+        })
+      );
+    }
 
     return await db.file.update({
       where: {
@@ -195,11 +201,14 @@ class FileServiceImpl {
           await db.file.findMany({
             ...opts,
             where: {
-              organizationOid:
-                d.owner.type === 'organization' ? d.owner.organization.oid : null,
-              userOid: d.owner.type === 'user' ? await this.getUserOid(d.owner.user.id) : null,
               status: 'active',
-
+              ...(d.owner.type === 'organization' || d.owner.type === 'instance'
+                ? {
+                    organizationOid: d.owner.organization.oid
+                  }
+                : {
+                    userOid: await this.getUserOid(d.owner.user.id)
+                  }),
               purposeOid: purpose?.oid
             },
             include: {

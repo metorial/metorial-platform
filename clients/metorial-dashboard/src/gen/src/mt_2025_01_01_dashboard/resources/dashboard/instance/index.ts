@@ -1,6 +1,6 @@
 export * from './custom-providers';
+export * from './file-links';
 export * from './files';
-export * from './links';
 export * from './magic-mcp-groups';
 export * from './magic-mcp-servers';
 export * from './magic-mcp-sessions';

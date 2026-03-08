@@ -1,8 +1,14 @@
-import { forbiddenError, notFoundError, ServiceError } from '@lowerdeck/error';
+import {
+  badRequestError,
+  forbiddenError,
+  notFoundError,
+  ServiceError
+} from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { db, File, FileLink, FilePurpose, ID } from '@metorial/db';
 import { generatePlainId } from '@metorial/id';
+import { fileReferenceService } from './fileReference';
 
 class FileLinkServiceImpl {
   async createFileLink(d: {
@@ -32,11 +38,57 @@ class FileLinkServiceImpl {
     });
   }
 
-  async getFileLinkById(d: { fileLinkId: string; file: File }) {
-    let fileLink = await db.fileLink.findUnique({
+  async deleteFileLink(d: { fileLink: FileLink }) {
+    let hasRefs = await fileReferenceService.hasReferences({
+      fileLinkOid: d.fileLink.oid
+    });
+    if (hasRefs) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Cannot delete link: it has active references'
+        })
+      );
+    }
+
+    return await db.fileLink.delete({
+      where: {
+        id: d.fileLink.id
+      },
+      include: {
+        file: true
+      }
+    });
+  }
+
+  async listFileLinksForOrganization(d: { organizationOid: bigint; fileId?: string }) {
+    return Paginator.create(({ prisma }) =>
+      prisma(
+        async opts =>
+          await db.fileLink.findMany({
+            ...opts,
+            where: {
+              file: {
+                organizationOid: d.organizationOid,
+                status: 'active',
+                ...(d.fileId ? { id: d.fileId } : {})
+              }
+            },
+            include: {
+              file: true
+            }
+          })
+      )
+    );
+  }
+
+  async getFileLinkByIdForOrganization(d: { fileLinkId: string; organizationOid: bigint }) {
+    let fileLink = await db.fileLink.findFirst({
       where: {
         id: d.fileLinkId,
-        fileOid: d.file.oid
+        file: {
+          organizationOid: d.organizationOid,
+          status: 'active'
+        }
       },
       include: {
         file: true
@@ -49,55 +101,8 @@ class FileLinkServiceImpl {
     return fileLink;
   }
 
-  async deleteFileLink(d: { fileLink: FileLink }) {
-    return await db.fileLink.delete({
-      where: {
-        id: d.fileLink.id
-      },
-      include: {
-        file: true
-      }
-    });
-  }
-
-  async updateFileLink(d: {
-    fileLink: FileLink;
-    input: {
-      expiresAt?: Date;
-    };
-  }) {
-    return await db.fileLink.update({
-      where: {
-        id: d.fileLink.id
-      },
-      data: {
-        expiresAt: d.input.expiresAt
-      },
-      include: {
-        file: true
-      }
-    });
-  }
-
-  async listFileLinks(d: { file: File }) {
-    return Paginator.create(({ prisma }) =>
-      prisma(
-        async opts =>
-          await db.fileLink.findMany({
-            ...opts,
-            where: {
-              fileOid: d.file.oid
-            },
-            include: {
-              file: true
-            }
-          })
-      )
-    );
-  }
-
   async getFileLinkByKey(d: { fileId: string; key: string }) {
-    let fileLink = await db.fileLink.findUnique({
+    let fileLink = await db.fileLink.findFirst({
       where: {
         key: d.key,
         file: {

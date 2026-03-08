@@ -8,14 +8,10 @@ import {
   mapDashboardInstanceFilesGetOutput,
   mapDashboardInstanceFilesListOutput,
   mapDashboardInstanceFilesListQuery,
-  mapDashboardInstanceFilesUpdateBody,
-  mapDashboardInstanceFilesUpdateOutput,
   type DashboardInstanceFilesDeleteOutput,
   type DashboardInstanceFilesGetOutput,
   type DashboardInstanceFilesListOutput,
-  type DashboardInstanceFilesListQuery,
-  type DashboardInstanceFilesUpdateBody,
-  type DashboardInstanceFilesUpdateOutput
+  type DashboardInstanceFilesListQuery
 } from '../resources';
 
 /**
@@ -100,38 +96,6 @@ export class MetorialDashboardInstanceFilesEndpoint {
     } as any;
 
     return this._get(request).transform(mapDashboardInstanceFilesGetOutput);
-  }
-
-  /**
-   * @name Update file by ID
-   * @description Updates editable fields of a specific file by its ID.
-   *
-   * @param `instanceId` - string
-   * @param `fileId` - string
-   * @param `body` - DashboardInstanceFilesUpdateBody
-   * @param `opts` - { headers?: Record<string, string> }
-   * @returns DashboardInstanceFilesUpdateOutput
-   * @see https://metorial.com/api
-   * @see https://metorial.com/docs
-   */
-  update(
-    instanceId: string,
-    fileId: string,
-    body: DashboardInstanceFilesUpdateBody,
-    opts?: { headers?: Record<string, string> }
-  ): Promise<DashboardInstanceFilesUpdateOutput> {
-    let path = `dashboard/instances/${instanceId}/files/${fileId}`;
-
-    let request = {
-      path,
-      body: mapDashboardInstanceFilesUpdateBody.transformTo(body),
-
-      ...(opts?.headers ? { headers: opts.headers } : {})
-    } as any;
-
-    return this._patch(request).transform(
-      mapDashboardInstanceFilesUpdateOutput
-    );
   }
 
   /**
