@@ -146,6 +146,10 @@ export let backendEnv: Env = [
     key: 'API_URL',
     defaultValue: `http://${HOSTNAME}:4310`
   },
+  {
+    key: 'FILES_URL',
+    defaultValue: `http://${HOSTNAME}:4318`
+  },
   { key: 'APP_URL', defaultValue: `http://${HOSTNAME}:4300` },
   { key: 'ID_API_HOST', defaultValue: `http://${HOSTNAME}:4321`, isEnterprise: true },
   { key: 'BILLING_API_URL', defaultValue: `http://${HOSTNAME}:4320`, isEnterprise: true },

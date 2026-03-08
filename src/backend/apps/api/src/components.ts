@@ -4,13 +4,14 @@ import { apiMux } from '@lowerdeck/api-mux';
 import { authApi } from '@metorial/api-auth';
 import { startMcpServer } from '@metorial/api-connection';
 import { apiServer } from '@metorial/api-core';
-import { fileApi, shouldUseFileApi } from '@metorial/api-files';
+import { fileContentApi, fileUploadApi } from '@metorial/api-files';
 import { marketplaceApp } from '@metorial/api-marketplace';
 import { authenticate } from '@metorial/auth';
 import { startPrivateApiServer } from '@metorial/api-private';
 import { initLogger } from '@metorial/logging';
 
 let apiPort = parseInt(process.env.API_PORT || '4310');
+let filesPort = parseInt(process.env.FILES_PORT || '4318');
 let mcpPort = parseInt(process.env.MCP_PORT || '4311');
 let oauthPort = parseInt(process.env.OAUTH_PORT || '4313');
 let runnerPort = parseInt(process.env.RUNNER_PORT || '3399');
@@ -18,14 +19,6 @@ let privateApiPort = parseInt(process.env.PRIVATE_API_PORT || '4314');
 let marketplaceApiPort = parseInt(process.env.MARKETPLACE_API_PORT || '4312');
 let integrationsApiPort = parseInt(process.env.INTEGRATIONS_API_PORT || '4316');
 let callbacksApiPort = parseInt(process.env.CALLBACKS_API_PORT || '4317');
-
-let fileApiProxy = (req: Request) => {
-  if (shouldUseFileApi(req)) {
-    return fileApi.fetch(req as any);
-  }
-
-  return (apiServer.fetch as any)(req as any);
-};
 
 let server = apiMux(
   [
@@ -36,10 +29,11 @@ let server = apiMux(
       }
     },
     {
-      methods: ['GET', 'POST', 'OPTIONS'],
+      methods: ['POST', 'OPTIONS'],
       endpoint: {
         path: '/files',
-        fetch: fileApiProxy as any
+        exact: true,
+        fetch: fileUploadApi.fetch as any
       }
     }
   ],
@@ -52,11 +46,16 @@ Bun.serve({
 });
 
 Bun.serve({
+  port: filesPort,
+  fetch: fileContentApi.fetch
+});
+
+Bun.serve({
   port: marketplaceApiPort,
   fetch: marketplaceApp.fetch
 });
 
-console.log(`Listening on port ${apiPort}`);
+console.log(`Listening on ports ${apiPort} (api), ${filesPort} (files)`);
 
 if (process.env.AXIOM_TOKEN)
   initLogger({
