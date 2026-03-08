@@ -14,7 +14,7 @@ import {
   useProviderListing,
   useProviderVersions
 } from '@metorial/state';
-import { Badge, Button, Flex, LinkTabs } from '@metorial/ui';
+import { Badge, Button, Flex, LinkTabs, Select } from '@metorial/ui';
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { showProviderDeploymentFormModal } from '../../../scenes/providerDeployments/modal';
@@ -154,6 +154,11 @@ export let ProviderLayout = () => {
     instance.data,
     providerData?.id ?? providerId
   ] as const;
+  let showTopRow =
+    !!listing?.attributes?.isVerified ||
+    !!listing?.attributes?.isOfficial ||
+    !!listing?.attributes?.isMetorial ||
+    sortedVersions.length > 0;
 
   return (
     <ProviderVersionContext.Provider value={versionContext}>
@@ -162,22 +167,31 @@ export let ProviderLayout = () => {
           title={listing?.name ?? providerData?.name ?? '...'}
           description={listing?.description ?? providerData?.description ?? undefined}
           top={
-            listing?.attributes?.isVerified ||
-            listing?.attributes?.isOfficial ||
-            listing?.attributes?.isMetorial ||
-            (selectedVersion && !isDefaultVersion) ? (
-              <Flex gap={8} style={{ alignItems: 'center', marginTop: 6 }}>
+            showTopRow ? (
+              <Flex gap={8} style={{ alignItems: 'center', marginTop: 6, flexWrap: 'wrap' }}>
                 {listing?.attributes?.isVerified && <Badge color="blue">Verified</Badge>}
                 {(listing?.attributes?.isOfficial || listing?.attributes?.isMetorial) && (
                   <Badge color="gray">Official</Badge>
                 )}
-                {selectedVersion && !isDefaultVersion && (
-                  <>
-                    <Badge color="purple">{selectedVersion.version}</Badge>
-                    <Button size="1" variant="ghost" onClick={resetToDefault}>
-                      Back to default version
-                    </Button>
-                  </>
+                {sortedVersions.length > 0 && (
+                  <div style={{ minWidth: 180, maxWidth: 220 }}>
+                    <Select
+                      size="1"
+                      label="Version"
+                      hideLabel
+                      value={effectiveVersionId}
+                      onChange={value => {
+                        setSelectedVersionIdState(value || currentVersionId);
+                      }}
+                      items={sortedVersions.map(version => ({
+                        id: version.id,
+                        label:
+                          version.id === currentVersionId
+                            ? `${version.version} (default)`
+                            : version.version
+                      }))}
+                    />
+                  </div>
                 )}
               </Flex>
             ) : undefined

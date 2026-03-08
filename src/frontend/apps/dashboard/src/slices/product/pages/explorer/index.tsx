@@ -435,6 +435,7 @@ export let ExplorerPage = () => {
       ? 'Select an auth config to continue'
       : 'None';
     let authConfigItems = providerAuthConfigs.data?.items ?? [];
+    let hasAvailableAuthConfigs = authConfigItems.length > 0;
     let lockedProviderVersionId = selectedDeployment.data?.lockedVersion?.id ?? null;
     let currentProviderVersionId = activeProvider.data?.currentVersion?.id ?? null;
     let effectiveProviderVersionId = lockedProviderVersionId ?? currentProviderVersionId;
@@ -590,7 +591,11 @@ export let ExplorerPage = () => {
                 <Button
                   type="button"
                   onClick={() => {
-                    if (hasAuthMethods && !selectedAuthConfigId) {
+                    if (
+                      hasAuthMethods &&
+                      !selectedAuthConfigId &&
+                      !hasAvailableAuthConfigs
+                    ) {
                       openAuthConfigCreateModal();
                       return;
                     }
