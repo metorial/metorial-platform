@@ -1,13 +1,9 @@
 import { renderWithLoader } from '@metorial/data-hooks';
-import { Paths } from '@metorial/frontend-config';
 import {
   useCurrentInstance,
-  useCurrentOrganization,
-  useCurrentProject,
   useProvider,
   useProviderAuthConfigs,
   useProviderAuthMethods,
-  useProviderConfigVaults,
   useProviderDeployment,
 } from '@metorial/state';
 import {
@@ -19,7 +15,7 @@ import {
   theme
 } from '@metorial/ui';
 import { Box, ID, SideBox } from '@metorial/ui-product';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { styled } from 'styled-components';
 import { ProviderAuthConfigsTable } from '../../../scenes/providerAuthConfigs/table';
 import { showProviderSetupSessionModal } from '../../../scenes/providerDeployments/setupSessionModal';
@@ -55,8 +51,6 @@ let SummaryItem = styled.div`
 
 export let ProviderDeploymentOverviewPage = () => {
   let instance = useCurrentInstance();
-  let organization = useCurrentOrganization();
-  let project = useCurrentProject();
 
   let { providerDeploymentId } = useParams();
   let deployment = useProviderDeployment(instance.data?.id, providerDeploymentId);
@@ -68,9 +62,6 @@ export let ProviderDeploymentOverviewPage = () => {
     instance.data?.id,
     deployment.data?.id ?? providerDeploymentId
   );
-  let configVaults = useProviderConfigVaults(instance.data?.id, {
-    providerDeploymentId: deployment.data?.id ?? providerDeploymentId ?? undefined
-  });
 
   let hasAuthMethods = (authMethods.data?.items?.length ?? 0) > 0;
   return renderWithLoader({ deployment, provider })(({ deployment, provider }) => (
@@ -135,34 +126,6 @@ export let ProviderDeploymentOverviewPage = () => {
       <Box title="Recent Sessions" description="Latest sessions using this deployment.">
         <SessionsTable providerDeploymentId={deployment.data.id} />
       </Box>
-
-      <Spacer height={20} />
-
-      <SideBox
-        title="Config Vaults"
-        description="Manage reusable configuration values for this deployment."
-      >
-        <Text size="2" color="gray600">
-          {configVaults.data?.items?.length ?? 0} vault
-          {(configVaults.data?.items?.length ?? 0) === 1 ? '' : 's'} available
-        </Text>
-
-        <Spacer height={10} />
-
-        <Link
-          to={Paths.instance.providerDeployment(
-            organization.data,
-            project.data,
-            instance.data,
-            deployment.data.id,
-            'config-vaults'
-          )}
-        >
-          <Button as="span" size="2" variant="outline">
-            View Config Vaults
-          </Button>
-        </Link>
-      </SideBox>
 
       {hasAuthMethods && (
         <>

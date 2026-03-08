@@ -13,6 +13,7 @@ import {
   showModal
 } from '@metorial/ui';
 import { useState } from 'react';
+import { getProviderOAuthAutoRegistrationEnabled } from '../../lib/providerOAuthAutoRegistration';
 import { useProviderAuthCreationCapabilities } from '../../lib/providerCreationCapabilities';
 import { ProviderContextCard } from '../providerContextCard';
 import { ProviderSetupSessionEmbed } from '../providerDeployments/setupSessionEmbed';
@@ -118,8 +119,9 @@ let ProviderAuthConfigCreateModalContent = (p: {
   let [activeMethodId, setActiveMethodId] = useState('');
   let activeMethod = authMethods.find(method => method.id === activeMethodId);
   let draftMethod = authMethods.find(method => method.id === draftMethodId);
-  let oauthAutoRegistrationEnabled =
-    authCreation.provider.data?.oauth?.autoRegistration?.status === 'enabled';
+  let oauthAutoRegistrationEnabled = getProviderOAuthAutoRegistrationEnabled(
+    authCreation.provider.data
+  );
   let providerContextCard = providerId ? (
     <ProviderContextCard
       providerId={providerId}

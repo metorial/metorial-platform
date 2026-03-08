@@ -45,9 +45,9 @@ export type ManagementInstanceProviderListingsListOutput = {
         updatedAt: Date;
       } | null;
       oauth: {
-        status: string;
+        status: 'enabled' | 'disabled';
         callbackUrl: string | null;
-        autoRegistration: { status: 'enabled' | 'disabled' };
+        autoRegistration: { status: 'supported' | 'unsupported' };
       } | null;
       identifier: string;
       name: string;

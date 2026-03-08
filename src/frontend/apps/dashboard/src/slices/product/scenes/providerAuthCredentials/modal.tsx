@@ -20,6 +20,7 @@ import {
   showModal
 } from '@metorial/ui';
 import { useMemo } from 'react';
+import { getProviderOAuthAutoRegistrationEnabled } from '../../lib/providerOAuthAutoRegistration';
 import { ProviderContextCard } from '../providerContextCard';
 
 type AuthMethod = DashboardInstanceProvidersAuthMethodsListOutput['items'][number];
@@ -50,8 +51,7 @@ export let ProviderAuthCredentialsForm = ({
   let redirectUri = provider.data?.oauth?.callbackUrl;
   let providerName = deployment.data?.name ?? provider.data?.name ?? providerId;
   let oauthMethodName = oauthMethod?.name ?? 'OAuth';
-  let oauthAutoRegistrationEnabled =
-    provider.data?.oauth?.autoRegistration?.status === 'enabled';
+  let oauthAutoRegistrationEnabled = getProviderOAuthAutoRegistrationEnabled(provider.data);
 
   let createCredentials = useCreateProviderAuthCredentials();
 

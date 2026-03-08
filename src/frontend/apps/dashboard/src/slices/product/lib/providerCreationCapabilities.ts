@@ -6,6 +6,7 @@ import {
   useProviderDeployment
 } from '@metorial/state';
 import { getJsonSchemaObject, hasJsonSchemaProperties } from './jsonSchema';
+import { getProviderOAuthAutoRegistrationEnabled } from './providerOAuthAutoRegistration';
 
 let getAuthMethodHasSchema = (inputSchema: unknown) => {
   let schemaObj = getJsonSchemaObject(
@@ -103,8 +104,7 @@ export let useProviderAuthCreationCapabilities = (
     deployment.data?.lockedVersion?.id ?? provider.data?.currentVersion?.id ?? null;
   let authMethods = useProviderAuthMethods(scopedProviderInstanceId, effectiveVersionId);
   let authMethodItems = authMethods.data?.items ?? [];
-  let oauthAutoRegistrationEnabled =
-    provider.data?.oauth?.autoRegistration?.status === 'enabled';
+  let oauthAutoRegistrationEnabled = getProviderOAuthAutoRegistrationEnabled(provider.data);
   let hasAuthMethods = authMethodItems.length > 0;
   let hasOAuthMethod = authMethodItems.some(method => method.type === 'oauth');
   let hasManualAuthConfigMethod = authMethodItems.some(method => {

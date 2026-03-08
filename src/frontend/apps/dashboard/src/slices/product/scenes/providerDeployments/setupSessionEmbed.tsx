@@ -16,6 +16,7 @@ import {
 } from '@metorial/state';
 import { Button, Copy, Flex, Input, Select, Spacer, Text } from '@metorial/ui';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { getProviderOAuthAutoRegistrationEnabled } from '../../lib/providerOAuthAutoRegistration';
 import { Stepper } from '../stepper';
 
 type AuthMethod = DashboardInstanceProvidersAuthMethodsListOutput['items'][number];
@@ -159,8 +160,7 @@ export let ProviderSetupSessionEmbed = ({
   let oauthMethodName = selectedMethod?.name ?? 'OAuth';
   let redirectUri = provider.data?.oauth?.callbackUrl;
   let isOAuth = selectedMethod?.type === 'oauth';
-  let oauthAutoRegistrationEnabled =
-    provider.data?.oauth?.autoRegistration?.status === 'enabled';
+  let oauthAutoRegistrationEnabled = getProviderOAuthAutoRegistrationEnabled(provider.data);
   let visibleAuthCredentials = isOAuth
     ? (authCredentials.data?.items ?? []).filter(credential => !credential.isDefault)
     : (authCredentials.data?.items ?? []);

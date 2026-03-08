@@ -22,7 +22,7 @@ let DeploymentStatusBadge = ({ status }: { status: string | null }) =>
     }) as Record<string, React.ReactElement>
   )[status ?? ''] ?? <Badge color="gray">{status ?? 'Unknown'}</Badge>;
 
-export let CustomProviderDeploymentsPage = () => {
+export let CustomProviderCommitsPage = () => {
   let instance = useCurrentInstance();
 
   let { customServerId } = useParams();
@@ -62,7 +62,7 @@ export let CustomProviderDeploymentsPage = () => {
 
           {deployments.data.items.length === 0 && (
             <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-              No deployments found.
+              No commits found.
             </Text>
           )}
         </>

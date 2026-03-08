@@ -23,6 +23,7 @@ import {
   formatAuthConfigSource,
   renderCapabilityStatus
 } from './helpers';
+import { getProviderOAuthAutoRegistrationStatus } from '../../../lib/providerOAuthAutoRegistration';
 
 let DetailBadges = styled.div`
   display: flex;
@@ -147,10 +148,7 @@ export let ProviderAuthConfigAuthenticationPage = () => {
         provider.data.type.auth.status === 'enabled'
           ? provider.data.type.auth.oauth.status
           : 'disabled';
-      let autoRegistrationStatus =
-        provider.data.oauth?.status === 'enabled'
-          ? provider.data.oauth.autoRegistration.status
-          : undefined;
+      let autoRegistrationStatus = getProviderOAuthAutoRegistrationStatus(provider.data);
       let oauthCallbackUrl =
         provider.data.oauth?.callbackUrl ??
         (provider.data.type.auth.status === 'enabled' &&

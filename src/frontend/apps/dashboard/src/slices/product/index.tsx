@@ -275,9 +275,14 @@ let CustomServerSettingsPage = dynamicPage(() =>
 let CustomServerLayout = dynamicPage(() =>
   import('./pages/(custom-providers)/custom-server/_layout').then(c => c.CustomProviderLayout)
 );
-let CustomServerDeploymentsPage = dynamicPage(() =>
+let CustomServerCommitsPage = dynamicPage(() =>
   import('./pages/(custom-providers)/custom-provider/deployments').then(
-    c => c.CustomProviderDeploymentsPage
+    c => c.CustomProviderCommitsPage
+  )
+);
+let CustomServerDeploymentsPage = dynamicPage(() =>
+  import('./pages/(custom-providers)/custom-provider/provider-deployments').then(
+    c => c.CustomProviderProviderDeploymentsPage
   )
 );
 let CustomServerListingPage = dynamicPage(() =>
@@ -897,6 +902,10 @@ export let productInnerSlice = createSlice([
               {
                 path: 'code',
                 element: <CustomServerCodePage />
+              },
+              {
+                path: 'commits',
+                element: <CustomServerCommitsPage />
               },
               {
                 path: 'deployments',

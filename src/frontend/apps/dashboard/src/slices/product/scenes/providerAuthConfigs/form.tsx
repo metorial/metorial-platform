@@ -13,6 +13,7 @@ import {
 import { Button, CenteredSpinner, Dialog, Input, Select, Spacer, Text } from '@metorial/ui';
 import { useEffect, useState } from 'react';
 import { getJsonSchemaObject } from '../../lib/jsonSchema';
+import { getProviderOAuthAutoRegistrationEnabled } from '../../lib/providerOAuthAutoRegistration';
 import { JsonSchemaInput } from '../jsonSchemaInput';
 import { ProviderContextCard } from '../providerContextCard';
 import { Stepper } from '../stepper';
@@ -70,8 +71,7 @@ export let ProviderAuthConfigForm = (
   let provider = useProvider(instanceId, resolvedProviderId);
   let effectiveVersionId =
     deployment.data?.lockedVersion?.id ?? provider.data?.currentVersion?.id;
-  let oauthAutoRegistrationEnabled =
-    provider.data?.oauth?.autoRegistration?.status === 'enabled';
+  let oauthAutoRegistrationEnabled = getProviderOAuthAutoRegistrationEnabled(provider.data);
 
   let authMethods = useProviderAuthMethods(instanceId, effectiveVersionId);
   let manualAuthMethods = (authMethods.data?.items ?? []).filter((method: AuthMethod) => {
