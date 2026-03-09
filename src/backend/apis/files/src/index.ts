@@ -170,7 +170,7 @@ export let createFileUploadApi = (d?: FileApiOptions) => {
       cors({
         origin: o => o,
         allowMethods: ['POST', 'OPTIONS'],
-        allowHeaders: ['Authorization', 'Content-Type', 'metorial-version'],
+        allowHeaders: ['Authorization', 'Content-Type', 'metorial-version', 'sentry-trace', 'baggage'],
         credentials: true
       })
     )
@@ -183,7 +183,7 @@ export let createFileContentApi = () =>
       cors({
         origin: o => o,
         allowMethods: ['GET', 'OPTIONS'],
-        allowHeaders: ['Authorization', 'Content-Type', 'metorial-version'],
+        allowHeaders: ['Authorization', 'Content-Type', 'metorial-version', 'sentry-trace', 'baggage'],
         credentials: true
       })
     )
