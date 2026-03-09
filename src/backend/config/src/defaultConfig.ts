@@ -47,10 +47,5 @@ export let defaultConfig: MetorialConfig = {
     portalsUrl: env.urls.PORTALS_URL
   },
 
-  objectStorage: {
-    url: env.objectStorage.OBJECT_STORAGE_URL,
-    filesBucketName: env.objectStorage.OSS_FILES_BUCKET_NAME
-  },
-
   encryptionSecret: env.encryption.ENCRYPTION_SECRET
 };

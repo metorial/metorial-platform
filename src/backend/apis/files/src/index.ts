@@ -4,9 +4,14 @@ import { extractIp } from '@lowerdeck/forwarded-for';
 import { Context, cors, createHono } from '@lowerdeck/hono';
 import { authenticate } from '@metorial/auth';
 import { generatePlainId } from '@metorial/id';
-import { fileService, fileLinkService, purposeSlugs } from '@metorial/module-file';
+import {
+  fileLinkService,
+  fileService,
+  getOssFilesBucketName,
+  getStorage,
+  purposeSlugs
+} from '@metorial/module-file';
 import { organizationService } from '@metorial/module-organization';
-import { getOssFilesBucketName, getStorage } from './storage';
 
 type FileApiAuthResult = Awaited<ReturnType<typeof authenticate>>;
 
@@ -146,7 +151,7 @@ let getFileContentHandler = async (c: Context) => {
   let res = await getStorage().getObject(getOssFilesBucketName(), file.storeId);
   let contentType = getServedContentType(res.metadata.content_type ?? file.fileType);
 
-  return new Response(res.data, {
+  return new Response(res.data as any, {
     headers: {
       'Content-Type': contentType,
       'Cache-Control': link.expiresAt

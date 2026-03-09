@@ -1,16 +1,11 @@
 import { delay } from '@lowerdeck/delay';
-import { getConfig } from '@metorial/config';
 import { ObjectStorageClient } from 'object-storage-client';
+import { env } from './env';
 
-let objectStorageConfig = getConfig().objectStorage;
+export let storage = new ObjectStorageClient(env.storage.OBJECT_STORAGE_URL);
 
-export let storage = new ObjectStorageClient(objectStorageConfig.url);
-
+export let getOssFilesBucketName = () => env.storage.FILES_BUCKET_NAME;
 export let getStorage = () => storage;
-
-export let getOssFilesBucketName = () => {
-  return objectStorageConfig.filesBucketName;
-};
 
 export let initBuckets = async () => {
   await getStorage().upsertBucket(getOssFilesBucketName());
