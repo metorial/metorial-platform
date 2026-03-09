@@ -62,27 +62,6 @@ export let providerListingController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.provider.listing:read'] }))
       .outputList(providerListingPresenter)
       .query(
-        'default',
-        Paginator.validate(
-          v.object({
-            search: v.optional(v.string()),
-            provider_category_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            provider_collection_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            provider_group_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            publisher_id: v.optional(v.union([v.string(), v.array(v.string())])),
-
-            is_public: v.optional(v.boolean()),
-            only_from_tenant: v.optional(v.boolean()),
-            is_verified: v.optional(v.boolean()),
-            is_official: v.optional(v.boolean()),
-            is_metorial: v.optional(v.boolean()),
-            order_by_rank: v.optional(v.boolean()),
-
-            order_by_use: v.optional(v.enumOf(Object.keys(orderByUseMapper) as any))
-          })
-        )
-      )
-      .query(
         'mt_2026_01_01_magnetar',
         Paginator.validate(
           v.object({
@@ -104,6 +83,28 @@ export let providerListingController = Controller.create(
           only_from_tenant: v.is_owner
         })
       )
+      .query(
+        'default',
+        Paginator.validate(
+          v.object({
+            search: v.optional(v.string()),
+            provider_category_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            provider_collection_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            provider_group_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            publisher_id: v.optional(v.union([v.string(), v.array(v.string())])),
+
+            is_public: v.optional(v.boolean()),
+            only_from_tenant: v.optional(v.boolean()),
+            is_verified: v.optional(v.boolean()),
+            is_official: v.optional(v.boolean()),
+            is_metorial: v.optional(v.boolean()),
+            order_by_rank: v.optional(v.boolean()),
+
+            order_by_use: v.optional(v.enumOf(Object.keys(orderByUseMapper) as any))
+          })
+        )
+      )
+
       .do(async ctx => {
         let paginator = await subspaceProviderListingService.list({
           instance: ctx.instance,
