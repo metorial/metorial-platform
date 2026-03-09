@@ -54,7 +54,7 @@ vi.mock('@lowerdeck/service', () => ({
 }));
 
 vi.mock('@metorial/id', () => ({
-  generateCustomId: vi.fn()
+  generatePlainId: vi.fn()
 }));
 
 vi.mock('../src/email/invite', () => ({
@@ -65,7 +65,7 @@ vi.mock('../src/email/invite', () => ({
 
 import { db, ID, withTransaction } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
-import { generateCustomId } from '@metorial/id';
+import { generatePlainId } from '@metorial/id';
 import { sendOrgInviteEmail } from '../src/email/invite';
 import { organizationInviteService } from '../src/services/organizationInvite';
 
@@ -96,7 +96,7 @@ describe('OrganizationInviteService', () => {
         };
 
         vi.mocked(ID.generateId).mockResolvedValue('invite-1');
-        vi.mocked(generateCustomId).mockReturnValue('metorial_inv_abc123');
+        vi.mocked(generatePlainId).mockReturnValue('metorial_inv_abc123');
         vi.mocked(withTransaction).mockImplementation(async callback => {
           let mockDb = {
             organizationMember: {
@@ -124,7 +124,7 @@ describe('OrganizationInviteService', () => {
 
         expect(result).toEqual(mockInvite);
         expect(ID.generateId).toHaveBeenCalledWith('organizationInvite');
-        expect(generateCustomId).toHaveBeenCalledWith('metorial_inv', 30);
+        expect(generatePlainId).toHaveBeenCalledWith(30);
         expect(sendOrgInviteEmail.send).toHaveBeenCalledWith({
           data: {
             organization: mockOrg,
@@ -162,7 +162,7 @@ describe('OrganizationInviteService', () => {
         };
 
         vi.mocked(ID.generateId).mockResolvedValue('invite-1');
-        vi.mocked(generateCustomId).mockReturnValue('metorial_inv_xyz789');
+        vi.mocked(generatePlainId).mockReturnValue('metorial_inv_xyz789');
         vi.mocked(withTransaction).mockImplementation(async callback => {
           let mockDb = {
             organizationMember: {
@@ -206,7 +206,7 @@ describe('OrganizationInviteService', () => {
         };
 
         vi.mocked(ID.generateId).mockResolvedValue('invite-1');
-        vi.mocked(generateCustomId).mockReturnValue('metorial_inv_admin');
+        vi.mocked(generatePlainId).mockReturnValue('metorial_inv_admin');
         vi.mocked(withTransaction).mockImplementation(async callback => {
           let mockDb = {
             organizationMember: {
@@ -251,7 +251,7 @@ describe('OrganizationInviteService', () => {
         };
 
         vi.mocked(ID.generateId).mockResolvedValue('invite-1');
-        vi.mocked(generateCustomId).mockReturnValue('metorial_inv_test');
+        vi.mocked(generatePlainId).mockReturnValue('metorial_inv_test');
         vi.mocked(withTransaction).mockImplementation(async callback => {
           let mockDb = {
             organizationInvite: {
@@ -294,7 +294,7 @@ describe('OrganizationInviteService', () => {
         };
 
         vi.mocked(ID.generateId).mockResolvedValue('invite-2');
-        vi.mocked(generateCustomId).mockReturnValue('metorial_inv_test2');
+        vi.mocked(generatePlainId).mockReturnValue('metorial_inv_test2');
         vi.mocked(withTransaction).mockImplementation(async callback => {
           let mockDb = {
             organizationInvite: {
@@ -340,7 +340,7 @@ describe('OrganizationInviteService', () => {
         };
 
         vi.mocked(ID.generateId).mockResolvedValue('invite-2');
-        vi.mocked(generateCustomId).mockReturnValue('metorial_inv_new');
+        vi.mocked(generatePlainId).mockReturnValue('metorial_inv_new');
         vi.mocked(withTransaction).mockImplementation(async callback => {
           let mockDb = {
             organizationMember: {
@@ -391,7 +391,7 @@ describe('OrganizationInviteService', () => {
         };
 
         vi.mocked(ID.generateId).mockResolvedValue('invite-1');
-        vi.mocked(generateCustomId).mockReturnValue('metorial_inv_link123');
+        vi.mocked(generatePlainId).mockReturnValue('metorial_inv_link123');
         vi.mocked(withTransaction).mockImplementation(async callback => {
           let mockDb = {
             organizationInvite: {
@@ -440,7 +440,7 @@ describe('OrganizationInviteService', () => {
         };
 
         vi.mocked(ID.generateId).mockResolvedValue('invite-1');
-        vi.mocked(generateCustomId).mockReturnValue('metorial_inv_link');
+        vi.mocked(generatePlainId).mockReturnValue('metorial_inv_link');
         vi.mocked(withTransaction).mockImplementation(async callback => {
           let mockDb = {
             organizationInvite: {
@@ -790,7 +790,7 @@ describe('OrganizationInviteService', () => {
       };
 
       vi.mocked(ID.generateId).mockResolvedValue('invite-1');
-      vi.mocked(generateCustomId).mockReturnValue('metorial_inv_newlink');
+      vi.mocked(generatePlainId).mockReturnValue('metorial_inv_newlink');
 
       let callCount = 0;
       vi.mocked(withTransaction).mockImplementation(async callback => {
@@ -843,7 +843,7 @@ describe('OrganizationInviteService', () => {
       };
 
       vi.mocked(ID.generateId).mockResolvedValue('invite-new');
-      vi.mocked(generateCustomId).mockReturnValue('metorial_inv_newlink999');
+      vi.mocked(generatePlainId).mockReturnValue('metorial_inv_newlink999');
 
       let callCount = 0;
       vi.mocked(withTransaction).mockImplementation(async callback => {
@@ -1105,7 +1105,7 @@ describe('OrganizationInviteService', () => {
       let expectedExpiry = addDays(new Date(), 14);
 
       vi.mocked(ID.generateId).mockResolvedValue('invite-1');
-      vi.mocked(generateCustomId).mockReturnValue('metorial_inv_test');
+      vi.mocked(generatePlainId).mockReturnValue('metorial_inv_test');
       vi.mocked(withTransaction).mockImplementation(async callback => {
         let mockDb = {
           organizationMember: {
@@ -1204,7 +1204,7 @@ describe('OrganizationInviteService', () => {
       vi.mocked(ID.generateId)
         .mockResolvedValueOnce('invite-1')
         .mockResolvedValueOnce('invite-2');
-      vi.mocked(generateCustomId)
+      vi.mocked(generatePlainId)
         .mockReturnValueOnce('metorial_inv_key1')
         .mockReturnValueOnce('metorial_inv_key2');
 
@@ -1251,7 +1251,7 @@ describe('OrganizationInviteService', () => {
       let mockPerformedBy = { id: 'actor-1', oid: 1 };
 
       vi.mocked(ID.generateId).mockResolvedValue('invite-1');
-      vi.mocked(generateCustomId).mockReturnValue('metorial_inv_test');
+      vi.mocked(generatePlainId).mockReturnValue('metorial_inv_test');
       vi.mocked(withTransaction).mockImplementation(async callback => {
         let mockDb = {
           organizationInvite: {
