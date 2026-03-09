@@ -1,3 +1,12 @@
+import {
+  conflictError,
+  notFoundError,
+  preconditionFailedError,
+  ServiceError
+} from '@lowerdeck/error';
+import { Paginator } from '@lowerdeck/pagination';
+import { Service } from '@lowerdeck/service';
+import { slugify } from '@lowerdeck/slugify';
 import { Context } from '@metorial/context';
 import {
   db,
@@ -9,17 +18,9 @@ import {
   OrganizationActor,
   Prisma
 } from '@metorial/db';
-import {
-  conflictError,
-  notFoundError,
-  preconditionFailedError,
-  ServiceError
-} from '@lowerdeck/error';
 import { generatePlainId } from '@metorial/id';
 import { searchMagicMcpServerIds } from '@metorial/module-search';
-import { Paginator } from '@lowerdeck/pagination';
-import { Service } from '@lowerdeck/service';
-import { slugify } from '@lowerdeck/slugify';
+import { subspaceSessionTemplateService } from '@metorial/module-subspace';
 import {
   enqueueMagicMcpServerCreated,
   enqueueMagicMcpServerUpdated
@@ -75,14 +76,22 @@ class MagicMcpServerImpl {
       name?: string;
       description?: string;
       metadata?: Record<string, unknown>;
-      sessionTemplateId: string;
     };
   }) {
+    let sessionTemplate = await subspaceSessionTemplateService.create({
+      instance: d.instance,
+      name: `Magic MCP Template ${d.input.name ?? new Date().toISOString().slice(0, 10)}`,
+      description: 'Auto-created for Magic MCP server',
+      isInternal: true,
+      metadata: d.input.metadata,
+      providers: []
+    });
+
     let magicMcpServer = await db.magicMcpServer.create({
       data: {
         id: await ID.generateId('magicMcpServer'),
         status: 'active',
-        subspaceSessionTemplateId: d.input.sessionTemplateId,
+        subspaceSessionTemplateId: sessionTemplate.id,
         name: d.input.name,
         description: d.input.description,
         metadata: d.input.metadata ?? {},

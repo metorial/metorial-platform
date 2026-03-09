@@ -1,10 +1,10 @@
-import { MagicMcpServerStatus } from '@metorial/db';
 import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { Paginator } from '@lowerdeck/pagination';
+import { v } from '@lowerdeck/validation';
+import { MagicMcpServerStatus } from '@metorial/db';
 import { magicMcpServerService } from '@metorial/module-magic';
 import { subspaceSessionTemplateService } from '@metorial/module-subspace';
-import { Paginator } from '@lowerdeck/pagination';
 import { Controller } from '@metorial/rest';
-import { v } from '@lowerdeck/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { hasFlags } from '../../middleware/hasFlags';
@@ -111,29 +111,15 @@ export let magicMcpServerController = Controller.create(
       .output(magicMcpServerPresenter)
       .use(hasFlags(['magic-mcp-enabled']))
       .do(async ctx => {
-        let sessionTemplate = await subspaceSessionTemplateService.create({
-          instance: ctx.instance,
-          name: ctx.body.name
-            ? `${ctx.body.name} Template`
-            : `Magic MCP Template ${new Date().toISOString().slice(0, 10)}`,
-          description: ctx.body.description ?? 'Auto-created for Magic MCP server',
-          metadata: {
-            ...(ctx.body.metadata ?? {}),
-            source: 'magic_mcp_server_auto_create'
-          },
-          providers: []
-        });
-
         let magicMcpServer = await magicMcpServerService.createMagicMcpServer({
           organization: ctx.organization,
           performedBy: ctx.actor!,
           instance: ctx.instance,
           context: ctx.context,
           input: {
-            name: ctx.body.name ?? sessionTemplate.name ?? `Magic MCP ${sessionTemplate.id}`,
-            description: ctx.body.description ?? sessionTemplate.description ?? undefined,
-            metadata: ctx.body.metadata,
-            sessionTemplateId: sessionTemplate.id
+            name: ctx.body.name,
+            description: ctx.body.description,
+            metadata: ctx.body.metadata
           }
         });
 
