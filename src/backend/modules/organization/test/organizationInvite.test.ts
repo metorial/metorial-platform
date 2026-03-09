@@ -54,7 +54,8 @@ vi.mock('@lowerdeck/service', () => ({
 }));
 
 vi.mock('@metorial/id', () => ({
-  generateCustomId: vi.fn()
+  generateCustomId: vi.fn(),
+  generatePlainId: vi.fn().mockReturnValue('mockedplainid123456789012345678')
 }));
 
 vi.mock('../src/email/invite', () => ({
