@@ -281,6 +281,27 @@ export type ManagementInstanceProviderListingsListQuery = {
   isOfficial?: boolean | undefined;
   isMetorial?: boolean | undefined;
   orderByRank?: boolean | undefined;
+  orderByUse?:
+    | 'deployments'
+    | 'configs'
+    | 'auth_configs'
+    | 'credentials'
+    | 'sessions'
+    | 'session_templates'
+    | 'last_use_at'
+    | 'first_deployment_at'
+    | 'first_config_at'
+    | 'first_auth_config_at'
+    | 'first_credential_at'
+    | 'first_session_at'
+    | 'first_session_template_at'
+    | 'last_deployment_at'
+    | 'last_config_at'
+    | 'last_auth_config_at'
+    | 'last_credential_at'
+    | 'last_session_at'
+    | 'last_session_template_at'
+    | undefined;
 };
 
 export let mapManagementInstanceProviderListingsListQuery = mtMap.union([
@@ -341,7 +362,8 @@ export let mapManagementInstanceProviderListingsListQuery = mtMap.union([
       isVerified: mtMap.objectField('is_verified', mtMap.passthrough()),
       isOfficial: mtMap.objectField('is_official', mtMap.passthrough()),
       isMetorial: mtMap.objectField('is_metorial', mtMap.passthrough()),
-      orderByRank: mtMap.objectField('order_by_rank', mtMap.passthrough())
+      orderByRank: mtMap.objectField('order_by_rank', mtMap.passthrough()),
+      orderByUse: mtMap.objectField('order_by_use', mtMap.passthrough())
     })
   )
 ]);

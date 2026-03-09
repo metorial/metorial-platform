@@ -275,12 +275,11 @@ export type ProviderListingsListQuery = {
   providerCollectionId?: string | string[] | undefined;
   providerGroupId?: string | string[] | undefined;
   publisherId?: string | string[] | undefined;
+  isOwner?: boolean | undefined;
   isPublic?: boolean | undefined;
-  onlyFromTenant?: boolean | undefined;
   isVerified?: boolean | undefined;
   isOfficial?: boolean | undefined;
   isMetorial?: boolean | undefined;
-  orderByRank?: boolean | undefined;
 };
 
 export let mapProviderListingsListQuery = mtMap.union([
@@ -333,15 +332,11 @@ export let mapProviderListingsListQuery = mtMap.union([
           )
         ])
       ),
+      isOwner: mtMap.objectField('is_owner', mtMap.passthrough()),
       isPublic: mtMap.objectField('is_public', mtMap.passthrough()),
-      onlyFromTenant: mtMap.objectField(
-        'only_from_tenant',
-        mtMap.passthrough()
-      ),
       isVerified: mtMap.objectField('is_verified', mtMap.passthrough()),
       isOfficial: mtMap.objectField('is_official', mtMap.passthrough()),
-      isMetorial: mtMap.objectField('is_metorial', mtMap.passthrough()),
-      orderByRank: mtMap.objectField('order_by_rank', mtMap.passthrough())
+      isMetorial: mtMap.objectField('is_metorial', mtMap.passthrough())
     })
   )
 ]);
