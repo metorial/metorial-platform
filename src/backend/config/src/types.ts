@@ -41,10 +41,5 @@ export interface MetorialConfig {
     portalsUrl: string;
   };
 
-  objectStorage: {
-    url: string;
-    filesBucketName: string;
-  };
-
   encryptionSecret: string;
 }

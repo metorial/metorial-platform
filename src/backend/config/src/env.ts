@@ -34,11 +34,6 @@ export let env = createValidatedEnv({
     NODE_ENV: v.enumOf(['development', 'production'])
   },
 
-  objectStorage: {
-    OBJECT_STORAGE_URL: v.string(),
-    OSS_FILES_BUCKET_NAME: v.string()
-  },
-
   encryption: {
     ENCRYPTION_SECRET: v.string()
   }
