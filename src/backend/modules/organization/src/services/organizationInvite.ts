@@ -12,7 +12,7 @@ import {
   withTransaction
 } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
-import { generateCustomId } from '@metorial/id';
+import { generatePlainId } from '@metorial/id';
 import { addDays, differenceInDays } from 'date-fns';
 import { sendOrgInviteEmail } from '../email/invite';
 
@@ -96,7 +96,7 @@ class OrganizationInviteService {
           status: 'pending',
           type: d.input.type,
           role: d.input.role,
-          key: generateCustomId('metorial_inv', 30),
+          key: `mt_${generatePlainId(30)}_us1`,
           expiresAt: addDays(new Date(), 14),
 
           organizationOid: d.organization.oid,
