@@ -761,7 +761,7 @@ export let productInnerSlice = createSlice([
                     element: <MagicMcpTokensPage />
                   },
                   {
-                    path: 'sessions',
+                    path: 'connections',
                     element: <MagicMcpSessionsPage />
                   },
                   {
@@ -795,7 +795,7 @@ export let productInnerSlice = createSlice([
                     element: <MagicMcpServerConfigPage />
                   },
                   {
-                    path: 'sessions',
+                    path: 'connections',
                     element: <MagicMcpServerSessionsPage />
                   }
                 ]

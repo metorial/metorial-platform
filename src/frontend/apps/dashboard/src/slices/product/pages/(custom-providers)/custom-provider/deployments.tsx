@@ -1,5 +1,4 @@
 import { renderWithLoader, renderWithPagination } from '@metorial/data-hooks';
-import { Paths } from '@metorial/frontend-config';
 import {
   useCurrentInstance,
   useCustomProvider,
@@ -43,17 +42,7 @@ export let CustomProviderCommitsPage = () => {
             </Text>,
             <Text size="2">{deployment.actor?.name ?? 'System'}</Text>,
             <RenderDate date={deployment.createdAt} />
-          ],
-          href: deployment.customProviderVersionId
-            ? Paths.instance.customProvider(
-                instance.data?.organization,
-                instance.data?.project,
-                instance.data,
-                customServer.data?.id,
-                'versions',
-                { version_id: deployment.customProviderVersionId }
-              )
-            : undefined
+          ]
         }))}
       />
 

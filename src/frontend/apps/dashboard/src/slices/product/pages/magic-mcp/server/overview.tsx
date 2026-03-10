@@ -52,15 +52,15 @@ export let MagicMcpServerOverviewPage = () => {
   );
   let providers = useProviders(
     instance.data?.id,
-    providerIds.length > 0 ? { id: providerIds } : null
+    { id: providerIds }
   );
   let listings = useProviderListings({});
 
   let [tab, setTab] = useState<ConnectionType>('cursor');
   let copy = useCopy();
 
-  return renderWithLoader({ server, tokens, templateProviders })(
-    ({ server, tokens, templateProviders }) => {
+  return renderWithLoader({ server, tokens, templateProviders, providers })(
+    ({ server, tokens, templateProviders, providers }) => {
       let streamableHttpUrl = server.data.endpoints[0]?.url;
       let activeToken = tokens.data.items.find(
         t => t.status === 'active' && t.groups.length === 0

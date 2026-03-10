@@ -6,6 +6,7 @@ export type DashboardInstanceCustomProvidersCreateOutput = {
   status: string;
   name: string;
   description: string | null;
+  readme: string | null;
   metadata: Record<string, any> | null;
   draft: {
     containerImage?:
@@ -115,6 +116,7 @@ export let mapDashboardInstanceCustomProvidersCreateOutput = mtMap.union([
       status: mtMap.objectField('status', mtMap.passthrough()),
       name: mtMap.objectField('name', mtMap.passthrough()),
       description: mtMap.objectField('description', mtMap.passthrough()),
+      readme: mtMap.objectField('readme', mtMap.passthrough()),
       metadata: mtMap.objectField('metadata', mtMap.passthrough()),
       draft: mtMap.objectField(
         'draft',

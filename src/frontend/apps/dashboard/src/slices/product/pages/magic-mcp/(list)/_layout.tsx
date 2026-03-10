@@ -60,8 +60,8 @@ export let MagicMcpListLayout = () => {
             to: Paths.instance.magicMcp.servers(organization.data, project.data, instance.data)
           },
           {
-            label: 'Sessions',
-            to: Paths.instance.magicMcp.sessions(
+            label: 'Connections',
+            to: Paths.instance.magicMcp.connections(
               organization.data,
               project.data,
               instance.data

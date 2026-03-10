@@ -102,6 +102,7 @@ export let ProviderSetupSessionEmbed = ({
   let [setupSession, setSetupSession] = useState<SetupSessionState | null>(null);
   let [step, setStep] = useState(hideMethodStep && showMethodStepInStepper ? 1 : 0);
   let [setupWindowBlocked, setSetupWindowBlocked] = useState(false);
+  let autoStartedRef = useRef(false);
 
   let selectedMethodId = methodForm.values.selectedMethodId;
 
@@ -147,6 +148,7 @@ export let ProviderSetupSessionEmbed = ({
     setupWindowRef.current = null;
     completedRef.current = false;
     pollingRef.current = false;
+    autoStartedRef.current = false;
     setSetupSession(null);
     setSetupWindowBlocked(false);
     setError(null);
@@ -341,6 +343,22 @@ export let ProviderSetupSessionEmbed = ({
       canceled = true;
     };
   }, [setupSession?.id]);
+
+  // Auto-open the OAuth popup when reaching the connect step for auto-registration providers
+  useEffect(() => {
+    if (
+      !setupSession &&
+      !isStarting &&
+      !autoStartedRef.current &&
+      selectedMethodId &&
+      isOAuth &&
+      oauthAutoRegistrationEnabled &&
+      skipMethodStep
+    ) {
+      autoStartedRef.current = true;
+      void handleStartSetup();
+    }
+  }, [setupSession, isStarting, selectedMethodId, isOAuth, oauthAutoRegistrationEnabled, skipMethodStep]);
 
   if (
     (!!deploymentId && deployment.isLoading) ||
@@ -725,6 +743,7 @@ export let ProviderSetupSessionEmbed = ({
               <Spacer size={8} />
               <Flex gap={8} align="center">
                 <Button
+                  size="1"
                   onClick={() => {
                     let opened = openSetupWindow(setupSession.url!);
                     setSetupWindowBlocked(!opened);
@@ -733,7 +752,7 @@ export let ProviderSetupSessionEmbed = ({
                   Open Window
                 </Button>
                 {onCancel && (
-                  <Button variant="outline" onClick={onCancel}>
+                  <Button size="1" variant="outline" onClick={onCancel}>
                     {cancelLabel}
                   </Button>
                 )}
@@ -776,22 +795,9 @@ export let ProviderSetupSessionEmbed = ({
             </Text>
             <Text size="2" color="gray600">
               {isOAuth
-                ? `A separate ${oauthMethodName} window will open so you can authorize ${providerName}.`
+                ? `A separate window will open so you can authorize ${providerName}.`
                 : 'Start the setup session for this authentication method.'}
             </Text>
-            <Spacer size={6} />
-            <Button
-              type="button"
-              onClick={() =>
-                void handleStartSetup(
-                  selectedCredentialsIdRef.current ?? effectiveSelectedCredentialsId
-                )
-              }
-              loading={isStarting || createSetupSession.isPending}
-              disabled={!selectedMethodId}
-            >
-              {isOAuth ? `Open ${oauthMethodName} Window` : 'Start Setup'}
-            </Button>
             <createSetupSession.RenderError />
             {error && (
               <>
@@ -802,10 +808,24 @@ export let ProviderSetupSessionEmbed = ({
               </>
             )}
             <Spacer size={8} />
-            <Flex gap={8}>
+            <Flex gap={8} align="center">
+              <Button
+                type="button"
+                size="1"
+                onClick={() =>
+                  void handleStartSetup(
+                    selectedCredentialsIdRef.current ?? effectiveSelectedCredentialsId
+                  )
+                }
+                loading={isStarting || createSetupSession.isPending}
+                disabled={!selectedMethodId}
+              >
+                {isOAuth ? 'Open Window' : 'Start Setup'}
+              </Button>
               {(step > 0 || (skipMethodStep && onBackToMethodSelection)) && (
                 <Button
                   type="button"
+                  size="1"
                   variant="outline"
                   onClick={() => {
                     if (step > 0) {
@@ -819,7 +839,7 @@ export let ProviderSetupSessionEmbed = ({
                 </Button>
               )}
               {onCancel && (
-                <Button type="button" variant="outline" onClick={onCancel}>
+                <Button type="button" size="1" variant="outline" onClick={onCancel}>
                   {cancelLabel}
                 </Button>
               )}
@@ -865,6 +885,10 @@ export let ProviderSetupSessionEmbed = ({
 
     setStep(nextStep);
   };
+
+  if (steps.length <= 1) {
+    return <>{steps[0]?.render()}</>;
+  }
 
   return <Stepper steps={steps} currentStep={step} setCurrentStep={handleStepChange} />;
 };

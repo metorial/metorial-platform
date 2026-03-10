@@ -290,7 +290,7 @@ let InstancePaths = Object.assign(
         return InstancePaths(organization, project, instance, 'magic-mcp/tokens', ...subPages);
       },
 
-      sessions: (
+      connections: (
         organization: EntityParam,
         project: EntityParam,
         instance: EntityParam,
@@ -300,7 +300,7 @@ let InstancePaths = Object.assign(
           organization,
           project,
           instance,
-          'magic-mcp/sessions',
+          'magic-mcp/connections',
           ...subPages
         );
       },

@@ -7,6 +7,7 @@ import { JSONSchema7, JSONSchema7Definition } from 'json-schema';
 import { RiArrowDownSLine } from '@remixicon/react';
 import { useState } from 'react';
 import { styled } from 'styled-components';
+import ReactMarkdown from 'react-markdown';
 import { getJsonSchemaObject } from '../../../lib/jsonSchema';
 import { useProviderVersionContext } from './_layout';
 
@@ -408,7 +409,22 @@ export let ProviderToolsPage = () => {
     showModal(({ dialogProps }) => (
       <Dialog.Wrapper {...dialogProps} width={840}>
         <Dialog.Title>{tool.name}</Dialog.Title>
-        <Dialog.Description>{tool.description ?? 'No description.'}</Dialog.Description>
+        {tool.description && (
+          <Dialog.Description>
+            <ReactMarkdown
+              components={{
+                h1: ({ children }) => <strong>{children}</strong>,
+                h2: ({ children }) => <strong>{children}</strong>,
+                h3: ({ children }) => <strong>{children}</strong>,
+                h4: ({ children }) => <strong>{children}</strong>,
+                h5: ({ children }) => <strong>{children}</strong>,
+                h6: ({ children }) => <strong>{children}</strong>
+              }}
+            >
+              {tool.description}
+            </ReactMarkdown>
+          </Dialog.Description>
+        )}
 
         <Flex direction="column" gap={12} style={{ paddingBottom: 28 }}>
           <InfoCard>
@@ -450,43 +466,39 @@ export let ProviderToolsPage = () => {
             </InfoCard>
           )}
 
-          <Flex gap={18} style={{ flexWrap: 'wrap', alignItems: 'stretch' }}>
-            {inputSchema && (
-              <SchemaColumn>
-                <SchemaHeading>Input</SchemaHeading>
-                <SchemaCard>
-                  <SchemaCardHeader>
-                    <Text size="1" color="gray700">
-                      {getSchemaFieldCount(inputSchema)} Fields
-                    </Text>
-                  </SchemaCardHeader>
-                  <SchemaCardBody>
-                    <SchemaViewer schema={inputSchema} />
-                  </SchemaCardBody>
-                </SchemaCard>
-              </SchemaColumn>
-            )}
-            {outputSchema && (
-              <SchemaColumn>
-                <SchemaHeading>Output</SchemaHeading>
-                <SchemaCard>
-                  <SchemaCardHeader>
-                    <Text size="1" color="gray700">
-                      {getSchemaFieldCount(outputSchema)} Fields
-                    </Text>
-                  </SchemaCardHeader>
-                  <SchemaCardBody>
-                    <SchemaViewer schema={outputSchema} />
-                  </SchemaCardBody>
-                </SchemaCard>
-              </SchemaColumn>
-            )}
-          </Flex>
-
-          {!inputSchema && !outputSchema && (
-            <Text size="1" color="gray600">
-              No schema defined.
-            </Text>
+          {(getSchemaFieldCount(inputSchema) > 0 || getSchemaFieldCount(outputSchema) > 0) && (
+            <Flex gap={18} style={{ flexWrap: 'wrap', alignItems: 'stretch' }}>
+              {getSchemaFieldCount(inputSchema) > 0 && (
+                <SchemaColumn>
+                  <SchemaHeading>Input</SchemaHeading>
+                  <SchemaCard>
+                    <SchemaCardHeader>
+                      <Text size="1" color="gray700">
+                        {getSchemaFieldCount(inputSchema)} Fields
+                      </Text>
+                    </SchemaCardHeader>
+                    <SchemaCardBody>
+                      <SchemaViewer schema={inputSchema} />
+                    </SchemaCardBody>
+                  </SchemaCard>
+                </SchemaColumn>
+              )}
+              {getSchemaFieldCount(outputSchema) > 0 && (
+                <SchemaColumn>
+                  <SchemaHeading>Output</SchemaHeading>
+                  <SchemaCard>
+                    <SchemaCardHeader>
+                      <Text size="1" color="gray700">
+                        {getSchemaFieldCount(outputSchema)} Fields
+                      </Text>
+                    </SchemaCardHeader>
+                    <SchemaCardBody>
+                      <SchemaViewer schema={outputSchema} />
+                    </SchemaCardBody>
+                  </SchemaCard>
+                </SchemaColumn>
+              )}
+            </Flex>
           )}
         </Flex>
       </Dialog.Wrapper>

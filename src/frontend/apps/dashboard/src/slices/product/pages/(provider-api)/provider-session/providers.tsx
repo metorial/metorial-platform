@@ -26,7 +26,7 @@ export let ProviderSessionProvidersPage = () => {
       ),
     [session.data?.providers]
   );
-  let providers = useProviders(instance.data?.id, providerIds.length > 0 ? { id: providerIds } : null);
+  let providers = useProviders(instance.data?.id, { id: providerIds });
 
   return renderWithLoader({ session, providers })(({ session, providers }) => {
     let deployments = session.data?.providers ?? [];

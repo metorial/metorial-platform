@@ -46,7 +46,7 @@ export let ProviderAuthCredentialsOverviewPage = () => {
   });
   let providers = useProviders(
     instance.data?.id,
-    providerIds.length > 0 ? { id: providerIds } : null
+    { id: providerIds }
   );
   let providerNameMap = useMemo(() => {
     let map = new Map<string, string>();

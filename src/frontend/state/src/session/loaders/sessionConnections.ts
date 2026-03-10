@@ -40,6 +40,34 @@ export let useSessionConnections = (
   return data;
 };
 
+type AllConnectionsQuery = Omit<
+  DashboardInstanceSessionsConnectionsListQuery,
+  'sessionId'
+>;
+
+export let allSessionConnectionsLoader = createLoader({
+  name: 'allSessionConnections',
+  parents: [],
+  fetch: (i: { instanceId: string } & AllConnectionsQuery) =>
+    withAuth(sdk =>
+      sdk.sessions.connections.list(i.instanceId, i)
+    ),
+  mutators: {}
+});
+
+export let useAllSessionConnections = (
+  instanceId: string | null | undefined,
+  query?: AllConnectionsQuery
+) => {
+  let data = usePaginator(pagination =>
+    allSessionConnectionsLoader.use(
+      instanceId ? { instanceId, ...pagination, ...query } : null
+    )
+  );
+
+  return data;
+};
+
 export let sessionConnectionLoader = createLoader({
   name: 'sessionConnection',
   parents: [],

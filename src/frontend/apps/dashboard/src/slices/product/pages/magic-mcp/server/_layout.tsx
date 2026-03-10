@@ -157,8 +157,8 @@ export let MagicMcpServerLayout = () => {
                   to: Paths.instance.magicMcp.server(...serverPathParams, 'tokens')
                 },
                 {
-                  label: 'Sessions',
-                  to: Paths.instance.magicMcp.server(...serverPathParams, 'sessions')
+                  label: 'Connections',
+                  to: Paths.instance.magicMcp.server(...serverPathParams, 'connections')
                 },
                 {
                   label: 'Settings',

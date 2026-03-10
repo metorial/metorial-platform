@@ -2,7 +2,7 @@ import {
   DashboardInstanceProviderDeploymentsListOutput,
   DashboardInstanceSessionTemplatesProvidersListOutput
 } from '@metorial/dashboard-sdk';
-import { useForm } from '@metorial/data-hooks';
+import { renderWithLoader, useForm } from '@metorial/data-hooks';
 import {
   useCreateProviderDeployment,
   useCreateSessionTemplateProvider,
@@ -687,20 +687,6 @@ export let SessionTemplateProvidersManager = ({
     providerId: authConfigProviderIds.length > 0 ? authConfigProviderIds : undefined
   });
 
-  let listingItems = listings.data?.items ?? [];
-  let listingLookup: Record<string, { name: string; imageUrl: string }> = {};
-  for (let l of listingItems) {
-    let providerId = l.provider?.id;
-    if (!providerId) continue;
-    listingLookup[providerId] = { name: l.name, imageUrl: l.imageUrl };
-  }
-
-  let deploymentItems = deployments.data?.items ?? [];
-  let deploymentLookup: Record<string, string> = {};
-  for (let d of deploymentItems) {
-    if (d.name) deploymentLookup[d.id] = d.name;
-  }
-
   let authConfigNameLookup = useMemo(() => {
     let lookup: Record<string, string> = {};
     for (let item of authConfigs.data?.items ?? []) {
@@ -710,156 +696,169 @@ export let SessionTemplateProvidersManager = ({
     return lookup;
   }, [authConfigs.data?.items]);
 
-  if (providers.isLoading) return <CenteredSpinner />;
+  return renderWithLoader({ providers, listings, deployments })(() => {
+      let listingLookup: Record<string, { name: string; imageUrl: string }> = {};
+      for (let l of listings.data?.items ?? []) {
+        let providerId = l.provider?.id;
+        if (!providerId) continue;
+        listingLookup[providerId] = { name: l.name, imageUrl: l.imageUrl };
+      }
 
-  if (items.length === 0) {
-    return (
-      <Flex
-        direction="column"
-        gap={12}
-        style={{
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '48px 24px',
-          border: `1px dashed ${theme.colors.gray300}`,
-          borderRadius: 12,
-          background: theme.colors.gray100
-        }}
-      >
-        <div
-          style={{
-            width: 48,
-            height: 48,
-            borderRadius: 12,
-            background: theme.colors.gray200,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 22
-          }}
-        >
-          <svg
-            width="22"
-            height="22"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke={theme.colors.gray500}
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+      let deploymentLookup: Record<string, string> = {};
+      for (let d of deployments.data?.items ?? []) {
+        if (d.name) deploymentLookup[d.id] = d.name;
+      }
+
+      if (!providers.data || providers.data.items.length === 0) {
+        return (
+          <Flex
+            direction="column"
+            gap={12}
+            style={{
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '48px 24px',
+              border: `1px dashed ${theme.colors.gray300}`,
+              borderRadius: 12,
+              background: theme.colors.gray100
+            }}
           >
-            <rect x="2" y="2" width="20" height="8" rx="2" ry="2" />
-            <rect x="2" y="14" width="20" height="8" rx="2" ry="2" />
-            <line x1="6" y1="6" x2="6.01" y2="6" />
-            <line x1="6" y1="18" x2="6.01" y2="18" />
-          </svg>
-        </div>
-
-        <Flex direction="column" gap={4} style={{ alignItems: 'center' }}>
-          <Text size="2" weight="strong">
-            No providers configured
-          </Text>
-          <Text size="2" color="gray600" align="center" style={{ maxWidth: 320 }}>
-            Add providers to this template so sessions created from it will automatically
-            include them.
-          </Text>
-        </Flex>
-
-        <Spacer size={4} />
-
-        <Button
-          size="2"
-          onClick={() =>
-            showAddProviderModal({
-              instanceId,
-              sessionTemplateId,
-              onComplete: () => providers.refetch()
-            })
-          }
-        >
-          Add Provider
-        </Button>
-      </Flex>
-    );
-  }
-
-  return (
-    <Table
-      headers={['Provider', 'Deployment', 'Config', 'Auth Config', '']}
-      data={items.map(provider => {
-        let providerId = provider.providerId;
-        let listing = providerId ? listingLookup[providerId] : undefined;
-        let providerName = listing?.name ?? providerId;
-        let deploymentId = provider.deployment.id;
-        let deploymentName =
-          provider.deployment.name ??
-          (deploymentId
-            ? (deploymentLookup[deploymentId] ?? null)
-            : null);
-        let configName = provider.config.name ?? null;
-        let configId = provider.config.id;
-        let authConfigId = provider.authConfig?.id ?? null;
-        let authConfigLabel = authConfigId ? (authConfigNameLookup[authConfigId] ?? null) : null;
-
-        return {
-          data: [
-            <Flex gap={10} style={{ alignItems: 'center' }}>
-              <Avatar
-                entity={{ name: providerName, photoUrl: listing?.imageUrl }}
-                size={24}
-                radius={6}
-                noTooltip
-                imageFit="contain"
-              />
-              <Text size="2" weight="strong">
-                {providerName}
-              </Text>
-            </Flex>,
-
-            deploymentName ? (
-              <Text size="2">{deploymentName}</Text>
-            ) : (
-              <Text size="2" color="gray500">
-                —
-              </Text>
-            ),
-
-            configName || configId ? (
-              <Text size="2">{configName ?? configId}</Text>
-            ) : (
-              <Text size="2" color="gray500">
-                —
-              </Text>
-            ),
-
-            authConfigLabel ? (
-              <Text size="2">{authConfigLabel}</Text>
-            ) : (
-              <Text size="2" color="gray500">
-                —
-              </Text>
-            ),
-
-            <Button
-              size="1"
-              variant="outline"
-              onClick={e => {
-                e.preventDefault();
-                e.stopPropagation();
-                showRemoveProviderModal({
-                  instanceId,
-                  sessionTemplateId,
-                  provider,
-                  displayName: providerName,
-                  onComplete: () => providers.refetch()
-                });
+            <div
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: 12,
+                background: theme.colors.gray200,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 22
               }}
             >
-              Remove
+              <svg
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke={theme.colors.gray500}
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <rect x="2" y="2" width="20" height="8" rx="2" ry="2" />
+                <rect x="2" y="14" width="20" height="8" rx="2" ry="2" />
+                <line x1="6" y1="6" x2="6.01" y2="6" />
+                <line x1="6" y1="18" x2="6.01" y2="18" />
+              </svg>
+            </div>
+
+            <Flex direction="column" gap={4} style={{ alignItems: 'center' }}>
+              <Text size="2" weight="strong">
+                No providers configured
+              </Text>
+              <Text size="2" color="gray600" align="center" style={{ maxWidth: 320 }}>
+                Add providers to this template so sessions created from it will automatically
+                include them.
+              </Text>
+            </Flex>
+
+            <Spacer size={4} />
+
+            <Button
+              size="2"
+              onClick={() =>
+                showAddProviderModal({
+                  instanceId,
+                  sessionTemplateId,
+                  onComplete: () => providers.refetch()
+                })
+              }
+            >
+              Add Provider
             </Button>
-          ]
-        };
-      })}
-    />
+          </Flex>
+        );
+      }
+
+      return (
+        <Table
+          headers={['Provider', 'Deployment', 'Config', 'Auth Config', '']}
+          data={providers.data.items.map(provider => {
+            let providerId = provider.providerId;
+            let listing = providerId ? listingLookup[providerId] : undefined;
+            let providerName = listing?.name ?? providerId;
+            let deploymentId = provider.deployment.id;
+            let deploymentName =
+              provider.deployment.name ??
+              (deploymentId ? (deploymentLookup[deploymentId] ?? null) : null);
+            let configName = provider.config.name ?? null;
+            let configId = provider.config.id;
+            let authConfigId = provider.authConfig?.id ?? null;
+            let authConfigLabel = authConfigId
+              ? (authConfigNameLookup[authConfigId] ?? null)
+              : null;
+
+            return {
+              data: [
+                <Flex gap={10} style={{ alignItems: 'center' }}>
+                  <Avatar
+                    entity={{ name: providerName, photoUrl: listing?.imageUrl }}
+                    size={24}
+                    radius={6}
+                    noTooltip
+                    imageFit="contain"
+                  />
+                  <Text size="2" weight="strong">
+                    {providerName}
+                  </Text>
+                </Flex>,
+
+                deploymentName ? (
+                  <Text size="2">{deploymentName}</Text>
+                ) : (
+                  <Text size="2" color="gray500">
+                    —
+                  </Text>
+                ),
+
+                configName || configId ? (
+                  <Text size="2">{configName ?? configId}</Text>
+                ) : (
+                  <Text size="2" color="gray500">
+                    —
+                  </Text>
+                ),
+
+                authConfigLabel ? (
+                  <Text size="2">{authConfigLabel}</Text>
+                ) : (
+                  <Text size="2" color="gray500">
+                    —
+                  </Text>
+                ),
+
+                <Button
+                  size="1"
+                  variant="outline"
+                  onClick={e => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    showRemoveProviderModal({
+                      instanceId,
+                      sessionTemplateId,
+                      provider,
+                      displayName: providerName,
+                      onComplete: () => providers.refetch()
+                    });
+                  }}
+                >
+                  Remove
+                </Button>
+              ]
+            };
+          })}
+        />
+      );
+    }
   );
 };

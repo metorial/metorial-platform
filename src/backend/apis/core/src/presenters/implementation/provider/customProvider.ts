@@ -14,6 +14,7 @@ export let v1CustomProviderPresenter = Presenter.create(customProviderType)
 
     name: customProvider.name,
     description: customProvider.description,
+    readme: customProvider.readme,
     metadata: customProvider.metadata,
 
     scm_repo: customProvider.scmRepo
@@ -73,6 +74,13 @@ export let v1CustomProviderPresenter = Presenter.create(customProviderType)
           name: 'description',
           description: 'Brief description of the custom provider',
           examples: ['A custom provider for my application']
+        })
+      ),
+      readme: v.nullable(
+        v.string({
+          name: 'readme',
+          description: 'README content in markdown',
+          examples: ['# My Provider\n\nA custom provider for my application.']
         })
       ),
       metadata: v.nullable(

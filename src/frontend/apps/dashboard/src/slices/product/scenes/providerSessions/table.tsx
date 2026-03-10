@@ -58,7 +58,9 @@ export let ProviderSessionsTable = ({
               hasErrors={session.hasErrors}
               hasWarnings={session.hasWarnings}
             />,
-            <Text size="2">{session.providers?.length ?? 0} providers</Text>,
+            <Text size="2">
+              {session.providers?.length ?? 0} {(session.providers?.length ?? 0) === 1 ? 'provider' : 'providers'}
+            </Text>,
             <RenderDate date={session.createdAt} />
           ],
           href: Paths.instance.providerSession(

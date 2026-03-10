@@ -88,12 +88,14 @@ export let CustomProviderListingPage = () => {
         schema={yup =>
           yup.object({
             name: yup.string().optional(),
-            description: yup.string().optional()
+            description: yup.string().optional(),
+            readme: yup.string().optional()
           })
         }
         initialValues={{
           name: listing.data?.name ?? customServer.data?.name ?? '',
-          description: listing.data?.description ?? customServer.data?.description ?? ''
+          description: listing.data?.description ?? customServer.data?.description ?? '',
+          readme: ''
         }}
         mutators={[generalUpdate]}
         onSubmit={async values => {
@@ -101,7 +103,8 @@ export let CustomProviderListingPage = () => {
 
           await generalUpdate.mutate({
             name: values.name,
-            description: values.description
+            description: values.description,
+            readme: values.readme || undefined
           });
         }}
       >
@@ -111,6 +114,12 @@ export let CustomProviderListingPage = () => {
 
         <Field field="description">
           {({ getFieldProps }) => <Input {...getFieldProps()} label="Description" />}
+        </Field>
+
+        <Field field="readme">
+          {({ getFieldProps }) => (
+            <Input {...getFieldProps()} label="Readme" as="textarea" />
+          )}
         </Field>
       </FormBox>
 

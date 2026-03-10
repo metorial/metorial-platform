@@ -337,7 +337,12 @@ let StepDetails = ({ step }: { step: Step }) => {
   let logsRef = useRef<HTMLDivElement>(null);
   let logCountRef = useRef(step.logs.length);
 
-  let currentLine = step.logs[step.logs.length - 1]?.line;
+  let currentLine = (() => {
+    for (let i = step.logs.length - 1; i >= 0; i--) {
+      if (step.logs[i].line.trim()) return step.logs[i].line;
+    }
+    return undefined;
+  })();
 
   useEffect(() => {
     if (step.status == 'running' || step.status == 'failed') {
@@ -425,6 +430,11 @@ let StepDetails = ({ step }: { step: Step }) => {
             initial={{ height: 0 }}
             animate={{ height: 'auto' }}
             exit={{ height: 0 }}
+            onAnimationComplete={() => {
+              if (logsRef.current) {
+                logsRef.current.scrollTo({ top: logsRef.current.scrollHeight });
+              }
+            }}
           >
             <Spacer height={5} />
             {step.logs.length === 0 && step.status === 'running' && (

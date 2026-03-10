@@ -1,37 +1,59 @@
 import {
-  DashboardInstanceMagicMcpSessionsListQuery
+  DashboardInstanceSessionsConnectionsListQuery
 } from '@metorial/dashboard-sdk';
 import { renderWithPagination } from '@metorial/data-hooks';
-import { useCurrentInstance, useMagicMcpSessions } from '@metorial/state';
-import { RenderDate, Text } from '@metorial/ui';
+import { useAllSessionConnections, useCurrentInstance } from '@metorial/state';
+import { Badge, RenderDate, Text, theme } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
 
-export let MagicSessionsTable = (filter: DashboardInstanceMagicMcpSessionsListQuery) => {
+let ConnectionStatusBadge = ({ state }: { state: string }) => {
+  return (
+    <Badge
+      color={
+        {
+          connected: 'blue' as const,
+          disconnected: 'gray' as const
+        }[state] ?? ('gray' as const)
+      }
+    >
+      {{
+        connected: 'Connected',
+        disconnected: 'Disconnected'
+      }[state] ?? state}
+    </Badge>
+  );
+};
+
+export let MagicConnectionsTable = (
+  filter: Omit<DashboardInstanceSessionsConnectionsListQuery, 'sessionId'>
+) => {
   let instance = useCurrentInstance();
-  let sessions = useMagicMcpSessions(instance.data?.id, {
+  let connections = useAllSessionConnections(instance.data?.id, {
     ...filter,
     order: filter.order ?? 'desc'
   });
 
-  return renderWithPagination(sessions)(sessions => (
+  return renderWithPagination(connections)(connections => (
     <>
       <Table
-        headers={['Magic MCP Server', 'Subspace Session ID', 'Template ID', 'Created']}
-        data={sessions.data.items.map(session => ({
+        headers={['Status', 'MCP Client', 'Transport', 'Connected At']}
+        data={connections.data.items.map(connection => ({
           data: [
+            <ConnectionStatusBadge state={connection.connectionState} />,
             <Text size="2" weight="strong">
-              {session.magicMcpServer.name ?? 'Unknown Server'}
+              {connection.participant?.name ?? (
+                <span style={{ color: theme.colors.gray600 }}>Unknown Client</span>
+              )}
             </Text>,
-            <Text size="2">{session.subspaceSessionId}</Text>,
-            <Text size="2">{session.subspaceSessionTemplateId}</Text>,
-            <RenderDate date={session.createdAt} />
+            <Text size="2">{connection.transport}</Text>,
+            <RenderDate date={connection.createdAt} />
           ]
         }))}
       />
 
-      {sessions.data.items.length == 0 && (
+      {connections.data.items.length == 0 && (
         <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-          No Magic MCP sessions found.
+          No Magic MCP connections found.
         </Text>
       )}
     </>

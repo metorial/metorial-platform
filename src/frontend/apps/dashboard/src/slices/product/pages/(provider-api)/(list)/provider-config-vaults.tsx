@@ -29,10 +29,7 @@ export let ProviderConfigVaultsOverviewPage = () => {
     ],
     [vaults.data?.items]
   );
-  let providers = useProviders(
-    instance.data?.id,
-    providerIds.length > 0 ? { id: providerIds } : null
-  );
+  let providers = useProviders(instance.data?.id, { id: providerIds });
 
   let providerNameMap = useMemo(() => {
     let map = new Map<string, string>();

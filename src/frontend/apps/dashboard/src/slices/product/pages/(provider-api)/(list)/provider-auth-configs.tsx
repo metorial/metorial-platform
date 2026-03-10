@@ -44,10 +44,7 @@ export let ProviderAuthConfigsOverviewPage = () => {
     () => [...new Set(items.map(item => item.providerId).filter(Boolean))],
     [items]
   );
-  let providers = useProviders(
-    instance.data?.id,
-    providerIds.length > 0 ? { id: providerIds } : null
-  );
+  let providers = useProviders(instance.data?.id, { id: providerIds });
   let providerNameMap = useMemo(() => {
     let map = new Map<string, string>();
     for (let provider of providers.data?.items ?? []) {
