@@ -1,13 +1,3 @@
-import { UnifiedApiKey } from '@metorial/api-keys';
-import { getConfig } from '@metorial/config';
-import {
-  db,
-  ID,
-  Instance,
-  MagicMcpServer,
-  MagicMcpToken,
-  MagicMcpTokenStatus
-} from '@metorial/db';
 import {
   notFoundError,
   preconditionFailedError,
@@ -16,6 +6,17 @@ import {
 } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
+import { UnifiedApiKey } from '@metorial/api-keys';
+import { getConfig } from '@metorial/config';
+import {
+  db,
+  ID,
+  Instance,
+  MagicMcpGroup,
+  MagicMcpServer,
+  MagicMcpToken,
+  MagicMcpTokenStatus
+} from '@metorial/db';
 
 let createMagicMcpSecret = () =>
   UnifiedApiKey.create({
@@ -47,7 +48,7 @@ class MagicMcpTokenImpl {
 
   async createMagicMcpToken(d: {
     instance: Instance;
-    groups?: { oid: bigint }[];
+    groups?: MagicMcpGroup[];
     input: {
       name?: string;
       description?: string;
