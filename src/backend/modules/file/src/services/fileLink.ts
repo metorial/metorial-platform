@@ -6,7 +6,7 @@ import {
 } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { db, File, FileLink, FilePurpose, ID } from '@metorial/db';
+import { db, File, FileLink, FilePurpose, ID, Organization } from '@metorial/db';
 import { generatePlainId } from '@metorial/id';
 import { fileReferenceService } from './fileReference';
 
@@ -40,7 +40,7 @@ class FileLinkServiceImpl {
 
   async deleteFileLink(d: { fileLink: FileLink }) {
     let hasRefs = await fileReferenceService.hasReferences({
-      fileLinkOid: d.fileLink.oid
+      fileLink: d.fileLink
     });
     if (hasRefs) {
       throw new ServiceError(
@@ -60,7 +60,7 @@ class FileLinkServiceImpl {
     });
   }
 
-  async listFileLinksForOrganization(d: { organizationOid: bigint; fileId?: string }) {
+  async listFileLinksForOrganization(d: { organization: Organization; fileId?: string }) {
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
@@ -68,7 +68,7 @@ class FileLinkServiceImpl {
             ...opts,
             where: {
               file: {
-                organizationOid: d.organizationOid,
+                organizationOid: d.organization.oid,
                 status: 'active',
                 ...(d.fileId ? { id: d.fileId } : {})
               }
@@ -81,12 +81,12 @@ class FileLinkServiceImpl {
     );
   }
 
-  async getFileLinkByIdForOrganization(d: { fileLinkId: string; organizationOid: bigint }) {
+  async getFileLinkByIdForOrganization(d: { fileLinkId: string; organization: Organization }) {
     let fileLink = await db.fileLink.findFirst({
       where: {
         id: d.fileLinkId,
         file: {
-          organizationOid: d.organizationOid,
+          organizationOid: d.organization.oid,
           status: 'active'
         }
       },

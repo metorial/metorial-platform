@@ -100,9 +100,6 @@ class FileServiceImpl {
       where: {
         id: d.fileId,
 
-        // organizationOid: d.owner.type === 'organization' ? d.owner.organization.oid : null,
-        // userOid: d.owner.type === 'user' ? d.owner.user.oid : null
-
         ...(d.owner.type === 'organization' || d.owner.type === 'instance'
           ? {
               organizationOid: d.owner.organization.oid
@@ -162,7 +159,7 @@ class FileServiceImpl {
     await this.ensureFileActive(d.file);
 
     let hasRefs = await fileReferenceService.hasReferencesForFile({
-      fileOid: d.file.oid
+      file: d.file
     });
     if (hasRefs) {
       throw new ServiceError(

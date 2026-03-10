@@ -1,3 +1,4 @@
+import { canonicalize } from '@lowerdeck/canonicalize';
 import {
   conflictError,
   forbiddenError,
@@ -99,8 +100,7 @@ class UserService {
                 },
                 purpose: 'user_image',
                 entityType: 'user',
-                entityId: d.user.id,
-                database: db
+                entityId: d.user.id
               });
       }
 
@@ -122,10 +122,9 @@ class UserService {
       if (d.input.image !== undefined || d.input.imageFileId !== undefined) {
         await fileReferenceService.cleanupImageEntityImage({
           image:
-            d.user.image && JSON.stringify(d.user.image) !== JSON.stringify(nextImage)
+            d.user.image && canonicalize(d.user.image) !== canonicalize(nextImage)
               ? (d.user.image as any)
-              : undefined,
-          database: db
+              : undefined
         });
       }
 

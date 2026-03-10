@@ -21,6 +21,7 @@
     "@metorial/queue": "^1.0.0",
     "@lowerdeck/service": "^1.0.7",
     "@lowerdeck/slugify": "^1.0.5",
+    "@lowerdeck/canonicalize": "^1.0.4",
     "date-fns": "^4.1.0",
     "react": "^19.1.0"
   },
