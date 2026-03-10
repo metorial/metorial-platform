@@ -653,10 +653,6 @@ export let productInnerSlice = createSlice([
                 element: <ProviderAuthConnectionOverviewPage />
               },
               {
-                path: 'authentication',
-                element: <ProviderAuthConnectionAuthenticationPage />
-              },
-              {
                 path: 'settings',
                 element: <ProviderAuthConnectionSettingsPage />
               }

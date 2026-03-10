@@ -84,13 +84,6 @@ export let ProviderAuthConfigLayout = () => {
                 to: Paths.instance.providerAuthConfig(...authConfigPathParams)
               },
               {
-                label: 'Authentication',
-                to: Paths.instance.providerAuthConfig(
-                  ...authConfigPathParams,
-                  'authentication'
-                )
-              },
-              {
                 label: 'Settings',
                 to: Paths.instance.providerAuthConfig(...authConfigPathParams, 'settings')
               }
