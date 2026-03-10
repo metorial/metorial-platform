@@ -143,7 +143,6 @@ class MagicMcpServerImpl {
       description?: string | null;
       metadata?: Record<string, unknown> | null;
       aliases?: string[];
-      sessionTemplateId?: string;
     };
   }) {
     if (d.server.status != 'active') {
@@ -179,12 +178,13 @@ class MagicMcpServerImpl {
         );
       }
     }
-    let nextSessionTemplateId =
-      d.input.sessionTemplateId === undefined
-        ? d.server.subspaceSessionTemplateId
-        : d.input.sessionTemplateId;
-    let isSessionTemplateChanged =
-      nextSessionTemplateId !== d.server.subspaceSessionTemplateId;
+
+    // let nextSessionTemplateId =
+    //   d.input.sessionTemplateId === undefined
+    //     ? d.server.subspaceSessionTemplateId
+    //     : d.input.sessionTemplateId;
+    // let isSessionTemplateChanged =
+    //   nextSessionTemplateId !== d.server.subspaceSessionTemplateId;
 
     let server;
     try {
@@ -195,7 +195,7 @@ class MagicMcpServerImpl {
           description:
             d.input.description === undefined ? d.server.description : d.input.description,
           metadata: d.input.metadata === undefined ? d.server.metadata : d.input.metadata,
-          subspaceSessionTemplateId: nextSessionTemplateId,
+          // subspaceSessionTemplateId: nextSessionTemplateId,
           aliases: {
             create: nextAliases.map(slug => ({ slug }))
           }
@@ -213,20 +213,20 @@ class MagicMcpServerImpl {
       throw error;
     }
 
-    if (isSessionTemplateChanged && d.server.subspaceSession) {
-      await db.magicMcpServerSubspaceSession
-        .delete({
-          where: {
-            magicMcpServerOid: d.server.oid
-          }
-        })
-        .catch(() => null);
+    // if (isSessionTemplateChanged && d.server.subspaceSession) {
+    //   await db.magicMcpServerSubspaceSession
+    //     .delete({
+    //       where: {
+    //         magicMcpServerOid: d.server.oid
+    //       }
+    //     })
+    //     .catch(() => null);
 
-      server = await db.magicMcpServer.findFirstOrThrow({
-        where: { oid: d.server.oid },
-        include
-      });
-    }
+    //   server = await db.magicMcpServer.findFirstOrThrow({
+    //     where: { oid: d.server.oid },
+    //     include
+    //   });
+    // }
 
     await enqueueMagicMcpServerUpdated(server.id);
 

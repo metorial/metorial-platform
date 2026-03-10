@@ -3,7 +3,6 @@ import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { MagicMcpServerStatus } from '@metorial/db';
 import { magicMcpServerService } from '@metorial/module-magic';
-import { subspaceSessionTemplateService } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
@@ -181,21 +180,13 @@ export let magicMcpServerController = Controller.create(
           instance: ctx.instance
         });
 
-        let sessionTemplate = ctx.body.session_template_id
-          ? await subspaceSessionTemplateService.get({
-              instance: ctx.instance,
-              sessionTemplateId: ctx.body.session_template_id
-            })
-          : undefined;
-
         let magicMcpServer = await magicMcpServerService.updateMagicMcpServer({
           server: ctx.magicMcpServer,
           input: {
             name: ctx.body.name,
             description: ctx.body.description,
             metadata: ctx.body.metadata,
-            aliases: ctx.body.aliases,
-            sessionTemplateId: sessionTemplate?.id
+            aliases: ctx.body.aliases
           }
         });
 

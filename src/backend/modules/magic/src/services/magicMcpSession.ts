@@ -1,7 +1,7 @@
-import { db, Instance, Prisma } from '@metorial/db';
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
+import { db, Instance, Prisma } from '@metorial/db';
 
 let include = {
   magicMcpServer: {
@@ -47,11 +47,7 @@ class MagicMcpSessionImpl {
           ...opts,
           where: {
             instanceOid: d.instance.oid,
-            magicMcpServerOid: magicMcpServerOids
-              ? {
-                  in: magicMcpServerOids
-                }
-              : undefined
+            magicMcpServerOid: magicMcpServerOids ? { in: magicMcpServerOids } : undefined
           },
           include
         });
