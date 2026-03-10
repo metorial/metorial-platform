@@ -2,7 +2,13 @@ import {
   DashboardInstanceSessionsConnectionsListQuery
 } from '@metorial/dashboard-sdk';
 import { renderWithPagination } from '@metorial/data-hooks';
-import { useAllSessionConnections, useCurrentInstance } from '@metorial/state';
+import { Paths } from '@metorial/frontend-config';
+import {
+  useAllSessionConnections,
+  useCurrentInstance,
+  useCurrentOrganization,
+  useCurrentProject
+} from '@metorial/state';
 import { Badge, RenderDate, Text, theme } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
 
@@ -28,6 +34,8 @@ export let MagicConnectionsTable = (
   filter: Omit<DashboardInstanceSessionsConnectionsListQuery, 'sessionId'>
 ) => {
   let instance = useCurrentInstance();
+  let organization = useCurrentOrganization();
+  let project = useCurrentProject();
   let connections = useAllSessionConnections(instance.data?.id, {
     ...filter,
     order: filter.order ?? 'desc'
@@ -47,7 +55,13 @@ export let MagicConnectionsTable = (
             </Text>,
             <Text size="2">{connection.transport}</Text>,
             <RenderDate date={connection.createdAt} />
-          ]
+          ],
+          href: Paths.instance.magicMcp.connection(
+            organization.data,
+            project.data,
+            instance.data,
+            connection.id
+          )
         }))}
       />
 

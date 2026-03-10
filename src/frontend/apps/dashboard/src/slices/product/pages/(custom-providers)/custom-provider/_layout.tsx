@@ -10,7 +10,7 @@ import {
 } from '@metorial/state';
 import { Button, Callout, LinkTabs, Menu, Spacer } from '@metorial/ui';
 import { useEffect } from 'react';
-import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Link, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { showCustomProviderRemoteFormModal } from '../../../scenes/customProvider/modal';
 import { showProviderDeploymentFormModal } from '../../../scenes/providerDeployments/modal';
 import { showMagicMcpServerFormModal } from '../../../scenes/providerDeployments/modal_';
@@ -67,9 +67,25 @@ export let CustomProviderLayout = () => {
           }
         ]}
         actions={
-          <DeployServerButton providerId={customProvider.data?.provider?.id}>
-            Deploy Provider
-          </DeployServerButton>
+          <>
+            {customProvider.data?.provider?.id && (
+              <Link
+                to={Paths.instance.provider(
+                  organization.data,
+                  project.data,
+                  instance.data,
+                  customProvider.data.provider.id
+                )}
+              >
+                <Button as="span" size="2" variant="outline">
+                  Open Listing
+                </Button>
+              </Link>
+            )}
+            <DeployServerButton providerId={customProvider.data?.provider?.id}>
+              Deploy Provider
+            </DeployServerButton>
+          </>
         }
       />
 

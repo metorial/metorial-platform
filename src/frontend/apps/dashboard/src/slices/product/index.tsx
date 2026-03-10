@@ -252,6 +252,12 @@ let MagicMcpServerConfigPage = dynamicPage(() =>
 let MagicMcpServerSessionsPage = dynamicPage(() =>
   import('./pages/magic-mcp/server/sessions').then(c => c.MagicMcpServerSessionsPage)
 );
+let MagicMcpConnectionLayout = dynamicPage(() =>
+  import('./pages/magic-mcp/connection/_layout').then(c => c.MagicMcpConnectionLayout)
+);
+let MagicMcpConnectionMessagesPage = dynamicPage(() =>
+  import('./pages/magic-mcp/connection/messages').then(c => c.MagicMcpConnectionMessagesPage)
+);
 let MagicMcpGroupLayout = dynamicPage(() =>
   import('./pages/magic-mcp/group/_layout').then(c => c.MagicMcpGroupLayout)
 );
@@ -767,6 +773,20 @@ export let productInnerSlice = createSlice([
                   {
                     path: 'groups',
                     element: <MagicMcpGroupsPage />
+                  }
+                ]
+              },
+              {
+                path: 'connection/:connectionId',
+                element: (
+                  <FlaggedPage flag="magic-mcp-enabled">
+                    <MagicMcpConnectionLayout />
+                  </FlaggedPage>
+                ),
+                children: [
+                  {
+                    path: '',
+                    element: <MagicMcpConnectionMessagesPage />
                   }
                 ]
               },

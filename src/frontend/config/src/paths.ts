@@ -305,6 +305,24 @@ let InstancePaths = Object.assign(
         );
       },
 
+      connection: (
+        organization: EntityParam,
+        project: EntityParam,
+        instance: EntityParam,
+        id?: string,
+        ...subPages: SubPages
+      ) => {
+        if (!id) return '#';
+        return InstancePaths(
+          organization,
+          project,
+          instance,
+          'magic-mcp/connection',
+          id,
+          ...subPages
+        );
+      },
+
       groups: (
         organization: EntityParam,
         project: EntityParam,
