@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { userService } from '../src/services/user';
 
 // Mock dependencies
@@ -440,8 +440,7 @@ describe('userService', () => {
       });
 
       expect(fileReferenceService.cleanupImageEntityImage).toHaveBeenCalledWith({
-        image: mockUser.image,
-        database: expect.anything()
+        image: mockUser.image
       });
     });
   });

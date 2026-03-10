@@ -104,13 +104,13 @@ vi.mock('../src/queues/syncProfile', () => ({
 
 import { db, ID, withTransaction } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
+import { fileReferenceService } from '@metorial/module-file';
 import { differenceInMinutes } from 'date-fns';
 import { syncProfileQueue } from '../src/queues/syncProfile';
 import { organizationService } from '../src/services/organization';
 import { organizationActorService } from '../src/services/organizationActor';
 import { organizationMemberService } from '../src/services/organizationMember';
 import { projectService } from '../src/services/project';
-import { fileReferenceService } from '@metorial/module-file';
 
 describe('OrganizationService', () => {
   beforeEach(() => {
@@ -585,8 +585,7 @@ describe('OrganizationService', () => {
       });
 
       expect(fileReferenceService.cleanupImageEntityImage).toHaveBeenCalledWith({
-        image: mockOrg.image,
-        database: expect.anything()
+        image: mockOrg.image
       });
     });
 

@@ -1,3 +1,4 @@
+import { canonicalize } from '@lowerdeck/canonicalize';
 import {
   forbiddenError,
   notFoundError,
@@ -120,8 +121,7 @@ class OrganizationService {
                 },
                 purpose: 'organization_image',
                 entityType: 'organization',
-                entityId: d.organization.id,
-                database: db
+                entityId: d.organization.id
               });
       }
 
@@ -137,10 +137,9 @@ class OrganizationService {
         await fileReferenceService.cleanupImageEntityImage({
           image:
             d.organization.image &&
-            JSON.stringify(d.organization.image) !== JSON.stringify(nextImage)
-              ? (d.organization.image as any)
-              : undefined,
-          database: db
+            canonicalize(d.organization.image) !== canonicalize(nextImage)
+              ? d.organization.image
+              : undefined
         });
       }
 
