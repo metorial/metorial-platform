@@ -95,7 +95,7 @@ export let CustomProviderListingPage = () => {
         initialValues={{
           name: listing.data?.name ?? customServer.data?.name ?? '',
           description: listing.data?.description ?? customServer.data?.description ?? '',
-          readme: ''
+          readme: listing.data?.readme ?? ''
         }}
         mutators={[generalUpdate]}
         onSubmit={async values => {
