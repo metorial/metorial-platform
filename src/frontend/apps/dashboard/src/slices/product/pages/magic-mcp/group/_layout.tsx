@@ -1,9 +1,11 @@
+import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
 import {
   useCurrentInstance,
   useCurrentOrganization,
-  useCurrentProject
+  useCurrentProject,
+  useMagicMcpGroup
 } from '@metorial/state';
 import { LinkTabs } from '@metorial/ui';
 import { Outlet, useLocation, useParams } from 'react-router-dom';
@@ -13,50 +15,60 @@ export let MagicMcpGroupLayout = () => {
   let project = useCurrentProject();
   let organization = useCurrentOrganization();
   let { magicMcpGroupId } = useParams();
+  let group = useMagicMcpGroup(instance.data?.id, magicMcpGroupId);
   let pathname = useLocation().pathname;
 
   let groupPathParams = [
     organization.data,
     project.data,
     instance.data,
-    magicMcpGroupId
+    group.data?.id ?? magicMcpGroupId
   ] as const;
 
   return (
     <ContentLayout>
-      <PageHeader
-        title={magicMcpGroupId ?? 'Magic MCP Group'}
-        pagination={[
-          {
-            label: 'Magic MCP Groups',
-            href: Paths.instance.magicMcp.groups(
-              organization.data,
-              project.data,
-              instance.data
-            )
-          },
-          {
-            label: magicMcpGroupId,
-            href: Paths.instance.magicMcp.group(...groupPathParams)
-          }
-        ]}
-      />
+      {renderWithLoader({ group })(({ group }) => {
+        let groupLabel = group.data.name ?? group.data.id;
 
-      <LinkTabs
-        current={pathname}
-        links={[
-          {
-            label: 'Overview',
-            to: Paths.instance.magicMcp.group(...groupPathParams)
-          },
-          {
-            label: 'Settings',
-            to: Paths.instance.magicMcp.group(...groupPathParams, 'settings')
-          }
-        ]}
-      />
+        return (
+          <>
+            <PageHeader
+              title={groupLabel}
+              description={group.data.description ?? undefined}
+              pagination={[
+                {
+                  label: 'Magic MCP Groups',
+                  href: Paths.instance.magicMcp.groups(
+                    organization.data,
+                    project.data,
+                    instance.data
+                  )
+                },
+                {
+                  label: groupLabel,
+                  href: Paths.instance.magicMcp.group(...groupPathParams)
+                }
+              ]}
+            />
 
-      <Outlet />
+            <LinkTabs
+              current={pathname}
+              links={[
+                {
+                  label: 'Overview',
+                  to: Paths.instance.magicMcp.group(...groupPathParams)
+                },
+                {
+                  label: 'Settings',
+                  to: Paths.instance.magicMcp.group(...groupPathParams, 'settings')
+                }
+              ]}
+            />
+
+            <Outlet />
+          </>
+        );
+      })}
     </ContentLayout>
   );
 };

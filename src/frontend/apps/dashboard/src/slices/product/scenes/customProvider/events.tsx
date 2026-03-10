@@ -15,7 +15,10 @@ export let CustomServerEventsTable = ({
   filters?: DashboardInstanceCustomProvidersCommitsListQuery;
 }) => {
   let instance = useCurrentInstance();
-  let events = useCustomProviderEvents(instance.data?.id, customServer?.id, filters);
+  let events = useCustomProviderEvents(instance.data?.id, customServer?.id, {
+    order: 'desc',
+    ...filters
+  });
 
   return renderWithLoader({ events })(({ events }) => (
     <>

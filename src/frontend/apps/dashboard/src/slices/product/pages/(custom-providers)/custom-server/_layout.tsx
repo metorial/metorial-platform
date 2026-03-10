@@ -9,7 +9,7 @@ import {
   useDashboardFlags
 } from '@metorial/state';
 import { Button, Callout, LinkTabs, Menu, Spacer } from '@metorial/ui';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { showCustomProviderRemoteFormModal } from '../../../scenes/customProvider/modal';
 import { showProviderDeploymentFormModal } from '../../../scenes/providerDeployments/modal';
@@ -24,17 +24,39 @@ export let CustomProviderLayout = () => {
   let customServer = useCustomProvider(instance.data?.id, customServerId);
   let location = useLocation();
   let pathname = location.pathname;
-  let initialCategory = (location.state as { category?: 'custom' | 'external' } | null)
-    ?.category;
+  let initialCategory = (
+    location.state as { category?: 'custom' | 'external' } | null
+  )?.category;
+  let [providerCategory, setProviderCategory] = useState<'custom' | 'external' | undefined>(
+    initialCategory
+  );
 
   let navigate = useNavigate();
   useEffect(() => {
+    if (!initialCategory || initialCategory === providerCategory) return;
+    setProviderCategory(initialCategory);
+  }, [initialCategory, providerCategory]);
+
+  useEffect(() => {
     if (customServer.data && customServer.data.id != customServerId) {
-      navigate(location.pathname.replace(customServerId!, customServer.data.id), {
-        replace: true
-      });
+      let nextPath = `${location.pathname.replace(customServerId!, customServer.data.id)}${location.search}${location.hash}`;
+      navigate(
+        nextPath,
+        {
+          replace: true,
+          state: location.state
+        }
+      );
     }
-  }, [customServer.data, customServerId, location.pathname, navigate]);
+  }, [
+    customServer.data,
+    customServerId,
+    location.hash,
+    location.pathname,
+    location.search,
+    location.state,
+    navigate
+  ]);
 
   let pathParams = [
     organization.data,
@@ -45,7 +67,7 @@ export let CustomProviderLayout = () => {
 
   let flags = useDashboardFlags();
   let isExternalProvider =
-    !!customServer.data?.draft?.remoteMcpServer || initialCategory === 'external';
+    !!customServer.data?.draft?.remoteMcpServer || providerCategory === 'external';
   let hasCodeManagement = Boolean(
     customServer.data &&
       !isExternalProvider &&

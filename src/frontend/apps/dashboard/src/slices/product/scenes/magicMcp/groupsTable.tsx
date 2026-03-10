@@ -134,10 +134,6 @@ export let MagicGroupsTable = (filter: DashboardInstanceMagicMcpGroupsListQuery)
                 e.preventDefault();
               }}
             >
-              <Button size="1" variant="outline">
-                Edit Group
-              </Button>
-
               <Menu
                 items={[
                   {

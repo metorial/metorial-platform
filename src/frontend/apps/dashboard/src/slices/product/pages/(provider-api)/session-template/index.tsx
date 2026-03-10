@@ -114,23 +114,6 @@ export let SessionTemplateOverviewPage = () => {
         `,
         lineNumbers: true,
         replacements: apiKeyReplacement
-      },
-      {
-        title: 'Use the session',
-        description:
-          'Once created, use the session to interact with the configured providers.',
-        type: 'code' as const,
-        code: dedent`
-          // List available tools in the session
-          const tools = await session.listTools();
-
-          // Call a tool
-          const result = await session.callTool({
-            name: tools[0].name,
-            arguments: { /* tool arguments */ },
-          });
-        `,
-        lineNumbers: true
       }
     ];
 
@@ -181,23 +164,6 @@ export let SessionTemplateOverviewPage = () => {
         `,
         lineNumbers: true,
         replacements: apiKeyReplacement
-      },
-      {
-        title: 'Use the session',
-        description:
-          'Once created, use the session to interact with the configured providers.',
-        type: 'code' as const,
-        code: dedent`
-          # List available tools in the session
-          tools = session.list_tools()
-
-          # Call a tool
-          result = session.call_tool(
-              name=tools[0].name,
-              arguments={},
-          )
-        `,
-        lineNumbers: true
       }
     ];
 

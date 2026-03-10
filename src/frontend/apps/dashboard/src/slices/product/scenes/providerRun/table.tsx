@@ -3,7 +3,7 @@ import {
   DashboardInstanceProviderRunsListOutput,
   DashboardInstanceProviderRunsListQuery
 } from '@metorial/dashboard-sdk';
-import { renderWithPagination } from '@metorial/data-hooks';
+import { renderWithLoader, renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { useAllProviderRuns, useCurrentInstance, useProviders } from '@metorial/state';
 import { Badge, RenderDate, Text } from '@metorial/ui';
@@ -79,7 +79,7 @@ export let ServerRunsTable = (filter?: {
     return map;
   }, [providers.data]);
 
-  return renderWithPagination(runs)(runs => (
+  let runsContent = renderWithPagination(runs)(runs => (
     <>
       <Table
         headers={['Status', 'Provider', 'Started', 'Stopped']}
@@ -118,4 +118,6 @@ export let ServerRunsTable = (filter?: {
       )}
     </>
   ));
+
+  return renderWithLoader({ providers })(() => runsContent);
 };

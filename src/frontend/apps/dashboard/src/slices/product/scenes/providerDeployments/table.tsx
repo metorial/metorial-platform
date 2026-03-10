@@ -1,5 +1,5 @@
 import { DashboardInstanceProviderDeploymentsListQuery } from '@metorial/dashboard-sdk';
-import { renderWithPagination } from '@metorial/data-hooks';
+import { renderWithLoader, renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
   useCurrentInstance,
@@ -57,7 +57,7 @@ export let ProviderDeploymentsTable = ({
     return map;
   }, [providers.data?.items]);
 
-  return renderWithPagination(deployments)(deployments => (
+  let deploymentsContent = renderWithPagination(deployments)(deployments => (
     <>
       <Table
         headers={['Name', 'Provider', 'Version', 'Created']}
@@ -96,4 +96,6 @@ export let ProviderDeploymentsTable = ({
       )}
     </>
   ));
+
+  return renderWithLoader({ providers })(() => deploymentsContent);
 };

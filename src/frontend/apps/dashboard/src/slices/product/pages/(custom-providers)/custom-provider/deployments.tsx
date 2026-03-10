@@ -30,43 +30,40 @@ export let CustomProviderCommitsPage = () => {
   let deployments = useCustomProviderDeployments(instance.data?.id, customServer.data?.id, {
     order: 'desc'
   });
-
-  return renderWithLoader({ customServer })(() => (
+  let deploymentsContent = renderWithPagination(deployments)(deployments => (
     <>
-      {renderWithPagination(deployments)(deployments => (
-        <>
-          <Table
-            headers={['Status', 'Trigger', 'Commit', 'Actor', 'Created']}
-            data={deployments.data.items.map(deployment => ({
-              data: [
-                <DeploymentStatusBadge status={deployment.status} />,
-                <Text size="2">{deployment.trigger ?? 'manual'}</Text>,
-                <Text size="2">
-                  {deployment.commit?.message ?? <span style={{ opacity: 0.5 }}>--</span>}
-                </Text>,
-                <Text size="2">{deployment.actor?.name ?? 'System'}</Text>,
-                <RenderDate date={deployment.createdAt} />
-              ],
-              href: deployment.customProviderVersionId
-                ? Paths.instance.customProvider(
-                    instance.data?.organization,
-                    instance.data?.project,
-                    instance.data,
-                    customServer.data?.id,
-                    'versions',
-                    { version_id: deployment.customProviderVersionId }
-                  )
-                : undefined
-            }))}
-          />
+      <Table
+        headers={['Status', 'Trigger', 'Commit', 'Actor', 'Created']}
+        data={deployments.data.items.map(deployment => ({
+          data: [
+            <DeploymentStatusBadge status={deployment.status} />,
+            <Text size="2">{deployment.trigger ?? 'manual'}</Text>,
+            <Text size="2">
+              {deployment.commit?.message ?? <span style={{ opacity: 0.5 }}>--</span>}
+            </Text>,
+            <Text size="2">{deployment.actor?.name ?? 'System'}</Text>,
+            <RenderDate date={deployment.createdAt} />
+          ],
+          href: deployment.customProviderVersionId
+            ? Paths.instance.customProvider(
+                instance.data?.organization,
+                instance.data?.project,
+                instance.data,
+                customServer.data?.id,
+                'versions',
+                { version_id: deployment.customProviderVersionId }
+              )
+            : undefined
+        }))}
+      />
 
-          {deployments.data.items.length === 0 && (
-            <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-              No commits found.
-            </Text>
-          )}
-        </>
-      ))}
+      {deployments.data.items.length === 0 && (
+        <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
+          No commits found.
+        </Text>
+      )}
     </>
   ));
+
+  return renderWithLoader({ customServer })(() => <>{deploymentsContent}</>);
 };

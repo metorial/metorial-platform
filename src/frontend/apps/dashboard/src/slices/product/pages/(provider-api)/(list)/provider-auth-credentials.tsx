@@ -14,8 +14,8 @@ import {
 } from '@metorial/state';
 import { Badge, Input, RenderDate, Spacer, Text } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
-import { useMemo, useState } from 'react';
-import { useDebounced } from '../../../../../hooks/useDebounced';
+import { useMemo } from 'react';
+import { useSearchFilter } from '../../../../../hooks/useSearchFilter';
 
 type CredentialOverviewRow = {
   credential: DashboardInstanceProviderDeploymentsAuthCredentialsListOutput['items'][number];
@@ -27,8 +27,7 @@ export let ProviderAuthCredentialsOverviewPage = () => {
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
 
-  let [search, setSearch] = useState('');
-  let searchDebounced = useDebounced(search, 500);
+  let { search, setSearch, searchQuery } = useSearchFilter();
 
   let deployments = useProviderDeployments(instance.data?.id, {
     limit: 100
@@ -41,13 +40,10 @@ export let ProviderAuthCredentialsOverviewPage = () => {
     ],
     [deploymentItems]
   );
-  let authCredentials = useInstanceProviderAuthCredentials(
-    instance.data?.id,
-    {
-      providerId: providerIds.length > 0 ? providerIds : ['__none__'],
-      search: searchDebounced
-    }
-  );
+  let authCredentials = useInstanceProviderAuthCredentials(instance.data?.id, {
+    providerId: providerIds.length > 0 ? providerIds : ['__none__'],
+    search: searchQuery
+  });
   let providers = useProviders(
     instance.data?.id,
     providerIds.length > 0 ? { id: providerIds } : null

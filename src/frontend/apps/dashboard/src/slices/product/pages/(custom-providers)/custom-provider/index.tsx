@@ -1,7 +1,7 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, useCustomProvider } from '@metorial/state';
-import { Attributes, Badge, Button, RenderDate, Spacer } from '@metorial/ui';
+import { Attributes, Badge, Button, RenderDate, Spacer, Text } from '@metorial/ui';
 import { Box, ID, SideBox } from '@metorial/ui-product';
 import { useNavigate, useParams } from 'react-router-dom';
 import { CustomServerEventsTable } from '../../../scenes/customProvider/events';
@@ -13,6 +13,7 @@ export let CustomProviderOverviewPage = () => {
 
   let { customServerId } = useParams();
   let customServer = useCustomProvider(instance.data?.id, customServerId);
+  let isExternalProvider = Boolean(customServer.data?.draft?.remoteMcpServer);
 
   return renderWithLoader({ customServer })(({ customServer }) => (
     <>
@@ -60,7 +61,23 @@ export let CustomProviderOverviewPage = () => {
           {
             label: 'Created At',
             content: <RenderDate date={customServer.data.createdAt!} />
-          }
+          },
+          ...(isExternalProvider
+            ? [
+                {
+                  label: 'Remote URL',
+                  content: (
+                    <Text size="2" style={{ overflowWrap: 'anywhere' }}>
+                      {customServer.data.draft?.remoteMcpServer?.url ?? 'N/A'}
+                    </Text>
+                  )
+                },
+                {
+                  label: 'Transport',
+                  content: customServer.data.draft?.remoteMcpServer?.transport ?? 'N/A'
+                }
+              ]
+            : [])
         ]}
       />
 

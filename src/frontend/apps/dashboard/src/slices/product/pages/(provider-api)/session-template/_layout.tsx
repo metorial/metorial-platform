@@ -16,7 +16,7 @@ import {
 import { Button, Flex, LinkTabs } from '@metorial/ui';
 import { useState } from 'react';
 import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { showAddProviderModal } from './providers';
+import { showAddProviderModal } from '../../../scenes/sessionTemplates/providersManager';
 
 export let SessionTemplateLayout = () => {
   let instance = useCurrentInstance();

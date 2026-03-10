@@ -18,8 +18,8 @@ export let ProviderRunLayout = () => {
   let project = useCurrentProject();
   let organization = useCurrentOrganization();
 
-  let { serverRunId } = useParams();
-  let run = useProviderRun(instance.data?.id, serverRunId);
+  let { providerRunId } = useParams();
+  let run = useProviderRun(instance.data?.id, providerRunId);
 
   let pathname = useLocation().pathname;
 
@@ -27,7 +27,7 @@ export let ProviderRunLayout = () => {
     organization.data,
     project.data,
     instance.data,
-    run.data?.id ?? serverRunId
+    run.data?.id ?? providerRunId
   ] as const;
 
   return (

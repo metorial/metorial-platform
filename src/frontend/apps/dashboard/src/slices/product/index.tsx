@@ -240,6 +240,12 @@ let MagicMcpServerLayout = dynamicPage(() =>
 let MagicMcpServerOverviewPage = dynamicPage(() =>
   import('./pages/magic-mcp/server/overview').then(c => c.MagicMcpServerOverviewPage)
 );
+let MagicMcpServerProvidersPage = dynamicPage(() =>
+  import('./pages/magic-mcp/server/providers').then(c => c.MagicMcpServerProvidersPage)
+);
+let MagicMcpServerTokensPage = dynamicPage(() =>
+  import('./pages/magic-mcp/(list)/tokens').then(c => c.MagicMcpTokensPage)
+);
 let MagicMcpServerConfigPage = dynamicPage(() =>
   import('./pages/magic-mcp/server/config').then(c => c.MagicMcpServerConfigPage)
 );
@@ -437,7 +443,7 @@ export let productInnerSlice = createSlice([
               },
 
               {
-                path: 'provider-error/:serverErrorId',
+                path: 'provider-error/:providerErrorId',
                 element: <ServerErrorLayout />,
 
                 children: [
@@ -461,7 +467,7 @@ export let productInnerSlice = createSlice([
               },
 
               {
-                path: 'provider-run/:serverRunId',
+                path: 'provider-run/:providerRunId',
                 element: <ServerRunLayout />,
 
                 children: [
@@ -779,6 +785,14 @@ export let productInnerSlice = createSlice([
                   {
                     path: '',
                     element: <MagicMcpServerOverviewPage />
+                  },
+                  {
+                    path: 'providers',
+                    element: <MagicMcpServerProvidersPage />
+                  },
+                  {
+                    path: 'tokens',
+                    element: <MagicMcpServerTokensPage />
                   },
                   {
                     path: 'config',

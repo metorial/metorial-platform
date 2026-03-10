@@ -57,6 +57,30 @@ export let getClaudeCodeConnection = (
   };
 };
 
+export let getCodexConnection = (
+  server: MagicMcpServersGetOutput,
+  token: MagicMcpTokensGetOutput
+) => {
+  let last = slugify(server.name ?? 'Unknown Server');
+  let tokenEnvVar = `METORIAL_MAGIC_MCP_TOKEN_${last.replace(/-/g, '_').toUpperCase()}`;
+
+  return {
+    steps: [
+      {
+        text: 'Run the following command to store the bearer token for Codex',
+        command: `export ${tokenEnvVar}="${token.secret}"`
+      },
+      {
+        text: 'Run the following command in the Codex CLI',
+        command: `codex mcp add ${last} --url ${server.endpoints[0].url} --bearer-token-env-var ${tokenEnvVar}`
+      },
+      {
+        text: 'Start a new Codex session'
+      }
+    ]
+  };
+};
+
 export let getGeminiCliConnection = (
   server: MagicMcpServersGetOutput,
   token: MagicMcpTokensGetOutput
@@ -151,6 +175,7 @@ export let getWindsurfConnection = (
 export type ConnectionType =
   | 'cursor'
   | 'claude-code'
+  | 'codex'
   | 'gemini-cli'
   | 'visual-studio'
   | 'windsurf';
@@ -163,6 +188,10 @@ export let connectionTypes = {
   'claude-code': {
     name: 'Claude Code',
     getConnection: getClaudeCodeConnection
+  },
+  codex: {
+    name: 'Codex',
+    getConnection: getCodexConnection
   },
   'gemini-cli': {
     name: 'Gemini CLI',

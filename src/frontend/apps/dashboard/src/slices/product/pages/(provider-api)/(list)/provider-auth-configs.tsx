@@ -10,8 +10,8 @@ import {
 } from '@metorial/state';
 import { Badge, Input, RenderDate, Spacer, Text } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
-import { useMemo, useState } from 'react';
-import { useDebounced } from '../../../../../hooks/useDebounced';
+import { useMemo } from 'react';
+import { useSearchFilter } from '../../../../../hooks/useSearchFilter';
 
 type AuthConfigItem =
   DashboardInstanceProviderDeploymentsAuthConfigsListOutput['items'][number];
@@ -35,10 +35,9 @@ export let ProviderAuthConfigsOverviewPage = () => {
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
 
-  let [search, setSearch] = useState('');
-  let searchDebounced = useDebounced(search, 500);
+  let { search, setSearch, searchQuery } = useSearchFilter();
   let authConfigs = useInstanceProviderAuthConfigs(instance.data?.id, {
-    search: searchDebounced
+    search: searchQuery
   });
   let items = authConfigs.data?.items ?? [];
   let providerIds = useMemo(

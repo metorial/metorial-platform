@@ -1,14 +1,12 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import { useCurrentInstance } from '@metorial/state';
 import { Input, Spacer } from '@metorial/ui';
-import { useState } from 'react';
-import { useDebounced } from '../../../../../hooks/useDebounced';
+import { useSearchFilter } from '../../../../../hooks/useSearchFilter';
 import { ProviderDeploymentsTable } from '../../../scenes/providerDeployments/table';
 
 export let ProviderDeploymentsPage = () => {
   let instance = useCurrentInstance();
-  let [search, setSearch] = useState('');
-  let searchDebounced = useDebounced(search, 500);
+  let { search, setSearch, searchQuery } = useSearchFilter();
 
   return renderWithLoader({ instance })(({ instance }) => (
     <>
@@ -22,7 +20,7 @@ export let ProviderDeploymentsPage = () => {
 
       <Spacer size={15} />
 
-      <ProviderDeploymentsTable instanceId={instance.data.id} search={searchDebounced} />
+      <ProviderDeploymentsTable instanceId={instance.data.id} search={searchQuery} />
     </>
   ));
 };

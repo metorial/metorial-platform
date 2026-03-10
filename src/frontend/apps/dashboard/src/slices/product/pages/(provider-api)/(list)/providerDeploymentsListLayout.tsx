@@ -170,7 +170,9 @@ export let ProviderDeploymentsListLayout = () => {
   let instance = useCurrentInstance();
   let project = useCurrentProject();
   let organization = useCurrentOrganization();
-  let pathname = useLocation().pathname;
+  let location = useLocation();
+  let pathname = location.pathname;
+  let search = location.search;
   let navigate = useNavigate();
 
   let activeTab = getActiveTab(pathname);
@@ -183,14 +185,12 @@ export let ProviderDeploymentsListLayout = () => {
       <PageHeader
         title={isDeploymentsPage ? 'Deployments' : 'Configuration'}
         description={currentTab.description}
-        actions={
-          currentTab.renderAction({
-            instance: instance.data,
-            organization: organization.data,
-            project: project.data,
-            navigate
-          })
-        }
+        actions={currentTab.renderAction({
+          instance: instance.data,
+          organization: organization.data,
+          project: project.data,
+          navigate
+        })}
       />
 
       {!isDeploymentsPage && (
@@ -201,7 +201,7 @@ export let ProviderDeploymentsListLayout = () => {
 
             return {
               label: tab.label,
-              to: Paths.instance.providerDeployments(...pathParams, tab.segment)
+              to: `${Paths.instance.providerDeployments(...pathParams, tab.segment)}${search}`
             };
           })}
         />

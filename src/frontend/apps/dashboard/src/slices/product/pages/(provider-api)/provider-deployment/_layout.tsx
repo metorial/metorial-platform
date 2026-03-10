@@ -18,7 +18,9 @@ export let ProviderDeploymentLayout = () => {
   let { providerDeploymentId } = useParams();
   let deployment = useProviderDeployment(instance.data?.id, providerDeploymentId);
 
-  let pathname = useLocation().pathname;
+  let location = useLocation();
+  let pathname = location.pathname;
+  let search = location.search;
 
   let deploymentPathParams = [
     organization.data,
@@ -86,27 +88,27 @@ export let ProviderDeploymentLayout = () => {
             links={[
               {
                 label: 'Overview',
-                to: Paths.instance.providerDeployment(...deploymentPathParams)
+                to: `${Paths.instance.providerDeployment(...deploymentPathParams)}${search}`
               },
               {
                 label: 'Configs',
-                to: Paths.instance.providerDeployment(...deploymentPathParams, 'configs')
+                to: `${Paths.instance.providerDeployment(...deploymentPathParams, 'configs')}${search}`
               },
               {
                 label: 'Auth Configs',
-                to: Paths.instance.providerDeployment(...deploymentPathParams, 'auth-configs')
+                to: `${Paths.instance.providerDeployment(...deploymentPathParams, 'auth-configs')}${search}`
               },
               {
                 label: 'Config Vaults',
-                to: Paths.instance.providerDeployment(...deploymentPathParams, 'config-vaults')
+                to: `${Paths.instance.providerDeployment(...deploymentPathParams, 'config-vaults')}${search}`
               },
               {
                 label: 'Auth Methods',
-                to: Paths.instance.providerDeployment(...deploymentPathParams, 'auth-methods')
+                to: `${Paths.instance.providerDeployment(...deploymentPathParams, 'auth-methods')}${search}`
               },
               {
                 label: 'Settings',
-                to: Paths.instance.providerDeployment(...deploymentPathParams, 'settings')
+                to: `${Paths.instance.providerDeployment(...deploymentPathParams, 'settings')}${search}`
               }
             ]}
           />

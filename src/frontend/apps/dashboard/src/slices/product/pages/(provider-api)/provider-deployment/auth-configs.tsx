@@ -5,9 +5,8 @@ import {
   useProviderDeployment
 } from '@metorial/state';
 import { Button, Input } from '@metorial/ui';
-import { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { useDebounced } from '../../../../../hooks/useDebounced';
+import { useSearchFilter } from '../../../../../hooks/useSearchFilter';
 import { useProviderAuthCreationCapabilities } from '../../../lib/providerCreationCapabilities';
 import { showProviderAuthConfigCreateModal } from '../../../scenes/providerAuthConfigs/modal';
 import { ProviderAuthConfigsTable } from '../../../scenes/providerAuthConfigs/table';
@@ -17,10 +16,9 @@ export let ProviderDeploymentAuthConfigsPage = () => {
   let instance = useCurrentInstance();
   let { providerDeploymentId } = useParams();
   let deployment = useProviderDeployment(instance.data?.id, providerDeploymentId);
-  let [search, setSearch] = useState('');
-  let searchDebounced = useDebounced(search, 500);
+  let { search, setSearch, searchQuery } = useSearchFilter();
   let authConfigs = useProviderAuthConfigs(instance.data?.id, providerDeploymentId, {
-    search: searchDebounced
+    search: searchQuery
   });
   let authCreation = useProviderAuthCreationCapabilities(
     instance.data?.id,
@@ -30,7 +28,7 @@ export let ProviderDeploymentAuthConfigsPage = () => {
 
   return renderWithLoader({ instance, deployment })(({ instance, deployment }) => (
     <ProviderDeploymentTabSection
-      intro="Auth configs connect this deployment's auth methods to credentials and runtime behavior."
+      intro="Auth configs connect this deployment's auth methods to credentials."
       actions={
         <div
           title={authCreation.authConfigDisabledReason ?? undefined}
@@ -65,7 +63,7 @@ export let ProviderDeploymentAuthConfigsPage = () => {
       <ProviderAuthConfigsTable
         instanceId={instance.data.id}
         providerDeploymentId={providerDeploymentId!}
-        search={searchDebounced}
+        search={searchQuery}
       />
     </ProviderDeploymentTabSection>
   ));

@@ -674,6 +674,10 @@ export let ExplorerPage = () => {
                     <Spacer height={5} />
 
                     <ProviderSearch
+                      filter={{
+                        orderByUse: 'deployments',
+                        order: 'desc'
+                      }}
                       onSelect={provider => {
                         setProviderDeploymentId(null);
                         setSessionId(null);

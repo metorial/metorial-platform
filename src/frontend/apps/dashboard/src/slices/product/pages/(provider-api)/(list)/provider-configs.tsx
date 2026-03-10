@@ -14,8 +14,8 @@ import {
 } from '@metorial/state';
 import { Badge, Input, RenderDate, Spacer, Text } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
-import { useMemo, useState } from 'react';
-import { useDebounced } from '../../../../../hooks/useDebounced';
+import { useMemo } from 'react';
+import { useSearchFilter } from '../../../../../hooks/useSearchFilter';
 
 type ConfigOverviewRow = {
   config: DashboardInstanceProviderDeploymentsConfigsListOutput['items'][number];
@@ -27,8 +27,7 @@ export let ProviderConfigsOverviewPage = () => {
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
 
-  let [search, setSearch] = useState('');
-  let searchDebounced = useDebounced(search, 500);
+  let { search, setSearch, searchQuery } = useSearchFilter();
 
   let deployments = useProviderDeployments(instance.data?.id, {
     limit: 100
@@ -39,13 +38,10 @@ export let ProviderConfigsOverviewPage = () => {
     () => deploymentItems.map(deployment => deployment.id),
     [deploymentItems]
   );
-  let configs = useInstanceProviderConfigs(
-    instance.data?.id,
-    {
-      providerDeploymentId: deploymentIds.length > 0 ? deploymentIds : ['__none__'],
-      search: searchDebounced
-    }
-  );
+  let configs = useInstanceProviderConfigs(instance.data?.id, {
+    providerDeploymentId: deploymentIds.length > 0 ? deploymentIds : ['__none__'],
+    search: searchQuery
+  });
   let providerIds = useMemo(
     () => [
       ...new Set(deploymentItems.map(deployment => deployment.providerId).filter(Boolean))

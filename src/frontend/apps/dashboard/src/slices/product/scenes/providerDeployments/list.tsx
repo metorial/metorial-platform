@@ -275,7 +275,9 @@ export let ProviderDeploymentsList = ({
       : null
   );
 
-  return renderWithPagination(deployments)(deployments => {
+  return renderWithPagination(deployments, {
+    hidePaginationWhenUnavailable: true
+  })(deployments => {
     let providerLookup = new Map<
       string,
       {
@@ -330,12 +332,14 @@ export let ProviderDeploymentsList = ({
               value={search}
               onInput={value => setSearch(value)}
             />
-            {sectionLabel && (
+            {sectionLabel ? (
               <>
                 <Spacer size={10} />
                 <Or text={sectionLabel} />
                 <Spacer size={10} />
               </>
+            ) : (
+              <Spacer size={10} />
             )}
           </>
         )}

@@ -73,6 +73,41 @@ export let ProviderConfigOverviewPage = () => {
         }
       : undefined
   );
+  let sessionsContent = renderWithPagination(sessions)(sessions => (
+    <>
+      {sessions.data.items.length > 0 ? (
+        <Table
+          headers={['Status', 'Deployments', 'Name', 'Created']}
+          data={sessions.data.items.map(session => ({
+            href: Paths.instance.session(
+              organization.data,
+              project.data,
+              instance.data,
+              session.id
+            ),
+            data: [
+              <SessionConnectionStatusBadge
+                connectionStatus={session.connectionState}
+                hasErrors={session.hasErrors}
+                hasWarnings={session.hasWarnings}
+              />,
+              <Text size="2" weight="strong">
+                {session.providers
+                  ?.map(s => s.deployment?.name ?? s.providerId ?? 'Unknown')
+                  .join(', ') || 'No deployments'}
+              </Text>,
+              <Text size="2">{session.name ?? 'Unnamed Session'}</Text>,
+              <RenderDate date={session.createdAt} />
+            ]
+          }))}
+        />
+      ) : (
+        <Callout color="gray">
+          No sessions are using this configuration yet.
+        </Callout>
+      )}
+    </>
+  ));
 
   return renderWithLoader({ config, deployment })(({ config, deployment }) => (
     <>
@@ -194,41 +229,7 @@ export let ProviderConfigOverviewPage = () => {
         title="Recent Sessions"
         description="Latest sessions currently using this configuration."
       >
-        {renderWithPagination(sessions)(sessions => (
-          <>
-            {sessions.data.items.length > 0 ? (
-              <Table
-                headers={['Status', 'Deployments', 'Name', 'Created']}
-                data={sessions.data.items.map(session => ({
-                  href: Paths.instance.session(
-                    organization.data,
-                    project.data,
-                    instance.data,
-                    session.id
-                  ),
-                  data: [
-                    <SessionConnectionStatusBadge
-                      connectionStatus={session.connectionState}
-                      hasErrors={session.hasErrors}
-                      hasWarnings={session.hasWarnings}
-                    />,
-                    <Text size="2" weight="strong">
-                      {session.providers
-                        ?.map(s => s.deployment?.name ?? s.providerId ?? 'Unknown')
-                        .join(', ') || 'No deployments'}
-                    </Text>,
-                    <Text size="2">{session.name ?? 'Unnamed Session'}</Text>,
-                    <RenderDate date={session.createdAt} />
-                  ]
-                }))}
-              />
-            ) : (
-              <Callout color="gray">
-                No sessions are using this configuration yet.
-              </Callout>
-            )}
-          </>
-        ))}
+        {sessionsContent}
       </Box>
 
       {config.data.metadata && Object.keys(config.data.metadata).length > 0 ? (

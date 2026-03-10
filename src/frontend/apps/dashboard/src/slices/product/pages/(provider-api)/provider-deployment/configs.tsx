@@ -1,10 +1,13 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
-import { useCurrentInstance, useCurrentOrganization, useCurrentProject } from '@metorial/state';
+import {
+  useCurrentInstance,
+  useCurrentOrganization,
+  useCurrentProject
+} from '@metorial/state';
 import { Button, Input, Tooltip } from '@metorial/ui';
-import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useDebounced } from '../../../../../hooks/useDebounced';
+import { useSearchFilter } from '../../../../../hooks/useSearchFilter';
 import { useProviderConfigCreationCapabilities } from '../../../lib/providerCreationCapabilities';
 import { ProviderConfigsTable } from '../../../scenes/providerConfigs/table';
 import { showProviderConfigFormModal } from '../../../scenes/providerConfigs/modal';
@@ -16,8 +19,7 @@ export let ProviderDeploymentConfigsPage = () => {
   let project = useCurrentProject();
   let navigate = useNavigate();
   let { providerDeploymentId } = useParams();
-  let [search, setSearch] = useState('');
-  let searchDebounced = useDebounced(search, 500);
+  let { search, setSearch, searchQuery } = useSearchFilter();
   let configCreation = useProviderConfigCreationCapabilities(
     instance.data?.id,
     providerDeploymentId
@@ -74,7 +76,7 @@ export let ProviderDeploymentConfigsPage = () => {
       <ProviderConfigsTable
         instanceId={instance.data.id}
         providerDeploymentId={providerDeploymentId!}
-        search={searchDebounced}
+        search={searchQuery}
       />
     </ProviderDeploymentTabSection>
   ));

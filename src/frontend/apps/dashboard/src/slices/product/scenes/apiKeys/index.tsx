@@ -45,10 +45,12 @@ type CreateApiKeyFormValues = {
 };
 type UpdateApiKeyFormValues = {
   name: string | undefined;
-  description: string | undefined;
+  description: string;
   expiresAt: Date | undefined;
   type: ApiKeyType | undefined;
 };
+
+let normalizeOptionalString = (value: string | undefined) => value || undefined;
 
 let isApiKeyType = (value: string): value is ApiKeyType =>
   value === 'organization_management_token' ||
@@ -133,13 +135,13 @@ export let ApiKeysScene = ({
                   type: values.type,
                   instanceId: filter.instanceId,
                   name: values.name,
-                  description: values.description,
+                  description: normalizeOptionalString(values.description),
                   expiresAt: values.expiresAt
                 }
               : {
                   type: 'organization_management_token',
                   name: values.name,
-                  description: values.description,
+                  description: normalizeOptionalString(values.description),
                   expiresAt: values.expiresAt
                 };
 
@@ -177,7 +179,7 @@ export let ApiKeysScene = ({
         schema: yup =>
           yup.object({
             name: yup.string().required('Name is required'),
-            description: yup.string().defined(),
+            description: yup.string().optional(),
             expiresAt: yup
               .date()
               .optional()
@@ -270,7 +272,7 @@ export let ApiKeysScene = ({
       let form = useForm<UpdateApiKeyFormValues>({
         initialValues: {
           name: apiKey?.name ?? undefined,
-          description: apiKey?.description ?? undefined,
+          description: apiKey?.description ?? '',
           expiresAt: apiKey?.expiresAt ?? undefined,
           type: apiKey?.type ?? undefined
         },
@@ -278,7 +280,7 @@ export let ApiKeysScene = ({
           let [res] = await mutator.mutate({
             apiKeyId,
             name: values.name,
-            description: values.description,
+            description: normalizeOptionalString(values.description),
             expiresAt: values.expiresAt
           } satisfies ApiKeysUpdateBody & { apiKeyId: string });
           if (res) close();
@@ -286,7 +288,7 @@ export let ApiKeysScene = ({
         schema: yup =>
           yup.object({
             name: yup.string().required('Name is required'),
-            description: yup.string().defined(),
+            description: yup.string().optional(),
             expiresAt: yup
               .date()
               .optional()

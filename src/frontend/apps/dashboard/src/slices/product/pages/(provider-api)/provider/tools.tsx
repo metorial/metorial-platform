@@ -493,65 +493,65 @@ export let ProviderToolsPage = () => {
     ));
   };
 
-  return renderWithLoader({ instance })(() =>
-    renderWithPagination(tools)(tools => (
-      <>
-        <Table
-          headers={['Name', 'Type', '']}
-          data={tools.data.items.map(tool => {
-            let modeBadges = getToolModeBadges(tool);
-            let description =
-              tool.description && tool.description.length > 110
-                ? `${tool.description.slice(0, 110)}...`
-                : (tool.description ?? '');
+  let toolsContent = renderWithPagination(tools)(tools => (
+    <>
+      <Table
+        headers={['Name', 'Type', '']}
+        data={tools.data.items.map(tool => {
+          let modeBadges = getToolModeBadges(tool);
+          let description =
+            tool.description && tool.description.length > 110
+              ? `${tool.description.slice(0, 110)}...`
+              : (tool.description ?? '');
 
-            return {
-              data: [
-                <Flex direction="column" gap={2}>
-                  <Text size="2" weight="strong">
-                    {tool.name}
-                  </Text>
-                  <Text
-                    size="2"
-                    color="gray600"
-                    style={{
-                      display: 'block',
-                      maxWidth: '100%',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis'
-                    }}
-                  >
-                    {description}
-                  </Text>
-                </Flex>,
-                <Flex gap={6} style={{ alignItems: 'center', flexWrap: 'wrap' }}>
-                  {modeBadges.length > 0 ? (
-                    modeBadges.map(modeBadge => (
-                      <Badge key={modeBadge.label} color={modeBadge.color} size="1">
-                        {modeBadge.label}
-                      </Badge>
-                    ))
-                  ) : (
-                    <Badge color="gray" size="1">
-                      Default
+          return {
+            data: [
+              <Flex direction="column" gap={2}>
+                <Text size="2" weight="strong">
+                  {tool.name}
+                </Text>
+                <Text
+                  size="2"
+                  color="gray600"
+                  style={{
+                    display: 'block',
+                    maxWidth: '100%',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
+                  }}
+                >
+                  {description}
+                </Text>
+              </Flex>,
+              <Flex gap={6} style={{ alignItems: 'center', flexWrap: 'wrap' }}>
+                {modeBadges.length > 0 ? (
+                  modeBadges.map(modeBadge => (
+                    <Badge key={modeBadge.label} color={modeBadge.color} size="1">
+                      {modeBadge.label}
                     </Badge>
-                  )}
-                </Flex>,
-                <Button size="1" variant="outline" onClick={() => onViewDetails(tool)}>
-                  View Details
-                </Button>
-              ]
-            };
-          })}
-        />
+                  ))
+                ) : (
+                  <Badge color="gray" size="1">
+                    Default
+                  </Badge>
+                )}
+              </Flex>,
+              <Button size="1" variant="outline" onClick={() => onViewDetails(tool)}>
+                View Details
+              </Button>
+            ]
+          };
+        })}
+      />
 
-        {tools.data.items.length === 0 && (
-          <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-            No tools found for this provider.
-          </Text>
-        )}
-      </>
-    ))
-  );
+      {tools.data.items.length === 0 && (
+        <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
+          No tools found for this provider.
+        </Text>
+      )}
+    </>
+  ));
+
+  return renderWithLoader({ instance })(() => toolsContent);
 };

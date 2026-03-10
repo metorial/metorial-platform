@@ -1,6 +1,8 @@
 import {
+  DashboardInstanceMagicMcpTokensAddGroupsBody,
   DashboardInstanceMagicMcpTokensCreateBody,
   DashboardInstanceMagicMcpTokensListQuery,
+  DashboardInstanceMagicMcpTokensRemoveGroupsBody,
   DashboardInstanceMagicMcpTokensUpdateBody
 } from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
@@ -21,7 +23,24 @@ export let magicMcpTokensLoader = createLoader({
     ) => withAuth(sdk => sdk.magicMcp.tokens.update(instanceId, i.magicMcpTokenId, i)),
 
     delete: (i: { magicMcpTokenId: string }, { input: { instanceId } }) =>
-      withAuth(sdk => sdk.magicMcp.tokens.delete(instanceId, i.magicMcpTokenId))
+      withAuth(sdk => sdk.magicMcp.tokens.delete(instanceId, i.magicMcpTokenId)),
+
+    addGroups: (
+      i: DashboardInstanceMagicMcpTokensAddGroupsBody & {
+        magicMcpTokenId: string;
+      },
+      { input: { instanceId } }
+    ) => withAuth(sdk => sdk.magicMcp.tokens.addGroups(instanceId, i.magicMcpTokenId, i)),
+
+    removeGroups: (
+      i: DashboardInstanceMagicMcpTokensRemoveGroupsBody & {
+        magicMcpTokenId: string;
+      },
+      { input: { instanceId } }
+    ) =>
+      withAuth(sdk =>
+        sdk.magicMcp.tokens.removeGroups(instanceId, i.magicMcpTokenId, i)
+      )
   }
 });
 
@@ -45,7 +64,9 @@ export let useMagicMcpTokens = (
     ...data,
     createMutator: useCreateMagicMcpToken,
     revokeMutator: data.useMutator('delete'),
-    updateMutator: data.useMutator('update')
+    updateMutator: data.useMutator('update'),
+    addGroupsMutator: data.useMutator('addGroups'),
+    removeGroupsMutator: data.useMutator('removeGroups')
   };
 };
 
@@ -61,7 +82,20 @@ export let magicMcpTokenLoader = createLoader({
     ) => withAuth(sdk => sdk.magicMcp.tokens.update(instanceId, magicMcpTokenId, i)),
 
     delete: (_, { input: { instanceId, magicMcpTokenId } }) =>
-      withAuth(sdk => sdk.magicMcp.tokens.delete(instanceId, magicMcpTokenId))
+      withAuth(sdk => sdk.magicMcp.tokens.delete(instanceId, magicMcpTokenId)),
+
+    addGroups: (
+      i: DashboardInstanceMagicMcpTokensAddGroupsBody,
+      { input: { instanceId, magicMcpTokenId } }
+    ) => withAuth(sdk => sdk.magicMcp.tokens.addGroups(instanceId, magicMcpTokenId, i)),
+
+    removeGroups: (
+      i: DashboardInstanceMagicMcpTokensRemoveGroupsBody,
+      { input: { instanceId, magicMcpTokenId } }
+    ) =>
+      withAuth(sdk =>
+        sdk.magicMcp.tokens.removeGroups(instanceId, magicMcpTokenId, i)
+      )
   }
 });
 
@@ -76,6 +110,8 @@ export let useMagicMcpToken = (
   return {
     ...data,
     useUpdateMutator: data.useMutator('update'),
-    useDeleteMutator: data.useMutator('delete')
+    useDeleteMutator: data.useMutator('delete'),
+    useAddGroupsMutator: data.useMutator('addGroups'),
+    useRemoveGroupsMutator: data.useMutator('removeGroups')
   };
 };

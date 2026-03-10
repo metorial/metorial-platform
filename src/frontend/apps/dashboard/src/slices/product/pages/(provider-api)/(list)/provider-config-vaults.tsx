@@ -10,22 +10,23 @@ import {
 } from '@metorial/state';
 import { Input, RenderDate, Spacer, Text } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
-import { useMemo, useState } from 'react';
-import { useDebounced } from '../../../../../hooks/useDebounced';
+import { useMemo } from 'react';
+import { useSearchFilter } from '../../../../../hooks/useSearchFilter';
 
 export let ProviderConfigVaultsOverviewPage = () => {
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
 
-  let [search, setSearch] = useState('');
-  let searchDebounced = useDebounced(search, 500);
+  let { search, setSearch, searchQuery } = useSearchFilter();
 
   let vaults = useProviderConfigVaults(instance.data?.id, {
-    search: searchDebounced
+    search: searchQuery
   });
   let providerIds = useMemo(
-    () => [...new Set((vaults.data?.items ?? []).map(vault => vault.providerId).filter(Boolean))],
+    () => [
+      ...new Set((vaults.data?.items ?? []).map(vault => vault.providerId).filter(Boolean))
+    ],
     [vaults.data?.items]
   );
   let providers = useProviders(
@@ -40,6 +41,48 @@ export let ProviderConfigVaultsOverviewPage = () => {
     }
     return map;
   }, [providers.data?.items]);
+  let vaultsContent = renderWithPagination(vaults)(vaults => (
+    <>
+      <Table
+        headers={['Name', 'Provider', 'Deployment', 'Created']}
+        data={vaults.data.items.map(
+          (
+            vault: DashboardInstanceProviderDeploymentsConfigVaultsListOutput['items'][number]
+          ) => ({
+            href: Paths.instance.providerConfigVault(
+              organization.data,
+              project.data,
+              instance.data,
+              vault.id
+            ),
+            data: [
+              <Text size="2" weight="strong">
+                {vault.name ?? 'Unnamed Vault'}
+              </Text>,
+              <Text size="2">
+                {providerNameMap.get(vault.providerId) ?? vault.providerId ?? '—'}
+              </Text>,
+              <Text size="2">{vault.deployment?.name ?? '—'}</Text>,
+              vault.createdAt ? (
+                <RenderDate date={vault.createdAt} />
+              ) : (
+                <Text size="2" color="gray600">
+                  —
+                </Text>
+              )
+            ]
+          })
+        )}
+      />
+
+      {vaults.data.items.length === 0 && (
+        <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
+          No config vaults for this instance.
+        </Text>
+      )}
+    </>
+  ));
+
   return renderWithLoader({ organization, project, instance, providers })(() => (
     <>
       <Input
@@ -52,45 +95,7 @@ export let ProviderConfigVaultsOverviewPage = () => {
 
       <Spacer size={15} />
 
-      {renderWithPagination(vaults)(vaults => (
-        <>
-          <Table
-            headers={['Name', 'Provider', 'Deployment', 'Created']}
-            data={vaults.data.items.map(
-              (vault: DashboardInstanceProviderDeploymentsConfigVaultsListOutput['items'][number]) => ({
-                href: Paths.instance.providerConfigVault(
-                  organization.data,
-                  project.data,
-                  instance.data,
-                  vault.id
-                ),
-                data: [
-                  <Text size="2" weight="strong">
-                    {vault.name ?? 'Unnamed Vault'}
-                  </Text>,
-                  <Text size="2">
-                    {providerNameMap.get(vault.providerId) ?? vault.providerId ?? '—'}
-                  </Text>,
-                  <Text size="2">{vault.deployment?.name ?? '—'}</Text>,
-                  vault.createdAt ? (
-                    <RenderDate date={vault.createdAt} />
-                  ) : (
-                    <Text size="2" color="gray600">
-                      —
-                    </Text>
-                  )
-                ]
-              })
-            )}
-          />
-
-          {vaults.data.items.length === 0 && (
-            <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-              No config vaults for this instance.
-            </Text>
-          )}
-        </>
-      ))}
+      {vaultsContent}
     </>
   ));
 };

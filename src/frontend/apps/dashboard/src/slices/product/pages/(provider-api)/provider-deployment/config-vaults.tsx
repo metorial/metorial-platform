@@ -8,9 +8,8 @@ import {
 } from '@metorial/state';
 import { Button, Input, RenderDate, Text, Tooltip } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
-import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useDebounced } from '../../../../../hooks/useDebounced';
+import { useSearchFilter } from '../../../../../hooks/useSearchFilter';
 import { useProviderConfigCreationCapabilities } from '../../../lib/providerCreationCapabilities';
 import { showProviderConfigVaultFormModal } from '../../../scenes/providerConfigVaults/modal';
 import { ProviderDeploymentTabSection } from '../../../scenes/providerDeployments/tabSection';
@@ -82,8 +81,7 @@ export let ProviderDeploymentConfigVaultsPage = () => {
   let project = useCurrentProject();
   let navigate = useNavigate();
   let { providerDeploymentId } = useParams();
-  let [search, setSearch] = useState('');
-  let searchDebounced = useDebounced(search, 500);
+  let { search, setSearch, searchQuery } = useSearchFilter();
   let configCreation = useProviderConfigCreationCapabilities(
     instance.data?.id,
     providerDeploymentId
@@ -139,7 +137,7 @@ export let ProviderDeploymentConfigVaultsPage = () => {
       <ProviderDeploymentConfigVaultsTable
         instanceId={instance.data.id}
         providerDeploymentId={providerDeploymentId!}
-        search={searchDebounced}
+        search={searchQuery}
       />
     </ProviderDeploymentTabSection>
   ));

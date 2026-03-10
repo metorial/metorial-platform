@@ -101,6 +101,7 @@ export let renderWithPagination =
       spaceTop?: number;
       spaceBottom?: number;
       padding?: number;
+      hidePaginationWhenUnavailable?: boolean;
       loading?: () => React.ReactNode;
       error?: (error: ServiceError<any> | MetorialSDKError) => React.ReactNode;
     } = {}
@@ -160,10 +161,16 @@ export let renderWithPagination =
     // let inner = children(loaderWithCachedData as any);
 
     let inner = React.createElement(children, loaderWithCachedData as any);
+    let shouldShowPagination =
+      !opts.hidePaginationWhenUnavailable ||
+      !!loader.data?.pagination.hasMoreBefore ||
+      !!loader.data?.pagination.hasMoreAfter;
 
     if (loader.data?.items.length === 0) {
       return opts.emptyState ?? inner;
     }
+
+    if (!shouldShowPagination) return inner;
 
     return React.createElement(
       'div',

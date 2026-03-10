@@ -1,4 +1,6 @@
 import {
+  DashboardInstanceMagicMcpGroupsListOutput,
+  DashboardInstanceMagicMcpTokensCreateBody,
   DashboardInstanceMagicMcpTokensGetOutput,
   DashboardInstanceMagicMcpTokensListQuery
 } from '@metorial/dashboard-sdk';
@@ -6,14 +8,17 @@ import { renderWithPagination, useForm } from '@metorial/data-hooks';
 import {
   useCreateMagicMcpToken,
   useCurrentInstance,
+  useMagicMcpGroups,
   useMagicMcpTokens
 } from '@metorial/state';
 import {
   Badge,
   Button,
+  Checkbox,
   confirm,
   Copy,
   Dialog,
+  Flex,
   Input,
   Menu,
   RenderDate,
@@ -27,8 +32,213 @@ import {
 } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
 import { RiClipboardLine, RiMoreLine } from '@remixicon/react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import styled from 'styled-components';
+
+type TokenRow = DashboardInstanceMagicMcpTokensGetOutput;
+type MagicMcpGroupRow = DashboardInstanceMagicMcpGroupsListOutput['items'][number];
+
+let formatGroupRestrictions = (token: TokenRow) => {
+  if (!token.groups.length) {
+    return (
+      <Text size="1" color="gray600">
+        Unrestricted
+      </Text>
+    );
+  }
+
+  return (
+    <Flex gap={6} style={{ flexWrap: 'wrap' }}>
+      {token.groups.map(group => (
+        <Badge key={group.id} size="1" color="gray">
+          {group.name ?? group.slug ?? group.id}
+        </Badge>
+      ))}
+    </Flex>
+  );
+};
+
+let GroupRestrictionsField = ({
+  groups,
+  selectedGroupIds,
+  setSelectedGroupIds,
+  emptyText
+}: {
+  groups: MagicMcpGroupRow[];
+  selectedGroupIds: string[];
+  setSelectedGroupIds: (value: string[]) => void;
+  emptyText: string;
+}) => {
+  if (groups.length === 0) {
+    return (
+      <Text size="2" color="gray600">
+        {emptyText}
+      </Text>
+    );
+  }
+
+  return (
+    <Flex direction="column" gap={8}>
+      {groups.map(group => {
+        let isSelected = selectedGroupIds.includes(group.id);
+        let isArchived = group.status !== 'active';
+
+        return (
+          <div key={group.id}>
+            <Checkbox
+              checked={isSelected}
+              disabled={isArchived}
+              label={group.name ?? group.slug ?? group.id}
+              description={
+                isArchived
+                  ? 'Archived groups can be removed from tokens but cannot be newly added.'
+                  : group.description ?? group.slug
+              }
+              onCheckedChange={checked => {
+                if (checked) {
+                  setSelectedGroupIds([...selectedGroupIds, group.id]);
+                  return;
+                }
+
+                setSelectedGroupIds(selectedGroupIds.filter(id => id !== group.id));
+              }}
+            />
+          </div>
+        );
+      })}
+    </Flex>
+  );
+};
+
+let useRestrictionOptions = (token?: TokenRow | null) => {
+  let instance = useCurrentInstance();
+  let groups = useMagicMcpGroups(instance.data?.id, {
+    limit: 100,
+    order: 'asc',
+    status: ['active', 'archived']
+  });
+
+  let items = useMemo(() => {
+    let merged = new Map<string, MagicMcpGroupRow>();
+
+    for (let group of groups.data?.items ?? []) {
+      merged.set(group.id, group);
+    }
+
+    for (let group of token?.groups ?? []) {
+      if (merged.has(group.id)) continue;
+      merged.set(group.id, group);
+    }
+
+    return Array.from(merged.values());
+  }, [groups.data?.items, token?.groups]);
+
+  return {
+    groups,
+    items
+  };
+};
+
+let showCreatedTokenModal = (secret: string) =>
+  showModal(({ dialogProps, close }) => (
+    <Dialog.Wrapper variant="padded" {...dialogProps}>
+      <Dialog.Title>Magic MCP Token Created</Dialog.Title>
+      <Dialog.Description>
+        Your new Magic MCP token is ready to use. Please don't share it with anyone and
+        keep it in a safe place, such as a password manager.
+      </Dialog.Description>
+
+      <Copy label="Magic MCP Token" value={secret} />
+
+      <Spacer height={15} />
+
+      <Dialog.Actions>
+        <Button onClick={close}>Close</Button>
+      </Dialog.Actions>
+    </Dialog.Wrapper>
+  ));
+
+let showManageRestrictionsModal = (p: { token: TokenRow }) =>
+  showModal(({ dialogProps, close }) => {
+    let instance = useCurrentInstance();
+    let tokens = useMagicMcpTokens(instance.data?.id);
+    let addGroupsMutator = tokens.addGroupsMutator();
+    let removeGroupsMutator = tokens.removeGroupsMutator();
+    let { groups, items } = useRestrictionOptions(p.token);
+    let [selectedGroupIds, setSelectedGroupIds] = useState<string[]>(
+      p.token.groups.map(group => group.id)
+    );
+
+    let initialGroupIds = p.token.groups.map(group => group.id);
+    let groupsToAdd = selectedGroupIds.filter(id => !initialGroupIds.includes(id));
+    let groupsToRemove = initialGroupIds.filter(id => !selectedGroupIds.includes(id));
+    let isLoading = addGroupsMutator.isLoading || removeGroupsMutator.isLoading;
+
+    return (
+      <Dialog.Wrapper {...dialogProps}>
+        <Dialog.Title>Edit Group Restrictions</Dialog.Title>
+        <Dialog.Description>
+          Restrict this token to specific Magic MCP groups. Leave all groups unchecked to
+          keep the token unrestricted.
+        </Dialog.Description>
+
+        <Spacer height={16} />
+
+        {groups.isLoading ? (
+          <Text size="2" color="gray600">
+            Loading groups...
+          </Text>
+        ) : (
+          <GroupRestrictionsField
+            groups={items}
+            selectedGroupIds={selectedGroupIds}
+            setSelectedGroupIds={setSelectedGroupIds}
+            emptyText="No Magic MCP groups are available yet. Create a group first if you want to restrict this token."
+          />
+        )}
+
+        <Spacer height={16} />
+
+        <Dialog.Actions>
+          <Button variant="soft" onClick={close} type="button" disabled={isLoading}>
+            Cancel
+          </Button>
+          <Button
+            loading={isLoading}
+            disabled={groups.isLoading}
+            onClick={async () => {
+              if (!instance.data) return;
+
+              let didSucceed = true;
+
+              if (groupsToAdd.length > 0) {
+                let [res] = await addGroupsMutator.mutate({
+                  magicMcpTokenId: p.token.id,
+                  magicMcpGroupIds: groupsToAdd
+                });
+                if (!res) didSucceed = false;
+              }
+
+              if (didSucceed && groupsToRemove.length > 0) {
+                let [res] = await removeGroupsMutator.mutate({
+                  magicMcpTokenId: p.token.id,
+                  magicMcpGroupIds: groupsToRemove
+                });
+                if (!res) didSucceed = false;
+              }
+
+              if (!didSucceed) return;
+
+              toast.success('Magic MCP token restrictions updated');
+              close();
+            }}
+          >
+            Save Restrictions
+          </Button>
+        </Dialog.Actions>
+      </Dialog.Wrapper>
+    );
+  });
 
 export let MagicTokensTable = (filter: DashboardInstanceMagicMcpTokensListQuery) => {
   let instance = useCurrentInstance();
@@ -107,82 +317,94 @@ export let MagicTokensTable = (filter: DashboardInstanceMagicMcpTokensListQuery)
   return renderWithPagination(tokens)(tokens => (
     <>
       <Table
-        headers={['Status', 'Name', 'Secret', 'Restrictions', 'Created', '']}
+        headers={['Status', 'Name', 'Secret', 'Group Restrictions', 'Created', '']}
         data={tokens.data.items.map(token => ({
-          data: [
-            {
-              active: (
-                <Badge size="1" color="green">
-                  Active
-                </Badge>
-              ),
-              deleted: (
-                <Badge size="1" color="red">
-                  Revoked
-                </Badge>
-              )
-            }[token.status],
-            <div>
-              <Text size="2" weight="strong">
-                {token.name}
-              </Text>
-              {token.description && (
-                <Text size="1" color="gray600">
-                  {token.description}
+            data: [
+              {
+                active: (
+                  <Badge size="1" color="green">
+                    Active
+                  </Badge>
+                ),
+                deleted: (
+                  <Badge size="1" color="red">
+                    Revoked
+                  </Badge>
+                )
+              }[token.status],
+              <div>
+                <Text size="2" weight="strong">
+                  {token.name}
                 </Text>
-              )}
-            </div>,
+                {token.description && (
+                  <Text size="1" color="gray600">
+                    {token.description}
+                  </Text>
+                )}
+              </div>,
 
-            <TokenSecret token={token} />,
+              <TokenSecret token={token} />,
 
-            <Text size="1" color="gray700">
-              {!token.groups.length ? 'None' : token.groups.map(g => g.name).join(', ')}
-            </Text>,
+              formatGroupRestrictions(token),
 
-            <RenderDate date={token.createdAt} />,
+              <RenderDate date={token.createdAt} />,
 
-            <div
-              style={{
-                width: '100%',
-                display: 'flex',
-                justifyContent: 'flex-end'
-              }}
-            >
-              <Menu
-                items={[
-                  {
-                    id: 'update',
-                    label: 'Update',
-                    disabled: token.status != 'active'
-                  },
-                  {
-                    id: 'delete',
-                    label: 'Delete',
-                    disabled: token.status != 'active'
-                  }
-                ]}
-                onItemClick={item => {
-                  if (item == 'update')
-                    updateTokenModal({
-                      tokenId: token.id
-                    });
-                  if (item == 'delete')
-                    deleteTokenModal({
-                      tokenId: token.id
-                    });
+              <div
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  justifyContent: 'flex-end'
                 }}
               >
-                <Button
-                  size="1"
-                  variant="outline"
-                  iconLeft={<RiMoreLine />}
-                  title="Open token options"
-                />
-              </Menu>
-            </div>
-          ]
-        }))}
-      />
+                <Menu
+                  items={[
+                    {
+                      id: 'update',
+                      label: 'Update Details',
+                      disabled: token.status != 'active'
+                    },
+                    {
+                      id: 'restrictions',
+                      label: 'Edit Restrictions',
+                      disabled: token.status != 'active'
+                    },
+                    {
+                      id: 'delete',
+                      label: 'Delete',
+                      disabled: token.status != 'active'
+                    }
+                  ]}
+                  onItemClick={item => {
+                    if (item == 'update') {
+                      updateTokenModal({
+                        tokenId: token.id
+                      });
+                    }
+
+                    if (item == 'restrictions') {
+                      showManageRestrictionsModal({
+                        token
+                      });
+                    }
+
+                    if (item == 'delete') {
+                      deleteTokenModal({
+                        tokenId: token.id
+                      });
+                    }
+                  }}
+                >
+                  <Button
+                    size="1"
+                    variant="outline"
+                    iconLeft={<RiMoreLine />}
+                    title="Open token options"
+                  />
+                </Menu>
+              </div>
+            ]
+          }))}
+        />
 
       {tokens.data.items.length == 0 && (
         <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
@@ -270,7 +492,7 @@ export let TokenSecret = ({ token }: { token: DashboardInstanceMagicMcpTokensGet
       <Overlay style={isRevealed ? { opacity: 0, pointerEvents: 'none' } : {}}>
         <div>
           <Button
-            onClick={e => {
+            onClick={() => {
               setIsRevealed(true);
             }}
             variant="solid"
@@ -287,61 +509,49 @@ export let TokenSecret = ({ token }: { token: DashboardInstanceMagicMcpTokensGet
 export let createMagicMcpTokenModal = (opts?: { groupId?: string }) =>
   showModal(({ dialogProps, close }) => {
     let mutator = useCreateMagicMcpToken();
+    let { groups, items } = useRestrictionOptions();
     let instance = useCurrentInstance();
 
-    let form = useForm({
+    let form = useForm<
+      Pick<DashboardInstanceMagicMcpTokensCreateBody, 'name' | 'description'> & {
+        groupIds: string[];
+      }
+    >({
       initialValues: {
         name: '',
-        description: ''
+        description: '',
+        groupIds: opts?.groupId ? [opts.groupId] : []
       },
       onSubmit: async values => {
         let [res] = await mutator.mutate({
           name: values.name,
-          description: values.description,
+          description: values.description || undefined,
           instanceId: instance.data!.id,
-          groupIds: opts?.groupId ? [opts.groupId] : undefined
+          groupIds: values.groupIds.length > 0 ? values.groupIds : undefined
         });
 
-        if (res) {
-          close();
+        if (!res) return;
 
-          setTimeout(() => {
-            if (res && res.secret) {
-              showModal(({ dialogProps, close }) => {
-                return (
-                  <Dialog.Wrapper variant="padded" {...dialogProps}>
-                    <Dialog.Title>Magic MCP Token Created</Dialog.Title>
-                    <Dialog.Description>
-                      Your new Magic MCP token is ready to use. Please don't share it with
-                      anyone and keep it in a safe place, such as a password manager.
-                    </Dialog.Description>
+        close();
 
-                    <Copy label="Magic MCP Token" value={res.secret ?? '...'} />
-
-                    <Spacer height={15} />
-
-                    <Dialog.Actions>
-                      <Button onClick={close}>Close</Button>
-                    </Dialog.Actions>
-                  </Dialog.Wrapper>
-                );
-              });
-            }
-          }, 100);
-        }
+        setTimeout(() => {
+          if (res.secret) showCreatedTokenModal(res.secret);
+        }, 100);
       },
       schema: yup =>
-        yup.object().shape({
+        yup.object({
           name: yup.string().required('Name is required'),
-          description: yup.string()
-        }) as any
+          description: yup.string().optional(),
+          groupIds: yup.array().of(yup.string().required()).defined()
+        })
     });
 
     return (
       <Dialog.Wrapper {...dialogProps}>
         <Dialog.Title>Create Magic MCP Token</Dialog.Title>
         <Dialog.Description>
-          Create a new Magic MCP token to connect to Magic MCP servers.
+          Create a new Magic MCP token to connect to Magic MCP servers. Select one or more
+          groups to restrict the token, or leave all groups unchecked to keep it unrestricted.
         </Dialog.Description>
 
         <form onSubmit={form.handleSubmit}>
@@ -355,11 +565,30 @@ export let createMagicMcpTokenModal = (opts?: { groupId?: string }) =>
 
           <Spacer height={15} />
 
+          <Text size="2" weight="strong" style={{ display: 'block', marginBottom: 8 }}>
+            Group Restrictions
+          </Text>
+
+          {groups.isLoading ? (
+            <Text size="2" color="gray600">
+              Loading groups...
+            </Text>
+          ) : (
+            <GroupRestrictionsField
+              groups={items}
+              selectedGroupIds={form.values.groupIds}
+              setSelectedGroupIds={value => form.setFieldValue('groupIds', value)}
+              emptyText="No Magic MCP groups are available yet. You can create an unrestricted token now and add restrictions later."
+            />
+          )}
+
+          <Spacer height={15} />
+
           <Dialog.Actions>
             <Button size="1" variant="soft" onClick={close} type="button">
               Cancel
             </Button>
-            <Button size="1" type="submit">
+            <Button size="1" type="submit" loading={mutator.isPending}>
               Create
             </Button>
           </Dialog.Actions>

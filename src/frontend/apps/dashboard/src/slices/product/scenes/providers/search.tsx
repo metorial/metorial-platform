@@ -1,4 +1,5 @@
 import type {
+  DashboardInstanceProviderListingsListQuery,
   DashboardInstanceProvidersListOutput,
   ProviderListingsGetOutput
 } from '@metorial/dashboard-sdk';
@@ -219,15 +220,18 @@ export let ProviderSearch = ({
   onSelect,
   stickyTop,
   columns,
-  limit
+  limit,
+  filter
 }: {
   onSelect?: (provider: ProviderListingsGetOutput['provider']) => void;
   stickyTop?: number;
   columns?: number;
   limit?: number;
+  filter?: DashboardInstanceProviderListingsListQuery;
 }) => {
   let providers = useProviderListings({
     orderByRank: true,
+    ...filter,
     ...(limit ? { limit } : {})
   });
 
@@ -283,7 +287,9 @@ export let ProvidersWithDeploymentsSearch = ({
       : null
   );
 
-  return renderWithPagination(deployments)(deployments => {
+  return renderWithPagination(deployments, {
+    hidePaginationWhenUnavailable: true
+  })(deployments => {
     let providerLookup = new Map<
       string,
       {
