@@ -75,7 +75,7 @@ export let CustomServerUpdateForm = (p: { customServer?: CustomProvidersGetOutpu
           let currentName = customServer.data.name || undefined;
           let currentDescription = customServer.data.description || undefined;
           let nextRemoteUrl = values.remoteUrl?.trim();
-          let nextRemoteProtocol =
+          let nextRemoteProtocol: 'sse' | 'streamable_http' =
             values.remoteProtocol == 'sse' ? 'sse' : 'streamable_http';
           let didUpdateDetails =
             nextName !== currentName || nextDescription !== currentDescription;

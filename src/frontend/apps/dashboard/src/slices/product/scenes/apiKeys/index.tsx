@@ -39,13 +39,13 @@ type ApiKeyType = ApiKeysGetOutput['type'];
 type ApiKeyFilterType = ApiKeysFilter['type'];
 type CreateApiKeyFormValues = {
   name: string;
-  description: string;
+  description: string | undefined;
   expiresAt: Date | undefined;
   type: ApiKeyType;
 };
 type UpdateApiKeyFormValues = {
   name: string | undefined;
-  description: string;
+  description: string | undefined;
   expiresAt: Date | undefined;
   type: ApiKeyType | undefined;
 };
