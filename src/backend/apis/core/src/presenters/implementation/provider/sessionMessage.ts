@@ -31,13 +31,18 @@ export let v1SubspaceSessionMessagePresenter = Presenter.create(sessionMessageTy
       type: sessionMessage.transport.type,
       mcp: sessionMessage.transport.mcp
         ? {
-            object: 'session.message.transport#mcp' as const,
+            object: 'session.message.transport.mcp' as const,
             id: sessionMessage.transport.mcp.id,
             protocol_version: sessionMessage.transport.mcp.protocolVersion,
             transport: sessionMessage.transport.mcp.transport
           }
         : null,
-      tool_call: sessionMessage.transport.toolCall ?? null
+      tool_call: sessionMessage.transport.toolCall?.id
+        ? {
+            object: 'session.message.transport.tool_call' as const,
+            id: sessionMessage.transport.toolCall.id
+          }
+        : null
     },
 
     input: sessionMessage.input as Record<string, any> | null,
@@ -154,7 +159,7 @@ export let v1SubspaceSessionMessagePresenter = Presenter.create(sessionMessageTy
           }),
           mcp: v.nullable(
             v.object({
-              object: v.literal('session.message.transport#mcp'),
+              object: v.literal('session.message.transport.mcp'),
               id: v.union([v.string(), v.number()], {
                 name: 'id',
                 description: 'MCP message ID'
@@ -172,13 +177,11 @@ export let v1SubspaceSessionMessagePresenter = Presenter.create(sessionMessageTy
           ),
           tool_call: v.nullable(
             v.object({
-              object: v.literal('session.message.transport#tool_call'),
-              id: v.nullable(
-                v.string({
-                  name: 'id',
-                  description: 'Tool call ID'
-                })
-              )
+              object: v.literal('session.message.transport.tool_call'),
+              id: v.string({
+                name: 'id',
+                description: 'Tool call ID'
+              })
             })
           )
         },
