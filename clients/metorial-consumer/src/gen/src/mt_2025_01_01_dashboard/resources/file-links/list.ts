@@ -1,0 +1,59 @@
+import { mtMap } from '@metorial/util-resource-mapper';
+
+export type FileLinksListOutput = {
+  items: {
+    object: 'file.file_link';
+    id: string;
+    fileId: string;
+    url: string;
+    createdAt: Date;
+    expiresAt: Date | null;
+  }[];
+  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+};
+
+export let mapFileLinksListOutput = mtMap.object<FileLinksListOutput>({
+  items: mtMap.objectField(
+    'items',
+    mtMap.array(
+      mtMap.object({
+        object: mtMap.objectField('object', mtMap.passthrough()),
+        id: mtMap.objectField('id', mtMap.passthrough()),
+        fileId: mtMap.objectField('file_id', mtMap.passthrough()),
+        url: mtMap.objectField('url', mtMap.passthrough()),
+        createdAt: mtMap.objectField('created_at', mtMap.date()),
+        expiresAt: mtMap.objectField('expires_at', mtMap.date())
+      })
+    )
+  ),
+  pagination: mtMap.objectField(
+    'pagination',
+    mtMap.object({
+      hasMoreBefore: mtMap.objectField('has_more_before', mtMap.passthrough()),
+      hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
+    })
+  )
+});
+
+export type FileLinksListQuery = {
+  limit?: number | undefined;
+  after?: string | undefined;
+  before?: string | undefined;
+  cursor?: string | undefined;
+  order?: 'asc' | 'desc' | undefined;
+} & { fileId?: string | undefined };
+
+export let mapFileLinksListQuery = mtMap.union([
+  mtMap.unionOption(
+    'object',
+    mtMap.object({
+      limit: mtMap.objectField('limit', mtMap.passthrough()),
+      after: mtMap.objectField('after', mtMap.passthrough()),
+      before: mtMap.objectField('before', mtMap.passthrough()),
+      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
+      order: mtMap.objectField('order', mtMap.passthrough()),
+      fileId: mtMap.objectField('file_id', mtMap.passthrough())
+    })
+  )
+]);
+
