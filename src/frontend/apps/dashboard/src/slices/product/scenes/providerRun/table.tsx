@@ -64,10 +64,7 @@ export let ServerRunsTable = (filter?: {
     () => [...new Set((runs.data?.items ?? []).map(run => run.providerId).filter(Boolean))],
     [runs.data?.items]
   );
-  let providers = useProviders(
-    instance.data?.id,
-    providerIds.length > 0 ? { id: providerIds } : null
-  );
+  let providers = useProviders(instance.data?.id, { id: providerIds });
 
   let providerNameMap = useMemo(() => {
     let map = new Map<string, string>();
