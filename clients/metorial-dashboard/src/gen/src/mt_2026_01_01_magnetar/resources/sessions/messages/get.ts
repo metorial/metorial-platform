@@ -20,14 +20,14 @@ export type SessionsMessagesGetOutput = {
     object: 'session.message.transport';
     type: 'mcp' | 'tool_call' | 'metorial_protocol' | 'system';
     mcp: {
-      object: 'session.message.transport#mcp';
+      object: 'session.message.transport.mcp';
       id: string | number;
       protocolVersion: string;
       transport: string;
     } | null;
     toolCall: {
-      object: 'session.message.transport#tool_call';
-      id: string | null;
+      object: 'session.message.transport.tool_call';
+      id: string;
     } | null;
   };
   input: Record<string, any> | null;
