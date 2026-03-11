@@ -1,3 +1,5 @@
+import { createExecutionContext, provideExecutionContext } from '@lowerdeck/execution-context';
+import { useRequestContext } from '@lowerdeck/hono';
 import { extractToken } from '@metorial/bearer';
 import { db, ID, Prisma } from '@metorial/db';
 import {
@@ -7,9 +9,12 @@ import {
   ServiceError,
   unauthorizedError
 } from '@lowerdeck/error';
+import type { Context } from 'hono';
+import { generateSnowflakeId } from '@metorial/id';
 import { AuthInfo } from '@metorial/module-access';
 import { magicMcpTokenService } from '@metorial/module-magic';
 import {
+  proxyMcpRequestToSubspace,
   subspaceSessionService,
   subspaceSessionTemplateProviderService
 } from '@metorial/module-subspace';
@@ -255,4 +260,37 @@ export let resolveMagicMcpSubspaceSession = async (d: {
     magicMcpServer,
     subspaceSessionMapping
   };
+};
+
+export let handleMagicMcpRequest = async (d: {
+  c: Context;
+  magicMcpServerIdOrAlias: string;
+  authenticate: Authenticator<AuthInfo>;
+}) => {
+  let context = useRequestContext(d.c);
+  let url = new URL(d.c.req.url);
+  let request = d.c.req.raw;
+
+  return provideExecutionContext(
+    createExecutionContext({
+      userAgent: context.ua ?? 'unknown',
+      ip: context.ip,
+      contextId: generateSnowflakeId('mreq'),
+      type: 'request'
+    }),
+    async () => {
+      let sessionInfo = await resolveMagicMcpSubspaceSession({
+        magicMcpServerIdOrAlias: d.magicMcpServerIdOrAlias,
+        request,
+        url,
+        authenticate: d.authenticate
+      });
+
+      return await proxyMcpRequestToSubspace(
+        d.c,
+        sessionInfo.magicMcpServer.instance,
+        sessionInfo.subspaceSessionMapping.subspaceSessionId
+      );
+    }
+  );
 };
