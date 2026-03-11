@@ -90,10 +90,53 @@ export let ProviderConfigForm = (
       sourceMode: 'raw' as 'raw' | 'vault',
       providerConfigVaultId: ''
     },
-    onSubmit: async () => {},
+    onSubmit: async values => {
+      if (props.type !== 'create' || !instanceId || !providerId) {
+        return;
+      }
+
+      if (createFromVault && !values.providerConfigVaultId) {
+        form.setFieldTouched('providerConfigVaultId', true, false);
+        form.setFieldError('providerConfigVaultId', 'Config vault is required');
+        return;
+      }
+
+      if (!createFromVault && !schemaCapabilities.hasSchemaFields) {
+        return;
+      }
+
+      let [result] = await createMutation.mutate(
+        createFromVault
+          ? {
+              instanceId,
+              name: values.name.trim(),
+              description: values.description || undefined,
+              providerId,
+              ...(props.providerDeploymentId
+                ? { providerDeploymentId: props.providerDeploymentId }
+                : {}),
+              providerConfigVaultId: values.providerConfigVaultId
+            }
+          : {
+              instanceId,
+              name: values.name.trim(),
+              description: values.description || undefined,
+              providerId,
+              ...(props.providerDeploymentId
+                ? { providerDeploymentId: props.providerDeploymentId }
+                : {}),
+              value: configData
+            }
+      );
+
+      if (!result) return;
+
+      props.onCreate?.(result);
+      props.close?.();
+    },
     schema: yup =>
       yup.object({
-        name: yup.string().required('Name is required'),
+        name: yup.string().trim().required('Name is required'),
         description: yup.string().defined(),
         sourceMode: yup.mixed<'raw' | 'vault'>().oneOf(['raw', 'vault']).required(),
         providerConfigVaultId: yup.string().defined()
@@ -145,61 +188,6 @@ export let ProviderConfigForm = (
     }
   }, [canCreateFromVault, form, shouldUseVaultOnly]);
 
-  let handleSubmit = async () => {
-    let name = form.values.name.trim();
-
-    if (!name) {
-      form.setFieldTouched('name', true);
-      form.setFieldError('name', 'Name is required');
-      return;
-    }
-
-    form.setFieldError('name', undefined);
-
-    if (props.type !== 'create' || !instanceId || !providerId) {
-      return;
-    }
-
-    if (createFromVault && !form.values.providerConfigVaultId) {
-      form.setFieldTouched('providerConfigVaultId', true, false);
-      form.setFieldError('providerConfigVaultId', 'Config vault is required');
-      return;
-    }
-
-    if (!createFromVault && !schemaCapabilities.hasSchemaFields) {
-      return;
-    }
-
-    let [result] = await createMutation.mutate(
-      createFromVault
-        ? {
-            instanceId,
-            name,
-            description: form.values.description || undefined,
-            providerId,
-            ...(props.providerDeploymentId
-              ? { providerDeploymentId: props.providerDeploymentId }
-              : {}),
-            providerConfigVaultId: form.values.providerConfigVaultId
-          }
-        : {
-            instanceId,
-            name,
-            description: form.values.description || undefined,
-            providerId,
-            ...(props.providerDeploymentId
-              ? { providerDeploymentId: props.providerDeploymentId }
-              : {}),
-            value: configData
-          }
-    );
-
-    if (!result) return;
-
-    props.onCreate?.(result);
-    props.close?.();
-  };
-
   if (configSchema.isLoading || vaults.isLoading) {
     return <CenteredSpinner />;
   }
@@ -221,18 +209,14 @@ export let ProviderConfigForm = (
       )}
 
       {!showEmptyState ? (
-        <form
-          onSubmit={e => {
-            e.preventDefault();
-            handleSubmit();
-          }}
-        >
+        <form onSubmit={form.handleSubmit}>
           <Input label="Name" required {...form.getFieldProps('name')} />
           <form.RenderError field="name" />
 
           <Spacer size={10} />
 
           <Input label="Description" {...form.getFieldProps('description')} />
+          <form.RenderError field="description" />
 
           <Spacer size={10} />
 
@@ -288,8 +272,7 @@ export let ProviderConfigForm = (
               Cancel
             </Button>
             <Button
-              type="button"
-              onClick={handleSubmit}
+              type="submit"
               loading={createMutation.isPending}
               disabled={!createFromVault && !schemaCapabilities.hasSchemaFields}
             >

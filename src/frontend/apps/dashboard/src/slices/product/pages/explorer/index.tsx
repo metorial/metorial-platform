@@ -362,10 +362,6 @@ export let ExplorerPage = () => {
       })
   });
 
-  let handleCreateDeployment = async () => {
-    await createDeploymentForm.submitForm();
-  };
-
   let activeProviderId =
     selectedProvider?.id ?? providerIdParam ?? selectedDeployment.data?.providerId ?? null;
   let activeProvider = useProvider(instance.data?.id, activeProviderId ?? undefined);
@@ -752,12 +748,7 @@ export let ExplorerPage = () => {
                       />
 
                       {providerTab == 'create' && (
-                        <CreateForm
-                          onSubmit={e => {
-                            e.preventDefault();
-                            void handleCreateDeployment();
-                          }}
-                        >
+                        <CreateForm onSubmit={createDeploymentForm.handleSubmit}>
                           <Input
                             label="Deployment Name"
                             {...createDeploymentForm.getFieldProps('deploymentName')}
@@ -792,11 +783,10 @@ export let ExplorerPage = () => {
                               Back
                             </Button>
                             <Button
-                              type="button"
+                              type="submit"
                               size="2"
                               loading={createMutation.isPending}
                               disabled={!createDeploymentForm.values.deploymentName.trim()}
-                              onClick={handleCreateDeployment}
                             >
                               Create Deployment
                             </Button>

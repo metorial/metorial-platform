@@ -20,30 +20,18 @@ export let ProviderAuthConfigSettingsPage = () => {
       description: authConfig.data?.description ?? ''
     },
     updateInitialValues: true,
-    onSubmit: async () => {},
+    onSubmit: async values => {
+      await updateMutator.mutate({
+        name: values.name.trim(),
+        description: values.description || undefined
+      });
+    },
     schema: yup =>
       yup.object({
-        name: yup.string().required('Name is required'),
+        name: yup.string().trim().required('Name is required'),
         description: yup.string().defined()
       })
   });
-
-  let handleSubmit = async () => {
-    let name = form.values.name.trim();
-
-    if (!name) {
-      form.setFieldTouched('name', true);
-      form.setFieldError('name', 'Name is required');
-      return;
-    }
-
-    form.setFieldError('name', undefined);
-
-    await updateMutator.mutate({
-      name,
-      description: form.values.description || undefined
-    });
-  };
 
   return renderWithLoader({ authConfig })(({ authConfig }) => (
     <>
@@ -51,23 +39,24 @@ export let ProviderAuthConfigSettingsPage = () => {
         title="Auth Config Settings"
         description="Modify the settings of this auth config."
       >
-        <form
-          onSubmit={e => {
-            e.preventDefault();
-            handleSubmit();
-          }}
-        >
+        <form onSubmit={form.handleSubmit}>
           <Input label="Name" {...form.getFieldProps('name')} />
           <form.RenderError field="name" />
 
           <Spacer size={15} />
 
           <Input label="Description" {...form.getFieldProps('description')} />
+          <form.RenderError field="description" />
 
           <Spacer size={15} />
 
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <Button size="2" type="button" onClick={handleSubmit} loading={updateMutator.isPending}>
+            <Button
+              size="2"
+              type="submit"
+              loading={updateMutator.isLoading}
+              success={updateMutator.isSuccess}
+            >
               Save
             </Button>
           </div>

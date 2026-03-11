@@ -1,20 +1,11 @@
-import { useForm } from '@metorial/data-hooks';
 import { Input, Spacer } from '@metorial/ui';
+import { useState } from 'react';
 import { useDebounced } from '../../../../../hooks/useDebounced';
 import { ProvidersGrid } from '../../../scenes/providers/grid_';
 
 export let ProvidersPage = () => {
-  let form = useForm({
-    initialValues: {
-      search: ''
-    },
-    onSubmit: async () => {},
-    schema: yup =>
-      yup.object({
-        search: yup.string().defined()
-      })
-  });
-  let searchDebounced = useDebounced(form.values.search, 500);
+  let [search, setSearch] = useState('');
+  let searchDebounced = useDebounced(search, 500);
 
   return (
     <>
@@ -22,7 +13,8 @@ export let ProvidersPage = () => {
         label="Search"
         hideLabel
         placeholder="Search for providers..."
-        {...form.getFieldProps('search')}
+        value={search}
+        onInput={setSearch}
       />
 
       <Spacer size={15} />

@@ -3,7 +3,7 @@ import type {
   DashboardInstanceProvidersListOutput,
   ProviderListingsGetOutput
 } from '@metorial/dashboard-sdk';
-import { renderWithPagination, useForm } from '@metorial/data-hooks';
+import { renderWithPagination } from '@metorial/data-hooks';
 import { useProviderDeployments, useProviderListings } from '@metorial/state';
 import {
   Avatar,
@@ -129,17 +129,8 @@ let ProviderSearchGrid = ({
   columns?: number;
   selectionMode?: 'default' | 'authCredentialsCreate';
 }) => {
-  let form = useForm({
-    initialValues: {
-      search: ''
-    },
-    onSubmit: async () => {},
-    schema: yup =>
-      yup.object({
-        search: yup.string().defined()
-      })
-  });
-  let searchDebounced = useDebounced(form.values.search, 300);
+  let [search, setSearch] = useState('');
+  let searchDebounced = useDebounced(search, 300);
 
   let filteredItems = items.filter(item => {
     if (!searchDebounced) return true;
@@ -158,8 +149,8 @@ let ProviderSearchGrid = ({
           label="Search"
           hideLabel
           placeholder={placeholder}
-          value={form.values.search}
-          onInput={value => form.setFieldValue('search', value)}
+          value={search}
+          onInput={setSearch}
         />
       </div>
 

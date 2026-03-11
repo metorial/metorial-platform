@@ -12,47 +12,26 @@ export let ProjectSettingsPage = () => {
       name: project.data?.name ?? ''
     },
     updateInitialValues: true,
-    onSubmit: async () => {},
+    onSubmit: async values => {
+      await update.mutate({ name: values.name.trim() });
+    },
     schema: yup =>
       yup.object().shape({
-        name: yup.string().required('Name is required')
+        name: yup.string().trim().required('Name is required')
       })
   });
-
-  let handleSubmit = async () => {
-    let name = form.values.name.trim();
-
-    if (!name) {
-      form.setFieldTouched('name', true);
-      form.setFieldError('name', 'Name is required');
-      return;
-    }
-
-    form.setFieldError('name', undefined);
-    await update.mutate({ name });
-  };
 
   return (
     <ContentLayout variant="medium">
       <PageHeader title="Project Settings" description="Update your project settings." />
 
-      <form
-        onSubmit={e => {
-          e.preventDefault();
-          handleSubmit();
-        }}
-      >
+      <form onSubmit={form.handleSubmit}>
         <Input label="Name" {...form.getFieldProps('name')} />
         <form.RenderError field="name" />
 
         <Spacer size={15} />
 
-        <Button
-          type="button"
-          onClick={handleSubmit}
-          loading={update.isLoading}
-          success={update.isSuccess}
-        >
+        <Button type="submit" loading={update.isLoading} success={update.isSuccess}>
           Save
         </Button>
         <update.RenderError />

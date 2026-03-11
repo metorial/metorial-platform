@@ -69,7 +69,14 @@ export let ProviderSetupSessionEmbed = ({
     initialValues: {
       selectedMethodId: initialMethodId ?? ''
     },
-    onSubmit: async () => {},
+    onSubmit: async values => {
+      methodForm.setFieldTouched('selectedMethodId', true, false);
+      await methodForm.validateField('selectedMethodId');
+
+      if (!values.selectedMethodId) return;
+
+      setStep(includeMethodStep ? 1 : 0);
+    },
     schema: yup =>
       yup.object({
         selectedMethodId: yup.string().required('Authentication method is required')
@@ -82,7 +89,24 @@ export let ProviderSetupSessionEmbed = ({
       newCredClientSecret: ''
     },
     schemaDependencies: [isCreatingCredentials],
-    onSubmit: async () => {},
+    onSubmit: async () => {
+      let providerAuthCredentialsId =
+        selectedCredentialsIdRef.current ?? effectiveSelectedCredentialsId;
+
+      if (isCreatingCredentials) {
+        providerAuthCredentialsId = (await handleCreateCredentials()) ?? undefined;
+      }
+
+      if (requiresManualOAuthCredentials && !providerAuthCredentialsId) {
+        setError('Select an existing credential or add your own to continue.');
+        return;
+      }
+
+      let session = await handleStartSetup(providerAuthCredentialsId);
+      if (session) {
+        setStep(includeMethodStep ? 2 : 1);
+      }
+    },
     schema: yup =>
       yup.object({
         newCredName: isCreatingCredentials
@@ -502,7 +526,7 @@ export let ProviderSetupSessionEmbed = ({
       title: 'Authentication',
       subtitle: 'Select auth method',
       render: () => (
-        <>
+        <form onSubmit={methodForm.handleSubmit}>
           {!lockedVersionId && (
             <>
               <Text size="1" color="gray600">
@@ -545,43 +569,19 @@ export let ProviderSetupSessionEmbed = ({
                 {cancelLabel}
               </Button>
             )}
-            <Button
-              type="button"
-              onClick={() => setStep(includeMethodStep ? 1 : 0)}
-              disabled={!selectedMethodId}
-            >
+            <Button type="submit" disabled={!selectedMethodId}>
               Continue
             </Button>
           </Flex>
-        </>
+        </form>
       )
-    };
-
-    let connectStepIndex = includeMethodStep ? 2 : 1;
-    let handleCredentialsContinue = async () => {
-      let providerAuthCredentialsId =
-        selectedCredentialsIdRef.current ?? effectiveSelectedCredentialsId;
-
-      if (isCreatingCredentials) {
-        providerAuthCredentialsId = (await handleCreateCredentials()) ?? undefined;
-      }
-
-      if (requiresManualOAuthCredentials && !providerAuthCredentialsId) {
-        setError('Select an existing credential or add your own to continue.');
-        return;
-      }
-
-      let session = await handleStartSetup(providerAuthCredentialsId);
-      if (session) {
-        setStep(connectStepIndex);
-      }
     };
 
     let credentialsStep = {
       title: 'Select',
       subtitle: 'Select existing or add credentials',
       render: () => (
-        <>
+        <form onSubmit={credentialsForm.handleSubmit}>
           <Text size="2" weight="strong">
             Select {oauthMethodName} Credentials
           </Text>
@@ -698,8 +698,7 @@ export let ProviderSetupSessionEmbed = ({
               </Button>
             )}
             <Button
-              type="button"
-              onClick={handleCredentialsContinue}
+              type="submit"
               loading={createCredentials.isPending}
               disabled={
                 (isCreatingCredentials &&
@@ -714,7 +713,7 @@ export let ProviderSetupSessionEmbed = ({
               Continue
             </Button>
           </Flex>
-        </>
+        </form>
       )
     };
 

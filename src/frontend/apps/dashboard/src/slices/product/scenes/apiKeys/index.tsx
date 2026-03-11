@@ -178,7 +178,7 @@ export let ApiKeysScene = ({
         },
         schema: yup =>
           yup.object({
-            name: yup.string().required('Name is required'),
+            name: yup.string().trim().required('Name is required'),
             description: yup.string().optional(),
             expiresAt: yup
               .date()
@@ -195,21 +195,12 @@ export let ApiKeysScene = ({
           })
       });
 
-      let handleSubmit = async () => {
-        await form.submitForm();
-      };
-
       return (
         <Dialog.Wrapper {...dialogProps}>
           <Dialog.Title>Create {name}</Dialog.Title>
           <Dialog.Description>Create a new {name} for the application.</Dialog.Description>
 
-          <form
-            onSubmit={e => {
-              e.preventDefault();
-              void handleSubmit();
-            }}
-          >
+          <form onSubmit={form.handleSubmit}>
             <Input label="Name" {...form.getFieldProps('name')} />
             <form.RenderError field="name" />
 
@@ -255,7 +246,7 @@ export let ApiKeysScene = ({
               <Button size="1" variant="soft" onClick={close} type="button">
                 Cancel
               </Button>
-              <Button size="1" type="button" onClick={handleSubmit}>
+              <Button size="1" type="submit">
                 Create
               </Button>
             </Dialog.Actions>
@@ -287,7 +278,7 @@ export let ApiKeysScene = ({
         },
         schema: yup =>
           yup.object({
-            name: yup.string().required('Name is required'),
+            name: yup.string().trim().required('Name is required'),
             description: yup.string().optional(),
             expiresAt: yup
               .date()
@@ -304,21 +295,12 @@ export let ApiKeysScene = ({
           })
       });
 
-      let handleSubmit = async () => {
-        await form.submitForm();
-      };
-
       return (
         <Dialog.Wrapper {...dialogProps}>
           <Dialog.Title>Update {name}</Dialog.Title>
           <Dialog.Description>Update the {name} details.</Dialog.Description>
 
-          <form
-            onSubmit={e => {
-              e.preventDefault();
-              void handleSubmit();
-            }}
-          >
+          <form onSubmit={form.handleSubmit}>
             <Input label="Name" {...form.getFieldProps('name')} />
             <form.RenderError field="name" />
 
@@ -358,7 +340,7 @@ export let ApiKeysScene = ({
               <Button size="1" variant="soft" onClick={close} type="button">
                 Cancel
               </Button>
-              <Button size="1" type="button" onClick={handleSubmit}>
+              <Button size="1" type="submit">
                 Update
               </Button>
             </Dialog.Actions>
