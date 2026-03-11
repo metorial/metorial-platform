@@ -5,15 +5,17 @@ import {
   useCurrentInstance,
   useProvider,
   useProviderDeployments,
-  useProviderListingByProviderId,
-  useRevealedApiKey
+  useProviderListingByProviderId
 } from '@metorial/state';
 import { Button, Spacer, Text } from '@metorial/ui';
 import { ID, SideBox } from '@metorial/ui-product';
 import dedent from 'dedent';
-import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { useApiKeysWithAutoInit } from '../../../scenes/apiKeys/useApiKeysWithAutoInit';
+import {
+  createJavascriptSdkInstallInstruction,
+  createPythonSdkInstallInstruction
+} from '../../../lib/instructionPresets';
+import { useResolvedInstanceApiKeySecret } from '../../../scenes/apiKeys/useResolvedInstanceApiKeySecret';
 import { showProviderDeploymentFormModal } from '../../../scenes/providerDeployments/modal';
 import { useProviderVersionContext } from './_layout';
 import { InstructionItem, Instructions } from './components/instructions';
@@ -30,34 +32,8 @@ export let ProviderOverviewPage = () => {
 
   let listing = useProviderListingByProviderId(instance.data?.id, providerId);
 
-  let apiKeys = useApiKeysWithAutoInit(
-    instance.data
-      ? {
-          type: 'instance_access_token',
-          instanceId: instance.data.id
-        }
-      : undefined
-  );
-
-  let secretApiKey = apiKeys.data?.find(
-    (a: {
-      type: string;
-      status: string;
-      revealInfo?: { forever?: boolean; until?: Date } | null;
-    }) =>
-      a.type === 'instance_access_token_secret' &&
-      ((a.status == 'active' && a.revealInfo?.forever) ||
-        (a.revealInfo?.until && a.revealInfo?.until > new Date()))
-  );
-
-  let key = useRevealedApiKey({ apiKeyId: secretApiKey?.id });
-  let [apiKeySecret, setApiKeySecret] = useState<string | undefined>(
-    () => key.value ?? secretApiKey?.secret ?? undefined
-  );
-  useEffect(() => {
-    if (key.value) setApiKeySecret(key.value);
-  }, [key.value]);
-  if (key.value) apiKeySecret = key.value;
+  let { apiKeys, apiKeySecret, revealedApiKey, setApiKeySecret } =
+    useResolvedInstanceApiKeySecret(instance.data?.id);
 
   let deployments = useProviderDeployments(
     instance.data?.id && providerId ? instance.data.id : null,
@@ -145,40 +121,7 @@ export let ProviderOverviewPage = () => {
   };
 
   let getJSStartInstructions = (d?: { additionalPackages?: string[] }): InstructionItem[] => [
-    {
-      title: 'Install the Metorial SDK',
-      description: 'Get started by installing the Metorial SDK in your project.',
-      variants: [
-        {
-          label: 'npm',
-          item: {
-            type: 'code' as const,
-            code: `npm install --save ${['metorial', ...(d?.additionalPackages ?? [])].join(' ')}`
-          }
-        },
-        {
-          label: 'yarn',
-          item: {
-            type: 'code' as const,
-            code: `yarn add ${['metorial', ...(d?.additionalPackages ?? [])].join(' ')}`
-          }
-        },
-        {
-          label: 'pnpm',
-          item: {
-            type: 'code' as const,
-            code: `pnpm install --save ${['metorial', ...(d?.additionalPackages ?? [])].join(' ')}`
-          }
-        },
-        {
-          label: 'bun',
-          item: {
-            type: 'code' as const,
-            code: `bun install ${['metorial', ...(d?.additionalPackages ?? [])].join(' ')}`
-          }
-        }
-      ]
-    },
+    createJavascriptSdkInstallInstruction(d?.additionalPackages),
     {
       title: 'Instantiate the Metorial SDK',
       description: 'Set up the Metorial SDK with your API key.',
@@ -206,40 +149,7 @@ export let ProviderOverviewPage = () => {
   let getPythonStartInstructions = (d?: {
     additionalPackages?: string[];
   }): InstructionItem[] => [
-    {
-      title: 'Install the Metorial SDK',
-      description: 'Get started by installing the Metorial SDK in your project.',
-      variants: [
-        {
-          label: 'pip',
-          item: {
-            type: 'code' as const,
-            code: `pip install ${['metorial', ...(d?.additionalPackages ?? [])].join(' ')}`
-          }
-        },
-        {
-          label: 'pipx',
-          item: {
-            type: 'code' as const,
-            code: `pipx install ${['metorial', ...(d?.additionalPackages ?? [])].join(' ')}`
-          }
-        },
-        {
-          label: 'conda',
-          item: {
-            type: 'code' as const,
-            code: `conda install -c conda-forge ${['metorial', ...(d?.additionalPackages ?? [])].join(' ')}`
-          }
-        },
-        {
-          label: 'uv',
-          item: {
-            type: 'code' as const,
-            code: `uv add ${['metorial', ...(d?.additionalPackages ?? [])].join(' ')}`
-          }
-        }
-      ]
-    },
+    createPythonSdkInstallInstruction(d?.additionalPackages),
     {
       title: 'Instantiate the Metorial SDK',
       description: 'Set up the Metorial SDK with your API key.',
@@ -265,7 +175,7 @@ export let ProviderOverviewPage = () => {
   ];
 
   let getCodeViewer = (opts: { repo: string; path: string; initialFile?: string }) => {
-    if (apiKeys.isLoading || deployments.isLoading || key.isLoading) return undefined;
+    if (apiKeys.isLoading || deployments.isLoading || revealedApiKey.isLoading) return undefined;
 
     return {
       owner: 'metorial',

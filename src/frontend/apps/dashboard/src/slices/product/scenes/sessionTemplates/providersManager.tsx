@@ -6,6 +6,7 @@ import { renderWithLoader, useForm } from '@metorial/data-hooks';
 import {
   useCreateProviderDeployment,
   useCreateSessionTemplateProvider,
+  useDeleteSessionTemplateProvider,
   useInstanceProviderAuthConfigs,
   useProviderAuthConfigs,
   useProvider,
@@ -13,8 +14,7 @@ import {
   useProviderDeployments,
   useProviderListings,
   useProviderTools,
-  useSessionTemplateProviders,
-  withAuth
+  useSessionTemplateProviders
 } from '@metorial/state';
 import {
   Avatar,
@@ -591,6 +591,7 @@ let showRemoveProviderModal = (p: {
 }) =>
   showModal(({ dialogProps, close }) => {
     let [loading, setLoading] = useState(false);
+    let deleteMutation = useDeleteSessionTemplateProvider();
 
     return (
       <Dialog.Wrapper {...dialogProps} width={450}>
@@ -611,15 +612,19 @@ let showRemoveProviderModal = (p: {
             loading={loading}
             onClick={async () => {
               setLoading(true);
-              try {
-                await withAuth(sdk =>
-                  sdk.sessionTemplates.providers.delete(p.instanceId, p.provider.id)
-                );
+              let [, err] = await deleteMutation.mutate({
+                instanceId: p.instanceId,
+                sessionTemplateId: p.sessionTemplateId,
+                sessionTemplateProviderId: p.provider.id
+              });
+
+              if (!err) {
                 p.onComplete();
                 close();
-              } catch {
-                setLoading(false);
+                return;
               }
+
+              setLoading(false);
             }}
           >
             Remove

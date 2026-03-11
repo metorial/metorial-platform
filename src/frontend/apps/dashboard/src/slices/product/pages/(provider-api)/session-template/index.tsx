@@ -1,11 +1,14 @@
 import { renderWithLoader } from '@metorial/data-hooks';
-import { useCurrentInstance, useRevealedApiKey, useSessionTemplate } from '@metorial/state';
+import { useCurrentInstance, useSessionTemplate } from '@metorial/state';
 import { Attributes, RenderDate, Spacer, Text } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import dedent from 'dedent';
-import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { useApiKeysWithAutoInit } from '../../../scenes/apiKeys/useApiKeysWithAutoInit';
+import {
+  createJavascriptSdkInstallInstruction,
+  createPythonSdkInstallInstruction
+} from '../../../lib/instructionPresets';
+import { useResolvedInstanceApiKeySecret } from '../../../scenes/apiKeys/useResolvedInstanceApiKeySecret';
 import { InstructionItem, Instructions } from '../provider/components/instructions';
 import { KeySelector } from '../provider/components/keySelector';
 
@@ -14,35 +17,7 @@ export let SessionTemplateOverviewPage = () => {
 
   let { sessionTemplateId } = useParams();
   let template = useSessionTemplate(instance.data?.id, sessionTemplateId);
-
-  let apiKeys = useApiKeysWithAutoInit(
-    instance.data
-      ? {
-          type: 'instance_access_token',
-          instanceId: instance.data.id
-        }
-      : undefined
-  );
-
-  let secretApiKey = apiKeys.data?.find(
-    (a: {
-      type: string;
-      status: string;
-      revealInfo?: { forever?: boolean; until?: Date } | null;
-    }) =>
-      a.type === 'instance_access_token_secret' &&
-      ((a.status == 'active' && a.revealInfo?.forever) ||
-        (a.revealInfo?.until && a.revealInfo?.until > new Date()))
-  );
-
-  let key = useRevealedApiKey({ apiKeyId: secretApiKey?.id });
-  let [apiKeySecret, setApiKeySecret] = useState<string | undefined>(
-    () => key.value ?? secretApiKey?.secret ?? undefined
-  );
-  useEffect(() => {
-    if (key.value) setApiKeySecret(key.value);
-  }, [key.value]);
-  if (key.value) apiKeySecret = key.value;
+  let { apiKeySecret, setApiKeySecret } = useResolvedInstanceApiKeySecret(instance.data?.id);
 
   return renderWithLoader({ template })(({ template }) => {
     let templateId = template.data.id;
@@ -56,43 +31,8 @@ export let SessionTemplateOverviewPage = () => {
       )
     };
 
-    let jsInstallStep = (additionalPackages?: string[]): InstructionItem => ({
-      title: 'Install the Metorial SDK',
-      description: 'Get started by installing the Metorial SDK in your project.',
-      variants: [
-        {
-          label: 'npm',
-          item: {
-            type: 'code' as const,
-            code: `npm install --save ${['metorial', ...(additionalPackages ?? [])].join(' ')}`
-          }
-        },
-        {
-          label: 'yarn',
-          item: {
-            type: 'code' as const,
-            code: `yarn add ${['metorial', ...(additionalPackages ?? [])].join(' ')}`
-          }
-        },
-        {
-          label: 'pnpm',
-          item: {
-            type: 'code' as const,
-            code: `pnpm install --save ${['metorial', ...(additionalPackages ?? [])].join(' ')}`
-          }
-        },
-        {
-          label: 'bun',
-          item: {
-            type: 'code' as const,
-            code: `bun install ${['metorial', ...(additionalPackages ?? [])].join(' ')}`
-          }
-        }
-      ]
-    });
-
     let getJSInstructions = (d?: { additionalPackages?: string[] }): InstructionItem[] => [
-      jsInstallStep(d?.additionalPackages),
+      createJavascriptSdkInstallInstruction(d?.additionalPackages),
       {
         title: 'Create a session from this template',
         description:
@@ -118,31 +58,7 @@ export let SessionTemplateOverviewPage = () => {
     ];
 
     let getPythonInstructions = (): InstructionItem[] => [
-      {
-        title: 'Install the Metorial SDK',
-        description: 'Get started by installing the Metorial SDK in your project.',
-        variants: [
-          {
-            label: 'pip',
-            item: { type: 'code' as const, code: 'pip install metorial' }
-          },
-          {
-            label: 'pipx',
-            item: { type: 'code' as const, code: 'pipx install metorial' }
-          },
-          {
-            label: 'conda',
-            item: {
-              type: 'code' as const,
-              code: 'conda install -c conda-forge metorial'
-            }
-          },
-          {
-            label: 'uv',
-            item: { type: 'code' as const, code: 'uv add metorial' }
-          }
-        ]
-      },
+      createPythonSdkInstallInstruction(),
       {
         title: 'Create a session from this template',
         description:

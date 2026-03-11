@@ -6,16 +6,19 @@ import {
   useCurrentOrganization,
   useCurrentProject,
   useProviderAuthConfig,
-  useProviderDeployment,
-  useRevealedApiKey
+  useProviderDeployment
 } from '@metorial/state';
 import { Badge, RenderDate, Spacer, Text, theme } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
 import dedent from 'dedent';
-import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { styled } from 'styled-components';
-import { useApiKeysWithAutoInit } from '../../../scenes/apiKeys/useApiKeysWithAutoInit';
+import {
+  createJavascriptSdkInstallInstruction
+} from '../../../lib/instructionPresets';
+import {
+  useResolvedInstanceApiKeySecret
+} from '../../../scenes/apiKeys/useResolvedInstanceApiKeySecret';
 import { SessionsTable } from '../../../scenes/sessions/table';
 import { InstructionItem, Instructions } from '../provider/components/instructions';
 import { KeySelector } from '../provider/components/keySelector';
@@ -72,36 +75,7 @@ export let ProviderAuthConfigOverviewPage = () => {
     providerDeploymentId,
     providerAuthConfigId
   );
-  let apiKeys = useApiKeysWithAutoInit(
-    instance.data
-      ? {
-          type: 'instance_access_token',
-          instanceId: instance.data.id
-        }
-      : undefined
-  );
-  let secretApiKey = apiKeys.data?.find(
-    (a: {
-      type: string;
-      status: string;
-      revealInfo?: { forever?: boolean; until?: Date } | null;
-    }) =>
-      a.type === 'instance_access_token_secret' &&
-      ((a.status == 'active' && a.revealInfo?.forever) ||
-        (a.revealInfo?.until && a.revealInfo?.until > new Date()))
-  );
-  let key = useRevealedApiKey({ apiKeyId: secretApiKey?.id });
-  let [apiKeySecret, setApiKeySecret] = useState<string | undefined>(
-    () => key.value ?? secretApiKey?.secret ?? undefined
-  );
-
-  useEffect(() => {
-    if (key.value) {
-      setApiKeySecret(key.value);
-    } else if (secretApiKey?.secret) {
-      setApiKeySecret(secretApiKey.secret);
-    }
-  }, [key.value, secretApiKey?.secret]);
+  let { apiKeySecret, setApiKeySecret } = useResolvedInstanceApiKeySecret(instance.data?.id);
 
   return renderWithLoader({ authConfig, deployment })(({ authConfig, deployment }) => {
     let authMethodName =
@@ -117,42 +91,15 @@ export let ProviderAuthConfigOverviewPage = () => {
         />
       )
     };
-    let installationStep = (packages: string[]): InstructionItem => ({
-      title: 'Install the Metorial SDK',
-      description: 'Add the Metorial SDK and the packages used in this example.',
-      variants: [
-        {
-          label: 'npm',
-          item: {
-            type: 'code' as const,
-            code: `npm install --save ${packages.join(' ')}`
-          }
-        },
-        {
-          label: 'yarn',
-          item: {
-            type: 'code' as const,
-            code: `yarn add ${packages.join(' ')}`
-          }
-        },
-        {
-          label: 'pnpm',
-          item: {
-            type: 'code' as const,
-            code: `pnpm install --save ${packages.join(' ')}`
-          }
-        },
-        {
-          label: 'bun',
-          item: {
-            type: 'code' as const,
-            code: `bun install ${packages.join(' ')}`
-          }
-        }
-      ]
-    });
     let nodeInstructions: InstructionItem[] = [
-      installationStep(['metorial', '@metorial/ai-sdk', 'ai', '@ai-sdk/anthropic']),
+      {
+        ...createJavascriptSdkInstallInstruction([
+          '@metorial/ai-sdk',
+          'ai',
+          '@ai-sdk/anthropic'
+        ]),
+        description: 'Add the Metorial SDK and the packages used in this example.'
+      },
       {
         title: 'Instantiate the Metorial SDK',
         description: 'Use an instance API key to create the Metorial client.',
