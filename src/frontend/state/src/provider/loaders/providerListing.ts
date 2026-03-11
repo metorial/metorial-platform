@@ -1,5 +1,6 @@
 import type { DashboardInstanceProviderListingsListQuery } from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
+import { isMetorialSDKError } from '@metorial/util-endpoint';
 import { usePaginator } from '../../lib/usePaginator';
 import { useCurrentInstance } from '../../organization';
 import { withAuth } from '../../user';
@@ -43,6 +44,39 @@ export let useProviderListing = (
 ) => {
   let data = providerListingLoader.use(
     instanceId && providerListingId ? { instanceId, providerListingId } : null
+  );
+
+  return data;
+};
+
+export let providerListingByProviderLoader = createLoader({
+  name: 'providerListingByProvider',
+  parents: [],
+  fetch: (i: { providerId: string; instanceId: string }) =>
+    withAuth(async sdk => {
+      try {
+        return await sdk.providers.listings.get(i.instanceId, i.providerId);
+      } catch (error) {
+        if (
+          isMetorialSDKError(error) &&
+          error.code === 'not_found' &&
+          error.response?.entity === 'provider.listing'
+        ) {
+          return null;
+        }
+
+        throw error;
+      }
+    }),
+  mutators: {}
+});
+
+export let useProviderListingByProviderId = (
+  instanceId: string | null | undefined,
+  providerId: string | null | undefined
+) => {
+  let data = providerListingByProviderLoader.use(
+    instanceId && providerId ? { instanceId, providerId } : null
   );
 
   return data;

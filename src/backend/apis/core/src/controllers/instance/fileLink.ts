@@ -11,7 +11,7 @@ let fileLinkRootGroup = instanceGroup.use(async ctx => {
 
   let fileLink = await fileLinkService.getFileLinkByIdForOrganization({
     fileLinkId: ctx.params.linkId,
-    organizationOid: ctx.organization.oid
+    organization: ctx.organization
   });
 
   return { fileLink };
@@ -44,7 +44,7 @@ export let fileLinkController = Controller.create(
       )
       .do(async ctx => {
         let paginator = await fileLinkService.listFileLinksForOrganization({
-          organizationOid: ctx.organization.oid,
+          organization: ctx.organization,
           fileId: ctx.query.file_id
         });
 

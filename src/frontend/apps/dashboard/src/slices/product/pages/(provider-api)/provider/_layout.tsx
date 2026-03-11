@@ -12,7 +12,7 @@ import {
   useCurrentOrganization,
   useCurrentProject,
   useProvider,
-  useProviderListing,
+  useProviderListingByProviderId,
   useProviderVersions
 } from '@metorial/state';
 import { Badge, Button, Flex, LinkTabs, Menu, theme } from '@metorial/ui';
@@ -134,7 +134,7 @@ export let ProviderLayout = () => {
   let selectedVersion = allVersions.find(v => v.id === effectiveVersionId);
   let isDefaultVersion = effectiveVersionId === currentVersionId;
 
-  let listingData = useProviderListing(instance.data?.id, providerId);
+  let listingData = useProviderListingByProviderId(instance.data?.id, providerId);
   let listing: ProviderListing | undefined = listingData.data ?? undefined;
 
   let resetToDefault = () => {

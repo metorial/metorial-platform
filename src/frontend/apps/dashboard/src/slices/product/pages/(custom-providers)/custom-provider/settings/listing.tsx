@@ -4,7 +4,8 @@ import {
   useCurrentInstance,
   useCustomProvider,
   useCustomProviderListing,
-  useDashboardFlags
+  useDashboardFlags,
+  useProviderListingByProviderId
 } from '@metorial/state';
 import { Button, Input } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
@@ -20,13 +21,17 @@ export let CustomProviderListingPage = () => {
   let customServer = useCustomProvider(instance.data?.id, customServerId);
 
   let listing = useCustomProviderListing(instance.data?.id, customServer.data?.id);
+  let providerListing = useProviderListingByProviderId(
+    instance.data?.id,
+    customServer.data?.provider?.id
+  );
 
   let generalUpdate = listing.useUpdateMutator();
 
   let flags = useDashboardFlags();
   if (!flags.data?.flags['community-profiles-enabled']) return;
 
-  return renderWithLoader({ customServer, listing })(({ customServer, listing }) => (
+  return renderWithLoader({ customServer, listing })(() => (
     <FormPage>
       {/* <Box
         title="Publish Provider"
@@ -73,7 +78,7 @@ export let CustomProviderListingPage = () => {
             instance.data?.organization,
             instance.data?.project,
             instance.data,
-            customServer.data.provider?.id ?? customServer.data.id
+            customServer.data?.provider?.id ?? customServer.data?.id
           )}
         >
           <Button as="span" size="2" variant="outline">
@@ -95,7 +100,7 @@ export let CustomProviderListingPage = () => {
         initialValues={{
           name: listing.data?.name ?? customServer.data?.name ?? '',
           description: listing.data?.description ?? customServer.data?.description ?? '',
-          readme: listing.data?.readme ?? ''
+          readme: providerListing.data?.readme ?? ''
         }}
         mutators={[generalUpdate]}
         onSubmit={async values => {
