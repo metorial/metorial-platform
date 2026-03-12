@@ -106,6 +106,7 @@ export let instanceScopes = [
 
 export let consumerScopes = [
   'consumer#instance.magic_mcp:read' as const,
+  'consumer#instance.magic_mcp:connect' as const,
   'consumer#instance.magic_mcp:write' as const,
 
   'consumer#instance.server_template:read' as const,

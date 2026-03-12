@@ -2,8 +2,7 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { db, Instance, Prisma } from '@metorial/db';
-import { type AnyAccessTagSelector } from '@metorial/module-access';
-import { consumerMagicMcpReadRoles } from '@metorial/module-consumer';
+import { consumerMagicMcpReadRoles, type AnyAccessTagSelector } from '@metorial/module-access';
 import { getAccessTagFilter } from './consumerAccess';
 
 let include = {

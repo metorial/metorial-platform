@@ -17,12 +17,13 @@ import {
   MagicMcpToken,
   MagicMcpTokenStatus
 } from '@metorial/db';
-import { accessTagService, type AnyAccessTagSelector } from '@metorial/module-access';
 import {
+  accessTagService,
   consumerMagicMcpConnectRoles,
   consumerMagicMcpReadRoles,
-  consumerMagicMcpWriteRoles
-} from '@metorial/module-consumer';
+  consumerMagicMcpWriteRoles,
+  type AnyAccessTagSelector
+} from '@metorial/module-access';
 import { getAccessTagFilter, getActiveStatusFilter } from './consumerAccess';
 
 let createMagicMcpSecret = () =>

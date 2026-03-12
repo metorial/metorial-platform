@@ -19,8 +19,12 @@ import {
   Prisma
 } from '@metorial/db';
 import { generatePlainId } from '@metorial/id';
-import { accessTagService, type AnyAccessTagSelector } from '@metorial/module-access';
-import { consumerMagicMcpReadRoles, consumerMagicMcpWriteRoles } from '@metorial/module-consumer';
+import {
+  accessTagService,
+  consumerMagicMcpReadRoles,
+  consumerMagicMcpWriteRoles,
+  type AnyAccessTagSelector
+} from '@metorial/module-access';
 import { searchMagicMcpServerIds } from '@metorial/module-search';
 import { subspaceSessionTemplateService } from '@metorial/module-subspace';
 import { getAccessTagFilter, getActiveStatusFilter } from './consumerAccess';

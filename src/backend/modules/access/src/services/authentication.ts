@@ -15,7 +15,6 @@ import {
   User,
   UserSession
 } from '@metorial/db';
-// import { consumerAuthService } from '@metorial/module-consumer';
 import { Service } from '@lowerdeck/service';
 import { machineAccessAuthService } from '@metorial/module-machine-access';
 import { userAuthService } from '@metorial/module-user';
