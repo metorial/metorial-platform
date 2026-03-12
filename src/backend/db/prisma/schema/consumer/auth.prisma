@@ -1,0 +1,19 @@
+model ConsumerSession {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  tokenNonce String @unique
+
+  aresSessionId String?
+
+  consumerProfileOid BigInt
+  consumerProfile    ConsumerProfile @relation(fields: [consumerProfileOid], references: [oid], onDelete: Cascade)
+
+  ua String
+  ip String
+
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  lastUsedAt DateTime @default(now())
+  revokedAt  DateTime?
+}

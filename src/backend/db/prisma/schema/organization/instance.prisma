@@ -49,4 +49,6 @@ model Instance {
   magicMcpServers                MagicMcpServer[]
   magicMcpTokens                 MagicMcpToken[]
   magicMcpServerSubspaceSessions MagicMcpServerSubspaceSession[]
+  consumerSurfaces               ConsumerSurface[]
+  consumers                      ConsumerProfile[]
 }

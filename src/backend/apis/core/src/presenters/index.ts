@@ -1,6 +1,9 @@
 import { declarePresenter } from '@metorial/presenter';
 import { dashboardApiKeyPresenter, v1ApiKeyPresenter } from './implementation/apiKey';
 import { v1BootPresenter } from './implementation/boot';
+import { v1ConsumerGroupPresenter } from './implementation/consumerGroup';
+import { v1ConsumerProfilePresenter } from './implementation/consumerProfile';
+import { v1ConsumerSessionPresenter } from './implementation/consumerSession';
 import { v1FilePresenter } from './implementation/file';
 import { v1FileLinkPresenter } from './implementation/fileLink';
 import { v1InstancePresenter } from './implementation/instance';
@@ -89,6 +92,9 @@ import {
   authConfigSchemaType,
   authImportSchemaType,
   bootType,
+  consumerGroupType,
+  consumerProfileType,
+  consumerSessionType,
   bucketEditorTokenType,
   configPreviewType,
   configSchemaType,
@@ -282,6 +288,21 @@ export let teamRolePresenter = declarePresenter(teamRoleType, {
 export let teamRolePermissionsPresenter = declarePresenter(teamRolePermissionsType, {
   mt_2025_01_01_dashboard: v1TeamRolePermissionsPresenter,
   mt_2026_01_01_magnetar: v1TeamRolePermissionsPresenter
+});
+
+export let consumerGroupPresenter = declarePresenter(consumerGroupType, {
+  mt_2025_01_01_dashboard: v1ConsumerGroupPresenter,
+  mt_2026_01_01_magnetar: v1ConsumerGroupPresenter
+});
+
+export let consumerProfilePresenter = declarePresenter(consumerProfileType, {
+  mt_2025_01_01_dashboard: v1ConsumerProfilePresenter,
+  mt_2026_01_01_magnetar: v1ConsumerProfilePresenter
+});
+
+export let consumerSessionPresenter = declarePresenter(consumerSessionType, {
+  mt_2025_01_01_dashboard: v1ConsumerSessionPresenter,
+  mt_2026_01_01_magnetar: v1ConsumerSessionPresenter
 });
 
 // export let ssoTenantPresenter = declarePresenter(ssoTenantType, {

@@ -6,8 +6,8 @@ model AccessTag {
 
   accessTagEntities AccessTagEntity[]
   fineGrainedKeys   FineGrainedKey[]
-  // consumerProfiles  ConsumerProfile[]
-  // consumerGroups    ConsumerGroup[]
+  consumerProfile   ConsumerProfile?
+  consumerGroup     ConsumerGroup?
 }
 
 model AccessTagPolicy {
@@ -45,11 +45,11 @@ model AccessTagEntity {
   magicMcpServerOid BigInt?
   magicMcpServer    MagicMcpServer? @relation(fields: [magicMcpServerOid], references: [oid], onDelete: Cascade)
 
-  // magicMcpGroup    MagicMcpGroup? @relation(fields: [magicMcpGroupOid], references: [oid])
   // magicMcpGroupOid BigInt?
+  // magicMcpGroup    MagicMcpGroup? @relation(fields: [magicMcpGroupOid], references: [oid], onDelete: Cascade)
 
-  // serverDeploymentTemplate    ServerDeploymentTemplate? @relation(fields: [serverDeploymentTemplateOid], references: [oid])
-  // serverDeploymentTemplateOid BigInt?
+  // providerTemplateOid BigInt?
+  // providerTemplate    ProviderTemplate? @relation(fields: [providerTemplateOid], references: [oid], onDelete: Cascade)
 
   // serverOAuthSession    ServerOAuthSession? @relation(fields: [serverOAuthSessionOid], references: [oid])
   // serverOAuthSessionOid BigInt?

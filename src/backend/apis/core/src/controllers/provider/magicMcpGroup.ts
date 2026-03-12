@@ -8,6 +8,7 @@ import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { hasFlags } from '../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
+import { requireNonPublishableMachineAccess } from '../../middleware/requireNonPublishableMachineAccess';
 import { magicMcpGroupPresenter } from '../../presenters';
 
 export let magicMcpGroupGroup = instanceGroup.use(async ctx => {
@@ -42,6 +43,7 @@ export let magicMcpGroupController = Controller.create(
         description: 'Returns a paginated list of magic MCP groups.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
+      .use(requireNonPublishableMachineAccess())
       .outputList(magicMcpGroupPresenter)
       .query(
         'default',
@@ -78,6 +80,7 @@ export let magicMcpGroupController = Controller.create(
         description: 'Retrieves a specific magic MCP group.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
+      .use(requireNonPublishableMachineAccess())
       .output(magicMcpGroupPresenter)
       .use(hasFlags(['magic-mcp-enabled']))
       .do(async ctx => {

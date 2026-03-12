@@ -1,6 +1,11 @@
 import {
   ApiKey,
   ApiKeySecret,
+  Consumer,
+  ConsumerGroup,
+  ConsumerProfile,
+  ConsumerProfileGroup,
+  ConsumerSession,
   File,
   FileLink,
   FilePurpose,
@@ -214,6 +219,28 @@ export let magicMcpTokenType = PresentableType.create<{
 export let magicMcpGroupType = PresentableType.create<{
   magicMcpGroup: MagicMcpGroup;
 }>()('magic_mcp.group');
+
+export let consumerGroupType = PresentableType.create<{
+  consumerGroup: ConsumerGroup;
+}>()('consumer.group');
+
+export let consumerProfileType = PresentableType.create<{
+  consumerProfile: ConsumerProfile & {
+    consumer: Consumer;
+    groups: (ConsumerProfileGroup & {
+      group: ConsumerGroup;
+    })[];
+  };
+  assignedConsumerGroups:
+    | (ConsumerGroup & {
+        assignedVia: 'default' | 'manual' | 'sso' | 'user';
+      })[]
+    | undefined;
+}>()('consumer.profile');
+
+export let consumerSessionType = PresentableType.create<{
+  consumerSession: ConsumerSession;
+}>()('consumer.session');
 
 // export let callbackType = PresentableType.create<{
 //   callback: Callback & {

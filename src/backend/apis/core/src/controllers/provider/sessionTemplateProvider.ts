@@ -136,7 +136,7 @@ export let sessionTemplateProviderController = Controller.create(
       )
       .output(sessionTemplateProviderPresenter)
       .do(async ctx => {
-        let stp = await subspaceSessionTemplateProviderService.create({
+        let input = {
           instance: ctx.instance,
           sessionTemplateId: ctx.body.session_template_id,
           providerDeploymentId: ctx.body.provider_deployment_id,
@@ -146,7 +146,9 @@ export let sessionTemplateProviderController = Controller.create(
           toolFilters: ctx.body.tool_filters
             ? { toolKeys: ctx.body.tool_filters.tool_keys }
             : undefined
-        });
+        } as Parameters<typeof subspaceSessionTemplateProviderService.create>[0];
+
+        let stp = await subspaceSessionTemplateProviderService.create(input);
 
         return sessionTemplateProviderPresenter.present({ sessionTemplateProvider: stp });
       }),
