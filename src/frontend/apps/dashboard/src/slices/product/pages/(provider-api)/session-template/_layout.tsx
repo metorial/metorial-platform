@@ -39,38 +39,38 @@ export let SessionTemplateLayout = () => {
     template.data?.id ?? sessionTemplateId
   ] as const;
 
-  let getTemplateProviderDeploymentId = (
-    provider: DashboardInstanceSessionTemplatesProvidersListOutput['items'][number]
-  ): string | null => provider.deployment?.id ?? null;
-
   let getFirstSessionDeploymentId = (
     session: DashboardInstanceSessionsCreateOutput
   ): string | null => session.providers[0]?.deployment?.id ?? null;
 
   let handleOpenExplorer = async () => {
-    if (isCreatingSession || !instance.data || !providers.data?.items.length) return;
+    let activeSessionTemplateId = template.data?.id ?? sessionTemplateId;
+    if (
+      isCreatingSession ||
+      !instance.data ||
+      !activeSessionTemplateId ||
+      !providers.data?.items.length
+    )
+      return;
 
     setIsCreatingSession(true);
 
-    let providerEntries = providers.data.items
-      .map(p => getTemplateProviderDeploymentId(p))
-      .filter((providerDeploymentId): providerDeploymentId is string => !!providerDeploymentId)
-      .map(providerDeploymentId => ({
-        providerDeployment: { providerDeploymentId },
-        sessionTemplateId: sessionTemplateId!
-      }));
-
-    if (!providerEntries.length) {
-      setIsCreatingSession(false);
-      return;
-    }
-
-    let [res] = await createSession.mutate({ providers: providerEntries });
+    let [res] = await createSession.mutate({
+      providers: [{ sessionTemplateId: activeSessionTemplateId }]
+    });
     setIsCreatingSession(false);
 
     if (res) {
       let firstDeploymentId =
-        getFirstSessionDeploymentId(res) ?? providerEntries[0]?.providerDeployment?.providerDeploymentId ?? null;
+        getFirstSessionDeploymentId(res) ??
+        providers.data.items.find(
+          (
+            provider
+          ): provider is DashboardInstanceSessionTemplatesProvidersListOutput['items'][number] & {
+            deployment: { id: string };
+          } => !!provider.deployment?.id
+        )?.deployment.id ??
+        null;
       if (firstDeploymentId) {
         navigate(
           Paths.instance.explorer(organization.data, project.data, instance.data, {

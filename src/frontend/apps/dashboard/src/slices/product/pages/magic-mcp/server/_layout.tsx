@@ -39,40 +39,37 @@ export let MagicMcpServerLayout = () => {
     server.data?.id ?? magicMcpServerId
   ] as const;
 
-  let getTemplateProviderDeploymentId = (
-    provider: DashboardInstanceSessionTemplatesProvidersListOutput['items'][number]
-  ): string | null => provider.deployment?.id ?? null;
-
   let getFirstSessionDeploymentId = (
     session: DashboardInstanceSessionsCreateOutput
   ): string | null => session.providers[0]?.deployment?.id ?? null;
 
   let handleOpenExplorer = async () => {
-    if (isCreatingSession || !instance.data || !providers.data?.items.length) return;
+    let activeSessionTemplateId = server.data?.sessionTemplateId;
+    if (
+      isCreatingSession ||
+      !instance.data ||
+      !activeSessionTemplateId ||
+      !providers.data?.items.length
+    )
+      return;
 
     setIsCreatingSession(true);
 
-    let sessionTemplateId = server.data?.sessionTemplateId;
-    let providerEntries = (providers.data?.items ?? [])
-      .map(p => getTemplateProviderDeploymentId(p))
-      .filter((id): id is string => !!id)
-      .map(providerDeploymentId => ({
-        providerDeployment: { providerDeploymentId },
-        ...(sessionTemplateId ? { sessionTemplateId } : {})
-      }));
-
-    if (!providerEntries.length) {
-      setIsCreatingSession(false);
-      return;
-    }
-
-    let [res] = await createSession.mutate({ providers: providerEntries });
+    let [res] = await createSession.mutate({
+      providers: [{ sessionTemplateId: activeSessionTemplateId }]
+    });
     setIsCreatingSession(false);
 
     if (res) {
       let firstDeploymentId =
         getFirstSessionDeploymentId(res) ??
-        providerEntries[0]?.providerDeployment?.providerDeploymentId ??
+        providers.data.items.find(
+          (
+            provider
+          ): provider is DashboardInstanceSessionTemplatesProvidersListOutput['items'][number] & {
+            deployment: { id: string };
+          } => !!provider.deployment?.id
+        )?.deployment.id ??
         null;
       if (firstDeploymentId) {
         navigate(

@@ -275,30 +275,32 @@ let CreateDeploymentInline = ({
   });
 
   return (
-    <Flex direction="column" gap={12}>
+    <Flex direction="column" gap={8}>
       <Text size="2" color="gray600">
         No deployments found for <strong>{providerName}</strong>. Create one to continue.
       </Text>
 
       <form onSubmit={form.handleSubmit}>
-        <Input label="Name" required {...form.getFieldProps('name')} />
-        <form.RenderError field="name" />
+        <Flex direction="column" gap={8}>
+          <Input label="Name" required {...form.getFieldProps('name')} />
+          <form.RenderError field="name" />
 
-        <Input label="Description" {...form.getFieldProps('description')} />
-        <form.RenderError field="description" />
-        <Spacer height={12} />
+          <Input label="Description" {...form.getFieldProps('description')} />
+          <form.RenderError field="description" />
+          <Spacer height={8} />
 
-        <Dialog.Actions>
-          <Button
-            type="submit"
-            loading={createMutation.isLoading}
-            success={createMutation.isSuccess}
-          >
-            Create Deployment
-          </Button>
+          <Dialog.Actions>
+            <Button
+              type="submit"
+              loading={createMutation.isLoading}
+              success={createMutation.isSuccess}
+            >
+              Create Deployment
+            </Button>
 
-          <createMutation.RenderError />
-        </Dialog.Actions>
+            <createMutation.RenderError />
+          </Dialog.Actions>
+        </Flex>
       </form>
     </Flex>
   );
@@ -340,7 +342,7 @@ let PickDeploymentStep = ({
   }
 
   return (
-    <Flex direction="column" gap={12}>
+    <Flex direction="column" gap={8}>
       <Text size="2" color="gray600">
         Select a deployment for <strong>{providerName}</strong>
       </Text>
@@ -420,7 +422,7 @@ let DeploymentConfigureStep = ({
   }
 
   return (
-    <Flex direction="column" gap={12}>
+    <Flex direction="column" gap={8}>
       <Text size="2" color="gray600">
         Configure <strong>{providerName}</strong>
       </Text>
