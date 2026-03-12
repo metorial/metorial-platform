@@ -29,7 +29,7 @@ export let ProviderAuthConfigSettingsPage = () => {
     schema: yup =>
       yup.object({
         name: yup.string().trim().required('Name is required'),
-        description: yup.string().defined()
+        description: yup.string().ensure()
       })
   });
 

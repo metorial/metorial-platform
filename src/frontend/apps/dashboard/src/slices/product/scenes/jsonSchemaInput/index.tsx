@@ -338,6 +338,8 @@ export let JsonSchemaInput = ({
     });
     return initial;
   });
+  let valueRef = useRef(value);
+  valueRef.current = value;
 
   useEffect(() => {
     if (initialValue != value) {
@@ -352,16 +354,16 @@ export let JsonSchemaInput = ({
           merged[key] = property.default;
         }
       });
+      valueRef.current = merged;
       setValue(merged);
     }
   }, [initialValue]);
 
   let updateField = (key: string, newValue: unknown) => {
-    setValue(oldValue => {
-      let newObject = { ...oldValue, [key]: newValue };
-      setTimeout(() => onChange(newObject), 0);
-      return newObject;
-    });
+    let newObject = { ...valueRef.current, [key]: newValue };
+    valueRef.current = newObject;
+    setValue(newObject);
+    onChange(newObject);
   };
 
   let [currentGenericField, setCurrentGenericField] = useState(genericObjectFields[0]?.[0] ?? '');

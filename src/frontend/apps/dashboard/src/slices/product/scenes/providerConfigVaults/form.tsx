@@ -15,7 +15,6 @@ import {
   Spacer,
   Text
 } from '@metorial/ui';
-import { useState } from 'react';
 import { getProviderConfigSchemaCapabilities } from '../../lib/providerCreationCapabilities';
 import { JsonSchemaInput } from '../jsonSchemaInput';
 import { ProviderContextCard } from '../providerContextCard';
@@ -51,7 +50,6 @@ export let ProviderConfigVaultForm = (
   );
   let isDeploymentScoped = !!props.providerDeploymentId;
 
-  let [vaultData, setVaultData] = useState<Record<string, unknown>>({});
   let schemaCapabilities = getProviderConfigSchemaCapabilities({
     schemaValue: configSchema.data?.schema,
     hasVaults: false,
@@ -69,7 +67,8 @@ export let ProviderConfigVaultForm = (
   let form = useForm({
     initialValues: {
       name: '',
-      description: ''
+      description: '',
+      vaultData: {} as Record<string, unknown>
     },
     onSubmit: async values => {
       if (
@@ -88,7 +87,7 @@ export let ProviderConfigVaultForm = (
           : {}),
         name: values.name.trim(),
         description: values.description || undefined,
-        value: vaultData
+        value: values.vaultData
       });
 
       if (!result) return;
@@ -99,7 +98,8 @@ export let ProviderConfigVaultForm = (
     schema: yup =>
       yup.object({
         name: yup.string().trim().required('Name is required'),
-        description: yup.string().defined()
+        description: yup.string().ensure(),
+        vaultData: yup.mixed<Record<string, unknown>>().defined()
       })
   });
 
@@ -137,8 +137,8 @@ export let ProviderConfigVaultForm = (
 
           <JsonSchemaInput
             schema={schemaCapabilities.schemaObject}
-            value={vaultData}
-            onChange={setVaultData}
+            value={form.values.vaultData}
+            onChange={value => form.setFieldValue('vaultData', value)}
             label="Vault Values"
           />
 
@@ -154,7 +154,7 @@ export let ProviderConfigVaultForm = (
             </Button>
             <Button
               type="submit"
-              loading={createMutation.isPending}
+              loading={createMutation.isLoading}
               disabled={!schemaCapabilities.canCreateConfigVault}
             >
               Create

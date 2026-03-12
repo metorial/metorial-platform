@@ -104,7 +104,7 @@ export let Panel = {
         <div>{children}</div>
 
         <RadixDialogDialog.Close asChild>
-          <Button aria-label="Close" iconLeft={<RiCloseLine />} />
+          <Button type="button" aria-label="Close" iconLeft={<RiCloseLine />} />
         </RadixDialogDialog.Close>
       </Header>
     );

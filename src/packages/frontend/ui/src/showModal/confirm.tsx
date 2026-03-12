@@ -28,12 +28,12 @@ export let confirm = ({
 
         <Alert.Actions>
           <Alert.Action type="cancel">
-            <Button variant="soft" onClick={onCancel}>
+            <Button type="button" variant="soft" onClick={onCancel}>
               {cancelText}
             </Button>
           </Alert.Action>
           <Alert.Action type="action">
-            <Button variant="solid" onClick={onConfirm}>
+            <Button type="button" variant="solid" onClick={onConfirm}>
               {confirmText}
             </Button>
           </Alert.Action>

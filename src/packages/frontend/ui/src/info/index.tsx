@@ -4,7 +4,9 @@ import { styled } from 'styled-components';
 import { theme } from '../theme';
 import { Tooltip } from '../tooltip';
 
-let Button = styled('button')`
+let Button = styled('button').attrs({
+  type: 'button'
+})`
   background: none;
   border: none;
   padding: 3px;

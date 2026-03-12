@@ -17,7 +17,7 @@ let Actions = styled.div`
   margin-top: 10px;
 `;
 
-let Form = styled.form`
+let Form = styled.div`
   display: flex;
   flex-direction: column;
 `;
@@ -98,22 +98,18 @@ export let CustomServerDockerCreateForm = (p: {
     </Button>
   );
 
-  let handleSubmit = async () => {
-    await form.submitForm();
+  let handleDockerSetupSubmit = async () => {
+    form.setFieldTouched('dockerImage', true, false);
+    form.setFieldTouched('getLaunchParams', true, false);
+
+    let errors = await form.validateForm();
+    if (errors.dockerImage || errors.getLaunchParams) return;
+
+    setCurrentStep(1);
   };
 
   return (
-    <Form
-      onSubmit={e => {
-        e.preventDefault();
-        if (currentStep < 1) {
-          setCurrentStep(currentStep + 1);
-          return;
-        }
-
-        void handleSubmit();
-      }}
-    >
+    <Form>
       <Stepper
         currentStep={currentStep}
         setCurrentStep={setCurrentStep}
@@ -123,7 +119,12 @@ export let CustomServerDockerCreateForm = (p: {
             subtitle: 'Enter the Docker image URL',
             render: () => {
               return (
-                <>
+                <form
+                  onSubmit={e => {
+                    e.preventDefault();
+                    void handleDockerSetupSubmit();
+                  }}
+                >
                   <Input
                     label="Docker Image"
                     description="The Docker image URL for your MCP provider"
@@ -147,16 +148,11 @@ export let CustomServerDockerCreateForm = (p: {
                   <Actions>
                     {close}
 
-                    <Button
-                      type="button"
-                      size="2"
-                      disabled={!form.values.dockerImage || !form.values.getLaunchParams}
-                      onClick={() => setCurrentStep(1)}
-                    >
+                    <Button type="submit" size="2">
                       Continue
                     </Button>
                   </Actions>
-                </>
+                </form>
               );
             }
           },
@@ -166,7 +162,7 @@ export let CustomServerDockerCreateForm = (p: {
             subtitle: 'Review and deploy',
             render: () => {
               return (
-                <>
+                <form onSubmit={form.handleSubmit}>
                   <Input label="Name" {...form.getFieldProps('name')} autoFocus />
                   <form.RenderError field="name" />
 
@@ -181,14 +177,13 @@ export let CustomServerDockerCreateForm = (p: {
                     <Button
                       loading={createCustomServer.isLoading}
                       success={createCustomServer.isSuccess}
-                      type="button"
-                      onClick={handleSubmit}
+                      type="submit"
                       size="2"
                     >
                       Create
                     </Button>
                   </Actions>
-                </>
+                </form>
               );
             }
           }

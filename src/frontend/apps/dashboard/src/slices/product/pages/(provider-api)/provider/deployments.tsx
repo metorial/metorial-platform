@@ -28,6 +28,7 @@ export let ProviderDeploymentsPage = () => {
       <ProviderDeploymentsTable
         instanceId={instance.data.id}
         providerId={provider.data.id}
+        providerName={provider.data.name}
         search={searchDebounced}
       />
     </>

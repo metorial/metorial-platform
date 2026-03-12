@@ -1,14 +1,13 @@
 import { CustomProvidersGetOutput } from '@metorial/dashboard-sdk';
+import { useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
   useCreateCustomProviderVersion,
   useCurrentInstance,
   useCustomProvider
 } from '@metorial/state';
-import { Input, Select, toast } from '@metorial/ui';
+import { Button, Group, Input, Select, Spacer, toast } from '@metorial/ui';
 import { useNavigate } from 'react-router-dom';
-import { FormBox } from '../form/box';
-import { Field } from '../form/field';
 import { FormPage } from '../form/page';
 import { getCustomServerRemoteProtocolFromUrl } from './utils';
 
@@ -18,157 +17,169 @@ export let CustomServerUpdateForm = (p: { customServer?: CustomProvidersGetOutpu
   let navigate = useNavigate();
   let updateMutator = customServer.useUpdateMutator();
   let createVersionMutator = useCreateCustomProviderVersion();
-  let isExternalProvider = Boolean(customServer.data?.draft?.remoteMcpServer);
-  let currentRemoteUrl = customServer.data?.draft?.remoteMcpServer?.url ?? '';
+  let customServerData = customServer.data ?? p.customServer;
+  let isExternalProvider = Boolean(customServerData?.draft?.remoteMcpServer);
+  let currentRemoteUrl = customServerData?.draft?.remoteMcpServer?.url ?? '';
   let currentRemoteProtocol =
-    customServer.data?.draft?.remoteMcpServer?.transport ??
+    customServerData?.draft?.remoteMcpServer?.transport ??
     getCustomServerRemoteProtocolFromUrl(currentRemoteUrl);
-  let formMutator = {
-    RenderError: () => (
-      <>
-        {updateMutator.error && <updateMutator.RenderError />}
-        {createVersionMutator.error && <createVersionMutator.RenderError />}
-      </>
-    ),
-    error: updateMutator.error ?? createVersionMutator.error,
-    isLoading: updateMutator.isLoading || createVersionMutator.isLoading,
-    isSuccess: updateMutator.isSuccess || createVersionMutator.isSuccess
-  };
+  let isSaving = updateMutator.isLoading || createVersionMutator.isLoading;
+  let isSaved =
+    !isSaving && (updateMutator.isSuccess || createVersionMutator.isSuccess);
+  let form = useForm({
+    initialValues: {
+      name: customServerData?.name ?? '',
+      description: customServerData?.description ?? '',
+      remoteUrl: currentRemoteUrl,
+      remoteProtocol: currentRemoteProtocol
+    },
+    updateInitialValues: true,
+    onSubmit: async values => {
+      if (!instance.data) return;
+      if (!customServerData) return;
+
+      let nextName = values.name.trim() || undefined;
+      let nextDescription = values.description.trim() || undefined;
+      let currentName = customServerData.name || undefined;
+      let currentDescription = customServerData.description || undefined;
+      let nextRemoteUrl = values.remoteUrl.trim();
+      let nextRemoteProtocol: 'sse' | 'streamable_http' =
+        values.remoteProtocol == 'sse' ? 'sse' : 'streamable_http';
+      let didUpdateDetails =
+        nextName !== currentName || nextDescription !== currentDescription;
+      let didUpdateRemote =
+        isExternalProvider &&
+        (nextRemoteUrl !== currentRemoteUrl || nextRemoteProtocol !== currentRemoteProtocol);
+
+      if (didUpdateDetails) {
+        await updateMutator.mutate({
+          name: values.name.trim(),
+          description: values.description.trim() || undefined
+        });
+      }
+
+      if (didUpdateRemote) {
+        let [version] = await createVersionMutator.mutate({
+          instanceId: instance.data.id,
+          customProviderId: customServerData.id,
+          from: {
+            type: 'remote',
+            remoteUrl: values.remoteUrl.trim(),
+            protocol: nextRemoteProtocol
+          }
+        });
+
+        if (version) {
+          toast.success('External provider update started');
+          await customServer.refetch();
+
+          navigate(
+            Paths.instance.customProvider(
+              instance.data.organization,
+              instance.data.project,
+              instance.data,
+              customServerData.id,
+              'versions',
+              { version_id: version.id }
+            ),
+            {
+              state: {
+                category: 'external'
+              }
+            }
+          );
+        }
+
+        return;
+      }
+
+      if (didUpdateDetails) {
+        toast.success('Provider updated');
+        await customServer.refetch();
+      }
+    },
+    schema: yup =>
+      yup.object({
+        name: yup.string().trim().required('Name is required'),
+        description: yup.string().ensure(),
+        remoteUrl: isExternalProvider
+          ? yup
+              .string()
+              .trim()
+              .url('Remote URL must be a valid URL')
+              .required('Remote URL is required')
+          : yup.string().ensure(),
+        remoteProtocol: isExternalProvider
+          ? yup
+              .string()
+              .oneOf(['sse', 'streamable_http'])
+              .required('Transport protocol is required')
+          : yup.string().ensure()
+      })
+  });
 
   return (
     <FormPage>
-      <FormBox
-        title="General"
-        description={
-          isExternalProvider
-            ? 'Update the details of your external provider. Changing the remote URL publishes a new version.'
-            : 'Update the details of your custom provider.'
-        }
-        schema={yup =>
-          yup.object({
-            name: yup.string().optional(),
-            description: yup.string().optional(),
-            remoteUrl: isExternalProvider
-              ? yup.string().url('Remote URL must be a valid URL').required('Remote URL is required')
-              : yup.string().optional(),
-            remoteProtocol: isExternalProvider
-              ? yup
-                  .string()
-                  .oneOf(['sse', 'streamable_http'])
-                  .required('Transport protocol is required')
-              : yup.string().optional()
-          })
-        }
-        initialValues={{
-          name: customServer.data?.name ?? '',
-          description: customServer.data?.description ?? '',
-          remoteUrl: currentRemoteUrl,
-          remoteProtocol: currentRemoteProtocol
-        }}
-        mutators={[formMutator]}
-        onSubmit={async values => {
-          if (!instance.data) return;
-          if (!customServer.data) return;
-
-          let nextName = values.name || undefined;
-          let nextDescription = values.description || undefined;
-          let currentName = customServer.data.name || undefined;
-          let currentDescription = customServer.data.description || undefined;
-          let nextRemoteUrl = values.remoteUrl?.trim();
-          let nextRemoteProtocol: 'sse' | 'streamable_http' =
-            values.remoteProtocol == 'sse' ? 'sse' : 'streamable_http';
-          let didUpdateDetails =
-            nextName !== currentName || nextDescription !== currentDescription;
-          let didUpdateRemote =
-            isExternalProvider &&
-            (nextRemoteUrl !== currentRemoteUrl ||
-              nextRemoteProtocol !== currentRemoteProtocol);
-
-          if (didUpdateDetails) {
-            await updateMutator.mutate({
-              name: nextName,
-              description: nextDescription
-            });
+      <Group.Wrapper>
+        <Group.Header
+          title="General"
+          description={
+            isExternalProvider
+              ? 'Update the details of your external provider. Changing the remote URL publishes a new version.'
+              : 'Update the details of your custom provider.'
           }
+        />
 
-          if (didUpdateRemote) {
-            let [version] = await createVersionMutator.mutate({
-              instanceId: instance.data.id,
-              customProviderId: customServer.data.id,
-              from: {
-                type: 'remote',
-                remoteUrl: nextRemoteUrl!,
-                protocol: nextRemoteProtocol
-              }
-            });
+        <Group.Content>
+          <form onSubmit={form.handleSubmit}>
+            <Input label="Name" {...form.getFieldProps('name')} />
+            <form.RenderError field="name" />
 
-            if (version) {
-              toast.success('External provider update started');
-              await customServer.refetch();
+            <Spacer size={15} />
 
-              navigate(
-                Paths.instance.customProvider(
-                  instance.data.organization,
-                  instance.data.project,
-                  instance.data,
-                  customServer.data.id,
-                  'versions',
-                  { version_id: version.id }
-                ),
-                {
-                  state: {
-                    category: 'external'
-                  }
-                }
-              );
-            }
+            <Input label="Description" {...form.getFieldProps('description')} />
+            <form.RenderError field="description" />
 
-            return;
-          }
+            {isExternalProvider && (
+              <>
+                <Spacer size={15} />
 
-          if (didUpdateDetails) {
-            toast.success('Provider updated');
-            await customServer.refetch();
-          }
-        }}
-      >
-        <Field field="name">
-          {({ getFieldProps }) => <Input {...getFieldProps()} label="Name" />}
-        </Field>
-
-        <Field field="description">
-          {({ getFieldProps }) => <Input {...getFieldProps()} label="Description" />}
-        </Field>
-
-        {isExternalProvider && (
-          <>
-            <Field field="remoteUrl">
-              {({ getFieldProps }) => (
                 <Input
-                  {...getFieldProps()}
                   label="Remote URL"
                   description="Changing this URL publishes a new version for the external provider."
+                  {...form.getFieldProps('remoteUrl')}
                 />
-              )}
-            </Field>
+                <form.RenderError field="remoteUrl" />
 
-            <Field field="remoteProtocol">
-              {({ value, setValue }) => (
+                <Spacer size={15} />
+
                 <Select
-                  value={String(value || '')}
+                  value={String(form.values.remoteProtocol || '')}
                   label="MCP Transport Protocol"
                   description="Use the protocol supported by the remote MCP provider."
                   items={[
                     { label: 'SSE (Server-Sent Events)', id: 'sse' },
                     { label: 'Streamable HTTP', id: 'streamable_http' }
                   ]}
-                  onChange={v => setValue(v)}
+                  onChange={v => form.setFieldValue('remoteProtocol', v)}
                 />
-              )}
-            </Field>
-          </>
-        )}
-      </FormBox>
+                <form.RenderError field="remoteProtocol" />
+              </>
+            )}
+
+            <Spacer size={15} />
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <Button size="2" type="submit" loading={isSaving} success={isSaved}>
+                Save
+              </Button>
+            </div>
+
+            {updateMutator.error && <updateMutator.RenderError />}
+            {createVersionMutator.error && <createVersionMutator.RenderError />}
+          </form>
+        </Group.Content>
+      </Group.Wrapper>
     </FormPage>
   );
 };

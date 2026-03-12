@@ -53,7 +53,7 @@ let TemplatesItem = styled.button`
   }
 `;
 
-let Form = styled.form`
+let Form = styled.div`
   display: flex;
   flex-direction: column;
 `;
@@ -144,6 +144,16 @@ export let CustomServerRemoteCreateForm = (p: {
     void form.setFieldValue('remoteProtocol', nextRemoteProtocol);
   }, [form.values.remoteProtocol, form.values.remoteUrl, hasManualRemoteProtocol]);
 
+  let handleRemoteSetupSubmit = async () => {
+    form.setFieldTouched('remoteUrl', true, false);
+    form.setFieldTouched('remoteProtocol', true, false);
+
+    let errors = await form.validateForm();
+    if (errors.remoteUrl || errors.remoteProtocol) return;
+
+    setCurrentStep(1);
+  };
+
   let close = p.close && (
     <Button
       type="button"
@@ -156,22 +166,8 @@ export let CustomServerRemoteCreateForm = (p: {
     </Button>
   );
 
-  let handleSubmit = async () => {
-    await form.submitForm();
-  };
-
   return (
-    <Form
-      onSubmit={e => {
-        e.preventDefault();
-        if (currentStep < 1) {
-          setCurrentStep(currentStep + 1);
-          return;
-        }
-
-        void handleSubmit();
-      }}
-    >
+    <Form>
       <Stepper
         currentStep={currentStep}
         setCurrentStep={setCurrentStep}
@@ -181,77 +177,79 @@ export let CustomServerRemoteCreateForm = (p: {
             subtitle: 'Enter the remote server URL',
             render: () => {
               return (
-                <TemplateWrapper>
-                  <Input
-                    label="Remote URL"
-                    description="Enter the MCP provider URL you want to connect to."
-                    placeholder="https://mcp.monday.com/sse"
-                    {...form.getFieldProps('remoteUrl')}
-                  />
-                  <form.RenderError field="remoteUrl" />
+                <form
+                  onSubmit={e => {
+                    e.preventDefault();
+                    void handleRemoteSetupSubmit();
+                  }}
+                >
+                  <TemplateWrapper>
+                    <Input
+                      label="Remote URL"
+                      description="Enter the MCP provider URL you want to connect to."
+                      placeholder="https://mcp.monday.com/sse"
+                      {...form.getFieldProps('remoteUrl')}
+                    />
+                    <form.RenderError field="remoteUrl" />
 
-                  <Spacer size={15} />
+                    <Spacer size={15} />
 
-                  <Select
-                    value={form.values.remoteProtocol}
-                    label="MCP Transport Protocol"
-                    description="Which transport protocol does your MCP provider support?"
-                    items={[
-                      { label: 'SSE (Server-Sent Events)', id: 'sse' },
-                      { label: 'Streamable HTTP', id: 'streamable_http' }
-                    ]}
-                    onChange={v => {
-                      setHasManualRemoteProtocol(true);
-                      void form.setFieldValue('remoteProtocol', v);
-                    }}
-                  />
-                  <form.RenderError field="remoteProtocol" />
+                    <Select
+                      value={form.values.remoteProtocol}
+                      label="MCP Transport Protocol"
+                      description="Which transport protocol does your MCP provider support?"
+                      items={[
+                        { label: 'SSE (Server-Sent Events)', id: 'sse' },
+                        { label: 'Streamable HTTP', id: 'streamable_http' }
+                      ]}
+                      onChange={v => {
+                        setHasManualRemoteProtocol(true);
+                        void form.setFieldValue('remoteProtocol', v);
+                      }}
+                    />
+                    <form.RenderError field="remoteProtocol" />
 
-                  <Spacer size={10} />
+                    <Spacer size={10} />
 
-                  <Or text="Or" />
+                    <Or text="Or" />
 
-                  <Spacer size={10} />
+                    <Spacer size={10} />
 
-                  <Templates>
-                    {remoteServerTemplates.map(template => (
-                      <TemplatesItem
-                        key={template.remoteUrl}
-                        type="button"
-                        onClick={() => {
-                          form.resetForm();
+                    <Templates>
+                      {remoteServerTemplates.map(template => (
+                        <TemplatesItem
+                          key={template.remoteUrl}
+                          type="button"
+                          onClick={() => {
+                            form.resetForm();
 
-                          let remoteProtocol = getCustomServerRemoteProtocolFromUrl(
-                            template.remoteUrl
-                          );
+                            let remoteProtocol = getCustomServerRemoteProtocolFromUrl(
+                              template.remoteUrl
+                            );
 
-                          setHasManualRemoteProtocol(false);
-                          void form.setFieldValue('remoteUrl', template.remoteUrl);
-                          void form.setFieldValue('remoteProtocol', remoteProtocol);
-                          void form.setFieldValue('name', template.name);
+                            setHasManualRemoteProtocol(false);
+                            void form.setFieldValue('remoteUrl', template.remoteUrl);
+                            void form.setFieldValue('remoteProtocol', remoteProtocol);
+                            void form.setFieldValue('name', template.name);
 
-                          setCurrentStep(1);
-                        }}
-                      >
-                        <Avatar entity={template} size={24} imageFit="contain" />
-                        <span>{template.name}</span>
-                      </TemplatesItem>
-                    ))}
-                  </Templates>
+                            setCurrentStep(1);
+                          }}
+                        >
+                          <Avatar entity={template} size={24} imageFit="contain" />
+                          <span>{template.name}</span>
+                        </TemplatesItem>
+                      ))}
+                    </Templates>
 
-                  <Actions>
-                    {close}
+                    <Actions>
+                      {close}
 
-                    <Button
-                      type="button"
-                      size="2"
-                      disabled={!form.values.remoteUrl}
-                      onClick={() => setCurrentStep(1)}
-                    >
-                      Continue
-                    </Button>
-                  </Actions>
-                </TemplateWrapper>
+                      <Button type="submit" size="2">
+                        Continue
+                      </Button>
+                    </Actions>
+                  </TemplateWrapper>
+                </form>
               );
             }
           },
@@ -261,7 +259,7 @@ export let CustomServerRemoteCreateForm = (p: {
             subtitle: 'Review and deploy',
             render: () => {
               return (
-                <>
+                <form onSubmit={form.handleSubmit}>
                   <Input label="Name" {...form.getFieldProps('name')} autoFocus />
                   <form.RenderError field="name" />
 
@@ -276,14 +274,13 @@ export let CustomServerRemoteCreateForm = (p: {
                     <Button
                       loading={createCustomServer.isLoading}
                       success={createCustomServer.isSuccess}
-                      type="button"
-                      onClick={handleSubmit}
+                      type="submit"
                       size="2"
                     >
                       Create
                     </Button>
                   </Actions>
-                </>
+                </form>
               );
             }
           }

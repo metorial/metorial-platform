@@ -27,11 +27,13 @@ let normalizeProviderDeploymentStatus = (
 export let ProviderDeploymentsTable = ({
   instanceId,
   providerId,
+  providerName,
   status,
   search
 }: {
   instanceId: string;
   providerId?: string;
+  providerName?: string;
   status?: string;
   search?: string;
 }) => {
@@ -48,14 +50,22 @@ export let ProviderDeploymentsTable = ({
     () => [...new Set((deployments.data?.items ?? []).map(deployment => deployment.providerId))],
     [deployments.data?.items]
   );
-  let providers = useProviders(instanceId, { id: providerIds });
+  let shouldLoadProviders =
+    providerIds.length > 0 &&
+    !(providerId && providerName && providerIds.length === 1 && providerIds[0] === providerId);
+  let providers = useProviders(instanceId, shouldLoadProviders ? { id: providerIds } : null);
   let providerNameMap = useMemo(() => {
     let map = new Map<string, string>();
+
+    if (providerId && providerName) {
+      map.set(providerId, providerName);
+    }
+
     for (let provider of providers.data?.items ?? []) {
       if (provider.id && provider.name) map.set(provider.id, provider.name);
     }
     return map;
-  }, [providers.data?.items]);
+  }, [providerId, providerName, providers.data?.items]);
 
   let deploymentsContent = renderWithPagination(deployments)(deployments => (
     <>
@@ -96,6 +106,12 @@ export let ProviderDeploymentsTable = ({
       )}
     </>
   ));
+
+  if (!shouldLoadProviders) {
+    // Skipped loaders still report loading in data-hooks, so don't gate on providers
+    // when we already know the current provider name.
+    return deploymentsContent;
+  }
 
   return renderWithLoader({ providers })(() => deploymentsContent);
 };

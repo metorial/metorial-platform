@@ -1,6 +1,8 @@
 import { styled } from 'styled-components';
 
-export let LinkButton = styled('button')`
+export let LinkButton = styled('button').attrs({
+  type: 'button'
+})`
   background: none;
   border: none;
   cursor: pointer;

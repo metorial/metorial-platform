@@ -7,6 +7,14 @@ import { showProviderConfigFormModal } from '../../../scenes/providerConfigs/mod
 import { ProviderDeploymentsList } from '../../../scenes/providerDeployments/list';
 import { ProvidersWithDeploymentsSearch } from '../../../scenes/providers/search';
 
+let DIALOG_EXIT_MS = 220;
+
+let closeAndThen = (close: () => void, next?: () => void) => {
+  close();
+  if (!next) return;
+  setTimeout(() => next(), DIALOG_EXIT_MS);
+};
+
 let PickerDialogScaffold = ({
   title,
   description,
@@ -40,8 +48,7 @@ let PickerDialogScaffold = ({
               size="2"
               variant="outline"
               onClick={() => {
-                close();
-                onBack?.();
+                closeAndThen(close, onBack);
               }}
             >
               Back
@@ -96,8 +103,7 @@ let DeploymentPicker = ({
             : 'No deployments found. Create a deployment first.'
         }
         onDeploymentClick={deployment => {
-          close();
-          onSelect(deployment.id);
+          closeAndThen(close, () => onSelect(deployment.id));
         }}
       />
     </PickerDialogScaffold>
@@ -128,8 +134,7 @@ let ProviderPicker = ({
         selectionMode={selectionMode}
         emptyText="No providers found. Create a deployment first."
         onSelect={provider => {
-          close();
-          onSelect(provider.id);
+          closeAndThen(close, () => onSelect(provider.id));
         }}
       />
     </PickerDialogScaffold>

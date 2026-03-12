@@ -82,6 +82,16 @@ export let ProviderLayout = () => {
   let versions = useProviderVersions(instance.data?.id, providerId);
   let allVersions: ProviderVersion[] = versions.data?.items ?? [];
   let currentVersionId = providerData?.currentVersion?.id;
+  let sortedVersions = useMemo(
+    () =>
+      [...allVersions].sort((a, b) => {
+        if (a.id === currentVersionId) return -1;
+        if (b.id === currentVersionId) return 1;
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      }),
+    [allVersions, currentVersionId]
+  );
+  let fallbackVersionId = currentVersionId ?? sortedVersions[0]?.id;
 
   let [selectedVersionId, setSelectedVersionIdState] = useState<ProviderVersionId | undefined>(
     undefined
@@ -105,10 +115,10 @@ export let ProviderLayout = () => {
       }
     }
 
-    if (currentVersionId) {
-      setSelectedVersionIdState(currentVersionId);
+    if (fallbackVersionId) {
+      setSelectedVersionIdState(fallbackVersionId);
     }
-  }, [allVersions, currentVersionId, selectedVersionId, versionStorageKey]);
+  }, [allVersions, fallbackVersionId, selectedVersionId, versionStorageKey]);
 
   // Keep persisted selection in sync and reset invalid selections.
   useEffect(() => {
@@ -117,7 +127,7 @@ export let ProviderLayout = () => {
       allVersions.length > 0 &&
       !allVersions.some(v => v.id === selectedVersionId)
     ) {
-      setSelectedVersionIdState(currentVersionId);
+      setSelectedVersionIdState(fallbackVersionId);
       return;
     }
 
@@ -128,9 +138,9 @@ export let ProviderLayout = () => {
     } else {
       window.sessionStorage.removeItem(versionStorageKey);
     }
-  }, [allVersions, currentVersionId, selectedVersionId, versionStorageKey]);
+  }, [allVersions, fallbackVersionId, selectedVersionId, versionStorageKey]);
 
-  let effectiveVersionId = selectedVersionId ?? currentVersionId;
+  let effectiveVersionId = selectedVersionId ?? fallbackVersionId;
   let selectedVersion = allVersions.find(v => v.id === effectiveVersionId);
   let isDefaultVersion = effectiveVersionId === currentVersionId;
 
@@ -138,19 +148,8 @@ export let ProviderLayout = () => {
   let listing: ProviderListing | undefined = listingData.data ?? undefined;
 
   let resetToDefault = () => {
-    if (currentVersionId) setSelectedVersionIdState(currentVersionId);
+    if (fallbackVersionId) setSelectedVersionIdState(fallbackVersionId);
   };
-
-  // Sort: current version first, then by date descending
-  let sortedVersions = useMemo(
-    () =>
-      [...allVersions].sort((a, b) => {
-        if (a.id === currentVersionId) return -1;
-        if (b.id === currentVersionId) return 1;
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      }),
-    [allVersions, currentVersionId]
-  );
 
   let versionContext = useMemo<ProviderVersionContextValue>(
     () => ({

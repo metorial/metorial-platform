@@ -260,7 +260,7 @@ let CreateDeploymentInline = ({
         instanceId,
         providerId,
         name: values.name.trim(),
-        description: values.description.trim()
+        description: values.description?.trim() || undefined
       });
 
       if (res) {
@@ -270,7 +270,7 @@ let CreateDeploymentInline = ({
     schema: yup =>
       yup.object({
         name: yup.string().required('Name is required'),
-        description: yup.string().defined()
+        description: yup.string().ensure()
       })
   });
 
@@ -286,6 +286,7 @@ let CreateDeploymentInline = ({
 
         <Input label="Description" {...form.getFieldProps('description')} />
         <form.RenderError field="description" />
+        <Spacer height={12} />
 
         <Dialog.Actions>
           <Button

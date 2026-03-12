@@ -126,7 +126,9 @@ export let ContentSide = styled(RadixDialogDialog.Content)`
   }
 `;
 
-export let Close = styled('button')`
+export let Close = styled('button').attrs({
+  type: 'button'
+})`
   position: absolute;
   top: 15px;
   right: 15px;

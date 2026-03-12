@@ -73,7 +73,7 @@ export let ProviderSessionForm = (
     schema: yup =>
       yup.object({
         name: yup.string().defined(),
-        description: yup.string().defined()
+        description: yup.string().ensure()
       })
   });
 

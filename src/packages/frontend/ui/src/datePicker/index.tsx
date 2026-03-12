@@ -36,7 +36,9 @@ let fadeOut = keyframes`
   }
 `;
 
-let Trigger = styled(RadixPopover.Trigger)`
+let Trigger = styled(RadixPopover.Trigger).attrs({
+  type: 'button'
+})`
   display: flex;
   outline: 1px solid transparent;
   background: ${theme.colors.gray300};
@@ -107,7 +109,9 @@ let Week = styled('div')`
   gap: 2px;
 `;
 
-let Day = styled('button')`
+let Day = styled('button').attrs({
+  type: 'button'
+})`
   display: flex;
   align-items: center;
   justify-content: center;
@@ -207,6 +211,7 @@ export let DatePicker = (
             <Header>
               <Tooltip content="Previous Month">
                 <Button
+                  type="button"
                   size="2"
                   variant="soft"
                   iconLeft={<RiArrowLeftSFill />}
@@ -224,6 +229,7 @@ export let DatePicker = (
               </AnimateContent>
               <Tooltip content="Next Month">
                 <Button
+                  type="button"
                   size="2"
                   variant="soft"
                   iconLeft={<RiArrowRightSLine />}
@@ -269,6 +275,7 @@ export let DatePicker = (
             <Footer>
               {props.resettable && (
                 <Button
+                  type="button"
                   size="2"
                   variant="soft"
                   onClick={() => {
@@ -281,6 +288,7 @@ export let DatePicker = (
 
               <RadixPopover.Close asChild>
                 <Button
+                  type="button"
                   size="2"
                   variant="soft"
                   autoFocus

@@ -79,7 +79,6 @@ export let ProviderAuthConfigForm = (
     return getAuthMethodHasSchema(method);
   });
 
-  let [credentialsData, setCredentialsData] = useState<Record<string, unknown>>({});
   let [step, setStep] = useState(
     props.type === 'create' &&
       !!props.hideAuthMethodStep &&
@@ -93,7 +92,8 @@ export let ProviderAuthConfigForm = (
       name: '',
       description: '',
       authMethodId: props.type === 'create' ? props.initialAuthMethodId ?? '' : '',
-      credentialsDataJson: '{}'
+      credentialsDataJson: '{}',
+      credentialsData: {} as Record<string, unknown>
     },
     onSubmit: async values => {
       form.setFieldTouched('authMethodId', true, false);
@@ -103,7 +103,7 @@ export let ProviderAuthConfigForm = (
 
       let parsedCredentials: Record<string, unknown> = {};
       if (hasSchema) {
-        parsedCredentials = credentialsData;
+        parsedCredentials = values.credentialsData;
       } else if (isOAuthWithoutSchema) {
         parsedCredentials = {};
       } else {
@@ -140,8 +140,9 @@ export let ProviderAuthConfigForm = (
     schema: yup =>
       yup.object({
         name: yup.string().trim().required('Name is required'),
-        description: yup.string().defined(),
+        description: yup.string().ensure(),
         authMethodId: yup.string().required('Authentication method is required'),
+        credentialsData: yup.mixed<Record<string, unknown>>().defined(),
         credentialsDataJson: yup
           .string()
           .defined()
@@ -202,7 +203,7 @@ export let ProviderAuthConfigForm = (
   let includeAuthMethodStep = (!hasSingleMethod && !skipAuthMethodStep) || showHiddenAuthMethodStep;
 
   let resetCredentials = () => {
-    setCredentialsData({});
+    form.setFieldValue('credentialsData', {});
     form.setFieldValue('credentialsDataJson', '{}');
     form.setFieldTouched('credentialsDataJson', false, false);
     form.setFieldError('credentialsDataJson', undefined);
@@ -235,8 +236,8 @@ export let ProviderAuthConfigForm = (
   let credentialsSection = hasSchema ? (
     <JsonSchemaInput
       schema={schemaObj}
-      value={credentialsData}
-      onChange={setCredentialsData}
+      value={form.values.credentialsData}
+      onChange={value => form.setFieldValue('credentialsData', value)}
       variant="raw"
     />
   ) : isOAuthWithoutSchema ? (
@@ -406,7 +407,7 @@ export let ProviderAuthConfigForm = (
             </Button>
             <Button
               type="submit"
-              loading={createMutation.isPending}
+              loading={createMutation.isLoading}
               disabled={!form.values.authMethodId}
             >
               Create
@@ -495,7 +496,7 @@ export let ProviderAuthConfigForm = (
           </Button>
           <Button
             type="submit"
-            loading={createMutation.isPending}
+            loading={createMutation.isLoading}
             disabled={!form.values.authMethodId}
           >
             Update
