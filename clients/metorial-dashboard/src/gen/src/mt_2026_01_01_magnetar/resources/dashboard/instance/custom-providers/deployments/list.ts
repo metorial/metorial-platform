@@ -4,8 +4,8 @@ export type DashboardInstanceCustomProvidersDeploymentsListOutput = {
   items: {
     object: 'custom_provider.deployment';
     id: string;
-    status: string;
-    trigger: string;
+    status: 'failed' | 'queued' | 'deploying' | 'succeeded';
+    trigger: 'manual' | 'system' | 'scm';
     customProviderId: string;
     providerId: string | null;
     customProviderVersionId: string | null;

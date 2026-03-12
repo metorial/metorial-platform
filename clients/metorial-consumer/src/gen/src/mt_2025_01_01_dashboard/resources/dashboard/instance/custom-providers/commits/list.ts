@@ -4,8 +4,8 @@ export type DashboardInstanceCustomProvidersCommitsListOutput = {
   items: {
     object: 'custom_provider.commit';
     id: string;
-    status: string;
-    trigger: string;
+    status: 'pending' | 'applied' | 'failed';
+    trigger: 'manual' | 'system' | 'scm';
     error: { code: string; message: string } | null;
     customProviderId: string;
     providerId: string | null;
@@ -33,14 +33,18 @@ export type DashboardInstanceCustomProvidersCommitsListOutput = {
     targetCustomProviderVersion: {
       object: 'custom_provider.version';
       id: string;
-      status: string;
+      status:
+        | 'queued'
+        | 'deploying'
+        | 'deployment_succeeded'
+        | 'deployment_failed';
       index: number;
       identifier: string;
       deployment: {
         object: 'custom_provider.deployment';
         id: string;
-        status: string;
-        trigger: string;
+        status: 'failed' | 'queued' | 'deploying' | 'succeeded';
+        trigger: 'manual' | 'system' | 'scm';
         customProviderId: string;
         providerId: string | null;
         customProviderVersionId: string | null;
@@ -165,14 +169,18 @@ export type DashboardInstanceCustomProvidersCommitsListOutput = {
     previousCustomProviderVersion: {
       object: 'custom_provider.version';
       id: string;
-      status: string;
+      status:
+        | 'queued'
+        | 'deploying'
+        | 'deployment_succeeded'
+        | 'deployment_failed';
       index: number;
       identifier: string;
       deployment: {
         object: 'custom_provider.deployment';
         id: string;
-        status: string;
-        trigger: string;
+        status: 'failed' | 'queued' | 'deploying' | 'succeeded';
+        trigger: 'manual' | 'system' | 'scm';
         customProviderId: string;
         providerId: string | null;
         customProviderVersionId: string | null;

@@ -13,7 +13,7 @@ export type ProviderDeploymentsAuthConfigsExportsListOutput = {
       id: string;
       type: 'manual' | 'oauth_automated' | 'oauth_manual';
       source: 'manual' | 'setup_session' | 'system';
-      status: 'active' | 'archived';
+      status: 'active' | 'archived' | 'deleted';
       isDefault: boolean;
       providerId: string;
       name: string | null;

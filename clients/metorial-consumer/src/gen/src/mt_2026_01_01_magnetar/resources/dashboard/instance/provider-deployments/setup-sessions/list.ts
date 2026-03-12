@@ -4,8 +4,14 @@ export type DashboardInstanceProviderDeploymentsSetupSessionsListOutput = {
   items: {
     object: 'provider.setup_session';
     id: string;
-    type: string;
-    status: string;
+    type: 'auth_only' | 'config_only' | 'auth_and_config';
+    status:
+      | 'failed'
+      | 'archived'
+      | 'deleted'
+      | 'pending'
+      | 'completed'
+      | 'expired';
     url: string;
     name: string | null;
     description: string | null;
@@ -63,7 +69,7 @@ export type DashboardInstanceProviderDeploymentsSetupSessionsListOutput = {
       id: string;
       type: 'manual' | 'oauth_automated' | 'oauth_manual';
       source: 'manual' | 'setup_session' | 'system';
-      status: 'active' | 'archived';
+      status: 'active' | 'archived' | 'deleted';
       isDefault: boolean;
       providerId: string;
       name: string | null;

@@ -4,9 +4,9 @@ export type SessionsMessagesListOutput = {
   items: {
     object: 'session.message';
     id: string;
-    type: string;
-    status: string;
-    source: string;
+    type: 'tool_call' | 'mcp_control' | 'mcp_message' | 'unknown';
+    status: 'waiting_for_response' | 'failed' | 'succeeded';
+    source: 'client' | 'provider';
     sessionId: string;
     sessionProviderId: string | null;
     connectionId: string | null;
@@ -37,10 +37,10 @@ export type SessionsMessagesListOutput = {
       object: 'session.tool_call';
       id: string;
       toolKey: string;
-      type: string;
-      status: string;
-      source: string;
-      transport: string;
+      type: 'tool_call' | 'mcp_control' | 'mcp_message' | 'unknown';
+      status: 'waiting_for_response' | 'failed' | 'succeeded';
+      source: 'client' | 'provider';
+      transport: 'tool_call' | 'mcp' | 'metorial_protocol' | 'system';
       sessionId: string;
       messageId: string;
       sessionProviderId: string | null;

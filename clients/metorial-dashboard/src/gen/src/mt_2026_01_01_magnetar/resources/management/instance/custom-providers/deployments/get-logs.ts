@@ -8,7 +8,7 @@ export type ManagementInstanceCustomProvidersDeploymentsGetLogsOutput = {
     id: string;
     name: string;
     type: string;
-    status: string;
+    status: 'pending' | 'running' | 'succeeded' | 'failed' | 'canceled';
     logs: {
       object: 'custom_provider.deployment.logs.step.log';
       timestamp: Date;

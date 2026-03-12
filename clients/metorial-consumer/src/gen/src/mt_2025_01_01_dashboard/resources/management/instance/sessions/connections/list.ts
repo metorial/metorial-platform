@@ -4,8 +4,7 @@ export type ManagementInstanceSessionsConnectionsListOutput = {
   items: {
     object: 'session.connection';
     id: string;
-    status: string;
-    connectionState: string;
+    connectionState: 'connected' | 'disconnected';
     transport: string;
     usage: {
       totalProductiveClientMessageCount: number;
@@ -44,7 +43,6 @@ export let mapManagementInstanceSessionsConnectionsListOutput =
         mtMap.object({
           object: mtMap.objectField('object', mtMap.passthrough()),
           id: mtMap.objectField('id', mtMap.passthrough()),
-          status: mtMap.objectField('status', mtMap.passthrough()),
           connectionState: mtMap.objectField(
             'connection_state',
             mtMap.passthrough()

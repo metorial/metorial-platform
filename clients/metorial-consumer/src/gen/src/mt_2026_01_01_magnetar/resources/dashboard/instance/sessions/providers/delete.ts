@@ -3,7 +3,7 @@ import { mtMap } from '@metorial/util-resource-mapper';
 export type DashboardInstanceSessionsProvidersDeleteOutput = {
   object: 'session.provider';
   id: string;
-  status: string;
+  status: 'active' | 'archived' | 'deleted';
   usage: {
     totalProductiveClientMessageCount: number;
     totalProductiveProviderMessageCount: number;

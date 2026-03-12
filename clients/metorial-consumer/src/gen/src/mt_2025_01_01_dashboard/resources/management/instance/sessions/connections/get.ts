@@ -3,8 +3,7 @@ import { mtMap } from '@metorial/util-resource-mapper';
 export type ManagementInstanceSessionsConnectionsGetOutput = {
   object: 'session.connection';
   id: string;
-  status: string;
-  connectionState: string;
+  connectionState: 'connected' | 'disconnected';
   transport: string;
   usage: {
     totalProductiveClientMessageCount: number;
@@ -37,7 +36,6 @@ export let mapManagementInstanceSessionsConnectionsGetOutput =
   mtMap.object<ManagementInstanceSessionsConnectionsGetOutput>({
     object: mtMap.objectField('object', mtMap.passthrough()),
     id: mtMap.objectField('id', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
     connectionState: mtMap.objectField('connection_state', mtMap.passthrough()),
     transport: mtMap.objectField('transport', mtMap.passthrough()),
     usage: mtMap.objectField(
