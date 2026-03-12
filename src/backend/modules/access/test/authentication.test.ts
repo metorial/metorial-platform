@@ -5,9 +5,26 @@ import { authenticationService } from '../src/services/authentication';
 import {
   scopes,
   instancePublishableTokenScopes,
+  instancePublishableTokenWithConsumerScopes,
   instanceSecretTokenScopes,
   orgManagementTokenScopes
 } from '../src/definitions';
+
+let mocks = vi.hoisted(() => ({
+  db: {
+    consumerSession: {
+      findFirst: vi.fn(),
+      update: vi.fn()
+    },
+    consumerGroup: {
+      findMany: vi.fn()
+    }
+  },
+  consumerTokens: {
+    verify: vi.fn()
+  },
+  createAresInternalClient: vi.fn()
+}));
 
 // Mock external dependencies
 vi.mock('@metorial/module-user', () => ({
@@ -35,15 +52,22 @@ vi.mock('../src/services/fineGrainedAuth', () => ({
   }
 }));
 
-vi.mock('@metorial/module-consumer', () => ({
-  consumerAuthService: {
-    authenticateWithConsumerToken: vi.fn(),
-    createSession: vi.fn(),
-    validateSession: vi.fn()
-  },
-  consumerSurfaceService: {
-    getSurface: vi.fn()
-  }
+vi.mock('@metorial/config', () => ({
+  getConfig: () => ({
+    encryptionSecret: 'test-secret'
+  })
+}));
+
+vi.mock('@lowerdeck/tokens', () => ({
+  Tokens: vi.fn(() => mocks.consumerTokens)
+}));
+
+vi.mock('@metorial-services/ares-client', () => ({
+  createAresInternalClient: mocks.createAresInternalClient
+}));
+
+vi.mock('@metorial/db', () => ({
+  db: mocks.db
 }));
 
 import { userAuthService } from '@metorial/module-user';
@@ -57,10 +81,39 @@ describe('AuthenticationService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(UnifiedApiKey.from).mockReturnValue(null);
+    mocks.consumerTokens.verify.mockResolvedValue({
+      verified: true,
+      data: {
+        sessionId: 'csn_1',
+        nonce: 'nonce-1',
+        surfaceId: 'csf_1'
+      }
+    });
+    mocks.db.consumerSession.update.mockResolvedValue({});
+    mocks.db.consumerGroup.findMany.mockResolvedValue([]);
+    mocks.createAresInternalClient.mockReturnValue({
+      session: {
+        getLoggedInUsers: vi.fn()
+      },
+      user: {
+        listIdentities: vi.fn()
+      },
+      sso: {
+        listTenants: vi.fn()
+      }
+    });
     mockContext = {
       requestId: 'test-request-id',
       ip: '127.0.0.1'
     } as Context;
+  });
+
+  describe('instance publishable consumer scopes', () => {
+    it('retains every publishable scope when consumer access is attached', () => {
+      expect(instancePublishableTokenWithConsumerScopes).toEqual(
+        expect.arrayContaining(instancePublishableTokenScopes)
+      );
+    });
   });
 
   describe('authenticate', () => {
@@ -100,7 +153,7 @@ describe('AuthenticationService', () => {
         organization: mockOrg,
         actor: mockActor
       };
-      let mockApiKey = { id: 'key-1', machineAccess: mockMachineAccess };
+      let mockApiKey = { id: 'key-1', oid: 55n, machineAccess: mockMachineAccess };
 
       vi.mocked(machineAccessAuthService.authenticateWithMachineAccessToken).mockResolvedValue(
         {
@@ -295,6 +348,7 @@ describe('AuthenticationService', () => {
       let mockProject = { id: 'proj-1', name: 'Test Project' };
       let mockInstance = {
         id: 'inst-1',
+        oid: 2n,
         slug: 'test-instance',
         project: mockProject
       };
@@ -304,7 +358,7 @@ describe('AuthenticationService', () => {
         actor: mockActor,
         instance: mockInstance
       };
-      let mockApiKey = { id: 'key-1', machineAccess: mockMachineAccess };
+      let mockApiKey = { id: 'key-1', oid: 55n, machineAccess: mockMachineAccess };
 
       vi.mocked(machineAccessAuthService.authenticateWithMachineAccessToken).mockResolvedValue(
         {
@@ -330,6 +384,267 @@ describe('AuthenticationService', () => {
           expect(result.restrictions.instance).toEqual(mockInstance);
         }
       }
+    });
+
+    it('should attach consumer context to instance_publishable tokens', async () => {
+      let mockOrg = { id: 'org-1', oid: 1n, slug: 'test-org', name: 'Test Org' };
+      let mockActor = { id: 'actor-1', organizationId: 'org-1' };
+      let mockProject = { id: 'proj-1', name: 'Test Project' };
+      let mockInstance = {
+        id: 'inst-1',
+        oid: 2n,
+        slug: 'test-instance',
+        project: mockProject
+      };
+      let mockMachineAccess = {
+        type: 'instance_publishable',
+        organization: mockOrg,
+        actor: mockActor,
+        instance: mockInstance
+      };
+      let mockApiKey = { id: 'key-1', oid: 55n, machineAccess: mockMachineAccess };
+      let mockConsumerProfile = {
+        oid: 88n,
+        id: 'cop_1',
+        email: 'test@example.com',
+        surfaceOid: 22n,
+        accessTagOid: 11n,
+        personalConsumerGroupOid: 99n
+      };
+      let mockConsumerSession = {
+        oid: 77n,
+        id: 'csn_1',
+        tokenNonce: 'nonce-1',
+        aresSessionId: null
+      };
+      let mockConsumerSurface = {
+        id: 'csf_1',
+        oid: 22n,
+        status: 'active',
+        instanceOid: 2n,
+        publishableApiKeyOid: 55n,
+        aresAppId: null
+      };
+      let mockConsumerGroups = [
+        {
+          oid: 101n,
+          id: 'cog_1',
+          accessTagOid: 12n,
+          isDefault: true,
+          ssoGroupIds: [],
+          assignedVia: 'default'
+        }
+      ];
+
+      vi.mocked(machineAccessAuthService.authenticateWithMachineAccessToken).mockResolvedValue(
+        {
+          apiKey: mockApiKey
+        } as any
+      );
+      mocks.db.consumerSession.findFirst.mockResolvedValue({
+        ...mockConsumerSession,
+        consumerProfile: {
+          ...mockConsumerProfile,
+          surface: mockConsumerSurface
+        }
+      });
+      mocks.db.consumerGroup.findMany.mockResolvedValue([
+        {
+          oid: 101n,
+          id: 'cog_1',
+          accessTagOid: 12n,
+          isDefault: true,
+          ssoGroupIds: []
+        }
+      ]);
+
+      let result = await authenticationService.authenticate({
+        type: 'api_key',
+        apiKey: 'pk_pub_123',
+        context: mockContext,
+        consumerSessionClientSecret: 'consumer-token'
+      });
+
+      expect(result.type).toBe('machine');
+      if (result.type === 'machine' && result.restrictions.type === 'instance') {
+        expect(result.orgScopes).toEqual(instancePublishableTokenWithConsumerScopes);
+        expect(result.restrictions.consumer).toEqual(
+          expect.objectContaining({
+            consumerSurface: mockConsumerSurface,
+            consumerSession: expect.objectContaining(mockConsumerSession),
+            consumerProfile: expect.objectContaining(mockConsumerProfile),
+            consumerGroups: mockConsumerGroups,
+            accessTags: [11n, 12n]
+          })
+        );
+      }
+
+      expect(mocks.consumerTokens.verify).toHaveBeenCalledWith({
+        token: 'consumer-token',
+        expectedType: 'consumer_token'
+      });
+      expect(mocks.db.consumerSession.findFirst).toHaveBeenCalledWith({
+        where: {
+          id: 'csn_1',
+          tokenNonce: 'nonce-1',
+          revokedAt: null,
+          expiresAt: {
+            gt: expect.any(Date)
+          },
+          consumerProfile: {
+            organizationOid: 1n,
+            surface: {
+              id: 'csf_1',
+              status: 'active'
+            }
+          }
+        },
+        include: expect.any(Object)
+      });
+    });
+
+    it('should reject consumer tokens that belong to a different instance', async () => {
+      let mockOrg = { id: 'org-1', oid: 1n, slug: 'test-org', name: 'Test Org' };
+      let mockActor = { id: 'actor-1', organizationId: 'org-1' };
+      let mockProject = { id: 'proj-1', name: 'Test Project' };
+      let mockInstance = {
+        id: 'inst-1',
+        oid: 2n,
+        slug: 'test-instance',
+        project: mockProject
+      };
+      let mockMachineAccess = {
+        type: 'instance_publishable',
+        organization: mockOrg,
+        actor: mockActor,
+        instance: mockInstance
+      };
+      let mockApiKey = { id: 'key-1', oid: 55n, machineAccess: mockMachineAccess };
+
+      vi.mocked(machineAccessAuthService.authenticateWithMachineAccessToken).mockResolvedValue({
+        apiKey: mockApiKey
+      } as any);
+      mocks.db.consumerSession.findFirst.mockResolvedValue({
+        oid: 77n,
+        id: 'csn_1',
+        tokenNonce: 'nonce-1',
+        aresSessionId: null,
+        consumerProfile: {
+          oid: 88n,
+          id: 'cop_1',
+          email: 'test@example.com',
+          surfaceOid: 22n,
+          accessTagOid: 11n,
+          personalConsumerGroupOid: 99n,
+          surface: {
+            id: 'csf_1',
+            oid: 22n,
+            status: 'active',
+            instanceOid: 99n,
+            publishableApiKeyOid: 55n,
+            aresAppId: null
+          }
+        }
+      });
+
+      await expect(
+        authenticationService.authenticate({
+          type: 'api_key',
+          apiKey: 'pk_pub_123',
+          context: mockContext,
+          consumerSessionClientSecret: 'consumer-token'
+        })
+      ).rejects.toThrow(ServiceError);
+    });
+
+    it('should reject consumer tokens that belong to a different publishable key', async () => {
+      let mockOrg = { id: 'org-1', oid: 1n, slug: 'test-org', name: 'Test Org' };
+      let mockActor = { id: 'actor-1', organizationId: 'org-1' };
+      let mockProject = { id: 'proj-1', name: 'Test Project' };
+      let mockInstance = {
+        id: 'inst-1',
+        oid: 2n,
+        slug: 'test-instance',
+        project: mockProject
+      };
+      let mockMachineAccess = {
+        type: 'instance_publishable',
+        organization: mockOrg,
+        actor: mockActor,
+        instance: mockInstance
+      };
+      let mockApiKey = { id: 'key-1', oid: 55n, machineAccess: mockMachineAccess };
+
+      vi.mocked(machineAccessAuthService.authenticateWithMachineAccessToken).mockResolvedValue({
+        apiKey: mockApiKey
+      } as any);
+      mocks.db.consumerSession.findFirst.mockResolvedValue({
+        oid: 77n,
+        id: 'csn_1',
+        tokenNonce: 'nonce-1',
+        aresSessionId: null,
+        consumerProfile: {
+          oid: 88n,
+          id: 'cop_1',
+          email: 'test@example.com',
+          surfaceOid: 22n,
+          accessTagOid: 11n,
+          personalConsumerGroupOid: 99n,
+          surface: {
+            id: 'csf_1',
+            oid: 22n,
+            status: 'active',
+            instanceOid: 2n,
+            publishableApiKeyOid: 99n,
+            aresAppId: null
+          }
+        }
+      });
+
+      await expect(
+        authenticationService.authenticate({
+          type: 'api_key',
+          apiKey: 'pk_pub_123',
+          context: mockContext,
+          consumerSessionClientSecret: 'consumer-token'
+        })
+      ).rejects.toThrow(ServiceError);
+    });
+
+    it('should reject consumer tokens when used with secret instance keys', async () => {
+      let mockOrg = { id: 'org-1', oid: 1n, slug: 'test-org' };
+      let mockActor = { id: 'actor-1' };
+      let mockProject = { id: 'proj-1' };
+      let mockInstance = {
+        id: 'inst-1',
+        oid: 2n,
+        slug: 'test-instance',
+        project: mockProject
+      };
+      let mockMachineAccess = {
+        type: 'instance_secret',
+        organization: mockOrg,
+        actor: mockActor,
+        instance: mockInstance
+      };
+      let mockApiKey = { id: 'key-1', machineAccess: mockMachineAccess };
+
+      vi.mocked(machineAccessAuthService.authenticateWithMachineAccessToken).mockResolvedValue(
+        {
+          apiKey: mockApiKey
+        } as any
+      );
+
+      await expect(
+        authenticationService.authenticate({
+          type: 'api_key',
+          apiKey: 'pk_sec_123',
+          context: mockContext,
+          consumerSessionClientSecret: 'consumer-token'
+        })
+      ).rejects.toThrow(ServiceError);
+      expect(mocks.consumerTokens.verify).not.toHaveBeenCalled();
+      expect(mocks.db.consumerSession.findFirst).not.toHaveBeenCalled();
     });
 
     it('should authenticate instance_secret token with broader scopes', async () => {
@@ -479,6 +794,49 @@ describe('AuthenticationService', () => {
         expect(result.orgScopes).not.toContain('user:read');
         expect(result.orgScopes).not.toContain('user:write');
       }
+    });
+
+    it('should reject consumer tokens on organization management keys', async () => {
+      let mockOrg = { id: 'org-1', slug: 'test-org', name: 'Test Org' };
+      let mockActor = { id: 'actor-1', organizationId: 'org-1' };
+      let mockMachineAccess = {
+        type: 'organization_management',
+        organization: mockOrg,
+        actor: mockActor
+      };
+      let mockApiKey = { id: 'key-1', machineAccess: mockMachineAccess };
+
+      vi.mocked(machineAccessAuthService.authenticateWithMachineAccessToken).mockResolvedValue({
+        apiKey: mockApiKey
+      } as any);
+
+      await expect(
+        authenticationService.authenticate({
+          type: 'api_key',
+          apiKey: 'pk_org_123',
+          context: mockContext,
+          consumerSessionClientSecret: 'consumer-token'
+        })
+      ).rejects.toThrow(ServiceError);
+    });
+  });
+
+  describe('authenticateApiKey - fine grained tokens', () => {
+    it('should reject consumer tokens on fine grained keys', async () => {
+      vi.mocked(UnifiedApiKey.from).mockReturnValue({
+        type: 'fine_grained_token'
+      } as any);
+
+      await expect(
+        authenticationService.authenticate({
+          type: 'api_key',
+          apiKey: 'metorial_fk_abc',
+          context: mockContext,
+          consumerSessionClientSecret: 'consumer-token'
+        })
+      ).rejects.toThrow(ServiceError);
+
+      expect(fineGrainedAuthService.authenticateWithFineGrainedToken).not.toHaveBeenCalled();
     });
   });
 
