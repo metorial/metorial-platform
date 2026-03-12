@@ -50,15 +50,13 @@ export let v1ProviderPresenter = Presenter.create(providerType)
         description: 'Unique provider identifier',
         examples: ['pro_5gHjKlMnPqRsTuVw']
       }),
-      access: v.string({
+      access: v.enumOf(['public', 'tenant'], {
         name: 'access',
-        description: 'Access level of the provider',
-        examples: ['public', 'tenant']
+        description: 'Access level of the provider'
       }),
-      status: v.string({
+      status: v.enumOf(['active', 'archived', 'deleted'], {
         name: 'status',
-        description: 'Current status of the provider',
-        examples: ['active', 'archived']
+        description: 'Current status of the provider'
       }),
       publisher: v1PublisherPresenter.schema,
       current_version: v.nullable(v1ProviderVersionPresenter.schema),

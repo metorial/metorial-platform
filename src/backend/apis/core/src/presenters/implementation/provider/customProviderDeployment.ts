@@ -79,15 +79,13 @@ export let v1CustomProviderDeploymentPresenter = Presenter.create(customProvider
         description: 'Unique custom provider deployment identifier',
         examples: ['cpd_1aBcDeFgHjKlMnPq']
       }),
-      status: v.string({
+      status: v.enumOf(['failed', 'queued', 'deploying', 'succeeded'], {
         name: 'status',
-        description: 'Current deployment status',
-        examples: ['queued', 'deploying', 'succeeded', 'failed']
+        description: 'Current deployment status'
       }),
-      trigger: v.string({
+      trigger: v.enumOf(['manual', 'system', 'scm'], {
         name: 'trigger',
-        description: 'What triggered this deployment',
-        examples: ['manual', 'system', 'scm']
+        description: 'What triggered this deployment'
       }),
       custom_provider_id: v.string({
         name: 'custom_provider_id',
@@ -200,9 +198,9 @@ export let v1CustomProviderDeploymentLogsPresenter = Presenter.create(
             description: 'Step type',
             examples: ['build', 'deploy']
           }),
-          status: v.string({
-            description: 'Step status',
-            examples: ['pending', 'running', 'succeeded', 'failed']
+          status: v.enumOf(['pending', 'running', 'succeeded', 'failed', 'canceled'], {
+            name: 'status',
+            description: 'Step status'
           }),
           logs: v.array(
             v.object({

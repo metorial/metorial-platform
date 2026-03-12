@@ -4,7 +4,7 @@ export type DashboardInstanceProviderRunsListOutput = {
   items: {
     object: 'session.provider_run';
     id: string;
-    status: string;
+    status: 'running' | 'stopped';
     sessionId: string;
     sessionProviderId: string;
     providerId: string;
