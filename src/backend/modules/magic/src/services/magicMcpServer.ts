@@ -19,8 +19,11 @@ import {
   Prisma
 } from '@metorial/db';
 import { generatePlainId } from '@metorial/id';
+import { accessTagService, type AnyAccessTagSelector } from '@metorial/module-access';
+import { consumerMagicMcpReadRoles, consumerMagicMcpWriteRoles } from '@metorial/module-consumer';
 import { searchMagicMcpServerIds } from '@metorial/module-search';
 import { subspaceSessionTemplateService } from '@metorial/module-subspace';
+import { getAccessTagFilter, getActiveStatusFilter } from './consumerAccess';
 import {
   enqueueMagicMcpServerCreated,
   enqueueMagicMcpServerUpdated
@@ -43,10 +46,15 @@ let buildAlias = (name?: string | null) => {
 };
 
 class MagicMcpServerImpl {
-  async getMagicMcpServerById(d: { instance: Instance; magicMcpServerId: string }) {
+  async getMagicMcpServerById(d: {
+    instance: Instance;
+    magicMcpServerId: string;
+    accessTags?: AnyAccessTagSelector;
+  }) {
     let magicMcpServer = await db.magicMcpServer.findFirst({
       where: {
         instanceOid: d.instance.oid,
+        status: d.accessTags ? 'active' : undefined,
         OR: [
           {
             id: d.magicMcpServerId
@@ -64,7 +72,32 @@ class MagicMcpServerImpl {
     });
     if (!magicMcpServer) throw new ServiceError(notFoundError('magic_mcp.server'));
 
+    if (d.accessTags) {
+      await this.checkConsumerReadAccess({
+        server: magicMcpServer,
+        accessTags: d.accessTags
+      });
+    }
+
     return magicMcpServer;
+  }
+
+  async checkConsumerReadAccess(d: {
+    server: MagicMcpServer;
+    accessTags: AnyAccessTagSelector;
+  }) {
+    await accessTagService.checkResourceAccess({
+      tags: d.accessTags,
+      roles: [...consumerMagicMcpReadRoles],
+      checker: async filter => {
+        return await db.magicMcpServer.findFirst({
+          where: {
+            oid: d.server.oid,
+            accessTagEntities: filter
+          }
+        });
+      }
+    });
   }
 
   async createMagicMcpServer(d: {
@@ -110,8 +143,29 @@ class MagicMcpServerImpl {
     return magicMcpServer;
   }
 
-  async checkWriteAccess(d: { server: MagicMcpServer; instance: Instance }) {
-    if (d.server.instanceOid !== d.instance.oid) {
+  async checkWriteAccess(d: {
+    server: MagicMcpServer;
+    instance?: Instance;
+    accessTags?: AnyAccessTagSelector;
+  }) {
+    if (d.accessTags) {
+      await accessTagService.checkResourceAccess({
+        tags: d.accessTags,
+        roles: [...consumerMagicMcpWriteRoles],
+        checker: async filter => {
+          return await db.magicMcpServer.findFirst({
+            where: {
+              oid: d.server.oid,
+              accessTagEntities: filter
+            }
+          });
+        }
+      });
+
+      return;
+    }
+
+    if (!d.instance || d.server.instanceOid !== d.instance.oid) {
       throw new ServiceError(notFoundError('magic_mcp.server'));
     }
   }
@@ -138,6 +192,8 @@ class MagicMcpServerImpl {
 
   async updateMagicMcpServer(d: {
     server: MagicMcpServerWithRelations;
+    instance?: Instance;
+    accessTags?: AnyAccessTagSelector;
     input: {
       name?: string | null;
       description?: string | null;
@@ -145,6 +201,12 @@ class MagicMcpServerImpl {
       aliases?: string[];
     };
   }) {
+    await this.checkWriteAccess({
+      server: d.server,
+      instance: d.instance,
+      accessTags: d.accessTags
+    });
+
     if (d.server.status != 'active') {
       throw new ServiceError(
         preconditionFailedError({
@@ -238,6 +300,7 @@ class MagicMcpServerImpl {
     status?: MagicMcpServerStatus[];
     search?: string;
     groupIds?: string[];
+    accessTags?: AnyAccessTagSelector;
   }) {
     let normalizedSearch = d.search?.trim();
     if (!normalizedSearch?.length) normalizedSearch = undefined;
@@ -261,6 +324,15 @@ class MagicMcpServerImpl {
           })
         ).map(g => g.oid)
       : undefined;
+    let accessTagFilter = await getAccessTagFilter({
+      accessTags: d.accessTags,
+      roles: [...consumerMagicMcpReadRoles]
+    });
+    let statusFilter = getActiveStatusFilter({
+      accessTags: d.accessTags,
+      status: d.status,
+      activeStatus: 'active'
+    });
 
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
@@ -268,7 +340,7 @@ class MagicMcpServerImpl {
           ...opts,
           where: {
             instanceOid: d.instance.oid,
-            status: d.status ? { in: d.status } : { not: 'archived' as const },
+            status: statusFilter ? { in: statusFilter } : { not: 'archived' as const },
             groups: shouldFilterByGroups
               ? {
                   some: {
@@ -276,6 +348,7 @@ class MagicMcpServerImpl {
                   }
                 }
               : undefined,
+            accessTagEntities: accessTagFilter,
             AND: [normalizedSearch ? { id: { in: searchedServerIds } } : undefined!].filter(
               Boolean
             )

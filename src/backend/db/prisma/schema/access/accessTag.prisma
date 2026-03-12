@@ -39,11 +39,11 @@ model AccessTagEntity {
   accessTagPolicyOid BigInt
   accessTagPolicy    AccessTagPolicy @relation(fields: [accessTagPolicyOid], references: [oid], onDelete: Cascade)
 
-  // magicMcpToken    MagicMcpToken? @relation(fields: [magicMcpTokenOid], references: [oid])
-  // magicMcpTokenOid BigInt?
+  magicMcpTokenOid BigInt?
+  magicMcpToken    MagicMcpToken? @relation(fields: [magicMcpTokenOid], references: [oid], onDelete: Cascade)
 
-  // magicMcpServer    MagicMcpServer? @relation(fields: [magicMcpServerOid], references: [oid])
-  // magicMcpServerOid BigInt?
+  magicMcpServerOid BigInt?
+  magicMcpServer    MagicMcpServer? @relation(fields: [magicMcpServerOid], references: [oid], onDelete: Cascade)
 
   // magicMcpGroup    MagicMcpGroup? @relation(fields: [magicMcpGroupOid], references: [oid])
   // magicMcpGroupOid BigInt?

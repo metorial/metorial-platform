@@ -28,7 +28,8 @@ model MagicMcpServer {
   aliases         MagicMcpServerAlias[]
   subspaceSession MagicMcpServerSubspaceSession?
 
-  groups MagicMcpGroupServer[]
+  groups            MagicMcpGroupServer[]
+  accessTagEntities AccessTagEntity[]
 }
 
 model MagicMcpServerAlias {

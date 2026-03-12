@@ -17,6 +17,13 @@ import {
   MagicMcpToken,
   MagicMcpTokenStatus
 } from '@metorial/db';
+import { accessTagService, type AnyAccessTagSelector } from '@metorial/module-access';
+import {
+  consumerMagicMcpConnectRoles,
+  consumerMagicMcpReadRoles,
+  consumerMagicMcpWriteRoles
+} from '@metorial/module-consumer';
+import { getAccessTagFilter, getActiveStatusFilter } from './consumerAccess';
 
 let createMagicMcpSecret = () =>
   UnifiedApiKey.create({
@@ -33,17 +40,47 @@ let include = {
 };
 
 class MagicMcpTokenImpl {
-  async getMagicMcpTokenById(d: { instance: Instance; magicMcpTokenId: string }) {
+  async getMagicMcpTokenById(d: {
+    instance: Instance;
+    magicMcpTokenId: string;
+    accessTags?: AnyAccessTagSelector;
+  }) {
     let magicMcpToken = await db.magicMcpToken.findFirst({
       where: {
         instanceOid: d.instance.oid,
-        id: d.magicMcpTokenId
+        id: d.magicMcpTokenId,
+        status: d.accessTags ? 'active' : undefined
       },
       include
     });
     if (!magicMcpToken) throw new ServiceError(notFoundError('magic_mcp.token'));
 
+    if (d.accessTags) {
+      await this.checkConsumerReadAccess({
+        token: magicMcpToken,
+        accessTags: d.accessTags
+      });
+    }
+
     return magicMcpToken;
+  }
+
+  async checkConsumerReadAccess(d: {
+    token: MagicMcpToken;
+    accessTags: AnyAccessTagSelector;
+  }) {
+    await accessTagService.checkResourceAccess({
+      tags: d.accessTags,
+      roles: [...consumerMagicMcpReadRoles],
+      checker: async filter => {
+        return await db.magicMcpToken.findFirst({
+          where: {
+            oid: d.token.oid,
+            accessTagEntities: filter
+          }
+        });
+      }
+    });
   }
 
   async createMagicMcpToken(d: {
@@ -79,8 +116,29 @@ class MagicMcpTokenImpl {
     });
   }
 
-  async checkWriteAccess(d: { token: MagicMcpToken; instance: Instance }) {
-    if (d.token.instanceOid !== d.instance.oid) {
+  async checkWriteAccess(d: {
+    token: MagicMcpToken;
+    instance?: Instance;
+    accessTags?: AnyAccessTagSelector;
+  }) {
+    if (d.accessTags) {
+      await accessTagService.checkResourceAccess({
+        tags: d.accessTags,
+        roles: [...consumerMagicMcpWriteRoles],
+        checker: async filter => {
+          return await db.magicMcpToken.findFirst({
+            where: {
+              oid: d.token.oid,
+              accessTagEntities: filter
+            }
+          });
+        }
+      });
+
+      return;
+    }
+
+    if (!d.instance || d.token.instanceOid !== d.instance.oid) {
       throw new ServiceError(notFoundError('magic_mcp.token'));
     }
   }
@@ -133,6 +191,7 @@ class MagicMcpTokenImpl {
     instance: Instance;
     status?: MagicMcpTokenStatus[];
     groupIds?: string[];
+    accessTags?: AnyAccessTagSelector;
   }) {
     let shouldFilterByGroups = !!d.groupIds?.length;
     let groupOids = shouldFilterByGroups
@@ -146,6 +205,15 @@ class MagicMcpTokenImpl {
           })
         ).map(g => g.oid)
       : undefined;
+    let accessTagFilter = await getAccessTagFilter({
+      accessTags: d.accessTags,
+      roles: [...consumerMagicMcpReadRoles]
+    });
+    let statusFilter = getActiveStatusFilter({
+      accessTags: d.accessTags,
+      status: d.status,
+      activeStatus: 'active'
+    });
 
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
@@ -153,7 +221,8 @@ class MagicMcpTokenImpl {
           ...opts,
           where: {
             instanceOid: d.instance.oid,
-            status: d.status ? { in: d.status } : undefined,
+            status: statusFilter ? { in: statusFilter } : undefined,
+            accessTagEntities: accessTagFilter,
             groups: shouldFilterByGroups
               ? {
                   some: {
@@ -189,25 +258,63 @@ class MagicMcpTokenImpl {
   }
 
   async checkMagicMcpTokenAccess(d: { token: MagicMcpToken; server: MagicMcpServer }) {
-    if (!d.token.isGroupLocked) return true;
-
-    let group = await db.magicMcpGroup.findFirst({
-      where: {
-        status: 'active',
-        servers: {
-          some: {
-            magicMcpServerOid: d.server.oid
-          }
-        },
-        tokens: {
-          some: {
-            magicMcpTokenOid: d.token.oid
+    if (d.token.isGroupLocked) {
+      let group = await db.magicMcpGroup.findFirst({
+        where: {
+          status: 'active',
+          servers: {
+            some: {
+              magicMcpServerOid: d.server.oid
+            }
+          },
+          tokens: {
+            some: {
+              magicMcpTokenOid: d.token.oid
+            }
           }
         }
+      });
+
+      if (!group) return false;
+    }
+
+    let consumerAccessTagEntities = await db.accessTagEntity.findMany({
+      where: {
+        magicMcpTokenOid: d.token.oid,
+        accessTagPolicy: {
+          roles: {
+            hasSome: [...consumerMagicMcpReadRoles, ...consumerMagicMcpConnectRoles]
+          }
+        }
+      },
+      select: {
+        accessTagOid: true
+      }
+    });
+    if (consumerAccessTagEntities.length == 0) return true;
+
+    let serverAccess = await db.magicMcpServer.findFirst({
+      where: {
+        oid: d.server.oid,
+        accessTagEntities: {
+          some: {
+            accessTagOid: {
+              in: consumerAccessTagEntities.map(entity => entity.accessTagOid)
+            },
+            accessTagPolicy: {
+              roles: {
+                hasSome: [...consumerMagicMcpReadRoles]
+              }
+            }
+          }
+        }
+      },
+      select: {
+        oid: true
       }
     });
 
-    return !!group;
+    return !!serverAccess;
   }
 
   async addGroupsToToken(d: { token: MagicMcpToken; groupIds: string[] }) {
