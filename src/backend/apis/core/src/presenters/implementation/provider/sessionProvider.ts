@@ -51,10 +51,9 @@ export let v1SessionProviderPresenter = Presenter.create(sessionProviderType)
         description: 'Unique session provider identifier',
         examples: ['spr_3cDeFgHjKlMnPqRs']
       }),
-      status: v.string({
+      status: v.enumOf(['active', 'archived', 'deleted'], {
         name: 'status',
-        description: 'Provider status',
-        examples: ['active', 'archived']
+        description: 'Provider status'
       }),
       usage: v.object(
         {

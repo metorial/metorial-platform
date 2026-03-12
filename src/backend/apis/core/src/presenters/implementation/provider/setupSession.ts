@@ -66,15 +66,13 @@ export let v1SetupSessionPresenter = Presenter.create(providerSetupSessionType)
         description: 'Unique setup session identifier',
         examples: ['pas_6eFgHjKlMnPqRsTu']
       }),
-      type: v.string({
+      type: v.enumOf(['auth_only', 'config_only', 'auth_and_config'], {
         name: 'type',
-        description: 'Setup session type',
-        examples: ['oauth']
+        description: 'Setup session type'
       }),
-      status: v.string({
+      status: v.enumOf(['failed', 'archived', 'deleted', 'pending', 'completed', 'expired'], {
         name: 'status',
-        description: 'Session status',
-        examples: ['pending', 'completed', 'expired']
+        description: 'Session status'
       }),
       url: v.string({
         name: 'url',

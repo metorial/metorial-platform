@@ -1,58 +1,43 @@
-import { renderWithLoader, renderWithPagination } from '@metorial/data-hooks';
-import {
-  useCurrentInstance,
-  useCustomProvider,
-  useCustomProviderDeployments
-} from '@metorial/state';
-import { Badge, RenderDate, Text } from '@metorial/ui';
-import { Table } from '@metorial/ui-product';
+import { renderWithLoader } from '@metorial/data-hooks';
+import { useCurrentInstance, useCustomProvider } from '@metorial/state';
+import { Input, Text } from '@metorial/ui';
+import { useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { useDebounced } from '../../../../../hooks/useDebounced';
+import { ProviderDeploymentsTable } from '../../../scenes/providerDeployments/table';
+import { ProviderDeploymentTabSection } from '../../../scenes/providerDeployments/tabSection';
 
-let DeploymentStatusBadge = ({ status }: { status: string | null }) =>
-  (
-    ({
-      queued: <Badge color="orange">Queued</Badge>,
-      deploying: <Badge color="orange">Deploying</Badge>,
-      succeeded: <Badge color="green">Succeeded</Badge>,
-      deployed: <Badge color="green">Succeeded</Badge>,
-      completed: <Badge color="green">Succeeded</Badge>,
-      failed: <Badge color="red">Failed</Badge>,
-      deployment_failed: <Badge color="red">Failed</Badge>
-    }) as Record<string, React.ReactElement>
-  )[status ?? ''] ?? <Badge color="gray">{status ?? 'Unknown'}</Badge>;
-
-export let CustomProviderCommitsPage = () => {
+export let CustomProviderProviderDeploymentsPage = () => {
   let instance = useCurrentInstance();
-
   let { customServerId } = useParams();
   let customServer = useCustomProvider(instance.data?.id, customServerId);
-  let deployments = useCustomProviderDeployments(instance.data?.id, customServer.data?.id, {
-    order: 'desc'
-  });
-  let deploymentsContent = renderWithPagination(deployments)(deployments => (
-    <>
-      <Table
-        headers={['Status', 'Trigger', 'Commit', 'Actor', 'Created']}
-        data={deployments.data.items.map(deployment => ({
-          data: [
-            <DeploymentStatusBadge status={deployment.status} />,
-            <Text size="2">{deployment.trigger ?? 'manual'}</Text>,
-            <Text size="2">
-              {deployment.commit?.message ?? <span style={{ opacity: 0.5 }}>--</span>}
-            </Text>,
-            <Text size="2">{deployment.actor?.name ?? 'System'}</Text>,
-            <RenderDate date={deployment.createdAt} />
-          ]
-        }))}
-      />
+  let [search, setSearch] = useState('');
+  let searchDebounced = useDebounced(search, 500);
 
-      {deployments.data.items.length === 0 && (
+  return renderWithLoader({ instance, customServer })(({ instance, customServer }) => (
+    <ProviderDeploymentTabSection
+      intro="Deployments created from this custom provider."
+      search={
+        <Input
+          label="Search"
+          hideLabel
+          placeholder="Search for deployments..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
+      }
+    >
+      {customServer.data.provider?.id ? (
+        <ProviderDeploymentsTable
+          instanceId={instance.data.id}
+          providerId={customServer.data.provider.id}
+          search={searchDebounced}
+        />
+      ) : (
         <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-          No commits found.
+          This custom provider has not been published as a provider yet.
         </Text>
       )}
-    </>
+    </ProviderDeploymentTabSection>
   ));
-
-  return renderWithLoader({ customServer })(() => <>{deploymentsContent}</>);
 };

@@ -58,10 +58,9 @@ export let v1CustomProviderPresenter = Presenter.create(customProviderType)
         description: 'Unique custom provider identifier',
         examples: ['cpr_1aBcDeFgHjKlMnPq']
       }),
-      status: v.string({
+      status: v.enumOf(['active', 'archived', 'deleted'], {
         name: 'status',
-        description: 'Current status of the custom provider',
-        examples: ['active', 'archived']
+        description: 'Current status of the custom provider'
       }),
       name: v.string({
         name: 'name',

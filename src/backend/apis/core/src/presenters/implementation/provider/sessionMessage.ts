@@ -82,20 +82,17 @@ export let v1SubspaceSessionMessagePresenter = Presenter.create(sessionMessageTy
         description: 'Unique session message identifier',
         examples: ['smg_8hJkLmNpQrStUvWx']
       }),
-      type: v.string({
+      type: v.enumOf(['tool_call', 'mcp_control', 'mcp_message', 'unknown'], {
         name: 'type',
-        description: 'Message type',
-        examples: ['tool_call', 'mcp_control', 'mcp_message']
+        description: 'Message type'
       }),
-      status: v.string({
+      status: v.enumOf(['waiting_for_response', 'failed', 'succeeded'], {
         name: 'status',
-        description: 'Message status',
-        examples: ['waiting_for_response', 'succeeded', 'failed']
+        description: 'Message status'
       }),
-      source: v.string({
+      source: v.enumOf(['client', 'provider'], {
         name: 'source',
-        description: 'Message source',
-        examples: ['client', 'provider']
+        description: 'Message source'
       }),
       session_id: v.string({
         name: 'session_id',

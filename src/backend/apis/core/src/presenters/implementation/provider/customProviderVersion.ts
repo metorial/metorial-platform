@@ -84,10 +84,9 @@ export let v1CustomProviderVersionPresenter = Presenter.create(customProviderVer
         description: 'Unique custom provider version identifier',
         examples: ['cpv_1aBcDeFgHjKlMnPq']
       }),
-      status: v.string({
+      status: v.enumOf(['queued', 'deploying', 'deployment_succeeded', 'deployment_failed'], {
         name: 'status',
-        description: 'Current version status',
-        examples: ['queued', 'deploying', 'deployment_succeeded', 'deployment_failed']
+        description: 'Current version status'
       }),
       index: v.number({
         name: 'index',
