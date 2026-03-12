@@ -288,12 +288,12 @@ let CustomServerLayout = dynamicPage(() =>
   import('./pages/(custom-providers)/custom-server/_layout').then(c => c.CustomProviderLayout)
 );
 let CustomServerCommitsPage = dynamicPage(() =>
-  import('./pages/(custom-providers)/custom-provider/deployments').then(
+  import('./pages/(custom-providers)/custom-provider/commits').then(
     c => c.CustomProviderCommitsPage
   )
 );
 let CustomServerDeploymentsPage = dynamicPage(() =>
-  import('./pages/(custom-providers)/custom-provider/provider-deployments').then(
+  import('./pages/(custom-providers)/custom-provider/deployments').then(
     c => c.CustomProviderProviderDeploymentsPage
   )
 );

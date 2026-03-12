@@ -1,5 +1,5 @@
-import { Presenter } from '@metorial/presenter';
 import { v } from '@lowerdeck/validation';
+import { Presenter } from '@metorial/presenter';
 import { magicMcpTokenType } from '../../types';
 import { v1MagicMcpGroupPresenter } from './magicMcpGroup';
 

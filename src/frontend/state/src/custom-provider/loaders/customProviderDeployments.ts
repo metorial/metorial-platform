@@ -84,17 +84,13 @@ export let useCustomProviderDeployment = (
   let inProgressStatuses = ['deploying', 'queued'];
   let isInProgress = data.data?.status ? inProgressStatuses.includes(data.data.status) : false;
 
-  let hasRunningSteps = (data.data as any)?.steps?.some(
-    (s: any) => s.status === 'running' || s.status === 'queued'
-  );
-
   let refetchRef = useRef(data.refetch);
   refetchRef.current = data.refetch;
   useEffect(() => {
-    if (!isInProgress && !hasRunningSteps) return;
+    if (!isInProgress) return;
     let id = setInterval(() => refetchRef.current(), 1000);
     return () => clearInterval(id);
-  }, [isInProgress, hasRunningSteps]);
+  }, [isInProgress]);
 
   let prevInProgress = useRef(isInProgress);
   useEffect(() => {

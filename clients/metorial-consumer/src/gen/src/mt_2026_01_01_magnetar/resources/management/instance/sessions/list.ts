@@ -17,7 +17,7 @@ export type ManagementInstanceSessionsListOutput = {
     providers: {
       object: 'session.provider';
       id: string;
-      status: string;
+      status: 'active' | 'archived' | 'deleted';
       usage: {
         totalProductiveClientMessageCount: number;
         totalProductiveProviderMessageCount: number;

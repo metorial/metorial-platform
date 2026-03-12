@@ -4,7 +4,7 @@ export type DashboardInstanceCustomProvidersListOutput = {
   items: {
     object: 'custom_provider';
     id: string;
-    status: string;
+    status: 'active' | 'archived' | 'deleted';
     name: string;
     description: string | null;
     metadata: Record<string, any> | null;
@@ -38,8 +38,8 @@ export type DashboardInstanceCustomProvidersListOutput = {
     provider: {
       object: 'provider';
       id: string;
-      access: string;
-      status: string;
+      access: 'public' | 'tenant';
+      status: 'active' | 'archived' | 'deleted';
       publisher: {
         object: 'provider.publisher';
         id: string;

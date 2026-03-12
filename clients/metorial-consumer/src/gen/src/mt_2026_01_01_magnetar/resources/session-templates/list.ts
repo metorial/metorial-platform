@@ -10,7 +10,7 @@ export type SessionTemplatesListOutput = {
     providers: {
       object: 'session.template.provider';
       id: string;
-      status: string;
+      status: 'active' | 'archived' | 'deleted';
       toolFilter:
         | { type: 'v1.allow_all' }
         | {

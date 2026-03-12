@@ -3,8 +3,8 @@ import { mtMap } from '@metorial/util-resource-mapper';
 export type DashboardInstanceProvidersGetOutput = {
   object: 'provider';
   id: string;
-  access: string;
-  status: string;
+  access: 'public' | 'tenant';
+  status: 'active' | 'archived' | 'deleted';
   publisher: {
     object: 'provider.publisher';
     id: string;

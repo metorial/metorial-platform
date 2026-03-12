@@ -4,8 +4,8 @@ export type ProvidersListOutput = {
   items: {
     object: 'provider';
     id: string;
-    access: string;
-    status: string;
+    access: 'public' | 'tenant';
+    status: 'active' | 'archived' | 'deleted';
     publisher: {
       object: 'provider.publisher';
       id: string;

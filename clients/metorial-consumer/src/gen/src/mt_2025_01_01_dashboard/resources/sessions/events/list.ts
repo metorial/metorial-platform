@@ -9,8 +9,7 @@ export type SessionsEventsListOutput = {
     connection: {
       object: 'session.connection';
       id: string;
-      status: string;
-      connectionState: string;
+      connectionState: 'connected' | 'disconnected';
       transport: string;
       usage: {
         totalProductiveClientMessageCount: number;
@@ -41,7 +40,7 @@ export type SessionsEventsListOutput = {
     providerRun: {
       object: 'session.provider_run';
       id: string;
-      status: string;
+      status: 'running' | 'stopped';
       sessionId: string;
       sessionProviderId: string;
       providerId: string;
@@ -53,9 +52,9 @@ export type SessionsEventsListOutput = {
     message: {
       object: 'session.message';
       id: string;
-      type: string;
-      status: string;
-      source: string;
+      type: 'tool_call' | 'mcp_control' | 'mcp_message' | 'unknown';
+      status: 'waiting_for_response' | 'failed' | 'succeeded';
+      source: 'client' | 'provider';
       sessionId: string;
       sessionProviderId: string | null;
       connectionId: string | null;
@@ -86,10 +85,10 @@ export type SessionsEventsListOutput = {
         object: 'session.tool_call';
         id: string;
         toolKey: string;
-        type: string;
-        status: string;
-        source: string;
-        transport: string;
+        type: 'tool_call' | 'mcp_control' | 'mcp_message' | 'unknown';
+        status: 'waiting_for_response' | 'failed' | 'succeeded';
+        source: 'client' | 'provider';
+        transport: 'tool_call' | 'mcp' | 'metorial_protocol' | 'system';
         sessionId: string;
         messageId: string;
         sessionProviderId: string | null;
@@ -219,7 +218,6 @@ export let mapSessionsEventsListOutput = mtMap.object<SessionsEventsListOutput>(
             mtMap.object({
               object: mtMap.objectField('object', mtMap.passthrough()),
               id: mtMap.objectField('id', mtMap.passthrough()),
-              status: mtMap.objectField('status', mtMap.passthrough()),
               connectionState: mtMap.objectField(
                 'connection_state',
                 mtMap.passthrough()

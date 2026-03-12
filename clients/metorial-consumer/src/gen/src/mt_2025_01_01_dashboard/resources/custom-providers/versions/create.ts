@@ -3,14 +3,14 @@ import { mtMap } from '@metorial/util-resource-mapper';
 export type CustomProvidersVersionsCreateOutput = {
   object: 'custom_provider.version';
   id: string;
-  status: string;
+  status: 'queued' | 'deploying' | 'deployment_succeeded' | 'deployment_failed';
   index: number;
   identifier: string;
   deployment: {
     object: 'custom_provider.deployment';
     id: string;
-    status: string;
-    trigger: string;
+    status: 'failed' | 'queued' | 'deploying' | 'succeeded';
+    trigger: 'manual' | 'system' | 'scm';
     customProviderId: string;
     providerId: string | null;
     customProviderVersionId: string | null;

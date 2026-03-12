@@ -51,25 +51,21 @@ export let v1ProviderToolCallPresenter = Presenter.create(toolCallType)
         examples: ['create_issue', 'search_code']
       }),
 
-      type: v.string({
+      type: v.enumOf(['tool_call', 'mcp_control', 'mcp_message', 'unknown'], {
         name: 'type',
-        description: 'The type of the tool call',
-        examples: ['tool_call']
+        description: 'The type of the tool call'
       }),
-      status: v.string({
+      status: v.enumOf(['waiting_for_response', 'failed', 'succeeded'], {
         name: 'status',
-        description: 'Current status of the tool call',
-        examples: ['waiting_for_response', 'succeeded', 'failed']
+        description: 'Current status of the tool call'
       }),
-      source: v.string({
+      source: v.enumOf(['client', 'provider'], {
         name: 'source',
-        description: 'Source of the tool call',
-        examples: ['client', 'provider']
+        description: 'Source of the tool call'
       }),
-      transport: v.string({
+      transport: v.enumOf(['tool_call', 'mcp', 'metorial_protocol', 'system'], {
         name: 'transport',
-        description: 'Transport protocol used',
-        examples: ['tool_call', 'mcp', 'metorial_protocol', 'system']
+        description: 'Transport protocol used'
       }),
 
       session_id: v.string({

@@ -28,10 +28,9 @@ export let v1ProviderRunPresenter = Presenter.create(providerRunType)
         description: 'Unique provider run identifier',
         examples: ['prn_8hJkLmNpQrStUvWx']
       }),
-      status: v.string({
+      status: v.enumOf(['running', 'stopped'], {
         name: 'status',
-        description: 'Run status',
-        examples: ['running', 'stopped']
+        description: 'Run status'
       }),
       session_id: v.string({
         name: 'session_id',

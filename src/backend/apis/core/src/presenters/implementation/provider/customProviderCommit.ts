@@ -13,6 +13,7 @@ export let v1CustomProviderCommitPresenter = Presenter.create(customProviderComm
     id: customProviderCommit.id,
     status: customProviderCommit.status,
     trigger: customProviderCommit.trigger,
+    // type: customProviderCommit.type,
 
     error: customProviderCommit.error,
 
@@ -65,16 +66,18 @@ export let v1CustomProviderCommitPresenter = Presenter.create(customProviderComm
         description: 'Unique custom provider commit identifier',
         examples: ['cpcm_1aBcDeFgHjKlMnPq']
       }),
-      status: v.string({
+      status: v.enumOf(['pending', 'applied', 'failed'], {
         name: 'status',
-        description: 'Current commit status',
-        examples: ['pending', 'in_progress', 'completed', 'failed']
+        description: 'Current commit status'
       }),
-      trigger: v.string({
+      trigger: v.enumOf(['manual', 'system', 'scm'], {
         name: 'trigger',
-        description: 'What triggered this commit',
-        examples: ['manual', 'automatic']
+        description: 'What triggered this commit'
       }),
+      // type: v.enumOf(["create_version" , "merge_version_into_environment" , "rollback_to_version"], {
+      //   name: 'type',
+      //   description: 'The type of commit action',
+      // }),
       error: v.nullable(
         v.object({
           code: v.string({

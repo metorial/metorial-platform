@@ -8,7 +8,6 @@ export let v1SessionConnectionPresenter = Presenter.create(sessionConnectionType
     object: 'session.connection' as const,
 
     id: sessionConnection.id,
-    status: sessionConnection.status,
     connection_state: sessionConnection.connectionState,
     transport: sessionConnection.transport,
 
@@ -52,15 +51,9 @@ export let v1SessionConnectionPresenter = Presenter.create(sessionConnectionType
         description: 'Unique session connection identifier',
         examples: ['scn_8hJkLmNpQrStUvWx']
       }),
-      status: v.string({
-        name: 'status',
-        description: 'Connection status',
-        examples: ['active', 'archived']
-      }),
-      connection_state: v.string({
+      connection_state: v.enumOf(['connected', 'disconnected'], {
         name: 'connection_state',
-        description: 'Connection state',
-        examples: ['connected', 'disconnected']
+        description: 'Connection state'
       }),
       transport: v.string({
         name: 'transport',

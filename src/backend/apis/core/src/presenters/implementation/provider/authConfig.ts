@@ -59,7 +59,7 @@ export let v1ProviderAuthConfigPresenter = Presenter.create(providerAuthConfigTy
         name: 'source',
         description: 'Auth config source'
       }),
-      status: v.enumOf(['active', 'archived'], {
+      status: v.enumOf(['active', 'archived', 'deleted'], {
         name: 'status',
         description: 'Auth config status'
       }),
