@@ -54,7 +54,7 @@ export let CustomServerVersionStatus = ({
     environment => environment.isCurrentVersionForEnvironment
   );
 
-  if (!isCurrentForEnvironment || version.status === 'current') {
+  if (!isCurrentForEnvironment) {
     return status;
   }
 

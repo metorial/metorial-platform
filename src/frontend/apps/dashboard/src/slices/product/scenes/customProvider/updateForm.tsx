@@ -9,7 +9,10 @@ import {
 import { Button, Group, Input, Select, Spacer, toast } from '@metorial/ui';
 import { useNavigate } from 'react-router-dom';
 import { FormPage } from '../form/page';
-import { getCustomServerRemoteProtocolFromUrl } from './utils';
+import {
+  type CustomServerRemoteProtocol,
+  getCustomServerRemoteProtocolFromUrl
+} from './utils';
 
 export let CustomServerUpdateForm = (p: { customServer?: CustomProvidersGetOutput }) => {
   let instance = useCurrentInstance();
@@ -26,7 +29,12 @@ export let CustomServerUpdateForm = (p: { customServer?: CustomProvidersGetOutpu
   let isSaving = updateMutator.isLoading || createVersionMutator.isLoading;
   let isSaved =
     !isSaving && (updateMutator.isSuccess || createVersionMutator.isSuccess);
-  let form = useForm({
+  let form = useForm<{
+    name: string;
+    description: string;
+    remoteUrl: string;
+    remoteProtocol: CustomServerRemoteProtocol;
+  }>({
     initialValues: {
       name: customServerData?.name ?? '',
       description: customServerData?.description ?? '',
@@ -109,12 +117,10 @@ export let CustomServerUpdateForm = (p: { customServer?: CustomProvidersGetOutpu
               .url('Remote URL must be a valid URL')
               .required('Remote URL is required')
           : yup.string().ensure(),
-        remoteProtocol: isExternalProvider
-          ? yup
-              .string()
-              .oneOf(['sse', 'streamable_http'])
-              .required('Transport protocol is required')
-          : yup.string().ensure()
+        remoteProtocol: yup
+          .mixed<CustomServerRemoteProtocol>()
+          .oneOf(['sse', 'streamable_http'])
+          .required('Transport protocol is required')
       })
   });
 

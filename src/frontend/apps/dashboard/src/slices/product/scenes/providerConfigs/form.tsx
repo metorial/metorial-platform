@@ -28,6 +28,14 @@ import { Stepper } from '../stepper';
 
 type ConfigSourceMode = '' | 'raw' | 'vault';
 
+type ProviderConfigFormValues = {
+  name: string;
+  description: string;
+  sourceMode: ConfigSourceMode;
+  providerConfigVaultId: string;
+  configData: Record<string, unknown>;
+};
+
 export type ProviderConfigFormProps =
   | {
       type: 'create';
@@ -95,7 +103,7 @@ export let ProviderConfigForm = (
     ? 'No configuration schema or config vault is available for this deployment, so this config cannot be created from the dashboard.'
     : 'No configuration schema or config vault is available for this provider, so this config cannot be created from the dashboard.';
 
-  let form = useForm({
+  let form = useForm<ProviderConfigFormValues>({
     initialValues: {
       name: '',
       description: '',
@@ -152,11 +160,17 @@ export let ProviderConfigForm = (
           .string()
           .oneOf(['raw', 'vault'], 'Source is required')
           .required('Source is required'),
-        providerConfigVaultId: yup.string().when('sourceMode', {
-          is: 'vault',
-          then: schema => schema.required('Config vault is required'),
-          otherwise: schema => schema.ensure()
-        }),
+        providerConfigVaultId: yup
+          .string()
+          .defined()
+          .test(
+            'provider-config-vault-required',
+            'Config vault is required',
+            function (value) {
+              if (this.parent.sourceMode !== 'vault') return true;
+              return !!value;
+            }
+          ),
         configData: yup.mixed<Record<string, unknown>>().defined()
       })
   });
