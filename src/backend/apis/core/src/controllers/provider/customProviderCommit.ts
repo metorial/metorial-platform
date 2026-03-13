@@ -5,6 +5,7 @@ import { subspaceCustomProviderCommitService } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
+import { hasFlags } from '../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { subspaceCustomProviderCommitPresenter } from '../../presenters';
 
@@ -39,6 +40,7 @@ export let customProviderCommitController = Controller.create(
         description: 'Returns a paginated list of commits for a custom provider.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.custom.commit:read'] }))
+      .use(hasFlags(['custom-providers-enabled', 'paid-custom-providers']))
       .outputList(subspaceCustomProviderCommitPresenter)
       .query(
         'default',
@@ -97,6 +99,7 @@ export let customProviderCommitController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.custom.commit:read'] }))
+      .use(hasFlags(['custom-providers-enabled', 'paid-custom-providers']))
       .output(subspaceCustomProviderCommitPresenter)
       .do(async ctx => {
         return subspaceCustomProviderCommitPresenter.present({
@@ -110,6 +113,7 @@ export let customProviderCommitController = Controller.create(
         description: 'Creates a new commit to promote or rollback a version in an environment.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.custom.commit:write'] }))
+      .use(hasFlags(['custom-providers-enabled', 'paid-custom-providers']))
       .body(
         'default',
         v.object({

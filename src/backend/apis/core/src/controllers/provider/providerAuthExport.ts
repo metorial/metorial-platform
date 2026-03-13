@@ -5,6 +5,7 @@ import { subspaceProviderAuthExportService } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
+import { hasFlags } from '../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { providerAuthExportPresenter } from '../../presenters';
 
@@ -45,6 +46,7 @@ export let providerAuthExportController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
+      .use(hasFlags(['paid-oauth-export']))
       .outputList(providerAuthExportPresenter)
       .query(
         'default',
@@ -100,6 +102,7 @@ export let providerAuthExportController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
+      .use(hasFlags(['paid-oauth-export']))
       .output(providerAuthExportPresenter)
       .do(async ctx => {
         return providerAuthExportPresenter.present({ authExport: ctx.authExport });
@@ -117,6 +120,7 @@ export let providerAuthExportController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:export'] }))
+      .use(hasFlags(['paid-oauth-export']))
       .body(
         'default',
         v.object({

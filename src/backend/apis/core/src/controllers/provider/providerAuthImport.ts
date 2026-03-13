@@ -5,6 +5,7 @@ import { subspaceProviderAuthImportService } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
+import { hasFlags } from '../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { authImportSchemaPresenter, providerAuthImportPresenter } from '../../presenters';
 
@@ -45,6 +46,7 @@ export let providerAuthImportController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
+      .use(hasFlags(['paid-oauth-import']))
       .outputList(providerAuthImportPresenter)
       .query(
         'default',
@@ -104,6 +106,7 @@ export let providerAuthImportController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
+      .use(hasFlags(['paid-oauth-import']))
       .output(providerAuthImportPresenter)
       .do(async ctx => {
         return providerAuthImportPresenter.present({ authImport: ctx.authImport });
@@ -121,6 +124,7 @@ export let providerAuthImportController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:import'] }))
+      .use(hasFlags(['paid-oauth-import']))
       .body(
         'default',
         v.object({
@@ -191,6 +195,7 @@ export let providerAuthImportController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
+      .use(hasFlags(['paid-oauth-import']))
       .query(
         'default',
         v.object({

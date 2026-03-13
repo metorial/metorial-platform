@@ -5,6 +5,7 @@ import { subspaceCustomProviderDeploymentService } from '@metorial/module-subspa
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
+import { hasFlags } from '../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import {
   subspaceCustomProviderDeploymentLogsPresenter,
@@ -42,6 +43,7 @@ export let customProviderDeploymentController = Controller.create(
         description: 'Returns a paginated list of deployments for a custom provider.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.custom.deployment:read'] }))
+      .use(hasFlags(['custom-providers-enabled', 'paid-custom-providers']))
       .outputList(subspaceCustomProviderDeploymentPresenter)
       .query(
         'default',
@@ -97,6 +99,7 @@ export let customProviderDeploymentController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.custom.deployment:read'] }))
+      .use(hasFlags(['custom-providers-enabled', 'paid-custom-providers']))
       .output(subspaceCustomProviderDeploymentPresenter)
       .do(async ctx => {
         return subspaceCustomProviderDeploymentPresenter.present({
@@ -116,6 +119,7 @@ export let customProviderDeploymentController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.custom.deployment:read'] }))
+      .use(hasFlags(['custom-providers-enabled', 'paid-custom-providers']))
       .output(subspaceCustomProviderDeploymentLogsPresenter)
       .do(async ctx => {
         let logs = await subspaceCustomProviderDeploymentService.getLogs({

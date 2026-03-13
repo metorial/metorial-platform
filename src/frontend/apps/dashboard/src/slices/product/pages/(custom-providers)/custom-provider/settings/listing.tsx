@@ -4,7 +4,6 @@ import {
   useCurrentInstance,
   useCustomProvider,
   useCustomProviderListing,
-  useDashboardFlags,
   useProviderListingByProviderId
 } from '@metorial/state';
 import { Button, Input, Spacer } from '@metorial/ui';
@@ -49,47 +48,8 @@ export let CustomProviderListingPage = () => {
       })
   });
 
-  let flags = useDashboardFlags();
-  if (!flags.data?.flags['community-profiles-enabled']) return;
-
   return renderWithLoader({ customServer, listing })(() => (
     <FormPage>
-      {/* <Box
-        title="Publish Provider"
-        description="Make this provider available for deployments."
-      >
-        <Switch
-          label="Publish provider for all Metorial users to use."
-          disabled={publicationUpdate.isLoading || generalUpdate.isLoading}
-          checked={isPublic}
-          onCheckedChange={async checked => {
-            if (checked) {
-              setIsPublic(true);
-
-              confirm({
-                title: 'Are you sure you want to publish this provider?',
-                description:
-                  'This will make the provider available for all Metorial users to use. This might expose sensitive information, so make sure you understand the implications.',
-                onConfirm: async () => {
-                  await publicationUpdate.mutate({
-                    access: 'public'
-                  });
-                },
-                onCancel: () => {
-                  setIsPublic(false);
-                }
-              });
-              return;
-            }
-
-            setIsPublic(false);
-            await publicationUpdate.mutate({
-              access: 'tenant'
-            });
-          }}
-        />
-      </Box> */}
-
       <Box
         title="Open Provider Listing"
         description="View this provider listing in the Metorial catalog."
@@ -142,7 +102,6 @@ export let CustomProviderListingPage = () => {
           <generalUpdate.RenderError />
         </form>
       </Box>
-
     </FormPage>
   ));
 };
