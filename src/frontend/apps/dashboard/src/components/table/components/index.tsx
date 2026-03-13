@@ -641,7 +641,7 @@ export let TableComponent = reactMemo(
                   borderTop: isGroup ? `1px solid ${theme.colors.gray300}` : 'none'
                 }}
               >
-                <Text size="2" color="gray700" weight="medium">
+                <Text size="1" color="gray700" weight="medium">
                   Showing {state.items.length} item{state.items.length == 1 ? '' : 's'}
                 </Text>
 
