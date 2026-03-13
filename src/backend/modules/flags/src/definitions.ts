@@ -15,12 +15,9 @@ export type Flags = {
 
   'paid-oauth-import': boolean;
   'paid-oauth-export': boolean;
-  'paid-oauth-takeout': boolean;
   'paid-callbacks': boolean;
   'paid-custom-providers': boolean;
-  'paid-custom-servers': boolean;
   'paid-custom-docker-providers': boolean;
-  'paid-custom-docker-servers': boolean;
   'paid-identity': boolean;
   'paid-advanced-security': boolean;
   'paid-advanced-roles': boolean;
@@ -45,12 +42,9 @@ export let defaultFlags: Flags = {
 
   'paid-oauth-import': true,
   'paid-oauth-export': true,
-  'paid-oauth-takeout': true,
   'paid-callbacks': true,
   'paid-custom-providers': true,
-  'paid-custom-servers': true,
   'paid-custom-docker-providers': true,
-  'paid-custom-docker-servers': true,
   'paid-identity': true,
   'paid-advanced-security': true,
   'paid-advanced-roles': true,
