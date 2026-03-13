@@ -103,38 +103,12 @@ export let ProviderConfigForm = (
     ? 'No configuration schema or config vault is available for this deployment, so this config cannot be created from the dashboard.'
     : 'No configuration schema or config vault is available for this provider, so this config cannot be created from the dashboard.';
 
-  let form = useForm<ProviderConfigFormValues>({
-    initialValues: {
-      name: '',
-      description: '',
-      sourceMode: '' as ConfigSourceMode,
-      providerConfigVaultId: '',
-      configData: {} as Record<string, unknown>
-    },
-    onSubmit: async values => {
-      if (props.type !== 'create' || !instanceId || !providerId) {
-        return;
-      }
+  let submitConfig = async (values: ProviderConfigFormValues) => {
+    if (props.type !== 'create' || !instanceId || !providerId) {
+      return;
+    }
 
-      if (values.sourceMode === 'vault') {
-        let [result] = await createMutation.mutate({
-          instanceId,
-          name: values.name.trim(),
-          description: values.description || undefined,
-          providerId,
-          ...(props.providerDeploymentId
-            ? { providerDeploymentId: props.providerDeploymentId }
-            : {}),
-          providerConfigVaultId: values.providerConfigVaultId
-        });
-
-        if (!result) return;
-
-        props.onCreate?.(result);
-        props.close?.();
-        return;
-      }
-
+    if (values.sourceMode === 'vault') {
       let [result] = await createMutation.mutate({
         instanceId,
         name: values.name.trim(),
@@ -143,14 +117,42 @@ export let ProviderConfigForm = (
         ...(props.providerDeploymentId
           ? { providerDeploymentId: props.providerDeploymentId }
           : {}),
-        value: values.configData
+        providerConfigVaultId: values.providerConfigVaultId
       });
 
       if (!result) return;
 
       props.onCreate?.(result);
       props.close?.();
+      return;
+    }
+
+    let [result] = await createMutation.mutate({
+      instanceId,
+      name: values.name.trim(),
+      description: values.description || undefined,
+      providerId,
+      ...(props.providerDeploymentId
+        ? { providerDeploymentId: props.providerDeploymentId }
+        : {}),
+      value: values.configData
+    });
+
+    if (!result) return;
+
+    props.onCreate?.(result);
+    props.close?.();
+  };
+
+  let form = useForm<ProviderConfigFormValues>({
+    initialValues: {
+      name: '',
+      description: '',
+      sourceMode: '' as ConfigSourceMode,
+      providerConfigVaultId: '',
+      configData: {} as Record<string, unknown>
     },
+    onSubmit: submitConfig,
     schemaDependencies: [canCreateFromVault, schemaCapabilities.hasSchemaFields],
     schema: yup =>
       yup.object({
@@ -174,6 +176,36 @@ export let ProviderConfigForm = (
         configData: yup.mixed<Record<string, unknown>>().defined()
       })
   });
+
+  if (props.providerDeploymentId && deployment.isLoading) {
+    return <CenteredSpinner />;
+  }
+
+  if (props.providerDeploymentId && deployment.error) {
+    return (
+      <>
+        <Text size="2" color="red600">
+          {deployment.error.message ?? 'Failed to load deployment details.'}
+        </Text>
+
+        <Spacer size={15} />
+
+        <Dialog.Actions>
+          <Button type="button" variant="outline" onClick={props.onBack ?? props.close}>
+            {props.onBack ? 'Back' : 'Close'}
+          </Button>
+        </Dialog.Actions>
+      </>
+    );
+  }
+
+  if (props.providerDeploymentId && !providerId) {
+    return (
+      <Text size="2" color="gray600">
+        Loading deployment details...
+      </Text>
+    );
+  }
 
   useEffect(() => {
     if (!schemaCapabilities.hasSchemaFields && canCreateFromVault) {
@@ -223,6 +255,25 @@ export let ProviderConfigForm = (
     if (form.getFieldMeta('sourceMode').error) return;
 
     setCurrentStep(2);
+  };
+
+  let handleCreateSubmit = async () => {
+    form.setFieldTouched('name', true, false);
+    form.setFieldTouched('sourceMode', true, false);
+
+    await form.validateField('name');
+    await form.validateField('sourceMode');
+
+    if (!form.values.name.trim() || !form.values.sourceMode) return;
+
+    if (form.values.sourceMode === 'vault') {
+      form.setFieldTouched('providerConfigVaultId', true, false);
+      await form.validateField('providerConfigVaultId');
+
+      if (!form.values.providerConfigVaultId) return;
+    }
+
+    await submitConfig(form.values);
   };
 
   let sourceItems = [
@@ -335,7 +386,12 @@ export let ProviderConfigForm = (
                   ? 'Select a config vault'
                   : 'Set configuration values',
               render: () => (
-                <form onSubmit={form.handleSubmit}>
+                <form
+                  onSubmit={e => {
+                    e.preventDefault();
+                    void handleCreateSubmit();
+                  }}
+                >
                   {form.values.sourceMode === 'vault' ? (
                     <>
                       <Select
@@ -370,9 +426,15 @@ export let ProviderConfigForm = (
                       Back
                     </Button>
                     <Button
-                      type="submit"
+                      type="button"
+                      onClick={() => void handleCreateSubmit()}
                       loading={createMutation.isLoading}
-                      disabled={!form.values.sourceMode}
+                      disabled={
+                        !form.values.sourceMode ||
+                        !form.values.name.trim() ||
+                        (form.values.sourceMode === 'vault' &&
+                          !form.values.providerConfigVaultId)
+                      }
                     >
                       {props.type === 'create' ? 'Create' : 'Update'}
                     </Button>

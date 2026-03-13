@@ -187,9 +187,7 @@ export let ProviderSetupSessionEmbed = ({
   let redirectUri = provider.data?.oauth?.callbackUrl;
   let isOAuth = selectedMethod?.type === 'oauth';
   let oauthAutoRegistrationEnabled = getProviderOAuthAutoRegistrationEnabled(provider.data);
-  let visibleAuthCredentials = isOAuth
-    ? (authCredentials.data?.items ?? []).filter(credential => !credential.isDefault)
-    : (authCredentials.data?.items ?? []);
+  let visibleAuthCredentials = authCredentials.data?.items ?? [];
   let requiresManualOAuthCredentials = isOAuth && !oauthAutoRegistrationEnabled;
   let preferredVisibleCredential =
     visibleAuthCredentials.find(credential => credential.isDefault) ??
