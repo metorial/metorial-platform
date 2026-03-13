@@ -4,6 +4,7 @@ import { useCurrentInstance, useIdentityDelegationConfig } from '@metorial/state
 import { Attributes, Button, Input, RenderDate, Spacer, Text, confirm } from '@metorial/ui';
 import { Box, ID } from '@metorial/ui-product';
 import { useNavigate, useParams } from 'react-router-dom';
+import { UsageScene } from '../../../scenes/usage/usage';
 
 export let IdentityDelegationConfigPage = () => {
   let instance = useCurrentInstance();
@@ -66,6 +67,15 @@ export let IdentityDelegationConfigPage = () => {
             content: <RenderDate date={config.data.updatedAt} />
           }
         ]}
+      />
+
+      <Spacer size={20} />
+
+      <UsageScene
+        title="Usage"
+        description="See how this delegation config is being used across identities and delegations."
+        entities={[{ type: 'identity_delegation_config', id: config.data.id }]}
+        entityNames={{ [config.data.id]: config.data.name ?? config.data.id }}
       />
 
       <Spacer size={20} />

@@ -11,6 +11,7 @@ import {
 import { Attributes, Button, RenderDate, Spacer, Text, confirm } from '@metorial/ui';
 import { Box, ID, Table } from '@metorial/ui-product';
 import { Link, useParams } from 'react-router-dom';
+import { UsageScene } from '../../../scenes/usage/usage';
 
 export let IdentityDelegationPage = () => {
   let instance = useCurrentInstance();
@@ -93,6 +94,17 @@ export let IdentityDelegationPage = () => {
               )
             }
           ]}
+        />
+
+        <Spacer size={20} />
+
+        <UsageScene
+          title="Identity Usage"
+          description="See how the delegated identity is being used across delegations and requests."
+          entities={[{ type: 'identity', id: delegation.data.identity.id }]}
+          entityNames={{
+            [delegation.data.identity.id]: delegation.data.identity.name ?? delegation.data.identity.id
+          }}
         />
 
         {delegation.data.note && (
