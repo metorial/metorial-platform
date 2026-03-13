@@ -54,7 +54,7 @@ export let identityDelegationController = Controller.create(
   },
   {
     list: instanceGroup
-      .get(instancePath('identity-delegations', 'identityDelegations.list'), {
+      .get(instancePath('identity-delegations', 'identities.delegations.list'), {
         name: 'List identity delegations',
         description: 'Returns a paginated list of identity delegations for the instance.'
       })
@@ -129,7 +129,10 @@ export let identityDelegationController = Controller.create(
 
     get: identityDelegationGroup
       .get(
-        instancePath('identity-delegations/:identityDelegationId', 'identityDelegations.get'),
+        instancePath(
+          'identity-delegations/:identityDelegationId',
+          'identities.delegations.get'
+        ),
         {
           name: 'Get identity delegation',
           description: 'Retrieves a specific identity delegation by ID.'
@@ -142,7 +145,7 @@ export let identityDelegationController = Controller.create(
       ),
 
     create: instanceGroup
-      .post(instancePath('identity-delegations', 'identityDelegations.create'), {
+      .post(instancePath('identity-delegations', 'identities.delegations.create'), {
         name: 'Create identity delegation',
         description: 'Creates a new identity delegation.'
       })
@@ -231,7 +234,7 @@ export let identityDelegationController = Controller.create(
       .post(
         instancePath(
           'identity-delegations/:identityDelegationId/revoke',
-          'identityDelegations.revoke'
+          'identities.delegations.revoke'
         ),
         {
           name: 'Revoke identity delegation',

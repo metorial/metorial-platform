@@ -54,10 +54,13 @@ export let identityDelegationRequestController = Controller.create(
   },
   {
     list: instanceGroup
-      .get(instancePath('identity-delegation-requests', 'identityDelegationRequests.list'), {
-        name: 'List identity delegation requests',
-        description: 'Returns a paginated list of identity delegation requests.'
-      })
+      .get(
+        instancePath('identity-delegation-requests', 'identities.delegationRequests.list'),
+        {
+          name: 'List identity delegation requests',
+          description: 'Returns a paginated list of identity delegation requests.'
+        }
+      )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
       .outputList(identityDelegationRequestPresenter)
       .query(
@@ -108,7 +111,7 @@ export let identityDelegationRequestController = Controller.create(
       .get(
         instancePath(
           'identity-delegation-requests/:identityDelegationRequestId',
-          'identityDelegationRequests.get'
+          'identities.delegationRequests.get'
         ),
         {
           name: 'Get identity delegation request',
@@ -136,7 +139,7 @@ export let identityDelegationRequestController = Controller.create(
 
     create: instanceGroup
       .post(
-        instancePath('identity-delegation-requests', 'identityDelegationRequests.create'),
+        instancePath('identity-delegation-requests', 'identities.delegationRequests.create'),
         {
           name: 'Create identity delegation request',
           description: 'Creates a new identity delegation request.'
@@ -220,7 +223,7 @@ export let identityDelegationRequestController = Controller.create(
       .post(
         instancePath(
           'identity-delegation-requests/:identityDelegationRequestId/approve',
-          'identityDelegationRequests.approve'
+          'identities.delegationRequests.approve'
         ),
         {
           name: 'Approve identity delegation request',
@@ -256,7 +259,7 @@ export let identityDelegationRequestController = Controller.create(
       .post(
         instancePath(
           'identity-delegation-requests/:identityDelegationRequestId/deny',
-          'identityDelegationRequests.deny'
+          'identities.delegationRequests.deny'
         ),
         {
           name: 'Deny identity delegation request',

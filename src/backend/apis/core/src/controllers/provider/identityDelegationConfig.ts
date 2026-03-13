@@ -35,7 +35,7 @@ export let identityDelegationConfigController = Controller.create(
   },
   {
     list: instanceGroup
-      .get(instancePath('identity-delegation-configs', 'identityDelegationConfigs.list'), {
+      .get(instancePath('identity-delegation-configs', 'identities.delegationConfigs.list'), {
         name: 'List identity delegation configs',
         description: 'Returns a paginated list of identity delegation configs.'
       })
@@ -89,7 +89,7 @@ export let identityDelegationConfigController = Controller.create(
       .get(
         instancePath(
           'identity-delegation-configs/:identityDelegationConfigId',
-          'identityDelegationConfigs.get'
+          'identities.delegationConfigs.get'
         ),
         {
           name: 'Get identity delegation config',
@@ -105,10 +105,13 @@ export let identityDelegationConfigController = Controller.create(
       ),
 
     create: instanceGroup
-      .post(instancePath('identity-delegation-configs', 'identityDelegationConfigs.create'), {
-        name: 'Create identity delegation config',
-        description: 'Creates a new identity delegation config.'
-      })
+      .post(
+        instancePath('identity-delegation-configs', 'identities.delegationConfigs.create'),
+        {
+          name: 'Create identity delegation config',
+          description: 'Creates a new identity delegation config.'
+        }
+      )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
       .body(
         'default',
@@ -162,7 +165,7 @@ export let identityDelegationConfigController = Controller.create(
       .patch(
         instancePath(
           'identity-delegation-configs/:identityDelegationConfigId',
-          'identityDelegationConfigs.update'
+          'identities.delegationConfigs.update'
         ),
         {
           name: 'Update identity delegation config',
@@ -212,7 +215,7 @@ export let identityDelegationConfigController = Controller.create(
       .delete(
         instancePath(
           'identity-delegation-configs/:identityDelegationConfigId',
-          'identityDelegationConfigs.delete'
+          'identities.delegationConfigs.delete'
         ),
         {
           name: 'Delete identity delegation config',

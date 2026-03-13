@@ -35,7 +35,7 @@ export let identityCredentialController = Controller.create(
   },
   {
     list: instanceGroup
-      .get(instancePath('identity-credentials', 'identityCredentials.list'), {
+      .get(instancePath('identity-credentials', 'identities.credentials.list'), {
         name: 'List identity credentials',
         description: 'Returns a paginated list of identity credentials for the instance.'
       })
@@ -114,7 +114,10 @@ export let identityCredentialController = Controller.create(
 
     get: identityCredentialGroup
       .get(
-        instancePath('identity-credentials/:identityCredentialId', 'identityCredentials.get'),
+        instancePath(
+          'identity-credentials/:identityCredentialId',
+          'identities.credentials.get'
+        ),
         {
           name: 'Get identity credential',
           description: 'Retrieves a specific identity credential by ID.'
@@ -127,7 +130,7 @@ export let identityCredentialController = Controller.create(
       ),
 
     create: instanceGroup
-      .post(instancePath('identity-credentials', 'identityCredentials.create'), {
+      .post(instancePath('identity-credentials', 'identities.credentials.create'), {
         name: 'Create identity credential',
         description: 'Creates a new credential and attaches it to an identity.'
       })
@@ -184,7 +187,7 @@ export let identityCredentialController = Controller.create(
       .patch(
         instancePath(
           'identity-credentials/:identityCredentialId',
-          'identityCredentials.update'
+          'identities.credentials.update'
         ),
         {
           name: 'Update identity credential',
@@ -218,7 +221,7 @@ export let identityCredentialController = Controller.create(
       .delete(
         instancePath(
           'identity-credentials/:identityCredentialId',
-          'identityCredentials.delete'
+          'identities.credentials.delete'
         ),
         {
           name: 'Delete identity credential',

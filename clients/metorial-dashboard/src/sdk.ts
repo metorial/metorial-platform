@@ -12,6 +12,12 @@ import {
   MetorialDashboardInstanceCustomProvidersVersionsEndpoint,
   MetorialDashboardInstanceFileLinksEndpoint,
   MetorialDashboardInstanceFilesEndpoint,
+  MetorialDashboardInstanceIdentitiesCredentialsEndpoint,
+  MetorialDashboardInstanceIdentitiesDelegationConfigsEndpoint,
+  MetorialDashboardInstanceIdentitiesDelegationRequestsEndpoint,
+  MetorialDashboardInstanceIdentitiesDelegationsEndpoint,
+  MetorialDashboardInstanceIdentitiesEndpoint,
+  MetorialDashboardInstanceIdentityActorsEndpoint,
   MetorialDashboardInstanceMagicMcpGroupsEndpoint,
   MetorialDashboardInstanceMagicMcpServersEndpoint,
   MetorialDashboardInstanceMagicMcpSessionsEndpoint,
@@ -214,7 +220,19 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
     installation: new MetorialDashboardInstanceScmInstallationEndpoint(manager),
     repos: new MetorialDashboardInstanceScmReposEndpoint(manager),
     accounts: new MetorialDashboardInstanceScmAccountsEndpoint(manager)
-  }
+  },
+
+  identityActors: new MetorialDashboardInstanceIdentityActorsEndpoint(manager),
+  identities: Object.assign(new MetorialDashboardInstanceIdentitiesEndpoint(manager), {
+    credentials: new MetorialDashboardInstanceIdentitiesCredentialsEndpoint(manager),
+    delegations: new MetorialDashboardInstanceIdentitiesDelegationsEndpoint(manager),
+    delegationConfigs: new MetorialDashboardInstanceIdentitiesDelegationConfigsEndpoint(
+      manager
+    ),
+    delegationRequests: new MetorialDashboardInstanceIdentitiesDelegationRequestsEndpoint(
+      manager
+    )
+  })
 }));
 
 export type MetorialDashboardSDK = ReturnType<typeof createMetorialDashboardSDK>;
