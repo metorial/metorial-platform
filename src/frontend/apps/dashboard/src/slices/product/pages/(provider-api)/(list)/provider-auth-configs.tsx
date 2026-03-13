@@ -13,7 +13,7 @@ import { Table } from '@metorial/ui-product';
 import { useMemo } from 'react';
 import { useSearchFilter } from '../../../../../hooks/useSearchFilter';
 import { showCreateProviderAuthConfigFlow } from './providerCreationFlows';
-import { ProviderConfigurationsEmptyState } from './providerConfigurationsEmptyState';
+import { EmptyState } from '../../../../../components/emptyState';
 
 type AuthConfigItem =
   DashboardInstanceProviderDeploymentsAuthConfigsListOutput['items'][number];
@@ -141,15 +141,17 @@ export let ProviderAuthConfigsOverviewPage = () => {
               No auth configs found for "{searchQuery}".
             </Text>
           ) : (
-            <ProviderConfigurationsEmptyState
+            <EmptyState
               title="Create your first auth config"
               description="Auth configs connect providers to the authentication settings your instance should use."
-              actionLabel="Create Auth Config"
-              onAction={() => {
-                if (instance.data?.id) {
-                  showCreateProviderAuthConfigFlow(instance.data.id, {
-                    scope: 'provider'
-                  });
+              action={{
+                label: 'Create Auth Config',
+                onClick: () => {
+                  if (instance.data?.id) {
+                    showCreateProviderAuthConfigFlow(instance.data.id, {
+                      scope: 'provider'
+                    });
+                  }
                 }
               }}
             />
