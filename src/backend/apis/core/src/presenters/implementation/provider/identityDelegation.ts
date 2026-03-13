@@ -113,8 +113,16 @@ export let v1IdentityDelegationPresenter = Presenter.create(identityDelegationTy
     note: identityDelegation.note,
     metadata: identityDelegation.metadata,
 
-    identity_id: identityDelegation.identityId,
     delegation_config_id: identityDelegation.delegationConfigId,
+
+    identity: {
+      object: 'identity#preview' as const,
+
+      id: identityDelegation.identity.id,
+      name: identityDelegation.identity.name,
+      description: identityDelegation.identity.description,
+      metadata: identityDelegation.identity.metadata
+    },
 
     parties: await Promise.all(
       identityDelegation.parties.map(async party => ({
@@ -207,10 +215,31 @@ export let v1IdentityDelegationPresenter = Presenter.create(identityDelegationTy
           examples: [{ incident: 'INC-2048', requested_by: 'support' }]
         })
       ),
-      identity_id: v.string({
-        name: 'identity_id',
-        description: 'Identity being delegated.',
-        examples: ['idn_5gHjKlMnPqRsTuVw']
+      identity: v.object({
+        object: v.literal('identity#preview', {
+          description: "String representing the identity object's type"
+        }),
+        id: v.string({
+          name: 'id',
+          description: 'Unique identity identifier.',
+          examples: ['idn_5gHjKlMnPqRsTuVw']
+        }),
+        name: v.string({
+          name: 'name',
+          description: 'Display name of the identity.',
+          examples: ['Jane Doe']
+        }),
+        description: v.string({
+          name: 'description',
+          description: 'Optional description of the identity.',
+          examples: ['Customer support engineer']
+        }),
+        metadata: v.nullable(
+          v.record(v.any(), {
+            name: 'metadata',
+            description: 'Additional metadata associated with the identity.'
+          })
+        )
       }),
       delegation_config_id: v.nullable(
         v.string({

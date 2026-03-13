@@ -41,7 +41,13 @@ export type ManagementInstanceIdentitiesDelegationRequestsListOutput = {
       permissions: ('provider:call' | 'provider:read')[];
       note: string | null;
       metadata: Record<string, any> | null;
-      identityId: string;
+      identity: {
+        object: 'identity#preview';
+        id: string;
+        name: string;
+        description: string;
+        metadata: Record<string, any> | null;
+      };
       delegationConfigId: string | null;
       parties: {
         object: 'identity.delegation_party';
@@ -154,7 +160,19 @@ export let mapManagementInstanceIdentitiesDelegationRequestsListOutput =
               ),
               note: mtMap.objectField('note', mtMap.passthrough()),
               metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-              identityId: mtMap.objectField('identity_id', mtMap.passthrough()),
+              identity: mtMap.objectField(
+                'identity',
+                mtMap.object({
+                  object: mtMap.objectField('object', mtMap.passthrough()),
+                  id: mtMap.objectField('id', mtMap.passthrough()),
+                  name: mtMap.objectField('name', mtMap.passthrough()),
+                  description: mtMap.objectField(
+                    'description',
+                    mtMap.passthrough()
+                  ),
+                  metadata: mtMap.objectField('metadata', mtMap.passthrough())
+                })
+              ),
               delegationConfigId: mtMap.objectField(
                 'delegation_config_id',
                 mtMap.passthrough()
