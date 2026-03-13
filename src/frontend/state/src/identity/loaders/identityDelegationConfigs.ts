@@ -22,14 +22,24 @@ export let useCreateIdentityDelegationConfig =
     { disableToast: true }
   );
 
+export let useDeleteIdentityDelegationConfig =
+  identityDelegationConfigsLoader.createExternalMutator(
+    (i: { instanceId: string; identityDelegationConfigId: string }) =>
+      withAuth(sdk =>
+        sdk.identities.delegationConfigs.delete(i.instanceId, i.identityDelegationConfigId)
+      )
+  );
+
 export let useIdentityDelegationConfigs = (
   instanceId: string | null | undefined,
   query?: DashboardInstanceIdentitiesDelegationConfigsListQuery
 ) => {
-  let data = usePaginator(pagination =>
-    identityDelegationConfigsLoader.use(
-      instanceId ? { instanceId, ...pagination, ...query } : null
-    )
+  let data = usePaginator(
+    pagination =>
+      identityDelegationConfigsLoader.use(
+        instanceId ? { instanceId, ...pagination, ...query } : null
+      ),
+    instanceId && query ? JSON.stringify({ instanceId, ...query }) : instanceId
   );
 
   return data;
