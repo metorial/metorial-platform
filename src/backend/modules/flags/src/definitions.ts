@@ -10,10 +10,12 @@ export type Flags = {
   'community-profiles-enabled': boolean;
   'magic-mcp-enabled': boolean;
   'callbacks-enabled': boolean;
+  'identity-management': boolean;
 
   'paid-oauth-takeout': boolean;
   'paid-callbacks': boolean;
   'paid-custom-servers': boolean;
+  'paid-identity': boolean;
   'paid-advanced-security': boolean;
   'paid-advanced-roles': boolean;
   'paid-audit-logs': boolean;
@@ -33,10 +35,12 @@ export let defaultFlags: Flags = {
   'community-profiles-enabled': true,
   'magic-mcp-enabled': true,
   'callbacks-enabled': true,
+  'identity-management': true,
 
   'paid-oauth-takeout': true,
   'paid-callbacks': true,
   'paid-custom-servers': true,
+  'paid-identity': true,
   'paid-advanced-security': true,
   'paid-advanced-roles': true,
   'paid-audit-logs': true,

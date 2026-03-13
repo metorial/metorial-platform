@@ -29,13 +29,19 @@ import {
   v1CustomProviderDeploymentLogsPresenter,
   v1CustomProviderDeploymentPresenter,
   v1CustomProviderEnvironmentPresenter,
+  // Custom Provider presenters
+  v1CustomProviderPresenter,
+  v1CustomProviderVersionPresenter,
+  v1IdentityActorPresenter,
+  v1IdentityCredentialPresenter,
+  v1IdentityDelegationConfigPresenter,
+  v1IdentityDelegationPresenter,
+  v1IdentityDelegationRequestPresenter,
+  v1IdentityPresenter,
   v1MagicMcpGroupPresenter,
   v1MagicMcpServerPresenter,
   v1MagicMcpSessionPresenter,
   v1MagicMcpTokenPresenter,
-  // Custom Provider presenters
-  v1CustomProviderPresenter,
-  v1CustomProviderVersionPresenter,
   v1ProviderAuthConfigPresenter,
   v1ProviderAuthConfigSchemaPresenter,
   v1ProviderAuthCredentialsPresenter,
@@ -102,6 +108,12 @@ import {
   deploymentPreviewType,
   fileLinkType,
   fileType,
+  identityActorType,
+  identityCredentialType,
+  identityDelegationConfigType,
+  identityDelegationType,
+  identityDelegationRequestType,
+  identityType,
   instanceType,
   machineAccessType,
   magicMcpGroupType,
@@ -373,6 +385,39 @@ export let providerPresenter = declarePresenter(providerType, {
   mt_2025_01_01_dashboard: dashboardProviderPresenter,
   mt_2026_01_01_magnetar: v1ProviderPresenter
 });
+
+export let identityPresenter = declarePresenter(identityType, {
+  mt_2025_01_01_dashboard: v1IdentityPresenter,
+  mt_2026_01_01_magnetar: v1IdentityPresenter
+});
+
+export let identityActorPresenter = declarePresenter(identityActorType, {
+  mt_2025_01_01_dashboard: v1IdentityActorPresenter,
+  mt_2026_01_01_magnetar: v1IdentityActorPresenter
+});
+
+export let identityCredentialPresenter = declarePresenter(identityCredentialType, {
+  mt_2025_01_01_dashboard: v1IdentityCredentialPresenter,
+  mt_2026_01_01_magnetar: v1IdentityCredentialPresenter
+});
+
+export let identityDelegationPresenter = declarePresenter(identityDelegationType, {
+  mt_2025_01_01_dashboard: v1IdentityDelegationPresenter,
+  mt_2026_01_01_magnetar: v1IdentityDelegationPresenter
+});
+
+export let identityDelegationConfigPresenter = declarePresenter(identityDelegationConfigType, {
+  mt_2025_01_01_dashboard: v1IdentityDelegationConfigPresenter,
+  mt_2026_01_01_magnetar: v1IdentityDelegationConfigPresenter
+});
+
+export let identityDelegationRequestPresenter = declarePresenter(
+  identityDelegationRequestType,
+  {
+    mt_2025_01_01_dashboard: v1IdentityDelegationRequestPresenter,
+    mt_2026_01_01_magnetar: v1IdentityDelegationRequestPresenter
+  }
+);
 
 export let providerTypePresenter = declarePresenter(providerTypeType, {
   mt_2025_01_01_dashboard: v1ProviderTypePresenter,
