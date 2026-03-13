@@ -16,12 +16,22 @@ export let IdentityDelegationLayout = () => {
   let { identityDelegationId } = useParams();
   let delegation = useIdentityDelegation(instance.data?.id, identityDelegationId);
 
+  let owner = delegation.data?.parties.find(party => party.roles.includes('owner'));
+  let delegatee = delegation.data?.parties.find(party => party.roles.includes('delegatee'));
+
   return renderWithLoader({ instance, organization, project, delegation })(
     ({ instance, organization, project, delegation }) => (
       <ContentLayout>
         <PageHeader
-          title={delegation.data.id}
-          description={delegation.data.note ?? undefined}
+          title={
+            owner?.actor.name && delegatee?.actor.name ? (
+              <>
+                {owner.actor.name} → {delegatee.actor.name}
+              </>
+            ) : (
+              'Identity Delegation'
+            )
+          }
           pagination={[
             {
               label: 'Delegations',

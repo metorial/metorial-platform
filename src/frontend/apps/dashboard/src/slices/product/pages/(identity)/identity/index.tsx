@@ -4,7 +4,8 @@ import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
-  useIdentity
+  useIdentity,
+  useIdentityDelegationConfig
 } from '@metorial/state';
 import { Attributes, RenderDate, Spacer, Text } from '@metorial/ui';
 import { Box, ID, Table } from '@metorial/ui-product';
@@ -16,6 +17,11 @@ export let IdentityPage = () => {
   let project = useCurrentProject();
   let { identityId } = useParams();
   let identity = useIdentity(instance.data?.id, identityId);
+
+  let delegationConfig = useIdentityDelegationConfig(
+    instance.data?.id,
+    identity.data?.delegationConfigId
+  );
 
   return renderWithLoader({ identity, organization, project, instance })(
     ({ identity, organization, project, instance }) => (
@@ -43,21 +49,19 @@ export let IdentityPage = () => {
               )
             },
             {
-              label: 'Owner Actor ID',
-              content: <ID id={identity.data.owner.actor.id} />
-            },
-            {
-              label: 'Status',
-              content: identity.data.status
-            },
-            {
-              label: 'Credentials',
-              content: identity.data.credentials.length
-            },
-            {
               label: 'Delegation Config ID',
               content: identity.data.delegationConfigId ? (
-                <ID id={identity.data.delegationConfigId} />
+                // <ID id={identity.data.delegationConfigId} />
+                <Link
+                  to={Paths.instance.identity.delegationConfig(
+                    organization.data,
+                    project.data,
+                    instance.data,
+                    identity.data.delegationConfigId
+                  )}
+                >
+                  {delegationConfig.data?.name ?? '...'}
+                </Link>
               ) : (
                 'Default'
               )
@@ -65,10 +69,6 @@ export let IdentityPage = () => {
             {
               label: 'Created At',
               content: <RenderDate date={identity.data.createdAt} />
-            },
-            {
-              label: 'Updated At',
-              content: <RenderDate date={identity.data.updatedAt} />
             }
           ]}
         />

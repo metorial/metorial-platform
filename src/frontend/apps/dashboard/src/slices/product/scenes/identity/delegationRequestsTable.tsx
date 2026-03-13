@@ -9,7 +9,6 @@ import {
 } from '@metorial/state';
 import { Badge, RenderDate, Text } from '@metorial/ui';
 import { ID, Table } from '@metorial/ui-product';
-import { Link } from 'react-router-dom';
 
 type IdentityDelegationRequestFilters = Omit<
   DashboardInstanceIdentitiesDelegationRequestsListQuery,
@@ -41,7 +40,7 @@ export let IdentityDelegationRequestsTable = ({
   return renderWithPagination(requests)(requests => (
     <>
       <Table
-        headers={['Requester', 'Status', 'Delegation', 'Identity', 'Expires', 'Created']}
+        headers={['Requester', 'Status', 'Delegation', 'Identity', 'Created']}
         data={requests.data.items.map(request => ({
           href: request.delegation?.id
             ? Paths.instance.identity.delegation(
@@ -52,31 +51,10 @@ export let IdentityDelegationRequestsTable = ({
               )
             : undefined,
           data: [
-            <Link
-              to={Paths.instance.identity.actor(
-                organization.data,
-                project.data,
-                instance.data,
-                request.requester.id
-              )}
-              onClick={e => e.stopPropagation()}
-            >
-              {request.requester.name}
-            </Link>,
+            request.requester.name,
             <Badge color={getRequestStatusColor(request.status)}>{request.status}</Badge>,
-            request.delegation?.id ? <ID id={request.delegation.id} /> : '—',
-            <Link
-              to={Paths.instance.identity.identity(
-                organization.data,
-                project.data,
-                instance.data,
-                request.identityId
-              )}
-              onClick={e => e.stopPropagation()}
-            >
-              <ID id={request.identityId} />
-            </Link>,
-            <RenderDate date={request.expiresAt} />,
+            <ID id={request.delegation.id} />,
+            request.delegation.identity.name,
             <RenderDate date={request.createdAt} />
           ]
         }))}

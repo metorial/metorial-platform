@@ -72,7 +72,7 @@ export let IdentityDelegationConfigsTable = ({
               )}
             </div>,
             <Text size="2">{getDelegationBehaviorLabel(config.subDelegationBehavior)}</Text>,
-            config.isDefault ? <Badge color="blue">Default</Badge> : <Text size="2">No</Text>,
+            config.isDefault ? <Badge color="blue">Default</Badge> : <></>,
             <RenderDate date={config.createdAt} />
           ]
         }))}

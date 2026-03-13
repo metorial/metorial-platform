@@ -24,20 +24,12 @@ export let IdentityActorPage = () => {
             content: actor.data.type
           },
           {
-            label: 'Status',
-            content: actor.data.status
-          },
-          {
             label: 'Agent ID',
             content: actor.data.agentId ? <ID id={actor.data.agentId} /> : '—'
           },
           {
             label: 'Created At',
             content: <RenderDate date={actor.data.createdAt} />
-          },
-          {
-            label: 'Updated At',
-            content: <RenderDate date={actor.data.updatedAt} />
           }
         ]}
       />
