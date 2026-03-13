@@ -35,6 +35,12 @@ import {
   SubspaceCustomProviderDeploymentLogs,
   SubspaceCustomProviderEnvironment,
   SubspaceCustomProviderVersion,
+  SubspaceIdentity,
+  SubspaceIdentityActor,
+  SubspaceIdentityCredential,
+  SubspaceIdentityDelegation,
+  SubspaceIdentityDelegationConfig,
+  SubspaceIdentityDelegationRequest,
   SubspaceProvider,
   SubspaceProviderAuthConfig,
   SubspaceProviderAuthConfigSchema,
@@ -360,6 +366,30 @@ export let providerVersionType = PresentableType.create<{
 }>()('version');
 
 export let providerType = PresentableType.create<{ provider: SubspaceProvider }>()('provider');
+
+export let identityType = PresentableType.create<{
+  identity: SubspaceIdentity;
+}>()('identity');
+
+export let identityActorType = PresentableType.create<{
+  identityActor: SubspaceIdentityActor;
+}>()('identity.actor');
+
+export let identityCredentialType = PresentableType.create<{
+  identityCredential: SubspaceIdentityCredential;
+}>()('identity.credential');
+
+export let identityDelegationType = PresentableType.create<{
+  identityDelegation: SubspaceIdentityDelegation;
+}>()('identity.delegation');
+
+export let identityDelegationConfigType = PresentableType.create<{
+  identityDelegationConfig: SubspaceIdentityDelegationConfig;
+}>()('identity.delegation_config');
+
+export let identityDelegationRequestType = PresentableType.create<{
+  identityDelegationRequest: SubspaceIdentityDelegationRequest;
+}>()('identity.delegation_request');
 
 export let providerTypeType = PresentableType.create<{
   providerType: SubspaceProviderType;
