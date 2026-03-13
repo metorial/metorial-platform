@@ -10,6 +10,7 @@ import {
 import { Attributes, RenderDate, Spacer, Text } from '@metorial/ui';
 import { Box, ID, Table } from '@metorial/ui-product';
 import { Link, useParams } from 'react-router-dom';
+import { UsageScene } from '../../../scenes/usage/usage';
 
 export let IdentityPage = () => {
   let instance = useCurrentInstance();
@@ -71,6 +72,15 @@ export let IdentityPage = () => {
               content: <RenderDate date={identity.data.createdAt} />
             }
           ]}
+        />
+
+        <Spacer size={20} />
+
+        <UsageScene
+          title="Usage"
+          description="See how this identity is being used across delegations and requests."
+          entities={[{ type: 'identity', id: identity.data.id }]}
+          entityNames={{ [identity.data.id]: identity.data.name ?? identity.data.id }}
         />
 
         <Spacer size={20} />

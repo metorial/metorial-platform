@@ -4,6 +4,7 @@ import { Attributes, RenderDate, Spacer } from '@metorial/ui';
 import { Box, ID } from '@metorial/ui-product';
 import { useParams } from 'react-router-dom';
 import { IdentitiesTable } from '../../../scenes/identity/identitiesTable';
+import { UsageScene } from '../../../scenes/usage/usage';
 
 export let IdentityActorPage = () => {
   let instance = useCurrentInstance();
@@ -32,6 +33,15 @@ export let IdentityActorPage = () => {
             content: <RenderDate date={actor.data.createdAt} />
           }
         ]}
+      />
+
+      <Spacer size={20} />
+
+      <UsageScene
+        title="Usage"
+        description="See how this actor is being used across identities, delegations, and requests."
+        entities={[{ type: 'identity_actor', id: actor.data.id }]}
+        entityNames={{ [actor.data.id]: actor.data.name }}
       />
 
       <Spacer size={20} />
