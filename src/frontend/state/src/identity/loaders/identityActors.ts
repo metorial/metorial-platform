@@ -21,12 +21,19 @@ export let useCreateIdentityActor = identityActorsLoader.createExternalMutator(
   { disableToast: true }
 );
 
+export let useDeleteIdentityActor = identityActorsLoader.createExternalMutator(
+  (i: { instanceId: string; identityActorId: string }) =>
+    withAuth(sdk => sdk.identityActors.delete(i.instanceId, i.identityActorId))
+);
+
 export let useIdentityActors = (
   instanceId: string | null | undefined,
   query?: DashboardInstanceIdentityActorsListQuery
 ) => {
-  let data = usePaginator(pagination =>
-    identityActorsLoader.use(instanceId ? { instanceId, ...pagination, ...query } : null)
+  let data = usePaginator(
+    pagination =>
+      identityActorsLoader.use(instanceId ? { instanceId, ...pagination, ...query } : null),
+    instanceId && query ? JSON.stringify({ instanceId, ...query }) : instanceId
   );
 
   return data;

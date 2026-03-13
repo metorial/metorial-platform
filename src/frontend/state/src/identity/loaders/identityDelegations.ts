@@ -24,8 +24,12 @@ export let useIdentityDelegations = (
   instanceId: string | null | undefined,
   query?: DashboardInstanceIdentitiesDelegationsListQuery
 ) => {
-  let data = usePaginator(pagination =>
-    identityDelegationsLoader.use(instanceId ? { instanceId, ...pagination, ...query } : null)
+  let data = usePaginator(
+    pagination =>
+      identityDelegationsLoader.use(
+        instanceId ? { instanceId, ...pagination, ...query } : null
+      ),
+    instanceId && query ? JSON.stringify({ instanceId, ...query }) : instanceId
   );
 
   return data;
