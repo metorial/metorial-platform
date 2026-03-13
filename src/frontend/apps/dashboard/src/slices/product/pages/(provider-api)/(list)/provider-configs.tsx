@@ -1,6 +1,5 @@
 import {
-  DashboardInstanceProviderDeploymentsConfigsListOutput,
-  DashboardInstanceProviderDeploymentsListOutput
+  DashboardInstanceProviderDeploymentsConfigsListOutput
 } from '@metorial/dashboard-sdk';
 import { renderWithLoader, renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
@@ -9,17 +8,19 @@ import {
   useCurrentOrganization,
   useCurrentProject,
   useInstanceProviderConfigs,
-  useProviderDeployments,
   useProviders
 } from '@metorial/state';
-import { Badge, Input, RenderDate, Spacer, Text } from '@metorial/ui';
+import { Input, RenderDate, Spacer, Text } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
 import { useMemo } from 'react';
 import { useSearchFilter } from '../../../../../hooks/useSearchFilter';
+import { showCreateProviderConfigFlow } from './providerCreationFlows';
+import { ProviderConfigurationsEmptyState } from './providerConfigurationsEmptyState';
 
 type ConfigOverviewRow = {
   config: DashboardInstanceProviderDeploymentsConfigsListOutput['items'][number];
-  deployment: DashboardInstanceProviderDeploymentsListOutput['items'][number];
+  providerDeploymentId?: string;
+  providerDeploymentName?: string | null;
 };
 
 export let ProviderConfigsOverviewPage = () => {
@@ -29,26 +30,34 @@ export let ProviderConfigsOverviewPage = () => {
 
   let { search, setSearch, searchQuery } = useSearchFilter();
 
-  let deployments = useProviderDeployments(instance.data?.id, {
-    limit: 100
-  });
-
-  let deploymentItems = deployments.data?.items ?? [];
-  let deploymentIds = useMemo(
-    () => deploymentItems.map(deployment => deployment.id),
-    [deploymentItems]
-  );
   let configs = useInstanceProviderConfigs(instance.data?.id, {
-    providerDeploymentId: deploymentIds.length > 0 ? deploymentIds : ['__none__'],
+    limit: 20,
     search: searchQuery
   });
   let providerIds = useMemo(
-    () => [
-      ...new Set(deploymentItems.map(deployment => deployment.providerId).filter(Boolean))
+    () =>
+      [
+        ...new Set(
+          (configs.data?.items ?? [])
+            .map(
+              config =>
+                config.deployment?.providerId ??
+                config.fromVault?.deployment?.providerId ??
+                config.providerId
+            )
+            .filter(Boolean)
+        )
     ],
-    [deploymentItems]
+    [configs.data?.items]
   );
-  let providers = useProviders(instance.data?.id, { id: providerIds });
+  let providerQuery = useMemo(
+    () =>
+      !configs.isLoading && !configs.error && providerIds.length === 0
+        ? { limit: 20 }
+        : { id: providerIds },
+    [configs.error, configs.isLoading, providerIds]
+  );
+  let providers = useProviders(instance.data?.id, providerQuery);
   let providerNameMap = useMemo(() => {
     let map = new Map<string, string>();
     for (let provider of providers.data?.items ?? []) {
@@ -57,55 +66,53 @@ export let ProviderConfigsOverviewPage = () => {
     return map;
   }, [providers.data?.items]);
   let rows = useMemo(() => {
-    let deploymentById = new Map<
-      string,
-      DashboardInstanceProviderDeploymentsListOutput['items'][number]
-    >();
-    for (let deployment of deploymentItems) {
-      deploymentById.set(deployment.id, deployment);
-    }
-
     let nextRows: ConfigOverviewRow[] = [];
     for (let config of configs.data?.items ?? []) {
-      let deployment =
-        (config.deployment?.id ? deploymentById.get(config.deployment.id) : null) ??
-        deploymentById.values().next().value;
-      if (!deployment) continue;
+      let providerDeploymentId = config.deployment?.id ?? config.fromVault?.deployment?.id;
+      let providerDeploymentName = config.deployment?.name ?? config.fromVault?.deployment?.name;
 
       nextRows.push({
         config,
-        deployment
+        providerDeploymentId,
+        providerDeploymentName
       });
     }
 
     return nextRows;
-  }, [configs.data?.items, deploymentItems]);
+  }, [configs.data?.items]);
   let table = (
     <Table
-      headers={['Config Name', 'Provider', 'Version', 'Created']}
+      headers={['Config Name', 'Provider', 'Deployment', 'Created']}
       data={rows.map(row => ({
-        href: Paths.instance.providerConfig(
-          organization.data,
-          project.data,
-          instance.data,
-          row.deployment.id,
-          row.config.id
-        ),
+        href: row.providerDeploymentId
+          ? Paths.instance.providerConfig(
+              organization.data,
+              project.data,
+              instance.data,
+              row.providerDeploymentId,
+              row.config.id
+            )
+          : undefined,
         data: [
           <Text size="2" weight="strong">
             {row.config.name ?? 'Unnamed'}
           </Text>,
           <Text size="2">
-            {providerNameMap.get(row.deployment.providerId) ?? row.deployment.providerId}
+            {providerNameMap.get(
+              row.config.deployment?.providerId ??
+                row.config.fromVault?.deployment?.providerId ??
+                row.config.providerId
+            ) ??
+              row.config.deployment?.providerId ??
+              row.config.fromVault?.deployment?.providerId ??
+              row.config.providerId}
           </Text>,
-          row.deployment.lockedVersion ? (
-            <Badge color="purple" size="1">
-              {row.deployment.lockedVersion.version}
-            </Badge>
+          row.providerDeploymentName ? (
+            <Text size="2">{row.providerDeploymentName}</Text>
           ) : (
-            <Badge color="gray" size="1">
-              Default
-            </Badge>
+            <Text size="2" color="gray600">
+              Provider-level
+            </Text>
           ),
           row.config.createdAt ? (
             <RenderDate date={row.config.createdAt} />
@@ -119,32 +126,47 @@ export let ProviderConfigsOverviewPage = () => {
     />
   );
   let configsContent = renderWithPagination(configs)(() => table);
-
   return renderWithLoader({
     organization,
     project,
     instance,
-    deployments,
-    providers
-  })(() => (
-    <>
-      <Input
-        label="Search"
-        hideLabel
-        placeholder="Search configs..."
-        value={search}
-        onChange={e => setSearch(e.target.value)}
-      />
+    configs
+  })(() => {
+    let hasSearch = (searchQuery ?? '').trim().length > 0;
 
-      <Spacer size={15} />
+    return (
+      <>
+        <Input
+          label="Search"
+          hideLabel
+          placeholder="Search configs..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
 
-      {configsContent}
+        <Spacer size={15} />
 
-      {!configs.isLoading && !configs.error && rows.length === 0 && (
-        <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-          No configs for this instance.
-        </Text>
-      )}
-    </>
-  ));
+        {rows.length === 0 ? (
+          hasSearch ? (
+            <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
+              No configs found for "{searchQuery}".
+            </Text>
+          ) : (
+            <ProviderConfigurationsEmptyState
+              title="Create your first config"
+              description="Configs let you save reusable provider settings for this instance."
+              actionLabel="Create Config"
+              onAction={() => {
+                if (instance.data?.id) {
+                  showCreateProviderConfigFlow(instance.data.id);
+                }
+              }}
+            />
+          )
+        ) : (
+          renderWithLoader({ providers })(() => configsContent)
+        )}
+      </>
+    );
+  });
 };

@@ -12,6 +12,8 @@ import { Badge, Input, RenderDate, Spacer, Text } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
 import { useMemo } from 'react';
 import { useSearchFilter } from '../../../../../hooks/useSearchFilter';
+import { showCreateProviderAuthConfigFlow } from './providerCreationFlows';
+import { ProviderConfigurationsEmptyState } from './providerConfigurationsEmptyState';
 
 type AuthConfigItem =
   DashboardInstanceProviderDeploymentsAuthConfigsListOutput['items'][number];
@@ -37,6 +39,7 @@ export let ProviderAuthConfigsOverviewPage = () => {
 
   let { search, setSearch, searchQuery } = useSearchFilter();
   let authConfigs = useInstanceProviderAuthConfigs(instance.data?.id, {
+    limit: 20,
     search: searchQuery
   });
   let items = authConfigs.data?.items ?? [];
@@ -44,7 +47,14 @@ export let ProviderAuthConfigsOverviewPage = () => {
     () => [...new Set(items.map(item => item.providerId).filter(Boolean))],
     [items]
   );
-  let providers = useProviders(instance.data?.id, { id: providerIds });
+  let providerQuery = useMemo(
+    () =>
+      !authConfigs.isLoading && !authConfigs.error && providerIds.length === 0
+        ? { limit: 20 }
+        : { id: providerIds },
+    [authConfigs.error, authConfigs.isLoading, providerIds]
+  );
+  let providers = useProviders(instance.data?.id, providerQuery);
   let providerNameMap = useMemo(() => {
     let map = new Map<string, string>();
     for (let provider of providers.data?.items ?? []) {
@@ -110,26 +120,44 @@ export let ProviderAuthConfigsOverviewPage = () => {
       }))}
     />
   ));
+  return renderWithLoader({ organization, project, instance, authConfigs })(() => {
+    let hasSearch = (searchQuery ?? '').trim().length > 0;
 
-  return renderWithLoader({ organization, project, instance, providers })(() => (
-    <>
-      <Input
-        label="Search"
-        hideLabel
-        placeholder="Search auth configs..."
-        value={search}
-        onChange={e => setSearch(e.target.value)}
-      />
+    return (
+      <>
+        <Input
+          label="Search"
+          hideLabel
+          placeholder="Search auth configs..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
 
-      <Spacer size={15} />
+        <Spacer size={15} />
 
-      {authConfigsContent}
-
-      {!authConfigs.isLoading && !authConfigs.error && rows.length === 0 && (
-        <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-          No auth configs for this instance.
-        </Text>
-      )}
-    </>
-  ));
+        {rows.length === 0 ? (
+          hasSearch ? (
+            <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
+              No auth configs found for "{searchQuery}".
+            </Text>
+          ) : (
+            <ProviderConfigurationsEmptyState
+              title="Create your first auth config"
+              description="Auth configs connect providers to the authentication settings your instance should use."
+              actionLabel="Create Auth Config"
+              onAction={() => {
+                if (instance.data?.id) {
+                  showCreateProviderAuthConfigFlow(instance.data.id, {
+                    scope: 'provider'
+                  });
+                }
+              }}
+            />
+          )
+        ) : (
+          renderWithLoader({ providers })(() => authConfigsContent)
+        )}
+      </>
+    );
+  });
 };

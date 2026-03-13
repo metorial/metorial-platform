@@ -1,26 +1,17 @@
-import {
-  DashboardInstanceProviderDeploymentsAuthCredentialsListOutput,
-  DashboardInstanceProviderDeploymentsListOutput
-} from '@metorial/dashboard-sdk';
 import { renderWithLoader, renderWithPagination } from '@metorial/data-hooks';
-import { Paths } from '@metorial/frontend-config';
 import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
   useInstanceProviderAuthCredentials,
-  useProviderDeployments,
   useProviders
 } from '@metorial/state';
 import { Badge, Input, RenderDate, Spacer, Text } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
 import { useMemo } from 'react';
 import { useSearchFilter } from '../../../../../hooks/useSearchFilter';
-
-type CredentialOverviewRow = {
-  credential: DashboardInstanceProviderDeploymentsAuthCredentialsListOutput['items'][number];
-  deployment: DashboardInstanceProviderDeploymentsListOutput['items'][number];
-};
+import { showCreateProviderAuthCredentialsFlow } from './providerCreationFlows';
+import { ProviderConfigurationsEmptyState } from './providerConfigurationsEmptyState';
 
 export let ProviderAuthCredentialsOverviewPage = () => {
   let instance = useCurrentInstance();
@@ -29,25 +20,23 @@ export let ProviderAuthCredentialsOverviewPage = () => {
 
   let { search, setSearch, searchQuery } = useSearchFilter();
 
-  let deployments = useProviderDeployments(instance.data?.id, {
-    limit: 100
-  });
-
-  let deploymentItems = deployments.data?.items ?? [];
-  let providerIds = useMemo(
-    () => [
-      ...new Set(deploymentItems.map(deployment => deployment.providerId).filter(Boolean))
-    ],
-    [deploymentItems]
-  );
   let authCredentials = useInstanceProviderAuthCredentials(instance.data?.id, {
-    providerId: providerIds.length > 0 ? providerIds : ['__none__'],
+    limit: 20,
     search: searchQuery
   });
-  let providers = useProviders(
-    instance.data?.id,
-    { id: providerIds }
+  let items = authCredentials.data?.items ?? [];
+  let providerIds = useMemo(
+    () => [...new Set(items.map(credential => credential.providerId).filter(Boolean))],
+    [items]
   );
+  let providerQuery = useMemo(
+    () =>
+      !authCredentials.isLoading && !authCredentials.error && providerIds.length === 0
+        ? { limit: 20 }
+        : { id: providerIds },
+    [authCredentials.error, authCredentials.isLoading, providerIds]
+  );
+  let providers = useProviders(instance.data?.id, providerQuery);
   let providerNameMap = useMemo(() => {
     let map = new Map<string, string>();
     for (let provider of providers.data?.items ?? []) {
@@ -55,59 +44,28 @@ export let ProviderAuthCredentialsOverviewPage = () => {
     }
     return map;
   }, [providers.data?.items]);
-  let rows = useMemo(() => {
-    let deploymentByProviderId = new Map<
-      string,
-      DashboardInstanceProviderDeploymentsListOutput['items'][number]
-    >();
-    for (let deployment of deploymentItems) {
-      if (!deploymentByProviderId.has(deployment.providerId)) {
-        deploymentByProviderId.set(deployment.providerId, deployment);
-      }
-    }
-
-    let nextRows: CredentialOverviewRow[] = [];
-    for (let credential of authCredentials.data?.items ?? []) {
-      let deployment = deploymentByProviderId.get(credential.providerId);
-      if (!deployment) continue;
-
-      nextRows.push({
-        credential,
-        deployment
-      });
-    }
-
-    return nextRows;
-  }, [authCredentials.data?.items, deploymentItems]);
+  let rows = useMemo(() => items, [items]);
   let table = (
     <Table
-      headers={['Name', 'Provider', 'Version', 'Created']}
+      headers={['Name', 'Provider', 'Type', 'Default', 'Created']}
       data={rows.map(row => ({
-        href: Paths.instance.providerAuthCredential(
-          organization.data,
-          project.data,
-          instance.data,
-          row.deployment.id,
-          row.credential.id
-        ),
         data: [
           <Text size="2" weight="strong">
-            {row.credential.name || '—'}
+            {row.name || '—'}
           </Text>,
           <Text size="2">
-            {providerNameMap.get(row.deployment.providerId) ?? row.deployment.providerId}
+            {providerNameMap.get(row.providerId) ?? row.providerId}
           </Text>,
-          row.deployment.lockedVersion ? (
-            <Badge color="purple" size="1">
-              {row.deployment.lockedVersion.version}
-            </Badge>
-          ) : (
-            <Badge color="gray" size="1">
+          <Text size="2">{row.type}</Text>,
+          row.isDefault ? (
+            <Badge color="blue" size="1">
               Default
             </Badge>
+          ) : (
+            <Text size="2">No</Text>
           ),
-          row.credential.createdAt ? (
-            <RenderDate date={row.credential.createdAt} />
+          row.createdAt ? (
+            <RenderDate date={row.createdAt} />
           ) : (
             <Text size="2" color="gray600">
               —
@@ -118,32 +76,47 @@ export let ProviderAuthCredentialsOverviewPage = () => {
     />
   );
   let authCredentialsContent = renderWithPagination(authCredentials)(() => table);
-
   return renderWithLoader({
     organization,
     project,
     instance,
-    deployments,
-    providers
-  })(() => (
-    <>
-      <Input
-        label="Search"
-        hideLabel
-        placeholder="Search auth credentials..."
-        value={search}
-        onChange={e => setSearch(e.target.value)}
-      />
+    authCredentials
+  })(() => {
+    let hasSearch = (searchQuery ?? '').trim().length > 0;
 
-      <Spacer size={15} />
+    return (
+      <>
+        <Input
+          label="Search"
+          hideLabel
+          placeholder="Search auth credentials..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
 
-      {authCredentialsContent}
+        <Spacer size={15} />
 
-      {!authCredentials.isLoading && !authCredentials.error && rows.length === 0 && (
-        <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-          No auth credentials for this instance.
-        </Text>
-      )}
-    </>
-  ));
+        {rows.length === 0 ? (
+          hasSearch ? (
+            <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
+              No auth credentials found for "{searchQuery}".
+            </Text>
+          ) : (
+            <ProviderConfigurationsEmptyState
+              title="Create your first auth credentials"
+              description="Auth credentials store the provider access details your instance can reuse."
+              actionLabel="Create Auth Credentials"
+              onAction={() => {
+                if (instance.data?.id) {
+                  showCreateProviderAuthCredentialsFlow(instance.data.id);
+                }
+              }}
+            />
+          )
+        ) : (
+          renderWithLoader({ providers })(() => authCredentialsContent)
+        )}
+      </>
+    );
+  });
 };

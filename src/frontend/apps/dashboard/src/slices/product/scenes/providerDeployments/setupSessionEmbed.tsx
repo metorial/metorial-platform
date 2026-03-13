@@ -22,6 +22,7 @@ import { Stepper } from '../stepper';
 type AuthMethod = DashboardInstanceProvidersAuthMethodsListOutput['items'][number];
 type AuthCredential =
   DashboardInstanceProviderDeploymentsAuthCredentialsListOutput['items'][number];
+type CredentialsMode = 'existing' | 'new';
 type SetupSessionState =
   | DashboardInstanceProviderDeploymentsSetupSessionsCreateOutput
   | DashboardInstanceProviderDeploymentsSetupSessionsGetOutput;
@@ -61,22 +62,12 @@ export let ProviderSetupSessionEmbed = ({
   let createCredentials = useCreateProviderAuthCredentials();
   let createSetupSession = useCreateProviderSetupSession(instanceId, providerId, deploymentId);
   let getSetupSession = useGetProviderSetupSession(instanceId);
-  let [isCreatingCredentials, setIsCreatingCredentials] = useState(false);
-  let [selectedCredentialsId, setSelectedCredentialsId] = useState<string | undefined>(undefined);
-  let selectedCredentialsIdRef = useRef<string | undefined>(undefined);
 
   let methodForm = useForm({
     initialValues: {
       selectedMethodId: initialMethodId ?? ''
     },
-    onSubmit: async values => {
-      methodForm.setFieldTouched('selectedMethodId', true, false);
-      await methodForm.validateField('selectedMethodId');
-
-      if (!values.selectedMethodId) return;
-
-      setStep(includeMethodStep ? 1 : 0);
-    },
+    onSubmit: async () => undefined,
     schema: yup =>
       yup.object({
         selectedMethodId: yup.string().required('Authentication method is required')
@@ -84,40 +75,63 @@ export let ProviderSetupSessionEmbed = ({
   });
   let credentialsForm = useForm({
     initialValues: {
+      credentialMode: 'existing' as CredentialsMode,
+      selectedCredentialId: '',
       newCredName: '',
       newCredClientId: '',
       newCredClientSecret: ''
     },
-    schemaDependencies: [isCreatingCredentials],
-    onSubmit: async () => {
-      let providerAuthCredentialsId =
-        selectedCredentialsIdRef.current ?? effectiveSelectedCredentialsId;
+    onSubmit: async values => {
+      let providerAuthCredentialsId = values.selectedCredentialId;
 
-      if (isCreatingCredentials) {
-        providerAuthCredentialsId = (await handleCreateCredentials()) ?? undefined;
+      if (values.credentialMode === 'new') {
+        providerAuthCredentialsId = (await handleCreateCredentials(values)) ?? '';
+        if (!providerAuthCredentialsId) return;
       }
 
-      if (requiresManualOAuthCredentials && !providerAuthCredentialsId) {
-        setError('Select an existing credential or add your own to continue.');
-        return;
-      }
-
-      let session = await handleStartSetup(providerAuthCredentialsId);
+      let session = await handleStartSetup(providerAuthCredentialsId || undefined);
       if (session) {
         setStep(includeMethodStep ? 2 : 1);
       }
     },
     schema: yup =>
       yup.object({
-        newCredName: isCreatingCredentials
-          ? yup.string().required('Name is required')
-          : yup.string().defined(),
-        newCredClientId: isCreatingCredentials
-          ? yup.string().required('Client ID is required')
-          : yup.string().defined(),
-        newCredClientSecret: isCreatingCredentials
-          ? yup.string().required('Client secret is required')
-          : yup.string().defined()
+        credentialMode: yup
+          .string<CredentialsMode>()
+          .oneOf(['existing', 'new'])
+          .required(),
+        selectedCredentialId: yup.string().ensure().test(
+          'selected-credential-required',
+          'Select an existing credential or add your own to continue.',
+          function (value) {
+            if (this.parent.credentialMode !== 'existing') return true;
+            return !!value;
+          }
+        ),
+        newCredName: yup.string().ensure().test(
+          'new-cred-name-required',
+          'Name is required',
+          function (value) {
+            if (this.parent.credentialMode !== 'new') return true;
+            return !!value;
+          }
+        ),
+        newCredClientId: yup.string().ensure().test(
+          'new-cred-client-id-required',
+          'Client ID is required',
+          function (value) {
+            if (this.parent.credentialMode !== 'new') return true;
+            return !!value;
+          }
+        ),
+        newCredClientSecret: yup.string().ensure().test(
+          'new-cred-client-secret-required',
+          'Client secret is required',
+          function (value) {
+            if (this.parent.credentialMode !== 'new') return true;
+            return !!value;
+          }
+        )
       })
   });
 
@@ -192,9 +206,7 @@ export let ProviderSetupSessionEmbed = ({
   let preferredVisibleCredential =
     visibleAuthCredentials.find(credential => credential.isDefault) ??
     (visibleAuthCredentials.length === 1 ? visibleAuthCredentials[0] : null);
-  let effectiveSelectedCredentialsId = isCreatingCredentials
-    ? undefined
-    : (selectedCredentialsId ?? preferredVisibleCredential?.id);
+  let isCreatingCredentials = credentialsForm.values.credentialMode === 'new';
 
   let hasSingleMethod = (authMethods.data?.items?.length ?? 0) === 1;
   let skipMethodStep = hideMethodStep || hasSingleMethod;
@@ -207,28 +219,53 @@ export let ProviderSetupSessionEmbed = ({
     }
   }, [authMethods.data?.items, hasSingleMethod, methodForm.setFieldValue, selectedMethodId]);
 
+  let continueToCredentialsStep = async () => {
+    methodForm.setFieldTouched('selectedMethodId', true, false);
+    await methodForm.validateField('selectedMethodId');
+
+    if (!methodForm.values.selectedMethodId) return;
+
+    setStep(includeMethodStep ? 1 : 0);
+  };
+
   useEffect(() => {
     if (!requiresManualOAuthCredentials) return;
-    if (visibleAuthCredentials.length > 0) return;
-    if (selectedCredentialsId) return;
 
-    setIsCreatingCredentials(true);
-  }, [requiresManualOAuthCredentials, selectedCredentialsId, visibleAuthCredentials.length]);
-
-  useEffect(() => {
-    if (isCreatingCredentials) return;
-    if (selectedCredentialsId) {
-      selectedCredentialsIdRef.current = selectedCredentialsId;
+    if (visibleAuthCredentials.length === 0) {
+      if (credentialsForm.values.credentialMode !== 'new') {
+        void credentialsForm.setFieldValue('credentialMode', 'new');
+      }
+      if (credentialsForm.values.selectedCredentialId) {
+        void credentialsForm.setFieldValue('selectedCredentialId', '');
+      }
       return;
     }
+
+    if (credentialsForm.values.credentialMode === 'new') return;
+
+    let selectedCredentialExists = visibleAuthCredentials.some(
+      credential => credential.id === credentialsForm.values.selectedCredentialId
+    );
+
+    if (selectedCredentialExists) return;
     if (!preferredVisibleCredential) return;
 
-    setSelectedCredentialsId(preferredVisibleCredential.id);
-    selectedCredentialsIdRef.current = preferredVisibleCredential.id;
-  }, [isCreatingCredentials, preferredVisibleCredential, selectedCredentialsId]);
+    void credentialsForm.setFieldValue('selectedCredentialId', preferredVisibleCredential.id);
+  }, [
+    credentialsForm,
+    credentialsForm.values.credentialMode,
+    credentialsForm.values.selectedCredentialId,
+    preferredVisibleCredential,
+    requiresManualOAuthCredentials,
+    visibleAuthCredentials
+  ]);
 
-  let handleCreateCredentials = async (): Promise<string | null> => {
-    let { newCredName, newCredClientId, newCredClientSecret } = credentialsForm.values;
+  let handleCreateCredentials = async (values: {
+    newCredName: string;
+    newCredClientId: string;
+    newCredClientSecret: string;
+  }): Promise<string | null> => {
+    let { newCredName, newCredClientId, newCredClientSecret } = values;
     if (!newCredName || !newCredClientId || !newCredClientSecret) return null;
     if (!selectedMethod) return null;
 
@@ -253,12 +290,11 @@ export let ProviderSetupSessionEmbed = ({
 
     if (!result) return null;
 
-    setSelectedCredentialsId(result.id);
-    selectedCredentialsIdRef.current = result.id;
-    credentialsForm.setFieldValue('newCredName', '');
-    credentialsForm.setFieldValue('newCredClientId', '');
-    credentialsForm.setFieldValue('newCredClientSecret', '');
-    setIsCreatingCredentials(false);
+    void credentialsForm.setFieldValue('credentialMode', 'existing');
+    void credentialsForm.setFieldValue('selectedCredentialId', result.id);
+    void credentialsForm.setFieldValue('newCredName', '');
+    void credentialsForm.setFieldValue('newCredClientId', '');
+    void credentialsForm.setFieldValue('newCredClientSecret', '');
     return result.id;
   };
 
@@ -524,7 +560,12 @@ export let ProviderSetupSessionEmbed = ({
       title: 'Authentication',
       subtitle: 'Select auth method',
       render: () => (
-        <form onSubmit={methodForm.handleSubmit}>
+        <form
+          onSubmit={e => {
+            e.preventDefault();
+            void continueToCredentialsStep();
+          }}
+        >
           {!lockedVersionId && (
             <>
               <Text size="1" color="gray600">
@@ -541,9 +582,6 @@ export let ProviderSetupSessionEmbed = ({
             onChange={value => {
               methodForm.setFieldValue('selectedMethodId', value);
               credentialsForm.resetForm();
-              setSelectedCredentialsId(undefined);
-              selectedCredentialsIdRef.current = undefined;
-              setIsCreatingCredentials(false);
               resetSetupSession();
             }}
             items={(authMethods.data?.items ?? []).map((method: AuthMethod) => ({
@@ -567,7 +605,10 @@ export let ProviderSetupSessionEmbed = ({
                 {cancelLabel}
               </Button>
             )}
-            <Button type="submit" disabled={!selectedMethodId}>
+            <Button
+              type="submit"
+              disabled={!selectedMethodId}
+            >
               Continue
             </Button>
           </Flex>
@@ -599,19 +640,21 @@ export let ProviderSetupSessionEmbed = ({
           )}
           <Select
             label={`${oauthMethodName} Existing Credentials`}
-            value={isCreatingCredentials ? '__create_new__' : effectiveSelectedCredentialsId}
+            value={
+              credentialsForm.values.credentialMode === 'new'
+                ? '__create_new__'
+                : credentialsForm.values.selectedCredentialId
+            }
             placeholder="Select or add credentials"
             onChange={value => {
               setError(null);
 
               if (value === '__create_new__') {
-                setIsCreatingCredentials(true);
-                setSelectedCredentialsId(undefined);
-                selectedCredentialsIdRef.current = undefined;
+                void credentialsForm.setFieldValue('credentialMode', 'new');
+                void credentialsForm.setFieldValue('selectedCredentialId', '');
               } else {
-                setIsCreatingCredentials(false);
-                setSelectedCredentialsId(value);
-                selectedCredentialsIdRef.current = value;
+                void credentialsForm.setFieldValue('credentialMode', 'existing');
+                void credentialsForm.setFieldValue('selectedCredentialId', value);
               }
             }}
             items={[
@@ -627,6 +670,7 @@ export let ProviderSetupSessionEmbed = ({
               }
             ]}
           />
+          <credentialsForm.RenderError field="selectedCredentialId" />
           {isCreatingCredentials && (
             <>
               <Spacer size={8} />
@@ -674,13 +718,15 @@ export let ProviderSetupSessionEmbed = ({
           )}
           <Spacer size={12} />
           <Flex gap={8}>
-            {(!skipMethodStep || isCreatingCredentials || onBackToMethodSelection) && (
+            {(!skipMethodStep ||
+              (isCreatingCredentials && visibleAuthCredentials.length > 0) ||
+              onBackToMethodSelection) && (
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => {
-                  if (isCreatingCredentials) {
-                    setIsCreatingCredentials(false);
+                  if (isCreatingCredentials && visibleAuthCredentials.length > 0) {
+                    void credentialsForm.setFieldValue('credentialMode', 'existing');
                     return;
                   }
 
@@ -697,15 +743,13 @@ export let ProviderSetupSessionEmbed = ({
             )}
             <Button
               type="submit"
-              loading={createCredentials.isPending}
+              loading={createCredentials.isPending || isStarting || createSetupSession.isPending}
               disabled={
                 (isCreatingCredentials &&
                   (!credentialsForm.values.newCredName ||
                     !credentialsForm.values.newCredClientId ||
                     !credentialsForm.values.newCredClientSecret)) ||
-                (!isCreatingCredentials &&
-                  requiresManualOAuthCredentials &&
-                  !effectiveSelectedCredentialsId)
+                (!isCreatingCredentials && !credentialsForm.values.selectedCredentialId)
               }
             >
               Continue
@@ -810,9 +854,7 @@ export let ProviderSetupSessionEmbed = ({
                 type="button"
                 size="1"
                 onClick={() =>
-                  void handleStartSetup(
-                    selectedCredentialsIdRef.current ?? effectiveSelectedCredentialsId
-                  )
+                  void handleStartSetup(credentialsForm.values.selectedCredentialId || undefined)
                 }
                 loading={isStarting || createSetupSession.isPending}
                 disabled={!selectedMethodId}

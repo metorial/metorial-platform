@@ -12,6 +12,8 @@ import { Input, RenderDate, Spacer, Text } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
 import { useMemo } from 'react';
 import { useSearchFilter } from '../../../../../hooks/useSearchFilter';
+import { showCreateProviderConfigVaultFlow } from './providerCreationFlows';
+import { ProviderConfigurationsEmptyState } from './providerConfigurationsEmptyState';
 
 export let ProviderConfigVaultsOverviewPage = () => {
   let instance = useCurrentInstance();
@@ -21,16 +23,24 @@ export let ProviderConfigVaultsOverviewPage = () => {
   let { search, setSearch, searchQuery } = useSearchFilter();
 
   let vaults = useProviderConfigVaults(instance.data?.id, {
+    limit: 20,
     search: searchQuery
   });
   let providerIds = useMemo(
-    () => [
-      ...new Set((vaults.data?.items ?? []).map(vault => vault.providerId).filter(Boolean))
-    ],
+    () =>
+      [
+        ...new Set((vaults.data?.items ?? []).map(vault => vault.providerId).filter(Boolean))
+      ],
     [vaults.data?.items]
   );
-  let providers = useProviders(instance.data?.id, { id: providerIds });
-
+  let providerQuery = useMemo(
+    () =>
+      !vaults.isLoading && !vaults.error && providerIds.length === 0
+        ? { limit: 20 }
+        : { id: providerIds },
+    [providerIds, vaults.error, vaults.isLoading]
+  );
+  let providers = useProviders(instance.data?.id, providerQuery);
   let providerNameMap = useMemo(() => {
     let map = new Map<string, string>();
     for (let provider of providers.data?.items ?? []) {
@@ -38,61 +48,76 @@ export let ProviderConfigVaultsOverviewPage = () => {
     }
     return map;
   }, [providers.data?.items]);
-  let vaultsContent = renderWithPagination(vaults)(vaults => (
-    <>
-      <Table
-        headers={['Name', 'Provider', 'Deployment', 'Created']}
-        data={vaults.data.items.map(
-          (
-            vault: DashboardInstanceProviderDeploymentsConfigVaultsListOutput['items'][number]
-          ) => ({
-            href: Paths.instance.providerConfigVault(
-              organization.data,
-              project.data,
-              instance.data,
-              vault.id
-            ),
-            data: [
-              <Text size="2" weight="strong">
-                {vault.name ?? 'Unnamed Vault'}
-              </Text>,
-              <Text size="2">
-                {providerNameMap.get(vault.providerId) ?? vault.providerId ?? '—'}
-              </Text>,
-              <Text size="2">{vault.deployment?.name ?? '—'}</Text>,
-              vault.createdAt ? (
-                <RenderDate date={vault.createdAt} />
-              ) : (
-                <Text size="2" color="gray600">
-                  —
-                </Text>
-              )
-            ]
-          })
-        )}
-      />
-
-      {vaults.data.items.length === 0 && (
-        <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-          No config vaults for this instance.
-        </Text>
+  let vaultsTable = renderWithPagination(vaults)(vaults => (
+    <Table
+      headers={['Name', 'Provider', 'Deployment', 'Created']}
+      data={vaults.data.items.map(
+        (
+          vault: DashboardInstanceProviderDeploymentsConfigVaultsListOutput['items'][number]
+        ) => ({
+          href: Paths.instance.providerConfigVault(
+            organization.data,
+            project.data,
+            instance.data,
+            vault.id
+          ),
+          data: [
+            <Text size="2" weight="strong">
+              {vault.name ?? 'Unnamed Vault'}
+            </Text>,
+            <Text size="2">
+              {providerNameMap.get(vault.providerId) ?? vault.providerId ?? '—'}
+            </Text>,
+            <Text size="2">{vault.deployment?.name ?? '—'}</Text>,
+            vault.createdAt ? (
+              <RenderDate date={vault.createdAt} />
+            ) : (
+              <Text size="2" color="gray600">
+                —
+              </Text>
+            )
+          ]
+        })
       )}
-    </>
+    />
   ));
 
-  return renderWithLoader({ organization, project, instance, providers })(() => (
-    <>
-      <Input
-        label="Search"
-        hideLabel
-        placeholder="Search config vaults..."
-        value={search}
-        onChange={e => setSearch(e.target.value)}
-      />
+  return renderWithLoader({ organization, project, instance, vaults })(() => {
+    let hasSearch = (searchQuery ?? '').trim().length > 0;
 
-      <Spacer size={15} />
+    return (
+      <>
+        <Input
+          label="Search"
+          hideLabel
+          placeholder="Search config vaults..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
 
-      {vaultsContent}
-    </>
-  ));
+        <Spacer size={15} />
+
+        {(vaults.data?.items ?? []).length === 0 ? (
+          hasSearch ? (
+            <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
+              No config vaults found for "{searchQuery}".
+            </Text>
+          ) : (
+            <ProviderConfigurationsEmptyState
+              title="Create your first config vault"
+              description="Vaults store reusable secret or shared provider values for this instance."
+              actionLabel="Create Config Vault"
+              onAction={() => {
+                if (instance.data?.id) {
+                  showCreateProviderConfigVaultFlow(instance.data.id);
+                }
+              }}
+            />
+          )
+        ) : (
+          renderWithLoader({ providers })(() => vaultsTable)
+        )}
+      </>
+    );
+  });
 };

@@ -103,7 +103,41 @@ export let ProviderConfigVaultForm = (
       })
   });
 
-  if (configSchema.isLoading || (!!props.providerDeploymentId && deployment.isLoading)) {
+  if (props.providerDeploymentId && deployment.isLoading) {
+    return <CenteredSpinner />;
+  }
+
+  if (props.providerDeploymentId && deployment.error) {
+    return (
+      <>
+        <Text size="2" color="red600">
+          {deployment.error.message ?? 'Failed to load deployment details.'}
+        </Text>
+
+        <Spacer size={15} />
+
+        <Dialog.Actions>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={props.onBack ?? props.close}
+          >
+            {props.onBack ? 'Back' : 'Close'}
+          </Button>
+        </Dialog.Actions>
+      </>
+    );
+  }
+
+  if (props.providerDeploymentId && !providerId) {
+    return (
+      <Text size="2" color="gray600">
+        Loading deployment details...
+      </Text>
+    );
+  }
+
+  if (configSchema.isLoading) {
     return <CenteredSpinner />;
   }
 

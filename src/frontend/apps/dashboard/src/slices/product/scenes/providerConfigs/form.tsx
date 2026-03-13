@@ -152,7 +152,7 @@ export let ProviderConfigForm = (
       providerConfigVaultId: '',
       configData: {} as Record<string, unknown>
     },
-    onSubmit: submitConfig,
+    onSubmit: async () => undefined,
     schemaDependencies: [canCreateFromVault, schemaCapabilities.hasSchemaFields],
     schema: yup =>
       yup.object({
@@ -239,32 +239,33 @@ export let ProviderConfigForm = (
   let closeLabel = props.onBack ? 'Back' : 'Cancel';
   let closeAction = props.onBack ?? props.close;
 
-  let handleDetailsSubmit = async () => {
+  let validateDetailsStep = async () => {
     form.setFieldTouched('name', true, false);
     await form.validateField('name');
 
-    if (form.getFieldMeta('name').error) return;
+    return !form.getFieldMeta('name').error && !!form.values.name.trim();
+  };
 
+  let continueToSourceStep = async () => {
+    if (!(await validateDetailsStep())) return;
     setCurrentStep(1);
   };
 
-  let handleSourceSubmit = async () => {
+  let validateSourceStep = async () => {
     form.setFieldTouched('sourceMode', true, false);
     await form.validateField('sourceMode');
 
-    if (form.getFieldMeta('sourceMode').error) return;
+    return !form.getFieldMeta('sourceMode').error && !!form.values.sourceMode;
+  };
 
+  let continueToConfigureStep = async () => {
+    if (!(await validateSourceStep())) return;
     setCurrentStep(2);
   };
 
-  let handleCreateSubmit = async () => {
-    form.setFieldTouched('name', true, false);
-    form.setFieldTouched('sourceMode', true, false);
-
-    await form.validateField('name');
-    await form.validateField('sourceMode');
-
-    if (!form.values.name.trim() || !form.values.sourceMode) return;
+  let createConfig = async () => {
+    if (!(await validateDetailsStep())) return;
+    if (!(await validateSourceStep())) return;
 
     if (form.values.sourceMode === 'vault') {
       form.setFieldTouched('providerConfigVaultId', true, false);
@@ -309,7 +310,7 @@ export let ProviderConfigForm = (
                 <form
                   onSubmit={e => {
                     e.preventDefault();
-                    void handleDetailsSubmit();
+                    void continueToSourceStep();
                   }}
                 >
                   <Input label="Name" required {...form.getFieldProps('name')} />
@@ -326,7 +327,9 @@ export let ProviderConfigForm = (
                     <Button type="button" variant="outline" onClick={closeAction}>
                       {closeLabel}
                     </Button>
-                    <Button type="submit">Continue</Button>
+                    <Button type="submit">
+                      Continue
+                    </Button>
                   </Dialog.Actions>
                 </form>
               )
@@ -338,7 +341,7 @@ export let ProviderConfigForm = (
                 <form
                   onSubmit={e => {
                     e.preventDefault();
-                    void handleSourceSubmit();
+                    void continueToConfigureStep();
                   }}
                 >
                   <Select
@@ -374,7 +377,9 @@ export let ProviderConfigForm = (
                     <Button type="button" variant="outline" onClick={() => setCurrentStep(0)}>
                       Back
                     </Button>
-                    <Button type="submit">Continue</Button>
+                    <Button type="submit">
+                      Continue
+                    </Button>
                   </Dialog.Actions>
                 </form>
               )
@@ -389,7 +394,7 @@ export let ProviderConfigForm = (
                 <form
                   onSubmit={e => {
                     e.preventDefault();
-                    void handleCreateSubmit();
+                    void createConfig();
                   }}
                 >
                   {form.values.sourceMode === 'vault' ? (
@@ -426,8 +431,7 @@ export let ProviderConfigForm = (
                       Back
                     </Button>
                     <Button
-                      type="button"
-                      onClick={() => void handleCreateSubmit()}
+                      type="submit"
                       loading={createMutation.isLoading}
                       disabled={
                         !form.values.sourceMode ||
