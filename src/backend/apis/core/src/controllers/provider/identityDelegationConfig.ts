@@ -5,6 +5,7 @@ import { subspaceIdentityDelegationConfigService } from '@metorial/module-subspa
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
+import { hasFlags } from '../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { identityDelegationConfigPresenter } from '../../presenters';
 
@@ -40,6 +41,7 @@ export let identityDelegationConfigController = Controller.create(
         description: 'Returns a paginated list of identity delegation configs.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
+      .use(hasFlags(['identity-management', 'paid-identity']))
       .outputList(identityDelegationConfigPresenter)
       .query(
         'default',
@@ -97,6 +99,7 @@ export let identityDelegationConfigController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
+      .use(hasFlags(['identity-management', 'paid-identity']))
       .output(identityDelegationConfigPresenter)
       .do(async ctx =>
         identityDelegationConfigPresenter.present({
@@ -113,6 +116,7 @@ export let identityDelegationConfigController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
+      .use(hasFlags(['identity-management', 'paid-identity']))
       .body(
         'default',
         v.object({
@@ -173,6 +177,7 @@ export let identityDelegationConfigController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
+      .use(hasFlags(['identity-management', 'paid-identity']))
       .body(
         'default',
         v.object({
@@ -223,6 +228,7 @@ export let identityDelegationConfigController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
+      .use(hasFlags(['identity-management', 'paid-identity']))
       .output(identityDelegationConfigPresenter)
       .do(async ctx => {
         let identityDelegationConfig = await subspaceIdentityDelegationConfigService.delete({

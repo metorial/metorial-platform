@@ -5,6 +5,7 @@ import { subspaceIdentityService } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
+import { hasFlags } from '../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { identityPresenter } from '../../presenters';
 
@@ -67,6 +68,7 @@ export let identityController = Controller.create(
         description: 'Returns a paginated list of identities for the instance.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
+      .use(hasFlags(['identity-management', 'paid-identity']))
       .outputList(identityPresenter)
       .query(
         'default',
@@ -126,6 +128,7 @@ export let identityController = Controller.create(
         description: 'Retrieves a specific identity by ID.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
+      .use(hasFlags(['identity-management', 'paid-identity']))
       .output(identityPresenter)
       .do(async ctx => identityPresenter.present({ identity: ctx.identity })),
 
@@ -135,6 +138,7 @@ export let identityController = Controller.create(
         description: 'Creates a new identity owned by an existing identity actor.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
+      .use(hasFlags(['identity-management', 'paid-identity']))
       .body(
         'default',
         v.object({
@@ -194,6 +198,7 @@ export let identityController = Controller.create(
         description: 'Updates mutable fields on an existing identity.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
+      .use(hasFlags(['identity-management', 'paid-identity']))
       .body(
         'default',
         v.object({
@@ -238,6 +243,7 @@ export let identityController = Controller.create(
         description: 'Archives an identity.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
+      .use(hasFlags(['identity-management', 'paid-identity']))
       .output(identityPresenter)
       .do(async ctx => {
         let identity = await subspaceIdentityService.delete({

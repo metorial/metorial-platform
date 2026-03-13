@@ -5,6 +5,7 @@ import { subspaceIdentityDelegationService } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
+import { hasFlags } from '../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { identityDelegationPresenter } from '../../presenters';
 
@@ -59,6 +60,7 @@ export let identityDelegationController = Controller.create(
         description: 'Returns a paginated list of identity delegations for the instance.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
+      .use(hasFlags(['identity-management', 'paid-identity']))
       .outputList(identityDelegationPresenter)
       .query(
         'default',
@@ -139,6 +141,7 @@ export let identityDelegationController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
+      .use(hasFlags(['identity-management', 'paid-identity']))
       .output(identityDelegationPresenter)
       .do(async ctx =>
         identityDelegationPresenter.present({ identityDelegation: ctx.identityDelegation })
@@ -150,6 +153,7 @@ export let identityDelegationController = Controller.create(
         description: 'Creates a new identity delegation.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
+      .use(hasFlags(['identity-management', 'paid-identity']))
       .body(
         'default',
         v.object({
@@ -242,6 +246,7 @@ export let identityDelegationController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
+      .use(hasFlags(['identity-management', 'paid-identity']))
       .output(identityDelegationPresenter)
       .do(async ctx => {
         let identityDelegation = await subspaceIdentityDelegationService.revoke({

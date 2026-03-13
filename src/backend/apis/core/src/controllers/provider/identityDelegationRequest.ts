@@ -5,6 +5,7 @@ import { subspaceIdentityDelegationRequestService } from '@metorial/module-subsp
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
+import { hasFlags } from '../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { identityDelegationRequestPresenter } from '../../presenters';
 
@@ -62,6 +63,7 @@ export let identityDelegationRequestController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
+      .use(hasFlags(['identity-management', 'paid-identity']))
       .outputList(identityDelegationRequestPresenter)
       .query(
         'default',
@@ -119,6 +121,7 @@ export let identityDelegationRequestController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
+      .use(hasFlags(['identity-management', 'paid-identity']))
       .query(
         'default',
         v.object({
@@ -146,6 +149,7 @@ export let identityDelegationRequestController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
+      .use(hasFlags(['identity-management', 'paid-identity']))
       .body(
         'default',
         v.object({
@@ -231,6 +235,7 @@ export let identityDelegationRequestController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
+      .use(hasFlags(['identity-management', 'paid-identity']))
       .query(
         'default',
         v.object({
@@ -267,6 +272,7 @@ export let identityDelegationRequestController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
+      .use(hasFlags(['identity-management', 'paid-identity']))
       .query(
         'default',
         v.object({

@@ -5,6 +5,7 @@ import { subspaceIdentityActorService } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
+import { hasFlags } from '../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { identityActorPresenter } from '../../presenters';
 
@@ -40,6 +41,7 @@ export let identityActorController = Controller.create(
         description: 'Returns a paginated list of identity actors for the instance.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
+      .use(hasFlags(['identity-management', 'paid-identity']))
       .outputList(identityActorPresenter)
       .query(
         'default',
@@ -97,6 +99,7 @@ export let identityActorController = Controller.create(
         description: 'Retrieves a specific identity actor by ID.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
+      .use(hasFlags(['identity-management', 'paid-identity']))
       .output(identityActorPresenter)
       .do(async ctx => identityActorPresenter.present({ identityActor: ctx.identityActor })),
 
@@ -106,6 +109,7 @@ export let identityActorController = Controller.create(
         description: 'Creates a new identity actor.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
+      .use(hasFlags(['identity-management', 'paid-identity']))
       .body(
         'default',
         v.object({
@@ -150,6 +154,7 @@ export let identityActorController = Controller.create(
         description: 'Updates mutable fields on an existing identity actor.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
+      .use(hasFlags(['identity-management', 'paid-identity']))
       .body(
         'default',
         v.object({
@@ -194,6 +199,7 @@ export let identityActorController = Controller.create(
         description: 'Archives an identity actor.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
+      .use(hasFlags(['identity-management', 'paid-identity']))
       .output(identityActorPresenter)
       .do(async ctx => {
         let identityActor = await subspaceIdentityActorService.delete({

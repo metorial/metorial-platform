@@ -5,6 +5,7 @@ import { subspaceIdentityCredentialService } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
+import { hasFlags } from '../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { identityCredentialPresenter } from '../../presenters';
 
@@ -40,6 +41,7 @@ export let identityCredentialController = Controller.create(
         description: 'Returns a paginated list of identity credentials for the instance.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
+      .use(hasFlags(['identity-management', 'paid-identity']))
       .outputList(identityCredentialPresenter)
       .query(
         'default',
@@ -124,6 +126,7 @@ export let identityCredentialController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
+      .use(hasFlags(['identity-management', 'paid-identity']))
       .output(identityCredentialPresenter)
       .do(async ctx =>
         identityCredentialPresenter.present({ identityCredential: ctx.identityCredential })
@@ -135,6 +138,7 @@ export let identityCredentialController = Controller.create(
         description: 'Creates a new credential and attaches it to an identity.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
+      .use(hasFlags(['identity-management', 'paid-identity']))
       .body(
         'default',
         v.object({
@@ -195,6 +199,7 @@ export let identityCredentialController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
+      .use(hasFlags(['identity-management', 'paid-identity']))
       .body(
         'default',
         v.object({
@@ -229,6 +234,7 @@ export let identityCredentialController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
+      .use(hasFlags(['identity-management', 'paid-identity']))
       .output(identityCredentialPresenter)
       .do(async ctx => {
         let identityCredential = await subspaceIdentityCredentialService.delete({
