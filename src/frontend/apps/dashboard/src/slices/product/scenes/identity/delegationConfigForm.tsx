@@ -50,13 +50,18 @@ export let IdentityDelegationConfigForm = ({
           .oneOf(['allow', 'deny', 'require_consent'])
           .required('Behavior is required'),
         subDelegationDepth: yup
-          .number()
-          .transform((value, originalValue) =>
-            originalValue === '' || Number.isNaN(value) ? undefined : value
-          )
-          .integer('Depth must be an integer')
-          .min(0, 'Depth must be 0 or greater')
+          .string()
           .required('Depth is required')
+          .test(
+            'is-valid-depth',
+            'Depth must be an integer 0 or greater',
+            value =>
+              value !== undefined &&
+              value !== '' &&
+              !Number.isNaN(Number(value)) &&
+              Number.isInteger(Number(value)) &&
+              Number(value) >= 0
+          )
       })
   });
 
