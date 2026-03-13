@@ -1,7 +1,7 @@
 import { renderWithLoader, useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, useIdentityDelegationConfig } from '@metorial/state';
-import { Attributes, Button, Input, RenderDate, Spacer, Text, confirm } from '@metorial/ui';
+import { Attributes, Button, Input, RenderDate, Spacer, confirm } from '@metorial/ui';
 import { Box, ID } from '@metorial/ui-product';
 import { useNavigate, useParams } from 'react-router-dom';
 import { UsageScene } from '../../../scenes/usage/usage';
@@ -36,7 +36,7 @@ export let IdentityDelegationConfigPage = () => {
   return renderWithLoader({ config })(({ config }) => (
     <>
       <Attributes
-        itemWidth="240px"
+        itemWidth="300px"
         attributes={[
           {
             label: 'ID',
@@ -53,10 +53,6 @@ export let IdentityDelegationConfigPage = () => {
           {
             label: 'Sub-Delegation Behavior',
             content: config.data.subDelegationBehavior
-          },
-          {
-            label: 'Sub-Delegation Depth',
-            content: config.data.subDelegationDepth
           },
           {
             label: 'Created At',
