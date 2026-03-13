@@ -1,10 +1,12 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, paymentRequiredError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
+import { flagService } from '@metorial/module-flags';
 import { subspaceCustomProviderVersionService } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
+import { hasFlags } from '../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { subspaceCustomProviderVersionPresenter } from '../../presenters';
 import {
@@ -44,6 +46,7 @@ export let customProviderVersionController = Controller.create(
         description: 'Returns a paginated list of versions for a custom provider.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.custom.version:read'] }))
+      .use(hasFlags(['custom-providers-enabled', 'paid-custom-providers']))
       .outputList(subspaceCustomProviderVersionPresenter)
       .query(
         'default',
@@ -131,6 +134,7 @@ export let customProviderVersionController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.custom.version:read'] }))
+      .use(hasFlags(['custom-providers-enabled', 'paid-custom-providers']))
       .output(subspaceCustomProviderVersionPresenter)
       .do(async ctx => {
         return subspaceCustomProviderVersionPresenter.present({
@@ -144,6 +148,7 @@ export let customProviderVersionController = Controller.create(
         description: 'Creates a new version for a custom provider.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.custom.version:write'] }))
+      .use(hasFlags(['custom-providers-enabled', 'paid-custom-providers']))
       .body(
         'default',
         v.object({
@@ -157,6 +162,17 @@ export let customProviderVersionController = Controller.create(
       )
       .output(subspaceCustomProviderVersionPresenter)
       .do(async ctx => {
+        if (ctx.body.from.type === 'container') {
+          let flags = await flagService.getFlags({ organization: ctx.organization });
+          if (!flags['paid-custom-docker-providers']) {
+            throw new ServiceError(
+              paymentRequiredError({
+                message: 'Please upgrade to a different plan to access this feature'
+              })
+            );
+          }
+        }
+
         let customProviderVersion = await subspaceCustomProviderVersionService.create({
           instance: ctx.instance,
           organizationActor: ctx.actor!,

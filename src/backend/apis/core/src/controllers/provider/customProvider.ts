@@ -1,10 +1,12 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, paymentRequiredError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v, ValidationTypeValue } from '@lowerdeck/validation';
+import { flagService } from '@metorial/module-flags';
 import { subspaceCustomProviderService } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
+import { hasFlags } from '../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { subspaceCustomProviderPresenter } from '../../presenters';
 
@@ -191,6 +193,7 @@ export let customProviderController = Controller.create(
         description: 'Returns a paginated list of custom providers.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.custom:read'] }))
+      .use(hasFlags(['custom-providers-enabled', 'paid-custom-providers']))
       .outputList(subspaceCustomProviderPresenter)
       .query(
         'default',
@@ -246,6 +249,7 @@ export let customProviderController = Controller.create(
         description: 'Retrieves a specific custom provider by ID.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.custom:read'] }))
+      .use(hasFlags(['custom-providers-enabled', 'paid-custom-providers']))
       .output(subspaceCustomProviderPresenter)
       .do(async ctx => {
         return subspaceCustomProviderPresenter.present({
@@ -259,6 +263,7 @@ export let customProviderController = Controller.create(
         description: 'Creates a new custom provider.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.custom:write'] }))
+      .use(hasFlags(['custom-providers-enabled', 'paid-custom-providers']))
       .body(
         'default',
         v.object({
@@ -276,6 +281,17 @@ export let customProviderController = Controller.create(
       )
       .output(subspaceCustomProviderPresenter)
       .do(async ctx => {
+        if (ctx.body.from.type === 'container') {
+          let flags = await flagService.getFlags({ organization: ctx.organization });
+          if (!flags['paid-custom-docker-providers']) {
+            throw new ServiceError(
+              paymentRequiredError({
+                message: 'Please upgrade to a different plan to access this feature'
+              })
+            );
+          }
+        }
+
         let customProvider = await subspaceCustomProviderService.create({
           instance: ctx.instance,
           organizationActor: ctx.actor!,
@@ -297,6 +313,7 @@ export let customProviderController = Controller.create(
         description: 'Updates a specific custom provider.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.custom:write'] }))
+      .use(hasFlags(['custom-providers-enabled', 'paid-custom-providers']))
       .body(
         'default',
         v.object({

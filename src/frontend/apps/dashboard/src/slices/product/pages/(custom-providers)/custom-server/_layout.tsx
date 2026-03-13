@@ -11,7 +11,6 @@ import {
 import { Button, Callout, LinkTabs, Menu, Spacer } from '@metorial/ui';
 import { useEffect, useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { showCustomProviderRemoteFormModal } from '../../../scenes/customProvider/modal';
 import { showProviderDeploymentFormModal } from '../../../scenes/providerDeployments/modal';
 import { showMagicMcpServerFormModal } from '../../../scenes/providerDeployments/modal_';
 
@@ -24,9 +23,8 @@ export let CustomProviderLayout = () => {
   let customServer = useCustomProvider(instance.data?.id, customServerId);
   let location = useLocation();
   let pathname = location.pathname;
-  let initialCategory = (
-    location.state as { category?: 'custom' | 'external' } | null
-  )?.category;
+  let initialCategory = (location.state as { category?: 'custom' | 'external' } | null)
+    ?.category;
   let [providerCategory, setProviderCategory] = useState<'custom' | 'external' | undefined>(
     initialCategory
   );
@@ -40,13 +38,10 @@ export let CustomProviderLayout = () => {
   useEffect(() => {
     if (customServer.data && customServer.data.id != customServerId) {
       let nextPath = `${location.pathname.replace(customServerId!, customServer.data.id)}${location.search}${location.hash}`;
-      navigate(
-        nextPath,
-        {
-          replace: true,
-          state: location.state
-        }
-      );
+      navigate(nextPath, {
+        replace: true,
+        state: location.state
+      });
     }
   }, [
     customServer.data,
@@ -69,9 +64,7 @@ export let CustomProviderLayout = () => {
   let isExternalProvider =
     !!customServer.data?.draft?.remoteMcpServer || providerCategory === 'external';
   let hasCodeManagement = Boolean(
-    customServer.data &&
-      !isExternalProvider &&
-      !customServer.data.draft?.containerImage
+    customServer.data && !isExternalProvider && !customServer.data.draft?.containerImage
   );
   let hasVersionManagement = Boolean(customServer.data);
 
@@ -88,11 +81,7 @@ export let CustomProviderLayout = () => {
                   project.data,
                   instance.data
                 )
-              : Paths.instance.customProviders(
-                  organization.data,
-                  project.data,
-                  instance.data
-                )
+              : Paths.instance.customProviders(organization.data, project.data, instance.data)
           },
           {
             label: customServer.data?.name,
@@ -157,14 +146,10 @@ export let CustomProviderLayout = () => {
                 to: Paths.instance.customProvider(...pathParams, 'deployments')
               },
 
-              ...(flags.data?.flags['community-profiles-enabled']
-                ? [
-                    {
-                      label: 'Listing',
-                      to: Paths.instance.customProvider(...pathParams, 'listing')
-                    }
-                  ]
-                : []),
+              {
+                label: 'Listing',
+                to: Paths.instance.customProvider(...pathParams, 'listing')
+              },
 
               {
                 label: 'Settings',
@@ -206,9 +191,7 @@ export let DeployServerButton = ({
   let flags = useDashboardFlags();
   let isDisabled = disabled || !providerId;
 
-  return !isDisabled &&
-    (flags.data?.flags['magic-mcp-enabled'] ||
-      (flags.data?.flags['managed-servers-enabled'] && false)) ? (
+  return !isDisabled && flags.data?.flags['magic-mcp-enabled'] ? (
     <Menu
       items={[
         {
@@ -222,15 +205,6 @@ export let DeployServerButton = ({
                 id: 'magic-mcp-server',
                 label: 'Magic MCP Server',
                 description: 'Easier to use and manage.'
-              }
-            ]
-          : []),
-        ...(flags.data?.flags['managed-servers-enabled'] && false
-          ? [
-              {
-                id: 'fork-server',
-                label: 'Fork Provider',
-                description: 'Create a copy of this provider and edit the code.'
               }
             ]
           : [])
@@ -256,10 +230,6 @@ export let DeployServerButton = ({
           showMagicMcpServerFormModal({
             type: 'create',
             for: { serverId: providerId! }
-          });
-        } else if (item === 'fork-server') {
-          showCustomProviderRemoteFormModal({
-            type: 'managed'
           });
         }
       }}

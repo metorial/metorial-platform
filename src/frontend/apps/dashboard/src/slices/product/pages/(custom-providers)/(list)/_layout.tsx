@@ -18,7 +18,7 @@ export let ManagedProvidersListLayout = () => {
         title="Custom Providers"
         description="Build custom MCP providers powered by Metorial. Deploy them on your own infrastructure or use our custom providers."
         actions={
-          !!flags.data?.flags['paid-custom-docker-servers'] ? (
+          !!flags.data?.flags['paid-custom-docker-providers'] ? (
             <Menu
               label="Create Custom Provider"
               items={[
@@ -43,8 +43,8 @@ export let ManagedProvidersListLayout = () => {
             </Menu>
           ) : (
             !!(
-              flags.data?.flags['managed-servers-enabled'] &&
-              flags.data?.flags['paid-custom-servers']
+              flags.data?.flags['custom-providers-enabled'] &&
+              flags.data?.flags['paid-custom-providers']
             ) && (
               <Button
                 onClick={() =>
@@ -81,7 +81,7 @@ export let ExternalProvidersListLayout = () => {
         title="External Providers"
         description="Connect to external MCP providers using the Metorial platform."
         actions={
-          !!flags.data?.flags['paid-custom-servers'] && (
+          !!flags.data?.flags['paid-custom-providers'] && (
             <Button
               onClick={() =>
                 showCustomProviderRemoteFormModal({

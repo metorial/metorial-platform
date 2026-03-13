@@ -3,18 +3,15 @@ import { MachineAccess, Organization, User } from '@metorial/db';
 export type Flags = {
   'test-flag': boolean;
 
-  'metorial-gateway-enabled': boolean;
-  'custom-servers-remote-enabled': boolean;
-  'provider-oauth-enabled': boolean;
-  'managed-servers-enabled': boolean;
-  'community-profiles-enabled': boolean;
+  'custom-providers-enabled': boolean;
   'magic-mcp-enabled': boolean;
   'callbacks-enabled': boolean;
   'identity-management': boolean;
 
-  'paid-oauth-takeout': boolean;
+  'paid-oauth-import': boolean;
+  'paid-oauth-export': boolean;
   'paid-callbacks': boolean;
-  'paid-custom-servers': boolean;
+  'paid-custom-providers': boolean;
   'paid-identity': boolean;
   'paid-advanced-security': boolean;
   'paid-advanced-roles': boolean;
@@ -22,24 +19,21 @@ export type Flags = {
   'paid-magic-mcp-groups': boolean;
   'paid-sso-tenants': boolean;
   'paid-portals': boolean;
-  'paid-custom-docker-servers': boolean;
+  'paid-custom-docker-providers': boolean;
 };
 
 export let defaultFlags: Flags = {
   'test-flag': false,
 
-  'metorial-gateway-enabled': true,
-  'custom-servers-remote-enabled': true,
-  'provider-oauth-enabled': true,
-  'managed-servers-enabled': true,
-  'community-profiles-enabled': true,
-  'magic-mcp-enabled': true,
-  'callbacks-enabled': true,
-  'identity-management': true,
+  'custom-providers-enabled': false,
+  'magic-mcp-enabled': false,
+  'callbacks-enabled': false,
+  'identity-management': false,
 
-  'paid-oauth-takeout': true,
+  'paid-oauth-import': true,
+  'paid-oauth-export': true,
   'paid-callbacks': true,
-  'paid-custom-servers': true,
+  'paid-custom-providers': true,
   'paid-identity': true,
   'paid-advanced-security': true,
   'paid-advanced-roles': true,
@@ -47,7 +41,7 @@ export let defaultFlags: Flags = {
   'paid-magic-mcp-groups': true,
   'paid-sso-tenants': true,
   'paid-portals': true,
-  'paid-custom-docker-servers': true
+  'paid-custom-docker-providers': true
 };
 
 export type FlagProviderParams = {
