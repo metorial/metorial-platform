@@ -14,15 +14,14 @@ model ConsumerSurface {
 
   sessionExpiryTimeInSeconds Int
 
-  aresAppId    String? @unique
-  aresAppSlug  String? @unique
-  aresClientId String? @unique
-
   organizationOid BigInt
   organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
 
   instanceOid BigInt
   instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  consumerAuthTenantOid BigInt?
+  consumerAuthTenant    ConsumerAuthTenant? @relation(fields: [consumerAuthTenantOid], references: [oid], onDelete: SetNull)
 
   publishableApiKeyOid BigInt @unique
   publishableApiKey    ApiKey @relation("ConsumerSurfacePublishableApiKey", fields: [publishableApiKeyOid], references: [oid], onDelete: Cascade)

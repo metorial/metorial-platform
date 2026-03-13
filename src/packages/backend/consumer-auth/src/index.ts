@@ -10,6 +10,7 @@ import {
   ConsumerProfile,
   ConsumerSurface,
   db,
+  Organization,
   type Prisma
 } from '@metorial/db';
 import { createAresInternalClient } from '@metorial-services/ares-client';
@@ -42,6 +43,13 @@ export type ConsumerAccessContext = {
   accessTags: bigint[];
 };
 
+export type SsoMembership = {
+  groupIds: string[];
+  roles: string[];
+};
+
+export let normalizeStringList = (values?: string[]) => Array.from(new Set(values ?? [])).sort();
+
 type AresInternalClient = ReturnType<typeof createAresInternalClient>;
 
 let aresClient: AresInternalClient | null = null;
@@ -65,7 +73,10 @@ export let getConsumerAresInternalClient = (): AresInternalClient => {
   return aresClient;
 };
 
-export let getSsoGroupIdsForUser = async (d: { userId: string; appId: string }) => {
+export let getSsoMembershipForUser = async (d: {
+  userId: string;
+  appId: string;
+}): Promise<SsoMembership> => {
   let ares = getConsumerAresInternalClient();
   let identities = await ares.user.listIdentities({
     userId: d.userId
@@ -73,20 +84,26 @@ export let getSsoGroupIdsForUser = async (d: { userId: string; appId: string }) 
   let allowedTenantIds = new Set(
     (await ares.sso.listTenants({ appId: d.appId, limit: 100 })).items.map(tenant => tenant.id)
   );
-  let scopedIdentities = identities.filter(identity => {
-    let ssoTenantId = identity.provider.ssoTenant?.id;
-    return !!ssoTenantId && allowedTenantIds.has(ssoTenantId);
-  });
+  let scopedProfiles = identities
+    .filter(identity => {
+      let ssoTenantId = identity.provider.ssoTenant?.id;
+      return !!ssoTenantId && allowedTenantIds.has(ssoTenantId);
+    })
+    .map(identity => identity.ssoProfile)
+    .filter(profile => !!profile);
 
-  return Array.from(
-    new Set(
-      scopedIdentities.flatMap(identity => {
-        return identity.ssoProfile?.groups ?? [];
-      })
-    )
-  ).sort();
+  return {
+    groupIds: normalizeStringList(scopedProfiles.flatMap(profile => profile.groups)),
+    roles: normalizeStringList(scopedProfiles.flatMap(profile => profile.roles))
+  };
 };
 
+export let getSsoGroupIdsForUser = async (d: { userId: string; appId: string }) => {
+  return (await getSsoMembershipForUser(d)).groupIds;
+};
+
+// Kept for a possible future session-based resync path. The current flow mirrors Ares
+// group and role membership onto ConsumerProfile when an Ares-backed session is created.
 export let getSsoGroupIdsForSession = async (d: {
   sessionId: string;
   preferredAresUserId?: string;
@@ -130,7 +147,7 @@ export let getEffectiveConsumerGroups = async (d: {
   consumerProfile: ConsumerProfile;
   ssoGroupIds?: string[];
 }) => {
-  let ssoGroupIds = d.ssoGroupIds ?? [];
+  let ssoGroupIds = d.ssoGroupIds ?? d.consumerProfile.ssoGroupIds ?? [];
   let groups = await db.consumerGroup.findMany({
     where: {
       surfaceOid: d.consumerProfile.surfaceOid,
@@ -192,15 +209,7 @@ export let getEffectiveConsumerGroups = async (d: {
 export let getConsumerAccessContextForSession = async (d: {
   session: ConsumerSessionWithProfile;
 }): Promise<ConsumerAccessContext> => {
-  let ssoGroupIds =
-    d.session.aresSessionId && d.session.consumerProfile.surface.aresAppId
-      ? await getSsoGroupIdsForSession({
-          sessionId: d.session.aresSessionId,
-          preferredAresUserId: d.session.consumerProfile.aresUserId ?? undefined,
-          preferredEmail: d.session.consumerProfile.email,
-          appId: d.session.consumerProfile.surface.aresAppId
-        })
-      : [];
+  let ssoGroupIds = d.session.consumerProfile.ssoGroupIds ?? [];
 
   let consumerGroups = await getEffectiveConsumerGroups({
     consumerProfile: d.session.consumerProfile,
@@ -249,7 +258,7 @@ export let getConsumerSessionToken = async (d: {
 
 export let authenticateWithConsumerToken = async (d: {
   token: string;
-  organizationOid: bigint;
+  organization: Pick<Organization, 'oid'>;
 }) => {
   let payload = await consumerTokens.verify({
     token: d.token,
@@ -267,12 +276,12 @@ export let authenticateWithConsumerToken = async (d: {
     where: {
       id: payload.data.sessionId,
       tokenNonce: payload.data.nonce,
-      revokedAt: null,
       expiresAt: {
         gt: new Date()
       },
+      loggedOutAt: null,
       consumerProfile: {
-        organizationOid: d.organizationOid,
+        organizationOid: d.organization.oid,
         surface: {
           id: payload.data.surfaceId,
           status: 'active'
@@ -298,15 +307,7 @@ export let authenticateWithConsumerToken = async (d: {
     }
   });
 
-  let ssoGroupIds =
-    session.aresSessionId && session.consumerProfile.surface.aresAppId
-      ? await getSsoGroupIdsForSession({
-          sessionId: session.aresSessionId,
-          preferredAresUserId: session.consumerProfile.aresUserId ?? undefined,
-          preferredEmail: session.consumerProfile.email,
-          appId: session.consumerProfile.surface.aresAppId
-        })
-      : [];
+  let ssoGroupIds = session.consumerProfile.ssoGroupIds ?? [];
 
   return {
     session,
@@ -336,7 +337,7 @@ export let authenticateWithConsumerSessionToken = async (d: {
     where: {
       id: payload.data.sessionId,
       tokenNonce: payload.data.nonce,
-      revokedAt: null,
+      loggedOutAt: null,
       expiresAt: {
         gt: new Date()
       },

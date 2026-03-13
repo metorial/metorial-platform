@@ -5,7 +5,7 @@ export let requireConsumerTokenForPublishableKey = instanceGroup.createMiddlewar
   if (
     ctx.auth.type == 'machine' &&
     ctx.auth.machineAccess.type == 'instance_publishable' &&
-    !ctx.accessTags
+    (!ctx.accessTags || !ctx.consumerSurface)
   ) {
     throw new ServiceError(
       unauthorizedError({

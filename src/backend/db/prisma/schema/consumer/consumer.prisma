@@ -2,8 +2,6 @@ model Consumer {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
-  aresUserId String?
-
   name  String
   email String
 
@@ -15,7 +13,6 @@ model Consumer {
 
   profiles ConsumerProfile[]
 
-  @@unique([organizationOid, aresUserId])
   @@unique([email, organizationOid])
 }
 
@@ -23,7 +20,9 @@ model ConsumerProfile {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
-  aresUserId String?
+  aresUserId  String?
+  ssoGroupIds String[] @default([])
+  ssoRoles    String[] @default([])
 
   name  String
   email String

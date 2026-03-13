@@ -3,7 +3,6 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
   getEffectiveConsumerGroups,
-  getSsoGroupIdsForSession,
   type EffectiveConsumerGroup
 } from '@metorial/consumer-auth';
 import { ConsumerGroup, ConsumerProfile, ConsumerSurface, db } from '@metorial/db';
@@ -89,15 +88,13 @@ class ConsumerProfileServiceImpl {
       return {} as Record<string, EffectiveConsumerGroup[]>;
     }
 
-    let defaultGroups = await db.consumerGroup.findMany({
+    let activeGroups = await db.consumerGroup.findMany({
       where: {
         surfaceOid: d.consumerSurface.oid,
-        status: 'active',
-        isDefault: true
+        status: 'active'
       }
     });
 
-    let defaultGroupIds = new Set(defaultGroups.map(group => group.oid));
     let toAssignedGroup = (
       group: ConsumerGroup,
       assignedVia: EffectiveConsumerGroup['assignedVia']
@@ -105,32 +102,31 @@ class ConsumerProfileServiceImpl {
       ...group,
       assignedVia
     });
-    let getDefaultAssignedGroups = () =>
-      defaultGroups.map(group => toAssignedGroup(group, 'default'));
-    let getManualAssignedGroups = (consumerProfile: (typeof d.consumerProfiles)[number]) => {
-      let manualGroups: EffectiveConsumerGroup[] = [];
-
-      for (let { group } of consumerProfile.groups) {
-        if (
-          group.oid == consumerProfile.personalConsumerGroupOid ||
-          defaultGroupIds.has(group.oid)
-        ) {
-          continue;
-        }
-
-        manualGroups.push(toAssignedGroup(group, 'manual'));
-      }
-
-      return manualGroups;
-    };
     let groupsByProfile: Record<string, EffectiveConsumerGroup[]> = {};
 
     for (let consumerProfile of d.consumerProfiles) {
-      groupsByProfile[consumerProfile.id] = [
-        toAssignedGroup(consumerProfile.personalConsumerGroup, 'user'),
-        ...getDefaultAssignedGroups(),
-        ...getManualAssignedGroups(consumerProfile)
-      ];
+      let manualGroupIds = new Set(consumerProfile.groups.map(({ group }) => group.oid));
+      let ssoGroupIds = new Set(consumerProfile.ssoGroupIds ?? []);
+
+      groupsByProfile[consumerProfile.id] = activeGroups.flatMap(group => {
+        if (group.oid == consumerProfile.personalConsumerGroupOid) {
+          return [toAssignedGroup(group, 'user')];
+        }
+
+        if (group.isDefault) {
+          return [toAssignedGroup(group, 'default')];
+        }
+
+        if (group.ssoGroupIds.some(ssoGroupId => ssoGroupIds.has(ssoGroupId))) {
+          return [toAssignedGroup(group, 'sso')];
+        }
+
+        if (manualGroupIds.has(group.oid)) {
+          return [toAssignedGroup(group, 'manual')];
+        }
+
+        return [];
+      });
     }
 
     return groupsByProfile;
@@ -175,46 +171,9 @@ class ConsumerProfileServiceImpl {
     consumerProfile: ConsumerProfile;
     ssoGroupIds?: string[];
   }) {
-    let ssoGroupIds = d.ssoGroupIds;
-
-    if (ssoGroupIds === undefined) {
-      let latestSession = await db.consumerSession.findFirst({
-        where: {
-          consumerProfileOid: d.consumerProfile.oid,
-          revokedAt: null,
-          expiresAt: {
-            gt: new Date()
-          },
-          aresSessionId: {
-            not: null
-          }
-        },
-        orderBy: {
-          lastUsedAt: 'desc'
-        },
-        include: {
-          consumerProfile: {
-            include: {
-              surface: true
-            }
-          }
-        }
-      });
-
-      ssoGroupIds =
-        latestSession?.aresSessionId && latestSession.consumerProfile.surface.aresAppId
-          ? await getSsoGroupIdsForSession({
-              sessionId: latestSession.aresSessionId,
-              preferredAresUserId: d.consumerProfile.aresUserId ?? undefined,
-              preferredEmail: d.consumerProfile.email,
-              appId: latestSession.consumerProfile.surface.aresAppId
-            })
-          : [];
-    }
-
     return await getEffectiveConsumerGroups({
       consumerProfile: d.consumerProfile,
-      ssoGroupIds
+      ssoGroupIds: d.ssoGroupIds ?? d.consumerProfile.ssoGroupIds ?? []
     });
   }
 }

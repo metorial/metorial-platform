@@ -201,7 +201,7 @@ class AuthenticationService {
         machineAccess.type == 'instance_publishable' && d.consumerSessionClientSecret
           ? await authenticateWithConsumerToken({
               token: d.consumerSessionClientSecret,
-              organizationOid: machineAccess.organization.oid
+              organization: machineAccess.organization
             })
           : null;
 

@@ -487,10 +487,10 @@ describe('AuthenticationService', () => {
         where: {
           id: 'csn_1',
           tokenNonce: 'nonce-1',
-          revokedAt: null,
           expiresAt: {
             gt: expect.any(Date)
           },
+          loggedOutAt: null,
           consumerProfile: {
             organizationOid: 1n,
             surface: {

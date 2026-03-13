@@ -49,6 +49,7 @@ model Organization {
   teamRole          TeamRole[]
   accessTagPolicies AccessTagPolicy[]
   consumerSurfaces  ConsumerSurface[]
+  consumerAuthTenants ConsumerAuthTenant[]
   consumers         Consumer[]
   consumerProfiles  ConsumerProfile[]
 }

@@ -12,8 +12,8 @@ model ConsumerSession {
   ua String
   ip String
 
-  expiresAt  DateTime
-  createdAt  DateTime @default(now())
-  lastUsedAt DateTime @default(now())
-  revokedAt  DateTime?
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+  lastUsedAt  DateTime @default(now())
+  loggedOutAt DateTime?
 }

@@ -3,8 +3,10 @@ import { Service } from '@lowerdeck/service';
 import {
   authenticateWithConsumerSessionToken,
   getConsumerAccessContextForSession as getConsumerAccessContextForSessionFromToken,
+  getSsoMembershipForUser,
   getConsumerSessionToken,
-  getConsumerToken
+  getConsumerToken,
+  normalizeStringList
 } from '@metorial/consumer-auth';
 import { Context } from '@metorial/context';
 import {
@@ -22,45 +24,77 @@ class ConsumerAuthServiceImpl {
     return new Date(Date.now() + d.consumerSurface.sessionExpiryTimeInSeconds * 1000);
   }
 
+  private async syncAresProfileMembership(d: {
+    consumerSurface: ConsumerSurface;
+    consumerProfile: ConsumerProfile;
+  }) {
+    if (!d.consumerSurface.consumerAuthTenantOid || !d.consumerProfile.aresUserId) {
+      return d.consumerProfile;
+    }
+
+    let consumerAuthTenant = await db.consumerAuthTenant.findUnique({
+      where: {
+        oid: d.consumerSurface.consumerAuthTenantOid
+      }
+    });
+    if (!consumerAuthTenant?.aresAppId) {
+      return d.consumerProfile;
+    }
+
+    let ssoMembership = await getSsoMembershipForUser({
+      userId: d.consumerProfile.aresUserId,
+      appId: consumerAuthTenant.aresAppId
+    });
+    let ssoGroupIds = normalizeStringList(ssoMembership.groupIds);
+    let ssoRoles = normalizeStringList(ssoMembership.roles);
+
+    return await db.consumerProfile.update({
+      where: {
+        oid: d.consumerProfile.oid
+      },
+      data: {
+        ssoGroupIds,
+        ssoRoles
+      }
+    });
+  }
+
   async ensureConsumerProfile(d: {
     surface: ConsumerSurface;
     aresUserId: string;
     email: string;
     name: string;
+    ssoGroupIds?: string[];
+    ssoRoles?: string[];
   }) {
     return await withTransaction(async tx => {
-      let consumer = await tx.consumer.findFirst({
+      let ssoGroupIds = normalizeStringList(d.ssoGroupIds);
+      let ssoRoles = normalizeStringList(d.ssoRoles);
+      let consumer = await tx.consumer.upsert({
         where: {
-          organizationOid: d.surface.organizationOid,
-          aresUserId: d.aresUserId
+          email_organizationOid: {
+            email: d.email,
+            organizationOid: d.surface.organizationOid
+          }
+        },
+        create: {
+          id: await ID.generateId('consumer'),
+          email: d.email,
+          name: d.name,
+          organizationOid: d.surface.organizationOid
+        },
+        update: {
+          email: d.email,
+          name: d.name
         }
       });
 
-      consumer = consumer
-        ? await tx.consumer.update({
-            where: {
-              oid: consumer.oid
-            },
-            data: {
-              aresUserId: d.aresUserId,
-              email: d.email,
-              name: d.name
-            }
-          })
-        : await tx.consumer.create({
-            data: {
-              id: await ID.generateId('consumer'),
-              aresUserId: d.aresUserId,
-              email: d.email,
-              name: d.name,
-              organizationOid: d.surface.organizationOid
-            }
-          });
-
-      let existingProfile = await tx.consumerProfile.findFirst({
+      let existingProfile = await tx.consumerProfile.findUnique({
         where: {
-          surfaceOid: d.surface.oid,
-          aresUserId: d.aresUserId
+          surfaceOid_aresUserId: {
+            surfaceOid: d.surface.oid,
+            aresUserId: d.aresUserId
+          }
         }
       });
       if (existingProfile) {
@@ -72,17 +106,14 @@ class ConsumerAuthServiceImpl {
             aresUserId: d.aresUserId,
             email: d.email,
             name: d.name,
-            consumerOid: consumer.oid
+            consumerOid: consumer.oid,
+            ssoGroupIds,
+            ssoRoles
           }
         });
       }
 
-      let profileAccessTag = await tx.accessTag.create({
-        data: {
-          instanceOid: d.surface.instanceOid
-        }
-      });
-      let personalGroupAccessTag = await tx.accessTag.create({
+      let accessTag = await tx.accessTag.create({
         data: {
           instanceOid: d.surface.instanceOid
         }
@@ -98,7 +129,7 @@ class ConsumerAuthServiceImpl {
           name: `Personal Group for ${d.email}`,
           description: null,
           surfaceOid: d.surface.oid,
-          accessTagOid: personalGroupAccessTag.oid
+          accessTagOid: accessTag.oid
         }
       });
 
@@ -108,11 +139,13 @@ class ConsumerAuthServiceImpl {
           aresUserId: d.aresUserId,
           email: d.email,
           name: d.name,
+          ssoGroupIds,
+          ssoRoles,
           organizationOid: d.surface.organizationOid,
           instanceOid: d.surface.instanceOid,
           surfaceOid: d.surface.oid,
           consumerOid: consumer.oid,
-          accessTagOid: profileAccessTag.oid,
+          accessTagOid: accessTag.oid,
           personalConsumerGroupOid: personalConsumerGroup.oid
         }
       });
@@ -125,12 +158,20 @@ class ConsumerAuthServiceImpl {
     context: Context;
     aresSessionId?: string | null;
   }) {
+    let consumerProfile =
+      d.aresSessionId && d.consumerProfile.aresUserId
+        ? await this.syncAresProfileMembership({
+            consumerSurface: d.consumerSurface,
+            consumerProfile: d.consumerProfile
+          })
+        : d.consumerProfile;
+
     return await db.consumerSession.create({
       data: {
         id: await ID.generateId('consumerSession'),
         tokenNonce: await ID.generateId('clientSecret'),
         aresSessionId: d.aresSessionId ?? null,
-        consumerProfileOid: d.consumerProfile.oid,
+        consumerProfileOid: consumerProfile.oid,
         ua: d.context.ua ?? 'unknown',
         ip: d.context.ip,
         expiresAt: this.getSessionExpiryDate({
@@ -167,7 +208,7 @@ class ConsumerAuthServiceImpl {
   }
 
   async revokeConsumerSession(d: { session: ConsumerSession }) {
-    if (d.session.revokedAt) {
+    if (d.session.loggedOutAt) {
       return d.session;
     }
 
@@ -191,7 +232,7 @@ class ConsumerAuthServiceImpl {
         oid: d.session.oid
       },
       data: {
-        revokedAt: new Date()
+        loggedOutAt: new Date()
       }
     });
   }

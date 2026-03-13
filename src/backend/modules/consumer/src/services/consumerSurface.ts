@@ -18,6 +18,7 @@ import { organizationActorService } from '@metorial/module-organization';
 import { consumerAresService } from './ares';
 
 export let consumerSurfaceInclude = {
+  consumerAuthTenant: true,
   publishableApiKey: {
     include: {
       secrets: true
@@ -36,61 +37,92 @@ export type AresAppConfig = {
 };
 
 class ConsumerSurfaceServiceImpl {
+  private async getOrCreateConsumerAuthTenant(d: {
+    consumerSurface: ConsumerSurface;
+    aresApp: {
+      id: string;
+      slug?: string | null;
+      clientId: string;
+    };
+  }) {
+    return await withTransaction(async tx => {
+      if (d.consumerSurface.consumerAuthTenantOid) {
+        return await tx.consumerAuthTenant.update({
+          where: {
+            oid: d.consumerSurface.consumerAuthTenantOid
+          },
+          data: {
+            aresAppId: d.aresApp.id,
+            aresAppSlug: d.aresApp.slug ?? null,
+            aresClientId: d.aresApp.clientId
+          }
+        });
+      }
+
+      return await tx.consumerAuthTenant.create({
+        data: {
+          id: await ID.generateId('consumerAuthTenant'),
+          organizationOid: d.consumerSurface.organizationOid,
+          aresAppId: d.aresApp.id,
+          aresAppSlug: d.aresApp.slug ?? null,
+          aresClientId: d.aresApp.clientId
+        }
+      });
+    });
+  }
+
   private async deactivateConsumerSurfaceResources(d: {
     publishableApiKeyOid: bigint;
     consumerSurfaceOid?: bigint;
   }) {
-    return await withTransaction(
-      async tx => {
-        let now = new Date();
+    return await withTransaction(async tx => {
+      let now = new Date();
 
-        if (d.consumerSurfaceOid) {
-          await tx.consumerSession.updateMany({
-            where: {
-              revokedAt: null,
-              consumerProfile: {
-                surfaceOid: d.consumerSurfaceOid
-              }
-            },
-            data: {
-              revokedAt: now
-            }
-          });
-        }
-
-        let apiKey = await tx.apiKey.findUnique({
+      if (d.consumerSurfaceOid) {
+        await tx.consumerSession.updateMany({
           where: {
-            oid: d.publishableApiKeyOid
+            loggedOutAt: null,
+            consumerProfile: {
+              surfaceOid: d.consumerSurfaceOid
+            }
           },
-          select: {
-            machineAccessOid: true
+          data: {
+            loggedOutAt: now
           }
         });
+      }
 
-        await tx.apiKey.update({
+      let apiKey = await tx.apiKey.findUnique({
+        where: {
+          oid: d.publishableApiKeyOid
+        },
+        select: {
+          machineAccessOid: true
+        }
+      });
+
+      await tx.apiKey.update({
+        where: {
+          oid: d.publishableApiKeyOid
+        },
+        data: {
+          status: 'deleted',
+          deletedAt: now
+        }
+      });
+
+      if (apiKey) {
+        await tx.machineAccess.update({
           where: {
-            oid: d.publishableApiKeyOid
+            oid: apiKey.machineAccessOid
           },
           data: {
             status: 'deleted',
             deletedAt: now
           }
         });
-
-        if (apiKey) {
-          await tx.machineAccess.update({
-            where: {
-              oid: apiKey.machineAccessOid
-            },
-            data: {
-              status: 'deleted',
-              deletedAt: now
-            }
-          });
-        }
-      },
-      { ifExists: true }
-    );
+      }
+    });
   }
 
   async createConsumerSurface(d: {
@@ -159,16 +191,25 @@ class ConsumerSurfaceServiceImpl {
       redirectDomains: d.aresApp.redirectDomains
     });
 
-    return await db.consumerSurface.update({
-      where: {
-        oid: d.consumerSurface.oid
-      },
-      data: {
-        aresAppId: app.id,
-        aresAppSlug: app.slug ?? d.aresApp.slug,
-        aresClientId: app.clientId
-      },
-      include: consumerSurfaceInclude
+    return await withTransaction(async tx => {
+      let consumerAuthTenant = await this.getOrCreateConsumerAuthTenant({
+        consumerSurface: d.consumerSurface,
+        aresApp: {
+          id: app.id,
+          slug: app.slug ?? d.aresApp.slug,
+          clientId: app.clientId
+        }
+      });
+
+      return await tx.consumerSurface.update({
+        where: {
+          oid: d.consumerSurface.oid
+        },
+        data: {
+          consumerAuthTenantOid: consumerAuthTenant.oid
+        },
+        include: consumerSurfaceInclude
+      });
     });
   }
 
@@ -211,13 +252,33 @@ class ConsumerSurfaceServiceImpl {
     }
 
     return await withTransaction(async tx => {
-      if (d.consumerSurface.aresAppId) {
+      let consumerAuthTenant =
+        d.consumerSurface.consumerAuthTenantOid
+          ? await tx.consumerAuthTenant.findUnique({
+              where: {
+                oid: d.consumerSurface.consumerAuthTenantOid
+              }
+            })
+          : null;
+
+      if (consumerAuthTenant?.aresAppId) {
         await consumerAresService.updateApp({
-          id: d.consumerSurface.aresAppId,
-          slug: d.consumerSurface.aresAppSlug
-            ? `${d.consumerSurface.aresAppSlug}-inactive-${Date.now()}`
+          id: consumerAuthTenant.aresAppId,
+          slug: consumerAuthTenant.aresAppSlug
+            ? `${consumerAuthTenant.aresAppSlug}-inactive-${Date.now()}`
             : undefined,
           redirectDomains: ['invalid.invalid']
+        });
+
+        await tx.consumerAuthTenant.update({
+          where: {
+            oid: consumerAuthTenant.oid
+          },
+          data: {
+            aresAppId: null,
+            aresAppSlug: null,
+            aresClientId: null
+          }
         });
       }
 
@@ -232,9 +293,7 @@ class ConsumerSurfaceServiceImpl {
         },
         data: {
           status: 'inactive',
-          aresAppId: null,
-          aresAppSlug: null,
-          aresClientId: null
+          consumerAuthTenantOid: null
         },
         include: consumerSurfaceInclude
       });

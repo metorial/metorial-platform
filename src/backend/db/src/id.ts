@@ -145,6 +145,7 @@ export let ID = createIdGenerator({
   ssoUser: idType.sorted('ssou'),
 
   consumerSurface: idType.sorted('csf'),
+  consumerAuthTenant: idType.sorted('cot'),
   consumer: idType.sorted('con'),
   consumerProfile: idType.sorted('cop'),
   consumerSession: idType.sorted('csn'),
