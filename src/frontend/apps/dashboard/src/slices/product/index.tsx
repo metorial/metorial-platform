@@ -2,7 +2,9 @@ import { renderWithLoader } from '@metorial/data-hooks';
 import { dynamicPage } from '@metorial/dynamic-component';
 import { createSlice } from '@metorial/microfrontend';
 import { NotFound } from '@metorial/pages';
+import { Upgrade } from '../../components/emptyState';
 import { lastInstanceIdStore, useCurrentInstance, useDashboardFlags } from '@metorial/state';
+import { Error } from '@metorial/ui';
 import { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import { ProjectHomePage } from './pages';
@@ -215,6 +217,64 @@ let SessionTemplateSettingsPage = dynamicPage(() =>
   )
 );
 
+let IdentityListLayout = dynamicPage(() =>
+  import('./pages/(identity)/(list)/_layout').then(c => c.IdentityListLayout)
+);
+let IdentityActorsPage = dynamicPage(() =>
+  import('./pages/(identity)/(list)/actors').then(c => c.IdentityActorsPage)
+);
+let IdentitiesPage = dynamicPage(() =>
+  import('./pages/(identity)/(list)/identities').then(c => c.IdentitiesPage)
+);
+let IdentityDelegationsPage = dynamicPage(() =>
+  import('./pages/(identity)/(list)/delegations').then(c => c.IdentityDelegationsPage)
+);
+let IdentityDelegationConfigsPage = dynamicPage(() =>
+  import('./pages/(identity)/(list)/delegation-configs').then(
+    c => c.IdentityDelegationConfigsPage
+  )
+);
+let IdentityActorLayout = dynamicPage(() =>
+  import('./pages/(identity)/actor/_layout').then(c => c.IdentityActorLayout)
+);
+let IdentityActorPage = dynamicPage(() =>
+  import('./pages/(identity)/actor').then(c => c.IdentityActorPage)
+);
+let IdentityActorSettingsPage = dynamicPage(() =>
+  import('./pages/(identity)/actor/settings').then(c => c.IdentityActorSettingsPage)
+);
+let IdentityLayout = dynamicPage(() =>
+  import('./pages/(identity)/identity/_layout').then(c => c.IdentityLayout)
+);
+let IdentityPage = dynamicPage(() =>
+  import('./pages/(identity)/identity').then(c => c.IdentityPage)
+);
+let IdentityDetailsDelegationsPage = dynamicPage(() =>
+  import('./pages/(identity)/identity/delegations').then(c => c.IdentityDelegationsPage)
+);
+let IdentityDelegationRequestsPage = dynamicPage(() =>
+  import('./pages/(identity)/identity/delegationRequests').then(
+    c => c.IdentityDelegationRequestsPage
+  )
+);
+let IdentitySettingsPage = dynamicPage(() =>
+  import('./pages/(identity)/identity/settings').then(c => c.IdentitySettingsPage)
+);
+let IdentityDelegationLayout = dynamicPage(() =>
+  import('./pages/(identity)/delegation/_layout').then(c => c.IdentityDelegationLayout)
+);
+let IdentityDelegationPage = dynamicPage(() =>
+  import('./pages/(identity)/delegation').then(c => c.IdentityDelegationPage)
+);
+let IdentityDelegationConfigLayout = dynamicPage(() =>
+  import('./pages/(identity)/delegation-config/_layout').then(
+    c => c.IdentityDelegationConfigLayout
+  )
+);
+let IdentityDelegationConfigPage = dynamicPage(() =>
+  import('./pages/(identity)/delegation-config').then(c => c.IdentityDelegationConfigPage)
+);
+
 let SetupProviderPage = dynamicPage(() =>
   import('./pages/setup-provider').then(c => c.SetupProviderPage)
 );
@@ -375,6 +435,26 @@ let FlaggedPage = ({ children, flag }: { children: React.ReactNode; flag: string
   return renderWithLoader({ flags })(({ flags }) =>
     (flags.data.flags as any)[flag] ? children : <NotFound />
   );
+};
+let IdentityManagedPage = ({ children }: { children: React.ReactNode }) => {
+  let flags = useDashboardFlags();
+
+  return renderWithLoader({ flags })(({ flags }) => {
+    if (!flags.data.flags['identity-management']) {
+      return <Error>Identity management is not enabled for this instance.</Error>;
+    }
+
+    if (!flags.data.flags['paid-identity']) {
+      return (
+        <Upgrade
+          title="Identity Management"
+          description="Manage identity actors, identities, delegations, and delegation policies once this instance is upgraded."
+        />
+      );
+    }
+
+    return children;
+  });
 };
 let ProductWrapper = () => {
   let instance = useCurrentInstance();
@@ -741,6 +821,101 @@ export let productInnerSlice = createSlice([
               {
                 path: 'settings',
                 element: <SessionTemplateSettingsPage />
+              }
+            ]
+          },
+
+          {
+            path: 'identity',
+            element: <IdentityListLayout />,
+            children: [
+              {
+                path: 'actors',
+                element: <IdentityActorsPage />
+              },
+              {
+                path: 'identities',
+                element: <IdentitiesPage />
+              },
+              {
+                path: 'delegations',
+                element: <IdentityDelegationsPage />
+              },
+              {
+                path: 'delegation-configs',
+                element: <IdentityDelegationConfigsPage />
+              }
+            ]
+          },
+          {
+            path: 'identity/actor/:identityActorId',
+            element: (
+              <IdentityManagedPage>
+                <IdentityActorLayout />
+              </IdentityManagedPage>
+            ),
+            children: [
+              {
+                path: '',
+                element: <IdentityActorPage />
+              },
+              {
+                path: 'settings',
+                element: <IdentityActorSettingsPage />
+              }
+            ]
+          },
+          {
+            path: 'identity/identity/:identityId',
+            element: (
+              <IdentityManagedPage>
+                <IdentityLayout />
+              </IdentityManagedPage>
+            ),
+            children: [
+              {
+                path: '',
+                element: <IdentityPage />
+              },
+              {
+                path: 'delegations',
+                element: <IdentityDetailsDelegationsPage />
+              },
+              {
+                path: 'delegation-requests',
+                element: <IdentityDelegationRequestsPage />
+              },
+              {
+                path: 'settings',
+                element: <IdentitySettingsPage />
+              }
+            ]
+          },
+          {
+            path: 'identity/delegation/:identityDelegationId',
+            element: (
+              <IdentityManagedPage>
+                <IdentityDelegationLayout />
+              </IdentityManagedPage>
+            ),
+            children: [
+              {
+                path: '',
+                element: <IdentityDelegationPage />
+              }
+            ]
+          },
+          {
+            path: 'identity/delegation-config/:identityDelegationConfigId',
+            element: (
+              <IdentityManagedPage>
+                <IdentityDelegationConfigLayout />
+              </IdentityManagedPage>
+            ),
+            children: [
+              {
+                path: '',
+                element: <IdentityDelegationConfigPage />
               }
             ]
           },

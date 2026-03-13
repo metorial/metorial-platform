@@ -4,13 +4,12 @@ import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
-  useProviderConfigVault,
-  useInstanceProviderConfigs
+  useInstanceProviderConfigs,
+  useProviderConfigVault
 } from '@metorial/state';
-import { Attributes, RenderDate, Spacer, Text } from '@metorial/ui';
+import { Attributes, Badge, RenderDate, Spacer, Text } from '@metorial/ui';
 import { ID, Table } from '@metorial/ui-product';
-import { Link } from 'react-router-dom';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 
 export let ProviderConfigVaultOverviewPage = () => {
   let instance = useCurrentInstance();
@@ -88,7 +87,7 @@ export let ProviderConfigVaultOverviewPage = () => {
         headers={['Name', 'Default', 'Created']}
         data={usedByConfigs.map(config => ({
           href:
-            config.deployment?.id ?? vault.data.deployment?.id
+            (config.deployment?.id ?? vault.data.deployment?.id)
               ? Paths.instance.providerConfig(
                   organization.data,
                   project.data,
@@ -101,7 +100,7 @@ export let ProviderConfigVaultOverviewPage = () => {
             <Text size="2" weight="strong">
               {config.name ?? config.id}
             </Text>,
-            config.isDefault ? 'Yes' : 'No',
+            config.isDefault ? <Badge color="blue">Default</Badge> : <></>,
             <RenderDate date={config.createdAt} />
           ]
         }))}

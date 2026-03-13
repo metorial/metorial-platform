@@ -11,9 +11,21 @@ export type ManagementInstanceIdentitiesDelegationsGetOutput = {
     | null;
   delegationLevel: number;
   permissions: ('provider:call' | 'provider:read')[];
+  attestation: {
+    object: 'identity.delegation_attestation';
+    id: string;
+    type: string;
+    createdAt: Date;
+  } | null;
   note: string | null;
   metadata: Record<string, any> | null;
-  identityId: string;
+  identity: {
+    object: 'identity#preview';
+    id: string;
+    name: string;
+    description: string;
+    metadata: Record<string, any> | null;
+  };
   delegationConfigId: string | null;
   parties: {
     object: 'identity.delegation_party';
@@ -83,9 +95,27 @@ export let mapManagementInstanceIdentitiesDelegationsGetOutput =
       'permissions',
       mtMap.array(mtMap.passthrough())
     ),
+    attestation: mtMap.objectField(
+      'attestation',
+      mtMap.object({
+        object: mtMap.objectField('object', mtMap.passthrough()),
+        id: mtMap.objectField('id', mtMap.passthrough()),
+        type: mtMap.objectField('type', mtMap.passthrough()),
+        createdAt: mtMap.objectField('created_at', mtMap.date())
+      })
+    ),
     note: mtMap.objectField('note', mtMap.passthrough()),
     metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-    identityId: mtMap.objectField('identity_id', mtMap.passthrough()),
+    identity: mtMap.objectField(
+      'identity',
+      mtMap.object({
+        object: mtMap.objectField('object', mtMap.passthrough()),
+        id: mtMap.objectField('id', mtMap.passthrough()),
+        name: mtMap.objectField('name', mtMap.passthrough()),
+        description: mtMap.objectField('description', mtMap.passthrough()),
+        metadata: mtMap.objectField('metadata', mtMap.passthrough())
+      })
+    ),
     delegationConfigId: mtMap.objectField(
       'delegation_config_id',
       mtMap.passthrough()

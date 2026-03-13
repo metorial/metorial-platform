@@ -1,0 +1,153 @@
+import { renderWithLoader } from '@metorial/data-hooks';
+import { Paths } from '@metorial/frontend-config';
+import { ContentLayout, PageHeader } from '@metorial/layout';
+import {
+  useCurrentInstance,
+  useCurrentOrganization,
+  useCurrentProject,
+  useIdentity
+} from '@metorial/state';
+import { Button, LinkTabs, Menu } from '@metorial/ui';
+import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { showIdentityDelegationFormModal } from '../../../scenes/identity/delegationModal';
+import { showIdentityDelegationRequestFormModal } from '../../../scenes/identity/delegationRequestModal';
+
+export let IdentityLayout = () => {
+  let instance = useCurrentInstance();
+  let organization = useCurrentOrganization();
+  let project = useCurrentProject();
+  let { identityId } = useParams();
+  let identity = useIdentity(instance.data?.id, identityId);
+  let pathname = useLocation().pathname;
+  let navigate = useNavigate();
+
+  return renderWithLoader({ instance, organization, project, identity })(
+    ({ instance, organization, project, identity }) => (
+      <ContentLayout>
+        <PageHeader
+          title={identity.data.name ?? identity.data.id}
+          description={identity.data.description ?? undefined}
+          actions={
+            <Menu
+              label="Delegate"
+              items={[
+                {
+                  id: 'delegation',
+                  label: 'Create Delegation',
+                  description: 'Grant delegated access to another actor.'
+                },
+                {
+                  id: 'delegation-request',
+                  label: 'Create Delegation Request',
+                  description: 'Create a delegation request that can later be approved.'
+                }
+              ]}
+              onItemClick={itemId => {
+                if (itemId === 'delegation') {
+                  showIdentityDelegationFormModal({
+                    instanceId: instance.data.id,
+                    identityId: identity.data.id,
+                    identityName: identity.data.name,
+                    onCreate: delegation =>
+                      navigate(
+                        Paths.instance.identity.delegation(
+                          organization.data,
+                          project.data,
+                          instance.data,
+                          delegation.id
+                        )
+                      )
+                  });
+                  return;
+                }
+
+                showIdentityDelegationRequestFormModal({
+                  instanceId: instance.data.id,
+                  identityId: identity.data.id,
+                  identityName: identity.data.name,
+                  onCreate: request =>
+                    navigate(
+                      Paths.instance.identity.delegation(
+                        organization.data,
+                        project.data,
+                        instance.data,
+                        request.delegation.id
+                      )
+                    )
+                });
+              }}
+            >
+              <Button size="2">Delegate</Button>
+            </Menu>
+          }
+          pagination={[
+            {
+              label: 'Identities',
+              href: Paths.instance.identity.identities(
+                organization.data,
+                project.data,
+                instance.data
+              )
+            },
+            {
+              label: identity.data.name ?? identity.data.id,
+              href: Paths.instance.identity.identity(
+                organization.data,
+                project.data,
+                instance.data,
+                identity.data.id
+              )
+            }
+          ]}
+        />
+
+        <LinkTabs
+          current={pathname}
+          links={[
+            {
+              label: 'Overview',
+              to: Paths.instance.identity.identity(
+                organization.data,
+                project.data,
+                instance.data,
+                identity.data.id
+              )
+            },
+            {
+              label: 'Delegations',
+              to: Paths.instance.identity.identity(
+                organization.data,
+                project.data,
+                instance.data,
+                identity.data.id,
+                'delegations'
+              )
+            },
+            {
+              label: 'Delegation Requests',
+              to: Paths.instance.identity.identity(
+                organization.data,
+                project.data,
+                instance.data,
+                identity.data.id,
+                'delegation-requests'
+              )
+            },
+            {
+              label: 'Settings',
+              to: Paths.instance.identity.identity(
+                organization.data,
+                project.data,
+                instance.data,
+                identity.data.id,
+                'settings'
+              )
+            }
+          ]}
+        />
+
+        <Outlet />
+      </ContentLayout>
+    )
+  );
+};

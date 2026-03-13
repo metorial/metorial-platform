@@ -342,6 +342,122 @@ let InstancePaths = Object.assign(
       }
     },
 
+    identity: {
+      actors: (
+        organization: EntityParam,
+        project: EntityParam,
+        instance: EntityParam,
+        ...subPages: SubPages
+      ) => InstancePaths(organization, project, instance, 'identity', 'actors', ...subPages),
+
+      actor: (
+        organization: EntityParam,
+        project: EntityParam,
+        instance: EntityParam,
+        id?: string,
+        ...subPages: SubPages
+      ) => {
+        if (!id) return '#';
+        return InstancePaths(
+          organization,
+          project,
+          instance,
+          'identity',
+          'actor',
+          id,
+          ...subPages
+        );
+      },
+
+      identities: (
+        organization: EntityParam,
+        project: EntityParam,
+        instance: EntityParam,
+        ...subPages: SubPages
+      ) =>
+        InstancePaths(organization, project, instance, 'identity', 'identities', ...subPages),
+
+      identity: (
+        organization: EntityParam,
+        project: EntityParam,
+        instance: EntityParam,
+        id?: string,
+        ...subPages: SubPages
+      ) => {
+        if (!id) return '#';
+        return InstancePaths(
+          organization,
+          project,
+          instance,
+          'identity',
+          'identity',
+          id,
+          ...subPages
+        );
+      },
+
+      delegations: (
+        organization: EntityParam,
+        project: EntityParam,
+        instance: EntityParam,
+        ...subPages: SubPages
+      ) =>
+        InstancePaths(organization, project, instance, 'identity', 'delegations', ...subPages),
+
+      delegation: (
+        organization: EntityParam,
+        project: EntityParam,
+        instance: EntityParam,
+        id?: string,
+        ...subPages: SubPages
+      ) => {
+        if (!id) return '#';
+        return InstancePaths(
+          organization,
+          project,
+          instance,
+          'identity',
+          'delegation',
+          id,
+          ...subPages
+        );
+      },
+
+      delegationConfigs: (
+        organization: EntityParam,
+        project: EntityParam,
+        instance: EntityParam,
+        ...subPages: SubPages
+      ) =>
+        InstancePaths(
+          organization,
+          project,
+          instance,
+          'identity',
+          'delegation-configs',
+          ...subPages
+        ),
+
+      delegationConfig: (
+        organization: EntityParam,
+        project: EntityParam,
+        instance: EntityParam,
+        id?: string,
+        ...subPages: SubPages
+      ) => {
+        if (!id) return '#';
+        return InstancePaths(
+          organization,
+          project,
+          instance,
+          'identity',
+          'delegation-config',
+          id,
+          ...subPages
+        );
+      }
+    },
+
     providerAuthConfigs: (
       organization: EntityParam,
       project: EntityParam,
