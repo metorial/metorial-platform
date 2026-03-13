@@ -151,6 +151,15 @@ export let v1IdentityDelegationPresenter = Presenter.create(identityDelegationTy
         }
       : null,
 
+    attestation: identityDelegation.attestation
+      ? {
+          object: 'identity.delegation_attestation' as const,
+          id: identityDelegation.attestation.id,
+          type: identityDelegation.attestation.type,
+          created_at: identityDelegation.attestation.createdAt
+        }
+      : null,
+
     credential_overrides: identityDelegation.credentialOverrides.map(credentialOverride => ({
       object: 'identity.delegation_credential_override' as const,
 
@@ -201,6 +210,28 @@ export let v1IdentityDelegationPresenter = Presenter.create(identityDelegationTy
         description: 'Permissions granted by this delegation.',
         examples: [['provider:read', 'provider:call']]
       }),
+      attestation: v.nullable(
+        v.object({
+          object: v.literal('identity.delegation_attestation', {
+            description: "String representing the object's type"
+          }),
+          id: v.string({
+            name: 'id',
+            description: 'Unique attestation identifier.',
+            examples: ['ida_3xYzAbCdEfGhIjKl']
+          }),
+          type: v.string({
+            name: 'type',
+            description: 'Type of attestation, if any.',
+            examples: ['consent']
+          }),
+          created_at: v.date({
+            name: 'created_at',
+            description: 'Timestamp when the attestation was created.',
+            examples: [new Date('2026-02-03T10:15:00Z')]
+          })
+        })
+      ),
       note: v.nullable(
         v.string({
           name: 'note',

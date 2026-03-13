@@ -11,6 +11,12 @@ export type DashboardInstanceIdentitiesDelegationsGetOutput = {
     | null;
   delegationLevel: number;
   permissions: ('provider:call' | 'provider:read')[];
+  attestation: {
+    object: 'identity.delegation_attestation';
+    id: string;
+    type: string;
+    createdAt: Date;
+  } | null;
   note: string | null;
   metadata: Record<string, any> | null;
   identity: {
@@ -88,6 +94,15 @@ export let mapDashboardInstanceIdentitiesDelegationsGetOutput =
     permissions: mtMap.objectField(
       'permissions',
       mtMap.array(mtMap.passthrough())
+    ),
+    attestation: mtMap.objectField(
+      'attestation',
+      mtMap.object({
+        object: mtMap.objectField('object', mtMap.passthrough()),
+        id: mtMap.objectField('id', mtMap.passthrough()),
+        type: mtMap.objectField('type', mtMap.passthrough()),
+        createdAt: mtMap.objectField('created_at', mtMap.date())
+      })
     ),
     note: mtMap.objectField('note', mtMap.passthrough()),
     metadata: mtMap.objectField('metadata', mtMap.passthrough()),
