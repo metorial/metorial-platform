@@ -4,6 +4,7 @@ export type { MetorialEnterpriseWindow } from './types/metorialEnterpriseWindow'
 export * from './dashboard';
 export * from './deployment';
 export * from './developer';
+export * from './identity';
 export * from './organization';
 export * from './provider';
 export * from './custom-provider';
