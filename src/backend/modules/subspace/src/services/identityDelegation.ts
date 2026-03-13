@@ -36,7 +36,7 @@ export let subspaceIdentityDelegationService = createSubspaceService(
             type: 'instance'
           },
           entity: {
-            id: identityDelegation.identityId,
+            id: identityDelegation.identity.id,
             type: 'identity'
           },
           type: 'identity.used'
