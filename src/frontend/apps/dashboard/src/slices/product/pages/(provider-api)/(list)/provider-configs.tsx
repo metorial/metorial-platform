@@ -15,7 +15,7 @@ import { Table } from '@metorial/ui-product';
 import { useMemo } from 'react';
 import { useSearchFilter } from '../../../../../hooks/useSearchFilter';
 import { showCreateProviderConfigFlow } from './providerCreationFlows';
-import { ProviderConfigurationsEmptyState } from './providerConfigurationsEmptyState';
+import { EmptyState } from '../../../../../components/emptyState';
 
 type ConfigOverviewRow = {
   config: DashboardInstanceProviderDeploymentsConfigsListOutput['items'][number];
@@ -152,13 +152,15 @@ export let ProviderConfigsOverviewPage = () => {
               No configs found for "{searchQuery}".
             </Text>
           ) : (
-            <ProviderConfigurationsEmptyState
+            <EmptyState
               title="Create your first config"
               description="Configs let you save reusable provider settings for this instance."
-              actionLabel="Create Config"
-              onAction={() => {
-                if (instance.data?.id) {
-                  showCreateProviderConfigFlow(instance.data.id);
+              action={{
+                label: 'Create Config',
+                onClick: () => {
+                  if (instance.data?.id) {
+                    showCreateProviderConfigFlow(instance.data.id);
+                  }
                 }
               }}
             />

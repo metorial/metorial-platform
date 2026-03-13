@@ -13,7 +13,7 @@ import { Table } from '@metorial/ui-product';
 import { useMemo } from 'react';
 import { useSearchFilter } from '../../../../../hooks/useSearchFilter';
 import { showCreateProviderConfigVaultFlow } from './providerCreationFlows';
-import { ProviderConfigurationsEmptyState } from './providerConfigurationsEmptyState';
+import { EmptyState } from '../../../../../components/emptyState';
 
 export let ProviderConfigVaultsOverviewPage = () => {
   let instance = useCurrentInstance();
@@ -103,13 +103,15 @@ export let ProviderConfigVaultsOverviewPage = () => {
               No config vaults found for "{searchQuery}".
             </Text>
           ) : (
-            <ProviderConfigurationsEmptyState
+            <EmptyState
               title="Create your first config vault"
               description="Vaults store reusable secret or shared provider values for this instance."
-              actionLabel="Create Config Vault"
-              onAction={() => {
-                if (instance.data?.id) {
-                  showCreateProviderConfigVaultFlow(instance.data.id);
+              action={{
+                label: 'Create Config Vault',
+                onClick: () => {
+                  if (instance.data?.id) {
+                    showCreateProviderConfigVaultFlow(instance.data.id);
+                  }
                 }
               }}
             />

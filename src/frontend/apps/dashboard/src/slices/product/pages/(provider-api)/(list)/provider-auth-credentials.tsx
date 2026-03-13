@@ -11,7 +11,7 @@ import { Table } from '@metorial/ui-product';
 import { useMemo } from 'react';
 import { useSearchFilter } from '../../../../../hooks/useSearchFilter';
 import { showCreateProviderAuthCredentialsFlow } from './providerCreationFlows';
-import { ProviderConfigurationsEmptyState } from './providerConfigurationsEmptyState';
+import { EmptyState } from '../../../../../components/emptyState';
 
 export let ProviderAuthCredentialsOverviewPage = () => {
   let instance = useCurrentInstance();
@@ -102,13 +102,15 @@ export let ProviderAuthCredentialsOverviewPage = () => {
               No auth credentials found for "{searchQuery}".
             </Text>
           ) : (
-            <ProviderConfigurationsEmptyState
+            <EmptyState
               title="Create your first auth credentials"
               description="Auth credentials store the provider access details your instance can reuse."
-              actionLabel="Create Auth Credentials"
-              onAction={() => {
-                if (instance.data?.id) {
-                  showCreateProviderAuthCredentialsFlow(instance.data.id);
+              action={{
+                label: 'Create Auth Credentials',
+                onClick: () => {
+                  if (instance.data?.id) {
+                    showCreateProviderAuthCredentialsFlow(instance.data.id);
+                  }
                 }
               }}
             />

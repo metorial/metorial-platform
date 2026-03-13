@@ -26,12 +26,12 @@ import {
   Select,
   showModal,
   Spacer,
-  Text,
-  theme
+  Text
 } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
 import { RiAddLine } from '@remixicon/react';
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
+import { EmptyState } from '../../../../components/emptyState';
 import {
   emptyConfigurationSelection,
   type ConfigurationSelection
@@ -683,72 +683,19 @@ export let SessionTemplateProvidersManager = ({
 
     if (!providers.data || providers.data.items.length === 0) {
       return (
-        <Flex
-          direction="column"
-          gap={12}
-          style={{
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '48px 24px',
-            border: `1px dashed ${theme.colors.gray300}`,
-            borderRadius: 12,
-            background: theme.colors.gray100
-          }}
-        >
-          <div
-            style={{
-              width: 48,
-              height: 48,
-              borderRadius: 12,
-              background: theme.colors.gray200,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 22
-            }}
-          >
-            <svg
-              width="22"
-              height="22"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke={theme.colors.gray500}
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <rect x="2" y="2" width="20" height="8" rx="2" ry="2" />
-              <rect x="2" y="14" width="20" height="8" rx="2" ry="2" />
-              <line x1="6" y1="6" x2="6.01" y2="6" />
-              <line x1="6" y1="18" x2="6.01" y2="18" />
-            </svg>
-          </div>
-
-          <Flex direction="column" gap={4} style={{ alignItems: 'center' }}>
-            <Text size="2" weight="strong">
-              No providers configured
-            </Text>
-            <Text size="2" color="gray600" align="center" style={{ maxWidth: 320 }}>
-              Add providers to this template so sessions created from it will automatically
-              include them.
-            </Text>
-          </Flex>
-
-          <Spacer size={4} />
-
-          <Button
-            size="2"
-            onClick={() =>
+        <EmptyState
+          title="No providers configured"
+          description="Add providers to this template so sessions created from it will automatically include them."
+          action={{
+            label: 'Add Provider',
+            onClick: () =>
               showAddProviderModal({
                 instanceId,
                 sessionTemplateId,
                 onComplete: () => providers.refetch()
               })
-            }
-          >
-            Add Provider
-          </Button>
-        </Flex>
+          }}
+        />
       );
     }
 
