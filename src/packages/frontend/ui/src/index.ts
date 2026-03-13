@@ -13,6 +13,7 @@ export * from './cardLinks';
 export * from './checkbox';
 export * from './control';
 export * from './copy';
+export * from './combobox';
 export * from './datalist';
 export * from './date';
 export * from './datePicker';
