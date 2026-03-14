@@ -1,565 +1,86 @@
 import {
-  DashboardInstanceProviderDeploymentsListOutput,
   DashboardInstanceSessionTemplatesProvidersListOutput
 } from '@metorial/dashboard-sdk';
-import { renderWithLoader, useForm } from '@metorial/data-hooks';
+import { renderWithLoader } from '@metorial/data-hooks';
 import {
-  useCreateProviderDeployment,
   useCreateSessionTemplateProvider,
   useDeleteSessionTemplateProvider,
   useInstanceProviderAuthConfigs,
-  useProviderAuthConfigs,
-  useProvider,
-  useProviderDeployment,
   useProviderDeployments,
   useProviderListings,
-  useProviderTools,
   useSessionTemplateProviders
 } from '@metorial/state';
 import {
   Avatar,
   Button,
-  CenteredSpinner,
   Dialog,
   Flex,
-  Input,
-  Select,
-  showModal,
   Spacer,
-  Text
+  Text,
+  showModal
 } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
-import { RiAddLine } from '@remixicon/react';
-import { type ReactNode, useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { EmptyState } from '../../../../components/emptyState';
 import {
-  emptyConfigurationSelection,
-  type ConfigurationSelection
-} from '../../lib/configSelection';
-import { useProviderAuthCreationCapabilities } from '../../lib/providerCreationCapabilities';
-import { showProviderAuthConfigCreateModal } from '../providerAuthConfigs/modal';
-import { ProviderConfigurationSelection } from '../providerConfigs/selection';
-import { ProviderDeploymentsList } from '../providerDeployments/list';
-import { ProviderSearch } from '../providers/search';
-import { Stepper } from '../stepper';
+  ProviderConfigurationSelectionModalContent,
+  showProviderConfigurationSelectionModal
+} from '../providers/providerConfigurationSelectionModal';
 
 type SessionTemplateProviderRow =
   DashboardInstanceSessionTemplatesProvidersListOutput['items'][number];
 
-type AddProviderFormValues = {
-  selectedProviderId: string;
-  selectedProviderName: string;
-  selectedDeploymentId: string;
-  selectedConfiguration: ConfigurationSelection;
-  selectedAuthConfigId: string;
-  toolFilterMode: 'all' | 'select';
-  selectedToolKeys: string[];
-};
-
-type AddProviderForm = ReturnType<typeof useForm<AddProviderFormValues>>;
-
 let AddProviderModalContent = ({
   instanceId,
   sessionTemplateId,
-  onComplete,
-  onCancel
+  onComplete
 }: {
   instanceId: string;
   sessionTemplateId: string;
   onComplete: () => void;
-  onCancel: () => void;
 }) => {
-  let [currentStep, setCurrentStep] = useState(0);
   let createMutation = useCreateSessionTemplateProvider();
-  let form = useForm<AddProviderFormValues>({
-    initialValues: {
-      selectedProviderId: '',
-      selectedProviderName: '',
-      selectedDeploymentId: '',
-      selectedConfiguration: emptyConfigurationSelection(),
-      selectedAuthConfigId: '',
-      toolFilterMode: 'all' as const,
-      selectedToolKeys: [] as string[]
-    },
-    onSubmit: async values => {
-      let [result, err] = await createMutation.mutate({
-        instanceId,
-        sessionTemplateId,
-        providerDeploymentId: values.selectedDeploymentId,
-        ...(values.selectedConfiguration.kind === 'config'
-          ? {
-              providerConfigId: values.selectedConfiguration.id
-            }
-          : {}),
-        ...(values.selectedConfiguration.kind === 'vault'
-          ? {
-              providerConfigVaultId: values.selectedConfiguration.id
-            }
-          : {}),
-        ...(values.selectedAuthConfigId
-          ? {
-              providerAuthConfigId: values.selectedAuthConfigId
-            }
-          : {}),
-        ...(values.toolFilterMode === 'select' && values.selectedToolKeys.length > 0
-          ? { toolFilters: { toolKeys: values.selectedToolKeys } }
-          : {})
-      });
-
-      if (!err) {
-        if (result) onComplete();
-        return;
-      }
-
-      let errorCode = err.data?.code;
-      let entityId = err.data?.entityId;
-      if (errorCode !== 'use_after_delete' || !entityId) return;
-
-      if (
-        values.selectedConfiguration.kind !== 'none' &&
-        entityId === values.selectedConfiguration.id
-      ) {
-        form.setFieldValue('selectedConfiguration', emptyConfigurationSelection());
-        form.setFieldTouched('selectedConfiguration', true, false);
-        form.setFieldError(
-          'selectedConfiguration',
-          values.selectedConfiguration.kind === 'vault'
-            ? 'Selected config vault was deleted or archived. Choose another vault or leave Config empty.'
-            : 'Selected provider config was deleted or archived. Choose another config or leave Config empty.'
-        );
-      }
-
-      if (entityId === values.selectedAuthConfigId) {
-        form.setFieldValue('selectedAuthConfigId', '');
-        form.setFieldTouched('selectedAuthConfigId', true, false);
-        form.setFieldError(
-          'selectedAuthConfigId',
-          'Selected auth config was deleted or archived. Choose another auth config or leave Auth Config empty.'
-        );
-      }
-    },
-    schema: yup =>
-      yup.object({
-        selectedProviderId: yup.string().defined(),
-        selectedProviderName: yup.string().defined(),
-        selectedDeploymentId: yup.string().required('Deployment is required'),
-        selectedConfiguration: yup.mixed<ConfigurationSelection>().defined(),
-        selectedAuthConfigId: yup.string().optional().default(''),
-        toolFilterMode: yup.mixed<'all' | 'select'>().oneOf(['all', 'select']).required(),
-        selectedToolKeys: yup.array().of(yup.string().required()).defined()
-      })
-  });
-
-  let resetConfigurationState = () => {
-    form.setFieldValue('selectedConfiguration', emptyConfigurationSelection());
-    form.setFieldValue('selectedAuthConfigId', '');
-    form.setFieldValue('toolFilterMode', 'all');
-    form.setFieldValue('selectedToolKeys', []);
-    form.setFieldTouched('selectedConfiguration', false, false);
-    form.setFieldTouched('selectedAuthConfigId', false, false);
-    form.setFieldError('selectedConfiguration', undefined);
-    form.setFieldError('selectedAuthConfigId', undefined);
-  };
 
   return (
-    <Stepper
-      currentStep={currentStep}
-      setCurrentStep={setCurrentStep}
-      steps={[
-        {
-          title: 'Provider',
-          subtitle: 'Choose a provider',
-          render: () => (
-            <PickProviderStep
-              onSelect={(providerId, providerName) => {
-                form.setFieldValue('selectedProviderId', providerId);
-                form.setFieldValue('selectedProviderName', providerName);
-                form.setFieldValue('selectedDeploymentId', '');
-                form.setFieldTouched('selectedDeploymentId', false, false);
-                form.setFieldError('selectedDeploymentId', undefined);
-                resetConfigurationState();
-                setCurrentStep(1);
-              }}
-            />
-          )
-        },
-        {
-          title: 'Deployment',
-          subtitle: 'Select a deployment',
-          render: () => (
-            <PickDeploymentStep
-              instanceId={instanceId}
-              providerId={form.values.selectedProviderId}
-              providerName={form.values.selectedProviderName}
-              onSelect={deploymentId => {
-                form.setFieldValue('selectedDeploymentId', deploymentId);
-                form.setFieldTouched('selectedDeploymentId', false, false);
-                form.setFieldError('selectedDeploymentId', undefined);
-                resetConfigurationState();
-                setCurrentStep(2);
-              }}
-            />
-          )
-        },
-        {
-          title: 'Configure',
-          subtitle: 'Set up the provider',
-          render: () => (
-            <form onSubmit={form.handleSubmit}>
-              <DeploymentConfigureStep
-                form={form}
-                instanceId={instanceId}
-                deploymentId={form.values.selectedDeploymentId}
-                providerId={form.values.selectedProviderId}
-                providerName={form.values.selectedProviderName}
-                saving={createMutation.isPending}
-                mutationError={<createMutation.RenderError />}
-              />
-            </form>
-          )
+    <ProviderConfigurationSelectionModalContent
+      instanceId={instanceId}
+      saving={createMutation.isPending}
+      mutationError={<createMutation.RenderError />}
+      submitLabel="Add Provider"
+      includeToolFilters
+      onSubmit={async values => {
+        let [result, error] = await createMutation.mutate({
+          instanceId,
+          sessionTemplateId,
+          providerDeploymentId: values.selectedDeploymentId,
+          ...(values.selectedConfiguration.kind === 'config'
+            ? {
+                providerConfigId: values.selectedConfiguration.id
+              }
+            : {}),
+          ...(values.selectedConfiguration.kind === 'vault'
+            ? {
+                providerConfigVaultId: values.selectedConfiguration.id
+              }
+            : {}),
+          ...(values.selectedAuthConfigId
+            ? {
+                providerAuthConfigId: values.selectedAuthConfigId
+              }
+            : {}),
+          ...(values.toolFilterMode === 'select' && values.selectedToolKeys.length > 0
+            ? { toolFilters: { toolKeys: values.selectedToolKeys } }
+            : {})
+        });
+
+        if (result && !error) {
+          onComplete();
+          return { success: true };
         }
-      ]}
+
+        return { error };
+      }}
     />
-  );
-};
-
-let PickProviderStep = ({
-  onSelect
-}: {
-  onSelect: (providerId: string, providerName: string) => void;
-}) => {
-  return (
-    <ProviderSearch
-      limit={21}
-      onSelect={provider =>
-        onSelect(provider.id, provider.name ?? provider.slug ?? 'Provider')
-      }
-    />
-  );
-};
-
-let CreateDeploymentInline = ({
-  instanceId,
-  providerId,
-  providerName,
-  onCreated
-}: {
-  instanceId: string;
-  providerId: string;
-  providerName: string;
-  onCreated: (deploymentId: string) => void;
-}) => {
-  let createMutation = useCreateProviderDeployment();
-  let form = useForm({
-    initialValues: {
-      name: providerName,
-      description: ''
-    },
-    onSubmit: async values => {
-      let [res] = await createMutation.mutate({
-        instanceId,
-        providerId,
-        name: values.name.trim(),
-        description: values.description?.trim() || undefined
-      });
-
-      if (res) {
-        onCreated(res.id);
-      }
-    },
-    schema: yup =>
-      yup.object({
-        name: yup.string().required('Name is required'),
-        description: yup.string().ensure()
-      })
-  });
-
-  return (
-    <Flex direction="column" gap={8}>
-      <Text size="2" color="gray600">
-        No deployments found for <strong>{providerName}</strong>. Create one to continue.
-      </Text>
-
-      <form onSubmit={form.handleSubmit}>
-        <Flex direction="column" gap={8}>
-          <Input label="Name" required {...form.getFieldProps('name')} />
-          <form.RenderError field="name" />
-
-          <Input label="Description" {...form.getFieldProps('description')} />
-          <form.RenderError field="description" />
-          <Spacer height={8} />
-
-          <Dialog.Actions>
-            <Button
-              type="submit"
-              loading={createMutation.isLoading}
-              success={createMutation.isSuccess}
-            >
-              Create Deployment
-            </Button>
-
-            <createMutation.RenderError />
-          </Dialog.Actions>
-        </Flex>
-      </form>
-    </Flex>
-  );
-};
-
-let PickDeploymentStep = ({
-  instanceId,
-  providerId,
-  providerName,
-  onSelect
-}: {
-  instanceId: string;
-  providerId: string;
-  providerName: string;
-  onSelect: (id: string) => void;
-}) => {
-  let deployments = useProviderDeployments(instanceId, { providerId });
-  let items: DashboardInstanceProviderDeploymentsListOutput['items'] =
-    deployments.data?.items ?? [];
-  let singleDeploymentId = items.length === 1 ? items[0]?.id : null;
-
-  useEffect(() => {
-    if (singleDeploymentId) {
-      onSelect(singleDeploymentId);
-    }
-  }, [onSelect, singleDeploymentId]);
-
-  if (deployments.isLoading) return <CenteredSpinner />;
-
-  if (items.length === 0) {
-    return (
-      <CreateDeploymentInline
-        instanceId={instanceId}
-        providerId={providerId}
-        providerName={providerName}
-        onCreated={onSelect}
-      />
-    );
-  }
-
-  return (
-    <Flex direction="column" gap={8}>
-      <Text size="2" color="gray600">
-        Select a deployment for <strong>{providerName}</strong>
-      </Text>
-
-      <ProviderDeploymentsList
-        providerId={providerId}
-        searchable
-        compact
-        columns={3}
-        sectionLabel="Deployments"
-        emptyText={`No deployments found for ${providerName}.`}
-        onDeploymentClick={deployment => onSelect(deployment.id)}
-      />
-    </Flex>
-  );
-};
-
-let DeploymentConfigureStep = ({
-  form,
-  instanceId,
-  deploymentId,
-  providerId,
-  providerName,
-  saving,
-  mutationError
-}: {
-  form: AddProviderForm;
-  instanceId: string;
-  deploymentId: string;
-  providerId: string;
-  providerName: string;
-  saving: boolean;
-  mutationError: ReactNode;
-}) => {
-  let authConfigs = useProviderAuthConfigs(instanceId, deploymentId);
-  let deployment = useProviderDeployment(instanceId, deploymentId);
-  let provider = useProvider(instanceId, providerId);
-  let providerVersionId =
-    deployment.data?.lockedVersion?.id ?? provider.data?.currentVersion?.id ?? null;
-  let tools = useProviderTools(instanceId, providerVersionId);
-  let authCreation = useProviderAuthCreationCapabilities(instanceId, deploymentId, providerId);
-  let authConfigItems = authConfigs.data?.items ?? [];
-  let toolItems = tools.data?.items ?? [];
-  let selectedAuthConfigId = form.values.selectedAuthConfigId;
-  let allToolsField = form.getFieldProps({
-    name: 'toolFilterMode',
-    type: 'radio',
-    value: 'all'
-  });
-  let selectedToolsField = form.getFieldProps({
-    name: 'toolFilterMode',
-    type: 'radio',
-    value: 'select'
-  });
-
-  useEffect(() => {
-    if (authConfigs.isLoading || !selectedAuthConfigId) return;
-    if (!authConfigItems.some(item => item.id === selectedAuthConfigId)) {
-      form.setFieldValue('selectedAuthConfigId', '');
-      form.setFieldTouched('selectedAuthConfigId', false, false);
-      form.setFieldError('selectedAuthConfigId', undefined);
-    }
-  }, [authConfigs.isLoading, authConfigItems, form, selectedAuthConfigId]);
-
-  useEffect(() => {
-    if (form.values.toolFilterMode !== 'all' || form.values.selectedToolKeys.length === 0) return;
-    form.setFieldValue('selectedToolKeys', []);
-  }, [form, form.values.selectedToolKeys, form.values.toolFilterMode]);
-
-  if (
-    deployment.isLoading ||
-    authConfigs.isLoading ||
-    (deployment.data && !deployment.data.lockedVersion?.id && provider.isLoading) ||
-    tools.isLoading
-  ) {
-    return <CenteredSpinner />;
-  }
-
-  return (
-    <Flex direction="column" gap={8}>
-      <Text size="2" color="gray600">
-        Configure <strong>{providerName}</strong>
-      </Text>
-
-      <ProviderConfigurationSelection
-        instanceId={instanceId}
-        providerDeploymentId={deploymentId}
-        value={form.values.selectedConfiguration}
-        onChange={value => {
-          form.setFieldValue('selectedConfiguration', value);
-          form.setFieldTouched('selectedConfiguration', false, false);
-          form.setFieldError('selectedConfiguration', undefined);
-        }}
-        label="Config"
-      />
-      <form.RenderError field="selectedConfiguration" />
-
-      <Flex gap={8} align="end">
-        <div style={{ flex: 1 }}>
-          <Select
-            label="Auth Config"
-            value={form.values.selectedAuthConfigId || '__none__'}
-            onChange={v => {
-              form.setFieldValue('selectedAuthConfigId', v === '__none__' ? '' : v);
-              form.setFieldTouched('selectedAuthConfigId', false, false);
-              form.setFieldError('selectedAuthConfigId', undefined);
-            }}
-            items={[
-              { id: '__none__', label: 'None' },
-              ...authConfigItems.map(config => ({
-                id: config.id,
-                label: config.name ?? config.id
-              }))
-            ]}
-          />
-        </div>
-
-        <div
-          title={authCreation.authConfigDisabledReason ?? undefined}
-          style={{ display: 'inline-flex' }}
-        >
-          <Button
-            type="button"
-            size="3"
-            iconLeft={<RiAddLine />}
-            aria-label="Create Auth Config"
-            disabled={!authCreation.canCreateAuthConfig}
-            onClick={() =>
-              showProviderAuthConfigCreateModal({
-                instanceId,
-                providerDeploymentId: deploymentId,
-                onCreate: authConfig => {
-                  authConfigs.refetch?.();
-                  form.setFieldValue('selectedAuthConfigId', authConfig.id);
-                  form.setFieldTouched('selectedAuthConfigId', false, false);
-                  form.setFieldError('selectedAuthConfigId', undefined);
-                }
-              })
-            }
-          />
-        </div>
-      </Flex>
-      <form.RenderError field="selectedAuthConfigId" />
-
-      {toolItems.length > 0 && (
-        <div>
-          <Text size="2" weight="strong" style={{ display: 'block', marginBottom: 6 }}>
-            Tool Filters
-          </Text>
-
-          <Flex direction="column" gap={6}>
-            <label
-              style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
-            >
-              <input
-                type="radio"
-                {...allToolsField}
-              />
-              <Text size="2">All tools ({toolItems.length})</Text>
-            </label>
-
-            <label
-              style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
-            >
-              <input
-                type="radio"
-                {...selectedToolsField}
-              />
-              <Text size="2">Select specific tools</Text>
-            </label>
-
-            {form.values.toolFilterMode === 'select' && (
-              <Flex
-                direction="column"
-                gap={4}
-                style={{
-                  marginLeft: 24,
-                  maxHeight: 200,
-                  overflow: 'auto',
-                  padding: '8px 0'
-                }}
-              >
-                {toolItems.map(tool => (
-                  <label
-                    key={tool.id}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 8,
-                      cursor: 'pointer'
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      {...form.getFieldProps({
-                        name: 'selectedToolKeys',
-                        type: 'checkbox',
-                        value: tool.key ?? tool.name
-                      })}
-                    />
-                    <Text size="1">{tool.name}</Text>
-                  </label>
-                ))}
-              </Flex>
-            )}
-          </Flex>
-        </div>
-      )}
-
-      {mutationError}
-
-      <Dialog.Actions>
-        <Button type="submit" loading={saving}>
-          Add Provider
-        </Button>
-      </Dialog.Actions>
-    </Flex>
   );
 };
 
@@ -568,11 +89,10 @@ export let showAddProviderModal = (p: {
   sessionTemplateId: string;
   onComplete: () => void;
 }) =>
-  showModal(({ dialogProps, close }) => (
-    <Dialog.Wrapper {...dialogProps} width={650}>
-      <Dialog.Title>Add Provider</Dialog.Title>
-      <Dialog.Description>Select a provider to add to this template.</Dialog.Description>
-
+  showProviderConfigurationSelectionModal({
+    title: 'Add Provider',
+    description: 'Select a provider to add to this template.',
+    render: close => (
       <AddProviderModalContent
         instanceId={p.instanceId}
         sessionTemplateId={p.sessionTemplateId}
@@ -580,10 +100,9 @@ export let showAddProviderModal = (p: {
           p.onComplete();
           close();
         }}
-        onCancel={close}
       />
-    </Dialog.Wrapper>
-  ));
+    )
+  });
 
 let showRemoveProviderModal = (p: {
   instanceId: string;

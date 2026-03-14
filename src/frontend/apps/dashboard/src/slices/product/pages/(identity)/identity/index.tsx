@@ -5,26 +5,88 @@ import {
   useCurrentOrganization,
   useCurrentProject,
   useIdentity,
-  useIdentityDelegationConfig
+  useIdentityDelegationConfig,
+  useIdentityDelegationConfigs,
+  useInstanceProviderAuthConfigs,
+  useInstanceProviderConfigs,
+  useProviderDeployments,
+  useProviders
 } from '@metorial/state';
-import { Attributes, RenderDate, Spacer, Text } from '@metorial/ui';
+import { Attributes, Button, RenderDate, Spacer, Text } from '@metorial/ui';
 import { Box, ID, Table } from '@metorial/ui-product';
+import { useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { showAddIdentityCredentialModal } from '../../../scenes/identity/credentialModal';
 import { UsageScene } from '../../../scenes/usage/usage';
+
+let nonNullableUnique = <T,>(value: (T | null | undefined)[]): T[] =>
+  Array.from(new Set(value.filter((v): v is T => v !== null && v !== undefined)));
+
+let mapToIdFilter = (ids: string[]) => {
+  if (ids.length === 0) return { id: ['__none__'], limit: 1 };
+  return { id: ids, limit: 100 };
+};
 
 export let IdentityPage = () => {
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
   let { identityId } = useParams();
-  let identity = useIdentity(instance.data?.id, identityId);
+  let _identity = useIdentity(instance.data?.id, identityId);
+  let credentials = _identity.data?.credentials ?? [];
 
   let delegationConfig = useIdentityDelegationConfig(
     instance.data?.id,
-    identity.data?.delegationConfigId
+    _identity.data?.delegationConfigId
+  );
+  let providerIds = useMemo(
+    () => nonNullableUnique(credentials.map(credential => credential.providerId)),
+    [credentials]
+  );
+  let deploymentIds = useMemo(
+    () => nonNullableUnique(credentials.map(credential => credential.deploymentId)),
+    [credentials]
+  );
+  let configIds = useMemo(
+    () => nonNullableUnique(credentials.map(credential => credential.configId)),
+    [credentials]
+  );
+  let authConfigIds = useMemo(
+    () =>
+      nonNullableUnique(
+        credentials
+          .map(credential => credential.authConfigId)
+          .filter((value): value is string => !!value)
+      ),
+    [credentials]
+  );
+  let credentialDelegationConfigIds = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          credentials
+            .map(credential => credential.delegationConfigId)
+            .filter((value): value is string => !!value)
+        )
+      ),
+    [credentials]
+  );
+  let providers = useProviders(
+    instance.data?.id,
+    providerIds.length > 0 ? { id: providerIds } : null
+  );
+  let deployments = useProviderDeployments(instance.data?.id, mapToIdFilter(deploymentIds));
+  let configs = useInstanceProviderConfigs(instance.data?.id, mapToIdFilter(configIds));
+  let authConfigs = useInstanceProviderAuthConfigs(
+    instance.data?.id,
+    mapToIdFilter(authConfigIds)
+  );
+  let credentialDelegationConfigs = useIdentityDelegationConfigs(
+    instance.data?.id,
+    mapToIdFilter(credentialDelegationConfigIds)
   );
 
-  return renderWithLoader({ identity, organization, project, instance })(
+  return renderWithLoader({ identity: _identity, organization, project, instance })(
     ({ identity, organization, project, instance }) => (
       <>
         <Attributes
@@ -85,88 +147,146 @@ export let IdentityPage = () => {
 
         <Spacer size={20} />
 
-        <Box title="Credentials" description="Credentials attached to this identity.">
-          <Table
-            headers={[
-              'Credential ID',
-              'Provider',
-              'Deployment',
-              'Config',
-              'Auth Config',
-              'Delegation Config'
-            ]}
-            data={identity.data.credentials.map(credential => ({
-              data: [
-                <ID id={credential.id} />,
-                credential.providerId,
-                credential.deploymentId ? (
-                  <Link
-                    to={Paths.instance.providerDeployment(
-                      organization.data,
-                      project.data,
-                      instance.data,
-                      credential.deploymentId
-                    )}
-                  >
-                    <ID id={credential.deploymentId} />
-                  </Link>
-                ) : (
-                  '—'
-                ),
-                credential.deploymentId && credential.configId ? (
-                  <Link
-                    to={Paths.instance.providerConfig(
-                      organization.data,
-                      project.data,
-                      instance.data,
-                      credential.deploymentId,
-                      credential.configId
-                    )}
-                  >
-                    <ID id={credential.configId} />
-                  </Link>
-                ) : (
-                  '—'
-                ),
-                credential.deploymentId && credential.authConfigId ? (
-                  <Link
-                    to={Paths.instance.providerAuthConfig(
-                      organization.data,
-                      project.data,
-                      instance.data,
-                      credential.deploymentId,
-                      credential.authConfigId
-                    )}
-                  >
-                    <ID id={credential.authConfigId} />
-                  </Link>
-                ) : (
-                  '—'
-                ),
-                credential.delegationConfigId ? (
-                  <Link
-                    to={Paths.instance.identity.delegationConfig(
-                      organization.data,
-                      project.data,
-                      instance.data,
-                      credential.delegationConfigId
-                    )}
-                  >
-                    <ID id={credential.delegationConfigId} />
-                  </Link>
-                ) : (
-                  '—'
-                )
-              ]
-            }))}
-          />
+        {renderWithLoader({
+          providers,
+          deployments,
+          configs,
+          authConfigs,
+          credentialDelegationConfigs
+        })(() => {
+          let providerNameLookup = Object.fromEntries(
+            (providers.data?.items ?? []).map(provider => [
+              provider.id,
+              provider.name ?? provider.id
+            ])
+          );
+          let deploymentNameLookup = Object.fromEntries(
+            (deployments.data?.items ?? []).map(deployment => [
+              deployment.id,
+              deployment.name ?? deployment.id
+            ])
+          );
+          let configNameLookup = Object.fromEntries(
+            (configs.data?.items ?? []).map(config => [config.id, config.name ?? config.id])
+          );
+          let authConfigNameLookup = Object.fromEntries(
+            (authConfigs.data?.items ?? []).map(config => [
+              config.id,
+              config.name ?? config.id
+            ])
+          );
+          let credentialDelegationConfigNameLookup = Object.fromEntries(
+            (credentialDelegationConfigs.data?.items ?? []).map(config => [
+              config.id,
+              config.name ?? config.id
+            ])
+          );
 
-          {identity.data.credentials.length === 0 && (
-            <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-              No credentials attached to this identity.
-            </Text>
-          )}
-        </Box>
+          return (
+            <Box
+              title="Credentials"
+              description="Credentials attached to this identity."
+              rightActions={
+                <Button
+                  size="2"
+                  onClick={() =>
+                    showAddIdentityCredentialModal({
+                      instanceId: instance.data.id,
+                      identityId: identity.data.id,
+                      onComplete: () => _identity.refetch()
+                    })
+                  }
+                >
+                  Add Credential
+                </Button>
+              }
+            >
+              <Table
+                headers={[
+                  'Credential ID',
+                  'Provider',
+                  'Deployment',
+                  'Config',
+                  'Auth Config',
+                  'Delegation Config'
+                ]}
+                data={identity.data.credentials.map(credential => ({
+                  data: [
+                    <ID id={credential.id} />,
+                    providerNameLookup[credential.providerId] ?? credential.providerId,
+                    credential.deploymentId ? (
+                      <Link
+                        to={Paths.instance.providerDeployment(
+                          organization.data,
+                          project.data,
+                          instance.data,
+                          credential.deploymentId
+                        )}
+                      >
+                        {deploymentNameLookup[credential.deploymentId] ??
+                          credential.deploymentId}
+                      </Link>
+                    ) : (
+                      '—'
+                    ),
+                    credential.deploymentId && credential.configId ? (
+                      <Link
+                        to={Paths.instance.providerConfig(
+                          organization.data,
+                          project.data,
+                          instance.data,
+                          credential.deploymentId,
+                          credential.configId
+                        )}
+                      >
+                        {configNameLookup[credential.configId] ?? credential.configId}
+                      </Link>
+                    ) : (
+                      '—'
+                    ),
+                    credential.deploymentId && credential.authConfigId ? (
+                      <Link
+                        to={Paths.instance.providerAuthConfig(
+                          organization.data,
+                          project.data,
+                          instance.data,
+                          credential.deploymentId,
+                          credential.authConfigId
+                        )}
+                      >
+                        {authConfigNameLookup[credential.authConfigId] ??
+                          credential.authConfigId}
+                      </Link>
+                    ) : (
+                      '—'
+                    ),
+                    credential.delegationConfigId ? (
+                      <Link
+                        to={Paths.instance.identity.delegationConfig(
+                          organization.data,
+                          project.data,
+                          instance.data,
+                          credential.delegationConfigId
+                        )}
+                      >
+                        {credentialDelegationConfigNameLookup[credential.delegationConfigId] ??
+                          credential.delegationConfigId}
+                      </Link>
+                    ) : (
+                      '—'
+                    )
+                  ]
+                }))}
+              />
+
+              {identity.data.credentials.length === 0 && (
+                <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
+                  No credentials attached to this identity.
+                </Text>
+              )}
+            </Box>
+          );
+        })}
       </>
     )
   );

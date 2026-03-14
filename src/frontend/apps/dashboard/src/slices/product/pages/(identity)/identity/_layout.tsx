@@ -17,11 +17,11 @@ export let IdentityLayout = () => {
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
   let { identityId } = useParams();
-  let identity = useIdentity(instance.data?.id, identityId);
+  let _identity = useIdentity(instance.data?.id, identityId);
   let pathname = useLocation().pathname;
   let navigate = useNavigate();
 
-  return renderWithLoader({ instance, organization, project, identity })(
+  return renderWithLoader({ instance, organization, project, identity: _identity })(
     ({ instance, organization, project, identity }) => (
       <ContentLayout>
         <PageHeader
@@ -73,7 +73,7 @@ export let IdentityLayout = () => {
                         instance.data,
                         request.delegation.id
                       )
-                    )
+                  )
                 });
               }}
             >
