@@ -10,6 +10,9 @@ let ProjectSettingsPage = dynamicPage(() =>
 let ProjectSettingsInstancesPage = dynamicPage(() =>
   import('./pages/instances').then(c => c.ProjectSettingsInstancesPage)
 );
+let ProjectSettingsDelegationConfigPage = dynamicPage(() =>
+  import('./pages/delegation-config').then(c => c.ProjectSettingsDelegationConfigPage)
+);
 
 export let projectSlice = createSlice([
   {
@@ -25,6 +28,11 @@ export let projectSlice = createSlice([
       {
         path: 'instances',
         element: <ProjectSettingsInstancesPage />
+      },
+
+      {
+        path: 'delegation-config',
+        element: <ProjectSettingsDelegationConfigPage />
       }
     ]
   }

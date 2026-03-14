@@ -2,10 +2,16 @@ import { useForm } from '@metorial/data-hooks';
 import { ContentLayout, PageHeader } from '@metorial/layout';
 import { useCurrentProject } from '@metorial/state';
 import { Button, Input, Spacer } from '@metorial/ui';
+import { useSetLayout } from './_layout';
 
 export let ProjectSettingsPage = () => {
   let project = useCurrentProject();
   let update = project.updateMutator();
+
+  useSetLayout({
+    title: 'Project Settings',
+    breadcrumbs: [{ label: 'Project Settings', to: '' }]
+  });
 
   let form = useForm({
     initialValues: {

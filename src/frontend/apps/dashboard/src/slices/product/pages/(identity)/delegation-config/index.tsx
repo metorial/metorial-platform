@@ -1,10 +1,16 @@
 import { renderWithLoader, useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, useIdentityDelegationConfig } from '@metorial/state';
-import { Attributes, Button, Input, RenderDate, Spacer, confirm } from '@metorial/ui';
+import { Attributes, Button, Input, RenderDate, Select, Spacer, confirm } from '@metorial/ui';
 import { Box, ID } from '@metorial/ui-product';
 import { useNavigate, useParams } from 'react-router-dom';
 import { UsageScene } from '../../../scenes/usage/usage';
+
+let getDelegationBehaviorLabel = (behavior: 'allow' | 'deny' | 'require_consent') => {
+  if (behavior === 'require_consent') return 'Require Consent';
+  if (behavior === 'allow') return 'Allow';
+  return 'Deny';
+};
 
 export let IdentityDelegationConfigPage = () => {
   let instance = useCurrentInstance();
@@ -17,19 +23,42 @@ export let IdentityDelegationConfigPage = () => {
   let form = useForm({
     initialValues: {
       name: config.data?.name ?? '',
-      description: config.data?.description ?? ''
+      description: config.data?.description ?? '',
+      subDelegationBehavior:
+        config.data?.subDelegationBehavior ??
+        ('require_consent' as 'allow' | 'deny' | 'require_consent'),
+      subDelegationDepth: config.data?.subDelegationDepth?.toString() ?? '1'
     },
     updateInitialValues: true,
     onSubmit: async values => {
       await updateMutator.mutate({
         name: values.name.trim() || undefined,
-        description: values.description.trim() || undefined
+        description: values.description.trim() || undefined,
+        subDelegationBehavior: values.subDelegationBehavior,
+        subDelegationDepth: Number(values.subDelegationDepth)
       });
     },
     schema: yup =>
       yup.object({
         name: yup.string().ensure(),
-        description: yup.string().ensure()
+        description: yup.string().ensure(),
+        subDelegationBehavior: yup
+          .string()
+          .oneOf(['allow', 'deny', 'require_consent'])
+          .required('Behavior is required'),
+        subDelegationDepth: yup
+          .string()
+          .required('Depth is required')
+          .test(
+            'is-valid-depth',
+            'Depth must be an integer 0 or greater',
+            value =>
+              value !== undefined &&
+              value !== '' &&
+              !Number.isNaN(Number(value)) &&
+              Number.isInteger(Number(value)) &&
+              Number(value) >= 0
+          )
       })
   });
 
@@ -52,7 +81,7 @@ export let IdentityDelegationConfigPage = () => {
           },
           {
             label: 'Sub-Delegation Behavior',
-            content: config.data.subDelegationBehavior
+            content: getDelegationBehaviorLabel(config.data.subDelegationBehavior)
           },
           {
             label: 'Created At',
@@ -85,6 +114,39 @@ export let IdentityDelegationConfigPage = () => {
 
           <Input label="Description" {...form.getFieldProps('description')} />
           <form.RenderError field="description" />
+
+          <Spacer size={15} />
+
+          <Select
+            label="Sub-delegation Behavior"
+            value={form.values.subDelegationBehavior}
+            onChange={value => form.setFieldValue('subDelegationBehavior', value)}
+            items={[
+              {
+                id: 'require_consent',
+                label: 'Require Consent'
+              },
+              {
+                id: 'allow',
+                label: 'Allow'
+              },
+              {
+                id: 'deny',
+                label: 'Deny'
+              }
+            ]}
+          />
+          <form.RenderError field="subDelegationBehavior" />
+
+          <Spacer size={15} />
+
+          <Input
+            label="Sub-delegation Depth"
+            type="number"
+            min={0}
+            {...form.getFieldProps('subDelegationDepth')}
+          />
+          <form.RenderError field="subDelegationDepth" />
 
           <Spacer size={15} />
 

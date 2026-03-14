@@ -2,6 +2,7 @@ import { ContentLayout, PageHeader, createInstance, updateInstance } from '@meto
 import { useCurrentProject } from '@metorial/state';
 import { Badge, Button, Entity, RenderDate } from '@metorial/ui';
 import { styled } from 'styled-components';
+import { useSetLayout } from './_layout';
 
 let Wrapper = styled.div`
   display: flex;
@@ -12,6 +13,11 @@ let Wrapper = styled.div`
 export let ProjectSettingsInstancesPage = () => {
   let project = useCurrentProject();
   let instances = project.data?.instances;
+
+  useSetLayout({
+    title: 'Instances',
+    breadcrumbs: [{ label: 'Instances', to: 'instances' }]
+  });
 
   return (
     <ContentLayout variant="medium">
