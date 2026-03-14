@@ -37,7 +37,7 @@ export let portalController = Controller.create(
       })
       .use(requireConsumerTokenForPublishableKey())
       .use(checkAccess({ possibleScopes: ['instance.portal:read'] }))
-      .use(hasFlags(['paid-portals']))
+      .use(hasFlags(['paid-portals', 'portals-access']))
       .outputList(portalPresenter)
       .query('default', Paginator.validate(v.object({})))
       .do(async ctx => {
@@ -64,7 +64,7 @@ export let portalController = Controller.create(
         description: 'Retrieves details for a specific portal.'
       })
       .use(checkAccess({ possibleScopes: ['instance.portal:read'] }))
-      .use(hasFlags(['paid-portals']))
+      .use(hasFlags(['paid-portals', 'portals-access']))
       .output(portalPresenter)
       .do(async ctx => {
         return portalPresenter.present({
@@ -79,7 +79,7 @@ export let portalController = Controller.create(
         description: 'Creates a new portal for the instance.'
       })
       .use(checkAccess({ possibleScopes: ['instance.portal:write'] }))
-      .use(hasFlags(['paid-portals']))
+      .use(hasFlags(['paid-portals', 'portals-access']))
       .body(
         'default',
         v.object({
@@ -117,7 +117,7 @@ export let portalController = Controller.create(
         description: 'Updates an existing portal for the instance.'
       })
       .use(checkAccess({ possibleScopes: ['instance.portal:write'] }))
-      .use(hasFlags(['paid-portals']))
+      .use(hasFlags(['paid-portals', 'portals-access']))
       .body(
         'default',
         v.object({
@@ -153,10 +153,10 @@ export let portalController = Controller.create(
         description: 'Archives a portal.'
       })
       .use(checkAccess({ possibleScopes: ['instance.portal:write'] }))
-      .use(hasFlags(['paid-portals']))
+      .use(hasFlags(['paid-portals', 'portals-access']))
       .output(portalPresenter)
       .do(async ctx => {
-        let portal = await portalService.deletePortal({
+        let portal = await portalService.archivePortal({
           portal: ctx.portal
         });
 

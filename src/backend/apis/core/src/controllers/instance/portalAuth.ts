@@ -4,7 +4,7 @@ import {
   ServiceError
 } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
-import { introspectType, v } from '@lowerdeck/validation';
+import { v } from '@lowerdeck/validation';
 import { consumerAresService } from '@metorial/module-consumer';
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../middleware/checkAccess';
@@ -12,6 +12,7 @@ import { hasFlags } from '../../middleware/hasFlags';
 import { isDashboardGroup } from '../../middleware/isDashboard';
 import { instancePath } from '../../middleware/instanceGroup';
 import {
+  portalAuthAppPresenter,
   portalAuthSsoConnectionPresenter,
   portalAuthSsoTenantPresenter,
   portalAuthSsoTenantSetupPresenter
@@ -37,69 +38,9 @@ let getPortalAresAppId = (portal: {
   return appId;
 };
 
-let portalAuthAppSchema = v.object({
-  object: v.literal('portal.auth.app'),
-  id: v.string({ description: 'The Ares app identifier for this portal.' }),
-  client_id: v.string({ description: 'The Ares app client identifier.' }),
-  slug: v.nullable(v.string({ description: 'The Ares app slug.' })),
-  default_redirect_url: v.string({
-    description: 'The default redirect URL configured for this portal auth app.',
-    modifiers: [v.url()]
-  }),
-  redirect_domains: v.array(
-    v.string({
-      description: 'A hostname or wildcard hostname allowed for redirect callbacks.'
-    })
-  ),
-  created_at: v.date(),
-  updated_at: v.date()
-});
-
-let portalAuthAppOutput = {
-  introspect: () => ({
-    name: 'Portal Auth App',
-    object: introspectType(portalAuthAppSchema)
-  })
-};
-
-let normalizeRedirectDomains = (redirectDomains: string[]) => {
-  return Array.from(
-    new Set(
-      redirectDomains
-        .map(redirectDomain => redirectDomain.trim().toLowerCase())
-        .filter(Boolean)
-    )
-  );
-};
-
-let presentPortalAuthApp = (app: Awaited<ReturnType<typeof consumerAresService.getApp>>) => ({
-  object: 'portal.auth.app' as const,
-  id: app.id,
-  client_id: app.clientId,
-  slug: app.slug ?? null,
-  default_redirect_url: app.defaultRedirectUrl,
-  redirect_domains: app.redirectDomains,
-  created_at: app.createdAt,
-  updated_at: app.updatedAt
-});
-
-let normalizeAresPagination = <T>(list: {
-  items: T[];
-  pagination: {
-    has_more_after: boolean;
-    has_more_before: boolean;
-  };
-}) => ({
-  items: list.items,
-  pagination: {
-    hasNextPage: list.pagination.has_more_after,
-    hasPreviousPage: list.pagination.has_more_before
-  }
-});
-
 let portalAuthManagementGroup = portalGroup
   .use(isDashboardGroup())
-  .use(hasFlags(['paid-portals', 'paid-sso-tenants']));
+  .use(hasFlags(['paid-portals', 'paid-sso-tenants', 'portals-access']));
 
 let portalAuthManagementSsoTenantGroup = portalAuthManagementGroup.use(async ctx => {
   if (!ctx.params.ssoTenantId) {
@@ -131,35 +72,13 @@ export let portalAuthDashboardController = Controller.create(
         description: 'Returns the Ares app configuration for a portal.'
       })
       .use(checkAccess({ possibleScopes: ['instance.portal.auth:read'] }))
-      .output(portalAuthAppOutput)
+      .output(portalAuthAppPresenter)
       .do(async ctx => {
-        return presentPortalAuthApp(
-          await consumerAresService.getApp({
+        return portalAuthAppPresenter.present({
+          app: await consumerAresService.getApp({
             appId: getPortalAresAppId(ctx.portal)
           })
-        );
-      }),
-
-    updateApp: portalAuthManagementGroup
-      .patch(instancePath('portals/:portalId/auth/app', 'portals.auth.app.update'), {
-        name: 'Update portal auth app',
-        description: 'Updates the redirect-domain allowlist for a portal Ares app.'
-      })
-      .use(checkAccess({ possibleScopes: ['instance.portal.auth:write'] }))
-      .body(
-        'default',
-        v.object({
-          redirect_domains: v.array(v.string())
-        })
-      )
-      .output(portalAuthAppOutput)
-      .do(async ctx => {
-        return presentPortalAuthApp(
-          await consumerAresService.updateApp({
-            id: getPortalAresAppId(ctx.portal),
-            redirectDomains: normalizeRedirectDomains(ctx.body.redirect_domains)
-          })
-        );
+        });
       }),
 
     listSsoTenants: portalAuthManagementGroup
@@ -180,7 +99,7 @@ export let portalAuthDashboardController = Controller.create(
           order: ctx.query.order
         });
 
-        return Paginator.present(normalizeAresPagination(list), ssoTenant =>
+        return Paginator.present(list, ssoTenant =>
           portalAuthSsoTenantPresenter.present({ ssoTenant })
         );
       }),
@@ -262,7 +181,7 @@ export let portalAuthDashboardController = Controller.create(
           order: ctx.query.order
         });
 
-        return Paginator.present(normalizeAresPagination(list), ssoConnection =>
+        return Paginator.present(list, ssoConnection =>
           portalAuthSsoConnectionPresenter.present({ ssoConnection })
         );
       })

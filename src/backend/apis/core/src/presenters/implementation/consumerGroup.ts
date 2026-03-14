@@ -18,7 +18,7 @@ export let v1ConsumerGroupPresenter = Presenter.create(consumerGroupType)
     v.object({
       object: v.literal('consumer.group'),
       id: v.string(),
-      status: v.enumOf(['active', 'inactive']),
+      status: v.enumOf(['active', 'archived', 'deleted']),
       name: v.string(),
       description: v.nullable(v.string()),
       is_default: v.boolean(),

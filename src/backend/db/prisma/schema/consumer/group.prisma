@@ -1,6 +1,7 @@
 enum ConsumerGroupStatus {
   active
-  inactive
+  archived
+  deleted
 }
 
 enum ConsumerGroupType {
@@ -29,6 +30,8 @@ model ConsumerGroup {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
+  archivedAt DateTime?
+  deletedAt  DateTime?
 
   profiles      ConsumerProfileGroup[]
   personalOwner ConsumerProfile? @relation("ConsumerProfilePersonalGroup")

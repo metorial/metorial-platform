@@ -29,7 +29,7 @@ export let v1PortalPresenter = Presenter.create(portalType)
     v.object({
       object: v.literal('portal'),
       id: v.string(),
-      status: v.enumOf(['active', 'inactive']),
+      status: v.enumOf(['active', 'archived', 'deleted']),
       name: v.string(),
       slug: v.string(),
       description: v.nullable(v.string()),

@@ -113,7 +113,7 @@ class ProviderTemplateServiceImpl {
     if (d.providerTemplate.status != 'active') {
       throw new ServiceError(
         preconditionFailedError({
-          message: 'Cannot update an inactive provider template.'
+          message: 'Cannot update a non-active provider template.'
         })
       );
     }
@@ -134,7 +134,7 @@ class ProviderTemplateServiceImpl {
     if (d.providerTemplate.status != 'active') {
       throw new ServiceError(
         preconditionFailedError({
-          message: 'Provider template is already inactive.'
+          message: 'Provider template is already archived or deleted.'
         })
       );
     }
@@ -157,8 +157,8 @@ class ProviderTemplateServiceImpl {
           oid: d.providerTemplate.oid
         },
         data: {
-          status: 'inactive',
-          deletedAt: new Date()
+          status: 'archived',
+          archivedAt: new Date()
         }
       });
     });

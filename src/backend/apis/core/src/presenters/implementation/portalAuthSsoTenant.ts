@@ -9,8 +9,6 @@ export let v1PortalAuthSsoTenantPresenter = Presenter.create(portalAuthSsoTenant
     name: ssoTenant.name,
     status: ssoTenant.status,
     client_id: ssoTenant.clientId,
-    external_id: ssoTenant.externalId,
-    is_global: ssoTenant.isGlobal,
     counts: {
       connections: ssoTenant.counts.connections
     },

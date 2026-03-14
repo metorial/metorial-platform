@@ -36,6 +36,7 @@ import {
   User
 } from '@metorial/db';
 import {
+  ConsumerAresApp,
   ConsumerAresSsoConnection,
   ConsumerAresSsoTenant,
   ConsumerAresSsoTenantSetup
@@ -290,6 +291,10 @@ export let portalType = PresentableType.create<{
 export let providerTemplateType = PresentableType.create<{
   providerTemplate: ProviderTemplate;
 }>()('provider.template');
+
+export let portalAuthAppType = PresentableType.create<{
+  app: ConsumerAresApp;
+}>()('portal.auth.app');
 
 export let portalAuthSsoTenantType = PresentableType.create<{
   ssoTenant: ConsumerAresSsoTenant;

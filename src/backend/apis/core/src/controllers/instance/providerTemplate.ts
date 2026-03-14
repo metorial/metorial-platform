@@ -71,7 +71,7 @@ export let providerTemplateController = Controller.create(
           ]
         })
       )
-      .use(hasFlags(['paid-portals']))
+      .use(hasFlags(['paid-portals', 'portals-access']))
       .outputList(providerTemplatePresenter)
       .query(
         'default',
@@ -81,8 +81,8 @@ export let providerTemplateController = Controller.create(
             provider_deployment_id: v.optional(v.union([v.string(), v.array(v.string())])),
             status: v.optional(
               v.union([
-                v.enumOf(['active', 'inactive']),
-                v.array(v.enumOf(['active', 'inactive']))
+                v.enumOf(['active', 'archived', 'deleted']),
+                v.array(v.enumOf(['active', 'archived', 'deleted']))
               ])
             )
           })
@@ -120,7 +120,7 @@ export let providerTemplateController = Controller.create(
           ]
         })
       )
-      .use(hasFlags(['paid-portals']))
+      .use(hasFlags(['paid-portals', 'portals-access']))
       .output(providerTemplatePresenter)
       .do(async ctx => {
         return providerTemplatePresenter.present({
@@ -135,7 +135,7 @@ export let providerTemplateController = Controller.create(
           'Creates a new provider template from an existing provider deployment or creates a minimal backing deployment first.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.deployment:write'] }))
-      .use(hasFlags(['paid-portals']))
+      .use(hasFlags(['paid-portals', 'portals-access']))
       .body('default', providerTemplateCreateBodyValidator)
       .output(providerTemplatePresenter)
       .do(async ctx => {
@@ -179,7 +179,7 @@ export let providerTemplateController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.deployment:write'] }))
-      .use(hasFlags(['paid-portals']))
+      .use(hasFlags(['paid-portals', 'portals-access']))
       .body(
         'default',
         v.object({
@@ -213,7 +213,7 @@ export let providerTemplateController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.deployment:write'] }))
-      .use(hasFlags(['paid-portals']))
+      .use(hasFlags(['paid-portals', 'portals-access']))
       .output(providerTemplatePresenter)
       .do(async ctx => {
         let providerTemplate = await providerTemplateService.archiveProviderTemplate({

@@ -1,6 +1,7 @@
 enum PortalStatus {
   active
-  inactive
+  archived
+  deleted
 }
 
 model Portal {
@@ -24,5 +25,6 @@ model Portal {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
+  archivedAt DateTime?
   deletedAt DateTime?
 }

@@ -181,12 +181,17 @@ class PortalServiceImpl {
       }
     });
 
-    let portal;
     try {
-      portal = await db.portal.create({
+      surface = await this.configurePortalAres({
+        portalId,
+        portalSlug: slug,
+        surface
+      });
+
+      return await db.portal.create({
         data: {
           id: portalId,
-          status: 'inactive',
+          status: 'active',
           name: d.input.name,
           description: d.input.description,
           slug,
@@ -197,42 +202,9 @@ class PortalServiceImpl {
         include
       });
     } catch (error) {
-      await consumerSurfaceService.deleteConsumerSurface({
-        consumerSurface: surface
-      });
-
-      throw error;
-    }
-
-    try {
-      surface = await this.configurePortalAres({
-        portalId,
-        portalSlug: slug,
-        surface
-      });
-
-      return await db.portal.update({
-        where: {
-          oid: portal.oid
-        },
-        data: {
-          status: 'active'
-        },
-        include
-      });
-    } catch (error) {
       await Promise.allSettled([
         consumerSurfaceService.deleteConsumerSurface({
           consumerSurface: surface
-        }),
-        db.portal.update({
-          where: {
-            oid: portal.oid
-          },
-          data: {
-            status: 'inactive',
-            deletedAt: new Date()
-          }
         })
       ]);
 
@@ -253,7 +225,7 @@ class PortalServiceImpl {
     if (d.portal.status != 'active') {
       throw new ServiceError(
         preconditionFailedError({
-          message: 'Cannot update an inactive portal.'
+          message: 'Cannot update a non-active portal.'
         })
       );
     }
@@ -290,7 +262,7 @@ class PortalServiceImpl {
     };
   }
 
-  async deletePortal(d: {
+  async archivePortal(d: {
     portal: Portal & {
       surface: PortalSurface;
     };
@@ -298,12 +270,12 @@ class PortalServiceImpl {
     if (d.portal.status != 'active') {
       throw new ServiceError(
         preconditionFailedError({
-          message: 'Portal is already inactive.'
+          message: 'Portal is already archived or deleted.'
         })
       );
     }
 
-    await consumerSurfaceService.deleteConsumerSurface({
+    await consumerSurfaceService.archiveConsumerSurface({
       consumerSurface: d.portal.surface
     });
 
@@ -312,8 +284,8 @@ class PortalServiceImpl {
         oid: d.portal.oid
       },
       data: {
-        status: 'inactive',
-        deletedAt: new Date()
+        status: 'archived',
+        archivedAt: new Date()
       },
       include
     });

@@ -1,6 +1,7 @@
 enum ProviderTemplateStatus {
   active
-  inactive
+  archived
+  deleted
 }
 
 model ProviderTemplate {
@@ -23,6 +24,7 @@ model ProviderTemplate {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
+  archivedAt DateTime?
   deletedAt DateTime?
 
   accessTagEntities AccessTagEntity[]

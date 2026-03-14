@@ -13,6 +13,7 @@ import { v1OrganizationActorPresenter } from './implementation/organizationActor
 import { v1OrganizationInvitePresenter } from './implementation/organizationInvite';
 import { v1OrganizationMemberPresenter } from './implementation/organizationMember';
 import { v1PortalPresenter } from './implementation/portal';
+import { v1PortalAuthAppPresenter } from './implementation/portalAuthApp';
 import { v1PortalAuthSsoConnectionPresenter } from './implementation/portalAuthSsoConnection';
 import { v1PortalAuthSsoTenantPresenter } from './implementation/portalAuthSsoTenant';
 import { v1PortalAuthSsoTenantSetupPresenter } from './implementation/portalAuthSsoTenantSetup';
@@ -123,6 +124,7 @@ import {
   organizationInviteType,
   organizationMemberType,
   organizationType,
+  portalAuthAppType,
   portalAuthSsoConnectionType,
   portalAuthSsoTenantSetupType,
   portalAuthSsoTenantType,
@@ -217,6 +219,11 @@ export let organizationInvitePresenter = declarePresenter(organizationInviteType
 export let organizationMemberPresenter = declarePresenter(organizationMemberType, {
   mt_2025_01_01_dashboard: v1OrganizationMemberPresenter,
   mt_2026_01_01_magnetar: v1OrganizationMemberPresenter
+});
+
+export let portalAuthAppPresenter = declarePresenter(portalAuthAppType, {
+  mt_2025_01_01_dashboard: v1PortalAuthAppPresenter,
+  mt_2026_01_01_magnetar: v1PortalAuthAppPresenter
 });
 
 export let organizationPresenter = declarePresenter(organizationType, {

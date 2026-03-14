@@ -18,7 +18,7 @@ export let v1ProviderTemplatePresenter = Presenter.create(providerTemplateType)
     v.object({
       object: v.literal('provider.template'),
       id: v.string(),
-      status: v.enumOf(['active', 'inactive']),
+      status: v.enumOf(['active', 'archived', 'deleted']),
       name: v.string(),
       description: v.nullable(v.string()),
       metadata: v.record(v.any()),

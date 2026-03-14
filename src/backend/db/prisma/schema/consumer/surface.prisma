@@ -1,6 +1,7 @@
 enum ConsumerSurfaceStatus {
   active
-  inactive
+  archived
+  deleted
 }
 
 model ConsumerSurface {
@@ -28,6 +29,8 @@ model ConsumerSurface {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
+  archivedAt DateTime?
+  deletedAt  DateTime?
 
   consumerProfiles ConsumerProfile[]
   consumerGroups   ConsumerGroup[]
