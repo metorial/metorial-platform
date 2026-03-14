@@ -2,12 +2,8 @@ import { CodeBlock } from '@metorial/code';
 import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
-import {
-  useCurrentInstance,
-  useProviderDeployments,
-  useUser
-} from '@metorial/state';
 import type { MetorialEnterpriseWindow } from '@metorial/state';
+import { useCurrentInstance, useProviderDeployments, useUser } from '@metorial/state';
 import { Button, Spacer, Text } from '@metorial/ui';
 import { ID, SideBox } from '@metorial/ui-product';
 import dedent from 'dedent';
@@ -58,8 +54,8 @@ export let ProjectHomePage = () => {
           {firstDeployment.name
             ? `You already have a deployment called ${firstDeployment.name}. `
             : `You already have a deployment. `}
-          You can use the ID <ID id={firstDeployment.id} /> to reference this deployment in your
-          code.
+          You can use the ID <ID id={firstDeployment.id} /> to reference this deployment in
+          your code.
         </Text>
 
         <Spacer height={10} />
@@ -81,8 +77,8 @@ export let ProjectHomePage = () => {
     ) : (
       <>
         <Text>
-          Before you can use a provider, you need to deploy it. You can do this using the Metorial
-          API or by clicking the button below.
+          Before you can use a provider, you need to deploy it. You can do this using the
+          Metorial API or by clicking the button below.
         </Text>
 
         <Spacer height={10} />
@@ -119,7 +115,9 @@ export let ProjectHomePage = () => {
     deployProvider
   ];
 
-  let getPythonStartInstructions = (d?: { additionalPackages?: string[] }): InstructionItem[] => [
+  let getPythonStartInstructions = (d?: {
+    additionalPackages?: string[];
+  }): InstructionItem[] => [
     createPythonSdkInstallInstruction(d?.additionalPackages),
     {
       title: 'Instantiate the Metorial SDK',
@@ -143,7 +141,8 @@ export let ProjectHomePage = () => {
   ];
 
   let getCodeViewer = (opts: { repo: string; path: string; initialFile?: string }) => {
-    if (apiKeys.isLoading || deployments.isLoading || revealedApiKey.isLoading) return undefined;
+    if (apiKeys.isLoading || deployments.isLoading || revealedApiKey.isLoading)
+      return undefined;
 
     return {
       owner: 'metorial',

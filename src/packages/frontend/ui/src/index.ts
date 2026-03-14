@@ -29,6 +29,7 @@ export * from './linkTabs';
 export * from './logo';
 export * from './menu';
 export * from './multiSelect';
+export * from './optionToggle';
 export * from './or';
 export * from './popover';
 export * from './select';

@@ -19,7 +19,7 @@ import {
   Text
 } from '@metorial/ui';
 import { RiAddLine } from '@remixicon/react';
-import { type ReactNode, useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import {
   emptyConfigurationSelection,
   type ConfigurationSelection
@@ -407,7 +407,8 @@ let DeploymentConfigureStep = ({
   }, [authConfigs.isLoading, authConfigItems, form, selectedAuthConfigId]);
 
   useEffect(() => {
-    if (form.values.toolFilterMode !== 'all' || form.values.selectedToolKeys.length === 0) return;
+    if (form.values.toolFilterMode !== 'all' || form.values.selectedToolKeys.length === 0)
+      return;
     form.setFieldValue('selectedToolKeys', []);
   }, [form, form.values.selectedToolKeys, form.values.toolFilterMode]);
 
