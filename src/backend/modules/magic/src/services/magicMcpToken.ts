@@ -17,11 +17,15 @@ import {
   MagicMcpToken,
   MagicMcpTokenStatus
 } from '@metorial/db';
+import { env } from '../env';
 
 let createMagicMcpSecret = () =>
   UnifiedApiKey.create({
     type: 'magic_mcp_token_secret',
-    config: { url: getConfig().urls.apiUrl, instance: 'v2-us1' }
+    config: {
+      url: getConfig().urls.apiUrl,
+      instance: `v2-${env.service.METORIAL_REGION ?? 'ext'}`
+    }
   }).toString();
 
 let include = {

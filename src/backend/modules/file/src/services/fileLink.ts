@@ -8,6 +8,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { db, File, FileLink, FilePurpose, ID, Organization } from '@metorial/db';
 import { generatePlainId } from '@metorial/id';
+import { env } from '../env';
 import { fileReferenceService } from './fileReference';
 
 class FileLinkServiceImpl {
@@ -30,7 +31,7 @@ class FileLinkServiceImpl {
         id: await ID.generateId('fileLink'),
         fileOid: d.file.oid,
         expiresAt: d.input.expiresAt,
-        key: await generatePlainId(30)
+        key: `${generatePlainId(30)}_${env.service.METORIAL_REGION ?? 'ext'}`
       },
       include: {
         file: true

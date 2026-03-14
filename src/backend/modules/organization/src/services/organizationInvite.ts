@@ -15,6 +15,7 @@ import { Fabric } from '@metorial/fabric';
 import { generatePlainId } from '@metorial/id';
 import { addDays, differenceInDays } from 'date-fns';
 import { sendOrgInviteEmail } from '../email/invite';
+import { env } from '../env';
 
 class OrganizationInviteService {
   private async ensureOrganizationInviteActive(organizationInvite: OrganizationInvite) {
@@ -96,7 +97,7 @@ class OrganizationInviteService {
           status: 'pending',
           type: d.input.type,
           role: d.input.role,
-          key: `mt_${generatePlainId(30)}_us1`,
+          key: `mt_${generatePlainId(30)}_${env.service.METORIAL_REGION ?? 'ext'}`,
           expiresAt: addDays(new Date(), 14),
 
           organizationOid: d.organization.oid,
