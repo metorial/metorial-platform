@@ -198,6 +198,17 @@ export let identityDelegationConfigController = Controller.create(
               description: 'Updated metadata for the delegation config.',
               examples: [{ team: 'security', change_ticket: 'SEC-1234' }]
             })
+          ),
+          sub_delegation_behavior: v.optional(
+            v.enumOf(['allow', 'deny', 'require_consent'], {
+              description: 'How sub-delegations should be handled.'
+            })
+          ),
+          sub_delegation_depth: v.optional(
+            v.number({
+              description: 'Maximum allowed sub-delegation depth.',
+              examples: [1]
+            })
           )
         })
       )
@@ -210,7 +221,10 @@ export let identityDelegationConfigController = Controller.create(
 
           name: ctx.body.name,
           description: ctx.body.description,
-          metadata: ctx.body.metadata
+          metadata: ctx.body.metadata,
+
+          subDelegationBehavior: ctx.body.sub_delegation_behavior,
+          subDelegationDepth: ctx.body.sub_delegation_depth
         });
 
         return identityDelegationConfigPresenter.present({ identityDelegationConfig });
