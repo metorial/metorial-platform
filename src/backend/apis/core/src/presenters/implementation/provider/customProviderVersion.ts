@@ -29,6 +29,17 @@ export let v1CustomProviderVersionPresenter = Presenter.create(customProviderVer
     status: customProviderVersion.status,
     index: customProviderVersion.index,
 
+    config: customProviderVersion.config
+      ? {
+          object: 'custom_provider.version.config' as const,
+          schema: {
+            type: 'json_schema' as const,
+            schema: customProviderVersion.config.schema
+          },
+          transformer: customProviderVersion.config.transformer
+        }
+      : null,
+
     custom_provider_id: customProviderVersion.customProviderId,
     provider_id: customProviderVersion.providerId ?? null,
 
@@ -88,6 +99,25 @@ export let v1CustomProviderVersionPresenter = Presenter.create(customProviderVer
         name: 'status',
         description: 'Current version status'
       }),
+      config: v.nullable(
+        v.object({
+          object: v.literal('custom_provider.version.config', {
+            description: "String representing the object's type"
+          }),
+          schema: v.object({
+            type: v.literal('json_schema'),
+            schema: v.record(v.any(), {
+              name: 'schema',
+              description:
+                'JSON Schema defining the configuration fields for the custom provider'
+            })
+          }),
+          transformer: v.string({
+            name: 'transformer',
+            description: 'Optional jsonata transformer function for the configuration.'
+          })
+        })
+      ),
       index: v.number({
         name: 'index',
         description: 'Version index number',

@@ -4,20 +4,35 @@ export type ManagementInstanceCustomProvidersCreateOutput = {
   object: 'custom_provider';
   id: string;
   status: 'active' | 'archived' | 'deleted';
+  type: 'function' | 'container' | 'remote';
   name: string;
   description: string | null;
   metadata: Record<string, any> | null;
   draft: {
+    object:
+      | 'custom_provider.draft#function'
+      | 'custom_provider.draft.container'
+      | 'custom_provider.draft.remote';
     containerImage?:
       | {
+          object: 'custom_provider.draft.container';
           containerRegistry: string;
           containerImageTag: string;
           containerImage: string;
         }
       | undefined;
     remoteMcpServer?:
-      | { url: string; transport: 'sse' | 'streamable_http' }
+      | {
+          object: 'custom_provider.draft.remote';
+          url: string;
+          transport: 'sse' | 'streamable_http';
+        }
       | undefined;
+    config: {
+      object: 'custom_provider.draft.config';
+      schema: { type: 'json_schema'; schema: Record<string, any> };
+      transformer: string;
+    };
   };
   scmRepo: {
     object: 'scm.repository';
@@ -113,15 +128,18 @@ export let mapManagementInstanceCustomProvidersCreateOutput = mtMap.union([
       object: mtMap.objectField('object', mtMap.passthrough()),
       id: mtMap.objectField('id', mtMap.passthrough()),
       status: mtMap.objectField('status', mtMap.passthrough()),
+      type: mtMap.objectField('type', mtMap.passthrough()),
       name: mtMap.objectField('name', mtMap.passthrough()),
       description: mtMap.objectField('description', mtMap.passthrough()),
       metadata: mtMap.objectField('metadata', mtMap.passthrough()),
       draft: mtMap.objectField(
         'draft',
         mtMap.object({
+          object: mtMap.objectField('object', mtMap.passthrough()),
           containerImage: mtMap.objectField(
             'container_image',
             mtMap.object({
+              object: mtMap.objectField('object', mtMap.passthrough()),
               containerRegistry: mtMap.objectField(
                 'container_registry',
                 mtMap.passthrough()
@@ -139,8 +157,23 @@ export let mapManagementInstanceCustomProvidersCreateOutput = mtMap.union([
           remoteMcpServer: mtMap.objectField(
             'remote_mcp_server',
             mtMap.object({
+              object: mtMap.objectField('object', mtMap.passthrough()),
               url: mtMap.objectField('url', mtMap.passthrough()),
               transport: mtMap.objectField('transport', mtMap.passthrough())
+            })
+          ),
+          config: mtMap.objectField(
+            'config',
+            mtMap.object({
+              object: mtMap.objectField('object', mtMap.passthrough()),
+              schema: mtMap.objectField(
+                'schema',
+                mtMap.object({
+                  type: mtMap.objectField('type', mtMap.passthrough()),
+                  schema: mtMap.objectField('schema', mtMap.passthrough())
+                })
+              ),
+              transformer: mtMap.objectField('transformer', mtMap.passthrough())
             })
           )
         })
