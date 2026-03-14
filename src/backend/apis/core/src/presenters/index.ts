@@ -12,8 +12,13 @@ import { v1OrganizationPresenter } from './implementation/organization';
 import { v1OrganizationActorPresenter } from './implementation/organizationActor';
 import { v1OrganizationInvitePresenter } from './implementation/organizationInvite';
 import { v1OrganizationMemberPresenter } from './implementation/organizationMember';
+import { v1PortalPresenter } from './implementation/portal';
+import { v1PortalAuthSsoConnectionPresenter } from './implementation/portalAuthSsoConnection';
+import { v1PortalAuthSsoTenantPresenter } from './implementation/portalAuthSsoTenant';
+import { v1PortalAuthSsoTenantSetupPresenter } from './implementation/portalAuthSsoTenantSetup';
 import { v1ProfilePresenter } from './implementation/profile';
 import { v1ProjectPresenter } from './implementation/project';
+import { v1ProviderTemplatePresenter } from './implementation/providerTemplate';
 import { v1SecretPresenter } from './implementation/secret';
 import { v1TeamPresenter } from './implementation/team';
 import { v1TeamRolePresenter } from './implementation/teamRole';
@@ -118,9 +123,13 @@ import {
   organizationInviteType,
   organizationMemberType,
   organizationType,
-  // portalType,
+  portalAuthSsoConnectionType,
+  portalAuthSsoTenantSetupType,
+  portalAuthSsoTenantType,
+  portalType,
   profileType,
   projectType,
+  providerTemplateType,
   providerAuthConfigType,
   providerAuthCredentialsType,
   providerAuthExportType,
@@ -325,10 +334,30 @@ export let consumerSessionPresenter = declarePresenter(consumerSessionType, {
 //   mt_2026_01_01_magnetar: v1SsoUserProfilePresenter,
 // });
 
-// export let portalPresenter = declarePresenter(portalType, {
-//   mt_2025_01_01_dashboard: v1PortalPresenter,
-//   mt_2026_01_01_magnetar: v1PortalPresenter,
-// });
+export let portalPresenter = declarePresenter(portalType, {
+  mt_2025_01_01_dashboard: v1PortalPresenter,
+  mt_2026_01_01_magnetar: v1PortalPresenter
+});
+
+export let portalAuthSsoTenantPresenter = declarePresenter(portalAuthSsoTenantType, {
+  mt_2025_01_01_dashboard: v1PortalAuthSsoTenantPresenter,
+  mt_2026_01_01_magnetar: v1PortalAuthSsoTenantPresenter
+});
+
+export let portalAuthSsoConnectionPresenter = declarePresenter(portalAuthSsoConnectionType, {
+  mt_2025_01_01_dashboard: v1PortalAuthSsoConnectionPresenter,
+  mt_2026_01_01_magnetar: v1PortalAuthSsoConnectionPresenter
+});
+
+export let portalAuthSsoTenantSetupPresenter = declarePresenter(portalAuthSsoTenantSetupType, {
+  mt_2025_01_01_dashboard: v1PortalAuthSsoTenantSetupPresenter,
+  mt_2026_01_01_magnetar: v1PortalAuthSsoTenantSetupPresenter
+});
+
+export let providerTemplatePresenter = declarePresenter(providerTemplateType, {
+  mt_2025_01_01_dashboard: v1ProviderTemplatePresenter,
+  mt_2026_01_01_magnetar: v1ProviderTemplatePresenter
+});
 
 // export let consumerGroupPresenter = declarePresenter(consumerGroupType, {
 //   mt_2025_01_01_dashboard: v1ConsumerGroupPresenter,

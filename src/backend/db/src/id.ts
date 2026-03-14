@@ -155,6 +155,7 @@ export let ID = createIdGenerator({
   consumerGroup: idType.sorted('cog'),
   consumerAccess: idType.sorted('coa'),
   consumerServerRequest: idType.sorted('csr'),
+  providerTemplate: idType.sorted('ptm'),
 
   portal: idType.sorted('ptl')
 });

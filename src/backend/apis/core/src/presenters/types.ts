@@ -6,6 +6,7 @@ import {
   ConsumerProfile,
   ConsumerProfileGroup,
   ConsumerSession,
+  ConsumerSurface,
   File,
   FileLink,
   FilePurpose,
@@ -21,7 +22,9 @@ import {
   OrganizationActor,
   OrganizationInvite,
   OrganizationMember,
+  Portal,
   Profile,
+  ProviderTemplate,
   Project,
   Secret,
   SecretType,
@@ -32,6 +35,11 @@ import {
   TeamRole,
   User
 } from '@metorial/db';
+import {
+  ConsumerAresSsoConnection,
+  ConsumerAresSsoTenant,
+  ConsumerAresSsoTenantSetup
+} from '@metorial/module-consumer';
 import {
   SubspaceBucket,
   SubspaceCustomProvider,
@@ -271,12 +279,29 @@ export let consumerSessionType = PresentableType.create<{
 //   };
 // }>()('callback.notification');
 
-// export let portalType = PresentableType.create<{
-//   portal: Portal & {
-//     surface: ConsumerSurface;
-//   };
-//   portalUrl: string;
-// }>()('portal');
+export let portalType = PresentableType.create<{
+  portal: Portal & {
+    surface: ConsumerSurface;
+    organization: Organization;
+  };
+  portalUrl: string;
+}>()('portal');
+
+export let providerTemplateType = PresentableType.create<{
+  providerTemplate: ProviderTemplate;
+}>()('provider.template');
+
+export let portalAuthSsoTenantType = PresentableType.create<{
+  ssoTenant: ConsumerAresSsoTenant;
+}>()('portal.auth.sso_tenant');
+
+export let portalAuthSsoConnectionType = PresentableType.create<{
+  ssoConnection: ConsumerAresSsoConnection;
+}>()('portal.auth.sso_connection');
+
+export let portalAuthSsoTenantSetupType = PresentableType.create<{
+  ssoTenantSetup: ConsumerAresSsoTenantSetup;
+}>()('portal.auth.sso_tenant_setup');
 
 // export let consumerAuthFactorType = PresentableType.create<{
 //   consumerAuthFactor: ConsumerSurfaceAuthFactor;

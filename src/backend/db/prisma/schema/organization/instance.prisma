@@ -51,4 +51,6 @@ model Instance {
   magicMcpServerSubspaceSessions MagicMcpServerSubspaceSession[]
   consumerSurfaces               ConsumerSurface[]
   consumers                      ConsumerProfile[]
+  portals                        Portal[]
+  providerTemplates              ProviderTemplate[]
 }

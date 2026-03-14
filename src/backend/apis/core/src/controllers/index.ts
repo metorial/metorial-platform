@@ -10,6 +10,9 @@ import { consumerSessionController } from './consumer/session';
 import { fileController } from './instance/file';
 import { fileLinkController } from './instance/fileLink';
 import { instanceController } from './instance/instance';
+import { portalAuthDashboardController } from './instance/portalAuth';
+import { portalController } from './instance/portal';
+import { providerTemplateController } from './instance/providerTemplate';
 import { instanceManagementController } from './management/instance';
 import { organizationManagementController } from './management/organization';
 import { organizationInviteManagementController } from './management/organizationInvite';
@@ -121,13 +124,15 @@ export let magnetarController = Controller.create<any>(
     fileController,
     fileLinkController,
 
+    portalController,
+    providerTemplateController,
+
     consumerSessionController
 
     // teamManagementController,
     // teamRoleManagementController,
     // teamRolePermissionsManagementController
 
-    // portalController,
     // portalConsumerGroupController,
     // portalConsumerAccessController,
     // portalConsumerProfileController,
@@ -219,7 +224,11 @@ export let dashboardController = Controller.create<any>(
 
     scmInstallationController,
     scmReposController,
-    scmAccountsController
+    scmAccountsController,
+
+    portalController,
+    portalAuthDashboardController,
+    providerTemplateController
 
     // callbackController,
     // callbackEventController,
@@ -230,7 +239,6 @@ export let dashboardController = Controller.create<any>(
     // ssoUserController,
     // ssoProfileController,
 
-    // portalController,
     // portalConsumerGroupController,
     // portalConsumerAccessController,
     // portalConsumerProfileController,

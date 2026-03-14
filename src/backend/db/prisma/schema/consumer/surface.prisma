@@ -31,4 +31,5 @@ model ConsumerSurface {
 
   consumerProfiles ConsumerProfile[]
   consumerGroups   ConsumerGroup[]
+  portal           Portal? @relation("PortalSurface")
 }
