@@ -1,5 +1,4 @@
 import React from 'react';
-import { Text } from '@metorial/ui';
 import { styled } from 'styled-components';
 
 let Wrapper = styled.div`
@@ -59,35 +58,18 @@ export let ProviderDeploymentTabSection = ({
   search?: React.ReactNode;
   children: React.ReactNode;
   emptyState?: React.ReactNode;
-  }) => {
-  let introContent = intro ? (
-    <Intro>
-      {typeof intro === 'string' ? (
-        <Text size="2" color="gray600">
-          {intro}
-        </Text>
-      ) : (
-        intro
-      )}
-    </Intro>
-  ) : null;
-
+}) => {
   return (
     <Wrapper>
       {search ? (
         <>
-          {introContent}
-
           <ToolbarRow>
             <SearchWrap>{search}</SearchWrap>
             {actions ? <ActionRow>{actions}</ActionRow> : null}
           </ToolbarRow>
         </>
       ) : intro || actions ? (
-        <HeaderRow>
-          {introContent ?? <div />}
-          {actions ? <ActionRow>{actions}</ActionRow> : null}
-        </HeaderRow>
+        <HeaderRow>{actions ? <ActionRow>{actions}</ActionRow> : null}</HeaderRow>
       ) : null}
 
       {children}

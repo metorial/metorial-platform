@@ -15,11 +15,8 @@ import {
 import { ApiKeySecret } from '../scenes/apiKeys';
 import { useResolvedInstanceApiKeySecret } from '../scenes/apiKeys/useResolvedInstanceApiKeySecret';
 import { ProvidersGrid } from '../scenes/providers/grid_';
-import {
-  InstructionItem,
-  Instructions
-} from './(provider-api)/provider/components/instructions';
-import { KeySelector } from './(provider-api)/provider/components/keySelector';
+import { InstructionItem, Instructions } from './provider/components/instructions';
+import { KeySelector } from './provider/components/keySelector';
 
 declare global {
   interface Window {
