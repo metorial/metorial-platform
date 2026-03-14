@@ -182,10 +182,10 @@ export let IdentityDelegationRequestForm = ({
       <Spacer size={15} />
 
       <Dialog.Actions>
-        <Button type="button" variant="outline" onClick={close}>
+        <Button type="button" variant="outline" onClick={close} size="2">
           Cancel
         </Button>
-        <Button type="submit" loading={createMutation.isLoading}>
+        <Button type="submit" loading={createMutation.isLoading} size="2">
           Create Delegation Request
         </Button>
       </Dialog.Actions>

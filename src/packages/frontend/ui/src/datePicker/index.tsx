@@ -186,25 +186,27 @@ export let DatePicker = (
   return (
     <div>
       <RadixPopover.Root open={open} onOpenChange={setOpen}>
-        {props.hideLabel ? (
-          <VisuallyHidden>
-            <label>{props.label}</label>
-          </VisuallyHidden>
-        ) : (
-          <InputLabel>{props.label}</InputLabel>
-        )}
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          {props.hideLabel ? (
+            <VisuallyHidden>
+              <label>{props.label}</label>
+            </VisuallyHidden>
+          ) : (
+            <InputLabel>{props.label}</InputLabel>
+          )}
 
-        {props.description && <InputDescription>{props.description}</InputDescription>}
+          {props.description && <InputDescription>{props.description}</InputDescription>}
 
-        <Trigger
-          style={{
-            ...sizeStyles,
-            fontSize: 14
-          }}
-          disabled={props.disabled}
-        >
-          {state.stringValue || <span data-placeholder>{props.placeholder}</span>}
-        </Trigger>
+          <Trigger
+            style={{
+              ...sizeStyles,
+              fontSize: 14
+            }}
+            disabled={props.disabled}
+          >
+            {state.stringValue || <span data-placeholder>{props.placeholder}</span>}
+          </Trigger>
+        </div>
 
         <RadixPopover.Portal>
           <Content sideOffset={5} side="bottom">

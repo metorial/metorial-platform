@@ -10,9 +10,11 @@ import {
 import {
   Button,
   CenteredSpinner,
+  CheckList,
   Dialog,
   Flex,
   Input,
+  OptionToggle,
   Select,
   showModal,
   Spacer,
@@ -386,17 +388,6 @@ let DeploymentConfigureStep = ({
   let authConfigItems = authConfigs.data?.items ?? [];
   let toolItems = tools.data?.items ?? [];
   let selectedAuthConfigId = form.values.selectedAuthConfigId;
-  let allToolsField = form.getFieldProps({
-    name: 'toolFilterMode',
-    type: 'radio',
-    value: 'all'
-  });
-  let selectedToolsField = form.getFieldProps({
-    name: 'toolFilterMode',
-    type: 'radio',
-    value: 'select'
-  });
-
   useEffect(() => {
     if (authConfigs.isLoading || !selectedAuthConfigId) return;
     if (!authConfigItems.some(item => item.id === selectedAuthConfigId)) {
@@ -422,11 +413,7 @@ let DeploymentConfigureStep = ({
   }
 
   return (
-    <Flex direction="column" gap={8}>
-      <Text size="2" color="gray600">
-        Configure <strong>{providerName}</strong>
-      </Text>
-
+    <Flex direction="column" gap={10}>
       <ProviderConfigurationSelection
         instanceId={instanceId}
         providerDeploymentId={deploymentId}
@@ -490,58 +477,44 @@ let DeploymentConfigureStep = ({
 
       {includeToolFilters && toolItems.length > 0 && (
         <div>
-          <Text size="2" weight="strong" style={{ display: 'block', marginBottom: 6 }}>
-            Tool Filters
-          </Text>
-
           <Flex direction="column" gap={6}>
-            <label
-              style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
-            >
-              <input type="radio" {...allToolsField} />
-              <Text size="2">All tools ({toolItems.length})</Text>
-            </label>
-
-            <label
-              style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
-            >
-              <input type="radio" {...selectedToolsField} />
-              <Text size="2">Select specific tools</Text>
-            </label>
+            <OptionToggle
+              label="Tool Filters"
+              size="2"
+              value={form.values.toolFilterMode}
+              onChange={value => {
+                if (value !== 'all' && value !== 'select') return;
+                form.setFieldValue('toolFilterMode', value);
+              }}
+              items={[
+                {
+                  id: 'all',
+                  label: `Allow all tools`
+                },
+                {
+                  id: 'select',
+                  label: 'Select tools'
+                }
+              ]}
+            />
 
             {form.values.toolFilterMode === 'select' && (
-              <Flex
-                direction="column"
-                gap={4}
-                style={{
-                  marginLeft: 24,
-                  maxHeight: 200,
-                  overflow: 'auto',
-                  padding: '8px 0'
+              <CheckList
+                items={toolItems.map(tool => {
+                  let toolKey = tool.key ?? tool.name;
+                  return {
+                    id: toolKey,
+                    label: tool.name,
+                    isChecked: form.values.selectedToolKeys.includes(toolKey)
+                  };
+                })}
+                onChange={items => {
+                  form.setFieldValue(
+                    'selectedToolKeys',
+                    items.filter(item => item.isChecked).map(item => item.id)
+                  );
                 }}
-              >
-                {toolItems.map(tool => (
-                  <label
-                    key={tool.id}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 8,
-                      cursor: 'pointer'
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      {...form.getFieldProps({
-                        name: 'selectedToolKeys',
-                        type: 'checkbox',
-                        value: tool.key ?? tool.name
-                      })}
-                    />
-                    <Text size="1">{tool.name}</Text>
-                  </label>
-                ))}
-              </Flex>
+              />
             )}
           </Flex>
         </div>
@@ -550,7 +523,7 @@ let DeploymentConfigureStep = ({
       {mutationError}
 
       <Dialog.Actions>
-        <Button type="submit" loading={saving}>
+        <Button type="submit" loading={saving} size="2">
           {submitLabel}
         </Button>
       </Dialog.Actions>
