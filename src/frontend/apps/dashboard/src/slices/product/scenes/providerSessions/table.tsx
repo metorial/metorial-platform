@@ -1,10 +1,12 @@
-import { DashboardInstanceSessionsListQuery } from '@metorial/dashboard-sdk';
+import {
+  DashboardInstanceSessionsGetOutput,
+  DashboardInstanceSessionsListQuery
+} from '@metorial/dashboard-sdk';
 import { renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, useSessions } from '@metorial/state';
-import { RenderDate, Text, theme } from '@metorial/ui';
+import { Badge, RenderDate, Text, theme } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
-import { SessionConnectionStatusBadge } from '../sessions/table';
 
 type SessionStatusFilter = Extract<
   DashboardInstanceSessionsListQuery['status'],
@@ -16,22 +18,61 @@ let normalizeSessionStatus = (status?: string): SessionStatusFilter | undefined 
   return undefined;
 };
 
-export let ProviderSessionsTable = ({
-  instanceId,
-  providerId,
-  providerDeploymentId,
-  status
+export let SessionConnectionStatusBadge = ({
+  connectionStatus,
+  hasErrors,
+  hasWarnings
 }: {
-  instanceId: string;
+  connectionStatus: DashboardInstanceSessionsGetOutput['connectionState'] | undefined;
+  hasErrors?: boolean | null;
+  hasWarnings?: boolean | null;
+}) => {
+  if (hasErrors) {
+    return <Badge color="red">Error</Badge>;
+  }
+
+  if (hasWarnings) {
+    return <Badge color="orange">Warning</Badge>;
+  }
+
+  let colorByState: Record<string, 'blue' | 'gray'> = {
+    connected: 'blue',
+    disconnected: 'gray'
+  };
+  let labelByState: Record<string, string> = {
+    connected: 'Connected',
+    disconnected: 'Disconnected'
+  };
+
+  if (!connectionStatus) {
+    return <Badge color="gray">Unknown</Badge>;
+  }
+
+  return (
+    <Badge color={colorByState[connectionStatus] ?? 'gray'}>
+      {labelByState[connectionStatus] ?? connectionStatus}
+    </Badge>
+  );
+};
+
+export let ProviderSessionsTable = ({
+  providerId,
+  status,
+  providerDeploymentId,
+  providerAuthConfigId
+}: {
   providerId?: string;
-  providerDeploymentId?: string;
   status?: string;
+  providerDeploymentId?: string;
+  providerAuthConfigId?: string;
 }) => {
   let instance = useCurrentInstance();
-  let sessions = useSessions(instanceId, {
+  let sessions = useSessions(instance.data?.id, {
     providerId: providerId,
     status: normalizeSessionStatus(status),
-    order: 'desc'
+    order: 'desc',
+    providerDeploymentId,
+    providerAuthConfigId
   });
 
   return renderWithPagination(sessions)(sessions => (
@@ -59,7 +100,8 @@ export let ProviderSessionsTable = ({
               hasWarnings={session.hasWarnings}
             />,
             <Text size="2">
-              {session.providers?.length ?? 0} {(session.providers?.length ?? 0) === 1 ? 'provider' : 'providers'}
+              {session.providers?.length ?? 0}{' '}
+              {(session.providers?.length ?? 0) === 1 ? 'provider' : 'providers'}
             </Text>,
             <RenderDate date={session.createdAt} />
           ],

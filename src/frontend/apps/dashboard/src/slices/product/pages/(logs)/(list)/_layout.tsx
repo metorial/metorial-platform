@@ -28,7 +28,7 @@ export let LogsListLayout = () => {
         links={[
           {
             label: 'Sessions',
-            to: Paths.instance.sessions(organization.data, project.data, instance.data)
+            to: Paths.instance.providerSessions(organization.data, project.data, instance.data)
           },
           {
             label: 'Provider Runs',

@@ -1,4 +1,4 @@
-import type { InstructionItem } from '../pages/(provider-api)/provider/components/instructions';
+import { InstructionItem } from '../pages/provider/components/instructions';
 
 let getPackageInstallVariants = (packages: string[]) => [
   {

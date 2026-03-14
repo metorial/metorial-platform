@@ -132,23 +132,6 @@ let InstancePaths = Object.assign(
       );
     },
 
-    sessions: (
-      organization: EntityParam,
-      project: EntityParam,
-      instance: EntityParam,
-      ...subPages: SubPages
-    ) => InstancePaths(organization, project, instance, 'sessions', ...subPages),
-    session: (
-      organization: EntityParam,
-      project: EntityParam,
-      instance: EntityParam,
-      id?: string,
-      ...subPages: SubPages
-    ) => {
-      if (!id) return '#';
-      return InstancePaths(organization, project, instance, 'session', id, ...subPages);
-    },
-
     providerErrors: (
       organization: EntityParam,
       project: EntityParam,
