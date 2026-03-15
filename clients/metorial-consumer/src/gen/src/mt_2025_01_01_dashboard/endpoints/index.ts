@@ -140,6 +140,7 @@ export * from './management_organization_teams_members';
 export * from './management_organization_teams_projects';
 export * from './management_organization_teams_roles';
 export * from './management_user';
+export * from './organizations_flags';
 export * from './organizations_profile';
 export * from './provider-categories';
 export * from './provider-collections';

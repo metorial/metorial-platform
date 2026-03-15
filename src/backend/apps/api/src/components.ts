@@ -7,8 +7,6 @@ import { apiServer } from '@metorial/api-core';
 import { fileContentApi, fileUploadApi } from '@metorial/api-files';
 import { marketplaceApp } from '@metorial/api-marketplace';
 import { authenticate } from '@metorial/auth';
-import { startPrivateApiServer } from '@metorial/api-private';
-import { initLogger } from '@metorial/logging';
 
 let apiPort = parseInt(process.env.API_PORT || '4310');
 let filesPort = parseInt(process.env.FILES_PORT || '4318');
@@ -55,15 +53,6 @@ Bun.serve({
   fetch: marketplaceApp.fetch
 });
 
-console.log(`Listening on ports ${apiPort} (api), ${filesPort} (files)`);
-
-if (process.env.AXIOM_TOKEN)
-  initLogger({
-    token: process.env.AXIOM_TOKEN,
-    dataset: 'service-logs'
-  });
-
-startPrivateApiServer({ port: privateApiPort });
 startMcpServer({ port: mcpPort, authenticate });
 
 if (process.env.NODE_ENV == 'production' && process.env.METORIAL_SOURCE == 'enterprise') {
@@ -72,3 +61,5 @@ if (process.env.NODE_ENV == 'production' && process.env.METORIAL_SOURCE == 'ente
     port: 5000
   });
 }
+
+console.log(`Listening on ports ${apiPort} (api), ${filesPort} (files)`);

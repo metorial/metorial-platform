@@ -1,11 +1,9 @@
+import { isServiceError } from '@lowerdeck/error';
 import { ProgrammablePromise } from '@lowerdeck/programmable-promise';
 import { getSentry } from '@lowerdeck/sentry';
-import { PrivateClient } from '@metorial/api-private/client';
 import { MetorialDashboardSDK, MetorialUser } from '@metorial/dashboard-sdk';
-import { isServiceError } from '@lowerdeck/error';
 import { isMetorialSDKError } from '@metorial/util-endpoint';
-import { getOrgForInstance } from '../../organization';
-import { withDashboardSDK, withPrivateClient } from '../../sdk';
+import { withDashboardSDK } from '../../sdk';
 import { redirectToAuth } from './redirect';
 
 let Sentry = getSentry();
@@ -82,19 +80,9 @@ export let fetchUserSpecial = () => {
   );
 };
 
-export let withAuth = async <O>(fn: (sdk: MetorialDashboardSDK) => Promise<O>) => {
-  if (typeof window === 'undefined') return new Promise(() => {}) as Promise<O>;
-
-  try {
-    await firstUserPromise.promise;
-  } catch (err) {}
-
-  return redirectToAuthIfNotAuthenticated(() => withDashboardSDK(fn));
-};
-
-export let withAuthPrivate = async <O>(
-  opts: { organizationId: string } | { instanceId: string },
-  fn: (sdk: PrivateClient) => Promise<O>
+export let withAuth = async <O>(
+  // d: { instanceId: string },
+  fn: (sdk: MetorialDashboardSDK) => Promise<O>
 ) => {
   if (typeof window === 'undefined') return new Promise(() => {}) as Promise<O>;
 
@@ -102,15 +90,7 @@ export let withAuthPrivate = async <O>(
     await firstUserPromise.promise;
   } catch (err) {}
 
-  if ('organizationId' in opts) {
-    opts = { organizationId: opts.organizationId };
-  } else {
-    let org = await getOrgForInstance(opts.instanceId);
-    if (!org) throw new Error('Organization not found for instance');
-    opts = { organizationId: org.id };
-  }
-
-  return redirectToAuthIfNotAuthenticated(() => withPrivateClient(opts, fn));
+  return redirectToAuthIfNotAuthenticated(() => withDashboardSDK(fn));
 };
 
 export let wrapWithAuth =

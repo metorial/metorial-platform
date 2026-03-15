@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@metorial/queue": "1.0.0",
-    "@lowerdeck/error": "1.2.1",
+    "@lowerdeck/error": "^1.2.2",
     "@metorial/module-organization": "1.0.0",
     "@lowerdeck/service": "1.0.0",
     "@metorial/context": "1.0.0",

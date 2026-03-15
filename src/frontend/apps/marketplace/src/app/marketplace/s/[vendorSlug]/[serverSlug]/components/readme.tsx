@@ -42,9 +42,6 @@ export let ServerReadme = ({
               return null;
             }
 
-            let preprocessor = process.env.IMAGE_LINK_PREPROCESSOR;
-            if (preprocessor) url = eval(preprocessor)(url);
-
             return <img {...props} src={url} />;
           },
 

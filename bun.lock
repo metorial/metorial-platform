@@ -93,7 +93,7 @@
       "version": "1.0.0",
       "dependencies": {
         "@lowerdeck/env": "^1.0.4",
-        "@lowerdeck/error": "^1.2.1",
+        "@lowerdeck/error": "^1.2.2",
         "@lowerdeck/hono": "^1.0.8",
         "@lowerdeck/validation": "^1.0.8",
         "@metorial/auth": "^1.0.0",
@@ -111,7 +111,7 @@
       "version": "1.0.0",
       "dependencies": {
         "@lowerdeck/delay": "^1.0.4",
-        "@lowerdeck/error": "^1.2.1",
+        "@lowerdeck/error": "^1.2.2",
         "@lowerdeck/execution-context": "^1.1.0",
         "@lowerdeck/hono": "^1.0.8",
         "@metorial/bearer": "^1.0.0",
@@ -133,7 +133,7 @@
       "version": "1.0.0",
       "dependencies": {
         "@lowerdeck/env": "^1.0.4",
-        "@lowerdeck/error": "^1.2.1",
+        "@lowerdeck/error": "^1.2.2",
         "@lowerdeck/pagination": "^1.0.6",
         "@lowerdeck/shadow-id": "^1.0.7",
         "@lowerdeck/validation": "^1.0.8",
@@ -161,7 +161,7 @@
       "version": "1.0.0",
       "dependencies": {
         "@lowerdeck/delay": "^1.0.4",
-        "@lowerdeck/error": "^1.2.1",
+        "@lowerdeck/error": "^1.2.2",
         "@lowerdeck/execution-context": "^1.1.0",
         "@lowerdeck/forwarded-for": "^1.0.0",
         "@lowerdeck/hono": "^1.0.8",
@@ -182,7 +182,7 @@
       "version": "1.0.0",
       "dependencies": {
         "@hono/zod-validator": "^0.5.0",
-        "@lowerdeck/error": "^1.2.1",
+        "@lowerdeck/error": "^1.2.2",
         "@lowerdeck/hono": "^1.0.8",
         "@lowerdeck/pagination": "^1.0.6",
         "@metorial/db": "^1.0.0",
@@ -203,7 +203,7 @@
         "@as-integrations/express5": "^1.1.2",
         "@genql/cli": "^6.3.3",
         "@lowerdeck/env": "^1.0.4",
-        "@lowerdeck/error": "^1.2.1",
+        "@lowerdeck/error": "^1.2.2",
         "@lowerdeck/pagination": "^1.0.6",
         "@lowerdeck/shadow-id": "latest",
         "@lowerdeck/validation": "^1.0.8",
@@ -265,7 +265,7 @@
       "name": "@metorial/auth",
       "version": "1.0.0",
       "dependencies": {
-        "@lowerdeck/error": "1.2.1",
+        "@lowerdeck/error": "^1.2.2",
         "@lowerdeck/execution-context": "^1.1.0",
         "@lowerdeck/forwarded-for": "1.0.4",
         "@metorial/bearer": "1.0.0",
@@ -322,7 +322,7 @@
       "name": "@metorial/module-access",
       "version": "1.0.0",
       "dependencies": {
-        "@lowerdeck/error": "1.2.1",
+        "@lowerdeck/error": "^1.2.2",
         "@lowerdeck/hash": "1.0.0",
         "@lowerdeck/service": "^1.0.7",
         "@metorial/api-keys": "1.0.0",
@@ -345,7 +345,7 @@
       "version": "1.0.0",
       "dependencies": {
         "@lowerdeck/canonicalize": "^1.0.4",
-        "@lowerdeck/error": "^1.2.1",
+        "@lowerdeck/error": "^1.2.2",
         "@lowerdeck/hash": "^1.0.4",
         "@lowerdeck/pagination": "^1.0.6",
         "@lowerdeck/service": "^1.0.7",
@@ -382,7 +382,7 @@
       "name": "@metorial/module-event",
       "version": "1.0.0",
       "dependencies": {
-        "@lowerdeck/error": "^1.2.1",
+        "@lowerdeck/error": "^1.2.2",
         "@lowerdeck/pagination": "^1.0.6",
         "@lowerdeck/service": "^1.0.7",
         "@metorial/cron": "^1.0.0",
@@ -403,7 +403,7 @@
       "dependencies": {
         "@aws-sdk/client-s3": "^3.808.0",
         "@lowerdeck/env": "^1.0.4",
-        "@lowerdeck/error": "^1.2.1",
+        "@lowerdeck/error": "^1.2.2",
         "@lowerdeck/pagination": "^1.0.6",
         "@lowerdeck/service": "^1.0.7",
         "@lowerdeck/validation": "^1.0.8",
@@ -425,7 +425,7 @@
       "name": "@metorial/module-flags",
       "version": "1.0.0",
       "dependencies": {
-        "@lowerdeck/error": "^1.2.1",
+        "@lowerdeck/error": "^1.2.2",
         "@lowerdeck/pagination": "^1.0.6",
         "@lowerdeck/service": "^1.0.7",
         "@metorial/cron": "^1.0.0",
@@ -444,7 +444,7 @@
       "name": "@metorial/module-machine-access",
       "version": "1.0.0",
       "dependencies": {
-        "@lowerdeck/error": "^1.2.1",
+        "@lowerdeck/error": "^1.2.2",
         "@lowerdeck/hash": "^1.0.4",
         "@lowerdeck/pagination": "^1.0.6",
         "@lowerdeck/service": "^1.0.7",
@@ -469,7 +469,7 @@
       "version": "1.0.0",
       "dependencies": {
         "@lowerdeck/env": "^1.0.4",
-        "@lowerdeck/error": "^1.2.1",
+        "@lowerdeck/error": "^1.2.2",
         "@lowerdeck/pagination": "^1.0.6",
         "@lowerdeck/programmable-promise": "1.0.0",
         "@lowerdeck/service": "^1.0.7",
@@ -506,7 +506,7 @@
       "dependencies": {
         "@lowerdeck/delay": "^1.0.4",
         "@lowerdeck/env": "^1.0.4",
-        "@lowerdeck/error": "^1.2.1",
+        "@lowerdeck/error": "^1.2.2",
         "@lowerdeck/sentry": "^1.0.2",
         "@lowerdeck/service": "^1.0.7",
         "@lowerdeck/validation": "^1.0.8",
@@ -541,7 +541,7 @@
       "version": "1.0.0",
       "dependencies": {
         "@lowerdeck/canonicalize": "^1.0.4",
-        "@lowerdeck/error": "^1.2.1",
+        "@lowerdeck/error": "^1.2.2",
         "@lowerdeck/pagination": "^1.0.6",
         "@lowerdeck/service": "^1.0.7",
         "@lowerdeck/slugify": "^1.0.5",
@@ -566,7 +566,7 @@
       "name": "@metorial/module-protect",
       "version": "1.0.0",
       "dependencies": {
-        "@lowerdeck/error": "1.2.1",
+        "@lowerdeck/error": "^1.2.2",
         "@lowerdeck/service": "1.0.0",
         "@metorial/context": "1.0.0",
         "@metorial/db": "1.0.0",
@@ -599,7 +599,7 @@
       "name": "@metorial/module-subspace",
       "version": "1.0.0",
       "dependencies": {
-        "@lowerdeck/error": "1.2.1",
+        "@lowerdeck/error": "^1.2.2",
         "@lowerdeck/programmable-promise": "^1.0.6",
         "@lowerdeck/validation": "^1.0.8",
         "@metorial-services/subspace-client": "^1.0.37",
@@ -625,7 +625,7 @@
       "dependencies": {
         "@lowerdeck/delay": "^1.0.4",
         "@lowerdeck/env": "^1.0.4",
-        "@lowerdeck/error": "^1.2.1",
+        "@lowerdeck/error": "^1.2.2",
         "@lowerdeck/sentry": "^1.0.2",
         "@lowerdeck/service": "^1.0.7",
         "@lowerdeck/validation": "^1.0.8",
@@ -648,7 +648,7 @@
       "version": "1.0.0",
       "dependencies": {
         "@lowerdeck/env": "^1.0.4",
-        "@lowerdeck/error": "^1.2.1",
+        "@lowerdeck/error": "^1.2.2",
         "@lowerdeck/service": "^1.0.7",
         "@metorial/context": "^1.0.0",
         "@metorial/cron": "^1.0.0",
@@ -671,7 +671,7 @@
         "@floating-ui/react": "^0.27.16",
         "@lowerdeck/canonicalize": "^1.0.4",
         "@lowerdeck/case": "^1.0.9",
-        "@lowerdeck/error": "^1.2.1",
+        "@lowerdeck/error": "^1.2.2",
         "@lowerdeck/programmable-promise": "^1.0.6",
         "@lowerdeck/sentry": "^1.0.2",
         "@metorial/chart": "^1.0.0",
@@ -837,7 +837,7 @@
       "name": "@metorial/portal",
       "version": "1.0.0",
       "dependencies": {
-        "@lowerdeck/error": "^1.2.1",
+        "@lowerdeck/error": "^1.2.2",
         "@marsidev/react-turnstile": "^1.1.0",
         "@metorial/chart": "^1.0.0",
         "@metorial/data-hooks": "^1.0.0",
@@ -922,7 +922,7 @@
       "name": "@metorial/state",
       "version": "1.0.0",
       "dependencies": {
-        "@lowerdeck/error": "^1.2.1",
+        "@lowerdeck/error": "^1.2.2",
         "@lowerdeck/programmable-promise": "^1.0.6",
         "@lowerdeck/sentry": "^1.0.2",
         "@metorial/dashboard-sdk": "1.0.0-internal",
@@ -1037,7 +1037,7 @@
       "name": "@metorial/redis",
       "version": "1.0.0",
       "dependencies": {
-        "@lowerdeck/error": "^1.2.1",
+        "@lowerdeck/error": "^1.2.2",
         "@lowerdeck/execution-context": "^1.1.0",
         "@lowerdeck/random-number": "^1.0.4",
         "@lowerdeck/serialize": "^1.0.4",
@@ -1060,7 +1060,7 @@
       "version": "1.0.0",
       "dependencies": {
         "@lowerdeck/canonicalize": "^1.0.4",
-        "@lowerdeck/error": "^1.2.1",
+        "@lowerdeck/error": "^1.2.2",
         "@lowerdeck/execution-context": "^1.1.0",
         "@lowerdeck/memo": "^1.0.4",
         "@lowerdeck/proxy": "^1.0.4",
@@ -1135,7 +1135,7 @@
       "name": "@metorial/data-hooks",
       "version": "1.0.0",
       "dependencies": {
-        "@lowerdeck/error": "1.2.1",
+        "@lowerdeck/error": "^1.2.2",
         "@lowerdeck/memo": "1.0.0",
         "@metorial/ui": "1.0.0",
         "formik": "^2.4.6",
@@ -1306,7 +1306,7 @@
       "name": "@metorial/api-keys",
       "version": "1.0.0",
       "dependencies": {
-        "@lowerdeck/error": "^1.2.1",
+        "@lowerdeck/error": "^1.2.2",
       },
       "devDependencies": {
         "@metorial/tsconfig": "^1.0.0",

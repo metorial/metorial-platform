@@ -19,29 +19,21 @@ export let frontendEnv: Env = [
     key: 'VITE_EXPLORER_V2_URL',
     defaultValue: `http://${HOSTNAME}:4350`
   },
-  {
-    key: 'VITE_MCP_API_URL',
-    defaultValue: `http://${HOSTNAME}:4311`
-  },
-  {
-    key: 'VITE_CORE_API_URL',
-    defaultValue: `http://${HOSTNAME}:4310`
-  },
-  {
-    key: 'VITE_PRIVATE_API_URL',
-    defaultValue: `http://${HOSTNAME}:4314`
-  },
 
   {
-    key: 'VITE_CODE_BUCKET_API_URL',
-    defaultValue: `http://${HOSTNAME}:4040`
+    key: 'VITE_FEDERATION_INSTANCES',
+    defaultValue: JSON.stringify({
+      local1: {
+        federationApi: `http://${HOSTNAME}:4321`,
+        coreApi: `http://${HOSTNAME}:4310`
+      },
+      local2: {
+        federationApi: `http://${HOSTNAME}:4321`,
+        coreApi: `http://${HOSTNAME}:4310`
+      }
+    })
   },
 
-  {
-    key: 'SHOW_EARLY_ACCESS_BAR',
-    defaultValue: 'true',
-    isEnterprise: true
-  },
   {
     key: 'FEATURED_COLLECTION_IDS',
     defaultValue: 'landing-featured,landing-popular',
@@ -52,36 +44,44 @@ export let frontendEnv: Env = [
     defaultValue: 'landing_collection',
     isEnterprise: true
   },
+
   {
-    key: 'VITE_AUTH_API_URL',
-    defaultValue: `http://${HOSTNAME}:4321/metorial-id`,
+    key: 'VITE_FEDERATION_API_URL',
+    defaultValue: `http://${HOSTNAME}:4321`,
     isEnterprise: true
   },
-  {
-    key: 'VITE_ADMIN_API_URL',
-    defaultValue: `http://${HOSTNAME}:4322/metorial-admin`,
-    isEnterprise: true
-  },
-  {
-    key: 'VITE_LANDING_API_URL',
-    defaultValue: `http://${HOSTNAME}:4323/metorial-landing`,
-    isEnterprise: true
-  },
-  {
-    key: 'VITE_TEAM_API_URL',
-    defaultValue: `http://${HOSTNAME}:4324/metorial-team`,
-    isEnterprise: true
-  },
-  {
-    key: 'VITE_USER_API_URL',
-    defaultValue: `http://${HOSTNAME}:4325/metorial-user`,
-    isEnterprise: true
-  },
-  {
-    key: 'VITE_DASHBOARD_API_URL',
-    defaultValue: `http://${HOSTNAME}:4326/metorial-dashboard`,
-    isEnterprise: true
-  },
+
+  // {
+  //   key: 'VITE_AUTH_API_URL',
+  //   defaultValue: `http://${HOSTNAME}:4321/metorial-id`,
+  //   isEnterprise: true
+  // },
+  // {
+  //   key: 'VITE_ADMIN_API_URL',
+  //   defaultValue: `http://${HOSTNAME}:4322/metorial-admin`,
+  //   isEnterprise: true
+  // },
+  // {
+  //   key: 'VITE_LANDING_API_URL',
+  //   defaultValue: `http://${HOSTNAME}:4323/metorial-landing`,
+  //   isEnterprise: true
+  // },
+  // {
+  //   key: 'VITE_TEAM_API_URL',
+  //   defaultValue: `http://${HOSTNAME}:4324/metorial-team`,
+  //   isEnterprise: true
+  // },
+  // {
+  //   key: 'VITE_USER_API_URL',
+  //   defaultValue: `http://${HOSTNAME}:4325/metorial-user`,
+  //   isEnterprise: true
+  // },
+  // {
+  //   key: 'VITE_DASHBOARD_API_URL',
+  //   defaultValue: `http://${HOSTNAME}:4326/metorial-dashboard`,
+  //   isEnterprise: true
+  // },
+
   {
     key: 'VITE_CUSTOM_PORTAL_API_URL',
     defaultValue: 'http://localhost:4315'

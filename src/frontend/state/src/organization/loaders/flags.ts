@@ -1,35 +1,22 @@
 import { createLoader } from '@metorial/data-hooks';
-import type { Flags } from '@metorial/module-flags';
 import { useCallback, useMemo } from 'react';
-import { useCurrentOrganization } from '../../organization';
-import { withAuthPrivate } from '../../user/auth/withAuth';
+import { withAuth } from '../../user';
+import { useCurrentOrganization } from '../current';
 
 export let flagsLoader = createLoader({
-  name: 'dashboard_flags',
+  name: 'flags',
   parents: [],
   fetch: (i: { organizationIds: string[] }) =>
-    Promise.all(
-      i.organizationIds.map(async organizationId =>
-        withAuthPrivate(
-          {
-            organizationId
-          },
-          c =>
-            c
-              .query({
-                getFlags: {
-                  __scalar: true,
-                  flags: { __scalar: true },
-                  organization: { __scalar: true }
-                }
-              })
-              .then(r => ({
-                ...r.getFlags,
-                flags: Object.fromEntries(
-                  r.getFlags.flags.map(f => [f.slug, f.value])
-                ) as any as Flags
-              }))
-        )
+    withAuth(sdk =>
+      Promise.all(
+        i.organizationIds.map(async organizationId => {
+          let r = await sdk.organizations.flags.get(organizationId);
+
+          return {
+            organizationId,
+            flags: Object.fromEntries(r.flags.map(f => [f.slug, f.value]))
+          };
+        })
       )
     ),
   mutators: {}

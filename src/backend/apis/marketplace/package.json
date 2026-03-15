@@ -8,7 +8,7 @@
   "dependencies": {
     "@hono/zod-validator": "^0.5.0",
     "@metorial/db": "^1.0.0",
-    "@lowerdeck/error": "^1.2.1",
+    "@lowerdeck/error": "^1.2.2",
     "@lowerdeck/hono": "^1.0.8",
     "@lowerdeck/pagination": "^1.0.6",
     "hono": "^4.7.10",

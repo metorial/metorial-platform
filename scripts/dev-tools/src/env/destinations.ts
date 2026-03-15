@@ -35,17 +35,7 @@ export let destinations: Destination[] = [
   {
     type: 'enterprise',
     env: backendEnv,
-    path: 'federation/backend/apps/connection-api'
-  },
-  {
-    type: 'enterprise',
-    env: backendEnv,
     path: 'federation/backend/apps/core-api'
-  },
-  {
-    type: 'enterprise',
-    env: backendEnv,
-    path: 'federation/backend/apps/federation-api'
   },
   {
     type: 'enterprise',

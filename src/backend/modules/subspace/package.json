@@ -9,7 +9,7 @@
     "lint": "prettier src/**/*.ts --check"
   },
   "dependencies": {
-    "@lowerdeck/error": "1.2.1",
+    "@lowerdeck/error": "^1.2.2",
     "@lowerdeck/programmable-promise": "^1.0.6",
     "@lowerdeck/validation": "^1.0.8",
     "@metorial-services/subspace-client": "^1.0.41",
