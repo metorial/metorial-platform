@@ -16,4 +16,32 @@ model ConsumerSession {
   createdAt   DateTime @default(now())
   lastUsedAt  DateTime @default(now())
   loggedOutAt DateTime?
+
+  authExchanges ConsumerAuthExchange[]
+}
+
+model ConsumerAuthExchange {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  state String
+  code  String?
+
+  email         String?
+  name          String?
+  aresUserId    String?
+  aresSessionId String?
+
+  surfaceOid BigInt
+  surface    ConsumerSurface @relation(fields: [surfaceOid], references: [oid], onDelete: Cascade)
+
+  consumerSessionOid BigInt?
+  consumerSession    ConsumerSession? @relation(fields: [consumerSessionOid], references: [oid], onDelete: SetNull)
+
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  completedAt DateTime?
+
+  @@unique([surfaceOid, state])
 }

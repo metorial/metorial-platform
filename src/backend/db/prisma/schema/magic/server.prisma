@@ -30,6 +30,8 @@ model MagicMcpServer {
 
   groups            MagicMcpGroupServer[]
   accessTagEntities AccessTagEntity[]
+  consumerAccesses  ConsumerAccess[]        @relation("ConsumerAccessMagicMcpServer")
+  accessRequests    ConsumerAccessRequest[] @relation("ConsumerAccessRequestMagicMcpServer")
 }
 
 model MagicMcpServerAlias {

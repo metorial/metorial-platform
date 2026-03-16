@@ -33,6 +33,7 @@ model ConsumerGroup {
   archivedAt DateTime?
   deletedAt  DateTime?
 
-  profiles      ConsumerProfileGroup[]
-  personalOwner ConsumerProfile? @relation("ConsumerProfilePersonalGroup")
+  profiles         ConsumerProfileGroup[]
+  consumerAccesses ConsumerAccess[]
+  personalOwner    ConsumerProfile?      @relation("ConsumerProfilePersonalGroup")
 }

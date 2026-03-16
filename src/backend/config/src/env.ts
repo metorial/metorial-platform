@@ -29,6 +29,10 @@ export let env = createValidatedEnv({
     PORTALS_URL: v.string()
   },
 
+  portal: {
+    PORTAL_HOST_TEMPLATE: v.string()
+  },
+
   env: {
     METORIAL_ENV: v.enumOf(['development', 'staging', 'production']),
     NODE_ENV: v.enumOf(['development', 'production'])

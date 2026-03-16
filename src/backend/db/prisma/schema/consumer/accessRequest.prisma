@@ -1,0 +1,41 @@
+enum ConsumerAccessRequestTargetType {
+  provider_template
+  magic_mcp_server
+}
+
+enum ConsumerAccessRequestStatus {
+  pending
+  approved
+  rejected
+}
+
+model ConsumerAccessRequest {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  /// Prisma cannot express the required polymorphic check constraint here,
+  /// so services must keep `type` aligned with exactly one target relation.
+  type   ConsumerAccessRequestTargetType
+  status ConsumerAccessRequestStatus
+
+  message           String?
+  resolutionMessage String?
+  metadata          Json
+  pendingKey        String? @unique
+
+  surfaceOid BigInt
+  surface    ConsumerSurface @relation(fields: [surfaceOid], references: [oid], onDelete: Cascade)
+
+  consumerProfileOid BigInt
+  consumerProfile    ConsumerProfile @relation(fields: [consumerProfileOid], references: [oid], onDelete: Cascade)
+
+  providerTemplateOid BigInt?
+  providerTemplate    ProviderTemplate? @relation("ConsumerAccessRequestProviderTemplate", fields: [providerTemplateOid], references: [oid], onDelete: Cascade)
+
+  magicMcpServerOid BigInt?
+  magicMcpServer    MagicMcpServer? @relation("ConsumerAccessRequestMagicMcpServer", fields: [magicMcpServerOid], references: [oid], onDelete: Cascade)
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
+  reviewedAt DateTime?
+}

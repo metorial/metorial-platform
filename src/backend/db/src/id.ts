@@ -146,6 +146,7 @@ export let ID = createIdGenerator({
 
   consumerSurface: idType.sorted('csf'),
   consumerAuthTenant: idType.sorted('cot'),
+  consumerAuthExchange: idType.sorted('cae'),
   consumer: idType.sorted('con'),
   consumerProfile: idType.sorted('cop'),
   consumerSession: idType.sorted('csn'),
@@ -154,6 +155,7 @@ export let ID = createIdGenerator({
   consumerSurfaceMagicMcpGroupAccess: idType.sorted('csmg'),
   consumerGroup: idType.sorted('cog'),
   consumerAccess: idType.sorted('coa'),
+  consumerAccessRequest: idType.sorted('coar'),
   consumerServerRequest: idType.sorted('csr'),
   providerTemplate: idType.sorted('ptm'),
 

@@ -2,6 +2,8 @@ import {
   ApiKey,
   ApiKeySecret,
   Consumer,
+  ConsumerAccess,
+  ConsumerAccessRequest,
   ConsumerGroup,
   ConsumerProfile,
   ConsumerProfileGroup,
@@ -39,7 +41,8 @@ import {
   ConsumerAresApp,
   ConsumerAresSsoConnection,
   ConsumerAresSsoTenant,
-  ConsumerAresSsoTenantSetup
+  ConsumerAresSsoTenantSetup,
+  ConsumerProviderCatalogEntry
 } from '@metorial/module-consumer';
 import {
   SubspaceBucket,
@@ -233,6 +236,25 @@ export let consumerGroupType = PresentableType.create<{
   consumerGroup: ConsumerGroup;
 }>()('consumer.group');
 
+export let consumerAccessType = PresentableType.create<{
+  consumerAccess: ConsumerAccess & {
+    consumerGroup: ConsumerGroup;
+    providerTemplate: ProviderTemplate | null;
+    magicMcpServer: MagicMcpServer | null;
+  };
+}>()('consumer.access');
+
+export let consumerAccessRequestType = PresentableType.create<{
+  consumerAccessRequest: ConsumerAccessRequest & {
+    consumerProfile: ConsumerProfile & {
+      consumer: Consumer;
+      personalConsumerGroup: ConsumerGroup;
+    };
+    providerTemplate: ProviderTemplate | null;
+    magicMcpServer: MagicMcpServer | null;
+  };
+}>()('consumer.access_request');
+
 export let consumerProfileType = PresentableType.create<{
   consumerProfile: ConsumerProfile & {
     consumer: Consumer;
@@ -250,6 +272,10 @@ export let consumerProfileType = PresentableType.create<{
 export let consumerSessionType = PresentableType.create<{
   consumerSession: ConsumerSession;
 }>()('consumer.session');
+
+export let consumerProviderType = PresentableType.create<{
+  consumerProvider: ConsumerProviderCatalogEntry;
+}>()('consumer.provider');
 
 // export let callbackType = PresentableType.create<{
 //   callback: Callback & {

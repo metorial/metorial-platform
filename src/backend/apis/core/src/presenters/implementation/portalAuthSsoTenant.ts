@@ -22,8 +22,6 @@ export let v1PortalAuthSsoTenantPresenter = Presenter.create(portalAuthSsoTenant
       name: v.string(),
       status: v.enumOf(['pending', 'completed']),
       client_id: v.string(),
-      external_id: v.nullable(v.string()),
-      is_global: v.boolean(),
       counts: v.object({
         connections: v.number()
       }),

@@ -1,5 +1,6 @@
 import {
   conflictError,
+  forbiddenError,
   notFoundError,
   preconditionFailedError,
   ServiceError
@@ -113,22 +114,27 @@ class MagicMcpServerImpl {
       name?: string;
       description?: string;
       metadata?: Record<string, unknown>;
+      sessionTemplateId?: string;
     };
   }) {
-    let sessionTemplate = await subspaceSessionTemplateService.create({
-      instance: d.instance,
-      name: `Magic MCP Template ${d.input.name ?? new Date().toISOString().slice(0, 10)}`,
-      description: 'Auto-created for Magic MCP server',
-      isInternal: true,
-      metadata: d.input.metadata,
-      providers: []
-    });
+    let sessionTemplateId =
+      d.input.sessionTemplateId ??
+      (
+        await subspaceSessionTemplateService.create({
+          instance: d.instance,
+          name: `Magic MCP Template ${d.input.name ?? new Date().toISOString().slice(0, 10)}`,
+          description: 'Auto-created for Magic MCP server',
+          isInternal: true,
+          metadata: d.input.metadata,
+          providers: []
+        })
+      ).id;
 
     let magicMcpServer = await db.magicMcpServer.create({
       data: {
         id: await ID.generateId('magicMcpServer'),
         status: 'active',
-        subspaceSessionTemplateId: sessionTemplate.id,
+        subspaceSessionTemplateId: sessionTemplateId,
         name: d.input.name,
         description: d.input.description,
         metadata: d.input.metadata ?? {},
@@ -203,6 +209,7 @@ class MagicMcpServerImpl {
       description?: string | null;
       metadata?: Record<string, unknown> | null;
       aliases?: string[];
+      sessionTemplateId?: string;
     };
   }) {
     await this.checkWriteAccess({
@@ -245,12 +252,20 @@ class MagicMcpServerImpl {
       }
     }
 
-    // let nextSessionTemplateId =
-    //   d.input.sessionTemplateId === undefined
-    //     ? d.server.subspaceSessionTemplateId
-    //     : d.input.sessionTemplateId;
-    // let isSessionTemplateChanged =
-    //   nextSessionTemplateId !== d.server.subspaceSessionTemplateId;
+    let nextSessionTemplateId =
+      d.input.sessionTemplateId === undefined
+        ? d.server.subspaceSessionTemplateId
+        : d.input.sessionTemplateId;
+    let isSessionTemplateChanged =
+      nextSessionTemplateId !== d.server.subspaceSessionTemplateId;
+
+    if (d.accessTags && isSessionTemplateChanged) {
+      throw new ServiceError(
+        forbiddenError({
+          message: 'Consumers cannot change the session template for a magic MCP server'
+        })
+      );
+    }
 
     let server;
     try {
@@ -261,7 +276,7 @@ class MagicMcpServerImpl {
           description:
             d.input.description === undefined ? d.server.description : d.input.description,
           metadata: d.input.metadata === undefined ? d.server.metadata : d.input.metadata,
-          // subspaceSessionTemplateId: nextSessionTemplateId,
+          subspaceSessionTemplateId: nextSessionTemplateId,
           aliases: {
             create: nextAliases.map(slug => ({ slug }))
           }
@@ -278,21 +293,6 @@ class MagicMcpServerImpl {
       }
       throw error;
     }
-
-    // if (isSessionTemplateChanged && d.server.subspaceSession) {
-    //   await db.magicMcpServerSubspaceSession
-    //     .delete({
-    //       where: {
-    //         magicMcpServerOid: d.server.oid
-    //       }
-    //     })
-    //     .catch(() => null);
-
-    //   server = await db.magicMcpServer.findFirstOrThrow({
-    //     where: { oid: d.server.oid },
-    //     include
-    //   });
-    // }
 
     await enqueueMagicMcpServerUpdated(server.id);
 

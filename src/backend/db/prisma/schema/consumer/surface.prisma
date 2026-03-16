@@ -34,5 +34,8 @@ model ConsumerSurface {
 
   consumerProfiles ConsumerProfile[]
   consumerGroups   ConsumerGroup[]
-  portal           Portal? @relation("PortalSurface")
+  consumerAccesses ConsumerAccess[]
+  accessRequests   ConsumerAccessRequest[]
+  authExchanges    ConsumerAuthExchange[]
+  portal           Portal?                 @relation("PortalSurface")
 }

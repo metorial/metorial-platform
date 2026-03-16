@@ -13,6 +13,11 @@ import {
   consumerSurfaceService,
   type ConsumerSurfaceWithPublishableApiKey
 } from '@metorial/module-consumer';
+import {
+  buildPortalUrlFromTemplate,
+  getPortalUrlTemplate,
+  parsePortalIdFromTemplate
+} from './urlTemplate';
 
 let include = {
   surface: {
@@ -38,22 +43,8 @@ let getPortalSlug = createSlugGenerator(async slug => {
   return !(await db.portal.findFirst({ where: { slug } }));
 });
 
-let getPortalUrlTemplate = () => {
-  let raw = getConfig().urls.portalsUrl.replace(/\/+$/, '');
-  if (raw.includes('{portalId}')) return raw;
-
-  let url = new URL(raw);
-  let pathname = `${url.pathname.replace(/\/+$/, '')}/p/{portalId}`.replace(/\/{2,}/g, '/');
-
-  return `${url.origin}${pathname}${url.search}${url.hash}`.replace(/\/+$/, '');
-};
-
-let escapeRegExp = (value: string) => {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-};
-
 let getPortalRedirectDomains = () => {
-  let template = getPortalUrlTemplate();
+  let template = getPortalUrlTemplate(getConfig().portalHostTemplate);
   let placeholder = '__portal__';
   let parsed = new URL(template.replace('{portalId}', placeholder));
   let hostname = parsed.hostname.includes(placeholder)
@@ -64,7 +55,7 @@ let getPortalRedirectDomains = () => {
 };
 
 let buildPortalUrlFromId = (portalId: string) => {
-  return getPortalUrlTemplate().replace('{portalId}', portalId).replace(/\/+$/, '');
+  return buildPortalUrlFromTemplate(getConfig().portalHostTemplate, portalId);
 };
 
 let buildPortalAresRedirectUrl = (d: { portalId: string; portalUrl: string }) => {
@@ -298,26 +289,10 @@ class PortalServiceImpl {
   }
 
   parsePortalIdFromHost(d: { url: string }) {
-    let template = getPortalUrlTemplate();
-    let templateRegex = new RegExp(
-      `^${escapeRegExp(template).replace(escapeRegExp('{portalId}'), '([^/]+)')}`
-    );
-
-    let parsedUrl = new URL(d.url);
-    parsedUrl.search = '';
-    parsedUrl.hash = '';
-
-    let normalizedUrl = parsedUrl.toString().replace(/\/+$/, '');
-    let match = normalizedUrl.match(templateRegex);
-    if (!match) return undefined;
-
-    let portalId = match[1];
-    let portalUrl = buildPortalUrlFromId(portalId);
-
-    return {
-      portalId,
-      portalUrl
-    };
+    return parsePortalIdFromTemplate({
+      template: getConfig().portalHostTemplate,
+      url: d.url
+    });
   }
 
   async getBrand(d: {
