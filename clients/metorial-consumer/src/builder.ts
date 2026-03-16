@@ -9,7 +9,6 @@ export let sdkBuilder = MetorialSDKBuilder.create<
     apiKey?: `${MetorialKeyPrefix}${string}` | string;
     headers?: Record<string, string>;
     apiHost?: string;
-    consumerToken: string;
   }
 >('metorial-consumer-api', '2026-01-01-magnetar')
   .setGetApiHost(config => config.apiHost ?? 'https://api.metorial.com')
