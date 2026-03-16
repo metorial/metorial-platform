@@ -4,11 +4,7 @@ export type Flags = {
   'test-flag': boolean;
 
   'metorial-gateway-enabled': boolean;
-  'custom-servers-remote-enabled': boolean;
   'custom-providers-enabled': boolean;
-  'provider-oauth-enabled': boolean;
-  'managed-servers-enabled': boolean;
-  'community-profiles-enabled': boolean;
   'magic-mcp-enabled': boolean;
   'callbacks-enabled': boolean;
   'identity-management': boolean;
@@ -31,11 +27,7 @@ export let defaultFlags: Flags = {
   'test-flag': false,
 
   'metorial-gateway-enabled': false,
-  'custom-servers-remote-enabled': false,
   'custom-providers-enabled': false,
-  'provider-oauth-enabled': false,
-  'managed-servers-enabled': false,
-  'community-profiles-enabled': false,
   'magic-mcp-enabled': false,
   'callbacks-enabled': false,
   'identity-management': false,
