@@ -1,19 +1,20 @@
 import { preconditionFailedError, ServiceError, unauthorizedError } from '@lowerdeck/error';
 import { v } from '@lowerdeck/validation';
 import { consumerAuthService } from '@metorial/module-consumer';
-import { portalFromIdApp, portalFromIdOrRefererApp } from '../group';
+import { portalFromIdApp } from '../group';
 import {
   clearPortalAuthStateCookie,
   clearPortalSessionCookie,
   setPortalAuthStateCookie
 } from '../lib/cookies';
+import { presentPortal, presentSession } from '../presenters';
 import {
+  assertPortalSsoConfigured,
   assertPortalAuthState,
-  getPortalAuthFactors,
+  getPortalSsoAuthorizationCodeOrThrow,
   getPortalSessionFromCookie,
-  issuePortalTokens,
-  toPortalDto,
-  toSessionDto
+  isPortalSsoConfigured,
+  issuePortalTokens
 } from '../lib/portal';
 
 export let authController = portalFromIdApp.controller({
@@ -26,8 +27,8 @@ export let authController = portalFromIdApp.controller({
     )
     .do(async ctx => {
       return {
-        portal: await toPortalDto({ portal: ctx.portal }),
-        factors: getPortalAuthFactors({ portal: ctx.portal })
+        portal: await presentPortal({ portal: ctx.portal }),
+        isSsoConfigured: isPortalSsoConfigured({ portal: ctx.portal })
       };
     }),
 
@@ -35,22 +36,11 @@ export let authController = portalFromIdApp.controller({
     .handler()
     .input(
       v.object({
-        portalId: v.string(),
-        authFactorId: v.string()
+        portalId: v.string()
       })
     )
     .do(async ctx => {
-      if (
-        !getPortalAuthFactors({ portal: ctx.portal }).some(
-          factor => factor.id == ctx.input.authFactorId
-        )
-      ) {
-        throw new ServiceError(
-          unauthorizedError({
-            message: 'Unknown auth factor'
-          })
-        );
-      }
+      assertPortalSsoConfigured({ portal: ctx.portal });
 
       let state = crypto.randomUUID();
       let stateExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
@@ -102,32 +92,26 @@ export let authController = portalFromIdApp.controller({
       });
 
       return {
-        session: toSessionDto({
+        session: presentSession({
           session: sessionRes.session
         }),
         consumerSessionToken: tokens.consumerSessionToken
       };
     }),
 
-  authenticateWithSsoComplete: portalFromIdOrRefererApp
+  authenticateWithSsoComplete: portalFromIdApp
     .handler()
     .input(
       v.object({
-        portalId: v.optional(v.string()),
+        portalId: v.string(),
         code: v.optional(v.string()),
-        ssoAuthId: v.optional(v.string()),
         state: v.optional(v.string())
       })
     )
     .do(async ctx => {
-      let code = ctx.input.code ?? ctx.input.ssoAuthId;
-      if (!code) {
-        throw new ServiceError(
-          preconditionFailedError({
-            message: 'Missing SSO authorization code.'
-          })
-        );
-      }
+      let code = getPortalSsoAuthorizationCodeOrThrow({
+        code: ctx.input.code
+      });
 
       assertPortalAuthState({
         ctx,
@@ -152,9 +136,9 @@ export let authController = portalFromIdApp.controller({
       });
 
       return {
-        portal: await toPortalDto({ portal: ctx.portal }),
+        portal: await presentPortal({ portal: ctx.portal }),
         portalUrl: ctx.portalUrl,
-        session: toSessionDto({ session }),
+        session: presentSession({ session }),
         consumerSessionToken: tokens.consumerSessionToken
       };
     }),

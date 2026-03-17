@@ -1,5 +1,4 @@
-import { getConfig } from '@metorial/config';
-import { isAllowedPortalOriginForTemplate } from '@metorial/module-portal';
+import { env as portalEnv, isAllowedPortalOriginForTemplate } from '@metorial/module-portal';
 import { createServer, InferClient, rpcMux } from '@metorial/rpc';
 import { authController } from './controllers/auth';
 import { bootController } from './controllers/boot';
@@ -22,7 +21,7 @@ export let customPortalApi = rpcMux(
         : {
             check: origin =>
               isAllowedPortalOriginForTemplate({
-                template: getConfig().portalHostTemplate,
+                template: portalEnv.portal.PORTAL_HOST_TEMPLATE,
                 origin
               })
           },

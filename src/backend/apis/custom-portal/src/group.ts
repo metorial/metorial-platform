@@ -1,7 +1,7 @@
 import { Group } from '@metorial/rpc';
 import {
   assertPortalRequestMatchesPortal,
-  resolvePortalFromIdOrReferer,
+  resolvePortalFromId,
   resolvePortalFromUrl
 } from './lib/portal';
 
@@ -18,15 +18,13 @@ let bindPortalRequest = async (d: {
   headers: Headers;
   portalId?: string;
   portalUrl?: string;
-  referer?: string | null;
 }) => {
   let resolved = d.portalUrl
     ? await resolvePortalFromUrl({
         url: d.portalUrl
       })
-    : await resolvePortalFromIdOrReferer({
-        portalId: d.portalId,
-        referer: d.referer
+    : await resolvePortalFromId({
+        portalId: d.portalId
       });
 
   await assertPortalRequestMatchesPortal({
@@ -49,13 +47,5 @@ export let portalFromIdApp = publicApp.use(async ctx => {
   return await bindPortalRequest({
     headers: ctx.headers,
     portalId: ctx.body.portalId
-  });
-});
-
-export let portalFromIdOrRefererApp = publicApp.use(async ctx => {
-  return await bindPortalRequest({
-    headers: ctx.headers,
-    portalId: ctx.body.portalId,
-    referer: ctx.headers.get('referer')
   });
 });

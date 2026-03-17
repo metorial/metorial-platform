@@ -42,6 +42,4 @@ export interface MetorialConfig {
   };
 
   encryptionSecret: string;
-
-  portalHostTemplate: string;
 }

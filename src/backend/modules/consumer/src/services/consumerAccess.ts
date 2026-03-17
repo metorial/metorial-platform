@@ -18,6 +18,7 @@ import {
   withTransaction
 } from '@metorial/db';
 import { consumerAccessPolicyService } from './accessPolicy';
+import { isPreconfiguredMagicMcpServer } from './magicMcpServerSource';
 
 let include = {
   consumerGroup: true,
@@ -34,12 +35,6 @@ type ConsumerAccessCreateInput =
       type: 'magic_mcp_server';
       magicMcpServer: MagicMcpServer;
     };
-
-let isPreconfiguredMagicMcpServer = (magicMcpServer: { metadata: unknown }) => {
-  let metadata = (magicMcpServer.metadata ?? {}) as Record<string, unknown>;
-
-  return metadata.source != 'consumer_provider_template';
-};
 
 class ConsumerAccessServiceImpl {
   async listConsumerAccesses(d: {

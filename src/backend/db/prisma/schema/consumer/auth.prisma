@@ -45,3 +45,23 @@ model ConsumerAuthExchange {
 
   @@unique([surfaceOid, state])
 }
+
+model ConsumerProviderSetupSessionBinding {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  providerSetupSessionId String
+
+  consumerProfileId    String
+  providerTemplateId   String
+  providerId           String
+  providerDeploymentId String
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([instanceOid, providerSetupSessionId])
+}

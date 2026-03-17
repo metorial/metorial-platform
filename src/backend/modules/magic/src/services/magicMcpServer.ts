@@ -14,6 +14,7 @@ import {
   ID,
   Instance,
   MagicMcpServer,
+  MagicMcpServerSource,
   MagicMcpServerStatus,
   Organization,
   OrganizationActor,
@@ -114,6 +115,8 @@ class MagicMcpServerImpl {
       name?: string;
       description?: string;
       metadata?: Record<string, unknown>;
+      source?: MagicMcpServerSource;
+      providerTemplateId?: string;
       sessionTemplateId?: string;
     };
   }) {
@@ -134,6 +137,8 @@ class MagicMcpServerImpl {
       data: {
         id: await ID.generateId('magicMcpServer'),
         status: 'active',
+        source: d.input.source ?? 'manual',
+        providerTemplateId: d.input.providerTemplateId,
         subspaceSessionTemplateId: sessionTemplateId,
         name: d.input.name,
         description: d.input.description,

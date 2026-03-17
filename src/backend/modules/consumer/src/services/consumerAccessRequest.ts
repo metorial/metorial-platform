@@ -22,6 +22,7 @@ import {
   withTransaction
 } from '@metorial/db';
 import { consumerAccessService } from './consumerAccess';
+import { isPreconfiguredMagicMcpServer } from './magicMcpServerSource';
 
 let include = {
   surface: true,
@@ -44,12 +45,6 @@ type ConsumerAccessRequestCreateInput =
       type: 'magic_mcp_server';
       magicMcpServer: MagicMcpServer;
     };
-
-let isPreconfiguredMagicMcpServer = (magicMcpServer: { metadata: unknown }) => {
-  let metadata = (magicMcpServer.metadata ?? {}) as Record<string, unknown>;
-
-  return metadata.source != 'consumer_provider_template';
-};
 
 let invalidConsumerAccessRequestTargetError = () =>
   new ServiceError(

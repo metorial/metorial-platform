@@ -21,8 +21,8 @@ model ConsumerSurface {
   instanceOid BigInt
   instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
 
-  consumerAuthTenantOid BigInt?
-  consumerAuthTenant    ConsumerAuthTenant? @relation(fields: [consumerAuthTenantOid], references: [oid], onDelete: SetNull)
+  consumerAuthTenantOid BigInt
+  consumerAuthTenant    ConsumerAuthTenant @relation(fields: [consumerAuthTenantOid], references: [oid], onDelete: Cascade)
 
   publishableApiKeyOid BigInt @unique
   publishableApiKey    ApiKey @relation("ConsumerSurfacePublishableApiKey", fields: [publishableApiKeyOid], references: [oid], onDelete: Cascade)

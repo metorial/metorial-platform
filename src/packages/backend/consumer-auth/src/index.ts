@@ -33,6 +33,8 @@ export type ConsumerSessionWithProfile = Prisma.ConsumerSessionGetPayload<{
   include: typeof consumerSessionInclude;
 }>;
 
+export type ConsumerTokenSession = Pick<ConsumerSessionWithProfile, 'id' | 'tokenNonce' | 'expiresAt'>;
+
 export type EffectiveConsumerGroup = ConsumerGroup & {
   assignedVia: 'default' | 'manual' | 'sso' | 'user';
 };
@@ -227,7 +229,7 @@ export let getConsumerAccessContextForSession = async (d: {
 };
 
 export let getConsumerToken = async (d: {
-  session: Pick<ConsumerSessionWithProfile, 'id' | 'tokenNonce' | 'expiresAt'>;
+  session: ConsumerTokenSession;
   surface: Pick<ConsumerSurface, 'id'>;
 }) => {
   return await consumerTokens.sign({
@@ -242,7 +244,7 @@ export let getConsumerToken = async (d: {
 };
 
 export let getConsumerSessionToken = async (d: {
-  session: Pick<ConsumerSessionWithProfile, 'id' | 'tokenNonce' | 'expiresAt'>;
+  session: ConsumerTokenSession;
   surface: Pick<ConsumerSurface, 'id'>;
 }) => {
   return await consumerTokens.sign({

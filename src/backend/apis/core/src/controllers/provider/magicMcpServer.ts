@@ -2,7 +2,6 @@ import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { MagicMcpServerStatus } from '@metorial/db';
-import { consumerAccessPolicyService } from '@metorial/module-consumer';
 import { magicMcpServerService } from '@metorial/module-magic';
 import { subspaceSessionTemplateService } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
@@ -110,7 +109,7 @@ export let magicMcpServerController = Controller.create(
       })
       .use(
         checkAccess({
-          possibleScopes: ['instance.provider.session:write', 'consumer#instance.magic_mcp:write'],
+          possibleScopes: ['instance.provider.session:write'],
           fineGrainedPolicy: 'deny'
         })
       )
@@ -136,21 +135,6 @@ export let magicMcpServerController = Controller.create(
             metadata: ctx.body.metadata
           }
         });
-
-        if (ctx.consumerProfile) {
-          for (let permission of ['magic_mcp_read', 'magic_mcp_write'] as const) {
-            await consumerAccessPolicyService.grantAccess({
-              organization: ctx.organization,
-              permission,
-              subject: {
-                personalConsumerGroupForProfile: ctx.consumerProfile
-              },
-              resource: {
-                magicMcpServer
-              }
-            });
-          }
-        }
 
         return magicMcpServerPresenter.present({ magicMcpServer });
       }),

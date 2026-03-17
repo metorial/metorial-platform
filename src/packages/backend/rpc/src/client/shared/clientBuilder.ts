@@ -6,6 +6,14 @@ export interface ClientOpts {
   referrerPolicy?: RequestInit['referrerPolicy'];
   headers?: Record<string, string | undefined>;
   getHeaders?: () => Promise<Record<string, string>> | Record<string, string>;
+  getBatchKey?: (d: {
+    endpoint: string;
+    name: string;
+    payload: any;
+    headers: Record<string, string | undefined>;
+    query?: Record<string, string | undefined>;
+    context: any;
+  }) => string | null | undefined;
   onRequest?: (d: {
     endpoint: string;
     name: string;
@@ -30,6 +38,7 @@ export let clientBuilder =
         }
       ) =>
         await withContext(async context => {
+          let name = path[path.length - 1] == 'getFull' ? path.slice(0, -1).join(':') : path.join(':');
           let headers = {
             ...clientOpts.headers,
             ...(await clientOpts.getHeaders?.()),
@@ -38,34 +47,35 @@ export let clientBuilder =
 
           clientOpts.onRequest?.({
             endpoint: clientOpts.endpoint,
-            name: path.join(':'),
+            name,
             payload: data,
             headers,
             query: requestOpts?.query
           });
 
+          let response = await request({
+            endpoint: clientOpts.endpoint,
+            payload: data,
+            name,
+            headers,
+            query: requestOpts?.query,
+            referrerPolicy: clientOpts.referrerPolicy,
+            batchKey:
+              clientOpts.getBatchKey?.({
+                endpoint: clientOpts.endpoint,
+                name,
+                payload: data,
+                headers,
+                query: requestOpts?.query,
+                context
+              }) ?? undefined,
+            context
+          });
+
           if (path[path.length - 1] == 'getFull') {
-            return await request({
-              endpoint: clientOpts.endpoint,
-              payload: data,
-              name: path.slice(0, -1).join(':'),
-              headers,
-              query: requestOpts?.query,
-              referrerPolicy: clientOpts.referrerPolicy,
-              context
-            });
+            return response;
           }
 
-          return (
-            await request({
-              endpoint: clientOpts.endpoint,
-              payload: data,
-              name: path.join(':'),
-              headers,
-              query: requestOpts?.query,
-              referrerPolicy: clientOpts.referrerPolicy,
-              context
-            })
-          ).data;
+          return response.data;
         })
     );

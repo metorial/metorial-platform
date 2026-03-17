@@ -7,6 +7,7 @@ import {
 import { Service } from '@lowerdeck/service';
 import {
   authenticateWithConsumerSessionToken,
+  type ConsumerTokenSession,
   getConsumerAccessContextForSession as getConsumerAccessContextForSessionFromToken,
   getSsoMembershipForUser,
   getConsumerSessionToken,
@@ -62,20 +63,12 @@ class ConsumerAuthServiceImpl {
       surface: d.surface
     });
 
-    if (!d.surface.consumerAuthTenantOid) {
-      throw new ServiceError(
-        preconditionFailedError({
-          message: 'Ares auth is not configured for this portal.'
-        })
-      );
-    }
-
-    let consumerAuthTenant = await db.consumerAuthTenant.findUnique({
+    let consumerAuthTenant = await db.consumerAuthTenant.findUniqueOrThrow({
       where: {
         oid: d.surface.consumerAuthTenantOid
       }
     });
-    if (!consumerAuthTenant?.aresAppId || !consumerAuthTenant.aresClientId) {
+    if (!consumerAuthTenant.aresAppId || !consumerAuthTenant.aresClientId) {
       throw new ServiceError(
         preconditionFailedError({
           message: 'Ares auth is not configured for this portal.'
@@ -193,16 +186,16 @@ class ConsumerAuthServiceImpl {
     consumerSurface: ConsumerSurface;
     consumerProfile: ConsumerProfile;
   }) {
-    if (!d.consumerSurface.consumerAuthTenantOid || !d.consumerProfile.aresUserId) {
+    if (!d.consumerProfile.aresUserId) {
       return d.consumerProfile;
     }
 
-    let consumerAuthTenant = await db.consumerAuthTenant.findUnique({
+    let consumerAuthTenant = await db.consumerAuthTenant.findUniqueOrThrow({
       where: {
         oid: d.consumerSurface.consumerAuthTenantOid
       }
     });
-    if (!consumerAuthTenant?.aresAppId) {
+    if (!consumerAuthTenant.aresAppId) {
       return d.consumerProfile;
     }
 
@@ -365,11 +358,11 @@ class ConsumerAuthServiceImpl {
     });
   }
 
-  async getConsumerToken(d: { session: ConsumerSession; surface: ConsumerSurface }) {
+  async getConsumerToken(d: { session: ConsumerTokenSession; surface: ConsumerSurface }) {
     return await getConsumerToken(d);
   }
 
-  async getConsumerSessionToken(d: { session: ConsumerSession; surface: ConsumerSurface }) {
+  async getConsumerSessionToken(d: { session: ConsumerTokenSession; surface: ConsumerSurface }) {
     return await getConsumerSessionToken(d);
   }
 

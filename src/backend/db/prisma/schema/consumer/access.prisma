@@ -7,8 +7,6 @@ model ConsumerAccess {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
-  /// Prisma cannot express the required polymorphic check constraint here,
-  /// so services must keep `type` aligned with exactly one target relation.
   type ConsumerAccessTargetType
 
   surfaceOid BigInt

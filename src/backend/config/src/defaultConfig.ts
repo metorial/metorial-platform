@@ -47,6 +47,5 @@ export let defaultConfig: MetorialConfig = {
     portalsUrl: env.urls.PORTALS_URL
   },
 
-  encryptionSecret: env.encryption.ENCRYPTION_SECRET,
-  portalHostTemplate: env.portal.PORTAL_HOST_TEMPLATE
+  encryptionSecret: env.encryption.ENCRYPTION_SECRET
 };

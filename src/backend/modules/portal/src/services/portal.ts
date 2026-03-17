@@ -6,18 +6,18 @@ import {
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { createSlugGenerator } from '@lowerdeck/slugify';
-import { getConfig } from '@metorial/config';
 import { Context } from '@metorial/context';
 import { db, getOrganizationBrand, ID, Instance, Organization, Portal } from '@metorial/db';
 import {
   consumerSurfaceService,
   type ConsumerSurfaceWithPublishableApiKey
 } from '@metorial/module-consumer';
+import { env } from '../env';
 import {
   buildPortalUrlFromTemplate,
   getPortalUrlTemplate,
   parsePortalIdFromTemplate
-} from './urlTemplate';
+} from '../portalUrlTemplate';
 
 let include = {
   surface: {
@@ -44,7 +44,7 @@ let getPortalSlug = createSlugGenerator(async slug => {
 });
 
 let getPortalRedirectDomains = () => {
-  let template = getPortalUrlTemplate(getConfig().portalHostTemplate);
+  let template = getPortalUrlTemplate(env.portal.PORTAL_HOST_TEMPLATE);
   let placeholder = '__portal__';
   let parsed = new URL(template.replace('{portalId}', placeholder));
   let hostname = parsed.hostname.includes(placeholder)
@@ -55,7 +55,7 @@ let getPortalRedirectDomains = () => {
 };
 
 let buildPortalUrlFromId = (portalId: string) => {
-  return buildPortalUrlFromTemplate(getConfig().portalHostTemplate, portalId);
+  return buildPortalUrlFromTemplate(env.portal.PORTAL_HOST_TEMPLATE, portalId);
 };
 
 let buildPortalAresRedirectUrl = (d: { portalId: string; portalUrl: string }) => {
@@ -290,7 +290,7 @@ class PortalServiceImpl {
 
   parsePortalIdFromHost(d: { url: string }) {
     return parsePortalIdFromTemplate({
-      template: getConfig().portalHostTemplate,
+      template: env.portal.PORTAL_HOST_TEMPLATE,
       url: d.url
     });
   }

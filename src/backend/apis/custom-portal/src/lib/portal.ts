@@ -5,10 +5,9 @@ import {
   unauthorizedError,
   ServiceError
 } from '@lowerdeck/error';
-import { getConfig } from '@metorial/config';
 import type { ServiceRequest } from '@metorial/rpc';
 import { consumerAuthService } from '@metorial/module-consumer';
-import { isPathBasedPortalRoutingTemplate, portalService } from '@metorial/module-portal';
+import { env as portalEnv, isPathBasedPortalRoutingTemplate, portalService } from '@metorial/module-portal';
 import {
   clearPortalSessionCookie,
   getAuthStateCookieName,
@@ -17,41 +16,7 @@ import {
 } from './cookies';
 
 type PortalWithSurface = Awaited<ReturnType<typeof portalService.getPortalPublic>>;
-
-export let toPortalDto = async (d: { portal: PortalWithSurface }) => ({
-  object: 'portal' as const,
-  id: d.portal.id,
-  status: d.portal.status,
-  name: d.portal.name,
-  slug: d.portal.slug,
-  description: d.portal.description,
-  brand: await portalService.getBrand({
-    portal: d.portal
-  })
-});
-
-export let toInstanceDto = (d: { portal: PortalWithSurface }) => ({
-  object: 'organization.instance' as const,
-  id: d.portal.instance.id,
-  slug: d.portal.instance.slug,
-  name: d.portal.instance.name,
-  type: d.portal.instance.type
-});
-
-export let toSessionDto = (d: {
-  session: {
-    id: string;
-    createdAt: Date;
-    expiresAt: Date;
-    lastUsedAt: Date | null;
-  };
-}) => ({
-  object: 'consumer.session' as const,
-  id: d.session.id,
-  created_at: d.session.createdAt,
-  expires_at: d.session.expiresAt,
-  last_used_at: d.session.lastUsedAt
-});
+type PortalTokenSession = Parameters<typeof consumerAuthService.getConsumerToken>[0]['session'];
 
 export let getPortalPublishableApiKey = (d: { portal: PortalWithSurface }) => {
   let secret =
@@ -74,10 +39,32 @@ export let getCanonicalPortalUrl = async (d: { portal: PortalWithSurface }) => {
 };
 
 export let isPortalSsoConfigured = (d: { portal: PortalWithSurface }) => {
-  return !!(
-    d.portal.surface.consumerAuthTenant?.aresAppId &&
-    d.portal.surface.consumerAuthTenant?.aresClientId &&
-    process.env.ARES_AUTH_URL
+  return !!d.portal.surface.consumerAuthTenant?.aresAppId && !!d.portal.surface.consumerAuthTenant?.aresClientId;
+};
+
+export let assertPortalSsoConfigured = (d: { portal: PortalWithSurface }) => {
+  if (isPortalSsoConfigured(d)) {
+    return;
+  }
+
+  throw new ServiceError(
+    preconditionFailedError({
+      message: 'Portal SSO is not configured.'
+    })
+  );
+};
+
+export let getPortalSsoAuthorizationCodeOrThrow = (d: {
+  code?: string | null;
+}) => {
+  if (d.code) {
+    return d.code;
+  }
+
+  throw new ServiceError(
+    preconditionFailedError({
+      message: 'Missing SSO authorization code.'
+    })
   );
 };
 
@@ -97,42 +84,19 @@ export let resolvePortalFromUrl = async (d: { url: string }) => {
   };
 };
 
-export let resolvePortalFromIdOrReferer = async (d: {
-  portalId?: string;
-  referer?: string | null;
-}) => {
-  if (d.portalId) {
-    let portal = await portalService.getPortalPublic({
-      portalId: d.portalId
-    });
-
-    return {
-      portal,
-      portalUrl: await getCanonicalPortalUrl({ portal })
-    };
-  }
-
-  if (!d.referer) {
+export let resolvePortalFromId = async (d: { portalId?: string | null }) => {
+  if (!d.portalId) {
     throw new ServiceError(notFoundError('portal'));
   }
 
-  return await resolvePortalFromUrl({
-    url: d.referer
+  let portal = await portalService.getPortalPublic({
+    portalId: d.portalId
   });
-};
 
-export let getPortalAuthFactors = (d: { portal: PortalWithSurface }) => {
-  if (!isPortalSsoConfigured(d)) {
-    return [];
-  }
-
-  return [
-    {
-      id: `portal_sso_${d.portal.id}`,
-      type: 'sso' as const,
-      name: 'Continue with Single Sign-On'
-    }
-  ];
+  return {
+    portal,
+    portalUrl: await getCanonicalPortalUrl({ portal })
+  };
 };
 
 export let getPortalSessionFromCookie = async (d: {
@@ -194,19 +158,15 @@ export let assertPortalAuthState = (d: {
 export let issuePortalTokens = async (d: {
   ctx: Pick<ServiceRequest, 'setCookie'>;
   portal: PortalWithSurface;
-  session: {
-    id: string;
-    tokenNonce: string;
-    expiresAt: Date;
-  };
+  session: PortalTokenSession;
 }) => {
   let [consumerSessionToken, portalSessionCookieToken] = await Promise.all([
     consumerAuthService.getConsumerToken({
-      session: d.session as any,
+      session: d.session,
       surface: d.portal.surface
     }),
     consumerAuthService.getConsumerSessionToken({
-      session: d.session as any,
+      session: d.session,
       surface: d.portal.surface
     })
   ]);
@@ -282,7 +242,7 @@ export let assertPortalRequestMatchesPortal = async (d: {
     }
   }
 
-  if (origin && isPathBasedPortalRoutingTemplate(getConfig().portalHostTemplate)) {
+  if (origin && isPathBasedPortalRoutingTemplate(portalEnv.portal.PORTAL_HOST_TEMPLATE)) {
     throw new ServiceError(
       unauthorizedError({
         message: 'Portal request is missing a portal-bound referrer.'
