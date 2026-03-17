@@ -18,7 +18,6 @@ export interface Call {
   headers: Record<string, string>;
   query?: Record<string, string>;
   referrerPolicy?: RequestInit['referrerPolicy'];
-  batchKey?: string;
 }
 
 export type Requester = (

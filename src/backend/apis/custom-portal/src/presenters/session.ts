@@ -1,4 +1,4 @@
-export let presentSession = (d: {
+export let sessionPresenter = (d: {
   session: {
     id: string;
     createdAt: Date;

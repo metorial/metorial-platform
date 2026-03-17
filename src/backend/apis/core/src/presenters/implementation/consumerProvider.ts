@@ -47,16 +47,13 @@ export let v1ConsumerProviderPresenter = Presenter.create(consumerProviderType)
             schema: consumerProvider.configSchema.configSchema
           }
         : null,
-      auth_methods:
-        consumerProvider.authMethods?.length
-          ? await Promise.all(
-              consumerProvider.authMethods.map(authMethod => {
-                return v1ProviderAuthMethodPresenter
-                  .present({ authMethod }, opts)
-                  .run();
-              })
-            )
-          : []
+      auth_methods: consumerProvider.authMethods.length
+        ? await Promise.all(
+            consumerProvider.authMethods.map(authMethod => {
+              return v1ProviderAuthMethodPresenter.present({ authMethod }, opts).run();
+            })
+          )
+        : []
     };
   })
   .schema(

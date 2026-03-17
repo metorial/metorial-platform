@@ -30,6 +30,7 @@ model ProviderTemplate {
   accessTagEntities AccessTagEntity[]
   consumerAccesses  ConsumerAccess[]        @relation("ConsumerAccessProviderTemplate")
   accessRequests    ConsumerAccessRequest[] @relation("ConsumerAccessRequestProviderTemplate")
+  providerSetupSessionBindings ConsumerProviderSetupSessionBinding[]
 
   @@unique([instanceOid, providerDeploymentId])
 }

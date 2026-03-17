@@ -1,13 +1,13 @@
 import {
-  presentInstance,
-  presentPortal,
-  presentPortalFeaturedContent,
-  presentSession
+  instancePresenter,
+  portalPresenter,
+  portalFeaturedContentPresenter,
+  sessionPresenter
 } from '../presenters';
 
 type PortalBootSharedResponse = {
-  portal: Awaited<ReturnType<typeof presentPortal>>;
-  instance: ReturnType<typeof presentInstance>;
+  portal: Awaited<ReturnType<typeof portalPresenter>>;
+  instance: ReturnType<typeof instancePresenter>;
   portalUrl: string;
   publishableApiKey: string;
 };
@@ -21,8 +21,8 @@ export let createUnauthenticatedPortalBootResponse = (d: PortalBootSharedRespons
 
 export let createAuthenticatedPortalBootResponse = (
   d: PortalBootSharedResponse & {
-    featuredContent: ReturnType<typeof presentPortalFeaturedContent>;
-    session: ReturnType<typeof presentSession>;
+    featuredContent: ReturnType<typeof portalFeaturedContentPresenter>;
+    session: ReturnType<typeof sessionPresenter>;
     consumerSessionToken: {
       token: string;
       expiresAt: Date;

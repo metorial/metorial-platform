@@ -38,22 +38,6 @@ export let getCanonicalPortalUrl = async (d: { portal: PortalWithSurface }) => {
   return (await portalService.getPortalHost({ portal: d.portal })).host;
 };
 
-export let isPortalSsoConfigured = (d: { portal: PortalWithSurface }) => {
-  return !!d.portal.surface.consumerAuthTenant?.aresAppId && !!d.portal.surface.consumerAuthTenant?.aresClientId;
-};
-
-export let assertPortalSsoConfigured = (d: { portal: PortalWithSurface }) => {
-  if (isPortalSsoConfigured(d)) {
-    return;
-  }
-
-  throw new ServiceError(
-    preconditionFailedError({
-      message: 'Portal SSO is not configured.'
-    })
-  );
-};
-
 export let getPortalSsoAuthorizationCodeOrThrow = (d: {
   code?: string | null;
 }) => {

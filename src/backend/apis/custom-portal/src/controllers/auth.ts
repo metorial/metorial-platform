@@ -7,13 +7,11 @@ import {
   clearPortalSessionCookie,
   setPortalAuthStateCookie
 } from '../lib/cookies';
-import { presentPortal, presentSession } from '../presenters';
+import { portalPresenter, sessionPresenter } from '../presenters';
 import {
-  assertPortalSsoConfigured,
   assertPortalAuthState,
   getPortalSsoAuthorizationCodeOrThrow,
   getPortalSessionFromCookie,
-  isPortalSsoConfigured,
   issuePortalTokens
 } from '../lib/portal';
 
@@ -27,8 +25,7 @@ export let authController = portalFromIdApp.controller({
     )
     .do(async ctx => {
       return {
-        portal: await presentPortal({ portal: ctx.portal }),
-        isSsoConfigured: isPortalSsoConfigured({ portal: ctx.portal })
+        portal: await portalPresenter({ portal: ctx.portal }),
       };
     }),
 
@@ -40,8 +37,6 @@ export let authController = portalFromIdApp.controller({
       })
     )
     .do(async ctx => {
-      assertPortalSsoConfigured({ portal: ctx.portal });
-
       let state = crypto.randomUUID();
       let stateExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
       let redirectUri = new URL(ctx.portalUrl);
@@ -92,7 +87,7 @@ export let authController = portalFromIdApp.controller({
       });
 
       return {
-        session: presentSession({
+        session: sessionPresenter({
           session: sessionRes.session
         }),
         consumerSessionToken: tokens.consumerSessionToken
@@ -136,9 +131,9 @@ export let authController = portalFromIdApp.controller({
       });
 
       return {
-        portal: await presentPortal({ portal: ctx.portal }),
+        portal: await portalPresenter({ portal: ctx.portal }),
         portalUrl: ctx.portalUrl,
-        session: presentSession({ session }),
+        session: sessionPresenter({ session }),
         consumerSessionToken: tokens.consumerSessionToken
       };
     }),

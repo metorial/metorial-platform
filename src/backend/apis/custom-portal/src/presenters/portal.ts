@@ -2,7 +2,7 @@ import { portalService } from '@metorial/module-portal';
 
 type PortalWithSurface = Awaited<ReturnType<typeof portalService.getPortalPublic>>;
 
-export let presentPortal = async (d: { portal: PortalWithSurface }) => ({
+export let portalPresenter = async (d: { portal: PortalWithSurface }) => ({
   object: 'portal' as const,
   id: d.portal.id,
   status: d.portal.status,

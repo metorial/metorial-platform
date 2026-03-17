@@ -24,11 +24,8 @@ let calls: {
   };
 } = {};
 
-let getTransportKey = (call: Pick<Call, 'headers' | 'query' | 'endpoint' | 'referrerPolicy'>) =>
-  `${canonicalize(call.headers)}${canonicalize(call.query)}${call.endpoint}${canonicalize(call.referrerPolicy ?? null)}`;
-
 let performRequest = (call: Call) => {
-  let key = `${getTransportKey(call)}${canonicalize(call.batchKey ?? null)}`;
+  let key = `${canonicalize(call.headers)}${canonicalize(call.query)}${call.endpoint}${canonicalize(call.referrerPolicy ?? null)}`;
 
   if (!calls[key]) calls[key] = { calls: [], to: null };
   let current = calls[key];

@@ -1,14 +1,14 @@
-import {
-  badRequestError,
-  preconditionFailedError,
-  ServiceError
-} from '@lowerdeck/error';
+import { badRequestError, preconditionFailedError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import {
+  ConsumerProviderCatalogItem,
+  ConsumerProviderCatalogEntry,
   consumerAccessRequestService,
   consumerProfileService,
-  consumerProviderFlowService
+  consumerProviderCatalogService,
+  consumerProviderDeploymentService,
+  consumerProviderSetupSessionService
 } from '@metorial/module-consumer';
 import { magicMcpServerService } from '@metorial/module-magic';
 import { Controller } from '@metorial/rest';
@@ -21,6 +21,25 @@ import {
   providerSetupSessionPresenter
 } from '../../presenters';
 
+let consumerProviderItemGroup = consumerGroup.use(async ctx => {
+  if (!ctx.params.catalogItemId) {
+    throw new ServiceError(
+      badRequestError({
+        message: 'catalogItemId is required',
+        description: 'The catalogItemId path parameter is required.'
+      })
+    );
+  }
+
+  let consumerProvider = await consumerProviderCatalogService.getCatalogItem({
+    instance: ctx.instance,
+    catalogItemId: ctx.params.catalogItemId,
+    accessTags: ctx.accessTags
+  });
+
+  return { consumerProvider };
+});
+
 let consumerProviderGroup = consumerGroup.use(async ctx => {
   if (!ctx.params.catalogItemId) {
     throw new ServiceError(
@@ -31,7 +50,7 @@ let consumerProviderGroup = consumerGroup.use(async ctx => {
     );
   }
 
-  let consumerProvider = await consumerProviderFlowService.getConsumerProviderCatalogEntry({
+  let consumerProvider = await consumerProviderCatalogService.getCatalogEntry({
     instance: ctx.instance,
     catalogItemId: ctx.params.catalogItemId,
     accessTags: ctx.accessTags,
@@ -42,9 +61,7 @@ let consumerProviderGroup = consumerGroup.use(async ctx => {
 });
 
 let requireProviderTemplate = (
-  consumerProvider: Awaited<
-    ReturnType<typeof consumerProviderFlowService.getConsumerProviderCatalogEntry>
-  >
+  consumerProvider: ConsumerProviderCatalogItem | ConsumerProviderCatalogEntry
 ) => {
   if (consumerProvider.type != 'provider_template') {
     throw new ServiceError(
@@ -80,7 +97,7 @@ export let consumerProviderController = Controller.create(
       )
       .outputList(consumerProviderPresenter)
       .do(async ctx => {
-        let list = await consumerProviderFlowService.listConsumerCatalogEntries({
+        let list = await consumerProviderCatalogService.listCatalogEntries({
           instance: ctx.instance,
           search: ctx.query.search,
           accessTags: ctx.accessTags,
@@ -94,16 +111,16 @@ export let consumerProviderController = Controller.create(
           }
         });
 
-        return Paginator.present(
-          list,
-          consumerProvider => consumerProviderPresenter.present({ consumerProvider })
+        return Paginator.present(list, consumerProvider =>
+          consumerProviderPresenter.present({ consumerProvider })
         );
       }),
 
     get: consumerProviderGroup
       .get(consumerPath('providers/:catalogItemId', 'providers.get'), {
         name: 'Get consumer provider',
-        description: 'Returns one portal catalog item with any available setup capability data.'
+        description:
+          'Returns one portal catalog item with any available setup capability data.'
       })
       .use(hasFlags(['paid-portals', 'portals-access']))
       .output(consumerProviderPresenter)
@@ -113,7 +130,7 @@ export let consumerProviderController = Controller.create(
         });
       }),
 
-    requestAccess: consumerProviderGroup
+    requestAccess: consumerProviderItemGroup
       .post(
         consumerPath('providers/:catalogItemId/request-access', 'providers.requestAccess'),
         {
@@ -167,7 +184,7 @@ export let consumerProviderController = Controller.create(
         });
       }),
 
-    startSetup: consumerProviderGroup
+    startSetup: consumerProviderItemGroup
       .post(consumerPath('providers/:catalogItemId/setup', 'providers.setup'), {
         name: 'Start consumer provider setup',
         description: 'Starts an OAuth setup flow for a portal provider template.'
@@ -182,12 +199,12 @@ export let consumerProviderController = Controller.create(
       .output(providerSetupSessionPresenter)
       .do(async ctx => {
         let consumerProvider = requireProviderTemplate(ctx.consumerProvider);
-        let setupSession = await consumerProviderFlowService.createConsumerProviderSetupSession({
+        let setupSession = await consumerProviderSetupSessionService.startSetupSession({
           instance: ctx.instance,
           context: ctx.context,
           accessTags: ctx.accessTags!,
           consumerSurfaceOid: ctx.consumerSurface.oid,
-          consumerProfileId: ctx.consumerProfile.id,
+          consumerProfileOid: ctx.consumerProfile.oid,
           providerTemplateId: consumerProvider.providerTemplate.id,
           input: {
             providerAuthMethodId: ctx.body.provider_auth_method_id
@@ -199,7 +216,7 @@ export let consumerProviderController = Controller.create(
         });
       }),
 
-    getSetup: consumerProviderGroup
+    getSetup: consumerProviderItemGroup
       .get(
         consumerPath(
           'providers/:catalogItemId/setup/:providerSetupSessionId',
@@ -207,18 +224,18 @@ export let consumerProviderController = Controller.create(
         ),
         {
           name: 'Get consumer provider setup',
-          description: 'Reads the status of an OAuth setup flow for a portal provider template.'
+          description:
+            'Reads the status of an OAuth setup flow for a portal provider template.'
         }
       )
       .use(hasFlags(['paid-portals', 'portals-access']))
       .output(providerSetupSessionPresenter)
       .do(async ctx => {
         let consumerProvider = requireProviderTemplate(ctx.consumerProvider);
-        let setupSession = await consumerProviderFlowService.getConsumerProviderSetupSession({
+        let setupSession = await consumerProviderSetupSessionService.getSetupSession({
           instance: ctx.instance,
-          accessTags: ctx.accessTags!,
-          consumerProfileId: ctx.consumerProfile.id,
-          providerTemplateId: consumerProvider.providerTemplate.id,
+          consumerProfileOid: ctx.consumerProfile.oid,
+          providerTemplateOid: consumerProvider.providerTemplate.oid,
           providerSetupSessionId: ctx.params.providerSetupSessionId
         });
 
@@ -227,7 +244,7 @@ export let consumerProviderController = Controller.create(
         });
       }),
 
-    deploy: consumerProviderGroup
+    deploy: consumerProviderItemGroup
       .post(consumerPath('providers/:catalogItemId/deploy', 'providers.deploy'), {
         name: 'Deploy consumer provider',
         description: 'Creates an owned Magic MCP server from a portal provider template.'
@@ -258,7 +275,7 @@ export let consumerProviderController = Controller.create(
       .output(magicMcpServerPresenter)
       .do(async ctx => {
         let consumerProvider = requireProviderTemplate(ctx.consumerProvider);
-        let magicMcpServer = await consumerProviderFlowService.deployConsumerProvider({
+        let magicMcpServer = await consumerProviderDeploymentService.deployProvider({
           organization: ctx.organization,
           performedBy: ctx.actor!,
           instance: ctx.instance,

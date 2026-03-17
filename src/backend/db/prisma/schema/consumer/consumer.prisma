@@ -51,6 +51,7 @@ model ConsumerProfile {
   consumerSessions ConsumerSession[]
   groups           ConsumerProfileGroup[]
   accessRequests   ConsumerAccessRequest[]
+  providerSetupSessionBindings ConsumerProviderSetupSessionBinding[]
 
   @@unique([surfaceOid, aresUserId])
   @@unique([email, surfaceOid])

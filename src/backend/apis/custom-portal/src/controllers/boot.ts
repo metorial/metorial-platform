@@ -1,15 +1,18 @@
 import { v } from '@lowerdeck/validation';
-import { consumerAuthService, consumerProviderFlowService } from '@metorial/module-consumer';
+import {
+  consumerAuthService,
+  consumerProviderCatalogService
+} from '@metorial/module-consumer';
 import { portalFromUrlApp } from '../group';
 import {
   createAuthenticatedPortalBootResponse,
   createUnauthenticatedPortalBootResponse
 } from '../lib/boot';
 import {
-  presentInstance,
-  presentPortal,
-  presentPortalFeaturedContent,
-  presentSession
+  instancePresenter,
+  portalPresenter,
+  portalFeaturedContentPresenter,
+  sessionPresenter
 } from '../presenters';
 import {
   getPortalPublishableApiKey,
@@ -33,8 +36,8 @@ export let bootController = portalFromUrlApp.controller({
       });
 
       let baseResponse = {
-        portal: await presentPortal({ portal: ctx.portal }),
-        instance: presentInstance({ portal: ctx.portal }),
+        portal: await portalPresenter({ portal: ctx.portal }),
+        instance: instancePresenter({ portal: ctx.portal }),
         portalUrl: ctx.portalUrl,
         publishableApiKey: getPortalPublishableApiKey({ portal: ctx.portal })
       };
@@ -46,8 +49,8 @@ export let bootController = portalFromUrlApp.controller({
       let consumerAccess = await consumerAuthService.getConsumerAccessContextForSession({
         session: sessionRes.session
       });
-      let featuredContent = presentPortalFeaturedContent(
-        await consumerProviderFlowService.listFeaturedConsumerCatalogEntries({
+      let featuredContent = portalFeaturedContentPresenter(
+        await consumerProviderCatalogService.listFeaturedCatalogItems({
           instance: ctx.portal.instance,
           accessTags: consumerAccess?.accessTags,
           limit: 6
@@ -63,7 +66,7 @@ export let bootController = portalFromUrlApp.controller({
       return createAuthenticatedPortalBootResponse({
         ...baseResponse,
         featuredContent,
-        session: presentSession({
+        session: sessionPresenter({
           session: sessionRes.session
         }),
         consumerSessionToken: tokens.consumerSessionToken

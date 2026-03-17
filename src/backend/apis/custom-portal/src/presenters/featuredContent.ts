@@ -1,10 +1,6 @@
-import { consumerProviderFlowService } from '@metorial/module-consumer';
+import { type ConsumerProviderCatalogItem } from '@metorial/module-consumer';
 
-type PortalFeaturedCatalogEntry = Awaited<
-  ReturnType<typeof consumerProviderFlowService.listFeaturedConsumerCatalogEntries>
->[number];
-
-export let presentPortalFeaturedContent = (items: PortalFeaturedCatalogEntry[]) => ({
+export let portalFeaturedContentPresenter = (items: ConsumerProviderCatalogItem[]) => ({
   object: 'portal.featured_content' as const,
   items: items.map(item => {
     return item.type == 'provider_template'

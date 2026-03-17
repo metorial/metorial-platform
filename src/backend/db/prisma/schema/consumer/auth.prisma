@@ -52,10 +52,11 @@ model ConsumerProviderSetupSessionBinding {
 
   providerSetupSessionId String
 
-  consumerProfileId    String
-  providerTemplateId   String
-  providerId           String
-  providerDeploymentId String
+  consumerProfileOid BigInt
+  consumerProfile    ConsumerProfile @relation(fields: [consumerProfileOid], references: [oid], onDelete: Cascade)
+
+  providerTemplateOid BigInt
+  providerTemplate    ProviderTemplate @relation(fields: [providerTemplateOid], references: [oid], onDelete: Cascade)
 
   instanceOid BigInt
   instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
