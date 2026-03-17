@@ -50,11 +50,6 @@ export let frontendEnv: Env = [
   },
 
   {
-    key: 'VITE_FEDERATION_API_URL',
-    defaultValue: `http://${HOSTNAME}:4321`,
-    isEnterprise: true
-  },
-  {
     key: 'VITE_ADMIN_API_URL',
     defaultValue: `http://${HOSTNAME}:4322/metorial-admin`,
     isEnterprise: true
