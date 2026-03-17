@@ -181,13 +181,13 @@ let _generateMapper = (
           if (value.type === 'array') {
             let itemType = value.items?.[0];
             if (itemType?.type === 'date') {
-              return `${indent}${pyName}=[datetime.fromisoformat(item) for item in ${source}.get('${jsonKey}', []) if item]`;
+              return `${indent}${pyName}=[datetime.fromisoformat(item.replace('Z', '+00:00')) for item in ${source}.get('${jsonKey}', []) if item]`;
             }
             return `${indent}${pyName}=${source}.get('${jsonKey}', [])`;
           }
 
           if (value.type === 'date') {
-            return `${indent}${pyName}=datetime.fromisoformat(${source}.get('${jsonKey}')) if ${source}.get('${jsonKey}') else None`;
+            return `${indent}${pyName}=datetime.fromisoformat(${source}.get('${jsonKey}').replace('Z', '+00:00')) if ${source}.get('${jsonKey}') else None`;
           }
 
           return `${indent}${pyName}=${source}.get('${jsonKey}')`;
@@ -216,7 +216,7 @@ let _generateMapper = (
             return `${indent}"${pyName}": [${_generateMapper(value.items![0], undefined, 'item', indentLevel + 2, parentClassName)} for item in ${source}.get('${jsonKey}', [])]`;
           }
           if (value.type === 'date') {
-            return `${indent}"${pyName}": ${source}.get('${jsonKey}') and datetime.fromisoformat(${source}.get('${jsonKey}'))`;
+            return `${indent}"${pyName}": ${source}.get('${jsonKey}') and datetime.fromisoformat(${source}.get('${jsonKey}').replace('Z', '+00:00'))`;
           }
           return `${indent}"${pyName}": ${source}.get('${jsonKey}')`;
         })
@@ -243,7 +243,7 @@ let _generateMapper = (
   }
 
   if (type.type === 'date') {
-    return `${indent}${source} and datetime.fromisoformat(${source})`;
+    return `${indent}${source} and datetime.fromisoformat(${source}.replace('Z', '+00:00'))`;
   }
 
   return `${indent}${source}`;
