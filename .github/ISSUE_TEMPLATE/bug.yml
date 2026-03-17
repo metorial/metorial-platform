@@ -56,7 +56,7 @@ body:
     id: link
     attributes:
       label: Link
-      placeholder: https://app.metorial.com/...
+      placeholder: https://platform.metorial.com/...
       description: If you can, please provide a link to the page where you found the bug. This helps us find it faster.
     validations:
       required: false

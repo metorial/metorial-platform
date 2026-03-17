@@ -371,7 +371,8 @@ export class RestServer<AuthInfo, ApiVersion extends string> {
 
                   try {
                     let url = new URL(req.url);
-                    if (url.pathname == '/ping') return new Response('OK');
+                    if (url.pathname == '/ping')
+                      return new Response('OK', { headers: corsHeaders });
                     if (url.pathname == '/')
                       return Response.redirect('https://metorial.com/api', 301);
                     if (url.pathname == '/metorial/introspect/versions') {

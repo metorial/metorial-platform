@@ -5,7 +5,6 @@ import { authApi } from '@metorial/api-auth';
 import { startMcpServer } from '@metorial/api-connection';
 import { apiServer } from '@metorial/api-core';
 import { fileContentApi, fileUploadApi } from '@metorial/api-files';
-import { marketplaceApp } from '@metorial/api-marketplace';
 import { authenticate } from '@metorial/auth';
 
 let apiPort = parseInt(process.env.API_PORT || '4310');
@@ -14,7 +13,6 @@ let mcpPort = parseInt(process.env.MCP_PORT || '4311');
 let oauthPort = parseInt(process.env.OAUTH_PORT || '4313');
 let runnerPort = parseInt(process.env.RUNNER_PORT || '3399');
 let privateApiPort = parseInt(process.env.PRIVATE_API_PORT || '4314');
-let marketplaceApiPort = parseInt(process.env.MARKETPLACE_API_PORT || '4312');
 let integrationsApiPort = parseInt(process.env.INTEGRATIONS_API_PORT || '4316');
 let callbacksApiPort = parseInt(process.env.CALLBACKS_API_PORT || '4317');
 
@@ -46,11 +44,6 @@ Bun.serve({
 Bun.serve({
   port: filesPort,
   fetch: fileContentApi.fetch
-});
-
-Bun.serve({
-  port: marketplaceApiPort,
-  fetch: marketplaceApp.fetch
 });
 
 startMcpServer({ port: mcpPort, authenticate });

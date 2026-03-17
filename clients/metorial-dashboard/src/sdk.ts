@@ -101,10 +101,20 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
     apiHost?: string;
     organizationId?: string;
     instanceId?: string;
+    metorialInstance?: string;
   }) => ({
     ...soft,
+
     apiVersion: '2025-01-01-dashboard',
-    fetch: fetchWithRetryAndLogging,
+    fetch: (a: any, b: any) => {
+      let url = new URL(a);
+      if (soft.metorialInstance) {
+        url.searchParams.set('_m', soft.metorialInstance);
+      }
+      a = url.toString();
+
+      return fetchWithRetryAndLogging(a, b);
+    },
     enableDebugLogging: true
   })
 )(manager => ({

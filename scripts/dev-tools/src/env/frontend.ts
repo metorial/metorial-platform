@@ -25,11 +25,15 @@ export let frontendEnv: Env = [
     defaultValue: JSON.stringify({
       local1: {
         federationApi: `http://${HOSTNAME}:4321`,
-        coreApi: `http://${HOSTNAME}:4310`
+        coreApi: `http://${HOSTNAME}:4310?_metorial_instance=local1`,
+        adminApi: `http://${HOSTNAME}:4322/metorial-admin`,
+        horizonAppId: 'metorial-enterprise-dev'
       },
       local2: {
         federationApi: `http://${HOSTNAME}:4321`,
-        coreApi: `http://${HOSTNAME}:4310`
+        coreApi: `http://${HOSTNAME}:4310?_metorial_instance=local2`,
+        adminApi: `http://${HOSTNAME}:4322/metorial-admin`,
+        horizonAppId: 'metorial-enterprise-dev'
       }
     })
   },
@@ -50,17 +54,23 @@ export let frontendEnv: Env = [
     defaultValue: `http://${HOSTNAME}:4321`,
     isEnterprise: true
   },
+  {
+    key: 'VITE_ADMIN_API_URL',
+    defaultValue: `http://${HOSTNAME}:4322/metorial-admin`,
+    isEnterprise: true
+  },
+  {
+    key: 'CORE_API_URL',
+    defaultValue: `http://${HOSTNAME}:4310`,
+    isEnterprise: true
+  },
 
   // {
   //   key: 'VITE_AUTH_API_URL',
   //   defaultValue: `http://${HOSTNAME}:4321/metorial-id`,
   //   isEnterprise: true
   // },
-  // {
-  //   key: 'VITE_ADMIN_API_URL',
-  //   defaultValue: `http://${HOSTNAME}:4322/metorial-admin`,
-  //   isEnterprise: true
-  // },
+
   // {
   //   key: 'VITE_LANDING_API_URL',
   //   defaultValue: `http://${HOSTNAME}:4323/metorial-landing`,
@@ -122,7 +132,5 @@ export let frontendEnv: Env = [
     key: 'VITE_PUBLIC_API_URL',
     defaultValue: `http://${HOSTNAME}:4310`,
     isEnterprise: true
-  },
-
-  { key: 'VITE_HORIZON_APP_ID', isEnterprise: true, defaultValue: `metorial-enterprise-dev` }
+  }
 ];

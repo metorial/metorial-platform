@@ -1,3 +1,4 @@
+import { delay } from '@lowerdeck/delay';
 import { isServiceError } from '@lowerdeck/error';
 import { ProgrammablePromise } from '@lowerdeck/programmable-promise';
 import { getSentry } from '@lowerdeck/sentry';
@@ -66,18 +67,20 @@ let firstUserPromise = new ProgrammablePromise<MetorialUser>();
 export let fetchUserSpecial = () => {
   if (typeof window === 'undefined') return new Promise(() => {}) as Promise<MetorialUser>;
 
-  return redirectToAuthIfNotAuthenticated(() =>
-    withDashboardSDK(async sdk => {
-      if ((window as any).enterpriseUserPromise) {
-        await (window as any).enterpriseUserPromise;
-      }
+  return redirectToAuthIfNotAuthenticated(async () => {
+    await delay(1);
 
+    if ((window as any).enterpriseUserPromise) {
+      await (window as any).enterpriseUserPromise;
+    }
+
+    return await withDashboardSDK(async sdk => {
       let u = await sdk.user.get();
       if (!firstUserPromise.value) firstUserPromise.resolve(u);
 
       return u;
-    })
-  );
+    });
+  });
 };
 
 export let withAuth = async <O>(

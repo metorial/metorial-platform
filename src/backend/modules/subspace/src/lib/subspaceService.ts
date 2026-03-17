@@ -113,8 +113,8 @@ let createListMethod = (
       async run(query: PaginatorRunQuery) {
         let result = await callController([
           {
-            ...query,
-            ...firstArg
+            ...firstArg,
+            ...query
           }
         ]);
 

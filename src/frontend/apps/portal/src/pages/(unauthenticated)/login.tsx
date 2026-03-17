@@ -1,4 +1,3 @@
-import { getFederationConfig } from '@metorial-enterprise/federation-frontend-config';
 import { useForm } from '@metorial/data-hooks';
 import { Button, CenteredSpinner, Flex, Input, Or, Spacer } from '@metorial/ui';
 import { Fragment, useEffect, useState } from 'react';
@@ -136,18 +135,6 @@ export let LoginPage = () => {
       if (res) setStep('email_code');
     }
   });
-
-  if (import.meta.env.PROD) {
-    useEffect(() => {
-      window.location.replace(
-        `${new URL(getFederationConfig().urls.apis.admin).origin}/auth/google?redirect_url=${encodeURIComponent(
-          `${window.location.origin}/users`
-        )}`
-      );
-    }, []);
-
-    return null;
-  }
 
   if (auth.isLoading || boot.isLoading || boot.data?.type == 'authenticated') {
     return (
