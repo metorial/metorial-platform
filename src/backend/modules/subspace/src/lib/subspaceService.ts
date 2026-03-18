@@ -171,6 +171,11 @@ export let createSubspaceService = <SubspaceController extends {}, Overrides ext
         tenantId: tenant.id,
         environmentId
       };
+
+      delete (payload as any).organizationActor;
+      delete (payload as any).instance;
+      delete (payload as any).organization;
+
       return (controller as any)[methodName](payload, ...args.slice(1));
     },
     args => args[0]

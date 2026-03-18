@@ -20,7 +20,9 @@ let fadeIn = keyframes`
   }
 `;
 
-let Trigger = styled(RadixSelect.Trigger)`
+let Trigger = styled(RadixSelect.Trigger).attrs({
+  type: 'button'
+})`
   display: flex;
   outline: 1px solid transparent;
   background: ${theme.colors.gray300};

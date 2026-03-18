@@ -132,23 +132,6 @@ let InstancePaths = Object.assign(
       );
     },
 
-    sessions: (
-      organization: EntityParam,
-      project: EntityParam,
-      instance: EntityParam,
-      ...subPages: SubPages
-    ) => InstancePaths(organization, project, instance, 'sessions', ...subPages),
-    session: (
-      organization: EntityParam,
-      project: EntityParam,
-      instance: EntityParam,
-      id?: string,
-      ...subPages: SubPages
-    ) => {
-      if (!id) return '#';
-      return InstancePaths(organization, project, instance, 'session', id, ...subPages);
-    },
-
     providerErrors: (
       organization: EntityParam,
       project: EntityParam,
@@ -342,6 +325,122 @@ let InstancePaths = Object.assign(
       }
     },
 
+    identity: {
+      actors: (
+        organization: EntityParam,
+        project: EntityParam,
+        instance: EntityParam,
+        ...subPages: SubPages
+      ) => InstancePaths(organization, project, instance, 'identity', 'actors', ...subPages),
+
+      actor: (
+        organization: EntityParam,
+        project: EntityParam,
+        instance: EntityParam,
+        id?: string,
+        ...subPages: SubPages
+      ) => {
+        if (!id) return '#';
+        return InstancePaths(
+          organization,
+          project,
+          instance,
+          'identity',
+          'actor',
+          id,
+          ...subPages
+        );
+      },
+
+      identities: (
+        organization: EntityParam,
+        project: EntityParam,
+        instance: EntityParam,
+        ...subPages: SubPages
+      ) =>
+        InstancePaths(organization, project, instance, 'identity', 'identities', ...subPages),
+
+      identity: (
+        organization: EntityParam,
+        project: EntityParam,
+        instance: EntityParam,
+        id?: string,
+        ...subPages: SubPages
+      ) => {
+        if (!id) return '#';
+        return InstancePaths(
+          organization,
+          project,
+          instance,
+          'identity',
+          'identity',
+          id,
+          ...subPages
+        );
+      },
+
+      delegations: (
+        organization: EntityParam,
+        project: EntityParam,
+        instance: EntityParam,
+        ...subPages: SubPages
+      ) =>
+        InstancePaths(organization, project, instance, 'identity', 'delegations', ...subPages),
+
+      delegation: (
+        organization: EntityParam,
+        project: EntityParam,
+        instance: EntityParam,
+        id?: string,
+        ...subPages: SubPages
+      ) => {
+        if (!id) return '#';
+        return InstancePaths(
+          organization,
+          project,
+          instance,
+          'identity',
+          'delegation',
+          id,
+          ...subPages
+        );
+      },
+
+      delegationConfigs: (
+        organization: EntityParam,
+        project: EntityParam,
+        instance: EntityParam,
+        ...subPages: SubPages
+      ) =>
+        InstancePaths(
+          organization,
+          project,
+          instance,
+          'identity',
+          'delegation-configs',
+          ...subPages
+        ),
+
+      delegationConfig: (
+        organization: EntityParam,
+        project: EntityParam,
+        instance: EntityParam,
+        id?: string,
+        ...subPages: SubPages
+      ) => {
+        if (!id) return '#';
+        return InstancePaths(
+          organization,
+          project,
+          instance,
+          'identity',
+          'delegation-config',
+          id,
+          ...subPages
+        );
+      }
+    },
+
     providerAuthConfigs: (
       organization: EntityParam,
       project: EntityParam,
@@ -531,6 +630,11 @@ let OrganizationPaths = Object.assign(
 export let WelcomePaths = Object.assign(
   (...subPages: SubPages) => joinPaths('welcome', ...subPages),
   {
+    onboarding: (i: { organizationId: string }) => {
+      let inner = WelcomePaths('onboarding');
+      let search = new URLSearchParams({ organization_id: i.organizationId });
+      return `${inner}?${search.toString()}`;
+    },
     project: (i: { organizationId: string }) => {
       let inner = WelcomePaths('project');
       let search = new URLSearchParams({ organization_id: i.organizationId });

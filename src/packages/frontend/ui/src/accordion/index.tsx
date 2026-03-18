@@ -62,7 +62,9 @@ let Item = styled(RadixAccordion.Item)`
   }
 `;
 
-let Trigger = styled(RadixAccordion.Trigger)`
+let Trigger = styled(RadixAccordion.Trigger).attrs({
+  type: 'button'
+})`
   height: 50px;
   display: flex;
   align-items: center;

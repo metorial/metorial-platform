@@ -1,7 +1,7 @@
 import { CodeEditor } from '@metorial/code-editor';
 import { Checkbox, Error, Input, InputLabel, Select, theme } from '@metorial/ui';
 import { JSONSchema7 } from 'json-schema';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 
 let Wrapper = styled.div`
@@ -44,16 +44,20 @@ export let JsonSchemaInput = ({
   let required = schema.required ?? [];
 
   let [value, setValue] = useState<any>(() => initialValue);
+  let valueRef = useRef(value);
+  valueRef.current = value;
   useEffect(() => {
-    if (initialValue != value) setValue(initialValue);
+    if (initialValue != value) {
+      valueRef.current = initialValue;
+      setValue(initialValue);
+    }
   }, [initialValue]);
 
   let updateField = (key: string, newValue: any) => {
-    setValue((oldValue: any) => {
-      let newObject = { ...oldValue, [key]: newValue };
-      setTimeout(() => onChange(newObject), 0);
-      return newObject;
-    });
+    let newObject = { ...valueRef.current, [key]: newValue };
+    valueRef.current = newObject;
+    setValue(newObject);
+    onChange(newObject);
   };
 
   let inner = (

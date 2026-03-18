@@ -22,6 +22,14 @@ import { ProviderAuthConfigForm, ProviderAuthConfigFormProps } from './form';
 
 type AuthMethod = DashboardInstanceProvidersAuthMethodsListOutput['items'][number];
 
+let DIALOG_EXIT_MS = 220;
+
+let closeAndThen = (close: () => void, next?: () => void) => {
+  close();
+  if (!next) return;
+  setTimeout(() => next(), DIALOG_EXIT_MS);
+};
+
 let getAuthMethodHasSchema = (method: AuthMethod | undefined) => {
   let schema = method?.inputSchema?.schema;
   return !!(
@@ -86,8 +94,7 @@ export let showProviderAuthConfigFormModal = (
         close={close}
         onCreate={p.onCreate}
         onBack={() => {
-          close();
-          p.onBack?.();
+          closeAndThen(close, p.onBack);
         }}
       />
     </Dialog.Wrapper>
@@ -122,6 +129,14 @@ let ProviderAuthConfigCreateModalContent = (p: {
   let oauthAutoRegistrationEnabled = getProviderOAuthAutoRegistrationEnabled(
     authCreation.provider.data
   );
+  let handleBack = () => {
+    if (!p.onBack) {
+      p.close();
+      return;
+    }
+
+    closeAndThen(p.close, p.onBack);
+  };
   let providerContextCard = providerId ? (
     <ProviderContextCard
       providerId={providerId}
@@ -157,7 +172,7 @@ let ProviderAuthConfigCreateModalContent = (p: {
         <Spacer size={15} />
 
         <Dialog.Actions>
-          <Button variant="outline" onClick={p.onBack ?? p.close}>
+          <Button variant="outline" onClick={handleBack}>
             Back
           </Button>
         </Dialog.Actions>
@@ -179,7 +194,7 @@ let ProviderAuthConfigCreateModalContent = (p: {
           <Spacer size={15} />
 
           <Dialog.Actions>
-            <Button variant="outline" onClick={p.onBack ?? p.close}>
+            <Button variant="outline" onClick={handleBack}>
               Back
             </Button>
           </Dialog.Actions>
@@ -346,10 +361,7 @@ let ProviderAuthConfigCreateModalContent = (p: {
                   <Dialog.Actions>
                     <Button
                       variant="outline"
-                      onClick={() => {
-                        p.close();
-                        p.onBack?.();
-                      }}
+                      onClick={handleBack}
                     >
                       {p.onBack ? 'Back' : 'Cancel'}
                     </Button>
@@ -386,8 +398,7 @@ let ProviderAuthConfigCreateModalContent = (p: {
         providerId={providerId}
         close={p.close}
         onBack={() => {
-          p.close();
-          p.onBack?.();
+          handleBack();
         }}
         onCreate={authConfig => {
           p.onCreate?.({ id: authConfig.id });

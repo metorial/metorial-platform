@@ -37,6 +37,7 @@ import {
   TeamRole,
   User
 } from '@metorial/db';
+import { Flags } from '@metorial/module-flags';
 import {
   ConsumerAresApp,
   ConsumerAresSsoConnection,
@@ -52,6 +53,12 @@ import {
   SubspaceCustomProviderDeploymentLogs,
   SubspaceCustomProviderEnvironment,
   SubspaceCustomProviderVersion,
+  SubspaceIdentity,
+  SubspaceIdentityActor,
+  SubspaceIdentityCredential,
+  SubspaceIdentityDelegation,
+  SubspaceIdentityDelegationConfig,
+  SubspaceIdentityDelegationRequest,
   SubspaceProvider,
   SubspaceProviderAuthConfig,
   SubspaceProviderAuthConfigSchema,
@@ -203,6 +210,10 @@ export let usageType = PresentableType.create<{
 export let profileType = PresentableType.create<{
   profile: Profile;
 }>()('profile');
+
+export let flagsType = PresentableType.create<{
+  flags: Flags;
+}>()('flags');
 
 export let magicMcpServerType = PresentableType.create<{
   magicMcpServer: MagicMcpServer & {
@@ -443,6 +454,30 @@ export let providerVersionType = PresentableType.create<{
 }>()('version');
 
 export let providerType = PresentableType.create<{ provider: SubspaceProvider }>()('provider');
+
+export let identityType = PresentableType.create<{
+  identity: SubspaceIdentity;
+}>()('identity');
+
+export let identityActorType = PresentableType.create<{
+  identityActor: SubspaceIdentityActor;
+}>()('identity.actor');
+
+export let identityCredentialType = PresentableType.create<{
+  identityCredential: SubspaceIdentityCredential;
+}>()('identity.credential');
+
+export let identityDelegationType = PresentableType.create<{
+  identityDelegation: SubspaceIdentityDelegation;
+}>()('identity.delegation');
+
+export let identityDelegationConfigType = PresentableType.create<{
+  identityDelegationConfig: SubspaceIdentityDelegationConfig;
+}>()('identity.delegation_config');
+
+export let identityDelegationRequestType = PresentableType.create<{
+  identityDelegationRequest: SubspaceIdentityDelegationRequest;
+}>()('identity.delegation_request');
 
 export let providerTypeType = PresentableType.create<{
   providerType: SubspaceProviderType;

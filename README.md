@@ -10,7 +10,7 @@ Connect any AI model to thousands of APIs, data sources, and tools with a single
 </p>
 
 > [!TIP]
-> _Skip the setup and go hosted:_ The fasted, simplest and most reliable way to use [Metorial](https://metorial.com) is to sign up to [our hosted platform](https://app.metorial.com/).
+> _Skip the setup and go hosted:_ The fasted, simplest and most reliable way to use [Metorial](https://metorial.com) is to sign up to [our hosted platform](https://platform.metorial.com/).
 >
 > ➡️ **[Get Started (for free)](https://metorial.com)**
 

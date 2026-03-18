@@ -15,7 +15,6 @@ import {
   Spacer,
   Text
 } from '@metorial/ui';
-import { useState } from 'react';
 import { getProviderConfigSchemaCapabilities } from '../../lib/providerCreationCapabilities';
 import { JsonSchemaInput } from '../jsonSchemaInput';
 import { ProviderContextCard } from '../providerContextCard';
@@ -51,7 +50,6 @@ export let ProviderConfigVaultForm = (
   );
   let isDeploymentScoped = !!props.providerDeploymentId;
 
-  let [vaultData, setVaultData] = useState<Record<string, unknown>>({});
   let schemaCapabilities = getProviderConfigSchemaCapabilities({
     schemaValue: configSchema.data?.schema,
     hasVaults: false,
@@ -69,53 +67,77 @@ export let ProviderConfigVaultForm = (
   let form = useForm({
     initialValues: {
       name: '',
-      description: ''
+      description: '',
+      vaultData: {} as Record<string, unknown>
     },
-    onSubmit: async () => {},
+    onSubmit: async values => {
+      if (
+        !instanceId ||
+        !providerId ||
+        !schemaCapabilities.canCreateConfigVault
+      ) {
+        return;
+      }
+
+      let [result] = await createMutation.mutate({
+        instanceId,
+        providerId,
+        ...(props.providerDeploymentId
+          ? { providerDeploymentId: props.providerDeploymentId }
+          : {}),
+        name: values.name.trim(),
+        description: values.description || undefined,
+        value: values.vaultData
+      });
+
+      if (!result) return;
+
+      props.onCreate?.(result);
+      props.close?.();
+    },
     schema: yup =>
       yup.object({
-        name: yup.string().required('Name is required'),
-        description: yup.string().defined()
+        name: yup.string().trim().required('Name is required'),
+        description: yup.string().ensure(),
+        vaultData: yup.mixed<Record<string, unknown>>().defined()
       })
   });
 
-  let handleSubmit = async () => {
-    let name = form.values.name.trim();
+  if (props.providerDeploymentId && deployment.isLoading) {
+    return <CenteredSpinner />;
+  }
 
-    if (!name) {
-      form.setFieldTouched('name', true);
-      form.setFieldError('name', 'Name is required');
-      return;
-    }
+  if (props.providerDeploymentId && deployment.error) {
+    return (
+      <>
+        <Text size="2" color="red600">
+          {deployment.error.message ?? 'Failed to load deployment details.'}
+        </Text>
 
-    form.setFieldError('name', undefined);
+        <Spacer size={15} />
 
-    if (
-      !instanceId ||
-      !providerId ||
-      !schemaCapabilities.canCreateConfigVault
-    ) {
-      return;
-    }
+        <Dialog.Actions>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={props.onBack ?? props.close}
+          >
+            {props.onBack ? 'Back' : 'Close'}
+          </Button>
+        </Dialog.Actions>
+      </>
+    );
+  }
 
-    let [result] = await createMutation.mutate({
-      instanceId,
-      providerId,
-      ...(props.providerDeploymentId
-        ? { providerDeploymentId: props.providerDeploymentId }
-        : {}),
-      name,
-      description: form.values.description || undefined,
-      value: vaultData
-    });
+  if (props.providerDeploymentId && !providerId) {
+    return (
+      <Text size="2" color="gray600">
+        Loading deployment details...
+      </Text>
+    );
+  }
 
-    if (!result) return;
-
-    props.onCreate?.(result);
-    props.close?.();
-  };
-
-  if (configSchema.isLoading || (!!props.providerDeploymentId && deployment.isLoading)) {
+  if (configSchema.isLoading) {
     return <CenteredSpinner />;
   }
 
@@ -136,25 +158,21 @@ export let ProviderConfigVaultForm = (
       )}
 
       {!showEmptyState ? (
-        <form
-          onSubmit={e => {
-            e.preventDefault();
-            handleSubmit();
-          }}
-        >
+        <form onSubmit={form.handleSubmit}>
           <Input label="Name" required {...form.getFieldProps('name')} />
           <form.RenderError field="name" />
 
           <Spacer size={10} />
 
           <Input label="Description" {...form.getFieldProps('description')} />
+          <form.RenderError field="description" />
 
           <Spacer size={10} />
 
           <JsonSchemaInput
             schema={schemaCapabilities.schemaObject}
-            value={vaultData}
-            onChange={setVaultData}
+            value={form.values.vaultData}
+            onChange={value => form.setFieldValue('vaultData', value)}
             label="Vault Values"
           />
 
@@ -169,9 +187,8 @@ export let ProviderConfigVaultForm = (
               {props.onBack ? 'Back' : 'Cancel'}
             </Button>
             <Button
-              type="button"
-              onClick={handleSubmit}
-              loading={createMutation.isPending}
+              type="submit"
+              loading={createMutation.isLoading}
               disabled={!schemaCapabilities.canCreateConfigVault}
             >
               Create

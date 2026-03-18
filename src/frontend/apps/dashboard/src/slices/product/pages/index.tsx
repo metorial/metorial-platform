@@ -2,27 +2,21 @@ import { CodeBlock } from '@metorial/code';
 import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
-import {
-  useBoot,
-  useCurrentInstance,
-  useProviderDeployments,
-  useRevealedApiKey,
-  useUser
-} from '@metorial/state';
 import type { MetorialEnterpriseWindow } from '@metorial/state';
+import { useCurrentInstance, useProviderDeployments, useUser } from '@metorial/state';
 import { Button, Spacer, Text } from '@metorial/ui';
 import { ID, SideBox } from '@metorial/ui-product';
 import dedent from 'dedent';
-import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ApiKeySecret } from '../scenes/apiKeys';
-import { useApiKeysWithAutoInit } from '../scenes/apiKeys/useApiKeysWithAutoInit';
 import {
-  InstructionItem,
-  Instructions
-} from './(provider-api)/provider/components/instructions';
-import { KeySelector } from './(provider-api)/provider/components/keySelector';
+  createJavascriptSdkInstallInstruction,
+  createPythonSdkInstallInstruction
+} from '../lib/instructionPresets';
+import { ApiKeySecret } from '../scenes/apiKeys';
+import { useResolvedInstanceApiKeySecret } from '../scenes/apiKeys/useResolvedInstanceApiKeySecret';
 import { ProvidersGrid } from '../scenes/providers/grid_';
+import { InstructionItem, Instructions } from './provider/components/instructions';
+import { KeySelector } from './provider/components/keySelector';
 
 declare global {
   interface Window {
@@ -34,42 +28,18 @@ export let ProjectHomePage = () => {
   let instance = useCurrentInstance();
   let user = useUser();
 
-  let boot = useBoot();
-
   let deployments = useProviderDeployments(instance.data?.id);
   let hasDeployments = !!deployments.data?.items.length;
   let firstDeployment = deployments.data?.items[0];
 
-  let apiKeys = useApiKeysWithAutoInit(
-    instance.data
-      ? {
-          type: 'instance_access_token',
-          instanceId: instance.data.id
-        }
-      : undefined
-  );
+  let { apiKeys, apiKeySecret, secretApiKey, setApiKeySecret, revealedApiKey } =
+    useResolvedInstanceApiKeySecret(instance.data?.id);
 
   let pathItems = [
     instance.data?.organization,
     instance.data?.project,
     instance.data
   ] as const;
-
-  let secretApiKey = apiKeys.data?.find(
-    a =>
-      a.type === 'instance_access_token_secret' &&
-      a.status == 'active' &&
-      (a.revealInfo?.forever || (a.revealInfo?.until && a.revealInfo?.until > new Date()))
-  );
-
-  let key = useRevealedApiKey({ apiKeyId: secretApiKey?.id });
-  let [apiKeySecret, setApiKeySecret] = useState<string | undefined>(
-    () => key.value ?? secretApiKey?.secret ?? undefined
-  );
-  useEffect(() => {
-    if (key.value) setApiKeySecret(key.value);
-  }, [key.value]);
-  if (key.value) apiKeySecret = key.value;
 
   let deployProvider: InstructionItem = {
     title: 'Deploy a Provider',
@@ -81,8 +51,8 @@ export let ProjectHomePage = () => {
           {firstDeployment.name
             ? `You already have a deployment called ${firstDeployment.name}. `
             : `You already have a deployment. `}
-          You can use the ID <ID id={firstDeployment.id} /> to reference this deployment in your
-          code.
+          You can use the ID <ID id={firstDeployment.id} /> to reference this deployment in
+          your code.
         </Text>
 
         <Spacer height={10} />
@@ -104,8 +74,8 @@ export let ProjectHomePage = () => {
     ) : (
       <>
         <Text>
-          Before you can use a provider, you need to deploy it. You can do this using the Metorial
-          API or by clicking the button below.
+          Before you can use a provider, you need to deploy it. You can do this using the
+          Metorial API or by clicking the button below.
         </Text>
 
         <Spacer height={10} />
@@ -120,40 +90,7 @@ export let ProjectHomePage = () => {
   };
 
   let getJSStartInstructions = (d?: { additionalPackages?: string[] }): InstructionItem[] => [
-    {
-      title: 'Install the Metorial SDK',
-      description: 'Get started by installing the Metorial SDK in your project.',
-      variants: [
-        {
-          label: 'npm',
-          item: {
-            type: 'code' as const,
-            code: `npm install --save ${['metorial', ...(d?.additionalPackages ?? [])].join(' ')}`
-          }
-        },
-        {
-          label: 'yarn',
-          item: {
-            type: 'code' as const,
-            code: `yarn add ${['metorial', ...(d?.additionalPackages ?? [])].join(' ')}`
-          }
-        },
-        {
-          label: 'pnpm',
-          item: {
-            type: 'code' as const,
-            code: `pnpm install --save ${['metorial', ...(d?.additionalPackages ?? [])].join(' ')}`
-          }
-        },
-        {
-          label: 'bun',
-          item: {
-            type: 'code' as const,
-            code: `bun install ${['metorial', ...(d?.additionalPackages ?? [])].join(' ')}`
-          }
-        }
-      ]
-    },
+    createJavascriptSdkInstallInstruction(d?.additionalPackages),
     {
       title: 'Instantiate the Metorial SDK',
       description: 'Set up the Metorial SDK with your API key.',
@@ -175,41 +112,10 @@ export let ProjectHomePage = () => {
     deployProvider
   ];
 
-  let getPythonStartInstructions = (d?: { additionalPackages?: string[] }): InstructionItem[] => [
-    {
-      title: 'Install the Metorial SDK',
-      description: 'Get started by installing the Metorial SDK in your project.',
-      variants: [
-        {
-          label: 'pip',
-          item: {
-            type: 'code' as const,
-            code: `pip install ${['metorial', ...(d?.additionalPackages ?? [])].join(' ')}`
-          }
-        },
-        {
-          label: 'pipx',
-          item: {
-            type: 'code' as const,
-            code: `pipx install ${['metorial', ...(d?.additionalPackages ?? [])].join(' ')}`
-          }
-        },
-        {
-          label: 'conda',
-          item: {
-            type: 'code' as const,
-            code: `conda install -c conda-forge ${['metorial', ...(d?.additionalPackages ?? [])].join(' ')}`
-          }
-        },
-        {
-          label: 'uv',
-          item: {
-            type: 'code' as const,
-            code: `uv add ${['metorial', ...(d?.additionalPackages ?? [])].join(' ')}`
-          }
-        }
-      ]
-    },
+  let getPythonStartInstructions = (d?: {
+    additionalPackages?: string[];
+  }): InstructionItem[] => [
+    createPythonSdkInstallInstruction(d?.additionalPackages),
     {
       title: 'Instantiate the Metorial SDK',
       description: 'Set up the Metorial SDK with your API key.',
@@ -232,7 +138,8 @@ export let ProjectHomePage = () => {
   ];
 
   let getCodeViewer = (opts: { repo: string; path: string; initialFile?: string }) => {
-    if (apiKeys.isLoading || deployments.isLoading || key.isLoading) return undefined;
+    if (apiKeys.isLoading || deployments.isLoading || revealedApiKey.isLoading)
+      return undefined;
 
     return {
       owner: 'metorial',

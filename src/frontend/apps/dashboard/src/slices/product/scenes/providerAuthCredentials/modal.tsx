@@ -61,43 +61,31 @@ export let ProviderAuthCredentialsForm = ({
       clientId: '',
       clientSecret: ''
     },
-    onSubmit: async () => {},
+    onSubmit: async values => {
+      let [result, err] = await createCredentials.mutate({
+        instanceId,
+        providerId,
+        name: values.name.trim(),
+        config: {
+          type: 'oauth',
+          clientId: values.clientId,
+          clientSecret: values.clientSecret,
+          scopes: oauthMethod?.scopes?.map(scope => scope.scope) ?? []
+        }
+      });
+
+      if (err || !result) return;
+
+      onCreate?.(result);
+      close();
+    },
     schema: yup =>
       yup.object({
-        name: yup.string().required('Name is required'),
+        name: yup.string().trim().required('Name is required'),
         clientId: yup.string().required('Client ID is required'),
         clientSecret: yup.string().required('Client Secret is required')
       })
   });
-
-  let handleSubmit = async () => {
-    let name = form.values.name.trim();
-
-    if (!name) {
-      form.setFieldTouched('name', true);
-      form.setFieldError('name', 'Name is required');
-      return;
-    }
-
-    form.setFieldError('name', undefined);
-
-    let [result, err] = await createCredentials.mutate({
-      instanceId,
-      providerId,
-      name,
-      config: {
-        type: 'oauth',
-        clientId: form.values.clientId,
-        clientSecret: form.values.clientSecret,
-        scopes: oauthMethod?.scopes?.map(scope => scope.scope) ?? []
-      }
-    });
-
-    if (err || !result) return;
-
-    onCreate?.(result);
-    close();
-  };
 
   if ((!!deploymentId && deployment.isLoading) || authMethods.isLoading) {
     return (
@@ -164,12 +152,7 @@ export let ProviderAuthCredentialsForm = ({
 
       <Spacer size={15} />
 
-      <form
-        onSubmit={e => {
-          e.preventDefault();
-          handleSubmit();
-        }}
-      >
+      <form onSubmit={form.handleSubmit}>
         {redirectUri && (
           <>
             <Copy label="Redirect URI" value={redirectUri} />
@@ -221,9 +204,8 @@ export let ProviderAuthCredentialsForm = ({
             </Button>
           )}
           <Button
-            type="button"
+            type="submit"
             size="2"
-            onClick={handleSubmit}
             loading={createCredentials.isPending}
             disabled={!form.values.name || !form.values.clientId || !form.values.clientSecret}
           >

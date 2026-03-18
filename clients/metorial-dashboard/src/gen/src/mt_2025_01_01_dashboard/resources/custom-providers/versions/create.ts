@@ -4,6 +4,11 @@ export type CustomProvidersVersionsCreateOutput = {
   object: 'custom_provider.version';
   id: string;
   status: 'queued' | 'deploying' | 'deployment_succeeded' | 'deployment_failed';
+  config: {
+    object: 'custom_provider.version.config';
+    schema: { type: 'json_schema'; schema: Record<string, any> };
+    transformer: string;
+  } | null;
   index: number;
   identifier: string;
   deployment: {
@@ -138,6 +143,20 @@ export let mapCustomProvidersVersionsCreateOutput =
     object: mtMap.objectField('object', mtMap.passthrough()),
     id: mtMap.objectField('id', mtMap.passthrough()),
     status: mtMap.objectField('status', mtMap.passthrough()),
+    config: mtMap.objectField(
+      'config',
+      mtMap.object({
+        object: mtMap.objectField('object', mtMap.passthrough()),
+        schema: mtMap.objectField(
+          'schema',
+          mtMap.object({
+            type: mtMap.objectField('type', mtMap.passthrough()),
+            schema: mtMap.objectField('schema', mtMap.passthrough())
+          })
+        ),
+        transformer: mtMap.objectField('transformer', mtMap.passthrough())
+      })
+    ),
     index: mtMap.objectField('index', mtMap.passthrough()),
     identifier: mtMap.objectField('identifier', mtMap.passthrough()),
     deployment: mtMap.objectField(

@@ -23,13 +23,15 @@ export let ProviderConfigurationSelection = ({
   providerDeploymentId,
   value,
   onChange,
-  label = 'Config'
+  label = 'Config',
+  includeVaults = true
 }: {
   instanceId: string;
   providerDeploymentId: string;
   value: ConfigurationSelection;
   onChange: (value: ConfigurationSelection) => void;
   label?: string;
+  includeVaults?: boolean;
 }) => {
   let configs = useProviderConfigs(instanceId, providerDeploymentId);
   let vaults = useProviderConfigVaults(instanceId, { providerDeploymentId });
@@ -73,10 +75,12 @@ export let ProviderConfigurationSelection = ({
       id: `config:${config.id}`,
       label: config.name ?? config.id
     })),
-    ...(vaults.data?.items ?? []).map((vault: VaultItem) => ({
-      id: `vault:${vault.id}`,
-      label: `${vault.name ?? vault.id} (Vault)`
-    }))
+    ...(includeVaults
+      ? (vaults.data?.items ?? []).map((vault: VaultItem) => ({
+          id: `vault:${vault.id}`,
+          label: `${vault.name ?? vault.id} (Vault)`
+        }))
+      : [])
   ];
 
   return (
@@ -117,31 +121,33 @@ export let ProviderConfigurationSelection = ({
           </div>
         </Tooltip>
 
-        <Tooltip
-          content={configCreation.configVaultDisabledReason ?? ''}
-          enabled={!configCreation.canCreateConfigVault}
-          delayDuration={0}
-        >
-          <div style={{ display: 'inline-flex' }}>
-            <Button
-              type="button"
-              size="3"
-              iconLeft={<RiSafeLine />}
-              disabled={!configCreation.canCreateConfigVault}
-              onClick={() =>
-                showProviderConfigVaultFormModal({
-                  type: 'create',
-                  instanceId,
-                  providerDeploymentId,
-                  onCreate: vault => {
-                    vaults.refetch?.();
-                    onChange({ kind: 'vault', id: vault.id });
-                  }
-                })
-              }
-            />
-          </div>
-        </Tooltip>
+        {includeVaults && (
+          <Tooltip
+            content={configCreation.configVaultDisabledReason ?? ''}
+            enabled={!configCreation.canCreateConfigVault}
+            delayDuration={0}
+          >
+            <div style={{ display: 'inline-flex' }}>
+              <Button
+                type="button"
+                size="3"
+                iconLeft={<RiSafeLine />}
+                disabled={!configCreation.canCreateConfigVault}
+                onClick={() =>
+                  showProviderConfigVaultFormModal({
+                    type: 'create',
+                    instanceId,
+                    providerDeploymentId,
+                    onCreate: vault => {
+                      vaults.refetch?.();
+                      onChange({ kind: 'vault', id: vault.id });
+                    }
+                  })
+                }
+              />
+            </div>
+          </Tooltip>
+        )}
       </Flex>
 
       {(configs.error || vaults.error) && (

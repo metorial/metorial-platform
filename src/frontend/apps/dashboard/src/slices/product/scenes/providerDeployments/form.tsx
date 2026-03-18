@@ -44,73 +44,57 @@ export let ProviderDeploymentForm = (
       name: props.type === 'create' ? (props.providerName ?? '') : '',
       description: ''
     },
-    onSubmit: async () => {},
+    onSubmit: async values => {
+      if (props.type !== 'create' || !instanceId || !providerId) return;
+
+      let [result] = await createMutation.mutate({
+        instanceId,
+        name: values.name.trim(),
+        description: values.description || undefined,
+        providerId,
+        ...(props.lockedProviderVersionId
+          ? { lockedProviderVersionId: props.lockedProviderVersionId }
+          : {})
+      });
+
+      if (!result) return;
+
+      if (props.onCreate) {
+        props.onCreate(result);
+        props.close?.();
+        return;
+      }
+
+      props.close?.();
+      if (!instance.data) return;
+
+      let deploymentPath = Paths.instance.providerDeployment(
+        instance.data.organization,
+        instance.data.project,
+        instance.data,
+        result.id
+      );
+      navigate(deploymentPath);
+    },
     schemaDependencies: [providerId],
     schema: yup =>
       yup.object({
-        name: yup.string().required('Name is required'),
-        description: yup.string().defined()
+        name: yup.string().trim().required('Name is required'),
+        description: yup.string().ensure()
       })
   });
-
-  let handleSubmit = async () => {
-    let name = form.values.name.trim();
-
-    if (!name) {
-      form.setFieldTouched('name', true);
-      form.setFieldError('name', 'Name is required');
-      return;
-    }
-
-    form.setFieldError('name', undefined);
-
-    if (props.type !== 'create' || !instanceId || !providerId) return;
-
-    let [result] = await createMutation.mutate({
-      instanceId,
-      name,
-      description: form.values.description || undefined,
-      providerId,
-      ...(props.lockedProviderVersionId
-        ? { lockedProviderVersionId: props.lockedProviderVersionId }
-        : {})
-    });
-
-    if (!result) return;
-
-    if (props.onCreate) {
-      props.onCreate(result);
-      props.close?.();
-      return;
-    }
-
-    props.close?.();
-    if (!instance.data) return;
-
-    let deploymentPath = Paths.instance.providerDeployment(
-      instance.data.organization,
-      instance.data.project,
-      instance.data,
-      result.id
-    );
-    navigate(deploymentPath);
-  };
 
   // If provider is preset, show just the details form (no stepper)
   if (hasProviderPreset) {
     return (
-      <form
-        onSubmit={e => {
-          e.preventDefault();
-          handleSubmit();
-        }}
-      >
+      <form onSubmit={form.handleSubmit}>
         <Input label="Name" required {...form.getFieldProps('name')} />
         <form.RenderError field="name" />
 
         <Spacer size={10} />
 
         <Input label="Description" {...form.getFieldProps('description')} />
+        <form.RenderError field="description" />
 
         <Spacer size={10} />
 
@@ -139,8 +123,7 @@ export let ProviderDeploymentForm = (
             Cancel
           </Button>
           <Button
-            type="button"
-            onClick={handleSubmit}
+            type="submit"
             loading={createMutation.isPending}
             disabled={!providerId}
           >
@@ -180,12 +163,7 @@ export let ProviderDeploymentForm = (
           title: 'Configuration',
           subtitle: 'Set up the deployment',
           render: () => (
-            <form
-              onSubmit={e => {
-                e.preventDefault();
-                handleSubmit();
-              }}
-            >
+            <form onSubmit={form.handleSubmit}>
               {providerName && (
                 <>
                   <Text size="1" color="gray600">
@@ -201,6 +179,7 @@ export let ProviderDeploymentForm = (
               <Spacer size={10} />
 
               <Input label="Description" {...form.getFieldProps('description')} />
+              <form.RenderError field="description" />
 
               <Spacer size={15} />
 
@@ -209,8 +188,7 @@ export let ProviderDeploymentForm = (
                   Cancel
                 </Button>
                 <Button
-                  type="button"
-                  onClick={handleSubmit}
+                  type="submit"
                   loading={createMutation.isPending}
                   disabled={!providerId}
                 >

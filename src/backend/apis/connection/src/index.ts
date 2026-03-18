@@ -28,7 +28,7 @@ export let startMcpServer = (d: { port: number; authenticate: Authenticator<Auth
       return c.text('');
     })
     .get('/ping', c => c.text('OK'))
-    .all('/mcp/:sessionId', async (c, _next) => {
+    .all('/connect/mcp/:sessionId', async (c, _next) => {
       let { sessionId } = c.req.param();
       let context = useRequestContext(c);
       let url = new URL(c.req.url);
@@ -47,7 +47,7 @@ export let startMcpServer = (d: { port: number; authenticate: Authenticator<Auth
         }
       );
     })
-    .all('/magic/:magicMcpServerId', async (c, _next) => {
+    .all('/connect/magic/:magicMcpServerId', async (c, _next) => {
       let { magicMcpServerId } = c.req.param();
       return handleMagicMcpRequest({
         c,

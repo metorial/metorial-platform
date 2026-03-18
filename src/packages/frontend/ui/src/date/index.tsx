@@ -72,7 +72,10 @@ export let RenderDate = ({ date }: { date: string | Date | undefined }) => {
         </div>
       }
     >
-      <div style={{ width: 'fit-content', height: 'fit-content' }} onMouseEnter={doRetrigger}>
+      <span
+        style={{ display: 'inline-block', width: 'fit-content', height: 'fit-content' }}
+        onMouseEnter={doRetrigger}
+      >
         <span
           style={{
             cursor: 'pointer',
@@ -85,7 +88,7 @@ export let RenderDate = ({ date }: { date: string | Date | undefined }) => {
         >
           {result.pretty}
         </span>
-      </div>
+      </span>
     </Tooltip>
   );
 };

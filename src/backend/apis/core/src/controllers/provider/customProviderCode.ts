@@ -5,6 +5,7 @@ import {
 } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../middleware/checkAccess';
+import { hasFlags } from '../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { bucketEditorTokenPresenter } from '../../presenters';
 
@@ -44,6 +45,7 @@ export let customProviderCodeController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.custom.code:write'] }))
+      .use(hasFlags(['custom-providers-enabled', 'paid-custom-providers']))
       .output(bucketEditorTokenPresenter)
       .do(async ctx => {
         let draftBucket = ctx.customProvider.draftBucket;

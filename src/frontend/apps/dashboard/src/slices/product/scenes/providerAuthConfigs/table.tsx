@@ -84,9 +84,7 @@ export let ProviderAuthConfigsTable = ({
                 Default
               </Badge>
             ) : (
-              <Text size="2" color="gray600">
-                -
-              </Text>
+              <></>
             ),
             <RenderDate date={config.updatedAt} />
           ]

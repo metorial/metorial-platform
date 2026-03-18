@@ -3,216 +3,262 @@ import { dynamicPage } from '@metorial/dynamic-component';
 import { createSlice } from '@metorial/microfrontend';
 import { NotFound } from '@metorial/pages';
 import { lastInstanceIdStore, useCurrentInstance, useDashboardFlags } from '@metorial/state';
+import { Error } from '@metorial/ui';
 import { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
+import { Upgrade } from '../../components/emptyState';
 import { ProjectHomePage } from './pages';
 import { InstanceLayout } from './pages/_instanceLayout';
 
 // Provider API pages
 let ProvidersHubLayout = dynamicPage(() =>
-  import('./pages/(provider-api)/(list)/_layout').then(c => c.ProvidersHubLayout)
+  import('./pages/(deployments)/(list)/_layout').then(c => c.ProvidersHubLayout)
 );
 let ProvidersPage = dynamicPage(() =>
-  import('./pages/(provider-api)/(list)/providers').then(c => c.ProvidersPage)
+  import('./pages/(deployments)/(list)/providers').then(c => c.ProvidersPage)
 );
 let ProviderDeploymentsListLayout = dynamicPage(() =>
-  import('./pages/(provider-api)/(list)/_layout').then(c => c.ProviderDeploymentsListLayout)
+  import('./pages/(deployments)/(list)/_layout').then(c => c.ProviderDeploymentsListLayout)
 );
 let ProviderDeploymentsPage = dynamicPage(() =>
-  import('./pages/(provider-api)/(list)/provider-deployments').then(
+  import('./pages/(deployments)/(list)/provider-deployments').then(
     c => c.ProviderDeploymentsPage
   )
 );
 let ProviderAuthConfigsOverviewPage = dynamicPage(() =>
-  import('./pages/(provider-api)/(list)/provider-auth-configs').then(
+  import('./pages/(deployments)/(list)/provider-auth-configs').then(
     c => c.ProviderAuthConfigsOverviewPage
   )
 );
 let ProviderAuthCredentialsOverviewPage = dynamicPage(() =>
-  import('./pages/(provider-api)/(list)/provider-auth-credentials').then(
+  import('./pages/(deployments)/(list)/provider-auth-credentials').then(
     c => c.ProviderAuthCredentialsOverviewPage
   )
 );
 let ProviderConfigsOverviewPage = dynamicPage(() =>
-  import('./pages/(provider-api)/(list)/provider-configs').then(
+  import('./pages/(deployments)/(list)/provider-configs').then(
     c => c.ProviderConfigsOverviewPage
   )
 );
 let ProviderConfigVaultsOverviewPage = dynamicPage(() =>
-  import('./pages/(provider-api)/(list)/provider-config-vaults').then(
+  import('./pages/(deployments)/(list)/provider-config-vaults').then(
     c => c.ProviderConfigVaultsOverviewPage
   )
 );
 let ProviderSessionsListLayout = dynamicPage(() =>
-  import('./pages/(provider-api)/(list)/_layout').then(c => c.ProviderSessionsListLayout)
+  import('./pages/(deployments)/(list)/_layout').then(c => c.ProviderSessionsListLayout)
 );
 let ProviderSessionsPage = dynamicPage(() =>
-  import('./pages/(provider-api)/(list)/provider-sessions').then(c => c.ProviderSessionsPage)
+  import('./pages/(deployments)/(list)/provider-sessions').then(c => c.ProviderSessionsPage)
 );
 let SessionTemplatesListLayout = dynamicPage(() =>
-  import('./pages/(provider-api)/(list)/_layout').then(c => c.SessionTemplatesListLayout)
+  import('./pages/(deployments)/(list)/_layout').then(c => c.SessionTemplatesListLayout)
 );
 let SessionTemplatesPage = dynamicPage(() =>
-  import('./pages/(provider-api)/(list)/session-templates').then(c => c.SessionTemplatesPage)
-);
-let ProviderDeploymentsRedirectPage = dynamicPage(() =>
-  import('./pages/(provider-api)/(list)/redirects').then(
-    c => c.ProviderDeploymentsRedirectPage
-  )
-);
-let SessionTemplatesRedirectPage = dynamicPage(() =>
-  import('./pages/(provider-api)/(list)/redirects').then(c => c.SessionTemplatesRedirectPage)
+  import('./pages/(session)/(list)/session-templates').then(c => c.SessionTemplatesPage)
 );
 let ProviderLayout = dynamicPage(() =>
-  import('./pages/(provider-api)/provider/_layout').then(c => c.ProviderLayout)
+  import('./pages/provider/_layout').then(c => c.ProviderLayout)
 );
 let ProviderOverviewPage = dynamicPage(() =>
-  import('./pages/(provider-api)/provider/index').then(c => c.ProviderOverviewPage)
+  import('./pages/provider/index').then(c => c.ProviderOverviewPage)
 );
 let ProviderVersionsPage = dynamicPage(() =>
-  import('./pages/(provider-api)/provider/versions').then(c => c.ProviderVersionsPage)
+  import('./pages/provider/versions').then(c => c.ProviderVersionsPage)
 );
 let ProviderToolsPage = dynamicPage(() =>
-  import('./pages/(provider-api)/provider/tools').then(c => c.ProviderToolsPage)
+  import('./pages/provider/tools').then(c => c.ProviderToolsPage)
 );
 let ProviderDetailsDeploymentsPage = dynamicPage(() =>
-  import('./pages/(provider-api)/provider/deployments').then(c => c.ProviderDeploymentsPage)
+  import('./pages/provider/deployments').then(c => c.ProviderDeploymentsPage)
 );
 let ProviderAuthMethodsPage = dynamicPage(() =>
-  import('./pages/(provider-api)/provider/auth-methods').then(c => c.ProviderAuthMethodsPage)
+  import('./pages/provider/auth-methods').then(c => c.ProviderAuthMethodsPage)
 );
 let ProviderReadmePage = dynamicPage(() =>
-  import('./pages/(provider-api)/provider/readme').then(c => c.ProviderReadmePage)
+  import('./pages/provider/readme').then(c => c.ProviderReadmePage)
 );
 let ProviderDeploymentLayout = dynamicPage(() =>
-  import('./pages/(provider-api)/provider-deployment/_layout').then(
+  import('./pages/(deployments)/provider-deployment/_layout').then(
     c => c.ProviderDeploymentLayout
   )
 );
 let ProviderDeploymentOverviewPage = dynamicPage(() =>
-  import('./pages/(provider-api)/provider-deployment/index').then(
+  import('./pages/(deployments)/provider-deployment/index').then(
     c => c.ProviderDeploymentOverviewPage
   )
 );
 let ProviderDeploymentConfigsPage = dynamicPage(() =>
-  import('./pages/(provider-api)/provider-deployment/configs').then(
+  import('./pages/(deployments)/provider-deployment/configs').then(
     c => c.ProviderDeploymentConfigsPage
   )
 );
 let ProviderDeploymentConfigVaultsPage = dynamicPage(() =>
-  import('./pages/(provider-api)/provider-deployment/config-vaults').then(
+  import('./pages/(deployments)/provider-deployment/config-vaults').then(
     c => c.ProviderDeploymentConfigVaultsPage
   )
 );
 let ProviderDeploymentAuthMethodsPage = dynamicPage(() =>
-  import('./pages/(provider-api)/provider-deployment/auth-methods').then(
+  import('./pages/(deployments)/provider-deployment/auth-methods').then(
     c => c.ProviderDeploymentAuthMethodsPage
   )
 );
 let ProviderDeploymentAuthConfigsPage = dynamicPage(() =>
-  import('./pages/(provider-api)/provider-deployment/auth-configs').then(
+  import('./pages/(deployments)/provider-deployment/auth-configs').then(
     c => c.ProviderDeploymentAuthConfigsPage
   )
 );
 let ProviderDeploymentSettingsPage = dynamicPage(() =>
-  import('./pages/(provider-api)/provider-deployment/settings').then(
+  import('./pages/(deployments)/provider-deployment/settings').then(
     c => c.ProviderDeploymentSettingsPage
   )
 );
 let ProviderConfigLayout = dynamicPage(() =>
-  import('./pages/(provider-api)/provider-config/_layout').then(c => c.ProviderConfigLayout)
+  import('./pages/(deployments)/provider-config/_layout').then(c => c.ProviderConfigLayout)
 );
 let ProviderConfigOverviewPage = dynamicPage(() =>
-  import('./pages/(provider-api)/provider-config/index').then(
-    c => c.ProviderConfigOverviewPage
-  )
+  import('./pages/(deployments)/provider-config/index').then(c => c.ProviderConfigOverviewPage)
 );
 let ProviderConfigSettingsPage = dynamicPage(() =>
-  import('./pages/(provider-api)/provider-config/settings').then(
+  import('./pages/(deployments)/provider-config/settings').then(
     c => c.ProviderConfigSettingsPage
   )
 );
 let ProviderConfigVaultLayout = dynamicPage(() =>
-  import('./pages/(provider-api)/provider-config-vault/_layout').then(
+  import('./pages/(deployments)/provider-config-vault/_layout').then(
     c => c.ProviderConfigVaultLayout
   )
 );
 let ProviderConfigVaultOverviewPage = dynamicPage(() =>
-  import('./pages/(provider-api)/provider-config-vault/index').then(
+  import('./pages/(deployments)/provider-config-vault/index').then(
     c => c.ProviderConfigVaultOverviewPage
   )
 );
 let ProviderConfigVaultSettingsPage = dynamicPage(() =>
-  import('./pages/(provider-api)/provider-config-vault/settings').then(
+  import('./pages/(deployments)/provider-config-vault/settings').then(
     c => c.ProviderConfigVaultSettingsPage
   )
 );
 let ProviderAuthCredentialLayout = dynamicPage(() =>
-  import('./pages/(provider-api)/provider-auth-credential/_layout').then(
+  import('./pages/(deployments)/provider-auth-credential/_layout').then(
     c => c.ProviderAuthCredentialLayout
   )
 );
 let ProviderAuthCredentialOverviewPage = dynamicPage(() =>
-  import('./pages/(provider-api)/provider-auth-credential/index').then(
+  import('./pages/(deployments)/provider-auth-credential/index').then(
     c => c.ProviderAuthCredentialOverviewPage
   )
 );
 let ProviderAuthCredentialSettingsPage = dynamicPage(() =>
-  import('./pages/(provider-api)/provider-auth-credential/settings').then(
+  import('./pages/(deployments)/provider-auth-credential/settings').then(
     c => c.ProviderAuthCredentialSettingsPage
   )
 );
 let ProviderAuthConnectionLayout = dynamicPage(() =>
-  import('./pages/(provider-api)/provider-auth-configs/_layout').then(
+  import('./pages/(deployments)/provider-auth-configs/_layout').then(
     c => c.ProviderAuthConfigLayout
   )
 );
 let ProviderAuthConnectionOverviewPage = dynamicPage(() =>
-  import('./pages/(provider-api)/provider-auth-configs/index').then(
+  import('./pages/(deployments)/provider-auth-configs/index').then(
     c => c.ProviderAuthConfigOverviewPage
   )
 );
 let ProviderAuthConnectionAuthenticationPage = dynamicPage(() =>
-  import('./pages/(provider-api)/provider-auth-configs/authentication').then(
+  import('./pages/(deployments)/provider-auth-configs/authentication').then(
     c => c.ProviderAuthConfigAuthenticationPage
   )
 );
 let ProviderAuthConnectionSettingsPage = dynamicPage(() =>
-  import('./pages/(provider-api)/provider-auth-configs/settings').then(
+  import('./pages/(deployments)/provider-auth-configs/settings').then(
     c => c.ProviderAuthConfigSettingsPage
   )
 );
 let ProviderSessionLayout = dynamicPage(() =>
-  import('./pages/(provider-api)/provider-session/_layout').then(c => c.ProviderSessionLayout)
+  import('./pages/(logs)/provider-session/_layout').then(c => c.ProviderSessionLayout)
 );
 let ProviderSessionProvidersPage = dynamicPage(() =>
-  import('./pages/(provider-api)/provider-session/providers').then(
-    c => c.ProviderSessionProvidersPage
-  )
+  import('./pages/(logs)/provider-session/providers').then(c => c.ProviderSessionProvidersPage)
 );
 let ProviderSessionRunsPage = dynamicPage(() =>
-  import('./pages/(provider-api)/provider-session/runs').then(c => c.ProviderSessionRunsPage)
+  import('./pages/(logs)/provider-session/runs').then(c => c.ProviderSessionRunsPage)
 );
 let ProviderSessionLogsPage = dynamicPage(() =>
-  import('./pages/(provider-api)/provider-session/logs').then(c => c.ProviderSessionLogsPage)
+  import('./pages/(logs)/provider-session/logs').then(c => c.ProviderSessionLogsPage)
 );
 let SessionTemplateLayout = dynamicPage(() =>
-  import('./pages/(provider-api)/session-template/_layout').then(c => c.SessionTemplateLayout)
+  import('./pages/(session)/session-template/_layout').then(c => c.SessionTemplateLayout)
 );
 let SessionTemplateOverviewPage = dynamicPage(() =>
-  import('./pages/(provider-api)/session-template/index').then(
-    c => c.SessionTemplateOverviewPage
-  )
+  import('./pages/(session)/session-template/index').then(c => c.SessionTemplateOverviewPage)
 );
 let SessionTemplateProvidersPage = dynamicPage(() =>
-  import('./pages/(provider-api)/session-template/providers').then(
+  import('./pages/(session)/session-template/providers').then(
     c => c.SessionTemplateProvidersPage
   )
 );
 let SessionTemplateSettingsPage = dynamicPage(() =>
-  import('./pages/(provider-api)/session-template/settings').then(
+  import('./pages/(session)/session-template/settings').then(
     c => c.SessionTemplateSettingsPage
   )
+);
+
+let IdentityListLayout = dynamicPage(() =>
+  import('./pages/(identity)/(list)/_layout').then(c => c.IdentityListLayout)
+);
+let IdentityActorsPage = dynamicPage(() =>
+  import('./pages/(identity)/(list)/actors').then(c => c.IdentityActorsPage)
+);
+let IdentitiesPage = dynamicPage(() =>
+  import('./pages/(identity)/(list)/identities').then(c => c.IdentitiesPage)
+);
+let IdentityDelegationsPage = dynamicPage(() =>
+  import('./pages/(identity)/(list)/delegations').then(c => c.IdentityDelegationsPage)
+);
+let IdentityDelegationConfigsPage = dynamicPage(() =>
+  import('./pages/(identity)/(list)/delegation-configs').then(
+    c => c.IdentityDelegationConfigsPage
+  )
+);
+let IdentityActorLayout = dynamicPage(() =>
+  import('./pages/(identity)/actor/_layout').then(c => c.IdentityActorLayout)
+);
+let IdentityActorPage = dynamicPage(() =>
+  import('./pages/(identity)/actor').then(c => c.IdentityActorPage)
+);
+let IdentityActorSettingsPage = dynamicPage(() =>
+  import('./pages/(identity)/actor/settings').then(c => c.IdentityActorSettingsPage)
+);
+let IdentityLayout = dynamicPage(() =>
+  import('./pages/(identity)/identity/_layout').then(c => c.IdentityLayout)
+);
+let IdentityPage = dynamicPage(() =>
+  import('./pages/(identity)/identity').then(c => c.IdentityPage)
+);
+let IdentityDetailsDelegationsPage = dynamicPage(() =>
+  import('./pages/(identity)/identity/delegations').then(c => c.IdentityDelegationsPage)
+);
+let IdentityDelegationRequestsPage = dynamicPage(() =>
+  import('./pages/(identity)/identity/delegationRequests').then(
+    c => c.IdentityDelegationRequestsPage
+  )
+);
+let IdentitySettingsPage = dynamicPage(() =>
+  import('./pages/(identity)/identity/settings').then(c => c.IdentitySettingsPage)
+);
+let IdentityDelegationLayout = dynamicPage(() =>
+  import('./pages/(identity)/delegation/_layout').then(c => c.IdentityDelegationLayout)
+);
+let IdentityDelegationPage = dynamicPage(() =>
+  import('./pages/(identity)/delegation').then(c => c.IdentityDelegationPage)
+);
+let IdentityDelegationConfigLayout = dynamicPage(() =>
+  import('./pages/(identity)/delegation-config/_layout').then(
+    c => c.IdentityDelegationConfigLayout
+  )
+);
+let IdentityDelegationConfigPage = dynamicPage(() =>
+  import('./pages/(identity)/delegation-config').then(c => c.IdentityDelegationConfigPage)
 );
 
 let SetupProviderPage = dynamicPage(() =>
@@ -342,16 +388,6 @@ let ServerRunPage = dynamicPage(() =>
 let ServerRunLayout = dynamicPage(() =>
   import('./pages/(logs)/provider-run/_layout').then(c => c.ProviderRunLayout)
 );
-let SessionPage = dynamicPage(() => import('./pages/(logs)/session').then(c => c.SessionPage));
-let SessionLayout = dynamicPage(() =>
-  import('./pages/(logs)/session/_layout').then(c => c.SessionLayout)
-);
-let SessionDeploymentsPage = dynamicPage(() =>
-  import('./pages/(logs)/session/deployments').then(c => c.SessionDeploymentsPage)
-);
-let SessionServerRunsPage = dynamicPage(() =>
-  import('./pages/(logs)/session/serverRuns').then(c => c.ProviderRunsPage)
-);
 let ProjectPageLayout = dynamicPage(() =>
   import('./pages/_layout').then(c => c.ProjectPageLayout)
 );
@@ -375,6 +411,26 @@ let FlaggedPage = ({ children, flag }: { children: React.ReactNode; flag: string
   return renderWithLoader({ flags })(({ flags }) =>
     (flags.data.flags as any)[flag] ? children : <NotFound />
   );
+};
+let IdentityManagedPage = ({ children }: { children: React.ReactNode }) => {
+  let flags = useDashboardFlags();
+
+  return renderWithLoader({ flags })(({ flags }) => {
+    if (!flags.data.flags['identity-management']) {
+      return <Error>Identity management is not enabled for this instance.</Error>;
+    }
+
+    if (!flags.data.flags['paid-identity']) {
+      return (
+        <Upgrade
+          title="Identity Management"
+          description="Manage identity actors, identities, delegations, and delegation policies once this instance is upgraded."
+        />
+      );
+    }
+
+    return children;
+  });
 };
 let ProductWrapper = () => {
   let instance = useCurrentInstance();
@@ -480,26 +536,6 @@ export let productInnerSlice = createSlice([
                   {
                     path: '',
                     element: <ServerRunPage />
-                  }
-                ]
-              },
-
-              {
-                path: 'session/:sessionId',
-                element: <SessionLayout />,
-
-                children: [
-                  {
-                    path: '',
-                    element: <SessionPage />
-                  },
-                  {
-                    path: 'deployments',
-                    element: <SessionDeploymentsPage />
-                  },
-                  {
-                    path: 'runs',
-                    element: <SessionServerRunsPage />
                   }
                 ]
               }
@@ -745,6 +781,101 @@ export let productInnerSlice = createSlice([
             ]
           },
 
+          {
+            path: 'identity',
+            element: <IdentityListLayout />,
+            children: [
+              {
+                path: 'actors',
+                element: <IdentityActorsPage />
+              },
+              {
+                path: 'identities',
+                element: <IdentitiesPage />
+              },
+              {
+                path: 'delegations',
+                element: <IdentityDelegationsPage />
+              },
+              {
+                path: 'delegation-configs',
+                element: <IdentityDelegationConfigsPage />
+              }
+            ]
+          },
+          {
+            path: 'identity/actor/:identityActorId',
+            element: (
+              <IdentityManagedPage>
+                <IdentityActorLayout />
+              </IdentityManagedPage>
+            ),
+            children: [
+              {
+                path: '',
+                element: <IdentityActorPage />
+              },
+              {
+                path: 'settings',
+                element: <IdentityActorSettingsPage />
+              }
+            ]
+          },
+          {
+            path: 'identity/identity/:identityId',
+            element: (
+              <IdentityManagedPage>
+                <IdentityLayout />
+              </IdentityManagedPage>
+            ),
+            children: [
+              {
+                path: '',
+                element: <IdentityPage />
+              },
+              {
+                path: 'delegations',
+                element: <IdentityDetailsDelegationsPage />
+              },
+              {
+                path: 'delegation-requests',
+                element: <IdentityDelegationRequestsPage />
+              },
+              {
+                path: 'settings',
+                element: <IdentitySettingsPage />
+              }
+            ]
+          },
+          {
+            path: 'identity/delegation/:identityDelegationId',
+            element: (
+              <IdentityManagedPage>
+                <IdentityDelegationLayout />
+              </IdentityManagedPage>
+            ),
+            children: [
+              {
+                path: '',
+                element: <IdentityDelegationPage />
+              }
+            ]
+          },
+          {
+            path: 'identity/delegation-config/:identityDelegationConfigId',
+            element: (
+              <IdentityManagedPage>
+                <IdentityDelegationConfigLayout />
+              </IdentityManagedPage>
+            ),
+            children: [
+              {
+                path: '',
+                element: <IdentityDelegationConfigPage />
+              }
+            ]
+          },
+
           /***************
            * Magic MCP
            *************** */
@@ -874,11 +1005,7 @@ export let productInnerSlice = createSlice([
         children: [
           {
             path: '',
-            element: (
-              <FlaggedPage flag="metorial-gateway-enabled">
-                <ManagedServersListLayout />
-              </FlaggedPage>
-            ),
+            element: <ManagedServersListLayout />,
 
             children: [
               {
@@ -894,11 +1021,7 @@ export let productInnerSlice = createSlice([
 
           {
             path: '',
-            element: (
-              <FlaggedPage flag="metorial-gateway-enabled">
-                <ExternalServersListLayout />
-              </FlaggedPage>
-            ),
+            element: <ExternalServersListLayout />,
 
             children: [
               {
@@ -914,11 +1037,7 @@ export let productInnerSlice = createSlice([
 
           {
             path: 'custom-provider/:customServerId',
-            element: (
-              <FlaggedPage flag="metorial-gateway-enabled">
-                <CustomServerLayout />
-              </FlaggedPage>
-            ),
+            element: <CustomServerLayout />,
 
             children: [
               {

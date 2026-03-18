@@ -34,63 +34,58 @@ export let ProviderSessionForm = (
       name: '',
       description: ''
     },
-    onSubmit: async () => {},
+    onSubmit: async values => {
+      if (props.type !== 'create' || !instanceId) return;
+
+      let providers = [];
+      if (deploymentId) {
+        providers.push({
+          providerDeploymentId: deploymentId
+        });
+      }
+
+      let [result] = await createMutation.mutate({
+        name: values.name || undefined,
+        description: values.description || undefined,
+        providers
+      });
+
+      if (!result) return;
+
+      if (props.onCreate) {
+        props.onCreate(result);
+        props.close?.();
+        return;
+      }
+
+      props.close?.();
+      if (!instance.data) return;
+
+      navigate(
+        Paths.instance.providerSession(
+          instance.data.organization,
+          instance.data.project,
+          instance.data,
+          result.id
+        )
+      );
+    },
     schema: yup =>
       yup.object({
         name: yup.string().defined(),
-        description: yup.string().defined()
+        description: yup.string().ensure()
       })
   });
 
-  let handleSubmit = async () => {
-    if (props.type !== 'create' || !instanceId) return;
-
-    let providers = [];
-    if (deploymentId) {
-      providers.push({
-        providerDeploymentId: deploymentId
-      });
-    }
-
-    let [result] = await createMutation.mutate({
-      name: form.values.name || undefined,
-      description: form.values.description || undefined,
-      providers
-    });
-
-    if (!result) return;
-
-    if (props.onCreate) {
-      props.onCreate(result);
-      props.close?.();
-      return;
-    }
-
-    props.close?.();
-    if (!instance.data) return;
-
-    navigate(
-      Paths.instance.providerSession(
-        instance.data.organization,
-        instance.data.project,
-        instance.data,
-        result.id
-      )
-    );
-  };
-
   return (
-    <form
-      onSubmit={e => {
-        e.preventDefault();
-        handleSubmit();
-      }}
-    >
+    <form onSubmit={form.handleSubmit}>
       <Input label="Name (optional)" {...form.getFieldProps('name')} />
+      <form.RenderError field="name" />
 
       <Spacer size={10} />
 
       <Input label="Description" {...form.getFieldProps('description')} />
+      <form.RenderError field="description" />
 
       <Spacer size={10} />
 
@@ -110,7 +105,7 @@ export let ProviderSessionForm = (
         <Button type="button" variant="outline" onClick={props.close}>
           Cancel
         </Button>
-        <Button type="button" onClick={handleSubmit} loading={createMutation.isPending}>
+        <Button type="submit" loading={createMutation.isPending}>
           {props.type === 'create' ? 'Create Session' : 'Update Session'}
         </Button>
       </Dialog.Actions>

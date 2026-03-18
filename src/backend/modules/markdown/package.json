@@ -13,7 +13,7 @@
     "@metorial/db": "^1.0.0",
     "@lowerdeck/delay": "^1.0.4",
     "@lowerdeck/env": "^1.0.4",
-    "@lowerdeck/error": "^1.2.1",
+    "@lowerdeck/error": "^1.2.2",
     "@metorial/fabric": "^1.0.0",
     "@metorial/id": "^1.0.0",
     "@metorial/queue": "^1.0.0",

@@ -12,6 +12,8 @@ export let v1CustomProviderPresenter = Presenter.create(customProviderType)
     id: customProvider.id,
     status: customProvider.status,
 
+    type: customProvider.draft.from?.type!,
+
     name: customProvider.name,
     description: customProvider.description,
     metadata: customProvider.metadata,
@@ -25,11 +27,14 @@ export let v1CustomProviderPresenter = Presenter.create(customProviderType)
       : null,
 
     draft: {
+      object: `custom_provider.draft#${customProvider.draft.from?.type}`,
+
       container_image:
         customProvider.draft.containerTag &&
         customProvider.draft.containerRegistry &&
         customProvider.draft.containerRepository
           ? {
+              object: `custom_provider.draft.container_image`,
               container_registry: customProvider.draft.containerRegistry.url!,
               container_image_tag: customProvider.draft.containerTag.name!,
               container_image: customProvider.draft.containerRepository.name!
@@ -39,10 +44,20 @@ export let v1CustomProviderPresenter = Presenter.create(customProviderType)
       remote_mcp_server:
         customProvider.draft.remoteProtocol && customProvider.draft.remoteUrl
           ? {
+              object: `custom_provider.draft.remote_mcp_server`,
               url: customProvider.draft.remoteUrl,
               transport: customProvider.draft.remoteProtocol
             }
-          : undefined
+          : undefined,
+
+      config: {
+        object: `custom_provider.draft.config`,
+        schema: {
+          type: 'json_schema' as const,
+          schema: customProvider.draft.config?.schema!
+        },
+        transformer: customProvider.draft.config?.transformer!
+      }
     } as any,
 
     created_at: customProvider.createdAt,
@@ -61,6 +76,10 @@ export let v1CustomProviderPresenter = Presenter.create(customProviderType)
       status: v.enumOf(['active', 'archived', 'deleted'], {
         name: 'status',
         description: 'Current status of the custom provider'
+      }),
+      type: v.enumOf(['function', 'container', 'remote'], {
+        name: 'type',
+        description: 'Type of the custom provider'
       }),
       name: v.string({
         name: 'name',
@@ -82,8 +101,23 @@ export let v1CustomProviderPresenter = Presenter.create(customProviderType)
         })
       ),
       draft: v.object({
+        object: v.enumOf(
+          [
+            'custom_provider.draft#function',
+            'custom_provider.draft.container',
+            'custom_provider.draft.remote'
+          ],
+          {
+            description: "String representing the draft's type"
+          }
+        ),
+
         container_image: v.optional(
           v.object({
+            object: v.literal('custom_provider.draft.container', {
+              description: 'String representing the container image draft type'
+            }),
+
             container_registry: v.string({
               name: 'container_registry',
               description: 'URL of the container registry',
@@ -104,6 +138,10 @@ export let v1CustomProviderPresenter = Presenter.create(customProviderType)
 
         remote_mcp_server: v.optional(
           v.object({
+            object: v.literal('custom_provider.draft.remote', {
+              description: 'String representing the remote MCP server draft type'
+            }),
+
             url: v.string({
               name: 'url',
               description: 'URL of the remote MCP server',
@@ -114,7 +152,25 @@ export let v1CustomProviderPresenter = Presenter.create(customProviderType)
               description: 'Transport protocol for connecting to the remote MCP server'
             })
           })
-        )
+        ),
+
+        config: v.object({
+          object: v.literal('custom_provider.draft.config', {
+            description: 'String representing the custom provider config draft type'
+          }),
+          schema: v.object({
+            type: v.literal('json_schema'),
+            schema: v.record(v.any(), {
+              name: 'schema',
+              description:
+                'JSON Schema defining the configuration fields for the custom provider'
+            })
+          }),
+          transformer: v.string({
+            name: 'transformer',
+            description: 'Optional jsonata transformer function for the configuration.'
+          })
+        })
       }),
 
       scm_repo: v.nullable(v1ScmRepoPresenter.schema),

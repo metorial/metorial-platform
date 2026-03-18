@@ -66,7 +66,7 @@ let TemplatesItem = styled.button`
   }
 `;
 
-let Form = styled.form`
+let Form = styled.div`
   display: flex;
   flex-direction: column;
 `;
@@ -329,24 +329,8 @@ export let CustomServerManagedCreateForm = (p: {
 
   if (p.templateId && !templateId) return <CenteredSpinner />;
 
-  let handleSubmit = async () => {
-    await form.submitForm();
-  };
-
   return (
-    <Form
-      onSubmit={e => {
-        e.preventDefault();
-        let lastStepIndex = hasTemplates ? 2 : 1;
-
-        if (currentStep < lastStepIndex) {
-          setCurrentStep(currentStep + 1);
-          return;
-        }
-
-        void handleSubmit();
-      }}
-    >
+    <Form>
       <Stepper
         currentStep={currentStep}
         setCurrentStep={setCurrentStep}
@@ -569,7 +553,7 @@ export let CustomServerManagedCreateForm = (p: {
             subtitle: 'Review and deploy',
             render: () => {
               return (
-                <>
+                <form onSubmit={form.handleSubmit}>
                   <Input label="Name" {...form.getFieldProps('name')} autoFocus />
                   <form.RenderError field="name" />
 
@@ -599,14 +583,13 @@ export let CustomServerManagedCreateForm = (p: {
                       loading={createCustomServer.isLoading}
                       success={createCustomServer.isSuccess}
                       disabled={createRepo.isLoading || createCustomServer.isLoading}
-                      type="button"
-                      onClick={handleSubmit}
+                      type="submit"
                       size="2"
                     >
                       Create
                     </Button>
                   </Actions>
-                </>
+                </form>
               );
             }
           }

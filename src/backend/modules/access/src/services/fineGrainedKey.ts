@@ -4,6 +4,7 @@ import { UnifiedApiKey } from '@metorial/api-keys';
 import { getConfig } from '@metorial/config';
 import { Context } from '@metorial/context';
 import { AccessTag, db, FineGrainedKey, ID, Instance, withTransaction } from '@metorial/db';
+import { env } from '../env';
 
 let includeFineGrainedKey = {
   instance: { include: { project: true, organization: true } },
@@ -40,7 +41,10 @@ class FineGrainedKeyService {
     return await withTransaction(async db => {
       let secretKey = UnifiedApiKey.create({
         type: 'fine_grained_token',
-        config: { url: getConfig().urls.apiUrl, instance: 'v2-us1' }
+        config: {
+          url: getConfig().urls.apiUrl,
+          instance: `v2-${env.service.METORIAL_REGION ?? 'ext'}`
+        }
       });
 
       let fineGrainedKey = await db.fineGrainedKey.create({
@@ -74,7 +78,10 @@ class FineGrainedKeyService {
     return await withTransaction(async db => {
       let secretKey = UnifiedApiKey.create({
         type: 'fine_grained_token',
-        config: { url: getConfig().urls.apiUrl, instance: 'v2-us1' }
+        config: {
+          url: getConfig().urls.apiUrl,
+          instance: `v2-${env.service.METORIAL_REGION ?? 'ext'}`
+        }
       });
 
       let fineGrainedKey = await db.fineGrainedKey.update({

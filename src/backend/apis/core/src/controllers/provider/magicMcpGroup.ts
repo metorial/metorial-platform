@@ -59,7 +59,7 @@ export let magicMcpGroupController = Controller.create(
           })
         )
       )
-      .use(hasFlags(['magic-mcp-enabled']))
+      .use(hasFlags(['magic-mcp-enabled', 'paid-magic-mcp-groups']))
       .do(async ctx => {
         let paginator = await magicMcpGroupService.listMagicMcpGroups({
           instance: ctx.instance,
@@ -82,7 +82,7 @@ export let magicMcpGroupController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
       .use(requireNonPublishableMachineAccess())
       .output(magicMcpGroupPresenter)
-      .use(hasFlags(['magic-mcp-enabled']))
+      .use(hasFlags(['magic-mcp-enabled', 'paid-magic-mcp-groups']))
       .do(async ctx => {
         return magicMcpGroupPresenter.present({ magicMcpGroup: ctx.magicMcpGroup });
       }),
@@ -107,7 +107,7 @@ export let magicMcpGroupController = Controller.create(
         })
       )
       .output(magicMcpGroupPresenter)
-      .use(hasFlags(['magic-mcp-enabled']))
+      .use(hasFlags(['magic-mcp-enabled', 'paid-magic-mcp-groups']))
       .do(async ctx => {
         let magicMcpGroup = await magicMcpGroupService.createMagicMcpGroup({
           organization: ctx.organization,
@@ -136,7 +136,7 @@ export let magicMcpGroupController = Controller.create(
         })
       )
       .output(magicMcpGroupPresenter)
-      .use(hasFlags(['magic-mcp-enabled']))
+      .use(hasFlags(['magic-mcp-enabled', 'paid-magic-mcp-groups']))
       .do(async ctx => {
         let magicMcpGroup = await magicMcpGroupService.deleteMagicMcpGroup({
           group: ctx.magicMcpGroup
@@ -165,7 +165,7 @@ export let magicMcpGroupController = Controller.create(
         })
       )
       .output(magicMcpGroupPresenter)
-      .use(hasFlags(['magic-mcp-enabled']))
+      .use(hasFlags(['magic-mcp-enabled', 'paid-magic-mcp-groups']))
       .do(async ctx => {
         let magicMcpGroup = await magicMcpGroupService.updateMagicMcpGroup({
           group: ctx.magicMcpGroup,
@@ -203,7 +203,7 @@ export let magicMcpGroupController = Controller.create(
         })
       )
       .output(magicMcpGroupPresenter)
-      .use(hasFlags(['magic-mcp-enabled']))
+      .use(hasFlags(['magic-mcp-enabled', 'paid-magic-mcp-groups']))
       .do(async ctx => {
         let magicMcpGroup = await magicMcpGroupService.addServersToGroup({
           group: ctx.magicMcpGroup,
@@ -237,7 +237,7 @@ export let magicMcpGroupController = Controller.create(
         })
       )
       .output(magicMcpGroupPresenter)
-      .use(hasFlags(['magic-mcp-enabled']))
+      .use(hasFlags(['magic-mcp-enabled', 'paid-magic-mcp-groups']))
       .do(async ctx => {
         let magicMcpGroup = await magicMcpGroupService.removeServersFromGroup({
           group: ctx.magicMcpGroup,

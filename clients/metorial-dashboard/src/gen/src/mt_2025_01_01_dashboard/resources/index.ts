@@ -3,6 +3,8 @@ export * from './custom-providers';
 export * from './dashboard';
 export * from './file-links';
 export * from './files';
+export * from './identities';
+export * from './identity-actors';
 export * from './magic-mcp-groups';
 export * from './magic-mcp-servers';
 export * from './magic-mcp-sessions';

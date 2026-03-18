@@ -5,6 +5,7 @@ import { subspaceCustomProviderEnvironmentService } from '@metorial/module-subsp
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
+import { hasFlags } from '../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { subspaceCustomProviderEnvironmentPresenter } from '../../presenters';
 
@@ -39,6 +40,7 @@ export let customProviderEnvironmentController = Controller.create(
         description: 'Returns a paginated list of environments for a custom provider.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.custom.environment:read'] }))
+      .use(hasFlags(['custom-providers-enabled', 'paid-custom-providers']))
       .outputList(subspaceCustomProviderEnvironmentPresenter)
       .query(
         'default',
@@ -86,6 +88,7 @@ export let customProviderEnvironmentController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.custom.environment:read'] }))
+      .use(hasFlags(['custom-providers-enabled', 'paid-custom-providers']))
       .output(subspaceCustomProviderEnvironmentPresenter)
       .do(async ctx => {
         return subspaceCustomProviderEnvironmentPresenter.present({

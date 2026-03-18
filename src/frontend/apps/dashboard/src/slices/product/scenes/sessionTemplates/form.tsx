@@ -19,52 +19,36 @@ export let SessionTemplateForm = (
       name: '',
       description: ''
     },
-    onSubmit: async () => {},
+    onSubmit: async values => {
+      if (props.type === 'create') {
+        let [result] = await createMutation.mutate({
+          instanceId: props.instanceId,
+          name: values.name.trim(),
+          description: values.description || undefined
+        });
+
+        if (!result) return;
+
+        props.onCreate?.(result);
+        props.close?.();
+      }
+    },
     schema: yup =>
       yup.object({
-        name: yup.string().required('Name is required'),
-        description: yup.string().defined()
+        name: yup.string().trim().required('Name is required'),
+        description: yup.string().ensure()
       })
   });
 
-  let handleSubmit = async () => {
-    let name = form.values.name.trim();
-
-    if (!name) {
-      form.setFieldTouched('name', true);
-      form.setFieldError('name', 'Name is required');
-      return;
-    }
-
-    form.setFieldError('name', undefined);
-
-    if (props.type === 'create') {
-      let [result] = await createMutation.mutate({
-        instanceId: props.instanceId,
-        name,
-        description: form.values.description || undefined
-      });
-
-      if (!result) return;
-
-      props.onCreate?.(result);
-      props.close?.();
-    }
-  };
-
   return (
-    <form
-      onSubmit={e => {
-        e.preventDefault();
-        handleSubmit();
-      }}
-    >
+    <form onSubmit={form.handleSubmit}>
       <Input label="Name" required {...form.getFieldProps('name')} />
       <form.RenderError field="name" />
 
       <Spacer size={10} />
 
       <Input label="Description" {...form.getFieldProps('description')} />
+      <form.RenderError field="description" />
 
       <Spacer size={15} />
 
@@ -72,7 +56,7 @@ export let SessionTemplateForm = (
         <Button type="button" variant="outline" onClick={props.close}>
           Cancel
         </Button>
-        <Button type="button" onClick={handleSubmit} loading={createMutation.isPending}>
+        <Button type="submit" loading={createMutation.isPending}>
           {props.type === 'create' ? 'Create' : 'Update'}
         </Button>
       </Dialog.Actions>

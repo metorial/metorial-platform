@@ -1,17 +1,14 @@
-import { renderWithLoader } from '@metorial/data-hooks';
+import { renderWithLoader, useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
   useCurrentInstance,
   useCustomProvider,
   useCustomProviderListing,
-  useDashboardFlags,
   useProviderListingByProviderId
 } from '@metorial/state';
-import { Button, Input } from '@metorial/ui';
+import { Button, Input, Spacer } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
 import { Link, useParams } from 'react-router-dom';
-import { FormBox } from '../../../../scenes/form/box';
-import { Field } from '../../../../scenes/form/field';
 import { FormPage } from '../../../../scenes/form/page';
 
 export let CustomProviderListingPage = () => {
@@ -27,48 +24,32 @@ export let CustomProviderListingPage = () => {
   );
 
   let generalUpdate = listing.useUpdateMutator();
+  let form = useForm({
+    initialValues: {
+      name: listing.data?.name ?? customServer.data?.name ?? '',
+      description: listing.data?.description ?? customServer.data?.description ?? '',
+      readme: providerListing.data?.readme ?? ''
+    },
+    updateInitialValues: true,
+    onSubmit: async values => {
+      if (!instance.data) return;
 
-  let flags = useDashboardFlags();
-  if (!flags.data?.flags['community-profiles-enabled']) return;
+      await generalUpdate.mutate({
+        name: values.name.trim(),
+        description: values.description.trim() || undefined,
+        readme: values.readme.trim() || undefined
+      });
+    },
+    schema: yup =>
+      yup.object({
+        name: yup.string().trim().required('Name is required'),
+        description: yup.string().ensure(),
+        readme: yup.string().ensure()
+      })
+  });
 
   return renderWithLoader({ customServer, listing })(() => (
     <FormPage>
-      {/* <Box
-        title="Publish Provider"
-        description="Make this provider available for deployments."
-      >
-        <Switch
-          label="Publish provider for all Metorial users to use."
-          disabled={publicationUpdate.isLoading || generalUpdate.isLoading}
-          checked={isPublic}
-          onCheckedChange={async checked => {
-            if (checked) {
-              setIsPublic(true);
-
-              confirm({
-                title: 'Are you sure you want to publish this provider?',
-                description:
-                  'This will make the provider available for all Metorial users to use. This might expose sensitive information, so make sure you understand the implications.',
-                onConfirm: async () => {
-                  await publicationUpdate.mutate({
-                    access: 'public'
-                  });
-                },
-                onCancel: () => {
-                  setIsPublic(false);
-                }
-              });
-              return;
-            }
-
-            setIsPublic(false);
-            await publicationUpdate.mutate({
-              access: 'tenant'
-            });
-          }}
-        />
-      </Box> */}
-
       <Box
         title="Open Provider Listing"
         description="View this provider listing in the Metorial catalog."
@@ -87,47 +68,40 @@ export let CustomProviderListingPage = () => {
         </Link>
       </Box>
 
-      <FormBox
+      <Box
         title="Listing"
         description="Update how this provider is listed in the Metorial catalog."
-        schema={yup =>
-          yup.object({
-            name: yup.string().optional(),
-            description: yup.string().optional(),
-            readme: yup.string().optional()
-          })
-        }
-        initialValues={{
-          name: listing.data?.name ?? customServer.data?.name ?? '',
-          description: listing.data?.description ?? customServer.data?.description ?? '',
-          readme: providerListing.data?.readme ?? ''
-        }}
-        mutators={[generalUpdate]}
-        onSubmit={async values => {
-          if (!instance.data) return;
-
-          await generalUpdate.mutate({
-            name: values.name,
-            description: values.description,
-            readme: values.readme || undefined
-          });
-        }}
       >
-        <Field field="name">
-          {({ getFieldProps }) => <Input {...getFieldProps()} label="Name" />}
-        </Field>
+        <form onSubmit={form.handleSubmit}>
+          <Input label="Name" {...form.getFieldProps('name')} />
+          <form.RenderError field="name" />
 
-        <Field field="description">
-          {({ getFieldProps }) => <Input {...getFieldProps()} label="Description" />}
-        </Field>
+          <Spacer size={15} />
 
-        <Field field="readme">
-          {({ getFieldProps }) => (
-            <Input {...getFieldProps()} label="Readme" as="textarea" />
-          )}
-        </Field>
-      </FormBox>
+          <Input label="Description" {...form.getFieldProps('description')} />
+          <form.RenderError field="description" />
 
+          <Spacer size={15} />
+
+          <Input label="Readme" as="textarea" {...form.getFieldProps('readme')} />
+          <form.RenderError field="readme" />
+
+          <Spacer size={15} />
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <Button
+              size="2"
+              type="submit"
+              loading={generalUpdate.isLoading}
+              success={generalUpdate.isSuccess}
+            >
+              Save
+            </Button>
+          </div>
+
+          <generalUpdate.RenderError />
+        </form>
+      </Box>
     </FormPage>
   ));
 };

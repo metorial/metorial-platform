@@ -1,7 +1,7 @@
-import { getConfig } from '@metorial/config';
 import { shadowId } from '@lowerdeck/shadow-id';
-import { Presenter } from '@metorial/presenter';
 import { v } from '@lowerdeck/validation';
+import { getConfig } from '@metorial/config';
+import { Presenter } from '@metorial/presenter';
 import { magicMcpServerType } from '../../types';
 
 export let v1MagicMcpServerPresenter = Presenter.create(magicMcpServerType)
@@ -14,7 +14,7 @@ export let v1MagicMcpServerPresenter = Presenter.create(magicMcpServerType)
     endpoints: magicMcpServer.aliases.map(a => ({
       id: shadowId('mgse_', [magicMcpServer.id], [a.slug]),
       alias: a.slug,
-      url: `${getConfig().urls.mcpUrl}/magic/${a.slug}`
+      url: `${getConfig().urls.apiUrl}/connect/magic/${a.slug}`
     })),
     name: magicMcpServer.name,
     description: magicMcpServer.description,

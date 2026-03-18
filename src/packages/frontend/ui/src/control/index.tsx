@@ -15,7 +15,9 @@ let List = styled('div')`
   position: relative;
 `;
 
-let Item = styled(RadixToggle.Item)`
+let Item = styled(RadixToggle.Item).attrs({
+  type: 'button'
+})`
   display: flex;
   align-items: center;
   border: none;

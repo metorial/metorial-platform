@@ -20,6 +20,7 @@ import {
 } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { addMinutes } from 'date-fns';
+import { env } from '../env';
 import { machineAccessService } from './machineAccess';
 
 export type ListApiKeysFilter =
@@ -109,7 +110,10 @@ class ApiKeyService {
 
       let secretKey = UnifiedApiKey.create({
         type: d.type,
-        config: { url: getConfig().urls.apiUrl, instance: 'v2-us1' }
+        config: {
+          url: getConfig().urls.apiUrl,
+          instance: `v2-${env.service.METORIAL_REGION ?? 'ext'}`
+        }
       });
 
       let limitReveal =
@@ -315,7 +319,10 @@ class ApiKeyService {
 
       let secretKey = UnifiedApiKey.create({
         type: d.apiKey.type,
-        config: { url: getConfig().urls.apiUrl, instance: 'v2-us1' }
+        config: {
+          url: getConfig().urls.apiUrl,
+          instance: `v2-${env.service.METORIAL_REGION ?? 'ext'}`
+        }
       });
 
       let currentSecrets = await db.apiKeySecret.findMany({

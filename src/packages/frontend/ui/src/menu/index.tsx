@@ -211,7 +211,7 @@ export let Menu = ({
                 disabled={item.disabled}
                 asChild
               >
-                <button disabled={item.disabled}>
+                <button type="button" disabled={item.disabled}>
                   <h1>{item.label}</h1>
                   {item.description && <p>{item.description}</p>}
                 </button>

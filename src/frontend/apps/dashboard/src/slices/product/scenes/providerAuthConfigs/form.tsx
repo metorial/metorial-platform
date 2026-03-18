@@ -79,7 +79,6 @@ export let ProviderAuthConfigForm = (
     return getAuthMethodHasSchema(method);
   });
 
-  let [credentialsData, setCredentialsData] = useState<Record<string, unknown>>({});
   let [step, setStep] = useState(
     props.type === 'create' &&
       !!props.hideAuthMethodStep &&
@@ -93,15 +92,57 @@ export let ProviderAuthConfigForm = (
       name: '',
       description: '',
       authMethodId: props.type === 'create' ? props.initialAuthMethodId ?? '' : '',
-      credentialsDataJson: '{}'
+      credentialsDataJson: '{}',
+      credentialsData: {} as Record<string, unknown>
     },
-    onSubmit: async () => {},
+    onSubmit: async values => {
+      form.setFieldTouched('authMethodId', true, false);
+      await form.validateField('authMethodId');
+
+      if (!values.authMethodId) return;
+
+      let parsedCredentials: Record<string, unknown> = {};
+      if (hasSchema) {
+        parsedCredentials = values.credentialsData;
+      } else if (isOAuthWithoutSchema) {
+        parsedCredentials = {};
+      } else {
+        form.setFieldTouched('credentialsDataJson', true, false);
+        await form.validateField('credentialsDataJson');
+
+        try {
+          parsedCredentials = JSON.parse(values.credentialsDataJson);
+        } catch {
+          form.setFieldError('credentialsDataJson', 'Credentials data must be valid JSON');
+          return;
+        }
+      }
+
+      if (props.type !== 'create' || !instanceId) return;
+
+      let [result] = await createMutation.mutate({
+        instanceId,
+        ...(props.providerDeploymentId
+          ? { providerDeploymentId: props.providerDeploymentId }
+          : {}),
+        name: values.name.trim(),
+        description: values.description || undefined,
+        providerAuthMethodId: values.authMethodId,
+        value: parsedCredentials
+      });
+
+      if (!result) return;
+
+      props.onCreate?.(result);
+      props.close?.();
+    },
     schemaDependencies: [authMethods.data?.items, oauthAutoRegistrationEnabled],
     schema: yup =>
       yup.object({
-        name: yup.string().required('Name is required'),
-        description: yup.string().defined(),
+        name: yup.string().trim().required('Name is required'),
+        description: yup.string().ensure(),
         authMethodId: yup.string().required('Authentication method is required'),
+        credentialsData: yup.mixed<Record<string, unknown>>().defined(),
         credentialsDataJson: yup
           .string()
           .defined()
@@ -129,58 +170,6 @@ export let ProviderAuthConfigForm = (
           })
       })
   });
-
-  let handleSubmit = async () => {
-    let name = form.values.name.trim();
-
-    form.setFieldTouched('authMethodId', true, false);
-    await form.validateField('authMethodId');
-
-    if (!form.values.authMethodId) return;
-
-    if (!name) {
-      form.setFieldTouched('name', true);
-      form.setFieldError('name', 'Name is required');
-      return;
-    }
-
-    form.setFieldError('name', undefined);
-
-    let parsedCredentials: Record<string, unknown> = {};
-    if (hasSchema) {
-      parsedCredentials = credentialsData;
-    } else if (isOAuthWithoutSchema) {
-      parsedCredentials = {};
-    } else {
-      form.setFieldTouched('credentialsDataJson', true, false);
-      await form.validateField('credentialsDataJson');
-
-      try {
-        parsedCredentials = JSON.parse(form.values.credentialsDataJson);
-      } catch {
-        form.setFieldError('credentialsDataJson', 'Credentials data must be valid JSON');
-        return;
-      }
-    }
-
-    if (props.type !== 'create' || !instanceId) return;
-
-    let [result] = await createMutation.mutate({
-      instanceId,
-      ...(props.providerDeploymentId
-        ? { providerDeploymentId: props.providerDeploymentId }
-        : {}),
-      name,
-      description: form.values.description || undefined,
-      providerAuthMethodId: form.values.authMethodId,
-      value: parsedCredentials
-    });
-
-    if (!result) return;
-
-    props.onCreate?.(result);
-    props.close?.();
-  };
 
   let selectedMethod = manualAuthMethods.find(
     (method: AuthMethod) => method.id === form.values.authMethodId
@@ -214,7 +203,7 @@ export let ProviderAuthConfigForm = (
   let includeAuthMethodStep = (!hasSingleMethod && !skipAuthMethodStep) || showHiddenAuthMethodStep;
 
   let resetCredentials = () => {
-    setCredentialsData({});
+    form.setFieldValue('credentialsData', {});
     form.setFieldValue('credentialsDataJson', '{}');
     form.setFieldTouched('credentialsDataJson', false, false);
     form.setFieldError('credentialsDataJson', undefined);
@@ -247,8 +236,8 @@ export let ProviderAuthConfigForm = (
   let credentialsSection = hasSchema ? (
     <JsonSchemaInput
       schema={schemaObj}
-      value={credentialsData}
-      onChange={setCredentialsData}
+      value={form.values.credentialsData}
+      onChange={value => form.setFieldValue('credentialsData', value)}
       variant="raw"
     />
   ) : isOAuthWithoutSchema ? (
@@ -401,29 +390,24 @@ export let ProviderAuthConfigForm = (
       title: 'Details',
       subtitle: 'Name and create',
       render: () => (
-        <form
-          onSubmit={e => {
-            e.preventDefault();
-            handleSubmit();
-          }}
-        >
+        <form onSubmit={form.handleSubmit}>
           <Input label="Name" required {...form.getFieldProps('name')} />
           <form.RenderError field="name" />
 
           <Spacer size={10} />
 
           <Input label="Description" {...form.getFieldProps('description')} />
+          <form.RenderError field="description" />
 
           <Spacer size={15} />
 
           <Dialog.Actions>
-            <Button variant="outline" onClick={() => setStep(credentialsStepIndex)}>
+            <Button type="button" variant="outline" onClick={() => setStep(credentialsStepIndex)}>
               Back
             </Button>
             <Button
-              type="button"
-              onClick={handleSubmit}
-              loading={createMutation.isPending}
+              type="submit"
+              loading={createMutation.isLoading}
               disabled={!form.values.authMethodId}
             >
               Create
@@ -465,18 +449,14 @@ export let ProviderAuthConfigForm = (
     <>
       {providerContext}
 
-      <form
-        onSubmit={e => {
-          e.preventDefault();
-          handleSubmit();
-        }}
-      >
+      <form onSubmit={form.handleSubmit}>
         <Input label="Name" required {...form.getFieldProps('name')} />
         <form.RenderError field="name" />
 
         <Spacer size={10} />
 
         <Input label="Description" {...form.getFieldProps('description')} />
+        <form.RenderError field="description" />
 
         <Spacer size={10} />
 
@@ -511,13 +491,12 @@ export let ProviderAuthConfigForm = (
         <Spacer size={15} />
 
         <Dialog.Actions>
-          <Button variant="outline" onClick={props.close}>
+          <Button type="button" variant="outline" onClick={props.close}>
             Cancel
           </Button>
           <Button
-            type="button"
-            onClick={handleSubmit}
-            loading={createMutation.isPending}
+            type="submit"
+            loading={createMutation.isLoading}
             disabled={!form.values.authMethodId}
           >
             Update

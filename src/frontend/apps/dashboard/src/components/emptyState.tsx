@@ -109,3 +109,28 @@ export let Upgrade = (p: { title: React.ReactNode; description: React.ReactNode 
     </Wrapper>
   );
 };
+
+export let EmptyState = (p: {
+  title: React.ReactNode;
+  description: React.ReactNode;
+  extra?: React.ReactNode;
+  action?: { label: React.ReactNode; onClick: () => void };
+}) => {
+  return (
+    <Wrapper>
+      {p.extra && <Pill>{p.extra}</Pill>}
+
+      <h1>{p.title}</h1>
+      <p>{p.description}</p>
+
+      {p.action && (
+        <>
+          <Spacer height={30} />
+          <Button color="white" onClick={p.action.onClick}>
+            {p.action.label}
+          </Button>
+        </>
+      )}
+    </Wrapper>
+  );
+};

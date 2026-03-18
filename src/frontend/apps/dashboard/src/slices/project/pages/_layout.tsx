@@ -1,9 +1,9 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { ContentPanelLayout, ContentPanelLayoutInner, SidebarPane } from '@metorial/layout';
-import { useCurrentProject } from '@metorial/state';
+import { useCurrentProject, useDashboardFlags } from '@metorial/state';
 import { atom, useAtom } from '@metorial/ui';
-import { RiHome3Line, RiSettings2Line } from '@remixicon/react';
+import { RiGitBranchLine, RiHome3Line, RiSettings2Line } from '@remixicon/react';
 import { useEffect, useLayoutEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 
@@ -27,6 +27,7 @@ export let ProjectSettingsPageLayout = () => {
   let layout = useAtom(layoutAtom);
 
   let project = useCurrentProject();
+  let flags = useDashboardFlags();
 
   let params = [project.data?.organization, project.data] as const;
 
@@ -46,7 +47,18 @@ export let ProjectSettingsPageLayout = () => {
               icon: <RiSettings2Line />,
               label: 'Instances',
               to: Paths.project.settings(...params, 'instances')
-            }
+            },
+
+            ...(flags.data?.flags?.['identity-management'] &&
+            flags.data?.flags?.['paid-identity']
+              ? [
+                  {
+                    icon: <RiGitBranchLine />,
+                    label: 'Delegation',
+                    to: Paths.project.settings(...params, 'delegation-config')
+                  }
+                ]
+              : [])
           ]
         }
       ]}
@@ -66,7 +78,8 @@ export let ProjectSettingsPageLayout = () => {
       >
         <ContentPanelLayoutInner>
           {renderWithLoader({
-            project
+            project,
+            flags
           })(({}) => (
             <Outlet />
           ))}

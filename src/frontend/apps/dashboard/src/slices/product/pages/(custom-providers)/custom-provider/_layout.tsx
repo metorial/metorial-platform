@@ -11,7 +11,6 @@ import {
 import { Button, Callout, LinkTabs, Menu, Spacer } from '@metorial/ui';
 import { useEffect } from 'react';
 import { Link, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { showCustomProviderRemoteFormModal } from '../../../scenes/customProvider/modal';
 import { showProviderDeploymentFormModal } from '../../../scenes/providerDeployments/modal';
 import { showMagicMcpServerFormModal } from '../../../scenes/providerDeployments/modal_';
 
@@ -120,14 +119,10 @@ export let CustomProviderLayout = () => {
                 to: Paths.instance.customProvider(...pathParams, 'deployments')
               },
 
-              ...(flags.data?.flags['community-profiles-enabled']
-                ? [
-                    {
-                      label: 'Listing',
-                      to: Paths.instance.customProvider(...pathParams, 'listing')
-                    }
-                  ]
-                : []),
+              {
+                label: 'Listing',
+                to: Paths.instance.customProvider(...pathParams, 'listing')
+              },
 
               {
                 label: 'Settings',
@@ -169,9 +164,7 @@ export let DeployServerButton = ({
   let flags = useDashboardFlags();
   let isDisabled = disabled || !providerId;
 
-  return !isDisabled &&
-    (flags.data?.flags['magic-mcp-enabled'] ||
-      (flags.data?.flags['managed-servers-enabled'] && false)) ? (
+  return !isDisabled && flags.data?.flags['magic-mcp-enabled'] ? (
     <Menu
       items={[
         {
@@ -185,15 +178,6 @@ export let DeployServerButton = ({
                 id: 'magic-mcp-server',
                 label: 'Magic MCP Server',
                 description: 'Easier to use and manage.'
-              }
-            ]
-          : []),
-        ...(flags.data?.flags['managed-servers-enabled'] && false
-          ? [
-              {
-                id: 'fork-server',
-                label: 'Fork Provider',
-                description: 'Create a copy of this provider and edit the code.'
               }
             ]
           : [])
@@ -219,10 +203,6 @@ export let DeployServerButton = ({
           showMagicMcpServerFormModal({
             type: 'create',
             for: { serverId: providerId! }
-          });
-        } else if (item === 'fork-server') {
-          showCustomProviderRemoteFormModal({
-            type: 'managed'
           });
         }
       }}

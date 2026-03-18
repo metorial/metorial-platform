@@ -1,6 +1,7 @@
 import { Controller } from '@metorial/rest';
 import { dashboardApiKeyController } from './dashboard/apiKey';
 import { dashboardBootController } from './dashboard/boot';
+import { flagsController } from './dashboard/flags';
 import { dashboardOrganizationController } from './dashboard/organization';
 import { dashboardOrganizationInviteController } from './dashboard/organizationInvite';
 import { profileController } from './dashboard/profile';
@@ -33,6 +34,12 @@ import {
   customProviderDeploymentController,
   customProviderEnvironmentController,
   customProviderVersionController,
+  identityActorController,
+  identityController,
+  identityCredentialController,
+  identityDelegationConfigController,
+  identityDelegationController,
+  identityDelegationRequestController,
   magicMcpGroupController,
   magicMcpServerController,
   magicMcpSessionController,
@@ -81,6 +88,12 @@ export let magnetarController = Controller.create<any>(
 
     publisherController,
     providerController,
+    identityController,
+    identityActorController,
+    identityCredentialController,
+    identityDelegationController,
+    identityDelegationConfigController,
+    identityDelegationRequestController,
     providerCategoryController,
     providerCollectionController,
     providerGroupController,
@@ -162,6 +175,7 @@ export let dashboardController = Controller.create<any>(
     dashboardBootController,
     dashboardApiKeyController,
     dashboardUsageController,
+    flagsController,
 
     instanceManagementController,
     organizationManagementController,
@@ -182,6 +196,12 @@ export let dashboardController = Controller.create<any>(
     teamManagementController,
 
     providerController,
+    identityController,
+    identityActorController,
+    identityCredentialController,
+    identityDelegationController,
+    identityDelegationConfigController,
+    identityDelegationRequestController,
     providerListingController,
     providerCategoryController,
     providerCollectionController,
@@ -255,7 +275,6 @@ export let dashboardController = Controller.create<any>(
     // portalConsumerAuthFactorController,
     // portalConsumerServerRequestController,
     // portalFeaturedServersController,
-
   }
 );
 

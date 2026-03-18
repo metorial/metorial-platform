@@ -30,7 +30,7 @@ export let ProviderErrorPage = () => {
             <Text size="2">{error.sessionId}</Text>,
             <RenderDate date={error.createdAt} />
           ],
-          href: Paths.instance.session(
+          href: Paths.instance.providerSession(
             instance.data?.organization,
             instance.data?.project,
             instance.data,
