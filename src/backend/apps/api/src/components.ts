@@ -4,6 +4,7 @@ import { apiMux } from '@lowerdeck/api-mux';
 import { authApi } from '@metorial/api-auth';
 import { startMcpServer } from '@metorial/api-connection';
 import { apiServer } from '@metorial/api-core';
+import { customPortalApi } from '@metorial/api-custom-portal';
 import { fileContentApi, fileUploadApi } from '@metorial/api-files';
 import { authenticate } from '@metorial/auth';
 
@@ -13,6 +14,7 @@ let mcpPort = parseInt(process.env.MCP_PORT || '4311');
 let oauthPort = parseInt(process.env.OAUTH_PORT || '4313');
 let runnerPort = parseInt(process.env.RUNNER_PORT || '3399');
 let privateApiPort = parseInt(process.env.PRIVATE_API_PORT || '4314');
+let customPortalApiPort = parseInt(process.env.PORTAL_API_PORT || '4315');
 let integrationsApiPort = parseInt(process.env.INTEGRATIONS_API_PORT || '4316');
 let callbacksApiPort = parseInt(process.env.CALLBACKS_API_PORT || '4317');
 
@@ -46,6 +48,11 @@ Bun.serve({
   fetch: fileContentApi.fetch
 });
 
+Bun.serve({
+  port: customPortalApiPort,
+  fetch: customPortalApi.fetch
+});
+
 startMcpServer({ port: mcpPort, authenticate });
 
 if (process.env.NODE_ENV == 'production' && process.env.METORIAL_SOURCE == 'enterprise') {
@@ -55,4 +62,6 @@ if (process.env.NODE_ENV == 'production' && process.env.METORIAL_SOURCE == 'ente
   });
 }
 
-console.log(`Listening on ports ${apiPort} (api), ${filesPort} (files)`);
+console.log(
+  `Listening on ports ${apiPort} (api), ${filesPort} (files), ${customPortalApiPort} (portals)`
+);

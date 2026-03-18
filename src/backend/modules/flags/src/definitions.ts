@@ -8,6 +8,7 @@ export type Flags = {
   'magic-mcp-enabled': boolean;
   'callbacks-enabled': boolean;
   'identity-management': boolean;
+  'portals-access': boolean;
 
   'paid-oauth-import': boolean;
   'paid-oauth-export': boolean;
@@ -30,6 +31,7 @@ export let defaultFlags: Flags = {
   'custom-providers-enabled': false,
   'magic-mcp-enabled': false,
   'callbacks-enabled': false,
+  'portals-access': false,
   'identity-management': false,
 
   'paid-oauth-import': true,

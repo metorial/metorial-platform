@@ -1,0 +1,29 @@
+enum ConsumerAccessTargetType {
+  provider_template
+  magic_mcp_server
+}
+
+model ConsumerAccess {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  type ConsumerAccessTargetType
+
+  surfaceOid BigInt
+  surface    ConsumerSurface @relation(fields: [surfaceOid], references: [oid], onDelete: Cascade)
+
+  consumerGroupOid BigInt
+  consumerGroup    ConsumerGroup @relation(fields: [consumerGroupOid], references: [oid], onDelete: Cascade)
+
+  providerTemplateOid BigInt?
+  providerTemplate    ProviderTemplate? @relation("ConsumerAccessProviderTemplate", fields: [providerTemplateOid], references: [oid], onDelete: Cascade)
+
+  magicMcpServerOid BigInt?
+  magicMcpServer    MagicMcpServer? @relation("ConsumerAccessMagicMcpServer", fields: [magicMcpServerOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([consumerGroupOid, providerTemplateOid])
+  @@unique([consumerGroupOid, magicMcpServerOid])
+}

@@ -1,5 +1,6 @@
 import {
   conflictError,
+  forbiddenError,
   notFoundError,
   preconditionFailedError,
   ServiceError
@@ -13,14 +14,22 @@ import {
   ID,
   Instance,
   MagicMcpServer,
+  MagicMcpServerSource,
   MagicMcpServerStatus,
   Organization,
   OrganizationActor,
   Prisma
 } from '@metorial/db';
 import { generatePlainId } from '@metorial/id';
+import {
+  accessTagService,
+  consumerMagicMcpReadRoles,
+  consumerMagicMcpWriteRoles,
+  type AnyAccessTagSelector
+} from '@metorial/module-access';
 import { searchMagicMcpServerIds } from '@metorial/module-search';
 import { subspaceSessionTemplateService } from '@metorial/module-subspace';
+import { getAccessTagFilter, getActiveStatusFilter } from './consumerAccess';
 import {
   enqueueMagicMcpServerCreated,
   enqueueMagicMcpServerUpdated
@@ -43,10 +52,15 @@ let buildAlias = (name?: string | null) => {
 };
 
 class MagicMcpServerImpl {
-  async getMagicMcpServerById(d: { instance: Instance; magicMcpServerId: string }) {
+  async getMagicMcpServerById(d: {
+    instance: Instance;
+    magicMcpServerId: string;
+    accessTags?: AnyAccessTagSelector;
+  }) {
     let magicMcpServer = await db.magicMcpServer.findFirst({
       where: {
         instanceOid: d.instance.oid,
+        status: d.accessTags ? 'active' : undefined,
         OR: [
           {
             id: d.magicMcpServerId
@@ -64,7 +78,32 @@ class MagicMcpServerImpl {
     });
     if (!magicMcpServer) throw new ServiceError(notFoundError('magic_mcp.server'));
 
+    if (d.accessTags) {
+      await this.checkConsumerReadAccess({
+        server: magicMcpServer,
+        accessTags: d.accessTags
+      });
+    }
+
     return magicMcpServer;
+  }
+
+  async checkConsumerReadAccess(d: {
+    server: MagicMcpServer;
+    accessTags: AnyAccessTagSelector;
+  }) {
+    await accessTagService.checkResourceAccess({
+      tags: d.accessTags,
+      roles: [...consumerMagicMcpReadRoles],
+      checker: async filter => {
+        return await db.magicMcpServer.findFirst({
+          where: {
+            oid: d.server.oid,
+            accessTagEntities: filter
+          }
+        });
+      }
+    });
   }
 
   async createMagicMcpServer(d: {
@@ -76,22 +115,31 @@ class MagicMcpServerImpl {
       name?: string;
       description?: string;
       metadata?: Record<string, unknown>;
+      source?: MagicMcpServerSource;
+      providerTemplateId?: string;
+      sessionTemplateId?: string;
     };
   }) {
-    let sessionTemplate = await subspaceSessionTemplateService.create({
-      instance: d.instance,
-      name: `Magic MCP Template ${d.input.name ?? new Date().toISOString().slice(0, 10)}`,
-      description: 'Auto-created for Magic MCP server',
-      isInternal: true,
-      metadata: d.input.metadata,
-      providers: []
-    });
+    let sessionTemplateId =
+      d.input.sessionTemplateId ??
+      (
+        await subspaceSessionTemplateService.create({
+          instance: d.instance,
+          name: `Magic MCP Template ${d.input.name ?? new Date().toISOString().slice(0, 10)}`,
+          description: 'Auto-created for Magic MCP server',
+          isInternal: true,
+          metadata: d.input.metadata,
+          providers: []
+        })
+      ).id;
 
     let magicMcpServer = await db.magicMcpServer.create({
       data: {
         id: await ID.generateId('magicMcpServer'),
         status: 'active',
-        subspaceSessionTemplateId: sessionTemplate.id,
+        source: d.input.source ?? 'manual',
+        providerTemplateId: d.input.providerTemplateId,
+        subspaceSessionTemplateId: sessionTemplateId,
         name: d.input.name,
         description: d.input.description,
         metadata: d.input.metadata ?? {},
@@ -110,8 +158,29 @@ class MagicMcpServerImpl {
     return magicMcpServer;
   }
 
-  async checkWriteAccess(d: { server: MagicMcpServer; instance: Instance }) {
-    if (d.server.instanceOid !== d.instance.oid) {
+  async checkWriteAccess(d: {
+    server: MagicMcpServer;
+    instance?: Instance;
+    accessTags?: AnyAccessTagSelector;
+  }) {
+    if (d.accessTags) {
+      await accessTagService.checkResourceAccess({
+        tags: d.accessTags,
+        roles: [...consumerMagicMcpWriteRoles],
+        checker: async filter => {
+          return await db.magicMcpServer.findFirst({
+            where: {
+              oid: d.server.oid,
+              accessTagEntities: filter
+            }
+          });
+        }
+      });
+
+      return;
+    }
+
+    if (!d.instance || d.server.instanceOid !== d.instance.oid) {
       throw new ServiceError(notFoundError('magic_mcp.server'));
     }
   }
@@ -138,13 +207,22 @@ class MagicMcpServerImpl {
 
   async updateMagicMcpServer(d: {
     server: MagicMcpServerWithRelations;
+    instance?: Instance;
+    accessTags?: AnyAccessTagSelector;
     input: {
       name?: string | null;
       description?: string | null;
       metadata?: Record<string, unknown> | null;
       aliases?: string[];
+      sessionTemplateId?: string;
     };
   }) {
+    await this.checkWriteAccess({
+      server: d.server,
+      instance: d.instance,
+      accessTags: d.accessTags
+    });
+
     if (d.server.status != 'active') {
       throw new ServiceError(
         preconditionFailedError({
@@ -179,12 +257,20 @@ class MagicMcpServerImpl {
       }
     }
 
-    // let nextSessionTemplateId =
-    //   d.input.sessionTemplateId === undefined
-    //     ? d.server.subspaceSessionTemplateId
-    //     : d.input.sessionTemplateId;
-    // let isSessionTemplateChanged =
-    //   nextSessionTemplateId !== d.server.subspaceSessionTemplateId;
+    let nextSessionTemplateId =
+      d.input.sessionTemplateId === undefined
+        ? d.server.subspaceSessionTemplateId
+        : d.input.sessionTemplateId;
+    let isSessionTemplateChanged =
+      nextSessionTemplateId !== d.server.subspaceSessionTemplateId;
+
+    if (d.accessTags && isSessionTemplateChanged) {
+      throw new ServiceError(
+        forbiddenError({
+          message: 'Consumers cannot change the session template for a magic MCP server'
+        })
+      );
+    }
 
     let server;
     try {
@@ -195,7 +281,7 @@ class MagicMcpServerImpl {
           description:
             d.input.description === undefined ? d.server.description : d.input.description,
           metadata: d.input.metadata === undefined ? d.server.metadata : d.input.metadata,
-          // subspaceSessionTemplateId: nextSessionTemplateId,
+          subspaceSessionTemplateId: nextSessionTemplateId,
           aliases: {
             create: nextAliases.map(slug => ({ slug }))
           }
@@ -213,21 +299,6 @@ class MagicMcpServerImpl {
       throw error;
     }
 
-    // if (isSessionTemplateChanged && d.server.subspaceSession) {
-    //   await db.magicMcpServerSubspaceSession
-    //     .delete({
-    //       where: {
-    //         magicMcpServerOid: d.server.oid
-    //       }
-    //     })
-    //     .catch(() => null);
-
-    //   server = await db.magicMcpServer.findFirstOrThrow({
-    //     where: { oid: d.server.oid },
-    //     include
-    //   });
-    // }
-
     await enqueueMagicMcpServerUpdated(server.id);
 
     return server;
@@ -238,6 +309,7 @@ class MagicMcpServerImpl {
     status?: MagicMcpServerStatus[];
     search?: string;
     groupIds?: string[];
+    accessTags?: AnyAccessTagSelector;
   }) {
     let normalizedSearch = d.search?.trim();
     if (!normalizedSearch?.length) normalizedSearch = undefined;
@@ -261,6 +333,15 @@ class MagicMcpServerImpl {
           })
         ).map(g => g.oid)
       : undefined;
+    let accessTagFilter = await getAccessTagFilter({
+      accessTags: d.accessTags,
+      roles: [...consumerMagicMcpReadRoles]
+    });
+    let statusFilter = getActiveStatusFilter({
+      accessTags: d.accessTags,
+      status: d.status,
+      activeStatus: 'active'
+    });
 
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
@@ -268,7 +349,7 @@ class MagicMcpServerImpl {
           ...opts,
           where: {
             instanceOid: d.instance.oid,
-            status: d.status ? { in: d.status } : { not: 'archived' as const },
+            status: statusFilter ? { in: statusFilter } : { not: 'archived' as const },
             groups: shouldFilterByGroups
               ? {
                   some: {
@@ -276,6 +357,7 @@ class MagicMcpServerImpl {
                   }
                 }
               : undefined,
+            accessTagEntities: accessTagFilter,
             AND: [normalizedSearch ? { id: { in: searchedServerIds } } : undefined!].filter(
               Boolean
             )

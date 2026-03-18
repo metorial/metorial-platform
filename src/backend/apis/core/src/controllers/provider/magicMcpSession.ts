@@ -7,6 +7,7 @@ import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { hasFlags } from '../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
+import { requireConsumerTokenForPublishableKey } from '../../middleware/requireConsumerTokenForPublishableKey';
 import { magicMcpSessionPresenter } from '../../presenters';
 
 export let magicMcpSessionGroup = instanceGroup.use(async ctx => {
@@ -21,7 +22,8 @@ export let magicMcpSessionGroup = instanceGroup.use(async ctx => {
 
   let magicMcpSession = await magicMcpSessionService.getMagicMcpSessionById({
     magicMcpSessionId: ctx.params.magicMcpSessionId,
-    instance: ctx.instance
+    instance: ctx.instance,
+    accessTags: ctx.accessTags
   });
 
   return { magicMcpSession };
@@ -39,7 +41,12 @@ export let magicMcpSessionController = Controller.create(
         name: 'List magic MCP sessions',
         description: 'Returns a paginated list of magic MCP sessions.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.provider.session:read', 'consumer#instance.magic_mcp:read']
+        })
+      )
+      .use(requireConsumerTokenForPublishableKey())
       .outputList(magicMcpSessionPresenter)
       .query(
         'default',
@@ -53,7 +60,8 @@ export let magicMcpSessionController = Controller.create(
       .do(async ctx => {
         let paginator = await magicMcpSessionService.listMagicMcpSessions({
           instance: ctx.instance,
-          magicMcpServerId: normalizeArrayParam(ctx.query.magic_mcp_server_id)
+          magicMcpServerId: normalizeArrayParam(ctx.query.magic_mcp_server_id),
+          accessTags: ctx.accessTags
         });
 
         let list = await paginator.run(ctx.query);
@@ -68,7 +76,12 @@ export let magicMcpSessionController = Controller.create(
         name: 'Get magic MCP session',
         description: 'Retrieves a specific magic MCP session.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.provider.session:read', 'consumer#instance.magic_mcp:read']
+        })
+      )
+      .use(requireConsumerTokenForPublishableKey())
       .output(magicMcpSessionPresenter)
       .use(hasFlags(['magic-mcp-enabled']))
       .do(async ctx => {

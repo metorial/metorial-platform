@@ -3,6 +3,7 @@ import { Requester } from './requester';
 
 export interface ClientOpts {
   endpoint: string;
+  referrerPolicy?: RequestInit['referrerPolicy'];
   headers?: Record<string, string | undefined>;
   getHeaders?: () => Promise<Record<string, string>> | Record<string, string>;
   onRequest?: (d: {
@@ -50,6 +51,7 @@ export let clientBuilder =
               name: path.slice(0, -1).join(':'),
               headers,
               query: requestOpts?.query,
+              referrerPolicy: clientOpts.referrerPolicy,
               context
             });
           }
@@ -61,6 +63,7 @@ export let clientBuilder =
               name: path.join(':'),
               headers,
               query: requestOpts?.query,
+              referrerPolicy: clientOpts.referrerPolicy,
               context
             })
           ).data;

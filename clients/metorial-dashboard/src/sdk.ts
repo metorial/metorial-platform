@@ -22,6 +22,14 @@ import {
   MetorialDashboardInstanceMagicMcpServersEndpoint,
   MetorialDashboardInstanceMagicMcpSessionsEndpoint,
   MetorialDashboardInstanceMagicMcpTokensEndpoint,
+  MetorialDashboardInstancePortalsAccessRequestsEndpoint,
+  MetorialDashboardInstancePortalsAuthAppEndpoint,
+  MetorialDashboardInstancePortalsAuthSsoTenantsConnectionsEndpoint,
+  MetorialDashboardInstancePortalsAuthSsoTenantsEndpoint,
+  MetorialDashboardInstancePortalsConsumerAccessEndpoint,
+  MetorialDashboardInstancePortalsConsumerGroupsEndpoint,
+  MetorialDashboardInstancePortalsConsumerProfilesEndpoint,
+  MetorialDashboardInstancePortalsEndpoint,
   MetorialDashboardInstanceProviderCategoriesEndpoint,
   MetorialDashboardInstanceProviderCollectionsEndpoint,
   MetorialDashboardInstanceProviderDeploymentsAuthConfigsEndpoint,
@@ -35,6 +43,7 @@ import {
   MetorialDashboardInstanceProviderGroupsEndpoint,
   MetorialDashboardInstanceProviderListingsEndpoint,
   MetorialDashboardInstanceProviderRunsEndpoint,
+  MetorialDashboardInstanceProviderTemplatesEndpoint,
   MetorialDashboardInstanceProvidersAuthMethodsEndpoint,
   MetorialDashboardInstanceProvidersEndpoint,
   MetorialDashboardInstanceProvidersSpecificationsEndpoint,
@@ -147,6 +156,29 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
     tokens: new MetorialDashboardInstanceMagicMcpTokensEndpoint(manager),
     groups: new MetorialDashboardInstanceMagicMcpGroupsEndpoint(manager)
   },
+
+  portals: Object.assign(new MetorialDashboardInstancePortalsEndpoint(manager), {
+    consumerGroups: new MetorialDashboardInstancePortalsConsumerGroupsEndpoint(manager),
+    consumerAccess: new MetorialDashboardInstancePortalsConsumerAccessEndpoint(manager),
+    consumerProfiles: new MetorialDashboardInstancePortalsConsumerProfilesEndpoint(manager),
+    auth: {
+      app: new MetorialDashboardInstancePortalsAuthAppEndpoint(manager),
+      ssoTenants: Object.assign(
+        new MetorialDashboardInstancePortalsAuthSsoTenantsEndpoint(manager),
+        {
+          connections:
+            new MetorialDashboardInstancePortalsAuthSsoTenantsConnectionsEndpoint(
+              manager
+            )
+        }
+      )
+    },
+    accessRequests: new MetorialDashboardInstancePortalsAccessRequestsEndpoint(
+      manager
+    )
+  }),
+
+  providerTemplates: new MetorialDashboardInstanceProviderTemplatesEndpoint(manager),
 
   usage: new MetorialDashboardUsageEndpoint(manager),
 

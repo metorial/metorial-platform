@@ -24,5 +24,6 @@ model MagicMcpToken {
   updatedAt DateTime  @default(now()) @updatedAt
   deletedAt DateTime?
 
-  groups MagicMcpGroupToken[]
+  groups            MagicMcpGroupToken[]
+  accessTagEntities AccessTagEntity[]
 }

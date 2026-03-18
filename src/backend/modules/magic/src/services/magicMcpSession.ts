@@ -2,6 +2,8 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { db, Instance, Prisma } from '@metorial/db';
+import { consumerMagicMcpReadRoles, type AnyAccessTagSelector } from '@metorial/module-access';
+import { getAccessTagFilter } from './consumerAccess';
 
 let include = {
   magicMcpServer: {
@@ -13,11 +15,26 @@ let include = {
 } satisfies Prisma.MagicMcpServerSubspaceSessionInclude;
 
 class MagicMcpSessionImpl {
-  async getMagicMcpSessionById(d: { instance: Instance; magicMcpSessionId: string }) {
+  async getMagicMcpSessionById(d: {
+    instance: Instance;
+    magicMcpSessionId: string;
+    accessTags?: AnyAccessTagSelector;
+  }) {
+    let accessTagFilter = await getAccessTagFilter({
+      accessTags: d.accessTags,
+      roles: [...consumerMagicMcpReadRoles]
+    });
+
     let magicMcpSession = await db.magicMcpServerSubspaceSession.findFirst({
       where: {
         id: d.magicMcpSessionId,
-        instanceOid: d.instance.oid
+        instanceOid: d.instance.oid,
+        magicMcpServer: accessTagFilter
+          ? {
+              status: 'active',
+              accessTagEntities: accessTagFilter
+            }
+          : undefined
       },
       include
     });
@@ -26,8 +43,13 @@ class MagicMcpSessionImpl {
     return magicMcpSession;
   }
 
-  async listMagicMcpSessions(d: { instance: Instance; magicMcpServerId?: string[] }) {
-    let magicMcpServerOids = d.magicMcpServerId?.length
+  async listMagicMcpSessions(d: {
+    instance: Instance;
+    magicMcpServerId?: string[];
+    accessTags?: AnyAccessTagSelector;
+  }) {
+    let hasMagicMcpServerFilter = !!d.magicMcpServerId?.length;
+    let magicMcpServerOids = hasMagicMcpServerFilter
       ? (
           await db.magicMcpServer.findMany({
             where: {
@@ -40,6 +62,10 @@ class MagicMcpSessionImpl {
           })
         ).map(server => server.oid)
       : undefined;
+    let accessTagFilter = await getAccessTagFilter({
+      accessTags: d.accessTags,
+      roles: [...consumerMagicMcpReadRoles]
+    });
 
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
@@ -47,7 +73,15 @@ class MagicMcpSessionImpl {
           ...opts,
           where: {
             instanceOid: d.instance.oid,
-            magicMcpServerOid: magicMcpServerOids ? { in: magicMcpServerOids } : undefined
+            magicMcpServerOid: hasMagicMcpServerFilter
+              ? { in: magicMcpServerOids ?? [] }
+              : undefined,
+            magicMcpServer: accessTagFilter
+              ? {
+                  status: 'active',
+                  accessTagEntities: accessTagFilter
+                }
+              : undefined
           },
           include
         });

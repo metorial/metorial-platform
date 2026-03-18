@@ -1,0 +1,68 @@
+model ConsumerSession {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  tokenNonce String @unique
+
+  aresSessionId String?
+
+  consumerProfileOid BigInt
+  consumerProfile    ConsumerProfile @relation(fields: [consumerProfileOid], references: [oid], onDelete: Cascade)
+
+  ua String
+  ip String
+
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+  lastUsedAt  DateTime @default(now())
+  loggedOutAt DateTime?
+
+  authExchanges ConsumerAuthExchange[]
+}
+
+model ConsumerAuthExchange {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  state String
+  code  String?
+
+  email         String?
+  name          String?
+  aresUserId    String?
+  aresSessionId String?
+
+  surfaceOid BigInt
+  surface    ConsumerSurface @relation(fields: [surfaceOid], references: [oid], onDelete: Cascade)
+
+  consumerSessionOid BigInt?
+  consumerSession    ConsumerSession? @relation(fields: [consumerSessionOid], references: [oid], onDelete: SetNull)
+
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  completedAt DateTime?
+
+  @@unique([surfaceOid, state])
+}
+
+model ConsumerProviderSetupSessionBinding {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  providerSetupSessionId String
+
+  consumerProfileOid BigInt
+  consumerProfile    ConsumerProfile @relation(fields: [consumerProfileOid], references: [oid], onDelete: Cascade)
+
+  providerTemplateOid BigInt
+  providerTemplate    ProviderTemplate @relation(fields: [providerTemplateOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([instanceOid, providerSetupSessionId])
+}
