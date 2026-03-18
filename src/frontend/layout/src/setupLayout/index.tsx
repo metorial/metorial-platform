@@ -69,14 +69,13 @@ let isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 
 export let SetupLayout = ({
   children,
-  backgroundUrl,
   main,
   animation = 'scale',
   duration = 0.4
 }: {
   children: React.ReactNode;
 
-  backgroundUrl: string;
+  backgroundUrl?: string;
 
   main?: {
     title: string;

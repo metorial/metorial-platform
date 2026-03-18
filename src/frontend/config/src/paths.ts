@@ -630,6 +630,11 @@ let OrganizationPaths = Object.assign(
 export let WelcomePaths = Object.assign(
   (...subPages: SubPages) => joinPaths('welcome', ...subPages),
   {
+    onboarding: (i: { organizationId: string }) => {
+      let inner = WelcomePaths('onboarding');
+      let search = new URLSearchParams({ organization_id: i.organizationId });
+      return `${inner}?${search.toString()}`;
+    },
     project: (i: { organizationId: string }) => {
       let inner = WelcomePaths('project');
       let search = new URLSearchParams({ organization_id: i.organizationId });

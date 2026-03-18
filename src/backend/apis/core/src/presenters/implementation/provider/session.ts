@@ -12,7 +12,7 @@ export let v1SessionPresenter = Presenter.create(providerSessionType)
     description: session.description,
     metadata: session.metadata,
     connection_state: session.connectionState,
-    connection_url: `${getConfig().urls.mcpUrl}/mcp/${session.id}`,
+    connection_url: `${getConfig().urls.apiUrl}/connect/mcp/${session.id}`,
     client_secret: session.clientSecret ?? null,
     usage: {
       total_productive_client_message_count: session.usage.totalProductiveClientMessageCount,

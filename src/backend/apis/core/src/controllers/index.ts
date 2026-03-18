@@ -1,6 +1,7 @@
 import { Controller } from '@metorial/rest';
 import { dashboardApiKeyController } from './dashboard/apiKey';
 import { dashboardBootController } from './dashboard/boot';
+import { flagsController } from './dashboard/flags';
 import { dashboardOrganizationController } from './dashboard/organization';
 import { dashboardOrganizationInviteController } from './dashboard/organizationInvite';
 import { profileController } from './dashboard/profile';
@@ -160,6 +161,7 @@ export let dashboardController = Controller.create<any>(
     dashboardBootController,
     dashboardApiKeyController,
     dashboardUsageController,
+    flagsController,
 
     instanceManagementController,
     organizationManagementController,
@@ -252,7 +254,6 @@ export let dashboardController = Controller.create<any>(
     // portalConsumerAuthFactorController,
     // portalConsumerServerRequestController,
     // portalFeaturedServersController,
-
   }
 );
 

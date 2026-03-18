@@ -1005,11 +1005,7 @@ export let productInnerSlice = createSlice([
         children: [
           {
             path: '',
-            element: (
-              <FlaggedPage flag="metorial-gateway-enabled">
-                <ManagedServersListLayout />
-              </FlaggedPage>
-            ),
+            element: <ManagedServersListLayout />,
 
             children: [
               {
@@ -1025,11 +1021,7 @@ export let productInnerSlice = createSlice([
 
           {
             path: '',
-            element: (
-              <FlaggedPage flag="metorial-gateway-enabled">
-                <ExternalServersListLayout />
-              </FlaggedPage>
-            ),
+            element: <ExternalServersListLayout />,
 
             children: [
               {
@@ -1045,11 +1037,7 @@ export let productInnerSlice = createSlice([
 
           {
             path: 'custom-provider/:customServerId',
-            element: (
-              <FlaggedPage flag="metorial-gateway-enabled">
-                <CustomServerLayout />
-              </FlaggedPage>
-            ),
+            element: <CustomServerLayout />,
 
             children: [
               {

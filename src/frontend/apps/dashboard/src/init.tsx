@@ -18,7 +18,6 @@ if (!isMetorialEnvironment(metorialEnvironment)) {
 
 setConfig({
   apiUrl: coreApiUrl,
-  privateApiUrl: privateApiUrl || coreApiUrl,
   publicApiUrl: coreApiUrl,
 
   environment: metorialEnvironment,

@@ -6,11 +6,6 @@ export let destinations: Destination[] = [
   {
     type: 'oss',
     env: frontendEnv,
-    path: 'src/frontend/apps/marketplace'
-  },
-  {
-    type: 'oss',
-    env: frontendEnv,
     path: 'src/frontend/apps/dashboard'
   },
 
@@ -34,18 +29,13 @@ export let destinations: Destination[] = [
 
   {
     type: 'enterprise',
-    env: backendEnv,
-    path: 'federation/backend/apps/connection-api'
+    env: frontendEnv,
+    path: 'federation/frontend/apps/marketplace'
   },
   {
     type: 'enterprise',
     env: backendEnv,
     path: 'federation/backend/apps/core-api'
-  },
-  {
-    type: 'enterprise',
-    env: backendEnv,
-    path: 'federation/backend/apps/federation-api'
   },
   {
     type: 'enterprise',

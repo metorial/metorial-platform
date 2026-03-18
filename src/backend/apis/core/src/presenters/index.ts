@@ -90,6 +90,7 @@ import {
   v1ScmRepoPreviewPresenter
 } from './implementation/scm';
 
+import { v1FlagsPresenter } from './implementation/flags';
 import {
   apiKeyType,
   authConfigSchemaType,
@@ -108,11 +109,12 @@ import {
   deploymentPreviewType,
   fileLinkType,
   fileType,
+  flagsType,
   identityActorType,
   identityCredentialType,
   identityDelegationConfigType,
-  identityDelegationType,
   identityDelegationRequestType,
+  identityDelegationType,
   identityType,
   instanceType,
   machineAccessType,
@@ -259,6 +261,11 @@ export let usagePresenter = declarePresenter(usageType, {
 export let profilePresenter = declarePresenter(profileType, {
   mt_2025_01_01_dashboard: v1ProfilePresenter,
   mt_2026_01_01_magnetar: v1ProfilePresenter
+});
+
+export let flagsPresenter = declarePresenter(flagsType, {
+  mt_2025_01_01_dashboard: v1FlagsPresenter,
+  mt_2026_01_01_magnetar: v1FlagsPresenter
 });
 
 // export let callbackPresenter = declarePresenter(callbackType, {

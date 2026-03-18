@@ -60,10 +60,16 @@ export let useForm = <Values extends {}>(
   } & (
       | { schema: (yup: typeof Yup) => Yup.ObjectSchema<Values> }
       | { type: ValidationType<Values> }
+      | {}
     )
 ) => {
   let schema = useMemo(
-    () => ('schema' in opts ? opts.schema(Yup) : validationTypeToYup(opts.type)),
+    () =>
+      'schema' in opts
+        ? opts.schema(Yup)
+        : 'type' in opts
+          ? validationTypeToYup(opts.type)
+          : undefined,
     [...(opts.schemaDependencies || []), ...(opts.typeDependencies || [])]
   );
 

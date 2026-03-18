@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@lowerdeck/canonicalize": "^1.0.4",
-    "@lowerdeck/error": "^1.2.1",
+    "@lowerdeck/error": "^1.2.2",
     "@lowerdeck/execution-context": "^1.1.0",
     "@metorial/id": "^1.0.0",
     "@lowerdeck/memo": "^1.0.4",

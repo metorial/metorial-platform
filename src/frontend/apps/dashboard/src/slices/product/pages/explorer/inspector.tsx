@@ -102,13 +102,9 @@ export let InspectorFrame = ({ sessionId }: { sessionId: string }) => {
   let explorerConfig = useMemo(() => {
     if (!session.data || !instance.data) return undefined;
 
-    let mcpApiUrl = runtimeWindow.METORIAL_MCP_API_URL ?? import.meta.env.VITE_MCP_API_URL;
-    let connectionUrl = session.data.connectionUrl ?? `${mcpApiUrl}/mcp/${session.data.id}`;
-    if (!connectionUrl) return undefined;
-
     return {
       transport_type: 'streamable-http' as const,
-      sse_url: connectionUrl,
+      sse_url: session.data.connectionUrl,
       name,
       description: session.data.description ?? undefined,
       bearer_token:

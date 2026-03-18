@@ -36,7 +36,6 @@ export interface MetorialConfig {
     }) => string;
     apiUrl: string;
     appUrl: string;
-    mcpUrl: string;
     filesUrl: string;
     portalsUrl: string;
   };

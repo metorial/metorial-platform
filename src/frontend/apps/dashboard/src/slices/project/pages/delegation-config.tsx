@@ -35,9 +35,7 @@ export let ProjectSettingsDelegationConfigPage = () => {
     initialValues: {
       name: config.data?.name ?? '',
       description: config.data?.description ?? '',
-      subDelegationBehavior:
-        config.data?.subDelegationBehavior ??
-        ('require_consent' as 'allow' | 'deny' | 'require_consent'),
+      subDelegationBehavior: config.data?.subDelegationBehavior ?? 'require_consent',
       subDelegationDepth: config.data?.subDelegationDepth?.toString() ?? '1'
     },
     updateInitialValues: true,

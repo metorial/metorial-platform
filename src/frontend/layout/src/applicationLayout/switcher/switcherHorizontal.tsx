@@ -278,28 +278,7 @@ let PopoverInner = ({
                     </PopoverButton>
                   ),
                   name: organization.name
-                })),
-
-                ...(((window as any).foreignOrgs ?? []) as any[]).map(
-                  (organization: {
-                    id: string;
-                    name: string;
-                    imageUrl: string;
-                    url: string;
-                  }) => ({
-                    component: (
-                      <PopoverButton
-                        onClick={() => {
-                          location.href = organization.url;
-                        }}
-                        key={organization.id}
-                      >
-                        <TriggerEntity entity={organization} height={30} />
-                      </PopoverButton>
-                    ),
-                    name: organization.name
-                  })
-                )
+                }))
               ]
                 .sort((a, b) => a.name.localeCompare(b.name))
                 .map(x => x.component)}
@@ -330,28 +309,7 @@ let PopoverInner = ({
                       </PopoverButton>
                     ),
                     name: organization.name
-                  })),
-
-                  ...(((window as any).foreignOrgs ?? []) as any[]).map(
-                    (organization: {
-                      id: string;
-                      name: string;
-                      imageUrl: string;
-                      url: string;
-                    }) => ({
-                      component: (
-                        <PopoverButton
-                          onClick={() => {
-                            location.href = organization.url;
-                          }}
-                          key={organization.id}
-                        >
-                          <TriggerEntity entity={organization} />
-                        </PopoverButton>
-                      ),
-                      name: organization.name
-                    })
-                  )
+                  }))
                 ]
                   .sort((a, b) => a.name.localeCompare(b.name))
                   .map(x => x.component)}

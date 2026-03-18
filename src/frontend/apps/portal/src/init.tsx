@@ -7,7 +7,6 @@ let metorialEnvironment = import.meta.env.VITE_METORIAL_ENV! as any;
 setConfig({
   apiUrl: coreApiUrl,
   publicApiUrl: coreApiUrl,
-  privateApiUrl: coreApiUrl,
 
   microFrontends: {},
 

@@ -27,6 +27,7 @@ import {
   TeamRole,
   User
 } from '@metorial/db';
+import { Flags } from '@metorial/module-flags';
 import {
   SubspaceBucket,
   SubspaceCustomProvider,
@@ -192,6 +193,10 @@ export let usageType = PresentableType.create<{
 export let profileType = PresentableType.create<{
   profile: Profile;
 }>()('profile');
+
+export let flagsType = PresentableType.create<{
+  flags: Flags;
+}>()('flags');
 
 export let magicMcpServerType = PresentableType.create<{
   magicMcpServer: MagicMcpServer & {
