@@ -14,7 +14,6 @@ let mcpPort = parseInt(process.env.MCP_PORT || '4311');
 let oauthPort = parseInt(process.env.OAUTH_PORT || '4313');
 let runnerPort = parseInt(process.env.RUNNER_PORT || '3399');
 let privateApiPort = parseInt(process.env.PRIVATE_API_PORT || '4314');
-let marketplaceApiPort = parseInt(process.env.MARKETPLACE_API_PORT || '4312');
 let customPortalApiPort = parseInt(process.env.PORTAL_API_PORT || '4315');
 let integrationsApiPort = parseInt(process.env.INTEGRATIONS_API_PORT || '4316');
 let callbacksApiPort = parseInt(process.env.CALLBACKS_API_PORT || '4317');
@@ -50,26 +49,10 @@ Bun.serve({
 });
 
 Bun.serve({
-  port: marketplaceApiPort,
-  fetch: marketplaceApp.fetch
-});
-
-Bun.serve({
   port: customPortalApiPort,
   fetch: customPortalApi.fetch
 });
 
-console.log(
-  `Listening on ports ${apiPort} (api), ${filesPort} (files), ${customPortalApiPort} (portals)`
-);
-
-if (process.env.AXIOM_TOKEN)
-  initLogger({
-    token: process.env.AXIOM_TOKEN,
-    dataset: 'service-logs'
-  });
-
-startPrivateApiServer({ port: privateApiPort });
 startMcpServer({ port: mcpPort, authenticate });
 
 if (process.env.NODE_ENV == 'production' && process.env.METORIAL_SOURCE == 'enterprise') {
@@ -79,4 +62,6 @@ if (process.env.NODE_ENV == 'production' && process.env.METORIAL_SOURCE == 'ente
   });
 }
 
-console.log(`Listening on ports ${apiPort} (api), ${filesPort} (files)`);
+console.log(
+  `Listening on ports ${apiPort} (api), ${filesPort} (files), ${customPortalApiPort} (portals)`
+);

@@ -28,11 +28,7 @@ export let defaultFlags: Flags = {
   'test-flag': false,
 
   'metorial-gateway-enabled': false,
-  'custom-servers-remote-enabled': true,
   'custom-providers-enabled': false,
-  'provider-oauth-enabled': true,
-  'managed-servers-enabled': true,
-  'community-profiles-enabled': true,
   'magic-mcp-enabled': false,
   'callbacks-enabled': false,
   'portals-access': false,

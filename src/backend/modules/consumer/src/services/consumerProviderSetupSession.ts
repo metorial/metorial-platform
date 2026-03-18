@@ -148,8 +148,8 @@ class ConsumerProviderSetupSessionServiceImpl {
 
   async getSetupSession(d: {
     instance: Instance;
-    consumerProfile: ConsumerProfile;
-    providerTemplate: ProviderTemplate;
+    consumerProfile: Pick<ConsumerProfile, 'oid'>;
+    providerTemplate: Pick<ProviderTemplate, 'oid'>;
     providerSetupSessionId: string;
   }) {
     return await this.getBoundSetupSession({
@@ -162,8 +162,8 @@ class ConsumerProviderSetupSessionServiceImpl {
 
   async getCompletedSetupSession(d: {
     instance: Instance;
-    consumerProfile: ConsumerProfile;
-    providerTemplate: ProviderTemplate;
+    consumerProfile: Pick<ConsumerProfile, 'oid'>;
+    providerTemplate: Pick<ProviderTemplate, 'oid'>;
     providerSetupSessionId: string;
   }) {
     return await this.getBoundSetupSession({
@@ -175,8 +175,8 @@ class ConsumerProviderSetupSessionServiceImpl {
   private async getBoundSetupSession(d: {
     instance: Instance;
     providerSetupSessionId: string;
-    consumerProfile: ConsumerProfile;
-    providerTemplate: ProviderTemplate;
+    consumerProfile: Pick<ConsumerProfile, 'oid'>;
+    providerTemplate: Pick<ProviderTemplate, 'oid'>;
     requireCompleted?: boolean;
   }) {
     let setupSession = await subspaceProviderSetupSessionService.get({

@@ -7,6 +7,7 @@ import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { sessionTemplateProviderPresenter } from '../../presenters';
+import { toolFiltersValidator } from './session';
 
 let sessionTemplateProviderGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.sessionTemplateProviderId) {
@@ -131,7 +132,7 @@ export let sessionTemplateProviderController = Controller.create(
           provider_config_id: v.optional(v.string()),
           provider_config_vault_id: v.optional(v.string()),
           provider_auth_config_id: v.optional(v.string()),
-          tool_filters: v.optional(v.object({ tool_keys: v.optional(v.array(v.string())) }))
+          tool_filters: toolFiltersValidator
         })
       )
       .output(sessionTemplateProviderPresenter)
@@ -144,8 +145,6 @@ export let sessionTemplateProviderController = Controller.create(
           providerConfigVaultId: ctx.body.provider_config_vault_id,
           providerAuthConfigId: ctx.body.provider_auth_config_id,
           toolFilters: ctx.body.tool_filters
-            ? { toolKeys: ctx.body.tool_filters.tool_keys }
-            : undefined
         } as Parameters<typeof subspaceSessionTemplateProviderService.create>[0];
 
         let stp = await subspaceSessionTemplateProviderService.create(input);
@@ -168,7 +167,7 @@ export let sessionTemplateProviderController = Controller.create(
       .body(
         'default',
         v.object({
-          tool_filters: v.optional(v.object({ tool_keys: v.optional(v.array(v.string())) }))
+          tool_filters: toolFiltersValidator
         })
       )
       .output(sessionTemplateProviderPresenter)
@@ -177,8 +176,6 @@ export let sessionTemplateProviderController = Controller.create(
           instance: ctx.instance,
           sessionTemplateProviderId: ctx.sessionTemplateProvider.id,
           toolFilters: ctx.body.tool_filters
-            ? { toolKeys: ctx.body.tool_filters.tool_keys }
-            : undefined
         });
 
         return sessionTemplateProviderPresenter.present({ sessionTemplateProvider: stp });
