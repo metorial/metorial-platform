@@ -69,7 +69,12 @@ let AddProviderModalContent = ({
               }
             : {}),
           ...(values.toolFilterMode === 'select' && values.selectedToolKeys.length > 0
-            ? { toolFilters: { toolKeys: values.selectedToolKeys } }
+            ? {
+                toolFilters: {
+                  type: 'tool_keys',
+                  keys: values.selectedToolKeys
+                }
+              }
             : {})
         });
 
