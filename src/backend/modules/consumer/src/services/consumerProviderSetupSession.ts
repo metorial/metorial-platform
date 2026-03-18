@@ -6,7 +6,14 @@ import {
 } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import { Context } from '@metorial/context';
-import { ID, db, type Instance } from '@metorial/db';
+import {
+  ConsumerProfile,
+  ConsumerSurface,
+  ID,
+  ProviderTemplate,
+  db,
+  type Instance
+} from '@metorial/db';
 import { type AnyAccessTagSelector } from '@metorial/module-access';
 import { subspaceProviderSetupSessionService } from '@metorial/module-subspace';
 import {
@@ -57,10 +64,10 @@ let assertSetupSessionBindingMatchesConsumerProvider = (d: {
     consumerProfileOid: bigint;
     providerTemplateOid: bigint;
   } | null;
-  consumerProfileOid: bigint;
-  providerTemplateOid: bigint;
+  consumerProfile: Pick<ConsumerProfile, 'oid'>;
+  providerTemplate: Pick<ProviderTemplate, 'oid'>;
 }) => {
-  if (!d.binding || d.binding.consumerProfileOid != d.consumerProfileOid) {
+  if (!d.binding || d.binding.consumerProfileOid != d.consumerProfile.oid) {
     throw new ServiceError(
       unauthorizedError({
         message: 'The selected provider setup session does not belong to this consumer.'
@@ -68,7 +75,7 @@ let assertSetupSessionBindingMatchesConsumerProvider = (d: {
     );
   }
 
-  if (d.binding.providerTemplateOid != d.providerTemplateOid) {
+  if (d.binding.providerTemplateOid != d.providerTemplate.oid) {
     throw new ServiceError(
       unauthorizedError({
         message: 'The selected provider setup session does not belong to this template.'
@@ -82,8 +89,8 @@ class ConsumerProviderSetupSessionServiceImpl {
     instance: Instance;
     context: Context;
     accessTags: AnyAccessTagSelector;
-    consumerSurfaceOid: bigint;
-    consumerProfileOid: bigint;
+    consumerSurface: ConsumerSurface;
+    consumerProfile: ConsumerProfile;
     providerTemplateId: string;
     input: {
       providerAuthMethodId?: string;
@@ -101,7 +108,7 @@ class ConsumerProviderSetupSessionServiceImpl {
     let portal = await db.portal.findFirst({
       where: {
         instanceOid: d.instance.oid,
-        surfaceOid: d.consumerSurfaceOid
+        surfaceOid: d.consumerSurface.oid
       },
       select: {
         slug: true
@@ -130,7 +137,7 @@ class ConsumerProviderSetupSessionServiceImpl {
       data: {
         id: await ID.generateId('consumerProviderSetupSessionBinding'),
         providerSetupSessionId: setupSession.id,
-        consumerProfileOid: d.consumerProfileOid,
+        consumerProfileOid: d.consumerProfile.oid,
         providerTemplateOid: providerContext.providerTemplate.oid,
         instanceOid: d.instance.oid
       }
@@ -141,22 +148,22 @@ class ConsumerProviderSetupSessionServiceImpl {
 
   async getSetupSession(d: {
     instance: Instance;
-    consumerProfileOid: bigint;
-    providerTemplateOid: bigint;
+    consumerProfile: ConsumerProfile;
+    providerTemplate: ProviderTemplate;
     providerSetupSessionId: string;
   }) {
     return await this.getBoundSetupSession({
       instance: d.instance,
       providerSetupSessionId: d.providerSetupSessionId,
-      consumerProfileOid: d.consumerProfileOid,
-      providerTemplateOid: d.providerTemplateOid
+      consumerProfile: d.consumerProfile,
+      providerTemplate: d.providerTemplate
     });
   }
 
   async getCompletedSetupSession(d: {
     instance: Instance;
-    consumerProfileOid: bigint;
-    providerTemplateOid: bigint;
+    consumerProfile: ConsumerProfile;
+    providerTemplate: ProviderTemplate;
     providerSetupSessionId: string;
   }) {
     return await this.getBoundSetupSession({
@@ -168,8 +175,8 @@ class ConsumerProviderSetupSessionServiceImpl {
   private async getBoundSetupSession(d: {
     instance: Instance;
     providerSetupSessionId: string;
-    consumerProfileOid: bigint;
-    providerTemplateOid: bigint;
+    consumerProfile: ConsumerProfile;
+    providerTemplate: ProviderTemplate;
     requireCompleted?: boolean;
   }) {
     let setupSession = await subspaceProviderSetupSessionService.get({
@@ -198,8 +205,8 @@ class ConsumerProviderSetupSessionServiceImpl {
 
     assertSetupSessionBindingMatchesConsumerProvider({
       binding,
-      consumerProfileOid: d.consumerProfileOid,
-      providerTemplateOid: d.providerTemplateOid
+      consumerProfile: d.consumerProfile,
+      providerTemplate: d.providerTemplate
     });
 
     return setupSession;

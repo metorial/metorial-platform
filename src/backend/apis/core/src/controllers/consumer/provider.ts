@@ -203,8 +203,8 @@ export let consumerProviderController = Controller.create(
           instance: ctx.instance,
           context: ctx.context,
           accessTags: ctx.accessTags!,
-          consumerSurfaceOid: ctx.consumerSurface.oid,
-          consumerProfileOid: ctx.consumerProfile.oid,
+          consumerSurface: ctx.consumerSurface,
+          consumerProfile: ctx.consumerProfile,
           providerTemplateId: consumerProvider.providerTemplate.id,
           input: {
             providerAuthMethodId: ctx.body.provider_auth_method_id
@@ -234,8 +234,8 @@ export let consumerProviderController = Controller.create(
         let consumerProvider = requireProviderTemplate(ctx.consumerProvider);
         let setupSession = await consumerProviderSetupSessionService.getSetupSession({
           instance: ctx.instance,
-          consumerProfileOid: ctx.consumerProfile.oid,
-          providerTemplateOid: consumerProvider.providerTemplate.oid,
+          consumerProfile: ctx.consumerProfile,
+          providerTemplate: consumerProvider.providerTemplate,
           providerSetupSessionId: ctx.params.providerSetupSessionId
         });
 

@@ -1,7 +1,13 @@
 import { notFoundError, preconditionFailedError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import { Context } from '@metorial/context';
-import { MagicMcpServer, Organization, OrganizationActor, type Instance } from '@metorial/db';
+import {
+  ConsumerProfile,
+  MagicMcpServer,
+  Organization,
+  OrganizationActor,
+  type Instance
+} from '@metorial/db';
 import { type AnyAccessTagSelector } from '@metorial/module-access';
 import { magicMcpServerService } from '@metorial/module-magic';
 import {
@@ -137,7 +143,7 @@ class ConsumerProviderDeploymentServiceImpl {
       let providerAuthConfigId = await this.createProviderAuthConfig({
         instance: d.instance,
         context: d.context,
-        consumerProfileOid: d.consumerProfile.oid,
+        consumerProfile: d.consumerProfile,
         providerContext,
         input: d.input
       });
@@ -247,7 +253,7 @@ class ConsumerProviderDeploymentServiceImpl {
   private async createProviderAuthConfig(d: {
     instance: Instance;
     context: Context;
-    consumerProfileOid: bigint;
+    consumerProfile: Pick<ConsumerProfile, 'oid'>;
     providerContext: ConsumerProviderTemplateContext;
     input: ConsumerProviderDeployInput;
   }) {
@@ -260,8 +266,8 @@ class ConsumerProviderDeploymentServiceImpl {
     if (authInput.type == 'setup_session') {
       let setupSession = await consumerProviderSetupSessionService.getCompletedSetupSession({
         instance: d.instance,
-        consumerProfileOid: d.consumerProfileOid,
-        providerTemplateOid: d.providerContext.providerTemplate.oid,
+        consumerProfile: d.consumerProfile,
+        providerTemplate: d.providerContext.providerTemplate,
         providerSetupSessionId: authInput.providerSetupSessionId
       });
 
