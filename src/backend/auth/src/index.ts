@@ -92,6 +92,6 @@ export let authenticate = async (req: Request, url: URL) => {
     context,
     flags: {},
     defaultVersion: 'mt_2025_01_01_dashboard',
-    allowedVersions: ['mt_2025_01_01_dashboard']
+    allowedVersions: ['mt_2025_01_01_dashboard', 'mt_2026_01_01_magnetar']
   };
 };

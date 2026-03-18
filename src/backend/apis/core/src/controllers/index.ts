@@ -6,11 +6,16 @@ import { dashboardOrganizationInviteController } from './dashboard/organizationI
 import { profileController } from './dashboard/profile';
 import { dashboardUsageController } from './dashboard/usage';
 import { dashboardUserController } from './dashboard/user';
+import { consumerProviderController } from './consumer/provider';
 import { consumerSessionController } from './consumer/session';
 import { fileController } from './instance/file';
 import { fileLinkController } from './instance/fileLink';
 import { instanceController } from './instance/instance';
 import { portalAuthDashboardController } from './instance/portalAuth';
+import { portalConsumerAccessController } from './instance/portalConsumerAccess';
+import { portalConsumerAccessRequestController } from './instance/portalConsumerAccessRequest';
+import { portalConsumerGroupController } from './instance/portalConsumerGroup';
+import { portalConsumerProfileController } from './instance/portalConsumerProfile';
 import { portalController } from './instance/portal';
 import { providerTemplateController } from './instance/providerTemplate';
 import { instanceManagementController } from './management/instance';
@@ -127,7 +132,8 @@ export let magnetarController = Controller.create<any>(
     portalController,
     providerTemplateController,
 
-    consumerSessionController
+    consumerSessionController,
+    consumerProviderController,
 
     // teamManagementController,
     // teamRoleManagementController,
@@ -228,7 +234,11 @@ export let dashboardController = Controller.create<any>(
 
     portalController,
     portalAuthDashboardController,
-    providerTemplateController
+    providerTemplateController,
+    portalConsumerGroupController,
+    portalConsumerAccessController,
+    portalConsumerProfileController,
+    portalConsumerAccessRequestController,
 
     // callbackController,
     // callbackEventController,

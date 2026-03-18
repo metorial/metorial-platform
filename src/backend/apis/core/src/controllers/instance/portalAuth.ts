@@ -6,6 +6,7 @@ import {
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { consumerAresService } from '@metorial/module-consumer';
+import { portalService } from '@metorial/module-portal';
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../middleware/checkAccess';
 import { hasFlags } from '../../middleware/hasFlags';
@@ -141,17 +142,11 @@ export let portalAuthDashboardController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.portal.auth:write'] }))
-      .body(
-        'default',
-        v.object({
-          redirect_url: v.string({ modifiers: [v.url()] })
-        })
-      )
       .output(portalAuthSsoTenantSetupPresenter)
       .do(async ctx => {
         let ssoTenantSetup = await consumerAresService.createSsoTenantSetup({
           ssoTenantId: ctx.ssoTenant.id,
-          redirectUrl: ctx.body.redirect_url
+          redirectUrl: portalService.getPortalHost({ portal: ctx.portal }).host
         });
 
         return portalAuthSsoTenantSetupPresenter.present({ ssoTenantSetup });

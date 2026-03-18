@@ -3,6 +3,9 @@ import { dashboardApiKeyPresenter, v1ApiKeyPresenter } from './implementation/ap
 import { v1BootPresenter } from './implementation/boot';
 import { v1ConsumerGroupPresenter } from './implementation/consumerGroup';
 import { v1ConsumerProfilePresenter } from './implementation/consumerProfile';
+import { v1ConsumerAccessPresenter } from './implementation/consumerAccess';
+import { v1ConsumerAccessRequestPresenter } from './implementation/consumerAccessRequest';
+import { v1ConsumerProviderPresenter } from './implementation/consumerProvider';
 import { v1ConsumerSessionPresenter } from './implementation/consumerSession';
 import { v1FilePresenter } from './implementation/file';
 import { v1FileLinkPresenter } from './implementation/fileLink';
@@ -98,8 +101,11 @@ import {
   authConfigSchemaType,
   authImportSchemaType,
   bootType,
+  consumerAccessRequestType,
+  consumerAccessType,
   consumerGroupType,
   consumerProfileType,
+  consumerProviderType,
   consumerSessionType,
   bucketEditorTokenType,
   configPreviewType,
@@ -311,6 +317,16 @@ export let consumerGroupPresenter = declarePresenter(consumerGroupType, {
   mt_2026_01_01_magnetar: v1ConsumerGroupPresenter
 });
 
+export let consumerAccessPresenter = declarePresenter(consumerAccessType, {
+  mt_2025_01_01_dashboard: v1ConsumerAccessPresenter,
+  mt_2026_01_01_magnetar: v1ConsumerAccessPresenter
+});
+
+export let consumerAccessRequestPresenter = declarePresenter(consumerAccessRequestType, {
+  mt_2025_01_01_dashboard: v1ConsumerAccessRequestPresenter,
+  mt_2026_01_01_magnetar: v1ConsumerAccessRequestPresenter
+});
+
 export let consumerProfilePresenter = declarePresenter(consumerProfileType, {
   mt_2025_01_01_dashboard: v1ConsumerProfilePresenter,
   mt_2026_01_01_magnetar: v1ConsumerProfilePresenter
@@ -319,6 +335,11 @@ export let consumerProfilePresenter = declarePresenter(consumerProfileType, {
 export let consumerSessionPresenter = declarePresenter(consumerSessionType, {
   mt_2025_01_01_dashboard: v1ConsumerSessionPresenter,
   mt_2026_01_01_magnetar: v1ConsumerSessionPresenter
+});
+
+export let consumerProviderPresenter = declarePresenter(consumerProviderType, {
+  mt_2025_01_01_dashboard: v1ConsumerProviderPresenter,
+  mt_2026_01_01_magnetar: v1ConsumerProviderPresenter
 });
 
 // export let ssoTenantPresenter = declarePresenter(ssoTenantType, {

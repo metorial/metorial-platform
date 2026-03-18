@@ -4,11 +4,18 @@ enum MagicMcpServerStatus {
   deleted
 }
 
+enum MagicMcpServerSource {
+  manual
+  consumer_provider_template
+}
+
 model MagicMcpServer {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
   status MagicMcpServerStatus
+  source MagicMcpServerSource @default(manual)
+  providerTemplateId String?
 
   instanceOid BigInt
   instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
@@ -30,6 +37,8 @@ model MagicMcpServer {
 
   groups            MagicMcpGroupServer[]
   accessTagEntities AccessTagEntity[]
+  consumerAccesses  ConsumerAccess[]        @relation("ConsumerAccessMagicMcpServer")
+  accessRequests    ConsumerAccessRequest[] @relation("ConsumerAccessRequestMagicMcpServer")
 }
 
 model MagicMcpServerAlias {

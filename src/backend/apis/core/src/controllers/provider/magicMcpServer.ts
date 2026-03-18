@@ -3,6 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { MagicMcpServerStatus } from '@metorial/db';
 import { magicMcpServerService } from '@metorial/module-magic';
+import { subspaceSessionTemplateService } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
@@ -145,7 +146,7 @@ export let magicMcpServerController = Controller.create(
       })
       .use(
         checkAccess({
-          possibleScopes: ['instance.provider.session:write'],
+          possibleScopes: ['instance.provider.session:write', 'consumer#instance.magic_mcp:write'],
           fineGrainedPolicy: 'deny'
         })
       )
@@ -154,7 +155,8 @@ export let magicMcpServerController = Controller.create(
       .do(async ctx => {
         await magicMcpServerService.checkWriteAccess({
           server: ctx.magicMcpServer,
-          instance: ctx.instance
+          instance: ctx.instance,
+          accessTags: ctx.accessTags
         });
 
         let magicMcpServer = await magicMcpServerService.archiveMagicMcpServer({
@@ -171,7 +173,7 @@ export let magicMcpServerController = Controller.create(
       })
       .use(
         checkAccess({
-          possibleScopes: ['instance.provider.session:write'],
+          possibleScopes: ['instance.provider.session:write', 'consumer#instance.magic_mcp:write'],
           fineGrainedPolicy: 'deny'
         })
       )
@@ -188,18 +190,32 @@ export let magicMcpServerController = Controller.create(
       .output(magicMcpServerPresenter)
       .use(hasFlags(['magic-mcp-enabled']))
       .do(async ctx => {
+        let sessionTemplateId = ctx.body.session_template_id;
+        if (sessionTemplateId && !ctx.accessTags) {
+          sessionTemplateId = (
+            await subspaceSessionTemplateService.get({
+              instance: ctx.instance,
+              sessionTemplateId
+            })
+          ).id;
+        }
+
         await magicMcpServerService.checkWriteAccess({
           server: ctx.magicMcpServer,
-          instance: ctx.instance
+          instance: ctx.instance,
+          accessTags: ctx.accessTags
         });
 
         let magicMcpServer = await magicMcpServerService.updateMagicMcpServer({
           server: ctx.magicMcpServer,
+          instance: ctx.instance,
+          accessTags: ctx.accessTags,
           input: {
             name: ctx.body.name,
             description: ctx.body.description,
             metadata: ctx.body.metadata,
-            aliases: ctx.body.aliases
+            aliases: ctx.body.aliases,
+            sessionTemplateId
           }
         });
 
