@@ -16,22 +16,55 @@ type PaginationInput = {
   order?: 'asc' | 'desc';
 };
 
-export type ConsumerAresSsoTenantList = Awaited<
+type ConsumerAresRawListResponse<T> = {
+  items: T[];
+  pagination: {
+    has_more_after: boolean;
+    has_more_before: boolean;
+  };
+};
+
+type ConsumerAresListResponse<T> = {
+  items: T[];
+  pagination: {
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+  };
+};
+
+type ConsumerAresRawSsoTenantList = Awaited<
   ReturnType<ConsumerAresInternalClient['sso']['listTenants']>
 >;
 export type ConsumerAresApp = Awaited<ReturnType<ConsumerAresInternalClient['app']['get']>>;
 export type ConsumerAresSsoTenant = Awaited<
   ReturnType<ConsumerAresInternalClient['sso']['getTenant']>
 >;
-export type ConsumerAresSsoConnectionList = Awaited<
+export type ConsumerAresSsoTenantList = ConsumerAresListResponse<
+  ConsumerAresRawSsoTenantList['items'][number]
+>;
+type ConsumerAresRawSsoConnectionList = Awaited<
   ReturnType<ConsumerAresInternalClient['sso']['listConnections']>
 >;
-export type ConsumerAresSsoConnection = ConsumerAresSsoConnectionList['items'][number];
+export type ConsumerAresSsoConnectionList = ConsumerAresListResponse<
+  ConsumerAresRawSsoConnectionList['items'][number]
+>;
+export type ConsumerAresSsoConnection =
+  ConsumerAresRawSsoConnectionList['items'][number];
 export type ConsumerAresSsoTenantSetup = Awaited<
   ReturnType<ConsumerAresInternalClient['sso']['createSetup']>
 >;
 
 class ConsumerAresServiceImpl {
+  private normalizePagination<T>(list: ConsumerAresRawListResponse<T>): ConsumerAresListResponse<T> {
+    return {
+      items: list.items,
+      pagination: {
+        hasNextPage: list.pagination.has_more_after,
+        hasPreviousPage: list.pagination.has_more_before
+      }
+    };
+  }
+
   private getClient() {
     let ares = getConsumerAresInternalClient();
     if (!ares) {
@@ -72,14 +105,16 @@ class ConsumerAresServiceImpl {
   }
 
   async listSsoTenants(d: { appId: string } & PaginationInput) {
-    return await this.getClient().sso.listTenants({
-      appId: d.appId,
-      limit: d.limit,
-      after: d.after,
-      before: d.before,
-      cursor: d.cursor,
-      order: d.order
-    });
+    return this.normalizePagination(
+      await this.getClient().sso.listTenants({
+        appId: d.appId,
+        limit: d.limit,
+        after: d.after,
+        before: d.before,
+        cursor: d.cursor,
+        order: d.order
+      })
+    );
   }
 
   async getSsoTenant(d: { ssoTenantId: string }) {
@@ -104,7 +139,7 @@ class ConsumerAresServiceImpl {
       }
 
       let lastTenant = tenants.items[tenants.items.length - 1];
-      if (!tenants.pagination.has_more_after || !lastTenant) {
+      if (!tenants.pagination.hasNextPage || !lastTenant) {
         break;
       }
 
@@ -129,14 +164,16 @@ class ConsumerAresServiceImpl {
   }
 
   async listSsoConnections(d: { ssoTenantId: string } & PaginationInput) {
-    return await this.getClient().sso.listConnections({
-      tenantId: d.ssoTenantId,
-      limit: d.limit,
-      after: d.after,
-      before: d.before,
-      cursor: d.cursor,
-      order: d.order
-    });
+    return this.normalizePagination(
+      await this.getClient().sso.listConnections({
+        tenantId: d.ssoTenantId,
+        limit: d.limit,
+        after: d.after,
+        before: d.before,
+        cursor: d.cursor,
+        order: d.order
+      })
+    );
   }
 
   async exchangeOAuthCode(d: { clientId: string; code: string }) {

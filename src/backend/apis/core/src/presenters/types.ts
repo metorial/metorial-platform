@@ -2,10 +2,13 @@ import {
   ApiKey,
   ApiKeySecret,
   Consumer,
+  ConsumerAccess,
+  ConsumerAccessRequest,
   ConsumerGroup,
   ConsumerProfile,
   ConsumerProfileGroup,
   ConsumerSession,
+  ConsumerSurface,
   File,
   FileLink,
   FilePurpose,
@@ -21,7 +24,9 @@ import {
   OrganizationActor,
   OrganizationInvite,
   OrganizationMember,
+  Portal,
   Profile,
+  ProviderTemplate,
   Project,
   Secret,
   SecretType,
@@ -32,6 +37,13 @@ import {
   TeamRole,
   User
 } from '@metorial/db';
+import {
+  ConsumerAresApp,
+  ConsumerAresSsoConnection,
+  ConsumerAresSsoTenant,
+  ConsumerAresSsoTenantSetup,
+  ConsumerProviderCatalogEntry
+} from '@metorial/module-consumer';
 import {
   SubspaceBucket,
   SubspaceCustomProvider,
@@ -224,6 +236,25 @@ export let consumerGroupType = PresentableType.create<{
   consumerGroup: ConsumerGroup;
 }>()('consumer.group');
 
+export let consumerAccessType = PresentableType.create<{
+  consumerAccess: ConsumerAccess & {
+    consumerGroup: ConsumerGroup;
+    providerTemplate: ProviderTemplate | null;
+    magicMcpServer: MagicMcpServer | null;
+  };
+}>()('consumer.access');
+
+export let consumerAccessRequestType = PresentableType.create<{
+  consumerAccessRequest: ConsumerAccessRequest & {
+    consumerProfile: ConsumerProfile & {
+      consumer: Consumer;
+      personalConsumerGroup: ConsumerGroup;
+    };
+    providerTemplate: ProviderTemplate | null;
+    magicMcpServer: MagicMcpServer | null;
+  };
+}>()('consumer.access_request');
+
 export let consumerProfileType = PresentableType.create<{
   consumerProfile: ConsumerProfile & {
     consumer: Consumer;
@@ -241,6 +272,10 @@ export let consumerProfileType = PresentableType.create<{
 export let consumerSessionType = PresentableType.create<{
   consumerSession: ConsumerSession;
 }>()('consumer.session');
+
+export let consumerProviderType = PresentableType.create<{
+  consumerProvider: ConsumerProviderCatalogEntry;
+}>()('consumer.provider');
 
 // export let callbackType = PresentableType.create<{
 //   callback: Callback & {
@@ -271,12 +306,33 @@ export let consumerSessionType = PresentableType.create<{
 //   };
 // }>()('callback.notification');
 
-// export let portalType = PresentableType.create<{
-//   portal: Portal & {
-//     surface: ConsumerSurface;
-//   };
-//   portalUrl: string;
-// }>()('portal');
+export let portalType = PresentableType.create<{
+  portal: Portal & {
+    surface: ConsumerSurface;
+    organization: Organization;
+  };
+  portalUrl: string;
+}>()('portal');
+
+export let providerTemplateType = PresentableType.create<{
+  providerTemplate: ProviderTemplate;
+}>()('provider.template');
+
+export let portalAuthAppType = PresentableType.create<{
+  app: ConsumerAresApp;
+}>()('portal.auth.app');
+
+export let portalAuthSsoTenantType = PresentableType.create<{
+  ssoTenant: ConsumerAresSsoTenant;
+}>()('portal.auth.sso_tenant');
+
+export let portalAuthSsoConnectionType = PresentableType.create<{
+  ssoConnection: ConsumerAresSsoConnection;
+}>()('portal.auth.sso_connection');
+
+export let portalAuthSsoTenantSetupType = PresentableType.create<{
+  ssoTenantSetup: ConsumerAresSsoTenantSetup;
+}>()('portal.auth.sso_tenant_setup');
 
 // export let consumerAuthFactorType = PresentableType.create<{
 //   consumerAuthFactor: ConsumerSurfaceAuthFactor;

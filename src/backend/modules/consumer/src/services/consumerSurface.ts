@@ -37,7 +37,51 @@ export type AresAppConfig = {
 };
 
 class ConsumerSurfaceServiceImpl {
-  private async getOrCreateConsumerAuthTenant(d: {
+  private assertConsumerSurfaceIsActive(consumerSurface: ConsumerSurface) {
+    if (consumerSurface.status !== 'active') {
+      throw new ServiceError(
+        preconditionFailedError({
+          message: 'Consumer surface is already archived or deleted.'
+        })
+      );
+    }
+  }
+
+  private async disconnectConsumerSurfaceAres(d: {
+    consumerSurface: ConsumerSurface;
+    status: 'archived' | 'deleted';
+  }) {
+    return await withTransaction(async tx => {
+      let consumerAuthTenant = await tx.consumerAuthTenant.findUniqueOrThrow({
+        where: {
+          oid: d.consumerSurface.consumerAuthTenantOid
+        }
+      });
+
+      if (consumerAuthTenant.aresAppId) {
+        await consumerAresService.updateApp({
+          id: consumerAuthTenant.aresAppId,
+          slug: consumerAuthTenant.aresAppSlug
+            ? `${consumerAuthTenant.aresAppSlug}-${d.status}-${Date.now()}`
+            : undefined,
+          redirectDomains: ['invalid.invalid']
+        });
+
+        await tx.consumerAuthTenant.update({
+          where: {
+            oid: consumerAuthTenant.oid
+          },
+          data: {
+            aresAppId: null,
+            aresAppSlug: null,
+            aresClientId: null
+          }
+        });
+      }
+    });
+  }
+
+  private async updateConsumerAuthTenantAres(d: {
     consumerSurface: ConsumerSurface;
     aresApp: {
       id: string;
@@ -46,23 +90,11 @@ class ConsumerSurfaceServiceImpl {
     };
   }) {
     return await withTransaction(async tx => {
-      if (d.consumerSurface.consumerAuthTenantOid) {
-        return await tx.consumerAuthTenant.update({
-          where: {
-            oid: d.consumerSurface.consumerAuthTenantOid
-          },
-          data: {
-            aresAppId: d.aresApp.id,
-            aresAppSlug: d.aresApp.slug ?? null,
-            aresClientId: d.aresApp.clientId
-          }
-        });
-      }
-
-      return await tx.consumerAuthTenant.create({
+      return await tx.consumerAuthTenant.update({
+        where: {
+          oid: d.consumerSurface.consumerAuthTenantOid
+        },
         data: {
-          id: await ID.generateId('consumerAuthTenant'),
-          organizationOid: d.consumerSurface.organizationOid,
           aresAppId: d.aresApp.id,
           aresAppSlug: d.aresApp.slug ?? null,
           aresClientId: d.aresApp.clientId
@@ -151,18 +183,28 @@ class ConsumerSurfaceServiceImpl {
     });
 
     try {
-      return await db.consumerSurface.create({
-        data: {
-          id: await ID.generateId('consumerSurface'),
-          status: 'active',
-          name: d.input.name,
-          description: d.input.description,
-          sessionExpiryTimeInSeconds: d.input.sessionExpiryTimeInSeconds,
-          organizationOid: d.organization.oid,
-          instanceOid: d.instance.oid,
-          publishableApiKeyOid: apiKey.oid
-        },
-        include: consumerSurfaceInclude
+      return await withTransaction(async tx => {
+        let consumerAuthTenant = await tx.consumerAuthTenant.create({
+          data: {
+            id: await ID.generateId('consumerAuthTenant'),
+            organizationOid: d.organization.oid
+          }
+        });
+
+        return await tx.consumerSurface.create({
+          data: {
+            id: await ID.generateId('consumerSurface'),
+            status: 'active',
+            name: d.input.name,
+            description: d.input.description,
+            sessionExpiryTimeInSeconds: d.input.sessionExpiryTimeInSeconds,
+            organizationOid: d.organization.oid,
+            instanceOid: d.instance.oid,
+            consumerAuthTenantOid: consumerAuthTenant.oid,
+            publishableApiKeyOid: apiKey.oid
+          },
+          include: consumerSurfaceInclude
+        });
       });
     } catch (error) {
       await this.deactivateConsumerSurfaceResources({
@@ -180,7 +222,7 @@ class ConsumerSurfaceServiceImpl {
     if (d.consumerSurface.status !== 'active') {
       throw new ServiceError(
         preconditionFailedError({
-          message: 'Cannot configure Ares for an inactive consumer surface.'
+          message: 'Cannot configure Ares for a non-active consumer surface.'
         })
       );
     }
@@ -192,7 +234,7 @@ class ConsumerSurfaceServiceImpl {
     });
 
     return await withTransaction(async tx => {
-      let consumerAuthTenant = await this.getOrCreateConsumerAuthTenant({
+      let consumerAuthTenant = await this.updateConsumerAuthTenantAres({
         consumerSurface: d.consumerSurface,
         aresApp: {
           id: app.id,
@@ -224,7 +266,7 @@ class ConsumerSurfaceServiceImpl {
     if (d.consumerSurface.status !== 'active') {
       throw new ServiceError(
         preconditionFailedError({
-          message: 'Cannot update an inactive consumer surface.'
+          message: 'Cannot update a non-active consumer surface.'
         })
       );
     }
@@ -242,61 +284,59 @@ class ConsumerSurfaceServiceImpl {
     });
   }
 
+  async archiveConsumerSurface(d: { consumerSurface: ConsumerSurface }) {
+    this.assertConsumerSurfaceIsActive(d.consumerSurface);
+
+    let now = new Date();
+
+    await this.disconnectConsumerSurfaceAres({
+      consumerSurface: d.consumerSurface,
+      status: 'archived'
+    });
+
+    await this.deactivateConsumerSurfaceResources({
+      publishableApiKeyOid: d.consumerSurface.publishableApiKeyOid,
+      consumerSurfaceOid: d.consumerSurface.oid
+    });
+
+    return await db.consumerSurface.update({
+      where: {
+        oid: d.consumerSurface.oid
+      },
+      data: {
+        status: 'archived',
+        archivedAt: now,
+        deletedAt: null
+      },
+      include: consumerSurfaceInclude
+    });
+  }
+
   async deleteConsumerSurface(d: { consumerSurface: ConsumerSurface }) {
-    if (d.consumerSurface.status !== 'active') {
-      throw new ServiceError(
-        preconditionFailedError({
-          message: 'Consumer surface is already inactive.'
-        })
-      );
-    }
+    this.assertConsumerSurfaceIsActive(d.consumerSurface);
 
-    return await withTransaction(async tx => {
-      let consumerAuthTenant =
-        d.consumerSurface.consumerAuthTenantOid
-          ? await tx.consumerAuthTenant.findUnique({
-              where: {
-                oid: d.consumerSurface.consumerAuthTenantOid
-              }
-            })
-          : null;
+    let now = new Date();
 
-      if (consumerAuthTenant?.aresAppId) {
-        await consumerAresService.updateApp({
-          id: consumerAuthTenant.aresAppId,
-          slug: consumerAuthTenant.aresAppSlug
-            ? `${consumerAuthTenant.aresAppSlug}-inactive-${Date.now()}`
-            : undefined,
-          redirectDomains: ['invalid.invalid']
-        });
+    await this.disconnectConsumerSurfaceAres({
+      consumerSurface: d.consumerSurface,
+      status: 'deleted'
+    });
 
-        await tx.consumerAuthTenant.update({
-          where: {
-            oid: consumerAuthTenant.oid
-          },
-          data: {
-            aresAppId: null,
-            aresAppSlug: null,
-            aresClientId: null
-          }
-        });
-      }
+    await this.deactivateConsumerSurfaceResources({
+      publishableApiKeyOid: d.consumerSurface.publishableApiKeyOid,
+      consumerSurfaceOid: d.consumerSurface.oid
+    });
 
-      await this.deactivateConsumerSurfaceResources({
-        publishableApiKeyOid: d.consumerSurface.publishableApiKeyOid,
-        consumerSurfaceOid: d.consumerSurface.oid
-      });
-
-      return await tx.consumerSurface.update({
-        where: {
-          oid: d.consumerSurface.oid
-        },
-        data: {
-          status: 'inactive',
-          consumerAuthTenantOid: null
-        },
-        include: consumerSurfaceInclude
-      });
+    return await db.consumerSurface.update({
+      where: {
+        oid: d.consumerSurface.oid
+      },
+      data: {
+        status: 'deleted',
+        archivedAt: null,
+        deletedAt: now
+      },
+      include: consumerSurfaceInclude
     });
   }
 }

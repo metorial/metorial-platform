@@ -116,7 +116,9 @@ services:
       - APP_URL=${HOST}:4300
       - MCP_URL=${HOST}:4311
       - PROVIDER_OAUTH_URL=${HOST}:4313
-      - PORTALS_URL=${HOST}:4315
+      - PORTAL_HOST_TEMPLATE=${PROTOCOL:-http}://${HOST}:4315
+      - PORTALS_URL=${PROTOCOL:-http}://${HOST}:4315
+      - PORTAL_API_PORT=4315
       - INTEGRATIONS_API_URL=${HOST}:4316
       - DENO_DEPLOY_TOKEN=placeholder
       - DENO_ORGANIZATION_ID=placeholder

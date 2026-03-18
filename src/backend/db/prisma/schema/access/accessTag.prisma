@@ -48,8 +48,8 @@ model AccessTagEntity {
   // magicMcpGroupOid BigInt?
   // magicMcpGroup    MagicMcpGroup? @relation(fields: [magicMcpGroupOid], references: [oid], onDelete: Cascade)
 
-  // providerTemplateOid BigInt?
-  // providerTemplate    ProviderTemplate? @relation(fields: [providerTemplateOid], references: [oid], onDelete: Cascade)
+  providerTemplateOid BigInt?
+  providerTemplate    ProviderTemplate? @relation(fields: [providerTemplateOid], references: [oid], onDelete: Cascade)
 
   // serverOAuthSession    ServerOAuthSession? @relation(fields: [serverOAuthSessionOid], references: [oid])
   // serverOAuthSessionOid BigInt?

@@ -48,8 +48,10 @@ model Organization {
   team              Team[]
   teamRole          TeamRole[]
   accessTagPolicies AccessTagPolicy[]
-  consumerSurfaces  ConsumerSurface[]
+  consumerSurfaces    ConsumerSurface[]
   consumerAuthTenants ConsumerAuthTenant[]
-  consumers         Consumer[]
-  consumerProfiles  ConsumerProfile[]
+  consumers           Consumer[]
+  consumerProfiles    ConsumerProfile[]
+  portals             Portal[]
+  providerTemplates   ProviderTemplate[]
 }

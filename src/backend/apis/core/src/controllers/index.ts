@@ -6,10 +6,18 @@ import { dashboardOrganizationInviteController } from './dashboard/organizationI
 import { profileController } from './dashboard/profile';
 import { dashboardUsageController } from './dashboard/usage';
 import { dashboardUserController } from './dashboard/user';
+import { consumerProviderController } from './consumer/provider';
 import { consumerSessionController } from './consumer/session';
 import { fileController } from './instance/file';
 import { fileLinkController } from './instance/fileLink';
 import { instanceController } from './instance/instance';
+import { portalAuthDashboardController } from './instance/portalAuth';
+import { portalConsumerAccessController } from './instance/portalConsumerAccess';
+import { portalConsumerAccessRequestController } from './instance/portalConsumerAccessRequest';
+import { portalConsumerGroupController } from './instance/portalConsumerGroup';
+import { portalConsumerProfileController } from './instance/portalConsumerProfile';
+import { portalController } from './instance/portal';
+import { providerTemplateController } from './instance/providerTemplate';
 import { instanceManagementController } from './management/instance';
 import { organizationManagementController } from './management/organization';
 import { organizationInviteManagementController } from './management/organizationInvite';
@@ -121,13 +129,16 @@ export let magnetarController = Controller.create<any>(
     fileController,
     fileLinkController,
 
-    consumerSessionController
+    portalController,
+    providerTemplateController,
+
+    consumerSessionController,
+    consumerProviderController,
 
     // teamManagementController,
     // teamRoleManagementController,
     // teamRolePermissionsManagementController
 
-    // portalController,
     // portalConsumerGroupController,
     // portalConsumerAccessController,
     // portalConsumerProfileController,
@@ -219,7 +230,15 @@ export let dashboardController = Controller.create<any>(
 
     scmInstallationController,
     scmReposController,
-    scmAccountsController
+    scmAccountsController,
+
+    portalController,
+    portalAuthDashboardController,
+    providerTemplateController,
+    portalConsumerGroupController,
+    portalConsumerAccessController,
+    portalConsumerProfileController,
+    portalConsumerAccessRequestController,
 
     // callbackController,
     // callbackEventController,
@@ -230,7 +249,6 @@ export let dashboardController = Controller.create<any>(
     // ssoUserController,
     // ssoProfileController,
 
-    // portalController,
     // portalConsumerGroupController,
     // portalConsumerAccessController,
     // portalConsumerProfileController,
