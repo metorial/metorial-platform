@@ -223,9 +223,9 @@ let scopeResourceMetadata: Record<string, { name: string; description: string }>
     name: 'Consumer Magic MCP',
     description: 'These endpoints manage consumer access to Magic MCP functionality.'
   },
-  'consumer#instance.server_template': {
-    name: 'Consumer Server Templates',
-    description: 'These endpoints expose server template access for consumers.'
+  'consumer#instance.provider_template': {
+    name: 'Consumer Provider Templates',
+    description: 'These endpoints expose provider template access for consumers.'
   },
   'consumer#instance.oauth_session': {
     name: 'Consumer OAuth Sessions',

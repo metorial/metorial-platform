@@ -1,12 +1,17 @@
 import { ServiceError, unauthorizedError } from '@lowerdeck/error';
+import { Service } from '@lowerdeck/service';
 import { UnifiedApiKey } from '@metorial/api-keys';
+import {
+  authenticateWithConsumerToken,
+  getConsumerAccessContextForSession
+} from '@metorial/consumer-auth';
 import { Context } from '@metorial/context';
 import {
   ApiKey,
+  ConsumerProfile,
+  ConsumerSession,
+  ConsumerSurface,
   FineGrainedKey,
-  // ConsumerProfile,
-  // ConsumerSession,
-  // ConsumerSurface,
   Instance,
   MachineAccess,
   Organization,
@@ -15,11 +20,11 @@ import {
   User,
   UserSession
 } from '@metorial/db';
-import { Service } from '@lowerdeck/service';
 import { machineAccessAuthService } from '@metorial/module-machine-access';
 import { userAuthService } from '@metorial/module-user';
 import {
   instancePublishableTokenScopes,
+  instancePublishableTokenWithConsumerScopes,
   instanceSecretTokenScopes,
   orgManagementTokenScopes,
   Scope,
@@ -31,6 +36,14 @@ export type FineGrainedAccessTagGrant = {
   resourceType: 'subspace.session';
   resourceId: string;
   roles: Scope[];
+};
+
+export type AuthenticatedConsumerContext = {
+  consumerSurface: ConsumerSurface;
+  consumerSession: ConsumerSession;
+  consumerProfile: ConsumerProfile;
+  consumerGroups: Awaited<ReturnType<typeof getConsumerAccessContextForSession>>['consumerGroups'];
+  accessTags: bigint[];
 };
 
 export type AuthInfo =
@@ -57,14 +70,7 @@ export type AuthInfo =
             organization: Organization;
             actor: OrganizationActor;
             instance: Instance & { project: Project };
-
-            // consumer:
-            //   | {
-            //       consumerSurface: ConsumerSurface;
-            //       consumerSession: ConsumerSession;
-            //       consumerProfile: ConsumerProfile;
-            //     }
-            //   | undefined;
+            consumer?: AuthenticatedConsumerContext | undefined;
           };
     }
   | {
@@ -143,6 +149,15 @@ class AuthenticationService {
   }): Promise<AuthInfo> {
     let parsed = UnifiedApiKey.from(d.apiKey);
     if (parsed?.type == 'fine_grained_token') {
+      if (d.consumerSessionClientSecret) {
+        throw new ServiceError(
+          unauthorizedError({
+            message:
+              'Consumer session tokens can only be used with instance publishable machine access tokens'
+          })
+        );
+      }
+
       let res = await fineGrainedAuthService.authenticateWithFineGrainedToken({
         token: d.apiKey,
         context: d.context
@@ -167,27 +182,61 @@ class AuthenticationService {
     });
     let machineAccess = res.apiKey.machineAccess;
 
+    if (d.consumerSessionClientSecret && machineAccess.type != 'instance_publishable') {
+      throw new ServiceError(
+        unauthorizedError({
+          message:
+            'Consumer session tokens can only be used with instance publishable machine access tokens'
+        })
+      );
+    }
+
     if (
       machineAccess.instance &&
       machineAccess.organization &&
       machineAccess.actor &&
       (machineAccess.type == 'instance_publishable' || machineAccess.type == 'instance_secret')
     ) {
-      // let consumerRes = d.consumerSessionClientSecret
-      //   ? await consumerAuthService.authenticateWithConsumerToken({
-      //       token: d.consumerSessionClientSecret,
-      //       organization: machineAccess.organization
-      //     })
-      //   : null;
+      let consumerRes =
+        machineAccess.type == 'instance_publishable' && d.consumerSessionClientSecret
+          ? await authenticateWithConsumerToken({
+              token: d.consumerSessionClientSecret,
+              organization: machineAccess.organization
+            })
+          : null;
 
-      // if (consumerRes && machineAccess.type != 'instance_publishable') {
-      //   throw new ServiceError(
-      //     unauthorizedError({
-      //       message:
-      //         'Consumer session tokens can only be used with instance publishable machine access tokens'
-      //     })
-      //   );
-      // }
+      if (consumerRes && consumerRes.surface.instanceOid != machineAccess.instance.oid) {
+        throw new ServiceError(
+          unauthorizedError({
+            message: 'Consumer session token does not belong to this instance'
+          })
+        );
+      }
+
+      if (consumerRes && consumerRes.surface.publishableApiKeyOid != res.apiKey.oid) {
+        throw new ServiceError(
+          unauthorizedError({
+            message: 'Consumer session token does not belong to this publishable API key'
+          })
+        );
+      }
+
+      let consumerAccess = consumerRes
+        ? await getConsumerAccessContextForSession({
+            session: consumerRes.session
+          })
+        : undefined;
+
+      let consumer =
+        consumerRes && consumerAccess
+          ? {
+              consumerSurface: consumerRes.surface,
+              consumerSession: consumerRes.session,
+              consumerProfile: consumerRes.consumerProfile,
+              consumerGroups: consumerAccess.consumerGroups,
+              accessTags: consumerAccess.accessTags
+            }
+          : undefined;
 
       return {
         type: 'machine',
@@ -195,22 +244,16 @@ class AuthenticationService {
         machineAccess,
         orgScopes:
           machineAccess.type == 'instance_publishable'
-            ? // consumerRes ? instancePublishableTokenWithConsumerScopes :
-              instancePublishableTokenScopes
+            ? consumer
+              ? instancePublishableTokenWithConsumerScopes
+              : instancePublishableTokenScopes
             : instanceSecretTokenScopes,
         restrictions: {
           type: 'instance',
           organization: machineAccess.organization,
           actor: machineAccess.actor,
-          instance: machineAccess.instance
-
-          // consumer: consumerRes
-          //   ? {
-          //       consumerSurface: consumerRes.surface,
-          //       consumerSession: consumerRes.session,
-          //       consumerProfile: consumerRes.consumerProfile
-          //     }
-          //   : undefined
+          instance: machineAccess.instance,
+          consumer
         }
       };
     }

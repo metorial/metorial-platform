@@ -163,6 +163,10 @@ export let backendEnv: Env = [
     key: 'PORTALS_URL',
     defaultValue: `http://${HOSTNAME}:4315`
   },
+  {
+    key: 'PORTAL_API_PORT',
+    defaultValue: '4315'
+  },
 
   { key: 'COOKIE_DOMAIN', defaultValue: `${HOSTNAME}`, isEnterprise: true },
 

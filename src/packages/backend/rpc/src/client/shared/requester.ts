@@ -17,6 +17,7 @@ export interface Call {
   endpoint: string;
   headers: Record<string, string>;
   query?: Record<string, string>;
+  referrerPolicy?: RequestInit['referrerPolicy'];
 }
 
 export type Requester = (

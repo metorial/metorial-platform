@@ -25,7 +25,7 @@ let calls: {
 } = {};
 
 let performRequest = (call: Call) => {
-  let key = `${canonicalize(call.headers)}${canonicalize(call.query)}${call.endpoint}`;
+  let key = `${canonicalize(call.headers)}${canonicalize(call.query)}${call.endpoint}${canonicalize(call.referrerPolicy ?? null)}`;
 
   if (!calls[key]) calls[key] = { calls: [], to: null };
   let current = calls[key];
@@ -62,6 +62,7 @@ let performRequest = (call: Call) => {
             .sort((a, b) => a.name.localeCompare(b.name))
         }),
         credentials: 'include',
+        referrerPolicy: c[0].call.referrerPolicy,
 
         // @ts-ignore
         keepalive: false

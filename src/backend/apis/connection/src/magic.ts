@@ -12,7 +12,7 @@ import {
 import type { Context } from 'hono';
 import { generateSnowflakeId } from '@metorial/id';
 import { AuthInfo } from '@metorial/module-access';
-import { magicMcpTokenService } from '@metorial/module-magic';
+import { magicMcpServerService, magicMcpTokenService } from '@metorial/module-magic';
 import {
   proxyMcpRequestToSubspace,
   subspaceSessionService,
@@ -110,7 +110,7 @@ let ensureMagicMcpApiKeyAccess = async (d: {
   magicMcpServer: MagicMcpServerForRouting;
 }) => {
   let requestForAuth = toApiKeyRequest(d.request, d.tokenSecret);
-  let { instance } = await authenticateAndResolveInstance(
+  let { instance, auth } = await authenticateAndResolveInstance(
     requestForAuth,
     d.url,
     d.authenticate
@@ -122,6 +122,25 @@ let ensureMagicMcpApiKeyAccess = async (d: {
         message: 'API key does not have access to this magic MCP server'
       })
     );
+  }
+
+  if (
+    auth.type == 'machine' &&
+    auth.restrictions.type == 'instance' &&
+    auth.machineAccess.type == 'instance_publishable'
+  ) {
+    if (!auth.restrictions.consumer) {
+      throw new ServiceError(
+        forbiddenError({
+          message: 'Consumer token is required when using a publishable API key'
+        })
+      );
+    }
+
+    await magicMcpServerService.checkConsumerReadAccess({
+      server: d.magicMcpServer,
+      accessTags: auth.restrictions.consumer.accessTags
+    });
   }
 };
 
@@ -166,19 +185,19 @@ let ensureMagicMcpSubspaceSession = async (magicMcpServer: MagicMcpServerForRout
     sessionTemplateId: magicMcpServer.subspaceSessionTemplateId,
     providerDeployment: templateProvider.deployment?.id
       ? {
-          type: 'reference',
+          type: 'reference' as const,
           providerDeploymentId: templateProvider.deployment.id
         }
       : undefined,
     providerConfig: templateProvider.config?.id
       ? {
-          type: 'reference',
+          type: 'reference' as const,
           providerConfigId: templateProvider.config.id
         }
       : undefined,
     providerAuthConfig: templateProvider.authConfig?.id
       ? {
-          type: 'reference',
+          type: 'reference' as const,
           providerAuthConfigId: templateProvider.authConfig.id
         }
       : undefined,

@@ -1,0 +1,16 @@
+model ConsumerAuthTenant {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  aresAppId    String? @unique
+  aresAppSlug  String? @unique
+  aresClientId String? @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  consumerSurfaces ConsumerSurface[]
+}

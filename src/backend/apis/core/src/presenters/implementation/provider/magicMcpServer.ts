@@ -10,6 +10,7 @@ export let v1MagicMcpServerPresenter = Presenter.create(magicMcpServerType)
     id: magicMcpServer.id,
     status: magicMcpServer.status,
     session_template_id: magicMcpServer.subspaceSessionTemplateId,
+    provider_template_id: magicMcpServer.providerTemplateId,
     endpoints: magicMcpServer.aliases.map(a => ({
       id: shadowId('mgse_', [magicMcpServer.id], [a.slug]),
       alias: a.slug,
@@ -27,6 +28,7 @@ export let v1MagicMcpServerPresenter = Presenter.create(magicMcpServerType)
       id: v.string(),
       status: v.enumOf(['active', 'archived', 'deleted']),
       session_template_id: v.string(),
+      provider_template_id: v.nullable(v.string()),
       endpoints: v.array(
         v.object({
           id: v.string(),

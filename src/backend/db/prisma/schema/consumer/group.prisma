@@ -1,0 +1,39 @@
+enum ConsumerGroupStatus {
+  active
+  archived
+  deleted
+}
+
+enum ConsumerGroupType {
+  default
+  user_access
+}
+
+model ConsumerGroup {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status ConsumerGroupStatus
+  type   ConsumerGroupType   @default(default)
+
+  isDefault   Boolean @default(false)
+  ssoGroupIds String[]
+
+  name        String
+  description String?
+
+  surfaceOid BigInt
+  surface    ConsumerSurface @relation(fields: [surfaceOid], references: [oid], onDelete: Cascade)
+
+  accessTagOid BigInt @unique
+  accessTag    AccessTag @relation(fields: [accessTagOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  archivedAt DateTime?
+  deletedAt  DateTime?
+
+  profiles         ConsumerProfileGroup[]
+  consumerAccesses ConsumerAccess[]
+  personalOwner    ConsumerProfile?      @relation("ConsumerProfilePersonalGroup")
+}

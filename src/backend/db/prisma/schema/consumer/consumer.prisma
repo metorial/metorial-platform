@@ -1,0 +1,72 @@
+model Consumer {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  name  String
+  email String
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  profiles ConsumerProfile[]
+
+  @@unique([email, organizationOid])
+}
+
+model ConsumerProfile {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  aresUserId  String?
+  ssoGroupIds String[] @default([])
+  ssoRoles    String[] @default([])
+
+  name  String
+  email String
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  surfaceOid BigInt
+  surface    ConsumerSurface @relation(fields: [surfaceOid], references: [oid], onDelete: Cascade)
+
+  consumerOid BigInt
+  consumer    Consumer @relation(fields: [consumerOid], references: [oid], onDelete: Cascade)
+
+  accessTagOid BigInt @unique
+  accessTag    AccessTag @relation(fields: [accessTagOid], references: [oid], onDelete: Cascade)
+
+  personalConsumerGroupOid BigInt @unique
+  personalConsumerGroup    ConsumerGroup @relation("ConsumerProfilePersonalGroup", fields: [personalConsumerGroupOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  consumerSessions ConsumerSession[]
+  groups           ConsumerProfileGroup[]
+  accessRequests   ConsumerAccessRequest[]
+  providerSetupSessionBindings ConsumerProviderSetupSessionBinding[]
+
+  @@unique([surfaceOid, aresUserId])
+  @@unique([email, surfaceOid])
+}
+
+model ConsumerProfileGroup {
+  oid BigInt @id @default(autoincrement())
+
+  profileOid BigInt
+  profile    ConsumerProfile @relation(fields: [profileOid], references: [oid], onDelete: Cascade)
+
+  groupOid BigInt
+  group    ConsumerGroup @relation(fields: [groupOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([profileOid, groupOid])
+}

@@ -1,5 +1,6 @@
 {
   "lockfileVersion": 1,
+  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "@metorial/oss",
@@ -141,16 +142,35 @@
         "@metorial/config": "^1.0.0",
         "@metorial/db": "^1.0.0",
         "@metorial/module-access": "^1.0.0",
+        "@metorial/module-consumer": "^1.0.0",
         "@metorial/module-file": "^1.0.0",
         "@metorial/module-machine-access": "^1.0.0",
         "@metorial/module-magic": "^1.0.0",
         "@metorial/module-organization": "^1.0.0",
+        "@metorial/module-portal": "^1.0.0",
         "@metorial/module-usage": "^1.0.0",
         "@metorial/module-user": "^1.0.0",
         "@metorial/presenter": "^1.0.0",
         "@metorial/rest": "^1.0.0",
       },
       "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.8.2",
+        "vitest": "^3.1.2",
+      },
+    },
+    "src/backend/apis/custom-portal": {
+      "name": "@metorial/api-custom-portal",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/error": "^1.2.1",
+        "@lowerdeck/validation": "^1.0.8",
+        "@metorial/module-consumer": "1.0.0",
+        "@metorial/module-portal": "1.0.0",
+        "@metorial/rpc": "1.0.0",
+      },
+      "devDependencies": {
+        "@lowerdeck/serialize": "^1.0.4",
         "@metorial/tsconfig": "^1.0.0",
         "typescript": "5.8.2",
         "vitest": "^3.1.2",
@@ -170,7 +190,6 @@
         "@metorial/id": "^1.0.0",
         "@metorial/module-file": "^1.0.0",
         "@metorial/module-organization": "^1.0.0",
-        "object-storage-client": "^0.2.5",
       },
       "devDependencies": {
         "@metorial/tsconfig": "^1.0.0",
@@ -241,6 +260,7 @@
         "@metorial/api-auth": "1.0.0",
         "@metorial/api-connection": "1.0.0",
         "@metorial/api-core": "1.0.0",
+        "@metorial/api-custom-portal": "1.0.0",
         "@metorial/api-files": "1.0.0",
         "@metorial/api-marketplace": "1.0.0",
         "@metorial/auth": "1.0.0",
@@ -328,6 +348,7 @@
         "@lowerdeck/service": "^1.0.7",
         "@metorial/api-keys": "1.0.0",
         "@metorial/config": "1.0.0",
+        "@metorial/consumer-auth": "1.0.0",
         "@metorial/context": "1.0.0",
         "@metorial/db": "1.0.0",
         "@metorial/module-machine-access": "1.0.0",
@@ -356,6 +377,32 @@
         "@metorial/queue": "^1.0.0",
         "@types/fs-extra": "^11.0.4",
         "fs-extra": "^11.3.0",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.8.2",
+        "vitest": "^3.1.2",
+      },
+    },
+    "src/backend/modules/consumer": {
+      "name": "@metorial/module-consumer",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/error": "1.2.1",
+        "@lowerdeck/pagination": "^1.0.6",
+        "@lowerdeck/service": "^1.0.7",
+        "@lowerdeck/tokens": "^1.0.5",
+        "@metorial-services/ares-client": "^1.0.6",
+        "@metorial/config": "1.0.0",
+        "@metorial/consumer-auth": "1.0.0",
+        "@metorial/context": "1.0.0",
+        "@metorial/db": "1.0.0",
+        "@metorial/module-access": "1.0.0",
+        "@metorial/module-machine-access": "1.0.0",
+        "@metorial/module-magic": "1.0.0",
+        "@metorial/module-organization": "1.0.0",
+        "@metorial/module-subspace": "1.0.0",
+        "@metorial/queue": "1.0.0",
       },
       "devDependencies": {
         "@metorial/tsconfig": "^1.0.0",
@@ -414,6 +461,7 @@
         "@metorial/fabric": "^1.0.0",
         "@metorial/id": "^1.0.0",
         "@metorial/queue": "^1.0.0",
+        "object-storage-client": "^0.2.5",
       },
       "devDependencies": {
         "@metorial/tsconfig": "^1.0.0",
@@ -484,6 +532,7 @@
         "@metorial/mcp-utils": "1.0.0",
         "@metorial/module-event": "1.0.0",
         "@metorial/module-search": "^1.0.0",
+        "@metorial/module-subspace": "1.0.0",
         "@metorial/queue": "^1.0.0",
         "@metorial/redis": "1.0.0",
         "@metorial/unified-id": "^1.0.0",
@@ -539,6 +588,7 @@
       "name": "@metorial/module-organization",
       "version": "1.0.0",
       "dependencies": {
+        "@lowerdeck/canonicalize": "^1.0.4",
         "@lowerdeck/error": "^1.2.1",
         "@lowerdeck/pagination": "^1.0.6",
         "@lowerdeck/service": "^1.0.7",
@@ -553,6 +603,27 @@
         "@metorial/queue": "^1.0.0",
         "date-fns": "^4.1.0",
         "react": "^19.1.0",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.8.2",
+        "vitest": "^3.1.2",
+      },
+    },
+    "src/backend/modules/portal": {
+      "name": "@metorial/module-portal",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/env": "^1.0.4",
+        "@lowerdeck/error": "1.2.1",
+        "@lowerdeck/pagination": "^1.0.6",
+        "@lowerdeck/service": "^1.0.7",
+        "@lowerdeck/slugify": "^1.0.5",
+        "@lowerdeck/validation": "^1.0.8",
+        "@metorial/context": "1.0.0",
+        "@metorial/db": "1.0.0",
+        "@metorial/module-consumer": "1.0.0",
+        "@metorial/queue": "1.0.0",
       },
       "devDependencies": {
         "@metorial/tsconfig": "^1.0.0",
@@ -600,7 +671,7 @@
         "@lowerdeck/error": "1.2.1",
         "@lowerdeck/programmable-promise": "^1.0.6",
         "@lowerdeck/validation": "^1.0.8",
-        "@metorial-services/subspace-client": "^1.0.32",
+        "@metorial-services/subspace-client": "^1.0.35",
         "@metorial/context": "1.0.0",
         "@metorial/db": "1.0.0",
         "@metorial/module-access": "1.0.0",
@@ -738,6 +809,32 @@
         "vite": "^5.4.1",
       },
     },
+    "src/frontend/apps/explorer": {
+      "name": "@metorial/explorer",
+      "version": "1.0.0",
+      "dependencies": {
+        "@metorial/ui": "^1.0.0",
+        "@modelcontextprotocol/sdk": "^1.19.1",
+        "@remixicon/react": "^4.2.0",
+        "ajv": "^8.17.1",
+        "ajv-formats": "^3.0.1",
+        "formik": "^2.4.6",
+        "framer-motion": "^12.35.0",
+        "json-schema": "^0.4.0",
+        "react": "19.1.1",
+        "react-dom": "19.1.1",
+        "react-markdown": "^10.1.0",
+        "styled-components": "^6.1.13",
+      },
+      "devDependencies": {
+        "@types/react": "^19.0.8",
+        "@types/react-dom": "^19.0.4",
+        "@vitejs/plugin-react": "^4.3.1",
+        "babel-plugin-styled-components": "^2.1.4",
+        "typescript": "^5.5.3",
+        "vite": "^5.4.1",
+      },
+    },
     "src/frontend/apps/marketplace": {
       "name": "@metorial/marketplace",
       "version": "0.1.0",
@@ -811,6 +908,7 @@
       "dependencies": {
         "@lowerdeck/error": "^1.2.1",
         "@marsidev/react-turnstile": "^1.1.0",
+        "@metorial/api-custom-portal": "1.0.0",
         "@metorial/chart": "^1.0.0",
         "@metorial/data-hooks": "^1.0.0",
         "@metorial/pages": "^1.0.0",
@@ -917,6 +1015,22 @@
       "version": "1.0.0",
       "dependencies": {
         "@lowerdeck/cache": "^1.0.1",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.8.2",
+        "vitest": "^3.1.2",
+      },
+    },
+    "src/packages/backend/consumer-auth": {
+      "name": "@metorial/consumer-auth",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/error": "1.2.1",
+        "@lowerdeck/tokens": "^1.0.5",
+        "@metorial-services/ares-client": "^1.0.6",
+        "@metorial/config": "1.0.0",
+        "@metorial/db": "1.0.0",
       },
       "devDependencies": {
         "@metorial/tsconfig": "^1.0.0",
@@ -1892,15 +2006,19 @@
 
     "@lowerdeck/telemetry": ["@lowerdeck/telemetry@1.1.1", "", { "dependencies": { "@lowerdeck/execution-context": "^1.1.0", "@opentelemetry/api": "^1.9.0", "@opentelemetry/context-async-hooks": "^2.5.0", "@opentelemetry/core": "^2.5.0", "@opentelemetry/exporter-trace-otlp-http": "^0.211.0", "@opentelemetry/instrumentation": "^0.212.0", "@opentelemetry/resources": "^2.5.0", "@opentelemetry/sdk-trace-base": "^2.5.0", "@opentelemetry/sdk-trace-node": "^2.5.0", "@opentelemetry/semantic-conventions": "^1.39.0", "@prisma/instrumentation": "^7.4.1" } }, "sha512-IOcVHadI9VftSn845hFtWPU8k+tk2k0/hey0PrZsddJorY1D485ODapq5x2bdCmL8B46ZBMSduU0NH+d/S5lgg=="],
 
+    "@lowerdeck/tokens": ["@lowerdeck/tokens@1.0.5", "", { "dependencies": { "@lowerdeck/base62": "^1.0.4", "@lowerdeck/memo": "^1.0.4" } }, "sha512-eqt+/UcXBYP83RYHOrBRm2Iw508Jl1+s7M//H82aNazFnxUkMpJncwwmZKRcHP21eYEzlXrbkJwoV/JNXP/Jhg=="],
+
     "@lowerdeck/validation": ["@lowerdeck/validation@1.0.8", "", {}, "sha512-7sW91bml0iY+JipHOndla2uAEwTbFQwINAUrb0oGEVMQQ522MAa4PgwTKjJAG9DZ12LGhOgYEJoo7CyJo8aJNQ=="],
 
     "@marijn/find-cluster-break": ["@marijn/find-cluster-break@1.0.2", "", {}, "sha512-l0h88YhZFyKdXIFNfSWpyjStDjGHwZ/U7iobcK1cQQD8sejsONdQtTVU+1wVN1PBw40PiiHB1vA5S7VTfQiP9g=="],
 
     "@marsidev/react-turnstile": ["@marsidev/react-turnstile@1.4.2", "", { "peerDependencies": { "react": "^17.0.2 || ^18.0.0 || ^19.0", "react-dom": "^17.0.2 || ^18.0.0 || ^19.0" } }, "sha512-xs1qOuyeMOz6t9BXXCXWiukC0/0+48vR08B7uwNdG05wCMnbcNgxiFmdFKDOFbM76qFYFRYlGeRfhfq1U/iZmA=="],
 
+    "@metorial-services/ares-client": ["@metorial-services/ares-client@1.0.6", "", { "dependencies": { "@lowerdeck/rpc-client": "^1.0.4" } }, "sha512-UFMGf5MsuuzaKypZVLCsABr15blTJ9lTBP02eYRSdwdtzJGzreeRlM21e3A+jXPGr33oTDlefG7sJ4BPcXWkCA=="],
+
     "@metorial-services/relay-client": ["@metorial-services/relay-client@1.0.5", "", { "dependencies": { "@lowerdeck/rpc-client": "^1.0.5", "@react-email/components": "^1.0.7", "react": "^19.2.4" } }, "sha512-2YoVhxORVH+zr4eX8CwTLQpQ5fTLFM9kMLyYZEpdcmp/R7ZPTTQAiKP1EyOI3Kn/OIIv856UAo3UPWhoS79HCQ=="],
 
-    "@metorial-services/subspace-client": ["@metorial-services/subspace-client@1.0.32", "", { "dependencies": { "@lowerdeck/rpc-client": "^1.1.3", "@lowerdeck/validation": "^1.0.8" } }, "sha512-UQBOnQLtRZx6bkFhuDrEpbMvDbv/sXVRxjJqUSherkNrnVCFxXOv9dEjHNMW9ANn32Cuko414kLzRA5/3l/oSg=="],
+    "@metorial-services/subspace-client": ["@metorial-services/subspace-client@1.0.42", "", { "dependencies": { "@lowerdeck/rpc-client": "^1.1.3", "@lowerdeck/validation": "^1.0.8" } }, "sha512-Rk0RsKW93cIQGn/HcXowYhV6pl7mpdRyZxmN2rMvoylgNi+67X7iJjWUaVbMNtOYcEggOFFBROznyhw0Yhp2FA=="],
 
     "@metorial-services/voyager-client": ["@metorial-services/voyager-client@1.0.1", "", { "dependencies": { "@lowerdeck/rpc-client": "^1.0.2" } }, "sha512-KBMgQr4/Hb3YOyMmSVbXZle1N1tVPqJr1fdG0DSGCJEAUHebUUZjgOf4pJTjh/BGUFLgEEJ65gDSDPd9V/VjWw=="],
 
@@ -1909,6 +2027,8 @@
     "@metorial/api-connection": ["@metorial/api-connection@workspace:src/backend/apis/connection"],
 
     "@metorial/api-core": ["@metorial/api-core@workspace:src/backend/apis/core"],
+
+    "@metorial/api-custom-portal": ["@metorial/api-custom-portal@workspace:src/backend/apis/custom-portal"],
 
     "@metorial/api-files": ["@metorial/api-files@workspace:src/backend/apis/files"],
 
@@ -1936,6 +2056,8 @@
 
     "@metorial/config": ["@metorial/config@workspace:src/backend/config"],
 
+    "@metorial/consumer-auth": ["@metorial/consumer-auth@workspace:src/packages/backend/consumer-auth"],
+
     "@metorial/consumer-sdk": ["@metorial/consumer-sdk@workspace:clients/metorial-consumer"],
 
     "@metorial/context": ["@metorial/context@workspace:src/packages/server/context"],
@@ -1953,6 +2075,8 @@
     "@metorial/dynamic-component": ["@metorial/dynamic-component@workspace:src/packages/frontend/dynamic-component"],
 
     "@metorial/event": ["@metorial/event@workspace:src/packages/backend/event"],
+
+    "@metorial/explorer": ["@metorial/explorer@workspace:src/frontend/apps/explorer"],
 
     "@metorial/fabric": ["@metorial/fabric@workspace:src/packages/backend/fabric"],
 
@@ -1982,6 +2106,8 @@
 
     "@metorial/module-community": ["@metorial/module-community@workspace:src/backend/modules/community"],
 
+    "@metorial/module-consumer": ["@metorial/module-consumer@workspace:src/backend/modules/consumer"],
+
     "@metorial/module-email": ["@metorial/module-email@workspace:src/backend/modules/email"],
 
     "@metorial/module-event": ["@metorial/module-event@workspace:src/backend/modules/event"],
@@ -1997,6 +2123,8 @@
     "@metorial/module-markdown": ["@metorial/module-markdown@workspace:src/backend/modules/markdown"],
 
     "@metorial/module-organization": ["@metorial/module-organization@workspace:src/backend/modules/organization"],
+
+    "@metorial/module-portal": ["@metorial/module-portal@workspace:src/backend/modules/portal"],
 
     "@metorial/module-protect": ["@metorial/module-protect@workspace:src/backend/modules/protect"],
 
@@ -4700,6 +4828,8 @@
 
     "@lowerdeck/sentry/@sentry/core": ["@sentry/core@10.42.0", "", {}, "sha512-L4rMrXMqUKBanpjpMT+TuAVk6xAijz6AWM6RiEYpohAr7SGcCEc1/T0+Ep1eLV8+pwWacfU27OvELIyNeOnGzA=="],
 
+    "@lowerdeck/tokens/@lowerdeck/memo": ["@lowerdeck/memo@1.0.4", "", {}, "sha512-Fyhi14j1EocQeAjZ6sqeYZaydPlCt23P+CEv99QVPb46Y6n77RGrslbHE7HDPgV0f9CJi4UWxSbfhk+Spmmj5g=="],
+
     "@metorial/auth/@lowerdeck/error": ["@lowerdeck/error@1.2.1", "", { "dependencies": { "@lowerdeck/case": "^1.0.9", "@lowerdeck/validation": "^1.0.4" } }, "sha512-VWA7YPVIR0XmIFv7RJ10urfQYUXyXKrq3FUv1J1UKX/J8dNwG+fBp/0V4S2y1XGufU3Ce0a3SjORN04I/uSbdQ=="],
 
     "@metorial/auth/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
@@ -4709,6 +4839,8 @@
     "@metorial/code-editor/vitest": ["vitest@0.34.6", "", { "dependencies": { "@types/chai": "^4.3.5", "@types/chai-subset": "^1.3.3", "@types/node": "*", "@vitest/expect": "0.34.6", "@vitest/runner": "0.34.6", "@vitest/snapshot": "0.34.6", "@vitest/spy": "0.34.6", "@vitest/utils": "0.34.6", "acorn": "^8.9.0", "acorn-walk": "^8.2.0", "cac": "^6.7.14", "chai": "^4.3.10", "debug": "^4.3.4", "local-pkg": "^0.4.3", "magic-string": "^0.30.1", "pathe": "^1.1.1", "picocolors": "^1.0.0", "std-env": "^3.3.3", "strip-literal": "^1.0.1", "tinybench": "^2.5.0", "tinypool": "^0.7.0", "vite": "^3.1.0 || ^4.0.0 || ^5.0.0-0", "vite-node": "0.34.6", "why-is-node-running": "^2.2.2" }, "peerDependencies": { "@edge-runtime/vm": "*", "@vitest/browser": "*", "@vitest/ui": "*", "happy-dom": "*", "jsdom": "*", "playwright": "*", "safaridriver": "*", "webdriverio": "*" }, "optionalPeers": ["@edge-runtime/vm", "@vitest/browser", "@vitest/ui", "happy-dom", "jsdom", "playwright", "safaridriver", "webdriverio"], "bin": { "vitest": "vitest.mjs" } }, "sha512-+5CALsOvbNKnS+ZHMXtuUC7nL8/7F1F2DnHGjSsszX8zCjWSSviphCb/NuS9Nzf4Q03KyyDRBAXhF/8lffME4Q=="],
 
     "@metorial/config/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
+
+    "@metorial/consumer-auth/@lowerdeck/error": ["@lowerdeck/error@1.2.1", "", { "dependencies": { "@lowerdeck/case": "^1.0.9", "@lowerdeck/validation": "^1.0.4" } }, "sha512-VWA7YPVIR0XmIFv7RJ10urfQYUXyXKrq3FUv1J1UKX/J8dNwG+fBp/0V4S2y1XGufU3Ce0a3SjORN04I/uSbdQ=="],
 
     "@metorial/consumer-sdk/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
@@ -4724,6 +4856,16 @@
 
     "@metorial/event/@lowerdeck/memo": ["@lowerdeck/memo@1.0.4", "", {}, "sha512-Fyhi14j1EocQeAjZ6sqeYZaydPlCt23P+CEv99QVPb46Y6n77RGrslbHE7HDPgV0f9CJi4UWxSbfhk+Spmmj5g=="],
 
+    "@metorial/explorer/framer-motion": ["framer-motion@12.35.0", "", { "dependencies": { "motion-dom": "^12.35.0", "motion-utils": "^12.29.2", "tslib": "^2.4.0" }, "peerDependencies": { "@emotion/is-prop-valid": "*", "react": "^18.0.0 || ^19.0.0", "react-dom": "^18.0.0 || ^19.0.0" }, "optionalPeers": ["@emotion/is-prop-valid", "react", "react-dom"] }, "sha512-w8hghCMQ4oq10j6aZh3U2yeEQv5K69O/seDI/41PK4HtgkLrcBovUNc0ayBC3UyyU7V1mrY2yLzvYdWJX9pGZQ=="],
+
+    "@metorial/explorer/react": ["react@19.1.1", "", {}, "sha512-w8nqGImo45dmMIfljjMwOGtbmC/mk4CMYhWIicdSflH91J9TyCyczcPFXJzrZ/ZXcgGRFeP6BU0BEJTw6tZdfQ=="],
+
+    "@metorial/explorer/react-dom": ["react-dom@19.1.1", "", { "dependencies": { "scheduler": "^0.26.0" }, "peerDependencies": { "react": "^19.1.1" } }, "sha512-Dlq/5LAZgF0Gaz6yiqZCf6VCcZs1ghAJyrsu84Q/GT0gV+mCxbfmKNoGRKBYMJ8IEdGPqu49YWXD02GCknEDkw=="],
+
+    "@metorial/explorer/react-markdown": ["react-markdown@10.1.0", "", { "dependencies": { "@types/hast": "^3.0.0", "@types/mdast": "^4.0.0", "devlop": "^1.0.0", "hast-util-to-jsx-runtime": "^2.0.0", "html-url-attributes": "^3.0.0", "mdast-util-to-hast": "^13.0.0", "remark-parse": "^11.0.0", "remark-rehype": "^11.0.0", "unified": "^11.0.0", "unist-util-visit": "^5.0.0", "vfile": "^6.0.0" }, "peerDependencies": { "@types/react": ">=18", "react": ">=18" } }, "sha512-qKxVopLT/TyA6BX3Ue5NwabOsAzm0Q7kAPwq6L+wWDwisYs7R8vZ0nRXqq6rkueboxpkjvLGU9fWifiX/ZZFxQ=="],
+
+    "@metorial/explorer/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
+
     "@metorial/id/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
     "@metorial/layout/framer-motion": ["framer-motion@12.35.0", "", { "dependencies": { "motion-dom": "^12.35.0", "motion-utils": "^12.29.2", "tslib": "^2.4.0" }, "peerDependencies": { "@emotion/is-prop-valid": "*", "react": "^18.0.0 || ^19.0.0", "react-dom": "^18.0.0 || ^19.0.0" }, "optionalPeers": ["@emotion/is-prop-valid", "react", "react-dom"] }, "sha512-w8hghCMQ4oq10j6aZh3U2yeEQv5K69O/seDI/41PK4HtgkLrcBovUNc0ayBC3UyyU7V1mrY2yLzvYdWJX9pGZQ=="],
@@ -4738,6 +4880,8 @@
 
     "@metorial/module-access/@lowerdeck/hash": ["@lowerdeck/hash@1.0.0", "", { "dependencies": { "@lowerdeck/base62": "^1.0.0" } }, "sha512-waMRPnH/CXmiimc1ODd7kBcwa7etLAnChDo3OgYVwiQgxS3Y6kgrdnLyIv4DkzIu/NV2I/QZJgJzYIhIxoBgJQ=="],
 
+    "@metorial/module-consumer/@lowerdeck/error": ["@lowerdeck/error@1.2.1", "", { "dependencies": { "@lowerdeck/case": "^1.0.9", "@lowerdeck/validation": "^1.0.4" } }, "sha512-VWA7YPVIR0XmIFv7RJ10urfQYUXyXKrq3FUv1J1UKX/J8dNwG+fBp/0V4S2y1XGufU3Ce0a3SjORN04I/uSbdQ=="],
+
     "@metorial/module-machine-access/date-fns": ["date-fns@4.1.0", "", {}, "sha512-Ukq0owbQXxa/U3EGtsdVBkR1w7KOQ5gIBqdH2hkvknzZPYvBxb/aa6E8L7tmjFtkwZBu3UXBbjIgPo/Ez4xaNg=="],
 
     "@metorial/module-magic/@lowerdeck/programmable-promise": ["@lowerdeck/programmable-promise@1.0.0", "", {}, "sha512-HkIRNYz3t+T0h9X00R/gMvqQ2vfPzXS07Ycfostl/U4LSJVFcgJlwY+LoYKN0s8P7JON3ruo5DHLMVHxrtuaWw=="],
@@ -4747,6 +4891,8 @@
     "@metorial/module-markdown/date-fns": ["date-fns@4.1.0", "", {}, "sha512-Ukq0owbQXxa/U3EGtsdVBkR1w7KOQ5gIBqdH2hkvknzZPYvBxb/aa6E8L7tmjFtkwZBu3UXBbjIgPo/Ez4xaNg=="],
 
     "@metorial/module-organization/date-fns": ["date-fns@4.1.0", "", {}, "sha512-Ukq0owbQXxa/U3EGtsdVBkR1w7KOQ5gIBqdH2hkvknzZPYvBxb/aa6E8L7tmjFtkwZBu3UXBbjIgPo/Ez4xaNg=="],
+
+    "@metorial/module-portal/@lowerdeck/error": ["@lowerdeck/error@1.2.1", "", { "dependencies": { "@lowerdeck/case": "^1.0.9", "@lowerdeck/validation": "^1.0.4" } }, "sha512-VWA7YPVIR0XmIFv7RJ10urfQYUXyXKrq3FUv1J1UKX/J8dNwG+fBp/0V4S2y1XGufU3Ce0a3SjORN04I/uSbdQ=="],
 
     "@metorial/module-protect/@lowerdeck/error": ["@lowerdeck/error@1.2.1", "", { "dependencies": { "@lowerdeck/case": "^1.0.9", "@lowerdeck/validation": "^1.0.4" } }, "sha512-VWA7YPVIR0XmIFv7RJ10urfQYUXyXKrq3FUv1J1UKX/J8dNwG+fBp/0V4S2y1XGufU3Ce0a3SjORN04I/uSbdQ=="],
 
@@ -5125,6 +5271,12 @@
     "@metorial/dashboard-sdk/vitest/tinypool": ["tinypool@0.7.0", "", {}, "sha512-zSYNUlYSMhJ6Zdou4cJwo/p7w5nmAH17GRfU/ui3ctvjXFErXXkruT4MWW6poDeXgCaIBlGLrfU6TbTXxyGMww=="],
 
     "@metorial/dashboard-sdk/vitest/vite-node": ["vite-node@0.34.6", "", { "dependencies": { "cac": "^6.7.14", "debug": "^4.3.4", "mlly": "^1.4.0", "pathe": "^1.1.1", "picocolors": "^1.0.0", "vite": "^3.0.0 || ^4.0.0 || ^5.0.0-0" }, "bin": { "vite-node": "vite-node.mjs" } }, "sha512-nlBMJ9x6n7/Amaz6F3zJ97EBwR2FkzhBRxF5e+jE6LA3yi6Wtc2lyTij1OnDMIr34v5g/tVQtsVAzhT0jc5ygA=="],
+
+    "@metorial/explorer/framer-motion/motion-dom": ["motion-dom@12.35.0", "", { "dependencies": { "motion-utils": "^12.29.2" } }, "sha512-FFMLEnIejK/zDABn+vqGVAUN4T0+3fw+cVAY8MMT65yR+j5uMuvWdd4npACWhh94OVWQs79CrBBuwOwGRZAQiA=="],
+
+    "@metorial/explorer/framer-motion/motion-utils": ["motion-utils@12.29.2", "", {}, "sha512-G3kc34H2cX2gI63RqU+cZq+zWRRPSsNIOjpdl9TN4AQwC4sgwYPl/Q/Obf/d53nOm569T0fYK+tcoSV50BWx8A=="],
+
+    "@metorial/explorer/react-dom/scheduler": ["scheduler@0.26.0", "", {}, "sha512-NlHwttCI/l5gCPR3D1nNXtWABUmBwvZpEQiD4IXSbIDq8BzLIK/7Ir5gTFSGZDUu37K5cMNp0hFtzO38sC7gWA=="],
 
     "@metorial/layout/framer-motion/motion-dom": ["motion-dom@12.35.0", "", { "dependencies": { "motion-utils": "^12.29.2" } }, "sha512-FFMLEnIejK/zDABn+vqGVAUN4T0+3fw+cVAY8MMT65yR+j5uMuvWdd4npACWhh94OVWQs79CrBBuwOwGRZAQiA=="],
 

@@ -4,6 +4,7 @@ import { apiMux } from '@lowerdeck/api-mux';
 import { authApi } from '@metorial/api-auth';
 import { startMcpServer } from '@metorial/api-connection';
 import { apiServer } from '@metorial/api-core';
+import { customPortalApi } from '@metorial/api-custom-portal';
 import { fileContentApi, fileUploadApi } from '@metorial/api-files';
 import { marketplaceApp } from '@metorial/api-marketplace';
 import { authenticate } from '@metorial/auth';
@@ -17,6 +18,7 @@ let oauthPort = parseInt(process.env.OAUTH_PORT || '4313');
 let runnerPort = parseInt(process.env.RUNNER_PORT || '3399');
 let privateApiPort = parseInt(process.env.PRIVATE_API_PORT || '4314');
 let marketplaceApiPort = parseInt(process.env.MARKETPLACE_API_PORT || '4312');
+let customPortalApiPort = parseInt(process.env.PORTAL_API_PORT || '4315');
 let integrationsApiPort = parseInt(process.env.INTEGRATIONS_API_PORT || '4316');
 let callbacksApiPort = parseInt(process.env.CALLBACKS_API_PORT || '4317');
 
@@ -55,7 +57,14 @@ Bun.serve({
   fetch: marketplaceApp.fetch
 });
 
-console.log(`Listening on ports ${apiPort} (api), ${filesPort} (files)`);
+Bun.serve({
+  port: customPortalApiPort,
+  fetch: customPortalApi.fetch
+});
+
+console.log(
+  `Listening on ports ${apiPort} (api), ${filesPort} (files), ${customPortalApiPort} (portals)`
+);
 
 if (process.env.AXIOM_TOKEN)
   initLogger({

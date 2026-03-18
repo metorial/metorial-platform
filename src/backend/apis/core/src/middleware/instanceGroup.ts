@@ -40,32 +40,16 @@ export let instanceGroup = apiGroup.use(async ctx => {
       ...consumerPlaceholder
     };
 
-    // let consumerSessionClientSecret =
-    //   ctx.query['consumer_session_client_secret'] ??
-    //   ctx.headers['metorial-consumer-session-client-secret'];
-
-    // if (consumerSessionClientSecret) {
-    //   let res = await consumerAuthService.authenticateWithConsumerToken({
-    //     token: consumerSessionClientSecret,
-    //     organization: ctx.auth.restrictions.organization
-    //   });
-
-    //   let consumerGroups = await consumerProfileService.getGroupsForProfile({
-    //     consumerProfile: res.consumerProfile
-    //   });
-
-    //   return {
-    //     ...base,
-    //     consumerGroups,
-    //     consumerSurface: res.surface,
-    //     consumerSession: res.session,
-    //     consumerProfile: res.consumerProfile,
-    //     accessTags: [
-    //       res.consumerProfile.accessTagOid,
-    //       ...consumerGroups.map(g => g.accessTagOid)
-    //     ]
-    //   };
-    // }
+    if (ctx.auth.restrictions.consumer) {
+      return {
+        ...base,
+        consumerGroups: ctx.auth.restrictions.consumer.consumerGroups,
+        consumerSurface: ctx.auth.restrictions.consumer.consumerSurface,
+        consumerSession: ctx.auth.restrictions.consumer.consumerSession,
+        consumerProfile: ctx.auth.restrictions.consumer.consumerProfile,
+        accessTags: ctx.auth.restrictions.consumer.accessTags
+      };
+    }
 
     return base;
   }
