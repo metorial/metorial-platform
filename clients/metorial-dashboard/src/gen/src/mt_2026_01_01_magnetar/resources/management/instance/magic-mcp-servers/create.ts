@@ -5,6 +5,7 @@ export type ManagementInstanceMagicMcpServersCreateOutput = {
   id: string;
   status: 'active' | 'archived' | 'deleted';
   sessionTemplateId: string;
+  providerTemplateId: string | null;
   endpoints: { id: string; alias: string; url: string }[];
   name: string | null;
   description: string | null;
@@ -20,6 +21,10 @@ export let mapManagementInstanceMagicMcpServersCreateOutput =
     status: mtMap.objectField('status', mtMap.passthrough()),
     sessionTemplateId: mtMap.objectField(
       'session_template_id',
+      mtMap.passthrough()
+    ),
+    providerTemplateId: mtMap.objectField(
+      'provider_template_id',
       mtMap.passthrough()
     ),
     endpoints: mtMap.objectField(
