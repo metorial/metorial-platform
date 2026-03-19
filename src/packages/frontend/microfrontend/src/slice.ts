@@ -77,10 +77,12 @@ export let RouterErrorPage = () => {
 
 export let createFrontendRouter = ({
   frontends,
-  layout
+  layout,
+  utilityWrapper
 }: {
   frontends: Slice[];
   layout: ReactNode;
+  utilityWrapper?: ({ children }: { children: React.ReactNode }) => React.ReactElement;
 }) => {
   let router = createBrowserRouter([
     {
@@ -88,9 +90,15 @@ export let createFrontendRouter = ({
       element: React.createElement(
         React.Fragment,
         null,
-        React.createElement(Outlet, null),
-        React.createElement(Toaster, null),
-        React.createElement(ModalRoot, null)
+        React.createElement(
+          utilityWrapper
+            ? utilityWrapper
+            : ({ children }: { children: React.ReactNode }) => children,
+          null,
+          React.createElement(Outlet, null),
+          React.createElement(Toaster, null),
+          React.createElement(ModalRoot, null)
+        )
       ),
       errorElement: React.createElement(RouterErrorPage, null),
       children: [
