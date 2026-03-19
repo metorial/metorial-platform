@@ -241,7 +241,7 @@ export let ProviderOverviewPage = () => {
             ],
             codeViewer: getCodeViewer({
               repo: 'metorial-node',
-              path: 'examples/v2/typescript-ai-sdk',
+              path: 'examples/typescript-ai-sdk',
               initialFile: 'index.ts'
             })
           },
@@ -258,7 +258,7 @@ export let ProviderOverviewPage = () => {
             ],
             codeViewer: getCodeViewer({
               repo: 'metorial-node',
-              path: 'examples/v2/typescript-openai',
+              path: 'examples/typescript-openai',
               initialFile: 'index.ts'
             })
           },
@@ -273,7 +273,7 @@ export let ProviderOverviewPage = () => {
             instructions: [...getJSStartInstructions()],
             codeViewer: getCodeViewer({
               repo: 'metorial-node',
-              path: 'examples/v2/typescript-openai',
+              path: 'examples/typescript-openai',
               initialFile: 'index.ts'
             })
           },
