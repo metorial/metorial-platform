@@ -91,13 +91,19 @@ export let createFrontendRouter = ({
         React.Fragment,
         null,
         React.createElement(
-          utilityWrapper
-            ? utilityWrapper
-            : ({ children }: { children: React.ReactNode }) => children,
+          React.Fragment,
           null,
+
           React.createElement(Outlet, null),
-          React.createElement(Toaster, null),
-          React.createElement(ModalRoot, null)
+
+          React.createElement(
+            utilityWrapper
+              ? utilityWrapper
+              : ({ children }: { children: React.ReactNode }) => children,
+            null,
+            React.createElement(Toaster, null),
+            React.createElement(ModalRoot, null)
+          )
         )
       ),
       errorElement: React.createElement(RouterErrorPage, null),
