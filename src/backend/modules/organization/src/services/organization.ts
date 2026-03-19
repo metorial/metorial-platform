@@ -11,6 +11,7 @@ import { createSlugGenerator } from '@lowerdeck/slugify';
 import { Context } from '@metorial/context';
 import { db, ID, Organization, OrganizationActor, User, withTransaction } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
+import { generateCode } from '@metorial/id';
 import { fileReferenceService } from '@metorial/module-file';
 import { differenceInMinutes } from 'date-fns';
 import { syncProfileQueue } from '../queues/syncProfile';
@@ -49,7 +50,7 @@ class OrganizationService {
           id: await ID.generateId('organization'),
           status: 'active',
           type: 'default',
-          slug: await getOrgSlug({ input: d.input.name }),
+          slug: await getOrgSlug({ input: `${d.input.name}-${generateCode(3)}` }),
           name: d.input.name,
           image: d.input.image ?? { type: 'default' }
         }

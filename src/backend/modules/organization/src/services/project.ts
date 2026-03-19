@@ -18,6 +18,7 @@ import {
   withTransaction
 } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
+import { generateCode } from '@metorial/id';
 import { instanceService } from './instance';
 
 let getProjectSlug = createSlugGenerator(
@@ -50,7 +51,7 @@ class ProjectService {
         data: {
           id: await ID.generateId('project'),
           status: 'active',
-          slug: await getProjectSlug({ input: d.input.name }),
+          slug: await getProjectSlug({ input: `${d.input.name}-${generateCode(3)}` }),
           name: d.input.name,
           organizationOid: d.organization.oid
         },

@@ -21,6 +21,7 @@ import {
   withTransaction
 } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
+import { generateCode } from '@metorial/id';
 import { differenceInMinutes } from 'date-fns';
 import { projectService } from './project';
 
@@ -56,7 +57,7 @@ class InstanceService {
         data: {
           id: await ID.generateId('instance'),
           status: 'active',
-          slug: await getInstanceSlug({ input: d.input.name }),
+          slug: await getInstanceSlug({ input: `${d.input.name}-${generateCode(3)}` }),
           name: d.input.name,
           type: d.input.type,
           organizationOid: d.organization.oid,
