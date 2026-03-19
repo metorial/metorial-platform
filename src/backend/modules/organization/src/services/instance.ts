@@ -57,7 +57,7 @@ class InstanceService {
         data: {
           id: await ID.generateId('instance'),
           status: 'active',
-          slug: await getInstanceSlug({ input: `${d.input.name}-${generateCode(3)}` }),
+          slug: await getInstanceSlug({ input: `${d.input.name}-${generateCode(5)}` }),
           name: d.input.name,
           type: d.input.type,
           organizationOid: d.organization.oid,

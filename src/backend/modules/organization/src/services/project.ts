@@ -51,7 +51,7 @@ class ProjectService {
         data: {
           id: await ID.generateId('project'),
           status: 'active',
-          slug: await getProjectSlug({ input: `${d.input.name}-${generateCode(3)}` }),
+          slug: await getProjectSlug({ input: `${d.input.name}-${generateCode(5)}` }),
           name: d.input.name,
           organizationOid: d.organization.oid
         },
