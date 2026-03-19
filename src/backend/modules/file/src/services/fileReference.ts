@@ -3,6 +3,7 @@ import { Service } from '@lowerdeck/service';
 import { getConfig } from '@metorial/config';
 import { db, EntityImage, File, FileLink, ID, withTransaction } from '@metorial/db';
 import { generatePlainId } from '@metorial/id';
+import { env } from '../env';
 
 export type ImageFileOwner =
   | {
@@ -105,7 +106,7 @@ class FileReferenceServiceImpl {
         data: {
           id: await ID.generateId('fileLink'),
           fileOid: file.oid,
-          key: await generatePlainId(30)
+          key: `${generatePlainId(30)}_${env.service.METORIAL_REGION ?? 'ext'}`
         },
         include: {
           file: true
