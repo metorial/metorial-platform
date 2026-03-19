@@ -24,7 +24,7 @@ export let bootLoader = createLoader({
 
 export let useBoot = () => {
   let boot = bootLoader.use({});
-  if ((window as any).filterBoot) return (window as any).filterBoot(boot);
+  if ((window as any).filterBoot) return (window as any).filterBoot(boot) as typeof boot;
 
   return boot;
 };
