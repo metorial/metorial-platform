@@ -28,7 +28,7 @@ export let ProjectSettingsPage = () => {
   });
 
   return (
-    <ContentLayout variant="medium">
+    <ContentLayout variant="large">
       <PageHeader title="Project Settings" description="Update your project settings." />
 
       <form onSubmit={form.handleSubmit}>

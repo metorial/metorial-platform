@@ -20,7 +20,7 @@ export let ProjectSettingsInstancesPage = () => {
   });
 
   return (
-    <ContentLayout variant="medium">
+    <ContentLayout variant="large">
       <PageHeader
         title="Instances"
         description="Create multiple project instances for different environments. For example, one for production, one for staging, and one for development."
