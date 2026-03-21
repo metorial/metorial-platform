@@ -28,12 +28,15 @@ model User {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @default(now()) @updatedAt
 
-  sessions UserSession[]
-  members  OrganizationMember[]
-  access   MachineAccess[]
-  files    File[]
-  profile  Profile?
-  uploads  Upload[]
+  sessions                   UserSession[]
+  members                    OrganizationMember[]
+  access                     MachineAccess[]
+  files                      File[]
+  profile                    Profile?
+  uploads                    Upload[]
+  oauthAuthorizations        OAuthAuthorization[]
+  cliDevices                 CliDevice[]
+  oauthAuthorizationRequests OAuthAuthorizationRequest[]
 }
 
 model UserSession {

@@ -19,7 +19,8 @@ model Organization {
   type   OrganizationType
   status OrganizationStatus
 
-  enforceTeamAccess Boolean @default(false)
+  enforceTeamAccess        Boolean @default(false)
+  canCreateGlobalOauthApps Boolean @default(false)
 
   slug String @unique
   name String
@@ -33,25 +34,30 @@ model Organization {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @default(now()) @updatedAt
 
-  invites           OrganizationInvite[]
-  members           OrganizationMember[]
-  actors            OrganizationActor[]
-  instances         Instance[]
-  userConfigs       OrganizationUserConfig[]
-  projects          Project[]
-  machineAccesses   MachineAccess[]
-  files             File[]
-  secrets           Secret[]
-  profile           Profile?
-  uploads           Upload[]
-  accessLimiters    AccessLimiter[]
-  team              Team[]
-  teamRole          TeamRole[]
-  accessTagPolicies AccessTagPolicy[]
-  consumerSurfaces    ConsumerSurface[]
-  consumerAuthTenants ConsumerAuthTenant[]
-  consumers           Consumer[]
-  consumerProfiles    ConsumerProfile[]
-  portals             Portal[]
-  providerTemplates   ProviderTemplate[]
+  invites                    OrganizationInvite[]
+  members                    OrganizationMember[]
+  actors                     OrganizationActor[]
+  instances                  Instance[]
+  userConfigs                OrganizationUserConfig[]
+  projects                   Project[]
+  machineAccesses            MachineAccess[]
+  files                      File[]
+  secrets                    Secret[]
+  profile                    Profile?
+  uploads                    Upload[]
+  accessLimiters             AccessLimiter[]
+  team                       Team[]
+  teamRole                   TeamRole[]
+  accessTagPolicies          AccessTagPolicy[]
+  consumerSurfaces           ConsumerSurface[]
+  consumerAuthTenants        ConsumerAuthTenant[]
+  consumers                  Consumer[]
+  consumerProfiles           ConsumerProfile[]
+  portals                    Portal[]
+  providerTemplates          ProviderTemplate[]
+  oauthApplications          OAuthApplication[]
+  oauthInstallations         OAuthInstallation[]
+  oauthAuthorizations        OAuthAuthorization[]
+  cliDevices                 CliDevice[]
+  oauthAuthorizationRequests OAuthAuthorizationRequest[]
 }
