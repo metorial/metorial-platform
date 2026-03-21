@@ -274,6 +274,8 @@ export class RestServer<AuthInfo, ApiVersion extends string> {
                         };
                         // objects = handlerRes.objects;
                       } catch (e) {
+                        console.error('Error in handler', isServiceError(e));
+
                         if (isServiceError(e)) {
                           response = {
                             status: e.data.status,
