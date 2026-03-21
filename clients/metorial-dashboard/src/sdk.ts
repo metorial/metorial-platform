@@ -43,12 +43,12 @@ import {
   MetorialDashboardInstanceProviderGroupsEndpoint,
   MetorialDashboardInstanceProviderListingsEndpoint,
   MetorialDashboardInstanceProviderRunsEndpoint,
-  MetorialDashboardInstanceProviderTemplatesEndpoint,
   MetorialDashboardInstanceProvidersAuthMethodsEndpoint,
   MetorialDashboardInstanceProvidersEndpoint,
   MetorialDashboardInstanceProvidersSpecificationsEndpoint,
   MetorialDashboardInstanceProvidersToolsEndpoint,
   MetorialDashboardInstanceProvidersVersionsEndpoint,
+  MetorialDashboardInstanceProviderTemplatesEndpoint,
   MetorialDashboardInstancePublishersEndpoint,
   MetorialDashboardInstanceScmAccountsEndpoint,
   MetorialDashboardInstanceScmInstallationEndpoint,
@@ -63,11 +63,19 @@ import {
   MetorialDashboardInstanceSessionsProvidersEndpoint,
   MetorialDashboardInstanceSessionTemplatesEndpoint,
   MetorialDashboardInstanceSessionTemplatesProvidersEndpoint,
+  MetorialDashboardOauthAuthorizationRequestsEndpoint,
   MetorialDashboardOrganizationsEndpoint,
   MetorialDashboardOrganizationsInstancesEndpoint,
   MetorialDashboardOrganizationsInvitesEndpoint,
   MetorialDashboardOrganizationsJoinEndpoint,
   MetorialDashboardOrganizationsMembersEndpoint,
+  MetorialDashboardOrganizationsOauthAppsClientSecretsEndpoint,
+  MetorialDashboardOrganizationsOauthAppsEndpoint,
+  MetorialDashboardOrganizationsOauthAuthorizationLogsEndpoint,
+  MetorialDashboardOrganizationsOauthAuthorizationsEndpoint,
+  MetorialDashboardOrganizationsOauthCliDevicesEndpoint,
+  MetorialDashboardOrganizationsOauthInstallationsEndpoint,
+  MetorialDashboardOrganizationsOauthScopesEndpoint,
   MetorialDashboardOrganizationsProjectsEndpoint,
   MetorialDashboardOrganizationsTeamsEndpoint,
   MetorialDashboardOrganizationsTeamsMembersEndpoint,
@@ -166,21 +174,32 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
       ssoTenants: Object.assign(
         new MetorialDashboardInstancePortalsAuthSsoTenantsEndpoint(manager),
         {
-          connections:
-            new MetorialDashboardInstancePortalsAuthSsoTenantsConnectionsEndpoint(
-              manager
-            )
+          connections: new MetorialDashboardInstancePortalsAuthSsoTenantsConnectionsEndpoint(
+            manager
+          )
         }
       )
     },
-    accessRequests: new MetorialDashboardInstancePortalsAccessRequestsEndpoint(
-      manager
-    )
+    accessRequests: new MetorialDashboardInstancePortalsAccessRequestsEndpoint(manager)
   }),
 
   providerTemplates: new MetorialDashboardInstanceProviderTemplatesEndpoint(manager),
 
   usage: new MetorialDashboardUsageEndpoint(manager),
+
+  oauth: {
+    cliDevices: new MetorialDashboardOrganizationsOauthCliDevicesEndpoint(manager),
+    authorizationRequests: new MetorialDashboardOauthAuthorizationRequestsEndpoint(manager),
+    scopes: new MetorialDashboardOrganizationsOauthScopesEndpoint(manager),
+    apps: Object.assign(new MetorialDashboardOrganizationsOauthAppsEndpoint(manager), {
+      clientSecrets: new MetorialDashboardOrganizationsOauthAppsClientSecretsEndpoint(manager)
+    }),
+    authorizationLogs: new MetorialDashboardOrganizationsOauthAuthorizationLogsEndpoint(
+      manager
+    ),
+    installations: new MetorialDashboardOrganizationsOauthInstallationsEndpoint(manager),
+    authorizations: new MetorialDashboardOrganizationsOauthAuthorizationsEndpoint(manager)
+  },
 
   teams: Object.assign(new MetorialDashboardOrganizationsTeamsEndpoint(manager), {
     roles: new MetorialDashboardOrganizationsTeamsRolesEndpoint(manager),
