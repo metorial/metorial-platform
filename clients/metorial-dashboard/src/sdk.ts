@@ -77,6 +77,9 @@ import {
   MetorialDashboardOrganizationsOauthInstallationsEndpoint,
   MetorialDashboardOrganizationsOauthScopesEndpoint,
   MetorialDashboardOrganizationsProjectsEndpoint,
+  MetorialDashboardOrganizationsServiceAccountsClientSecretsEndpoint,
+  MetorialDashboardOrganizationsServiceAccountsCredentialsEndpoint,
+  MetorialDashboardOrganizationsServiceAccountsEndpoint,
   MetorialDashboardOrganizationsTeamsEndpoint,
   MetorialDashboardOrganizationsTeamsMembersEndpoint,
   MetorialDashboardOrganizationsTeamsProjectsEndpoint,
@@ -200,6 +203,18 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
     installations: new MetorialDashboardOrganizationsOauthInstallationsEndpoint(manager),
     authorizations: new MetorialDashboardOrganizationsOauthAuthorizationsEndpoint(manager)
   },
+
+  serviceAccounts: Object.assign(
+    new MetorialDashboardOrganizationsServiceAccountsEndpoint(manager),
+    {
+      clientSecrets: new MetorialDashboardOrganizationsServiceAccountsClientSecretsEndpoint(
+        manager
+      ),
+      credentials: new MetorialDashboardOrganizationsServiceAccountsCredentialsEndpoint(
+        manager
+      )
+    }
+  ),
 
   teams: Object.assign(new MetorialDashboardOrganizationsTeamsEndpoint(manager), {
     roles: new MetorialDashboardOrganizationsTeamsRolesEndpoint(manager),

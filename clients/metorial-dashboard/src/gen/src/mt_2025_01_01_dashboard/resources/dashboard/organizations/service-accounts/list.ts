@@ -1,20 +1,14 @@
 import { mtMap } from '@metorial/util-resource-mapper';
 
-export type ManagementOrganizationOauthAppsListOutput = {
+export type DashboardOrganizationsServiceAccountsListOutput = {
   items: {
-    object: 'machine_access.oauth_application';
+    object: 'machine_access.service_account';
     id: string;
     status: 'active' | 'archived';
-    type: 'user_facing' | 'cli_auth' | 'server_side';
-    accessLevel: 'organization' | 'global';
     name: string;
     description: string | null;
     scopes: { identifier: string; name: string; description: string }[];
     imageUrl: string;
-    websiteUrl: string | null;
-    privacyPolicyUrl: string | null;
-    termsOfServiceUrl: string | null;
-    redirectUris: string[];
     clientId: string;
     clientSecrets: {
       object: 'machine_access.oauth_application_client_secret';
@@ -24,15 +18,15 @@ export type ManagementOrganizationOauthAppsListOutput = {
       createdAt: Date;
       deletedAt: Date | null;
     }[];
-    organizationId: string | null;
+    organizationId: string;
     createdAt: Date;
     updatedAt: Date;
   }[];
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
-export let mapManagementOrganizationOauthAppsListOutput =
-  mtMap.object<ManagementOrganizationOauthAppsListOutput>({
+export let mapDashboardOrganizationsServiceAccountsListOutput =
+  mtMap.object<DashboardOrganizationsServiceAccountsListOutput>({
     items: mtMap.objectField(
       'items',
       mtMap.array(
@@ -40,8 +34,6 @@ export let mapManagementOrganizationOauthAppsListOutput =
           object: mtMap.objectField('object', mtMap.passthrough()),
           id: mtMap.objectField('id', mtMap.passthrough()),
           status: mtMap.objectField('status', mtMap.passthrough()),
-          type: mtMap.objectField('type', mtMap.passthrough()),
-          accessLevel: mtMap.objectField('access_level', mtMap.passthrough()),
           name: mtMap.objectField('name', mtMap.passthrough()),
           description: mtMap.objectField('description', mtMap.passthrough()),
           scopes: mtMap.objectField(
@@ -61,19 +53,6 @@ export let mapManagementOrganizationOauthAppsListOutput =
             )
           ),
           imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
-          websiteUrl: mtMap.objectField('website_url', mtMap.passthrough()),
-          privacyPolicyUrl: mtMap.objectField(
-            'privacy_policy_url',
-            mtMap.passthrough()
-          ),
-          termsOfServiceUrl: mtMap.objectField(
-            'terms_of_service_url',
-            mtMap.passthrough()
-          ),
-          redirectUris: mtMap.objectField(
-            'redirect_uris',
-            mtMap.array(mtMap.passthrough())
-          ),
           clientId: mtMap.objectField('client_id', mtMap.passthrough()),
           clientSecrets: mtMap.objectField(
             'client_secrets',
@@ -109,7 +88,7 @@ export let mapManagementOrganizationOauthAppsListOutput =
     )
   });
 
-export type ManagementOrganizationOauthAppsListQuery = {
+export type DashboardOrganizationsServiceAccountsListQuery = {
   limit?: number | undefined;
   after?: string | undefined;
   before?: string | undefined;
@@ -117,7 +96,7 @@ export type ManagementOrganizationOauthAppsListQuery = {
   order?: 'asc' | 'desc' | undefined;
 } & { status?: 'active' | 'archived' | ('active' | 'archived')[] | undefined };
 
-export let mapManagementOrganizationOauthAppsListQuery = mtMap.union([
+export let mapDashboardOrganizationsServiceAccountsListQuery = mtMap.union([
   mtMap.unionOption(
     'object',
     mtMap.object({
