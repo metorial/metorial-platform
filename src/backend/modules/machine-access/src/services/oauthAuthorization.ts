@@ -30,7 +30,7 @@ import {
 import { Fabric } from '@metorial/fabric';
 import { generateCode, generateCustomId } from '@metorial/id';
 import { organizationService } from '@metorial/module-organization';
-import { addMinutes, differenceInSeconds } from 'date-fns';
+import { addMinutes, addSeconds, differenceInSeconds } from 'date-fns';
 import {
   ensureAuthorizationRequestPending,
   ensureAuthorizationUsable,
@@ -978,7 +978,11 @@ class OAuthAuthorizationService {
           oauthAuthorizationOid: oauthAuthorization.oid,
           acceptedAt: new Date(),
           organizationOid: organization.oid,
-          userOid: d.user.oid
+          userOid: d.user.oid,
+          expiresAt:
+            d.oauthAuthorizationRequest.type == 'interactive'
+              ? addSeconds(new Date(), 30)
+              : addSeconds(new Date(), 90)
         },
         include: authorizationRequestInclude
       });

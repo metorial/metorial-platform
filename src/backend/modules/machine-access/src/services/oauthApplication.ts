@@ -59,6 +59,20 @@ class OAuthApplicationService {
   }
 
   private async createClientSecret(d: { oauthApplication: OAuthApplication }) {
+    let existingSecrets = await db.oAuthApplicationClientSecret.findMany({
+      where: {
+        oauthApplicationOid: d.oauthApplication.oid,
+        deletedAt: null
+      }
+    });
+    if (existingSecrets.length >= 25) {
+      throw new ServiceError(
+        forbiddenError({
+          message: 'Cannot have more than 25 client secrets for an oauth application'
+        })
+      );
+    }
+
     let secret = generateCustomId('mt_oauth_secret', 50);
 
     return await db.oAuthApplicationClientSecret.create({
@@ -114,7 +128,7 @@ class OAuthApplicationService {
   }
 
   private buildMachineAccessName(name: string) {
-    return `OAUTH APP ${name}`;
+    return `SERVICE ACCOUNT${name}`;
   }
 
   private async createScopedInstallation(d: {

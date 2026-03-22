@@ -18,5 +18,25 @@ export let cleanupCron = createCron(
         status: 'pending'
       }
     });
+
+    await db.oAuthAuthorizationRequest.updateMany({
+      where: {
+        expiresAt: {
+          lte: twoDaysAgo
+        },
+        OR: [
+          { userCode: { not: null } },
+          { deviceCode: { not: null } },
+          { lastPollAt: { not: null } },
+          { codeChallenge: { not: null } }
+        ]
+      },
+      data: {
+        userCode: null,
+        deviceCode: null,
+        lastPollAt: null,
+        codeChallenge: null
+      }
+    });
   }
 );

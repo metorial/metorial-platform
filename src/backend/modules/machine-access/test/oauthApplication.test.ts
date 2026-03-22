@@ -1,10 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-let {
-  machineAccessCreateMock,
-  machineAccessUpdateMock,
-  mockDb
-} = vi.hoisted(() => ({
+let { machineAccessCreateMock, machineAccessUpdateMock, mockDb } = vi.hoisted(() => ({
   machineAccessCreateMock: vi.fn(),
   machineAccessUpdateMock: vi.fn(),
   mockDb: {
@@ -72,7 +68,7 @@ describe('oauthApplicationService', () => {
     machineAccessCreateMock.mockResolvedValue({
       oid: 'machine-access-oid',
       id: 'machine-access-id',
-      name: 'OAUTH APP Server App',
+      name: 'SERVICE ACCOUNTServer App',
       status: 'active',
       type: 'organization_management'
     });
@@ -102,7 +98,7 @@ describe('oauthApplicationService', () => {
       organization: baseOrg,
       serverSideMachineAccess: {
         oid: 'machine-access-oid',
-        name: data.name ? `OAUTH APP ${data.name}` : 'OAUTH APP Server App'
+        name: data.name ? `SERVICE ACCOUNT${data.name}` : 'SERVICE ACCOUNTServer App'
       },
       scopedInstallation: {
         oid: 'oauth-installation-oid',
@@ -121,7 +117,7 @@ describe('oauthApplicationService', () => {
       organization: baseOrg,
       serverSideMachineAccess: {
         oid: 'machine-access-oid',
-        name: 'OAUTH APP Server App'
+        name: 'SERVICE ACCOUNTServer App'
       },
       scopedInstallation: {
         oid: 'oauth-installation-oid',
@@ -161,7 +157,7 @@ describe('oauthApplicationService', () => {
       performedBy: baseActor,
       context: baseContext,
       input: {
-        name: 'OAUTH APP Server App',
+        name: 'SERVICE ACCOUNTServer App',
         hasCustomScopes: true,
         scopes: ['organization:read']
       }
@@ -201,7 +197,7 @@ describe('oauthApplicationService', () => {
         oid: 'machine-access-oid'
       }),
       input: {
-        name: 'OAUTH APP Server App 2',
+        name: 'SERVICE ACCOUNTServer App 2',
         hasCustomScopes: true,
         scopes: ['organization:write']
       },

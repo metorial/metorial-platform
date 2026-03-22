@@ -19,7 +19,7 @@ export let v1TokenPresenter = Presenter.create(tokenType)
 
     instance: token.instance
       ? {
-          object: 'token.instance',
+          object: 'token.organization.instance',
           id: token.instance.id,
           name: token.instance.name,
           slug: token.instance.slug,
@@ -29,7 +29,7 @@ export let v1TokenPresenter = Presenter.create(tokenType)
 
     project: token.instance
       ? {
-          object: 'token.project',
+          object: 'token.organization.project',
           id: token.instance.project.id,
           name: token.instance.project.name,
           slug: token.instance.project.slug
@@ -38,7 +38,7 @@ export let v1TokenPresenter = Presenter.create(tokenType)
 
     actor: token.actor
       ? {
-          object: 'token.organization_actor',
+          object: 'token.organization.actor',
           id: token.actor.id,
           type: token.actor.type,
           name: token.actor.name
@@ -47,7 +47,7 @@ export let v1TokenPresenter = Presenter.create(tokenType)
 
     member: token.member
       ? {
-          object: 'token.organization_member',
+          object: 'token.organization.member',
           id: token.member.id,
           name: token.member.actor.name
         }
