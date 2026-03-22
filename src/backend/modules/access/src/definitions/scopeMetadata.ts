@@ -41,6 +41,18 @@ let scopeResourceMetadata: Record<string, { name: string; description: string }>
     name: 'Team Roles',
     description: 'These endpoints manage team role definitions and permissions.'
   },
+  'organization.oauth_app': {
+    name: 'OAuth Apps',
+    description: 'These endpoints manage OAuth applications owned by an organization.'
+  },
+  'organization.oauth_installation': {
+    name: 'OAuth Installations',
+    description: 'These endpoints manage OAuth app installations for an organization.'
+  },
+  'organization.oauth_authorization': {
+    name: 'OAuth Authorizations',
+    description: 'These endpoints manage OAuth authorizations for an organization.'
+  },
   'instance.file': {
     name: 'Instance Files',
     description: 'These endpoints manage files uploaded within an instance.'
