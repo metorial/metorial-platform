@@ -144,6 +144,12 @@ export let tokenType = PresentableType.create<{
       | 'oauth_access_token'
       | 'unknown_token'
       | 'user_auth_token';
+
+    organization?: Organization;
+    instance?: Instance & { project: Project };
+    actor?: OrganizationActor;
+    member?: OrganizationMember & { actor: OrganizationActor };
+    user?: User;
   };
 }>()('token');
 

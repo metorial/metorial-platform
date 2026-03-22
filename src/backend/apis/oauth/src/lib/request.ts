@@ -30,7 +30,7 @@ export let parseOAuthBody = async (c: Context): Promise<Record<string, string>> 
     }
 
     if (contentType?.startsWith('application/json')) {
-      return await c.req.parseBody();
+      return await c.req.json();
     }
 
     return {};

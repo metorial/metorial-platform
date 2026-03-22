@@ -29,7 +29,19 @@ export let tokenController = Controller.create(
                       : 'unknown_token'
                   : ctx.auth.type == 'user'
                     ? 'user_auth_token'
-                    : 'unknown_token'
+                    : 'unknown_token',
+
+            organization:
+              'restrictions' in ctx.auth ? ctx.auth.restrictions.organization : undefined,
+            instance:
+              'restrictions' in ctx.auth && 'instance' in ctx.auth.restrictions
+                ? ctx.auth.restrictions.instance
+                : undefined,
+            actor:
+              'restrictions' in ctx.auth && 'actor' in ctx.auth.restrictions
+                ? ctx.auth.restrictions.actor
+                : undefined,
+            user: ctx.auth.type == 'user' ? ctx.auth.user : undefined
           }
         })
       )
