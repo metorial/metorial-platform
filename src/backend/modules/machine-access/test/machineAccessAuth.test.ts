@@ -6,6 +6,10 @@ import { machineAccessAuthService } from '../src/services/machineAccessAuth';
 
 vi.mock('@metorial/db', () => ({
   db: {
+    oAuthToken: {
+      findFirst: vi.fn(),
+      update: vi.fn()
+    },
     apiKeySecret: {
       findUnique: vi.fn()
     },
@@ -28,11 +32,37 @@ describe('MachineAccessAuthService', () => {
     vi.clearAllMocks();
   });
 
-  it('throws for unsupported organization_app_access_token', async () => {
-    (UnifiedApiKey.from as any).mockReturnValue({ type: 'organization_app_access_token' });
+  it('throws for unsupported oauth_access_token', async () => {
+    (UnifiedApiKey.from as any).mockReturnValue({ type: 'oauth_access_token' });
+    (db.oAuthToken.findFirst as any).mockResolvedValue(null);
     await expect(
       machineAccessAuthService.authenticateWithMachineAccessToken({ token: 'tok', context })
     ).rejects.toThrow(ServiceError);
+  });
+
+  it('authenticates active oauth_access_token tokens', async () => {
+    (UnifiedApiKey.from as any).mockReturnValue({ type: 'oauth_access_token' });
+    (db.oAuthToken.findFirst as any).mockResolvedValue({
+      id: 'oauth-token-1',
+      lastUsedAt: null,
+      accessTokenExpiresAt: new Date(Date.now() + 60_000),
+      completelyExpiresAt: new Date(Date.now() + 120_000),
+      oauthAuthorization: {
+        status: 'active',
+        oauthApplication: { status: 'active' },
+        oauthInstallation: { status: 'active' },
+        machineAccess: { status: 'active' }
+      }
+    });
+    (db.oAuthToken.update as any).mockResolvedValue({});
+
+    let result = await machineAccessAuthService.authenticateWithMachineAccessToken({
+      token: 'tok',
+      context
+    });
+
+    expect(result.type).toBe('oauth_token');
+    expect(db.oAuthToken.update).toHaveBeenCalled();
   });
 
   it('throws for invalid API key', async () => {
@@ -124,7 +154,10 @@ describe('MachineAccessAuthService', () => {
       token: 'ok',
       context
     });
-    expect(result).toBe(secret);
+    expect(result).toEqual({
+      type: 'api_key',
+      secret
+    });
     expect(db.apiKey.update).toHaveBeenCalledWith({
       where: { id: 1 },
       data: { lastUsedAt: expect.any(Date) }
@@ -149,7 +182,10 @@ describe('MachineAccessAuthService', () => {
       token: 'recent',
       context
     });
-    expect(result).toBe(secret);
+    expect(result).toEqual({
+      type: 'api_key',
+      secret
+    });
     expect(db.apiKey.update).not.toHaveBeenCalled();
   });
 
@@ -171,7 +207,10 @@ describe('MachineAccessAuthService', () => {
       token: 'never',
       context
     });
-    expect(result).toBe(secret);
+    expect(result).toEqual({
+      type: 'api_key',
+      secret
+    });
     expect(db.apiKey.update).toHaveBeenCalledWith({
       where: { id: 3 },
       data: { lastUsedAt: expect.any(Date) }
