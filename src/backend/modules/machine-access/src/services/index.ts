@@ -6,3 +6,4 @@ export * from './oauthApplication';
 export * from './oauthAuthorization';
 export * from './oauthAuthorizationInstallation';
 export * from './oauthAuthorizationLog';
+export * from './serviceAccount';

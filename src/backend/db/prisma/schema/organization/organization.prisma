@@ -60,4 +60,5 @@ model Organization {
   oauthAuthorizations        OAuthAuthorization[]
   cliDevices                 CliDevice[]
   oauthAuthorizationRequests OAuthAuthorizationRequest[]
+  serviceAccounts            ServiceAccount[]
 }

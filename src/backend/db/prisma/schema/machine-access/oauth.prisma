@@ -49,12 +49,14 @@ model OAuthApplication {
   scopedInstallationOid BigInt?
   scopedInstallation    OAuthInstallation? @relation("ScopedInstallation", fields: [scopedInstallationOid], references: [oid], onDelete: Cascade)
 
-  createdAt                  DateTime                       @default(now())
-  updatedAt                  DateTime                       @default(now()) @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
   clientSecrets              OAuthApplicationClientSecret[]
   oauthInstallations         OAuthInstallation[]
   oauthAuthorizations        OAuthAuthorization[]
   oauthAuthorizationRequests OAuthAuthorizationRequest[]
+  serviceAccount             ServiceAccount?
 }
 
 model OAuthApplicationClientSecret {
@@ -157,6 +159,7 @@ model OAuthAuthorization {
   oauthAuthorizationRequests OAuthAuthorizationRequest[]
   oauthTokens                OAuthToken[]
   cliDevices                 CliDevice[]
+  serviceAccountCredential   ServiceAccountCredential?
 
   @@unique([oauthInstallationOid, userOid])
   @@unique([userOid, organizationOid, oauthApplicationOid])

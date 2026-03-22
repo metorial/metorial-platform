@@ -33,6 +33,7 @@ import { organizationManagementController } from './management/organization';
 import { organizationInviteManagementController } from './management/organizationInvite';
 import { organizationMemberManagementController } from './management/organizationMember';
 import { projectManagementController } from './management/project';
+import { serviceAccountManagementController } from './management/serviceAccount';
 import { teamManagementController } from './management/team';
 import { teamRoleManagementController } from './management/teamRole';
 import { teamRolePermissionsManagementController } from './management/teamRolePermissions';
@@ -198,6 +199,7 @@ export let dashboardController = Controller.create<any>(
     oauthInstallationManagementController,
     oauthAuthorizationManagementController,
     oauthAuthorizationLogManagementController,
+    serviceAccountManagementController,
     organizationInviteManagementController,
     organizationMemberManagementController,
     projectManagementController,

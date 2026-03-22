@@ -24,6 +24,8 @@ export let ID = createIdGenerator({
   oauthAuthorization: idType.sorted('oaa'),
   oauthAuthorizationRequest: idType.sorted('oar'),
   oauthToken: idType.sorted('otk'),
+  serviceAccount: idType.sorted('sac'),
+  serviceAccountCredential: idType.sorted('scc'),
   cliDevice: idType.sorted('cli'),
   cliAuth: idType.sorted('cla'),
   apiApplication: idType.sorted('aap'),

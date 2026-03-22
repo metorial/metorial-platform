@@ -285,7 +285,7 @@ class OAuthApplicationService {
         })
       : undefined;
 
-    let res = await withTransaction(async db => {
+    return await withTransaction(async db => {
       await Fabric.fire('machine_access.oauth_application.updated:before', d);
 
       let oauthApplication = await db.oAuthApplication.update({
@@ -358,8 +358,6 @@ class OAuthApplicationService {
 
       return updatedOauthApplication;
     });
-
-    return res;
   }
 
   async archiveOAuthApplication(d: {
@@ -373,7 +371,7 @@ class OAuthApplicationService {
 
     let now = new Date();
 
-    let res = await withTransaction(async db => {
+    return await withTransaction(async db => {
       await Fabric.fire('machine_access.oauth_application.archived:before', d);
 
       await db.oAuthAuthorization.updateMany({
@@ -415,8 +413,6 @@ class OAuthApplicationService {
 
       return oauthApplication;
     });
-
-    return res;
   }
 
   async getOAuthApplicationById(d: {
@@ -443,7 +439,6 @@ class OAuthApplicationService {
   async listOAuthApplications(d: {
     organization: Organization;
     statuses?: OAuthApplicationStatus[];
-    types?: Array<Exclude<OAuthApplicationType, 'cli_auth'>>;
   }) {
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -454,7 +449,7 @@ class OAuthApplicationService {
               organizationOid: d.organization.oid,
               status: d.statuses ? { in: d.statuses } : 'active',
               type: {
-                in: d.types ?? ['user_facing', 'server_side']
+                in: ['user_facing']
               }
             },
             include

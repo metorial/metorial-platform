@@ -5,3 +5,4 @@ export * from './loaders/oauthAuthorizationLog';
 export * from './loaders/oauthAuthorizationRequest';
 export * from './loaders/oauthInstallation';
 export * from './loaders/oauthScopes';
+export * from './loaders/serviceAccount';

@@ -1,0 +1,61 @@
+import { v } from '@lowerdeck/validation';
+import { getScopeDefinition, Scope } from '@metorial/module-access';
+import { Presenter } from '@metorial/presenter';
+import { serviceAccountType } from '../types';
+import { v1OAuthApplicationClientSecretPresenter } from './oauthApplicationClientSecret';
+
+export let v1ServiceAccountPresenter = Presenter.create(serviceAccountType)
+  .presenter(async ({ serviceAccount }, opts) => ({
+    object: 'machine_access.service_account',
+
+    id: serviceAccount.id,
+    status: serviceAccount.status,
+
+    name: serviceAccount.name,
+    description: serviceAccount.description,
+
+    scopes: serviceAccount.scopes.map(scope => {
+      let definition = getScopeDefinition(scope as Scope);
+
+      return {
+        identifier: definition.identifier as string,
+        name: definition.name,
+        description: definition.description
+      };
+    }),
+
+    client_id: serviceAccount.oauthApplication.clientId,
+    client_secrets: await Promise.all(
+      (serviceAccount.oauthApplication.clientSecrets ?? []).map(clientSecret =>
+        v1OAuthApplicationClientSecretPresenter
+          .present({ oauthApplicationClientSecret: clientSecret }, opts)
+          .run()
+      )
+    ),
+
+    organization_id: serviceAccount.organization.id,
+    created_at: serviceAccount.createdAt,
+    updated_at: serviceAccount.updatedAt
+  }))
+  .schema(
+    v.object({
+      object: v.literal('machine_access.service_account'),
+      id: v.string(),
+      status: v.enumOf(['active', 'archived']),
+      name: v.string(),
+      description: v.nullable(v.string()),
+      scopes: v.array(
+        v.object({
+          identifier: v.string(),
+          name: v.string(),
+          description: v.string()
+        })
+      ),
+      client_id: v.string(),
+      client_secrets: v.array(v1OAuthApplicationClientSecretPresenter.schema),
+      organization_id: v.string(),
+      created_at: v.date(),
+      updated_at: v.date()
+    })
+  )
+  .build();

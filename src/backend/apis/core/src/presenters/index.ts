@@ -32,6 +32,8 @@ import { v1ProfilePresenter } from './implementation/profile';
 import { v1ProjectPresenter } from './implementation/project';
 import { v1ProviderTemplatePresenter } from './implementation/providerTemplate';
 import { v1SecretPresenter } from './implementation/secret';
+import { v1ServiceAccountPresenter } from './implementation/serviceAccount';
+import { v1ServiceAccountCredentialPresenter } from './implementation/serviceAccountCredential';
 import { v1TeamPresenter } from './implementation/team';
 import { v1TeamRolePresenter } from './implementation/teamRole';
 import { v1TeamRolePermissionsPresenter } from './implementation/teamRolePermissions';
@@ -191,6 +193,8 @@ import {
   providerSetupSessionType,
   providerSpecificationType,
   providerTemplateType,
+  serviceAccountCredentialType,
+  serviceAccountType,
   providerToolType,
   providerType,
   providerTypeType,
@@ -275,6 +279,19 @@ export let oauthAuthorizationPresenter = declarePresenter(oauthAuthorizationType
   mt_2025_01_01_dashboard: v1OAuthAuthorizationPresenter,
   mt_2026_01_01_magnetar: v1OAuthAuthorizationPresenter
 });
+
+export let serviceAccountPresenter = declarePresenter(serviceAccountType, {
+  mt_2025_01_01_dashboard: v1ServiceAccountPresenter,
+  mt_2026_01_01_magnetar: v1ServiceAccountPresenter
+});
+
+export let serviceAccountCredentialPresenter = declarePresenter(
+  serviceAccountCredentialType,
+  {
+    mt_2025_01_01_dashboard: v1ServiceAccountCredentialPresenter,
+    mt_2026_01_01_magnetar: v1ServiceAccountCredentialPresenter
+  }
+);
 
 export let tokenPresenter = declarePresenter(tokenType, {
   mt_2025_01_01_dashboard: v1TokenPresenter,

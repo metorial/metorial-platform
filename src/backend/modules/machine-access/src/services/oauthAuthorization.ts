@@ -1141,13 +1141,16 @@ class OAuthAuthorizationService {
                     }
                   }
                 : undefined,
-              oauthApplication: d.oauthApplicationIds
-                ? {
-                    id: {
+              oauthApplication: {
+                id: d.oauthApplicationIds
+                  ? {
                       in: d.oauthApplicationIds
                     }
-                  }
-                : undefined
+                  : undefined,
+                type: {
+                  not: 'server_side'
+                }
+              }
             },
             include: authorizationInclude
           })

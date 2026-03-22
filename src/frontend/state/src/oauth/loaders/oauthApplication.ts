@@ -4,24 +4,17 @@ import { withAuth } from '../../user';
 
 export let oauthAppsLoader = createLoader({
   name: 'oauthApps',
-  fetch: (i: {
-    organizationId: string;
-    before?: string;
-    after?: string;
-    type?: 'user_facing' | 'server_side';
-  }) =>
+  fetch: (i: { organizationId: string; before?: string; after?: string }) =>
     withAuth(sdk =>
       sdk.oauth.apps.list(i.organizationId, {
         before: i.before,
         after: i.after,
-        limit: 100,
-        type: i.type
+        limit: 100
       })
     ),
   mutators: {
     create: (
       i: {
-        type: 'user_facing' | 'server_side';
         accessLevel: 'organization';
         name: string;
         description?: string;
@@ -35,7 +28,6 @@ export let oauthAppsLoader = createLoader({
     ) =>
       withAuth(sdk =>
         sdk.oauth.apps.create(organizationId, {
-          type: i.type,
           accessLevel: 'organization',
           name: i.name,
           description: i.description,
@@ -49,14 +41,9 @@ export let oauthAppsLoader = createLoader({
   }
 });
 
-export let useOAuthApps = (
-  organizationId: string | null | undefined,
-  opts?: { type?: 'user_facing' | 'server_side' }
-) => {
+export let useOAuthApps = (organizationId: string | null | undefined) => {
   let oauthApps = usePaginator(cursor =>
-    oauthAppsLoader.use(
-      organizationId ? { organizationId, ...cursor, type: opts?.type } : null
-    )
+    oauthAppsLoader.use(organizationId ? { organizationId, ...cursor } : null)
   );
 
   return {

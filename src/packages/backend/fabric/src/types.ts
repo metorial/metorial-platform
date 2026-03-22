@@ -14,6 +14,8 @@ import {
   OrganizationInviteJoin,
   OrganizationMember,
   Project,
+  ServiceAccount,
+  ServiceAccountCredential,
   Team,
   TeamMember,
   TeamProject,
@@ -74,6 +76,18 @@ export type OAuthApplicationUpdateInput = {
   termsOfServiceUrl?: string | null;
   scopes?: string[];
   image?: PrismaJson.EntityImage;
+};
+
+export type ServiceAccountCreateInput = {
+  name: string;
+  description?: string;
+  scopes: string[];
+};
+
+export type ServiceAccountUpdateInput = {
+  name?: string;
+  description?: string | null;
+  scopes?: string[];
 };
 
 export type ProviderEventBase = {
@@ -217,6 +231,15 @@ export interface FabricEvents {
   'machine_access.oauth_token.created:after': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; oauthToken: OAuthToken; organization: Organization; appActor: OrganizationActor | null; context?: Context; };
   'machine_access.oauth_token.refreshed:before': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; oauthToken: OAuthToken; organization: Organization; appActor: OrganizationActor | null; context?: Context; };
   'machine_access.oauth_token.refreshed:after': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; oauthToken: OAuthToken; organization: Organization; appActor: OrganizationActor | null; context?: Context; };
+
+  'machine_access.service_account.created:before': { organization: Organization; performedBy: OrganizationActor; context: Context; input: ServiceAccountCreateInput; };
+  'machine_access.service_account.created:after': { organization: Organization; performedBy: OrganizationActor; context: Context; input: ServiceAccountCreateInput; serviceAccount: ServiceAccount; oauthApplication: OAuthApplication; };
+  'machine_access.service_account.updated:before': { serviceAccount: ServiceAccount; oauthApplication: OAuthApplication; organization: Organization; performedBy: OrganizationActor; context: Context; input: ServiceAccountUpdateInput; };
+  'machine_access.service_account.updated:after': { serviceAccount: ServiceAccount; oauthApplication: OAuthApplication; organization: Organization; performedBy: OrganizationActor; context: Context; input: ServiceAccountUpdateInput; };
+  'machine_access.service_account.archived:before': { serviceAccount: ServiceAccount; oauthApplication: OAuthApplication; organization: Organization; performedBy: OrganizationActor; context: Context; };
+  'machine_access.service_account.archived:after': { serviceAccount: ServiceAccount; oauthApplication: OAuthApplication; organization: Organization; performedBy: OrganizationActor; context: Context; };
+  'machine_access.service_account_credential.created:before': { serviceAccount: ServiceAccount; oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; organization: Organization; appActor: OrganizationActor | null; context?: Context; };
+  'machine_access.service_account_credential.created:after': { serviceAccount: ServiceAccount; serviceAccountCredential: ServiceAccountCredential; oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; organization: Organization; appActor: OrganizationActor | null; context?: Context; };
 
   'provider.deployment.created:before': ProviderEventBase;
   'provider.deployment.created:after': ProviderEventBase & { deployment: SubspaceProviderDeployment };

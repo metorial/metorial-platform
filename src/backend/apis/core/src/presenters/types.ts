@@ -27,6 +27,8 @@ import {
   OAuthAuthorization,
   OAuthAuthorizationRequest,
   OAuthInstallation,
+  ServiceAccount,
+  ServiceAccountCredential,
   Organization,
   OrganizationActor,
   OrganizationInvite,
@@ -293,6 +295,47 @@ export let oauthAuthorizationLogType = PresentableType.create<{
       | null;
   };
 }>()('oauth_authorization_log');
+
+export let serviceAccountType = PresentableType.create<{
+  serviceAccount: ServiceAccount & {
+    organization: Organization;
+    oauthApplication: OAuthApplication & {
+      organization: Organization | null;
+      clientSecrets?: OAuthApplicationClientSecret[] | null;
+    };
+  };
+}>()('service_account');
+
+export let serviceAccountCredentialType = PresentableType.create<{
+  serviceAccountCredential: ServiceAccountCredential & {
+    serviceAccount: ServiceAccount & {
+      organization: Organization;
+      oauthApplication: OAuthApplication & {
+        organization: Organization | null;
+      };
+    };
+    oauthAuthorization: OAuthAuthorization & {
+      oauthApplication: OAuthApplication & {
+        organization: Organization | null;
+      };
+      oauthInstallation: OAuthInstallation & {
+        organization: Organization;
+        oauthApplication: OAuthApplication & {
+          organization: Organization | null;
+        };
+        serverSideMachineAccess: MachineAccess | null;
+      };
+      organizationMember: OrganizationMember | null;
+      machineAccess: MachineAccess & {
+        organization: Organization | null;
+        actor: OrganizationActor | null;
+        instance: (Instance & { project: Project }) | null;
+        user: User | null;
+      };
+      user: User | null;
+    };
+  };
+}>()('service_account_credential');
 
 export let fileType = PresentableType.create<{
   file: File & { purpose: FilePurpose };

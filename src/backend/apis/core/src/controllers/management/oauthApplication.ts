@@ -75,13 +75,6 @@ export let oauthApplicationManagementController = Controller.create(
                 v.array(v.enumOf(['active', 'archived']))
               ]),
               { description: 'Filter by application status' }
-            ),
-            type: v.optional(
-              v.union([
-                v.enumOf(['user_facing', 'server_side']),
-                v.array(v.enumOf(['user_facing', 'server_side']))
-              ]),
-              { description: 'Filter by application type' }
             )
           })
         )
@@ -89,8 +82,7 @@ export let oauthApplicationManagementController = Controller.create(
       .do(async ctx => {
         let paginator = await oauthApplicationService.listOAuthApplications({
           organization: ctx.organization,
-          statuses: normalizeArrayParam(ctx.query.status),
-          types: normalizeArrayParam(ctx.query.type)
+          statuses: normalizeArrayParam(ctx.query.status)
         });
 
         let list = await paginator.run(ctx.query);
@@ -122,9 +114,6 @@ export let oauthApplicationManagementController = Controller.create(
       .body(
         'default',
         v.object({
-          type: v.enumOf(['user_facing', 'server_side'], {
-            description: 'OAuth application type'
-          }),
           access_level: v.enumOf(['organization'], {
             description: 'Whether the app is organization-scoped or globally installable'
           }),
@@ -173,7 +162,7 @@ export let oauthApplicationManagementController = Controller.create(
           performedBy: ctx.actor,
           context: ctx.context,
           input: {
-            type: ctx.body.type,
+            type: 'user_facing',
             accessLevel: ctx.body.access_level,
             name: ctx.body.name,
             description: ctx.body.description,

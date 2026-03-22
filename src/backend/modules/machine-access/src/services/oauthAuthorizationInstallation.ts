@@ -391,6 +391,45 @@ class OAuthAuthorizationInstallationService {
         include: authorizationInclude
       });
 
+      let serviceAccount = await db.serviceAccount.findFirst({
+        where: {
+          oauthApplicationOid: d.oauthApplication.oid
+        }
+      });
+
+      if (serviceAccount) {
+        await Fabric.fire('machine_access.service_account_credential.created:before', {
+          serviceAccount,
+          oauthApplication: authorization.oauthApplication,
+          oauthInstallation: authorization.oauthInstallation,
+          oauthAuthorization: authorization,
+          organization: authorization.oauthInstallation.organization,
+          appActor: authorization.oauthInstallation.appActor,
+          context: undefined
+        });
+
+        let serviceAccountCredential = await db.serviceAccountCredential.create({
+          data: {
+            id: await ID.generateId('serviceAccountCredential'),
+            serviceAccountOid: serviceAccount.oid,
+            oauthAuthorizationOid: authorization.oid
+          }
+        });
+
+        addAfterTransactionHook(() =>
+          Fabric.fire('machine_access.service_account_credential.created:after', {
+            serviceAccount,
+            serviceAccountCredential,
+            oauthApplication: authorization.oauthApplication,
+            oauthInstallation: authorization.oauthInstallation,
+            oauthAuthorization: authorization,
+            organization: authorization.oauthInstallation.organization,
+            appActor: authorization.oauthInstallation.appActor,
+            context: undefined
+          })
+        );
+      }
+
       addAfterTransactionHook(() =>
         Fabric.fire('machine_access.oauth_authorization.created:after', {
           oauthApplication: authorization.oauthApplication,
