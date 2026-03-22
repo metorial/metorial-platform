@@ -20,6 +20,9 @@ import {
   User,
   withTransaction
 } from '@metorial/db';
+import { createLock } from '@metorial/lock';
+import { organizationActorService } from '@metorial/module-organization';
+import { matchesUpdate } from '../lib/matches';
 import { machineAccessService } from './machineAccess';
 import { machineAccessInclude } from './machineAccessAuth';
 import { authorizationInclude, OAuthAuthorizationWithRelations } from './oauthAuthorization';
@@ -36,6 +39,10 @@ export let installationInclude = {
   }
 } as const;
 
+let actorCreateLock = createLock({
+  name: 'macc/oauth-install/actor-create'
+});
+
 class OAuthAuthorizationInstallationService {
   async getOrCreateInstallation(d: {
     oauthApplication: OAuthApplication & {
@@ -48,7 +55,30 @@ class OAuthAuthorizationInstallationService {
     organization: Organization;
   }) {
     return await withTransaction(async db => {
-      return await db.oAuthInstallation.upsert({
+      let existing = await db.oAuthInstallation.findFirst({
+        where: {
+          oauthApplicationOid: d.oauthApplication.oid,
+          organizationOid: d.organization.oid
+        },
+        include: installationInclude
+      });
+
+      let inner = {
+        status: 'active' as const,
+        revokedAt: null,
+        scopes: d.oauthApplication.scopes,
+        organizationOid: d.organization.oid,
+        oauthApplicationOid: d.oauthApplication.oid,
+        serverSideMachineAccessOid: d.oauthApplication.serverSideMachineAccessOid
+      };
+
+      if (existing) {
+        let needsUpdate = matchesUpdate(existing, inner) || !existing.appActorOid;
+        if (!needsUpdate) return existing;
+      }
+
+      let newId = await ID.generateId('oauthInstallation');
+      let installation = await db.oAuthInstallation.upsert({
         where: {
           oauthApplicationOid_organizationOid: {
             oauthApplicationOid: d.oauthApplication.oid,
@@ -56,21 +86,58 @@ class OAuthAuthorizationInstallationService {
           }
         },
         create: {
-          id: await ID.generateId('oauthInstallation'),
-          status: 'active',
-          scopes: d.oauthApplication.scopes,
-          oauthApplicationOid: d.oauthApplication.oid,
-          organizationOid: d.organization.oid,
-          serverSideMachineAccessOid: d.oauthApplication.serverSideMachineAccessOid
+          id: newId,
+          ...inner
         },
-        update: {
-          status: 'active',
-          revokedAt: null,
-          scopes: d.oauthApplication.scopes,
-          serverSideMachineAccessOid: d.oauthApplication.serverSideMachineAccessOid
-        },
+        update: inner,
         include: installationInclude
       });
+
+      if (!installation.appActorOid) {
+        installation = await actorCreateLock.usingLock(d.organization.id, async () => {
+          let currentInstallation = await db.oAuthInstallation.findFirstOrThrow({
+            where: {
+              oid: installation.oid
+            },
+            include: installationInclude
+          });
+          if (currentInstallation.appActorOid) {
+            return currentInstallation;
+          }
+
+          let actor = await organizationActorService.createOrganizationActor({
+            input: {
+              type: 'oauth_application',
+              name: `APP ${d.oauthApplication.name}`
+            },
+            organization: d.organization,
+            performedBy: {
+              type: 'actor',
+              actor: await organizationActorService.getSystemActor({
+                organization: d.organization
+              })
+            }
+          });
+
+          return await db.oAuthInstallation.update({
+            where: {
+              oid: installation.oid
+            },
+            data: {
+              appActorOid: actor.oid
+            },
+            include: installationInclude
+          });
+        });
+      }
+
+      if (installation.id == newId) {
+        // TODO: audit log - create
+      } else {
+        // TODO: audit log - update
+      }
+
+      return installation;
     });
   }
 
@@ -117,20 +184,51 @@ class OAuthAuthorizationInstallationService {
         });
         machineAccessOid = createdMachineAccess.oid;
       } else {
-        let updatedMachineAccess = await machineAccessService.updateMachineAccess({
-          machineAccess,
-          input: {
-            hasCustomScopes: true,
-            scopes: d.scopes,
-            name: `OAUTH USER ${d.oauthApplication.name}`
-          },
-          performedBy: d.member.actor,
-          context: d.context
+        let name = `OAUTH USER ${d.oauthApplication.name}`;
+
+        let needsUpdate = matchesUpdate(machineAccess, {
+          hasCustomScopes: true,
+          scopes: d.scopes,
+          name
         });
-        machineAccessOid = updatedMachineAccess.oid;
+
+        if (needsUpdate) {
+          let updatedMachineAccess = await machineAccessService.updateMachineAccess({
+            machineAccess,
+            input: {
+              hasCustomScopes: true,
+              scopes: d.scopes,
+              name: `OAUTH USER ${d.oauthApplication.name}`
+            },
+            performedBy: d.member.actor,
+            context: d.context
+          });
+          machineAccessOid = updatedMachineAccess.oid;
+        } else {
+          machineAccessOid = machineAccess.oid;
+        }
       }
 
-      return await db.oAuthAuthorization.upsert({
+      let inner = {
+        status: 'active' as const,
+        scopes: d.scopes,
+        oauthInstallationOid: d.oauthInstallation.oid,
+        organizationOid: d.organization.oid,
+        userOid: d.user.oid,
+        organizationMemberOid: d.member.oid,
+        machineAccessOid,
+        requestingIp: d.requestingIp,
+        acceptingIp: d.acceptingIp,
+        revokedAt: null,
+        type: 'user' as const,
+        oauthApplicationOid: d.oauthApplication.oid
+      };
+
+      let needsUpdate = !oauthAuthorization || matchesUpdate(oauthAuthorization, inner);
+      if (!needsUpdate && oauthAuthorization) return oauthAuthorization;
+
+      let newId = await ID.generateId('oauthAuthorization');
+      let updatedAuthorization = await db.oAuthAuthorization.upsert({
         where: {
           organizationMemberOid_oauthApplicationOid: {
             organizationMemberOid: d.member.oid,
@@ -138,33 +236,20 @@ class OAuthAuthorizationInstallationService {
           }
         },
         create: {
-          id: await ID.generateId('oauthAuthorization'),
-          status: 'active',
-          type: 'user',
-          scopes: d.scopes,
-          oauthInstallationOid: d.oauthInstallation.oid,
-          oauthApplicationOid: d.oauthApplication.oid,
-          organizationOid: d.organization.oid,
-          userOid: d.user.oid,
-          organizationMemberOid: d.member.oid,
-          machineAccessOid: machineAccessOid!,
-          requestingIp: d.requestingIp,
-          acceptingIp: d.acceptingIp
+          id: newId,
+          ...inner
         },
-        update: {
-          status: 'active',
-          scopes: d.scopes,
-          oauthInstallationOid: d.oauthInstallation.oid,
-          organizationOid: d.organization.oid,
-          userOid: d.user.oid,
-          organizationMemberOid: d.member.oid,
-          machineAccessOid,
-          requestingIp: d.requestingIp,
-          acceptingIp: d.acceptingIp,
-          revokedAt: null
-        },
+        update: inner,
         include: authorizationInclude
       });
+
+      if (updatedAuthorization.id == newId) {
+        // TODO: audit log - create
+      } else {
+        // TODO: audit log - update
+      }
+
+      return updatedAuthorization;
     });
   }
 
@@ -212,8 +297,19 @@ class OAuthAuthorizationInstallationService {
           })
         );
       }
+      if (!machineAccess.actorOid) {
+        throw new ServiceError(
+          badRequestError({
+            message: 'Server-side oauth application is missing its shared machine access actor'
+          })
+        );
+      }
 
-      return await db.oAuthAuthorization.create({
+      let actor = await db.organizationActor.findFirst({
+        where: { oid: machineAccess.actorOid }
+      });
+
+      let authorization = await db.oAuthAuthorization.create({
         data: {
           id: await ID.generateId('oauthAuthorization'),
           status: 'active',
@@ -228,6 +324,10 @@ class OAuthAuthorizationInstallationService {
         },
         include: authorizationInclude
       });
+
+      // TODO: audit log - create
+
+      return authorization;
     });
   }
 
@@ -246,7 +346,7 @@ class OAuthAuthorizationInstallationService {
         }
       });
 
-      return await db.oAuthInstallation.update({
+      let installation = await db.oAuthInstallation.update({
         where: {
           oid: d.oauthInstallation.oid
         },
@@ -256,6 +356,10 @@ class OAuthAuthorizationInstallationService {
         },
         include: installationInclude
       });
+
+      // TODO: audit log - revoke installation (implies authorizations, not explicit)
+
+      return installation;
     });
   }
 

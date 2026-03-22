@@ -90,6 +90,9 @@ model OAuthInstallation {
   organizationOid BigInt
   organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
 
+  appActorOid BigInt?
+  appActor    OrganizationActor? @relation(fields: [appActorOid], references: [oid], onDelete: Cascade)
+
   // Shared machine access is for server_side authorization
   serverSideMachineAccessOid BigInt?
   serverSideMachineAccess    MachineAccess? @relation(fields: [serverSideMachineAccessOid], references: [oid], onDelete: Cascade)

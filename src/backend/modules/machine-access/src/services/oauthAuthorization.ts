@@ -908,6 +908,8 @@ class OAuthAuthorizationService {
         include: authorizationRequestInclude
       });
 
+      // Audit log - accept
+
       return {
         oauthAuthorizationRequest,
         oauthAuthorization,
@@ -924,14 +926,20 @@ class OAuthAuthorizationService {
   }) {
     ensureAuthorizationRequestPending(d.oauthAuthorizationRequest);
 
-    return await db.oAuthAuthorizationRequest.update({
-      where: { oid: d.oauthAuthorizationRequest.oid },
-      data: {
-        status: 'denied',
-        deniedAt: new Date(),
-        userOid: d.user.oid
-      },
-      include: authorizationRequestInclude
+    return await withTransaction(async db => {
+      let oauthAuthorizationRequest = await db.oAuthAuthorizationRequest.update({
+        where: { oid: d.oauthAuthorizationRequest.oid },
+        data: {
+          status: 'denied',
+          deniedAt: new Date(),
+          userOid: d.user.oid
+        },
+        include: authorizationRequestInclude
+      });
+
+      // Audit log - reject
+
+      return oauthAuthorizationRequest;
     });
   }
 
@@ -939,15 +947,21 @@ class OAuthAuthorizationService {
     oauthAuthorization: OAuthAuthorization;
     context?: Context;
   }) {
-    return await db.oAuthAuthorization.update({
-      where: {
-        oid: d.oauthAuthorization.oid
-      },
-      data: {
-        status: 'revoked',
-        revokedAt: new Date()
-      },
-      include: authorizationInclude
+    return await withTransaction(async db => {
+      let oauthAuthorization = await db.oAuthAuthorization.update({
+        where: {
+          oid: d.oauthAuthorization.oid
+        },
+        data: {
+          status: 'revoked',
+          revokedAt: new Date()
+        },
+        include: authorizationInclude
+      });
+
+      // Audit log - revoke
+
+      return oauthAuthorization;
     });
   }
 
