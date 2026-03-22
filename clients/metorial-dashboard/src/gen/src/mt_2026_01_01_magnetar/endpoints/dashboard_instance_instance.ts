@@ -5,9 +5,7 @@ import {
 
 import {
   mapDashboardInstanceInstanceGetOutput,
-  mapDashboardInstanceInstancesListOutput,
-  type DashboardInstanceInstanceGetOutput,
-  type DashboardInstanceInstancesListOutput
+  type DashboardInstanceInstanceGetOutput
 } from '../resources';
 
 /**
@@ -60,32 +58,5 @@ export class MetorialDashboardInstanceInstanceEndpoint {
     } as any;
 
     return this._get(request).transform(mapDashboardInstanceInstanceGetOutput);
-  }
-
-  /**
-   * @name List instances
-   * @description Lists all instances within the organization that the authenticated actor has access to.
-   *
-   * @param `instanceId` - string
-   * @param `opts` - { headers?: Record<string, string> }
-   * @returns DashboardInstanceInstancesListOutput
-   * @see https://metorial.com/api
-   * @see https://metorial.com/docs
-   */
-  list(
-    instanceId: string,
-    opts?: { headers?: Record<string, string> }
-  ): Promise<DashboardInstanceInstancesListOutput> {
-    let path = `dashboard/instances/${instanceId}/instances`;
-
-    let request = {
-      path,
-
-      ...(opts?.headers ? { headers: opts.headers } : {})
-    } as any;
-
-    return this._get(request).transform(
-      mapDashboardInstanceInstancesListOutput
-    );
   }
 }

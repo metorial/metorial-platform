@@ -163,27 +163,6 @@ model OAuthAuthorization {
   @@unique([organizationMemberOid, oauthApplicationOid])
 }
 
-model CliDevice {
-  oid BigInt @id @default(autoincrement())
-  id  String @unique
-
-  ip String
-
-  organizationOid BigInt
-  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
-
-  userOid BigInt
-  user    User   @relation(fields: [userOid], references: [oid], onDelete: Cascade)
-
-  oauthAuthorizationOid BigInt
-  oauthAuthorization    OAuthAuthorization @relation(fields: [oauthAuthorizationOid], references: [oid], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
-
-  @@unique([ip, userOid, organizationOid])
-}
-
 enum OAuthAuthorizationRequestChallengeMethod {
   none
   s256

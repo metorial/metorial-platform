@@ -7,10 +7,12 @@ import {
   mapDashboardOauthAuthorizationRequestsApproveBody,
   mapDashboardOauthAuthorizationRequestsApproveOutput,
   mapDashboardOauthAuthorizationRequestsGetOutput,
+  mapDashboardOauthAuthorizationRequestsRejectBody,
   mapDashboardOauthAuthorizationRequestsRejectOutput,
   type DashboardOauthAuthorizationRequestsApproveBody,
   type DashboardOauthAuthorizationRequestsApproveOutput,
   type DashboardOauthAuthorizationRequestsGetOutput,
+  type DashboardOauthAuthorizationRequestsRejectBody,
   type DashboardOauthAuthorizationRequestsRejectOutput
 } from '../resources';
 
@@ -103,6 +105,7 @@ export class MetorialDashboardOauthAuthorizationRequestsEndpoint {
    * @description Reject an oauth authorization request
    *
    * @param `urlToken` - string
+   * @param `body` - DashboardOauthAuthorizationRequestsRejectBody
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardOauthAuthorizationRequestsRejectOutput
    * @see https://metorial.com/api
@@ -110,12 +113,14 @@ export class MetorialDashboardOauthAuthorizationRequestsEndpoint {
    */
   reject(
     urlToken: string,
+    body: DashboardOauthAuthorizationRequestsRejectBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOauthAuthorizationRequestsRejectOutput> {
     let path = `dashboard/oauth/authorization-requests/${urlToken}/reject`;
 
     let request = {
       path,
+      body: mapDashboardOauthAuthorizationRequestsRejectBody.transformTo(body),
 
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;

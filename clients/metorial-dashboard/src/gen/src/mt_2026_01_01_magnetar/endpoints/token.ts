@@ -3,19 +3,16 @@ import {
   MetorialEndpointManager
 } from '@metorial/util-endpoint';
 
-import {
-  mapDashboardInstanceInstancesListOutput,
-  type DashboardInstanceInstancesListOutput
-} from '../resources';
+import { mapTokenGetOutput, type TokenGetOutput } from '../resources';
 
 /**
- * @name Instance controller
- * @description An instance is an isolated environment within a Metorial project. Instances are created via the dashboard (since API keys are scoped to instances). Common setups include production, staging, and development instances.
+ * @name Token controller
+ * @description Endpoint for retrieving metadata about the token used for authentication. This is useful for clients to understand the type and capabilities of the token they are using, especially since Metorial supports multiple token types with different permission models.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
  */
-export class MetorialManagementInstanceInstancesEndpoint {
+export class MetorialTokenEndpoint {
   constructor(private readonly _manager: MetorialEndpointManager<any>) {}
 
   // thin proxies so method bodies stay unchanged
@@ -36,20 +33,16 @@ export class MetorialManagementInstanceInstancesEndpoint {
   }
 
   /**
-   * @name List instances
-   * @description Lists all instances within the organization that the authenticated actor has access to.
+   * @name Get token details
+   * @description Retrieves metadata and configuration details for a specific token.
    *
-   * @param `instanceId` - string
    * @param `opts` - { headers?: Record<string, string> }
-   * @returns DashboardInstanceInstancesListOutput
+   * @returns TokenGetOutput
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
-  list(
-    instanceId: string,
-    opts?: { headers?: Record<string, string> }
-  ): Promise<DashboardInstanceInstancesListOutput> {
-    let path = `instances/${instanceId}/instances`;
+  get(opts?: { headers?: Record<string, string> }): Promise<TokenGetOutput> {
+    let path = 'token';
 
     let request = {
       path,
@@ -57,8 +50,6 @@ export class MetorialManagementInstanceInstancesEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._get(request).transform(
-      mapDashboardInstanceInstancesListOutput
-    );
+    return this._get(request).transform(mapTokenGetOutput);
   }
 }

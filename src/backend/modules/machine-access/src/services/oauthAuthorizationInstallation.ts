@@ -8,6 +8,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { Context } from '@metorial/context';
 import {
+  addAfterTransactionHook,
   db,
   ID,
   MachineAccess,
@@ -20,6 +21,7 @@ import {
   User,
   withTransaction
 } from '@metorial/db';
+import { Fabric } from '@metorial/fabric';
 import { createLock } from '@metorial/lock';
 import { organizationActorService } from '@metorial/module-organization';
 import { matchesUpdate } from '../lib/matches';
@@ -29,6 +31,7 @@ import { authorizationInclude, OAuthAuthorizationWithRelations } from './oauthAu
 
 export let installationInclude = {
   organization: true,
+  appActor: true,
   oauthApplication: {
     include: {
       organization: true
@@ -75,6 +78,18 @@ class OAuthAuthorizationInstallationService {
       if (existing) {
         let needsUpdate = matchesUpdate(existing, inner) || !existing.appActorOid;
         if (!needsUpdate) return existing;
+      }
+
+      if (existing) {
+        await Fabric.fire('machine_access.oauth_installation.updated:before', {
+          oauthApplication: d.oauthApplication,
+          organization: d.organization
+        });
+      } else {
+        await Fabric.fire('machine_access.oauth_installation.created:before', {
+          oauthApplication: d.oauthApplication,
+          organization: d.organization
+        });
       }
 
       let newId = await ID.generateId('oauthInstallation');
@@ -131,10 +146,24 @@ class OAuthAuthorizationInstallationService {
         });
       }
 
-      if (installation.id == newId) {
-        // TODO: audit log - create
+      if (existing) {
+        addAfterTransactionHook(() =>
+          Fabric.fire('machine_access.oauth_installation.updated:after', {
+            oauthApplication: installation.oauthApplication,
+            oauthInstallation: installation,
+            organization: installation.organization,
+            appActor: installation.appActor
+          })
+        );
       } else {
-        // TODO: audit log - update
+        addAfterTransactionHook(() =>
+          Fabric.fire('machine_access.oauth_installation.created:after', {
+            oauthApplication: installation.oauthApplication,
+            oauthInstallation: installation,
+            organization: installation.organization,
+            appActor: installation.appActor
+          })
+        );
       }
 
       return installation;
@@ -227,6 +256,22 @@ class OAuthAuthorizationInstallationService {
       let needsUpdate = !oauthAuthorization || matchesUpdate(oauthAuthorization, inner);
       if (!needsUpdate && oauthAuthorization) return oauthAuthorization;
 
+      if (oauthAuthorization) {
+        await Fabric.fire('machine_access.oauth_authorization.updated:before', {
+          oauthApplication: d.oauthApplication,
+          oauthInstallation: d.oauthInstallation,
+          organization: d.organization,
+          context: d.context
+        });
+      } else {
+        await Fabric.fire('machine_access.oauth_authorization.created:before', {
+          oauthApplication: d.oauthApplication,
+          oauthInstallation: d.oauthInstallation,
+          organization: d.organization,
+          context: d.context
+        });
+      }
+
       let newId = await ID.generateId('oauthAuthorization');
       let updatedAuthorization = await db.oAuthAuthorization.upsert({
         where: {
@@ -243,10 +288,28 @@ class OAuthAuthorizationInstallationService {
         include: authorizationInclude
       });
 
-      if (updatedAuthorization.id == newId) {
-        // TODO: audit log - create
+      if (oauthAuthorization) {
+        addAfterTransactionHook(() =>
+          Fabric.fire('machine_access.oauth_authorization.updated:after', {
+            oauthApplication: updatedAuthorization.oauthApplication,
+            oauthInstallation: updatedAuthorization.oauthInstallation,
+            oauthAuthorization: updatedAuthorization,
+            organization: updatedAuthorization.oauthInstallation.organization,
+            appActor: updatedAuthorization.oauthInstallation.appActor,
+            context: d.context
+          })
+        );
       } else {
-        // TODO: audit log - update
+        addAfterTransactionHook(() =>
+          Fabric.fire('machine_access.oauth_authorization.created:after', {
+            oauthApplication: updatedAuthorization.oauthApplication,
+            oauthInstallation: updatedAuthorization.oauthInstallation,
+            oauthAuthorization: updatedAuthorization,
+            organization: updatedAuthorization.oauthInstallation.organization,
+            appActor: updatedAuthorization.oauthInstallation.appActor,
+            context: d.context
+          })
+        );
       }
 
       return updatedAuthorization;
@@ -305,8 +368,11 @@ class OAuthAuthorizationInstallationService {
         );
       }
 
-      let actor = await db.organizationActor.findFirst({
-        where: { oid: machineAccess.actorOid }
+      await Fabric.fire('machine_access.oauth_authorization.created:before', {
+        oauthApplication: d.oauthApplication,
+        oauthInstallation: installation,
+        organization: installation.organization,
+        context: undefined
       });
 
       let authorization = await db.oAuthAuthorization.create({
@@ -325,16 +391,44 @@ class OAuthAuthorizationInstallationService {
         include: authorizationInclude
       });
 
-      // TODO: audit log - create
+      addAfterTransactionHook(() =>
+        Fabric.fire('machine_access.oauth_authorization.created:after', {
+          oauthApplication: authorization.oauthApplication,
+          oauthInstallation: authorization.oauthInstallation,
+          oauthAuthorization: authorization,
+          organization: authorization.oauthInstallation.organization,
+          appActor: authorization.oauthInstallation.appActor,
+          context: undefined
+        })
+      );
 
       return authorization;
     });
   }
 
-  async revokeOAuthInstallation(d: { oauthInstallation: OAuthInstallation }) {
+  async revokeOAuthInstallation(d: {
+    oauthInstallation: OAuthInstallation;
+    performedBy: OrganizationActor;
+    context?: Context;
+  }) {
     let now = new Date();
 
     return await withTransaction(async db => {
+      let existingInstallation = await db.oAuthInstallation.findFirstOrThrow({
+        where: {
+          oid: d.oauthInstallation.oid
+        },
+        include: installationInclude
+      });
+
+      await Fabric.fire('machine_access.oauth_installation.revoked:before', {
+        oauthApplication: existingInstallation.oauthApplication,
+        oauthInstallation: existingInstallation,
+        organization: existingInstallation.organization,
+        performedBy: d.performedBy,
+        context: d.context
+      });
+
       await db.oAuthAuthorization.updateMany({
         where: {
           oauthInstallationOid: d.oauthInstallation.oid,
@@ -357,7 +451,16 @@ class OAuthAuthorizationInstallationService {
         include: installationInclude
       });
 
-      // TODO: audit log - revoke installation (implies authorizations, not explicit)
+      addAfterTransactionHook(() =>
+        Fabric.fire('machine_access.oauth_installation.revoked:after', {
+          oauthApplication: installation.oauthApplication,
+          oauthInstallation: installation,
+          organization: installation.organization,
+          appActor: installation.appActor,
+          performedBy: d.performedBy,
+          context: d.context
+        })
+      );
 
       return installation;
     });

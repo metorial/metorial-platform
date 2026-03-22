@@ -4,6 +4,10 @@ import {
   Instance,
   MachineAccess,
   OAuthApplication,
+  OAuthAuthorization,
+  OAuthAuthorizationRequest,
+  OAuthInstallation,
+  OAuthToken,
   Organization,
   OrganizationActor,
   OrganizationInvite,
@@ -182,47 +186,37 @@ export interface FabricEvents {
   'machine_access.api_key.expired:before': { machineAccess: MachineAccess, apiKey: ApiKey; organization: Organization; performedBy: OrganizationActor };
   'machine_access.api_key.expired:after': { machineAccess: MachineAccess, apiKey: ApiKey; organization: Organization; performedBy: OrganizationActor };
   'machine_access.api_key:revealed': { machineAccess: MachineAccess, apiKey: ApiKey, organization: Organization; performedBy: OrganizationActor; context?: Context };
-  'machine_access.oauth_application.created:before': {
-    organization: Organization;
-    performedBy: OrganizationActor;
-    context: Context;
-    input: OAuthApplicationCreateInput;
-    serverSideMachineAccess: MachineAccess | null;
-  };
-  'machine_access.oauth_application.created:after': {
-    organization: Organization;
-    performedBy: OrganizationActor;
-    context: Context;
-    input: OAuthApplicationCreateInput;
-    serverSideMachineAccess: MachineAccess | null;
-    oauthApplication: OAuthApplication;
-  };
-  'machine_access.oauth_application.updated:before': {
-    oauthApplication: OAuthApplication;
-    organization: Organization;
-    performedBy: OrganizationActor;
-    context: Context;
-    input: OAuthApplicationUpdateInput;
-  };
-  'machine_access.oauth_application.updated:after': {
-    oauthApplication: OAuthApplication;
-    organization: Organization;
-    performedBy: OrganizationActor;
-    context: Context;
-    input: OAuthApplicationUpdateInput;
-  };
-  'machine_access.oauth_application.archived:before': {
-    oauthApplication: OAuthApplication;
-    organization: Organization;
-    performedBy: OrganizationActor;
-    context: Context;
-  };
-  'machine_access.oauth_application.archived:after': {
-    oauthApplication: OAuthApplication;
-    organization: Organization;
-    performedBy: OrganizationActor;
-    context: Context;
-  };
+  
+  'machine_access.oauth_application.created:before': { organization: Organization; performedBy: OrganizationActor; context: Context; input: OAuthApplicationCreateInput; serverSideMachineAccess: MachineAccess | null; };
+  'machine_access.oauth_application.created:after': { organization: Organization; performedBy: OrganizationActor; context: Context; input: OAuthApplicationCreateInput; serverSideMachineAccess: MachineAccess | null; oauthApplication: OAuthApplication; };
+  'machine_access.oauth_application.updated:before': { oauthApplication: OAuthApplication; organization: Organization; performedBy: OrganizationActor; context: Context; input: OAuthApplicationUpdateInput; };
+  'machine_access.oauth_application.updated:after': { oauthApplication: OAuthApplication; organization: Organization; performedBy: OrganizationActor; context: Context; input: OAuthApplicationUpdateInput; };
+  'machine_access.oauth_application.archived:before': { oauthApplication: OAuthApplication; organization: Organization; performedBy: OrganizationActor; context: Context; };
+  'machine_access.oauth_application.archived:after': { oauthApplication: OAuthApplication; organization: Organization; performedBy: OrganizationActor; context: Context; };
+  
+  'machine_access.oauth_installation.created:before': { oauthApplication: OAuthApplication; organization: Organization; context?: Context; };
+  'machine_access.oauth_installation.created:after': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; organization: Organization; appActor: OrganizationActor | null; context?: Context; };
+  'machine_access.oauth_installation.updated:before': { oauthApplication: OAuthApplication; organization: Organization; context?: Context; };
+  'machine_access.oauth_installation.updated:after': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; organization: Organization; appActor: OrganizationActor | null; context?: Context; };
+  'machine_access.oauth_installation.revoked:before': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; organization: Organization; performedBy: OrganizationActor; context?: Context; };
+  'machine_access.oauth_installation.revoked:after': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; organization: Organization; appActor: OrganizationActor | null; performedBy: OrganizationActor; context?: Context; };
+  
+  'machine_access.oauth_authorization.created:before': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; organization: Organization; context?: Context; };
+  'machine_access.oauth_authorization.created:after': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; organization: Organization; appActor: OrganizationActor | null; context?: Context; };
+  'machine_access.oauth_authorization.updated:before': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; organization: Organization; context?: Context; };
+  'machine_access.oauth_authorization.updated:after': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; organization: Organization; appActor: OrganizationActor | null; context?: Context; };
+  'machine_access.oauth_authorization.revoked:before': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; organization: Organization; appActor: OrganizationActor | null; performedBy: OrganizationActor; context?: Context; };
+  'machine_access.oauth_authorization.revoked:after': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; organization: Organization; appActor: OrganizationActor | null; performedBy: OrganizationActor; context?: Context; };
+  
+  'machine_access.oauth_authorization_request.accepted:before': { oauthApplication: OAuthApplication; oauthAuthorizationRequest: OAuthAuthorizationRequest; organization: Organization; member: OrganizationMember; performedBy: OrganizationActor; context?: Context; };
+  'machine_access.oauth_authorization_request.accepted:after': { oauthApplication: OAuthApplication; oauthAuthorizationRequest: OAuthAuthorizationRequest; organization: Organization; member: OrganizationMember; performedBy: OrganizationActor; context?: Context; };
+  'machine_access.oauth_authorization_request.denied:before': { oauthApplication: OAuthApplication; oauthAuthorizationRequest: OAuthAuthorizationRequest; organization: Organization; member: OrganizationMember; performedBy: OrganizationActor; context?: Context; };
+  'machine_access.oauth_authorization_request.denied:after': { oauthApplication: OAuthApplication; oauthAuthorizationRequest: OAuthAuthorizationRequest; organization: Organization; member: OrganizationMember; performedBy: OrganizationActor; context?: Context; };
+  
+  'machine_access.oauth_token.created:before': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; organization: Organization; appActor: OrganizationActor | null; context?: Context; };
+  'machine_access.oauth_token.created:after': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; oauthToken: OAuthToken; organization: Organization; appActor: OrganizationActor | null; context?: Context; };
+  'machine_access.oauth_token.refreshed:before': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; oauthToken: OAuthToken; organization: Organization; appActor: OrganizationActor | null; context?: Context; };
+  'machine_access.oauth_token.refreshed:after': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; oauthToken: OAuthToken; organization: Organization; appActor: OrganizationActor | null; context?: Context; };
 
   'provider.deployment.created:before': ProviderEventBase;
   'provider.deployment.created:after': ProviderEventBase & { deployment: SubspaceProviderDeployment };

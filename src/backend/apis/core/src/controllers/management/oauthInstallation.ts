@@ -109,7 +109,9 @@ export let oauthInstallationManagementController = Controller.create(
       .do(async ctx => {
         let oauthInstallation =
           await oauthAuthorizationInstallationService.revokeOAuthInstallation({
-            oauthInstallation: ctx.oauthInstallation
+            oauthInstallation: ctx.oauthInstallation,
+            performedBy: ctx.actor,
+            context: ctx.context
           });
 
         return oauthInstallationPresenter.present({ oauthInstallation });

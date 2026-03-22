@@ -7,7 +7,7 @@ export let oauthAuthorizationRequestLoader = createLoader({
     withAuth(sdk => sdk.oauth.authorizationRequests.get(i.urlToken)),
   mutators: {
     accept: (
-      i: { organizationId?: string },
+      i: { organizationId: string },
       { input: { urlToken } }: { input: { urlToken: string } }
     ) =>
       withAuth(sdk =>
@@ -15,8 +15,15 @@ export let oauthAuthorizationRequestLoader = createLoader({
           organizationId: i.organizationId
         })
       ),
-    reject: (_: {}, { input: { urlToken } }: { input: { urlToken: string } }) =>
-      withAuth(async sdk => sdk.oauth.authorizationRequests.reject(urlToken, {}))
+    reject: (
+      i: { organizationId?: string },
+      { input: { urlToken } }: { input: { urlToken: string } }
+    ) =>
+      withAuth(async sdk =>
+        sdk.oauth.authorizationRequests.reject(urlToken, {
+          organizationId: i.organizationId
+        })
+      )
   }
 });
 

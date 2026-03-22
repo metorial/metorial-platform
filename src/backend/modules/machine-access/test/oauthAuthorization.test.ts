@@ -19,9 +19,13 @@ let {
     },
     oAuthInstallation: {
       findFirst: vi.fn(),
+      findFirstOrThrow: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
       upsert: vi.fn()
+    },
+    oAuthApplicationClientSecret: {
+      findFirst: vi.fn()
     },
     oAuthAuthorization: {
       findFirst: vi.fn(),
@@ -52,9 +56,18 @@ let {
 vi.mock('@metorial/db', () => ({
   db: mockDb,
   withTransaction: (fn: any) => fn(mockDb),
+  addAfterTransactionHook: vi.fn((hook: any) => hook()),
   ID: {
     generateId: vi.fn(async (prefix: string) => `${prefix}-generated-id`)
   }
+}));
+
+vi.mock('@metorial/fabric', () => ({
+  Fabric: { fire: vi.fn().mockResolvedValue(undefined) }
+}));
+
+vi.mock('bun', () => ({
+  deepEquals: vi.fn((a: any, b: any) => JSON.stringify(a) === JSON.stringify(b))
 }));
 
 vi.mock('@metorial/id', () => ({
@@ -82,9 +95,30 @@ vi.mock('./../src/services/machineAccess', () => ({
   }
 }));
 
+vi.mock('@metorial/lock', () => ({
+  createLock: vi.fn(() => ({
+    usingLock: vi.fn(async (_key: string, fn: any) => await fn())
+  }))
+}));
+
 vi.mock('@metorial/module-organization', () => ({
   organizationService: {
     getOrganizationByIdForUser: (...args: any[]) => getOrganizationByIdForUserMock(...args)
+  },
+  organizationActorService: {
+    getSystemActor: vi.fn(async () => ({
+      oid: 99n,
+      id: 'actor_system',
+      organizationOid: 1n,
+      isSystem: true
+    })),
+    createOrganizationActor: vi.fn(async () => ({
+      oid: 98n,
+      id: 'actor_app',
+      organizationOid: 1n,
+      type: 'oauth_application',
+      name: 'APP My App'
+    }))
   }
 }));
 
@@ -132,27 +166,95 @@ describe('oauthAuthorizationService', () => {
     mockDb.teamMember.findMany.mockResolvedValue([]);
     mockDb.organizationMember.findFirst.mockResolvedValue(baseMember);
     mockDb.oAuthInstallation.findFirst.mockResolvedValue(null);
+    mockDb.oAuthInstallation.findFirstOrThrow.mockImplementation(async ({ where }: any) => ({
+      oid: where.oid ?? 200n,
+      id: 'oauthInstallation-generated-id',
+      status: 'active',
+      scopes: ['organization:read', 'organization:write'],
+      organization: baseOrg,
+      oauthApplication: {
+        oid: 100n,
+        id: 'oauthApplication-generated-id',
+        name: 'My App',
+        clientId: 'client-1',
+        status: 'active',
+        type: 'user_facing',
+        scopes: ['organization:read', 'organization:write'],
+        accessLevel: 'global',
+        organization: null
+      },
+      appActor: null,
+      appActorOid: null,
+      serverSideMachineAccess: null
+    }));
     mockDb.oAuthInstallation.upsert.mockImplementation(async ({ create, update }: any) => ({
       oid: 200n,
       ...(create ?? update),
       organization: baseOrg,
-      oauthApplication: null,
+      oauthApplication: {
+        oid: 100n,
+        id: 'oauthApplication-generated-id',
+        name: 'My App',
+        clientId: 'client-1',
+        status: 'active',
+        type: 'user_facing',
+        scopes: ['organization:read', 'organization:write'],
+        accessLevel: 'global',
+        organization: null
+      },
+      appActor: null,
+      appActorOid: null,
       serverSideMachineAccess: null
     }));
     mockDb.oAuthInstallation.create.mockImplementation(async ({ data }: any) => ({
       oid: 200n,
       ...data,
       organization: baseOrg,
-      oauthApplication: null,
+      oauthApplication: {
+        oid: 100n,
+        id: 'oauthApplication-generated-id',
+        name: 'My App',
+        clientId: 'client-1',
+        status: 'active',
+        type: 'user_facing',
+        scopes: ['organization:read', 'organization:write'],
+        accessLevel: 'global',
+        organization: null
+      },
+      appActor: null,
+      appActorOid: null,
       serverSideMachineAccess: null
     }));
     mockDb.oAuthInstallation.update.mockImplementation(async ({ where, data }: any) => ({
       oid: where.oid,
       ...data,
       organization: baseOrg,
-      oauthApplication: null,
+      oauthApplication: {
+        oid: 100n,
+        id: 'oauthApplication-generated-id',
+        name: 'My App',
+        clientId: 'client-1',
+        status: 'active',
+        type: 'user_facing',
+        scopes: ['organization:read', 'organization:write'],
+        accessLevel: 'global',
+        organization: null
+      },
+      appActor: {
+        oid: 98n,
+        id: 'actor_app',
+        organizationOid: 1n,
+        type: 'oauth_application',
+        name: 'APP My App'
+      },
+      appActorOid: 98n,
       serverSideMachineAccess: null
     }));
+    mockDb.oAuthApplicationClientSecret.findFirst.mockResolvedValue({
+      oid: 700n,
+      oauthApplicationOid: 101n,
+      secret: 'secret-1'
+    });
     mockDb.oAuthAuthorization.findFirst.mockResolvedValue(null);
     mockDb.oAuthAuthorization.upsert.mockImplementation(async ({ create, update }: any) => {
       let data = create ?? update;
@@ -524,7 +626,8 @@ describe('oauthAuthorizationService', () => {
       scopedInstallation: null,
       serverSideMachineAccess: {
         oid: 900n,
-        status: 'active'
+        status: 'active',
+        actorOid: 98n
       },
       serverSideMachineAccessOid: 900n
     });

@@ -3,6 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { Context } from '@metorial/context';
 import {
+  addAfterTransactionHook,
   db,
   ID,
   MachineAccess,
@@ -227,19 +228,23 @@ class OAuthApplicationService {
         });
       }
 
-      return {
+      let res = {
         oauthApplication: await db.oAuthApplication.findUniqueOrThrow({
           where: { oid: oauthApplication.oid },
           include
         }),
         serverSideMachineAccess
       };
-    });
 
-    await Fabric.fire('machine_access.oauth_application.created:after', {
-      ...d,
-      oauthApplication: res.oauthApplication,
-      serverSideMachineAccess: res.serverSideMachineAccess
+      addAfterTransactionHook(() =>
+        Fabric.fire('machine_access.oauth_application.created:after', {
+          ...d,
+          oauthApplication: res.oauthApplication,
+          serverSideMachineAccess: res.serverSideMachineAccess
+        })
+      );
+
+      return res;
     });
 
     return res.oauthApplication;
@@ -339,15 +344,19 @@ class OAuthApplicationService {
         });
       }
 
-      return await db.oAuthApplication.findUniqueOrThrow({
+      let updatedOauthApplication = await db.oAuthApplication.findUniqueOrThrow({
         where: { oid: d.oauthApplication.oid },
         include
       });
-    });
 
-    await Fabric.fire('machine_access.oauth_application.updated:after', {
-      ...d,
-      oauthApplication: res
+      addAfterTransactionHook(() =>
+        Fabric.fire('machine_access.oauth_application.updated:after', {
+          ...d,
+          oauthApplication: updatedOauthApplication
+        })
+      );
+
+      return updatedOauthApplication;
     });
 
     return res;
@@ -397,12 +406,14 @@ class OAuthApplicationService {
         include
       });
 
-      return oauthApplication;
-    });
+      addAfterTransactionHook(() =>
+        Fabric.fire('machine_access.oauth_application.archived:after', {
+          ...d,
+          oauthApplication
+        })
+      );
 
-    await Fabric.fire('machine_access.oauth_application.archived:after', {
-      ...d,
-      oauthApplication: res
+      return oauthApplication;
     });
 
     return res;

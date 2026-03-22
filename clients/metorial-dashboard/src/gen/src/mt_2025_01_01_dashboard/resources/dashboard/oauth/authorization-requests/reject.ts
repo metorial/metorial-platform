@@ -117,3 +117,12 @@ export let mapDashboardOauthAuthorizationRequestsRejectOutput =
     )
   });
 
+export type DashboardOauthAuthorizationRequestsRejectBody = {
+  organizationId?: string | undefined;
+};
+
+export let mapDashboardOauthAuthorizationRequestsRejectBody =
+  mtMap.object<DashboardOauthAuthorizationRequestsRejectBody>({
+    organizationId: mtMap.objectField('organization_id', mtMap.passthrough())
+  });
+

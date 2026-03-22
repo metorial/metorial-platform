@@ -28,6 +28,7 @@ let {
 
 vi.mock('@metorial/db', () => ({
   withTransaction: (fn: any) => fn(mockDb),
+  addAfterTransactionHook: vi.fn((hook: any) => hook()),
   db: mockDb,
   ID: {
     generateId: vi.fn(async (prefix: string) => `${prefix}-generated-id`)
@@ -182,7 +183,8 @@ describe('oauthApplicationService', () => {
       oauthApplication: {
         oid: 'oauth-app-oid',
         type: 'server_side',
-        status: 'active'
+        status: 'active',
+        accessLevel: 'organization'
       } as any,
       organization: baseOrg,
       performedBy: baseActor,

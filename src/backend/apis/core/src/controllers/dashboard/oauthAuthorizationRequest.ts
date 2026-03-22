@@ -50,7 +50,7 @@ export let dashboardOAuthAuthorizationRequestController = Controller.create(
       .body(
         'default',
         v.object({
-          organization_id: v.optional(v.string())
+          organization_id: v.string()
         })
       )
       .output(oauthAuthorizationRequestPresenter)
@@ -63,7 +63,7 @@ export let dashboardOAuthAuthorizationRequestController = Controller.create(
         let result = await oauthAuthorizationService.acceptOAuthAuthorizationRequest({
           oauthAuthorizationRequest,
           user: ctx.user,
-          organizationId: ctx.body.organization_id ?? '',
+          organizationId: ctx.body.organization_id,
           context: ctx.context
         });
 
@@ -84,6 +84,12 @@ export let dashboardOAuthAuthorizationRequestController = Controller.create(
           description: 'Reject an oauth authorization request'
         }
       )
+      .body(
+        'default',
+        v.object({
+          organization_id: v.optional(v.string())
+        })
+      )
       .output(oauthAuthorizationRequestPresenter)
       .do(async ctx => {
         let oauthAuthorizationRequest =
@@ -93,7 +99,9 @@ export let dashboardOAuthAuthorizationRequestController = Controller.create(
 
         let result = await oauthAuthorizationService.rejectOAuthAuthorizationRequest({
           user: ctx.user,
-          oauthAuthorizationRequest
+          oauthAuthorizationRequest,
+          organizationId: ctx.body.organization_id,
+          context: ctx.context
         });
 
         return oauthAuthorizationRequestPresenter.present({

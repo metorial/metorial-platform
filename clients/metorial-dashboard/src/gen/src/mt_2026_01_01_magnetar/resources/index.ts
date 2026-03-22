@@ -24,4 +24,5 @@ export * from './providers';
 export * from './publishers';
 export * from './session-templates';
 export * from './sessions';
+export * from './token';
 export * from './tool-calls';

@@ -9,6 +9,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { Context } from '@metorial/context';
 import {
+  addAfterTransactionHook,
   db,
   ID,
   MachineAccess,
@@ -26,6 +27,7 @@ import {
   User,
   withTransaction
 } from '@metorial/db';
+import { Fabric } from '@metorial/fabric';
 import { generateCode, generateCustomId } from '@metorial/id';
 import { organizationService } from '@metorial/module-organization';
 import { addMinutes, differenceInSeconds } from 'date-fns';
@@ -483,7 +485,8 @@ class OAuthAuthorizationService {
 
       let oauthToken = await this.issueOAuthToken({
         oauthAuthorization,
-        withRefreshToken: false
+        withRefreshToken: false,
+        context: d.context
       });
 
       return {
@@ -672,8 +675,18 @@ class OAuthAuthorizationService {
     oauthAuthorization: OAuthAuthorizationWithRelations;
     withRefreshToken: boolean;
     refreshTokenLifetimeDays?: number;
+    context?: Context;
   }) {
     return await withTransaction(async db => {
+      await Fabric.fire('machine_access.oauth_token.created:before', {
+        oauthApplication: d.oauthAuthorization.oauthApplication,
+        oauthInstallation: d.oauthAuthorization.oauthInstallation,
+        oauthAuthorization: d.oauthAuthorization,
+        organization: d.oauthAuthorization.oauthInstallation.organization,
+        appActor: d.oauthAuthorization.oauthInstallation.appActor,
+        context: d.context
+      });
+
       let tokenValues = createIssuedOAuthTokenValues(d);
 
       let data = {
@@ -681,7 +694,7 @@ class OAuthAuthorizationService {
         ...tokenValues
       };
 
-      return await db.oAuthToken.create({
+      let oauthToken = await db.oAuthToken.create({
         data: {
           id: await ID.generateId('oauthToken'),
           oauthAuthorizationOid: d.oauthAuthorization.oid,
@@ -689,6 +702,20 @@ class OAuthAuthorizationService {
         },
         include: tokenInclude
       });
+
+      addAfterTransactionHook(() =>
+        Fabric.fire('machine_access.oauth_token.created:after', {
+          oauthApplication: oauthToken.oauthAuthorization.oauthApplication,
+          oauthInstallation: oauthToken.oauthAuthorization.oauthInstallation,
+          oauthAuthorization: oauthToken.oauthAuthorization,
+          oauthToken,
+          organization: oauthToken.oauthAuthorization.oauthInstallation.organization,
+          appActor: oauthToken.oauthAuthorization.oauthInstallation.appActor,
+          context: d.context
+        })
+      );
+
+      return oauthToken;
     });
   }
 
@@ -696,11 +723,22 @@ class OAuthAuthorizationService {
     oauthToken: OAuthTokenWithRelations;
     withRefreshToken: boolean;
     refreshTokenLifetimeDays?: number;
+    context?: Context;
   }) {
     return await withTransaction(async db => {
+      await Fabric.fire('machine_access.oauth_token.refreshed:before', {
+        oauthApplication: d.oauthToken.oauthAuthorization.oauthApplication,
+        oauthInstallation: d.oauthToken.oauthAuthorization.oauthInstallation,
+        oauthAuthorization: d.oauthToken.oauthAuthorization,
+        oauthToken: d.oauthToken,
+        organization: d.oauthToken.oauthAuthorization.oauthInstallation.organization,
+        appActor: d.oauthToken.oauthAuthorization.oauthInstallation.appActor,
+        context: d.context
+      });
+
       let tokenValues = createIssuedOAuthTokenValues(d);
 
-      return await db.oAuthToken.update({
+      let oauthToken = await db.oAuthToken.update({
         where: {
           oid: d.oauthToken.oid
         },
@@ -710,6 +748,20 @@ class OAuthAuthorizationService {
         },
         include: tokenInclude
       });
+
+      addAfterTransactionHook(() =>
+        Fabric.fire('machine_access.oauth_token.refreshed:after', {
+          oauthApplication: oauthToken.oauthAuthorization.oauthApplication,
+          oauthInstallation: oauthToken.oauthAuthorization.oauthInstallation,
+          oauthAuthorization: oauthToken.oauthAuthorization,
+          oauthToken,
+          organization: oauthToken.oauthAuthorization.oauthInstallation.organization,
+          appActor: oauthToken.oauthAuthorization.oauthInstallation.appActor,
+          context: d.context
+        })
+      );
+
+      return oauthToken;
     });
   }
 
@@ -908,7 +960,25 @@ class OAuthAuthorizationService {
         include: authorizationRequestInclude
       });
 
-      // Audit log - accept
+      await Fabric.fire('machine_access.oauth_authorization_request.accepted:before', {
+        oauthApplication: oauthAuthorizationRequest.oauthApplication,
+        oauthAuthorizationRequest,
+        organization,
+        member,
+        performedBy: member.actor,
+        context: d.context
+      });
+
+      addAfterTransactionHook(() =>
+        Fabric.fire('machine_access.oauth_authorization_request.accepted:after', {
+          oauthApplication: oauthAuthorizationRequest.oauthApplication,
+          oauthAuthorizationRequest,
+          organization,
+          member,
+          performedBy: member.actor,
+          context: d.context
+        })
+      );
 
       return {
         oauthAuthorizationRequest,
@@ -921,12 +991,39 @@ class OAuthAuthorizationService {
   async rejectOAuthAuthorizationRequest(d: {
     user: User;
     oauthAuthorizationRequest: OAuthAuthorizationRequest & {
-      oauthApplication: OAuthApplication;
+      oauthApplication: OAuthApplication & { organization: Organization | null };
     };
+    organizationId?: string;
+    context?: Context;
   }) {
     ensureAuthorizationRequestPending(d.oauthAuthorizationRequest);
 
+    let organizationMember = await (async () => {
+      if (!d.organizationId) return null;
+
+      try {
+        return await this.resolveOrganizationMember({
+          oauthApplication: d.oauthAuthorizationRequest.oauthApplication,
+          user: d.user,
+          organizationId: d.organizationId
+        });
+      } catch {
+        return null;
+      }
+    })();
+
     return await withTransaction(async db => {
+      if (organizationMember) {
+        await Fabric.fire('machine_access.oauth_authorization_request.denied:before', {
+          oauthApplication: d.oauthAuthorizationRequest.oauthApplication,
+          oauthAuthorizationRequest: d.oauthAuthorizationRequest,
+          organization: organizationMember.organization,
+          member: organizationMember.member,
+          performedBy: organizationMember.member.actor,
+          context: d.context
+        });
+      }
+
       let oauthAuthorizationRequest = await db.oAuthAuthorizationRequest.update({
         where: { oid: d.oauthAuthorizationRequest.oid },
         data: {
@@ -937,7 +1034,18 @@ class OAuthAuthorizationService {
         include: authorizationRequestInclude
       });
 
-      // Audit log - reject
+      if (organizationMember) {
+        addAfterTransactionHook(() =>
+          Fabric.fire('machine_access.oauth_authorization_request.denied:after', {
+            oauthApplication: oauthAuthorizationRequest.oauthApplication,
+            oauthAuthorizationRequest,
+            organization: organizationMember.organization,
+            member: organizationMember.member,
+            performedBy: organizationMember.member.actor,
+            context: d.context
+          })
+        );
+      }
 
       return oauthAuthorizationRequest;
     });
@@ -945,9 +1053,27 @@ class OAuthAuthorizationService {
 
   async revokeOAuthAuthorization(d: {
     oauthAuthorization: OAuthAuthorization;
+    performedBy: OrganizationActor;
     context?: Context;
   }) {
     return await withTransaction(async db => {
+      let existingAuthorization = await db.oAuthAuthorization.findFirstOrThrow({
+        where: {
+          oid: d.oauthAuthorization.oid
+        },
+        include: authorizationInclude
+      });
+
+      await Fabric.fire('machine_access.oauth_authorization.revoked:before', {
+        oauthApplication: existingAuthorization.oauthApplication,
+        oauthInstallation: existingAuthorization.oauthInstallation,
+        oauthAuthorization: existingAuthorization,
+        organization: existingAuthorization.oauthInstallation.organization,
+        appActor: existingAuthorization.oauthInstallation.appActor,
+        performedBy: d.performedBy,
+        context: d.context
+      });
+
       let oauthAuthorization = await db.oAuthAuthorization.update({
         where: {
           oid: d.oauthAuthorization.oid
@@ -959,7 +1085,17 @@ class OAuthAuthorizationService {
         include: authorizationInclude
       });
 
-      // Audit log - revoke
+      addAfterTransactionHook(() =>
+        Fabric.fire('machine_access.oauth_authorization.revoked:after', {
+          oauthApplication: oauthAuthorization.oauthApplication,
+          oauthInstallation: oauthAuthorization.oauthInstallation,
+          oauthAuthorization,
+          organization: oauthAuthorization.oauthInstallation.organization,
+          appActor: oauthAuthorization.oauthInstallation.appActor,
+          performedBy: d.performedBy,
+          context: d.context
+        })
+      );
 
       return oauthAuthorization;
     });
