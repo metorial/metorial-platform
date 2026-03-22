@@ -7,6 +7,7 @@ export * from './custom-provider';
 export * from './deployment';
 export * from './developer';
 export * from './identity';
+export * from './oauth';
 export * from './organization';
 export * from './provider';
 export * from './session';

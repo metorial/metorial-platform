@@ -1,6 +1,8 @@
 import {
   ApiKey,
   ApiKeySecret,
+  ApiKeyType,
+  CliDevice,
   Consumer,
   ConsumerAccess,
   ConsumerAccessRequest,
@@ -20,14 +22,19 @@ import {
   MagicMcpServerAlias,
   MagicMcpServerSubspaceSession,
   MagicMcpToken,
+  OAuthApplication,
+  OAuthApplicationClientSecret,
+  OAuthAuthorization,
+  OAuthAuthorizationRequest,
+  OAuthInstallation,
   Organization,
   OrganizationActor,
   OrganizationInvite,
   OrganizationMember,
   Portal,
   Profile,
-  ProviderTemplate,
   Project,
+  ProviderTemplate,
   Secret,
   SecretType,
   Team,
@@ -37,7 +44,6 @@ import {
   TeamRole,
   User
 } from '@metorial/db';
-import { Flags } from '@metorial/module-flags';
 import {
   ConsumerAresApp,
   ConsumerAresSsoConnection,
@@ -45,6 +51,7 @@ import {
   ConsumerAresSsoTenantSetup,
   ConsumerProviderCatalogEntry
 } from '@metorial/module-consumer';
+import { Flags } from '@metorial/module-flags';
 import {
   SubspaceBucket,
   SubspaceCustomProvider,
@@ -129,9 +136,24 @@ export let projectType = PresentableType.create<{
   project: Project & { organization: Organization };
 }>()('project');
 
+export let tokenType = PresentableType.create<{
+  token: {
+    type:
+      | 'fine_grained_token'
+      | ApiKeyType
+      | 'oauth_access_token'
+      | 'unknown_token'
+      | 'user_auth_token';
+  };
+}>()('token');
+
 export let instanceType = PresentableType.create<{
   instance: Instance & { project: Project; organization: Organization };
 }>()('instance');
+
+export let instanceListType = PresentableType.create<{
+  instances: (Instance & { project: Project; organization: Organization })[];
+}>()('instanceList');
 
 export let organizationType = PresentableType.create<{
   organization: Organization;
@@ -182,6 +204,89 @@ export let apiKeyType = PresentableType.create<{
   secret?: ApiKeySecret;
   canReveal: boolean;
 }>()('api_key');
+
+export let oauthApplicationType = PresentableType.create<{
+  oauthApplication: OAuthApplication & {
+    organization: Organization | null;
+    clientSecrets?: OAuthApplicationClientSecret[] | null;
+  };
+}>()('oauth_application');
+
+export let oauthApplicationClientSecretType = PresentableType.create<{
+  oauthApplicationClientSecret: OAuthApplicationClientSecret;
+  secret?: string | null;
+}>()('oauth_application_client_secret');
+
+export let oauthInstallationType = PresentableType.create<{
+  oauthInstallation: OAuthInstallation & {
+    organization: Organization;
+    oauthApplication: OAuthApplication & {
+      organization: Organization | null;
+    };
+    serverSideMachineAccess:
+      | (MachineAccess & {
+          organization: Organization | null;
+          actor: OrganizationActor | null;
+          instance: (Instance & { project: Project }) | null;
+          user: User | null;
+        })
+      | null;
+  };
+}>()('oauth_installation');
+
+export let cliDeviceType = PresentableType.create<{
+  cliDevice: CliDevice & {
+    organization: Organization;
+    user: User;
+    oauthAuthorization: OAuthAuthorization;
+  };
+}>()('cli_device');
+
+export let oauthAuthorizationType = PresentableType.create<{
+  oauthAuthorization: OAuthAuthorization & {
+    oauthApplication: OAuthApplication & {
+      organization: Organization | null;
+    };
+    oauthInstallation: OAuthInstallation & {
+      organization: Organization;
+      oauthApplication: OAuthApplication & {
+        organization: Organization | null;
+      };
+      serverSideMachineAccess: MachineAccess | null;
+    };
+    organizationMember: OrganizationMember | null;
+    machineAccess: MachineAccess & {
+      organization: Organization | null;
+      actor: OrganizationActor | null;
+      instance: (Instance & { project: Project }) | null;
+      user: User | null;
+    };
+    user: User | null;
+  };
+}>()('oauth_authorization');
+
+export let oauthAuthorizationRequestType = PresentableType.create<{
+  oauthAuthorizationRequest: OAuthAuthorizationRequest & {
+    oauthApplication: OAuthApplication & {
+      organization: Organization | null;
+    };
+  };
+}>()('oauth_authorization_request');
+
+export let oauthAuthorizationLogType = PresentableType.create<{
+  oauthAuthorizationLog: OAuthAuthorizationRequest & {
+    oauthApplication: OAuthApplication & {
+      organization: Organization | null;
+    };
+    organization: Organization | null;
+    user: User | null;
+    actor:
+      | (OrganizationActor & {
+          organization: Organization;
+        })
+      | null;
+  };
+}>()('oauth_authorization_log');
 
 export let fileType = PresentableType.create<{
   file: File & { purpose: FilePurpose };
@@ -412,38 +517,14 @@ export let teamRolePermissionsType = PresentableType.create<{
   }[];
 }>()('management.team.role_permissions');
 
-// export let ssoTenantType = PresentableType.create<{
-//   ssoTenant: SsoTenant;
-// }>()('sso.tenant');
-
-// export let ssoTenantSetupType = PresentableType.create<{
-//   ssoTenantSetup: {
-//     id: string;
-//     status: 'pending' | 'completed';
-//     tenantId: string;
-//     connectionId: string | null | undefined;
-//     clientSecret: string;
-//     redirectUri: string;
-//     url: string;
-//     createdAt: NativeDate;
-//     updatedAt: NativeDate;
-//   };
-// }>()('sso.tenant.setup');
-
-// export let ssoUserType = PresentableType.create<{
-//   ssoUser: SsoUser & {
-//     profiles: SsoUserProfile[];
-//     ssoTenant: SsoTenant;
-//   };
-// }>()('sso.user');
-
-// export let ssoUserProfileType = PresentableType.create<{
-//   ssoUserProfile: SsoUserProfile & {
-//     ssoUser: SsoUser & {
-//       ssoTenant: SsoTenant;
-//     };
-//   };
-// }>()('sso.user_profile');
+export let oauthScopePermissionsType = PresentableType.create<{
+  permissions: {
+    identifier: string;
+    name: string;
+    description: string;
+    dependencies: string[];
+  }[];
+}>()('management.oauth.scopes');
 
 export let publisherType = PresentableType.create<{ publisher: SubspacePublisher }>()(
   'publisher'
