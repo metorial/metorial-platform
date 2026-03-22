@@ -7,6 +7,7 @@ import { createHono } from './lib/hono';
 import {
   ensureOptionalClientSecretIsValid,
   getClientCredentials,
+  getNumber,
   getString,
   normalizeScopes,
   parseOAuthBody
@@ -32,6 +33,7 @@ export let oauthApi = createHono()
     let codeVerifier = getString(body.code_verifier);
     let deviceCode = getString(body.device_code);
     let refreshToken = getString(body.refresh_token);
+    let expiresIn = getNumber(body.expires_in);
     let scope = normalizeScopes(body.scope ?? body.scopes);
 
     if (!grantType) {
@@ -116,13 +118,21 @@ export let oauthApi = createHono()
         }
       });
     } else if (grantType == 'client_credentials') {
+      if (expiresIn !== undefined && (!Number.isInteger(expiresIn) || expiresIn <= 0)) {
+        throw new OAuthError({
+          error: 'invalid_request',
+          errorMessage: 'expires_in must be a positive integer'
+        });
+      }
+
       response = await oauthAuthorizationService.exchangeOAuthToken({
         context,
         input: {
           grantType,
           clientId: credentials.clientId,
           clientSecret: credentials.clientSecret!,
-          scopes: scope ?? []
+          scopes: scope ?? [],
+          expiresIn
         }
       });
     } else if (grantType == 'refresh_token') {

@@ -8,6 +8,17 @@ export let getString = (value: unknown): string | undefined => {
   return undefined;
 };
 
+export let getNumber = (value: unknown): number | undefined => {
+  if (typeof value == 'number' && Number.isFinite(value)) return value;
+
+  if (typeof value == 'string' && value.trim().length > 0) {
+    let parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+
+  return undefined;
+};
+
 export let normalizeScopes = (value: unknown): string[] | undefined => {
   if (typeof value != 'string') return undefined;
 

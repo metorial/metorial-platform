@@ -39,6 +39,8 @@ import {
 } from '../lib/oauthAuthorizationGuards';
 import { createCodeChallenge } from '../lib/oauthAuthorizationPkce';
 import {
+  ACCESS_TOKEN_MAX_TTL_SECONDS,
+  ACCESS_TOKEN_MIN_TTL_SECONDS,
   createIssuedOAuthTokenValues,
   DEVICE_REQUEST_TTL_MINUTES,
   INTERACTIVE_REQUEST_TTL_MINUTES
@@ -197,6 +199,7 @@ class OAuthAuthorizationService {
           clientId: string;
           clientSecret: string;
           scopes?: string[];
+          expiresIn?: number;
         }
       | {
           grantType: 'refresh_token';
@@ -445,8 +448,25 @@ class OAuthAuthorizationService {
     clientId: string;
     clientSecret: string;
     scopes?: string[];
+    expiresIn?: number;
     context: Context;
   }) {
+    if (
+      d.expiresIn &&
+      (d.expiresIn < ACCESS_TOKEN_MIN_TTL_SECONDS ||
+        d.expiresIn > ACCESS_TOKEN_MAX_TTL_SECONDS)
+    ) {
+      throw new ServiceError(
+        badRequestError({
+          message: `expires_in must be between ${ACCESS_TOKEN_MIN_TTL_SECONDS} and ${ACCESS_TOKEN_MAX_TTL_SECONDS} seconds`,
+          oauth: {
+            error: 'invalid_request',
+            errorMessage: `expires_in must be between ${ACCESS_TOKEN_MIN_TTL_SECONDS} and ${ACCESS_TOKEN_MAX_TTL_SECONDS} seconds`
+          }
+        })
+      );
+    }
+
     return await withTransaction(async () => {
       let oauthApplication = await this.getOAuthApplicationByClientId({
         clientId: d.clientId
@@ -486,6 +506,7 @@ class OAuthAuthorizationService {
       let oauthToken = await this.issueOAuthToken({
         oauthAuthorization,
         withRefreshToken: false,
+        accessTokenLifetimeSeconds: d.expiresIn,
         context: d.context
       });
 
@@ -674,6 +695,7 @@ class OAuthAuthorizationService {
   private async issueOAuthToken(d: {
     oauthAuthorization: OAuthAuthorizationWithRelations;
     withRefreshToken: boolean;
+    accessTokenLifetimeSeconds?: number;
     refreshTokenLifetimeDays?: number;
     context?: Context;
   }) {
@@ -722,6 +744,7 @@ class OAuthAuthorizationService {
   private async refreshOAuthToken(d: {
     oauthToken: OAuthTokenWithRelations;
     withRefreshToken: boolean;
+    accessTokenLifetimeSeconds?: number;
     refreshTokenLifetimeDays?: number;
     context?: Context;
   }) {
