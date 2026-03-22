@@ -189,7 +189,7 @@ export let oauthApi = createHono()
         : null
     });
   })
-  .post('/oauth/cli_auth/start', async c => {
+  .post('/cli/auth/start', async c => {
     let context = useRequestContext(c);
 
     let oauthAuthorizationRequest =
@@ -207,7 +207,7 @@ export let oauthApi = createHono()
       authorization_url: authorizationUrl.toString()
     });
   })
-  .post('/oauth/cli_auth/complete', async c => {
+  .post('/cli/auth/complete', async c => {
     let body = await parseOAuthBody(c);
     let token = getString(body.token);
 
