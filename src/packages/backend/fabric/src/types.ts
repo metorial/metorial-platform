@@ -3,6 +3,7 @@ import {
   ApiKey,
   Instance,
   MachineAccess,
+  OAuthApplication,
   Organization,
   OrganizationActor,
   OrganizationInvite,
@@ -48,6 +49,28 @@ export type MachineAccessInput =
       instance: Instance;
       performedBy: OrganizationActor;
     };
+
+export type OAuthApplicationCreateInput = {
+  type: 'user_facing' | 'server_side';
+  accessLevel: 'organization' | 'global';
+  name: string;
+  description?: string;
+  websiteUrl?: string;
+  privacyPolicyUrl?: string;
+  termsOfServiceUrl?: string;
+  scopes: string[];
+  image?: PrismaJson.EntityImage;
+};
+
+export type OAuthApplicationUpdateInput = {
+  name?: string;
+  description?: string | null;
+  websiteUrl?: string | null;
+  privacyPolicyUrl?: string | null;
+  termsOfServiceUrl?: string | null;
+  scopes?: string[];
+  image?: PrismaJson.EntityImage;
+};
 
 export type ProviderEventBase = {
   instance: Instance;
@@ -159,6 +182,47 @@ export interface FabricEvents {
   'machine_access.api_key.expired:before': { machineAccess: MachineAccess, apiKey: ApiKey; organization: Organization; performedBy: OrganizationActor };
   'machine_access.api_key.expired:after': { machineAccess: MachineAccess, apiKey: ApiKey; organization: Organization; performedBy: OrganizationActor };
   'machine_access.api_key:revealed': { machineAccess: MachineAccess, apiKey: ApiKey, organization: Organization; performedBy: OrganizationActor; context?: Context };
+  'machine_access.oauth_application.created:before': {
+    organization: Organization;
+    performedBy: OrganizationActor;
+    context: Context;
+    input: OAuthApplicationCreateInput;
+    serverSideMachineAccess: MachineAccess | null;
+  };
+  'machine_access.oauth_application.created:after': {
+    organization: Organization;
+    performedBy: OrganizationActor;
+    context: Context;
+    input: OAuthApplicationCreateInput;
+    serverSideMachineAccess: MachineAccess | null;
+    oauthApplication: OAuthApplication;
+  };
+  'machine_access.oauth_application.updated:before': {
+    oauthApplication: OAuthApplication;
+    organization: Organization;
+    performedBy: OrganizationActor;
+    context: Context;
+    input: OAuthApplicationUpdateInput;
+  };
+  'machine_access.oauth_application.updated:after': {
+    oauthApplication: OAuthApplication;
+    organization: Organization;
+    performedBy: OrganizationActor;
+    context: Context;
+    input: OAuthApplicationUpdateInput;
+  };
+  'machine_access.oauth_application.archived:before': {
+    oauthApplication: OAuthApplication;
+    organization: Organization;
+    performedBy: OrganizationActor;
+    context: Context;
+  };
+  'machine_access.oauth_application.archived:after': {
+    oauthApplication: OAuthApplication;
+    organization: Organization;
+    performedBy: OrganizationActor;
+    context: Context;
+  };
 
   'provider.deployment.created:before': ProviderEventBase;
   'provider.deployment.created:after': ProviderEventBase & { deployment: SubspaceProviderDeployment };
