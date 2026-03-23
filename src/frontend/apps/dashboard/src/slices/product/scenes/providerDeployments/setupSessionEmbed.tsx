@@ -75,11 +75,11 @@ export let ProviderSetupSessionEmbed = ({
     providerId,
     selectedMethodId
       ? {
-          origin: ['tenant_created', 'managed_backing'],
+          origin: ['custom', 'managed'],
           providerAuthMethodId: selectedMethodId
         }
       : {
-          origin: ['tenant_created']
+          origin: ['custom']
         }
   );
 

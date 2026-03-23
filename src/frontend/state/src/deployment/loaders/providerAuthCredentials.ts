@@ -10,40 +10,26 @@ import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
 
 export type ProviderAuthCredentialsListQuery =
-  DashboardInstanceProviderDeploymentsAuthCredentialsListQuery & {
-    providerAuthMethodId?: string | string[];
-    origin?:
-      | 'tenant_created'
-      | 'managed_backing'
-      | ('tenant_created' | 'managed_backing')[];
-  };
+  DashboardInstanceProviderDeploymentsAuthCredentialsListQuery;
 
 export type ProviderAuthCredentialsItem =
-  DashboardInstanceProviderDeploymentsAuthCredentialsListOutput['items'][number] & {
-    isManaged: boolean;
-  };
+  DashboardInstanceProviderDeploymentsAuthCredentialsListOutput['items'][number];
 
-export type ProviderAuthCredentialsListOutput = Omit<
-  DashboardInstanceProviderDeploymentsAuthCredentialsListOutput,
-  'items'
-> & {
-  items: ProviderAuthCredentialsItem[];
-};
+export type ProviderAuthCredentialsListOutput =
+  DashboardInstanceProviderDeploymentsAuthCredentialsListOutput;
 
 export type ProviderAuthCredentialOutput =
-  DashboardInstanceProviderDeploymentsAuthCredentialsGetOutput & {
-    isManaged: boolean;
-  };
+  DashboardInstanceProviderDeploymentsAuthCredentialsGetOutput;
 
 export let providerAuthCredentialsLoader = createLoader({
   name: 'providerAuthCredentials',
   parents: [],
-  fetch: (i: { instanceId: string } & ProviderAuthCredentialsListQuery) =>
+  fetch: ({ instanceId, ...query }: { instanceId: string } & ProviderAuthCredentialsListQuery) =>
     withAuth(
       async sdk =>
         (await sdk.providerDeployments.authCredentials.list(
-          i.instanceId,
-          i as DashboardInstanceProviderDeploymentsAuthCredentialsListQuery
+          instanceId,
+          query as DashboardInstanceProviderDeploymentsAuthCredentialsListQuery
         )) as ProviderAuthCredentialsListOutput
     ),
   mutators: {}

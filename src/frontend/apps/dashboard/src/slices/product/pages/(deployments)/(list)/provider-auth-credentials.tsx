@@ -6,7 +6,7 @@ import {
   useInstanceProviderAuthCredentials,
   useProviders
 } from '@metorial/state';
-import { Badge, Input, RenderDate, Spacer, Text } from '@metorial/ui';
+import { Badge, Flex, Input, RenderDate, Spacer, Text } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
 import { useMemo } from 'react';
 import { EmptyState } from '../../../../../components/emptyState';
@@ -52,14 +52,14 @@ export let ProviderAuthCredentialsOverviewPage = () => {
 
   let table = (
     <Table
-      headers={['Name', 'Provider', 'Type', 'Default', 'Created']}
+      headers={['Name', 'Provider', 'Type', 'Created']}
       data={rows.map(row => ({
         data: [
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <Flex direction="column" gap={6}>
             <Text size="2" weight="strong">
               {row.name || '—'}
             </Text>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <Flex gap={8} align="center">
               {row.isDefault && (
                 <Badge color="blue" size="1">
                   Default
@@ -70,17 +70,10 @@ export let ProviderAuthCredentialsOverviewPage = () => {
                   Managed by Metorial
                 </Badge>
               )}
-            </div>
-          </div>,
+            </Flex>
+          </Flex>,
           <Text size="2">{providerNameMap.get(row.providerId) ?? row.providerId}</Text>,
           <Text size="2">{row.type}</Text>,
-          row.isDefault ? (
-            <Badge color="blue" size="1">
-              Default
-            </Badge>
-          ) : (
-            <Text size="2">No</Text>
-          ),
           row.createdAt ? (
             <RenderDate date={row.createdAt} />
           ) : (

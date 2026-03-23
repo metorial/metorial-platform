@@ -60,11 +60,7 @@ export type ProviderDeploymentsAuthCredentialsListQuery = {
   id?: string | string[] | undefined;
   providerId?: string | string[] | undefined;
   providerAuthMethodId?: string | string[] | undefined;
-  origin?:
-    | 'tenant_created'
-    | 'managed_backing'
-    | ('tenant_created' | 'managed_backing')[]
-    | undefined;
+  origin?: 'custom' | 'managed' | ('custom' | 'managed')[] | undefined;
   search?: string | undefined;
 };
 
