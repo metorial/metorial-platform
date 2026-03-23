@@ -4,7 +4,7 @@ import {
   useProviderAuthCredential,
   useProviderDeployment
 } from '@metorial/state';
-import { Attributes, RenderDate } from '@metorial/ui';
+import { Attributes, Badge, Callout, RenderDate, Spacer } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import { useParams } from 'react-router-dom';
 
@@ -17,6 +17,15 @@ export let ProviderAuthCredentialOverviewPage = () => {
 
   return renderWithLoader({ credential })(({ credential }) => (
     <>
+      {credential.data.isManaged && (
+        <>
+          <Callout color="blue">
+            These credentials are managed by Metorial. They can be used from the
+            dashboard, but they can only be edited from the admin dashboard.
+          </Callout>
+          <Spacer size={12} />
+        </>
+      )}
       <Attributes
         itemWidth="250px"
         attributes={[
@@ -35,6 +44,14 @@ export let ProviderAuthCredentialOverviewPage = () => {
           {
             label: 'Type',
             content: credential.data.type ?? '—'
+          },
+          {
+            label: 'Origin',
+            content: credential.data.isManaged ? (
+              <Badge color="gray">Managed by Metorial</Badge>
+            ) : (
+              <Badge color="blue">Tenant-owned</Badge>
+            )
           },
           {
             label: 'Provider',

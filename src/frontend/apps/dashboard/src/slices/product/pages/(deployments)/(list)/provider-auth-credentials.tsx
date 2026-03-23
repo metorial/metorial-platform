@@ -55,9 +55,23 @@ export let ProviderAuthCredentialsOverviewPage = () => {
       headers={['Name', 'Provider', 'Type', 'Default', 'Created']}
       data={rows.map(row => ({
         data: [
-          <Text size="2" weight="strong">
-            {row.name || '—'}
-          </Text>,
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <Text size="2" weight="strong">
+              {row.name || '—'}
+            </Text>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              {row.isDefault && (
+                <Badge color="blue" size="1">
+                  Default
+                </Badge>
+              )}
+              {row.isManaged && (
+                <Badge color="gray" size="1">
+                  Managed by Metorial
+                </Badge>
+              )}
+            </div>
+          </div>,
           <Text size="2">{providerNameMap.get(row.providerId) ?? row.providerId}</Text>,
           <Text size="2">{row.type}</Text>,
           row.isDefault ? (

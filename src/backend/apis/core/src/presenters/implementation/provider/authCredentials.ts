@@ -10,6 +10,7 @@ export let v1ProviderAuthCredentialsPresenter = Presenter.create(providerAuthCre
     type: authCredentials.type,
 
     is_default: authCredentials.isDefault,
+    is_managed: authCredentials.isManaged,
 
     name: authCredentials.name,
     description: authCredentials.description,
@@ -34,6 +35,11 @@ export let v1ProviderAuthCredentialsPresenter = Presenter.create(providerAuthCre
       is_default: v.boolean({
         name: 'is_default',
         description: 'Whether this is the default credentials for the provider',
+        examples: [true, false]
+      }),
+      is_managed: v.boolean({
+        name: 'is_managed',
+        description: 'Whether these credentials are managed by Metorial',
         examples: [true, false]
       }),
       name: v.nullable(

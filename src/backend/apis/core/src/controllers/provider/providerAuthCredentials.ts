@@ -60,6 +60,19 @@ export let providerAuthCredentialsController = Controller.create(
             provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by provider ID(s)'
             }),
+            provider_auth_method_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by provider auth method ID(s)'
+            }),
+            origin: v.optional(
+              v.union([
+                v.enumOf(['tenant_created', 'managed_backing']),
+                v.array(v.enumOf(['tenant_created', 'managed_backing']))
+              ]),
+              {
+                description:
+                  'Filter by credential origin (tenant_created, managed_backing)'
+              }
+            ),
             search: v.optional(v.string({ description: 'Search by name or description' }))
           })
         )
@@ -72,7 +85,9 @@ export let providerAuthCredentialsController = Controller.create(
           search: ctx.query.search,
           status: normalizeArrayParam(ctx.query.status),
           ids: normalizeArrayParam(ctx.query.id),
-          providerIds: normalizeArrayParam(ctx.query.provider_id)
+          providerIds: normalizeArrayParam(ctx.query.provider_id),
+          providerAuthMethodIds: normalizeArrayParam(ctx.query.provider_auth_method_id),
+          origin: normalizeArrayParam(ctx.query.origin)
         });
 
         let list = await paginator.run(ctx.query);

@@ -1,6 +1,6 @@
 import { renderWithLoader, useForm } from '@metorial/data-hooks';
 import { useCurrentInstance, useProviderAuthCredential } from '@metorial/state';
-import { Button, Input, Spacer } from '@metorial/ui';
+import { Button, Callout, Input, Spacer } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
 import { useParams } from 'react-router-dom';
 
@@ -17,6 +17,8 @@ export let ProviderAuthCredentialSettingsPage = () => {
     },
     updateInitialValues: true,
     onSubmit: async values => {
+      if (credential.data?.isManaged) return;
+
       await updateMutator.mutate({
         name: values.name.trim(),
         description: values.description || undefined
@@ -35,6 +37,16 @@ export let ProviderAuthCredentialSettingsPage = () => {
         title="Auth Credential Settings"
         description="Modify the settings of this auth credential."
       >
+        {credential.data.isManaged && (
+          <>
+            <Callout color="blue">
+              Managed credentials are read-only in the tenant dashboard. Use the admin
+              dashboard to change their name or description.
+            </Callout>
+            <Spacer size={15} />
+          </>
+        )}
+
         <form onSubmit={form.handleSubmit}>
           <Input label="Name" {...form.getFieldProps('name')} />
           <form.RenderError field="name" />
@@ -52,6 +64,7 @@ export let ProviderAuthCredentialSettingsPage = () => {
               type="submit"
               loading={updateMutator.isLoading}
               success={updateMutator.isSuccess}
+              disabled={credential.data.isManaged}
             >
               Save
             </Button>

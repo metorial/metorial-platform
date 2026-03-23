@@ -1,5 +1,7 @@
 import {
   DashboardInstanceProviderDeploymentsAuthCredentialsCreateBody,
+  DashboardInstanceProviderDeploymentsAuthCredentialsGetOutput,
+  DashboardInstanceProviderDeploymentsAuthCredentialsListOutput,
   DashboardInstanceProviderDeploymentsAuthCredentialsListQuery,
   DashboardInstanceProviderDeploymentsAuthCredentialsUpdateBody
 } from '@metorial/dashboard-sdk';
@@ -7,13 +9,43 @@ import { createLoader } from '@metorial/data-hooks';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
 
+export type ProviderAuthCredentialsListQuery =
+  DashboardInstanceProviderDeploymentsAuthCredentialsListQuery & {
+    providerAuthMethodId?: string | string[];
+    origin?:
+      | 'tenant_created'
+      | 'managed_backing'
+      | ('tenant_created' | 'managed_backing')[];
+  };
+
+export type ProviderAuthCredentialsItem =
+  DashboardInstanceProviderDeploymentsAuthCredentialsListOutput['items'][number] & {
+    isManaged: boolean;
+  };
+
+export type ProviderAuthCredentialsListOutput = Omit<
+  DashboardInstanceProviderDeploymentsAuthCredentialsListOutput,
+  'items'
+> & {
+  items: ProviderAuthCredentialsItem[];
+};
+
+export type ProviderAuthCredentialOutput =
+  DashboardInstanceProviderDeploymentsAuthCredentialsGetOutput & {
+    isManaged: boolean;
+  };
+
 export let providerAuthCredentialsLoader = createLoader({
   name: 'providerAuthCredentials',
   parents: [],
-  fetch: (
-    i: { instanceId: string } & DashboardInstanceProviderDeploymentsAuthCredentialsListQuery
-  ) =>
-    withAuth(sdk => sdk.providerDeployments.authCredentials.list(i.instanceId, i)),
+  fetch: (i: { instanceId: string } & ProviderAuthCredentialsListQuery) =>
+    withAuth(
+      async sdk =>
+        (await sdk.providerDeployments.authCredentials.list(
+          i.instanceId,
+          i as DashboardInstanceProviderDeploymentsAuthCredentialsListQuery
+        )) as ProviderAuthCredentialsListOutput
+    ),
   mutators: {}
 });
 
@@ -32,7 +64,7 @@ export let useCreateProviderAuthCredentials =
 
 export let useInstanceProviderAuthCredentials = (
   instanceId: string | null | undefined,
-  query?: DashboardInstanceProviderDeploymentsAuthCredentialsListQuery | null
+  query?: ProviderAuthCredentialsListQuery | null
 ) => {
   let data = usePaginator(pagination =>
     providerAuthCredentialsLoader.use(
@@ -46,11 +78,11 @@ export let useInstanceProviderAuthCredentials = (
 export let useProviderAuthCredentials = (
   instanceId: string | null | undefined,
   providerId: string | null | undefined,
-  query?: DashboardInstanceProviderDeploymentsAuthCredentialsListQuery
+  query?: ProviderAuthCredentialsListQuery | null
 ) =>
   useInstanceProviderAuthCredentials(
     instanceId,
-    providerId
+    providerId && query !== null
       ? {
           ...query,
           providerId
@@ -62,20 +94,24 @@ export let providerAuthCredentialLoader = createLoader({
   name: 'providerAuthCredential',
   parents: [providerAuthCredentialsLoader],
   fetch: (i: { instanceId: string; providerAuthCredentialsId: string }) =>
-    withAuth(sdk =>
-      sdk.providerDeployments.authCredentials.get(i.instanceId, i.providerAuthCredentialsId)
+    withAuth(
+      async sdk =>
+        (await sdk.providerDeployments.authCredentials.get(
+          i.instanceId,
+          i.providerAuthCredentialsId
+        )) as ProviderAuthCredentialOutput
     ),
   mutators: {
     update: (
       body: DashboardInstanceProviderDeploymentsAuthCredentialsUpdateBody,
       { input: { instanceId, providerAuthCredentialsId } }
     ) =>
-      withAuth(sdk =>
-        sdk.providerDeployments.authCredentials.update(
+      withAuth(async sdk =>
+        (await sdk.providerDeployments.authCredentials.update(
           instanceId,
           providerAuthCredentialsId,
           body
-        )
+        )) as ProviderAuthCredentialOutput
       )
   }
 });
