@@ -18,23 +18,34 @@ type PaginatorRunQuery = {
   order?: 'asc' | 'desc';
 };
 
-type SubspaceRawListResponse = {
-  items: any[];
+type SubspaceRawListResponse<Item = unknown> = {
+  items: Item[];
   pagination: {
     has_more_after: boolean;
     has_more_before: boolean;
   };
 };
 
-type SubspaceListResult = {
+type SubspaceListResult<Item = unknown> = {
   run: (query: PaginatorRunQuery) => Promise<{
-    items: any[];
+    items: Item[];
     pagination: {
       hasNextPage: boolean;
       hasPreviousPage: boolean;
     };
   }>;
 };
+
+type SubspaceMethodReturn<T> = T extends (...args: any[]) => infer R ? Awaited<R> : never;
+
+type SubspaceListItem<
+  SubspaceController extends {},
+  K extends keyof SubspaceController
+> = SubspaceMethodReturn<SubspaceController[K]> extends {
+  items: infer Items extends any[];
+}
+  ? Items[number]
+  : never;
 
 type SubspaceMethodArgs<
   SubspaceController extends {},
@@ -73,7 +84,9 @@ export type SubspaceService<SubspaceController extends {}, Overrides extends {}>
     ...args: any[]
   ) => any
     ? K extends 'list'
-      ? (...args: SubspaceMethodArgs<SubspaceController, K>) => Promise<SubspaceListResult>
+      ? (
+          ...args: SubspaceMethodArgs<SubspaceController, K>
+        ) => Promise<SubspaceListResult<SubspaceListItem<SubspaceController, K>>>
       : (
           ...args: SubspaceMethodArgs<SubspaceController, K>
         ) => ReturnType<SubspaceController[K]>
@@ -87,14 +100,14 @@ export type SubspacePublicService<SubspaceController extends {}, Overrides exten
     ? K extends 'list'
       ? (
           ...args: SubspacePublicMethodArgs<SubspaceController, K>
-        ) => Promise<SubspaceListResult>
+        ) => Promise<SubspaceListResult<SubspaceListItem<SubspaceController, K>>>
       : (
           ...args: SubspacePublicMethodArgs<SubspaceController, K>
         ) => ReturnType<SubspaceController[K]>
     : never;
 } & Overrides;
 
-let toSubspaceListResponse = (result: SubspaceRawListResponse) => ({
+let toSubspaceListResponse = <Item>(result: SubspaceRawListResponse<Item>) => ({
   items: result.items,
   pagination: {
     hasNextPage: result.pagination.has_more_after,
@@ -102,8 +115,8 @@ let toSubspaceListResponse = (result: SubspaceRawListResponse) => ({
   }
 });
 
-let createListMethod = (
-  callController: (args: any[]) => Promise<SubspaceRawListResponse>,
+let createListMethod = <Item>(
+  callController: (args: any[]) => Promise<SubspaceRawListResponse<Item>>,
   getFirstArg: (args: any[]) => any
 ) => {
   return async (...args: any[]) => {
@@ -120,7 +133,7 @@ let createListMethod = (
 
         return toSubspaceListResponse(result);
       }
-    };
+    } as SubspaceListResult<Item>;
   };
 };
 

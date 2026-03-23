@@ -1,27 +1,25 @@
-import type {
-  DashboardInstanceProviderDeploymentsAuthCredentialsListOutput,
-  DashboardInstanceProviderDeploymentsSetupSessionsCreateOutput,
-  DashboardInstanceProviderDeploymentsSetupSessionsGetOutput,
-  DashboardInstanceProvidersAuthMethodsListOutput
-} from '@metorial/dashboard-sdk';
 import { useForm } from '@metorial/data-hooks';
 import {
+  type ProviderAuthCredentialsItem,
   useCreateProviderAuthCredentials,
   useProviderDeployment,
   useProvider,
   useCreateProviderSetupSession,
   useGetProviderSetupSession,
   useProviderAuthCredentials,
-  useProviderAuthMethods
+  useProviderAuthMethods,
+  type DashboardInstanceProviderDeploymentsSetupSessionsCreateOutput,
+  type DashboardInstanceProviderDeploymentsSetupSessionsGetOutput,
+  type DashboardInstanceProvidersAuthMethodsListOutput
 } from '@metorial/state';
-import { Button, Copy, Flex, Input, Select, Spacer, Text } from '@metorial/ui';
+import { Button, Callout, Copy, Flex, Input, Select, Spacer, Text } from '@metorial/ui';
+import { sortBy } from 'lodash';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { getProviderOAuthAutoRegistrationEnabled } from '../../lib/providerOAuthAutoRegistration';
 import { Stepper } from '../stepper';
 
 type AuthMethod = DashboardInstanceProvidersAuthMethodsListOutput['items'][number];
-type AuthCredential =
-  DashboardInstanceProviderDeploymentsAuthCredentialsListOutput['items'][number];
+type AuthCredential = ProviderAuthCredentialsItem;
 type CredentialsMode = 'existing' | 'new';
 type SetupSessionState =
   | DashboardInstanceProviderDeploymentsSetupSessionsCreateOutput
@@ -56,12 +54,6 @@ export let ProviderSetupSessionEmbed = ({
   let lockedVersionId = deployment.data?.lockedVersion?.id;
   let provider = useProvider(instanceId, providerId);
   let effectiveVersionId = lockedVersionId ?? provider.data?.currentVersion?.id;
-  let authMethods = useProviderAuthMethods(instanceId, effectiveVersionId);
-  let authCredentials = useProviderAuthCredentials(instanceId, providerId);
-
-  let createCredentials = useCreateProviderAuthCredentials();
-  let createSetupSession = useCreateProviderSetupSession(instanceId, providerId, deploymentId);
-  let getSetupSession = useGetProviderSetupSession(instanceId);
 
   let methodForm = useForm({
     initialValues: {
@@ -73,6 +65,27 @@ export let ProviderSetupSessionEmbed = ({
         selectedMethodId: yup.string().required('Authentication method is required')
       })
   });
+  let authMethods = useProviderAuthMethods(instanceId, effectiveVersionId);
+  let hasSingleMethod = (authMethods.data?.items?.length ?? 0) === 1;
+  let selectedMethodId =
+    methodForm.values.selectedMethodId ||
+    (hasSingleMethod ? authMethods.data?.items?.[0]?.id ?? '' : '');
+  let authCredentials = useProviderAuthCredentials(
+    instanceId,
+    providerId,
+    selectedMethodId
+      ? {
+          origin: ['custom', 'managed'],
+          providerAuthMethodId: selectedMethodId
+        }
+      : {
+          origin: ['custom']
+        }
+  );
+
+  let createCredentials = useCreateProviderAuthCredentials();
+  let createSetupSession = useCreateProviderSetupSession(instanceId, providerId, deploymentId);
+  let getSetupSession = useGetProviderSetupSession(instanceId);
   let credentialsForm = useForm({
     initialValues: {
       credentialMode: 'existing' as CredentialsMode,
@@ -142,8 +155,6 @@ export let ProviderSetupSessionEmbed = ({
   let [setupWindowBlocked, setSetupWindowBlocked] = useState(false);
   let autoStartedRef = useRef(false);
 
-  let selectedMethodId = methodForm.values.selectedMethodId;
-
   let completedRef = useRef(false);
   let pollingRef = useRef(false);
   let onCompleteRef = useRef(onComplete);
@@ -201,14 +212,23 @@ export let ProviderSetupSessionEmbed = ({
   let redirectUri = provider.data?.oauth?.callbackUrl;
   let isOAuth = selectedMethod?.type === 'oauth';
   let oauthAutoRegistrationEnabled = getProviderOAuthAutoRegistrationEnabled(provider.data);
-  let visibleAuthCredentials = authCredentials.data?.items ?? [];
+  let visibleAuthCredentials = sortBy(authCredentials.data?.items ?? [], [
+    credential => Number(credential.isManaged),
+    credential => Number(!credential.isDefault)
+  ]);
+  let hasManagedVisibleCredentials = visibleAuthCredentials.some(
+    credential => credential.isManaged
+  );
   let requiresManualOAuthCredentials = isOAuth && !oauthAutoRegistrationEnabled;
   let preferredVisibleCredential =
-    visibleAuthCredentials.find(credential => credential.isDefault) ??
-    (visibleAuthCredentials.length === 1 ? visibleAuthCredentials[0] : null);
+    visibleAuthCredentials.find(
+      credential => !credential.isManaged && credential.isDefault
+    ) ??
+    (visibleAuthCredentials.length === 1 && !visibleAuthCredentials[0].isManaged
+      ? visibleAuthCredentials[0]
+      : null);
   let isCreatingCredentials = credentialsForm.values.credentialMode === 'new';
 
-  let hasSingleMethod = (authMethods.data?.items?.length ?? 0) === 1;
   let skipMethodStep = hideMethodStep || hasSingleMethod;
   let showHiddenMethodStep = hideMethodStep && showMethodStepInStepper;
   let includeMethodStep = !skipMethodStep || showHiddenMethodStep;
@@ -248,9 +268,14 @@ export let ProviderSetupSessionEmbed = ({
     );
 
     if (selectedCredentialExists) return;
-    if (!preferredVisibleCredential) return;
+    if (preferredVisibleCredential) {
+      void credentialsForm.setFieldValue('selectedCredentialId', preferredVisibleCredential.id);
+      return;
+    }
 
-    void credentialsForm.setFieldValue('selectedCredentialId', preferredVisibleCredential.id);
+    if (credentialsForm.values.selectedCredentialId) {
+      void credentialsForm.setFieldValue('selectedCredentialId', '');
+    }
   }, [
     credentialsForm,
     credentialsForm.values.credentialMode,
@@ -511,6 +536,24 @@ export let ProviderSetupSessionEmbed = ({
     );
   }
 
+  if (authCredentials.error) {
+    return (
+      <Flex direction="column" gap={12}>
+        <Text size="2" color="red500">
+          {authCredentials.error?.message ?? 'Failed to load authentication credentials.'}
+        </Text>
+        <Flex gap={10}>
+          {onCancel && (
+            <Button variant="outline" onClick={onCancel}>
+              {cancelLabel}
+            </Button>
+          )}
+          <Button onClick={() => onComplete(null)}>Close</Button>
+        </Flex>
+      </Flex>
+    );
+  }
+
   if (!authMethods.data?.items?.length) {
     return (
       <Flex direction="column" gap={12}>
@@ -629,6 +672,12 @@ export let ProviderSetupSessionEmbed = ({
             credentials to continue.
           </Text>
           <Spacer size={6} />
+          {!isCreatingCredentials && hasManagedVisibleCredentials && (
+            <>
+              <Callout color="blue">Managed by Metorial.</Callout>
+              <Spacer size={8} />
+            </>
+          )}
           {redirectUri && isCreatingCredentials && (
             <>
               <Copy label="Redirect URI" value={redirectUri} />
@@ -660,10 +709,13 @@ export let ProviderSetupSessionEmbed = ({
             items={[
               ...visibleAuthCredentials.map((cred: AuthCredential) => ({
                 id: cred.id,
-                label: cred.isDefault
-                  ? cred.name || `Default ${oauthMethodName} credentials`
-                  : cred.name || cred.id
+                label: cred.isManaged
+                  ? `${cred.name || cred.id} (Managed by Metorial)`
+                  : cred.isDefault
+                    ? cred.name || `Default ${oauthMethodName} credentials`
+                    : cred.name || cred.id
               })),
+              ...(visibleAuthCredentials.length > 0 ? [{ type: 'separator' as const }] : []),
               {
                 id: '__create_new__',
                 label: 'Add credentials'

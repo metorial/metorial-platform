@@ -13,6 +13,7 @@ export * from './identityCredential';
 export * from './identityDelegation';
 export * from './identityDelegationConfig';
 export * from './identityDelegationRequest';
+export * from './managedProviderAuthCredentials';
 export * from './provider';
 export * from './providerAuthConfig';
 export * from './providerAuthCredentials';

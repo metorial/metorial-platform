@@ -35,6 +35,7 @@ export type DashboardInstanceProviderDeploymentsAuthConfigsExportsCreateOutput =
         id: string;
         type: 'oauth';
         isDefault: boolean;
+        isManaged: boolean;
         name: string | null;
         description: string | null;
         metadata: Record<string, any> | null;
@@ -130,6 +131,7 @@ export let mapDashboardInstanceProviderDeploymentsAuthConfigsExportsCreateOutput
               id: mtMap.objectField('id', mtMap.passthrough()),
               type: mtMap.objectField('type', mtMap.passthrough()),
               isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
+              isManaged: mtMap.objectField('is_managed', mtMap.passthrough()),
               name: mtMap.objectField('name', mtMap.passthrough()),
               description: mtMap.objectField(
                 'description',

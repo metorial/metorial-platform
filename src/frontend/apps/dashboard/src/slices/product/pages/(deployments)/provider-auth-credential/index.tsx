@@ -4,7 +4,7 @@ import {
   useProviderAuthCredential,
   useProviderDeployment
 } from '@metorial/state';
-import { Attributes, RenderDate } from '@metorial/ui';
+import { Attributes, Badge, Callout, RenderDate, Spacer } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import { useParams } from 'react-router-dom';
 
@@ -17,6 +17,12 @@ export let ProviderAuthCredentialOverviewPage = () => {
 
   return renderWithLoader({ credential })(({ credential }) => (
     <>
+      {credential.data.isManaged && (
+        <>
+          <Callout color="blue">Managed by Metorial.</Callout>
+          <Spacer size={12} />
+        </>
+      )}
       <Attributes
         itemWidth="250px"
         attributes={[
@@ -35,6 +41,14 @@ export let ProviderAuthCredentialOverviewPage = () => {
           {
             label: 'Type',
             content: credential.data.type ?? '—'
+          },
+          {
+            label: 'Default',
+            content: credential.data.isDefault ? (
+              <Badge color="blue">Default</Badge>
+            ) : (
+              'No'
+            )
           },
           {
             label: 'Provider',

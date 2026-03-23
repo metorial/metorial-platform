@@ -2,6 +2,10 @@ import { Fabric } from '@metorial/fabric';
 import { createSubspaceService, toEventBase } from '../lib/subspaceService';
 import { subspace } from '../subspace';
 
+export type SubspaceProviderAuthCredentials = Awaited<
+  ReturnType<typeof subspace.providerAuthCredentials.get>
+>;
+
 export let subspaceProviderAuthCredentialsService = createSubspaceService(
   subspace.providerAuthCredentials,
   ['get', 'list', 'update', 'create'],
@@ -34,7 +38,3 @@ export let subspaceProviderAuthCredentialsService = createSubspaceService(
     }
   })
 );
-
-export type SubspaceProviderAuthCredentials = Awaited<
-  ReturnType<typeof subspace.providerAuthCredentials.get>
->;

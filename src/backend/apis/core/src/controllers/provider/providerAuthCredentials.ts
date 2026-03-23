@@ -8,6 +8,9 @@ import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { providerAuthCredentialsPresenter } from '../../presenters';
 
+let normalizePublicOriginParam = (origin: ('custom' | 'managed')[] | undefined) =>
+  origin?.map(value => (value === 'custom' ? 'tenant_created' : 'managed_backing'));
+
 let providerAuthCredentialsGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerAuthCredentialsId) {
     throw new ServiceError(
@@ -60,6 +63,18 @@ export let providerAuthCredentialsController = Controller.create(
             provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by provider ID(s)'
             }),
+            provider_auth_method_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by provider auth method ID(s)'
+            }),
+            origin: v.optional(
+              v.union([
+                v.enumOf(['custom', 'managed']),
+                v.array(v.enumOf(['custom', 'managed']))
+              ]),
+              {
+                description: 'Filter by credential origin (custom, managed)'
+              }
+            ),
             search: v.optional(v.string({ description: 'Search by name or description' }))
           })
         )
@@ -72,10 +87,18 @@ export let providerAuthCredentialsController = Controller.create(
           search: ctx.query.search,
           status: normalizeArrayParam(ctx.query.status),
           ids: normalizeArrayParam(ctx.query.id),
-          providerIds: normalizeArrayParam(ctx.query.provider_id)
+          providerIds: normalizeArrayParam(ctx.query.provider_id),
+          providerAuthMethodIds: normalizeArrayParam(ctx.query.provider_auth_method_id),
+          origin: normalizePublicOriginParam(normalizeArrayParam(ctx.query.origin))
         });
 
-        let list = await paginator.run(ctx.query);
+        let list = await paginator.run({
+          limit: ctx.query.limit,
+          after: ctx.query.after,
+          before: ctx.query.before,
+          cursor: ctx.query.cursor,
+          order: ctx.query.order
+        });
 
         return Paginator.present(list, authCredentials =>
           providerAuthCredentialsPresenter.present({
