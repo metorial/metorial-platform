@@ -19,10 +19,7 @@ export let ProviderAuthCredentialOverviewPage = () => {
     <>
       {credential.data.isManaged && (
         <>
-          <Callout color="blue">
-            These credentials are managed by Metorial. They can be used from the
-            dashboard, but they can only be edited from the admin dashboard.
-          </Callout>
+          <Callout color="blue">Managed by Metorial.</Callout>
           <Spacer size={12} />
         </>
       )}
@@ -46,11 +43,11 @@ export let ProviderAuthCredentialOverviewPage = () => {
             content: credential.data.type ?? '—'
           },
           {
-            label: 'Origin',
-            content: credential.data.isManaged ? (
-              <Badge color="gray">Managed by Metorial</Badge>
+            label: 'Default',
+            content: credential.data.isDefault ? (
+              <Badge color="blue">Default</Badge>
             ) : (
-              <Badge color="blue">Tenant-owned</Badge>
+              'No'
             )
           },
           {

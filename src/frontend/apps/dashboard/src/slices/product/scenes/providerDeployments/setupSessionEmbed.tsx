@@ -13,6 +13,7 @@ import {
   type DashboardInstanceProvidersAuthMethodsListOutput
 } from '@metorial/state';
 import { Button, Callout, Copy, Flex, Input, Select, Spacer, Text } from '@metorial/ui';
+import { sortBy } from 'lodash';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { getProviderOAuthAutoRegistrationEnabled } from '../../lib/providerOAuthAutoRegistration';
 import { Stepper } from '../stepper';
@@ -211,18 +212,21 @@ export let ProviderSetupSessionEmbed = ({
   let redirectUri = provider.data?.oauth?.callbackUrl;
   let isOAuth = selectedMethod?.type === 'oauth';
   let oauthAutoRegistrationEnabled = getProviderOAuthAutoRegistrationEnabled(provider.data);
-  let tenantVisibleAuthCredentials =
-    authCredentials.data?.items?.filter(credential => !credential.isManaged) ?? [];
-  let managedVisibleAuthCredentials =
-    authCredentials.data?.items?.filter(credential => credential.isManaged) ?? [];
-  let visibleAuthCredentials = [
-    ...tenantVisibleAuthCredentials,
-    ...managedVisibleAuthCredentials
-  ];
+  let visibleAuthCredentials = sortBy(authCredentials.data?.items ?? [], [
+    credential => Number(credential.isManaged),
+    credential => Number(!credential.isDefault)
+  ]);
+  let hasManagedVisibleCredentials = visibleAuthCredentials.some(
+    credential => credential.isManaged
+  );
   let requiresManualOAuthCredentials = isOAuth && !oauthAutoRegistrationEnabled;
   let preferredVisibleCredential =
-    tenantVisibleAuthCredentials.find(credential => credential.isDefault) ??
-    (tenantVisibleAuthCredentials.length === 1 ? tenantVisibleAuthCredentials[0] : null);
+    visibleAuthCredentials.find(
+      credential => !credential.isManaged && credential.isDefault
+    ) ??
+    (visibleAuthCredentials.length === 1 && !visibleAuthCredentials[0].isManaged
+      ? visibleAuthCredentials[0]
+      : null);
   let isCreatingCredentials = credentialsForm.values.credentialMode === 'new';
 
   let skipMethodStep = hideMethodStep || hasSingleMethod;
@@ -247,10 +251,7 @@ export let ProviderSetupSessionEmbed = ({
   useEffect(() => {
     if (!requiresManualOAuthCredentials) return;
 
-    if (
-      tenantVisibleAuthCredentials.length === 0 &&
-      managedVisibleAuthCredentials.length === 0
-    ) {
+    if (visibleAuthCredentials.length === 0) {
       if (credentialsForm.values.credentialMode !== 'new') {
         void credentialsForm.setFieldValue('credentialMode', 'new');
       }
@@ -279,10 +280,8 @@ export let ProviderSetupSessionEmbed = ({
     credentialsForm,
     credentialsForm.values.credentialMode,
     credentialsForm.values.selectedCredentialId,
-    managedVisibleAuthCredentials.length,
     preferredVisibleCredential,
     requiresManualOAuthCredentials,
-    tenantVisibleAuthCredentials.length,
     visibleAuthCredentials
   ]);
 
@@ -673,12 +672,9 @@ export let ProviderSetupSessionEmbed = ({
             credentials to continue.
           </Text>
           <Spacer size={6} />
-          {!isCreatingCredentials && managedVisibleAuthCredentials.length > 0 && (
+          {!isCreatingCredentials && hasManagedVisibleCredentials && (
             <>
-              <Callout color="blue">
-                Managed by Metorial credentials are shared and read-only. They are only
-                used when you select them explicitly.
-              </Callout>
+              <Callout color="blue">Managed by Metorial.</Callout>
               <Spacer size={8} />
             </>
           )}
@@ -711,22 +707,13 @@ export let ProviderSetupSessionEmbed = ({
               }
             }}
             items={[
-              ...tenantVisibleAuthCredentials
-                .slice()
-                .sort((a, b) => Number(b.isDefault) - Number(a.isDefault))
-                .map((cred: AuthCredential) => ({
-                  id: cred.id,
-                  label: cred.isDefault
+              ...visibleAuthCredentials.map((cred: AuthCredential) => ({
+                id: cred.id,
+                label: cred.isManaged
+                  ? `${cred.name || cred.id} (Managed by Metorial)`
+                  : cred.isDefault
                     ? cred.name || `Default ${oauthMethodName} credentials`
                     : cred.name || cred.id
-                })),
-              ...(tenantVisibleAuthCredentials.length > 0 &&
-              managedVisibleAuthCredentials.length > 0
-                ? [{ type: 'separator' as const }]
-                : []),
-              ...managedVisibleAuthCredentials.map((cred: AuthCredential) => ({
-                id: cred.id,
-                label: `${cred.name || cred.id} (Managed by Metorial)`
               })),
               ...(visibleAuthCredentials.length > 0 ? [{ type: 'separator' as const }] : []),
               {

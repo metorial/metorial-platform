@@ -39,10 +39,7 @@ export let ProviderAuthCredentialSettingsPage = () => {
       >
         {credential.data.isManaged && (
           <>
-            <Callout color="blue">
-              Managed credentials are read-only in the tenant dashboard. Use the admin
-              dashboard to change their name or description.
-            </Callout>
+            <Callout color="blue">Managed by Metorial.</Callout>
             <Spacer size={15} />
           </>
         )}
