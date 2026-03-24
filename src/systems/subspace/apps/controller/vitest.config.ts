@@ -1,7 +1,7 @@
-import { defineConfig } from 'vitest/config';
 import { createVitestConfig, loadTestEnv } from '@lowerdeck/testing-tools';
+import { defineConfig } from 'vitest/config';
 
-export default defineConfig(({ mode }) => {
+export default defineConfig(({ mode }: any): any => {
   const env = loadTestEnv(mode || 'test', process.cwd(), '');
 
   return createVitestConfig({

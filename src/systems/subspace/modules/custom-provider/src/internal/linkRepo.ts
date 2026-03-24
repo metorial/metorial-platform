@@ -1,4 +1,10 @@
-import { db, snowflake, type Solution, type Tenant, TenantActor } from '@metorial-subspace/db';
+import {
+  db,
+  snowflake,
+  type Solution,
+  type Tenant,
+  type TenantActor
+} from '@metorial-subspace/db';
 import { getTenantForOrigin, origin } from '../origin';
 
 export let linkRepo = async (d: {

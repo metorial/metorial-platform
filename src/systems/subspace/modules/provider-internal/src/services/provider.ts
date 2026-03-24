@@ -8,7 +8,7 @@ import {
   type Publisher,
   type ShuttleServer,
   type Slate,
-  Solution,
+  type Solution,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';

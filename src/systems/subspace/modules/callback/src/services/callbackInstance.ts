@@ -2,12 +2,12 @@ import { internalServerError, notFoundError, ServiceError } from '@lowerdeck/err
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
-  CallbackReceiverRegistration,
   CallbackReceiverRegistrationStatus,
   db,
   getId,
   type Callback,
   type CallbackInstance,
+  type CallbackReceiverRegistration,
   type Environment,
   type ProviderAuthConfig,
   type ProviderConfig,

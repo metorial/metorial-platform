@@ -9,8 +9,8 @@ import {
   getId,
   type IdentityDelegationConfig,
   type IdentityDelegationConfigStatus,
-  IdentityDelegationConfigSubDelegationBehavior,
-  IdentityDelegationConfigVersion,
+  type IdentityDelegationConfigSubDelegationBehavior,
+  type IdentityDelegationConfigVersion,
   type Solution,
   type Tenant,
   withTransaction

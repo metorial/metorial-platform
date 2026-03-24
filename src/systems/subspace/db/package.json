@@ -22,7 +22,6 @@
     "@lowerdeck/snowflake": "^1.0.2",
     "@lowerdeck/telemetry": "^1.1.1",
     "@lowerdeck/validation": "^1.0.8",
-    "@metorial-subspace/provider-utils": "^1.0.0",
     "@metorial-subspace/tsconfig": "^1.0.0",
     "@modelcontextprotocol/sdk": "^1.25.2",
     "@prisma/adapter-pg": "^7.2.0",

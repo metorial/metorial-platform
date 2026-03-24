@@ -31,9 +31,16 @@
     "clients/metorial-consumer",
     "scripts/*",
     "vendor-placeholder/*",
-    "src/*",
-    "src/*/*",
-    "src/*/*/*"
+    "src/frontend/*",
+    "src/frontend/*/*",
+    "src/backend/*",
+    "src/backend/*/*",
+    "src/packages/*",
+    "src/packages/*/*",
+    "src/systems/*/*",
+    "src/systems/*/*/*",
+    "src/systems/*/*/*/*",
+    "src/systems/*/*/*/*/*"
   ],
   "dependencies": {
     "sade": "^1.8.1",
