@@ -14,7 +14,6 @@ FROM base AS deps
 # Copy workspace files
 COPY signal/package.json signal/bun.lock* ./
 COPY signal/service ./service
-COPY signal/clients ./clients
 COPY _clients/signal ./clients/typescript
 
 # Install dependencies (production only)
@@ -29,7 +28,6 @@ ENV SENTRY_AUTH_TOKEN=${SENTRY_AUTH_TOKEN}
 # Copy workspace files
 COPY signal/package.json signal/bun.lock* ./
 COPY signal/service ./service
-COPY signal/clients ./clients
 COPY _clients/signal ./clients/typescript
 
 # Install all dependencies (including devDependencies for Prisma generation)

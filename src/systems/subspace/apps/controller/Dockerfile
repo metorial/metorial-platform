@@ -6,7 +6,6 @@ WORKDIR /app
 # Copy all package files
 COPY subspace/package.json subspace/bun.lock* ./
 COPY subspace/apps ./apps
-COPY subspace/clients ./clients
 COPY subspace/packages ./packages
 COPY subspace/modules ./modules
 COPY subspace/provider-backends ./provider-backends
