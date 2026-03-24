@@ -12,9 +12,10 @@ WORKDIR /app
 FROM base AS deps
 
 # Copy workspace files
-COPY package.json bun.lock* ./
-COPY service ./service
-COPY clients ./clients
+COPY signal/package.json signal/bun.lock* ./
+COPY signal/service ./service
+COPY signal/clients ./clients
+COPY _clients/signal ./clients/typescript
 
 # Install dependencies (production only)
 RUN bun install --frozen-lockfile --production
@@ -26,9 +27,10 @@ ARG SENTRY_AUTH_TOKEN
 ENV SENTRY_AUTH_TOKEN=${SENTRY_AUTH_TOKEN}
 
 # Copy workspace files
-COPY package.json bun.lock* ./
-COPY service ./service
-COPY clients ./clients
+COPY signal/package.json signal/bun.lock* ./
+COPY signal/service ./service
+COPY signal/clients ./clients
+COPY _clients/signal ./clients/typescript
 
 # Install all dependencies (including devDependencies for Prisma generation)
 RUN bun install --frozen-lockfile

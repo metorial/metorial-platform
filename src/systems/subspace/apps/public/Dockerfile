@@ -4,13 +4,18 @@ FROM oven/bun:1 AS builder
 WORKDIR /app
 
 # Copy all package files
-COPY package.json bun.lock* ./
-COPY apps ./apps
-COPY clients ./clients
-COPY packages ./packages
-COPY modules ./modules
-COPY provider-backends ./provider-backends
-COPY db ./db
+COPY subspace/package.json subspace/bun.lock* ./
+COPY subspace/apps ./apps
+COPY subspace/clients ./clients
+COPY subspace/packages ./packages
+COPY subspace/modules ./modules
+COPY subspace/provider-backends ./provider-backends
+COPY subspace/db ./db
+COPY _clients/subspace ./clients/typescript
+COPY _clients/signal ./clients/signal
+COPY _clients/slates-hub ./clients/slates-hub
+COPY _clients/shuttle ./clients/shuttle
+COPY _clients/origin ./clients/origin
 
 # Install CA certificates for Sentry CLI uploads
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/*

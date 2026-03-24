@@ -12,10 +12,12 @@ WORKDIR /app
 FROM base AS deps
 
 # Copy workspace files
-COPY package.json bun.lock* ./
-COPY apps ./apps
-COPY packages ./packages
-COPY clients ./clients
+COPY slates/package.json slates/bun.lock* ./
+COPY slates/apps ./apps
+COPY slates/packages ./packages
+COPY slates/clients ./clients
+COPY _clients/slates-hub ./clients/hub
+COPY _clients/signal ./clients/signal
 
 # Install dependencies (production only)
 RUN bun install --frozen-lockfile --production
@@ -27,10 +29,12 @@ ARG SENTRY_AUTH_TOKEN
 ENV SENTRY_AUTH_TOKEN=${SENTRY_AUTH_TOKEN}
 
 # Copy workspace files
-COPY package.json bun.lock* ./
-COPY apps ./apps
-COPY packages ./packages
-COPY clients ./clients
+COPY slates/package.json slates/bun.lock* ./
+COPY slates/apps ./apps
+COPY slates/packages ./packages
+COPY slates/clients ./clients
+COPY _clients/slates-hub ./clients/hub
+COPY _clients/signal ./clients/signal
 
 # Install all dependencies (including devDependencies for Prisma generation)
 RUN bun install --frozen-lockfile
