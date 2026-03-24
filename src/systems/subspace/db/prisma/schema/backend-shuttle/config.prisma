@@ -1,0 +1,18 @@
+model ShuttleServerConfig {
+  oid BigInt @id
+  id  String @unique
+
+  shuttleServerOid BigInt
+  shuttleServer    ShuttleServer @relation(fields: [shuttleServerOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  lockedShuttleVersionOid BigInt?
+  lockedShuttleVersion    ShuttleServerVersion? @relation(fields: [lockedShuttleVersionOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  providerConfigVersions ProviderConfigVersion[]
+}

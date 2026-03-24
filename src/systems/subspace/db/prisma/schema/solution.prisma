@@ -1,0 +1,58 @@
+model Solution {
+  oid Int    @id
+  id  String @unique
+
+  identifier String @unique
+  name       String
+
+  createdAt DateTime @default(now())
+
+  providerAuthConfigs                      ProviderAuthConfig[]
+  providerAuthCredentials                  ProviderAuthCredentials[]
+  managedProviderAuthCredentials           ManagedProviderAuthCredentials[]
+  managedProviderAuthCredentialsBackings   ManagedProviderAuthCredentialsBacking[]
+  providerOAuthSetups                      ProviderOAuthSetup[]
+  providerConfigs                          ProviderConfig[]
+  providerDeployments                      ProviderDeployment[]
+  providerConfigVaults                     ProviderConfigVault[]
+  providerListings                         ProviderListing[]
+  providerListingGroups                    ProviderListingGroup[]
+  providers                                Provider[]
+  providerSpecificationChangeNotifications ProviderSpecificationChangeNotification[]
+  sessions                                 Session[]
+  providerAuthExports                      ProviderAuthExport[]
+  providerAuthImports                      ProviderAuthImport[]
+  providerSetupSessions                    ProviderSetupSession[]
+  sessionProviders                         SessionProvider[]
+  sessionTemplates                         SessionTemplate[]
+  sessionTemplateProviders                 SessionTemplateProvider[]
+  sessionConnections                       SessionConnection[]
+  sessionErrors                            SessionError[]
+  sessionMessages                          SessionMessage[]
+  sessionEvents                            SessionEvent[]
+  providerRuns                             ProviderRun[]
+  toolCalls                                ToolCall[]
+  environmentProviders                     EnvironmentProvider[]
+  customProviders                          CustomProvider[]
+  customProviderDeployments                CustomProviderDeployment[]
+  customProviderVersions                   CustomProviderVersion[]
+  customProviderCommits                    CustomProviderCommit[]
+  customProviderEnvironments               CustomProviderEnvironment[]
+  providerEnvironments                     ProviderEnvironment[]
+  upcomingCustomProviders                  UpcomingCustomProvider[]
+  codeBuckets                              CodeBucket[]
+  scmRepos                                 ScmRepo[]
+  scmRepoPushes                            ScmRepoPush[]
+  sessionWarnings                          SessionWarning[]
+  sessionUsageRecords                      SessionUsageRecord[]
+  providerRunUsageRecords                  ProviderRunUsageRecord[]
+  callbackDestinations                     CallbackDestination[]
+  callbacks                                Callback[]
+  providerUses                             ProviderUse[]
+  identityActors                           IdentityActor[]
+  agents                                   Agent[]
+  identities                               Identity[]
+  identityDelegationConfigs                IdentityDelegationConfig[]
+  identityDelegations                      IdentityDelegation[]
+  identityDelegationRequests               IdentityDelegationRequest[]
+}

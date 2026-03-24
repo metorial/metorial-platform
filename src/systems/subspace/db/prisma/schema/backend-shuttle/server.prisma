@@ -1,0 +1,56 @@
+enum ShuttleServerType {
+  container
+  function
+  remote
+}
+
+enum ShuttleServerRemoteProtocol {
+  sse
+  streamable_http
+}
+
+model ShuttleServer {
+  oid BigInt @id
+  id  String @unique
+
+  type ShuttleServerType
+
+  identifier String @unique
+
+  shuttleTenantId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  version                        ShuttleServerVersion[]
+  providerVersions               ProviderVersion[]
+  providerVariants               ProviderVariant[]
+  shuttleOAuthCredentials        ShuttleOAuthCredentials[]
+  shuttleOAuthSetups             ShuttleOAuthSetup[]
+  shuttleAuthConfigs             ShuttleAuthConfig[]
+  shuttleConnections             ShuttleConnection[]
+  shuttleServerConfigs           ShuttleServerConfig[]
+  shuttleCustomServers           ShuttleCustomServer[]
+  shuttleCustomServerDeployments ShuttleCustomServerDeployment[]
+}
+
+model ShuttleServerVersion {
+  oid BigInt @id
+  id  String @unique
+
+  version    String
+  identifier String @unique
+
+  serverOid BigInt
+  server    ShuttleServer @relation(fields: [serverOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  providerVersions               ProviderVersion[]
+  shuttleConnections             ShuttleConnection[]
+  shuttleServerConfigs           ShuttleServerConfig[]
+  customProviderDeployment       CustomProviderDeployment?
+  customProviderVersion          CustomProviderVersion?
+  shuttleCustomServerDeployments ShuttleCustomServerDeployment[]
+}

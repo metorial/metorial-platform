@@ -1,0 +1,5 @@
+model OriginSyncChangeNotificationCursor {
+  id        Int      @id @default(1)
+  cursor    String
+  createdAt DateTime @default(now())
+}

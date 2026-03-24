@@ -1,0 +1,46 @@
+model ProviderVariant {
+  oid BigInt @id
+  id  String @unique
+
+  tag    String      @unique
+  tagRef ProviderTag @relation(fields: [tag], references: [tag])
+
+  identifier  String  @unique
+  name        String
+  description String?
+
+  isDefault Boolean @default(false)
+
+  metadata Json?
+
+  backendOid BigInt
+  backend    Backend @relation(fields: [backendOid], references: [oid])
+
+  providerOid BigInt
+  provider    Provider @relation(fields: [providerOid], references: [oid])
+
+  publisherOid BigInt
+  publisher    Publisher @relation(fields: [publisherOid], references: [oid])
+
+  slateOid BigInt?
+  slate    Slate?  @relation(fields: [slateOid], references: [oid])
+
+  shuttleServerOid BigInt?
+  shuttleServer    ShuttleServer? @relation(fields: [shuttleServerOid], references: [oid])
+
+  currentVersionOid BigInt?
+  currentVersion    ProviderVersion? @relation(fields: [currentVersionOid], references: [oid], name: "defaultVersion")
+
+  defaultProviderFor Provider[] @relation("defaultVariant")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  providerVersions           ProviderVersion[]
+  providerDeployments        ProviderDeployment[]
+  customProvider             CustomProvider?
+  providerEnvironments       ProviderEnvironment[]
+  providerDeploymentVersions ProviderDeploymentVersion[]
+
+  @@index([isDefault])
+}

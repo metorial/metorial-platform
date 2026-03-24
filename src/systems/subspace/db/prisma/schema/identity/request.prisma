@@ -1,0 +1,41 @@
+enum IdentityDelegationRequestStatus {
+  pending
+  approved
+  denied
+  canceled
+}
+
+model IdentityDelegationRequest {
+  oid BigInt @id
+  id  String @unique
+
+  status IdentityDelegationRequestStatus
+
+  expiresAt DateTime
+
+  delegationOid BigInt             @unique
+  delegation    IdentityDelegation @relation(fields: [delegationOid], references: [oid], onDelete: Cascade)
+
+  attestationOid BigInt?
+  attestation    IdentityDelegationAttestation? @relation(fields: [attestationOid], references: [oid], onDelete: Cascade)
+
+  requesterOid BigInt
+  requester    IdentityActor @relation(fields: [requesterOid], references: [oid], onDelete: Cascade)
+
+  identityOid BigInt
+  identity    Identity @relation(fields: [identityOid], references: [oid], onDelete: Cascade)
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([status])
+}

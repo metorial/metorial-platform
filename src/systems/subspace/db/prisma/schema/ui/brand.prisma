@@ -1,0 +1,16 @@
+model Brand {
+  oid BigInt @id
+  id  String @unique
+
+  identifier String @unique
+  name       String
+
+  /// [EntityImage]
+  image Json?
+
+  tenantOid BigInt? @unique
+  tenant    Tenant? @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  createdAt             DateTime               @default(now())
+  providerSetupSessions ProviderSetupSession[]
+}

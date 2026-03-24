@@ -1,0 +1,178 @@
+model Tenant {
+  oid BigInt @id
+  id  String @unique
+
+  urlKey String @unique
+
+  identifier String @unique
+  name       String
+
+  slateTenantId         String?
+  slateTenantIdentifier String?
+
+  shuttleTenantId         String?
+  shuttleTenantIdentifier String?
+
+  originTenantId         String?
+  originTenantIdentifier String?
+
+  createdAt DateTime @default(now())
+
+  logRetentionInDays Int @default(30)
+
+  providers                                Provider[]
+  providerListingGroups                    ProviderListingGroup[]
+  providerListings                         ProviderListing[]
+  publishers                               Publisher[]
+  providerDeployments                      ProviderDeployment[]
+  sessions                                 Session[]
+  providerConfigs                          ProviderConfig[]
+  providerConfigVaults                     ProviderConfigVault[]
+  slateInstances                           SlateInstance[]
+  providerDeploymentConfigPairs            ProviderDeploymentConfigPair[]
+  providerAuthCredentials                  ProviderAuthCredentials[]
+  managedProviderAuthCredentialsBackings   ManagedProviderAuthCredentialsBacking[]
+  slateOAuthCredentials                    SlateOAuthCredentials[]
+  providerOAuthSetups                      ProviderOAuthSetup[]
+  slateOAuthSetups                         SlateOAuthSetup[]
+  slateAuthConfigs                         SlateAuthConfig[]
+  providerAuthConfigs                      ProviderAuthConfig[]
+  providerSpecificationChangeNotifications ProviderSpecificationChangeNotification[]
+  providerAuthExports                      ProviderAuthExport[]
+  providerAuthImports                      ProviderAuthImport[]
+  providerSetupSessions                    ProviderSetupSession[]
+  brand                                    Brand?
+  sessionProviders                         SessionProvider[]
+  sessionTemplates                         SessionTemplate[]
+  sessionTemplateProviders                 SessionTemplateProvider[]
+  sessionConnections                       SessionConnection[]
+  sessionErrors                            SessionError[]
+  sessionMessages                          SessionMessage[]
+  sessionEvents                            SessionEvent[]
+  sessionParticipants                      SessionParticipant[]
+  providerRuns                             ProviderRun[]
+  sessionErrorGroups                       SessionErrorGroup[]
+  toolCalls                                ToolCall[]
+  environmentProviders                     EnvironmentProvider[]
+  environments                             Environment[]
+  shuttleOAuthCredentials                  ShuttleOAuthCredentials[]
+  shuttleOAuthSetups                       ShuttleOAuthSetup[]
+  shuttleAuthConfigs                       ShuttleAuthConfig[]
+  shuttleServerConfigs                     ShuttleServerConfig[]
+  customProviderDeployments                CustomProviderDeployment[]
+  customProviderVersions                   CustomProviderVersion[]
+  customProviders                          CustomProvider[]
+  shuttleCustomServers                     ShuttleCustomServer[]
+  shuttleCustomServerDeployments           ShuttleCustomServerDeployment[]
+  providerEnvironments                     ProviderEnvironment[]
+  customProviderEnvironments               CustomProviderEnvironment[]
+  actors                                   TenantActor[]
+  customProviderCommits                    CustomProviderCommit[]
+  upcomingCustomProviders                  UpcomingCustomProvider[]
+  codeBuckets                              CodeBucket[]
+  scmRepos                                 ScmRepo[]
+  scmRepoPushes                            ScmRepoPush[]
+  sessionWarnings                          SessionWarning[]
+  sessionUsageRecords                      SessionUsageRecord[]
+  providerRunUsageRecords                  ProviderRunUsageRecord[]
+  callbackDestinations                     CallbackDestination[]
+  callbacks                                Callback[]
+  providerUses                             ProviderUse[]
+  identityActors                           IdentityActor[]
+  agents                                   Agent[]
+  identities                               Identity[]
+  identityDelegationConfigs                IdentityDelegationConfig[]
+  identityDelegations                      IdentityDelegation[]
+  identityDelegationRequests               IdentityDelegationRequest[]
+}
+
+enum EnvironmentType {
+  development
+  production
+}
+
+model Environment {
+  oid BigInt @id
+  id  String @unique
+
+  type EnvironmentType
+
+  identifier String @unique
+  name       String
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  providerAuthConfigs                      ProviderAuthConfig[]
+  providerAuthCredentials                  ProviderAuthCredentials[]
+  providerAuthExports                      ProviderAuthExport[]
+  providerAuthImports                      ProviderAuthImport[]
+  providerOAuthSetups                      ProviderOAuthSetup[]
+  providerConfigs                          ProviderConfig[]
+  providerDeployments                      ProviderDeployment[]
+  providerDeploymentConfigPairs            ProviderDeploymentConfigPair[]
+  environmentProviders                     EnvironmentProvider[]
+  providerConfigVaults                     ProviderConfigVault[]
+  providerListingGroups                    ProviderListingGroup[]
+  providerSpecificationChangeNotifications ProviderSpecificationChangeNotification[]
+  sessionConnections                       SessionConnection[]
+  sessionErrorGroups                       SessionErrorGroup[]
+  sessionErrors                            SessionError[]
+  sessionEvents                            SessionEvent[]
+  sessionMessages                          SessionMessage[]
+  toolCalls                                ToolCall[]
+  sessionParticipants                      SessionParticipant[]
+  sessionProviders                         SessionProvider[]
+  providerRuns                             ProviderRun[]
+  sessions                                 Session[]
+  sessionTemplates                         SessionTemplate[]
+  sessionTemplateProviders                 SessionTemplateProvider[]
+  providerSetupSessions                    ProviderSetupSession[]
+  providerEnvironments                     ProviderEnvironment[]
+  customProviderEnvironments               CustomProviderEnvironment[]
+  customProviderEnvironmentVersions        CustomProviderEnvironmentVersion[]
+  providerEnvironmentVersions              ProviderEnvironmentVersion[]
+  upcomingCustomProviders                  UpcomingCustomProvider[]
+  sessionWarnings                          SessionWarning[]
+  callbacks                                Callback[]
+  providerUses                             ProviderUse[]
+  identityActors                           IdentityActor[]
+  agents                                   Agent[]
+  identities                               Identity[]
+  identityDelegationConfigs                IdentityDelegationConfig[]
+  identityDelegations                      IdentityDelegation[]
+  identityDelegationRequests               IdentityDelegationRequest[]
+}
+
+enum TenantActorType {
+  external
+  system
+
+  @@map("ActorType")
+}
+
+model TenantActor {
+  oid BigInt @id
+  id  String @unique
+
+  type TenantActorType
+
+  identifier          String
+  name                String
+  organizationActorId String?
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  customProviderVersions    CustomProviderVersion[]
+  customProviderDeployments CustomProviderDeployment[]
+  customProviderCommits     CustomProviderCommit[]
+  upcomingCustomProviders   UpcomingCustomProvider[]
+
+  @@unique([tenantOid, identifier])
+  @@map("Actor")
+}

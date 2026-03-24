@@ -1,0 +1,57 @@
+model ProviderVersionSpecificationChange {
+  oid BigInt @id
+  id  String @unique
+
+  fromSpecificationOid BigInt
+  fromSpecification    ProviderSpecification @relation("SpecChangeFrom", fields: [fromSpecificationOid], references: [oid])
+
+  toSpecificationOid BigInt
+  toSpecification    ProviderSpecification @relation("SpecChangeTo", fields: [toSpecificationOid], references: [oid])
+
+  fromVersionOid BigInt
+  fromVersion    ProviderVersion @relation("SpecChangeFromVersion", fields: [fromVersionOid], references: [oid])
+
+  toVersionOid BigInt
+  toVersion    ProviderVersion @relation("SpecChangeToVersion", fields: [toVersionOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  providerSpecificationChangeNotifications ProviderSpecificationChangeNotification[]
+
+  @@unique([fromVersionOid, toVersionOid, fromSpecificationOid, toSpecificationOid])
+}
+
+enum ProviderSpecificationChangeNotificationTarget {
+  version
+  deployment_config_pair
+}
+
+model ProviderSpecificationChangeNotification {
+  oid BigInt @id
+  id  String @unique
+
+  target ProviderSpecificationChangeNotificationTarget
+
+  versionOid BigInt
+  version    ProviderVersion @relation(fields: [versionOid], references: [oid])
+
+  tenantOid BigInt?
+  tenant    Tenant? @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  environmentOid BigInt?
+  environment    Environment? @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  solutionOid Int?
+  solution    Solution? @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
+
+  versionSpecificationChangeOid BigInt?                             @unique
+  versionSpecificationChange    ProviderVersionSpecificationChange? @relation(fields: [versionSpecificationChangeOid], references: [oid])
+
+  deploymentConfigPairOid BigInt?
+  deploymentConfigPair    ProviderDeploymentConfigPair? @relation(fields: [deploymentConfigPairOid], references: [oid])
+
+  pairSpecificationChangeOid BigInt?                                          @unique
+  pairSpecificationChange    ProviderDeploymentConfigPairSpecificationChange? @relation(fields: [pairSpecificationChangeOid], references: [oid])
+
+  @@index([target])
+}

@@ -1,0 +1,65 @@
+name: Subspace E2E Tests
+
+on:
+  push:
+    branches: [main, feature/**]
+    paths:
+      - 'apps/**'
+      - 'modules/**'
+      - 'packages/**'
+      - 'provider-backends/**'
+      - 'db/**'
+      - 'test-servers/**'
+      - 'docker-compose.dev.yml'
+      - 'init-test-db.sh'
+      - '.env.ci'
+      - 'package.json'
+      - 'bun.lock'
+      - '.github/workflows/subspace-e2e-tests.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/**'
+      - 'modules/**'
+      - 'packages/**'
+      - 'provider-backends/**'
+      - 'db/**'
+      - 'test-servers/**'
+      - 'docker-compose.dev.yml'
+      - 'init-test-db.sh'
+      - '.env.ci'
+      - 'package.json'
+      - 'bun.lock'
+      - '.github/workflows/subspace-e2e-tests.yml'
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  e2e-tests:
+    name: Run Subspace Controller E2E Tests
+    permissions:
+      contents: read
+      packages: read
+    uses: metorial/.github/.github/workflows/reusable-e2e-tests.yml@main
+    secrets: inherit
+    with:
+      service_directory: .
+      compose_project_prefix: subspace-ci
+      compose_profiles: 'infra'
+      wait_services: |
+        subspace-postgres
+        subspace-redis
+        subspace-object-storage
+        subspace-forge
+        subspace-function-bay
+        subspace-signal
+        subspace-voyager
+        subspace-slates-registry
+        subspace-slates-hub
+        subspace-shuttle
+        subspace-mcp-test-server
+        subspace-controller-test-service
+      test_container: subspace-controller-test-service
+      test_command: cd /app/apps/controller && set -a && . ./.env.ci && set +a && bunx prisma db push --schema ../../db/prisma/schema --config ../../db/prisma.config.ts && bunx prisma generate --schema ../../db/prisma/schema --config ../../db/prisma.config.ts && bun run test:ci

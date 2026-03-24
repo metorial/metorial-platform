@@ -1,0 +1,47 @@
+model ShuttleCustomServer {
+  oid BigInt @id
+  id  String @unique
+
+  identifier String @unique
+
+  shuttleTenantId String
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  serverOid BigInt
+  server    ShuttleServer @relation(fields: [serverOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  customProviderDeployment       CustomProviderDeployment?
+  customProviderVersion          CustomProviderVersion?
+  customProvider                 CustomProvider?
+  shuttleCustomServerDeployments ShuttleCustomServerDeployment[]
+}
+
+model ShuttleCustomServerDeployment {
+  oid BigInt @id
+  id  String @unique
+
+  identifier String @unique
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  serverOid BigInt
+  server    ShuttleServer @relation(fields: [serverOid], references: [oid])
+
+  customServerOid BigInt
+  customServer    ShuttleCustomServer @relation(fields: [customServerOid], references: [oid])
+
+  serverVersionOid BigInt?
+  serverVersion    ShuttleServerVersion? @relation(fields: [serverVersionOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  customProviderDeployment CustomProviderDeployment?
+  customProviderVersion    CustomProviderVersion?
+}
