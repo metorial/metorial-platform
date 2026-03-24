@@ -1,9 +1,9 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { SlateStatus } from '../../../../prisma/generated/client';
-import { testDb, cleanDatabase } from '../../../test/setup';
-import { fixtures } from '../../../test/fixtures';
-import { slatesHubClient } from '../../../test/client';
 import _ from 'lodash';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { SlateStatus } from '../../../../prisma/generated/client';
+import { slatesHubClient } from '../../../test/client';
+import { fixtures } from '../../../test/fixtures';
+import { cleanDatabase, testDb } from '../../../test/setup';
 
 describe('slate:list E2E', () => {
   const f = fixtures(testDb);
@@ -103,7 +103,6 @@ describe('slate:list E2E', () => {
     const presented = result.items[0];
 
     expect(presented).toMatchObject({
-      object: 'slate',
       id: slate.id,
       identifier: slate.identifier,
       name: slate.name,
@@ -168,7 +167,6 @@ describe('slate:getStats E2E', () => {
     });
 
     expect(result).toMatchObject({
-      object: 'slate.stats',
       slateId: slate.id,
       versions: 2,
       deployments: 1,

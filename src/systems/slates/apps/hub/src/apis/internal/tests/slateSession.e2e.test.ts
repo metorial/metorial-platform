@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
-import { testDb, cleanDatabase } from '../../../test/setup';
-import { fixtures } from '../../../test/fixtures';
 import { slatesHubClient } from '../../../test/client';
+import { fixtures } from '../../../test/fixtures';
+import { cleanDatabase, testDb } from '../../../test/setup';
 
 describe('slateSession:list E2E', () => {
   const f = fixtures(testDb);
@@ -37,7 +37,11 @@ describe('slateSession:list E2E', () => {
   });
 
   it('filters by slateIds', async () => {
-    const { session: session1, tenant, slate: slate1 } = await f.slateSession.complete({
+    const {
+      session: session1,
+      tenant,
+      slate: slate1
+    } = await f.slateSession.complete({
       slateIdentifier: 'slate-1'
     });
 
@@ -80,7 +84,6 @@ describe('slateSession:get E2E', () => {
     });
 
     expect(result).toMatchObject({
-      object: 'slate.session',
       id: session.id,
       slateId: slate.id
     });

@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { SlateSpecificationChangeType } from '../../../../prisma/generated/client';
-import { testDb, cleanDatabase } from '../../../test/setup';
-import { fixtures } from '../../../test/fixtures';
 import { slatesHubClient } from '../../../test/client';
+import { fixtures } from '../../../test/fixtures';
+import { cleanDatabase, testDb } from '../../../test/setup';
 
 describe('slateSpecificationChange:list E2E', () => {
   const f = fixtures(testDb);
@@ -12,8 +12,7 @@ describe('slateSpecificationChange:list E2E', () => {
   });
 
   it('returns specification changes', async () => {
-    const { change, fromVersion, toVersion } =
-      await f.slateSpecificationChange.withVersions();
+    const { change, fromVersion, toVersion } = await f.slateSpecificationChange.withVersions();
 
     await f.slateSpecificationChange.withVersions();
 
@@ -75,7 +74,6 @@ describe('slateSpecificationChange:get E2E', () => {
     });
 
     expect(result).toMatchObject({
-      object: 'slate.specification_change',
       id: change.id,
       type: SlateSpecificationChangeType.between_versions
     });

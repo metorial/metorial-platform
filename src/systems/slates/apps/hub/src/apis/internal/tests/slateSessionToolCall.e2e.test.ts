@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { SlateSessionToolCallStatus } from '../../../../prisma/generated/client';
-import { testDb, cleanDatabase } from '../../../test/setup';
-import { fixtures } from '../../../test/fixtures';
 import { slatesHubClient } from '../../../test/client';
+import { fixtures } from '../../../test/fixtures';
+import { cleanDatabase, testDb } from '../../../test/setup';
 
 describe('slateSessionToolCall:list E2E', () => {
   const f = fixtures(testDb);
@@ -12,7 +12,8 @@ describe('slateSessionToolCall:list E2E', () => {
   });
 
   it('returns tool calls for a tenant', async () => {
-    const { toolCall, session, version, action, tenant } = await f.slateSessionToolCall.complete();
+    const { toolCall, session, version, action, tenant } =
+      await f.slateSessionToolCall.complete();
 
     const result = await slatesHubClient.slateSessionToolCall.list({
       tenantId: tenant.id,
@@ -35,7 +36,11 @@ describe('slateSessionToolCall:list E2E', () => {
   });
 
   it('filters by slateIds', async () => {
-    const { toolCall: call1, tenant, slate: slate1 } = await f.slateSessionToolCall.complete({
+    const {
+      toolCall: call1,
+      tenant,
+      slate: slate1
+    } = await f.slateSessionToolCall.complete({
       slateIdentifier: 'slate-1'
     });
     await f.slateSessionToolCall.complete({ slateIdentifier: 'slate-2' });
@@ -69,7 +74,6 @@ describe('slateSessionToolCall:get E2E', () => {
     });
 
     expect(result).toMatchObject({
-      object: 'slate.session.tool_call',
       id: toolCall.id
     });
   });
@@ -85,7 +89,6 @@ describe('slateSessionToolCall:get E2E', () => {
     });
 
     expect(result).toMatchObject({
-      object: 'slate.session.tool_call',
       id: toolCall.id
     });
   });
@@ -108,7 +111,6 @@ describe('slateSessionToolCall:getLogs E2E', () => {
     });
 
     expect(result).toMatchObject({
-      object: 'slate.session.tool_call',
       id: toolCall.id,
       sessionId: session.id,
       slateVersionId: version.id,

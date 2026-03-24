@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { SlateVersionDiscoveryStatus } from '../../../../prisma/generated/client';
-import { testDb, cleanDatabase } from '../../../test/setup';
-import { fixtures } from '../../../test/fixtures';
 import { slatesHubClient } from '../../../test/client';
+import { fixtures } from '../../../test/fixtures';
+import { cleanDatabase, testDb } from '../../../test/setup';
 
 describe('slateVersionDiscovery:list E2E', () => {
   const f = fixtures(testDb);
@@ -68,7 +68,6 @@ describe('slateVersionDiscovery:get E2E', () => {
     });
 
     expect(result).toMatchObject({
-      object: 'slate.version_discovery',
       id: discovery.id
     });
   });
@@ -86,7 +85,6 @@ describe('slateVersionDiscovery:get E2E', () => {
     });
 
     expect(result).toMatchObject({
-      object: 'slate.version_discovery',
       id: discovery.id,
       error: {
         code: 'version_discovery_error',

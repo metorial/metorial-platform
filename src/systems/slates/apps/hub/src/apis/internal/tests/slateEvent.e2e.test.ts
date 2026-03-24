@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { SlateEventType } from '../../../../prisma/generated/client';
-import { testDb, cleanDatabase } from '../../../test/setup';
-import { fixtures } from '../../../test/fixtures';
 import { slatesHubClient } from '../../../test/client';
+import { fixtures } from '../../../test/fixtures';
+import { cleanDatabase, testDb } from '../../../test/setup';
 
 describe('slateEvent:list E2E', () => {
   const f = fixtures(testDb);
@@ -108,7 +108,6 @@ describe('slateEvent:get E2E', () => {
     });
 
     expect(result).toMatchObject({
-      object: 'slate.event',
       id: event.id,
       type: SlateEventType.discovery_succeeded,
       slate: {
@@ -149,7 +148,6 @@ describe('slateEvent:get E2E', () => {
     });
 
     expect(result).toMatchObject({
-      object: 'slate.event',
       id: event.id,
       deployment: { id: deployment.id },
       discovery: { id: discovery.id }

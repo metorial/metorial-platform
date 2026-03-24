@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { testDb, cleanDatabase } from '../../../test/setup';
-import { fixtures } from '../../../test/fixtures';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { slatesHubClient } from '../../../test/client';
+import { fixtures } from '../../../test/fixtures';
+import { cleanDatabase, testDb } from '../../../test/setup';
 
 describe('slateOAuthCredentials:list E2E', () => {
   const f = fixtures(testDb);
@@ -36,8 +36,11 @@ describe('slateOAuthCredentials:list E2E', () => {
   });
 
   it('filters by slateIds', async () => {
-    const { credentials: creds1, tenant, slate: slate1 } =
-      await f.slateOAuthCredentials.complete({ slateIdentifier: 'slate-1' });
+    const {
+      credentials: creds1,
+      tenant,
+      slate: slate1
+    } = await f.slateOAuthCredentials.complete({ slateIdentifier: 'slate-1' });
 
     const slate2 = await f.slate.complete({ slateIdentifier: 'slate-2' });
     const secret2 = await f.secret.default({ tenantOid: tenant.oid });
@@ -74,7 +77,6 @@ describe('slateOAuthCredentials:get E2E', () => {
     });
 
     expect(result).toMatchObject({
-      object: 'slate.oauth_credentials',
       id: credentials.id,
       slateId: slate.id,
       clientId: credentials.clientId

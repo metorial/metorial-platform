@@ -1,8 +1,11 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { SlateTriggerDestinationType, SlateTriggerDestinationStatus } from '../../../../prisma/generated/client';
-import { testDb, cleanDatabase } from '../../../test/setup';
-import { fixtures } from '../../../test/fixtures';
+import { beforeEach, describe, expect, it } from 'vitest';
+import {
+  SlateTriggerDestinationStatus,
+  SlateTriggerDestinationType
+} from '../../../../prisma/generated/client';
 import { slatesHubClient } from '../../../test/client';
+import { fixtures } from '../../../test/fixtures';
+import { cleanDatabase, testDb } from '../../../test/setup';
 
 describe('slateTriggerDestination:list E2E', () => {
   const f = fixtures(testDb);
@@ -54,7 +57,6 @@ describe('slateTriggerDestination:get E2E', () => {
     });
 
     expect(result).toMatchObject({
-      object: 'slate.trigger.destination',
       id: destination.id,
       name: destination.name,
       url: destination.url

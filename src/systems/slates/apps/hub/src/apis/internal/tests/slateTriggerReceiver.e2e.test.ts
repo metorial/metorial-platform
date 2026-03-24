@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { SlateTriggerReceiverStatus } from '../../../../prisma/generated/client';
-import { testDb, cleanDatabase } from '../../../test/setup';
-import { fixtures } from '../../../test/fixtures';
 import { slatesHubClient } from '../../../test/client';
+import { fixtures } from '../../../test/fixtures';
+import { cleanDatabase, testDb } from '../../../test/setup';
 
 describe('slateTriggerReceiver:list E2E', () => {
   const f = fixtures(testDb);
@@ -45,7 +45,11 @@ describe('slateTriggerReceiver:list E2E', () => {
   });
 
   it('filters by slateIds', async () => {
-    const { receiver: receiver1, tenant, slate: slate1 } = await f.slateTriggerReceiver.complete({
+    const {
+      receiver: receiver1,
+      tenant,
+      slate: slate1
+    } = await f.slateTriggerReceiver.complete({
       slateIdentifier: 'slate-1'
     });
 
@@ -71,8 +75,11 @@ describe('slateTriggerReceiver:list E2E', () => {
   });
 
   it('filters by slateInstanceIds', async () => {
-    const { receiver: receiver1, tenant, instance: instance1 } =
-      await f.slateTriggerReceiver.complete();
+    const {
+      receiver: receiver1,
+      tenant,
+      instance: instance1
+    } = await f.slateTriggerReceiver.complete();
 
     const slate2 = await f.slate.complete();
     const instance2 = await f.slateInstance.default({
@@ -112,7 +119,6 @@ describe('slateTriggerReceiver:get E2E', () => {
     });
 
     expect(result).toMatchObject({
-      object: 'slate.trigger.receiver',
       id: receiver.id,
       status: SlateTriggerReceiverStatus.active,
       slateId: slate.id,

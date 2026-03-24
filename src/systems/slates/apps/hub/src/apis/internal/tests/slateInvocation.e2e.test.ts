@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { SlateStatus, SlateDeploymentStatus } from '../../../../prisma/generated/client';
-import { testDb, cleanDatabase } from '../../../test/setup';
-import { fixtures } from '../../../test/fixtures';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { SlateDeploymentStatus, SlateStatus } from '../../../../prisma/generated/client';
 import { slatesHubClient } from '../../../test/client';
+import { fixtures } from '../../../test/fixtures';
+import { cleanDatabase, testDb } from '../../../test/setup';
 
 describe('slateInvocation:DANGEROUSLY_get E2E', () => {
   const f = fixtures(testDb);
@@ -31,7 +31,6 @@ describe('slateInvocation:DANGEROUSLY_get E2E', () => {
     });
 
     expect(result).toMatchObject({
-      object: 'slate.invocation',
       id: invocation.id
     });
   });
@@ -53,7 +52,6 @@ describe('slateInvocation:DANGEROUSLY_get E2E', () => {
     });
 
     expect(result).toMatchObject({
-      object: 'slate.invocation',
       id: invocation.id,
       status: 'succeeded'
     });

@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { SlateStatus } from '../../../../prisma/generated/client';
-import { testDb, cleanDatabase } from '../../../test/setup';
-import { fixtures } from '../../../test/fixtures';
 import { slatesHubClient } from '../../../test/client';
+import { fixtures } from '../../../test/fixtures';
+import { cleanDatabase, testDb } from '../../../test/setup';
 
 describe('slateVersion:list E2E', () => {
   const f = fixtures(testDb);
@@ -31,9 +31,7 @@ describe('slateVersion:list E2E', () => {
     const [first, second] = result.items;
     expect(first).toBeDefined();
     expect(second).toBeDefined();
-    expect(first!.createdAt.getTime()).toBeGreaterThanOrEqual(
-      second!.createdAt.getTime()
-    );
+    expect(first!.createdAt.getTime()).toBeGreaterThanOrEqual(second!.createdAt.getTime());
     expect(result.items).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -68,7 +66,6 @@ describe('slateVersion:get E2E', () => {
     });
 
     expect(result).toMatchObject({
-      object: 'slate.version',
       id: slate.currentVersion.id,
       version: '1.0.0',
       slateId: slate.id

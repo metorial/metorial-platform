@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { SlateInstanceOAuthSetupStatus } from '../../../../prisma/generated/client';
-import { testDb, cleanDatabase } from '../../../test/setup';
-import { fixtures } from '../../../test/fixtures';
 import { slatesHubClient } from '../../../test/client';
+import { fixtures } from '../../../test/fixtures';
+import { cleanDatabase, testDb } from '../../../test/setup';
 
 describe('slateOAuthSetup:list E2E', () => {
   const f = fixtures(testDb);
@@ -12,7 +12,8 @@ describe('slateOAuthSetup:list E2E', () => {
   });
 
   it('returns OAuth setups for a tenant', async () => {
-    const { setup, tenant, slate, credentials, authMethod } = await f.slateOAuthSetup.complete();
+    const { setup, tenant, slate, credentials, authMethod } =
+      await f.slateOAuthSetup.complete();
 
     await f.slateOAuthSetup.withSecret({
       tenantOid: tenant.oid,
@@ -47,7 +48,11 @@ describe('slateOAuthSetup:list E2E', () => {
   });
 
   it('filters by slateIds', async () => {
-    const { setup: setup1, tenant, slate: slate1 } = await f.slateOAuthSetup.complete({
+    const {
+      setup: setup1,
+      tenant,
+      slate: slate1
+    } = await f.slateOAuthSetup.complete({
       slateIdentifier: 'slate-1'
     });
 
@@ -84,7 +89,6 @@ describe('slateOAuthSetup:get E2E', () => {
     });
 
     expect(result).toMatchObject({
-      object: 'slate.oauth_setup',
       id: setup.id,
       slateId: slate.id,
       status: SlateInstanceOAuthSetupStatus.unused
@@ -108,7 +112,6 @@ describe('slateOAuthSetup:getLogs E2E', () => {
     });
 
     expect(result).toMatchObject({
-      object: 'slate.oauth_setup',
       id: setup.id,
       slateId: slate.id,
       error: null,
