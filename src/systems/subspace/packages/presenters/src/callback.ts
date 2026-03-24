@@ -1,10 +1,13 @@
 import type {
   Callback,
+  CallbackDestination,
+  CallbackDestinationLink,
   CallbackProviderTrigger,
   Provider,
   ProviderDeployment,
   ProviderTrigger
 } from '@metorial-subspace/db';
+import { callbackDestinationPresenter } from './callbackDestination';
 import { providerDeploymentPreviewPresenter } from './deployment';
 
 export let callbackPresenter = (
@@ -12,6 +15,9 @@ export let callbackPresenter = (
     providerDeployment: ProviderDeployment & {
       provider: Provider;
     };
+    callbackDestinationLinks: (CallbackDestinationLink & {
+      callbackDestination: CallbackDestination;
+    })[];
     callbackProviderTriggers: (CallbackProviderTrigger & {
       providerTrigger: ProviderTrigger;
     })[];
@@ -29,6 +35,10 @@ export let callbackPresenter = (
   pollIntervalSecondsOverride: callback.pollIntervalSecondsOverride,
 
   providerDeployment: providerDeploymentPreviewPresenter(callback.providerDeployment),
+
+  destinations: callback.callbackDestinationLinks.map(link =>
+    callbackDestinationPresenter(link.callbackDestination)
+  ),
 
   providerTriggers: callback.callbackProviderTriggers.map(trigger => ({
     object: 'callback.provider_trigger',

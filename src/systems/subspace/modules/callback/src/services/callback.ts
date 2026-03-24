@@ -40,6 +40,11 @@ let callbackInclude = {
     include: {
       providerTrigger: true
     }
+  },
+  callbackDestinationLinks: {
+    include: {
+      callbackDestination: true
+    }
   }
 };
 

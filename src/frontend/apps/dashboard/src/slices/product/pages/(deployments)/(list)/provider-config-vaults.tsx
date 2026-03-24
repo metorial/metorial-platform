@@ -9,7 +9,7 @@ import {
   useProviders
 } from '@metorial/state';
 import { Input, RenderDate, Spacer, Text } from '@metorial/ui';
-import { Table } from '@metorial/ui-product';
+import { ID, Table } from '@metorial/ui-product';
 import { useMemo } from 'react';
 import { EmptyState } from '../../../../../components/emptyState';
 import { useSearchFilter } from '../../../../../hooks/useSearchFilter';
@@ -53,7 +53,7 @@ export let ProviderConfigVaultsOverviewPage = () => {
 
   let vaultsTable = renderWithPagination(vaults)(vaults => (
     <Table
-      headers={['Name', 'Provider', 'Deployment', 'Created']}
+      headers={['Name', 'ID', 'Provider', 'Deployment', 'Created']}
       data={vaults.data.items.map(
         (
           vault: DashboardInstanceProviderDeploymentsConfigVaultsListOutput['items'][number]
@@ -68,6 +68,7 @@ export let ProviderConfigVaultsOverviewPage = () => {
             <Text size="2" weight="strong">
               {vault.name ?? 'Unnamed Vault'}
             </Text>,
+            <ID id={vault.id} />,
             <Text size="2">
               {providerNameMap.get(vault.providerId) ?? vault.providerId ?? '—'}
             </Text>,

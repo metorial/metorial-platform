@@ -1,4 +1,5 @@
 import { v } from '@lowerdeck/validation';
+import type { SubspaceCallbackDestination } from '@metorial/module-subspace';
 import { Presenter } from '@metorial/presenter';
 import { callbackType } from '../../types';
 import { v1CallbackDestinationPresenter } from './callbackDestination';
@@ -45,34 +46,40 @@ let callbackTriggerSchema = v.object({
 });
 
 export let v1CallbackPresenter = Presenter.create(callbackType)
-  .presenter(async ({ callback }, opts) => ({
-    object: 'callback' as const,
-    id: callback.id,
-    status: callback.status,
-    name: callback.name,
-    description: callback.description,
-    metadata: callback.metadata,
-    poll_interval_seconds_override: callback.pollIntervalSecondsOverride,
-    provider_deployment: await v1ProviderDeploymentPreviewPresenter
-      .present({ deployment: callback.providerDeployment }, opts)
-      .run(),
-    destinations: await Promise.all(
-      callback.destinations.map(async destination =>
+  .presenter(async ({ callback }, opts) => {
+    let callbackWithDestinations = callback as typeof callback & {
+      destinations?: SubspaceCallbackDestination[];
+    };
+
+    return {
+      object: 'callback' as const,
+      id: callback.id,
+      status: callback.status,
+      name: callback.name,
+      description: callback.description,
+      metadata: callback.metadata,
+      poll_interval_seconds_override: callback.pollIntervalSecondsOverride,
+      provider_deployment: await v1ProviderDeploymentPreviewPresenter
+        .present({ deployment: callback.providerDeployment }, opts)
+        .run(),
+      destinations: await Promise.all(
+        (callbackWithDestinations.destinations ?? []).map(async destination =>
         v1CallbackDestinationPresenter.present({ callbackDestination: destination }, opts).run()
-      )
-    ),
-    provider_triggers: callback.providerTriggers.map(trigger => ({
-      object: 'callback.provider_trigger' as const,
-      id: trigger.id,
-      provider_trigger_id: trigger.providerTriggerId,
-      provider_trigger_key: trigger.providerTriggerKey,
-      provider_trigger_name: trigger.providerTriggerName,
-      event_types: trigger.eventTypes,
-      created_at: trigger.createdAt
-    })),
-    created_at: callback.createdAt,
-    updated_at: callback.updatedAt
-  }))
+        )
+      ),
+      provider_triggers: callback.providerTriggers.map(trigger => ({
+        object: 'callback.provider_trigger' as const,
+        id: trigger.id,
+        provider_trigger_id: trigger.providerTriggerId,
+        provider_trigger_key: trigger.providerTriggerKey,
+        provider_trigger_name: trigger.providerTriggerName,
+        event_types: trigger.eventTypes,
+        created_at: trigger.createdAt
+      })),
+      created_at: callback.createdAt,
+      updated_at: callback.updatedAt
+    };
+  })
   .schema(
     v.object({
       object: v.literal('callback', {

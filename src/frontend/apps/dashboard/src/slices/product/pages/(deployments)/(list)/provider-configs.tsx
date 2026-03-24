@@ -9,7 +9,7 @@ import {
   useProviders
 } from '@metorial/state';
 import { Input, RenderDate, Spacer, Text } from '@metorial/ui';
-import { Table } from '@metorial/ui-product';
+import { ID, Table } from '@metorial/ui-product';
 import { useMemo } from 'react';
 import { EmptyState } from '../../../../../components/emptyState';
 import { useSearchFilter } from '../../../../../hooks/useSearchFilter';
@@ -84,7 +84,7 @@ export let ProviderConfigsOverviewPage = () => {
   }, [configs.data?.items]);
   let table = (
     <Table
-      headers={['Config Name', 'Provider', 'Deployment', 'Created']}
+      headers={['Config Name', 'ID', 'Provider', 'Deployment', 'Created']}
       data={rows.map(row => ({
         href: row.providerDeploymentId
           ? Paths.instance.providerConfig(
@@ -99,6 +99,7 @@ export let ProviderConfigsOverviewPage = () => {
           <Text size="2" weight="strong">
             {row.config.name ?? 'Unnamed'}
           </Text>,
+          <ID id={row.config.id} />,
           <Text size="2">
             {providerNameMap.get(
               row.config.deployment?.providerId ??

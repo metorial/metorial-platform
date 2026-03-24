@@ -132,7 +132,7 @@ export let CallbackDestinationsList = (p: { callbackId: string | undefined }) =>
 
           <Spacer height={10} />
 
-          <Flex gap={10} justify="flex-end">
+          <Flex gap={10} justify="end">
             <Button
               variant="outline"
               onClick={() => setSelectedDestinationIds(currentDestinationIds)}
