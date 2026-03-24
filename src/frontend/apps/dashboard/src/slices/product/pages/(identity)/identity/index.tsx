@@ -71,10 +71,7 @@ export let IdentityPage = () => {
       ),
     [credentials]
   );
-  let providers = useProviders(
-    instance.data?.id,
-    providerIds.length > 0 ? { id: providerIds } : null
-  );
+  let providers = useProviders(instance.data?.id, { id: providerIds });
   let deployments = useProviderDeployments(instance.data?.id, mapToIdFilter(deploymentIds));
   let configs = useInstanceProviderConfigs(instance.data?.id, mapToIdFilter(configIds));
   let authConfigs = useInstanceProviderAuthConfigs(
