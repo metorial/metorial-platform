@@ -13,7 +13,6 @@
   "author": "Tobias Herber",
   "license": "FSL 1.1",
   "type": "module",
-  "source": "src/index.ts",
   "exports": {
     "types": "./dist/index.d.ts",
     "require": "./dist/index.cjs",
