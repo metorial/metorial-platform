@@ -1,0 +1,403 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "./generated"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+generator json {
+  provider = "prisma-json-types-generator"
+}
+
+model Tenant {
+  oid BigInt @id
+  id  String @unique
+
+  identifier String @unique
+  name       String
+
+  createdAt           DateTime             @default(now())
+  users               User[]
+  workspaces          Workspace[]
+  scopes              Scope[]
+  slates              Slate[]
+  userTokens          UserToken[]
+  readerTokens        ReaderToken[]
+  changeNotifications ChangeNotification[]
+  subRegistries       SubRegistry[]
+}
+
+model SubRegistry {
+  oid BigInt @id
+  id  String @unique
+
+  identifier String @unique
+  name       String
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  filters   SubRegistryFilter[]
+}
+
+enum SubRegistryFilterType {
+  scope
+  prefix
+  package
+}
+
+model SubRegistryFilter {
+  oid BigInt @id
+  id  String @unique
+
+  type  SubRegistryFilterType
+  value String
+
+  subRegistryOid BigInt
+  subRegistry    SubRegistry @relation(fields: [subRegistryOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([subRegistryOid, type, value])
+  @@index([subRegistryOid])
+}
+
+enum ScopeType {
+  user
+  workspace
+}
+
+enum ScopeStatus {
+  active
+  deleted
+}
+
+model Scope {
+  oid    BigInt      @id
+  id     String      @unique
+  type   ScopeType
+  status ScopeStatus
+
+  identifier  String  @unique
+  name        String
+  description String?
+
+  /// [EntityLinks]
+  links Json
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  user      User?
+  workspace Workspace?
+  slates    Slate[]
+
+  @@index([type])
+}
+
+enum UserStatus {
+  active
+  deleted
+}
+
+enum UserTenantAccess {
+  read
+  read_write
+}
+
+model User {
+  oid    BigInt           @id
+  id     String           @unique
+  status UserStatus
+  access UserTenantAccess
+
+  identifier String @unique
+  name       String
+
+  scopeOid BigInt @unique
+  scope    Scope  @relation(fields: [scopeOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  tokens        UserToken[]
+  slates        Slate[]
+  slateVersions SlateVersion[]
+}
+
+enum WorkspaceStatus {
+  active
+  deleted
+}
+
+model Workspace {
+  oid    BigInt          @id
+  id     String          @unique
+  status WorkspaceStatus
+
+  identifier String @unique
+  name       String
+
+  scopeOid BigInt @unique
+  scope    Scope  @relation(fields: [scopeOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+enum TokenStatus {
+  active
+  revoked
+  expired
+}
+
+model UserToken {
+  oid    BigInt      @id
+  id     String      @unique
+  status TokenStatus
+
+  name   String
+  secret String @unique
+
+  userOid BigInt
+  user    User   @relation(fields: [userOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+  expiresAt DateTime?
+
+  @@index([expiresAt])
+  @@index([status])
+}
+
+model ReaderToken {
+  oid    BigInt      @id
+  id     String      @unique
+  status TokenStatus
+
+  name   String
+  secret String @unique
+
+  tenantOid BigInt?
+  tenant    Tenant? @relation(fields: [tenantOid], references: [oid])
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+  expiresAt DateTime?
+
+  @@index([expiresAt])
+  @@index([status])
+}
+
+model SlateCategory {
+  oid BigInt @id
+  id  String @unique
+
+  identifier String @unique
+  name       String
+
+  createdAt                DateTime                  @default(now())
+  slateCategoryAssignments SlateCategoryAssignment[]
+}
+
+enum SlateStatus {
+  active
+  deleted
+}
+
+enum SlateAccess {
+  public
+  private
+}
+
+model Slate {
+  oid    BigInt      @id
+  id     String      @unique
+  status SlateStatus
+  access SlateAccess
+
+  identifier     String @unique
+  fullIdentifier String @unique
+  name           String
+
+  logoUrl String?
+  skills  String[]
+
+  description String?
+
+  scopeOid BigInt
+  scope    Scope  @relation(fields: [scopeOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  createdByUserOid BigInt
+  createdByUser    User   @relation(fields: [createdByUserOid], references: [oid])
+
+  currentVersionOid BigInt?
+  currentVersion    SlateVersion? @relation(fields: [currentVersionOid], references: [oid], name: "currentVersion")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  slateVersions       SlateVersion[]
+  changeNotifications ChangeNotification[]
+  categories          SlateCategoryAssignment[]
+
+  @@index([fullIdentifier])
+  @@index([access])
+  @@index([tenantOid, access])
+  @@index([scopeOid])
+}
+
+model SlateCategoryAssignment {
+  slateOid BigInt
+  slate    Slate  @relation(fields: [slateOid], references: [oid], onDelete: Cascade)
+
+  categoryOid BigInt
+  category    SlateCategory @relation(fields: [categoryOid], references: [oid], onDelete: Cascade)
+
+  @@id([slateOid, categoryOid])
+}
+
+model SlateVersion {
+  oid BigInt @id
+  id  String @unique
+
+  isCurrent Boolean
+
+  version String
+
+  /// [SlateJson]
+  slateJson Json
+
+  slateOid BigInt
+  slate    Slate  @relation(fields: [slateOid], references: [oid])
+
+  bundleArtifactOid BigInt
+  bundleArtifact    Artifact @relation(fields: [bundleArtifactOid], references: [oid])
+
+  createdByUserOid BigInt
+  createdByUser    User   @relation(fields: [createdByUserOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  slateDocuments      SlateDocument[]
+  currentInSlates     Slate[]              @relation("currentVersion")
+  changeNotifications ChangeNotification[]
+
+  @@unique([slateOid, version])
+}
+
+model SlateDocument {
+  oid BigInt @id
+  id  String @unique
+
+  slateVersionOid BigInt
+  slateVersion    SlateVersion @relation(fields: [slateVersionOid], references: [oid])
+
+  path    String
+  content String
+
+  createdAt DateTime @default(now())
+
+  @@unique([slateVersionOid, path])
+}
+
+model Artifact {
+  oid BigInt @id
+  id  String @unique
+
+  storageKey String
+  bucket     String
+
+  size     BigInt
+  mimeType String
+  checksum String
+
+  createdAt DateTime @default(now())
+
+  slateVersions SlateVersion[]
+}
+
+model AdminUser {
+  oid BigInt @id
+  id  String @unique
+
+  email String @unique
+  name  String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  sessions AdminSession[]
+}
+
+model AdminSession {
+  oid BigInt @id
+  id  String @unique
+
+  token String @unique
+
+  adminUserOid BigInt
+  adminUser    AdminUser @relation(fields: [adminUserOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([token])
+  @@index([expiresAt])
+}
+
+enum ChangeNotificationType {
+  slate_version_created
+}
+
+model ChangeNotification {
+  oid BigInt @id
+  id  String @unique
+
+  type ChangeNotificationType
+
+  // Denormalized fields to avoid having to do joins when iterating over notifications
+  slateId                String
+  slateIdentifier        String
+  slateFullIdentifier    String
+  slateVersionId         String?
+  slateVersionIdentifier String?
+
+  slateOid BigInt
+  slate    Slate  @relation(fields: [slateOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  slateVersionOid BigInt?
+  slateVersion    SlateVersion? @relation(fields: [slateVersionOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  @@index([type])
+}

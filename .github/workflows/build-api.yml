@@ -1,4 +1,4 @@
-name: 'Build and Push API'
+name: 'Build OSS Images'
 
 on:
   workflow_dispatch:
@@ -7,10 +7,19 @@ on:
     branches:
       - main
       - dev
+    paths:
+      - '.github/workflows/build-api.yml'
+      - 'deployment/**'
+      - 'src/backend/**'
+      - 'src/systems/signal/**'
+      - 'src/systems/slates/apps/hub/**'
+      - 'src/systems/subspace/**'
+      - 'package.json'
+      - 'bun.lock'
 
 jobs:
-  test-and-build-ts:
-    name: 'Test and Build TypeScript'
+  test-monorepo-ts:
+    name: 'Test Monorepo TS'
     runs-on: ubuntu-latest
 
     steps:
@@ -35,18 +44,87 @@ jobs:
       - name: Generate Prisma Clients
         run: bun run prisma:generate
 
-      - name: Build Packages
-        run: bun run build
-
       - name: Test
         run: bun run test
+
+  test-signal-e2e:
+    name: 'Test Signal E2E'
+    permissions:
+      contents: read
+      packages: read
+    uses: metorial/.github/.github/workflows/reusable-e2e-tests.yml@main
+    secrets: inherit
+    with:
+      service_directory: src/systems/signal/service
+      compose_project_prefix: signal-ci
+      compose_profiles: 'infra service'
+      wait_services: |
+        signal-postgres
+        signal-redis
+        signal-object-storage
+        signal-service
+      test_container: signal-service
+      test_command: cd /app/src/systems/signal/service && bun run test -- --mode ci --reporter verbose
+
+  test-slates-hub-e2e:
+    name: 'Test Slates Hub E2E'
+    permissions:
+      contents: read
+      packages: read
+    uses: metorial/.github/.github/workflows/reusable-e2e-tests.yml@main
+    secrets: inherit
+    with:
+      service_directory: src/systems/slates/apps/hub
+      compose_project_prefix: slates-hub-ci
+      compose_profiles: 'hub infra'
+      wait_mode: healthy
+      wait_services: |
+        slates-hub-postgres
+        slates-hub-redis
+        slates-hub-object-storage
+        slates-hub-forge
+        slates-hub-signal
+        slates-hub-function-bay
+        slates-hub-registry
+      test_container: slates-hub-service
+      test_command: cd /app/src/systems/slates/apps/hub && bun run test -- --mode ci
+
+  test-subspace-e2e:
+    name: 'Test Subspace E2E'
+    permissions:
+      contents: read
+      packages: read
+    uses: metorial/.github/.github/workflows/reusable-e2e-tests.yml@main
+    secrets: inherit
+    with:
+      service_directory: src/systems/subspace
+      compose_project_prefix: subspace-ci
+      compose_profiles: 'infra'
+      wait_services: |
+        subspace-postgres
+        subspace-redis
+        subspace-object-storage
+        subspace-forge
+        subspace-function-bay
+        subspace-signal
+        subspace-voyager
+        subspace-slates-registry
+        subspace-slates-hub
+        subspace-shuttle
+        subspace-mcp-test-server
+        subspace-controller-test-service
+      test_container: subspace-controller-test-service
+      test_command: cd /app/src/systems/subspace/apps/controller && set -a && . ./.env.ci && set +a && bunx prisma db push --schema ../../db/prisma/schema --config ../../db/prisma.config.ts && bunx prisma generate --schema ../../db/prisma/schema --config ../../db/prisma.config.ts && bun run test:ci
 
   build-and-push-api:
     name: 'Build and Push API'
     runs-on: ubuntu-latest
 
     needs:
-      - test-and-build-ts
+      - test-monorepo-ts
+      - test-signal-e2e
+      - test-slates-hub-e2e
+      - test-subspace-e2e
 
     permissions:
       contents: read
@@ -112,3 +190,118 @@ jobs:
           build-args: |
             METORIAL_ENV=${{ github.ref_name == 'main' && 'production' || 'staging' }}
             BRANCH=${{ github.ref_name }}
+
+  build-and-push-oss-service-images:
+    name: 'Build OSS Service Images'
+    runs-on: ubuntu-latest
+
+    needs:
+      - test-monorepo-ts
+      - test-signal-e2e
+      - test-slates-hub-e2e
+      - test-subspace-e2e
+
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - name: signal
+            docker_context: ./src/systems/signal/service
+            dockerfile: ./src/systems/signal/service/Dockerfile
+            image_name: metorial/signal
+            platforms: linux/amd64,linux/arm64
+            prebuild_command: ''
+          - name: slates-hub
+            docker_context: ./src/systems/slates/apps/hub
+            dockerfile: ./src/systems/slates/apps/hub/Dockerfile
+            image_name: metorial/slates-hub
+            platforms: linux/amd64
+            prebuild_command: ''
+          - name: subspace-controller
+            docker_context: ./src/systems/subspace
+            dockerfile: ./src/systems/subspace/apps/controller/Dockerfile
+            image_name: metorial/subspace-controller
+            platforms: linux/amd64,linux/arm64
+            prebuild_command: ''
+          - name: subspace-public
+            docker_context: ./src/systems/subspace
+            dockerfile: ./src/systems/subspace/apps/public/Dockerfile
+            image_name: metorial/subspace-public
+            platforms: linux/amd64,linux/arm64
+            prebuild_command: cd ./src/systems/subspace && bun install && cd apps/public && bun run build
+          - name: subspace-worker
+            docker_context: ./src/systems/subspace
+            dockerfile: ./src/systems/subspace/apps/worker/Dockerfile
+            image_name: metorial/subspace-worker
+            platforms: linux/amd64,linux/arm64
+            prebuild_command: ''
+
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
+
+    env:
+      GHCR_REGISTRY: ghcr.io
+      CONTAINER_TAG: mto-${{ github.ref_name }}-${{ github.sha }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+          token: ${{ secrets.GH_TOKEN }}
+
+      - name: Install Bun
+        if: ${{ matrix.service.prebuild_command != '' }}
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.2.20'
+
+      - name: Run prebuild
+        if: ${{ matrix.service.prebuild_command != '' }}
+        run: ${{ matrix.service.prebuild_command }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.GHCR_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.GHCR_REGISTRY }}/${{ matrix.service.image_name }}
+          labels: |
+            org.opencontainers.image.title=${{ matrix.service.name }}
+            org.opencontainers.image.vendor=Metorial
+          tags: |
+            type=sha
+            type=sha,format=long
+            type=ref,event=branch
+            type=ref,event=tag,prefix=tag-
+            type=ref,event=pr,prefix=pr-
+            type=raw,value=${{ env.CONTAINER_TAG }}
+            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.service.docker_context }}
+          file: ${{ matrix.service.dockerfile }}
+          platforms: ${{ matrix.service.platforms }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}

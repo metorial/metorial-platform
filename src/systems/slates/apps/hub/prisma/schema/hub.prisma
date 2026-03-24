@@ -1,0 +1,9 @@
+model Hub {
+  oid BigInt @id
+  id  String @unique
+
+  internalIdentifier String @unique
+  identifier         String @unique
+
+  createdAt DateTime @default(now())
+}

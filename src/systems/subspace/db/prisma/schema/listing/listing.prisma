@@ -1,0 +1,76 @@
+enum ProviderListingStatus {
+  active
+  archived
+  banned
+}
+
+model ProviderListing {
+  oid    BigInt                @id
+  id     String                @unique
+  status ProviderListingStatus
+
+  isPublic     Boolean @default(true)
+  isCustomized Boolean @default(false)
+
+  isMetorial Boolean @default(false)
+  isVerified Boolean @default(false)
+  isOfficial Boolean @default(false)
+
+  name String
+  slug String @unique
+
+  /// [EntityImage]
+  image Json?
+
+  description String?
+  readme      String?
+
+  rank Int @default(0)
+
+  skills String[]
+
+  deploymentsCount      Int @default(0)
+  providerSessionsCount Int @default(0)
+  providerMessagesCount Int @default(0)
+
+  ownerTenantOid BigInt?
+  ownerTenant    Tenant? @relation(fields: [ownerTenantOid], references: [oid])
+
+  ownerSolutionOid Int?
+  ownerSolution    Solution? @relation(fields: [ownerSolutionOid], references: [oid], onDelete: Cascade)
+
+  publisherOid BigInt
+  publisher    Publisher @relation(fields: [publisherOid], references: [oid])
+
+  providerOid BigInt   @unique
+  provider    Provider @relation(fields: [providerOid], references: [oid])
+
+  categories  ProviderListingCategory[]
+  collections ProviderListingCollection[]
+  groups      ProviderListingGroup[]
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @default(now()) @updatedAt
+  rankUpdatedAt DateTime? @updatedAt
+
+  ProviderListingUpdate ProviderListingUpdate[]
+
+  @@index([createdAt])
+  @@index([updatedAt])
+  @@index([isPublic])
+  @@index([rank])
+  @@index([status])
+}
+
+model ProviderListingUpdate {
+  oid BigInt @id
+  id  String @unique
+
+  before Json
+  after  Json
+
+  providerListingOid BigInt
+  providerListing    ProviderListing @relation(fields: [providerListingOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}

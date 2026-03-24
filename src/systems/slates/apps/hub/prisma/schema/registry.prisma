@@ -1,0 +1,45 @@
+enum RegistryStatus {
+  active
+  disabled
+}
+
+model Registry {
+  oid    BigInt         @id
+  id     String         @unique
+  status RegistryStatus
+
+  isPredefined Boolean
+
+  identifier String @unique
+
+  name String
+  url  String
+
+  encryptedReaderToken     String?
+  changeNotificationCursor String?
+
+  tenantOid BigInt?
+  tenant    Tenant? @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  createdAt    DateTime  @default(now())
+  lastSyncedAt DateTime?
+
+  slates        Slate[]
+  registrySyncs RegistrySync[]
+  slateVersions SlateVersion[]
+
+  @@unique([tenantOid, url])
+}
+
+model RegistrySync {
+  oid BigInt @id
+  id  String @unique
+
+  registryOid BigInt
+  registry    Registry @relation(fields: [registryOid], references: [oid], onDelete: Cascade)
+
+  slatesSyncedIds        String[]
+  slateVersionsSyncedIds String[]
+
+  createdAt DateTime @default(now())
+}

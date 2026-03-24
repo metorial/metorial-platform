@@ -1,0 +1,23 @@
+model Tenant {
+  oid BigInt @id
+  id  String @unique
+
+  identifier String @unique
+  name       String
+
+  signalTenantId String? @unique
+
+  createdAt DateTime @default(now())
+
+  secrets                  Secret[]
+  registries               Registry[]
+  slateInstances           SlateInstance[]
+  slateOAuthCredentials    SlateOAuthCredentials[]
+  slateAuthConfigs         SlateAuthConfig[]
+  slateInstanceOAuthSetups SlateInstanceOAuthSetup[]
+  slateInstanceConfigs     SlateInstanceConfig[]
+  slateInstanceEvents      SlateInstanceEvent[]
+  slateSessions            SlateSession[]
+  slateTriggerDestinations SlateTriggerDestination[]
+  slateTriggerReceivers    SlateTriggerReceiver[]
+}

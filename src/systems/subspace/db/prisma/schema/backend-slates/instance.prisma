@@ -1,0 +1,18 @@
+model SlateInstance {
+  oid BigInt @id
+  id  String @unique
+
+  slateOid BigInt
+  slate    Slate  @relation(fields: [slateOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  lockedSlateVersionOid BigInt?
+  lockedSlateVersion    SlateVersion? @relation(fields: [lockedSlateVersionOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  providerConfigVersions ProviderConfigVersion[]
+}

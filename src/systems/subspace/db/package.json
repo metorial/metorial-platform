@@ -1,0 +1,37 @@
+{
+  "name": "@metorial-subspace/db",
+  "module": "index.ts",
+  "main": "src/index.ts",
+  "type": "module",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "prisma:generate": "bun prisma generate --schema prisma/schema --config ../prisma.config.ts",
+    "prisma:push": "sh -c 'set -a; . .env; set +a; bun prisma db push --accept-data-loss --schema prisma/schema --config ../prisma.config.ts'"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@lowerdeck/env": "^1.0.5",
+    "@lowerdeck/error": "^1.2.2",
+    "@lowerdeck/execution-context": "^1.1.0",
+    "@lowerdeck/id": "^1.0.8",
+    "@lowerdeck/snowflake": "^1.0.2",
+    "@lowerdeck/telemetry": "^1.1.1",
+    "@lowerdeck/validation": "^1.0.8",
+    "@metorial-subspace/tsconfig": "^1.0.0",
+    "@modelcontextprotocol/sdk": "^1.25.2",
+    "@prisma/adapter-pg": "^7.2.0",
+    "@prisma/client": "^7.2.0",
+    "@prisma/extension-read-replicas": "^0.5.0",
+    "dotenv": "^17.2.3",
+    "p-queue": "^9.1.0",
+    "prisma": "^7.2.0",
+    "prisma-json-types-generator": "^4.0.1"
+  }
+}

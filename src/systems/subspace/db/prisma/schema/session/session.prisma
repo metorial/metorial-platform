@@ -1,0 +1,63 @@
+enum SessionStatus {
+  active
+  archived
+  deleted
+}
+
+model Session {
+  oid BigInt @id
+  id  String @unique
+
+  status SessionStatus
+
+  isEphemeral Boolean
+
+  connectionState SessionConnectionState @default(disconnected)
+  isStarted       Boolean                @default(false)
+  hasErrors       Boolean                @default(false)
+  hasWarnings     Boolean                @default(false)
+
+  name        String?
+  description String?
+  metadata    Json?
+
+  sharedProviderName        String?
+  sharedProviderDescription String?
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
+
+  totalProductiveClientMessageCount   Int @default(0)
+  totalProductiveProviderMessageCount Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  lastConnectionCreatedAt DateTime?
+  lastMessageAt           DateTime?
+  lastActiveAt            DateTime?
+
+  providers                SessionProvider[]
+  providerRuns             ProviderRun[]
+  sessionMessages          SessionMessage[]
+  sessionEvents            SessionEvent[]
+  connections              SessionConnection[]
+  sessionErrors            SessionError[]
+  sessionProviderInstances SessionProviderInstance[]
+  toolCalls                ToolCall[]
+  sessionWarnings          SessionWarning[]
+  sessionUsageRecords      SessionUsageRecord[]
+
+  @@index([createdAt])
+  @@index([updatedAt])
+  @@index([lastActiveAt])
+  @@index([connectionState])
+  @@index([status])
+  @@index([isEphemeral])
+}

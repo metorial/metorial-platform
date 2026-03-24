@@ -1,0 +1,88 @@
+enum ProviderRunStatus {
+  running
+  stopped
+}
+
+model ProviderRun {
+  oid BigInt @id
+  id  String @unique
+
+  status          ProviderRunStatus @default(running)
+  isParentDeleted Boolean           @default(false)
+
+  providerOid BigInt
+  provider    Provider @relation(fields: [providerOid], references: [oid])
+
+  sessionProviderOid BigInt
+  sessionProvider    SessionProvider @relation(fields: [sessionProviderOid], references: [oid])
+
+  providerVersionOid BigInt
+  providerVersion    ProviderVersion @relation(fields: [providerVersionOid], references: [oid])
+
+  sessionOid BigInt
+  session    Session @relation(fields: [sessionOid], references: [oid])
+
+  instanceOid BigInt
+  instance    SessionProviderInstance @relation(fields: [instanceOid], references: [oid])
+
+  connectionOid BigInt
+  connection    SessionConnection @relation(fields: [connectionOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid])
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now()) @updatedAt
+  completedAt DateTime?
+  lastPingAt  DateTime?
+
+  sessionMessages         SessionMessage[]
+  sessionEvents           SessionEvent[]
+  slateSessions           SlateSession[]
+  sessionErrors           SessionError[]
+  toolCalls               ToolCall[]
+  shuttleConnections      ShuttleConnection[]
+  providerRunUsageRecords ProviderRunUsageRecord[]
+
+  @@index([createdAt])
+  @@index([updatedAt])
+  @@index([status])
+  @@index([lastPingAt])
+}
+
+model SessionProviderInstance {
+  oid BigInt @id
+  id  String @unique
+
+  totalProductiveClientMessageCount   Int @default(0)
+  totalProductiveProviderMessageCount Int @default(0)
+
+  sessionOid BigInt
+  session    Session @relation(fields: [sessionOid], references: [oid])
+
+  sessionProviderOid BigInt
+  sessionProvider    SessionProvider @relation(fields: [sessionProviderOid], references: [oid])
+
+  pairOid BigInt
+  pair    ProviderDeploymentConfigPair @relation(fields: [pairOid], references: [oid])
+
+  pairVersionOid BigInt
+  pairVersion    ProviderDeploymentConfigPairProviderVersion @relation(fields: [pairVersionOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  lastRenewedAt DateTime?
+  lastUsedAt    DateTime?
+  expiresAt     DateTime
+
+  providerRuns ProviderRun[]
+
+  @@index([expiresAt])
+}

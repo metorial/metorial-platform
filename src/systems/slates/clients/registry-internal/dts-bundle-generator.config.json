@@ -1,0 +1,20 @@
+{
+  "compilationOptions": {
+    "preferredConfigPath": "./tsconfig.dts.json"
+  },
+  "entries": [
+    {
+      "filePath": "./src/index.ts",
+      "outFile": "./dist/index.d.ts",
+      "noCheck": true,
+      "libraries": {
+        "inlinedLibraries": [
+          "@lowerdeck/rpc-client",
+          "@lowerdeck/rpc-server",
+          "@lowerdeck/validation",
+          "object-storage-client"
+        ]
+      }
+    }
+  ]
+}

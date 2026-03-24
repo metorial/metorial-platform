@@ -1,0 +1,23 @@
+model SlateToolCall {
+  oid BigInt @id
+  id  String @unique
+
+  sessionOid BigInt
+  session    SlateSession @relation(fields: [sessionOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  sessionMessages SessionMessage[]
+}
+
+model SlateSession {
+  oid BigInt @id
+  id  String @unique
+
+  providerRunOid BigInt
+  providerRun    ProviderRun @relation(fields: [providerRunOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  slateToolInvocations SlateToolCall[]
+}

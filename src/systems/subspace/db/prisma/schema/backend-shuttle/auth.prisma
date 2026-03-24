@@ -1,0 +1,47 @@
+model ShuttleOAuthCredentials {
+  oid BigInt @id
+  id  String @unique
+
+  shuttleServerOid BigInt
+  shuttleServer    ShuttleServer @relation(fields: [shuttleServerOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  providerAuthCredentials ProviderAuthCredentials[]
+}
+
+model ShuttleOAuthSetup {
+  oid BigInt @id
+  id  String @unique
+
+  shuttleServerOid BigInt
+  shuttleServer    ShuttleServer @relation(fields: [shuttleServerOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  providerOAuthSetups ProviderOAuthSetup[]
+}
+
+model ShuttleAuthConfig {
+  oid BigInt @id
+  id  String @unique
+
+  shuttleServerOid BigInt
+  shuttleServer    ShuttleServer @relation(fields: [shuttleServerOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  providerAuthConfigUpdateOid BigInt?
+  providerAuthConfigUpdate    ProviderAuthConfigUpdate? @relation(fields: [providerAuthConfigUpdateOid], references: [oid])
+
+  providerAuthConfigVersion ProviderAuthConfigVersion?
+
+  createdAt DateTime @default(now())
+}

@@ -1,0 +1,26 @@
+{
+  "name": "@metorial-subspace/provider-native",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "version": "1.0.0",
+  "main": "src/index.ts",
+  "scripts": {},
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@lowerdeck/error": "^1.2.2",
+    "@lowerdeck/queue": "^1.0.8",
+    "@lowerdeck/service": "^1.0.4",
+    "@lowerdeck/slugify": "^1.0.5",
+    "@metorial-services/scout-client": "^1.0.0",
+    "@metorial-subspace/db": "^1.0.0",
+    "@metorial-subspace/module-provider-internal": "^1.0.0",
+    "@metorial-subspace/provider-utils": "^1.0.0",
+    "zod": "^4.3.6"
+  }
+}

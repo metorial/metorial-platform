@@ -1,0 +1,31 @@
+model SlateInvocationStorageBucket {
+  oid              Int               @id
+  bucket           String            @unique
+  slateInvocations SlateInvocation[]
+}
+
+model SlateInvocation {
+  oid BigInt @id
+  id  String @unique
+
+  isPending          Boolean
+  hasResponseError   Boolean @default(false)
+  hasInvocationError Boolean @default(false)
+
+  providerInvocationId String
+
+  deploymentOid BigInt
+  deployment    SlateDeployment @relation(fields: [deploymentOid], references: [oid])
+
+  bucketOid Int
+  bucket    SlateInvocationStorageBucket @relation(fields: [bucketOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  slateVersionDiscoveries       SlateVersionDiscovery[]
+  slateInstanceOAuthSetupEvents SlateInstanceOAuthSetupEvent[]
+  slateAuthConfigEvents         SlateAuthConfigEvent[]
+  slateSessionToolCalls         SlateSessionToolCall[]
+  slateTriggerInvocations       SlateTriggerInvocation[]
+  slateTriggerEvents            SlateTriggerEvent[]
+}

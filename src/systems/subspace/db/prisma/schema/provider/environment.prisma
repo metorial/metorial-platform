@@ -1,0 +1,50 @@
+model ProviderEnvironment {
+  oid BigInt @id
+  id  String @unique
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid])
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid])
+
+  providerOid BigInt
+  provider    Provider @relation(fields: [providerOid], references: [oid])
+
+  providerVariantOid BigInt
+  providerVariant    ProviderVariant @relation(fields: [providerVariantOid], references: [oid])
+
+  currentVersionOid BigInt?
+  currentVersion    ProviderVersion? @relation(fields: [currentVersionOid], references: [oid], name: "ProviderEnvironmentCurrentVersion")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  customProviderEnvironment   CustomProviderEnvironment?
+  providerEnvironmentVersions ProviderEnvironmentVersion[]
+
+  @@unique([environmentOid, providerOid])
+}
+
+model ProviderEnvironmentVersion {
+  oid BigInt @id
+  id  String @unique
+
+  providerEnvironmentOid BigInt
+  providerEnvironment    ProviderEnvironment @relation(fields: [providerEnvironmentOid], references: [oid])
+
+  providerVersionOid BigInt
+  providerVersion    ProviderVersion @relation(fields: [providerVersionOid], references: [oid])
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  customProviderEnvironmentVersions CustomProviderEnvironmentVersion[]
+
+  @@unique([providerEnvironmentOid, providerVersionOid])
+}

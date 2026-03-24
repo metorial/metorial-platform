@@ -1,0 +1,17 @@
+model ProviderType {
+  oid Int    @id
+  id  String @unique
+
+  shortKey String @unique
+
+  identifier String @unique
+  name       String
+
+  /// [ProviderTypeAttributes]
+  attributes Json
+
+  createdAt DateTime @default(now())
+
+  providers        Provider[]
+  providerVersions ProviderVersion[]
+}

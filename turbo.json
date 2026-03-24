@@ -9,12 +9,9 @@
     "build": {
       "dependsOn": ["^build"]
     },
-    "prisma:generate": {
-      "dependsOn": ["^prisma:generate"]
-    },
+    "prisma:generate": {},
     "prisma:push": {
       "cache": false,
-      "dependsOn": ["^prisma:push"],
       "env": ["DATABASE_URL", "PAYMENT_DATABASE_URL", "FEDERATION_CORE_DATABASE_URL"]
     },
     "generate:client": {
@@ -30,7 +27,6 @@
       "cache": false
     },
     "frontend:build": {
-      "dependsOn": ["^frontend:build"],
       "env": ["SENTRY_AUTH_TOKEN", "METORIAL_ENV", "VITE_*"]
     },
     "deploy:only": {

@@ -1,0 +1,24 @@
+enum BackendType {
+  slates
+  shuttle
+  native
+}
+
+model Backend {
+  oid  BigInt      @id
+  id   String      @unique
+  type BackendType @unique
+
+  identifier String @unique
+  name       String
+
+  createdAt DateTime @default(now())
+
+  slatesSyncChangeNotificationCursor  SlatesSyncChangeNotificationCursor?
+  shuttleSyncChangeNotificationCursor ShuttleSyncChangeNotificationCursor?
+
+  providerVersions        ProviderVersion[]
+  providerVariants        ProviderVariant[]
+  providerAuthCredentials ProviderAuthCredentials[]
+  providerAuthConfigs     ProviderAuthConfig[]
+}

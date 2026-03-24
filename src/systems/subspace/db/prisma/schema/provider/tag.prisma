@@ -1,0 +1,13 @@
+model ProviderTag {
+  oid BigInt @id
+  id  String @unique
+
+  tag String @unique
+
+  createdAt DateTime @default(now())
+
+  providerVariants ProviderVariant[]
+  providerVersions ProviderVersion[]
+  providers        Provider[]
+  publisher        Publisher[]
+}

@@ -1,0 +1,8 @@
+model SlatesSyncChangeNotificationCursor {
+  backendOid BigInt  @id
+  backend    Backend @relation(fields: [backendOid], references: [oid])
+
+  cursor String
+
+  createdAt DateTime @default(now())
+}
