@@ -125,33 +125,38 @@ export let callbackController = Controller.create(
               })
             )
           ),
-          destination_ids: v.array(
-            v.string({
-              examples: ['cld_7dEfGhJkLmNpQrSt']
-            }),
-            {
-              description: 'Callback destination IDs that should receive deliveries'
-            }
-          ),
-          triggers: v.array(
-            v.object(
+          destination_ids: v.optional(
+            v.array(
+              v.string({
+                examples: ['cld_7dEfGhJkLmNpQrSt']
+              }),
               {
-                trigger_id: v.string({
-                  description: 'Provider trigger key or identifier from the deployment specification',
-                  examples: ['messages.created']
-                }),
-                event_types: v.optional(
-                  v.array(
-                    v.string({
-                      examples: ['message.created']
-                    }),
-                    {
-                      description: 'Optional provider-specific event type filters for this trigger'
-                    }
+                description:
+                  'Optional callback destination IDs that should receive deliveries. Destinations can also be attached later.'
+              }
+            )
+          ),
+          triggers: v.optional(
+            v.array(
+              v.object(
+                {
+                  trigger_id: v.string({
+                    description: 'Provider trigger key or identifier from the deployment specification',
+                    examples: ['messages.created']
+                  }),
+                  event_types: v.optional(
+                    v.array(
+                      v.string({
+                        examples: ['message.created']
+                      }),
+                      {
+                        description: 'Optional provider-specific event type filters for this trigger'
+                      }
+                    )
                   )
-                )
-              },
-              { description: 'Trigger definition for this callback' }
+                },
+                { description: 'Trigger definition for this callback' }
+              )
             )
           )
         })
@@ -165,8 +170,8 @@ export let callbackController = Controller.create(
           description: ctx.body.description,
           metadata: ctx.body.metadata,
           pollIntervalSecondsOverride: ctx.body.poll_interval_seconds_override,
-          destinationIds: ctx.body.destination_ids,
-          triggers: ctx.body.triggers.map(trigger => ({
+          destinationIds: ctx.body.destination_ids ?? [],
+          triggers: (ctx.body.triggers ?? []).map(trigger => ({
             triggerId: trigger.trigger_id,
             eventTypes: trigger.event_types
           }))

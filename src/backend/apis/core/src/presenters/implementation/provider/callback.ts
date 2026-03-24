@@ -1,6 +1,7 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
 import { callbackType } from '../../types';
+import { v1CallbackDestinationPresenter } from './callbackDestination';
 import { v1ProviderDeploymentPreviewPresenter } from './deploymentPreview';
 
 let callbackTriggerSchema = v.object({
@@ -55,6 +56,11 @@ export let v1CallbackPresenter = Presenter.create(callbackType)
     provider_deployment: await v1ProviderDeploymentPreviewPresenter
       .present({ deployment: callback.providerDeployment }, opts)
       .run(),
+    destinations: await Promise.all(
+      callback.destinations.map(async destination =>
+        v1CallbackDestinationPresenter.present({ callbackDestination: destination }, opts).run()
+      )
+    ),
     provider_triggers: callback.providerTriggers.map(trigger => ({
       object: 'callback.provider_trigger' as const,
       id: trigger.id,
@@ -108,6 +114,10 @@ export let v1CallbackPresenter = Presenter.create(callbackType)
         })
       ),
       provider_deployment: v1ProviderDeploymentPreviewPresenter.schema,
+      destinations: v.array(v1CallbackDestinationPresenter.schema, {
+        name: 'destinations',
+        description: 'Destinations currently attached to this callback'
+      }),
       provider_triggers: v.array(callbackTriggerSchema, {
         name: 'provider_triggers',
         description: 'Triggers configured on this callback'

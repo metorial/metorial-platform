@@ -1,6 +1,7 @@
 import type { DashboardInstanceCallbacksNotificationsListOutput } from '@metorial/dashboard-sdk';
 import { renderWithLoader } from '@metorial/data-hooks';
 import {
+  useCallback,
   useCallbackDestination,
   useCallbackDestinations,
   useCallbackNotifications,
@@ -14,6 +15,7 @@ import {
   Flex,
   Input,
   Menu,
+  MultiSelect,
   Panel,
   RenderDate,
   Spacer,
@@ -22,7 +24,7 @@ import {
 } from '@metorial/ui';
 import { Box, ID, Table } from '@metorial/ui-product';
 import { RiAddLine, RiMore2Line } from '@remixicon/react';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { RouterPanel } from '../routerPanel';
 import { showCallbackDestinationFormModal } from './destinationModal';
@@ -33,12 +35,19 @@ type CallbackNotificationListItem =
 
 export let CallbackDestinationsList = (p: { callbackId: string | undefined }) => {
   let instance = useCurrentInstance();
+  let callback = useCallback(instance.data?.id, p.callbackId);
   let destinations = useCallbackDestinations(instance.data?.id, { order: 'desc' });
   let notifications = useCallbackNotifications(instance.data?.id, p.callbackId, {
     order: 'desc'
   });
   let deleteMutator = destinations.useDeleteMutator();
+  let updateCallback = callback.useUpdateMutator();
   let [_, setSearchParams] = useSearchParams();
+  let [selectedDestinationIds, setSelectedDestinationIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    setSelectedDestinationIds(callback.data?.destinations.map(destination => destination.id) ?? []);
+  }, [callback.data?.id, callback.data?.updatedAt, callback.data?.destinations]);
 
   let destinationRows = useMemo(() => {
     let latestByDestination = new Map<string, CallbackNotificationListItem>();
@@ -49,43 +58,24 @@ export let CallbackDestinationsList = (p: { callbackId: string | undefined }) =>
       }
     }
 
-    let observedIds = new Set(latestByDestination.keys());
-    let fallbackToAll = observedIds.size === 0;
-    let destinationItems = fallbackToAll
-      ? (destinations.data?.items ?? []).map(destination => ({
-          destination,
-          latestNotification: latestByDestination.get(destination.id)
-        }))
-      : Array.from(observedIds).map(id => {
-          let destination =
-            destinations.data?.items.find(item => item.id === id) ?? {
-              object: 'callback.destination' as const,
-              id,
-              status: 'active' as const,
-              name: latestByDestination.get(id)?.destination.name ?? id,
-              description: latestByDestination.get(id)?.destination.description ?? null,
-              metadata: null,
-              url: latestByDestination.get(id)?.destination.webhook?.url ?? 'N/A',
-              method: latestByDestination.get(id)?.destination.webhook?.method ?? 'POST',
-              createdAt:
-                latestByDestination.get(id)?.destination.createdAt ??
-                latestByDestination.get(id)!.createdAt,
-              updatedAt:
-                latestByDestination.get(id)?.destination.updatedAt ??
-                latestByDestination.get(id)!.updatedAt
-            };
-
-          return {
-            destination,
-            latestNotification: latestByDestination.get(id)
-          };
-        });
+    let destinationItems = (callback.data?.destinations ?? []).map(destination => ({
+      destination,
+      latestNotification: latestByDestination.get(destination.id)
+    }));
 
     return {
-      fallbackToAll,
       items: destinationItems
     };
-  }, [destinations.data?.items, notifications.data?.items]);
+  }, [callback.data?.destinations, notifications.data?.items]);
+
+  let destinationSelectItems = (destinations.data?.items ?? []).map(destination => ({
+    id: destination.id,
+    label: destination.name
+  }));
+  let currentDestinationIds = callback.data?.destinations.map(destination => destination.id) ?? [];
+  let hasPendingDestinationChanges =
+    selectedDestinationIds.slice().sort().join('|') !==
+    currentDestinationIds.slice().sort().join('|');
 
   return (
     <>
@@ -105,7 +95,14 @@ export let CallbackDestinationsList = (p: { callbackId: string | undefined }) =>
           onClick={() =>
             instance.data &&
             showCallbackDestinationFormModal({
-              instanceId: instance.data.id
+              instanceId: instance.data.id,
+              onCreate: destination => {
+                let nextDestinationIds = [...new Set([...selectedDestinationIds, destination.id])];
+                setSelectedDestinationIds(nextDestinationIds);
+                updateCallback.mutate({
+                  destinationIds: nextDestinationIds
+                });
+              }
             })
           }
         >
@@ -115,15 +112,52 @@ export let CallbackDestinationsList = (p: { callbackId: string | undefined }) =>
 
       <Spacer height={20} />
 
-      {destinationRows.fallbackToAll && destinationRows.items.length > 0 && (
+      {renderWithLoader({ callback, destinations })(() => (
         <>
           <Callout color="gray">
-            No deliveries have been observed for this callback yet, so this view is showing all
-            destinations available in the instance.
+            Attach instance destinations to this callback here. Newly created destinations can be
+            attached immediately.
           </Callout>
+
+          <Spacer height={15} />
+
+          <MultiSelect
+            label="Attached Destinations"
+            description="Only the selected destinations will receive notifications for this callback."
+            placeholder="Select destinations"
+            value={selectedDestinationIds}
+            onChange={setSelectedDestinationIds}
+            items={destinationSelectItems}
+          />
+
+          <Spacer height={10} />
+
+          <Flex gap={10} justify="flex-end">
+            <Button
+              variant="outline"
+              onClick={() => setSelectedDestinationIds(currentDestinationIds)}
+              disabled={!hasPendingDestinationChanges}
+            >
+              Reset
+            </Button>
+            <Button
+              loading={updateCallback.isLoading}
+              disabled={!hasPendingDestinationChanges}
+              onClick={() =>
+                updateCallback.mutate({
+                  destinationIds: selectedDestinationIds
+                })
+              }
+            >
+              Save Destinations
+            </Button>
+          </Flex>
+
+          <updateCallback.RenderError />
+
           <Spacer height={15} />
         </>
-      )}
+      ))}
 
       <Table
         headers={['Info', 'URL', 'Last Delivery', 'Updated', '']}
@@ -174,7 +208,7 @@ export let CallbackDestinationsList = (p: { callbackId: string | undefined }) =>
 
       {destinationRows.items.length == 0 && (
         <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-          No destinations found for this callback.
+          No destinations are attached to this callback yet.
         </Text>
       )}
 
