@@ -97,11 +97,11 @@ export class ProviderCapabilities extends IProviderCapabilities {
       include: { server: true }
     });
 
-    let version = await shuttle.serverVersion.get({
+    let version: any = await shuttle.serverVersion.get({
       serverVersionId: shuttleServerVersion.id,
       tenantId: tenant.id
     });
-    let server = await shuttle.server.get({
+    let server: any = await shuttle.server.get({
       serverId: shuttleServerVersion.server.id,
       tenantId: tenant.id
     });
@@ -139,15 +139,15 @@ export class ProviderCapabilities extends IProviderCapabilities {
         })
       : null;
 
-    let version = await shuttle.serverVersion.get({
+    let version: any = await shuttle.serverVersion.get({
       serverVersionId: shuttleServerVersion.id,
       tenantId: tenant.id
     });
-    let server = await shuttle.server.get({
+    let server: any = await shuttle.server.get({
       serverId: shuttleServerVersion.server.id,
       tenantId: tenant.id
     });
-    let discovery = await shuttle.serverDiscovery.create({
+    let discovery: any = await shuttle.serverDiscovery.create({
       tenantId: tenant.id,
       serverConfigId: config.id,
       serverAuthConfigId: authConfig?.id,
@@ -177,9 +177,9 @@ export class ProviderCapabilities extends IProviderCapabilities {
   }
 
   private async mapDiscovery(
-    server: Awaited<ReturnType<typeof shuttle.server.get>>,
-    version: Awaited<ReturnType<typeof shuttle.serverVersion.get>>,
-    discovery?: Awaited<ReturnType<typeof shuttle.serverDiscovery.create>>
+    server: any,
+    version: any,
+    discovery?: any
   ): Promise<ProviderSpecificationGetRes> {
     return {
       status: 'success',

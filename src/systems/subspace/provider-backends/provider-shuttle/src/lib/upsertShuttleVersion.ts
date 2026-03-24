@@ -20,6 +20,19 @@ import { env } from '../env';
 export type Server = Awaited<ReturnType<typeof shuttle.server.get>>;
 export type Version = Awaited<ReturnType<typeof shuttle.serverVersion.get>>;
 
+let getProviderBackend = (serverType: unknown): PrismaJson.ProviderTypeAttributes['backend'] => {
+  switch (serverType) {
+    case 'container':
+      return 'mcp.container';
+    case 'function':
+      return 'mcp.function';
+    case 'remote':
+      return 'mcp.remote';
+    default:
+      return 'mcp.function';
+  }
+};
+
 export let upsertShuttleServerVersion = ({
   publisherId,
   globalIdentifier,
@@ -118,7 +131,7 @@ export let upsertShuttleServerVersion = ({
 
       attributes: {
         provider: 'metorial-shuttle',
-        backend: `mcp.${server.type}`,
+        backend: getProviderBackend(server.type),
 
         triggers: { status: 'disabled' },
 

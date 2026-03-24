@@ -26,7 +26,7 @@ export class ProviderEnrichments extends IProviderEnrichments {
       subspaceShuttleServersList.flatMap(s => s.providerVariants.map(v => [v.id, s]))
     );
 
-    let shuttleServers = await shuttle.server.getMany({
+    let shuttleServers: any[] = await shuttle.server.getMany({
       serverIds: subspaceShuttleServersList.map(s => s.id)
     });
     let shuttleServersMap = new Map(shuttleServers.map(s => [s.id, s]));
@@ -67,7 +67,7 @@ export class ProviderEnrichments extends IProviderEnrichments {
       subspaceShuttleServersList.flatMap(s => s.providerVersions.map(v => [v.id, s]))
     );
 
-    let shuttleServerVersions = await shuttle.serverVersion.getMany({
+    let shuttleServerVersions: any[] = await shuttle.serverVersion.getMany({
       serverVersionIds: subspaceShuttleServersList.map(s => s.id)
     });
     let shuttleServerVersionsMap = new Map(shuttleServerVersions.map(s => [s.id, s]));

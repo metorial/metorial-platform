@@ -1,7 +1,5 @@
 import { createClient } from '@lowerdeck/rpc-client';
-import type { ShuttleClient } from '../../../service/src/apis/controllers';
 
 type ClientOpts = Parameters<typeof createClient>[0];
 
-export let createShuttleClient = (o: ClientOpts): ShuttleClient =>
-  createClient<ShuttleClient>(o);
+export let createShuttleClient = (o: ClientOpts) => createClient<any>(o);

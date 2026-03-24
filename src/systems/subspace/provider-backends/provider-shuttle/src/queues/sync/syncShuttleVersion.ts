@@ -28,17 +28,17 @@ let shuttleServerVersionUpsertLock = createLock({
 });
 
 export let syncShuttleVersionQueueProcessor = syncShuttleVersionQueue.process(async data => {
-  let version = await shuttle.serverVersion.get({
+  let version: any = await shuttle.serverVersion.get({
     serverVersionId: data.serverVersionId,
     tenantId: data.tenantId ?? shuttleDefaultReaderTenant.id
   });
 
-  let server = await shuttle.server.get({
+  let server: any = await shuttle.server.get({
     serverId: version.serverId,
     tenantId: version.tenantId ?? shuttleDefaultReaderTenant.id
   });
 
-  let deployment = await shuttle.serverDeployment.get({
+  let deployment: any = await shuttle.serverDeployment.get({
     tenantId: data.tenantId ?? shuttleDefaultReaderTenant.id,
     serverDeploymentId: version.deploymentId
   });

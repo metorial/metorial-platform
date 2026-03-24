@@ -217,7 +217,7 @@ class ProviderRunConnection extends IProviderRunConnection {
       onClose: async () => {
         await this.emitClose();
       },
-      onMessage: async data => {
+      onMessage: async (data: any) => {
         if (data.type === 'mcp.message') {
           // Handle response to a specific tool invocation
           let id = 'id' in data.data && data.data.id ? data.data.id : undefined;
