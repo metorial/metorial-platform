@@ -4,6 +4,11 @@ import { MetorialKeyPrefix, sdkBuilder } from './builder';
 import {
   MetorialApiKeysEndpoint,
   MetorialDashboardEndpoint,
+  MetorialDashboardInstanceCallbacksDestinationsEndpoint,
+  MetorialDashboardInstanceCallbacksEndpoint,
+  MetorialDashboardInstanceCallbacksEventsEndpoint,
+  MetorialDashboardInstanceCallbacksInstancesEndpoint,
+  MetorialDashboardInstanceCallbacksNotificationsEndpoint,
   MetorialDashboardInstanceCustomProvidersCodeEndpoint,
   MetorialDashboardInstanceCustomProvidersCommitsEndpoint,
   MetorialDashboardInstanceCustomProvidersDeploymentsEndpoint,
@@ -239,6 +244,13 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
     }
   ),
 
+  callbacks: Object.assign(new MetorialDashboardInstanceCallbacksEndpoint(manager), {
+    destinations: new MetorialDashboardInstanceCallbacksDestinationsEndpoint(manager),
+    events: new MetorialDashboardInstanceCallbacksEventsEndpoint(manager),
+    notifications: new MetorialDashboardInstanceCallbacksNotificationsEndpoint(manager),
+    instances: new MetorialDashboardInstanceCallbacksInstancesEndpoint(manager)
+  }),
+
   sessions: Object.assign(new MetorialDashboardInstanceSessionsEndpoint(manager), {
     events: new MetorialDashboardInstanceSessionsEventsEndpoint(manager),
     messages: new MetorialDashboardInstanceSessionsMessagesEndpoint(manager),
@@ -279,4 +291,11 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
   })
 }));
 
-export type MetorialDashboardSDK = ReturnType<typeof createMetorialDashboardSDK>;
+export type MetorialDashboardSDK = ReturnType<typeof createMetorialDashboardSDK> & {
+  callbacks: MetorialDashboardInstanceCallbacksEndpoint & {
+    destinations: MetorialDashboardInstanceCallbacksDestinationsEndpoint;
+    events: MetorialDashboardInstanceCallbacksEventsEndpoint;
+    notifications: MetorialDashboardInstanceCallbacksNotificationsEndpoint;
+    instances: MetorialDashboardInstanceCallbacksInstancesEndpoint;
+  };
+};

@@ -364,6 +364,27 @@ let ManagedServersPage = dynamicPage(() =>
     c => c.CustomerProvidersPage
   )
 );
+let CallbacksListLayout = dynamicPage(() =>
+  import('./pages/(callbacks)/(list)/_layout').then(c => c.CallbacksListLayout)
+);
+let CallbacksPage = dynamicPage(() =>
+  import('./pages/(callbacks)/(list)/index').then(c => c.CallbacksPage)
+);
+let CallbackLayout = dynamicPage(() =>
+  import('./pages/(callbacks)/_layout').then(c => c.CallbackLayout)
+);
+let CallbackOverviewPage = dynamicPage(() =>
+  import('./pages/(callbacks)/overview').then(c => c.CallbackOverviewPage)
+);
+let CallbackEventsPage = dynamicPage(() =>
+  import('./pages/(callbacks)/events').then(c => c.CallbackEventsPage)
+);
+let CallbackLogsPage = dynamicPage(() =>
+  import('./pages/(callbacks)/logs').then(c => c.CallbackLogsPage)
+);
+let CallbackDestinationsPage = dynamicPage(() =>
+  import('./pages/(callbacks)/destinations').then(c => c.CallbackDestinationsPage)
+);
 let LogsListLayout = dynamicPage(() =>
   import('./pages/(logs)/(list)/_layout').then(c => c.LogsListLayout)
 );
@@ -978,6 +999,40 @@ export let productInnerSlice = createSlice([
           {
             path: 'explorer',
             element: <ExplorerPage />
+          },
+
+          {
+            path: 'callback/:callbackId',
+            element: <CallbackLayout />,
+            children: [
+              {
+                path: '',
+                element: <CallbackOverviewPage />
+              },
+              {
+                path: 'events',
+                element: <CallbackEventsPage />
+              },
+              {
+                path: 'logs',
+                element: <CallbackLogsPage />
+              },
+              {
+                path: 'destinations',
+                element: <CallbackDestinationsPage />
+              }
+            ]
+          },
+
+          {
+            path: 'callbacks',
+            element: <CallbacksListLayout />,
+            children: [
+              {
+                path: '',
+                element: <CallbacksPage />
+              }
+            ]
           },
 
           {
