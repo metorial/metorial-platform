@@ -169,6 +169,13 @@ export let slatesHubEnv: Env = [
   }
 ];
 
+export let slatesHubEnv: Env = [
+  {
+    key: 'DATABASE_URL',
+    defaultValue: 'postgresql://postgres:postgres@localhost:35432/slates-registry'
+  }
+];
+
 export let subspaceDevEnv: Env = [
   {
     key: 'DATABASE_URL',

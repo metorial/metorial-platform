@@ -65,6 +65,11 @@ export let destinations: Destination[] = [
     env: slatesHubEnv,
     path: 'src/systems/slates/apps/hub'
   },
+  {
+    type: 'oss',
+    env: slatesRegistryEnv,
+    path: 'src/systems/slates/apps/registry'
+  },
   // {
   //   type: 'enterprise',
   //   env: originServiceEnv,
