@@ -85,6 +85,7 @@ import {
   SubspaceProviderRunLogs,
   SubspaceProviderSetupSession,
   SubspaceProviderSpecification,
+  SubspaceProviderTrigger,
   SubspaceProviderTool,
   SubspaceProviderType,
   SubspaceProviderVersion,
@@ -496,6 +497,10 @@ export let providerListingType = PresentableType.create<{
 }>()('providerListing');
 
 export let providerToolType = PresentableType.create<{ tool: SubspaceProviderTool }>()('tool');
+
+export let providerTriggerType = PresentableType.create<{
+  trigger: SubspaceProviderTrigger;
+}>()('provider.capabilities.trigger');
 
 export let providerAuthMethodType = PresentableType.create<{
   authMethod: SubspaceProviderAuthMethod;

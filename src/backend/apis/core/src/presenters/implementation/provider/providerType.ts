@@ -7,6 +7,15 @@ export let v1ProviderTypePresenter = Presenter.create(providerTypeType)
     object: 'provider.type' as const,
     id: providerType.id,
     name: providerType.name,
+    triggers:
+      providerType.triggers.status == 'enabled'
+        ? {
+            status: 'enabled' as const,
+            receiver_url: providerType.triggers.receiverUrl
+          }
+        : {
+            status: 'disabled' as const
+          },
     config:
       providerType.config.status === 'enabled'
         ? {
@@ -65,6 +74,25 @@ export let v1ProviderTypePresenter = Presenter.create(providerTypeType)
         description: 'Display name of the provider type',
         examples: ['mcp']
       }),
+      triggers: v.union(
+        [
+          v.object({
+            status: v.literal('enabled'),
+            receiver_url: v.string({
+              name: 'receiver_url',
+              description: 'The callback receiver URL for trigger-enabled providers',
+              examples: ['https://triggers.metorial.com/receiver/provider-type']
+            })
+          }),
+          v.object({
+            status: v.literal('disabled')
+          })
+        ],
+        {
+          name: 'triggers',
+          description: 'Trigger capabilities for this provider type'
+        }
+      ),
       config: v.union(
         [
           v.object({

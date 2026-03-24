@@ -36,6 +36,7 @@ export * from './providerOAuthSetup';
 export * from './providerRun';
 export * from './providerSetupSession';
 export * from './providerSpecification';
+export * from './providerTrigger';
 export * from './providerTool';
 export * from './providerVariant';
 export * from './providerVersion';

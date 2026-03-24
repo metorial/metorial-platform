@@ -66,6 +66,7 @@ import {
   providerSetupSessionController,
   providerSetupSessionDashboardController,
   providerSpecificationController,
+  providerTriggerController,
   providerToolController,
   providerVersionController,
   publisherController,
@@ -106,6 +107,7 @@ export let magnetarController = Controller.create<any>(
 
     providerVersionController,
     providerSpecificationController,
+    providerTriggerController,
     providerToolController,
     providerAuthMethodController,
 
@@ -221,6 +223,7 @@ export let dashboardController = Controller.create<any>(
 
     providerVersionController,
     providerSpecificationController,
+    providerTriggerController,
     providerToolController,
     providerAuthMethodController,
 
