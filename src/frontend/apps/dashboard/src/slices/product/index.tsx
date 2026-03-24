@@ -69,6 +69,9 @@ let ProviderVersionsPage = dynamicPage(() =>
 let ProviderToolsPage = dynamicPage(() =>
   import('./pages/provider/tools').then(c => c.ProviderToolsPage)
 );
+let ProviderTriggersPage = dynamicPage(() =>
+  import('./pages/provider/triggers').then(c => c.ProviderTriggersPage)
+);
 let ProviderDetailsDeploymentsPage = dynamicPage(() =>
   import('./pages/provider/deployments').then(c => c.ProviderDeploymentsPage)
 );
@@ -619,6 +622,10 @@ export let productInnerSlice = createSlice([
               {
                 path: 'tools',
                 element: <ProviderToolsPage />
+              },
+              {
+                path: 'triggers',
+                element: <ProviderTriggersPage />
               },
               {
                 path: 'deployments',

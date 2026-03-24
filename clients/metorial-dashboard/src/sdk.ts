@@ -52,6 +52,7 @@ import {
   MetorialDashboardInstanceProvidersAuthMethodsEndpoint,
   MetorialDashboardInstanceProvidersEndpoint,
   MetorialDashboardInstanceProvidersSpecificationsEndpoint,
+  MetorialDashboardInstanceProvidersTriggersEndpoint,
   MetorialDashboardInstanceProvidersToolsEndpoint,
   MetorialDashboardInstanceProvidersVersionsEndpoint,
   MetorialDashboardInstancePublishersEndpoint,
@@ -171,16 +172,13 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
       ssoTenants: Object.assign(
         new MetorialDashboardInstancePortalsAuthSsoTenantsEndpoint(manager),
         {
-          connections:
-            new MetorialDashboardInstancePortalsAuthSsoTenantsConnectionsEndpoint(
-              manager
-            )
+          connections: new MetorialDashboardInstancePortalsAuthSsoTenantsConnectionsEndpoint(
+            manager
+          )
         }
       )
     },
-    accessRequests: new MetorialDashboardInstancePortalsAccessRequestsEndpoint(
-      manager
-    )
+    accessRequests: new MetorialDashboardInstancePortalsAccessRequestsEndpoint(manager)
   }),
 
   providerTemplates: new MetorialDashboardInstanceProviderTemplatesEndpoint(manager),
@@ -207,6 +205,7 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
   providers: Object.assign(new MetorialDashboardInstanceProvidersEndpoint(manager), {
     versions: new MetorialDashboardInstanceProvidersVersionsEndpoint(manager),
     tools: new MetorialDashboardInstanceProvidersToolsEndpoint(manager),
+    triggers: new MetorialDashboardInstanceProvidersTriggersEndpoint(manager),
     authMethods: new MetorialDashboardInstanceProvidersAuthMethodsEndpoint(manager),
     authConfigs: new MetorialDashboardInstanceProviderDeploymentsAuthConfigsEndpoint(manager),
     specifications: new MetorialDashboardInstanceProvidersSpecificationsEndpoint(manager),
