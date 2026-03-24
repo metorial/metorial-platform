@@ -1,5 +1,4 @@
 import { isServiceError } from '@lowerdeck/error';
-import { oauthAuthorizationService } from '@metorial/module-machine-access';
 import { Context } from 'hono';
 import { OAuthError } from './errors';
 
@@ -107,16 +106,4 @@ export let getClientCredentials = (c: Context, body: Record<string, string>) => 
     clientId: fromBasic?.clientId ?? bodyClientId,
     clientSecret: fromBasic?.clientSecret ?? bodyClientSecret
   };
-};
-
-export let ensureOptionalClientSecretIsValid = async (d: {
-  clientId: string;
-  clientSecret?: string;
-}) => {
-  if (!d.clientSecret) return;
-
-  await oauthAuthorizationService.getOAuthApplicationByClientId({
-    clientId: d.clientId,
-    clientSecret: d.clientSecret
-  });
 };

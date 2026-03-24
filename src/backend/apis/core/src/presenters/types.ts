@@ -25,10 +25,7 @@ import {
   OAuthApplication,
   OAuthApplicationClientSecret,
   OAuthAuthorization,
-  OAuthAuthorizationRequest,
   OAuthInstallation,
-  ServiceAccount,
-  ServiceAccountCredential,
   Organization,
   OrganizationActor,
   OrganizationInvite,
@@ -39,6 +36,8 @@ import {
   ProviderTemplate,
   Secret,
   SecretType,
+  ServiceAccount,
+  ServiceAccountCredential,
   Team,
   TeamMember,
   TeamProject,
@@ -54,6 +53,10 @@ import {
   ConsumerProviderCatalogEntry
 } from '@metorial/module-consumer';
 import { Flags } from '@metorial/module-flags';
+import type {
+  OAuthAuthorizationLogWithRelations,
+  OAuthAuthorizationRequestWithRelations
+} from '@metorial/module-machine-access';
 import {
   SubspaceBucket,
   SubspaceCustomProvider,
@@ -274,26 +277,11 @@ export let oauthAuthorizationType = PresentableType.create<{
 }>()('oauth_authorization');
 
 export let oauthAuthorizationRequestType = PresentableType.create<{
-  oauthAuthorizationRequest: OAuthAuthorizationRequest & {
-    oauthApplication: OAuthApplication & {
-      organization: Organization | null;
-    };
-  };
+  oauthAuthorizationRequest: OAuthAuthorizationRequestWithRelations;
 }>()('oauth_authorization_request');
 
 export let oauthAuthorizationLogType = PresentableType.create<{
-  oauthAuthorizationLog: OAuthAuthorizationRequest & {
-    oauthApplication: OAuthApplication & {
-      organization: Organization | null;
-    };
-    organization: Organization | null;
-    user: User | null;
-    actor:
-      | (OrganizationActor & {
-          organization: Organization;
-        })
-      | null;
-  };
+  oauthAuthorizationLog: OAuthAuthorizationLogWithRelations;
 }>()('oauth_authorization_log');
 
 export let serviceAccountType = PresentableType.create<{

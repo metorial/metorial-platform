@@ -10,32 +10,21 @@ export let cleanupCron = createCron(
   async () => {
     let twoDaysAgo = subDays(new Date(), 2);
 
-    await db.oAuthAuthorizationRequest.deleteMany({
+    await db.oAuthAuthorizationFlow.deleteMany({
       where: {
-        createdAt: {
-          lte: twoDaysAgo
-        },
-        status: 'pending'
-      }
-    });
-
-    await db.oAuthAuthorizationRequest.updateMany({
-      where: {
-        expiresAt: {
-          lte: twoDaysAgo
-        },
         OR: [
-          { userCode: { not: null } },
-          { deviceCode: { not: null } },
-          { lastPollAt: { not: null } },
-          { codeChallenge: { not: null } }
+          {
+            createdAt: {
+              lte: twoDaysAgo
+            },
+            status: 'consumed'
+          },
+          {
+            expiresAt: {
+              lte: twoDaysAgo
+            }
+          }
         ]
-      },
-      data: {
-        userCode: null,
-        deviceCode: null,
-        lastPollAt: null,
-        codeChallenge: null
       }
     });
   }

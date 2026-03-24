@@ -12,7 +12,7 @@ let oauthAuthorizationLogInclude = {
   user: true
 } as const;
 
-type OAuthAuthorizationLogBase = Prisma.OAuthAuthorizationRequestGetPayload<{
+type OAuthAuthorizationLogBase = Prisma.OAuthAuthorizationFlowGetPayload<{
   include: typeof oauthAuthorizationLogInclude;
 }>;
 
@@ -71,7 +71,7 @@ class OAuthAuthorizationLogService {
   }) {
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
-        let logs = await db.oAuthAuthorizationRequest.findMany({
+        let logs = await db.oAuthAuthorizationFlow.findMany({
           ...opts,
           where: {
             organizationOid: d.organization.oid,

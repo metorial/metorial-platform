@@ -1,11 +1,11 @@
 import { v } from '@lowerdeck/validation';
-import { OAuthAuthorizationRequest } from '@metorial/db';
 import { getScopeDefinition, Scope } from '@metorial/module-access';
+import type { OAuthAuthorizationRequestWithRelations } from '@metorial/module-machine-access';
 import { Presenter } from '@metorial/presenter';
 import { oauthAuthorizationRequestType } from '../types';
 import { v1OAuthApplicationPresenter } from './oauthApplication';
 
-let getRedirectUrl = (d: OAuthAuthorizationRequest) => {
+let getRedirectUrl = (d: OAuthAuthorizationRequestWithRelations) => {
   if (d.type != 'interactive' || d.status == 'pending' || !d.redirectUri) return null;
 
   let url = new URL(d.redirectUri);

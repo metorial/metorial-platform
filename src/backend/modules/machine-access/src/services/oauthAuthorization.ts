@@ -12,14 +12,11 @@ import {
   addAfterTransactionHook,
   db,
   ID,
-  MachineAccess,
   OAuthApplication,
   OAuthApplicationType,
   OAuthAuthorization,
-  OAuthAuthorizationRequest,
-  OAuthAuthorizationRequestChallengeMethod,
+  OAuthAuthorizationFlowChallengeMethod,
   OAuthAuthorizationStatus,
-  OAuthInstallation,
   Organization,
   OrganizationActor,
   OrganizationMember,
@@ -30,6 +27,10 @@ import {
 import { Fabric } from '@metorial/fabric';
 import { generateCode, generateCustomId } from '@metorial/id';
 import { organizationService } from '@metorial/module-organization';
+import {
+  GlobalOAuthAuthorizationRequestWithRelations,
+  oauthGlobalRepository
+} from '@metorial/multi-region';
 import { addMinutes, addSeconds, differenceInSeconds } from 'date-fns';
 import {
   ensureAuthorizationRequestPending,
@@ -94,89 +95,147 @@ class OAuthAuthorizationService {
     );
   }
 
+  private assertDeploymentResponsibleForApplication(oauthApplication: OAuthApplication) {
+    if (
+      oauthApplication.accessLevel == 'organization' &&
+      oauthApplication.isImportedFromOtherInstance
+    ) {
+      throw new ServiceError(
+        forbiddenError({
+          message: 'This deployment is not responsible for this oauth application'
+        })
+      );
+    }
+  }
+
+  private async getLocalOAuthApplicationById(d: { oauthApplicationId: string }) {
+    let oauthApplication = await db.oAuthApplication.findFirst({
+      where: {
+        id: d.oauthApplicationId
+      },
+      include: oauthApplicationInclude
+    });
+
+    if (!oauthApplication) {
+      throw new ServiceError(
+        forbiddenError({
+          message: 'This deployment is not responsible for this oauth application'
+        })
+      );
+    }
+
+    this.assertDeploymentResponsibleForApplication(oauthApplication);
+
+    return oauthApplication;
+  }
+
+  private async getOAuthAuthorizationFlowById(d: { id: string }) {
+    return await db.oAuthAuthorizationFlow.findFirst({
+      where: { id: d.id },
+      include: authorizationFlowInclude
+    });
+  }
+
+  private async hydrateOAuthAuthorizationRequest(
+    globalRequest: GlobalOAuthAuthorizationRequestWithRelations
+  ): Promise<OAuthAuthorizationRequestWithRelations> {
+    let [oauthApplication, oauthAuthorizationFlow] = await Promise.all([
+      this.getLocalOAuthApplicationById({
+        oauthApplicationId: globalRequest.oauthApplicationId
+      }),
+      this.getOAuthAuthorizationFlowById({ id: globalRequest.id })
+    ]);
+
+    return {
+      ...globalRequest,
+      status:
+        oauthAuthorizationFlow?.status == 'consumed'
+          ? 'consumed'
+          : (globalRequest.status as Exclude<OAuthAuthorizationRequestStatus, 'consumed'>),
+      oauthApplication,
+      oauthAuthorizationFlow
+    };
+  }
+
   async checkDeviceCodeAuthorizationRequest(d: { clientId: string; deviceCode: string }) {
-    return await withTransaction(async db => {
-      let oauthAuthorizationRequest = await db.oAuthAuthorizationRequest.findFirst({
-        where: { deviceCode: d.deviceCode },
-        include: authorizationRequestInclude
-      });
+    let globalRequest = await oauthGlobalRepository.getOAuthAuthorizationRequestByDeviceCode({
+      deviceCode: d.deviceCode
+    });
 
-      if (
-        !oauthAuthorizationRequest ||
-        oauthAuthorizationRequest.oauthApplication.clientId != d.clientId ||
-        oauthAuthorizationRequest.expiresAt < new Date()
-      ) {
-        throw new ServiceError(
-          unauthorizedError({
-            message: 'Invalid device code',
-            oauth: {
-              error: 'invalid_grant',
-              errorMessage: 'Invalid device code'
-            }
-          })
-        );
-      }
+    if (
+      !globalRequest ||
+      globalRequest.oauthApplication.clientId != d.clientId ||
+      globalRequest.expiresAt < new Date()
+    ) {
+      throw new ServiceError(
+        unauthorizedError({
+          message: 'Invalid device code',
+          oauth: {
+            error: 'invalid_grant',
+            errorMessage: 'Invalid device code'
+          }
+        })
+      );
+    }
 
-      if (oauthAuthorizationRequest.type != 'device_code') {
-        throw new ServiceError(
-          badRequestError({
-            message: 'Authorization request is not a device-code flow'
-          })
-        );
-      }
+    if (globalRequest.type != 'device_code') {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Authorization request is not a device-code flow'
+        })
+      );
+    }
 
-      if (
-        oauthAuthorizationRequest.lastPollAt &&
-        differenceInSeconds(new Date(), oauthAuthorizationRequest.lastPollAt) < 4
-      ) {
-        throw new ServiceError(
-          badRequestError({
-            message: 'Device code is being polled too frequently',
-            oauth: {
-              error: 'slow_down',
-              errorMessage: 'Device code is being polled too frequently'
-            }
-          })
-        );
-      }
+    if (
+      globalRequest.lastPollAt &&
+      differenceInSeconds(new Date(), globalRequest.lastPollAt) < 4
+    ) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Device code is being polled too frequently',
+          oauth: {
+            error: 'slow_down',
+            errorMessage: 'Device code is being polled too frequently'
+          }
+        })
+      );
+    }
 
-      oauthAuthorizationRequest = await db.oAuthAuthorizationRequest.update({
-        where: { oid: oauthAuthorizationRequest.oid },
-        data: {
-          lastPollAt: new Date()
-        },
-        include: authorizationRequestInclude
-      });
+    globalRequest = await oauthGlobalRepository.touchOAuthAuthorizationRequestPoll({
+      id: globalRequest.id,
+      at: new Date()
+    });
 
-      if (oauthAuthorizationRequest.status == 'denied') {
-        return {
-          status: 'denied' as const,
-          oauthAuthorizationRequest
-        };
-      }
+    let oauthAuthorizationRequest = await this.hydrateOAuthAuthorizationRequest(globalRequest);
 
-      if (
-        oauthAuthorizationRequest.status == 'accepted' &&
-        oauthAuthorizationRequest.oauthAuthorization
-      ) {
-        return {
-          status: 'accepted' as const,
-          oauthAuthorizationRequest
-        };
-      }
-
-      if (oauthAuthorizationRequest.status == 'consumed') {
-        return {
-          status: 'consumed' as const,
-          oauthAuthorizationRequest
-        };
-      }
-
+    if (oauthAuthorizationRequest.status == 'denied') {
       return {
-        status: 'pending' as const,
+        status: 'denied' as const,
         oauthAuthorizationRequest
       };
-    });
+    }
+
+    if (
+      oauthAuthorizationRequest.status == 'accepted' &&
+      oauthAuthorizationRequest.oauthAuthorizationFlow
+    ) {
+      return {
+        status: 'accepted' as const,
+        oauthAuthorizationRequest
+      };
+    }
+
+    if (oauthAuthorizationRequest.status == 'consumed') {
+      return {
+        status: 'consumed' as const,
+        oauthAuthorizationRequest
+      };
+    }
+
+    return {
+      status: 'pending' as const,
+      oauthAuthorizationRequest
+    };
   }
 
   async exchangeOAuthToken(d: {
@@ -249,15 +308,18 @@ class OAuthAuthorizationService {
     redirectUri: string;
     codeVerifier?: string;
   }) {
-    let oauthAuthorizationRequest = await db.oAuthAuthorizationRequest.findFirst({
-      where: { code: d.code },
-      include: authorizationRequestInclude
+    let globalRequest = await oauthGlobalRepository.getOAuthAuthorizationRequestByCode({
+      code: d.code
     });
+    let oauthAuthorizationRequest = globalRequest
+      ? await this.hydrateOAuthAuthorizationRequest(globalRequest)
+      : null;
+
     if (
       !oauthAuthorizationRequest ||
       oauthAuthorizationRequest.status != 'accepted' ||
       oauthAuthorizationRequest.oauthApplication.clientId != d.clientId ||
-      !oauthAuthorizationRequest.oauthAuthorization
+      !oauthAuthorizationRequest.oauthAuthorizationFlow
     ) {
       throw new ServiceError(
         unauthorizedError({
@@ -282,7 +344,8 @@ class OAuthAuthorizationService {
       );
     }
 
-    if (oauthAuthorizationRequest.type != 'interactive') {
+    let oauthAuthorizationFlow = oauthAuthorizationRequest.oauthAuthorizationFlow;
+    if (oauthAuthorizationFlow.type != 'interactive') {
       throw new ServiceError(
         badRequestError({
           message: 'Authorization request cannot be used for this grant type'
@@ -290,7 +353,7 @@ class OAuthAuthorizationService {
       );
     }
 
-    if (!urlsMatch(oauthAuthorizationRequest.redirectUri!, d.redirectUri)) {
+    if (!urlsMatch(oauthAuthorizationFlow.redirectUri!, d.redirectUri)) {
       throw new ServiceError(
         badRequestError({
           message: 'Redirect URI does not match the authorization request',
@@ -302,7 +365,7 @@ class OAuthAuthorizationService {
       );
     }
 
-    if (oauthAuthorizationRequest.codeChallengeMethod == 's256') {
+    if (oauthAuthorizationFlow.codeChallengeMethod == 's256') {
       if (!d.codeVerifier) {
         throw new ServiceError(
           badRequestError({
@@ -316,7 +379,7 @@ class OAuthAuthorizationService {
       }
 
       let codeChallenge = await createCodeChallenge(d.codeVerifier);
-      if (codeChallenge != oauthAuthorizationRequest.codeChallenge) {
+      if (codeChallenge != oauthAuthorizationFlow.codeChallenge) {
         throw new ServiceError(
           badRequestError({
             message: 'Invalid PKCE code verifier',
@@ -329,7 +392,7 @@ class OAuthAuthorizationService {
       }
     }
 
-    if (oauthAuthorizationRequest.codeChallengeMethod == 'none' && d.codeVerifier) {
+    if (oauthAuthorizationFlow.codeChallengeMethod == 'none' && d.codeVerifier) {
       throw new ServiceError(
         badRequestError({
           message: 'Code verifier is not allowed for this authorization request',
@@ -341,7 +404,7 @@ class OAuthAuthorizationService {
       );
     }
 
-    let oauthAuthorization = oauthAuthorizationRequest.oauthAuthorization;
+    let oauthAuthorization = oauthAuthorizationFlow.oauthAuthorization;
     ensureAuthorizationUsable(oauthAuthorization);
 
     return await withTransaction(async db => {
@@ -350,8 +413,8 @@ class OAuthAuthorizationService {
         withRefreshToken: true
       });
 
-      await db.oAuthAuthorizationRequest.update({
-        where: { oid: oauthAuthorizationRequest.oid },
+      await db.oAuthAuthorizationFlow.update({
+        where: { oid: oauthAuthorizationFlow.oid },
         data: {
           status: 'consumed',
           consumedAt: new Date()
@@ -406,8 +469,9 @@ class OAuthAuthorizationService {
       );
     }
 
-    let oauthAuthorization = res.oauthAuthorizationRequest.oauthAuthorization;
-    if (!oauthAuthorization) {
+    let oauthAuthorizationFlow = res.oauthAuthorizationRequest.oauthAuthorizationFlow;
+    let oauthAuthorization = oauthAuthorizationFlow?.oauthAuthorization;
+    if (!oauthAuthorization || !oauthAuthorizationFlow) {
       throw new ServiceError(
         unauthorizedError({
           message: 'Invalid device code',
@@ -420,6 +484,17 @@ class OAuthAuthorizationService {
     }
 
     ensureAuthorizationUsable(oauthAuthorization);
+    if (!oauthAuthorizationFlow) {
+      throw new ServiceError(
+        unauthorizedError({
+          message: 'Invalid device code',
+          oauth: {
+            error: 'invalid_grant',
+            errorMessage: 'Invalid device code'
+          }
+        })
+      );
+    }
 
     return await withTransaction(async db => {
       let oauthToken = await this.issueOAuthToken({
@@ -427,8 +502,8 @@ class OAuthAuthorizationService {
         withRefreshToken: true
       });
 
-      await db.oAuthAuthorizationRequest.update({
-        where: { oid: res.oauthAuthorizationRequest.oid },
+      await db.oAuthAuthorizationFlow.update({
+        where: { oid: oauthAuthorizationFlow.oid },
         data: {
           status: 'consumed',
           consumedAt: new Date()
@@ -580,6 +655,8 @@ class OAuthAuthorizationService {
       );
     }
 
+    this.assertDeploymentResponsibleForApplication(oauthApplication);
+
     if (oauthApplication.status != 'active') {
       throw new ServiceError(
         unauthorizedError({
@@ -640,17 +717,14 @@ class OAuthAuthorizationService {
   }
 
   async getOAuthAuthorizationRequestByUrlToken(d: { urlToken: string }) {
-    let oauthAuthorizationRequest = await db.oAuthAuthorizationRequest.findFirst({
-      where: {
-        urlToken: d.urlToken
-      },
-      include: authorizationRequestInclude
+    let globalRequest = await oauthGlobalRepository.getOAuthAuthorizationRequestByUrlToken({
+      urlToken: d.urlToken
     });
-    if (!oauthAuthorizationRequest) {
+    if (!globalRequest) {
       throw new ServiceError(notFoundError('oauth_authorization_request', d.urlToken));
     }
 
-    return oauthAuthorizationRequest;
+    return await this.hydrateOAuthAuthorizationRequest(globalRequest);
   }
 
   private async resolveOrganizationMember(d: {
@@ -670,7 +744,6 @@ class OAuthAuthorizationService {
         );
       }
 
-      // Solve fixed org for user to ensure that the user has access
       let res = await organizationService.getOrganizationByIdForUser({
         organizationId: d.oauthApplication.organization.id,
         user: d.user
@@ -797,7 +870,7 @@ class OAuthAuthorizationService {
           scopes: string[];
           redirectUri: string;
           state?: string;
-          codeChallengeMethod?: OAuthAuthorizationRequestChallengeMethod;
+          codeChallengeMethod?: OAuthAuthorizationFlowChallengeMethod;
           codeChallenge?: string;
         }
       | {
@@ -808,64 +881,52 @@ class OAuthAuthorizationService {
           allowCliAuth?: boolean;
         };
   }) {
-    return await withTransaction(async db => {
-      let oauthApplication = await this.getOAuthApplicationByClientId({
-        clientId: d.input.clientId
-      });
-
-      this.assertApplicationSupportsAuthorizationRequest({
-        oauthApplication,
-        requestType: d.input.type,
-        allowCliAuth: d.input.type == 'device_code' ? d.input.allowCliAuth : false
-      });
-
-      let requestedScopes = validateOAuthScopes(d.input.scopes);
-      let scopes = ensureScopesAllowed({
-        allowedScopes: oauthApplication.scopes,
-        requestedScopes
-      });
-
-      if (d.input.type == 'interactive') {
-        validateRedirectUri({
-          redirectUri: d.input.redirectUri,
-          allowedRedirectUris: oauthApplication.redirectUris
-        });
-      }
-
-      return await db.oAuthAuthorizationRequest.create({
-        data: {
-          id: await ID.generateId('oauthAuthorizationRequest'),
-          type: d.input.type,
-          status: 'pending',
-          oauthApplicationOid: oauthApplication.oid,
-
-          scopes,
-
-          urlToken: generateCustomId('mtout_', 50),
-          code: generateCustomId('metorial_oauth_token', 50),
-
-          // Device code flow
-          deviceCode:
-            d.input.type == 'device_code' ? generateCustomId('mt_oauth_device', 50) : null,
-          userCode:
-            d.input.type == 'device_code' ? `${generateCode(4)}-${generateCode(4)}` : null,
-          clientIp: d.input.type == 'device_code' ? d.input.clientIp : d.context.ip,
-
-          // Interactive flow
-          state: d.input.type == 'interactive' ? d.input.state : null,
-          redirectUri: d.input.type == 'interactive' ? d.input.redirectUri : null,
-          codeChallengeMethod:
-            d.input.type == 'interactive' ? (d.input.codeChallengeMethod ?? 'none') : 'none',
-          codeChallenge: d.input.type == 'interactive' ? d.input.codeChallenge : null,
-
-          expiresAt:
-            d.input.type == 'interactive'
-              ? addMinutes(new Date(), INTERACTIVE_REQUEST_TTL_MINUTES)
-              : addMinutes(new Date(), DEVICE_REQUEST_TTL_MINUTES)
-        },
-        include: authorizationRequestInclude
-      });
+    let oauthApplication = await this.getOAuthApplicationByClientId({
+      clientId: d.input.clientId
     });
+
+    this.assertApplicationSupportsAuthorizationRequest({
+      oauthApplication,
+      requestType: d.input.type,
+      allowCliAuth: d.input.type == 'device_code' ? d.input.allowCliAuth : false
+    });
+
+    let requestedScopes = validateOAuthScopes(d.input.scopes);
+    let scopes = ensureScopesAllowed({
+      allowedScopes: oauthApplication.scopes,
+      requestedScopes
+    });
+
+    if (d.input.type == 'interactive') {
+      validateRedirectUri({
+        redirectUri: d.input.redirectUri,
+        allowedRedirectUris: oauthApplication.redirectUris
+      });
+    }
+
+    let globalRequest = await oauthGlobalRepository.createOAuthAuthorizationRequest({
+      id: await ID.generateId('oauthAuthorizationRequest'),
+      oauthApplicationId: oauthApplication.id,
+      type: d.input.type,
+      scopes,
+      urlToken: generateCustomId('mtout_', 50),
+      code: generateCustomId('metorial_oauth_token', 50),
+      deviceCode:
+        d.input.type == 'device_code' ? generateCustomId('mt_oauth_device', 50) : null,
+      userCode: d.input.type == 'device_code' ? `${generateCode(4)}-${generateCode(4)}` : null,
+      clientIp: d.input.type == 'device_code' ? d.input.clientIp : d.context.ip,
+      state: d.input.type == 'interactive' ? d.input.state : null,
+      redirectUri: d.input.type == 'interactive' ? d.input.redirectUri : null,
+      codeChallengeMethod:
+        d.input.type == 'interactive' ? (d.input.codeChallengeMethod ?? 'none') : 'none',
+      codeChallenge: d.input.type == 'interactive' ? d.input.codeChallenge : null,
+      expiresAt:
+        d.input.type == 'interactive'
+          ? addMinutes(new Date(), INTERACTIVE_REQUEST_TTL_MINUTES)
+          : addMinutes(new Date(), DEVICE_REQUEST_TTL_MINUTES)
+    });
+
+    return await this.hydrateOAuthAuthorizationRequest(globalRequest);
   }
 
   async createCliAuthAuthorizationRequest(d: { context: Context }) {
@@ -917,16 +978,7 @@ class OAuthAuthorizationService {
   }
 
   async acceptOAuthAuthorizationRequest(d: {
-    oauthAuthorizationRequest: OAuthAuthorizationRequest & {
-      oauthApplication: OAuthApplication & {
-        organization: Organization | null;
-        scopedInstallation:
-          | (OAuthInstallation & {
-              serverSideMachineAccess: MachineAccess | null;
-            })
-          | null;
-      };
-    };
+    oauthAuthorizationRequest: OAuthAuthorizationRequestWithRelations;
     user: User;
     organizationId: string;
     context: Context;
@@ -939,7 +991,24 @@ class OAuthAuthorizationService {
       organizationId: d.organizationId
     });
 
-    return await withTransaction(async db => {
+    let claimedRequest = await oauthGlobalRepository.claimOAuthAuthorizationRequest({
+      id: d.oauthAuthorizationRequest.id
+    });
+    if (!claimedRequest) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'OAuth authorization request can no longer be accepted'
+        })
+      );
+    }
+
+    let acceptedAt = new Date();
+    let expiresAt =
+      d.oauthAuthorizationRequest.type == 'interactive'
+        ? addSeconds(acceptedAt, 30)
+        : addSeconds(acceptedAt, 90);
+
+    let oauthAuthorizationFlow = await withTransaction(async db => {
       let oauthInstallation =
         await oauthAuthorizationInstallationService.getOrCreateInstallation({
           oauthApplication: d.oauthAuthorizationRequest.oauthApplication,
@@ -971,55 +1040,95 @@ class OAuthAuthorizationService {
         });
       }
 
-      let oauthAuthorizationRequest = await db.oAuthAuthorizationRequest.update({
-        where: { oid: d.oauthAuthorizationRequest.oid },
-        data: {
-          status: 'accepted',
-          oauthAuthorizationOid: oauthAuthorization.oid,
-          acceptedAt: new Date(),
-          organizationOid: organization.oid,
-          userOid: d.user.oid,
-          expiresAt:
-            d.oauthAuthorizationRequest.type == 'interactive'
-              ? addSeconds(new Date(), 30)
-              : addSeconds(new Date(), 90)
+      return await db.oAuthAuthorizationFlow.upsert({
+        where: {
+          id: d.oauthAuthorizationRequest.id
         },
-        include: authorizationRequestInclude
+        create: {
+          id: d.oauthAuthorizationRequest.id,
+          type: d.oauthAuthorizationRequest.type,
+          status: 'accepted',
+          scopes: d.oauthAuthorizationRequest.scopes,
+          clientIp: d.oauthAuthorizationRequest.clientIp,
+          redirectUri: d.oauthAuthorizationRequest.redirectUri,
+          userOid: d.user.oid,
+          organizationOid: organization.oid,
+          codeChallengeMethod: d.oauthAuthorizationRequest.codeChallengeMethod,
+          codeChallenge: d.oauthAuthorizationRequest.codeChallenge,
+          oauthApplicationOid: d.oauthAuthorizationRequest.oauthApplication.oid,
+          oauthAuthorizationOid: oauthAuthorization.oid,
+          acceptedAt,
+          expiresAt
+        },
+        update: {
+          status: 'accepted',
+          scopes: d.oauthAuthorizationRequest.scopes,
+          clientIp: d.oauthAuthorizationRequest.clientIp,
+          redirectUri: d.oauthAuthorizationRequest.redirectUri,
+          userOid: d.user.oid,
+          organizationOid: organization.oid,
+          codeChallengeMethod: d.oauthAuthorizationRequest.codeChallengeMethod,
+          codeChallenge: d.oauthAuthorizationRequest.codeChallenge,
+          oauthApplicationOid: d.oauthAuthorizationRequest.oauthApplication.oid,
+          oauthAuthorizationOid: oauthAuthorization.oid,
+          acceptedAt,
+          expiresAt,
+          consumedAt: null
+        },
+        include: authorizationFlowInclude
       });
+    });
 
-      await Fabric.fire('machine_access.oauth_authorization_request.accepted:before', {
+    let acceptedRequest = await oauthGlobalRepository.acceptOAuthAuthorizationRequest({
+      id: d.oauthAuthorizationRequest.id,
+      userId: d.user.id,
+      expiresAt
+    });
+    if (!acceptedRequest) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'OAuth authorization request can no longer be accepted'
+        })
+      );
+    }
+
+    let oauthAuthorizationRequest = {
+      ...acceptedRequest,
+      status: acceptedRequest.status as OAuthAuthorizationRequestStatus,
+      oauthApplication: d.oauthAuthorizationRequest.oauthApplication,
+      oauthAuthorizationFlow
+    };
+
+    await Fabric.fire('machine_access.oauth_authorization_request.accepted:before', {
+      oauthApplication: oauthAuthorizationRequest.oauthApplication,
+      oauthAuthorizationRequest,
+      organization,
+      member,
+      performedBy: member.actor,
+      context: d.context
+    });
+
+    addAfterTransactionHook(() =>
+      Fabric.fire('machine_access.oauth_authorization_request.accepted:after', {
         oauthApplication: oauthAuthorizationRequest.oauthApplication,
         oauthAuthorizationRequest,
         organization,
         member,
         performedBy: member.actor,
         context: d.context
-      });
+      })
+    );
 
-      addAfterTransactionHook(() =>
-        Fabric.fire('machine_access.oauth_authorization_request.accepted:after', {
-          oauthApplication: oauthAuthorizationRequest.oauthApplication,
-          oauthAuthorizationRequest,
-          organization,
-          member,
-          performedBy: member.actor,
-          context: d.context
-        })
-      );
-
-      return {
-        oauthAuthorizationRequest,
-        oauthAuthorization,
-        oauthInstallation
-      };
-    });
+    return {
+      oauthAuthorizationRequest,
+      oauthAuthorization: oauthAuthorizationFlow.oauthAuthorization,
+      oauthInstallation: oauthAuthorizationFlow.oauthAuthorization.oauthInstallation
+    };
   }
 
   async rejectOAuthAuthorizationRequest(d: {
     user: User;
-    oauthAuthorizationRequest: OAuthAuthorizationRequest & {
-      oauthApplication: OAuthApplication & { organization: Organization | null };
-    };
+    oauthAuthorizationRequest: OAuthAuthorizationRequestWithRelations;
     organizationId?: string;
     context?: Context;
   }) {
@@ -1039,43 +1148,50 @@ class OAuthAuthorizationService {
       }
     })();
 
-    return await withTransaction(async db => {
-      if (organizationMember) {
-        await Fabric.fire('machine_access.oauth_authorization_request.denied:before', {
-          oauthApplication: d.oauthAuthorizationRequest.oauthApplication,
-          oauthAuthorizationRequest: d.oauthAuthorizationRequest,
+    if (organizationMember) {
+      await Fabric.fire('machine_access.oauth_authorization_request.denied:before', {
+        oauthApplication: d.oauthAuthorizationRequest.oauthApplication,
+        oauthAuthorizationRequest: d.oauthAuthorizationRequest,
+        organization: organizationMember.organization,
+        member: organizationMember.member,
+        performedBy: organizationMember.member.actor,
+        context: d.context
+      });
+    }
+
+    let rejectedRequest = await oauthGlobalRepository.rejectOAuthAuthorizationRequest({
+      id: d.oauthAuthorizationRequest.id,
+      userId: d.user.id
+    });
+    if (!rejectedRequest) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'OAuth authorization request can no longer be rejected'
+        })
+      );
+    }
+
+    let oauthAuthorizationRequest = {
+      ...rejectedRequest,
+      status: rejectedRequest.status as OAuthAuthorizationRequestStatus,
+      oauthApplication: d.oauthAuthorizationRequest.oauthApplication,
+      oauthAuthorizationFlow: null
+    };
+
+    if (organizationMember) {
+      addAfterTransactionHook(() =>
+        Fabric.fire('machine_access.oauth_authorization_request.denied:after', {
+          oauthApplication: oauthAuthorizationRequest.oauthApplication,
+          oauthAuthorizationRequest: oauthAuthorizationRequest,
           organization: organizationMember.organization,
           member: organizationMember.member,
           performedBy: organizationMember.member.actor,
           context: d.context
-        });
-      }
+        })
+      );
+    }
 
-      let oauthAuthorizationRequest = await db.oAuthAuthorizationRequest.update({
-        where: { oid: d.oauthAuthorizationRequest.oid },
-        data: {
-          status: 'denied',
-          deniedAt: new Date(),
-          userOid: d.user.oid
-        },
-        include: authorizationRequestInclude
-      });
-
-      if (organizationMember) {
-        addAfterTransactionHook(() =>
-          Fabric.fire('machine_access.oauth_authorization_request.denied:after', {
-            oauthApplication: oauthAuthorizationRequest.oauthApplication,
-            oauthAuthorizationRequest,
-            organization: organizationMember.organization,
-            member: organizationMember.member,
-            performedBy: organizationMember.member.actor,
-            context: d.context
-          })
-        );
-      }
-
-      return oauthAuthorizationRequest;
-    });
+    return oauthAuthorizationRequest;
   }
 
   async revokeOAuthAuthorization(d: {
@@ -1191,6 +1307,18 @@ export let oauthAuthorizationService = Service.create(
   () => new OAuthAuthorizationService()
 ).build();
 
+type OAuthAuthorizationRequestStatus = 'pending' | 'accepted' | 'denied' | 'consumed';
+
+let oauthApplicationInclude = {
+  organization: true,
+  scopedInstallation: {
+    include: installationInclude
+  },
+  serverSideMachineAccess: {
+    include: machineAccessInclude
+  }
+} as const;
+
 export let authorizationInclude = {
   oauthApplication: {
     include: {
@@ -1207,33 +1335,42 @@ export let authorizationInclude = {
   user: true
 } as const;
 
+let authorizationFlowInclude = {
+  oauthApplication: {
+    include: oauthApplicationInclude
+  },
+  oauthAuthorization: {
+    include: authorizationInclude
+  },
+  organization: true,
+  user: true
+} as const;
+
+let tokenInclude = {
+  oauthAuthorization: { include: authorizationInclude }
+} as const;
+
+type OAuthApplicationWithRelations = Prisma.OAuthApplicationGetPayload<{
+  include: typeof oauthApplicationInclude;
+}>;
+
 export type OAuthAuthorizationWithRelations = Prisma.OAuthAuthorizationGetPayload<{
   include: typeof authorizationInclude;
+}>;
+
+type OAuthAuthorizationFlowWithRelations = Prisma.OAuthAuthorizationFlowGetPayload<{
+  include: typeof authorizationFlowInclude;
 }>;
 
 type OAuthTokenWithRelations = Prisma.OAuthTokenGetPayload<{
   include: typeof tokenInclude;
 }>;
 
-let oauthApplicationInclude = {
-  organization: true,
-  scopedInstallation: {
-    include: installationInclude
-  },
-  serverSideMachineAccess: {
-    include: machineAccessInclude
-  }
-} as const;
-
-let authorizationRequestInclude = {
-  oauthApplication: {
-    include: oauthApplicationInclude
-  },
-  oauthAuthorization: {
-    include: authorizationInclude
-  }
-} as const;
-
-let tokenInclude = {
-  oauthAuthorization: { include: authorizationInclude }
-} as const;
+export type OAuthAuthorizationRequestWithRelations = Omit<
+  GlobalOAuthAuthorizationRequestWithRelations,
+  'oauthApplication' | 'status'
+> & {
+  status: OAuthAuthorizationRequestStatus;
+  oauthApplication: OAuthApplicationWithRelations;
+  oauthAuthorizationFlow: OAuthAuthorizationFlowWithRelations | null;
+};

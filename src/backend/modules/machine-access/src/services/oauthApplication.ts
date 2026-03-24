@@ -55,7 +55,17 @@ let include = {
 
 class OAuthApplicationService {
   private buildClientSecretPreview(secret: string) {
-    return `${secret.slice(0, 4)}****${secret.slice(-4)}`;
+    return `${secret.slice(0, 4)}••••${secret.slice(-4)}`;
+  }
+
+  private assertApplicationOwnedLocally(oauthApplication: OAuthApplication) {
+    if (!oauthApplication.isImportedFromOtherInstance) return;
+
+    throw new ServiceError(
+      forbiddenError({
+        message: 'This oauth application is managed by another deployment'
+      })
+    );
   }
 
   private async createClientSecret(d: { oauthApplication: OAuthApplication }) {
@@ -75,13 +85,21 @@ class OAuthApplicationService {
 
     let secret = generateCustomId('mt_oauth_secret', 50);
 
-    return await db.oAuthApplicationClientSecret.create({
-      data: {
-        id: await ID.generateId('clientSecret'),
-        secret,
-        secretPreview: this.buildClientSecretPreview(secret),
-        oauthApplicationOid: d.oauthApplication.oid
-      }
+    return await withTransaction(async db => {
+      let newSecret = await db.oAuthApplicationClientSecret.create({
+        data: {
+          id: await ID.generateId('clientSecret'),
+          secret,
+          secretPreview: this.buildClientSecretPreview(secret),
+          oauthApplicationOid: d.oauthApplication.oid
+        }
+      });
+
+      await Fabric.fire('machine_access.oauth_application.client_secret.create:after', {
+        oauthApplication: d.oauthApplication
+      });
+
+      return newSecret;
     });
   }
 
@@ -282,6 +300,7 @@ class OAuthApplicationService {
     };
   }) {
     await this.assertApplicationActive(d.oauthApplication);
+    this.assertApplicationOwnedLocally(d.oauthApplication);
     this.assertSupportedType(d.oauthApplication.type);
 
     let nextAccessLevel = d.input.accessLevel ?? d.oauthApplication.accessLevel;
@@ -381,6 +400,7 @@ class OAuthApplicationService {
     context: Context;
   }) {
     await this.assertApplicationActive(d.oauthApplication);
+    this.assertApplicationOwnedLocally(d.oauthApplication);
     this.assertSupportedType(d.oauthApplication.type);
 
     let now = new Date();
@@ -474,6 +494,7 @@ class OAuthApplicationService {
 
   async createOAuthApplicationClientSecret(d: { oauthApplication: OAuthApplication }) {
     await this.assertApplicationActive(d.oauthApplication);
+    this.assertApplicationOwnedLocally(d.oauthApplication);
 
     return await this.createClientSecret({
       oauthApplication: d.oauthApplication
@@ -504,13 +525,31 @@ class OAuthApplicationService {
   async deleteOAuthApplicationClientSecret(d: {
     oauthApplicationClientSecret: OAuthApplicationClientSecret;
   }) {
-    return await db.oAuthApplicationClientSecret.update({
+    let oauthApplication = await db.oAuthApplication.findUniqueOrThrow({
       where: {
-        oid: d.oauthApplicationClientSecret.oid
-      },
-      data: {
-        deletedAt: new Date()
+        oid: d.oauthApplicationClientSecret.oauthApplicationOid
       }
+    });
+    this.assertApplicationOwnedLocally(oauthApplication);
+
+    return await withTransaction(async db => {
+      let updatedSecret = await db.oAuthApplicationClientSecret.update({
+        where: {
+          oid: d.oauthApplicationClientSecret.oid
+        },
+        data: {
+          deletedAt: new Date()
+        },
+        include: {
+          oauthApplication: true
+        }
+      });
+
+      await Fabric.fire('machine_access.oauth_application.client_secret.revoked:after', {
+        oauthApplication: updatedSecret.oauthApplication
+      });
+
+      return updatedSecret;
     });
   }
 
@@ -549,6 +588,8 @@ class OAuthApplicationService {
     };
 
     if (existing) {
+      this.assertApplicationOwnedLocally(existing);
+
       return await db.oAuthApplication.update({
         where: { oid: existing.oid },
         data: {

@@ -8,7 +8,6 @@ import {
   MachineAccess,
   OAuthApplication,
   OAuthAuthorization,
-  OAuthAuthorizationRequest,
   OAuthInstallation,
   OAuthToken
 } from '@metorial/db';
@@ -34,7 +33,9 @@ export let ensureScopesAllowed = (d: {
 };
 
 export let ensureAuthorizationRequestPending = (
-  oauthAuthorizationRequest: OAuthAuthorizationRequest & {
+  oauthAuthorizationRequest: {
+    status: 'pending' | 'accepted' | 'denied' | 'consumed';
+    expiresAt: Date;
     oauthApplication: OAuthApplication;
   }
 ) => {

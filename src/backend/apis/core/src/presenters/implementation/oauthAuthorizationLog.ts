@@ -17,7 +17,7 @@ export let v1OAuthAuthorizationLogPresenter = Presenter.create(oauthAuthorizatio
         : oauthAuthorizationLog.status,
     type: oauthAuthorizationLog.type,
 
-    organization_id: oauthAuthorizationLog.organization?.id ?? null,
+    organization_id: oauthAuthorizationLog.organization.id,
 
     redirect_uri: oauthAuthorizationLog.redirectUri,
     client_ip: oauthAuthorizationLog.clientIp,
@@ -71,9 +71,9 @@ export let v1OAuthAuthorizationLogPresenter = Presenter.create(oauthAuthorizatio
     v.object({
       object: v.literal('machine_access.oauth_authorization_log'),
       id: v.string(),
-      status: v.enumOf(['pending', 'accepted', 'denied']),
+      status: v.enumOf(['pending', 'accepted']),
       type: v.enumOf(['interactive', 'device_code']),
-      organization_id: v.nullable(v.string()),
+      organization_id: v.string(),
       redirect_uri: v.nullable(v.string()),
       client_ip: v.nullable(v.string()),
       scopes: v.array(
