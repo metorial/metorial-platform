@@ -60,7 +60,7 @@ jobs:
         signal-object-storage
         signal-service
       test_container: signal-service
-      test_command: cd /app/src/systems/signal/service && bun run test -- --mode ci --reporter verbose
+      test_command: cd /app/service && bun run test -- --mode ci --reporter verbose
 
   test-slates-hub-e2e:
     name: 'Test Slates Hub E2E'
@@ -83,7 +83,7 @@ jobs:
         slates-hub-function-bay
         slates-hub-registry
       test_container: slates-hub-service
-      test_command: cd /app/src/systems/slates/apps/hub && bun run test -- --mode ci
+      test_command: cd /app/apps/hub && bun run test -- --mode ci
 
   test-subspace-e2e:
     name: 'Test Subspace E2E'
@@ -110,4 +110,4 @@ jobs:
         subspace-mcp-test-server
         subspace-controller-test-service
       test_container: subspace-controller-test-service
-      test_command: cd /app/src/systems/subspace/apps/controller && set -a && . ./.env.ci && set +a && bunx prisma db push --schema ../../db/prisma/schema --config ../../db/prisma.config.ts && bunx prisma generate --schema ../../db/prisma/schema --config ../../db/prisma.config.ts && bun run test:ci
+      test_command: cd /app/apps/controller && set -a && . ./.env.ci && set +a && bunx prisma db push --schema ../../db/prisma/schema --config ../../db/prisma.config.ts && bunx prisma generate --schema ../../db/prisma/schema --config ../../db/prisma.config.ts && bun run test:ci

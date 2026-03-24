@@ -8,7 +8,7 @@
     "client:generate:dashboard": "turbo run generate:client:dashboard",
     "client:generate:consumer": "turbo run generate:client:consumer",
     "dev": "turbo run --concurrency 99 dev",
-    "test": "turbo run --concurrency=1 --ui=stream test",
+    "test": "bun ./scripts/test-tools/src/runMonorepoTests.ts",
     "prisma:generate": "sh -c 'cd ./src/backend/db && bun run prisma:generate && cd ../../systems/signal/service && bun run prisma:generate && cd ../../slates/apps/hub && bun run prisma:generate && cd ../../../subspace/db && bun run prisma:generate'",
     "prisma:push": "sh -c 'cd ./src/backend/db && bun run prisma:push && cd ../../systems/signal/service && bun run prisma:push && cd ../../slates/apps/hub && bun run prisma:push && cd ../../../subspace/db && bun run prisma:push'",
     "prepare": "echo prepare",
