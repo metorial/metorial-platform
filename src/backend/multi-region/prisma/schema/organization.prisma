@@ -1,0 +1,31 @@
+enum OrganizationType {
+  default
+  user
+}
+
+enum OrganizationStatus {
+  active
+  deleted
+}
+
+model Organization {
+  id String @id
+
+  type   OrganizationType
+  status OrganizationStatus
+
+  slug String @unique
+  name String
+
+  /// [EntityImage]
+  image Json
+
+  ownerOid Int
+  owner    Cell @relation(fields: [ownerOid], references: [oid])
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+
+  oauthApplications OAuthApplication[]
+}

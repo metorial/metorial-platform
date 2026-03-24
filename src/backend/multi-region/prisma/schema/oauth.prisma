@@ -1,0 +1,138 @@
+enum OAuthApplicationStatus {
+  active
+  archived
+}
+
+enum OAuthApplicationType {
+  user_facing
+  cli_auth
+  server_side
+}
+
+enum OAuthAuthorizationAccessLevel {
+  organization
+  global
+}
+
+model OAuthApplication {
+  id String @unique
+
+  status      OAuthApplicationStatus
+  type        OAuthApplicationType
+  accessLevel OAuthAuthorizationAccessLevel
+
+  name        String
+  description String?
+
+  websiteUrl        String?
+  privacyPolicyUrl  String?
+  termsOfServiceUrl String?
+  redirectUris      String[]
+
+  scopes String[]
+
+  clientId String @unique
+
+  /// [EntityImage]
+  image Json
+
+  ownerOid Int
+  owner    Cell @relation(fields: [ownerOid], references: [oid])
+
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  clientSecrets              OAuthApplicationClientSecret[]
+  oauthAuthorizationRequests OAuthAuthorizationRequest[]
+  oauthTokens                OAuthToken[]
+}
+
+model OAuthApplicationClientSecret {
+  id String @unique
+
+  secret String @unique
+
+  oauthApplicationId String
+  oauthApplication   OAuthApplication @relation(fields: [oauthApplicationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
+}
+
+enum OAuthAuthorizationRequestChallengeMethod {
+  none
+  s256
+}
+
+enum OAuthAuthorizationRequestStatus {
+  pending
+  accepted
+  denied
+}
+
+enum OAuthAuthorizationRequestType {
+  interactive
+  device_code
+}
+
+model OAuthAuthorizationRequest {
+  id String @unique
+
+  type   OAuthAuthorizationRequestType
+  status OAuthAuthorizationRequestStatus
+
+  urlToken String @unique
+
+  code   String   @unique
+  scopes String[]
+
+  // Device code flow
+  deviceCode String? @unique
+  userCode   String? @unique
+
+  deniedAt   DateTime?
+  lastPollAt DateTime?
+  clientIp   String?
+
+  // Interactive flow 
+  state       String?
+  redirectUri String?
+
+  codeChallengeMethod OAuthAuthorizationRequestChallengeMethod
+  codeChallenge       String?
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  oauthApplicationId String
+  oauthApplication   OAuthApplication @relation(fields: [oauthApplicationId], references: [id], onDelete: Cascade)
+
+  claimedByOid Int?
+  claimedBy    Cell? @relation(fields: [claimedByOid], references: [oid], onDelete: Cascade, name: "claimedBy")
+
+  createdByOid Int
+  createdBy    Cell @relation(fields: [createdByOid], references: [oid], onDelete: Cascade, name: "createdBy")
+
+  expiresAt  DateTime
+  createdAt  DateTime  @default(now())
+  acceptedAt DateTime?
+  consumedAt DateTime?
+}
+
+model OAuthToken {
+  id String @unique
+
+  accessToken  String  @unique
+  refreshToken String? @unique
+
+  oauthApplicationId String
+  oauthApplication   OAuthApplication @relation(fields: [oauthApplicationId], references: [id], onDelete: Cascade)
+
+  ownerOid Int
+  owner    Cell @relation(fields: [ownerOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}
