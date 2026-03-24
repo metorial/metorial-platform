@@ -17,7 +17,7 @@ cd $ROOT_DIR
 echo "Building OSS packages..."
 if [ "$IS_ENTERPRISE" = true ]; then
   bunx turbo run --ui=stream build --filter='./oss/**' --filter='!./oss/src/systems/subspace/**'
-  bunx turbo run --ui=stream build --filter='./systems/shuttle/sdk/**'
+  # bunx turbo run --ui=stream build --filter='./systems/shuttle/sdk/**'
   # bunx turbo run --ui=stream frontend:build --filter='./systems/horizon/apps/horizon'
   bunx turbo run --ui=stream frontend:build --filter='./oss/src/systems/subspace/apps/dev'
 else
