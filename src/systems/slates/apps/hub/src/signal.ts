@@ -1,6 +1,6 @@
 import { delay } from '@lowerdeck/delay';
 import { ProgrammablePromise } from '@lowerdeck/programmable-promise';
-import { createSignalClient } from '@metorial-services/signal-client';
+import { createSignalClient } from '@metorial-mono/signal-client';
 import type { Tenant } from '../prisma/generated/client';
 import { db } from './db';
 import { env } from './env';

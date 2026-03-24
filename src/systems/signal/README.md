@@ -89,15 +89,15 @@ The Signal service will be available at `http://localhost:25050`
 ### Installation
 
 ```bash
-npm install @metorial-services/signal-client
-yarn add @metorial-services/signal-client
-bun add @metorial-services/signal-client
+npm install @metorial-mono/signal-client
+yarn add @metorial-mono/signal-client
+bun add @metorial-mono/signal-client
 ```
 
 ### Basic Usage
 
 ```typescript
-import { createSignalClient } from '@metorial-services/signal-client';
+import { createSignalClient } from '@metorial-mono/signal-client';
 
 let client = createSignalClient({
   endpoint: 'http://localhost:25050',

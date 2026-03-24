@@ -12,7 +12,7 @@
     "@lowerdeck/error": "^1.2.2",
     "@lowerdeck/programmable-promise": "^1.0.6",
     "@lowerdeck/validation": "^1.0.8",
-    "@metorial-services/subspace-client": "^1.0.43",
+    "@metorial-mono/subspace-client": "^1.0.43",
     "@metorial/context": "1.0.0",
     "@metorial/db": "1.0.0",
     "@metorial/module-access": "1.0.0",

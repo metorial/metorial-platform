@@ -1,6 +1,6 @@
+import { createVitestConfig, loadTestEnv, withAliases } from '@lowerdeck/testing-tools';
 import { resolve } from 'path';
 import { defineConfig } from 'vitest/config';
-import { createVitestConfig, loadTestEnv, withAliases } from '@lowerdeck/testing-tools';
 
 export default defineConfig(({ mode }) => {
   const env = loadTestEnv(mode || 'test', process.cwd(), '');
@@ -38,9 +38,6 @@ export default defineConfig(({ mode }) => {
   });
 
   return withAliases(config, {
-    '@metorial-services/signal-client': resolve(
-      __dirname,
-      '../clients/typescript/src/index.ts'
-    )
+    '@metorial-mono/signal-client': resolve(__dirname, '../clients/typescript/src/index.ts')
   });
 });

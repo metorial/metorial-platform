@@ -1,5 +1,5 @@
 {
-  "name": "@metorial-services/signal-client",
+  "name": "@metorial-mono/signal-client",
   "version": "1.0.0",
   "publishConfig": {
     "access": "public"

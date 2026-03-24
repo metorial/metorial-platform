@@ -1,6 +1,6 @@
 import { generateCode } from '@lowerdeck/id';
 import { slugify } from '@lowerdeck/slugify';
-import { createShuttleClient } from '@metorial-services/shuttle-client';
+import { createShuttleClient } from '@metorial-mono/shuttle-client';
 import { withTimeout } from '@metorial-subspace/connection-utils/src/withTimeout';
 import {
   getId,

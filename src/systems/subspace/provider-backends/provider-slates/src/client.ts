@@ -1,5 +1,5 @@
 import { delay } from '@lowerdeck/delay';
-import { createSlatesHubInternalClient } from '@metorial-services/slates-hub-client';
+import { createSlatesHubInternalClient } from '@metorial-mono/slates-hub-client';
 import { db, type Tenant } from '@metorial-subspace/db';
 import { env } from './env';
 
