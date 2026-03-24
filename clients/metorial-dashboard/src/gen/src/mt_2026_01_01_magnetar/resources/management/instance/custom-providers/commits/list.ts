@@ -56,7 +56,10 @@ export type ManagementInstanceCustomProvidersCommitsListOutput = {
         commit: {
           object: 'custom_provider.deployment.commit';
           id: string;
-          type: string;
+          type:
+            | 'create_version'
+            | 'merge_version_into_environment'
+            | 'rollback_to_version';
           message: string | null;
           createdAt: Date;
         } | null;
@@ -197,7 +200,10 @@ export type ManagementInstanceCustomProvidersCommitsListOutput = {
         commit: {
           object: 'custom_provider.deployment.commit';
           id: string;
-          type: string;
+          type:
+            | 'create_version'
+            | 'merge_version_into_environment'
+            | 'rollback_to_version';
           message: string | null;
           createdAt: Date;
         } | null;

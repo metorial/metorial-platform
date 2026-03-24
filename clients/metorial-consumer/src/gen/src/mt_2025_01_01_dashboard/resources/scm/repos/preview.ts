@@ -4,7 +4,7 @@ export type ScmReposPreviewOutput = {
   object: 'scm.repository.list#preview';
   repos: {
     object: 'scm.repository.item#preview';
-    provider: { type: 'github' | 'gitlab'; name: string; owner: string };
+    provider: 'github' | 'gitlab';
     externalId: string;
     name: string;
     identifier: string;
@@ -18,14 +18,7 @@ export let mapScmReposPreviewOutput = mtMap.object<ScmReposPreviewOutput>({
     mtMap.array(
       mtMap.object({
         object: mtMap.objectField('object', mtMap.passthrough()),
-        provider: mtMap.objectField(
-          'provider',
-          mtMap.object({
-            type: mtMap.objectField('type', mtMap.passthrough()),
-            name: mtMap.objectField('name', mtMap.passthrough()),
-            owner: mtMap.objectField('owner', mtMap.passthrough())
-          })
-        ),
+        provider: mtMap.objectField('provider', mtMap.passthrough()),
         externalId: mtMap.objectField('external_id', mtMap.passthrough()),
         name: mtMap.objectField('name', mtMap.passthrough()),
         identifier: mtMap.objectField('identifier', mtMap.passthrough())
