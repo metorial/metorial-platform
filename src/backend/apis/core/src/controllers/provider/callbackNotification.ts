@@ -45,8 +45,18 @@ export let callbackNotificationController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            destination_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            status: v.optional(v.union([v.string(), v.array(v.string())]))
+            destination_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by callback destination ID(s)'
+            }),
+            status: v.optional(
+              v.union([
+                v.enumOf(['pending', 'failed', 'delivered', 'retrying']),
+                v.array(v.enumOf(['pending', 'failed', 'delivered', 'retrying']))
+              ]),
+              {
+                description: 'Filter by callback notification delivery status'
+              }
+            )
           })
         )
       )

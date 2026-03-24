@@ -45,9 +45,15 @@ export let callbackEventController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            id: v.optional(v.union([v.string(), v.array(v.string())])),
-            type: v.optional(v.union([v.string(), v.array(v.string())])),
-            source_id: v.optional(v.union([v.string(), v.array(v.string())]))
+            id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by callback event ID(s)'
+            }),
+            type: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by event type(s)'
+            }),
+            source_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by provider source ID(s)'
+            })
           })
         )
       )

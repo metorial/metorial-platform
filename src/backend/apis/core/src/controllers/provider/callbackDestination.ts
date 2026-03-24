@@ -38,7 +38,12 @@ export let callbackDestinationController = Controller.create(
       })
       .use(checkAccess({ possibleScopes: ['instance.callback:read'] }))
       .outputList(callbackDestinationPresenter)
-      .query('default', Paginator.validate(v.object({})))
+      .query(
+        'default',
+        Paginator.validate(
+          v.object({}, { description: 'Pagination parameters for listing callback destinations' })
+        )
+      )
       .do(async ctx => {
         let paginator = await subspaceCallbackDestinationService.list({
           instance: ctx.instance
@@ -77,10 +82,26 @@ export let callbackDestinationController = Controller.create(
       .body(
         'default',
         v.object({
-          name: v.string(),
-          description: v.optional(v.string()),
-          metadata: v.optional(v.record(v.any())),
-          url: v.string()
+          name: v.string({
+            description: 'Display name for the callback destination',
+            examples: ['Primary Webhook Endpoint']
+          }),
+          description: v.optional(
+            v.string({
+              description: 'Optional callback destination description',
+              examples: ['Primary production webhook receiver']
+            })
+          ),
+          metadata: v.optional(
+            v.record(v.any(), {
+              description: 'Custom key-value pairs for storing destination metadata',
+              examples: [{ region: 'us-east-1', owner: 'integrations-team' }]
+            })
+          ),
+          url: v.string({
+            description: 'Webhook URL that should receive callback deliveries',
+            examples: ['https://api.example.com/webhooks/metorial']
+          })
         })
       )
       .output(callbackDestinationPresenter)
@@ -111,10 +132,30 @@ export let callbackDestinationController = Controller.create(
       .body(
         'default',
         v.object({
-          name: v.optional(v.string()),
-          description: v.optional(v.string()),
-          metadata: v.optional(v.record(v.any())),
-          url: v.optional(v.string())
+          name: v.optional(
+            v.string({
+              description: 'Updated callback destination name',
+              examples: ['Secondary Webhook Endpoint']
+            })
+          ),
+          description: v.optional(
+            v.string({
+              description: 'Updated destination description',
+              examples: ['Secondary failover webhook receiver']
+            })
+          ),
+          metadata: v.optional(
+            v.record(v.any(), {
+              description: 'Updated destination metadata',
+              examples: [{ region: 'us-west-2', owner: 'platform-team' }]
+            })
+          ),
+          url: v.optional(
+            v.string({
+              description: 'Updated webhook URL for callback deliveries',
+              examples: ['https://api.example.com/webhooks/metorial/failover']
+            })
+          )
         })
       )
       .output(callbackDestinationPresenter)

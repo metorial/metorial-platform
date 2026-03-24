@@ -43,13 +43,20 @@ export let callbackController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            id: v.optional(v.union([v.string(), v.array(v.string())])),
-            provider_deployment_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by callback ID(s)'
+            }),
+            provider_deployment_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by provider deployment ID(s)'
+            }),
             status: v.optional(
               v.union([
                 v.enumOf(['active', 'archived', 'deleted']),
                 v.array(v.enumOf(['active', 'archived', 'deleted']))
-              ])
+              ]),
+              {
+                description: 'Filter by callback lifecycle status'
+              }
             )
           })
         )
@@ -90,17 +97,62 @@ export let callbackController = Controller.create(
       .body(
         'default',
         v.object({
-          provider_deployment_id: v.string(),
-          name: v.string(),
-          description: v.optional(v.string()),
-          metadata: v.optional(v.record(v.any())),
-          poll_interval_seconds_override: v.optional(v.nullable(v.number())),
-          destination_ids: v.array(v.string()),
-          triggers: v.array(
-            v.object({
-              trigger_id: v.string(),
-              event_types: v.optional(v.array(v.string()))
+          provider_deployment_id: v.string({
+            description: 'Provider deployment that owns the trigger specification for this callback',
+            examples: ['pde_1aBcDeFgHjKlMnPq']
+          }),
+          name: v.string({
+            description: 'Display name for the callback',
+            examples: ['Production Webhook Callback']
+          }),
+          description: v.optional(
+            v.string({
+              description: 'Optional callback description',
+              examples: ['Sends provider trigger deliveries to our production webhook']
             })
+          ),
+          metadata: v.optional(
+            v.record(v.any(), {
+              description: 'Custom key-value pairs for storing additional callback metadata',
+              examples: [{ environment: 'production', owner: 'platform-team' }]
+            })
+          ),
+          poll_interval_seconds_override: v.optional(
+            v.nullable(
+              v.number({
+                description: 'Optional polling interval override, in seconds, for polling triggers',
+                examples: [60]
+              })
+            )
+          ),
+          destination_ids: v.array(
+            v.string({
+              examples: ['cld_7dEfGhJkLmNpQrSt']
+            }),
+            {
+              description: 'Callback destination IDs that should receive deliveries'
+            }
+          ),
+          triggers: v.array(
+            v.object(
+              {
+                trigger_id: v.string({
+                  description: 'Provider trigger key or identifier from the deployment specification',
+                  examples: ['messages.created']
+                }),
+                event_types: v.optional(
+                  v.array(
+                    v.string({
+                      examples: ['message.created']
+                    }),
+                    {
+                      description: 'Optional provider-specific event type filters for this trigger'
+                    }
+                  )
+                )
+              },
+              { description: 'Trigger definition for this callback' }
+            )
           )
         })
       )
@@ -132,17 +184,63 @@ export let callbackController = Controller.create(
       .body(
         'default',
         v.object({
-          name: v.optional(v.string()),
-          description: v.optional(v.string()),
-          metadata: v.optional(v.record(v.any())),
-          poll_interval_seconds_override: v.optional(v.nullable(v.number())),
-          destination_ids: v.optional(v.array(v.string())),
+          name: v.optional(
+            v.string({
+              description: 'Updated callback display name',
+              examples: ['Staging Webhook Callback']
+            })
+          ),
+          description: v.optional(
+            v.string({
+              description: 'Updated callback description',
+              examples: ['Sends deliveries to the staging webhook endpoint']
+            })
+          ),
+          metadata: v.optional(
+            v.record(v.any(), {
+              description: 'Updated custom metadata for the callback',
+              examples: [{ environment: 'staging', owner: 'qa-team' }]
+            })
+          ),
+          poll_interval_seconds_override: v.optional(
+            v.nullable(
+              v.number({
+                description: 'Updated polling interval override, in seconds',
+                examples: [120]
+              })
+            )
+          ),
+          destination_ids: v.optional(
+            v.array(
+              v.string({
+                examples: ['cld_7dEfGhJkLmNpQrSt']
+              }),
+              {
+                description: 'Replacement list of callback destination IDs'
+              }
+            )
+          ),
           triggers: v.optional(
             v.array(
-              v.object({
-                trigger_id: v.string(),
-                event_types: v.optional(v.array(v.string()))
-              })
+              v.object(
+                {
+                  trigger_id: v.string({
+                    description: 'Provider trigger key or identifier',
+                    examples: ['messages.created']
+                  }),
+                  event_types: v.optional(
+                    v.array(
+                      v.string({
+                        examples: ['message.created']
+                      }),
+                      {
+                        description: 'Updated provider-specific event type filters for this trigger'
+                      }
+                    )
+                  )
+                },
+                { description: 'Updated trigger definition for this callback' }
+              )
             )
           )
         })

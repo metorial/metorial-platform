@@ -26,10 +26,24 @@ export let callbackInstanceController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            id: v.optional(v.union([v.string(), v.array(v.string())])),
-            status: v.optional(v.union([v.string(), v.array(v.string())])),
-            provider_config_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            provider_auth_config_id: v.optional(v.union([v.string(), v.array(v.string())]))
+            id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by callback instance ID(s)'
+            }),
+            status: v.optional(
+              v.union([
+                v.enumOf(['attached', 'detached']),
+                v.array(v.enumOf(['attached', 'detached']))
+              ]),
+              {
+                description: 'Filter by callback instance status'
+              }
+            ),
+            provider_config_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by provider config ID(s)'
+            }),
+            provider_auth_config_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by provider auth config ID(s)'
+            })
           })
         )
       )
@@ -61,8 +75,16 @@ export let callbackInstanceController = Controller.create(
       .body(
         'default',
         v.object({
-          provider_config_id: v.string(),
-          provider_auth_config_id: v.optional(v.string())
+          provider_config_id: v.string({
+            description: 'Provider config to attach to the callback instance',
+            examples: ['pcf_7dEfGhJkLmNpQrSt']
+          }),
+          provider_auth_config_id: v.optional(
+            v.string({
+              description: 'Optional provider auth config to attach to the callback instance',
+              examples: ['pac_8pQrStUvWxYzAbCd']
+            })
+          )
         })
       )
       .output(callbackInstancePresenter)

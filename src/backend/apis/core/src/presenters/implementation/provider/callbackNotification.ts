@@ -3,37 +3,137 @@ import { Presenter } from '@metorial/presenter';
 import { callbackNotificationType } from '../../types';
 
 let callbackNotificationDestinationSchema = v.object({
-  object: v.literal('callback.notification.destination'),
-  id: v.string(),
-  name: v.string(),
-  description: v.nullable(v.string()),
-  type: v.string(),
-  event_types: v.array(v.string()),
-  retry: v.any(),
-  webhook: v.nullable(
-    v.object({
-      id: v.string(),
-      url: v.string(),
-      method: v.string(),
-      created_at: v.date()
+  object: v.literal('callback.notification.destination', {
+    description: "String representing the object's type"
+  }),
+  id: v.string({
+    name: 'id',
+    description: 'Destination identifier used for this callback notification',
+    examples: ['dest_4dEfGhJkLmNpQrSt']
+  }),
+  name: v.string({
+    name: 'name',
+    description: 'Destination display name',
+    examples: ['Primary Webhook Endpoint']
+  }),
+  description: v.nullable(
+    v.string({
+      name: 'description',
+      description: 'Optional destination description',
+      examples: ['Primary production webhook receiver']
     })
   ),
-  created_at: v.date(),
-  updated_at: v.date()
+  type: v.string({
+    name: 'type',
+    description: 'Delivery destination type',
+    examples: ['webhook']
+  }),
+  event_types: v.array(
+    v.string({
+      examples: ['message.created']
+    }),
+    {
+      name: 'event_types',
+      description: 'Event types this destination accepted for the notification'
+    }
+  ),
+  retry: v.any({
+    name: 'retry',
+    description: 'Retry configuration applied to this destination'
+  }),
+  webhook: v.nullable(
+    v.object(
+      {
+        id: v.string({
+          name: 'id',
+          description: 'Webhook identifier',
+          examples: ['wh_4dEfGhJkLmNpQrSt']
+        }),
+        url: v.string({
+          name: 'url',
+          description: 'Webhook URL used for the notification',
+          examples: ['https://api.example.com/webhooks/metorial']
+        }),
+        method: v.string({
+          name: 'method',
+          description: 'HTTP method used for delivery',
+          examples: ['POST']
+        }),
+        created_at: v.date({
+          name: 'created_at',
+          description: 'Timestamp when the webhook destination was created',
+          examples: [new Date('2025-09-15T10:30:00Z')]
+        })
+      },
+      { name: 'webhook', description: 'Webhook destination details' }
+    )
+  ),
+  created_at: v.date({
+    name: 'created_at',
+    description: 'Timestamp when the destination was created',
+    examples: [new Date('2025-09-15T10:30:00Z')]
+  }),
+  updated_at: v.date({
+    name: 'updated_at',
+    description: 'Timestamp when the destination was last updated',
+    examples: [new Date('2026-01-10T14:45:00Z')]
+  })
 });
 
 let callbackNotificationEventSchema = v.object({
-  object: v.literal('callback.notification.event'),
-  id: v.string(),
-  type: v.string(),
-  topics: v.array(v.string()),
-  status: v.string(),
-  destination_count: v.number(),
-  success_count: v.number(),
-  failure_count: v.number(),
-  request: v.any(),
-  created_at: v.date(),
-  updated_at: v.date()
+  object: v.literal('callback.notification.event', {
+    description: "String representing the object's type"
+  }),
+  id: v.string({
+    name: 'id',
+    description: 'Underlying event identifier for this notification',
+    examples: ['evt_4dEfGhJkLmNpQrSt']
+  }),
+  type: v.string({
+    name: 'type',
+    description: 'Event type delivered to the destination',
+    examples: ['message.created']
+  }),
+  topics: v.array(
+    v.string({
+      examples: ['messages']
+    }),
+    {
+      name: 'topics',
+      description: 'Topics associated with the event'
+    }
+  ),
+  status: v.string({
+    name: 'status',
+    description: 'Aggregate delivery status for the underlying event',
+    examples: ['delivered']
+  }),
+  destination_count: v.number({
+    name: 'destination_count',
+    description: 'Total number of destinations targeted by the event'
+  }),
+  success_count: v.number({
+    name: 'success_count',
+    description: 'Number of successful deliveries for the event'
+  }),
+  failure_count: v.number({
+    name: 'failure_count',
+    description: 'Number of failed deliveries for the event'
+  }),
+  request: v.any({
+    name: 'request',
+    description: 'Serialized request payload generated for the event'
+  }),
+  created_at: v.date({
+    name: 'created_at',
+    description: 'Timestamp when the event was created',
+    examples: [new Date('2025-09-15T10:30:00Z')]
+  }),
+  updated_at: v.date({
+    name: 'updated_at',
+    description: 'Timestamp when the event was last updated',
+    examples: [new Date('2026-01-10T14:45:00Z')]
+  })
 });
 
 export let v1CallbackNotificationPresenter = Presenter.create(callbackNotificationType)
@@ -82,17 +182,55 @@ export let v1CallbackNotificationPresenter = Presenter.create(callbackNotificati
   }))
   .schema(
     v.object({
-      object: v.literal('callback.notification'),
-      id: v.string(),
-      status: v.string(),
-      error: v.nullable(v.any()),
-      attempt_count: v.number(),
+      object: v.literal('callback.notification', {
+        description: "String representing the object's type"
+      }),
+      id: v.string({
+        name: 'id',
+        description: 'Unique callback notification identifier',
+        examples: ['cbn_4dEfGhJkLmNpQrSt']
+      }),
+      status: v.string({
+        name: 'status',
+        description: 'Current notification delivery status',
+        examples: ['delivered']
+      }),
+      error: v.nullable(
+        v.any({
+          name: 'error',
+          description: 'Last known delivery error payload, if any'
+        })
+      ),
+      attempt_count: v.number({
+        name: 'attempt_count',
+        description: 'Number of delivery attempts made for this notification'
+      }),
       event: callbackNotificationEventSchema,
       destination: callbackNotificationDestinationSchema,
-      created_at: v.date(),
-      updated_at: v.date(),
-      last_attempt_at: v.nullable(v.date()),
-      next_attempt_at: v.nullable(v.date())
+      created_at: v.date({
+        name: 'created_at',
+        description: 'Timestamp when the notification was created',
+        examples: [new Date('2025-09-15T10:30:00Z')]
+      }),
+      updated_at: v.date({
+        name: 'updated_at',
+        description: 'Timestamp when the notification was last updated',
+        examples: [new Date('2026-01-10T14:45:00Z')]
+      }),
+      last_attempt_at: v.nullable(
+        v.date({
+          name: 'last_attempt_at',
+          description: 'Timestamp of the most recent delivery attempt',
+          examples: [new Date('2026-01-10T14:45:00Z')]
+        })
+      ),
+      next_attempt_at: v.nullable(
+        v.date({
+          name: 'next_attempt_at',
+          description: 'Timestamp of the next scheduled retry attempt, if any',
+          examples: [new Date('2026-01-10T14:50:00Z')]
+        })
+      )
     })
   )
   .build();

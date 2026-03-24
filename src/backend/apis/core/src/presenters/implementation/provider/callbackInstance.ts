@@ -3,15 +3,57 @@ import { Presenter } from '@metorial/presenter';
 import { callbackInstanceType } from '../../types';
 
 let callbackInstanceTriggerSchema = v.object({
-  object: v.literal('callback.instance.trigger'),
-  id: v.string(),
-  source: v.string(),
-  poll_interval_seconds: v.nullable(v.number()),
-  next_poll_at: v.nullable(v.date()),
-  last_polled_at: v.nullable(v.date()),
-  webhook_url: v.nullable(v.string()),
-  is_webhook_registered: v.boolean(),
-  provider_trigger: v.nullable(v.any())
+  object: v.literal('callback.instance.trigger', {
+    description: "String representing the object's type"
+  }),
+  id: v.string({
+    name: 'id',
+    description: 'Unique receiver trigger identifier',
+    examples: ['ctr_9gHjKlMnPqRsTuVw']
+  }),
+  source: v.string({
+    name: 'source',
+    description: 'How this trigger is invoked by the provider backend',
+    examples: ['polling']
+  }),
+  poll_interval_seconds: v.nullable(
+    v.number({
+      name: 'poll_interval_seconds',
+      description: 'Polling interval in seconds when the trigger uses polling',
+      examples: [60]
+    })
+  ),
+  next_poll_at: v.nullable(
+    v.date({
+      name: 'next_poll_at',
+      description: 'Next scheduled poll timestamp for polling triggers',
+      examples: [new Date('2026-01-10T14:45:00Z')]
+    })
+  ),
+  last_polled_at: v.nullable(
+    v.date({
+      name: 'last_polled_at',
+      description: 'Last successful poll timestamp for polling triggers',
+      examples: [new Date('2026-01-10T14:44:00Z')]
+    })
+  ),
+  webhook_url: v.nullable(
+    v.string({
+      name: 'webhook_url',
+      description: 'Provider webhook URL registered for this trigger when webhook delivery is used',
+      examples: ['https://provider.example.com/webhooks/abc123']
+    })
+  ),
+  is_webhook_registered: v.boolean({
+    name: 'is_webhook_registered',
+    description: 'Whether webhook registration is currently active for this trigger'
+  }),
+  provider_trigger: v.nullable(
+    v.any({
+      name: 'provider_trigger',
+      description: 'Provider trigger metadata associated with this callback instance trigger'
+    })
+  )
 });
 
 export let v1CallbackInstancePresenter = Presenter.create(callbackInstanceType)
@@ -36,13 +78,36 @@ export let v1CallbackInstancePresenter = Presenter.create(callbackInstanceType)
   }))
   .schema(
     v.object({
-      object: v.literal('callback.instance'),
-      id: v.string(),
-      status: v.enumOf(['attached', 'detached']),
-      registration_status: v.enumOf(['pending', 'registered']),
-      triggers: v.array(callbackInstanceTriggerSchema),
-      created_at: v.date(),
-      updated_at: v.date()
+      object: v.literal('callback.instance', {
+        description: "String representing the object's type"
+      }),
+      id: v.string({
+        name: 'id',
+        description: 'Unique callback instance identifier',
+        examples: ['cbi_5gHjKlMnPqRsTuVw']
+      }),
+      status: v.enumOf(['attached', 'detached'], {
+        name: 'status',
+        description: 'Whether the callback instance is currently attached to a deployment/config pair'
+      }),
+      registration_status: v.enumOf(['pending', 'registered'], {
+        name: 'registration_status',
+        description: 'Registration state of the underlying trigger receiver'
+      }),
+      triggers: v.array(callbackInstanceTriggerSchema, {
+        name: 'triggers',
+        description: 'Resolved trigger registrations for this callback instance'
+      }),
+      created_at: v.date({
+        name: 'created_at',
+        description: 'Timestamp when the callback instance was created',
+        examples: [new Date('2025-09-15T10:30:00Z')]
+      }),
+      updated_at: v.date({
+        name: 'updated_at',
+        description: 'Timestamp when the callback instance was last updated',
+        examples: [new Date('2026-01-10T14:45:00Z')]
+      })
     })
   )
   .build();

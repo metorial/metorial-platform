@@ -17,16 +17,57 @@ export let v1CallbackDestinationPresenter = Presenter.create(callbackDestination
   }))
   .schema(
     v.object({
-      object: v.literal('callback.destination'),
-      id: v.string(),
-      status: v.enumOf(['active', 'archived', 'deleted']),
-      name: v.string(),
-      description: v.nullable(v.string()),
-      metadata: v.nullable(v.record(v.any())),
-      url: v.string(),
-      method: v.string(),
-      created_at: v.date(),
-      updated_at: v.date()
+      object: v.literal('callback.destination', {
+        description: "String representing the object's type"
+      }),
+      id: v.string({
+        name: 'id',
+        description: 'Unique callback destination identifier',
+        examples: ['cld_7dEfGhJkLmNpQrSt']
+      }),
+      status: v.enumOf(['active', 'archived', 'deleted'], {
+        name: 'status',
+        description: 'Callback destination lifecycle status'
+      }),
+      name: v.string({
+        name: 'name',
+        description: 'Display name for the callback destination',
+        examples: ['Primary Webhook Endpoint']
+      }),
+      description: v.nullable(
+        v.string({
+          name: 'description',
+          description: 'Optional destination description',
+          examples: ['Primary production webhook receiver']
+        })
+      ),
+      metadata: v.nullable(
+        v.record(v.any(), {
+          name: 'metadata',
+          description: 'Custom key-value pairs for storing additional destination metadata',
+          examples: [{ region: 'us-east-1', owner: 'integrations-team' }]
+        })
+      ),
+      url: v.string({
+        name: 'url',
+        description: 'Webhook URL that receives callback deliveries',
+        examples: ['https://api.example.com/webhooks/metorial']
+      }),
+      method: v.string({
+        name: 'method',
+        description: 'HTTP method used for webhook delivery',
+        examples: ['POST']
+      }),
+      created_at: v.date({
+        name: 'created_at',
+        description: 'Timestamp when the callback destination was created',
+        examples: [new Date('2025-09-15T10:30:00Z')]
+      }),
+      updated_at: v.date({
+        name: 'updated_at',
+        description: 'Timestamp when the callback destination was last updated',
+        examples: [new Date('2026-01-10T14:45:00Z')]
+      })
     })
   )
   .build();
