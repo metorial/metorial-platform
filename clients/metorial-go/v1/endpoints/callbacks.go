@@ -42,9 +42,9 @@ type CallbacksEndpointCreateBody struct {
 	Metadata *map[string]any `json:"metadata,omitempty"`
 	// PollIntervalSecondsOverride - Optional polling interval override, in seconds, for polling triggers
 	PollIntervalSecondsOverride *float64 `json:"poll_interval_seconds_override,omitempty"`
-	// DestinationIds - Callback destination IDs that should receive deliveries
-	DestinationIds []string         `json:"destination_ids"`
-	Triggers       []map[string]any `json:"triggers"`
+	// DestinationIds - Optional callback destination IDs that should receive deliveries. Destinations can also be attached later.
+	DestinationIds *[]string         `json:"destination_ids,omitempty"`
+	Triggers       *[]map[string]any `json:"triggers,omitempty"`
 }
 
 // CallbacksEndpointUpdateBody contains the request body for Update.

@@ -19,6 +19,18 @@ export type ManagementInstanceCallbacksGetOutput = {
     createdAt: Date;
     updatedAt: Date;
   };
+  destinations: {
+    object: 'callback.destination';
+    id: string;
+    status: 'active' | 'archived' | 'deleted';
+    name: string;
+    description: string | null;
+    metadata: Record<string, any> | null;
+    url: string;
+    method: string;
+    createdAt: Date;
+    updatedAt: Date;
+  }[];
   providerTriggers: {
     object: 'callback.provider_trigger';
     id: string;
@@ -57,6 +69,23 @@ export let mapManagementInstanceCallbacksGetOutput =
         createdAt: mtMap.objectField('created_at', mtMap.date()),
         updatedAt: mtMap.objectField('updated_at', mtMap.date())
       })
+    ),
+    destinations: mtMap.objectField(
+      'destinations',
+      mtMap.array(
+        mtMap.object({
+          object: mtMap.objectField('object', mtMap.passthrough()),
+          id: mtMap.objectField('id', mtMap.passthrough()),
+          status: mtMap.objectField('status', mtMap.passthrough()),
+          name: mtMap.objectField('name', mtMap.passthrough()),
+          description: mtMap.objectField('description', mtMap.passthrough()),
+          metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+          url: mtMap.objectField('url', mtMap.passthrough()),
+          method: mtMap.objectField('method', mtMap.passthrough()),
+          createdAt: mtMap.objectField('created_at', mtMap.date()),
+          updatedAt: mtMap.objectField('updated_at', mtMap.date())
+        })
+      )
     ),
     providerTriggers: mtMap.objectField(
       'provider_triggers',

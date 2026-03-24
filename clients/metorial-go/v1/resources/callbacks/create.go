@@ -27,6 +27,30 @@ type CallbacksCreateOutputProviderDeployment struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
+// CallbacksCreateOutputDestinations represents the callbacks create output destinations type.
+type CallbacksCreateOutputDestinations struct {
+	// Object - String representing the object's type
+	Object string `json:"object"`
+	// Id - Unique callback destination identifier
+	Id string `json:"id"`
+	// Status - Callback destination lifecycle status
+	Status string `json:"status"`
+	// Name - Display name for the callback destination
+	Name string `json:"name"`
+	// Description - Optional destination description
+	Description *string `json:"description,omitempty"`
+	// Metadata - Custom key-value pairs for storing additional destination metadata
+	Metadata *map[string]any `json:"metadata,omitempty"`
+	// Url - Webhook URL that receives callback deliveries
+	Url string `json:"url"`
+	// Method - HTTP method used for webhook delivery
+	Method string `json:"method"`
+	// CreatedAt - Timestamp when the callback destination was created
+	CreatedAt time.Time `json:"created_at"`
+	// UpdatedAt - Timestamp when the callback destination was last updated
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
 // CallbacksCreateOutputProviderTriggers represents the callbacks create output provider triggers type.
 type CallbacksCreateOutputProviderTriggers struct {
 	// Object - String representing the object's type
@@ -62,6 +86,8 @@ type CallbacksCreateOutput struct {
 	// PollIntervalSecondsOverride - Optional polling interval override, in seconds, for polling-capable triggers
 	PollIntervalSecondsOverride *float64                                `json:"poll_interval_seconds_override,omitempty"`
 	ProviderDeployment          CallbacksCreateOutputProviderDeployment `json:"provider_deployment"`
+	// Destinations - Destinations currently attached to this callback
+	Destinations []CallbacksCreateOutputDestinations `json:"destinations"`
 	// ProviderTriggers - Triggers configured on this callback
 	ProviderTriggers []CallbacksCreateOutputProviderTriggers `json:"provider_triggers"`
 	// CreatedAt - Timestamp when the callback was created
@@ -104,9 +130,9 @@ type CallbacksCreateBody struct {
 	Metadata *map[string]any `json:"metadata,omitempty"`
 	// PollIntervalSecondsOverride - Optional polling interval override, in seconds, for polling triggers
 	PollIntervalSecondsOverride *float64 `json:"poll_interval_seconds_override,omitempty"`
-	// DestinationIds - Callback destination IDs that should receive deliveries
-	DestinationIds []string                      `json:"destination_ids"`
-	Triggers       []CallbacksCreateBodyTriggers `json:"triggers"`
+	// DestinationIds - Optional callback destination IDs that should receive deliveries. Destinations can also be attached later.
+	DestinationIds *[]string                      `json:"destination_ids,omitempty"`
+	Triggers       *[]CallbacksCreateBodyTriggers `json:"triggers,omitempty"`
 }
 
 // MapCallbacksCreateBodyFromJSON deserializes JSON data into a CallbacksCreateBody.

@@ -27,6 +27,30 @@ type CallbacksDeleteOutputProviderDeployment struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
+// CallbacksDeleteOutputDestinations represents the callbacks delete output destinations type.
+type CallbacksDeleteOutputDestinations struct {
+	// Object - String representing the object's type
+	Object string `json:"object"`
+	// Id - Unique callback destination identifier
+	Id string `json:"id"`
+	// Status - Callback destination lifecycle status
+	Status string `json:"status"`
+	// Name - Display name for the callback destination
+	Name string `json:"name"`
+	// Description - Optional destination description
+	Description *string `json:"description,omitempty"`
+	// Metadata - Custom key-value pairs for storing additional destination metadata
+	Metadata *map[string]any `json:"metadata,omitempty"`
+	// Url - Webhook URL that receives callback deliveries
+	Url string `json:"url"`
+	// Method - HTTP method used for webhook delivery
+	Method string `json:"method"`
+	// CreatedAt - Timestamp when the callback destination was created
+	CreatedAt time.Time `json:"created_at"`
+	// UpdatedAt - Timestamp when the callback destination was last updated
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
 // CallbacksDeleteOutputProviderTriggers represents the callbacks delete output provider triggers type.
 type CallbacksDeleteOutputProviderTriggers struct {
 	// Object - String representing the object's type
@@ -62,6 +86,8 @@ type CallbacksDeleteOutput struct {
 	// PollIntervalSecondsOverride - Optional polling interval override, in seconds, for polling-capable triggers
 	PollIntervalSecondsOverride *float64                                `json:"poll_interval_seconds_override,omitempty"`
 	ProviderDeployment          CallbacksDeleteOutputProviderDeployment `json:"provider_deployment"`
+	// Destinations - Destinations currently attached to this callback
+	Destinations []CallbacksDeleteOutputDestinations `json:"destinations"`
 	// ProviderTriggers - Triggers configured on this callback
 	ProviderTriggers []CallbacksDeleteOutputProviderTriggers `json:"provider_triggers"`
 	// CreatedAt - Timestamp when the callback was created
