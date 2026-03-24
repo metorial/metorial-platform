@@ -81,7 +81,6 @@ export let mapManagementOrganizationOauthAppsCreateOutput =
   });
 
 export type ManagementOrganizationOauthAppsCreateBody = {
-  type: 'user_facing' | 'server_side';
   accessLevel: 'organization';
   name: string;
   description?: string | undefined;
@@ -94,7 +93,6 @@ export type ManagementOrganizationOauthAppsCreateBody = {
 
 export let mapManagementOrganizationOauthAppsCreateBody =
   mtMap.object<ManagementOrganizationOauthAppsCreateBody>({
-    type: mtMap.objectField('type', mtMap.passthrough()),
     accessLevel: mtMap.objectField('access_level', mtMap.passthrough()),
     name: mtMap.objectField('name', mtMap.passthrough()),
     description: mtMap.objectField('description', mtMap.passthrough()),

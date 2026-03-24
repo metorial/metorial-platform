@@ -8,5 +8,6 @@ export * from './list';
 export * from './members';
 export * from './oauth';
 export * from './projects';
+export * from './service-accounts';
 export * from './teams';
 export * from './update';

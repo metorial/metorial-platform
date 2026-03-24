@@ -115,14 +115,7 @@ export type ManagementOrganizationOauthAppsListQuery = {
   before?: string | undefined;
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
-} & {
-  status?: 'active' | 'archived' | ('active' | 'archived')[] | undefined;
-  type?:
-    | 'user_facing'
-    | 'server_side'
-    | ('user_facing' | 'server_side')[]
-    | undefined;
-};
+} & { status?: 'active' | 'archived' | ('active' | 'archived')[] | undefined };
 
 export let mapManagementOrganizationOauthAppsListQuery = mtMap.union([
   mtMap.unionOption(
@@ -135,10 +128,6 @@ export let mapManagementOrganizationOauthAppsListQuery = mtMap.union([
       order: mtMap.objectField('order', mtMap.passthrough()),
       status: mtMap.objectField(
         'status',
-        mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
-      ),
-      type: mtMap.objectField(
-        'type',
         mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
       )
     })

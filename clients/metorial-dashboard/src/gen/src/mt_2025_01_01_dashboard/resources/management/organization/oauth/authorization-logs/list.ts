@@ -4,9 +4,9 @@ export type ManagementOrganizationOauthAuthorizationLogsListOutput = {
   items: {
     object: 'machine_access.oauth_authorization_log';
     id: string;
-    status: 'pending' | 'accepted' | 'denied';
+    status: 'pending' | 'accepted';
     type: 'interactive' | 'device_code';
-    organizationId: string | null;
+    organizationId: string;
     redirectUri: string | null;
     clientIp: string | null;
     scopes: { identifier: string; name: string; description: string }[];

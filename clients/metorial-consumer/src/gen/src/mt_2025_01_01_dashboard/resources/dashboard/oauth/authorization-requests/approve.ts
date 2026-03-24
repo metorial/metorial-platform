@@ -118,7 +118,7 @@ export let mapDashboardOauthAuthorizationRequestsApproveOutput =
   });
 
 export type DashboardOauthAuthorizationRequestsApproveBody = {
-  organizationId?: string | undefined;
+  organizationId: string;
 };
 
 export let mapDashboardOauthAuthorizationRequestsApproveBody =
