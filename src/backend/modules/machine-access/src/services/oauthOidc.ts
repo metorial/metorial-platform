@@ -1,6 +1,7 @@
 import { Service } from '@lowerdeck/service';
 import { getConfig } from '@metorial/config';
 import { oauthJwkGlobalRepository } from '@metorial/multi-region';
+import type { JsonWebKeyInput } from 'node:crypto';
 import { createPrivateKey, sign } from 'node:crypto';
 import { coreScopes } from '../../../access/src/definitions';
 import { combineOAuthAndOidcScopes, hasOidcScope, oidcScopes } from '../lib/oidc';
@@ -174,9 +175,9 @@ class OAuthOidcService {
     let signingInput = `${encodedHeader}.${encodedPayload}`;
     let signature = sign('sha256', Buffer.from(signingInput), {
       key: createPrivateKey({
-        key: signingKey.privateJwk as JsonWebKey,
+        key: signingKey.privateJwk as JsonWebKeyInput['key'],
         format: 'jwk'
-      }),
+      } as JsonWebKeyInput),
       dsaEncoding: 'ieee-p1363'
     });
 
