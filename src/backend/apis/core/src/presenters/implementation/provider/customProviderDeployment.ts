@@ -11,10 +11,9 @@ let commitSchema = v.object({
     name: 'id',
     description: 'Commit identifier'
   }),
-  type: v.string({
+  type: v.enumOf(['create_version', 'merge_version_into_environment', 'rollback_to_version'], {
     name: 'type',
-    description: 'Commit type',
-    examples: ['merge', 'rollback']
+    description: 'Commit type'
   }),
   message: v.nullable(
     v.string({
@@ -164,7 +163,7 @@ export let v1CustomProviderDeploymentLogsPresenter = Presenter.create(
 
       id: step.id,
       name: step.name,
-      type: step.type,
+      type: step.type as string,
       status: step.status,
 
       logs: step.logs.map(log => ({

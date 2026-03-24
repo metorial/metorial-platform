@@ -1,7 +1,3 @@
-import { createExecutionContext, provideExecutionContext } from '@lowerdeck/execution-context';
-import { useRequestContext } from '@lowerdeck/hono';
-import { extractToken } from '@metorial/bearer';
-import { db, ID, Prisma } from '@metorial/db';
 import {
   badRequestError,
   forbiddenError,
@@ -9,7 +5,10 @@ import {
   ServiceError,
   unauthorizedError
 } from '@lowerdeck/error';
-import type { Context } from 'hono';
+import { createExecutionContext, provideExecutionContext } from '@lowerdeck/execution-context';
+import { useRequestContext } from '@lowerdeck/hono';
+import { extractToken } from '@metorial/bearer';
+import { db, ID, Prisma } from '@metorial/db';
 import { generateSnowflakeId } from '@metorial/id';
 import { AuthInfo } from '@metorial/module-access';
 import { magicMcpServerService, magicMcpTokenService } from '@metorial/module-magic';
@@ -19,6 +18,7 @@ import {
   subspaceSessionTemplateProviderService
 } from '@metorial/module-subspace';
 import { Authenticator } from '@metorial/rest';
+import type { Context } from 'hono';
 import { authenticateAndResolveInstance } from './getSession';
 
 type MagicMcpServerForRouting = Awaited<ReturnType<typeof getMagicMcpServerByIdOrAlias>>;
