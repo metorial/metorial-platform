@@ -30,6 +30,7 @@
   "devDependencies": {
     "@types/bun": "latest",
     "@types/lodash": "^4.17.23",
+    "@metorial-mono/slates-hub-client": "^1.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vercel/ncc": "^0.38.1",

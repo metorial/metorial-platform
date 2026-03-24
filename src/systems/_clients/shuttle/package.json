@@ -13,17 +13,7 @@
   "author": "Tobias Herber",
   "license": "Apache 2",
   "type": "module",
-  "source": "src/index.ts",
-  "exports": {
-    "types": "./dist/index.d.ts",
-    "require": "./dist/index.cjs",
-    "import": "./dist/index.module.js",
-    "default": "./dist/index.module.js"
-  },
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.module.js",
-  "types": "dist/index.d.ts",
-  "unpkg": "./dist/index.umd.js",
+  "main": "src/index.ts",
   "scripts": {
     "test": "vitest run --passWithNoTests",
     "lint": "prettier src/**/*.ts --check",

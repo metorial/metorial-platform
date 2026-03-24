@@ -1,4 +1,4 @@
-import { createSlatesHubInternalClient } from '../../../../_clients/slates-hub/src/index';
+import { createSlatesHubInternalClient } from '@metorial-mono/slates-hub-client';
 import { createFetchRouter } from '@lowerdeck/testing-tools';
 import { slatesHubApi } from '../apis/internal';
 

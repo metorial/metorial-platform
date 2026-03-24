@@ -1541,6 +1541,7 @@
       },
       "devDependencies": {
         "@lowerdeck/testing-tools": "^1.0.1",
+        "@metorial-mono/slates-hub-client": "^1.0.0",
         "@types/bun": "latest",
         "@types/lodash": "^4.17.23",
         "@types/minimatch": "^6.0.0",

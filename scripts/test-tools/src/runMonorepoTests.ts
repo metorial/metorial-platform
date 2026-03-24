@@ -5,7 +5,13 @@ import fs from 'fs/promises';
 import path from 'path';
 
 let rootDir = path.resolve(import.meta.dir, '../../..');
-let workspaceRoots = ['clients', 'src/backend', 'src/frontend', 'src/packages'];
+let workspaceRoots = [
+  'clients/metorial-consumer',
+  'clients/metorial-dashboard',
+  'src/backend',
+  'src/frontend',
+  'src/packages'
+];
 
 let collectPackageJsonFiles = async (dir: string): Promise<string[]> => {
   let entries = await fs.readdir(dir, { withFileTypes: true });
@@ -40,6 +46,7 @@ for (let workspaceRoot of workspaceRoots) {
 
     if (!testScript) continue;
     if (testScript.includes('Error: no test specified')) continue;
+    if (packageJson?.workspaces) continue;
 
     testPackages.push(path.dirname(packageJsonFile));
   }
