@@ -137,7 +137,7 @@ export let slatesHubEnv: Env = [
   },
   {
     key: 'SIGNAL_API_URL',
-    defaultValue: `http://${HOSTNAME}:52050/metorial-signal`
+    defaultValue: `http://services:52050/metorial-signal`
   },
   {
     key: 'SIGNAL_SENDER_IDENTIFIER',
@@ -267,7 +267,7 @@ export let shuttleServiceEnv: Env = [
   },
   {
     key: 'HOLOPOD_HTTP_ENDPOINT',
-    defaultValue: 'http://localhost:3000'
+    defaultValue: 'http://holopod:3000'
   },
   {
     key: 'SHUTTLE_ALLOW_PRIVATE_URLS',

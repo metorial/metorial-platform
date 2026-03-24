@@ -1,0 +1,287 @@
+enum SlateTriggerDestinationType {
+  http_endpoint
+}
+
+enum SlateTriggerDestinationStatus {
+  active
+  inactive
+}
+
+enum SlateTriggerReceiverStatus {
+  active
+  paused
+}
+
+enum SlateTriggerReceiverTriggerSource {
+  polling
+  webhook
+}
+
+enum SlateTriggerInvocationType {
+  poll
+  webhook_handle
+  map_event
+  webhook_register
+  webhook_unregister
+}
+
+enum SlateTriggerEventDeliveryStatus {
+  pending
+  sent
+  failed
+  skipped
+}
+
+enum SlateTriggerEventInputStatus {
+  pending
+  processing
+  succeeded
+  failed
+  retrying
+  skipped
+}
+
+model SlateTriggerDestination {
+  oid BigInt @id
+  id  String @unique
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  name        String
+  description String?
+  type        SlateTriggerDestinationType
+  status      SlateTriggerDestinationStatus @default(active)
+
+  url        String
+  method     String
+  eventTypes String[]
+
+  signalDestinationId String @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  receivers  SlateTriggerReceiverDestination[]
+  deliveries SlateTriggerDelivery[]
+
+  @@index([tenantOid, status])
+}
+
+model SlateTriggerReceiver {
+  oid BigInt @id
+  id  String @unique
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  slateOid BigInt
+  slate    Slate  @relation(fields: [slateOid], references: [oid], onDelete: Cascade)
+
+  slateInstanceOid BigInt
+  slateInstance    SlateInstance @relation(fields: [slateInstanceOid], references: [oid], onDelete: Cascade)
+
+  authConfigOid BigInt?
+  authConfig    SlateAuthConfig? @relation(fields: [authConfigOid], references: [oid], onDelete: SetNull)
+
+  status SlateTriggerReceiverStatus @default(active)
+
+  name        String?
+  description String?
+  eventTypes  String[]
+  consecutivePollingFailures Int @default(0)
+  consecutiveEventFailures   Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  triggers     SlateTriggerReceiverTrigger[]
+  destinations SlateTriggerReceiverDestination[]
+  events       SlateTriggerEvent[]
+  eventInputs  SlateTriggerEventInput[]
+  invocations  SlateTriggerInvocation[]
+
+  @@index([tenantOid, slateInstanceOid])
+  @@index([tenantOid, slateOid])
+}
+
+model SlateTriggerReceiverDestination {
+  oid BigInt @id
+
+  receiverOid BigInt
+  receiver    SlateTriggerReceiver @relation(fields: [receiverOid], references: [oid], onDelete: Cascade)
+
+  destinationOid BigInt
+  destination    SlateTriggerDestination @relation(fields: [destinationOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([receiverOid, destinationOid])
+}
+
+model SlateTriggerReceiverTrigger {
+  oid BigInt @id
+  id  String @unique
+
+  receiverOid BigInt
+  receiver    SlateTriggerReceiver @relation(fields: [receiverOid], references: [oid], onDelete: Cascade)
+
+  actionOid BigInt
+  action    SlateAction @relation(fields: [actionOid], references: [oid])
+
+  source SlateTriggerReceiverTriggerSource
+
+  pollIntervalSeconds Int?
+  lastPolledAt        DateTime?
+  nextPollAt          DateTime?
+
+  state               Json @default("null")
+  registrationDetails Json @default("null")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  events      SlateTriggerEvent[]
+  eventInputs SlateTriggerEventInput[]
+  invocations SlateTriggerInvocation[]
+
+  @@unique([receiverOid, actionOid])
+  @@index([source, nextPollAt])
+}
+
+model SlateTriggerInvocation {
+  oid BigInt @id
+  id  String @unique
+
+  type SlateTriggerInvocationType
+
+  receiverOid BigInt
+  receiver    SlateTriggerReceiver @relation(fields: [receiverOid], references: [oid], onDelete: Cascade)
+
+  receiverTriggerOid BigInt?
+  receiverTrigger    SlateTriggerReceiverTrigger? @relation(fields: [receiverTriggerOid], references: [oid], onDelete: Cascade)
+
+  eventOid BigInt?
+  event    SlateTriggerEvent? @relation(fields: [eventOid], references: [oid], onDelete: Cascade)
+
+  invocationOid BigInt          @unique
+  invocation    SlateInvocation @relation(fields: [invocationOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}
+
+model SlateTriggerEventInput {
+  oid BigInt @id
+  id  String @unique
+
+  receiverOid BigInt
+  receiver    SlateTriggerReceiver @relation(fields: [receiverOid], references: [oid], onDelete: Cascade)
+
+  receiverTriggerOid BigInt
+  receiverTrigger    SlateTriggerReceiverTrigger @relation(fields: [receiverTriggerOid], references: [oid], onDelete: Cascade)
+
+  actionOid BigInt
+  action    SlateAction @relation(fields: [actionOid], references: [oid])
+
+  slateOid BigInt
+  slate    Slate  @relation(fields: [slateOid], references: [oid], onDelete: Cascade)
+
+  slateInstanceOid BigInt
+  slateInstance    SlateInstance @relation(fields: [slateInstanceOid], references: [oid], onDelete: Cascade)
+
+  status       SlateTriggerEventInputStatus @default(pending)
+  attemptCount Int                          @default(0)
+  errorCode    String?
+  errorMessage String?
+
+  input             Json?     @default("null")
+  payloadStorageKey String?
+  payloadStoredAt   DateTime?
+
+  eventOid BigInt?
+  event    SlateTriggerEvent? @relation(fields: [eventOid], references: [oid], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([status])
+}
+
+model SlateTriggerEvent {
+  oid BigInt @id
+  id  String @unique
+
+  receiverOid BigInt
+  receiver    SlateTriggerReceiver @relation(fields: [receiverOid], references: [oid], onDelete: Cascade)
+
+  receiverTriggerOid BigInt
+  receiverTrigger    SlateTriggerReceiverTrigger @relation(fields: [receiverTriggerOid], references: [oid], onDelete: Cascade)
+
+  actionOid BigInt
+  action    SlateAction @relation(fields: [actionOid], references: [oid])
+
+  slateOid BigInt
+  slate    Slate  @relation(fields: [slateOid], references: [oid], onDelete: Cascade)
+
+  slateInstanceOid BigInt
+  slateInstance    SlateInstance @relation(fields: [slateInstanceOid], references: [oid], onDelete: Cascade)
+
+  type     String
+  sourceId String
+
+  input  Json
+  output Json
+
+  deliveryStatus SlateTriggerEventDeliveryStatus @default(pending)
+
+  signalEventId String
+
+  invocationOid BigInt
+  invocation    SlateInvocation @relation(fields: [invocationOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  deliveries  SlateTriggerDelivery[]
+  invocations SlateTriggerInvocation[]
+  eventInputs SlateTriggerEventInput[]
+
+  @@unique([receiverTriggerOid, sourceId])
+  @@index([receiverOid, createdAt])
+}
+
+model SlateTriggerDelivery {
+  oid BigInt @id
+  id  String @unique
+
+  eventOid BigInt
+  event    SlateTriggerEvent @relation(fields: [eventOid], references: [oid], onDelete: Cascade)
+
+  destinationOid BigInt
+  destination    SlateTriggerDestination @relation(fields: [destinationOid], references: [oid], onDelete: Cascade)
+
+  signalEventId String
+
+  createdAt DateTime @default(now())
+
+  @@unique([eventOid, destinationOid])
+}
+
+model SlateTriggerWebhookRequest {
+  oid BigInt @id
+  id  String @unique
+
+  receiverTriggerId String
+
+  url     String
+  method  String
+  headers Json
+  body    Json?  @default("null")
+
+  bodyStorageKey String?
+  processedAt    DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([receiverTriggerId])
+  @@index([processedAt])
+}

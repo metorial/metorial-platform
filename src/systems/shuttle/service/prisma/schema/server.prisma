@@ -1,0 +1,117 @@
+enum ServerType {
+  container
+  remote
+  function
+}
+
+enum ServerRemoteProtocol {
+  sse
+  streamable_http
+}
+
+model Server {
+  oid BigInt @id
+  id  String @unique
+
+  type ServerType
+
+  name        String
+  description String?
+  metadata    Json?
+
+  /// [ServerConfigSchema]
+  draftConfigSchema      Json
+  draftConfigTransformer String
+
+  draftRemoteUrl      String?
+  draftRemoteProtocol ServerRemoteProtocol?
+
+  draftRepositoryTagOid BigInt?
+  draftRepositoryTag    ContainerRepositoryTag? @relation(fields: [draftRepositoryTagOid], references: [oid])
+
+  tenantOid BigInt?
+  tenant    Tenant? @relation(fields: [tenantOid], references: [oid])
+
+  currentVersionOid BigInt?
+  currentVersion    ServerVersion? @relation(fields: [currentVersionOid], references: [oid], name: "currentVersion")
+
+  remoteOauthConfigOid BigInt?
+  remoteOauthConfig    RemoteOAuthConfig? @relation(fields: [remoteOauthConfigOid], references: [oid])
+
+  delegatedOauthConfigOid BigInt?
+  delegatedOauthConfig    DelegatedOAuthConfig? @relation(fields: [delegatedOauthConfigOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  serverConfigs                      ServerConfig[]
+  serverVersions                     ServerVersion[]
+  serverSpecifications               ServerSpecification[]
+  changeNotifications                ChangeNotification[]
+  remoteOAuthConnections             RemoteOAuthConnection[]
+  remoteOAuthConfig                  RemoteOAuthConfig?                  @relation("forRemoteOAuthConfig")
+  delegatedOAuthConfig               DelegatedOAuthConfig?               @relation("forDelegatedOAuthConfig")
+  serverAuthConfigs                  ServerAuthConfig[]
+  serverOAuthCredentials             ServerOAuthCredentials[]
+  serverOAuthSetups                  ServerOAuthSetup[]
+  remoteOAuthConnectionAuthTokens    RemoteOAuthConnectionAuthToken[]
+  delegatedOAuthConnections          DelegatedOAuthConnection[]
+  delegatedOAuthConnectionAuthTokens DelegatedOAuthConnectionAuthToken[]
+  functionServers                    FunctionServer[]
+  upcomingFunctionServers            UpcomingFunctionServer[]
+  serverDeployments                  ServerDeployment[]
+}
+
+enum RemoteProtocolAutoSwitchStatus {
+  none
+  attempting
+  succeeded
+  failed
+}
+
+model ServerVersion {
+  oid BigInt @id
+  id  String @unique
+
+  isCurrent Boolean @default(false)
+
+  identifier String
+
+  /// [ServerConfigSchema]
+  configSchema      Json
+  configTransformer String
+
+  remoteUrl                             String?
+  remoteProtocol                        ServerRemoteProtocol?
+  originalRemoteProtocol                ServerRemoteProtocol?
+  remoteProtocolAutoSwitchStatus        RemoteProtocolAutoSwitchStatus @default(none)
+  remoteServerNeedsManualAuthentication Boolean                        @default(false)
+
+  serverOid BigInt
+  server    Server @relation(fields: [serverOid], references: [oid])
+
+  repositoryTagOid BigInt?
+  repositoryTag    ContainerRepositoryTag? @relation(fields: [repositoryTagOid], references: [oid])
+
+  repositoryVersionOid BigInt?
+  repositoryVersion    ContainerRepositoryVersion? @relation(fields: [repositoryVersionOid], references: [oid])
+
+  functionServerOid BigInt?
+  functionServer    FunctionServer? @relation(fields: [functionServerOid], references: [oid])
+
+  deploymentOid BigInt           @unique
+  deployment    ServerDeployment @relation(fields: [deploymentOid], references: [oid])
+
+  tenantOid BigInt?
+  tenant    Tenant? @relation(fields: [tenantOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  serverConnections   ServerConnection[]
+  currentInServers    Server[]             @relation("currentVersion")
+  serverDiscoveries   ServerDiscovery[]
+  changeNotifications ChangeNotification[]
+
+  @@unique([serverOid, identifier])
+}

@@ -1,0 +1,94 @@
+model DeploymentProvider {
+  oid BigInt @id
+  id  String @unique
+
+  name       String
+  identifier String @unique
+
+  createdAt         DateTime         @default(now())
+  serverDeployments FunctionServer[]
+}
+
+enum FunctionServerStatus {
+  pending
+  succeeded
+  failed
+}
+
+model FunctionServer {
+  oid    BigInt               @id
+  id     String               @unique
+  status FunctionServerStatus
+
+  errorCode    String?
+  errorMessage String?
+
+  functionBayTenantId     String
+  functionBayFunctionId   String
+  functionBayDeploymentId String
+  functionBayVersionId    String?
+
+  supportsOAuth             Boolean
+  supportsOauthTokenRefresh Boolean
+
+  /// [FunctionServerInfo]
+  info Json
+
+  /// [FunctionServerConfigSchema]
+  configSchema Json
+
+  /// [FunctionServerAuthConfigSchema]
+  authConfigSchema Json
+
+  delegatedOauthConfigOid BigInt?
+  delegatedOauthConfig    DelegatedOAuthConfig? @relation(fields: [delegatedOauthConfigOid], references: [oid])
+
+  serverOid BigInt
+  server    Server @relation(fields: [serverOid], references: [oid])
+
+  providerOid BigInt
+  provider    DeploymentProvider @relation(fields: [providerOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  serverDeployments            ServerDeployment[]
+  serverVersions               ServerVersion[]
+  delegatedOAuthConnections    DelegatedOAuthConnection[]
+  forFunctionServerAuthConfigs DelegatedOAuthConfig[]     @relation("forDelegatedOAuthConfig")
+  functionServerInvocations    FunctionServerInvocation[]
+}
+
+model UpcomingFunctionServer {
+  oid BigInt @id
+  id  String @unique
+
+  /// [UpcomingFunctionServerPayload]
+  payload Json
+
+  serverOid BigInt
+  server    Server @relation(fields: [serverOid], references: [oid])
+
+  tenantOid BigInt?
+  tenant    Tenant? @relation(fields: [tenantOid], references: [oid])
+
+  createdAt DateTime @default(now())
+}
+
+model FunctionServerInvocation {
+  oid BigInt @id
+
+  isError Boolean
+
+  functionBayInvocationId String
+
+  connectionOid BigInt?
+  connection    ServerConnection? @relation(fields: [connectionOid], references: [oid])
+
+  functionServerOid BigInt
+  functionServer    FunctionServer @relation(fields: [functionServerOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  createdAt DateTime @default(now())
+}

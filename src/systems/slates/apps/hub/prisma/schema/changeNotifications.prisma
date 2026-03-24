@@ -1,0 +1,24 @@
+enum ChangeNotificationType {
+  slate_version_created
+}
+
+model ChangeNotification {
+  oid BigInt @id
+  id  String @unique
+
+  type ChangeNotificationType
+
+  // Denormalized for easier querying
+  slateId        String
+  slateVersionId String?
+
+  slateOid BigInt
+  slate    Slate  @relation(fields: [slateOid], references: [oid])
+
+  slateVersionOid BigInt?
+  slateVersion    SlateVersion? @relation(fields: [slateVersionOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  @@index([type])
+}

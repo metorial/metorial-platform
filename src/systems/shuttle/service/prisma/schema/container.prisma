@@ -1,0 +1,150 @@
+enum ContainerRegistryType {
+  docker
+}
+
+model ContainerRegistry {
+  oid BigInt @id
+  id  String @unique
+
+  type       ContainerRegistryType
+  identifier String                @unique
+  name       String
+  url        String
+
+  secretOid BigInt?
+  secret    Secret? @relation(fields: [secretOid], references: [oid])
+
+  tenantOid BigInt?
+  tenant    Tenant? @relation(fields: [tenantOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  repositories ContainerRepository[]
+}
+
+enum ContainerRepositoryType {
+  docker
+}
+
+model ContainerRepository {
+  oid BigInt @id
+  id  String @unique
+
+  type       ContainerRepositoryType
+  identifier String                  @unique
+  name       String
+
+  registryOid BigInt
+  registry    ContainerRegistry @relation(fields: [registryOid], references: [oid])
+
+  tenantOid BigInt?
+  tenant    Tenant? @relation(fields: [tenantOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  registryConnectionOid BigInt?
+  repositoryVersions    ContainerRepositoryVersion[]
+  repositoryTags        ContainerRepositoryTag[]
+}
+
+enum ContainerRepositoryTagDiscoveryStatus {
+  pending
+  succeeded
+  failed
+}
+
+enum ContainerRepositoryTagType {
+  tag
+  digest
+}
+
+model ContainerRepositoryTag {
+  oid BigInt @id
+  id  String @unique
+
+  type ContainerRepositoryTagType
+
+  discoveryStatus ContainerRepositoryTagDiscoveryStatus
+
+  identifier String
+  name       String
+
+  // Either tag or digest is set
+  tag    String?
+  digest String?
+
+  currentVersionOid BigInt?
+  currentVersion    ContainerRepositoryVersion? @relation(fields: [currentVersionOid], references: [oid], name: "currentVersionInTags")
+
+  repositoryOid BigInt
+  repository    ContainerRepository @relation(fields: [repositoryOid], references: [oid])
+
+  tenantOid BigInt?
+  tenant    Tenant? @relation(fields: [tenantOid], references: [oid])
+
+  lastDiscoveryErrorOid BigInt?
+  lastDiscoveryError    ContainerRepositoryTagDiscoveryError? @relation(fields: [lastDiscoveryErrorOid], references: [oid], name: "lastErrorForTag")
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @default(now()) @updatedAt
+  lastSyncedAt DateTime?
+
+  repositoryTagDiscoveryErrors ContainerRepositoryTagDiscoveryError[]
+  repositoryVersionTags        ContainerRepositoryTagVersion[]
+  servers                      Server[]
+  serverVersions               ServerVersion[]
+
+  @@unique([repositoryOid, identifier])
+}
+
+model ContainerRepositoryVersion {
+  oid BigInt @id
+  id  String @unique
+
+  digest String
+
+  repositoryOid BigInt
+  repository    ContainerRepository @relation(fields: [repositoryOid], references: [oid])
+
+  tenantOid BigInt?
+  tenant    Tenant? @relation(fields: [tenantOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  currentInTags         ContainerRepositoryTag[]        @relation("currentVersionInTags")
+  repositoryVersionTags ContainerRepositoryTagVersion[]
+  serverVersions        ServerVersion[]
+
+  @@unique([repositoryOid, digest])
+}
+
+model ContainerRepositoryTagVersion {
+  oid BigInt @id
+
+  repositoryVersionOid BigInt
+  repositoryVersion    ContainerRepositoryVersion @relation(fields: [repositoryVersionOid], references: [oid])
+
+  repositoryTagOid BigInt
+  repositoryTag    ContainerRepositoryTag @relation(fields: [repositoryTagOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  @@unique([repositoryVersionOid, repositoryTagOid])
+}
+
+model ContainerRepositoryTagDiscoveryError {
+  oid BigInt @id
+  id  String @unique
+
+  code    String
+  message String
+
+  repositoryTagOid BigInt
+  repositoryTag    ContainerRepositoryTag @relation(fields: [repositoryTagOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  lastForTag ContainerRepositoryTag[] @relation("lastErrorForTag")
+}

@@ -1,0 +1,12 @@
+name: Check Legal Boilerplate
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+jobs:
+  legal:
+    permissions:
+      pull-requests: write
+      contents: read
+    uses: metorial/.github/.github/workflows/legal-boilerplate.yml@main

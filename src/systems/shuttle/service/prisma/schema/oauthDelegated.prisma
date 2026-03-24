@@ -1,0 +1,200 @@
+model DelegatedOAuthConfig {
+  oid BigInt @id
+  id  String @unique
+
+  name String?
+
+  /// [FunctionServerAuthConfigSchema]
+  authConfigSchema     Json
+  authConfigSchemaHash String
+
+  supportsOauthTokenRefresh Boolean
+
+  errorCode    String?
+  errorMessage String?
+
+  serverOid BigInt @unique
+  server    Server @relation(fields: [serverOid], references: [oid], name: "forDelegatedOAuthConfig")
+
+  functionServerOid BigInt         @unique
+  functionServer    FunctionServer @relation(fields: [functionServerOid], references: [oid], name: "forDelegatedOAuthConfig")
+
+  createdAt DateTime @default(now())
+
+  remoteOAuthConnections          DelegatedOAuthConnection[]
+  remoteOAuthConnectionAuthTokens DelegatedOAuthConnectionAuthToken[]
+  servers                         Server[]
+  functionServers                 FunctionServer[]
+
+  @@unique([serverOid, authConfigSchemaHash])
+}
+
+enum DelegatedOAuthConnectionStatus {
+  active
+  inactive
+}
+
+model DelegatedOAuthConnection {
+  oid BigInt @id
+  id  String @unique
+
+  status DelegatedOAuthConnectionStatus
+
+  clientId String
+
+  errorCode    String?
+  errorMessage String?
+
+  secretOid BigInt?
+  secret    Secret? @relation(fields: [secretOid], references: [oid])
+
+  configOid BigInt
+  config    DelegatedOAuthConfig @relation(fields: [configOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  serverOid BigInt
+  server    Server @relation(fields: [serverOid], references: [oid])
+
+  functionServerOid BigInt
+  functionServer    FunctionServer @relation(fields: [functionServerOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  serverOAuthCredentials ServerOAuthCredentials?
+
+  remoteOAuthConnectionEvents     DelegatedOAuthConnectionEvent[]
+  remoteOAuthConnectionSetups     DelegatedOAuthConnectionSetup[]
+  remoteOAuthConnectionAuthTokens DelegatedOAuthConnectionAuthToken[]
+  serverAuthConfigs               ServerAuthConfig[]
+}
+
+enum DelegatedOAuthConnectionEventType {
+  errors
+}
+
+model DelegatedOAuthConnectionEvent {
+  oid BigInt @id
+  id  String @unique
+
+  type          DelegatedOAuthConnectionEventType
+  discriminator String?
+
+  metadata Json?
+
+  connectionOid BigInt
+  connection    DelegatedOAuthConnection @relation(fields: [connectionOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([connectionOid, type, discriminator])
+}
+
+enum DelegatedOAuthConnectionSetupStatus {
+  pending
+  completed
+  failed
+}
+
+model DelegatedOAuthConnectionSetup {
+  oid    BigInt                              @id
+  id     String                              @unique
+  status DelegatedOAuthConnectionSetupStatus
+
+  stateIdentifier String? @unique
+
+  /// [DelegatedOAuthConnectionAuthConfig]
+  authConfigValue Json
+
+  /// [DelegatedOAuthConnectionAuthState]
+  authStateValue Json
+
+  errorCode    String?
+  errorMessage String?
+
+  connectionOid BigInt
+  connection    DelegatedOAuthConnection @relation(fields: [connectionOid], references: [oid], onDelete: Cascade)
+
+  authTokenOid BigInt?
+  authToken    DelegatedOAuthConnectionAuthToken? @relation(fields: [authTokenOid], references: [oid], onDelete: SetNull)
+
+  authConfigOid BigInt?
+  authConfig    ServerAuthConfig? @relation(fields: [authConfigOid], references: [oid], onDelete: SetNull)
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  serverOAuthSetup ServerOAuthSetup?
+
+  @@index([status])
+}
+
+enum DelegatedOAuthConnectionAuthTokenSource {
+  import
+  oauth
+}
+
+model DelegatedOAuthConnectionAuthToken {
+  oid    BigInt                                  @id
+  id     String                                  @unique
+  source DelegatedOAuthConnectionAuthTokenSource
+
+  /// [DelegatedOAuthConnectionAuthConfig]
+  authConfigValue Json
+
+  /// [DelegatedOAuthConnectionAuthState]
+  authStateValue Json
+
+  scope     String?
+  tokenType String?
+  idToken   String?
+
+  expiresAt DateTime?
+
+  firstErrorAt    DateTime?
+  lastErrorAt     DateTime?
+  errorDisabledAt DateTime?
+  errorCount      Int       @default(0)
+
+  secretOid BigInt
+  secret    Secret @relation(fields: [secretOid], references: [oid])
+
+  connectionOid BigInt?
+  connection    DelegatedOAuthConnection? @relation(fields: [connectionOid], references: [oid], onDelete: Cascade)
+
+  configOid BigInt
+  config    DelegatedOAuthConfig @relation(fields: [configOid], references: [oid])
+
+  serverOid BigInt
+  server    Server @relation(fields: [serverOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  createdAt   DateTime  @default(now())
+  lastUsedAt  DateTime  @default(now())
+  refreshedAt DateTime?
+
+  authAttempts      DelegatedOAuthConnectionSetup[]
+  serverAuthConfigs ServerAuthConfig[]
+  errors            DelegatedOAuthConnectionAuthTokenError[]
+}
+
+model DelegatedOAuthConnectionAuthTokenError {
+  oid BigInt @id
+  id  String @unique
+
+  authTokenOid BigInt
+  authToken    DelegatedOAuthConnectionAuthToken @relation(fields: [authTokenOid], references: [oid], onDelete: Cascade)
+
+  errorCode    String
+  errorMessage String?
+
+  functionInvocationId String?
+
+  createdAt DateTime @default(now())
+}

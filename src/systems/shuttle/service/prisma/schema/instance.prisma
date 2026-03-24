@@ -1,0 +1,141 @@
+model ServerConfig {
+  oid BigInt @id
+  id  String @unique
+
+  secretOid BigInt
+  secret    Secret @relation(fields: [secretOid], references: [oid])
+
+  serverOid BigInt
+  server    Server @relation(fields: [serverOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  serverConnections ServerConnection[]
+  serverDiscoveries ServerDiscovery[]
+}
+
+enum ServerAuthConfigType {
+  remote
+  delegated
+}
+
+model ServerAuthConfig {
+  oid BigInt @id
+  id  String @unique
+
+  type ServerAuthConfigType
+
+  serverOid BigInt
+  server    Server @relation(fields: [serverOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  credentialsOid BigInt?
+  credentials    ServerOAuthCredentials? @relation(fields: [credentialsOid], references: [oid])
+
+  remoteOAuthConnectionOid BigInt?
+  remoteOAuthConnection    RemoteOAuthConnection? @relation(fields: [remoteOAuthConnectionOid], references: [oid])
+
+  remoteOAuthConnectionAuthTokenOid BigInt?
+  remoteOAuthConnectionAuthToken    RemoteOAuthConnectionAuthToken? @relation(fields: [remoteOAuthConnectionAuthTokenOid], references: [oid])
+
+  delegatedOAuthConnectionOid BigInt?
+  delegatedOAuthConnection    DelegatedOAuthConnection? @relation(fields: [delegatedOAuthConnectionOid], references: [oid])
+
+  delegatedOAuthConnectionAuthTokenOid BigInt?
+  delegatedOAuthConnectionAuthToken    DelegatedOAuthConnectionAuthToken? @relation(fields: [delegatedOAuthConnectionAuthTokenOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  remoteOAuthConnectionSetups    RemoteOAuthConnectionSetup[]
+  serverOAuthSetups              ServerOAuthSetup[]
+  serverConnections              ServerConnection[]
+  serverDiscoveries              ServerDiscovery[]
+  serverAuthConfigExports        ServerAuthConfigExport[]
+  delegatedOAuthConnectionSetups DelegatedOAuthConnectionSetup[]
+}
+
+model ServerAuthConfigExport {
+  oid BigInt @id
+  id  String @unique
+
+  note String
+
+  serverAuthConfigOid BigInt
+  serverAuthConfig    ServerAuthConfig @relation(fields: [serverAuthConfigOid], references: [oid])
+
+  createdAt DateTime @default(now())
+}
+
+enum ServerConnectionStatus {
+  new
+  connected
+  disconnected
+}
+
+model ServerConnection {
+  oid BigInt @id
+  id  String @unique
+
+  status          ServerConnectionStatus
+  isLogsInStorage Boolean
+
+  logBucketOid BigInt
+  logBucket    ConnectionLogsStorageBucket @relation(fields: [logBucketOid], references: [oid])
+
+  /// [ServerConnectionClient]
+  client Json
+
+  /// [ServerConnectionCapabilities]
+  capabilities Json
+
+  serverConfigOid BigInt
+  serverConfig    ServerConfig @relation(fields: [serverConfigOid], references: [oid])
+
+  serverVersionOid BigInt
+  serverVersion    ServerVersion @relation(fields: [serverVersionOid], references: [oid])
+
+  serverAuthConfigOid BigInt?
+  serverAuthConfig    ServerAuthConfig? @relation(fields: [serverAuthConfigOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  createdAt  DateTime  @default(now())
+  lastPingAt DateTime?
+
+  networkingRules           ServerConnectionNetworkRule[]
+  serverDiscoveries         ServerDiscovery[]
+  serverConnectionLogsTemps ServerConnectionLogsTemp[]
+  functionServerInvocations FunctionServerInvocation[]
+}
+
+model ServerConnectionNetworkRule {
+  oid BigInt @id
+
+  serverConnectionOid BigInt
+  serverConnection    ServerConnection @relation(fields: [serverConnectionOid], references: [oid])
+
+  networkingRulesetOid BigInt
+  networkingRuleset    NetworkingRuleset @relation(fields: [networkingRulesetOid], references: [oid])
+
+  createdAt DateTime @default(now())
+}
+
+model ServerConnectionLogsTemp {
+  oid BigInt @id
+
+  serverConnectionOid BigInt
+  serverConnection    ServerConnection @relation(fields: [serverConnectionOid], references: [oid])
+
+  /// [ServerConnectionLogLines]
+  logLines Json
+
+  createdAt DateTime @default(now())
+}

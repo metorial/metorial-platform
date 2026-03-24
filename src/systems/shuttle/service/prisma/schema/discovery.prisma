@@ -1,0 +1,60 @@
+enum ServerDiscoveryStatus {
+  pending
+  succeeded
+  failed
+}
+
+model ServerDiscovery {
+  oid BigInt @id
+  id  String @unique
+
+  status ServerDiscoveryStatus
+
+  /// [ServerDiscoveryError]
+  error Json @default("null")
+
+  /// [ServerDiscoveryWarning]
+  warnings Json[]
+
+  connectionOid BigInt?
+  connection    ServerConnection? @relation(fields: [connectionOid], references: [oid])
+
+  specificationOid BigInt?
+  specification    ServerSpecification? @relation(fields: [specificationOid], references: [oid])
+
+  serverConfigOid BigInt
+  serverConfig    ServerConfig @relation(fields: [serverConfigOid], references: [oid])
+
+  serverAuthConfigOid BigInt?
+  serverAuthConfig    ServerAuthConfig? @relation(fields: [serverAuthConfigOid], references: [oid])
+
+  serverVersionOid BigInt
+  serverVersion    ServerVersion @relation(fields: [serverVersionOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([status])
+}
+
+model ServerSpecification {
+  oid BigInt @id
+  id  String @unique
+
+  hash String
+
+  /// [ServerSpecificationValue]
+  value Json
+
+  serverOid BigInt
+  server    Server @relation(fields: [serverOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  serverDiscoveries ServerDiscovery[]
+
+  @@unique([serverOid, hash])
+}

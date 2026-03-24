@@ -1,6 +1,6 @@
 import { backendEnv } from './backend';
 import { frontendEnv } from './frontend';
-import { subspaceDbEnv, subspaceDevEnv } from './services';
+import { shuttleServiceEnv, slatesHubEnv, subspaceDbEnv, subspaceDevEnv } from './services';
 import type { Destination } from './type';
 
 export let destinations: Destination[] = [
@@ -60,11 +60,11 @@ export let destinations: Destination[] = [
   //   env: signalServiceEnv,
   //   path: 'src/systems/signal/service'
   // },
-  // {
-  //   type: 'oss',
-  //   env: slatesHubEnv,
-  //   path: 'src/systems/slates/apps/hub'
-  // },
+  {
+    type: 'oss',
+    env: slatesHubEnv,
+    path: 'src/systems/slates/apps/hub'
+  },
   // {
   //   type: 'enterprise',
   //   env: originServiceEnv,
@@ -75,11 +75,11 @@ export let destinations: Destination[] = [
   //   env: originCodeBucketEnv,
   //   path: 'systems/origin/apps/code-bucket'
   // },
-  // {
-  //   type: 'enterprise',
-  //   env: shuttleServiceEnv,
-  //   path: 'systems/shuttle/service'
-  // },
+  {
+    type: 'enterprise',
+    env: shuttleServiceEnv,
+    path: 'systems/shuttle/service'
+  },
   // {
   //   type: 'enterprise',
   //   env: horizonServiceEnv,

@@ -1,0 +1,6 @@
+model ConnectionLogsStorageBucket {
+  oid               BigInt             @id
+  bucket            String             @unique
+  createdAt         DateTime           @default(now())
+  serverConnections ServerConnection[]
+}

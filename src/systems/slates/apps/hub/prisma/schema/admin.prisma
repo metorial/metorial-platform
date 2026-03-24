@@ -1,0 +1,28 @@
+model AdminUser {
+  oid BigInt @id
+  id  String @unique
+
+  email String @unique
+  name  String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  sessions AdminSession[]
+}
+
+model AdminSession {
+  oid BigInt @id
+  id  String @unique
+
+  token String @unique
+
+  adminUserOid BigInt
+  adminUser    AdminUser @relation(fields: [adminUserOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([token])
+  @@index([expiresAt])
+}

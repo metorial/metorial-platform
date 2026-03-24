@@ -1,0 +1,369 @@
+import { delay } from '@lowerdeck/delay';
+import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { generatePlainId } from '@lowerdeck/id';
+import { Service } from '@lowerdeck/service';
+import { subMinutes } from 'date-fns';
+import type {
+  RemoteOAuthConfig,
+  RemoteOAuthConnection,
+  RemoteOAuthConnectionProfile
+} from '../../../../prisma/generated/client';
+import { oauthCallbackUrl } from '../../../config';
+import { db } from '../../../db';
+import { getId } from '../../../id';
+import { oauthErrorDescriptions } from '../../../lib/oauth/oauthErrors';
+import { OAuthUtils } from '../../../lib/oauth/oauthUtils';
+import type { OAuthConfiguration, TokenResponse, UserProfile } from '../../../lib/oauth/types';
+import { secretService } from '../../secret';
+import { remoteOAuthConnectionService } from './connection';
+
+class remoteOauthAuthorizationServiceImpl {
+  async startAuthorization(d: {
+    connection: RemoteOAuthConnection & {
+      config: RemoteOAuthConfig;
+    };
+  }) {
+    if (d.connection.status != 'active') {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Connection is not active and cannot be used for authentication'
+        })
+      );
+    }
+
+    let i = 0;
+    while (d.connection.discoveryStatus == 'discovering') {
+      if (i++ > 100) {
+        throw new ServiceError(
+          badRequestError({
+            message:
+              'Connection setup is taking too long and cannot be used for authentication'
+          })
+        );
+      }
+
+      await delay(1000);
+
+      d.connection = await db.remoteOAuthConnection.findFirstOrThrow({
+        where: { oid: d.connection.oid },
+        include: { config: true }
+      });
+    }
+
+    if (d.connection.discoveryStatus == 'failed') {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Connection setup failed and cannot be used for authentication'
+        })
+      );
+    }
+
+    let config = d.connection.config.config as OAuthConfiguration;
+    let supportsPKCE = !!config.code_challenge_methods_supported?.includes('S256');
+
+    let setup = await db.remoteOAuthConnectionSetup.create({
+      data: {
+        ...getId('remoteOAuthConnectionSetup'),
+        stateIdentifier: generatePlainId(32),
+
+        status: 'pending',
+
+        connectionOid: d.connection.oid,
+        tenantOid: d.connection.tenantOid,
+
+        codeVerifier: supportsPKCE ? OAuthUtils.generateCodeVerifier() : undefined
+      },
+      include: {
+        tenant: true,
+        serverOAuthSetup: true
+      }
+    });
+
+    let codeChallenge = setup.codeVerifier
+      ? await OAuthUtils.generateCodeChallenge(setup.codeVerifier)
+      : undefined;
+
+    let DANGEROUS_unencryptedCredentials =
+      await remoteOAuthConnectionService.DANGEROUSLY_getCredentials({
+        tenant: setup.tenant,
+        connection: d.connection
+      });
+
+    return {
+      type: 'redirect' as const,
+      setup,
+      redirectUrl: OAuthUtils.buildAuthorizationUrl({
+        authEndpoint: config.authorization_endpoint,
+        clientId: DANGEROUS_unencryptedCredentials.clientId,
+        redirectUri:
+          // For auto registrations, we always want to use the default redirect URI
+          setup.serverOAuthSetup?.callbackUrlOverride && !d.connection.registrationOid
+            ? setup.serverOAuthSetup.callbackUrlOverride
+            : oauthCallbackUrl,
+        scopes: d.connection.config.scopes,
+        state: setup.stateIdentifier!,
+        codeChallenge
+      })
+    };
+  }
+
+  async completeAuthorization(d: {
+    fullUrl: string;
+
+    response: {
+      code?: string;
+      state?: string;
+      error?: string;
+      errorDescription?: string;
+    };
+  }) {
+    if (d.response.error) {
+      if (d.response.state) {
+        try {
+          let res = await db.remoteOAuthConnectionSetup.update({
+            where: {
+              stateIdentifier: d.response.state!,
+              status: 'pending'
+            },
+            data: {
+              status: 'failed',
+              stateIdentifier: null,
+
+              errorCode: d.response.error,
+              errorMessage:
+                d.response.errorDescription ??
+                oauthErrorDescriptions[d.response.error] ??
+                d.response.error
+            }
+          });
+
+          await db.serverOAuthSetup.updateMany({
+            where: { remoteOAuthConnectionSetupOid: res.oid },
+            data: { status: 'failed' }
+          });
+        } catch {
+          throw new ServiceError(
+            badRequestError({
+              message: 'Invalid authorization attempt',
+              description: 'The provided state identifier does not match any pending attempts.'
+            })
+          );
+        }
+      }
+
+      throw new ServiceError(
+        badRequestError({
+          message: 'Authorization failed',
+          description: `The provider returned an error: ${d.response.error} - ${d.response.errorDescription}`
+        })
+      );
+    }
+
+    if (!d.response.code || !d.response.state) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Invalid authorization response',
+          description: 'The response must contain a code and state parameter.'
+        })
+      );
+    }
+
+    let attempt = await db.remoteOAuthConnectionSetup.findFirst({
+      where: {
+        stateIdentifier: d.response.state!,
+        status: 'pending',
+        createdAt: {
+          gte: subMinutes(new Date(), 60 * 2)
+        }
+      },
+      include: {
+        connection: {
+          include: { config: true, serverOAuthCredentials: true }
+        },
+        tenant: true,
+        serverOAuthSetup: true
+      }
+    });
+    if (!attempt || !attempt.connection.serverOAuthCredentials || !attempt.serverOAuthSetup) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Invalid authorization attempt',
+          description:
+            'The provided state identifier does not match any pending attempts. Maybe the attempt has already been completed or expired.'
+        })
+      );
+    }
+
+    let connection = attempt.connection;
+
+    let tokenResponse: TokenResponse;
+    let profile: RemoteOAuthConnectionProfile | null = null;
+
+    let DANGEROUS_unencryptedCredentials =
+      await remoteOAuthConnectionService.DANGEROUSLY_getCredentials({
+        tenant: attempt.tenant,
+        connection: attempt.connection
+      });
+
+    try {
+      tokenResponse = await OAuthUtils.exchangeCodeForTokens({
+        tokenEndpoint: connection.config.config.token_endpoint,
+        clientId: DANGEROUS_unencryptedCredentials.clientId,
+        clientSecret: DANGEROUS_unencryptedCredentials.clientSecret ?? undefined,
+        code: d.response.code!,
+        redirectUri: oauthCallbackUrl,
+        codeVerifier: attempt.codeVerifier ?? undefined,
+        config: connection.config.config
+      });
+
+      if (!tokenResponse.access_token) {
+        throw new Error('Provider did not return `access_token`.');
+      }
+    } catch (error: any) {
+      let res = await db.remoteOAuthConnectionSetup.update({
+        where: {
+          connectionOid: connection.oid,
+          stateIdentifier: d.response.state!,
+          status: 'pending'
+        },
+        data: {
+          status: 'failed',
+          stateIdentifier: null,
+
+          errorCode: 'token_exchange_failed',
+          errorMessage: `Failed to exchange authorization code for tokens: ${error.message}`
+        }
+      });
+
+      await db.serverOAuthSetup.updateMany({
+        where: { remoteOAuthConnectionSetupOid: res.oid },
+        data: { status: 'failed' }
+      });
+
+      throw error;
+    }
+
+    let providerProfile: UserProfile | null = null;
+    if (connection.config.config.userinfo_endpoint) {
+      try {
+        providerProfile = await OAuthUtils.getUserProfile({
+          userInfoEndpoint: connection.config.config.userinfo_endpoint,
+          accessToken: tokenResponse.access_token
+        });
+      } catch (error) {
+        // Ignore
+      }
+    }
+
+    profile = providerProfile
+      ? await db.remoteOAuthConnectionProfile.upsert({
+          where: {
+            connectionOid_sub: {
+              connectionOid: connection.oid,
+              sub: providerProfile.sub
+            }
+          },
+          update: {
+            name: providerProfile.name,
+            email: providerProfile.email,
+            rawProfile: {}, // providerProfile.raw,
+            lastUsedAt: new Date()
+          },
+          create: {
+            ...getId('remoteOAuthConnectionProfile'),
+
+            connectionOid: connection.oid,
+            tenantOid: connection.tenantOid,
+
+            sub: providerProfile.sub,
+            name: providerProfile.name,
+            email: providerProfile.email,
+            rawProfile: {} // providerProfile.raw
+          }
+        })
+      : null;
+
+    let expiresAt = tokenResponse.expires_in
+      ? new Date(Date.now() + tokenResponse.expires_in * 1000)
+      : undefined;
+
+    let secret = await secretService.createSecret({
+      tenant: attempt.tenant,
+      purpose: 'oauth_token',
+      secretData: {
+        accessToken: tokenResponse.access_token,
+        refreshToken: tokenResponse.refresh_token
+      }
+    });
+
+    let token = await db.remoteOAuthConnectionAuthToken.create({
+      data: {
+        ...getId('remoteOAuthConnectionAuthToken'),
+
+        source: 'oauth',
+
+        secretOid: secret.oid,
+
+        configOid: connection.configOid,
+        serverOid: connection.serverOid,
+
+        tokenType: tokenResponse.token_type,
+        expiresAt: expiresAt,
+        idToken: tokenResponse.id_token || null,
+        scope: tokenResponse.scope || null,
+
+        connectionOid: connection.oid,
+        connectionProfileOid: profile?.oid,
+        tenantOid: connection.tenantOid
+      }
+    });
+
+    let authConfig = await db.serverAuthConfig.create({
+      data: {
+        ...getId('serverAuthConfig'),
+        type: 'remote',
+        serverOid: connection.serverOid,
+        tenantOid: connection.tenantOid,
+        credentialsOid: connection.serverOAuthCredentials!.oid,
+        remoteOAuthConnectionOid: connection.oid,
+        remoteOAuthConnectionAuthTokenOid: token.oid
+      }
+    });
+
+    await db.remoteOAuthConnectionSetup.updateMany({
+      where: {
+        connectionOid: connection.oid,
+        stateIdentifier: d.response.state!,
+        status: 'pending'
+      },
+      data: {
+        status: 'completed',
+        stateIdentifier: null,
+        authTokenOid: token.oid,
+        authConfigOid: authConfig.oid,
+        profileOid: profile?.oid
+      }
+    });
+
+    let setup = await db.serverOAuthSetup.update({
+      where: { oid: attempt.serverOAuthSetup.oid },
+      data: {
+        status: 'completed',
+        authConfigOid: authConfig.oid
+      }
+    });
+
+    let url = new URL(attempt.serverOAuthSetup.redirectUri);
+    url.searchParams.set('metorial_token_type', 'oauth');
+    url.searchParams.set('metorial_oauth_setup_id', setup.id);
+
+    return {
+      redirectUrl: url.toString()
+    };
+  }
+}
+
+export let remoteOauthAuthorizationService = Service.create(
+  'remoteOauthAuthorization',
+  () => new remoteOauthAuthorizationServiceImpl()
+).build();

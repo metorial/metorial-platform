@@ -1,0 +1,78 @@
+enum ServerOAuthCredentialsType {
+  remote
+  delegated
+}
+
+model ServerOAuthCredentials {
+  oid  BigInt                     @id
+  id   String                     @unique
+  type ServerOAuthCredentialsType
+
+  isDefault Boolean @default(false)
+
+  remoteConnectionOid BigInt?                @unique
+  remoteConnection    RemoteOAuthConnection? @relation(fields: [remoteConnectionOid], references: [oid])
+
+  delegatedConnectionOid BigInt?                   @unique
+  delegatedConnection    DelegatedOAuthConnection? @relation(fields: [delegatedConnectionOid], references: [oid])
+
+  serverOid BigInt
+  server    Server @relation(fields: [serverOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  serverAuthConfigs ServerAuthConfig[]
+  serverOAuthSetups ServerOAuthSetup[]
+
+  @@index(isDefault)
+}
+
+enum ServerOAuthSetupType {
+  remote
+  delegated
+}
+
+enum ServerOAuthSetupStatus {
+  pending
+  completed
+  failed
+}
+
+model ServerOAuthSetup {
+  oid BigInt @id
+  id  String @unique
+
+  status ServerOAuthSetupStatus
+  type   ServerOAuthSetupType
+
+  /// [ServerOAuthSetupAuthConfig]
+  authConfigValue Json
+
+  redirectUri         String
+  callbackUrlOverride String?
+
+  credentialsOid BigInt
+  credentials    ServerOAuthCredentials @relation(fields: [credentialsOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  serverOid BigInt
+  server    Server @relation(fields: [serverOid], references: [oid])
+
+  authConfigOid BigInt?
+  authConfig    ServerAuthConfig? @relation(fields: [authConfigOid], references: [oid])
+
+  remoteOAuthConnectionSetupOid BigInt?                     @unique
+  remoteOAuthConnectionSetup    RemoteOAuthConnectionSetup? @relation(fields: [remoteOAuthConnectionSetupOid], references: [oid])
+
+  delegatedOAuthConnectionSetupOid BigInt?                        @unique
+  delegatedOAuthConnectionSetup    DelegatedOAuthConnectionSetup? @relation(fields: [delegatedOAuthConnectionSetupOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}

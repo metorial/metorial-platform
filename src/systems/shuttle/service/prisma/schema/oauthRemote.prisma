@@ -1,0 +1,301 @@
+model RemoteOAuthDiscoveryDocument {
+  oid BigInt @id
+  id  String @unique
+
+  providerName String
+  providerUrl  String
+  discoveryUrl String @unique
+
+  /// [RemoteOAuthConfig]
+  config Json
+
+  configHash String
+
+  version Int
+
+  createdAt   DateTime @default(now())
+  refreshedAt DateTime @default(now()) @updatedAt
+
+  providerOAuthAutoRegistrations RemoteOAuthAutoRegistration[]
+  remoteOAuthConfigs             RemoteOAuthConfig[]
+}
+
+model RemoteOAuthAutoRegistration {
+  oid BigInt @id
+  id  String @unique
+
+  clientId     String
+  clientSecret String?
+
+  autoRegistrationName String?
+
+  registrationClientUri   String?
+  registrationAccessToken String?
+  clientSecretExpiresAt   DateTime?
+
+  /// [RemoteOAuthAutoRegistrationData]
+  data Json
+
+  discoveryDocumentOid BigInt?
+  discoveryDocument    RemoteOAuthDiscoveryDocument? @relation(fields: [discoveryDocumentOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  connections RemoteOAuthConnection[]
+}
+
+model RemoteOAuthRegistrationError {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  payload  Json
+  endpoint String
+
+  configOid BigInt?
+  config    RemoteOAuthConfig? @relation(fields: [configOid], references: [oid], onDelete: SetNull)
+
+  connectionOid BigInt?
+  connection    RemoteOAuthConnection? @relation(fields: [connectionOid], references: [oid], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+}
+
+enum RemoteOAuthConfigDiscoveryStatus {
+  discovering
+  failed
+  manual
+  supports_auto_registration
+}
+
+model RemoteOAuthConfig {
+  oid BigInt @id
+  id  String @unique
+
+  discoverStatus RemoteOAuthConfigDiscoveryStatus @default(manual)
+
+  name String?
+
+  /// [RemoteOAuthConfig]
+  config Json
+
+  providerName String
+  providerUrl  String
+
+  discoveryUrl String?
+
+  errorCode    String?
+  errorMessage String?
+
+  scopes String[]
+
+  serverOid BigInt @unique
+  server    Server @relation(fields: [serverOid], references: [oid], name: "forRemoteOAuthConfig")
+
+  oauthDiscoveryDocumentOid BigInt?
+  oauthDiscoveryDocument    RemoteOAuthDiscoveryDocument? @relation(fields: [oauthDiscoveryDocumentOid], references: [oid])
+
+  createdAt        DateTime  @default(now())
+  lastDiscoveredAt DateTime?
+
+  remoteOAuthConnections          RemoteOAuthConnection[]
+  remoteOAuthRegistrationErrors   RemoteOAuthRegistrationError[]
+  remoteOAuthConnectionAuthTokens RemoteOAuthConnectionAuthToken[]
+  servers                         Server[]
+}
+
+enum RemoteOAuthConnectionStatus {
+  active
+  inactive
+}
+
+enum RemoteOAuthConnectionDiscoveryStatus {
+  discovering
+  failed
+  succeeded
+}
+
+model RemoteOAuthConnection {
+  oid BigInt @id
+  id  String @unique
+
+  status          RemoteOAuthConnectionStatus
+  discoveryStatus RemoteOAuthConnectionDiscoveryStatus
+
+  clientId String?
+  scopes   String[]
+
+  secretOid BigInt?
+  secret    Secret? @relation(fields: [secretOid], references: [oid])
+
+  providerName String
+  providerUrl  String
+
+  discoveryUrl String?
+
+  errorCode    String?
+  errorMessage String?
+
+  configOid BigInt
+  config    RemoteOAuthConfig @relation(fields: [configOid], references: [oid])
+
+  registrationOid BigInt?
+  registration    RemoteOAuthAutoRegistration? @relation(fields: [registrationOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  serverOid BigInt
+  server    Server @relation(fields: [serverOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  serverOAuthCredentials ServerOAuthCredentials?
+
+  remoteOAuthConnectionEvents     RemoteOAuthConnectionEvent[]
+  remoteOAuthConnectionProfiles   RemoteOAuthConnectionProfile[]
+  remoteOAuthConnectionSetups     RemoteOAuthConnectionSetup[]
+  remoteOAuthConnectionAuthTokens RemoteOAuthConnectionAuthToken[]
+  remoteOAuthRegistrationErrors   RemoteOAuthRegistrationError[]
+  serverAuthConfigs               ServerAuthConfig[]
+}
+
+enum RemoteOAuthConnectionEventType {
+  errors
+  auto_registration_succeeded
+  auto_registration_failed
+  config_auto_discovered
+  config_auto_updated
+}
+
+model RemoteOAuthConnectionEvent {
+  oid BigInt @id
+  id  String @unique
+
+  type          RemoteOAuthConnectionEventType
+  discriminator String?
+
+  metadata Json?
+
+  connectionOid BigInt
+  connection    RemoteOAuthConnection @relation(fields: [connectionOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([connectionOid, type, discriminator])
+}
+
+model RemoteOAuthConnectionProfile {
+  oid BigInt @id
+  id  String @unique
+
+  sub String
+
+  name  String?
+  email String?
+
+  rawProfile Json?
+
+  connectionOid BigInt
+  connection    RemoteOAuthConnection @relation(fields: [connectionOid], references: [oid], onDelete: Cascade)
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  createdAt  DateTime @default(now())
+  lastUsedAt DateTime @default(now())
+  updatedAt  DateTime @default(now()) @updatedAt
+
+  tokens                     RemoteOAuthConnectionAuthToken[]
+  RemoteOAuthConnectionSetup RemoteOAuthConnectionSetup[]
+
+  @@unique([connectionOid, sub])
+}
+
+enum RemoteOAuthConnectionSetupStatus {
+  pending
+  completed
+  failed
+}
+
+model RemoteOAuthConnectionSetup {
+  oid BigInt @id
+  id  String @unique
+
+  stateIdentifier String? @unique
+
+  status RemoteOAuthConnectionSetupStatus
+
+  errorCode    String?
+  errorMessage String?
+
+  codeVerifier String?
+
+  connectionOid BigInt
+  connection    RemoteOAuthConnection @relation(fields: [connectionOid], references: [oid], onDelete: Cascade)
+
+  authTokenOid BigInt?
+  authToken    RemoteOAuthConnectionAuthToken? @relation(fields: [authTokenOid], references: [oid], onDelete: SetNull)
+
+  authConfigOid BigInt?
+  authConfig    ServerAuthConfig? @relation(fields: [authConfigOid], references: [oid], onDelete: SetNull)
+
+  profileOid BigInt?
+  profile    RemoteOAuthConnectionProfile? @relation(fields: [profileOid], references: [oid], onDelete: SetNull)
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  serverOAuthSetup ServerOAuthSetup?
+
+  @@index([status])
+}
+
+enum RemoteOAuthConnectionAuthTokenSource {
+  import
+  oauth
+}
+
+model RemoteOAuthConnectionAuthToken {
+  oid    BigInt                               @id
+  id     String                               @unique
+  source RemoteOAuthConnectionAuthTokenSource
+
+  scope     String?
+  tokenType String?
+  idToken   String?
+
+  secretOid BigInt
+  secret    Secret @relation(fields: [secretOid], references: [oid])
+
+  expiresAt DateTime?
+
+  connectionProfileOid BigInt?
+  connectionProfile    RemoteOAuthConnectionProfile? @relation(fields: [connectionProfileOid], references: [oid], onDelete: SetNull)
+
+  connectionOid BigInt?
+  connection    RemoteOAuthConnection? @relation(fields: [connectionOid], references: [oid], onDelete: Cascade)
+
+  configOid BigInt
+  config    RemoteOAuthConfig @relation(fields: [configOid], references: [oid])
+
+  serverOid BigInt
+  server    Server @relation(fields: [serverOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  firstErrorAt    DateTime?
+  lastErrorAt     DateTime?
+  errorDisabledAt DateTime?
+  errorCount      Int       @default(0)
+
+  createdAt   DateTime  @default(now())
+  lastUsedAt  DateTime  @default(now())
+  refreshedAt DateTime?
+
+  authAttempts      RemoteOAuthConnectionSetup[]
+  serverAuthConfigs ServerAuthConfig[]
+}

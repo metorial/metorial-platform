@@ -1,0 +1,36 @@
+model Tenant {
+  oid BigInt @id
+  id  String @unique
+
+  identifier String @unique
+  name       String
+
+  functionBayTenantId String?
+
+  createdAt DateTime @default(now())
+
+  secrets                            Secret[]
+  registries                         ContainerRegistry[]
+  repositories                       ContainerRepository[]
+  repositoryTags                     ContainerRepositoryTag[]
+  repositoryVersions                 ContainerRepositoryVersion[]
+  serverConfigs                      ServerConfig[]
+  serverConnections                  ServerConnection[]
+  serverDiscoveries                  ServerDiscovery[]
+  servers                            Server[]
+  serverVersions                     ServerVersion[]
+  remoteOAuthConnections             RemoteOAuthConnection[]
+  remoteOAuthConnectionProfiles      RemoteOAuthConnectionProfile[]
+  remoteOAuthConnectionSetups        RemoteOAuthConnectionSetup[]
+  remoteOAuthConnectionAuthTokens    RemoteOAuthConnectionAuthToken[]
+  serverAuthConfigs                  ServerAuthConfig[]
+  serverOAuthSetups                  ServerOAuthSetup[]
+  serverOAuthCredentials             ServerOAuthCredentials[]
+  networkingRules                    NetworkingRuleset[]
+  delegatedOAuthConnections          DelegatedOAuthConnection[]
+  delegatedOAuthConnectionSetups     DelegatedOAuthConnectionSetup[]
+  delegatedOAuthConnectionAuthTokens DelegatedOAuthConnectionAuthToken[]
+  upcomingFunctionServers            UpcomingFunctionServer[]
+  serverDeployments                  ServerDeployment[]
+  functionServerInvocations          FunctionServerInvocation[]
+}

@@ -1,4 +1,4 @@
-import type { createSlatesHubInternalClient } from '@metorial-services/slates-hub-client';
+import type { createSlatesHubInternalClient } from '@metorial-platform-systems/slates-client';
 import type {
   CallbackInstance,
   CallbackReceiverRegistration,

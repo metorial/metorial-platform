@@ -1,0 +1,46 @@
+model SlateSession {
+  oid BigInt @id
+  id  String @unique
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  slateOid BigInt
+  slate    Slate  @relation(fields: [slateOid], references: [oid], onDelete: Cascade)
+
+  slateInstanceOid BigInt
+  slateInstance    SlateInstance @relation(fields: [slateInstanceOid], references: [oid], onDelete: Cascade)
+
+  slateVersionOid BigInt
+  slateVersion    SlateVersion @relation(fields: [slateVersionOid], references: [oid], onDelete: Cascade)
+
+  createdAt    DateTime  @default(now())
+  lastActiveAt DateTime?
+
+  toolCalls SlateSessionToolCall[]
+}
+
+enum SlateSessionToolCallStatus {
+  succeeded
+  failed
+}
+
+model SlateSessionToolCall {
+  oid    BigInt                     @id
+  id     String                     @unique
+  status SlateSessionToolCallStatus
+
+  actionOid BigInt
+  action    SlateAction @relation(fields: [actionOid], references: [oid], onDelete: Cascade)
+
+  invocationOid BigInt
+  invocation    SlateInvocation @relation(fields: [invocationOid], references: [oid], onDelete: Cascade)
+
+  sessionOid BigInt
+  session    SlateSession @relation(fields: [sessionOid], references: [oid], onDelete: Cascade)
+
+  slateVersionOid BigInt
+  slateVersion    SlateVersion @relation(fields: [slateVersionOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}

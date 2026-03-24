@@ -1,0 +1,422 @@
+enum SlateStatus {
+  active
+  inactive
+}
+
+model Slate {
+  oid    BigInt      @id
+  id     String      @unique
+  status SlateStatus
+
+  identifier  String  @unique
+  name        String
+  description String?
+
+  registryOid BigInt
+  registry    Registry @relation(fields: [registryOid], references: [oid], onDelete: Cascade)
+
+  currentVersionOid BigInt?
+  currentVersion    SlateVersion? @relation(fields: [currentVersionOid], references: [oid], name: "currentVersion")
+
+  slateScopeIdentifierOnRegistry String
+  slateScopeIdOnRegistry         String
+
+  slateFullIdentifierOnRegistry String
+  slateIdentifierOnRegistry     String
+  slateIdOnRegistry             String
+
+  slateVersions    SlateVersion[]
+  slateDeployments SlateDeployment[]
+
+  createdAt                 DateTime                   @default(now())
+  updatedAt                 DateTime                   @default(now()) @updatedAt
+  slateSpecifications       SlateSpecification[]
+  slateAuthMethods          SlateAuthMethod[]
+  slateConfigSchemas        SlateConfigSchema[]
+  slateSpecificationChanges SlateSpecificationChange[]
+  slateActions              SlateAction[]
+  slateEvents               SlateEvent[]
+  slateInstances            SlateInstance[]
+  slateOAuthCredentials     SlateOAuthCredentials[]
+  slateInstanceOAuthSetups  SlateInstanceOAuthSetup[]
+  slateAuthConfigs          SlateAuthConfig[]
+  slateSessions             SlateSession[]
+  slateTriggerReceivers     SlateTriggerReceiver[]
+  slateTriggerEvents        SlateTriggerEvent[]
+  slateTriggerEventInputs   SlateTriggerEventInput[]
+  changeNotifications       ChangeNotification[]
+
+  @@unique([registryOid, slateIdOnRegistry])
+  @@unique([registryOid, slateFullIdentifierOnRegistry])
+}
+
+enum SlateVersionStatus {
+  active
+  unavailable
+  pending
+  deploying
+  discovering
+  deployment_failed
+  discovery_failed
+}
+
+model SlateVersion {
+  oid    BigInt             @id
+  id     String             @unique
+  status SlateVersionStatus
+
+  isCurrent     Boolean
+  willBeCurrent Boolean
+
+  version String
+
+  versionIdOnRegistry         String
+  versionIdentifierOnRegistry String
+
+  /// [SlateJson]
+  manifest Json
+
+  /// [SlateDeploymentProviderDeploymentInfo]
+  providerDeploymentInfo Json @default("null")
+
+  slateOid BigInt
+  slate    Slate  @relation(fields: [slateOid], references: [oid])
+
+  registryOid BigInt
+  registry    Registry @relation(fields: [registryOid], references: [oid], onDelete: Cascade)
+
+  activeDeploymentOid BigInt?
+  activeDeployment    SlateDeployment? @relation(fields: [activeDeploymentOid], references: [oid], name: "activeDeployment")
+
+  specificationOid BigInt?
+  specification    SlateSpecification? @relation(fields: [specificationOid], references: [oid])
+
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @default(now()) @updatedAt
+  lastDiscoveredAt DateTime?
+
+  currentInSlates            Slate[]                    @relation("currentVersion")
+  slateDeployments           SlateDeployment[]
+  slateVersionDiscoveries    SlateVersionDiscovery[]
+  slateSpecificationChanges1 SlateSpecificationChange[] @relation("fromVersion")
+  slateSpecificationChanges2 SlateSpecificationChange[] @relation("toVersion")
+  slateEvents                SlateEvent[]
+  slateSpecifications        SlateSpecification[]       @relation("mostRecentSpecificationVersion")
+  slateInstances             SlateInstance[]
+  slateInstanceOAuthSetups   SlateInstanceOAuthSetup[]
+  slateSessions              SlateSession[]
+  slateSessionToolCalls      SlateSessionToolCall[]
+  changeNotifications        ChangeNotification[]
+
+  @@unique([slateOid, version])
+}
+
+enum SlateAuthMethodType {
+  oauth
+  token
+  service_account
+  custom
+}
+
+model SlateAuthMethod {
+  oid  BigInt              @id
+  id   String              @unique
+  type SlateAuthMethodType
+
+  identifier String @unique
+  hash       String
+
+  key  String
+  name String
+
+  /// [SlateAuthMethod]
+  spec Json
+
+  slateOid BigInt
+  slate    Slate  @relation(fields: [slateOid], references: [oid])
+
+  mostRecentSpecificationOid BigInt
+  mostRecentSpecification    SlateSpecification @relation(fields: [mostRecentSpecificationOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  slateSpecifications      SlateSpecificationAuthMethod[]
+  slateAuthConfigs         SlateAuthConfig[]
+  slateInstanceOAuthSetups SlateInstanceOAuthSetup[]
+}
+
+model SlateSpecificationAuthMethod {
+  oid BigInt @id
+
+  specificationOid BigInt
+  specification    SlateSpecification @relation(fields: [specificationOid], references: [oid])
+
+  authMethodOid BigInt
+  authMethod    SlateAuthMethod @relation(fields: [authMethodOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  @@unique([specificationOid, authMethodOid])
+}
+
+model SlateConfigSchema {
+  oid BigInt @id
+  id  String @unique
+
+  identifier String @unique
+  hash       String
+
+  /// [SlateConfigSchema]
+  schema Json
+
+  slateOid BigInt
+  slate    Slate  @relation(fields: [slateOid], references: [oid])
+
+  mostRecentSpecificationOid BigInt
+  mostRecentSpecification    SlateSpecification @relation(fields: [mostRecentSpecificationOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  slateSpecifications  SlateSpecificationConfigSchema[]
+  slateInstanceConfigs SlateInstanceConfig[]
+}
+
+model SlateSpecificationConfigSchema {
+  oid BigInt @id
+
+  specificationOid BigInt
+  specification    SlateSpecification @relation(fields: [specificationOid], references: [oid])
+
+  configSchemaOid BigInt
+  configSchema    SlateConfigSchema @relation(fields: [configSchemaOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  @@unique([specificationOid, configSchemaOid])
+}
+
+enum SlateActionType {
+  tool
+  trigger
+}
+
+model SlateAction {
+  oid BigInt @id
+  id  String @unique
+
+  type SlateActionType
+
+  identifier String @unique
+  hash       String
+
+  key  String
+  name String
+
+  /// [SlateAction]
+  spec Json
+
+  slateOid BigInt
+  slate    Slate  @relation(fields: [slateOid], references: [oid])
+
+  mostRecentSpecificationOid BigInt
+  mostRecentSpecification    SlateSpecification @relation(fields: [mostRecentSpecificationOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  slateSpecifications          SlateSpecificationAction[]
+  slateSessionToolCalls        SlateSessionToolCall[]
+  slateTriggerReceiverTriggers SlateTriggerReceiverTrigger[]
+  slateTriggerEvents           SlateTriggerEvent[]
+  slateTriggerEventInputs      SlateTriggerEventInput[]
+
+  @@index([key])
+}
+
+model SlateSpecificationAction {
+  oid BigInt @id
+
+  specificationOid BigInt
+  specification    SlateSpecification @relation(fields: [specificationOid], references: [oid])
+
+  actionOid BigInt
+  action    SlateAction @relation(fields: [actionOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  @@unique([specificationOid, actionOid])
+}
+
+model SlateSpecification {
+  oid BigInt @id
+  id  String @unique
+
+  identifier String @unique
+  hash       String
+
+  name String
+  key  String
+
+  protocolVersion String
+
+  /// [SlateProviderInfo]
+  providerInfo Json
+
+  /// [SlateConfigSchema]
+  configSchema Json
+
+  /// [SlateAuthMethods]
+  authMethods Json
+
+  /// [SlateActions]
+  actions Json
+
+  slateOid BigInt
+  slate    Slate  @relation(fields: [slateOid], references: [oid])
+
+  mostRecentVersionOid BigInt
+  mostRecentVersion    SlateVersion @relation(fields: [mostRecentVersionOid], references: [oid], name: "mostRecentSpecificationVersion")
+
+  createdAt DateTime @default(now())
+
+  slateVersions                   SlateVersion[]
+  slateVersionDiscoveries         SlateVersionDiscovery[]
+  slateAuthMethods                SlateSpecificationAuthMethod[]
+  slateConfigSchemas              SlateSpecificationConfigSchema[]
+  slateSpecificationChanges1      SlateSpecificationChange[]       @relation("fromSpecification")
+  slateSpecificationChanges2      SlateSpecificationChange[]       @relation("toSpecification")
+  slateActions                    SlateSpecificationAction[]
+  mostRecentForSlateAuthMethods   SlateAuthMethod[]
+  mostRecentForSlateConfigSchemas SlateConfigSchema[]
+  mostRecentForSlateActions       SlateAction[]
+}
+
+enum SlateVersionDiscoveryStatus {
+  succeeded
+  failed
+}
+
+model SlateVersionDiscovery {
+  oid    BigInt                      @id
+  id     String                      @unique
+  status SlateVersionDiscoveryStatus
+
+  errorMessage String?
+  errorCode    String?
+
+  slateVersionOid BigInt
+  slateVersion    SlateVersion @relation(fields: [slateVersionOid], references: [oid])
+
+  specificationOid BigInt?
+  specification    SlateSpecification? @relation(fields: [specificationOid], references: [oid])
+
+  invocationOid BigInt?
+  invocation    SlateInvocation? @relation(fields: [invocationOid], references: [oid])
+
+  createdAt DateTime @default(now())
+}
+
+enum SlateSpecificationChangeType {
+  between_versions
+  same_version
+}
+
+model SlateSpecificationChange {
+  oid  BigInt                       @id
+  id   String                       @unique
+  type SlateSpecificationChangeType
+
+  slateOid BigInt
+  slate    Slate  @relation(fields: [slateOid], references: [oid])
+
+  fromVersionOid BigInt
+  fromVersion    SlateVersion @relation("fromVersion", fields: [fromVersionOid], references: [oid])
+
+  toVersionOid BigInt
+  toVersion    SlateVersion @relation("toVersion", fields: [toVersionOid], references: [oid])
+
+  fromSpecificationOid BigInt
+  fromSpecification    SlateSpecification @relation("fromSpecification", fields: [fromSpecificationOid], references: [oid])
+
+  toSpecificationOid BigInt
+  toSpecification    SlateSpecification @relation("toSpecification", fields: [toSpecificationOid], references: [oid])
+
+  createdAt DateTime @default(now())
+}
+
+enum SlateEventType {
+  version_pulled
+  version_set_as_current
+
+  deployment_started
+  deployment_succeeded
+  deployment_failed
+
+  discovery_started
+  discovery_succeeded
+  discovery_failed
+}
+
+model SlateEvent {
+  oid BigInt @id
+  id  String @unique
+
+  type    SlateEventType
+  message String
+
+  slateOid BigInt
+  slate    Slate  @relation(fields: [slateOid], references: [oid])
+
+  slateVersionOid BigInt
+  slateVersion    SlateVersion @relation(fields: [slateVersionOid], references: [oid])
+
+  createdAt DateTime @default(now())
+}
+
+model DeploymentProvider {
+  oid BigInt @id
+  id  String @unique
+
+  name       String
+  identifier String @unique
+
+  createdAt DateTime @default(now())
+
+  slateDeployments SlateDeployment[]
+}
+
+enum SlateDeploymentStatus {
+  pending
+  running
+  succeeded
+  failed
+}
+
+model SlateDeployment {
+  oid    BigInt                @id
+  id     String                @unique
+  status SlateDeploymentStatus
+
+  errorCode    String?
+  errorMessage String?
+
+  isCancelledByRedeploy Boolean @default(false)
+
+  slateVersionOid BigInt
+  slateVersion    SlateVersion @relation(fields: [slateVersionOid], references: [oid], onDelete: Cascade)
+
+  slateOid BigInt
+  slate    Slate  @relation(fields: [slateOid], references: [oid])
+
+  providerOid BigInt
+  provider    DeploymentProvider @relation(fields: [providerOid], references: [oid])
+
+  /// [SlateDeploymentProviderDeploymentInfo]
+  providerDeploymentInfo Json
+
+  internalLogs String[]
+
+  createdAt DateTime @default(now())
+
+  slateInvocations SlateInvocation[]
+  slateVersions    SlateVersion[]    @relation("activeDeployment")
+}

@@ -1,0 +1,34 @@
+import { createValidatedEnv } from '@lowerdeck/env';
+import { v } from '@lowerdeck/validation';
+
+export let env = createValidatedEnv({
+  service: {
+    REDIS_URL: v.string(),
+    DATABASE_URL: v.string(),
+    PROVIDER_OAUTH_URL: v.string()
+  },
+
+  encryption: {
+    ENCRYPTION_KEY: v.string()
+  },
+
+  holopod: {
+    HOLOPOD_HTTP_ENDPOINT: v.string(),
+    HOLOPOD_HTTP_ENDPOINT_TLS: v.optional(v.boolean()),
+    HOLOPOD_HTTP_ROOT_CA_CERT_BASE64: v.optional(v.string()),
+    HOLOPOD_NETWORK_DNS_SERVERS: v.optional(v.string())
+  },
+
+  storage: {
+    OBJECT_STORAGE_URL: v.string(),
+    LOGS_BUCKET_NAME: v.string()
+  },
+
+  functionBay: {
+    FUNCTION_BAY_API_URL: v.string(),
+    FUNCTION_BAY_TENANT_IDENTIFIER: v.string(),
+
+    FUNCTION_BAY_DEFAULT_MEMORY_MB: v.number(),
+    FUNCTION_BAY_DEFAULT_TIMEOUT_SECONDS: v.number()
+  }
+});

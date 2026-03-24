@@ -1,11 +1,9 @@
-import type { createSlatesHubInternalClient } from '@metorial-services/slates-hub-client';
+import type { createSlatesHubInternalClient } from '@metorial-platform-systems/slates-client';
 
 type SlatesClient = ReturnType<typeof createSlatesHubInternalClient>;
 
 type CallbackDelivery = Awaited<ReturnType<SlatesClient['slateTriggerDelivery']['get']>>;
-type CallbackDeliveryList = Awaited<
-  ReturnType<SlatesClient['slateTriggerDelivery']['list']>
->;
+type CallbackDeliveryList = Awaited<ReturnType<SlatesClient['slateTriggerDelivery']['list']>>;
 type CallbackDeliveryAttempt = Awaited<
   ReturnType<SlatesClient['slateTriggerDelivery']['getAttempt']>
 >;
