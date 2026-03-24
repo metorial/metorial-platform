@@ -9,8 +9,8 @@
     "client:generate:consumer": "turbo run generate:client:consumer",
     "dev": "turbo run --concurrency 99 dev",
     "test": "turbo run --concurrency=1 --ui=stream test",
-    "prisma:generate": "turbo run --ui=stream prisma:generate",
-    "prisma:push": "turbo run --ui=stream --concurrency=1 prisma:push --",
+    "prisma:generate": "sh -c 'cd ./src/backend/db && bun run prisma:generate && cd ../../systems/signal/service && bun run prisma:generate && cd ../../slates/apps/hub && bun run prisma:generate && cd ../../../subspace/db && bun run prisma:generate'",
+    "prisma:push": "sh -c 'cd ./src/backend/db && bun run prisma:push && cd ../../systems/signal/service && bun run prisma:push && cd ../../slates/apps/hub && bun run prisma:push && cd ../../../subspace/db && bun run prisma:push'",
     "prepare": "echo prepare",
     "postinstall": "echo postinstall && [ -f \"./vendor/mcp-inspector\" ] && { cd ./vendor/mcp-inspector && npm install; } || { echo \"No vendor dependencies to install.\"; }",
     "preinstall": "[ -f \"../metorial_enterprise_install.sh\" ] && { ../metorial_enterprise_install.sh; } || { [ ! -f \"../metorial_enterprise_install.sh\" ] && echo \"Ignoring enterprise dependencies.\"; }"

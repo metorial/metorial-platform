@@ -200,8 +200,8 @@ services:
   slates-hub:
     profiles: ['hub']
     build:
-      context: ../..
-      dockerfile: ./apps/hub/dev.Dockerfile
+      context: ../../..
+      dockerfile: ./slates/apps/hub/dev.Dockerfile
     container_name: slates-hub-service
     restart: unless-stopped
     ports:
