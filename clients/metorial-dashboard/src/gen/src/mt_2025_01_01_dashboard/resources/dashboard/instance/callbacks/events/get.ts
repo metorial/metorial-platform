@@ -10,7 +10,6 @@ export type DashboardInstanceCallbacksEventsGetOutput = {
   output: Record<string, any>;
   deliveryStatus: string;
   callbackId: string;
-  providerDeploymentConfigPairId: string | null;
   callbackInstanceId: string | null;
   createdAt: Date;
 };
@@ -26,10 +25,6 @@ export let mapDashboardInstanceCallbacksEventsGetOutput =
     output: mtMap.objectField('output', mtMap.passthrough()),
     deliveryStatus: mtMap.objectField('delivery_status', mtMap.passthrough()),
     callbackId: mtMap.objectField('callback_id', mtMap.passthrough()),
-    providerDeploymentConfigPairId: mtMap.objectField(
-      'provider_deployment_config_pair_id',
-      mtMap.passthrough()
-    ),
     callbackInstanceId: mtMap.objectField(
       'callback_instance_id',
       mtMap.passthrough()

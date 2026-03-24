@@ -140,7 +140,13 @@ export type DashboardInstanceCallbacksNotificationsListQuery = {
   order?: 'asc' | 'desc' | undefined;
 } & {
   destinationId?: string | string[] | undefined;
-  status?: string | string[] | undefined;
+  status?:
+    | 'pending'
+    | 'failed'
+    | 'delivered'
+    | 'retrying'
+    | ('pending' | 'failed' | 'delivered' | 'retrying')[]
+    | undefined;
 };
 
 export let mapDashboardInstanceCallbacksNotificationsListQuery = mtMap.union([
@@ -164,13 +170,7 @@ export let mapDashboardInstanceCallbacksNotificationsListQuery = mtMap.union([
       ),
       status: mtMap.objectField(
         'status',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
+        mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
       )
     })
   )

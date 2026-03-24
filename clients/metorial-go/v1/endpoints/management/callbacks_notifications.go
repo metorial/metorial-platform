@@ -17,13 +17,15 @@ func NewCallbacksNotificationsEndpoint(client *endpoint.Client) *CallbacksNotifi
 
 // CallbacksNotificationsEndpointListParams contains optional query parameters for List.
 type CallbacksNotificationsEndpointListParams struct {
-	Limit         *float64 `json:"limit,omitempty"`
-	After         *string  `json:"after,omitempty"`
-	Before        *string  `json:"before,omitempty"`
-	Cursor        *string  `json:"cursor,omitempty"`
-	Order         *string  `json:"order,omitempty"`
-	DestinationId *any     `json:"destination_id,omitempty"`
-	Status        *any     `json:"status,omitempty"`
+	Limit  *float64 `json:"limit,omitempty"`
+	After  *string  `json:"after,omitempty"`
+	Before *string  `json:"before,omitempty"`
+	Cursor *string  `json:"cursor,omitempty"`
+	Order  *string  `json:"order,omitempty"`
+	// DestinationId - Filter by callback destination ID(s)
+	DestinationId *any `json:"destination_id,omitempty"`
+	// Status - Filter by callback notification delivery status
+	Status *any `json:"status,omitempty"`
 }
 
 // List returns a paginated list of callback notifications.

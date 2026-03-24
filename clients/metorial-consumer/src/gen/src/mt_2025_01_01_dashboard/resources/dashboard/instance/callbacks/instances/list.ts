@@ -89,7 +89,7 @@ export type DashboardInstanceCallbacksInstancesListQuery = {
   order?: 'asc' | 'desc' | undefined;
 } & {
   id?: string | string[] | undefined;
-  status?: string | string[] | undefined;
+  status?: 'attached' | 'detached' | ('attached' | 'detached')[] | undefined;
   providerConfigId?: string | string[] | undefined;
   providerAuthConfigId?: string | string[] | undefined;
 };
@@ -115,13 +115,7 @@ export let mapDashboardInstanceCallbacksInstancesListQuery = mtMap.union([
       ),
       status: mtMap.objectField(
         'status',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
+        mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
       ),
       providerConfigId: mtMap.objectField(
         'provider_config_id',

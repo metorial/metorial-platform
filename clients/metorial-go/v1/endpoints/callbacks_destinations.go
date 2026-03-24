@@ -26,18 +26,26 @@ type CallbacksDestinationsEndpointListParams struct {
 
 // CallbacksDestinationsEndpointCreateBody contains the request body for Create.
 type CallbacksDestinationsEndpointCreateBody struct {
-	Name        string          `json:"name"`
-	Description *string         `json:"description,omitempty"`
-	Metadata    *map[string]any `json:"metadata,omitempty"`
-	Url         string          `json:"url"`
+	// Name - Display name for the callback destination
+	Name string `json:"name"`
+	// Description - Optional callback destination description
+	Description *string `json:"description,omitempty"`
+	// Metadata - Custom key-value pairs for storing destination metadata
+	Metadata *map[string]any `json:"metadata,omitempty"`
+	// Url - Webhook URL that should receive callback deliveries
+	Url string `json:"url"`
 }
 
 // CallbacksDestinationsEndpointUpdateBody contains the request body for Update.
 type CallbacksDestinationsEndpointUpdateBody struct {
-	Name        *string         `json:"name,omitempty"`
-	Description *string         `json:"description,omitempty"`
-	Metadata    *map[string]any `json:"metadata,omitempty"`
-	Url         *string         `json:"url,omitempty"`
+	// Name - Updated callback destination name
+	Name *string `json:"name,omitempty"`
+	// Description - Updated destination description
+	Description *string `json:"description,omitempty"`
+	// Metadata - Updated destination metadata
+	Metadata *map[string]any `json:"metadata,omitempty"`
+	// Url - Updated webhook URL for callback deliveries
+	Url *string `json:"url,omitempty"`
 }
 
 // List returns a paginated list of callback destinations.

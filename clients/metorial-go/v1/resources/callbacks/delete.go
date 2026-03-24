@@ -29,28 +29,45 @@ type CallbacksDeleteOutputProviderDeployment struct {
 
 // CallbacksDeleteOutputProviderTriggers represents the callbacks delete output provider triggers type.
 type CallbacksDeleteOutputProviderTriggers struct {
-	Object              string    `json:"object"`
-	Id                  string    `json:"id"`
-	ProviderTriggerId   string    `json:"provider_trigger_id"`
-	ProviderTriggerKey  string    `json:"provider_trigger_key"`
-	ProviderTriggerName string    `json:"provider_trigger_name"`
-	EventTypes          []string  `json:"event_types"`
-	CreatedAt           time.Time `json:"created_at"`
+	// Object - String representing the object's type
+	Object string `json:"object"`
+	// Id - Unique callback trigger association identifier
+	Id string `json:"id"`
+	// ProviderTriggerId - Provider trigger identifier from the deployment specification
+	ProviderTriggerId string `json:"provider_trigger_id"`
+	// ProviderTriggerKey - Stable trigger key used by the provider
+	ProviderTriggerKey string `json:"provider_trigger_key"`
+	// ProviderTriggerName - Human-readable trigger name
+	ProviderTriggerName string `json:"provider_trigger_name"`
+	// EventTypes - Provider-specific event types enabled for this trigger
+	EventTypes []string `json:"event_types"`
+	// CreatedAt - Timestamp when this trigger was attached to the callback
+	CreatedAt time.Time `json:"created_at"`
 }
 
 // CallbacksDeleteOutput represents the callbacks delete output type.
 type CallbacksDeleteOutput struct {
-	Object                      string                                  `json:"object"`
-	Id                          string                                  `json:"id"`
-	Status                      string                                  `json:"status"`
-	Name                        string                                  `json:"name"`
-	Description                 *string                                 `json:"description,omitempty"`
-	Metadata                    *map[string]any                         `json:"metadata,omitempty"`
+	// Object - String representing the object's type
+	Object string `json:"object"`
+	// Id - Unique callback identifier
+	Id string `json:"id"`
+	// Status - Callback lifecycle status
+	Status string `json:"status"`
+	// Name - Display name for the callback
+	Name string `json:"name"`
+	// Description - Optional callback description
+	Description *string `json:"description,omitempty"`
+	// Metadata - Custom key-value pairs for storing additional callback metadata
+	Metadata *map[string]any `json:"metadata,omitempty"`
+	// PollIntervalSecondsOverride - Optional polling interval override, in seconds, for polling-capable triggers
 	PollIntervalSecondsOverride *float64                                `json:"poll_interval_seconds_override,omitempty"`
 	ProviderDeployment          CallbacksDeleteOutputProviderDeployment `json:"provider_deployment"`
-	ProviderTriggers            []CallbacksDeleteOutputProviderTriggers `json:"provider_triggers"`
-	CreatedAt                   time.Time                               `json:"created_at"`
-	UpdatedAt                   time.Time                               `json:"updated_at"`
+	// ProviderTriggers - Triggers configured on this callback
+	ProviderTriggers []CallbacksDeleteOutputProviderTriggers `json:"provider_triggers"`
+	// CreatedAt - Timestamp when the callback was created
+	CreatedAt time.Time `json:"created_at"`
+	// UpdatedAt - Timestamp when the callback was last updated
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 // MapCallbacksDeleteOutputFromJSON deserializes JSON data into a CallbacksDeleteOutput.

@@ -17,20 +17,26 @@ func NewCallbacksInstancesEndpoint(client *endpoint.Client) *CallbacksInstancesE
 
 // CallbacksInstancesEndpointListParams contains optional query parameters for List.
 type CallbacksInstancesEndpointListParams struct {
-	Limit                *float64 `json:"limit,omitempty"`
-	After                *string  `json:"after,omitempty"`
-	Before               *string  `json:"before,omitempty"`
-	Cursor               *string  `json:"cursor,omitempty"`
-	Order                *string  `json:"order,omitempty"`
-	Id                   *any     `json:"id,omitempty"`
-	Status               *any     `json:"status,omitempty"`
-	ProviderConfigId     *any     `json:"provider_config_id,omitempty"`
-	ProviderAuthConfigId *any     `json:"provider_auth_config_id,omitempty"`
+	Limit  *float64 `json:"limit,omitempty"`
+	After  *string  `json:"after,omitempty"`
+	Before *string  `json:"before,omitempty"`
+	Cursor *string  `json:"cursor,omitempty"`
+	Order  *string  `json:"order,omitempty"`
+	// Id - Filter by callback instance ID(s)
+	Id *any `json:"id,omitempty"`
+	// Status - Filter by callback instance status
+	Status *any `json:"status,omitempty"`
+	// ProviderConfigId - Filter by provider config ID(s)
+	ProviderConfigId *any `json:"provider_config_id,omitempty"`
+	// ProviderAuthConfigId - Filter by provider auth config ID(s)
+	ProviderAuthConfigId *any `json:"provider_auth_config_id,omitempty"`
 }
 
 // CallbacksInstancesEndpointCreateBody contains the request body for Create.
 type CallbacksInstancesEndpointCreateBody struct {
-	ProviderConfigId     string  `json:"provider_config_id"`
+	// ProviderConfigId - Provider config to attach to the callback instance
+	ProviderConfigId string `json:"provider_config_id"`
+	// ProviderAuthConfigId - Optional provider auth config to attach to the callback instance
 	ProviderAuthConfigId *string `json:"provider_auth_config_id,omitempty"`
 }
 

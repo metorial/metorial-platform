@@ -17,14 +17,17 @@ func NewCallbacksEventsEndpoint(client *endpoint.Client) *CallbacksEventsEndpoin
 
 // CallbacksEventsEndpointListParams contains optional query parameters for List.
 type CallbacksEventsEndpointListParams struct {
-	Limit    *float64 `json:"limit,omitempty"`
-	After    *string  `json:"after,omitempty"`
-	Before   *string  `json:"before,omitempty"`
-	Cursor   *string  `json:"cursor,omitempty"`
-	Order    *string  `json:"order,omitempty"`
-	Id       *any     `json:"id,omitempty"`
-	Type     *any     `json:"type,omitempty"`
-	SourceId *any     `json:"source_id,omitempty"`
+	Limit  *float64 `json:"limit,omitempty"`
+	After  *string  `json:"after,omitempty"`
+	Before *string  `json:"before,omitempty"`
+	Cursor *string  `json:"cursor,omitempty"`
+	Order  *string  `json:"order,omitempty"`
+	// Id - Filter by callback event ID(s)
+	Id *any `json:"id,omitempty"`
+	// Type - Filter by event type(s)
+	Type *any `json:"type,omitempty"`
+	// SourceId - Filter by provider source ID(s)
+	SourceId *any `json:"source_id,omitempty"`
 }
 
 // List returns a paginated list of callback events.

@@ -17,35 +17,49 @@ func NewCallbacksEndpoint(client *endpoint.Client) *CallbacksEndpoint {
 
 // CallbacksEndpointListParams contains optional query parameters for List.
 type CallbacksEndpointListParams struct {
-	Limit                *float64 `json:"limit,omitempty"`
-	After                *string  `json:"after,omitempty"`
-	Before               *string  `json:"before,omitempty"`
-	Cursor               *string  `json:"cursor,omitempty"`
-	Order                *string  `json:"order,omitempty"`
-	Id                   *any     `json:"id,omitempty"`
-	ProviderDeploymentId *any     `json:"provider_deployment_id,omitempty"`
-	Status               *any     `json:"status,omitempty"`
+	Limit  *float64 `json:"limit,omitempty"`
+	After  *string  `json:"after,omitempty"`
+	Before *string  `json:"before,omitempty"`
+	Cursor *string  `json:"cursor,omitempty"`
+	Order  *string  `json:"order,omitempty"`
+	// Id - Filter by callback ID(s)
+	Id *any `json:"id,omitempty"`
+	// ProviderDeploymentId - Filter by provider deployment ID(s)
+	ProviderDeploymentId *any `json:"provider_deployment_id,omitempty"`
+	// Status - Filter by callback lifecycle status
+	Status *any `json:"status,omitempty"`
 }
 
 // CallbacksEndpointCreateBody contains the request body for Create.
 type CallbacksEndpointCreateBody struct {
-	ProviderDeploymentId        string           `json:"provider_deployment_id"`
-	Name                        string           `json:"name"`
-	Description                 *string          `json:"description,omitempty"`
-	Metadata                    *map[string]any  `json:"metadata,omitempty"`
-	PollIntervalSecondsOverride *float64         `json:"poll_interval_seconds_override,omitempty"`
-	DestinationIds              []string         `json:"destination_ids"`
-	Triggers                    []map[string]any `json:"triggers"`
+	// ProviderDeploymentId - Provider deployment that owns the trigger specification for this callback
+	ProviderDeploymentId string `json:"provider_deployment_id"`
+	// Name - Display name for the callback
+	Name string `json:"name"`
+	// Description - Optional callback description
+	Description *string `json:"description,omitempty"`
+	// Metadata - Custom key-value pairs for storing additional callback metadata
+	Metadata *map[string]any `json:"metadata,omitempty"`
+	// PollIntervalSecondsOverride - Optional polling interval override, in seconds, for polling triggers
+	PollIntervalSecondsOverride *float64 `json:"poll_interval_seconds_override,omitempty"`
+	// DestinationIds - Callback destination IDs that should receive deliveries
+	DestinationIds []string         `json:"destination_ids"`
+	Triggers       []map[string]any `json:"triggers"`
 }
 
 // CallbacksEndpointUpdateBody contains the request body for Update.
 type CallbacksEndpointUpdateBody struct {
-	Name                        *string           `json:"name,omitempty"`
-	Description                 *string           `json:"description,omitempty"`
-	Metadata                    *map[string]any   `json:"metadata,omitempty"`
-	PollIntervalSecondsOverride *float64          `json:"poll_interval_seconds_override,omitempty"`
-	DestinationIds              *[]string         `json:"destination_ids,omitempty"`
-	Triggers                    *[]map[string]any `json:"triggers,omitempty"`
+	// Name - Updated callback display name
+	Name *string `json:"name,omitempty"`
+	// Description - Updated callback description
+	Description *string `json:"description,omitempty"`
+	// Metadata - Updated custom metadata for the callback
+	Metadata *map[string]any `json:"metadata,omitempty"`
+	// PollIntervalSecondsOverride - Updated polling interval override, in seconds
+	PollIntervalSecondsOverride *float64 `json:"poll_interval_seconds_override,omitempty"`
+	// DestinationIds - Replacement list of callback destination IDs
+	DestinationIds *[]string         `json:"destination_ids,omitempty"`
+	Triggers       *[]map[string]any `json:"triggers,omitempty"`
 }
 
 // List returns a paginated list of callbacks.
