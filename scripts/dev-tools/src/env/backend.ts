@@ -40,6 +40,11 @@ export let backendEnv: Env = [
     isEnterprise: true
   },
   {
+    key: 'GLOBAL_DATABASE_URL',
+    defaultValue: `postgres://postgres:postgres@localhost:35432/${DB_PREFIX}-global`
+  },
+
+  {
     key: 'REDIS_URL',
     defaultValue: `redis://localhost:36379/0`
   },
