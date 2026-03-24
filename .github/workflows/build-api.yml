@@ -33,13 +33,13 @@ jobs:
         run: bun i --linker=hoisted
 
       - name: Generate Prisma Clients
-        run: bun run prisma:generate
+        run: bunx turbo run --ui=stream prisma:generate --filter=!./src/systems/**
 
       - name: Build Packages
-        run: bun run build
+        run: bunx turbo run --ui=stream build --filter=!./src/systems/**
 
       - name: Test
-        run: bun run test
+        run: bunx turbo run --concurrency=1 --ui=stream test --filter=!./src/systems/**
 
   build-and-push-api:
     name: 'Build and Push API'

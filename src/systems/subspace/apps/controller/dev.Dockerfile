@@ -11,8 +11,6 @@ COPY apps/dev/package.json ./apps/dev/package.json
 COPY apps/public/package.json ./apps/public/package.json
 COPY apps/worker/package.json ./apps/worker/package.json
 
-COPY clients/typescript/package.json ./clients/typescript/package.json
-
 COPY db/package.json ./db/package.json
 
 COPY packages/tsconfig/package.json ./packages/tsconfig/package.json
