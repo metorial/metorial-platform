@@ -230,6 +230,26 @@ class InstanceService {
     });
   }
 
+  async getManyInstancesForUser(d: { user: User; instanceIds?: string[] }) {
+    return await db.instance.findMany({
+      where: {
+        id: { in: d.instanceIds },
+        organization: {
+          members: {
+            some: {
+              userOid: d.user.oid,
+              status: 'active'
+            }
+          }
+        }
+      },
+      include: {
+        organization: true,
+        project: true
+      }
+    });
+  }
+
   async getInstanceByIdForUser(d: { instanceId: string; user: User }) {
     let instance = await db.instance.findFirst({
       where: {

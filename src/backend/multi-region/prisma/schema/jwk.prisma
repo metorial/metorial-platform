@@ -1,0 +1,30 @@
+enum OAuthJwkStatus {
+  active
+  next
+  retired
+}
+
+model OAuthJwk {
+  id  String @id
+  kid String @unique
+
+  status OAuthJwkStatus
+
+  alg String
+  use String
+  kty String
+  crv String?
+
+  publicJwk  Json
+  privateJwk Json
+
+  activatesAt DateTime
+  expiresAt   DateTime
+  retiredAt   DateTime?
+
+  generatedByOid Int?
+  generatedBy    Cell? @relation(fields: [generatedByOid], references: [oid], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}

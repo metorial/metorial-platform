@@ -9,7 +9,7 @@
     "lint": "prettier src/**/*.ts --check"
   },
   "dependencies": {
-    "@lowerdeck/error": "1.2.1",
+    "@lowerdeck/error": "1.2.2",
     "@lowerdeck/tokens": "^1.0.5",
     "@metorial-services/ares-client": "^1.0.6",
     "@metorial/config": "1.0.0",

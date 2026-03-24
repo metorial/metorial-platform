@@ -76,5 +76,35 @@ describe('machineAccessService', () => {
         actorOid: 'actor-oid'
       });
     });
+
+    it('creates user-owned machine access linked to an existing actor', async () => {
+      let existingActor = { oid: 'existing-actor-oid', organizationOid: 'org-oid' } as any;
+
+      let result = await machineAccessService.createMachineAccess({
+        type: 'organization_management',
+        input: { name: 'oauth-user-access', scopes: ['scope:one'], hasCustomScopes: true },
+        kind: 'user',
+        linkedTo: {
+          type: 'user',
+          actor: existingActor,
+          user: baseUser
+        },
+        organization: baseOrg,
+        performedBy: baseActor,
+        context: baseContext
+      });
+
+      expect(result).toMatchObject({
+        status: 'active',
+        type: 'organization_management',
+        kind: 'user',
+        name: 'oauth-user-access',
+        organizationOid: baseOrg.oid,
+        actorOid: 'existing-actor-oid',
+        userOid: baseUser.oid,
+        scopes: ['scope:one'],
+        hasCustomScopes: true
+      });
+    });
   });
 });

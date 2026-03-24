@@ -1,0 +1,19 @@
+model Cell {
+  oid        Int    @id @default(autoincrement())
+  identifier String @unique
+
+  lastSyncRangeStart DateTime?
+  lastSyncRangeEnd   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  organizations                     Organization[]
+  users                             User[]
+  oauthApplications                 OAuthApplication[]
+  oauthAuthorizationRequestsCreated OAuthAuthorizationRequest[] @relation("createdBy")
+  oauthAuthorizationRequestsClaimed OAuthAuthorizationRequest[] @relation("claimedBy")
+  oauthTokens                       OAuthToken[]
+  oauthJwks                         OAuthJwk[]
+  globalLeases                      GlobalLease[]
+}

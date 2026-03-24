@@ -1,0 +1,32 @@
+enum UserStatus {
+  active
+  deleted
+}
+
+enum UserType {
+  user
+}
+
+model User {
+  id String @id
+
+  status UserStatus
+  type   UserType
+
+  email     String  @unique
+  name      String
+  firstName String?
+  lastName  String?
+
+  /// [EntityImage]
+  image Json
+
+  lastEditByOid Int
+  lastEditBy    Cell @relation(fields: [lastEditByOid], references: [oid])
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+
+  oauthAuthorizationRequests OAuthAuthorizationRequest[]
+}

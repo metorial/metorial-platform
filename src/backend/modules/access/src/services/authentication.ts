@@ -21,6 +21,7 @@ import {
   UserSession
 } from '@metorial/db';
 import { machineAccessAuthService } from '@metorial/module-machine-access';
+import type { OAuthTokenWithAuthorization } from '@metorial/module-machine-access';
 import { userAuthService } from '@metorial/module-user';
 import {
   instancePublishableTokenScopes,
@@ -56,7 +57,8 @@ export type AuthInfo =
     }
   | {
       type: 'machine';
-      apiKey: ApiKey;
+      apiKey?: ApiKey;
+      oauthToken?: OAuthTokenWithAuthorization;
       machineAccess: MachineAccess;
       orgScopes: Scope[];
       restrictions:
@@ -176,11 +178,23 @@ class AuthenticationService {
       };
     }
 
-    let res = await machineAccessAuthService.authenticateWithMachineAccessToken({
+    let rawRes = await machineAccessAuthService.authenticateWithMachineAccessToken({
       token: d.apiKey,
       context: d.context
     });
-    let machineAccess = res.apiKey.machineAccess;
+    let res =
+      'type' in rawRes
+        ? rawRes
+        : ({
+            type: 'api_key',
+            secret: {
+              apiKey: (rawRes as any).apiKey
+            }
+          } as const);
+    let machineAccess =
+      res.type == 'api_key'
+        ? res.secret!.apiKey.machineAccess
+        : res.oauthToken!.oauthAuthorization.machineAccess;
 
     if (d.consumerSessionClientSecret && machineAccess.type != 'instance_publishable') {
       throw new ServiceError(
@@ -213,7 +227,11 @@ class AuthenticationService {
         );
       }
 
-      if (consumerRes && consumerRes.surface.publishableApiKeyOid != res.apiKey.oid) {
+      if (
+        consumerRes &&
+        res.type == 'api_key' &&
+        consumerRes.surface.publishableApiKeyOid != res.secret!.apiKey.oid
+      ) {
         throw new ServiceError(
           unauthorizedError({
             message: 'Consumer session token does not belong to this publishable API key'
@@ -240,10 +258,13 @@ class AuthenticationService {
 
       return {
         type: 'machine',
-        apiKey: res.apiKey,
+        apiKey: res.type == 'api_key' ? res.secret!.apiKey : undefined,
+        oauthToken: res.type == 'oauth_token' ? res.oauthToken! : undefined,
         machineAccess,
         orgScopes:
-          machineAccess.type == 'instance_publishable'
+          res.type == 'oauth_token'
+            ? (res.oauthToken!.oauthAuthorization.scopes as Scope[])
+            : machineAccess.type == 'instance_publishable'
             ? consumer
               ? instancePublishableTokenWithConsumerScopes
               : instancePublishableTokenScopes
@@ -265,9 +286,13 @@ class AuthenticationService {
     ) {
       return {
         type: 'machine',
-        apiKey: res.apiKey,
+        apiKey: res.type == 'api_key' ? res.secret!.apiKey : undefined,
+        oauthToken: res.type == 'oauth_token' ? res.oauthToken! : undefined,
         machineAccess,
-        orgScopes: orgManagementTokenScopes,
+        orgScopes:
+          res.type == 'oauth_token'
+            ? (res.oauthToken!.oauthAuthorization.scopes as Scope[])
+            : orgManagementTokenScopes,
         restrictions: {
           type: 'organization',
           organization: machineAccess.organization,

@@ -1,5 +1,5 @@
+import { forbiddenError, ServiceError } from '@lowerdeck/error';
 import { Instance, Organization, OrganizationMember } from '@metorial/db';
-import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { accessService, Scope } from '@metorial/module-access';
 import { teamService } from '@metorial/module-organization';
 import { apiGroup } from './apiGroup';
@@ -18,35 +18,54 @@ export let checkAccess = apiGroup.createMiddleware(
       fineGrainedPolicy: input.fineGrainedPolicy
     });
 
-    if (ctx.auth.type == 'user' && 'instance' in ctx && ctx.instance) {
+    if ('instance' in ctx && ctx.instance) {
       let instance = ctx.instance as Instance & { organization: Organization };
 
-      if ('member' in ctx && ctx.member) {
-        let member = ctx.member as OrganizationMember;
-        if (member.role == 'admin') return;
-      }
+      let isUserLinkedOAuthMachineAuth =
+        ctx.auth.type == 'machine' &&
+        !!ctx.auth.oauthToken &&
+        ctx.auth.oauthToken.oauthAuthorization.type == 'user';
 
-      if (instance.organization.enforceTeamAccess) {
+      if (
+        (ctx.auth.type == 'user' || isUserLinkedOAuthMachineAuth) &&
+        instance.organization.enforceTeamAccess
+      ) {
+        let member =
+          ctx.auth.type == 'user' && 'member' in ctx && ctx.member
+            ? (ctx.member as OrganizationMember)
+            : ctx.auth.type == 'machine'
+              ? ctx.auth.oauthToken?.oauthAuthorization.organizationMember
+              : undefined;
+
+        if (member?.role == 'admin') return;
+
+        let user = ctx.auth.type == 'user' ? ctx.auth.user : undefined;
+        let actor = ctx.auth.type == 'machine' ? ctx.auth.restrictions.actor : undefined;
+        if (!user && !actor) {
+          throw new ServiceError(
+            forbiddenError({
+              message: 'Unable to determine user or actor for access check'
+            })
+          );
+        }
+
         let { scopes } = await teamService.getTeamAccessForInstance({
           instance,
           organization: instance.organization,
-          for:
-            ctx.auth.type == 'user'
-              ? {
-                  type: 'user',
-                  user: ctx.auth.user
-                }
-              : {
-                  type: 'actor',
-                  // @ts-ignore
-                  actor: ctx.auth.restrictions.actor
-                }
+          for: user ? { type: 'user', user } : { type: 'actor', actor: actor! }
         });
 
-        let hasAccess = scopes.some(scope => input.possibleScopes.includes(scope as any));
+        let allowedScopes =
+          ctx.auth.type == 'machine'
+            ? scopes.filter(scope => ctx.auth.orgScopes.includes(scope as any))
+            : scopes;
+
+        let hasAccess = allowedScopes.some(scope =>
+          input.possibleScopes.includes(scope as any)
+        );
         if (!hasAccess) {
           throw new ServiceError(
-            badRequestError({
+            forbiddenError({
               message: `You don't have the required team permissions to perform this action`
             })
           );

@@ -127,7 +127,12 @@ let createListMethod = <Item>(
         let result = await callController([
           {
             ...firstArg,
-            ...query
+
+            limit: query.limit,
+            after: query.after,
+            before: query.before,
+            cursor: query.cursor,
+            order: query.order
           }
         ]);
 
