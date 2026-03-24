@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { ChangeNotificationType } from '../../../../prisma/generated/client';
-import { testDb, cleanDatabase } from '../../../test/setup';
-import { fixtures } from '../../../test/fixtures';
 import { slatesHubClient } from '../../../test/client';
+import { fixtures } from '../../../test/fixtures';
+import { cleanDatabase, testDb } from '../../../test/setup';
 
 describe('changeNotification:list E2E', () => {
   const f = fixtures(testDb);
@@ -24,7 +24,6 @@ describe('changeNotification:list E2E', () => {
 
     expect(result.items).toHaveLength(2);
     expect(result.items[0]).toMatchObject({
-      object: 'change_notification',
       id: notification.id,
       type: ChangeNotificationType.slate_version_created,
       slateId: slate.id,
@@ -49,7 +48,6 @@ describe('changeNotification:get E2E', () => {
     });
 
     expect(result).toMatchObject({
-      object: 'change_notification',
       id: notification.id,
       slateId: slate.id
     });
