@@ -355,12 +355,31 @@ let ToolCard = ({
     properties: {}
   }) as any;
 
+  let meta = (tool as any)._meta as {
+    enabled: boolean;
+    requiredScopes: string[];
+    missingScopes: string[];
+  } | null | undefined;
+
   return (
     <ExpandableCard
       title={tool.title ?? tool.name}
       description={tool.description ?? 'No description provided.'}
       error={state?.status === 'error' || state?.data?.isError === true}
     >
+      {meta != null ? (
+        <Flex gap={10} wrap="wrap">
+          <MetaPill $tone={meta.enabled ? 'success' : 'error'}>
+            {meta.enabled ? 'Enabled' : 'Disabled'}
+          </MetaPill>
+          {meta.requiredScopes.map(scope => (
+            <MetaPill key={scope} $tone={meta!.missingScopes.includes(scope) ? 'error' : 'default'}>
+              {scope}
+            </MetaPill>
+          ))}
+        </Flex>
+      ) : null}
+
       <SchemaForm
         schema={schema}
         submitLabel="Call Tool"

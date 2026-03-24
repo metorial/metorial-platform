@@ -35,6 +35,8 @@ export let v1ProviderToolPresenter = Presenter.create(providerToolType)
         }
       : null,
 
+    meta: (tool as any).meta ?? null,
+
     specification_id: tool.specificationId,
     provider_id: tool.providerId,
 
@@ -106,6 +108,13 @@ export let v1ProviderToolPresenter = Presenter.create(providerToolType)
           read_only: v.nullable(
             v.boolean({ name: 'read_only', description: 'Whether the tool is read-only' })
           )
+        })
+      ),
+      meta: v.nullable(
+        v.object({
+          enabled: v.boolean({ name: 'enabled', description: 'Whether the tool is enabled based on granted scopes' }),
+          requiredScopes: v.array(v.string(), { name: 'requiredScopes', description: 'OAuth scopes required by this tool' }),
+          missingScopes: v.array(v.string(), { name: 'missingScopes', description: 'OAuth scopes that are required but not granted' })
         })
       ),
       specification_id: v.string({

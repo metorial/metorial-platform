@@ -13,6 +13,7 @@ export type DashboardInstanceProvidersToolsListOutput = {
     inputSchema: { type: 'json_schema'; schema: Record<string, any> } | null;
     outputSchema: { type: 'json_schema'; schema: Record<string, any> } | null;
     tags: { destructive: boolean | null; readOnly: boolean | null } | null;
+    meta: { enabled: boolean; requiredScopes: string[]; missingScopes: string[] } | null;
     specificationId: string;
     providerId: string;
     createdAt: Date;
@@ -63,6 +64,14 @@ export let mapDashboardInstanceProvidersToolsListOutput =
                 mtMap.passthrough()
               ),
               readOnly: mtMap.objectField('read_only', mtMap.passthrough())
+            })
+          ),
+          meta: mtMap.objectField(
+            'meta',
+            mtMap.object({
+              enabled: mtMap.objectField('enabled', mtMap.passthrough()),
+              requiredScopes: mtMap.objectField('requiredScopes', mtMap.array(mtMap.passthrough())),
+              missingScopes: mtMap.objectField('missingScopes', mtMap.array(mtMap.passthrough()))
             })
           ),
           specificationId: mtMap.objectField(

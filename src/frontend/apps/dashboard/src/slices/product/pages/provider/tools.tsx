@@ -217,6 +217,14 @@ let getToolModeBadges = (tool: Pick<ProviderTool, 'tags'>) => {
   return badges;
 };
 
+let ScopeList = styled.ul`
+  margin: 6px 0px 0px;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+`;
+
 let getSchemaFieldCount = (schema: ReturnType<typeof getJsonSchemaObject>) =>
   Object.keys(schema?.properties || {}).length;
 
@@ -440,6 +448,32 @@ export let ProviderToolsPage = () => {
             </Flex>
           </InfoCard>
 
+          {tool.meta && (
+            <InfoCard>
+              <Flex gap={8} style={{ alignItems: 'center', flexWrap: 'wrap' }}>
+                <Text size="2" weight="strong">
+                  Scopes
+                </Text>
+                <Badge color={tool.meta.enabled ? 'green' : 'red'} size="1">
+                  {tool.meta.enabled ? 'Enabled' : 'Disabled'}
+                </Badge>
+              </Flex>
+              <ScopeList>
+                {tool.meta.requiredScopes.map(scope => (
+                  <InfoListItem key={scope}>
+                    <Text
+                      size="1"
+                      color={tool.meta!.missingScopes.includes(scope) ? 'red' : 'gray600'}
+                    >
+                      {scope}
+                      {tool.meta!.missingScopes.includes(scope) && ' (missing)'}
+                    </Text>
+                  </InfoListItem>
+                ))}
+              </ScopeList>
+            </InfoCard>
+          )}
+
           {(tool.instructions?.length ?? 0) > 0 && (
             <InfoCard>
               <Text size="2" weight="strong">
@@ -546,6 +580,11 @@ export let ProviderToolsPage = () => {
                 ) : (
                   <Badge color="gray" size="1">
                     Default
+                  </Badge>
+                )}
+                {tool.meta && (
+                  <Badge color={tool.meta.enabled ? 'green' : 'red'} size="1">
+                    {tool.meta.enabled ? 'Enabled' : 'Disabled'}
                   </Badge>
                 )}
               </Flex>,
