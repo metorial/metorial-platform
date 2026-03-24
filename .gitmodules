@@ -1,3 +1,6 @@
+[submodule "cli"]
+	path = cli
+	url = https://github.com/metorial/cli.git
 [submodule "clients/metorial-node"]
 	path = clients/metorial-node
 	url = https://github.com/metorial/metorial-node.git
