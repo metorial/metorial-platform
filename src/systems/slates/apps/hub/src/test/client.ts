@@ -1,6 +1,7 @@
 import { createSlatesHubInternalClient } from '@metorial-mono/slates-hub-client';
+import { rpcMux } from '@lowerdeck/rpc-server';
 import { createFetchRouter } from '@lowerdeck/testing-tools';
-import { slatesHubApi } from '../apis/internal';
+import { slatesHubRPC } from '../apis/internal';
 
 type ClientOptsLike = {
   endpoint: string;
@@ -16,8 +17,9 @@ type ClientOptsLike = {
 };
 
 const fetchRouter = createFetchRouter();
+const slatesHubRpc = rpcMux({ path: '/slates-hub' }, [slatesHubRPC]);
 const registerInMemoryRoute = (endpoint: string) => {
-  fetchRouter.registerRoute(endpoint, request => slatesHubApi(request, undefined));
+  fetchRouter.registerRoute(endpoint, request => slatesHubRpc.fetch(request));
 };
 
 const defaultEndpoint = 'http://slates-hub.test/slates-hub';
