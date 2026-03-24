@@ -55,7 +55,7 @@ model OAuthApplication {
   clientSecrets              OAuthApplicationClientSecret[]
   oauthInstallations         OAuthInstallation[]
   oauthAuthorizations        OAuthAuthorization[]
-  oauthAuthorizationRequests OAuthAuthorizationRequest[]
+  oauthAuthorizationRequests OAuthAuthorizationFlow[]
   serviceAccount             ServiceAccount?
 }
 
@@ -156,7 +156,7 @@ model OAuthAuthorization {
   lastUsedAt DateTime?
   revokedAt  DateTime?
 
-  oauthAuthorizationRequests OAuthAuthorizationRequest[]
+  oauthAuthorizationRequests OAuthAuthorizationFlow[]
   oauthTokens                OAuthToken[]
   cliDevices                 CliDevice[]
   serviceAccountCredential   ServiceAccountCredential?
@@ -166,67 +166,56 @@ model OAuthAuthorization {
   @@unique([organizationMemberOid, oauthApplicationOid])
 }
 
-enum OAuthAuthorizationRequestChallengeMethod {
+enum OAuthAuthorizationFlowChallengeMethod {
   none
   s256
 }
 
-enum OAuthAuthorizationRequestStatus {
+enum OAuthAuthorizationFlowStatus {
   pending
   accepted
-  denied
   consumed
 }
 
-enum OAuthAuthorizationRequestType {
+enum OAuthAuthorizationFlowType {
   interactive
   device_code
 }
 
-model OAuthAuthorizationRequest {
+model OAuthAuthorizationFlow {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
-  type   OAuthAuthorizationRequestType
-  status OAuthAuthorizationRequestStatus
+  type   OAuthAuthorizationFlowType
+  status OAuthAuthorizationFlowStatus
 
-  urlToken String @unique
-
-  code   String   @unique
   scopes String[]
 
-  // Device code flow
-  deviceCode String?   @unique
-  userCode   String?   @unique
   deniedAt   DateTime?
   lastPollAt DateTime?
-  clientIp   String?
 
-  // Interactive flow 
-  state       String?
+  clientIp    String?
   redirectUri String?
 
-  userOid BigInt?
-  user    User?   @relation(fields: [userOid], references: [oid], onDelete: Cascade)
+  userOid BigInt
+  user    User   @relation(fields: [userOid], references: [oid], onDelete: Cascade)
 
-  organizationOid BigInt?
-  organization    Organization? @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
 
-  codeChallengeMethod OAuthAuthorizationRequestChallengeMethod
+  codeChallengeMethod OAuthAuthorizationFlowChallengeMethod
   codeChallenge       String?
 
   oauthApplicationOid BigInt
   oauthApplication    OAuthApplication @relation(fields: [oauthApplicationOid], references: [oid], onDelete: Cascade)
 
-  oauthAuthorizationOid BigInt?
-  oauthAuthorization    OAuthAuthorization? @relation(fields: [oauthAuthorizationOid], references: [oid], onDelete: Cascade)
+  oauthAuthorizationOid BigInt
+  oauthAuthorization    OAuthAuthorization @relation(fields: [oauthAuthorizationOid], references: [oid], onDelete: Cascade)
 
   expiresAt  DateTime
   createdAt  DateTime  @default(now())
   acceptedAt DateTime?
   consumedAt DateTime?
-
-  @@index([oauthApplicationOid])
 }
 
 model OAuthToken {
