@@ -11,8 +11,10 @@ WORKDIR /app
 # Dependencies stage
 FROM base AS deps
 
-# Copy package files
+# Copy workspace files
 COPY package.json bun.lock* ./
+COPY service ./service
+COPY clients ./clients
 
 # Install dependencies (production only)
 RUN bun install --frozen-lockfile --production
@@ -23,15 +25,15 @@ FROM base AS builder
 ARG SENTRY_AUTH_TOKEN
 ENV SENTRY_AUTH_TOKEN=${SENTRY_AUTH_TOKEN}
 
-# Copy package files
+# Copy workspace files
 COPY package.json bun.lock* ./
+COPY service ./service
+COPY clients ./clients
 
 # Install all dependencies (including devDependencies for Prisma generation)
 RUN bun install --frozen-lockfile
 
-# Copy Prisma schema
-COPY prisma ./prisma
-COPY prisma.config.ts ./prisma.config.ts
+WORKDIR /app/service
 
 # Generate Prisma client
 RUN bun prisma generate
@@ -51,10 +53,6 @@ RUN apt-get update && \
     bun prisma migrate diff --from-migrations ./prisma/migrations --to-schema ./prisma/schema.prisma --exit-code && \
     pg_ctlcluster "$PG_VERSION" "$PG_CLUSTER" stop
 
-# Copy source code
-COPY src ./src
-COPY tsconfig.json ./tsconfig.json
-
 # Build bundle
 RUN bun run server:build
 
@@ -67,15 +65,15 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 
 # Copy generated Prisma client from builder
-COPY --from=builder /app/prisma/generated ./prisma/generated
+COPY --from=builder /app/service/prisma/generated ./prisma/generated
 
 # Copy Prisma schema (needed for db push)
-COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
+COPY --from=builder /app/service/prisma ./prisma
+COPY --from=builder /app/service/prisma.config.ts ./prisma.config.ts
 
 # Copy built bundle
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/service/dist ./dist
+COPY --from=builder /app/service/package.json ./package.json
 
 # Create non-root user for security
 RUN groupadd -r metorial && useradd -r -g metorial metorial && \

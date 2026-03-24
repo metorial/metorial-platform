@@ -18,6 +18,7 @@ WORKDIR /app
 
 COPY /clients/metorial-dashboard ./clients/metorial-dashboard
 COPY /clients/metorial-consumer ./clients/metorial-consumer
+COPY /src/systems/_clients ./src/systems/_clients
 COPY /src/backend ./src/backend
 COPY /src/packages ./src/packages
 

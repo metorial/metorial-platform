@@ -38,6 +38,9 @@ export default defineConfig(({ mode }) => {
   });
 
   return withAliases(config, {
-    '@metorial-mono/signal-client': resolve(__dirname, '../clients/typescript/src/index.ts')
+    '@metorial-mono/signal-client': resolve(
+      __dirname,
+      '../../_clients/signal/src/index.ts'
+    )
   });
 });

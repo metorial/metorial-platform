@@ -6,6 +6,7 @@ WORKDIR /app
 # Copy all package files
 COPY package.json bun.lock* ./
 COPY apps ./apps
+COPY clients ./clients
 COPY packages ./packages
 COPY modules ./modules
 COPY provider-backends ./provider-backends

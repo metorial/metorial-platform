@@ -18,7 +18,7 @@
     "@lowerdeck/shadow-id": "^1.0.7",
     "@lowerdeck/validation": "^1.0.8",
     "@metorial-subspace/connection-utils": "^1.0.0",
-    "@metorial-mono/slates-hub-client": "^1.0.20",
+    "@metorial-mono/slates-hub-client": "^1.0.0",
     "@metorial-subspace/db": "^1.0.0",
     "@metorial-subspace/provider-shuttle": "^1.0.0"
   }
