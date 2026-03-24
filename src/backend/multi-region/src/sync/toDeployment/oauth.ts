@@ -24,6 +24,7 @@ export let syncOAuthAppToDeploymentQueueProcessor = syncOAuthAppToDeploymentQueu
       status: app.status,
       type: app.type,
       accessLevel: app.accessLevel,
+      allowClientSecretlessTokenExchange: app.allowClientSecretlessTokenExchange,
 
       name: app.name,
       description: app.description,

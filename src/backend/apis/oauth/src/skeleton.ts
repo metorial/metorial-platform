@@ -19,6 +19,7 @@ export let createOAuthAppSkeleton = (d: {
         grantType: string;
         code?: string;
         redirectUri?: string;
+        clientSecret?: string;
         codeVerifier?: string;
         deviceCode?: string;
         refreshToken?: string;
@@ -44,6 +45,7 @@ export let createOAuthAppSkeleton = (d: {
             codeChallenge?: string;
             codeChallengeMethod?: 's256' | 'none';
             state?: string;
+            nonce?: string;
             scopes?: string[];
           },
       c: Context
@@ -54,6 +56,26 @@ export let createOAuthAppSkeleton = (d: {
         context: ReturnType<typeof useRequestContext>;
         credentials: ReturnType<typeof getClientCredentials>;
         scopes: string[];
+      },
+      c: Context
+    ) => Promise<Response>;
+
+    openIdConfiguration: (
+      d: { context: ReturnType<typeof useRequestContext> },
+      c: Context
+    ) => Promise<Response>;
+    oauthAuthorizationServerMetadata: (
+      d: { context: ReturnType<typeof useRequestContext> },
+      c: Context
+    ) => Promise<Response>;
+    jwks: (
+      d: { context: ReturnType<typeof useRequestContext> },
+      c: Context
+    ) => Promise<Response>;
+    userinfo: (
+      d: {
+        context: ReturnType<typeof useRequestContext>;
+        accessToken: string;
       },
       c: Context
     ) => Promise<Response>;
@@ -105,13 +127,7 @@ export let createOAuthAppSkeleton = (d: {
         });
       }
 
-      if (
-        (grantType == 'client_credentials' ||
-          grantType == 'urn:ietf:params:oauth:grant-type:device_code' ||
-          grantType == 'device_code' ||
-          grantType == 'authorization_code') &&
-        !credentials.clientSecret
-      ) {
+      if (grantType == 'client_credentials' && !credentials.clientSecret) {
         throw new OAuthError({
           error: 'invalid_client',
           status: 401,
@@ -126,6 +142,7 @@ export let createOAuthAppSkeleton = (d: {
           grantType,
           code,
           redirectUri,
+          clientSecret: credentials.clientSecret,
           codeVerifier,
           deviceCode,
           refreshToken,
@@ -196,6 +213,7 @@ export let createOAuthAppSkeleton = (d: {
       let codeChallenge = getString(c.req.query('code_challenge'));
       let codeChallengeMethod = getString(c.req.query('code_challenge_method'));
       let state = getString(c.req.query('state'));
+      let nonce = getString(c.req.query('nonce'));
       let scopes = normalizeScopes(c.req.query('scope') || c.req.query('scopes'));
 
       if (!responseType) {
@@ -252,7 +270,42 @@ export let createOAuthAppSkeleton = (d: {
           codeChallenge,
           codeChallengeMethod: codeChallengeMethod === 'S256' ? 's256' : 'none',
           state,
+          nonce,
           scopes
+        },
+        c
+      );
+    })
+    .get('/.well-known/openid-configuration', async c => {
+      let context = useRequestContext(c);
+      return await d.oauth.openIdConfiguration({ context }, c);
+    })
+    .get('/.well-known/oauth-authorization-server', async c => {
+      let context = useRequestContext(c);
+      return await d.oauth.oauthAuthorizationServerMetadata({ context }, c);
+    })
+    .get('/oauth/jwks', async c => {
+      let context = useRequestContext(c);
+      return await d.oauth.jwks({ context }, c);
+    })
+    .get('/oauth/userinfo', async c => {
+      let context = useRequestContext(c);
+      let authorization = c.req.header('authorization');
+      let accessToken = authorization?.startsWith('Bearer ')
+        ? authorization.slice('Bearer '.length)
+        : undefined;
+
+      if (!accessToken) {
+        throw new OAuthError({
+          error: 'invalid_request',
+          errorMessage: 'Missing bearer access token'
+        });
+      }
+
+      return await d.oauth.userinfo(
+        {
+          context,
+          accessToken
         },
         c
       );

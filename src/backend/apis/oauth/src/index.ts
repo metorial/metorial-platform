@@ -1,5 +1,10 @@
 import { getConfig } from '@metorial/config';
-import { oauthAuthorizationService } from '@metorial/module-machine-access';
+import {
+  machineAccessAuthService,
+  type OAuthAuthorizationRequestWithRelations,
+  oauthAuthorizationService,
+  oauthOidcService
+} from '@metorial/module-machine-access';
 import { ensureOptionalClientSecretIsValid } from './impl/credentials';
 import { OAuthError } from './lib/errors';
 import { getExpiresIn } from './lib/expiration';
@@ -54,6 +59,7 @@ export let oauthApi = createOAuthAppSkeleton({
             clientId: credentials.clientId!,
             code,
             redirectUri,
+            clientSecret: credentials.clientSecret,
             codeVerifier
           }
         });
@@ -73,6 +79,7 @@ export let oauthApi = createOAuthAppSkeleton({
           input: {
             grantType,
             clientId: credentials.clientId!,
+            clientSecret: credentials.clientSecret,
             deviceCode
           }
         });
@@ -125,12 +132,28 @@ export let oauthApi = createOAuthAppSkeleton({
         });
       }
 
+      let idToken: string | null = null;
+      if ('oauthAuthorizationRequest' in response) {
+        let oauthAuthorizationRequest =
+          response.oauthAuthorizationRequest as OAuthAuthorizationRequestWithRelations | null;
+        if (
+          oauthAuthorizationRequest &&
+          response.oauthAuthorization.oidcScopes.includes('openid')
+        ) {
+          idToken = await oauthOidcService.createIdToken({
+            oauthToken: response.oauthToken,
+            oauthAuthorizationRequest
+          });
+        }
+      }
+
       return c.json({
         access_token: response.oauthToken.accessToken,
         token_type: 'Bearer',
         expires_in: getExpiresIn(response.oauthToken.accessTokenExpiresAt),
         refresh_token: response.oauthToken.refreshToken ?? undefined,
-        scope: response.oauthAuthorization.scopes.join(' ') || undefined,
+        id_token: idToken ?? undefined,
+        scope: oauthOidcService.getGrantedScopes(response.oauthAuthorization).join(' '),
 
         user: response.oauthAuthorization.user
           ? {
@@ -176,7 +199,13 @@ export let oauthApi = createOAuthAppSkeleton({
         verification_uri_complete: verificationUrl,
         expires_in: getExpiresIn(oauthAuthorizationRequest.expiresAt),
         interval: 5,
-        scope: oauthAuthorizationRequest.scopes.join(' ') || undefined
+        scope:
+          [
+            ...new Set([
+              ...oauthAuthorizationRequest.scopes,
+              ...oauthAuthorizationRequest.oidcScopes
+            ])
+          ].join(' ') || undefined
       });
     },
 
@@ -196,6 +225,7 @@ export let oauthApi = createOAuthAppSkeleton({
             redirectUri: d.redirectUri,
             scopes: d.scopes ?? [],
             state: getString(d.state),
+            nonce: getString(d.nonce),
             codeChallengeMethod: d.codeChallengeMethod,
             codeChallenge: d.codeChallenge
           }
@@ -205,6 +235,35 @@ export let oauthApi = createOAuthAppSkeleton({
       verificationUrl.searchParams.set('token', oauthAuthorizationRequest.urlToken);
 
       return c.redirect(verificationUrl, 302);
+    },
+
+    openIdConfiguration: async ({}, c) => {
+      return c.json(await oauthOidcService.getOpenIdConfiguration());
+    },
+
+    oauthAuthorizationServerMetadata: async ({}, c) => {
+      return c.json(await oauthOidcService.getOAuthAuthorizationServerMetadata());
+    },
+
+    jwks: async ({}, c) => {
+      return c.json(await oauthOidcService.getPublicJwks());
+    },
+
+    userinfo: async ({ context, accessToken }, c) => {
+      let auth = await machineAccessAuthService.authenticateWithMachineAccessToken({
+        token: accessToken,
+        context
+      });
+
+      if (auth.type != 'oauth_token') {
+        throw new OAuthError({
+          error: 'invalid_token',
+          status: 401,
+          errorMessage: 'Invalid OAuth access token'
+        });
+      }
+
+      return c.json(oauthOidcService.buildUserInfoClaims(auth.oauthToken.oauthAuthorization));
     }
   },
 
@@ -235,7 +294,7 @@ export let oauthApi = createOAuthAppSkeleton({
         access_token: response.oauthToken.accessToken,
         expires_in: getExpiresIn(response.oauthToken.accessTokenExpiresAt),
         refresh_token: response.oauthToken.refreshToken ?? undefined,
-        scope: response.oauthAuthorization.scopes,
+        scope: oauthOidcService.getGrantedScopes(response.oauthAuthorization),
         client_id: response.oauthAuthorization.oauthApplication.clientId,
 
         user: response.oauthAuthorization.user

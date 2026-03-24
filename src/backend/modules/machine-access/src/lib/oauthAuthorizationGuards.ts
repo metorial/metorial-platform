@@ -18,7 +18,9 @@ export let ensureScopesAllowed = (d: {
   requestedScopes?: string[] | null;
 }) => {
   let scopes = normalizeScopes(
-    d.requestedScopes?.length ? d.requestedScopes : d.allowedScopes
+    d.requestedScopes === undefined || d.requestedScopes === null
+      ? d.allowedScopes
+      : d.requestedScopes
   );
 
   if (!scopes.every(scope => d.allowedScopes.includes(scope))) {
@@ -32,13 +34,11 @@ export let ensureScopesAllowed = (d: {
   return scopes;
 };
 
-export let ensureAuthorizationRequestPending = (
-  oauthAuthorizationRequest: {
-    status: 'pending' | 'accepted' | 'denied' | 'consumed';
-    expiresAt: Date;
-    oauthApplication: OAuthApplication;
-  }
-) => {
+export let ensureAuthorizationRequestPending = (oauthAuthorizationRequest: {
+  status: 'pending' | 'accepted' | 'denied' | 'consumed';
+  expiresAt: Date;
+  oauthApplication: OAuthApplication;
+}) => {
   if (oauthAuthorizationRequest.oauthApplication.status != 'active') {
     throw new ServiceError(
       forbiddenError({

@@ -49,6 +49,7 @@ class OAuthGlobalRepository {
     oauthApplicationId: string;
     type: 'interactive' | 'device_code';
     scopes: string[];
+    oidcScopes?: string[];
     urlToken: string;
     code: string;
     deviceCode?: string | null;
@@ -56,6 +57,7 @@ class OAuthGlobalRepository {
     clientIp?: string | null;
     state?: string | null;
     redirectUri?: string | null;
+    nonce?: string | null;
     codeChallengeMethod: 'none' | 's256';
     codeChallenge?: string | null;
     expiresAt: Date;
@@ -66,6 +68,7 @@ class OAuthGlobalRepository {
         type: d.type,
         status: 'pending',
         scopes: d.scopes,
+        oidcScopes: d.oidcScopes ?? [],
         urlToken: d.urlToken,
         code: d.code,
         deviceCode: d.deviceCode ?? null,
@@ -73,6 +76,7 @@ class OAuthGlobalRepository {
         clientIp: d.clientIp ?? null,
         state: d.state ?? null,
         redirectUri: d.redirectUri ?? null,
+        nonce: d.nonce ?? null,
         codeChallengeMethod: d.codeChallengeMethod,
         codeChallenge: d.codeChallenge ?? null,
         expiresAt: d.expiresAt,
@@ -219,6 +223,15 @@ class OAuthGlobalRepository {
     return await globalDB.oAuthToken.findFirst({
       where: {
         refreshToken: d.refreshToken
+      },
+      include: oauthTokenInclude
+    });
+  }
+
+  async getOAuthTokenByAccessToken(d: { accessToken: string }) {
+    return await globalDB.oAuthToken.findFirst({
+      where: {
+        accessToken: d.accessToken
       },
       include: oauthTokenInclude
     });

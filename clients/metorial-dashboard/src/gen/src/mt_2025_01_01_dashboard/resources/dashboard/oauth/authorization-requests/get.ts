@@ -16,6 +16,7 @@ export type DashboardOauthAuthorizationRequestsGetOutput = {
     status: 'active' | 'archived';
     type: 'user_facing' | 'cli_auth' | 'server_side';
     accessLevel: 'organization' | 'global';
+    allowClientSecretlessTokenExchange: boolean;
     name: string;
     description: string | null;
     scopes: { identifier: string; name: string; description: string }[];
@@ -67,6 +68,10 @@ export let mapDashboardOauthAuthorizationRequestsGetOutput =
         status: mtMap.objectField('status', mtMap.passthrough()),
         type: mtMap.objectField('type', mtMap.passthrough()),
         accessLevel: mtMap.objectField('access_level', mtMap.passthrough()),
+        allowClientSecretlessTokenExchange: mtMap.objectField(
+          'allow_client_secretless_token_exchange',
+          mtMap.passthrough()
+        ),
         name: mtMap.objectField('name', mtMap.passthrough()),
         description: mtMap.objectField('description', mtMap.passthrough()),
         scopes: mtMap.objectField(

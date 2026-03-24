@@ -29,7 +29,8 @@ model OAuthApplication {
   termsOfServiceUrl String?
   redirectUris      String[]
 
-  scopes String[]
+  scopes                             String[]
+  allowClientSecretlessTokenExchange Boolean  @default(false)
 
   clientId String @unique
 
@@ -86,8 +87,9 @@ model OAuthAuthorizationRequest {
 
   urlToken String @unique
 
-  code   String   @unique
-  scopes String[]
+  code       String   @unique
+  scopes     String[]
+  oidcScopes String[] @default([])
 
   // Device code flow
   deviceCode String? @unique
@@ -100,6 +102,7 @@ model OAuthAuthorizationRequest {
   // Interactive flow 
   state       String?
   redirectUri String?
+  nonce       String?
 
   codeChallengeMethod OAuthAuthorizationRequestChallengeMethod
   codeChallenge       String?

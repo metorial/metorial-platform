@@ -28,6 +28,7 @@ let oauthTokenInclude = {
       oauthApplication: true,
       oauthInstallation: true,
       organizationMember: true,
+      user: true,
       machineAccess: {
         include: machineAccessInclude
       }

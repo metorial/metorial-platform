@@ -31,6 +31,7 @@ model OAuthApplication {
   redirectUris      String[]
 
   scopes String[]
+  allowClientSecretlessTokenExchange Boolean @default(false)
 
   clientId String @unique
 
@@ -85,6 +86,7 @@ model OAuthInstallation {
   status OAuthInstallationStatus
 
   scopes String[]
+  oidcScopes String[] @default([])
 
   oauthApplicationOid BigInt
   oauthApplication    OAuthApplication @relation(fields: [oauthApplicationOid], references: [oid], onDelete: Cascade)
@@ -129,6 +131,7 @@ model OAuthAuthorization {
   type   OAuthAuthorizationType
 
   scopes String[]
+  oidcScopes String[] @default([])
 
   oauthInstallationOid BigInt
   oauthInstallation    OAuthInstallation @relation(fields: [oauthInstallationOid], references: [oid], onDelete: Cascade)
@@ -190,12 +193,14 @@ model OAuthAuthorizationFlow {
   status OAuthAuthorizationFlowStatus
 
   scopes String[]
+  oidcScopes String[] @default([])
 
   deniedAt   DateTime?
   lastPollAt DateTime?
 
   clientIp    String?
   redirectUri String?
+  nonce       String?
 
   userOid BigInt
   user    User   @relation(fields: [userOid], references: [oid], onDelete: Cascade)

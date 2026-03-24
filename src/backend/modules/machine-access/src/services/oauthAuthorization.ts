@@ -48,6 +48,7 @@ import {
 } from '../lib/oauthAuthorizationTokens';
 import { validateOAuthScopes } from '../lib/oauthScopeValidation';
 import { urlsMatch, validateRedirectUri } from '../lib/oauthUrls';
+import { splitOAuthAndOidcScopes } from '../lib/oidc';
 import { cliDeviceService } from './cliDevice';
 import { machineAccessInclude } from './machineAccessAuth';
 import { oauthApplicationService } from './oauthApplication';
@@ -246,11 +247,13 @@ class OAuthAuthorizationService {
           clientId: string;
           code: string;
           redirectUri: string;
+          clientSecret?: string;
           codeVerifier?: string;
         }
       | {
           grantType: 'urn:ietf:params:oauth:grant-type:device_code' | 'device_code';
           clientId: string;
+          clientSecret?: string;
           deviceCode: string;
         }
       | {
@@ -306,6 +309,7 @@ class OAuthAuthorizationService {
     clientId: string;
     code: string;
     redirectUri: string;
+    clientSecret?: string;
     codeVerifier?: string;
   }) {
     let globalRequest = await oauthGlobalRepository.getOAuthAuthorizationRequestByCode({
@@ -407,10 +411,25 @@ class OAuthAuthorizationService {
     let oauthAuthorization = oauthAuthorizationFlow.oauthAuthorization;
     ensureAuthorizationUsable(oauthAuthorization);
 
+    if (
+      !d.clientSecret &&
+      !oauthAuthorizationRequest.oauthApplication.allowClientSecretlessTokenExchange
+    ) {
+      throw new ServiceError(
+        unauthorizedError({
+          message: 'A client secret is required for this oauth client',
+          oauth: {
+            error: 'invalid_client',
+            errorMessage: 'A client secret is required for this oauth client'
+          }
+        })
+      );
+    }
+
     return await withTransaction(async db => {
       let oauthToken = await this.issueOAuthToken({
         oauthAuthorization,
-        withRefreshToken: true
+        withRefreshToken: !!d.clientSecret
       });
 
       await db.oAuthAuthorizationFlow.update({
@@ -425,12 +444,17 @@ class OAuthAuthorizationService {
         oauthToken,
         oauthAuthorization,
         oauthInstallation: oauthAuthorization.oauthInstallation,
-        oauthApplication: oauthAuthorization.oauthApplication
+        oauthApplication: oauthAuthorization.oauthApplication,
+        oauthAuthorizationRequest
       };
     });
   }
 
-  private async exchangeDeviceCodeToken(d: { clientId: string; deviceCode: string }) {
+  private async exchangeDeviceCodeToken(d: {
+    clientId: string;
+    clientSecret?: string;
+    deviceCode: string;
+  }) {
     let res = await this.checkDeviceCodeAuthorizationRequest(d);
 
     if (res.status == 'pending') {
@@ -496,10 +520,25 @@ class OAuthAuthorizationService {
       );
     }
 
+    if (
+      !d.clientSecret &&
+      !res.oauthAuthorizationRequest.oauthApplication.allowClientSecretlessTokenExchange
+    ) {
+      throw new ServiceError(
+        unauthorizedError({
+          message: 'A client secret is required for this oauth client',
+          oauth: {
+            error: 'invalid_client',
+            errorMessage: 'A client secret is required for this oauth client'
+          }
+        })
+      );
+    }
+
     return await withTransaction(async db => {
       let oauthToken = await this.issueOAuthToken({
         oauthAuthorization,
-        withRefreshToken: true
+        withRefreshToken: !!d.clientSecret
       });
 
       await db.oAuthAuthorizationFlow.update({
@@ -514,7 +553,8 @@ class OAuthAuthorizationService {
         oauthToken,
         oauthAuthorization,
         oauthInstallation: oauthAuthorization.oauthInstallation,
-        oauthApplication: oauthAuthorization.oauthApplication
+        oauthApplication: oauthAuthorization.oauthApplication,
+        oauthAuthorizationRequest: res.oauthAuthorizationRequest
       };
     });
   }
@@ -870,6 +910,7 @@ class OAuthAuthorizationService {
           scopes: string[];
           redirectUri: string;
           state?: string;
+          nonce?: string;
           codeChallengeMethod?: OAuthAuthorizationFlowChallengeMethod;
           codeChallenge?: string;
         }
@@ -891,10 +932,10 @@ class OAuthAuthorizationService {
       allowCliAuth: d.input.type == 'device_code' ? d.input.allowCliAuth : false
     });
 
-    let requestedScopes = validateOAuthScopes(d.input.scopes);
+    let requestedScopes = splitOAuthAndOidcScopes(d.input.scopes);
     let scopes = ensureScopesAllowed({
       allowedScopes: oauthApplication.scopes,
-      requestedScopes
+      requestedScopes: requestedScopes.accessScopes
     });
 
     if (d.input.type == 'interactive') {
@@ -909,6 +950,7 @@ class OAuthAuthorizationService {
       oauthApplicationId: oauthApplication.id,
       type: d.input.type,
       scopes,
+      oidcScopes: requestedScopes.oidcScopes,
       urlToken: generateCustomId('mtout_', 50),
       code: generateCustomId('metorial_oauth_token', 50),
       deviceCode:
@@ -917,6 +959,7 @@ class OAuthAuthorizationService {
       clientIp: d.input.type == 'device_code' ? d.input.clientIp : d.context.ip,
       state: d.input.type == 'interactive' ? d.input.state : null,
       redirectUri: d.input.type == 'interactive' ? d.input.redirectUri : null,
+      nonce: d.input.type == 'interactive' ? d.input.nonce : null,
       codeChallengeMethod:
         d.input.type == 'interactive' ? (d.input.codeChallengeMethod ?? 'none') : 'none',
       codeChallenge: d.input.type == 'interactive' ? d.input.codeChallenge : null,
@@ -1023,6 +1066,7 @@ class OAuthAuthorizationService {
           member,
           user: d.user,
           scopes: d.oauthAuthorizationRequest.scopes,
+          oidcScopes: d.oauthAuthorizationRequest.oidcScopes,
           requestingIp: d.oauthAuthorizationRequest.clientIp,
           acceptingIp: d.context.ip,
           context: d.context
@@ -1049,8 +1093,10 @@ class OAuthAuthorizationService {
           type: d.oauthAuthorizationRequest.type,
           status: 'accepted',
           scopes: d.oauthAuthorizationRequest.scopes,
+          oidcScopes: d.oauthAuthorizationRequest.oidcScopes,
           clientIp: d.oauthAuthorizationRequest.clientIp,
           redirectUri: d.oauthAuthorizationRequest.redirectUri,
+          nonce: d.oauthAuthorizationRequest.nonce,
           userOid: d.user.oid,
           organizationOid: organization.oid,
           codeChallengeMethod: d.oauthAuthorizationRequest.codeChallengeMethod,
@@ -1063,8 +1109,10 @@ class OAuthAuthorizationService {
         update: {
           status: 'accepted',
           scopes: d.oauthAuthorizationRequest.scopes,
+          oidcScopes: d.oauthAuthorizationRequest.oidcScopes,
           clientIp: d.oauthAuthorizationRequest.clientIp,
           redirectUri: d.oauthAuthorizationRequest.redirectUri,
+          nonce: d.oauthAuthorizationRequest.nonce,
           userOid: d.user.oid,
           organizationOid: organization.oid,
           codeChallengeMethod: d.oauthAuthorizationRequest.codeChallengeMethod,

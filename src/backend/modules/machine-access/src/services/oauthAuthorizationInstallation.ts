@@ -76,7 +76,7 @@ class OAuthAuthorizationInstallationService {
       };
 
       if (existing) {
-        let needsUpdate = matchesUpdate(existing, inner) || !existing.appActorOid;
+        let needsUpdate = !matchesUpdate(existing, inner) || !existing.appActorOid;
         if (!needsUpdate) return existing;
       }
 
@@ -177,6 +177,7 @@ class OAuthAuthorizationInstallationService {
     member: OrganizationMember & { actor: OrganizationActor; user: User };
     user: User;
     scopes: string[];
+    oidcScopes?: string[];
     requestingIp?: string | null;
     acceptingIp?: string | null;
     context: Context;
@@ -215,7 +216,7 @@ class OAuthAuthorizationInstallationService {
       } else {
         let name = `OAUTH USER ${d.oauthApplication.name}`;
 
-        let needsUpdate = matchesUpdate(machineAccess, {
+        let needsUpdate = !matchesUpdate(machineAccess, {
           hasCustomScopes: true,
           scopes: d.scopes,
           name
@@ -241,6 +242,7 @@ class OAuthAuthorizationInstallationService {
       let inner = {
         status: 'active' as const,
         scopes: d.scopes,
+        oidcScopes: d.oidcScopes ?? [],
         oauthInstallationOid: d.oauthInstallation.oid,
         organizationOid: d.organization.oid,
         userOid: d.user.oid,
@@ -253,7 +255,7 @@ class OAuthAuthorizationInstallationService {
         oauthApplicationOid: d.oauthApplication.oid
       };
 
-      let needsUpdate = !oauthAuthorization || matchesUpdate(oauthAuthorization, inner);
+      let needsUpdate = !oauthAuthorization || !matchesUpdate(oauthAuthorization, inner);
       if (!needsUpdate && oauthAuthorization) return oauthAuthorization;
 
       if (oauthAuthorization) {

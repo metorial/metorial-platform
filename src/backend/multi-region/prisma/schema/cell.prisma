@@ -14,4 +14,6 @@ model Cell {
   oauthAuthorizationRequestsCreated OAuthAuthorizationRequest[] @relation("createdBy")
   oauthAuthorizationRequestsClaimed OAuthAuthorizationRequest[] @relation("claimedBy")
   oauthTokens                       OAuthToken[]
+  oauthJwks                         OAuthJwk[]
+  globalLeases                      GlobalLease[]
 }

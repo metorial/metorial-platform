@@ -181,6 +181,7 @@ class OAuthApplicationService {
     input: {
       type: 'user_facing' | 'server_side';
       accessLevel: OAuthAuthorizationAccessLevel;
+      allowClientSecretlessTokenExchange?: boolean;
       name: string;
       description?: string;
       websiteUrl?: string;
@@ -231,6 +232,8 @@ class OAuthApplicationService {
           status: 'active',
           type: d.input.type,
           accessLevel: d.input.accessLevel,
+          allowClientSecretlessTokenExchange:
+            d.input.allowClientSecretlessTokenExchange ?? false,
           name: d.input.name,
           description: d.input.description,
           websiteUrl: d.input.websiteUrl,
@@ -289,6 +292,7 @@ class OAuthApplicationService {
     context: Context;
     input: {
       accessLevel?: OAuthAuthorizationAccessLevel;
+      allowClientSecretlessTokenExchange?: boolean;
       name?: string;
       description?: string | null;
       websiteUrl?: string | null;
@@ -325,6 +329,7 @@ class OAuthApplicationService {
         where: { oid: d.oauthApplication.oid },
         data: {
           accessLevel: d.input.accessLevel,
+          allowClientSecretlessTokenExchange: d.input.allowClientSecretlessTokenExchange,
           name: d.input.name,
           description: d.input.description,
           websiteUrl: d.input.websiteUrl,
@@ -577,6 +582,7 @@ class OAuthApplicationService {
       status: 'active' as const,
       type: 'cli_auth' as const,
       accessLevel: 'global' as const,
+      allowClientSecretlessTokenExchange: true,
       name: 'Metorial CLI',
       description: 'Authenticate the Metorial CLI',
       redirectUris: [],
