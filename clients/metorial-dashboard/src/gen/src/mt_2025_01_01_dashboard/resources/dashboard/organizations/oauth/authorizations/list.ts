@@ -44,10 +44,7 @@ export type DashboardOrganizationsOauthAuthorizationsListOutput = {
       object: 'machine_access';
       id: string;
       status: 'active' | 'deleted';
-      type:
-        | 'organization_management'
-        | 'instance_secret'
-        | 'instance_publishable';
+      type: 'organization_management' | 'instance_secret' | 'instance_publishable';
       name: string;
       lastUsedAt: Date;
       createdAt: Date;
@@ -140,30 +137,15 @@ export let mapDashboardOrganizationsOauthAuthorizationsListOutput =
             'scopes',
             mtMap.array(
               mtMap.object({
-                identifier: mtMap.objectField(
-                  'identifier',
-                  mtMap.passthrough()
-                ),
+                identifier: mtMap.objectField('identifier', mtMap.passthrough()),
                 name: mtMap.objectField('name', mtMap.passthrough()),
-                description: mtMap.objectField(
-                  'description',
-                  mtMap.passthrough()
-                )
+                description: mtMap.objectField('description', mtMap.passthrough())
               })
             )
           ),
-          organizationId: mtMap.objectField(
-            'organization_id',
-            mtMap.passthrough()
-          ),
-          oauthApplicationId: mtMap.objectField(
-            'oauth_application_id',
-            mtMap.passthrough()
-          ),
-          oauthInstallationId: mtMap.objectField(
-            'oauth_installation_id',
-            mtMap.passthrough()
-          ),
+          organizationId: mtMap.objectField('organization_id', mtMap.passthrough()),
+          oauthApplicationId: mtMap.objectField('oauth_application_id', mtMap.passthrough()),
+          oauthInstallationId: mtMap.objectField('oauth_installation_id', mtMap.passthrough()),
           userId: mtMap.objectField('user_id', mtMap.passthrough()),
           organizationMemberId: mtMap.objectField(
             'organization_member_id',
@@ -176,41 +158,26 @@ export let mapDashboardOrganizationsOauthAuthorizationsListOutput =
               id: mtMap.objectField('id', mtMap.passthrough()),
               status: mtMap.objectField('status', mtMap.passthrough()),
               type: mtMap.objectField('type', mtMap.passthrough()),
-              accessLevel: mtMap.objectField(
-                'access_level',
-                mtMap.passthrough()
-              ),
+              accessLevel: mtMap.objectField('access_level', mtMap.passthrough()),
               allowClientSecretlessTokenExchange: mtMap.objectField(
-                'allow_client_secretless_token_exchange',
+                'allow_token_exchange_without_client_secret',
                 mtMap.passthrough()
               ),
               name: mtMap.objectField('name', mtMap.passthrough()),
-              description: mtMap.objectField(
-                'description',
-                mtMap.passthrough()
-              ),
+              description: mtMap.objectField('description', mtMap.passthrough()),
               scopes: mtMap.objectField(
                 'scopes',
                 mtMap.array(
                   mtMap.object({
-                    identifier: mtMap.objectField(
-                      'identifier',
-                      mtMap.passthrough()
-                    ),
+                    identifier: mtMap.objectField('identifier', mtMap.passthrough()),
                     name: mtMap.objectField('name', mtMap.passthrough()),
-                    description: mtMap.objectField(
-                      'description',
-                      mtMap.passthrough()
-                    )
+                    description: mtMap.objectField('description', mtMap.passthrough())
                   })
                 )
               ),
               imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
               websiteUrl: mtMap.objectField('website_url', mtMap.passthrough()),
-              privacyPolicyUrl: mtMap.objectField(
-                'privacy_policy_url',
-                mtMap.passthrough()
-              ),
+              privacyPolicyUrl: mtMap.objectField('privacy_policy_url', mtMap.passthrough()),
               termsOfServiceUrl: mtMap.objectField(
                 'terms_of_service_url',
                 mtMap.passthrough()
@@ -233,10 +200,7 @@ export let mapDashboardOrganizationsOauthAuthorizationsListOutput =
                   })
                 )
               ),
-              organizationId: mtMap.objectField(
-                'organization_id',
-                mtMap.passthrough()
-              ),
+              organizationId: mtMap.objectField('organization_id', mtMap.passthrough()),
               createdAt: mtMap.objectField('created_at', mtMap.date()),
               updatedAt: mtMap.objectField('updated_at', mtMap.date())
             })
@@ -259,10 +223,7 @@ export let mapDashboardOrganizationsOauthAuthorizationsListOutput =
                   object: mtMap.objectField('object', mtMap.passthrough()),
                   id: mtMap.objectField('id', mtMap.passthrough()),
                   type: mtMap.objectField('type', mtMap.passthrough()),
-                  organizationId: mtMap.objectField(
-                    'organization_id',
-                    mtMap.passthrough()
-                  ),
+                  organizationId: mtMap.objectField('organization_id', mtMap.passthrough()),
                   name: mtMap.objectField('name', mtMap.passthrough()),
                   email: mtMap.objectField('email', mtMap.passthrough()),
                   imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
@@ -273,14 +234,8 @@ export let mapDashboardOrganizationsOauthAuthorizationsListOutput =
                         id: mtMap.objectField('id', mtMap.passthrough()),
                         name: mtMap.objectField('name', mtMap.passthrough()),
                         slug: mtMap.objectField('slug', mtMap.passthrough()),
-                        assignmentId: mtMap.objectField(
-                          'assignment_id',
-                          mtMap.passthrough()
-                        ),
-                        createdAt: mtMap.objectField(
-                          'created_at',
-                          mtMap.date()
-                        ),
+                        assignmentId: mtMap.objectField('assignment_id', mtMap.passthrough()),
+                        createdAt: mtMap.objectField('created_at', mtMap.date()),
                         updatedAt: mtMap.objectField('updated_at', mtMap.date())
                       })
                     )
@@ -296,10 +251,7 @@ export let mapDashboardOrganizationsOauthAuthorizationsListOutput =
                   id: mtMap.objectField('id', mtMap.passthrough()),
                   slug: mtMap.objectField('slug', mtMap.passthrough()),
                   name: mtMap.objectField('name', mtMap.passthrough()),
-                  organizationId: mtMap.objectField(
-                    'organization_id',
-                    mtMap.passthrough()
-                  ),
+                  organizationId: mtMap.objectField('organization_id', mtMap.passthrough()),
                   type: mtMap.objectField('type', mtMap.passthrough()),
                   createdAt: mtMap.objectField('created_at', mtMap.date()),
                   updatedAt: mtMap.objectField('updated_at', mtMap.date()),
@@ -343,10 +295,7 @@ export let mapDashboardOrganizationsOauthAuthorizationsListOutput =
                   type: mtMap.objectField('type', mtMap.passthrough()),
                   email: mtMap.objectField('email', mtMap.passthrough()),
                   name: mtMap.objectField('name', mtMap.passthrough()),
-                  firstName: mtMap.objectField(
-                    'first_name',
-                    mtMap.passthrough()
-                  ),
+                  firstName: mtMap.objectField('first_name', mtMap.passthrough()),
                   lastName: mtMap.objectField('last_name', mtMap.passthrough()),
                   imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
                   createdAt: mtMap.objectField('created_at', mtMap.date()),
@@ -367,10 +316,7 @@ export let mapDashboardOrganizationsOauthAuthorizationsListOutput =
     pagination: mtMap.objectField(
       'pagination',
       mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
+        hasMoreBefore: mtMap.objectField('has_more_before', mtMap.passthrough()),
         hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
       })
     )
@@ -424,4 +370,3 @@ export let mapDashboardOrganizationsOauthAuthorizationsListQuery = mtMap.union([
     })
   )
 ]);
-

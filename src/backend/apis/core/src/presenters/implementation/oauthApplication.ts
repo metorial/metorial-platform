@@ -14,7 +14,7 @@ export let v1OAuthApplicationPresenter = Presenter.create(oauthApplicationType)
     status: oauthApplication.status,
     type: oauthApplication.type,
     access_level: oauthApplication.accessLevel,
-    allow_client_secretless_token_exchange:
+    allow_token_exchange_without_client_secret:
       oauthApplication.allowClientSecretlessTokenExchange,
 
     name: oauthApplication.name,
@@ -71,8 +71,8 @@ export let v1OAuthApplicationPresenter = Presenter.create(oauthApplicationType)
         description:
           'Whether this OAuth application is organization-scoped or globally installable'
       }),
-      allow_client_secretless_token_exchange: v.boolean({
-        name: 'allow_client_secretless_token_exchange',
+      allow_token_exchange_without_client_secret: v.boolean({
+        name: 'allow_token_exchange_without_client_secret',
         description:
           'Whether authorization_code and device_code token exchanges may omit the client secret'
       }),

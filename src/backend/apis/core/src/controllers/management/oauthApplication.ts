@@ -117,7 +117,7 @@ export let oauthApplicationManagementController = Controller.create(
           access_level: v.enumOf(['organization'], {
             description: 'Whether the app is organization-scoped or globally installable'
           }),
-          allow_client_secretless_token_exchange: v.optional(
+          allow_token_exchange_without_client_secret: v.optional(
             v.boolean({
               description:
                 'Allow authorization_code and device_code token exchanges without a client secret'
@@ -171,7 +171,7 @@ export let oauthApplicationManagementController = Controller.create(
             type: 'user_facing',
             accessLevel: ctx.body.access_level,
             allowClientSecretlessTokenExchange:
-              ctx.body.allow_client_secretless_token_exchange,
+              ctx.body.allow_token_exchange_without_client_secret,
             name: ctx.body.name,
             description: ctx.body.description,
             websiteUrl: ctx.body.website_url,
@@ -202,7 +202,7 @@ export let oauthApplicationManagementController = Controller.create(
               description: 'Whether the app is organization-scoped or globally installable'
             })
           ),
-          allow_client_secretless_token_exchange: v.optional(
+          allow_token_exchange_without_client_secret: v.optional(
             v.boolean({
               description:
                 'Allow authorization_code and device_code token exchanges without a client secret'
@@ -268,7 +268,7 @@ export let oauthApplicationManagementController = Controller.create(
           input: {
             accessLevel: ctx.body.access_level,
             allowClientSecretlessTokenExchange:
-              ctx.body.allow_client_secretless_token_exchange,
+              ctx.body.allow_token_exchange_without_client_secret,
             name: ctx.body.name,
             description: ctx.body.description,
             websiteUrl: ctx.body.website_url,
