@@ -1,10 +1,9 @@
 import type { DashboardInstanceCallbacksNotificationsListOutput } from '@metorial/dashboard-sdk';
-import { renderWithLoader, useForm } from '@metorial/data-hooks';
+import { renderWithLoader } from '@metorial/data-hooks';
 import {
   useCallbackDestination,
   useCallbackDestinations,
   useCallbackNotifications,
-  useCreateCallbackDestination,
   useCurrentInstance
 } from '@metorial/state';
 import {
@@ -19,25 +18,18 @@ import {
   RenderDate,
   Spacer,
   Text,
-  Title,
-  showModal
+  Title
 } from '@metorial/ui';
 import { Box, ID, Table } from '@metorial/ui-product';
 import { RiAddLine, RiMore2Line } from '@remixicon/react';
 import { useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { RouterPanel } from '../routerPanel';
+import { showCallbackDestinationFormModal } from './destinationModal';
 import { CallbackNotificationsTable, getNotificationStatusBadge } from './logs';
-
-let normalizeOptionalString = (value: string | undefined) => value || undefined;
 
 type CallbackNotificationListItem =
   DashboardInstanceCallbacksNotificationsListOutput['items'][number];
-type DestinationFormValues = {
-  name: string;
-  description: string;
-  url: string;
-};
 
 export let CallbackDestinationsList = (p: { callbackId: string | undefined }) => {
   let instance = useCurrentInstance();
@@ -95,74 +87,6 @@ export let CallbackDestinationsList = (p: { callbackId: string | undefined }) =>
     };
   }, [destinations.data?.items, notifications.data?.items]);
 
-  let createDestinationModal = () =>
-    showModal(({ dialogProps, close }) => {
-      let createDestination = useCreateCallbackDestination();
-      let form = useForm<DestinationFormValues>({
-        initialValues: {
-          name: '',
-          description: '',
-          url: ''
-        },
-        onSubmit: async values => {
-          let [result] = await createDestination.mutate({
-            instanceId: instance.data?.id!,
-            name: values.name.trim(),
-            description: normalizeOptionalString(values.description.trim()),
-            url: values.url.trim()
-          });
-
-          if (result) close();
-        },
-        schema: yup =>
-          yup.object({
-            name: yup.string().trim().required('Enter a name'),
-            description: yup.string().defined(),
-            url: yup.string().trim().url('Enter a valid URL').required('Enter a URL')
-          })
-      });
-
-      return (
-        <Dialog.Wrapper {...dialogProps} width={560}>
-          <Dialog.Title>Create Destination</Dialog.Title>
-          <Dialog.Description>
-            Destinations are managed at the instance level and can receive callback
-            notifications.
-          </Dialog.Description>
-
-          <form onSubmit={form.handleSubmit}>
-            <Input label="Name" {...form.getFieldProps('name')} />
-            <form.RenderError field="name" />
-
-            <Spacer height={15} />
-
-            <Input label="Description" {...form.getFieldProps('description')} />
-            <form.RenderError field="description" />
-
-            <Spacer height={15} />
-
-            <Input label="URL" {...form.getFieldProps('url')} />
-            <form.RenderError field="url" />
-
-            <Spacer height={20} />
-
-            <Dialog.Actions>
-              <Button variant="outline" onClick={close}>
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                loading={createDestination.isLoading}
-                success={createDestination.isSuccess}
-              >
-                Create Destination
-              </Button>
-            </Dialog.Actions>
-          </form>
-        </Dialog.Wrapper>
-      );
-    });
-
   return (
     <>
       <Flex gap="30px" justify="space-between" align="center">
@@ -175,7 +99,16 @@ export let CallbackDestinationsList = (p: { callbackId: string | undefined }) =>
           </Text>
         </div>
 
-        <Button iconRight={<RiAddLine />} size="2" onClick={createDestinationModal}>
+        <Button
+          iconRight={<RiAddLine />}
+          size="2"
+          onClick={() =>
+            instance.data &&
+            showCallbackDestinationFormModal({
+              instanceId: instance.data.id
+            })
+          }
+        >
           Create Destination
         </Button>
       </Flex>
