@@ -230,25 +230,25 @@ jobs:
             dockerfile: ./src/systems/slates/apps/hub/Dockerfile
             image_name: metorial/slates-hub
             platforms: linux/amd64
-            prebuild_command: mkdir -p ./src/systems/slates/clients && rm -rf ./src/systems/slates/clients/hub && cp -R ./src/systems/_clients/slates-hub ./src/systems/slates/clients/hub
+            prebuild_command: mkdir -p ./src/systems/slates/clients && rm -rf ./src/systems/slates/clients/hub ./src/systems/slates/clients/signal && cp -R ./src/systems/_clients/slates-hub ./src/systems/slates/clients/hub && cp -R ./src/systems/_clients/signal ./src/systems/slates/clients/signal
           - name: subspace-controller
             docker_context: ./src/systems/subspace
             dockerfile: ./src/systems/subspace/apps/controller/Dockerfile
             image_name: metorial/subspace-controller
             platforms: linux/amd64,linux/arm64
-            prebuild_command: mkdir -p ./src/systems/subspace/clients && rm -rf ./src/systems/subspace/clients/typescript && cp -R ./src/systems/_clients/subspace ./src/systems/subspace/clients/typescript
+            prebuild_command: mkdir -p ./src/systems/subspace/clients && rm -rf ./src/systems/subspace/clients/typescript ./src/systems/subspace/clients/signal ./src/systems/subspace/clients/slates-hub ./src/systems/subspace/clients/shuttle ./src/systems/subspace/clients/origin && cp -R ./src/systems/_clients/subspace ./src/systems/subspace/clients/typescript && cp -R ./src/systems/_clients/signal ./src/systems/subspace/clients/signal && cp -R ./src/systems/_clients/slates-hub ./src/systems/subspace/clients/slates-hub && cp -R ./src/systems/_clients/shuttle ./src/systems/subspace/clients/shuttle && cp -R ./src/systems/_clients/origin ./src/systems/subspace/clients/origin
           - name: subspace-public
             docker_context: ./src/systems/subspace
             dockerfile: ./src/systems/subspace/apps/public/Dockerfile
             image_name: metorial/subspace-public
             platforms: linux/amd64,linux/arm64
-            prebuild_command: mkdir -p ./src/systems/subspace/clients && rm -rf ./src/systems/subspace/clients/typescript && cp -R ./src/systems/_clients/subspace ./src/systems/subspace/clients/typescript && cd ./src/systems/subspace && bun install && cd apps/public && bun run build
+            prebuild_command: mkdir -p ./src/systems/subspace/clients && rm -rf ./src/systems/subspace/clients/typescript ./src/systems/subspace/clients/signal ./src/systems/subspace/clients/slates-hub ./src/systems/subspace/clients/shuttle ./src/systems/subspace/clients/origin && cp -R ./src/systems/_clients/subspace ./src/systems/subspace/clients/typescript && cp -R ./src/systems/_clients/signal ./src/systems/subspace/clients/signal && cp -R ./src/systems/_clients/slates-hub ./src/systems/subspace/clients/slates-hub && cp -R ./src/systems/_clients/shuttle ./src/systems/subspace/clients/shuttle && cp -R ./src/systems/_clients/origin ./src/systems/subspace/clients/origin && cd ./src/systems/subspace && bun install --frozen-lockfile && cd apps/public && bun run build
           - name: subspace-worker
             docker_context: ./src/systems/subspace
             dockerfile: ./src/systems/subspace/apps/worker/Dockerfile
             image_name: metorial/subspace-worker
             platforms: linux/amd64,linux/arm64
-            prebuild_command: mkdir -p ./src/systems/subspace/clients && rm -rf ./src/systems/subspace/clients/typescript && cp -R ./src/systems/_clients/subspace ./src/systems/subspace/clients/typescript
+            prebuild_command: mkdir -p ./src/systems/subspace/clients && rm -rf ./src/systems/subspace/clients/typescript ./src/systems/subspace/clients/signal ./src/systems/subspace/clients/slates-hub ./src/systems/subspace/clients/shuttle ./src/systems/subspace/clients/origin && cp -R ./src/systems/_clients/subspace ./src/systems/subspace/clients/typescript && cp -R ./src/systems/_clients/signal ./src/systems/subspace/clients/signal && cp -R ./src/systems/_clients/slates-hub ./src/systems/subspace/clients/slates-hub && cp -R ./src/systems/_clients/shuttle ./src/systems/subspace/clients/shuttle && cp -R ./src/systems/_clients/origin ./src/systems/subspace/clients/origin
 
     permissions:
       contents: read

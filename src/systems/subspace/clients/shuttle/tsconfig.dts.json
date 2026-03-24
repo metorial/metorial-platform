@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "skipLibCheck": true,
+    "noEmit": true,
+    "skipDefaultLibCheck": true,
+    "types": []
+  },
+  "exclude": [
+    "dist",
+    "node_modules",
+    "../../node_modules/bun-types"
+  ]
+}
