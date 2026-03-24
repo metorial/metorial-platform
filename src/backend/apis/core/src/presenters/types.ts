@@ -46,6 +46,11 @@ import {
   ConsumerProviderCatalogEntry
 } from '@metorial/module-consumer';
 import {
+  SubspaceCallback,
+  SubspaceCallbackDestination,
+  SubspaceCallbackEvent,
+  SubspaceCallbackInstance,
+  SubspaceCallbackNotification,
   SubspaceBucket,
   SubspaceCustomProvider,
   SubspaceCustomProviderCommit,
@@ -288,34 +293,25 @@ export let consumerProviderType = PresentableType.create<{
   consumerProvider: ConsumerProviderCatalogEntry;
 }>()('consumer.provider');
 
-// export let callbackType = PresentableType.create<{
-//   callback: Callback & {
-//     hooks: CallbackHook[];
-//     schedule: CallbackSchedule | null;
-//   };
-// }>()('callback');
+export let callbackType = PresentableType.create<{
+  callback: SubspaceCallback;
+}>()('callback');
 
-// export let callbackEventType = PresentableType.create<{
-//   callbackEvent: CallbackEvent & {
-//     processingAttempts: CallbackEventProcessingAttempt[];
-//   };
-// }>()('callback.event');
+export let callbackEventType = PresentableType.create<{
+  callbackEvent: SubspaceCallbackEvent;
+}>()('callback.event');
 
-// export let callbackDestinationType = PresentableType.create<{
-//   callbackDestination: CallbackDestination & {
-//     callbacks: (CallbackDestinationCallback & {
-//       callback: Callback;
-//     })[];
-//   };
-// }>()('callback.destination');
+export let callbackDestinationType = PresentableType.create<{
+  callbackDestination: SubspaceCallbackDestination;
+}>()('callback.destination');
 
-// export let callbackNotificationType = PresentableType.create<{
-//   callbackNotification: CallbackNotification & {
-//     destination: CallbackDestination;
-//     event: CallbackEvent;
-//     attempts: CallbackNotificationAttempt[];
-//   };
-// }>()('callback.notification');
+export let callbackNotificationType = PresentableType.create<{
+  callbackNotification: SubspaceCallbackNotification;
+}>()('callback.notification');
+
+export let callbackInstanceType = PresentableType.create<{
+  callbackInstance: SubspaceCallbackInstance;
+}>()('callback.instance');
 
 export let portalType = PresentableType.create<{
   portal: Portal & {
