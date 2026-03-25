@@ -1,15 +1,12 @@
-import { forbiddenError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, forbiddenError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { projectService } from '@metorial/module-organization';
+import { projectBrandService, projectService } from '@metorial/module-organization';
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
-import {
-  organizationGroup,
-  organizationManagementPath
-} from '../../middleware/organizationGroup';
-import { projectPresenter } from '../../presenters';
+import { organizationGroup, organizationManagementPath } from '../../middleware/organizationGroup';
+import { projectBrandPresenter, projectPresenter } from '../../presenters';
 
 export let projectManagementController = Controller.create(
   {
@@ -61,6 +58,31 @@ export let projectManagementController = Controller.create(
         });
 
         return projectPresenter.present({ project });
+      }),
+
+    getBranding: organizationGroup
+      .get(
+        organizationManagementPath('projects/:projectId/branding', 'projects.branding.get'),
+        {
+          name: 'Get project branding',
+          description: 'Get branding information for a specific project'
+        }
+      )
+      .use(checkAccess({ possibleScopes: ['organization.project:read'] }))
+      .output(projectBrandPresenter)
+      .do(async ctx => {
+        let project = await projectService.getProjectById({
+          organization: ctx.organization,
+          projectId: ctx.params.projectId,
+          member: ctx.member,
+          actor: ctx.actor
+        });
+
+        let projectBrand = await projectBrandService.getProjectBrand({
+          project
+        });
+
+        return projectBrandPresenter.present({ projectBrand });
       }),
 
     create: organizationGroup
@@ -170,6 +192,58 @@ export let projectManagementController = Controller.create(
         });
 
         return projectPresenter.present({ project });
+      }),
+
+    updateBranding: organizationGroup
+      .patch(
+        organizationManagementPath('projects/:projectId/branding', 'projects.branding.update'),
+        {
+          name: 'Update project branding',
+          description: 'Update branding information for a specific project'
+        }
+      )
+      .use(checkAccess({ possibleScopes: ['organization.project:write'] }))
+      .body(
+        'default',
+        v.object({
+          name: v.optional(v.string()),
+          image_file_id: v.optional(v.nullable(v.string()))
+        })
+      )
+      .output(projectBrandPresenter)
+      .do(async ctx => {
+        if (ctx.member?.role == 'member') {
+          throw new ServiceError(
+            forbiddenError({
+              message: 'You are not permitted to manage organization projects'
+            })
+          );
+        }
+
+        if (ctx.body.name === undefined && ctx.body.image_file_id === undefined) {
+          throw new ServiceError(
+            badRequestError({
+              message: 'At least one branding field must be provided'
+            })
+          );
+        }
+
+        let project = await projectService.getProjectById({
+          organization: ctx.organization,
+          projectId: ctx.params.projectId,
+          member: ctx.member,
+          actor: ctx.actor
+        });
+
+        let projectBrand = await projectBrandService.upsertProjectBrand({
+          project,
+          input: {
+            name: ctx.body.name,
+            imageFileId: ctx.body.image_file_id
+          }
+        });
+
+        return projectBrandPresenter.present({ projectBrand });
       })
   }
 );

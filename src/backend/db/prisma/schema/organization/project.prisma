@@ -23,6 +23,7 @@ model Project {
   updatedAt DateTime  @default(now()) @updatedAt
 
   instances Instance[]
+  brand     ProjectBrand?
   teams     TeamProject[]
   teamRoles TeamProjectRoleAssignment[]
 }

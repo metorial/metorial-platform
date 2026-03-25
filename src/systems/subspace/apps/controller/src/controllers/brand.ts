@@ -19,7 +19,7 @@ export let brandController = app.controller({
     .input(
       v.object({
         name: v.string(),
-        image: v.typedAny<EntityImage>('entity_image'),
+        image: v.nullable(v.typedAny<EntityImage>('entity_image')),
 
         for: v.union([
           v.object({

@@ -38,6 +38,7 @@ import {
   User
 } from '@metorial/db';
 import { Flags } from '@metorial/module-flags';
+import type { ProjectBrandOverride } from '@metorial/module-organization';
 import {
   ConsumerAresApp,
   ConsumerAresSsoConnection,
@@ -134,6 +135,10 @@ export let userType = PresentableType.create<{
 export let projectType = PresentableType.create<{
   project: Project & { organization: Organization };
 }>()('project');
+
+export let projectBrandType = PresentableType.create<{
+  projectBrand: ProjectBrandOverride;
+}>()('projectBrand');
 
 export let instanceType = PresentableType.create<{
   instance: Instance & { project: Project; organization: Organization };

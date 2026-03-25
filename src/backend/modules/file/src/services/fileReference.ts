@@ -131,6 +131,27 @@ class FileReferenceServiceImpl {
     });
   }
 
+  async resolveImageEntityImage<ClearImage extends EntityImage | null>(d: {
+    imageFileId: string | null;
+    clearedImage: ClearImage;
+    owner: ImageFileOwner;
+    purpose: string;
+    entityType: string;
+    entityId: string;
+  }): Promise<EntityImage | ClearImage> {
+    if (d.imageFileId === null) {
+      return d.clearedImage;
+    }
+
+    return await this.createImageEntityImage({
+      fileId: d.imageFileId,
+      owner: d.owner,
+      purpose: d.purpose,
+      entityType: d.entityType,
+      entityId: d.entityId
+    });
+  }
+
   async cleanupImageEntityImage(d: { image: EntityImage | null | undefined }) {
     if (d.image?.type != 'file' || !d.image.fileReferenceId || !d.image.fileLinkId) return;
 

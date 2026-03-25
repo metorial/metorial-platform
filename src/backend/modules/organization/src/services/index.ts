@@ -5,5 +5,6 @@ export * from './organizationInvite';
 export * from './organizationInviteJoin';
 export * from './organizationMember';
 export * from './project';
+export * from './projectBrand';
 export * from './team';
 export * from './teamRole';
