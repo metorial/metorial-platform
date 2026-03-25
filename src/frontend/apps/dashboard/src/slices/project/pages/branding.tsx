@@ -71,14 +71,21 @@ let uploadProjectBrandImage = async (d: { organizationId: string; file: File }) 
     body.set('purpose', 'project_brand_image');
     body.set('organization_id', d.organizationId);
 
-    let response = await fetch(new URL('/files', getConfig().apiUrl), {
-      method: 'POST',
-      body,
-      credentials: 'include',
-      headers: {
-        'metorial-version': '2025-01-01-dashboard'
+    let config = getConfig();
+
+    let response = await fetch(
+      (window as any).getFilesUploadUrl?.() ??
+        config.filesUrl ??
+        new URL('/files', config.apiUrl),
+      {
+        method: 'POST',
+        body,
+        credentials: 'include',
+        headers: {
+          'metorial-version': '2025-01-01-dashboard'
+        }
       }
-    });
+    );
 
     if (!response.ok) {
       throw new Error(await getUploadErrorMessage(response));
