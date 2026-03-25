@@ -57,7 +57,7 @@ export let handleMcpMessages = async (
   for (let message of messages) {
     try {
       if ('id' in message && message.id !== undefined) {
-        let res = await client.request(message as any, z.any());
+        let res = await client.request(message as any, z.any() as any);
         responses.push({
           id: message.id,
           jsonrpc: '2.0',
