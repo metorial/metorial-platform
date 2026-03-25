@@ -160,6 +160,14 @@ type SessionsMessagesGetOutputToolCall struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+// SessionsMessagesGetOutputSenderParticipantData - Participant payload data
+type SessionsMessagesGetOutputSenderParticipantData struct {
+	// Identifier - Participant-specific identifier within the payload
+	Identifier string `json:"identifier"`
+	// Name - Participant-specific display name within the payload
+	Name string `json:"name"`
+}
+
 // SessionsMessagesGetOutputSenderParticipant represents the sessions messages get output sender participant type.
 type SessionsMessagesGetOutputSenderParticipant struct {
 	// Object - String representing the object's type
@@ -173,11 +181,19 @@ type SessionsMessagesGetOutputSenderParticipant struct {
 	// Name - Display name
 	Name string `json:"name"`
 	// Data - Participant payload data
-	Data map[string]any `json:"data"`
+	Data SessionsMessagesGetOutputSenderParticipantData `json:"data"`
 	// ProviderId - Provider ID if associated
 	ProviderId *string `json:"provider_id,omitempty"`
 	// CreatedAt - Timestamp when created
 	CreatedAt time.Time `json:"created_at"`
+}
+
+// SessionsMessagesGetOutputResponderParticipantData - Participant payload data
+type SessionsMessagesGetOutputResponderParticipantData struct {
+	// Identifier - Participant-specific identifier within the payload
+	Identifier string `json:"identifier"`
+	// Name - Participant-specific display name within the payload
+	Name string `json:"name"`
 }
 
 // SessionsMessagesGetOutputResponderParticipant represents the sessions messages get output responder participant type.
@@ -193,7 +209,7 @@ type SessionsMessagesGetOutputResponderParticipant struct {
 	// Name - Display name
 	Name string `json:"name"`
 	// Data - Participant payload data
-	Data map[string]any `json:"data"`
+	Data SessionsMessagesGetOutputResponderParticipantData `json:"data"`
 	// ProviderId - Provider ID if associated
 	ProviderId *string `json:"provider_id,omitempty"`
 	// CreatedAt - Timestamp when created

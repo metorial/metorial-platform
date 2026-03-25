@@ -23,6 +23,14 @@ type SessionsEventsListOutputItemsConnectionMcp struct {
 	Transport string `json:"transport"`
 }
 
+// SessionsEventsListOutputItemsConnectionParticipantData - Participant payload data
+type SessionsEventsListOutputItemsConnectionParticipantData struct {
+	// Identifier - Participant-specific identifier within the payload
+	Identifier string `json:"identifier"`
+	// Name - Participant-specific display name within the payload
+	Name string `json:"name"`
+}
+
 // SessionsEventsListOutputItemsConnectionParticipant represents the sessions events list output items connection participant type.
 type SessionsEventsListOutputItemsConnectionParticipant struct {
 	// Object - String representing the object's type
@@ -36,7 +44,7 @@ type SessionsEventsListOutputItemsConnectionParticipant struct {
 	// Name - Display name
 	Name string `json:"name"`
 	// Data - Participant payload data
-	Data map[string]any `json:"data"`
+	Data SessionsEventsListOutputItemsConnectionParticipantData `json:"data"`
 	// ProviderId - Provider ID if associated
 	ProviderId *string `json:"provider_id,omitempty"`
 	// CreatedAt - Timestamp when created
@@ -69,7 +77,7 @@ type SessionsEventsListOutputItemsConnection struct {
 	// LastMessageAt - Timestamp of last message
 	LastMessageAt time.Time `json:"last_message_at"`
 	// LastActiveAt - Timestamp when last active
-	LastActiveAt time.Time `json:"last_active_at"`
+	LastActiveAt *time.Time `json:"last_active_at,omitempty"`
 }
 
 // SessionsEventsListOutputItemsProviderRun represents the sessions events list output items provider run type.
@@ -251,6 +259,14 @@ type SessionsEventsListOutputItemsMessageToolCall struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+// SessionsEventsListOutputItemsMessageSenderParticipantData - Participant payload data
+type SessionsEventsListOutputItemsMessageSenderParticipantData struct {
+	// Identifier - Participant-specific identifier within the payload
+	Identifier string `json:"identifier"`
+	// Name - Participant-specific display name within the payload
+	Name string `json:"name"`
+}
+
 // SessionsEventsListOutputItemsMessageSenderParticipant represents the sessions events list output items message sender participant type.
 type SessionsEventsListOutputItemsMessageSenderParticipant struct {
 	// Object - String representing the object's type
@@ -264,11 +280,19 @@ type SessionsEventsListOutputItemsMessageSenderParticipant struct {
 	// Name - Display name
 	Name string `json:"name"`
 	// Data - Participant payload data
-	Data map[string]any `json:"data"`
+	Data SessionsEventsListOutputItemsMessageSenderParticipantData `json:"data"`
 	// ProviderId - Provider ID if associated
 	ProviderId *string `json:"provider_id,omitempty"`
 	// CreatedAt - Timestamp when created
 	CreatedAt time.Time `json:"created_at"`
+}
+
+// SessionsEventsListOutputItemsMessageResponderParticipantData - Participant payload data
+type SessionsEventsListOutputItemsMessageResponderParticipantData struct {
+	// Identifier - Participant-specific identifier within the payload
+	Identifier string `json:"identifier"`
+	// Name - Participant-specific display name within the payload
+	Name string `json:"name"`
 }
 
 // SessionsEventsListOutputItemsMessageResponderParticipant represents the sessions events list output items message responder participant type.
@@ -284,7 +308,7 @@ type SessionsEventsListOutputItemsMessageResponderParticipant struct {
 	// Name - Display name
 	Name string `json:"name"`
 	// Data - Participant payload data
-	Data map[string]any `json:"data"`
+	Data SessionsEventsListOutputItemsMessageResponderParticipantData `json:"data"`
 	// ProviderId - Provider ID if associated
 	ProviderId *string `json:"provider_id,omitempty"`
 	// CreatedAt - Timestamp when created

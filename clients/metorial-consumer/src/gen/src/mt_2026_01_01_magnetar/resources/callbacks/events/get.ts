@@ -8,7 +8,7 @@ export type CallbacksEventsGetOutput = {
   triggerKey: string;
   input: Record<string, any>;
   output: Record<string, any>;
-  deliveryStatus: string;
+  deliveryStatus: 'pending' | 'sent' | 'failed' | 'skipped';
   callbackId: string;
   callbackInstanceId: string | null;
   createdAt: Date;

@@ -5,6 +5,30 @@ import (
 	"time"
 )
 
+// CallbacksNotificationsGetOutputError - Last known delivery error payload, if any
+type CallbacksNotificationsGetOutputError struct {
+	// Code - Machine-readable error code
+	Code string `json:"code"`
+	// Message - Human-readable error message
+	Message string `json:"message"`
+}
+
+// CallbacksNotificationsGetOutputEventRequestHeaders represents the callbacks notifications get output event request headers type.
+type CallbacksNotificationsGetOutputEventRequestHeaders struct {
+	// Key - Header key
+	Key string `json:"key"`
+	// Value - Header value
+	Value string `json:"value"`
+}
+
+// CallbacksNotificationsGetOutputEventRequest - Serialized request payload generated for the event
+type CallbacksNotificationsGetOutputEventRequest struct {
+	// Body - Serialized request body generated for the event
+	Body string `json:"body"`
+	// Headers - Serialized request headers generated for the event
+	Headers *[]CallbacksNotificationsGetOutputEventRequestHeaders `json:"headers,omitempty"`
+}
+
 // CallbacksNotificationsGetOutputEvent represents the callbacks notifications get output event type.
 type CallbacksNotificationsGetOutputEvent struct {
 	// Object - String representing the object's type
@@ -18,17 +42,27 @@ type CallbacksNotificationsGetOutputEvent struct {
 	// Status - Aggregate delivery status for the underlying event
 	Status string `json:"status"`
 	// DestinationCount - Total number of destinations targeted by the event
-	DestinationCount float64 `json:"destination_count"`
+	DestinationCount *float64 `json:"destination_count,omitempty"`
 	// SuccessCount - Number of successful deliveries for the event
 	SuccessCount float64 `json:"success_count"`
 	// FailureCount - Number of failed deliveries for the event
 	FailureCount float64 `json:"failure_count"`
 	// Request - Serialized request payload generated for the event
-	Request any `json:"request"`
+	Request *CallbacksNotificationsGetOutputEventRequest `json:"request,omitempty"`
 	// CreatedAt - Timestamp when the event was created
 	CreatedAt time.Time `json:"created_at"`
 	// UpdatedAt - Timestamp when the event was last updated
 	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// CallbacksNotificationsGetOutputDestinationRetry - Retry configuration applied to this destination
+type CallbacksNotificationsGetOutputDestinationRetry struct {
+	// Type - Retry strategy type
+	Type string `json:"type"`
+	// MaxAttempts - Maximum number of delivery attempts
+	MaxAttempts float64 `json:"maxAttempts"`
+	// DelaySeconds - Delay between delivery attempts in seconds
+	DelaySeconds float64 `json:"delaySeconds"`
 }
 
 // CallbacksNotificationsGetOutputDestinationWebhook - Webhook destination details
@@ -56,9 +90,9 @@ type CallbacksNotificationsGetOutputDestination struct {
 	// Type - Delivery destination type
 	Type string `json:"type"`
 	// EventTypes - Event types this destination accepted for the notification
-	EventTypes []string `json:"event_types"`
+	EventTypes *[]string `json:"event_types,omitempty"`
 	// Retry - Retry configuration applied to this destination
-	Retry any `json:"retry"`
+	Retry CallbacksNotificationsGetOutputDestinationRetry `json:"retry"`
 	// Webhook - Webhook destination details
 	Webhook *CallbacksNotificationsGetOutputDestinationWebhook `json:"webhook,omitempty"`
 	// CreatedAt - Timestamp when the destination was created
@@ -76,7 +110,7 @@ type CallbacksNotificationsGetOutput struct {
 	// Status - Current notification delivery status
 	Status string `json:"status"`
 	// Error - Last known delivery error payload, if any
-	Error *any `json:"error,omitempty"`
+	Error *CallbacksNotificationsGetOutputError `json:"error,omitempty"`
 	// AttemptCount - Number of delivery attempts made for this notification
 	AttemptCount float64                                    `json:"attempt_count"`
 	Event        CallbacksNotificationsGetOutputEvent       `json:"event"`

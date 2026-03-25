@@ -5,6 +5,14 @@ import (
 	"time"
 )
 
+// SessionsParticipantsGetOutputData - Participant payload data
+type SessionsParticipantsGetOutputData struct {
+	// Identifier - Participant-specific identifier within the payload
+	Identifier string `json:"identifier"`
+	// Name - Participant-specific display name within the payload
+	Name string `json:"name"`
+}
+
 // SessionsParticipantsGetOutput represents the sessions participants get output type.
 type SessionsParticipantsGetOutput struct {
 	// Object - String representing the object's type
@@ -18,7 +26,7 @@ type SessionsParticipantsGetOutput struct {
 	// Name - Display name
 	Name string `json:"name"`
 	// Data - Participant payload data
-	Data map[string]any `json:"data"`
+	Data SessionsParticipantsGetOutputData `json:"data"`
 	// ProviderId - Provider ID if associated
 	ProviderId *string `json:"provider_id,omitempty"`
 	// CreatedAt - Timestamp when created

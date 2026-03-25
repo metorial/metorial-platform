@@ -5,6 +5,67 @@ import (
 	"time"
 )
 
+// CallbacksInstancesCreateOutputTriggersProviderTriggerInputSchema represents the callbacks instances create output triggers provider trigger input schema type.
+type CallbacksInstancesCreateOutputTriggersProviderTriggerInputSchema struct {
+	Type string `json:"type"`
+	// Schema - JSON Schema defining the trigger payload input shape
+	Schema map[string]any `json:"schema"`
+}
+
+// CallbacksInstancesCreateOutputTriggersProviderTriggerOutputSchema represents the callbacks instances create output triggers provider trigger output schema type.
+type CallbacksInstancesCreateOutputTriggersProviderTriggerOutputSchema struct {
+	Type string `json:"type"`
+	// Schema - JSON Schema defining the trigger delivery output shape
+	Schema map[string]any `json:"schema"`
+}
+
+// CallbacksInstancesCreateOutputTriggersProviderTriggerInvocationAutoRegistration represents the callbacks instances create output triggers provider trigger invocation auto registration type.
+type CallbacksInstancesCreateOutputTriggersProviderTriggerInvocationAutoRegistration struct {
+	// Status - Whether automatic webhook registration is supported
+	Status string `json:"status"`
+}
+
+// CallbacksInstancesCreateOutputTriggersProviderTriggerInvocationAutoUnregistration represents the callbacks instances create output triggers provider trigger invocation auto unregistration type.
+type CallbacksInstancesCreateOutputTriggersProviderTriggerInvocationAutoUnregistration struct {
+	// Status - Whether automatic webhook removal is supported
+	Status string `json:"status"`
+}
+
+// CallbacksInstancesCreateOutputTriggersProviderTriggerInvocation represents one of several possible types.
+// This is a union type - only one set of fields will be populated.
+type CallbacksInstancesCreateOutputTriggersProviderTriggerInvocation struct {
+	Type *string `json:"type,omitempty"`
+	// IntervalSeconds - Polling interval in seconds for polling-based triggers
+	IntervalSeconds    *float64                                                                           `json:"interval_seconds,omitempty"`
+	AutoRegistration   *CallbacksInstancesCreateOutputTriggersProviderTriggerInvocationAutoRegistration   `json:"auto_registration,omitempty"`
+	AutoUnregistration *CallbacksInstancesCreateOutputTriggersProviderTriggerInvocationAutoUnregistration `json:"auto_unregistration,omitempty"`
+}
+
+// CallbacksInstancesCreateOutputTriggersProviderTrigger represents the callbacks instances create output triggers provider trigger type.
+type CallbacksInstancesCreateOutputTriggersProviderTrigger struct {
+	// Object - String representing the object's type
+	Object string `json:"object"`
+	// Id - Unique provider trigger identifier
+	Id string `json:"id"`
+	// Key - Trigger key used when subscribing callbacks
+	Key string `json:"key"`
+	// Name - Display name of the trigger
+	Name string `json:"name"`
+	// Description - Trigger description
+	Description  *string                                                            `json:"description,omitempty"`
+	InputSchema  *CallbacksInstancesCreateOutputTriggersProviderTriggerInputSchema  `json:"input_schema,omitempty"`
+	OutputSchema *CallbacksInstancesCreateOutputTriggersProviderTriggerOutputSchema `json:"output_schema,omitempty"`
+	Invocation   CallbacksInstancesCreateOutputTriggersProviderTriggerInvocation    `json:"invocation"`
+	// ProviderId - Provider ID
+	ProviderId string `json:"provider_id"`
+	// ProviderSpecificationId - Provider specification ID
+	ProviderSpecificationId string `json:"provider_specification_id"`
+	// CreatedAt - Timestamp when created
+	CreatedAt time.Time `json:"created_at"`
+	// UpdatedAt - Timestamp when last updated
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
 // CallbacksInstancesCreateOutputTriggers represents the callbacks instances create output triggers type.
 type CallbacksInstancesCreateOutputTriggers struct {
 	// Object - String representing the object's type
@@ -22,9 +83,8 @@ type CallbacksInstancesCreateOutputTriggers struct {
 	// WebhookUrl - Provider webhook URL registered for this trigger when webhook delivery is used
 	WebhookUrl *string `json:"webhook_url,omitempty"`
 	// IsWebhookRegistered - Whether webhook registration is currently active for this trigger
-	IsWebhookRegistered bool `json:"is_webhook_registered"`
-	// ProviderTrigger - Provider trigger metadata associated with this callback instance trigger
-	ProviderTrigger *any `json:"provider_trigger,omitempty"`
+	IsWebhookRegistered *bool                                                  `json:"is_webhook_registered,omitempty"`
+	ProviderTrigger     *CallbacksInstancesCreateOutputTriggersProviderTrigger `json:"provider_trigger,omitempty"`
 }
 
 // CallbacksInstancesCreateOutput represents the callbacks instances create output type.

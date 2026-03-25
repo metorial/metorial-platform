@@ -48,7 +48,7 @@ export type DashboardInstanceCustomProvidersDeploymentsGetOutput = {
   actor: {
     object: 'custom_provider.actor#preview';
     id: string;
-    type: string;
+    type: 'external' | 'system';
     identifier: string;
     name: string;
     organizationActorId: string | null;

@@ -93,7 +93,7 @@ export type CustomProvidersCommitsListOutput = {
         actor: {
           object: 'custom_provider.actor#preview';
           id: string;
-          type: string;
+          type: 'external' | 'system';
           identifier: string;
           name: string;
           organizationActorId: string | null;
@@ -157,7 +157,7 @@ export type CustomProvidersCommitsListOutput = {
       actor: {
         object: 'custom_provider.actor#preview';
         id: string;
-        type: string;
+        type: 'external' | 'system';
         identifier: string;
         name: string;
         organizationActorId: string | null;
@@ -237,7 +237,7 @@ export type CustomProvidersCommitsListOutput = {
         actor: {
           object: 'custom_provider.actor#preview';
           id: string;
-          type: string;
+          type: 'external' | 'system';
           identifier: string;
           name: string;
           organizationActorId: string | null;
@@ -301,7 +301,7 @@ export type CustomProvidersCommitsListOutput = {
       actor: {
         object: 'custom_provider.actor#preview';
         id: string;
-        type: string;
+        type: 'external' | 'system';
         identifier: string;
         name: string;
         organizationActorId: string | null;
@@ -321,7 +321,7 @@ export type CustomProvidersCommitsListOutput = {
     actor: {
       object: 'custom_provider.actor#preview';
       id: string;
-      type: string;
+      type: 'external' | 'system';
       identifier: string;
       name: string;
       organizationActorId: string | null;

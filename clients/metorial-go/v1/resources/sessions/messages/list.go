@@ -160,6 +160,14 @@ type SessionsMessagesListOutputItemsToolCall struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+// SessionsMessagesListOutputItemsSenderParticipantData - Participant payload data
+type SessionsMessagesListOutputItemsSenderParticipantData struct {
+	// Identifier - Participant-specific identifier within the payload
+	Identifier string `json:"identifier"`
+	// Name - Participant-specific display name within the payload
+	Name string `json:"name"`
+}
+
 // SessionsMessagesListOutputItemsSenderParticipant represents the sessions messages list output items sender participant type.
 type SessionsMessagesListOutputItemsSenderParticipant struct {
 	// Object - String representing the object's type
@@ -173,11 +181,19 @@ type SessionsMessagesListOutputItemsSenderParticipant struct {
 	// Name - Display name
 	Name string `json:"name"`
 	// Data - Participant payload data
-	Data map[string]any `json:"data"`
+	Data SessionsMessagesListOutputItemsSenderParticipantData `json:"data"`
 	// ProviderId - Provider ID if associated
 	ProviderId *string `json:"provider_id,omitempty"`
 	// CreatedAt - Timestamp when created
 	CreatedAt time.Time `json:"created_at"`
+}
+
+// SessionsMessagesListOutputItemsResponderParticipantData - Participant payload data
+type SessionsMessagesListOutputItemsResponderParticipantData struct {
+	// Identifier - Participant-specific identifier within the payload
+	Identifier string `json:"identifier"`
+	// Name - Participant-specific display name within the payload
+	Name string `json:"name"`
 }
 
 // SessionsMessagesListOutputItemsResponderParticipant represents the sessions messages list output items responder participant type.
@@ -193,7 +209,7 @@ type SessionsMessagesListOutputItemsResponderParticipant struct {
 	// Name - Display name
 	Name string `json:"name"`
 	// Data - Participant payload data
-	Data map[string]any `json:"data"`
+	Data SessionsMessagesListOutputItemsResponderParticipantData `json:"data"`
 	// ProviderId - Provider ID if associated
 	ProviderId *string `json:"provider_id,omitempty"`
 	// CreatedAt - Timestamp when created

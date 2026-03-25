@@ -23,6 +23,14 @@ type SessionsConnectionsGetOutputMcp struct {
 	Transport string `json:"transport"`
 }
 
+// SessionsConnectionsGetOutputParticipantData - Participant payload data
+type SessionsConnectionsGetOutputParticipantData struct {
+	// Identifier - Participant-specific identifier within the payload
+	Identifier string `json:"identifier"`
+	// Name - Participant-specific display name within the payload
+	Name string `json:"name"`
+}
+
 // SessionsConnectionsGetOutputParticipant represents the sessions connections get output participant type.
 type SessionsConnectionsGetOutputParticipant struct {
 	// Object - String representing the object's type
@@ -36,7 +44,7 @@ type SessionsConnectionsGetOutputParticipant struct {
 	// Name - Display name
 	Name string `json:"name"`
 	// Data - Participant payload data
-	Data map[string]any `json:"data"`
+	Data SessionsConnectionsGetOutputParticipantData `json:"data"`
 	// ProviderId - Provider ID if associated
 	ProviderId *string `json:"provider_id,omitempty"`
 	// CreatedAt - Timestamp when created
@@ -69,7 +77,7 @@ type SessionsConnectionsGetOutput struct {
 	// LastMessageAt - Timestamp of last message
 	LastMessageAt time.Time `json:"last_message_at"`
 	// LastActiveAt - Timestamp when last active
-	LastActiveAt time.Time `json:"last_active_at"`
+	LastActiveAt *time.Time `json:"last_active_at,omitempty"`
 }
 
 // MapSessionsConnectionsGetOutputFromJSON deserializes JSON data into a SessionsConnectionsGetOutput.
