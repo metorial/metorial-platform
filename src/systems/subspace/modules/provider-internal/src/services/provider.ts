@@ -13,7 +13,10 @@ import {
   withTransaction
 } from '@metorial-subspace/db';
 import { getBackend } from '@metorial-subspace/provider';
-import { ensureProviderType } from '@metorial-subspace/provider-utils';
+import {
+  ensureProviderType,
+  type ProviderVariantEnrichment
+} from '@metorial-subspace/provider-utils';
 import { createTag } from '../lib/createTag';
 import { groupBy } from '../lib/groupBy';
 import { listingCreatedQueue, listingUpdatedQueue } from '../queues/lifecycle/listing';
@@ -22,7 +25,7 @@ import { providerCreatedQueue, providerUpdatedQueue } from '../queues/lifecycle/
 class providerInternalServiceImpl {
   async enrichProviders<T extends Provider & { defaultVariant: ProviderVariant | null }>(d: {
     providers: T[];
-  }) {
+  }): Promise<(T & ProviderVariantEnrichment)[]> {
     let providersByBackend = groupBy(
       d.providers
         .filter(b => b.defaultVariant?.backendOid)
@@ -32,7 +35,7 @@ class providerInternalServiceImpl {
 
     return (
       await Promise.all(
-        providersByBackend.entries().map(async ([_, providers]) => {
+        Array.from(providersByBackend.entries()).map(async ([_, providers]) => {
           let anyProviderVariant = providers[0]?.defaultVariant;
           if (!anyProviderVariant) return [];
 
@@ -51,7 +54,7 @@ class providerInternalServiceImpl {
             return {
               ...provider,
               ...(enrichment ?? {})
-            };
+            } as T & ProviderVariantEnrichment;
           });
         })
       )

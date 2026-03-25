@@ -13,7 +13,10 @@ import {
   withTransaction
 } from '@metorial-subspace/db';
 import { getBackend } from '@metorial-subspace/provider';
-import { ensureProviderType } from '@metorial-subspace/provider-utils';
+import {
+  ensureProviderType,
+  type ProviderVersionEnrichment
+} from '@metorial-subspace/provider-utils';
 import { env } from '../env';
 import { createTag } from '../lib/createTag';
 import { groupBy } from '../lib/groupBy';
@@ -28,12 +31,14 @@ let versionCreateLock = createLock({
 });
 
 class providerVersionInternalServiceImpl {
-  async enrichProviderVersions<T extends ProviderVersion>(d: { providers: T[] }) {
+  async enrichProviderVersions<T extends ProviderVersion>(d: {
+    providers: T[];
+  }): Promise<(T & ProviderVersionEnrichment)[]> {
     let providersByBackend = groupBy(d.providers, 'backendOid');
 
     return (
       await Promise.all(
-        providersByBackend.entries().map(async ([_, providers]) => {
+        Array.from(providersByBackend.entries()).map(async ([_, providers]) => {
           let anyProviderVersion = providers[0];
           if (!anyProviderVersion) return [];
 
@@ -53,7 +58,7 @@ class providerVersionInternalServiceImpl {
             return {
               ...provider,
               ...(enrichment ?? {})
-            };
+            } as T & ProviderVersionEnrichment;
           });
         })
       )

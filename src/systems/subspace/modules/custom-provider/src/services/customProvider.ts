@@ -31,6 +31,7 @@ import {
   resolveScmRepos
 } from '@metorial-subspace/list-utils';
 import { providerInternalService } from '@metorial-subspace/module-provider-internal';
+import type { ProviderVariantEnrichmentFields } from '@metorial-subspace/provider-utils';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
 import { checkTenant } from '@metorial-subspace/module-tenant';
 import { prepareVersion } from '../internal/createVersion';
@@ -70,11 +71,11 @@ class customProviderServiceImpl {
     T extends CustomProvider & {
       provider: (Provider & { defaultVariant: ProviderVariant | null }) | null;
     }
-  >(d: { customProviders: T[] }) {
+  >(d: { customProviders: T[] }): Promise<(T & ProviderVariantEnrichmentFields)[]> {
     let enriched = await providerInternalService.enrichProviders({
       providers: d.customProviders.map(p => p.provider!).filter(Boolean)
     });
-    let enrichedMap = new Map(enriched.map(p => [p.id, p]));
+    let enrichedMap = new Map(enriched.map(provider => [provider.id, provider]));
 
     return d.customProviders.map(customProvider => {
       if (!customProvider.provider) return customProvider;
@@ -89,7 +90,7 @@ class customProviderServiceImpl {
         remoteProtocol: enrichment?.remoteProtocol,
 
         ...customProvider
-      };
+      } as T & ProviderVariantEnrichmentFields;
     });
   }
 

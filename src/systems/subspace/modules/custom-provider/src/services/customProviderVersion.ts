@@ -29,6 +29,7 @@ import {
   resolveProviders
 } from '@metorial-subspace/list-utils';
 import { providerVersionInternalService } from '@metorial-subspace/module-provider-internal';
+import type { ProviderVersionEnrichmentFields } from '@metorial-subspace/provider-utils';
 import { checkTenant } from '@metorial-subspace/module-tenant';
 import { prepareVersion } from '../internal/createVersion';
 import { handleUpcomingCustomProviderQueue } from '../queues/upcoming/handle';
@@ -69,11 +70,11 @@ class customProviderVersionServiceImpl {
     T extends CustomProviderVersion & {
       providerVersion: ProviderVersion | null;
     }
-  >(d: { customProviders: T[] }) {
+  >(d: { customProviders: T[] }): Promise<(T & ProviderVersionEnrichmentFields)[]> {
     let enriched = await providerVersionInternalService.enrichProviderVersions({
       providers: d.customProviders.map(p => p.providerVersion!).filter(Boolean)
     });
-    let enrichedMap = new Map(enriched.map(p => [p.id, p]));
+    let enrichedMap = new Map(enriched.map(providerVersion => [providerVersion.id, providerVersion]));
 
     return d.customProviders.map(customProvider => {
       if (!customProvider.providerVersion) return customProvider;
@@ -89,7 +90,7 @@ class customProviderVersionServiceImpl {
         remoteProtocol: enrichment?.remoteProtocol,
 
         ...customProvider
-      };
+      } as T & ProviderVersionEnrichmentFields;
     });
   }
 
