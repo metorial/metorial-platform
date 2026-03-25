@@ -30,10 +30,10 @@ if (process.env.NODE_ENV === 'production') {
   Bun.serve({
     fetch: async _ =>
       await withTracingSuppressed(async () => {
-        let uptime = Date.now() - startTime;
-        if (uptime > maxUptime) {
-          return new Response('Service Unavailable', { status: 503 });
-        }
+        // let uptime = Date.now() - startTime;
+        // if (uptime > maxUptime) {
+        //   return new Response('Service Unavailable', { status: 503 });
+        // }
 
         try {
           await db.backend.count();
