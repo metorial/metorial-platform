@@ -3,14 +3,7 @@ name: 'Build and Test'
 on:
   workflow_dispatch:
   push:
-    paths:
-      - 'src/**'
   pull_request:
-    paths:
-      - 'src/**'
-    branches:
-      - dev
-      - main
 
 jobs:
   build-and-test-ts:

@@ -6,18 +6,7 @@ on:
     branches:
       - dev
       - main
-    paths:
-      - 'src/systems/shuttle/**'
-      - 'src/systems/_clients/shuttle/**'
-      - '.github/workflows/shuttle.yml'
   pull_request:
-    branches:
-      - dev
-      - main
-    paths:
-      - 'src/systems/shuttle/**'
-      - 'src/systems/_clients/shuttle/**'
-      - '.github/workflows/shuttle.yml'
 
 permissions:
   contents: read

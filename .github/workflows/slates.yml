@@ -6,18 +6,7 @@ on:
     branches:
       - dev
       - main
-    paths:
-      - 'src/systems/slates/**'
-      - 'src/systems/_clients/slates/**'
-      - '.github/workflows/slates.yml'
   pull_request:
-    branches:
-      - dev
-      - main
-    paths:
-      - 'src/systems/slates/**'
-      - 'src/systems/_clients/slates/**'
-      - '.github/workflows/slates.yml'
 
 permissions:
   contents: read

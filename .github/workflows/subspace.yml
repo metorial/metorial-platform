@@ -6,24 +6,7 @@ on:
     branches:
       - dev
       - main
-    paths:
-      - 'src/systems/subspace/**'
-      - 'src/systems/_clients/subspace/**'
-      - 'src/backend/modules/subspace/**'
-      - 'package.json'
-      - 'bun.lock'
-      - '.github/workflows/subspace.yml'
   pull_request:
-    branches:
-      - dev
-      - main
-    paths:
-      - 'src/systems/subspace/**'
-      - 'src/systems/_clients/subspace/**'
-      - 'src/backend/modules/subspace/**'
-      - 'package.json'
-      - 'bun.lock'
-      - '.github/workflows/subspace.yml'
 
 permissions:
   contents: read
