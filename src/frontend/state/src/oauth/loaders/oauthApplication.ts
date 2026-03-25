@@ -16,7 +16,7 @@ export let oauthAppsLoader = createLoader({
     create: (
       i: {
         accessLevel: 'organization';
-        allowClientSecretlessTokenExchange?: boolean;
+        allowTokenExchangeWithoutClientSecret?: boolean;
         name: string;
         description?: string;
         websiteUrl?: string;
@@ -30,7 +30,7 @@ export let oauthAppsLoader = createLoader({
       withAuth(sdk =>
         sdk.oauth.apps.create(organizationId, {
           accessLevel: 'organization',
-          allowClientSecretlessTokenExchange: i.allowClientSecretlessTokenExchange,
+          allowTokenExchangeWithoutClientSecret: i.allowTokenExchangeWithoutClientSecret,
           name: i.name,
           description: i.description,
           websiteUrl: i.websiteUrl,
@@ -63,7 +63,7 @@ export let oauthAppLoader = createLoader({
     update: (
       i: {
         accessLevel?: 'organization';
-        allowClientSecretlessTokenExchange?: boolean;
+        allowTokenExchangeWithoutClientSecret?: boolean;
         name?: string;
         description?: string | null;
         websiteUrl?: string | null;
@@ -77,7 +77,7 @@ export let oauthAppLoader = createLoader({
       withAuth(sdk =>
         sdk.oauth.apps.update(organizationId, oauthApplicationId, {
           accessLevel: i.accessLevel,
-          allowClientSecretlessTokenExchange: i.allowClientSecretlessTokenExchange,
+          allowTokenExchangeWithoutClientSecret: i.allowTokenExchangeWithoutClientSecret,
           name: i.name,
           description: i.description,
           websiteUrl: i.websiteUrl,

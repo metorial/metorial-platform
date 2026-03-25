@@ -82,6 +82,24 @@ export let serviceAccountLoader = createLoader({
           serviceAccountId,
           i.oauthApplicationClientSecretId
         )
+      ),
+
+    assignPolicy: (
+      i: { accessPolicyId: string },
+      { input: { organizationId, serviceAccountId } }
+    ) =>
+      withAuth(sdk =>
+        sdk.serviceAccounts.policies.create(organizationId, serviceAccountId, {
+          accessPolicyId: i.accessPolicyId
+        })
+      ),
+
+    removePolicy: (
+      i: { accessPolicyId: string },
+      { input: { organizationId, serviceAccountId } }
+    ) =>
+      withAuth(sdk =>
+        sdk.serviceAccounts.policies.delete(organizationId, serviceAccountId, i.accessPolicyId)
       )
   }
 });
@@ -99,7 +117,9 @@ export let useServiceAccount = (
     updateMutator: serviceAccount.useMutator('update'),
     deleteMutator: serviceAccount.useMutator('delete'),
     createClientSecretMutator: serviceAccount.useMutator('createClientSecret'),
-    deleteClientSecretMutator: serviceAccount.useMutator('deleteClientSecret')
+    deleteClientSecretMutator: serviceAccount.useMutator('deleteClientSecret'),
+    assignPolicyMutator: serviceAccount.useMutator('assignPolicy'),
+    removePolicyMutator: serviceAccount.useMutator('removePolicy')
   };
 };
 

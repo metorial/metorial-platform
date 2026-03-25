@@ -1,5 +1,7 @@
 import { Context } from '@metorial/context';
 import {
+  AccessPolicy,
+  AccessRole,
   ApiKey,
   Instance,
   MachineAccess,
@@ -18,7 +20,6 @@ import {
   Team,
   TeamMember,
   TeamProject,
-  TeamRole,
   User,
   UserSession
 } from '@metorial/db';
@@ -175,12 +176,19 @@ export interface FabricEvents {
   'organization.team.project.unassigned:before': { organization: Organization, team: Team, project: Project, teamProject: TeamProject; performedBy: OrganizationActor; context?: Context };
   'organization.team.project.unassigned:after': { organization: Organization, team: Team, project: Project, teamProject: TeamProject; performedBy: OrganizationActor; context?: Context };
 
-  'organization.team.role.created:before': { organization: Organization, performedBy: OrganizationActor; context?: Context };
-  'organization.team.role.created:after': { organization: Organization, role: TeamRole, performedBy: OrganizationActor; context?: Context };
-  'organization.team.role.updated:before': { organization: Organization, role: TeamRole, performedBy: OrganizationActor; context?: Context };
-  'organization.team.role.updated:after': { organization: Organization, role: TeamRole, performedBy: OrganizationActor; context?: Context };
-  'organization.team.role.deleted:before': { organization: Organization, role: TeamRole, performedBy: OrganizationActor; context?: Context };
-  'organization.team.role.deleted:after': { organization: Organization, role: TeamRole, performedBy: OrganizationActor; context?: Context };
+  'organization.access_role.created:before': { organization: Organization; performedBy: OrganizationActor; context: Context; input: { name: string; description?: string; scopes?: string[]; isAdmin?: boolean; message?: string; } };
+  'organization.access_role.created:after': { organization: Organization; performedBy: OrganizationActor; context: Context; input: { name: string; description?: string; scopes?: string[]; isAdmin?: boolean; message?: string; }; accessRole: AccessRole };
+  'organization.access_role.updated:before': { organization: Organization; performedBy: OrganizationActor; context: Context; accessRole: AccessRole; input: { name?: string; description?: string | null; scopes?: string[]; message?: string; } };
+  'organization.access_role.updated:after': { organization: Organization; performedBy: OrganizationActor; context: Context; accessRole: AccessRole; input: { name?: string; description?: string | null; scopes?: string[]; message?: string; } };
+  'organization.access_role.deleted:before': { organization: Organization; performedBy: OrganizationActor; context: Context; accessRole: AccessRole };
+  'organization.access_role.deleted:after': { organization: Organization; performedBy: OrganizationActor; context: Context; accessRole: AccessRole };
+
+  'organization.access_policy.created:before': { organization: Organization; performedBy: OrganizationActor; context: Context; input: { name: string; description?: string; document: PrismaJson.PolicyDocument; type?: AccessPolicy['type']; message?: string; } };
+  'organization.access_policy.created:after': { organization: Organization; performedBy: OrganizationActor; context: Context; input: { name: string; description?: string; document: PrismaJson.PolicyDocument; type?: AccessPolicy['type']; message?: string; }; accessPolicy: AccessPolicy };
+  'organization.access_policy.updated:before': { organization: Organization; performedBy: OrganizationActor; context: Context; accessPolicy: AccessPolicy; input: { name?: string; description?: string | null; document?: PrismaJson.PolicyDocument; message?: string; } };
+  'organization.access_policy.updated:after': { organization: Organization; performedBy: OrganizationActor; context: Context; accessPolicy: AccessPolicy; input: { name?: string; description?: string | null; document?: PrismaJson.PolicyDocument; message?: string; } };
+  'organization.access_policy.deleted:before': { organization: Organization; performedBy: OrganizationActor; context: Context; accessPolicy: AccessPolicy };
+  'organization.access_policy.deleted:after': { organization: Organization; performedBy: OrganizationActor; context: Context; accessPolicy: AccessPolicy };
 
   'machine_access.created:before': MachineAccessInput & { context?: Context };
   'machine_access.created:after': MachineAccessInput & { context?: Context, machineAccess: MachineAccess };
