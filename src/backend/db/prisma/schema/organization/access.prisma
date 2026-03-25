@@ -1,0 +1,173 @@
+model AccessRole {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  isAdmin Boolean
+
+  slug String
+
+  name        String
+  description String?
+
+  scopes String[]
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  accessRoleVersions AccessRoleVersion[]
+  accessPolicyRoles  AccessPolicyRole[]
+
+  @@unique([organizationOid, slug])
+}
+
+model AccessRoleVersion {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  index Int
+
+  scopes        String[]
+  scopesAdded   String[]
+  scopesRemoved String[]
+
+  message String?
+
+  accessRoleOid BigInt
+  accessRole    AccessRole @relation(fields: [accessRoleOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}
+
+enum AccessPolicyType {
+  everyone
+  admin
+  custom
+}
+
+model AccessPolicy {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  type AccessPolicyType
+
+  slug String
+
+  name        String
+  description String?
+
+  /// [PolicyDocument]
+  document Json
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @default(now()) @updatedAt
+  accessPolicyRoles       AccessPolicyRole[]
+  accessPolicyProjects    AccessPolicyProject[]
+  accessPolicyInstances   AccessPolicyInstance[]
+  accessPolicyVersions    AccessPolicyVersion[]
+  accessPolicyAssignments AccessPolicyAssignment[]
+
+  @@unique([organizationOid, slug])
+}
+
+model AccessPolicyRole {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  accessPolicyOid BigInt
+  accessPolicy    AccessPolicy @relation(fields: [accessPolicyOid], references: [oid], onDelete: Cascade)
+
+  accessRoleOid BigInt
+  accessRole    AccessRole @relation(fields: [accessRoleOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([accessPolicyOid, accessRoleOid])
+}
+
+model AccessPolicyProject {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  accessPolicyOid BigInt
+  accessPolicy    AccessPolicy @relation(fields: [accessPolicyOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt
+  project    Project @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([accessPolicyOid, projectOid])
+}
+
+model AccessPolicyInstance {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  accessPolicyOid BigInt
+  accessPolicy    AccessPolicy @relation(fields: [accessPolicyOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([accessPolicyOid, instanceOid])
+}
+
+model AccessPolicyVersion {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  index Int
+
+  message String?
+
+  /// [PolicyDocument]
+  document Json
+
+  accessPolicyOid BigInt
+  accessPolicy    AccessPolicy @relation(fields: [accessPolicyOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([accessPolicyOid, index])
+}
+
+enum AccessPolicyAssignmentTarget {
+  team
+  organization_member
+  service_account
+}
+
+model AccessPolicyAssignment {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  accessPolicyOid BigInt
+  accessPolicy    AccessPolicy @relation(fields: [accessPolicyOid], references: [oid], onDelete: Cascade)
+
+  memberOid BigInt?
+  member    OrganizationMember? @relation(fields: [memberOid], references: [oid], onDelete: Cascade)
+
+  teamOid BigInt?
+  team    Team?   @relation(fields: [teamOid], references: [oid], onDelete: Cascade)
+
+  serviceAccountOid BigInt?
+  serviceAccount    ServiceAccount? @relation(fields: [serviceAccountOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([accessPolicyOid, serviceAccountOid])
+  @@unique([accessPolicyOid, memberOid])
+  @@unique([accessPolicyOid, teamOid])
+  @@index([memberOid])
+  @@index([teamOid])
+  @@index([serviceAccountOid])
+}

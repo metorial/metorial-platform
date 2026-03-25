@@ -30,8 +30,8 @@ model OAuthApplication {
   termsOfServiceUrl String?
   redirectUris      String[]
 
-  scopes String[]
-  allowClientSecretlessTokenExchange Boolean @default(false)
+  scopes                             String[]
+  allowClientSecretlessTokenExchange Boolean  @default(false)
 
   clientId String @unique
 
@@ -85,7 +85,7 @@ model OAuthInstallation {
 
   status OAuthInstallationStatus
 
-  scopes String[]
+  scopes     String[]
   oidcScopes String[] @default([])
 
   oauthApplicationOid BigInt
@@ -130,7 +130,7 @@ model OAuthAuthorization {
   status OAuthAuthorizationStatus
   type   OAuthAuthorizationType
 
-  scopes String[]
+  scopes     String[]
   oidcScopes String[] @default([])
 
   oauthInstallationOid BigInt
@@ -192,7 +192,7 @@ model OAuthAuthorizationFlow {
   type   OAuthAuthorizationFlowType
   status OAuthAuthorizationFlowStatus
 
-  scopes String[]
+  scopes     String[]
   oidcScopes String[] @default([])
 
   deniedAt   DateTime?

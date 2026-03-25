@@ -12,15 +12,22 @@ enum OrganizationStatus {
   deleted
 }
 
+enum OrganizationAuthVersion {
+  v1
+  v2
+}
+
 model Organization {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
-  type   OrganizationType
-  status OrganizationStatus
+  type        OrganizationType
+  status      OrganizationStatus
+  authVersion OrganizationAuthVersion @default(v1)
 
-  enforceTeamAccess        Boolean @default(false)
-  canCreateGlobalOauthApps Boolean @default(false)
+  enforceTeamAccess Boolean @default(false)
+
+  ignoreAndDoNotUse_canCreateGlobalOauthApps Boolean @default(false) @map("canCreateGlobalOauthApps")
 
   slug String @unique
   name String
@@ -47,7 +54,6 @@ model Organization {
   uploads                 Upload[]
   accessLimiters          AccessLimiter[]
   team                    Team[]
-  teamRole                TeamRole[]
   accessTagPolicies       AccessTagPolicy[]
   consumerSurfaces        ConsumerSurface[]
   consumerAuthTenants     ConsumerAuthTenant[]
@@ -61,4 +67,6 @@ model Organization {
   cliDevices              CliDevice[]
   serviceAccounts         ServiceAccount[]
   oauthAuthorizationFlows OAuthAuthorizationFlow[]
+  accessRoles             AccessRole[]
+  accessPolicies          AccessPolicy[]
 }

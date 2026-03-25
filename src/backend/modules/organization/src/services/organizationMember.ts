@@ -13,6 +13,7 @@ import {
   withTransaction
 } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
+import { accessPolicyAssignmentService } from './accessPolicyAssignment';
 import { organizationActorService } from './organizationActor';
 
 let include = {
@@ -23,7 +24,12 @@ let include = {
     }
   },
   organization: true,
-  user: true
+  user: true,
+  policies: {
+    include: {
+      accessPolicy: true
+    }
+  }
 };
 
 class OrganizationMemberService {
@@ -90,6 +96,7 @@ class OrganizationMemberService {
             where: { oid: existingMember.oid },
             data: {
               status: 'active',
+              isV2Member: d.organization.authVersion == 'v2',
               role: d.input.role,
               organizationOid: d.organization.oid,
               actorOid: actor.oid,
@@ -101,6 +108,7 @@ class OrganizationMemberService {
             data: {
               id: await ID.generateId('organizationMember'),
               status: 'active',
+              isV2Member: d.organization.authVersion == 'v2',
               role: d.input.role,
               organizationOid: d.organization.oid,
               actorOid: actor.oid,
@@ -114,6 +122,11 @@ class OrganizationMemberService {
         actor,
         member,
         performedBy: d.performedBy.type == 'user' ? actor : d.performedBy.actor
+      });
+
+      await accessPolicyAssignmentService.syncMemberDefaultPolicies({
+        organization: d.organization,
+        member
       });
 
       return member;
@@ -131,6 +144,18 @@ class OrganizationMemberService {
   }) {
     await this.ensureOrganizationMemberActive(d.member);
 
+    if (
+      d.member.role == 'admin' &&
+      d.input.role == 'member' &&
+      d.member.actorOid == d.performedBy.oid
+    ) {
+      throw new ServiceError(
+        forbiddenError({
+          message: 'Admins cannot remove admin rights from themselves'
+        })
+      );
+    }
+
     return withTransaction(async db => {
       await Fabric.fire('organization.member.updated:before', {
         ...d,
@@ -140,6 +165,7 @@ class OrganizationMemberService {
       let member = await db.organizationMember.update({
         where: { oid: d.member.oid },
         data: {
+          isV2Member: d.organization.authVersion == 'v2' ? true : undefined,
           role: d.input.role
         },
         include
@@ -149,6 +175,11 @@ class OrganizationMemberService {
         ...d,
         member,
         performedBy: d.performedBy
+      });
+
+      await accessPolicyAssignmentService.syncMemberDefaultPolicies({
+        organization: d.organization,
+        member
       });
 
       return member;
