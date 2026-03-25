@@ -158,6 +158,7 @@ class ProjectBrandService {
     let { tenant, environmentId } = await getTenantForSubspace(instance);
 
     await subspaceBrandService.upsert({
+      instance,
       name: d.brand.name,
       image: d.brand.image,
       for: {

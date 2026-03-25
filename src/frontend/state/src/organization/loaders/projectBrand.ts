@@ -1,5 +1,5 @@
 import type {
-  DashboardOrganizationsProjectsUpdateBrandingBody
+  DashboardOrganizationsProjectsBrandingUpdateBody
 } from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
 import { withAuth } from '../../user';
@@ -7,14 +7,14 @@ import { withAuth } from '../../user';
 export let projectBrandLoader = createLoader({
   name: 'projectBrand',
   fetch: async (i: { organizationId: string; projectId: string }) =>
-    await withAuth(sdk => sdk.projects.getBranding(i.organizationId, i.projectId)),
+    await withAuth(sdk => sdk.projects.branding.get(i.organizationId, i.projectId)),
   mutators: {
     update: async (
-      i: DashboardOrganizationsProjectsUpdateBrandingBody,
+      i: DashboardOrganizationsProjectsBrandingUpdateBody,
       { input }
     ) =>
       await withAuth(sdk =>
-        sdk.projects.updateBranding(input.organizationId, input.projectId, {
+        sdk.projects.branding.update(input.organizationId, input.projectId, {
           name: i.name,
           imageFileId: i.imageFileId
         })
