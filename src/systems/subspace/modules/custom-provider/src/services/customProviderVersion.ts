@@ -28,6 +28,7 @@ import {
   resolveCustomProviders,
   resolveProviders
 } from '@metorial-subspace/list-utils';
+import type { ProviderVersionEnrichment } from '@metorial-subspace/provider-utils';
 import { providerVersionInternalService } from '@metorial-subspace/module-provider-internal';
 import { checkTenant } from '@metorial-subspace/module-tenant';
 import { prepareVersion } from '../internal/createVersion';
@@ -73,7 +74,9 @@ class customProviderVersionServiceImpl {
     let enriched = await providerVersionInternalService.enrichProviderVersions({
       providers: d.customProviders.map(p => p.providerVersion!).filter(Boolean)
     });
-    let enrichedMap = new Map(enriched.map(p => [p.id, p]));
+    let enrichedMap = new Map<string, ProviderVersion & Partial<ProviderVersionEnrichment>>(
+      enriched.map((p: ProviderVersion & Partial<ProviderVersionEnrichment>) => [p.id, p])
+    );
 
     return d.customProviders.map(customProvider => {
       if (!customProvider.providerVersion) return customProvider;

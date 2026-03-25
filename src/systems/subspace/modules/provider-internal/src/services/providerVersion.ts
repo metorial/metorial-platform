@@ -13,7 +13,10 @@ import {
   withTransaction
 } from '@metorial-subspace/db';
 import { getBackend } from '@metorial-subspace/provider';
-import { ensureProviderType } from '@metorial-subspace/provider-utils';
+import {
+  ensureProviderType,
+  type ProviderVersionEnrichment
+} from '@metorial-subspace/provider-utils';
 import { env } from '../env';
 import { createTag } from '../lib/createTag';
 import { groupBy } from '../lib/groupBy';
@@ -33,7 +36,7 @@ class providerVersionInternalServiceImpl {
 
     return (
       await Promise.all(
-        providersByBackend.entries().map(async ([_, providers]) => {
+        Array.from(providersByBackend.entries()).map(async ([_, providers]) => {
           let anyProviderVersion = providers[0];
           if (!anyProviderVersion) return [];
 
@@ -42,12 +45,11 @@ class providerVersionInternalServiceImpl {
           let enriched = await backend.enrichment.enrichProviderVersions({
             providerVersionIds: providers.map(p => p.id)
           });
-          let enrichedMap = new Map<
-            string,
-            (typeof enriched.providers)[number]
-          >(enriched.providers.map(p => [p.providerVersionId, p]));
+          let enrichedMap = new Map<string, ProviderVersionEnrichment>(
+            enriched.providers.map(p => [p.providerVersionId, p])
+          );
 
-          return providers.map(provider => {
+          return providers.map((provider): T & Partial<ProviderVersionEnrichment> => {
             let enrichment = enrichedMap.get(provider.id);
 
             return {

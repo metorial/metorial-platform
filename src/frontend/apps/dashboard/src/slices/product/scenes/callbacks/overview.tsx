@@ -59,51 +59,55 @@ let getCallbackType = (
 
 export let CallbackOverview = (p: { callbackId: string | undefined }) => {
   let instance = useCurrentInstance();
-  let callback = useCallback(instance.data?.id, p.callbackId);
-  let instances = useCallbackInstances(instance.data?.id, p.callbackId, {
+  let callbackLoader = useCallback(instance.data?.id, p.callbackId);
+  let instancesLoader = useCallbackInstances(instance.data?.id, p.callbackId, {
     order: 'desc'
   });
-  let updateCallback = callback.useUpdateMutator();
+  let updateCallback = callbackLoader.useUpdateMutator();
   let deployment = useProviderDeployment(
     instance.data?.id,
-    callback.data?.providerDeployment.id
+    callbackLoader.data?.providerDeployment.id
   );
   let provider = useProvider(
     instance.data?.id,
-    deployment.data?.providerId ?? callback.data?.providerDeployment.providerId
+    deployment.data?.providerId ?? callbackLoader.data?.providerDeployment.providerId
   );
   let providerVersionId =
     deployment.data?.lockedVersion?.id ?? provider.data?.currentVersion?.id;
   let availableTriggers = useProviderTriggers(instance.data?.id, providerVersionId, {
     limit: 100
   });
-  let deleteCallbackInstance = instances.useDeleteMutator();
+  let deleteCallbackInstance = instancesLoader.useDeleteMutator();
   let [_, setSearchParams] = useSearchParams();
   let [selectedTriggerKeys, setSelectedTriggerKeys] = useState<string[]>([]);
   let shouldPollOverview =
-    !!callback.data &&
-    !!instances.data &&
-    (instances.data.items.some(instance => instance.registrationStatus === 'pending') ||
-      (callback.data.providerTriggers.length > 0 &&
-        instances.data.items.length > 0 &&
-        instances.data.items.every(instance => instance.triggers.length === 0)));
+    !!callbackLoader.data &&
+    !!instancesLoader.data &&
+    (instancesLoader.data.items.some(instance => instance.registrationStatus === 'pending') ||
+      (callbackLoader.data.providerTriggers.length > 0 &&
+        instancesLoader.data.items.length > 0 &&
+        instancesLoader.data.items.every(instance => instance.triggers.length === 0)));
 
   useEffect(() => {
     setSelectedTriggerKeys(
-      callback.data?.providerTriggers.map(trigger => trigger.providerTriggerKey) ?? []
+      callbackLoader.data?.providerTriggers.map(trigger => trigger.providerTriggerKey) ?? []
     );
-  }, [callback.data?.id, callback.data?.updatedAt, callback.data?.providerTriggers]);
+  }, [
+    callbackLoader.data?.id,
+    callbackLoader.data?.updatedAt,
+    callbackLoader.data?.providerTriggers
+  ]);
 
   useEffect(() => {
     if (!shouldPollOverview) return;
 
     let interval = window.setInterval(() => {
-      callback.refetch?.();
-      instances.refetch?.();
+      callbackLoader.refetch?.();
+      instancesLoader.refetch?.();
     }, CALLBACK_WAITING_POLL_MS);
 
     return () => window.clearInterval(interval);
-  }, [shouldPollOverview, callback.refetch, instances.refetch]);
+  }, [shouldPollOverview, callbackLoader.refetch, instancesLoader.refetch]);
 
   let availableTriggerItems = useMemo(
     () =>
@@ -116,12 +120,12 @@ export let CallbackOverview = (p: { callbackId: string | undefined }) => {
 
   let hasPendingTriggerChanges =
     selectedTriggerKeys.slice().sort().join('|') !==
-    (callback.data?.providerTriggers.map(trigger => trigger.providerTriggerKey) ?? [])
+    (callbackLoader.data?.providerTriggers.map(trigger => trigger.providerTriggerKey) ?? [])
       .slice()
       .sort()
       .join('|');
 
-  return renderWithLoader({ callback, instances, provider })(
+  return renderWithLoader({ callback: callbackLoader, instances: instancesLoader, provider })(
     ({ callback, instances, provider }) => {
       let instanceItems = instances.data.items;
       let triggerInstances = instanceItems.flatMap(instance => instance.triggers);
@@ -362,7 +366,7 @@ export let CallbackOverview = (p: { callbackId: string | undefined }) => {
                       callbackId: callback.data.id,
                       providerDeploymentId: callback.data.providerDeployment.id,
                       onCreate: callbackInstanceId => {
-                        instances.refetch?.();
+                        instancesLoader.refetch?.();
                         setSearchParams(params => {
                           params.set('callback_instance_id', callbackInstanceId);
                           return params;
@@ -440,8 +444,8 @@ export let CallbackOverview = (p: { callbackId: string | undefined }) => {
                             if (!res) return;
 
                             toast.success('Callback instance detached');
-                            callback.refetch?.();
-                            instances.refetch?.();
+                            callbackLoader.refetch?.();
+                            instancesLoader.refetch?.();
                             setSearchParams(params => {
                               params.delete('callback_instance_id');
                               return params;
