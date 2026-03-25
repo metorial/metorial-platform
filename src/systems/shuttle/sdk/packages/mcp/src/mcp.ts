@@ -113,7 +113,18 @@ export let createMcpServer = (opts: CreateMcpServerOpts) => {
 
   for (let tool of opts.tools) {
     let toolSpec = McpTool.build(tool);
-    server.registerTool(toolSpec.name, toolSpec.params, toolSpec.handler as any);
+    server.registerTool(
+      toolSpec.name,
+      {
+        title: toolSpec.params.title,
+        description: toolSpec.params.description,
+        annotations: toolSpec.params.annotations,
+        _meta: toolSpec.params._meta,
+        inputSchema: toolSpec.params.inputSchema as any,
+        outputSchema: toolSpec.params.outputSchema as any
+      },
+      toolSpec.handler as any
+    );
   }
 
   return server;
