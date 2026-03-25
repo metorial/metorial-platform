@@ -1,7 +1,13 @@
-import { createFetchRouter } from '@lowerdeck/testing-tools';
+import { createClient } from '@lowerdeck/rpc-client';
 import { rpcMux } from '@lowerdeck/rpc-server';
-import { createShuttleClient } from '../../../clients/typescript/src/controller';
+import { createFetchRouter } from '@lowerdeck/testing-tools';
+import type { ShuttleClient } from '../apis/controllers';
 import { ShuttleRPC } from '../apis/controllers';
+
+type ClientOpts = Parameters<typeof createClient>[0];
+
+export let createShuttleClient = (o: ClientOpts): ShuttleClient =>
+  createClient<ShuttleClient>(o);
 
 type ClientOptsLike = {
   endpoint: string;

@@ -1,6 +1,12 @@
-import { createSlatesHubInternalClient } from '../../../../clients/hub/src/index';
+import { createClient } from '@lowerdeck/rpc-client';
 import { createFetchRouter } from '@lowerdeck/testing-tools';
+import type { SlatesHubClient } from '../apis/internal';
 import { slatesHubApi } from '../apis/internal';
+
+type ClientOpts = Parameters<typeof createClient>[0];
+
+export let createSlatesHubInternalClient = (o: ClientOpts): SlatesHubClient =>
+  createClient<SlatesHubClient>(o);
 
 type ClientOptsLike = {
   endpoint: string;
