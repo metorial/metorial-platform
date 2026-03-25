@@ -92,4 +92,4 @@ jobs:
         slates-hub-function-bay
         slates-hub-registry
       test_container: slates-hub-service
-      test_command: cd /app && bun run test
+      test_command: cd /app/apps/hub && bun run test

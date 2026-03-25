@@ -78,4 +78,4 @@ jobs:
         shuttle-function-bay
         shuttle-service
       test_container: shuttle-service
-      test_command: cd /app && bun run test
+      test_command: cd /app/service && bun run test
