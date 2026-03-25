@@ -3,9 +3,6 @@ name: 'Subspace'
 on:
   workflow_dispatch:
   push:
-    branches:
-      - dev
-      - main
   pull_request:
 
 permissions:
