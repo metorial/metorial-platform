@@ -17,9 +17,11 @@ import {
   Title
 } from '@metorial/ui';
 import { Box, ID, Table } from '@metorial/ui-product';
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { RouterPanel } from '../routerPanel';
+
+let CALLBACK_NOTIFICATIONS_POLL_MS = 3000;
 
 let formatJson = (value: unknown) => {
   try {
@@ -76,11 +78,15 @@ export let CallbackLogsList = (p: { callbackId: string | undefined }) => {
 export let CallbackNotificationsTable = ({
   callbackId,
   destinationId,
-  details
+  details,
+  onNotificationClick,
+  pollWhileWaiting = true
 }: {
   callbackId: string | undefined;
   destinationId?: string;
   details?: boolean;
+  onNotificationClick?: (notificationId: string) => void;
+  pollWhileWaiting?: boolean;
 }) => {
   let instance = useCurrentInstance();
   let notifications = useCallbackNotifications(instance.data?.id, callbackId, {
@@ -88,6 +94,23 @@ export let CallbackNotificationsTable = ({
     ...(destinationId ? { destinationId } : {})
   });
   let [_, setSearchParams] = useSearchParams();
+  let shouldPollNotifications =
+    !!notifications.data &&
+    pollWhileWaiting &&
+    (notifications.data.items.length === 0 ||
+      notifications.data.items.some(notification =>
+        ['pending', 'retrying'].includes(notification.status)
+      ));
+
+  useEffect(() => {
+    if (!shouldPollNotifications) return;
+
+    let interval = window.setInterval(() => {
+      notifications.refetch?.();
+    }, CALLBACK_NOTIFICATIONS_POLL_MS);
+
+    return () => window.clearInterval(interval);
+  }, [shouldPollNotifications, notifications.refetch]);
 
   return renderWithPagination(notifications)(notifications => (
     <>
@@ -105,11 +128,13 @@ export let CallbackNotificationsTable = ({
             <RenderDate date={notification.createdAt} />
           ],
           onClick: () =>
-            details &&
-            setSearchParams(params => {
-              params.set('notification_id', notification.id);
-              return params;
-            })
+            onNotificationClick
+              ? onNotificationClick(notification.id)
+              : details &&
+                setSearchParams(params => {
+                  params.set('notification_id', notification.id);
+                  return params;
+                })
         }))}
       />
 

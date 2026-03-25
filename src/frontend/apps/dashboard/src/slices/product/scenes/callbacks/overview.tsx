@@ -20,12 +20,14 @@ import {
   Dialog,
   Flex,
   Input,
+  InlineCopy,
   MultiSelect,
   Panel,
   RenderDate,
   Select,
   Spacer,
   Text,
+  confirm,
   toast,
   showModal
 } from '@metorial/ui';
@@ -42,6 +44,7 @@ import { ProviderConfigurationSelection } from '../providerConfigs/selection';
 import { RouterPanel } from '../routerPanel';
 
 type CallbackInstanceListItem = DashboardInstanceCallbacksInstancesListOutput['items'][number];
+let CALLBACK_WAITING_POLL_MS = 3000;
 
 let getCallbackType = (
   triggers: {
@@ -74,14 +77,33 @@ export let CallbackOverview = (p: { callbackId: string | undefined }) => {
   let availableTriggers = useProviderTriggers(instance.data?.id, providerVersionId, {
     limit: 100
   });
+  let deleteCallbackInstance = instances.useDeleteMutator();
   let [_, setSearchParams] = useSearchParams();
   let [selectedTriggerKeys, setSelectedTriggerKeys] = useState<string[]>([]);
+  let shouldPollOverview =
+    !!callback.data &&
+    !!instances.data &&
+    (instances.data.items.some(instance => instance.registrationStatus === 'pending') ||
+      (callback.data.providerTriggers.length > 0 &&
+        instances.data.items.length > 0 &&
+        instances.data.items.every(instance => instance.triggers.length === 0)));
 
   useEffect(() => {
     setSelectedTriggerKeys(
       callback.data?.providerTriggers.map(trigger => trigger.providerTriggerKey) ?? []
     );
   }, [callback.data?.id, callback.data?.updatedAt, callback.data?.providerTriggers]);
+
+  useEffect(() => {
+    if (!shouldPollOverview) return;
+
+    let interval = window.setInterval(() => {
+      callback.refetch?.();
+      instances.refetch?.();
+    }, CALLBACK_WAITING_POLL_MS);
+
+    return () => window.clearInterval(interval);
+  }, [shouldPollOverview, callback.refetch, instances.refetch]);
 
   let availableTriggerItems = useMemo(
     () =>
@@ -183,15 +205,50 @@ export let CallbackOverview = (p: { callbackId: string | undefined }) => {
                 title="Receiver URLs"
                 description="Use the receiver URL for the specific attached trigger you want the external provider to call."
               >
-                {receiverUrlItems.map(item => (
-                  <div key={`${item.id}:${item.webhookUrl}`}>
-                    <Text size="2" weight="strong">
-                      {item.label}
-                    </Text>
-                    <Copy value={item.webhookUrl} />
-                    <Spacer height={10} />
-                  </div>
-                ))}
+                <Table
+                  headers={['Trigger', 'Receiver URL', '']}
+                  data={receiverUrlItems.map(item => ({
+                    data: [
+                      <Flex direction="column" gap={2} style={{ minWidth: 0 }}>
+                        <Text size="2" weight="strong">
+                          {item.label.split(' (')[0]}
+                        </Text>
+                        <Text
+                          size="2"
+                          color="gray600"
+                          style={{
+                            display: 'block',
+                            maxWidth: '100%',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis'
+                          }}
+                        >
+                          {item.label.includes(' (')
+                            ? item.label.slice(item.label.indexOf(' (') + 2, -1)
+                            : item.id}
+                        </Text>
+                      </Flex>,
+                      <div style={{ width: '100%', minWidth: 0 }}>
+                        <Text
+                          size="2"
+                          style={{
+                            display: 'block',
+                            width: '100%',
+                            minWidth: 0,
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            fontFamily: 'monospace'
+                          }}
+                        >
+                          {item.webhookUrl}
+                        </Text>
+                      </div>,
+                      <InlineCopy value={item.webhookUrl} />
+                    ]
+                  }))}
+                />
               </Box>
 
               <Spacer height={15} />
@@ -303,7 +360,14 @@ export let CallbackOverview = (p: { callbackId: string | undefined }) => {
                     showCallbackInstanceFormModal({
                       instanceId: instance.data.id,
                       callbackId: callback.data.id,
-                      providerDeploymentId: callback.data.providerDeployment.id
+                      providerDeploymentId: callback.data.providerDeployment.id,
+                      onCreate: callbackInstanceId => {
+                        instances.refetch?.();
+                        setSearchParams(params => {
+                          params.set('callback_instance_id', callbackInstanceId);
+                          return params;
+                        });
+                      }
                     })
                   }
                 >
@@ -359,7 +423,33 @@ export let CallbackOverview = (p: { callbackId: string | undefined }) => {
                   </Panel.Header>
 
                   <Panel.Content>
-                    <CallbackInstanceDetails callbackInstance={callbackInstance} />
+                    <CallbackInstanceDetails
+                      callbackInstance={callbackInstance}
+                      deleteCallbackInstance={deleteCallbackInstance}
+                      onDetach={callbackInstanceId =>
+                        confirm({
+                          title: 'Detach callback instance',
+                          description:
+                            'Are you sure you want to detach this callback instance?',
+                          confirmText: 'Detach',
+                          onConfirm: async () => {
+                            let [res] = await deleteCallbackInstance.mutate({
+                              callbackInstanceId
+                            });
+
+                            if (!res) return;
+
+                            toast.success('Callback instance detached');
+                            callback.refetch?.();
+                            instances.refetch?.();
+                            setSearchParams(params => {
+                              params.delete('callback_instance_id');
+                              return params;
+                            });
+                          }
+                        })
+                      }
+                    />
                   </Panel.Content>
                 </>
               );
@@ -393,10 +483,13 @@ let CallbackInstanceFormModalContent = (p: {
   callbackId: string;
   providerDeploymentId: string;
   close: () => void;
-  onCreate?: () => void;
+  onCreate?: (callbackInstanceId: string) => void;
 }) => {
   let createCallbackInstance = useCreateCallbackInstance();
   let authConfigs = useProviderAuthConfigs(p.instanceId, p.providerDeploymentId);
+  let authConfigItems = authConfigs.data?.items ?? [];
+  let requiresAuthConfig = !authConfigs.isLoading && authConfigItems.length > 0;
+  let emptyAuthConfigLabel = requiresAuthConfig ? 'Select an auth config' : 'None';
   let form = useForm<CallbackInstanceFormValues>({
     initialValues: {
       selectedConfiguration: emptyConfigurationSelection(),
@@ -414,7 +507,7 @@ let CallbackInstanceFormModalContent = (p: {
 
       if (!result) return;
 
-      p.onCreate?.();
+      p.onCreate?.(result.id);
       p.close();
     },
     schema: yup =>
@@ -427,11 +520,16 @@ let CallbackInstanceFormModalContent = (p: {
             'Select a provider config',
             value => value?.kind === 'config'
           ),
-        selectedAuthConfigId: yup.string().defined()
+        selectedAuthConfigId: yup
+          .string()
+          .default('')
+          .test(
+            'selectedAuthConfigId',
+            'Select an auth config',
+            value => !requiresAuthConfig || Boolean(value)
+          )
       })
   });
-
-  let authConfigItems = authConfigs.data?.items ?? [];
 
   return (
     <form onSubmit={form.handleSubmit}>
@@ -461,19 +559,22 @@ let CallbackInstanceFormModalContent = (p: {
       <Flex gap={8} align="end">
         <div style={{ flex: 1 }}>
           <Select
-            label="Auth Config"
+            label={requiresAuthConfig ? 'Auth Config (required)' : 'Auth Config'}
             value={form.values.selectedAuthConfigId || '__none__'}
             onChange={value => {
               form.setFieldValue('selectedAuthConfigId', value === '__none__' ? '' : value);
+              form.setFieldTouched('selectedAuthConfigId', false, false);
+              form.setFieldError('selectedAuthConfigId', undefined);
             }}
             items={[
-              { id: '__none__', label: 'None' },
+              { id: '__none__', label: emptyAuthConfigLabel },
               ...authConfigItems.map(authConfig => ({
                 id: authConfig.id,
                 label: authConfig.name ?? authConfig.id
               }))
             ]}
           />
+          <form.RenderError field="selectedAuthConfigId" />
         </div>
 
         <Button
@@ -488,6 +589,8 @@ let CallbackInstanceFormModalContent = (p: {
               onCreate: authConfig => {
                 authConfigs.refetch?.();
                 form.setFieldValue('selectedAuthConfigId', authConfig.id);
+                form.setFieldTouched('selectedAuthConfigId', false, false);
+                form.setFieldError('selectedAuthConfigId', undefined);
               }
             })
           }
@@ -509,7 +612,12 @@ let CallbackInstanceFormModalContent = (p: {
         </Button>
       </Dialog.Actions>
 
-      <createCallbackInstance.RenderError />
+      {createCallbackInstance.error && (
+        <>
+          <Spacer height={15} />
+          <createCallbackInstance.RenderError />
+        </>
+      )}
     </form>
   );
 };
@@ -518,7 +626,7 @@ let showCallbackInstanceFormModal = (p: {
   instanceId: string;
   callbackId: string;
   providerDeploymentId: string;
-  onCreate?: () => void;
+  onCreate?: (callbackInstanceId: string) => void;
 }) =>
   showModal(({ dialogProps, close }) => (
     <Dialog.Wrapper {...dialogProps} width={650}>
@@ -539,7 +647,13 @@ let getCallbackInstanceStatusBadge = (status: CallbackInstanceListItem['status']
   <Badge color={status === 'attached' ? 'blue' : 'gray'}>{status}</Badge>
 );
 
-let CallbackInstanceDetails = (p: { callbackInstance: CallbackInstanceListItem }) => (
+let CallbackInstanceDetails = (p: {
+  callbackInstance: CallbackInstanceListItem;
+  onDetach: (callbackInstanceId: string) => void;
+  deleteCallbackInstance: ReturnType<
+    ReturnType<typeof useCallbackInstances>['useDeleteMutator']
+  >;
+}) => (
   <>
     <Box
       title="Instance"
@@ -658,6 +772,22 @@ let CallbackInstanceDetails = (p: { callbackInstance: CallbackInstanceListItem }
         No trigger registrations have been created for this callback instance yet.
       </Callout>
     )}
+
+    <Spacer height={20} />
+
+    <Box
+      title="Danger Zone"
+      description="Detach this callback instance from its provider config and auth config pair."
+    >
+      <Button
+        color="red"
+        loading={p.deleteCallbackInstance.isLoading}
+        success={p.deleteCallbackInstance.isSuccess}
+        onClick={() => p.onDetach(p.callbackInstance.id)}
+      >
+        Detach Instance
+      </Button>
+    </Box>
   </>
 );
 

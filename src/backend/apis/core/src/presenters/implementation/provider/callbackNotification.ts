@@ -23,24 +23,41 @@ let callbackNotificationDestinationSchema = v.object({
       examples: ['Primary production webhook receiver']
     })
   ),
-  type: v.string({
+  type: v.literal('http_endpoint', {
     name: 'type',
-    description: 'Delivery destination type',
-    examples: ['webhook']
+    description: 'Delivery destination type'
   }),
-  event_types: v.array(
-    v.string({
-      examples: ['message.created']
-    }),
+  event_types: v.nullable(
+    v.array(
+      v.string({
+        examples: ['message.created']
+      }),
+      {
+        name: 'event_types',
+        description: 'Event types this destination accepted for the notification'
+      }
+    )
+  ),
+  retry: v.object(
     {
-      name: 'event_types',
-      description: 'Event types this destination accepted for the notification'
+      type: v.enumOf(['linear', 'exponential'] as const, {
+        name: 'type',
+        description: 'Retry strategy type'
+      }),
+      maxAttempts: v.number({
+        name: 'maxAttempts',
+        description: 'Maximum number of delivery attempts'
+      }),
+      delaySeconds: v.number({
+        name: 'delaySeconds',
+        description: 'Delay between delivery attempts in seconds'
+      })
+    },
+    {
+      name: 'retry',
+      description: 'Retry configuration applied to this destination'
     }
   ),
-  retry: v.any({
-    name: 'retry',
-    description: 'Retry configuration applied to this destination'
-  }),
   webhook: v.nullable(
     v.object(
       {
@@ -54,10 +71,9 @@ let callbackNotificationDestinationSchema = v.object({
           description: 'Webhook URL used for the notification',
           examples: ['https://api.example.com/webhooks/metorial']
         }),
-        method: v.string({
+        method: v.enumOf(['POST', 'PUT', 'PATCH'] as const, {
           name: 'method',
-          description: 'HTTP method used for delivery',
-          examples: ['POST']
+          description: 'HTTP method used for delivery'
         }),
         created_at: v.date({
           name: 'created_at',
@@ -103,15 +119,16 @@ let callbackNotificationEventSchema = v.object({
       description: 'Topics associated with the event'
     }
   ),
-  status: v.string({
+  status: v.enumOf(['pending', 'delivered', 'failed'] as const, {
     name: 'status',
-    description: 'Aggregate delivery status for the underlying event',
-    examples: ['delivered']
+    description: 'Aggregate delivery status for the underlying event'
   }),
-  destination_count: v.number({
-    name: 'destination_count',
-    description: 'Total number of destinations targeted by the event'
-  }),
+  destination_count: v.nullable(
+    v.number({
+      name: 'destination_count',
+      description: 'Total number of destinations targeted by the event'
+    })
+  ),
   success_count: v.number({
     name: 'success_count',
     description: 'Number of successful deliveries for the event'
@@ -120,10 +137,38 @@ let callbackNotificationEventSchema = v.object({
     name: 'failure_count',
     description: 'Number of failed deliveries for the event'
   }),
-  request: v.any({
-    name: 'request',
-    description: 'Serialized request payload generated for the event'
-  }),
+  request: v.nullable(
+    v.object(
+      {
+        body: v.string({
+          name: 'body',
+          description: 'Serialized request body generated for the event'
+        }),
+        headers: v.nullable(
+          v.array(
+            v.object({
+              key: v.string({
+                name: 'key',
+                description: 'Header key'
+              }),
+              value: v.string({
+                name: 'value',
+                description: 'Header value'
+              })
+            }),
+            {
+              name: 'headers',
+              description: 'Serialized request headers generated for the event'
+            }
+          )
+        )
+      },
+      {
+        name: 'request',
+        description: 'Serialized request payload generated for the event'
+      }
+    )
+  ),
   created_at: v.date({
     name: 'created_at',
     description: 'Timestamp when the event was created',
@@ -191,16 +236,30 @@ export let v1CallbackNotificationPresenter = Presenter.create(callbackNotificati
           'Unique callback notification identifier. This delivery intent ID should be used to fetch notification details.',
         examples: ['sdi_0mn59k130hP1fPd2zSMT4C']
       }),
-      status: v.string({
-        name: 'status',
-        description: 'Current notification delivery status',
-        examples: ['delivered']
-      }),
+      status: v.enumOf(
+        ['pending', 'delivered', 'retrying', 'failed'] as const,
+        {
+          name: 'status',
+          description: 'Current notification delivery status'
+        }
+      ),
       error: v.nullable(
-        v.any({
-          name: 'error',
-          description: 'Last known delivery error payload, if any'
-        })
+        v.object(
+          {
+            code: v.string({
+              name: 'code',
+              description: 'Machine-readable error code'
+            }),
+            message: v.string({
+              name: 'message',
+              description: 'Human-readable error message'
+            })
+          },
+          {
+            name: 'error',
+            description: 'Last known delivery error payload, if any'
+          }
+        )
       ),
       attempt_count: v.number({
         name: 'attempt_count',

@@ -4,6 +4,12 @@ export type EntityImage =
   | { type: 'url'; url: string }
   | { type: 'default' };
 
+declare global {
+  namespace PrismaJson {
+    type EntityImage = import('./getImageUrl').EntityImage;
+  }
+}
+
 export type GetImageFieldsParams = {
   id: string;
   name?: string | null;

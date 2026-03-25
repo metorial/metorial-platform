@@ -15,9 +15,11 @@ import {
   Title
 } from '@metorial/ui';
 import { Box, ID, Table } from '@metorial/ui-product';
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { RouterPanel } from '../routerPanel';
+
+let CALLBACK_EVENTS_POLL_MS = 3000;
 
 let formatJson = (value: unknown) => {
   try {
@@ -46,6 +48,20 @@ export let CallbackEventsList = (p: { callbackId: string | undefined }) => {
     order: 'desc'
   });
   let [_, setSearchParams] = useSearchParams();
+  let shouldPollEvents =
+    !!events.data &&
+    (events.data.items.length === 0 ||
+      events.data.items.some(event => !['delivered', 'failed'].includes(event.deliveryStatus)));
+
+  useEffect(() => {
+    if (!shouldPollEvents) return;
+
+    let interval = window.setInterval(() => {
+      events.refetch?.();
+    }, CALLBACK_EVENTS_POLL_MS);
+
+    return () => window.clearInterval(interval);
+  }, [shouldPollEvents, events.refetch]);
 
   return (
     <>

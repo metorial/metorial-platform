@@ -24,10 +24,9 @@ export let v1ActorPreviewPresenter = Presenter.create(actorPreviewType)
         description: 'Actor identifier',
         examples: ['act_1aBcDeFgHjKlMnPq']
       }),
-      type: v.string({
+      type: v.enumOf(['external', 'system'] as const, {
         name: 'type',
-        description: 'Actor type',
-        examples: ['external', 'system']
+        description: 'Actor type'
       }),
       identifier: v.string({
         name: 'identifier',

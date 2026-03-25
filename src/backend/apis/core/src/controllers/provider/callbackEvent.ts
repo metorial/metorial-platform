@@ -61,9 +61,7 @@ export let callbackEventController = Controller.create(
         let paginator = await subspaceCallbackEventService.list({
           instance: ctx.instance,
           callbackId: ctx.callback.id,
-          slateTriggerEventIds: normalizeArrayParam(ctx.query.id),
-          types: normalizeArrayParam(ctx.query.type),
-          sourceIds: normalizeArrayParam(ctx.query.source_id)
+          eventTypes: normalizeArrayParam(ctx.query.type)
         });
 
         let list = await paginator.run(ctx.query);

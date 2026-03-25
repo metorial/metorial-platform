@@ -1,16 +1,20 @@
 import type { DashboardInstanceCallbacksNotificationsListOutput } from '@metorial/dashboard-sdk';
 import { renderWithLoader } from '@metorial/data-hooks';
+import { Paths } from '@metorial/frontend-config';
 import {
   useCallback,
   useCallbackDestination,
   useCallbackDestinations,
   useCallbackNotifications,
-  useCurrentInstance
+  useCurrentInstance,
+  useCurrentOrganization,
+  useCurrentProject
 } from '@metorial/state';
 import {
   Attributes,
   Button,
   Callout,
+  Copy,
   Dialog,
   Flex,
   Input,
@@ -25,7 +29,7 @@ import {
 import { Box, ID, Table } from '@metorial/ui-product';
 import { RiAddLine, RiMore2Line } from '@remixicon/react';
 import { useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { RouterPanel } from '../routerPanel';
 import { showCallbackDestinationFormModal } from './destinationModal';
 import { CallbackNotificationsTable, getNotificationStatusBadge } from './logs';
@@ -237,6 +241,9 @@ let Destination = ({
   callbackId: string;
 }) => {
   let instance = useCurrentInstance();
+  let organization = useCurrentOrganization();
+  let project = useCurrentProject();
+  let navigate = useNavigate();
   let destination = useCallbackDestination(instance.data?.id, destinationId);
 
   return renderWithLoader({ destination })(({ destination }) => (
@@ -254,7 +261,7 @@ let Destination = ({
           },
           {
             label: 'URL',
-            content: destination.data.url
+            content: <Copy value={destination.data.url} />
           },
           {
             label: 'Method',
@@ -276,6 +283,17 @@ let Destination = ({
         <CallbackNotificationsTable
           callbackId={callbackId}
           destinationId={destination.data.id}
+          onNotificationClick={notificationId => {
+            let path = Paths.instance.callback(
+              organization.data,
+              project.data,
+              instance.data,
+              callbackId,
+              'logs'
+            );
+            let searchParams = new URLSearchParams({ notification_id: notificationId });
+            navigate(`${path}?${searchParams.toString()}`);
+          }}
         />
       </Box>
     </>

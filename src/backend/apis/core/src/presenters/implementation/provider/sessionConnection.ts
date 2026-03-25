@@ -55,11 +55,13 @@ export let v1SessionConnectionPresenter = Presenter.create(sessionConnectionType
         name: 'connection_state',
         description: 'Connection state'
       }),
-      transport: v.string({
-        name: 'transport',
-        description: 'Transport protocol used',
-        examples: ['mcp', 'tool_call', 'metorial_protocol', 'system']
-      }),
+      transport: v.enumOf(
+        ['mcp', 'tool_call', 'metorial_protocol', 'system'] as const,
+        {
+          name: 'transport',
+          description: 'Transport protocol used'
+        }
+      ),
       usage: v.object(
         {
           total_productive_client_message_count: v.number({
@@ -85,10 +87,9 @@ export let v1SessionConnectionPresenter = Presenter.create(sessionConnectionType
               description: 'MCP protocol version',
               examples: ['2024-11-05']
             }),
-            transport: v.string({
+            transport: v.enumOf(['none', 'sse', 'streamable_http'] as const, {
               name: 'transport',
-              description: 'MCP transport type',
-              examples: ['sse', 'streamable_http']
+              description: 'MCP transport type'
             })
           },
           { name: 'mcp', description: 'MCP connection details' }
@@ -118,11 +119,13 @@ export let v1SessionConnectionPresenter = Presenter.create(sessionConnectionType
         description: 'Timestamp of last message',
         examples: [new Date('2025-09-15T10:30:00Z')]
       }),
-      last_active_at: v.date({
-        name: 'last_active_at',
-        description: 'Timestamp when last active',
-        examples: [new Date('2025-09-15T10:30:00Z')]
-      })
+      last_active_at: v.nullable(
+        v.date({
+          name: 'last_active_at',
+          description: 'Timestamp when last active',
+          examples: [new Date('2025-09-15T10:30:00Z')]
+        })
+      )
     })
   )
   .build();

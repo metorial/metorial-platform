@@ -19,7 +19,7 @@ import { Stepper } from '../stepper';
 
 type CallbackDetailsFormValues = {
   name: string;
-  description: string;
+  description?: string;
 };
 
 let DIALOG_EXIT_MS = 220;
@@ -148,7 +148,7 @@ let CallbackCreateModalContent = (p: {
       let [result] = await createCallback.mutate({
         instanceId: p.instanceId,
         name: values.name.trim(),
-        description: values.description.trim() || undefined,
+        description: values.description?.trim() || undefined,
         providerDeploymentId: p.providerDeploymentId
       });
 
@@ -160,7 +160,7 @@ let CallbackCreateModalContent = (p: {
     schema: yup =>
       yup.object({
         name: yup.string().trim().required('Enter a name'),
-        description: yup.string().defined()
+        description: yup.string().optional()
       })
   });
 

@@ -6,7 +6,6 @@ import {
   useCurrentProject,
   useDashboardFlags
 } from '@metorial/state';
-import { RiAddLine } from '@remixicon/react';
 import { Button } from '@metorial/ui';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { showCallbackFormModal } from '../../../scenes/callbacks/modal';
@@ -29,7 +28,6 @@ export let CallbacksListLayout = () => {
           canCreateCallback ? (
             <Button
               size="2"
-              iconRight={<RiAddLine />}
               onClick={() =>
                 instance.data &&
                 showCallbackFormModal({

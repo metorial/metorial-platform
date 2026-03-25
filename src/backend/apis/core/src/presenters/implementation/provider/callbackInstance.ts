@@ -1,6 +1,7 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
 import { callbackInstanceType } from '../../types';
+import { v1ProviderTriggerPresenter } from './providerTrigger';
 
 let callbackInstanceTriggerSchema = v.object({
   object: v.literal('callback.instance.trigger', {
@@ -11,10 +12,9 @@ let callbackInstanceTriggerSchema = v.object({
     description: 'Unique receiver trigger identifier',
     examples: ['ctr_9gHjKlMnPqRsTuVw']
   }),
-  source: v.string({
+  source: v.enumOf(['polling', 'webhook'] as const, {
     name: 'source',
-    description: 'How this trigger is invoked by the provider backend',
-    examples: ['polling']
+    description: 'How this trigger is invoked by the provider backend'
   }),
   poll_interval_seconds: v.nullable(
     v.number({
@@ -45,35 +45,38 @@ let callbackInstanceTriggerSchema = v.object({
       examples: ['https://provider.example.com/webhooks/abc123']
     })
   ),
-  is_webhook_registered: v.boolean({
-    name: 'is_webhook_registered',
-    description: 'Whether webhook registration is currently active for this trigger'
-  }),
-  provider_trigger: v.nullable(
-    v.any({
-      name: 'provider_trigger',
-      description: 'Provider trigger metadata associated with this callback instance trigger'
+  is_webhook_registered: v.nullable(
+    v.boolean({
+      name: 'is_webhook_registered',
+      description: 'Whether webhook registration is currently active for this trigger'
     })
+  ),
+  provider_trigger: v.nullable(
+    v1ProviderTriggerPresenter.schema
   )
 });
 
 export let v1CallbackInstancePresenter = Presenter.create(callbackInstanceType)
-  .presenter(async ({ callbackInstance }) => ({
+  .presenter(async ({ callbackInstance }, opts) => ({
     object: 'callback.instance' as const,
     id: callbackInstance.id,
     status: callbackInstance.status,
     registration_status: callbackInstance.registrationStatus,
-    triggers: callbackInstance.triggers.map(trigger => ({
-      object: 'callback.instance.trigger' as const,
-      id: trigger.id,
-      source: trigger.source,
-      poll_interval_seconds: trigger.pollIntervalSeconds,
-      next_poll_at: trigger.nextPollAt,
-      last_polled_at: trigger.lastPolledAt,
-      webhook_url: trigger.webhookUrl,
-      is_webhook_registered: trigger.isWebhookRegistered,
-      provider_trigger: trigger.providerTrigger
-    })),
+    triggers: await Promise.all(
+      callbackInstance.triggers.map(async trigger => ({
+        object: 'callback.instance.trigger' as const,
+        id: trigger.id,
+        source: trigger.source,
+        poll_interval_seconds: trigger.pollIntervalSeconds,
+        next_poll_at: trigger.nextPollAt,
+        last_polled_at: trigger.lastPolledAt,
+        webhook_url: trigger.webhookUrl,
+        is_webhook_registered: trigger.isWebhookRegistered,
+        provider_trigger: trigger.providerTrigger
+          ? await v1ProviderTriggerPresenter.present({ trigger: trigger.providerTrigger }, opts).run()
+          : null
+      }))
+    ),
     created_at: callbackInstance.createdAt,
     updated_at: callbackInstance.updatedAt
   }))

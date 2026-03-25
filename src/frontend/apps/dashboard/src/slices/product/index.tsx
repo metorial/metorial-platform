@@ -385,6 +385,9 @@ let CallbackEventsPage = dynamicPage(() =>
 let CallbackLogsPage = dynamicPage(() =>
   import('./pages/(callbacks)/logs').then(c => c.CallbackLogsPage)
 );
+let CallbackTriggersPage = dynamicPage(() =>
+  import('./pages/(callbacks)/triggers').then(c => c.CallbackTriggersPage)
+);
 let CallbackDestinationsPage = dynamicPage(() =>
   import('./pages/(callbacks)/destinations').then(c => c.CallbackDestinationsPage)
 );
@@ -1023,6 +1026,10 @@ export let productInnerSlice = createSlice([
               {
                 path: 'logs',
                 element: <CallbackLogsPage />
+              },
+              {
+                path: 'triggers',
+                element: <CallbackTriggersPage />
               },
               {
                 path: 'destinations',

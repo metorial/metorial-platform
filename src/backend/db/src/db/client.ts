@@ -11,7 +11,6 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { readReplicas } from '@prisma/extension-read-replicas';
 import type { JSONSchema4, JSONSchema6, JSONSchema7 } from 'json-schema';
 import { PrismaClient } from '../../prisma/generated/client.js';
-import { EntityImage as ImportedEntityImage } from '../lib';
 export * from '../../prisma/generated/client.js';
 
 let workerIdBits = 12;
@@ -235,8 +234,6 @@ export type DB = typeof db;
 declare global {
   namespace PrismaJson {
     type Record = { [key: string]: any };
-
-    type EntityImage = ImportedEntityImage;
 
     type ServerEntityAttributes = {
       websiteUrl?: string;

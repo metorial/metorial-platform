@@ -49,11 +49,13 @@ export let v1CallbackEventPresenter = Presenter.create(callbackEventType)
         name: 'output',
         description: 'Trigger output payload resolved for the event'
       }),
-      delivery_status: v.string({
-        name: 'delivery_status',
-        description: 'Aggregate delivery status for this callback event',
-        examples: ['delivered']
-      }),
+      delivery_status: v.enumOf(
+        ['pending', 'sent', 'failed', 'skipped'] as const,
+        {
+          name: 'delivery_status',
+          description: 'Aggregate delivery status for this callback event'
+        }
+      ),
       callback_id: v.string({
         name: 'callback_id',
         description: 'Parent callback identifier',
