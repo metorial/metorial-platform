@@ -1,4 +1,8 @@
 import { declarePresenter } from '@metorial/presenter';
+import { v1AccessPolicyPresenter } from './implementation/accessPolicy';
+import { v1AccessPolicyVersionPresenter } from './implementation/accessPolicyVersion';
+import { v1AccessRolePresenter } from './implementation/accessRole';
+import { v1AccessRoleVersionPresenter } from './implementation/accessRoleVersion';
 import { dashboardApiKeyPresenter, v1ApiKeyPresenter } from './implementation/apiKey';
 import { v1BootPresenter } from './implementation/boot';
 import { v1CliDevicePresenter } from './implementation/cliDevice';
@@ -35,8 +39,6 @@ import { v1SecretPresenter } from './implementation/secret';
 import { v1ServiceAccountPresenter } from './implementation/serviceAccount';
 import { v1ServiceAccountCredentialPresenter } from './implementation/serviceAccountCredential';
 import { v1TeamPresenter } from './implementation/team';
-import { v1TeamRolePresenter } from './implementation/teamRole';
-import { v1TeamRolePermissionsPresenter } from './implementation/teamRolePermissions';
 import { v1UsagePresenter } from './implementation/usage';
 import { v1UserPresenter } from './implementation/user';
 
@@ -115,6 +117,10 @@ import {
 import { v1FlagsPresenter } from './implementation/flags';
 import { v1TokenPresenter } from './implementation/token';
 import {
+  accessPolicyType,
+  accessPolicyVersionType,
+  accessRoleType,
+  accessRoleVersionType,
   apiKeyType,
   authConfigSchemaType,
   authImportSchemaType,
@@ -193,8 +199,6 @@ import {
   providerSetupSessionType,
   providerSpecificationType,
   providerTemplateType,
-  serviceAccountCredentialType,
-  serviceAccountType,
   providerToolType,
   providerType,
   providerTypeType,
@@ -208,6 +212,8 @@ import {
   scmRepoPreviewType,
   scmRepoType,
   secretType,
+  serviceAccountCredentialType,
+  serviceAccountType,
   // ssoTenantSetupType,
   // ssoTenantType,
   // ssoUserProfileType,
@@ -221,8 +227,6 @@ import {
   sessionProviderType,
   sessionTemplateProviderType,
   sessionTemplateType,
-  teamRolePermissionsType,
-  teamRoleType,
   teamType,
   tokenType,
   toolCallType,
@@ -285,13 +289,30 @@ export let serviceAccountPresenter = declarePresenter(serviceAccountType, {
   mt_2026_01_01_magnetar: v1ServiceAccountPresenter
 });
 
-export let serviceAccountCredentialPresenter = declarePresenter(
-  serviceAccountCredentialType,
-  {
-    mt_2025_01_01_dashboard: v1ServiceAccountCredentialPresenter,
-    mt_2026_01_01_magnetar: v1ServiceAccountCredentialPresenter
-  }
-);
+export let accessRolePresenter = declarePresenter(accessRoleType, {
+  mt_2025_01_01_dashboard: v1AccessRolePresenter,
+  mt_2026_01_01_magnetar: v1AccessRolePresenter
+});
+
+export let accessRoleVersionPresenter = declarePresenter(accessRoleVersionType, {
+  mt_2025_01_01_dashboard: v1AccessRoleVersionPresenter,
+  mt_2026_01_01_magnetar: v1AccessRoleVersionPresenter
+});
+
+export let accessPolicyPresenter = declarePresenter(accessPolicyType, {
+  mt_2025_01_01_dashboard: v1AccessPolicyPresenter,
+  mt_2026_01_01_magnetar: v1AccessPolicyPresenter
+});
+
+export let accessPolicyVersionPresenter = declarePresenter(accessPolicyVersionType, {
+  mt_2025_01_01_dashboard: v1AccessPolicyVersionPresenter,
+  mt_2026_01_01_magnetar: v1AccessPolicyVersionPresenter
+});
+
+export let serviceAccountCredentialPresenter = declarePresenter(serviceAccountCredentialType, {
+  mt_2025_01_01_dashboard: v1ServiceAccountCredentialPresenter,
+  mt_2026_01_01_magnetar: v1ServiceAccountCredentialPresenter
+});
 
 export let tokenPresenter = declarePresenter(tokenType, {
   mt_2025_01_01_dashboard: v1TokenPresenter,
@@ -406,16 +427,6 @@ export let flagsPresenter = declarePresenter(flagsType, {
 export let teamPresenter = declarePresenter(teamType, {
   mt_2025_01_01_dashboard: v1TeamPresenter,
   mt_2026_01_01_magnetar: v1TeamPresenter
-});
-
-export let teamRolePresenter = declarePresenter(teamRoleType, {
-  mt_2025_01_01_dashboard: v1TeamRolePresenter,
-  mt_2026_01_01_magnetar: v1TeamRolePresenter
-});
-
-export let teamRolePermissionsPresenter = declarePresenter(teamRolePermissionsType, {
-  mt_2025_01_01_dashboard: v1TeamRolePermissionsPresenter,
-  mt_2026_01_01_magnetar: v1TeamRolePermissionsPresenter
 });
 
 export let oauthScopePermissionsPresenter = declarePresenter(oauthScopePermissionsType, {

@@ -22,6 +22,8 @@ import { portalConsumerGroupController } from './instance/portalConsumerGroup';
 import { portalConsumerProfileController } from './instance/portalConsumerProfile';
 import { providerTemplateController } from './instance/providerTemplate';
 import { tokenController } from './instance/token';
+import { accessPolicyManagementController } from './management/accessPolicy';
+import { accessRoleManagementController } from './management/accessRole';
 import { cliDeviceManagementController } from './management/cliDevice';
 import { instanceManagementController } from './management/instance';
 import { oauthApplicationManagementController } from './management/oauthApplication';
@@ -35,8 +37,6 @@ import { organizationMemberManagementController } from './management/organizatio
 import { projectManagementController } from './management/project';
 import { serviceAccountManagementController } from './management/serviceAccount';
 import { teamManagementController } from './management/team';
-import { teamRoleManagementController } from './management/teamRole';
-import { teamRolePermissionsManagementController } from './management/teamRolePermissions';
 import {
   customProviderCodeController,
   customProviderCommitController,
@@ -162,9 +162,6 @@ export let magnetarController = Controller.create<any>(
     consumerProviderController
 
     // teamManagementController,
-    // teamRoleManagementController,
-    // teamRolePermissionsManagementController
-
     // portalConsumerGroupController,
     // portalConsumerAccessController,
     // portalConsumerProfileController,
@@ -193,6 +190,8 @@ export let dashboardController = Controller.create<any>(
 
     instanceManagementController,
     organizationManagementController,
+    accessRoleManagementController,
+    accessPolicyManagementController,
     oauthScopeManagementController,
     oauthApplicationManagementController,
     cliDeviceManagementController,
@@ -212,8 +211,6 @@ export let dashboardController = Controller.create<any>(
 
     profileController,
 
-    teamRolePermissionsManagementController,
-    teamRoleManagementController,
     teamManagementController,
 
     providerController,

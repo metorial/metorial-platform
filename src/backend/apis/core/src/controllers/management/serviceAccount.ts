@@ -2,6 +2,10 @@ import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { serviceAccountService } from '@metorial/module-machine-access';
+import {
+  accessPolicyAssignmentService,
+  accessPolicyService
+} from '@metorial/module-organization';
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
@@ -323,6 +327,77 @@ export let serviceAccountManagementController = Controller.create(
         return serviceAccountCredentialPresenter.present({
           serviceAccountCredential: ctx.serviceAccountCredential
         });
+      }),
+
+    assignPolicy: serviceAccountManagementGroup
+      .post(
+        organizationManagementPath(
+          'service-accounts/:serviceAccountId/policies',
+          'serviceAccounts.policies.create'
+        ),
+        {
+          name: 'Assign service account policy',
+          description: 'Assign an access policy to a service account'
+        }
+      )
+      .use(checkAccess({ possibleScopes: ['organization.access_policy:write'] }))
+      .body(
+        'default',
+        v.object({
+          access_policy_id: v.string()
+        })
+      )
+      .output(serviceAccountPresenter)
+      .do(async ctx => {
+        let accessPolicy = await accessPolicyService.getAccessPolicyById({
+          organization: ctx.organization,
+          accessPolicyId: ctx.body.access_policy_id
+        });
+
+        await accessPolicyAssignmentService.assignAccessPolicyToServiceAccount({
+          organization: ctx.organization,
+          serviceAccount: ctx.serviceAccount,
+          accessPolicy
+        });
+
+        let serviceAccount = await serviceAccountService.getServiceAccountById({
+          organization: ctx.organization,
+          serviceAccountId: ctx.serviceAccount.id
+        });
+
+        return serviceAccountPresenter.present({ serviceAccount });
+      }),
+
+    removePolicy: serviceAccountManagementGroup
+      .delete(
+        organizationManagementPath(
+          'service-accounts/:serviceAccountId/policies/:accessPolicyId',
+          'serviceAccounts.policies.delete'
+        ),
+        {
+          name: 'Remove service account policy',
+          description: 'Remove an access policy from a service account'
+        }
+      )
+      .use(checkAccess({ possibleScopes: ['organization.access_policy:write'] }))
+      .output(serviceAccountPresenter)
+      .do(async ctx => {
+        let accessPolicy = await accessPolicyService.getAccessPolicyById({
+          organization: ctx.organization,
+          accessPolicyId: ctx.params.accessPolicyId
+        });
+
+        await accessPolicyAssignmentService.removeAccessPolicyFromServiceAccount({
+          serviceAccount: ctx.serviceAccount,
+          accessPolicy
+        });
+
+        let serviceAccount = await serviceAccountService.getServiceAccountById({
+          organization: ctx.organization,
+          serviceAccountId: ctx.serviceAccount.id
+        });
+
+        return serviceAccountPresenter.present({ serviceAccount });
       })
   }
 );

@@ -1,4 +1,12 @@
 import {
+  AccessPolicy,
+  AccessPolicyAssignment,
+  AccessPolicyInstance,
+  AccessPolicyProject,
+  AccessPolicyRole,
+  AccessPolicyVersion,
+  AccessRole,
+  AccessRoleVersion,
   ApiKey,
   ApiKeySecret,
   ApiKeyType,
@@ -41,10 +49,9 @@ import {
   Team,
   TeamMember,
   TeamProject,
-  TeamProjectRoleAssignment,
-  TeamRole,
   User
 } from '@metorial/db';
+import type { PolicyDocument } from '@metorial/module-organization';
 import {
   ConsumerAresApp,
   ConsumerAresSsoConnection,
@@ -183,6 +190,9 @@ export let organizationMemberType = PresentableType.create<{
     actor: OrganizationActor & {
       teams: (TeamMember & { team: Team })[];
     };
+    policies?: (AccessPolicyAssignment & {
+      accessPolicy: AccessPolicy;
+    })[];
     user: User;
   };
 }>()('organization_member');
@@ -287,6 +297,9 @@ export let oauthAuthorizationLogType = PresentableType.create<{
 export let serviceAccountType = PresentableType.create<{
   serviceAccount: ServiceAccount & {
     organization: Organization;
+    policies?: (AccessPolicyAssignment & {
+      accessPolicy: AccessPolicy;
+    })[];
     oauthApplication: OAuthApplication & {
       organization: Organization | null;
       clientSecrets?: OAuthApplicationClientSecret[] | null;
@@ -531,28 +544,56 @@ export let teamType = PresentableType.create<{
   team: Team & {
     organization: Organization;
     projects: (TeamProject & { project: Project })[];
-    assignments: (TeamProjectRoleAssignment & {
-      teamProject: TeamProject;
-      teamRole: TeamRole;
-      project: Project;
+    policies?: (AccessPolicyAssignment & {
+      accessPolicy: AccessPolicy;
     })[];
   };
 }>()('management.team');
 
-export let teamRoleType = PresentableType.create<{
-  teamRole: TeamRole & {
+export let accessRoleType = PresentableType.create<{
+  accessRole: AccessRole & {
     organization: Organization;
   };
-}>()('management.team.role');
+}>()('management.access_role');
 
-export let teamRolePermissionsType = PresentableType.create<{
-  permissions: {
-    identifier: string;
-    name: string;
-    description: string;
-    dependencies: string[];
-  }[];
-}>()('management.team.role_permissions');
+export let accessRoleVersionType = PresentableType.create<{
+  accessRoleVersion: AccessRoleVersion & {
+    accessRole: AccessRole & {
+      organization: Organization;
+    };
+  };
+}>()('management.access_role_version');
+
+export let accessPolicyType = PresentableType.create<{
+  accessPolicy: AccessPolicy & {
+    organization: Organization;
+    accessPolicyRoles: (AccessPolicyRole & {
+      accessRole: AccessRole;
+    })[];
+    accessPolicyProjects: (AccessPolicyProject & {
+      project: Project;
+    })[];
+    accessPolicyInstances: (AccessPolicyInstance & {
+      instance: Instance & {
+        project: Project;
+        organization: Organization;
+      };
+    })[];
+  };
+}>()('management.access_policy');
+
+export let accessPolicyVersionType = PresentableType.create<{
+  accessPolicyVersion: AccessPolicyVersion & {
+    accessPolicy: AccessPolicy & {
+      organization: Organization;
+    };
+    document: PolicyDocument;
+  };
+}>()('management.access_policy_version');
+
+export let accessPolicyPreviewType = PresentableType.create<{
+  accessPolicy: AccessPolicy;
+}>()('management.access_policy#preview');
 
 export let oauthScopePermissionsType = PresentableType.create<{
   permissions: {

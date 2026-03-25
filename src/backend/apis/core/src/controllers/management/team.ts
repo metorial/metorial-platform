@@ -1,10 +1,9 @@
-import { forbiddenError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import {
+  accessPolicyAssignmentService,
+  accessPolicyService,
   organizationActorService,
-  projectService,
-  teamRoleService,
   teamService
 } from '@metorial/module-organization';
 import { Controller } from '@metorial/rest';
@@ -74,14 +73,6 @@ export let teamManagementController = Controller.create(
       )
       .output(teamPresenter)
       .do(async ctx => {
-        if (ctx.member?.role == 'member') {
-          throw new ServiceError(
-            forbiddenError({
-              message: 'You are not permitted to manage organization teams'
-            })
-          );
-        }
-
         let team = await teamService.getTeamById({
           organization: ctx.organization,
           teamId: ctx.params.teamId
@@ -117,14 +108,6 @@ export let teamManagementController = Controller.create(
       )
       .output(teamPresenter)
       .do(async ctx => {
-        if (ctx.member?.role == 'member') {
-          throw new ServiceError(
-            forbiddenError({
-              message: 'You are not permitted to manage organization teams'
-            })
-          );
-        }
-
         let team = await teamService.createTeam({
           input: {
             name: ctx.body.name,
@@ -133,111 +116,6 @@ export let teamManagementController = Controller.create(
           organization: ctx.organization,
           context: ctx.context,
           performedBy: ctx.actor
-        });
-
-        return teamPresenter.present({ team });
-      }),
-
-    setProject: organizationGroup
-      .post(organizationManagementPath('teams/:teamId/projects', 'teams.projects.set'), {
-        name: 'Set team projects',
-        description: 'Set the projects assigned to a team'
-      })
-      .use(checkAccess({ possibleScopes: ['organization.team:write'] }))
-      .use(hasFlags(['paid-advanced-roles']))
-      .body(
-        'default',
-        v.object({
-          project_id: v.string(),
-          team_role_ids: v.array(v.string())
-        })
-      )
-      .output(teamPresenter)
-      .do(async ctx => {
-        if (ctx.member?.role == 'member') {
-          throw new ServiceError(
-            forbiddenError({
-              message: 'You are not permitted to manage organization teams'
-            })
-          );
-        }
-
-        let team = await teamService.getTeamById({
-          organization: ctx.organization,
-          teamId: ctx.params.teamId
-        });
-        let project = await projectService.getProjectById({
-          organization: ctx.organization,
-          projectId: ctx.body.project_id,
-          actor: ctx.actor,
-          member: ctx.member
-        });
-
-        let roles = await teamRoleService.getManyTeamRolesByIds({
-          organization: ctx.organization,
-          teamRoleIds: ctx.body.team_role_ids
-        });
-
-        await teamService.setTeamProjectAccess({
-          team,
-          organization: ctx.organization,
-          project,
-          teamRoles: roles,
-          performedBy: ctx.actor
-        });
-
-        team = await teamService.getTeamById({
-          organization: ctx.organization,
-          teamId: ctx.params.teamId
-        });
-
-        return teamPresenter.present({ team });
-      }),
-
-    removeProject: organizationGroup
-      .delete(
-        organizationManagementPath(
-          'teams/:teamId/projects/:projectId',
-          'teams.projects.remove'
-        ),
-        {
-          name: 'Remove team project',
-          description: 'Remove a project from a team'
-        }
-      )
-      .use(checkAccess({ possibleScopes: ['organization.team:write'] }))
-      .use(hasFlags(['paid-advanced-roles']))
-      .output(teamPresenter)
-      .do(async ctx => {
-        if (ctx.member?.role == 'member') {
-          throw new ServiceError(
-            forbiddenError({
-              message: 'You are not permitted to manage organization teams'
-            })
-          );
-        }
-
-        let team = await teamService.getTeamById({
-          organization: ctx.organization,
-          teamId: ctx.params.teamId
-        });
-        let project = await projectService.getProjectById({
-          organization: ctx.organization,
-          projectId: ctx.params.projectId,
-          actor: ctx.actor,
-          member: ctx.member
-        });
-
-        await teamService.removeTeamProjectAccess({
-          team,
-          organization: ctx.organization,
-          project,
-          performedBy: ctx.actor
-        });
-
-        team = await teamService.getTeamById({
-          organization: ctx.organization,
-          teamId: ctx.params.teamId
         });
 
         return teamPresenter.present({ team });
@@ -258,14 +136,6 @@ export let teamManagementController = Controller.create(
         })
       )
       .do(async ctx => {
-        if (ctx.member?.role == 'member') {
-          throw new ServiceError(
-            forbiddenError({
-              message: 'You are not permitted to manage organization teams'
-            })
-          );
-        }
-
         let team = await teamService.getTeamById({
           organization: ctx.organization,
           teamId: ctx.params.teamId
@@ -303,14 +173,6 @@ export let teamManagementController = Controller.create(
       .use(hasFlags(['paid-advanced-roles']))
       .output(teamPresenter)
       .do(async ctx => {
-        if (ctx.member?.role == 'member') {
-          throw new ServiceError(
-            forbiddenError({
-              message: 'You are not permitted to manage organization teams'
-            })
-          );
-        }
-
         let team = await teamService.getTeamById({
           organization: ctx.organization,
           teamId: ctx.params.teamId
@@ -326,6 +188,79 @@ export let teamManagementController = Controller.create(
           actor,
           context: ctx.context,
           performedBy: ctx.actor
+        });
+
+        team = await teamService.getTeamById({
+          organization: ctx.organization,
+          teamId: ctx.params.teamId
+        });
+
+        return teamPresenter.present({ team });
+      }),
+
+    assignPolicy: organizationGroup
+      .post(organizationManagementPath('teams/:teamId/policies', 'teams.policies.create'), {
+        name: 'Assign policy to team',
+        description: 'Assign an access policy to a team'
+      })
+      .use(checkAccess({ possibleScopes: ['organization.access_policy:write'] }))
+      .body(
+        'default',
+        v.object({
+          access_policy_id: v.string()
+        })
+      )
+      .output(teamPresenter)
+      .do(async ctx => {
+        let team = await teamService.getTeamById({
+          organization: ctx.organization,
+          teamId: ctx.params.teamId
+        });
+        let accessPolicy = await accessPolicyService.getAccessPolicyById({
+          organization: ctx.organization,
+          accessPolicyId: ctx.body.access_policy_id
+        });
+
+        await accessPolicyAssignmentService.assignAccessPolicyToTeam({
+          organization: ctx.organization,
+          team,
+          accessPolicy
+        });
+
+        team = await teamService.getTeamById({
+          organization: ctx.organization,
+          teamId: ctx.params.teamId
+        });
+
+        return teamPresenter.present({ team });
+      }),
+
+    removePolicy: organizationGroup
+      .delete(
+        organizationManagementPath(
+          'teams/:teamId/policies/:accessPolicyId',
+          'teams.policies.delete'
+        ),
+        {
+          name: 'Remove policy from team',
+          description: 'Remove an access policy from a team'
+        }
+      )
+      .use(checkAccess({ possibleScopes: ['organization.access_policy:write'] }))
+      .output(teamPresenter)
+      .do(async ctx => {
+        let team = await teamService.getTeamById({
+          organization: ctx.organization,
+          teamId: ctx.params.teamId
+        });
+        let accessPolicy = await accessPolicyService.getAccessPolicyById({
+          organization: ctx.organization,
+          accessPolicyId: ctx.params.accessPolicyId
+        });
+
+        await accessPolicyAssignmentService.removeAccessPolicyFromTeam({
+          team,
+          accessPolicy
         });
 
         team = await teamService.getTeamById({

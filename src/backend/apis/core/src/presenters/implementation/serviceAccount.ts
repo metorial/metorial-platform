@@ -2,6 +2,7 @@ import { v } from '@lowerdeck/validation';
 import { getScopeDefinition, Scope } from '@metorial/module-access';
 import { Presenter } from '@metorial/presenter';
 import { serviceAccountType } from '../types';
+import { v1AccessPolicyPreviewPresenter } from './accessPolicyPreview';
 import { v1OAuthApplicationClientSecretPresenter } from './oauthApplicationClientSecret';
 
 export let v1ServiceAccountPresenter = Presenter.create(serviceAccountType)
@@ -25,6 +26,15 @@ export let v1ServiceAccountPresenter = Presenter.create(serviceAccountType)
     }),
 
     client_id: serviceAccount.oauthApplication.clientId,
+
+    policies: await Promise.all(
+      (serviceAccount.policies ?? []).map(assignment =>
+        v1AccessPolicyPreviewPresenter
+          .present({ accessPolicy: assignment.accessPolicy }, opts)
+          .run()
+      )
+    ),
+
     client_secrets: await Promise.all(
       (serviceAccount.oauthApplication.clientSecrets ?? []).map(clientSecret =>
         v1OAuthApplicationClientSecretPresenter
@@ -39,11 +49,29 @@ export let v1ServiceAccountPresenter = Presenter.create(serviceAccountType)
   }))
   .schema(
     v.object({
-      object: v.literal('machine_access.service_account'),
-      id: v.string(),
-      status: v.enumOf(['active', 'archived']),
-      name: v.string(),
-      description: v.nullable(v.string()),
+      object: v.literal('machine_access.service_account', {
+        description: "String representing the service account object's type"
+      }),
+      id: v.string({
+        name: 'id',
+        description: 'Unique identifier of the service account',
+        examples: ['sac_7hNkPqRsTuVwXyZa']
+      }),
+      status: v.enumOf(['active', 'archived'], {
+        name: 'status',
+        description: 'Lifecycle status of the service account'
+      }),
+      name: v.string({
+        name: 'name',
+        description: 'Human-readable service account name',
+        examples: ['CI Deploy Bot']
+      }),
+      description: v.nullable(
+        v.string({
+          name: 'description',
+          description: 'Optional description of the service account'
+        })
+      ),
       scopes: v.array(
         v.object({
           identifier: v.string(),
@@ -51,11 +79,27 @@ export let v1ServiceAccountPresenter = Presenter.create(serviceAccountType)
           description: v.string()
         })
       ),
-      client_id: v.string(),
+      client_id: v.string({
+        name: 'client_id',
+        description: 'OAuth client identifier used by this service account'
+      }),
+      policies: v.array(v1AccessPolicyPreviewPresenter.schema, {
+        name: 'policies',
+        description: 'Access policies currently assigned to this service account'
+      }),
       client_secrets: v.array(v1OAuthApplicationClientSecretPresenter.schema),
-      organization_id: v.string(),
-      created_at: v.date(),
-      updated_at: v.date()
+      organization_id: v.string({
+        name: 'organization_id',
+        description: 'Organization that owns this service account'
+      }),
+      created_at: v.date({
+        name: 'created_at',
+        description: 'Timestamp when this service account was created'
+      }),
+      updated_at: v.date({
+        name: 'updated_at',
+        description: 'Timestamp when this service account was last updated'
+      })
     })
   )
   .build();
