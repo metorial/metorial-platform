@@ -41,8 +41,13 @@ jobs:
       - name: Install OSS packages
         run: bun install --linker=hoisted
 
-      - name: Build dependent system clients
-        run: bunx turbo run --ui=stream build --filter=@metorial-platform-systems/slates-client --filter=@metorial-platform-systems/shuttle-client
+      - name: Prepare dependent system clients
+        run: |
+          set -euo pipefail
+          bun run --cwd ./src/systems/slates/apps/hub db:generate
+          bunx turbo run --ui=stream build --filter=src/systems/slates/packages/**
+          bunx turbo run --ui=stream build --filter=src/systems/shuttle/sdk/packages/**
+          bunx turbo run --ui=stream build --filter=@metorial-platform-systems/slates-client --filter=@metorial-platform-systems/shuttle-client
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -79,8 +84,12 @@ jobs:
       - name: Install OSS packages
         run: bun install --linker=hoisted
 
-      - name: Build dependent system clients
-        run: bunx turbo run --ui=stream build --filter=@metorial-platform-systems/slates-client --filter=@metorial-platform-systems/shuttle-client
+      - name: Prepare dependent system clients
+        run: |
+          set -euo pipefail
+          bun run --cwd ./src/systems/slates/apps/hub db:generate
+          bunx turbo run --ui=stream build --filter=@slates/proto
+          bunx turbo run --ui=stream build --filter=@metorial-platform-systems/slates-client --filter=@metorial-platform-systems/shuttle-client
 
       - name: Build public frontend
         working-directory: ./src/systems/subspace/apps/public
