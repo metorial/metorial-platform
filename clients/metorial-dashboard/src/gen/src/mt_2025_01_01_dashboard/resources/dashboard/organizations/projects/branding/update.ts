@@ -1,18 +1,18 @@
 import { mtMap } from '@metorial/util-resource-mapper';
 
-export type DashboardOrganizationsProjectsUpdateBrandingOutput = {
+export type DashboardOrganizationsProjectsBrandingUpdateOutput = {
   object: 'project.brand';
   id: string;
   identifier: string;
   name: string;
-  imageUrl: string | null;
+  imageUrl: string;
   projectId: string;
   createdAt: Date;
   updatedAt: Date;
 };
 
-export let mapDashboardOrganizationsProjectsUpdateBrandingOutput =
-  mtMap.object<DashboardOrganizationsProjectsUpdateBrandingOutput>({
+export let mapDashboardOrganizationsProjectsBrandingUpdateOutput =
+  mtMap.object<DashboardOrganizationsProjectsBrandingUpdateOutput>({
     object: mtMap.objectField('object', mtMap.passthrough()),
     id: mtMap.objectField('id', mtMap.passthrough()),
     identifier: mtMap.objectField('identifier', mtMap.passthrough()),
@@ -23,13 +23,14 @@ export let mapDashboardOrganizationsProjectsUpdateBrandingOutput =
     updatedAt: mtMap.objectField('updated_at', mtMap.date())
   });
 
-export type DashboardOrganizationsProjectsUpdateBrandingBody = {
+export type DashboardOrganizationsProjectsBrandingUpdateBody = {
   name?: string | undefined;
   imageFileId?: string | null | undefined;
 };
 
-export let mapDashboardOrganizationsProjectsUpdateBrandingBody =
-  mtMap.object<DashboardOrganizationsProjectsUpdateBrandingBody>({
+export let mapDashboardOrganizationsProjectsBrandingUpdateBody =
+  mtMap.object<DashboardOrganizationsProjectsBrandingUpdateBody>({
     name: mtMap.objectField('name', mtMap.passthrough()),
     imageFileId: mtMap.objectField('image_file_id', mtMap.passthrough())
   });
+

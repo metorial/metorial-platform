@@ -4,15 +4,15 @@ import {
   db,
   ID,
   Organization,
-  Prisma,
   Project,
   type ProjectBrand,
   withTransaction
 } from '@metorial/db';
 import { fileReferenceService } from '@metorial/module-file';
-import { subspaceBrandService } from '@metorial/module-subspace';
+import { getTenantForSubspace, subspaceBrandService } from '@metorial/module-subspace';
 
-export type ProjectBrandOverride = ProjectBrand & {
+export type ProjectBrandOverride = Omit<ProjectBrand, 'image'> & {
+  image: PrismaJson.EntityImage;
   project: Project & { organization: Organization };
 };
 
@@ -34,7 +34,7 @@ class ProjectBrandService {
           identifier: d.project.id,
           projectOid: d.project.oid,
           name: d.project.name,
-          image: Prisma.DbNull
+          image: { type: 'default' }
         }
       });
     });
@@ -60,12 +60,12 @@ class ProjectBrandService {
     }
 
     let { name: currentName, image: currentImage } = currentBrand;
-    let nextImage = currentImage;
-    
+    let nextImage: PrismaJson.EntityImage | undefined;
+
     if (d.input.imageFileId !== undefined) {
       nextImage = await fileReferenceService.resolveImageEntityImage({
         imageFileId: d.input.imageFileId,
-        clearedImage: null,
+        clearedImage: { type: 'default' },
         owner: {
           type: 'organization',
           organizationId: d.project.organization.id
@@ -77,7 +77,8 @@ class ProjectBrandService {
     }
 
     let nextName = d.input.name ?? currentName;
-    let didImageChange = canonicalize(currentImage) !== canonicalize(nextImage);
+    let resolvedNextImage = nextImage ?? currentImage;
+    let didImageChange = canonicalize(currentImage) !== canonicalize(resolvedNextImage);
 
     await withTransaction(async db => {
       return await db.projectBrand.upsert({
@@ -86,14 +87,14 @@ class ProjectBrandService {
         },
         update: {
           name: nextName,
-          image: nextImage ?? Prisma.DbNull
+          image: nextImage
         },
         create: {
           id: await ID.generateId('projectBrand'),
           identifier: d.project.id,
           projectOid: d.project.oid,
           name: nextName,
-          image: nextImage ?? Prisma.DbNull
+          image: resolvedNextImage
         }
       });
     });
@@ -123,7 +124,7 @@ class ProjectBrandService {
   private async getCustomProjectBrand(d: {
     project: Project & { organization: Organization };
   }): Promise<ProjectBrandOverride | null> {
-    return await db.projectBrand.findUnique({
+    return (await db.projectBrand.findUnique({
       where: {
         projectOid: d.project.oid
       },
@@ -134,12 +135,12 @@ class ProjectBrandService {
           }
         }
       }
-    });
+    })) as ProjectBrandOverride | null;
   }
 
   private async syncProjectBrandToSubspace(d: {
     project: Project & { organization: Organization };
-    brand: { name: string; image: PrismaJson.EntityImage | null };
+    brand: { name: string; image: PrismaJson.EntityImage };
   }) {
     let instance = await db.instance.findFirst({
       where: {
@@ -154,11 +155,15 @@ class ProjectBrandService {
 
     if (!instance) return;
 
-    await subspaceBrandService.upsertBrand({
-      instance,
-      input: {
-        name: d.brand.name,
-        image: d.brand.image
+    let { tenant, environmentId } = await getTenantForSubspace(instance);
+
+    await subspaceBrandService.upsert({
+      name: d.brand.name,
+      image: d.brand.image,
+      for: {
+        type: 'tenant',
+        tenantId: tenant.id,
+        environmentId
       }
     });
   }

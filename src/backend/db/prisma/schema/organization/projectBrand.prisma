@@ -6,7 +6,7 @@ model ProjectBrand {
   name       String
 
   /// [EntityImage]
-  image Json?
+  image Json
 
   projectOid BigInt   @unique
   project    Project @relation(fields: [projectOid], references: [oid], onDelete: Cascade)

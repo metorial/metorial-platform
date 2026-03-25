@@ -1,12 +1,7 @@
 import { v } from '@lowerdeck/validation';
+import { getImageUrl } from '@metorial/db';
 import { Presenter } from '@metorial/presenter';
 import { projectBrandType } from '../types';
-
-let getProjectBrandImageUrl = (image: PrismaJson.EntityImage | null | undefined) => {
-  if (image?.type === 'file') return image.fileUrl ?? image.url ?? null;
-  if (image?.type === 'url') return image.url ?? null;
-  return null;
-};
 
 export let v1ProjectBrandPresenter = Presenter.create(projectBrandType)
   .presenter(async ({ projectBrand }) => ({
@@ -15,7 +10,7 @@ export let v1ProjectBrandPresenter = Presenter.create(projectBrandType)
     id: projectBrand.id,
     identifier: projectBrand.identifier,
     name: projectBrand.name,
-    image_url: getProjectBrandImageUrl(projectBrand.image),
+    image_url: await getImageUrl(projectBrand),
     project_id: projectBrand.project.id,
     created_at: projectBrand.createdAt,
     updated_at: projectBrand.updatedAt
@@ -26,7 +21,7 @@ export let v1ProjectBrandPresenter = Presenter.create(projectBrandType)
       id: v.string(),
       identifier: v.string(),
       name: v.string(),
-      image_url: v.nullable(v.string()),
+      image_url: v.string(),
       project_id: v.string(),
       created_at: v.date(),
       updated_at: v.date()

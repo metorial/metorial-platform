@@ -8,23 +8,17 @@ import {
   mapDashboardOrganizationsProjectsCreateOutput,
   mapDashboardOrganizationsProjectsDeleteOutput,
   mapDashboardOrganizationsProjectsGetOutput,
-  mapDashboardOrganizationsProjectsGetBrandingOutput,
   mapDashboardOrganizationsProjectsListOutput,
   mapDashboardOrganizationsProjectsListQuery,
   mapDashboardOrganizationsProjectsUpdateBody,
-  mapDashboardOrganizationsProjectsUpdateBrandingBody,
-  mapDashboardOrganizationsProjectsUpdateBrandingOutput,
   mapDashboardOrganizationsProjectsUpdateOutput,
   type DashboardOrganizationsProjectsCreateBody,
   type DashboardOrganizationsProjectsCreateOutput,
   type DashboardOrganizationsProjectsDeleteOutput,
   type DashboardOrganizationsProjectsGetOutput,
-  type DashboardOrganizationsProjectsGetBrandingOutput,
   type DashboardOrganizationsProjectsListOutput,
   type DashboardOrganizationsProjectsListQuery,
   type DashboardOrganizationsProjectsUpdateBody,
-  type DashboardOrganizationsProjectsUpdateBrandingBody,
-  type DashboardOrganizationsProjectsUpdateBrandingOutput,
   type DashboardOrganizationsProjectsUpdateOutput
 } from '../resources';
 
@@ -117,35 +111,6 @@ export class MetorialDashboardOrganizationsProjectsEndpoint {
   }
 
   /**
-   * @name Get project branding
-   * @description Get branding information for a specific project
-   *
-   * @param `organizationId` - string
-   * @param `projectId` - string
-   * @param `opts` - { headers?: Record<string, string> }
-   * @returns DashboardOrganizationsProjectsGetBrandingOutput
-   * @see https://metorial.com/api
-   * @see https://metorial.com/docs
-   */
-  getBranding(
-    organizationId: string,
-    projectId: string,
-    opts?: { headers?: Record<string, string> }
-  ): Promise<DashboardOrganizationsProjectsGetBrandingOutput> {
-    let path = `dashboard/organizations/${organizationId}/projects/${projectId}/branding`;
-
-    let request = {
-      path,
-
-      ...(opts?.headers ? { headers: opts.headers } : {})
-    } as any;
-
-    return this._get(request).transform(
-      mapDashboardOrganizationsProjectsGetBrandingOutput
-    );
-  }
-
-  /**
    * @name Create organization project
    * @description Create a new organization project
    *
@@ -233,38 +198,6 @@ export class MetorialDashboardOrganizationsProjectsEndpoint {
 
     return this._post(request).transform(
       mapDashboardOrganizationsProjectsUpdateOutput
-    );
-  }
-
-  /**
-   * @name Update project branding
-   * @description Update branding information for a specific project
-   *
-   * @param `organizationId` - string
-   * @param `projectId` - string
-   * @param `body` - DashboardOrganizationsProjectsUpdateBrandingBody
-   * @param `opts` - { headers?: Record<string, string> }
-   * @returns DashboardOrganizationsProjectsUpdateBrandingOutput
-   * @see https://metorial.com/api
-   * @see https://metorial.com/docs
-   */
-  updateBranding(
-    organizationId: string,
-    projectId: string,
-    body: DashboardOrganizationsProjectsUpdateBrandingBody,
-    opts?: { headers?: Record<string, string> }
-  ): Promise<DashboardOrganizationsProjectsUpdateBrandingOutput> {
-    let path = `dashboard/organizations/${organizationId}/projects/${projectId}/branding`;
-
-    let request = {
-      path,
-      body: mapDashboardOrganizationsProjectsUpdateBrandingBody.transformTo(body),
-
-      ...(opts?.headers ? { headers: opts.headers } : {})
-    } as any;
-
-    return this._patch(request).transform(
-      mapDashboardOrganizationsProjectsUpdateBrandingOutput
     );
   }
 }
