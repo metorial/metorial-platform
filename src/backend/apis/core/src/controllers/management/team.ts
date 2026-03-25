@@ -224,7 +224,9 @@ export let teamManagementController = Controller.create(
         await accessPolicyAssignmentService.assignAccessPolicyToTeam({
           organization: ctx.organization,
           team,
-          accessPolicy
+          accessPolicy,
+          performedBy: ctx.actor,
+          context: ctx.context
         });
 
         team = await teamService.getTeamById({
@@ -259,8 +261,11 @@ export let teamManagementController = Controller.create(
         });
 
         await accessPolicyAssignmentService.removeAccessPolicyFromTeam({
+          organization: ctx.organization,
           team,
-          accessPolicy
+          accessPolicy,
+          performedBy: ctx.actor,
+          context: ctx.context
         });
 
         team = await teamService.getTeamById({

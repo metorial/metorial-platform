@@ -150,7 +150,9 @@ export let organizationMemberManagementController = Controller.create(
         await accessPolicyAssignmentService.assignAccessPolicyToMember({
           organization: ctx.organization,
           member,
-          accessPolicy
+          accessPolicy,
+          performedBy: ctx.actor,
+          context: ctx.context
         });
 
         member = await organizationMemberService.getOrganizationMemberById({
@@ -185,9 +187,11 @@ export let organizationMemberManagementController = Controller.create(
         });
 
         await accessPolicyAssignmentService.removeAccessPolicyFromMember({
+          organization: ctx.organization,
           member,
           accessPolicy,
-          performedBy: ctx.actor
+          performedBy: ctx.actor,
+          context: ctx.context
         });
 
         member = await organizationMemberService.getOrganizationMemberById({

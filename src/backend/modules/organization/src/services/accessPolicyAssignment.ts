@@ -1,5 +1,6 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
+import { Context } from '@metorial/context';
 import {
   AccessPolicy,
   ID,
@@ -10,6 +11,7 @@ import {
   Team,
   withTransaction
 } from '@metorial/db';
+import { Fabric } from '@metorial/fabric';
 import { accessPolicyService } from './accessPolicy';
 
 export let accessPolicyAssignmentInclude = {
@@ -51,6 +53,8 @@ class AccessPolicyAssignmentService {
     organization: Organization;
     team: Team;
     accessPolicy: AccessPolicy;
+    performedBy?: OrganizationActor;
+    context?: Context;
     allowDefault?: boolean;
   }) {
     assertPolicyBelongsToOrganization(d);
@@ -66,7 +70,15 @@ class AccessPolicyAssignmentService {
       });
       if (existingAssignment) return existingAssignment;
 
-      return db.accessPolicyAssignment.create({
+      if (d.performedBy && d.context) {
+        await Fabric.fire('organization.access_policy.assignment.team.created:before', {
+          ...d,
+          performedBy: d.performedBy,
+          context: d.context
+        });
+      }
+
+      let accessPolicyAssignment = await db.accessPolicyAssignment.create({
         data: {
           id: await ID.generateId('accessPolicyAssignment'),
           accessPolicyOid: d.accessPolicy.oid,
@@ -74,23 +86,64 @@ class AccessPolicyAssignmentService {
         },
         include: accessPolicyAssignmentInclude
       });
+
+      if (d.performedBy && d.context) {
+        await Fabric.fire('organization.access_policy.assignment.team.created:after', {
+          ...d,
+          accessPolicyAssignment,
+          performedBy: d.performedBy,
+          context: d.context
+        });
+      }
+
+      return accessPolicyAssignment;
     });
   }
 
   async removeAccessPolicyFromTeam(d: {
+    organization: Organization;
     team: Team;
     accessPolicy: AccessPolicy;
+    performedBy?: OrganizationActor;
+    context?: Context;
     allowDefault?: boolean;
   }) {
     assertAssignablePolicy(d);
 
     return await withTransaction(async db => {
+      let accessPolicyAssignment = await db.accessPolicyAssignment.findFirst({
+        where: {
+          accessPolicyOid: d.accessPolicy.oid,
+          teamOid: d.team.oid
+        },
+        include: accessPolicyAssignmentInclude
+      });
+      if (!accessPolicyAssignment) return null;
+
+      if (d.performedBy && d.context) {
+        await Fabric.fire('organization.access_policy.assignment.team.deleted:before', {
+          ...d,
+          accessPolicyAssignment,
+          performedBy: d.performedBy,
+          context: d.context
+        });
+      }
+
       await db.accessPolicyAssignment.deleteMany({
         where: {
           accessPolicyOid: d.accessPolicy.oid,
           teamOid: d.team.oid
         }
       });
+
+      if (d.performedBy && d.context) {
+        await Fabric.fire('organization.access_policy.assignment.team.deleted:after', {
+          ...d,
+          accessPolicyAssignment,
+          performedBy: d.performedBy,
+          context: d.context
+        });
+      }
     });
   }
 
@@ -98,12 +151,31 @@ class AccessPolicyAssignmentService {
     organization: Organization;
     member: OrganizationMember;
     accessPolicy: AccessPolicy;
+    performedBy?: OrganizationActor;
+    context?: Context;
     allowDefault?: boolean;
   }) {
     assertPolicyBelongsToOrganization(d);
     assertAssignablePolicy(d);
 
     return await withTransaction(async db => {
+      let existingAssignment = await db.accessPolicyAssignment.findFirst({
+        where: {
+          accessPolicyOid: d.accessPolicy.oid,
+          memberOid: d.member.oid
+        },
+        include: accessPolicyAssignmentInclude
+      });
+      if (existingAssignment) return existingAssignment;
+
+      if (d.performedBy && d.context) {
+        await Fabric.fire('organization.access_policy.assignment.member.created:before', {
+          ...d,
+          performedBy: d.performedBy,
+          context: d.context
+        });
+      }
+
       if (d.accessPolicy.type == 'admin') {
         await db.organizationMember.update({
           where: { oid: d.member.oid },
@@ -113,16 +185,7 @@ class AccessPolicyAssignmentService {
         });
       }
 
-      let existingAssignment = await db.accessPolicyAssignment.findFirst({
-        where: {
-          accessPolicyOid: d.accessPolicy.oid,
-          memberOid: d.member.oid
-        },
-        include: accessPolicyAssignmentInclude
-      });
-      if (existingAssignment) return existingAssignment;
-
-      return db.accessPolicyAssignment.create({
+      let accessPolicyAssignment = await db.accessPolicyAssignment.create({
         data: {
           id: await ID.generateId('accessPolicyAssignment'),
           accessPolicyOid: d.accessPolicy.oid,
@@ -130,18 +193,57 @@ class AccessPolicyAssignmentService {
         },
         include: accessPolicyAssignmentInclude
       });
+
+      if (d.performedBy && d.context) {
+        await Fabric.fire('organization.access_policy.assignment.member.created:after', {
+          ...d,
+          accessPolicyAssignment,
+          performedBy: d.performedBy,
+          context: d.context
+        });
+      }
+
+      return accessPolicyAssignment;
     });
   }
 
   async removeAccessPolicyFromMember(d: {
+    organization: Organization;
     member: OrganizationMember;
     accessPolicy: AccessPolicy;
     allowDefault?: boolean;
     performedBy?: OrganizationActor;
+    context?: Context;
   }) {
     assertAssignablePolicy(d);
 
     return await withTransaction(async db => {
+      let accessPolicyAssignment = await db.accessPolicyAssignment.findFirst({
+        where: {
+          accessPolicyOid: d.accessPolicy.oid,
+          memberOid: d.member.oid
+        },
+        include: accessPolicyAssignmentInclude
+      });
+      if (!accessPolicyAssignment) return null;
+
+      if (d.performedBy && d.context) {
+        await Fabric.fire('organization.access_policy.assignment.member.deleted:before', {
+          ...d,
+          accessPolicyAssignment,
+          performedBy: d.performedBy,
+          context: d.context
+        });
+      }
+
+      if (d.accessPolicy.type == 'admin' && d.performedBy?.oid == d.member.actorOid) {
+        throw new ServiceError(
+          badRequestError({
+            message: 'You cannot remove your own admin access policy'
+          })
+        );
+      }
+
       await db.accessPolicyAssignment.deleteMany({
         where: {
           accessPolicyOid: d.accessPolicy.oid,
@@ -150,19 +252,20 @@ class AccessPolicyAssignmentService {
       });
 
       if (d.accessPolicy.type == 'admin') {
-        if (d.performedBy?.oid == d.member.actorOid) {
-          throw new ServiceError(
-            badRequestError({
-              message: 'You cannot remove your own admin access policy'
-            })
-          );
-        }
-
         await db.organizationMember.update({
           where: { oid: d.member.oid },
           data: {
             role: 'member'
           }
+        });
+      }
+
+      if (d.performedBy && d.context) {
+        await Fabric.fire('organization.access_policy.assignment.member.deleted:after', {
+          ...d,
+          accessPolicyAssignment,
+          performedBy: d.performedBy,
+          context: d.context
         });
       }
     });
@@ -172,6 +275,8 @@ class AccessPolicyAssignmentService {
     organization: Organization;
     serviceAccount: ServiceAccount;
     accessPolicy: AccessPolicy;
+    performedBy?: OrganizationActor;
+    context?: Context;
     allowDefault?: boolean;
   }) {
     assertPolicyBelongsToOrganization(d);
@@ -187,7 +292,18 @@ class AccessPolicyAssignmentService {
       });
       if (existingAssignment) return existingAssignment;
 
-      return await db.accessPolicyAssignment.create({
+      if (d.performedBy && d.context) {
+        await Fabric.fire(
+          'organization.access_policy.assignment.service_account.created:before',
+          {
+            ...d,
+            performedBy: d.performedBy,
+            context: d.context
+          }
+        );
+      }
+
+      let accessPolicyAssignment = await db.accessPolicyAssignment.create({
         data: {
           id: await ID.generateId('accessPolicyAssignment'),
           accessPolicyOid: d.accessPolicy.oid,
@@ -195,23 +311,73 @@ class AccessPolicyAssignmentService {
         },
         include: accessPolicyAssignmentInclude
       });
+
+      if (d.performedBy && d.context) {
+        await Fabric.fire(
+          'organization.access_policy.assignment.service_account.created:after',
+          {
+            ...d,
+            accessPolicyAssignment,
+            performedBy: d.performedBy,
+            context: d.context
+          }
+        );
+      }
+
+      return accessPolicyAssignment;
     });
   }
 
   async removeAccessPolicyFromServiceAccount(d: {
+    organization: Organization;
     serviceAccount: ServiceAccount;
     accessPolicy: AccessPolicy;
+    performedBy?: OrganizationActor;
+    context?: Context;
     allowDefault?: boolean;
   }) {
     assertAssignablePolicy(d);
 
     return await withTransaction(async db => {
+      let accessPolicyAssignment = await db.accessPolicyAssignment.findFirst({
+        where: {
+          accessPolicyOid: d.accessPolicy.oid,
+          serviceAccountOid: d.serviceAccount.oid
+        },
+        include: accessPolicyAssignmentInclude
+      });
+      if (!accessPolicyAssignment) return null;
+
+      if (d.performedBy && d.context) {
+        await Fabric.fire(
+          'organization.access_policy.assignment.service_account.deleted:before',
+          {
+            ...d,
+            accessPolicyAssignment,
+            performedBy: d.performedBy,
+            context: d.context
+          }
+        );
+      }
+
       await db.accessPolicyAssignment.deleteMany({
         where: {
           accessPolicyOid: d.accessPolicy.oid,
           serviceAccountOid: d.serviceAccount.oid
         }
       });
+
+      if (d.performedBy && d.context) {
+        await Fabric.fire(
+          'organization.access_policy.assignment.service_account.deleted:after',
+          {
+            ...d,
+            accessPolicyAssignment,
+            performedBy: d.performedBy,
+            context: d.context
+          }
+        );
+      }
     });
   }
 
@@ -257,6 +423,7 @@ class AccessPolicyAssignmentService {
         });
       } else {
         await this.removeAccessPolicyFromMember({
+          organization: d.organization,
           member: d.member,
           accessPolicy: adminPolicy,
           allowDefault: true

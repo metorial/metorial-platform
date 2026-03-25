@@ -1,6 +1,7 @@
 import { Context } from '@metorial/context';
 import {
   AccessPolicy,
+  AccessPolicyAssignment,
   AccessRole,
   ApiKey,
   Instance,
@@ -189,6 +190,18 @@ export interface FabricEvents {
   'organization.access_policy.updated:after': { organization: Organization; performedBy: OrganizationActor; context: Context; accessPolicy: AccessPolicy; input: { name?: string; description?: string | null; document?: PrismaJson.PolicyDocument; message?: string; } };
   'organization.access_policy.deleted:before': { organization: Organization; performedBy: OrganizationActor; context: Context; accessPolicy: AccessPolicy };
   'organization.access_policy.deleted:after': { organization: Organization; performedBy: OrganizationActor; context: Context; accessPolicy: AccessPolicy };
+  'organization.access_policy.assignment.team.created:before': { organization: Organization; team: Team; accessPolicy: AccessPolicy; performedBy: OrganizationActor; context: Context };
+  'organization.access_policy.assignment.team.created:after': { organization: Organization; team: Team; accessPolicy: AccessPolicy; accessPolicyAssignment: AccessPolicyAssignment; performedBy: OrganizationActor; context: Context };
+  'organization.access_policy.assignment.team.deleted:before': { organization: Organization; team: Team; accessPolicy: AccessPolicy; accessPolicyAssignment: AccessPolicyAssignment; performedBy: OrganizationActor; context: Context };
+  'organization.access_policy.assignment.team.deleted:after': { organization: Organization; team: Team; accessPolicy: AccessPolicy; accessPolicyAssignment: AccessPolicyAssignment; performedBy: OrganizationActor; context: Context };
+  'organization.access_policy.assignment.member.created:before': { organization: Organization; member: OrganizationMember; accessPolicy: AccessPolicy; performedBy: OrganizationActor; context: Context };
+  'organization.access_policy.assignment.member.created:after': { organization: Organization; member: OrganizationMember; accessPolicy: AccessPolicy; accessPolicyAssignment: AccessPolicyAssignment; performedBy: OrganizationActor; context: Context };
+  'organization.access_policy.assignment.member.deleted:before': { organization: Organization; member: OrganizationMember; accessPolicy: AccessPolicy; accessPolicyAssignment: AccessPolicyAssignment; performedBy: OrganizationActor; context: Context };
+  'organization.access_policy.assignment.member.deleted:after': { organization: Organization; member: OrganizationMember; accessPolicy: AccessPolicy; accessPolicyAssignment: AccessPolicyAssignment; performedBy: OrganizationActor; context: Context };
+  'organization.access_policy.assignment.service_account.created:before': { organization: Organization; serviceAccount: ServiceAccount; accessPolicy: AccessPolicy; performedBy: OrganizationActor; context: Context };
+  'organization.access_policy.assignment.service_account.created:after': { organization: Organization; serviceAccount: ServiceAccount; accessPolicy: AccessPolicy; accessPolicyAssignment: AccessPolicyAssignment; performedBy: OrganizationActor; context: Context };
+  'organization.access_policy.assignment.service_account.deleted:before': { organization: Organization; serviceAccount: ServiceAccount; accessPolicy: AccessPolicy; accessPolicyAssignment: AccessPolicyAssignment; performedBy: OrganizationActor; context: Context };
+  'organization.access_policy.assignment.service_account.deleted:after': { organization: Organization; serviceAccount: ServiceAccount; accessPolicy: AccessPolicy; accessPolicyAssignment: AccessPolicyAssignment; performedBy: OrganizationActor; context: Context };
 
   'machine_access.created:before': MachineAccessInput & { context?: Context };
   'machine_access.created:after': MachineAccessInput & { context?: Context, machineAccess: MachineAccess };

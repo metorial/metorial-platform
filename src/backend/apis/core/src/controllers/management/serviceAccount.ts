@@ -357,7 +357,9 @@ export let serviceAccountManagementController = Controller.create(
         await accessPolicyAssignmentService.assignAccessPolicyToServiceAccount({
           organization: ctx.organization,
           serviceAccount: ctx.serviceAccount,
-          accessPolicy
+          accessPolicy,
+          performedBy: ctx.actor,
+          context: ctx.context
         });
 
         let serviceAccount = await serviceAccountService.getServiceAccountById({
@@ -388,8 +390,11 @@ export let serviceAccountManagementController = Controller.create(
         });
 
         await accessPolicyAssignmentService.removeAccessPolicyFromServiceAccount({
+          organization: ctx.organization,
           serviceAccount: ctx.serviceAccount,
-          accessPolicy
+          accessPolicy,
+          performedBy: ctx.actor,
+          context: ctx.context
         });
 
         let serviceAccount = await serviceAccountService.getServiceAccountById({

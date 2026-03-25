@@ -26,6 +26,12 @@ vi.mock('@lowerdeck/service', () => ({
   }
 }));
 
+vi.mock('@metorial/fabric', () => ({
+  Fabric: {
+    fire: vi.fn()
+  }
+}));
+
 vi.mock('../src/services/accessPolicy', () => ({
   accessPolicyService: {
     getDefaultAccessPolicy: vi.fn()
@@ -71,7 +77,9 @@ describe('AccessPolicyAssignmentService', () => {
         organization: organization as any,
         member: member as any,
         accessPolicy: accessPolicy as any,
-        allowDefault: true
+        allowDefault: true,
+        performedBy: { oid: 4 } as any,
+        context: {} as any
       });
 
       expect(update).toHaveBeenCalledWith({
@@ -91,7 +99,11 @@ describe('AccessPolicyAssignmentService', () => {
       vi.mocked(withTransaction).mockImplementation(async callback => {
         let mockDb = {
           accessPolicyAssignment: {
-            findFirst: vi.fn(),
+            findFirst: vi.fn().mockResolvedValue({
+              id: 'apa_1',
+              accessPolicy,
+              member
+            }),
             create: vi.fn(),
             deleteMany
           },
@@ -103,9 +115,12 @@ describe('AccessPolicyAssignmentService', () => {
       });
 
       await accessPolicyAssignmentService.removeAccessPolicyFromMember({
+        organization: { oid: 1 } as any,
         member: member as any,
         accessPolicy: accessPolicy as any,
-        allowDefault: true
+        allowDefault: true,
+        performedBy: { oid: 4 } as any,
+        context: {} as any
       });
 
       expect(deleteMany).toHaveBeenCalledWith({
