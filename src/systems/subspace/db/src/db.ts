@@ -1,6 +1,5 @@
 import type { ErrorData } from '@lowerdeck/error';
 import { withExecutionContextTraceFallback } from '@lowerdeck/telemetry';
-import type {} from '@metorial/db';
 import type {
   Specification,
   SpecificationAuthMethod,
@@ -52,6 +51,19 @@ export let db = baseClient.$extends({
 
 declare global {
   namespace PrismaJson {
+    type EntityImage =
+      | {
+          type: 'file';
+          fileId: string;
+          fileLinkId: string;
+          fileReferenceId: string;
+          fileUrl: string;
+          url?: string;
+        }
+      | { type: 'enterprise_file'; fileId: string }
+      | { type: 'url'; url: string }
+      | { type: 'default' };
+
     type PublisherSource = { type: 'github'; url: string; owner: string; repo?: string };
 
     type ProviderSpecificationValue = {
