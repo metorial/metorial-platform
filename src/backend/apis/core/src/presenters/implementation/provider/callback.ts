@@ -14,21 +14,33 @@ let callbackTriggerSchema = v.object({
     description: 'Unique callback trigger association identifier',
     examples: ['cbt_4dEfGhJkLmNpQrSt']
   }),
-  provider_trigger_id: v.string({
-    name: 'provider_trigger_id',
-    description: 'Provider trigger identifier from the deployment specification',
-    examples: ['ptr_7dEfGhJkLmNpQrSt']
-  }),
-  provider_trigger_key: v.string({
-    name: 'provider_trigger_key',
-    description: 'Stable trigger key used by the provider',
-    examples: ['messages.created']
-  }),
-  provider_trigger_name: v.string({
-    name: 'provider_trigger_name',
-    description: 'Human-readable trigger name',
-    examples: ['Messages Created']
-  }),
+  provider_trigger: v.object(
+    {
+      object: v.literal('provider.trigger#preview', {
+        description: "String representing the provider trigger's type"
+      }),
+
+      id: v.string({
+        name: 'id',
+        description: 'Provider trigger identifier from the deployment specification',
+        examples: ['ptr_7dEfGhJkLmNpQrSt']
+      }),
+      key: v.string({
+        name: 'key',
+        description: 'Stable trigger key used by the provider',
+        examples: ['messages.created']
+      }),
+      name: v.string({
+        name: 'name',
+        description: 'Human-readable trigger name',
+        examples: ['Messages Created']
+      })
+    },
+    {
+      name: 'provider_trigger',
+      description: 'Preview of the provider trigger associated with this callback trigger'
+    }
+  ),
   event_types: v.array(
     v.string({
       examples: ['message.created']
@@ -53,29 +65,42 @@ export let v1CallbackPresenter = Presenter.create(callbackType)
 
     return {
       object: 'callback' as const,
+
       id: callback.id,
       status: callback.status,
       name: callback.name,
       description: callback.description,
       metadata: callback.metadata,
       poll_interval_seconds_override: callback.pollIntervalSecondsOverride,
+
       provider_deployment: await v1ProviderDeploymentPreviewPresenter
         .present({ deployment: callback.providerDeployment }, opts)
         .run(),
+
       destinations: await Promise.all(
         (callbackWithDestinations.destinations ?? []).map(async destination =>
-        v1CallbackDestinationPresenter.present({ callbackDestination: destination }, opts).run()
+          v1CallbackDestinationPresenter
+            .present({ callbackDestination: destination }, opts)
+            .run()
         )
       ),
+
       provider_triggers: callback.providerTriggers.map(trigger => ({
         object: 'callback.provider_trigger' as const,
         id: trigger.id,
-        provider_trigger_id: trigger.providerTriggerId,
-        provider_trigger_key: trigger.providerTriggerKey,
-        provider_trigger_name: trigger.providerTriggerName,
+
         event_types: trigger.eventTypes,
-        created_at: trigger.createdAt
+        created_at: trigger.createdAt,
+
+        provider_trigger: {
+          object: 'provider.trigger#preview' as const,
+
+          id: trigger.providerTriggerId,
+          key: trigger.providerTriggerKey,
+          name: trigger.providerTriggerName
+        }
       })),
+
       created_at: callback.createdAt,
       updated_at: callback.updatedAt
     };
@@ -116,7 +141,8 @@ export let v1CallbackPresenter = Presenter.create(callbackType)
       poll_interval_seconds_override: v.nullable(
         v.number({
           name: 'poll_interval_seconds_override',
-          description: 'Optional polling interval override, in seconds, for polling-capable triggers',
+          description:
+            'Optional polling interval override, in seconds, for polling-capable triggers',
           examples: [60]
         })
       ),

@@ -1,6 +1,9 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
 import { callbackInstanceType } from '../../types';
+import { v1ProviderAuthConfigPreviewPresenter } from './authConfigPreview';
+import { v1ProviderConfigPreviewPresenter } from './configPreview';
+import { v1ProviderDeploymentPreviewPresenter } from './deploymentPreview';
 import { v1ProviderTriggerPresenter } from './providerTrigger';
 
 let callbackInstanceTriggerSchema = v.object({
@@ -51,9 +54,7 @@ let callbackInstanceTriggerSchema = v.object({
       description: 'Whether webhook registration is currently active for this trigger'
     })
   ),
-  provider_trigger: v.nullable(
-    v1ProviderTriggerPresenter.schema
-  )
+  provider_trigger: v.nullable(v1ProviderTriggerPresenter.schema)
 });
 
 export let v1CallbackInstancePresenter = Presenter.create(callbackInstanceType)
@@ -61,7 +62,21 @@ export let v1CallbackInstancePresenter = Presenter.create(callbackInstanceType)
     object: 'callback.instance' as const,
     id: callbackInstance.id,
     status: callbackInstance.status,
-    registration_status: callbackInstance.registrationStatus,
+
+    deployment: await v1ProviderDeploymentPreviewPresenter
+      .present({ deployment: callbackInstance.deployment }, opts)
+      .run(),
+
+    config: await v1ProviderConfigPreviewPresenter
+      .present({ config: callbackInstance.config }, opts)
+      .run(),
+
+    auth_config: callbackInstance.authConfig
+      ? await v1ProviderAuthConfigPreviewPresenter
+          .present({ authConfig: callbackInstance.authConfig }, opts)
+          .run()
+      : null,
+
     triggers: await Promise.all(
       callbackInstance.triggers.map(async trigger => ({
         object: 'callback.instance.trigger' as const,
@@ -73,10 +88,13 @@ export let v1CallbackInstancePresenter = Presenter.create(callbackInstanceType)
         webhook_url: trigger.webhookUrl,
         is_webhook_registered: trigger.isWebhookRegistered,
         provider_trigger: trigger.providerTrigger
-          ? await v1ProviderTriggerPresenter.present({ trigger: trigger.providerTrigger }, opts).run()
+          ? await v1ProviderTriggerPresenter
+              .present({ trigger: trigger.providerTrigger }, opts)
+              .run()
           : null
       }))
     ),
+
     created_at: callbackInstance.createdAt,
     updated_at: callbackInstance.updatedAt
   }))
@@ -95,10 +113,9 @@ export let v1CallbackInstancePresenter = Presenter.create(callbackInstanceType)
         description:
           'Whether the callback instance is currently attached to a deployment/config pair'
       }),
-      registration_status: v.enumOf(['pending', 'registered'], {
-        name: 'registration_status',
-        description: 'Registration state of the underlying trigger receiver'
-      }),
+      deployment: v1ProviderDeploymentPreviewPresenter.schema,
+      config: v1ProviderConfigPreviewPresenter.schema,
+      auth_config: v.nullable(v1ProviderAuthConfigPreviewPresenter.schema),
       triggers: v.array(callbackInstanceTriggerSchema, {
         name: 'triggers',
         description: 'Resolved trigger registrations for this callback instance'

@@ -82,10 +82,16 @@ class providerCombinationServiceImpl {
         let res = await Promise.all(
           d.providers.map(async s => {
             let config = s.configId
-              ? await db.providerConfig.findFirst({ where: { ...ts, id: s.configId } })
+              ? await db.providerConfig.findFirst({
+                  where: { ...ts, id: s.configId },
+                  include: { currentVersion: true }
+                })
               : null;
             let authConfig = s.authConfigId
-              ? await db.providerAuthConfig.findFirst({ where: { ...ts, id: s.authConfigId } })
+              ? await db.providerAuthConfig.findFirst({
+                  where: { ...ts, id: s.authConfigId },
+                  include: { currentVersion: true }
+                })
               : null;
             let deployment = s.deploymentId
               ? await db.providerDeployment.findFirst({
@@ -188,7 +194,8 @@ class providerCombinationServiceImpl {
             if (!config) {
               if (deployment.defaultConfigOid) {
                 config = await db.providerConfig.findFirstOrThrow({
-                  where: { ...ts, oid: deployment.defaultConfigOid }
+                  where: { ...ts, oid: deployment.defaultConfigOid },
+                  include: { currentVersion: true }
                 });
                 checkDeletedRelation(config, d);
               } else {
@@ -229,7 +236,8 @@ class providerCombinationServiceImpl {
             if (!authConfig && spec.value.authMethods.length > 0) {
               if (deployment.defaultAuthConfigOid) {
                 authConfig = await db.providerAuthConfig.findFirstOrThrow({
-                  where: { ...ts, oid: deployment.defaultAuthConfigOid }
+                  where: { ...ts, oid: deployment.defaultAuthConfigOid },
+                  include: { currentVersion: true }
                 });
                 checkDeletedRelation(authConfig, d);
               } else {

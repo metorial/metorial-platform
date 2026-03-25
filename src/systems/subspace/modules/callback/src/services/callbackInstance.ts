@@ -22,13 +22,25 @@ import {
   resolveProviderAuthConfigs,
   resolveProviderConfigs
 } from '@metorial-subspace/list-utils';
-import { providerDeploymentConfigPairInternalService } from '@metorial-subspace/module-provider-internal';
+import {
+  providerCombinationService,
+  providerDeploymentConfigPairInternalService
+} from '@metorial-subspace/module-provider-internal';
 import { getTenantForSlates, slates } from '@metorial-subspace/provider-slates/src/client';
 import { callbackRegistrationService } from './callbackRegistration';
 
 let callbackInstanceInclude = {
   providerDeploymentConfigPair: {
     include: {
+      providerDeploymentVersion: {
+        include: {
+          deployment: {
+            include: {
+              provider: true
+            }
+          }
+        }
+      },
       providerConfigVersion: {
         include: {
           config: true
@@ -132,44 +144,25 @@ class callbackInstanceServiceImpl {
       );
     }
 
-    let config = await db.providerConfig.findFirst({
-      where: {
-        oid: d.config.oid,
-        status: 'active',
-        tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
-        environmentOid: d.environment.oid,
-        deploymentOid: d.callback.providerDeploymentOid
-      },
-      include: { currentVersion: true }
+    let [combination] = await providerCombinationService.getCombinations({
+      tenant: d.tenant,
+      solution: d.solution,
+      environment: d.environment,
+
+      providers: [
+        {
+          deploymentId: d.callback.providerDeployment.id,
+          configId: d.config.id,
+          authConfigId: d.authConfig?.id
+        }
+      ]
     });
-    if (!config?.currentVersion) {
-      throw new ServiceError(notFoundError('provider.config', d.config.id));
-    }
-
-    let authConfig = d.authConfig
-      ? await db.providerAuthConfig.findFirst({
-          where: {
-            oid: d.authConfig.oid,
-            status: 'active',
-            tenantOid: d.tenant.oid,
-            solutionOid: d.solution.oid,
-            environmentOid: d.environment.oid,
-            deploymentOid: d.callback.providerDeploymentOid
-          },
-          include: { currentVersion: true }
-        })
-      : null;
-
-    if (d.authConfig && !authConfig?.currentVersion) {
-      throw new ServiceError(notFoundError('provider.auth_config', d.authConfig.id));
-    }
 
     let pairRes = await providerDeploymentConfigPairInternalService.upsertDeploymentConfigPair(
       {
         deployment: d.callback.providerDeployment,
-        config,
-        authConfig
+        config: combination.config,
+        authConfig: combination.authConfig
       }
     );
 

@@ -551,7 +551,7 @@ class providerConfigServiceImpl {
           deploymentOid: d.providerDeployment.oid,
           isDefault: true
         },
-        include
+        include: { ...include, currentVersion: true }
       })
     );
   }

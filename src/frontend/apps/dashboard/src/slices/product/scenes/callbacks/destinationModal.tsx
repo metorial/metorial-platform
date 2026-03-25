@@ -39,9 +39,9 @@ export let showCallbackDestinationFormModal = (p: {
       schema: yup =>
         yup.object({
           name: yup.string().trim().required('Enter a name'),
-          description: yup.string().defined(),
+          description: yup.string(),
           url: yup.string().trim().url('Enter a valid URL').required('Enter a URL')
-        })
+        }) as any
     });
 
     return (
@@ -69,10 +69,11 @@ export let showCallbackDestinationFormModal = (p: {
           <Spacer height={20} />
 
           <Dialog.Actions>
-            <Button variant="outline" type="button" onClick={close}>
+            <Button variant="outline" type="button" onClick={close} size="2">
               Cancel
             </Button>
             <Button
+              size="2"
               type="submit"
               loading={createDestination.isLoading}
               success={createDestination.isSuccess}
