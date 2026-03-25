@@ -2,6 +2,7 @@ import { Service } from '@lowerdeck/service';
 import {
   addAfterTransactionHook,
   type Backend,
+  type EntityImage,
   getId,
   type Provider,
   type ProviderVariant,
@@ -91,7 +92,7 @@ class providerInternalServiceImpl {
       description?: string;
       slug: string;
       globalIdentifier: string | null;
-      image?: PrismaJson.EntityImage | null;
+      image?: EntityImage | null;
       skills?: string[];
       readme?: string;
       categories?: string[];
@@ -326,7 +327,7 @@ class providerInternalServiceImpl {
       description?: string;
       readme?: string;
       slug?: string;
-      image?: PrismaJson.EntityImage | null;
+      image?: EntityImage | null;
       skills?: string[];
       access?: 'public' | 'tenant';
     };

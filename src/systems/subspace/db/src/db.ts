@@ -13,6 +13,19 @@ import { readReplicas } from '@prisma/extension-read-replicas';
 import { PrismaClient } from '../prisma/generated/client';
 import type { CustomProviderConfig, CustomProviderFrom } from './types';
 
+export type EntityImage =
+  | {
+      type: 'file';
+      fileId: string;
+      fileLinkId: string;
+      fileReferenceId: string;
+      fileUrl: string;
+      url?: string;
+    }
+  | { type: 'enterprise_file'; fileId: string }
+  | { type: 'url'; url: string }
+  | { type: 'default' };
+
 let mainAdapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL
 });
@@ -51,19 +64,6 @@ export let db = baseClient.$extends({
 
 declare global {
   namespace PrismaJson {
-    type EntityImage =
-      | {
-          type: 'file';
-          fileId: string;
-          fileLinkId: string;
-          fileReferenceId: string;
-          fileUrl: string;
-          url?: string;
-        }
-      | { type: 'enterprise_file'; fileId: string }
-      | { type: 'url'; url: string }
-      | { type: 'default' };
-
     type PublisherSource = { type: 'github'; url: string; owner: string; repo?: string };
 
     type ProviderSpecificationValue = {

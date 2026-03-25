@@ -4,6 +4,7 @@ import {
   addAfterTransactionHook,
   db,
   getId,
+  type EntityImage,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
@@ -74,7 +75,7 @@ class publisherInternalServiceImpl {
       identifier: string;
       description?: string;
       source?: PrismaJson.PublisherSource;
-      image?: PrismaJson.EntityImage;
+      image?: EntityImage;
     };
   }) {
     let publisher = await db.publisher.findFirst({
