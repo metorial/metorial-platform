@@ -49,13 +49,21 @@ jobs:
           bunx turbo run --ui=stream build --filter=./src/systems/shuttle/sdk/packages/**
           bunx turbo run --ui=stream build --filter=@metorial-platform-systems/slates-client --filter=@metorial-platform-systems/shuttle-client
 
+      - name: Stage dependent clients into Subspace
+        run: |
+          set -euo pipefail
+          rm -rf ./src/systems/subspace/clients
+          mkdir -p ./src/systems/subspace/clients/slates ./src/systems/subspace/clients/shuttle
+          cp -R ./src/systems/_clients/slates/. ./src/systems/subspace/clients/slates
+          cp -R ./src/systems/_clients/shuttle/. ./src/systems/subspace/clients/shuttle
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
       - name: Build ${{ matrix.service.name }} Docker image
         uses: docker/build-push-action@v6
         with:
-          context: .
+          context: ./src/systems/subspace
           file: ${{ matrix.service.dockerfile }}
           push: false
           build-args: |
@@ -91,6 +99,14 @@ jobs:
           bunx turbo run --ui=stream build --filter=@slates/proto
           bunx turbo run --ui=stream build --filter=@metorial-platform-systems/slates-client --filter=@metorial-platform-systems/shuttle-client
 
+      - name: Stage dependent clients into Subspace
+        run: |
+          set -euo pipefail
+          rm -rf ./src/systems/subspace/clients
+          mkdir -p ./src/systems/subspace/clients/slates ./src/systems/subspace/clients/shuttle
+          cp -R ./src/systems/_clients/slates/. ./src/systems/subspace/clients/slates
+          cp -R ./src/systems/_clients/shuttle/. ./src/systems/subspace/clients/shuttle
+
       - name: Build public frontend
         working-directory: ./src/systems/subspace/apps/public
         run: bun run build
@@ -101,7 +117,7 @@ jobs:
       - name: Build public Docker image
         uses: docker/build-push-action@v6
         with:
-          context: .
+          context: ./src/systems/subspace
           file: ./src/systems/subspace/apps/public/Dockerfile
           push: false
           build-args: |
