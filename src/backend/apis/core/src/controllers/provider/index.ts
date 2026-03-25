@@ -1,3 +1,8 @@
+export * from './callback';
+export * from './callbackDestination';
+export * from './callbackEvent';
+export * from './callbackInstance';
+export * from './callbackNotification';
 export * from './customProvider';
 export * from './customProviderCode';
 export * from './customProviderCommit';
@@ -32,6 +37,7 @@ export * from './providerRun';
 export * from './providerSetupSession';
 export * from './providerSetupSessionDashboard';
 export * from './providerSpecification';
+export * from './providerTrigger';
 export * from './providerTool';
 export * from './providerVersion';
 export * from './session';

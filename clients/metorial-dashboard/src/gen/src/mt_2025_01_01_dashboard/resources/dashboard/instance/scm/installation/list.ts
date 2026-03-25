@@ -4,9 +4,9 @@ export type DashboardInstanceScmInstallationListOutput = {
   items: {
     object: 'scm.connection';
     id: string;
-    provider: string;
+    provider: 'github' | 'gitlab';
     externalInstallationId: string | null;
-    accountType: string | null;
+    accountType: 'user' | 'organization' | null;
     externalAccount: {
       id: string;
       login: string;

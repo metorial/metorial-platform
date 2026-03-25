@@ -70,6 +70,12 @@ let RepoItem = styled.button`
   }
 `;
 
+let formatRepoProvider = (provider: 'github' | 'gitlab' | undefined) => {
+  if (provider === 'github') return 'GitHub';
+  if (provider === 'gitlab') return 'GitLab';
+  return '';
+};
+
 export let ConnectGitHubButton = (p: { onConnected: () => void }) => {
   let instance = useCurrentInstance();
   let createInstallation = useCreateScmInstallation();
@@ -228,7 +234,7 @@ export let SelectRepo = (props: {
                         <h3>
                           {r.identifier}
                         </h3>
-                        <p>{(r.provider?.type ?? '').toUpperCase()}</p>
+                        <p>{formatRepoProvider(r.provider)}</p>
                       </main>
 
                       <Button

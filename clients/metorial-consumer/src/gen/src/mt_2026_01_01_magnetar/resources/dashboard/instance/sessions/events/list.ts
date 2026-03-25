@@ -4,13 +4,25 @@ export type DashboardInstanceSessionsEventsListOutput = {
   items: {
     object: 'session.event';
     id: string;
-    type: string;
+    type:
+      | 'session_created'
+      | 'session_started'
+      | 'provider_run_started'
+      | 'provider_run_stopped'
+      | 'message_created'
+      | 'message_processed'
+      | 'connection_created'
+      | 'connection_connected'
+      | 'connection_disconnected'
+      | 'connection_disabled'
+      | 'error_occurred'
+      | 'warning_occurred';
     sessionId: string;
     connection: {
       object: 'session.connection';
       id: string;
       connectionState: 'connected' | 'disconnected';
-      transport: string;
+      transport: 'mcp' | 'tool_call' | 'metorial_protocol' | 'system';
       usage: {
         totalProductiveClientMessageCount: number;
         totalProductiveProviderMessageCount: number;
@@ -18,16 +30,22 @@ export type DashboardInstanceSessionsEventsListOutput = {
       mcp: {
         capabilities: Record<string, any>;
         protocolVersion: string;
-        transport: string;
+        transport: 'none' | 'sse' | 'streamable_http';
       } | null;
       sessionId: string;
       participant: {
         object: 'session.participant';
         id: string;
-        type: string;
+        type:
+          | 'unknown'
+          | 'provider'
+          | 'mcp_client'
+          | 'metorial_protocol_client'
+          | 'system'
+          | 'tool_call';
         identifier: string;
         name: string;
-        data: Record<string, any>;
+        data: { identifier: string; name: string };
         providerId: string | null;
         createdAt: Date;
       } | null;
@@ -35,7 +53,7 @@ export type DashboardInstanceSessionsEventsListOutput = {
       hasWarnings: boolean;
       createdAt: Date;
       lastMessageAt: Date;
-      lastActiveAt: Date;
+      lastActiveAt: Date | null;
     } | null;
     providerRun: {
       object: 'session.provider_run';
@@ -141,20 +159,32 @@ export type DashboardInstanceSessionsEventsListOutput = {
       senderParticipant: {
         object: 'session.participant';
         id: string;
-        type: string;
+        type:
+          | 'unknown'
+          | 'provider'
+          | 'mcp_client'
+          | 'metorial_protocol_client'
+          | 'system'
+          | 'tool_call';
         identifier: string;
         name: string;
-        data: Record<string, any>;
+        data: { identifier: string; name: string };
         providerId: string | null;
         createdAt: Date;
       };
       responderParticipant: {
         object: 'session.participant';
         id: string;
-        type: string;
+        type:
+          | 'unknown'
+          | 'provider'
+          | 'mcp_client'
+          | 'metorial_protocol_client'
+          | 'system'
+          | 'tool_call';
         identifier: string;
         name: string;
-        data: Record<string, any>;
+        data: { identifier: string; name: string };
         providerId: string | null;
         createdAt: Date;
       } | null;
@@ -262,7 +292,16 @@ export let mapDashboardInstanceSessionsEventsListOutput =
                     mtMap.passthrough()
                   ),
                   name: mtMap.objectField('name', mtMap.passthrough()),
-                  data: mtMap.objectField('data', mtMap.passthrough()),
+                  data: mtMap.objectField(
+                    'data',
+                    mtMap.object({
+                      identifier: mtMap.objectField(
+                        'identifier',
+                        mtMap.passthrough()
+                      ),
+                      name: mtMap.objectField('name', mtMap.passthrough())
+                    })
+                  ),
                   providerId: mtMap.objectField(
                     'provider_id',
                     mtMap.passthrough()
@@ -526,7 +565,16 @@ export let mapDashboardInstanceSessionsEventsListOutput =
                     mtMap.passthrough()
                   ),
                   name: mtMap.objectField('name', mtMap.passthrough()),
-                  data: mtMap.objectField('data', mtMap.passthrough()),
+                  data: mtMap.objectField(
+                    'data',
+                    mtMap.object({
+                      identifier: mtMap.objectField(
+                        'identifier',
+                        mtMap.passthrough()
+                      ),
+                      name: mtMap.objectField('name', mtMap.passthrough())
+                    })
+                  ),
                   providerId: mtMap.objectField(
                     'provider_id',
                     mtMap.passthrough()
@@ -545,7 +593,16 @@ export let mapDashboardInstanceSessionsEventsListOutput =
                     mtMap.passthrough()
                   ),
                   name: mtMap.objectField('name', mtMap.passthrough()),
-                  data: mtMap.objectField('data', mtMap.passthrough()),
+                  data: mtMap.objectField(
+                    'data',
+                    mtMap.object({
+                      identifier: mtMap.objectField(
+                        'identifier',
+                        mtMap.passthrough()
+                      ),
+                      name: mtMap.objectField('name', mtMap.passthrough())
+                    })
+                  ),
                   providerId: mtMap.objectField(
                     'provider_id',
                     mtMap.passthrough()

@@ -109,9 +109,7 @@ export let upsertShuttleServerVersion = ({
       publisher = await publisherInternalService.upsertUnknownPublisher();
     }
 
-    let hasConfig = !!(version.configSchema
-      ? normalizeJsonSchema(version.configSchema.configSchema)
-      : null);
+    let hasConfig = !!(version.configSchema ? normalizeJsonSchema(version.configSchema) : null);
 
     let type = {
       name: `MCP`,

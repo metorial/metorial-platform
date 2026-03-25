@@ -300,6 +300,14 @@ export let ProviderLayout = () => {
                   label: 'Tools',
                   to: Paths.instance.provider(...providerPathParams, 'tools')
                 },
+                ...(provider.data.type.triggers.status === 'enabled'
+                  ? [
+                      {
+                        label: 'Triggers',
+                        to: Paths.instance.provider(...providerPathParams, 'triggers')
+                      }
+                    ]
+                  : []),
                 {
                   label: 'Auth Methods',
                   to: Paths.instance.provider(...providerPathParams, 'auth-methods')

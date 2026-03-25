@@ -7,7 +7,7 @@ import {
   useProviders
 } from '@metorial/state';
 import { Badge, Flex, Input, RenderDate, Spacer, Text } from '@metorial/ui';
-import { Table } from '@metorial/ui-product';
+import { ID, Table } from '@metorial/ui-product';
 import { useMemo } from 'react';
 import { EmptyState } from '../../../../../components/emptyState';
 import { useSearchFilter } from '../../../../../hooks/useSearchFilter';
@@ -52,7 +52,7 @@ export let ProviderAuthCredentialsOverviewPage = () => {
 
   let table = (
     <Table
-      headers={['Name', 'Provider', 'Type', 'Created']}
+      headers={['Name', 'ID', 'Provider', 'Type', 'Created']}
       data={rows.map(row => ({
         data: [
           <Flex direction="column" gap={6}>
@@ -72,6 +72,7 @@ export let ProviderAuthCredentialsOverviewPage = () => {
               )}
             </Flex>
           </Flex>,
+          <ID id={row.id} />,
           <Text size="2">{providerNameMap.get(row.providerId) ?? row.providerId}</Text>,
           <Text size="2">{row.type}</Text>,
           row.createdAt ? (

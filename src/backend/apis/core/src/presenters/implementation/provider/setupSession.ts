@@ -110,11 +110,13 @@ export let v1SetupSessionPresenter = Presenter.create(providerSetupSessionType)
       credentials: v.nullable(v1ProviderAuthCredentialsPresenter.schema),
       auth_config: v.nullable(v1ProviderAuthConfigPresenter.schema),
       config: v.nullable(v1ConfigPresenter.schema),
-      ui_mode: v.string({
-        name: 'ui_mode',
-        description: 'UI mode for setup',
-        examples: ['redirect', 'popup']
-      }),
+      ui_mode: v.enumOf(
+        ['metorial_elements', 'dashboard_embeddable'] as const,
+        {
+          name: 'ui_mode',
+          description: 'UI mode for setup'
+        }
+      ),
       redirect_url: v.nullable(
         v.string({
           name: 'redirect_url',
