@@ -17,7 +17,7 @@ export type DashboardOrganizationsOauthAuthorizationsGetOutput = {
     status: 'active' | 'archived';
     type: 'user_facing' | 'cli_auth' | 'server_side';
     accessLevel: 'organization' | 'global';
-    allowClientSecretlessTokenExchange: boolean;
+    allowTokenExchangeWithoutClientSecret: boolean;
     name: string;
     description: string | null;
     scopes: { identifier: string; name: string; description: string }[];
@@ -43,7 +43,10 @@ export type DashboardOrganizationsOauthAuthorizationsGetOutput = {
     object: 'machine_access';
     id: string;
     status: 'active' | 'deleted';
-    type: 'organization_management' | 'instance_secret' | 'instance_publishable';
+    type:
+      | 'organization_management'
+      | 'instance_secret'
+      | 'instance_publishable';
     name: string;
     lastUsedAt: Date;
     createdAt: Date;
@@ -137,10 +140,19 @@ export let mapDashboardOrganizationsOauthAuthorizationsGetOutput =
       )
     ),
     organizationId: mtMap.objectField('organization_id', mtMap.passthrough()),
-    oauthApplicationId: mtMap.objectField('oauth_application_id', mtMap.passthrough()),
-    oauthInstallationId: mtMap.objectField('oauth_installation_id', mtMap.passthrough()),
+    oauthApplicationId: mtMap.objectField(
+      'oauth_application_id',
+      mtMap.passthrough()
+    ),
+    oauthInstallationId: mtMap.objectField(
+      'oauth_installation_id',
+      mtMap.passthrough()
+    ),
     userId: mtMap.objectField('user_id', mtMap.passthrough()),
-    organizationMemberId: mtMap.objectField('organization_member_id', mtMap.passthrough()),
+    organizationMemberId: mtMap.objectField(
+      'organization_member_id',
+      mtMap.passthrough()
+    ),
     oauthApplication: mtMap.objectField(
       'oauth_application',
       mtMap.object({
@@ -149,7 +161,7 @@ export let mapDashboardOrganizationsOauthAuthorizationsGetOutput =
         status: mtMap.objectField('status', mtMap.passthrough()),
         type: mtMap.objectField('type', mtMap.passthrough()),
         accessLevel: mtMap.objectField('access_level', mtMap.passthrough()),
-        allowClientSecretlessTokenExchange: mtMap.objectField(
+        allowTokenExchangeWithoutClientSecret: mtMap.objectField(
           'allow_token_exchange_without_client_secret',
           mtMap.passthrough()
         ),
@@ -167,9 +179,18 @@ export let mapDashboardOrganizationsOauthAuthorizationsGetOutput =
         ),
         imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
         websiteUrl: mtMap.objectField('website_url', mtMap.passthrough()),
-        privacyPolicyUrl: mtMap.objectField('privacy_policy_url', mtMap.passthrough()),
-        termsOfServiceUrl: mtMap.objectField('terms_of_service_url', mtMap.passthrough()),
-        redirectUris: mtMap.objectField('redirect_uris', mtMap.array(mtMap.passthrough())),
+        privacyPolicyUrl: mtMap.objectField(
+          'privacy_policy_url',
+          mtMap.passthrough()
+        ),
+        termsOfServiceUrl: mtMap.objectField(
+          'terms_of_service_url',
+          mtMap.passthrough()
+        ),
+        redirectUris: mtMap.objectField(
+          'redirect_uris',
+          mtMap.array(mtMap.passthrough())
+        ),
         clientId: mtMap.objectField('client_id', mtMap.passthrough()),
         clientSecrets: mtMap.objectField(
           'client_secrets',
@@ -184,7 +205,10 @@ export let mapDashboardOrganizationsOauthAuthorizationsGetOutput =
             })
           )
         ),
-        organizationId: mtMap.objectField('organization_id', mtMap.passthrough()),
+        organizationId: mtMap.objectField(
+          'organization_id',
+          mtMap.passthrough()
+        ),
         createdAt: mtMap.objectField('created_at', mtMap.date()),
         updatedAt: mtMap.objectField('updated_at', mtMap.date())
       })
@@ -207,7 +231,10 @@ export let mapDashboardOrganizationsOauthAuthorizationsGetOutput =
             object: mtMap.objectField('object', mtMap.passthrough()),
             id: mtMap.objectField('id', mtMap.passthrough()),
             type: mtMap.objectField('type', mtMap.passthrough()),
-            organizationId: mtMap.objectField('organization_id', mtMap.passthrough()),
+            organizationId: mtMap.objectField(
+              'organization_id',
+              mtMap.passthrough()
+            ),
             name: mtMap.objectField('name', mtMap.passthrough()),
             email: mtMap.objectField('email', mtMap.passthrough()),
             imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
@@ -218,7 +245,10 @@ export let mapDashboardOrganizationsOauthAuthorizationsGetOutput =
                   id: mtMap.objectField('id', mtMap.passthrough()),
                   name: mtMap.objectField('name', mtMap.passthrough()),
                   slug: mtMap.objectField('slug', mtMap.passthrough()),
-                  assignmentId: mtMap.objectField('assignment_id', mtMap.passthrough()),
+                  assignmentId: mtMap.objectField(
+                    'assignment_id',
+                    mtMap.passthrough()
+                  ),
                   createdAt: mtMap.objectField('created_at', mtMap.date()),
                   updatedAt: mtMap.objectField('updated_at', mtMap.date())
                 })
@@ -235,7 +265,10 @@ export let mapDashboardOrganizationsOauthAuthorizationsGetOutput =
             id: mtMap.objectField('id', mtMap.passthrough()),
             slug: mtMap.objectField('slug', mtMap.passthrough()),
             name: mtMap.objectField('name', mtMap.passthrough()),
-            organizationId: mtMap.objectField('organization_id', mtMap.passthrough()),
+            organizationId: mtMap.objectField(
+              'organization_id',
+              mtMap.passthrough()
+            ),
             type: mtMap.objectField('type', mtMap.passthrough()),
             createdAt: mtMap.objectField('created_at', mtMap.date()),
             updatedAt: mtMap.objectField('updated_at', mtMap.date()),
@@ -247,7 +280,10 @@ export let mapDashboardOrganizationsOauthAuthorizationsGetOutput =
                 status: mtMap.objectField('status', mtMap.passthrough()),
                 slug: mtMap.objectField('slug', mtMap.passthrough()),
                 name: mtMap.objectField('name', mtMap.passthrough()),
-                organizationId: mtMap.objectField('organization_id', mtMap.passthrough()),
+                organizationId: mtMap.objectField(
+                  'organization_id',
+                  mtMap.passthrough()
+                ),
                 createdAt: mtMap.objectField('created_at', mtMap.date()),
                 updatedAt: mtMap.objectField('updated_at', mtMap.date())
               })
@@ -292,3 +328,4 @@ export let mapDashboardOrganizationsOauthAuthorizationsGetOutput =
     createdAt: mtMap.objectField('created_at', mtMap.date()),
     updatedAt: mtMap.objectField('updated_at', mtMap.date())
   });
+

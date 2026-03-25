@@ -16,7 +16,7 @@ export type DashboardOauthAuthorizationRequestsGetOutput = {
     status: 'active' | 'archived';
     type: 'user_facing' | 'cli_auth' | 'server_side';
     accessLevel: 'organization' | 'global';
-    allowClientSecretlessTokenExchange: boolean;
+    allowTokenExchangeWithoutClientSecret: boolean;
     name: string;
     description: string | null;
     scopes: { identifier: string; name: string; description: string }[];
@@ -68,7 +68,7 @@ export let mapDashboardOauthAuthorizationRequestsGetOutput =
         status: mtMap.objectField('status', mtMap.passthrough()),
         type: mtMap.objectField('type', mtMap.passthrough()),
         accessLevel: mtMap.objectField('access_level', mtMap.passthrough()),
-        allowClientSecretlessTokenExchange: mtMap.objectField(
+        allowTokenExchangeWithoutClientSecret: mtMap.objectField(
           'allow_token_exchange_without_client_secret',
           mtMap.passthrough()
         ),
@@ -86,9 +86,18 @@ export let mapDashboardOauthAuthorizationRequestsGetOutput =
         ),
         imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
         websiteUrl: mtMap.objectField('website_url', mtMap.passthrough()),
-        privacyPolicyUrl: mtMap.objectField('privacy_policy_url', mtMap.passthrough()),
-        termsOfServiceUrl: mtMap.objectField('terms_of_service_url', mtMap.passthrough()),
-        redirectUris: mtMap.objectField('redirect_uris', mtMap.array(mtMap.passthrough())),
+        privacyPolicyUrl: mtMap.objectField(
+          'privacy_policy_url',
+          mtMap.passthrough()
+        ),
+        termsOfServiceUrl: mtMap.objectField(
+          'terms_of_service_url',
+          mtMap.passthrough()
+        ),
+        redirectUris: mtMap.objectField(
+          'redirect_uris',
+          mtMap.array(mtMap.passthrough())
+        ),
         clientId: mtMap.objectField('client_id', mtMap.passthrough()),
         clientSecrets: mtMap.objectField(
           'client_secrets',
@@ -103,9 +112,13 @@ export let mapDashboardOauthAuthorizationRequestsGetOutput =
             })
           )
         ),
-        organizationId: mtMap.objectField('organization_id', mtMap.passthrough()),
+        organizationId: mtMap.objectField(
+          'organization_id',
+          mtMap.passthrough()
+        ),
         createdAt: mtMap.objectField('created_at', mtMap.date()),
         updatedAt: mtMap.objectField('updated_at', mtMap.date())
       })
     )
   });
+
