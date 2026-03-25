@@ -417,14 +417,13 @@ services:
       REGISTRY_URL: https://metorial-saas-staging.registry.metorial-enterprise.com/metorial-registry-root
 
     volumes:
-      - ./apps/controller:/app/apps/controller:${SUBSPACE_SOURCE_MOUNT_MODE:-ro}
+      - ./apps/controller:/app/src/systems/subspace/apps/controller:${SUBSPACE_SOURCE_MOUNT_MODE:-ro}
       # Preserve container-installed workspace deps when source is bind-mounted (CI checkout has no node_modules).
-      - /app/apps/controller/node_modules
-      - ./apps/controller/package.json:/app/apps/controller/package.json:ro
-      - ./modules:/app/modules:ro
-      - ./packages:/app/packages:ro
-      - ./provider-backends:/app/provider-backends:ro
-      - ./db:/app/db
+      - /app/node_modules
+      - ./modules:/app/src/systems/subspace/modules:ro
+      - ./packages:/app/src/systems/subspace/packages:ro
+      - ./provider-backends:/app/src/systems/subspace/provider-backends:ro
+      - ./db:/app/src/systems/subspace/db
     depends_on:
       postgres:
         condition: service_healthy
@@ -468,7 +467,7 @@ services:
       context: ../../..
       dockerfile: ./src/systems/subspace/apps/controller/dev.Dockerfile
     container_name: subspace-mcp-test-server
-    command: ['sh', '-c', 'PORT=52198 bun ./test-servers/index.ts']
+    command: ['sh', '-c', 'PORT=52198 bun ./src/systems/subspace/test-servers/index.ts']
     ports:
       - '52198:52198'
     healthcheck:
@@ -499,14 +498,13 @@ services:
       OTEL_RESOURCE_ATTRIBUTES: ${OTEL_RESOURCE_ATTRIBUTES:-}
       OTEL_DEBUG: ${OTEL_DEBUG:-false}
     volumes:
-      - ./apps/controller:/app/apps/controller:${SUBSPACE_SOURCE_MOUNT_MODE:-ro}
+      - ./apps/controller:/app/src/systems/subspace/apps/controller:${SUBSPACE_SOURCE_MOUNT_MODE:-ro}
       # Preserve container-installed workspace deps when source is bind-mounted (CI checkout has no node_modules).
-      - /app/apps/controller/node_modules
-      - ./apps/controller/package.json:/app/apps/controller/package.json:ro
-      - ./modules:/app/modules:ro
-      - ./packages:/app/packages:ro
-      - ./provider-backends:/app/provider-backends:ro
-      - ./db:/app/db
+      - /app/node_modules
+      - ./modules:/app/src/systems/subspace/modules:ro
+      - ./packages:/app/src/systems/subspace/packages:ro
+      - ./provider-backends:/app/src/systems/subspace/provider-backends:ro
+      - ./db:/app/src/systems/subspace/db
     depends_on:
       postgres:
         condition: service_healthy
@@ -535,7 +533,7 @@ services:
       origin:
         condition: service_healthy
     healthcheck:
-      test: ['CMD-SHELL', 'test -f /app/apps/controller/package.json']
+      test: ['CMD-SHELL', 'test -f /app/src/systems/subspace/apps/controller/package.json']
       interval: 5s
       timeout: 5s
       retries: 10
@@ -576,13 +574,14 @@ services:
       REGISTRY_URL: https://metorial-saas-staging.registry.metorial-enterprise.com/metorial-registry-root
 
     volumes:
-      - ./apps/public/src:/app/apps/public/src:ro
-      - ./apps/public/frontend/src:/app/apps/public/frontend/src:ro
-      - ./apps/public/package.json:/app/apps/public/package.json:ro
-      - ./modules:/app/modules:ro
-      - ./packages:/app/packages:ro
-      - ./provider-backends:/app/provider-backends:ro
-      - ./db:/app/db
+      - ./apps/public/src:/app/src/systems/subspace/apps/public/src:ro
+      - ./apps/public/frontend/src:/app/src/systems/subspace/apps/public/frontend/src:ro
+      - ./apps/public/package.json:/app/src/systems/subspace/apps/public/package.json:ro
+      - /app/node_modules
+      - ./modules:/app/src/systems/subspace/modules:ro
+      - ./packages:/app/src/systems/subspace/packages:ro
+      - ./provider-backends:/app/src/systems/subspace/provider-backends:ro
+      - ./db:/app/src/systems/subspace/db
     depends_on:
       postgres:
         condition: service_healthy
@@ -645,12 +644,12 @@ services:
       REGISTRY_URL: https://metorial-saas-staging.registry.metorial-enterprise.com/metorial-registry-root
 
     volumes:
-      - ./apps/worker:/app/apps/worker:ro
-      - ./apps/worker/package.json:/app/apps/worker/package.json:ro
-      - ./modules:/app/modules:ro
-      - ./packages:/app/packages:ro
-      - ./provider-backends:/app/provider-backends:ro
-      - ./db:/app/db
+      - ./apps/worker:/app/src/systems/subspace/apps/worker:ro
+      - /app/node_modules
+      - ./modules:/app/src/systems/subspace/modules:ro
+      - ./packages:/app/src/systems/subspace/packages:ro
+      - ./provider-backends:/app/src/systems/subspace/provider-backends:ro
+      - ./db:/app/src/systems/subspace/db
     depends_on:
       postgres:
         condition: service_healthy

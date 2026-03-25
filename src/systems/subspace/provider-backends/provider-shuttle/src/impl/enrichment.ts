@@ -8,18 +8,6 @@ import {
 } from '@metorial-subspace/provider-utils';
 import { shuttle } from '../client';
 
-type ShuttleServer = Awaited<ReturnType<typeof shuttle.server.get>>;
-type ShuttleServerVersion = Awaited<ReturnType<typeof shuttle.serverVersion.get>>;
-
-let isObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value == 'object' && value !== null;
-
-let isShuttleServer = (value: unknown): value is ShuttleServer =>
-  isObject(value) && typeof value.id == 'string';
-
-let isShuttleServerVersion = (value: unknown): value is ShuttleServerVersion =>
-  isObject(value) && typeof value.id == 'string';
-
 export class ProviderEnrichments extends IProviderEnrichments {
   override async enrichProviderVariants(
     input: ProviderVariantEnrichmentInput
@@ -38,11 +26,9 @@ export class ProviderEnrichments extends IProviderEnrichments {
       subspaceShuttleServersList.flatMap(s => s.providerVariants.map(v => [v.id, s]))
     );
 
-    let shuttleServers = (
-      await shuttle.server.getMany({
-        serverIds: subspaceShuttleServersList.map(s => s.id)
-      })
-    ).filter(isShuttleServer);
+    let shuttleServers = await shuttle.server.getMany({
+      serverIds: subspaceShuttleServersList.map(s => s.id)
+    });
     let shuttleServersMap = new Map(shuttleServers.map(s => [s.id, s]));
 
     return {
@@ -81,11 +67,9 @@ export class ProviderEnrichments extends IProviderEnrichments {
       subspaceShuttleServersList.flatMap(s => s.providerVersions.map(v => [v.id, s]))
     );
 
-    let shuttleServerVersions = (
-      await shuttle.serverVersion.getMany({
-        serverVersionIds: subspaceShuttleServersList.map(s => s.id)
-      })
-    ).filter(isShuttleServerVersion);
+    let shuttleServerVersions = await shuttle.serverVersion.getMany({
+      serverVersionIds: subspaceShuttleServersList.map(s => s.id)
+    });
     let shuttleServerVersionsMap = new Map(shuttleServerVersions.map(s => [s.id, s]));
 
     return {
