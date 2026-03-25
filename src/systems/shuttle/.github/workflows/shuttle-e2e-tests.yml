@@ -4,25 +4,33 @@ on:
   push:
     branches: [main, feature/**]
     paths:
-      - 'service/**'
-      - 'clients/**'
-      - 'package.json'
-      - 'bun.lock'
-      - '.github/workflows/shuttle-e2e-tests.yml'
+      - 'src/systems/shuttle/service/**'
+      - 'src/systems/shuttle/clients/**'
+      - 'src/systems/shuttle/sdk/**'
+      - 'src/systems/_clients/shuttle/**'
+      - 'src/systems/shuttle/package.json'
+      - 'src/systems/shuttle/bun.lock'
+      - 'src/systems/shuttle/.github/workflows/shuttle-e2e-tests.yml'
+      - '.github/workflows/system-e2e-tests.yml'
   pull_request:
     branches: [main]
     paths:
-      - 'service/**'
-      - 'clients/**'
-      - 'package.json'
-      - 'bun.lock'
+      - 'src/systems/shuttle/service/**'
+      - 'src/systems/shuttle/clients/**'
+      - 'src/systems/shuttle/sdk/**'
+      - 'src/systems/_clients/shuttle/**'
+      - 'src/systems/shuttle/package.json'
+      - 'src/systems/shuttle/bun.lock'
+      - 'src/systems/shuttle/.github/workflows/shuttle-e2e-tests.yml'
+      - '.github/workflows/system-e2e-tests.yml'
 
 jobs:
   e2e-tests:
     name: Run Shuttle E2E Tests
-    uses: metorial/.github/.github/workflows/reusable-e2e-tests.yml@main
+    uses: ./.github/workflows/system-e2e-tests.yml
+    secrets: inherit
     with:
-      service_directory: service
+      service_directory: src/systems/shuttle/service
       compose_project_prefix: shuttle-ci
       compose_profiles: 'infra service'
       wait_services: |
@@ -33,4 +41,4 @@ jobs:
         shuttle-function-bay
         shuttle-service
       test_container: shuttle-service
-      test_command: cd /app/service && bun run test -- --mode ci --reporter verbose
+      test_command: cd /app/src/systems/shuttle/service && bun run test -- --mode ci --reporter verbose
