@@ -28,6 +28,11 @@ let oauthTokenInclude = {
       oauthApplication: true,
       oauthInstallation: true,
       organizationMember: true,
+      serviceAccountCredential: {
+        include: {
+          serviceAccount: true
+        }
+      },
       user: true,
       machineAccess: {
         include: machineAccessInclude

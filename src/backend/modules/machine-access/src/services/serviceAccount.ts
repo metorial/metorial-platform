@@ -22,6 +22,11 @@ import { authorizationInclude } from './oauthAuthorization';
 
 export let serviceAccountInclude = {
   organization: true,
+  policies: {
+    include: {
+      accessPolicy: true
+    }
+  },
   oauthApplication: {
     include: {
       organization: true,

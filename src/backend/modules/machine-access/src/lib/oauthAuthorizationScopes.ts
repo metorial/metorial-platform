@@ -1,4 +1,10 @@
-import { db, OAuthApplication, Organization, OrganizationMember } from '@metorial/db';
+import {
+  OAuthApplication,
+  Organization,
+  OrganizationMember,
+  ServiceAccount
+} from '@metorial/db';
+import { effectiveAccessService } from '@metorial/module-organization';
 
 export let normalizeScopes = (scopes: string[]) => Array.from(new Set(scopes)).sort();
 
@@ -20,41 +26,51 @@ export let getUserEffectiveScopes = async (d: {
   oauthApplication: OAuthApplication;
   requestedScopes: string[];
 }) => {
-  if (d.member.role == 'admin' || !d.organization.enforceTeamAccess) {
+  if (d.organization.authVersion != 'v2') {
     return intersectScopes(d.oauthApplication.scopes, d.requestedScopes);
   }
 
-  let teamScopes = await db.teamMember.findMany({
-    where: {
-      organizationActorOid: d.member.actorOid,
-      team: {
-        organizationOid: d.organization.oid
-      }
-    },
-    include: {
-      team: {
-        include: {
-          projects: {
-            include: {
-              roles: {
-                include: {
-                  teamRole: true
-                }
-              }
-            }
-          }
-        }
-      }
-    }
+  let effectiveAccess = await effectiveAccessService.getMemberEffectiveAccess({
+    organization: d.organization,
+    member: d.member
   });
-
   let memberScopes = normalizeScopes(
-    teamScopes.flatMap(teamMember =>
-      teamMember.team.projects.flatMap(teamProject =>
-        teamProject.roles.flatMap(role => role.teamRole.scopes)
-      )
-    )
+    effectiveAccessService.getGrantedScopes({
+      effectiveAccess
+    })
   );
 
   return intersectScopes(memberScopes, d.oauthApplication.scopes, d.requestedScopes);
+};
+
+export let getServiceAccountEffectiveScopes = async (d: {
+  organization: Organization;
+  serviceAccount: Pick<ServiceAccount, 'oid' | 'scopes'>;
+  oauthApplication: OAuthApplication;
+  requestedScopes: string[];
+}) => {
+  if (d.organization.authVersion != 'v2') {
+    return intersectScopes(
+      d.serviceAccount.scopes,
+      d.oauthApplication.scopes,
+      d.requestedScopes
+    );
+  }
+
+  let effectiveAccess = await effectiveAccessService.getServiceAccountEffectiveAccess({
+    organization: d.organization,
+    serviceAccount: d.serviceAccount
+  });
+  let policyScopes = normalizeScopes(
+    effectiveAccessService.getGrantedScopes({
+      effectiveAccess
+    })
+  );
+
+  return intersectScopes(
+    d.serviceAccount.scopes,
+    policyScopes,
+    d.oauthApplication.scopes,
+    d.requestedScopes
+  );
 };

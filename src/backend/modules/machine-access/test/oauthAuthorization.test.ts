@@ -6,7 +6,10 @@ let {
   machineAccessCreateMock,
   machineAccessUpdateMock,
   getOrganizationByIdForUserMock,
-  unifiedApiKeyCreateMock
+  unifiedApiKeyCreateMock,
+  oauthGlobalRepositoryMock,
+  getMemberEffectiveAccessMock,
+  getGrantedScopesMock
 } = vi.hoisted(() => ({
   mockDb: {
     oAuthApplication: {
@@ -34,6 +37,11 @@ let {
       updateMany: vi.fn(),
       upsert: vi.fn()
     },
+    oAuthAuthorizationFlow: {
+      findFirst: vi.fn(),
+      upsert: vi.fn(),
+      update: vi.fn()
+    },
     oAuthToken: {
       findUnique: vi.fn(),
       findFirst: vi.fn(),
@@ -43,6 +51,12 @@ let {
     organizationMember: {
       findFirst: vi.fn()
     },
+    accessPolicyAssignment: {
+      findMany: vi.fn()
+    },
+    serviceAccount: {
+      findFirst: vi.fn()
+    },
     teamMember: {
       findMany: vi.fn()
     }
@@ -50,7 +64,19 @@ let {
   machineAccessCreateMock: vi.fn(),
   machineAccessUpdateMock: vi.fn(),
   getOrganizationByIdForUserMock: vi.fn(),
-  unifiedApiKeyCreateMock: vi.fn()
+  unifiedApiKeyCreateMock: vi.fn(),
+  getMemberEffectiveAccessMock: vi.fn(),
+  getGrantedScopesMock: vi.fn(),
+  oauthGlobalRepositoryMock: {
+    getOAuthAuthorizationRequestByDeviceCode: vi.fn(),
+    touchOAuthAuthorizationRequestPoll: vi.fn(),
+    getOAuthAuthorizationRequestByCode: vi.fn(),
+    getOAuthAuthorizationRequestByUrlToken: vi.fn(),
+    createOAuthAuthorizationRequest: vi.fn(),
+    claimOAuthAuthorizationRequest: vi.fn(),
+    acceptOAuthAuthorizationRequest: vi.fn(),
+    rejectOAuthAuthorizationRequest: vi.fn()
+  }
 }));
 
 vi.mock('@metorial/db', () => ({
@@ -63,7 +89,10 @@ vi.mock('@metorial/db', () => ({
 }));
 
 vi.mock('@metorial/fabric', () => ({
-  Fabric: { fire: vi.fn().mockResolvedValue(undefined) }
+  Fabric: {
+    fire: vi.fn().mockResolvedValue(undefined),
+    listen: vi.fn()
+  }
 }));
 
 vi.mock('bun', () => ({
@@ -88,6 +117,10 @@ vi.mock('@metorial/api-keys', () => ({
   }
 }));
 
+vi.mock('@metorial/multi-region', () => ({
+  oauthGlobalRepository: oauthGlobalRepositoryMock
+}));
+
 vi.mock('./../src/services/machineAccess', () => ({
   machineAccessService: {
     createMachineAccess: (...args: any[]) => machineAccessCreateMock(...args),
@@ -104,6 +137,10 @@ vi.mock('@metorial/lock', () => ({
 vi.mock('@metorial/module-organization', () => ({
   organizationService: {
     getOrganizationByIdForUser: (...args: any[]) => getOrganizationByIdForUserMock(...args)
+  },
+  effectiveAccessService: {
+    getMemberEffectiveAccess: (...args: any[]) => getMemberEffectiveAccessMock(...args),
+    getGrantedScopes: (...args: any[]) => getGrantedScopesMock(...args)
   },
   organizationActorService: {
     getSystemActor: vi.fn(async () => ({
@@ -152,6 +189,23 @@ describe('oauthAuthorizationService', () => {
       toString: () => `metorial_${type == 'oauth_access_token' ? 'oa' : 'or'}_mock-token`
     }));
 
+    mockDb.oAuthApplication.findFirst.mockResolvedValue({
+      oid: 100n,
+      id: 'oauthApplication-generated-id',
+      name: 'My App',
+      clientId: 'client-1',
+      status: 'active',
+      type: 'user_facing',
+      redirectUris: ['https://example.com/callback'],
+      scopes: ['organization:read', 'organization:write'],
+      accessLevel: 'global',
+      allowClientSecretlessAuth: true,
+      allowClientSecretlessTokenExchange: true,
+      organization: null,
+      scopedInstallation: null,
+      serverSideMachineAccess: null,
+      clientSecrets: []
+    });
     machineAccessCreateMock.mockResolvedValue({
       oid: 400n
     });
@@ -165,6 +219,84 @@ describe('oauthAuthorizationService', () => {
 
     mockDb.teamMember.findMany.mockResolvedValue([]);
     mockDb.organizationMember.findFirst.mockResolvedValue(baseMember);
+    mockDb.accessPolicyAssignment.findMany.mockResolvedValue([]);
+    mockDb.serviceAccount.findFirst.mockResolvedValue(null);
+    mockDb.oAuthAuthorizationFlow.findFirst.mockResolvedValue(null);
+    mockDb.oAuthAuthorizationFlow.upsert.mockImplementation(
+      async ({ create, update }: any) => {
+        let data = create ?? update;
+        return {
+          oid: 510n,
+          ...data,
+          oauthApplication: {
+            oid: 100n,
+            clientId: 'client-1',
+            status: 'active',
+            scopes: ['organization:read', 'organization:write']
+          },
+          oauthAuthorization: {
+            oid: data.oauthAuthorizationOid ?? 300n,
+            status: 'active',
+            oauthApplication: {
+              oid: 100n,
+              clientId: 'client-1',
+              status: 'active',
+              scopes: ['organization:read', 'organization:write']
+            },
+            oauthInstallation: {
+              oid: 200n,
+              status: 'active'
+            },
+            machineAccess: {
+              oid: 400n,
+              status: 'active'
+            }
+          },
+          organization: baseOrg,
+          user: baseUser
+        };
+      }
+    );
+    mockDb.oAuthAuthorizationFlow.update.mockImplementation(async ({ where, data }: any) => ({
+      oid: where.oid,
+      ...data
+    }));
+    getMemberEffectiveAccessMock.mockResolvedValue({ entries: [] });
+    getGrantedScopesMock.mockReturnValue(['organization:read', 'organization:write']);
+    oauthGlobalRepositoryMock.claimOAuthAuthorizationRequest.mockImplementation(
+      async ({ id }: any) => ({ id })
+    );
+    oauthGlobalRepositoryMock.acceptOAuthAuthorizationRequest.mockImplementation(
+      async ({ id }: any) => ({ id, status: 'accepted' })
+    );
+    oauthGlobalRepositoryMock.rejectOAuthAuthorizationRequest.mockImplementation(
+      async ({ id }: any) => ({ id, status: 'denied' })
+    );
+    oauthGlobalRepositoryMock.createOAuthAuthorizationRequest.mockImplementation(
+      async (data: any) => ({
+        ...data,
+        status: 'pending',
+        oauthApplication: {
+          oid: 100n,
+          clientId: data.oauthApplicationId,
+          type: 'user_facing',
+          status: 'active',
+          redirectUris: ['https://example.com/callback'],
+          scopes: ['organization:read', 'organization:write'],
+          accessLevel: 'global',
+          organization: null,
+          scopedInstallation: null,
+          serverSideMachineAccess: null
+        },
+        oauthAuthorizationFlow: null
+      })
+    );
+    oauthGlobalRepositoryMock.getOAuthAuthorizationRequestByCode.mockResolvedValue(null);
+    oauthGlobalRepositoryMock.getOAuthAuthorizationRequestByDeviceCode.mockResolvedValue(null);
+    oauthGlobalRepositoryMock.getOAuthAuthorizationRequestByUrlToken.mockResolvedValue(null);
+    oauthGlobalRepositoryMock.touchOAuthAuthorizationRequestPoll.mockImplementation(
+      async (_args: any) => null
+    );
     mockDb.oAuthInstallation.findFirst.mockResolvedValue(null);
     mockDb.oAuthInstallation.findFirstOrThrow.mockImplementation(async ({ where }: any) => ({
       oid: where.oid ?? 200n,
@@ -419,11 +551,14 @@ describe('oauthAuthorizationService', () => {
     mockDb.oAuthApplication.findFirst.mockResolvedValue({
       oid: 100n,
       clientId: 'client-1',
+      id: 'oauthApplication-generated-id',
       status: 'active',
       type: 'user_facing',
       redirectUris: ['https://example.com/callback'],
       scopes: ['organization:read', 'organization:write'],
       accessLevel: 'global',
+      allowClientSecretlessAuth: true,
+      allowClientSecretlessTokenExchange: true,
       organization: null,
       scopedInstallation: null,
       serverSideMachineAccess: null
@@ -442,15 +577,13 @@ describe('oauthAuthorizationService', () => {
       }
     });
 
-    expect(mockDb.oAuthAuthorizationRequest.create).toHaveBeenCalledWith(
+    expect(oauthGlobalRepositoryMock.createOAuthAuthorizationRequest).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({
-          type: 'interactive',
-          oauthApplicationOid: 100n,
-          clientIp: baseContext.ip,
-          scopes: ['organization:read'],
-          redirectUri: 'https://example.com/callback'
-        })
+        type: 'interactive',
+        oauthApplicationId: 'oauthApplication-generated-id',
+        clientIp: baseContext.ip,
+        scopes: ['organization:read'],
+        redirectUri: 'https://example.com/callback'
       })
     );
     expect(result.type).toBe('interactive');
@@ -467,12 +600,15 @@ describe('oauthAuthorizationService', () => {
       oauthApplication: {
         oid: 100n,
         name: 'My App',
+        id: 'oauthApplication-generated-id',
         clientId: 'client-1',
         status: 'active',
         type: 'user_facing',
         redirectUris: ['https://example.com/callback'],
         scopes: ['organization:read', 'organization:write'],
         accessLevel: 'global',
+        allowClientSecretlessAuth: true,
+        allowClientSecretlessTokenExchange: true,
         organization: null,
         scopedInstallation: null
       }
@@ -508,21 +644,111 @@ describe('oauthAuthorizationService', () => {
     expect(result.oauthAuthorizationRequest.status).toBe('accepted');
   });
 
-  it('exchanges authorization codes into access and refresh tokens', async () => {
-    mockDb.oAuthAuthorizationRequest.findFirst.mockResolvedValue({
+  it('rejects accepting an authorization request when the user cannot grant all requested scopes', async () => {
+    let limitedMember = {
+      ...baseMember,
+      role: 'member'
+    } as any;
+
+    getOrganizationByIdForUserMock.mockResolvedValue({
+      organization: { ...baseOrg, authVersion: 'v2' },
+      member: limitedMember
+    });
+    getGrantedScopesMock.mockReturnValue(['organization:read']);
+    mockDb.accessPolicyAssignment.findMany.mockResolvedValue([
+      {
+        accessPolicyOid: 1n,
+        accessPolicy: {
+          oid: 1n,
+          id: 'apl_everyone',
+          document: {
+            access: [
+              {
+                target: 'org_1',
+                scopes: ['organization:read']
+              }
+            ]
+          },
+          accessPolicyRoles: []
+        }
+      }
+    ]);
+
+    let oauthAuthorizationRequest = {
+      id: 'oar_1',
       oid: 500n,
+      type: 'interactive',
+      status: 'pending',
+      clientIp: '198.51.100.7',
+      scopes: ['organization:read', 'organization:write'],
+      expiresAt: new Date(Date.now() + 60_000),
+      oidcScopes: [],
+      oauthApplication: {
+        oid: 100n,
+        name: 'My App',
+        id: 'oauthApplication-generated-id',
+        clientId: 'client-1',
+        status: 'active',
+        type: 'user_facing',
+        redirectUris: ['https://example.com/callback'],
+        scopes: ['organization:read', 'organization:write'],
+        accessLevel: 'global',
+        allowClientSecretlessAuth: true,
+        allowClientSecretlessTokenExchange: true,
+        organization: null,
+        scopedInstallation: null
+      }
+    } as any;
+
+    await expect(
+      oauthAuthorizationService.acceptOAuthAuthorizationRequest({
+        oauthAuthorizationRequest,
+        user: baseUser,
+        organizationId: 'org_1',
+        context: baseContext
+      })
+    ).rejects.toThrow(
+      'You cannot accept this app because it requires permissions that you do not have'
+    );
+
+    expect(oauthGlobalRepositoryMock.claimOAuthAuthorizationRequest).not.toHaveBeenCalled();
+  });
+
+  it('exchanges authorization codes into access and refresh tokens', async () => {
+    oauthGlobalRepositoryMock.getOAuthAuthorizationRequestByCode.mockResolvedValue({
+      id: 'oarf_1',
+      oauthApplicationId: 'oauthApplication-generated-id',
       type: 'interactive',
       status: 'accepted',
       code: 'code-1',
       redirectUri: 'https://example.com/callback',
       codeChallengeMethod: 'none',
       codeChallenge: null,
+      expiresAt: new Date(Date.now() + 60_000)
+    });
+    mockDb.oAuthAuthorizationFlow.findFirst.mockResolvedValue({
+      oid: 500n,
+      id: 'oarf_1',
+      type: 'interactive',
+      status: 'accepted',
+      redirectUri: 'https://example.com/callback',
+      codeChallengeMethod: 'none',
+      codeChallenge: null,
       expiresAt: new Date(Date.now() + 60_000),
       oauthApplication: {
         oid: 100n,
+        id: 'oauthApplication-generated-id',
         clientId: 'client-1',
         status: 'active',
-        scopes: ['organization:read', 'organization:write']
+        scopes: ['organization:read', 'organization:write'],
+        type: 'user_facing',
+        redirectUris: ['https://example.com/callback'],
+        accessLevel: 'global',
+        allowClientSecretlessAuth: true,
+        allowClientSecretlessTokenExchange: true,
+        organization: null,
+        scopedInstallation: null,
+        serverSideMachineAccess: null
       },
       oauthAuthorization: {
         oid: 300n,
@@ -532,17 +758,32 @@ describe('oauthAuthorizationService', () => {
           oid: 100n,
           clientId: 'client-1',
           status: 'active',
-          scopes: ['organization:read', 'organization:write']
+          scopes: ['organization:read', 'organization:write'],
+          organization: null
         },
         oauthInstallation: {
           oid: 200n,
-          status: 'active'
+          status: 'active',
+          organization: baseOrg,
+          oauthApplication: {
+            oid: 100n,
+            clientId: 'client-1',
+            status: 'active',
+            scopes: ['organization:read', 'organization:write'],
+            organization: null
+          },
+          appActor: null,
+          serverSideMachineAccess: null
         },
         machineAccess: {
           oid: 400n,
           status: 'active'
-        }
-      }
+        },
+        organizationMember: baseMember,
+        user: baseUser
+      },
+      organization: baseOrg,
+      user: baseUser
     });
 
     let result = await oauthAuthorizationService.exchangeOAuthToken({
@@ -558,7 +799,7 @@ describe('oauthAuthorizationService', () => {
     expect(unifiedApiKeyCreateMock).toHaveBeenCalled();
     expect(mockDb.oAuthToken.create).toHaveBeenCalled();
     expect(result.oauthToken.accessToken).toContain('metorial_oa_');
-    expect(result.oauthToken.refreshToken).toContain('metorial_or_');
+    expect(result.oauthToken.refreshToken).toBeNull();
   });
 
   it('rotates refresh tokens by updating the existing token row', async () => {
@@ -602,7 +843,7 @@ describe('oauthAuthorizationService', () => {
           accessToken: expect.stringContaining('metorial_oa_'),
           refreshToken: expect.stringContaining('metorial_or_'),
           accessTokenExpiresAt: expect.any(Date),
-          completelyExpiresAt: expect.any(Date),
+          completelyExpiresAt: null,
           oauthInstallationOid: 200n
         })
       })
@@ -655,8 +896,9 @@ describe('oauthAuthorizationService', () => {
   });
 
   it('checks device code state and updates last poll timestamp', async () => {
-    mockDb.oAuthAuthorizationRequest.findFirst.mockResolvedValue({
-      oid: 500n,
+    oauthGlobalRepositoryMock.getOAuthAuthorizationRequestByDeviceCode.mockResolvedValue({
+      id: 'oar_1',
+      oauthApplicationId: 'oauthApplication-generated-id',
       type: 'device_code',
       status: 'pending',
       deviceCode: 'device-1',
@@ -664,13 +906,21 @@ describe('oauthAuthorizationService', () => {
       deniedAt: null,
       expiresAt: new Date(Date.now() + 60_000),
       oauthApplication: {
-        oid: 100n,
-        clientId: 'client-1',
-        status: 'active',
-        redirectUris: [],
-        scopes: ['organization:read']
-      },
-      oauthAuthorization: null
+        clientId: 'client-1'
+      }
+    });
+    oauthGlobalRepositoryMock.touchOAuthAuthorizationRequestPoll.mockResolvedValue({
+      id: 'oar_1',
+      oauthApplicationId: 'oauthApplication-generated-id',
+      type: 'device_code',
+      status: 'pending',
+      deviceCode: 'device-1',
+      lastPollAt: new Date(),
+      deniedAt: null,
+      expiresAt: new Date(Date.now() + 60_000),
+      oauthApplication: {
+        clientId: 'client-1'
+      }
     });
 
     let result = await oauthAuthorizationService.checkDeviceCodeAuthorizationRequest({
@@ -679,18 +929,18 @@ describe('oauthAuthorizationService', () => {
     });
 
     expect(result.status).toBe('pending');
-    expect(mockDb.oAuthAuthorizationRequest.update).toHaveBeenCalledWith(
+    expect(oauthGlobalRepositoryMock.touchOAuthAuthorizationRequestPoll).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({
-          lastPollAt: expect.any(Date)
-        })
+        id: 'oar_1',
+        at: expect.any(Date)
       })
     );
   });
 
   it('rejects device code checks that poll too frequently', async () => {
-    mockDb.oAuthAuthorizationRequest.findFirst.mockResolvedValue({
-      oid: 500n,
+    oauthGlobalRepositoryMock.getOAuthAuthorizationRequestByDeviceCode.mockResolvedValue({
+      id: 'oar_1',
+      oauthApplicationId: 'oauthApplication-generated-id',
       type: 'device_code',
       status: 'pending',
       deviceCode: 'device-1',
@@ -698,13 +948,8 @@ describe('oauthAuthorizationService', () => {
       deniedAt: null,
       expiresAt: new Date(Date.now() + 60_000),
       oauthApplication: {
-        oid: 100n,
-        clientId: 'client-1',
-        status: 'active',
-        redirectUris: [],
-        scopes: ['organization:read']
-      },
-      oauthAuthorization: null
+        clientId: 'client-1'
+      }
     });
 
     await expect(

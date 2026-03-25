@@ -37,9 +37,9 @@ let scopeResourceMetadata: Record<string, { name: string; description: string }>
     name: 'Organization Teams',
     description: 'These endpoints manage team records and assignments.'
   },
-  'organization.team.role': {
-    name: 'Team Roles',
-    description: 'These endpoints manage team role definitions and permissions.'
+  'organization.api_key': {
+    name: 'Organization API Keys',
+    description: 'These endpoints manage organization and instance API keys.'
   },
   'organization.oauth_app': {
     name: 'OAuth Apps',
@@ -261,6 +261,10 @@ let scopeActionMetadata: Record<string, { name: string; description: string }> =
   import: {
     name: 'Import',
     description: 'It allows importing data into the platform.'
+  },
+  reveal: {
+    name: 'Reveal',
+    description: 'It allows revealing stored secret values.'
   }
 };
 

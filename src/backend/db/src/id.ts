@@ -145,10 +145,17 @@ export let ID = createIdGenerator({
   accessLimiter: idType.sorted('acl'),
 
   team: idType.sorted('tm'),
-  teamRole: idType.sorted('tmr'),
-  teamRoleAssignment: idType.sorted('tmra'),
   teamProject: idType.sorted('tmp'),
   teamMember: idType.sorted('tmm'),
+
+  accessRole: idType.sorted('arl'),
+  accessRoleVersion: idType.sorted('arv'),
+  accessPolicy: idType.sorted('apl'),
+  accessPolicyVersion: idType.sorted('apv'),
+  accessPolicyRole: idType.sorted('apr'),
+  accessPolicyProject: idType.sorted('app'),
+  accessPolicyInstance: idType.sorted('api'),
+  accessPolicyAssignment: idType.sorted('apa'),
 
   ssoTenant: idType.sorted('ssot'),
   ssoUser: idType.sorted('ssou'),

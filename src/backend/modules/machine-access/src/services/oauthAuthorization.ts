@@ -40,6 +40,10 @@ import {
 } from '../lib/oauthAuthorizationGuards';
 import { createCodeChallenge } from '../lib/oauthAuthorizationPkce';
 import {
+  getServiceAccountEffectiveScopes,
+  getUserEffectiveScopes
+} from '../lib/oauthAuthorizationScopes';
+import {
   ACCESS_TOKEN_MAX_TTL_SECONDS,
   ACCESS_TOKEN_MIN_TTL_SECONDS,
   createIssuedOAuthTokenValues,
@@ -606,10 +610,24 @@ class OAuthAuthorizationService {
       }
 
       let requestedScopes = validateOAuthScopes(d.scopes ?? oauthApplication.scopes);
-      let scopes = ensureScopesAllowed({
+      let requestedApplicationScopes = ensureScopesAllowed({
         allowedScopes: oauthApplication.scopes,
         requestedScopes
       });
+
+      let serviceAccount = await db.serviceAccount.findFirst({
+        where: {
+          oauthApplicationOid: oauthApplication.oid
+        }
+      });
+      let scopes = serviceAccount
+        ? await getServiceAccountEffectiveScopes({
+            organization: oauthApplication.organization!,
+            serviceAccount,
+            oauthApplication,
+            requestedScopes: requestedApplicationScopes
+          })
+        : requestedApplicationScopes;
 
       let oauthAuthorization =
         await oauthAuthorizationInstallationService.getOrCreateServerSideAuthorization({
@@ -1033,6 +1051,28 @@ class OAuthAuthorizationService {
       user: d.user,
       organizationId: d.organizationId
     });
+    let scopes = await getUserEffectiveScopes({
+      organization,
+      member,
+      oauthApplication: d.oauthAuthorizationRequest.oauthApplication,
+      requestedScopes: d.oauthAuthorizationRequest.scopes
+    });
+    let missingScopes = d.oauthAuthorizationRequest.scopes.filter(
+      scope => !scopes.includes(scope)
+    );
+    if (missingScopes.length > 0) {
+      throw new ServiceError(
+        forbiddenError({
+          message:
+            'You cannot accept this app because it requires permissions that you do not have',
+          oauth: {
+            error: 'access_denied',
+            errorMessage:
+              'You cannot accept this app because it requires permissions that you do not have'
+          }
+        })
+      );
+    }
 
     let claimedRequest = await oauthGlobalRepository.claimOAuthAuthorizationRequest({
       id: d.oauthAuthorizationRequest.id
@@ -1065,7 +1105,7 @@ class OAuthAuthorizationService {
           organization,
           member,
           user: d.user,
-          scopes: d.oauthAuthorizationRequest.scopes,
+          scopes,
           oidcScopes: d.oauthAuthorizationRequest.oidcScopes,
           requestingIp: d.oauthAuthorizationRequest.clientIp,
           acceptingIp: d.context.ip,
@@ -1092,7 +1132,7 @@ class OAuthAuthorizationService {
           id: d.oauthAuthorizationRequest.id,
           type: d.oauthAuthorizationRequest.type,
           status: 'accepted',
-          scopes: d.oauthAuthorizationRequest.scopes,
+          scopes,
           oidcScopes: d.oauthAuthorizationRequest.oidcScopes,
           clientIp: d.oauthAuthorizationRequest.clientIp,
           redirectUri: d.oauthAuthorizationRequest.redirectUri,
@@ -1108,7 +1148,7 @@ class OAuthAuthorizationService {
         },
         update: {
           status: 'accepted',
-          scopes: d.oauthAuthorizationRequest.scopes,
+          scopes,
           oidcScopes: d.oauthAuthorizationRequest.oidcScopes,
           clientIp: d.oauthAuthorizationRequest.clientIp,
           redirectUri: d.oauthAuthorizationRequest.redirectUri,

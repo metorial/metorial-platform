@@ -283,5 +283,13 @@ declare global {
     }[];
 
     type Headers = [string, string][];
+
+    type PolicyDocument = {
+      access: {
+        target: string;
+        scopes?: string[];
+        roles?: string[];
+      }[];
+    };
   }
 }
