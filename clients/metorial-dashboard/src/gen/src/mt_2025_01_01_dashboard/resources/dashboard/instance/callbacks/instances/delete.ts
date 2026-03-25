@@ -4,7 +4,39 @@ export type DashboardInstanceCallbacksInstancesDeleteOutput = {
   object: 'callback.instance';
   id: string;
   status: 'attached' | 'detached';
-  registrationStatus: 'pending' | 'registered';
+  deployment: {
+    object: 'provider.deployment#preview';
+    id: string;
+    isDefault: boolean;
+    name: string | null;
+    description: string | null;
+    metadata: Record<string, any> | null;
+    providerId: string;
+    createdAt: Date;
+    updatedAt: Date;
+  };
+  config: {
+    object: 'provider.config#preview';
+    id: string;
+    isDefault: boolean;
+    name: string | null;
+    description: string | null;
+    metadata: Record<string, any> | null;
+    providerId: string;
+    createdAt: Date;
+    updatedAt: Date;
+  };
+  authConfig: {
+    object: 'provider.auth_config#preview';
+    id: string;
+    isDefault: boolean;
+    name: string | null;
+    description: string | null;
+    metadata: Record<string, any> | null;
+    providerId: string;
+    createdAt: Date;
+    updatedAt: Date;
+  } | null;
   triggers: {
     object: 'callback.instance.trigger';
     id: string;
@@ -44,9 +76,47 @@ export let mapDashboardInstanceCallbacksInstancesDeleteOutput =
     object: mtMap.objectField('object', mtMap.passthrough()),
     id: mtMap.objectField('id', mtMap.passthrough()),
     status: mtMap.objectField('status', mtMap.passthrough()),
-    registrationStatus: mtMap.objectField(
-      'registration_status',
-      mtMap.passthrough()
+    deployment: mtMap.objectField(
+      'deployment',
+      mtMap.object({
+        object: mtMap.objectField('object', mtMap.passthrough()),
+        id: mtMap.objectField('id', mtMap.passthrough()),
+        isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
+        name: mtMap.objectField('name', mtMap.passthrough()),
+        description: mtMap.objectField('description', mtMap.passthrough()),
+        metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+        providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
+        createdAt: mtMap.objectField('created_at', mtMap.date()),
+        updatedAt: mtMap.objectField('updated_at', mtMap.date())
+      })
+    ),
+    config: mtMap.objectField(
+      'config',
+      mtMap.object({
+        object: mtMap.objectField('object', mtMap.passthrough()),
+        id: mtMap.objectField('id', mtMap.passthrough()),
+        isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
+        name: mtMap.objectField('name', mtMap.passthrough()),
+        description: mtMap.objectField('description', mtMap.passthrough()),
+        metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+        providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
+        createdAt: mtMap.objectField('created_at', mtMap.date()),
+        updatedAt: mtMap.objectField('updated_at', mtMap.date())
+      })
+    ),
+    authConfig: mtMap.objectField(
+      'auth_config',
+      mtMap.object({
+        object: mtMap.objectField('object', mtMap.passthrough()),
+        id: mtMap.objectField('id', mtMap.passthrough()),
+        isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
+        name: mtMap.objectField('name', mtMap.passthrough()),
+        description: mtMap.objectField('description', mtMap.passthrough()),
+        metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+        providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
+        createdAt: mtMap.objectField('created_at', mtMap.date()),
+        updatedAt: mtMap.objectField('updated_at', mtMap.date())
+      })
     ),
     triggers: mtMap.objectField(
       'triggers',

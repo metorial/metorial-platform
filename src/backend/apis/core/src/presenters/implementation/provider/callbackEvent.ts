@@ -5,15 +5,20 @@ import { callbackEventType } from '../../types';
 export let v1CallbackEventPresenter = Presenter.create(callbackEventType)
   .presenter(async ({ callbackEvent }) => ({
     object: 'callback.event' as const,
+
     id: callbackEvent.id,
     type: callbackEvent.type,
     source_id: callbackEvent.sourceId,
     trigger_key: callbackEvent.triggerKey,
+
     input: callbackEvent.input,
     output: callbackEvent.output,
+
     delivery_status: callbackEvent.deliveryStatus,
+
     callback_id: callbackEvent.callbackId,
     callback_instance_id: callbackEvent.callbackInstanceId,
+
     created_at: callbackEvent.createdAt
   }))
   .schema(
@@ -49,13 +54,10 @@ export let v1CallbackEventPresenter = Presenter.create(callbackEventType)
         name: 'output',
         description: 'Trigger output payload resolved for the event'
       }),
-      delivery_status: v.enumOf(
-        ['pending', 'sent', 'failed', 'skipped'] as const,
-        {
-          name: 'delivery_status',
-          description: 'Aggregate delivery status for this callback event'
-        }
-      ),
+      delivery_status: v.enumOf(['pending', 'sent', 'failed', 'skipped'] as const, {
+        name: 'delivery_status',
+        description: 'Aggregate delivery status for this callback event'
+      }),
       callback_id: v.string({
         name: 'callback_id',
         description: 'Parent callback identifier',

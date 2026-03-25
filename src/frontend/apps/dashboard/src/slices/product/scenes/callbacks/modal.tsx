@@ -251,7 +251,11 @@ let CallbackCreateModalContent = (p: {
             <Button type="button" variant="outline" onClick={() => setStep(0)}>
               Back
             </Button>
-            <Button type="submit" loading={createCallback.isLoading} success={createCallback.isSuccess}>
+            <Button
+              type="submit"
+              loading={createCallback.isLoading}
+              success={createCallback.isSuccess}
+            >
               Create Callback
             </Button>
           </Dialog.Actions>

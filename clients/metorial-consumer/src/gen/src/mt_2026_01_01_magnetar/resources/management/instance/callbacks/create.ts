@@ -34,9 +34,12 @@ export type ManagementInstanceCallbacksCreateOutput = {
   providerTriggers: {
     object: 'callback.provider_trigger';
     id: string;
-    providerTriggerId: string;
-    providerTriggerKey: string;
-    providerTriggerName: string;
+    providerTrigger: {
+      object: 'provider.trigger#preview';
+      id: string;
+      key: string;
+      name: string;
+    };
     eventTypes: string[];
     createdAt: Date;
   }[];
@@ -93,17 +96,14 @@ export let mapManagementInstanceCallbacksCreateOutput =
         mtMap.object({
           object: mtMap.objectField('object', mtMap.passthrough()),
           id: mtMap.objectField('id', mtMap.passthrough()),
-          providerTriggerId: mtMap.objectField(
-            'provider_trigger_id',
-            mtMap.passthrough()
-          ),
-          providerTriggerKey: mtMap.objectField(
-            'provider_trigger_key',
-            mtMap.passthrough()
-          ),
-          providerTriggerName: mtMap.objectField(
-            'provider_trigger_name',
-            mtMap.passthrough()
+          providerTrigger: mtMap.objectField(
+            'provider_trigger',
+            mtMap.object({
+              object: mtMap.objectField('object', mtMap.passthrough()),
+              id: mtMap.objectField('id', mtMap.passthrough()),
+              key: mtMap.objectField('key', mtMap.passthrough()),
+              name: mtMap.objectField('name', mtMap.passthrough())
+            })
           ),
           eventTypes: mtMap.objectField(
             'event_types',

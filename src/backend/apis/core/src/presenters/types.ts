@@ -26,8 +26,8 @@ import {
   OrganizationMember,
   Portal,
   Profile,
-  ProviderTemplate,
   Project,
+  ProviderTemplate,
   Secret,
   SecretType,
   Team,
@@ -37,8 +37,6 @@ import {
   TeamRole,
   User
 } from '@metorial/db';
-import { Flags } from '@metorial/module-flags';
-import type { ProjectBrandOverride } from '@metorial/module-organization';
 import {
   ConsumerAresApp,
   ConsumerAresSsoConnection,
@@ -46,13 +44,14 @@ import {
   ConsumerAresSsoTenantSetup,
   ConsumerProviderCatalogEntry
 } from '@metorial/module-consumer';
+import { Flags } from '@metorial/module-flags';
 import {
+  SubspaceBucket,
   SubspaceCallback,
   SubspaceCallbackDestination,
   SubspaceCallbackEvent,
   SubspaceCallbackInstance,
   SubspaceCallbackNotification,
-  SubspaceBucket,
   SubspaceCustomProvider,
   SubspaceCustomProviderCommit,
   SubspaceCustomProviderDeployment,
@@ -86,8 +85,8 @@ import {
   SubspaceProviderRunLogs,
   SubspaceProviderSetupSession,
   SubspaceProviderSpecification,
-  SubspaceProviderTrigger,
   SubspaceProviderTool,
+  SubspaceProviderTrigger,
   SubspaceProviderType,
   SubspaceProviderVersion,
   SubspacePublisher,
@@ -521,6 +520,10 @@ export let deploymentPreviewType = PresentableType.create<{
 
 export let configPreviewType = PresentableType.create<{
   config: NonNullable<SubspaceProviderDeployment['defaultConfig']>;
+}>()('configPreview');
+
+export let authConfigPreviewType = PresentableType.create<{
+  authConfig: NonNullable<SubspaceCallbackInstance['authConfig']>;
 }>()('configPreview');
 
 export let providerDeploymentType = PresentableType.create<{

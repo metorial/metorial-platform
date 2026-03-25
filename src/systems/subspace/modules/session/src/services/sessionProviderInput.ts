@@ -35,17 +35,6 @@ let providerMismatchError = badRequestError({
   message: 'Provider session inputs have mismatched providers'
 });
 
-let deploymentMismatchError = badRequestError({
-  message: 'Provider session inputs cannot be used with the selected deployment'
-});
-
-let checkProviderMatch = (
-  a: { providerOid: bigint } | null,
-  b: { providerOid: bigint } | null
-) => {
-  if (a && b && a.providerOid !== b.providerOid) throw new ServiceError(providerMismatchError);
-};
-
 class sessionProviderInputServiceImpl {
   async createProviderSessionInput(d: {
     tenant: Tenant;

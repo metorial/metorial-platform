@@ -1,4 +1,5 @@
 import { db } from '@metorial-subspace/db';
+import { callbackRegistrationReconcileQueue } from '@metorial-subspace/module-provider-internal/src/queues/lifecycle/deploymentConfigPair';
 import {
   callbackInclude,
   getActiveDestinationIds,
@@ -13,48 +14,51 @@ import {
   syncCallbackInstance
 } from '../lib/sync';
 import {
-  callbackReconcileQueue,
-  callbackReconcileRegistrationAuditQueue,
-  callbackReconcileRegistrationsPageQueue,
   callbackReconcileInstanceQueue,
-  callbackReconcileInstancesPageQueue
+  callbackReconcileInstancesPageQueue,
+  callbackReconcileRegistrationAuditQueue,
+  callbackReconcileRegistrationsPageQueue
 } from './definitions';
 
-export let callbackReconcileQueueProcessor = callbackReconcileQueue.process(async data => {
-  if (data.callbackInstanceId) {
-    await callbackReconcileInstanceQueue.add({
-      callbackInstanceId: data.callbackInstanceId
-    });
-    return;
-  }
+export let callbackReconcileQueueProcessor = callbackRegistrationReconcileQueue.process(
+  async data => {
+    console.log('Processing callback reconcile with data', data);
 
-  if (data.callbackId) {
-    await callbackReconcileInstancesPageQueue.add({ callbackId: data.callbackId });
-    await callbackReconcileRegistrationsPageQueue.add({ callbackId: data.callbackId });
-    return;
-  }
+    if (data.callbackInstanceId) {
+      await callbackReconcileInstanceQueue.add({
+        callbackInstanceId: data.callbackInstanceId
+      });
+      return;
+    }
 
-  if (data.providerDeploymentConfigPairId) {
-    let callbackInstances = await db.callbackInstance.findMany({
-      where: {
-        providerDeploymentConfigPair: { id: data.providerDeploymentConfigPairId },
-        callback: {
-          status: 'active'
+    if (data.callbackId) {
+      await callbackReconcileInstancesPageQueue.add({ callbackId: data.callbackId });
+      await callbackReconcileRegistrationsPageQueue.add({ callbackId: data.callbackId });
+      return;
+    }
+
+    if (data.providerDeploymentConfigPairId) {
+      let callbackInstances = await db.callbackInstance.findMany({
+        where: {
+          providerDeploymentConfigPair: { id: data.providerDeploymentConfigPairId },
+          callback: {
+            status: 'active'
+          },
+          status: 'attached'
         },
-        status: 'attached'
-      },
-      select: { id: true }
-    });
-    if (!callbackInstances.length) return;
+        select: { id: true }
+      });
+      if (!callbackInstances.length) return;
 
-    await callbackReconcileInstanceQueue.addManyWithOps(
-      callbackInstances.map(callbackInstance => ({
-        data: { callbackInstanceId: callbackInstance.id },
-        opts: { id: callbackInstance.id }
-      }))
-    );
+      await callbackReconcileInstanceQueue.addManyWithOps(
+        callbackInstances.map(callbackInstance => ({
+          data: { callbackInstanceId: callbackInstance.id },
+          opts: { id: callbackInstance.id }
+        }))
+      );
+    }
   }
-});
+);
 
 export let callbackReconcileInstanceQueueProcessor = callbackReconcileInstanceQueue.process(
   async data => {

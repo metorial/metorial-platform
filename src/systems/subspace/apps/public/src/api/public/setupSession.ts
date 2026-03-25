@@ -4,7 +4,9 @@ import { join } from 'path';
 import { htmlEncode } from '../../lib/htmlEncode';
 import { getFullSession } from '../internal/setupSession';
 
-let cachedIndexHtmlText: string | null = null;
+let preloadMarker = '<!-- PRELOAD -->';
+let textEncoder = new TextEncoder();
+let cachedIndexHtmlTemplate: { beforePreload: string; afterPreload: string } | null = null;
 
 let indexHtml = Bun.file(join(process.cwd(), 'frontend', 'dist', 'index.html'));
 
@@ -12,13 +14,53 @@ if (!(await indexHtml.exists())) {
   throw new Error('Index HTML file not found. Make sure the frontend is built.');
 }
 
-let getIndexHtmlText = async () => {
-  if (process.env.NODE_ENV === 'production' && cachedIndexHtmlText) {
-    return cachedIndexHtmlText;
+let parseIndexHtmlTemplate = (indexHtmlText: string) => {
+  let markerIndex = indexHtmlText.indexOf(preloadMarker);
+  if (markerIndex === -1) {
+    throw new Error('Index HTML preload marker not found.');
   }
 
-  cachedIndexHtmlText = await indexHtml.text();
-  return cachedIndexHtmlText;
+  return {
+    beforePreload: indexHtmlText.slice(0, markerIndex),
+    afterPreload: indexHtmlText.slice(markerIndex + preloadMarker.length)
+  };
+};
+
+let getIndexHtmlTemplate = async () => {
+  if (process.env.NODE_ENV === 'production' && cachedIndexHtmlTemplate) {
+    return cachedIndexHtmlTemplate;
+  }
+
+  let template = parseIndexHtmlTemplate(await indexHtml.text());
+
+  if (process.env.NODE_ENV === 'production') {
+    cachedIndexHtmlTemplate = template;
+  }
+
+  return template;
+};
+
+let renderIndexHtml = async (preload: unknown) => {
+  let template = await getIndexHtmlTemplate();
+  let preloadScript = `<script type="application/json" id="preload-data">${htmlEncode(
+    JSON.stringify(preload)
+  )}</script>`;
+
+  return new Response(
+    new ReadableStream({
+      start(controller) {
+        controller.enqueue(textEncoder.encode(template.beforePreload));
+        controller.enqueue(textEncoder.encode(preloadScript));
+        controller.enqueue(textEncoder.encode(template.afterPreload));
+        controller.close();
+      }
+    }),
+    {
+      headers: {
+        'Content-Type': 'text/html; charset=utf-8'
+      }
+    }
+  );
 };
 
 export let setupSessionApp = createHono()
@@ -66,10 +108,5 @@ export let setupSessionApp = createHono()
       }
     }
 
-    return c.html(
-      (await getIndexHtmlText()).replace(
-        '<!-- PRELOAD -->',
-        `<script type="application/json" id="preload-data">${htmlEncode(JSON.stringify(preload))}</script>`
-      )
-    );
+    return await renderIndexHtml(preload);
   });

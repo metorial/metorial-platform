@@ -11,7 +11,7 @@ import { Badge, Button, Dialog, Flex, Text, showModal, theme } from '@metorial/u
 import { Table } from '@metorial/ui-product';
 import { RiArrowDownSLine } from '@remixicon/react';
 import { JSONSchema7, JSONSchema7Definition } from 'json-schema';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { styled } from 'styled-components';
 import { getJsonSchemaObject } from '../../lib/jsonSchema';
@@ -198,7 +198,8 @@ let getTypeLabel = (prop: SchemaProperty): string => {
   }
   if (getSchemaType(prop) === 'array') {
     if (isSchemaObject(prop.items) && prop.items.properties) return 'Array of Objects';
-    if (isSchemaObject(prop.items)) return `Array of ${formatType(getSchemaType(prop.items))}s`;
+    if (isSchemaObject(prop.items))
+      return `Array of ${formatType(getSchemaType(prop.items))}s`;
     return 'Array';
   }
   return formatType(getSchemaType(prop));
@@ -445,7 +446,10 @@ let showTriggerDetailsModal = (p: {
             </Text>
             <InfoList>
               <InfoListItem>
-                Event types: {p.callbackTrigger.eventTypes.length ? p.callbackTrigger.eventTypes.join(', ') : 'All'}
+                Event types:{' '}
+                {p.callbackTrigger.eventTypes.length
+                  ? p.callbackTrigger.eventTypes.join(', ')
+                  : 'All'}
               </InfoListItem>
             </InfoList>
           </InfoCard>
@@ -516,30 +520,28 @@ let showTriggerDetailsModal = (p: {
 export let CallbackTriggersList = (p: { callbackId: string | undefined }) => {
   let instance = useCurrentInstance();
   let callback = useCallback(instance.data?.id, p.callbackId);
-  let deployment = useProviderDeployment(instance.data?.id, callback.data?.providerDeployment.id);
+  let deployment = useProviderDeployment(
+    instance.data?.id,
+    callback.data?.providerDeployment.id
+  );
   let provider = useProvider(
     instance.data?.id,
     deployment.data?.providerId ?? callback.data?.providerDeployment.providerId
   );
-  let providerVersionId = deployment.data?.lockedVersion?.id ?? provider.data?.currentVersion?.id;
+  let providerVersionId =
+    deployment.data?.lockedVersion?.id ?? provider.data?.currentVersion?.id;
   let triggers = useProviderTriggers(instance.data?.id, providerVersionId, { limit: 100 });
 
   return renderWithLoader({ callback, triggers })(() => {
     let callbackTriggers = callback.data?.providerTriggers ?? [];
     let callbackTriggerMap = new Map(
-      callbackTriggers.map(trigger => [trigger.providerTriggerKey, trigger] as const)
+      callbackTriggers.map(trigger => [trigger.providerTrigger.key, trigger] as const)
     );
-    let attachedTriggers = triggers.data?.items.filter(trigger => callbackTriggerMap.has(trigger.key)) ?? [];
+    let attachedTriggers =
+      triggers.data?.items.filter(trigger => callbackTriggerMap.has(trigger.key)) ?? [];
 
     return (
       <>
-        <Text size="2" weight="medium" color="gray600">
-          These are the provider triggers currently attached to this callback. Open a trigger to
-          inspect invocation details and schema information.
-        </Text>
-
-        <div style={{ height: 20 }} />
-
         <Table
           headers={['Name', 'Mode', 'Event Types', '']}
           data={attachedTriggers.map(trigger => {
@@ -573,7 +575,9 @@ export let CallbackTriggersList = (p: { callbackId: string | undefined }) => {
                 <Badge color={invocationBadge.color} size="1">
                   {invocationBadge.label}
                 </Badge>,
-                callbackTrigger?.eventTypes.length ? callbackTrigger.eventTypes.join(', ') : 'All',
+                callbackTrigger?.eventTypes.length
+                  ? callbackTrigger.eventTypes.join(', ')
+                  : 'All',
                 <Button
                   size="1"
                   variant="outline"

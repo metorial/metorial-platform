@@ -13,8 +13,7 @@ import {
   Panel,
   RenderDate,
   Spacer,
-  Text,
-  Title
+  Text
 } from '@metorial/ui';
 import { Box, ID, Table } from '@metorial/ui-product';
 import { useEffect, useMemo } from 'react';
@@ -24,6 +23,14 @@ import { RouterPanel } from '../routerPanel';
 let CALLBACK_NOTIFICATIONS_POLL_MS = 3000;
 
 let formatJson = (value: unknown) => {
+  if (typeof value === 'string') {
+    try {
+      return JSON.stringify(JSON.parse(value), null, 2);
+    } catch {
+      return value;
+    }
+  }
+
   try {
     return JSON.stringify(value ?? null, null, 2);
   } catch {
@@ -47,14 +54,14 @@ export let getNotificationStatusBadge = (status?: string) => {
 export let CallbackLogsList = (p: { callbackId: string | undefined }) => {
   return (
     <>
-      <Title as="h2" size="5" weight="strong">
+      {/* <Title as="h2" size="5" weight="strong">
         Logs
       </Title>
       <Text size="2" weight="medium" color="gray600">
         These logs show delivery attempts Metorial has made for this callback and the destination
         each notification targeted.
       </Text>
-      <Spacer height={20} />
+      <Spacer height={20} /> */}
 
       <CallbackNotificationsTable callbackId={p.callbackId} details />
 
@@ -158,7 +165,7 @@ let Notification = ({
   let notification = useCallbackNotification(instance.data?.id, callbackId, notificationId);
 
   let eventRequest = useMemo(
-    () => formatJson(notification.data?.event.request),
+    () => formatJson(notification.data?.event.request?.body ?? {}),
     [notification.data?.event.request]
   );
   let error = useMemo(() => formatJson(notification.data?.error), [notification.data?.error]);
@@ -239,13 +246,33 @@ let Notification = ({
         description="The event payload stored with the notification delivery."
       >
         <CodeBlock language="json" code={eventRequest} />
+
+        <Spacer height={15} />
+
+        <Text size="2" weight="strong">
+          Request Headers
+        </Text>
+
+        <Spacer height={10} />
+
+        <Datalist
+          items={
+            notification.data?.event.request?.headers?.map(header => ({
+              label: header.key,
+              value: header.value
+            })) ?? []
+          }
+        />
       </Box>
 
       {notification.data.error && (
         <>
           <Spacer height={15} />
 
-          <Box title="Delivery Error" description="The most recent delivery error for this notification.">
+          <Box
+            title="Delivery Error"
+            description="The most recent delivery error for this notification."
+          >
             <CodeBlock language="json" code={error} />
           </Box>
         </>
@@ -255,8 +282,8 @@ let Notification = ({
         <>
           <Spacer height={15} />
           <Callout color="orange">
-            This notification is scheduled to retry until delivery succeeds or the retry policy is
-            exhausted.
+            This notification is scheduled to retry until delivery succeeds or the retry policy
+            is exhausted.
           </Callout>
         </>
       )}

@@ -1,8 +1,5 @@
 import { createQueue } from '@lowerdeck/queue';
-import { callbackRegistrationReconcileQueue as callbackReconcileQueue } from '@metorial-subspace/module-provider-internal/src/queues/lifecycle/deploymentConfigPair';
 import { env } from '../../env';
-
-export { callbackReconcileQueue };
 
 export let callbackReconcileInstanceQueue = createQueue<{
   callbackInstanceId: string;

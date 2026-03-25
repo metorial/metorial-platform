@@ -1,19 +1,7 @@
 import { CodeBlock } from '@metorial/code';
 import { renderWithLoader, renderWithPagination } from '@metorial/data-hooks';
-import {
-  useCallbackEvent,
-  useCallbackEvents,
-  useCurrentInstance
-} from '@metorial/state';
-import {
-  Attributes,
-  Badge,
-  Panel,
-  RenderDate,
-  Spacer,
-  Text,
-  Title
-} from '@metorial/ui';
+import { useCallbackEvent, useCallbackEvents, useCurrentInstance } from '@metorial/state';
+import { Attributes, Badge, Panel, RenderDate, Spacer, Text } from '@metorial/ui';
 import { Box, ID, Table } from '@metorial/ui-product';
 import { useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
@@ -51,7 +39,9 @@ export let CallbackEventsList = (p: { callbackId: string | undefined }) => {
   let shouldPollEvents =
     !!events.data &&
     (events.data.items.length === 0 ||
-      events.data.items.some(event => !['delivered', 'failed'].includes(event.deliveryStatus)));
+      events.data.items.some(
+        event => !['delivered', 'failed'].includes(event.deliveryStatus)
+      ));
 
   useEffect(() => {
     if (!shouldPollEvents) return;
@@ -65,14 +55,14 @@ export let CallbackEventsList = (p: { callbackId: string | undefined }) => {
 
   return (
     <>
-      <Title as="h2" size="5" weight="strong">
+      {/* <Title as="h2" size="5" weight="strong">
         Events
       </Title>
       <Text size="2" weight="medium" color="gray600">
         When a provider trigger fires, Metorial creates a callback event and then delivers
         notifications to the configured destinations.
       </Text>
-      <Spacer height={20} />
+      <Spacer height={20} /> */}
 
       {renderWithPagination(events)(events => (
         <>
@@ -164,7 +154,10 @@ let Event = ({ eventId, callbackId }: { eventId: string; callbackId: string }) =
 
       <Spacer height={15} />
 
-      <Box title="Input Payload" description="The raw payload captured for this callback event.">
+      <Box
+        title="Input Payload"
+        description="The raw payload captured for this callback event."
+      >
         <CodeBlock language="json" code={input} />
       </Box>
 

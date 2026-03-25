@@ -13,18 +13,13 @@ import {
 import {
   Attributes,
   Button,
-  Callout,
   Copy,
-  Dialog,
   Flex,
-  Input,
   Menu,
-  MultiSelect,
   Panel,
   RenderDate,
   Spacer,
-  Text,
-  Title
+  Text
 } from '@metorial/ui';
 import { Box, ID, Table } from '@metorial/ui-product';
 import { RiAddLine, RiMore2Line } from '@remixicon/react';
@@ -50,7 +45,9 @@ export let CallbackDestinationsList = (p: { callbackId: string | undefined }) =>
   let [selectedDestinationIds, setSelectedDestinationIds] = useState<string[]>([]);
 
   useEffect(() => {
-    setSelectedDestinationIds(callback.data?.destinations.map(destination => destination.id) ?? []);
+    setSelectedDestinationIds(
+      callback.data?.destinations.map(destination => destination.id) ?? []
+    );
   }, [callback.data?.id, callback.data?.updatedAt, callback.data?.destinations]);
 
   let destinationRows = useMemo(() => {
@@ -76,55 +73,16 @@ export let CallbackDestinationsList = (p: { callbackId: string | undefined }) =>
     id: destination.id,
     label: destination.name
   }));
-  let currentDestinationIds = callback.data?.destinations.map(destination => destination.id) ?? [];
+  let currentDestinationIds =
+    callback.data?.destinations.map(destination => destination.id) ?? [];
   let hasPendingDestinationChanges =
     selectedDestinationIds.slice().sort().join('|') !==
     currentDestinationIds.slice().sort().join('|');
 
   return (
     <>
-      <Flex gap="30px" justify="space-between" align="center">
-        <div>
-          <Title as="h2" size="5" weight="strong">
-            Destinations
-          </Title>
-          <Text size="2" weight="medium" color="gray600">
-            Destinations are the endpoints where Metorial delivers callback notifications.
-          </Text>
-        </div>
-
-        <Button
-          iconRight={<RiAddLine />}
-          size="2"
-          onClick={() =>
-            instance.data &&
-            showCallbackDestinationFormModal({
-              instanceId: instance.data.id,
-              onCreate: destination => {
-                let nextDestinationIds = [...new Set([...selectedDestinationIds, destination.id])];
-                setSelectedDestinationIds(nextDestinationIds);
-                updateCallback.mutate({
-                  destinationIds: nextDestinationIds
-                });
-              }
-            })
-          }
-        >
-          Create Destination
-        </Button>
-      </Flex>
-
-      <Spacer height={20} />
-
-      {renderWithLoader({ callback, destinations })(() => (
+      {/* {renderWithLoader({ callback, destinations })(() => (
         <>
-          <Callout color="gray">
-            Attach instance destinations to this callback here. Newly created destinations can be
-            attached immediately.
-          </Callout>
-
-          <Spacer height={15} />
-
           <MultiSelect
             label="Attached Destinations"
             description="Only the selected destinations will receive notifications for this callback."
@@ -161,7 +119,7 @@ export let CallbackDestinationsList = (p: { callbackId: string | undefined }) =>
 
           <Spacer height={15} />
         </>
-      ))}
+      ))} */}
 
       <Table
         headers={['Info', 'URL', 'Last Delivery', 'Updated', '']}
@@ -215,6 +173,30 @@ export let CallbackDestinationsList = (p: { callbackId: string | undefined }) =>
           No destinations are attached to this callback yet.
         </Text>
       )}
+
+      <Spacer height={15} />
+
+      <Button
+        iconRight={<RiAddLine />}
+        size="2"
+        onClick={() =>
+          instance.data &&
+          showCallbackDestinationFormModal({
+            instanceId: instance.data.id,
+            onCreate: destination => {
+              let nextDestinationIds = [
+                ...new Set([...selectedDestinationIds, destination.id])
+              ];
+              setSelectedDestinationIds(nextDestinationIds);
+              updateCallback.mutate({
+                destinationIds: nextDestinationIds
+              });
+            }
+          })
+        }
+      >
+        Create Destination
+      </Button>
 
       <RouterPanel param="destination_id" width={1000}>
         {destinationId => (
