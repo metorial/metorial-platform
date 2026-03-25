@@ -184,7 +184,7 @@ export let syncSlateVersionQueueProcessor = syncSlateVersionQueue.process(async 
     }
 
     // Abort if the version already existed
-    if (slateVersionRecord.oid !== newVersionOid) return;
+    // if (slateVersionRecord.oid !== newVersionOid) return;
 
     let providerVersion = await providerVersionInternalService.upsertVersion({
       variant: provider.defaultVariant,
