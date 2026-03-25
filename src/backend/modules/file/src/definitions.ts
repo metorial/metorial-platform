@@ -13,6 +13,13 @@ export let purposes = {
     slug: 'organization_image',
     ownerType: 'organization',
     canHaveLinks: true
+  })),
+
+  project_brand_image: ensureFilePurpose(() => ({
+    name: 'Project Brand Image',
+    slug: 'project_brand_image',
+    ownerType: 'organization',
+    canHaveLinks: true
   }))
 };
 

@@ -7,6 +7,9 @@ let Layout = dynamicPage(() =>
 let ProjectSettingsPage = dynamicPage(() =>
   import('./pages/index').then(c => c.ProjectSettingsPage)
 );
+let ProjectBrandingPage = dynamicPage(() =>
+  import('./pages/branding').then(c => c.ProjectBrandingPage)
+);
 let ProjectSettingsInstancesPage = dynamicPage(() =>
   import('./pages/instances').then(c => c.ProjectSettingsInstancesPage)
 );
@@ -23,6 +26,10 @@ export let projectSlice = createSlice([
       {
         path: '',
         element: <ProjectSettingsPage />
+      },
+      {
+        path: 'branding',
+        element: <ProjectBrandingPage />
       },
 
       {

@@ -21,6 +21,7 @@ import { v1PortalAuthSsoConnectionPresenter } from './implementation/portalAuthS
 import { v1PortalAuthSsoTenantPresenter } from './implementation/portalAuthSsoTenant';
 import { v1PortalAuthSsoTenantSetupPresenter } from './implementation/portalAuthSsoTenantSetup';
 import { v1ProfilePresenter } from './implementation/profile';
+import { v1ProjectBrandPresenter } from './implementation/projectBrand';
 import { v1ProjectPresenter } from './implementation/project';
 import { v1ProviderTemplatePresenter } from './implementation/providerTemplate';
 import { v1SecretPresenter } from './implementation/secret';
@@ -156,6 +157,7 @@ import {
   portalAuthSsoTenantType,
   portalType,
   profileType,
+  projectBrandType,
   projectType,
   providerTemplateType,
   providerAuthConfigType,
@@ -262,6 +264,11 @@ export let organizationPresenter = declarePresenter(organizationType, {
 export let projectPresenter = declarePresenter(projectType, {
   mt_2025_01_01_dashboard: v1ProjectPresenter,
   mt_2026_01_01_magnetar: v1ProjectPresenter
+});
+
+export let projectBrandPresenter = declarePresenter(projectBrandType, {
+  mt_2025_01_01_dashboard: v1ProjectBrandPresenter,
+  mt_2026_01_01_magnetar: v1ProjectBrandPresenter
 });
 
 export let userPresenter = declarePresenter(userType, {

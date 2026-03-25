@@ -89,19 +89,17 @@ class UserService {
 
       let nextImage = d.input.image;
       if (d.input.imageFileId !== undefined) {
-        nextImage =
-          d.input.imageFileId === null
-            ? { type: 'default' }
-            : await fileReferenceService.createImageEntityImage({
-                fileId: d.input.imageFileId,
-                owner: {
-                  type: 'user',
-                  userId: d.user.id
-                },
-                purpose: 'user_image',
-                entityType: 'user',
-                entityId: d.user.id
-              });
+        nextImage = await fileReferenceService.resolveImageEntityImage({
+          imageFileId: d.input.imageFileId,
+          clearedImage: { type: 'default' },
+          owner: {
+            type: 'user',
+            userId: d.user.id
+          },
+          purpose: 'user_image',
+          entityType: 'user',
+          entityId: d.user.id
+        });
       }
 
       let user = await db.user.update({

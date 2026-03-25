@@ -75,6 +75,7 @@ import {
   MetorialDashboardOrganizationsJoinEndpoint,
   MetorialDashboardOrganizationsMembersEndpoint,
   MetorialDashboardOrganizationsProjectsEndpoint,
+  MetorialDashboardOrganizationsProjectsBrandingEndpoint,
   MetorialDashboardOrganizationsTeamsEndpoint,
   MetorialDashboardOrganizationsTeamsMembersEndpoint,
   MetorialDashboardOrganizationsTeamsProjectsEndpoint,
@@ -143,7 +144,9 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
   profile: new MetorialOrganizationsProfileEndpoint(manager),
 
   instances: new MetorialDashboardOrganizationsInstancesEndpoint(manager),
-  projects: new MetorialDashboardOrganizationsProjectsEndpoint(manager),
+  projects: Object.assign(new MetorialDashboardOrganizationsProjectsEndpoint(manager), {
+    branding: new MetorialDashboardOrganizationsProjectsBrandingEndpoint(manager)
+  }),
   user: new MetorialManagementUserEndpoint(manager),
 
   apiKeys: new MetorialApiKeysEndpoint(manager),

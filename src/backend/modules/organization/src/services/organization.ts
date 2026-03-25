@@ -111,19 +111,17 @@ class OrganizationService {
 
       let nextImage = d.input.image;
       if (d.input.imageFileId !== undefined) {
-        nextImage =
-          d.input.imageFileId === null
-            ? { type: 'default' }
-            : await fileReferenceService.createImageEntityImage({
-                fileId: d.input.imageFileId,
-                owner: {
-                  type: 'organization',
-                  organizationId: d.organization.id
-                },
-                purpose: 'organization_image',
-                entityType: 'organization',
-                entityId: d.organization.id
-              });
+        nextImage = await fileReferenceService.resolveImageEntityImage({
+          imageFileId: d.input.imageFileId,
+          clearedImage: { type: 'default' },
+          owner: {
+            type: 'organization',
+            organizationId: d.organization.id
+          },
+          purpose: 'organization_image',
+          entityType: 'organization',
+          entityId: d.organization.id
+        });
       }
 
       let organization = await db.organization.update({
