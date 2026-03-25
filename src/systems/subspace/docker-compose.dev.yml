@@ -385,8 +385,8 @@ services:
   subspace-controller:
     profiles: ['app']
     build:
-      context: .
-      dockerfile: ./apps/controller/dev.Dockerfile
+      context: ../../..
+      dockerfile: ./src/systems/subspace/apps/controller/dev.Dockerfile
     container_name: subspace-controller-service
     restart: unless-stopped
     ports:
@@ -465,8 +465,8 @@ services:
   mcp-test-server:
     profiles: ['infra']
     build:
-      context: .
-      dockerfile: ./apps/controller/dev.Dockerfile
+      context: ../../..
+      dockerfile: ./src/systems/subspace/apps/controller/dev.Dockerfile
     container_name: subspace-mcp-test-server
     command: ['sh', '-c', 'PORT=52198 bun ./test-servers/index.ts']
     ports:
@@ -486,8 +486,8 @@ services:
   subspace-controller-test:
     profiles: ['infra']
     build:
-      context: .
-      dockerfile: ./apps/controller/dev.Dockerfile
+      context: ../../..
+      dockerfile: ./src/systems/subspace/apps/controller/dev.Dockerfile
     container_name: subspace-controller-test-service
     command: ['sh', '-c', 'sleep infinity']
     environment:
@@ -545,8 +545,8 @@ services:
   subspace-public:
     profiles: ['app']
     build:
-      context: .
-      dockerfile: ./apps/public/dev.Dockerfile
+      context: ../../..
+      dockerfile: ./src/systems/subspace/apps/public/dev.Dockerfile
     container_name: subspace-public-service
     restart: unless-stopped
     ports:
@@ -616,8 +616,8 @@ services:
   subspace-worker:
     profiles: ['app']
     build:
-      context: .
-      dockerfile: ./apps/worker/dev.Dockerfile
+      context: ../../..
+      dockerfile: ./src/systems/subspace/apps/worker/dev.Dockerfile
     container_name: subspace-worker-service
     restart: unless-stopped
     environment:

@@ -3,22 +3,19 @@ FROM oven/bun:1 AS builder
 
 WORKDIR /app
 
-# Copy all package files
+# Copy OSS root package files and Subspace sources
 COPY package.json bun.lock* ./
-COPY apps ./apps
-COPY packages ./packages
-COPY modules ./modules
-COPY provider-backends ./provider-backends
-COPY db ./db
+COPY src/systems/subspace ./src/systems/subspace
+COPY src/systems/_clients ./src/systems/_clients
 
 # Install CA certificates for Sentry CLI uploads
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/*
 
-# Install all dependencies (including dev dependencies for build)
-RUN bun install
+# Install all dependencies (including workspace clients)
+RUN bun install --linker=hoisted
 
 # Generate Prisma client
-WORKDIR /app/db
+WORKDIR /app/src/systems/subspace/db
 RUN bunx prisma generate
 
 ARG SENTRY_AUTH_TOKEN
@@ -27,7 +24,7 @@ ENV SENTRY_AUTH_TOKEN=${SENTRY_AUTH_TOKEN}
 # Build the application using ncc
 # This bundles all dependencies into a single file
 # Note: Frontend should be pre-built before creating the Docker image
-WORKDIR /app/apps/public
+WORKDIR /app/src/systems/subspace/apps/public
 # Remove frontend source (not needed for backend bundle, only dist is needed at runtime)
 RUN rm -rf frontend/src frontend/tsconfig.* frontend/vite.config.ts frontend/index.html
 # Temporarily use the build-friendly tsconfig
@@ -48,13 +45,13 @@ WORKDIR /app
 RUN apk add --no-cache curl
 
 # Copy the built application from builder
-COPY --from=builder /app/apps/public/dist /app/dist
+COPY --from=builder /app/src/systems/subspace/apps/public/dist /app/dist
 
 # Copy the frontend dist directory
-COPY --from=builder /app/apps/public/frontend/dist /app/frontend/dist
+COPY --from=builder /app/src/systems/subspace/apps/public/frontend/dist /app/frontend/dist
 
 # Copy prisma schema and generated client from builder
-COPY --from=builder /app/db /app/db
+COPY --from=builder /app/src/systems/subspace/db /app/db
 
 # Copy entire node_modules from builder to ensure prisma has all dependencies
 COPY --from=builder /app/node_modules /app/node_modules
