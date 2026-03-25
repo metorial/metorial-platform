@@ -45,8 +45,8 @@ jobs:
         run: |
           set -euo pipefail
           bun run --cwd ./src/systems/slates/apps/hub db:generate
-          bunx turbo run --ui=stream build --filter=src/systems/slates/packages/**
-          bunx turbo run --ui=stream build --filter=src/systems/shuttle/sdk/packages/**
+          bunx turbo run --ui=stream build --filter=./src/systems/slates/packages/**
+          bunx turbo run --ui=stream build --filter=./src/systems/shuttle/sdk/packages/**
           bunx turbo run --ui=stream build --filter=@metorial-platform-systems/slates-client --filter=@metorial-platform-systems/shuttle-client
 
       - name: Set up Docker Buildx
