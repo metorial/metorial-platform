@@ -16,27 +16,27 @@
   "exports": {
     "types": "./dist/index.d.ts",
     "require": "./dist/index.cjs",
-    "import": "./dist/index.module.js",
-    "default": "./dist/index.module.js"
+    "import": "./dist/index.js",
+    "default": "./dist/index.js"
   },
   "main": "./dist/index.cjs",
-  "module": "./dist/index.module.js",
+  "module": "./dist/index.js",
   "types": "dist/index.d.ts",
-  "unpkg": "./dist/index.umd.js",
   "scripts": {
     "test": "vitest run --passWithNoTests",
     "lint": "prettier src/**/*.ts --check",
-    "build": "rm -rf ./dist && microbundle && dts-bundle-generator --config dts-bundle-generator.config.json",
+    "build": "tsup",
     "prepublish": "bun run build",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@lowerdeck/rpc-client": "^1.1.0"
+    "@lowerdeck/rpc-client": "^1.1.3",
+    "@lowerdeck/validation": "^1.0.8"
   },
   "devDependencies": {
-    "@metorial-services/slates-registry-client": "^1.0.0",
-    "microbundle": "^0.15.1",
+    "tsup": "^8.5.1",
     "typescript": "^5.8.3",
-    "vitest": "^3.1.2"
+    "vitest": "^3.1.2",
+    "@types/minimatch": "^5"
   }
 }

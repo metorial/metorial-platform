@@ -8,7 +8,7 @@ import type {
 import { PrismaClient } from '../prisma/generated/client';
 
 let mainAdapter = new PrismaPg({
-  connectionString: process.env.DATABASE_URL
+  connectionString: process.env.SLATES_HUB_DATABASE_URL ?? process.env.DATABASE_URL
 });
 
 let replicaAdapter = process.env.DATABASE_URL_READER

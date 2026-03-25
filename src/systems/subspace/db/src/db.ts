@@ -14,7 +14,7 @@ import { PrismaClient } from '../prisma/generated/client';
 import type { CustomProviderConfig, CustomProviderFrom } from './types';
 
 let mainAdapter = new PrismaPg({
-  connectionString: process.env.DATABASE_URL
+  connectionString: process.env.SUBSPACE_DATABASE_URL ?? process.env.DATABASE_URL
 });
 
 let replicaAdapter = process.env.DATABASE_URL_READER

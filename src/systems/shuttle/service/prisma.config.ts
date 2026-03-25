@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { defineConfig } from 'prisma/config';
 
-let databaseUrl = process.env.DATABASE_URL;
+let databaseUrl = process.env.SHUTTLE_DATABASE_URL ?? process.env.DATABASE_URL;
 
 if (
   !databaseUrl &&

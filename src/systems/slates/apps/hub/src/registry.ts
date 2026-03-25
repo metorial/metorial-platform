@@ -1,8 +1,9 @@
 import { ServiceError, validationError } from '@lowerdeck/error';
 import { Hash } from '@lowerdeck/hash';
 import { v } from '@lowerdeck/validation';
-import { createSlatesRegistryClient } from '@metorial-services/slates-registry-client';
 import { addMinutes } from 'date-fns';
+import { hc } from 'hono/client';
+import type { registryApp } from '../../../apps/registry/src/apis/public';
 import type { Registry } from '../prisma/generated/client';
 import { db } from './db';
 import { encryption } from './encryption';
@@ -114,6 +115,14 @@ let getReaderToken = async (registry: Registry) => {
 
   return prom;
 };
+
+export type RegistryAppType = typeof registryApp;
+
+export let createSlatesRegistryClient = (o: { endpoint: string; token?: string }) =>
+  hc<RegistryAppType>(o.endpoint, {
+    headers: o.token ? { Authorization: `Bearer ${o.token}` } : {},
+    init: { redirect: 'follow' }
+  });
 
 export let getRegistryClient = async (registry: Registry): Promise<RegistryClient> => {
   let token = await getReaderToken(registry);

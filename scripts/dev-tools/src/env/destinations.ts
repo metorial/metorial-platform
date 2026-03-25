@@ -1,6 +1,12 @@
 import { backendEnv } from './backend';
 import { frontendEnv } from './frontend';
-import { shuttleServiceEnv, slatesHubEnv, subspaceDbEnv, subspaceDevEnv } from './services';
+import {
+  shuttleServiceEnv,
+  slatesHubEnv,
+  slatesRegistryEnv,
+  subspaceDbEnv,
+  subspaceDevEnv
+} from './services';
 import type { Destination } from './type';
 
 export let destinations: Destination[] = [

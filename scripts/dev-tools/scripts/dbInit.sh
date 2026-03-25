@@ -13,6 +13,7 @@ export MAIN_FEDERATION_CORE_DATABASE_URL="postgres://postgres:postgres@localhost
 export ORIGIN_DATABASE_URL="postgres://postgres:postgres@localhost:35432/origin"
 export SIGNAL_DATABASE_URL="postgres://postgres:postgres@localhost:35432/signal"
 export SLATES_HUB_DATABASE_URL="postgres://postgres:postgres@localhost:35432/slates-hub"
+export SLATES_REGISTRY_DATABASE_URL="postgres://postgres:postgres@localhost:35432/slates-registry"
 export SUBSPACE_DATABASE_URL="postgres://postgres:postgres@localhost:35432/subspace"
 export SHUTTLE_DATABASE_URL="postgres://postgres:postgres@localhost:35432/shuttle"
 export HORIZON_DATABASE_URL="postgres://postgres:postgres@localhost:35432/horizon"
