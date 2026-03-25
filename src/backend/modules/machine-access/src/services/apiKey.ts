@@ -21,6 +21,7 @@ import {
 import { Fabric } from '@metorial/fabric';
 import { addMinutes } from 'date-fns';
 import { env } from '../env';
+import { assertValidApiKeyIpFilters } from '../lib/apiKeyIpFilters';
 import { machineAccessService } from './machineAccess';
 
 export type ListApiKeysFilter =
@@ -59,6 +60,7 @@ class ApiKeyService {
         name: string;
         description?: string;
         expiresAt?: Date;
+        ipFilters?: string[];
       };
       context: Context;
       kind?: ApiKeyKind;
@@ -76,6 +78,8 @@ class ApiKeyService {
         }
     )
   ) {
+    let ipFilters = assertValidApiKeyIpFilters(d.input.ipFilters);
+
     let res = await withTransaction(async db => {
       let machineAccess = await machineAccessService.createMachineAccess(
         d.type == 'organization_management_token'
@@ -128,6 +132,7 @@ class ApiKeyService {
           type: d.type,
           name: d.input.name,
           description: d.input.description,
+          ipFilters,
           machineAccessOid: machineAccess.oid,
           secretRedacted: UnifiedApiKey.redact(secretKey),
           secretLength: secretKey.toString().length,
@@ -181,11 +186,16 @@ class ApiKeyService {
       name?: string;
       description?: string;
       expiresAt?: Date;
+      ipFilters?: string[];
     };
     context: Context;
     performedBy: OrganizationActor;
   }) {
     await this.ensureApiKeyActive(d.apiKey);
+    let ipFilters =
+      d.input.ipFilters == undefined
+        ? undefined
+        : assertValidApiKeyIpFilters(d.input.ipFilters);
 
     let organization = await db.organization.findUniqueOrThrow({
       where: { oid: d.performedBy.organizationOid }
@@ -203,7 +213,8 @@ class ApiKeyService {
         data: {
           name: d.input.name,
           description: d.input.description,
-          expiresAt: d.input.expiresAt
+          expiresAt: d.input.expiresAt,
+          ipFilters
         },
         include: {
           machineAccess: {

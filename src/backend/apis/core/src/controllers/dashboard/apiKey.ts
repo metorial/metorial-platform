@@ -239,7 +239,8 @@ export let dashboardApiKeyController = Controller.create(
           v.object({
             name: v.string(),
             description: v.optional(v.string()),
-            expires_at: v.optional(v.date())
+            expires_at: v.optional(v.date()),
+            ip_filters: v.optional(v.array(v.string()))
           })
         ])
       )
@@ -252,7 +253,8 @@ export let dashboardApiKeyController = Controller.create(
             input: {
               name: ctx.body.name,
               description: ctx.body.description,
-              expiresAt: ctx.body.expires_at
+              expiresAt: ctx.body.expires_at,
+              ipFilters: ctx.body.ip_filters
             },
             context: ctx.context,
             type: 'organization_management_token',
@@ -291,7 +293,8 @@ export let dashboardApiKeyController = Controller.create(
             input: {
               name: ctx.body.name,
               description: ctx.body.description,
-              expiresAt: ctx.body.expires_at
+              expiresAt: ctx.body.expires_at,
+              ipFilters: ctx.body.ip_filters
             },
             context: ctx.context,
             type: ctx.body.type,
@@ -327,7 +330,8 @@ export let dashboardApiKeyController = Controller.create(
         v.object({
           name: v.optional(v.string()),
           description: v.optional(v.string()),
-          expires_at: v.optional(v.date())
+          expires_at: v.optional(v.date()),
+          ip_filters: v.optional(v.array(v.string()))
         })
       )
       .use(isDashboardGroup())
@@ -355,7 +359,8 @@ export let dashboardApiKeyController = Controller.create(
           input: {
             name: ctx.body.name,
             description: ctx.body.description,
-            expiresAt: ctx.body.expires_at
+            expiresAt: ctx.body.expires_at,
+            ipFilters: ctx.body.ip_filters
           },
           context: ctx.context,
           performedBy: ctx.actor

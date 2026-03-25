@@ -25,6 +25,7 @@ export let v1ApiKeyPresenter = Presenter.create(apiKeyType)
     type: apiKey.type,
     name: apiKey.name,
     description: apiKey.description,
+    ip_filters: apiKey.ipFilters,
 
     machine_access: await v1MachineAccessPresenter
       .present({ machineAccess: apiKey.machineAccess }, opts)
@@ -89,6 +90,16 @@ export let v1ApiKeyPresenter = Presenter.create(apiKeyType)
           examples: ['API key for production server access']
         })
       ),
+      ip_filters: v.array(
+        v.string({
+          description: 'Allowed IP address or CIDR entry',
+          examples: ['192.168.1.10', '10.0.0.0/24']
+        }),
+        {
+          name: 'ip_filters',
+          description: 'List of allowed IP addresses or CIDR ranges for this API key'
+        }
+      ),
       machine_access: v1MachineAccessPresenter.schema,
       deleted_at: v.nullable(
         v.date({
@@ -126,6 +137,7 @@ export let dashboardApiKeyPresenter = Presenter.create(apiKeyType)
     type: apiKey.type,
     name: apiKey.name,
     description: apiKey.description,
+    ip_filters: apiKey.ipFilters,
 
     machine_access: await v1MachineAccessPresenter
       .present({ machineAccess: apiKey.machineAccess }, opts)
@@ -203,6 +215,16 @@ export let dashboardApiKeyPresenter = Presenter.create(apiKeyType)
           description: `The apiKey's description`,
           examples: ['API key for production server access']
         })
+      ),
+      ip_filters: v.array(
+        v.string({
+          description: 'Allowed IP address or CIDR entry',
+          examples: ['192.168.1.10', '10.0.0.0/24']
+        }),
+        {
+          name: 'ip_filters',
+          description: 'List of allowed IP addresses or CIDR ranges for this API key'
+        }
       ),
       machine_access: v1MachineAccessPresenter.schema,
       deleted_at: v.nullable(

@@ -13,6 +13,7 @@ export type ApiKeysUpdateOutput = {
     | 'instance_access_token_publishable';
   name: string;
   description: string | null;
+  ipFilters: string[];
   machineAccess: {
     object: 'machine_access';
     id: string;
@@ -110,6 +111,7 @@ export let mapApiKeysUpdateOutput = mtMap.object<ApiKeysUpdateOutput>({
   type: mtMap.objectField('type', mtMap.passthrough()),
   name: mtMap.objectField('name', mtMap.passthrough()),
   description: mtMap.objectField('description', mtMap.passthrough()),
+  ipFilters: mtMap.objectField('ip_filters', mtMap.array(mtMap.passthrough())),
   machineAccess: mtMap.objectField(
     'machine_access',
     mtMap.object({
@@ -236,11 +238,13 @@ export type ApiKeysUpdateBody = {
   name?: string | undefined;
   description?: string | undefined;
   expiresAt?: Date | undefined;
+  ipFilters?: string[] | undefined;
 };
 
 export let mapApiKeysUpdateBody = mtMap.object<ApiKeysUpdateBody>({
   name: mtMap.objectField('name', mtMap.passthrough()),
   description: mtMap.objectField('description', mtMap.passthrough()),
-  expiresAt: mtMap.objectField('expires_at', mtMap.date())
+  expiresAt: mtMap.objectField('expires_at', mtMap.date()),
+  ipFilters: mtMap.objectField('ip_filters', mtMap.array(mtMap.passthrough()))
 });
 

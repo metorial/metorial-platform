@@ -13,6 +13,7 @@ export type ApiKeysRevealOutput = {
     | 'instance_access_token_publishable';
   name: string;
   description: string | null;
+  ipFilters: string[];
   machineAccess: {
     object: 'machine_access';
     id: string;
@@ -110,6 +111,7 @@ export let mapApiKeysRevealOutput = mtMap.object<ApiKeysRevealOutput>({
   type: mtMap.objectField('type', mtMap.passthrough()),
   name: mtMap.objectField('name', mtMap.passthrough()),
   description: mtMap.objectField('description', mtMap.passthrough()),
+  ipFilters: mtMap.objectField('ip_filters', mtMap.array(mtMap.passthrough())),
   machineAccess: mtMap.objectField(
     'machine_access',
     mtMap.object({

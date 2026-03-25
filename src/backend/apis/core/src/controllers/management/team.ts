@@ -27,7 +27,6 @@ export let teamManagementController = Controller.create(
         description: 'List all organization teams'
       })
       .use(checkAccess({ possibleScopes: ['organization.team:read'] }))
-      .use(hasFlags(['paid-advanced-roles']))
       .outputList(teamPresenter)
       .query('default', Paginator.validate())
       .do(async ctx => {
@@ -46,7 +45,6 @@ export let teamManagementController = Controller.create(
         description: 'Get the information of a specific team'
       })
       .use(checkAccess({ possibleScopes: ['organization.team:read'] }))
-      .use(hasFlags(['paid-advanced-roles']))
       .output(teamPresenter)
       .do(async ctx => {
         let team = await teamService.getTeamById({

@@ -43,6 +43,7 @@ model ApiKey {
 
   name        String
   description String?
+  ipFilters   String[]
 
   canRevealUntil   DateTime?
   canRevealForever Boolean

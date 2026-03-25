@@ -20,8 +20,11 @@ import {
   User,
   UserSession
 } from '@metorial/db';
-import type { OAuthTokenWithAuthorization } from '@metorial/module-machine-access';
-import { machineAccessAuthService } from '@metorial/module-machine-access';
+import {
+  isIpAllowedByApiKeyFilters,
+  machineAccessAuthService,
+  type OAuthTokenWithAuthorization
+} from '@metorial/module-machine-access';
 import { userAuthService } from '@metorial/module-user';
 import {
   instancePublishableTokenScopes,
@@ -197,6 +200,20 @@ class AuthenticationService {
       res.type == 'api_key'
         ? res.secret!.apiKey.machineAccess
         : res.oauthToken!.oauthAuthorization.machineAccess;
+
+    if (
+      res.type == 'api_key' &&
+      !isIpAllowedByApiKeyFilters({
+        ip: d.context.ip,
+        ipFilters: res.secret.apiKey.ipFilters
+      })
+    ) {
+      throw new ServiceError(
+        unauthorizedError({
+          message: 'This API key is not allowed from your IP address'
+        })
+      );
+    }
 
     if (d.consumerSessionClientSecret && machineAccess.type != 'instance_publishable') {
       throw new ServiceError(
