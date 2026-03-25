@@ -41,11 +41,37 @@ class callbackDeliveryServiceImpl {
       callback,
       registrations,
       slatesTenant,
-      slatesDestinationIds: callback.callbackDestinationLinks
+      linkedSlatesDestinationIds: callback.callbackDestinationLinks
+        .map(link => link.callbackDestination.slateTriggerDestinationId)
+        .filter(Boolean),
+      activeSlatesDestinationIds: callback.callbackDestinationLinks
         .filter(link => link.callbackDestination.status === 'active')
         .map(link => link.callbackDestination.slateTriggerDestinationId)
         .filter(Boolean)
     };
+  }
+
+  private async matchesRegistrationForDeliveryEvent(d: {
+    slatesTenantId: string;
+    registrations: { slateTriggerReceiverId: string }[];
+    deliveryEventId: string;
+  }) {
+    let triggerReceiverIds = d.registrations
+      .map(reg => reg.slateTriggerReceiverId)
+      .filter(Boolean);
+
+    if (triggerReceiverIds.length === 0) return false;
+
+    let events = await slates.slateTriggerEvent.list({
+      tenantId: d.slatesTenantId,
+      triggerReceiverIds,
+      limit: 100,
+      order: 'desc'
+    });
+
+    return events.items.some(
+      event => event.id === d.deliveryEventId || event.signalEventId === d.deliveryEventId
+    );
   }
 
   async listCallbackDeliveries(d: {
@@ -80,7 +106,7 @@ class callbackDeliveryServiceImpl {
           })
         )
           .map(item => item.slateTriggerDestinationId)
-          .filter(id => context.slatesDestinationIds.includes(id))
+          .filter(id => context.activeSlatesDestinationIds.includes(id))
       : undefined;
 
     return await slates.slateTriggerDelivery.list({
@@ -109,7 +135,16 @@ class callbackDeliveryServiceImpl {
       eventDeliveryIntentId: d.eventDeliveryIntentId
     });
 
-    if (!context.slatesDestinationIds.includes(delivery.destination.id)) {
+    let matchesRegistration = await this.matchesRegistrationForDeliveryEvent({
+      slatesTenantId: context.slatesTenant.id,
+      registrations: context.registrations,
+      deliveryEventId: delivery.event.id
+    });
+
+    if (
+      !matchesRegistration &&
+      !context.linkedSlatesDestinationIds.includes(delivery.destination.id)
+    ) {
       throw new ServiceError(notFoundError('callback.delivery', d.eventDeliveryIntentId));
     }
 
@@ -175,7 +210,16 @@ class callbackDeliveryServiceImpl {
       eventDeliveryAttemptId: d.eventDeliveryAttemptId
     });
 
-    if (!context.slatesDestinationIds.includes(attempt.intent.destination.id)) {
+    let matchesRegistration = await this.matchesRegistrationForDeliveryEvent({
+      slatesTenantId: context.slatesTenant.id,
+      registrations: context.registrations,
+      deliveryEventId: attempt.intent.event.id
+    });
+
+    if (
+      !matchesRegistration &&
+      !context.linkedSlatesDestinationIds.includes(attempt.intent.destination.id)
+    ) {
       throw new ServiceError(
         notFoundError('callback.delivery_attempt', d.eventDeliveryAttemptId)
       );

@@ -40,7 +40,8 @@ let callbackInstanceTriggerSchema = v.object({
   webhook_url: v.nullable(
     v.string({
       name: 'webhook_url',
-      description: 'Provider webhook URL registered for this trigger when webhook delivery is used',
+      description:
+        'Provider webhook URL registered for this trigger when webhook delivery is used',
       examples: ['https://provider.example.com/webhooks/abc123']
     })
   ),
@@ -88,7 +89,8 @@ export let v1CallbackInstancePresenter = Presenter.create(callbackInstanceType)
       }),
       status: v.enumOf(['attached', 'detached'], {
         name: 'status',
-        description: 'Whether the callback instance is currently attached to a deployment/config pair'
+        description:
+          'Whether the callback instance is currently attached to a deployment/config pair'
       }),
       registration_status: v.enumOf(['pending', 'registered'], {
         name: 'registration_status',

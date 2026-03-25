@@ -187,8 +187,9 @@ export let v1CallbackNotificationPresenter = Presenter.create(callbackNotificati
       }),
       id: v.string({
         name: 'id',
-        description: 'Unique callback notification identifier',
-        examples: ['cbn_4dEfGhJkLmNpQrSt']
+        description:
+          'Unique callback notification identifier. This delivery intent ID should be used to fetch notification details.',
+        examples: ['sdi_0mn59k130hP1fPd2zSMT4C']
       }),
       status: v.string({
         name: 'status',

@@ -71,7 +71,7 @@ type CallbacksNotificationsGetOutputDestination struct {
 type CallbacksNotificationsGetOutput struct {
 	// Object - String representing the object's type
 	Object string `json:"object"`
-	// Id - Unique callback notification identifier
+	// Id - Unique callback notification identifier. This delivery intent ID should be used to fetch notification details.
 	Id string `json:"id"`
 	// Status - Current notification delivery status
 	Status string `json:"status"`
