@@ -45,6 +45,7 @@ import {
   ConsumerProviderCatalogEntry
 } from '@metorial/module-consumer';
 import { Flags } from '@metorial/module-flags';
+import type { ProjectBrandOverride } from '@metorial/module-organization';
 import {
   SubspaceBucket,
   SubspaceCallback,
