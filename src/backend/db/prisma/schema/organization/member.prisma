@@ -33,10 +33,11 @@ model OrganizationMember {
   actorOid BigInt            @unique
   actor    OrganizationActor @relation(fields: [actorOid], references: [oid], onDelete: Cascade)
 
-  usedInvites         OrganizationInviteJoin[]
-  userConfigs         OrganizationUserConfig[]
-  oauthAuthorizations OAuthAuthorization[]
-  policies            AccessPolicyAssignment[]
+  usedInvites             OrganizationInviteJoin[]
+  userConfigs             OrganizationUserConfig[]
+  oauthAuthorizations     OAuthAuthorization[]
+  policies                AccessPolicyAssignment[]
+  apiKeyExpiredEmailSends ApiKeyExpiredEmailSend[]
 
   @@unique([userOid, organizationOid])
   @@index([lastActiveAt])

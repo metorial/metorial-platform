@@ -171,16 +171,17 @@ export let dashboardApiKeyController = Controller.create(
 
         let list = await paginator.run(ctx.query);
         let presented = await Promise.all(
-          list.items.map(async apiKey =>
-            await apiKeyPresenter.present({
-              canReveal: await canRevealApiKey({
-                auth: ctx.auth,
-                organization: ctx.organization,
-                member: ctx.member,
+          list.items.map(
+            async apiKey =>
+              await apiKeyPresenter.present({
+                canReveal: await canRevealApiKey({
+                  auth: ctx.auth,
+                  organization: ctx.organization,
+                  member: ctx.member,
+                  apiKey
+                }),
                 apiKey
-              }),
-              apiKey
-            })
+              })
           )
         );
 

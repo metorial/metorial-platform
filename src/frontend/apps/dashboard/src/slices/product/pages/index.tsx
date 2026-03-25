@@ -166,7 +166,7 @@ export let ProjectHomePage = () => {
         />
       )}
 
-      {renderWithLoader({ instance, apiKeys, deployments })(() => (
+      {renderWithLoader({ instance, deployments })(() => (
         <>
           {!hasDeployments && (
             <>

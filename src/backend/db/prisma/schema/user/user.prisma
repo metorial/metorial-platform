@@ -37,6 +37,7 @@ model User {
   oauthAuthorizations     OAuthAuthorization[]
   cliDevices              CliDevice[]
   oauthAuthorizationFlows OAuthAuthorizationFlow[]
+  apiKeyExpiredEmailSends ApiKeyExpiredEmailSend[]
 }
 
 model UserSession {

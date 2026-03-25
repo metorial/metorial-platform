@@ -42,12 +42,30 @@ export let sendExpiredApiKeyEmailQueueProcessor = sendExpiredApiKeyEmailQueue.pr
     if (apiKey.status != 'expired' || apiKey.machineAccessOid == null) return;
     if (member.role != 'admin' || member.user.status != 'active') return;
 
+    let existingSend = await db.apiKeyExpiredEmailSend.findFirst({
+      where: {
+        apiKeyOid: apiKey.oid,
+        memberOid: member.oid
+      }
+    });
+    if (existingSend) return;
+
     await apiKeyExpiredEmail.send({
       to: [member.user.email],
       data: {
         apiKey,
         organization,
         user: member.user
+      }
+    });
+
+    await db.apiKeyExpiredEmailSend.create({
+      data: {
+        apiKeyOid: apiKey.oid,
+        organizationOid: organization.oid,
+        memberOid: member.oid,
+        userOid: member.user.oid,
+        email: member.user.email
       }
     });
   }

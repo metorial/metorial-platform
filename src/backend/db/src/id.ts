@@ -19,6 +19,7 @@ export let ID = createIdGenerator({
   machineAccess: idType.sorted('mac'),
   apiKey: idType.sorted('apk'),
   apiKeySecret: idType.sorted('aks'),
+  apiKeyExpiredEmailSend: idType.sorted('aes'),
   oauthApplication: idType.sorted('oap'),
   oauthInstallation: idType.sorted('oai'),
   oauthAuthorization: idType.sorted('oaa'),
