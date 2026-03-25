@@ -53,7 +53,7 @@ jobs:
           context: ./src/systems/shuttle/service
           file: ./src/systems/shuttle/service/Dockerfile
           platforms: linux/amd64,linux/arm64
-          push: ${{ github.event_name != 'pull_request' }}
+          push: false
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
@@ -78,4 +78,4 @@ jobs:
         shuttle-function-bay
         shuttle-service
       test_container: shuttle-service
-      test_command: cd /app/src/systems/shuttle/service && bun run test -- --mode ci --reporter verbose
+      test_command: cd /app && bun run test -- --mode ci --reporter verbose

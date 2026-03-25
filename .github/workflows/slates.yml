@@ -65,7 +65,7 @@ jobs:
           context: ${{ matrix.service.context }}
           file: ${{ matrix.service.dockerfile }}
           platforms: linux/amd64,linux/arm64
-          push: ${{ github.event_name != 'pull_request' }}
+          push: false
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
@@ -92,4 +92,4 @@ jobs:
         slates-hub-function-bay
         slates-hub-registry
       test_container: slates-hub-service
-      test_command: cd /app/src/systems/slates/apps/hub && bun run test -- --mode ci
+      test_command: cd /app && bun run test -- --mode ci
