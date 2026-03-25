@@ -33,12 +33,6 @@ class AccessService {
       return null;
     }
 
-    let includedServiceAccount =
-      d.authInfo.oauthToken.oauthAuthorization.serviceAccountCredential?.serviceAccount;
-    if (includedServiceAccount) {
-      return includedServiceAccount;
-    }
-
     let serviceAccountCredential = await db.serviceAccountCredential.findFirst({
       where: {
         oauthAuthorizationOid: d.authInfo.oauthToken.oauthAuthorization.oid
@@ -218,6 +212,7 @@ class AccessService {
   async getTargetAccessFilter(d: TargetAccessInput & { possibleScopes: Scope[] }) {
     let entries = await this.getEffectiveAccessEntries(d);
     if (!entries) return null;
+    if (!d.organization) return null;
 
     let allowedScopes = new Set(d.authInfo.orgScopes);
     let projectIds = new Set<string>();

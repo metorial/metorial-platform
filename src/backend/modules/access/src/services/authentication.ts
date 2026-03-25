@@ -20,8 +20,8 @@ import {
   User,
   UserSession
 } from '@metorial/db';
-import { machineAccessAuthService } from '@metorial/module-machine-access';
 import type { OAuthTokenWithAuthorization } from '@metorial/module-machine-access';
+import { machineAccessAuthService } from '@metorial/module-machine-access';
 import { userAuthService } from '@metorial/module-user';
 import {
   instancePublishableTokenScopes,
@@ -43,7 +43,9 @@ export type AuthenticatedConsumerContext = {
   consumerSurface: ConsumerSurface;
   consumerSession: ConsumerSession;
   consumerProfile: ConsumerProfile;
-  consumerGroups: Awaited<ReturnType<typeof getConsumerAccessContextForSession>>['consumerGroups'];
+  consumerGroups: Awaited<
+    ReturnType<typeof getConsumerAccessContextForSession>
+  >['consumerGroups'];
   accessTags: bigint[];
 };
 
@@ -265,10 +267,10 @@ class AuthenticationService {
           res.type == 'oauth_token'
             ? (res.oauthToken!.oauthAuthorization.scopes as Scope[])
             : machineAccess.type == 'instance_publishable'
-            ? consumer
-              ? instancePublishableTokenWithConsumerScopes
-              : instancePublishableTokenScopes
-            : instanceSecretTokenScopes,
+              ? consumer
+                ? instancePublishableTokenWithConsumerScopes
+                : instancePublishableTokenScopes
+              : instanceSecretTokenScopes,
         restrictions: {
           type: 'instance',
           organization: machineAccess.organization,

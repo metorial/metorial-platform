@@ -1417,6 +1417,11 @@ export let authorizationInclude = {
     include: installationInclude
   },
   organizationMember: true,
+  serviceAccountCredential: {
+    include: {
+      serviceAccount: true
+    }
+  },
   machineAccess: {
     include: machineAccessInclude
   },

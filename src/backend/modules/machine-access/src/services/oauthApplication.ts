@@ -136,13 +136,6 @@ class OAuthApplicationService {
       );
     }
 
-    if (d.accessLevel == 'global' && !d.organization.canCreateGlobalOauthApps) {
-      throw new ServiceError(
-        forbiddenError({
-          message: 'This organization is not allowed to create global oauth applications'
-        })
-      );
-    }
   }
 
   private buildMachineAccessName(name: string) {
