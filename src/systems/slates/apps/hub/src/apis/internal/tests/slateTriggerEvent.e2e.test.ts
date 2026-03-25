@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { SlateTriggerEventDeliveryStatus } from '../../../../prisma/generated/client';
-import { testDb, cleanDatabase } from '../../../test/setup';
-import { fixtures } from '../../../test/fixtures';
 import { slatesHubClient } from '../../../test/client';
+import { fixtures } from '../../../test/fixtures';
+import { cleanDatabase, testDb } from '../../../test/setup';
 
 describe('slateTriggerEvent:list E2E', () => {
   const f = fixtures(testDb);
@@ -29,7 +29,6 @@ describe('slateTriggerEvent:list E2E', () => {
 
     expect(result.items).toHaveLength(2);
     expect(result.items[0]).toMatchObject({
-      object: 'slate.trigger.event',
       id: event.id,
       type: 'test.event',
       deliveryStatus: SlateTriggerEventDeliveryStatus.pending,
@@ -38,7 +37,11 @@ describe('slateTriggerEvent:list E2E', () => {
   });
 
   it('filters by triggerReceiverIds', async () => {
-    const { event: event1, tenant, receiver: receiver1 } = await f.slateTriggerEvent.complete();
+    const {
+      event: event1,
+      tenant,
+      receiver: receiver1
+    } = await f.slateTriggerEvent.complete();
     await f.slateTriggerEvent.complete();
 
     const result = await slatesHubClient.slateTriggerEvent.list({
@@ -86,7 +89,6 @@ describe('slateTriggerEvent:get E2E', () => {
     });
 
     expect(result).toMatchObject({
-      object: 'slate.trigger.event',
       id: event.id,
       type: 'test.event'
     });

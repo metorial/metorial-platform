@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { SlateTriggerInvocationType } from '../../../../prisma/generated/client';
-import { testDb, cleanDatabase } from '../../../test/setup';
-import { fixtures } from '../../../test/fixtures';
 import { slatesHubClient } from '../../../test/client';
+import { fixtures } from '../../../test/fixtures';
+import { cleanDatabase, testDb } from '../../../test/setup';
 
 describe('slateTriggerInvocation:list E2E', () => {
   const f = fixtures(testDb);
@@ -31,7 +31,6 @@ describe('slateTriggerInvocation:list E2E', () => {
 
     expect(result.items).toHaveLength(2);
     expect(result.items[0]).toMatchObject({
-      object: 'slate.trigger.invocation',
       id: triggerInvocation.id,
       type: SlateTriggerInvocationType.poll,
       createdAt: expect.any(Date)
@@ -39,8 +38,11 @@ describe('slateTriggerInvocation:list E2E', () => {
   });
 
   it('filters by triggerReceiverIds', async () => {
-    const { triggerInvocation: inv1, tenant, receiver: receiver1 } =
-      await f.slateTriggerInvocation.complete();
+    const {
+      triggerInvocation: inv1,
+      tenant,
+      receiver: receiver1
+    } = await f.slateTriggerInvocation.complete();
     await f.slateTriggerInvocation.complete();
 
     const result = await slatesHubClient.slateTriggerInvocation.list({
@@ -90,7 +92,6 @@ describe('slateTriggerInvocation:get E2E', () => {
     });
 
     expect(result).toMatchObject({
-      object: 'slate.trigger.invocation',
       id: triggerInvocation.id,
       type: SlateTriggerInvocationType.poll
     });

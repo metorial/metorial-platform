@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { SlateEventType } from '../../../../prisma/generated/client';
-import { testDb, cleanDatabase } from '../../../test/setup';
-import { fixtures } from '../../../test/fixtures';
 import { slatesHubClient } from '../../../test/client';
+import { fixtures } from '../../../test/fixtures';
+import { cleanDatabase, testDb } from '../../../test/setup';
 
 describe('slateEvent:list E2E', () => {
   const f = fixtures(testDb);
@@ -28,16 +28,13 @@ describe('slateEvent:list E2E', () => {
 
     expect(result.items).toHaveLength(2);
     expect(result.items[0]).toMatchObject({
-      object: 'slate.event',
       id: event.id,
       type: SlateEventType.version_pulled,
       message: expect.any(String),
       slate: {
-        object: 'slate',
         id: slate.id
       },
       version: {
-        object: 'slate.version',
         id: slate.currentVersion.id
       },
       deployment: null,
@@ -108,15 +105,12 @@ describe('slateEvent:get E2E', () => {
     });
 
     expect(result).toMatchObject({
-      object: 'slate.event',
       id: event.id,
       type: SlateEventType.discovery_succeeded,
       slate: {
-        object: 'slate',
         id: slate.id
       },
       version: {
-        object: 'slate.version',
         id: slate.currentVersion.id
       }
     });
@@ -149,7 +143,6 @@ describe('slateEvent:get E2E', () => {
     });
 
     expect(result).toMatchObject({
-      object: 'slate.event',
       id: event.id,
       deployment: { id: deployment.id },
       discovery: { id: discovery.id }

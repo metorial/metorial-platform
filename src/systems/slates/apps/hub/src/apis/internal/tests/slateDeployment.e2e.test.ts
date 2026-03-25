@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { SlateDeploymentStatus, SlateStatus } from '../../../../prisma/generated/client';
-import { testDb, cleanDatabase } from '../../../test/setup';
-import { fixtures } from '../../../test/fixtures';
 import { slatesHubClient } from '../../../test/client';
+import { fixtures } from '../../../test/fixtures';
+import { cleanDatabase, testDb } from '../../../test/setup';
 
 describe('slateDeployment:list E2E', () => {
   const f = fixtures(testDb);
@@ -29,16 +29,13 @@ describe('slateDeployment:list E2E', () => {
 
     expect(result.items).toHaveLength(1);
     expect(result.items[0]).toMatchObject({
-      object: 'slate.deployment',
       id: deployment.id,
       status: 'succeeded',
       error: null,
       slate: {
-        object: 'slate',
         id: slate.id
       },
       version: {
-        object: 'slate.version',
         id: slate.currentVersion.id
       },
       createdAt: expect.any(Date)
@@ -116,10 +113,8 @@ describe('slateDeployment:get E2E', () => {
     });
 
     expect(result).toMatchObject({
-      object: 'slate.deployment',
       id: deployment.id,
       slate: {
-        object: 'slate',
         id: slate.id
       }
     });

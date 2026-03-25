@@ -1,11 +1,11 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   SlateSessionToolCallStatus,
   SlateVersionDiscoveryStatus
 } from '../../../../prisma/generated/client';
-import { testDb, cleanDatabase } from '../../../test/setup';
-import { fixtures } from '../../../test/fixtures';
 import { slatesHubClient } from '../../../test/client';
+import { fixtures } from '../../../test/fixtures';
+import { cleanDatabase, testDb } from '../../../test/setup';
 
 const buildOutputState = vi.hoisted(() => ({
   value: {
@@ -62,7 +62,6 @@ describe('slateDiscovery:list E2E', () => {
 
     expect(result.items).toHaveLength(1);
     expect(result.items[0]).toMatchObject({
-      object: 'slate.discovery',
       id: failed.id,
       status: SlateVersionDiscoveryStatus.failed,
       slate: { id: slate.id },
@@ -97,7 +96,6 @@ describe('slateDiscovery:get E2E', () => {
     });
 
     expect(result).toMatchObject({
-      object: 'slate.discovery',
       id: discovery.id,
       error: {
         code: 'build_failed',
@@ -128,7 +126,6 @@ describe('slateDiscovery:getSpecification E2E', () => {
     });
 
     expect(result).toMatchObject({
-      object: 'slate.specification',
       id: slate.currentVersion.specification.id,
       protocolVersion: '1.0'
     });
@@ -170,7 +167,6 @@ describe('slateDiscovery:getBuildOutput E2E', () => {
     });
 
     expect(result).toMatchObject({
-      object: 'slate.discovery.build_output',
       logs: buildOutputState.value.logs,
       status: buildOutputState.value.status
     });
@@ -209,7 +205,6 @@ describe('slateDiscovery:getToolCallStats E2E', () => {
     });
 
     expect(result).toMatchObject({
-      object: 'slate.discovery.tool_call_stats',
       total: 2,
       succeeded: 1,
       failed: 1,

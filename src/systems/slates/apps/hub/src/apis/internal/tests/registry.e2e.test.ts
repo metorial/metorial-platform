@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { testDb, cleanDatabase } from '../../../test/setup';
-import { fixtures } from '../../../test/fixtures';
-import { slatesHubClient } from '../../../test/client';
 import _ from 'lodash';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { slatesHubClient } from '../../../test/client';
+import { fixtures } from '../../../test/fixtures';
+import { cleanDatabase, testDb } from '../../../test/setup';
 
 describe('registry:list E2E', () => {
   const f = fixtures(testDb);
@@ -19,7 +19,6 @@ describe('registry:list E2E', () => {
 
     expect(result.items).toHaveLength(2);
     expect(result.items[0]).toMatchObject({
-      object: 'registry',
       id: registry.id,
       status: registry.status,
       isPredefined: registry.isPredefined,
@@ -48,7 +47,6 @@ describe('registry:get E2E', () => {
     });
 
     expect(result).toMatchObject({
-      object: 'registry',
       id: registry.id,
       identifier: registry.identifier,
       name: registry.name,

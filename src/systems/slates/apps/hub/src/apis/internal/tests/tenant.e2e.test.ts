@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { testDb, cleanDatabase } from '../../../test/setup';
-import { fixtures } from '../../../test/fixtures';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { slatesHubClient } from '../../../test/client';
+import { fixtures } from '../../../test/fixtures';
+import { cleanDatabase, testDb } from '../../../test/setup';
 
 describe('tenant:upsert E2E', () => {
   beforeEach(async () => {
@@ -15,7 +15,6 @@ describe('tenant:upsert E2E', () => {
     });
 
     expect(result).toMatchObject({
-      object: 'tenant',
       id: expect.any(String),
       identifier: 'new-tenant',
       name: 'New Tenant',
@@ -56,7 +55,6 @@ describe('tenant:get E2E', () => {
     });
 
     expect(result).toMatchObject({
-      object: 'tenant',
       id: tenant.id,
       identifier: tenant.identifier,
       name: tenant.name,

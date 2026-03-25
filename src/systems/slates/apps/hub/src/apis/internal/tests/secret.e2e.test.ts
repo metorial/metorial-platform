@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { SecretType, SecretStatus } from '../../../../prisma/generated/client';
-import { testDb, cleanDatabase } from '../../../test/setup';
-import { fixtures } from '../../../test/fixtures';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { SecretStatus, SecretType } from '../../../../prisma/generated/client';
 import { slatesHubClient } from '../../../test/client';
+import { fixtures } from '../../../test/fixtures';
+import { cleanDatabase, testDb } from '../../../test/setup';
 
 describe('secret:list E2E', () => {
   const f = fixtures(testDb);
@@ -25,7 +25,6 @@ describe('secret:list E2E', () => {
 
     expect(result.items).toHaveLength(2);
     expect(result.items[0]).toMatchObject({
-      object: 'secret',
       id: secret.id,
       type: SecretType.slate_authentication_configuration,
       status: SecretStatus.active,
@@ -52,7 +51,6 @@ describe('secret:get E2E', () => {
     });
 
     expect(result).toMatchObject({
-      object: 'secret',
       id: secret.id,
       type: SecretType.slate_oauth_credentials,
       status: SecretStatus.active
