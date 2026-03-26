@@ -19,25 +19,7 @@ export let reconcileAuthVersionCron = createCron(
     let organizations = await db.organization.findMany({
       where: {
         status: 'active',
-        OR: [
-          {
-            authVersion: 'v1'
-          },
-          {
-            accessPolicies: {
-              none: {
-                type: 'everyone'
-              }
-            }
-          },
-          {
-            accessPolicies: {
-              none: {
-                type: 'admin'
-              }
-            }
-          }
-        ]
+        authVersion: 'v1'
       }
     });
     if (organizations.length == 0) return;
@@ -58,7 +40,8 @@ export let reconcileAuthVersionQueueProcessor = reconcileAuthVersionQueue.proces
     if (!organization) throw new QueueRetryError();
 
     await authBootstrapService.ensureOrganizationAuthVersionV2({
-      organization
+      organization,
+      context: { ip: '0.0.0.0', ua: 'Metorial' }
     });
   }
 );

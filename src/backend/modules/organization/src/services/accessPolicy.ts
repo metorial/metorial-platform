@@ -302,14 +302,14 @@ class AccessPolicyService {
       );
     }
 
-    let resolved = d.input.document
-      ? await resolvePolicyDocument({
-          organization: d.organization,
-          document: d.input.document
-        })
-      : null;
-
     return await withTransaction(async db => {
+      let resolved = d.input.document
+        ? await resolvePolicyDocument({
+            organization: d.organization,
+            document: d.input.document
+          })
+        : null;
+
       await Fabric.fire('organization.access_policy.updated:before', d);
 
       let latestVersion = await db.accessPolicyVersion.findFirst({
@@ -405,13 +405,18 @@ class AccessPolicyService {
     organization: Organization;
     type: Extract<AccessPolicyType, 'everyone' | 'admin'>;
   }) {
-    return db.accessPolicy.findFirst({
-      where: {
-        organizationOid: d.organization.oid,
-        type: d.type
+    return withTransaction(
+      async db => {
+        return db.accessPolicy.findFirst({
+          where: {
+            organizationOid: d.organization.oid,
+            type: d.type
+          },
+          include: accessPolicyInclude
+        });
       },
-      include: accessPolicyInclude
-    });
+      { ifExists: false }
+    );
   }
 
   async listAccessPolicies(d: { organization: Organization }) {

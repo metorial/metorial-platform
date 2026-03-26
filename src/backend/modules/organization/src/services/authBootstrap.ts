@@ -129,143 +129,142 @@ class AuthBootstrapService {
 
   async ensureOrganizationAuthVersionV2(d: {
     organization: Organization;
-    context?: Context;
+    context: Context;
     performedBy?: OrganizationActor;
   }) {
-    let organization = await db.organization.findUniqueOrThrow({
-      where: { oid: d.organization.oid }
-    });
-    let performedBy = d.performedBy ?? (await this.ensureSystemActor({ organization }));
-    let context = d.context as Context;
+    return withTransaction(async db => {
+      let organization = await db.organization.findUniqueOrThrow({
+        where: { oid: d.organization.oid }
+      });
+      let performedBy = d.performedBy ?? (await this.ensureSystemActor({ organization }));
 
-    let adminAccessRole = await db.accessRole.findFirst({
-      where: {
-        organizationOid: organization.oid,
-        isAdmin: true
-      },
-      include: {
-        organization: true,
-        accessRoleVersions: {
-          orderBy: {
-            index: 'desc'
+      let adminAccessRole = await db.accessRole.findFirst({
+        where: {
+          organizationOid: organization.oid,
+          isAdmin: true
+        },
+        include: {
+          organization: true,
+          accessRoleVersions: {
+            orderBy: {
+              index: 'desc'
+            }
           }
         }
+      });
+      if (!adminAccessRole) {
+        adminAccessRole = await accessRoleService.createAccessRole({
+          organization,
+          performedBy,
+          context: d.context,
+          input: {
+            name: 'Administrators',
+            description:
+              'Administrative access for managing members, roles, policies, oauth apps, and API keys.',
+            scopes: this.getAdminRoleScopes(),
+            isAdmin: true,
+            message: 'Bootstrap default administrator role'
+          }
+        });
+      } else if (!equalScopes(adminAccessRole.scopes, this.getAdminRoleScopes())) {
+        adminAccessRole = await accessRoleService.updateAccessRole({
+          accessRole: adminAccessRole,
+          organization,
+          performedBy,
+          context: d.context,
+          input: {
+            scopes: this.getAdminRoleScopes(),
+            message: 'Reconcile default administrator role scopes'
+          }
+        });
       }
-    });
-    if (!adminAccessRole) {
-      adminAccessRole = await accessRoleService.createAccessRole({
-        organization,
-        performedBy,
-        context,
-        input: {
-          name: 'Administrators',
-          description:
-            'Administrative access for managing members, roles, policies, oauth apps, and API keys.',
-          scopes: this.getAdminRoleScopes(),
-          isAdmin: true,
-          message: 'Bootstrap default administrator role'
-        }
-      });
-    } else if (!equalScopes(adminAccessRole.scopes, this.getAdminRoleScopes())) {
-      adminAccessRole = await accessRoleService.updateAccessRole({
-        accessRole: adminAccessRole,
-        organization,
-        performedBy,
-        context,
-        input: {
-          scopes: this.getAdminRoleScopes(),
-          message: 'Reconcile default administrator role scopes'
-        }
-      });
-    }
 
-    let everyoneDocument = this.getEveryonePolicyDocument({ organization });
-    let everyonePolicy = await accessPolicyService.getDefaultAccessPolicy({
-      organization,
-      type: 'everyone'
-    });
-    if (!everyonePolicy) {
-      everyonePolicy = await accessPolicyService.createAccessPolicy({
+      let everyoneDocument = this.getEveryonePolicyDocument({ organization });
+      let everyonePolicy = await accessPolicyService.getDefaultAccessPolicy({
         organization,
-        performedBy,
-        context,
-        input: {
-          type: 'everyone',
-          name: 'Everyone',
-          description:
-            'Default access for every member across projects and instances in this organization.',
-          document: everyoneDocument,
-          message: 'Bootstrap default everyone policy'
-        }
+        type: 'everyone'
       });
-    } else if (!equalDocuments(everyonePolicy.document, everyoneDocument)) {
-      everyonePolicy = await accessPolicyService.updateAccessPolicy({
-        accessPolicy: everyonePolicy,
-        organization,
-        performedBy,
-        context,
-        allowDefaultDocumentUpdate: true,
-        input: {
-          document: everyoneDocument,
-          message: 'Reconcile default everyone policy'
-        }
-      });
-    }
-
-    let adminDocument = this.getAdminPolicyDocument({
-      organization,
-      adminAccessRole
-    });
-    let adminPolicy = await accessPolicyService.getDefaultAccessPolicy({
-      organization,
-      type: 'admin'
-    });
-    if (!adminPolicy) {
-      adminPolicy = await accessPolicyService.createAccessPolicy({
-        organization,
-        performedBy,
-        context,
-        input: {
-          type: 'admin',
-          name: 'Administrators',
-          description:
-            'Default administrative policy for managing members, roles, policies, oauth apps, and API keys.',
-          document: adminDocument,
-          message: 'Bootstrap default administrators policy'
-        }
-      });
-    } else if (!equalDocuments(adminPolicy.document, adminDocument)) {
-      adminPolicy = await accessPolicyService.updateAccessPolicy({
-        accessPolicy: adminPolicy,
-        organization,
-        performedBy,
-        context,
-        allowDefaultDocumentUpdate: true,
-        input: {
-          document: adminDocument,
-          message: 'Reconcile default administrators policy'
-        }
-      });
-    }
-
-    let members = await db.organizationMember.findMany({
-      where: {
-        organizationOid: organization.oid,
-        status: 'active'
+      if (!everyonePolicy) {
+        everyonePolicy = await accessPolicyService.createAccessPolicy({
+          organization,
+          performedBy,
+          context: d.context,
+          input: {
+            type: 'everyone',
+            name: 'Everyone',
+            description:
+              'Default access for every member across projects and instances in this organization.',
+            document: everyoneDocument,
+            message: 'Bootstrap default everyone policy'
+          }
+        });
+      } else if (!equalDocuments(everyonePolicy.document, everyoneDocument)) {
+        everyonePolicy = await accessPolicyService.updateAccessPolicy({
+          accessPolicy: everyonePolicy,
+          organization,
+          performedBy,
+          context: d.context,
+          allowDefaultDocumentUpdate: true,
+          input: {
+            document: everyoneDocument,
+            message: 'Reconcile default everyone policy'
+          }
+        });
       }
-    });
 
-    for (let member of members) {
-      await accessPolicyAssignmentService.syncMemberDefaultPolicies({
-        organization: {
-          ...organization,
-          authVersion: 'v2'
-        },
-        member: member as OrganizationMember
+      let adminDocument = this.getAdminPolicyDocument({
+        organization,
+        adminAccessRole
       });
-    }
+      let adminPolicy = await accessPolicyService.getDefaultAccessPolicy({
+        organization,
+        type: 'admin'
+      });
+      if (!adminPolicy) {
+        adminPolicy = await accessPolicyService.createAccessPolicy({
+          organization,
+          performedBy,
+          context: d.context,
+          input: {
+            type: 'admin',
+            name: 'Administrators',
+            description:
+              'Default administrative policy for managing members, roles, policies, oauth apps, and API keys.',
+            document: adminDocument,
+            message: 'Bootstrap default administrators policy'
+          }
+        });
+      } else if (!equalDocuments(adminPolicy.document, adminDocument)) {
+        adminPolicy = await accessPolicyService.updateAccessPolicy({
+          accessPolicy: adminPolicy,
+          organization,
+          performedBy,
+          context: d.context,
+          allowDefaultDocumentUpdate: true,
+          input: {
+            document: adminDocument,
+            message: 'Reconcile default administrators policy'
+          }
+        });
+      }
 
-    await withTransaction(async db => {
+      let members = await db.organizationMember.findMany({
+        where: {
+          organizationOid: organization.oid,
+          status: 'active'
+        }
+      });
+
+      for (let member of members) {
+        await accessPolicyAssignmentService.syncMemberDefaultPolicies({
+          organization: {
+            ...organization,
+            authVersion: 'v2'
+          },
+          member: member as OrganizationMember
+        });
+      }
+
       await db.organizationMember.updateMany({
         where: {
           organizationOid: organization.oid,
@@ -282,18 +281,18 @@ class AuthBootstrapService {
           authVersion: 'v2'
         }
       });
-    });
 
-    return {
-      organization: {
-        ...organization,
-        authVersion: 'v2' as const
-      },
-      performedBy,
-      adminAccessRole,
-      everyonePolicy,
-      adminPolicy
-    };
+      return {
+        organization: {
+          ...organization,
+          authVersion: 'v2' as const
+        },
+        performedBy,
+        adminAccessRole,
+        everyonePolicy,
+        adminPolicy
+      };
+    });
   }
 }
 
