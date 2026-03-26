@@ -75,5 +75,12 @@ export let syncUserSingleQueueProcessor = syncUserSingleQueue.process(async data
   });
   if (!user) return;
 
+  let multiRegionUser = await globalDB.user.findUnique({
+    where: { id: user.id }
+  });
+
+  // Whoever sends the last actual update is the owner and the sync should not override it
+  if (multiRegionUser && multiRegionUser.lastEditByOid === (await cell).oid) return;
+
   await syncUser(user);
 });
