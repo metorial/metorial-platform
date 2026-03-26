@@ -145,7 +145,6 @@ export let ProviderDeploymentForm = (
           subtitle: 'Choose a provider',
           render: () => (
             <ProviderSearch
-              useServerSearch
               onSelect={provider => {
                 setProviderId(provider.id);
                 setProviderName(provider.name ?? provider.slug ?? 'Provider');

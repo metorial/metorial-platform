@@ -238,15 +238,13 @@ export let ProviderSearch = ({
   stickyTop,
   columns,
   limit,
-  filter,
-  useServerSearch = false
+  filter
 }: {
   onSelect?: (provider: ProviderListingsGetOutput['provider']) => void;
   stickyTop?: number;
   columns?: number;
   limit?: number;
   filter?: DashboardInstanceProviderListingsListQuery;
-  useServerSearch?: boolean;
 }) => {
   let [search, setSearch] = useState('');
   let searchDebounced = useDebounced(search, 500);
@@ -254,67 +252,46 @@ export let ProviderSearch = ({
   let providers = useProviderListings({
     orderByRank: true,
     ...filter,
-    ...(useServerSearch && searchQuery ? { search: searchQuery } : {}),
+    ...(searchQuery ? { search: searchQuery } : {}),
     ...(limit ? { limit } : {})
   });
 
-  if (useServerSearch) {
-    return (
-      <Wrapper>
-        <div style={{ position: 'sticky', top: stickyTop ?? 0, zIndex: 1 }}>
-          <Input
-            label="Search"
-            hideLabel
-            placeholder="Search for providers"
-            value={search}
-            onInput={setSearch}
-          />
-        </div>
+  return (
+    <Wrapper>
+      <div style={{ position: 'sticky', top: stickyTop ?? 0, zIndex: 1 }}>
+        <Input
+          label="Search"
+          hideLabel
+          placeholder="Search for providers"
+          value={search}
+          onInput={setSearch}
+        />
+      </div>
 
-        <Spacer size={10} />
+      <Spacer size={10} />
 
-        <Or text="Providers" />
+      <Or text="Providers" />
 
-        <Spacer size={10} />
+      <Spacer size={10} />
 
-        {renderWithPagination(providers)(providers => (
-          <ProviderItemsGrid
-            items={providers.data.items.map(provider => ({
-              id: provider.id,
-              name: provider.name,
-              slug: provider.slug,
-              description: provider.description,
-              imageUrl: provider.imageUrl
-            }))}
-            columns={columns}
-            onSelect={provider => {
-              let selectedProvider = providers.data.items.find(item => item.id === provider.id);
-              if (selectedProvider) onSelect?.(selectedProvider.provider);
-            }}
-          />
-        ))}
-      </Wrapper>
-    );
-  }
-
-  return renderWithPagination(providers)(providers => (
-    <ProviderSearchGrid
-      items={providers.data.items.map(provider => ({
-        id: provider.id,
-        name: provider.name,
-        slug: provider.slug,
-        description: provider.description,
-        imageUrl: provider.imageUrl
-      }))}
-      stickyTop={stickyTop}
-      sectionLabel="Providers"
-      columns={columns}
-      onSelect={provider => {
-        let selectedProvider = providers.data.items.find(item => item.id === provider.id);
-        if (selectedProvider) onSelect?.(selectedProvider.provider);
-      }}
-    />
-  ));
+      {renderWithPagination(providers)(providers => (
+        <ProviderItemsGrid
+          items={providers.data.items.map(provider => ({
+            id: provider.id,
+            name: provider.name,
+            slug: provider.slug,
+            description: provider.description,
+            imageUrl: provider.imageUrl
+          }))}
+          columns={columns}
+          onSelect={provider => {
+            let selectedProvider = providers.data.items.find(item => item.id === provider.id);
+            if (selectedProvider) onSelect?.(selectedProvider.provider);
+          }}
+        />
+      ))}
+    </Wrapper>
+  );
 };
 
 export let ProvidersWithDeploymentsSearch = ({
