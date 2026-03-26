@@ -163,8 +163,8 @@ services:
   slates-registry:
     profiles: ['infra']
     build:
-      context: ../registry
-      dockerfile: ../registry/dev.Dockerfile
+      context: ../../../../..
+      dockerfile: ./src/systems/slates/apps/registry/dev.Dockerfile
     container_name: slates-hub-registry
     restart: unless-stopped
     ports:
@@ -200,8 +200,8 @@ services:
   slates-hub:
     profiles: ['hub']
     build:
-      context: ../..
-      dockerfile: ./apps/hub/dev.Dockerfile
+      context: ../../../../..
+      dockerfile: ./src/systems/slates/apps/hub/dev.Dockerfile
     container_name: slates-hub-service
     restart: unless-stopped
     ports:
@@ -223,6 +223,15 @@ services:
       SIGNAL_SENDER_IDENTIFIER: ${SIGNAL_SENDER_IDENTIFIER}
       SLATES_HUB_INSTANCE_IDENTIFIER: ${SLATES_HUB_INSTANCE_IDENTIFIER}
       SERVICE_PUBLIC_URL: ${SERVICE_PUBLIC_URL}
+    volumes:
+      - ./src:/app/src/systems/slates/apps/hub/src:ro
+      - ./admin:/app/src/systems/slates/apps/hub/admin:ro
+      - ./package.json:/app/src/systems/slates/apps/hub/package.json:ro
+      - ./tsconfig.json:/app/src/systems/slates/apps/hub/tsconfig.json:ro
+      - ./prisma:/app/src/systems/slates/apps/hub/prisma
+      - ./prisma.config.ts:/app/src/systems/slates/apps/hub/prisma.config.ts:ro
+      - ../../packages:/app/src/systems/slates/packages:ro
+      - /app/node_modules
     depends_on:
       postgres:
         condition: service_healthy

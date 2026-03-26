@@ -23,11 +23,9 @@ jobs:
         service:
           - name: hub
             image: ghcr.io/metorial/slates-hub
-            context: ./src/systems/slates/apps/hub
             dockerfile: ./src/systems/slates/apps/hub/Dockerfile
           - name: registry
             image: ghcr.io/metorial/slates-registry
-            context: ./src/systems/slates/apps/registry
             dockerfile: ./src/systems/slates/apps/registry/Dockerfile
 
     steps:
@@ -62,7 +60,7 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
-          context: ${{ matrix.service.context }}
+          context: .
           file: ${{ matrix.service.dockerfile }}
           platforms: linux/amd64,linux/arm64
           push: false

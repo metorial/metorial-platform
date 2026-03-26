@@ -50,7 +50,7 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
-          context: ./src/systems/shuttle/service
+          context: .
           file: ./src/systems/shuttle/service/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: false

@@ -46,8 +46,8 @@ services:
 
   slates-registry:
     build:
-      context: .
-      dockerfile: dev.Dockerfile
+      context: ../../../../..
+      dockerfile: ./src/systems/slates/apps/registry/dev.Dockerfile
     container_name: slates-registry-service
     restart: unless-stopped
     ports:
@@ -64,9 +64,14 @@ services:
       ARES_AUTH_URL: ${ARES_AUTH_URL}
       ARES_CLIENT_ID: ${ARES_CLIENT_ID}
     volumes:
-      - ./src:/app/src:ro
-      - ./package.json:/app/package.json:ro
-      - ./tsconfig.json:/app/tsconfig.json:ro
+      - ./src:/app/src/systems/slates/apps/registry/src:ro
+      - ./admin:/app/src/systems/slates/apps/registry/admin:ro
+      - ./package.json:/app/src/systems/slates/apps/registry/package.json:ro
+      - ./tsconfig.json:/app/src/systems/slates/apps/registry/tsconfig.json:ro
+      - ./prisma:/app/src/systems/slates/apps/registry/prisma
+      - ./prisma.config.ts:/app/src/systems/slates/apps/registry/prisma.config.ts:ro
+      - ../../packages:/app/src/systems/slates/packages:ro
+      - /app/node_modules
     depends_on:
       - postgres
       - redis

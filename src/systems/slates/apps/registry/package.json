@@ -5,8 +5,9 @@
   "private": true,
   "scripts": {
     "start": "bun run server:start",
-    "server:build": "ncc build ./src/server.ts -o ./dist --source-map --transpile-only && bun run sentry:sourcemaps",
+    "server:build": "ncc build ./src/server.ts -o ./dist --source-map --transpile-only && bun run sentry:sourcemaps:if-token",
     "sentry:sourcemaps": "sentry-cli sourcemaps inject --org metorial --project mte-slates-registry ./dist && sentry-cli sourcemaps upload --org metorial --project mte-slates-registry ./dist",
+    "sentry:sourcemaps:if-token": "sh -c 'if [ -n \"$SENTRY_AUTH_TOKEN\" ]; then bun run sentry:sourcemaps; else echo \"Skipping Sentry sourcemap upload\"; fi'",
     "server:start": "bun ./dist/index.js",
     "prisma:generate": "bun run db:generate",
     "prisma:push": "bun run db:push:dev",

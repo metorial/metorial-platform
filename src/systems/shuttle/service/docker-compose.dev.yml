@@ -138,8 +138,8 @@ services:
   shuttle:
     profiles: ['service']
     build:
-      context: .
-      dockerfile: dev.Dockerfile
+      context: ../../../..
+      dockerfile: ./src/systems/shuttle/service/dev.Dockerfile
     container_name: shuttle-service
     restart: unless-stopped
     ports:
@@ -158,11 +158,13 @@ services:
       FUNCTION_BAY_DEFAULT_MEMORY_MB: ${FUNCTION_BAY_DEFAULT_MEMORY_MB}
       FUNCTION_BAY_DEFAULT_TIMEOUT_SECONDS: ${FUNCTION_BAY_DEFAULT_TIMEOUT_SECONDS}
     volumes:
-      - ./src:/app/service/src:ro
-      - ./package.json:/app/service/package.json:ro
-      - ./tsconfig.json:/app/service/tsconfig.json:ro
-      - ../clients:/app/clients:ro
-      - ../sdk:/app/sdk:ro
+      - ./src:/app/src/systems/shuttle/service/src:ro
+      - ./package.json:/app/src/systems/shuttle/service/package.json:ro
+      - ./tsconfig.json:/app/src/systems/shuttle/service/tsconfig.json:ro
+      - ./prisma:/app/src/systems/shuttle/service/prisma
+      - ./prisma.config.ts:/app/src/systems/shuttle/service/prisma.config.ts:ro
+      - ../sdk:/app/src/systems/shuttle/sdk:ro
+      - /app/node_modules
     depends_on:
       postgres:
         condition: service_healthy
