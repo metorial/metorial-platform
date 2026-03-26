@@ -315,7 +315,7 @@ export let ApiKeysScene = ({
                 'instance_access_token_publishable'
               ])
               .optional()
-          })
+          }) as any
       });
 
       return (
