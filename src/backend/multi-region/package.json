@@ -11,6 +11,7 @@
     "prisma:push": "prisma db push --accept-data-loss"
   },
   "dependencies": {
+    "@aws-sdk/rds-signer": "^3.1018.0",
     "@lowerdeck/base62": "^1.0.4",
     "@lowerdeck/env": "^1.0.4",
     "@lowerdeck/error": "^1.2.2",
