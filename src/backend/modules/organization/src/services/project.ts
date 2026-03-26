@@ -9,6 +9,7 @@ import { Service } from '@lowerdeck/service';
 import { createSlugGenerator } from '@lowerdeck/slugify';
 import { Context } from '@metorial/context';
 import {
+  addAfterTransactionHook,
   db,
   ID,
   Organization,
@@ -19,6 +20,7 @@ import {
 } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { generateCode } from '@metorial/id';
+import { syncBrandQueue } from '../queues/syncBrand';
 import { instanceService } from './instance';
 
 let getProjectSlug = createSlugGenerator(
@@ -71,6 +73,8 @@ class ProjectService {
         }
       });
 
+      await addAfterTransactionHook(() => syncBrandQueue.add({ projectId: project.id }));
+
       await Fabric.fire('organization.project.created:after', {
         ...d,
         project,
@@ -104,6 +108,8 @@ class ProjectService {
           organization: true
         }
       });
+
+      await addAfterTransactionHook(() => syncBrandQueue.add({ projectId: project.id }));
 
       await Fabric.fire('organization.project.updated:after', {
         ...d,

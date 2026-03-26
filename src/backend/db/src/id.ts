@@ -15,6 +15,7 @@ export let ID = createIdGenerator({
 
   project: idType.sorted('prj'),
   projectBrand: idType.sorted('pbr'),
+  projectBrandUpdate: idType.sorted('pbu'),
   instance: idType.sorted('ins'),
 
   machineAccess: idType.sorted('mac'),

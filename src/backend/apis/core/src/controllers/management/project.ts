@@ -255,7 +255,8 @@ export let projectManagementController = Controller.create(
           input: {
             name: ctx.body.name,
             imageFileId: ctx.body.image_file_id
-          }
+          },
+          performedBy: ctx.actor
         });
 
         return projectBrandPresenter.present({ projectBrand });
