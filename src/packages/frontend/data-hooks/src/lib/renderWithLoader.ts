@@ -2,6 +2,8 @@ import { ServiceError } from '@lowerdeck/error';
 import { Button, CenteredSpinner, Error } from '@metorial/ui';
 import { MetorialSDKError } from '@metorial/util-endpoint';
 import React, { Fragment, useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { usePaginationSearchParamsEnabled } from './paginationSearchParams';
 
 export let renderWithLoader =
   <
@@ -115,6 +117,8 @@ export let renderWithPagination =
   ) => {
     let initialLoadRef = useRef(true);
     let directionRef = useRef<'next' | 'previous' | null>(null);
+    let [, setSearchParams] = useSearchParams();
+    let paginationSearchParamsEnabled = usePaginationSearchParamsEnabled();
 
     let [items, setItems] = useState(() => loader.data?.items ?? []);
     useEffect(() => {
@@ -204,7 +208,21 @@ export let renderWithPagination =
                 loading: loader.isLoading && directionRef.current == 'previous',
                 size: '2',
                 onClick: () => {
+                  let firstItem = loader.data?.items[0];
+                  if (!firstItem) return;
+
                   directionRef.current = 'previous';
+                  if (paginationSearchParamsEnabled) {
+                    setSearchParams(
+                      currentSearchParams => {
+                        let nextSearchParams = new URLSearchParams(currentSearchParams);
+                        nextSearchParams.set('before', firstItem.id);
+                        nextSearchParams.delete('after');
+                        return nextSearchParams;
+                      },
+                      { replace: true }
+                    );
+                  }
                   loader.previous();
                 }
               },
@@ -218,7 +236,21 @@ export let renderWithPagination =
                 loading: loader.isLoading && directionRef.current == 'next',
                 size: '2',
                 onClick: () => {
+                  let lastItem = loader.data?.items[loader.data.items.length - 1];
+                  if (!lastItem) return;
+
                   directionRef.current = 'next';
+                  if (paginationSearchParamsEnabled) {
+                    setSearchParams(
+                      currentSearchParams => {
+                        let nextSearchParams = new URLSearchParams(currentSearchParams);
+                        nextSearchParams.set('after', lastItem.id);
+                        nextSearchParams.delete('before');
+                        return nextSearchParams;
+                      },
+                      { replace: true }
+                    );
+                  }
                   loader.next();
                 }
               },
