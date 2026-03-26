@@ -13,7 +13,7 @@ import {
   withTransaction
 } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
-import { organizationActorService } from '@metorial/module-organization';
+import { organizationActorService } from '@metorial/module-organization/src/services/organizationActor';
 
 class MachineAccessService {
   private async ensureMachineAccessActive(machineAccess: MachineAccess) {

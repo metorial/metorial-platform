@@ -9,7 +9,7 @@ vi.mock('@metorial/db', () => ({
 vi.mock('@metorial/fabric', () => ({
   Fabric: { fire: vi.fn().mockResolvedValue(undefined) }
 }));
-vi.mock('@metorial/module-organization', () => ({
+vi.mock('@metorial/module-organization/src/services/organizationActor', () => ({
   organizationActorService: {
     createOrganizationActor: vi.fn().mockResolvedValue({ oid: 'actor-oid' })
   }

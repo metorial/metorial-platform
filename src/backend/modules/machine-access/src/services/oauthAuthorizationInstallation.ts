@@ -23,7 +23,7 @@ import {
 } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { createLock } from '@metorial/lock';
-import { organizationActorService } from '@metorial/module-organization';
+import { organizationActorService } from '@metorial/module-organization/src/services/organizationActor';
 import { matchesUpdate } from '../lib/matches';
 import { machineAccessService } from './machineAccess';
 import { machineAccessInclude } from './machineAccessAuth';

@@ -134,14 +134,20 @@ vi.mock('@metorial/lock', () => ({
   }))
 }));
 
-vi.mock('@metorial/module-organization', () => ({
+vi.mock('@metorial/module-organization/src/services/organization', () => ({
   organizationService: {
     getOrganizationByIdForUser: (...args: any[]) => getOrganizationByIdForUserMock(...args)
-  },
+  }
+}));
+
+vi.mock('@metorial/module-organization/src/services/effectiveAccess', () => ({
   effectiveAccessService: {
     getMemberEffectiveAccess: (...args: any[]) => getMemberEffectiveAccessMock(...args),
     getGrantedScopes: (...args: any[]) => getGrantedScopesMock(...args)
-  },
+  }
+}));
+
+vi.mock('@metorial/module-organization/src/services/organizationActor', () => ({
   organizationActorService: {
     getSystemActor: vi.fn(async () => ({
       oid: 99n,

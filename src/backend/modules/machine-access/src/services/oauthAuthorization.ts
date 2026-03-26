@@ -26,7 +26,7 @@ import {
 } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { generateCode, generateCustomId } from '@metorial/id';
-import { organizationService } from '@metorial/module-organization';
+import { organizationService } from '@metorial/module-organization/src/services/organization';
 import {
   GlobalOAuthAuthorizationRequestWithRelations,
   oauthGlobalRepository

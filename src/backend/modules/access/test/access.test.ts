@@ -14,6 +14,14 @@ vi.mock('@metorial/module-organization', () => ({
   }
 }));
 
+vi.mock('@metorial/db', () => ({
+  db: {
+    serviceAccountCredential: {
+      findFirst: vi.fn()
+    }
+  }
+}));
+
 import { instanceService, organizationService } from '@metorial/module-organization';
 
 describe('AccessService', () => {

@@ -4,7 +4,7 @@ import {
   OrganizationMember,
   ServiceAccount
 } from '@metorial/db';
-import { effectiveAccessService } from '@metorial/module-organization';
+import { effectiveAccessService } from '@metorial/module-organization/src/services/effectiveAccess';
 
 export let normalizeScopes = (scopes: string[]) => Array.from(new Set(scopes)).sort();
 
