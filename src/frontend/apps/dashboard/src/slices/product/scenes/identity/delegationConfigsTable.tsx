@@ -16,6 +16,10 @@ import { RiDeleteBinLine } from '@remixicon/react';
 import { useState } from 'react';
 import { Table as DashboardTable } from '../../../../components/table';
 import { FilterPayload } from '../../../../components/table/filter';
+import {
+  getEnumListFilterValue,
+  getStringFilterValue
+} from '../../../../lib/dataTableUtils';
 
 type IdentityDelegationConfig =
   DashboardInstanceIdentitiesDelegationConfigsListOutput['items'][number];
@@ -47,29 +51,10 @@ let getDelegationBehaviorLabel = (
   return 'Deny';
 };
 
-let getStringFilterValue = (value: FilterPayload | undefined) => {
-  if (typeof value === 'string') return value;
-  return undefined;
-};
-
-let getListFilterValue = (value: FilterPayload | undefined) => {
-  if (typeof value === 'object' && value && 'in' in value && Array.isArray(value.in)) {
-    return value.in.map(v => v.toString());
-  }
-
-  return undefined;
-};
-
 let getStatusFilterValue = (
   value: FilterPayload | undefined
 ): DashboardInstanceIdentitiesDelegationConfigsListQuery['status'] => {
-  let values = getListFilterValue(value);
-  if (!values) return undefined;
-
-  return values.filter(
-    (value): value is IdentityDelegationConfig['status'] =>
-      value === 'active' || value === 'archived' || value === 'deleted'
-  );
+  return getEnumListFilterValue(value, ['active', 'archived', 'deleted']);
 };
 
 let useIdentityDelegationConfigsTableState = (

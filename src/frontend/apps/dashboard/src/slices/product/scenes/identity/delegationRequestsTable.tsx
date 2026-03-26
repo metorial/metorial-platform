@@ -13,6 +13,10 @@ import { Badge, RenderDate, Text } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import { Table as DashboardTable } from '../../../../components/table';
 import { FilterPayload } from '../../../../components/table/filter';
+import {
+  getEnumListFilterValue,
+  getStringFilterValue
+} from '../../../../lib/dataTableUtils';
 
 type IdentityDelegationRequest =
   DashboardInstanceIdentitiesDelegationRequestsListOutput['items'][number];
@@ -37,29 +41,10 @@ let getRequestStatusColor = (status: IdentityDelegationRequest['status']) => {
   return 'gray';
 };
 
-let getStringFilterValue = (value: FilterPayload | undefined) => {
-  if (typeof value === 'string') return value;
-  return undefined;
-};
-
-let getListFilterValue = (value: FilterPayload | undefined) => {
-  if (typeof value === 'object' && value && 'in' in value && Array.isArray(value.in)) {
-    return value.in.map(v => v.toString());
-  }
-
-  return undefined;
-};
-
 let getStatusFilterValue = (
   value: FilterPayload | undefined
 ): DashboardInstanceIdentitiesDelegationRequestsListQuery['status'] => {
-  let values = getListFilterValue(value);
-  if (!values) return undefined;
-
-  return values.filter(
-    (value): value is IdentityDelegationRequest['status'] =>
-      value === 'pending' || value === 'approved' || value === 'denied' || value === 'canceled'
-  );
+  return getEnumListFilterValue(value, ['pending', 'approved', 'denied', 'canceled']);
 };
 
 let useIdentityDelegationRequestsTableState = (
