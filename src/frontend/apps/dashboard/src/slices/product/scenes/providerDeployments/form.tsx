@@ -39,7 +39,6 @@ export let ProviderDeploymentForm = (
   let [providerName, setProviderName] = useState(
     props.type === 'create' ? (props.providerName ?? '') : ''
   );
-  let closeForm = () => props.close?.();
   let form = useForm({
     initialValues: {
       name: props.type === 'create' ? (props.providerName ?? '') : '',
@@ -62,11 +61,11 @@ export let ProviderDeploymentForm = (
 
       if (props.onCreate) {
         props.onCreate(result);
-        closeForm();
+        props.close?.();
         return;
       }
 
-      closeForm();
+      props.close?.();
       if (!instance.data) return;
 
       let deploymentPath = Paths.instance.providerDeployment(
@@ -120,7 +119,7 @@ export let ProviderDeploymentForm = (
         <Spacer size={15} />
 
         <Dialog.Actions>
-          <Button type="button" variant="outline" onClick={closeForm}>
+          <Button type="button" variant="outline" onClick={props.close}>
             Cancel
           </Button>
           <Button
@@ -186,7 +185,7 @@ export let ProviderDeploymentForm = (
               <Spacer size={15} />
 
               <Dialog.Actions>
-                <Button type="button" variant="outline" onClick={closeForm}>
+                <Button type="button" variant="outline" onClick={props.close}>
                   Cancel
                 </Button>
                 <Button
