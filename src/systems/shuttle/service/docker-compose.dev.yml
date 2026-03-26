@@ -163,7 +163,7 @@ services:
       - ./tsconfig.json:/app/src/systems/shuttle/service/tsconfig.json:ro
       - ./prisma:/app/src/systems/shuttle/service/prisma
       - ./prisma.config.ts:/app/src/systems/shuttle/service/prisma.config.ts:ro
-      - ../sdk:/app/src/systems/shuttle/sdk:ro
+      - ../sdk:/app/src/systems/shuttle/sdk
       - /app/node_modules
     depends_on:
       postgres:
