@@ -18,6 +18,7 @@ export type ManagementOrganizationOauthAuthorizationsListOutput = {
       status: 'active' | 'archived';
       type: 'user_facing' | 'cli_auth' | 'server_side';
       accessLevel: 'organization' | 'global';
+      allowTokenExchangeWithoutClientSecret: boolean;
       name: string;
       description: string | null;
       scopes: { identifier: string; name: string; description: string }[];
@@ -177,6 +178,10 @@ export let mapManagementOrganizationOauthAuthorizationsListOutput =
               type: mtMap.objectField('type', mtMap.passthrough()),
               accessLevel: mtMap.objectField(
                 'access_level',
+                mtMap.passthrough()
+              ),
+              allowTokenExchangeWithoutClientSecret: mtMap.objectField(
+                'allow_token_exchange_without_client_secret',
                 mtMap.passthrough()
               ),
               name: mtMap.objectField('name', mtMap.passthrough()),

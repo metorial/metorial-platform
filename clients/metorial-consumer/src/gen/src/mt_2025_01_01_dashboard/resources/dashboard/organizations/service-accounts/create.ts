@@ -8,6 +8,13 @@ export type DashboardOrganizationsServiceAccountsCreateOutput = {
   description: string | null;
   scopes: { identifier: string; name: string; description: string }[];
   clientId: string;
+  policies: {
+    object: 'management.access_policy#preview';
+    id: string;
+    type: 'everyone' | 'admin' | 'custom';
+    name: string;
+    slug: string;
+  }[];
   clientSecrets: {
     object: 'machine_access.oauth_application_client_secret';
     id: string;
@@ -39,6 +46,18 @@ export let mapDashboardOrganizationsServiceAccountsCreateOutput =
       )
     ),
     clientId: mtMap.objectField('client_id', mtMap.passthrough()),
+    policies: mtMap.objectField(
+      'policies',
+      mtMap.array(
+        mtMap.object({
+          object: mtMap.objectField('object', mtMap.passthrough()),
+          id: mtMap.objectField('id', mtMap.passthrough()),
+          type: mtMap.objectField('type', mtMap.passthrough()),
+          name: mtMap.objectField('name', mtMap.passthrough()),
+          slug: mtMap.objectField('slug', mtMap.passthrough())
+        })
+      )
+    ),
     clientSecrets: mtMap.objectField(
       'client_secrets',
       mtMap.array(

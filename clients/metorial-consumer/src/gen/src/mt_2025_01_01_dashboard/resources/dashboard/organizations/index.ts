@@ -1,3 +1,5 @@
+export * from './access-policies';
+export * from './access-roles';
 export * from './create';
 export * from './delete';
 export * from './get';
