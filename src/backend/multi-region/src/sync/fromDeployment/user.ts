@@ -37,7 +37,7 @@ Fabric.listen('user.created:after', async event => {
 
 export let syncUsersCron = createCron(
   {
-    name: 'global/sync/to-deployment/user',
+    name: 'global/sync/from-deployment/user',
     cron: process.env.NODE_ENV == 'production' ? '0 * * * *' : '* * * * *'
   },
   async () => {
@@ -46,7 +46,7 @@ export let syncUsersCron = createCron(
 );
 
 let syncUsersManyQueue = createQueue<{ cursor?: string }>({
-  name: 'global/sync/to-deployment/user-many'
+  name: 'global/sync/from-deployment/user-many'
 });
 
 export let syncUsersManyQueueProcessor = syncUsersManyQueue.process(async data => {
@@ -66,7 +66,7 @@ export let syncUsersManyQueueProcessor = syncUsersManyQueue.process(async data =
 });
 
 let syncUserSingleQueue = createQueue<{ userId: string }>({
-  name: 'global/sync/to-deployment/user-single'
+  name: 'global/sync/from-deployment/user-single'
 });
 
 export let syncUserSingleQueueProcessor = syncUserSingleQueue.process(async data => {

@@ -148,7 +148,7 @@ Fabric.listen('machine_access.oauth_token.refreshed:after', async event => {
 
 export let syncAppsCron = createCron(
   {
-    name: 'global/sync/to-deployment/oauth-app',
+    name: 'global/sync/from-deployment/oauth-app',
     cron: process.env.NODE_ENV == 'production' ? '0 * * * *' : '* * * * *'
   },
   async () => {
@@ -157,7 +157,7 @@ export let syncAppsCron = createCron(
 );
 
 let syncAppsManyQueue = createQueue<{ cursor?: string }>({
-  name: 'global/sync/to-deployment/oauth-app-many'
+  name: 'global/sync/from-deployment/oauth-app-many'
 });
 
 export let syncAppsManyQueueProcessor = syncAppsManyQueue.process(async data => {
@@ -177,7 +177,7 @@ export let syncAppsManyQueueProcessor = syncAppsManyQueue.process(async data => 
 });
 
 let syncOAuthAppSingleQueue = createQueue<{ appId: string }>({
-  name: 'global/sync/to-deployment/oauth-app-single'
+  name: 'global/sync/from-deployment/oauth-app-single'
 });
 
 export let syncOAuthAppSingleQueueProcessor = syncOAuthAppSingleQueue.process(async data => {

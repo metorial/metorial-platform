@@ -183,35 +183,29 @@ let syncCurrentPolicyTargets = async (d: {
       }
     });
 
-    for (let accessRole of d.accessRoles) {
-      await db.accessPolicyRole.create({
-        data: {
-          id: await ID.generateId('accessPolicyRole'),
-          accessPolicyOid: d.accessPolicy.oid,
-          accessRoleOid: accessRole.oid
-        }
-      });
-    }
+    await db.accessPolicyRole.createMany({
+      data: d.accessRoles.map(accessRole => ({
+        id: ID.generateIdSync('accessPolicyRole'),
+        accessPolicyOid: d.accessPolicy.oid,
+        accessRoleOid: accessRole.oid
+      }))
+    });
 
-    for (let project of d.projects) {
-      await db.accessPolicyProject.create({
-        data: {
-          id: await ID.generateId('accessPolicyProject'),
-          accessPolicyOid: d.accessPolicy.oid,
-          projectOid: project.oid
-        }
-      });
-    }
+    await db.accessPolicyProject.createMany({
+      data: d.projects.map(project => ({
+        id: ID.generateIdSync('accessPolicyProject'),
+        accessPolicyOid: d.accessPolicy.oid,
+        projectOid: project.oid
+      }))
+    });
 
-    for (let instance of d.instances) {
-      await db.accessPolicyInstance.create({
-        data: {
-          id: await ID.generateId('accessPolicyInstance'),
-          accessPolicyOid: d.accessPolicy.oid,
-          instanceOid: instance.oid
-        }
-      });
-    }
+    await db.accessPolicyInstance.createMany({
+      data: d.instances.map(instance => ({
+        id: ID.generateIdSync('accessPolicyInstance'),
+        accessPolicyOid: d.accessPolicy.oid,
+        instanceOid: instance.oid
+      }))
+    });
   });
 };
 
@@ -282,7 +276,7 @@ class AccessPolicyService {
   }
 
   async updateAccessPolicy(d: {
-    accessPolicy: AccessPolicyWithRelations;
+    accessPolicy: AccessPolicy;
     organization: Organization;
     performedBy: OrganizationActor;
     context: Context;
@@ -323,6 +317,7 @@ class AccessPolicyService {
           name: d.input.name,
           description: d.input.description,
           document: resolved?.document,
+          hasBeenCustomized: !d.allowDefaultDocumentUpdate && d.performedBy.type != 'system',
           accessPolicyVersions: resolved
             ? {
                 create: {

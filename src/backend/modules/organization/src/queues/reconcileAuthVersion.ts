@@ -3,17 +3,10 @@ import { db } from '@metorial/db';
 import { combineQueueProcessors, createQueue, QueueRetryError } from '@metorial/queue';
 import { authBootstrapService } from '../services/authBootstrap';
 
-export let reconcileAuthVersionQueue = createQueue<{ organizationId: string }>({
-  name: 'org/auth/reconcile',
-  workerOpts: {
-    concurrency: 5
-  }
-});
-
 export let reconcileAuthVersionCron = createCron(
   {
-    name: 'org/auth/reconcile',
-    cron: '0 * * * *'
+    name: 'org/auth-version/rec/cron',
+    cron: '* * * * *'
   },
   async () => {
     let organizations = await db.organization.findMany({
@@ -31,6 +24,17 @@ export let reconcileAuthVersionCron = createCron(
     );
   }
 );
+
+let reconcileAuthVersionQueue = createQueue<{ organizationId: string }>({
+  name: 'org/auth-version/rec/single',
+  workerOpts: {
+    concurrency: 5,
+    limiter: {
+      max: 1,
+      duration: 1000
+    }
+  }
+});
 
 export let reconcileAuthVersionQueueProcessor = reconcileAuthVersionQueue.process(
   async data => {

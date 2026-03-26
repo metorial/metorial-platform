@@ -1,130 +1,58 @@
+import { canonicalize } from '@lowerdeck/canonicalize';
 import { Service } from '@lowerdeck/service';
 import { Context } from '@metorial/context';
 import {
-  db,
-  ID,
   Organization,
   OrganizationActor,
   OrganizationMember,
   withTransaction
 } from '@metorial/db';
-import { coreScopes, Scope } from '@metorial/module-access';
+import {
+  adminScopes,
+  defaultAdminScopesHash,
+  defaultEveryoneScopesHash,
+  everyoneScopes
+} from '../definitions/defaultScopes';
 import { accessPolicyService } from './accessPolicy';
 import { accessPolicyAssignmentService } from './accessPolicyAssignment';
-import { accessRoleService } from './accessRole';
-
-let adminOnlyScopes: Scope[] = [
-  'organization:write',
-  'organization.invite:read',
-  'organization.invite:write',
-  'organization.member:read',
-  'organization.member:write',
-  'organization.team:read',
-  'organization.team:write',
-  'organization.api_key:read',
-  'organization.api_key:write',
-  'organization.api_key:reveal',
-  'organization.access_role:read',
-  'organization.access_role:write',
-  'organization.access_policy:read',
-  'organization.access_policy:write',
-  'organization.oauth_app:read',
-  'organization.oauth_app:write',
-  'organization.oauth_installation:read',
-  'organization.oauth_installation:write',
-  'organization.oauth_authorization:read',
-  'organization.oauth_authorization:write',
-  'organization.oauth_authorization:authorize'
-];
-
-let everyoneScopes: Scope[] = coreScopes.filter(
-  scope =>
-    !scope.startsWith('user:') &&
-    !adminOnlyScopes.includes(scope) &&
-    !scope.startsWith('consumer#')
-) as Scope[];
-
-let adminScopes = [...new Set([...everyoneScopes, ...adminOnlyScopes])];
-
-let defaultSystemActorImage = {
-  type: 'url' as const,
-  url: 'https://cdn.metorial.com/2025-06-13--14-59-55/logos/metorial/primary_logo/raw.svg'
-};
-
-let equalScopes = (left: string[], right: string[]) => {
-  let a = [...new Set(left)].sort();
-  let b = [...new Set(right)].sort();
-
-  return a.length == b.length && a.every((scope, index) => scope == b[index]);
-};
+import { organizationActorService } from './organizationActor';
 
 let equalDocuments = (left: PrismaJson.PolicyDocument, right: PrismaJson.PolicyDocument) =>
-  JSON.stringify(left) == JSON.stringify(right);
+  canonicalize(left) == canonicalize(right);
 
 class AuthBootstrapService {
-  getEveryoneScopes() {
+  async getEveryoneScopes() {
     return everyoneScopes;
   }
 
-  getAdminRoleScopes() {
+  async getAdminScopes() {
     return adminScopes;
   }
 
-  getEveryonePolicyDocument(d: { organization: Organization }): PrismaJson.PolicyDocument {
-    return {
-      access: [
-        {
-          target: d.organization.id,
-          scopes: this.getEveryoneScopes()
-        }
-      ]
-    };
-  }
-
-  getAdminPolicyDocument(d: {
+  async getEveryonePolicyDocument(d: {
     organization: Organization;
-    adminAccessRole: { id: string };
-  }): PrismaJson.PolicyDocument {
+  }): Promise<PrismaJson.PolicyDocument> {
     return {
       access: [
         {
           target: d.organization.id,
-          roles: [d.adminAccessRole.id]
+          scopes: await this.getEveryoneScopes()
         }
       ]
     };
   }
 
-  private async ensureSystemActor(d: { organization: Organization }) {
-    let existingActor = await db.organizationActor.findFirst({
-      where: {
-        organizationOid: d.organization.oid,
-        isSystem: true
-      },
-      include: {
-        organization: true
-      }
-    });
-    if (existingActor) return existingActor;
-
-    let actor = await db.organizationActor.create({
-      data: {
-        id: await ID.generateId('organizationActor'),
-        type: 'system',
-        name: 'Metorial',
-        image: defaultSystemActorImage,
-        isSystem: true,
-        organizationOid: d.organization.oid
-      },
-      include: {
-        organization: true,
-        member: true,
-        machineAccess: true,
-        teams: { include: { team: true } }
-      }
-    });
-
-    return actor;
+  async getAdminPolicyDocument(d: {
+    organization: Organization;
+  }): Promise<PrismaJson.PolicyDocument> {
+    return {
+      access: [
+        {
+          target: d.organization.id,
+          scopes: await this.getAdminScopes()
+        }
+      ]
+    };
   }
 
   async ensureOrganizationAuthVersionV2(d: {
@@ -136,50 +64,10 @@ class AuthBootstrapService {
       let organization = await db.organization.findUniqueOrThrow({
         where: { oid: d.organization.oid }
       });
-      let performedBy = d.performedBy ?? (await this.ensureSystemActor({ organization }));
+      let performedBy =
+        d.performedBy ?? (await organizationActorService.getSystemActor({ organization }));
 
-      let adminAccessRole = await db.accessRole.findFirst({
-        where: {
-          organizationOid: organization.oid,
-          isAdmin: true
-        },
-        include: {
-          organization: true,
-          accessRoleVersions: {
-            orderBy: {
-              index: 'desc'
-            }
-          }
-        }
-      });
-      if (!adminAccessRole) {
-        adminAccessRole = await accessRoleService.createAccessRole({
-          organization,
-          performedBy,
-          context: d.context,
-          input: {
-            name: 'Administrators',
-            description:
-              'Administrative access for managing members, roles, policies, oauth apps, and API keys.',
-            scopes: this.getAdminRoleScopes(),
-            isAdmin: true,
-            message: 'Bootstrap default administrator role'
-          }
-        });
-      } else if (!equalScopes(adminAccessRole.scopes, this.getAdminRoleScopes())) {
-        adminAccessRole = await accessRoleService.updateAccessRole({
-          accessRole: adminAccessRole,
-          organization,
-          performedBy,
-          context: d.context,
-          input: {
-            scopes: this.getAdminRoleScopes(),
-            message: 'Reconcile default administrator role scopes'
-          }
-        });
-      }
-
-      let everyoneDocument = this.getEveryonePolicyDocument({ organization });
+      let everyoneDocument = await this.getEveryonePolicyDocument({ organization });
       let everyonePolicy = await accessPolicyService.getDefaultAccessPolicy({
         organization,
         type: 'everyone'
@@ -212,10 +100,12 @@ class AuthBootstrapService {
         });
       }
 
-      let adminDocument = this.getAdminPolicyDocument({
-        organization,
-        adminAccessRole
+      await db.accessPolicy.updateMany({
+        where: { id: everyonePolicy.id },
+        data: { autoUpdateScopesHash: defaultEveryoneScopesHash }
       });
+
+      let adminDocument = await this.getAdminPolicyDocument({ organization });
       let adminPolicy = await accessPolicyService.getDefaultAccessPolicy({
         organization,
         type: 'admin'
@@ -247,6 +137,11 @@ class AuthBootstrapService {
           }
         });
       }
+
+      await db.accessPolicy.updateMany({
+        where: { id: adminPolicy.id },
+        data: { autoUpdateScopesHash: defaultAdminScopesHash }
+      });
 
       let members = await db.organizationMember.findMany({
         where: {
@@ -288,7 +183,6 @@ class AuthBootstrapService {
           authVersion: 'v2' as const
         },
         performedBy,
-        adminAccessRole,
         everyonePolicy,
         adminPolicy
       };

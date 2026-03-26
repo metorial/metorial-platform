@@ -33,7 +33,7 @@ Fabric.listen('organization.created:after', async event => {
 
 export let syncOrgsCron = createCron(
   {
-    name: 'global/sync/to-deployment/org',
+    name: 'global/sync/from-deployment/org',
     cron: process.env.NODE_ENV == 'production' ? '0 * * * *' : '* * * * *'
   },
   async () => {
@@ -42,7 +42,7 @@ export let syncOrgsCron = createCron(
 );
 
 let syncOrgsManyQueue = createQueue<{ cursor?: string }>({
-  name: 'global/sync/to-deployment/org-many'
+  name: 'global/sync/from-deployment/org-many'
 });
 
 export let syncOrgsManyQueueProcessor = syncOrgsManyQueue.process(async data => {
@@ -62,7 +62,7 @@ export let syncOrgsManyQueueProcessor = syncOrgsManyQueue.process(async data => 
 });
 
 let syncOrgSingleQueue = createQueue<{ orgId: string }>({
-  name: 'global/sync/to-deployment/org-single'
+  name: 'global/sync/from-deployment/org-single'
 });
 
 export let syncOrgSingleQueueProcessor = syncOrgSingleQueue.process(async data => {

@@ -51,7 +51,9 @@ model AccessPolicy {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
-  type AccessPolicyType
+  type                 AccessPolicyType
+  hasBeenCustomized    Boolean          @default(false)
+  autoUpdateScopesHash String?
 
   slug String
 
@@ -73,6 +75,9 @@ model AccessPolicy {
   accessPolicyAssignments AccessPolicyAssignment[]
 
   @@unique([organizationOid, slug])
+  @@index([autoUpdateScopesHash])
+  @@index([hasBeenCustomized])
+  @@index([type])
 }
 
 model AccessPolicyRole {

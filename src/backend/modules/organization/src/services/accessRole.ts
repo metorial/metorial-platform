@@ -88,7 +88,7 @@ class AccessRoleService {
   }
 
   async updateAccessRole(d: {
-    accessRole: AccessRoleWithRelations;
+    accessRole: AccessRole;
     organization: Organization;
     performedBy: OrganizationActor;
     context: Context;
