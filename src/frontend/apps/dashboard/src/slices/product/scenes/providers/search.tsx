@@ -21,6 +21,7 @@ import { useMemo, useState } from 'react';
 import { useMeasure } from 'react-use';
 import styled from 'styled-components';
 import { useDebounced } from '../../../../hooks/useDebounced';
+import { useSearchFilter } from '../../../../hooks/useSearchFilter';
 import { getProviderOAuthAutoRegistrationEnabled } from '../../lib/providerOAuthAutoRegistration';
 
 type Provider = DashboardInstanceProvidersListOutput['items'][number];
@@ -118,7 +119,11 @@ let ProviderSearchGrid = ({
   emptyText = 'No providers found',
   sectionLabel = 'Providers',
   columns,
-  selectionMode = 'default'
+  selectionMode = 'default',
+  search,
+  setSearch,
+  disableClientFilter = false,
+  hideSearchInput = false
 }: {
   items: ProviderSearchItem[];
   onSelect?: (provider: ProviderSearchItem) => void;
@@ -128,33 +133,45 @@ let ProviderSearchGrid = ({
   sectionLabel?: string;
   columns?: number;
   selectionMode?: 'default' | 'authCredentialsCreate';
+  search?: string;
+  setSearch?: (value: string) => void;
+  disableClientFilter?: boolean;
+  hideSearchInput?: boolean;
 }) => {
-  let [search, setSearch] = useState('');
-  let searchDebounced = useDebounced(search, 300);
+  let [localSearch, setLocalSearch] = useState('');
+  let activeSearch = search ?? localSearch;
+  let setActiveSearch = setSearch ?? setLocalSearch;
+  let searchDebounced = useDebounced(activeSearch, 300);
 
-  let filteredItems = items.filter(item => {
-    if (!searchDebounced) return true;
-    let query = searchDebounced.toLowerCase();
-    return (
-      (item.name ?? '').toLowerCase().includes(query) ||
-      (item.slug ?? '').toLowerCase().includes(query) ||
-      (item.description ?? '').toLowerCase().includes(query)
-    );
-  });
+  let filteredItems = disableClientFilter
+    ? items
+    : items.filter(item => {
+        if (!searchDebounced) return true;
+        let query = searchDebounced.toLowerCase();
+        return (
+          (item.name ?? '').toLowerCase().includes(query) ||
+          (item.slug ?? '').toLowerCase().includes(query) ||
+          (item.description ?? '').toLowerCase().includes(query)
+        );
+      });
 
   return (
     <Wrapper>
-      <div style={{ position: 'sticky', top: stickyTop ?? 0, zIndex: 1 }}>
-        <Input
-          label="Search"
-          hideLabel
-          placeholder={placeholder}
-          value={search}
-          onInput={setSearch}
-        />
-      </div>
+      {!hideSearchInput && (
+        <>
+          <div style={{ position: 'sticky', top: stickyTop ?? 0, zIndex: 1 }}>
+            <Input
+              label="Search"
+              hideLabel
+              placeholder={placeholder}
+              value={activeSearch}
+              onInput={setActiveSearch}
+            />
+          </div>
 
-      <Spacer size={10} />
+          <Spacer size={10} />
+        </>
+      )}
 
       <Or text={sectionLabel} />
 
@@ -212,19 +229,64 @@ export let ProviderSearch = ({
   stickyTop,
   columns,
   limit,
-  filter
+  filter,
+  useServerSearch = false
 }: {
   onSelect?: (provider: ProviderListingsGetOutput['provider']) => void;
   stickyTop?: number;
   columns?: number;
   limit?: number;
   filter?: DashboardInstanceProviderListingsListQuery;
+  useServerSearch?: boolean;
 }) => {
+  let searchFilter = useSearchFilter(500, 'search', false);
   let providers = useProviderListings({
     orderByRank: true,
     ...filter,
+    ...(useServerSearch && searchFilter.searchQuery
+      ? { search: searchFilter.searchQuery }
+      : {}),
     ...(limit ? { limit } : {})
   });
+
+  if (useServerSearch) {
+    return (
+      <Wrapper>
+        <div style={{ position: 'sticky', top: stickyTop ?? 0, zIndex: 1 }}>
+          <Input
+            label="Search"
+            hideLabel
+            placeholder="Search for providers"
+            value={searchFilter.search}
+            onInput={searchFilter.setSearch}
+          />
+        </div>
+
+        <Spacer size={10} />
+
+        {renderWithPagination(providers)(providers => (
+          <ProviderSearchGrid
+            items={providers.data.items.map(provider => ({
+              id: provider.id,
+              name: provider.name,
+              slug: provider.slug,
+              description: provider.description,
+              imageUrl: provider.imageUrl
+            }))}
+            stickyTop={stickyTop}
+            sectionLabel="Providers"
+            columns={columns}
+            hideSearchInput
+            disableClientFilter
+            onSelect={provider => {
+              let selectedProvider = providers.data.items.find(item => item.id === provider.id);
+              if (selectedProvider) onSelect?.(selectedProvider.provider);
+            }}
+          />
+        ))}
+      </Wrapper>
+    );
+  }
 
   return renderWithPagination(providers)(providers => (
     <ProviderSearchGrid
@@ -238,6 +300,9 @@ export let ProviderSearch = ({
       stickyTop={stickyTop}
       sectionLabel="Providers"
       columns={columns}
+      search={useServerSearch ? searchFilter.search : undefined}
+      setSearch={useServerSearch ? searchFilter.setSearch : undefined}
+      disableClientFilter={useServerSearch}
       onSelect={provider => {
         let selectedProvider = providers.data.items.find(item => item.id === provider.id);
         if (selectedProvider) onSelect?.(selectedProvider.provider);

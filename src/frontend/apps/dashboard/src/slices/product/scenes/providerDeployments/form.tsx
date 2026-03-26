@@ -39,6 +39,7 @@ export let ProviderDeploymentForm = (
   let [providerName, setProviderName] = useState(
     props.type === 'create' ? (props.providerName ?? '') : ''
   );
+  let closeForm = () => props.close?.();
   let form = useForm({
     initialValues: {
       name: props.type === 'create' ? (props.providerName ?? '') : '',
@@ -61,11 +62,11 @@ export let ProviderDeploymentForm = (
 
       if (props.onCreate) {
         props.onCreate(result);
-        props.close?.();
+        closeForm();
         return;
       }
 
-      props.close?.();
+      closeForm();
       if (!instance.data) return;
 
       let deploymentPath = Paths.instance.providerDeployment(
@@ -119,7 +120,7 @@ export let ProviderDeploymentForm = (
         <Spacer size={15} />
 
         <Dialog.Actions>
-          <Button type="button" variant="outline" onClick={props.close}>
+          <Button type="button" variant="outline" onClick={closeForm}>
             Cancel
           </Button>
           <Button
@@ -145,6 +146,7 @@ export let ProviderDeploymentForm = (
           subtitle: 'Choose a provider',
           render: () => (
             <ProviderSearch
+              useServerSearch
               onSelect={provider => {
                 setProviderId(provider.id);
                 setProviderName(provider.name ?? provider.slug ?? 'Provider');
@@ -184,7 +186,7 @@ export let ProviderDeploymentForm = (
               <Spacer size={15} />
 
               <Dialog.Actions>
-                <Button type="button" variant="outline" onClick={props.close}>
+                <Button type="button" variant="outline" onClick={closeForm}>
                   Cancel
                 </Button>
                 <Button
