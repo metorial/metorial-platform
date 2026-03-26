@@ -12,9 +12,10 @@ export let syncBrandQueueProcessor = syncBrandQueue.process(async data => {
     include: { organization: true }
   });
   if (!project) throw new QueueRetryError();
-  let brand = await db.projectBrand.findUnique({
+  let brand = await db.projectBrand.findFirst({
     where: { projectOid: project.oid, isDefault: true }
   });
+  console.log(brand);
 
   if (brand && brand.isCustomized) return;
 

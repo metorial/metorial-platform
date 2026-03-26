@@ -2,7 +2,7 @@ model ProjectBrand {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
-  isDefault    Boolean @default(false)
+  isDefault    Boolean @default(true)
   isCustomized Boolean @default(false)
 
   identifier String @unique
