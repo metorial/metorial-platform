@@ -110,6 +110,68 @@ let FieldWrapper = styled.div`
   }
 `;
 
+let ProviderItemsGrid = ({
+  items,
+  onSelect,
+  emptyText = 'No providers found',
+  columns,
+  selectionMode = 'default'
+}: {
+  items: ProviderSearchItem[];
+  onSelect?: (provider: ProviderSearchItem) => void;
+  emptyText?: string;
+  columns?: number;
+  selectionMode?: 'default' | 'authCredentialsCreate';
+}) => {
+  if (items.length === 0) {
+    return (
+      <Text size="1" color="gray600">
+        {emptyText}
+      </Text>
+    );
+  }
+
+  return (
+    <Grid $columns={columns}>
+      {items.map(provider => {
+        let isDisabled =
+          selectionMode === 'authCredentialsCreate' &&
+          provider.oauthAutoRegistrationEnabled;
+        let disabledReason = isDisabled
+          ? 'This provider uses OAuth auto-registration, so manual app credentials are not supported.'
+          : undefined;
+
+        return (
+          <div
+            key={provider.id}
+            title={disabledReason}
+            style={{ display: 'flex' }}
+          >
+            <GridButton
+              type="button"
+              disabled={isDisabled}
+              onClick={() => onSelect?.(provider)}
+            >
+              <Avatar
+                entity={{
+                  name: provider.name ?? provider.slug ?? 'Provider',
+                  imageUrl: provider.imageUrl
+                }}
+                size={24}
+                radius={8}
+                noTooltip
+                imageFit="contain"
+              />
+
+              <ProviderName>{provider.name ?? provider.slug ?? 'Provider'}</ProviderName>
+            </GridButton>
+          </div>
+        );
+      })}
+    </Grid>
+  );
+};
+
 let ProviderSearchGrid = ({
   items,
   onSelect,
@@ -160,49 +222,13 @@ let ProviderSearchGrid = ({
 
       <Spacer size={10} />
 
-      {filteredItems.length === 0 ? (
-        <Text size="1" color="gray600">
-          {emptyText}
-        </Text>
-      ) : (
-        <Grid $columns={columns}>
-          {filteredItems.map(provider => {
-            let isDisabled =
-              selectionMode === 'authCredentialsCreate' &&
-              provider.oauthAutoRegistrationEnabled;
-            let disabledReason = isDisabled
-              ? 'This provider uses OAuth auto-registration, so manual app credentials are not supported.'
-              : undefined;
-
-            return (
-              <div
-                key={provider.id}
-                title={disabledReason}
-                style={{ display: 'flex' }}
-              >
-                <GridButton
-                  type="button"
-                  disabled={isDisabled}
-                  onClick={() => onSelect?.(provider)}
-                >
-                  <Avatar
-                    entity={{
-                      name: provider.name ?? provider.slug ?? 'Provider',
-                      imageUrl: provider.imageUrl
-                    }}
-                    size={24}
-                    radius={8}
-                    noTooltip
-                    imageFit="contain"
-                  />
-
-                  <ProviderName>{provider.name ?? provider.slug ?? 'Provider'}</ProviderName>
-                </GridButton>
-              </div>
-            );
-          })}
-        </Grid>
-      )}
+      <ProviderItemsGrid
+        items={filteredItems}
+        emptyText={emptyText}
+        columns={columns}
+        onSelect={onSelect}
+        selectionMode={selectionMode}
+      />
     </Wrapper>
   );
 };
@@ -220,30 +246,52 @@ export let ProviderSearch = ({
   limit?: number;
   filter?: DashboardInstanceProviderListingsListQuery;
 }) => {
+  let [search, setSearch] = useState('');
+  let searchDebounced = useDebounced(search, 500);
+  let searchQuery = searchDebounced.trim() || undefined;
   let providers = useProviderListings({
     orderByRank: true,
     ...filter,
+    ...(searchQuery ? { search: searchQuery } : {}),
     ...(limit ? { limit } : {})
   });
 
-  return renderWithPagination(providers)(providers => (
-    <ProviderSearchGrid
-      items={providers.data.items.map(provider => ({
-        id: provider.id,
-        name: provider.name,
-        slug: provider.slug,
-        description: provider.description,
-        imageUrl: provider.imageUrl
-      }))}
-      stickyTop={stickyTop}
-      sectionLabel="Providers"
-      columns={columns}
-      onSelect={provider => {
-        let selectedProvider = providers.data.items.find(item => item.id === provider.id);
-        if (selectedProvider) onSelect?.(selectedProvider.provider);
-      }}
-    />
-  ));
+  return (
+    <Wrapper>
+      <div style={{ position: 'sticky', top: stickyTop ?? 0, zIndex: 1 }}>
+        <Input
+          label="Search"
+          hideLabel
+          placeholder="Search for providers"
+          value={search}
+          onInput={setSearch}
+        />
+      </div>
+
+      <Spacer size={10} />
+
+      <Or text="Providers" />
+
+      <Spacer size={10} />
+
+      {renderWithPagination(providers)(providers => (
+        <ProviderItemsGrid
+          items={providers.data.items.map(provider => ({
+            id: provider.id,
+            name: provider.name,
+            slug: provider.slug,
+            description: provider.description,
+            imageUrl: provider.imageUrl
+          }))}
+          columns={columns}
+          onSelect={provider => {
+            let selectedProvider = providers.data.items.find(item => item.id === provider.id);
+            if (selectedProvider) onSelect?.(selectedProvider.provider);
+          }}
+        />
+      ))}
+    </Wrapper>
+  );
 };
 
 export let ProvidersWithDeploymentsSearch = ({
