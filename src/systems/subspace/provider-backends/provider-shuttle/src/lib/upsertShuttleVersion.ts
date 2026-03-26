@@ -20,6 +20,20 @@ import { env } from '../env';
 export type Server = Awaited<ReturnType<typeof shuttle.server.get>>;
 export type Version = Awaited<ReturnType<typeof shuttle.serverVersion.get>>;
 
+let getConfigSchema = (configSchema: Version['configSchema']) => {
+  if (!configSchema) return null;
+
+  if (
+    typeof configSchema === 'object' &&
+    configSchema !== null &&
+    'configSchema' in configSchema
+  ) {
+    return configSchema.configSchema;
+  }
+
+  return configSchema;
+};
+
 let getBackendForServerType = (
   type: Server['type']
 ): PrismaJson.ProviderTypeAttributes['backend'] => {
@@ -122,9 +136,7 @@ export let upsertShuttleServerVersion = ({
       publisher = await publisherInternalService.upsertUnknownPublisher();
     }
 
-    let hasConfig = !!(version.configSchema
-      ? normalizeJsonSchema(version.configSchema.configSchema)
-      : null);
+    let hasConfig = !!normalizeJsonSchema(getConfigSchema(version.configSchema));
     let providerBackend = getBackendForServerType(server.type);
 
     let type = {
