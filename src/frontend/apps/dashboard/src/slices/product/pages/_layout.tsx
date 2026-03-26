@@ -223,20 +223,20 @@ export let ProjectPageLayout = () => {
         },
 
         {
-          label: 'Management',
+          label: 'Settings',
           collapsible: true,
           items: [
-            {
-              icon: <RiSettings2Line />,
-              label: 'Settings',
-              to: Paths.project.settings(organization.data, instance.data?.project),
-              getProps: i => ({ isActive: checkPath(i, { exact: true }) })
-            },
-
             {
               icon: <RiBriefcase4Line />,
               label: 'Organization',
               to: Paths.organization.settings(organization.data),
+              getProps: i => ({ isActive: checkPath(i, { exact: true }) })
+            },
+
+            {
+              icon: <RiSettings2Line />,
+              label: 'Project',
+              to: Paths.project.settings(organization.data, instance.data?.project),
               getProps: i => ({ isActive: checkPath(i, { exact: true }) })
             },
 

@@ -1,3 +1,4 @@
+import { RiArrowRightSLine } from '@remixicon/react';
 import React from 'react';
 import { styled } from 'styled-components';
 import { getLink } from '../link';
@@ -6,18 +7,17 @@ import { theme } from '../theme';
 let LinkWrapper = styled('span')`
   padding: 20px;
   border-radius: 10px;
-  border: solid 1px ${theme.colors.gray400};
+  border: solid 1px ${theme.colors.gray300};
   display: flex;
   gap: 10px;
   transition: all 0.2s;
   flex-grow: 1;
   cursor: pointer;
-  box-shadow: ${theme.shadows.small};
   background: ${theme.colors.background};
 
   &:hover,
   &:focus {
-    border-color: ${theme.colors.primary} !important;
+    border-color: ${theme.colors.black100} !important;
     transform: scale(1.02);
     box-shadow: ${theme.shadows.medium};
   }
@@ -31,42 +31,39 @@ let LinkContent = styled('div')`
   display: flex;
   flex-direction: column;
   gap: 4px;
+  flex-grow: 1;
 `;
 
 let LinkTitle = styled('p')`
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   color: ${theme.colors.foreground};
 `;
 
 let LinkDescription = styled('p')`
   font-size: 12px;
-  font-weight: 400;
+  font-weight: 500;
   color: ${theme.colors.gray600};
 `;
 
 let Icon = styled('div')`
-  height: 40px;
-  width: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: ${theme.colors.gray300};
-  border-radius: 5px;
   flex-shrink: 0;
-  transform: rotate(5deg);
+  color: ${theme.colors.gray600};
 
   svg {
     height: 20px;
     width: 20px;
-    transform: rotate(-5deg);
   }
 `;
 
 export let CardLinks = {
   Items: styled('div')`
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    display: flex;
+    flex-direction: column;
     gap: 10px;
   `,
   Group: styled('div')`
@@ -133,6 +130,10 @@ export let CardLinks = {
             <LinkTitle>{title}</LinkTitle>
             <LinkDescription>{description}</LinkDescription>
           </LinkContent>
+
+          <Icon>
+            <RiArrowRightSLine />
+          </Icon>
         </LinkWrapper>
       </Link>
     );
