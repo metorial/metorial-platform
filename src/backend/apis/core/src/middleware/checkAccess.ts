@@ -1,7 +1,5 @@
-import { Instance, Organization, OrganizationMember } from '@metorial/db';
-import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { Instance, Organization, OrganizationMember, Project } from '@metorial/db';
 import { accessService, Scope } from '@metorial/module-access';
-import { teamService } from '@metorial/module-organization';
 import { apiGroup } from './apiGroup';
 
 export let checkAccess = apiGroup.createMiddleware(
@@ -18,40 +16,52 @@ export let checkAccess = apiGroup.createMiddleware(
       fineGrainedPolicy: input.fineGrainedPolicy
     });
 
-    if (ctx.auth.type == 'user' && 'instance' in ctx && ctx.instance) {
-      let instance = ctx.instance as Instance & { organization: Organization };
+    if ('instance' in ctx && ctx.instance) {
+      let instance = ctx.instance as Instance & {
+        organization: Organization;
+        project: Project;
+      };
 
-      if ('member' in ctx && ctx.member) {
-        let member = ctx.member as OrganizationMember;
-        if (member.role == 'admin') return;
-      }
+      await accessService.checkTargetAccess({
+        authInfo: ctx.auth,
+        organization: instance.organization,
+        member: 'member' in ctx && ctx.member ? (ctx.member as OrganizationMember) : undefined,
+        project: instance.project,
+        instance,
+        possibleScopes: input.possibleScopes
+      });
+    }
 
-      if (instance.organization.enforceTeamAccess) {
-        let { scopes } = await teamService.getTeamAccessForInstance({
-          instance,
-          organization: instance.organization,
-          for:
-            ctx.auth.type == 'user'
-              ? {
-                  type: 'user',
-                  user: ctx.auth.user
-                }
-              : {
-                  type: 'actor',
-                  // @ts-ignore
-                  actor: ctx.auth.restrictions.actor
-                }
-        });
+    if ('project' in ctx && ctx.project) {
+      let project = ctx.project as Project & { organization: Organization };
 
-        let hasAccess = scopes.some(scope => input.possibleScopes.includes(scope as any));
-        if (!hasAccess) {
-          throw new ServiceError(
-            badRequestError({
-              message: `You don't have the required team permissions to perform this action`
-            })
-          );
-        }
-      }
+      await accessService.checkTargetAccess({
+        authInfo: ctx.auth,
+        organization: project.organization,
+        member: 'member' in ctx && ctx.member ? (ctx.member as OrganizationMember) : undefined,
+        project,
+        possibleScopes: input.possibleScopes
+      });
+    }
+
+    if (
+      !('instance' in ctx && ctx.instance) &&
+      'organization' in ctx &&
+      ctx.organization &&
+      input.possibleScopes.every(
+        scope =>
+          !scope.startsWith('organization.project:') &&
+          !scope.startsWith('organization.instance:') &&
+          !scope.startsWith('instance.') &&
+          !scope.startsWith('consumer#instance.')
+      )
+    ) {
+      await accessService.checkTargetAccess({
+        authInfo: ctx.auth,
+        organization: ctx.organization as Organization,
+        member: 'member' in ctx && ctx.member ? (ctx.member as OrganizationMember) : undefined,
+        possibleScopes: input.possibleScopes
+      });
     }
   }
 );

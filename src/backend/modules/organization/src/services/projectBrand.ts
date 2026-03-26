@@ -4,6 +4,7 @@ import {
   db,
   ID,
   Organization,
+  OrganizationActor,
   Project,
   type ProjectBrand,
   withTransaction
@@ -50,6 +51,8 @@ class ProjectBrandService {
       name?: string;
       imageFileId?: string | null;
     };
+    performedBy: OrganizationActor;
+    isAutoUpdate?: boolean;
   }): Promise<ProjectBrandOverride> {
     let currentBrand = await this.getProjectBrand({
       project: d.project
@@ -79,22 +82,44 @@ class ProjectBrandService {
     let nextName = d.input.name ?? currentName;
     let resolvedNextImage = nextImage ?? currentImage;
     let didImageChange = canonicalize(currentImage) !== canonicalize(resolvedNextImage);
+    let didNameChange = currentName !== nextName;
 
     await withTransaction(async db => {
+      if (didNameChange || didImageChange) {
+        await db.projectBrandUpdate.create({
+          data: {
+            id: await ID.generateId('projectBrandUpdate'),
+            brandOid: currentBrand.oid,
+            createdByOid: d.performedBy.oid,
+            before: {
+              name: currentName,
+              image: currentImage
+            },
+            after: {
+              name: nextName,
+              image: resolvedNextImage
+            }
+          }
+        });
+      }
+
       return await db.projectBrand.upsert({
         where: {
           projectOid: d.project.oid
         },
         update: {
           name: nextName,
-          image: nextImage
+          image: nextImage,
+          isCustomized: !d.isAutoUpdate
         },
         create: {
           id: await ID.generateId('projectBrand'),
           identifier: d.project.id,
           projectOid: d.project.oid,
           name: nextName,
-          image: resolvedNextImage
+          image: resolvedNextImage,
+          isDefault: false,
+          isCustomized: false
         }
       });
     });
@@ -124,7 +149,7 @@ class ProjectBrandService {
   private async getCustomProjectBrand(d: {
     project: Project & { organization: Organization };
   }): Promise<ProjectBrandOverride | null> {
-    return (await db.projectBrand.findUnique({
+    return await db.projectBrand.findUnique({
       where: {
         projectOid: d.project.oid
       },
@@ -135,37 +160,36 @@ class ProjectBrandService {
           }
         }
       }
-    })) as ProjectBrandOverride | null;
+    });
   }
 
   private async syncProjectBrandToSubspace(d: {
     project: Project & { organization: Organization };
     brand: { name: string; image: PrismaJson.EntityImage };
   }) {
-    let instance = await db.instance.findFirst({
-      where: {
-        projectOid: d.project.oid,
-        status: 'active'
-      },
-      include: {
-        project: true,
-        organization: true
-      }
-    });
+    return withTransaction(async db => {
+      let instance = await db.instance.findFirst({
+        where: { projectOid: d.project.oid, status: 'active' },
+        include: { project: true, organization: true }
+      });
+      if (!instance) return;
 
-    if (!instance) return;
+      let { tenant } = await getTenantForSubspace(instance);
 
-    let { tenant, environmentId } = await getTenantForSubspace(instance);
+      let brand = await subspaceBrandService.upsert({
+        instance,
+        name: d.brand.name,
+        image: d.brand.image,
+        for: {
+          type: 'tenant',
+          tenantId: tenant.id
+        }
+      });
 
-    await subspaceBrandService.upsert({
-      instance,
-      name: d.brand.name,
-      image: d.brand.image,
-      for: {
-        type: 'tenant',
-        tenantId: tenant.id,
-        environmentId
-      }
+      await db.projectBrand.update({
+        where: { projectOid: d.project.oid },
+        data: { subspaceBrandId: brand.id }
+      });
     });
   }
 }

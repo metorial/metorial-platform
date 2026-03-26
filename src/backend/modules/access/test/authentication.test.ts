@@ -35,6 +35,7 @@ vi.mock('@metorial/module-user', () => ({
 }));
 
 vi.mock('@metorial/module-machine-access', () => ({
+  isIpAllowedByApiKeyFilters: vi.fn(() => true),
   machineAccessAuthService: {
     authenticateWithMachineAccessToken: vi.fn()
   }

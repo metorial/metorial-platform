@@ -1,16 +1,28 @@
 import { declarePresenter } from '@metorial/presenter';
+import { v1AccessPolicyPresenter } from './implementation/accessPolicy';
+import { v1AccessPolicyVersionPresenter } from './implementation/accessPolicyVersion';
+import { v1AccessRolePresenter } from './implementation/accessRole';
+import { v1AccessRoleVersionPresenter } from './implementation/accessRoleVersion';
 import { dashboardApiKeyPresenter, v1ApiKeyPresenter } from './implementation/apiKey';
 import { v1BootPresenter } from './implementation/boot';
-import { v1ConsumerGroupPresenter } from './implementation/consumerGroup';
-import { v1ConsumerProfilePresenter } from './implementation/consumerProfile';
+import { v1CliDevicePresenter } from './implementation/cliDevice';
 import { v1ConsumerAccessPresenter } from './implementation/consumerAccess';
 import { v1ConsumerAccessRequestPresenter } from './implementation/consumerAccessRequest';
+import { v1ConsumerGroupPresenter } from './implementation/consumerGroup';
+import { v1ConsumerProfilePresenter } from './implementation/consumerProfile';
 import { v1ConsumerProviderPresenter } from './implementation/consumerProvider';
 import { v1ConsumerSessionPresenter } from './implementation/consumerSession';
 import { v1FilePresenter } from './implementation/file';
 import { v1FileLinkPresenter } from './implementation/fileLink';
-import { v1InstancePresenter } from './implementation/instance';
+import { v1InstanceListPresenter, v1InstancePresenter } from './implementation/instance';
 import { v1MachineAccessPresenter } from './implementation/machineAccess';
+import { v1OAuthApplicationPresenter } from './implementation/oauthApplication';
+import { v1OAuthApplicationClientSecretPresenter } from './implementation/oauthApplicationClientSecret';
+import { v1OAuthAuthorizationPresenter } from './implementation/oauthAuthorization';
+import { v1OAuthAuthorizationLogPresenter } from './implementation/oauthAuthorizationLog';
+import { v1OAuthAuthorizationRequestPresenter } from './implementation/oauthAuthorizationRequest';
+import { v1OAuthInstallationPresenter } from './implementation/oauthInstallation';
+import { v1OAuthScopePermissionsPresenter } from './implementation/oauthScopePermissions';
 import { v1OrganizationPresenter } from './implementation/organization';
 import { v1OrganizationActorPresenter } from './implementation/organizationActor';
 import { v1OrganizationInvitePresenter } from './implementation/organizationInvite';
@@ -21,27 +33,27 @@ import { v1PortalAuthSsoConnectionPresenter } from './implementation/portalAuthS
 import { v1PortalAuthSsoTenantPresenter } from './implementation/portalAuthSsoTenant';
 import { v1PortalAuthSsoTenantSetupPresenter } from './implementation/portalAuthSsoTenantSetup';
 import { v1ProfilePresenter } from './implementation/profile';
-import { v1ProjectBrandPresenter } from './implementation/projectBrand';
 import { v1ProjectPresenter } from './implementation/project';
+import { v1ProjectBrandPresenter } from './implementation/projectBrand';
 import { v1ProviderTemplatePresenter } from './implementation/providerTemplate';
 import { v1SecretPresenter } from './implementation/secret';
+import { v1ServiceAccountPresenter } from './implementation/serviceAccount';
+import { v1ServiceAccountCredentialPresenter } from './implementation/serviceAccountCredential';
 import { v1TeamPresenter } from './implementation/team';
-import { v1TeamRolePresenter } from './implementation/teamRole';
-import { v1TeamRolePermissionsPresenter } from './implementation/teamRolePermissions';
 import { v1UsagePresenter } from './implementation/usage';
 import { v1UserPresenter } from './implementation/user';
 
 // Provider API presenters
 import {
+  dashboardCustomProviderDeploymentPresenter,
+  dashboardCustomProviderPresenter,
+  dashboardProviderPresenter,
+  v1BucketEditorTokenPresenter,
   v1CallbackDestinationPresenter,
   v1CallbackEventPresenter,
   v1CallbackInstancePresenter,
   v1CallbackNotificationPresenter,
   v1CallbackPresenter,
-  dashboardCustomProviderDeploymentPresenter,
-  dashboardCustomProviderPresenter,
-  dashboardProviderPresenter,
-  v1BucketEditorTokenPresenter,
   v1ConfigPresenter,
   v1CustomProviderCommitPresenter,
   v1CustomProviderDeploymentLogsPresenter,
@@ -80,9 +92,9 @@ import {
   v1ProviderRunLogsPresenter,
   v1ProviderRunPresenter,
   v1ProviderSpecificationPresenter,
-  v1ProviderTriggerPresenter,
   v1ProviderToolCallPresenter,
   v1ProviderToolPresenter,
+  v1ProviderTriggerPresenter,
   v1ProviderTypePresenter,
   v1ProviderVersionPresenter,
   v1PublisherPresenter,
@@ -110,20 +122,31 @@ import {
 } from './implementation/scm';
 
 import { v1FlagsPresenter } from './implementation/flags';
+import { v1TokenPresenter } from './implementation/token';
 import {
+  accessPolicyType,
+  accessPolicyVersionType,
+  accessRoleType,
+  accessRoleVersionType,
   apiKeyType,
   authConfigSchemaType,
   authImportSchemaType,
   bootType,
+  bucketEditorTokenType,
+  callbackDestinationType,
+  callbackEventType,
+  callbackInstanceType,
+  callbackNotificationType,
+  callbackType,
+  cliDeviceType,
+  configPreviewType,
+  configSchemaType,
   consumerAccessRequestType,
   consumerAccessType,
   consumerGroupType,
   consumerProfileType,
   consumerProviderType,
   consumerSessionType,
-  bucketEditorTokenType,
-  configPreviewType,
-  configSchemaType,
   customProviderCommitType,
   customProviderDeploymentLogsType,
   customProviderDeploymentType,
@@ -141,12 +164,20 @@ import {
   identityDelegationRequestType,
   identityDelegationType,
   identityType,
+  instanceListType,
   instanceType,
   machineAccessType,
   magicMcpGroupType,
   magicMcpServerType,
   magicMcpSessionType,
   magicMcpTokenType,
+  oauthApplicationClientSecretType,
+  oauthApplicationType,
+  oauthAuthorizationLogType,
+  oauthAuthorizationRequestType,
+  oauthAuthorizationType,
+  oauthInstallationType,
+  oauthScopePermissionsType,
   organizationActorType,
   organizationInviteType,
   organizationMemberType,
@@ -159,7 +190,6 @@ import {
   profileType,
   projectBrandType,
   projectType,
-  providerTemplateType,
   providerAuthConfigType,
   providerAuthCredentialsType,
   providerAuthExportType,
@@ -168,11 +198,6 @@ import {
   providerConfigType,
   providerConfigVaultType,
   providerDeploymentType,
-  callbackDestinationType,
-  callbackEventType,
-  callbackInstanceType,
-  callbackNotificationType,
-  callbackType,
   providerListingCategoryType,
   providerListingCollectionType,
   providerListingGroupType,
@@ -182,8 +207,9 @@ import {
   providerSessionType,
   providerSetupSessionType,
   providerSpecificationType,
-  providerTriggerType,
+  providerTemplateType,
   providerToolType,
+  providerTriggerType,
   providerType,
   providerTypeType,
   providerVersionType,
@@ -196,6 +222,8 @@ import {
   scmRepoPreviewType,
   scmRepoType,
   secretType,
+  serviceAccountCredentialType,
+  serviceAccountType,
   // ssoTenantSetupType,
   // ssoTenantType,
   // ssoUserProfileType,
@@ -209,9 +237,8 @@ import {
   sessionProviderType,
   sessionTemplateProviderType,
   sessionTemplateType,
-  teamRolePermissionsType,
-  teamRoleType,
   teamType,
+  tokenType,
   toolCallType,
   usageType,
   userType
@@ -226,9 +253,90 @@ export let apiKeyPresenter = declarePresenter(apiKeyType, {
   mt_2026_01_01_magnetar: v1ApiKeyPresenter
 });
 
+export let oauthAuthorizationRequestPresenter = declarePresenter(
+  oauthAuthorizationRequestType,
+  {
+    mt_2025_01_01_dashboard: v1OAuthAuthorizationRequestPresenter,
+    mt_2026_01_01_magnetar: v1OAuthAuthorizationRequestPresenter
+  }
+);
+
+export let oauthAuthorizationLogPresenter = declarePresenter(oauthAuthorizationLogType, {
+  mt_2025_01_01_dashboard: v1OAuthAuthorizationLogPresenter,
+  mt_2026_01_01_magnetar: v1OAuthAuthorizationLogPresenter
+});
+
+export let oauthApplicationPresenter = declarePresenter(oauthApplicationType, {
+  mt_2025_01_01_dashboard: v1OAuthApplicationPresenter,
+  mt_2026_01_01_magnetar: v1OAuthApplicationPresenter
+});
+
+export let oauthApplicationClientSecretPresenter = declarePresenter(
+  oauthApplicationClientSecretType,
+  {
+    mt_2025_01_01_dashboard: v1OAuthApplicationClientSecretPresenter,
+    mt_2026_01_01_magnetar: v1OAuthApplicationClientSecretPresenter
+  }
+);
+
+export let oauthInstallationPresenter = declarePresenter(oauthInstallationType, {
+  mt_2025_01_01_dashboard: v1OAuthInstallationPresenter,
+  mt_2026_01_01_magnetar: v1OAuthInstallationPresenter
+});
+
+export let cliDevicePresenter = declarePresenter(cliDeviceType, {
+  mt_2025_01_01_dashboard: v1CliDevicePresenter,
+  mt_2026_01_01_magnetar: v1CliDevicePresenter
+});
+
+export let oauthAuthorizationPresenter = declarePresenter(oauthAuthorizationType, {
+  mt_2025_01_01_dashboard: v1OAuthAuthorizationPresenter,
+  mt_2026_01_01_magnetar: v1OAuthAuthorizationPresenter
+});
+
+export let serviceAccountPresenter = declarePresenter(serviceAccountType, {
+  mt_2025_01_01_dashboard: v1ServiceAccountPresenter,
+  mt_2026_01_01_magnetar: v1ServiceAccountPresenter
+});
+
+export let accessRolePresenter = declarePresenter(accessRoleType, {
+  mt_2025_01_01_dashboard: v1AccessRolePresenter,
+  mt_2026_01_01_magnetar: v1AccessRolePresenter
+});
+
+export let accessRoleVersionPresenter = declarePresenter(accessRoleVersionType, {
+  mt_2025_01_01_dashboard: v1AccessRoleVersionPresenter,
+  mt_2026_01_01_magnetar: v1AccessRoleVersionPresenter
+});
+
+export let accessPolicyPresenter = declarePresenter(accessPolicyType, {
+  mt_2025_01_01_dashboard: v1AccessPolicyPresenter,
+  mt_2026_01_01_magnetar: v1AccessPolicyPresenter
+});
+
+export let accessPolicyVersionPresenter = declarePresenter(accessPolicyVersionType, {
+  mt_2025_01_01_dashboard: v1AccessPolicyVersionPresenter,
+  mt_2026_01_01_magnetar: v1AccessPolicyVersionPresenter
+});
+
+export let serviceAccountCredentialPresenter = declarePresenter(serviceAccountCredentialType, {
+  mt_2025_01_01_dashboard: v1ServiceAccountCredentialPresenter,
+  mt_2026_01_01_magnetar: v1ServiceAccountCredentialPresenter
+});
+
+export let tokenPresenter = declarePresenter(tokenType, {
+  mt_2025_01_01_dashboard: v1TokenPresenter,
+  mt_2026_01_01_magnetar: v1TokenPresenter
+});
+
 export let instancePresenter = declarePresenter(instanceType, {
   mt_2025_01_01_dashboard: v1InstancePresenter,
   mt_2026_01_01_magnetar: v1InstancePresenter
+});
+
+export let instanceListPresenter = declarePresenter(instanceListType, {
+  mt_2025_01_01_dashboard: v1InstanceListPresenter,
+  mt_2026_01_01_magnetar: v1InstanceListPresenter
 });
 
 export let machineAccessPresenter = declarePresenter(machineAccessType, {
@@ -341,14 +449,9 @@ export let teamPresenter = declarePresenter(teamType, {
   mt_2026_01_01_magnetar: v1TeamPresenter
 });
 
-export let teamRolePresenter = declarePresenter(teamRoleType, {
-  mt_2025_01_01_dashboard: v1TeamRolePresenter,
-  mt_2026_01_01_magnetar: v1TeamRolePresenter
-});
-
-export let teamRolePermissionsPresenter = declarePresenter(teamRolePermissionsType, {
-  mt_2025_01_01_dashboard: v1TeamRolePermissionsPresenter,
-  mt_2026_01_01_magnetar: v1TeamRolePermissionsPresenter
+export let oauthScopePermissionsPresenter = declarePresenter(oauthScopePermissionsType, {
+  mt_2025_01_01_dashboard: v1OAuthScopePermissionsPresenter,
+  mt_2026_01_01_magnetar: v1OAuthScopePermissionsPresenter
 });
 
 export let consumerGroupPresenter = declarePresenter(consumerGroupType, {

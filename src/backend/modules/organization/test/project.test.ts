@@ -14,6 +14,7 @@ vi.mock('@metorial/db', () => ({
   ID: {
     generateId: vi.fn()
   },
+  addAfterTransactionHook: vi.fn(),
   withTransaction: vi.fn(callback =>
     callback({
       project: {

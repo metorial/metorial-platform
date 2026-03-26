@@ -128,6 +128,9 @@ let mapperModule = await import(`./languages/${language}/mapper`);
 let typeModule = await import(`./languages/${language}/type`);
 let endpointModule = await import(`./languages/${language}/endpoint`);
 
+let matchesResourcePath = (sdkPath: string, resource: string) =>
+  sdkPath === resource || sdkPath.startsWith(`${resource}.`);
+
 let urls = url.split(',');
 let workingUrl = null;
 for (let u of urls) {
@@ -464,7 +467,7 @@ for (let version of filteredVersions) {
       .map(e => {
         let p = e.allPaths.find(
           p =>
-            p.sdkPath.startsWith(resource) &&
+            matchesResourcePath(p.sdkPath, resource) &&
             p.sdkPath.split('.').length === resourceParts.length + 1
         );
         if (!p) return undefined!;
@@ -542,7 +545,7 @@ for (let version of filteredVersions) {
         .map(e => {
           let p = e.allPaths.find(
             p =>
-              p.sdkPath.startsWith(resource) &&
+              matchesResourcePath(p.sdkPath, resource) &&
               p.sdkPath.split('.').length === resourceParts.length + 1
           );
           if (!p) return undefined!;

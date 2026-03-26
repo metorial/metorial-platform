@@ -1,6 +1,6 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
-import { instanceType } from '../types';
+import { instanceListType, instanceType } from '../types';
 import { v1ProjectPresenter } from './project';
 
 export let v1InstancePresenter = Presenter.create(instanceType)
@@ -60,6 +60,27 @@ export let v1InstancePresenter = Presenter.create(instanceType)
         examples: [new Date('2026-01-29T12:35:22.304Z')]
       }),
       project: v1ProjectPresenter.schema
+    })
+  )
+  .build();
+
+export let v1InstanceListPresenter = Presenter.create(instanceListType)
+  .presenter(async ({ instances }, opts) => ({
+    object: 'list',
+
+    items: await Promise.all(
+      instances.map(instance => v1InstancePresenter.present({ instance }, opts).run())
+    )
+  }))
+  .schema(
+    v.object({
+      object: v.literal('list', {
+        description: "String representing the object's type"
+      }),
+      items: v.array(v1InstancePresenter.schema, {
+        name: 'items',
+        description: 'The list of instances'
+      })
     })
   )
   .build();

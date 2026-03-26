@@ -28,8 +28,7 @@ export let brandController = app.controller({
           }),
           v.object({
             type: v.literal('tenant'),
-            tenantId: v.string(),
-            environmentId: v.string()
+            tenantId: v.string()
           })
         ])
       })

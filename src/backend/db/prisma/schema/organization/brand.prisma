@@ -1,0 +1,38 @@
+model ProjectBrand {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  isDefault    Boolean @default(true)
+  isCustomized Boolean @default(false)
+
+  identifier String @unique
+  name       String
+
+  /// [EntityImage]
+  image Json
+
+  subspaceBrandId String?
+
+  projectOid BigInt  @unique
+  project    Project @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
+
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @default(now()) @updatedAt
+  projectBrandUpdates ProjectBrandUpdate[]
+}
+
+model ProjectBrandUpdate {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  before Json
+  after  Json
+
+  createdByOid BigInt
+  createdBy    OrganizationActor @relation(fields: [createdByOid], references: [oid], onDelete: Cascade)
+
+  brandOid BigInt
+  brand    ProjectBrand @relation(fields: [brandOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}

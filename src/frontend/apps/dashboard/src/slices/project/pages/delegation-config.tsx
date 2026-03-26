@@ -78,7 +78,7 @@ export let ProjectSettingsDelegationConfigPage = () => {
 
     if (!selectedInstance) {
       return (
-        <ContentLayout variant="medium">
+        <ContentLayout variant="large">
           <PageHeader
             title="Delegation Config"
             description="Update the default delegation config for a project instance."
@@ -97,7 +97,7 @@ export let ProjectSettingsDelegationConfigPage = () => {
     }
 
     return renderWithLoader({ config })(({ config }) => (
-      <ContentLayout variant="medium">
+      <ContentLayout variant="large">
         <PageHeader
           title="Delegation Config"
           description="Update the default delegation config for each project instance."

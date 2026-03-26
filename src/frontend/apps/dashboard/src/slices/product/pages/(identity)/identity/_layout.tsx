@@ -73,7 +73,7 @@ export let IdentityLayout = () => {
                         instance.data,
                         request.delegation.id
                       )
-                  )
+                    )
                 });
               }}
             >

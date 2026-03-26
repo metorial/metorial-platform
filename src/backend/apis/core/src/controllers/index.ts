@@ -1,32 +1,42 @@
 import { Controller } from '@metorial/rest';
+import { consumerProviderController } from './consumer/provider';
+import { consumerSessionController } from './consumer/session';
 import { dashboardApiKeyController } from './dashboard/apiKey';
 import { dashboardBootController } from './dashboard/boot';
 import { flagsController } from './dashboard/flags';
+import { dashboardOAuthAuthorizationRequestController } from './dashboard/oauthAuthorizationRequest';
 import { dashboardOrganizationController } from './dashboard/organization';
 import { dashboardOrganizationInviteController } from './dashboard/organizationInvite';
 import { profileController } from './dashboard/profile';
 import { dashboardUsageController } from './dashboard/usage';
 import { dashboardUserController } from './dashboard/user';
-import { consumerProviderController } from './consumer/provider';
-import { consumerSessionController } from './consumer/session';
 import { fileController } from './instance/file';
 import { fileLinkController } from './instance/fileLink';
 import { instanceController } from './instance/instance';
+import { instancesController } from './instance/instances';
+import { portalController } from './instance/portal';
 import { portalAuthDashboardController } from './instance/portalAuth';
 import { portalConsumerAccessController } from './instance/portalConsumerAccess';
 import { portalConsumerAccessRequestController } from './instance/portalConsumerAccessRequest';
 import { portalConsumerGroupController } from './instance/portalConsumerGroup';
 import { portalConsumerProfileController } from './instance/portalConsumerProfile';
-import { portalController } from './instance/portal';
 import { providerTemplateController } from './instance/providerTemplate';
+import { tokenController } from './instance/token';
+import { accessPolicyManagementController } from './management/accessPolicy';
+import { accessRoleManagementController } from './management/accessRole';
+import { cliDeviceManagementController } from './management/cliDevice';
 import { instanceManagementController } from './management/instance';
+import { oauthApplicationManagementController } from './management/oauthApplication';
+import { oauthAuthorizationManagementController } from './management/oauthAuthorization';
+import { oauthAuthorizationLogManagementController } from './management/oauthAuthorizationLog';
+import { oauthInstallationManagementController } from './management/oauthInstallation';
+import { oauthScopeManagementController } from './management/oauthScope';
 import { organizationManagementController } from './management/organization';
 import { organizationInviteManagementController } from './management/organizationInvite';
 import { organizationMemberManagementController } from './management/organizationMember';
 import { projectManagementController } from './management/project';
+import { serviceAccountManagementController } from './management/serviceAccount';
 import { teamManagementController } from './management/team';
-import { teamRoleManagementController } from './management/teamRole';
-import { teamRolePermissionsManagementController } from './management/teamRolePermissions';
 import {
   callbackController,
   callbackDestinationController,
@@ -91,6 +101,9 @@ export let magnetarController = Controller.create<any>(
   },
   {
     instanceController,
+    instancesController,
+
+    tokenController,
 
     publisherController,
     providerController,
@@ -159,12 +172,9 @@ export let magnetarController = Controller.create<any>(
     providerTemplateController,
 
     consumerSessionController,
-    consumerProviderController,
+    consumerProviderController
 
     // teamManagementController,
-    // teamRoleManagementController,
-    // teamRolePermissionsManagementController
-
     // portalConsumerGroupController,
     // portalConsumerAccessController,
     // portalConsumerProfileController,
@@ -185,6 +195,7 @@ export let dashboardController = Controller.create<any>(
   {
     dashboardOrganizationController,
     dashboardOrganizationInviteController,
+    dashboardOAuthAuthorizationRequestController,
     dashboardBootController,
     dashboardApiKeyController,
     dashboardUsageController,
@@ -192,6 +203,15 @@ export let dashboardController = Controller.create<any>(
 
     instanceManagementController,
     organizationManagementController,
+    accessRoleManagementController,
+    accessPolicyManagementController,
+    oauthScopeManagementController,
+    oauthApplicationManagementController,
+    cliDeviceManagementController,
+    oauthInstallationManagementController,
+    oauthAuthorizationManagementController,
+    oauthAuthorizationLogManagementController,
+    serviceAccountManagementController,
     organizationInviteManagementController,
     organizationMemberManagementController,
     projectManagementController,
@@ -204,8 +224,6 @@ export let dashboardController = Controller.create<any>(
 
     profileController,
 
-    teamRolePermissionsManagementController,
-    teamRoleManagementController,
     teamManagementController,
 
     providerController,
@@ -278,7 +296,7 @@ export let dashboardController = Controller.create<any>(
     portalConsumerGroupController,
     portalConsumerAccessController,
     portalConsumerProfileController,
-    portalConsumerAccessRequestController,
+    portalConsumerAccessRequestController
 
     // ssoTenantController,
     // ssoUserController,
@@ -298,6 +316,7 @@ export let fullDashboardController = Controller.create<any>(dashboardController.
 
   dashboardOrganizationController,
   dashboardOrganizationInviteController,
+  dashboardOAuthAuthorizationRequestController,
   dashboardBootController,
   dashboardUserController
 });

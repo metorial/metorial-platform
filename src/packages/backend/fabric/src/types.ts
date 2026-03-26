@@ -1,21 +1,30 @@
 import { Context } from '@metorial/context';
 import {
+  AccessPolicy,
+  AccessPolicyAssignment,
+  AccessRole,
   ApiKey,
   Instance,
   MachineAccess,
+  OAuthApplication,
+  OAuthAuthorization,
+  OAuthInstallation,
+  OAuthToken,
   Organization,
   OrganizationActor,
   OrganizationInvite,
   OrganizationInviteJoin,
   OrganizationMember,
   Project,
+  ServiceAccount,
+  ServiceAccountCredential,
   Team,
   TeamMember,
   TeamProject,
-  TeamRole,
   User,
   UserSession
 } from '@metorial/db';
+import type { OAuthAuthorizationRequestWithRelations } from '@metorial/module-machine-access';
 import type {
   SubspaceCustomProvider,
   SubspaceCustomProviderCommit,
@@ -48,6 +57,40 @@ export type MachineAccessInput =
       instance: Instance;
       performedBy: OrganizationActor;
     };
+
+export type OAuthApplicationCreateInput = {
+  type: 'user_facing' | 'server_side';
+  accessLevel: 'organization' | 'global';
+  name: string;
+  description?: string;
+  websiteUrl?: string;
+  privacyPolicyUrl?: string;
+  termsOfServiceUrl?: string;
+  scopes: string[];
+  image?: PrismaJson.EntityImage;
+};
+
+export type OAuthApplicationUpdateInput = {
+  name?: string;
+  description?: string | null;
+  websiteUrl?: string | null;
+  privacyPolicyUrl?: string | null;
+  termsOfServiceUrl?: string | null;
+  scopes?: string[];
+  image?: PrismaJson.EntityImage;
+};
+
+export type ServiceAccountCreateInput = {
+  name: string;
+  description?: string;
+  scopes: string[];
+};
+
+export type ServiceAccountUpdateInput = {
+  name?: string;
+  description?: string | null;
+  scopes?: string[];
+};
 
 export type ProviderEventBase = {
   instance: Instance;
@@ -134,12 +177,31 @@ export interface FabricEvents {
   'organization.team.project.unassigned:before': { organization: Organization, team: Team, project: Project, teamProject: TeamProject; performedBy: OrganizationActor; context?: Context };
   'organization.team.project.unassigned:after': { organization: Organization, team: Team, project: Project, teamProject: TeamProject; performedBy: OrganizationActor; context?: Context };
 
-  'organization.team.role.created:before': { organization: Organization, performedBy: OrganizationActor; context?: Context };
-  'organization.team.role.created:after': { organization: Organization, role: TeamRole, performedBy: OrganizationActor; context?: Context };
-  'organization.team.role.updated:before': { organization: Organization, role: TeamRole, performedBy: OrganizationActor; context?: Context };
-  'organization.team.role.updated:after': { organization: Organization, role: TeamRole, performedBy: OrganizationActor; context?: Context };
-  'organization.team.role.deleted:before': { organization: Organization, role: TeamRole, performedBy: OrganizationActor; context?: Context };
-  'organization.team.role.deleted:after': { organization: Organization, role: TeamRole, performedBy: OrganizationActor; context?: Context };
+  'organization.access_role.created:before': { organization: Organization; performedBy: OrganizationActor; context: Context; input: { name: string; description?: string; scopes?: string[]; isAdmin?: boolean; message?: string; } };
+  'organization.access_role.created:after': { organization: Organization; performedBy: OrganizationActor; context: Context; input: { name: string; description?: string; scopes?: string[]; isAdmin?: boolean; message?: string; }; accessRole: AccessRole };
+  'organization.access_role.updated:before': { organization: Organization; performedBy: OrganizationActor; context: Context; accessRole: AccessRole; input: { name?: string; description?: string | null; scopes?: string[]; message?: string; } };
+  'organization.access_role.updated:after': { organization: Organization; performedBy: OrganizationActor; context: Context; accessRole: AccessRole; input: { name?: string; description?: string | null; scopes?: string[]; message?: string; } };
+  'organization.access_role.deleted:before': { organization: Organization; performedBy: OrganizationActor; context: Context; accessRole: AccessRole };
+  'organization.access_role.deleted:after': { organization: Organization; performedBy: OrganizationActor; context: Context; accessRole: AccessRole };
+
+  'organization.access_policy.created:before': { organization: Organization; performedBy: OrganizationActor; context: Context; input: { name: string; description?: string; document: PrismaJson.PolicyDocument; type?: AccessPolicy['type']; message?: string; } };
+  'organization.access_policy.created:after': { organization: Organization; performedBy: OrganizationActor; context: Context; input: { name: string; description?: string; document: PrismaJson.PolicyDocument; type?: AccessPolicy['type']; message?: string; }; accessPolicy: AccessPolicy };
+  'organization.access_policy.updated:before': { organization: Organization; performedBy: OrganizationActor; context: Context; accessPolicy: AccessPolicy; input: { name?: string; description?: string | null; document?: PrismaJson.PolicyDocument; message?: string; } };
+  'organization.access_policy.updated:after': { organization: Organization; performedBy: OrganizationActor; context: Context; accessPolicy: AccessPolicy; input: { name?: string; description?: string | null; document?: PrismaJson.PolicyDocument; message?: string; } };
+  'organization.access_policy.deleted:before': { organization: Organization; performedBy: OrganizationActor; context: Context; accessPolicy: AccessPolicy };
+  'organization.access_policy.deleted:after': { organization: Organization; performedBy: OrganizationActor; context: Context; accessPolicy: AccessPolicy };
+  'organization.access_policy.assignment.team.created:before': { organization: Organization; team: Team; accessPolicy: AccessPolicy; performedBy: OrganizationActor; context: Context };
+  'organization.access_policy.assignment.team.created:after': { organization: Organization; team: Team; accessPolicy: AccessPolicy; accessPolicyAssignment: AccessPolicyAssignment; performedBy: OrganizationActor; context: Context };
+  'organization.access_policy.assignment.team.deleted:before': { organization: Organization; team: Team; accessPolicy: AccessPolicy; accessPolicyAssignment: AccessPolicyAssignment; performedBy: OrganizationActor; context: Context };
+  'organization.access_policy.assignment.team.deleted:after': { organization: Organization; team: Team; accessPolicy: AccessPolicy; accessPolicyAssignment: AccessPolicyAssignment; performedBy: OrganizationActor; context: Context };
+  'organization.access_policy.assignment.member.created:before': { organization: Organization; member: OrganizationMember; accessPolicy: AccessPolicy; performedBy: OrganizationActor; context: Context };
+  'organization.access_policy.assignment.member.created:after': { organization: Organization; member: OrganizationMember; accessPolicy: AccessPolicy; accessPolicyAssignment: AccessPolicyAssignment; performedBy: OrganizationActor; context: Context };
+  'organization.access_policy.assignment.member.deleted:before': { organization: Organization; member: OrganizationMember; accessPolicy: AccessPolicy; accessPolicyAssignment: AccessPolicyAssignment; performedBy: OrganizationActor; context: Context };
+  'organization.access_policy.assignment.member.deleted:after': { organization: Organization; member: OrganizationMember; accessPolicy: AccessPolicy; accessPolicyAssignment: AccessPolicyAssignment; performedBy: OrganizationActor; context: Context };
+  'organization.access_policy.assignment.service_account.created:before': { organization: Organization; serviceAccount: ServiceAccount; accessPolicy: AccessPolicy; performedBy: OrganizationActor; context: Context };
+  'organization.access_policy.assignment.service_account.created:after': { organization: Organization; serviceAccount: ServiceAccount; accessPolicy: AccessPolicy; accessPolicyAssignment: AccessPolicyAssignment; performedBy: OrganizationActor; context: Context };
+  'organization.access_policy.assignment.service_account.deleted:before': { organization: Organization; serviceAccount: ServiceAccount; accessPolicy: AccessPolicy; accessPolicyAssignment: AccessPolicyAssignment; performedBy: OrganizationActor; context: Context };
+  'organization.access_policy.assignment.service_account.deleted:after': { organization: Organization; serviceAccount: ServiceAccount; accessPolicy: AccessPolicy; accessPolicyAssignment: AccessPolicyAssignment; performedBy: OrganizationActor; context: Context };
 
   'machine_access.created:before': MachineAccessInput & { context?: Context };
   'machine_access.created:after': MachineAccessInput & { context?: Context, machineAccess: MachineAccess };
@@ -159,6 +221,48 @@ export interface FabricEvents {
   'machine_access.api_key.expired:before': { machineAccess: MachineAccess, apiKey: ApiKey; organization: Organization; performedBy: OrganizationActor };
   'machine_access.api_key.expired:after': { machineAccess: MachineAccess, apiKey: ApiKey; organization: Organization; performedBy: OrganizationActor };
   'machine_access.api_key:revealed': { machineAccess: MachineAccess, apiKey: ApiKey, organization: Organization; performedBy: OrganizationActor; context?: Context };
+  
+  'machine_access.oauth_application.created:before': { organization: Organization; performedBy: OrganizationActor; context: Context; input: OAuthApplicationCreateInput; serverSideMachineAccess: MachineAccess | null; };
+  'machine_access.oauth_application.created:after': { organization: Organization; performedBy: OrganizationActor; context: Context; input: OAuthApplicationCreateInput; serverSideMachineAccess: MachineAccess | null; oauthApplication: OAuthApplication; };
+  'machine_access.oauth_application.updated:before': { oauthApplication: OAuthApplication; organization: Organization; performedBy: OrganizationActor; context: Context; input: OAuthApplicationUpdateInput; };
+  'machine_access.oauth_application.updated:after': { oauthApplication: OAuthApplication; organization: Organization; performedBy: OrganizationActor; context: Context; input: OAuthApplicationUpdateInput; };
+  'machine_access.oauth_application.archived:before': { oauthApplication: OAuthApplication; organization: Organization; performedBy: OrganizationActor; context: Context; };
+  'machine_access.oauth_application.archived:after': { oauthApplication: OAuthApplication; organization: Organization; performedBy: OrganizationActor; context: Context; };
+  'machine_access.oauth_application.client_secret.create:after': { oauthApplication: OAuthApplication; };
+  'machine_access.oauth_application.client_secret.revoked:after': { oauthApplication: OAuthApplication; };
+
+  'machine_access.oauth_installation.created:before': { oauthApplication: OAuthApplication; organization: Organization; context?: Context; };
+  'machine_access.oauth_installation.created:after': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; organization: Organization; appActor: OrganizationActor | null; context?: Context; };
+  'machine_access.oauth_installation.updated:before': { oauthApplication: OAuthApplication; organization: Organization; context?: Context; };
+  'machine_access.oauth_installation.updated:after': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; organization: Organization; appActor: OrganizationActor | null; context?: Context; };
+  'machine_access.oauth_installation.revoked:before': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; organization: Organization; performedBy: OrganizationActor; context?: Context; };
+  'machine_access.oauth_installation.revoked:after': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; organization: Organization; appActor: OrganizationActor | null; performedBy: OrganizationActor; context?: Context; };
+  
+  'machine_access.oauth_authorization.created:before': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; organization: Organization; context?: Context; };
+  'machine_access.oauth_authorization.created:after': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; organization: Organization; appActor: OrganizationActor | null; context?: Context; };
+  'machine_access.oauth_authorization.updated:before': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; organization: Organization; context?: Context; };
+  'machine_access.oauth_authorization.updated:after': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; organization: Organization; appActor: OrganizationActor | null; context?: Context; };
+  'machine_access.oauth_authorization.revoked:before': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; organization: Organization; appActor: OrganizationActor | null; performedBy: OrganizationActor; context?: Context; };
+  'machine_access.oauth_authorization.revoked:after': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; organization: Organization; appActor: OrganizationActor | null; performedBy: OrganizationActor; context?: Context; };
+  
+  'machine_access.oauth_authorization_request.accepted:before': { oauthApplication: OAuthApplication; oauthAuthorizationRequest: OAuthAuthorizationRequestWithRelations; organization: Organization; member: OrganizationMember; performedBy: OrganizationActor; context?: Context; };
+  'machine_access.oauth_authorization_request.accepted:after': { oauthApplication: OAuthApplication; oauthAuthorizationRequest: OAuthAuthorizationRequestWithRelations; organization: Organization; member: OrganizationMember; performedBy: OrganizationActor; context?: Context; };
+  'machine_access.oauth_authorization_request.denied:before': { oauthApplication: OAuthApplication; oauthAuthorizationRequest: OAuthAuthorizationRequestWithRelations; organization: Organization; member: OrganizationMember; performedBy: OrganizationActor; context?: Context; };
+  'machine_access.oauth_authorization_request.denied:after': { oauthApplication: OAuthApplication; oauthAuthorizationRequest: OAuthAuthorizationRequestWithRelations; organization: Organization; member: OrganizationMember; performedBy: OrganizationActor; context?: Context; };
+  
+  'machine_access.oauth_token.created:before': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; organization: Organization; appActor: OrganizationActor | null; context?: Context; };
+  'machine_access.oauth_token.created:after': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; oauthToken: OAuthToken; organization: Organization; appActor: OrganizationActor | null; context?: Context; };
+  'machine_access.oauth_token.refreshed:before': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; oauthToken: OAuthToken; organization: Organization; appActor: OrganizationActor | null; context?: Context; };
+  'machine_access.oauth_token.refreshed:after': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; oauthToken: OAuthToken; organization: Organization; appActor: OrganizationActor | null; context?: Context; };
+
+  'machine_access.service_account.created:before': { organization: Organization; performedBy: OrganizationActor; context: Context; input: ServiceAccountCreateInput; };
+  'machine_access.service_account.created:after': { organization: Organization; performedBy: OrganizationActor; context: Context; input: ServiceAccountCreateInput; serviceAccount: ServiceAccount; oauthApplication: OAuthApplication; };
+  'machine_access.service_account.updated:before': { serviceAccount: ServiceAccount; oauthApplication: OAuthApplication; organization: Organization; performedBy: OrganizationActor; context: Context; input: ServiceAccountUpdateInput; };
+  'machine_access.service_account.updated:after': { serviceAccount: ServiceAccount; oauthApplication: OAuthApplication; organization: Organization; performedBy: OrganizationActor; context: Context; input: ServiceAccountUpdateInput; };
+  'machine_access.service_account.archived:before': { serviceAccount: ServiceAccount; oauthApplication: OAuthApplication; organization: Organization; performedBy: OrganizationActor; context: Context; };
+  'machine_access.service_account.archived:after': { serviceAccount: ServiceAccount; oauthApplication: OAuthApplication; organization: Organization; performedBy: OrganizationActor; context: Context; };
+  'machine_access.service_account_credential.created:before': { serviceAccount: ServiceAccount; oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; organization: Organization; appActor: OrganizationActor | null; context?: Context; };
+  'machine_access.service_account_credential.created:after': { serviceAccount: ServiceAccount; serviceAccountCredential: ServiceAccountCredential; oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; organization: Organization; appActor: OrganizationActor | null; context?: Context; };
 
   'provider.deployment.created:before': ProviderEventBase;
   'provider.deployment.created:after': ProviderEventBase & { deployment: SubspaceProviderDeployment };

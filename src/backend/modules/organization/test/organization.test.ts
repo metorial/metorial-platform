@@ -96,6 +96,12 @@ vi.mock('../src/services/project', () => ({
   }
 }));
 
+vi.mock('../src/services/authBootstrap', () => ({
+  authBootstrapService: {
+    ensureOrganizationAuthVersionV2: vi.fn()
+  }
+}));
+
 // Mock syncProfileQueue
 vi.mock('../src/queues/syncProfile', () => ({
   syncProfileQueue: {
@@ -110,12 +116,16 @@ import { differenceInMinutes } from 'date-fns';
 import { syncProfileQueue } from '../src/queues/syncProfile';
 import { organizationService } from '../src/services/organization';
 import { organizationActorService } from '../src/services/organizationActor';
+import { authBootstrapService } from '../src/services/authBootstrap';
 import { organizationMemberService } from '../src/services/organizationMember';
 import { projectService } from '../src/services/project';
 
 describe('OrganizationService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(authBootstrapService.ensureOrganizationAuthVersionV2).mockResolvedValue(
+      {} as any
+    );
   });
 
   describe('createOrganization', () => {
@@ -160,6 +170,9 @@ describe('OrganizationService', () => {
       vi.mocked(organizationActorService.createOrganizationActor).mockResolvedValue(
         mockSystemActor as any
       );
+      vi.mocked(authBootstrapService.ensureOrganizationAuthVersionV2).mockResolvedValue(
+        {} as any
+      );
       vi.mocked(organizationMemberService.createOrganizationMember).mockResolvedValue({
         ...mockMember,
         actor: mockMemberActor
@@ -194,6 +207,12 @@ describe('OrganizationService', () => {
         expect.objectContaining({
           organization: mockOrg,
           performedBy: mockUser
+        })
+      );
+      expect(authBootstrapService.ensureOrganizationAuthVersionV2).toHaveBeenCalledWith(
+        expect.objectContaining({
+          organization: mockOrg,
+          performedBy: mockSystemActor
         })
       );
     });

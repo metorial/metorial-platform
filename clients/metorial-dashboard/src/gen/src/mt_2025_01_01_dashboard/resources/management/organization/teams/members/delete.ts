@@ -7,6 +7,13 @@ export type ManagementOrganizationTeamsMembersDeleteOutput = {
   name: string;
   slug: string;
   description: string | null;
+  policies: {
+    object: 'management.access_policy#preview';
+    id: string;
+    type: 'everyone' | 'admin' | 'custom';
+    name: string;
+    slug: string;
+  }[];
   projects: {
     id: string;
     createdAt: Date;
@@ -21,22 +28,6 @@ export type ManagementOrganizationTeamsMembersDeleteOutput = {
       createdAt: Date;
       updatedAt: Date;
     };
-    roles: {
-      id: string;
-      role: {
-        object: 'management.team.role';
-        id: string;
-        organizationId: string;
-        name: string;
-        slug: string;
-        description: string | null;
-        permissions: string[];
-        createdAt: Date;
-        updatedAt: Date;
-      };
-      createdAt: Date;
-      updatedAt: Date;
-    }[];
   }[];
   createdAt: Date;
   updatedAt: Date;
@@ -50,6 +41,18 @@ export let mapManagementOrganizationTeamsMembersDeleteOutput =
     name: mtMap.objectField('name', mtMap.passthrough()),
     slug: mtMap.objectField('slug', mtMap.passthrough()),
     description: mtMap.objectField('description', mtMap.passthrough()),
+    policies: mtMap.objectField(
+      'policies',
+      mtMap.array(
+        mtMap.object({
+          object: mtMap.objectField('object', mtMap.passthrough()),
+          id: mtMap.objectField('id', mtMap.passthrough()),
+          type: mtMap.objectField('type', mtMap.passthrough()),
+          name: mtMap.objectField('name', mtMap.passthrough()),
+          slug: mtMap.objectField('slug', mtMap.passthrough())
+        })
+      )
+    ),
     projects: mtMap.objectField(
       'projects',
       mtMap.array(
@@ -72,39 +75,6 @@ export let mapManagementOrganizationTeamsMembersDeleteOutput =
               createdAt: mtMap.objectField('created_at', mtMap.date()),
               updatedAt: mtMap.objectField('updated_at', mtMap.date())
             })
-          ),
-          roles: mtMap.objectField(
-            'roles',
-            mtMap.array(
-              mtMap.object({
-                id: mtMap.objectField('id', mtMap.passthrough()),
-                role: mtMap.objectField(
-                  'role',
-                  mtMap.object({
-                    object: mtMap.objectField('object', mtMap.passthrough()),
-                    id: mtMap.objectField('id', mtMap.passthrough()),
-                    organizationId: mtMap.objectField(
-                      'organization_id',
-                      mtMap.passthrough()
-                    ),
-                    name: mtMap.objectField('name', mtMap.passthrough()),
-                    slug: mtMap.objectField('slug', mtMap.passthrough()),
-                    description: mtMap.objectField(
-                      'description',
-                      mtMap.passthrough()
-                    ),
-                    permissions: mtMap.objectField(
-                      'permissions',
-                      mtMap.array(mtMap.passthrough())
-                    ),
-                    createdAt: mtMap.objectField('created_at', mtMap.date()),
-                    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-                  })
-                ),
-                createdAt: mtMap.objectField('created_at', mtMap.date()),
-                updatedAt: mtMap.objectField('updated_at', mtMap.date())
-              })
-            )
           )
         })
       )

@@ -32,4 +32,27 @@ describe('UnifiedApiKey', () => {
     expect(redacted.startsWith('metorial_fk_')).toBe(true);
     expect(redacted.includes('...')).toBe(true);
   });
+
+  it('creates and parses oauth access and refresh keys', () => {
+    let accessKey = UnifiedApiKey.create({
+      type: 'oauth_access_token',
+      config: {
+        url: 'https://api.example.com',
+        instance: 'v2-ext'
+      }
+    });
+
+    let refreshKey = UnifiedApiKey.create({
+      type: 'oauth_refresh_token',
+      config: {
+        url: 'https://api.example.com',
+        instance: 'v2-ext'
+      }
+    });
+
+    expect(accessKey.toString().startsWith('metorial_oa_')).toBe(true);
+    expect(refreshKey.toString().startsWith('metorial_or_')).toBe(true);
+    expect(UnifiedApiKey.from(accessKey.toString())?.type).toBe('oauth_access_token');
+    expect(UnifiedApiKey.from(refreshKey.toString())?.type).toBe('oauth_refresh_token');
+  });
 });

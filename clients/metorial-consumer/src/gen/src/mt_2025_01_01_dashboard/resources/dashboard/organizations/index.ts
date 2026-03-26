@@ -1,3 +1,5 @@
+export * from './access-policies';
+export * from './access-roles';
 export * from './create';
 export * from './delete';
 export * from './get';
@@ -6,6 +8,8 @@ export * from './invites';
 export * from './join';
 export * from './list';
 export * from './members';
+export * from './oauth';
 export * from './projects';
+export * from './service-accounts';
 export * from './teams';
 export * from './update';

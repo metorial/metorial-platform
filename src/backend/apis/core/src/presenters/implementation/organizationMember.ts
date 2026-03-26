@@ -1,6 +1,7 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
 import { organizationMemberType } from '../types';
+import { v1AccessPolicyPreviewPresenter } from './accessPolicyPreview';
 import { v1OrganizationActorPresenter } from './organizationActor';
 
 export let v1OrganizationMemberPresenter = Presenter.create(organizationMemberType)
@@ -14,6 +15,14 @@ export let v1OrganizationMemberPresenter = Presenter.create(organizationMemberTy
     user_id: organizationMember.user.id,
     organization_id: organizationMember.organization.id,
     actor_id: organizationMember.actor.id,
+
+    policies: await Promise.all(
+      (organizationMember.policies ?? []).map(assignment =>
+        v1AccessPolicyPreviewPresenter
+          .present({ accessPolicy: assignment.accessPolicy }, opts)
+          .run()
+      )
+    ),
 
     last_active_at: organizationMember.lastActiveAt,
     created_at: organizationMember.createdAt,
@@ -35,10 +44,14 @@ export let v1OrganizationMemberPresenter = Presenter.create(organizationMemberTy
   .schema(
     v.object({
       object: v.literal('organization.member', {
-        description: "String representing the object's type"
+        description: "String representing the organization member object's type"
       }),
 
-      id: v.string({ name: 'id', description: `The organization member's unique identifier` }),
+      id: v.string({
+        name: 'id',
+        description: `The organization member's unique identifier`,
+        examples: ['ome_7hNkPqRsTuVwXyZa']
+      }),
 
       status: v.enumOf(['active', 'deleted'], {
         name: 'status',
@@ -62,7 +75,11 @@ export let v1OrganizationMemberPresenter = Presenter.create(organizationMemberTy
 
       actor_id: v.string({
         name: 'actor_id',
-        description: `The organization member's actor ID`
+        description: `The organization actor ID for this member`
+      }),
+      policies: v.array(v1AccessPolicyPreviewPresenter.schema, {
+        name: 'policies',
+        description: 'Access policies currently assigned to this organization member'
       }),
 
       last_active_at: v.date({

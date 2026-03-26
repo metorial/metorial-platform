@@ -34,6 +34,7 @@ export let v1MachineAccessPresenter = Presenter.create(machineAccessType)
             )
             .run()
         : null,
+
     instance:
       machineAccess.instance && machineAccess.organization
         ? await v1InstancePresenter
@@ -48,6 +49,7 @@ export let v1MachineAccessPresenter = Presenter.create(machineAccessType)
             )
             .run()
         : null,
+
     organization: machineAccess.organization
       ? await v1OrganizationPresenter
           .present(
@@ -58,6 +60,7 @@ export let v1MachineAccessPresenter = Presenter.create(machineAccessType)
           )
           .run()
       : null,
+
     user: machineAccess.user
       ? await v1UserPresenter
           .present(

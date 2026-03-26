@@ -1,8 +1,8 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
 import { teamType } from '../types';
+import { v1AccessPolicyPreviewPresenter } from './accessPolicyPreview';
 import { v1ProjectPresenter } from './project';
-import { v1TeamRolePresenter } from './teamRole';
 
 export let v1TeamPresenter = Presenter.create(teamType)
   .presenter(async ({ team }, opts) => ({
@@ -15,6 +15,13 @@ export let v1TeamPresenter = Presenter.create(teamType)
     name: team.name,
     slug: team.slug,
     description: team.description,
+    policies: await Promise.all(
+      (team.policies ?? []).map(assignment =>
+        v1AccessPolicyPreviewPresenter
+          .present({ accessPolicy: assignment.accessPolicy }, opts)
+          .run()
+      )
+    ),
 
     projects: await Promise.all(
       team.projects.map(async a => ({
@@ -25,25 +32,7 @@ export let v1TeamPresenter = Presenter.create(teamType)
 
         project: await v1ProjectPresenter
           .present({ project: { ...a.project, organization: team.organization } }, opts)
-          .run(),
-
-        roles: await Promise.all(
-          team.assignments
-            .filter(p => p.projectOid === a.projectOid)
-            .map(async p => ({
-              id: p.id,
-
-              role: await v1TeamRolePresenter
-                .present(
-                  { teamRole: { ...p.teamRole, organization: team.organization } },
-                  opts
-                )
-                .run(),
-
-              created_at: p.createdAt,
-              updated_at: p.updatedAt
-            }))
-        )
+          .run()
       }))
     ),
 
@@ -53,10 +42,14 @@ export let v1TeamPresenter = Presenter.create(teamType)
   .schema(
     v.object({
       object: v.literal('management.team', {
-        description: "String representing the object's type"
+        description: "String representing the team object's type"
       }),
 
-      id: v.string({ name: 'id', description: `The team's unique identifier` }),
+      id: v.string({
+        name: 'id',
+        description: `The team's unique identifier`,
+        examples: ['tm_7hNkPqRsTuVwXyZa']
+      }),
 
       organization_id: v.string({
         name: 'organization_id',
@@ -76,6 +69,10 @@ export let v1TeamPresenter = Presenter.create(teamType)
           description: `The team's description`
         })
       ),
+      policies: v.array(v1AccessPolicyPreviewPresenter.schema, {
+        name: 'policies',
+        description: 'Access policies currently assigned to this team'
+      }),
       projects: v.array(
         v.object({
           id: v.string({
@@ -92,24 +89,7 @@ export let v1TeamPresenter = Presenter.create(teamType)
             description: `The team project assignment's last update date`
           }),
 
-          project: v1ProjectPresenter.schema,
-
-          roles: v.array(
-            v.object({
-              id: v.string({ name: 'id', description: `The role's unique identifier` }),
-
-              role: v1TeamRolePresenter.schema,
-
-              created_at: v.date({
-                name: 'created_at',
-                description: `The role's creation date`
-              }),
-              updated_at: v.date({
-                name: 'updated_at',
-                description: `The role's last update date`
-              })
-            })
-          )
+          project: v1ProjectPresenter.schema
         })
       ),
       created_at: v.date({

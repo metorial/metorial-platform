@@ -1,5 +1,6 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
+import { accessService } from '@metorial/module-access';
 import { instanceService, projectService } from '@metorial/module-organization';
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../middleware/checkAccess';
@@ -24,10 +25,25 @@ export let instanceManagementController = Controller.create(
       .outputList(instancePresenter)
       .query('default', Paginator.validate(v.object({})))
       .do(async ctx => {
+        let targetAccessFilter = await accessService.getTargetAccessFilter({
+          authInfo: ctx.auth,
+          organization: ctx.organization,
+          member: ctx.member,
+          possibleScopes: ['organization.instance:read']
+        });
+
         let paginator = await instanceService.listInstances({
           organization: ctx.organization,
           member: ctx.member,
-          actor: ctx.actor
+          actor: ctx.actor,
+          projectIds:
+            targetAccessFilter && !targetAccessFilter.all
+              ? targetAccessFilter.projectIds
+              : undefined,
+          instanceIds:
+            targetAccessFilter && !targetAccessFilter.all
+              ? targetAccessFilter.instanceIds
+              : undefined
         });
 
         let list = await paginator.run(ctx.query);
@@ -48,6 +64,15 @@ export let instanceManagementController = Controller.create(
           instanceId: ctx.params.instanceId,
           member: ctx.member,
           actor: ctx.actor
+        });
+
+        await accessService.checkTargetAccess({
+          authInfo: ctx.auth,
+          organization: ctx.organization,
+          member: ctx.member,
+          project: instance.project,
+          instance,
+          possibleScopes: ['organization.instance:read']
         });
 
         return instancePresenter.present({ instance });
@@ -74,6 +99,14 @@ export let instanceManagementController = Controller.create(
           projectId: ctx.body.project_id,
           member: ctx.member,
           actor: ctx.actor
+        });
+
+        await accessService.checkTargetAccess({
+          authInfo: ctx.auth,
+          organization: ctx.organization,
+          member: ctx.member,
+          project,
+          possibleScopes: ['organization.instance:write']
         });
 
         let instance = await instanceService.createInstance({
@@ -105,6 +138,15 @@ export let instanceManagementController = Controller.create(
           actor: ctx.actor
         });
 
+        await accessService.checkTargetAccess({
+          authInfo: ctx.auth,
+          organization: ctx.organization,
+          member: ctx.member,
+          project: instance.project,
+          instance,
+          possibleScopes: ['organization.instance:write']
+        });
+
         instance = await instanceService.deleteInstance({
           instance,
           organization: ctx.organization,
@@ -134,6 +176,15 @@ export let instanceManagementController = Controller.create(
           instanceId: ctx.params.instanceId,
           member: ctx.member,
           actor: ctx.actor
+        });
+
+        await accessService.checkTargetAccess({
+          authInfo: ctx.auth,
+          organization: ctx.organization,
+          member: ctx.member,
+          project: instance.project,
+          instance,
+          possibleScopes: ['organization.instance:write']
         });
 
         instance = await instanceService.updateInstance({

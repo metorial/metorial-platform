@@ -1,8 +1,9 @@
 import { createCron } from '@metorial/cron';
 import { db } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
-import { organizationActorService } from '@metorial/module-organization';
+import { organizationActorService } from '@metorial/module-organization/src/services/organizationActor';
 import { combineQueueProcessors, createQueue, QueueRetryError } from '@metorial/queue';
+import { notifyExpiredApiKeyAdminsQueue } from '../queues/notifyExpiredApiKeyAdmins';
 
 let expireCron = createCron(
   {
@@ -80,6 +81,11 @@ let expireSingleQueueProcessor = expireSingleQueue.process(async data => {
       apiKey: updatedApiKey,
       performedBy: systemActor,
       machineAccess: apiKey.machineAccess
+    });
+
+    await notifyExpiredApiKeyAdminsQueue.add({
+      apiKeyId: updatedApiKey.id,
+      organizationId: organization.id
     });
   }
 });

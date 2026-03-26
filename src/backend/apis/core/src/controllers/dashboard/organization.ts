@@ -2,6 +2,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { organizationService } from '@metorial/module-organization';
 import { Controller, Path } from '@metorial/rest';
+import { checkAccess } from '../../middleware/checkAccess';
 import { isDashboardGroup } from '../../middleware/isDashboard';
 import { organizationGroup } from '../../middleware/organizationGroup';
 import { userGroup } from '../../middleware/userGroup';
@@ -68,6 +69,7 @@ export let dashboardOrganizationController = Controller.create(
         description: 'Get the current organization information'
       })
       .output(organizationPresenter)
+      .use(checkAccess({ possibleScopes: ['organization:read'] }))
       .do(async ctx => {
         return organizationPresenter.present({ organization: ctx.organization });
       }),
@@ -87,6 +89,7 @@ export let dashboardOrganizationController = Controller.create(
           name: v.optional(v.string())
         })
       )
+      .use(checkAccess({ possibleScopes: ['organization:write'] }))
       .output(organizationPresenter)
       .do(async ctx => {
         let organization = await organizationService.updateOrganization({
@@ -110,6 +113,7 @@ export let dashboardOrganizationController = Controller.create(
           description: 'Delete the current organization'
         }
       )
+      .use(checkAccess({ possibleScopes: ['organization:write'] }))
       .output(organizationPresenter)
       .do(async ctx => {
         let organization = await organizationService.deleteOrganization({

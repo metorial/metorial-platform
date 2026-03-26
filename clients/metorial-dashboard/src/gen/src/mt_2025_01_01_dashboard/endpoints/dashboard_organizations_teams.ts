@@ -9,7 +9,6 @@ import {
   mapDashboardOrganizationsTeamsGetOutput,
   mapDashboardOrganizationsTeamsListOutput,
   mapDashboardOrganizationsTeamsListQuery,
-  mapDashboardOrganizationsTeamsPermissionsOutput,
   mapDashboardOrganizationsTeamsUpdateBody,
   mapDashboardOrganizationsTeamsUpdateOutput,
   type DashboardOrganizationsTeamsCreateBody,
@@ -17,7 +16,6 @@ import {
   type DashboardOrganizationsTeamsGetOutput,
   type DashboardOrganizationsTeamsListOutput,
   type DashboardOrganizationsTeamsListQuery,
-  type DashboardOrganizationsTeamsPermissionsOutput,
   type DashboardOrganizationsTeamsUpdateBody,
   type DashboardOrganizationsTeamsUpdateOutput
 } from '../resources';
@@ -47,33 +45,6 @@ export class MetorialDashboardOrganizationsTeamsEndpoint {
   }
   private _delete(request: any) {
     return this._manager._delete(request);
-  }
-
-  /**
-   * @name Get team
-   * @description Get the information of a specific team
-   *
-   * @param `organizationId` - string
-   * @param `opts` - { headers?: Record<string, string> }
-   * @returns DashboardOrganizationsTeamsPermissionsOutput
-   * @see https://metorial.com/api
-   * @see https://metorial.com/docs
-   */
-  permissions(
-    organizationId: string,
-    opts?: { headers?: Record<string, string> }
-  ): Promise<DashboardOrganizationsTeamsPermissionsOutput> {
-    let path = `dashboard/organizations/${organizationId}/team-role-permissions`;
-
-    let request = {
-      path,
-
-      ...(opts?.headers ? { headers: opts.headers } : {})
-    } as any;
-
-    return this._get(request).transform(
-      mapDashboardOrganizationsTeamsPermissionsOutput
-    );
   }
 
   /**

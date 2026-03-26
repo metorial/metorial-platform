@@ -1,7 +1,7 @@
 import { InlineCopy } from '@metorial/ui';
 import React from 'react';
 
-export let ID = ({ id }: { id: string | undefined }) => (
+export let ID = ({ id, copy }: { id: string | undefined; copy?: boolean }) => (
   <span
     style={{
       position: 'relative',
@@ -19,15 +19,18 @@ export let ID = ({ id }: { id: string | undefined }) => (
     >
       {id}
     </span>
-    <span
-      style={{
-        position: 'absolute',
-        right: 0,
-        top: '50%',
-        transform: 'translateY(-50%)'
-      }}
-    >
-      <InlineCopy value={id} />
-    </span>
+
+    {copy !== false && (
+      <span
+        style={{
+          position: 'absolute',
+          right: 0,
+          top: '50%',
+          transform: 'translateY(-50%)'
+        }}
+      >
+        <InlineCopy value={id} />
+      </span>
+    )}
   </span>
 );

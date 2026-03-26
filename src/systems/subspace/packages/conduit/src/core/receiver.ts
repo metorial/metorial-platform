@@ -6,6 +6,7 @@ import type { ITransportAdapter } from '../adapters/transport/transportAdapter';
 import type { ReceiverConfig } from '../types/config';
 import type { ConduitMessage, TimeoutExtension } from '../types/message';
 import type { ConduitResponse } from '../types/response';
+import type { TopicResponseBroadcast } from '../types/topicListener';
 import { MessageCache } from './messageCache';
 import { OwnershipManager } from './ownershipManager';
 
@@ -297,32 +298,32 @@ export class Receiver {
     }
 
     // Broadcast response to topic listeners
-    // await this.broadcastTopicResponse(message, response);
+    await this.broadcastTopicResponse(message, response);
   }
 
-  // private async broadcastTopicResponse(
-  //   message: ConduitMessage,
-  //   response: ConduitResponse
-  // ): Promise<void> {
-  //   try {
-  //     let broadcast: TopicResponseBroadcast = {
-  //       topic: message.topic,
-  //       messageId: message.messageId,
-  //       response,
-  //       receiverId: this.receiverId,
-  //       broadcastAt: Date.now()
-  //     };
+  private async broadcastTopicResponse(
+    message: ConduitMessage,
+    response: ConduitResponse
+  ): Promise<void> {
+    try {
+      let broadcast: TopicResponseBroadcast = {
+        topic: message.topic,
+        messageId: message.messageId,
+        response,
+        receiverId: this.receiverId,
+        broadcastAt: Date.now()
+      };
 
-  //     let encoder = new TextEncoder();
-  //     let data = encoder.encode(serialize.encode(broadcast));
-  //     let subject = `conduit.${this.conduitId}.topic.responses.${message.topic}`;
+      let encoder = new TextEncoder();
+      let data = encoder.encode(serialize.encode(broadcast));
+      let subject = `conduit.${this.conduitId}.topic.responses.${message.topic}`;
 
-  //     await this.transport.publish(subject, data);
-  //   } catch (err) {
-  //     // Don't fail the response if broadcast fails
-  //     console.error(`Error broadcasting topic response for ${message.topic}:`, err);
-  //   }
-  // }
+      await this.transport.publish(subject, data);
+    } catch (err) {
+      // Don't fail the response if broadcast fails
+      console.error(`Error broadcasting topic response for ${message.topic}:`, err);
+    }
+  }
 
   private isMemoryTransport(): boolean {
     return 'reply' in this.transport;

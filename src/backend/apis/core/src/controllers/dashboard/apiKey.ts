@@ -7,11 +7,12 @@ import {
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { Organization } from '@metorial/db';
-import { AuthInfo } from '@metorial/module-access';
+import { accessService, AuthInfo } from '@metorial/module-access';
 import { apiKeyService, ListApiKeysFilter } from '@metorial/module-machine-access';
 import { instanceService } from '@metorial/module-organization';
 import { Controller, Path } from '@metorial/rest';
-import { isAdminGroup, isDashboardGroup } from '../../middleware/isDashboard';
+import { checkAccess } from '../../middleware/checkAccess';
+import { isDashboardGroup } from '../../middleware/isDashboard';
 import { organizationGroup } from '../../middleware/organizationGroup';
 import { apiKeyPresenter } from '../../presenters';
 
@@ -39,9 +40,9 @@ export let getApiKeyFilter = async (
         );
       }
 
-      let res = await instanceService.getInstanceByIdForUser({
-        instanceId: body.instance_id,
-        user: auth.user
+      let res = await accessService.accessInstance({
+        authInfo: auth,
+        instanceId: body.instance_id
       });
 
       if (res.instance.organizationOid != organization.oid) {
@@ -86,16 +87,14 @@ export let getApiKeyFilter = async (
         );
       }
 
-      let instance = await instanceService.getInstanceById({
-        instanceId: body.instance_id,
-        organization: auth.restrictions.organization,
-        actor: auth.restrictions.actor,
-        member: undefined
+      let res = await accessService.accessInstance({
+        authInfo: auth,
+        instanceId: body.instance_id
       });
 
       filter = {
         type: 'instance_access_token',
-        instance,
+        instance: res.instance,
         organization: auth.restrictions.organization
       };
     }
@@ -106,6 +105,31 @@ export let getApiKeyFilter = async (
   if (!filter) throw new Error('WTF - no filter');
 
   return filter;
+};
+
+let canRevealApiKey = async (d: {
+  auth: AuthInfo;
+  organization: Organization;
+  member: any;
+  apiKey: Awaited<ReturnType<typeof apiKeyService.getApiKeyById>>;
+}) => {
+  if (d.apiKey.machineAccess.instance) {
+    return await accessService.canAccessTargetScopes({
+      authInfo: d.auth,
+      organization: d.organization,
+      member: d.member,
+      project: d.apiKey.machineAccess.instance.project,
+      instance: d.apiKey.machineAccess.instance,
+      possibleScopes: ['organization.api_key:reveal']
+    });
+  }
+
+  return await accessService.canAccessTargetScopes({
+    authInfo: d.auth,
+    organization: d.organization,
+    member: d.member,
+    possibleScopes: ['organization.api_key:reveal']
+  });
 };
 
 export let dashboardApiKeyController = Controller.create(
@@ -120,6 +144,7 @@ export let dashboardApiKeyController = Controller.create(
         description: 'Get the current user information'
       })
       .use(isDashboardGroup())
+      .use(checkAccess({ possibleScopes: ['organization.api_key:read'] }))
       .outputList(apiKeyPresenter)
       .query(
         'default',
@@ -145,10 +170,22 @@ export let dashboardApiKeyController = Controller.create(
         });
 
         let list = await paginator.run(ctx.query);
-
-        return Paginator.present(list, apiKey =>
-          apiKeyPresenter.present({ canReveal: ctx.member?.role == 'admin', apiKey })
+        let presented = await Promise.all(
+          list.items.map(
+            async apiKey =>
+              await apiKeyPresenter.present({
+                canReveal: await canRevealApiKey({
+                  auth: ctx.auth,
+                  organization: ctx.organization,
+                  member: ctx.member,
+                  apiKey
+                }),
+                apiKey
+              })
+          )
         );
+
+        return Paginator.present({ ...list, items: presented }, item => item);
       }),
 
     get: organizationGroup
@@ -160,6 +197,7 @@ export let dashboardApiKeyController = Controller.create(
         }
       )
       .use(isDashboardGroup())
+      .use(checkAccess({ possibleScopes: ['organization.api_key:read'] }))
       .output(apiKeyPresenter)
       .do(async ctx => {
         let apiKey = await apiKeyService.getApiKeyById({
@@ -167,7 +205,15 @@ export let dashboardApiKeyController = Controller.create(
           organization: ctx.organization
         });
 
-        return apiKeyPresenter.present({ canReveal: ctx.member?.role == 'admin', apiKey });
+        return apiKeyPresenter.present({
+          canReveal: await canRevealApiKey({
+            auth: ctx.auth,
+            organization: ctx.organization,
+            member: ctx.member,
+            apiKey
+          }),
+          apiKey
+        });
       }),
 
     create: organizationGroup
@@ -193,12 +239,13 @@ export let dashboardApiKeyController = Controller.create(
           v.object({
             name: v.string(),
             description: v.optional(v.string()),
-            expires_at: v.optional(v.date())
+            expires_at: v.optional(v.date()),
+            ip_filters: v.optional(v.array(v.string()))
           })
         ])
       )
       .use(isDashboardGroup())
-      .use(isAdminGroup())
+      .use(checkAccess({ possibleScopes: ['organization.api_key:write'] }))
       .output(apiKeyPresenter)
       .do(async ctx => {
         if (ctx.body.type == 'organization_management_token') {
@@ -206,7 +253,8 @@ export let dashboardApiKeyController = Controller.create(
             input: {
               name: ctx.body.name,
               description: ctx.body.description,
-              expiresAt: ctx.body.expires_at
+              expiresAt: ctx.body.expires_at,
+              ipFilters: ctx.body.ip_filters
             },
             context: ctx.context,
             type: 'organization_management_token',
@@ -215,7 +263,12 @@ export let dashboardApiKeyController = Controller.create(
           });
 
           return apiKeyPresenter.present({
-            canReveal: ctx.member?.role == 'admin',
+            canReveal: await canRevealApiKey({
+              auth: ctx.auth,
+              organization: ctx.organization,
+              member: ctx.member,
+              apiKey
+            }),
             apiKey,
             secret
           });
@@ -227,11 +280,21 @@ export let dashboardApiKeyController = Controller.create(
             member: undefined
           });
 
+          await accessService.checkTargetAccess({
+            authInfo: ctx.auth,
+            organization: ctx.organization,
+            member: ctx.member,
+            project: instance.project,
+            instance,
+            possibleScopes: ['organization.api_key:write']
+          });
+
           let { apiKey, secret } = await apiKeyService.createApiKey({
             input: {
               name: ctx.body.name,
               description: ctx.body.description,
-              expiresAt: ctx.body.expires_at
+              expiresAt: ctx.body.expires_at,
+              ipFilters: ctx.body.ip_filters
             },
             context: ctx.context,
             type: ctx.body.type,
@@ -242,7 +305,12 @@ export let dashboardApiKeyController = Controller.create(
           });
 
           return apiKeyPresenter.present({
-            canReveal: ctx.member?.role == 'admin',
+            canReveal: await canRevealApiKey({
+              auth: ctx.auth,
+              organization: ctx.organization,
+              member: ctx.member,
+              apiKey
+            }),
             apiKey,
             secret
           });
@@ -262,11 +330,12 @@ export let dashboardApiKeyController = Controller.create(
         v.object({
           name: v.optional(v.string()),
           description: v.optional(v.string()),
-          expires_at: v.optional(v.date())
+          expires_at: v.optional(v.date()),
+          ip_filters: v.optional(v.array(v.string()))
         })
       )
       .use(isDashboardGroup())
-      .use(isAdminGroup())
+      .use(checkAccess({ possibleScopes: ['organization.api_key:write'] }))
       .output(apiKeyPresenter)
       .do(async ctx => {
         let apiKey = await apiKeyService.getApiKeyById({
@@ -274,18 +343,38 @@ export let dashboardApiKeyController = Controller.create(
           organization: ctx.organization
         });
 
+        if (apiKey.machineAccess.instance) {
+          await accessService.checkTargetAccess({
+            authInfo: ctx.auth,
+            organization: ctx.organization,
+            member: ctx.member,
+            project: apiKey.machineAccess.instance.project,
+            instance: apiKey.machineAccess.instance,
+            possibleScopes: ['organization.api_key:write']
+          });
+        }
+
         apiKey = await apiKeyService.updateApiKey({
           apiKey,
           input: {
             name: ctx.body.name,
             description: ctx.body.description,
-            expiresAt: ctx.body.expires_at
+            expiresAt: ctx.body.expires_at,
+            ipFilters: ctx.body.ip_filters
           },
           context: ctx.context,
           performedBy: ctx.actor
         });
 
-        return apiKeyPresenter.present({ canReveal: ctx.member?.role == 'admin', apiKey });
+        return apiKeyPresenter.present({
+          canReveal: await canRevealApiKey({
+            auth: ctx.auth,
+            organization: ctx.organization,
+            member: ctx.member,
+            apiKey
+          }),
+          apiKey
+        });
       }),
 
     revoke: organizationGroup
@@ -297,7 +386,7 @@ export let dashboardApiKeyController = Controller.create(
         }
       )
       .use(isDashboardGroup())
-      .use(isAdminGroup())
+      .use(checkAccess({ possibleScopes: ['organization.api_key:write'] }))
       .output(apiKeyPresenter)
       .do(async ctx => {
         let apiKey = await apiKeyService.getApiKeyById({
@@ -305,13 +394,32 @@ export let dashboardApiKeyController = Controller.create(
           organization: ctx.organization
         });
 
+        if (apiKey.machineAccess.instance) {
+          await accessService.checkTargetAccess({
+            authInfo: ctx.auth,
+            organization: ctx.organization,
+            member: ctx.member,
+            project: apiKey.machineAccess.instance.project,
+            instance: apiKey.machineAccess.instance,
+            possibleScopes: ['organization.api_key:write']
+          });
+        }
+
         apiKey = await apiKeyService.revokeApiKey({
           apiKey,
           context: ctx.context,
           performedBy: ctx.actor
         });
 
-        return apiKeyPresenter.present({ canReveal: ctx.member?.role == 'admin', apiKey });
+        return apiKeyPresenter.present({
+          canReveal: await canRevealApiKey({
+            auth: ctx.auth,
+            organization: ctx.organization,
+            member: ctx.member,
+            apiKey
+          }),
+          apiKey
+        });
       }),
 
     rotate: organizationGroup
@@ -332,13 +440,24 @@ export let dashboardApiKeyController = Controller.create(
         })
       )
       .use(isDashboardGroup())
-      .use(isAdminGroup())
+      .use(checkAccess({ possibleScopes: ['organization.api_key:write'] }))
       .output(apiKeyPresenter)
       .do(async ctx => {
         let apiKey = await apiKeyService.getApiKeyById({
           apiKeyId: ctx.params.apiKeyId,
           organization: ctx.organization
         });
+
+        if (apiKey.machineAccess.instance) {
+          await accessService.checkTargetAccess({
+            authInfo: ctx.auth,
+            organization: ctx.organization,
+            member: ctx.member,
+            project: apiKey.machineAccess.instance.project,
+            instance: apiKey.machineAccess.instance,
+            possibleScopes: ['organization.api_key:write']
+          });
+        }
 
         let res = await apiKeyService.rotateApiKey({
           apiKey,
@@ -350,7 +469,12 @@ export let dashboardApiKeyController = Controller.create(
         });
 
         return apiKeyPresenter.present({
-          canReveal: ctx.member?.role == 'admin',
+          canReveal: await canRevealApiKey({
+            auth: ctx.auth,
+            organization: ctx.organization,
+            member: ctx.member,
+            apiKey: res.apiKey
+          }),
           apiKey: res.apiKey,
           secret: res.secret
         });
@@ -368,13 +492,24 @@ export let dashboardApiKeyController = Controller.create(
         }
       )
       .use(isDashboardGroup())
-      .use(isAdminGroup())
+      .use(checkAccess({ possibleScopes: ['organization.api_key:reveal'] }))
       .output(apiKeyPresenter)
       .do(async ctx => {
         let apiKey = await apiKeyService.getApiKeyById({
           apiKeyId: ctx.params.apiKeyId,
           organization: ctx.organization
         });
+
+        if (apiKey.machineAccess.instance) {
+          await accessService.checkTargetAccess({
+            authInfo: ctx.auth,
+            organization: ctx.organization,
+            member: ctx.member,
+            project: apiKey.machineAccess.instance.project,
+            instance: apiKey.machineAccess.instance,
+            possibleScopes: ['organization.api_key:reveal']
+          });
+        }
 
         let secret = await apiKeyService.revealApiKey({
           apiKey,
@@ -383,7 +518,12 @@ export let dashboardApiKeyController = Controller.create(
         });
 
         return apiKeyPresenter.present({
-          canReveal: ctx.member?.role == 'admin',
+          canReveal: await canRevealApiKey({
+            auth: ctx.auth,
+            organization: ctx.organization,
+            member: ctx.member,
+            apiKey
+          }),
           apiKey,
           secret
         });

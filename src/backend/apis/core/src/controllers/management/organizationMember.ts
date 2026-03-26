@@ -1,7 +1,10 @@
-import { forbiddenError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { organizationMemberService } from '@metorial/module-organization';
+import {
+  accessPolicyAssignmentService,
+  accessPolicyService,
+  organizationMemberService
+} from '@metorial/module-organization';
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
@@ -71,14 +74,6 @@ export let organizationMemberManagementController = Controller.create(
       .use(checkAccess({ possibleScopes: ['organization.member:write'] }))
       .output(organizationMemberPresenter)
       .do(async ctx => {
-        if (ctx.member?.role == 'member') {
-          throw new ServiceError(
-            forbiddenError({
-              message: 'You are not permitted to manage organization members'
-            })
-          );
-        }
-
         let member = await organizationMemberService.getOrganizationMemberById({
           organization: ctx.organization,
           memberId: ctx.params.memberId
@@ -108,14 +103,6 @@ export let organizationMemberManagementController = Controller.create(
       )
       .output(organizationMemberPresenter)
       .do(async ctx => {
-        if (ctx.member?.role == 'member') {
-          throw new ServiceError(
-            forbiddenError({
-              message: 'You are not permitted to manage organization members'
-            })
-          );
-        }
-
         let member = await organizationMemberService.getOrganizationMemberById({
           organization: ctx.organization,
           memberId: ctx.params.memberId
@@ -129,6 +116,87 @@ export let organizationMemberManagementController = Controller.create(
           },
           context: ctx.context,
           performedBy: ctx.actor
+        });
+
+        return organizationMemberPresenter.present({ organizationMember: member });
+      }),
+
+    assignPolicy: organizationGroup
+      .post(
+        organizationManagementPath('members/:memberId/policies', 'members.policies.create'),
+        {
+          name: 'Assign policy to organization member',
+          description: 'Assign an access policy to an organization member'
+        }
+      )
+      .use(checkAccess({ possibleScopes: ['organization.access_policy:write'] }))
+      .body(
+        'default',
+        v.object({
+          access_policy_id: v.string()
+        })
+      )
+      .output(organizationMemberPresenter)
+      .do(async ctx => {
+        let member = await organizationMemberService.getOrganizationMemberById({
+          organization: ctx.organization,
+          memberId: ctx.params.memberId
+        });
+        let accessPolicy = await accessPolicyService.getAccessPolicyById({
+          organization: ctx.organization,
+          accessPolicyId: ctx.body.access_policy_id
+        });
+
+        await accessPolicyAssignmentService.assignAccessPolicyToMember({
+          organization: ctx.organization,
+          member,
+          accessPolicy,
+          performedBy: ctx.actor,
+          context: ctx.context
+        });
+
+        member = await organizationMemberService.getOrganizationMemberById({
+          organization: ctx.organization,
+          memberId: ctx.params.memberId
+        });
+
+        return organizationMemberPresenter.present({ organizationMember: member });
+      }),
+
+    removePolicy: organizationGroup
+      .delete(
+        organizationManagementPath(
+          'members/:memberId/policies/:accessPolicyId',
+          'members.policies.delete'
+        ),
+        {
+          name: 'Remove policy from organization member',
+          description: 'Remove an access policy from an organization member'
+        }
+      )
+      .use(checkAccess({ possibleScopes: ['organization.access_policy:write'] }))
+      .output(organizationMemberPresenter)
+      .do(async ctx => {
+        let member = await organizationMemberService.getOrganizationMemberById({
+          organization: ctx.organization,
+          memberId: ctx.params.memberId
+        });
+        let accessPolicy = await accessPolicyService.getAccessPolicyById({
+          organization: ctx.organization,
+          accessPolicyId: ctx.params.accessPolicyId
+        });
+
+        await accessPolicyAssignmentService.removeAccessPolicyFromMember({
+          organization: ctx.organization,
+          member,
+          accessPolicy,
+          performedBy: ctx.actor,
+          context: ctx.context
+        });
+
+        member = await organizationMemberService.getOrganizationMemberById({
+          organization: ctx.organization,
+          memberId: ctx.params.memberId
         });
 
         return organizationMemberPresenter.present({ organizationMember: member });

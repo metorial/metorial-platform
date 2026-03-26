@@ -15,6 +15,7 @@ import { generateCode } from '@metorial/id';
 import { fileReferenceService } from '@metorial/module-file';
 import { differenceInMinutes } from 'date-fns';
 import { syncProfileQueue } from '../queues/syncProfile';
+import { authBootstrapService } from './authBootstrap';
 import { organizationActorService } from './organizationActor';
 import { organizationMemberService } from './organizationMember';
 import { projectService } from './project';
@@ -50,6 +51,7 @@ class OrganizationService {
           id: await ID.generateId('organization'),
           status: 'active',
           type: 'default',
+          authVersion: 'v2',
           slug: await getOrgSlug({ input: `${d.input.name}-${generateCode(3)}` }),
           name: d.input.name,
           image: d.input.image ?? { type: 'default' }
@@ -74,6 +76,12 @@ class OrganizationService {
         organization,
         context: d.context,
         performedBy: { type: 'user', user: d.performedBy }
+      });
+
+      await authBootstrapService.ensureOrganizationAuthVersionV2({
+        organization,
+        context: d.context,
+        performedBy: systemActor
       });
 
       let member = await organizationMemberService.createOrganizationMember({

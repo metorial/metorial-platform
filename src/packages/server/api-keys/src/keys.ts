@@ -6,7 +6,8 @@ export type ApiKeyVersions = 'v2';
 export type ApiKeyType =
   | 'user_auth_token'
   | 'organization_management_token'
-  | 'organization_app_access_token'
+  | 'oauth_access_token'
+  | 'oauth_refresh_token'
   | 'instance_access_token_secret'
   | 'instance_access_token_publishable'
   | 'fine_grained_token'
@@ -16,7 +17,8 @@ export type ApiKeyType =
 let keyTypes = {
   uk: 'user_auth_token',
   lk: 'organization_management_token',
-  ak: 'organization_app_access_token',
+  oa: 'oauth_access_token',
+  or: 'oauth_refresh_token',
   sk: 'instance_access_token_secret',
   pk: 'instance_access_token_publishable',
   fk: 'fine_grained_token',

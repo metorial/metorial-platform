@@ -31,7 +31,7 @@ let generator = new Snowflake({
   epoch: new Date('2025-06-01T00:00:00Z')
 });
 
-let getSecureRandomInt = (max: number) => {
+let getSecureRandomInt = () => {
   let array = new Uint32Array(1);
   crypto.getRandomValues(array);
   return array[0] & 0x7fffffff;
@@ -280,5 +280,13 @@ declare global {
     }[];
 
     type Headers = [string, string][];
+
+    type PolicyDocument = {
+      access: {
+        target: string;
+        scopes?: string[];
+        roles?: string[];
+      }[];
+    };
   }
 }

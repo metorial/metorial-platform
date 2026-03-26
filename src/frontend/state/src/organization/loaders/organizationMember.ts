@@ -72,7 +72,29 @@ export let organizationMemberLoader = createLoader({
       ),
 
     removeTeam: (i: { teamId: string }, { input: { organizationId }, output: { actorId } }) =>
-      withAuth(sdk => sdk.teams.members.delete(organizationId, i.teamId, actorId))
+      withAuth(sdk => sdk.teams.members.delete(organizationId, i.teamId, actorId)),
+
+    assignPolicy: (
+      i: { accessPolicyId: string },
+      { input: { organizationId, organizationMemberId } }
+    ) =>
+      withAuth(sdk =>
+        sdk.organizations.members.policies.create(organizationId, organizationMemberId, {
+          accessPolicyId: i.accessPolicyId
+        })
+      ),
+
+    removePolicy: (
+      i: { accessPolicyId: string },
+      { input: { organizationId, organizationMemberId } }
+    ) =>
+      withAuth(sdk =>
+        sdk.organizations.members.policies.delete(
+          organizationId,
+          organizationMemberId,
+          i.accessPolicyId
+        )
+      )
   }
 });
 
@@ -89,6 +111,8 @@ export let useOrganizationMember = (
     updateMutator: member.useMutator('update'),
     deleteMutator: member.useMutator('delete'),
     assignTeamMutator: member.useMutator('assignTeam'),
-    removeTeamMutator: member.useMutator('removeTeam')
+    removeTeamMutator: member.useMutator('removeTeam'),
+    assignPolicyMutator: member.useMutator('assignPolicy'),
+    removePolicyMutator: member.useMutator('removePolicy')
   };
 };

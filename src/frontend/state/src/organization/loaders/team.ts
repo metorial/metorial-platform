@@ -60,26 +60,43 @@ export let teamLoader = createLoader({
         })
       ),
 
-    setProject: (
+    assignMember: (
       i: {
-        projectId: string;
-        teamRoleIds: string[];
+        actorId: string;
       },
       { input: { organizationId, teamId } }
     ) =>
       withAuth(sdk =>
-        sdk.teams.projects.set(organizationId, teamId, {
-          projectId: i.projectId,
-          teamRoleIds: i.teamRoleIds
+        sdk.teams.members.create(organizationId, teamId, {
+          actorId: i.actorId
         })
       ),
 
-    removeProject: (
+    removeMember: (
       i: {
-        projectId: string;
+        actorId: string;
       },
       { input: { organizationId, teamId } }
-    ) => withAuth(sdk => sdk.teams.projects.remove(organizationId, teamId, i.projectId))
+    ) => withAuth(sdk => sdk.teams.members.delete(organizationId, teamId, i.actorId)),
+
+    assignPolicy: (
+      i: {
+        accessPolicyId: string;
+      },
+      { input: { organizationId, teamId } }
+    ) =>
+      withAuth(sdk =>
+        sdk.teams.policies.create(organizationId, teamId, {
+          accessPolicyId: i.accessPolicyId
+        })
+      ),
+
+    removePolicy: (
+      i: {
+        accessPolicyId: string;
+      },
+      { input: { organizationId, teamId } }
+    ) => withAuth(sdk => sdk.teams.policies.delete(organizationId, teamId, i.accessPolicyId))
   }
 });
 
@@ -92,7 +109,9 @@ export let useTeam = (
   return {
     ...member,
     updateMutator: member.useMutator('update'),
-    setProjectMutator: member.useMutator('setProject'),
-    removeProjectMutator: member.useMutator('removeProject')
+    assignMemberMutator: member.useMutator('assignMember'),
+    removeMemberMutator: member.useMutator('removeMember'),
+    assignPolicyMutator: member.useMutator('assignPolicy'),
+    removePolicyMutator: member.useMutator('removePolicy')
   };
 };
