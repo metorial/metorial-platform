@@ -3,6 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { subspaceCustomProviderCommitService } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
+import { dateFilterValidator } from '../../lib/dateFilter';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { hasFlags } from '../../middleware/hasFlags';
@@ -62,7 +63,9 @@ export let customProviderCommitController = Controller.create(
             }),
             provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by provider ID(s)'
-            })
+            }),
+            created_at: dateFilterValidator('custom provider commit creation time'),
+            updated_at: dateFilterValidator('custom provider commit last update time')
           })
         )
       )
@@ -75,7 +78,9 @@ export let customProviderCommitController = Controller.create(
             ctx.query.custom_provider_environment_id
           ),
           customProviderIds: normalizeArrayParam(ctx.query.custom_provider_id),
-          providerIds: normalizeArrayParam(ctx.query.provider_id)
+          providerIds: normalizeArrayParam(ctx.query.provider_id),
+          createdAt: ctx.query.created_at,
+          updatedAt: ctx.query.updated_at
         });
 
         let list = await paginator.run(ctx.query);

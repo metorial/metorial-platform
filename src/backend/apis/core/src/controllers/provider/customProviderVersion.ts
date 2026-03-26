@@ -4,6 +4,7 @@ import { v } from '@lowerdeck/validation';
 import { flagService } from '@metorial/module-flags';
 import { subspaceCustomProviderVersionService } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
+import { dateFilterValidator } from '../../lib/dateFilter';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { hasFlags } from '../../middleware/hasFlags';
@@ -93,7 +94,9 @@ export let customProviderVersionController = Controller.create(
                 description:
                   'Filter by custom provider environment IDs (matches providers connected to sessions)'
               }
-            )
+            ),
+            created_at: dateFilterValidator('custom provider version creation time'),
+            updated_at: dateFilterValidator('custom provider version last update time')
           })
         )
       )
@@ -110,7 +113,9 @@ export let customProviderVersionController = Controller.create(
           ),
           customProviderEnvironmentIds: normalizeArrayParam(
             ctx.query.custom_provider_environment_id
-          )
+          ),
+          createdAt: ctx.query.created_at,
+          updatedAt: ctx.query.updated_at
         });
 
         let list = await paginator.run(ctx.query);

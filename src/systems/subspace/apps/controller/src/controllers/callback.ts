@@ -4,6 +4,7 @@ import { callbackService } from '@metorial-subspace/module-callback';
 import { providerDeploymentService } from '@metorial-subspace/module-deployment';
 import { callbackPresenter } from '@metorial-subspace/presenters';
 import { app } from './_app';
+import { createdAtValidator, updatedAtValidator } from './_dateFilter';
 import { tenantApp } from './tenant';
 
 export let callbackApp = tenantApp.use(async ctx => {
@@ -31,7 +32,9 @@ export let callbackController = app.controller({
           ids: v.optional(v.array(v.string())),
           status: v.optional(v.array(v.enumOf(['active', 'archived', 'deleted']))),
           allowDeleted: v.optional(v.boolean()),
-          providerDeploymentIds: v.optional(v.array(v.string()))
+          providerDeploymentIds: v.optional(v.array(v.string())),
+          createdAt: createdAtValidator,
+          updatedAt: updatedAtValidator
         })
       )
     )
@@ -43,7 +46,9 @@ export let callbackController = app.controller({
         ids: ctx.input.ids,
         status: ctx.input.status,
         allowDeleted: ctx.input.allowDeleted,
-        providerDeploymentIds: ctx.input.providerDeploymentIds
+        providerDeploymentIds: ctx.input.providerDeploymentIds,
+        createdAt: ctx.input.createdAt,
+        updatedAt: ctx.input.updatedAt
       });
 
       let list = await paginator.run(ctx.input);

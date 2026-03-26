@@ -4,6 +4,7 @@ import { v, ValidationTypeValue } from '@lowerdeck/validation';
 import { flagService } from '@metorial/module-flags';
 import { subspaceCustomProviderService } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
+import { dateFilterValidator } from '../../lib/dateFilter';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { hasFlags } from '../../middleware/hasFlags';
@@ -219,7 +220,9 @@ export let customProviderController = Controller.create(
             provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by provider IDs (matches providers connected to sessions)'
             }),
-            search: v.optional(v.string({ description: 'Search by name or description' }))
+            search: v.optional(v.string({ description: 'Search by name or description' })),
+            created_at: dateFilterValidator('custom provider creation time'),
+            updated_at: dateFilterValidator('custom provider last update time')
           })
         )
       )
@@ -231,7 +234,9 @@ export let customProviderController = Controller.create(
           providerIds: normalizeArrayParam(ctx.query.provider_id),
           status: normalizeArrayParam(ctx.query.status),
           type: normalizeArrayParam(ctx.query.type),
-          ids: normalizeArrayParam(ctx.query.id)
+          ids: normalizeArrayParam(ctx.query.id),
+          createdAt: ctx.query.created_at,
+          updatedAt: ctx.query.updated_at
         });
 
         let list = await paginator.run(ctx.query);

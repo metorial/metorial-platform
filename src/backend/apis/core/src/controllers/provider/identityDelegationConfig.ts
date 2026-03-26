@@ -3,6 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { subspaceIdentityDelegationConfigService } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
+import { dateFilterValidator } from '../../lib/dateFilter';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { hasFlags } from '../../middleware/hasFlags';
@@ -65,7 +66,9 @@ export let identityDelegationConfigController = Controller.create(
             id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by config ID or IDs.',
               examples: ['idc_2mNpQrStUvWxYzAb']
-            })
+            }),
+            created_at: dateFilterValidator('identity delegation config creation time'),
+            updated_at: dateFilterValidator('identity delegation config last update time')
           })
         )
       )
@@ -77,7 +80,9 @@ export let identityDelegationConfigController = Controller.create(
           search: ctx.query.search,
 
           status: normalizeArrayParam(ctx.query.status),
-          ids: normalizeArrayParam(ctx.query.id)
+          ids: normalizeArrayParam(ctx.query.id),
+          createdAt: ctx.query.created_at,
+          updatedAt: ctx.query.updated_at
         });
 
         let list = await paginator.run(ctx.query);

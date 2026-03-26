@@ -17,6 +17,8 @@ import {
   type Tenant
 } from '@metorial-subspace/db';
 import {
+  type DateFilter,
+  normalizeDateFilter,
   normalizeStatusForList,
   resolveCallbacks,
   resolveProviderAuthConfigs,
@@ -83,6 +85,8 @@ class callbackInstanceServiceImpl {
     allowDeleted?: boolean;
     providerConfigIds?: string[];
     providerAuthConfigIds?: string[];
+    createdAt?: DateFilter;
+    updatedAt?: DateFilter;
   }) {
     let callbacks = await resolveCallbacks(d, d.callbackIds);
     let configs = await resolveProviderConfigs(d, d.providerConfigIds);
@@ -116,7 +120,9 @@ class callbackInstanceServiceImpl {
                       }
                     }
                   }
-                : undefined!
+                : undefined!,
+              d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
+              d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
             ].filter(Boolean)
           },
           include: callbackInstanceInclude

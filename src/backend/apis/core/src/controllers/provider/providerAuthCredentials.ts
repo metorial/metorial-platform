@@ -3,6 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { subspaceProviderAuthCredentialsService } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
+import { dateFilterValidator } from '../../lib/dateFilter';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
@@ -75,7 +76,9 @@ export let providerAuthCredentialsController = Controller.create(
                 description: 'Filter by credential origin (custom, managed)'
               }
             ),
-            search: v.optional(v.string({ description: 'Search by name or description' }))
+            search: v.optional(v.string({ description: 'Search by name or description' })),
+            created_at: dateFilterValidator('provider auth credentials creation time'),
+            updated_at: dateFilterValidator('provider auth credentials last update time')
           })
         )
       )
@@ -89,7 +92,9 @@ export let providerAuthCredentialsController = Controller.create(
           ids: normalizeArrayParam(ctx.query.id),
           providerIds: normalizeArrayParam(ctx.query.provider_id),
           providerAuthMethodIds: normalizeArrayParam(ctx.query.provider_auth_method_id),
-          origin: normalizePublicOriginParam(normalizeArrayParam(ctx.query.origin))
+          origin: normalizePublicOriginParam(normalizeArrayParam(ctx.query.origin)),
+          createdAt: ctx.query.created_at,
+          updatedAt: ctx.query.updated_at
         });
 
         let list = await paginator.run({

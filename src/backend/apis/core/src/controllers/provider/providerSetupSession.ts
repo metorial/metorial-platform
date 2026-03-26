@@ -3,6 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { subspaceProviderSetupSessionService } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
+import { dateFilterValidator } from '../../lib/dateFilter';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
@@ -72,7 +73,9 @@ export let providerSetupSessionController = Controller.create(
                 description:
                   'Filter by session status (archived, failed, completed, expired, pending)'
               }
-            )
+            ),
+            created_at: dateFilterValidator('provider setup session creation time'),
+            updated_at: dateFilterValidator('provider setup session last update time')
           })
         )
       )
@@ -89,7 +92,9 @@ export let providerSetupSessionController = Controller.create(
           providerAuthCredentialsIds: normalizeArrayParam(
             ctx.query.provider_auth_credentials_id
           ),
-          status: normalizeArrayParam(ctx.query.status)
+          status: normalizeArrayParam(ctx.query.status),
+          createdAt: ctx.query.created_at,
+          updatedAt: ctx.query.updated_at
         });
 
         let list = await paginator.run(ctx.query);

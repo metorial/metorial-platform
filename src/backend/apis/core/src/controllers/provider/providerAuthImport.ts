@@ -3,6 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { subspaceProviderAuthImportService } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
+import { dateFilterValidator } from '../../lib/dateFilter';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { hasFlags } from '../../middleware/hasFlags';
@@ -67,7 +68,9 @@ export let providerAuthImportController = Controller.create(
             }),
             provider_deployment_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by provider deployment ID(s)'
-            })
+            }),
+            created_at: dateFilterValidator('provider auth import creation time'),
+            updated_at: dateFilterValidator('provider auth import last update time')
           })
         )
       )
@@ -82,7 +85,9 @@ export let providerAuthImportController = Controller.create(
             ctx.query.provider_auth_credentials_id
           ),
           providerAuthConfigIds: normalizeArrayParam(ctx.query.provider_auth_config_id),
-          providerDeploymentIds: normalizeArrayParam(ctx.query.provider_deployment_id)
+          providerDeploymentIds: normalizeArrayParam(ctx.query.provider_deployment_id),
+          createdAt: ctx.query.created_at,
+          updatedAt: ctx.query.updated_at
         });
 
         let list = await paginator.run(ctx.query);

@@ -3,6 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { subspaceSessionMessageService } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
+import { dateFilterValidator } from '../../lib/dateFilter';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import {
@@ -105,7 +106,9 @@ export let sessionMessageController = Controller.create(
             }),
             parent_message_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by parent message ID(s)'
-            })
+            }),
+            created_at: dateFilterValidator('session message creation time'),
+            updated_at: dateFilterValidator('session message last update time')
           })
         )
       )
@@ -124,7 +127,9 @@ export let sessionMessageController = Controller.create(
           providerRunIds: normalizeArrayParam(ctx.query.provider_run_id),
           errorIds: normalizeArrayParam(ctx.query.error_id),
           participantIds: normalizeArrayParam(ctx.query.participant_id),
-          parentMessageIds: normalizeArrayParam(ctx.query.parent_message_id)
+          parentMessageIds: normalizeArrayParam(ctx.query.parent_message_id),
+          createdAt: ctx.query.created_at,
+          updatedAt: ctx.query.updated_at
         });
 
         let list = await paginator.run(ctx.query);

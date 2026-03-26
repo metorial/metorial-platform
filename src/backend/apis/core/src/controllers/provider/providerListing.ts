@@ -3,6 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { subspaceProviderListingService } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
+import { dateFilterValidator } from '../../lib/dateFilter';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
@@ -75,7 +76,9 @@ export let providerListingController = Controller.create(
             is_public: v.optional(v.boolean()),
             is_verified: v.optional(v.boolean()),
             is_official: v.optional(v.boolean()),
-            is_metorial: v.optional(v.boolean())
+            is_metorial: v.optional(v.boolean()),
+            created_at: dateFilterValidator('provider listing creation time'),
+            updated_at: dateFilterValidator('provider listing last update time')
           })
         ),
         v => ({
@@ -100,7 +103,9 @@ export let providerListingController = Controller.create(
             is_metorial: v.optional(v.boolean()),
             order_by_rank: v.optional(v.boolean()),
 
-            order_by_use: v.optional(v.enumOf(Object.keys(orderByUseMapper) as any))
+            order_by_use: v.optional(v.enumOf(Object.keys(orderByUseMapper) as any)),
+            created_at: dateFilterValidator('provider listing creation time'),
+            updated_at: dateFilterValidator('provider listing last update time')
           })
         )
       )
@@ -122,6 +127,8 @@ export let providerListingController = Controller.create(
           isOfficial: ctx.query.is_official,
           isMetorial: ctx.query.is_metorial,
           orderByRank: ctx.query.order_by_rank !== false,
+          createdAt: ctx.query.created_at,
+          updatedAt: ctx.query.updated_at,
 
           orderByUse: ctx.query.order_by_use
             ? orderByUseMapper[ctx.query.order_by_use as keyof typeof orderByUseMapper]

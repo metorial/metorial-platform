@@ -3,6 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { subspaceCallbackService } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
+import { dateFilterValidator } from '../../lib/dateFilter';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
@@ -57,7 +58,9 @@ export let callbackController = Controller.create(
               {
                 description: 'Filter by callback lifecycle status'
               }
-            )
+            ),
+            created_at: dateFilterValidator('callback creation time'),
+            updated_at: dateFilterValidator('callback last update time')
           })
         )
       )
@@ -67,7 +70,9 @@ export let callbackController = Controller.create(
           allowDeleted: false,
           ids: normalizeArrayParam(ctx.query.id),
           providerDeploymentIds: normalizeArrayParam(ctx.query.provider_deployment_id),
-          status: normalizeArrayParam(ctx.query.status)
+          status: normalizeArrayParam(ctx.query.status),
+          createdAt: ctx.query.created_at,
+          updatedAt: ctx.query.updated_at
         });
 
         let list = await paginator.run(ctx.query);
