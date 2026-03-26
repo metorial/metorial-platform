@@ -22,8 +22,8 @@ model Project {
   deletedAt DateTime?
   updatedAt DateTime  @default(now()) @updatedAt
 
-  instances Instance[]
-  brand     ProjectBrand?
-  teams     TeamProject[]
-  teamRoles TeamProjectRoleAssignment[]
+  instances            Instance[]
+  accessPolicyProjects AccessPolicyProject[]
+  brand                ProjectBrand?
+  teams                TeamProject[]
 }

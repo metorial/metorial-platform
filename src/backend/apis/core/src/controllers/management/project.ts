@@ -1,11 +1,15 @@
 import { badRequestError, forbiddenError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
+import { accessService } from '@metorial/module-access';
 import { projectBrandService, projectService } from '@metorial/module-organization';
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
-import { organizationGroup, organizationManagementPath } from '../../middleware/organizationGroup';
+import {
+  organizationGroup,
+  organizationManagementPath
+} from '../../middleware/organizationGroup';
 import { projectBrandPresenter, projectPresenter } from '../../presenters';
 
 export let projectManagementController = Controller.create(
@@ -30,10 +34,21 @@ export let projectManagementController = Controller.create(
         )
       )
       .do(async ctx => {
+        let targetAccessFilter = await accessService.getTargetAccessFilter({
+          authInfo: ctx.auth,
+          organization: ctx.organization,
+          member: ctx.member,
+          possibleScopes: ['organization.project:read']
+        });
+
         let paginator = await projectService.listProjects({
           organization: ctx.organization,
           member: ctx.member,
           actor: ctx.actor,
+          projectIds:
+            targetAccessFilter && !targetAccessFilter.all
+              ? targetAccessFilter.projectIds
+              : undefined,
           teamIds: normalizeArrayParam(ctx.query.team_id)
         });
 
@@ -55,6 +70,14 @@ export let projectManagementController = Controller.create(
           projectId: ctx.params.projectId,
           member: ctx.member,
           actor: ctx.actor
+        });
+
+        await accessService.checkTargetAccess({
+          authInfo: ctx.auth,
+          organization: ctx.organization,
+          member: ctx.member,
+          project,
+          possibleScopes: ['organization.project:read']
         });
 
         return projectPresenter.present({ project });
@@ -99,14 +122,6 @@ export let projectManagementController = Controller.create(
       )
       .output(projectPresenter)
       .do(async ctx => {
-        if (ctx.member?.role == 'member') {
-          throw new ServiceError(
-            forbiddenError({
-              message: 'You are not permitted to manage organization projects'
-            })
-          );
-        }
-
         let project = await projectService.createProject({
           input: {
             name: ctx.body.name
@@ -127,19 +142,19 @@ export let projectManagementController = Controller.create(
       .use(checkAccess({ possibleScopes: ['organization.project:write'] }))
       .output(projectPresenter)
       .do(async ctx => {
-        if (ctx.member?.role == 'member') {
-          throw new ServiceError(
-            forbiddenError({
-              message: 'You are not permitted to manage organization projects'
-            })
-          );
-        }
-
         let project = await projectService.getProjectById({
           organization: ctx.organization,
           projectId: ctx.params.projectId,
           member: ctx.member,
           actor: ctx.actor
+        });
+
+        await accessService.checkTargetAccess({
+          authInfo: ctx.auth,
+          organization: ctx.organization,
+          member: ctx.member,
+          project,
+          possibleScopes: ['organization.project:write']
         });
 
         project = await projectService.deleteProject({
@@ -166,19 +181,19 @@ export let projectManagementController = Controller.create(
       )
       .output(projectPresenter)
       .do(async ctx => {
-        if (ctx.member?.role == 'member') {
-          throw new ServiceError(
-            forbiddenError({
-              message: 'You are not permitted to manage organization projects'
-            })
-          );
-        }
-
         let project = await projectService.getProjectById({
           organization: ctx.organization,
           projectId: ctx.params.projectId,
           member: ctx.member,
           actor: ctx.actor
+        });
+
+        await accessService.checkTargetAccess({
+          authInfo: ctx.auth,
+          organization: ctx.organization,
+          member: ctx.member,
+          project,
+          possibleScopes: ['organization.project:write']
         });
 
         project = await projectService.updateProject({
@@ -240,7 +255,8 @@ export let projectManagementController = Controller.create(
           input: {
             name: ctx.body.name,
             imageFileId: ctx.body.image_file_id
-          }
+          },
+          performedBy: ctx.actor
         });
 
         return projectBrandPresenter.present({ projectBrand });

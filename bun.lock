@@ -1,6 +1,5 @@
 {
   "lockfileVersion": 1,
-  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "@metorial/oss",
@@ -191,6 +190,23 @@
         "@metorial/id": "^1.0.0",
         "@metorial/module-file": "^1.0.0",
         "@metorial/module-organization": "^1.0.0",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.8.2",
+        "vitest": "^3.1.2",
+      },
+    },
+    "src/backend/apis/oauth": {
+      "name": "@metorial/api-oauth",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/error": "^1.2.2",
+        "@lowerdeck/hono": "^1.0.8",
+        "@lowerdeck/validation": "^1.0.8",
+        "@metorial/config": "^1.0.0",
+        "@metorial/context": "^1.0.0",
+        "@metorial/module-machine-access": "^1.0.0",
       },
       "devDependencies": {
         "@metorial/tsconfig": "^1.0.0",
@@ -447,9 +463,12 @@
         "@metorial/cron": "^1.0.0",
         "@metorial/db": "^1.0.0",
         "@metorial/fabric": "^1.0.0",
+        "@metorial/id": "^1.0.0",
         "@metorial/module-organization": "^1.0.0",
+        "@metorial/multi-region": "^1.0.0",
         "@metorial/queue": "^1.0.0",
         "date-fns": "^4.1.0",
+        "ipaddr.js": "^2.2.0",
       },
       "devDependencies": {
         "@metorial/tsconfig": "^1.0.0",
@@ -679,6 +698,36 @@
         "vitest": "^3.1.2",
       },
     },
+    "src/backend/multi-region": {
+      "name": "@metorial/multi-region",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/base62": "^1.0.4",
+        "@lowerdeck/env": "^1.0.4",
+        "@lowerdeck/error": "^1.2.2",
+        "@lowerdeck/service": "^1.0.7",
+        "@lowerdeck/shadow-id": "^1.0.7",
+        "@lowerdeck/slugify": "^1.0.5",
+        "@lowerdeck/validation": "^1.0.8",
+        "@metorial/cache": "^1.0.0",
+        "@metorial/context": "^1.0.0",
+        "@metorial/cron": "^1.0.0",
+        "@metorial/id": "^1.0.0",
+        "@prisma/adapter-pg": "6.19.0",
+        "@prisma/client": "^7.4.1",
+        "@prisma/extension-read-replicas": "^0.5.0",
+        "@types/bun": "^1.2.12",
+        "prisma": "^7.4.1",
+        "prisma-json-types-generator": "^4.1.1",
+        "stripe": "^18.5.0",
+        "typescript": "^5.8.3",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "@types/bun": "^1.1.6",
+        "typescript": "^5.1.6",
+      },
+    },
     "src/frontend/apps/dashboard": {
       "name": "@metorial/app-dashboard",
       "version": "1.0.0",
@@ -905,7 +954,7 @@
       "name": "@metorial/consumer-auth",
       "version": "1.0.0",
       "dependencies": {
-        "@lowerdeck/error": "1.2.1",
+        "@lowerdeck/error": "1.2.2",
         "@lowerdeck/tokens": "^1.0.5",
         "@metorial-services/ares-client": "^1.0.6",
         "@metorial/config": "1.0.0",
@@ -2733,6 +2782,8 @@
 
     "@metorial/api-keys": ["@metorial/api-keys@workspace:src/packages/server/api-keys"],
 
+    "@metorial/api-oauth": ["@metorial/api-oauth@workspace:src/backend/apis/oauth"],
+
     "@metorial/app-api": ["@metorial/app-api@workspace:src/backend/apps/api"],
 
     "@metorial/app-dashboard": ["@metorial/app-dashboard@workspace:src/frontend/apps/dashboard"],
@@ -2828,6 +2879,8 @@
     "@metorial/module-usage": ["@metorial/module-usage@workspace:src/backend/modules/usage"],
 
     "@metorial/module-user": ["@metorial/module-user@workspace:src/backend/modules/user"],
+
+    "@metorial/multi-region": ["@metorial/multi-region@workspace:src/backend/multi-region"],
 
     "@metorial/pages": ["@metorial/pages@workspace:src/packages/frontend/pages"],
 
@@ -4343,7 +4396,7 @@
 
     "ip-address": ["ip-address@10.0.1", "", {}, "sha512-NWv9YLW4PoW2B7xtzaS3NCot75m6nK7Icdv0o3lfMceJVRfSoQwqD4wEH5rLwoKJwUiZ/rfpiVBhnaF0FK4HoA=="],
 
-    "ipaddr.js": ["ipaddr.js@1.9.1", "", {}, "sha512-0KI/607xoxSToH7GjN1FfSbLoU0+btTicjsQSWQlh/hZykN8KpmMf7uYwPW3R+akZ6R/w18ZlXSHBYXiYUPO3g=="],
+    "ipaddr.js": ["ipaddr.js@2.3.0", "", {}, "sha512-Zv/pA+ciVFbCSBBjGfaKUya/CcGmUHzTydLMaTwrUUEM2DIEO3iZvueGxmacvmN50fGpGVKeTXpb2LcYQxeVdg=="],
 
     "is-alphabetical": ["is-alphabetical@2.0.1", "", {}, "sha512-FWyyY60MeTNyeSRpkM2Iry0G9hpr7/9kD40mD/cGQEuilcZYS4okz8SN2Q6rLCJ8gbCt6fN+rC+6tMGS99LaxQ=="],
 
@@ -5171,6 +5224,8 @@
 
     "strip-literal": ["strip-literal@1.3.0", "", { "dependencies": { "acorn": "^8.10.0" } }, "sha512-PugKzOsyXpArk0yWmUwqOZecSO0GH0bPoctLcqNDH9J04pVW3lflYE0ujElBGTloevcxF5MofAOZ7C5l2b+wLg=="],
 
+    "stripe": ["stripe@18.5.0", "", { "dependencies": { "qs": "^6.11.0" }, "peerDependencies": { "@types/node": ">=12.x.x" }, "optionalPeers": ["@types/node"] }, "sha512-Hp+wFiEQtCB0LlNgcFh5uVyKznpDjzyUZ+CNVEf+I3fhlYvh7rZruIg+jOwzJRCpy0ZTPMjlzm7J2/M2N6d+DA=="],
+
     "striptags": ["striptags@3.2.0", "", {}, "sha512-g45ZOGzHDMe2bdYMdIvdAfCQkCTDMGBazSw1ypMowwGIee7ZQ5dU0rBJ8Jqgl+jAKIv4dbeE1jscZq9wid1Tkw=="],
 
     "strnum": ["strnum@2.2.0", "", {}, "sha512-Y7Bj8XyJxnPAORMZj/xltsfo55uOiyHcU2tnAVzHUnSJR/KsEX+9RoDeXEnsXtl/CX4fAcrt64gZ13aGaWPeBg=="],
@@ -5731,6 +5786,10 @@
 
     "@metorial/module-protect/@lowerdeck/service": ["@lowerdeck/service@1.0.0", "", { "dependencies": { "@opentelemetry/api": "^1.9.0" } }, "sha512-H/nm8dycjJJm4J5LTjHeHUn/wr0Nvd50kvJx13N+ZNztaNTqigz1WFTzFVGBNlmW6xevk/ls7P8EbrC0mWZY6Q=="],
 
+    "@metorial/multi-region/@prisma/adapter-pg": ["@prisma/adapter-pg@6.19.0", "", { "dependencies": { "@prisma/driver-adapter-utils": "6.19.0", "pg": "^8.11.3", "postgres-array": "3.0.4" } }, "sha512-F8f2kvU+igmxERA9oM+D2maMaxrST1P6vO7ayvdlAdcJI47nKNPdkLBGZKic9otghfA9CQnjNOGB56q2VXqnHw=="],
+
+    "@metorial/multi-region/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
+
     "@metorial/portal/@sentry/vite-plugin": ["@sentry/vite-plugin@2.23.1", "", { "dependencies": { "@sentry/bundler-plugin-core": "2.23.1", "unplugin": "1.0.1" } }, "sha512-avtjtIQ019sZW3FklpmNNsQOnYZjCHpnVxgDGElfZb+AaR4AvtHNlxXLJp+iqEfSK+Xok8MJarJqIgCaWcF40Q=="],
 
     "@metorial/portal/@vitejs/plugin-react": ["@vitejs/plugin-react@4.7.0", "", { "dependencies": { "@babel/core": "^7.28.0", "@babel/plugin-transform-react-jsx-self": "^7.27.1", "@babel/plugin-transform-react-jsx-source": "^7.27.1", "@rolldown/pluginutils": "1.0.0-beta.27", "@types/babel__core": "^7.20.5", "react-refresh": "^0.17.0" }, "peerDependencies": { "vite": "^4.2.0 || ^5.0.0 || ^6.0.0 || ^7.0.0" } }, "sha512-gUu9hwfWvvEDBBmgtAowQCojwZmJ5mcLn3aufeCsitijs3+f2NsrPtlAWIR6OPiqljl96GVCUbLe0HyqIpVaoA=="],
@@ -6026,6 +6085,8 @@
     "pretty-format/react-is": ["react-is@18.3.1", "", {}, "sha512-/LLMVyas0ljjAtoYiPqYiL8VWXzUUdThrmU5+n20DZv+a+ClRoevUzw5JxU+Ieh5/c87ytoTBV9G1FiKfNJdmg=="],
 
     "prosemirror-markdown/@types/markdown-it": ["@types/markdown-it@14.1.2", "", { "dependencies": { "@types/linkify-it": "^5", "@types/mdurl": "^2" } }, "sha512-promo4eFwuiW+TfGxhi+0x3czqTYJkG8qB17ZUJiVF10Xm7NLVRSLUsfRTU/6h1e24VvRnXCx+hG7li58lkzog=="],
+
+    "proxy-addr/ipaddr.js": ["ipaddr.js@1.9.1", "", {}, "sha512-0KI/607xoxSToH7GjN1FfSbLoU0+btTicjsQSWQlh/hZykN8KpmMf7uYwPW3R+akZ6R/w18ZlXSHBYXiYUPO3g=="],
 
     "radix-ui/@radix-ui/react-visually-hidden": ["@radix-ui/react-visually-hidden@1.2.3", "", { "dependencies": { "@radix-ui/react-primitive": "2.1.3" }, "peerDependencies": { "@types/react": "*", "@types/react-dom": "*", "react": "^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc", "react-dom": "^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc" }, "optionalPeers": ["@types/react", "@types/react-dom"] }, "sha512-pzJq12tEaaIhqjbzpCuv/OypJY/BPavOofm+dbab+MHLajy277+1lLm6JFcGgF5eskJ6mquGirhXY2GD/8u8Ug=="],
 
@@ -6426,6 +6487,8 @@
     "@metorial/lock/@types/bun/bun-types": ["bun-types@1.3.10", "", { "dependencies": { "@types/node": "*" } }, "sha512-tcpfCCl6XWo6nCVnpcVrxQ+9AYN1iqMIzgrSKYMB/fjLtV2eyAVEg7AxQJuCq/26R6HpKWykQXuSOq/21RYcbg=="],
 
     "@metorial/microfrontend/p-queue/p-timeout": ["p-timeout@6.1.4", "", {}, "sha512-MyIV3ZA/PmyBN/ud8vV9XzwTrNtR4jFrObymZYnZqMmW0zA8Z17vnT0rBgFE/TlohB+YCHqXMgZzb3Csp49vqg=="],
+
+    "@metorial/multi-region/@prisma/adapter-pg/@prisma/driver-adapter-utils": ["@prisma/driver-adapter-utils@6.19.0", "", { "dependencies": { "@prisma/debug": "6.19.0" } }, "sha512-VAC/wFebV569Jk7iEqzLxekM2A5toKYAr6cPM2KWVHiRHgyjsh/IHf++Xo67q8uor/JxY8mwOuyQyuxkstSf5w=="],
 
     "@metorial/portal/@sentry/vite-plugin/@sentry/bundler-plugin-core": ["@sentry/bundler-plugin-core@2.23.1", "", { "dependencies": { "@babel/core": "^7.18.5", "@sentry/babel-plugin-component-annotate": "2.23.1", "@sentry/cli": "2.39.1", "dotenv": "^16.3.1", "find-up": "^5.0.0", "glob": "^9.3.2", "magic-string": "0.30.8", "unplugin": "1.0.1" } }, "sha512-JA6utNiwMKv6Jfj0Hmk0DI/XUizSHg7HhhkFETKhRlYEhZAdkyz1atDBg0ncKNgRBKyHeSYWcMFtUyo26VB76w=="],
 
@@ -6988,6 +7051,8 @@
     "@metorial/dashboard-sdk/vitest/chai/pathval": ["pathval@1.1.1", "", {}, "sha512-Dp6zGqpTdETdR63lehJYPeIOqpiNBNtc7BpWSLrOje7UaIsE5aY92r/AunQA7rsXvet3lrJ3JnZX29UPTKXyKQ=="],
 
     "@metorial/db/@prisma/adapter-pg/@prisma/driver-adapter-utils/@prisma/debug": ["@prisma/debug@6.19.0", "", {}, "sha512-8hAdGG7JmxrzFcTzXZajlQCidX0XNkMJkpqtfbLV54wC6LSSX6Vni25W/G+nAANwLnZ2TmwkfIuWetA7jJxJFA=="],
+
+    "@metorial/multi-region/@prisma/adapter-pg/@prisma/driver-adapter-utils/@prisma/debug": ["@prisma/debug@6.19.0", "", {}, "sha512-8hAdGG7JmxrzFcTzXZajlQCidX0XNkMJkpqtfbLV54wC6LSSX6Vni25W/G+nAANwLnZ2TmwkfIuWetA7jJxJFA=="],
 
     "@metorial/portal/@sentry/vite-plugin/@sentry/bundler-plugin-core/@sentry/babel-plugin-component-annotate": ["@sentry/babel-plugin-component-annotate@2.23.1", "", {}, "sha512-l1z8AvI6k9I+2z49OgvP3SlzB1M0Lw24KtceiJibNaSyQwxsItoT9/XftZ/8BBtkosVmNOTQhL1eUsSkuSv1LA=="],
 

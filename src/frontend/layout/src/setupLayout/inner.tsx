@@ -24,7 +24,6 @@ let Box = styled.div`
   @media (max-width: 800px) {
     width: min(600px, calc(100dvw - 40px));
     height: min(700px, 70dvh);
-    padding: 20px;
     border-radius: 10px;
   }
 
@@ -72,7 +71,7 @@ let Side = styled.section`
     padding: 50px;
 
     @media (max-width: 800px) {
-      padding: 20px;
+      padding: 40px;
     }
   }
 `;

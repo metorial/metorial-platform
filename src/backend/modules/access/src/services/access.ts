@@ -1,10 +1,289 @@
 import { forbiddenError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import { instanceService, organizationService } from '@metorial/module-organization';
+import { db, Organization, OrganizationMember, Project } from '@metorial/db';
+import {
+  effectiveAccessService,
+  instanceService,
+  organizationService
+} from '@metorial/module-organization';
 import { Scope } from '../definitions';
 import { AuthInfo } from './authentication';
 
+type TargetAccessInput = {
+  authInfo: AuthInfo;
+  organization?: Organization;
+  member?: OrganizationMember;
+  project?: Pick<Project, 'id'>;
+  instance?: { id: string };
+};
+
+type TargetAccessFilter = {
+  all: boolean;
+  projectIds: string[];
+  instanceIds: string[];
+};
+
 class AccessService {
+  private async getServiceAccountForAuth(d: { authInfo: AuthInfo }) {
+    if (
+      d.authInfo.type != 'machine' ||
+      !d.authInfo.oauthToken ||
+      d.authInfo.oauthToken.oauthAuthorization.type != 'server_side'
+    ) {
+      return null;
+    }
+
+    let serviceAccountCredential = await db.serviceAccountCredential.findFirst({
+      where: {
+        oauthAuthorizationOid: d.authInfo.oauthToken.oauthAuthorization.oid
+      },
+      include: {
+        serviceAccount: true
+      }
+    });
+
+    return serviceAccountCredential?.serviceAccount ?? null;
+  }
+
+  private async getGrantedScopesForTarget(d: {
+    authInfo: AuthInfo;
+    organization?: Organization;
+    member?: OrganizationMember;
+    project?: Pick<Project, 'id'>;
+    instance?: { id: string };
+  }) {
+    if (!d.organization) {
+      return null;
+    }
+
+    if (d.authInfo.type == 'fine_grained' || d.organization.authVersion != 'v2') {
+      return null;
+    }
+
+    if (d.authInfo.type == 'user') {
+      if (!d.member) return null;
+
+      let effectiveAccess = await effectiveAccessService.getMemberEffectiveAccess({
+        organization: d.organization,
+        member: d.member
+      });
+
+      return effectiveAccessService.getScopesForTarget({
+        effectiveAccess,
+        target: d.instance
+          ? {
+              type: 'instance',
+              organization: d.organization,
+              project: d.project!,
+              instance: d.instance
+            }
+          : d.project
+            ? {
+                type: 'project',
+                organization: d.organization,
+                project: d.project
+              }
+            : {
+                type: 'organization',
+                organization: d.organization
+              }
+      });
+    }
+
+    if (
+      d.authInfo.oauthToken?.oauthAuthorization.type == 'user' &&
+      d.authInfo.oauthToken.oauthAuthorization.organizationMember
+    ) {
+      let effectiveAccess = await effectiveAccessService.getMemberEffectiveAccess({
+        organization: d.organization,
+        member: d.authInfo.oauthToken.oauthAuthorization.organizationMember
+      });
+
+      return effectiveAccessService.getScopesForTarget({
+        effectiveAccess,
+        target: d.instance
+          ? {
+              type: 'instance',
+              organization: d.organization,
+              project: d.project!,
+              instance: d.instance
+            }
+          : d.project
+            ? {
+                type: 'project',
+                organization: d.organization,
+                project: d.project
+              }
+            : {
+                type: 'organization',
+                organization: d.organization
+              }
+      });
+    }
+
+    let serviceAccount = await this.getServiceAccountForAuth({
+      authInfo: d.authInfo
+    });
+    if (!serviceAccount) return null;
+
+    let effectiveAccess = await effectiveAccessService.getServiceAccountEffectiveAccess({
+      organization: d.organization,
+      serviceAccount
+    });
+
+    return effectiveAccessService.getScopesForTarget({
+      effectiveAccess,
+      target: d.instance
+        ? {
+            type: 'instance',
+            organization: d.organization,
+            project: d.project!,
+            instance: d.instance
+          }
+        : d.project
+          ? {
+              type: 'project',
+              organization: d.organization,
+              project: d.project
+            }
+          : {
+              type: 'organization',
+              organization: d.organization
+            }
+    });
+  }
+
+  private async getEffectiveAccessEntries(d: TargetAccessInput) {
+    if (!d.organization) {
+      return null;
+    }
+
+    if (d.authInfo.type == 'fine_grained' || d.organization.authVersion != 'v2') {
+      return null;
+    }
+
+    if (d.authInfo.type == 'user') {
+      if (!d.member) return null;
+
+      return (
+        await effectiveAccessService.getMemberEffectiveAccess({
+          organization: d.organization,
+          member: d.member
+        })
+      ).entries;
+    }
+
+    if (
+      d.authInfo.oauthToken?.oauthAuthorization.type == 'user' &&
+      d.authInfo.oauthToken.oauthAuthorization.organizationMember
+    ) {
+      return (
+        await effectiveAccessService.getMemberEffectiveAccess({
+          organization: d.organization,
+          member: d.authInfo.oauthToken.oauthAuthorization.organizationMember
+        })
+      ).entries;
+    }
+
+    let serviceAccount = await this.getServiceAccountForAuth({
+      authInfo: d.authInfo
+    });
+    if (!serviceAccount) return null;
+
+    return (
+      await effectiveAccessService.getServiceAccountEffectiveAccess({
+        organization: d.organization,
+        serviceAccount
+      })
+    ).entries;
+  }
+
+  async canAccessTargetScopes(d: TargetAccessInput & { possibleScopes: Scope[] }) {
+    let grantedScopes = await this.getGrantedScopesForTarget(d);
+    if (!grantedScopes) return true;
+
+    let allowedScopes = grantedScopes.filter(scope =>
+      d.authInfo.orgScopes.includes(scope as Scope)
+    );
+
+    return allowedScopes.some(scope => d.possibleScopes.includes(scope as Scope));
+  }
+
+  async getTargetAccessFilter(d: TargetAccessInput & { possibleScopes: Scope[] }) {
+    let entries = await this.getEffectiveAccessEntries(d);
+    if (!entries) return null;
+    if (!d.organization) return null;
+
+    let allowedScopes = new Set(d.authInfo.orgScopes);
+    let projectIds = new Set<string>();
+    let instanceIds = new Set<string>();
+
+    for (let entry of entries) {
+      let entryScopes = entry.scopes.filter(scope => allowedScopes.has(scope as Scope));
+      if (!entryScopes.some(scope => d.possibleScopes.includes(scope as Scope))) continue;
+
+      if (entry.target == d.organization.id) {
+        return {
+          all: true,
+          projectIds: [],
+          instanceIds: []
+        } satisfies TargetAccessFilter;
+      }
+
+      if (entry.target.startsWith('prj_')) {
+        projectIds.add(entry.target);
+      }
+
+      if (entry.target.startsWith('ins_')) {
+        instanceIds.add(entry.target);
+      }
+    }
+
+    return {
+      all: false,
+      projectIds: [...projectIds],
+      instanceIds: [...instanceIds]
+    } satisfies TargetAccessFilter;
+  }
+
+  async checkTargetAccess(d: {
+    authInfo: AuthInfo;
+    organization?: Organization;
+    possibleScopes: Scope[];
+    member?: OrganizationMember;
+    project?: Pick<Project, 'id'>;
+    instance?: { id: string };
+  }) {
+    let grantedScopes = await this.getGrantedScopesForTarget(d);
+    if (!grantedScopes) return;
+
+    let allowedScopes = grantedScopes.filter(scope =>
+      d.authInfo.orgScopes.includes(scope as Scope)
+    );
+    if (allowedScopes.some(scope => d.possibleScopes.includes(scope as Scope))) {
+      return;
+    }
+
+    throw new ServiceError(
+      forbiddenError({
+        message: `You don't have the required permissions to perform this action`
+      })
+    );
+  }
+
+  async hasAnyTargetAccess(d: {
+    authInfo: AuthInfo;
+    organization?: Organization;
+    member?: OrganizationMember;
+    project?: Pick<Project, 'id'>;
+    instance?: { id: string };
+  }) {
+    let grantedScopes = await this.getGrantedScopesForTarget(d);
+    if (!grantedScopes) return true;
+
+    return grantedScopes.some(scope => d.authInfo.orgScopes.includes(scope as Scope));
+  }
+
   async checkAccess(d: {
     authInfo: AuthInfo;
     possibleScopes: Scope[];
@@ -72,6 +351,17 @@ class AccessService {
         user: d.authInfo.user
       });
 
+      let hasAccess = await this.hasAnyTargetAccess({
+        authInfo: d.authInfo,
+        organization: res.organization,
+        member: res.member,
+        project: res.project,
+        instance: res.instance
+      });
+      if (!hasAccess) {
+        throw new ServiceError(notFoundError('instance', d.instanceId));
+      }
+
       return {
         type: 'user' as const,
         instance: res.instance,
@@ -101,12 +391,25 @@ class AccessService {
     }
 
     if (d.authInfo.machineAccess.type == 'organization_management') {
-      let instance = await instanceService.getInstanceById({
+      let instance = (await instanceService.getInstanceById({
         instanceId: d.instanceId,
         organization: d.authInfo.restrictions.organization,
         actor: d.authInfo.restrictions.actor,
         member: undefined
+      })) as Awaited<ReturnType<typeof instanceService.getInstanceById>> & {
+        organization: Organization;
+        project: Project;
+      };
+
+      let hasAccess = await this.hasAnyTargetAccess({
+        authInfo: d.authInfo,
+        organization: instance.organization,
+        project: instance.project,
+        instance
       });
+      if (!hasAccess) {
+        throw new ServiceError(notFoundError('instance', d.instanceId));
+      }
 
       return {
         type: 'user' as const,

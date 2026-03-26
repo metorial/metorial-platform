@@ -13,7 +13,9 @@ describe('Edge Cases Integration', () => {
 
     await receiver.start();
 
-    const sender = conduit.createSender();
+    const sender = conduit.createSender({
+      maxRetries: 0
+    });
 
     // Send messages sequentially to ensure ordering
     for (let i = 0; i < 10; i++) {
@@ -68,7 +70,9 @@ describe('Edge Cases Integration', () => {
 
     await receiver1.start();
 
-    const sender = conduit.createSender();
+    const sender = conduit.createSender({
+      maxRetries: 0
+    });
 
     // Establish ownership
     await sender.send('boundary-topic', { data: 'test1' });
@@ -105,7 +109,9 @@ describe('Edge Cases Integration', () => {
 
     await receiver.start();
 
-    const sender = conduit.createSender();
+    const sender = conduit.createSender({
+      maxRetries: 0
+    });
 
     // Test various empty payloads
     const response1 = await sender.send('empty-topic', null);
@@ -137,7 +143,9 @@ describe('Edge Cases Integration', () => {
 
     await receiver.start();
 
-    const sender = conduit.createSender();
+    const sender = conduit.createSender({
+      maxRetries: 0
+    });
 
     // Create a large payload (1MB of data)
     const largePayload = {
@@ -402,7 +410,9 @@ describe('Edge Cases Integration', () => {
 
     await receiver.start();
 
-    const sender = conduit.createSender();
+    const sender = conduit.createSender({
+      maxRetries: 0
+    });
 
     // First message should work
     const response1 = await sender.send('heartbeat-topic', { data: 'test1' });

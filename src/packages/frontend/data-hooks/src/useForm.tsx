@@ -75,7 +75,8 @@ export let useForm = <Values extends {}>(
 
   let formik = useFormik({
     ...opts,
-    validationSchema: schema
+    validationSchema: schema,
+    enableReinitialize: opts.updateInitialValues || opts.enableReinitialize
   });
 
   let RenderError = ({ field }: { field: keyof Values }) => {

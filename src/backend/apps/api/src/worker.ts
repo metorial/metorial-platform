@@ -14,6 +14,7 @@ import { protectQueueProcessor } from '@metorial/module-protect';
 import { subspaceQueueProcessor } from '@metorial/module-subspace';
 import { usageQueueProcessor } from '@metorial/module-usage';
 import { userQueueProcessor } from '@metorial/module-user';
+import { multiRegionQueueProcessor } from '@metorial/multi-region';
 
 export let worker = runQueueProcessors([
   userQueueProcessor,
@@ -27,5 +28,6 @@ export let worker = runQueueProcessors([
   communityQueueProcessor,
   magicQueueProcessor,
   protectQueueProcessor,
-  subspaceQueueProcessor
+  subspaceQueueProcessor,
+  multiRegionQueueProcessor
 ]);

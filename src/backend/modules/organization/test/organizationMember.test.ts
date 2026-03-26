@@ -53,6 +53,12 @@ vi.mock('../src/services/organizationActor', () => ({
   }
 }));
 
+vi.mock('../src/services/accessPolicyAssignment', () => ({
+  accessPolicyAssignmentService: {
+    syncMemberDefaultPolicies: vi.fn()
+  }
+}));
+
 import { db, ID, withTransaction } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { organizationActorService } from '../src/services/organizationActor';
@@ -183,6 +189,72 @@ describe('OrganizationMemberService', () => {
       });
 
       expect(result.role).toBe('admin');
+    });
+
+    it('should set isV2Member when creating a member for a v2 organization', async () => {
+      let mockOrg = { id: 'org-1', oid: 1, authVersion: 'v2' };
+      let mockUser = {
+        id: 'user-1',
+        oid: 1,
+        name: 'John Doe',
+        email: 'john@example.com',
+        image: { type: 'default' }
+      };
+      let mockActor = {
+        id: 'actor-1',
+        oid: 1,
+        type: 'member',
+        name: 'John Doe',
+        email: 'john@example.com',
+        organizationOid: 1,
+        organization: mockOrg
+      };
+      let mockMember = {
+        id: 'member-1',
+        oid: 1,
+        status: 'active',
+        isV2Member: true,
+        role: 'member',
+        organizationOid: 1,
+        actorOid: 1,
+        userOid: 1,
+        actor: mockActor,
+        organization: mockOrg,
+        user: mockUser
+      };
+      let create = vi.fn().mockResolvedValue(mockMember);
+
+      vi.mocked(ID.generateId).mockResolvedValue('member-1');
+      vi.mocked(organizationActorService.createOrganizationActor).mockResolvedValue(
+        mockActor as any
+      );
+      vi.mocked(withTransaction).mockImplementation(async callback => {
+        let mockDb = {
+          organizationMember: {
+            findFirst: vi.fn().mockResolvedValue(null),
+            create
+          }
+        };
+        return callback(mockDb as any);
+      });
+
+      await organizationMemberService.createOrganizationMember({
+        user: mockUser as any,
+        organization: mockOrg as any,
+        input: {
+          role: 'member'
+        },
+        context: {} as any,
+        performedBy: { type: 'user', user: mockUser as any }
+      });
+
+      expect(create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            isV2Member: true
+          })
+        })
+      );
     });
 
     it('should throw conflict error when user is already an active member', async () => {
@@ -423,6 +495,28 @@ describe('OrganizationMemberService', () => {
       ).rejects.toThrow(ServiceError);
     });
 
+    it('should throw when an admin tries to remove admin rights from themselves', async () => {
+      let mockOrg = { id: 'org-1', oid: 1 };
+      let mockMember = {
+        id: 'member-1',
+        oid: 1,
+        actorOid: 7,
+        status: 'active',
+        role: 'admin'
+      };
+      let mockPerformedBy = { id: 'actor-7', oid: 7 };
+
+      await expect(
+        organizationMemberService.updateOrganizationMember({
+          organization: mockOrg as any,
+          member: mockMember as any,
+          input: { role: 'member' },
+          context: {} as any,
+          performedBy: mockPerformedBy as any
+        })
+      ).rejects.toThrow(ServiceError);
+    });
+
     it('should update member with empty input', async () => {
       let mockOrg = { id: 'org-1', oid: 1 };
       let mockMember = {
@@ -535,6 +629,49 @@ describe('OrganizationMemberService', () => {
       expect(result.userOid).toBe(1);
       expect(result.actorOid).toBe(1);
       expect(result.organizationOid).toBe(1);
+    });
+
+    it('should set isV2Member when updating a member for a v2 organization', async () => {
+      let mockOrg = { id: 'org-1', oid: 1, authVersion: 'v2' };
+      let mockMember = {
+        id: 'member-1',
+        oid: 1,
+        status: 'active',
+        role: 'member'
+      };
+      let updatedMember = {
+        ...mockMember,
+        isV2Member: true,
+        actor: { id: 'actor-1', oid: 1, organization: mockOrg },
+        organization: mockOrg,
+        user: { id: 'user-1', oid: 1 }
+      };
+      let update = vi.fn().mockResolvedValue(updatedMember);
+
+      vi.mocked(withTransaction).mockImplementation(async callback => {
+        let mockDb = {
+          organizationMember: {
+            update
+          }
+        };
+        return callback(mockDb as any);
+      });
+
+      await organizationMemberService.updateOrganizationMember({
+        organization: mockOrg as any,
+        member: mockMember as any,
+        input: {},
+        context: {} as any,
+        performedBy: { id: 'actor-1', oid: 1 } as any
+      });
+
+      expect(update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            isV2Member: true
+          })
+        })
+      );
     });
   });
 

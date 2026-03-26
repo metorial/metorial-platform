@@ -33,16 +33,12 @@ export let destinations: Destination[] = [
     env: frontendEnv,
     path: 'federation/frontend/apps/marketplace'
   },
-  {
-    type: 'enterprise',
+
+  ...['core-api', 'worker', 'global-router'].map(v => ({
+    type: 'enterprise' as const,
     env: backendEnv,
-    path: 'federation/backend/apps/core-api'
-  },
-  {
-    type: 'enterprise',
-    env: backendEnv,
-    path: 'federation/backend/apps/worker'
-  },
+    path: `federation/backend/apps/${v}`
+  })),
 
   {
     type: 'oss',

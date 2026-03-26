@@ -22,6 +22,7 @@ import {
   showModal,
   Spacer,
   Text,
+  TextArrayInput,
   theme,
   toast,
   Tooltip,
@@ -41,16 +42,20 @@ type CreateApiKeyFormValues = {
   name: string;
   description: string | undefined;
   expiresAt: Date | undefined;
+  ipFilters: string[];
   type: ApiKeyType;
 };
 type UpdateApiKeyFormValues = {
   name: string | undefined;
   description: string | undefined;
   expiresAt: Date | undefined;
+  ipFilters: string[];
   type: ApiKeyType | undefined;
 };
 
 let normalizeOptionalString = (value: string | undefined) => value || undefined;
+let normalizeIpFilters = (value: string[] | undefined) =>
+  Array.from(new Set((value ?? []).map(item => item.trim()).filter(Boolean)));
 
 let isApiKeyType = (value: string): value is ApiKeyType =>
   value === 'organization_management_token' ||
@@ -126,6 +131,7 @@ export let ApiKeysScene = ({
           name: '',
           description: '',
           expiresAt: undefined,
+          ipFilters: [],
           type: getDefaultCreateApiKeyType(filter.type)
         },
         onSubmit: async values => {
@@ -136,13 +142,15 @@ export let ApiKeysScene = ({
                   instanceId: filter.instanceId,
                   name: values.name,
                   description: normalizeOptionalString(values.description),
-                  expiresAt: values.expiresAt
+                  expiresAt: values.expiresAt,
+                  ipFilters: normalizeIpFilters(values.ipFilters)
                 }
               : {
                   type: 'organization_management_token',
                   name: values.name,
                   description: normalizeOptionalString(values.description),
-                  expiresAt: values.expiresAt
+                  expiresAt: values.expiresAt,
+                  ipFilters: normalizeIpFilters(values.ipFilters)
                 };
 
           let [res] = await mutator.mutate(input);
@@ -184,6 +192,7 @@ export let ApiKeysScene = ({
               .date()
               .optional()
               .min(new Date(), 'Expires at must be in the future'),
+            ipFilters: yup.array(yup.string().trim()).required(),
             type: yup
               .mixed<ApiKeyType>()
               .oneOf([
@@ -192,7 +201,7 @@ export let ApiKeysScene = ({
                 'instance_access_token_publishable'
               ])
               .required('Type is required')
-          })
+          }) as any
       });
 
       return (
@@ -219,6 +228,17 @@ export let ApiKeysScene = ({
               resettable
             />
             <form.RenderError field="expiresAt" />
+
+            <Spacer height={15} />
+
+            <TextArrayInput
+              label="IP Filters"
+              description="Optional allow list of IP addresses or CIDR ranges that can use this API key."
+              placeholder="203.0.113.10 or 10.0.0.0/24"
+              value={form.values.ipFilters}
+              onChange={v => form.setFieldValue('ipFilters', v)}
+            />
+            <form.RenderError field="ipFilters" />
 
             {filter.type === 'instance_access_token' && (
               <>
@@ -265,6 +285,7 @@ export let ApiKeysScene = ({
           name: apiKey?.name ?? undefined,
           description: apiKey?.description ?? '',
           expiresAt: apiKey?.expiresAt ?? undefined,
+          ipFilters: apiKey?.ipFilters ?? [],
           type: apiKey?.type ?? undefined
         },
         onSubmit: async values => {
@@ -272,7 +293,8 @@ export let ApiKeysScene = ({
             apiKeyId,
             name: values.name,
             description: normalizeOptionalString(values.description),
-            expiresAt: values.expiresAt
+            expiresAt: values.expiresAt,
+            ipFilters: normalizeIpFilters(values.ipFilters)
           } satisfies ApiKeysUpdateBody & { apiKeyId: string });
           if (res) close();
         },
@@ -284,6 +306,7 @@ export let ApiKeysScene = ({
               .date()
               .optional()
               .min(new Date(), 'Expires at must be in the future'),
+            ipFilters: yup.array(yup.string().trim()).required(),
             type: yup
               .mixed<ApiKeyType>()
               .oneOf([
@@ -292,7 +315,7 @@ export let ApiKeysScene = ({
                 'instance_access_token_publishable'
               ])
               .optional()
-          })
+          }) as any
       });
 
       return (
@@ -319,6 +342,17 @@ export let ApiKeysScene = ({
               resettable
             />
             <form.RenderError field="expiresAt" />
+
+            <Spacer height={15} />
+
+            <TextArrayInput
+              label="IP Filters"
+              description="Optional allow list of IP addresses or CIDR ranges that can use this API key."
+              placeholder="203.0.113.10 or 10.0.0.0/24"
+              value={form.values.ipFilters}
+              onChange={v => form.setFieldValue('ipFilters', v)}
+            />
+            <form.RenderError field="ipFilters" />
 
             <Spacer height={15} />
 

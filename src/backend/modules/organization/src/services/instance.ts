@@ -23,7 +23,6 @@ import {
 import { Fabric } from '@metorial/fabric';
 import { generateCode } from '@metorial/id';
 import { differenceInMinutes } from 'date-fns';
-import { projectService } from './project';
 
 let getInstanceSlug = createSlugGenerator(
   async slug => !(await db.instance.findFirst({ where: { slug } }))
@@ -138,24 +137,6 @@ class InstanceService {
     };
   }
 
-  getInstanceTeamAccessWhere(d: {
-    organization: Organization;
-    actor: OrganizationActor;
-    member: OrganizationMember | undefined;
-  }) {
-    let project = projectService.getProjectTeamAccessWhere({
-      organization: d.organization,
-      actor: d.actor,
-      member: d.member
-    });
-
-    if (!project) return undefined;
-
-    return {
-      teams: project
-    };
-  }
-
   async getInstanceById(d: {
     organization: Organization;
     instanceId: string;
@@ -165,13 +146,7 @@ class InstanceService {
     let instance = await db.instance.findFirst({
       where: {
         OR: [{ id: d.instanceId }, { slug: d.instanceId }],
-        organizationOid: d.organization.oid,
-
-        project: this.getInstanceTeamAccessWhere({
-          organization: d.organization,
-          actor: d.actor,
-          member: d.member
-        })
+        organizationOid: d.organization.oid
       },
       include: {
         organization: true,
@@ -188,6 +163,8 @@ class InstanceService {
     project?: Project;
     actor: OrganizationActor;
     member: OrganizationMember | undefined;
+    projectIds?: string[];
+    instanceIds?: string[];
   }) {
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -198,12 +175,33 @@ class InstanceService {
               organizationOid: d.organization.oid,
               projectOid: d.project?.oid,
               status: 'active',
-
-              project: this.getInstanceTeamAccessWhere({
-                organization: d.organization,
-                actor: d.actor,
-                member: d.member
-              })
+              id:
+                (d.projectIds !== undefined || d.instanceIds !== undefined) &&
+                !d.projectIds?.length &&
+                !d.instanceIds?.length
+                  ? { in: [] }
+                  : undefined,
+              OR:
+                d.projectIds !== undefined || d.instanceIds !== undefined
+                  ? [
+                      ...(d.projectIds?.length
+                        ? [
+                            {
+                              project: {
+                                id: { in: d.projectIds }
+                              }
+                            }
+                          ]
+                        : []),
+                      ...(d.instanceIds?.length
+                        ? [
+                            {
+                              id: { in: d.instanceIds }
+                            }
+                          ]
+                        : [])
+                    ]
+                  : undefined
             },
             include: {
               organization: true,
@@ -222,6 +220,26 @@ class InstanceService {
       where: {
         id: { in: d.instanceIds },
         organizationOid: d.organization.oid
+      },
+      include: {
+        organization: true,
+        project: true
+      }
+    });
+  }
+
+  async getManyInstancesForUser(d: { user: User; instanceIds?: string[] }) {
+    return await db.instance.findMany({
+      where: {
+        id: { in: d.instanceIds },
+        organization: {
+          members: {
+            some: {
+              userOid: d.user.oid,
+              status: 'active'
+            }
+          }
+        }
       },
       include: {
         organization: true,

@@ -3,18 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { createSlugGenerator } from '@lowerdeck/slugify';
 import { Context } from '@metorial/context';
-import {
-  db,
-  ID,
-  Instance,
-  Organization,
-  OrganizationActor,
-  Project,
-  Team,
-  TeamRole,
-  User,
-  withTransaction
-} from '@metorial/db';
+import { db, ID, Organization, OrganizationActor, Team, withTransaction } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 
 let getTeamSlug = createSlugGenerator(
@@ -25,11 +14,9 @@ let getTeamSlug = createSlugGenerator(
 let include = {
   organization: true,
   projects: { include: { project: true } },
-  assignments: {
+  policies: {
     include: {
-      teamProject: true,
-      teamRole: true,
-      project: true
+      accessPolicy: true
     }
   }
 };
@@ -46,13 +33,6 @@ class teamServiceImpl {
   }) {
     return withTransaction(async db => {
       await Fabric.fire('organization.team.created:before', d);
-
-      await db.organization.update({
-        where: { oid: d.organization.oid },
-        data: {
-          enforceTeamAccess: true
-        }
-      });
 
       let team = await db.team.create({
         data: {
@@ -135,151 +115,6 @@ class teamServiceImpl {
     );
   }
 
-  async setTeamProjectAccess(d: {
-    team: Team;
-    project: Project;
-    organization: Organization;
-    performedBy: OrganizationActor;
-    teamRoles: TeamRole[];
-  }) {
-    return withTransaction(async db => {
-      let teamProject = await db.teamProject.findFirst({
-        where: {
-          teamOid: d.team.oid,
-          projectOid: d.project.oid
-        }
-      });
-
-      if (!teamProject) {
-        await Fabric.fire('organization.team.project.assigned:before', {
-          ...d
-        });
-
-        teamProject = await db.teamProject.create({
-          data: {
-            id: await ID.generateId('teamProject'),
-            teamOid: d.team.oid,
-            projectOid: d.project.oid
-          }
-        });
-
-        await Fabric.fire('organization.team.project.assigned:after', {
-          ...d,
-          teamProject,
-          performedBy: d.performedBy
-        });
-      }
-
-      let existingAssignmentsToRemove = await db.teamProjectRoleAssignment.findMany({
-        where: {
-          teamProjectOid: teamProject.oid,
-          teamRoleOid: {
-            notIn: d.teamRoles.map(tr => tr.oid)
-          }
-        }
-      });
-      let existingAssignmentsToKeep = await db.teamProjectRoleAssignment.findMany({
-        where: {
-          teamProjectOid: teamProject.oid,
-          teamRoleOid: {
-            in: d.teamRoles.map(tr => tr.oid)
-          }
-        }
-      });
-
-      let remainingRolesToAdd = d.teamRoles.filter(
-        tr => !existingAssignmentsToKeep.find(ear => ear.teamRoleOid === tr.oid)
-      );
-
-      if (existingAssignmentsToRemove.length > 0) {
-        for (let assignment of existingAssignmentsToRemove) {
-          await Fabric.fire('organization.team.project.unassigned:before', {
-            ...d,
-            teamProject
-          });
-
-          await db.teamProjectRoleAssignment.delete({
-            where: { oid: assignment.oid }
-          });
-
-          await Fabric.fire('organization.team.project.unassigned:after', {
-            ...d,
-            teamProject,
-            performedBy: d.performedBy
-          });
-        }
-      }
-
-      for (let role of remainingRolesToAdd) {
-        await Fabric.fire('organization.team.project.assigned:before', {
-          ...d
-        });
-
-        await db.teamProjectRoleAssignment.create({
-          data: {
-            id: await ID.generateId('teamRoleAssignment'),
-            teamProjectOid: teamProject.oid,
-            teamRoleOid: role.oid,
-            projectOid: d.project.oid,
-            teamOid: d.team.oid
-          }
-        });
-
-        await Fabric.fire('organization.team.project.assigned:after', {
-          ...d,
-          teamProject,
-          performedBy: d.performedBy
-        });
-      }
-
-      return teamProject;
-    });
-  }
-
-  async removeTeamProjectAccess(d: {
-    team: Team;
-    project: Project;
-    organization: Organization;
-    performedBy: OrganizationActor;
-  }) {
-    return withTransaction(async db => {
-      let teamProject = await db.teamProject.findFirst({
-        where: {
-          teamOid: d.team.oid,
-          projectOid: d.project.oid
-        }
-      });
-      if (!teamProject) {
-        throw new ServiceError(
-          badRequestError({
-            message: 'The team does not have access to the specified project'
-          })
-        );
-      }
-
-      await Fabric.fire('organization.team.project.unassigned:before', {
-        ...d,
-        teamProject
-      });
-
-      await db.teamProjectRoleAssignment.deleteMany({
-        where: {
-          teamProjectOid: teamProject.oid
-        }
-      });
-
-      await db.teamProject.delete({
-        where: { oid: teamProject.oid }
-      });
-
-      await Fabric.fire('organization.team.project.unassigned:after', {
-        ...d,
-        teamProject,
-        performedBy: d.performedBy
-      });
-    });
-  }
-
   async assignActorToTeam(d: {
     team: Team;
     actor: OrganizationActor;
@@ -291,6 +126,14 @@ class teamServiceImpl {
       await Fabric.fire('organization.team.member.added:before', {
         ...d
       });
+
+      let existingMembership = await db.teamMember.findFirst({
+        where: {
+          teamOid: d.team.oid,
+          organizationActorOid: d.actor.oid
+        }
+      });
+      if (existingMembership) return existingMembership;
 
       let teamMember = await db.teamMember.create({
         data: {
@@ -351,62 +194,6 @@ class teamServiceImpl {
         performedBy: d.performedBy
       });
     });
-  }
-
-  async getTeamAccessForInstance(d: {
-    instance: Instance;
-    organization: Organization;
-    for:
-      | {
-          type: 'actor';
-          actor: OrganizationActor;
-        }
-      | {
-          type: 'user';
-          user: User;
-        };
-  }) {
-    let teamMemberships = await db.teamMember.findMany({
-      where: {
-        team: {
-          organizationOid: d.organization.oid
-        },
-
-        ...(d.for.type == 'actor'
-          ? { organizationActorOid: d.for.actor.oid }
-          : {
-              organizationActor: {
-                member: {
-                  userOid: d.for.user.oid
-                }
-              }
-            })
-      },
-      include: {
-        team: {
-          include: {
-            projects: {
-              where: {
-                projectOid: d.instance.projectOid
-              },
-              include: {
-                roles: {
-                  include: {
-                    teamRole: true
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    });
-
-    let scopes = teamMemberships.flatMap(tm =>
-      tm.team.projects.flatMap(tp => tp.roles.flatMap(r => r.teamRole.scopes))
-    );
-
-    return { scopes };
   }
 }
 

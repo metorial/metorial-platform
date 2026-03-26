@@ -11,7 +11,6 @@ import { authenticate } from '@metorial/auth';
 let apiPort = parseInt(process.env.API_PORT || '4310');
 let filesPort = parseInt(process.env.FILES_PORT || '4318');
 let mcpPort = parseInt(process.env.MCP_PORT || '4311');
-let oauthPort = parseInt(process.env.OAUTH_PORT || '4313');
 let runnerPort = parseInt(process.env.RUNNER_PORT || '3399');
 let privateApiPort = parseInt(process.env.PRIVATE_API_PORT || '4314');
 let customPortalApiPort = parseInt(process.env.PORTAL_API_PORT || '4315');

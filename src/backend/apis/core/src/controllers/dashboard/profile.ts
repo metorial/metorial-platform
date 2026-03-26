@@ -1,6 +1,7 @@
 import { v } from '@lowerdeck/validation';
 import { profileService } from '@metorial/module-community';
 import { Controller, Path } from '@metorial/rest';
+import { checkAccess } from '../../middleware/checkAccess';
 import { isDashboardGroup } from '../../middleware/isDashboard';
 import { organizationGroup } from '../../middleware/organizationGroup';
 import { profilePresenter } from '../../presenters';
@@ -21,6 +22,7 @@ export let profileController = Controller.create(
       )
       .use(isDashboardGroup())
       .output(profilePresenter)
+      .use(checkAccess({ possibleScopes: ['organization:read'] }))
       .do(async ctx => {
         let profile = await profileService.ensureProfile({
           for: { type: 'organization', organization: ctx.organization }
@@ -49,6 +51,7 @@ export let profileController = Controller.create(
         })
       )
       .output(profilePresenter)
+      .use(checkAccess({ possibleScopes: ['organization:write'] }))
       .do(async ctx => {
         let profile = await profileService.ensureProfile({
           for: { type: 'organization', organization: ctx.organization }

@@ -9,6 +9,7 @@ import { Service } from '@lowerdeck/service';
 import { createSlugGenerator } from '@lowerdeck/slugify';
 import { Context } from '@metorial/context';
 import {
+  addAfterTransactionHook,
   db,
   ID,
   Organization,
@@ -24,6 +25,11 @@ import { instanceService } from './instance';
 let getProjectSlug = createSlugGenerator(
   async slug => !(await db.project.findFirst({ where: { slug } }))
 );
+
+let enqueueSyncBrand = async (projectId: string) => {
+  let { syncBrandQueue } = await import('../queues/syncBrand');
+  await syncBrandQueue.add({ projectId });
+};
 
 class ProjectService {
   private async ensureProjectActive(project: Project) {
@@ -71,6 +77,8 @@ class ProjectService {
         }
       });
 
+      await addAfterTransactionHook(() => enqueueSyncBrand(project.id));
+
       await Fabric.fire('organization.project.created:after', {
         ...d,
         project,
@@ -105,6 +113,8 @@ class ProjectService {
         }
       });
 
+      await addAfterTransactionHook(() => enqueueSyncBrand(project.id));
+
       await Fabric.fire('organization.project.updated:after', {
         ...d,
         project,
@@ -135,26 +145,6 @@ class ProjectService {
     };
   }
 
-  getProjectTeamAccessWhere(d: {
-    organization: Organization;
-    actor: OrganizationActor;
-    member: OrganizationMember | undefined;
-  }) {
-    if (!d.organization.enforceTeamAccess || d.member?.role == 'admin') return undefined;
-
-    return {
-      some: {
-        team: {
-          members: {
-            some: {
-              organizationActorOid: d.actor.oid
-            }
-          }
-        }
-      }
-    };
-  }
-
   async getProjectById(d: {
     organization: Organization;
     projectId: string;
@@ -164,13 +154,7 @@ class ProjectService {
     let project = await db.project.findFirst({
       where: {
         OR: [{ id: d.projectId }, { slug: d.projectId }],
-        organizationOid: d.organization.oid,
-
-        teams: this.getProjectTeamAccessWhere({
-          organization: d.organization,
-          actor: d.actor,
-          member: d.member
-        })
+        organizationOid: d.organization.oid
       },
       include: {
         organization: true
@@ -185,18 +169,9 @@ class ProjectService {
     organization: Organization;
     actor: OrganizationActor;
     member: OrganizationMember | undefined;
-
+    projectIds?: string[];
     teamIds?: string[];
   }) {
-    let teams = d.teamIds
-      ? await db.team.findMany({
-          where: {
-            organizationOid: d.organization.oid,
-            OR: [{ id: { in: d.teamIds } }, { slug: { in: d.teamIds } }]
-          }
-        })
-      : undefined;
-
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
@@ -205,28 +180,7 @@ class ProjectService {
             where: {
               organizationOid: d.organization.oid,
               status: 'active',
-
-              AND: [
-                {
-                  teams: this.getProjectTeamAccessWhere({
-                    organization: d.organization,
-                    actor: d.actor,
-                    member: d.member
-                  })
-                },
-
-                ...(teams
-                  ? [
-                      {
-                        teams: {
-                          some: {
-                            teamOid: { in: teams.map(t => t.oid) }
-                          }
-                        }
-                      }
-                    ]
-                  : [])
-              ].filter(Boolean)
+              id: d.projectIds ? { in: d.projectIds } : undefined
             },
             include: {
               organization: true
@@ -244,13 +198,7 @@ class ProjectService {
     return await db.project.findMany({
       where: {
         organizationOid: d.organization.oid,
-        status: 'active',
-
-        teams: this.getProjectTeamAccessWhere({
-          organization: d.organization,
-          actor: d.actor,
-          member: d.member
-        })
+        status: 'active'
       },
       include: {
         organization: true,

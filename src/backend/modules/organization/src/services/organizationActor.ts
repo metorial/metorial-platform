@@ -29,7 +29,7 @@ class OrganizationActorService {
       image?: PrismaJson.EntityImage;
     };
     organization: Organization;
-    context: Context;
+    context?: Context;
     performedBy: { type: 'user'; user: User } | { type: 'actor'; actor: OrganizationActor };
   }) {
     return withTransaction(async db => {

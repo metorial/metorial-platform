@@ -1,6 +1,16 @@
 import {
+  AccessPolicy,
+  AccessPolicyAssignment,
+  AccessPolicyInstance,
+  AccessPolicyProject,
+  AccessPolicyRole,
+  AccessPolicyVersion,
+  AccessRole,
+  AccessRoleVersion,
   ApiKey,
   ApiKeySecret,
+  ApiKeyType,
+  CliDevice,
   Consumer,
   ConsumerAccess,
   ConsumerAccessRequest,
@@ -20,6 +30,10 @@ import {
   MagicMcpServerAlias,
   MagicMcpServerSubspaceSession,
   MagicMcpToken,
+  OAuthApplication,
+  OAuthApplicationClientSecret,
+  OAuthAuthorization,
+  OAuthInstallation,
   Organization,
   OrganizationActor,
   OrganizationInvite,
@@ -30,11 +44,11 @@ import {
   ProviderTemplate,
   Secret,
   SecretType,
+  ServiceAccount,
+  ServiceAccountCredential,
   Team,
   TeamMember,
   TeamProject,
-  TeamProjectRoleAssignment,
-  TeamRole,
   User
 } from '@metorial/db';
 import {
@@ -45,7 +59,11 @@ import {
   ConsumerProviderCatalogEntry
 } from '@metorial/module-consumer';
 import { Flags } from '@metorial/module-flags';
-import type { ProjectBrandOverride } from '@metorial/module-organization';
+import type {
+  OAuthAuthorizationLogWithRelations,
+  OAuthAuthorizationRequestWithRelations
+} from '@metorial/module-machine-access';
+import type { PolicyDocument, ProjectBrandOverride } from '@metorial/module-organization';
 import {
   SubspaceBucket,
   SubspaceCallback,
@@ -136,6 +154,23 @@ export let projectType = PresentableType.create<{
   project: Project & { organization: Organization };
 }>()('project');
 
+export let tokenType = PresentableType.create<{
+  token: {
+    type:
+      | 'fine_grained_token'
+      | ApiKeyType
+      | 'oauth_access_token'
+      | 'unknown_token'
+      | 'user_auth_token';
+
+    organization?: Organization;
+    instance?: Instance & { project: Project };
+    actor?: OrganizationActor;
+    member?: OrganizationMember & { actor: OrganizationActor };
+    user?: User;
+  };
+}>()('token');
+
 export let projectBrandType = PresentableType.create<{
   projectBrand: ProjectBrandOverride;
 }>()('projectBrand');
@@ -143,6 +178,10 @@ export let projectBrandType = PresentableType.create<{
 export let instanceType = PresentableType.create<{
   instance: Instance & { project: Project; organization: Organization };
 }>()('instance');
+
+export let instanceListType = PresentableType.create<{
+  instances: (Instance & { project: Project; organization: Organization })[];
+}>()('instanceList');
 
 export let organizationType = PresentableType.create<{
   organization: Organization;
@@ -161,6 +200,9 @@ export let organizationMemberType = PresentableType.create<{
     actor: OrganizationActor & {
       teams: (TeamMember & { team: Team })[];
     };
+    policies?: (AccessPolicyAssignment & {
+      accessPolicy: AccessPolicy;
+    })[];
     user: User;
   };
 }>()('organization_member');
@@ -193,6 +235,118 @@ export let apiKeyType = PresentableType.create<{
   secret?: ApiKeySecret;
   canReveal: boolean;
 }>()('api_key');
+
+export let oauthApplicationType = PresentableType.create<{
+  oauthApplication: OAuthApplication & {
+    organization: Organization | null;
+    clientSecrets?: OAuthApplicationClientSecret[] | null;
+  };
+}>()('oauth_application');
+
+export let oauthApplicationClientSecretType = PresentableType.create<{
+  oauthApplicationClientSecret: OAuthApplicationClientSecret;
+  secret?: string | null;
+}>()('oauth_application_client_secret');
+
+export let oauthInstallationType = PresentableType.create<{
+  oauthInstallation: OAuthInstallation & {
+    organization: Organization;
+    oauthApplication: OAuthApplication & {
+      organization: Organization | null;
+    };
+    serverSideMachineAccess:
+      | (MachineAccess & {
+          organization: Organization | null;
+          actor: OrganizationActor | null;
+          instance: (Instance & { project: Project }) | null;
+          user: User | null;
+        })
+      | null;
+  };
+}>()('oauth_installation');
+
+export let cliDeviceType = PresentableType.create<{
+  cliDevice: CliDevice & {
+    organization: Organization;
+    user: User;
+    oauthAuthorization: OAuthAuthorization;
+  };
+}>()('cli_device');
+
+export let oauthAuthorizationType = PresentableType.create<{
+  oauthAuthorization: OAuthAuthorization & {
+    oauthApplication: OAuthApplication & {
+      organization: Organization | null;
+    };
+    oauthInstallation: OAuthInstallation & {
+      organization: Organization;
+      oauthApplication: OAuthApplication & {
+        organization: Organization | null;
+      };
+      serverSideMachineAccess: MachineAccess | null;
+    };
+    organizationMember: OrganizationMember | null;
+    machineAccess: MachineAccess & {
+      organization: Organization | null;
+      actor: OrganizationActor | null;
+      instance: (Instance & { project: Project }) | null;
+      user: User | null;
+    };
+    user: User | null;
+  };
+}>()('oauth_authorization');
+
+export let oauthAuthorizationRequestType = PresentableType.create<{
+  oauthAuthorizationRequest: OAuthAuthorizationRequestWithRelations;
+}>()('oauth_authorization_request');
+
+export let oauthAuthorizationLogType = PresentableType.create<{
+  oauthAuthorizationLog: OAuthAuthorizationLogWithRelations;
+}>()('oauth_authorization_log');
+
+export let serviceAccountType = PresentableType.create<{
+  serviceAccount: ServiceAccount & {
+    organization: Organization;
+    policies?: (AccessPolicyAssignment & {
+      accessPolicy: AccessPolicy;
+    })[];
+    oauthApplication: OAuthApplication & {
+      organization: Organization | null;
+      clientSecrets?: OAuthApplicationClientSecret[] | null;
+    };
+  };
+}>()('service_account');
+
+export let serviceAccountCredentialType = PresentableType.create<{
+  serviceAccountCredential: ServiceAccountCredential & {
+    serviceAccount: ServiceAccount & {
+      organization: Organization;
+      oauthApplication: OAuthApplication & {
+        organization: Organization | null;
+      };
+    };
+    oauthAuthorization: OAuthAuthorization & {
+      oauthApplication: OAuthApplication & {
+        organization: Organization | null;
+      };
+      oauthInstallation: OAuthInstallation & {
+        organization: Organization;
+        oauthApplication: OAuthApplication & {
+          organization: Organization | null;
+        };
+        serverSideMachineAccess: MachineAccess | null;
+      };
+      organizationMember: OrganizationMember | null;
+      machineAccess: MachineAccess & {
+        organization: Organization | null;
+        actor: OrganizationActor | null;
+        instance: (Instance & { project: Project }) | null;
+        user: User | null;
+      };
+      user: User | null;
+    };
+  };
+}>()('service_account_credential');
 
 export let fileType = PresentableType.create<{
   file: File & { purpose: FilePurpose };
@@ -391,61 +545,65 @@ export let teamType = PresentableType.create<{
   team: Team & {
     organization: Organization;
     projects: (TeamProject & { project: Project })[];
-    assignments: (TeamProjectRoleAssignment & {
-      teamProject: TeamProject;
-      teamRole: TeamRole;
-      project: Project;
+    policies?: (AccessPolicyAssignment & {
+      accessPolicy: AccessPolicy;
     })[];
   };
 }>()('management.team');
 
-export let teamRoleType = PresentableType.create<{
-  teamRole: TeamRole & {
+export let accessRoleType = PresentableType.create<{
+  accessRole: AccessRole & {
     organization: Organization;
   };
-}>()('management.team.role');
+}>()('management.access_role');
 
-export let teamRolePermissionsType = PresentableType.create<{
+export let accessRoleVersionType = PresentableType.create<{
+  accessRoleVersion: AccessRoleVersion & {
+    accessRole: AccessRole & {
+      organization: Organization;
+    };
+  };
+}>()('management.access_role_version');
+
+export let accessPolicyType = PresentableType.create<{
+  accessPolicy: AccessPolicy & {
+    organization: Organization;
+    accessPolicyRoles: (AccessPolicyRole & {
+      accessRole: AccessRole;
+    })[];
+    accessPolicyProjects: (AccessPolicyProject & {
+      project: Project;
+    })[];
+    accessPolicyInstances: (AccessPolicyInstance & {
+      instance: Instance & {
+        project: Project;
+        organization: Organization;
+      };
+    })[];
+  };
+}>()('management.access_policy');
+
+export let accessPolicyVersionType = PresentableType.create<{
+  accessPolicyVersion: AccessPolicyVersion & {
+    accessPolicy: AccessPolicy & {
+      organization: Organization;
+    };
+    document: PolicyDocument;
+  };
+}>()('management.access_policy_version');
+
+export let accessPolicyPreviewType = PresentableType.create<{
+  accessPolicy: AccessPolicy;
+}>()('management.access_policy#preview');
+
+export let oauthScopePermissionsType = PresentableType.create<{
   permissions: {
     identifier: string;
     name: string;
     description: string;
     dependencies: string[];
   }[];
-}>()('management.team.role_permissions');
-
-// export let ssoTenantType = PresentableType.create<{
-//   ssoTenant: SsoTenant;
-// }>()('sso.tenant');
-
-// export let ssoTenantSetupType = PresentableType.create<{
-//   ssoTenantSetup: {
-//     id: string;
-//     status: 'pending' | 'completed';
-//     tenantId: string;
-//     connectionId: string | null | undefined;
-//     clientSecret: string;
-//     redirectUri: string;
-//     url: string;
-//     createdAt: NativeDate;
-//     updatedAt: NativeDate;
-//   };
-// }>()('sso.tenant.setup');
-
-// export let ssoUserType = PresentableType.create<{
-//   ssoUser: SsoUser & {
-//     profiles: SsoUserProfile[];
-//     ssoTenant: SsoTenant;
-//   };
-// }>()('sso.user');
-
-// export let ssoUserProfileType = PresentableType.create<{
-//   ssoUserProfile: SsoUserProfile & {
-//     ssoUser: SsoUser & {
-//       ssoTenant: SsoTenant;
-//     };
-//   };
-// }>()('sso.user_profile');
+}>()('management.oauth.scopes');
 
 export let publisherType = PresentableType.create<{ publisher: SubspacePublisher }>()(
   'publisher'

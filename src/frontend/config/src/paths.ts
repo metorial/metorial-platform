@@ -622,6 +622,8 @@ let OrganizationPaths = Object.assign(
       OrganizationPaths.settings(organization, 'teams', ...subPages),
     roles: (organization: EntityParam, ...subPages: SubPages) =>
       OrganizationPaths.settings(organization, 'roles', ...subPages),
+    policies: (organization: EntityParam, ...subPages: SubPages) =>
+      OrganizationPaths.settings(organization, 'policies', ...subPages),
     projects: (organization: EntityParam, ...subPages: SubPages) =>
       OrganizationPaths.settings(organization, 'projects', ...subPages)
   }

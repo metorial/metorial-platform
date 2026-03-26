@@ -137,8 +137,25 @@ let coreScopesRaw = [
   'organization.team:read' as const,
   'organization.team:write' as const,
 
-  'organization.team.role:read' as const,
-  'organization.team.role:write' as const,
+  'organization.api_key:read' as const,
+  'organization.api_key:write' as const,
+  'organization.api_key:reveal' as const,
+
+  'organization.access_role:read' as const,
+  'organization.access_role:write' as const,
+
+  'organization.access_policy:read' as const,
+  'organization.access_policy:write' as const,
+
+  'organization.oauth_app:read' as const,
+  'organization.oauth_app:write' as const,
+
+  'organization.oauth_installation:read' as const,
+  'organization.oauth_installation:write' as const,
+
+  'organization.oauth_authorization:read' as const,
+  'organization.oauth_authorization:write' as const,
+  'organization.oauth_authorization:authorize' as const,
 
   // 'organization.machine_access.api_key.organization:read' as const,
   // 'organization.machine_access.api_key.organization:write' as const,

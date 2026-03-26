@@ -8,6 +8,13 @@ export type ManagementOrganizationMembersUpdateOutput = {
   userId: string;
   organizationId: string;
   actorId: string;
+  policies: {
+    object: 'management.access_policy#preview';
+    id: string;
+    type: 'everyone' | 'admin' | 'custom';
+    name: string;
+    slug: string;
+  }[];
   lastActiveAt: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -42,6 +49,18 @@ export let mapManagementOrganizationMembersUpdateOutput =
     userId: mtMap.objectField('user_id', mtMap.passthrough()),
     organizationId: mtMap.objectField('organization_id', mtMap.passthrough()),
     actorId: mtMap.objectField('actor_id', mtMap.passthrough()),
+    policies: mtMap.objectField(
+      'policies',
+      mtMap.array(
+        mtMap.object({
+          object: mtMap.objectField('object', mtMap.passthrough()),
+          id: mtMap.objectField('id', mtMap.passthrough()),
+          type: mtMap.objectField('type', mtMap.passthrough()),
+          name: mtMap.objectField('name', mtMap.passthrough()),
+          slug: mtMap.objectField('slug', mtMap.passthrough())
+        })
+      )
+    ),
     lastActiveAt: mtMap.objectField('last_active_at', mtMap.date()),
     createdAt: mtMap.objectField('created_at', mtMap.date()),
     updatedAt: mtMap.objectField('updated_at', mtMap.date()),

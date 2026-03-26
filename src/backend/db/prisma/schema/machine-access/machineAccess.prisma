@@ -9,16 +9,25 @@ enum MachineAccessStatus {
   deleted
 }
 
+enum MachineAccessKind {
+  api_key
+  user
+}
+
 model MachineAccess {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
   type   MachineAccessType
   status MachineAccessStatus
+  kind   MachineAccessKind   @default(api_key)
+
+  hasCustomScopes Boolean  @default(false)
+  scopes          String[]
 
   name String
 
-  actorOid BigInt?            @unique
+  actorOid BigInt?
   actor    OrganizationActor? @relation(fields: [actorOid], references: [oid], onDelete: Cascade)
 
   instanceOid BigInt?
@@ -35,5 +44,8 @@ model MachineAccess {
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @default(now()) @updatedAt
 
-  ApiKey ApiKey[]
+  ApiKey              ApiKey[]
+  oauthAuthorizations OAuthAuthorization[]
+  oauthInstallations  OAuthInstallation[]
+  oauthApplications   OAuthApplication[]
 }

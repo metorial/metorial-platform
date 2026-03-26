@@ -1,0 +1,243 @@
+enum OAuthApplicationStatus {
+  active
+  archived
+}
+
+enum OAuthApplicationType {
+  user_facing
+  cli_auth
+  server_side
+}
+
+enum OAuthAuthorizationAccessLevel {
+  organization
+  global
+}
+
+model OAuthApplication {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status      OAuthApplicationStatus
+  type        OAuthApplicationType
+  accessLevel OAuthAuthorizationAccessLevel
+
+  name        String
+  description String?
+
+  websiteUrl        String?
+  privacyPolicyUrl  String?
+  termsOfServiceUrl String?
+  redirectUris      String[]
+
+  scopes                             String[]
+  allowClientSecretlessTokenExchange Boolean  @default(false)
+
+  clientId String @unique
+
+  /// [EntityImage]
+  image Json
+
+  isImportedFromOtherInstance Boolean @default(false)
+
+  organizationOid BigInt?
+  organization    Organization? @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  // Shared machine access is for server_side authorization
+  serverSideMachineAccessOid BigInt?
+  serverSideMachineAccess    MachineAccess? @relation(fields: [serverSideMachineAccessOid], references: [oid], onDelete: Cascade)
+
+  scopedInstallationOid BigInt?
+  scopedInstallation    OAuthInstallation? @relation("ScopedInstallation", fields: [scopedInstallationOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  clientSecrets              OAuthApplicationClientSecret[]
+  oauthInstallations         OAuthInstallation[]
+  oauthAuthorizations        OAuthAuthorization[]
+  oauthAuthorizationRequests OAuthAuthorizationFlow[]
+  serviceAccount             ServiceAccount?
+}
+
+model OAuthApplicationClientSecret {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  secret        String @unique
+  secretPreview String
+
+  oauthApplicationOid BigInt
+  oauthApplication    OAuthApplication @relation(fields: [oauthApplicationOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
+}
+
+enum OAuthInstallationStatus {
+  active
+  revoked
+}
+
+model OAuthInstallation {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status OAuthInstallationStatus
+
+  scopes     String[]
+  oidcScopes String[] @default([])
+
+  oauthApplicationOid BigInt
+  oauthApplication    OAuthApplication @relation(fields: [oauthApplicationOid], references: [oid], onDelete: Cascade)
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  appActorOid BigInt?
+  appActor    OrganizationActor? @relation(fields: [appActorOid], references: [oid], onDelete: Cascade)
+
+  // Shared machine access is for server_side authorization
+  serverSideMachineAccessOid BigInt?
+  serverSideMachineAccess    MachineAccess? @relation(fields: [serverSideMachineAccessOid], references: [oid], onDelete: Cascade)
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
+  lastUsedAt DateTime?
+  revokedAt  DateTime?
+
+  oauthAuthorizations        OAuthAuthorization[]
+  oauthTokens                OAuthToken[]
+  serverSideOAuthApplication OAuthApplication[]   @relation("ScopedInstallation")
+
+  @@unique([oauthApplicationOid, organizationOid])
+}
+
+enum OAuthAuthorizationStatus {
+  active
+  revoked
+}
+
+enum OAuthAuthorizationType {
+  user
+  server_side
+}
+
+model OAuthAuthorization {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status OAuthAuthorizationStatus
+  type   OAuthAuthorizationType
+
+  scopes     String[]
+  oidcScopes String[] @default([])
+
+  oauthInstallationOid BigInt
+  oauthInstallation    OAuthInstallation @relation(fields: [oauthInstallationOid], references: [oid], onDelete: Cascade)
+
+  oauthApplicationOid BigInt
+  oauthApplication    OAuthApplication @relation(fields: [oauthApplicationOid], references: [oid], onDelete: Cascade)
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  userOid BigInt?
+  user    User?   @relation(fields: [userOid], references: [oid], onDelete: Cascade)
+
+  organizationMemberOid BigInt?
+  organizationMember    OrganizationMember? @relation(fields: [organizationMemberOid], references: [oid], onDelete: Cascade)
+
+  machineAccessOid BigInt
+  machineAccess    MachineAccess @relation(fields: [machineAccessOid], references: [oid], onDelete: Cascade)
+
+  requestingIp String?
+  acceptingIp  String?
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
+  lastUsedAt DateTime?
+  revokedAt  DateTime?
+
+  oauthAuthorizationRequests OAuthAuthorizationFlow[]
+  oauthTokens                OAuthToken[]
+  cliDevices                 CliDevice[]
+  serviceAccountCredential   ServiceAccountCredential?
+
+  @@unique([oauthInstallationOid, userOid])
+  @@unique([userOid, organizationOid, oauthApplicationOid])
+  @@unique([organizationMemberOid, oauthApplicationOid])
+}
+
+enum OAuthAuthorizationFlowChallengeMethod {
+  none
+  s256
+}
+
+enum OAuthAuthorizationFlowStatus {
+  pending
+  accepted
+  consumed
+}
+
+enum OAuthAuthorizationFlowType {
+  interactive
+  device_code
+}
+
+model OAuthAuthorizationFlow {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  type   OAuthAuthorizationFlowType
+  status OAuthAuthorizationFlowStatus
+
+  scopes     String[]
+  oidcScopes String[] @default([])
+
+  deniedAt   DateTime?
+  lastPollAt DateTime?
+
+  clientIp    String?
+  redirectUri String?
+  nonce       String?
+
+  userOid BigInt
+  user    User   @relation(fields: [userOid], references: [oid], onDelete: Cascade)
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  codeChallengeMethod OAuthAuthorizationFlowChallengeMethod
+  codeChallenge       String?
+
+  oauthApplicationOid BigInt
+  oauthApplication    OAuthApplication @relation(fields: [oauthApplicationOid], references: [oid], onDelete: Cascade)
+
+  oauthAuthorizationOid BigInt
+  oauthAuthorization    OAuthAuthorization @relation(fields: [oauthAuthorizationOid], references: [oid], onDelete: Cascade)
+
+  expiresAt  DateTime
+  createdAt  DateTime  @default(now())
+  acceptedAt DateTime?
+  consumedAt DateTime?
+}
+
+model OAuthToken {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  accessToken  String  @unique
+  refreshToken String? @unique
+
+  oauthAuthorizationOid BigInt
+  oauthAuthorization    OAuthAuthorization @relation(fields: [oauthAuthorizationOid], references: [oid], onDelete: Cascade)
+
+  oauthInstallationOid BigInt
+  oauthInstallation    OAuthInstallation @relation(fields: [oauthInstallationOid], references: [oid], onDelete: Cascade)
+
+  accessTokenExpiresAt DateTime
+  completelyExpiresAt  DateTime?
+  createdAt            DateTime  @default(now())
+  lastUsedAt           DateTime?
+}
