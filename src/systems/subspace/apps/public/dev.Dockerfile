@@ -5,7 +5,7 @@ WORKDIR /app
 # Copy repository contents from the OSS root context
 COPY . .
 
-RUN bun install --linker=hoisted
+RUN sh ./src/systems/subspace/scripts/prepare-docker-build.sh
 
 # Build frontend
 RUN cd /app/src/systems/subspace/apps/public && bun run build

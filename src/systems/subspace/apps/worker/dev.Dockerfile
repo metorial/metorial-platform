@@ -5,7 +5,7 @@ WORKDIR /app
 # Copy repository contents from the OSS root context
 COPY . .
 
-RUN bun install --linker=hoisted
+RUN sh ./src/systems/subspace/scripts/prepare-docker-build.sh
 
 # Run in dev mode with hot reloading.
 # `subspace-controller` performs schema/client initialization before this service starts.

@@ -8,6 +8,9 @@ import {
 } from '@metorial-subspace/provider-utils';
 import { shuttle } from '../client';
 
+type ShuttleServer = Awaited<ReturnType<typeof shuttle.server.getMany>>[number];
+type ShuttleServerVersion = Awaited<ReturnType<typeof shuttle.serverVersion.getMany>>[number];
+
 export class ProviderEnrichments extends IProviderEnrichments {
   override async enrichProviderVariants(
     input: ProviderVariantEnrichmentInput
@@ -22,14 +25,16 @@ export class ProviderEnrichments extends IProviderEnrichments {
       },
       include: { providerVariants: true }
     });
-    let shuttleServerByVariantId = new Map(
-      subspaceShuttleServersList.flatMap(s => s.providerVariants.map(v => [v.id, s]))
+    let shuttleServerByVariantId = new Map<string, (typeof subspaceShuttleServersList)[number]>(
+      subspaceShuttleServersList.flatMap(s => s.providerVariants.map(v => [v.id, s] as const))
     );
 
     let shuttleServers = await shuttle.server.getMany({
       serverIds: subspaceShuttleServersList.map(s => s.id)
     });
-    let shuttleServersMap = new Map(shuttleServers.map(s => [s.id, s]));
+    let shuttleServersMap = new Map<string, ShuttleServer>(
+      shuttleServers.map(s => [s.id, s] as const)
+    );
 
     return {
       providers: input.providerVariantIds.map(providerVariantId => {
@@ -63,14 +68,16 @@ export class ProviderEnrichments extends IProviderEnrichments {
       },
       include: { providerVersions: true }
     });
-    let shuttleServerByVersionId = new Map(
-      subspaceShuttleServersList.flatMap(s => s.providerVersions.map(v => [v.id, s]))
+    let shuttleServerByVersionId = new Map<string, (typeof subspaceShuttleServersList)[number]>(
+      subspaceShuttleServersList.flatMap(s => s.providerVersions.map(v => [v.id, s] as const))
     );
 
     let shuttleServerVersions = await shuttle.serverVersion.getMany({
       serverVersionIds: subspaceShuttleServersList.map(s => s.id)
     });
-    let shuttleServerVersionsMap = new Map(shuttleServerVersions.map(s => [s.id, s]));
+    let shuttleServerVersionsMap = new Map<string, ShuttleServerVersion>(
+      shuttleServerVersions.map(s => [s.id, s] as const)
+    );
 
     return {
       providers: input.providerVersionIds.map(providerVersionId => {

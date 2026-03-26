@@ -6,11 +6,9 @@ WORKDIR /app
 # Copy repository contents from the OSS root context
 COPY . .
 
-# Install CA certificates for Sentry CLI uploads
+# Install CA certificates for Sentry CLI uploads and prepare required workspaces.
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/*
-
-# Install all dependencies (including dev dependencies for build)
-RUN bun install --linker=hoisted
+RUN sh ./src/systems/subspace/scripts/prepare-docker-build.sh
 
 # Generate Prisma client
 WORKDIR /app/src/systems/subspace/db

@@ -6,11 +6,9 @@ WORKDIR /app
 # Copy repository contents from the OSS root context
 COPY . .
 
-# Install CA certificates for Sentry CLI uploads
+# Install CA certificates for Sentry CLI uploads and prepare required workspaces.
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/*
-
-# Install all dependencies (including dev dependencies for build)
-RUN bun install --linker=hoisted
+RUN sh ./src/systems/subspace/scripts/prepare-docker-build.sh
 
 # Generate Prisma client
 WORKDIR /app/src/systems/subspace/db
@@ -21,8 +19,8 @@ ENV SENTRY_AUTH_TOKEN=${SENTRY_AUTH_TOKEN}
 
 # Build the application using ncc
 # This bundles all dependencies into a single file
-# Note: Frontend should be pre-built before creating the Docker image
 WORKDIR /app/src/systems/subspace/apps/public
+RUN bun run frontend:build
 # Remove frontend source (not needed for backend bundle, only dist is needed at runtime)
 RUN rm -rf frontend/src frontend/tsconfig.* frontend/vite.config.ts frontend/index.html
 # Temporarily use the build-friendly tsconfig
