@@ -280,6 +280,8 @@ export type ProviderListingsListQuery = {
   isVerified?: boolean | undefined;
   isOfficial?: boolean | undefined;
   isMetorial?: boolean | undefined;
+  createdAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
+  updatedAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
 };
 
 export let mapProviderListingsListQuery = mtMap.union([
@@ -336,7 +338,21 @@ export let mapProviderListingsListQuery = mtMap.union([
       isPublic: mtMap.objectField('is_public', mtMap.passthrough()),
       isVerified: mtMap.objectField('is_verified', mtMap.passthrough()),
       isOfficial: mtMap.objectField('is_official', mtMap.passthrough()),
-      isMetorial: mtMap.objectField('is_metorial', mtMap.passthrough())
+      isMetorial: mtMap.objectField('is_metorial', mtMap.passthrough()),
+      createdAt: mtMap.objectField(
+        'created_at',
+        mtMap.object({
+          gt: mtMap.objectField('gt', mtMap.date()),
+          lt: mtMap.objectField('lt', mtMap.date())
+        })
+      ),
+      updatedAt: mtMap.objectField(
+        'updated_at',
+        mtMap.object({
+          gt: mtMap.objectField('gt', mtMap.date()),
+          lt: mtMap.objectField('lt', mtMap.date())
+        })
+      )
     })
   )
 ]);

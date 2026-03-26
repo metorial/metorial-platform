@@ -265,6 +265,8 @@ export type ManagementInstanceCallbacksInstancesListQuery = {
   status?: 'attached' | 'detached' | ('attached' | 'detached')[] | undefined;
   providerConfigId?: string | string[] | undefined;
   providerAuthConfigId?: string | string[] | undefined;
+  createdAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
+  updatedAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
 };
 
 export let mapManagementInstanceCallbacksInstancesListQuery = mtMap.union([
@@ -309,6 +311,20 @@ export let mapManagementInstanceCallbacksInstancesListQuery = mtMap.union([
             mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
           )
         ])
+      ),
+      createdAt: mtMap.objectField(
+        'created_at',
+        mtMap.object({
+          gt: mtMap.objectField('gt', mtMap.date()),
+          lt: mtMap.objectField('lt', mtMap.date())
+        })
+      ),
+      updatedAt: mtMap.objectField(
+        'updated_at',
+        mtMap.object({
+          gt: mtMap.objectField('gt', mtMap.date()),
+          lt: mtMap.objectField('lt', mtMap.date())
+        })
       )
     })
   )
