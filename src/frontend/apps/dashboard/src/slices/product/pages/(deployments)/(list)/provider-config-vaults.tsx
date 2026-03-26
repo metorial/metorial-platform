@@ -1,5 +1,8 @@
-import { DashboardInstanceProviderDeploymentsConfigVaultsListOutput } from '@metorial/dashboard-sdk';
-import { renderWithLoader, renderWithPagination } from '@metorial/data-hooks';
+import {
+  DashboardInstanceProviderDeploymentsConfigVaultsListOutput,
+  DashboardInstanceProviderDeploymentsConfigVaultsListQuery
+} from '@metorial/dashboard-sdk';
+import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
   useCurrentInstance,
@@ -8,122 +11,252 @@ import {
   useProviderConfigVaults,
   useProviders
 } from '@metorial/state';
-import { Input, RenderDate, Spacer, Text } from '@metorial/ui';
-import { ID, Table } from '@metorial/ui-product';
-import { useMemo } from 'react';
+import { RenderDate, Text } from '@metorial/ui';
+import { ID } from '@metorial/ui-product';
 import { EmptyState } from '../../../../../components/emptyState';
-import { useSearchFilter } from '../../../../../hooks/useSearchFilter';
+import { Table as DashboardTable } from '../../../../../components/table';
+import { FilterPayload } from '../../../../../components/table/filter';
+import {
+  TableStateProvider,
+  TableStateProviderResult
+} from '../../../../../components/table/type';
+import {
+  getDateRangeFilterValue,
+  getStringFilterValue
+} from '../../../../../lib/dataTableUtils';
 import { showCreateProviderConfigVaultFlow } from './providerCreationFlows';
+
+type ProviderConfigVault =
+  DashboardInstanceProviderDeploymentsConfigVaultsListOutput['items'][number];
+
+type ProviderConfigVaultRow = ProviderConfigVault & {
+  providerName?: string | null;
+};
+
+type ProviderConfigVaultFilters = Omit<
+  DashboardInstanceProviderDeploymentsConfigVaultsListQuery,
+  'limit' | 'after' | 'before' | 'cursor'
+>;
+
+type ProviderConfigVaultsOverviewTableProps = {
+  instanceId: string;
+  organization: ReturnType<typeof useCurrentOrganization>;
+  project: ReturnType<typeof useCurrentProject>;
+  instance: ReturnType<typeof useCurrentInstance>;
+  filters?: ProviderConfigVaultFilters;
+};
+
+let providerConfigVaultsOverviewState: TableStateProvider<
+  ProviderConfigVaultsOverviewTableProps,
+  ProviderConfigVaultRow,
+  TableStateProviderResult<ProviderConfigVaultRow>
+> = (
+  props: ProviderConfigVaultsOverviewTableProps,
+  opts: {
+    filter: Record<string, FilterPayload>;
+    search?: string;
+  }
+) => {
+  let vaults = useProviderConfigVaults(props.instanceId, {
+    order: 'desc',
+    ...props.filters,
+    id: getStringFilterValue(opts.filter.id) ?? props.filters?.id,
+    providerId: getStringFilterValue(opts.filter.providerId) ?? props.filters?.providerId,
+    providerDeploymentId:
+      getStringFilterValue(opts.filter.providerDeploymentId) ??
+      props.filters?.providerDeploymentId,
+    providerConfigId:
+      getStringFilterValue(opts.filter.providerConfigId) ?? props.filters?.providerConfigId,
+    providerConfigVaultId:
+      getStringFilterValue(opts.filter.providerConfigVaultId) ??
+      props.filters?.providerConfigVaultId,
+    search: opts.search ?? props.filters?.search,
+    createdAt: getDateRangeFilterValue(opts.filter.createdAt) ?? props.filters?.createdAt,
+    updatedAt: getDateRangeFilterValue(opts.filter.updatedAt) ?? props.filters?.updatedAt
+  });
+
+  let providerIds = [
+    ...new Set((vaults.data?.items ?? []).map(item => item.providerId).filter(Boolean))
+  ];
+  let providers = useProviders(props.instanceId, providerIds.length > 0 ? { id: providerIds } : null);
+
+  let providerNameMap = new Map<string, string>();
+  for (let provider of providers.data?.items ?? []) {
+    if (provider.id && provider.name) providerNameMap.set(provider.id, provider.name);
+  }
+
+  return {
+    isLoading: vaults.isLoading || providers.isLoading,
+    error: vaults.error ?? providers.error,
+    hasMoreAfter: vaults.data?.pagination.hasMoreAfter ?? false,
+    hasMoreBefore: vaults.data?.pagination.hasMoreBefore ?? false,
+    items: (vaults.data?.items ?? []).map(item => ({
+      ...item,
+      providerName: providerNameMap.get(item.providerId) ?? null
+    })),
+    loadNext: vaults.next,
+    loadPrevious: vaults.previous
+  };
+};
+
+let providerConfigVaultsOverviewTable = new DashboardTable<
+  ProviderConfigVaultsOverviewTableProps,
+  ProviderConfigVaultRow
+>('provider-config-vaults-overview')
+  .state(providerConfigVaultsOverviewState)
+  .columns([
+    {
+      id: 'name',
+      isDefault: true,
+      header: 'Name',
+      render: row => (
+        <div>
+          <Text size="2" weight="strong">
+            {row.name}
+          </Text>
+          <Text size="1" color="gray600">
+            {row.description ?? '-'}
+          </Text>
+        </div>
+      )
+    },
+    {
+      id: 'id',
+      isDefault: true,
+      header: 'ID',
+      render: row => <ID id={row.id} />
+    },
+    {
+      id: 'provider',
+      isDefault: true,
+      header: 'Provider',
+      render: row => <Text size="2">{row.providerName ?? row.providerId ?? '\u2014'}</Text>
+    },
+    {
+      id: 'deployment',
+      isDefault: true,
+      header: 'Deployment',
+      render: row => <Text size="2">{row.deployment?.name ?? '\u2014'}</Text>
+    },
+    {
+      id: 'createdAt',
+      isDefault: true,
+      header: 'Created',
+      render: row => <RenderDate date={row.createdAt} />
+    },
+    {
+      id: 'updatedAt',
+      isDefault: false,
+      header: 'Updated',
+      render: row => <RenderDate date={row.updatedAt} />
+    },
+    {
+      id: 'providerId',
+      isDefault: false,
+      header: 'Provider ID',
+      render: row => <ID id={row.providerId} />
+    },
+    {
+      id: 'deploymentId',
+      isDefault: false,
+      header: 'Deployment ID',
+      render: row =>
+        row.deployment?.id ? (
+          <ID id={row.deployment.id} />
+        ) : (
+          <Text size="2" color="gray600">
+            -
+          </Text>
+        )
+    }
+  ])
+  .filters([
+    {
+      id: 'id',
+      fields: ['id'],
+      label: 'Vault ID',
+      description: 'Filter by vault ID',
+      type: 'string'
+    },
+    {
+      id: 'providerId',
+      fields: ['providerId'],
+      label: 'Provider ID',
+      description: 'Filter by provider ID',
+      type: 'string'
+    },
+    {
+      id: 'providerDeploymentId',
+      fields: ['providerDeploymentId'],
+      label: 'Deployment ID',
+      description: 'Filter by deployment ID',
+      type: 'string'
+    },
+    {
+      id: 'providerConfigId',
+      fields: ['providerConfigId'],
+      label: 'Config ID',
+      description: 'Filter by config ID',
+      type: 'string'
+    },
+    {
+      id: 'providerConfigVaultId',
+      fields: ['providerConfigVaultId'],
+      label: 'Vault Ref ID',
+      description: 'Filter by vault ref ID',
+      type: 'string'
+    },
+    {
+      id: 'createdAt',
+      fields: ['createdAt'],
+      label: 'Created',
+      description: 'Filter by created date',
+      type: 'date'
+    },
+    {
+      id: 'updatedAt',
+      fields: ['updatedAt'],
+      label: 'Updated',
+      description: 'Filter by updated date',
+      type: 'date'
+    }
+  ])
+  .search('Search config vaults...')
+  .link((row, props) =>
+    Paths.instance.providerConfigVault(
+      props.organization.data,
+      props.project.data,
+      props.instance.data,
+      row.id
+    )
+  )
+  .build();
 
 export let ProviderConfigVaultsOverviewPage = () => {
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
 
-  let { search, setSearch, searchQuery } = useSearchFilter();
-
-  let vaults = useProviderConfigVaults(instance.data?.id, {
-    limit: 20,
-    search: searchQuery
-  });
-
-  let providerIds = useMemo(
-    () => [
-      ...new Set((vaults.data?.items ?? []).map(vault => vault.providerId).filter(Boolean))
-    ],
-    [vaults.data?.items]
-  );
-
-  let providerQuery = useMemo(
-    () =>
-      !vaults.isLoading && !vaults.error && providerIds.length === 0
-        ? { limit: 20 }
-        : { id: providerIds },
-    [providerIds, vaults.error, vaults.isLoading]
-  );
-
-  let providers = useProviders(instance.data?.id, providerQuery);
-  let providerNameMap = useMemo(() => {
-    let map = new Map<string, string>();
-    for (let provider of providers.data?.items ?? []) {
-      if (provider.id && provider.name) map.set(provider.id, provider.name);
-    }
-    return map;
-  }, [providers.data?.items]);
-
-  let vaultsTable = renderWithPagination(vaults)(vaults => (
-    <Table
-      headers={['Name', 'ID', 'Provider', 'Deployment', 'Created']}
-      data={vaults.data.items.map(
-        (
-          vault: DashboardInstanceProviderDeploymentsConfigVaultsListOutput['items'][number]
-        ) => ({
-          href: Paths.instance.providerConfigVault(
-            organization.data,
-            project.data,
-            instance.data,
-            vault.id
-          ),
-          data: [
-            <Text size="2" weight="strong">
-              {vault.name ?? 'Unnamed Vault'}
-            </Text>,
-            <ID id={vault.id} />,
-            <Text size="2">
-              {providerNameMap.get(vault.providerId) ?? vault.providerId ?? '—'}
-            </Text>,
-            <Text size="2">{vault.deployment?.name ?? '—'}</Text>,
-            vault.createdAt ? (
-              <RenderDate date={vault.createdAt} />
-            ) : (
-              <Text size="2" color="gray600">
-                —
-              </Text>
-            )
-          ]
-        })
-      )}
-    />
-  ));
-
-  return renderWithLoader({ organization, project, instance, vaults })(() => {
-    let hasSearch = (searchQuery ?? '').trim().length > 0;
-
-    return (
-      <>
-        <Input
-          label="Search"
-          hideLabel
-          placeholder="Search config vaults..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
+  return renderWithLoader({ organization, project, instance })(() =>
+    providerConfigVaultsOverviewTable({
+      instanceId: instance.data!.id,
+      organization,
+      project,
+      instance,
+      emptyState: () => (
+        <EmptyState
+          title="Create your first config vault"
+          description="Vaults store reusable secret or shared provider values for this instance."
+          action={{
+            label: 'Create Config Vault',
+            onClick: () => {
+              if (instance.data?.id) {
+                showCreateProviderConfigVaultFlow(instance.data.id);
+              }
+            }
+          }}
         />
-
-        <Spacer size={15} />
-
-        {(vaults.data?.items ?? []).length === 0 ? (
-          hasSearch ? (
-            <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-              No config vaults found for "{searchQuery}".
-            </Text>
-          ) : (
-            <EmptyState
-              title="Create your first config vault"
-              description="Vaults store reusable secret or shared provider values for this instance."
-              action={{
-                label: 'Create Config Vault',
-                onClick: () => {
-                  if (instance.data?.id) {
-                    showCreateProviderConfigVaultFlow(instance.data.id);
-                  }
-                }
-              }}
-            />
-          )
-        ) : (
-          renderWithLoader({ providers })(() => vaultsTable)
-        )}
-      </>
-    );
-  });
+      )
+    })
+  );
 };

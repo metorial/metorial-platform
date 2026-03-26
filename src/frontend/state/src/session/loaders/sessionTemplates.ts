@@ -22,9 +22,12 @@ export let useCreateSessionTemplate = sessionTemplatesLoader.createExternalMutat
   { disableToast: true }
 );
 
-export let useSessionTemplates = (instanceId: string | null | undefined) => {
+export let useSessionTemplates = (
+  instanceId: string | null | undefined,
+  query?: DashboardInstanceSessionTemplatesListQuery
+) => {
   let data = usePaginator(pagination =>
-    sessionTemplatesLoader.use(instanceId ? { instanceId, ...pagination } : null)
+    sessionTemplatesLoader.use(instanceId ? { instanceId, ...pagination, ...query } : null)
   );
 
   return data;
