@@ -1,0 +1,70 @@
+enum ScmProvider {
+  github
+  gitlab
+}
+
+model ScmRepo {
+  oid BigInt @id
+  id  String @unique
+
+  provider ScmProvider
+
+  fromRepoUrl String?
+
+  name       String
+  identifier String
+
+  externalId        String
+  externalName      String
+  externalOwner     String
+  externalUrl       String
+  externalIsPrivate Boolean
+
+  defaultBranch String @default("main")
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  codeBuckets               CodeBucket[]
+  scmRepoPushes             ScmRepoPush[]
+  customProviders           CustomProvider[]
+  customProviderVersions    CustomProviderVersion[]
+  customProviderDeployments CustomProviderDeployment[]
+
+  @@unique([provider, tenantOid, externalId])
+  @@index([createdAt])
+}
+
+model ScmRepoPush {
+  oid BigInt @id
+  id  String @unique
+
+  pusherName       String?
+  pusherEmail      String?
+  senderIdentifier String?
+  commitMessage    String?
+
+  branchName String
+  sha        String
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid])
+
+  repoOid BigInt
+  repo    ScmRepo @relation(fields: [repoOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  customProviderDeployments CustomProviderDeployment[]
+  customProviderCommits     CustomProviderCommit[]
+
+  @@index([createdAt])
+}

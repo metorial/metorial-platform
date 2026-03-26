@@ -1,0 +1,102 @@
+model ProviderEntry {
+  oid BigInt @id
+  id  String @unique
+
+  identifier  String  @unique
+  name        String
+  description String?
+
+  metadata Json?
+
+  publisherOid BigInt
+  publisher    Publisher @relation(fields: [publisherOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  providers Provider[]
+}
+
+enum ProviderAccess {
+  public
+  tenant
+}
+
+enum ProviderStatus {
+  active
+  archived
+  deleted
+}
+
+model Provider {
+  oid BigInt @id
+  id  String @unique
+
+  access ProviderAccess
+  status ProviderStatus
+
+  hasEnvironments Boolean @default(false)
+
+  identifier       String  @unique
+  slug             String  @unique
+  globalIdentifier String? @unique
+  name             String
+  description      String?
+
+  metadata Json?
+
+  tag    String      @unique
+  tagRef ProviderTag @relation(fields: [tag], references: [tag])
+
+  entryOid BigInt        @unique
+  entry    ProviderEntry @relation(fields: [entryOid], references: [oid])
+
+  publisherOid BigInt
+  publisher    Publisher @relation(fields: [publisherOid], references: [oid])
+
+  ownerTenantOid BigInt?
+  ownerTenant    Tenant? @relation(fields: [ownerTenantOid], references: [oid])
+
+  ownerSolutionOid Int?
+  ownerSolution    Solution? @relation(fields: [ownerSolutionOid], references: [oid], onDelete: Cascade)
+
+  defaultVariantOid BigInt?
+  defaultVariant    ProviderVariant? @relation(fields: [defaultVariantOid], references: [oid], name: "defaultVariant")
+
+  typeOid Int
+  type    ProviderType @relation(fields: [typeOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  variants                  ProviderVariant[]
+  providerVersions          ProviderVersion[]
+  deployment                ProviderDeployment[]
+  listing                   ProviderListing?
+  providerConfigs           ProviderConfig[]
+  tools                     ProviderTool[]
+  authMethods               ProviderAuthMethod[]
+  providerSpecifications    ProviderSpecification[]
+  providerConfigVaults      ProviderConfigVault[]
+  providerAuthCredentials   ProviderAuthCredentials[]
+  providerOAuthSetups       ProviderOAuthSetup[]
+  providerAuthConfigs       ProviderAuthConfig[]
+  providerTriggers          ProviderTrigger[]
+  providerToolGlobals       ProviderToolGlobal[]
+  providerAuthMethodGlobals ProviderAuthMethodGlobal[]
+  providerTriggerGlobals    ProviderTriggerGlobal[]
+  providerSetupSessions     ProviderSetupSession[]
+  sessionProviders          SessionProvider[]
+  providerRuns              ProviderRun[]
+  sessionTemplateProviders  SessionTemplateProvider[]
+  sessionParticipants       SessionParticipant[]
+  sessionErrorGroups        SessionErrorGroup[]
+  environmentProviders      EnvironmentProvider[]
+  customProvider            CustomProvider?
+  providerEnvironments      ProviderEnvironment[]
+  providerUses              ProviderUse[]
+  identityCredentials       IdentityCredential[]
+
+  @@index([status])
+  @@index([access])
+}

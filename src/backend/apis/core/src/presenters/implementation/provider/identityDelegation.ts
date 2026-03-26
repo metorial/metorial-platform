@@ -220,11 +220,13 @@ export let v1IdentityDelegationPresenter = Presenter.create(identityDelegationTy
             description: 'Unique attestation identifier.',
             examples: ['ida_3xYzAbCdEfGhIjKl']
           }),
-          type: v.string({
-            name: 'type',
-            description: 'Type of attestation, if any.',
-            examples: ['consent']
-          }),
+          type: v.enumOf(
+            ['api', 'request_approval', 'covered_by_previously_approved_delegation'],
+            {
+              name: 'type',
+              description: 'Type of attestation, if any.'
+            }
+          ),
           created_at: v.date({
             name: 'created_at',
             description: 'Timestamp when the attestation was created.',

@@ -1,0 +1,302 @@
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
+import { Paginator } from '@lowerdeck/pagination';
+import { Service } from '@lowerdeck/service';
+import type {
+  CustomProviderConfig,
+  CustomProviderFrom,
+  CustomProviderVersion,
+  ProviderVersion
+} from '@metorial-subspace/db';
+import {
+  addAfterTransactionHook,
+  db,
+  getId,
+  withTransaction,
+  type CustomProvider,
+  type CustomProviderVersionStatus,
+  type Environment,
+  type Solution,
+  type Tenant,
+  type TenantActor
+} from '@metorial-subspace/db';
+import {
+  checkDeletedRelation,
+  type DateFilter,
+  normalizeDateFilter,
+  resolveCustomProviderDeployments,
+  resolveCustomProviderEnvironments,
+  resolveCustomProviders,
+  resolveProviders
+} from '@metorial-subspace/list-utils';
+import type { ProviderVersionEnrichment } from '@metorial-subspace/provider-utils';
+import { providerVersionInternalService } from '@metorial-subspace/module-provider-internal';
+import { checkTenant } from '@metorial-subspace/module-tenant';
+import { prepareVersion } from '../internal/createVersion';
+import { handleUpcomingCustomProviderQueue } from '../queues/upcoming/handle';
+
+let include = {
+  customProvider: {
+    include: {
+      provider: true
+    }
+  },
+  deployment: {
+    include: {
+      commit: true,
+      scmRepoPush: { include: { repo: true } }
+    }
+  },
+  providerVersion: true,
+  immutableCodeBucket: { include: { scmRepo: true } },
+  customProviderEnvironmentVersions: {
+    include: {
+      customProviderEnvironment: {
+        include: {
+          environment: true,
+          providerEnvironment: {
+            include: {
+              currentVersion: true
+            }
+          }
+        }
+      }
+    }
+  },
+  creatorActor: true
+};
+
+class customProviderVersionServiceImpl {
+  async enrichCustomProviders<
+    T extends CustomProviderVersion & {
+      providerVersion: ProviderVersion | null;
+    }
+  >(d: { customProviders: T[] }) {
+    let enriched = await providerVersionInternalService.enrichProviderVersions({
+      providers: d.customProviders.map(p => p.providerVersion!).filter(Boolean)
+    });
+    let enrichedMap = new Map<string, ProviderVersion & Partial<ProviderVersionEnrichment>>(
+      enriched.map((p: ProviderVersion & Partial<ProviderVersionEnrichment>) => [p.id, p])
+    );
+
+    return d.customProviders.map(customProvider => {
+      if (!customProvider.providerVersion) return customProvider;
+      let enrichment = enrichedMap.get(customProvider.providerVersion.id);
+
+      return {
+        containerRegistry: enrichment?.containerRegistry,
+        containerRepository: enrichment?.containerRepository,
+        containerVersion: enrichment?.containerVersion,
+        containerTag: enrichment?.containerTag,
+
+        remoteUrl: enrichment?.remoteUrl,
+        remoteProtocol: enrichment?.remoteProtocol,
+
+        ...customProvider
+      };
+    });
+  }
+
+  async createCustomProviderVersion(d: {
+    actor: TenantActor;
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+
+    customProvider: CustomProvider;
+    input: {
+      message?: string;
+      from?: CustomProviderFrom;
+      config?: CustomProviderConfig;
+    };
+  }) {
+    checkTenant(d, d.customProvider);
+    checkDeletedRelation(d.customProvider);
+
+    let from = d.input.from || d.customProvider.payload.from;
+    let config = d.input.config || d.customProvider.payload.config;
+
+    if (d.customProvider.type !== from.type) {
+      throw new ServiceError(
+        badRequestError({
+          message: `Custom provider type '${d.customProvider.type}' does not match deployment from type '${from.type}'`,
+          hint: 'Please ensure the deployment from type matches the custom provider type.'
+        })
+      );
+    }
+
+    if (from.type === 'function' && from.files?.length && from.repository) {
+      throw new ServiceError(
+        badRequestError({
+          message:
+            'Cannot create deployment from files when SCM repo is set on custom provider',
+          hint: 'Unlink the SCM repo from the custom provider or remove the files from the deployment input.'
+        })
+      );
+    }
+
+    if (from.type === 'function' && !from.files && !from.repository) {
+      throw new ServiceError(
+        badRequestError({
+          message:
+            'No deployment source provided. Either files or an SCM repository must be set to create a deployment.',
+          hint: 'Please provide either deployment files or link an SCM repository.'
+        })
+      );
+    }
+
+    let customProvider = await withTransaction(async db => {
+      let updatedProvider = await db.customProvider.update({
+        where: { oid: d.customProvider.oid },
+        data: {
+          payload: {
+            from: from.type === 'function' ? { ...from, files: undefined } : from,
+            config
+          }
+        }
+      });
+
+      let versionPrep = await prepareVersion({
+        actor: d.actor,
+        tenant: d.tenant,
+        solution: d.solution,
+        environment: d.environment,
+        customProvider: d.customProvider,
+        trigger: 'manual',
+        payload: updatedProvider.payload
+      });
+
+      let upcoming = await db.upcomingCustomProvider.create({
+        data: {
+          ...getId('upcomingCustomProvider'),
+          tenantOid: d.tenant.oid,
+          solutionOid: d.solution.oid,
+          environmentOid: d.environment.oid,
+          actorOid: d.actor.oid,
+
+          message: d.input.message,
+
+          type: 'create_custom_provider',
+
+          customProviderOid: d.customProvider.oid,
+          customProviderVersionOid: versionPrep.version.oid,
+          customProviderDeploymentOid: versionPrep.deployment.oid,
+
+          payload: {
+            from,
+            config
+          }
+        }
+      });
+
+      await addAfterTransactionHook(async () =>
+        handleUpcomingCustomProviderQueue.add({ upcomingCustomProviderId: upcoming.id })
+      );
+
+      return await db.customProviderVersion.findUniqueOrThrow({
+        where: { oid: versionPrep.version.oid, tenantOid: d.tenant.oid },
+        include
+      });
+    });
+
+    let [enriched] = await this.enrichCustomProviders({ customProviders: [customProvider] });
+    return enriched!;
+  }
+
+  async listCustomProviderVersions(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+
+    status?: CustomProviderVersionStatus[];
+
+    createdAt?: DateFilter;
+    updatedAt?: DateFilter;
+
+    ids?: string[];
+    providerIds?: string[];
+    providerVersionIds?: string[];
+    customProviderIds?: string[];
+    customProviderDeploymentIds?: string[];
+    customProviderEnvironmentIds?: string[];
+  }) {
+    let providers = await resolveProviders(d, d.providerIds);
+    let providerVersions = await resolveProviders(d, d.providerVersionIds);
+    let customProviders = await resolveCustomProviders(d, d.customProviderIds);
+    let customProviderDeployments = await resolveCustomProviderDeployments(
+      d,
+      d.customProviderDeploymentIds
+    );
+    let customProviderEnvironments = await resolveCustomProviderEnvironments(
+      d,
+      d.customProviderEnvironmentIds
+    );
+
+    return Paginator.create(({ prisma }) =>
+      prisma(async opts => {
+        let res = await db.customProviderVersion.findMany({
+          ...opts,
+          where: {
+            tenantOid: d.tenant.oid,
+            solutionOid: d.solution.oid,
+
+            AND: [
+              d.ids ? { id: { in: d.ids } } : undefined!,
+
+              d.status ? { status: { in: d.status } } : undefined!,
+
+              providers ? { customProvider: { providerOid: providers.in } } : undefined!,
+              providerVersions ? { providerVersionOid: providerVersions.in } : undefined!,
+
+              customProviders ? { customProviderOid: customProviders.in } : undefined!,
+              customProviderDeployments
+                ? { deploymentOid: customProviderDeployments.in }
+                : undefined!,
+              customProviderEnvironments
+                ? {
+                    customProviderEnvironmentVersions: {
+                      some: { customProviderEnvironmentOid: customProviderEnvironments.in }
+                    }
+                  }
+                : undefined!,
+              d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
+              d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
+            ].filter(Boolean)
+          },
+          include
+        });
+
+        return await this.enrichCustomProviders({ customProviders: res });
+      })
+    );
+  }
+
+  async getCustomProviderVersionById(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    customProviderVersionId: string;
+  }) {
+    let customProviderVersion = await db.customProviderVersion.findFirst({
+      where: {
+        id: d.customProviderVersionId,
+        tenantOid: d.tenant.oid,
+        solutionOid: d.solution.oid
+      },
+      include
+    });
+    if (!customProviderVersion)
+      throw new ServiceError(
+        notFoundError('custom_provider.version', d.customProviderVersionId)
+      );
+
+    let [enriched] = await this.enrichCustomProviders({
+      customProviders: [customProviderVersion]
+    });
+    return enriched!;
+  }
+}
+
+export let customProviderVersionService = Service.create(
+  'customProviderVersion',
+  () => new customProviderVersionServiceImpl()
+).build();

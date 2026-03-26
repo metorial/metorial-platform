@@ -42,7 +42,10 @@ export type ManagementInstanceIdentitiesDelegationRequestsListOutput = {
       attestation: {
         object: 'identity.delegation_attestation';
         id: string;
-        type: string;
+        type:
+          | 'api'
+          | 'request_approval'
+          | 'covered_by_previously_approved_delegation';
         createdAt: Date;
       } | null;
       note: string | null;

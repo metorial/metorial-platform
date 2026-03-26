@@ -1,0 +1,28 @@
+{
+  "name": "@metorial-subspace/module-callback",
+  "version": "1.0.0",
+  "author": "Tobias Herber",
+  "license": "FSL-1.1",
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "vitest run --passWithNoTests",
+    "lint": "prettier src/**/*.ts --check"
+  },
+  "dependencies": {
+    "@lowerdeck/cache": "^1.0.1",
+    "@lowerdeck/env": "^1.0.5",
+    "@lowerdeck/error": "^1.2.2",
+    "@lowerdeck/pagination": "^1.0.7",
+    "@lowerdeck/queue": "^1.0.8",
+    "@lowerdeck/service": "^1.0.4",
+    "@metorial-subspace/db": "^1.0.0",
+    "@metorial-subspace/module-provider-internal": "^1.0.0",
+    "@metorial-subspace/provider-slates": "^1.0.0",
+    "@lowerdeck/validation": "^1.0.8"
+  },
+  "devDependencies": {
+    "@metorial-subspace/tsconfig": "^1.0.0",
+    "typescript": "5.8.2",
+    "vitest": "^3.1.2"
+  }
+}

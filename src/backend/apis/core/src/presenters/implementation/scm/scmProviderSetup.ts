@@ -26,7 +26,9 @@ export let v1ScmProviderSetupPresenter = Presenter.create(scmProviderSetupType)
     v.object({
       object: v.literal('scm.provider.setup_session'),
       id: v.string({ description: 'Unique setup session identifier' }),
-      type: v.string({ description: 'SCM backend type' }),
+      type: v.enumOf(['github', 'github_enterprise', 'gitlab', 'gitlab_selfhosted'], {
+        description: 'SCM backend type'
+      }),
       url: v.string({ description: 'Setup URL' }),
       status: v.enumOf(['pending', 'completed', 'expired'] as const, {
         description: 'Status of the provider setup session'

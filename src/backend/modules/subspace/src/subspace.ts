@@ -1,6 +1,6 @@
 import { delay } from '@lowerdeck/delay';
 import { ProgrammablePromise } from '@lowerdeck/programmable-promise';
-import { createSubspaceControllerClient } from '@metorial-services/subspace-client';
+import { createSubspaceControllerClient } from '@metorial-platform-systems/subspace-client';
 import {
   db,
   Organization,

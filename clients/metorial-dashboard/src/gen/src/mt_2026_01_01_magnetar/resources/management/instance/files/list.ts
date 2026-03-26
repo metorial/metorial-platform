@@ -59,7 +59,13 @@ export type ManagementInstanceFilesListQuery = {
   before?: string | undefined;
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
-} & { purpose?: 'user_image' | 'organization_image' | undefined };
+} & {
+  purpose?:
+    | 'user_image'
+    | 'organization_image'
+    | 'project_brand_image'
+    | undefined;
+};
 
 export let mapManagementInstanceFilesListQuery = mtMap.union([
   mtMap.unionOption(

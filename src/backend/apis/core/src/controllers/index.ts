@@ -38,6 +38,11 @@ import { projectManagementController } from './management/project';
 import { serviceAccountManagementController } from './management/serviceAccount';
 import { teamManagementController } from './management/team';
 import {
+  callbackController,
+  callbackDestinationController,
+  callbackEventController,
+  callbackInstanceController,
+  callbackNotificationController,
   customProviderCodeController,
   customProviderCommitController,
   customProviderController,
@@ -71,6 +76,7 @@ import {
   providerSetupSessionController,
   providerSetupSessionDashboardController,
   providerSpecificationController,
+  providerTriggerController,
   providerToolController,
   providerVersionController,
   publisherController,
@@ -114,6 +120,7 @@ export let magnetarController = Controller.create<any>(
 
     providerVersionController,
     providerSpecificationController,
+    providerTriggerController,
     providerToolController,
     providerAuthMethodController,
 
@@ -126,6 +133,12 @@ export let magnetarController = Controller.create<any>(
     providerSetupSessionController,
     providerAuthImportController,
     providerAuthExportController,
+
+    callbackController,
+    callbackDestinationController,
+    callbackEventController,
+    callbackInstanceController,
+    callbackNotificationController,
 
     sessionController,
     sessionTemplateController,
@@ -228,6 +241,7 @@ export let dashboardController = Controller.create<any>(
 
     providerVersionController,
     providerSpecificationController,
+    providerTriggerController,
     providerToolController,
     providerAuthMethodController,
 
@@ -240,6 +254,12 @@ export let dashboardController = Controller.create<any>(
 
     providerAuthImportController,
     providerAuthExportController,
+
+    callbackController,
+    callbackDestinationController,
+    callbackEventController,
+    callbackInstanceController,
+    callbackNotificationController,
 
     sessionTemplateController,
     sessionTemplateProviderController,
@@ -277,11 +297,6 @@ export let dashboardController = Controller.create<any>(
     portalConsumerAccessController,
     portalConsumerProfileController,
     portalConsumerAccessRequestController
-
-    // callbackController,
-    // callbackEventController,
-    // callbackDestinationController,
-    // callbackNotificationController,
 
     // ssoTenantController,
     // ssoUserController,

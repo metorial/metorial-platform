@@ -1,0 +1,88 @@
+enum ProviderDeploymentStatus {
+  active
+  archived
+  deleted
+}
+
+model ProviderDeployment {
+  oid BigInt @id
+  id  String @unique
+
+  status ProviderDeploymentStatus
+
+  isEphemeral Boolean
+  isDefault   Boolean
+
+  name        String?
+  description String?
+  metadata    Json?
+
+  /// [ToolFilter]
+  toolFilter Json @default("{\"type\":\"v1.allow_all\"}")
+
+  networkingRulesetIds String[]
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
+
+  providerOid BigInt
+  provider    Provider @relation(fields: [providerOid], references: [oid])
+
+  providerVariantOid BigInt
+  providerVariant    ProviderVariant @relation(fields: [providerVariantOid], references: [oid])
+
+  defaultConfigOid BigInt?         @unique
+  defaultConfig    ProviderConfig? @relation(fields: [defaultConfigOid], references: [oid], name: "defaultConfig")
+
+  defaultAuthConfigOid BigInt?             @unique
+  defaultAuthConfig    ProviderAuthConfig? @relation(fields: [defaultAuthConfigOid], references: [oid], name: "defaultAuthConfig")
+
+  currentVersionOid BigInt?
+  currentVersion    ProviderDeploymentVersion? @relation(fields: [currentVersionOid], references: [oid], name: "currentVersion")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  providerOAuthSetups        ProviderOAuthSetup[]
+  providerConfigVaults       ProviderConfigVault[]
+  providerConfigs            ProviderConfig[]
+  providerAuthConfigs        ProviderAuthConfig[]
+  providerAuthImports        ProviderAuthImport[]
+  providerSetupSessions      ProviderSetupSession[]
+  sessionProviders           SessionProvider[]
+  sessionTemplateProviders   SessionTemplateProvider[]
+  providerDeploymentVersions ProviderDeploymentVersion[]
+  callbacks                  Callback[]
+  identityCredentials        IdentityCredential[]
+
+  @@index([createdAt])
+  @@index([updatedAt])
+  @@index([isEphemeral])
+  @@index([isDefault])
+  @@index([status])
+}
+
+model ProviderDeploymentVersion {
+  oid BigInt @id
+  id  String @unique
+
+  providerVariantOid BigInt
+  providerVariant    ProviderVariant @relation(fields: [providerVariantOid], references: [oid])
+
+  lockedVersionOid BigInt?
+  lockedVersion    ProviderVersion? @relation(fields: [lockedVersionOid], references: [oid])
+
+  deploymentOid BigInt
+  deployment    ProviderDeployment @relation(fields: [deploymentOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  defaultForDeployment          ProviderDeployment[]           @relation("currentVersion")
+  providerDeploymentConfigPairs ProviderDeploymentConfigPair[]
+}

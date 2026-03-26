@@ -4,6 +4,11 @@ import { MetorialKeyPrefix, sdkBuilder } from './builder';
 import {
   MetorialApiKeysEndpoint,
   MetorialDashboardEndpoint,
+  MetorialDashboardInstanceCallbacksDestinationsEndpoint,
+  MetorialDashboardInstanceCallbacksEndpoint,
+  MetorialDashboardInstanceCallbacksEventsEndpoint,
+  MetorialDashboardInstanceCallbacksInstancesEndpoint,
+  MetorialDashboardInstanceCallbacksNotificationsEndpoint,
   MetorialDashboardInstanceCustomProvidersCodeEndpoint,
   MetorialDashboardInstanceCustomProvidersCommitsEndpoint,
   MetorialDashboardInstanceCustomProvidersDeploymentsEndpoint,
@@ -47,6 +52,7 @@ import {
   MetorialDashboardInstanceProvidersEndpoint,
   MetorialDashboardInstanceProvidersSpecificationsEndpoint,
   MetorialDashboardInstanceProvidersToolsEndpoint,
+  MetorialDashboardInstanceProvidersTriggersEndpoint,
   MetorialDashboardInstanceProvidersVersionsEndpoint,
   MetorialDashboardInstanceProviderTemplatesEndpoint,
   MetorialDashboardInstancePublishersEndpoint,
@@ -79,6 +85,7 @@ import {
   MetorialDashboardOrganizationsOauthCliDevicesEndpoint,
   MetorialDashboardOrganizationsOauthInstallationsEndpoint,
   MetorialDashboardOrganizationsOauthScopesEndpoint,
+  MetorialDashboardOrganizationsProjectsBrandingEndpoint,
   MetorialDashboardOrganizationsProjectsEndpoint,
   MetorialDashboardOrganizationsServiceAccountsClientSecretsEndpoint,
   MetorialDashboardOrganizationsServiceAccountsCredentialsEndpoint,
@@ -155,7 +162,9 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
   profile: new MetorialOrganizationsProfileEndpoint(manager),
 
   instances: new MetorialDashboardOrganizationsInstancesEndpoint(manager),
-  projects: new MetorialDashboardOrganizationsProjectsEndpoint(manager),
+  projects: Object.assign(new MetorialDashboardOrganizationsProjectsEndpoint(manager), {
+    branding: new MetorialDashboardOrganizationsProjectsBrandingEndpoint(manager)
+  }),
   user: new MetorialManagementUserEndpoint(manager),
 
   apiKeys: new MetorialApiKeysEndpoint(manager),
@@ -246,6 +255,7 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
   providers: Object.assign(new MetorialDashboardInstanceProvidersEndpoint(manager), {
     versions: new MetorialDashboardInstanceProvidersVersionsEndpoint(manager),
     tools: new MetorialDashboardInstanceProvidersToolsEndpoint(manager),
+    triggers: new MetorialDashboardInstanceProvidersTriggersEndpoint(manager),
     authMethods: new MetorialDashboardInstanceProvidersAuthMethodsEndpoint(manager),
     authConfigs: new MetorialDashboardInstanceProviderDeploymentsAuthConfigsEndpoint(manager),
     specifications: new MetorialDashboardInstanceProvidersSpecificationsEndpoint(manager),
@@ -282,6 +292,13 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
       )
     }
   ),
+
+  callbacks: Object.assign(new MetorialDashboardInstanceCallbacksEndpoint(manager), {
+    destinations: new MetorialDashboardInstanceCallbacksDestinationsEndpoint(manager),
+    events: new MetorialDashboardInstanceCallbacksEventsEndpoint(manager),
+    notifications: new MetorialDashboardInstanceCallbacksNotificationsEndpoint(manager),
+    instances: new MetorialDashboardInstanceCallbacksInstancesEndpoint(manager)
+  }),
 
   sessions: Object.assign(new MetorialDashboardInstanceSessionsEndpoint(manager), {
     events: new MetorialDashboardInstanceSessionsEventsEndpoint(manager),
@@ -323,4 +340,11 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
   })
 }));
 
-export type MetorialDashboardSDK = ReturnType<typeof createMetorialDashboardSDK>;
+export type MetorialDashboardSDK = ReturnType<typeof createMetorialDashboardSDK> & {
+  callbacks: MetorialDashboardInstanceCallbacksEndpoint & {
+    destinations: MetorialDashboardInstanceCallbacksDestinationsEndpoint;
+    events: MetorialDashboardInstanceCallbacksEventsEndpoint;
+    notifications: MetorialDashboardInstanceCallbacksNotificationsEndpoint;
+    instances: MetorialDashboardInstanceCallbacksInstancesEndpoint;
+  };
+};

@@ -1,0 +1,20 @@
+{
+  "name": "@metorial-subspace/list-utils",
+  "module": "index.ts",
+  "main": "src/index.ts",
+  "type": "module",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {},
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@lowerdeck/error": "^1.2.2",
+    "@metorial-subspace/db": "^1.0.0",
+    "date-fns": "^4.1.0"
+  }
+}

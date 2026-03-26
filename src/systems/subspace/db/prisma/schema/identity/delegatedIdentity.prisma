@@ -1,0 +1,86 @@
+model DelegatedIdentity {
+  oid BigInt @id
+  id  String @unique
+
+  permissions IdentityDelegationPermissions[]
+  delegationLevel Int
+  isActive    Boolean
+
+  identityOid BigInt
+  identity    Identity @relation(fields: [identityOid], references: [oid], onDelete: Cascade)
+
+  actorOid BigInt
+  actor    IdentityActor @relation(fields: [actorOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  atLeastHoldsUntil DateTime? // Used for delegation checker
+
+  credentials              DelegatedIdentityCredential[]
+  delegatedIdentityUpdates DelegatedIdentityUpdate[]
+
+  @@unique([identityOid, actorOid])
+}
+
+model DelegatedIdentityCredential {
+  oid BigInt @id
+  id  String @unique
+
+  permissions IdentityDelegationPermissions[]
+  isActive    Boolean
+
+  delegatedIdentityOid BigInt
+  delegatedIdentity    DelegatedIdentity @relation(fields: [delegatedIdentityOid], references: [oid], onDelete: Cascade)
+
+  credentialOid BigInt
+  credential    IdentityCredential @relation(fields: [credentialOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  atLeastHoldsUntil DateTime? // Used for delegation checker
+
+  delegatedIdentityCredentialUpdates DelegatedIdentityCredentialUpdate[]
+
+  @@unique([delegatedIdentityOid, credentialOid])
+}
+
+model DelegatedIdentityUpdate {
+  oid BigInt @id
+  id  String @unique
+
+  delegatedIdentityOid BigInt
+  delegatedIdentity    DelegatedIdentity @relation(fields: [delegatedIdentityOid], references: [oid], onDelete: Cascade)
+
+  isActiveBefore Boolean
+  isActiveAfter  Boolean
+
+  delegationLevelBefore Int
+  delegationLevelAfter  Int
+
+  permissionsBefore IdentityDelegationPermissions[]
+  permissionsAfter  IdentityDelegationPermissions[]
+
+  createdAt                          DateTime                            @default(now())
+  delegatedIdentityCredentialUpdates DelegatedIdentityCredentialUpdate[]
+}
+
+model DelegatedIdentityCredentialUpdate {
+  oid BigInt @id
+  id  String @unique
+
+  updateOid BigInt
+  update    DelegatedIdentityUpdate @relation(fields: [updateOid], references: [oid], onDelete: Cascade)
+
+  delegatedCredentialOid BigInt
+  delegatedCredential    DelegatedIdentityCredential @relation(fields: [delegatedCredentialOid], references: [oid], onDelete: Cascade)
+
+  isActiveBefore Boolean
+  isActiveAfter  Boolean
+
+  permissionsBefore IdentityDelegationPermissions[]
+  permissionsAfter  IdentityDelegationPermissions[]
+
+  createdAt DateTime @default(now())
+}

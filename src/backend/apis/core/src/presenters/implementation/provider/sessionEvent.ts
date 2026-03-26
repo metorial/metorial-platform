@@ -56,11 +56,26 @@ export let v1SubspaceSessionEventPresenter = Presenter.create(sessionEventType)
         description: 'Unique session event identifier',
         examples: ['sev_8hJkLmNpQrStUvWx']
       }),
-      type: v.string({
-        name: 'type',
-        description: 'Event type',
-        examples: ['connection.opened', 'message.created', 'error.occurred']
-      }),
+      type: v.enumOf(
+        [
+          'session_created',
+          'session_started',
+          'provider_run_started',
+          'provider_run_stopped',
+          'message_created',
+          'message_processed',
+          'connection_created',
+          'connection_connected',
+          'connection_disconnected',
+          'connection_disabled',
+          'error_occurred',
+          'warning_occurred'
+        ] as const,
+        {
+          name: 'type',
+          description: 'Event type'
+        }
+      ),
       session_id: v.string({
         name: 'session_id',
         description: 'Parent session ID',

@@ -6,7 +6,7 @@ export type DashboardInstanceSessionsCreateOutput = {
   name: string | null;
   description: string | null;
   metadata: Record<string, any> | null;
-  connectionState: string;
+  connectionState: 'connected' | 'disconnected';
   connectionUrl: string;
   clientSecret: string | null;
   usage: {

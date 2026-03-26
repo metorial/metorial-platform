@@ -1,0 +1,41 @@
+enum SessionParticipantType {
+  mcp_client
+  metorial_protocol_client
+  provider
+  system
+  tool_call
+  unknown
+}
+
+model SessionParticipant {
+  oid BigInt @id
+  id  String @unique
+
+  type SessionParticipantType
+
+  hash       String
+  identifier String
+  name       String
+
+  /// [SessionParticipantPayload]
+  payload Json
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  providerOid BigInt?
+  provider    Provider? @relation(fields: [providerOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  sessionConnections       SessionConnection[]
+  sessionMessagesSender    SessionMessage[]    @relation("SenderParticipant")
+  sessionMessagesResponder SessionMessage[]    @relation("ResponderParticipant")
+
+  @@unique([tenantOid, type, hash])
+  @@index([createdAt])
+  @@index([type])
+}

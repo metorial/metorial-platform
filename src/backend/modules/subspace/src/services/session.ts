@@ -56,7 +56,7 @@ export let subspaceSessionService = createSubspaceService(
           let res = await paginator.run(query);
           let references = await sessionClientSecretReferenceService.getForSessions({
             instance: input.instance,
-            sessionIds: res.items.map(item => item.id)
+            sessionIds: res.items.map((item: RawSubspaceSession) => item.id)
           });
           let referenceMap = new Map(
             (references as any[]).map(reference => [
@@ -67,7 +67,7 @@ export let subspaceSessionService = createSubspaceService(
 
           return {
             ...res,
-            items: res.items.map(item => ({
+            items: res.items.map((item: RawSubspaceSession) => ({
               ...item,
               clientSecret: referenceMap.get(item.id) ?? null
             }))

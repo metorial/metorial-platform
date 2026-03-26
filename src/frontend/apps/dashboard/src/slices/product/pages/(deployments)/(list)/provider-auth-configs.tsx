@@ -9,7 +9,7 @@ import {
   useProviders
 } from '@metorial/state';
 import { Badge, Input, RenderDate, Spacer, Text } from '@metorial/ui';
-import { Table } from '@metorial/ui-product';
+import { ID, Table } from '@metorial/ui-product';
 import { useMemo } from 'react';
 import { EmptyState } from '../../../../../components/emptyState';
 import { useSearchFilter } from '../../../../../hooks/useSearchFilter';
@@ -86,6 +86,7 @@ export let ProviderAuthConfigsOverviewPage = () => {
     <Table
       headers={[
         'Name',
+        'ID',
         'Auth Method',
         'Type',
         'Source',
@@ -108,6 +109,7 @@ export let ProviderAuthConfigsOverviewPage = () => {
           <Text size="2" weight="strong">
             {row.name || '\u2014'}
           </Text>,
+          <ID id={row.key} />,
           <Text size="2">{row.authMethodName ?? '\u2014'}</Text>,
           <Text size="2">{formatType(row.type)}</Text>,
           <Text size="2">{formatSource(row.source)}</Text>,

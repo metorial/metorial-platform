@@ -27,11 +27,13 @@ export let v1ScmConnectionPresenter = Presenter.create(scmConnectionType)
     v.object({
       object: v.literal('scm.connection'),
       id: v.string({ description: 'Unique SCM connection identifier' }),
-      provider: v.string({ description: 'SCM provider type' }),
+      provider: v.enumOf(['github', 'gitlab'], { description: 'SCM provider type' }),
       external_installation_id: v.nullable(
         v.string({ description: 'External installation identifier' })
       ),
-      account_type: v.nullable(v.string({ description: 'Account type' })),
+      account_type: v.nullable(
+        v.enumOf(['user', 'organization'], { description: 'Account type' })
+      ),
       external_account: v.object({
         id: v.string({ description: 'External account identifier' }),
         login: v.string({ description: 'External account login' }),

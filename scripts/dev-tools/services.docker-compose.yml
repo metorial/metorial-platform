@@ -49,6 +49,12 @@ services:
     command: postgres -c 'max_connections=1000'
     restart: unless-stopped
 
+  nats-1:
+    image: nats
+    command: '--cluster_name NATS --cluster nats://0.0.0.0:6222 --http_port 8222'
+    ports:
+      - '34222:4222'
+
   # minio:
   #   image: minio/minio:latest
   #   container_name: minio

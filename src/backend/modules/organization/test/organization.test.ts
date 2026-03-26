@@ -69,6 +69,7 @@ vi.mock('date-fns', () => ({
 
 vi.mock('@metorial/module-file', () => ({
   fileReferenceService: {
+    resolveImageEntityImage: vi.fn(),
     createImageEntityImage: vi.fn(),
     cleanupImageEntityImage: vi.fn()
   }

@@ -102,7 +102,11 @@ export let MagicMcpConnectionLayout = () => {
             },
             {
               label: 'Last Active',
-              value: <RenderDate date={connection.data.lastActiveAt} />
+              value: connection.data.lastActiveAt ? (
+                <RenderDate date={connection.data.lastActiveAt} />
+              ) : (
+                'N/A'
+              )
             }
           ]}
         >

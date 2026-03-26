@@ -23,11 +23,7 @@ export let v1ScmRepoPreviewPresenter = Presenter.create(scmRepoPreviewType)
           object: v.literal('scm.repository.item#preview', {
             description: "String representing the repository preview item's type"
           }),
-          provider: v.object({
-            type: v.enumOf(['github', 'gitlab'], { description: 'SCM provider type' }),
-            name: v.string({ description: 'Repository name on the provider' }),
-            owner: v.string({ description: 'Repository owner on the provider' })
-          }),
+          provider: v.enumOf(['github', 'gitlab'], { description: 'SCM provider type' }),
           external_id: v.string({ description: 'External repository identifier' }),
           name: v.string({ description: 'Repository name' }),
           identifier: v.string({ description: 'Repository identifier (e.g. full name)' })

@@ -51,7 +51,6 @@ import {
   TeamProject,
   User
 } from '@metorial/db';
-import type { PolicyDocument } from '@metorial/module-organization';
 import {
   ConsumerAresApp,
   ConsumerAresSsoConnection,
@@ -64,8 +63,14 @@ import type {
   OAuthAuthorizationLogWithRelations,
   OAuthAuthorizationRequestWithRelations
 } from '@metorial/module-machine-access';
+import type { PolicyDocument, ProjectBrandOverride } from '@metorial/module-organization';
 import {
   SubspaceBucket,
+  SubspaceCallback,
+  SubspaceCallbackDestination,
+  SubspaceCallbackEvent,
+  SubspaceCallbackInstance,
+  SubspaceCallbackNotification,
   SubspaceCustomProvider,
   SubspaceCustomProviderCommit,
   SubspaceCustomProviderDeployment,
@@ -100,6 +105,7 @@ import {
   SubspaceProviderSetupSession,
   SubspaceProviderSpecification,
   SubspaceProviderTool,
+  SubspaceProviderTrigger,
   SubspaceProviderType,
   SubspaceProviderVersion,
   SubspacePublisher,
@@ -164,6 +170,10 @@ export let tokenType = PresentableType.create<{
     user?: User;
   };
 }>()('token');
+
+export let projectBrandType = PresentableType.create<{
+  projectBrand: ProjectBrandOverride;
+}>()('projectBrand');
 
 export let instanceType = PresentableType.create<{
   instance: Instance & { project: Project; organization: Organization };
@@ -443,34 +453,25 @@ export let consumerProviderType = PresentableType.create<{
   consumerProvider: ConsumerProviderCatalogEntry;
 }>()('consumer.provider');
 
-// export let callbackType = PresentableType.create<{
-//   callback: Callback & {
-//     hooks: CallbackHook[];
-//     schedule: CallbackSchedule | null;
-//   };
-// }>()('callback');
+export let callbackType = PresentableType.create<{
+  callback: SubspaceCallback;
+}>()('callback');
 
-// export let callbackEventType = PresentableType.create<{
-//   callbackEvent: CallbackEvent & {
-//     processingAttempts: CallbackEventProcessingAttempt[];
-//   };
-// }>()('callback.event');
+export let callbackEventType = PresentableType.create<{
+  callbackEvent: SubspaceCallbackEvent;
+}>()('callback.event');
 
-// export let callbackDestinationType = PresentableType.create<{
-//   callbackDestination: CallbackDestination & {
-//     callbacks: (CallbackDestinationCallback & {
-//       callback: Callback;
-//     })[];
-//   };
-// }>()('callback.destination');
+export let callbackDestinationType = PresentableType.create<{
+  callbackDestination: SubspaceCallbackDestination;
+}>()('callback.destination');
 
-// export let callbackNotificationType = PresentableType.create<{
-//   callbackNotification: CallbackNotification & {
-//     destination: CallbackDestination;
-//     event: CallbackEvent;
-//     attempts: CallbackNotificationAttempt[];
-//   };
-// }>()('callback.notification');
+export let callbackNotificationType = PresentableType.create<{
+  callbackNotification: SubspaceCallbackNotification;
+}>()('callback.notification');
+
+export let callbackInstanceType = PresentableType.create<{
+  callbackInstance: SubspaceCallbackInstance;
+}>()('callback.instance');
 
 export let portalType = PresentableType.create<{
   portal: Portal & {
@@ -660,6 +661,10 @@ export let providerListingType = PresentableType.create<{
 
 export let providerToolType = PresentableType.create<{ tool: SubspaceProviderTool }>()('tool');
 
+export let providerTriggerType = PresentableType.create<{
+  trigger: SubspaceProviderTrigger;
+}>()('provider.capabilities.trigger');
+
 export let providerAuthMethodType = PresentableType.create<{
   authMethod: SubspaceProviderAuthMethod;
 }>()('provider.capabilities.auth_method');
@@ -674,6 +679,10 @@ export let deploymentPreviewType = PresentableType.create<{
 
 export let configPreviewType = PresentableType.create<{
   config: NonNullable<SubspaceProviderDeployment['defaultConfig']>;
+}>()('configPreview');
+
+export let authConfigPreviewType = PresentableType.create<{
+  authConfig: NonNullable<SubspaceCallbackInstance['authConfig']>;
 }>()('configPreview');
 
 export let providerDeploymentType = PresentableType.create<{

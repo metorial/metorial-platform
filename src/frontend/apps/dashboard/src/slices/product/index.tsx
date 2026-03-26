@@ -69,6 +69,9 @@ let ProviderVersionsPage = dynamicPage(() =>
 let ProviderToolsPage = dynamicPage(() =>
   import('./pages/provider/tools').then(c => c.ProviderToolsPage)
 );
+let ProviderTriggersPage = dynamicPage(() =>
+  import('./pages/provider/triggers').then(c => c.ProviderTriggersPage)
+);
 let ProviderDetailsDeploymentsPage = dynamicPage(() =>
   import('./pages/provider/deployments').then(c => c.ProviderDeploymentsPage)
 );
@@ -106,6 +109,11 @@ let ProviderDeploymentAuthMethodsPage = dynamicPage(() =>
 let ProviderDeploymentAuthConfigsPage = dynamicPage(() =>
   import('./pages/(deployments)/provider-deployment/auth-configs').then(
     c => c.ProviderDeploymentAuthConfigsPage
+  )
+);
+let ProviderDeploymentAuthCredentialsPage = dynamicPage(() =>
+  import('./pages/(deployments)/provider-deployment/auth-credentials').then(
+    c => c.ProviderDeploymentAuthCredentialsPage
   )
 );
 let ProviderDeploymentSettingsPage = dynamicPage(() =>
@@ -364,6 +372,30 @@ let ManagedServersPage = dynamicPage(() =>
     c => c.CustomerProvidersPage
   )
 );
+let CallbacksListLayout = dynamicPage(() =>
+  import('./pages/(callbacks)/(list)/_layout').then(c => c.CallbacksListLayout)
+);
+let CallbacksPage = dynamicPage(() =>
+  import('./pages/(callbacks)/(list)/index').then(c => c.CallbacksPage)
+);
+let CallbackLayout = dynamicPage(() =>
+  import('./pages/(callbacks)/_layout').then(c => c.CallbackLayout)
+);
+let CallbackOverviewPage = dynamicPage(() =>
+  import('./pages/(callbacks)/overview').then(c => c.CallbackOverviewPage)
+);
+let CallbackEventsPage = dynamicPage(() =>
+  import('./pages/(callbacks)/events').then(c => c.CallbackEventsPage)
+);
+let CallbackLogsPage = dynamicPage(() =>
+  import('./pages/(callbacks)/logs').then(c => c.CallbackLogsPage)
+);
+let CallbackTriggersPage = dynamicPage(() =>
+  import('./pages/(callbacks)/triggers').then(c => c.CallbackTriggersPage)
+);
+let CallbackDestinationsPage = dynamicPage(() =>
+  import('./pages/(callbacks)/destinations').then(c => c.CallbackDestinationsPage)
+);
 let LogsListLayout = dynamicPage(() =>
   import('./pages/(logs)/(list)/_layout').then(c => c.LogsListLayout)
 );
@@ -600,6 +632,10 @@ export let productInnerSlice = createSlice([
                 element: <ProviderToolsPage />
               },
               {
+                path: 'triggers',
+                element: <ProviderTriggersPage />
+              },
+              {
                 path: 'deployments',
                 element: <ProviderDetailsDeploymentsPage />
               },
@@ -637,6 +673,10 @@ export let productInnerSlice = createSlice([
               {
                 path: 'auth-configs',
                 element: <ProviderDeploymentAuthConfigsPage />
+              },
+              {
+                path: 'auth-credentials',
+                element: <ProviderDeploymentAuthCredentialsPage />
               },
               {
                 path: 'settings',
@@ -978,6 +1018,44 @@ export let productInnerSlice = createSlice([
           {
             path: 'explorer',
             element: <ExplorerPage />
+          },
+
+          {
+            path: 'callback/:callbackId',
+            element: <CallbackLayout />,
+            children: [
+              {
+                path: '',
+                element: <CallbackOverviewPage />
+              },
+              {
+                path: 'events',
+                element: <CallbackEventsPage />
+              },
+              {
+                path: 'logs',
+                element: <CallbackLogsPage />
+              },
+              {
+                path: 'triggers',
+                element: <CallbackTriggersPage />
+              },
+              {
+                path: 'destinations',
+                element: <CallbackDestinationsPage />
+              }
+            ]
+          },
+
+          {
+            path: 'callbacks',
+            element: <CallbacksListLayout />,
+            children: [
+              {
+                path: '',
+                element: <CallbacksPage />
+              }
+            ]
           },
 
           {

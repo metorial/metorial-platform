@@ -1,0 +1,17 @@
+{
+  "name": "@metorial-subspace/tsconfig",
+  "version": "1.0.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "private": true,
+  "scripts": {
+    "test": "echo \"Error: no test specified\""
+  },
+  "files": [
+    "base.json"
+  ],
+  "dependencies": {
+    "@types/node": "^22.15.3"
+  }
+}

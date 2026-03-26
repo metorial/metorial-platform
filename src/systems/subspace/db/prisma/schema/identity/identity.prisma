@@ -1,0 +1,89 @@
+enum IdentityStatus {
+  active
+  archived
+  deleted
+}
+
+model Identity {
+  oid BigInt @id
+  id  String @unique
+
+  status          IdentityStatus
+  isParentDeleted Boolean        @default(false)
+
+  name        String?
+  description String?
+  metadata    Json?
+
+  needsReconciliation Boolean
+
+  actorOid BigInt
+  actor    IdentityActor @relation(fields: [actorOid], references: [oid], onDelete: Cascade)
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
+
+  delegationConfigOid BigInt?
+  delegationConfig    IdentityDelegationConfig? @relation(fields: [delegationConfigOid], references: [oid], onDelete: Cascade)
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
+  archivedAt DateTime?
+
+  credentials                IdentityCredential[]
+  identityDelegations        IdentityDelegation[]
+  identityDelegationRequests IdentityDelegationRequest[]
+  delegatedIdentities        DelegatedIdentity[]
+
+  @@index([createdAt])
+  @@index([updatedAt])
+  @@index([status])
+}
+
+enum IdentityCredentialStatus {
+  active
+  archived
+  deleted
+}
+
+model IdentityCredential {
+  oid BigInt @id
+  id  String @unique
+
+  status IdentityStatus
+
+  identityOid BigInt
+  identity    Identity @relation(fields: [identityOid], references: [oid], onDelete: Cascade)
+
+  deploymentOid BigInt
+  deployment    ProviderDeployment @relation(fields: [deploymentOid], references: [oid], onDelete: Cascade)
+
+  configOid BigInt
+  config    ProviderConfig @relation(fields: [configOid], references: [oid], onDelete: Cascade)
+
+  authConfigOid BigInt?
+  authConfig    ProviderAuthConfig? @relation(fields: [authConfigOid], references: [oid], onDelete: Cascade)
+
+  providerOid BigInt
+  provider    Provider @relation(fields: [providerOid], references: [oid], onDelete: Cascade)
+
+  delegationConfigOid BigInt?
+  delegationConfig    IdentityDelegationConfig? @relation(fields: [delegationConfigOid], references: [oid], onDelete: Cascade)
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
+  archivedAt DateTime?
+
+  identityDelegationCredentialOverrides IdentityDelegationCredentialOverride[]
+  delegatedIdentityCredential           DelegatedIdentityCredential[]
+
+  @@index([createdAt])
+  @@index([updatedAt])
+  @@index([status])
+}

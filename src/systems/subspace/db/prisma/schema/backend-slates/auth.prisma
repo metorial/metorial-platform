@@ -1,0 +1,47 @@
+model SlateOAuthCredentials {
+  oid BigInt @id
+  id  String @unique
+
+  slateOid BigInt
+  slate    Slate  @relation(fields: [slateOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  providerAuthCredentials ProviderAuthCredentials[]
+}
+
+model SlateOAuthSetup {
+  oid BigInt @id
+  id  String @unique
+
+  slateOid BigInt
+  slate    Slate  @relation(fields: [slateOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  providerOAuthSetups ProviderOAuthSetup[]
+}
+
+model SlateAuthConfig {
+  oid BigInt @id
+  id  String @unique
+
+  slateOid BigInt
+  slate    Slate  @relation(fields: [slateOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  providerAuthConfigUpdateOid BigInt?
+  providerAuthConfigUpdate    ProviderAuthConfigUpdate? @relation(fields: [providerAuthConfigUpdateOid], references: [oid])
+
+  providerAuthConfigVersion ProviderAuthConfigVersion?
+
+  createdAt DateTime @default(now())
+}

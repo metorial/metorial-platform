@@ -34,6 +34,7 @@ import { v1PortalAuthSsoTenantPresenter } from './implementation/portalAuthSsoTe
 import { v1PortalAuthSsoTenantSetupPresenter } from './implementation/portalAuthSsoTenantSetup';
 import { v1ProfilePresenter } from './implementation/profile';
 import { v1ProjectPresenter } from './implementation/project';
+import { v1ProjectBrandPresenter } from './implementation/projectBrand';
 import { v1ProviderTemplatePresenter } from './implementation/providerTemplate';
 import { v1SecretPresenter } from './implementation/secret';
 import { v1ServiceAccountPresenter } from './implementation/serviceAccount';
@@ -48,6 +49,11 @@ import {
   dashboardCustomProviderPresenter,
   dashboardProviderPresenter,
   v1BucketEditorTokenPresenter,
+  v1CallbackDestinationPresenter,
+  v1CallbackEventPresenter,
+  v1CallbackInstancePresenter,
+  v1CallbackNotificationPresenter,
+  v1CallbackPresenter,
   v1ConfigPresenter,
   v1CustomProviderCommitPresenter,
   v1CustomProviderDeploymentLogsPresenter,
@@ -88,6 +94,7 @@ import {
   v1ProviderSpecificationPresenter,
   v1ProviderToolCallPresenter,
   v1ProviderToolPresenter,
+  v1ProviderTriggerPresenter,
   v1ProviderTypePresenter,
   v1ProviderVersionPresenter,
   v1PublisherPresenter,
@@ -126,6 +133,11 @@ import {
   authImportSchemaType,
   bootType,
   bucketEditorTokenType,
+  callbackDestinationType,
+  callbackEventType,
+  callbackInstanceType,
+  callbackNotificationType,
+  callbackType,
   cliDeviceType,
   configPreviewType,
   configSchemaType,
@@ -176,6 +188,7 @@ import {
   portalAuthSsoTenantType,
   portalType,
   profileType,
+  projectBrandType,
   projectType,
   providerAuthConfigType,
   providerAuthCredentialsType,
@@ -185,10 +198,6 @@ import {
   providerConfigType,
   providerConfigVaultType,
   providerDeploymentType,
-  // callbackDestinationType,
-  // callbackEventType,
-  // callbackNotificationType,
-  // callbackType,
   providerListingCategoryType,
   providerListingCollectionType,
   providerListingGroupType,
@@ -200,6 +209,7 @@ import {
   providerSpecificationType,
   providerTemplateType,
   providerToolType,
+  providerTriggerType,
   providerType,
   providerTypeType,
   providerVersionType,
@@ -364,6 +374,11 @@ export let projectPresenter = declarePresenter(projectType, {
   mt_2026_01_01_magnetar: v1ProjectPresenter
 });
 
+export let projectBrandPresenter = declarePresenter(projectBrandType, {
+  mt_2025_01_01_dashboard: v1ProjectBrandPresenter,
+  mt_2026_01_01_magnetar: v1ProjectBrandPresenter
+});
+
 export let userPresenter = declarePresenter(userType, {
   mt_2025_01_01_dashboard: v1UserPresenter,
   mt_2026_01_01_magnetar: v1UserPresenter
@@ -404,25 +419,30 @@ export let flagsPresenter = declarePresenter(flagsType, {
   mt_2026_01_01_magnetar: v1FlagsPresenter
 });
 
-// export let callbackPresenter = declarePresenter(callbackType, {
-//   mt_2025_01_01_dashboard: v1CallbackPresenter,
-//   mt_2026_01_01_magnetar: v1CallbackPresenter,
-// });
+export let callbackPresenter = declarePresenter(callbackType, {
+  mt_2025_01_01_dashboard: v1CallbackPresenter,
+  mt_2026_01_01_magnetar: v1CallbackPresenter
+});
 
-// export let callbackEventPresenter = declarePresenter(callbackEventType, {
-//   mt_2025_01_01_dashboard: v1CallbackEventPresenter,
-//   mt_2026_01_01_magnetar: v1CallbackEventPresenter,
-// });
+export let callbackEventPresenter = declarePresenter(callbackEventType, {
+  mt_2025_01_01_dashboard: v1CallbackEventPresenter,
+  mt_2026_01_01_magnetar: v1CallbackEventPresenter
+});
 
-// export let callbackNotificationPresenter = declarePresenter(callbackNotificationType, {
-//   mt_2025_01_01_dashboard: v1CallbackNotificationPresenter,
-//   mt_2026_01_01_magnetar: v1CallbackNotificationPresenter,
-// });
+export let callbackNotificationPresenter = declarePresenter(callbackNotificationType, {
+  mt_2025_01_01_dashboard: v1CallbackNotificationPresenter,
+  mt_2026_01_01_magnetar: v1CallbackNotificationPresenter
+});
 
-// export let callbackDestinationPresenter = declarePresenter(callbackDestinationType, {
-//   mt_2025_01_01_dashboard: v1CallbackDestinationPresenter,
-//   mt_2026_01_01_magnetar: v1CallbackDestinationPresenter,
-// });
+export let callbackDestinationPresenter = declarePresenter(callbackDestinationType, {
+  mt_2025_01_01_dashboard: v1CallbackDestinationPresenter,
+  mt_2026_01_01_magnetar: v1CallbackDestinationPresenter
+});
+
+export let callbackInstancePresenter = declarePresenter(callbackInstanceType, {
+  mt_2025_01_01_dashboard: v1CallbackInstancePresenter,
+  mt_2026_01_01_magnetar: v1CallbackInstancePresenter
+});
 
 export let teamPresenter = declarePresenter(teamType, {
   mt_2025_01_01_dashboard: v1TeamPresenter,
@@ -635,6 +655,11 @@ export let providerListingPresenter = declarePresenter(providerListingType, {
 export let providerToolPresenter = declarePresenter(providerToolType, {
   mt_2025_01_01_dashboard: v1ProviderToolPresenter,
   mt_2026_01_01_magnetar: v1ProviderToolPresenter
+});
+
+export let providerTriggerPresenter = declarePresenter(providerTriggerType, {
+  mt_2025_01_01_dashboard: v1ProviderTriggerPresenter,
+  mt_2026_01_01_magnetar: v1ProviderTriggerPresenter
 });
 
 export let providerAuthMethodPresenter = declarePresenter(providerAuthMethodType, {

@@ -59,10 +59,9 @@ export let v1SessionPresenter = Presenter.create(providerSessionType)
           examples: [{ imported_from: 'legacy-system', migration_date: '2025-09-01' }]
         })
       ),
-      connection_state: v.string({
+      connection_state: v.enumOf(['connected', 'disconnected'], {
         name: 'connection_state',
-        description: 'Session connection state',
-        examples: ['connected', 'disconnected']
+        description: 'Session connection state'
       }),
       connection_url: v.string({
         name: 'connection_url',

@@ -21,11 +21,7 @@ start_services() {
 
   ensure_volume_dir
 
-  if docker compose -p "$COMPOSE_PROJECT_NAME" -f "$COMPOSE_FILE" ps --services --filter "status=running" | grep -q .; then
-    echo "Services already running."
-  else
-    docker compose -p "$COMPOSE_PROJECT_NAME" -f "$COMPOSE_FILE" up -d
-  fi
+  docker compose -p "$COMPOSE_PROJECT_NAME" -f "$COMPOSE_FILE" up -d
 
   echo "Waiting for services to become available..."
 
@@ -34,6 +30,7 @@ start_services() {
   wait_for_port 127.0.0.1 36379 "Redis"
   # wait_for_port 127.0.0.1 37700 "MeiliSearch"
   wait_for_port 127.0.0.1 35432 "Postgres"
+  wait_for_port 127.0.0.1 34222 "NATS"
 
   echo "All checks completed."
 }

@@ -11,6 +11,8 @@ go install github.com/air-verse/air@latest
 
 ./build.sh
 
+source ./dbInit.sh
+
 cd $ROOT_DIR
 
 if [ "$IS_ENTERPRISE" = true ]; then

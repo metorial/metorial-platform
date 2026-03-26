@@ -14,6 +14,7 @@ export let ID = createIdGenerator({
   organizationInviteJoin: idType.sorted('oij'),
 
   project: idType.sorted('prj'),
+  projectBrand: idType.sorted('pbr'),
   instance: idType.sorted('ins'),
 
   machineAccess: idType.sorted('mac'),

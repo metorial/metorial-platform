@@ -1,0 +1,43 @@
+enum ProviderConfigVaultStatus {
+  active
+  archived
+  deleted
+}
+
+model ProviderConfigVault {
+  oid BigInt @id
+  id  String @unique
+
+  status ProviderConfigVaultStatus
+
+  name        String
+  description String?
+  metadata    Json?
+
+  configOid BigInt         @unique
+  config    ProviderConfig @relation(fields: [configOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
+
+  providerOid BigInt
+  provider    Provider @relation(fields: [providerOid], references: [oid])
+
+  deploymentOid BigInt?
+  deployment    ProviderDeployment? @relation(fields: [deploymentOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  createdConfigs ProviderConfig[] @relation("vaultSource")
+
+  @@index([createdAt])
+  @@index([updatedAt])
+  @@index([status])
+}

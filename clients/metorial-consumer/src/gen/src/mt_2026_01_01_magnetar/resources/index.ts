@@ -1,3 +1,4 @@
+export * from './callbacks';
 export * from './consumer';
 export * from './custom-providers';
 export * from './dashboard';

@@ -49,14 +49,16 @@ export let v1CustomProviderVersionPresenter = Presenter.create(customProviderVer
       .run(),
 
     environments: await Promise.all(
-      customProviderVersion.environments.map(async env => ({
-        object: 'custom_provider.environment' as const,
-        id: env.id,
-        is_current_version_for_environment: env.isCurrentVersionForEnvironment,
-        environment: await v1CustomProviderEnvironmentPresenter
-          .present({ customProviderEnvironment: env.environment }, opts)
-          .run()
-      }))
+      customProviderVersion.environments.map(
+        async (env: (typeof customProviderVersion.environments)[number]) => ({
+          object: 'custom_provider.environment' as const,
+          id: env.id,
+          is_current_version_for_environment: env.isCurrentVersionForEnvironment,
+          environment: await v1CustomProviderEnvironmentPresenter
+            .present({ customProviderEnvironment: env.environment }, opts)
+            .run()
+        })
+      )
     ),
 
     actor: await v1ActorPreviewPresenter

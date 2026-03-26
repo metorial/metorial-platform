@@ -1,0 +1,36 @@
+enum AgentStatus {
+  active
+  archived
+  deleted
+}
+
+model Agent {
+  oid BigInt @id
+  id  String @unique
+
+  status          AgentStatus
+  isParentDeleted Boolean     @default(false)
+
+  name        String
+  description String?
+  slug        String
+  metadata    Json?
+
+  actorOid BigInt        @unique
+  actor    IdentityActor @relation(fields: [actorOid], references: [oid], onDelete: Cascade)
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
+  archivedAt DateTime?
+
+  @@unique([environmentOid, slug])
+}

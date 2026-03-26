@@ -55,7 +55,13 @@ export type FilesListQuery = {
   before?: string | undefined;
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
-} & { purpose?: 'user_image' | 'organization_image' | undefined };
+} & {
+  purpose?:
+    | 'user_image'
+    | 'organization_image'
+    | 'project_brand_image'
+    | undefined;
+};
 
 export let mapFilesListQuery = mtMap.union([
   mtMap.unionOption(

@@ -1,0 +1,15 @@
+model ShuttleConnection {
+  oid BigInt @id
+  id  String @unique
+
+  providerRunOid BigInt
+  providerRun    ProviderRun @relation(fields: [providerRunOid], references: [oid])
+
+  shuttleServerOid BigInt
+  shuttleServer    ShuttleServer @relation(fields: [shuttleServerOid], references: [oid])
+
+  shuttleServerVersionOid BigInt
+  shuttleServerVersion    ShuttleServerVersion @relation(fields: [shuttleServerVersionOid], references: [oid])
+
+  createdAt DateTime @default(now())
+}

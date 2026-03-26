@@ -1,0 +1,25 @@
+model ShuttleSyncChangeNotificationCursor {
+  backendOid BigInt  @id
+  backend    Backend @relation(fields: [backendOid], references: [oid])
+
+  cursor String
+
+  createdAt DateTime @default(now())
+}
+
+model ShuttleSyncMcpServerRegistryCursor {
+  registryUrl String @id
+
+  cursor String
+
+  createdAt DateTime @default(now())
+}
+
+model ShuttleSyncServer {
+  id               String  @id @default(uuid()) @db.Uuid
+  registryUrl      String
+  shuttleServerId  String
+  registryServerId String
+  record           Json
+  readmePending    Boolean @default(true)
+}

@@ -1,0 +1,37 @@
+model Slate {
+  oid BigInt @id
+  id  String @unique
+
+  identifier String @unique
+
+  identifierInRegistry String?
+  registryUrl          String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  version               SlateVersion[]
+  providerVersions      ProviderVersion[]
+  slateInstances        SlateInstance[]
+  providerVariants      ProviderVariant[]
+  slateOAuthCredentials SlateOAuthCredentials[]
+  slateOAuthSetups      SlateOAuthSetup[]
+  slateAuthConfigs      SlateAuthConfig[]
+}
+
+model SlateVersion {
+  oid BigInt @id
+  id  String @unique
+
+  version    String
+  identifier String @unique
+
+  slateOid BigInt
+  slate    Slate  @relation(fields: [slateOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  providerVersions ProviderVersion[]
+  slateInstances   SlateInstance[]
+}
