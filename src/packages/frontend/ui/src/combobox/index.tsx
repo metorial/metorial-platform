@@ -4,6 +4,7 @@ import { RiArrowDownSLine, RiCheckLine } from '@remixicon/react';
 import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { keyframes, styled } from 'styled-components';
 import { ButtonSize, getButtonSize } from '../button/constants';
+import { useDialogContext } from '../dialog/state';
 import { Error } from '../error';
 import { InputDescription, InputLabel } from '../input';
 import { Spinner } from '../spinner';
@@ -423,6 +424,7 @@ let ComboboxInner = <TData,>({
   let [open, setOpen] = useState(false);
   let previousLoading = useRef(!!isLoading);
   let [animateArrowIn, setAnimateArrowIn] = useState(false);
+  let dialog = useDialogContext();
 
   useEffect(() => {
     if (flatItems.length === 0) return;
@@ -562,7 +564,7 @@ let ComboboxInner = <TData,>({
           </EndSlot>
         </InputGroup>
 
-        <BaseCombobox.Portal>
+        <BaseCombobox.Portal container={dialog?.contentRef}>
           <Positioner sideOffset={6}>
             <Popup>
               <List>
