@@ -90,20 +90,32 @@ export type ManagementInstanceSessionsMessagesListOutput = {
     senderParticipant: {
       object: 'session.participant';
       id: string;
-      type: string;
+      type:
+        | 'unknown'
+        | 'provider'
+        | 'mcp_client'
+        | 'metorial_protocol_client'
+        | 'system'
+        | 'tool_call';
       identifier: string;
       name: string;
-      data: Record<string, any>;
+      data: { identifier: string; name: string };
       providerId: string | null;
       createdAt: Date;
     };
     responderParticipant: {
       object: 'session.participant';
       id: string;
-      type: string;
+      type:
+        | 'unknown'
+        | 'provider'
+        | 'mcp_client'
+        | 'metorial_protocol_client'
+        | 'system'
+        | 'tool_call';
       identifier: string;
       name: string;
-      data: Record<string, any>;
+      data: { identifier: string; name: string };
       providerId: string | null;
       createdAt: Date;
     } | null;
@@ -324,7 +336,16 @@ export let mapManagementInstanceSessionsMessagesListOutput =
               type: mtMap.objectField('type', mtMap.passthrough()),
               identifier: mtMap.objectField('identifier', mtMap.passthrough()),
               name: mtMap.objectField('name', mtMap.passthrough()),
-              data: mtMap.objectField('data', mtMap.passthrough()),
+              data: mtMap.objectField(
+                'data',
+                mtMap.object({
+                  identifier: mtMap.objectField(
+                    'identifier',
+                    mtMap.passthrough()
+                  ),
+                  name: mtMap.objectField('name', mtMap.passthrough())
+                })
+              ),
               providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
               createdAt: mtMap.objectField('created_at', mtMap.date())
             })
@@ -337,7 +358,16 @@ export let mapManagementInstanceSessionsMessagesListOutput =
               type: mtMap.objectField('type', mtMap.passthrough()),
               identifier: mtMap.objectField('identifier', mtMap.passthrough()),
               name: mtMap.objectField('name', mtMap.passthrough()),
-              data: mtMap.objectField('data', mtMap.passthrough()),
+              data: mtMap.objectField(
+                'data',
+                mtMap.object({
+                  identifier: mtMap.objectField(
+                    'identifier',
+                    mtMap.passthrough()
+                  ),
+                  name: mtMap.objectField('name', mtMap.passthrough())
+                })
+              ),
               providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
               createdAt: mtMap.objectField('created_at', mtMap.date())
             })

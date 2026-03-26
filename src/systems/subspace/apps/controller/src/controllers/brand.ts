@@ -1,4 +1,5 @@
 import { v } from '@lowerdeck/validation';
+import type { EntityImage } from '@metorial-subspace/db';
 import { brandService, tenantService } from '@metorial-subspace/module-tenant';
 import { brandPresenter } from '@metorial-subspace/presenters';
 import { app } from './_app';
@@ -18,7 +19,7 @@ export let brandController = app.controller({
     .input(
       v.object({
         name: v.string(),
-        image: v.typedAny<PrismaJson.EntityImage>('entity_image'),
+        image: v.nullable(v.typedAny<EntityImage>('entity_image')),
 
         for: v.union([
           v.object({

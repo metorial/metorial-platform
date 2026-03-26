@@ -2,6 +2,7 @@ import { Service } from '@lowerdeck/service';
 import {
   addAfterTransactionHook,
   type Backend,
+  type EntityImage,
   getId,
   type Provider,
   type ProviderVariant,
@@ -13,7 +14,10 @@ import {
   withTransaction
 } from '@metorial-subspace/db';
 import { getBackend } from '@metorial-subspace/provider';
-import { ensureProviderType } from '@metorial-subspace/provider-utils';
+import {
+  ensureProviderType,
+  type ProviderVariantEnrichment
+} from '@metorial-subspace/provider-utils';
 import { createTag } from '../lib/createTag';
 import { groupBy } from '../lib/groupBy';
 import { listingCreatedQueue, listingUpdatedQueue } from '../queues/lifecycle/listing';
@@ -22,7 +26,7 @@ import { providerCreatedQueue, providerUpdatedQueue } from '../queues/lifecycle/
 class providerInternalServiceImpl {
   async enrichProviders<T extends Provider & { defaultVariant: ProviderVariant | null }>(d: {
     providers: T[];
-  }) {
+  }): Promise<Array<T & Partial<ProviderVariantEnrichment>>> {
     let providersByBackend = groupBy(
       d.providers
         .filter(b => b.defaultVariant?.backendOid)
@@ -32,7 +36,7 @@ class providerInternalServiceImpl {
 
     return (
       await Promise.all(
-        providersByBackend.entries().map(async ([_, providers]) => {
+        Array.from(providersByBackend.entries()).map(async ([_, providers]) => {
           let anyProviderVariant = providers[0]?.defaultVariant;
           if (!anyProviderVariant) return [];
 
@@ -41,11 +45,11 @@ class providerInternalServiceImpl {
           let enriched = await backend.enrichment.enrichProviderVariants({
             providerVariantIds: providers.map(p => p.defaultVariant!.id)
           });
-          let enrichedMap = new Map<string, (typeof enriched.providers)[number]>(
+          let enrichedMap = new Map<string, ProviderVariantEnrichment>(
             enriched.providers.map(p => [p.providerVariantId, p])
           );
 
-          return providers.map(provider => {
+          return providers.map((provider): T & Partial<ProviderVariantEnrichment> => {
             let enrichment = enrichedMap.get(provider.defaultVariant!.id);
 
             return {
@@ -88,7 +92,7 @@ class providerInternalServiceImpl {
       description?: string;
       slug: string;
       globalIdentifier: string | null;
-      image?: PrismaJson.EntityImage | null;
+      image?: EntityImage | null;
       skills?: string[];
       readme?: string;
       categories?: string[];
@@ -323,7 +327,7 @@ class providerInternalServiceImpl {
       description?: string;
       readme?: string;
       slug?: string;
-      image?: PrismaJson.EntityImage | null;
+      image?: EntityImage | null;
       skills?: string[];
       access?: 'public' | 'tenant';
     };

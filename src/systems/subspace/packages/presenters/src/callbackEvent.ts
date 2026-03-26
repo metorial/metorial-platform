@@ -23,7 +23,6 @@ export let callbackEventPresenter = (event: CallbackEvent) => ({
   deliveryStatus: event.deliveryStatus,
 
   callbackId: event.callbackId,
-  providerDeploymentConfigPairId: event.providerDeploymentConfigPairId,
   callbackInstanceId: event.callbackInstanceId,
 
   createdAt: event.createdAt

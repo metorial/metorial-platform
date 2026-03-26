@@ -1377,6 +1377,7 @@
       "dependencies": {
         "@lowerdeck/rpc-client": "^1.1.3",
         "@lowerdeck/validation": "^1.0.8",
+        "@slates/proto": "workspace:*",
       },
       "devDependencies": {
         "@types/minimatch": "^5",

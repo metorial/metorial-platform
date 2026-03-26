@@ -30,6 +30,7 @@ import {
   resolveProviders,
   resolveScmRepos
 } from '@metorial-subspace/list-utils';
+import type { ProviderVariantEnrichment } from '@metorial-subspace/provider-utils';
 import { providerInternalService } from '@metorial-subspace/module-provider-internal';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
 import { checkTenant } from '@metorial-subspace/module-tenant';
@@ -74,7 +75,9 @@ class customProviderServiceImpl {
     let enriched = await providerInternalService.enrichProviders({
       providers: d.customProviders.map(p => p.provider!).filter(Boolean)
     });
-    let enrichedMap = new Map(enriched.map(p => [p.id, p]));
+    let enrichedMap = new Map<string, Provider & Partial<ProviderVariantEnrichment>>(
+      enriched.map((p: Provider & Partial<ProviderVariantEnrichment>) => [p.id, p])
+    );
 
     return d.customProviders.map(customProvider => {
       if (!customProvider.provider) return customProvider;

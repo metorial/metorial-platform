@@ -3,6 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
   db,
+  type EntityImage,
   type Environment,
   type Provider,
   type Solution,
@@ -95,7 +96,7 @@ class providerServiceImpl {
       name?: string;
       description?: string;
       slug?: string;
-      image?: PrismaJson.EntityImage | null;
+      image?: EntityImage | null;
       skills?: string[];
     };
   }) {

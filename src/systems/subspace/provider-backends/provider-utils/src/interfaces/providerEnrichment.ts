@@ -23,6 +23,8 @@ export type ProviderVariantEnrichmentOutput = {
   }[];
 };
 
+export type ProviderVariantEnrichment = ProviderVariantEnrichmentOutput['providers'][number];
+
 export type ProviderVersionEnrichmentInput = {
   providerVersionIds: string[];
 };
@@ -40,6 +42,8 @@ export type ProviderVersionEnrichmentOutput = {
     remoteProtocol?: 'sse' | 'streamable_http';
   }[];
 };
+
+export type ProviderVersionEnrichment = ProviderVersionEnrichmentOutput['providers'][number];
 
 export abstract class IProviderEnrichments extends IProviderFunctionality {
   abstract enrichProviderVariants(

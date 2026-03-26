@@ -1,0 +1,16 @@
+model ProjectBrand {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  identifier String @unique
+  name       String
+
+  /// [EntityImage]
+  image Json
+
+  projectOid BigInt   @unique
+  project    Project @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}

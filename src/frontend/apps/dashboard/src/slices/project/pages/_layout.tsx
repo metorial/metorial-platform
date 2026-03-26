@@ -3,7 +3,12 @@ import { Paths } from '@metorial/frontend-config';
 import { ContentPanelLayout, ContentPanelLayoutInner, SidebarPane } from '@metorial/layout';
 import { useCurrentProject, useDashboardFlags } from '@metorial/state';
 import { atom, useAtom } from '@metorial/ui';
-import { RiGitBranchLine, RiHome3Line, RiSettings2Line } from '@remixicon/react';
+import {
+  RiGitBranchLine,
+  RiHome3Line,
+  RiPaletteLine,
+  RiSettings2Line
+} from '@remixicon/react';
 import { useEffect, useLayoutEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 
@@ -42,6 +47,11 @@ export let ProjectSettingsPageLayout = () => {
               icon: <RiHome3Line />,
               label: 'Home',
               to: Paths.project.settings(...params)
+            },
+            {
+              icon: <RiPaletteLine />,
+              label: 'Branding',
+              to: Paths.project.settings(...params, 'branding')
             },
             {
               icon: <RiSettings2Line />,

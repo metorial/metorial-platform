@@ -99,6 +99,10 @@ export let ProviderDeploymentLayout = () => {
                 to: `${Paths.instance.providerDeployment(...deploymentPathParams, 'auth-configs')}${search}`
               },
               {
+                label: 'Auth Credentials',
+                to: `${Paths.instance.providerDeployment(...deploymentPathParams, 'auth-credentials')}${search}`
+              },
+              {
                 label: 'Config Vaults',
                 to: `${Paths.instance.providerDeployment(...deploymentPathParams, 'config-vaults')}${search}`
               },

@@ -27,18 +27,20 @@ export let v1SessionParticipantPresenter = Presenter.create(sessionParticipantTy
         description: 'Unique session participant identifier',
         examples: ['spt_5eFgHjKlMnPqRsTu']
       }),
-      type: v.string({
-        name: 'type',
-        description: 'Participant type',
-        examples: [
+      type: v.enumOf(
+        [
           'unknown',
           'provider',
           'mcp_client',
           'metorial_protocol_client',
           'system',
           'tool_call'
-        ]
-      }),
+        ] as const,
+        {
+          name: 'type',
+          description: 'Participant type'
+        }
+      ),
       identifier: v.string({
         name: 'identifier',
         description: 'Participant identifier',
@@ -49,11 +51,24 @@ export let v1SessionParticipantPresenter = Presenter.create(sessionParticipantTy
         description: 'Display name',
         examples: ['Claude Desktop']
       }),
-      data: v.record(v.any(), {
-        name: 'data',
-        description: 'Participant payload data',
-        examples: [{ client_version: '1.2.3' }]
-      }),
+      data: v.object(
+        {
+          identifier: v.string({
+            name: 'identifier',
+            description: 'Participant-specific identifier within the payload',
+            examples: ['claude-desktop']
+          }),
+          name: v.string({
+            name: 'name',
+            description: 'Participant-specific display name within the payload',
+            examples: ['Claude Desktop']
+          })
+        },
+        {
+          name: 'data',
+          description: 'Participant payload data'
+        }
+      ),
       provider_id: v.nullable(
         v.string({
           name: 'provider_id',

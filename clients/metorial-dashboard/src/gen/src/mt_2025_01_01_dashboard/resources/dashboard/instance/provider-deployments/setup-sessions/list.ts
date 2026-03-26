@@ -177,7 +177,7 @@ export type DashboardInstanceProviderDeploymentsSetupSessionsListOutput = {
       createdAt: Date;
       updatedAt: Date;
     } | null;
-    uiMode: string;
+    uiMode: 'metorial_elements' | 'dashboard_embeddable';
     redirectUrl: string | null;
     createdAt: Date;
     updatedAt: Date;

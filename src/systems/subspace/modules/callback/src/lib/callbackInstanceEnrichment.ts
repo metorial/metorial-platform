@@ -96,11 +96,13 @@ export let enrichCallbackInstanceTriggers = async (
   return result;
 };
 
-export let enrichSingleCallbackInstanceTriggers = async (
+export let enrichSingleCallbackInstanceTriggers = async <
+  I extends CallbackInstanceWithRegistration
+>(
   tenant: Tenant,
   callback: Callback,
-  instance: CallbackInstanceWithRegistration
-): Promise<EnrichedCallbackInstanceTrigger[]> => {
+  instance: I
+): Promise<(EnrichedCallbackInstanceTrigger & I)[]> => {
   let receiverId = instance.activeRegistration?.slateTriggerReceiverId;
   if (!receiverId) return [];
 
@@ -114,7 +116,10 @@ export let enrichSingleCallbackInstanceTriggers = async (
     let triggerIds = receiver.triggers.map(t => t.triggerId);
     let providerTriggerMap = await resolveProviderTriggers(callback.oid, triggerIds);
 
-    return enrichTriggers(receiver.triggers, providerTriggerMap);
+    return enrichTriggers(receiver.triggers, providerTriggerMap).map(trigger => ({
+      ...trigger,
+      ...instance
+    }));
   } catch {
     return [];
   }

@@ -44,6 +44,9 @@ export type ProvidersGetOutput = {
     object: 'provider.type';
     id: string;
     name: string;
+    triggers:
+      | { status: 'enabled'; receiverUrl: string }
+      | { status: 'disabled' };
     config:
       | { status: 'enabled'; read: { status: 'enabled' | 'disabled' } }
       | { status: 'disabled' };
@@ -131,6 +134,21 @@ export let mapProvidersGetOutput = mtMap.union([
           object: mtMap.objectField('object', mtMap.passthrough()),
           id: mtMap.objectField('id', mtMap.passthrough()),
           name: mtMap.objectField('name', mtMap.passthrough()),
+          triggers: mtMap.objectField(
+            'triggers',
+            mtMap.union([
+              mtMap.unionOption(
+                'object',
+                mtMap.object({
+                  status: mtMap.objectField('status', mtMap.passthrough()),
+                  receiverUrl: mtMap.objectField(
+                    'receiver_url',
+                    mtMap.passthrough()
+                  )
+                })
+              )
+            ])
+          ),
           config: mtMap.objectField(
             'config',
             mtMap.union([

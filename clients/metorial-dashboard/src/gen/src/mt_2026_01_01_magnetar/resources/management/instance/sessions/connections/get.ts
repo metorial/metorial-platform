@@ -4,7 +4,7 @@ export type ManagementInstanceSessionsConnectionsGetOutput = {
   object: 'session.connection';
   id: string;
   connectionState: 'connected' | 'disconnected';
-  transport: string;
+  transport: 'mcp' | 'tool_call' | 'metorial_protocol' | 'system';
   usage: {
     totalProductiveClientMessageCount: number;
     totalProductiveProviderMessageCount: number;
@@ -12,16 +12,22 @@ export type ManagementInstanceSessionsConnectionsGetOutput = {
   mcp: {
     capabilities: Record<string, any>;
     protocolVersion: string;
-    transport: string;
+    transport: 'none' | 'sse' | 'streamable_http';
   } | null;
   sessionId: string;
   participant: {
     object: 'session.participant';
     id: string;
-    type: string;
+    type:
+      | 'unknown'
+      | 'provider'
+      | 'mcp_client'
+      | 'metorial_protocol_client'
+      | 'system'
+      | 'tool_call';
     identifier: string;
     name: string;
-    data: Record<string, any>;
+    data: { identifier: string; name: string };
     providerId: string | null;
     createdAt: Date;
   } | null;
@@ -29,7 +35,7 @@ export type ManagementInstanceSessionsConnectionsGetOutput = {
   hasWarnings: boolean;
   createdAt: Date;
   lastMessageAt: Date;
-  lastActiveAt: Date;
+  lastActiveAt: Date | null;
 };
 
 export let mapManagementInstanceSessionsConnectionsGetOutput =
@@ -71,7 +77,13 @@ export let mapManagementInstanceSessionsConnectionsGetOutput =
         type: mtMap.objectField('type', mtMap.passthrough()),
         identifier: mtMap.objectField('identifier', mtMap.passthrough()),
         name: mtMap.objectField('name', mtMap.passthrough()),
-        data: mtMap.objectField('data', mtMap.passthrough()),
+        data: mtMap.objectField(
+          'data',
+          mtMap.object({
+            identifier: mtMap.objectField('identifier', mtMap.passthrough()),
+            name: mtMap.objectField('name', mtMap.passthrough())
+          })
+        ),
         providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
         createdAt: mtMap.objectField('created_at', mtMap.date())
       })

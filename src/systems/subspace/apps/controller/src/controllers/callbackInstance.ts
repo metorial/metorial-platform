@@ -1,11 +1,11 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
+import { providerAuthConfigService } from '@metorial-subspace/module-auth';
 import {
   callbackInstanceService,
   enrichCallbackInstanceTriggers,
   enrichSingleCallbackInstanceTriggers
 } from '@metorial-subspace/module-callback';
-import { providerAuthConfigService } from '@metorial-subspace/module-auth';
 import { providerConfigService } from '@metorial-subspace/module-deployment';
 import { callbackInstancePresenter } from '@metorial-subspace/presenters';
 import { app } from './_app';
@@ -54,7 +54,11 @@ export let callbackInstanceController = app.controller({
       });
       let list = await paginator.run(ctx.input);
 
-      let triggersMap = await enrichCallbackInstanceTriggers(ctx.tenant, ctx.callback, list.items);
+      let triggersMap = await enrichCallbackInstanceTriggers(
+        ctx.tenant,
+        ctx.callback,
+        list.items
+      );
 
       return Paginator.presentLight(list, instance =>
         callbackInstancePresenter(instance, triggersMap.get(instance.id))
@@ -98,7 +102,11 @@ export let callbackInstanceController = app.controller({
         authConfig
       });
 
-      let triggers = await enrichSingleCallbackInstanceTriggers(ctx.tenant, ctx.callback, instance);
+      let triggers = await enrichSingleCallbackInstanceTriggers(
+        ctx.tenant,
+        ctx.callback,
+        instance
+      );
       return callbackInstancePresenter(instance, triggers);
     }),
 
@@ -118,7 +126,11 @@ export let callbackInstanceController = app.controller({
         callbackInstance: ctx.callbackInstance
       });
 
-      let triggers = await enrichSingleCallbackInstanceTriggers(ctx.tenant, ctx.callback, instance);
+      let triggers = await enrichSingleCallbackInstanceTriggers(
+        ctx.tenant,
+        ctx.callback,
+        instance
+      );
       return callbackInstancePresenter(instance, triggers);
     })
 });

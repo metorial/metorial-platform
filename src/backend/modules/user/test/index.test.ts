@@ -61,6 +61,7 @@ vi.mock('@metorial/id', () => ({
 
 vi.mock('@metorial/module-file', () => ({
   fileReferenceService: {
+    resolveImageEntityImage: vi.fn(),
     createImageEntityImage: vi.fn(),
     cleanupImageEntityImage: vi.fn()
   }

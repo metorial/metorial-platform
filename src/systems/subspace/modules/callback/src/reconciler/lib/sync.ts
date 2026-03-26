@@ -1,4 +1,4 @@
-import { db, getId } from '@metorial-subspace/db';
+import { db, getId, withTransaction } from '@metorial-subspace/db';
 import { slates } from '@metorial-subspace/provider-slates/src/client';
 import {
   getActiveDestinationIds,
@@ -6,30 +6,6 @@ import {
   isCallbackSupported,
   loadCallbackInstance
 } from './state';
-
-export let markCallbackInstancePending = async (d: {
-  callbackInstanceOid: bigint;
-  registrationOid?: bigint;
-}) =>
-  db.$transaction(async db => {
-    if (d.registrationOid) {
-      await db.callbackReceiverRegistration.updateMany({
-        where: { oid: d.registrationOid },
-        data: {
-          status: 'detached',
-          lastSyncedAt: new Date()
-        }
-      });
-    }
-
-    await db.callbackInstance.update({
-      where: { oid: d.callbackInstanceOid },
-      data: {
-        registrationStatus: 'pending',
-        activeRegistrationOid: null
-      }
-    });
-  });
 
 export let detachRegistration = async (d: {
   callbackInstanceOid: bigint;
@@ -46,9 +22,22 @@ export let detachRegistration = async (d: {
     }
   } catch {}
 
-  await markCallbackInstancePending({
-    callbackInstanceOid: d.callbackInstanceOid,
-    registrationOid: d.registrationOid
+  await withTransaction(async db => {
+    await db.callbackReceiverRegistration.update({
+      where: { oid: d.registrationOid },
+      data: {
+        status: 'detached',
+        lastSyncedAt: new Date()
+      }
+    });
+
+    await db.callbackInstance.update({
+      where: { oid: d.callbackInstanceOid },
+      data: {
+        registrationStatus: 'registered',
+        activeRegistrationOid: null
+      }
+    });
   });
 };
 
@@ -82,7 +71,7 @@ export let upsertActiveRegistration = async (d: {
   activeRegistrationOid?: bigint;
   slateTriggerReceiverId: string;
 }) =>
-  db.$transaction(async db => {
+  withTransaction(async db => {
     let registrationOid = d.activeRegistrationOid;
 
     if (registrationOid) {
@@ -132,7 +121,7 @@ export let markRegistrationFailure = async (d: {
     await db.callbackReceiverRegistration.update({
       where: { oid: d.activeRegistrationOid },
       data: {
-        lastErrorCode: 'callback_reconcile_failed',
+        lastErrorCode: 'registration_failed',
         lastErrorMessage: d.message,
         lastSyncedAt: new Date()
       }
@@ -174,17 +163,18 @@ export let syncCallbackInstance = async (d: { callbackInstanceId: string }) => {
   ) {
     if (activeRegistration) {
       let slatesTenant = await getTenantForSlatesCached(callback.tenant);
+
       await detachRegistration({
         callbackInstanceOid: callbackInstance.oid,
         registrationOid: activeRegistration.oid,
         slateTriggerReceiverId: activeRegistration.slateTriggerReceiverId,
         slatesTenantId: slatesTenant.id
       });
-    } else if (callbackInstance.registrationStatus !== 'pending') {
+    } else {
       await db.callbackInstance.update({
         where: { oid: callbackInstance.oid },
         data: {
-          registrationStatus: 'pending',
+          registrationStatus: 'registered',
           activeRegistrationOid: null
         }
       });
@@ -196,6 +186,7 @@ export let syncCallbackInstance = async (d: { callbackInstanceId: string }) => {
     let slatesTenant = await getTenantForSlatesCached(callback.tenant);
     let slateInstanceId =
       callbackInstance.providerDeploymentConfigPair.providerConfigVersion.slateInstance?.id;
+
     if (!slateInstanceId) {
       throw new Error('missing_receiver_requirements');
     }

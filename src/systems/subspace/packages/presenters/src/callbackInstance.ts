@@ -3,10 +3,19 @@ import type {
   CallbackInstance,
   CallbackReceiverRegistration,
   Provider,
+  ProviderAuthConfig,
+  ProviderAuthConfigVersion,
+  ProviderConfig,
+  ProviderConfigVersion,
+  ProviderDeployment,
   ProviderDeploymentConfigPair,
+  ProviderDeploymentVersion,
   ProviderSpecification,
   ProviderTrigger
 } from '@metorial-subspace/db';
+import { providerDeploymentPreviewPresenter } from './deployment';
+import { providerAuthConfigPreviewPresenter } from './providerAuthConfig';
+import { providerConfigPreviewPresenter } from './providerConfig';
 import { providerTriggerPresenter } from './providerTrigger';
 
 type SlatesClient = ReturnType<typeof createSlatesHubInternalClient>;
@@ -44,7 +53,21 @@ let callbackInstanceTriggerPresenter = (trigger: EnrichedCallbackInstanceTrigger
 
 export let callbackInstancePresenter = (
   callbackInstance: CallbackInstance & {
-    providerDeploymentConfigPair: ProviderDeploymentConfigPair;
+    providerDeploymentConfigPair: ProviderDeploymentConfigPair & {
+      providerDeploymentVersion: ProviderDeploymentVersion & {
+        deployment: ProviderDeployment & {
+          provider: Provider;
+        };
+      };
+      providerConfigVersion: ProviderConfigVersion & {
+        config: ProviderConfig;
+      };
+      providerAuthConfigVersion:
+        | (ProviderAuthConfigVersion & {
+            authConfig: ProviderAuthConfig;
+          })
+        | null;
+    };
     activeRegistration?: CallbackReceiverRegistration | null;
   },
   receiverTriggers?: EnrichedCallbackInstanceTrigger[]
@@ -55,6 +78,29 @@ export let callbackInstancePresenter = (
   status: callbackInstance.status,
 
   registrationStatus: callbackInstance.registrationStatus,
+
+  deployment: providerDeploymentPreviewPresenter({
+    ...callbackInstance.providerDeploymentConfigPair.providerDeploymentVersion.deployment,
+    provider:
+      callbackInstance.providerDeploymentConfigPair.providerDeploymentVersion.deployment
+        .provider
+  }),
+
+  config: providerConfigPreviewPresenter({
+    ...callbackInstance.providerDeploymentConfigPair.providerConfigVersion.config,
+    provider:
+      callbackInstance.providerDeploymentConfigPair.providerDeploymentVersion.deployment
+        .provider
+  }),
+
+  authConfig: callbackInstance.providerDeploymentConfigPair.providerAuthConfigVersion
+    ? providerAuthConfigPreviewPresenter({
+        ...callbackInstance.providerDeploymentConfigPair.providerAuthConfigVersion.authConfig,
+        provider:
+          callbackInstance.providerDeploymentConfigPair.providerDeploymentVersion.deployment
+            .provider
+      })
+    : null,
 
   triggers: (receiverTriggers ?? []).map(callbackInstanceTriggerPresenter),
 

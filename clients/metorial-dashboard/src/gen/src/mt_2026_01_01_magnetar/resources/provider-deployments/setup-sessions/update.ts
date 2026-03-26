@@ -170,7 +170,7 @@ export type ProviderDeploymentsSetupSessionsUpdateOutput = {
     createdAt: Date;
     updatedAt: Date;
   } | null;
-  uiMode: string;
+  uiMode: 'metorial_elements' | 'dashboard_embeddable';
   redirectUrl: string | null;
   createdAt: Date;
   updatedAt: Date;
