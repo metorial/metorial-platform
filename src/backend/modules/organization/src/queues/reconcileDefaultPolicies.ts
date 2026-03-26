@@ -5,11 +5,9 @@ import {
   defaultAdminScopesHash,
   defaultEveryoneScopesHash
 } from '../definitions/defaultScopes';
-import {
-  accessPolicyService,
-  authBootstrapService,
-  organizationActorService
-} from '../services';
+import { accessPolicyService } from '../services/accessPolicy';
+import { authBootstrapService } from '../services/authBootstrap';
+import { organizationActorService } from '../services/organizationActor';
 
 export let reconcileDefaultPoliciesCron = createCron(
   {

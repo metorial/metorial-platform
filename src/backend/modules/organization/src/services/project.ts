@@ -20,12 +20,16 @@ import {
 } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { generateCode } from '@metorial/id';
-import { syncBrandQueue } from '../queues/syncBrand';
 import { instanceService } from './instance';
 
 let getProjectSlug = createSlugGenerator(
   async slug => !(await db.project.findFirst({ where: { slug } }))
 );
+
+let enqueueSyncBrand = async (projectId: string) => {
+  let { syncBrandQueue } = await import('../queues/syncBrand');
+  await syncBrandQueue.add({ projectId });
+};
 
 class ProjectService {
   private async ensureProjectActive(project: Project) {
@@ -73,7 +77,7 @@ class ProjectService {
         }
       });
 
-      await addAfterTransactionHook(() => syncBrandQueue.add({ projectId: project.id }));
+      await addAfterTransactionHook(() => enqueueSyncBrand(project.id));
 
       await Fabric.fire('organization.project.created:after', {
         ...d,
@@ -109,7 +113,7 @@ class ProjectService {
         }
       });
 
-      await addAfterTransactionHook(() => syncBrandQueue.add({ projectId: project.id }));
+      await addAfterTransactionHook(() => enqueueSyncBrand(project.id));
 
       await Fabric.fire('organization.project.updated:after', {
         ...d,

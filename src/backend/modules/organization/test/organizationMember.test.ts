@@ -53,6 +53,12 @@ vi.mock('../src/services/organizationActor', () => ({
   }
 }));
 
+vi.mock('../src/services/accessPolicyAssignment', () => ({
+  accessPolicyAssignmentService: {
+    syncMemberDefaultPolicies: vi.fn()
+  }
+}));
+
 import { db, ID, withTransaction } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { organizationActorService } from '../src/services/organizationActor';

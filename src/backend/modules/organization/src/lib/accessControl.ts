@@ -1,5 +1,6 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
-import { Scope, scopeDefinitions, scopes } from '@metorial/module-access';
+import { scopeDefinitions } from '@metorial/module-access/src/definitions/scopeDefinitions';
+import { Scope, scopes } from '@metorial/module-access/src/definitions/scopeValues';
 
 export type PolicyDocument = PrismaJson.PolicyDocument;
 

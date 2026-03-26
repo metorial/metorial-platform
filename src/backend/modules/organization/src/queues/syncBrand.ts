@@ -1,6 +1,7 @@
 import { db } from '@metorial/db';
 import { createQueue, QueueRetryError } from '@metorial/queue';
-import { organizationActorService, projectBrandService } from '../services';
+import { organizationActorService } from '../services/organizationActor';
+import { projectBrandService } from '../services/projectBrand';
 
 export let syncBrandQueue = createQueue<{ projectId: string }>({
   name: 'org/syncBrand'
