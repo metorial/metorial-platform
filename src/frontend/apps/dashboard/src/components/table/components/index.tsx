@@ -186,8 +186,79 @@ let chunk = <T,>(items: T[], size: number) => {
   return chunks;
 };
 
+let TABLE_LAYOUT_STORAGE_KEY_PREFIX = 'dashboard-table-layout';
+
+let getDefaultLayout = (columns: TableColumn<any, any>[]) => {
+  return columns.map(column => ({
+    id: column.id,
+    isSelected: column.isDefault
+  }));
+};
+
+let sanitizeLayout = (
+  layout: { id: string; isSelected: boolean }[],
+  columns: TableColumn<any, any>[]
+) => {
+  let columnIds = new Set(columns.map(column => column.id));
+  let nextLayout: { id: string; isSelected: boolean }[] = [];
+  let seenIds = new Set<string>();
+
+  for (let item of layout) {
+    if (!columnIds.has(item.id) || seenIds.has(item.id)) continue;
+
+    nextLayout.push({
+      id: item.id,
+      isSelected: item.isSelected
+    });
+    seenIds.add(item.id);
+  }
+
+  for (let column of columns) {
+    if (seenIds.has(column.id)) continue;
+
+    nextLayout.push({
+      id: column.id,
+      isSelected: column.isDefault
+    });
+  }
+
+  return nextLayout;
+};
+
+let getStoredLayout = (name: string, columns: TableColumn<any, any>[]) => {
+  if (typeof window == 'undefined') return getDefaultLayout(columns);
+
+  try {
+    let storedValue = window.localStorage.getItem(
+      `${TABLE_LAYOUT_STORAGE_KEY_PREFIX}:${name}`
+    );
+    if (!storedValue) return getDefaultLayout(columns);
+
+    let parsedValue = JSON.parse(storedValue);
+    if (!Array.isArray(parsedValue)) return getDefaultLayout(columns);
+
+    let layout = parsedValue.flatMap(item => {
+      if (
+        typeof item != 'object' ||
+        item == null ||
+        typeof item.id != 'string' ||
+        typeof item.isSelected != 'boolean'
+      ) {
+        return [];
+      }
+
+      return [{ id: item.id, isSelected: item.isSelected }];
+    });
+
+    return sanitizeLayout(layout, columns);
+  } catch {
+    return getDefaultLayout(columns);
+  }
+};
+
 export let TableComponent = reactMemo(
   (props: {
+    name: string;
     layoutObserver: Observer<{ id: string; isSelected: boolean }[]>;
     state: TableStateProvider<any, any, TableStateProviderResult<any>>;
     getHookState?: (res: any, input: any) => any;
@@ -212,6 +283,7 @@ export let TableComponent = reactMemo(
   }) => {
     let filterState = useState([] as TableFilterState[]);
     let filterPayload = useMemo(() => getFilterPayload(filterState[0]), [filterState[0]]);
+    let [hasHydratedLayout, setHasHydratedLayout] = useState(false);
 
     let isGroup = useIsGroup();
     let sidePadding = isGroup ? 10 : props.sidePadding;
@@ -227,7 +299,12 @@ export let TableComponent = reactMemo(
       return () => clearTimeout(to);
     }, [search]);
 
-    useFilterQuery({ filters: props.filters, filterState });
+    useFilterQuery({
+      filters: props.filters,
+      filterState,
+      searchState: [search, setSearch],
+      debouncedSearch
+    });
 
     let state = props.state(props.props, {
       filter: filterPayload,
@@ -237,6 +314,23 @@ export let TableComponent = reactMemo(
     let loadingIds: string[] | undefined = hookState.loadingIds;
 
     let layout = useObserver(props.layoutObserver);
+
+    useEffect(() => {
+      props.layoutObserver.notify(getStoredLayout(props.name, props.columns));
+      setHasHydratedLayout(true);
+    }, [props.columns, props.layoutObserver, props.name]);
+
+    useEffect(() => {
+      if (!hasHydratedLayout || typeof window == 'undefined' || !layout) return;
+
+      try {
+        window.localStorage.setItem(
+          `${TABLE_LAYOUT_STORAGE_KEY_PREFIX}:${props.name}`,
+          JSON.stringify(sanitizeLayout(layout, props.columns))
+        );
+      } catch {}
+    }, [hasHydratedLayout, layout, props.columns, props.name]);
+
     let currentColumns = useMemo(
       () =>
         layout

@@ -1,4 +1,4 @@
-import { renderWithLoader } from '@metorial/data-hooks';
+import { PaginationSearchParamsProvider, renderWithLoader } from '@metorial/data-hooks';
 import { dynamicPage } from '@metorial/dynamic-component';
 import { createSlice } from '@metorial/microfrontend';
 import { NotFound } from '@metorial/pages';
@@ -472,7 +472,11 @@ let ProductWrapper = () => {
     lastInstanceIdStore.set(instance.data.id);
   }, [instance.data]);
 
-  return <Outlet />;
+  return (
+    <PaginationSearchParamsProvider enabled={true}>
+      <Outlet />
+    </PaginationSearchParamsProvider>
+  );
 };
 
 export let productInnerSlice = createSlice([
