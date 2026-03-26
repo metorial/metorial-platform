@@ -3,8 +3,8 @@ import React, { useContext, useEffect, useState } from 'react';
 export interface DialogState {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-
   autoCloseOnSubmit?: boolean;
+  contentRef?: React.RefObject<HTMLElement | null>;
 }
 
 export let useDialog = (initialState = false) => {

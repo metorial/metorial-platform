@@ -1,6 +1,6 @@
 import * as RadixDialogDialog from '@radix-ui/react-dialog';
 import { RiCloseLine } from '@remixicon/react';
-import React from 'react';
+import React, { useRef } from 'react';
 import { styled } from 'styled-components';
 import { Button } from '../button';
 import { theme } from '../theme';
@@ -64,14 +64,16 @@ export let Panel = {
     width?: number | string;
   }) => {
     let zIndex = useDialogZIndex(isOpen);
+    let contentRef = useRef<HTMLDivElement | null>(null);
 
     return (
-      <DialogProvider value={{ isOpen, onOpenChange, autoCloseOnSubmit }}>
+      <DialogProvider value={{ isOpen, onOpenChange, autoCloseOnSubmit, contentRef }}>
         <RadixDialogDialog.Root open={isOpen} onOpenChange={onOpenChange}>
           <RadixDialogDialog.Portal>
             <Overlay style={{ zIndex }} />
 
             <Wrapper
+              ref={contentRef}
               style={{
                 ...style,
 
