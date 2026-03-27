@@ -4,7 +4,7 @@ import {
   SlateTriggerEventDeliveryStatus,
   type Slate,
   type SlateAction,
-  type SlateTriggerInvocationType,
+  type SlateTriggerInvocationType
 } from '../../prisma/generated/client';
 import { db } from '../db';
 import { getId } from '../id';
@@ -103,9 +103,7 @@ export class SlateTriggerReceiverCore {
     });
   }
 
-  async getInvocationContext(d: {
-    receiverTrigger: ReceiverTriggerWithRelations;
-  }) {
+  async getInvocationContext(d: { receiverTrigger: ReceiverTriggerWithRelations }) {
     let { receiver, action } = d.receiverTrigger;
 
     if (!receiver.slateInstance.currentConfig) {
@@ -263,11 +261,7 @@ export class SlateTriggerReceiverCore {
       type: d.event.type,
       sourceId: d.event.sourceId,
 
-      slateId: d.receiver.slate.id,
-      slateInstanceId: d.receiver.slateInstance.id,
-      triggerReceiverId: d.receiver.id,
-      triggerId: d.action.id,
-      triggerKey: d.action.key,
+      trigger: d.action.key,
 
       data: d.event.output,
 
