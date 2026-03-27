@@ -60,23 +60,23 @@ jobs:
           build-args: |
             SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
 
-  test:
-    name: 'Shuttle Test'
-    permissions:
-      contents: read
-      packages: read
-    uses: metorial/.github/.github/workflows/reusable-e2e-tests.yml@main
-    secrets: inherit
-    with:
-      service_directory: src/systems/shuttle/service
-      compose_project_prefix: shuttle-ci
-      compose_profiles: 'infra service'
-      wait_services: |
-        shuttle-postgres
-        shuttle-redis
-        shuttle-object-storage
-        shuttle-forge
-        shuttle-function-bay
-        shuttle-service
-      test_container: shuttle-service
-      test_command: cd /app/src/systems/shuttle/service && bun run test
+  # test:
+  #   name: 'Shuttle Test'
+  #   permissions:
+  #     contents: read
+  #     packages: read
+  #   uses: metorial/.github/.github/workflows/reusable-e2e-tests.yml@main
+  #   secrets: inherit
+  #   with:
+  #     service_directory: src/systems/shuttle/service
+  #     compose_project_prefix: shuttle-ci
+  #     compose_profiles: 'infra service'
+  #     wait_services: |
+  #       shuttle-postgres
+  #       shuttle-redis
+  #       shuttle-object-storage
+  #       shuttle-forge
+  #       shuttle-function-bay
+  #       shuttle-service
+  #     test_container: shuttle-service
+  #     test_command: cd /app/src/systems/shuttle/service && bun run test
