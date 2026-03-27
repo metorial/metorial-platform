@@ -27,8 +27,8 @@
   "scripts": {
     "test": "vitest run --passWithNoTests",
     "lint": "prettier src/**/*.ts --check",
-    "_build": "rm -rf ./dist && microbundle && dts-bundle-generator --config dts-bundle-generator.config.json",
-    "prepublish": "bun run _build",
+    "build:client": "rm -rf ./dist && microbundle && dts-bundle-generator --config dts-bundle-generator.config.json",
+    "prepublish": "bun run build:client",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
