@@ -9,6 +9,7 @@ import {
 import { Button, Input, Spacer } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
 import { Link, useParams } from 'react-router-dom';
+import { TextEditor } from '../../../../components/editor';
 import { FormPage } from '../../../../scenes/form/page';
 
 export let CustomProviderListingPage = () => {
@@ -83,8 +84,12 @@ export let CustomProviderListingPage = () => {
 
           <Spacer size={15} />
 
-          <Input label="Readme" as="textarea" {...form.getFieldProps('readme')} />
-          <form.RenderError field="readme" />
+          <TextEditor
+            label="Readme"
+            content={form.values.readme || providerListing.data?.readme || ''}
+            placeholder="Provider README content"
+            onChange={content => form.setFieldValue('readme', content)}
+          />
 
           <Spacer size={15} />
 
