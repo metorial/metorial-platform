@@ -1,6 +1,7 @@
 import { backendEnv } from './backend';
 import { frontendEnv } from './frontend';
 import {
+  horizonServiceEnv,
   shuttleServiceEnv,
   slatesHubEnv,
   slatesRegistryEnv,
@@ -87,11 +88,11 @@ export let destinations: Destination[] = [
     env: shuttleServiceEnv,
     path: 'src/systems/shuttle/service'
   },
-  // {
-  //   type: 'enterprise',
-  //   env: horizonServiceEnv,
-  //   path: 'systems/horizon/apps/horizon'
-  // },
+  {
+    type: 'enterprise',
+    env: horizonServiceEnv,
+    path: 'systems/horizon/apps/horizon'
+  },
 
   ...['admin', 'dashboard'].map(v => ({
     type: 'enterprise' as const,

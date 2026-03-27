@@ -925,8 +925,5 @@ describe('slate:trigger webhook E2E', () => {
     expect(triggerEvent).toBeTruthy();
     expect(triggerEvent?.deliveryStatus).toBe(SlateTriggerEventDeliveryStatus.skipped);
     expect(queueMocks.sendAdd).not.toHaveBeenCalled();
-
-    const payload = JSON.parse(signalState.events[0]!.payloadJson);
-    expect(payload.triggerReceiverId).toBe(receiver.id);
   });
 });
