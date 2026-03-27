@@ -244,12 +244,14 @@ export let createOAuthAppSkeleton = (d: {
         });
       }
 
-      if (codeChallengeMethod && !codeChallenge) {
+      if (codeChallengeMethod && codeChallengeMethod != 'none' && !codeChallenge) {
         throw new OAuthError({
           error: 'invalid_request',
           errorMessage: 'code_challenge is required when code_challenge_method is provided'
         });
       }
+
+      if (codeChallengeMethod == 's256') codeChallengeMethod = 'S256';
 
       if (codeChallengeMethod && codeChallengeMethod != 'S256') {
         throw new OAuthError({
