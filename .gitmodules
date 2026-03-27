@@ -9,4 +9,4 @@
 	url = https://github.com/metorial/metorial-python.git
 [submodule "clients/metorial-go"]
 	path = clients/metorial-go
-	url = https://github.com/metorial/metorial-go.git
+	url = https://github.com/metorial/metorial-go
