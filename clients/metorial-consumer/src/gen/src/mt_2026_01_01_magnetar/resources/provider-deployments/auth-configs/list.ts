@@ -203,6 +203,8 @@ export type ProviderDeploymentsAuthConfigsListQuery = {
   providerAuthCredentialsId?: string | string[] | undefined;
   providerAuthMethodId?: string | string[] | undefined;
   search?: string | undefined;
+  createdAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
+  updatedAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
 };
 
 export let mapProviderDeploymentsAuthConfigsListQuery = mtMap.union([
@@ -268,7 +270,21 @@ export let mapProviderDeploymentsAuthConfigsListQuery = mtMap.union([
           )
         ])
       ),
-      search: mtMap.objectField('search', mtMap.passthrough())
+      search: mtMap.objectField('search', mtMap.passthrough()),
+      createdAt: mtMap.objectField(
+        'created_at',
+        mtMap.object({
+          gt: mtMap.objectField('gt', mtMap.date()),
+          lt: mtMap.objectField('lt', mtMap.date())
+        })
+      ),
+      updatedAt: mtMap.objectField(
+        'updated_at',
+        mtMap.object({
+          gt: mtMap.objectField('gt', mtMap.date()),
+          lt: mtMap.objectField('lt', mtMap.date())
+        })
+      )
     })
   )
 ]);

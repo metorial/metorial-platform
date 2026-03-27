@@ -3,6 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { subspaceSessionConnectionService } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
+import { dateFilterValidator } from '../../lib/dateFilter';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import {
@@ -91,7 +92,9 @@ export let sessionConnectionController = Controller.create(
             }),
             participant_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by participant ID(s)'
-            })
+            }),
+            created_at: dateFilterValidator('session connection creation time'),
+            updated_at: dateFilterValidator('session connection last update time')
           })
         )
       )
@@ -105,7 +108,9 @@ export let sessionConnectionController = Controller.create(
           status: normalizeArrayParam(ctx.query.status),
           connectionState: normalizeArrayParam(ctx.query.connection_state),
           sessionProviderIds: normalizeArrayParam(ctx.query.session_provider_id),
-          participantIds: normalizeArrayParam(ctx.query.participant_id)
+          participantIds: normalizeArrayParam(ctx.query.participant_id),
+          createdAt: ctx.query.created_at,
+          updatedAt: ctx.query.updated_at
         });
 
         let list = await paginator.run(ctx.query);

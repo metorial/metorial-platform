@@ -120,6 +120,8 @@ export type ProviderDeploymentsListQuery = {
   providerVersionId?: string | string[] | undefined;
   status?: 'active' | 'archived' | ('active' | 'archived')[] | undefined;
   search?: string | undefined;
+  createdAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
+  updatedAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
 };
 
 export let mapProviderDeploymentsListQuery = mtMap.union([
@@ -165,7 +167,21 @@ export let mapProviderDeploymentsListQuery = mtMap.union([
         'status',
         mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
       ),
-      search: mtMap.objectField('search', mtMap.passthrough())
+      search: mtMap.objectField('search', mtMap.passthrough()),
+      createdAt: mtMap.objectField(
+        'created_at',
+        mtMap.object({
+          gt: mtMap.objectField('gt', mtMap.date()),
+          lt: mtMap.objectField('lt', mtMap.date())
+        })
+      ),
+      updatedAt: mtMap.objectField(
+        'updated_at',
+        mtMap.object({
+          gt: mtMap.objectField('gt', mtMap.date()),
+          lt: mtMap.objectField('lt', mtMap.date())
+        })
+      )
     })
   )
 ]);

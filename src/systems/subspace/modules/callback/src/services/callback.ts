@@ -15,6 +15,8 @@ import {
   type Tenant
 } from '@metorial-subspace/db';
 import {
+  type DateFilter,
+  normalizeDateFilter,
   normalizeStatusForGet,
   normalizeStatusForList,
   resolveProviderDeployments
@@ -71,6 +73,8 @@ class callbackServiceImpl {
     allowDeleted?: boolean;
     ids?: string[];
     providerDeploymentIds?: string[];
+    createdAt?: DateFilter;
+    updatedAt?: DateFilter;
   }) {
     let deployments = await resolveProviderDeployments(d, d.providerDeploymentIds);
 
@@ -85,7 +89,9 @@ class callbackServiceImpl {
             ...normalizeStatusForList(d).noParent,
             AND: [
               d.ids ? { id: { in: d.ids } } : undefined!,
-              deployments ? { providerDeploymentOid: deployments.in } : undefined!
+              deployments ? { providerDeploymentOid: deployments.in } : undefined!,
+              d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
+              d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
             ].filter(Boolean)
           },
           include: callbackInclude

@@ -3,6 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { subspaceIdentityService } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
+import { dateFilterValidator } from '../../lib/dateFilter';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { hasFlags } from '../../middleware/hasFlags';
@@ -100,7 +101,9 @@ export let identityController = Controller.create(
             actor_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by owner identity actor ID or IDs.',
               examples: ['iac_6wQpLk2mZa8nYx4b']
-            })
+            }),
+            created_at: dateFilterValidator('identity creation time'),
+            updated_at: dateFilterValidator('identity last update time')
           })
         )
       )
@@ -114,7 +117,9 @@ export let identityController = Controller.create(
           status: normalizeArrayParam(ctx.query.status),
           ids: normalizeArrayParam(ctx.query.id),
           agentIds: normalizeArrayParam(ctx.query.agent_id),
-          actorIds: normalizeArrayParam(ctx.query.actor_id)
+          actorIds: normalizeArrayParam(ctx.query.actor_id),
+          createdAt: ctx.query.created_at,
+          updatedAt: ctx.query.updated_at
         });
 
         let list = await paginator.run(ctx.query);

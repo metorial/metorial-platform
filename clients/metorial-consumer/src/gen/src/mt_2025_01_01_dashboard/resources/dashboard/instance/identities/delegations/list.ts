@@ -267,6 +267,8 @@ export type DashboardInstanceIdentitiesDelegationsListQuery = {
   delegatorActorId?: string | string[] | undefined;
   delegateeActorId?: string | string[] | undefined;
   identityId?: string | string[] | undefined;
+  createdAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
+  updatedAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
 };
 
 export let mapDashboardInstanceIdentitiesDelegationsListQuery = mtMap.union([
@@ -335,6 +337,20 @@ export let mapDashboardInstanceIdentitiesDelegationsListQuery = mtMap.union([
             mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
           )
         ])
+      ),
+      createdAt: mtMap.objectField(
+        'created_at',
+        mtMap.object({
+          gt: mtMap.objectField('gt', mtMap.date()),
+          lt: mtMap.objectField('lt', mtMap.date())
+        })
+      ),
+      updatedAt: mtMap.objectField(
+        'updated_at',
+        mtMap.object({
+          gt: mtMap.objectField('gt', mtMap.date()),
+          lt: mtMap.objectField('lt', mtMap.date())
+        })
       )
     })
   )

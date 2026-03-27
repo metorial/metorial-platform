@@ -3,6 +3,7 @@ import { v } from '@lowerdeck/validation';
 import { callbackDestinationService } from '@metorial-subspace/module-callback';
 import { callbackDestinationPresenter } from '@metorial-subspace/presenters';
 import { app } from './_app';
+import { createdAtValidator, updatedAtValidator } from './_dateFilter';
 import { tenantWithoutEnvironmentApp } from './tenant';
 
 export let callbackDestinationApp = tenantWithoutEnvironmentApp.use(async ctx => {
@@ -24,14 +25,18 @@ export let callbackDestinationController = app.controller({
     .input(
       Paginator.validate(
         v.object({
-          tenantId: v.string()
+          tenantId: v.string(),
+          createdAt: createdAtValidator,
+          updatedAt: updatedAtValidator
         })
       )
     )
     .do(async ctx => {
       let paginator = await callbackDestinationService.listCallbackDestinations({
         tenant: ctx.tenant,
-        solution: ctx.solution
+        solution: ctx.solution,
+        createdAt: ctx.input.createdAt,
+        updatedAt: ctx.input.updatedAt
       });
       let list = await paginator.run(ctx.input);
       return Paginator.presentLight(list, callbackDestinationPresenter);
