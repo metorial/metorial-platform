@@ -289,7 +289,20 @@ export type DashboardInstanceProvidersListQuery = {
   before?: string | undefined;
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
-} & { id?: string | string[] | undefined };
+} & {
+  id?: string | string[] | undefined;
+  capabilities?:
+    | {
+        supportsConfig?: boolean | undefined;
+        supportsAuth?: boolean | undefined;
+        supportsOauth?: boolean | undefined;
+        supportsCallbacks?: boolean | undefined;
+        supportsOauthAutoRegistration?: boolean | undefined;
+        supportsAuthExport?: boolean | undefined;
+        supportsAuthImport?: boolean | undefined;
+      }
+    | undefined;
+};
 
 export let mapDashboardInstanceProvidersListQuery = mtMap.union([
   mtMap.unionOption(
@@ -309,6 +322,36 @@ export let mapDashboardInstanceProvidersListQuery = mtMap.union([
             mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
           )
         ])
+      ),
+      capabilities: mtMap.objectField(
+        'capabilities',
+        mtMap.object({
+          supportsConfig: mtMap.objectField(
+            'supportsConfig',
+            mtMap.passthrough()
+          ),
+          supportsAuth: mtMap.objectField('supportsAuth', mtMap.passthrough()),
+          supportsOauth: mtMap.objectField(
+            'supportsOAuth',
+            mtMap.passthrough()
+          ),
+          supportsCallbacks: mtMap.objectField(
+            'supportsCallbacks',
+            mtMap.passthrough()
+          ),
+          supportsOauthAutoRegistration: mtMap.objectField(
+            'supportsOAuthAutoRegistration',
+            mtMap.passthrough()
+          ),
+          supportsAuthExport: mtMap.objectField(
+            'supportsAuthExport',
+            mtMap.passthrough()
+          ),
+          supportsAuthImport: mtMap.objectField(
+            'supportsAuthImport',
+            mtMap.passthrough()
+          )
+        })
       )
     })
   )

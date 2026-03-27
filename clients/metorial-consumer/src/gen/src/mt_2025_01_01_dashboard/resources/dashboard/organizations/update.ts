@@ -23,10 +23,14 @@ export let mapDashboardOrganizationsUpdateOutput =
     updatedAt: mtMap.objectField('updated_at', mtMap.date())
   });
 
-export type DashboardOrganizationsUpdateBody = { name?: string | undefined };
+export type DashboardOrganizationsUpdateBody = {
+  name?: string | undefined;
+  imageFileId?: string | null | undefined;
+};
 
 export let mapDashboardOrganizationsUpdateBody =
   mtMap.object<DashboardOrganizationsUpdateBody>({
-    name: mtMap.objectField('name', mtMap.passthrough())
+    name: mtMap.objectField('name', mtMap.passthrough()),
+    imageFileId: mtMap.objectField('image_file_id', mtMap.passthrough())
   });
 
