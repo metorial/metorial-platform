@@ -95,6 +95,8 @@ class providerVersionInternalServiceImpl {
       attributes: PrismaJson.ProviderTypeAttributes;
     };
   }) {
+    let type = await ensureProviderType(d.type.name, d.type.attributes);
+
     return versionCreateLock.usingLock(
       [String(d.variant.oid), String(d.variant.slateOid)],
       () =>
@@ -113,8 +115,6 @@ class providerVersionInternalServiceImpl {
           let currentVariant = await db.providerVariant.findFirst({
             where: { oid: d.variant.oid }
           });
-
-          let type = await ensureProviderType(d.type.name, d.type.attributes);
 
           let versionData = {
             identifier,

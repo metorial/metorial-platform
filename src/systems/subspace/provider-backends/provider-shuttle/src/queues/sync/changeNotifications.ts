@@ -8,7 +8,14 @@ import { syncShuttleVersionQueue } from './syncShuttleVersion';
 
 export let syncChangeNotificationsQueue = createQueue<{}>({
   name: 'sub/shut/cnhnotif',
-  redisUrl: env.service.REDIS_URL
+  redisUrl: env.service.REDIS_URL,
+  workerOpts: {
+    concurrency: 1,
+    limiter: {
+      max: 1,
+      duration: 10_000
+    }
+  }
 });
 
 let lock = createLock({

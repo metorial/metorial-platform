@@ -7,7 +7,6 @@ source ./dbInit.sh
 # Prisma generate
 cd $ROOT_DIR
 echo "Running Prisma generate..."
-env
 bun prisma:generate
 echo "Running Prisma push..."
 bun prisma:push

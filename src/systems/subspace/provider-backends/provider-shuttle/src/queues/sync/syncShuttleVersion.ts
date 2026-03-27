@@ -14,9 +14,9 @@ export let syncShuttleVersionQueue = createQueue<{
   name: 'sub/shut/sync',
   redisUrl: env.service.REDIS_URL,
   workerOpts: {
-    concurrency: 1,
+    concurrency: 2,
     limiter: {
-      max: 5,
+      max: 25,
       duration: 1000
     }
   }

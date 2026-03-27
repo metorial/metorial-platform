@@ -1,13 +1,16 @@
 import { canonicalize } from '@lowerdeck/canonicalize';
 import { Hash } from '@lowerdeck/hash';
 import { generatePlainId } from '@lowerdeck/id';
-import { db, get4ByteIntId, ID } from '@metorial-subspace/db';
+import { db, get4ByteIntId, ID, type ProviderType } from '@metorial-subspace/db';
+
+let cachedProviderTypes: Record<string, ProviderType> = {};
 
 export let ensureProviderType = async (
   name: string,
   attributes: PrismaJson.ProviderTypeAttributes
 ) => {
   let identifier = `provider::type::${await Hash.sha256(canonicalize({ attributes }))}`;
+  if (cachedProviderTypes[identifier]) return cachedProviderTypes[identifier];
 
   let inner = {
     identifier,
@@ -29,7 +32,7 @@ export let ensureProviderType = async (
       attributes.auth.status == 'enabled' && attributes.auth.import.status == 'enabled'
   };
 
-  return await db.providerType.upsert({
+  let res = await db.providerType.upsert({
     where: { identifier },
     update: inner,
     create: {
@@ -40,4 +43,8 @@ export let ensureProviderType = async (
       ...inner
     }
   });
+
+  cachedProviderTypes[identifier] = res;
+
+  return res;
 };

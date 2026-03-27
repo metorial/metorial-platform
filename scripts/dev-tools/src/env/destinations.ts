@@ -83,9 +83,9 @@ export let destinations: Destination[] = [
   //   path: 'systems/origin/apps/code-bucket'
   // },
   {
-    type: 'enterprise',
+    type: 'oss',
     env: shuttleServiceEnv,
-    path: 'systems/shuttle/service'
+    path: 'src/systems/shuttle/service'
   },
   // {
   //   type: 'enterprise',

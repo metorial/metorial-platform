@@ -24,7 +24,7 @@ services:
     ports:
       - '36379:6379'
     volumes:
-      - redis_1:/data
+      - redis_2:/data
     restart: unless-stopped
 
   # meilisearch:
@@ -106,7 +106,7 @@ services:
 
 volumes:
   mongodb_1:
-  redis_1:
+  redis_2:
   meilisearch_1:
   pg_v2_1:
   open_search_1:
