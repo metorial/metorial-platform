@@ -100,7 +100,8 @@ let providerAuthConfigsTableState: TableStateProvider<
   let providerIds = [
     ...new Set((authConfigs.data?.items ?? []).map(item => item.providerId).filter(Boolean))
   ];
-  let providers = useProviders(props.instanceId, providerIds.length > 0 ? { id: providerIds } : null);
+  let shouldLoadProviders = providerIds.length > 0;
+  let providers = useProviders(props.instanceId, shouldLoadProviders ? { id: providerIds } : null);
 
   let providerNameMap = new Map<string, string>();
   for (let provider of providers.data?.items ?? []) {
@@ -108,8 +109,8 @@ let providerAuthConfigsTableState: TableStateProvider<
   }
 
   return {
-    isLoading: authConfigs.isLoading || providers.isLoading,
-    error: authConfigs.error ?? providers.error,
+    isLoading: authConfigs.isLoading || (shouldLoadProviders && providers.isLoading),
+    error: authConfigs.error ?? (shouldLoadProviders ? providers.error : null),
     hasMoreAfter: authConfigs.data?.pagination.hasMoreAfter ?? false,
     hasMoreBefore: authConfigs.data?.pagination.hasMoreBefore ?? false,
     items: (authConfigs.data?.items ?? []).map(item => ({

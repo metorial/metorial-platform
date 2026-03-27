@@ -86,9 +86,10 @@ let providerRunsTableState: TableStateProvider<
   let providerIds = [
     ...new Set((runs.data?.items ?? []).map(run => run.providerId).filter(Boolean))
   ];
+  let shouldLoadProviders = providerIds.length > 0;
   let providers = useProviders(
     useCurrentInstance().data?.id,
-    providerIds.length > 0 ? { id: providerIds } : null
+    shouldLoadProviders ? { id: providerIds } : null
   );
 
   let providerNameMap = new Map<string, string>();
@@ -97,8 +98,8 @@ let providerRunsTableState: TableStateProvider<
   }
 
   return {
-    isLoading: runs.isLoading || providers.isLoading,
-    error: runs.error ?? providers.error,
+    isLoading: runs.isLoading || (shouldLoadProviders && providers.isLoading),
+    error: runs.error ?? (shouldLoadProviders ? providers.error : null),
     hasMoreAfter: runs.data?.pagination.hasMoreAfter ?? false,
     hasMoreBefore: runs.data?.pagination.hasMoreBefore ?? false,
     items: (runs.data?.items ?? []).map(run => ({

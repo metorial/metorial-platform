@@ -78,7 +78,8 @@ let providerConfigVaultsOverviewState: TableStateProvider<
   let providerIds = [
     ...new Set((vaults.data?.items ?? []).map(item => item.providerId).filter(Boolean))
   ];
-  let providers = useProviders(props.instanceId, providerIds.length > 0 ? { id: providerIds } : null);
+  let shouldLoadProviders = providerIds.length > 0;
+  let providers = useProviders(props.instanceId, shouldLoadProviders ? { id: providerIds } : null);
 
   let providerNameMap = new Map<string, string>();
   for (let provider of providers.data?.items ?? []) {
@@ -86,8 +87,8 @@ let providerConfigVaultsOverviewState: TableStateProvider<
   }
 
   return {
-    isLoading: vaults.isLoading || providers.isLoading,
-    error: vaults.error ?? providers.error,
+    isLoading: vaults.isLoading || (shouldLoadProviders && providers.isLoading),
+    error: vaults.error ?? (shouldLoadProviders ? providers.error : null),
     hasMoreAfter: vaults.data?.pagination.hasMoreAfter ?? false,
     hasMoreBefore: vaults.data?.pagination.hasMoreBefore ?? false,
     items: (vaults.data?.items ?? []).map(item => ({

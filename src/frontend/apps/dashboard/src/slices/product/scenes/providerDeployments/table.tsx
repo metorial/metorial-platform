@@ -101,7 +101,7 @@ let useProviderDeploymentsTableState: TableStateProvider<
 
   return {
     isLoading: deployments.isLoading || (shouldLoadProviders && providers.isLoading),
-    error: deployments.error ?? providers.error,
+    error: deployments.error ?? (shouldLoadProviders ? providers.error : null),
     hasMoreAfter: deployments.data?.pagination.hasMoreAfter ?? false,
     hasMoreBefore: deployments.data?.pagination.hasMoreBefore ?? false,
     items: (deployments.data?.items ?? []).map(item => ({

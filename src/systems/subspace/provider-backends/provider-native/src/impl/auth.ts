@@ -16,7 +16,7 @@ import {
 let unsupportedAuthError = () =>
   new ServiceError(
     badRequestError({
-      message: 'Native integrations do not support authentication configuration'
+      message: 'This integration does not support authentication configuration'
     })
   );
 

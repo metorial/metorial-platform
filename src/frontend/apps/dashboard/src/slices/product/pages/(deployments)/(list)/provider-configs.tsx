@@ -84,7 +84,8 @@ let providerConfigsOverviewTableState: TableStateProvider<
         .filter(Boolean)
     )
   ];
-  let providers = useProviders(props.instanceId, providerIds.length > 0 ? { id: providerIds } : null);
+  let shouldLoadProviders = providerIds.length > 0;
+  let providers = useProviders(props.instanceId, shouldLoadProviders ? { id: providerIds } : null);
 
   let providerNameMap = new Map<string, string>();
   for (let provider of providers.data?.items ?? []) {
@@ -92,8 +93,8 @@ let providerConfigsOverviewTableState: TableStateProvider<
   }
 
   return {
-    isLoading: configs.isLoading || providers.isLoading,
-    error: configs.error ?? providers.error,
+    isLoading: configs.isLoading || (shouldLoadProviders && providers.isLoading),
+    error: configs.error ?? (shouldLoadProviders ? providers.error : null),
     hasMoreAfter: configs.data?.pagination.hasMoreAfter ?? false,
     hasMoreBefore: configs.data?.pagination.hasMoreBefore ?? false,
     items: (configs.data?.items ?? []).map(config => ({
