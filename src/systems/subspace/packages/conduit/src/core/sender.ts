@@ -357,20 +357,32 @@ export class Sender {
   }
 
   private async resolveOwner(topic: string): Promise<string | null> {
+    let activeReceivers = await this.coordination.getActiveReceivers();
+
     // Check if topic has an owner
     let owner = await this.coordination.getTopicOwner(topic);
     if (owner) {
-      return owner;
+      if (activeReceivers.includes(owner)) {
+        return owner;
+      }
+
+      console.warn(
+        `CONDUIT.sender.resolveOwner.stale_owner senderId=${this.senderId} topic=${topic} owner=${owner}`
+      );
+
+      // Best-effort cleanup. The coordination adapter already guards this so we only
+      // clear the lease if it still belongs to the stale owner.
+      await this.coordination.releaseTopicOwnership(topic, owner);
+      owner = null;
     }
 
     // No owner, need to assign one
-    let receivers = await this.coordination.getActiveReceivers();
-    if (receivers.length === 0) {
+    if (activeReceivers.length === 0) {
       return null;
     }
 
     // Pick a random receiver
-    let randomReceiver = receivers[Math.floor(Math.random() * receivers.length)];
+    let randomReceiver = activeReceivers[Math.floor(Math.random() * activeReceivers.length)];
     if (!randomReceiver) {
       return null;
     }
@@ -379,7 +391,7 @@ export class Sender {
     let claimed = await this.coordination.claimTopicOwnership(
       topic,
       randomReceiver,
-      30000 // 30 second TTL
+      this.config.topicOwnershipTtl
     );
 
     if (claimed) {

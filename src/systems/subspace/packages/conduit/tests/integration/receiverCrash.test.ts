@@ -172,4 +172,34 @@ describe('Receiver Crash Integration', () => {
     await sender.close();
     await conduit.close();
   }, 15000);
+
+  test('should discard stale topic ownership that points to a dead receiver', async () => {
+    const conduit = createConduit();
+    const sender = conduit.createSender({
+      defaultTimeout: 200,
+      maxRetries: 1,
+      retryBackoffMs: 25,
+      topicOwnershipTtl: 5000
+    });
+
+    const receiver = conduit.createReceiver(async (_topic, payload) => {
+      return { receiver: 'healthy', payload };
+    });
+    await receiver.start();
+
+    await conduit.coordination.claimTopicOwnership('stale-topic', 'receiver-dead', 5000);
+
+    const response = await sender.send('stale-topic', { data: 'test' });
+
+    expect(response.success).toBe(true);
+    expect(response.result).toEqual({
+      receiver: 'healthy',
+      payload: { data: 'test' }
+    });
+    expect(await conduit.coordination.getTopicOwner('stale-topic')).toBe(receiver.getReceiverId());
+
+    await receiver.stop();
+    await sender.close();
+    await conduit.close();
+  });
 });

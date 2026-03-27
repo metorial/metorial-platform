@@ -35,6 +35,8 @@ export interface SenderConfig {
 
   retryBackoffMultiplier: number;
 
+  topicOwnershipTtl: number;
+
   inFlightCacheTtl: number;
 
   maxInFlightMessages: number;
@@ -75,9 +77,10 @@ export const DEFAULT_CONFIG: ConduitConfig = {
   },
   sender: {
     defaultTimeout: 5000,
-    maxRetries: 3,
-    retryBackoffMs: 100,
-    retryBackoffMultiplier: 2,
+    maxRetries: 2,
+    retryBackoffMs: 50,
+    retryBackoffMultiplier: 1.5,
+    topicOwnershipTtl: 5000,
     inFlightCacheTtl: 60000,
     maxInFlightMessages: 1000
   },
