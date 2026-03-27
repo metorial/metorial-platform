@@ -11,7 +11,11 @@ import {
   resolvePublishers
 } from '@metorial-subspace/list-utils';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
-import { providerInclude } from './provider';
+import {
+  getProviderCapabilityFilter,
+  ProviderCapabilityFilter,
+  providerInclude
+} from './provider';
 
 export type ProviderListingOrderByUse =
   | 'deployments'
@@ -116,10 +120,14 @@ class ProviderListingService {
 
     orderByRank?: boolean;
     orderByUse?: ProviderListingOrderByUse;
+
+    capabilities?: ProviderCapabilityFilter;
   }) {
     let collections = await resolveProviderCollections(d.providerCollectionIds);
     let categories = await resolveProviderCategories(d.providerCategoryIds);
     let publishers = await resolvePublishers(d.publisherIds);
+
+    let capFilters = getProviderCapabilityFilter(d.capabilities || {});
 
     let groups =
       d.environment && d.tenant
@@ -191,6 +199,8 @@ class ProviderListingService {
               groups ? { groups: { some: groups.oidIn } } : undefined!,
 
               publishers ? { publisherOid: publishers.in } : undefined!,
+
+              capFilters ? { type: capFilters } : undefined!,
 
               d.onlyFromTenant && d.tenant && d.solution
                 ? {

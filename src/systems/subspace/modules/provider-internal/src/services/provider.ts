@@ -239,7 +239,9 @@ class providerInternalServiceImpl {
         ownerSolutionOid: provider.access === 'tenant' ? provider.ownerSolutionOid : null,
 
         publisherOid: provider.publisherOid,
-        providerOid: provider.oid
+        providerOid: provider.oid,
+
+        typeOid: provider.typeOid
       };
 
       let newListingId = getId('providerListing');
@@ -303,6 +305,7 @@ class providerInternalServiceImpl {
           await providerUpdatedQueue.add({ providerId: provider.id });
         }
       });
+
       await addAfterTransactionHook(async () => {
         if (listing.id === newListingId.id) {
           await listingCreatedQueue.add({ providerListingId: listing.id });

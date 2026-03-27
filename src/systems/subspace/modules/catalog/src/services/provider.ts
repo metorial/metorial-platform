@@ -9,6 +9,7 @@ import {
   type Solution,
   type Tenant
 } from '@metorial-subspace/db';
+import { ProviderTypeWhereInput } from '@metorial-subspace/db/prisma/generated/models';
 import { providerInternalService } from '@metorial-subspace/module-provider-internal';
 import { providerVariantInclude } from './providerVariant';
 
@@ -40,6 +41,37 @@ export let getProviderTenantFilter = (d: {
       : undefined!
   ].filter(Boolean)
 });
+
+export type ProviderCapabilityFilter = {
+  supportsConfig?: boolean;
+  supportsAuth?: boolean;
+  supportsOAuth?: boolean;
+  supportsCallbacks?: boolean;
+  supportsOAuthAutoRegistration?: boolean;
+  supportsAuthExport?: boolean;
+  supportsAuthImport?: boolean;
+};
+
+let isSet = (v: any): v is boolean => typeof v === 'boolean';
+
+export let getProviderCapabilityFilter = (d: ProviderCapabilityFilter) => {
+  let filters: Partial<ProviderTypeWhereInput>[] = [];
+
+  if (isSet(d.supportsConfig)) filters.push({ supportsConfig: d.supportsConfig });
+  if (isSet(d.supportsAuth)) filters.push({ supportsAuth: d.supportsAuth });
+  if (isSet(d.supportsOAuth)) filters.push({ supportsOAuth: d.supportsOAuth });
+  if (isSet(d.supportsCallbacks)) filters.push({ supportsCallbacks: d.supportsCallbacks });
+  if (isSet(d.supportsOAuthAutoRegistration))
+    filters.push({ supportsOAuthAutoRegistration: d.supportsOAuthAutoRegistration });
+  if (isSet(d.supportsAuthExport)) filters.push({ supportsAuthExport: d.supportsAuthExport });
+  if (isSet(d.supportsAuthImport)) filters.push({ supportsAuthImport: d.supportsAuthImport });
+
+  if (filters.length === 0) return undefined;
+
+  return {
+    AND: filters
+  };
+};
 
 class providerServiceImpl {
   async getProviderById(d: {
@@ -77,13 +109,28 @@ class providerServiceImpl {
     tenant?: Tenant;
     environment?: Environment;
     search?: string;
+
+    ids?: string[];
+    capabilities?: ProviderCapabilityFilter;
   }) {
+    let capFilters = getProviderCapabilityFilter(d.capabilities || {});
+
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
           await db.provider.findMany({
             ...opts,
-            where: getProviderTenantFilter(d),
+            where: {
+              AND: [
+                getProviderTenantFilter(d),
+                {
+                  AND: [
+                    d.ids ? { id: { in: d.ids } } : undefined!,
+                    capFilters ? { type: capFilters } : undefined!
+                  ].filter(Boolean)
+                }
+              ]
+            },
             include
           })
       )

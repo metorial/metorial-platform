@@ -22,4 +22,5 @@ model ProviderType {
 
   providers        Provider[]
   providerVersions ProviderVersion[]
+  providerListings ProviderListing[]
 }
