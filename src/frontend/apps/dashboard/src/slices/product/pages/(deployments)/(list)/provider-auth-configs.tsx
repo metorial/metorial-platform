@@ -1,5 +1,8 @@
-import { DashboardInstanceProviderDeploymentsAuthConfigsListOutput } from '@metorial/dashboard-sdk';
-import { renderWithLoader, renderWithPagination } from '@metorial/data-hooks';
+import {
+  DashboardInstanceProviderDeploymentsAuthConfigsListOutput,
+  DashboardInstanceProviderDeploymentsAuthConfigsListQuery
+} from '@metorial/dashboard-sdk';
+import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
   useCurrentInstance,
@@ -8,15 +11,40 @@ import {
   useInstanceProviderAuthConfigs,
   useProviders
 } from '@metorial/state';
-import { Badge, Input, RenderDate, Spacer, Text } from '@metorial/ui';
-import { ID, Table } from '@metorial/ui-product';
-import { useMemo } from 'react';
+import { Badge, RenderDate, Text } from '@metorial/ui';
+import { ID } from '@metorial/ui-product';
 import { EmptyState } from '../../../../../components/emptyState';
-import { useSearchFilter } from '../../../../../hooks/useSearchFilter';
+import { Table as DashboardTable } from '../../../../../components/table';
+import { FilterPayload } from '../../../../../components/table/filter';
+import {
+  TableStateProvider,
+  TableStateProviderResult
+} from '../../../../../components/table/type';
+import {
+  getDateRangeFilterValue,
+  getEnumListFilterValue,
+  getStringFilterValue
+} from '../../../../../lib/dataTableUtils';
 import { showCreateProviderAuthConfigFlow } from './providerCreationFlows';
 
-type AuthConfigItem =
-  DashboardInstanceProviderDeploymentsAuthConfigsListOutput['items'][number];
+type AuthConfigItem = DashboardInstanceProviderDeploymentsAuthConfigsListOutput['items'][number];
+
+type AuthConfigRow = AuthConfigItem & {
+  providerName?: string | null;
+};
+
+type AuthConfigFilters = Omit<
+  DashboardInstanceProviderDeploymentsAuthConfigsListQuery,
+  'limit' | 'after' | 'before' | 'cursor'
+>;
+
+type ProviderAuthConfigsTableProps = {
+  instanceId: string;
+  organization: ReturnType<typeof useCurrentOrganization>;
+  project: ReturnType<typeof useCurrentProject>;
+  instance: ReturnType<typeof useCurrentInstance>;
+  filters?: AuthConfigFilters;
+};
 
 let formatType = (type: string | null | undefined) => {
   if (type === 'oauth_automated') return 'OAuth (Automated)';
@@ -32,142 +60,257 @@ let formatSource = (source: AuthConfigItem['source'] | null | undefined) => {
   return '\u2014';
 };
 
+let getStatusFilterValue = (
+  value: FilterPayload | undefined
+): DashboardInstanceProviderDeploymentsAuthConfigsListQuery['status'] => {
+  return getEnumListFilterValue(value, ['active', 'archived']);
+};
+
+let providerAuthConfigsTableState: TableStateProvider<
+  ProviderAuthConfigsTableProps,
+  AuthConfigRow,
+  TableStateProviderResult<AuthConfigRow>
+> = (
+  props: ProviderAuthConfigsTableProps,
+  opts: {
+    filter: Record<string, FilterPayload>;
+    search?: string;
+  }
+) => {
+  let authConfigs = useInstanceProviderAuthConfigs(props.instanceId, {
+    order: 'desc',
+    ...props.filters,
+    status: getStatusFilterValue(opts.filter.status) ?? props.filters?.status,
+    id: getStringFilterValue(opts.filter.id) ?? props.filters?.id,
+    providerId: getStringFilterValue(opts.filter.providerId) ?? props.filters?.providerId,
+    providerDeploymentId:
+      getStringFilterValue(opts.filter.providerDeploymentId) ??
+      props.filters?.providerDeploymentId,
+    providerAuthCredentialsId:
+      getStringFilterValue(opts.filter.providerAuthCredentialsId) ??
+      props.filters?.providerAuthCredentialsId,
+    providerAuthMethodId:
+      getStringFilterValue(opts.filter.providerAuthMethodId) ??
+      props.filters?.providerAuthMethodId,
+    search: opts.search ?? props.filters?.search,
+    createdAt: getDateRangeFilterValue(opts.filter.createdAt) ?? props.filters?.createdAt,
+    updatedAt: getDateRangeFilterValue(opts.filter.updatedAt) ?? props.filters?.updatedAt
+  });
+
+  let providerIds = [
+    ...new Set((authConfigs.data?.items ?? []).map(item => item.providerId).filter(Boolean))
+  ];
+  let shouldLoadProviders = providerIds.length > 0;
+  let providers = useProviders(props.instanceId, shouldLoadProviders ? { id: providerIds } : null);
+
+  let providerNameMap = new Map<string, string>();
+  for (let provider of providers.data?.items ?? []) {
+    if (provider.id && provider.name) providerNameMap.set(provider.id, provider.name);
+  }
+
+  return {
+    isLoading: authConfigs.isLoading || (shouldLoadProviders && providers.isLoading),
+    error: authConfigs.error ?? (shouldLoadProviders ? providers.error : null),
+    hasMoreAfter: authConfigs.data?.pagination.hasMoreAfter ?? false,
+    hasMoreBefore: authConfigs.data?.pagination.hasMoreBefore ?? false,
+    items: (authConfigs.data?.items ?? []).map(item => ({
+      ...item,
+      providerName: providerNameMap.get(item.providerId) ?? null
+    })),
+    loadNext: authConfigs.next,
+    loadPrevious: authConfigs.previous
+  };
+};
+
+let providerAuthConfigsTable = new DashboardTable<
+  ProviderAuthConfigsTableProps,
+  AuthConfigRow
+>('provider-auth-configs-overview')
+  .state(providerAuthConfigsTableState)
+  .columns([
+    {
+      id: 'name',
+      isDefault: true,
+      header: 'Name',
+      render: row => <Text size="2" weight="strong">{row.name || '\u2014'}</Text>
+    },
+    {
+      id: 'id',
+      isDefault: true,
+      header: 'ID',
+      render: row => <ID id={row.id} />
+    },
+    {
+      id: 'authMethod',
+      isDefault: true,
+      header: 'Auth Method',
+      render: row => <Text size="2">{row.authMethod?.name ?? row.authMethod?.key ?? '\u2014'}</Text>
+    },
+    {
+      id: 'type',
+      isDefault: true,
+      header: 'Type',
+      render: row => <Text size="2">{formatType(row.type)}</Text>
+    },
+    {
+      id: 'source',
+      isDefault: true,
+      header: 'Source',
+      render: row => <Text size="2">{formatSource(row.source)}</Text>
+    },
+    {
+      id: 'status',
+      isDefault: true,
+      header: 'Status',
+      render: row => <Badge color={row.status === 'active' ? 'green' : 'gray'}>{row.status}</Badge>
+    },
+    {
+      id: 'default',
+      isDefault: true,
+      header: 'Default',
+      render: row => (row.isDefault ? <Badge color="blue">Default</Badge> : <Text size="2">No</Text>)
+    },
+    {
+      id: 'provider',
+      isDefault: true,
+      header: 'Provider',
+      render: row => <Text size="2">{row.providerName ?? row.providerId}</Text>
+    },
+    {
+      id: 'createdAt',
+      isDefault: true,
+      header: 'Created',
+      render: row => <RenderDate date={row.createdAt} />
+    },
+    {
+      id: 'credentials',
+      isDefault: false,
+      header: 'Credentials',
+      render: row =>
+        row.credentials?.id ? (
+          <ID id={row.credentials.id} />
+        ) : (
+          <Text size="2" color="gray600">
+            -
+          </Text>
+        )
+    },
+    {
+      id: 'deployment',
+      isDefault: false,
+      header: 'Deployment',
+      render: row => <Text size="2">{row.deploymentPreview?.name ?? '\u2014'}</Text>
+    },
+    {
+      id: 'updatedAt',
+      isDefault: false,
+      header: 'Updated',
+      render: row => <RenderDate date={row.updatedAt} />
+    }
+  ])
+  .filters([
+    {
+      id: 'status',
+      fields: ['status'],
+      label: 'Status',
+      description: 'Filter by status',
+      type: 'select',
+      options: [
+        { id: 'active', label: 'Active' },
+        { id: 'archived', label: 'Archived' }
+      ]
+    },
+    {
+      id: 'id',
+      fields: ['id'],
+      label: 'Auth Config ID',
+      description: 'Filter by auth config ID',
+      type: 'string'
+    },
+    {
+      id: 'providerId',
+      fields: ['providerId'],
+      label: 'Provider ID',
+      description: 'Filter by provider ID',
+      type: 'string'
+    },
+    {
+      id: 'providerDeploymentId',
+      fields: ['providerDeploymentId'],
+      label: 'Deployment ID',
+      description: 'Filter by deployment ID',
+      type: 'string'
+    },
+    {
+      id: 'providerAuthCredentialsId',
+      fields: ['providerAuthCredentialsId'],
+      label: 'Credentials ID',
+      description: 'Filter by credentials ID',
+      type: 'string'
+    },
+    {
+      id: 'providerAuthMethodId',
+      fields: ['providerAuthMethodId'],
+      label: 'Auth Method ID',
+      description: 'Filter by auth method ID',
+      type: 'string'
+    },
+    {
+      id: 'createdAt',
+      fields: ['createdAt'],
+      label: 'Created',
+      description: 'Filter by created date',
+      type: 'date'
+    },
+    {
+      id: 'updatedAt',
+      fields: ['updatedAt'],
+      label: 'Updated',
+      description: 'Filter by updated date',
+      type: 'date'
+    }
+  ])
+  .search('Search auth configs...')
+  .link((row, props) =>
+    row.deploymentPreview?.id
+      ? Paths.instance.providerAuthConfig(
+          props.organization.data,
+          props.project.data,
+          props.instance.data,
+          row.deploymentPreview.id,
+          row.id
+        )
+      : ''
+  )
+  .build();
+
 export let ProviderAuthConfigsOverviewPage = () => {
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
 
-  let { search, setSearch, searchQuery } = useSearchFilter();
-  let authConfigs = useInstanceProviderAuthConfigs(instance.data?.id, {
-    limit: 20,
-    search: searchQuery
-  });
-  let items = authConfigs.data?.items ?? [];
-
-  let providerIds = useMemo(
-    () => [...new Set(items.map(item => item.providerId).filter(Boolean))],
-    [items]
-  );
-
-  let providerQuery = useMemo(
-    () =>
-      !authConfigs.isLoading && !authConfigs.error && providerIds.length === 0
-        ? { limit: 20 }
-        : { id: providerIds },
-    [authConfigs.error, authConfigs.isLoading, providerIds]
-  );
-
-  let providers = useProviders(instance.data?.id, providerQuery);
-  let providerNameMap = useMemo(() => {
-    let map = new Map<string, string>();
-    for (let provider of providers.data?.items ?? []) {
-      if (provider.id && provider.name) map.set(provider.id, provider.name);
-    }
-    return map;
-  }, [providers.data?.items]);
-
-  let rows = useMemo(() => {
-    return items.map(config => ({
-      key: config.id,
-      name: config.name,
-      type: config.type,
-      source: config.source,
-      status: config.status,
-      isDefault: config.isDefault,
-      authMethodName: config.authMethod?.name ?? config.authMethod?.key ?? null,
-      providerId: config.providerId,
-      providerName: providerNameMap.get(config.providerId) ?? null,
-      providerDeploymentId: config.deploymentPreview?.id ?? null,
-      createdAt: config.createdAt
-    }));
-  }, [items, providerNameMap]);
-
-  let authConfigsContent = renderWithPagination(authConfigs)(() => (
-    <Table
-      headers={[
-        'Name',
-        'ID',
-        'Auth Method',
-        'Type',
-        'Source',
-        'Status',
-        'Default',
-        'Provider',
-        'Created'
-      ]}
-      data={rows.map(row => ({
-        href: row.providerDeploymentId
-          ? Paths.instance.providerAuthConfig(
-              organization.data,
-              project.data,
-              instance.data,
-              row.providerDeploymentId,
-              row.key
-            )
-          : undefined,
-        data: [
-          <Text size="2" weight="strong">
-            {row.name || '\u2014'}
-          </Text>,
-          <ID id={row.key} />,
-          <Text size="2">{row.authMethodName ?? '\u2014'}</Text>,
-          <Text size="2">{formatType(row.type)}</Text>,
-          <Text size="2">{formatSource(row.source)}</Text>,
-          <Badge color={row.status === 'active' ? 'green' : 'gray'}>{row.status}</Badge>,
-          row.isDefault ? <Badge color="blue">Default</Badge> : <Text size="2">No</Text>,
-          <Text size="2">{row.providerName ?? row.providerId}</Text>,
-          row.createdAt ? (
-            <RenderDate date={row.createdAt} />
-          ) : (
-            <Text size="2" color="gray600">
-              {'\u2014'}
-            </Text>
-          )
-        ]
-      }))}
-    />
-  ));
-
-  return renderWithLoader({ organization, project, instance, authConfigs })(() => {
-    let hasSearch = (searchQuery ?? '').trim().length > 0;
-
-    return (
-      <>
-        <Input
-          label="Search"
-          hideLabel
-          placeholder="Search auth configs..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
+  return renderWithLoader({ organization, project, instance })(() =>
+    providerAuthConfigsTable({
+      instanceId: instance.data!.id,
+      organization,
+      project,
+      instance,
+      emptyState: () => (
+        <EmptyState
+          title="Create your first auth config"
+          description="Auth configs connect providers to the authentication settings your instance should use."
+          action={{
+            label: 'Create Auth Config',
+            onClick: () => {
+              if (instance.data?.id) {
+                showCreateProviderAuthConfigFlow(instance.data.id, {
+                  scope: 'provider'
+                });
+              }
+            }
+          }}
         />
-
-        <Spacer size={15} />
-
-        {rows.length === 0 ? (
-          hasSearch ? (
-            <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-              No auth configs found for "{searchQuery}".
-            </Text>
-          ) : (
-            <EmptyState
-              title="Create your first auth config"
-              description="Auth configs connect providers to the authentication settings your instance should use."
-              action={{
-                label: 'Create Auth Config',
-                onClick: () => {
-                  if (instance.data?.id) {
-                    showCreateProviderAuthConfigFlow(instance.data.id, {
-                      scope: 'provider'
-                    });
-                  }
-                }
-              }}
-            />
-          )
-        ) : (
-          renderWithLoader({ providers })(() => authConfigsContent)
-        )}
-      </>
-    );
-  });
+      )
+    })
+  );
 };
