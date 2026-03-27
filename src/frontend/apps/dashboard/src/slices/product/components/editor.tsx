@@ -1,4 +1,4 @@
-import { Button, Select, theme } from '@metorial/ui';
+import { Button, InputLabel, Select, theme } from '@metorial/ui';
 import {
   RiBold,
   RiCodeBlock,
@@ -19,15 +19,23 @@ import { useMemo } from 'react';
 import styled from 'styled-components';
 import { Markdown } from 'tiptap-markdown';
 
+let Outer = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
+
 let Wrapper = styled.div`
   display: flex;
   flex-direction: column;
   gap: 10px;
+  border: solid 1px ${theme.colors.gray300};
+  border-radius: 12px;
 `;
 
 let Nav = styled.nav`
   display: flex;
   gap: 10px;
+  padding: 10px 10px 0px 10px;
 `;
 
 let EditorWrapper = styled.div`
@@ -39,6 +47,8 @@ let EditorWrapper = styled.div`
 
   .tiptap {
     outline: none !important;
+    padding: 10px;
+    font-size: 0.9rem;
 
     p.is-editor-empty:first-child::before {
       color: #999;
@@ -295,6 +305,7 @@ let MenuBar = ({ editor }: { editor: Editor }) => {
 };
 
 export let TextEditor = (p: {
+  label?: string;
   content: string;
   onChange?: (content: string) => void;
   placeholder: string;
@@ -329,11 +340,18 @@ export let TextEditor = (p: {
     }
   });
   return (
-    <Wrapper>
-      <MenuBar editor={editor} />
-      <EditorWrapper>
-        <EditorContent editor={editor} style={{ minHeight: 250 }} placeholder="Hello world" />
-      </EditorWrapper>
-    </Wrapper>
+    <Outer>
+      {p.label && <InputLabel>{p.label}</InputLabel>}
+      <Wrapper>
+        <MenuBar editor={editor} />
+        <EditorWrapper>
+          <EditorContent
+            editor={editor}
+            style={{ minHeight: 250 }}
+            placeholder="Hello world"
+          />
+        </EditorWrapper>
+      </Wrapper>
+    </Outer>
   );
 };
