@@ -275,6 +275,17 @@ export type ManagementInstanceProviderListingsListQuery = {
   providerCollectionId?: string | string[] | undefined;
   providerGroupId?: string | string[] | undefined;
   publisherId?: string | string[] | undefined;
+  capabilities?:
+    | {
+        supportsConfig?: boolean | undefined;
+        supportsAuth?: boolean | undefined;
+        supportsOauth?: boolean | undefined;
+        supportsCallbacks?: boolean | undefined;
+        supportsOauthAutoRegistration?: boolean | undefined;
+        supportsAuthExport?: boolean | undefined;
+        supportsAuthImport?: boolean | undefined;
+      }
+    | undefined;
   isPublic?: boolean | undefined;
   onlyFromTenant?: boolean | undefined;
   isVerified?: boolean | undefined;
@@ -302,6 +313,8 @@ export type ManagementInstanceProviderListingsListQuery = {
     | 'last_session_at'
     | 'last_session_template_at'
     | undefined;
+  createdAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
+  updatedAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
 };
 
 export let mapManagementInstanceProviderListingsListQuery = mtMap.union([
@@ -354,6 +367,36 @@ export let mapManagementInstanceProviderListingsListQuery = mtMap.union([
           )
         ])
       ),
+      capabilities: mtMap.objectField(
+        'capabilities',
+        mtMap.object({
+          supportsConfig: mtMap.objectField(
+            'supportsConfig',
+            mtMap.passthrough()
+          ),
+          supportsAuth: mtMap.objectField('supportsAuth', mtMap.passthrough()),
+          supportsOauth: mtMap.objectField(
+            'supportsOAuth',
+            mtMap.passthrough()
+          ),
+          supportsCallbacks: mtMap.objectField(
+            'supportsCallbacks',
+            mtMap.passthrough()
+          ),
+          supportsOauthAutoRegistration: mtMap.objectField(
+            'supportsOAuthAutoRegistration',
+            mtMap.passthrough()
+          ),
+          supportsAuthExport: mtMap.objectField(
+            'supportsAuthExport',
+            mtMap.passthrough()
+          ),
+          supportsAuthImport: mtMap.objectField(
+            'supportsAuthImport',
+            mtMap.passthrough()
+          )
+        })
+      ),
       isPublic: mtMap.objectField('is_public', mtMap.passthrough()),
       onlyFromTenant: mtMap.objectField(
         'only_from_tenant',
@@ -363,7 +406,21 @@ export let mapManagementInstanceProviderListingsListQuery = mtMap.union([
       isOfficial: mtMap.objectField('is_official', mtMap.passthrough()),
       isMetorial: mtMap.objectField('is_metorial', mtMap.passthrough()),
       orderByRank: mtMap.objectField('order_by_rank', mtMap.passthrough()),
-      orderByUse: mtMap.objectField('order_by_use', mtMap.passthrough())
+      orderByUse: mtMap.objectField('order_by_use', mtMap.passthrough()),
+      createdAt: mtMap.objectField(
+        'created_at',
+        mtMap.object({
+          gt: mtMap.objectField('gt', mtMap.date()),
+          lt: mtMap.objectField('lt', mtMap.date())
+        })
+      ),
+      updatedAt: mtMap.objectField(
+        'updated_at',
+        mtMap.object({
+          gt: mtMap.objectField('gt', mtMap.date()),
+          lt: mtMap.objectField('lt', mtMap.date())
+        })
+      )
     })
   )
 ]);

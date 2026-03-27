@@ -9,6 +9,7 @@ import {
   type Solution,
   type Tenant
 } from '@metorial-subspace/db';
+import { type DateFilter, normalizeDateFilter } from '@metorial-subspace/list-utils';
 import { getTenantForSlates, slates } from '@metorial-subspace/provider-slates/src/client';
 import { callbackRegistrationService } from './callbackRegistration';
 
@@ -41,7 +42,12 @@ class callbackDestinationServiceImpl {
     } as const;
   }
 
-  async listCallbackDestinations(d: { tenant: Tenant; solution: Solution }) {
+  async listCallbackDestinations(d: {
+    tenant: Tenant;
+    solution: Solution;
+    createdAt?: DateFilter;
+    updatedAt?: DateFilter;
+  }) {
     return Paginator.create(({ prisma }) =>
       prisma(async opts =>
         db.callbackDestination.findMany({
@@ -49,7 +55,11 @@ class callbackDestinationServiceImpl {
           where: {
             tenantOid: d.tenant.oid,
             solutionOid: d.solution.oid,
-            status: { notIn: [CallbackDestinationStatus.deleted] }
+            status: { notIn: [CallbackDestinationStatus.deleted] },
+            AND: [
+              d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
+              d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
+            ].filter(Boolean)
           }
         })
       )

@@ -10,8 +10,17 @@ model ProviderType {
   /// [ProviderTypeAttributes]
   attributes Json
 
+  supportsConfig                Boolean @default(false)
+  supportsAuth                  Boolean @default(false)
+  supportsOAuth                 Boolean @default(false)
+  supportsCallbacks             Boolean @default(false)
+  supportsOAuthAutoRegistration Boolean @default(false)
+  supportsAuthExport            Boolean @default(false)
+  supportsAuthImport            Boolean @default(false)
+
   createdAt DateTime @default(now())
 
   providers        Provider[]
   providerVersions ProviderVersion[]
+  providerListings ProviderListing[]
 }

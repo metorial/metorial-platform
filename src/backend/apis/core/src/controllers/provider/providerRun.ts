@@ -3,6 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { subspaceProviderRunService } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
+import { dateFilterValidator } from '../../lib/dateFilter';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
@@ -68,7 +69,9 @@ export let providerRunController = Controller.create(
             }),
             provider_version_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by provider version ID(s)'
-            })
+            }),
+            created_at: dateFilterValidator('provider run creation time'),
+            updated_at: dateFilterValidator('provider run last update time')
           })
         )
       )
@@ -83,7 +86,9 @@ export let providerRunController = Controller.create(
           sessionProviderIds: normalizeArrayParam(ctx.query.session_provider_id),
           sessionConnectionIds: normalizeArrayParam(ctx.query.session_connection_id),
           providerVersionIds: normalizeArrayParam(ctx.query.provider_version_id),
-          status: normalizeArrayParam(ctx.query.status)
+          status: normalizeArrayParam(ctx.query.status),
+          createdAt: ctx.query.created_at,
+          updatedAt: ctx.query.updated_at
         });
 
         let list = await paginator.run(ctx.query);

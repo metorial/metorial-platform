@@ -119,7 +119,20 @@ export type ManagementInstanceProviderDeploymentsListQuery = {
   providerId?: string | string[] | undefined;
   providerVersionId?: string | string[] | undefined;
   status?: 'active' | 'archived' | ('active' | 'archived')[] | undefined;
+  capabilities?:
+    | {
+        supportsConfig?: boolean | undefined;
+        supportsAuth?: boolean | undefined;
+        supportsOauth?: boolean | undefined;
+        supportsCallbacks?: boolean | undefined;
+        supportsOauthAutoRegistration?: boolean | undefined;
+        supportsAuthExport?: boolean | undefined;
+        supportsAuthImport?: boolean | undefined;
+      }
+    | undefined;
   search?: string | undefined;
+  createdAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
+  updatedAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
 };
 
 export let mapManagementInstanceProviderDeploymentsListQuery = mtMap.union([
@@ -165,7 +178,51 @@ export let mapManagementInstanceProviderDeploymentsListQuery = mtMap.union([
         'status',
         mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
       ),
-      search: mtMap.objectField('search', mtMap.passthrough())
+      capabilities: mtMap.objectField(
+        'capabilities',
+        mtMap.object({
+          supportsConfig: mtMap.objectField(
+            'supportsConfig',
+            mtMap.passthrough()
+          ),
+          supportsAuth: mtMap.objectField('supportsAuth', mtMap.passthrough()),
+          supportsOauth: mtMap.objectField(
+            'supportsOAuth',
+            mtMap.passthrough()
+          ),
+          supportsCallbacks: mtMap.objectField(
+            'supportsCallbacks',
+            mtMap.passthrough()
+          ),
+          supportsOauthAutoRegistration: mtMap.objectField(
+            'supportsOAuthAutoRegistration',
+            mtMap.passthrough()
+          ),
+          supportsAuthExport: mtMap.objectField(
+            'supportsAuthExport',
+            mtMap.passthrough()
+          ),
+          supportsAuthImport: mtMap.objectField(
+            'supportsAuthImport',
+            mtMap.passthrough()
+          )
+        })
+      ),
+      search: mtMap.objectField('search', mtMap.passthrough()),
+      createdAt: mtMap.objectField(
+        'created_at',
+        mtMap.object({
+          gt: mtMap.objectField('gt', mtMap.date()),
+          lt: mtMap.objectField('lt', mtMap.date())
+        })
+      ),
+      updatedAt: mtMap.objectField(
+        'updated_at',
+        mtMap.object({
+          gt: mtMap.objectField('gt', mtMap.date()),
+          lt: mtMap.objectField('lt', mtMap.date())
+        })
+      )
     })
   )
 ]);

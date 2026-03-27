@@ -13,6 +13,10 @@ import { Badge, RenderDate, Text } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import { Table as DashboardTable } from '../../../../components/table';
 import { FilterPayload } from '../../../../components/table/filter';
+import {
+  getEnumListFilterValue,
+  getStringFilterValue
+} from '../../../../lib/dataTableUtils';
 
 type IdentityDelegation = DashboardInstanceIdentitiesDelegationsListOutput['items'][number];
 
@@ -43,45 +47,22 @@ let getPartyName = (
   return parties.find(party => party.roles.includes(role))?.actor.name ?? '-';
 };
 
-let getStringFilterValue = (value: FilterPayload | undefined) => {
-  if (typeof value === 'string') return value;
-  return undefined;
-};
-
-let getListFilterValue = (value: FilterPayload | undefined) => {
-  if (typeof value === 'object' && value && 'in' in value && Array.isArray(value.in)) {
-    return value.in.map(v => v.toString());
-  }
-
-  return undefined;
-};
-
 let getStatusFilterValue = (
   value: FilterPayload | undefined
 ): DashboardInstanceIdentitiesDelegationsListQuery['status'] => {
-  let values = getListFilterValue(value);
-  if (!values) return undefined;
-
-  return values.filter(
-    (value): value is IdentityDelegation['status'] =>
-      value === 'waiting_for_consent' ||
-      value === 'denied' ||
-      value === 'active' ||
-      value === 'revoked' ||
-      value === 'expired'
-  );
+  return getEnumListFilterValue(value, [
+    'waiting_for_consent',
+    'denied',
+    'active',
+    'revoked',
+    'expired'
+  ]);
 };
 
 let getPermissionsFilterValue = (
   value: FilterPayload | undefined
 ): DashboardInstanceIdentitiesDelegationsListQuery['permissions'] => {
-  let values = getListFilterValue(value);
-  if (!values) return undefined;
-
-  return values.filter(
-    (value): value is IdentityDelegation['permissions'][number] =>
-      value === 'provider:call' || value === 'provider:read'
-  );
+  return getEnumListFilterValue(value, ['provider:call', 'provider:read']);
 };
 
 let useIdentityDelegationsTableState = (

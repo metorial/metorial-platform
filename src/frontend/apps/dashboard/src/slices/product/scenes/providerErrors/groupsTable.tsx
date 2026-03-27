@@ -1,69 +1,159 @@
-import { DashboardInstanceSessionsErrorGroupsListQuery } from '@metorial/dashboard-sdk';
-import { renderWithPagination } from '@metorial/data-hooks';
+import {
+  DashboardInstanceSessionsErrorGroupsListOutput,
+  DashboardInstanceSessionsErrorGroupsListQuery
+} from '@metorial/dashboard-sdk';
 import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, useSessionErrorGroups } from '@metorial/state';
 import { Badge, RenderDate, Text } from '@metorial/ui';
-import { Table } from '@metorial/ui-product';
+import { ID } from '@metorial/ui-product';
+import { Table as DashboardTable } from '../../../../components/table';
+import { FilterPayload } from '../../../../components/table/filter';
+import {
+  TableStateProvider,
+  TableStateProviderResult
+} from '../../../../components/table/type';
+import { getEnumListFilterValue, getStringFilterValue } from '../../../../lib/dataTableUtils';
 
-type SessionErrorGroupTypeFilter = Extract<
-  DashboardInstanceSessionsErrorGroupsListQuery['type'],
-  | 'message_processing_timeout'
-  | 'message_processing_provider_error'
-  | 'message_processing_system_error'
->;
+type ErrorGroup = DashboardInstanceSessionsErrorGroupsListOutput['items'][number];
 
-let normalizeSessionErrorGroupType = (
-  type?: string
-): SessionErrorGroupTypeFilter | undefined => {
-  if (
-    type === 'message_processing_timeout' ||
-    type === 'message_processing_provider_error' ||
-    type === 'message_processing_system_error'
-  ) {
-    return type;
-  }
-  return undefined;
+type ErrorGroupsTableProps = { sessionId?: string; type?: string };
+
+let getErrorTypeFilterValue = (
+  value: FilterPayload | undefined
+): DashboardInstanceSessionsErrorGroupsListQuery['type'] => {
+  return getEnumListFilterValue(value, [
+    'message_processing_timeout',
+    'message_processing_provider_error',
+    'message_processing_system_error'
+  ]);
 };
 
-export let ServerErrorGroupsTable = (filter?: { sessionId?: string; type?: string }) => {
+let errorGroupsTableState: TableStateProvider<
+  ErrorGroupsTableProps,
+  ErrorGroup,
+  TableStateProviderResult<ErrorGroup>
+> = (props, opts) => {
   let instance = useCurrentInstance();
   let errors = useSessionErrorGroups(instance.data?.id, {
-    sessionId: filter?.sessionId,
-    type: normalizeSessionErrorGroupType(filter?.type)
+    order: 'desc',
+    sessionId: getStringFilterValue(opts.filter.sessionId) ?? props.sessionId,
+    type: getErrorTypeFilterValue(opts.filter.type) ?? (props.type as any),
+    id: getStringFilterValue(opts.filter.id),
+    providerId: getStringFilterValue(opts.filter.providerId)
   });
 
-  return renderWithPagination(errors)(errors => (
-    <>
-      <Table
-        headers={['Code', 'Message', 'Count', 'Created']}
-        data={errors.data.items.map(error => ({
-          data: [
-            error.code ? (
-              <Badge color="red">{error.code}</Badge>
-            ) : (
-              <Badge color="gray">Unknown</Badge>
-            ),
-            <Text size="2">
-              {error.message?.slice(0, 80)}
-              {error.message && error.message.length > 80 ? '...' : ''}
-            </Text>,
-            <Text size="2">{error.occurrenceCount ?? '—'}</Text>,
-            <RenderDate date={error.createdAt} />
-          ],
-          href: Paths.instance.providerError(
-            instance.data?.organization,
-            instance.data?.project,
-            instance.data,
-            error.id
-          )
-        }))}
-      />
-
-      {errors.data.items.length == 0 && (
-        <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-          No provider errors found.
-        </Text>
-      )}
-    </>
-  ));
+  return {
+    isLoading: errors.isLoading,
+    error: errors.error,
+    hasMoreAfter: errors.data?.pagination.hasMoreAfter ?? false,
+    hasMoreBefore: errors.data?.pagination.hasMoreBefore ?? false,
+    items: errors.data?.items ?? [],
+    loadNext: errors.next,
+    loadPrevious: errors.previous
+  };
 };
+
+let serverErrorGroupsTable = new DashboardTable<ErrorGroupsTableProps, ErrorGroup>(
+  'provider-error-groups'
+)
+  .state(errorGroupsTableState)
+  .columns([
+    {
+      id: 'code',
+      isDefault: true,
+      header: 'Code',
+      render: error =>
+        error.code ? (
+          <Badge color="red">{error.code}</Badge>
+        ) : (
+          <Badge color="gray">Unknown</Badge>
+        )
+    },
+    {
+      id: 'message',
+      isDefault: true,
+      header: 'Message',
+      render: error => <Text size="2">{error.message}</Text>
+    },
+    {
+      id: 'occurrenceCount',
+      isDefault: true,
+      header: 'Count',
+      render: error => <Text size="2">{error.occurrenceCount ?? '\u2014'}</Text>
+    },
+    {
+      id: 'createdAt',
+      isDefault: true,
+      header: 'Created',
+      render: error => <RenderDate date={error.createdAt} />
+    },
+    {
+      id: 'id',
+      isDefault: false,
+      header: 'Error Group ID',
+      render: error => <ID id={error.id} />
+    },
+    {
+      id: 'providerId',
+      isDefault: false,
+      header: 'Provider ID',
+      render: error =>
+        error.providerId ? (
+          <ID id={error.providerId} />
+        ) : (
+          <Text size="2" color="gray600">
+            -
+          </Text>
+        )
+    }
+  ])
+  .filters([
+    {
+      id: 'type',
+      fields: ['type'],
+      label: 'Type',
+      description: 'Filter by type',
+      type: 'select',
+      options: [
+        { id: 'message_processing_timeout', label: 'Timeout' },
+        { id: 'message_processing_provider_error', label: 'Provider Error' },
+        { id: 'message_processing_system_error', label: 'System Error' }
+      ]
+    },
+    {
+      id: 'id',
+      fields: ['id'],
+      label: 'Error Group ID',
+      description: 'Filter by error group ID',
+      type: 'string'
+    },
+    {
+      id: 'sessionId',
+      fields: ['sessionId'],
+      label: 'Session ID',
+      description: 'Filter by session ID',
+      type: 'string'
+    },
+    {
+      id: 'providerId',
+      fields: ['providerId'],
+      label: 'Provider ID',
+      description: 'Filter by provider ID',
+      type: 'string'
+    }
+  ])
+  .link(error =>
+    Paths.instance.providerError(
+      useCurrentInstance().data?.organization,
+      useCurrentInstance().data?.project,
+      useCurrentInstance().data,
+      error.id
+    )
+  )
+  .build();
+
+export let ServerErrorGroupsTable = (filter?: { sessionId?: string; type?: string }) =>
+  serverErrorGroupsTable({
+    ...filter,
+    emptyState: 'No provider errors found.'
+  });

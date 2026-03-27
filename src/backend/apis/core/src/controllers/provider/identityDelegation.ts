@@ -3,6 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { subspaceIdentityDelegationService } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
+import { dateFilterValidator } from '../../lib/dateFilter';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { hasFlags } from '../../middleware/hasFlags';
@@ -105,7 +106,9 @@ export let identityDelegationController = Controller.create(
             identity_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by identity ID or IDs.',
               examples: ['idn_5gHjKlMnPqRsTuVw']
-            })
+            }),
+            created_at: dateFilterValidator('identity delegation creation time'),
+            updated_at: dateFilterValidator('identity delegation last update time')
           })
         )
       )
@@ -119,7 +122,9 @@ export let identityDelegationController = Controller.create(
           ownerActorIds: normalizeArrayParam(ctx.query.owner_actor_id),
           delegatorActorIds: normalizeArrayParam(ctx.query.delegator_actor_id),
           delegateeActorIds: normalizeArrayParam(ctx.query.delegatee_actor_id),
-          identityIds: normalizeArrayParam(ctx.query.identity_id)
+          identityIds: normalizeArrayParam(ctx.query.identity_id),
+          createdAt: ctx.query.created_at,
+          updatedAt: ctx.query.updated_at
         });
 
         let list = await paginator.run(ctx.query);

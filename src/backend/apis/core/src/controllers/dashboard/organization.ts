@@ -86,7 +86,8 @@ export let dashboardOrganizationController = Controller.create(
       .body(
         'default',
         v.object({
-          name: v.optional(v.string())
+          name: v.optional(v.string()),
+          image_file_id: v.optional(v.nullable(v.string()))
         })
       )
       .use(checkAccess({ possibleScopes: ['organization:write'] }))
@@ -94,7 +95,8 @@ export let dashboardOrganizationController = Controller.create(
       .do(async ctx => {
         let organization = await organizationService.updateOrganization({
           input: {
-            name: ctx.body.name
+            name: ctx.body.name,
+            imageFileId: ctx.body.image_file_id
           },
           organization: ctx.organization,
           context: ctx.context,

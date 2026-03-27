@@ -3,6 +3,7 @@ import { v } from '@lowerdeck/validation';
 import { subspaceCallbackInstanceService } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
 import { callbackGroup } from './callback';
+import { dateFilterValidator } from '../../lib/dateFilter';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instancePath } from '../../middleware/instanceGroup';
@@ -43,7 +44,9 @@ export let callbackInstanceController = Controller.create(
             }),
             provider_auth_config_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by provider auth config ID(s)'
-            })
+            }),
+            created_at: dateFilterValidator('callback instance creation time'),
+            updated_at: dateFilterValidator('callback instance last update time')
           })
         )
       )
@@ -56,7 +59,9 @@ export let callbackInstanceController = Controller.create(
             | ('attached' | 'detached')[]
             | undefined,
           providerConfigIds: normalizeArrayParam(ctx.query.provider_config_id),
-          providerAuthConfigIds: normalizeArrayParam(ctx.query.provider_auth_config_id)
+          providerAuthConfigIds: normalizeArrayParam(ctx.query.provider_auth_config_id),
+          createdAt: ctx.query.created_at,
+          updatedAt: ctx.query.updated_at
         });
 
         let list = await paginator.run(ctx.query);

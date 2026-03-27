@@ -302,6 +302,8 @@ export type DashboardInstanceProviderListingsListQuery = {
     | 'last_session_at'
     | 'last_session_template_at'
     | undefined;
+  createdAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
+  updatedAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
 };
 
 export let mapDashboardInstanceProviderListingsListQuery = mtMap.union([
@@ -363,7 +365,21 @@ export let mapDashboardInstanceProviderListingsListQuery = mtMap.union([
       isOfficial: mtMap.objectField('is_official', mtMap.passthrough()),
       isMetorial: mtMap.objectField('is_metorial', mtMap.passthrough()),
       orderByRank: mtMap.objectField('order_by_rank', mtMap.passthrough()),
-      orderByUse: mtMap.objectField('order_by_use', mtMap.passthrough())
+      orderByUse: mtMap.objectField('order_by_use', mtMap.passthrough()),
+      createdAt: mtMap.objectField(
+        'created_at',
+        mtMap.object({
+          gt: mtMap.objectField('gt', mtMap.date()),
+          lt: mtMap.objectField('lt', mtMap.date())
+        })
+      ),
+      updatedAt: mtMap.objectField(
+        'updated_at',
+        mtMap.object({
+          gt: mtMap.objectField('gt', mtMap.date()),
+          lt: mtMap.objectField('lt', mtMap.date())
+        })
+      )
     })
   )
 ]);

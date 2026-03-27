@@ -4,7 +4,7 @@ import { subspace } from '../subspace';
 export let subspaceCallbackService = createSubspaceService(
   subspace.callback,
   ['get', 'list', 'create', 'update', 'archive'],
-  () => ({})
+  inner => ({})
 );
 
 export type SubspaceCallback = Awaited<ReturnType<typeof subspace.callback.get>>;

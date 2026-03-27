@@ -44,7 +44,8 @@ export let organizationLoader = createLoader({
     ) =>
       withAuth(sdk =>
         sdk.organizations.update(id, {
-          name: i.name
+          name: i.name,
+          imageFileId: i.imageFileId
         })
       ),
 

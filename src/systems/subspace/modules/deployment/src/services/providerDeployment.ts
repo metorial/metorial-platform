@@ -31,6 +31,10 @@ import {
   resolveProviderVersions
 } from '@metorial-subspace/list-utils';
 import {
+  getProviderCapabilityFilter,
+  ProviderCapabilityFilter
+} from '@metorial-subspace/module-catalog';
+import {
   checkProviderMatch,
   normalizeToolFilters,
   providerDeploymentInternalService
@@ -73,11 +77,15 @@ class providerDeploymentServiceImpl {
     providerIds?: string[];
     providerVersionIds?: string[];
 
+    capabilities?: ProviderCapabilityFilter;
+
     createdAt?: DateFilter;
     updatedAt?: DateFilter;
   }) {
     let providers = await resolveProviders(d, d.providerIds);
     let versions = await resolveProviderVersions(d, d.providerVersionIds);
+
+    let capFilters = getProviderCapabilityFilter(d.capabilities || {});
 
     let search = d.search
       ? await voyager.record.search({
@@ -107,7 +115,8 @@ class providerDeploymentServiceImpl {
                 providers ? { providerOid: providers.in } : undefined!,
                 versions ? { currentVersion: { lockedVersionOid: versions.in } } : undefined!,
                 d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
-                d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
+                d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!,
+                capFilters ? { provider: { type: capFilters } } : undefined!
               ].filter(Boolean)
             },
             include

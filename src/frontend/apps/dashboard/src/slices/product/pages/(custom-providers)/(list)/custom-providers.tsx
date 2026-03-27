@@ -20,7 +20,7 @@ export let CustomerProvidersPage = () => {
           description="Deploy custom MCP providers on the same reliable infra that runs every MCP provider on Metorial. Implement custom behavior or fork existing providers."
         />
       ) : (
-        <CustomProvidersTable type={['function', 'container']} withSearch />
+        <CustomProvidersTable type={['function', 'container']} />
       )}
     </>
   ));

@@ -45,6 +45,9 @@ model ProviderListing {
   providerOid BigInt   @unique
   provider    Provider @relation(fields: [providerOid], references: [oid])
 
+  typeOid Int?
+  type    ProviderType? @relation(fields: [typeOid], references: [oid])
+
   categories  ProviderListingCategory[]
   collections ProviderListingCollection[]
   groups      ProviderListingGroup[]

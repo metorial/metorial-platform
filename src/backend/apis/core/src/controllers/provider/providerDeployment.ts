@@ -3,6 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { v, ValidationTypeValue } from '@lowerdeck/validation';
 import { subspaceProviderDeploymentService } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
+import { dateFilterValidator } from '../../lib/dateFilter';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
@@ -134,6 +135,35 @@ export let providerDeploymentController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.provider.deployment:read'] }))
       .outputList(providerDeploymentPresenter)
       .query(
+        'mt_2026_01_01_magnetar',
+        Paginator.validate(
+          v.object({
+            id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by deployment ID(s)'
+            }),
+            provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by provider ID(s)'
+            }),
+            provider_version_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by version ID(s)'
+            }),
+            status: v.optional(
+              v.union([
+                v.enumOf(['active', 'archived']),
+                v.array(v.enumOf(['active', 'archived']))
+              ]),
+              {
+                description: 'Filter by status (active, archived)'
+              }
+            ),
+            search: v.optional(v.string({ description: 'Search by name or description' })),
+            created_at: dateFilterValidator('provider deployment creation time'),
+            updated_at: dateFilterValidator('provider deployment last update time')
+          })
+        ),
+        v => v
+      )
+      .query(
         'default',
         Paginator.validate(
           v.object({
@@ -155,7 +185,22 @@ export let providerDeploymentController = Controller.create(
                 description: 'Filter by status (active, archived)'
               }
             ),
-            search: v.optional(v.string({ description: 'Search by name or description' }))
+
+            capabilities: v.optional(
+              v.object({
+                supportsConfig: v.optional(v.boolean()),
+                supportsAuth: v.optional(v.boolean()),
+                supportsOAuth: v.optional(v.boolean()),
+                supportsCallbacks: v.optional(v.boolean()),
+                supportsOAuthAutoRegistration: v.optional(v.boolean()),
+                supportsAuthExport: v.optional(v.boolean()),
+                supportsAuthImport: v.optional(v.boolean())
+              })
+            ),
+
+            search: v.optional(v.string({ description: 'Search by name or description' })),
+            created_at: dateFilterValidator('provider deployment creation time'),
+            updated_at: dateFilterValidator('provider deployment last update time')
           })
         )
       )
@@ -165,10 +210,15 @@ export let providerDeploymentController = Controller.create(
           allowDeleted: false,
 
           search: ctx.query.search,
+          capabilities: ctx.query.capabilities,
+
           ids: normalizeArrayParam(ctx.query.id),
           providerIds: normalizeArrayParam(ctx.query.provider_id),
           providerVersionIds: normalizeArrayParam(ctx.query.provider_version_id),
-          status: normalizeArrayParam(ctx.query.status)
+          status: normalizeArrayParam(ctx.query.status),
+
+          createdAt: ctx.query.created_at,
+          updatedAt: ctx.query.updated_at
         });
 
         let list = await paginator.run(ctx.query);

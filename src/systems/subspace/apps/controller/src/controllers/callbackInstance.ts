@@ -10,6 +10,7 @@ import { providerConfigService } from '@metorial-subspace/module-deployment';
 import { callbackInstancePresenter } from '@metorial-subspace/presenters';
 import { app } from './_app';
 import { callbackApp } from './callback';
+import { createdAtValidator, updatedAtValidator } from './_dateFilter';
 
 export let callbackInstanceApp = callbackApp.use(async ctx => {
   let callbackInstanceId = ctx.body.callbackInstanceId;
@@ -36,7 +37,9 @@ export let callbackInstanceController = app.controller({
           status: v.optional(v.array(v.enumOf(['attached', 'detached']))),
           allowDeleted: v.optional(v.boolean()),
           providerConfigIds: v.optional(v.array(v.string())),
-          providerAuthConfigIds: v.optional(v.array(v.string()))
+          providerAuthConfigIds: v.optional(v.array(v.string())),
+          createdAt: createdAtValidator,
+          updatedAt: updatedAtValidator
         })
       )
     )
@@ -50,7 +53,9 @@ export let callbackInstanceController = app.controller({
         status: ctx.input.status,
         allowDeleted: ctx.input.allowDeleted,
         providerConfigIds: ctx.input.providerConfigIds,
-        providerAuthConfigIds: ctx.input.providerAuthConfigIds
+        providerAuthConfigIds: ctx.input.providerAuthConfigIds,
+        createdAt: ctx.input.createdAt,
+        updatedAt: ctx.input.updatedAt
       });
       let list = await paginator.run(ctx.input);
 
