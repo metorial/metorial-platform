@@ -275,6 +275,17 @@ export type ManagementInstanceProviderListingsListQuery = {
   providerCollectionId?: string | string[] | undefined;
   providerGroupId?: string | string[] | undefined;
   publisherId?: string | string[] | undefined;
+  capabilities?:
+    | {
+        supportsConfig?: boolean | undefined;
+        supportsAuth?: boolean | undefined;
+        supportsOauth?: boolean | undefined;
+        supportsCallbacks?: boolean | undefined;
+        supportsOauthAutoRegistration?: boolean | undefined;
+        supportsAuthExport?: boolean | undefined;
+        supportsAuthImport?: boolean | undefined;
+      }
+    | undefined;
   isPublic?: boolean | undefined;
   onlyFromTenant?: boolean | undefined;
   isVerified?: boolean | undefined;
@@ -355,6 +366,36 @@ export let mapManagementInstanceProviderListingsListQuery = mtMap.union([
             mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
           )
         ])
+      ),
+      capabilities: mtMap.objectField(
+        'capabilities',
+        mtMap.object({
+          supportsConfig: mtMap.objectField(
+            'supportsConfig',
+            mtMap.passthrough()
+          ),
+          supportsAuth: mtMap.objectField('supportsAuth', mtMap.passthrough()),
+          supportsOauth: mtMap.objectField(
+            'supportsOAuth',
+            mtMap.passthrough()
+          ),
+          supportsCallbacks: mtMap.objectField(
+            'supportsCallbacks',
+            mtMap.passthrough()
+          ),
+          supportsOauthAutoRegistration: mtMap.objectField(
+            'supportsOAuthAutoRegistration',
+            mtMap.passthrough()
+          ),
+          supportsAuthExport: mtMap.objectField(
+            'supportsAuthExport',
+            mtMap.passthrough()
+          ),
+          supportsAuthImport: mtMap.objectField(
+            'supportsAuthImport',
+            mtMap.passthrough()
+          )
+        })
       ),
       isPublic: mtMap.objectField('is_public', mtMap.passthrough()),
       onlyFromTenant: mtMap.objectField(

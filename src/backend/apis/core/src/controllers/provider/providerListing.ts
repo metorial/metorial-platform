@@ -96,6 +96,18 @@ export let providerListingController = Controller.create(
             provider_group_id: v.optional(v.union([v.string(), v.array(v.string())])),
             publisher_id: v.optional(v.union([v.string(), v.array(v.string())])),
 
+            capabilities: v.optional(
+              v.object({
+                supportsConfig: v.optional(v.boolean()),
+                supportsAuth: v.optional(v.boolean()),
+                supportsOAuth: v.optional(v.boolean()),
+                supportsCallbacks: v.optional(v.boolean()),
+                supportsOAuthAutoRegistration: v.optional(v.boolean()),
+                supportsAuthExport: v.optional(v.boolean()),
+                supportsAuthImport: v.optional(v.boolean())
+              })
+            ),
+
             is_public: v.optional(v.boolean()),
             only_from_tenant: v.optional(v.boolean()),
             is_verified: v.optional(v.boolean()),
@@ -129,6 +141,8 @@ export let providerListingController = Controller.create(
           orderByRank: ctx.query.order_by_rank !== false,
           createdAt: ctx.query.created_at,
           updatedAt: ctx.query.updated_at,
+
+          capabilities: ctx.query.capabilities,
 
           orderByUse: ctx.query.order_by_use
             ? orderByUseMapper[ctx.query.order_by_use as keyof typeof orderByUseMapper]

@@ -42,6 +42,19 @@ export let providerDeploymentController = app.controller({
           ids: v.optional(v.array(v.string())),
           providerIds: v.optional(v.array(v.string())),
           providerVersionIds: v.optional(v.array(v.string())),
+
+          capabilities: v.optional(
+            v.object({
+              supportsConfig: v.optional(v.boolean()),
+              supportsAuth: v.optional(v.boolean()),
+              supportsOAuth: v.optional(v.boolean()),
+              supportsCallbacks: v.optional(v.boolean()),
+              supportsOAuthAutoRegistration: v.optional(v.boolean()),
+              supportsAuthExport: v.optional(v.boolean()),
+              supportsAuthImport: v.optional(v.boolean())
+            })
+          ),
+
           createdAt: createdAtValidator,
           updatedAt: updatedAtValidator
         })
@@ -57,6 +70,8 @@ export let providerDeploymentController = app.controller({
 
         status: ctx.input.status,
         allowDeleted: ctx.input.allowDeleted,
+
+        capabilities: ctx.input.capabilities,
 
         ids: ctx.input.ids,
         providerIds: ctx.input.providerIds,

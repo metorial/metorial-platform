@@ -26,7 +26,21 @@ export let providerController = app.controller({
       Paginator.validate(
         v.object({
           tenantId: v.string(),
-          environmentId: v.string()
+          environmentId: v.string(),
+
+          ids: v.optional(v.array(v.string())),
+
+          capabilities: v.optional(
+            v.object({
+              supportsConfig: v.optional(v.boolean()),
+              supportsAuth: v.optional(v.boolean()),
+              supportsOAuth: v.optional(v.boolean()),
+              supportsCallbacks: v.optional(v.boolean()),
+              supportsOAuthAutoRegistration: v.optional(v.boolean()),
+              supportsAuthExport: v.optional(v.boolean()),
+              supportsAuthImport: v.optional(v.boolean())
+            })
+          )
         })
       )
     )
@@ -34,7 +48,10 @@ export let providerController = app.controller({
       let paginator = await providerService.listProviders({
         tenant: ctx.tenant,
         environment: ctx.environment,
-        solution: ctx.solution
+        solution: ctx.solution,
+
+        ids: ctx.input.ids,
+        capabilities: ctx.input.capabilities
       });
 
       let list = await paginator.run(ctx.input);

@@ -46,6 +46,18 @@ export let providerListingController = app.controller({
           isOfficial: v.optional(v.boolean()),
           isMetorial: v.optional(v.boolean()),
 
+          capabilities: v.optional(
+            v.object({
+              supportsConfig: v.optional(v.boolean()),
+              supportsAuth: v.optional(v.boolean()),
+              supportsOAuth: v.optional(v.boolean()),
+              supportsCallbacks: v.optional(v.boolean()),
+              supportsOAuthAutoRegistration: v.optional(v.boolean()),
+              supportsAuthExport: v.optional(v.boolean()),
+              supportsAuthImport: v.optional(v.boolean())
+            })
+          ),
+
           orderByRank: v.optional(v.boolean()),
           orderByUse: v.optional(
             v.enumOf([
@@ -88,6 +100,8 @@ export let providerListingController = app.controller({
         providerCategoryIds: ctx.input.providerCategoryIds,
         providerGroupIds: ctx.input.providerGroupIds,
         publisherIds: ctx.input.publisherIds,
+
+        capabilities: ctx.input.capabilities,
 
         isPublic: ctx.input.isPublic,
         onlyFromTenant: ctx.input.onlyFromTenant,
