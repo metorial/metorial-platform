@@ -1,39 +1,9 @@
 import { createCron } from '@metorial/cron';
-import { db, User } from '@metorial/db';
+import { db } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { createQueue } from '@metorial/queue';
 import { cell } from '../../cell';
 import { globalDB } from '../../db';
-
-let syncUser = async (user: User) => {
-  let inner = {
-    status: user.status,
-    type: user.type,
-    email: user.email,
-    name: user.name,
-    firstName: user.firstName,
-    lastName: user.lastName,
-    image: user.image,
-    createdAt: user.createdAt,
-    deletedAt: user.deletedAt,
-
-    lastEditByOid: (await cell).oid
-  };
-
-  await globalDB.user.upsert({
-    where: { id: user.id },
-    update: inner,
-    create: { id: user.id, ...inner }
-  });
-};
-
-Fabric.listen('user.updated:after', async event => {
-  await syncUser(event.user);
-});
-
-Fabric.listen('user.created:after', async event => {
-  await syncUser(event.user);
-});
 
 export let syncUsersCron = createCron(
   {
@@ -65,7 +35,7 @@ export let syncUsersManyQueueProcessor = syncUsersManyQueue.process(async data =
   await syncUsersManyQueue.add({ cursor: users[users.length - 1].id });
 });
 
-let syncUserSingleQueue = createQueue<{ userId: string }>({
+let syncUserSingleQueue = createQueue<{ userId: string; force?: boolean }>({
   name: 'global/sync/from-deployment/user-single'
 });
 
@@ -80,7 +50,34 @@ export let syncUserSingleQueueProcessor = syncUserSingleQueue.process(async data
   });
 
   // Whoever sends the last actual update is the owner and the sync should not override it
-  if (multiRegionUser && multiRegionUser.lastEditByOid === (await cell).oid) return;
+  if (!data.force && multiRegionUser && multiRegionUser.lastEditByOid === (await cell).oid)
+    return;
 
-  await syncUser(user);
+  let inner = {
+    status: user.status,
+    type: user.type,
+    email: user.email,
+    name: user.name,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    image: user.image,
+    createdAt: user.createdAt,
+    deletedAt: user.deletedAt,
+
+    lastEditByOid: (await cell).oid
+  };
+
+  await globalDB.user.upsert({
+    where: { id: user.id },
+    update: inner,
+    create: { id: user.id, ...inner }
+  });
+});
+
+Fabric.listen('user.updated:after', async event => {
+  await syncUserSingleQueue.add({ userId: event.user.id, force: true });
+});
+
+Fabric.listen('user.created:after', async event => {
+  await syncUserSingleQueue.add({ userId: event.user.id, force: true });
 });
