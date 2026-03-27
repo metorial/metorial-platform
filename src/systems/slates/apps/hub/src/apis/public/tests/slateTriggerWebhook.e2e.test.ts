@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   SlateStatus,
   SlateTriggerEventDeliveryStatus,
@@ -8,8 +8,8 @@ import {
   type SlateTriggerDestinationType,
   type Tenant
 } from '../../../../prisma/generated/client';
-import { cleanDatabase, testDb } from '../../../test/setup';
 import { fixtures } from '../../../test/fixtures';
+import { cleanDatabase, testDb } from '../../../test/setup';
 
 const signalState = vi.hoisted(() => {
   let seq = 0;
@@ -256,9 +256,9 @@ vi.mock('../../../signal', async () => {
   };
 });
 
-import { hubApp } from '../index';
 import { slateTriggerDestinationService } from '../../../services/slateTriggerDestination';
 import { slateTriggerReceiverService } from '../../../services/slateTriggerReceiver';
+import { hubApp } from '../index';
 
 const buildWebhookUrl = (receiverTriggerId: string, suffix?: string) =>
   `http://slates-hub.test/slates-hub/triggers/webhook/${receiverTriggerId}${
@@ -562,10 +562,8 @@ describe('slate:trigger webhook E2E', () => {
 
     const payload = JSON.parse(signalState.events[0]!.payloadJson);
     expect(payload).toMatchObject({
-      object: 'slate.trigger.event',
-      triggerReceiverId: receiver.id,
-      triggerId: triggerAction.id,
-      triggerKey: triggerAction.key,
+      object: 'callback.event_payload',
+      trigger: triggerAction.key,
       type: 'record.created'
     });
   });

@@ -255,7 +255,7 @@ export class SlateTriggerReceiverCore {
     );
 
     let payload = {
-      object: 'slate.trigger.event',
+      object: 'callback.event_payload',
 
       id: d.event.id,
       type: d.event.type,
