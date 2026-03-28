@@ -187,7 +187,9 @@ let magicGroupsTable = new DashboardTable<
       isDefault: false,
       header: 'Status',
       render: group => (
-        <Badge color={{ active: 'green', archived: 'orange', deleted: 'gray' }[group.status] as any}>
+        <Badge
+          color={{ active: 'green', archived: 'orange', deleted: 'gray' }[group.status] as any}
+        >
           {group.status}
         </Badge>
       )

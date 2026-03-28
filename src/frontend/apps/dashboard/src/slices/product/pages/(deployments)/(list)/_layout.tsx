@@ -14,7 +14,7 @@ export { ProviderDeploymentsListLayout } from './providerDeploymentsListLayout';
 export let ProvidersListLayout = () => {
   return (
     <ContentLayout>
-      <PageHeader title="Providers" description="Browse and deploy MCP server providers." />
+      <PageHeader title="Providers" description="Browse and deploy providers on Metorial." />
       <Outlet />
     </ContentLayout>
   );
@@ -74,10 +74,7 @@ export let ProviderSessionsListLayout = () => {
 
   return (
     <ContentLayout>
-      <PageHeader
-        title="Logs"
-        description="Check the logs of your sessions and MCP servers."
-      />
+      <PageHeader title="Logs" description="Check the logs of your provider connections." />
 
       <LinkTabs
         current={pathname}

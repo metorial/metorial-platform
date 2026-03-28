@@ -28,7 +28,7 @@ import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { Stepper } from '../stepper';
 import { ConnectGitHubButton, SelectRepo } from './selectRepo';
-import { waitForCustomServerVersionId } from './utils';
+import { waitForCustomProviderVersionId } from './utils';
 
 let PageWrapper = styled.div`
   display: flex;
@@ -71,13 +71,13 @@ let Form = styled.div`
   flex-direction: column;
 `;
 
-export let CustomServerManagedCreateForm = (p: {
+export let CustomProviderManagedCreateForm = (p: {
   templateId?: string;
   close?: () => any;
   onCreate?: (out: CustomProvidersGetOutput) => any;
 }) => {
   let instance = useCurrentInstance();
-  let createCustomServer = useCreateCustomProvider();
+  let createCustomProvider = useCreateCustomProvider();
   let managedServerTemplates = {
     data: { items: [] as { id: string; name: string | null; slug: string | null }[] },
     isLoading: false,
@@ -206,7 +206,7 @@ export let CustomServerManagedCreateForm = (p: {
       let runtime = { identifier: 'nodejs' as const, version: '22.x' as const };
       let repoPath = values.path?.trim() || undefined;
 
-      let [customServerRes] = await createCustomServer.mutate({
+      let [customProviderRes] = await createCustomProvider.mutate({
         instanceId: instance.data.id,
         name: values.name,
         description: values.description,
@@ -229,12 +229,12 @@ export let CustomServerManagedCreateForm = (p: {
             }
       });
 
-      if (customServerRes) {
-        let firstVersionId = await waitForCustomServerVersionId(async () => {
+      if (customProviderRes) {
+        let firstVersionId = await waitForCustomProviderVersionId(async () => {
           let [versionsRes] = await listCustomProviderVersions({
             limit: 1,
             instanceId: instance.data.id,
-            customProviderId: customServerRes.id
+            customProviderId: customProviderRes.id
           });
 
           return versionsRes?.items[0]?.id;
@@ -243,14 +243,14 @@ export let CustomServerManagedCreateForm = (p: {
         toast.success('Provider created successfully');
 
         if (p.onCreate) {
-          p.onCreate(customServerRes);
+          p.onCreate(customProviderRes);
         } else {
           navigate(
             Paths.instance.customProvider(
               instance.data.organization,
               instance.data.project,
               instance.data,
-              customServerRes.id,
+              customProviderRes.id,
               ...(firstVersionId ? ['versions', { version_id: firstVersionId }] : [])
             ),
             {
@@ -272,7 +272,7 @@ export let CustomServerManagedCreateForm = (p: {
       type="button"
       variant="outline"
       onClick={p.close}
-      disabled={createCustomServer.isLoading}
+      disabled={createCustomProvider.isLoading}
       size="2"
     >
       Close
@@ -580,9 +580,9 @@ export let CustomServerManagedCreateForm = (p: {
                     {close}
 
                     <Button
-                      loading={createCustomServer.isLoading}
-                      success={createCustomServer.isSuccess}
-                      disabled={createRepo.isLoading || createCustomServer.isLoading}
+                      loading={createCustomProvider.isLoading}
+                      success={createCustomProvider.isSuccess}
+                      disabled={createRepo.isLoading || createCustomProvider.isLoading}
                       type="submit"
                       size="2"
                     >
@@ -596,7 +596,7 @@ export let CustomServerManagedCreateForm = (p: {
         ]}
       />
 
-      {createCustomServer.error && <createCustomServer.RenderError />}
+      {createCustomProvider.error && <createCustomProvider.RenderError />}
     </Form>
   );
 };

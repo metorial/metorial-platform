@@ -13,8 +13,8 @@ import styled from 'styled-components';
 import { Stepper } from '../stepper';
 import { remoteServerTemplates } from './config';
 import {
-  getCustomServerRemoteProtocolFromUrl,
-  waitForCustomServerVersionId
+  getCustomProviderRemoteProtocolFromUrl,
+  waitForCustomProviderVersionId
 } from './utils';
 
 let TemplateWrapper = styled.div`
@@ -58,12 +58,12 @@ let Form = styled.div`
   flex-direction: column;
 `;
 
-export let CustomServerRemoteCreateForm = (p: {
+export let CustomProviderRemoteCreateForm = (p: {
   close?: () => any;
   onCreate?: (out: CustomProvidersGetOutput) => any;
 }) => {
   let instance = useCurrentInstance();
-  let createCustomServer = useCreateCustomProvider();
+  let createCustomProvider = useCreateCustomProvider();
 
   let [currentStep, setCurrentStep] = useState(0);
   let [hasManualRemoteProtocol, setHasManualRemoteProtocol] = useState(false);
@@ -76,7 +76,7 @@ export let CustomServerRemoteCreateForm = (p: {
       remoteUrl: '',
       description: '',
       metadata: {},
-      remoteProtocol: getCustomServerRemoteProtocolFromUrl('')
+      remoteProtocol: getCustomProviderRemoteProtocolFromUrl('')
     },
     schema: yup =>
       yup.object({
@@ -89,7 +89,7 @@ export let CustomServerRemoteCreateForm = (p: {
     onSubmit: async values => {
       if (!instance.data) return;
 
-      let [customServerRes] = await createCustomServer.mutate({
+      let [customProviderRes] = await createCustomProvider.mutate({
         instanceId: instance.data.id,
         name: values.name,
         description: values.description,
@@ -100,12 +100,12 @@ export let CustomServerRemoteCreateForm = (p: {
         }
       });
 
-      if (customServerRes) {
-        let firstVersionId = await waitForCustomServerVersionId(async () => {
+      if (customProviderRes) {
+        let firstVersionId = await waitForCustomProviderVersionId(async () => {
           let [versionsRes] = await listCustomProviderVersions({
             limit: 1,
             instanceId: instance.data.id,
-            customProviderId: customServerRes.id
+            customProviderId: customProviderRes.id
           });
 
           return versionsRes?.items[0]?.id;
@@ -114,14 +114,14 @@ export let CustomServerRemoteCreateForm = (p: {
         toast.success('Provider linked successfully');
 
         if (p.onCreate) {
-          p.onCreate(customServerRes);
+          p.onCreate(customProviderRes);
         } else {
           navigate(
             Paths.instance.customProvider(
               instance.data.organization,
               instance.data.project,
               instance.data,
-              customServerRes.id,
+              customProviderRes.id,
               ...(firstVersionId ? ['versions', { version_id: firstVersionId }] : [])
             ),
             {
@@ -138,7 +138,7 @@ export let CustomServerRemoteCreateForm = (p: {
   useEffect(() => {
     if (hasManualRemoteProtocol) return;
 
-    let nextRemoteProtocol = getCustomServerRemoteProtocolFromUrl(form.values.remoteUrl);
+    let nextRemoteProtocol = getCustomProviderRemoteProtocolFromUrl(form.values.remoteUrl);
     if (form.values.remoteProtocol === nextRemoteProtocol) return;
 
     void form.setFieldValue('remoteProtocol', nextRemoteProtocol);
@@ -159,7 +159,7 @@ export let CustomServerRemoteCreateForm = (p: {
       type="button"
       variant="outline"
       onClick={p.close}
-      disabled={createCustomServer.isLoading}
+      disabled={createCustomProvider.isLoading}
       size="2"
     >
       Close
@@ -174,7 +174,7 @@ export let CustomServerRemoteCreateForm = (p: {
         steps={[
           {
             title: 'Remote URL',
-            subtitle: 'Enter the remote server URL',
+            subtitle: 'Enter the remote MCP server URL',
             render: () => {
               return (
                 <form
@@ -223,7 +223,7 @@ export let CustomServerRemoteCreateForm = (p: {
                           onClick={() => {
                             form.resetForm();
 
-                            let remoteProtocol = getCustomServerRemoteProtocolFromUrl(
+                            let remoteProtocol = getCustomProviderRemoteProtocolFromUrl(
                               template.remoteUrl
                             );
 
@@ -272,8 +272,8 @@ export let CustomServerRemoteCreateForm = (p: {
                     {close}
 
                     <Button
-                      loading={createCustomServer.isLoading}
-                      success={createCustomServer.isSuccess}
+                      loading={createCustomProvider.isLoading}
+                      success={createCustomProvider.isSuccess}
                       type="submit"
                       size="2"
                     >
@@ -287,7 +287,7 @@ export let CustomServerRemoteCreateForm = (p: {
         ]}
       />
 
-      {createCustomServer.error && <createCustomServer.RenderError />}
+      {createCustomProvider.error && <createCustomProvider.RenderError />}
     </Form>
   );
 };

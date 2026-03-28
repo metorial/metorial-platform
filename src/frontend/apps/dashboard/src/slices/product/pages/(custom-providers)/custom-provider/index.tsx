@@ -4,7 +4,7 @@ import { useCurrentInstance, useCustomProvider } from '@metorial/state';
 import { Attributes, Badge, Button, RenderDate, Spacer } from '@metorial/ui';
 import { Box, ID, SideBox } from '@metorial/ui-product';
 import { useNavigate, useParams } from 'react-router-dom';
-import { CustomServerEventsTable } from '../../../scenes/customProvider/events';
+import { CustomProviderEventsTable } from '../../../scenes/customProvider/events';
 import { UsageScene } from '../../../scenes/usage/usage';
 
 export let CustomProviderOverviewPage = () => {
@@ -13,31 +13,31 @@ export let CustomProviderOverviewPage = () => {
   let navigate = useNavigate();
 
   let { customProviderId } = useParams();
-  let customServer = useCustomProvider(instance.data?.id, customProviderId);
-  let isExternalProvider = Boolean(customServer.data?.draft?.remoteMcpServer);
+  let customProvider = useCustomProvider(instance.data?.id, customProviderId);
+  let isExternalProvider = Boolean(customProvider.data?.draft?.remoteMcpServer);
 
-  return renderWithLoader({ customServer })(({ customServer }) => (
+  return renderWithLoader({ customProvider })(({ customProvider }) => (
     <>
       <Attributes
         columns={3}
         attributes={[
           {
             label: 'Name',
-            content: customServer.data.name
+            content: customProvider.data.name
           },
           {
             label: 'Status',
-            content: customServer.data.status ? (
+            content: customProvider.data.status ? (
               <Badge
                 color={
-                  customServer.data.status === 'active'
+                  customProvider.data.status === 'active'
                     ? 'green'
-                    : customServer.data.status === 'archived'
+                    : customProvider.data.status === 'archived'
                       ? 'gray'
                       : 'blue'
                 }
               >
-                {customServer.data.status}
+                {customProvider.data.status}
               </Badge>
             ) : (
               'Unknown'
@@ -45,23 +45,23 @@ export let CustomProviderOverviewPage = () => {
           },
           {
             label: 'Provider ID',
-            content: customServer.data.provider ? (
-              <ID id={customServer.data.provider.id} />
+            content: customProvider.data.provider ? (
+              <ID id={customProvider.data.provider.id} />
             ) : (
               'N/A'
             )
           },
           {
             label: 'Publisher',
-            content: customServer.data.provider?.publisher?.name ?? 'N/A'
+            content: customProvider.data.provider?.publisher?.name ?? 'N/A'
           },
           {
             label: 'Created At',
-            content: <RenderDate date={customServer.data.createdAt!} />
+            content: <RenderDate date={customProvider.data.createdAt!} />
           },
           {
             label: 'Custom Provider ID',
-            content: <ID id={customServer.data.id} />
+            content: <ID id={customProvider.data.id} />
           }
         ]}
       />
@@ -75,14 +75,14 @@ export let CustomProviderOverviewPage = () => {
         <Button
           as="span"
           size="2"
-          disabled={!customServer.data.provider?.id}
+          disabled={!customProvider.data.provider?.id}
           onClick={async () => {
             navigate(
               Paths.instance.explorer(
                 instance.data?.organization,
                 instance.data?.project,
                 instance.data,
-                { provider_id: customServer.data.provider?.id }
+                { provider_id: customProvider.data.provider?.id }
               )
             );
           }}
@@ -96,9 +96,9 @@ export let CustomProviderOverviewPage = () => {
       <UsageScene
         title="Usage"
         description="See how this custom provider is being in your instance."
-        entities={[{ type: 'provider', id: customServer.data.provider?.id ?? 'xxxx' }]}
+        entities={[{ type: 'provider', id: customProvider.data.provider?.id ?? 'xxxx' }]}
         entityNames={{
-          [customServer.data.provider?.id ?? 'xxxx']: customServer.data.provider?.name!
+          [customProvider.data.provider?.id ?? 'xxxx']: customProvider.data.provider?.name!
         }}
       />
 
@@ -108,7 +108,7 @@ export let CustomProviderOverviewPage = () => {
         title="Provider Commits"
         description="Recent commit/apply history for this provider."
       >
-        <CustomServerEventsTable customServer={customServer.data} />
+        <CustomProviderEventsTable customProvider={customProvider.data} />
       </Box>
     </>
   ));

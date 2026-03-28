@@ -25,7 +25,7 @@ type ProviderRunStatusCarrier =
   | Pick<DashboardInstanceProviderRunsListOutput['items'][number], 'status'>
   | Pick<DashboardInstanceProviderRunsGetOutput, 'status'>;
 
-type ServerRunsTableProps = {
+type ProviderRunsTableProps = {
   sessionId?: string;
   providerId?: string;
   status?: string;
@@ -37,7 +37,7 @@ let getProviderRunStatusFilterValue = (
   return getEnumListFilterValue(value, ['running', 'stopped']);
 };
 
-export let ServerRunStatusBadge = ({ run }: { run: ProviderRunStatusCarrier }) => {
+export let ProviderRunStatusBadge = ({ run }: { run: ProviderRunStatusCarrier }) => {
   let statusColorMap: Record<string, 'orange' | 'red' | 'blue' | 'green' | 'gray'> = {
     active: 'orange',
     running: 'orange',
@@ -63,11 +63,11 @@ export let ServerRunStatusBadge = ({ run }: { run: ProviderRunStatusCarrier }) =
 };
 
 let providerRunsTableState: TableStateProvider<
-  ServerRunsTableProps,
+  ProviderRunsTableProps,
   ProviderRunRow,
   TableStateProviderResult<ProviderRunRow>
 > = (
-  props: ServerRunsTableProps,
+  props: ProviderRunsTableProps,
   opts: { filter: Record<string, FilterPayload>; search?: string }
 ) => {
   let runs = useAllProviderRuns(useCurrentInstance().data?.id, {
@@ -111,14 +111,16 @@ let providerRunsTableState: TableStateProvider<
   };
 };
 
-let serverRunsTable = new DashboardTable<ServerRunsTableProps, ProviderRunRow>('provider-runs')
+let providerRunsTable = new DashboardTable<ProviderRunsTableProps, ProviderRunRow>(
+  'provider-runs'
+)
   .state(providerRunsTableState)
   .columns([
     {
       id: 'status',
       isDefault: true,
       header: 'Status',
-      render: run => <ServerRunStatusBadge run={run} />
+      render: run => <ProviderRunStatusBadge run={run} />
     },
     {
       id: 'provider',
@@ -259,12 +261,12 @@ let serverRunsTable = new DashboardTable<ServerRunsTableProps, ProviderRunRow>('
   )
   .build();
 
-export let ServerRunsTable = (filter?: {
+export let ProviderRunsTable = (filter?: {
   sessionId?: string;
   providerId?: string;
   status?: string;
 }) =>
-  serverRunsTable({
+  providerRunsTable({
     ...filter,
     emptyState: 'No provider runs found.'
   });

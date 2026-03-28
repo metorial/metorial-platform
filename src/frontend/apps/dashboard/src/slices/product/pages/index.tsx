@@ -151,6 +151,10 @@ export let ProjectHomePage = () => {
         'server-deployment-id': firstDeployment?.id,
         'your-normal-server-deployment-id': firstDeployment?.id,
         'your-oauth-server-deployment-id': firstDeployment?.id,
+        'your-provider-deployment-id': firstDeployment?.id,
+        'provider-deployment-id': firstDeployment?.id,
+        'your-normal-provider-deployment-id': firstDeployment?.id,
+        'your-oauth-provider-deployment-id': firstDeployment?.id,
         'your-metorial-api-key': apiKeySecret,
         'metorial-api-key': apiKeySecret
       }

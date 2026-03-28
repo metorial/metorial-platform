@@ -517,32 +517,12 @@ export let productInnerSlice = createSlice([
                     element: <SessionsPage />
                   },
                   {
-                    path: 'server-runs',
-                    element: <ServerRunsPage />
-                  },
-                  {
                     path: 'provider-runs',
                     element: <ServerRunsPage />
                   },
                   {
-                    path: 'server-errors',
-                    element: <ServerErrorsPage />
-                  },
-                  {
                     path: 'provider-errors',
                     element: <ServerErrorsPage />
-                  }
-                ]
-              },
-
-              {
-                path: 'server-error/:serverErrorId',
-                element: <ServerErrorLayout />,
-
-                children: [
-                  {
-                    path: '',
-                    element: <ServerErrorPage />
                   }
                 ]
               },
@@ -555,18 +535,6 @@ export let productInnerSlice = createSlice([
                   {
                     path: '',
                     element: <ServerErrorPage />
-                  }
-                ]
-              },
-
-              {
-                path: 'server-run/:serverRunId',
-                element: <ServerRunLayout />,
-
-                children: [
-                  {
-                    path: '',
-                    element: <ServerRunPage />
                   }
                 ]
               },
@@ -1106,10 +1074,6 @@ export let productInnerSlice = createSlice([
 
             children: [
               {
-                path: 'managed-servers',
-                element: <ManagedServersPage />
-              },
-              {
                 path: 'custom-providers',
                 element: <ManagedServersPage />
               }
@@ -1121,10 +1085,6 @@ export let productInnerSlice = createSlice([
             element: <ExternalServersListLayout />,
 
             children: [
-              {
-                path: 'external-servers',
-                element: <ExternalServersPage />
-              },
               {
                 path: 'external-providers',
                 element: <ExternalServersPage />

@@ -16,16 +16,19 @@ export let CustomProviderListingPage = () => {
   let instance = useCurrentInstance();
 
   let { customProviderId } = useParams();
-  let customServer = useCustomProvider(instance.data?.id, customProviderId);
+  let customProvider = useCustomProvider(instance.data?.id, customProviderId);
 
-  let listing = useCustomProviderListing(instance.data?.id, customServer.data?.id);
-  let providerListing = useProviderListing(instance.data?.id, customServer.data?.provider?.id);
+  let listing = useCustomProviderListing(instance.data?.id, customProvider.data?.id);
+  let providerListing = useProviderListing(
+    instance.data?.id,
+    customProvider.data?.provider?.id
+  );
 
   let generalUpdate = listing.useUpdateMutator();
   let form = useForm({
     initialValues: {
-      name: listing.data?.name ?? customServer.data?.name ?? '',
-      description: listing.data?.description ?? customServer.data?.description ?? '',
+      name: listing.data?.name ?? customProvider.data?.name ?? '',
+      description: listing.data?.description ?? customProvider.data?.description ?? '',
       readme: providerListing.data?.readme ?? ''
     },
     updateInitialValues: true,
@@ -46,7 +49,7 @@ export let CustomProviderListingPage = () => {
       })
   });
 
-  return renderWithLoader({ customServer, listing })(() => (
+  return renderWithLoader({ customProvider, listing })(() => (
     <FormPage>
       <Box
         title="Open Provider Listing"
@@ -57,7 +60,7 @@ export let CustomProviderListingPage = () => {
             instance.data?.organization,
             instance.data?.project,
             instance.data,
-            customServer.data?.provider?.id ?? customServer.data?.id
+            customProvider.data?.provider?.id ?? customProvider.data?.id
           )}
         >
           <Button as="span" size="2" variant="outline">

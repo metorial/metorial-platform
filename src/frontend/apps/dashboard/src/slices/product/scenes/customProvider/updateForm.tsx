@@ -10,29 +10,29 @@ import { Button, Group, Input, Select, Spacer, toast } from '@metorial/ui';
 import { useNavigate } from 'react-router-dom';
 import { FormPage } from '../form/page';
 import {
-  type CustomServerRemoteProtocol,
-  getCustomServerRemoteProtocolFromUrl
+  type CustomProviderRemoteProtocol,
+  getCustomProviderRemoteProtocolFromUrl
 } from './utils';
 
-export let CustomServerUpdateForm = (p: { customServer?: CustomProvidersGetOutput }) => {
+export let CustomProviderUpdateForm = (p: { customProvider?: CustomProvidersGetOutput }) => {
   let instance = useCurrentInstance();
-  let customServer = useCustomProvider(instance.data?.id, p.customServer?.id);
+  let customProvider = useCustomProvider(instance.data?.id, p.customProvider?.id);
   let navigate = useNavigate();
-  let updateMutator = customServer.useUpdateMutator();
+  let updateMutator = customProvider.useUpdateMutator();
   let createVersionMutator = useCreateCustomProviderVersion();
-  let customServerData = customServer.data ?? p.customServer;
-  let isExternalProvider = Boolean(customServerData?.draft?.remoteMcpServer);
-  let currentRemoteUrl = customServerData?.draft?.remoteMcpServer?.url ?? '';
+  let customProviderData = customProvider.data ?? p.customProvider;
+  let isExternalProvider = Boolean(customProviderData?.draft?.remoteMcpServer);
+  let currentRemoteUrl = customProviderData?.draft?.remoteMcpServer?.url ?? '';
   let currentRemoteProtocol =
-    customServerData?.draft?.remoteMcpServer?.transport ??
-    getCustomServerRemoteProtocolFromUrl(currentRemoteUrl);
+    customProviderData?.draft?.remoteMcpServer?.transport ??
+    getCustomProviderRemoteProtocolFromUrl(currentRemoteUrl);
   let isSaving = updateMutator.isLoading || createVersionMutator.isLoading;
   let isSaved = !isSaving && (updateMutator.isSuccess || createVersionMutator.isSuccess);
 
   let form = useForm({
     initialValues: {
-      name: customServerData?.name ?? '',
-      description: customServerData?.description ?? '',
+      name: customProviderData?.name ?? '',
+      description: customProviderData?.description ?? '',
       remoteUrl: currentRemoteUrl,
       remoteProtocol: currentRemoteProtocol
     },
@@ -41,7 +41,7 @@ export let CustomServerUpdateForm = (p: { customServer?: CustomProvidersGetOutpu
       console.log('Submitting with values:', values);
 
       if (!instance.data) return;
-      if (!customServerData) return;
+      if (!customProviderData) return;
 
       let nextRemoteUrl = values.remoteUrl.trim();
       let nextRemoteProtocol: 'sse' | 'streamable_http' =
@@ -58,7 +58,7 @@ export let CustomServerUpdateForm = (p: { customServer?: CustomProvidersGetOutpu
       if (didUpdateRemote) {
         let [version] = await createVersionMutator.mutate({
           instanceId: instance.data.id,
-          customProviderId: customServerData.id,
+          customProviderId: customProviderData.id,
           from: {
             type: 'remote',
             remoteUrl: values.remoteUrl.trim(),
@@ -68,14 +68,14 @@ export let CustomServerUpdateForm = (p: { customServer?: CustomProvidersGetOutpu
 
         if (version) {
           toast.success('External provider update started');
-          await customServer.refetch();
+          await customProvider.refetch();
 
           navigate(
             Paths.instance.customProvider(
               instance.data.organization,
               instance.data.project,
               instance.data,
-              customServerData.id,
+              customProviderData.id,
               'versions',
               { version_id: version.id }
             ),
@@ -101,7 +101,7 @@ export let CustomServerUpdateForm = (p: { customServer?: CustomProvidersGetOutpu
                   .required('Remote URL is required')
               : yup.string(),
             remoteProtocol: yup
-              .mixed<CustomServerRemoteProtocol>()
+              .mixed<CustomProviderRemoteProtocol>()
               .oneOf(['sse', 'streamable_http'])
               .required('Transport protocol is required')
           })
@@ -109,7 +109,7 @@ export let CustomServerUpdateForm = (p: { customServer?: CustomProvidersGetOutpu
             name: yup.string().trim().required('Name is required'),
             description: yup.string(),
             remoteUrl: yup.string().optional(),
-            remoteProtocol: yup.mixed<CustomServerRemoteProtocol>().optional()
+            remoteProtocol: yup.mixed<CustomProviderRemoteProtocol>().optional()
           }) as any)
   });
 

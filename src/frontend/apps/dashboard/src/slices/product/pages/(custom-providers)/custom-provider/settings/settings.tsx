@@ -1,15 +1,15 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import { useCurrentInstance, useCustomProvider } from '@metorial/state';
 import { useParams } from 'react-router-dom';
-import { CustomServerUpdateForm } from '../../../../scenes/customProvider/updateForm';
+import { CustomProviderUpdateForm } from '../../../../scenes/customProvider/updateForm';
 
 export let CustomProviderSettingsPage = () => {
   let instance = useCurrentInstance();
 
   let { customProviderId } = useParams();
-  let customServer = useCustomProvider(instance.data?.id, customProviderId);
+  let customProvider = useCustomProvider(instance.data?.id, customProviderId);
 
-  return renderWithLoader({ customServer })(({ customServer }) => (
-    <CustomServerUpdateForm customServer={customServer.data} />
+  return renderWithLoader({ customProvider })(({ customProvider }) => (
+    <CustomProviderUpdateForm customProvider={customProvider.data} />
   ));
 };

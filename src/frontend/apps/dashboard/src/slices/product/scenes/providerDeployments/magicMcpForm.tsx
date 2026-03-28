@@ -13,7 +13,7 @@ import { useNavigate } from 'react-router-dom';
 
 export type MagicMcpServerFormProps =
   | { type: 'update'; magicMcpServerId: string; for?: undefined }
-  | { type: 'create'; for?: { serverId: string } };
+  | { type: 'create'; for?: { providerId?: string } };
 
 export let MagicMcpServerForm = (
   p: MagicMcpServerFormProps & {

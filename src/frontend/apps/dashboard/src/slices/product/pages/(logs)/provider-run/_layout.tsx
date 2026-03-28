@@ -11,7 +11,7 @@ import { LinkTabs, RenderDate } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import { Outlet, useLocation, useParams } from 'react-router-dom';
 import { AttributesLayout } from '../../../scenes/attributesLayout';
-import { ServerRunStatusBadge } from '../../../scenes/providerRun/table';
+import { ProviderRunStatusBadge } from '../../../scenes/providerRun/table';
 
 export let ProviderRunLayout = () => {
   let instance = useCurrentInstance();
@@ -23,7 +23,7 @@ export let ProviderRunLayout = () => {
 
   let pathname = useLocation().pathname;
 
-  let serverPathParams = [
+  let providerRunParams = [
     organization.data,
     project.data,
     instance.data,
@@ -41,7 +41,7 @@ export let ProviderRunLayout = () => {
           },
           {
             label: run.data?.id,
-            href: Paths.instance.providerRun(...serverPathParams)
+            href: Paths.instance.providerRun(...providerRunParams)
           }
         ]}
       />
@@ -51,7 +51,7 @@ export let ProviderRunLayout = () => {
         links={[
           {
             label: 'Logs',
-            to: Paths.instance.providerRun(...serverPathParams)
+            to: Paths.instance.providerRun(...providerRunParams)
           }
         ]}
       />
@@ -60,7 +60,7 @@ export let ProviderRunLayout = () => {
         <AttributesLayout
           variant="large"
           items={[
-            { label: 'Status', value: <ServerRunStatusBadge run={run.data} /> },
+            { label: 'Status', value: <ProviderRunStatusBadge run={run.data} /> },
             { label: 'Run ID', value: <ID id={run.data.id} /> },
             { label: 'Created At', value: <RenderDate date={run.data.createdAt} /> },
             {

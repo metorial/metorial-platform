@@ -9,7 +9,6 @@ import {
   useDashboardFlags
 } from '@metorial/state';
 import { Button, Callout, LinkTabs, Menu, Spacer } from '@metorial/ui';
-import { useEffect, useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
   showMagicMcpServerFormModal,
@@ -22,58 +21,27 @@ export let CustomProviderLayout = () => {
   let organization = useCurrentOrganization();
 
   let { customProviderId } = useParams();
-  let customServer = useCustomProvider(instance.data?.id, customProviderId);
+  let customProvider = useCustomProvider(instance.data?.id, customProviderId);
   let location = useLocation();
   let pathname = location.pathname;
-  let initialCategory = (location.state as { category?: 'custom' | 'external' } | null)
-    ?.category;
-  let [providerCategory, setProviderCategory] = useState<'custom' | 'external' | undefined>(
-    initialCategory
-  );
-
-  let navigate = useNavigate();
-  useEffect(() => {
-    if (!initialCategory || initialCategory === providerCategory) return;
-    setProviderCategory(initialCategory);
-  }, [initialCategory, providerCategory]);
-
-  useEffect(() => {
-    if (customServer.data && customServer.data.id != customProviderId) {
-      let nextPath = `${location.pathname.replace(customProviderId!, customServer.data.id)}${location.search}${location.hash}`;
-      navigate(nextPath, {
-        replace: true,
-        state: location.state
-      });
-    }
-  }, [
-    customServer.data,
-    customProviderId,
-    location.hash,
-    location.pathname,
-    location.search,
-    location.state,
-    navigate
-  ]);
 
   let pathParams = [
     organization.data,
     project.data,
     instance.data,
-    customServer.data?.id ?? customProviderId
+    customProvider.data?.id ?? customProviderId
   ] as const;
 
-  let flags = useDashboardFlags();
-  let isExternalProvider =
-    !!customServer.data?.draft?.remoteMcpServer || providerCategory === 'external';
+  let isExternalProvider = customProvider.data?.type == 'remote';
   let hasCodeManagement = Boolean(
-    customServer.data && !isExternalProvider && !customServer.data.draft?.containerImage
+    customProvider.data && !isExternalProvider && !customProvider.data.draft?.containerImage
   );
-  let hasVersionManagement = Boolean(customServer.data);
+  let hasVersionManagement = Boolean(customProvider.data);
 
   return (
     <ContentLayout>
       <PageHeader
-        title={customServer.data?.name ?? '...'}
+        title={customProvider.data?.name ?? '...'}
         pagination={[
           {
             label: isExternalProvider ? 'External Providers' : 'Custom Providers',
@@ -86,19 +54,19 @@ export let CustomProviderLayout = () => {
               : Paths.instance.customProviders(organization.data, project.data, instance.data)
           },
           {
-            label: customServer.data?.name,
+            label: customProvider.data?.name,
             href: Paths.instance.customProvider(...pathParams)
           }
         ]}
         actions={
           <>
-            {customServer.data?.provider?.id && (
+            {customProvider.data?.provider?.id && (
               <Link
                 to={Paths.instance.provider(
                   organization.data,
                   project.data,
                   instance.data,
-                  customServer.data.provider.id
+                  customProvider.data.provider.id
                 )}
               >
                 <Button as="span" size="2" variant="outline">
@@ -106,14 +74,14 @@ export let CustomProviderLayout = () => {
                 </Button>
               </Link>
             )}
-            <DeployServerButton providerId={customServer.data?.provider?.id}>
+            <DeployServerButton providerId={customProvider.data?.provider?.id}>
               Deploy Provider
             </DeployServerButton>
           </>
         }
       />
 
-      {renderWithLoader({ customServer })(({ customServer }) => (
+      {renderWithLoader({ customProvider })(({ customProvider }) => (
         <>
           <LinkTabs
             current={pathname}
@@ -160,7 +128,7 @@ export let CustomProviderLayout = () => {
             ]}
           />
 
-          {customServer.data?.status == 'archived' && (
+          {customProvider.data?.status == 'archived' && (
             <>
               <Callout color="orange">
                 This provider is archived. It cannot be used for new connections.
@@ -197,7 +165,7 @@ export let DeployServerButton = ({
     <Menu
       items={[
         {
-          id: 'server-deployment',
+          id: 'provider-deployment',
           label: 'Provider Deployment',
           description: 'More powerful and flexible.'
         },
@@ -212,7 +180,7 @@ export let DeployServerButton = ({
           : [])
       ]}
       onItemClick={item => {
-        if (item === 'server-deployment') {
+        if (item === 'provider-deployment') {
           if (!instance.data) return;
           showProviderDeploymentFormModal({
             type: 'create',
@@ -231,7 +199,7 @@ export let DeployServerButton = ({
         } else if (item === 'magic-mcp-server') {
           showMagicMcpServerFormModal({
             type: 'create',
-            for: { serverId: providerId! }
+            for: { providerId }
           });
         }
       }}

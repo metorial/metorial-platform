@@ -2,19 +2,19 @@ import { renderWithLoader } from '@metorial/data-hooks';
 import { useCurrentInstance, useCustomProvider } from '@metorial/state';
 import { Panel } from '@metorial/ui';
 import { useParams } from 'react-router-dom';
-import { CustomServerVersion } from '../../../scenes/customProvider/version';
-import { CustomServerVersionsTable } from '../../../scenes/customProvider/versions';
+import { CustomProviderVersion } from '../../../scenes/customProvider/version';
+import { CustomProviderVersionsTable } from '../../../scenes/customProvider/versions';
 import { RouterPanel } from '../../../scenes/routerPanel';
 
 export let CustomProviderVersionsPage = () => {
   let instance = useCurrentInstance();
 
   let { customProviderId } = useParams();
-  let customServer = useCustomProvider(instance.data?.id, customProviderId);
+  let customProvider = useCustomProvider(instance.data?.id, customProviderId);
 
-  return renderWithLoader({ customServer })(({ customServer }) => (
+  return renderWithLoader({ customProvider })(({ customProvider }) => (
     <>
-      <CustomServerVersionsTable customServer={customServer.data} />
+      <CustomProviderVersionsTable customProvider={customProvider.data} />
 
       <RouterPanel param="version_id" width={1000}>
         {versionId => (
@@ -24,7 +24,10 @@ export let CustomProviderVersionsPage = () => {
             </Panel.Header>
 
             <Panel.Content>
-              <CustomServerVersion versionId={versionId} customServer={customServer.data} />
+              <CustomProviderVersion
+                versionId={versionId}
+                customProvider={customProvider.data}
+              />
             </Panel.Content>
           </>
         )}

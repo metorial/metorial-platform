@@ -65,9 +65,12 @@ export let CustomProviderCodePage = () => {
   let instance = useCurrentInstance();
 
   let { customProviderId } = useParams();
-  let customServer = useCustomProvider(instance.data?.id, customProviderId);
+  let customProvider = useCustomProvider(instance.data?.id, customProviderId);
 
-  let editorToken = useCustomProviderCodeEditorToken(instance.data?.id, customServer.data?.id);
+  let editorToken = useCustomProviderCodeEditorToken(
+    instance.data?.id,
+    customProvider.data?.id
+  );
 
   let [isExpanded, setIsExpanded] = useState(false);
 
@@ -82,17 +85,18 @@ export let CustomProviderCodePage = () => {
 
   let linkedRepo = useMemo(() => {
     let repoFromApi =
-      customServer.data?.scmRepo ?? customServer.data?.draftBucket?.scmRepoLink?.repository;
+      customProvider.data?.scmRepo ??
+      customProvider.data?.draftBucket?.scmRepoLink?.repository;
     if (repoFromApi) {
       return {
         id: repoFromApi.id,
         url: repoFromApi.url,
         defaultBranch: repoFromApi.defaultBranch,
-        path: customServer.data?.draftBucket?.scmRepoLink?.path ?? undefined
+        path: customProvider.data?.draftBucket?.scmRepoLink?.path ?? undefined
       };
     }
 
-    let metadataRepo = customServer.data?.metadata?.repository as
+    let metadataRepo = customProvider.data?.metadata?.repository as
       | { url?: string; branch?: string; path?: string }
       | undefined;
     if (!metadataRepo?.url) return null;
@@ -103,10 +107,10 @@ export let CustomProviderCodePage = () => {
       defaultBranch: metadataRepo.branch ?? 'main',
       path: metadataRepo.path
     };
-  }, [customServer.data]);
+  }, [customProvider.data]);
   let codeManagementUnavailable =
-    Boolean(customServer.data?.draft?.remoteMcpServer) ||
-    Boolean(customServer.data?.draft?.containerImage);
+    Boolean(customProvider.data?.draft?.remoteMcpServer) ||
+    Boolean(customProvider.data?.draft?.containerImage);
 
   let publishFrom = useMemo(() => {
     if (linkedRepo?.id) {
@@ -133,7 +137,7 @@ export let CustomProviderCodePage = () => {
   let publishNewVersion = async () => {
     let [version] = await createVersion.mutate({
       instanceId: instance.data!.id,
-      customProviderId: customServer.data!.id,
+      customProviderId: customProvider.data!.id,
       from: publishFrom
     });
 
@@ -151,7 +155,7 @@ export let CustomProviderCodePage = () => {
     }
   };
 
-  return renderWithLoader({ customServer })(({ customServer }) => (
+  return renderWithLoader({ customProvider })(({ customProvider }) => (
     <>
       {codeManagementUnavailable ? (
         <SideBox
@@ -234,11 +238,11 @@ export let CustomProviderCodePage = () => {
                           disabled={!repo}
                           loading={createVersion.isLoading}
                           onClick={async () => {
-                            if (!repo || !customServer.data) return;
+                            if (!repo || !customProvider.data) return;
 
                             let [version] = await createVersion.mutate({
                               instanceId: instance.data!.id,
-                              customProviderId: customServer.data.id,
+                              customProviderId: customProvider.data.id,
                               from: {
                                 type: 'function',
                                 env: {},

@@ -7,15 +7,15 @@ import { useCurrentInstance, useCustomProviderEvents } from '@metorial/state';
 import { RenderDate, Text } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
 
-export let CustomServerEventsTable = ({
-  customServer,
+export let CustomProviderEventsTable = ({
+  customProvider,
   filters
 }: {
-  customServer: DashboardInstanceCustomProvidersGetOutput | undefined | null;
+  customProvider: DashboardInstanceCustomProvidersGetOutput | undefined | null;
   filters?: DashboardInstanceCustomProvidersCommitsListQuery;
 }) => {
   let instance = useCurrentInstance();
-  let events = useCustomProviderEvents(instance.data?.id, customServer?.id, {
+  let events = useCustomProviderEvents(instance.data?.id, customProvider?.id, {
     order: 'desc',
     ...filters
   });

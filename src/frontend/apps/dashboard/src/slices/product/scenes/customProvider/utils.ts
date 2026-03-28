@@ -1,8 +1,8 @@
-export type CustomServerRemoteProtocol = 'sse' | 'streamable_http';
+export type CustomProviderRemoteProtocol = 'sse' | 'streamable_http';
 
-export let getCustomServerRemoteProtocolFromUrl = (
+export let getCustomProviderRemoteProtocolFromUrl = (
   remoteUrl: string | null | undefined
-): CustomServerRemoteProtocol => {
+): CustomProviderRemoteProtocol => {
   let normalizedRemoteUrl = remoteUrl?.trim();
   if (!normalizedRemoteUrl) return 'streamable_http';
 
@@ -26,7 +26,7 @@ export let getCustomServerRemoteProtocolFromUrl = (
   return 'streamable_http';
 };
 
-export let waitForCustomServerVersionId = async (
+export let waitForCustomProviderVersionId = async (
   getVersionId: () => Promise<string | undefined>,
   opts?: { attempts?: number; delayMs?: number }
 ) => {

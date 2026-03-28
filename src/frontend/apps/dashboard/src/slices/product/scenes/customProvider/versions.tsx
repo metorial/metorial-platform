@@ -7,15 +7,15 @@ import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, useCustomProviderVersions } from '@metorial/state';
 import { RenderDate, Text } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
-import { CustomServerVersionStatus } from './version';
+import { CustomProviderVersionStatus } from './version';
 
-export let CustomServerVersionsTable = (
+export let CustomProviderVersionsTable = (
   filter: DashboardInstanceCustomProvidersVersionsListQuery & {
-    customServer: DashboardInstanceCustomProvidersGetOutput | undefined | null;
+    customProvider: DashboardInstanceCustomProvidersGetOutput | undefined | null;
   }
 ) => {
   let instance = useCurrentInstance();
-  let versions = useCustomProviderVersions(instance.data?.id, filter.customServer?.id, {
+  let versions = useCustomProviderVersions(instance.data?.id, filter.customProvider?.id, {
     ...filter,
     order: 'desc'
   });
@@ -29,14 +29,14 @@ export let CustomServerVersionsTable = (
             <Text size="2" weight="strong">
               {version.index}
             </Text>,
-            <CustomServerVersionStatus version={version} />,
+            <CustomProviderVersionStatus version={version} />,
             <RenderDate date={version.createdAt} />
           ],
           href: Paths.instance.customProvider(
             instance.data?.organization,
             instance.data?.project,
             instance.data,
-            filter.customServer?.id,
+            filter.customProvider?.id,
             'versions',
             { version_id: version.id }
           )

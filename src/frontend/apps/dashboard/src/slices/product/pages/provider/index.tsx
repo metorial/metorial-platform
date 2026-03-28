@@ -191,6 +191,10 @@ export let ProviderOverviewPage = () => {
         'server-deployment-id': providerDeployment?.id,
         'your-normal-server-deployment-id': providerDeployment?.id,
         'your-oauth-server-deployment-id': providerDeployment?.id,
+        'your-provider-deployment-id': providerDeployment?.id,
+        'provider-deployment-id': providerDeployment?.id,
+        'your-normal-provider-deployment-id': providerDeployment?.id,
+        'your-oauth-provider-deployment-id': providerDeployment?.id,
         'your-metorial-api-key': apiKeySecret,
         'metorial-api-key': apiKeySecret
       }

@@ -22,12 +22,12 @@ let Form = styled.div`
   flex-direction: column;
 `;
 
-export let CustomServerDockerCreateForm = (p: {
+export let CustomProviderDockerCreateForm = (p: {
   close?: () => any;
   onCreate?: (out: CustomProvidersGetOutput) => any;
 }) => {
   let instance = useCurrentInstance();
-  let createCustomServer = useCreateCustomProvider();
+  let createCustomProvider = useCreateCustomProvider();
 
   let [currentStep, setCurrentStep] = useState(0);
 
@@ -52,7 +52,7 @@ export let CustomServerDockerCreateForm = (p: {
     onSubmit: async values => {
       if (!instance.data) return;
 
-      let [customServerRes] = await createCustomServer.mutate({
+      let [customProviderRes] = await createCustomProvider.mutate({
         instanceId: instance.data.id,
         name: values.name,
         description: values.description,
@@ -62,18 +62,18 @@ export let CustomServerDockerCreateForm = (p: {
         }
       });
 
-      if (customServerRes) {
+      if (customProviderRes) {
         toast.success('Provider created successfully');
 
         if (p.onCreate) {
-          p.onCreate(customServerRes);
+          p.onCreate(customProviderRes);
         } else {
           navigate(
             Paths.instance.customProvider(
               instance.data.organization,
               instance.data.project,
               instance.data,
-              customServerRes.id
+              customProviderRes.id
             ),
             {
               state: {
@@ -91,7 +91,7 @@ export let CustomServerDockerCreateForm = (p: {
       type="button"
       variant="outline"
       onClick={p.close}
-      disabled={createCustomServer.isLoading}
+      disabled={createCustomProvider.isLoading}
       size="2"
     >
       Close
@@ -175,8 +175,8 @@ export let CustomServerDockerCreateForm = (p: {
                     {close}
 
                     <Button
-                      loading={createCustomServer.isLoading}
-                      success={createCustomServer.isSuccess}
+                      loading={createCustomProvider.isLoading}
+                      success={createCustomProvider.isSuccess}
                       type="submit"
                       size="2"
                     >
@@ -190,7 +190,7 @@ export let CustomServerDockerCreateForm = (p: {
         ]}
       />
 
-      {createCustomServer.error && <createCustomServer.RenderError />}
+      {createCustomProvider.error && <createCustomProvider.RenderError />}
     </Form>
   );
 };

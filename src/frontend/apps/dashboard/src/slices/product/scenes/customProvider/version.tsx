@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   DashboardInstanceCustomProvidersGetOutput,
   DashboardInstanceCustomProvidersVersionsGetOutput
@@ -22,10 +21,10 @@ import {
   theme,
   Tooltip
 } from '@metorial/ui';
-import { Box, ID } from '@metorial/ui-product';
+import { ID } from '@metorial/ui-product';
 import { RiArrowDownSLine } from '@remixicon/react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 
 const CUSTOM_SERVER_VERSION_STATUS_BADGES = {
@@ -42,7 +41,7 @@ const CUSTOM_SERVER_VERSION_STATUS_BADGES = {
 const CUSTOM_SERVER_VERSION_STATUS_BADGES_BY_KEY: Record<string, React.ReactNode> =
   CUSTOM_SERVER_VERSION_STATUS_BADGES;
 
-export let CustomServerVersionStatus = ({
+export let CustomProviderVersionStatus = ({
   version
 }: {
   version: DashboardInstanceCustomProvidersVersionsGetOutput;
@@ -66,27 +65,27 @@ export let CustomServerVersionStatus = ({
   );
 };
 
-export let CustomServerVersion = ({
+export let CustomProviderVersion = ({
   versionId,
-  customServer
+  customProvider
 }: {
   versionId: string;
-  customServer: DashboardInstanceCustomProvidersGetOutput | undefined | null;
+  customProvider: DashboardInstanceCustomProvidersGetOutput | undefined | null;
 }) => {
   let instance = useCurrentInstance();
   let version = useCustomProviderVersion(
     instance.data?.id,
-    customServer?.id ?? versionId,
+    customProvider?.id ?? versionId,
     versionId
   );
   let deployment = useCustomProviderDeployment(
     instance.data?.id,
-    customServer?.id,
+    customProvider?.id,
     version.data?.deployment?.id
   );
   let deploymentLogs = useCustomProviderDeploymentLogs(
     instance.data?.id,
-    customServer?.id,
+    customProvider?.id,
     version.data?.deployment?.id,
     deployment.data?.status
   );
@@ -143,7 +142,7 @@ export let CustomServerVersion = ({
               <span style={{ color: theme.colors.gray600 }}>N/A</span>
             )
           },
-          { label: 'Status', content: <CustomServerVersionStatus version={version.data} /> },
+          { label: 'Status', content: <CustomProviderVersionStatus version={version.data} /> },
           { label: 'Created By', content: deployment.data.actor?.name ?? 'Unknown' },
           { label: 'Created', content: <RenderDate date={version.data.createdAt} /> }
         ]}

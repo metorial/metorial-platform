@@ -54,10 +54,10 @@ export let Skills = ({ skills }: { skills: string[] }) => {
   return (
     <Wrapper>
       <Header>
-        <Title>Server Summary</Title>
+        <Title>Provider Summary</Title>
 
         <InfoTooltip>
-          An AI generated overview of the server's capabilities and features.
+          An AI generated overview of the provider's capabilities and features.
         </InfoTooltip>
       </Header>
 

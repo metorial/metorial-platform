@@ -53,7 +53,7 @@ let errorGroupsTableState: TableStateProvider<
   };
 };
 
-let serverErrorGroupsTable = new DashboardTable<ErrorGroupsTableProps, ErrorGroup>(
+let providerErrorGroupsTable = new DashboardTable<ErrorGroupsTableProps, ErrorGroup>(
   'provider-error-groups'
 )
   .state(errorGroupsTableState)
@@ -152,8 +152,8 @@ let serverErrorGroupsTable = new DashboardTable<ErrorGroupsTableProps, ErrorGrou
   )
   .build();
 
-export let ServerErrorGroupsTable = (filter?: { sessionId?: string; type?: string }) =>
-  serverErrorGroupsTable({
+export let ProviderErrorGroupsTable = (filter?: { sessionId?: string; type?: string }) =>
+  providerErrorGroupsTable({
     ...filter,
     emptyState: 'No provider errors found.'
   });

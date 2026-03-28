@@ -170,7 +170,7 @@ export let Message = ({
   let payload = (input ?? output ?? {}) as Record<string, any>;
   let method =
     agg?.method ??
-    (typeof payload.method === 'string' ? payload.method : message.type ?? 'message');
+    (typeof payload.method === 'string' ? payload.method : (message.type ?? 'message'));
   let resolvedId = agg?.originalId ?? payload.id ?? transportMcp.id;
 
   // Message has both input and output — render as two separate cards

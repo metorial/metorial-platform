@@ -10,11 +10,11 @@ import { ProviderDeploymentTabSection } from '../../../scenes/providerDeployment
 export let CustomProviderProviderDeploymentsPage = () => {
   let instance = useCurrentInstance();
   let { customProviderId } = useParams();
-  let customServer = useCustomProvider(instance.data?.id, customProviderId);
+  let customProvider = useCustomProvider(instance.data?.id, customProviderId);
   let [search, setSearch] = useState('');
   let searchDebounced = useDebounced(search, 500);
 
-  return renderWithLoader({ instance, customServer })(({ instance, customServer }) => (
+  return renderWithLoader({ instance, customProvider })(({ instance, customProvider }) => (
     <ProviderDeploymentTabSection
       intro="Deployments created from this custom provider."
       search={
@@ -27,10 +27,10 @@ export let CustomProviderProviderDeploymentsPage = () => {
         />
       }
     >
-      {customServer.data.provider?.id ? (
+      {customProvider.data.provider?.id ? (
         <ProviderDeploymentsTableSimple
           instanceId={instance.data.id}
-          providerId={customServer.data.provider.id}
+          providerId={customProvider.data.provider.id}
           search={searchDebounced}
         />
       ) : (

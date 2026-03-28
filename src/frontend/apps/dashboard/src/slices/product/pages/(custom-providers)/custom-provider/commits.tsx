@@ -25,8 +25,8 @@ export let CustomProviderCommitsPage = () => {
   let instance = useCurrentInstance();
 
   let { customProviderId } = useParams();
-  let customServer = useCustomProvider(instance.data?.id, customProviderId);
-  let deployments = useCustomProviderDeployments(instance.data?.id, customServer.data?.id, {
+  let customProvider = useCustomProvider(instance.data?.id, customProviderId);
+  let deployments = useCustomProviderDeployments(instance.data?.id, customProvider.data?.id, {
     order: 'desc'
   });
 
@@ -55,5 +55,5 @@ export let CustomProviderCommitsPage = () => {
     </>
   ));
 
-  return renderWithLoader({ customServer })(() => <>{deploymentsContent}</>);
+  return renderWithLoader({ customProvider })(() => <>{deploymentsContent}</>);
 };
