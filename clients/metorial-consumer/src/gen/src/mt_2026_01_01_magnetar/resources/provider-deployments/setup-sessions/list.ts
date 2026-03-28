@@ -76,7 +76,7 @@ export type ProviderDeploymentsSetupSessionsListOutput = {
       name: string | null;
       description: string | null;
       metadata: Record<string, any> | null;
-      deploymentPreview: {
+      deployment: {
         object: 'provider.deployment#preview';
         id: string;
         isDefault: boolean;
@@ -307,8 +307,8 @@ export let mapProviderDeploymentsSetupSessionsListOutput =
                 mtMap.passthrough()
               ),
               metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-              deploymentPreview: mtMap.objectField(
-                'deployment_preview',
+              deployment: mtMap.objectField(
+                'deployment',
                 mtMap.object({
                   object: mtMap.objectField('object', mtMap.passthrough()),
                   id: mtMap.objectField('id', mtMap.passthrough()),
