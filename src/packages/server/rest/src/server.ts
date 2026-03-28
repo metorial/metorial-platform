@@ -376,15 +376,19 @@ export class RestServer<AuthInfo, ApiVersion extends string> {
                     if (url.pathname == '/')
                       return Response.redirect('https://metorial.com/api', 301);
                     if (url.pathname == '/metorial/introspect/versions') {
-                      return json({
-                        versions: Object.entries(versions).map(
-                          ([_, { apiVersion, displayVersion }]) => ({
-                            version: apiVersion,
-                            displayVersion,
-                            isCurrent: apiVersion == currentVersion
-                          })
-                        )
-                      });
+                      return json(
+                        {
+                          versions: Object.entries(versions).map(
+                            ([_, { apiVersion, displayVersion }]) => ({
+                              version: apiVersion,
+                              displayVersion,
+                              isCurrent: apiVersion == currentVersion
+                            })
+                          )
+                        },
+                        200,
+                        corsHeaders
+                      );
                     }
                     if (url.pathname == '/metorial/introspect/endpoints') {
                       let version = url.searchParams.get('version');
@@ -415,7 +419,9 @@ export class RestServer<AuthInfo, ApiVersion extends string> {
                           rootController: selectedVersion.rootController,
                           displayVersion: selectedVersion.displayVersion,
                           isCurrent: selectedVersion.version == currentVersion
-                        })
+                        }),
+                        200,
+                        corsHeaders
                       );
                     }
 
