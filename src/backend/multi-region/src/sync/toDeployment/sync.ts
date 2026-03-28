@@ -1,3 +1,4 @@
+import { createCron } from '@metorial/cron';
 import { createQueue } from '@metorial/queue';
 import { cell } from '../../cell';
 import { globalDB } from '../../db';
@@ -62,5 +63,15 @@ export let syncToDeploymentQueueProcessor = syncToDeploymentQueue.process(async 
 
   await syncToDeploymentQueue.add({}, { delay: 1000, id: 'sync' });
 });
+
+let syncCron = createCron(
+  {
+    name: 'global/sync/to-deployment/cron',
+    cron: '* * * * *'
+  },
+  async () => {
+    await syncToDeploymentQueue.add({}, { id: 'sync' });
+  }
+);
 
 syncToDeploymentQueue.add({}, { id: 'sync' });

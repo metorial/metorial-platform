@@ -1063,8 +1063,7 @@ class OAuthAuthorizationService {
     if (missingScopes.length > 0) {
       throw new ServiceError(
         forbiddenError({
-          message:
-            'You cannot accept this app because it requires permissions that you do not have',
+          message: `You cannot accept this app because it requires permissions that you do not have: ${missingScopes.join(', ')}`,
           oauth: {
             error: 'access_denied',
             errorMessage:
