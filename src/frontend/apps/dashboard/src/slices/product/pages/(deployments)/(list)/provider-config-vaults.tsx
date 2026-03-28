@@ -79,7 +79,10 @@ let providerConfigVaultsOverviewState: TableStateProvider<
     ...new Set((vaults.data?.items ?? []).map(item => item.providerId).filter(Boolean))
   ];
   let shouldLoadProviders = providerIds.length > 0;
-  let providers = useProviders(props.instanceId, shouldLoadProviders ? { id: providerIds } : null);
+  let providers = useProviders(
+    props.instanceId,
+    shouldLoadProviders ? { id: providerIds } : null
+  );
 
   let providerNameMap = new Map<string, string>();
   for (let provider of providers.data?.items ?? []) {
@@ -115,9 +118,11 @@ let providerConfigVaultsOverviewTable = new DashboardTable<
           <Text size="2" weight="strong">
             {row.name}
           </Text>
-          <Text size="1" color="gray600">
-            {row.description ?? '-'}
-          </Text>
+          {row.description && (
+            <Text size="1" color="gray600">
+              {row.description}
+            </Text>
+          )}
         </div>
       )
     },

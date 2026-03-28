@@ -10,7 +10,10 @@ export let ProviderAuthMethodsTable = ({
   instanceId: string;
   providerVersionId?: string;
 }) => {
-  let authMethods = useProviderAuthMethods(instanceId, providerVersionId);
+  let authMethods = useProviderAuthMethods(
+    instanceId,
+    providerVersionId ? { providerVersionId } : null
+  );
 
   return renderWithPagination(authMethods)(authMethods => (
     <>

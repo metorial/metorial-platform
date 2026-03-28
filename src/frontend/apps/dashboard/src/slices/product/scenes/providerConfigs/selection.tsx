@@ -2,7 +2,7 @@ import {
   DashboardInstanceProviderDeploymentsConfigsListOutput,
   DashboardInstanceProviderDeploymentsConfigVaultsListOutput
 } from '@metorial/dashboard-sdk';
-import { useProviderConfigVaults, useProviderConfigs } from '@metorial/state';
+import { useProviderConfigs, useProviderConfigVaults } from '@metorial/state';
 import { Button, Flex, Select, Text, Tooltip } from '@metorial/ui';
 import { RiAddLine, RiSafeLine } from '@remixicon/react';
 import { useEffect, useRef } from 'react';
@@ -33,12 +33,9 @@ export let ProviderConfigurationSelection = ({
   label?: string;
   includeVaults?: boolean;
 }) => {
-  let configs = useProviderConfigs(instanceId, providerDeploymentId);
+  let configs = useProviderConfigs(instanceId, { providerDeploymentId });
   let vaults = useProviderConfigVaults(instanceId, { providerDeploymentId });
-  let configCreation = useProviderConfigCreationCapabilities(
-    instanceId,
-    providerDeploymentId
-  );
+  let configCreation = useProviderConfigCreationCapabilities(instanceId, providerDeploymentId);
   let handledAutoSelectionRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -58,13 +55,7 @@ export let ProviderConfigurationSelection = ({
 
     handledAutoSelectionRef.current = providerDeploymentId;
     onChange({ kind: 'config', id: defaultConfig.id });
-  }, [
-    configs.data?.items,
-    configs.isLoading,
-    onChange,
-    providerDeploymentId,
-    value.kind
-  ]);
+  }, [configs.data?.items, configs.isLoading, onChange, providerDeploymentId, value.kind]);
 
   let defaultConfig = (configs.data?.items ?? []).find(config => config.isDefault);
   let effectiveValue: ConfigurationSelection =

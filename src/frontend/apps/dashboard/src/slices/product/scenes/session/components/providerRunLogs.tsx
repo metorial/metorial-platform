@@ -34,7 +34,8 @@ let Body = styled.div`
   max-height: 500px;
   overflow-y: auto;
   padding: 8px 0;
-  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-family:
+    'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 12px;
   line-height: 1.6;
 `;
@@ -84,7 +85,10 @@ export let ProviderRunLogs = ({
   }, [inView]);
 
   let instance = useCurrentInstance();
-  let logs = useProviderRunLogs(canFetch ? instance.data?.id : undefined, canFetch ? providerRunId : undefined);
+  let logs = useProviderRunLogs(
+    canFetch ? instance.data?.id : undefined,
+    canFetch ? providerRunId : undefined
+  );
   let bodyRef = useRef<HTMLDivElement>(null);
   let prevCountRef = useRef(0);
 

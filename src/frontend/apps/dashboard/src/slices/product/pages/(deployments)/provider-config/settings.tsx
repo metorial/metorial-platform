@@ -7,8 +7,8 @@ import { useParams } from 'react-router-dom';
 export let ProviderConfigSettingsPage = () => {
   let instance = useCurrentInstance();
 
-  let { providerDeploymentId, providerConfigId } = useParams();
-  let config = useProviderConfig(instance.data?.id, providerDeploymentId, providerConfigId);
+  let { providerConfigId } = useParams();
+  let config = useProviderConfig(instance.data?.id, providerConfigId);
   let updateMutator = config.useUpdateMutator();
   let form = useForm({
     initialValues: {
@@ -25,8 +25,8 @@ export let ProviderConfigSettingsPage = () => {
     schema: yup =>
       yup.object({
         name: yup.string().trim().required('Name is required'),
-        description: yup.string().ensure()
-      })
+        description: yup.string()
+      }) as any
   });
 
   return renderWithLoader({ config })(({ config }) => (

@@ -35,26 +35,12 @@ export let ProviderConfigVaultLayout = () => {
         pagination={[
           {
             label: 'Configurations',
-            href: Paths.instance.providerDeployments(
+            href: Paths.instance.providerConfigVaults(
               organization.data,
               project.data,
-              instance.data,
-              'config-vaults'
+              instance.data
             )
           },
-          ...(vault.data?.deployment
-            ? [
-                {
-                  label: vault.data.deployment.name ?? 'Deployment',
-                  href: Paths.instance.providerDeployment(
-                    organization.data,
-                    project.data,
-                    instance.data,
-                    vault.data.deployment.id
-                  )
-                }
-              ]
-            : []),
           {
             label: vault.data?.name ?? '...',
             href: Paths.instance.providerConfigVault(...vaultPathParams)
@@ -70,6 +56,10 @@ export let ProviderConfigVaultLayout = () => {
               {
                 label: 'Overview',
                 to: Paths.instance.providerConfigVault(...vaultPathParams)
+              },
+              {
+                label: 'Configs',
+                to: Paths.instance.providerConfigVault(...vaultPathParams, 'configs')
               },
               {
                 label: 'Settings',

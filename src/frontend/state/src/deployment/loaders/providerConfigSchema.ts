@@ -24,7 +24,7 @@ export let useProviderConfigSchemaTarget = (
   return data;
 };
 
-export let useProviderConfigSchema = (
+export let useProviderDeploymentConfigSchema = (
   instanceId: string | null | undefined,
   providerDeploymentId: string | null | undefined
 ) => {

@@ -7,14 +7,7 @@ import {
   useProviderConfigSchemaTarget,
   useProviderDeployment
 } from '@metorial/state';
-import {
-  Button,
-  CenteredSpinner,
-  Dialog,
-  Input,
-  Spacer,
-  Text
-} from '@metorial/ui';
+import { Button, CenteredSpinner, Dialog, Input, Spacer, Text } from '@metorial/ui';
 import { getProviderConfigSchemaCapabilities } from '../../lib/providerCreationCapabilities';
 import { JsonSchemaInput } from '../jsonSchemaInput';
 import { ProviderContextCard } from '../providerContextCard';
@@ -71,11 +64,7 @@ export let ProviderConfigVaultForm = (
       vaultData: {} as Record<string, unknown>
     },
     onSubmit: async values => {
-      if (
-        !instanceId ||
-        !providerId ||
-        !schemaCapabilities.canCreateConfigVault
-      ) {
+      if (!instanceId || !providerId || !schemaCapabilities.canCreateConfigVault) {
         return;
       }
 
@@ -98,7 +87,7 @@ export let ProviderConfigVaultForm = (
     schema: yup =>
       yup.object({
         name: yup.string().trim().required('Name is required'),
-        description: yup.string().ensure(),
+        description: yup.string(),
         vaultData: yup.mixed<Record<string, unknown>>().defined()
       })
   });
@@ -117,11 +106,7 @@ export let ProviderConfigVaultForm = (
         <Spacer size={15} />
 
         <Dialog.Actions>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={props.onBack ?? props.close}
-          >
+          <Button type="button" variant="outline" onClick={props.onBack ?? props.close}>
             {props.onBack ? 'Back' : 'Close'}
           </Button>
         </Dialog.Actions>
@@ -179,11 +164,7 @@ export let ProviderConfigVaultForm = (
           <Spacer size={15} />
 
           <Dialog.Actions>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={props.onBack ?? props.close}
-            >
+            <Button type="button" variant="outline" onClick={props.onBack ?? props.close}>
               {props.onBack ? 'Back' : 'Cancel'}
             </Button>
             <Button

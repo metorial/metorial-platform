@@ -27,14 +27,9 @@ export let CustomServerUpdateForm = (p: { customServer?: CustomProvidersGetOutpu
     customServerData?.draft?.remoteMcpServer?.transport ??
     getCustomServerRemoteProtocolFromUrl(currentRemoteUrl);
   let isSaving = updateMutator.isLoading || createVersionMutator.isLoading;
-  let isSaved =
-    !isSaving && (updateMutator.isSuccess || createVersionMutator.isSuccess);
-  let form = useForm<{
-    name: string;
-    description: string;
-    remoteUrl: string;
-    remoteProtocol: CustomServerRemoteProtocol;
-  }>({
+  let isSaved = !isSaving && (updateMutator.isSuccess || createVersionMutator.isSuccess);
+
+  let form = useForm({
     initialValues: {
       name: customServerData?.name ?? '',
       description: customServerData?.description ?? '',
@@ -43,28 +38,22 @@ export let CustomServerUpdateForm = (p: { customServer?: CustomProvidersGetOutpu
     },
     updateInitialValues: true,
     onSubmit: async values => {
+      console.log('Submitting with values:', values);
+
       if (!instance.data) return;
       if (!customServerData) return;
 
-      let nextName = values.name.trim() || undefined;
-      let nextDescription = values.description.trim() || undefined;
-      let currentName = customServerData.name || undefined;
-      let currentDescription = customServerData.description || undefined;
       let nextRemoteUrl = values.remoteUrl.trim();
       let nextRemoteProtocol: 'sse' | 'streamable_http' =
         values.remoteProtocol == 'sse' ? 'sse' : 'streamable_http';
-      let didUpdateDetails =
-        nextName !== currentName || nextDescription !== currentDescription;
       let didUpdateRemote =
         isExternalProvider &&
         (nextRemoteUrl !== currentRemoteUrl || nextRemoteProtocol !== currentRemoteProtocol);
 
-      if (didUpdateDetails) {
-        await updateMutator.mutate({
-          name: values.name.trim(),
-          description: values.description.trim() || undefined
-        });
-      }
+      await updateMutator.mutate({
+        name: values.name.trim(),
+        description: values.description.trim() || undefined
+      });
 
       if (didUpdateRemote) {
         let [version] = await createVersionMutator.mutate({
@@ -97,31 +86,31 @@ export let CustomServerUpdateForm = (p: { customServer?: CustomProvidersGetOutpu
             }
           );
         }
-
-        return;
-      }
-
-      if (didUpdateDetails) {
-        toast.success('Provider updated');
-        await customServer.refetch();
       }
     },
     schema: yup =>
-      yup.object({
-        name: yup.string().trim().required('Name is required'),
-        description: yup.string().ensure(),
-        remoteUrl: isExternalProvider
-          ? yup
-              .string()
-              .trim()
-              .url('Remote URL must be a valid URL')
-              .required('Remote URL is required')
-          : yup.string().ensure(),
-        remoteProtocol: yup
-          .mixed<CustomServerRemoteProtocol>()
-          .oneOf(['sse', 'streamable_http'])
-          .required('Transport protocol is required')
-      })
+      isExternalProvider
+        ? yup.object({
+            name: yup.string().trim().required('Name is required'),
+            description: yup.string(),
+            remoteUrl: isExternalProvider
+              ? yup
+                  .string()
+                  .trim()
+                  .url('Remote URL must be a valid URL')
+                  .required('Remote URL is required')
+              : yup.string(),
+            remoteProtocol: yup
+              .mixed<CustomServerRemoteProtocol>()
+              .oneOf(['sse', 'streamable_http'])
+              .required('Transport protocol is required')
+          })
+        : (yup.object({
+            name: yup.string().trim().required('Name is required'),
+            description: yup.string(),
+            remoteUrl: yup.string().optional(),
+            remoteProtocol: yup.mixed<CustomServerRemoteProtocol>().optional()
+          }) as any)
   });
 
   return (

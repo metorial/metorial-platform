@@ -11,10 +11,10 @@ import {
   useProvider,
   useProviderAuthConfigs,
   useProviderAuthMethods,
-  useProviderConfigSchema,
   useProviderConfigVaults,
   useProviderConfigs,
   useProviderDeployment,
+  useProviderDeploymentConfigSchema,
   useProviderDeployments
 } from '@metorial/state';
 import {
@@ -176,7 +176,7 @@ export let ExplorerPage = () => {
       if (!instance.data) return;
       setIsCreatingSession(true);
 
-      let [res] = await createSession.mutate({
+      let [res, err] = await createSession.mutate({
         providers: [
           {
             providerDeploymentId: deploymentId,
@@ -249,20 +249,19 @@ export let ExplorerPage = () => {
     instance.data?.id,
     providerDeploymentId ?? undefined
   );
-  let providerConfigs = useProviderConfigs(
-    instance.data?.id,
-    providerDeploymentId ?? undefined
-  );
+  let providerConfigs = useProviderConfigs(instance.data?.id, {
+    providerId: selectedProvider?.id
+  });
   let providerConfigVaults = useProviderConfigVaults(instance.data?.id, {
     providerDeploymentId: providerDeploymentId ?? undefined
   });
-  let providerConfigSchema = useProviderConfigSchema(
+  let providerConfigSchema = useProviderDeploymentConfigSchema(
     instance.data?.id,
     providerDeploymentId ?? undefined
   );
   let providerAuthConfigs = useProviderAuthConfigs(
     instance.data?.id,
-    providerDeploymentId ?? undefined
+    providerDeploymentId ? { providerId: selectedDeployment.data?.providerId } : undefined
   );
 
   let providerAuthConfigsRef = useRef(providerAuthConfigs);
@@ -383,7 +382,7 @@ export let ExplorerPage = () => {
     selectedDeployment.data?.lockedVersion?.id ?? activeProvider.data?.currentVersion?.id;
   let providerAuthMethods = useProviderAuthMethods(
     instance.data?.id,
-    effectiveVersionIdForAuth
+    effectiveVersionIdForAuth ? { providerVersionId: effectiveVersionIdForAuth } : null
   );
 
   let hasAuthMethods = (providerAuthMethods.data?.items?.length ?? 0) > 0;
@@ -427,9 +426,7 @@ export let ExplorerPage = () => {
   let renderSetupPanel = () => {
     if (!providerDeploymentId || !instance.data) return null;
 
-    let emptyAuthConfigLabel = hasAuthMethods
-      ? 'Select an auth config to continue'
-      : 'None';
+    let emptyAuthConfigLabel = hasAuthMethods ? 'Select an auth config to continue' : 'None';
     let authConfigItems = providerAuthConfigs.data?.items ?? [];
     let hasAvailableAuthConfigs = authConfigItems.length > 0;
     let lockedProviderVersionId = selectedDeployment.data?.lockedVersion?.id ?? null;
@@ -587,11 +584,7 @@ export let ExplorerPage = () => {
                 <Button
                   type="button"
                   onClick={() => {
-                    if (
-                      hasAuthMethods &&
-                      !selectedAuthConfigId &&
-                      !hasAvailableAuthConfigs
-                    ) {
+                    if (hasAuthMethods && !selectedAuthConfigId && !hasAvailableAuthConfigs) {
                       openAuthConfigCreateModal();
                       return;
                     }

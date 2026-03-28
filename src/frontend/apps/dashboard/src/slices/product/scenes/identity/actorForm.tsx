@@ -41,7 +41,7 @@ export let IdentityActorForm = ({
       yup.object({
         type: yup.string().oneOf(['person', 'agent']).required('Type is required'),
         name: yup.string().trim().required('Name is required'),
-        description: yup.string().ensure()
+        description: yup.string()
       })
   });
 

@@ -40,6 +40,11 @@ class providerSetupSessionUiServiceImpl {
       },
       include: {
         ...providerSetupSessionInclude,
+        provider: {
+          include: {
+            listing: true
+          }
+        },
         brand: true,
         tenant: true
       }

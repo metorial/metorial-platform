@@ -176,7 +176,11 @@ export let MagicMcpServerForm = (
             Cancel
           </Button>
         )}
-        <Button type="submit" loading={createMutator.isLoading} success={createMutator.isSuccess}>
+        <Button
+          type="submit"
+          loading={createMutator.isLoading}
+          success={createMutator.isSuccess}
+        >
           Create
         </Button>
       </div>

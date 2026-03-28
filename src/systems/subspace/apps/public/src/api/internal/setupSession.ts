@@ -3,6 +3,7 @@ import { providerSetupSessionUiService } from '@metorial-subspace/module-auth';
 import { brandService } from '@metorial-subspace/module-tenant';
 import {
   brandPresenter,
+  getImageUrl,
   providerOAuthSetupPresenter,
   providerPreviewPresenter,
   providerSetupSessionPresenter
@@ -44,7 +45,10 @@ export let getFullSession = async (
     session.brand ?? (await brandService.getBrandForTenant({ tenantId: session.tenant.id }));
 
   return {
-    provider: providerPreviewPresenter(session.provider),
+    provider: {
+      ...providerPreviewPresenter(session.provider),
+      imageUrl: getImageUrl(session.provider.listing!)
+    },
     session: providerSetupSessionPresenter(session),
     brand: brandPresenter(brand)
   };

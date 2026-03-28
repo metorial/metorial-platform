@@ -190,7 +190,8 @@ let getTypeLabel = (prop: SchemaProperty): string => {
   }
   if (getSchemaType(prop) === 'array') {
     if (isSchemaObject(prop.items) && prop.items.properties) return 'Array of Objects';
-    if (isSchemaObject(prop.items)) return `Array of ${formatType(getSchemaType(prop.items))}s`;
+    if (isSchemaObject(prop.items))
+      return `Array of ${formatType(getSchemaType(prop.items))}s`;
     return 'Array';
   }
   return formatType(getSchemaType(prop));
@@ -393,7 +394,10 @@ let SchemaViewer = ({
 export let ProviderTriggersPage = () => {
   let instance = useCurrentInstance();
   let { selectedVersionId } = useProviderVersionContext();
-  let triggers = useProviderTriggers(instance.data?.id, selectedVersionId);
+  let triggers = useProviderTriggers(
+    instance.data?.id,
+    selectedVersionId ? { providerVersionId: selectedVersionId } : null
+  );
 
   let onViewDetails = (trigger: ProviderTrigger) => {
     let invocationBadge = getInvocationBadge(trigger.invocation);
@@ -528,9 +532,11 @@ export let ProviderTriggersPage = () => {
               <Badge color={invocationBadge.color} size="1">
                 {invocationBadge.label}
               </Badge>,
-              <Button size="1" variant="outline" onClick={() => onViewDetails(trigger)}>
-                View Details
-              </Button>
+              <Flex justify="end" style={{ width: '100%' }}>
+                <Button size="1" variant="outline" onClick={() => onViewDetails(trigger)}>
+                  View Details
+                </Button>
+              </Flex>
             ]
           };
         })}

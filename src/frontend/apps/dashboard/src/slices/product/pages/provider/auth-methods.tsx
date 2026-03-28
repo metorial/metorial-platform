@@ -12,7 +12,10 @@ import { useProviderVersionContext } from './_layout';
 export let ProviderAuthMethodsPage = () => {
   let instance = useCurrentInstance();
   let { selectedVersionId } = useProviderVersionContext();
-  let authMethods = useProviderAuthMethods(instance.data?.id, selectedVersionId);
+  let authMethods = useProviderAuthMethods(
+    instance.data?.id,
+    selectedVersionId ? { providerVersionId: selectedVersionId } : null
+  );
 
   let authMethodsContent = renderWithPagination(authMethods)(authMethods => (
     <>
@@ -49,7 +52,7 @@ export let ProviderAuthMethodsPage = () => {
                   {getProviderAuthMethodTypeLabel(method.type)}
                 </Badge>
               </Flex>,
-              <Flex style={{ width: '100%', justifyContent: 'flex-end' }}>
+              <Flex justify="end" style={{ width: '100%' }}>
                 <Button
                   size="1"
                   variant="outline"

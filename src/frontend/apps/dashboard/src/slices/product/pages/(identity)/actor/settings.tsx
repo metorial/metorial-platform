@@ -28,7 +28,7 @@ export let IdentityActorSettingsPage = () => {
     schema: yup =>
       yup.object({
         name: yup.string().trim().required('Name is required'),
-        description: yup.string().ensure()
+        description: yup.string()
       })
   });
 

@@ -27,6 +27,7 @@ type ProviderSessionsTableProps = {
   status?: string;
   providerDeploymentId?: string;
   providerAuthConfigId?: string;
+  providerConfigId?: string;
   organization: ReturnType<typeof useCurrentOrganization>;
   project: ReturnType<typeof useCurrentProject>;
   instance: ReturnType<typeof useCurrentInstance>;
@@ -34,7 +35,9 @@ type ProviderSessionsTableProps = {
 
 let getSessionStatusFilterValue = (
   value: FilterPayload | undefined
-): Extract<DashboardInstanceSessionsListQuery['status'], 'active' | 'archived'>[] | undefined => {
+):
+  | Extract<DashboardInstanceSessionsListQuery['status'], 'active' | 'archived'>[]
+  | undefined => {
   return getEnumListFilterValue(value, ['active', 'archived']);
 };
 
@@ -67,14 +70,14 @@ let useProviderSessionsTableState: TableStateProvider<
 ) => {
   let sessions = useSessions(props.instance.data?.id, {
     order: 'desc',
-    providerId:
-      getStringFilterValue(opts.filter.providerId) ?? props.providerId ?? undefined,
+    providerId: getStringFilterValue(opts.filter.providerId) ?? props.providerId ?? undefined,
     status: getSessionStatusFilterValue(opts.filter.status) ?? (props.status as any),
     providerDeploymentId:
-      getStringFilterValue(opts.filter.providerDeploymentId) ??
-      props.providerDeploymentId,
+      getStringFilterValue(opts.filter.providerDeploymentId) ?? props.providerDeploymentId,
     providerAuthConfigId:
-      getStringFilterValue(opts.filter.providerAuthConfigId) ?? props.providerAuthConfigId
+      getStringFilterValue(opts.filter.providerAuthConfigId) ?? props.providerAuthConfigId,
+    providerConfigId:
+      getStringFilterValue(opts.filter.providerConfigId) ?? props.providerConfigId
   });
 
   return {
@@ -128,7 +131,8 @@ let providerSessionsTable = new DashboardTable<ProviderSessionsTableProps, Sessi
       header: 'Providers',
       render: session => (
         <Text size="2">
-          {session.providers.length} {session.providers.length === 1 ? 'provider' : 'providers'}
+          {session.providers.length}{' '}
+          {session.providers.length === 1 ? 'provider' : 'providers'}
         </Text>
       )
     },
@@ -155,7 +159,9 @@ let providerSessionsTable = new DashboardTable<ProviderSessionsTableProps, Sessi
       isDefault: false,
       header: 'Deployment IDs',
       render: session => (
-        <Text size="2">{[...new Set(session.providers.map(item => item.deployment.id))].join(', ')}</Text>
+        <Text size="2">
+          {[...new Set(session.providers.map(item => item.deployment.id))].join(', ')}
+        </Text>
       )
     },
     {
@@ -213,12 +219,14 @@ export let ProviderSessionsTable = ({
   providerId,
   status,
   providerDeploymentId,
-  providerAuthConfigId
+  providerAuthConfigId,
+  providerConfigId
 }: {
   providerId?: string;
   status?: string;
   providerDeploymentId?: string;
   providerAuthConfigId?: string;
+  providerConfigId?: string;
 }) => {
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
@@ -229,6 +237,7 @@ export let ProviderSessionsTable = ({
     status,
     providerDeploymentId,
     providerAuthConfigId,
+    providerConfigId,
     instance,
     organization,
     project,

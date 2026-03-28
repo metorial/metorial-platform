@@ -6,9 +6,8 @@ import { withAuth } from '../../user';
 export let providerSpecificationsLoader = createLoader({
   name: 'providerSpecifications',
   parents: [],
-  fetch: (
-    i: { instanceId: string } & DashboardInstanceProvidersSpecificationsListQuery
-  ) => withAuth(sdk => sdk.providers.specifications.list(i.instanceId, i)),
+  fetch: (i: { instanceId: string } & DashboardInstanceProvidersSpecificationsListQuery) =>
+    withAuth(sdk => sdk.providers.specifications.list(i.instanceId, i)),
   mutators: {}
 });
 
@@ -18,7 +17,7 @@ export let useProviderSpecifications = (
 ) => {
   let data = usePaginator(pagination =>
     providerSpecificationsLoader.use(
-      instanceId && query !== null ? { ...pagination, ...query, instanceId } : null
+      instanceId ? { ...pagination, ...query, instanceId } : null
     )
   );
 

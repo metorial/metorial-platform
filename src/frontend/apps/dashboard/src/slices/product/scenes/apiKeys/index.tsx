@@ -38,20 +38,6 @@ import { useApiKeysWithAutoInit } from './useApiKeysWithAutoInit';
 
 type ApiKeyType = ApiKeysGetOutput['type'];
 type ApiKeyFilterType = ApiKeysFilter['type'];
-type CreateApiKeyFormValues = {
-  name: string;
-  description: string | undefined;
-  expiresAt: Date | undefined;
-  ipFilters: string[];
-  type: ApiKeyType;
-};
-type UpdateApiKeyFormValues = {
-  name: string | undefined;
-  description: string | undefined;
-  expiresAt: Date | undefined;
-  ipFilters: string[];
-  type: ApiKeyType | undefined;
-};
 
 let normalizeOptionalString = (value: string | undefined) => value || undefined;
 let normalizeIpFilters = (value: string[] | undefined) =>
@@ -126,7 +112,7 @@ export let ApiKeysScene = ({
     showModal(({ dialogProps, close }) => {
       let mutator = apiKeys.createMutator();
 
-      let form = useForm<CreateApiKeyFormValues>({
+      let form = useForm({
         initialValues: {
           name: '',
           description: '',
@@ -280,7 +266,7 @@ export let ApiKeysScene = ({
       let apiKey = apiKeys.data?.find(k => k.id === apiKeyId);
       let mutator = apiKeys.updateMutator();
 
-      let form = useForm<UpdateApiKeyFormValues>({
+      let form = useForm({
         initialValues: {
           name: apiKey?.name ?? undefined,
           description: apiKey?.description ?? '',

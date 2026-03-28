@@ -1,24 +1,14 @@
-import {
-  DashboardInstanceSessionTemplatesProvidersListOutput
-} from '@metorial/dashboard-sdk';
+import { DashboardInstanceSessionTemplatesProvidersListOutput } from '@metorial/dashboard-sdk';
 import { renderWithLoader } from '@metorial/data-hooks';
 import {
   useCreateSessionTemplateProvider,
   useDeleteSessionTemplateProvider,
-  useInstanceProviderAuthConfigs,
+  useProviderAuthConfigs,
   useProviderDeployments,
   useProviderListings,
   useSessionTemplateProviders
 } from '@metorial/state';
-import {
-  Avatar,
-  Button,
-  Dialog,
-  Flex,
-  Spacer,
-  Text,
-  showModal
-} from '@metorial/ui';
+import { Avatar, Button, Dialog, Flex, Spacer, Text, showModal } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
 import { useMemo, useState } from 'react';
 import { EmptyState } from '../../../../components/emptyState';
@@ -169,7 +159,7 @@ export let SessionTemplateProvidersManager = ({
   sessionTemplateId: string;
 }) => {
   let providers = useSessionTemplateProviders(instanceId, sessionTemplateId);
-  let listings = useProviderListings({});
+  let listings = useProviderListings(instanceId, {});
   let deployments = useProviderDeployments(instanceId);
   let items = providers.data?.items ?? [];
   let authConfigProviderIds = useMemo(
@@ -179,7 +169,7 @@ export let SessionTemplateProvidersManager = ({
       ),
     [items]
   );
-  let authConfigs = useInstanceProviderAuthConfigs(instanceId, {
+  let authConfigs = useProviderAuthConfigs(instanceId, {
     providerId: authConfigProviderIds.length > 0 ? authConfigProviderIds : undefined
   });
 

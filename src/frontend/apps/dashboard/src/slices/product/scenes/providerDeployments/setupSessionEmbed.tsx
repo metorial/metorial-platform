@@ -1,16 +1,14 @@
 import { useForm } from '@metorial/data-hooks';
 import {
-  type ProviderAuthCredentialsItem,
   useCreateProviderAuthCredentials,
-  useProviderDeployment,
-  useProvider,
   useCreateProviderSetupSession,
   useGetProviderSetupSession,
+  useProvider,
   useProviderAuthCredentials,
   useProviderAuthMethods,
+  useProviderDeployment,
   type DashboardInstanceProviderDeploymentsSetupSessionsCreateOutput,
-  type DashboardInstanceProviderDeploymentsSetupSessionsGetOutput,
-  type DashboardInstanceProvidersAuthMethodsListOutput
+  type DashboardInstanceProviderDeploymentsSetupSessionsGetOutput
 } from '@metorial/state';
 import { Button, Callout, Copy, Flex, Input, Select, Spacer, Text } from '@metorial/ui';
 import { sortBy } from 'lodash';
@@ -18,8 +16,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { getProviderOAuthAutoRegistrationEnabled } from '../../lib/providerOAuthAutoRegistration';
 import { Stepper } from '../stepper';
 
-type AuthMethod = DashboardInstanceProvidersAuthMethodsListOutput['items'][number];
-type AuthCredential = ProviderAuthCredentialsItem;
 type CredentialsMode = 'existing' | 'new';
 type SetupSessionState =
   | DashboardInstanceProviderDeploymentsSetupSessionsCreateOutput
@@ -65,14 +61,16 @@ export let ProviderSetupSessionEmbed = ({
         selectedMethodId: yup.string().required('Authentication method is required')
       })
   });
-  let authMethods = useProviderAuthMethods(instanceId, effectiveVersionId);
+  let authMethods = useProviderAuthMethods(
+    instanceId,
+    effectiveVersionId ? { providerVersionId: effectiveVersionId } : null
+  );
   let hasSingleMethod = (authMethods.data?.items?.length ?? 0) === 1;
   let selectedMethodId =
     methodForm.values.selectedMethodId ||
-    (hasSingleMethod ? authMethods.data?.items?.[0]?.id ?? '' : '');
+    (hasSingleMethod ? (authMethods.data?.items?.[0]?.id ?? '') : '');
   let authCredentials = useProviderAuthCredentials(
     instanceId,
-    providerId,
     selectedMethodId
       ? {
           origin: ['custom', 'managed'],
@@ -109,42 +107,39 @@ export let ProviderSetupSessionEmbed = ({
     },
     schema: yup =>
       yup.object({
-        credentialMode: yup
-          .string<CredentialsMode>()
-          .oneOf(['existing', 'new'])
-          .required(),
-        selectedCredentialId: yup.string().ensure().test(
-          'selected-credential-required',
-          'Select an existing credential or add your own to continue.',
-          function (value) {
-            if (this.parent.credentialMode !== 'existing') return true;
-            return !!value;
-          }
-        ),
-        newCredName: yup.string().ensure().test(
-          'new-cred-name-required',
-          'Name is required',
-          function (value) {
+        credentialMode: yup.string<CredentialsMode>().oneOf(['existing', 'new']).required(),
+        selectedCredentialId: yup
+          .string()
+          .test(
+            'selected-credential-required',
+            'Select an existing credential or add your own to continue.',
+            function (value) {
+              if (this.parent.credentialMode !== 'existing') return true;
+              return !!value;
+            }
+          ),
+        newCredName: yup
+          .string()
+          .test('new-cred-name-required', 'Name is required', function (value) {
             if (this.parent.credentialMode !== 'new') return true;
             return !!value;
-          }
-        ),
-        newCredClientId: yup.string().ensure().test(
-          'new-cred-client-id-required',
-          'Client ID is required',
-          function (value) {
+          }),
+        newCredClientId: yup
+          .string()
+          .test('new-cred-client-id-required', 'Client ID is required', function (value) {
             if (this.parent.credentialMode !== 'new') return true;
             return !!value;
-          }
-        ),
-        newCredClientSecret: yup.string().ensure().test(
-          'new-cred-client-secret-required',
-          'Client secret is required',
-          function (value) {
-            if (this.parent.credentialMode !== 'new') return true;
-            return !!value;
-          }
-        )
+          }),
+        newCredClientSecret: yup
+          .string()
+          .test(
+            'new-cred-client-secret-required',
+            'Client secret is required',
+            function (value) {
+              if (this.parent.credentialMode !== 'new') return true;
+              return !!value;
+            }
+          )
       })
   });
 
@@ -221,9 +216,7 @@ export let ProviderSetupSessionEmbed = ({
   );
   let requiresManualOAuthCredentials = isOAuth && !oauthAutoRegistrationEnabled;
   let preferredVisibleCredential =
-    visibleAuthCredentials.find(
-      credential => !credential.isManaged && credential.isDefault
-    ) ??
+    visibleAuthCredentials.find(credential => !credential.isManaged && credential.isDefault) ??
     (visibleAuthCredentials.length === 1 && !visibleAuthCredentials[0].isManaged
       ? visibleAuthCredentials[0]
       : null);
@@ -269,7 +262,10 @@ export let ProviderSetupSessionEmbed = ({
 
     if (selectedCredentialExists) return;
     if (preferredVisibleCredential) {
-      void credentialsForm.setFieldValue('selectedCredentialId', preferredVisibleCredential.id);
+      void credentialsForm.setFieldValue(
+        'selectedCredentialId',
+        preferredVisibleCredential.id
+      );
       return;
     }
 
@@ -441,7 +437,14 @@ export let ProviderSetupSessionEmbed = ({
       autoStartedRef.current = true;
       void handleStartSetup();
     }
-  }, [setupSession, isStarting, selectedMethodId, isOAuth, oauthAutoRegistrationEnabled, skipMethodStep]);
+  }, [
+    setupSession,
+    isStarting,
+    selectedMethodId,
+    isOAuth,
+    oauthAutoRegistrationEnabled,
+    skipMethodStep
+  ]);
 
   if (
     (!!deploymentId && deployment.isLoading) ||
@@ -627,7 +630,7 @@ export let ProviderSetupSessionEmbed = ({
               credentialsForm.resetForm();
               resetSetupSession();
             }}
-            items={(authMethods.data?.items ?? []).map((method: AuthMethod) => ({
+            items={(authMethods.data?.items ?? []).map(method => ({
               id: method.id,
               label: method.name
             }))}
@@ -648,10 +651,7 @@ export let ProviderSetupSessionEmbed = ({
                 {cancelLabel}
               </Button>
             )}
-            <Button
-              type="submit"
-              disabled={!selectedMethodId}
-            >
+            <Button type="submit" disabled={!selectedMethodId}>
               Continue
             </Button>
           </Flex>
@@ -668,8 +668,8 @@ export let ProviderSetupSessionEmbed = ({
             Select {oauthMethodName} Credentials
           </Text>
           <Text size="2" color="gray600">
-            Auto-registration is disabled. Select existing credentials or add new
-            credentials to continue.
+            Auto-registration is disabled. Select existing credentials or add new credentials
+            to continue.
           </Text>
           <Spacer size={6} />
           {!isCreatingCredentials && hasManagedVisibleCredentials && (
@@ -707,7 +707,7 @@ export let ProviderSetupSessionEmbed = ({
               }
             }}
             items={[
-              ...visibleAuthCredentials.map((cred: AuthCredential) => ({
+              ...visibleAuthCredentials.map(cred => ({
                 id: cred.id,
                 label: cred.isManaged
                   ? `${cred.name || cred.id} (Managed by Metorial)`
@@ -795,7 +795,9 @@ export let ProviderSetupSessionEmbed = ({
             )}
             <Button
               type="submit"
-              loading={createCredentials.isPending || isStarting || createSetupSession.isPending}
+              loading={
+                createCredentials.isPending || isStarting || createSetupSession.isPending
+              }
               disabled={
                 (isCreatingCredentials &&
                   (!credentialsForm.values.newCredName ||
@@ -906,7 +908,9 @@ export let ProviderSetupSessionEmbed = ({
                 type="button"
                 size="1"
                 onClick={() =>
-                  void handleStartSetup(credentialsForm.values.selectedCredentialId || undefined)
+                  void handleStartSetup(
+                    credentialsForm.values.selectedCredentialId || undefined
+                  )
                 }
                 loading={isStarting || createSetupSession.isPending}
                 disabled={!selectedMethodId}

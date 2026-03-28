@@ -7,12 +7,8 @@ import { useParams } from 'react-router-dom';
 export let ProviderAuthConfigSettingsPage = () => {
   let instance = useCurrentInstance();
 
-  let { providerDeploymentId, providerAuthConfigId } = useParams();
-  let authConfig = useProviderAuthConfig(
-    instance.data?.id,
-    providerDeploymentId,
-    providerAuthConfigId
-  );
+  let { providerAuthConfigId } = useParams();
+  let authConfig = useProviderAuthConfig(instance.data?.id, providerAuthConfigId);
   let updateMutator = authConfig.useUpdateMutator();
   let form = useForm({
     initialValues: {
@@ -29,16 +25,13 @@ export let ProviderAuthConfigSettingsPage = () => {
     schema: yup =>
       yup.object({
         name: yup.string().trim().required('Name is required'),
-        description: yup.string().ensure()
+        description: yup.string()
       })
   });
 
   return renderWithLoader({ authConfig })(({ authConfig }) => (
     <>
-      <Box
-        title="Auth Config Settings"
-        description="Modify the settings of this auth config."
-      >
+      <Box title="Auth Config Settings" description="Modify the settings of this auth config.">
         <form onSubmit={form.handleSubmit}>
           <Input label="Name" {...form.getFieldProps('name')} />
           <form.RenderError field="name" />

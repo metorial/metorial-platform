@@ -40,15 +40,12 @@ let SecuredByWrapper = styled.div<{ $isMetorialElement?: boolean }>`
   font-size: 12px;
   color: ${theme.colors.gray600};
 
-  @media (max-width: 640px) {
-    ${p =>
-      p.$isMetorialElement &&
-      `
+  ${p =>
+    p.$isMetorialElement &&
+    `
       display: flex;
       color: #666;
-      margin-top: 16px;
     `}
-  }
 `;
 
 let SecuredByLink = styled.a`

@@ -6,8 +6,8 @@ import { CustomServerUpdateForm } from '../../../../scenes/customProvider/update
 export let CustomProviderSettingsPage = () => {
   let instance = useCurrentInstance();
 
-  let { customServerId } = useParams();
-  let customServer = useCustomProvider(instance.data?.id, customServerId);
+  let { customProviderId } = useParams();
+  let customServer = useCustomProvider(instance.data?.id, customProviderId);
 
   return renderWithLoader({ customServer })(({ customServer }) => (
     <CustomServerUpdateForm customServer={customServer.data} />

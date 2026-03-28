@@ -9,6 +9,7 @@ export let ProviderConfigVaultSettingsPage = () => {
 
   let { providerConfigVaultId } = useParams();
   let vault = useProviderConfigVault(instance.data?.id, providerConfigVaultId);
+
   let updateMutator = vault.useUpdateMutator();
   let form = useForm({
     initialValues: {
@@ -25,8 +26,8 @@ export let ProviderConfigVaultSettingsPage = () => {
     schema: yup =>
       yup.object({
         name: yup.string().trim().required('Name is required'),
-        description: yup.string().ensure()
-      })
+        description: yup.string()
+      }) as any
   });
 
   return renderWithLoader({ vault })(({ vault }) => (

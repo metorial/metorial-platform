@@ -530,7 +530,10 @@ export let CallbackTriggersList = (p: { callbackId: string | undefined }) => {
   );
   let providerVersionId =
     deployment.data?.lockedVersion?.id ?? provider.data?.currentVersion?.id;
-  let triggers = useProviderTriggers(instance.data?.id, providerVersionId, { limit: 100 });
+  let triggers = useProviderTriggers(
+    instance.data?.id,
+    providerVersionId ? { providerVersionId, limit: 100 } : null
+  );
 
   return renderWithLoader({ callback, triggers })(() => {
     let callbackTriggers = callback.data?.providerTriggers ?? [];

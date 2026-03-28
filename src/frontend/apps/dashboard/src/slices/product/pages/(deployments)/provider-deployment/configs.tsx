@@ -49,7 +49,6 @@ export let ProviderDeploymentConfigsPage = () => {
                         organization.data,
                         project.data,
                         instance.data,
-                        providerDeploymentId!,
                         config.id
                       )
                     );

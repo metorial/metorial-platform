@@ -3,7 +3,7 @@ import { Button, Flex } from '@metorial-io/ui';
 import type { JsonSchema } from '../../../lib/jsonSchema';
 import { getDefaultValues, schemaToYup } from '../../../lib/jsonSchema';
 import { FormFromSchema } from '../components/FormFromSchema';
-import { SecuredByFooter, StepContentBlock, StepWrapper } from '../components/StepLayout';
+import { StepContentBlock, StepWrapper } from '../components/StepLayout';
 
 interface AuthConfigStepProps {
   schema: JsonSchema;
@@ -37,7 +37,7 @@ export let AuthConfigStep = ({
             <Button
               type="submit"
               color="black"
-              size="3"
+              size="2"
               fullWidth
               loading={isSubmitting}
               disabled={!form.isValid}
@@ -46,8 +46,6 @@ export let AuthConfigStep = ({
             </Button>
           </Flex>
         </form>
-
-        <SecuredByFooter isMetorialElement={isMetorialElement} />
       </StepContentBlock>
     </StepWrapper>
   );

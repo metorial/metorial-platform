@@ -1,8 +1,5 @@
 import {
   DashboardInstanceProviderDeploymentsConfigVaultsCreateBody,
-  DashboardInstanceProviderDeploymentsConfigVaultsCreateOutput,
-  DashboardInstanceProviderDeploymentsConfigVaultsGetOutput,
-  DashboardInstanceProviderDeploymentsConfigVaultsListOutput,
   DashboardInstanceProviderDeploymentsConfigVaultsListQuery,
   DashboardInstanceProviderDeploymentsConfigVaultsUpdateBody
 } from '@metorial/dashboard-sdk';
@@ -10,59 +7,39 @@ import { createLoader } from '@metorial/data-hooks';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
 
-type ProviderConfigVaultsListQuery =
-  DashboardInstanceProviderDeploymentsConfigVaultsListQuery;
-
-type ProviderConfigVaultCreateBody =
-  DashboardInstanceProviderDeploymentsConfigVaultsCreateBody;
-
-type ProviderConfigVaultUpdateBody =
-  DashboardInstanceProviderDeploymentsConfigVaultsUpdateBody;
-
-type ProviderConfigVaultListItem =
-  DashboardInstanceProviderDeploymentsConfigVaultsListOutput['items'][number];
-
-type ProviderConfigVaultsPaginatorResult = ReturnType<
-  typeof providerConfigVaultsLoader.use
-> & {
-  data: DashboardInstanceProviderDeploymentsConfigVaultsListOutput | null;
-};
-
 export let providerConfigVaultsLoader = createLoader({
   name: 'providerConfigVaults',
   parents: [],
-  fetch: (i: { instanceId: string } & ProviderConfigVaultsListQuery) =>
-    withAuth(sdk => sdk.providerDeployments.configVaults.list(i.instanceId, i)) as Promise<
-      DashboardInstanceProviderDeploymentsConfigVaultsListOutput
-    >,
+  fetch: (
+    i: { instanceId: string } & DashboardInstanceProviderDeploymentsConfigVaultsListQuery
+  ) => withAuth(sdk => sdk.providerDeployments.configVaults.list(i.instanceId, i)),
   mutators: {}
 });
 
-export let useCreateProviderConfigVault =
-  providerConfigVaultsLoader.createExternalMutator(
-    ({ instanceId, ...body }: ProviderConfigVaultCreateBody & { instanceId: string }) =>
-      withAuth(sdk =>
-        sdk.providerDeployments.configVaults.create(instanceId, body)
-      ) as Promise<DashboardInstanceProviderDeploymentsConfigVaultsCreateOutput>,
-    { disableToast: true }
-  );
+export let useCreateProviderConfigVault = providerConfigVaultsLoader.createExternalMutator(
+  ({
+    instanceId,
+    ...body
+  }: DashboardInstanceProviderDeploymentsConfigVaultsCreateBody & { instanceId: string }) =>
+    withAuth(sdk => sdk.providerDeployments.configVaults.create(instanceId, body)),
+  { disableToast: true }
+);
 
 export let useProviderConfigVaults = (
   instanceId: string | null | undefined,
-  query?: ProviderConfigVaultsListQuery
+  query?: DashboardInstanceProviderDeploymentsConfigVaultsListQuery
 ) => {
-  let data = usePaginator<ProviderConfigVaultsPaginatorResult, ProviderConfigVaultListItem>(
-    pagination =>
-      providerConfigVaultsLoader.use(
-        instanceId
-          ? {
-              order: 'desc',
-              ...query,
-              ...pagination,
-              instanceId
-            }
-          : null
-      ) as ProviderConfigVaultsPaginatorResult
+  let data = usePaginator(pagination =>
+    providerConfigVaultsLoader.use(
+      instanceId
+        ? {
+            order: 'desc',
+            ...query,
+            ...pagination,
+            instanceId
+          }
+        : null
+    )
   );
 
   return data;
@@ -74,18 +51,14 @@ export let providerConfigVaultLoader = createLoader({
   fetch: (i: { instanceId: string; providerConfigVaultId: string }) =>
     withAuth(sdk =>
       sdk.providerDeployments.configVaults.get(i.instanceId, i.providerConfigVaultId)
-    ) as Promise<DashboardInstanceProviderDeploymentsConfigVaultsGetOutput>,
+    ),
   mutators: {
     update: (
-      body: ProviderConfigVaultUpdateBody,
+      body: DashboardInstanceProviderDeploymentsConfigVaultsUpdateBody,
       { input: { instanceId, providerConfigVaultId } }
     ) =>
       withAuth(sdk =>
-        sdk.providerDeployments.configVaults.update(
-          instanceId,
-          providerConfigVaultId,
-          body
-        )
+        sdk.providerDeployments.configVaults.update(instanceId, providerConfigVaultId, body)
       )
   }
 });

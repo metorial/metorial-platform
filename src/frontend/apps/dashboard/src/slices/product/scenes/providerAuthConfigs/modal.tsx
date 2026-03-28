@@ -3,18 +3,10 @@ import {
   DashboardInstanceProvidersAuthMethodsListOutput
 } from '@metorial/dashboard-sdk';
 import { useProviderDeployment } from '@metorial/state';
-import {
-  Button,
-  CenteredSpinner,
-  Dialog,
-  Select,
-  Spacer,
-  Text,
-  showModal
-} from '@metorial/ui';
+import { Button, CenteredSpinner, Dialog, Select, Spacer, showModal } from '@metorial/ui';
 import { useState } from 'react';
-import { getProviderOAuthAutoRegistrationEnabled } from '../../lib/providerOAuthAutoRegistration';
 import { useProviderAuthCreationCapabilities } from '../../lib/providerCreationCapabilities';
+import { getProviderOAuthAutoRegistrationEnabled } from '../../lib/providerOAuthAutoRegistration';
 import { ProviderContextCard } from '../providerContextCard';
 import { ProviderSetupSessionEmbed } from '../providerDeployments/setupSessionEmbed';
 import { Stepper } from '../stepper';
@@ -73,7 +65,9 @@ let getAuthMethodSelectionSteps = (p: {
 
 export let showProviderAuthConfigFormModal = (
   p: ProviderAuthConfigFormProps & {
-    onCreate?: (authConfig: DashboardInstanceProviderDeploymentsAuthConfigsCreateOutput) => void;
+    onCreate?: (
+      authConfig: DashboardInstanceProviderDeploymentsAuthConfigsCreateOutput
+    ) => void;
     onBack?: () => void;
   }
 ) =>
@@ -115,8 +109,7 @@ let ProviderAuthConfigCreateModalContent = (p: {
     p.providerId ?? deployment.data?.providerId
   );
   let isDeploymentScoped = !!p.providerDeploymentId;
-  let providerName =
-    authCreation.provider.data?.name ?? deployment.data?.name ?? 'provider';
+  let providerName = authCreation.provider.data?.name ?? deployment.data?.name ?? 'provider';
   let providerId =
     p.providerId ?? deployment.data?.providerId ?? authCreation.provider.data?.id;
   let authMethods = authCreation.authMethodItems;
@@ -183,13 +176,13 @@ let ProviderAuthConfigCreateModalContent = (p: {
   if (!manualMethods.length && setupFlowMethods.length) {
     if (!providerId) {
       return (
-          <>
-            <Dialog.Title>Create Auth Config</Dialog.Title>
-            <Dialog.Description>
-              {isDeploymentScoped
-                ? 'Could not resolve the provider for this deployment.'
-                : 'Could not resolve the selected provider.'}
-            </Dialog.Description>
+        <>
+          <Dialog.Title>Create Auth Config</Dialog.Title>
+          <Dialog.Description>
+            {isDeploymentScoped
+              ? 'Could not resolve the provider for this deployment.'
+              : 'Could not resolve the selected provider.'}
+          </Dialog.Description>
 
           <Spacer size={15} />
 
@@ -220,7 +213,11 @@ let ProviderAuthConfigCreateModalContent = (p: {
           instanceId={p.instanceId}
           providerId={providerId}
           deploymentId={p.providerDeploymentId}
-          initialMethodId={!isDeploymentScoped && setupFlowMethods.length === 1 ? setupFlowMethods[0]?.id : undefined}
+          initialMethodId={
+            !isDeploymentScoped && setupFlowMethods.length === 1
+              ? setupFlowMethods[0]?.id
+              : undefined
+          }
           hideMethodStep={!isDeploymentScoped && setupFlowMethods.length === 1}
           onComplete={result => {
             let authConfigId = result?.authConfig?.id;
@@ -359,13 +356,13 @@ let ProviderAuthConfigCreateModalContent = (p: {
                   <Spacer size={10} />
 
                   <Dialog.Actions>
-                    <Button
-                      variant="outline"
-                      onClick={handleBack}
-                    >
+                    <Button variant="outline" onClick={handleBack}>
                       {p.onBack ? 'Back' : 'Cancel'}
                     </Button>
-                    <Button onClick={() => setActiveMethodId(draftMethodId)} disabled={!draftMethodId}>
+                    <Button
+                      onClick={() => setActiveMethodId(draftMethodId)}
+                      disabled={!draftMethodId}
+                    >
                       Continue
                     </Button>
                   </Dialog.Actions>

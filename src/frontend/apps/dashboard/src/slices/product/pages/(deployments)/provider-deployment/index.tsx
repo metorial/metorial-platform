@@ -2,7 +2,6 @@ import { renderWithLoader } from '@metorial/data-hooks';
 import {
   useCurrentInstance,
   useProvider,
-  useProviderAuthConfigs,
   useProviderAuthMethods,
   useProviderDeployment
 } from '@metorial/state';
@@ -50,10 +49,9 @@ export let ProviderDeploymentOverviewPage = () => {
   let provider = useProvider(instance.data?.id, deployment.data?.providerId);
   let effectiveVersionId =
     deployment.data?.lockedVersion?.id ?? provider.data?.currentVersion?.id;
-  let authMethods = useProviderAuthMethods(instance.data?.id, effectiveVersionId);
-  let authConfigs = useProviderAuthConfigs(
+  let authMethods = useProviderAuthMethods(
     instance.data?.id,
-    deployment.data?.id ?? providerDeploymentId
+    effectiveVersionId ? { providerVersionId: effectiveVersionId } : null
   );
 
   let hasAuthMethods = (authMethods.data?.items?.length ?? 0) > 0;
@@ -106,8 +104,8 @@ export let ProviderDeploymentOverviewPage = () => {
       <Spacer height={20} />
 
       <UsageScene
-        title="Messages"
-        description="See how this provider deployment is being used in your project."
+        title="Usage"
+        description="See how this provider deployment is being used in your instance."
         entities={[{ type: 'provider_deployment', id: deployment.data.id }]}
         entityNames={{
           [deployment.data.id]: deployment.data.name ?? deployment.data.id
@@ -135,8 +133,7 @@ export let ProviderDeploymentOverviewPage = () => {
                 showProviderSetupSessionModal({
                   instanceId: instance.data.id,
                   providerId: deployment.data.providerId,
-                  deploymentId: deployment.data.id,
-                  onComplete: () => authConfigs.refetch?.()
+                  deploymentId: deployment.data.id
                 });
               }}
             >

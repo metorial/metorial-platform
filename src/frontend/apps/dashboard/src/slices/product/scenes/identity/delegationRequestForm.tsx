@@ -89,13 +89,13 @@ export let IdentityDelegationRequestForm = ({
     schema: yup =>
       yup.object({
         requesterActorId: yup.string().trim().required('Delegatee is required'),
-        requesterActorName: yup.string().ensure(),
+        requesterActorName: yup.string(),
         permissions: yup
           .array(yup.string().oneOf(['provider:read', 'provider:call']).defined())
           .defined()
           .min(1, 'Pick at least one permission')
           .required('Pick at least one permission'),
-        note: yup.string().ensure(),
+        note: yup.string(),
         expiresAt: yup
           .date()
           .nullable()

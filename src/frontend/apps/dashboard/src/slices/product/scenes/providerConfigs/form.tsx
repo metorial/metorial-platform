@@ -4,22 +4,14 @@ import {
 } from '@metorial/dashboard-sdk';
 import { useForm } from '@metorial/data-hooks';
 import {
-  useCurrentInstance,
   useCreateProviderConfig,
+  useCurrentInstance,
   useProvider,
-  useProviderConfigVaults,
   useProviderConfigSchemaTarget,
+  useProviderConfigVaults,
   useProviderDeployment
 } from '@metorial/state';
-import {
-  Button,
-  CenteredSpinner,
-  Dialog,
-  Input,
-  Select,
-  Spacer,
-  Text
-} from '@metorial/ui';
+import { Button, CenteredSpinner, Dialog, Input, Select, Spacer, Text } from '@metorial/ui';
 import { useEffect, useState } from 'react';
 import { getProviderConfigSchemaCapabilities } from '../../lib/providerCreationCapabilities';
 import { JsonSchemaInput } from '../jsonSchemaInput';
@@ -58,7 +50,7 @@ export let ProviderConfigForm = (
   let deployment = useProviderDeployment(instanceId, props.providerDeploymentId);
   let providerId =
     props.type === 'create'
-      ? props.providerId ?? deployment.data?.providerId
+      ? (props.providerId ?? deployment.data?.providerId)
       : deployment.data?.providerId;
   let provider = useProvider(instanceId, providerId);
   let vaults = useProviderConfigVaults(
@@ -144,7 +136,7 @@ export let ProviderConfigForm = (
     props.close?.();
   };
 
-  let form = useForm<ProviderConfigFormValues>({
+  let form = useForm({
     initialValues: {
       name: '',
       description: '',
@@ -157,7 +149,7 @@ export let ProviderConfigForm = (
     schema: yup =>
       yup.object({
         name: yup.string().trim().required('Name is required'),
-        description: yup.string().ensure(),
+        description: yup.string(),
         sourceMode: yup
           .string()
           .oneOf(['raw', 'vault'], 'Source is required')
@@ -225,12 +217,7 @@ export let ProviderConfigForm = (
     if (!schemaCapabilities.hasSchemaFields && !canCreateFromVault && form.values.sourceMode) {
       form.setFieldValue('sourceMode', '');
     }
-  }, [
-    canCreateFromVault,
-    form,
-    form.values.sourceMode,
-    schemaCapabilities.hasSchemaFields
-  ]);
+  }, [canCreateFromVault, form, form.values.sourceMode, schemaCapabilities.hasSchemaFields]);
 
   if (configSchema.isLoading || vaults.isLoading) {
     return <CenteredSpinner />;
@@ -327,9 +314,7 @@ export let ProviderConfigForm = (
                     <Button type="button" variant="outline" onClick={closeAction}>
                       {closeLabel}
                     </Button>
-                    <Button type="submit">
-                      Continue
-                    </Button>
+                    <Button type="submit">Continue</Button>
                   </Dialog.Actions>
                 </form>
               )
@@ -377,9 +362,7 @@ export let ProviderConfigForm = (
                     <Button type="button" variant="outline" onClick={() => setCurrentStep(0)}>
                       Back
                     </Button>
-                    <Button type="submit">
-                      Continue
-                    </Button>
+                    <Button type="submit">Continue</Button>
                   </Dialog.Actions>
                 </form>
               )

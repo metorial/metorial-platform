@@ -14,7 +14,7 @@ import {
 } from '../lib/instructionPresets';
 import { ApiKeySecret } from '../scenes/apiKeys';
 import { useResolvedInstanceApiKeySecret } from '../scenes/apiKeys/useResolvedInstanceApiKeySecret';
-import { ProvidersGrid } from '../scenes/providers/grid_';
+import { ProvidersGrid } from '../scenes/providers/grid';
 import { InstructionItem, Instructions } from './provider/components/instructions';
 import { KeySelector } from './provider/components/keySelector';
 

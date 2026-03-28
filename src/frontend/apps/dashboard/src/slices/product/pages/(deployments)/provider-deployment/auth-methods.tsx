@@ -6,9 +6,10 @@ import {
   useProviderDeployment
 } from '@metorial/state';
 import { Badge, Button, Flex, Input, Text } from '@metorial/ui';
-import { useState } from 'react';
 import { Table } from '@metorial/ui-product';
+import { useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { ProviderDeploymentTabSection } from '../../../scenes/providerDeployments/tabSection';
 import {
   getProviderAuthMethodSchemaFieldCount,
   getProviderAuthMethodTypeColor,
@@ -16,7 +17,6 @@ import {
   hasProviderAuthMethodSchemaFields,
   showProviderAuthMethodDetailsModal
 } from '../../../scenes/providers/authMethodDetails';
-import { ProviderDeploymentTabSection } from '../../../scenes/providerDeployments/tabSection';
 
 export let ProviderDeploymentAuthMethodsPage = () => {
   let instance = useCurrentInstance();
@@ -26,7 +26,10 @@ export let ProviderDeploymentAuthMethodsPage = () => {
   let provider = useProvider(instance.data?.id, deployment.data?.providerId);
   let effectiveVersionId =
     deployment.data?.lockedVersion?.id ?? provider.data?.currentVersion?.id;
-  let authMethods = useProviderAuthMethods(instance.data?.id, effectiveVersionId);
+  let authMethods = useProviderAuthMethods(
+    instance.data?.id,
+    effectiveVersionId ? { providerVersionId: effectiveVersionId } : null
+  );
 
   return renderWithLoader({ instance, deployment, provider })(() => (
     <ProviderDeploymentTabSection
@@ -67,7 +70,11 @@ let ProviderDeploymentAuthMethodsList = ({
     let methods = authMethods.data.items.filter(method => {
       if (!normalizedSearch) return true;
 
-      return [method.name, method.description ?? '', getProviderAuthMethodTypeLabel(method.type)]
+      return [
+        method.name,
+        method.description ?? '',
+        getProviderAuthMethodTypeLabel(method.type)
+      ]
         .join(' ')
         .toLowerCase()
         .includes(normalizedSearch);
@@ -122,7 +129,8 @@ let ProviderDeploymentAuthMethodsList = ({
                   ) : null}
                   {hasOutputFields ? (
                     <Badge color="purple" size="1">
-                      {getProviderAuthMethodSchemaFieldCount(method.outputSchema)} Output Fields
+                      {getProviderAuthMethodSchemaFieldCount(method.outputSchema)} Output
+                      Fields
                     </Badge>
                   ) : null}
                   {scopeCount === 0 && !hasInputFields && !hasOutputFields ? (

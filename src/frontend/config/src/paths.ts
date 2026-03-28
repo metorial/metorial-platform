@@ -455,24 +455,71 @@ let InstancePaths = Object.assign(
         'auth-configs',
         ...subPages
       ),
-
-    providerConfig: (
+    providerAuthConfig: (
       organization: EntityParam,
       project: EntityParam,
       instance: EntityParam,
-      deploymentId?: string,
-      configId?: string,
+      authConfigId?: string,
       ...subPages: SubPages
     ) => {
-      if (!deploymentId || !configId) return '#';
+      if (!authConfigId) return '#';
       return InstancePaths(
         organization,
         project,
         instance,
         'configurations',
-        deploymentId,
+        'auth-config',
+        authConfigId,
+        ...subPages
+      );
+    },
+
+    providerConfigs: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => {
+      return InstancePaths(
+        organization,
+        project,
+        instance,
+        'configurations',
+        'configs',
+        ...subPages
+      );
+    },
+    providerConfig: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      configId?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!configId) return '#';
+      return InstancePaths(
+        organization,
+        project,
+        instance,
+        'configurations',
         'config',
         configId,
+        ...subPages
+      );
+    },
+
+    providerAuthCredentials: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => {
+      return InstancePaths(
+        organization,
+        project,
+        instance,
+        'configurations',
+        'auth-credential',
         ...subPages
       );
     },
@@ -480,39 +527,17 @@ let InstancePaths = Object.assign(
       organization: EntityParam,
       project: EntityParam,
       instance: EntityParam,
-      deploymentId?: string,
       credentialId?: string,
       ...subPages: SubPages
     ) => {
-      if (!deploymentId || !credentialId) return '#';
+      if (!credentialId) return '#';
       return InstancePaths(
         organization,
         project,
         instance,
         'configurations',
-        deploymentId,
         'auth-credential',
         credentialId,
-        ...subPages
-      );
-    },
-    providerAuthConfig: (
-      organization: EntityParam,
-      project: EntityParam,
-      instance: EntityParam,
-      deploymentId?: string,
-      authConfigId?: string,
-      ...subPages: SubPages
-    ) => {
-      if (!deploymentId || !authConfigId) return '#';
-      return InstancePaths(
-        organization,
-        project,
-        instance,
-        'configurations',
-        deploymentId,
-        'auth-connection',
-        authConfigId,
         ...subPages
       );
     },

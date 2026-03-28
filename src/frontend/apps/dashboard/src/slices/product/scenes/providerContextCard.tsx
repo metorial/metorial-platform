@@ -1,4 +1,4 @@
-import { useProviderListings } from '@metorial/state';
+import { useCurrentInstance, useProviderListings } from '@metorial/state';
 import { Avatar, theme } from '@metorial/ui';
 import styled from 'styled-components';
 
@@ -45,7 +45,8 @@ export let ProviderContextCard = (p: {
   deploymentName?: string | null;
   deploymentDescription?: string | null;
 }) => {
-  let providerListings = useProviderListings({ orderByRank: true });
+  let instance = useCurrentInstance();
+  let providerListings = useProviderListings(instance.data?.id, { orderByRank: true });
   let providerListing = providerListings.data?.items.find(
     listing => listing.provider.id === p.providerId
   );

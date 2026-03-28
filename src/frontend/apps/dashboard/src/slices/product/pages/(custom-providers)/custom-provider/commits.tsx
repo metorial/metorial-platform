@@ -24,8 +24,8 @@ let DeploymentStatusBadge = ({ status }: { status: string | null }) =>
 export let CustomProviderCommitsPage = () => {
   let instance = useCurrentInstance();
 
-  let { customServerId } = useParams();
-  let customServer = useCustomProvider(instance.data?.id, customServerId);
+  let { customProviderId } = useParams();
+  let customServer = useCustomProvider(instance.data?.id, customProviderId);
   let deployments = useCustomProviderDeployments(instance.data?.id, customServer.data?.id, {
     order: 'desc'
   });

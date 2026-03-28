@@ -9,8 +9,8 @@ import { RouterPanel } from '../../../scenes/routerPanel';
 export let CustomProviderVersionsPage = () => {
   let instance = useCurrentInstance();
 
-  let { customServerId } = useParams();
-  let customServer = useCustomProvider(instance.data?.id, customServerId);
+  let { customProviderId } = useParams();
+  let customServer = useCustomProvider(instance.data?.id, customProviderId);
 
   return renderWithLoader({ customServer })(({ customServer }) => (
     <>

@@ -3,11 +3,12 @@ import {
   DashboardInstanceProviderDeploymentsAuthCredentialsListQuery
 } from '@metorial/dashboard-sdk';
 import { renderWithLoader } from '@metorial/data-hooks';
+import { Paths } from '@metorial/frontend-config';
 import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
-  useInstanceProviderAuthCredentials,
+  useProviderAuthCredentials,
   useProviders
 } from '@metorial/state';
 import { Badge, Flex, RenderDate, Text } from '@metorial/ui';
@@ -42,6 +43,9 @@ type ProviderAuthCredentialFilters = Omit<
 type ProviderAuthCredentialsTableProps = {
   instanceId: string;
   filters?: ProviderAuthCredentialFilters;
+  organization: ReturnType<typeof useCurrentOrganization>;
+  project: ReturnType<typeof useCurrentProject>;
+  instance: ReturnType<typeof useCurrentInstance>;
 };
 
 let getOriginFilterValue = (
@@ -61,7 +65,7 @@ let providerAuthCredentialsTableState: TableStateProvider<
     search?: string;
   }
 ) => {
-  let authCredentials = useInstanceProviderAuthCredentials(props.instanceId, {
+  let authCredentials = useProviderAuthCredentials(props.instanceId, {
     order: 'desc',
     ...props.filters,
     id: getStringFilterValue(opts.filter.id) ?? props.filters?.id,
@@ -73,10 +77,15 @@ let providerAuthCredentialsTableState: TableStateProvider<
   });
 
   let providerIds = [
-    ...new Set((authCredentials.data?.items ?? []).map(item => item.providerId).filter(Boolean))
+    ...new Set(
+      (authCredentials.data?.items ?? []).map(item => item.providerId).filter(Boolean)
+    )
   ];
   let shouldLoadProviders = providerIds.length > 0;
-  let providers = useProviders(props.instanceId, shouldLoadProviders ? { id: providerIds } : null);
+  let providers = useProviders(
+    props.instanceId,
+    shouldLoadProviders ? { id: providerIds } : null
+  );
 
   let providerNameMap = new Map<string, string>();
   for (let provider of providers.data?.items ?? []) {
@@ -204,6 +213,14 @@ let providerAuthCredentialsTable = new DashboardTable<
       type: 'date'
     }
   ])
+  .link((row, props) =>
+    Paths.instance.providerAuthCredential(
+      props.organization.data,
+      props.project.data,
+      props.instance.data,
+      row.id
+    )
+  )
   .search('Search auth credentials...')
   .build();
 
@@ -215,6 +232,9 @@ export let ProviderAuthCredentialsOverviewPage = () => {
   return renderWithLoader({ organization, project, instance })(() =>
     providerAuthCredentialsTable({
       instanceId: instance.data!.id,
+      organization,
+      project,
+      instance,
       emptyState: () => (
         <EmptyState
           title="Create your first auth credentials"

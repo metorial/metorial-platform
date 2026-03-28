@@ -17,11 +17,6 @@ import { ProviderDeploymentsList } from '../providerDeployments/list';
 import { ProvidersWithDeploymentsSearch } from '../providers/search';
 import { Stepper } from '../stepper';
 
-type CallbackDetailsFormValues = {
-  name: string;
-  description?: string;
-};
-
 let DIALOG_EXIT_MS = 220;
 
 let closeAndThen = (close: () => void, next?: () => void) => {
@@ -139,7 +134,7 @@ let CallbackCreateModalContent = (p: {
   let deployment = useProviderDeployment(p.instanceId, p.providerDeploymentId);
   let provider = useProvider(p.instanceId, p.providerId);
   let [step, setStep] = useState(0);
-  let form = useForm<CallbackDetailsFormValues>({
+  let form = useForm({
     initialValues: {
       name: '',
       description: ''

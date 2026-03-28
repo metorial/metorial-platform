@@ -43,8 +43,8 @@ export let IdentityDelegationConfigForm = ({
     },
     schema: yup =>
       yup.object({
-        name: yup.string().ensure(),
-        description: yup.string().ensure(),
+        name: yup.string(),
+        description: yup.string(),
         subDelegationBehavior: yup
           .string()
           .oneOf(['allow', 'deny', 'require_consent'])

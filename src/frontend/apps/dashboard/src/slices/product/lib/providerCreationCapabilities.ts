@@ -1,9 +1,9 @@
 import {
   useProvider,
   useProviderAuthMethods,
-  useProviderConfigSchema,
   useProviderConfigVaults,
-  useProviderDeployment
+  useProviderDeployment,
+  useProviderDeploymentConfigSchema
 } from '@metorial/state';
 import { getJsonSchemaObject, hasJsonSchemaProperties } from './jsonSchema';
 import { getProviderOAuthAutoRegistrationEnabled } from './providerOAuthAutoRegistration';
@@ -31,9 +31,7 @@ export let getProviderConfigSchemaCapabilities = (d: {
   let hasSchemaObject = !!schemaObject;
   let hasSchemaFields = hasJsonSchemaProperties(d.schemaValue);
   let hasExplicitEmptySchema = Boolean(
-    schemaObject &&
-      !hasSchemaFields &&
-      schemaObject.additionalProperties === false
+    schemaObject && !hasSchemaFields && schemaObject.additionalProperties === false
   );
   let canCreateConfig = hasSchemaFields || d.hasVaults;
   let canCreateConfigVault = hasSchemaFields;
@@ -43,8 +41,8 @@ export let getProviderConfigSchemaCapabilities = (d: {
     : canCreateConfig
       ? null
       : hasExplicitEmptySchema
-      ? 'This deployment has no configurable values. Its default config is created automatically.'
-      : 'No configuration schema or config vault is available for this deployment.';
+        ? 'This deployment has no configurable values. Its default config is created automatically.'
+        : 'No configuration schema or config vault is available for this deployment.';
   let configVaultDisabledReason = isLoading
     ? 'Loading configuration options...'
     : hasExplicitEmptySchema
@@ -73,7 +71,7 @@ export let useProviderConfigCreationCapabilities = (
   providerDeploymentId: string | null | undefined
 ) => {
   let scopedInstanceId = instanceId && providerDeploymentId ? instanceId : null;
-  let configSchema = useProviderConfigSchema(scopedInstanceId, providerDeploymentId);
+  let configSchema = useProviderDeploymentConfigSchema(scopedInstanceId, providerDeploymentId);
   let vaults = useProviderConfigVaults(
     scopedInstanceId,
     providerDeploymentId ? { providerDeploymentId } : undefined
@@ -102,7 +100,10 @@ export let useProviderAuthCreationCapabilities = (
   let provider = useProvider(scopedProviderInstanceId, resolvedProviderId);
   let effectiveVersionId =
     deployment.data?.lockedVersion?.id ?? provider.data?.currentVersion?.id ?? null;
-  let authMethods = useProviderAuthMethods(scopedProviderInstanceId, effectiveVersionId);
+  let authMethods = useProviderAuthMethods(
+    scopedProviderInstanceId,
+    effectiveVersionId ? { providerVersionId: effectiveVersionId ?? undefined } : null
+  );
   let authMethodItems = authMethods.data?.items ?? [];
   let oauthAutoRegistrationEnabled = getProviderOAuthAutoRegistrationEnabled(provider.data);
   let hasAuthMethods = authMethodItems.length > 0;

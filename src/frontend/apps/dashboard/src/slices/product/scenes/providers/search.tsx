@@ -1,10 +1,13 @@
 import type {
   DashboardInstanceProviderListingsListQuery,
-  DashboardInstanceProvidersListOutput,
   ProviderListingsGetOutput
 } from '@metorial/dashboard-sdk';
 import { renderWithPagination } from '@metorial/data-hooks';
-import { useProviderDeployments, useProviderListings } from '@metorial/state';
+import {
+  useCurrentInstance,
+  useProviderDeployments,
+  useProviderListings
+} from '@metorial/state';
 import {
   Avatar,
   ButtonSize,
@@ -23,8 +26,6 @@ import styled from 'styled-components';
 import { useDebounced } from '../../../../hooks/useDebounced';
 import { getProviderOAuthAutoRegistrationEnabled } from '../../lib/providerOAuthAutoRegistration';
 
-type Provider = DashboardInstanceProvidersListOutput['items'][number];
-
 export type ProviderSearchItem = {
   id: string;
   name?: string | null;
@@ -39,7 +40,9 @@ let Wrapper = styled.div``;
 let Grid = styled.div<{ $columns?: number }>`
   display: grid;
   grid-template-columns: ${({ $columns }) =>
-    $columns ? `repeat(${$columns}, minmax(0, 1fr))` : 'repeat(auto-fill, minmax(150px, 1fr))'};
+    $columns
+      ? `repeat(${$columns}, minmax(0, 1fr))`
+      : 'repeat(auto-fill, minmax(150px, 1fr))'};
   gap: 10px;
 
   @media (max-width: 700px) {
@@ -135,18 +138,13 @@ let ProviderItemsGrid = ({
     <Grid $columns={columns}>
       {items.map(provider => {
         let isDisabled =
-          selectionMode === 'authCredentialsCreate' &&
-          provider.oauthAutoRegistrationEnabled;
+          selectionMode === 'authCredentialsCreate' && provider.oauthAutoRegistrationEnabled;
         let disabledReason = isDisabled
           ? 'This provider uses OAuth auto-registration, so manual app credentials are not supported.'
           : undefined;
 
         return (
-          <div
-            key={provider.id}
-            title={disabledReason}
-            style={{ display: 'flex' }}
-          >
+          <div key={provider.id} title={disabledReason} style={{ display: 'flex' }}>
             <GridButton
               type="button"
               disabled={isDisabled}
@@ -249,7 +247,8 @@ export let ProviderSearch = ({
   let [search, setSearch] = useState('');
   let searchDebounced = useDebounced(search, 500);
   let searchQuery = searchDebounced.trim() || undefined;
-  let providers = useProviderListings({
+  let instance = useCurrentInstance();
+  let providers = useProviderListings(instance.data?.id, {
     orderByRank: true,
     ...filter,
     ...(searchQuery ? { search: searchQuery } : {}),
@@ -314,10 +313,13 @@ export let ProvidersWithDeploymentsSearch = ({
   let deployments = useProviderDeployments(instanceId, limit ? { limit } : undefined);
   let providerIds = useMemo(
     () =>
-      [...new Set((deployments.data?.items ?? []).map(deployment => deployment.providerId))].sort(),
+      [
+        ...new Set((deployments.data?.items ?? []).map(deployment => deployment.providerId))
+      ].sort(),
     [deployments.data?.items]
   );
   let providerListings = useProviderListings(
+    instanceId,
     providerIds.length > 0
       ? {
           orderByRank: true,

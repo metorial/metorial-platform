@@ -1,7 +1,7 @@
 import { DashboardInstanceProviderDeploymentsCreateOutput } from '@metorial/dashboard-sdk';
 import { useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
-import { useCurrentInstance, useCreateProviderDeployment } from '@metorial/state';
+import { useCreateProviderDeployment, useCurrentInstance } from '@metorial/state';
 import { Button, Dialog, Input, Spacer, Text } from '@metorial/ui';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -80,7 +80,7 @@ export let ProviderDeploymentForm = (
     schema: yup =>
       yup.object({
         name: yup.string().trim().required('Name is required'),
-        description: yup.string().ensure()
+        description: yup.string()
       })
   });
 
@@ -122,11 +122,7 @@ export let ProviderDeploymentForm = (
           <Button type="button" variant="outline" onClick={props.close}>
             Cancel
           </Button>
-          <Button
-            type="submit"
-            loading={createMutation.isPending}
-            disabled={!providerId}
-          >
+          <Button type="submit" loading={createMutation.isPending} disabled={!providerId}>
             Create
           </Button>
         </Dialog.Actions>
@@ -149,10 +145,7 @@ export let ProviderDeploymentForm = (
                 setProviderId(provider.id);
                 setProviderName(provider.name ?? provider.slug ?? 'Provider');
                 if (!form.values.name) {
-                  form.setFieldValue(
-                    'name',
-                    provider.name ?? provider.slug ?? 'Provider'
-                  );
+                  form.setFieldValue('name', provider.name ?? provider.slug ?? 'Provider');
                 }
                 setStep(1);
               }}

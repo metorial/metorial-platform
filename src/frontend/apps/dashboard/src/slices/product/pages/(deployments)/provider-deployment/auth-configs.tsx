@@ -17,8 +17,9 @@ export let ProviderDeploymentAuthConfigsPage = () => {
   let { providerDeploymentId } = useParams();
   let deployment = useProviderDeployment(instance.data?.id, providerDeploymentId);
   let { search, setSearch, searchQuery } = useSearchFilter();
-  let authConfigs = useProviderAuthConfigs(instance.data?.id, providerDeploymentId, {
-    search: searchQuery
+  let authConfigs = useProviderAuthConfigs(instance.data?.id, {
+    search: searchQuery,
+    providerDeploymentId
   });
   let authCreation = useProviderAuthCreationCapabilities(
     instance.data?.id,

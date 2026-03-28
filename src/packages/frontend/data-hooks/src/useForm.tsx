@@ -51,15 +51,15 @@ let validationTypeToYup = (t: ValidationType<any>): Yup.Schema<any> => {
   return elementary;
 };
 
-export let useForm = <Values extends {}>(
+export let useForm = <Values extends {}, SchemaValues extends {}>(
   opts: Omit<FormikConfig<Values>, 'validationSchema'> & {
     schemaDependencies?: any[];
     typeDependencies?: any[];
     updateInitialValues?: boolean;
     autoSubmit?: { delay?: number };
   } & (
-      | { schema: (yup: typeof Yup) => Yup.ObjectSchema<Values> }
-      | { type: ValidationType<Values> }
+      | { schema: (yup: typeof Yup) => Yup.ObjectSchema<SchemaValues> }
+      | { type: ValidationType<SchemaValues> }
       | {}
     )
 ) => {

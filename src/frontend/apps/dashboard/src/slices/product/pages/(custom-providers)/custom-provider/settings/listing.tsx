@@ -4,7 +4,7 @@ import {
   useCurrentInstance,
   useCustomProvider,
   useCustomProviderListing,
-  useProviderListingByProviderId
+  useProviderListing
 } from '@metorial/state';
 import { Button, Input, Spacer } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
@@ -15,14 +15,11 @@ import { FormPage } from '../../../../scenes/form/page';
 export let CustomProviderListingPage = () => {
   let instance = useCurrentInstance();
 
-  let { customServerId } = useParams();
-  let customServer = useCustomProvider(instance.data?.id, customServerId);
+  let { customProviderId } = useParams();
+  let customServer = useCustomProvider(instance.data?.id, customProviderId);
 
   let listing = useCustomProviderListing(instance.data?.id, customServer.data?.id);
-  let providerListing = useProviderListingByProviderId(
-    instance.data?.id,
-    customServer.data?.provider?.id
-  );
+  let providerListing = useProviderListing(instance.data?.id, customServer.data?.provider?.id);
 
   let generalUpdate = listing.useUpdateMutator();
   let form = useForm({
@@ -44,8 +41,8 @@ export let CustomProviderListingPage = () => {
     schema: yup =>
       yup.object({
         name: yup.string().trim().required('Name is required'),
-        description: yup.string().ensure(),
-        readme: yup.string().ensure()
+        description: yup.string(),
+        readme: yup.string()
       })
   });
 

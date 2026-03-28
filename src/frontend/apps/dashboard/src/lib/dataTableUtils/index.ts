@@ -3,6 +3,18 @@ import { FilterPayload } from '../../components/table/filter';
 
 export let getStringFilterValue = (value: FilterPayload | undefined) => {
   if (typeof value === 'string') return value;
+  if (typeof value === 'object' && value && 'eq' in value && typeof value.eq === 'string')
+    return value.eq;
+  if (
+    typeof value === 'object' &&
+    value &&
+    'in' in value &&
+    Array.isArray(value.in) &&
+    value.in.every(v => typeof v === 'string')
+  ) {
+    return value.in[0];
+  }
+
   return undefined;
 };
 
