@@ -4,7 +4,7 @@ import { Input, Spacer } from '@metorial/ui';
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useDebounced } from '../../../../hooks/useDebounced';
-import { ProviderDeploymentsTable } from '../../scenes/providerDeployments/table';
+import { ProviderDeploymentsTableSimple } from '../../scenes/providerDeployments/tableSimple';
 
 export let ProviderDeploymentsPage = () => {
   let instance = useCurrentInstance();
@@ -25,7 +25,7 @@ export let ProviderDeploymentsPage = () => {
 
       <Spacer size={15} />
 
-      <ProviderDeploymentsTable
+      <ProviderDeploymentsTableSimple
         instanceId={instance.data.id}
         providerId={provider.data.id}
         providerName={provider.data.name}

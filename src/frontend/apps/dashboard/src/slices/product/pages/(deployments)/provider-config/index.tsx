@@ -1,4 +1,3 @@
-import { CodeBlock } from '@metorial/code';
 import { renderWithLoader, renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
@@ -7,15 +6,17 @@ import {
   useCurrentProject,
   useProvider,
   useProviderConfig,
-  useProviderDeployment,
-  useProviderSpecification,
   useSessions
 } from '@metorial/state';
-import { Badge, Button, Callout, RenderDate, Spacer, Text, theme } from '@metorial/ui';
-import { Box, ID, SideBox, Table } from '@metorial/ui-product';
+import { Badge, Callout, RenderDate, Spacer, Text, theme } from '@metorial/ui';
+import { Box, ID, Table } from '@metorial/ui-product';
 import { Link, useParams } from 'react-router-dom';
 import { styled } from 'styled-components';
-import { SessionConnectionStatusBadge } from '../../../scenes/providerSessions/table';
+import {
+  ProviderSessionsTable,
+  SessionConnectionStatusBadge
+} from '../../../scenes/providerSessions/table';
+import { UsageScene } from '../../../scenes/usage/usage';
 
 let SummaryGrid = styled.div`
   display: grid;
@@ -56,17 +57,10 @@ export let ProviderConfigOverviewPage = () => {
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
 
-  let { providerDeploymentId, providerConfigId } = useParams();
-  let deployment = useProviderDeployment(instance.data?.id, providerDeploymentId);
-  let config = useProviderConfig(instance.data?.id, providerDeploymentId, providerConfigId);
-  let provider = useProvider(
-    instance.data?.id,
-    deployment.data?.providerId ?? config.data?.providerId ?? undefined
-  );
-  let specification = useProviderSpecification(
-    instance.data?.id,
-    config.data?.specificationId
-  );
+  let { providerConfigId } = useParams();
+  let config = useProviderConfig(instance.data?.id, providerConfigId);
+  let provider = useProvider(instance.data?.id, config.data?.providerId ?? undefined);
+
   let sessions = useSessions(
     instance.data?.id && config.data?.id ? instance.data.id : null,
     config.data?.id
@@ -76,6 +70,7 @@ export let ProviderConfigOverviewPage = () => {
         }
       : undefined
   );
+
   let sessionsContent = renderWithPagination(sessions)(sessions => (
     <>
       {sessions.data.items.length > 0 ? (
@@ -110,7 +105,7 @@ export let ProviderConfigOverviewPage = () => {
     </>
   ));
 
-  return renderWithLoader({ config, deployment })(({ config, deployment }) => (
+  return renderWithLoader({ config })(({ config }) => (
     <>
       <SummaryGrid>
         {[
@@ -144,23 +139,26 @@ export let ProviderConfigOverviewPage = () => {
           },
           {
             label: 'Deployment',
-            content: (
+            content: config.data.deployment ? (
               <Link
                 to={Paths.instance.providerDeployment(
                   organization.data,
                   project.data,
                   instance.data,
-                  deployment.data.id
+                  config.data.deployment.id
                 )}
               >
-                {deployment.data.name ?? deployment.data.id}
+                {config.data.deployment.name ?? config.data.deployment.id}
               </Link>
+            ) : (
+              <Text size="2" color="gray600">
+                Unlinked
+              </Text>
             )
           },
           {
             label: 'Provider',
-            content:
-              provider.data?.name ?? specification.data?.name ?? deployment.data.providerId
+            content: provider.data?.name ?? '...'
           },
           {
             label: 'Config ID',
@@ -182,72 +180,25 @@ export let ProviderConfigOverviewPage = () => {
         ))}
       </SummaryGrid>
 
-      <Spacer height={20} />
+      <Spacer height={15} />
 
-      <SideBox
-        title={provider.data?.name ?? specification.data?.name ?? 'Provider'}
-        description={
-          specification.data?.description ??
-          'This config belongs to the selected provider deployment.'
-        }
-      >
-        {config.data.fromVault ? (
-          <Link
-            to={Paths.instance.providerConfigVault(
-              organization.data,
-              project.data,
-              instance.data,
-              config.data.fromVault.id
-            )}
-          >
-            <Button as="span" size="2" variant="outline">
-              View Vault
-            </Button>
-          </Link>
-        ) : provider.data ? (
-          <Link
-            to={Paths.instance.provider(
-              organization.data,
-              project.data,
-              instance.data,
-              provider.data.id
-            )}
-          >
-            <Button as="span" size="2" variant="outline">
-              View Provider
-            </Button>
-          </Link>
-        ) : (
-          <Text size="2" color="gray600">
-            Direct values
-          </Text>
-        )}
-      </SideBox>
+      <UsageScene
+        title="Usage"
+        description="See how this config is being used in your instance."
+        entities={[{ type: 'provider_auth_config', id: config.data.id }]}
+        entityNames={{
+          [config.data.id]: config.data.name ?? config.data.id
+        }}
+      />
 
-      <Spacer height={20} />
+      <Spacer height={15} />
 
       <Box
         title="Recent Sessions"
         description="Latest sessions currently using this configuration."
       >
-        {sessionsContent}
+        <ProviderSessionsTable providerConfigId={config.data.id} />
       </Box>
-
-      {config.data.metadata && Object.keys(config.data.metadata).length > 0 ? (
-        <>
-          <Spacer height={20} />
-
-          <Box
-            title="Metadata"
-            description="Additional metadata stored on this configuration."
-          >
-            <CodeBlock
-              code={JSON.stringify(config.data.metadata, null, 2)}
-              lineNumbers={false}
-            />
-          </Box>
-        </>
-      ) : null}
     </>
   ));
 };

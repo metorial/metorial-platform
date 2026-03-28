@@ -13,10 +13,7 @@ import { Badge, RenderDate, Text } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import { Table as DashboardTable } from '../../../../components/table';
 import { FilterPayload } from '../../../../components/table/filter';
-import {
-  getEnumListFilterValue,
-  getStringFilterValue
-} from '../../../../lib/dataTableUtils';
+import { getEnumListFilterValue, getStringFilterValue } from '../../../../lib/dataTableUtils';
 
 type IdentityDelegation = DashboardInstanceIdentitiesDelegationsListOutput['items'][number];
 

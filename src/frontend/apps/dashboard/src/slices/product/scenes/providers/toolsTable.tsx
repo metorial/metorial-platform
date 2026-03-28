@@ -10,7 +10,7 @@ export let ProviderToolsTable = ({
   instanceId: string;
   providerVersionId?: string;
 }) => {
-  let tools = useProviderTools(instanceId, providerVersionId);
+  let tools = useProviderTools(instanceId, providerVersionId ? { providerVersionId } : null);
 
   return renderWithPagination(tools)(tools => (
     <>

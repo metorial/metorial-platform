@@ -1,4 +1,3 @@
-import { DashboardInstanceProvidersVersionsListOutput } from '@metorial/dashboard-sdk';
 import { renderWithPagination } from '@metorial/data-hooks';
 import { useProviderVersions } from '@metorial/state';
 import { RenderDate, Text, theme } from '@metorial/ui';
@@ -12,13 +11,12 @@ export let ProviderVersionsTable = ({
   providerId: string;
 }) => {
   let versions = useProviderVersions(instanceId, providerId);
-  type ProviderVersion = DashboardInstanceProvidersVersionsListOutput['items'][number];
 
   return renderWithPagination(versions)(versions => (
     <>
       <Table
         headers={['Version', 'Status', 'Created']}
-        data={versions.data.items.map((version: ProviderVersion) => ({
+        data={versions.data.items.map(version => ({
           data: [
             <Text size="2" weight="strong">
               {version.version ?? (

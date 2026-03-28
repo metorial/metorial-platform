@@ -22,7 +22,7 @@ export let v1ProviderAuthConfigPresenter = Presenter.create(providerAuthConfigTy
     description: authConfig.description,
     metadata: authConfig.metadata,
 
-    deployment_preview: authConfig.deploymentPreview
+    deployment: authConfig.deploymentPreview
       ? await v1ProviderDeploymentPreviewPresenter
           .present({ deployment: authConfig.deploymentPreview }, opts)
           .run()
@@ -93,7 +93,7 @@ export let v1ProviderAuthConfigPresenter = Presenter.create(providerAuthConfigTy
           examples: [{ connected_by: 'alex@company.com', purpose: 'ci-pipeline' }]
         })
       ),
-      deployment_preview: v.nullable(v1ProviderDeploymentPreviewPresenter.schema),
+      deployment: v.nullable(v1ProviderDeploymentPreviewPresenter.schema),
       credentials: v.nullable(v1ProviderAuthCredentialsPresenter.schema),
       auth_method: v1ProviderAuthMethodPresenter.schema,
       created_at: v.date({

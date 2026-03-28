@@ -8,7 +8,7 @@ import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
-  useInstanceProviderAuthConfigs,
+  useProviderAuthConfigs,
   useProviders
 } from '@metorial/state';
 import { Badge, RenderDate, Text } from '@metorial/ui';
@@ -27,7 +27,8 @@ import {
 } from '../../../../../lib/dataTableUtils';
 import { showCreateProviderAuthConfigFlow } from './providerCreationFlows';
 
-type AuthConfigItem = DashboardInstanceProviderDeploymentsAuthConfigsListOutput['items'][number];
+type AuthConfigItem =
+  DashboardInstanceProviderDeploymentsAuthConfigsListOutput['items'][number];
 
 type AuthConfigRow = AuthConfigItem & {
   providerName?: string | null;
@@ -77,7 +78,7 @@ let providerAuthConfigsTableState: TableStateProvider<
     search?: string;
   }
 ) => {
-  let authConfigs = useInstanceProviderAuthConfigs(props.instanceId, {
+  let authConfigs = useProviderAuthConfigs(props.instanceId, {
     order: 'desc',
     ...props.filters,
     status: getStatusFilterValue(opts.filter.status) ?? props.filters?.status,
@@ -101,7 +102,10 @@ let providerAuthConfigsTableState: TableStateProvider<
     ...new Set((authConfigs.data?.items ?? []).map(item => item.providerId).filter(Boolean))
   ];
   let shouldLoadProviders = providerIds.length > 0;
-  let providers = useProviders(props.instanceId, shouldLoadProviders ? { id: providerIds } : null);
+  let providers = useProviders(
+    props.instanceId,
+    shouldLoadProviders ? { id: providerIds } : null
+  );
 
   let providerNameMap = new Map<string, string>();
   for (let provider of providers.data?.items ?? []) {
@@ -132,7 +136,11 @@ let providerAuthConfigsTable = new DashboardTable<
       id: 'name',
       isDefault: true,
       header: 'Name',
-      render: row => <Text size="2" weight="strong">{row.name || '\u2014'}</Text>
+      render: row => (
+        <Text size="2" weight="strong">
+          {row.name || '\u2014'}
+        </Text>
+      )
     },
     {
       id: 'id',
@@ -144,7 +152,9 @@ let providerAuthConfigsTable = new DashboardTable<
       id: 'authMethod',
       isDefault: true,
       header: 'Auth Method',
-      render: row => <Text size="2">{row.authMethod?.name ?? row.authMethod?.key ?? '\u2014'}</Text>
+      render: row => (
+        <Text size="2">{row.authMethod?.name ?? row.authMethod?.key ?? '\u2014'}</Text>
+      )
     },
     {
       id: 'type',
@@ -162,13 +172,16 @@ let providerAuthConfigsTable = new DashboardTable<
       id: 'status',
       isDefault: true,
       header: 'Status',
-      render: row => <Badge color={row.status === 'active' ? 'green' : 'gray'}>{row.status}</Badge>
+      render: row => (
+        <Badge color={row.status === 'active' ? 'green' : 'gray'}>{row.status}</Badge>
+      )
     },
     {
       id: 'default',
       isDefault: true,
       header: 'Default',
-      render: row => (row.isDefault ? <Badge color="blue">Default</Badge> : <Text size="2">No</Text>)
+      render: row =>
+        row.isDefault ? <Badge color="blue">Default</Badge> : <Text size="2">No</Text>
     },
     {
       id: 'provider',
@@ -199,7 +212,7 @@ let providerAuthConfigsTable = new DashboardTable<
       id: 'deployment',
       isDefault: false,
       header: 'Deployment',
-      render: row => <Text size="2">{row.deploymentPreview?.name ?? '\u2014'}</Text>
+      render: row => <Text size="2">{row.deployment?.name ?? '\u2014'}</Text>
     },
     {
       id: 'updatedAt',
@@ -272,15 +285,12 @@ let providerAuthConfigsTable = new DashboardTable<
   ])
   .search('Search auth configs...')
   .link((row, props) =>
-    row.deploymentPreview?.id
-      ? Paths.instance.providerAuthConfig(
-          props.organization.data,
-          props.project.data,
-          props.instance.data,
-          row.deploymentPreview.id,
-          row.id
-        )
-      : ''
+    Paths.instance.providerAuthConfig(
+      props.organization.data,
+      props.project.data,
+      props.instance.data,
+      row.id
+    )
   )
   .build();
 

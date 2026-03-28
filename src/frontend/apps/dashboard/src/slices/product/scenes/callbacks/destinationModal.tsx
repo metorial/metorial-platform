@@ -3,12 +3,6 @@ import { useForm } from '@metorial/data-hooks';
 import { useCreateCallbackDestination } from '@metorial/state';
 import { Button, Dialog, Input, Spacer, showModal } from '@metorial/ui';
 
-type DestinationFormValues = {
-  name: string;
-  description: string;
-  url: string;
-};
-
 let normalizeOptionalString = (value: string | undefined) => value || undefined;
 
 export let showCallbackDestinationFormModal = (p: {
@@ -17,7 +11,7 @@ export let showCallbackDestinationFormModal = (p: {
 }) =>
   showModal(({ dialogProps, close }) => {
     let createDestination = useCreateCallbackDestination();
-    let form = useForm<DestinationFormValues>({
+    let form = useForm({
       initialValues: {
         name: '',
         description: '',

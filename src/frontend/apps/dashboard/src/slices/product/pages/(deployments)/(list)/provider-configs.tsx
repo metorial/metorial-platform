@@ -8,7 +8,7 @@ import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
-  useInstanceProviderConfigs,
+  useProviderConfigs,
   useProviders
 } from '@metorial/state';
 import { Badge, RenderDate, Text } from '@metorial/ui';
@@ -58,7 +58,7 @@ let providerConfigsOverviewTableState: TableStateProvider<
     search?: string;
   }
 ) => {
-  let configs = useInstanceProviderConfigs(props.instanceId, {
+  let configs = useProviderConfigs(props.instanceId, {
     order: 'desc',
     ...props.filters,
     id: getStringFilterValue(opts.filter.id) ?? props.filters?.id,
@@ -80,12 +80,20 @@ let providerConfigsOverviewTableState: TableStateProvider<
   let providerIds = [
     ...new Set(
       (configs.data?.items ?? [])
-        .map(item => item.deployment?.providerId ?? item.fromVault?.deployment?.providerId ?? item.providerId)
+        .map(
+          item =>
+            item.deployment?.providerId ??
+            item.fromVault?.deployment?.providerId ??
+            item.providerId
+        )
         .filter(Boolean)
     )
   ];
   let shouldLoadProviders = providerIds.length > 0;
-  let providers = useProviders(props.instanceId, shouldLoadProviders ? { id: providerIds } : null);
+  let providers = useProviders(
+    props.instanceId,
+    shouldLoadProviders ? { id: providerIds } : null
+  );
 
   let providerNameMap = new Map<string, string>();
   for (let provider of providers.data?.items ?? []) {
@@ -101,7 +109,9 @@ let providerConfigsOverviewTableState: TableStateProvider<
       ...config,
       providerName:
         providerNameMap.get(
-          config.deployment?.providerId ?? config.fromVault?.deployment?.providerId ?? config.providerId
+          config.deployment?.providerId ??
+            config.fromVault?.deployment?.providerId ??
+            config.providerId
         ) ?? null,
       providerDeploymentId: config.deployment?.id ?? config.fromVault?.deployment?.id,
       providerDeploymentName: config.deployment?.name ?? config.fromVault?.deployment?.name
@@ -121,7 +131,11 @@ let providerConfigsOverviewTable = new DashboardTable<
       id: 'name',
       isDefault: true,
       header: 'Config Name',
-      render: row => <Text size="2" weight="strong">{row.name ?? 'Unnamed'}</Text>
+      render: row => (
+        <Text size="2" weight="strong">
+          {row.name ?? 'Unnamed'}
+        </Text>
+      )
     },
     {
       id: 'id',
@@ -246,15 +260,12 @@ let providerConfigsOverviewTable = new DashboardTable<
   ])
   .search('Search configs...')
   .link((row, props) =>
-    row.providerDeploymentId
-      ? Paths.instance.providerConfig(
-          props.organization.data,
-          props.project.data,
-          props.instance.data,
-          row.providerDeploymentId,
-          row.id
-        )
-      : ''
+    Paths.instance.providerConfig(
+      props.organization.data,
+      props.project.data,
+      props.instance.data,
+      row.id
+    )
   )
   .build();
 

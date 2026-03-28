@@ -3,19 +3,13 @@ import { createLoader } from '@metorial/data-hooks';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
 
-type ProviderAuthMethodsQuery = Omit<
-  DashboardInstanceProvidersAuthMethodsListQuery,
-  'providerVersionId'
->;
-
 export let providerAuthMethodsLoader = createLoader({
   name: 'providerAuthMethods',
   parents: [],
   fetch: async (
     i: {
       instanceId: string;
-      providerVersionId: string;
-    } & ProviderAuthMethodsQuery
+    } & DashboardInstanceProvidersAuthMethodsListQuery
   ) => {
     return await withAuth(sdk => sdk.providers.authMethods.list(i.instanceId, i));
   },
@@ -24,15 +18,13 @@ export let providerAuthMethodsLoader = createLoader({
 
 export let useProviderAuthMethods = (
   instanceId: string | null | undefined,
-  providerVersionId: string | null | undefined,
-  opts?: ProviderAuthMethodsQuery
+  opts: DashboardInstanceProvidersAuthMethodsListQuery | null
 ) => {
   let data = usePaginator(pagination =>
     providerAuthMethodsLoader.use(
-      instanceId && providerVersionId
+      instanceId && opts
         ? {
             instanceId,
-            providerVersionId,
             ...pagination,
             ...opts
           }

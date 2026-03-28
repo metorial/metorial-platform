@@ -54,7 +54,7 @@ type ProviderConfigurationSelectionModalSubmitResult = {
 };
 
 type ProviderConfigurationSelectionForm = ReturnType<
-  typeof useForm<ProviderConfigurationSelectionFormValues>
+  typeof useForm<ProviderConfigurationSelectionFormValues, any>
 >;
 
 export let ProviderConfigurationSelectionModalContent = ({
@@ -77,7 +77,7 @@ export let ProviderConfigurationSelectionModalContent = ({
   allowConfigVaultSelection?: boolean;
 }) => {
   let [currentStep, setCurrentStep] = useState(0);
-  let form = useForm<ProviderConfigurationSelectionFormValues>({
+  let form = useForm<ProviderConfigurationSelectionFormValues, any>({
     initialValues: {
       selectedProviderId: '',
       selectedProviderName: '',
@@ -266,7 +266,7 @@ let CreateDeploymentInline = ({
     schema: yup =>
       yup.object({
         name: yup.string().required('Name is required'),
-        description: yup.string().ensure()
+        description: yup.string()
       })
   });
 
@@ -378,12 +378,12 @@ let DeploymentConfigureStep = ({
   includeToolFilters: boolean;
   allowConfigVaultSelection: boolean;
 }) => {
-  let authConfigs = useProviderAuthConfigs(instanceId, deploymentId);
+  let authConfigs = useProviderAuthConfigs(instanceId);
   let deployment = useProviderDeployment(instanceId, deploymentId);
   let provider = useProvider(instanceId, providerId);
   let providerVersionId =
     deployment.data?.lockedVersion?.id ?? provider.data?.currentVersion?.id ?? null;
-  let tools = useProviderTools(instanceId, providerVersionId);
+  let tools = useProviderTools(instanceId, providerVersionId ? { providerVersionId } : null);
   let authCreation = useProviderAuthCreationCapabilities(instanceId, deploymentId, providerId);
   let authConfigItems = authConfigs.data?.items ?? [];
   let toolItems = tools.data?.items ?? [];

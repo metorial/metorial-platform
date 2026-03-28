@@ -26,9 +26,9 @@ export let subspaceProviderAuthImportService = createSubspaceService(
           },
           entity: {
             id: authImport.authConfig.id,
-            type: 'provider_oauth_config'
+            type: 'provider_auth_config'
           },
-          type: 'provider_oauth_config.imported'
+          type: 'provider_auth_config.imported'
         })
         .catch(e => Sentry.captureException(e));
 

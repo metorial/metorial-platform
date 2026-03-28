@@ -4,13 +4,13 @@ import { Input, Text } from '@metorial/ui';
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useDebounced } from '../../../../../hooks/useDebounced';
-import { ProviderDeploymentsTable } from '../../../scenes/providerDeployments/table';
+import { ProviderDeploymentsTableSimple } from '../../../scenes/providerDeployments/tableSimple';
 import { ProviderDeploymentTabSection } from '../../../scenes/providerDeployments/tabSection';
 
 export let CustomProviderProviderDeploymentsPage = () => {
   let instance = useCurrentInstance();
-  let { customServerId } = useParams();
-  let customServer = useCustomProvider(instance.data?.id, customServerId);
+  let { customProviderId } = useParams();
+  let customServer = useCustomProvider(instance.data?.id, customProviderId);
   let [search, setSearch] = useState('');
   let searchDebounced = useDebounced(search, 500);
 
@@ -28,7 +28,7 @@ export let CustomProviderProviderDeploymentsPage = () => {
       }
     >
       {customServer.data.provider?.id ? (
-        <ProviderDeploymentsTable
+        <ProviderDeploymentsTableSimple
           instanceId={instance.data.id}
           providerId={customServer.data.provider.id}
           search={searchDebounced}

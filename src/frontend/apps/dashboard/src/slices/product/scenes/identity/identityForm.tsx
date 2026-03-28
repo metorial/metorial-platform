@@ -40,8 +40,8 @@ export let IdentityForm = ({
     },
     schema: yup =>
       yup.object({
-        name: yup.string().ensure(),
-        description: yup.string().ensure()
+        name: yup.string(),
+        description: yup.string()
       })
   });
 

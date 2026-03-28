@@ -15,15 +15,16 @@ export let ProviderConfigsTable = ({
   search
 }: {
   instanceId: string;
-  providerDeploymentId: string;
+  providerDeploymentId?: string;
   search?: string;
 }) => {
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
-  let configs = useProviderConfigs(instanceId, providerDeploymentId, {
+  let configs = useProviderConfigs(instanceId, {
     order: 'desc',
-    search
+    search,
+    providerDeploymentId
   });
 
   return renderWithPagination(configs)(configs => (
@@ -35,7 +36,6 @@ export let ProviderConfigsTable = ({
             organization.data,
             project.data,
             instance.data,
-            providerDeploymentId,
             config.id
           ),
           data: [

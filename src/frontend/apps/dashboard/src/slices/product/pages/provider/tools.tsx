@@ -399,7 +399,10 @@ let SchemaViewer = ({
 export let ProviderToolsPage = () => {
   let instance = useCurrentInstance();
   let { selectedVersionId } = useProviderVersionContext();
-  let tools = useProviderTools(instance.data?.id, selectedVersionId);
+  let tools = useProviderTools(
+    instance.data?.id,
+    selectedVersionId ? { providerVersionId: selectedVersionId } : null
+  );
 
   let onViewDetails = (tool: ProviderTool) => {
     let modeBadges = getToolModeBadges(tool);
@@ -549,9 +552,11 @@ export let ProviderToolsPage = () => {
                   </Badge>
                 )}
               </Flex>,
-              <Button size="1" variant="outline" onClick={() => onViewDetails(tool)}>
-                View Details
-              </Button>
+              <Flex justify="end" style={{ width: '100%' }}>
+                <Button size="1" variant="outline" onClick={() => onViewDetails(tool)}>
+                  View Details
+                </Button>
+              </Flex>
             ]
           };
         })}

@@ -27,8 +27,8 @@ export let ProviderAuthCredentialSettingsPage = () => {
     schema: yup =>
       yup.object({
         name: yup.string().trim().required('Name is required'),
-        description: yup.string().ensure()
-      })
+        description: yup.string()
+      }) as any
   });
 
   return renderWithLoader({ credential })(({ credential }) => (

@@ -1,7 +1,21 @@
 import { DashboardInstanceProviderDeploymentsListOutput } from '@metorial/dashboard-sdk';
 import { renderWithPagination } from '@metorial/data-hooks';
-import { useCurrentInstance, useProviderDeployments, useProviderListings } from '@metorial/state';
-import { Avatar, Entity, Input, Or, RenderDate, Spacer, Text, theme, Tooltip } from '@metorial/ui';
+import {
+  useCurrentInstance,
+  useProviderDeployments,
+  useProviderListings
+} from '@metorial/state';
+import {
+  Avatar,
+  Entity,
+  Input,
+  Or,
+  RenderDate,
+  Spacer,
+  Text,
+  theme,
+  Tooltip
+} from '@metorial/ui';
 import { useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { useDebounced } from '../../../../hooks/useDebounced';
@@ -24,7 +38,9 @@ let Items = styled.div`
 let GridItems = styled.div<{ $columns?: number }>`
   display: grid;
   grid-template-columns: ${({ $columns }) =>
-    $columns ? `repeat(${$columns}, minmax(0, 1fr))` : 'repeat(auto-fill, minmax(150px, 1fr))'};
+    $columns
+      ? `repeat(${$columns}, minmax(0, 1fr))`
+      : 'repeat(auto-fill, minmax(150px, 1fr))'};
   gap: 10px;
 
   @media (max-width: 700px) {
@@ -113,16 +129,16 @@ let ProviderDeploymentListItem = ({
 
   let disabledReason =
     selectionMode === 'authConfigCreate'
-        ? authCreation.authConfigDisabledReason
-        : selectionMode === 'authCredentialsCreate'
-          ? authCreation.authCredentialsDisabledReason
-          : null;
+      ? authCreation.authConfigDisabledReason
+      : selectionMode === 'authCredentialsCreate'
+        ? authCreation.authCredentialsDisabledReason
+        : null;
   let isDisabled =
     selectionMode === 'authConfigCreate'
-        ? !authCreation.canCreateAuthConfig
-        : selectionMode === 'authCredentialsCreate'
-          ? !authCreation.canCreateAuthCredentials
-          : false;
+      ? !authCreation.canCreateAuthConfig
+      : selectionMode === 'authCredentialsCreate'
+        ? !authCreation.canCreateAuthCredentials
+        : false;
   let description = deployment.description ? (
     <>
       {deployment.description.substring(0, 80)}
@@ -263,10 +279,13 @@ export let ProviderDeploymentsList = ({
   });
   let providerIds = useMemo(
     () =>
-      [...new Set((deployments.data?.items ?? []).map(deployment => deployment.providerId))].sort(),
+      [
+        ...new Set((deployments.data?.items ?? []).map(deployment => deployment.providerId))
+      ].sort(),
     [deployments.data?.items]
   );
   let providerListings = useProviderListings(
+    instance.data?.id,
     providerIds.length > 0
       ? {
           orderByRank: true,

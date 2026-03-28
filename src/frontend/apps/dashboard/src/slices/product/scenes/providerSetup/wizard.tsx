@@ -1,8 +1,8 @@
-import { useWizard, WizardStep } from './index';
 import { Stepper } from '../stepper';
-import { SelectProviderStep } from './steps/selectProvider';
-import { DeploymentDetailsStep } from './steps/deploymentDetails';
+import { useWizard, WizardStep } from './index';
 import { AuthSetupStep } from './steps/authSetup';
+import { DeploymentDetailsStep } from './steps/deploymentDetails';
+import { SelectProviderStep } from './steps/selectProvider';
 
 let stepOrder: WizardStep[] = ['selectProvider', 'deploymentDetails', 'authSetup'];
 

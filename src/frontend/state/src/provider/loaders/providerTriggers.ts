@@ -3,16 +3,14 @@ import { createLoader } from '@metorial/data-hooks';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
 
-type ProviderTriggersQuery = Omit<
-  DashboardInstanceProvidersTriggersListQuery,
-  'providerVersionId'
->;
-
 export let providerTriggersLoader = createLoader({
   name: 'providerTriggers',
   parents: [],
   fetch: async (
-    i: { instanceId: string; providerVersionId: string } & ProviderTriggersQuery
+    i: {
+      instanceId: string;
+      providerVersionId: string;
+    } & DashboardInstanceProvidersTriggersListQuery
   ) => {
     return await withAuth(sdk => sdk.providers.triggers.list(i.instanceId, i));
   },
@@ -21,15 +19,13 @@ export let providerTriggersLoader = createLoader({
 
 export let useProviderTriggers = (
   instanceId: string | null | undefined,
-  providerVersionId: string | null | undefined,
-  opts?: ProviderTriggersQuery
+  opts: DashboardInstanceProvidersTriggersListQuery | null
 ) => {
   let data = usePaginator(pagination =>
     providerTriggersLoader.use(
-      instanceId && providerVersionId
+      instanceId && opts
         ? {
             instanceId,
-            providerVersionId,
             ...opts,
             ...pagination
           }
@@ -44,7 +40,9 @@ export let providerTriggerLoader = createLoader({
   name: 'providerTrigger',
   parents: [providerTriggersLoader],
   fetch: async (i: { instanceId: string; providerTriggerId: string }) => {
-    return await withAuth(sdk => sdk.providers.triggers.get(i.instanceId, i.providerTriggerId));
+    return await withAuth(sdk =>
+      sdk.providers.triggers.get(i.instanceId, i.providerTriggerId)
+    );
   },
   mutators: {}
 });

@@ -5,8 +5,7 @@ import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
-  useProviderAuthConfig,
-  useProviderDeployment
+  useProviderAuthConfig
 } from '@metorial/state';
 import { Badge, RenderDate, Spacer, Text, theme } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
@@ -16,6 +15,7 @@ import { styled } from 'styled-components';
 import { createJavascriptSdkInstallInstruction } from '../../../lib/instructionPresets';
 import { useResolvedInstanceApiKeySecret } from '../../../scenes/apiKeys/useResolvedInstanceApiKeySecret';
 import { ProviderSessionsTable } from '../../../scenes/providerSessions/table';
+import { UsageScene } from '../../../scenes/usage/usage';
 import { InstructionItem, Instructions } from '../../provider/components/instructions';
 import { KeySelector } from '../../provider/components/keySelector';
 import { formatAuthConfigSource, formatAuthConfigType } from './helpers';
@@ -64,21 +64,15 @@ export let ProviderAuthConfigOverviewPage = () => {
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
 
-  let { providerDeploymentId, providerAuthConfigId } = useParams();
-  let deployment = useProviderDeployment(instance.data?.id, providerDeploymentId);
-  let authConfig = useProviderAuthConfig(
-    instance.data?.id,
-    providerDeploymentId,
-    providerAuthConfigId
-  );
+  let { providerAuthConfigId } = useParams();
+  let authConfig = useProviderAuthConfig(instance.data?.id, providerAuthConfigId);
   let { apiKeySecret, setApiKeySecret } = useResolvedInstanceApiKeySecret(instance.data?.id);
 
-  return renderWithLoader({ authConfig, deployment })(({ authConfig, deployment }) => {
+  return renderWithLoader({ authConfig })(({ authConfig }) => {
     let authMethodName =
       authConfig.data.authMethod?.name ?? authConfig.data.authMethod?.key ?? 'Unknown method';
-    let deploymentTargetId = authConfig.data.deploymentPreview?.id ?? deployment.data.id;
-    let deploymentTargetName =
-      authConfig.data.deploymentPreview?.name ?? deployment.data.name ?? deploymentTargetId;
+    let deploymentTargetId = authConfig.data.deployment?.id;
+    let deploymentTargetName = authConfig.data.deployment?.name ?? deploymentTargetId;
     let apiKeyReplacement = {
       __REPLACE_ME_WITH_API_KEY__: () => (
         <KeySelector
@@ -125,7 +119,6 @@ export let ProviderAuthConfigOverviewPage = () => {
             apiKey: '${apiKeySecret ?? '__REPLACE_ME_WITH_API_KEY__'}',
           });
 
-          let providerDeploymentId = '${deploymentTargetId}';
           let providerAuthConfigId = '${authConfig.data.id}';
 
           let result = await metorial.withProviderSession(
@@ -133,7 +126,6 @@ export let ProviderAuthConfigOverviewPage = () => {
             {
               providers: [
                 {
-                  providerDeploymentId,
                   providerAuthConfigId
                 }
               ],
@@ -177,7 +169,6 @@ export let ProviderAuthConfigOverviewPage = () => {
             name: 'My Provider Session',
             providers: [
               {
-                providerDeploymentId: '${deploymentTargetId}',
                 providerAuthConfigId: '${authConfig.data.id}'
               }
             ]
@@ -241,7 +232,6 @@ export let ProviderAuthConfigOverviewPage = () => {
               name='My Provider Session',
               providers=[
                   {
-                      'provider_deployment_id': '${deploymentTargetId}',
                       'provider_auth_config_id': '${authConfig.data.id}',
                   }
               ],
@@ -269,7 +259,6 @@ export let ProviderAuthConfigOverviewPage = () => {
               "name": "My Provider Session",
               "providers": [
                 {
-                  "provider_deployment_id": "${deploymentTargetId}",
                   "provider_auth_config_id": "${authConfig.data.id}"
                 }
               ]
@@ -302,7 +291,7 @@ export let ProviderAuthConfigOverviewPage = () => {
             },
             {
               label: 'Deployment',
-              content: (
+              content: deploymentTargetId ? (
                 <Link
                   to={Paths.instance.providerDeployment(
                     organization.data,
@@ -313,6 +302,10 @@ export let ProviderAuthConfigOverviewPage = () => {
                 >
                   {deploymentTargetName}
                 </Link>
+              ) : (
+                <Text size="2" color="gray600">
+                  N/A
+                </Text>
               )
             },
             {
@@ -335,7 +328,7 @@ export let ProviderAuthConfigOverviewPage = () => {
           ))}
         </SummaryGrid>
 
-        <Spacer height={20} />
+        <Spacer height={15} />
 
         <Box
           title="Use this auth config"
@@ -372,7 +365,18 @@ export let ProviderAuthConfigOverviewPage = () => {
           />
         </Box>
 
-        <Spacer height={20} />
+        <Spacer height={15} />
+
+        <UsageScene
+          title="Usage"
+          description="See how this auth config is being used in your instance."
+          entities={[{ type: 'provider_auth_config', id: authConfig.data.id }]}
+          entityNames={{
+            [authConfig.data.id]: authConfig.data.name ?? authConfig.data.id
+          }}
+        />
+
+        <Spacer height={15} />
 
         <Box
           title="Recent Sessions"
@@ -383,7 +387,7 @@ export let ProviderAuthConfigOverviewPage = () => {
 
         {authConfig.data.metadata && Object.keys(authConfig.data.metadata).length > 0 ? (
           <>
-            <Spacer height={20} />
+            <Spacer height={15} />
 
             <Box
               title="Metadata"

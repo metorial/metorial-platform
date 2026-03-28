@@ -184,7 +184,12 @@ export let InspectorFrame = ({ sessionId }: { sessionId: string }) => {
           >
             <BreathingIndicator />
             <span>
-              Connected via <i>connect.metorial.com</i>
+              Connected via{' '}
+              {location.host.endsWith('.metorial.com') ? (
+                <i>api.metorial.com</i>
+              ) : (
+                <i>Metorial API</i>
+              )}
             </span>
           </Status>
         </ConnectionNavSection>

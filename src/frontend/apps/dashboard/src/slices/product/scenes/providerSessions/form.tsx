@@ -1,7 +1,7 @@
 import { DashboardInstanceSessionsCreateOutput } from '@metorial/dashboard-sdk';
 import { useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
-import { useCurrentInstance, useCreateSession } from '@metorial/state';
+import { useCreateSession, useCurrentInstance } from '@metorial/state';
 import { Button, Dialog, Input, Spacer } from '@metorial/ui';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -73,7 +73,7 @@ export let ProviderSessionForm = (
     schema: yup =>
       yup.object({
         name: yup.string().defined(),
-        description: yup.string().ensure()
+        description: yup.string()
       })
   });
 

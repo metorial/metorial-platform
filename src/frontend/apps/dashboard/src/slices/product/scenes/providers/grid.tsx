@@ -27,7 +27,7 @@ let Category = styled.div`
 
 export let ProvidersGrid = (filter: DashboardInstanceProviderListingsListQuery) => {
   let instance = useCurrentInstance();
-  let providers = useProviderListings(filter);
+  let providers = useProviderListings(instance.data?.id, filter);
 
   return renderWithPagination(providers)(providers => (
     <>

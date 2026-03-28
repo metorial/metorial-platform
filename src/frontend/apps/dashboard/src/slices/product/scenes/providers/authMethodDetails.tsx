@@ -7,7 +7,8 @@ import {
   type JsonSchemaObject
 } from '../../lib/jsonSchema';
 
-export type ProviderAuthMethod = DashboardInstanceProvidersAuthMethodsListOutput['items'][number];
+export type ProviderAuthMethod =
+  DashboardInstanceProvidersAuthMethodsListOutput['items'][number];
 type ProviderAuthScope = NonNullable<ProviderAuthMethod['scopes']>[number];
 type SchemaProperty = NonNullable<JsonSchemaObject['properties']>[string] & JsonSchemaObject;
 
@@ -202,9 +203,7 @@ let SchemaFields = ({ schema }: { schema: JsonSchemaObject | null | undefined })
   );
 };
 
-export let getProviderAuthMethodTypeLabel = (
-  type: ProviderAuthMethod['type']
-): string => {
+export let getProviderAuthMethodTypeLabel = (type: ProviderAuthMethod['type']): string => {
   if (type === 'oauth') return 'OAuth';
   return type.charAt(0).toUpperCase() + type.slice(1);
 };

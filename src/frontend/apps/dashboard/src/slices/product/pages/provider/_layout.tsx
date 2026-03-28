@@ -11,7 +11,7 @@ import {
   useCurrentOrganization,
   useCurrentProject,
   useProvider,
-  useProviderListingByProviderId,
+  useProviderListing,
   useProviderVersions
 } from '@metorial/state';
 import { Badge, Button, Flex, LinkTabs, Menu, theme } from '@metorial/ui';
@@ -20,8 +20,6 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { showProviderDeploymentFormModal } from '../../scenes/providerDeployments/modal';
-
-// ── Provider version context ─────────────────────────────────────────
 
 type ProviderVersion = DashboardInstanceProvidersVersionsListOutput['items'][number];
 type ProviderVersionId = ProviderVersion['id'];
@@ -64,8 +62,6 @@ export let useProviderVersionContext = () => {
   if (!ctx) throw new Error('useProviderVersionContext must be used within ProviderLayout');
   return ctx;
 };
-
-// ── Layout ───────────────────────────────────────────────────────────
 
 export let ProviderLayout = () => {
   let instance = useCurrentInstance();
@@ -144,7 +140,7 @@ export let ProviderLayout = () => {
   let selectedVersion = allVersions.find(v => v.id === effectiveVersionId);
   let isDefaultVersion = effectiveVersionId === currentVersionId;
 
-  let listingData = useProviderListingByProviderId(instance.data?.id, providerId);
+  let listingData = useProviderListing(instance.data?.id, providerId);
   let listing: ProviderListing | undefined = listingData.data ?? undefined;
 
   let resetToDefault = () => {

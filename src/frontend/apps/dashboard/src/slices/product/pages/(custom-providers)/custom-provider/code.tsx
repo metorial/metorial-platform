@@ -64,8 +64,8 @@ let normalizeRepoPath = (path: string | null | undefined) => {
 export let CustomProviderCodePage = () => {
   let instance = useCurrentInstance();
 
-  let { customServerId } = useParams();
-  let customServer = useCustomProvider(instance.data?.id, customServerId);
+  let { customProviderId } = useParams();
+  let customServer = useCustomProvider(instance.data?.id, customProviderId);
 
   let editorToken = useCustomProviderCodeEditorToken(instance.data?.id, customServer.data?.id);
 

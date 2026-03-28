@@ -26,7 +26,10 @@ export let MagicMcpServerLayout = () => {
   let navigate = useNavigate();
   let { magicMcpServerId } = useParams();
   let server = useMagicMcpServer(instance.data?.id, magicMcpServerId);
-  let providers = useSessionTemplateProviders(instance.data?.id, server.data?.sessionTemplateId);
+  let providers = useSessionTemplateProviders(
+    instance.data?.id,
+    server.data?.sessionTemplateId
+  );
   let createSession = useCreateSession(instance.data?.id);
   let [isCreatingSession, setIsCreatingSession] = useState(false);
   let pathname = useLocation().pathname;

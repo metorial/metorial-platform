@@ -5,8 +5,7 @@ import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
-  useProviderAuthCredential,
-  useProviderDeployment
+  useProviderAuthCredential
 } from '@metorial/state';
 import { LinkTabs } from '@metorial/ui';
 import { Outlet, useLocation, useParams } from 'react-router-dom';
@@ -16,8 +15,7 @@ export let ProviderAuthCredentialLayout = () => {
   let project = useCurrentProject();
   let organization = useCurrentOrganization();
 
-  let { providerDeploymentId, providerAuthCredentialsId } = useParams();
-  let deployment = useProviderDeployment(instance.data?.id, providerDeploymentId);
+  let { providerAuthCredentialsId } = useParams();
   let credential = useProviderAuthCredential(instance.data?.id, providerAuthCredentialsId);
 
   let pathname = useLocation().pathname;
@@ -26,7 +24,6 @@ export let ProviderAuthCredentialLayout = () => {
     organization.data,
     project.data,
     instance.data,
-    deployment.data?.id ?? providerDeploymentId,
     credential.data?.id ?? providerAuthCredentialsId
   ] as const;
 
@@ -38,20 +35,10 @@ export let ProviderAuthCredentialLayout = () => {
         pagination={[
           {
             label: 'Configurations',
-            href: Paths.instance.providerDeployments(
+            href: Paths.instance.providerAuthCredentials(
               organization.data,
               project.data,
-              instance.data,
-              'auth-configs'
-            )
-          },
-          {
-            label: deployment.data?.name ?? '...',
-            href: Paths.instance.providerDeployment(
-              organization.data,
-              project.data,
-              instance.data,
-              deployment.data?.id ?? providerDeploymentId
+              instance.data
             )
           },
           {

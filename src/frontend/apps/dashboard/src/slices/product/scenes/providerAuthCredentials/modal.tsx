@@ -38,14 +38,20 @@ export let ProviderAuthCredentialsForm = ({
   deploymentId?: string;
   close: () => void;
   onBack?: () => void;
-  onCreate?: (credentials: DashboardInstanceProviderDeploymentsAuthCredentialsCreateOutput) => void;
+  onCreate?: (
+    credentials: DashboardInstanceProviderDeploymentsAuthCredentialsCreateOutput
+  ) => void;
 }) => {
   let deployment = useProviderDeployment(instanceId, deploymentId);
   let provider = useProvider(instanceId, providerId);
   let versionId = deployment.data?.lockedVersion?.id ?? provider.data?.currentVersion?.id;
-  let authMethods = useProviderAuthMethods(instanceId, versionId);
+  let authMethods = useProviderAuthMethods(
+    instanceId,
+    versionId ? { providerVersionId: versionId } : null
+  );
   let oauthMethod = useMemo(
-    () => (authMethods.data?.items ?? []).find((method: AuthMethod) => method.type === 'oauth'),
+    () =>
+      (authMethods.data?.items ?? []).find((method: AuthMethod) => method.type === 'oauth'),
     [authMethods.data?.items]
   );
   let redirectUri = provider.data?.oauth?.callbackUrl;
@@ -102,9 +108,9 @@ export let ProviderAuthCredentialsForm = ({
     return (
       <>
         <Dialog.Title>Create Auth Credentials</Dialog.Title>
-      <Dialog.Description>
-        {providerName} uses {oauthMethodName} auto-registration, so manual app
-        credentials are not supported for this provider.
+        <Dialog.Description>
+          {providerName} uses {oauthMethodName} auto-registration, so manual app credentials
+          are not supported for this provider.
         </Dialog.Description>
 
         <Spacer size={15} />
@@ -222,7 +228,9 @@ export let showProviderAuthCredentialsFormModal = (p: {
   providerId: string;
   deploymentId?: string;
   onBack?: () => void;
-  onCreate?: (credentials: DashboardInstanceProviderDeploymentsAuthCredentialsCreateOutput) => void;
+  onCreate?: (
+    credentials: DashboardInstanceProviderDeploymentsAuthCredentialsCreateOutput
+  ) => void;
 }) =>
   showModal(({ dialogProps, close }) => (
     <Dialog.Wrapper {...dialogProps} width={550}>

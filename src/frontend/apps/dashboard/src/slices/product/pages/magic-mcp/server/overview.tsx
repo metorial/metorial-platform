@@ -5,7 +5,6 @@ import {
   useCurrentInstance,
   useMagicMcpServer,
   useMagicMcpTokens,
-  useProviderListings,
   useProviders,
   useSessionTemplateProviders
 } from '@metorial/state';
@@ -50,11 +49,7 @@ export let MagicMcpServerOverviewPage = () => {
     ],
     [templateProviders.data?.items]
   );
-  let providers = useProviders(
-    instance.data?.id,
-    { id: providerIds }
-  );
-  let listings = useProviderListings({});
+  let providers = useProviders(instance.data?.id, { id: providerIds });
 
   let [tab, setTab] = useState<ConnectionType>('cursor');
   let copy = useCopy();
@@ -79,11 +74,7 @@ export let MagicMcpServerOverviewPage = () => {
       for (let provider of providers.data?.items ?? []) {
         if (provider.id && provider.name) providerNameMap.set(provider.id, provider.name);
       }
-      let providerImageMap = new Map<string, string>();
-      for (let listing of listings.data?.items ?? []) {
-        let pid = listing.provider?.id;
-        if (pid && listing.imageUrl) providerImageMap.set(pid, listing.imageUrl);
-      }
+
       let providerPreviewItems = templateProviders.data.items.slice(0, 4);
       let remainingProviderCount =
         templateProviders.data.items.length - providerPreviewItems.length;
@@ -170,8 +161,7 @@ export let MagicMcpServerOverviewPage = () => {
                             prefix={
                               <Avatar
                                 entity={{
-                                  name: providerName,
-                                  photoUrl: providerImageMap.get(providerId)
+                                  name: providerName
                                 }}
                                 size={28}
                                 radius={8}

@@ -12,7 +12,7 @@ export type ManagementInstanceProviderDeploymentsAuthConfigsListOutput = {
     name: string | null;
     description: string | null;
     metadata: Record<string, any> | null;
-    deploymentPreview: {
+    deployment: {
       object: 'provider.deployment#preview';
       id: string;
       isDefault: boolean;
@@ -82,8 +82,8 @@ export let mapManagementInstanceProviderDeploymentsAuthConfigsListOutput =
           name: mtMap.objectField('name', mtMap.passthrough()),
           description: mtMap.objectField('description', mtMap.passthrough()),
           metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-          deploymentPreview: mtMap.objectField(
-            'deployment_preview',
+          deployment: mtMap.objectField(
+            'deployment',
             mtMap.object({
               object: mtMap.objectField('object', mtMap.passthrough()),
               id: mtMap.objectField('id', mtMap.passthrough()),

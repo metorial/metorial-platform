@@ -5,14 +5,15 @@ import { Attributes, Badge, Button, RenderDate, Spacer } from '@metorial/ui';
 import { Box, ID, SideBox } from '@metorial/ui-product';
 import { useNavigate, useParams } from 'react-router-dom';
 import { CustomServerEventsTable } from '../../../scenes/customProvider/events';
+import { UsageScene } from '../../../scenes/usage/usage';
 
 export let CustomProviderOverviewPage = () => {
   let instance = useCurrentInstance();
 
   let navigate = useNavigate();
 
-  let { customServerId } = useParams();
-  let customServer = useCustomProvider(instance.data?.id, customServerId);
+  let { customProviderId } = useParams();
+  let customServer = useCustomProvider(instance.data?.id, customProviderId);
   let isExternalProvider = Boolean(customServer.data?.draft?.remoteMcpServer);
 
   return renderWithLoader({ customServer })(({ customServer }) => (
@@ -51,16 +52,16 @@ export let CustomProviderOverviewPage = () => {
             )
           },
           {
-            label: 'Current Version',
-            content: customServer.data.provider?.currentVersion?.version ?? 'N/A'
-          },
-          {
             label: 'Publisher',
             content: customServer.data.provider?.publisher?.name ?? 'N/A'
           },
           {
             label: 'Created At',
             content: <RenderDate date={customServer.data.createdAt!} />
+          },
+          {
+            label: 'Custom Provider ID',
+            content: <ID id={customServer.data.id} />
           }
         ]}
       />
@@ -89,6 +90,17 @@ export let CustomProviderOverviewPage = () => {
           Test Provider
         </Button>
       </SideBox>
+
+      <Spacer height={15} />
+
+      <UsageScene
+        title="Usage"
+        description="See how this custom provider is being in your instance."
+        entities={[{ type: 'provider', id: customServer.data.provider?.id ?? 'xxxx' }]}
+        entityNames={{
+          [customServer.data.provider?.id ?? 'xxxx']: customServer.data.provider?.name!
+        }}
+      />
 
       <Spacer height={15} />
 

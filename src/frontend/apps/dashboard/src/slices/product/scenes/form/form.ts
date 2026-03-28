@@ -22,7 +22,7 @@ export type FormProps<Values extends Record<string, unknown>> = Omit<
   ) & {
     children:
       | React.ReactNode
-      | ((form: ReturnType<typeof useForm<Values>>) => React.ReactNode);
+      | ((form: ReturnType<typeof useForm<Values, any>>) => React.ReactNode);
     submitName?: string | null;
     mutators: FormContextMutator[];
   };

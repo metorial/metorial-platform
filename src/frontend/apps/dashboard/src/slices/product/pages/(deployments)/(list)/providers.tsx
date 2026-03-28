@@ -1,7 +1,7 @@
 import { Input, Spacer } from '@metorial/ui';
 import { useState } from 'react';
 import { useDebounced } from '../../../../../hooks/useDebounced';
-import { ProvidersGrid } from '../../../scenes/providers/grid_';
+import { ProvidersGrid } from '../../../scenes/providers/grid';
 
 export let ProvidersPage = () => {
   let [search, setSearch] = useState('');

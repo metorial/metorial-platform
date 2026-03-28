@@ -25,19 +25,20 @@ let formatSource = (source: string | null | undefined) => {
 
 export let ProviderAuthConfigsTable = ({
   instanceId,
-  providerDeploymentId,
-  search
+  search,
+  providerDeploymentId
 }: {
   instanceId: string;
-  providerDeploymentId: string;
   search?: string;
+  providerDeploymentId?: string;
 }) => {
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
-  let authConfigs = useProviderAuthConfigs(instanceId, providerDeploymentId, {
+  let authConfigs = useProviderAuthConfigs(instanceId, {
     order: 'desc',
-    search
+    search,
+    providerDeploymentId
   });
 
   return renderWithPagination(authConfigs)(authConfigs => (
@@ -49,7 +50,6 @@ export let ProviderAuthConfigsTable = ({
             organization.data,
             project.data,
             instance.data,
-            config.deploymentPreview?.id ?? providerDeploymentId,
             config.id
           ),
           data: [

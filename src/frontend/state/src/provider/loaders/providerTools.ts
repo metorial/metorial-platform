@@ -3,14 +3,10 @@ import { createLoader } from '@metorial/data-hooks';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
 
-type ProviderToolsQuery = Omit<DashboardInstanceProvidersToolsListQuery, 'providerVersionId'>;
-
 export let providerToolsLoader = createLoader({
   name: 'providerTools',
   parents: [],
-  fetch: async (
-    i: { instanceId: string; providerVersionId: string } & ProviderToolsQuery
-  ) => {
+  fetch: async (i: { instanceId: string } & DashboardInstanceProvidersToolsListQuery) => {
     return await withAuth(sdk => sdk.providers.tools.list(i.instanceId, i));
   },
   mutators: {}
@@ -18,15 +14,13 @@ export let providerToolsLoader = createLoader({
 
 export let useProviderTools = (
   instanceId: string | null | undefined,
-  providerVersionId: string | null | undefined,
-  opts?: ProviderToolsQuery
+  opts: DashboardInstanceProvidersToolsListQuery | null
 ) => {
   let data = usePaginator(pagination =>
     providerToolsLoader.use(
-      instanceId && providerVersionId
+      instanceId && opts
         ? {
             instanceId,
-            providerVersionId,
             ...opts,
             ...pagination
           }

@@ -125,7 +125,10 @@ let customProviderTableColumns: TableColumn<CustomProvider, CustomProvidersTable
     isDefault: true,
     header: 'Version',
     render: (provider: CustomProvider) => (
-      <Text size="2" color={provider.provider?.currentVersion?.version ? undefined : 'gray600'}>
+      <Text
+        size="2"
+        color={provider.provider?.currentVersion?.version ? undefined : 'gray600'}
+      >
         {provider.provider?.currentVersion?.version ?? '-'}
       </Text>
     )
@@ -368,10 +371,7 @@ let useCustomProvidersTableState: TableStateProvider<
   };
 };
 
-let createCustomProvidersTable = (
-  name: string,
-  filters: TableFilter<CustomProvider>[]
-) =>
+let createCustomProvidersTable = (name: string, filters: TableFilter<CustomProvider>[]) =>
   new DashboardTable<CustomProvidersTableProps, CustomProvider>(name)
     .state(useCustomProvidersTableState)
     .columns(customProviderTableColumns)

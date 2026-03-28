@@ -1,6 +1,5 @@
 import {
   DashboardInstanceMagicMcpGroupsListOutput,
-  DashboardInstanceMagicMcpTokensCreateBody,
   DashboardInstanceMagicMcpTokensGetOutput,
   DashboardInstanceMagicMcpTokensListOutput,
   DashboardInstanceMagicMcpTokensListQuery
@@ -102,7 +101,7 @@ let GroupRestrictionsField = ({
               description={
                 isArchived
                   ? 'Archived groups can be removed from tokens but cannot be newly added.'
-                  : group.description ?? group.slug
+                  : (group.description ?? group.slug)
               }
               onCheckedChange={checked => {
                 if (checked) {
@@ -154,8 +153,8 @@ let showCreatedTokenModal = (secret: string) =>
     <Dialog.Wrapper variant="padded" {...dialogProps}>
       <Dialog.Title>Magic MCP Token Created</Dialog.Title>
       <Dialog.Description>
-        Your new Magic MCP token is ready to use. Please don't share it with anyone and
-        keep it in a safe place, such as a password manager.
+        Your new Magic MCP token is ready to use. Please don't share it with anyone and keep it
+        in a safe place, such as a password manager.
       </Dialog.Description>
 
       <Copy label="Magic MCP Token" value={secret} />
@@ -188,8 +187,8 @@ let showManageRestrictionsModal = (p: { token: TokenRow }) =>
       <Dialog.Wrapper {...dialogProps}>
         <Dialog.Title>Edit Group Restrictions</Dialog.Title>
         <Dialog.Description>
-          Restrict this token to specific Magic MCP groups. Leave all groups unchecked to
-          keep the token unrestricted.
+          Restrict this token to specific Magic MCP groups. Leave all groups unchecked to keep
+          the token unrestricted.
         </Dialog.Description>
 
         <Spacer height={16} />
@@ -610,11 +609,7 @@ export let createMagicMcpTokenModal = (opts?: { groupId?: string }) =>
     let { groups, items } = useRestrictionOptions();
     let instance = useCurrentInstance();
 
-    let form = useForm<
-      Pick<DashboardInstanceMagicMcpTokensCreateBody, 'name' | 'description'> & {
-        groupIds: string[];
-      }
-    >({
+    let form = useForm({
       initialValues: {
         name: '',
         description: '',

@@ -4,8 +4,8 @@ import {
 } from '@metorial/dashboard-sdk';
 import { useForm } from '@metorial/data-hooks';
 import {
-  useCurrentInstance,
   useCreateProviderAuthConfig,
+  useCurrentInstance,
   useProvider,
   useProviderAuthMethods,
   useProviderDeployment
@@ -52,7 +52,9 @@ export type ProviderAuthConfigFormProps =
 export let ProviderAuthConfigForm = (
   props: ProviderAuthConfigFormProps & {
     close?: () => void;
-    onCreate?: (authConfig: DashboardInstanceProviderDeploymentsAuthConfigsCreateOutput) => void;
+    onCreate?: (
+      authConfig: DashboardInstanceProviderDeploymentsAuthConfigsCreateOutput
+    ) => void;
     onBack?: () => void;
   }
 ) => {
@@ -66,14 +68,17 @@ export let ProviderAuthConfigForm = (
       : useProviderDeployment(instanceId, props.providerDeploymentId);
   let resolvedProviderId =
     props.type === 'create'
-      ? props.providerId ?? deployment.data?.providerId
+      ? (props.providerId ?? deployment.data?.providerId)
       : deployment.data?.providerId;
   let provider = useProvider(instanceId, resolvedProviderId);
   let effectiveVersionId =
     deployment.data?.lockedVersion?.id ?? provider.data?.currentVersion?.id;
   let oauthAutoRegistrationEnabled = getProviderOAuthAutoRegistrationEnabled(provider.data);
 
-  let authMethods = useProviderAuthMethods(instanceId, effectiveVersionId);
+  let authMethods = useProviderAuthMethods(
+    instanceId,
+    effectiveVersionId ? { providerVersionId: effectiveVersionId } : null
+  );
   let manualAuthMethods = (authMethods.data?.items ?? []).filter((method: AuthMethod) => {
     if (method.type !== 'oauth') return true;
     return getAuthMethodHasSchema(method);
@@ -91,7 +96,7 @@ export let ProviderAuthConfigForm = (
     initialValues: {
       name: '',
       description: '',
-      authMethodId: props.type === 'create' ? props.initialAuthMethodId ?? '' : '',
+      authMethodId: props.type === 'create' ? (props.initialAuthMethodId ?? '') : '',
       credentialsDataJson: '{}',
       credentialsData: {} as Record<string, unknown>
     },
@@ -140,7 +145,7 @@ export let ProviderAuthConfigForm = (
     schema: yup =>
       yup.object({
         name: yup.string().trim().required('Name is required'),
-        description: yup.string().ensure(),
+        description: yup.string(),
         authMethodId: yup.string().required('Authentication method is required'),
         credentialsData: yup.mixed<Record<string, unknown>>().defined(),
         credentialsDataJson: yup
@@ -200,7 +205,8 @@ export let ProviderAuthConfigForm = (
     props.type === 'create' &&
     !!props.hideAuthMethodStep &&
     !!props.showAuthMethodStepInStepper;
-  let includeAuthMethodStep = (!hasSingleMethod && !skipAuthMethodStep) || showHiddenAuthMethodStep;
+  let includeAuthMethodStep =
+    (!hasSingleMethod && !skipAuthMethodStep) || showHiddenAuthMethodStep;
 
   let resetCredentials = () => {
     form.setFieldValue('credentialsData', {});
@@ -402,7 +408,11 @@ export let ProviderAuthConfigForm = (
           <Spacer size={15} />
 
           <Dialog.Actions>
-            <Button type="button" variant="outline" onClick={() => setStep(credentialsStepIndex)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setStep(credentialsStepIndex)}
+            >
               Back
             </Button>
             <Button
@@ -436,11 +446,7 @@ export let ProviderAuthConfigForm = (
       <>
         {providerContext}
 
-        <Stepper
-          steps={steps}
-          currentStep={step}
-          setCurrentStep={handleStepChange}
-        />
+        <Stepper steps={steps} currentStep={step} setCurrentStep={handleStepChange} />
       </>
     );
   }

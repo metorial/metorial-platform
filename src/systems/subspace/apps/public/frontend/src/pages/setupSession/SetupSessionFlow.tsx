@@ -1,5 +1,5 @@
 import { renderWithLoader, useMutation } from '@metorial-io/data-hooks';
-import { Button, Error, Flex, Spinner, Text } from '@metorial-io/ui';
+import { Button, CenteredSpinner, Error, Flex } from '@metorial-io/ui';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { JsonSchema } from '../../lib/jsonSchema';
 import { client } from '../../state/client';
@@ -200,12 +200,8 @@ export let SetupSessionFlow = ({
           </Flex>
         );
       }
-      return (
-        <Flex direction="column" align="center" gap={16} style={{ padding: '48px 0' }}>
-          <Spinner size="3" />
-          <Text>Preparing authentication...</Text>
-        </Flex>
-      );
+
+      return <CenteredSpinner />;
     }
 
     if (step === 'oauth_redirect' && oauthSetup) {
@@ -242,6 +238,7 @@ export let SetupSessionFlow = ({
       <MetorialElementsLayout
         brand={brand}
         providerName={provider.name}
+        providerImageUrl={provider.imageUrl}
         hideHeader={isCompleted}
         currentStep={currentStepIndex}
         stepLabels={stepLabels}

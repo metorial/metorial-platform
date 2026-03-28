@@ -1,4 +1,4 @@
-import { CenteredSpinner, Group, Title, theme } from '@metorial-io/ui';
+import { CenteredSpinner, Group, Title } from '@metorial-io/ui';
 import React from 'react';
 import styled from 'styled-components';
 import { useSetupSession } from '../../state/setupSession';
@@ -74,7 +74,7 @@ export let SetupSessionPage = () => {
 let Wrapper = styled.div`
   min-height: 100dvh;
   padding: 60px 20px;
-  background: ${theme.colors.gray100};
+  background: white;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -93,10 +93,6 @@ let Inner = styled.div`
 `;
 
 let Card = styled.div`
-  background: white;
-  box-shadow: ${theme.shadows.medium};
-  border-radius: 10px;
-  border: 1px solid ${theme.colors.gray300};
   overflow: hidden;
 
   & > div {
@@ -150,11 +146,14 @@ let StatusDescription = styled.p`
   margin-top: 12px;
   color: #666;
   font-size: 14px;
+  text-wrap: balance;
 `;
 
 let Footer = styled(Group.Footer)`
   justify-content: center;
   border-top: none;
+  display: flex;
+  padding: 16px 0;
 
   @media (max-width: 640px) {
     margin-top: auto;
@@ -173,19 +172,17 @@ let StatusPageView = ({ icon, title, description }: StatusPageViewProps) => {
     <Wrapper>
       <Inner>
         <Card>
-          <Group.Wrapper>
-            <StatusContent>
-              <IconWrapper>{icon}</IconWrapper>
-              <StatusTitle size="3" weight="bold">
-                {title}
-              </StatusTitle>
-              <StatusDescription>{description}</StatusDescription>
-            </StatusContent>
+          <StatusContent>
+            <IconWrapper>{icon}</IconWrapper>
+            <StatusTitle size="3" weight="bold">
+              {title}
+            </StatusTitle>
+            <StatusDescription>{description}</StatusDescription>
+          </StatusContent>
 
-            <Footer>
-              <SecuredByFooter logoSize={16} />
-            </Footer>
-          </Group.Wrapper>
+          <Footer>
+            <SecuredByFooter logoSize={16} isMetorialElement />
+          </Footer>
         </Card>
       </Inner>
     </Wrapper>

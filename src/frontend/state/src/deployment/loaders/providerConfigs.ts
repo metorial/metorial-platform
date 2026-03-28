@@ -26,7 +26,7 @@ export let useCreateProviderConfig = providerConfigsLoader.createExternalMutator
   { disableToast: true }
 );
 
-export let useInstanceProviderConfigs = (
+export let useProviderConfigs = (
   instanceId: string | null | undefined,
   query?: ProviderConfigsQuery | null
 ) => {
@@ -39,25 +39,10 @@ export let useInstanceProviderConfigs = (
   return data;
 };
 
-export let useProviderConfigs = (
-  instanceId: string | null | undefined,
-  providerDeploymentId: string | null | undefined,
-  query?: ProviderConfigsQuery
-) =>
-  useInstanceProviderConfigs(
-    instanceId,
-    providerDeploymentId
-      ? {
-          ...query,
-          providerDeploymentId
-        }
-      : null
-  );
-
 export let providerConfigLoader = createLoader({
   name: 'providerConfig',
   parents: [providerConfigsLoader],
-  fetch: (i: { instanceId: string; providerDeploymentId: string; providerConfigId: string }) =>
+  fetch: (i: { instanceId: string; providerConfigId: string }) =>
     withAuth(sdk => sdk.providerDeployments.configs.get(i.instanceId, i.providerConfigId)),
   mutators: {
     update: (
@@ -72,13 +57,10 @@ export let providerConfigLoader = createLoader({
 
 export let useProviderConfig = (
   instanceId: string | null | undefined,
-  providerDeploymentId: string | null | undefined,
   providerConfigId: string | null | undefined
 ) => {
   let data = providerConfigLoader.use(
-    instanceId && providerDeploymentId && providerConfigId
-      ? { instanceId, providerDeploymentId, providerConfigId }
-      : null
+    instanceId && providerConfigId ? { instanceId, providerConfigId } : null
   );
 
   return {

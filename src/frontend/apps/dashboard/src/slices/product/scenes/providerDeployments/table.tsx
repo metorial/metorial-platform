@@ -65,7 +65,9 @@ let useProviderDeploymentsTableState: TableStateProvider<
   let deployments = useProviderDeployments(props.instanceId, {
     order: 'desc',
     providerId:
-      getStringFilterValue(opts.filter.providerId) ?? props.providerId ?? props.filters?.providerId,
+      getStringFilterValue(opts.filter.providerId) ??
+      props.providerId ??
+      props.filters?.providerId,
     providerVersionId:
       getStringFilterValue(opts.filter.providerVersionId) ?? props.filters?.providerVersionId,
     status:
@@ -86,7 +88,10 @@ let useProviderDeploymentsTableState: TableStateProvider<
       providerIds[0] === props.providerId
     );
 
-  let providers = useProviders(props.instanceId, shouldLoadProviders ? { id: providerIds } : null);
+  let providers = useProviders(
+    props.instanceId,
+    shouldLoadProviders ? { id: providerIds } : null
+  );
 
   let providerNameMap = new Map<string, string>();
   if (props.providerId && props.providerName) {
@@ -140,7 +145,9 @@ let providerDeploymentsTable = new DashboardTable<
       id: 'provider',
       isDefault: true,
       header: 'Provider',
-      render: deployment => <Text size="2">{deployment.providerName ?? deployment.providerId}</Text>
+      render: deployment => (
+        <Text size="2">{deployment.providerName ?? deployment.providerId}</Text>
+      )
     },
     {
       id: 'version',

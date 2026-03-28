@@ -2,7 +2,7 @@ import { useForm } from '@metorial/data-hooks';
 import { ReactNode, createContext, useContext } from 'react';
 
 type FormValues = Record<string, unknown>;
-type DashboardForm = ReturnType<typeof useForm<FormValues>>;
+type DashboardForm = ReturnType<typeof useForm<FormValues, any>>;
 
 export type FormContextForm = Pick<
   DashboardForm,

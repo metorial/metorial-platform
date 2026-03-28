@@ -1,4 +1,5 @@
-import { Badge, Button, Flex, RenderDate, Spacer, Text, theme } from '@metorial/ui';
+import { Badge, Button, Entity, Flex, RenderDate, Spacer, Text } from '@metorial/ui';
+import { ID } from '@metorial/ui-product';
 import { useProviderVersionContext } from './_layout';
 
 export let ProviderVersionsPage = () => {
@@ -22,53 +23,44 @@ export let ProviderVersionsPage = () => {
     <>
       <Spacer size={10} />
 
-      <Flex direction="column" gap={8}>
+      <Flex direction="column" gap={10}>
         {allVersions.map(version => {
           let isSelected = selectedVersionId === version.id;
           let isCurrent = version.id === currentVersionId;
 
           return (
-            <div
-              key={version.id}
-              style={{
-                border: `1px solid ${isSelected ? theme.colors.blue500 : theme.colors.gray300}`,
-                borderRadius: 8,
-                padding: '12px 14px'
-              }}
-            >
-              <Flex
-                style={{
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: 12
-                }}
-              >
-                <Flex direction="column" gap={4}>
-                  <Flex gap={6} style={{ alignItems: 'center', flexWrap: 'wrap' }}>
-                    <Text size="2" weight="strong">
-                      {version.version}
-                    </Text>
-                    {isCurrent && (
+            <Entity.Wrapper>
+              <Entity.Content>
+                <Entity.Field
+                  prefix={
+                    isCurrent && (
                       <Badge color="blue" size="1">
-                        default
+                        Default
                       </Badge>
-                    )}
-                  </Flex>
-                  <Text size="1" color="gray600">
-                    <RenderDate date={version.createdAt} />
-                  </Text>
-                </Flex>
+                    )
+                  }
+                  title={version.version}
+                />
 
-                <Button
-                  size="2"
-                  variant={isSelected ? 'outline' : 'solid'}
-                  onClick={() => setSelectedVersionId(version.id)}
-                  disabled={isSelected}
-                >
-                  {isSelected ? 'Selected' : 'Select version'}
-                </Button>
-              </Flex>
-            </div>
+                <Entity.Field
+                  title="Release date"
+                  value={<RenderDate date={version.createdAt} />}
+                />
+
+                <Entity.Field title="ID" value={<ID id={version.id} />} />
+
+                <Entity.Field title="Actions" right>
+                  <Button
+                    size="2"
+                    variant={isSelected ? 'outline' : 'solid'}
+                    onClick={() => setSelectedVersionId(version.id)}
+                    disabled={isSelected}
+                  >
+                    {isSelected ? 'Selected' : 'Select version'}
+                  </Button>
+                </Entity.Field>
+              </Entity.Content>
+            </Entity.Wrapper>
           );
         })}
       </Flex>

@@ -1,5 +1,4 @@
 import { createLoader } from '@metorial/data-hooks';
-import { useCurrentInstance } from '../../organization';
 import { withAuth } from '../../user';
 
 export let providerCategoriesLoader = createLoader({
@@ -10,10 +9,8 @@ export let providerCategoriesLoader = createLoader({
   mutators: {}
 });
 
-export let useProviderCategories = () => {
-  let instance = useCurrentInstance();
-  let data = providerCategoriesLoader.use(
-    instance.data?.id ? { instanceId: instance.data.id } : null
-  );
+export let useProviderCategories = (instanceId: string | null | undefined) => {
+  let data = providerCategoriesLoader.use(instanceId ? { instanceId } : null);
+
   return data;
 };

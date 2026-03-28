@@ -74,9 +74,10 @@ export let CallbackOverview = (p: { callbackId: string | undefined }) => {
   );
   let providerVersionId =
     deployment.data?.lockedVersion?.id ?? provider.data?.currentVersion?.id;
-  let availableTriggers = useProviderTriggers(instance.data?.id, providerVersionId, {
-    limit: 100
-  });
+  let availableTriggers = useProviderTriggers(
+    instance.data?.id,
+    providerVersionId ? { providerVersionId, limit: 100 } : null
+  );
   let deleteCallbackInstance = instancesLoader.useDeleteMutator();
   let [_, setSearchParams] = useSearchParams();
   let [selectedTriggerKeys, setSelectedTriggerKeys] = useState<string[]>([]);
@@ -466,11 +467,6 @@ let DialogActionsWrapper = (p: { children: React.ReactNode }) => (
   </div>
 );
 
-type CallbackInstanceFormValues = {
-  selectedConfiguration: ConfigurationSelection;
-  selectedAuthConfigId: string;
-};
-
 let CallbackInstanceFormModalContent = (p: {
   instanceId: string;
   callbackId: string;
@@ -479,11 +475,15 @@ let CallbackInstanceFormModalContent = (p: {
   onCreate?: (callbackInstanceId: string) => void;
 }) => {
   let createCallbackInstance = useCreateCallbackInstance();
-  let authConfigs = useProviderAuthConfigs(p.instanceId, p.providerDeploymentId);
+  let deployment = useProviderDeployment(p.instanceId, p.providerDeploymentId);
+  let authConfigs = useProviderAuthConfigs(
+    p.instanceId,
+    deployment.data?.id ? { providerId: deployment.data.providerId } : undefined
+  );
   let authConfigItems = authConfigs.data?.items ?? [];
   let requiresAuthConfig = !authConfigs.isLoading && authConfigItems.length > 0;
   let emptyAuthConfigLabel = requiresAuthConfig ? 'Select an auth config' : 'None';
-  let form = useForm<CallbackInstanceFormValues>({
+  let form = useForm({
     initialValues: {
       selectedConfiguration: emptyConfigurationSelection(),
       selectedAuthConfigId: ''

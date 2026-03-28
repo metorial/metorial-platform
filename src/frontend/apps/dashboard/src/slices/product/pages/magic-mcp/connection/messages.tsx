@@ -184,8 +184,8 @@ let ConnectionMessages = ({
         <>
           <Spacer height={20} />
           <Callout color="gray">
-            No messages yet. Once MCP messages are exchanged on this connection, they will appear
-            here.
+            No messages yet. Once MCP messages are exchanged on this connection, they will
+            appear here.
           </Callout>
         </>
       )}

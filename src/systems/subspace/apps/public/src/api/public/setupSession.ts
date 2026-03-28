@@ -8,11 +8,14 @@ let preloadMarker = '<!-- PRELOAD -->';
 let textEncoder = new TextEncoder();
 let cachedIndexHtmlTemplate: { beforePreload: string; afterPreload: string } | null = null;
 
-let indexHtml = Bun.file(join(process.cwd(), 'frontend', 'dist', 'index.html'));
+let indexHtmlPath = join(process.cwd(), 'frontend', 'dist', 'index.html');
+let indexHtml = Bun.file(indexHtmlPath);
 
 if (!(await indexHtml.exists())) {
   throw new Error('Index HTML file not found. Make sure the frontend is built.');
 }
+
+let indexHtmlContents = await indexHtml.text();
 
 let parseIndexHtmlTemplate = (indexHtmlText: string) => {
   let markerIndex = indexHtmlText.indexOf(preloadMarker);
@@ -31,7 +34,13 @@ let getIndexHtmlTemplate = async () => {
     return cachedIndexHtmlTemplate;
   }
 
-  let template = parseIndexHtmlTemplate(await indexHtml.text());
+  if (process.env.NODE_ENV !== 'production') {
+    // In development, always read from disk to pick up changes without restarting the server.
+    let indexHtmlFile = Bun.file(indexHtmlPath);
+    indexHtmlContents = await indexHtmlFile.text();
+  }
+
+  let template = parseIndexHtmlTemplate(indexHtmlContents);
 
   if (process.env.NODE_ENV === 'production') {
     cachedIndexHtmlTemplate = template;

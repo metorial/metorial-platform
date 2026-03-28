@@ -4,35 +4,28 @@ import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
-  useProviderAuthConfigs
+  useProviderConfigs
 } from '@metorial/state';
 import { RenderDate, Text, theme } from '@metorial/ui';
-import { Table } from '@metorial/ui-product';
+import { ID, Table } from '@metorial/ui-product';
 import { useParams } from 'react-router-dom';
 
-let formatType = (type: string | null | undefined) => {
-  if (type === 'oauth_automated') return 'OAuth (Automated)';
-  if (type === 'oauth_manual') return 'OAuth (Manual)';
-  if (type === 'manual') return 'Manual';
-  return '—';
-};
-
-export let ProviderAuthCredentialAuthConfigsPage = () => {
+export let ProviderConfigVaultConfigsPage = () => {
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
 
-  let { providerAuthCredentialsId } = useParams();
+  let { providerConfigVaultId } = useParams();
 
-  let authConfigs = useProviderAuthConfigs(instance.data?.id, {
-    providerAuthCredentialsId
+  let configs = useProviderConfigs(instance.data?.id, {
+    providerConfigVaultId
   });
 
-  return renderWithPagination(authConfigs)(authConfigs => (
+  return renderWithPagination(configs)(configs => (
     <>
       <Table
-        headers={['Name', 'Type', 'Auth Method', 'Created']}
-        data={authConfigs.data.items.map(config => ({
+        headers={['Name', 'ID', 'Created']}
+        data={configs.data.items.map(config => ({
           href: Paths.instance.providerAuthConfig(
             organization.data,
             project.data,
@@ -43,16 +36,15 @@ export let ProviderAuthCredentialAuthConfigsPage = () => {
             <Text size="2" weight="strong">
               {config.name ?? <span style={{ color: theme.colors.gray600 }}>Unnamed</span>}
             </Text>,
-            <Text size="2">{formatType(config.type)}</Text>,
-            <Text size="2">{config.authMethod?.name ?? config.authMethod?.key ?? '—'}</Text>,
+            <ID id={config.id} />,
             <RenderDate date={config.createdAt} />
           ]
         }))}
       />
 
-      {authConfigs.data.items.length === 0 && (
+      {configs.data.items.length === 0 && (
         <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-          No auth configs are using this credential.
+          No configs created from this vault yet.
         </Text>
       )}
     </>

@@ -7,8 +7,8 @@ import {
   useIdentity,
   useIdentityDelegationConfig,
   useIdentityDelegationConfigs,
-  useInstanceProviderAuthConfigs,
-  useInstanceProviderConfigs,
+  useProviderAuthConfigs,
+  useProviderConfigs,
   useProviderDeployments,
   useProviders
 } from '@metorial/state';
@@ -73,11 +73,8 @@ export let IdentityPage = () => {
   );
   let providers = useProviders(instance.data?.id, { id: providerIds });
   let deployments = useProviderDeployments(instance.data?.id, mapToIdFilter(deploymentIds));
-  let configs = useInstanceProviderConfigs(instance.data?.id, mapToIdFilter(configIds));
-  let authConfigs = useInstanceProviderAuthConfigs(
-    instance.data?.id,
-    mapToIdFilter(authConfigIds)
-  );
+  let configs = useProviderConfigs(instance.data?.id, mapToIdFilter(configIds));
+  let authConfigs = useProviderAuthConfigs(instance.data?.id, mapToIdFilter(authConfigIds));
   let credentialDelegationConfigs = useIdentityDelegationConfigs(
     instance.data?.id,
     mapToIdFilter(credentialDelegationConfigIds)
@@ -226,13 +223,12 @@ export let IdentityPage = () => {
                     ) : (
                       '—'
                     ),
-                    credential.deploymentId && credential.configId ? (
+                    credential.configId ? (
                       <Link
                         to={Paths.instance.providerConfig(
                           organization.data,
                           project.data,
                           instance.data,
-                          credential.deploymentId,
                           credential.configId
                         )}
                       >
@@ -241,13 +237,12 @@ export let IdentityPage = () => {
                     ) : (
                       '—'
                     ),
-                    credential.deploymentId && credential.authConfigId ? (
+                    credential.authConfigId ? (
                       <Link
                         to={Paths.instance.providerAuthConfig(
                           organization.data,
                           project.data,
                           instance.data,
-                          credential.deploymentId,
                           credential.authConfigId
                         )}
                       >

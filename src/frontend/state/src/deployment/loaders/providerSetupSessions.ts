@@ -1,9 +1,9 @@
+import { delay } from '@lowerdeck/delay';
 import {
   DashboardInstanceProviderDeploymentsSetupSessionsCreateBody,
   DashboardInstanceProviderDeploymentsSetupSessionsGetOutput
 } from '@metorial/dashboard-sdk';
 import { createLoader, useMutation } from '@metorial/data-hooks';
-import { delay } from '@lowerdeck/delay';
 import { useMemo } from 'react';
 import { withAuth } from '../../user';
 
@@ -90,10 +90,6 @@ export let getProviderSetupSession = (input: { instanceId: string; setupSessionI
     sdk.providerDeployments.setupSessions.get(input.instanceId, input.setupSessionId)
   );
 
-/**
- * Opens an OAuth popup for a provider that requires authentication.
- * Returns the setup session ID after successful OAuth completion.
- */
 export let authenticateWithSetupSession = async (d: {
   instanceId: string;
   providerId: string;

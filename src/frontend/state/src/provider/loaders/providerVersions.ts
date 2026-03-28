@@ -19,9 +19,7 @@ export let useProviderVersions = (
 ) => {
   let data = usePaginator(pagination =>
     providerVersionsLoader.use(
-      instanceId && providerId
-        ? { ...pagination, ...query, instanceId, providerId }
-        : null
+      instanceId && providerId ? { ...pagination, ...query, instanceId, providerId } : null
     )
   );
 
@@ -31,20 +29,17 @@ export let useProviderVersions = (
 export let providerVersionLoader = createLoader({
   name: 'providerVersion',
   parents: [providerVersionsLoader],
-  fetch: (i: { instanceId: string; providerId: string; providerVersionId: string }) =>
+  fetch: (i: { instanceId: string; providerVersionId: string }) =>
     withAuth(sdk => sdk.providers.versions.get(i.instanceId, i.providerVersionId)),
   mutators: {}
 });
 
 export let useProviderVersion = (
   instanceId: string | null | undefined,
-  providerId: string | null | undefined,
   providerVersionId: string | null | undefined
 ) => {
   let data = providerVersionLoader.use(
-    instanceId && providerId && providerVersionId
-      ? { instanceId, providerId, providerVersionId }
-      : null
+    instanceId && providerVersionId ? { instanceId, providerVersionId } : null
   );
 
   return data;

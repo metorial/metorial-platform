@@ -1,11 +1,7 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { Readme } from '@metorial/markdown';
-import {
-  useCurrentInstance,
-  useProvider,
-  useProviderListingByProviderId
-} from '@metorial/state';
+import { useCurrentInstance, useProvider, useProviderListing } from '@metorial/state';
 import { Attributes, Button, Spacer, Text } from '@metorial/ui';
 import { ID, SideBox } from '@metorial/ui-product';
 import { Link, useParams } from 'react-router-dom';
@@ -16,7 +12,7 @@ export let ProviderReadmePage = () => {
   let { providerId } = useParams();
   let provider = useProvider(instance.data?.id, providerId);
 
-  let listing = useProviderListingByProviderId(instance.data?.id, providerId);
+  let listing = useProviderListing(instance.data?.id, providerId);
 
   return renderWithLoader({ provider })(({ provider }) => (
     <>

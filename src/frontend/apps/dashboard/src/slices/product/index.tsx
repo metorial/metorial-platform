@@ -142,6 +142,11 @@ let ProviderConfigVaultOverviewPage = dynamicPage(() =>
     c => c.ProviderConfigVaultOverviewPage
   )
 );
+let ProviderConfigVaultConfigsPage = dynamicPage(() =>
+  import('./pages/(deployments)/provider-config-vault/configs').then(
+    c => c.ProviderConfigVaultConfigsPage
+  )
+);
 let ProviderConfigVaultSettingsPage = dynamicPage(() =>
   import('./pages/(deployments)/provider-config-vault/settings').then(
     c => c.ProviderConfigVaultSettingsPage
@@ -157,27 +162,27 @@ let ProviderAuthCredentialOverviewPage = dynamicPage(() =>
     c => c.ProviderAuthCredentialOverviewPage
   )
 );
+let ProviderAuthCredentialAuthConfigsPage = dynamicPage(() =>
+  import('./pages/(deployments)/provider-auth-credential/auth-configs').then(
+    c => c.ProviderAuthCredentialAuthConfigsPage
+  )
+);
 let ProviderAuthCredentialSettingsPage = dynamicPage(() =>
   import('./pages/(deployments)/provider-auth-credential/settings').then(
     c => c.ProviderAuthCredentialSettingsPage
   )
 );
-let ProviderAuthConnectionLayout = dynamicPage(() =>
+let ProviderAuthConfigLayout = dynamicPage(() =>
   import('./pages/(deployments)/provider-auth-configs/_layout').then(
     c => c.ProviderAuthConfigLayout
   )
 );
-let ProviderAuthConnectionOverviewPage = dynamicPage(() =>
+let ProviderAuthConfigOverviewPage = dynamicPage(() =>
   import('./pages/(deployments)/provider-auth-configs/index').then(
     c => c.ProviderAuthConfigOverviewPage
   )
 );
-let ProviderAuthConnectionAuthenticationPage = dynamicPage(() =>
-  import('./pages/(deployments)/provider-auth-configs/authentication').then(
-    c => c.ProviderAuthConfigAuthenticationPage
-  )
-);
-let ProviderAuthConnectionSettingsPage = dynamicPage(() =>
+let ProviderAuthConfigSettingsPage = dynamicPage(() =>
   import('./pages/(deployments)/provider-auth-configs/settings').then(
     c => c.ProviderAuthConfigSettingsPage
   )
@@ -322,36 +327,38 @@ let MagicMcpGroupSettingsPage = dynamicPage(() =>
   import('./pages/magic-mcp/group/settings').then(c => c.MagicMcpGroupSettingsPage)
 );
 
-let CustomServerCodePage = dynamicPage(() =>
+let CustomProviderCodePage = dynamicPage(() =>
   import('./pages/(custom-providers)/custom-provider/code').then(c => c.CustomProviderCodePage)
 );
-let CustomServerOverviewPage = dynamicPage(() =>
+let CustomProviderOverviewPage = dynamicPage(() =>
   import('./pages/(custom-providers)/custom-provider').then(c => c.CustomProviderOverviewPage)
 );
-let CustomServerVersionsPage = dynamicPage(() =>
+let CustomProviderVersionsPage = dynamicPage(() =>
   import('./pages/(custom-providers)/custom-provider/versions').then(
     c => c.CustomProviderVersionsPage
   )
 );
-let CustomServerSettingsPage = dynamicPage(() =>
+let CustomProviderSettingsPage = dynamicPage(() =>
   import('./pages/(custom-providers)/custom-provider/settings/settings').then(
     c => c.CustomProviderSettingsPage
   )
 );
-let CustomServerLayout = dynamicPage(() =>
-  import('./pages/(custom-providers)/custom-server/_layout').then(c => c.CustomProviderLayout)
+let CustomProviderLayout = dynamicPage(() =>
+  import('./pages/(custom-providers)/custom-provider/_layout').then(
+    c => c.CustomProviderLayout
+  )
 );
-let CustomServerCommitsPage = dynamicPage(() =>
+let CustomProviderCommitsPage = dynamicPage(() =>
   import('./pages/(custom-providers)/custom-provider/commits').then(
     c => c.CustomProviderCommitsPage
   )
 );
-let CustomServerDeploymentsPage = dynamicPage(() =>
+let CustomProviderDeploymentsPage = dynamicPage(() =>
   import('./pages/(custom-providers)/custom-provider/deployments').then(
     c => c.CustomProviderProviderDeploymentsPage
   )
 );
-let CustomServerListingPage = dynamicPage(() =>
+let CustomProviderListingPage = dynamicPage(() =>
   import('./pages/(custom-providers)/custom-provider/settings/listing').then(
     c => c.CustomProviderListingPage
   )
@@ -697,13 +704,17 @@ export let productInnerSlice = createSlice([
                 element: <ProviderConfigVaultOverviewPage />
               },
               {
+                path: 'configs',
+                element: <ProviderConfigVaultConfigsPage />
+              },
+              {
                 path: 'settings',
                 element: <ProviderConfigVaultSettingsPage />
               }
             ]
           },
           {
-            path: 'configurations/:providerDeploymentId/config/:providerConfigId',
+            path: 'configurations/config/:providerConfigId',
             element: <ProviderConfigLayout />,
             children: [
               {
@@ -717,12 +728,16 @@ export let productInnerSlice = createSlice([
             ]
           },
           {
-            path: 'configurations/:providerDeploymentId/auth-credential/:providerAuthCredentialsId',
+            path: 'configurations/auth-credential/:providerAuthCredentialsId',
             element: <ProviderAuthCredentialLayout />,
             children: [
               {
                 path: '',
                 element: <ProviderAuthCredentialOverviewPage />
+              },
+              {
+                path: 'auth-configs',
+                element: <ProviderAuthCredentialAuthConfigsPage />
               },
               {
                 path: 'settings',
@@ -731,16 +746,16 @@ export let productInnerSlice = createSlice([
             ]
           },
           {
-            path: 'configurations/:providerDeploymentId/auth-connection/:providerAuthConfigId',
-            element: <ProviderAuthConnectionLayout />,
+            path: 'configurations/auth-config/:providerAuthConfigId',
+            element: <ProviderAuthConfigLayout />,
             children: [
               {
                 path: '',
-                element: <ProviderAuthConnectionOverviewPage />
+                element: <ProviderAuthConfigOverviewPage />
               },
               {
                 path: 'settings',
-                element: <ProviderAuthConnectionSettingsPage />
+                element: <ProviderAuthConfigSettingsPage />
               }
             ]
           },
@@ -1118,37 +1133,37 @@ export let productInnerSlice = createSlice([
           },
 
           {
-            path: 'custom-provider/:customServerId',
-            element: <CustomServerLayout />,
+            path: 'custom-provider/:customProviderId',
+            element: <CustomProviderLayout />,
 
             children: [
               {
                 path: '',
-                element: <CustomServerOverviewPage />
+                element: <CustomProviderOverviewPage />
               },
               {
                 path: 'versions',
-                element: <CustomServerVersionsPage />
+                element: <CustomProviderVersionsPage />
               },
               {
                 path: 'code',
-                element: <CustomServerCodePage />
+                element: <CustomProviderCodePage />
               },
               {
                 path: 'commits',
-                element: <CustomServerCommitsPage />
+                element: <CustomProviderCommitsPage />
               },
               {
                 path: 'deployments',
-                element: <CustomServerDeploymentsPage />
+                element: <CustomProviderDeploymentsPage />
               },
               {
                 path: 'settings',
-                element: <CustomServerSettingsPage />
+                element: <CustomProviderSettingsPage />
               },
               {
                 path: 'listing',
-                element: <CustomServerListingPage />
+                element: <CustomProviderListingPage />
               }
             ]
           }

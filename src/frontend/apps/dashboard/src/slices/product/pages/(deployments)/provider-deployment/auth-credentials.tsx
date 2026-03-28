@@ -23,13 +23,10 @@ export let ProviderDeploymentAuthCredentialsPage = () => {
   let deployment = useProviderDeployment(instance.data?.id, providerDeploymentId);
   let { search, setSearch, searchQuery } = useSearchFilter();
 
-  let authCredentials = useProviderAuthCredentials(
-    instance.data?.id,
-    deployment.data?.providerId,
-    {
-      search: searchQuery
-    }
-  );
+  let authCredentials = useProviderAuthCredentials(instance.data?.id, {
+    search: searchQuery,
+    providerId: deployment.data?.providerId
+  });
 
   return renderWithLoader({ instance, organization, project, deployment })(
     ({ instance, organization, project, deployment }) => (
@@ -49,7 +46,6 @@ export let ProviderDeploymentAuthCredentialsPage = () => {
                       organization.data,
                       project.data,
                       instance.data,
-                      deployment.data.id,
                       credential.id
                     )
                   )
@@ -79,7 +75,6 @@ export let ProviderDeploymentAuthCredentialsPage = () => {
                   organization.data,
                   project.data,
                   instance.data,
-                  deployment.data.id,
                   credential.id
                 ),
                 data: [

@@ -5,8 +5,7 @@ import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
-  useProviderConfig,
-  useProviderDeployment
+  useProviderConfig
 } from '@metorial/state';
 import { LinkTabs } from '@metorial/ui';
 import { Outlet, useLocation, useParams } from 'react-router-dom';
@@ -16,9 +15,8 @@ export let ProviderConfigLayout = () => {
   let project = useCurrentProject();
   let organization = useCurrentOrganization();
 
-  let { providerDeploymentId, providerConfigId } = useParams();
-  let deployment = useProviderDeployment(instance.data?.id, providerDeploymentId);
-  let config = useProviderConfig(instance.data?.id, providerDeploymentId, providerConfigId);
+  let { providerConfigId } = useParams();
+  let config = useProviderConfig(instance.data?.id, providerConfigId);
 
   let pathname = useLocation().pathname;
 
@@ -26,7 +24,6 @@ export let ProviderConfigLayout = () => {
     organization.data,
     project.data,
     instance.data,
-    deployment.data?.id ?? providerDeploymentId,
     config.data?.id ?? providerConfigId
   ] as const;
 
@@ -37,30 +34,11 @@ export let ProviderConfigLayout = () => {
         description={config.data?.description ?? undefined}
         pagination={[
           {
-            label: 'Deployments',
-            href: Paths.instance.providerDeployments(
+            label: 'Configs',
+            href: Paths.instance.providerConfigs(
               organization.data,
               project.data,
               instance.data
-            )
-          },
-          {
-            label: deployment.data?.name ?? '...',
-            href: Paths.instance.providerDeployment(
-              organization.data,
-              project.data,
-              instance.data,
-              deployment.data?.id ?? providerDeploymentId
-            )
-          },
-          {
-            label: 'Configs',
-            href: Paths.instance.providerDeployment(
-              organization.data,
-              project.data,
-              instance.data,
-              deployment.data?.id ?? providerDeploymentId,
-              'configs'
             )
           },
           {

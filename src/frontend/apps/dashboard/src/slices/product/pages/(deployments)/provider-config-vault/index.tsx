@@ -4,12 +4,12 @@ import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
-  useInstanceProviderConfigs,
   useProviderConfigVault
 } from '@metorial/state';
-import { Attributes, Badge, RenderDate, Spacer, Text } from '@metorial/ui';
-import { ID, Table } from '@metorial/ui-product';
+import { Attributes, RenderDate, Spacer } from '@metorial/ui';
+import { ID } from '@metorial/ui-product';
 import { Link, useParams } from 'react-router-dom';
+import { UsageScene } from '../../../scenes/usage/usage';
 
 export let ProviderConfigVaultOverviewPage = () => {
   let instance = useCurrentInstance();
@@ -18,13 +18,6 @@ export let ProviderConfigVaultOverviewPage = () => {
 
   let { providerConfigVaultId } = useParams();
   let vault = useProviderConfigVault(instance.data?.id, providerConfigVaultId);
-  let configs = useInstanceProviderConfigs(
-    instance.data?.id,
-    vault.data?.providerId ? { providerId: vault.data.providerId } : null
-  );
-  let usedByConfigs = (configs.data?.items ?? []).filter(
-    config => config.fromVault?.id === vault.data?.id
-  );
 
   return renderWithLoader({ vault })(({ vault }) => (
     <>
@@ -75,42 +68,16 @@ export let ProviderConfigVaultOverviewPage = () => {
         ]}
       />
 
-      <Spacer size={20} />
+      <Spacer height={15} />
 
-      <Text size="4" weight="strong">
-        Used By Configs
-      </Text>
-
-      <Spacer size={10} />
-
-      <Table
-        headers={['Name', 'Default', 'Created']}
-        data={usedByConfigs.map(config => ({
-          href:
-            (config.deployment?.id ?? vault.data.deployment?.id)
-              ? Paths.instance.providerConfig(
-                  organization.data,
-                  project.data,
-                  instance.data,
-                  config.deployment?.id ?? vault.data.deployment?.id!,
-                  config.id
-                )
-              : undefined,
-          data: [
-            <Text size="2" weight="strong">
-              {config.name ?? config.id}
-            </Text>,
-            config.isDefault ? <Badge color="blue">Default</Badge> : <></>,
-            <RenderDate date={config.createdAt} />
-          ]
-        }))}
+      <UsageScene
+        title="Usage"
+        description="See how this config vault is being used in your instance."
+        entities={[{ type: 'provider_config_vault', id: vault.data.id }]}
+        entityNames={{
+          [vault.data.id]: vault.data.name ?? vault.data.id
+        }}
       />
-
-      {usedByConfigs.length === 0 && (
-        <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-          No configs are currently using this vault.
-        </Text>
-      )}
     </>
   ));
 };

@@ -5,8 +5,7 @@ import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
-  useProviderAuthConfig,
-  useProviderDeployment
+  useProviderAuthConfig
 } from '@metorial/state';
 import { LinkTabs } from '@metorial/ui';
 import { Outlet, useLocation, useParams } from 'react-router-dom';
@@ -16,13 +15,8 @@ export let ProviderAuthConfigLayout = () => {
   let project = useCurrentProject();
   let organization = useCurrentOrganization();
 
-  let { providerDeploymentId, providerAuthConfigId } = useParams();
-  let deployment = useProviderDeployment(instance.data?.id, providerDeploymentId);
-  let authConfig = useProviderAuthConfig(
-    instance.data?.id,
-    providerDeploymentId,
-    providerAuthConfigId
-  );
+  let { providerAuthConfigId } = useParams();
+  let authConfig = useProviderAuthConfig(instance.data?.id, providerAuthConfigId);
 
   let pathname = useLocation().pathname;
 
@@ -30,7 +24,6 @@ export let ProviderAuthConfigLayout = () => {
     organization.data,
     project.data,
     instance.data,
-    deployment.data?.id ?? providerDeploymentId,
     authConfig.data?.id ?? providerAuthConfigId
   ] as const;
 
@@ -41,30 +34,11 @@ export let ProviderAuthConfigLayout = () => {
         description={authConfig.data?.description ?? undefined}
         pagination={[
           {
-            label: 'Deployments',
-            href: Paths.instance.providerDeployments(
+            label: 'Auth Configs',
+            href: Paths.instance.providerAuthConfigs(
               organization.data,
               project.data,
               instance.data
-            )
-          },
-          {
-            label: deployment.data?.name ?? '...',
-            href: Paths.instance.providerDeployment(
-              organization.data,
-              project.data,
-              instance.data,
-              deployment.data?.id ?? providerDeploymentId
-            )
-          },
-          {
-            label: 'Auth Configs',
-            href: Paths.instance.providerDeployment(
-              organization.data,
-              project.data,
-              instance.data,
-              deployment.data?.id ?? providerDeploymentId,
-              'auth-configs'
             )
           },
           {

@@ -8,7 +8,9 @@ let ProviderSetupSessionDialogContent = (p: {
   providerId: string;
   deploymentId: string;
   close: () => void;
-  onComplete?: (result: DashboardInstanceProviderDeploymentsSetupSessionsGetOutput | null) => void;
+  onComplete?: (
+    result: DashboardInstanceProviderDeploymentsSetupSessionsGetOutput | null
+  ) => void;
 }) => {
   let provider = useProvider(p.instanceId, p.providerId);
   let providerName = provider.data?.name ?? 'provider';
@@ -39,7 +41,9 @@ export let showProviderSetupSessionModal = (p: {
   instanceId: string;
   providerId: string;
   deploymentId: string;
-  onComplete?: (result: DashboardInstanceProviderDeploymentsSetupSessionsGetOutput | null) => void;
+  onComplete?: (
+    result: DashboardInstanceProviderDeploymentsSetupSessionsGetOutput | null
+  ) => void;
 }) =>
   showModal(({ dialogProps, close }) => {
     return (
