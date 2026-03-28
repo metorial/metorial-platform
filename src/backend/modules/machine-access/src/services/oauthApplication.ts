@@ -135,7 +135,6 @@ class OAuthApplicationService {
         })
       );
     }
-
   }
 
   private buildMachineAccessName(name: string) {
@@ -589,7 +588,15 @@ class OAuthApplicationService {
     if (existing) {
       this.assertApplicationOwnedLocally(existing);
 
-      return await db.oAuthApplication.update({
+      await Fabric.fire('machine_access.oauth_application.updated:before', {
+        oauthApplication: existing,
+        input: inner,
+        organization: null,
+        performedBy: null,
+        context: null
+      });
+
+      let res = await db.oAuthApplication.update({
         where: { oid: existing.oid },
         data: {
           ...inner,
@@ -602,17 +609,45 @@ class OAuthApplicationService {
         },
         include
       });
+
+      await Fabric.fire('machine_access.oauth_application.updated:after', {
+        oauthApplication: res,
+        input: inner,
+        organization: null,
+        performedBy: null,
+        context: null
+      });
+
+      return res;
     }
 
-    return await db.oAuthApplication.create({
+    await Fabric.fire('machine_access.oauth_application.created:before', {
+      organization: null,
+      performedBy: null,
+      context: null,
+      input: inner,
+      serverSideMachineAccess: null
+    });
+
+    let res = await db.oAuthApplication.create({
       data: {
         id: await ID.generateId('oauthApplication'),
         clientId: generateCustomId('mt_oauth_', 32),
-
         ...inner
       },
       include
     });
+
+    await Fabric.fire('machine_access.oauth_application.created:after', {
+      organization: null,
+      performedBy: null,
+      context: null,
+      input: inner,
+      serverSideMachineAccess: null,
+      oauthApplication: res
+    });
+
+    return res;
   }
 }
 

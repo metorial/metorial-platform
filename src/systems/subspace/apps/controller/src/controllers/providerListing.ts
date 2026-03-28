@@ -38,6 +38,7 @@ export let providerListingController = app.controller({
           providerCategoryIds: v.optional(v.array(v.string())),
           providerGroupIds: v.optional(v.array(v.string())),
           publisherIds: v.optional(v.array(v.string())),
+          ids: v.optional(v.array(v.string())),
 
           isPublic: v.optional(v.boolean()),
           onlyFromTenant: v.optional(v.boolean()),
@@ -100,6 +101,7 @@ export let providerListingController = app.controller({
         providerCategoryIds: ctx.input.providerCategoryIds,
         providerGroupIds: ctx.input.providerGroupIds,
         publisherIds: ctx.input.publisherIds,
+        ids: ctx.input.ids,
 
         capabilities: ctx.input.capabilities,
 

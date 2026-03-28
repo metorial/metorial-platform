@@ -67,6 +67,8 @@ export let providerListingController = Controller.create(
         Paginator.validate(
           v.object({
             search: v.optional(v.string()),
+
+            id: v.optional(v.union([v.string(), v.array(v.string())])),
             provider_category_id: v.optional(v.union([v.string(), v.array(v.string())])),
             provider_collection_id: v.optional(v.union([v.string(), v.array(v.string())])),
             provider_group_id: v.optional(v.union([v.string(), v.array(v.string())])),
@@ -91,6 +93,7 @@ export let providerListingController = Controller.create(
         Paginator.validate(
           v.object({
             search: v.optional(v.string()),
+            id: v.optional(v.union([v.string(), v.array(v.string())])),
             provider_category_id: v.optional(v.union([v.string(), v.array(v.string())])),
             provider_collection_id: v.optional(v.union([v.string(), v.array(v.string())])),
             provider_group_id: v.optional(v.union([v.string(), v.array(v.string())])),
@@ -121,12 +124,12 @@ export let providerListingController = Controller.create(
           })
         )
       )
-
       .do(async ctx => {
         let paginator = await subspaceProviderListingService.list({
           instance: ctx.instance,
           search: ctx.query.search,
 
+          ids: normalizeArrayParam(ctx.query.id),
           publisherIds: normalizeArrayParam(ctx.query.publisher_id),
           providerCategoryIds: normalizeArrayParam(ctx.query.provider_category_id),
           providerCollectionIds: normalizeArrayParam(ctx.query.provider_collection_id),

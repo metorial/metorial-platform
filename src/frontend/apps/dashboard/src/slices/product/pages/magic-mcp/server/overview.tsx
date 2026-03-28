@@ -5,6 +5,7 @@ import {
   useCurrentInstance,
   useMagicMcpServer,
   useMagicMcpTokens,
+  useProviderListings,
   useProviders,
   useSessionTemplateProviders
 } from '@metorial/state';
@@ -50,6 +51,7 @@ export let MagicMcpServerOverviewPage = () => {
     [templateProviders.data?.items]
   );
   let providers = useProviders(instance.data?.id, { id: providerIds });
+  let listings = useProviderListings(instance.data?.id, { id: providerIds });
 
   let [tab, setTab] = useState<ConnectionType>('cursor');
   let copy = useCopy();
