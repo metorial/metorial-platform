@@ -1060,7 +1060,10 @@ class OAuthAuthorizationService {
     let missingScopes = d.oauthAuthorizationRequest.scopes.filter(
       scope => !scopes.includes(scope)
     );
-    if (missingScopes.length > 0) {
+    if (
+      d.oauthAuthorizationRequest.oauthApplication.type == 'user_facing' &&
+      missingScopes.length > 0
+    ) {
       throw new ServiceError(
         forbiddenError({
           message: `You cannot accept this app because it requires permissions that you do not have: ${missingScopes.join(', ')}`,
