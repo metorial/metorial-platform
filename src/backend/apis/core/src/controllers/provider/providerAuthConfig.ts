@@ -11,6 +11,7 @@ import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { providerAuthConfigPresenter } from '../../presenters';
+import { toolFiltersValidator } from './session';
 
 let providerAuthConfigGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerAuthConfigId) {
@@ -144,6 +145,7 @@ export let providerAuthConfigController = Controller.create(
             }),
             { description: 'Custom key-value pairs for storing additional information' }
           ),
+          tool_filters: toolFiltersValidator,
           provider_auth_method_id: v.string({
             examples: ['pam_2mNpQrStUvWxYzAb'],
             description: 'The authentication method this config uses (e.g., OAuth, API key)'
@@ -187,6 +189,7 @@ export let providerAuthConfigController = Controller.create(
           ip: ctx.context.ip,
           ua: ctx.context.ua ?? '',
           metadata: ctx.body.metadata,
+          toolFilters: ctx.body.tool_filters,
 
           config: ctx.body.value
         });
@@ -220,7 +223,8 @@ export let providerAuthConfigController = Controller.create(
               examples: [{ connected_by: 'alex@company.com', purpose: 'production' }]
             }),
             { description: 'Custom key-value pairs for storing additional information' }
-          )
+          ),
+          tool_filters: toolFiltersValidator
         })
       )
       .output(providerAuthConfigPresenter)
@@ -231,6 +235,7 @@ export let providerAuthConfigController = Controller.create(
           name: ctx.body.name,
           description: ctx.body.description,
           metadata: ctx.body.metadata,
+          toolFilters: ctx.body.tool_filters,
           ip: ctx.context.ip,
           ua: ctx.context.ua ?? ''
         });

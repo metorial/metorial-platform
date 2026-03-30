@@ -8,54 +8,96 @@ import { v1ConfigPresenter } from './config';
 import { v1ProviderDeploymentPreviewPresenter } from './deploymentPreview';
 
 export let v1SetupSessionPresenter = Presenter.create(providerSetupSessionType)
-  .presenter(async ({ setupSession }, opts) => ({
-    object: 'provider.setup_session' as const,
+  .presenter(async ({ setupSession }, opts) => {
+    let configuration = (setupSession as { configuration?: any }).configuration;
 
-    id: setupSession.id,
-    type: setupSession.type,
-    status: setupSession.status,
+    return {
+      object: 'provider.setup_session' as const,
 
-    url: setupSession.url,
+      id: setupSession.id,
+      type: setupSession.type,
+      status: setupSession.status,
 
-    name: setupSession.name,
-    description: setupSession.description,
-    metadata: setupSession.metadata,
+      url: setupSession.url,
 
-    provider_id: setupSession.providerId,
+      name: setupSession.name,
+      description: setupSession.description,
+      metadata: setupSession.metadata,
 
-    auth_method: await v1ProviderAuthMethodPresenter
-      .present({ authMethod: setupSession.authMethod }, opts)
-      .run(),
+      configuration: configuration
+        ? {
+            provider_search: configuration.providerSearch
+              ? {
+                  groups: configuration.providerSearch.groups?.map(
+                    (group: { groupId: string }) => ({
+                      group_id: group.groupId
+                    })
+                  ),
+                  collections: configuration.providerSearch.collections?.map(
+                    (collection: { collectionId: string }) => ({
+                      collection_id: collection.collectionId
+                    })
+                  ),
+                  categories: configuration.providerSearch.categories?.map(
+                    (category: { categoryId: string }) => ({
+                      category_id: category.categoryId
+                    })
+                  )
+                }
+              : undefined,
 
-    deployment: setupSession.deployment
-      ? await v1ProviderDeploymentPreviewPresenter
-          .present({ deployment: setupSession.deployment }, opts)
-          .run()
-      : null,
+            tool_filters: configuration.toolFilters
+              ? {
+                  enabled: configuration.toolFilters.enabled
+                }
+              : undefined,
 
-    credentials: setupSession.credentials
-      ? await v1ProviderAuthCredentialsPresenter
-          .present({ authCredentials: setupSession.credentials }, opts)
-          .run()
-      : null,
+            ui: configuration.ui
+              ? {
+                  layout: configuration.ui.layout
+                }
+              : undefined
+          }
+        : null,
 
-    auth_config: setupSession.authConfig
-      ? await v1ProviderAuthConfigPresenter
-          .present({ authConfig: setupSession.authConfig }, opts)
-          .run()
-      : null,
+      provider_id: setupSession.providerId ?? null,
 
-    config: setupSession.config
-      ? await v1ConfigPresenter.present({ config: setupSession.config }, opts).run()
-      : null,
+      auth_method: setupSession.authMethod
+        ? await v1ProviderAuthMethodPresenter
+            .present({ authMethod: setupSession.authMethod }, opts)
+            .run()
+        : null,
 
-    ui_mode: setupSession.uiMode,
-    redirect_url: setupSession.redirectUrl,
+      deployment: setupSession.deployment
+        ? await v1ProviderDeploymentPreviewPresenter
+            .present({ deployment: setupSession.deployment }, opts)
+            .run()
+        : null,
 
-    created_at: setupSession.createdAt,
-    updated_at: setupSession.updatedAt,
-    expires_at: setupSession.expiresAt
-  }))
+      credentials: setupSession.credentials
+        ? await v1ProviderAuthCredentialsPresenter
+            .present({ authCredentials: setupSession.credentials }, opts)
+            .run()
+        : null,
+
+      auth_config: setupSession.authConfig
+        ? await v1ProviderAuthConfigPresenter
+            .present({ authConfig: setupSession.authConfig }, opts)
+            .run()
+        : null,
+
+      config: setupSession.config
+        ? await v1ConfigPresenter.present({ config: setupSession.config }, opts).run()
+        : null,
+
+      ui_mode: setupSession.uiMode,
+      redirect_url: setupSession.redirectUrl,
+
+      created_at: setupSession.createdAt,
+      updated_at: setupSession.updatedAt,
+      expires_at: setupSession.expiresAt
+    };
+  })
   .schema(
     v.object({
       object: v.literal('provider.setup_session', {
@@ -100,23 +142,28 @@ export let v1SetupSessionPresenter = Presenter.create(providerSetupSessionType)
           examples: [{ redirect_uri: 'https://app.example.com/callback' }]
         })
       ),
-      provider_id: v.string({
-        name: 'provider_id',
-        description: 'Provider ID',
-        examples: ['pro_5gHjKlMnPqRsTuVw']
-      }),
-      auth_method: v1ProviderAuthMethodPresenter.schema,
+      configuration: v.nullable(
+        v.record(v.any(), {
+          name: 'configuration',
+          description: 'Setup session configuration'
+        })
+      ),
+      provider_id: v.nullable(
+        v.string({
+          name: 'provider_id',
+          description: 'Provider ID',
+          examples: ['pro_5gHjKlMnPqRsTuVw']
+        })
+      ),
+      auth_method: v.nullable(v1ProviderAuthMethodPresenter.schema),
       deployment: v.nullable(v1ProviderDeploymentPreviewPresenter.schema),
       credentials: v.nullable(v1ProviderAuthCredentialsPresenter.schema),
       auth_config: v.nullable(v1ProviderAuthConfigPresenter.schema),
       config: v.nullable(v1ConfigPresenter.schema),
-      ui_mode: v.enumOf(
-        ['metorial_elements', 'dashboard_embeddable'] as const,
-        {
-          name: 'ui_mode',
-          description: 'UI mode for setup'
-        }
-      ),
+      ui_mode: v.enumOf(['metorial_elements', 'dashboard_embeddable'] as const, {
+        name: 'ui_mode',
+        description: 'UI mode for setup'
+      }),
       redirect_url: v.nullable(
         v.string({
           name: 'redirect_url',
@@ -139,6 +186,6 @@ export let v1SetupSessionPresenter = Presenter.create(providerSetupSessionType)
         description: 'Timestamp when the session expires',
         examples: [new Date('2025-09-15T11:30:00Z')]
       })
-    })
+    }) as any
   )
   .build();
