@@ -1,13 +1,15 @@
-import { CenteredSpinner, Group, Title } from '@metorial-io/ui';
+import { CenteredSpinner, Group, Title } from '@metorial/ui';
 import React from 'react';
 import styled from 'styled-components';
+import { useHideBootSpinner } from '../../hooks/useHideBootSpinner';
 import { useSetupSession } from '../../state/setupSession';
-import { SetupSessionFlow } from './SetupSessionFlow';
-import { ErrorIcon, SuccessIcon, WarningIcon } from './components/StatusIcons';
-import { SecuredByFooter } from './components/StepLayout';
+import { ErrorIcon, SuccessIcon, WarningIcon } from './components/statusIcons';
+import { SecuredByFooter } from './components/stepLayout';
+import { SetupSessionFlow } from './setupSessionFlow';
 
 export let SetupSessionPage = () => {
   let setupSession = useSetupSession();
+  useHideBootSpinner(!!setupSession.data || !!setupSession.error);
 
   if (setupSession.error) {
     return (
@@ -165,9 +167,10 @@ interface StatusPageViewProps {
   icon: React.ReactElement;
   title: string;
   description: string;
+  noPadding?: boolean;
 }
 
-let StatusPageView = ({ icon, title, description }: StatusPageViewProps) => {
+let StatusPageView = ({ icon, title, description, noPadding }: StatusPageViewProps) => {
   return (
     <Wrapper>
       <Inner>

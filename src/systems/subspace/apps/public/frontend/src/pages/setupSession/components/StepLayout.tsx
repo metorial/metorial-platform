@@ -1,4 +1,4 @@
-import { theme } from '@metorial-io/ui';
+import { theme } from '@metorial/ui';
 import styled from 'styled-components';
 
 export let StepWrapper = styled.div<{ $isMetorialElement: boolean }>`

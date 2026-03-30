@@ -1,4 +1,4 @@
-import { Flex, Text } from '@metorial-io/ui';
+import { Flex, Text } from '@metorial/ui';
 import { RiCheckLine } from '@remixicon/react';
 import type { ReactNode } from 'react';
 import styled from 'styled-components';
@@ -11,13 +11,13 @@ interface DashboardEmbeddableLayoutProps {
 }
 
 let Wrapper = styled.div`
-  padding: 24px;
+  /* padding: 24px;
   max-width: 600px;
-  margin: 0 auto;
+  margin: 0 auto; */
 
-  @media (max-width: 640px) {
+  /* @media (max-width: 640px) {
     padding: 16px;
-  }
+  } */
 `;
 
 let StepIndicator = styled(Flex)`

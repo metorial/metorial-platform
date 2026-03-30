@@ -1,8 +1,8 @@
-import { Button, Flex, Spacer, Text, Title } from '@metorial-io/ui';
+import { Button, Flex, Spacer, Text, Title } from '@metorial/ui';
 import { RiCheckLine } from '@remixicon/react';
 import { useState } from 'react';
 import styled from 'styled-components';
-import { StepContentBlock, StepWrapper } from '../components/StepLayout';
+import { StepContentBlock, StepWrapper } from '../components/stepLayout';
 import type { OAuthSetup } from '../types';
 
 let CheckList = styled.div`

@@ -1,5 +1,6 @@
-import { Flex, Text, Title, theme } from '@metorial-io/ui';
+import { AnimateHeight, Flex, Text, Title, theme } from '@metorial/ui';
 import { RiCheckLine } from '@remixicon/react';
+import { AnimatePresence, motion } from 'framer-motion';
 import type { ReactNode } from 'react';
 import styled, { keyframes } from 'styled-components';
 import type { Brand } from '../types';
@@ -67,7 +68,7 @@ let Header = styled.div`
   }
 `;
 
-let IconsRow = styled.div`
+let IconsRow = styled(motion.div)`
   display: flex;
   align-items: center;
   gap: 12px;
@@ -217,12 +218,13 @@ let FooterLogo = styled.img`
 
 interface MetorialElementsLayoutProps {
   brand: Brand;
-  providerName: string;
-  providerImageUrl: string;
+  providerName?: string | null;
+  providerImageUrl?: string | null;
   children: ReactNode;
   hideHeader?: boolean;
   currentStep?: number;
   stepLabels?: string[];
+  variant?: 'box' | 'light';
 }
 
 export let MetorialElementsLayout = ({
@@ -232,33 +234,66 @@ export let MetorialElementsLayout = ({
   children,
   hideHeader = false,
   currentStep = 0,
-  stepLabels = []
+  stepLabels = [],
+  variant = 'box'
 }: MetorialElementsLayoutProps) => {
   return (
-    <Wrapper data-layout="metorial-elements">
+    <Wrapper
+      data-layout="metorial-elements"
+      style={variant === 'light' ? { background: 'white' } : undefined}
+    >
       <Inner>
-        <Card>
+        <Card
+          style={
+            variant === 'light'
+              ? {
+                  background: 'transparent',
+                  boxShadow: 'none',
+                  borderRadius: 0
+                }
+              : undefined
+          }
+        >
           {!hideHeader && (
-            <Header>
+            <Header
+              style={
+                variant === 'light'
+                  ? {
+                      borderBottom: 'none'
+                    }
+                  : undefined
+              }
+            >
               <IconsRow>
                 <BrandIcon src={brand.imageUrl} alt={brand.name} />
-                <Chevrons>
-                  <ChevronIcon delay={0} />
-                  <ChevronIcon delay={0.3} />
-                  <ChevronIcon delay={0.6} />
-                </Chevrons>
-                <ProviderIcon
-                  style={{ background: `url(${providerImageUrl}) center/contain no-repeat` }}
-                >
-                  {providerImageUrl.includes('avatar')
-                    ? providerName.charAt(0).toUpperCase()
-                    : ''}
-                </ProviderIcon>
+
+                <AnimatePresence>
+                  {providerImageUrl && (
+                    <motion.div
+                      initial={{ opacity: 0, width: 0 }}
+                      animate={{ opacity: 1, width: 'auto' }}
+                      style={{ overflow: 'hidden' }}
+                    >
+                      <IconsRow>
+                        <Chevrons>
+                          <ChevronIcon delay={0} />
+                          <ChevronIcon delay={0.3} />
+                          <ChevronIcon delay={0.6} />
+                        </Chevrons>
+                        <ProviderIcon
+                          style={{
+                            background: `url(${providerImageUrl}) center/contain no-repeat`
+                          }}
+                        />
+                      </IconsRow>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </IconsRow>
 
               <HeaderText>
                 <Title size="5" weight="strong" style={{ textAlign: 'center' }}>
-                  Connect to {providerName}
+                  {providerName ? `Connect to ${providerName}` : 'Choose a provider'}
                 </Title>
               </HeaderText>
             </Header>
@@ -293,7 +328,9 @@ export let MetorialElementsLayout = ({
             </StepIndicator>
           )}
 
-          <Content $hideHeader={hideHeader}>{children}</Content>
+          <AnimateHeight>
+            <Content $hideHeader={hideHeader}>{children}</Content>
+          </AnimateHeight>
 
           <Footer>
             <span>Secured by</span>

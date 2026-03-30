@@ -1,4 +1,4 @@
-import { Flex, Spacer, Spinner, Text, Title } from '@metorial-io/ui';
+import { Flex, Spacer, Spinner, Text, Title } from '@metorial/ui';
 import { RiCheckLine } from '@remixicon/react';
 import { useEffect } from 'react';
 

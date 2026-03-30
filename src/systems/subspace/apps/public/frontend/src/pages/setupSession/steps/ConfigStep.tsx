@@ -1,22 +1,26 @@
 import { useForm } from '@metorial-io/data-hooks';
-import { Button, Flex } from '@metorial-io/ui';
+import { Button, Flex } from '@metorial/ui';
 import type { JsonSchema } from '../../../lib/jsonSchema';
 import { getDefaultValues, schemaToYup } from '../../../lib/jsonSchema';
-import { FormFromSchema } from '../components/FormFromSchema';
-import { StepContentBlock, StepWrapper } from '../components/StepLayout';
+import { FormFromSchema } from '../components/formFromSchema';
+import { StepContentBlock, StepWrapper } from '../components/stepLayout';
 
 interface ConfigStepProps {
   schema: JsonSchema;
   onSubmit: (data: Record<string, unknown>) => Promise<unknown>;
   isSubmitting: boolean;
   isMetorialElement?: boolean;
+  extraContent?: React.ReactNode;
+  submitLabel?: string;
 }
 
 export let ConfigStep = ({
   schema,
   onSubmit,
   isSubmitting,
-  isMetorialElement = false
+  isMetorialElement = false,
+  extraContent,
+  submitLabel = 'Continue'
 }: ConfigStepProps) => {
   let form = useForm({
     initialValues: getDefaultValues(schema),
@@ -33,6 +37,7 @@ export let ConfigStep = ({
         <form onSubmit={form.handleSubmit}>
           <Flex direction="column" gap={20}>
             <FormFromSchema schema={schema} form={form} RenderError={form.RenderError} />
+            {extraContent}
 
             <Button
               type="submit"
@@ -40,9 +45,9 @@ export let ConfigStep = ({
               size="2"
               fullWidth
               loading={isSubmitting}
-              disabled={!form.isValid}
+              disabled={isSubmitting}
             >
-              Continue
+              {submitLabel}
             </Button>
           </Flex>
         </form>

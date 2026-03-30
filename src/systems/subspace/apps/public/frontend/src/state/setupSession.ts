@@ -1,5 +1,6 @@
 import { type ErrorData, ServiceError } from '@lowerdeck/error';
-import { createLoader } from '@metorial-io/data-hooks';
+import { createLoader } from '@metorial/data-hooks';
+import { useEffect, useRef, useState } from 'react';
 import { htmlDecode } from '../../../src/lib/htmlEncode';
 import { client } from './client';
 
@@ -56,6 +57,66 @@ export let configSchemaState = createLoader({
     }),
   mutators: {}
 });
+
+export let providerSearchState = createLoader({
+  name: 'providerSearch',
+  fetch: (d: {
+    sessionId: string;
+    clientSecret: string;
+    search?: string;
+    limit?: number;
+    after?: string;
+    before?: string;
+  }) =>
+    client.setupSession.listProviders({
+      sessionId: d.sessionId,
+      clientSecret: d.clientSecret,
+      search: d.search,
+      limit: d.limit,
+      after: d.after,
+      before: d.before
+    }),
+  mutators: {}
+});
+
+export let useProviderSearch = (
+  input: {
+    sessionId: string;
+    clientSecret: string;
+    search?: string;
+    limit?: number;
+  } | null
+) => {
+  let [cursor, setCursor] = useState<{ before?: string; after?: string }>({});
+  let resetKey = input
+    ? `${input.sessionId}:${input.search ?? ''}:${input.limit ?? 12}`
+    : null;
+  let previousResetKeyRef = useRef(resetKey);
+
+  useEffect(() => {
+    if (previousResetKeyRef.current === resetKey) return;
+    previousResetKeyRef.current = resetKey;
+    setCursor({});
+  }, [resetKey]);
+
+  let data = providerSearchState.use(input ? { ...input, ...cursor } : null);
+  let dataRef = useRef(data.data);
+  dataRef.current = data.data;
+  let isInitialLoading = !!input && !data.data && !data.error;
+
+  return {
+    ...data,
+    isLoading: data.isLoading || isInitialLoading,
+    next: () => {
+      let lastItem = dataRef.current?.items[dataRef.current.items.length - 1];
+      if (lastItem) setCursor({ after: lastItem.id });
+    },
+    previous: () => {
+      let firstItem = dataRef.current?.items[0];
+      if (firstItem) setCursor({ before: firstItem.id });
+    }
+  };
+};
 
 let getInputFromUrl = (): { sessionId: string; clientSecret: string } | null => {
   let match = window.location.pathname.match(/\/setup-session\/([^/?]+)/);
