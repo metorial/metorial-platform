@@ -47,6 +47,7 @@ let magicConnectionsState: TableStateProvider<
 > = (props, opts) => {
   let connections = useAllSessionConnections(props.instance.data?.id, {
     order: props.order ?? 'desc',
+    status: props.status,
     connectionState:
       getConnectionStateFilterValue(opts.filter.connectionState) ?? props.connectionState,
     id: getStringFilterValue(opts.filter.id) ?? props.id,
