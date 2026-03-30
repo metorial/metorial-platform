@@ -3,12 +3,7 @@ import {
   DashboardInstanceSessionsConnectionsListQuery
 } from '@metorial/dashboard-sdk';
 import { Paths } from '@metorial/frontend-config';
-import {
-  useAllSessionConnections,
-  useCurrentInstance,
-  useCurrentOrganization,
-  useCurrentProject
-} from '@metorial/state';
+import { useAllSessionConnections, useCurrentInstance } from '@metorial/state';
 import { Badge, RenderDate, Text } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import { Table as DashboardTable } from '../../../../components/table';
@@ -24,6 +19,12 @@ import {
 } from '../../../../lib/dataTableUtils';
 
 type Connection = DashboardInstanceSessionsConnectionsListOutput['items'][number];
+type MagicConnectionsTableProps = Omit<
+  DashboardInstanceSessionsConnectionsListQuery,
+  'sessionId'
+> & {
+  instance: ReturnType<typeof useCurrentInstance>;
+};
 
 let ConnectionStatusBadge = ({ state }: { state: string }) => (
   <Badge
@@ -40,14 +41,12 @@ let getConnectionStateFilterValue = (
 };
 
 let magicConnectionsState: TableStateProvider<
-  Omit<DashboardInstanceSessionsConnectionsListQuery, 'sessionId'>,
+  MagicConnectionsTableProps,
   Connection,
   TableStateProviderResult<Connection>
 > = (props, opts) => {
-  let instance = useCurrentInstance();
-  let connections = useAllSessionConnections(instance.data?.id, {
+  let connections = useAllSessionConnections(props.instance.data?.id, {
     order: props.order ?? 'desc',
-    ...props,
     connectionState:
       getConnectionStateFilterValue(opts.filter.connectionState) ?? props.connectionState,
     id: getStringFilterValue(opts.filter.id) ?? props.id,
@@ -70,7 +69,7 @@ let magicConnectionsState: TableStateProvider<
 };
 
 let magicConnectionsTable = new DashboardTable<
-  Omit<DashboardInstanceSessionsConnectionsListQuery, 'sessionId'>,
+  MagicConnectionsTableProps,
   Connection
 >('magic-mcp-connections')
   .state(magicConnectionsState)
@@ -196,11 +195,11 @@ let magicConnectionsTable = new DashboardTable<
       type: 'date'
     }
   ])
-  .link(connection =>
+  .link((connection, props) =>
     Paths.instance.magicMcp.connection(
-      useCurrentOrganization().data,
-      useCurrentProject().data,
-      useCurrentInstance().data,
+      props.instance.data?.organization,
+      props.instance.data?.project,
+      props.instance.data,
       connection.id
     )
   )
@@ -208,4 +207,12 @@ let magicConnectionsTable = new DashboardTable<
 
 export let MagicConnectionsTable = (
   filter: Omit<DashboardInstanceSessionsConnectionsListQuery, 'sessionId'>
-) => magicConnectionsTable({ ...filter, emptyState: 'No Magic MCP connections found.' });
+) => {
+  let instance = useCurrentInstance();
+
+  return magicConnectionsTable({
+    ...filter,
+    instance,
+    emptyState: 'No Magic MCP connections found.'
+  });
+};
