@@ -45,6 +45,12 @@ export type DashboardInstanceProvidersListOutput = {
       object: 'provider.type';
       id: string;
       name: string;
+      backend:
+        | 'slates'
+        | 'native'
+        | 'mcp.container'
+        | 'mcp.function'
+        | 'mcp.remote';
       triggers:
         | { status: 'enabled'; receiverUrl: string }
         | { status: 'disabled' };
@@ -162,6 +168,7 @@ export let mapDashboardInstanceProvidersListOutput =
                   object: mtMap.objectField('object', mtMap.passthrough()),
                   id: mtMap.objectField('id', mtMap.passthrough()),
                   name: mtMap.objectField('name', mtMap.passthrough()),
+                  backend: mtMap.objectField('backend', mtMap.passthrough()),
                   triggers: mtMap.objectField(
                     'triggers',
                     mtMap.union([

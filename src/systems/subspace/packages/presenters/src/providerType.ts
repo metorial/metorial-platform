@@ -36,6 +36,8 @@ export let providerTypePresenter = (
   id: providerType.id,
   name: providerType.name,
 
+  backend: providerType.attributes.backend,
+
   config: providerType.attributes.config,
   triggers: providerType.attributes.triggers,
   auth: mapAuth(providerType.attributes.auth, providerType, d.provider, d.tenant),

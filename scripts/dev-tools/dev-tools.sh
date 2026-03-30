@@ -43,13 +43,19 @@ if [ "$1" = "cleanup" ]; then
   exit 0
 fi
 
+if [ "$1" = "prepare" ]; then
+  cd ./scripts
+  ./prepare.sh "$2"
+  exit 0
+fi
+
 if [ "$1" = "build" ]; then
   cd ./scripts
   
   if [ "$2" = "server" ]; then
     ./buildServer.sh
   else
-    echo "Unknown build target: $2. Supported targets are 'server' and 'engine'."
+    echo "Unknown build target: $2. Supported targets are 'server'."
     exit 1
   fi
 

@@ -7,6 +7,7 @@ export let v1ProviderTypePresenter = Presenter.create(providerTypeType)
     object: 'provider.type' as const,
     id: providerType.id,
     name: providerType.name,
+    backend: providerType.backend,
     triggers:
       providerType.triggers.status == 'enabled'
         ? {
@@ -74,6 +75,13 @@ export let v1ProviderTypePresenter = Presenter.create(providerTypeType)
         description: 'Display name of the provider type',
         examples: ['mcp']
       }),
+      backend: v.enumOf(
+        ['slates', 'native', 'mcp.container', 'mcp.function', 'mcp.remote'] as const,
+        {
+          name: 'backend',
+          description: 'Backend type'
+        }
+      ),
       triggers: v.union(
         [
           v.object({

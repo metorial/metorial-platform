@@ -10,11 +10,12 @@ import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
+  useCustomProvider,
   useProvider,
   useProviderListing,
   useProviderVersions
 } from '@metorial/state';
-import { Badge, Button, Flex, LinkTabs, Menu, theme } from '@metorial/ui';
+import { Badge, Button, Callout, Flex, LinkTabs, Menu, Spacer, theme } from '@metorial/ui';
 import { RiArrowDownSLine } from '@remixicon/react';
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
@@ -142,6 +143,11 @@ export let ProviderLayout = () => {
 
   let listingData = useProviderListing(instance.data?.id, providerId);
   let listing: ProviderListing | undefined = listingData.data ?? undefined;
+
+  let customProvider = useCustomProvider(
+    instance.data?.id,
+    provider.data?.access == 'tenant' ? providerId : null
+  );
 
   let resetToDefault = () => {
     if (fallbackVersionId) setSelectedVersionIdState(fallbackVersionId);
@@ -277,6 +283,75 @@ export let ProviderLayout = () => {
 
         {renderWithLoader({ provider })(({ provider }) => (
           <>
+            {provider.data.access == 'tenant' ? (
+              <>
+                <Callout color="blue">
+                  <span>
+                    This provider is managed and run by your organization. View{' '}
+                    <Link
+                      to={
+                        customProvider.data
+                          ? Paths.instance.customProvider(
+                              organization.data,
+                              project.data,
+                              instance.data,
+                              customProvider.data.id
+                            )
+                          : '#'
+                      }
+                      style={{
+                        color: 'inherit',
+                        textDecoration: 'underline'
+                      }}
+                    >
+                      custom provider
+                    </Link>{' '}
+                    for details.
+                  </span>
+                </Callout>
+
+                <Spacer height={20} />
+              </>
+            ) : (
+              <>
+                {provider.data.type.backend == 'mcp.remote' &&
+                  !listing?.attributes.isOfficial && (
+                    <>
+                      <Callout color="blue">
+                        <span>
+                          This provider is managed and run by{' '}
+                          <strong>{listing?.provider.publisher.name}</strong>. Data you send to
+                          it will leave Metorial's platform.
+                        </span>
+                      </Callout>
+
+                      <Spacer height={20} />
+                    </>
+                  )}
+
+                {provider.data.type.backend == 'mcp.container' && (
+                  <>
+                    <Callout color="blue">
+                      <span>
+                        This provider is not managed by Metorial. Make sure to verify the
+                        provider's trustworthiness. Contact{' '}
+                        <a
+                          href="https://metorial.com/support"
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          Metorial Support
+                        </a>{' '}
+                        if you have questions.
+                      </span>
+                    </Callout>
+
+                    <Spacer height={20} />
+                  </>
+                )}
+              </>
+            )}
+
             <LinkTabs
               current={pathname}
               links={[
