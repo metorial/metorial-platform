@@ -11,11 +11,8 @@ import {
   resolvePublishers
 } from '@metorial-subspace/list-utils';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
-import {
-  getProviderCapabilityFilter,
-  ProviderCapabilityFilter,
-  providerInclude
-} from './provider';
+import type { ProviderCapabilityFilter } from './provider';
+import { getProviderCapabilityFilter, providerInclude } from './provider';
 
 export type ProviderListingOrderByUse =
   | 'deployments'
@@ -111,6 +108,8 @@ class ProviderListingService {
     isOfficial?: boolean;
     isMetorial?: boolean;
 
+    onlyIncludeVerifiedOfficialOrFromTenant?: boolean;
+
     createdAt?: DateFilter;
     updatedAt?: DateFilter;
 
@@ -189,6 +188,16 @@ class ProviderListingService {
                     : undefined!
                 ].filter(Boolean)
               },
+
+              d.onlyIncludeVerifiedOfficialOrFromTenant
+                ? {
+                    OR: [
+                      { isVerified: true },
+                      { isOfficial: true },
+                      d.tenant && d.environment ? { ownerTenantOid: d.tenant.oid } : undefined!
+                    ].filter(Boolean)
+                  }
+                : undefined!,
 
               d.ids ? { id: { in: d.ids } } : undefined!,
 

@@ -126,6 +126,7 @@ class providerAuthConfigInternalServiceImpl {
       metadata?: Record<string, any>;
       isEphemeral?: boolean;
       isDefault?: boolean;
+      toolFilters?: PrismaJson.ToolFilter | null;
     };
     import?: {
       ip: string | undefined;
@@ -175,6 +176,7 @@ class providerAuthConfigInternalServiceImpl {
           name: d.input.name?.trim() || undefined,
           description: d.input.description?.trim() || undefined,
           metadata: d.input.metadata,
+          toolFilter: d.input.toolFilters ?? { type: 'v1.allow_all' },
 
           isEphemeral: !!d.input.isEphemeral,
           isDefault: !!d.input.isDefault,
