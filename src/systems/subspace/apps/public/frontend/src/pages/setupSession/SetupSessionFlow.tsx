@@ -423,7 +423,6 @@ export let SetupSessionFlow = ({
           onSubmit={authConfigMutation.mutate}
           isSubmitting={authConfigMutation.isLoading}
           isMetorialElement={flowSession.uiMode === 'metorial_elements'}
-          extraContent={extraToolFilterContent}
         />
       );
     }
