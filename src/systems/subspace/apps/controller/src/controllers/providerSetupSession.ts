@@ -101,7 +101,7 @@ export let providerSetupSessionController = app.controller({
         ip: v.string(),
         ua: v.string(),
 
-        providerId: v.string(),
+        providerId: v.optional(v.string()),
         providerAuthCredentialsId: v.optional(v.string()),
         providerDeploymentId: v.optional(v.string()),
         brandId: v.optional(v.string()),
@@ -111,18 +111,41 @@ export let providerSetupSessionController = app.controller({
 
         authConfigInput: v.optional(v.record(v.any())),
         configInput: v.optional(v.record(v.any())),
+        configuration: v.optional(
+          v.object({
+            providerSearch: v.optional(
+              v.object({
+                groups: v.optional(v.array(v.object({ groupId: v.string() }))),
+                collections: v.optional(v.array(v.object({ collectionId: v.string() }))),
+                categories: v.optional(v.array(v.object({ categoryId: v.string() })))
+              })
+            ),
+            toolFilters: v.optional(
+              v.object({
+                enabled: v.optional(v.boolean())
+              })
+            ),
+            ui: v.optional(
+              v.object({
+                layout: v.optional(v.enumOf(['box', 'side', 'light']))
+              })
+            )
+          })
+        ),
 
         type: v.enumOf(['auth_and_config', 'auth_only', 'config_only']),
         uiMode: v.enumOf(['metorial_elements', 'dashboard_embeddable'])
       })
     )
     .do(async ctx => {
-      let provider = await providerService.getProviderById({
-        providerId: ctx.input.providerId,
-        tenant: ctx.tenant,
-        environment: ctx.environment,
-        solution: ctx.solution
-      });
+      let provider = ctx.input.providerId
+        ? await providerService.getProviderById({
+            providerId: ctx.input.providerId,
+            tenant: ctx.tenant,
+            environment: ctx.environment,
+            solution: ctx.solution
+          })
+        : undefined;
 
       let providerDeployment = ctx.input.providerDeploymentId
         ? await providerDeploymentService.getProviderDeploymentById({
@@ -171,6 +194,7 @@ export let providerSetupSessionController = app.controller({
           description: ctx.input.description,
           metadata: ctx.input.metadata,
           redirectUrl: ctx.input.redirectUrl,
+          configuration: ctx.input.configuration,
 
           authConfigInput: ctx.input.authConfigInput,
           configInput: ctx.input.configInput
