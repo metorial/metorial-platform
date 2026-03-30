@@ -92,7 +92,13 @@ import {
   sessionTemplateProviderController
 } from './provider';
 import { toolCallController } from './provider/toolCall';
-import { scmAccountsController, scmInstallationController, scmReposController } from './scm';
+import {
+  scmAccountsController,
+  scmConnectionsController,
+  scmInstallationController,
+  scmProvidersController,
+  scmReposController
+} from './scm';
 
 export let magnetarController = Controller.create<any>(
   {
@@ -286,6 +292,8 @@ export let dashboardController = Controller.create<any>(
     customProviderCommitController,
     customProviderEnvironmentController,
 
+    scmConnectionsController,
+    scmProvidersController,
     scmInstallationController,
     scmReposController,
     scmAccountsController,

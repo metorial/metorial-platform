@@ -1,3 +1,4 @@
+import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import {
@@ -9,17 +10,34 @@ import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { scmConnectionPresenter, scmConnectionSetupPresenter } from '../../presenters';
 
-export let scmInstallationController = Controller.create(
+let scmConnectionGroup = instanceGroup.use(async ctx => {
+  if (!ctx.params.scmConnectionId) {
+    throw new ServiceError(
+      badRequestError({
+        message: 'scmConnectionId is required',
+        description: 'The scmConnectionId path parameter is required.'
+      })
+    );
+  }
+
+  let scmConnection = await subspaceScmConnectionService.get({
+    instance: ctx.instance,
+    scmConnectionId: ctx.params.scmConnectionId
+  });
+
+  return { scmConnection };
+});
+
+export let scmConnectionsController = Controller.create(
   {
-    name: 'SCM Installations',
-    description:
-      'Manage source control management installations (e.g. GitHub App installations).'
+    name: 'SCM Connections',
+    description: 'Manage source control connections for an instance.'
   },
   {
     list: instanceGroup
-      .get(instancePath('scm/installations', 'scm.installation.list'), {
-        name: 'List SCM installations',
-        description: 'Returns a paginated list of SCM installations.'
+      .get(instancePath('scm/connections', 'scm.connections.list'), {
+        name: 'List SCM connections',
+        description: 'Returns a paginated list of SCM connections.'
       })
       .use(checkAccess({ possibleScopes: ['instance.scm.installation:read'] }))
       .outputList(scmConnectionPresenter)
@@ -39,10 +57,23 @@ export let scmInstallationController = Controller.create(
         );
       }),
 
+    get: scmConnectionGroup
+      .get(instancePath('scm/connections/:scmConnectionId', 'scm.connections.get'), {
+        name: 'Get SCM connection',
+        description: 'Retrieves a specific SCM connection by ID.'
+      })
+      .use(checkAccess({ possibleScopes: ['instance.scm.installation:read'] }))
+      .output(scmConnectionPresenter)
+      .do(async ctx => {
+        return scmConnectionPresenter.present({
+          scmConnection: ctx.scmConnection
+        });
+      }),
+
     create: instanceGroup
-      .post(instancePath('scm/installations', 'scm.installation.create'), {
-        name: 'Create SCM installation',
-        description: 'Initiates an SCM installation setup (e.g. GitHub App authorization).'
+      .post(instancePath('scm/connections', 'scm.connections.create'), {
+        name: 'Create SCM connection',
+        description: 'Initiates an SCM connection setup session.'
       })
       .use(checkAccess({ possibleScopes: ['instance.scm.installation:write'] }))
       .body(
