@@ -29,7 +29,12 @@ export let redirectToAuthIfNotAuthenticated = async <R>(fn: () => Promise<R>) =>
     return await fn();
   } catch (err: any) {
     let url = new URL(window.location.href);
-    if (!url.pathname.startsWith('/join/')) url.pathname = '/';
+
+    if ((window as any).getAuthCallbackUrl) {
+      url = new URL((window as any).getAuthCallbackUrl());
+    } else {
+      if (!url.pathname.startsWith('/join/')) url.pathname = '/';
+    }
 
     if (authRequiredRef.current) {
       if (isServiceError(err) && err.data.code == 'unauthorized') {
