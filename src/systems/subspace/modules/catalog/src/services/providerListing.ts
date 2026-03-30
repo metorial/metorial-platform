@@ -108,8 +108,6 @@ class ProviderListingService {
     isOfficial?: boolean;
     isMetorial?: boolean;
 
-    onlyIncludeVerifiedOfficialOrFromTenant?: boolean;
-
     createdAt?: DateFilter;
     updatedAt?: DateFilter;
 
@@ -189,15 +187,15 @@ class ProviderListingService {
                 ].filter(Boolean)
               },
 
-              d.onlyIncludeVerifiedOfficialOrFromTenant
-                ? {
-                    OR: [
-                      { isVerified: true },
-                      { isOfficial: true },
-                      d.tenant && d.environment ? { ownerTenantOid: d.tenant.oid } : undefined!
-                    ].filter(Boolean)
-                  }
-                : undefined!,
+              // d.tenant.onlyIncludeVerifiedOfficialOrFromTenant
+              //   ? {
+              //       OR: [
+              //         { isVerified: true },
+              //         { isOfficial: true },
+              //         d.tenant && d.environment ? { ownerTenantOid: d.tenant.oid } : undefined!
+              //       ].filter(Boolean)
+              //     }
+              //   : undefined!,
 
               d.ids ? { id: { in: d.ids } } : undefined!,
 

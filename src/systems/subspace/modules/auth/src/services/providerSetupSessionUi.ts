@@ -33,6 +33,11 @@ let updateLock = createLock({
   redisUrl: env.service.REDIS_URL
 });
 
+let undefinedIfEmpty = <T>(value: T[] | null | undefined): T[] | undefined => {
+  if (!value || value.length === 0) return undefined;
+  return value;
+};
+
 class providerSetupSessionUiServiceImpl {
   async getProviderSetupSessionByClientSecret(d: { sessionId: string; clientSecret: string }) {
     let providerSetupSession = await db.providerSetupSession.findFirst({
@@ -381,9 +386,15 @@ class providerSetupSessionUiServiceImpl {
       solution: session.solution,
       environment: session.environment,
       search: d.search,
-      providerGroupIds: providerSearch?.groups?.map(filter => filter.groupId),
-      providerCollectionIds: providerSearch?.collections?.map(filter => filter.collectionId),
-      providerCategoryIds: providerSearch?.categories?.map(filter => filter.categoryId),
+      providerGroupIds: undefinedIfEmpty(
+        providerSearch?.groups?.map(filter => filter.groupId)
+      ),
+      providerCollectionIds: undefinedIfEmpty(
+        providerSearch?.collections?.map(filter => filter.collectionId)
+      ),
+      providerCategoryIds: undefinedIfEmpty(
+        providerSearch?.categories?.map(filter => filter.categoryId)
+      ),
       orderByRank: true,
       capabilities: {
         supportsConfig: session.type !== 'auth_only' ? true : undefined,

@@ -6,7 +6,7 @@ import { FormFromSchema } from '../components/formFromSchema';
 import { StepContentBlock, StepWrapper } from '../components/stepLayout';
 
 interface ConfigStepProps {
-  schema: JsonSchema;
+  schema?: JsonSchema | null;
   onSubmit: (data: Record<string, unknown>) => Promise<unknown>;
   isSubmitting: boolean;
   isMetorialElement?: boolean;
@@ -22,10 +22,12 @@ export let ConfigStep = ({
   extraContent,
   submitLabel = 'Continue'
 }: ConfigStepProps) => {
+  let effectiveSchema: JsonSchema = schema ?? { type: 'object', properties: {} };
+
   let form = useForm({
-    initialValues: getDefaultValues(schema),
-    schema: () => schemaToYup(schema),
-    schemaDependencies: [schema],
+    initialValues: getDefaultValues(effectiveSchema),
+    schema: () => schemaToYup(effectiveSchema),
+    schemaDependencies: [effectiveSchema],
     onSubmit: async values => {
       await onSubmit(values);
     }
@@ -36,7 +38,11 @@ export let ConfigStep = ({
       <StepContentBlock $isMetorialElement={isMetorialElement}>
         <form onSubmit={form.handleSubmit}>
           <Flex direction="column" gap={20}>
-            <FormFromSchema schema={schema} form={form} RenderError={form.RenderError} />
+            <FormFromSchema
+              schema={effectiveSchema}
+              form={form}
+              RenderError={form.RenderError}
+            />
             {extraContent}
 
             <Button

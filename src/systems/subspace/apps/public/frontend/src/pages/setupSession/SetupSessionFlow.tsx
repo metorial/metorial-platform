@@ -118,7 +118,10 @@ export let SetupSessionFlow = ({
   let [toolsLoading, setToolsLoading] = useState(false);
   let [toolFilterMode, setToolFilterMode] = useState<'all' | 'select'>('all');
   let [selectedToolKeys, setSelectedToolKeys] = useState<string[]>([]);
+  let [toolAccessStepCompleted, setToolAccessStepCompleted] = useState(false);
+  let [hasSeenConfigFields, setHasSeenConfigFields] = useState(false);
   let oauthInitiated = useRef(false);
+  let includesProviderStep = useRef(!session.providerId).current;
 
   let needsProviderSelection = !flowSession.providerId;
   let needsAuthConfig = flowSession.type !== 'config_only' && !flowSession.authConfig;
@@ -138,6 +141,15 @@ export let SetupSessionFlow = ({
 
   let authConfigSchema = extractSchema(authSchemaLoader.data);
   let configSchema = extractSchema(configSchemaLoader.data);
+  let hasConfigFields = hasSchemaFields(configSchema);
+  let shouldShowConfigStep =
+    (needsConfig && hasConfigFields) || (toolFiltersEnabled && !toolAccessStepCompleted);
+
+  useEffect(() => {
+    if (hasConfigFields) {
+      setHasSeenConfigFields(true);
+    }
+  }, [hasConfigFields]);
 
   useEffect(() => {
     let timeout = window.setTimeout(() => {
@@ -199,7 +211,7 @@ export let SetupSessionFlow = ({
 
   let determineStep = (): Step => {
     if (needsProviderSelection) return 'provider';
-    if (needsConfig && hasSchemaFields(configSchema)) return 'config';
+    if (shouldShowConfigStep) return 'config';
     if (needsAuthConfig && hasSchemaFields(authConfigSchema)) return 'auth_config';
     if (
       needsAuthConfig &&
@@ -224,18 +236,25 @@ export let SetupSessionFlow = ({
 
     setFlowSession(result.session);
     setFlowProvider(result.provider);
+    setToolAccessStepCompleted(false);
     setCurrentStep(null);
   });
 
   let configMutation = useMutation(async (data: Record<string, unknown>) => {
-    await client.setupSession.setConfig({
-      sessionId: flowSession.id,
-      clientSecret,
-      configInput: data,
-      toolFilters: toolFilterPayload
-    });
+    if (needsConfig) {
+      await client.setupSession.setConfig({
+        sessionId: flowSession.id,
+        clientSecret,
+        configInput: data,
+        toolFilters: toolFilterPayload
+      });
 
-    setFlowSession(current => ({ ...current, config: { id: 'pending' } as any }));
+      setFlowSession(current => ({ ...current, config: { id: 'pending' } as any }));
+    }
+
+    if (toolFiltersEnabled) {
+      setToolAccessStepCompleted(true);
+    }
 
     if (needsAuthConfig && hasSchemaFields(authConfigSchema)) {
       setCurrentStep('auth_config');
@@ -272,6 +291,7 @@ export let SetupSessionFlow = ({
   useEffect(() => {
     let shouldAutoInitiateOAuth =
       !needsProviderSelection &&
+      !shouldShowConfigStep &&
       needsAuthConfig &&
       isOAuth &&
       authSchemaLoader.data &&
@@ -313,32 +333,62 @@ export let SetupSessionFlow = ({
     isOAuth,
     needsAuthConfig,
     needsProviderSelection,
+    shouldShowConfigStep,
     toolFilterPayload
   ]);
 
+  let stageIds = useMemo(() => {
+    let ids: Array<'provider' | 'config' | 'auth'> = [];
+    if (includesProviderStep) ids.push('provider');
+    if (toolFiltersEnabled || hasSeenConfigFields || hasConfigFields || !!flowSession.config) {
+      ids.push('config');
+    }
+    if (flowSession.type !== 'config_only') {
+      ids.push('auth');
+    }
+    return ids;
+  }, [
+    flowSession.config,
+    flowSession.type,
+    hasConfigFields,
+    hasSeenConfigFields,
+    includesProviderStep,
+    toolFiltersEnabled
+  ]);
+
   let stepLabels = useMemo(() => {
-    let labels: string[] = [];
-    if (needsProviderSelection) labels.push('Provider');
-    if (needsConfig && hasSchemaFields(configSchema)) labels.push('Configuration');
-    if (needsAuthConfig) labels.push('Authentication');
-    return labels;
-  }, [authConfigSchema, configSchema, needsAuthConfig, needsConfig, needsProviderSelection]);
+    return stageIds.map(stageId => {
+      if (stageId === 'provider') return 'Provider';
+      if (stageId === 'config') return 'Configuration';
+      return 'Authentication';
+    });
+  }, [stageIds]);
 
   let currentStepIndex = useMemo(() => {
-    if (currentResolvedStep === 'provider') return 0;
-    if (currentResolvedStep === 'config') return needsProviderSelection ? 1 : 0;
+    let currentStageId: 'provider' | 'config' | 'auth' | null = null;
+
+    if (currentResolvedStep === 'provider') currentStageId = 'provider';
+    if (currentResolvedStep === 'config') currentStageId = 'config';
     if (
       currentResolvedStep === 'auth_config' ||
       currentResolvedStep === 'oauth_redirect' ||
       currentResolvedStep === 'oauth_loading'
     ) {
-      return stepLabels.length > 1 ? stepLabels.length - 1 : 0;
+      currentStageId = 'auth';
     }
-    return stepLabels.length;
-  }, [currentResolvedStep, needsProviderSelection, stepLabels.length]);
 
-  let extraToolFilterContent =
-    toolFiltersEnabled && !toolsLoading ? (
+    if (!currentStageId) return stageIds.length;
+
+    let stageIndex = stageIds.indexOf(currentStageId);
+    return stageIndex >= 0 ? stageIndex : stageIds.length;
+  }, [currentResolvedStep, stageIds]);
+
+  let extraToolFilterContent = toolFiltersEnabled ? (
+    toolsLoading ? (
+      <Flex align="center" justify="center" style={{ padding: '12px 0' }}>
+        <CenteredSpinner size={20} />
+      </Flex>
+    ) : (
       <ToolFilterEditor
         enabled={toolFiltersEnabled}
         tools={toolItems}
@@ -347,7 +397,8 @@ export let SetupSessionFlow = ({
         onModeChange={setToolFilterMode}
         onSelectedKeysChange={setSelectedToolKeys}
       />
-    ) : null;
+    )
+  ) : null;
 
   let renderContent = () => {
     if (currentResolvedStep === 'provider') {
@@ -401,7 +452,7 @@ export let SetupSessionFlow = ({
       );
     }
 
-    if (currentResolvedStep === 'config' && configSchema) {
+    if (currentResolvedStep === 'config') {
       return (
         <ConfigStep
           schema={configSchema}
@@ -409,6 +460,7 @@ export let SetupSessionFlow = ({
           isSubmitting={configMutation.isLoading}
           isMetorialElement={flowSession.uiMode === 'metorial_elements'}
           extraContent={extraToolFilterContent}
+          submitLabel={needsAuthConfig ? 'Continue' : 'Connect'}
         />
       );
     }
@@ -452,8 +504,8 @@ export let SetupSessionFlow = ({
         >
           <DashboardEmbeddableLayout
             currentStep={currentStepIndex}
-            totalSteps={stepLabels.length}
-            stepLabels={stepLabels}
+            totalSteps={isCompleted ? 0 : stepLabels.length}
+            stepLabels={isCompleted ? [] : stepLabels}
           >
             {innerContent}
           </DashboardEmbeddableLayout>
@@ -468,7 +520,7 @@ export let SetupSessionFlow = ({
         providerImageUrl={flowProvider?.imageUrl}
         hideHeader={isCompleted}
         currentStep={currentStepIndex}
-        stepLabels={stepLabels}
+        stepLabels={isCompleted ? [] : stepLabels}
         variant={layoutVariant === 'light' ? 'light' : 'box'}
       >
         {innerContent}
@@ -479,8 +531,8 @@ export let SetupSessionFlow = ({
   return (
     <DashboardEmbeddableLayout
       currentStep={currentStepIndex}
-      totalSteps={stepLabels.length}
-      stepLabels={stepLabels}
+      totalSteps={isCompleted ? 0 : stepLabels.length}
+      stepLabels={isCompleted ? [] : stepLabels}
     >
       {innerContent}
     </DashboardEmbeddableLayout>

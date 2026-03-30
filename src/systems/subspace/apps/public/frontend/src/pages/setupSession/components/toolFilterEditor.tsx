@@ -34,7 +34,7 @@ export let ToolFilterEditor = ({
   onModeChange,
   onSelectedKeysChange
 }: ToolFilterEditorProps) => {
-  if (!enabled || tools.length === 0) return null;
+  if (!enabled) return null;
 
   return (
     <Flex direction="column" gap={12}>
@@ -60,7 +60,14 @@ export let ToolFilterEditor = ({
         ]}
       />
 
-      {mode === 'select' && (
+      {mode === 'select' && tools.length === 0 && (
+        <Text size="1">
+          No selectable tools are currently available for this provider. Continue to keep the
+          default access settings.
+        </Text>
+      )}
+
+      {mode === 'select' && tools.length > 0 && (
         <ToolGrid>
           {tools.map(tool => {
             let isChecked = selectedKeys.includes(tool.key);

@@ -21,6 +21,9 @@ let ProviderCard = styled.button`
   background: white;
   text-align: left;
   padding: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   transition:
     border-color 0.2s ease,
     transform 0.2s ease;
@@ -32,10 +35,9 @@ let ProviderCard = styled.button`
 `;
 
 let ProviderIcon = styled.div<{ $image?: string | null }>`
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  margin-bottom: 10px;
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
   background: ${p =>
     p.$image
       ? `url(${p.$image}) center/contain no-repeat, white`
