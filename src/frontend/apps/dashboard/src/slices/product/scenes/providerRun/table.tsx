@@ -30,6 +30,9 @@ type ProviderRunsTableProps = {
   providerId?: string;
   status?: string;
 };
+type ProviderRunsTableStateProps = ProviderRunsTableProps & {
+  instance: ReturnType<typeof useCurrentInstance>;
+};
 
 let getProviderRunStatusFilterValue = (
   value: FilterPayload | undefined
@@ -63,14 +66,14 @@ export let ProviderRunStatusBadge = ({ run }: { run: ProviderRunStatusCarrier })
 };
 
 let providerRunsTableState: TableStateProvider<
-  ProviderRunsTableProps,
+  ProviderRunsTableStateProps,
   ProviderRunRow,
   TableStateProviderResult<ProviderRunRow>
 > = (
-  props: ProviderRunsTableProps,
+  props: ProviderRunsTableStateProps,
   opts: { filter: Record<string, FilterPayload>; search?: string }
 ) => {
-  let runs = useAllProviderRuns(useCurrentInstance().data?.id, {
+  let runs = useAllProviderRuns(props.instance.data?.id, {
     order: 'desc',
     sessionId: getStringFilterValue(opts.filter.sessionId) ?? props.sessionId,
     providerId: getStringFilterValue(opts.filter.providerId) ?? props.providerId,
@@ -88,7 +91,7 @@ let providerRunsTableState: TableStateProvider<
   ];
   let shouldLoadProviders = providerIds.length > 0;
   let providers = useProviders(
-    useCurrentInstance().data?.id,
+    props.instance.data?.id,
     shouldLoadProviders ? { id: providerIds } : null
   );
 
@@ -111,7 +114,7 @@ let providerRunsTableState: TableStateProvider<
   };
 };
 
-let providerRunsTable = new DashboardTable<ProviderRunsTableProps, ProviderRunRow>(
+let providerRunsTable = new DashboardTable<ProviderRunsTableStateProps, ProviderRunRow>(
   'provider-runs'
 )
   .state(providerRunsTableState)
@@ -253,20 +256,20 @@ let providerRunsTable = new DashboardTable<ProviderRunsTableProps, ProviderRunRo
   ])
   .link((run, props) =>
     Paths.instance.providerRun(
-      useCurrentInstance().data?.organization,
-      useCurrentInstance().data?.project,
-      useCurrentInstance().data,
+      props.instance.data?.organization,
+      props.instance.data?.project,
+      props.instance.data,
       run.id
     )
   )
   .build();
 
-export let ProviderRunsTable = (filter?: {
-  sessionId?: string;
-  providerId?: string;
-  status?: string;
-}) =>
-  providerRunsTable({
+export let ProviderRunsTable = (filter?: ProviderRunsTableProps) => {
+  let instance = useCurrentInstance();
+
+  return providerRunsTable({
     ...filter,
+    instance,
     emptyState: 'No provider runs found.'
   });
+};

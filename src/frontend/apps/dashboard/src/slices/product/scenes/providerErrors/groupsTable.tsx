@@ -17,6 +17,9 @@ import { getEnumListFilterValue, getStringFilterValue } from '../../../../lib/da
 type ErrorGroup = DashboardInstanceSessionsErrorGroupsListOutput['items'][number];
 
 type ErrorGroupsTableProps = { sessionId?: string; type?: string };
+type ErrorGroupsTableStateProps = ErrorGroupsTableProps & {
+  instance: ReturnType<typeof useCurrentInstance>;
+};
 
 let getErrorTypeFilterValue = (
   value: FilterPayload | undefined
@@ -29,12 +32,11 @@ let getErrorTypeFilterValue = (
 };
 
 let errorGroupsTableState: TableStateProvider<
-  ErrorGroupsTableProps,
+  ErrorGroupsTableStateProps,
   ErrorGroup,
   TableStateProviderResult<ErrorGroup>
 > = (props, opts) => {
-  let instance = useCurrentInstance();
-  let errors = useSessionErrorGroups(instance.data?.id, {
+  let errors = useSessionErrorGroups(props.instance.data?.id, {
     order: 'desc',
     sessionId: getStringFilterValue(opts.filter.sessionId) ?? props.sessionId,
     type: getErrorTypeFilterValue(opts.filter.type) ?? (props.type as any),
@@ -53,7 +55,7 @@ let errorGroupsTableState: TableStateProvider<
   };
 };
 
-let providerErrorGroupsTable = new DashboardTable<ErrorGroupsTableProps, ErrorGroup>(
+let providerErrorGroupsTable = new DashboardTable<ErrorGroupsTableStateProps, ErrorGroup>(
   'provider-error-groups'
 )
   .state(errorGroupsTableState)
@@ -142,18 +144,22 @@ let providerErrorGroupsTable = new DashboardTable<ErrorGroupsTableProps, ErrorGr
       type: 'string'
     }
   ])
-  .link(error =>
+  .link((error, props) =>
     Paths.instance.providerError(
-      useCurrentInstance().data?.organization,
-      useCurrentInstance().data?.project,
-      useCurrentInstance().data,
+      props.instance.data?.organization,
+      props.instance.data?.project,
+      props.instance.data,
       error.id
     )
   )
   .build();
 
-export let ProviderErrorGroupsTable = (filter?: { sessionId?: string; type?: string }) =>
-  providerErrorGroupsTable({
+export let ProviderErrorGroupsTable = (filter?: ErrorGroupsTableProps) => {
+  let instance = useCurrentInstance();
+
+  return providerErrorGroupsTable({
     ...filter,
+    instance,
     emptyState: 'No provider errors found.'
   });
+};
