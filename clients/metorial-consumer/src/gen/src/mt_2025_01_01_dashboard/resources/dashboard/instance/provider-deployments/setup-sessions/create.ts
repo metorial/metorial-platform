@@ -15,7 +15,8 @@ export type DashboardInstanceProviderDeploymentsSetupSessionsCreateOutput = {
   name: string | null;
   description: string | null;
   metadata: Record<string, any> | null;
-  providerId: string;
+  configuration: Record<string, any> | null;
+  providerId: string | null;
   authMethod: {
     object: 'provider.capabilities.auth_method';
     id: string;
@@ -39,7 +40,7 @@ export type DashboardInstanceProviderDeploymentsSetupSessionsCreateOutput = {
     providerSpecificationId: string;
     createdAt: Date;
     updatedAt: Date;
-  };
+  } | null;
   deployment: {
     object: 'provider.deployment#preview';
     id: string;
@@ -75,6 +76,20 @@ export type DashboardInstanceProviderDeploymentsSetupSessionsCreateOutput = {
     name: string | null;
     description: string | null;
     metadata: Record<string, any> | null;
+    toolFilter:
+      | { type: 'allow_all'; ignoreParentFilters: boolean }
+      | {
+          type: 'filter';
+          filters: (
+            | { type: 'tool_keys'; keys: string[] }
+            | { type: 'tool_regex'; pattern: string }
+            | { type: 'resource_regex'; pattern: string }
+            | { type: 'resource_uris'; uris: string[] }
+            | { type: 'prompt_keys'; keys: string[] }
+            | { type: 'prompt_regex'; pattern: string }
+          )[];
+          ignoreParentFilters: boolean;
+        };
     deployment: {
       object: 'provider.deployment#preview';
       id: string;
@@ -133,6 +148,20 @@ export type DashboardInstanceProviderDeploymentsSetupSessionsCreateOutput = {
     name: string | null;
     description: string | null;
     metadata: Record<string, any> | null;
+    toolFilter:
+      | { type: 'allow_all'; ignoreParentFilters: boolean }
+      | {
+          type: 'filter';
+          filters: (
+            | { type: 'tool_keys'; keys: string[] }
+            | { type: 'tool_regex'; pattern: string }
+            | { type: 'resource_regex'; pattern: string }
+            | { type: 'resource_uris'; uris: string[] }
+            | { type: 'prompt_keys'; keys: string[] }
+            | { type: 'prompt_regex'; pattern: string }
+          )[];
+          ignoreParentFilters: boolean;
+        };
     providerId: string;
     specificationId: string;
     deployment: {
@@ -187,6 +216,7 @@ export let mapDashboardInstanceProviderDeploymentsSetupSessionsCreateOutput =
     name: mtMap.objectField('name', mtMap.passthrough()),
     description: mtMap.objectField('description', mtMap.passthrough()),
     metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+    configuration: mtMap.objectField('configuration', mtMap.passthrough()),
     providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
     authMethod: mtMap.objectField(
       'auth_method',
@@ -276,6 +306,46 @@ export let mapDashboardInstanceProviderDeploymentsSetupSessionsCreateOutput =
         name: mtMap.objectField('name', mtMap.passthrough()),
         description: mtMap.objectField('description', mtMap.passthrough()),
         metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+        toolFilter: mtMap.objectField(
+          'tool_filter',
+          mtMap.union([
+            mtMap.unionOption(
+              'object',
+              mtMap.object({
+                type: mtMap.objectField('type', mtMap.passthrough()),
+                ignoreParentFilters: mtMap.objectField(
+                  'ignore_parent_filters',
+                  mtMap.passthrough()
+                ),
+                filters: mtMap.objectField(
+                  'filters',
+                  mtMap.array(
+                    mtMap.union([
+                      mtMap.unionOption(
+                        'object',
+                        mtMap.object({
+                          type: mtMap.objectField('type', mtMap.passthrough()),
+                          keys: mtMap.objectField(
+                            'keys',
+                            mtMap.array(mtMap.passthrough())
+                          ),
+                          pattern: mtMap.objectField(
+                            'pattern',
+                            mtMap.passthrough()
+                          ),
+                          uris: mtMap.objectField(
+                            'uris',
+                            mtMap.array(mtMap.passthrough())
+                          )
+                        })
+                      )
+                    ])
+                  )
+                )
+              })
+            )
+          ])
+        ),
         deployment: mtMap.objectField(
           'deployment',
           mtMap.object({
@@ -370,6 +440,46 @@ export let mapDashboardInstanceProviderDeploymentsSetupSessionsCreateOutput =
         name: mtMap.objectField('name', mtMap.passthrough()),
         description: mtMap.objectField('description', mtMap.passthrough()),
         metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+        toolFilter: mtMap.objectField(
+          'tool_filter',
+          mtMap.union([
+            mtMap.unionOption(
+              'object',
+              mtMap.object({
+                type: mtMap.objectField('type', mtMap.passthrough()),
+                ignoreParentFilters: mtMap.objectField(
+                  'ignore_parent_filters',
+                  mtMap.passthrough()
+                ),
+                filters: mtMap.objectField(
+                  'filters',
+                  mtMap.array(
+                    mtMap.union([
+                      mtMap.unionOption(
+                        'object',
+                        mtMap.object({
+                          type: mtMap.objectField('type', mtMap.passthrough()),
+                          keys: mtMap.objectField(
+                            'keys',
+                            mtMap.array(mtMap.passthrough())
+                          ),
+                          pattern: mtMap.objectField(
+                            'pattern',
+                            mtMap.passthrough()
+                          ),
+                          uris: mtMap.objectField(
+                            'uris',
+                            mtMap.array(mtMap.passthrough())
+                          )
+                        })
+                      )
+                    ])
+                  )
+                )
+              })
+            )
+          ])
+        ),
         providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
         specificationId: mtMap.objectField(
           'specification_id',
@@ -434,7 +544,7 @@ export let mapDashboardInstanceProviderDeploymentsSetupSessionsCreateOutput =
   });
 
 export type DashboardInstanceProviderDeploymentsSetupSessionsCreateBody = {
-  providerId: string;
+  providerId?: string | undefined;
   providerDeploymentId?: string | undefined;
   name?: string | undefined;
   description?: string | undefined;
@@ -442,6 +552,19 @@ export type DashboardInstanceProviderDeploymentsSetupSessionsCreateBody = {
   providerAuthMethodId?: string | undefined;
   providerAuthCredentialsId?: string | undefined;
   redirectUrl?: string | undefined;
+  configuration?:
+    | {
+        providerSearch?:
+          | {
+              groups?: { groupId: string }[] | undefined;
+              collections?: { collectionId: string }[] | undefined;
+              categories?: { categoryId: string }[] | undefined;
+            }
+          | undefined;
+        toolFilters?: { enabled?: boolean | undefined } | undefined;
+        ui?: { layout?: 'box' | 'side' | 'light' | undefined } | undefined;
+      }
+    | undefined;
 };
 
 export let mapDashboardInstanceProviderDeploymentsSetupSessionsCreateBody =
@@ -462,6 +585,58 @@ export let mapDashboardInstanceProviderDeploymentsSetupSessionsCreateBody =
       'provider_auth_credentials_id',
       mtMap.passthrough()
     ),
-    redirectUrl: mtMap.objectField('redirect_url', mtMap.passthrough())
+    redirectUrl: mtMap.objectField('redirect_url', mtMap.passthrough()),
+    configuration: mtMap.objectField(
+      'configuration',
+      mtMap.object({
+        providerSearch: mtMap.objectField(
+          'provider_search',
+          mtMap.object({
+            groups: mtMap.objectField(
+              'groups',
+              mtMap.array(
+                mtMap.object({
+                  groupId: mtMap.objectField('group_id', mtMap.passthrough())
+                })
+              )
+            ),
+            collections: mtMap.objectField(
+              'collections',
+              mtMap.array(
+                mtMap.object({
+                  collectionId: mtMap.objectField(
+                    'collection_id',
+                    mtMap.passthrough()
+                  )
+                })
+              )
+            ),
+            categories: mtMap.objectField(
+              'categories',
+              mtMap.array(
+                mtMap.object({
+                  categoryId: mtMap.objectField(
+                    'category_id',
+                    mtMap.passthrough()
+                  )
+                })
+              )
+            )
+          })
+        ),
+        toolFilters: mtMap.objectField(
+          'tool_filters',
+          mtMap.object({
+            enabled: mtMap.objectField('enabled', mtMap.passthrough())
+          })
+        ),
+        ui: mtMap.objectField(
+          'ui',
+          mtMap.object({
+            layout: mtMap.objectField('layout', mtMap.passthrough())
+          })
+        )
+      })
+    )
   });
 
