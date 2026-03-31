@@ -1,4 +1,4 @@
-import { Checkbox, Flex, Input, Select } from '@metorial-io/ui';
+import { Checkbox, Flex, Input, Select } from '@metorial/ui';
 import React from 'react';
 import type { FieldDefinition, JsonSchema } from '../../../lib/jsonSchema';
 import { schemaToFields } from '../../../lib/jsonSchema';
@@ -9,6 +9,7 @@ interface FormFromSchemaProps {
     values: Record<string, unknown>;
     errors: Record<string, string | undefined>;
     touched: Record<string, boolean | undefined>;
+    submitCount: number;
     handleChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
     handleBlur: (e: React.FocusEvent<HTMLInputElement>) => void;
     setFieldValue: (field: string, value: unknown) => void;
@@ -49,6 +50,10 @@ let getDescription = (field: FieldDefinition) => {
 let FormField = ({ field, form, RenderError }: FormFieldProps) => {
   let value = form.values[field.key];
   let description = getDescription(field);
+  let error =
+    form.errors[field.key] && (form.touched[field.key] || form.submitCount > 0)
+      ? form.errors[field.key]
+      : undefined;
 
   if (field.type === 'select' && field.options) {
     return (
@@ -60,6 +65,7 @@ let FormField = ({ field, form, RenderError }: FormFieldProps) => {
           onChange={val => form.setFieldValue(field.key, val)}
           placeholder="Select..."
           items={field.options.map(opt => ({ id: opt.value, label: opt.label }))}
+          error={error}
         />
         <RenderError field={field.key} />
       </div>
@@ -87,6 +93,7 @@ let FormField = ({ field, form, RenderError }: FormFieldProps) => {
           as="textarea"
           label={field.required ? `${field.label} *` : field.label}
           description={description}
+          error={error}
           value={value as string}
           onChange={form.handleChange}
           onBlur={form.handleBlur}
@@ -106,6 +113,7 @@ let FormField = ({ field, form, RenderError }: FormFieldProps) => {
         label={field.required ? `${field.label} *` : field.label}
         description={description}
         type={field.type}
+        error={error}
         value={value as string}
         onChange={form.handleChange}
         onBlur={form.handleBlur}
@@ -113,7 +121,6 @@ let FormField = ({ field, form, RenderError }: FormFieldProps) => {
         placeholder={field.placeholder}
         {...field.inputProps}
       />
-      <RenderError field={field.key} />
     </div>
   );
 };

@@ -1,22 +1,87 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Metorial</title>
 
-    <link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="shortcut icon" href="/favicon.ico" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-    <meta name="apple-mobile-web-app-title" content="Metorial" />
-    <link rel="manifest" href="/site.webmanifest" />
-  </head>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Metorial</title>
 
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+  <link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="shortcut icon" href="/favicon.ico" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+  <meta name="apple-mobile-web-app-title" content="Metorial" />
+  <link rel="manifest" href="/site.webmanifest" />
 
-    <!-- PRELOAD -->
-  </body>
+  <style>
+    .mte_boot {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 9999;
+      display: flex;
+      background: white;
+    }
+
+    .mte_boot_center {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 30px;
+      height: 100%;
+      flex-grow: 1;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      animation: fadeIn 0.5s ease-in-out;
+    }
+
+    .mte_boot_spinner {
+      border: 3px solid #ddd;
+      border-top: 3px solid #999;
+      border-radius: 50%;
+      width: 25px;
+      height: 25px;
+      animation: mte_boot_spin 0.5s linear infinite;
+    }
+
+    @keyframes fadeIn {
+      0% {
+        opacity: 0;
+        transform: translateY(10px) scale(0.95);
+      }
+
+      100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    @keyframes mte_boot_spin {
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+
+  <!-- PRELOAD -->
+
+  <div class="mte_boot">
+    <div class="mte_boot_center">
+      <div class="mte_boot_spinner"></div>
+    </div>
+  </div>
+  </div>
+</body>
+
 </html>

@@ -30,10 +30,8 @@ import {
   resolveProviders,
   resolveProviderVersions
 } from '@metorial-subspace/list-utils';
-import {
-  getProviderCapabilityFilter,
-  ProviderCapabilityFilter
-} from '@metorial-subspace/module-catalog';
+import type { ProviderCapabilityFilter } from '@metorial-subspace/module-catalog';
+import { getProviderCapabilityFilter } from '@metorial-subspace/module-catalog';
 import {
   checkProviderMatch,
   normalizeToolFilters,

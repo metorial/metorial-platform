@@ -1,6 +1,7 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
 import { sessionTemplateProviderType } from '../../types';
+import { toolFilterPresenter } from '../_lib/toolFilter';
 import { v1ProviderConfigPreviewPresenter } from './configPreview';
 import { v1ProviderDeploymentPreviewPresenter } from './deploymentPreview';
 
@@ -11,7 +12,7 @@ export let v1SessionTemplateProviderPresenter = Presenter.create(sessionTemplate
     id: sessionTemplateProvider.id,
 
     status: sessionTemplateProvider.status,
-    tool_filter: sessionTemplateProvider.toolFilter,
+    tool_filter: toolFilterPresenter(sessionTemplateProvider.toolFilter),
 
     provider_id: sessionTemplateProvider.providerId,
     session_template_id: sessionTemplateProvider.sessionTemplateId,
@@ -48,46 +49,7 @@ export let v1SessionTemplateProviderPresenter = Presenter.create(sessionTemplate
         name: 'status',
         description: 'Provider status'
       }),
-      tool_filter: v.union(
-        [
-          v.object({ type: v.literal('v1.allow_all') }),
-          v.object({
-            type: v.literal('v1.filter'),
-            filters: v.array(
-              v.union(
-                [
-                  v.object({
-                    type: v.literal('tool_keys'),
-                    keys: v.array(v.string())
-                  }),
-                  v.object({
-                    type: v.literal('tool_regex'),
-                    pattern: v.string()
-                  }),
-                  v.object({
-                    type: v.literal('resource_regex'),
-                    pattern: v.string()
-                  }),
-                  v.object({
-                    type: v.literal('resource_uris'),
-                    uris: v.array(v.string())
-                  }),
-                  v.object({
-                    type: v.literal('prompt_keys'),
-                    keys: v.array(v.string())
-                  }),
-                  v.object({
-                    type: v.literal('prompt_regex'),
-                    pattern: v.string()
-                  })
-                ],
-                { name: 'filter', description: 'A tool filter entry' }
-              )
-            )
-          })
-        ],
-        { name: 'tool_filter', description: 'Tool filter configuration' }
-      ),
+      tool_filter: toolFilterPresenter.schema,
       provider_id: v.string({
         name: 'provider_id',
         description: 'Provider ID',

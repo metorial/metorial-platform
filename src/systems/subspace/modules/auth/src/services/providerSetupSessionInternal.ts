@@ -44,6 +44,7 @@ class providerSetupSessionInternalServiceImpl {
       name?: string;
       description?: string;
       metadata?: Record<string, any>;
+      toolFilters?: PrismaJson.ToolFilter | null;
       config: Record<string, any>;
     };
     import: {
@@ -106,6 +107,7 @@ class providerSetupSessionInternalServiceImpl {
           description: d.input.description,
           metadata: d.input.metadata,
           isEphemeral: true,
+          toolFilters: d.input.toolFilters,
           config: d.input.config,
           authMethodId: d.authMethod.id
         }
@@ -136,6 +138,7 @@ class providerSetupSessionInternalServiceImpl {
       name?: string;
       description?: string;
       metadata?: Record<string, any>;
+      toolFilters?: PrismaJson.ToolFilter | null;
       config: Record<string, any>;
     };
   }) {
@@ -152,6 +155,7 @@ class providerSetupSessionInternalServiceImpl {
         description: d.input.description,
         metadata: d.input.metadata,
         isEphemeral: true,
+        toolFilters: d.input.toolFilters,
         config: { type: 'inline', data: d.input.config }
       }
     });

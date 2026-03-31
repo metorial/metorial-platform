@@ -18,6 +18,9 @@ model ProviderConfig {
   description String?
   metadata    Json?
 
+  /// [ToolFilter]
+  toolFilter Json @default("{\"type\":\"v1.allow_all\"}")
+
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
 

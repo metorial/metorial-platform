@@ -1,3 +1,5 @@
+import { getMcpEndpointUrlAllowlistViolation } from './endpointAllowlist';
+
 export type ExplorerTransport = 'sse' | 'streamable_http';
 
 export type ExplorerConfigPayload = {
@@ -81,6 +83,10 @@ export let getConnectionParams = (
       new URL(url);
     } catch {
       errors.push('The endpoint or url query parameter is not a valid absolute URL.');
+    }
+    let allowlistViolation = getMcpEndpointUrlAllowlistViolation(url);
+    if (allowlistViolation) {
+      errors.push(allowlistViolation);
     }
   }
 

@@ -381,7 +381,7 @@ export class SenderManager {
   async listProviders() {
     return await db.sessionProvider.findMany({
       where: { sessionOid: this.session.oid, status: 'active', isParentDeleted: false },
-      include: { provider: true, deployment: true }
+      include: { provider: true, deployment: true, config: true, authConfig: true }
     });
   }
 
@@ -444,7 +444,7 @@ export class SenderManager {
         tag: d.tag,
         status: 'active'
       },
-      include: { deployment: true }
+      include: { deployment: true, config: true, authConfig: true }
     });
     if (!provider) throw new ServiceError(notFoundError('provider', d.tag));
     return provider;

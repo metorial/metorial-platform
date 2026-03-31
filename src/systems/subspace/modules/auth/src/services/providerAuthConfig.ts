@@ -32,12 +32,15 @@ import {
   resolveProviderDeployments,
   resolveProviders
 } from '@metorial-subspace/list-utils';
-import { checkProviderMatch } from '@metorial-subspace/module-provider-internal';
+import {
+  checkProviderMatch,
+  normalizeToolFilters
+} from '@metorial-subspace/module-provider-internal';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
 import { checkTenant } from '@metorial-subspace/module-tenant';
 import { providerAuthConfigUpdatedQueue } from '../queues/lifecycle/providerAuthConfig';
-import { providerAuthCredentialsService } from './providerAuthCredentials';
 import { providerAuthConfigInternalService } from './providerAuthConfigInternal';
+import { providerAuthCredentialsService } from './providerAuthCredentials';
 
 let include = {
   provider: true,
@@ -234,6 +237,7 @@ class providerAuthConfigServiceImpl {
       isEphemeral?: boolean;
       isDefault?: boolean;
       authMethodId?: string;
+      toolFilters?: PrismaJson.ToolFilter | null;
       config: Record<string, any>;
     };
     import: {
@@ -274,15 +278,14 @@ class providerAuthConfigServiceImpl {
       let credentials = d.credentials;
 
       if (credentials && authMethod.type === 'oauth') {
-        credentials = await providerAuthCredentialsService.getProviderAuthCredentialsForBackendUse(
-          {
+        credentials =
+          await providerAuthCredentialsService.getProviderAuthCredentialsForBackendUse({
             tenant: d.tenant,
             solution: d.solution,
             provider: d.provider,
             providerAuthCredentials: credentials,
             providerAuthMethod: authMethod
-          }
-        );
+          });
       }
 
       let backendRes = await providerAuthConfigInternalService.createBackendProviderAuthConfig(
@@ -306,7 +309,10 @@ class providerAuthConfigServiceImpl {
         provider: d.provider,
         providerDeployment: d.providerDeployment,
         source: d.source,
-        input: d.input,
+        input: {
+          ...d.input,
+          toolFilters: normalizeToolFilters(d.input.toolFilters)
+        },
         import: d.import,
         authMethod,
         credentials,
@@ -330,6 +336,7 @@ class providerAuthConfigServiceImpl {
       config?: Record<string, any>;
 
       authMethodId?: string;
+      toolFilters?: PrismaJson.ToolFilter | null;
     };
 
     import: {
@@ -413,6 +420,10 @@ class providerAuthConfigServiceImpl {
           name: d.input.name?.trim() || d.providerAuthConfig.name,
           description: d.input.description?.trim() || d.providerAuthConfig.description,
           metadata: d.input.metadata ?? d.providerAuthConfig.metadata,
+          toolFilter:
+            d.input.toolFilters || d.input.toolFilters === null
+              ? normalizeToolFilters(d.input.toolFilters)
+              : d.providerAuthConfig.toolFilter,
 
           currentVersionOid: newConfigVersion.oid
         },

@@ -5,7 +5,6 @@ import {
   brandPresenter,
   getImageUrl,
   providerOAuthSetupPresenter,
-  providerPreviewPresenter,
   providerSetupSessionPresenter
 } from '@metorial-subspace/presenters';
 import { app } from './_app';
@@ -45,10 +44,21 @@ export let getFullSession = async (
     session.brand ?? (await brandService.getBrandForTenant({ tenantId: session.tenant.id }));
 
   return {
-    provider: {
-      ...providerPreviewPresenter(session.provider),
-      imageUrl: getImageUrl(session.provider.listing!)
-    },
+    provider: session.provider
+      ? {
+          id: session.provider.id,
+          name: session.provider.name,
+          description: session.provider.description,
+          slug: session.provider.slug,
+          imageUrl: session.provider.listing
+            ? getImageUrl(session.provider.listing)
+            : getImageUrl({
+                id: session.provider.id,
+                name: session.provider.name,
+                image: null
+              })
+        }
+      : null,
     session: providerSetupSessionPresenter(session),
     brand: brandPresenter(brand)
   };
@@ -113,14 +123,16 @@ export let setupSessionController = app.controller({
         sessionId: v.string(),
         clientSecret: v.string(),
 
-        configInput: v.record(v.any())
+        configInput: v.record(v.any()),
+        toolFilters: v.optional(v.any())
       })
     )
     .do(async ctx => {
       await providerSetupSessionUiService.setConfig({
         providerSetupSession: ctx.session,
         input: {
-          configInput: ctx.input.configInput
+          configInput: ctx.input.configInput,
+          toolFilters: ctx.input.toolFilters as any
         },
         context: ctx.context
       });
@@ -133,17 +145,104 @@ export let setupSessionController = app.controller({
         sessionId: v.string(),
         clientSecret: v.string(),
 
-        authConfigInput: v.record(v.any())
+        authConfigInput: v.record(v.any()),
+        toolFilters: v.optional(v.any())
       })
     )
     .do(async ctx => {
       await providerSetupSessionUiService.setAuthConfig({
         providerSetupSession: ctx.session,
         input: {
-          authConfigInput: ctx.input.authConfigInput
+          authConfigInput: ctx.input.authConfigInput,
+          toolFilters: ctx.input.toolFilters as any
         },
         context: ctx.context
       });
+    }),
+
+  listProviders: sessionApp
+    .handler()
+    .input(
+      v.object({
+        sessionId: v.string(),
+        clientSecret: v.string(),
+        search: v.optional(v.string()),
+        after: v.optional(v.string()),
+        before: v.optional(v.string()),
+        limit: v.optional(v.number())
+      })
+    )
+    .do(async ctx => {
+      let providers = await providerSetupSessionUiService.listProviders({
+        providerSetupSession: ctx.session,
+        search: ctx.input.search,
+        after: ctx.input.after,
+        before: ctx.input.before,
+        limit: ctx.input.limit
+      });
+
+      return {
+        items: providers.items.map(provider => ({
+          ...provider,
+          id: provider.listingId,
+          providerId: provider.id,
+          imageUrl: provider.image
+            ? getImageUrl({
+                id: provider.listingId,
+                name: provider.name,
+                image: provider.image as any
+              })
+            : getImageUrl({
+                id: provider.listingId,
+                name: provider.name,
+                image: null
+              })
+        })),
+        pagination: {
+          hasMoreBefore: providers.pagination.hasPreviousPage,
+          hasMoreAfter: providers.pagination.hasNextPage
+        }
+      };
+    }),
+
+  selectProvider: sessionApp
+    .handler()
+    .input(
+      v.object({
+        sessionId: v.string(),
+        clientSecret: v.string(),
+        providerId: v.string()
+      })
+    )
+    .do(async ctx => {
+      let session = await providerSetupSessionUiService.selectProvider({
+        providerSetupSession: ctx.session,
+        providerId: ctx.input.providerId
+      });
+
+      return await getFullSession(
+        {
+          sessionId: session.id,
+          clientSecret: ctx.input.clientSecret
+        },
+        session
+      );
+    }),
+
+  listTools: sessionApp
+    .handler()
+    .input(
+      v.object({
+        sessionId: v.string(),
+        clientSecret: v.string()
+      })
+    )
+    .do(async ctx => {
+      return {
+        items: await providerSetupSessionUiService.listTools({
+          providerSetupSession: ctx.session
+        })
+      };
     }),
 
   getOauthSetup: sessionApp

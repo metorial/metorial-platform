@@ -378,7 +378,7 @@ let DeploymentConfigureStep = ({
   includeToolFilters: boolean;
   allowConfigVaultSelection: boolean;
 }) => {
-  let authConfigs = useProviderAuthConfigs(instanceId);
+  let authConfigs = useProviderAuthConfigs(instanceId, { providerDeploymentId: deploymentId });
   let deployment = useProviderDeployment(instanceId, deploymentId);
   let provider = useProvider(instanceId, providerId);
   let providerVersionId =
@@ -388,6 +388,7 @@ let DeploymentConfigureStep = ({
   let authConfigItems = authConfigs.data?.items ?? [];
   let toolItems = tools.data?.items ?? [];
   let selectedAuthConfigId = form.values.selectedAuthConfigId;
+
   useEffect(() => {
     if (authConfigs.isLoading || !selectedAuthConfigId) return;
     if (!authConfigItems.some(item => item.id === selectedAuthConfigId)) {

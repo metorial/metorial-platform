@@ -1,7 +1,8 @@
-import { ValidationType } from '@lowerdeck/validation';
+import type { ValidationType } from '@lowerdeck/validation';
 import { Error } from '@metorial/ui';
 import equal from 'fast-deep-equal';
-import { FormikConfig, useFormik } from 'formik';
+import type { FormikConfig } from 'formik';
+import { useFormik } from 'formik';
 import { useEffect, useMemo, useRef } from 'react';
 import * as Yup from 'yup';
 

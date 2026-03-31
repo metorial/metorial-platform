@@ -1,9 +1,20 @@
-import type { ProviderDeployment, ProviderTool, SessionProvider } from '@metorial-subspace/db';
+import type { ProviderTool } from '@metorial-subspace/db';
 import safeRegex from 'safe-regex2';
 
 type ToolFilter = PrismaJson.ToolFilter;
 type ToolFilterRule = Extract<ToolFilter, { type: 'v1.filter' }>['filters'][number];
-type ToolFilterCarrier = SessionProvider | ProviderDeployment;
+type ToolFilterCarrier = {
+  toolFilter?: ToolFilter | null;
+  deployment?: {
+    toolFilter?: ToolFilter | null;
+  } | null;
+  config?: {
+    toolFilter?: ToolFilter | null;
+  } | null;
+  authConfig?: {
+    toolFilter?: ToolFilter | null;
+  } | null;
+};
 type ToolFilterEnvelopeInput = {
   ignoreParentFilters?: boolean;
   filters?: ToolFilterRule | ToolFilterRule[] | null;
@@ -78,9 +89,13 @@ export let normalizeToolFilters = (
 };
 
 export let resolveToolFilterChain = (d: {
+  providerConfigToolFilter?: ToolFilter | null;
+  providerAuthConfigToolFilter?: ToolFilter | null;
   providerDeploymentToolFilter?: ToolFilter | null;
   sessionProviderToolFilter?: ToolFilter | null;
 }) => {
+  let providerConfigToolFilter = normalizeToolFilters(d.providerConfigToolFilter);
+  let providerAuthConfigToolFilter = normalizeToolFilters(d.providerAuthConfigToolFilter);
   let providerDeploymentToolFilter = normalizeToolFilters(d.providerDeploymentToolFilter);
   let sessionProviderToolFilter = normalizeToolFilters(d.sessionProviderToolFilter);
 
@@ -88,15 +103,39 @@ export let resolveToolFilterChain = (d: {
     return [sessionProviderToolFilter];
   }
 
-  return [providerDeploymentToolFilter, sessionProviderToolFilter];
+  if (providerDeploymentToolFilter.ignoreParentFilters) {
+    return [providerDeploymentToolFilter, sessionProviderToolFilter];
+  }
+
+  if (providerAuthConfigToolFilter.ignoreParentFilters) {
+    return [
+      providerAuthConfigToolFilter,
+      providerDeploymentToolFilter,
+      sessionProviderToolFilter
+    ];
+  }
+
+  if (providerConfigToolFilter.ignoreParentFilters) {
+    return [
+      providerConfigToolFilter,
+      providerAuthConfigToolFilter,
+      providerDeploymentToolFilter,
+      sessionProviderToolFilter
+    ];
+  }
+
+  return [
+    providerConfigToolFilter,
+    providerAuthConfigToolFilter,
+    providerDeploymentToolFilter,
+    sessionProviderToolFilter
+  ];
 };
 
-export let resolveSessionProviderToolFilterChain = (
-  provider: ToolFilterCarrier & {
-    deployment?: ToolFilterCarrier | null;
-  }
-) =>
+export let resolveSessionProviderToolFilterChain = (provider: ToolFilterCarrier) =>
   resolveToolFilterChain({
+    providerConfigToolFilter: provider.config?.toolFilter,
+    providerAuthConfigToolFilter: provider.authConfig?.toolFilter,
     providerDeploymentToolFilter: provider.deployment?.toolFilter,
     sessionProviderToolFilter: provider.toolFilter
   });
@@ -164,7 +203,7 @@ let getRelevantToolRules = (tool: ProviderTool, filter: ToolFilter) => {
 
 export let checkToolAccess = (
   tool: ProviderTool,
-  filters: ToolFilter[] | (ToolFilterCarrier & { deployment?: ToolFilterCarrier | null }),
+  filters: ToolFilter[] | ToolFilterCarrier,
   _operation: 'list' | 'call'
 ) => {
   if (
@@ -191,9 +230,7 @@ export let checkToolAccess = (
   return { allowed: true };
 };
 
-export let checkResourceAccessManager = (
-  filters: ToolFilter[] | (ToolFilterCarrier & { deployment?: ToolFilterCarrier | null })
-) => {
+export let checkResourceAccessManager = (filters: ToolFilter[] | ToolFilterCarrier) => {
   let regexCache = new Map<string, RegExp>();
   let filterChain = Array.isArray(filters)
     ? filters.map(normalizeToolFilters)
