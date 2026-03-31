@@ -52,6 +52,7 @@ import { v1UserPresenter } from './implementation/user';
 import {
   dashboardCustomProviderDeploymentPresenter,
   dashboardCustomProviderPresenter,
+  dashboardIdentityActorPresenter,
   dashboardProviderPresenter,
   v1BucketEditorTokenPresenter,
   v1CallbackDestinationPresenter,
@@ -617,7 +618,7 @@ export let identityPresenter = declarePresenter(identityType, {
 });
 
 export let identityActorPresenter = declarePresenter(identityActorType, {
-  mt_2025_01_01_dashboard: v1IdentityActorPresenter,
+  mt_2025_01_01_dashboard: dashboardIdentityActorPresenter,
   mt_2026_01_01_magnetar: v1IdentityActorPresenter
 });
 

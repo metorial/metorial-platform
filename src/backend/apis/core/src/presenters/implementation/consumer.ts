@@ -8,10 +8,6 @@ export let v1ConsumerPresenter = Presenter.create(consumerType)
     id: consumer.id,
     name: consumer.name,
     email: consumer.email,
-    isPortalConsumer: consumer.consumer.profiles.some(
-      profile => profile.surface.type === 'portal'
-    ),
-    isOrganizationMember: !!consumer.consumer.organizationMember,
     created_at: consumer.createdAt,
     updated_at: consumer.updatedAt
   }))
@@ -21,8 +17,7 @@ export let v1ConsumerPresenter = Presenter.create(consumerType)
       id: v.string(),
       name: v.string(),
       email: v.string(),
-      isPortalConsumer: v.boolean(),
-      isOrganizationMember: v.boolean(),
+
       created_at: v.date(),
       updated_at: v.date()
     })
@@ -34,8 +29,18 @@ export let dashboardConsumerPresenter = Presenter.create(consumerType)
     let inner = await v1ConsumerPresenter.present({ consumer }, opts).run();
 
     return {
-      ...inner
+      ...inner,
+      is_portal_consumer: consumer.consumer.isPortalConsumer,
+      is_organization_member: consumer.consumer.isOrganizationMember
     };
   })
-  .schema(v.intersection([v1ConsumerPresenter.schema, v.object({})]))
+  .schema(
+    v.intersection([
+      v1ConsumerPresenter.schema,
+      v.object({
+        is_portal_consumer: v.boolean(),
+        is_organization_member: v.boolean()
+      })
+    ])
+  )
   .build();

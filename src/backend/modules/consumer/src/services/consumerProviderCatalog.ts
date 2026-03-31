@@ -1,7 +1,7 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator, type PaginatorInput } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { Prisma, ProviderTemplate, db, type Instance } from '@metorial/db';
+import { db, Prisma, ProviderTemplate, type Instance } from '@metorial/db';
 import {
   accessTagService,
   consumerMagicMcpReadRoles,
@@ -14,11 +14,11 @@ import {
   subspaceProviderService
 } from '@metorial/module-subspace';
 import {
+  listProviderAuthMethods,
   type ConsumerProvider,
   type ConsumerProviderAuthMethodList,
   type ConsumerProviderConfigSchema,
-  type ConsumerProviderDeployment,
-  listProviderAuthMethods
+  type ConsumerProviderDeployment
 } from './consumerProviderContext';
 import { isPreconfiguredMagicMcpServer } from './magicMcpServerSource';
 

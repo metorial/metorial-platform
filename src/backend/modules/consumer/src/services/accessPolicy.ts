@@ -106,10 +106,12 @@ let invalidConsumerAccessTargetError = () =>
     })
   );
 
-let getStoredConsumerAccessResource = (consumerAccess: Pick<ConsumerAccess, 'type'> & {
-  providerTemplate: Pick<ProviderTemplate, 'oid'> | null;
-  magicMcpServer: Pick<MagicMcpServer, 'oid'> | null;
-}) => {
+let getStoredConsumerAccessResource = (
+  consumerAccess: Pick<ConsumerAccess, 'type'> & {
+    providerTemplate: Pick<ProviderTemplate, 'oid'> | null;
+    magicMcpServer: Pick<MagicMcpServer, 'oid'> | null;
+  }
+) => {
   if (consumerAccess.type == 'provider_template') {
     if (!consumerAccess.providerTemplate || consumerAccess.magicMcpServer) {
       throw invalidConsumerAccessTargetError();
@@ -184,9 +186,7 @@ class ConsumerAccessPolicyServiceImpl {
     );
   }
 
-  private async getSubjectAccessTagOids(d: {
-    subject: ConsumerAccessSubject;
-  }) {
+  private async getSubjectAccessTagOids(d: { subject: ConsumerAccessSubject }) {
     if ('consumerProfile' in d.subject) {
       return [d.subject.consumerProfile.accessTagOid];
     }
@@ -199,7 +199,8 @@ class ConsumerAccessPolicyServiceImpl {
       throw new Error('Unsupported consumer access subject');
     }
 
-    let personalConsumerGroupOid = d.subject.personalConsumerGroupForProfile.personalConsumerGroupOid;
+    let personalConsumerGroupOid =
+      d.subject.personalConsumerGroupForProfile.personalConsumerGroupOid;
 
     let personalConsumerGroup = await withTransaction(async db => {
       return await db.consumerGroup.findUniqueOrThrow({
@@ -244,7 +245,9 @@ class ConsumerAccessPolicyServiceImpl {
     resource: ConsumerAccessResource;
   }) {
     if (isProviderTemplatePermission(d.permission) && !('providerTemplate' in d.resource)) {
-      throw new Error('Provider template permissions can only be attached to provider templates');
+      throw new Error(
+        'Provider template permissions can only be attached to provider templates'
+      );
     }
 
     if (!isProviderTemplatePermission(d.permission) && 'providerTemplate' in d.resource) {
@@ -361,7 +364,11 @@ class ConsumerAccessPolicyServiceImpl {
       return;
     }
 
-    for (let permission of ['magic_mcp_read', 'magic_mcp_connect', 'magic_mcp_write'] as const) {
+    for (let permission of [
+      'magic_mcp_read',
+      'magic_mcp_connect',
+      'magic_mcp_write'
+    ] as const) {
       await this.revokeAccess({
         organization: d.organization,
         permission,

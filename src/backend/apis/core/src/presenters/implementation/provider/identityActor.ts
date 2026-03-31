@@ -1,6 +1,7 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
 import { identityActorType } from '../../types';
+import { dashboardConsumerPresenter } from '../consumer';
 
 export let v1IdentityActorPresenter = Presenter.create(identityActorType)
   .presenter(async ({ identityActor }) => ({
@@ -74,5 +75,28 @@ export let v1IdentityActorPresenter = Presenter.create(identityActorType)
         examples: [new Date('2026-02-10T14:30:00Z')]
       })
     })
+  )
+  .build();
+
+export let dashboardIdentityActorPresenter = Presenter.create(identityActorType)
+  .presenter(async ({ identityActor }, opts) => {
+    let inner = await v1IdentityActorPresenter.present({ identityActor }, opts).run();
+
+    return {
+      ...inner,
+      consumer: identityActor.consumer
+        ? await dashboardConsumerPresenter
+            .present({ consumer: identityActor.consumer }, opts)
+            .run()
+        : null
+    };
+  })
+  .schema(
+    v.intersection([
+      v1IdentityActorPresenter.schema,
+      v.object({
+        consumer: v.nullable(dashboardConsumerPresenter.schema)
+      })
+    ])
   )
   .build();

@@ -56,4 +56,5 @@ model Instance {
   providerTemplates                    ProviderTemplate[]
   accessPolicyInstances                AccessPolicyInstance[]
   instanceConsumers                    InstanceConsumer[]
+  consumerActors                       ConsumerActor[]
 }

@@ -11,6 +11,7 @@ import {
   Prisma,
   withTransaction
 } from '@metorial/db';
+import { createLock } from '@metorial/lock';
 import { apiKeyService } from '@metorial/module-machine-access';
 import { organizationActorService } from '@metorial/module-organization';
 import { consumerAresService } from './ares';
@@ -33,6 +34,10 @@ export type AresAppConfig = {
   defaultRedirectUrl: string;
   redirectDomains: string[];
 };
+
+let internalCreateLock = createLock({
+  name: 'cons/consumer-surface/internal-create'
+});
 
 class ConsumerSurfaceServiceImpl {
   async getConsumerSurfaceById(d: { instance: Instance; consumerSurfaceId: string }) {
@@ -78,10 +83,12 @@ class ConsumerSurfaceServiceImpl {
     consumerSurface: ConsumerSurface;
     status: 'archived' | 'deleted';
   }) {
+    if (!d.consumerSurface.consumerAuthTenantOid) return;
+
     return await withTransaction(async tx => {
       let consumerAuthTenant = await tx.consumerAuthTenant.findUniqueOrThrow({
         where: {
-          oid: d.consumerSurface.consumerAuthTenantOid
+          oid: d.consumerSurface.consumerAuthTenantOid!
         }
       });
 
@@ -116,10 +123,18 @@ class ConsumerSurfaceServiceImpl {
       clientId: string;
     };
   }) {
+    if (!d.consumerSurface.consumerAuthTenantOid) {
+      throw new ServiceError(
+        preconditionFailedError({
+          message: 'Auth is not configured for this portal.'
+        })
+      );
+    }
+
     return await withTransaction(async tx => {
       return await tx.consumerAuthTenant.update({
         where: {
-          oid: d.consumerSurface.consumerAuthTenantOid
+          oid: d.consumerSurface.consumerAuthTenantOid!
         },
         data: {
           aresAppId: d.aresApp.id,
@@ -193,6 +208,7 @@ class ConsumerSurfaceServiceImpl {
       description?: string;
       sessionExpiryTimeInSeconds: number;
     };
+    internalSurfaceUniqueIdentifier?: string;
   }) {
     let systemActor = await organizationActorService.getSystemActor({
       organization: d.organization
@@ -228,7 +244,8 @@ class ConsumerSurfaceServiceImpl {
             organizationOid: d.organization.oid,
             instanceOid: d.instance.oid,
             consumerAuthTenantOid: consumerAuthTenant.oid,
-            publishableApiKeyOid: apiKey.oid
+            publishableApiKeyOid: apiKey.oid,
+            internalSurfaceUniqueIdentifier: d.internalSurfaceUniqueIdentifier
           },
           include: consumerSurfaceInclude
         });
@@ -240,6 +257,52 @@ class ConsumerSurfaceServiceImpl {
 
       throw error;
     }
+  }
+
+  async ensureInternalConsumerSurface(d: {
+    instance: Instance;
+    identifier: string;
+    name: string;
+  }) {
+    let consumerSurface = await db.consumerSurface.findUnique({
+      where: {
+        instanceOid_internalSurfaceUniqueIdentifier: {
+          instanceOid: d.instance.oid,
+          internalSurfaceUniqueIdentifier: d.identifier
+        }
+      }
+    });
+    if (!consumerSurface) {
+      return await internalCreateLock.usingLock(d.identifier, async () => {
+        let existingSurface = await db.consumerSurface.findUnique({
+          where: {
+            instanceOid_internalSurfaceUniqueIdentifier: {
+              instanceOid: d.instance.oid,
+              internalSurfaceUniqueIdentifier: d.identifier
+            }
+          },
+          include: consumerSurfaceInclude
+        });
+        if (existingSurface) return existingSurface;
+
+        let org = await db.organization.findFirstOrThrow({
+          where: { oid: d.instance.organizationOid }
+        });
+
+        let surface = await this.createConsumerSurface({
+          organization: org,
+          instance: d.instance,
+          context: { ip: '0.0.0.0', ua: 'Metorial System' },
+          input: {
+            name: d.name,
+            sessionExpiryTimeInSeconds: 3600
+          },
+          internalSurfaceUniqueIdentifier: d.identifier
+        });
+      });
+    }
+
+    return consumerSurface;
   }
 
   async configureConsumerSurfaceAres(d: {

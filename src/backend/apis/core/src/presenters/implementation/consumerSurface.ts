@@ -9,10 +9,12 @@ export let v1ConsumerSurfacePresenter = Presenter.create(consumerSurfaceType)
     status: consumerSurface.status,
     name: consumerSurface.name,
     description: consumerSurface.description,
+
     auth: {
       object: 'consumer.surface.auth' as const,
       session_expiry_time_in_seconds: consumerSurface.sessionExpiryTimeInSeconds
     },
+
     created_at: consumerSurface.createdAt,
     updated_at: consumerSurface.updatedAt
   }))

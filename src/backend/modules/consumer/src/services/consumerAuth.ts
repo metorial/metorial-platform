@@ -63,6 +63,14 @@ class ConsumerAuthServiceImpl {
       surface: d.surface
     });
 
+    if (!d.surface.consumerAuthTenantOid) {
+      throw new ServiceError(
+        preconditionFailedError({
+          message: 'Auth is not configured for this portal.'
+        })
+      );
+    }
+
     let consumerAuthTenant = await db.consumerAuthTenant.findUniqueOrThrow({
       where: {
         oid: d.surface.consumerAuthTenantOid
@@ -71,7 +79,7 @@ class ConsumerAuthServiceImpl {
     if (!consumerAuthTenant.aresAppId || !consumerAuthTenant.aresClientId) {
       throw new ServiceError(
         preconditionFailedError({
-          message: 'Ares auth is not configured for this portal.'
+          message: 'Auth is not configured for this portal.'
         })
       );
     }
@@ -186,7 +194,7 @@ class ConsumerAuthServiceImpl {
     consumerSurface: ConsumerSurface;
     consumerProfile: ConsumerProfile;
   }) {
-    if (!d.consumerProfile.aresUserId) {
+    if (!d.consumerProfile.aresUserId || !d.consumerSurface.consumerAuthTenantOid) {
       return d.consumerProfile;
     }
 
@@ -299,7 +307,7 @@ class ConsumerAuthServiceImpl {
     if (!process.env.ARES_AUTH_URL) {
       throw new ServiceError(
         preconditionFailedError({
-          message: 'Ares auth is not configured for this portal.'
+          message: 'Auth is not configured for this portal.'
         })
       );
     }

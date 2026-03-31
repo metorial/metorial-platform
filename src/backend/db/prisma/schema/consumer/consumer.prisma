@@ -22,6 +22,7 @@ model Consumer {
 
   profiles          ConsumerProfile[]
   instanceConsumers InstanceConsumer[]
+  consumerActors    ConsumerActor[]
 
   @@unique([email, organizationOid])
 }
@@ -39,8 +40,9 @@ model InstanceConsumer {
   consumerOid BigInt
   consumer    Consumer @relation(fields: [consumerOid], references: [oid], onDelete: Cascade)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @default(now()) @updatedAt
+  consumerActors ConsumerActor[]
 
   @@unique([instanceOid, consumerOid])
 }
@@ -81,6 +83,7 @@ model ConsumerProfile {
   groups                       ConsumerProfileGroup[]
   accessRequests               ConsumerAccessRequest[]
   providerSetupSessionBindings ConsumerProviderSetupSessionBinding[]
+  actors                       ConsumerActor[]
 
   @@unique([surfaceOid, aresUserId])
   @@unique([email, surfaceOid])

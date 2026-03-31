@@ -11,19 +11,58 @@ export type DashboardInstanceIdentityActorsGetOutput = {
   agentId: string | null;
   createdAt: Date;
   updatedAt: Date;
+} & {
+  consumer:
+    | ({
+        object: 'consumer';
+        id: string;
+        name: string;
+        email: string;
+        createdAt: Date;
+        updatedAt: Date;
+      } & { isPortalConsumer: boolean; isOrganizationMember: boolean })
+    | null;
 };
 
-export let mapDashboardInstanceIdentityActorsGetOutput =
-  mtMap.object<DashboardInstanceIdentityActorsGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    type: mtMap.objectField('type', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-    agentId: mtMap.objectField('agent_id', mtMap.passthrough()),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
+export let mapDashboardInstanceIdentityActorsGetOutput = mtMap.union([
+  mtMap.unionOption(
+    'object',
+    mtMap.object({
+      object: mtMap.objectField('object', mtMap.passthrough()),
+      id: mtMap.objectField('id', mtMap.passthrough()),
+      type: mtMap.objectField('type', mtMap.passthrough()),
+      status: mtMap.objectField('status', mtMap.passthrough()),
+      name: mtMap.objectField('name', mtMap.passthrough()),
+      description: mtMap.objectField('description', mtMap.passthrough()),
+      metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+      agentId: mtMap.objectField('agent_id', mtMap.passthrough()),
+      createdAt: mtMap.objectField('created_at', mtMap.date()),
+      updatedAt: mtMap.objectField('updated_at', mtMap.date()),
+      consumer: mtMap.objectField(
+        'consumer',
+        mtMap.union([
+          mtMap.unionOption(
+            'object',
+            mtMap.object({
+              object: mtMap.objectField('object', mtMap.passthrough()),
+              id: mtMap.objectField('id', mtMap.passthrough()),
+              name: mtMap.objectField('name', mtMap.passthrough()),
+              email: mtMap.objectField('email', mtMap.passthrough()),
+              createdAt: mtMap.objectField('created_at', mtMap.date()),
+              updatedAt: mtMap.objectField('updated_at', mtMap.date()),
+              isPortalConsumer: mtMap.objectField(
+                'is_portal_consumer',
+                mtMap.passthrough()
+              ),
+              isOrganizationMember: mtMap.objectField(
+                'is_organization_member',
+                mtMap.passthrough()
+              )
+            })
+          )
+        ])
+      )
+    })
+  )
+]);
 

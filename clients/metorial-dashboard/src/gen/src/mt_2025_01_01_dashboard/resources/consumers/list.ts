@@ -6,11 +6,9 @@ export type ConsumersListOutput = {
     id: string;
     name: string;
     email: string;
-    isPortalConsumer: boolean;
-    isOrganizationMember: boolean;
     createdAt: Date;
     updatedAt: Date;
-  } & {})[];
+  } & { isPortalConsumer: boolean; isOrganizationMember: boolean })[];
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
@@ -26,16 +24,16 @@ export let mapConsumersListOutput = mtMap.object<ConsumersListOutput>({
             id: mtMap.objectField('id', mtMap.passthrough()),
             name: mtMap.objectField('name', mtMap.passthrough()),
             email: mtMap.objectField('email', mtMap.passthrough()),
+            createdAt: mtMap.objectField('created_at', mtMap.date()),
+            updatedAt: mtMap.objectField('updated_at', mtMap.date()),
             isPortalConsumer: mtMap.objectField(
-              'isPortalConsumer',
+              'is_portal_consumer',
               mtMap.passthrough()
             ),
             isOrganizationMember: mtMap.objectField(
-              'isOrganizationMember',
+              'is_organization_member',
               mtMap.passthrough()
-            ),
-            createdAt: mtMap.objectField('created_at', mtMap.date()),
-            updatedAt: mtMap.objectField('updated_at', mtMap.date())
+            )
           })
         )
       ])

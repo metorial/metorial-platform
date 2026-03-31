@@ -1,8 +1,12 @@
 import { combineQueueProcessors } from '@metorial/queue';
-import { syncIdentityConsumerQueueProcessor } from './queues/syncIdentityConsumer';
+import {
+  reconcileConsumerActorQueueProcessor,
+  syncIdentityConsumerQueueProcessor
+} from './queues/syncIdentityConsumer';
 
 export * from './services';
 
 export let consumerQueueProcessor = combineQueueProcessors([
-  syncIdentityConsumerQueueProcessor
+  syncIdentityConsumerQueueProcessor,
+  reconcileConsumerActorQueueProcessor
 ]);

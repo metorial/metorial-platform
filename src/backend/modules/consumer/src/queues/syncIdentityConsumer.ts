@@ -1,4 +1,7 @@
-import { createQueue } from '@metorial/queue';
+import { db } from '@metorial/db';
+import { createLock } from '@metorial/lock';
+import { subspaceIdentityActorService } from '@metorial/module-subspace';
+import { createQueue, QueueRetryError } from '@metorial/queue';
 
 export let syncIdentityConsumerQueue = createQueue<{
   identityConsumerId: string;
@@ -7,5 +10,100 @@ export let syncIdentityConsumerQueue = createQueue<{
 });
 
 export let syncIdentityConsumerQueueProcessor = syncIdentityConsumerQueue.process(
-  async d => {}
+  async data => {
+    let consumer = await db.instanceConsumer.findUnique({
+      where: {
+        id: data.identityConsumerId
+      }
+    });
+    if (!consumer) throw new QueueRetryError();
+
+    await db.consumerProfile.updateMany({
+      where: {
+        instanceOid: consumer.instanceOid,
+        consumerOid: consumer.oid
+      },
+      data: {
+        name: consumer.name,
+        email: consumer.email
+      }
+    });
+
+    let profile = await db.consumerProfile.findMany({
+      where: {
+        instanceOid: consumer.instanceOid,
+        consumerOid: consumer.oid
+      }
+    });
+
+    await reconcileConsumerActorQueue.addMany(
+      profile.map(p => ({
+        profileId: p.id
+      }))
+    );
+  }
+);
+
+export let reconcileConsumerActorQueue = createQueue<{
+  profileId: string;
+}>({
+  name: 'cons/ident/recon-actor'
+});
+
+let consumerActorLock = createLock({
+  name: 'cons/ident/sync/actor'
+});
+
+export let reconcileConsumerActorQueueProcessor = reconcileConsumerActorQueue.process(
+  async data =>
+    await consumerActorLock.usingLock(data.profileId, async () => {
+      let profile = await db.consumerProfile.findUnique({
+        where: {
+          id: data.profileId
+        },
+        include: { instance: true, actors: true }
+      });
+      if (!profile) throw new QueueRetryError();
+
+      let instanceConsumer = await db.instanceConsumer.findUnique({
+        where: {
+          instanceOid_consumerOid: {
+            instanceOid: profile.instanceOid,
+            consumerOid: profile.consumerOid
+          }
+        }
+      });
+      if (!instanceConsumer) throw new QueueRetryError();
+
+      if (!profile.actors.length) {
+        let res = await subspaceIdentityActorService.create({
+          instance: profile.instance,
+          name: instanceConsumer.name,
+          type: 'person'
+        });
+        await db.consumerActor.create({
+          data: {
+            id: res.id,
+            instanceOid: profile.instanceOid,
+            organizationOid: profile.organizationOid,
+
+            consumerOid: profile.consumerOid,
+            consumerProfileOid: profile.oid,
+            instanceConsumerOid: instanceConsumer.oid,
+
+            isDefault: true
+          }
+        });
+      } else {
+        for (let actor of profile.actors) {
+          await subspaceIdentityActorService.update({
+            instance: profile.instance,
+            identityActorId: actor.id,
+            name: instanceConsumer.name,
+
+            canEditConsumerActor: true
+          });
+        }
+      }
+    })
 );
