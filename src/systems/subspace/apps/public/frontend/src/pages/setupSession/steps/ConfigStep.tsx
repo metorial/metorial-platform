@@ -2,7 +2,7 @@ import { useForm } from '@metorial-io/data-hooks';
 import { Button, Flex } from '@metorial/ui';
 import type { JsonSchema } from '../../../lib/jsonSchema';
 import { getDefaultValues, schemaToYup } from '../../../lib/jsonSchema';
-import { FormFromSchema } from '../components/formFromSchema';
+import { FormFromSchema } from '../components/formSchema';
 import { StepContentBlock, StepWrapper } from '../components/stepLayout';
 
 interface ConfigStepProps {

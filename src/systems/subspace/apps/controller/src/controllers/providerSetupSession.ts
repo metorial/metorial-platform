@@ -194,7 +194,7 @@ export let providerSetupSessionController = app.controller({
           description: ctx.input.description,
           metadata: ctx.input.metadata,
           redirectUrl: ctx.input.redirectUrl,
-          configuration: ctx.input.configuration,
+          configuration: ctx.input.configuration as any,
 
           authConfigInput: ctx.input.authConfigInput,
           configInput: ctx.input.configInput
