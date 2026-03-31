@@ -434,7 +434,12 @@ export let consumerAccessRequestType = PresentableType.create<{
 
 export let consumerType = PresentableType.create<{
   consumer: InstanceConsumer & {
-    consumer: Consumer;
+    consumer: Consumer & {
+      organizationMember: OrganizationMember | null;
+      profiles: (ConsumerProfile & {
+        surface: ConsumerSurface;
+      })[];
+    };
   };
 }>()('consumer');
 

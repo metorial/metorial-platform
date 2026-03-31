@@ -5,16 +5,31 @@ export type ConsumersGetOutput = {
   id: string;
   name: string;
   email: string;
+  isPortalConsumer: boolean;
+  isOrganizationMember: boolean;
   createdAt: Date;
   updatedAt: Date;
-};
+} & {};
 
-export let mapConsumersGetOutput = mtMap.object<ConsumersGetOutput>({
-  object: mtMap.objectField('object', mtMap.passthrough()),
-  id: mtMap.objectField('id', mtMap.passthrough()),
-  name: mtMap.objectField('name', mtMap.passthrough()),
-  email: mtMap.objectField('email', mtMap.passthrough()),
-  createdAt: mtMap.objectField('created_at', mtMap.date()),
-  updatedAt: mtMap.objectField('updated_at', mtMap.date())
-});
+export let mapConsumersGetOutput = mtMap.union([
+  mtMap.unionOption(
+    'object',
+    mtMap.object({
+      object: mtMap.objectField('object', mtMap.passthrough()),
+      id: mtMap.objectField('id', mtMap.passthrough()),
+      name: mtMap.objectField('name', mtMap.passthrough()),
+      email: mtMap.objectField('email', mtMap.passthrough()),
+      isPortalConsumer: mtMap.objectField(
+        'isPortalConsumer',
+        mtMap.passthrough()
+      ),
+      isOrganizationMember: mtMap.objectField(
+        'isOrganizationMember',
+        mtMap.passthrough()
+      ),
+      createdAt: mtMap.objectField('created_at', mtMap.date()),
+      updatedAt: mtMap.objectField('updated_at', mtMap.date())
+    })
+  )
+]);
 

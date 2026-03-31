@@ -4,6 +4,7 @@ import { runQueueProcessors } from '@metorial/queue';
 
 import { accessQueueProcessor } from '@metorial/module-access';
 import { communityQueueProcessor } from '@metorial/module-community';
+import { consumerQueueProcessor } from '@metorial/module-consumer';
 import { emailQueueProcessor } from '@metorial/module-email';
 import { eventQueueProcessor } from '@metorial/module-event';
 import { fileQueueProcessor } from '@metorial/module-file';
@@ -26,6 +27,7 @@ export let worker = runQueueProcessors([
   eventQueueProcessor,
   usageQueueProcessor,
   communityQueueProcessor,
+  consumerQueueProcessor,
   magicQueueProcessor,
   protectQueueProcessor,
   subspaceQueueProcessor,

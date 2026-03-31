@@ -9,8 +9,8 @@ import {
 } from '@metorial/state';
 import { Button } from '@metorial/ui';
 import { useNavigate } from 'react-router-dom';
-import { showIdentityActorFormModal } from '../../../scenes/identity/actorModal';
-import { IdentityActorsTable } from '../../../scenes/identity/actorsTable';
+import { showConsumerFormModal } from '../../../scenes/consumer/modal';
+import { ConsumersTable } from '../../../scenes/consumer/table';
 import {
   getIdentityUnavailableError,
   getIdentityUpgrade,
@@ -18,7 +18,7 @@ import {
   isPaidIdentityEnabled
 } from './_layout';
 
-export let IdentityActorsPage = () => {
+export let ConsumersPage = () => {
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
@@ -28,29 +28,29 @@ export let IdentityActorsPage = () => {
   return (
     <ContentLayout>
       <PageHeader
-        title="Actors"
-        description="Manage the actors that can be assigned identities and delegated access."
+        title="Consumers"
+        description="Manage the access that consumers have across Metorial."
         actions={
           <Button
             size="2"
             onClick={() => {
               if (!instance.data) return;
 
-              showIdentityActorFormModal({
+              showConsumerFormModal({
                 instanceId: instance.data.id,
-                onCreate: actor =>
+                onCreate: consumer =>
                   navigate(
-                    Paths.instance.identity.actor(
+                    Paths.instance.identity.consumer(
                       organization.data,
                       project.data,
                       instance.data,
-                      actor.id
+                      consumer.id
                     )
                   )
               });
             }}
           >
-            Create Actor
+            Create Consumer
           </Button>
         }
       />
@@ -62,7 +62,7 @@ export let IdentityActorsPage = () => {
           ) : !isPaidIdentityEnabled(flags.data.flags) ? (
             getIdentityUpgrade()
           ) : (
-            <IdentityActorsTable instanceId={instance.data.id} />
+            <ConsumersTable instanceId={instance.data.id} />
           )}
         </>
       ))}

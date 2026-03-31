@@ -10,23 +10,22 @@ import {
 import { Button, Error, LinkTabs } from '@metorial/ui';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Upgrade } from '../../../../../components/emptyState';
-import { showIdentityActorFormModal } from '../../../scenes/identity/actorModal';
 import { showIdentityDelegationConfigFormModal } from '../../../scenes/identity/delegationConfigModal';
 
-let isIdentityEnabled = (flags: Record<string, boolean> | undefined) =>
+export let isIdentityEnabled = (flags: Record<string, boolean> | undefined) =>
   !!flags?.['identity-management'];
 
-let isPaidIdentityEnabled = (flags: Record<string, boolean> | undefined) =>
+export let isPaidIdentityEnabled = (flags: Record<string, boolean> | undefined) =>
   !!flags?.['paid-identity'];
 
-let getIdentityUpgrade = () => (
+export let getIdentityUpgrade = () => (
   <Upgrade
     title="Identity Management"
     description="Manage identity actors, identities, delegations, and delegation policies once this instance is upgraded."
   />
 );
 
-let getIdentityUnavailableError = () => (
+export let getIdentityUnavailableError = () => (
   <Error style={{ marginTop: 20 }}>
     Identity management is not enabled for this instance.
   </Error>
@@ -44,38 +43,16 @@ export let IdentityListLayout = () => {
     ? 'delegation-configs'
     : pathname.endsWith('/delegations')
       ? 'delegations'
-      : pathname.endsWith('/identities')
-        ? 'identities'
-        : 'actors';
+      : 'actors';
 
   return renderWithLoader({ instance, organization, project, flags })(
     ({ instance, organization, project, flags }) => (
       <ContentLayout>
         <PageHeader
           title="Identity"
-          description="Manage the actors, identities, delegations, and policies that control delegated access."
+          description="Manage identities and identity delegation to enable secure and flexible access control for agents and humans."
           actions={
-            activeTab === 'actors' ? (
-              <Button
-                size="2"
-                onClick={() =>
-                  showIdentityActorFormModal({
-                    instanceId: instance.data.id,
-                    onCreate: actor =>
-                      navigate(
-                        Paths.instance.identity.actor(
-                          organization.data,
-                          project.data,
-                          instance.data,
-                          actor.id
-                        )
-                      )
-                  })
-                }
-              >
-                Create Actor
-              </Button>
-            ) : activeTab === 'delegation-configs' ? (
+            activeTab === 'delegation-configs' ? (
               <Button
                 size="2"
                 onClick={() =>
@@ -102,14 +79,6 @@ export let IdentityListLayout = () => {
         <LinkTabs
           current={pathname}
           links={[
-            {
-              label: 'Actors',
-              to: Paths.instance.identity.actors(
-                organization.data,
-                project.data,
-                instance.data
-              )
-            },
             {
               label: 'Identities',
               to: Paths.instance.identity.identities(

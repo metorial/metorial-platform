@@ -15,6 +15,7 @@ import {
   InstanceConsumer,
   withTransaction
 } from '@metorial/db';
+import { syncIdentityConsumerQueue } from '../queues/syncIdentityConsumer';
 
 let include = {
   consumer: true,
@@ -129,9 +130,21 @@ class ConsumerProfileServiceImpl {
     ssoGroupIds?: string[];
     ssoRoles?: string[];
   }) {
-    return await withTransaction(async tx => {
+    let res = await withTransaction(async tx => {
       let ssoGroupIds = normalizeStringList(d.ssoGroupIds);
       let ssoRoles = normalizeStringList(d.ssoRoles);
+      let existingConsumer = await tx.consumer.findUnique({
+        where: {
+          email_organizationOid: {
+            email: d.email,
+            organizationOid: d.surface.organizationOid
+          }
+        },
+        select: {
+          isOrganizationMember: true,
+          isPortalConsumer: true
+        }
+      });
       let consumer = await tx.consumer.upsert({
         where: {
           email_organizationOid: {
@@ -143,11 +156,17 @@ class ConsumerProfileServiceImpl {
           id: await ID.generateId('consumer'),
           email: d.email,
           name: d.name,
-          organizationOid: d.surface.organizationOid
+          organizationOid: d.surface.organizationOid,
+          isOrganizationMember: d.surface.type === 'organization_members',
+          isPortalConsumer: d.surface.type === 'portal'
         },
         update: {
           email: d.email,
-          name: d.name
+          name: d.name,
+          isOrganizationMember:
+            existingConsumer?.isOrganizationMember ||
+            d.surface.type === 'organization_members',
+          isPortalConsumer: existingConsumer?.isPortalConsumer || d.surface.type === 'portal'
         }
       });
 
@@ -180,19 +199,22 @@ class ConsumerProfileServiceImpl {
         }
       });
       if (existingProfile) {
-        return await tx.consumerProfile.update({
-          where: {
-            oid: existingProfile.oid
-          },
-          data: {
-            aresUserId: d.aresUserId,
-            email: d.email,
-            name: d.name,
-            consumerOid: consumer.oid,
-            ssoGroupIds,
-            ssoRoles
-          }
-        });
+        return {
+          consumer,
+          consumerProfile: await tx.consumerProfile.update({
+            where: {
+              oid: existingProfile.oid
+            },
+            data: {
+              aresUserId: d.aresUserId,
+              email: d.email,
+              name: d.name,
+              consumerOid: consumer.oid,
+              ssoGroupIds,
+              ssoRoles
+            }
+          })
+        };
       }
 
       let accessTag = await tx.accessTag.create({
@@ -215,23 +237,32 @@ class ConsumerProfileServiceImpl {
         }
       });
 
-      return await tx.consumerProfile.create({
-        data: {
-          id: await ID.generateId('consumerProfile'),
-          aresUserId: d.aresUserId,
-          email: d.email,
-          name: d.name,
-          ssoGroupIds,
-          ssoRoles,
-          organizationOid: d.surface.organizationOid,
-          instanceOid: d.surface.instanceOid,
-          surfaceOid: d.surface.oid,
-          consumerOid: consumer.oid,
-          accessTagOid: accessTag.oid,
-          personalConsumerGroupOid: personalConsumerGroup.oid
-        }
-      });
+      return {
+        consumer,
+        consumerProfile: await tx.consumerProfile.create({
+          data: {
+            id: await ID.generateId('consumerProfile'),
+            aresUserId: d.aresUserId,
+            email: d.email,
+            name: d.name,
+            ssoGroupIds,
+            ssoRoles,
+            organizationOid: d.surface.organizationOid,
+            instanceOid: d.surface.instanceOid,
+            surfaceOid: d.surface.oid,
+            consumerOid: consumer.oid,
+            accessTagOid: accessTag.oid,
+            personalConsumerGroupOid: personalConsumerGroup.oid
+          }
+        })
+      };
     });
+
+    await syncIdentityConsumerQueue.add({
+      identityConsumerId: res.consumer.id
+    });
+
+    return res.consumerProfile;
   }
 
   async getStoredGroupsForProfiles(d: {

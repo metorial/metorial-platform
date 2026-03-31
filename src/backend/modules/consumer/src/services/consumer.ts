@@ -3,17 +3,30 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
   Consumer,
+  ConsumerProfile,
+  ConsumerSurface,
   db,
   ID,
   Instance,
   InstanceConsumer,
   Organization,
+  OrganizationMember,
   withTransaction
 } from '@metorial/db';
+import { syncIdentityConsumerQueue } from '../queues/syncIdentityConsumer';
 
-let include = {
-  consumer: true
-} as const;
+type ConsumerWithRelations = Consumer & {
+  organizationMember: OrganizationMember | null;
+  profiles: Array<
+    ConsumerProfile & {
+      surface: ConsumerSurface;
+    }
+  >;
+};
+
+type InstanceConsumerWithRelations = InstanceConsumer & {
+  consumer: ConsumerWithRelations;
+};
 
 class ConsumerServiceImpl {
   async getConsumerById(d: { instance: Instance; consumerId: string }) {
@@ -22,7 +35,21 @@ class ConsumerServiceImpl {
         instanceOid: d.instance.oid,
         id: d.consumerId
       },
-      include
+      include: {
+        consumer: {
+          include: {
+            organizationMember: true,
+            profiles: {
+              where: {
+                instanceOid: d.instance.oid
+              },
+              include: {
+                surface: true
+              }
+            }
+          }
+        }
+      }
     });
     if (!consumer) {
       throw new ServiceError(notFoundError('consumer'));
@@ -39,7 +66,21 @@ class ConsumerServiceImpl {
           where: {
             instanceOid: d.instance.oid
           },
-          include
+          include: {
+            consumer: {
+              include: {
+                organizationMember: true,
+                profiles: {
+                  where: {
+                    instanceOid: d.instance.oid
+                  },
+                  include: {
+                    surface: true
+                  }
+                }
+              }
+            }
+          }
         });
       })
     );
@@ -53,7 +94,7 @@ class ConsumerServiceImpl {
       email: string;
     };
   }) {
-    return await withTransaction(async tx => {
+    let instanceConsumer = await withTransaction(async tx => {
       let consumer = await tx.consumer.upsert({
         where: {
           email_organizationOid: {
@@ -91,7 +132,21 @@ class ConsumerServiceImpl {
           name: d.input.name,
           email: d.input.email
         },
-        include
+        include: {
+          consumer: {
+            include: {
+              organizationMember: true,
+              profiles: {
+                where: {
+                  instanceOid: d.instance.oid
+                },
+                include: {
+                  surface: true
+                }
+              }
+            }
+          }
+        }
       });
 
       await tx.consumerProfile.updateMany({
@@ -107,18 +162,22 @@ class ConsumerServiceImpl {
 
       return instanceConsumer;
     });
+
+    await syncIdentityConsumerQueue.add({
+      identityConsumerId: instanceConsumer.consumer.id
+    });
+
+    return instanceConsumer;
   }
 
   async updateConsumer(d: {
-    consumer: InstanceConsumer & {
-      consumer: Consumer;
-    };
+    consumer: InstanceConsumerWithRelations;
     input: {
       name?: string;
       email?: string;
     };
   }) {
-    return await withTransaction(async tx => {
+    let consumer = await withTransaction(async tx => {
       let name = d.input.name ?? d.consumer.name;
       let email = d.input.email ?? d.consumer.email;
 
@@ -140,7 +199,21 @@ class ConsumerServiceImpl {
           name,
           email
         },
-        include
+        include: {
+          consumer: {
+            include: {
+              organizationMember: true,
+              profiles: {
+                where: {
+                  instanceOid: d.consumer.instanceOid
+                },
+                include: {
+                  surface: true
+                }
+              }
+            }
+          }
+        }
       });
 
       await tx.consumerProfile.updateMany({
@@ -156,6 +229,12 @@ class ConsumerServiceImpl {
 
       return consumer;
     });
+
+    await syncIdentityConsumerQueue.add({
+      identityConsumerId: consumer.consumer.id
+    });
+
+    return consumer;
   }
 }
 

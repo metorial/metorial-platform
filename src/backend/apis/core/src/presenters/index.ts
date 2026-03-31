@@ -6,7 +6,7 @@ import { v1AccessRoleVersionPresenter } from './implementation/accessRoleVersion
 import { dashboardApiKeyPresenter, v1ApiKeyPresenter } from './implementation/apiKey';
 import { v1BootPresenter } from './implementation/boot';
 import { v1CliDevicePresenter } from './implementation/cliDevice';
-import { v1ConsumerPresenter } from './implementation/consumer';
+import { dashboardConsumerPresenter, v1ConsumerPresenter } from './implementation/consumer';
 import { v1ConsumerAccessPresenter } from './implementation/consumerAccess';
 import { v1ConsumerAccessRequestPresenter } from './implementation/consumerAccessRequest';
 import { v1ConsumerGroupPresenter } from './implementation/consumerGroup';
@@ -477,7 +477,7 @@ export let consumerAccessRequestPresenter = declarePresenter(consumerAccessReque
 });
 
 export let consumerPresenter = declarePresenter(consumerType, {
-  mt_2025_01_01_dashboard: v1ConsumerPresenter,
+  mt_2025_01_01_dashboard: dashboardConsumerPresenter,
   mt_2026_01_01_magnetar: v1ConsumerPresenter
 });
 

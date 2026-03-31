@@ -87,7 +87,7 @@ export let consumerController = Controller.create(
         description: 'Returns a paginated list of consumers for an instance.'
       })
       .use(checkAccess({ possibleScopes: ['instance.portal.consumers:read'] }))
-      .use(hasFlags(['paid-portals', 'portals-access']))
+      .use(hasFlags(['identity-management', 'paid-identity']))
       .outputList(consumerPresenter)
       .query('default', Paginator.validate(v.object({})))
       .do(async ctx => {
@@ -105,7 +105,7 @@ export let consumerController = Controller.create(
         description: 'Retrieves a consumer by ID.'
       })
       .use(checkAccess({ possibleScopes: ['instance.portal.consumers:read'] }))
-      .use(hasFlags(['paid-portals', 'portals-access']))
+      .use(hasFlags(['identity-management', 'paid-identity']))
       .output(consumerPresenter)
       .do(async ctx => consumerPresenter.present({ consumer: ctx.consumer })),
 
@@ -115,7 +115,7 @@ export let consumerController = Controller.create(
         description: 'Creates or links a consumer for an instance.'
       })
       .use(checkAccess({ possibleScopes: ['instance.portal.consumers:write'] }))
-      .use(hasFlags(['paid-portals', 'portals-access']))
+      .use(hasFlags(['identity-management', 'paid-identity']))
       .body(
         'default',
         v.object({
@@ -143,7 +143,7 @@ export let consumerController = Controller.create(
         description: 'Updates a consumer for an instance.'
       })
       .use(checkAccess({ possibleScopes: ['instance.portal.consumers:write'] }))
-      .use(hasFlags(['paid-portals', 'portals-access']))
+      .use(hasFlags(['identity-management', 'paid-identity']))
       .body(
         'default',
         v.object({
@@ -170,7 +170,7 @@ export let consumerController = Controller.create(
         description: 'Returns a paginated list of profiles for a consumer in an instance.'
       })
       .use(checkAccess({ possibleScopes: ['instance.portal.consumers:read'] }))
-      .use(hasFlags(['paid-portals', 'portals-access']))
+      .use(hasFlags(['identity-management', 'paid-identity']))
       .outputList(consumerProfilePresenter)
       .query('default', Paginator.validate(v.object({})))
       .do(async ctx => {
@@ -202,7 +202,7 @@ export let consumerController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.portal.consumers:read'] }))
-      .use(hasFlags(['paid-portals', 'portals-access']))
+      .use(hasFlags(['identity-management', 'paid-identity']))
       .output(consumerProfilePresenter)
       .do(async ctx => {
         let assignedConsumerGroups = await consumerProfileService.getGroupsForProfile({

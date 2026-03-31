@@ -39,7 +39,7 @@ export let consumerSurfaceController = Controller.create(
         description: 'Returns a paginated list of consumer surfaces for an instance.'
       })
       .use(checkAccess({ possibleScopes: ['instance.portal.consumers:read'] }))
-      .use(hasFlags(['paid-portals', 'portals-access']))
+      .use(hasFlags(['identity-management', 'paid-identity']))
       .outputList(consumerSurfacePresenter)
       .query('default', Paginator.validate(v.object({})))
       .do(async ctx => {
@@ -59,7 +59,7 @@ export let consumerSurfaceController = Controller.create(
         description: 'Retrieves a consumer surface by ID.'
       })
       .use(checkAccess({ possibleScopes: ['instance.portal.consumers:read'] }))
-      .use(hasFlags(['paid-portals', 'portals-access']))
+      .use(hasFlags(['identity-management', 'paid-identity']))
       .output(consumerSurfacePresenter)
       .do(async ctx =>
         consumerSurfacePresenter.present({ consumerSurface: ctx.consumerSurface })
