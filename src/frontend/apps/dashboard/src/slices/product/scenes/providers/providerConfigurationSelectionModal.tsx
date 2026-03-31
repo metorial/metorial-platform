@@ -425,7 +425,7 @@ let DeploymentConfigureStep = ({
       />
       <form.RenderError field="selectedConfiguration" />
 
-      {(provider.data?.type.auth.status == 'enabled' || true) && (
+      {provider.data?.type.auth.status == 'enabled' && (
         <>
           <Flex gap={8} align="end">
             <div style={{ flex: 1 }}>

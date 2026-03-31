@@ -54,7 +54,7 @@ class ConsumerServiceImpl {
     let consumer = await db.instanceConsumer.findFirst({
       where: {
         instanceOid: d.instance.oid,
-        id: d.consumerId
+        OR: [{ id: d.consumerId }, { consumer: { id: d.consumerId } }]
       },
       include: {
         consumer: {
