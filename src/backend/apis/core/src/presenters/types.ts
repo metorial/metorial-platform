@@ -23,6 +23,7 @@ import {
   FileLink,
   FilePurpose,
   Instance,
+  InstanceConsumer,
   MachineAccess,
   MagicMcpGroup,
   MagicMcpGroupToken,
@@ -431,9 +432,20 @@ export let consumerAccessRequestType = PresentableType.create<{
   };
 }>()('consumer.access_request');
 
+export let consumerType = PresentableType.create<{
+  consumer: InstanceConsumer & {
+    consumer: Consumer;
+  };
+}>()('consumer');
+
+export let consumerSurfaceType = PresentableType.create<{
+  consumerSurface: ConsumerSurface;
+}>()('consumer.surface');
+
 export let consumerProfileType = PresentableType.create<{
   consumerProfile: ConsumerProfile & {
     consumer: Consumer;
+    surface: ConsumerSurface;
     groups: (ConsumerProfileGroup & {
       group: ConsumerGroup;
     })[];

@@ -1,4 +1,6 @@
 export * from './callbacks';
+export * from './consumer-surfaces';
+export * from './consumers';
 export * from './custom-providers';
 export * from './file-links';
 export * from './files';

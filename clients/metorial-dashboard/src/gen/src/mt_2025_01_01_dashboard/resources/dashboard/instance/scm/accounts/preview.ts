@@ -4,7 +4,7 @@ export type DashboardInstanceScmAccountsPreviewOutput = {
   object: 'scm.account.list#preview';
   accounts: {
     object: 'scm.account.item#preview';
-    provider: 'github' | 'github_enterprise' | 'gitlab' | 'gitlab_selfhosted';
+    provider: 'github' | 'gitlab';
     externalId: string;
     name: string;
     identifier: string;

@@ -10,6 +10,8 @@ import { dashboardOrganizationInviteController } from './dashboard/organizationI
 import { profileController } from './dashboard/profile';
 import { dashboardUsageController } from './dashboard/usage';
 import { dashboardUserController } from './dashboard/user';
+import { consumerController } from './instance/consumer';
+import { consumerSurfaceController } from './instance/consumerSurface';
 import { fileController } from './instance/file';
 import { fileLinkController } from './instance/fileLink';
 import { instanceController } from './instance/instance';
@@ -76,8 +78,8 @@ import {
   providerSetupSessionController,
   providerSetupSessionDashboardController,
   providerSpecificationController,
-  providerTriggerController,
   providerToolController,
+  providerTriggerController,
   providerVersionController,
   publisherController,
   sessionConnectionController,
@@ -174,6 +176,8 @@ export let magnetarController = Controller.create<any>(
     fileController,
     fileLinkController,
 
+    consumerController,
+    consumerSurfaceController,
     portalController,
     providerTemplateController,
 
@@ -226,6 +230,8 @@ export let dashboardController = Controller.create<any>(
     fileController,
     fileLinkController,
 
+    consumerController,
+    consumerSurfaceController,
     sessionController,
 
     profileController,

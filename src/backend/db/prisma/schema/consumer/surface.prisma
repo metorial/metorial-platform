@@ -4,11 +4,17 @@ enum ConsumerSurfaceStatus {
   deleted
 }
 
+enum ConsumerSurfaceType {
+  portal
+  organization_members
+}
+
 model ConsumerSurface {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
   status ConsumerSurfaceStatus
+  type   ConsumerSurfaceType   @default(portal)
 
   name        String
   description String?
@@ -27,8 +33,8 @@ model ConsumerSurface {
   publishableApiKeyOid BigInt @unique
   publishableApiKey    ApiKey @relation("ConsumerSurfacePublishableApiKey", fields: [publishableApiKeyOid], references: [oid], onDelete: Cascade)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
   archivedAt DateTime?
   deletedAt  DateTime?
 

@@ -9,22 +9,22 @@ import {
   authenticateWithConsumerSessionToken,
   type ConsumerTokenSession,
   getConsumerAccessContextForSession as getConsumerAccessContextForSessionFromToken,
-  getSsoMembershipForUser,
   getConsumerSessionToken,
   getConsumerToken,
+  getSsoMembershipForUser,
   normalizeStringList
 } from '@metorial/consumer-auth';
 import { Context } from '@metorial/context';
 import {
+  ConsumerAuthTenant,
   ConsumerProfile,
   ConsumerSession,
   ConsumerSurface,
-  ConsumerAuthTenant,
   db,
-  ID,
-  withTransaction
+  ID
 } from '@metorial/db';
 import { consumerAresService } from './ares';
+import { consumerProfileService } from './consumerProfile';
 
 class ConsumerAuthServiceImpl {
   private ensureSurfaceIsActive(d: { surface: ConsumerSurface }) {
@@ -161,7 +161,7 @@ class ConsumerAuthServiceImpl {
       userId: d.aresUserId,
       appId: d.consumerAuthTenant.aresAppId
     });
-    let consumerProfile = await this.ensureConsumerProfile({
+    let consumerProfile = await consumerProfileService.ensureConsumerProfile({
       surface: d.surface,
       aresUserId: d.aresUserId,
       email: d.email,
@@ -217,99 +217,6 @@ class ConsumerAuthServiceImpl {
     });
   }
 
-  async ensureConsumerProfile(d: {
-    surface: ConsumerSurface;
-    aresUserId: string;
-    email: string;
-    name: string;
-    ssoGroupIds?: string[];
-    ssoRoles?: string[];
-  }) {
-    return await withTransaction(async tx => {
-      let ssoGroupIds = normalizeStringList(d.ssoGroupIds);
-      let ssoRoles = normalizeStringList(d.ssoRoles);
-      let consumer = await tx.consumer.upsert({
-        where: {
-          email_organizationOid: {
-            email: d.email,
-            organizationOid: d.surface.organizationOid
-          }
-        },
-        create: {
-          id: await ID.generateId('consumer'),
-          email: d.email,
-          name: d.name,
-          organizationOid: d.surface.organizationOid
-        },
-        update: {
-          email: d.email,
-          name: d.name
-        }
-      });
-
-      let existingProfile = await tx.consumerProfile.findUnique({
-        where: {
-          surfaceOid_aresUserId: {
-            surfaceOid: d.surface.oid,
-            aresUserId: d.aresUserId
-          }
-        }
-      });
-      if (existingProfile) {
-        return await tx.consumerProfile.update({
-          where: {
-            oid: existingProfile.oid
-          },
-          data: {
-            aresUserId: d.aresUserId,
-            email: d.email,
-            name: d.name,
-            consumerOid: consumer.oid,
-            ssoGroupIds,
-            ssoRoles
-          }
-        });
-      }
-
-      let accessTag = await tx.accessTag.create({
-        data: {
-          instanceOid: d.surface.instanceOid
-        }
-      });
-
-      let personalConsumerGroup = await tx.consumerGroup.create({
-        data: {
-          id: await ID.generateId('consumerGroup'),
-          status: 'active',
-          type: 'user_access',
-          isDefault: false,
-          ssoGroupIds: [],
-          name: `Personal Group for ${d.email}`,
-          description: null,
-          surfaceOid: d.surface.oid,
-          accessTagOid: accessTag.oid
-        }
-      });
-
-      return await tx.consumerProfile.create({
-        data: {
-          id: await ID.generateId('consumerProfile'),
-          aresUserId: d.aresUserId,
-          email: d.email,
-          name: d.name,
-          ssoGroupIds,
-          ssoRoles,
-          organizationOid: d.surface.organizationOid,
-          instanceOid: d.surface.instanceOid,
-          surfaceOid: d.surface.oid,
-          consumerOid: consumer.oid,
-          accessTagOid: accessTag.oid,
-          personalConsumerGroupOid: personalConsumerGroup.oid
-        }
-      });
-    });
-  }
-
   async createConsumerSession(d: {
     consumerSurface: ConsumerSurface;
     consumerProfile: ConsumerProfile;
@@ -362,14 +269,14 @@ class ConsumerAuthServiceImpl {
     return await getConsumerToken(d);
   }
 
-  async getConsumerSessionToken(d: { session: ConsumerTokenSession; surface: ConsumerSurface }) {
+  async getConsumerSessionToken(d: {
+    session: ConsumerTokenSession;
+    surface: ConsumerSurface;
+  }) {
     return await getConsumerSessionToken(d);
   }
 
-  async authenticateWithConsumerSessionToken(d: {
-    token: string;
-    surface: ConsumerSurface;
-  }) {
+  async authenticateWithConsumerSessionToken(d: { token: string; surface: ConsumerSurface }) {
     return await authenticateWithConsumerSessionToken({
       token: d.token,
       surfaceOid: d.surface.oid
@@ -509,10 +416,7 @@ class ConsumerAuthServiceImpl {
           sessionId: d.session.aresSessionId
         });
       } catch (err) {
-        if (
-          !isServiceError(err) ||
-          (err.data.status != 401 && err.data.status != 404)
-        ) {
+        if (!isServiceError(err) || (err.data.status != 401 && err.data.status != 404)) {
           throw err;
         }
       }

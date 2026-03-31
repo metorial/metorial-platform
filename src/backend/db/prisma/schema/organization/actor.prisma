@@ -34,6 +34,7 @@ model OrganizationActor {
   teams               TeamMember[]
   oauthInstallations  OAuthInstallation[]
   projectBrandUpdates ProjectBrandUpdate[]
+  consumers           Consumer[]
 
   @@unique([isSystem, organizationOid])
 }

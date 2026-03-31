@@ -3,12 +3,22 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
   getEffectiveConsumerGroups,
+  normalizeStringList,
   type EffectiveConsumerGroup
 } from '@metorial/consumer-auth';
-import { ConsumerGroup, ConsumerProfile, ConsumerSurface, db } from '@metorial/db';
+import {
+  ConsumerGroup,
+  ConsumerProfile,
+  ConsumerSurface,
+  db,
+  ID,
+  InstanceConsumer,
+  withTransaction
+} from '@metorial/db';
 
 let include = {
   consumer: true,
+  surface: true,
   personalConsumerGroup: true,
   groups: {
     include: {
@@ -73,6 +83,155 @@ class ConsumerProfileServiceImpl {
         });
       })
     );
+  }
+
+  async getConsumerProfileByIdForConsumer(d: {
+    consumer: Pick<InstanceConsumer, 'instanceOid' | 'consumerOid'>;
+    consumerProfileId: string;
+  }) {
+    let consumerProfile = await db.consumerProfile.findFirst({
+      where: {
+        instanceOid: d.consumer.instanceOid,
+        consumerOid: d.consumer.consumerOid,
+        id: d.consumerProfileId
+      },
+      include
+    });
+    if (!consumerProfile) {
+      throw new ServiceError(notFoundError('consumer.profile'));
+    }
+
+    return consumerProfile;
+  }
+
+  async listConsumerProfilesForConsumer(d: {
+    consumer: Pick<InstanceConsumer, 'instanceOid' | 'consumerOid'>;
+  }) {
+    return Paginator.create(({ prisma }) =>
+      prisma(async opts => {
+        return await db.consumerProfile.findMany({
+          ...opts,
+          where: {
+            instanceOid: d.consumer.instanceOid,
+            consumerOid: d.consumer.consumerOid
+          },
+          include
+        });
+      })
+    );
+  }
+
+  async ensureConsumerProfile(d: {
+    surface: ConsumerSurface;
+    aresUserId: string;
+    email: string;
+    name: string;
+    ssoGroupIds?: string[];
+    ssoRoles?: string[];
+  }) {
+    return await withTransaction(async tx => {
+      let ssoGroupIds = normalizeStringList(d.ssoGroupIds);
+      let ssoRoles = normalizeStringList(d.ssoRoles);
+      let consumer = await tx.consumer.upsert({
+        where: {
+          email_organizationOid: {
+            email: d.email,
+            organizationOid: d.surface.organizationOid
+          }
+        },
+        create: {
+          id: await ID.generateId('consumer'),
+          email: d.email,
+          name: d.name,
+          organizationOid: d.surface.organizationOid
+        },
+        update: {
+          email: d.email,
+          name: d.name
+        }
+      });
+
+      await tx.instanceConsumer.upsert({
+        where: {
+          instanceOid_consumerOid: {
+            instanceOid: d.surface.instanceOid,
+            consumerOid: consumer.oid
+          }
+        },
+        create: {
+          id: await ID.generateId('instanceConsumer'),
+          name: d.name,
+          email: d.email,
+          instanceOid: d.surface.instanceOid,
+          consumerOid: consumer.oid
+        },
+        update: {
+          name: d.name,
+          email: d.email
+        }
+      });
+
+      let existingProfile = await tx.consumerProfile.findUnique({
+        where: {
+          surfaceOid_aresUserId: {
+            surfaceOid: d.surface.oid,
+            aresUserId: d.aresUserId
+          }
+        }
+      });
+      if (existingProfile) {
+        return await tx.consumerProfile.update({
+          where: {
+            oid: existingProfile.oid
+          },
+          data: {
+            aresUserId: d.aresUserId,
+            email: d.email,
+            name: d.name,
+            consumerOid: consumer.oid,
+            ssoGroupIds,
+            ssoRoles
+          }
+        });
+      }
+
+      let accessTag = await tx.accessTag.create({
+        data: {
+          instanceOid: d.surface.instanceOid
+        }
+      });
+
+      let personalConsumerGroup = await tx.consumerGroup.create({
+        data: {
+          id: await ID.generateId('consumerGroup'),
+          status: 'active',
+          type: 'user_access',
+          isDefault: false,
+          ssoGroupIds: [],
+          name: `Personal Group for ${d.email}`,
+          description: null,
+          surfaceOid: d.surface.oid,
+          accessTagOid: accessTag.oid
+        }
+      });
+
+      return await tx.consumerProfile.create({
+        data: {
+          id: await ID.generateId('consumerProfile'),
+          aresUserId: d.aresUserId,
+          email: d.email,
+          name: d.name,
+          ssoGroupIds,
+          ssoRoles,
+          organizationOid: d.surface.organizationOid,
+          instanceOid: d.surface.instanceOid,
+          surfaceOid: d.surface.oid,
+          consumerOid: consumer.oid,
+          accessTagOid: accessTag.oid,
+          personalConsumerGroupOid: personalConsumerGroup.oid
+        }
+      });
+    });
   }
 
   async getStoredGroupsForProfiles(d: {
@@ -167,10 +326,7 @@ class ConsumerProfileServiceImpl {
     return d.consumerProfile;
   }
 
-  async getGroupsForProfile(d: {
-    consumerProfile: ConsumerProfile;
-    ssoGroupIds?: string[];
-  }) {
+  async getGroupsForProfile(d: { consumerProfile: ConsumerProfile; ssoGroupIds?: string[] }) {
     return await getEffectiveConsumerGroups({
       consumerProfile: d.consumerProfile,
       ssoGroupIds: d.ssoGroupIds ?? d.consumerProfile.ssoGroupIds ?? []

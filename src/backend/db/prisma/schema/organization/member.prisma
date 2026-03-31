@@ -38,6 +38,7 @@ model OrganizationMember {
   oauthAuthorizations     OAuthAuthorization[]
   policies                AccessPolicyAssignment[]
   apiKeyExpiredEmailSends ApiKeyExpiredEmailSend[]
+  consumers               Consumer[]
 
   @@unique([userOid, organizationOid])
   @@index([lastActiveAt])

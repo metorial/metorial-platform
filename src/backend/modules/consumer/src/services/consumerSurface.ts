@@ -1,7 +1,5 @@
-import {
-  preconditionFailedError,
-  ServiceError
-} from '@lowerdeck/error';
+import { notFoundError, preconditionFailedError, ServiceError } from '@lowerdeck/error';
+import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { Context } from '@metorial/context';
 import {
@@ -37,6 +35,35 @@ export type AresAppConfig = {
 };
 
 class ConsumerSurfaceServiceImpl {
+  async getConsumerSurfaceById(d: { instance: Instance; consumerSurfaceId: string }) {
+    let consumerSurface = await db.consumerSurface.findFirst({
+      where: {
+        instanceOid: d.instance.oid,
+        id: d.consumerSurfaceId
+      },
+      include: consumerSurfaceInclude
+    });
+    if (!consumerSurface) {
+      throw new ServiceError(notFoundError('consumer.surface'));
+    }
+
+    return consumerSurface;
+  }
+
+  async listConsumerSurfaces(d: { instance: Instance }) {
+    return Paginator.create(({ prisma }) =>
+      prisma(async opts => {
+        return await db.consumerSurface.findMany({
+          ...opts,
+          where: {
+            instanceOid: d.instance.oid
+          },
+          include: consumerSurfaceInclude
+        });
+      })
+    );
+  }
+
   private assertConsumerSurfaceIsActive(consumerSurface: ConsumerSurface) {
     if (consumerSurface.status !== 'active') {
       throw new ServiceError(
