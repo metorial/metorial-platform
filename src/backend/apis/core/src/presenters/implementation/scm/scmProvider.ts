@@ -11,6 +11,8 @@ export let v1ScmProviderPresenter = Presenter.create(scmProviderType)
     type: scmProvider.type,
     name: scmProvider.name,
     description: scmProvider.description,
+    api_url: scmProvider.apiUrl ?? null,
+    web_url: scmProvider.webUrl ?? null,
 
     is_default: scmProvider.isDefault,
 
@@ -22,9 +24,13 @@ export let v1ScmProviderPresenter = Presenter.create(scmProviderType)
       object: v.literal('scm.provider'),
       id: v.string({ description: 'Unique SCM provider identifier' }),
 
-      type: v.enumOf(['github', 'gitlab'], { description: 'SCM backend type' }),
+      type: v.enumOf(['github', 'github_enterprise', 'gitlab', 'gitlab_selfhosted'], {
+        description: 'SCM backend type'
+      }),
       name: v.string({ description: 'Provider name' }),
       description: v.nullable(v.string({ description: 'Provider description' })),
+      api_url: v.nullable(v.string({ description: 'API base URL for the SCM provider' })),
+      web_url: v.nullable(v.string({ description: 'Web base URL for the SCM provider' })),
 
       is_default: v.boolean({ description: 'Whether this is the default provider' }),
 

@@ -57,7 +57,9 @@ import {
   MetorialDashboardInstanceProviderTemplatesEndpoint,
   MetorialDashboardInstancePublishersEndpoint,
   MetorialDashboardInstanceScmAccountsEndpoint,
+  MetorialDashboardInstanceScmConnectionsEndpoint,
   MetorialDashboardInstanceScmInstallationEndpoint,
+  MetorialDashboardInstanceScmProvidersEndpoint,
   MetorialDashboardInstanceScmReposEndpoint,
   MetorialDashboardInstanceSessionsConnectionsEndpoint,
   MetorialDashboardInstanceSessionsEndpoint,
@@ -324,7 +326,9 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
   scm: {
     installation: new MetorialDashboardInstanceScmInstallationEndpoint(manager),
     repos: new MetorialDashboardInstanceScmReposEndpoint(manager),
-    accounts: new MetorialDashboardInstanceScmAccountsEndpoint(manager)
+    accounts: new MetorialDashboardInstanceScmAccountsEndpoint(manager),
+    connections: new MetorialDashboardInstanceScmConnectionsEndpoint(manager),
+    providers: new MetorialDashboardInstanceScmProvidersEndpoint(manager)
   },
 
   identityActors: new MetorialDashboardInstanceIdentityActorsEndpoint(manager),

@@ -75,3 +75,97 @@ export let useScmAccounts = (
 
   return data;
 };
+
+export let scmConnectionsLoader = createLoader({
+  name: 'scmConnections',
+  parents: [],
+  fetch: (i: {
+    instanceId: string;
+    limit?: number;
+    after?: string;
+    before?: string;
+    cursor?: string;
+    order?: 'asc' | 'desc';
+  }) => withAuth(sdk => sdk.scm.connections.list(i.instanceId, i)),
+  mutators: {}
+});
+
+export let useScmConnections = (instanceId: string | null | undefined) => {
+  return usePaginator(pagination =>
+    scmConnectionsLoader.use(instanceId ? { instanceId, ...pagination } : null)
+  );
+};
+
+export let useCreateScmConnection = scmConnectionsLoader.createExternalMutator(
+  (i: {
+    instanceId: string;
+    redirectUrl?: string;
+  }) =>
+    withAuth(sdk =>
+      sdk.scm.connections.create(i.instanceId, {
+        redirectUrl: i.redirectUrl
+      })
+    )
+);
+
+export let scmProvidersLoader = createLoader({
+  name: 'scmProviders',
+  parents: [],
+  fetch: (i: {
+    instanceId: string;
+    limit?: number;
+    after?: string;
+    before?: string;
+    cursor?: string;
+    order?: 'asc' | 'desc';
+  }) => withAuth(sdk => sdk.scm.providers.list(i.instanceId, i)),
+  mutators: {}
+});
+
+export let useScmProviders = (instanceId: string | null | undefined) => {
+  return usePaginator(pagination =>
+    scmProvidersLoader.use(instanceId ? { instanceId, ...pagination } : null)
+  );
+};
+
+export let useCreateScmProvider = scmProvidersLoader.createExternalMutator(
+  (i: {
+    instanceId: string;
+    type: 'github_enterprise' | 'gitlab_selfhosted';
+  }) =>
+    withAuth(sdk =>
+      sdk.scm.providers.create(i.instanceId, {
+        type: i.type
+      })
+    )
+);
+
+export let scmManagedReposLoader = createLoader({
+  name: 'scmManagedRepos',
+  parents: [],
+  fetch: (i: {
+    instanceId: string;
+    limit?: number;
+    after?: string;
+    before?: string;
+    cursor?: string;
+    order?: 'asc' | 'desc';
+    id?: string | string[];
+    providerId?: string | string[];
+    createdAt?: {
+      gt?: Date;
+      lt?: Date;
+    };
+    updatedAt?: {
+      gt?: Date;
+      lt?: Date;
+    };
+  }) => withAuth(sdk => sdk.scm.repos.list(i.instanceId, i)),
+  mutators: {}
+});
+
+export let useManagedScmRepos = (instanceId: string | null | undefined) => {
+  return usePaginator(pagination =>
+    scmManagedReposLoader.use(instanceId ? { instanceId, ...pagination } : null)
+  );
+};

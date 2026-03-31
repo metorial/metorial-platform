@@ -6,10 +6,16 @@ import {
 import {
   mapDashboardInstanceScmReposCreateBody,
   mapDashboardInstanceScmReposCreateOutput,
+  mapDashboardInstanceScmReposGetOutput,
+  mapDashboardInstanceScmReposListOutput,
+  mapDashboardInstanceScmReposListQuery,
   mapDashboardInstanceScmReposPreviewBody,
   mapDashboardInstanceScmReposPreviewOutput,
   type DashboardInstanceScmReposCreateBody,
   type DashboardInstanceScmReposCreateOutput,
+  type DashboardInstanceScmReposGetOutput,
+  type DashboardInstanceScmReposListOutput,
+  type DashboardInstanceScmReposListQuery,
   type DashboardInstanceScmReposPreviewBody,
   type DashboardInstanceScmReposPreviewOutput
 } from '../resources';
@@ -39,6 +45,63 @@ export class MetorialDashboardInstanceScmReposEndpoint {
   }
   private _delete(request: any) {
     return this._manager._delete(request);
+  }
+
+  /**
+   * @name List SCM repos
+   * @description Returns a paginated list of SCM repositories.
+   *
+   * @param `instanceId` - string
+   * @param `query` - DashboardInstanceScmReposListQuery
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardInstanceScmReposListOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  list(
+    instanceId: string,
+    query?: DashboardInstanceScmReposListQuery,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceScmReposListOutput> {
+    let path = `dashboard/instances/${instanceId}/scm/repos`;
+
+    let request = {
+      path,
+
+      query: query
+        ? mapDashboardInstanceScmReposListQuery.transformTo(query)
+        : undefined,
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._get(request).transform(mapDashboardInstanceScmReposListOutput);
+  }
+
+  /**
+   * @name Get SCM repo
+   * @description Retrieves a specific SCM repository by ID.
+   *
+   * @param `instanceId` - string
+   * @param `scmRepositoryId` - string
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardInstanceScmReposGetOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  get(
+    instanceId: string,
+    scmRepositoryId: string,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceScmReposGetOutput> {
+    let path = `dashboard/instances/${instanceId}/scm/repos/${scmRepositoryId}`;
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._get(request).transform(mapDashboardInstanceScmReposGetOutput);
   }
 
   /**

@@ -5,7 +5,7 @@ set -e
 ./services.sh start
 
 bun ../src/cli.ts set-env
-bun ../src/cli.ts init-minio
+# bun ../src/cli.ts init-minio
 
 go install github.com/air-verse/air@latest
 
