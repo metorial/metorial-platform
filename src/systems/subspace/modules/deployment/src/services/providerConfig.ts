@@ -38,6 +38,7 @@ import {
 } from '@metorial-subspace/list-utils';
 import {
   checkProviderMatch,
+  normalizeToolFilters,
   providerDeploymentConfigPairInternalService,
   providerDeploymentInternalService
 } from '@metorial-subspace/module-provider-internal';
@@ -237,6 +238,7 @@ class providerConfigServiceImpl {
       isEphemeral?: boolean;
       isDefault?: boolean;
       isForVault?: boolean;
+      toolFilters?: PrismaJson.ToolFilter | null;
 
       config:
         | {
@@ -283,6 +285,7 @@ class providerConfigServiceImpl {
         name: d.input.name?.trim() || undefined,
         description: d.input.description?.trim() || undefined,
         metadata: d.input.metadata,
+        toolFilter: normalizeToolFilters(d.input.toolFilters),
 
         isEphemeral: !!d.input.isEphemeral,
         isDefault: !!(d.input.isDefault && d.providerDeployment),
@@ -507,6 +510,7 @@ class providerConfigServiceImpl {
       name?: string;
       description?: string;
       metadata?: Record<string, any>;
+      toolFilters?: PrismaJson.ToolFilter | null;
     };
   }) {
     checkTenant(d, d.providerConfig);
@@ -523,7 +527,11 @@ class providerConfigServiceImpl {
         data: {
           name: d.input.name ?? d.providerConfig.name,
           description: d.input.description ?? d.providerConfig.description,
-          metadata: d.input.metadata ?? d.providerConfig.metadata
+          metadata: d.input.metadata ?? d.providerConfig.metadata,
+          toolFilter:
+            d.input.toolFilters || d.input.toolFilters === null
+              ? normalizeToolFilters(d.input.toolFilters)
+              : d.providerConfig.toolFilter
         },
         include
       });

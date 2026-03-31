@@ -33,6 +33,7 @@ export let providerAuthConfigPresenter = (
   name: providerAuthConfig.name,
   description: providerAuthConfig.description,
   metadata: providerAuthConfig.metadata,
+  toolFilter: providerAuthConfig.toolFilter,
 
   deploymentPreview: providerAuthConfig.deployment
     ? providerDeploymentPreviewPresenter({
@@ -76,6 +77,7 @@ export let providerAuthConfigPreviewPresenter = (
   name: providerAuthConfig.name,
   description: providerAuthConfig.description,
   metadata: providerAuthConfig.metadata,
+  toolFilter: providerAuthConfig.toolFilter,
 
   createdAt: providerAuthConfig.createdAt,
   updatedAt: providerAuthConfig.updatedAt

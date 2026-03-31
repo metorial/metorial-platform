@@ -1,6 +1,7 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
 import { providerDeploymentType } from '../../types';
+import { toolFilterPresenter } from '../_lib/toolFilter';
 import { v1ProviderConfigPreviewPresenter } from './configPreview';
 import { v1ProviderVersionPresenter } from './providerVersion';
 
@@ -15,6 +16,7 @@ export let v1ProviderDeploymentPresenter = Presenter.create(providerDeploymentTy
     name: deployment.name,
     description: deployment.description,
     metadata: deployment.metadata,
+    tool_filter: toolFilterPresenter(deployment.toolFilter),
 
     provider_id: deployment.providerId,
 
@@ -64,6 +66,7 @@ export let v1ProviderDeploymentPresenter = Presenter.create(providerDeploymentTy
           examples: [{ notes: 'Main deployment' }]
         })
       ),
+      tool_filter: toolFilterPresenter.schema,
       provider_id: v.string({
         name: 'provider_id',
         description: 'Provider ID',

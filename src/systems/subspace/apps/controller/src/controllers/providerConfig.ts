@@ -13,6 +13,7 @@ import {
 import { app } from './_app';
 import { createdAtValidator, updatedAtValidator } from './_dateFilter';
 import { deploymentValidator, resolveDeployment } from './providerResourceValidators';
+import { normalizeToolFilters, toolFiltersValidator } from './sessionProvider';
 import { tenantApp } from './tenant';
 
 export let providerConfigApp = tenantApp.use(async ctx => {
@@ -158,6 +159,7 @@ export let providerConfigController = app.controller({
 
         providerId: v.string(),
         providerDeployment: v.optional(deploymentValidator),
+        toolFilters: toolFiltersValidator,
 
         config: v.union([
           v.object({
@@ -198,6 +200,7 @@ export let providerConfigController = app.controller({
           metadata: ctx.input.metadata,
 
           isEphemeral: ctx.input.isEphemeral,
+          toolFilters: normalizeToolFilters(ctx.input.toolFilters),
 
           config:
             ctx.input.config.type === 'vault'
@@ -231,7 +234,8 @@ export let providerConfigController = app.controller({
 
         name: v.optional(v.string()),
         description: v.optional(v.string()),
-        metadata: v.optional(v.record(v.any()))
+        metadata: v.optional(v.record(v.any())),
+        toolFilters: toolFiltersValidator
       })
     )
     .do(async ctx => {
@@ -244,7 +248,8 @@ export let providerConfigController = app.controller({
         input: {
           name: ctx.input.name,
           description: ctx.input.description,
-          metadata: ctx.input.metadata
+          metadata: ctx.input.metadata,
+          toolFilters: normalizeToolFilters(ctx.input.toolFilters as any)
         }
       });
 

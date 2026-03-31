@@ -1,7 +1,10 @@
 import { ErrorPage, NotFound } from '@metorial-io/pages';
 import { isRouteErrorResponse, useRouteError } from 'react-router-dom';
+import { useHideBootSpinner } from '../../hooks/useHideBootSpinner';
 
 export let RouterErrorPage = () => {
+  useHideBootSpinner(true);
+
   let error = useRouteError();
 
   if (isRouteErrorResponse(error) && error.status === 404) return <NotFound />;

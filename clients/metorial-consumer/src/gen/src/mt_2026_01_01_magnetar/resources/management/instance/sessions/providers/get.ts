@@ -9,9 +9,9 @@ export type ManagementInstanceSessionsProvidersGetOutput = {
     totalProductiveProviderMessageCount: number;
   };
   toolFilter:
-    | { type: 'v1.allow_all' }
+    | { type: 'allow_all'; ignoreParentFilters: boolean }
     | {
-        type: 'v1.filter';
+        type: 'filter';
         filters: (
           | { type: 'tool_keys'; keys: string[] }
           | { type: 'tool_regex'; pattern: string }
@@ -20,6 +20,7 @@ export type ManagementInstanceSessionsProvidersGetOutput = {
           | { type: 'prompt_keys'; keys: string[] }
           | { type: 'prompt_regex'; pattern: string }
         )[];
+        ignoreParentFilters: boolean;
       };
   providerId: string;
   sessionId: string;
@@ -77,6 +78,10 @@ export let mapManagementInstanceSessionsProvidersGetOutput =
           'object',
           mtMap.object({
             type: mtMap.objectField('type', mtMap.passthrough()),
+            ignoreParentFilters: mtMap.objectField(
+              'ignore_parent_filters',
+              mtMap.passthrough()
+            ),
             filters: mtMap.objectField(
               'filters',
               mtMap.array(

@@ -9,7 +9,7 @@ import {
   type Solution,
   type Tenant
 } from '@metorial-subspace/db';
-import { ProviderTypeWhereInput } from '@metorial-subspace/db/prisma/generated/models';
+import type { ProviderTypeWhereInput } from '@metorial-subspace/db/prisma/generated/models';
 import { providerInternalService } from '@metorial-subspace/module-provider-internal';
 import { providerVariantInclude } from './providerVariant';
 

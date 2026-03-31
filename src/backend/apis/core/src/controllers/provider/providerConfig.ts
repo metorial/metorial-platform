@@ -8,6 +8,7 @@ import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { configSchemaPresenter, providerConfigPresenter } from '../../presenters';
+import { toolFiltersValidator } from './session';
 
 let providerConfigGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerConfigId) {
@@ -137,7 +138,8 @@ export let providerConfigController = Controller.create(
                 examples: [{ label: 'primary', notes: 'Default production config' }]
               }),
               { description: 'Custom key-value pairs for storing additional information' }
-            )
+            ),
+            tool_filters: toolFiltersValidator
           }),
           v.union([
             v.object({
@@ -170,6 +172,7 @@ export let providerConfigController = Controller.create(
           name: ctx.body.name,
           description: ctx.body.description,
           metadata: ctx.body.metadata,
+          toolFilters: ctx.body.tool_filters,
 
           config:
             'value' in ctx.body
@@ -205,7 +208,8 @@ export let providerConfigController = Controller.create(
           description: v.optional(v.string()),
           metadata: v.optional(v.record(v.any()), {
             description: 'Custom key-value pairs for storing additional information'
-          })
+          }),
+          tool_filters: toolFiltersValidator
         })
       )
       .output(providerConfigPresenter)
@@ -215,7 +219,8 @@ export let providerConfigController = Controller.create(
           providerConfigId: ctx.config.id,
           name: ctx.body.name,
           description: ctx.body.description,
-          metadata: ctx.body.metadata
+          metadata: ctx.body.metadata,
+          toolFilters: ctx.body.tool_filters
         });
 
         return providerConfigPresenter.present({ config });

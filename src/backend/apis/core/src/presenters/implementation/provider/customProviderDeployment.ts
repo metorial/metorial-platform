@@ -158,7 +158,7 @@ export let v1CustomProviderDeploymentLogsPresenter = Presenter.create(
     object: 'custom_provider.deployment.logs' as const,
     custom_provider_deployment_id: logs.customProviderDeploymentId,
 
-    steps: logs.steps.map(step => ({
+    steps: logs.steps.map((step: (typeof logs.steps)[number]) => ({
       object: 'custom_provider.deployment.logs.step' as const,
 
       id: step.id,
@@ -166,7 +166,7 @@ export let v1CustomProviderDeploymentLogsPresenter = Presenter.create(
       type: step.type as string,
       status: step.status,
 
-      logs: step.logs.map(log => ({
+      logs: step.logs.map((log: (typeof step.logs)[number]) => ({
         object: 'custom_provider.deployment.logs.step.log' as const,
         timestamp: new Date(log.timestamp),
         message: log.message

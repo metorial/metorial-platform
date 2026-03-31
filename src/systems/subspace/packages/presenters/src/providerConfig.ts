@@ -30,6 +30,7 @@ export let providerConfigPresenter = (
   name: providerConfig.name,
   description: providerConfig.description,
   metadata: providerConfig.metadata,
+  toolFilter: providerConfig.toolFilter,
 
   providerId: providerConfig.provider.id,
   specificationId: providerConfig.specification.id,
@@ -67,6 +68,7 @@ export let providerConfigPreviewPresenter = (
   name: providerConfig.name,
   description: providerConfig.description,
   metadata: providerConfig.metadata,
+  toolFilter: providerConfig.toolFilter,
 
   providerId: providerConfig.provider.id,
 

@@ -9,6 +9,28 @@ import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { providerSetupSessionPresenter } from '../../presenters';
 
+let providerSetupSessionConfigurationValidator = v.optional(
+  v.object({
+    provider_search: v.optional(
+      v.object({
+        groups: v.optional(v.array(v.object({ group_id: v.string() }))),
+        collections: v.optional(v.array(v.object({ collection_id: v.string() }))),
+        categories: v.optional(v.array(v.object({ category_id: v.string() })))
+      })
+    ),
+    tool_filters: v.optional(
+      v.object({
+        enabled: v.optional(v.boolean())
+      })
+    ),
+    ui: v.optional(
+      v.object({
+        layout: v.optional(v.enumOf(['box', 'side', 'light']))
+      })
+    )
+  })
+);
+
 let providerSetupSessionGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerSetupSessionId) {
     throw new ServiceError(
@@ -135,10 +157,12 @@ export let providerSetupSessionController = Controller.create(
       .body(
         'default',
         v.object({
-          provider_id: v.string({
-            examples: ['pro_5gHjKlMnPqRsTuVw'],
-            description: 'The provider ID'
-          }),
+          provider_id: v.optional(
+            v.string({
+              examples: ['pro_5gHjKlMnPqRsTuVw'],
+              description: 'The provider ID'
+            })
+          ),
           provider_deployment_id: v.optional(
             v.string({
               examples: ['pdp_4dEfGhJkLmNpQrSt'],
@@ -167,17 +191,47 @@ export let providerSetupSessionController = Controller.create(
           ),
           redirect_url: v.optional(
             v.string({ examples: ['https://app.example.com/oauth/callback'] })
-          )
+          ),
+          configuration: providerSetupSessionConfigurationValidator
         })
       )
       .output(providerSetupSessionPresenter)
       .do(async ctx => {
         let setupSession = await subspaceProviderSetupSessionService.create({
           instance: ctx.instance,
-          providerId: ctx.body.provider_id,
+          providerId: ctx.body.provider_id ?? undefined,
           providerDeploymentId: ctx.body.provider_deployment_id,
           providerAuthMethodId: ctx.body.provider_auth_method_id,
           providerAuthCredentialsId: ctx.body.provider_auth_credentials_id,
+          configuration: (ctx.body.configuration
+            ? {
+                providerSearch: ctx.body.configuration.provider_search
+                  ? {
+                      groups: ctx.body.configuration.provider_search.groups?.map(group => ({
+                        groupId: group.group_id
+                      })),
+                      collections: ctx.body.configuration.provider_search.collections?.map(
+                        collection => ({
+                          collectionId: collection.collection_id
+                        })
+                      ),
+                      categories: ctx.body.configuration.provider_search.categories?.map(
+                        category => ({
+                          categoryId: category.category_id
+                        })
+                      )
+                    }
+                  : undefined,
+                toolFilters: ctx.body.configuration.tool_filters
+                  ? { enabled: ctx.body.configuration.tool_filters.enabled }
+                  : undefined,
+                ui: ctx.body.configuration.ui
+                  ? {
+                      layout: ctx.body.configuration.ui.layout
+                    }
+                  : undefined
+              }
+            : undefined) as any,
           name: ctx.body.name ?? 'Setup Session',
           description: ctx.body.description,
           uiMode: 'metorial_elements',
