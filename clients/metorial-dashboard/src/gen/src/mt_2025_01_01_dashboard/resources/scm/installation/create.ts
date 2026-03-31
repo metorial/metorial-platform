@@ -8,7 +8,7 @@ export type ScmInstallationCreateOutput = {
   connection: {
     object: 'scm.connection';
     id: string;
-    provider: 'github' | 'gitlab';
+    provider: 'github' | 'github_enterprise' | 'gitlab' | 'gitlab_selfhosted';
     externalInstallationId: string | null;
     accountType: 'user' | 'organization' | null;
     externalAccount: {
@@ -60,14 +60,10 @@ export let mapScmInstallationCreateOutput =
     expiresAt: mtMap.objectField('expires_at', mtMap.date())
   });
 
-export type ScmInstallationCreateBody = {
-  provider?: string | undefined;
-  redirectUrl?: string | undefined;
-};
+export type ScmInstallationCreateBody = { redirectUrl?: string | undefined };
 
 export let mapScmInstallationCreateBody =
   mtMap.object<ScmInstallationCreateBody>({
-    provider: mtMap.objectField('provider', mtMap.passthrough()),
     redirectUrl: mtMap.objectField('redirect_url', mtMap.passthrough())
   });
 

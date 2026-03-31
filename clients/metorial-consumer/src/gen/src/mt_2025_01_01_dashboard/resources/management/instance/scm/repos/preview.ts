@@ -4,7 +4,7 @@ export type ManagementInstanceScmReposPreviewOutput = {
   object: 'scm.repository.list#preview';
   repos: {
     object: 'scm.repository.item#preview';
-    provider: 'github' | 'gitlab';
+    provider: 'github' | 'github_enterprise' | 'gitlab' | 'gitlab_selfhosted';
     externalId: string;
     name: string;
     identifier: string;

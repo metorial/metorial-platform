@@ -40,7 +40,7 @@ export type ManagementInstanceCustomProvidersListOutput = {
       id: string;
       provider: {
         object: 'scm.provider';
-        type: 'github' | 'gitlab';
+        type: 'github' | 'github_enterprise' | 'gitlab' | 'gitlab_selfhosted';
         id: string;
         name: string;
         owner: string;
@@ -107,7 +107,11 @@ export type ManagementInstanceCustomProvidersListOutput = {
           id: string;
           provider: {
             object: 'scm.provider';
-            type: 'github' | 'gitlab';
+            type:
+              | 'github'
+              | 'github_enterprise'
+              | 'gitlab'
+              | 'gitlab_selfhosted';
             id: string;
             name: string;
             owner: string;

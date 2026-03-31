@@ -8,7 +8,7 @@ export type ManagementInstanceScmInstallationCreateOutput = {
   connection: {
     object: 'scm.connection';
     id: string;
-    provider: 'github' | 'gitlab';
+    provider: 'github' | 'github_enterprise' | 'gitlab' | 'gitlab_selfhosted';
     externalInstallationId: string | null;
     accountType: 'user' | 'organization' | null;
     externalAccount: {
@@ -61,13 +61,11 @@ export let mapManagementInstanceScmInstallationCreateOutput =
   });
 
 export type ManagementInstanceScmInstallationCreateBody = {
-  provider?: string | undefined;
   redirectUrl?: string | undefined;
 };
 
 export let mapManagementInstanceScmInstallationCreateBody =
   mtMap.object<ManagementInstanceScmInstallationCreateBody>({
-    provider: mtMap.objectField('provider', mtMap.passthrough()),
     redirectUrl: mtMap.objectField('redirect_url', mtMap.passthrough())
   });
 
