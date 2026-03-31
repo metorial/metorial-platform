@@ -13,8 +13,10 @@ import {
   db,
   ID,
   InstanceConsumer,
+  OrganizationMember,
   withTransaction
 } from '@metorial/db';
+import { createLock } from '@metorial/lock';
 import { syncIdentityConsumerQueue } from '../queues/syncIdentityConsumer';
 
 let include = {
@@ -27,6 +29,10 @@ let include = {
     }
   }
 } as const;
+
+export let ensureProfileLock = createLock({
+  name: 'cons/ensureProfile'
+});
 
 class ConsumerProfileServiceImpl {
   private async getAssignableGroupsOrThrow(d: {
@@ -124,16 +130,18 @@ class ConsumerProfileServiceImpl {
 
   async ensureConsumerProfile(d: {
     surface: ConsumerSurface;
-    aresUserId: string;
     email: string;
     name: string;
+    member?: Pick<OrganizationMember, 'oid' | 'actorOid'>;
+
+    aresUserId?: string;
     ssoGroupIds?: string[];
     ssoRoles?: string[];
   }) {
-    let res = await withTransaction(async tx => {
+    let res = await withTransaction(async db => {
       let ssoGroupIds = normalizeStringList(d.ssoGroupIds);
       let ssoRoles = normalizeStringList(d.ssoRoles);
-      let existingConsumer = await tx.consumer.findUnique({
+      let existingConsumer = await db.consumer.findUnique({
         where: {
           email_organizationOid: {
             email: d.email,
@@ -142,10 +150,12 @@ class ConsumerProfileServiceImpl {
         },
         select: {
           isOrganizationMember: true,
-          isPortalConsumer: true
+          isPortalConsumer: true,
+          organizationMemberOid: true,
+          organizationActorOid: true
         }
       });
-      let consumer = await tx.consumer.upsert({
+      let consumer = await db.consumer.upsert({
         where: {
           email_organizationOid: {
             email: d.email,
@@ -157,20 +167,25 @@ class ConsumerProfileServiceImpl {
           email: d.email,
           name: d.name,
           organizationOid: d.surface.organizationOid,
+          organizationMemberOid: d.member?.oid,
+          organizationActorOid: d.member?.actorOid,
           isOrganizationMember: d.surface.type === 'organization_members',
           isPortalConsumer: d.surface.type === 'portal'
         },
         update: {
           email: d.email,
           name: d.name,
+          organizationMemberOid: d.member?.oid ?? existingConsumer?.organizationMemberOid,
+          organizationActorOid: d.member?.actorOid ?? existingConsumer?.organizationActorOid,
           isOrganizationMember:
-            existingConsumer?.isOrganizationMember ||
+            !!d.member ||
+            !!existingConsumer?.isOrganizationMember ||
             d.surface.type === 'organization_members',
           isPortalConsumer: existingConsumer?.isPortalConsumer || d.surface.type === 'portal'
         }
       });
 
-      await tx.instanceConsumer.upsert({
+      await db.instanceConsumer.upsert({
         where: {
           instanceOid_consumerOid: {
             instanceOid: d.surface.instanceOid,
@@ -182,80 +197,91 @@ class ConsumerProfileServiceImpl {
           name: d.name,
           email: d.email,
           instanceOid: d.surface.instanceOid,
-          consumerOid: consumer.oid
+          consumerOid: consumer.oid,
+          organizationMemberOid: d.member?.oid,
+          organizationActorOid: d.member?.actorOid
         },
         update: {
           name: d.name,
-          email: d.email
+          email: d.email,
+          organizationMemberOid: d.member?.oid ?? consumer.organizationMemberOid,
+          organizationActorOid: d.member?.actorOid ?? consumer.organizationActorOid
         }
       });
 
-      let existingProfile = await tx.consumerProfile.findUnique({
-        where: {
-          surfaceOid_aresUserId: {
-            surfaceOid: d.surface.oid,
-            aresUserId: d.aresUserId
-          }
+      return ensureProfileLock.usingLock(`${d.surface.instanceOid}-${d.email}`, async () => {
+        let existingProfile = await db.consumerProfile.findUnique({
+          where: d.aresUserId
+            ? {
+                surfaceOid_aresUserId: { surfaceOid: d.surface.oid, aresUserId: d.aresUserId }
+              }
+            : { email_surfaceOid: { email: d.email, surfaceOid: d.surface.oid } }
+        });
+        if (existingProfile) {
+          return {
+            consumer,
+            consumerProfile: await db.consumerProfile.update({
+              where: {
+                oid: existingProfile.oid
+              },
+              data: {
+                aresUserId: d.aresUserId,
+                email: d.email,
+                name: d.name,
+                consumerOid: consumer.oid,
+                organizationMemberOid: d.member?.oid ?? consumer.organizationMemberOid,
+                organizationActorOid: d.member?.actorOid ?? consumer.organizationActorOid,
+                ssoGroupIds,
+                ssoRoles
+              },
+              include
+            })
+          };
         }
-      });
-      if (existingProfile) {
+
+        let accessTag = await db.accessTag.create({
+          data: {
+            instanceOid: d.surface.instanceOid
+          }
+        });
+
+        let personalConsumerGroup = await db.consumerGroup.create({
+          data: {
+            id: await ID.generateId('consumerGroup'),
+            status: 'active',
+            type: 'user_access',
+            isDefault: false,
+            ssoGroupIds: [],
+            name: `Personal Group for ${d.email}`,
+            description: null,
+            surfaceOid: d.surface.oid,
+            accessTagOid: accessTag.oid
+          }
+        });
+
         return {
           consumer,
-          consumerProfile: await tx.consumerProfile.update({
-            where: {
-              oid: existingProfile.oid
-            },
+          consumerProfile: await db.consumerProfile.create({
             data: {
+              id: await ID.generateId('consumerProfile'),
               aresUserId: d.aresUserId,
               email: d.email,
               name: d.name,
-              consumerOid: consumer.oid,
               ssoGroupIds,
-              ssoRoles
-            }
+              ssoRoles,
+              organizationOid: d.surface.organizationOid,
+              instanceOid: d.surface.instanceOid,
+              surfaceOid: d.surface.oid,
+              consumerOid: consumer.oid,
+              organizationMemberOid: d.member?.oid ?? consumer.organizationMemberOid,
+              organizationActorOid: d.member?.actorOid ?? consumer.organizationActorOid,
+              accessTagOid: accessTag.oid,
+              personalConsumerGroupOid: personalConsumerGroup.oid
+            },
+            include
           })
         };
-      }
-
-      let accessTag = await tx.accessTag.create({
-        data: {
-          instanceOid: d.surface.instanceOid
-        }
       });
-
-      let personalConsumerGroup = await tx.consumerGroup.create({
-        data: {
-          id: await ID.generateId('consumerGroup'),
-          status: 'active',
-          type: 'user_access',
-          isDefault: false,
-          ssoGroupIds: [],
-          name: `Personal Group for ${d.email}`,
-          description: null,
-          surfaceOid: d.surface.oid,
-          accessTagOid: accessTag.oid
-        }
-      });
-
-      return {
-        consumer,
-        consumerProfile: await tx.consumerProfile.create({
-          data: {
-            id: await ID.generateId('consumerProfile'),
-            aresUserId: d.aresUserId,
-            email: d.email,
-            name: d.name,
-            ssoGroupIds,
-            ssoRoles,
-            organizationOid: d.surface.organizationOid,
-            instanceOid: d.surface.instanceOid,
-            surfaceOid: d.surface.oid,
-            consumerOid: consumer.oid,
-            accessTagOid: accessTag.oid,
-            personalConsumerGroupOid: personalConsumerGroup.oid
-          }
-        })
-      };
     });
 
     await syncIdentityConsumerQueue.add({

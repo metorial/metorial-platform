@@ -13,6 +13,7 @@ import {
   OrganizationMember,
   withTransaction
 } from '@metorial/db';
+import { createLock } from '@metorial/lock';
 import { syncIdentityConsumerQueue } from '../queues/syncIdentityConsumer';
 
 type ConsumerWithRelations = Consumer & {
@@ -24,9 +25,29 @@ type ConsumerWithRelations = Consumer & {
   >;
 };
 
+let upsertLock = createLock({
+  name: 'cons/upsert'
+});
+
 type InstanceConsumerWithRelations = InstanceConsumer & {
   consumer: ConsumerWithRelations;
 };
+
+let getInclude = (d: { instanceOid: bigint }) => ({
+  consumer: {
+    include: {
+      organizationMember: true,
+      profiles: {
+        where: {
+          instanceOid: d.instanceOid
+        },
+        include: {
+          surface: true
+        }
+      }
+    }
+  }
+});
 
 class ConsumerServiceImpl {
   async getConsumerById(d: { instance: Instance; consumerId: string }) {
@@ -132,21 +153,7 @@ class ConsumerServiceImpl {
           name: d.input.name,
           email: d.input.email
         },
-        include: {
-          consumer: {
-            include: {
-              organizationMember: true,
-              profiles: {
-                where: {
-                  instanceOid: d.instance.oid
-                },
-                include: {
-                  surface: true
-                }
-              }
-            }
-          }
-        }
+        include: getInclude({ instanceOid: d.instance.oid })
       });
 
       await tx.consumerProfile.updateMany({
@@ -199,21 +206,7 @@ class ConsumerServiceImpl {
           name,
           email
         },
-        include: {
-          consumer: {
-            include: {
-              organizationMember: true,
-              profiles: {
-                where: {
-                  instanceOid: d.consumer.instanceOid
-                },
-                include: {
-                  surface: true
-                }
-              }
-            }
-          }
-        }
+        include: getInclude({ instanceOid: d.consumer.instanceOid })
       });
 
       await tx.consumerProfile.updateMany({
@@ -235,6 +228,57 @@ class ConsumerServiceImpl {
     });
 
     return consumer;
+  }
+
+  async upsertConsumer(d: {
+    organization: Organization;
+    instance: Instance;
+    input: {
+      name: string;
+      email: string;
+    };
+  }) {
+    let existing = await db.instanceConsumer.findFirst({
+      where: {
+        instanceOid: d.instance.oid,
+        email: d.input.email
+      },
+      include: getInclude({ instanceOid: d.instance.oid })
+    });
+    if (existing) {
+      if (existing.name === d.input.name) return existing;
+
+      return await this.updateConsumer({
+        consumer: existing as InstanceConsumerWithRelations,
+        input: {
+          name: d.input.name,
+          email: d.input.email
+        }
+      });
+    }
+
+    return await upsertLock.usingLock(`${d.instance.oid}-${d.input.email}`, async () => {
+      let existing = await db.instanceConsumer.findFirst({
+        where: {
+          instanceOid: d.instance.oid,
+          email: d.input.email
+        },
+        include: getInclude({ instanceOid: d.instance.oid })
+      });
+      if (existing) {
+        if (existing.name === d.input.name) return existing;
+
+        return await this.updateConsumer({
+          consumer: existing as InstanceConsumerWithRelations,
+          input: {
+            name: d.input.name,
+            email: d.input.email
+          }
+        });
+      }
+
+      return await this.createConsumer(d);
+    });
   }
 }
 

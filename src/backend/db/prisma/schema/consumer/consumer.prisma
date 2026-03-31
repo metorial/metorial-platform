@@ -40,6 +40,12 @@ model InstanceConsumer {
   consumerOid BigInt
   consumer    Consumer @relation(fields: [consumerOid], references: [oid], onDelete: Cascade)
 
+  organizationMemberOid BigInt?
+  organizationMember    OrganizationMember? @relation(fields: [organizationMemberOid], references: [oid], onDelete: SetNull)
+
+  organizationActorOid BigInt?
+  organizationActor    OrganizationActor? @relation(fields: [organizationActorOid], references: [oid], onDelete: SetNull)
+
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @default(now()) @updatedAt
   consumerActors ConsumerActor[]
@@ -72,6 +78,12 @@ model ConsumerProfile {
 
   accessTagOid BigInt    @unique
   accessTag    AccessTag @relation(fields: [accessTagOid], references: [oid], onDelete: Cascade)
+
+  organizationMemberOid BigInt?
+  organizationMember    OrganizationMember? @relation(fields: [organizationMemberOid], references: [oid], onDelete: SetNull)
+
+  organizationActorOid BigInt?
+  organizationActor    OrganizationActor? @relation(fields: [organizationActorOid], references: [oid], onDelete: SetNull)
 
   personalConsumerGroupOid BigInt        @unique
   personalConsumerGroup    ConsumerGroup @relation("ConsumerProfilePersonalGroup", fields: [personalConsumerGroupOid], references: [oid], onDelete: Cascade)

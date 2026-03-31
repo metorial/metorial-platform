@@ -1,7 +1,11 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, forbiddenError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { consumerProfileService, consumerService } from '@metorial/module-consumer';
+import {
+  consumerProfileService,
+  consumerService,
+  consumerSurfaceService
+} from '@metorial/module-consumer';
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../middleware/checkAccess';
 import { hasFlags } from '../../middleware/hasFlags';
@@ -131,6 +135,54 @@ export let consumerController = Controller.create(
             name: ctx.body.name,
             email: ctx.body.email
           }
+        });
+
+        return consumerPresenter.present({ consumer });
+      }),
+
+    getMemberConsumer: instanceGroup
+      .post(instancePath('get-member-consumer', 'consumers.getMemberConsumer'), {
+        name: 'Get member consumer',
+        description:
+          'Upserts and returns the consumer for the authenticated organization member.',
+        hideInDocs: true
+      })
+      .use(checkAccess({ possibleScopes: ['instance.portal.consumers:write'] }))
+      .use(hasFlags(['identity-management', 'paid-identity']))
+      .body(
+        'default',
+        v.object({
+          surface_identifier: v.enumOf(['cli'])
+        })
+      )
+      .output(consumerPresenter)
+      .do(async ctx => {
+        let user = 'user' in ctx.auth ? ctx.auth.user : null;
+        if (!ctx.member || !user) {
+          throw new ServiceError(
+            forbiddenError({
+              message:
+                'This endpoint requires an authenticated organization member and is not available for API access.'
+            })
+          );
+        }
+
+        let consumerSurface = await consumerSurfaceService.ensureInternalConsumerSurface({
+          instance: ctx.instance,
+          identifier: ctx.body.surface_identifier,
+          name: 'CLI'
+        });
+
+        let consumerProfile = await consumerProfileService.ensureConsumerProfile({
+          surface: consumerSurface,
+          email: user.email,
+          name: user.name,
+          member: ctx.member
+        });
+
+        let consumer = await consumerService.getConsumerById({
+          instance: ctx.instance,
+          consumerId: consumerProfile.consumer.id
         });
 
         return consumerPresenter.present({ consumer });

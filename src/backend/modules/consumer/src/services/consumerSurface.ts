@@ -289,7 +289,7 @@ class ConsumerSurfaceServiceImpl {
           where: { oid: d.instance.organizationOid }
         });
 
-        let surface = await this.createConsumerSurface({
+        return await this.createConsumerSurface({
           organization: org,
           instance: d.instance,
           context: { ip: '0.0.0.0', ua: 'Metorial System' },

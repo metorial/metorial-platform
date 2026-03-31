@@ -35,6 +35,8 @@ model OrganizationActor {
   oauthInstallations  OAuthInstallation[]
   projectBrandUpdates ProjectBrandUpdate[]
   consumers           Consumer[]
+  instanceConsumers   InstanceConsumer[]
+  consumerProfiles    ConsumerProfile[]
 
   @@unique([isSystem, organizationOid])
 }
