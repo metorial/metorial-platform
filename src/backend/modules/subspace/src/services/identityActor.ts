@@ -7,6 +7,7 @@ import {
   InstanceConsumer,
   OrganizationMember
 } from '@metorial/db';
+import { resolveConsumerActorIds } from '../lib/resolveConsumerActors';
 import { createSubspaceService } from '../lib/subspaceService';
 import { subspace } from '../subspace';
 
@@ -63,14 +64,7 @@ export let subspaceIdentityActorService = createSubspaceService(
       }
     ) => {
       if (arg0.consumerIds) {
-        let consumerActorIds = await db.consumerActor
-          .findMany({
-            where: {
-              instanceConsumer: { id: { in: arg0.consumerIds } }
-            },
-            select: { id: true }
-          })
-          .then(res => res.map(r => r.id));
+        let consumerActorIds = await resolveConsumerActorIds(arg0.consumerIds);
 
         arg0.ids = [...(arg0.ids ?? []), ...consumerActorIds];
       }

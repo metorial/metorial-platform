@@ -27,6 +27,9 @@ import {
   normalizeDateFilter,
   normalizeStatusForGet,
   normalizeStatusForList,
+  resolveIdentities,
+  resolveIdentityActors,
+  resolveIdentityCredentials,
   resolveProviders,
   resolveProviderVersions
 } from '@metorial-subspace/list-utils';
@@ -74,6 +77,9 @@ class providerDeploymentServiceImpl {
     ids?: string[];
     providerIds?: string[];
     providerVersionIds?: string[];
+    actorIds?: string[];
+    identityIds?: string[];
+    identityCredentialIds?: string[];
 
     capabilities?: ProviderCapabilityFilter;
 
@@ -82,6 +88,9 @@ class providerDeploymentServiceImpl {
   }) {
     let providers = await resolveProviders(d, d.providerIds);
     let versions = await resolveProviderVersions(d, d.providerVersionIds);
+    let actors = await resolveIdentityActors(d, d.actorIds);
+    let identities = await resolveIdentities(d, d.identityIds);
+    let identityCredentials = await resolveIdentityCredentials(d, d.identityCredentialIds);
 
     let capFilters = getProviderCapabilityFilter(d.capabilities || {});
 
@@ -112,6 +121,15 @@ class providerDeploymentServiceImpl {
                 search ? { id: { in: search.map(r => r.documentId) } } : undefined!,
                 providers ? { providerOid: providers.in } : undefined!,
                 versions ? { currentVersion: { lockedVersionOid: versions.in } } : undefined!,
+                actors
+                  ? { identityCredentials: { some: { identity: { actor: actors.oidIn } } } }
+                  : undefined!,
+                identities
+                  ? { identityCredentials: { some: { identityOid: identities.in } } }
+                  : undefined!,
+                identityCredentials
+                  ? { identityCredentials: { some: identityCredentials.oidIn } }
+                  : undefined!,
                 d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
                 d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!,
                 capFilters ? { provider: { type: capFilters } } : undefined!

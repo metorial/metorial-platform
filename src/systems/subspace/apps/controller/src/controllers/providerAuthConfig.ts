@@ -47,6 +47,9 @@ export let providerAuthConfigController = app.controller({
           providerDeploymentIds: v.optional(v.array(v.string())),
           providerAuthCredentialsIds: v.optional(v.array(v.string())),
           providerAuthMethodIds: v.optional(v.array(v.string())),
+          actorIds: v.optional(v.array(v.string())),
+          identityIds: v.optional(v.array(v.string())),
+          identityCredentialIds: v.optional(v.array(v.string())),
           createdAt: createdAtValidator,
           updatedAt: updatedAtValidator
         })
@@ -68,6 +71,9 @@ export let providerAuthConfigController = app.controller({
         providerDeploymentIds: ctx.input.providerDeploymentIds,
         providerAuthCredentialsIds: ctx.input.providerAuthCredentialsIds,
         providerAuthMethodIds: ctx.input.providerAuthMethodIds,
+        actorIds: ctx.input.actorIds,
+        identityIds: ctx.input.identityIds,
+        identityCredentialIds: ctx.input.identityCredentialIds,
         createdAt: ctx.input.createdAt,
         updatedAt: ctx.input.updatedAt
       });

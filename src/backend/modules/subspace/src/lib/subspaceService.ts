@@ -1,5 +1,5 @@
 import { Service } from '@lowerdeck/service';
-import type { Instance, OrganizationActor } from '@metorial/db';
+import { type Instance, type OrganizationActor } from '@metorial/db';
 import type { ProviderEventBase } from '@metorial/fabric';
 import { getActorForSubspace, getTenantForSubspace } from '../subspace';
 

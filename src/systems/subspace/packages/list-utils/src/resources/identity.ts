@@ -20,3 +20,17 @@ export let resolveIdentityActors = createResolver(async ({ ts, ids }) =>
     select: { oid: true }
   })
 );
+
+export let resolveIdentityCredentials = createResolver(async ({ ts, ids }) =>
+  db.identityCredential.findMany({
+    where: {
+      id: { in: ids },
+      identity: {
+        tenantOid: ts.tenantOid,
+        solutionOid: ts.solutionOid,
+        environmentOid: ts.environmentOid
+      }
+    },
+    select: { oid: true }
+  })
+);
