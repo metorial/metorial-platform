@@ -11,8 +11,8 @@ export let v1ScmProviderPresenter = Presenter.create(scmProviderType)
     type: scmProvider.type,
     name: scmProvider.name,
     description: scmProvider.description,
-    api_url: scmProvider.apiUrl ?? null,
-    web_url: scmProvider.webUrl ?? null,
+    api_url: (scmProvider.apiUrl ?? null) as string | null,
+    web_url: (scmProvider.webUrl ?? null) as string | null,
 
     is_default: scmProvider.isDefault,
 
