@@ -24,6 +24,7 @@ import {
   normalizeDateFilter,
   normalizeStatusForGet,
   normalizeStatusForList,
+  resolveAuthMethodsGlobal,
   resolveProviders
 } from '@metorial-subspace/list-utils';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
@@ -217,6 +218,8 @@ class providerAuthCredentialsServiceImpl {
     updatedAt?: DateFilter;
   }) {
     let providers = await resolveProviders(d, d.providerIds);
+    let authMethodsGlobal = await resolveAuthMethodsGlobal(d, d.providerAuthMethodIds);
+
     let origin = d.origin?.length ? d.origin : defaultListOrigins;
     let includeTenantCreated = origin.includes('tenant_created');
     let includeManagedBacking = origin.includes('managed_backing');
@@ -257,6 +260,15 @@ class providerAuthCredentialsServiceImpl {
               d.ids ? { id: { in: d.ids } } : undefined!,
               search ? { id: { in: search.map(r => r.documentId) } } : undefined!,
               providers ? { providerOid: providers.in } : undefined!,
+              authMethodsGlobal
+                ? {
+                    provider: {
+                      providerAuthMethodGlobals: {
+                        some: authMethodsGlobal.oidIn
+                      }
+                    }
+                  }
+                : undefined!,
 
               d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
               d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!,
@@ -277,7 +289,7 @@ class providerAuthCredentialsServiceImpl {
                     : undefined!
                 ].filter(Boolean)
               }
-            ].filter(Boolean)
+            ] // .filter(Boolean)
           },
           include
         });
@@ -652,9 +664,7 @@ class providerAuthCredentialsServiceImpl {
     };
 
     let existingBacking = await getExistingBacking();
-    if (isBackingFresh(existingBacking)) {
-      return existingBacking;
-    }
+    if (isBackingFresh(existingBacking)) return existingBacking;
 
     return await createManagedBackingLock.usingLock(
       [String(managedCredentialsOid), d.tenant.id],

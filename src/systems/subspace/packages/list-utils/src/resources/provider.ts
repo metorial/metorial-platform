@@ -148,6 +148,50 @@ export let resolveProviderSpecifications = createResolver(async ({ ts, ids }) =>
   })
 );
 
+export let resolveAuthMethods = createResolver(async ({ ts, ids }) =>
+  db.providerAuthMethod.findMany({
+    where: {
+      provider: {
+        OR: [
+          { access: 'public' as const },
+          ts.tenantOid && ts.solutionOid
+            ? {
+                access: 'tenant' as const,
+                ownerTenantOid: ts.tenantOid,
+                ownerSolutionOid: ts.solutionOid
+              }
+            : undefined!
+        ].filter(Boolean)
+      },
+
+      id: { in: ids }
+    },
+    select: { oid: true }
+  })
+);
+
+export let resolveAuthMethodsGlobal = createResolver(async ({ ts, ids }) =>
+  db.providerAuthMethodGlobal.findMany({
+    where: {
+      provider: {
+        OR: [
+          { access: 'public' as const },
+          ts.tenantOid && ts.solutionOid
+            ? {
+                access: 'tenant' as const,
+                ownerTenantOid: ts.tenantOid,
+                ownerSolutionOid: ts.solutionOid
+              }
+            : undefined!
+        ].filter(Boolean)
+      },
+
+      OR: [{ id: { in: ids } }, { providerAuthMethods: { some: { id: { in: ids } } } }]
+    },
+    select: { oid: true }
+  })
+);
+
 export let resolveCustomProviders = createResolver(async ({ ts, ids }) =>
   db.customProvider.findMany({
     where: {
