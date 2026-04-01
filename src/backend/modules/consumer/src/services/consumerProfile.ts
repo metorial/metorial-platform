@@ -176,78 +176,78 @@ class ConsumerProfileServiceImpl {
     ssoGroupIds?: string[];
     ssoRoles?: string[];
   }) {
-    let res = await withTransaction(async db => {
-      let ssoGroupIds = normalizeStringList(d.ssoGroupIds);
-      let ssoRoles = normalizeStringList(d.ssoRoles);
-      let existingConsumer = await db.consumer.findUnique({
-        where: {
-          email_organizationOid: {
-            email: d.email,
-            organizationOid: d.surface.organizationOid
+    let res = await ensureProfileLock.usingLock(`${d.surface.instanceOid}-${d.email}`, () =>
+      withTransaction(async db => {
+        let ssoGroupIds = normalizeStringList(d.ssoGroupIds);
+        let ssoRoles = normalizeStringList(d.ssoRoles);
+        let existingConsumer = await db.consumer.findUnique({
+          where: {
+            email_organizationOid: {
+              email: d.email,
+              organizationOid: d.surface.organizationOid
+            }
+          },
+          select: {
+            isOrganizationMember: true,
+            isPortalConsumer: true,
+            organizationMemberOid: true,
+            organizationActorOid: true
           }
-        },
-        select: {
-          isOrganizationMember: true,
-          isPortalConsumer: true,
-          organizationMemberOid: true,
-          organizationActorOid: true
-        }
-      });
-      let consumer = await db.consumer.upsert({
-        where: {
-          email_organizationOid: {
+        });
+        let consumer = await db.consumer.upsert({
+          where: {
+            email_organizationOid: {
+              email: d.email,
+              organizationOid: d.surface.organizationOid
+            }
+          },
+          create: {
+            id: await ID.generateId('consumer'),
             email: d.email,
-            organizationOid: d.surface.organizationOid
+            name: d.name,
+            organizationOid: d.surface.organizationOid,
+            organizationMemberOid: d.member?.oid,
+            organizationActorOid: d.member?.actorOid,
+            isOrganizationMember: !!d.member || d.surface.type === 'organization_members',
+            isPortalConsumer: d.surface.type === 'portal'
+          },
+          update: {
+            email: d.email,
+            name: d.name,
+            organizationMemberOid: d.member?.oid ?? existingConsumer?.organizationMemberOid,
+            organizationActorOid: d.member?.actorOid ?? existingConsumer?.organizationActorOid,
+            isOrganizationMember:
+              !!d.member ||
+              !!existingConsumer?.isOrganizationMember ||
+              d.surface.type === 'organization_members',
+            isPortalConsumer: existingConsumer?.isPortalConsumer || d.surface.type === 'portal'
           }
-        },
-        create: {
-          id: await ID.generateId('consumer'),
-          email: d.email,
-          name: d.name,
-          organizationOid: d.surface.organizationOid,
-          organizationMemberOid: d.member?.oid,
-          organizationActorOid: d.member?.actorOid,
-          isOrganizationMember: d.surface.type === 'organization_members',
-          isPortalConsumer: d.surface.type === 'portal'
-        },
-        update: {
-          email: d.email,
-          name: d.name,
-          organizationMemberOid: d.member?.oid ?? existingConsumer?.organizationMemberOid,
-          organizationActorOid: d.member?.actorOid ?? existingConsumer?.organizationActorOid,
-          isOrganizationMember:
-            !!d.member ||
-            !!existingConsumer?.isOrganizationMember ||
-            d.surface.type === 'organization_members',
-          isPortalConsumer: existingConsumer?.isPortalConsumer || d.surface.type === 'portal'
-        }
-      });
+        });
 
-      await db.instanceConsumer.upsert({
-        where: {
-          instanceOid_consumerOid: {
+        await db.instanceConsumer.upsert({
+          where: {
+            instanceOid_consumerOid: {
+              instanceOid: d.surface.instanceOid,
+              consumerOid: consumer.oid
+            }
+          },
+          create: {
+            id: await ID.generateId('instanceConsumer'),
+            name: d.name,
+            email: d.email,
             instanceOid: d.surface.instanceOid,
-            consumerOid: consumer.oid
+            consumerOid: consumer.oid,
+            organizationMemberOid: d.member?.oid,
+            organizationActorOid: d.member?.actorOid
+          },
+          update: {
+            name: d.name,
+            email: d.email,
+            organizationMemberOid: d.member?.oid ?? consumer.organizationMemberOid,
+            organizationActorOid: d.member?.actorOid ?? consumer.organizationActorOid
           }
-        },
-        create: {
-          id: await ID.generateId('instanceConsumer'),
-          name: d.name,
-          email: d.email,
-          instanceOid: d.surface.instanceOid,
-          consumerOid: consumer.oid,
-          organizationMemberOid: d.member?.oid,
-          organizationActorOid: d.member?.actorOid
-        },
-        update: {
-          name: d.name,
-          email: d.email,
-          organizationMemberOid: d.member?.oid ?? consumer.organizationMemberOid,
-          organizationActorOid: d.member?.actorOid ?? consumer.organizationActorOid
-        }
-      });
+        });
 
-      return ensureProfileLock.usingLock(`${d.surface.instanceOid}-${d.email}`, async () => {
         let existingProfile = await db.consumerProfile.findUnique({
           where: d.aresUserId
             ? {
@@ -319,8 +319,8 @@ class ConsumerProfileServiceImpl {
             include
           })
         };
-      });
-    });
+      })
+    );
 
     await syncIdentityConsumerQueue.add({
       identityConsumerId: res.consumer.id
