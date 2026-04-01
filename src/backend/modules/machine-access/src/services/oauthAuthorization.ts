@@ -458,6 +458,7 @@ class OAuthAuthorizationService {
     clientId: string;
     clientSecret?: string;
     deviceCode: string;
+    forceIncludeRefreshToken?: boolean;
   }) {
     let res = await this.checkDeviceCodeAuthorizationRequest(d);
 
@@ -526,7 +527,8 @@ class OAuthAuthorizationService {
 
     if (
       !d.clientSecret &&
-      !res.oauthAuthorizationRequest.oauthApplication.allowClientSecretlessTokenExchange
+      !res.oauthAuthorizationRequest.oauthApplication.allowClientSecretlessTokenExchange &&
+      res.oauthAuthorizationRequest.oauthApplication.type != 'cli_auth'
     ) {
       throw new ServiceError(
         unauthorizedError({
@@ -542,7 +544,7 @@ class OAuthAuthorizationService {
     return await withTransaction(async db => {
       let oauthToken = await this.issueOAuthToken({
         oauthAuthorization,
-        withRefreshToken: !!d.clientSecret
+        withRefreshToken: !!(d.clientSecret || d.forceIncludeRefreshToken)
       });
 
       await db.oAuthAuthorizationFlow.update({
@@ -1034,7 +1036,8 @@ class OAuthAuthorizationService {
 
     return await this.exchangeDeviceCodeToken({
       clientId: cliAuthApplication.clientId,
-      deviceCode: d.token
+      deviceCode: d.token,
+      forceIncludeRefreshToken: true
     });
   }
 

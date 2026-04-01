@@ -199,13 +199,34 @@ class providerSetupSessionServiceImpl {
       note?: string | undefined;
     };
   }) {
-    checkTenant(d, d.providerDeployment);
     let normalizedConfiguration = normalizeProviderSetupSessionConfiguration(
       d.input.configuration
     );
 
+    checkTenant(d, d.providerDeployment);
+
     checkDeletedRelation(d.providerDeployment);
     checkDeletedRelation(d.credentials);
+
+    if (!d.provider) {
+      let providerOid: bigint | undefined;
+
+      if (d.providerDeployment) {
+        providerOid = d.providerDeployment.providerOid;
+      } else if (d.credentials) {
+        providerOid = d.credentials.providerOid;
+      }
+
+      if (providerOid) {
+        d.provider = await db.provider.findFirstOrThrow({
+          where: {
+            oid: providerOid,
+            OR: [{ ownerTenantOid: d.tenant.oid }, { access: 'public' }]
+          },
+          include: { defaultVariant: true, type: true }
+        });
+      }
+    }
 
     if (d.provider) {
       checkProviderMatch(d.provider, d.credentials);
@@ -225,28 +246,6 @@ class providerSetupSessionServiceImpl {
           message: 'Config input provided for auth_only session type'
         })
       );
-    }
-
-    if (!d.provider) {
-      if (d.providerDeployment || d.credentials || d.input.authMethodId) {
-        throw new ServiceError(
-          badRequestError({
-            message:
-              'Provider deployment, credentials, and auth method cannot be set without a provider',
-            code: 'provider_required_for_related_resources'
-          })
-        );
-      }
-
-      if (d.input.authConfigInput || d.input.configInput) {
-        throw new ServiceError(
-          badRequestError({
-            message:
-              'Config and auth config input cannot be provided until a provider is selected',
-            code: 'provider_required_for_config_input'
-          })
-        );
-      }
     }
 
     return withTransaction(async db => {
