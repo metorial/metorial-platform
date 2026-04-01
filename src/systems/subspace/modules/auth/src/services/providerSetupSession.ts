@@ -8,6 +8,7 @@ import {
   type Environment,
   getId,
   ID,
+  type Identity,
   type Provider,
   type ProviderAuthCredentials,
   type ProviderDeployment,
@@ -49,6 +50,8 @@ import { providerSetupSessionInternalService } from './providerSetupSessionInter
 import { providerSetupSessionUiService } from './providerSetupSessionUi';
 
 let include = {
+  identity: true,
+  identityCredential: true,
   authConfig: { include: providerAuthConfigInclude },
   deployment: true,
   provider: true,
@@ -177,6 +180,7 @@ class providerSetupSessionServiceImpl {
         | (ProviderDeploymentVersion & { lockedVersion: ProviderVersion | null })
         | null;
     };
+    identity?: Identity;
     credentials?: ProviderAuthCredentials;
     brand?: Brand;
     input: {
@@ -204,8 +208,10 @@ class providerSetupSessionServiceImpl {
     );
 
     checkTenant(d, d.providerDeployment);
+    checkTenant(d, d.identity);
 
     checkDeletedRelation(d.providerDeployment);
+    checkDeletedRelation(d.identity);
     checkDeletedRelation(d.credentials);
 
     if (!d.provider) {
@@ -371,7 +377,7 @@ class providerSetupSessionServiceImpl {
 
           type: d.input.type,
           uiMode: d.input.uiMode,
-          status: inner.authConfigOid ? 'completed' : 'pending',
+          status: 'pending',
 
           name: d.input.name?.trim() || undefined,
           description: d.input.description?.trim() || undefined,
@@ -384,11 +390,12 @@ class providerSetupSessionServiceImpl {
           environmentOid: d.environment.oid,
           providerOid: d.provider?.oid,
           deploymentOid: d.providerDeployment?.oid,
+          identityOid: d.identity?.oid ?? null,
           brandOid: d.brand?.oid,
           authCredentialsOid: d.credentials?.oid,
 
           expiresAt
-        },
+        } as any,
         include
       });
 
@@ -435,9 +442,28 @@ class providerSetupSessionServiceImpl {
       name?: string;
       description?: string;
       metadata?: Record<string, any>;
+      identity?: Identity;
     };
   }) {
     checkDeletedEdit(d.providerSetupSession, 'update');
+    checkTenant(d, d.input.identity);
+    checkDeletedRelation(d.input.identity);
+
+    let providerSetupSession = d.providerSetupSession;
+
+    if (
+      d.input.identity &&
+      (providerSetupSession.identityCredentialOid ||
+        d.providerSetupSession.status !== 'pending') &&
+      providerSetupSession.identityOid !== d.input.identity.oid
+    ) {
+      throw new ServiceError(
+        badRequestError({
+          message:
+            'Cannot change the linked identity after an identity credential has been created'
+        })
+      );
+    }
 
     return withTransaction(async db => {
       let config = await db.providerSetupSession.update({
@@ -449,7 +475,8 @@ class providerSetupSessionServiceImpl {
         data: {
           name: d.input.name ?? d.providerSetupSession.name,
           description: d.input.description ?? d.providerSetupSession.description,
-          metadata: d.input.metadata ?? d.providerSetupSession.metadata
+          metadata: d.input.metadata ?? d.providerSetupSession.metadata,
+          identityOid: d.input.identity?.oid ?? providerSetupSession.identityOid
         },
         include
       });

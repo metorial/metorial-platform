@@ -189,6 +189,12 @@ export let providerSetupSessionController = Controller.create(
               description: 'Optional OAuth app credentials to use instead of defaults'
             })
           ),
+          identity_id: v.optional(
+            v.string({
+              examples: ['idn_3nOpRsTuVwXyZaBc'],
+              description: 'Optional identity to link this setup session to'
+            })
+          ),
           redirect_url: v.optional(
             v.string({ examples: ['https://app.example.com/oauth/callback'] })
           ),
@@ -203,6 +209,7 @@ export let providerSetupSessionController = Controller.create(
           providerDeploymentId: ctx.body.provider_deployment_id,
           providerAuthMethodId: ctx.body.provider_auth_method_id,
           providerAuthCredentialsId: ctx.body.provider_auth_credentials_id,
+          identityId: ctx.body.identity_id,
           configuration: (ctx.body.configuration
             ? {
                 providerSearch: ctx.body.configuration.provider_search
@@ -271,6 +278,12 @@ export let providerSetupSessionController = Controller.create(
               examples: [{ redirect_uri: 'https://app.example.com/new-callback' }]
             }),
             { description: 'Custom key-value pairs for storing additional information' }
+          ),
+          identity_id: v.optional(
+            v.string({
+              examples: ['idn_3nOpRsTuVwXyZaBc'],
+              description: 'Optional identity to link this setup session to'
+            })
           )
         })
       )
@@ -281,7 +294,8 @@ export let providerSetupSessionController = Controller.create(
           providerSetupSessionId: ctx.setupSession.id,
           name: ctx.body.name,
           description: ctx.body.description,
-          metadata: ctx.body.metadata
+          metadata: ctx.body.metadata,
+          identityId: ctx.body.identity_id
         });
 
         return providerSetupSessionPresenter.present({
