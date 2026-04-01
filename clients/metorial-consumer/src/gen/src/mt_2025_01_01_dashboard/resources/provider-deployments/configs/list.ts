@@ -208,6 +208,10 @@ export type ProviderDeploymentsConfigsListQuery = {
   providerSpecificationId?: string | string[] | undefined;
   providerDeploymentId?: string | string[] | undefined;
   providerConfigVaultId?: string | string[] | undefined;
+  actorId?: string | string[] | undefined;
+  consumerId?: string | string[] | undefined;
+  identityId?: string | string[] | undefined;
+  identityCredentialId?: string | string[] | undefined;
   search?: string | undefined;
   createdAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
   updatedAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
@@ -268,6 +272,46 @@ export let mapProviderDeploymentsConfigsListQuery = mtMap.union([
       ),
       providerConfigVaultId: mtMap.objectField(
         'provider_config_vault_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      actorId: mtMap.objectField(
+        'actor_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      consumerId: mtMap.objectField(
+        'consumer_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      identityId: mtMap.objectField(
+        'identity_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      identityCredentialId: mtMap.objectField(
+        'identity_credential_id',
         mtMap.union([
           mtMap.unionOption('string', mtMap.passthrough()),
           mtMap.unionOption(

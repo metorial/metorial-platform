@@ -17,6 +17,8 @@ export type ConsumerProvidersGetSetupOutput = {
   metadata: Record<string, any> | null;
   configuration: Record<string, any> | null;
   providerId: string | null;
+  identityId: string | null;
+  identityCredentialId: string | null;
   authMethod: {
     object: 'provider.capabilities.auth_method';
     id: string;
@@ -218,6 +220,11 @@ export let mapConsumerProvidersGetSetupOutput =
     metadata: mtMap.objectField('metadata', mtMap.passthrough()),
     configuration: mtMap.objectField('configuration', mtMap.passthrough()),
     providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
+    identityId: mtMap.objectField('identity_id', mtMap.passthrough()),
+    identityCredentialId: mtMap.objectField(
+      'identity_credential_id',
+      mtMap.passthrough()
+    ),
     authMethod: mtMap.objectField(
       'auth_method',
       mtMap.object({

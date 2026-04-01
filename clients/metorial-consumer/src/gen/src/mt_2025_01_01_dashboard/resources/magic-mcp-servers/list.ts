@@ -78,6 +78,8 @@ export type MagicMcpServersListQuery = {
     | ('active' | 'archived' | 'deleted')[]
     | undefined;
   magicMcpGroupId?: string | string[] | undefined;
+  consumerId?: string | string[] | undefined;
+  consumerProfileId?: string | string[] | undefined;
   search?: string | undefined;
 };
 
@@ -96,6 +98,26 @@ export let mapMagicMcpServersListQuery = mtMap.union([
       ),
       magicMcpGroupId: mtMap.objectField(
         'magic_mcp_group_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      consumerId: mtMap.objectField(
+        'consumer_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      consumerProfileId: mtMap.objectField(
+        'consumer_profile_id',
         mtMap.union([
           mtMap.unionOption('string', mtMap.passthrough()),
           mtMap.unionOption(

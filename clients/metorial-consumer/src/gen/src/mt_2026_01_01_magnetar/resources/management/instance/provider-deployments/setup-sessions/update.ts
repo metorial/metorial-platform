@@ -17,6 +17,8 @@ export type ManagementInstanceProviderDeploymentsSetupSessionsUpdateOutput = {
   metadata: Record<string, any> | null;
   configuration: Record<string, any> | null;
   providerId: string | null;
+  identityId: string | null;
+  identityCredentialId: string | null;
   authMethod: {
     object: 'provider.capabilities.auth_method';
     id: string;
@@ -218,6 +220,11 @@ export let mapManagementInstanceProviderDeploymentsSetupSessionsUpdateOutput =
     metadata: mtMap.objectField('metadata', mtMap.passthrough()),
     configuration: mtMap.objectField('configuration', mtMap.passthrough()),
     providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
+    identityId: mtMap.objectField('identity_id', mtMap.passthrough()),
+    identityCredentialId: mtMap.objectField(
+      'identity_credential_id',
+      mtMap.passthrough()
+    ),
     authMethod: mtMap.objectField(
       'auth_method',
       mtMap.object({
@@ -547,12 +554,14 @@ export type ManagementInstanceProviderDeploymentsSetupSessionsUpdateBody = {
   name?: string | undefined;
   description?: string | undefined;
   metadata?: Record<string, any> | undefined;
+  identityId?: string | undefined;
 };
 
 export let mapManagementInstanceProviderDeploymentsSetupSessionsUpdateBody =
   mtMap.object<ManagementInstanceProviderDeploymentsSetupSessionsUpdateBody>({
     name: mtMap.objectField('name', mtMap.passthrough()),
     description: mtMap.objectField('description', mtMap.passthrough()),
-    metadata: mtMap.objectField('metadata', mtMap.passthrough())
+    metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+    identityId: mtMap.objectField('identity_id', mtMap.passthrough())
   });
 

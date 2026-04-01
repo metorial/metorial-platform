@@ -1,7 +1,6 @@
 import { Controller } from '@metorial/rest';
 import { consumerProviderController } from './consumer/provider';
 import { consumerSessionController } from './consumer/session';
-import { dashboardApiKeyController } from './dashboard/apiKey';
 import { dashboardBootController } from './dashboard/boot';
 import { flagsController } from './dashboard/flags';
 import { dashboardOAuthAuthorizationRequestController } from './dashboard/oauthAuthorizationRequest';
@@ -26,6 +25,7 @@ import { providerTemplateController } from './instance/providerTemplate';
 import { tokenController } from './instance/token';
 import { accessPolicyManagementController } from './management/accessPolicy';
 import { accessRoleManagementController } from './management/accessRole';
+import { managementApiKeyController } from './management/apiKey';
 import { cliDeviceManagementController } from './management/cliDevice';
 import { instanceManagementController } from './management/instance';
 import { oauthApplicationManagementController } from './management/oauthApplication';
@@ -182,7 +182,9 @@ export let magnetarController = Controller.create<any>(
     providerTemplateController,
 
     consumerSessionController,
-    consumerProviderController
+    consumerProviderController,
+
+    managementApiKeyController
 
     // teamManagementController,
     // portalConsumerGroupController,
@@ -207,9 +209,10 @@ export let dashboardController = Controller.create<any>(
     dashboardOrganizationInviteController,
     dashboardOAuthAuthorizationRequestController,
     dashboardBootController,
-    dashboardApiKeyController,
     dashboardUsageController,
     flagsController,
+
+    managementApiKeyController,
 
     instanceManagementController,
     organizationManagementController,

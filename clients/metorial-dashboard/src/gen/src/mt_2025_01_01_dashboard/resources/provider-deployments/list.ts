@@ -175,6 +175,10 @@ export type ProviderDeploymentsListQuery = {
   id?: string | string[] | undefined;
   providerId?: string | string[] | undefined;
   providerVersionId?: string | string[] | undefined;
+  actorId?: string | string[] | undefined;
+  consumerId?: string | string[] | undefined;
+  identityId?: string | string[] | undefined;
+  identityCredentialId?: string | string[] | undefined;
   status?: 'active' | 'archived' | ('active' | 'archived')[] | undefined;
   capabilities?:
     | {
@@ -223,6 +227,46 @@ export let mapProviderDeploymentsListQuery = mtMap.union([
       ),
       providerVersionId: mtMap.objectField(
         'provider_version_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      actorId: mtMap.objectField(
+        'actor_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      consumerId: mtMap.objectField(
+        'consumer_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      identityId: mtMap.objectField(
+        'identity_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      identityCredentialId: mtMap.objectField(
+        'identity_credential_id',
         mtMap.union([
           mtMap.unionOption('string', mtMap.passthrough()),
           mtMap.unionOption(

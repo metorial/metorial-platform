@@ -6,6 +6,8 @@ import {
 import {
   mapDashboardInstanceConsumersCreateBody,
   mapDashboardInstanceConsumersCreateOutput,
+  mapDashboardInstanceConsumersGetMemberConsumerBody,
+  mapDashboardInstanceConsumersGetMemberConsumerOutput,
   mapDashboardInstanceConsumersGetOutput,
   mapDashboardInstanceConsumersListOutput,
   mapDashboardInstanceConsumersListQuery,
@@ -13,6 +15,8 @@ import {
   mapDashboardInstanceConsumersUpdateOutput,
   type DashboardInstanceConsumersCreateBody,
   type DashboardInstanceConsumersCreateOutput,
+  type DashboardInstanceConsumersGetMemberConsumerBody,
+  type DashboardInstanceConsumersGetMemberConsumerOutput,
   type DashboardInstanceConsumersGetOutput,
   type DashboardInstanceConsumersListOutput,
   type DashboardInstanceConsumersListQuery,
@@ -133,6 +137,38 @@ export class MetorialDashboardInstanceConsumersEndpoint {
 
     return this._post(request).transform(
       mapDashboardInstanceConsumersCreateOutput
+    );
+  }
+
+  /**
+   * @name Get member consumer
+   * @description Upserts and returns the consumer for the authenticated organization member.
+   *
+   * @param `instanceId` - string
+   * @param `body` - DashboardInstanceConsumersGetMemberConsumerBody
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardInstanceConsumersGetMemberConsumerOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  getMemberConsumer(
+    instanceId: string,
+    body: DashboardInstanceConsumersGetMemberConsumerBody,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceConsumersGetMemberConsumerOutput> {
+    let path = `dashboard/instances/${instanceId}/get-member-consumer`;
+
+    let request = {
+      path,
+      body: mapDashboardInstanceConsumersGetMemberConsumerBody.transformTo(
+        body
+      ),
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._post(request).transform(
+      mapDashboardInstanceConsumersGetMemberConsumerOutput
     );
   }
 

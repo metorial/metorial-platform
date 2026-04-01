@@ -48,12 +48,17 @@ export type MagicMcpServersCreateBody = {
   name?: string | undefined;
   description?: string | undefined;
   metadata?: Record<string, any> | undefined;
+  consumerProfileId?: string | undefined;
 };
 
 export let mapMagicMcpServersCreateBody =
   mtMap.object<MagicMcpServersCreateBody>({
     name: mtMap.objectField('name', mtMap.passthrough()),
     description: mtMap.objectField('description', mtMap.passthrough()),
-    metadata: mtMap.objectField('metadata', mtMap.passthrough())
+    metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+    consumerProfileId: mtMap.objectField(
+      'consumer_profile_id',
+      mtMap.passthrough()
+    )
   });
 
