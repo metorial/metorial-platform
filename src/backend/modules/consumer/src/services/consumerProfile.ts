@@ -12,6 +12,7 @@ import {
   ConsumerSurface,
   db,
   ID,
+  Instance,
   InstanceConsumer,
   OrganizationMember,
   withTransaction
@@ -126,6 +127,43 @@ class ConsumerProfileServiceImpl {
         });
       })
     );
+  }
+
+  async getConsumerProfileByIdForInstance(d: {
+    instance: Instance;
+    consumerProfileId: string;
+  }) {
+    let consumerProfile = await db.consumerProfile.findFirst({
+      where: {
+        instanceOid: d.instance.oid,
+        id: d.consumerProfileId
+      },
+      include
+    });
+    if (!consumerProfile) {
+      throw new ServiceError(notFoundError('consumer.profile'));
+    }
+
+    return consumerProfile;
+  }
+
+  async findConsumerProfilesByIdForInstance(d: {
+    instance: Instance;
+    consumerProfileIds: string[];
+  }) {
+    if (!d.consumerProfileIds.length) {
+      return [];
+    }
+
+    return await db.consumerProfile.findMany({
+      where: {
+        instanceOid: d.instance.oid,
+        id: {
+          in: d.consumerProfileIds
+        }
+      },
+      include
+    });
   }
 
   async ensureConsumerProfile(d: {

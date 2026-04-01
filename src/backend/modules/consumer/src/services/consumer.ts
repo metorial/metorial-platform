@@ -107,6 +107,22 @@ class ConsumerServiceImpl {
     );
   }
 
+  async findConsumersById(d: { instance: Instance; consumerIds: string[] }) {
+    if (!d.consumerIds.length) {
+      return [];
+    }
+
+    return await db.instanceConsumer.findMany({
+      where: {
+        instanceOid: d.instance.oid,
+        id: {
+          in: d.consumerIds
+        }
+      },
+      include: getInclude({ instanceOid: d.instance.oid })
+    });
+  }
+
   async createConsumer(d: {
     organization: Organization;
     instance: Instance;

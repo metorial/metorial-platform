@@ -2,6 +2,11 @@ import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { MagicMcpServerStatus } from '@metorial/db';
+import {
+  consumerAccessService,
+  consumerProfileService,
+  consumerService
+} from '@metorial/module-consumer';
 import { magicMcpServerService } from '@metorial/module-magic';
 import { subspaceSessionTemplateService } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
@@ -33,6 +38,82 @@ export let magicMcpServerGroup = instanceGroup.use(async ctx => {
 
 let magicMcpServerStatusValues = ['active', 'archived', 'deleted'] as const;
 
+let getAccessTagsForConsumerProfiles = async (d: {
+  consumerProfiles: Awaited<
+    ReturnType<typeof consumerProfileService.getConsumerProfileById>
+  >[];
+}) => {
+  if (!d.consumerProfiles.length) {
+    return undefined;
+  }
+
+  let accessTags = new Map<bigint, { accessTagOid: bigint }>();
+  let consumerProfilesBySurfaceId = new Map<string, typeof d.consumerProfiles>();
+
+  for (let consumerProfile of d.consumerProfiles) {
+    accessTags.set(consumerProfile.accessTagOid, {
+      accessTagOid: consumerProfile.accessTagOid
+    });
+
+    let current = consumerProfilesBySurfaceId.get(consumerProfile.surface.id) ?? [];
+    current.push(consumerProfile);
+    consumerProfilesBySurfaceId.set(consumerProfile.surface.id, current);
+  }
+
+  for (let consumerProfiles of consumerProfilesBySurfaceId.values()) {
+    let consumerSurface = consumerProfiles[0].surface; // Profiles are grouped by surface, so we can take the surface from the first profile
+
+    let groupsByProfileId = await consumerProfileService.getStoredGroupsForProfiles({
+      consumerSurface,
+      consumerProfiles
+    });
+
+    for (let consumerProfile of consumerProfiles) {
+      for (let group of groupsByProfileId[consumerProfile.id] ?? []) {
+        accessTags.set(group.accessTagOid, {
+          accessTagOid: group.accessTagOid
+        });
+      }
+    }
+  }
+
+  return [...accessTags.values()];
+};
+
+let getConsumerFilterAccessTags = async (d: {
+  instance: Parameters<typeof magicMcpServerService.listMagicMcpServers>[0]['instance'];
+  consumerIds?: string[];
+  consumerProfileIds?: string[];
+}) => {
+  let profileIds = new Set([...(d.consumerProfileIds ?? [])]);
+
+  if (d.consumerIds?.length) {
+    let consumers = await consumerService.findConsumersById({
+      instance: d.instance,
+      consumerIds: d.consumerIds
+    });
+
+    for (let consumer of consumers) {
+      for (let consumerProfile of consumer.consumer.profiles) {
+        profileIds.add(consumerProfile.id);
+      }
+    }
+  }
+
+  if (!profileIds.size) {
+    return undefined;
+  }
+
+  let consumerProfiles = await consumerProfileService.findConsumerProfilesByIdForInstance({
+    instance: d.instance,
+    consumerProfileIds: [...profileIds]
+  });
+
+  return await getAccessTagsForConsumerProfiles({
+    consumerProfiles
+  });
+};
+
 export let magicMcpServerController = Controller.create(
   {
     name: 'Magic MCP Servers',
@@ -47,7 +128,10 @@ export let magicMcpServerController = Controller.create(
       })
       .use(
         checkAccess({
-          possibleScopes: ['instance.provider.session:read', 'consumer#instance.magic_mcp:read']
+          possibleScopes: [
+            'instance.provider.session:read',
+            'consumer#instance.magic_mcp:read'
+          ]
         })
       )
       .use(requireConsumerTokenForPublishableKey())
@@ -63,18 +147,27 @@ export let magicMcpServerController = Controller.create(
               ])
             ),
             magic_mcp_group_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            consumer_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            consumer_profile_id: v.optional(v.union([v.string(), v.array(v.string())])),
             search: v.optional(v.string())
           })
         )
       )
       .use(hasFlags(['magic-mcp-enabled']))
       .do(async ctx => {
+        let filterAccessTags = await getConsumerFilterAccessTags({
+          instance: ctx.instance,
+          consumerIds: normalizeArrayParam(ctx.query.consumer_id),
+          consumerProfileIds: normalizeArrayParam(ctx.query.consumer_profile_id)
+        });
+
         let paginator = await magicMcpServerService.listMagicMcpServers({
           instance: ctx.instance,
           status: normalizeArrayParam<MagicMcpServerStatus>(ctx.query.status),
           groupIds: normalizeArrayParam(ctx.query.magic_mcp_group_id),
           search: ctx.query.search,
-          accessTags: ctx.accessTags
+          accessTags: ctx.accessTags,
+          filterAccessTags
         });
 
         let list = await paginator.run(ctx.query);
@@ -91,7 +184,10 @@ export let magicMcpServerController = Controller.create(
       })
       .use(
         checkAccess({
-          possibleScopes: ['instance.provider.session:read', 'consumer#instance.magic_mcp:read']
+          possibleScopes: [
+            'instance.provider.session:read',
+            'consumer#instance.magic_mcp:read'
+          ]
         })
       )
       .use(requireConsumerTokenForPublishableKey())
@@ -118,12 +214,21 @@ export let magicMcpServerController = Controller.create(
         v.object({
           name: v.optional(v.string()),
           description: v.optional(v.string()),
-          metadata: v.optional(v.record(v.any()))
+          metadata: v.optional(v.record(v.any())),
+          consumer_profile_id: v.optional(v.string())
         })
       )
       .output(magicMcpServerPresenter)
       .use(hasFlags(['magic-mcp-enabled']))
+      .use(requireConsumerTokenForPublishableKey())
       .do(async ctx => {
+        let consumerProfile = ctx.body.consumer_profile_id
+          ? await consumerProfileService.getConsumerProfileByIdForInstance({
+              instance: ctx.instance,
+              consumerProfileId: ctx.body.consumer_profile_id
+            })
+          : undefined;
+
         let magicMcpServer = await magicMcpServerService.createMagicMcpServer({
           organization: ctx.organization,
           performedBy: ctx.actor!,
@@ -136,6 +241,18 @@ export let magicMcpServerController = Controller.create(
           }
         });
 
+        if (consumerProfile) {
+          await consumerAccessService.createConsumerAccess({
+            organization: ctx.organization,
+            consumerSurface: consumerProfile.surface,
+            consumerGroup: consumerProfile.personalConsumerGroup,
+            access: {
+              type: 'magic_mcp_server',
+              magicMcpServer
+            }
+          });
+        }
+
         return magicMcpServerPresenter.present({ magicMcpServer });
       }),
 
@@ -146,12 +263,16 @@ export let magicMcpServerController = Controller.create(
       })
       .use(
         checkAccess({
-          possibleScopes: ['instance.provider.session:write', 'consumer#instance.magic_mcp:write'],
+          possibleScopes: [
+            'instance.provider.session:write',
+            'consumer#instance.magic_mcp:write'
+          ],
           fineGrainedPolicy: 'deny'
         })
       )
       .output(magicMcpServerPresenter)
       .use(hasFlags(['magic-mcp-enabled']))
+      .use(requireConsumerTokenForPublishableKey())
       .do(async ctx => {
         await magicMcpServerService.checkWriteAccess({
           server: ctx.magicMcpServer,
@@ -173,7 +294,10 @@ export let magicMcpServerController = Controller.create(
       })
       .use(
         checkAccess({
-          possibleScopes: ['instance.provider.session:write', 'consumer#instance.magic_mcp:write'],
+          possibleScopes: [
+            'instance.provider.session:write',
+            'consumer#instance.magic_mcp:write'
+          ],
           fineGrainedPolicy: 'deny'
         })
       )
@@ -189,6 +313,7 @@ export let magicMcpServerController = Controller.create(
       )
       .output(magicMcpServerPresenter)
       .use(hasFlags(['magic-mcp-enabled']))
+      .use(requireConsumerTokenForPublishableKey())
       .do(async ctx => {
         let sessionTemplateId = ctx.body.session_template_id;
         if (sessionTemplateId && !ctx.accessTags) {
