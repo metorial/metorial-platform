@@ -126,6 +126,7 @@ class ConsumerServiceImpl {
   async createConsumer(d: {
     organization: Organization;
     instance: Instance;
+    member?: OrganizationMember;
     input: {
       name: string;
       email: string;
@@ -143,11 +144,17 @@ class ConsumerServiceImpl {
           id: await ID.generateId('consumer'),
           name: d.input.name,
           email: d.input.email,
-          organizationOid: d.organization.oid
+          organizationOid: d.organization.oid,
+
+          organizationMemberOid: d.member?.oid,
+          organizationActorOid: d.member?.actorOid
         },
         update: {
           name: d.input.name,
-          email: d.input.email
+          email: d.input.email,
+
+          organizationMemberOid: d.member?.oid,
+          organizationActorOid: d.member?.actorOid
         }
       });
 
@@ -163,11 +170,17 @@ class ConsumerServiceImpl {
           name: d.input.name,
           email: d.input.email,
           instanceOid: d.instance.oid,
-          consumerOid: consumer.oid
+          consumerOid: consumer.oid,
+
+          organizationMemberOid: consumer.organizationMemberOid,
+          organizationActorOid: consumer.organizationActorOid
         },
         update: {
           name: d.input.name,
-          email: d.input.email
+          email: d.input.email,
+
+          organizationMemberOid: consumer.organizationMemberOid,
+          organizationActorOid: consumer.organizationActorOid
         },
         include: getInclude({ instanceOid: d.instance.oid })
       });
@@ -194,7 +207,8 @@ class ConsumerServiceImpl {
   }
 
   async updateConsumer(d: {
-    consumer: InstanceConsumerWithRelations;
+    consumer: InstanceConsumer;
+    member?: OrganizationMember;
     input: {
       name?: string;
       email?: string;
@@ -210,7 +224,10 @@ class ConsumerServiceImpl {
         },
         data: {
           name,
-          email
+          email,
+
+          organizationMemberOid: d.member?.oid,
+          organizationActorOid: d.member?.actorOid
         }
       });
 
@@ -220,7 +237,10 @@ class ConsumerServiceImpl {
         },
         data: {
           name,
-          email
+          email,
+
+          organizationMemberOid: d.member?.oid,
+          organizationActorOid: d.member?.actorOid
         },
         include: getInclude({ instanceOid: d.consumer.instanceOid })
       });
@@ -249,6 +269,7 @@ class ConsumerServiceImpl {
   async upsertConsumer(d: {
     organization: Organization;
     instance: Instance;
+    member?: OrganizationMember;
     input: {
       name: string;
       email: string;
@@ -262,10 +283,13 @@ class ConsumerServiceImpl {
       include: getInclude({ instanceOid: d.instance.oid })
     });
     if (existing) {
-      if (existing.name === d.input.name) return existing;
+      if (existing.name === d.input.name && existing.organizationMemberOid == d.member?.oid) {
+        return existing;
+      }
 
       return await this.updateConsumer({
         consumer: existing as InstanceConsumerWithRelations,
+        member: d.member,
         input: {
           name: d.input.name,
           email: d.input.email
@@ -282,10 +306,16 @@ class ConsumerServiceImpl {
         include: getInclude({ instanceOid: d.instance.oid })
       });
       if (existing) {
-        if (existing.name === d.input.name) return existing;
+        if (
+          existing.name === d.input.name &&
+          existing.organizationMemberOid == d.member?.oid
+        ) {
+          return existing;
+        }
 
         return await this.updateConsumer({
           consumer: existing as InstanceConsumerWithRelations,
+          member: d.member,
           input: {
             name: d.input.name,
             email: d.input.email
@@ -293,7 +323,15 @@ class ConsumerServiceImpl {
         });
       }
 
-      return await this.createConsumer(d);
+      return await this.createConsumer({
+        organization: d.organization,
+        instance: d.instance,
+        member: d.member,
+        input: {
+          name: d.input.name,
+          email: d.input.email
+        }
+      });
     });
   }
 }
