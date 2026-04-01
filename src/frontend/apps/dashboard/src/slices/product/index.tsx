@@ -9,6 +9,7 @@ import { Outlet } from 'react-router-dom';
 import { Upgrade } from '../../components/emptyState';
 import { ProjectHomePage } from './pages';
 import { InstanceLayout } from './pages/_instanceLayout';
+import { PortalAuthGate, PortalManagementGate } from './pages/portal/shared';
 
 // Provider API pages
 let ProvidersHubLayout = dynamicPage(() =>
@@ -443,7 +444,31 @@ let ProjectDeveloperAPIPage = dynamicPage(() =>
   import('./pages/developer/api').then(c => c.ProjectDeveloperAPIPage)
 );
 let ExplorerPage = dynamicPage(() => import('./pages/explorer').then(c => c.ExplorerPage));
-let NotFoundPage = dynamicPage(() => import('@metorial/pages').then(c => c.NotFound));
+let PortalsPage = dynamicPage(() => import('./pages/portals').then(c => c.PortalsPage));
+let ProviderTemplatesPage = dynamicPage(() =>
+  import('./pages/providerTemplates').then(c => c.ProviderTemplatesPage)
+);
+let PortalLayout = dynamicPage(() =>
+  import('./pages/portal/_layout').then(c => c.PortalLayout)
+);
+let PortalOverviewPage = dynamicPage(() =>
+  import('./pages/portal').then(c => c.PortalOverviewPage)
+);
+let PortalConsumerGroupsPage = dynamicPage(() =>
+  import('./pages/portal/consumerGroups').then(c => c.PortalConsumerGroupsPage)
+);
+let PortalConsumerAccessPage = dynamicPage(() =>
+  import('./pages/portal/consumerAccess').then(c => c.PortalConsumerAccessPage)
+);
+let PortalAccessRequestsPage = dynamicPage(() =>
+  import('./pages/portal/accessRequests').then(c => c.PortalAccessRequestsPage)
+);
+let PortalConsumerProfilesPage = dynamicPage(() =>
+  import('./pages/portal/consumerProfiles').then(c => c.PortalConsumerProfilesPage)
+);
+let PortalAuthPage = dynamicPage(() =>
+  import('./pages/portal/auth').then(c => c.PortalAuthPage)
+);
 let FlaggedPage = ({ children, flag }: { children: React.ReactNode; flag: string }) => {
   let flags = useDashboardFlags();
 
@@ -1005,6 +1030,61 @@ export let productInnerSlice = createSlice([
           {
             path: 'explorer',
             element: <ExplorerPage />
+          },
+
+          {
+            path: 'portals',
+            element: (
+              <PortalManagementGate>
+                <PortalsPage />
+              </PortalManagementGate>
+            )
+          },
+          {
+            path: 'provider-templates',
+            element: (
+              <PortalManagementGate>
+                <ProviderTemplatesPage />
+              </PortalManagementGate>
+            )
+          },
+          {
+            path: 'portal/:portalId',
+            element: (
+              <PortalManagementGate>
+                <PortalLayout />
+              </PortalManagementGate>
+            ),
+            children: [
+              {
+                path: '',
+                element: <PortalOverviewPage />
+              },
+              {
+                path: 'consumer-groups',
+                element: <PortalConsumerGroupsPage />
+              },
+              {
+                path: 'consumer-access',
+                element: <PortalConsumerAccessPage />
+              },
+              {
+                path: 'access-requests',
+                element: <PortalAccessRequestsPage />
+              },
+              {
+                path: 'consumer-profiles',
+                element: <PortalConsumerProfilesPage />
+              },
+              {
+                path: 'auth',
+                element: (
+                  <PortalAuthGate>
+                    <PortalAuthPage />
+                  </PortalAuthGate>
+                )
+              }
+            ]
           },
 
           {

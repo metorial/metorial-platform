@@ -1,6 +1,4 @@
-import { renderWithLoader } from '@metorial/data-hooks';
-import { ContentLayout } from '@metorial/layout/src/components/content';
-import { PageHeader } from '@metorial/layout/src/components/header';
+import { ContentLayout, PageHeader } from '@metorial/layout';
 import { LinkTabs } from '@metorial/ui';
 import { useLocation } from 'react-router-dom';
 import { MagicMcpSessionsTable } from '../../../../scenes/magicMcp/sessionsTable';
@@ -8,32 +6,34 @@ import { usePaths } from '../../../../state/portal/path';
 
 export let MagicMcpSessionsPage = () => {
   let pathname = useLocation().pathname;
-  let Paths = usePaths();
+  let paths = usePaths();
 
   return (
     <ContentLayout>
       <PageHeader
-        title="Magic MCP Connections"
-        description="Revisit your Magic MCP session history."
+        title="Magic MCP Sessions"
+        description="Review portal-side sessions opened against your Magic MCP servers."
       />
 
       <LinkTabs
         current={pathname}
         links={[
           {
-            label: 'Deployments',
-            to: Paths.magicMcpServers()
+            label: 'Servers',
+            to: paths.magicMcpServers()
           },
           {
-            label: 'Connections',
-            to: Paths.magicMcpSessions()
+            label: 'Sessions',
+            to: paths.magicMcpSessions()
+          },
+          {
+            label: 'Tokens',
+            to: paths.magicMcpTokens()
           }
         ]}
       />
 
-      {renderWithLoader({})(({}) => (
-        <MagicMcpSessionsTable />
-      ))}
+      <MagicMcpSessionsTable />
     </ContentLayout>
   );
 };

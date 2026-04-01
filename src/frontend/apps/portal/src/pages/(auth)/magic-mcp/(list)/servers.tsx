@@ -1,6 +1,4 @@
-import { renderWithLoader } from '@metorial/data-hooks';
-import { ContentLayout } from '@metorial/layout/src/components/content';
-import { PageHeader } from '@metorial/layout/src/components/header';
+import { ContentLayout, PageHeader } from '@metorial/layout';
 import { Input, LinkTabs, Spacer } from '@metorial/ui';
 import { useState } from 'react';
 import { useLocation } from 'react-router-dom';
@@ -13,7 +11,7 @@ export let MagicMcpServerPage = () => {
   let searchDebounced = useDebounced(search, 300);
 
   let pathname = useLocation().pathname;
-  let Paths = usePaths();
+  let paths = usePaths();
 
   return (
     <ContentLayout>
@@ -23,31 +21,31 @@ export let MagicMcpServerPage = () => {
         current={pathname}
         links={[
           {
-            label: 'Deployments',
-            to: Paths.magicMcpServers()
+            label: 'Servers',
+            to: paths.magicMcpServers()
           },
           {
-            label: 'Connections',
-            to: Paths.magicMcpSessions()
+            label: 'Sessions',
+            to: paths.magicMcpSessions()
+          },
+          {
+            label: 'Tokens',
+            to: paths.magicMcpTokens()
           }
         ]}
       />
 
-      {renderWithLoader({})(({}) => (
-        <>
-          <Input
-            label="Search Servers"
-            placeholder="Search Magic MCP Servers"
-            hideLabel
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
+      <Input
+        label="Search Servers"
+        placeholder="Search Magic MCP Servers"
+        hideLabel
+        value={search}
+        onChange={e => setSearch(e.target.value)}
+      />
 
-          <Spacer height={15} />
+      <Spacer height={15} />
 
-          <MagicMcpServersGrid search={searchDebounced} />
-        </>
-      ))}
+      <MagicMcpServersGrid search={searchDebounced} />
     </ContentLayout>
   );
 };

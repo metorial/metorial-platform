@@ -1,57 +1,35 @@
 import { createLoader } from '@metorial/data-hooks';
-import { getPortalInfo, portalClient } from './client';
+import { getPortalInfo, portalClient, refreshPortalBoot } from './client';
 
-let authState = createLoader({
-  name: 'auth',
-  hash: () => 'v1',
-  fetch: async (d: {}) => {
-    let portalInfo = await getPortalInfo();
-    return portalClient.auth.boot({ portalId: portalInfo.portal.id });
-  },
+let portalAuthState = createLoader({
+  name: 'portalAuth',
+  hash: () => 'v2',
+  fetch: async (_: {}) => null,
   mutators: {
-    authenticateWithEmailCodeStart: (i: { email: string }, { output: { portal } }) =>
-      portalClient.auth.authenticateWithEmailCodeStart({
-        portalId: portal.id,
-        email: i.email
-      }),
+    startSso: async () => {
+      let boot = await getPortalInfo();
 
-    authenticateWithEmailCodeComplete: (
-      i: { email: string; code: string },
-      { output: { portal } }
-    ) =>
-      portalClient.auth.authenticateWithEmailCodeComplete({
-        portalId: portal.id,
-        email: i.email,
-        code: i.code
-      }),
+      return await portalClient.auth.authenticateWithSsoStart({
+        portalId: boot.portal.id
+      });
+    },
 
-    authenticateWithSsoStart: (i: { authFactorId: string }, { output: { portal } }) =>
-      portalClient.auth.authenticateWithSsoStart({
-        portalId: portal.id,
-        authFactorId: i.authFactorId
-      }),
+    completeSso: async (input: { portalId: string; code: string; state: string }) => {
+      let session = await portalClient.auth.authenticateWithSsoComplete(input);
 
-    authenticateWithSsoComplete: (i: { ssoAuthId: string }, { output: { portal } }) =>
-      portalClient.auth.authenticateWithSsoComplete({
-        ssoAuthId: i.ssoAuthId
-      }),
+      await refreshPortalBoot();
 
-    logout: (_, { output: { portal } }) =>
-      portalClient.auth.logout({
-        portalId: portal.id
-      })
+      return session;
+    }
   }
 });
 
-export let useAuth = () => {
-  let auth = authState.use({});
+export let usePortalAuth = () => {
+  let auth = portalAuthState.use({});
 
   return {
     ...auth,
-    useAuthenticateWithEmailCodeStart: auth.useMutator('authenticateWithEmailCodeStart'),
-    useAuthenticateWithEmailCodeComplete: auth.useMutator('authenticateWithEmailCodeComplete'),
-    useAuthenticateWithSsoStart: auth.useMutator('authenticateWithSsoStart'),
-    useAuthenticateWithSsoComplete: auth.useMutator('authenticateWithSsoComplete'),
-    useLogout: auth.useMutator('logout')
+    useStartSso: auth.useMutator('startSso'),
+    useCompleteSso: auth.useMutator('completeSso')
   };
 };

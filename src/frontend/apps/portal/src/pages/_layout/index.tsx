@@ -1,5 +1,10 @@
-import { AppLayout } from '@metorial/layout/src/applicationLayout/appLayout';
-import { RiFlowChart, RiHome6Line, RiServerLine, RiShieldKeyholeLine } from '@remixicon/react';
+import { AppLayout } from '@metorial/layout';
+import {
+  RiFlowChart,
+  RiGridLine,
+  RiHome6Line,
+  RiKey2Line
+} from '@remixicon/react';
 import { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import { useBootWithAuth } from '../../state/portal/client';
@@ -10,13 +15,20 @@ export let Layout = () => {
   let boot = useBootWithAuth();
   let Paths = usePaths();
 
-  let checkPath = (
-    i: { pathname: string; to: string },
-    opts?: { exact?: boolean; exclude?: string[] }
-  ) => {
-    if (opts?.exclude && opts.exclude.some(e => i.pathname.includes(e))) return false;
+  let homePath = Paths.home();
+  let catalogPath = Paths.catalog();
+  let magicMcpRootPath = Paths.magicMcpRoot();
+  let magicMcpServerBasePath = Paths.magicMcpServerBase();
+  let magicMcpServersPath = Paths.magicMcpServers();
+  let magicMcpSessionsPath = Paths.magicMcpSessions();
+  let magicMcpTokensPath = Paths.magicMcpTokens();
 
-    return i.pathname === i.to || (!opts?.exact && i.pathname.startsWith(`${i.to}/`));
+  let matchesPath = (
+    input: { pathname: string },
+    to: string,
+    opts?: { exact?: boolean }
+  ) => {
+    return input.pathname === to || (!opts?.exact && input.pathname.startsWith(`${to}/`));
   };
 
   useEffect(() => {
@@ -25,71 +37,64 @@ export let Layout = () => {
   }, [boot.data]);
 
   return (
-    <>
-      <AppLayout
-        Nav={PortalNav}
-        id="product"
-        mainGroups={[
-          {
-            items: [
-              {
-                icon: <RiHome6Line />,
-                label: 'Home',
-                to: Paths.home(),
-                getProps: i => ({ isActive: checkPath(i, { exact: true }) })
-              }
-            ]
-          },
-
-          {
-            label: 'Connect',
-            collapsible: true,
-            items: [
-              {
-                icon: <RiServerLine />,
-                label: 'Servers',
-                to: Paths.servers(),
-                getProps: i => ({ isActive: checkPath(i, { exact: true }) })
-              },
-
-              // {
-              //   icon: <RiFlowChart />,
-              //   label: 'Deployments',
-              //   to: Paths.magicMcpServers(),
-              //   getProps: i => ({ isActive: checkPath(i, { exact: true }) }),
-
-              //   children: [
-              //     {
-              //       label: 'Deployments',
-              //       to: Paths.magicMcpServers(),
-              //       getProps: i => ({ isActive: checkPath(i, { exact: true }) })
-              //     },
-              //     {
-              //       label: 'Connections',
-              //       to: Paths.magicMcpSessions(),
-              //       getProps: i => ({ isActive: checkPath(i, { exact: true }) })
-              //     }
-              //   ]
-              // }
-            ]
-          },
-
-          {
-            label: 'Management',
-            collapsible: true,
-            items: [
-              {
-                icon: <RiShieldKeyholeLine />,
-                label: 'Tokens',
-                to: Paths.tokens(),
-                getProps: i => ({ isActive: checkPath(i, { exact: true }) })
-              }
-            ]
-          }
-        ]}
-      >
-        <Outlet />
-      </AppLayout>
-    </>
+    <AppLayout
+      Nav={PortalNav}
+      id="portal"
+      mainGroups={[
+        {
+          items: [
+            {
+              icon: <RiHome6Line />,
+              label: 'Home',
+              to: homePath,
+              getProps: input => ({ isActive: matchesPath(input, homePath, { exact: true }) })
+            }
+          ]
+        },
+        {
+          label: 'Portal',
+          items: [
+            {
+              icon: <RiGridLine />,
+              label: 'Catalog',
+              to: catalogPath,
+              getProps: input => ({
+                isActive: matchesPath(input, catalogPath) || input.pathname.includes('/providers/')
+              })
+            }
+          ]
+        },
+        {
+          label: 'Magic MCP',
+          items: [
+            {
+              icon: <RiFlowChart />,
+              label: 'Servers',
+              to: magicMcpServersPath,
+              getProps: input => ({
+                isActive:
+                  matchesPath(input, magicMcpServersPath) ||
+                  input.pathname === magicMcpRootPath ||
+                  input.pathname.startsWith(`${magicMcpServerBasePath}/`)
+              })
+            },
+            {
+              icon: <RiFlowChart />,
+              label: 'Sessions',
+              to: magicMcpSessionsPath,
+              getProps: input => ({ isActive: matchesPath(input, magicMcpSessionsPath) })
+            },
+            {
+              icon: <RiKey2Line />,
+              label: 'Tokens',
+              to: magicMcpTokensPath,
+              getProps: input => ({ isActive: matchesPath(input, magicMcpTokensPath) })
+            }
+          ]
+        }
+      ]}
+    >
+      <Outlet />
+    </AppLayout>
   );
 };

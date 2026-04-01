@@ -3,6 +3,7 @@ import { Paths } from '@metorial/frontend-config';
 import { AppLayout, OssApplicationLayoutNav } from '@metorial/layout';
 import {
   lastInstanceIdStore,
+  useDashboardFlags,
   useCurrentInstance,
   useCurrentOrganization
 } from '@metorial/state';
@@ -15,10 +16,12 @@ import {
   RiFunctionLine,
   RiGroupLine,
   RiHome6Line,
+  RiLayoutGridLine,
   RiListCheck2,
   RiPlugLine,
   RiRfidLine,
   RiSettings2Line,
+  RiStore2Line,
   RiShieldKeyholeLine,
   RiSurveyLine,
   RiUploadCloud2Line,
@@ -26,10 +29,12 @@ import {
 } from '@remixicon/react';
 import { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
+import { canShowPortalManagementNavigation } from './portal/shared';
 
 export let ProjectPageLayout = () => {
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
+  let flags = useDashboardFlags();
 
   let checkPath = (
     i: { pathname: string; to: string },
@@ -55,6 +60,7 @@ export let ProjectPageLayout = () => {
     EntityParam,
     EntityParam
   ];
+  let canShowPortalManagement = canShowPortalManagementNavigation(flags.data?.flags);
 
   return (
     <AppLayout
@@ -239,6 +245,27 @@ export let ProjectPageLayout = () => {
               to: Paths.project.settings(organization.data, instance.data?.project),
               getProps: i => ({ isActive: checkPath(i, { exact: true }) })
             },
+            ...(canShowPortalManagement
+              ? [
+                  {
+                    icon: <RiStore2Line />,
+                    label: 'Portals',
+                    to: Paths.instance.portals(...params),
+                    getProps: (i: { pathname: string; to: string }) => ({
+                      isActive:
+                        i.pathname.includes('/portals') || i.pathname.includes('/portal/')
+                    })
+                  },
+                  {
+                    icon: <RiLayoutGridLine />,
+                    label: 'Provider Templates',
+                    to: Paths.instance.providerTemplates(...params),
+                    getProps: (i: { pathname: string; to: string }) => ({
+                      isActive: checkPath(i)
+                    })
+                  }
+                ]
+              : []),
 
             {
               icon: <RiGroupLine />,

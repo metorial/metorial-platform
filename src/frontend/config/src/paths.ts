@@ -178,7 +178,16 @@ let InstancePaths = Object.assign(
       instance: EntityParam,
       id?: string,
       ...subPages: SubPages
-    ) => InstancePaths(organization, project, instance, 'portal', id, ...subPages),
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(organization, project, instance, 'portal', id, ...subPages);
+    },
+    providerTemplates: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'provider-templates', ...subPages),
 
     profile: (
       organization: EntityParam,

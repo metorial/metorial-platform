@@ -10,6 +10,7 @@ export * from './developer';
 export * from './identity';
 export * from './oauth';
 export * from './organization';
+export * from './portal';
 export * from './provider';
 export * from './session';
 export * from './stores';

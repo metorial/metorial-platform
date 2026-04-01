@@ -1,38 +1,41 @@
 import { renderWithLoader, useForm } from '@metorial/data-hooks';
 import { Button, confirm, Input, Spacer } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useMagicMcpServer } from '../../../../state/consumer/magicMcpServer';
+import { usePaths } from '../../../../state/portal/path';
 
 export let MagicMcpServerConfigPage = () => {
   let { magicMcpServerId } = useParams();
+  let navigate = useNavigate();
+  let paths = usePaths();
   let server = useMagicMcpServer(magicMcpServerId);
   let updateMutator = server.useUpdateMutator();
   let deleteMutator = server.useDeleteMutator();
-
   let form = useForm({
     initialValues: {
       name: server.data?.name ?? '',
       description: server.data?.description ?? ''
     },
+    updateInitialValues: true,
     onSubmit: async values => {
       await updateMutator.mutate({
-        name: values.name,
-        description: values.description ?? undefined
+        name: values.name.trim(),
+        description: values.description.trim() || undefined
       });
     },
     schema: yup =>
       yup.object({
         name: yup.string().required('Name is required'),
         description: yup.string()
-      }) as any
+      })
   });
 
-  return renderWithLoader({ server })(({ server }) => (
+  return renderWithLoader({ server })(() => (
     <>
       <Box
-        title="Configuration"
-        description="Manage the configuration for this Magic MCP Server."
+        title="Settings"
+        description="Rename this Magic MCP server or update its description."
       >
         <form onSubmit={form.handleSubmit}>
           <Input
@@ -56,6 +59,7 @@ export let MagicMcpServerConfigPage = () => {
           <Button
             type="submit"
             size="2"
+            disabled={!form.values.name.trim()}
             loading={updateMutator.isLoading}
             success={updateMutator.isSuccess}
           >
@@ -79,7 +83,8 @@ export let MagicMcpServerConfigPage = () => {
               description:
                 'Are you sure you want to delete this Magic MCP Server? This action cannot be undone.',
               onConfirm: async () => {
-                await deleteMutator.mutate({});
+                let [result] = await deleteMutator.mutate({});
+                if (result) navigate(paths.magicMcpServers());
               }
             });
           }}
