@@ -147,14 +147,18 @@ class ConsumerServiceImpl {
           organizationOid: d.organization.oid,
 
           organizationMemberOid: d.member?.oid,
-          organizationActorOid: d.member?.actorOid
+          organizationActorOid: d.member?.actorOid,
+
+          isOrganizationMember: !!d.member
         },
         update: {
           name: d.input.name,
           email: d.input.email,
 
           organizationMemberOid: d.member?.oid,
-          organizationActorOid: d.member?.actorOid
+          organizationActorOid: d.member?.actorOid,
+
+          isOrganizationMember: d.member ? true : undefined
         }
       });
 
@@ -227,7 +231,9 @@ class ConsumerServiceImpl {
           email,
 
           organizationMemberOid: d.member?.oid,
-          organizationActorOid: d.member?.actorOid
+          organizationActorOid: d.member?.actorOid,
+
+          isOrganizationMember: !!d.member || !!d.consumer.organizationMemberOid
         }
       });
 
