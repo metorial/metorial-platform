@@ -1,6 +1,9 @@
 import { db } from '@metorial/db';
 import { createLock } from '@metorial/lock';
-import { subspaceIdentityActorService } from '@metorial/module-subspace';
+import {
+  subspaceIdentityActorService,
+  subspaceIdentityService
+} from '@metorial/module-subspace';
 import { createQueue, QueueRetryError } from '@metorial/queue';
 
 export let syncIdentityConsumerQueue = createQueue<{
@@ -75,21 +78,38 @@ export let reconcileConsumerActorQueueProcessor = reconcileConsumerActorQueue.pr
       });
       if (!instanceConsumer) throw new QueueRetryError();
 
+      await db.consumerProfile.updateMany({
+        where: { oid: profile.oid },
+        data: {
+          name: instanceConsumer.name,
+          email: instanceConsumer.email
+        }
+      });
+
       if (!profile.actors.length) {
-        let res = await subspaceIdentityActorService.create({
+        let actorRes = await subspaceIdentityActorService.create({
           instance: profile.instance,
           name: instanceConsumer.name,
           type: 'person'
         });
+        let identityRes = await subspaceIdentityService.create({
+          instance: profile.instance,
+          identityActorId: actorRes.id,
+          name: `Default Identity for ${instanceConsumer.name}`,
+          inputs: []
+        });
+
         await db.consumerActor.create({
           data: {
-            id: res.id,
+            id: actorRes.id,
             instanceOid: profile.instanceOid,
             organizationOid: profile.organizationOid,
 
             consumerOid: profile.consumerOid,
             consumerProfileOid: profile.oid,
             instanceConsumerOid: instanceConsumer.oid,
+
+            defaultIdentityId: identityRes.id,
 
             isDefault: true
           }

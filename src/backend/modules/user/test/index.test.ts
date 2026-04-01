@@ -67,6 +67,10 @@ vi.mock('@metorial/module-file', () => ({
   }
 }));
 
+vi.mock('@metorial/module-consumer', () => ({
+  syncOrgMemberToConsumer: vi.fn()
+}));
+
 // Mock Bun
 global.Bun = {
   password: {

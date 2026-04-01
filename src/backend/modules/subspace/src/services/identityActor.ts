@@ -76,17 +76,19 @@ export let subspaceIdentityActorService = createSubspaceService(
     update: async (
       arg0: Parameters<typeof inner.update>[0] & { canEditConsumerActor?: boolean }
     ) => {
-      let consumerActor = await db.consumerActor.findUnique({
-        where: {
-          id: arg0.identityActorId
+      if (!arg0.canEditConsumerActor) {
+        let consumerActor = await db.consumerActor.findUnique({
+          where: {
+            id: arg0.identityActorId
+          }
+        });
+        if (consumerActor) {
+          throw new ServiceError(
+            badRequestError({
+              message: 'Cannot update identity actor linked to consumer'
+            })
+          );
         }
-      });
-      if (consumerActor) {
-        throw new ServiceError(
-          badRequestError({
-            message: 'Cannot update identity actor linked to consumer'
-          })
-        );
       }
 
       return await inner.update(arg0);
@@ -95,17 +97,19 @@ export let subspaceIdentityActorService = createSubspaceService(
     delete: async (
       arg: Parameters<typeof inner.delete>[0] & { canEditConsumerActor?: boolean }
     ) => {
-      let consumerActor = await db.consumerActor.findUnique({
-        where: {
-          id: arg.identityActorId
+      if (!arg.canEditConsumerActor) {
+        let consumerActor = await db.consumerActor.findUnique({
+          where: {
+            id: arg.identityActorId
+          }
+        });
+        if (consumerActor) {
+          throw new ServiceError(
+            badRequestError({
+              message: 'Cannot delete identity actor linked to consumer'
+            })
+          );
         }
-      });
-      if (consumerActor) {
-        throw new ServiceError(
-          badRequestError({
-            message: 'Cannot delete identity actor linked to consumer'
-          })
-        );
       }
 
       return await inner.delete(arg);

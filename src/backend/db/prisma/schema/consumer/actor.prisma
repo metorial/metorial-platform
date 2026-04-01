@@ -4,6 +4,8 @@ model ConsumerActor {
 
   isDefault Boolean @default(false)
 
+  defaultIdentityId String?
+
   organizationOid BigInt
   organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
 
@@ -20,4 +22,6 @@ model ConsumerActor {
   consumerProfile    ConsumerProfile @relation(fields: [consumerProfileOid], references: [oid], onDelete: Cascade)
 
   createdAt DateTime @default(now())
+
+  @@index([defaultIdentityId])
 }
