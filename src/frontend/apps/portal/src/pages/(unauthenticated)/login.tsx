@@ -1,6 +1,5 @@
 import { SetupLayout } from '@metorial/layout';
-import { Button, CenteredSpinner, Spacer, Text } from '@metorial/ui';
-import { RiArrowRightUpLine } from '@remixicon/react';
+import { Button, CenteredSpinner, Spacer } from '@metorial/ui';
 import { useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { usePortalAuth } from '../../state/portal/auth';
@@ -75,13 +74,6 @@ export let LoginPage = () => {
           'Continue with your organization SSO to access the catalog and Magic MCP workspace.'
       }}
     >
-      <Text size="2" color="gray700">
-        This portal uses the current Ares-backed SSO flow. After authentication you will return
-        directly to the portal workspace.
-      </Text>
-
-      <Spacer height={24} />
-
       <Button
         size="3"
         loading={startSso.isLoading}
@@ -94,7 +86,6 @@ export let LoginPage = () => {
         }}
       >
         Continue with SSO
-        <RiArrowRightUpLine />
       </Button>
 
       <Spacer height={14} />

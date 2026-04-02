@@ -261,10 +261,11 @@ let getConsumerProviderAvailability = (d: {
   oid: bigint;
   availabilityState: ConsumerProviderAvailabilityState;
 }): ConsumerProviderAvailability => {
-  if (
-    d.availabilityState.accessibleOids?.has(d.oid) ||
-    !d.availabilityState.protectedOids.has(d.oid)
-  ) {
+  if (d.availabilityState.accessibleOids) {
+    return d.availabilityState.accessibleOids.has(d.oid) ? 'available_now' : 'request_access';
+  }
+
+  if (!d.availabilityState.protectedOids.has(d.oid)) {
     return 'available_now';
   }
 

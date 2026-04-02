@@ -70,3 +70,56 @@ export let useUnassignPortalConsumerProfileGroups =
         )
       )
   );
+
+export let portalConsumerProfileLoader = createLoader({
+  name: 'portalConsumerProfile',
+  parents: [portalConsumerProfilesLoader],
+  fetch: (i: { instanceId: string; portalId: string; consumerProfileId: string }) =>
+    withAuth(sdk =>
+      sdk.portals.consumerProfiles.get(i.instanceId, i.portalId, i.consumerProfileId)
+    ),
+  mutators: {
+    assignGroups: (
+      body: DashboardInstancePortalsConsumerProfilesAssignGroupsBody,
+      { input: { instanceId, portalId, consumerProfileId } }
+    ) =>
+      withAuth(sdk =>
+        sdk.portals.consumerProfiles.assignGroups(
+          instanceId,
+          portalId,
+          consumerProfileId,
+          body
+        )
+      ),
+    unassignGroups: (
+      body: DashboardInstancePortalsConsumerProfilesUnassignGroupsBody,
+      { input: { instanceId, portalId, consumerProfileId } }
+    ) =>
+      withAuth(sdk =>
+        sdk.portals.consumerProfiles.unassignGroups(
+          instanceId,
+          portalId,
+          consumerProfileId,
+          body
+        )
+      )
+  }
+});
+
+export let usePortalConsumerProfile = (
+  instanceId: string | null | undefined,
+  portalId: string | null | undefined,
+  consumerProfileId: string | null | undefined
+) => {
+  let profile = portalConsumerProfileLoader.use(
+    instanceId && portalId && consumerProfileId
+      ? { instanceId, portalId, consumerProfileId }
+      : null
+  );
+
+  return {
+    ...profile,
+    useAssignGroupsMutator: profile.useMutator('assignGroups'),
+    useUnassignGroupsMutator: profile.useMutator('unassignGroups')
+  };
+};

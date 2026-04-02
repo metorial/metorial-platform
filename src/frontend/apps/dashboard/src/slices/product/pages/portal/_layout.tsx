@@ -5,29 +5,38 @@ import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
-  useDashboardFlags,
+  usePortalConsumerGroups,
   usePortal
 } from '@metorial/state';
-import { Badge, Button, LinkTabs } from '@metorial/ui';
+import { Badge, Button, Callout, LinkTabs, Spacer } from '@metorial/ui';
+import { RiExternalLinkLine } from '@remixicon/react';
 import { Outlet, useLocation, useParams } from 'react-router-dom';
-import { canShowPortalAuthNavigation } from './shared';
+import { showConsumerGroupFormModal } from '../../scenes/portals/groupsTable';
 
 export let PortalLayout = () => {
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
-  let flags = useDashboardFlags();
   let { portalId } = useParams();
   let portal = usePortal(instance.data?.id, portalId);
   let pathname = useLocation().pathname;
-  let showAuthTab = canShowPortalAuthNavigation(flags.data?.flags);
 
-  return renderWithLoader({ instance, organization, project, portal, flags })(
+  if (pathname.includes('/group/')) pathname = pathname.split('/group/')[0] + '/groups';
+  if (pathname.includes('/user/')) pathname = pathname.split('/user/')[0] + '/users';
+  if (pathname.includes('/settings/')) pathname = pathname.split('/settings/')[0] + '/settings';
+
+  let groups = usePortalConsumerGroups(
+    instance.data?.id,
+    pathname.endsWith('/groups') ? portalId : null,
+    { limit: 50 }
+  );
+
+  return renderWithLoader({ instance, organization, project, portal })(
     ({ instance, organization, project, portal }) => (
       <ContentLayout>
         <PageHeader
           title={portal.data.name}
-          description={portal.data.description ?? 'No description'}
+          description={portal.data.description || 'No description'}
           top={<Badge color="gray">{portal.data.status}</Badge>}
           pagination={[
             {
@@ -45,15 +54,29 @@ export let PortalLayout = () => {
             }
           ]}
           actions={
-            portal.data.urls[0]?.url ? (
-              <Button
-                onClick={() => {
-                  window.open(portal.data.urls[0]?.url, '_blank', 'noopener,noreferrer');
-                }}
-              >
-                Open Portal
-              </Button>
-            ) : undefined
+            <>
+              {portal.data.urls[0]?.url && (
+                <a href={portal.data.urls[0].url} target="_blank" rel="noopener noreferrer">
+                  <Button as="span" iconRight={<RiExternalLinkLine />}>
+                    Open Portal
+                  </Button>
+                </a>
+              )}
+
+              {pathname.endsWith('/groups') && (
+                <Button
+                  onClick={() =>
+                    showConsumerGroupFormModal({
+                      instanceId: instance.data.id,
+                      portalId: portal.data.id,
+                      onCreate: () => groups.refetch()
+                    })
+                  }
+                >
+                  Create Group
+                </Button>
+              )}
+            </>
           }
         />
 
@@ -70,61 +93,54 @@ export let PortalLayout = () => {
               )
             },
             {
-              label: 'Consumer Groups',
+              label: 'Users',
               to: Paths.instance.portal(
                 organization.data,
                 project.data,
                 instance.data,
                 portal.data.id,
-                'consumer-groups'
+                'users'
               )
             },
             {
-              label: 'Consumer Access',
+              label: 'Groups',
               to: Paths.instance.portal(
                 organization.data,
                 project.data,
                 instance.data,
                 portal.data.id,
-                'consumer-access'
+                'groups'
               )
             },
             {
-              label: 'Access Requests',
+              label: 'Server Requests',
               to: Paths.instance.portal(
                 organization.data,
                 project.data,
                 instance.data,
                 portal.data.id,
-                'access-requests'
+                'server-requests'
               )
             },
             {
-              label: 'Consumer Profiles',
+              label: 'Settings',
               to: Paths.instance.portal(
                 organization.data,
                 project.data,
                 instance.data,
                 portal.data.id,
-                'consumer-profiles'
+                'settings'
               )
-            },
-            ...(showAuthTab
-              ? [
-                  {
-                    label: 'Auth',
-                    to: Paths.instance.portal(
-                      organization.data,
-                      project.data,
-                      instance.data,
-                      portal.data.id,
-                      'auth'
-                    )
-                  }
-                ]
-              : [])
+            }
           ]}
         />
+
+        {portal.data.status != 'active' && (
+          <>
+            <Spacer size={15} />
+            <Callout color="orange">This portal is inactive.</Callout>
+          </>
+        )}
 
         <Outlet />
       </ContentLayout>

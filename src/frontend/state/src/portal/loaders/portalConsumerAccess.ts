@@ -19,7 +19,11 @@ export let portalConsumerAccessLoader = createLoader({
     create: (
       body: DashboardInstancePortalsConsumerAccessCreateBody,
       { input: { instanceId, portalId } }
-    ) => withAuth(sdk => sdk.portals.consumerAccess.create(instanceId, portalId, body))
+    ) => withAuth(sdk => sdk.portals.consumerAccess.create(instanceId, portalId, body)),
+    delete: (
+      body: { consumerAccessId: string },
+      { input: { instanceId, portalId } }
+    ) => withAuth(sdk => sdk.portals.consumerAccess.delete(instanceId, portalId, body.consumerAccessId))
   }
 });
 
@@ -39,11 +43,17 @@ export let usePortalConsumerAccess = (
 
   return {
     ...access,
-    createMutator: access.useMutator('create')
+    createMutator: access.useMutator('create'),
+    deleteMutator: access.useMutator('delete')
   };
 };
 
 export let useCreatePortalConsumerAccess = portalConsumerAccessLoader.createExternalMutator(
   (i: DashboardInstancePortalsConsumerAccessCreateBody & { instanceId: string; portalId: string }) =>
     withAuth(sdk => sdk.portals.consumerAccess.create(i.instanceId, i.portalId, i))
+);
+
+export let useDeletePortalConsumerAccess = portalConsumerAccessLoader.createExternalMutator(
+  (i: { instanceId: string; portalId: string; consumerAccessId: string }) =>
+    withAuth(sdk => sdk.portals.consumerAccess.delete(i.instanceId, i.portalId, i.consumerAccessId))
 );

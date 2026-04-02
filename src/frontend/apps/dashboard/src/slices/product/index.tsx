@@ -454,20 +454,35 @@ let PortalLayout = dynamicPage(() =>
 let PortalOverviewPage = dynamicPage(() =>
   import('./pages/portal').then(c => c.PortalOverviewPage)
 );
-let PortalConsumerGroupsPage = dynamicPage(() =>
-  import('./pages/portal/consumerGroups').then(c => c.PortalConsumerGroupsPage)
+let PortalUsersPage = dynamicPage(() =>
+  import('./pages/portal/users').then(c => c.PortalUsersPage)
 );
-let PortalConsumerAccessPage = dynamicPage(() =>
-  import('./pages/portal/consumerAccess').then(c => c.PortalConsumerAccessPage)
+let PortalUserPage = dynamicPage(() =>
+  import('./pages/portal/user').then(c => c.PortalUserPage)
 );
-let PortalAccessRequestsPage = dynamicPage(() =>
-  import('./pages/portal/accessRequests').then(c => c.PortalAccessRequestsPage)
+let PortalGroupsPage = dynamicPage(() =>
+  import('./pages/portal/groups').then(c => c.PortalGroupsPage)
 );
-let PortalConsumerProfilesPage = dynamicPage(() =>
-  import('./pages/portal/consumerProfiles').then(c => c.PortalConsumerProfilesPage)
+let PortalGroupLayout = dynamicPage(() =>
+  import('./pages/portal/group/_layout').then(c => c.PortalGroupLayout)
 );
-let PortalAuthPage = dynamicPage(() =>
-  import('./pages/portal/auth').then(c => c.PortalAuthPage)
+let PortalGroupOverviewPage = dynamicPage(() =>
+  import('./pages/portal/group').then(c => c.PortalGroupOverviewPage)
+);
+let PortalGroupSettingsPage = dynamicPage(() =>
+  import('./pages/portal/group/settings').then(c => c.PortalGroupSettingsPage)
+);
+let PortalServerRequestsPage = dynamicPage(() =>
+  import('./pages/portal/serverRequests').then(c => c.PortalServerRequestsPage)
+);
+let PortalSettingsLayout = dynamicPage(() =>
+  import('./pages/portal/settings/_layout').then(c => c.PortalSettingsLayout)
+);
+let PortalSettingsOverviewPage = dynamicPage(() =>
+  import('./pages/portal/settings').then(c => c.PortalSettingsOverviewPage)
+);
+let PortalSettingsAuthPage = dynamicPage(() =>
+  import('./pages/portal/settings/auth').then(c => c.PortalSettingsAuthPage)
 );
 let FlaggedPage = ({ children, flag }: { children: React.ReactNode; flag: string }) => {
   let flags = useDashboardFlags();
@@ -1061,28 +1076,52 @@ export let productInnerSlice = createSlice([
                 element: <PortalOverviewPage />
               },
               {
-                path: 'consumer-groups',
-                element: <PortalConsumerGroupsPage />
+                path: 'users',
+                element: <PortalUsersPage />
               },
               {
-                path: 'consumer-access',
-                element: <PortalConsumerAccessPage />
+                path: 'user/:userId',
+                element: <PortalUserPage />
               },
               {
-                path: 'access-requests',
-                element: <PortalAccessRequestsPage />
+                path: 'groups',
+                element: <PortalGroupsPage />
               },
               {
-                path: 'consumer-profiles',
-                element: <PortalConsumerProfilesPage />
+                path: 'group/:groupId',
+                element: <PortalGroupLayout />,
+                children: [
+                  {
+                    path: '',
+                    element: <PortalGroupOverviewPage />
+                  },
+                  {
+                    path: 'settings',
+                    element: <PortalGroupSettingsPage />
+                  }
+                ]
               },
               {
-                path: 'auth',
-                element: (
-                  <PortalAuthGate>
-                    <PortalAuthPage />
-                  </PortalAuthGate>
-                )
+                path: 'server-requests',
+                element: <PortalServerRequestsPage />
+              },
+              {
+                path: 'settings',
+                element: <PortalSettingsLayout />,
+                children: [
+                  {
+                    path: '',
+                    element: <PortalSettingsOverviewPage />
+                  },
+                  {
+                    path: 'authentication',
+                    element: (
+                      <PortalAuthGate>
+                        <PortalSettingsAuthPage />
+                      </PortalAuthGate>
+                    )
+                  }
+                ]
               }
             ]
           },
