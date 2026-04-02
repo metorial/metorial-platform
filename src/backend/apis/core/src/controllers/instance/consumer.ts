@@ -152,17 +152,35 @@ export let consumerController = Controller.create(
       .body(
         'default',
         v.object({
-          surface_identifier: v.enumOf(['cli'])
+          surface_identifier: v.optional(v.enumOf(['cli']))
         })
       )
       .output(consumerPresenter)
       .do(async ctx => {
-        let user = 'user' in ctx.auth ? ctx.auth.user : null;
+        let user =
+          ctx.auth.type === 'user' || ctx.auth.type === 'machine' ? ctx.auth.user : undefined;
         if (!ctx.member || !user) {
           throw new ServiceError(
             forbiddenError({
               message:
                 'This endpoint requires an authenticated organization member and is not available for API access.'
+            })
+          );
+        }
+
+        if (
+          ctx.auth.type === 'machine' &&
+          ctx.auth.oauthToken?.oauthAuthorization.oauthApplication.type === 'cli_auth' &&
+          !ctx.body.surface_identifier
+        ) {
+          ctx.body.surface_identifier = 'cli';
+        }
+
+        if (!ctx.body.surface_identifier) {
+          throw new ServiceError(
+            badRequestError({
+              message: 'surface_identifier is required',
+              description: 'The surface_identifier field is required in the request body.'
             })
           );
         }

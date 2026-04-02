@@ -62,6 +62,7 @@ export type AuthInfo =
     }
   | {
       type: 'machine';
+      user: User | undefined;
       apiKey?: ApiKey;
       oauthToken?: OAuthTokenWithAuthorization;
       machineAccess: MachineAccess;
@@ -183,19 +184,10 @@ class AuthenticationService {
       };
     }
 
-    let rawRes = await machineAccessAuthService.authenticateWithMachineAccessToken({
+    let res = await machineAccessAuthService.authenticateWithMachineAccessToken({
       token: d.apiKey,
       context: d.context
     });
-    let res =
-      'type' in rawRes
-        ? rawRes
-        : ({
-            type: 'api_key',
-            secret: {
-              apiKey: (rawRes as any).apiKey
-            }
-          } as const);
     let machineAccess =
       res.type == 'api_key'
         ? res.secret!.apiKey.machineAccess
@@ -280,6 +272,11 @@ class AuthenticationService {
         apiKey: res.type == 'api_key' ? res.secret!.apiKey : undefined,
         oauthToken: res.type == 'oauth_token' ? res.oauthToken! : undefined,
         machineAccess,
+        user: undefined,
+        // user:
+        //   (res.type == 'oauth_token'
+        //     ? res.oauthToken.oauthAuthorization.user
+        //     : machineAccess.user) ?? undefined,
         orgScopes:
           res.type == 'oauth_token'
             ? (res.oauthToken!.oauthAuthorization.scopes as Scope[])
@@ -308,6 +305,10 @@ class AuthenticationService {
         apiKey: res.type == 'api_key' ? res.secret!.apiKey : undefined,
         oauthToken: res.type == 'oauth_token' ? res.oauthToken! : undefined,
         machineAccess,
+        user:
+          (res.type == 'oauth_token'
+            ? res.oauthToken.oauthAuthorization.user
+            : machineAccess.user) ?? undefined,
         orgScopes:
           res.type == 'oauth_token'
             ? (res.oauthToken!.oauthAuthorization.scopes as Scope[])
