@@ -10,6 +10,7 @@ import {
 import { app } from './_app';
 import { createdAtValidator, updatedAtValidator } from './_dateFilter';
 import { deploymentValidator, resolveDeployment } from './providerResourceValidators';
+import { normalizeToolFilters, toolFiltersValidator } from './sessionProvider';
 import { tenantApp } from './tenant';
 
 export let providerAuthConfigApp = tenantApp.use(async ctx => {
@@ -46,6 +47,9 @@ export let providerAuthConfigController = app.controller({
           providerDeploymentIds: v.optional(v.array(v.string())),
           providerAuthCredentialsIds: v.optional(v.array(v.string())),
           providerAuthMethodIds: v.optional(v.array(v.string())),
+          actorIds: v.optional(v.array(v.string())),
+          identityIds: v.optional(v.array(v.string())),
+          identityCredentialIds: v.optional(v.array(v.string())),
           createdAt: createdAtValidator,
           updatedAt: updatedAtValidator
         })
@@ -67,6 +71,9 @@ export let providerAuthConfigController = app.controller({
         providerDeploymentIds: ctx.input.providerDeploymentIds,
         providerAuthCredentialsIds: ctx.input.providerAuthCredentialsIds,
         providerAuthMethodIds: ctx.input.providerAuthMethodIds,
+        actorIds: ctx.input.actorIds,
+        identityIds: ctx.input.identityIds,
+        identityCredentialIds: ctx.input.identityCredentialIds,
         createdAt: ctx.input.createdAt,
         updatedAt: ctx.input.updatedAt
       });
@@ -106,6 +113,7 @@ export let providerAuthConfigController = app.controller({
         providerId: v.string(),
         providerDeployment: v.optional(deploymentValidator),
         providerAuthMethodId: v.string(),
+        toolFilters: toolFiltersValidator,
 
         config: v.record(v.any())
       })
@@ -145,6 +153,7 @@ export let providerAuthConfigController = app.controller({
           description: ctx.input.description,
           metadata: ctx.input.metadata,
           isEphemeral: ctx.input.isEphemeral,
+          toolFilters: normalizeToolFilters(ctx.input.toolFilters),
           config: ctx.input.config
         }
       });
@@ -224,7 +233,8 @@ export let providerAuthConfigController = app.controller({
 
         name: v.optional(v.string()),
         description: v.optional(v.string()),
-        metadata: v.optional(v.record(v.any()))
+        metadata: v.optional(v.record(v.any())),
+        toolFilters: toolFiltersValidator
       })
     )
     .do(async ctx => {
@@ -242,7 +252,8 @@ export let providerAuthConfigController = app.controller({
         input: {
           name: ctx.input.name,
           description: ctx.input.description,
-          metadata: ctx.input.metadata
+          metadata: ctx.input.metadata,
+          toolFilters: normalizeToolFilters(ctx.input.toolFilters)
         }
       });
 

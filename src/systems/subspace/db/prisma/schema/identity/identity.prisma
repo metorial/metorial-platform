@@ -37,6 +37,7 @@ model Identity {
   archivedAt DateTime?
 
   credentials                IdentityCredential[]
+  providerSetupSessions      ProviderSetupSession[]
   identityDelegations        IdentityDelegation[]
   identityDelegationRequests IdentityDelegationRequest[]
   delegatedIdentities        DelegatedIdentity[]
@@ -61,11 +62,11 @@ model IdentityCredential {
   identityOid BigInt
   identity    Identity @relation(fields: [identityOid], references: [oid], onDelete: Cascade)
 
-  deploymentOid BigInt
-  deployment    ProviderDeployment @relation(fields: [deploymentOid], references: [oid], onDelete: Cascade)
+  deploymentOid BigInt?
+  deployment    ProviderDeployment? @relation(fields: [deploymentOid], references: [oid], onDelete: Cascade)
 
-  configOid BigInt
-  config    ProviderConfig @relation(fields: [configOid], references: [oid], onDelete: Cascade)
+  configOid BigInt?
+  config    ProviderConfig? @relation(fields: [configOid], references: [oid], onDelete: Cascade)
 
   authConfigOid BigInt?
   authConfig    ProviderAuthConfig? @relation(fields: [authConfigOid], references: [oid], onDelete: Cascade)
@@ -80,6 +81,7 @@ model IdentityCredential {
   updatedAt  DateTime  @default(now()) @updatedAt
   archivedAt DateTime?
 
+  providerSetupSession                    ProviderSetupSession?
   identityDelegationCredentialOverrides IdentityDelegationCredentialOverride[]
   delegatedIdentityCredential           DelegatedIdentityCredential[]
 

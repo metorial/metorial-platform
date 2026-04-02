@@ -1,8 +1,4 @@
-import {
-  notFoundError,
-  preconditionFailedError,
-  ServiceError
-} from '@lowerdeck/error';
+import { notFoundError, preconditionFailedError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
@@ -118,10 +114,7 @@ class ConsumerGroupServiceImpl {
     });
   }
 
-  async deleteConsumerGroup(d: {
-    organization: Organization;
-    consumerGroup: ConsumerGroup;
-  }) {
+  async deleteConsumerGroup(d: { organization: Organization; consumerGroup: ConsumerGroup }) {
     if (d.consumerGroup.status != 'active') {
       throw new ServiceError(
         preconditionFailedError({

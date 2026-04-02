@@ -8,5 +8,17 @@ export type Brand = SetupSessionResponse['brand'];
 export type OAuthSetup = NonNullable<
   Awaited<ReturnType<typeof client.setupSession.getOauthSetup>>
 >;
+export type ProviderSearchItem = Awaited<
+  ReturnType<typeof client.setupSession.listProviders>
+>['items'][number];
+export type ToolListItem = Awaited<
+  ReturnType<typeof client.setupSession.listTools>
+>['items'][number];
 
-export type Step = 'auth_config' | 'oauth_redirect' | 'oauth_loading' | 'config' | 'completed';
+export type Step =
+  | 'provider'
+  | 'auth_config'
+  | 'oauth_redirect'
+  | 'oauth_loading'
+  | 'config'
+  | 'completed';

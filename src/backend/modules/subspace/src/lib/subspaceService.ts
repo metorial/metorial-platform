@@ -1,5 +1,5 @@
 import { Service } from '@lowerdeck/service';
-import type { Instance, OrganizationActor } from '@metorial/db';
+import { type Instance, type OrganizationActor } from '@metorial/db';
 import type { ProviderEventBase } from '@metorial/fabric';
 import { getActorForSubspace, getTenantForSubspace } from '../subspace';
 
@@ -36,16 +36,28 @@ type SubspaceListResult<Item = unknown> = {
   }>;
 };
 
+type SubspaceListResultFull<Item = unknown> = {
+  run: (query: PaginatorRunQuery) => Promise<{
+    items: Item[];
+    pagination: {
+      hasNextPage: boolean;
+      hasPreviousPage: boolean;
+    };
+  }>;
+
+  map: <Item2>(
+    mapper: (item: Item[]) => Item2[] | Promise<Item2[]>
+  ) => SubspaceListResult<Item2>;
+};
+
 type SubspaceMethodReturn<T> = T extends (...args: any[]) => infer R ? Awaited<R> : never;
 
-type SubspaceListItem<
-  SubspaceController extends {},
-  K extends keyof SubspaceController
-> = SubspaceMethodReturn<SubspaceController[K]> extends {
-  items: infer Items extends any[];
-}
-  ? Items[number]
-  : never;
+type SubspaceListItem<SubspaceController extends {}, K extends keyof SubspaceController> =
+  SubspaceMethodReturn<SubspaceController[K]> extends {
+    items: infer Items extends any[];
+  }
+    ? Items[number]
+    : never;
 
 type SubspaceMethodArgs<
   SubspaceController extends {},
@@ -78,6 +90,20 @@ type SubspacePublicMethodArgs<
     ? [arg0: OptionalTenantEnvironment<Arg0>, ...args: Rest]
     : Parameters<SubspaceController[K]>
   : never;
+
+export type SubspaceServiceInner<SubspaceController extends {}, Overrides extends {}> = {
+  [K in Exclude<keyof SubspaceController, keyof Overrides>]: SubspaceController[K] extends (
+    ...args: any[]
+  ) => any
+    ? K extends 'list'
+      ? (
+          ...args: SubspaceMethodArgs<SubspaceController, K>
+        ) => Promise<SubspaceListResultFull<SubspaceListItem<SubspaceController, K>>>
+      : (
+          ...args: SubspaceMethodArgs<SubspaceController, K>
+        ) => ReturnType<SubspaceController[K]>
+    : never;
+} & Overrides;
 
 export type SubspaceService<SubspaceController extends {}, Overrides extends {}> = {
   [K in Exclude<keyof SubspaceController, keyof Overrides>]: SubspaceController[K] extends (
@@ -122,23 +148,39 @@ let createListMethod = <Item>(
   return async (...args: any[]) => {
     let firstArg = getFirstArg(args);
 
+    let getResult = (query: PaginatorRunQuery) =>
+      callController([
+        {
+          ...firstArg,
+          limit: query.limit,
+          after: query.after,
+          before: query.before,
+          cursor: query.cursor,
+          order: query.order
+        },
+        ...args.slice(1)
+      ]);
+
     return {
       async run(query: PaginatorRunQuery) {
-        let result = await callController([
-          {
-            ...firstArg,
+        return toSubspaceListResponse(await getResult(query));
+      },
 
-            limit: query.limit,
-            after: query.after,
-            before: query.before,
-            cursor: query.cursor,
-            order: query.order
+      map<Item2>(
+        mapper: (item: Item[]) => Item2[] | Promise<Item2[]>
+      ): SubspaceListResult<Item2> {
+        return {
+          async run(query: PaginatorRunQuery) {
+            let result = await getResult(query);
+            let mapped = await mapper(result.items);
+            return toSubspaceListResponse({
+              items: mapped,
+              pagination: result.pagination
+            });
           }
-        ]);
-
-        return toSubspaceListResponse(result);
+        };
       }
-    } as SubspaceListResult<Item>;
+    } as SubspaceListResultFull<Item>;
   };
 };
 
@@ -167,7 +209,7 @@ let buildServiceMethods = (
 export let createSubspaceService = <SubspaceController extends {}, Overrides extends {}>(
   controller: SubspaceController,
   methods: (keyof SubspaceController)[],
-  overrides: (subspace: SubspaceService<SubspaceController, {}>) => Overrides
+  overrides: (subspace: SubspaceServiceInner<SubspaceController, {}>) => Overrides
 ) => {
   let methodsObj = buildServiceMethods(
     methods as any[],

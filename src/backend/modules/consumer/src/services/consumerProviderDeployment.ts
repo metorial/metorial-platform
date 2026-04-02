@@ -85,8 +85,7 @@ let assertProviderCanBeDeployed = (d: {
   input: ConsumerProviderDeployInput;
 }) => {
   let requiresConfig =
-    hasProviderConfigFields(d.providerContext) &&
-    !d.providerContext.deployment.defaultConfig;
+    hasProviderConfigFields(d.providerContext) && !d.providerContext.deployment.defaultConfig;
 
   if (requiresConfig && d.input.config == undefined) {
     throw new ServiceError(

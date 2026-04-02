@@ -29,11 +29,11 @@ import {
 } from '@metorial/module-access';
 import { searchMagicMcpServerIds } from '@metorial/module-search';
 import { subspaceSessionTemplateService } from '@metorial/module-subspace';
-import { getAccessTagFilter, getActiveStatusFilter } from './consumerAccess';
 import {
   enqueueMagicMcpServerCreated,
   enqueueMagicMcpServerUpdated
 } from '../queues/lifecycle/magicMcpServer';
+import { getAccessTagFilter, getActiveStatusFilter } from './consumerAccess';
 
 let include = {
   aliases: true,
@@ -311,6 +311,7 @@ class MagicMcpServerImpl {
     groupIds?: string[];
     preconfiguredOnly?: boolean;
     accessTags?: AnyAccessTagSelector;
+    filterAccessTags?: AnyAccessTagSelector;
   }) {
     let normalizedSearch = d.search?.trim();
     if (!normalizedSearch?.length) normalizedSearch = undefined;
@@ -338,11 +339,30 @@ class MagicMcpServerImpl {
       accessTags: d.accessTags,
       roles: [...consumerMagicMcpReadRoles]
     });
+    let filterAccessTagFilter = await getAccessTagFilter({
+      accessTags: d.filterAccessTags,
+      roles: [...consumerMagicMcpReadRoles]
+    });
     let statusFilter = getActiveStatusFilter({
       accessTags: d.accessTags,
       status: d.status,
       activeStatus: 'active'
     });
+    let andFilters: Prisma.MagicMcpServerWhereInput[] = [];
+
+    if (normalizedSearch) {
+      andFilters.push({
+        id: {
+          in: searchedServerIds
+        }
+      });
+    }
+
+    if (filterAccessTagFilter) {
+      andFilters.push({
+        accessTagEntities: filterAccessTagFilter
+      });
+    }
 
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
@@ -360,9 +380,7 @@ class MagicMcpServerImpl {
                 }
               : undefined,
             accessTagEntities: accessTagFilter,
-            AND: [normalizedSearch ? { id: { in: searchedServerIds } } : undefined!].filter(
-              Boolean
-            )
+            AND: andFilters
           },
           include
         });

@@ -60,14 +60,10 @@ export let mapScmInstallationCreateOutput =
     expiresAt: mtMap.objectField('expires_at', mtMap.date())
   });
 
-export type ScmInstallationCreateBody = {
-  provider?: string | undefined;
-  redirectUrl?: string | undefined;
-};
+export type ScmInstallationCreateBody = { redirectUrl?: string | undefined };
 
 export let mapScmInstallationCreateBody =
   mtMap.object<ScmInstallationCreateBody>({
-    provider: mtMap.objectField('provider', mtMap.passthrough()),
     redirectUrl: mtMap.objectField('redirect_url', mtMap.passthrough())
   });
 

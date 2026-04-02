@@ -116,6 +116,24 @@ declare global {
           )[];
         };
 
+    type ProviderSetupSessionProviderSearch = {
+      groups?: { groupId: string }[];
+      collections?: { collectionId: string }[];
+      categories?: { categoryId: string }[];
+    };
+
+    type ProviderSetupSessionUi = {
+      layout?: 'box' | 'side' | 'light';
+    };
+
+    type ProviderSetupSessionConfiguration = {
+      providerSearch?: ProviderSetupSessionProviderSearch;
+      toolFilters?: {
+        enabled?: boolean;
+      };
+      ui?: ProviderSetupSessionUi;
+    };
+
     type SessionConnectionMcpData = {
       capabilities?: InitializeRequest['params']['capabilities'];
       protocolVersion?: InitializeRequest['params']['protocolVersion'];

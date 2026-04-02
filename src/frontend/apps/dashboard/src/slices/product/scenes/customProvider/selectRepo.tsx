@@ -85,7 +85,6 @@ export let ConnectGitHubButton = (p: { onConnected: () => void }) => {
       onClick={async () => {
         let [res] = await createInstallation.mutate({
           instanceId: instance.data?.id!,
-          provider: 'github',
           redirectUrl: window.location.href
         });
 
@@ -231,9 +230,7 @@ export let SelectRepo = (props: {
                       disabled={createRepo.isLoading}
                     >
                       <main>
-                        <h3>
-                          {r.identifier}
-                        </h3>
+                        <h3>{r.identifier}</h3>
                         <p>{formatRepoProvider(r.provider)}</p>
                       </main>
 

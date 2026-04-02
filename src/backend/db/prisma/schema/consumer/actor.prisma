@@ -1,0 +1,27 @@
+model ConsumerActor {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  isDefault Boolean @default(false)
+
+  defaultIdentityId String?
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  consumerOid BigInt
+  consumer    Consumer @relation(fields: [consumerOid], references: [oid], onDelete: Cascade)
+
+  instanceConsumerOid BigInt
+  instanceConsumer    InstanceConsumer @relation(fields: [instanceConsumerOid], references: [oid], onDelete: Cascade)
+
+  consumerProfileOid BigInt
+  consumerProfile    ConsumerProfile @relation(fields: [consumerProfileOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([defaultIdentityId])
+}

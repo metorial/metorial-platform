@@ -1,4 +1,6 @@
+import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { getSentry } from '@lowerdeck/sentry';
+import { db } from '@metorial/db';
 import { usageService } from '@metorial/module-usage';
 import { createSubspaceService, toEventBase } from '../lib/subspaceService';
 import { subspace } from '../subspace';
@@ -62,6 +64,48 @@ export let subspaceIdentityService = createSubspaceService(
       }
 
       return identity;
+    },
+
+    // update: async (
+    //   arg0: Parameters<typeof inner.update>[0] & { canEditConsumerActor?: boolean }
+    // ) => {
+    //   if (!arg0.canEditConsumerActor) {
+    //     let consumerActor = await db.consumerActor.findFirst({
+    //       where: {
+    //         defaultIdentityId: arg0.identityId
+    //       }
+    //     });
+    //     if (consumerActor) {
+    //       throw new ServiceError(
+    //         badRequestError({
+    //           message: 'Cannot update identity linked to consumer'
+    //         })
+    //       );
+    //     }
+    //   }
+
+    //   return await inner.update(arg0);
+    // },
+
+    delete: async (
+      arg: Parameters<typeof inner.delete>[0] & { canEditConsumerActor?: boolean }
+    ) => {
+      if (!arg.canEditConsumerActor) {
+        let consumerActor = await db.consumerActor.findFirst({
+          where: {
+            defaultIdentityId: arg.identityId
+          }
+        });
+        if (consumerActor) {
+          throw new ServiceError(
+            badRequestError({
+              message: 'Cannot delete identity linked to consumer'
+            })
+          );
+        }
+      }
+
+      return await inner.delete(arg);
     }
   })
 );

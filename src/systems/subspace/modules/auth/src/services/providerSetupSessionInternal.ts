@@ -19,6 +19,7 @@ import {
   withTransaction
 } from '@metorial-subspace/db';
 import { providerConfigService } from '@metorial-subspace/module-deployment';
+import { identityCredentialService } from '@metorial-subspace/module-identity';
 import { checkProviderMatch } from '@metorial-subspace/module-provider-internal';
 import { providerSetupSessionUpdatedQueue } from '../queues/lifecycle/providerSetupSession';
 import { providerAuthConfigService } from './providerAuthConfig';
@@ -44,6 +45,7 @@ class providerSetupSessionInternalServiceImpl {
       name?: string;
       description?: string;
       metadata?: Record<string, any>;
+      toolFilters?: PrismaJson.ToolFilter | null;
       config: Record<string, any>;
     };
     import: {
@@ -106,6 +108,7 @@ class providerSetupSessionInternalServiceImpl {
           description: d.input.description,
           metadata: d.input.metadata,
           isEphemeral: true,
+          toolFilters: d.input.toolFilters,
           config: d.input.config,
           authMethodId: d.authMethod.id
         }
@@ -136,6 +139,7 @@ class providerSetupSessionInternalServiceImpl {
       name?: string;
       description?: string;
       metadata?: Record<string, any>;
+      toolFilters?: PrismaJson.ToolFilter | null;
       config: Record<string, any>;
     };
   }) {
@@ -152,6 +156,7 @@ class providerSetupSessionInternalServiceImpl {
         description: d.input.description,
         metadata: d.input.metadata,
         isEphemeral: true,
+        toolFilters: d.input.toolFilters,
         config: { type: 'inline', data: d.input.config }
       }
     });
@@ -286,6 +291,11 @@ class providerSetupSessionInternalServiceImpl {
           data: { status: 'completed' }
         });
 
+        let completedSession = result as ProviderSetupSession & {
+          identityOid: bigint | null;
+          identityCredentialOid: bigint | null;
+        };
+
         await db.providerSetupSessionEvent.createMany({
           data: [
             {
@@ -297,6 +307,59 @@ class providerSetupSessionInternalServiceImpl {
             }
           ]
         });
+
+        if (completedSession.identityOid && !completedSession.identityCredentialOid) {
+          let identity = await db.identity.findFirstOrThrow({
+            where: {
+              oid: completedSession.identityOid,
+              tenantOid: completedSession.tenantOid,
+              solutionOid: completedSession.solutionOid,
+              environmentOid: completedSession.environmentOid
+            }
+          });
+
+          let tenant = await db.tenant.findFirstOrThrow({
+            where: { oid: completedSession.tenantOid }
+          });
+          let solution = await db.solution.findFirstOrThrow({
+            where: { oid: completedSession.solutionOid }
+          });
+          let environment = await db.environment.findFirstOrThrow({
+            where: { oid: completedSession.environmentOid }
+          });
+          let deployment = completedSession.deploymentOid
+            ? await db.providerDeployment.findFirstOrThrow({
+                where: { oid: completedSession.deploymentOid }
+              })
+            : null;
+          let config = completedSession.configOid
+            ? await db.providerConfig.findFirstOrThrow({
+                where: { oid: completedSession.configOid }
+              })
+            : null;
+          let authConfig = completedSession.authConfigOid
+            ? await db.providerAuthConfig.findFirstOrThrow({
+                where: { oid: completedSession.authConfigOid }
+              })
+            : null;
+
+          let identityCredential = await identityCredentialService.createIdentityCredential({
+            tenant,
+            solution,
+            environment,
+            identity,
+            input: {
+              deploymentId: deployment?.id,
+              configId: config?.id,
+              authConfigId: authConfig?.id
+            }
+          });
+
+          result = await db.providerSetupSession.update({
+            where: { oid: result.oid },
+            data: { identityCredentialOid: identityCredential.oid }
+          });
+        }
       }
 
       return result;

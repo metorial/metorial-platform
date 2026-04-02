@@ -8,6 +8,7 @@ import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { providerDeploymentPresenter } from '../../presenters';
+import { toolFiltersValidator } from './session';
 
 let providerDeploymentGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerDeploymentId) {
@@ -39,6 +40,7 @@ let createSchema = v.intersection([
       }),
       { description: 'Custom key-value pairs for storing additional information' }
     ),
+    tool_filters: toolFiltersValidator,
     provider_id: v.string({
       examples: ['pro_5gHjKlMnPqRsTuVw'],
       description: 'The provider to deploy'
@@ -147,6 +149,18 @@ export let providerDeploymentController = Controller.create(
             provider_version_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by version ID(s)'
             }),
+            actor_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by actor ID(s)'
+            }),
+            consumer_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by consumer ID(s)'
+            }),
+            identity_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by identity ID(s)'
+            }),
+            identity_credential_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by identity credential ID(s)'
+            }),
             status: v.optional(
               v.union([
                 v.enumOf(['active', 'archived']),
@@ -175,6 +189,18 @@ export let providerDeploymentController = Controller.create(
             }),
             provider_version_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by version ID(s)'
+            }),
+            actor_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by actor ID(s)'
+            }),
+            consumer_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by consumer ID(s)'
+            }),
+            identity_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by identity ID(s)'
+            }),
+            identity_credential_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by identity credential ID(s)'
             }),
             status: v.optional(
               v.union([
@@ -215,6 +241,10 @@ export let providerDeploymentController = Controller.create(
           ids: normalizeArrayParam(ctx.query.id),
           providerIds: normalizeArrayParam(ctx.query.provider_id),
           providerVersionIds: normalizeArrayParam(ctx.query.provider_version_id),
+          actorIds: normalizeArrayParam(ctx.query.actor_id),
+          consumerIds: normalizeArrayParam(ctx.query.consumer_id),
+          identityIds: normalizeArrayParam(ctx.query.identity_id),
+          identityCredentialIds: normalizeArrayParam(ctx.query.identity_credential_id),
           status: normalizeArrayParam(ctx.query.status),
 
           createdAt: ctx.query.created_at,
@@ -260,7 +290,8 @@ export let providerDeploymentController = Controller.create(
           description: ctx.body.description,
           lockedProviderVersionId: ctx.body.locked_provider_version_id,
           config: mapProviderDeploymentConfig(ctx.body),
-          metadata: ctx.body.metadata
+          metadata: ctx.body.metadata,
+          toolFilters: ctx.body.tool_filters
         });
 
         return providerDeploymentPresenter.present({
@@ -290,7 +321,8 @@ export let providerDeploymentController = Controller.create(
           metadata: v.optional(
             v.record(v.any(), { examples: [{ team: 'platform', environment: 'staging' }] }),
             { description: 'Custom key-value pairs for storing additional information' }
-          )
+          ),
+          tool_filters: toolFiltersValidator
         })
       )
       .output(providerDeploymentPresenter)
@@ -300,7 +332,8 @@ export let providerDeploymentController = Controller.create(
           providerDeploymentId: ctx.deployment.id,
           name: ctx.body.name,
           description: ctx.body.description,
-          metadata: ctx.body.metadata
+          metadata: ctx.body.metadata,
+          toolFilters: ctx.body.tool_filters
         });
 
         return providerDeploymentPresenter.present({

@@ -8,6 +8,20 @@ export type ManagementInstanceProviderDeploymentsConfigsListOutput = {
     name: string | null;
     description: string | null;
     metadata: Record<string, any> | null;
+    toolFilter:
+      | { type: 'allow_all'; ignoreParentFilters: boolean }
+      | {
+          type: 'filter';
+          filters: (
+            | { type: 'tool_keys'; keys: string[] }
+            | { type: 'tool_regex'; pattern: string }
+            | { type: 'resource_regex'; pattern: string }
+            | { type: 'resource_uris'; uris: string[] }
+            | { type: 'prompt_keys'; keys: string[] }
+            | { type: 'prompt_regex'; pattern: string }
+          )[];
+          ignoreParentFilters: boolean;
+        };
     providerId: string;
     specificationId: string;
     deployment: {
@@ -60,6 +74,49 @@ export let mapManagementInstanceProviderDeploymentsConfigsListOutput =
           name: mtMap.objectField('name', mtMap.passthrough()),
           description: mtMap.objectField('description', mtMap.passthrough()),
           metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+          toolFilter: mtMap.objectField(
+            'tool_filter',
+            mtMap.union([
+              mtMap.unionOption(
+                'object',
+                mtMap.object({
+                  type: mtMap.objectField('type', mtMap.passthrough()),
+                  ignoreParentFilters: mtMap.objectField(
+                    'ignore_parent_filters',
+                    mtMap.passthrough()
+                  ),
+                  filters: mtMap.objectField(
+                    'filters',
+                    mtMap.array(
+                      mtMap.union([
+                        mtMap.unionOption(
+                          'object',
+                          mtMap.object({
+                            type: mtMap.objectField(
+                              'type',
+                              mtMap.passthrough()
+                            ),
+                            keys: mtMap.objectField(
+                              'keys',
+                              mtMap.array(mtMap.passthrough())
+                            ),
+                            pattern: mtMap.objectField(
+                              'pattern',
+                              mtMap.passthrough()
+                            ),
+                            uris: mtMap.objectField(
+                              'uris',
+                              mtMap.array(mtMap.passthrough())
+                            )
+                          })
+                        )
+                      ])
+                    )
+                  )
+                })
+              )
+            ])
+          ),
           providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
           specificationId: mtMap.objectField(
             'specification_id',
@@ -151,6 +208,10 @@ export type ManagementInstanceProviderDeploymentsConfigsListQuery = {
   providerSpecificationId?: string | string[] | undefined;
   providerDeploymentId?: string | string[] | undefined;
   providerConfigVaultId?: string | string[] | undefined;
+  actorId?: string | string[] | undefined;
+  consumerId?: string | string[] | undefined;
+  identityId?: string | string[] | undefined;
+  identityCredentialId?: string | string[] | undefined;
   search?: string | undefined;
   createdAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
   updatedAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
@@ -212,6 +273,46 @@ export let mapManagementInstanceProviderDeploymentsConfigsListQuery =
         ),
         providerConfigVaultId: mtMap.objectField(
           'provider_config_vault_id',
+          mtMap.union([
+            mtMap.unionOption('string', mtMap.passthrough()),
+            mtMap.unionOption(
+              'array',
+              mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+            )
+          ])
+        ),
+        actorId: mtMap.objectField(
+          'actor_id',
+          mtMap.union([
+            mtMap.unionOption('string', mtMap.passthrough()),
+            mtMap.unionOption(
+              'array',
+              mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+            )
+          ])
+        ),
+        consumerId: mtMap.objectField(
+          'consumer_id',
+          mtMap.union([
+            mtMap.unionOption('string', mtMap.passthrough()),
+            mtMap.unionOption(
+              'array',
+              mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+            )
+          ])
+        ),
+        identityId: mtMap.objectField(
+          'identity_id',
+          mtMap.union([
+            mtMap.unionOption('string', mtMap.passthrough()),
+            mtMap.unionOption(
+              'array',
+              mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+            )
+          ])
+        ),
+        identityCredentialId: mtMap.objectField(
+          'identity_credential_id',
           mtMap.union([
             mtMap.unionOption('string', mtMap.passthrough()),
             mtMap.unionOption(

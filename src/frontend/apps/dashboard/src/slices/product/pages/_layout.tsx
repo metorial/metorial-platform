@@ -25,6 +25,7 @@ import {
   RiShieldKeyholeLine,
   RiSurveyLine,
   RiUploadCloud2Line,
+  RiUser3Line,
   RiWebhookLine
 } from '@remixicon/react';
 import { useEffect } from 'react';
@@ -223,6 +224,21 @@ export let ProjectPageLayout = () => {
               label: 'API Access',
               to: Paths.instance.developer(...params, 'api'),
               getProps: i => ({ isActive: checkPath(i, { exact: true }) })
+            }
+          ]
+        },
+
+        {
+          label: 'Identity',
+          collapsible: true,
+          items: [
+            {
+              icon: <RiUser3Line />,
+              label: 'Consumers',
+              to: Paths.instance.identity.consumers(...params),
+              getProps: i => ({
+                isActive: checkPath(i) || i.pathname.includes('/identity/consumer/')
+              })
             }
           ]
         },

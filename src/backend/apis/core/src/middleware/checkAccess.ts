@@ -30,9 +30,7 @@ export let checkAccess = apiGroup.createMiddleware(
         instance,
         possibleScopes: input.possibleScopes
       });
-    }
-
-    if ('project' in ctx && ctx.project) {
+    } else if ('project' in ctx && ctx.project) {
       let project = ctx.project as Project & { organization: Organization };
 
       await accessService.checkTargetAccess({
@@ -42,10 +40,7 @@ export let checkAccess = apiGroup.createMiddleware(
         project,
         possibleScopes: input.possibleScopes
       });
-    }
-
-    if (
-      !('instance' in ctx && ctx.instance) &&
+    } else if (
       'organization' in ctx &&
       ctx.organization &&
       input.possibleScopes.every(

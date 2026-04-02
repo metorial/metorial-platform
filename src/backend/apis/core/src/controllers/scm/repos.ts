@@ -1,9 +1,31 @@
+import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { subspaceScmRepositoryService } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
+import { dateFilterValidator } from '../../lib/dateFilter';
+import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { scmRepoPresenter, scmRepoPreviewPresenter } from '../../presenters';
+
+let scmRepoGroup = instanceGroup.use(async ctx => {
+  if (!ctx.params.scmRepositoryId) {
+    throw new ServiceError(
+      badRequestError({
+        message: 'scmRepositoryId is required',
+        description: 'The scmRepositoryId path parameter is required.'
+      })
+    );
+  }
+
+  let scmRepo = await subspaceScmRepositoryService.get({
+    instance: ctx.instance,
+    scmRepositoryId: ctx.params.scmRepositoryId
+  });
+
+  return { scmRepo };
+});
 
 export let scmReposController = Controller.create(
   {
@@ -11,6 +33,59 @@ export let scmReposController = Controller.create(
     description: 'Manage source control repositories.'
   },
   {
+    list: instanceGroup
+      .get(instancePath('scm/repos', 'scm.repos.list'), {
+        name: 'List SCM repos',
+        description: 'Returns a paginated list of SCM repositories.'
+      })
+      .use(checkAccess({ possibleScopes: ['instance.scm.repo:read'] }))
+      .outputList(scmRepoPresenter)
+      .query(
+        'default',
+        Paginator.validate(
+          v.object({
+            id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by repository ID(s)'
+            }),
+            provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by SCM provider ID(s)'
+            }),
+            created_at: dateFilterValidator('SCM repository creation time'),
+            updated_at: dateFilterValidator('SCM repository last update time')
+          })
+        )
+      )
+      .do(async ctx => {
+        let paginator = await subspaceScmRepositoryService.list({
+          instance: ctx.instance,
+          ids: normalizeArrayParam(ctx.query.id),
+          customProviderIds: normalizeArrayParam(ctx.query.provider_id),
+          createdAt: ctx.query.created_at,
+          updatedAt: ctx.query.updated_at
+        });
+
+        let list = await paginator.run(ctx.query);
+
+        return Paginator.present(list, scmRepo =>
+          scmRepoPresenter.present({
+            scmRepo
+          })
+        );
+      }),
+
+    get: scmRepoGroup
+      .get(instancePath('scm/repos/:scmRepositoryId', 'scm.repos.get'), {
+        name: 'Get SCM repo',
+        description: 'Retrieves a specific SCM repository by ID.'
+      })
+      .use(checkAccess({ possibleScopes: ['instance.scm.repo:read'] }))
+      .output(scmRepoPresenter)
+      .do(async ctx => {
+        return scmRepoPresenter.present({
+          scmRepo: ctx.scmRepo
+        });
+      }),
+
     preview: instanceGroup
       .post(instancePath('scm/repos/preview', 'scm.repos.preview'), {
         name: 'Preview SCM repos',
@@ -87,9 +162,9 @@ export let scmReposController = Controller.create(
         let scmRepo = await subspaceScmRepositoryService.createRepository({
           instance: ctx.instance,
           scmConnectionId: ctx.body.installation_id,
-          externalAccountId: ctx.body.external_account_id,
-          name: ctx.body.name,
-          isPrivate: !!ctx.body.is_private
+          externalAccountId: (ctx.body as any).external_account_id,
+          name: (ctx.body as any).name,
+          isPrivate: !!(ctx.body as any).is_private
         });
 
         return scmRepoPresenter.present({

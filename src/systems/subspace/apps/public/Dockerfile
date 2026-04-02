@@ -9,6 +9,7 @@ COPY . .
 # Install CA certificates for Sentry CLI uploads and prepare required workspaces.
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/*
 RUN sh ./src/systems/subspace/scripts/prepare-docker-build.sh
+RUN bun run --cwd ./src/packages/frontend/ui build
 
 # Generate Prisma client
 WORKDIR /app/src/systems/subspace/db
@@ -48,6 +49,9 @@ COPY --from=builder /app/src/systems/subspace/apps/public/frontend/dist /app/fro
 
 # Copy prisma schema and generated client from builder
 COPY --from=builder /app/src/systems/subspace/db /app/db
+
+# Copy the built @metorial/ui workspace package so Bun workspace links remain valid.
+COPY --from=builder /app/src/packages/frontend/ui /app/src/packages/frontend/ui
 
 # Copy entire node_modules from builder to ensure prisma has all dependencies
 COPY --from=builder /app/node_modules /app/node_modules

@@ -14,11 +14,11 @@ import {
   subspaceProviderService
 } from '@metorial/module-subspace';
 import {
+  listProviderAuthMethods,
   type ConsumerProvider,
   type ConsumerProviderAuthMethodList,
   type ConsumerProviderConfigSchema,
-  type ConsumerProviderDeployment,
-  listProviderAuthMethods
+  type ConsumerProviderDeployment
 } from './consumerProviderContext';
 import { isPreconfiguredMagicMcpServer } from './magicMcpServerSource';
 

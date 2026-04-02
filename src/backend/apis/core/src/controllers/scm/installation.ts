@@ -48,7 +48,6 @@ export let scmInstallationController = Controller.create(
       .body(
         'default',
         v.object({
-          provider: v.optional(v.string({ description: 'SCM provider type (e.g. github)' })),
           redirect_url: v.optional(
             v.string({ description: 'URL to redirect after authorization' })
           )
@@ -58,8 +57,10 @@ export let scmInstallationController = Controller.create(
       .do(async ctx => {
         let scmConnectionSetup = await subspaceScmConnectionSetupSessionService.create({
           instance: ctx.instance,
-          organizationActor: ctx.actor!,
-          redirectUrl: ctx.body.redirect_url
+          redirectUrl: ctx.body.redirect_url,
+
+          // @ts-ignore
+          organizationActor: ctx.actor!
         });
 
         return scmConnectionSetupPresenter.present({

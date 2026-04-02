@@ -55,4 +55,6 @@ model Instance {
   portals                              Portal[]
   providerTemplates                    ProviderTemplate[]
   accessPolicyInstances                AccessPolicyInstance[]
+  instanceConsumers                    InstanceConsumer[]
+  consumerActors                       ConsumerActor[]
 }

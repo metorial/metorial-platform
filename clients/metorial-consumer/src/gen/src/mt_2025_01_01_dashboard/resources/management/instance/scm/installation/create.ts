@@ -61,13 +61,11 @@ export let mapManagementInstanceScmInstallationCreateOutput =
   });
 
 export type ManagementInstanceScmInstallationCreateBody = {
-  provider?: string | undefined;
   redirectUrl?: string | undefined;
 };
 
 export let mapManagementInstanceScmInstallationCreateBody =
   mtMap.object<ManagementInstanceScmInstallationCreateBody>({
-    provider: mtMap.objectField('provider', mtMap.passthrough()),
     redirectUrl: mtMap.objectField('redirect_url', mtMap.passthrough())
   });
 

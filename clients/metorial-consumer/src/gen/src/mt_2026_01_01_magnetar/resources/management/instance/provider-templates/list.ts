@@ -57,6 +57,7 @@ export type ManagementInstanceProviderTemplatesListQuery = {
 } & {
   id?: string | string[] | undefined;
   providerDeploymentId?: string | string[] | undefined;
+  search?: string | undefined;
   status?:
     | 'active'
     | 'archived'
@@ -94,6 +95,7 @@ export let mapManagementInstanceProviderTemplatesListQuery = mtMap.union([
           )
         ])
       ),
+      search: mtMap.objectField('search', mtMap.passthrough()),
       status: mtMap.objectField(
         'status',
         mtMap.union([mtMap.unionOption('array', mtMap.union([]))])

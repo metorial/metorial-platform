@@ -1,5 +1,6 @@
 export * from './access-policies';
 export * from './access-roles';
+export * from './api-keys';
 export * from './get';
 export * from './instances';
 export * from './invites';

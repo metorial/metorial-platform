@@ -64,6 +64,7 @@ export type IdentityActorsListQuery = {
     | undefined;
   id?: string | string[] | undefined;
   agentId?: string | string[] | undefined;
+  consumerId?: string | string[] | undefined;
   createdAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
   updatedAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
 };
@@ -94,6 +95,16 @@ export let mapIdentityActorsListQuery = mtMap.union([
       ),
       agentId: mtMap.objectField(
         'agent_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      consumerId: mtMap.objectField(
+        'consumer_id',
         mtMap.union([
           mtMap.unionOption('string', mtMap.passthrough()),
           mtMap.unionOption(

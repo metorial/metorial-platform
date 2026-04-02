@@ -17,7 +17,6 @@ import {
   OptionToggle,
   Select,
   showModal,
-  Spacer,
   Text
 } from '@metorial/ui';
 import { RiAddLine } from '@remixicon/react';
@@ -272,10 +271,6 @@ let CreateDeploymentInline = ({
 
   return (
     <Flex direction="column" gap={8}>
-      <Text size="2" color="gray600">
-        No deployments found for <strong>{providerName}</strong>. Create one to continue.
-      </Text>
-
       <form onSubmit={form.handleSubmit}>
         <Flex direction="column" gap={8}>
           <Input label="Name" required {...form.getFieldProps('name')} />
@@ -283,19 +278,20 @@ let CreateDeploymentInline = ({
 
           <Input label="Description" {...form.getFieldProps('description')} />
           <form.RenderError field="description" />
-          <Spacer height={8} />
 
-          <Dialog.Actions>
-            <Button
-              type="submit"
-              loading={createMutation.isLoading}
-              success={createMutation.isSuccess}
-            >
-              Create Deployment
-            </Button>
+          <div style={{ marginTop: 5 }}>
+            <Dialog.Actions>
+              <Button
+                type="submit"
+                loading={createMutation.isLoading}
+                success={createMutation.isSuccess}
+              >
+                Create Deployment
+              </Button>
 
-            <createMutation.RenderError />
-          </Dialog.Actions>
+              <createMutation.RenderError />
+            </Dialog.Actions>
+          </div>
         </Flex>
       </form>
     </Flex>
@@ -378,7 +374,7 @@ let DeploymentConfigureStep = ({
   includeToolFilters: boolean;
   allowConfigVaultSelection: boolean;
 }) => {
-  let authConfigs = useProviderAuthConfigs(instanceId);
+  let authConfigs = useProviderAuthConfigs(instanceId, { providerDeploymentId: deploymentId });
   let deployment = useProviderDeployment(instanceId, deploymentId);
   let provider = useProvider(instanceId, providerId);
   let providerVersionId =
@@ -388,6 +384,7 @@ let DeploymentConfigureStep = ({
   let authConfigItems = authConfigs.data?.items ?? [];
   let toolItems = tools.data?.items ?? [];
   let selectedAuthConfigId = form.values.selectedAuthConfigId;
+
   useEffect(() => {
     if (authConfigs.isLoading || !selectedAuthConfigId) return;
     if (!authConfigItems.some(item => item.id === selectedAuthConfigId)) {
@@ -428,52 +425,56 @@ let DeploymentConfigureStep = ({
       />
       <form.RenderError field="selectedConfiguration" />
 
-      <Flex gap={8} align="end">
-        <div style={{ flex: 1 }}>
-          <Select
-            label="Auth Config"
-            value={form.values.selectedAuthConfigId || '__none__'}
-            onChange={v => {
-              form.setFieldValue('selectedAuthConfigId', v === '__none__' ? '' : v);
-              form.setFieldTouched('selectedAuthConfigId', false, false);
-              form.setFieldError('selectedAuthConfigId', undefined);
-            }}
-            items={[
-              { id: '__none__', label: 'None' },
-              ...authConfigItems.map(config => ({
-                id: config.id,
-                label: config.name ?? config.id
-              }))
-            ]}
-          />
-        </div>
-
-        <div
-          title={authCreation.authConfigDisabledReason ?? undefined}
-          style={{ display: 'inline-flex' }}
-        >
-          <Button
-            type="button"
-            size="3"
-            iconLeft={<RiAddLine />}
-            aria-label="Create Auth Config"
-            disabled={!authCreation.canCreateAuthConfig}
-            onClick={() =>
-              showProviderAuthConfigCreateModal({
-                instanceId,
-                providerDeploymentId: deploymentId,
-                onCreate: authConfig => {
-                  authConfigs.refetch?.();
-                  form.setFieldValue('selectedAuthConfigId', authConfig.id);
+      {provider.data?.type.auth.status == 'enabled' && (
+        <>
+          <Flex gap={8} align="end">
+            <div style={{ flex: 1 }}>
+              <Select
+                label="Auth Config"
+                value={form.values.selectedAuthConfigId || '__none__'}
+                onChange={v => {
+                  form.setFieldValue('selectedAuthConfigId', v === '__none__' ? '' : v);
                   form.setFieldTouched('selectedAuthConfigId', false, false);
                   form.setFieldError('selectedAuthConfigId', undefined);
+                }}
+                items={[
+                  { id: '__none__', label: 'None' },
+                  ...authConfigItems.map(config => ({
+                    id: config.id,
+                    label: config.name ?? config.id
+                  }))
+                ]}
+              />
+            </div>
+
+            <div
+              title={authCreation.authConfigDisabledReason ?? undefined}
+              style={{ display: 'inline-flex' }}
+            >
+              <Button
+                type="button"
+                size="3"
+                iconLeft={<RiAddLine />}
+                aria-label="Create Auth Config"
+                disabled={!authCreation.canCreateAuthConfig}
+                onClick={() =>
+                  showProviderAuthConfigCreateModal({
+                    instanceId,
+                    providerDeploymentId: deploymentId,
+                    onCreate: authConfig => {
+                      authConfigs.refetch?.();
+                      form.setFieldValue('selectedAuthConfigId', authConfig.id);
+                      form.setFieldTouched('selectedAuthConfigId', false, false);
+                      form.setFieldError('selectedAuthConfigId', undefined);
+                    }
+                  })
                 }
-              })
-            }
-          />
-        </div>
-      </Flex>
-      <form.RenderError field="selectedAuthConfigId" />
+              />
+            </div>
+          </Flex>
+          <form.RenderError field="selectedAuthConfigId" />
+        </>
+      )}
 
       {includeToolFilters && toolItems.length > 0 && (
         <div>
@@ -522,11 +523,13 @@ let DeploymentConfigureStep = ({
 
       {mutationError}
 
-      <Dialog.Actions>
-        <Button type="submit" loading={saving} size="2">
-          {submitLabel}
-        </Button>
-      </Dialog.Actions>
+      <div style={{ marginTop: 5 }}>
+        <Dialog.Actions>
+          <Button type="submit" loading={saving} size="2">
+            {submitLabel}
+          </Button>
+        </Dialog.Actions>
+      </div>
     </Flex>
   );
 };

@@ -1,4 +1,6 @@
 import type {
+  Identity,
+  IdentityCredential,
   Provider,
   ProviderAuthConfig,
   ProviderAuthCredentials,
@@ -18,6 +20,8 @@ import { providerConfigPresenter } from './providerConfig';
 
 export let providerSetupSessionPresenter = (
   providerSetupSession: ProviderSetupSession & {
+    identity: Identity | null;
+    identityCredential: IdentityCredential | null;
     authConfig:
       | (ProviderAuthConfig & {
           deployment: ProviderDeployment | null;
@@ -39,8 +43,10 @@ export let providerSetupSessionPresenter = (
         })
       | null;
     deployment: ProviderDeployment | null;
-    provider: Provider;
-    authMethod: ProviderAuthMethod & { specification: Omit<ProviderSpecification, 'value'> };
+    provider: Provider | null;
+    authMethod:
+      | (ProviderAuthMethod & { specification: Omit<ProviderSpecification, 'value'> })
+      | null;
     authCredentials: ProviderAuthCredentials | null;
   }
 ) => {
@@ -63,40 +69,50 @@ export let providerSetupSessionPresenter = (
     description: providerSetupSession.description,
     metadata: providerSetupSession.metadata,
 
-    providerId: providerSetupSession.provider.id,
+    providerId: providerSetupSession.provider?.id ?? null,
+    identityId: providerSetupSession.identity?.id ?? null,
+    identityCredentialId: providerSetupSession.identityCredential?.id ?? null,
+    configuration: providerSetupSession.configuration ?? null,
 
-    authMethod: providerAuthMethodPresenter({
-      ...providerSetupSession.authMethod,
-      provider: providerSetupSession.provider
-    }),
+    authMethod:
+      providerSetupSession.provider && providerSetupSession.authMethod
+        ? providerAuthMethodPresenter({
+            ...providerSetupSession.authMethod,
+            provider: providerSetupSession.provider
+          })
+        : null,
 
-    deployment: providerSetupSession.deployment
-      ? providerDeploymentPreviewPresenter({
-          ...providerSetupSession.deployment,
-          provider: providerSetupSession.provider
-        })
-      : null,
+    deployment:
+      providerSetupSession.deployment && providerSetupSession.provider
+        ? providerDeploymentPreviewPresenter({
+            ...providerSetupSession.deployment,
+            provider: providerSetupSession.provider
+          })
+        : null,
 
-    credentials: providerSetupSession.authCredentials
-      ? providerAuthCredentialsPresenter({
-          ...providerSetupSession.authCredentials,
-          provider: providerSetupSession.provider
-        })
-      : null,
+    credentials:
+      providerSetupSession.authCredentials && providerSetupSession.provider
+        ? providerAuthCredentialsPresenter({
+            ...providerSetupSession.authCredentials,
+            provider: providerSetupSession.provider
+          })
+        : null,
 
-    authConfig: providerSetupSession.authConfig
-      ? providerAuthConfigPresenter({
-          ...providerSetupSession.authConfig,
-          provider: providerSetupSession.provider
-        })
-      : null,
+    authConfig:
+      providerSetupSession.authConfig && providerSetupSession.provider
+        ? providerAuthConfigPresenter({
+            ...providerSetupSession.authConfig,
+            provider: providerSetupSession.provider
+          })
+        : null,
 
-    config: providerSetupSession.config
-      ? providerConfigPresenter({
-          ...providerSetupSession.config,
-          provider: providerSetupSession.provider
-        })
-      : null,
+    config:
+      providerSetupSession.config && providerSetupSession.provider
+        ? providerConfigPresenter({
+            ...providerSetupSession.config,
+            provider: providerSetupSession.provider
+          })
+        : null,
 
     uiMode: providerSetupSession.uiMode,
     redirectUrl: providerSetupSession.redirectUrl,

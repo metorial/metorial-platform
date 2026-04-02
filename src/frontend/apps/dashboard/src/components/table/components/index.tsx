@@ -447,9 +447,12 @@ export let TableComponent = reactMemo(
         )}
 
         {state.error && (
-          <Error>
-            {state.error.data.message ?? state.error.message ?? 'An error occurred'}
-          </Error>
+          <>
+            <Spacer height={10} />
+            <Error>
+              {state.error.data?.message ?? state.error.message ?? 'An error occurred'}
+            </Error>
+          </>
         )}
 
         {!isFullLoading && !state.error && (

@@ -335,12 +335,30 @@ let InstancePaths = Object.assign(
     },
 
     identity: {
+      consumers: (
+        organization: EntityParam,
+        project: EntityParam,
+        instance: EntityParam,
+        ...subPages: SubPages
+      ) => InstancePaths(organization, project, instance, 'consumers', ...subPages),
+
+      consumer: (
+        organization: EntityParam,
+        project: EntityParam,
+        instance: EntityParam,
+        id?: string,
+        ...subPages: SubPages
+      ) => {
+        if (!id) return '#';
+        return InstancePaths(organization, project, instance, 'consumer', id, ...subPages);
+      },
+
       actors: (
         organization: EntityParam,
         project: EntityParam,
         instance: EntityParam,
         ...subPages: SubPages
-      ) => InstancePaths(organization, project, instance, 'identity', 'actors', ...subPages),
+      ) => InstancePaths(organization, project, instance, 'actors', ...subPages),
 
       actor: (
         organization: EntityParam,
@@ -350,15 +368,7 @@ let InstancePaths = Object.assign(
         ...subPages: SubPages
       ) => {
         if (!id) return '#';
-        return InstancePaths(
-          organization,
-          project,
-          instance,
-          'identity',
-          'actor',
-          id,
-          ...subPages
-        );
+        return InstancePaths(organization, project, instance, 'actor', id, ...subPages);
       },
 
       identities: (
@@ -366,8 +376,7 @@ let InstancePaths = Object.assign(
         project: EntityParam,
         instance: EntityParam,
         ...subPages: SubPages
-      ) =>
-        InstancePaths(organization, project, instance, 'identity', 'identities', ...subPages),
+      ) => InstancePaths(organization, project, instance, 'identities', ...subPages),
 
       identity: (
         organization: EntityParam,
@@ -377,15 +386,7 @@ let InstancePaths = Object.assign(
         ...subPages: SubPages
       ) => {
         if (!id) return '#';
-        return InstancePaths(
-          organization,
-          project,
-          instance,
-          'identity',
-          'identity',
-          id,
-          ...subPages
-        );
+        return InstancePaths(organization, project, instance, 'identity', id, ...subPages);
       },
 
       delegations: (

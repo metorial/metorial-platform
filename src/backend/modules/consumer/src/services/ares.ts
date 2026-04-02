@@ -1,8 +1,4 @@
-import {
-  notFoundError,
-  preconditionFailedError,
-  ServiceError
-} from '@lowerdeck/error';
+import { notFoundError, preconditionFailedError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import { getConsumerAresInternalClient } from '@metorial/consumer-auth';
 
@@ -48,14 +44,15 @@ type ConsumerAresRawSsoConnectionList = Awaited<
 export type ConsumerAresSsoConnectionList = ConsumerAresListResponse<
   ConsumerAresRawSsoConnectionList['items'][number]
 >;
-export type ConsumerAresSsoConnection =
-  ConsumerAresRawSsoConnectionList['items'][number];
+export type ConsumerAresSsoConnection = ConsumerAresRawSsoConnectionList['items'][number];
 export type ConsumerAresSsoTenantSetup = Awaited<
   ReturnType<ConsumerAresInternalClient['sso']['createSetup']>
 >;
 
 class ConsumerAresServiceImpl {
-  private normalizePagination<T>(list: ConsumerAresRawListResponse<T>): ConsumerAresListResponse<T> {
+  private normalizePagination<T>(
+    list: ConsumerAresRawListResponse<T>
+  ): ConsumerAresListResponse<T> {
     return {
       items: list.items,
       pagination: {

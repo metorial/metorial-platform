@@ -1,6 +1,7 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
 import { providerConfigType } from '../../types';
+import { toolFilterPresenter } from '../_lib/toolFilter';
 import { v1ProviderConfigVaultPresenter } from './configVault';
 import { v1ProviderDeploymentPreviewPresenter } from './deploymentPreview';
 
@@ -15,6 +16,7 @@ export let v1ConfigPresenter = Presenter.create(providerConfigType)
     name: config.name,
     description: config.description,
     metadata: config.metadata,
+    tool_filter: toolFilterPresenter(config.toolFilter),
 
     provider_id: config.providerId,
     specification_id: config.specificationId,
@@ -69,6 +71,7 @@ export let v1ConfigPresenter = Presenter.create(providerConfigType)
           examples: [{ label: 'primary', notes: 'Default production config' }]
         })
       ),
+      tool_filter: toolFilterPresenter.schema,
       provider_id: v.string({
         name: 'provider_id',
         description: 'Provider ID',

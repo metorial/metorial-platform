@@ -1,7 +1,6 @@
 import { Controller } from '@metorial/rest';
 import { consumerProviderController } from './consumer/provider';
 import { consumerSessionController } from './consumer/session';
-import { dashboardApiKeyController } from './dashboard/apiKey';
 import { dashboardBootController } from './dashboard/boot';
 import { flagsController } from './dashboard/flags';
 import { dashboardOAuthAuthorizationRequestController } from './dashboard/oauthAuthorizationRequest';
@@ -10,6 +9,8 @@ import { dashboardOrganizationInviteController } from './dashboard/organizationI
 import { profileController } from './dashboard/profile';
 import { dashboardUsageController } from './dashboard/usage';
 import { dashboardUserController } from './dashboard/user';
+import { consumerController } from './instance/consumer';
+import { consumerSurfaceController } from './instance/consumerSurface';
 import { fileController } from './instance/file';
 import { fileLinkController } from './instance/fileLink';
 import { instanceController } from './instance/instance';
@@ -24,6 +25,7 @@ import { providerTemplateController } from './instance/providerTemplate';
 import { tokenController } from './instance/token';
 import { accessPolicyManagementController } from './management/accessPolicy';
 import { accessRoleManagementController } from './management/accessRole';
+import { managementApiKeyController } from './management/apiKey';
 import { cliDeviceManagementController } from './management/cliDevice';
 import { instanceManagementController } from './management/instance';
 import { oauthApplicationManagementController } from './management/oauthApplication';
@@ -76,8 +78,8 @@ import {
   providerSetupSessionController,
   providerSetupSessionDashboardController,
   providerSpecificationController,
-  providerTriggerController,
   providerToolController,
+  providerTriggerController,
   providerVersionController,
   publisherController,
   sessionConnectionController,
@@ -92,7 +94,13 @@ import {
   sessionTemplateProviderController
 } from './provider';
 import { toolCallController } from './provider/toolCall';
-import { scmAccountsController, scmInstallationController, scmReposController } from './scm';
+import {
+  scmAccountsController,
+  scmConnectionsController,
+  scmInstallationController,
+  scmProvidersController,
+  scmReposController
+} from './scm';
 
 export let magnetarController = Controller.create<any>(
   {
@@ -168,11 +176,15 @@ export let magnetarController = Controller.create<any>(
     fileController,
     fileLinkController,
 
+    consumerController,
+    consumerSurfaceController,
     portalController,
     providerTemplateController,
 
     consumerSessionController,
-    consumerProviderController
+    consumerProviderController,
+
+    managementApiKeyController
 
     // teamManagementController,
     // portalConsumerGroupController,
@@ -197,9 +209,10 @@ export let dashboardController = Controller.create<any>(
     dashboardOrganizationInviteController,
     dashboardOAuthAuthorizationRequestController,
     dashboardBootController,
-    dashboardApiKeyController,
     dashboardUsageController,
     flagsController,
+
+    managementApiKeyController,
 
     instanceManagementController,
     organizationManagementController,
@@ -220,6 +233,8 @@ export let dashboardController = Controller.create<any>(
     fileController,
     fileLinkController,
 
+    consumerController,
+    consumerSurfaceController,
     sessionController,
 
     profileController,
@@ -286,6 +301,8 @@ export let dashboardController = Controller.create<any>(
     customProviderCommitController,
     customProviderEnvironmentController,
 
+    scmConnectionsController,
+    scmProvidersController,
     scmInstallationController,
     scmReposController,
     scmAccountsController,

@@ -1,8 +1,4 @@
-import {
-  notFoundError,
-  preconditionFailedError,
-  ServiceError
-} from '@lowerdeck/error';
+import { notFoundError, preconditionFailedError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
@@ -216,7 +212,11 @@ class ConsumerAccessServiceImpl {
         }
       });
 
-      if (portal && !isPreconfiguredMagicMcpServer(d.access.magicMcpServer)) {
+      if (
+        portal &&
+        d.consumerGroup.type != 'user_access' &&
+        !isPreconfiguredMagicMcpServer(d.access.magicMcpServer)
+      ) {
         throw new ServiceError(notFoundError('consumer.access.resource'));
       }
     }

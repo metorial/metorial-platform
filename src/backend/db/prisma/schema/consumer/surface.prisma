@@ -4,11 +4,20 @@ enum ConsumerSurfaceStatus {
   deleted
 }
 
+enum ConsumerSurfaceType {
+  portal
+  organization_members
+}
+
 model ConsumerSurface {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
   status ConsumerSurfaceStatus
+  type   ConsumerSurfaceType   @default(portal)
+
+  isInternal                      Boolean @default(false)
+  internalSurfaceUniqueIdentifier String?
 
   name        String
   description String?
@@ -21,14 +30,14 @@ model ConsumerSurface {
   instanceOid BigInt
   instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
 
-  consumerAuthTenantOid BigInt
-  consumerAuthTenant    ConsumerAuthTenant @relation(fields: [consumerAuthTenantOid], references: [oid], onDelete: Cascade)
+  consumerAuthTenantOid BigInt?
+  consumerAuthTenant    ConsumerAuthTenant? @relation(fields: [consumerAuthTenantOid], references: [oid], onDelete: Cascade)
 
   publishableApiKeyOid BigInt @unique
   publishableApiKey    ApiKey @relation("ConsumerSurfacePublishableApiKey", fields: [publishableApiKeyOid], references: [oid], onDelete: Cascade)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
   archivedAt DateTime?
   deletedAt  DateTime?
 
@@ -38,4 +47,6 @@ model ConsumerSurface {
   accessRequests   ConsumerAccessRequest[]
   authExchanges    ConsumerAuthExchange[]
   portal           Portal?                 @relation("PortalSurface")
+
+  @@unique([instanceOid, internalSurfaceUniqueIdentifier])
 }

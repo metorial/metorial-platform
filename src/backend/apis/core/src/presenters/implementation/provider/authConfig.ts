@@ -1,6 +1,7 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
 import { providerAuthConfigType } from '../../types';
+import { toolFilterPresenter } from '../_lib/toolFilter';
 import { v1ProviderAuthCredentialsPresenter } from './authCredentials';
 import { v1ProviderAuthMethodPresenter } from './authMethod';
 import { v1ProviderDeploymentPreviewPresenter } from './deploymentPreview';
@@ -21,6 +22,7 @@ export let v1ProviderAuthConfigPresenter = Presenter.create(providerAuthConfigTy
     name: authConfig.name,
     description: authConfig.description,
     metadata: authConfig.metadata,
+    tool_filter: toolFilterPresenter(authConfig.toolFilter),
 
     deployment: authConfig.deploymentPreview
       ? await v1ProviderDeploymentPreviewPresenter
@@ -93,6 +95,7 @@ export let v1ProviderAuthConfigPresenter = Presenter.create(providerAuthConfigTy
           examples: [{ connected_by: 'alex@company.com', purpose: 'ci-pipeline' }]
         })
       ),
+      tool_filter: toolFilterPresenter.schema,
       deployment: v.nullable(v1ProviderDeploymentPreviewPresenter.schema),
       credentials: v.nullable(v1ProviderAuthCredentialsPresenter.schema),
       auth_method: v1ProviderAuthMethodPresenter.schema,

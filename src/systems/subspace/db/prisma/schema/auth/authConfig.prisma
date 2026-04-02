@@ -33,6 +33,9 @@ model ProviderAuthConfig {
   description String?
   metadata    Json?
 
+  /// [ToolFilter]
+  toolFilter Json @default("{\"type\":\"v1.allow_all\"}")
+
   providerOid BigInt
   provider    Provider @relation(fields: [providerOid], references: [oid], onDelete: Cascade)
 
