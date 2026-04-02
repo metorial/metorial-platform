@@ -23,7 +23,8 @@ let syncVersionManyCron = createQueue<{ cursor?: string }>({
 export let syncVersionManyCronProcessor = syncVersionManyCron.process(async data => {
   let versions = await db.providerVersion.findMany({
     where: {
-      id: data.cursor ? { gt: data.cursor } : undefined
+      id: data.cursor ? { gt: data.cursor } : undefined,
+      isCurrent: true
     },
     orderBy: { id: 'asc' },
     take: 100,
@@ -46,15 +47,20 @@ let syncVersionSingleCron = createQueue<{ providerVersionId: string }>({
   name: 'sub/pint/pver/sync/single',
   redisUrl: env.service.REDIS_URL,
   workerOpts: {
-    concurrency: 1,
+    concurrency: 10,
     limiter: {
       max: 10,
-      duration: 60 * 1000
+      duration: 1000
     }
   }
 });
 
 export let syncVersionSingleCronProcessor = syncVersionSingleCron.process(async data => {
+  let version = await db.providerVersion.findFirst({
+    where: { id: data.providerVersionId }
+  });
+  if (!version || !version.isCurrent) return;
+
   await providerVersionSyncSpecificationQueue.add({
     providerVersionId: data.providerVersionId
   });

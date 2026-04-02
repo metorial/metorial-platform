@@ -12,7 +12,7 @@ export let providerVersionSyncSpecificationQueue = createQueue<{ providerVersion
   workerOpts: {
     concurrency: 10,
     limiter: {
-      max: 20,
+      max: 50,
       duration: 1000
     }
   }
@@ -33,6 +33,8 @@ export let providerVersionSyncSpecificationQueueProcessor =
     try {
       let behavior = await backend.capabilities.getSpecificationBehavior({});
       if (!behavior.supportsVersionSpecification) {
+        if (version.specificationOid) return; // Already discovered
+
         await providerVersionSetSpecificationQueue.add({
           versionOid: version.oid,
           result: { status: 'waiting_for_pair' }
