@@ -61,6 +61,8 @@ export let v1SetupSessionPresenter = Presenter.create(providerSetupSessionType)
         : null,
 
       provider_id: setupSession.providerId ?? null,
+      identity_id: setupSession.identityId ?? null,
+      identity_credential_id: setupSession.identityCredentialId ?? null,
 
       auth_method: setupSession.authMethod
         ? await v1ProviderAuthMethodPresenter
@@ -153,6 +155,20 @@ export let v1SetupSessionPresenter = Presenter.create(providerSetupSessionType)
           name: 'provider_id',
           description: 'Provider ID',
           examples: ['pro_5gHjKlMnPqRsTuVw']
+        })
+      ),
+      identity_id: v.nullable(
+        v.string({
+          name: 'identity_id',
+          description: 'Linked identity ID',
+          examples: ['idn_3nOpRsTuVwXyZaBc']
+        })
+      ),
+      identity_credential_id: v.nullable(
+        v.string({
+          name: 'identity_credential_id',
+          description: 'Identity credential created from this setup session',
+          examples: ['idc_3nOpRsTuVwXyZaBc']
         })
       ),
       auth_method: v.nullable(v1ProviderAuthMethodPresenter.schema),
