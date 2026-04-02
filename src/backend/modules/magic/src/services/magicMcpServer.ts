@@ -309,6 +309,7 @@ class MagicMcpServerImpl {
     status?: MagicMcpServerStatus[];
     search?: string;
     groupIds?: string[];
+    preconfiguredOnly?: boolean;
     accessTags?: AnyAccessTagSelector;
   }) {
     let normalizedSearch = d.search?.trim();
@@ -350,6 +351,7 @@ class MagicMcpServerImpl {
           where: {
             instanceOid: d.instance.oid,
             status: statusFilter ? { in: statusFilter } : { not: 'archived' as const },
+            source: d.preconfiguredOnly ? { not: 'consumer_provider_template' } : undefined,
             groups: shouldFilterByGroups
               ? {
                   some: {

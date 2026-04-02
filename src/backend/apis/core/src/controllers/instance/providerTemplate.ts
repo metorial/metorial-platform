@@ -79,6 +79,7 @@ export let providerTemplateController = Controller.create(
           v.object({
             id: v.optional(v.union([v.string(), v.array(v.string())])),
             provider_deployment_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            search: v.optional(v.string()),
             status: v.optional(
               v.union([
                 v.enumOf(['active', 'archived', 'deleted']),
@@ -93,6 +94,7 @@ export let providerTemplateController = Controller.create(
           instance: ctx.instance,
           ids: normalizeArrayParam(ctx.query.id),
           providerDeploymentIds: normalizeArrayParam(ctx.query.provider_deployment_id),
+          search: ctx.query.search,
           status: normalizeArrayParam(ctx.query.status),
           accessTags: ctx.accessTags
         });

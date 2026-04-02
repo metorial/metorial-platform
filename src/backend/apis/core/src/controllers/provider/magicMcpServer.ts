@@ -63,7 +63,8 @@ export let magicMcpServerController = Controller.create(
               ])
             ),
             magic_mcp_group_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            search: v.optional(v.string())
+            search: v.optional(v.string()),
+            preconfigured_only: v.optional(v.boolean())
           })
         )
       )
@@ -74,6 +75,7 @@ export let magicMcpServerController = Controller.create(
           status: normalizeArrayParam<MagicMcpServerStatus>(ctx.query.status),
           groupIds: normalizeArrayParam(ctx.query.magic_mcp_group_id),
           search: ctx.query.search,
+          preconfiguredOnly: ctx.query.preconfigured_only,
           accessTags: ctx.accessTags
         });
 

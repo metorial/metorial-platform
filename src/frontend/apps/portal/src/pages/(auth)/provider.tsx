@@ -30,6 +30,9 @@ import {
 } from '../../state/consumer/catalog';
 import { usePaths } from '../../state/portal/path';
 
+let ACCESS_REQUESTED_MESSAGE =
+  'Access has been requested and your administrator will get back to you.';
+
 let Section = styled.section`
   display: flex;
   flex-direction: column;
@@ -78,7 +81,10 @@ let getTargetLabel = (input: {
   return input.name || input.description || input.id;
 };
 
-let showRequestAccessModal = (catalogItemId: string) =>
+let showRequestAccessModal = (
+  catalogItemId: string,
+  onRequested?: () => Promise<void> | void
+) =>
   showModal(({ dialogProps, close }) => {
     let form = useForm({
       initialValues: {
@@ -89,10 +95,24 @@ let showRequestAccessModal = (catalogItemId: string) =>
           message: yup.string().max(500, 'Use 500 characters or fewer')
         }),
       onSubmit: async values => {
-        await requestProviderAccess(catalogItemId, {
-          message: values.message || undefined
-        });
-        close();
+        try {
+          await requestProviderAccess(catalogItemId, {
+            message: values.message || undefined
+          });
+          await onRequested?.();
+          close();
+        } catch (error) {
+          if (
+            error instanceof Error &&
+            error.message.includes('pending access request already exists')
+          ) {
+            await onRequested?.();
+            close();
+            return;
+          }
+
+          throw error;
+        }
       }
     });
 
@@ -165,8 +185,10 @@ export let ProviderPage = () => {
     setManualAuthValue({});
   }, [providerTemplateItem?.id, authMethodIds, pendingSetupAuthMethodId]);
 
-  return renderWithLoader({ providerItem })(({ providerItem }) => {
-    let item = providerItem.data;
+  return renderWithLoader({ providerItem })(({ providerItem: loadedProviderItem }) => {
+    let item = loadedProviderItem.data;
+    let hasRequestedAccess =
+      item.availability != 'available_now' && item.hasPendingAccessRequest;
     let pendingSetupSession =
       pendingSetup.pending?.catalogItemId == item.id ? pendingSetup.setupSession.data : null;
 
@@ -186,14 +208,29 @@ export let ProviderPage = () => {
                   </Button>
                 </Link>
               ) : (
-                <Button size="2" onClick={() => showRequestAccessModal(item.id)}>
-                  Request access
+                <Button
+                  size="2"
+                  disabled={hasRequestedAccess}
+                  onClick={() =>
+                    showRequestAccessModal(item.id, async () => {
+                      await providerItem.refetch();
+                    })
+                  }
+                >
+                  {hasRequestedAccess ? 'Access requested' : 'Request access'}
                 </Button>
               )
             }
           />
 
           <Spacer height={16} />
+
+          {hasRequestedAccess && (
+            <>
+              <Callout color="orange">{ACCESS_REQUESTED_MESSAGE}</Callout>
+              <Spacer height={16} />
+            </>
+          )}
 
           <Card>
             <Inline>
@@ -363,7 +400,23 @@ export let ProviderPage = () => {
 
                 <Spacer height={16} />
 
-                <Button onClick={() => showRequestAccessModal(item.id)}>Request access</Button>
+                {hasRequestedAccess && (
+                  <>
+                    <Callout color="orange">{ACCESS_REQUESTED_MESSAGE}</Callout>
+                    <Spacer height={16} />
+                  </>
+                )}
+
+                <Button
+                  disabled={hasRequestedAccess}
+                  onClick={() =>
+                    showRequestAccessModal(item.id, async () => {
+                      await providerItem.refetch();
+                    })
+                  }
+                >
+                  {hasRequestedAccess ? 'Access requested' : 'Request access'}
+                </Button>
               </Card>
             ) : (
               <Card>

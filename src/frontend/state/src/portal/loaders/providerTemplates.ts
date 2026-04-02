@@ -4,6 +4,7 @@ import {
   DashboardInstanceProviderTemplatesUpdateBody
 } from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
+import { autoPaginate } from '../../lib/autoPaginate';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
 
@@ -34,6 +35,33 @@ export let useProviderTemplates = (
     ...providerTemplates,
     createMutator: providerTemplates.useMutator('create')
   };
+};
+
+export let allProviderTemplatesLoader = createLoader({
+  name: 'allProviderTemplates',
+  parents: [],
+  fetch: (
+    i: {
+      instanceId: string;
+    } & Omit<DashboardInstanceProviderTemplatesListQuery, 'after' | 'before' | 'cursor'>
+  ) =>
+    withAuth(sdk =>
+      autoPaginate(cursor =>
+        sdk.providerTemplates.list(i.instanceId, {
+          ...i,
+          ...cursor,
+          limit: i.limit ?? 100
+        })
+      )
+    ),
+  mutators: {}
+});
+
+export let useAllProviderTemplates = (
+  instanceId: string | null | undefined,
+  query?: Omit<DashboardInstanceProviderTemplatesListQuery, 'after' | 'before' | 'cursor'>
+) => {
+  return allProviderTemplatesLoader.use(instanceId ? { instanceId, ...query } : null);
 };
 
 export let useCreateProviderTemplate = providerTemplatesLoader.createExternalMutator(

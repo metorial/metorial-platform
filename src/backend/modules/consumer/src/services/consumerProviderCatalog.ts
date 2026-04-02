@@ -1,7 +1,7 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator, type PaginatorInput } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { Prisma, ProviderTemplate, db, type Instance } from '@metorial/db';
+import { ConsumerProfile, Prisma, ProviderTemplate, db, type Instance } from '@metorial/db';
 import {
   accessTagService,
   consumerMagicMcpReadRoles,
@@ -39,11 +39,13 @@ export type ConsumerProviderCatalogItem =
   | {
       type: 'provider_template';
       availability: ConsumerProviderAvailability;
+      hasPendingAccessRequest: boolean;
       providerTemplate: ProviderTemplate;
     }
   | {
       type: 'magic_mcp_server';
       availability: ConsumerProviderAvailability;
+      hasPendingAccessRequest: boolean;
       magicMcpServer: ConsumerMagicMcpCatalogServer;
     };
 
@@ -275,6 +277,7 @@ let getConsumerProviderAvailability = (d: {
 class ConsumerProviderCatalogServiceImpl {
   async listCatalogEntries(d: {
     instance: Instance;
+    consumerProfile?: Pick<ConsumerProfile, 'oid'>;
     search?: string;
     accessTags?: AnyAccessTagSelector;
     includeCapabilities?: boolean;
@@ -291,6 +294,7 @@ class ConsumerProviderCatalogServiceImpl {
         return {
           items: await this.hydrateCatalogEntries({
             instance: d.instance,
+            consumerProfile: d.consumerProfile,
             records: recordPage.items,
             includeCapabilities: d.includeCapabilities,
             accessTags: d.accessTags
@@ -307,6 +311,7 @@ class ConsumerProviderCatalogServiceImpl {
 
   async listFeaturedCatalogItems(d: {
     instance: Instance;
+    consumerProfile?: Pick<ConsumerProfile, 'oid'>;
     accessTags?: AnyAccessTagSelector;
     limit?: number;
   }) {
@@ -320,12 +325,14 @@ class ConsumerProviderCatalogServiceImpl {
 
     return await this.hydrateCatalogItems({
       records: recordPage.items,
+      consumerProfile: d.consumerProfile,
       accessTags: d.accessTags
     });
   }
 
   async getCatalogItem(d: {
     instance: Instance;
+    consumerProfile?: Pick<ConsumerProfile, 'oid'>;
     catalogItemId: string;
     accessTags?: AnyAccessTagSelector;
   }): Promise<ConsumerProviderCatalogItem> {
@@ -341,6 +348,7 @@ class ConsumerProviderCatalogServiceImpl {
     return (
       await this.hydrateCatalogItems({
         records: [record],
+        consumerProfile: d.consumerProfile,
         accessTags: d.accessTags
       })
     )[0];
@@ -348,6 +356,7 @@ class ConsumerProviderCatalogServiceImpl {
 
   async getCatalogEntry(d: {
     instance: Instance;
+    consumerProfile?: Pick<ConsumerProfile, 'oid'>;
     catalogItemId: string;
     accessTags?: AnyAccessTagSelector;
     includeCapabilities?: boolean;
@@ -364,6 +373,7 @@ class ConsumerProviderCatalogServiceImpl {
     return (
       await this.hydrateCatalogEntries({
         instance: d.instance,
+        consumerProfile: d.consumerProfile,
         records: [record],
         includeCapabilities: d.includeCapabilities,
         accessTags: d.accessTags
@@ -549,6 +559,7 @@ class ConsumerProviderCatalogServiceImpl {
 
   private async hydrateCatalogItems(d: {
     records: ConsumerCatalogRecord[];
+    consumerProfile?: Pick<ConsumerProfile, 'oid'>;
     accessTags?: AnyAccessTagSelector;
   }): Promise<ConsumerProviderCatalogItem[]> {
     if (!d.records.length) {
@@ -569,10 +580,12 @@ class ConsumerProviderCatalogServiceImpl {
     let [providerItems, magicMcpServerItems] = await Promise.all([
       this.hydrateProviderTemplateItems({
         providerTemplates: providerTemplateRecords.map(record => record.providerTemplate),
+        consumerProfile: d.consumerProfile,
         accessTags: d.accessTags
       }),
       this.hydrateMagicMcpServerItems({
         magicMcpServers: magicMcpServerRecords.map(record => record.magicMcpServer),
+        consumerProfile: d.consumerProfile,
         accessTags: d.accessTags
       })
     ]);
@@ -599,6 +612,7 @@ class ConsumerProviderCatalogServiceImpl {
   private async hydrateCatalogEntries(d: {
     instance: Instance;
     records: ConsumerCatalogRecord[];
+    consumerProfile?: Pick<ConsumerProfile, 'oid'>;
     includeCapabilities?: boolean;
     accessTags?: AnyAccessTagSelector;
   }): Promise<ConsumerProviderCatalogEntry[]> {
@@ -621,11 +635,13 @@ class ConsumerProviderCatalogServiceImpl {
       this.hydrateProviderTemplateEntries({
         instance: d.instance,
         providerTemplates: providerTemplateRecords.map(record => record.providerTemplate),
+        consumerProfile: d.consumerProfile,
         includeCapabilities: d.includeCapabilities,
         accessTags: d.accessTags
       }),
       this.hydrateMagicMcpServerEntries({
         magicMcpServers: magicMcpServerRecords.map(record => record.magicMcpServer),
+        consumerProfile: d.consumerProfile,
         accessTags: d.accessTags
       })
     ]);
@@ -651,6 +667,7 @@ class ConsumerProviderCatalogServiceImpl {
 
   private async hydrateProviderTemplateItems(d: {
     providerTemplates: ProviderTemplate[];
+    consumerProfile?: Pick<ConsumerProfile, 'oid'>;
     accessTags?: AnyAccessTagSelector;
   }): Promise<
     Extract<
@@ -668,6 +685,10 @@ class ConsumerProviderCatalogServiceImpl {
       providerTemplates: d.providerTemplates,
       accessTags: d.accessTags
     });
+    let pendingAccessRequestState = await this.getPendingAccessRequestState({
+      consumerProfile: d.consumerProfile,
+      providerTemplates: d.providerTemplates
+    });
 
     return d.providerTemplates.map(providerTemplate => {
       return {
@@ -676,6 +697,9 @@ class ConsumerProviderCatalogServiceImpl {
           oid: providerTemplate.oid,
           availabilityState
         }),
+        hasPendingAccessRequest: pendingAccessRequestState.providerTemplateOids.has(
+          providerTemplate.oid
+        ),
         providerTemplate
       };
     });
@@ -684,6 +708,7 @@ class ConsumerProviderCatalogServiceImpl {
   private async hydrateProviderTemplateEntries(d: {
     instance: Instance;
     providerTemplates: ProviderTemplate[];
+    consumerProfile?: Pick<ConsumerProfile, 'oid'>;
     includeCapabilities?: boolean;
     accessTags?: AnyAccessTagSelector;
   }): Promise<ConsumerProviderTemplateCatalogEntry[]> {
@@ -694,6 +719,10 @@ class ConsumerProviderCatalogServiceImpl {
     let availabilityState = await this.getProviderTemplateAvailabilityState({
       providerTemplates: d.providerTemplates,
       accessTags: d.accessTags
+    });
+    let pendingAccessRequestState = await this.getPendingAccessRequestState({
+      consumerProfile: d.consumerProfile,
+      providerTemplates: d.providerTemplates
     });
 
     let deploymentIds = Array.from(
@@ -798,6 +827,9 @@ class ConsumerProviderCatalogServiceImpl {
       return {
         type: 'provider_template' as const,
         availability,
+        hasPendingAccessRequest: pendingAccessRequestState.providerTemplateOids.has(
+          providerTemplate.oid
+        ),
         providerTemplate,
         deployment,
         provider,
@@ -810,6 +842,7 @@ class ConsumerProviderCatalogServiceImpl {
 
   private async hydrateMagicMcpServerItems(d: {
     magicMcpServers: ConsumerMagicMcpCatalogServer[];
+    consumerProfile?: Pick<ConsumerProfile, 'oid'>;
     accessTags?: AnyAccessTagSelector;
   }): Promise<
     Extract<
@@ -827,6 +860,10 @@ class ConsumerProviderCatalogServiceImpl {
       magicMcpServers: d.magicMcpServers,
       accessTags: d.accessTags
     });
+    let pendingAccessRequestState = await this.getPendingAccessRequestState({
+      consumerProfile: d.consumerProfile,
+      magicMcpServers: d.magicMcpServers
+    });
 
     return d.magicMcpServers.map(magicMcpServer => {
       return {
@@ -835,6 +872,9 @@ class ConsumerProviderCatalogServiceImpl {
           oid: magicMcpServer.oid,
           availabilityState
         }),
+        hasPendingAccessRequest: pendingAccessRequestState.magicMcpServerOids.has(
+          magicMcpServer.oid
+        ),
         magicMcpServer
       };
     });
@@ -842,6 +882,7 @@ class ConsumerProviderCatalogServiceImpl {
 
   private async hydrateMagicMcpServerEntries(d: {
     magicMcpServers: ConsumerMagicMcpCatalogServer[];
+    consumerProfile?: Pick<ConsumerProfile, 'oid'>;
     accessTags?: AnyAccessTagSelector;
   }): Promise<
     Extract<
@@ -852,6 +893,71 @@ class ConsumerProviderCatalogServiceImpl {
     >[]
   > {
     return await this.hydrateMagicMcpServerItems(d);
+  }
+
+  private async getPendingAccessRequestState(d: {
+    consumerProfile?: Pick<ConsumerProfile, 'oid'>;
+    providerTemplates?: ProviderTemplate[];
+    magicMcpServers?: ConsumerMagicMcpCatalogServer[];
+  }) {
+    if (!d.consumerProfile) {
+      return {
+        providerTemplateOids: new Set<bigint>(),
+        magicMcpServerOids: new Set<bigint>()
+      };
+    }
+
+    let providerTemplateOids =
+      d.providerTemplates?.map(providerTemplate => providerTemplate.oid) ?? [];
+    let magicMcpServerOids =
+      d.magicMcpServers?.map(magicMcpServer => magicMcpServer.oid) ?? [];
+
+    if (!providerTemplateOids.length && !magicMcpServerOids.length) {
+      return {
+        providerTemplateOids: new Set<bigint>(),
+        magicMcpServerOids: new Set<bigint>()
+      };
+    }
+
+    let pendingAccessRequests = await db.consumerAccessRequest.findMany({
+      where: {
+        consumerProfileOid: d.consumerProfile.oid,
+        status: 'pending',
+        OR: [
+          providerTemplateOids.length
+            ? {
+                providerTemplateOid: {
+                  in: providerTemplateOids
+                }
+              }
+            : undefined!,
+          magicMcpServerOids.length
+            ? {
+                magicMcpServerOid: {
+                  in: magicMcpServerOids
+                }
+              }
+            : undefined!
+        ].filter(Boolean)
+      },
+      select: {
+        providerTemplateOid: true,
+        magicMcpServerOid: true
+      }
+    });
+
+    return {
+      providerTemplateOids: new Set(
+        pendingAccessRequests
+          .map(accessRequest => accessRequest.providerTemplateOid)
+          .filter((oid): oid is bigint => oid != null)
+      ),
+      magicMcpServerOids: new Set(
+        pendingAccessRequests
+          .map(accessRequest => accessRequest.magicMcpServerOid)
+          .filter((oid): oid is bigint => oid != null)
+      )
+    };
   }
 
   private async getProviderTemplateAvailabilityState(d: {

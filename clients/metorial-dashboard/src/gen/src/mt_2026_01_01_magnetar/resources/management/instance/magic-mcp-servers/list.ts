@@ -79,6 +79,7 @@ export type ManagementInstanceMagicMcpServersListQuery = {
     | undefined;
   magicMcpGroupId?: string | string[] | undefined;
   search?: string | undefined;
+  preconfiguredOnly?: boolean | undefined;
 };
 
 export let mapManagementInstanceMagicMcpServersListQuery = mtMap.union([
@@ -104,7 +105,11 @@ export let mapManagementInstanceMagicMcpServersListQuery = mtMap.union([
           )
         ])
       ),
-      search: mtMap.objectField('search', mtMap.passthrough())
+      search: mtMap.objectField('search', mtMap.passthrough()),
+      preconfiguredOnly: mtMap.objectField(
+        'preconfigured_only',
+        mtMap.passthrough()
+      )
     })
   )
 ]);

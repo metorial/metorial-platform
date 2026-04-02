@@ -34,6 +34,7 @@ let consumerProviderItemGroup = consumerGroup.use(async ctx => {
   let consumerProvider = await consumerProviderCatalogService.getCatalogItem({
     instance: ctx.instance,
     catalogItemId: ctx.params.catalogItemId,
+    consumerProfile: ctx.consumerProfile,
     accessTags: ctx.accessTags
   });
 
@@ -53,6 +54,7 @@ let consumerProviderGroup = consumerGroup.use(async ctx => {
   let consumerProvider = await consumerProviderCatalogService.getCatalogEntry({
     instance: ctx.instance,
     catalogItemId: ctx.params.catalogItemId,
+    consumerProfile: ctx.consumerProfile,
     accessTags: ctx.accessTags,
     includeCapabilities: true
   });
@@ -99,6 +101,7 @@ export let consumerProviderController = Controller.create(
       .do(async ctx => {
         let list = await consumerProviderCatalogService.listCatalogEntries({
           instance: ctx.instance,
+          consumerProfile: ctx.consumerProfile,
           search: ctx.query.search,
           accessTags: ctx.accessTags,
           includeCapabilities: false,

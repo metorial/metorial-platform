@@ -2,13 +2,45 @@ import {
   DashboardInstancePortalsConsumerAccessCreateBody,
   DashboardInstancePortalsConsumerAccessListQuery
 } from '@metorial/dashboard-sdk';
-import { createLoader } from '@metorial/data-hooks';
+import { createLoader, useMutation } from '@metorial/data-hooks';
+import { autoPaginate } from '../../lib/autoPaginate';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
 
+export let allPortalConsumerAccessLoader = createLoader({
+  name: 'allPortalConsumerAccess',
+  parents: [],
+  fetch: (
+    i: {
+      instanceId: string;
+      portalId: string;
+    } & Omit<DashboardInstancePortalsConsumerAccessListQuery, 'after' | 'before' | 'cursor'>
+  ) =>
+    withAuth(sdk =>
+      autoPaginate(cursor =>
+        sdk.portals.consumerAccess.list(i.instanceId, i.portalId, {
+          ...i,
+          ...cursor,
+          limit: i.limit ?? 100
+        })
+      )
+    ),
+  mutators: {}
+});
+
+export let useAllPortalConsumerAccess = (
+  instanceId: string | null | undefined,
+  portalId: string | null | undefined,
+  query?: Omit<DashboardInstancePortalsConsumerAccessListQuery, 'after' | 'before' | 'cursor'>
+) => {
+  return allPortalConsumerAccessLoader.use(
+    instanceId && portalId ? { instanceId, portalId, ...query } : null
+  );
+};
+
 export let portalConsumerAccessLoader = createLoader({
   name: 'portalConsumerAccess',
-  parents: [],
+  parents: [allPortalConsumerAccessLoader],
   fetch: (
     i: {
       instanceId: string;
@@ -48,12 +80,35 @@ export let usePortalConsumerAccess = (
   };
 };
 
-export let useCreatePortalConsumerAccess = portalConsumerAccessLoader.createExternalMutator(
-  (i: DashboardInstancePortalsConsumerAccessCreateBody & { instanceId: string; portalId: string }) =>
-    withAuth(sdk => sdk.portals.consumerAccess.create(i.instanceId, i.portalId, i))
-);
+let refetchPortalConsumerAccessLoaders = () => {
+  portalConsumerAccessLoader.refetchAll();
+  allPortalConsumerAccessLoader.refetchAll();
+};
 
-export let useDeletePortalConsumerAccess = portalConsumerAccessLoader.createExternalMutator(
-  (i: { instanceId: string; portalId: string; consumerAccessId: string }) =>
-    withAuth(sdk => sdk.portals.consumerAccess.delete(i.instanceId, i.portalId, i.consumerAccessId))
-);
+export let useCreatePortalConsumerAccess = () =>
+  useMutation(
+    (i: DashboardInstancePortalsConsumerAccessCreateBody & { instanceId: string; portalId: string }) =>
+      withAuth(sdk => sdk.portals.consumerAccess.create(i.instanceId, i.portalId, i)),
+    {
+      onSuccess: refetchPortalConsumerAccessLoaders
+    }
+  );
+
+export let useCreatePortalConsumerAccessQuiet = () =>
+  useMutation(
+    (i: DashboardInstancePortalsConsumerAccessCreateBody & { instanceId: string; portalId: string }) =>
+      withAuth(sdk => sdk.portals.consumerAccess.create(i.instanceId, i.portalId, i)),
+    {
+      onSuccess: refetchPortalConsumerAccessLoaders,
+      disableToast: true
+    }
+  );
+
+export let useDeletePortalConsumerAccess = () =>
+  useMutation(
+    (i: { instanceId: string; portalId: string; consumerAccessId: string }) =>
+      withAuth(sdk => sdk.portals.consumerAccess.delete(i.instanceId, i.portalId, i.consumerAccessId)),
+    {
+      onSuccess: refetchPortalConsumerAccessLoaders
+    }
+  );
