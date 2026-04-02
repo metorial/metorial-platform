@@ -23,7 +23,7 @@ export let PortalOverviewPage = () => {
       <Spacer size={15} />
 
       <Attributes
-        itemWidth="250px"
+        itemWidth="300px"
         attributes={[
           {
             label: 'Name',
@@ -40,10 +40,6 @@ export let PortalOverviewPage = () => {
           {
             label: 'Portal URL',
             content: <ID id={portal.data.urls[0]?.url} />
-          },
-          {
-            label: 'Session Expiry',
-            content: `${portal.data.auth.sessionExpiryTimeInSeconds} seconds`
           },
           {
             label: 'Brand Name',

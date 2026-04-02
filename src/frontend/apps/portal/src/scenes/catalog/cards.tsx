@@ -1,19 +1,19 @@
 import { Avatar, Badge, Text, theme } from '@metorial/ui';
 import { ItemGrid } from '@metorial/ui-product';
-import { RiFlowChart, RiPlug2Line } from '@remixicon/react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import type { ProviderCatalogItem, ProviderCatalogList } from '../../state/consumer/catalog';
 import { usePaths } from '../../state/portal/path';
 
 let EmptyState = styled.div`
-  padding: 32px 28px;
-  border-radius: 20px;
-  border: 1px dashed ${theme.colors.gray500};
+  padding: 22px;
+  border-radius: 8px;
   background: ${theme.colors.gray200};
 `;
 
-export let getCatalogItemTitle = (item: ProviderCatalogItem | ProviderCatalogList['items'][number]) => {
+export let getCatalogItemTitle = (
+  item: ProviderCatalogItem | ProviderCatalogList['items'][number]
+) => {
   return item.type == 'provider_template'
     ? item.providerTemplate.name
     : item.magicMcpServer.name || 'Untitled Magic MCP server';
@@ -23,8 +23,10 @@ export let getCatalogItemDescription = (
   item: ProviderCatalogItem | ProviderCatalogList['items'][number]
 ) => {
   return item.type == 'provider_template'
-    ? item.providerTemplate.description || item.provider.description || 'No description provided.'
-    : item.magicMcpServer.description || 'Managed Magic MCP deployment';
+    ? item.providerTemplate.description ||
+        item.provider.description ||
+        'No description provided.'
+    : item.magicMcpServer.description;
 };
 
 let getCatalogItemTypeLabel = (
@@ -61,10 +63,6 @@ export let CatalogGrid = ({
       {items.map(item => {
         let title = getCatalogItemTitle(item);
         let description = getCatalogItemDescription(item);
-        let footerLabel =
-          item.type == 'provider_template'
-            ? item.provider.publisher.name
-            : item.magicMcpServer.id;
 
         return (
           <ItemGrid.Item
@@ -100,10 +98,6 @@ export let CatalogGrid = ({
                   </Badge>
                   <Badge color="gray">{getCatalogItemTypeLabel(item)}</Badge>
                 </div>
-
-                <Text size="2" color="gray700">
-                  {footerLabel}
-                </Text>
               </>
             }
           />

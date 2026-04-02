@@ -70,7 +70,11 @@ let ProviderDeployButton = styled(Button)`
   width: fit-content;
 `;
 
-let getTargetLabel = (input: { name: string | null; description: string | null; id: string }) => {
+let getTargetLabel = (input: {
+  name: string | null;
+  description: string | null;
+  id: string;
+}) => {
   return input.name || input.description || input.id;
 };
 
@@ -96,13 +100,16 @@ let showRequestAccessModal = (catalogItemId: string) =>
       <Dialog.Wrapper {...dialogProps} width={520}>
         <Dialog.Title>Request access</Dialog.Title>
         <Dialog.Description>
-          This creates a portal access request for the selected provider. Include context if the reviewer needs deployment details.
+          This creates a portal access request for the selected provider. Include context if
+          the reviewer needs deployment details.
         </Dialog.Description>
 
         <form onSubmit={form.handleSubmit}>
           <Input
             label="Message"
             placeholder="Why do you need access?"
+            as="textarea"
+            minRows={4}
             {...form.getFieldProps('message')}
           />
           <form.RenderError field="message" />
@@ -142,7 +149,8 @@ export let ProviderPage = () => {
     providerTemplateItem && pendingSetup.pending?.catalogItemId == providerTemplateItem.id
       ? pendingSetup.pending.providerAuthMethodId
       : null;
-  let authMethodIds = providerTemplateItem?.authMethods.map(method => method.id).join(',') ?? '';
+  let authMethodIds =
+    providerTemplateItem?.authMethods.map(method => method.id).join(',') ?? '';
 
   useEffect(() => {
     if (!providerTemplateItem) return;
@@ -151,7 +159,7 @@ export let ProviderPage = () => {
       pendingSetupAuthMethodId &&
       providerTemplateItem.authMethods.some(method => method.id == pendingSetupAuthMethodId)
         ? pendingSetupAuthMethodId
-        : providerTemplateItem.authMethods[0]?.id ?? null;
+        : (providerTemplateItem.authMethods[0]?.id ?? null);
 
     setSelectedAuthMethodId(nextAuthMethodId);
     setManualAuthValue({});
@@ -167,8 +175,6 @@ export let ProviderPage = () => {
 
       return (
         <ContentLayout>
-          <Spacer height={28} />
-
           <PageHeader
             title={getTargetLabel(target)}
             description="This catalog item is a preconfigured Magic MCP deployment exposed directly through the portal."
@@ -199,18 +205,7 @@ export let ProviderPage = () => {
 
             <Spacer height={16} />
 
-            <Attributes
-              attributes={[
-                {
-                  label: 'Description',
-                  content: target.description || 'No description provided.'
-                },
-                {
-                  label: 'Deployment ID',
-                  content: target.id
-                }
-              ]}
-            />
+            <Text size="2">{target.description || 'No description provided.'}</Text>
           </Card>
         </ContentLayout>
       );
@@ -224,14 +219,13 @@ export let ProviderPage = () => {
       defaultAuthMethod;
 
     let hasCompletedSetup = pendingSetupSession?.status == 'completed';
-    let deploymentReadyText =
-      !pendingSetupSession
-        ? null
-        : pendingSetupSession.status == 'completed'
-          ? 'OAuth setup finished. You can create the deployment now.'
-          : pendingSetupSession.status == 'pending'
-            ? 'OAuth setup is still pending. Resume the external flow to continue.'
-            : `Setup status: ${pendingSetupSession.status.replace(/_/g, ' ')}.`;
+    let deploymentReadyText = !pendingSetupSession
+      ? null
+      : pendingSetupSession.status == 'completed'
+        ? 'OAuth setup finished. You can create the deployment now.'
+        : pendingSetupSession.status == 'pending'
+          ? 'OAuth setup is still pending. Resume the external flow to continue.'
+          : `Setup status: ${pendingSetupSession.status.replace(/_/g, ' ')}.`;
 
     let deploy = async () => {
       setActionError(null);
@@ -305,7 +299,11 @@ export let ProviderPage = () => {
 
         <PageHeader
           title={item.providerTemplate.name}
-          description={item.providerTemplate.description || item.provider.description || 'Configure this provider template and turn it into an owned Magic MCP deployment.'}
+          description={
+            item.providerTemplate.description ||
+            item.provider.description ||
+            'Configure this provider template and turn it into an owned Magic MCP deployment.'
+          }
           actions={
             <Inline>
               <Badge color={item.availability == 'available_now' ? 'green' : 'orange'}>
@@ -359,7 +357,8 @@ export let ProviderPage = () => {
                 <Text weight="bold">Access is managed by portal policy</Text>
                 <Spacer height={10} />
                 <Text size="2" color="gray700">
-                  This provider exists in the catalog, but your current portal access does not allow direct deployment yet.
+                  This provider exists in the catalog, but your current portal access does not
+                  allow direct deployment yet.
                 </Text>
 
                 <Spacer height={16} />
@@ -404,7 +403,8 @@ export let ProviderPage = () => {
                   {selectedAuthMethod?.type == 'oauth' ? (
                     <>
                       <Callout color={hasCompletedSetup ? 'green' : 'blue'}>
-                        {deploymentReadyText || 'OAuth setup creates reusable credentials for this deployment.'}
+                        {deploymentReadyText ||
+                          'OAuth setup creates reusable credentials for this deployment.'}
                       </Callout>
 
                       <Inline>
@@ -412,17 +412,18 @@ export let ProviderPage = () => {
                           {hasCompletedSetup ? 'Restart setup' : 'Start OAuth setup'}
                         </Button>
 
-                        {pendingSetupSession?.url && pendingSetupSession.status == 'pending' && (
-                          <Button
-                            variant="soft"
-                            color="gray"
-                            onClick={() => {
-                              window.location.replace(pendingSetupSession.url);
-                            }}
-                          >
-                            Resume external flow
-                          </Button>
-                        )}
+                        {pendingSetupSession?.url &&
+                          pendingSetupSession.status == 'pending' && (
+                            <Button
+                              variant="soft"
+                              color="gray"
+                              onClick={() => {
+                                window.location.replace(pendingSetupSession.url);
+                              }}
+                            >
+                              Resume external flow
+                            </Button>
+                          )}
 
                         {hasCompletedSetup && (
                           <Button
@@ -446,7 +447,8 @@ export let ProviderPage = () => {
                     />
                   ) : selectedAuthMethod ? (
                     <Callout color="orange">
-                      This auth method has no input schema. The deployment will use an empty manual payload unless the provider supplies defaults on the backend.
+                      This auth method has no input schema. The deployment will use an empty
+                      manual payload unless the provider supplies defaults on the backend.
                     </Callout>
                   ) : null}
 
@@ -485,9 +487,7 @@ export let ProviderPage = () => {
                   <Entity.Field
                     title="OAuth"
                     value={
-                      item.provider.oauth?.status == 'enabled'
-                        ? 'Enabled'
-                        : 'Not required'
+                      item.provider.oauth?.status == 'enabled' ? 'Enabled' : 'Not required'
                     }
                   />
                   <Entity.Field
@@ -510,7 +510,9 @@ export let ProviderPage = () => {
                         <Badge color={method.type == 'oauth' ? 'blue' : 'gray'}>
                           {method.type}
                         </Badge>
-                        {method.id == selectedAuthMethod?.id && <Badge color="green">Selected</Badge>}
+                        {method.id == selectedAuthMethod?.id && (
+                          <Badge color="green">Selected</Badge>
+                        )}
                       </Inline>
                       <Spacer height={8} />
                       <Text weight="bold">{method.name}</Text>
@@ -565,7 +567,9 @@ export let ProviderPage = () => {
                 <Text weight="bold">Deployment outcome</Text>
                 <Spacer height={10} />
                 <Text size="2" color="gray700">
-                  Successful deployments create a Magic MCP server owned by your consumer profile. You can manage endpoints, sessions, and tokens from the Magic MCP area afterwards.
+                  Successful deployments create a Magic MCP server owned by your consumer
+                  profile. You can manage endpoints, sessions, and tokens from the Magic MCP
+                  area afterwards.
                 </Text>
 
                 <Spacer height={16} />

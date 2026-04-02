@@ -59,8 +59,7 @@ let showReviewAccessRequestModal = (props: {
           body: {
             status: props.action,
             resolutionMessage: values.resolutionMessage || undefined,
-            consumerGroupId:
-              props.action == 'approved' ? values.consumerGroupId : undefined
+            consumerGroupId: props.action == 'approved' ? values.consumerGroupId : undefined
           }
         });
 
@@ -72,11 +71,7 @@ let showReviewAccessRequestModal = (props: {
     });
 
     useEffect(() => {
-      if (
-        props.action != 'approved' ||
-        form.values.consumerGroupId ||
-        !groupItems[0]?.id
-      ) {
+      if (props.action != 'approved' || form.values.consumerGroupId || !groupItems[0]?.id) {
         return;
       }
 
@@ -88,9 +83,7 @@ let showReviewAccessRequestModal = (props: {
         <Dialog.Title>
           {props.action == 'approved' ? 'Approve Request' : 'Reject Request'}
         </Dialog.Title>
-        <Dialog.Description>
-          Review the selected access request.
-        </Dialog.Description>
+        <Dialog.Description>Review the selected access request.</Dialog.Description>
 
         <form onSubmit={form.handleSubmit}>
           {props.action == 'approved' && (
@@ -107,10 +100,7 @@ let showReviewAccessRequestModal = (props: {
             </>
           )}
 
-          <Input
-            label="Resolution Message"
-            {...form.getFieldProps('resolutionMessage')}
-          />
+          <Input label="Resolution Message" {...form.getFieldProps('resolutionMessage')} />
           <form.RenderError field="resolutionMessage" />
 
           <Spacer size={20} />
@@ -205,9 +195,6 @@ export let PortalAccessRequestsTable = (
                 <Badge color={request.status == 'approved' ? 'green' : 'gray'}>
                   {request.status}
                 </Badge>
-                <Text size="1" color="gray600">
-                  {request.resolutionMessage || 'Reviewed'}
-                </Text>
               </Flex>
             )
           ]

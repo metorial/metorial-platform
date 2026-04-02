@@ -58,7 +58,9 @@ export let MagicMcpProviderOverviewPage = () => {
         ? `${primaryEndpoint}?key=${activeToken.secret}`
         : null;
     let maskedEndpointWithKey =
-      primaryEndpoint && maskedToken ? `${primaryEndpoint}?key=${maskedToken}` : primaryEndpoint;
+      primaryEndpoint && maskedToken
+        ? `${primaryEndpoint}?key=${maskedToken}`
+        : primaryEndpoint;
     let connection =
       primaryEndpoint && activeToken
         ? connectionTypes[tab].getConnection(server.data, activeToken)
@@ -70,55 +72,21 @@ export let MagicMcpProviderOverviewPage = () => {
     return (
       <>
         <Box
-          title={
-            <Flex gap={8} style={{ alignItems: 'center', flexWrap: 'wrap' }}>
-              <span>{server.data.name ?? 'Magic MCP Server'}</span>
-              <Badge
-                color={
-                  {
-                    active: 'green' as const,
-                    archived: 'orange' as const,
-                    deleted: 'gray' as const
-                  }[server.data.status] ?? 'gray'
-                }
-              >
-                {server.data.status}
-              </Badge>
-              {server.data.endpoints.map(endpoint => (
-                <Badge key={endpoint.id} color="gray" size="1">
-                  {endpoint.alias}
-                </Badge>
-              ))}
-            </Flex>
+          title={server.data.name ?? 'Magic MCP Server'}
+          description={
+            server.data.description ?? 'Access this provider using the Magic MCP URL.'
           }
-          description="Key metadata for this Magic MCP server and its consumer endpoint."
         >
           <Attributes
-            itemWidth="250px"
+            itemWidth="400px"
             attributes={[
               {
                 label: 'ID',
                 content: <ID id={server.data.id} />
               },
               {
-                label: 'Session Template ID',
-                content: <ID id={server.data.sessionTemplateId} />
-              },
-              {
-                label: 'Provider Template ID',
-                content: server.data.providerTemplateId ? (
-                  <ID id={server.data.providerTemplateId} />
-                ) : (
-                  '-'
-                )
-              },
-              {
                 label: 'Created At',
                 content: <RenderDate date={server.data.createdAt} />
-              },
-              {
-                label: 'Updated At',
-                content: <RenderDate date={server.data.updatedAt} />
               }
             ]}
           />
@@ -214,9 +182,7 @@ export let MagicMcpProviderOverviewPage = () => {
                       <Button
                         variant="outline"
                         size="1"
-                        onClick={() =>
-                          copy.copy(JSON.stringify(connection.config, null, 2))
-                        }
+                        onClick={() => copy.copy(JSON.stringify(connection.config, null, 2))}
                         success={copy.copied}
                       >
                         Copy configuration

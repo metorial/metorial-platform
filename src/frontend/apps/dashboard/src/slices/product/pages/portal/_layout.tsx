@@ -23,7 +23,8 @@ export let PortalLayout = () => {
 
   if (pathname.includes('/group/')) pathname = pathname.split('/group/')[0] + '/groups';
   if (pathname.includes('/user/')) pathname = pathname.split('/user/')[0] + '/users';
-  if (pathname.includes('/settings/')) pathname = pathname.split('/settings/')[0] + '/settings';
+  if (pathname.includes('/settings/'))
+    pathname = pathname.split('/settings/')[0] + '/settings';
 
   let groups = usePortalConsumerGroups(
     instance.data?.id,
@@ -57,7 +58,7 @@ export let PortalLayout = () => {
             <>
               {portal.data.urls[0]?.url && (
                 <a href={portal.data.urls[0].url} target="_blank" rel="noopener noreferrer">
-                  <Button as="span" iconRight={<RiExternalLinkLine />}>
+                  <Button as="span" iconRight={<RiExternalLinkLine />} size="2">
                     Open Portal
                   </Button>
                 </a>
@@ -65,6 +66,7 @@ export let PortalLayout = () => {
 
               {pathname.endsWith('/groups') && (
                 <Button
+                  size="2"
                   onClick={() =>
                     showConsumerGroupFormModal({
                       instanceId: instance.data.id,

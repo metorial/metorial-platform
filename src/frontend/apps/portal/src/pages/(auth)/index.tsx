@@ -1,10 +1,20 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import { ContentLayout, PageHeader } from '@metorial/layout';
 import { Badge, Button, Spacer, Text, theme } from '@metorial/ui';
-import { RiArrowRightUpLine, RiFlowChart, RiKey2Line, RiSparklingLine } from '@remixicon/react';
+import { Box } from '@metorial/ui-product';
+import {
+  RiArrowRightUpLine,
+  RiFlowChart,
+  RiKey2Line,
+  RiSparklingLine
+} from '@remixicon/react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
-import { CatalogGrid, getCatalogItemDescription, getCatalogItemTitle } from '../../scenes/catalog/cards';
+import {
+  CatalogGrid,
+  getCatalogItemDescription,
+  getCatalogItemTitle
+} from '../../scenes/catalog/cards';
 import { useProviderCatalog } from '../../state/consumer/catalog';
 import { useConsumer } from '../../state/consumer/consumer';
 import { useFeaturedContent } from '../../state/portal/client';
@@ -18,12 +28,12 @@ let QuickGrid = styled.div`
 
 let QuickCard = styled(Link)`
   padding: 18px 20px;
-  border-radius: 18px;
+  border-radius: 14px;
   border: 1px solid ${theme.colors.gray400};
   background: white;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 2px;
   color: inherit;
   text-decoration: none;
   box-shadow: 0 14px 30px rgba(15, 23, 42, 0.06);
@@ -39,14 +49,8 @@ let QuickCard = styled(Link)`
   svg {
     width: 20px;
     height: 20px;
+    margin-bottom: 10px;
   }
-`;
-
-let SectionHeader = styled.div`
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: 16px;
 `;
 
 let FeaturedGrid = styled.div`
@@ -57,20 +61,18 @@ let FeaturedGrid = styled.div`
 
 let FeaturedCard = styled(Link)`
   padding: 20px;
-  border-radius: 20px;
-  border: 1px solid ${theme.colors.gray400};
+  border-radius: 10px;
+  border: 1px solid ${theme.colors.gray300};
   background: white;
   color: inherit;
   text-decoration: none;
   display: flex;
   flex-direction: column;
-  gap: 14px;
 `;
 
 let EmptyPanel = styled.div`
   padding: 22px;
-  border-radius: 18px;
-  border: 1px dashed ${theme.colors.gray500};
+  border-radius: 8px;
   background: ${theme.colors.gray200};
 `;
 
@@ -98,8 +100,6 @@ export let HomePage = () => {
 
     return (
       <ContentLayout>
-        <Spacer height={28} />
-
         <PageHeader
           title={`Portal workspace for ${consumer.data.name}`}
           description="Browse approved providers, complete setup flows, and manage the Magic MCP entrypoints created from this portal."
@@ -135,70 +135,60 @@ export let HomePage = () => {
 
         <Spacer height={30} />
 
-        <SectionHeader>
-          <div>
-            <Text weight="bold">Featured in this portal</Text>
-            <Text size="2" color="gray700">
-              Highlighted items from the current consumer catalog and access context.
-            </Text>
-          </div>
-
-          <Link to={Paths.catalog()}>
-            <Button as="span" size="1" variant="ghost" color="gray">
-              See all
-              <RiArrowRightUpLine />
-            </Button>
-          </Link>
-        </SectionHeader>
-
-        <Spacer height={12} />
-
-        {featuredItems.length > 0 ? (
-          <FeaturedGrid>
-            {featuredItems.map(item => (
-              <FeaturedCard key={`${item.type}:${item.id}`} to={Paths.provider(item.id)}>
-                <div>
-                  <Badge color={item.availability == 'available_now' ? 'green' : 'orange'}>
-                    {item.availability == 'available_now' ? 'Available now' : 'Request access'}
-                  </Badge>
-                </div>
-
-                <Text weight="bold">{item.name || 'Untitled portal item'}</Text>
-                <Text size="2" color="gray700">
-                  {item.description || 'No description provided.'}
-                </Text>
-              </FeaturedCard>
-            ))}
-          </FeaturedGrid>
-        ) : (
-          <EmptyPanel>
-            <Text weight="bold">Featured content is empty right now.</Text>
-            <Text size="2" color="gray700">
-              The full catalog below is still available, but this portal has not pinned any featured items.
-            </Text>
-          </EmptyPanel>
-        )}
+        <Box
+          title="Featured providers"
+          description="Highlighted items from the current consumer catalog and access context."
+          rightActions={
+            <Link to={Paths.catalog()}>
+              <Button as="span" size="1" variant="soft" iconRight={<RiArrowRightUpLine />}>
+                See all
+              </Button>
+            </Link>
+          }
+        >
+          {featuredItems.length > 0 ? (
+            <FeaturedGrid>
+              {featuredItems.map(item => (
+                <FeaturedCard key={`${item.type}:${item.id}`} to={Paths.provider(item.id)}>
+                  <div>
+                    <Badge color={item.availability == 'available_now' ? 'green' : 'orange'}>
+                      {item.availability == 'available_now'
+                        ? 'Available now'
+                        : 'Request access'}
+                    </Badge>
+                  </div>
+                  <Spacer height={10} />
+                  <Text weight="bold">{item.name || 'Untitled portal item'}</Text>
+                  <Spacer height={3} />
+                  <Text size="2" color="gray700">
+                    {item.description || 'No description provided.'}
+                  </Text>
+                </FeaturedCard>
+              ))}
+            </FeaturedGrid>
+          ) : (
+            <EmptyPanel>
+              <Text weight="bold">Featured content is empty right now.</Text>
+              <Text size="2" color="gray700">
+                The full catalog below is still available, but this portal has not pinned any
+                featured items.
+              </Text>
+            </EmptyPanel>
+          )}
+        </Box>
 
         <Spacer height={30} />
 
-        <SectionHeader>
-          <div>
-            <Text weight="bold">Catalog preview</Text>
-            <Text size="2" color="gray700">
-              The first published items available from this portal.
-            </Text>
-          </div>
-        </SectionHeader>
-
-        <Spacer height={12} />
-
-        <CatalogGrid
-          items={catalog.data.items.slice(0, 6)}
-          emptyTitle="No providers are published into this portal."
-          emptyDescription="Once the backend portal catalog is populated, published templates and Magic MCP servers will appear here."
-        />
-
-        <Spacer height={36} />
+        <Box
+          title="Catalog preview"
+          description="The first published items available from this portal."
+        >
+          <CatalogGrid
+            items={catalog.data.items.slice(0, 6)}
+            emptyTitle="No providers are published into this portal."
+            emptyDescription="Once the backend portal catalog is populated, published templates and Magic MCP servers will appear here."
+          />
+        </Box>
       </ContentLayout>
     );
   });

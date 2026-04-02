@@ -1,10 +1,5 @@
 import { AppLayout } from '@metorial/layout';
-import {
-  RiFlowChart,
-  RiGridLine,
-  RiHome6Line,
-  RiKey2Line
-} from '@remixicon/react';
+import { RiFlowChart, RiGridLine, RiHome6Line, RiKey2Line } from '@remixicon/react';
 import { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import { useBootWithAuth } from '../../state/portal/client';
@@ -23,11 +18,7 @@ export let Layout = () => {
   let magicMcpSessionsPath = Paths.magicMcpSessions();
   let magicMcpTokensPath = Paths.magicMcpTokens();
 
-  let matchesPath = (
-    input: { pathname: string },
-    to: string,
-    opts?: { exact?: boolean }
-  ) => {
+  let matchesPath = (input: { pathname: string }, to: string, opts?: { exact?: boolean }) => {
     return input.pathname === to || (!opts?.exact && input.pathname.startsWith(`${to}/`));
   };
 
@@ -59,7 +50,8 @@ export let Layout = () => {
               label: 'Catalog',
               to: catalogPath,
               getProps: input => ({
-                isActive: matchesPath(input, catalogPath) || input.pathname.includes('/providers/')
+                isActive:
+                  matchesPath(input, catalogPath) || input.pathname.includes('/providers/')
               })
             }
           ]

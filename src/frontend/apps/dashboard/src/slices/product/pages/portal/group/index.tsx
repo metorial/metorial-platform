@@ -27,11 +27,11 @@ export let PortalGroupOverviewPage = () => {
           },
           {
             label: 'Type',
-            content: group.data.isDefault ? 'Default' : group.data.ssoGroupIds.length ? 'SSO' : 'Manual'
-          },
-          {
-            label: 'Created At',
-            content: <RenderDate date={group.data.createdAt} />
+            content: group.data.isDefault
+              ? 'Default'
+              : group.data.ssoGroupIds.length
+                ? 'SSO'
+                : 'Manual'
           }
         ]}
       />

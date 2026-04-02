@@ -1,6 +1,7 @@
+import { delay } from '@lowerdeck/delay';
 import { SetupLayout } from '@metorial/layout';
 import { Button, CenteredSpinner, Spacer } from '@metorial/ui';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { usePortalAuth } from '../../state/portal/auth';
 import { useBoot } from '../../state/portal/client';
@@ -17,6 +18,8 @@ export let LoginPage = () => {
 
   let startSso = auth.useStartSso();
   let completeSso = auth.useCompleteSso();
+
+  let [isInitializing, setIsInitializing] = useState(true);
 
   let params = new URLSearchParams(location.search);
   let code = params.get('code');
@@ -49,16 +52,32 @@ export let LoginPage = () => {
     })();
   }, [unauthenticatedBoot, code, state, completeSso, navigate, homePath]);
 
+  useEffect(() => {
+    if (!boot.data) return;
+
+    void (async () => {
+      await delay(500);
+
+      let [result] = await startSso.mutate(undefined);
+      if (result?.url) {
+        window.location.replace(result.url);
+      }
+
+      setTimeout(() => setIsInitializing(false), 1000);
+    })();
+  }, [boot.data]);
+
   if (
     boot.isLoading ||
     boot.data?.type == 'authenticated' ||
-    (code && state && !completeSso.error)
+    (code && state && !completeSso.error) ||
+    (isInitializing && !boot.error && !startSso.error && !completeSso.error)
   ) {
     return (
       <SetupLayout
         main={{
           title: portalName,
-          description: 'Secure access to your portal workspace.'
+          description: 'Secure access to your workspace.'
         }}
       >
         <CenteredSpinner />

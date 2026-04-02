@@ -7,14 +7,15 @@ import {
   createBrowserRouter,
   useParams
 } from 'react-router-dom';
-import { CatalogPage } from './pages/(auth)/catalog';
 import { HomePage } from './pages/(auth)';
+import { CatalogPage } from './pages/(auth)/catalog';
+import { MagicMcpListLayout } from './pages/(auth)/magic-mcp/(list)/_layout';
 import { MagicMcpServerPage } from './pages/(auth)/magic-mcp/(list)/servers';
 import { MagicMcpSessionsPage } from './pages/(auth)/magic-mcp/(list)/sessions';
 import { MagicMcpTokensPage } from './pages/(auth)/magic-mcp/(list)/tokens';
+import { MagicMcpServerLayout } from './pages/(auth)/magic-mcp/server/_layout';
 import { MagicMcpServerConfigPage } from './pages/(auth)/magic-mcp/server/config';
 import { MagicMcpProviderOverviewPage } from './pages/(auth)/magic-mcp/server/overview';
-import { MagicMcpServerLayout } from './pages/(auth)/magic-mcp/server/_layout';
 import { MagicMcpServerSessionsPage } from './pages/(auth)/magic-mcp/server/sessions';
 import { ProviderPage } from './pages/(auth)/provider';
 import { LoginPage } from './pages/(unauthenticated)/login';
@@ -34,10 +35,7 @@ let LegacyServerRedirect = () => {
   let { catalogItemId } = useParams();
 
   return (
-    <Navigate
-      to={catalogItemId ? paths.provider(catalogItemId) : paths.catalog()}
-      replace
-    />
+    <Navigate to={catalogItemId ? paths.provider(catalogItemId) : paths.catalog()} replace />
   );
 };
 
@@ -111,125 +109,130 @@ export let App = () => {
       .replace(/^\/+/, '')
       .replace(/\/+$/, '');
 
-    return createBrowserRouter(
-      [
-        {
-          path: '/',
-          element: (
-            <>
-              <Outlet />
-              <Toaster />
-              <ModalRoot />
-            </>
-          ),
-          errorElement: <RouterErrorPage />,
-          children: [
-            {
-              path: routeBasePath,
-              children: [
-                {
-                  path: 'login',
-                  element: <LoginPage />
-                },
-                {
-                  path: '',
-                  element: <Layout />,
-                  children: [
-                    {
-                      path: '',
-                      element: <HomePage />
-                    },
-                    {
-                      path: 'catalog',
-                      element: <CatalogPage />
-                    },
-                    {
-                      path: 'servers/*',
-                      element: <LegacyServersRedirect />
-                    },
-                    {
-                      path: 'providers/:catalogItemId',
-                      element: <ProviderPage />
-                    },
-                    {
-                      path: 'server/:catalogItemId/*',
-                      element: <LegacyServerRedirect />
-                    },
-                    {
-                      path: 'magic-mcp',
-                      children: [
-                        {
-                          path: '',
-                          element: <Navigate to="servers" replace relative="path" />
-                        },
-                        {
-                          path: 'servers',
-                          element: <MagicMcpServerPage />
-                        },
-                        {
-                          path: 'sessions',
-                          element: <MagicMcpSessionsPage />
-                        },
-                        {
-                          path: 'tokens',
-                          element: <MagicMcpTokensPage />
-                        },
-                        {
-                          path: 'server/:magicMcpServerId',
-                          element: <MagicMcpServerLayout />,
-                          children: [
-                            {
-                              path: '',
-                              element: <MagicMcpProviderOverviewPage />
-                            },
-                            {
-                              path: 'sessions',
-                              element: <MagicMcpServerSessionsPage />
-                            },
-                            {
-                              path: 'settings',
-                              element: <MagicMcpServerConfigPage />
-                            },
-                            {
-                              path: 'config',
-                              element: <Navigate to="../settings" replace relative="path" />
-                            }
-                          ]
-                        }
-                      ]
-                    },
-                    {
-                      path: 'magic-mcp-servers',
-                      element: <Navigate to="../magic-mcp/servers" replace relative="path" />
-                    },
-                    {
-                      path: 'magic-mcp-sessions',
-                      element: <Navigate to="../magic-mcp/sessions" replace relative="path" />
-                    },
-                    {
-                      path: 'tokens',
-                      element: <Navigate to="../magic-mcp/tokens" replace relative="path" />
-                    },
-                    {
-                      path: 'magic-mcp-server/:magicMcpServerId',
-                      element: <LegacyMagicMcpServerRedirect />
-                    },
-                    {
-                      path: 'magic-mcp-server/:magicMcpServerId/sessions',
-                      element: <LegacyMagicMcpServerSessionsRedirect />
-                    },
-                    {
-                      path: 'magic-mcp-server/:magicMcpServerId/config',
-                      element: <LegacyMagicMcpServerSettingsRedirect />
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    );
+    return createBrowserRouter([
+      {
+        path: '/',
+        element: (
+          <>
+            <Outlet />
+            <Toaster />
+            <ModalRoot />
+          </>
+        ),
+        errorElement: <RouterErrorPage />,
+        children: [
+          {
+            path: routeBasePath,
+            children: [
+              {
+                path: 'login',
+                element: <LoginPage />
+              },
+              {
+                path: '',
+                element: <Layout />,
+                children: [
+                  {
+                    path: '',
+                    element: <HomePage />
+                  },
+                  {
+                    path: 'catalog',
+                    element: <CatalogPage />
+                  },
+                  {
+                    path: 'servers/*',
+                    element: <LegacyServersRedirect />
+                  },
+                  {
+                    path: 'providers/:catalogItemId',
+                    element: <ProviderPage />
+                  },
+                  {
+                    path: 'server/:catalogItemId/*',
+                    element: <LegacyServerRedirect />
+                  },
+                  {
+                    path: 'magic-mcp',
+                    children: [
+                      {
+                        path: '',
+                        element: <Navigate to="servers" replace relative="path" />
+                      },
+
+                      {
+                        element: <MagicMcpListLayout />,
+                        children: [
+                          {
+                            path: 'servers',
+                            element: <MagicMcpServerPage />
+                          },
+                          {
+                            path: 'sessions',
+                            element: <MagicMcpSessionsPage />
+                          },
+                          {
+                            path: 'tokens',
+                            element: <MagicMcpTokensPage />
+                          }
+                        ]
+                      },
+
+                      {
+                        path: 'server/:magicMcpServerId',
+                        element: <MagicMcpServerLayout />,
+                        children: [
+                          {
+                            path: '',
+                            element: <MagicMcpProviderOverviewPage />
+                          },
+                          {
+                            path: 'sessions',
+                            element: <MagicMcpServerSessionsPage />
+                          },
+                          {
+                            path: 'settings',
+                            element: <MagicMcpServerConfigPage />
+                          },
+                          {
+                            path: 'config',
+                            element: <Navigate to="../settings" replace relative="path" />
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    path: 'magic-mcp-servers',
+                    element: <Navigate to="../magic-mcp/servers" replace relative="path" />
+                  },
+                  {
+                    path: 'magic-mcp-sessions',
+                    element: <Navigate to="../magic-mcp/sessions" replace relative="path" />
+                  },
+                  {
+                    path: 'tokens',
+                    element: <Navigate to="../magic-mcp/tokens" replace relative="path" />
+                  },
+                  {
+                    path: 'magic-mcp-server/:magicMcpServerId',
+                    element: <LegacyMagicMcpServerRedirect />
+                  },
+                  {
+                    path: 'magic-mcp-server/:magicMcpServerId/sessions',
+                    element: <LegacyMagicMcpServerSessionsRedirect />
+                  },
+                  {
+                    path: 'magic-mcp-server/:magicMcpServerId/config',
+                    element: <LegacyMagicMcpServerSettingsRedirect />
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]);
   }, [boot.data]);
 
   if (boot.isLoading || !router) {

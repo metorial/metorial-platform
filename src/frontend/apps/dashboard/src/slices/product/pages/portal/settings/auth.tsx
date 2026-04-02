@@ -7,16 +7,7 @@ import {
   usePortalAuthApp,
   usePortalAuthSsoTenants
 } from '@metorial/state';
-import {
-  Attributes,
-  Button,
-  Dialog,
-  Input,
-  RenderDate,
-  Spacer,
-  Text,
-  showModal
-} from '@metorial/ui';
+import { Button, Dialog, Input, RenderDate, Spacer, Text, showModal } from '@metorial/ui';
 import { Box, Table } from '@metorial/ui-product';
 import { useParams } from 'react-router-dom';
 
@@ -27,6 +18,8 @@ let showCreateSsoTenantModal = (props: {
 }) =>
   showModal(({ dialogProps, close }) => {
     let createTenant = useCreatePortalAuthSsoTenant();
+    let createTenantSetup = useCreatePortalAuthSsoTenantSetup();
+
     let form = useForm({
       initialValues: {
         name: ''
@@ -41,8 +34,16 @@ let showCreateSsoTenantModal = (props: {
           portalId: props.portalId,
           name: values.name
         });
-
         if (!created) return;
+
+        let [setup] = await createTenantSetup.mutate({
+          instanceId: props.instanceId,
+          portalId: props.portalId,
+          ssoTenantId: created.id
+        });
+        if (!setup) return;
+
+        window.open(setup.url, '_blank', 'noopener,noreferrer');
 
         props.onCreate();
         close();
@@ -52,15 +53,16 @@ let showCreateSsoTenantModal = (props: {
     return (
       <Dialog.Wrapper {...dialogProps} width={520}>
         <Dialog.Title>Create SSO Tenant</Dialog.Title>
-        <Dialog.Description>
-          Create a new Ares SSO tenant for this portal.
-        </Dialog.Description>
+        <Dialog.Description>Create a new Ares SSO tenant for this portal.</Dialog.Description>
 
         <form onSubmit={form.handleSubmit}>
           <Input label="Name" {...form.getFieldProps('name')} />
           <form.RenderError field="name" />
 
           <Spacer size={20} />
+
+          <createTenant.RenderError />
+          <createTenantSetup.RenderError />
 
           <Dialog.Actions>
             <Button type="button" variant="soft" onClick={close}>
@@ -113,30 +115,29 @@ export let PortalSettingsAuthPage = () => {
   })(ssoTenants => (
     <>
       <Table
-        headers={['Name', 'Client ID', 'Connections', 'Created', '']}
+        headers={['Name', 'Connections', 'Created']}
         data={ssoTenants.data.items.map(tenant => ({
           data: [
             tenant.name,
-            tenant.clientId,
             String(tenant.counts.connections),
-            <RenderDate date={tenant.createdAt} />,
-            <Button
-              size="1"
-              loading={createTenantSetup.isLoading}
-              onClick={async () => {
-                let [setup] = await createTenantSetup.mutate({
-                  instanceId: instance.data!.id,
-                  portalId,
-                  ssoTenantId: tenant.id
-                });
+            <RenderDate date={tenant.createdAt} />
+            // <Button
+            //   size="1"
+            //   loading={createTenantSetup.isLoading}
+            //   onClick={async () => {
+            //     let [setup] = await createTenantSetup.mutate({
+            //       instanceId: instance.data!.id,
+            //       portalId,
+            //       ssoTenantId: tenant.id
+            //     });
 
-                if (!setup) return;
+            //     if (!setup) return;
 
-                window.open(setup.url, '_blank', 'noopener,noreferrer');
-              }}
-            >
-              Continue Setup
-            </Button>
+            //     window.open(setup.url, '_blank', 'noopener,noreferrer');
+            //   }}
+            // >
+            //   Continue Setup
+            // </Button>
           ]
         }))}
       />
@@ -178,7 +179,7 @@ export let PortalSettingsAuthPage = () => {
 
       <Spacer size={15} />
 
-      <Box title="Auth Application" description="The portal auth application used for redirects and SSO.">
+      {/* <Box title="Auth Application" description="The portal auth application used for redirects and SSO.">
         <Attributes
           itemWidth="260px"
           attributes={[
@@ -202,7 +203,7 @@ export let PortalSettingsAuthPage = () => {
         />
       </Box>
 
-      <Spacer size={15} />
+      <Spacer size={15} /> */}
 
       <Box
         title="SSO Tenants"

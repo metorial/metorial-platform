@@ -57,9 +57,7 @@ let showCreateSsoTenantModal = (props: {
     return (
       <Dialog.Wrapper {...dialogProps} width={520}>
         <Dialog.Title>Create SSO Tenant</Dialog.Title>
-        <Dialog.Description>
-          Create a new Ares SSO tenant for this portal.
-        </Dialog.Description>
+        <Dialog.Description>Create a new Ares SSO tenant for this portal.</Dialog.Description>
 
         <form onSubmit={form.handleSubmit}>
           <Input label="Name" {...form.getFieldProps('name')} />
@@ -96,18 +94,12 @@ export let PortalAuthPage = () => {
       <Entity.Wrapper>
         <Entity.Content>
           <Entity.Field title="Client ID" value={authApp.data.clientId} />
-          <Entity.Field
-            title="Default Redirect URL"
-            value={authApp.data.defaultRedirectUrl}
-          />
+          <Entity.Field title="Default Redirect URL" value={authApp.data.defaultRedirectUrl} />
           <Entity.Field
             title="Redirect Domains"
             value={authApp.data.redirectDomains.join(', ')}
           />
-          <Entity.Field
-            title="Created"
-            value={<RenderDate date={authApp.data.createdAt} />}
-          />
+          <Entity.Field title="Created" value={<RenderDate date={authApp.data.createdAt} />} />
         </Entity.Content>
       </Entity.Wrapper>
 
@@ -136,14 +128,8 @@ export let PortalAuthPage = () => {
               <Entity.Content>
                 <Entity.Field title={tenant.name} value={tenant.status} />
                 <Entity.Field title="Client ID" value={tenant.clientId} />
-                <Entity.Field
-                  title="Connections"
-                  value={String(tenant.counts.connections)}
-                />
-                <Entity.Field
-                  title="Created"
-                  value={<RenderDate date={tenant.createdAt} />}
-                />
+                <Entity.Field title="Connections" value={String(tenant.counts.connections)} />
+                <Entity.Field title="Created" value={<RenderDate date={tenant.createdAt} />} />
                 <Entity.Field
                   title="Actions"
                   right

@@ -2,16 +2,7 @@ import { DashboardInstancePortalsListQuery } from '@metorial/dashboard-sdk';
 import { renderWithPagination, useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { useCreatePortal, useCurrentInstance, usePortals } from '@metorial/state';
-import {
-  Avatar,
-  Button,
-  Dialog,
-  Input,
-  Spacer,
-  Text,
-  showModal,
-  theme
-} from '@metorial/ui';
+import { Avatar, Button, Dialog, Input, Spacer, showModal, theme } from '@metorial/ui';
 import { ItemGrid } from '@metorial/ui-product';
 import { useNavigate } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
@@ -86,16 +77,18 @@ let EmptyTitle = styled.h1`
   z-index: 1;
 `;
 
-let EmptyDescription = styled(Text)`
-  max-width: 620px;
+let EmptyDescription = styled('p')`
+  max-width: 700px;
   position: relative;
   z-index: 1;
+  text-wrap: balance;
+  text-align: center;
+  font-size: 14px;
+  color: ${theme.colors.gray700};
+  font-weight: 500;
 `;
 
-export let showPortalFormModal = (props: {
-  instanceId: string;
-  onCreate?: () => void;
-}) =>
+export let showPortalFormModal = (props: { instanceId: string; onCreate?: () => void }) =>
   showModal(({ dialogProps, close }) => {
     let createPortal = useCreatePortal();
     let form = useForm({
@@ -145,14 +138,14 @@ export let showPortalFormModal = (props: {
           <Input label="Description" {...form.getFieldProps('description')} />
           <form.RenderError field="description" />
 
-          <Spacer size={15} />
+          {/* <Spacer size={15} />
 
           <Input
             label="Session Expiry (seconds)"
             type="number"
             {...form.getFieldProps('sessionExpiryTimeInSeconds')}
           />
-          <form.RenderError field="sessionExpiryTimeInSeconds" />
+          <form.RenderError field="sessionExpiryTimeInSeconds" /> */}
 
           <Spacer size={20} />
 
@@ -184,9 +177,9 @@ export let PortalsGrid = (filter: DashboardInstancePortalsListQuery) => {
       return (
         <EmptyState>
           <EmptyTitle>Metorial Portals</EmptyTitle>
-          <EmptyDescription size="4" color="gray700" weight="medium">
-            Portals let you present a branded provider catalog with curated access,
-            reusable templates, and self-service request flows for your consumers.
+          <EmptyDescription>
+            Portals let you present a branded provider catalog with curated access, reusable
+            templates, and self-service request flows for your consumers.
           </EmptyDescription>
 
           <Spacer size={30} />
