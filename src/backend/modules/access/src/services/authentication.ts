@@ -184,10 +184,21 @@ class AuthenticationService {
       };
     }
 
-    let res = await machineAccessAuthService.authenticateWithMachineAccessToken({
+    let rawRes = await machineAccessAuthService.authenticateWithMachineAccessToken({
       token: d.apiKey,
       context: d.context
     });
+    let res =
+      'type' in rawRes && rawRes.type == 'api_key' && 'secret' in rawRes
+        ? rawRes
+        : 'type' in rawRes && rawRes.type == 'oauth_token'
+          ? rawRes
+          : ({
+              type: 'api_key',
+              secret: {
+                apiKey: (rawRes as any).apiKey
+              }
+            } as const);
     let machineAccess =
       res.type == 'api_key'
         ? res.secret!.apiKey.machineAccess

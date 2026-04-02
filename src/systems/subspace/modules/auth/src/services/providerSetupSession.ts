@@ -395,7 +395,7 @@ class providerSetupSessionServiceImpl {
           authCredentialsOid: d.credentials?.oid,
 
           expiresAt
-        } as any,
+        },
         include
       });
 
