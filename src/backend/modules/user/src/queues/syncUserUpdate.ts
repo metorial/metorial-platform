@@ -1,5 +1,6 @@
 import { db } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
+import { syncOrgMemberToConsumer } from '@metorial/module-consumer';
 import { createQueue, QueueRetryError } from '@metorial/queue';
 
 export let syncUserUpdateQueue = createQueue<{ userId: string }>({
@@ -82,5 +83,7 @@ export let syncUserUpdateSingleQueueProcessor = syncUserUpdateSingleQueue.proces
       organization: member.organization,
       performedBy: member.actor
     });
+
+    await syncOrgMemberToConsumer(updatedMember);
   }
 );

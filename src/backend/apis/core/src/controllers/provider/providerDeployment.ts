@@ -149,6 +149,18 @@ export let providerDeploymentController = Controller.create(
             provider_version_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by version ID(s)'
             }),
+            actor_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by actor ID(s)'
+            }),
+            consumer_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by consumer ID(s)'
+            }),
+            identity_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by identity ID(s)'
+            }),
+            identity_credential_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by identity credential ID(s)'
+            }),
             status: v.optional(
               v.union([
                 v.enumOf(['active', 'archived']),
@@ -177,6 +189,18 @@ export let providerDeploymentController = Controller.create(
             }),
             provider_version_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by version ID(s)'
+            }),
+            actor_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by actor ID(s)'
+            }),
+            consumer_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by consumer ID(s)'
+            }),
+            identity_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by identity ID(s)'
+            }),
+            identity_credential_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by identity credential ID(s)'
             }),
             status: v.optional(
               v.union([
@@ -217,6 +241,10 @@ export let providerDeploymentController = Controller.create(
           ids: normalizeArrayParam(ctx.query.id),
           providerIds: normalizeArrayParam(ctx.query.provider_id),
           providerVersionIds: normalizeArrayParam(ctx.query.provider_version_id),
+          actorIds: normalizeArrayParam(ctx.query.actor_id),
+          consumerIds: normalizeArrayParam(ctx.query.consumer_id),
+          identityIds: normalizeArrayParam(ctx.query.identity_id),
+          identityCredentialIds: normalizeArrayParam(ctx.query.identity_credential_id),
           status: normalizeArrayParam(ctx.query.status),
 
           createdAt: ctx.query.created_at,

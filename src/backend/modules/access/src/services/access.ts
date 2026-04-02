@@ -391,15 +391,41 @@ class AccessService {
     }
 
     if (d.authInfo.machineAccess.type == 'organization_management') {
-      let instance = (await instanceService.getInstanceById({
+      if (d.authInfo.user) {
+        let { instance, member } = await instanceService.getInstanceByIdForUser({
+          user: d.authInfo.user,
+          instanceId: d.instanceId
+        });
+        if (instance.organization.id !== d.authInfo.restrictions.organization.id) {
+          throw new ServiceError(notFoundError('instance', d.instanceId));
+        }
+
+        let hasAccess = await this.hasAnyTargetAccess({
+          authInfo: d.authInfo,
+          organization: instance.organization,
+          project: instance.project,
+          instance
+        });
+        if (!hasAccess) {
+          throw new ServiceError(notFoundError('instance', d.instanceId));
+        }
+
+        return {
+          type: 'user' as const,
+          instance,
+          organization: instance.organization,
+          actor: d.authInfo.restrictions.actor,
+          project: instance.project,
+          member
+        };
+      }
+
+      let instance = await instanceService.getInstanceById({
         instanceId: d.instanceId,
         organization: d.authInfo.restrictions.organization,
         actor: d.authInfo.restrictions.actor,
         member: undefined
-      })) as Awaited<ReturnType<typeof instanceService.getInstanceById>> & {
-        organization: Organization;
-        project: Project;
-      };
+      });
 
       let hasAccess = await this.hasAnyTargetAccess({
         authInfo: d.authInfo,
@@ -416,7 +442,8 @@ class AccessService {
         instance,
         organization: instance.organization,
         actor: d.authInfo.restrictions.actor,
-        project: instance.project
+        project: instance.project,
+        member: undefined
       };
     }
 

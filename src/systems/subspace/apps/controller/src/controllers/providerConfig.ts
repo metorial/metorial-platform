@@ -50,6 +50,9 @@ export let providerConfigController = app.controller({
           providerSpecificationIds: v.optional(v.array(v.string())),
           providerDeploymentIds: v.optional(v.array(v.string())),
           providerConfigVaultIds: v.optional(v.array(v.string())),
+          actorIds: v.optional(v.array(v.string())),
+          identityIds: v.optional(v.array(v.string())),
+          identityCredentialIds: v.optional(v.array(v.string())),
           createdAt: createdAtValidator,
           updatedAt: updatedAtValidator
         })
@@ -71,6 +74,9 @@ export let providerConfigController = app.controller({
         providerSpecificationIds: ctx.input.providerSpecificationIds,
         providerDeploymentIds: ctx.input.providerDeploymentIds,
         providerConfigVaultIds: ctx.input.providerConfigVaultIds,
+        actorIds: ctx.input.actorIds,
+        identityIds: ctx.input.identityIds,
+        identityCredentialIds: ctx.input.identityCredentialIds,
         createdAt: ctx.input.createdAt,
         updatedAt: ctx.input.updatedAt
       });

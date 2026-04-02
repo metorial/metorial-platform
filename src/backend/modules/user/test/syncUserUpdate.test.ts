@@ -22,6 +22,10 @@ vi.mock('@metorial/fabric', () => ({
   }
 }));
 
+vi.mock('@metorial/module-consumer', () => ({
+  syncOrgMemberToConsumer: vi.fn()
+}));
+
 vi.mock('@metorial/queue', () => ({
   createQueue: vi.fn(config => ({
     name: config.name,

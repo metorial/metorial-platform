@@ -4,7 +4,7 @@ export type ScmInstallationListOutput = {
   items: {
     object: 'scm.connection';
     id: string;
-    provider: 'github' | 'github_enterprise' | 'gitlab' | 'gitlab_selfhosted';
+    provider: 'github' | 'gitlab';
     externalInstallationId: string | null;
     accountType: 'user' | 'organization' | null;
     externalAccount: {

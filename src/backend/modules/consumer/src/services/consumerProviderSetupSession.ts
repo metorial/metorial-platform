@@ -9,9 +9,9 @@ import { Context } from '@metorial/context';
 import {
   ConsumerProfile,
   ConsumerSurface,
+  db,
   ID,
   ProviderTemplate,
-  db,
   type Instance
 } from '@metorial/db';
 import { type AnyAccessTagSelector } from '@metorial/module-access';

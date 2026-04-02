@@ -72,6 +72,11 @@ export let identityActorController = Controller.create(
               description: 'Filter by linked agent ID or IDs.',
               examples: ['agt_4mNoPq8rSt2uVx6y']
             }),
+            consumer_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by linked consumer ID or IDs.',
+              examples: ['csm_7nR8sK2mZa1pYx4b']
+            }),
+
             created_at: dateFilterValidator('identity actor creation time'),
             updated_at: dateFilterValidator('identity actor last update time')
           })
@@ -87,6 +92,8 @@ export let identityActorController = Controller.create(
           status: normalizeArrayParam(ctx.query.status),
           ids: normalizeArrayParam(ctx.query.id),
           agentIds: normalizeArrayParam(ctx.query.agent_id),
+          consumerIds: normalizeArrayParam(ctx.query.consumer_id),
+
           createdAt: ctx.query.created_at,
           updatedAt: ctx.query.updated_at
         });

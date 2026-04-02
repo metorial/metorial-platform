@@ -219,6 +219,9 @@ let SessionTemplateSettingsPage = dynamicPage(() =>
 let IdentityListLayout = dynamicPage(() =>
   import('./pages/(identity)/(list)/_layout').then(c => c.IdentityListLayout)
 );
+let ConsumersPage = dynamicPage(() =>
+  import('./pages/(identity)/(list)/consumers').then(c => c.ConsumersPage)
+);
 let IdentityActorsPage = dynamicPage(() =>
   import('./pages/(identity)/(list)/actors').then(c => c.IdentityActorsPage)
 );
@@ -235,6 +238,15 @@ let IdentityDelegationConfigsPage = dynamicPage(() =>
 );
 let IdentityActorLayout = dynamicPage(() =>
   import('./pages/(identity)/actor/_layout').then(c => c.IdentityActorLayout)
+);
+let ConsumerLayout = dynamicPage(() =>
+  import('./pages/(identity)/consumer/_layout').then(c => c.ConsumerLayout)
+);
+let ConsumerPage = dynamicPage(() =>
+  import('./pages/(identity)/consumer').then(c => c.ConsumerPage)
+);
+let ConsumerSettingsPage = dynamicPage(() =>
+  import('./pages/(identity)/consumer/settings').then(c => c.ConsumerSettingsPage)
 );
 let IdentityActorPage = dynamicPage(() =>
   import('./pages/(identity)/actor').then(c => c.IdentityActorPage)
@@ -809,29 +821,63 @@ export let productInnerSlice = createSlice([
           },
 
           {
-            path: 'identity',
             element: <IdentityListLayout />,
             children: [
-              {
-                path: 'actors',
-                element: <IdentityActorsPage />
-              },
               {
                 path: 'identities',
                 element: <IdentitiesPage />
               },
+
               {
-                path: 'delegations',
-                element: <IdentityDelegationsPage />
-              },
-              {
-                path: 'delegation-configs',
-                element: <IdentityDelegationConfigsPage />
+                path: 'identity',
+                children: [
+                  {
+                    path: 'delegations',
+                    element: <IdentityDelegationsPage />
+                  },
+                  {
+                    path: 'delegation-configs',
+                    element: <IdentityDelegationConfigsPage />
+                  }
+                ]
               }
             ]
           },
+
           {
-            path: 'identity/actor/:identityActorId',
+            children: [
+              {
+                path: 'consumers',
+                element: <ConsumersPage />
+              },
+              {
+                path: 'actors',
+                element: <IdentityActorsPage />
+              }
+            ]
+          },
+
+          {
+            path: 'consumer/:consumerId',
+            element: (
+              <IdentityManagedPage>
+                <ConsumerLayout />
+              </IdentityManagedPage>
+            ),
+            children: [
+              {
+                path: '',
+                element: <ConsumerPage />
+              },
+              {
+                path: 'settings',
+                element: <ConsumerSettingsPage />
+              }
+            ]
+          },
+
+          {
+            path: 'actor/:identityActorId',
             element: (
               <IdentityManagedPage>
                 <IdentityActorLayout />
@@ -848,8 +894,9 @@ export let productInnerSlice = createSlice([
               }
             ]
           },
+
           {
-            path: 'identity/identity/:identityId',
+            path: 'identity/:identityId',
             element: (
               <IdentityManagedPage>
                 <IdentityLayout />

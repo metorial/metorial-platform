@@ -2,6 +2,22 @@ import { ServiceError } from '@lowerdeck/error';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock external dependencies
+vi.mock('@metorial/queue', () => ({
+  createQueue: vi.fn().mockImplementation(config => ({
+    name: config.name,
+    add: vi.fn(),
+    addMany: vi.fn(),
+    process: vi.fn(handler => ({ handler }))
+  })),
+  combineQueueProcessors: vi.fn(processors => processors),
+  QueueRetryError: class QueueRetryError extends Error {
+    constructor(message?: string) {
+      super(message);
+      this.name = 'QueueRetryError';
+    }
+  }
+}));
+
 vi.mock('@metorial/db', () => ({
   db: {
     organizationMember: {
@@ -14,6 +30,7 @@ vi.mock('@metorial/db', () => ({
   ID: {
     generateId: vi.fn()
   },
+  addAfterTransactionHook: vi.fn(async callback => await callback()),
   withTransaction: vi.fn(callback =>
     callback({
       organizationMember: {
@@ -30,6 +47,10 @@ vi.mock('@metorial/fabric', () => ({
   Fabric: {
     fire: vi.fn()
   }
+}));
+
+vi.mock('@metorial/module-consumer', () => ({
+  syncOrgMemberToConsumer: vi.fn()
 }));
 
 vi.mock('@lowerdeck/pagination', () => ({
@@ -59,10 +80,10 @@ vi.mock('../src/services/accessPolicyAssignment', () => ({
   }
 }));
 
-import { db, ID, withTransaction } from '@metorial/db';
-import { Fabric } from '@metorial/fabric';
-import { organizationActorService } from '../src/services/organizationActor';
-import { organizationMemberService } from '../src/services/organizationMember';
+let { db, ID, withTransaction } = await import('@metorial/db');
+let { Fabric } = await import('@metorial/fabric');
+let { organizationActorService } = await import('../src/services/organizationActor');
+let { organizationMemberService } = await import('../src/services/organizationMember');
 
 describe('OrganizationMemberService', () => {
   beforeEach(() => {

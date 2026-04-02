@@ -58,11 +58,17 @@ model ProviderSetupSession {
   deploymentOid BigInt?
   deployment    ProviderDeployment? @relation(fields: [deploymentOid], references: [oid])
 
+  identityOid BigInt?
+  identity    Identity? @relation(fields: [identityOid], references: [oid], onDelete: Cascade)
+
   authConfigOid BigInt?             @unique
   authConfig    ProviderAuthConfig? @relation(fields: [authConfigOid], references: [oid])
 
   configOid BigInt?         @unique
   config    ProviderConfig? @relation(fields: [configOid], references: [oid])
+
+  identityCredentialOid BigInt?              @unique
+  identityCredential    IdentityCredential? @relation(fields: [identityCredentialOid], references: [oid], onDelete: SetNull)
 
   oauthSetupOid BigInt?             @unique
   oauthSetup    ProviderOAuthSetup? @relation(fields: [oauthSetupOid], references: [oid])
@@ -83,6 +89,7 @@ model ProviderSetupSession {
   @@index([updatedAt])
   @@index([status])
   @@index([type])
+  @@index([identityOid])
 }
 
 enum ProviderSetupSessionEventType {

@@ -1,8 +1,9 @@
+import { v } from '@lowerdeck/validation';
 import { getImageUrl } from '@metorial/db';
 import { Presenter } from '@metorial/presenter';
-import { v } from '@lowerdeck/validation';
 import { consumerProfileType } from '../types';
 import { v1ConsumerGroupPresenter } from './consumerGroup';
+import { v1ConsumerSurfacePresenter } from './consumerSurface';
 
 export let v1ConsumerProfilePresenter = Presenter.create(consumerProfileType)
   .presenter(async ({ consumerProfile, assignedConsumerGroups }, opts) => ({
@@ -20,7 +21,9 @@ export let v1ConsumerProfilePresenter = Presenter.create(consumerProfileType)
       ? await Promise.all(
           assignedConsumerGroups.map(async group => ({
             object: 'consumer.profile.group_assignment' as const,
-            group: await v1ConsumerGroupPresenter.present({ consumerGroup: group }, opts).run(),
+            group: await v1ConsumerGroupPresenter
+              .present({ consumerGroup: group }, opts)
+              .run(),
             assigned_via: group.assignedVia
           }))
         )
@@ -49,5 +52,28 @@ export let v1ConsumerProfilePresenter = Presenter.create(consumerProfileType)
       created_at: v.date(),
       updated_at: v.date()
     })
+  )
+  .build();
+
+export let dashboardConsumerProfilePresenter = Presenter.create(consumerProfileType)
+  .presenter(async ({ consumerProfile, assignedConsumerGroups }, opts) => {
+    let inner = await v1ConsumerProfilePresenter
+      .present({ consumerProfile, assignedConsumerGroups }, opts)
+      .run();
+
+    return {
+      ...inner,
+      surface: await v1ConsumerSurfacePresenter
+        .present({ consumerSurface: consumerProfile.surface }, opts)
+        .run()
+    };
+  })
+  .schema(
+    v.intersection([
+      v1ConsumerProfilePresenter.schema,
+      v.object({
+        surface: v1ConsumerSurfacePresenter.schema
+      })
+    ])
   )
   .build();

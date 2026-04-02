@@ -3,6 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { Context } from '@metorial/context';
 import {
+  addAfterTransactionHook,
   db,
   ID,
   Organization,
@@ -13,6 +14,7 @@ import {
   withTransaction
 } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
+import { syncOrgMemberToConsumer } from '@metorial/module-consumer';
 import { accessPolicyAssignmentService } from './accessPolicyAssignment';
 import { organizationActorService } from './organizationActor';
 
@@ -129,6 +131,8 @@ class OrganizationMemberService {
         member
       });
 
+      await addAfterTransactionHook(() => syncOrgMemberToConsumer(member));
+
       return member;
     });
   }
@@ -181,6 +185,8 @@ class OrganizationMemberService {
         organization: d.organization,
         member
       });
+
+      await addAfterTransactionHook(() => syncOrgMemberToConsumer(member));
 
       return member;
     });

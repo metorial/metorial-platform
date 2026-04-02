@@ -68,6 +68,18 @@ export let providerConfigController = Controller.create(
             provider_config_vault_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by config vault ID(s)'
             }),
+            actor_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by actor ID(s)'
+            }),
+            consumer_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by consumer ID(s)'
+            }),
+            identity_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by identity ID(s)'
+            }),
+            identity_credential_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by identity credential ID(s)'
+            }),
             search: v.optional(v.string({ description: 'Search by name or description' })),
             created_at: dateFilterValidator('provider config creation time'),
             updated_at: dateFilterValidator('provider config last update time')
@@ -86,6 +98,10 @@ export let providerConfigController = Controller.create(
           providerSpecificationIds: normalizeArrayParam(ctx.query.provider_specification_id),
           providerDeploymentIds: normalizeArrayParam(ctx.query.provider_deployment_id),
           providerConfigVaultIds: normalizeArrayParam(ctx.query.provider_config_vault_id),
+          actorIds: normalizeArrayParam(ctx.query.actor_id),
+          consumerIds: normalizeArrayParam(ctx.query.consumer_id),
+          identityIds: normalizeArrayParam(ctx.query.identity_id),
+          identityCredentialIds: normalizeArrayParam(ctx.query.identity_credential_id),
           createdAt: ctx.query.created_at,
           updatedAt: ctx.query.updated_at
         });

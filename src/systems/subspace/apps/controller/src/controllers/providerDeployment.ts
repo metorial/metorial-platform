@@ -42,6 +42,9 @@ export let providerDeploymentController = app.controller({
           ids: v.optional(v.array(v.string())),
           providerIds: v.optional(v.array(v.string())),
           providerVersionIds: v.optional(v.array(v.string())),
+          actorIds: v.optional(v.array(v.string())),
+          identityIds: v.optional(v.array(v.string())),
+          identityCredentialIds: v.optional(v.array(v.string())),
 
           capabilities: v.optional(
             v.object({
@@ -76,6 +79,9 @@ export let providerDeploymentController = app.controller({
         ids: ctx.input.ids,
         providerIds: ctx.input.providerIds,
         providerVersionIds: ctx.input.providerVersionIds,
+        actorIds: ctx.input.actorIds,
+        identityIds: ctx.input.identityIds,
+        identityCredentialIds: ctx.input.identityCredentialIds,
         createdAt: ctx.input.createdAt,
         updatedAt: ctx.input.updatedAt
       });

@@ -1,4 +1,6 @@
 import type {
+  Identity,
+  IdentityCredential,
   Provider,
   ProviderAuthConfig,
   ProviderAuthCredentials,
@@ -18,6 +20,8 @@ import { providerConfigPresenter } from './providerConfig';
 
 export let providerSetupSessionPresenter = (
   providerSetupSession: ProviderSetupSession & {
+    identity: Identity | null;
+    identityCredential: IdentityCredential | null;
     authConfig:
       | (ProviderAuthConfig & {
           deployment: ProviderDeployment | null;
@@ -66,6 +70,8 @@ export let providerSetupSessionPresenter = (
     metadata: providerSetupSession.metadata,
 
     providerId: providerSetupSession.provider?.id ?? null,
+    identityId: providerSetupSession.identity?.id ?? null,
+    identityCredentialId: providerSetupSession.identityCredential?.id ?? null,
     configuration: providerSetupSession.configuration ?? null,
 
     authMethod:

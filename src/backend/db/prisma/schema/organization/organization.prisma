@@ -70,6 +70,7 @@ model Organization {
   accessRoles             AccessRole[]
   accessPolicies          AccessPolicy[]
   apiKeyExpiredEmailSends ApiKeyExpiredEmailSend[]
+  consumerActors          ConsumerActor[]
 
   @@index([authVersion])
 }

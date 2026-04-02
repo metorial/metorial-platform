@@ -1,14 +1,14 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { Context } from '@metorial/context';
 import { ServiceError, unauthorizedError } from '@lowerdeck/error';
-import { authenticationService } from '../src/services/authentication';
+import { Context } from '@metorial/context';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  scopes,
   instancePublishableTokenScopes,
   instancePublishableTokenWithConsumerScopes,
   instanceSecretTokenScopes,
-  orgManagementTokenScopes
+  orgManagementTokenScopes,
+  scopes
 } from '../src/definitions';
+import { authenticationService } from '../src/services/authentication';
 
 let mocks = vi.hoisted(() => ({
   db: {
@@ -71,9 +71,9 @@ vi.mock('@metorial/db', () => ({
   db: mocks.db
 }));
 
-import { userAuthService } from '@metorial/module-user';
-import { machineAccessAuthService } from '@metorial/module-machine-access';
 import { UnifiedApiKey } from '@metorial/api-keys';
+import { machineAccessAuthService } from '@metorial/module-machine-access';
+import { userAuthService } from '@metorial/module-user';
 import { fineGrainedAuthService } from '../src/services/fineGrainedAuth';
 
 describe('AuthenticationService', () => {
@@ -158,6 +158,7 @@ describe('AuthenticationService', () => {
 
       vi.mocked(machineAccessAuthService.authenticateWithMachineAccessToken).mockResolvedValue(
         {
+          type: 'api_key',
           apiKey: mockApiKey
         } as any
       );
@@ -522,9 +523,11 @@ describe('AuthenticationService', () => {
       };
       let mockApiKey = { id: 'key-1', oid: 55n, machineAccess: mockMachineAccess };
 
-      vi.mocked(machineAccessAuthService.authenticateWithMachineAccessToken).mockResolvedValue({
-        apiKey: mockApiKey
-      } as any);
+      vi.mocked(machineAccessAuthService.authenticateWithMachineAccessToken).mockResolvedValue(
+        {
+          apiKey: mockApiKey
+        } as any
+      );
       mocks.db.consumerSession.findFirst.mockResolvedValue({
         oid: 77n,
         id: 'csn_1',
@@ -576,9 +579,11 @@ describe('AuthenticationService', () => {
       };
       let mockApiKey = { id: 'key-1', oid: 55n, machineAccess: mockMachineAccess };
 
-      vi.mocked(machineAccessAuthService.authenticateWithMachineAccessToken).mockResolvedValue({
-        apiKey: mockApiKey
-      } as any);
+      vi.mocked(machineAccessAuthService.authenticateWithMachineAccessToken).mockResolvedValue(
+        {
+          apiKey: mockApiKey
+        } as any
+      );
       mocks.db.consumerSession.findFirst.mockResolvedValue({
         oid: 77n,
         id: 'csn_1',
@@ -807,9 +812,11 @@ describe('AuthenticationService', () => {
       };
       let mockApiKey = { id: 'key-1', machineAccess: mockMachineAccess };
 
-      vi.mocked(machineAccessAuthService.authenticateWithMachineAccessToken).mockResolvedValue({
-        apiKey: mockApiKey
-      } as any);
+      vi.mocked(machineAccessAuthService.authenticateWithMachineAccessToken).mockResolvedValue(
+        {
+          apiKey: mockApiKey
+        } as any
+      );
 
       await expect(
         authenticationService.authenticate({

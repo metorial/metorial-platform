@@ -15,6 +15,9 @@ import {
   MetorialDashboardInstanceCustomProvidersEndpoint,
   MetorialDashboardInstanceCustomProvidersEnvironmentsEndpoint,
   MetorialDashboardInstanceCustomProvidersVersionsEndpoint,
+  MetorialDashboardInstanceConsumerSurfacesEndpoint,
+  MetorialDashboardInstanceConsumersEndpoint,
+  MetorialDashboardInstanceConsumersProfilesEndpoint,
   MetorialDashboardInstanceFileLinksEndpoint,
   MetorialDashboardInstanceFilesEndpoint,
   MetorialDashboardInstanceIdentitiesCredentialsEndpoint,
@@ -204,6 +207,11 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
     accessRequests: new MetorialDashboardInstancePortalsAccessRequestsEndpoint(manager)
   }),
 
+  consumers: Object.assign(new MetorialDashboardInstanceConsumersEndpoint(manager), {
+    profiles: new MetorialDashboardInstanceConsumersProfilesEndpoint(manager)
+  }),
+  consumerSurfaces: new MetorialDashboardInstanceConsumerSurfacesEndpoint(manager),
+
   accessPolicies: new MetorialDashboardOrganizationsAccessPoliciesEndpoint(manager),
   accessRoles: new MetorialDashboardOrganizationsAccessRolesEndpoint(manager),
 
@@ -351,4 +359,8 @@ export type MetorialDashboardSDK = ReturnType<typeof createMetorialDashboardSDK>
     notifications: MetorialDashboardInstanceCallbacksNotificationsEndpoint;
     instances: MetorialDashboardInstanceCallbacksInstancesEndpoint;
   };
+  consumers: MetorialDashboardInstanceConsumersEndpoint & {
+    profiles: MetorialDashboardInstanceConsumersProfilesEndpoint;
+  };
+  consumerSurfaces: MetorialDashboardInstanceConsumerSurfacesEndpoint;
 };

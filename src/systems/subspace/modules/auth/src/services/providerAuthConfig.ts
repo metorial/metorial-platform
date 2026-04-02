@@ -27,6 +27,9 @@ import {
   normalizeDateFilter,
   normalizeStatusForGet,
   normalizeStatusForList,
+  resolveIdentities,
+  resolveIdentityActors,
+  resolveIdentityCredentials,
   resolveProviderAuthCredentials,
   resolveProviderAuthMethods,
   resolveProviderDeployments,
@@ -67,6 +70,9 @@ class providerAuthConfigServiceImpl {
     providerDeploymentIds?: string[];
     providerAuthCredentialsIds?: string[];
     providerAuthMethodIds?: string[];
+    actorIds?: string[];
+    identityIds?: string[];
+    identityCredentialIds?: string[];
 
     createdAt?: DateFilter;
     updatedAt?: DateFilter;
@@ -75,6 +81,9 @@ class providerAuthConfigServiceImpl {
     let deployments = await resolveProviderDeployments(d, d.providerDeploymentIds);
     let credentials = await resolveProviderAuthCredentials(d, d.providerAuthCredentialsIds);
     let authMethods = await resolveProviderAuthMethods(d, d.providerAuthMethodIds);
+    let actors = await resolveIdentityActors(d, d.actorIds);
+    let identities = await resolveIdentities(d, d.identityIds);
+    let identityCredentials = await resolveIdentityCredentials(d, d.identityCredentialIds);
 
     let search = d.search
       ? await voyager.record.search({
@@ -105,6 +114,15 @@ class providerAuthConfigServiceImpl {
                 deployments ? { deploymentOid: deployments.in } : undefined!,
                 credentials ? { authCredentialsOid: credentials.in } : undefined!,
                 authMethods ? { authMethodOid: authMethods.in } : undefined!,
+                actors
+                  ? { identityCredentials: { some: { identity: { actor: actors.oidIn } } } }
+                  : undefined!,
+                identities
+                  ? { identityCredentials: { some: { identityOid: identities.in } } }
+                  : undefined!,
+                identityCredentials
+                  ? { identityCredentials: { some: identityCredentials.oidIn } }
+                  : undefined!,
                 d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
                 d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
               ].filter(Boolean)

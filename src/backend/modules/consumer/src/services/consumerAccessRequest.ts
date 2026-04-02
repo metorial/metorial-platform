@@ -222,7 +222,10 @@ class ConsumerAccessRequestServiceImpl {
       );
     }
 
-    if ('magicMcpServer' in d.accessRequest && d.accessRequest.magicMcpServer.status != 'active') {
+    if (
+      'magicMcpServer' in d.accessRequest &&
+      d.accessRequest.magicMcpServer.status != 'active'
+    ) {
       throw new ServiceError(
         preconditionFailedError({
           message: 'Cannot request access to an inactive magic MCP server.'

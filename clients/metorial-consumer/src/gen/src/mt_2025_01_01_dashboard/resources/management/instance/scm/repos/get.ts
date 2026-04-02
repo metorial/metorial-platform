@@ -5,7 +5,7 @@ export type ManagementInstanceScmReposGetOutput = {
   id: string;
   provider: {
     object: 'scm.provider';
-    type: 'github' | 'github_enterprise' | 'gitlab' | 'gitlab_selfhosted';
+    type: 'github' | 'gitlab';
     id: string;
     name: string;
     owner: string;
