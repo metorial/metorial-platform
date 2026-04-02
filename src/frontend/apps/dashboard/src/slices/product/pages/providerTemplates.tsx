@@ -35,10 +35,7 @@ let TemplateActions = styled.div`
   padding: 0 16px 16px;
 `;
 
-let showCreateProviderTemplateModal = (props: {
-  instanceId: string;
-  onCreate: () => void;
-}) =>
+let showCreateProviderTemplateModal = (props: { instanceId: string; onCreate: () => void }) =>
   showModal(({ dialogProps, close }) => {
     let createProviderTemplate = useCreateProviderTemplate();
     let deployments = useProviderDeployments(props.instanceId, { limit: 100 });
@@ -207,7 +204,9 @@ export let ProviderTemplatesPage = () => {
   let instance = useCurrentInstance();
   let providerTemplates = useProviderTemplates(instance.data?.id);
   let deleteProviderTemplate = useDeleteProviderTemplate();
-  let [archivingProviderTemplateId, setArchivingProviderTemplateId] = useState<string | null>(null);
+  let [archivingProviderTemplateId, setArchivingProviderTemplateId] = useState<string | null>(
+    null
+  );
 
   return renderWithLoader({ instance })(({ instance }) => (
     <ContentLayout>
@@ -216,6 +215,7 @@ export let ProviderTemplatesPage = () => {
         description="Manage the reusable provider templates exposed through portals."
         actions={
           <Button
+            size="2"
             onClick={() =>
               showCreateProviderTemplateModal({
                 instanceId: instance.data.id,
@@ -240,10 +240,7 @@ export let ProviderTemplatesPage = () => {
                   value={template.description ?? 'No description'}
                 />
                 <Entity.Field title="Status" value={template.status} />
-                <Entity.Field
-                  title="Deployment"
-                  value={template.providerDeploymentId}
-                />
+                <Entity.Field title="Deployment" value={template.providerDeploymentId} />
                 <Entity.Field
                   title="Created"
                   value={<RenderDate date={template.createdAt} />}
@@ -252,6 +249,7 @@ export let ProviderTemplatesPage = () => {
 
               <TemplateActions>
                 <Button
+                  size="2"
                   variant="soft"
                   onClick={() =>
                     showEditProviderTemplateModal({
@@ -271,6 +269,7 @@ export let ProviderTemplatesPage = () => {
                 <Button
                   color="red"
                   variant="soft"
+                  size="2"
                   loading={
                     archivingProviderTemplateId == template.id &&
                     deleteProviderTemplate.isLoading
@@ -307,7 +306,8 @@ export let ProviderTemplatesPage = () => {
 
           {templatesPage.data.items.length === 0 && (
             <Text size="2" color="gray600">
-              No provider templates exist for this instance yet.
+              You haven't created any provider templates yet. Create one to start building your
+              portal catalog.
             </Text>
           )}
         </TemplateList>
