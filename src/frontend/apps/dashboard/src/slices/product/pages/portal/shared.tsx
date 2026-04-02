@@ -13,7 +13,7 @@ export let canAccessPortalManagement = (flags: PortalFlags) =>
   isPortalManagementEnabled(flags) && isPortalManagementPaid(flags);
 
 export let canShowPortalManagementNavigation = (flags: PortalFlags) =>
-  isPortalManagementEnabled(flags);
+  canAccessPortalManagement(flags);
 
 export let isPortalAuthPaid = (flags: PortalFlags) => !!flags?.['paid-sso-tenants'];
 

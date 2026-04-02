@@ -61,7 +61,6 @@ export let ProjectPageLayout = () => {
     EntityParam
   ];
   let canShowPortalManagement = canShowPortalManagementNavigation(flags.data?.flags);
-
   return (
     <AppLayout
       Nav={() => <OssApplicationLayoutNav />}
