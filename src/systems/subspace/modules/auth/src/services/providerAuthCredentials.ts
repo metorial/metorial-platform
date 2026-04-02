@@ -289,7 +289,7 @@ class providerAuthCredentialsServiceImpl {
                     : undefined!
                 ].filter(Boolean)
               }
-            ] // .filter(Boolean)
+            ].filter(Boolean)
           },
           include
         });
