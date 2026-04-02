@@ -1,9 +1,8 @@
-import { fadeInDown, fadeOutUp } from '@metorial/layout/src/applicationLayout/animations';
+import { useUser } from '@metorial/state';
 import { Avatar, Button, Spacer, theme } from '@metorial/ui';
 import * as Popover from '@radix-ui/react-popover';
 import { styled } from 'styled-components';
 import { useConsumer } from '../../state/consumer/consumer';
-import { usePaths } from '../../state/portal/path';
 
 let Trigger = styled(Popover.Trigger)`
   width: 30px;
@@ -33,13 +32,6 @@ let Content = styled(Popover.Content)`
   flex-direction: column;
   z-index: 999;
 
-  &[data-state='open'] {
-    animation: ${fadeInDown} 0.2s cubic-bezier(0.22, 1, 0.36, 1);
-  }
-
-  &[data-state='closed'] {
-    animation: ${fadeOutUp} 0.2s cubic-bezier(0.22, 1, 0.36, 1);
-  }
 `;
 
 let Header = styled.header`
@@ -75,25 +67,31 @@ let Actions = styled.div`
 
 export let UserMenu = () => {
   let consumer = useConsumer();
+  let user = useUser();
   let logoutMutator = consumer.useLogout();
-  let Paths = usePaths();
 
   if (!consumer.data) return null;
+
+  let avatarEntity = {
+    name: user.data?.name || consumer.data.name || consumer.data.email,
+    email: user.data?.email || consumer.data.email,
+    imageUrl: user.data?.imageUrl || consumer.data.imageUrl
+  };
 
   return (
     <Popover.Root>
       <Trigger aria-label="Open user menu">
-        <Avatar entity={consumer.data} size={30} />
+        <Avatar entity={avatarEntity} size={30} />
       </Trigger>
       <Popover.Portal>
         <Content sideOffset={5} align="center" side="bottom">
           <Header>
-            <Avatar entity={consumer.data} size={100} />
+            <Avatar entity={avatarEntity} size={100} />
 
             <div>
-              <Name>{consumer.data?.name}</Name>
+              <Name>{avatarEntity.name}</Name>
               <Spacer size={5} />
-              <Email>{consumer.data?.email}</Email>
+              <Email>{avatarEntity.email}</Email>
             </div>
           </Header>
 

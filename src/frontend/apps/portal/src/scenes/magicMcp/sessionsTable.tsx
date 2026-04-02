@@ -1,37 +1,14 @@
-import {
-  MagicMcpSessionsGetOutput,
-  MagicMcpSessionsListQuery
-} from '@metorial/consumer-sdk/src/gen/src/mt_2025_01_01_pulsar';
 import { renderWithPagination } from '@metorial/data-hooks';
-import { Badge, RenderDate, Text, theme } from '@metorial/ui';
-import { Table } from '@metorial/ui-product';
-import { useMagicMcpSessions } from '../../state/consumer/magicMcpSession';
+import { Badge, RenderDate, Text } from '@metorial/ui';
+import { ID, Table } from '@metorial/ui-product';
+import {
+  MagicMcpSessionsListQuery,
+  useMagicMcpSessions
+} from '../../state/consumer/magicMcpSession';
 import { usePaths } from '../../state/portal/path';
 
-export let MagicMcpSessionConnectionStatusBadge = ({
-  session
-}: {
-  session: MagicMcpSessionsGetOutput;
-}) => {
-  return (
-    <Badge
-      color={
-        {
-          connected: 'blue' as const,
-          disconnected: 'gray' as const
-        }[session.connectionStatus]
-      }
-    >
-      {{
-        connected: 'Connected',
-        disconnected: 'Disconnected'
-      }[session.connectionStatus] ?? session.connectionStatus}
-    </Badge>
-  );
-};
-
-export let MagicMcpSessionsTable = (filter: MagicMcpSessionsListQuery) => {
-  let Paths = usePaths();
+export let MagicMcpSessionsTable = (filter: MagicMcpSessionsListQuery = {}) => {
+  let paths = usePaths();
   let sessions = useMagicMcpSessions({
     ...filter,
     order: filter.order ?? 'desc'
@@ -40,20 +17,30 @@ export let MagicMcpSessionsTable = (filter: MagicMcpSessionsListQuery) => {
   return renderWithPagination(sessions)(sessions => (
     <>
       <Table
-        headers={['Status', 'Magic MCP Server', 'MCP Client', 'Connected At']}
+        headers={['Session ID', 'Server', 'Session Template', 'Connected At']}
         data={sessions.data.items.map(session => ({
           data: [
-            <MagicMcpSessionConnectionStatusBadge session={session} />,
             <Text size="2" weight="strong">
-              {session.magicMcpServer.name ?? 'Unknown Server'}
+              {session.subspaceSessionId}
             </Text>,
-            <Text size="2">
-              {session.client?.info?.name ?? (
-                <span style={{ color: theme.colors.gray600 }}>Unknown Client</span>
-              )}
-            </Text>,
+
+            <div>
+              <Text size="2" weight="strong">
+                {session.magicMcpServer.name ?? 'Unknown Server'}
+              </Text>
+              <Text size="1" color="gray600">
+                {session.magicMcpServer.id}
+              </Text>
+            </div>,
+
+            session.subspaceSessionTemplateId ? (
+              <ID id={session.subspaceSessionTemplateId} />
+            ) : (
+              <Badge color="gray">Unknown Template</Badge>
+            ),
             <RenderDate date={session.createdAt} />
-          ]
+          ],
+          href: paths.magicMcpServerSessions(session.magicMcpServer.id)
         }))}
       />
 

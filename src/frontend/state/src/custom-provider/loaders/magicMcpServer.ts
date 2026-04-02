@@ -4,6 +4,7 @@ import {
   DashboardInstanceMagicMcpServersUpdateBody
 } from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
+import { autoPaginate } from '../../lib/autoPaginate';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
 
@@ -32,6 +33,33 @@ export let useMagicMcpServers = (
   );
 
   return data;
+};
+
+export let allMagicMcpServersLoader = createLoader({
+  name: 'allMagicMcpServers',
+  parents: [],
+  fetch: (
+    i: {
+      instanceId: string;
+    } & Omit<DashboardInstanceMagicMcpServersListQuery, 'after' | 'before' | 'cursor'>
+  ) =>
+    withAuth(sdk =>
+      autoPaginate(cursor =>
+        sdk.magicMcp.servers.list(i.instanceId, {
+          ...i,
+          ...cursor,
+          limit: i.limit ?? 100
+        })
+      )
+    ),
+  mutators: {}
+});
+
+export let useAllMagicMcpServers = (
+  instanceId: string | null | undefined,
+  query?: Omit<DashboardInstanceMagicMcpServersListQuery, 'after' | 'before' | 'cursor'>
+) => {
+  return allMagicMcpServersLoader.use(instanceId ? { instanceId, ...query } : null);
 };
 
 export let magicMcpServerLoader = createLoader({

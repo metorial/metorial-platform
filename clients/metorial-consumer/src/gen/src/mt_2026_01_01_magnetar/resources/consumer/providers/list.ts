@@ -7,6 +7,7 @@ export type ConsumerProvidersListOutput = {
         id: string;
         type: 'provider_template';
         availability: 'available_now' | 'request_access';
+        hasPendingAccessRequest: boolean;
         providerTemplate: {
           object: 'provider.template#preview';
           id: string;
@@ -105,6 +106,7 @@ export type ConsumerProvidersListOutput = {
         id: string;
         type: 'magic_mcp_server';
         availability: 'available_now' | 'request_access';
+        hasPendingAccessRequest: boolean;
         magicMcpServer: {
           object: 'magic_mcp.server#preview';
           id: string;
@@ -131,6 +133,10 @@ export let mapConsumerProvidersListOutput =
               type: mtMap.objectField('type', mtMap.passthrough()),
               availability: mtMap.objectField(
                 'availability',
+                mtMap.passthrough()
+              ),
+              hasPendingAccessRequest: mtMap.objectField(
+                'has_pending_access_request',
                 mtMap.passthrough()
               ),
               providerTemplate: mtMap.objectField(

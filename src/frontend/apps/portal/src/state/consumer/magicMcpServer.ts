@@ -1,52 +1,57 @@
-import {
-  MagicMcpServersCreateBody,
-  MagicMcpServersListQuery,
-  MagicMcpServersUpdateBody
-} from '@metorial/consumer-sdk/src/gen/src/mt_2025_01_01_pulsar';
 import { createLoader } from '@metorial/data-hooks';
-import { mutation } from '@metorial/state/src/lib/mutation';
 import { usePaginator } from '../lib/usePaginator';
-import { withSdk } from './client';
+import { type PortalConsumerClient, withSdk } from './client';
+
+export type PortalMagicMcpClient = PortalConsumerClient;
+
+export type MagicMcpServersListQuery = NonNullable<
+  Parameters<PortalMagicMcpClient['magicMcp']['servers']['list']>[0]
+>;
+export type MagicMcpServersCreateBody =
+  Parameters<PortalMagicMcpClient['magicMcp']['servers']['create']>[0];
+export type MagicMcpServersUpdateBody =
+  Parameters<PortalMagicMcpClient['magicMcp']['servers']['update']>[1];
+export type MagicMcpServersGetOutput = Awaited<
+  ReturnType<PortalMagicMcpClient['magicMcp']['servers']['get']>
+>;
+export type MagicMcpServersListOutput = Awaited<
+  ReturnType<PortalMagicMcpClient['magicMcp']['servers']['list']>
+>;
+
+export let withMagicMcpClient = withSdk;
 
 export let magicMcpServersLoader = createLoader({
   name: 'magicMcpServers',
   parents: [],
-  fetch: (i: MagicMcpServersListQuery) => withSdk(sdk => sdk.magicMcp.servers.list(i)),
+  fetch: (input: MagicMcpServersListQuery) =>
+    withMagicMcpClient(client => client.magicMcp.servers.list(input)),
   mutators: {}
 });
 
 export let useCreateMagicMcpServer = magicMcpServersLoader.createExternalMutator(
-  (i: MagicMcpServersCreateBody) => withSdk(sdk => sdk.magicMcp.servers.create(i)),
+  (input: MagicMcpServersCreateBody) =>
+    withMagicMcpClient(client => client.magicMcp.servers.create(input)),
   {
     disableToast: true
   }
 );
 
-export let createMagicMcpServer = (i: MagicMcpServersCreateBody) =>
-  mutation(() => withSdk(sdk => sdk.magicMcp.servers.create(i)));
-
-export let updateMagicMcpServer = (
-  i: MagicMcpServersUpdateBody & { magicMcpServerId: string }
-) => mutation(() => withSdk(sdk => sdk.magicMcp.servers.update(i.magicMcpServerId, i)));
-
 export let useMagicMcpServers = (query?: MagicMcpServersListQuery) => {
-  let data = usePaginator(pagination =>
-    magicMcpServersLoader.use({ ...pagination, ...query })
-  );
-
-  return data;
+  return usePaginator(pagination => magicMcpServersLoader.use({ ...pagination, ...query }));
 };
 
 export let magicMcpServerLoader = createLoader({
   name: 'magicMcpServer',
   parents: [magicMcpServersLoader],
-  fetch: (i: { magicMcpServerId: string }) =>
-    withSdk(sdk => sdk.magicMcp.servers.get(i.magicMcpServerId)),
+  fetch: (input: { magicMcpServerId: string }) =>
+    withMagicMcpClient(client => client.magicMcp.servers.get(input.magicMcpServerId)),
   mutators: {
-    update: (i: MagicMcpServersUpdateBody, { input: { magicMcpServerId } }) =>
-      withSdk(sdk => sdk.magicMcp.servers.update(magicMcpServerId, i)),
-    delete: (_, { input: { magicMcpServerId } }) =>
-      withSdk(sdk => sdk.magicMcp.servers.delete(magicMcpServerId))
+    update: (input: MagicMcpServersUpdateBody, { input: loaderInput }) =>
+      withMagicMcpClient(client =>
+        client.magicMcp.servers.update(loaderInput.magicMcpServerId, input)
+      ),
+    delete: (_, { input: loaderInput }) =>
+      withMagicMcpClient(client => client.magicMcp.servers.delete(loaderInput.magicMcpServerId))
   }
 });
 

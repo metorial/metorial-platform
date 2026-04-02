@@ -1,11 +1,13 @@
 import { MetorialConsumerSDK, createMetorialConsumerSDK } from '@metorial/consumer-sdk';
 import { withTokens } from '../portal/client';
 
-let clients = new Map<string, MetorialConsumerSDK>();
+export type PortalConsumerClient = MetorialConsumerSDK;
 
-export let withSdk = <T>(fn: (sdk: MetorialConsumerSDK) => Promise<T>) =>
+let clients = new Map<string, PortalConsumerClient>();
+
+export let withSdk = <T>(fn: (sdk: PortalConsumerClient) => Promise<T>) =>
   withTokens(async tokens => {
-    let hash = `${tokens.apiKey}|${tokens.consumerSessionToken}|${tokens.portalSessionToken}`;
+    let hash = `${tokens.apiKey}|${tokens.consumerSessionToken}`;
 
     let sdk = clients.get(hash);
     if (!sdk) {
@@ -19,3 +21,5 @@ export let withSdk = <T>(fn: (sdk: MetorialConsumerSDK) => Promise<T>) =>
 
     return await fn(sdk);
   });
+
+export let withConsumerClient = withSdk;

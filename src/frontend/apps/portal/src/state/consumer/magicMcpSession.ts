@@ -1,33 +1,43 @@
-import { MagicMcpSessionsListQuery } from '@metorial/consumer-sdk/src/gen/src/mt_2025_01_01_pulsar';
 import { createLoader } from '@metorial/data-hooks';
 import { usePaginator } from '../lib/usePaginator';
-import { withSdk } from './client';
+import { type PortalMagicMcpClient, withMagicMcpClient } from './magicMcpServer';
+
+export type MagicMcpSessionsListQuery = NonNullable<
+  Parameters<PortalMagicMcpClient['magicMcp']['sessions']['list']>[0]
+>;
+export type MagicMcpSessionsGetOutput = Awaited<
+  ReturnType<PortalMagicMcpClient['magicMcp']['sessions']['get']>
+>;
+export type MagicMcpSessionsListOutput = Awaited<
+  ReturnType<PortalMagicMcpClient['magicMcp']['sessions']['list']>
+>;
+export type MagicMcpSessionRow = MagicMcpSessionsListOutput['items'][number];
 
 export let magicMcpSessionsLoader = createLoader({
   name: 'magicMcpSessions',
   parents: [],
-  fetch: (i: MagicMcpSessionsListQuery) => withSdk(sdk => sdk.magicMcp.sessions.list(i)),
+  fetch: async (input: MagicMcpSessionsListQuery) =>
+    await withMagicMcpClient(client => client.magicMcp.sessions.list(input)),
   mutators: {}
 });
 
 export let useMagicMcpSessions = (query?: MagicMcpSessionsListQuery) => {
-  let data = usePaginator(pagination =>
-    magicMcpSessionsLoader.use({ ...pagination, ...query })
+  return usePaginator(pagination =>
+    magicMcpSessionsLoader.use({
+      ...pagination,
+      ...query
+    })
   );
-
-  return data;
 };
 
 export let magicMcpSessionLoader = createLoader({
   name: 'magicMcpSession',
   parents: [magicMcpSessionsLoader],
-  fetch: (i: { magicMcpSessionId: string }) =>
-    withSdk(sdk => sdk.magicMcp.sessions.get(i.magicMcpSessionId)),
+  fetch: async (input: { magicMcpSessionId: string }) =>
+    await withMagicMcpClient(client => client.magicMcp.sessions.get(input.magicMcpSessionId)),
   mutators: {}
 });
 
 export let useMagicMcpSession = (magicMcpSessionId: string | null | undefined) => {
-  let data = magicMcpSessionLoader.use(magicMcpSessionId ? { magicMcpSessionId } : null);
-
-  return data;
+  return magicMcpSessionLoader.use(magicMcpSessionId ? { magicMcpSessionId } : null);
 };
