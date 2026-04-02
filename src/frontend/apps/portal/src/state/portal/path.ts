@@ -1,51 +1,48 @@
-import { joinPaths } from '@lowerdeck/join-paths';
-import { useMemo } from 'react';
 import { useBoot } from './client';
+import { buildPortalPath } from './client';
 
-export type EntityParam = { id: string; slug: string } | null | undefined;
-export type SubPages = (string | null | undefined | object)[];
+let getPathBuilder = (portalUrl: string | null | undefined) => {
+  return (...parts: (string | null | undefined)[]) => {
+    if (!portalUrl) return '#';
+    return buildPortalPath(portalUrl, ...parts);
+  };
+};
+
+export let createPaths = (portalUrl: string | null | undefined) => {
+  let getPath = getPathBuilder(portalUrl);
+
+  return {
+    home: () => getPath(),
+    catalog: () => getPath('catalog'),
+    login: () => getPath('login'),
+    provider: (catalogItemId: string | null | undefined) => {
+      if (!catalogItemId) return '#';
+      return getPath('providers', catalogItemId);
+    },
+    magicMcpRoot: () => getPath('magic-mcp'),
+    magicMcpServers: () => getPath('magic-mcp', 'servers'),
+    magicMcpSessions: () => getPath('magic-mcp', 'sessions'),
+    magicMcpTokens: () => getPath('magic-mcp', 'tokens'),
+    magicMcpServerBase: () => getPath('magic-mcp', 'server'),
+    magicMcpServer: (
+      magicMcpServerId: string | null | undefined,
+      ...parts: (string | null | undefined)[]
+    ) => {
+      if (!magicMcpServerId) return '#';
+      return getPath('magic-mcp', 'server', magicMcpServerId, ...parts);
+    },
+    magicMcpServerSessions: (magicMcpServerId: string | null | undefined) => {
+      if (!magicMcpServerId) return '#';
+      return getPath('magic-mcp', 'server', magicMcpServerId, 'sessions');
+    },
+    magicMcpServerSettings: (magicMcpServerId: string | null | undefined) => {
+      if (!magicMcpServerId) return '#';
+      return getPath('magic-mcp', 'server', magicMcpServerId, 'settings');
+    }
+  };
+};
 
 export let usePaths = () => {
   let boot = useBoot();
-
-  let basePath = useMemo(() => {
-    if (!boot.data) return undefined;
-
-    let portalUrl = new URL(boot.data.portalUrl);
-    let basePath = portalUrl.pathname.split('/').filter(Boolean).join('/');
-    if (basePath == '/') return '';
-    return basePath;
-  }, [boot.data]);
-
-  return useMemo(() => {
-    let InstancePaths = Object.assign(
-      (...subPages: SubPages) => {
-        if (basePath === undefined || !boot.data) return '#';
-
-        return joinPaths(basePath, ...subPages);
-      },
-      {
-        home: () => InstancePaths(),
-        tokens: () => InstancePaths('tokens'),
-        settings: (...subPages: SubPages) => InstancePaths('settings', ...subPages),
-
-        servers: () => InstancePaths('servers'),
-        server: (serverId: string | null | undefined, ...subPages: SubPages) => {
-          if (!serverId) return '#';
-          return InstancePaths('server', serverId, ...subPages);
-        },
-
-        magicMcpServer: (...subPages: SubPages) =>
-          InstancePaths('magic-mcp-server', ...subPages),
-        magicMcpServers: (...subPages: SubPages) =>
-          InstancePaths('magic-mcp-servers', ...subPages),
-        magicMcpSessions: (...subPages: SubPages) =>
-          InstancePaths('magic-mcp-sessions', ...subPages),
-
-        explorer: (...subPages: SubPages) => InstancePaths('explorer', ...subPages)
-      }
-    );
-
-    return InstancePaths;
-  }, [boot.data, basePath]);
+  return createPaths(boot.data?.portalUrl ?? null);
 };

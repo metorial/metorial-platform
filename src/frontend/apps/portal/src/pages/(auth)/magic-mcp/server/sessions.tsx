@@ -8,6 +8,6 @@ export let MagicMcpServerSessionsPage = () => {
   let server = useMagicMcpServer(magicMcpServerId);
 
   return renderWithLoader({ server })(({ server }) => (
-    <MagicMcpSessionsTable magicMcpServerId={[server.data.id]} />
+    <MagicMcpSessionsTable magicMcpServerId={server.data.id} />
   ));
 };

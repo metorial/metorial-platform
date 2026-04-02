@@ -1,7 +1,3 @@
-import {
-  MagicMcpTokensGetOutput,
-  MagicMcpTokensListQuery
-} from '@metorial/consumer-sdk/src/gen/src/mt_2025_01_01_pulsar';
 import { renderWithPagination, useForm } from '@metorial/data-hooks';
 import {
   Badge,
@@ -9,6 +5,7 @@ import {
   confirm,
   Copy,
   Dialog,
+  Flex,
   Input,
   Menu,
   RenderDate,
@@ -24,9 +21,35 @@ import { Table } from '@metorial/ui-product';
 import { RiClipboardLine, RiMoreLine } from '@remixicon/react';
 import { useState } from 'react';
 import styled from 'styled-components';
-import { useCreateMagicMcpToken, useMagicMcpTokens } from '../../state/consumer/magicMcpToken';
+import {
+  MagicMcpTokenRow,
+  MagicMcpTokensGetOutput,
+  MagicMcpTokensListQuery,
+  useCreateMagicMcpToken,
+  useMagicMcpTokens
+} from '../../state/consumer/magicMcpToken';
 
-export let MagicMcpTokensTable = (filter: MagicMcpTokensListQuery) => {
+let formatTokenRestrictions = (token: Pick<MagicMcpTokenRow, 'groups'>) => {
+  if (!token.groups.length) {
+    return (
+      <Text size="1" color="gray600">
+        Unrestricted
+      </Text>
+    );
+  }
+
+  return (
+    <Flex gap={6} style={{ flexWrap: 'wrap' }}>
+      {token.groups.map(group => (
+        <Badge key={group.id} size="1" color="gray">
+          {group.name ?? group.id}
+        </Badge>
+      ))}
+    </Flex>
+  );
+};
+
+export let MagicMcpTokensTable = (filter: MagicMcpTokensListQuery = {}) => {
   let tokens = useMagicMcpTokens({
     ...filter,
     order: filter.order ?? 'asc'
@@ -128,11 +151,9 @@ export let MagicMcpTokensTable = (filter: MagicMcpTokensListQuery) => {
               )}
             </div>,
 
-            <MagicMcpTokenSecret token={token} />,
+            <MagicMcpTokenSecretField token={token} />,
 
-            <Text size="1" color="gray700">
-              {!token.groups.length ? 'None' : token.groups.map(g => g.name).join(', ')}
-            </Text>,
+            formatTokenRestrictions(token),
 
             <RenderDate date={token.createdAt} />,
 
@@ -235,7 +256,11 @@ let Action = styled('div')`
   flex-shrink: 0;
 `;
 
-export let MagicMcpTokenSecret = ({ token }: { token: MagicMcpTokensGetOutput }) => {
+let MagicMcpTokenSecretField = ({
+  token
+}: {
+  token: Pick<MagicMcpTokensGetOutput, 'secret'> | Pick<MagicMcpTokenRow, 'secret'>;
+}) => {
   let secret = token.secret;
   let copy = useCopy(secret!);
   let [isRevealed, setIsRevealed] = useState(false);

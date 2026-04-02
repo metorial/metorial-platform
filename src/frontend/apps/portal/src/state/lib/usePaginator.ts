@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export let usePaginator = <
   T extends {
@@ -9,12 +9,19 @@ export let usePaginator = <
         hasMoreBefore: boolean;
       };
     } | null;
+    error: unknown;
+    isLoading: boolean;
   },
   I extends { id: string }
 >(
-  useHook: (opts: { before?: string; after?: string }) => T
+  useHook: (opts: { before?: string; after?: string }) => T,
+  resetKey?: string
 ) => {
   let [cursor, setCursor] = useState<{ before?: string; after?: string }>({});
+
+  useEffect(() => {
+    setCursor({});
+  }, [resetKey]);
 
   let res = useHook(cursor);
   let dataRef = useRef(res.data);

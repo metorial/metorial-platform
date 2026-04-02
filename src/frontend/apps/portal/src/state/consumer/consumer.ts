@@ -1,11 +1,13 @@
 import { createLoader } from '@metorial/data-hooks';
 import { useBootWithAuth } from '../portal/client';
-import { withSdk } from './client';
+import { withConsumerClient } from './client';
 
 export let consumerLoader = createLoader({
   name: 'consumer',
   parents: [],
-  fetch: (i: {}) => withSdk(sdk => sdk.profile.get()),
+  fetch: async (_: {}) => {
+    return await withConsumerClient(client => client.profile.get());
+  },
   mutators: {}
 });
 

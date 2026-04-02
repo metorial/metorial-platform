@@ -13,6 +13,7 @@ export let v1ConsumerProviderPresenter = Presenter.create(consumerProviderType)
         id: consumerProvider.magicMcpServer.id,
         type: 'magic_mcp_server' as const,
         availability: consumerProvider.availability,
+        has_pending_access_request: consumerProvider.hasPendingAccessRequest,
         magic_mcp_server: v1MagicMcpServerPreview(consumerProvider.magicMcpServer)
       };
     }
@@ -22,6 +23,7 @@ export let v1ConsumerProviderPresenter = Presenter.create(consumerProviderType)
       id: consumerProvider.providerTemplate.id,
       type: 'provider_template' as const,
       availability: consumerProvider.availability,
+      has_pending_access_request: consumerProvider.hasPendingAccessRequest,
       provider_template: {
         object: 'provider.template#preview' as const,
         id: consumerProvider.providerTemplate.id,
@@ -63,6 +65,7 @@ export let v1ConsumerProviderPresenter = Presenter.create(consumerProviderType)
         id: v.string(),
         type: v.literal('provider_template'),
         availability: v.enumOf(['available_now', 'request_access']),
+        has_pending_access_request: v.boolean(),
         provider_template: v.object({
           object: v.literal('provider.template#preview'),
           id: v.string(),
@@ -95,6 +98,7 @@ export let v1ConsumerProviderPresenter = Presenter.create(consumerProviderType)
         id: v.string(),
         type: v.literal('magic_mcp_server'),
         availability: v.enumOf(['available_now', 'request_access']),
+        has_pending_access_request: v.boolean(),
         magic_mcp_server: v1MagicMcpServerPreview.schema
       })
     ])

@@ -1,4 +1,3 @@
-export * from '../../../../../../federation/frontend/apps/dashboard/src/slices/oauth/state/oauthAuthorizationRequest';
 export * from './loaders/cliDevice';
 export * from './loaders/oauthApplication';
 export * from './loaders/oauthAuthorization';

@@ -9,6 +9,7 @@ export type DashboardInstanceMagicMcpSessionsGetOutput = {
     object: 'magic_mcp.server';
     id: string;
     status: 'active' | 'archived' | 'deleted';
+    source: 'manual' | 'consumer_provider_template';
     sessionTemplateId: string;
     providerTemplateId: string | null;
     endpoints: { id: string; alias: string; url: string }[];
@@ -40,6 +41,7 @@ export let mapDashboardInstanceMagicMcpSessionsGetOutput =
         object: mtMap.objectField('object', mtMap.passthrough()),
         id: mtMap.objectField('id', mtMap.passthrough()),
         status: mtMap.objectField('status', mtMap.passthrough()),
+        source: mtMap.objectField('source', mtMap.passthrough()),
         sessionTemplateId: mtMap.objectField(
           'session_template_id',
           mtMap.passthrough()
