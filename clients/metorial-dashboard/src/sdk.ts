@@ -2,22 +2,21 @@ import { createFetchWithRetry } from '@metorial/fetch';
 import { MetorialAuthEndpoint } from './auth';
 import { MetorialKeyPrefix, sdkBuilder } from './builder';
 import {
-  MetorialApiKeysEndpoint,
   MetorialDashboardEndpoint,
   MetorialDashboardInstanceCallbacksDestinationsEndpoint,
   MetorialDashboardInstanceCallbacksEndpoint,
   MetorialDashboardInstanceCallbacksEventsEndpoint,
   MetorialDashboardInstanceCallbacksInstancesEndpoint,
   MetorialDashboardInstanceCallbacksNotificationsEndpoint,
+  MetorialDashboardInstanceConsumersEndpoint,
+  MetorialDashboardInstanceConsumersProfilesEndpoint,
+  MetorialDashboardInstanceConsumerSurfacesEndpoint,
   MetorialDashboardInstanceCustomProvidersCodeEndpoint,
   MetorialDashboardInstanceCustomProvidersCommitsEndpoint,
   MetorialDashboardInstanceCustomProvidersDeploymentsEndpoint,
   MetorialDashboardInstanceCustomProvidersEndpoint,
   MetorialDashboardInstanceCustomProvidersEnvironmentsEndpoint,
   MetorialDashboardInstanceCustomProvidersVersionsEndpoint,
-  MetorialDashboardInstanceConsumerSurfacesEndpoint,
-  MetorialDashboardInstanceConsumersEndpoint,
-  MetorialDashboardInstanceConsumersProfilesEndpoint,
   MetorialDashboardInstanceFileLinksEndpoint,
   MetorialDashboardInstanceFilesEndpoint,
   MetorialDashboardInstanceIdentitiesCredentialsEndpoint,
@@ -77,6 +76,7 @@ import {
   MetorialDashboardOauthAuthorizationRequestsEndpoint,
   MetorialDashboardOrganizationsAccessPoliciesEndpoint,
   MetorialDashboardOrganizationsAccessRolesEndpoint,
+  MetorialDashboardOrganizationsApiKeysEndpoint,
   MetorialDashboardOrganizationsEndpoint,
   MetorialDashboardOrganizationsInstancesEndpoint,
   MetorialDashboardOrganizationsInvitesEndpoint,
@@ -172,7 +172,7 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
   }),
   user: new MetorialManagementUserEndpoint(manager),
 
-  apiKeys: new MetorialApiKeysEndpoint(manager),
+  apiKeys: new MetorialDashboardOrganizationsApiKeysEndpoint(manager),
 
   auth: new MetorialAuthEndpoint(manager),
 

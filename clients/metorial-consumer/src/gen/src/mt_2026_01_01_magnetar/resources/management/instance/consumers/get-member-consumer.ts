@@ -20,7 +20,7 @@ export let mapManagementInstanceConsumersGetMemberConsumerOutput =
   });
 
 export type ManagementInstanceConsumersGetMemberConsumerBody = {
-  surfaceIdentifier: 'cli';
+  surfaceIdentifier?: 'cli' | undefined;
 };
 
 export let mapManagementInstanceConsumersGetMemberConsumerBody =

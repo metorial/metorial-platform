@@ -9,7 +9,10 @@ import {
   mapDashboardOrganizationsApiKeysGetOutput,
   mapDashboardOrganizationsApiKeysListOutput,
   mapDashboardOrganizationsApiKeysListQuery,
+  mapDashboardOrganizationsApiKeysRevealOutput,
   mapDashboardOrganizationsApiKeysRevokeOutput,
+  mapDashboardOrganizationsApiKeysRotateBody,
+  mapDashboardOrganizationsApiKeysRotateOutput,
   mapDashboardOrganizationsApiKeysUpdateBody,
   mapDashboardOrganizationsApiKeysUpdateOutput,
   type DashboardOrganizationsApiKeysCreateBody,
@@ -17,7 +20,10 @@ import {
   type DashboardOrganizationsApiKeysGetOutput,
   type DashboardOrganizationsApiKeysListOutput,
   type DashboardOrganizationsApiKeysListQuery,
+  type DashboardOrganizationsApiKeysRevealOutput,
   type DashboardOrganizationsApiKeysRevokeOutput,
+  type DashboardOrganizationsApiKeysRotateBody,
+  type DashboardOrganizationsApiKeysRotateOutput,
   type DashboardOrganizationsApiKeysUpdateBody,
   type DashboardOrganizationsApiKeysUpdateOutput
 } from '../resources';
@@ -198,6 +204,67 @@ export class MetorialDashboardOrganizationsApiKeysEndpoint {
 
     return this._delete(request).transform(
       mapDashboardOrganizationsApiKeysRevokeOutput
+    );
+  }
+
+  /**
+   * @name Rotate API key
+   * @description Rotate a specific API key
+   *
+   * @param `organizationId` - string
+   * @param `apiKeyId` - string
+   * @param `body` - DashboardOrganizationsApiKeysRotateBody
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardOrganizationsApiKeysRotateOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  rotate(
+    organizationId: string,
+    apiKeyId: string,
+    body: DashboardOrganizationsApiKeysRotateBody,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardOrganizationsApiKeysRotateOutput> {
+    let path = `dashboard/organizations/${organizationId}/api-keys/${apiKeyId}/rotate`;
+
+    let request = {
+      path,
+      body: mapDashboardOrganizationsApiKeysRotateBody.transformTo(body),
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._post(request).transform(
+      mapDashboardOrganizationsApiKeysRotateOutput
+    );
+  }
+
+  /**
+   * @name Reveal API key
+   * @description Reveal a specific API key
+   *
+   * @param `organizationId` - string
+   * @param `apiKeyId` - string
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardOrganizationsApiKeysRevealOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  reveal(
+    organizationId: string,
+    apiKeyId: string,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardOrganizationsApiKeysRevealOutput> {
+    let path = `dashboard/organizations/${organizationId}/api-keys/${apiKeyId}/reveal`;
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._post(request).transform(
+      mapDashboardOrganizationsApiKeysRevealOutput
     );
   }
 }

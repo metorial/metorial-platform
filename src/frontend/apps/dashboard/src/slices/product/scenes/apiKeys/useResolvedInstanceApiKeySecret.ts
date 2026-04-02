@@ -11,9 +11,7 @@ let isActiveSecretApiKey = (d: {
   d.status === 'active' &&
   (d.revealInfo?.forever || (d.revealInfo?.until ? d.revealInfo.until > new Date() : false));
 
-export let useResolvedInstanceApiKeySecret = (
-  instanceId: string | null | undefined
-) => {
+export let useResolvedInstanceApiKeySecret = (instanceId: string | null | undefined) => {
   let apiKeys = useApiKeysWithAutoInit(
     instanceId
       ? {

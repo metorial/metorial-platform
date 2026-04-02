@@ -20,7 +20,7 @@ export let mapDashboardInstanceConsumersGetMemberConsumerOutput =
   });
 
 export type DashboardInstanceConsumersGetMemberConsumerBody = {
-  surfaceIdentifier: 'cli';
+  surfaceIdentifier?: 'cli' | undefined;
 };
 
 export let mapDashboardInstanceConsumersGetMemberConsumerBody =

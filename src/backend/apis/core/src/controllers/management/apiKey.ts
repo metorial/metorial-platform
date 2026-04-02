@@ -10,7 +10,7 @@ import { Organization } from '@metorial/db';
 import { accessService, AuthInfo } from '@metorial/module-access';
 import { apiKeyService, ListApiKeysFilter } from '@metorial/module-machine-access';
 import { instanceService } from '@metorial/module-organization';
-import { Controller, Path } from '@metorial/rest';
+import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../middleware/checkAccess';
 import {
   organizationGroup,
@@ -411,16 +411,10 @@ export let managementApiKeyController = Controller.create(
       }),
 
     rotate: organizationGroup
-      .post(
-        Path(
-          '/dashboard/organizations/:organizationId/api-keys/:apiKeyId/rotate',
-          'apiKeys.rotate'
-        ),
-        {
-          name: 'Rotate API key',
-          description: 'Rotate a specific API key'
-        }
-      )
+      .post(organizationManagementPath('api-keys/:apiKeyId/rotate', 'apiKeys.rotate'), {
+        name: 'Rotate API key',
+        description: 'Rotate a specific API key'
+      })
       .body(
         'default',
         v.object({
@@ -468,16 +462,10 @@ export let managementApiKeyController = Controller.create(
       }),
 
     reveal: organizationGroup
-      .post(
-        Path(
-          '/dashboard/organizations/:organizationId/api-keys/:apiKeyId/reveal',
-          'apiKeys.reveal'
-        ),
-        {
-          name: 'Reveal API key',
-          description: 'Reveal a specific API key'
-        }
-      )
+      .post(organizationManagementPath('api-keys/:apiKeyId/reveal', 'apiKeys.reveal'), {
+        name: 'Reveal API key',
+        description: 'Reveal a specific API key'
+      })
       .use(checkAccess({ possibleScopes: ['organization.api_key:reveal'] }))
       .output(apiKeyPresenter)
       .do(async ctx => {

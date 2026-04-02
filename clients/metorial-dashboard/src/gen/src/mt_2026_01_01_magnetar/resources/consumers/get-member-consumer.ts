@@ -19,7 +19,9 @@ export let mapConsumersGetMemberConsumerOutput =
     updatedAt: mtMap.objectField('updated_at', mtMap.date())
   });
 
-export type ConsumersGetMemberConsumerBody = { surfaceIdentifier: 'cli' };
+export type ConsumersGetMemberConsumerBody = {
+  surfaceIdentifier?: 'cli' | undefined;
+};
 
 export let mapConsumersGetMemberConsumerBody =
   mtMap.object<ConsumersGetMemberConsumerBody>({

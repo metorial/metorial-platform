@@ -32,7 +32,7 @@ export let mapDashboardInstanceConsumersGetMemberConsumerOutput = mtMap.union([
 ]);
 
 export type DashboardInstanceConsumersGetMemberConsumerBody = {
-  surfaceIdentifier: 'cli';
+  surfaceIdentifier?: 'cli' | undefined;
 };
 
 export let mapDashboardInstanceConsumersGetMemberConsumerBody =
