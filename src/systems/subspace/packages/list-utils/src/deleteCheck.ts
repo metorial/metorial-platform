@@ -30,10 +30,10 @@ export let isRecordDeleted = (
 
   if (d.status === 'deleted' || d.status === 'archived') return true;
 
-  if (d.isEphemeral) {
-    // if (!opts?.allowEphemeral) return true;
-    if (!isCreatedRecently(d, 15 * 1000)) return true;
-  }
+  // if (d.isEphemeral) {
+  //   // if (!opts?.allowEphemeral) return true;
+  //   if (!isCreatedRecently(d, 15 * 1000)) return true;
+  // }
 
   return false;
 };

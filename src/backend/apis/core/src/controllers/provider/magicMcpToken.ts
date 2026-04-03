@@ -3,7 +3,11 @@ import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { MagicMcpTokenStatus } from '@metorial/db';
 import { consumerAccessPolicyService } from '@metorial/module-consumer';
-import { magicMcpGroupService, magicMcpTokenService } from '@metorial/module-magic';
+import {
+  magicMcpGroupService,
+  magicMcpServerService,
+  magicMcpTokenService
+} from '@metorial/module-magic';
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
@@ -126,13 +130,14 @@ export let magicMcpTokenController = Controller.create(
           name: v.string(),
           description: v.optional(v.string()),
           metadata: v.optional(v.record(v.any())),
-          group_ids: v.optional(v.array(v.string()))
+          magic_mcp_group_ids: v.optional(v.array(v.string())),
+          magic_mcp_server_id: v.optional(v.string())
         })
       )
       .output(magicMcpTokenPresenter)
       .use(hasFlags(['magic-mcp-enabled']))
       .do(async ctx => {
-        if (ctx.consumerProfile && ctx.body.group_ids?.length) {
+        if (ctx.consumerProfile && ctx.body.magic_mcp_group_ids?.length) {
           throw new ServiceError(
             badRequestError({
               message: 'Consumer-created magic MCP tokens cannot be locked to admin groups.'
@@ -140,10 +145,17 @@ export let magicMcpTokenController = Controller.create(
           );
         }
 
-        let groups = ctx.body.group_ids?.length
+        let groups = ctx.body.magic_mcp_group_ids?.length
           ? await magicMcpGroupService.findManyGroupsById({
-              groupIds: ctx.body.group_ids,
+              groupIds: ctx.body.magic_mcp_group_ids,
               instance: ctx.instance
+            })
+          : undefined;
+        let magicMcpServer = ctx.body.magic_mcp_server_id
+          ? await magicMcpServerService.getMagicMcpServerById({
+              magicMcpServerId: ctx.body.magic_mcp_server_id,
+              instance: ctx.instance,
+              accessTags: ctx.accessTags
             })
           : undefined;
 
@@ -153,7 +165,8 @@ export let magicMcpTokenController = Controller.create(
           input: {
             name: ctx.body.name,
             description: ctx.body.description,
-            metadata: ctx.body.metadata
+            metadata: ctx.body.metadata,
+            magicMcpServer
           }
         });
 

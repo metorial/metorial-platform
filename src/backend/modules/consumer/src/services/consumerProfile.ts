@@ -170,7 +170,7 @@ class ConsumerProfileServiceImpl {
     surface: ConsumerSurface;
     email: string;
     name: string;
-    member?: Pick<OrganizationMember, 'oid' | 'actorOid'>;
+    member?: OrganizationMember;
 
     aresUserId?: string;
     ssoGroupIds?: string[];
@@ -223,6 +223,13 @@ class ConsumerProfileServiceImpl {
             isPortalConsumer: existingConsumer?.isPortalConsumer || d.surface.type === 'portal'
           }
         });
+
+        if (d.member && !d.member.usesMetorialPersonal && d.surface.isInternal) {
+          await db.organizationMember.updateMany({
+            where: { oid: d.member.oid },
+            data: { usesMetorialPersonal: true }
+          });
+        }
 
         let instanceConsumer = await db.instanceConsumer.upsert({
           where: {

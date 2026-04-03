@@ -1,5 +1,7 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { getConsumerAccessContextForConsumerProfile } from '@metorial/consumer-auth';
 import { accessService } from '@metorial/module-access';
+import { consumerProfileService } from '@metorial/module-consumer';
 import { Path } from '@metorial/rest';
 import { apiGroup } from './apiGroup';
 
@@ -68,6 +70,27 @@ export let instanceGroup = apiGroup.use(async ctx => {
     authInfo: ctx.auth,
     instanceId
   });
+
+  let consumerId = ctx.headers['metorial-consumer-profile-id'];
+
+  if (consumerId) {
+    let consumerProfile = await consumerProfileService.getConsumerProfileByIdForInstance({
+      instance: res.instance,
+      consumerProfileId: consumerId
+    });
+
+    let consumerRes = await getConsumerAccessContextForConsumerProfile({
+      profile: consumerProfile
+    });
+
+    return Object.assign(res, consumerPlaceholder, {
+      consumerGroups: consumerRes.consumerGroups,
+      accessTags: consumerRes.accessTags,
+
+      consumerSurface: consumerProfile.surface,
+      consumerProfile: consumerProfile
+    });
+  }
 
   return Object.assign(res, consumerPlaceholder);
 });

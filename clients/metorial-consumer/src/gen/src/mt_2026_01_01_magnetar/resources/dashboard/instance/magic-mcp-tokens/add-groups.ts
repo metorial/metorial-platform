@@ -7,6 +7,13 @@ export type DashboardInstanceMagicMcpTokensAddGroupsOutput = {
   secret: string;
   name: string | null;
   description: string | null;
+  server: {
+    object: 'magic_mcp.server#preview';
+    id: string;
+    status: 'active' | 'archived' | 'deleted';
+    name: string | null;
+    description: string | null;
+  } | null;
   groups: {
     object: 'magic_mcp.group';
     id: string;
@@ -31,6 +38,16 @@ export let mapDashboardInstanceMagicMcpTokensAddGroupsOutput =
     secret: mtMap.objectField('secret', mtMap.passthrough()),
     name: mtMap.objectField('name', mtMap.passthrough()),
     description: mtMap.objectField('description', mtMap.passthrough()),
+    server: mtMap.objectField(
+      'server',
+      mtMap.object({
+        object: mtMap.objectField('object', mtMap.passthrough()),
+        id: mtMap.objectField('id', mtMap.passthrough()),
+        status: mtMap.objectField('status', mtMap.passthrough()),
+        name: mtMap.objectField('name', mtMap.passthrough()),
+        description: mtMap.objectField('description', mtMap.passthrough())
+      })
+    ),
     groups: mtMap.objectField(
       'groups',
       mtMap.array(

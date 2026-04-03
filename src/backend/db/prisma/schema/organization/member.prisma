@@ -15,7 +15,8 @@ model OrganizationMember {
   role   OrganizationMemberRole
   status OrganizationMemberStatus
 
-  isV2Member Boolean @default(false)
+  isV2Member           Boolean @default(false)
+  usesMetorialPersonal Boolean @default(false)
 
   lastActiveAt DateTime?
   deletedAt    DateTime?

@@ -6,7 +6,8 @@ export let tokenController = Controller.create(
   {
     name: 'Token',
     description:
-      'Endpoint for retrieving metadata about the token used for authentication. This is useful for clients to understand the type and capabilities of the token they are using, especially since Metorial supports multiple token types with different permission models.'
+      'Endpoint for retrieving metadata about the token used for authentication. This is useful for clients to understand the type and capabilities of the token they are using, especially since Metorial supports multiple token types with different permission models.',
+    hideInDocs: true
   },
   {
     get: apiGroup

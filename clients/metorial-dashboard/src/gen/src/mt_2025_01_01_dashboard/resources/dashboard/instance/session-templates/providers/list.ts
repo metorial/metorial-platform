@@ -175,7 +175,6 @@ export type DashboardInstanceSessionTemplatesProvidersListQuery = {
   status?: 'active' | 'archived' | ('active' | 'archived')[] | undefined;
   id?: string | string[] | undefined;
   sessionTemplateId?: string | string[] | undefined;
-  sessionTemplateTemplateId?: string | string[] | undefined;
   providerId?: string | string[] | undefined;
   providerDeploymentId?: string | string[] | undefined;
   providerConfigId?: string | string[] | undefined;
@@ -210,16 +209,6 @@ export let mapDashboardInstanceSessionTemplatesProvidersListQuery = mtMap.union(
         ),
         sessionTemplateId: mtMap.objectField(
           'session_template_id',
-          mtMap.union([
-            mtMap.unionOption('string', mtMap.passthrough()),
-            mtMap.unionOption(
-              'array',
-              mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-            )
-          ])
-        ),
-        sessionTemplateTemplateId: mtMap.objectField(
-          'session_template_template_id',
           mtMap.union([
             mtMap.unionOption('string', mtMap.passthrough()),
             mtMap.unionOption(

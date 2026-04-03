@@ -15,7 +15,8 @@ import {
   MagicMcpGroup,
   MagicMcpServer,
   MagicMcpToken,
-  MagicMcpTokenStatus
+  MagicMcpTokenStatus,
+  Prisma
 } from '@metorial/db';
 import {
   accessTagService,
@@ -37,19 +38,24 @@ let createMagicMcpSecret = () =>
   }).toString();
 
 let include = {
+  magicMcpServer: true,
   groups: {
     include: {
       magicMcpGroup: true
     }
   }
-};
+} satisfies Prisma.MagicMcpTokenInclude;
+
+type MagicMcpTokenWithRelations = Prisma.MagicMcpTokenGetPayload<{
+  include: typeof include;
+}>;
 
 class MagicMcpTokenImpl {
   async getMagicMcpTokenById(d: {
     instance: Instance;
     magicMcpTokenId: string;
     accessTags?: AnyAccessTagSelector;
-  }) {
+  }): Promise<MagicMcpTokenWithRelations> {
     let magicMcpToken = await db.magicMcpToken.findFirst({
       where: {
         instanceOid: d.instance.oid,
@@ -95,6 +101,7 @@ class MagicMcpTokenImpl {
       name?: string;
       description?: string;
       metadata?: Record<string, any>;
+      magicMcpServer?: MagicMcpServer;
     };
   }) {
     return await db.magicMcpToken.create({
@@ -104,6 +111,7 @@ class MagicMcpTokenImpl {
         status: 'active',
         isGroupLocked: !!d.groups?.length,
         instanceOid: d.instance.oid,
+        magicMcpServerOid: d.input.magicMcpServer?.oid,
         name: d.input.name,
         description: d.input.description,
         metadata: d.input.metadata ?? {},
@@ -255,22 +263,39 @@ class MagicMcpTokenImpl {
                 ? {
                     OR: [
                       {
-                        groups: {
-                          none: {}
-                        }
+                        magicMcpServerOid: { in: serverOids }
                       },
                       {
-                        groups: {
-                          some: {
-                            magicMcpGroup: {
-                              servers: {
-                                some: {
-                                  magicMcpServerOid: { in: serverOids }
+                        AND: [
+                          {
+                            magicMcpServerOid: null
+                          },
+                          {
+                            groups: {
+                              none: {}
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        AND: [
+                          {
+                            magicMcpServerOid: null
+                          },
+                          {
+                            groups: {
+                              some: {
+                                magicMcpGroup: {
+                                  servers: {
+                                    some: {
+                                      magicMcpServerOid: { in: serverOids }
+                                    }
+                                  }
                                 }
                               }
                             }
                           }
-                        }
+                        ]
                       }
                     ]
                   }
@@ -283,7 +308,10 @@ class MagicMcpTokenImpl {
     );
   }
 
-  async getMagicMcpTokenBySecret(d: { secret: string; instance: Instance }) {
+  async getMagicMcpTokenBySecret(d: {
+    secret: string;
+    instance: Instance;
+  }): Promise<MagicMcpTokenWithRelations> {
     let magicMcpToken = await db.magicMcpToken.findFirst({
       where: {
         secret: d.secret,
@@ -303,7 +331,14 @@ class MagicMcpTokenImpl {
     return magicMcpToken;
   }
 
-  async checkMagicMcpTokenAccess(d: { token: MagicMcpToken; server: MagicMcpServer }) {
+  async checkMagicMcpTokenAccess(d: {
+    token: MagicMcpTokenWithRelations;
+    server: MagicMcpServer;
+  }) {
+    if (d.token.magicMcpServerOid && d.token.magicMcpServerOid !== d.server.oid) {
+      return false;
+    }
+
     if (d.token.isGroupLocked) {
       let group = await db.magicMcpGroup.findFirst({
         where: {
