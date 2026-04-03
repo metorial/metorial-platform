@@ -226,18 +226,24 @@ class providerOAuthSetupServiceImpl {
         throw new Error('Provider auth credentials are required');
       }
 
-      credentials = await providerAuthCredentialsService.getProviderAuthCredentialsForBackendUse({
-        tenant: d.tenant,
-        solution: d.solution,
-        provider: d.provider,
-        providerAuthCredentials: credentials,
-        providerAuthMethod: authMethod
-      });
+      credentials =
+        await providerAuthCredentialsService.getProviderAuthCredentialsForBackendUse({
+          tenant: d.tenant,
+          solution: d.solution,
+          provider: d.provider,
+          providerAuthCredentials: credentials,
+          providerAuthMethod: authMethod
+        });
 
       let newId = getId('providerOAuthSetup');
       let clientSecret = await ID.generateId('providerOAuthSetup_clientSecret');
 
-      let callbackUrlOverride = getOAuthCallbackUrl(d.provider.type, d.provider, d.tenant);
+      let isManagedCredentials =
+        credentials.origin === 'managed_backing' || credentials.origin === 'managed_public';
+
+      let callbackUrlOverride = isManagedCredentials
+        ? null
+        : getOAuthCallbackUrl(d.provider.type, d.provider, d.tenant);
 
       let backendProviderOAuthSetup = await backend.auth.createProviderOAuthSetup({
         tenant: d.tenant,
