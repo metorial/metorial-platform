@@ -123,9 +123,10 @@ export let SetupSessionFlow = ({
   let oauthInitiated = useRef(false);
   let includesProviderStep = useRef(!session.providerId).current;
 
+  let resolvedSessionType = flowSession.typeConcrete ?? flowSession.type;
   let needsProviderSelection = !flowSession.providerId;
-  let needsAuthConfig = flowSession.type !== 'config_only' && !flowSession.authConfig;
-  let needsConfig = flowSession.type !== 'auth_only' && !flowSession.config;
+  let needsAuthConfig = resolvedSessionType !== 'config_only' && !flowSession.authConfig;
+  let needsConfig = resolvedSessionType !== 'auth_only' && !flowSession.config;
   let isOAuth = flowSession.authMethod?.type === 'oauth';
   let toolFiltersEnabled = !!flowSession.configuration?.toolFilters?.enabled;
 
@@ -256,6 +257,30 @@ export let SetupSessionFlow = ({
       setToolAccessStepCompleted(true);
     }
 
+    if (!needsConfig && needsAuthConfig && !hasSchemaFields(authConfigSchema)) {
+      await client.setupSession.setAuthConfig({
+        sessionId: flowSession.id,
+        clientSecret,
+        authConfigInput: {},
+        toolFilters: toolFilterPayload
+      });
+
+      if (isOAuth) {
+        let oauthResult = await client.setupSession.getOauthSetup({
+          sessionId: flowSession.id,
+          clientSecret
+        });
+        if (oauthResult) {
+          setOauthSetup(oauthResult);
+          setCurrentStep('oauth_redirect');
+          return;
+        }
+      }
+
+      setCurrentStep('completed');
+      return;
+    }
+
     if (needsAuthConfig && hasSchemaFields(authConfigSchema)) {
       setCurrentStep('auth_config');
     } else if (needsAuthConfig && isOAuth) {
@@ -343,16 +368,16 @@ export let SetupSessionFlow = ({
     if (toolFiltersEnabled || hasSeenConfigFields || hasConfigFields || !!flowSession.config) {
       ids.push('config');
     }
-    if (flowSession.type !== 'config_only') {
+    if (resolvedSessionType !== 'config_only') {
       ids.push('auth');
     }
     return ids;
   }, [
     flowSession.config,
-    flowSession.type,
     hasConfigFields,
     hasSeenConfigFields,
     includesProviderStep,
+    resolvedSessionType,
     toolFiltersEnabled
   ]);
 

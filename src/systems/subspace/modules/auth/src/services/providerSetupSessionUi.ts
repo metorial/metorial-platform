@@ -10,12 +10,12 @@ import {
   type ProviderDeployment,
   type ProviderDeploymentVersion,
   type ProviderSetupSession,
-  ProviderSetupSessionTypeConcrete,
   type ProviderVariant,
   type Solution,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
+import { ProviderSetupSessionUncheckedUpdateInput } from '@metorial-subspace/db/prisma/generated/models';
 import { providerListingService, providerService } from '@metorial-subspace/module-catalog';
 import { providerConfigService } from '@metorial-subspace/module-deployment';
 import { checkProviderMatch } from '@metorial-subspace/module-provider-internal';
@@ -23,7 +23,6 @@ import { normalizeJsonSchema } from '@metorial-subspace/provider-utils';
 import { env } from '../env';
 import { providerSetupSessionUpdatedQueue } from '../queues/lifecycle/providerSetupSession';
 import { providerAuthConfigService } from './providerAuthConfig';
-import { providerAuthConfigInternalService } from './providerAuthConfigInternal';
 import { providerOAuthSetupInclude } from './providerOAuthSetup';
 import { providerSetupSessionInclude } from './providerSetupSession';
 import { providerSetupSessionInternalService } from './providerSetupSessionInternal';
@@ -132,6 +131,8 @@ class providerSetupSessionUiServiceImpl {
       };
     }
 
+    this.assertSelectedAuthMethod(fullSession);
+
     let schema = await providerAuthConfigService.getProviderAuthConfigSchema({
       tenant: fullSession.tenant,
       solution: fullSession.solution,
@@ -208,6 +209,15 @@ class providerSetupSessionUiServiceImpl {
           }
         });
         this.assertSelectedProvider(currentSession);
+        if (!currentSession.authMethod) {
+          throw new ServiceError(
+            badRequestError({
+              message: 'A provider must be selected before continuing setup',
+              code: 'provider_selection_required'
+            })
+          );
+        }
+        let authMethod = currentSession.authMethod;
         if (currentSession.status === 'completed' || currentSession.authConfigOid) {
           throw new ServiceError(
             badRequestError({
@@ -224,7 +234,7 @@ class providerSetupSessionUiServiceImpl {
             environment: currentSession.environment,
             providerDeployment: currentSession.deployment ?? undefined,
             credentials: currentSession.authCredentials ?? undefined,
-            authMethod: currentSession.authMethod,
+            authMethod,
             expiresAt: currentSession.expiresAt,
             input: {
               name: currentSession.name ?? undefined,
@@ -291,6 +301,7 @@ class providerSetupSessionUiServiceImpl {
         })
       );
     }
+
     if (d.providerSetupSession.configOid) {
       throw new ServiceError(
         badRequestError({
@@ -482,66 +493,55 @@ class providerSetupSessionUiServiceImpl {
           solution: session.solution
         });
 
-        let { authMethod } = await providerAuthConfigInternalService.getVersionAndAuthMethod({
-          tenant: session.tenant,
-          solution: session.solution,
-          environment: session.environment,
-          provider
-        });
-
-        let authCredentialsOid: bigint | undefined;
-        if (
-          authMethod.type === 'oauth' &&
-          provider.type.attributes.auth.oauth?.oauthAutoRegistration?.status !== 'supported'
-        ) {
-          let defaultCredentials = await db.providerAuthCredentials.findFirst({
-            where: {
-              providerOid: provider.oid,
-              tenantOid: session.tenant.oid,
-              solutionOid: session.solution.oid,
-              environmentOid: session.environment.oid,
-              isDefault: true,
-              status: 'active'
+        let initialized =
+          await providerSetupSessionInternalService.initializeProviderSetupSessionProvider({
+            tenant: session.tenant,
+            solution: session.solution,
+            environment: session.environment,
+            provider,
+            expiresAt: session.expiresAt,
+            input: {
+              name: session.name ?? undefined,
+              description: session.description ?? undefined,
+              metadata: session.metadata ?? undefined,
+              type: session.typeSelected,
+              toolFilters: session.configuration?.toolFilters?.enabled
+                ? { type: 'v1.allow_all' }
+                : undefined,
+              requiresToolFiltersSelection: session.configuration?.toolFilters?.enabled
+            },
+            import: {
+              ip: undefined,
+              ua: undefined
             }
           });
-
-          if (!defaultCredentials) {
-            throw new ServiceError(
-              badRequestError({
-                message: 'No default provider auth credentials found for oauth method',
-                code: 'missing_oauth_credentials'
-              })
-            );
-          }
-
-          authCredentialsOid = defaultCredentials.oid;
-        }
-
-        let concreteType: ProviderSetupSessionTypeConcrete | null = null;
-
-        if (session.typeSelected === 'auto') {
-          if (
-            provider.type.attributes.config.status === 'enabled' &&
-            provider.type.attributes.auth.status === 'enabled'
-          ) {
-            concreteType = 'auth_and_config';
-          } else if (provider.type.attributes.config.status === 'enabled') {
-            concreteType = 'config_only';
-          } else {
-            concreteType = 'auth_only';
-          }
-        } else {
-          concreteType = session.typeSelected;
-        }
 
         let updatedSession = await db.providerSetupSession.update({
           where: { oid: session.oid },
           data: {
+            ...(initialized.inner as ProviderSetupSessionUncheckedUpdateInput),
             providerOid: provider.oid,
-            authMethodOid: authMethod.oid,
-            authCredentialsOid,
-            typeConcrete: concreteType
+            typeConcrete: initialized.concreteType
           },
+          include: {
+            ...providerSetupSessionInclude,
+            provider: {
+              include: {
+                listing: true
+              }
+            },
+            brand: true,
+            tenant: true
+          }
+        });
+
+        let evaluatedSession = await providerSetupSessionInternalService.evaluate({
+          session: updatedSession,
+          context: { ip: '', ua: '' }
+        });
+
+        updatedSession = await db.providerSetupSession.findUniqueOrThrow({
+          where: { oid: evaluatedSession.oid },
           include: {
             ...providerSetupSessionInclude,
             provider: {
@@ -640,17 +640,26 @@ class providerSetupSessionUiServiceImpl {
   }
 
   private assertSelectedProvider(
-    session: ProviderSetupSession & { provider?: Provider | null; authMethod?: any | null }
+    session: ProviderSetupSession & { provider?: Provider | null }
   ): asserts session is ProviderSetupSession & {
     provider: Provider;
+  } {
+    if (!session.providerOid || !session.provider) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'A provider must be selected before continuing setup',
+          code: 'provider_selection_required'
+        })
+      );
+    }
+  }
+
+  private assertSelectedAuthMethod(
+    session: ProviderSetupSession & { authMethod?: any | null }
+  ): asserts session is ProviderSetupSession & {
     authMethod: NonNullable<typeof session.authMethod>;
   } {
-    if (
-      !session.providerOid ||
-      !session.authMethodOid ||
-      !session.provider ||
-      !session.authMethod
-    ) {
+    if (!session.authMethodOid || !session.authMethod) {
       throw new ServiceError(
         badRequestError({
           message: 'A provider must be selected before continuing setup',

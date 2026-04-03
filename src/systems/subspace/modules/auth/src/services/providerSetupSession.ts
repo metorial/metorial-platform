@@ -46,9 +46,7 @@ import {
   providerSetupSessionUpdatedQueue
 } from '../queues/lifecycle/providerSetupSession';
 import { providerAuthConfigInclude } from './providerAuthConfig';
-import { providerAuthConfigInternalService } from './providerAuthConfigInternal';
 import { providerSetupSessionInternalService } from './providerSetupSessionInternal';
-import { providerSetupSessionUiService } from './providerSetupSessionUi';
 
 let include = {
   identity: true,
@@ -237,45 +235,6 @@ class providerSetupSessionServiceImpl {
       }
     }
 
-    let concreteType: ProviderSetupSessionTypeConcrete | null = null;
-
-    if (d.provider) {
-      checkProviderMatch(d.provider, d.credentials);
-      checkProviderMatch(d.provider, d.providerDeployment);
-
-      if (d.input.type === 'auto') {
-        let type = await db.providerType.findUnique({
-          where: { oid: d.provider.typeOid }
-        });
-
-        if (
-          type?.attributes.config.status === 'enabled' &&
-          type.attributes.auth.status === 'enabled'
-        ) {
-          concreteType = 'auth_and_config';
-        } else if (type?.attributes.auth.status === 'enabled') {
-          concreteType = 'auth_only';
-        } else {
-          concreteType = 'config_only';
-        }
-      }
-    }
-
-    if (concreteType === 'config_only' && d.input.authConfigInput) {
-      throw new ServiceError(
-        badRequestError({
-          message: 'Auth config input provided for config_only session type'
-        })
-      );
-    }
-    if (concreteType === 'auth_only' && d.input.configInput) {
-      throw new ServiceError(
-        badRequestError({
-          message: 'Config input provided for auth_only session type'
-        })
-      );
-    }
-
     if (!d.provider && (d.input.authConfigInput || d.input.configInput)) {
       throw new ServiceError(
         badRequestError({
@@ -286,116 +245,50 @@ class providerSetupSessionServiceImpl {
 
     return withTransaction(async db => {
       let expiresAt = d.input.expiresAt ?? addMinutes(new Date(), 30);
-      let inner: Partial<ProviderSetupSession> = {};
+      let inner: {
+        authMethodOid?: bigint | null;
+        authCredentialsOid?: bigint | null;
+        oauthSetupOid?: bigint | null;
+        authConfigOid?: bigint | null;
+        deploymentOid?: bigint | null;
+        configOid?: bigint | null;
+      } = {};
+      let concreteType: ProviderSetupSessionTypeConcrete | null = null;
 
       if (d.provider) {
-        if (!d.provider.defaultVariant) {
-          throw new Error('Provider has no default variant');
-        }
+        checkProviderMatch(d.provider, d.credentials);
+        checkProviderMatch(d.provider, d.providerDeployment);
 
-        let { authMethod } = await providerAuthConfigInternalService.getVersionAndAuthMethod({
-          tenant: d.tenant,
-          solution: d.solution,
-          environment: d.environment,
-          provider: d.provider,
-          providerDeployment: d.providerDeployment,
-          authMethodId: d.input.authMethodId ?? (d.credentials ? 'oauth' : undefined)
-        });
-
-        inner.authMethodOid = authMethod.oid;
-
-        if (d.credentials && authMethod.type !== 'oauth') d.credentials = undefined;
-        if (
-          authMethod.type === 'oauth' &&
-          !d.credentials &&
-          d.provider.type.attributes.auth.oauth?.oauthAutoRegistration?.status !== 'supported'
-        ) {
-          let defaultCredentials = await db.providerAuthCredentials.findFirst({
-            where: {
-              providerOid: d.provider.oid,
-              tenantOid: d.tenant.oid,
-              solutionOid: d.solution.oid,
-              environmentOid: d.environment.oid,
-              isDefault: true,
-              status: 'active'
-            }
-          });
-
-          if (!defaultCredentials) {
-            throw new ServiceError(
-              badRequestError({
-                message: 'No default provider auth credentials found for oauth method',
-                code: 'missing_oauth_credentials'
-              })
-            );
-          }
-
-          d.credentials = defaultCredentials;
-        }
-
-        if (d.input.authConfigInput && d.input.type !== 'config_only') {
-          let authConfigInner =
-            await providerSetupSessionInternalService.createProviderAuthConfig({
-              tenant: d.tenant,
-              solution: d.solution,
-              environment: d.environment,
-              provider: d.provider,
-              providerDeployment: d.providerDeployment,
-              credentials: d.credentials,
-              authMethod,
-              expiresAt,
-              input: {
-                name: d.input.name,
-                description: d.input.description,
-                metadata: d.input.metadata,
-                toolFilters: normalizedConfiguration.toolFilters?.enabled
-                  ? { type: 'v1.allow_all' }
-                  : undefined,
-                config: d.input.authConfigInput
-              },
-              import: {
-                ip: d.import.ip,
-                ua: d.import.ua
-              }
-            });
-
-          inner = { ...inner, ...authConfigInner };
-        }
-
-        if (d.input.type !== 'auth_only' && !d.input.configInput) {
-          let configRes = await providerSetupSessionUiService.getConfigSchemaWithoutSession({
-            tenant: d.tenant,
-            solution: d.solution,
-            environment: d.environment,
-            provider: d.provider,
-            deployment: d.providerDeployment
-          });
-
-          if (configRes.type === 'none') {
-            d.input.configInput = {};
-          }
-        }
-
-        if (d.input.configInput && d.input.type !== 'auth_only') {
-          let configInner = await providerSetupSessionInternalService.createProviderConfig({
+        let initialized =
+          await providerSetupSessionInternalService.initializeProviderSetupSessionProvider({
             tenant: d.tenant,
             solution: d.solution,
             environment: d.environment,
             provider: d.provider,
             providerDeployment: d.providerDeployment,
+            credentials: d.credentials,
+            expiresAt,
             input: {
               name: d.input.name,
+              authMethodId: d.input.authMethodId,
               description: d.input.description,
               metadata: d.input.metadata,
+              type: d.input.type,
+              authConfigInput: d.input.authConfigInput,
+              configInput: d.input.configInput,
               toolFilters: normalizedConfiguration.toolFilters?.enabled
                 ? { type: 'v1.allow_all' }
                 : undefined,
-              config: d.input.configInput
+              requiresToolFiltersSelection: normalizedConfiguration.toolFilters?.enabled
+            },
+            import: {
+              ip: d.import.ip,
+              ua: d.import.ua
             }
           });
 
-          inner = { ...inner, ...configInner };
-        }
+        concreteType = initialized.concreteType;
+        inner = initialized.inner as typeof inner;
       }
 
       let session = await db.providerSetupSession.create({
@@ -426,7 +319,7 @@ class providerSetupSessionServiceImpl {
           deploymentOid: d.providerDeployment?.oid,
           identityOid: d.identity?.oid ?? null,
           brandOid: d.brand?.oid,
-          authCredentialsOid: d.credentials?.oid,
+          authCredentialsOid: inner.authCredentialsOid ?? d.credentials?.oid,
 
           expiresAt
         },

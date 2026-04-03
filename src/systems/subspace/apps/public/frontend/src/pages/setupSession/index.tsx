@@ -34,6 +34,12 @@ export let SetupSessionPage = () => {
       return <LoadingPage />;
     }
 
+    setTimeout(() => {
+      try {
+        window.close();
+      } catch {}
+    }, 2000);
+
     return (
       <StatusPageView
         icon={<SuccessIcon />}

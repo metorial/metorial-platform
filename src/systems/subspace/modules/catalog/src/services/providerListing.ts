@@ -197,7 +197,9 @@ class ProviderListingService {
               //     }
               //   : undefined!,
 
-              d.ids ? { id: { in: d.ids } } : undefined!,
+              d.ids
+                ? { OR: [{ id: { in: d.ids } }, { provider: { id: { in: d.ids } } }] }
+                : undefined!,
 
               search ? { id: { in: search.map(r => r.documentId) } } : undefined!,
 

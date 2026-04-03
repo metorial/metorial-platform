@@ -11,6 +11,7 @@ import {
   type ProviderDeploymentVersion,
   type ProviderOAuthSetup,
   type ProviderSetupSession,
+  ProviderSetupSessionTypeConcrete,
   type ProviderType,
   type ProviderVariant,
   type ProviderVersion,
@@ -18,14 +19,205 @@ import {
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
+import { ProviderSetupSessionUncheckedUpdateInput } from '@metorial-subspace/db/prisma/generated/models';
 import { providerConfigService } from '@metorial-subspace/module-deployment';
 import { identityCredentialService } from '@metorial-subspace/module-identity';
 import { checkProviderMatch } from '@metorial-subspace/module-provider-internal';
+import { normalizeJsonSchema } from '@metorial-subspace/provider-utils';
 import { providerSetupSessionUpdatedQueue } from '../queues/lifecycle/providerSetupSession';
 import { providerAuthConfigService } from './providerAuthConfig';
+import { providerAuthConfigInternalService } from './providerAuthConfigInternal';
 import { providerOAuthSetupService } from './providerOAuthSetup';
 
 class providerSetupSessionInternalServiceImpl {
+  async initializeProviderSetupSessionProvider(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    provider: Provider & { defaultVariant: ProviderVariant | null; type: ProviderType };
+    providerDeployment?: ProviderDeployment & {
+      provider: Provider;
+      providerVariant: ProviderVariant;
+      currentVersion:
+        | (ProviderDeploymentVersion & { lockedVersion: ProviderVersion | null })
+        | null;
+    };
+    credentials?: ProviderAuthCredentials;
+    expiresAt: Date;
+    input: {
+      name?: string;
+      authMethodId?: string;
+      description?: string;
+      metadata?: Record<string, any>;
+      type: ProviderSetupSessionTypeConcrete | 'auto';
+      authConfigInput?: Record<string, any>;
+      configInput?: Record<string, any>;
+      toolFilters?: PrismaJson.ToolFilter | null;
+      requiresToolFiltersSelection?: boolean;
+    };
+    import: {
+      ip: string | undefined;
+      ua: string | undefined;
+    };
+  }) {
+    return withTransaction(
+      async db => {
+        if (!d.provider.defaultVariant) {
+          throw new Error('Provider has no default variant');
+        }
+
+        let concreteType: ProviderSetupSessionTypeConcrete;
+
+        if (d.input.type === 'auto') {
+          if (
+            d.provider.type.attributes.config.status === 'enabled' &&
+            d.provider.type.attributes.auth.status === 'enabled'
+          ) {
+            concreteType = 'auth_and_config';
+          } else if (d.provider.type.attributes.auth.status === 'enabled') {
+            concreteType = 'auth_only';
+          } else {
+            concreteType = 'config_only';
+          }
+        } else {
+          concreteType = d.input.type;
+        }
+
+        if (concreteType === 'config_only' && d.input.authConfigInput) {
+          throw new ServiceError(
+            badRequestError({
+              message: 'Auth config input provided for config_only session type'
+            })
+          );
+        }
+        if (concreteType === 'auth_only' && d.input.configInput) {
+          throw new ServiceError(
+            badRequestError({
+              message: 'Config input provided for auth_only session type'
+            })
+          );
+        }
+
+        let inner: ProviderSetupSessionUncheckedUpdateInput = {};
+        let credentials = d.credentials;
+        let configInput = d.input.configInput;
+
+        if (concreteType === 'auth_only' || concreteType === 'auth_and_config') {
+          let { authMethod } = await providerAuthConfigInternalService.getVersionAndAuthMethod(
+            {
+              tenant: d.tenant,
+              solution: d.solution,
+              environment: d.environment,
+              provider: d.provider,
+              providerDeployment: d.providerDeployment,
+              authMethodId: d.input.authMethodId ?? (credentials ? 'oauth' : undefined)
+            }
+          );
+
+          inner.authMethodOid = authMethod.oid;
+
+          if (credentials && authMethod.type !== 'oauth') credentials = undefined;
+          if (
+            authMethod.type === 'oauth' &&
+            !credentials &&
+            d.provider.type.attributes.auth.oauth?.oauthAutoRegistration?.status !==
+              'supported'
+          ) {
+            let defaultCredentials = await db.providerAuthCredentials.findFirst({
+              where: {
+                providerOid: d.provider.oid,
+                tenantOid: d.tenant.oid,
+                solutionOid: d.solution.oid,
+                environmentOid: d.environment.oid,
+                isDefault: true,
+                status: 'active'
+              }
+            });
+
+            if (!defaultCredentials) {
+              throw new ServiceError(
+                badRequestError({
+                  message: 'No default provider auth credentials found for oauth method',
+                  code: 'missing_oauth_credentials'
+                })
+              );
+            }
+
+            credentials = defaultCredentials;
+          }
+
+          inner.authCredentialsOid = credentials?.oid;
+
+          if (d.input.authConfigInput) {
+            let authConfigInner = await this.createProviderAuthConfig({
+              tenant: d.tenant,
+              solution: d.solution,
+              environment: d.environment,
+              provider: d.provider,
+              providerDeployment: d.providerDeployment,
+              credentials,
+              authMethod,
+              expiresAt: d.expiresAt,
+              input: {
+                name: d.input.name,
+                description: d.input.description,
+                metadata: d.input.metadata,
+                toolFilters: d.input.toolFilters,
+                config: d.input.authConfigInput
+              },
+              import: {
+                ip: d.import.ip,
+                ua: d.import.ua
+              }
+            });
+
+            inner = { ...inner, ...authConfigInner };
+          }
+        }
+
+        if (
+          concreteType !== 'auth_only' &&
+          !configInput &&
+          !(concreteType === 'config_only' && d.input.requiresToolFiltersSelection)
+        ) {
+          let configSchema = await this.getProviderConfigSchemaType({
+            tenant: d.tenant,
+            solution: d.solution,
+            environment: d.environment,
+            provider: d.provider,
+            deployment: d.providerDeployment
+          });
+
+          if (configSchema.type === 'none') {
+            configInput = {};
+          }
+        }
+
+        if (concreteType !== 'auth_only' && configInput) {
+          let configInner = await this.createProviderConfig({
+            tenant: d.tenant,
+            solution: d.solution,
+            environment: d.environment,
+            provider: d.provider,
+            providerDeployment: d.providerDeployment,
+            input: {
+              name: d.input.name,
+              description: d.input.description,
+              metadata: d.input.metadata,
+              toolFilters: d.input.toolFilters,
+              config: configInput
+            }
+          });
+
+          inner = { ...inner, ...configInner };
+        }
+
+        return { concreteType, inner };
+      },
+      { ifExists: true }
+    );
+  }
+
   async createProviderAuthConfig(d: {
     tenant: Tenant;
     solution: Solution;
@@ -81,6 +273,7 @@ class providerSetupSessionInternalServiceImpl {
           name: d.input.name,
           description: d.input.description,
           metadata: d.input.metadata,
+          toolFilters: d.input.toolFilters,
           config: d.input.config,
           authMethodId: d.authMethod.id,
           expiresAt: d.expiresAt
@@ -267,11 +460,32 @@ class providerSetupSessionInternalServiceImpl {
       return d.session;
 
     return withTransaction(async db => {
-      d.session = await db.providerSetupSession.findFirstOrThrow({
-        where: { oid: d.session.oid }
+      let currentSession = await db.providerSetupSession.findFirstOrThrow({
+        where: { oid: d.session.oid },
+        include: { authConfig: true, config: true }
       });
-
+      d.session = currentSession;
       let result = d.session;
+
+      if (
+        currentSession.authConfig &&
+        currentSession.authConfig.toolFilter.type != 'v1.allow_all' &&
+        currentSession.config
+      ) {
+        await db.providerConfig.updateMany({
+          where: { oid: currentSession.config.oid },
+          data: { toolFilter: currentSession.authConfig.toolFilter }
+        });
+      } else if (
+        currentSession.config &&
+        currentSession.config.toolFilter.type != 'v1.allow_all' &&
+        currentSession.authConfig
+      ) {
+        await db.providerAuthConfig.updateMany({
+          where: { oid: currentSession.authConfig.oid },
+          data: { toolFilter: currentSession.config.toolFilter }
+        });
+      }
 
       let hasAuthConfig = d.session.authConfigOid !== null;
       let hasConfig = d.session.configOid !== null;
@@ -364,6 +578,39 @@ class providerSetupSessionInternalServiceImpl {
 
       return result;
     });
+  }
+
+  private async getProviderConfigSchemaType(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    provider: Provider & { defaultVariant: ProviderVariant | null };
+    deployment?: ProviderDeployment & {
+      currentVersion: ProviderDeploymentVersion | null;
+    };
+  }) {
+    let schema = await providerConfigService.getProviderConfigSchema({
+      tenant: d.tenant,
+      solution: d.solution,
+      environment: d.environment,
+      provider: d.provider,
+      providerDeployment: d.deployment ?? undefined
+    });
+
+    let configSchema = normalizeJsonSchema(schema.value.specification.configJsonSchema);
+    if (!configSchema) return { type: 'none' as const };
+
+    let hasProperties =
+      typeof configSchema === 'object' &&
+      'properties' in configSchema &&
+      Object.keys(configSchema.properties || {}).length > 0;
+
+    if (!hasProperties) return { type: 'none' as const };
+
+    return {
+      type: 'required' as const,
+      schema: configSchema
+    };
   }
 }
 

@@ -115,6 +115,7 @@ class providerOAuthSetupServiceImpl {
       name?: string;
       description?: string;
       metadata?: Record<string, any>;
+      toolFilters?: PrismaJson.ToolFilter | null;
       isEphemeral?: boolean;
       isDefault?: boolean;
       authMethodId?: string;
@@ -226,13 +227,14 @@ class providerOAuthSetupServiceImpl {
         throw new Error('Provider auth credentials are required');
       }
 
-      credentials = await providerAuthCredentialsService.getProviderAuthCredentialsForBackendUse({
-        tenant: d.tenant,
-        solution: d.solution,
-        provider: d.provider,
-        providerAuthCredentials: credentials,
-        providerAuthMethod: authMethod
-      });
+      credentials =
+        await providerAuthCredentialsService.getProviderAuthCredentialsForBackendUse({
+          tenant: d.tenant,
+          solution: d.solution,
+          provider: d.provider,
+          providerAuthCredentials: credentials,
+          providerAuthMethod: authMethod
+        });
 
       let newId = getId('providerOAuthSetup');
       let clientSecret = await ID.generateId('providerOAuthSetup_clientSecret');
@@ -260,6 +262,7 @@ class providerOAuthSetupServiceImpl {
           name: d.input.name?.trim() || undefined,
           description: d.input.description?.trim() || undefined,
           metadata: d.input.metadata,
+          toolFilter: d.input.toolFilters ?? { type: 'v1.allow_all' },
 
           isEphemeral: !!d.input.isEphemeral,
 

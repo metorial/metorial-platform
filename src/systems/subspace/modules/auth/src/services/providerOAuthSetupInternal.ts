@@ -84,6 +84,7 @@ class providerOAuthSetupInternalServiceImpl {
                 name: providerOAuthSetup.name ?? undefined,
                 description: providerOAuthSetup.description ?? undefined,
                 metadata: providerOAuthSetup.metadata ?? undefined,
+                toolFilters: providerOAuthSetup.toolFilter as PrismaJson.ToolFilter,
                 isEphemeral: providerOAuthSetup.isEphemeral,
                 isDefault: false
               },
