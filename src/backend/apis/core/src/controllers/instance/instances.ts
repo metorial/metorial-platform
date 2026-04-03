@@ -51,7 +51,8 @@ export let instancesController = Controller.create(
   {
     name: 'Instances',
     description:
-      'Endpoints for listing and retrieving instances. An instance is an isolated environment within a Metorial project. Instances are created via the dashboard (since API keys are scoped to instances). Common setups include production, staging, and development instances.'
+      'Endpoints for listing and retrieving instances. An instance is an isolated environment within a Metorial project. Instances are created via the dashboard (since API keys are scoped to instances). Common setups include production, staging, and development instances.',
+    hideInDocs: true
   },
   {
     get: instancesGroup
