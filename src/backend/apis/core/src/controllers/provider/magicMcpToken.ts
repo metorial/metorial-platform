@@ -3,7 +3,11 @@ import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { MagicMcpTokenStatus } from '@metorial/db';
 import { consumerAccessPolicyService } from '@metorial/module-consumer';
-import { magicMcpGroupService, magicMcpTokenService } from '@metorial/module-magic';
+import {
+  magicMcpGroupService,
+  magicMcpServerService,
+  magicMcpTokenService
+} from '@metorial/module-magic';
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
@@ -126,7 +130,8 @@ export let magicMcpTokenController = Controller.create(
           name: v.string(),
           description: v.optional(v.string()),
           metadata: v.optional(v.record(v.any())),
-          magic_mcp_group_ids: v.optional(v.array(v.string()))
+          magic_mcp_group_ids: v.optional(v.array(v.string())),
+          magic_mcp_server_id: v.optional(v.string())
         })
       )
       .output(magicMcpTokenPresenter)
@@ -146,6 +151,13 @@ export let magicMcpTokenController = Controller.create(
               instance: ctx.instance
             })
           : undefined;
+        let magicMcpServer = ctx.body.magic_mcp_server_id
+          ? await magicMcpServerService.getMagicMcpServerById({
+              magicMcpServerId: ctx.body.magic_mcp_server_id,
+              instance: ctx.instance,
+              accessTags: ctx.accessTags
+            })
+          : undefined;
 
         let magicMcpToken = await magicMcpTokenService.createMagicMcpToken({
           instance: ctx.instance,
@@ -153,7 +165,8 @@ export let magicMcpTokenController = Controller.create(
           input: {
             name: ctx.body.name,
             description: ctx.body.description,
-            metadata: ctx.body.metadata
+            metadata: ctx.body.metadata,
+            magicMcpServer
           }
         });
 

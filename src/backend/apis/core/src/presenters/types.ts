@@ -399,6 +399,7 @@ export let magicMcpSessionType = PresentableType.create<{
 
 export let magicMcpTokenType = PresentableType.create<{
   magicMcpToken: MagicMcpToken & {
+    magicMcpServer: MagicMcpServer | null;
     groups: (MagicMcpGroupToken & {
       magicMcpGroup: MagicMcpGroup;
     })[];

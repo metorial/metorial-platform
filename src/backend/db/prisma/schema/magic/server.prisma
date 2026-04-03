@@ -33,6 +33,7 @@ model MagicMcpServer {
   aliases         MagicMcpServerAlias[]
   subspaceSession MagicMcpServerSubspaceSession?
 
+  tokens            MagicMcpToken[]
   groups            MagicMcpGroupServer[]
   accessTagEntities AccessTagEntity[]
   consumerAccesses  ConsumerAccess[]        @relation("ConsumerAccessMagicMcpServer")
