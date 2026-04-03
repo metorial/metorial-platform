@@ -1,4 +1,5 @@
 import { notFoundError, preconditionFailedError, ServiceError } from '@lowerdeck/error';
+import { getSentry } from '@lowerdeck/sentry';
 import { Service } from '@lowerdeck/service';
 import { Context } from '@metorial/context';
 import {
@@ -24,6 +25,8 @@ import {
   type ConsumerProviderTemplateContext
 } from './consumerProviderContext';
 import { consumerProviderSetupSessionService } from './consumerProviderSetupSession';
+
+let Sentry = getSentry();
 
 type ConsumerProviderDeployRollbackState = {
   magicMcpServer?: MagicMcpServer;
@@ -169,7 +172,20 @@ class ConsumerProviderDeploymentServiceImpl {
             authConfigId: providerAuthConfigId,
             configId: providerConfigId
           });
-        } catch (error) {}
+        } catch (error) {
+          Sentry.captureException(error, {
+            tags: {
+              module: 'consumerProviderDeployment',
+              step: 'createIdentityCredential'
+            },
+            extra: {
+              instanceId: d.instance.id,
+              providerDeploymentId: providerContext.deployment.id,
+              authConfigId: providerAuthConfigId,
+              configId: providerConfigId
+            }
+          });
+        }
       }
 
       let sessionTemplate = await subspaceSessionTemplateService.create({

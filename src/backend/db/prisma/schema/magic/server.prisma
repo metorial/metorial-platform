@@ -13,16 +13,14 @@ model MagicMcpServer {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
-  status MagicMcpServerStatus
-  source MagicMcpServerSource @default(manual)
+  status             MagicMcpServerStatus
+  source             MagicMcpServerSource @default(manual)
   providerTemplateId String?
 
   instanceOid BigInt
   instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
 
   subspaceSessionTemplateId String
-
-  defaultOauthSessionId String?
 
   name        String?
   description String?

@@ -84,6 +84,7 @@ export type ManagementInstanceMagicMcpTokensListQuery = {
 } & {
   status?: 'active' | 'deleted' | ('active' | 'deleted')[] | undefined;
   magicMcpGroupId?: string | string[] | undefined;
+  magicMcpServerId?: string | string[] | undefined;
 };
 
 export let mapManagementInstanceMagicMcpTokensListQuery = mtMap.union([
@@ -101,6 +102,16 @@ export let mapManagementInstanceMagicMcpTokensListQuery = mtMap.union([
       ),
       magicMcpGroupId: mtMap.objectField(
         'magic_mcp_group_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      magicMcpServerId: mtMap.objectField(
+        'magic_mcp_server_id',
         mtMap.union([
           mtMap.unionOption('string', mtMap.passthrough()),
           mtMap.unionOption(

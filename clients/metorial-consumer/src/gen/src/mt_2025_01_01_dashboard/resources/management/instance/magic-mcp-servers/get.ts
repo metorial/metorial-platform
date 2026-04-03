@@ -6,6 +6,7 @@ export type ManagementInstanceMagicMcpServersGetOutput = {
   status: 'active' | 'archived' | 'deleted';
   source: 'manual' | 'consumer_provider_template';
   sessionTemplateId: string;
+  sessionId: string | null;
   providerTemplateId: string | null;
   endpoints: { id: string; alias: string; url: string }[];
   name: string | null;
@@ -25,6 +26,7 @@ export let mapManagementInstanceMagicMcpServersGetOutput =
       'session_template_id',
       mtMap.passthrough()
     ),
+    sessionId: mtMap.objectField('session_id', mtMap.passthrough()),
     providerTemplateId: mtMap.objectField(
       'provider_template_id',
       mtMap.passthrough()

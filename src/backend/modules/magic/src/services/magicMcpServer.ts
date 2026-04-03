@@ -29,6 +29,7 @@ import {
 } from '@metorial/module-access';
 import { searchMagicMcpServerIds } from '@metorial/module-search';
 import { subspaceSessionTemplateService } from '@metorial/module-subspace';
+import { ensureMagicMcpSubspaceSession } from '../lib/ensureSession';
 import {
   enqueueMagicMcpServerCreated,
   enqueueMagicMcpServerUpdated
@@ -150,12 +151,19 @@ class MagicMcpServerImpl {
           }
         }
       },
-      include
+      include: {
+        instance: true
+      }
     });
+
+    await ensureMagicMcpSubspaceSession(magicMcpServer);
 
     await enqueueMagicMcpServerCreated(magicMcpServer.id);
 
-    return magicMcpServer;
+    return await db.magicMcpServer.findUniqueOrThrow({
+      where: { id: magicMcpServer.id },
+      include
+    });
   }
 
   async checkWriteAccess(d: {
