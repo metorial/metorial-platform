@@ -38,12 +38,12 @@ let ProviderAuthConfigCreateModalContent = (
   let selectedMethod = authCreation.authMethodItems.find(
     method => method.id === p.initialAuthMethodId
   );
-  let widthMethod =
+  let effectiveAuthMethod =
     selectedMethod ??
     (authCreation.authMethodItems.length === 1 ? authCreation.authMethodItems[0] : undefined);
-  let width = isSetupFlowAuthMethod(widthMethod) ? 1180 : 650;
+  let width = isSetupFlowAuthMethod(effectiveAuthMethod) ? 1180 : 650;
   let [previewMode, setPreviewMode] = useState<PreviewMode>(
-    selectedMethod?.type === 'oauth' && !getAuthMethodHasSchema(selectedMethod)
+    effectiveAuthMethod?.type === 'oauth' && !getAuthMethodHasSchema(effectiveAuthMethod)
       ? authCreation.oauthAutoRegistrationEnabled
         ? 'managed'
         : 'manual_existing'
@@ -51,7 +51,10 @@ let ProviderAuthConfigCreateModalContent = (
   );
 
   useEffect(() => {
-    if (selectedMethod?.type === 'oauth' && !getAuthMethodHasSchema(selectedMethod)) {
+    if (
+      effectiveAuthMethod?.type === 'oauth' &&
+      !getAuthMethodHasSchema(effectiveAuthMethod)
+    ) {
       setPreviewMode(
         authCreation.oauthAutoRegistrationEnabled ? 'managed' : 'manual_existing'
       );
@@ -59,7 +62,7 @@ let ProviderAuthConfigCreateModalContent = (
     }
 
     setPreviewMode('manual_existing');
-  }, [authCreation.oauthAutoRegistrationEnabled, selectedMethod]);
+  }, [authCreation.oauthAutoRegistrationEnabled, effectiveAuthMethod]);
 
   let handleBack = () => {
     if (!p.onBack) {
@@ -94,8 +97,26 @@ let ProviderAuthConfigCreateModalContent = (
         </Dialog.Actions>
       </>
     );
+  } else if (!effectiveAuthMethod) {
+    content = (
+      <>
+        <Dialog.Title>Create Auth Config</Dialog.Title>
+        <Dialog.Description>
+          The selected authentication method is no longer available. Go back and choose another
+          method.
+        </Dialog.Description>
+
+        <Spacer size={15} />
+
+        <Dialog.Actions>
+          <Button variant="outline" onClick={handleBack}>
+            Back
+          </Button>
+        </Dialog.Actions>
+      </>
+    );
   } else {
-    let method = selectedMethod!;
+    let method = effectiveAuthMethod;
 
     if (isSetupFlowAuthMethod(method)) {
       if (!providerId) {
