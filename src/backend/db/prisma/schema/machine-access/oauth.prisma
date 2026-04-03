@@ -239,5 +239,6 @@ model OAuthToken {
   accessTokenExpiresAt DateTime
   completelyExpiresAt  DateTime?
   createdAt            DateTime  @default(now())
+  lastRefreshedAt      DateTime?
   lastUsedAt           DateTime?
 }

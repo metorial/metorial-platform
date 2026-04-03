@@ -900,6 +900,7 @@ class OAuthAuthorizationService {
         },
         data: {
           oauthInstallationOid: d.oauthToken.oauthAuthorization.oauthInstallationOid,
+          lastRefreshedAt: new Date(),
           ...tokenValues
         },
         include: tokenInclude
