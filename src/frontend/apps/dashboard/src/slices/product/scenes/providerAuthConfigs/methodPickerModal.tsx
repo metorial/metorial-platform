@@ -1,6 +1,6 @@
 import { useProviderDeployment } from '@metorial/state';
 import { Button, CenteredSpinner, Dialog, Select, Spacer, showModal } from '@metorial/ui';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useProviderAuthCreationCapabilities } from '../../lib/providerCreationCapabilities';
 import { closeAndThen } from './modalHelpers';
 import {
@@ -29,15 +29,6 @@ let ProviderAuthConfigMethodPickerModalContent = (
     }
     p.close();
   };
-
-  let selectItems = useMemo(
-    () =>
-      authCreation.authMethodItems.map(method => ({
-        id: method.id,
-        label: method.name
-      })),
-    [authCreation.authMethodItems]
-  );
 
   useEffect(() => {
     if (authCreation.isLoading || !authCreation.canCreateAuthConfig) return;
@@ -114,34 +105,44 @@ let ProviderAuthConfigMethodPickerModalContent = (
         Choose an authentication method for {providerName}.
       </Dialog.Description>
 
-      <Spacer size={10} />
+      <form
+        onSubmit={e => {
+          e.preventDefault();
+          continueWithSelection();
+        }}
+      >
+        <Spacer size={10} />
 
-      <Select
-        label="Authentication method"
-        placeholder="Select a method…"
-        value={selectedMethodId}
-        onChange={setSelectedMethodId}
-        items={selectItems}
-      />
+        <Select
+          label="Authentication method"
+          placeholder="Select a method…"
+          value={selectedMethodId}
+          onChange={setSelectedMethodId}
+          items={authCreation.authMethodItems.map(method => ({
+            id: method.id,
+            label: method.name
+          }))}
+        />
 
-      <Spacer height={12} />
+        <Spacer height={12} />
 
-      <Spacer size={15} />
+        <Spacer size={15} />
 
-      <Dialog.Actions>
-        <Button type="button" variant="outline" size="2" onClick={handleBackOrClose}>
-          {p.onBack ? 'Back' : 'Cancel'}
-        </Button>
-        <Button
-          color="black"
-          variant="solid"
-          size="2"
-          disabled={!selectedMethodId}
-          onClick={continueWithSelection}
-        >
-          Continue
-        </Button>
-      </Dialog.Actions>
+        <Dialog.Actions>
+          <Button type="button" variant="outline" size="2" onClick={handleBackOrClose}>
+            {p.onBack ? 'Back' : 'Cancel'}
+          </Button>
+          <Button
+            type="submit"
+            color="black"
+            variant="solid"
+            size="2"
+            disabled={!selectedMethodId}
+          >
+            Continue
+          </Button>
+        </Dialog.Actions>
+      </form>
     </>
   );
 };
