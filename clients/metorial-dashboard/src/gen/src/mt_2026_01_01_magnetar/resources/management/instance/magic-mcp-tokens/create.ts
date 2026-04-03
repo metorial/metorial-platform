@@ -56,7 +56,7 @@ export type ManagementInstanceMagicMcpTokensCreateBody = {
   name: string;
   description?: string | undefined;
   metadata?: Record<string, any> | undefined;
-  groupIds?: string[] | undefined;
+  magicMcpGroupIds?: string[] | undefined;
 };
 
 export let mapManagementInstanceMagicMcpTokensCreateBody =
@@ -64,6 +64,9 @@ export let mapManagementInstanceMagicMcpTokensCreateBody =
     name: mtMap.objectField('name', mtMap.passthrough()),
     description: mtMap.objectField('description', mtMap.passthrough()),
     metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-    groupIds: mtMap.objectField('group_ids', mtMap.array(mtMap.passthrough()))
+    magicMcpGroupIds: mtMap.objectField(
+      'magic_mcp_group_ids',
+      mtMap.array(mtMap.passthrough())
+    )
   });
 
