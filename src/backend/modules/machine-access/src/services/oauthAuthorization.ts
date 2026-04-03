@@ -62,6 +62,20 @@ import {
 } from './oauthAuthorizationInstallation';
 
 class OAuthAuthorizationService {
+  private assertRefreshTokenNotRateLimited(oauthToken: OAuthToken) {
+    if (oauthToken.lastRefreshedAt && addMinutes(oauthToken.lastRefreshedAt, 10) > new Date()) {
+      throw new ServiceError(
+        unauthorizedError({
+          message: 'OAuth token can only be refreshed once every 10 minutes',
+          oauth: {
+            error: 'invalid_grant',
+            errorMessage: 'OAuth token can only be refreshed once every 10 minutes'
+          }
+        })
+      );
+    }
+  }
+
   private assertApplicationSupportsAuthorizationRequest(d: {
     oauthApplication: OAuthApplication;
     requestType: 'interactive' | 'device_code';
@@ -687,6 +701,7 @@ class OAuthAuthorizationService {
       }
 
       ensureTokenRefreshable(oauthToken);
+      this.assertRefreshTokenNotRateLimited(oauthToken);
       let refreshedToken = await this.refreshOAuthToken({
         oauthToken,
         withRefreshToken: true
@@ -900,6 +915,7 @@ class OAuthAuthorizationService {
         },
         data: {
           oauthInstallationOid: d.oauthToken.oauthAuthorization.oauthInstallationOid,
+          lastRefreshedAt: new Date(),
           ...tokenValues
         },
         include: tokenInclude

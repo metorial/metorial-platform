@@ -2,6 +2,7 @@ import { canonicalize } from '@lowerdeck/canonicalize';
 import { Service } from '@lowerdeck/service';
 import {
   db,
+  getImageUrl,
   ID,
   Organization,
   OrganizationActor,
@@ -133,7 +134,10 @@ class ProjectBrandService {
       project: brand.project,
       brand: {
         name: brand.name,
-        image: brand.image
+        image:
+          brand.image.type === 'default'
+            ? { type: 'url', url: await getImageUrl(brand) }
+            : brand.image
       }
     });
 

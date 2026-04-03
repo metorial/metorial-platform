@@ -59,6 +59,7 @@ import {
   identityDelegationRequestController,
   magicMcpGroupController,
   magicMcpServerController,
+  magicMcpServerProviderController,
   magicMcpSessionController,
   magicMcpTokenController,
   providerAuthConfigController,
@@ -163,6 +164,7 @@ export let magnetarController = Controller.create<any>(
     toolCallController,
 
     magicMcpServerController,
+    magicMcpServerProviderController,
     magicMcpSessionController,
     magicMcpTokenController,
     magicMcpGroupController,

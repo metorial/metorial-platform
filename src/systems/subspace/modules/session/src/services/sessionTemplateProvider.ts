@@ -13,7 +13,6 @@ import {
 import {
   checkDeletedEdit,
   checkDeletedRelation,
-  type DateFilter,
   normalizeDateFilter,
   normalizeStatusForGet,
   normalizeStatusForList,
@@ -21,7 +20,8 @@ import {
   resolveProviderConfigs,
   resolveProviderDeployments,
   resolveProviders,
-  resolveSessionTemplates
+  resolveSessionTemplates,
+  type DateFilter
 } from '@metorial-subspace/list-utils';
 import { checkTenant } from '@metorial-subspace/module-tenant';
 import {
@@ -72,6 +72,10 @@ class sessionTemplateProviderServiceImpl {
               tenantOid: d.tenant.oid,
               solutionOid: d.solution.oid,
               environmentOid: d.environment.oid,
+
+              sessionTemplate: sessionTemplates?.oids.length
+                ? undefined
+                : { isInternal: false },
 
               ...normalizeStatusForList(d).noParent,
 

@@ -1,9 +1,6 @@
-import {
-  preconditionFailedError,
-  ServiceError,
-  unauthorizedError
-} from '@lowerdeck/error';
+import { preconditionFailedError, ServiceError, unauthorizedError } from '@lowerdeck/error';
 import { Tokens } from '@lowerdeck/tokens';
+import { createAresInternalClient } from '@metorial-services/ares-client';
 import { getConfig } from '@metorial/config';
 import {
   ConsumerGroup,
@@ -13,7 +10,6 @@ import {
   Organization,
   type Prisma
 } from '@metorial/db';
-import { createAresInternalClient } from '@metorial-services/ares-client';
 
 let tokenSecret = `${getConfig().encryptionSecret}:consumer`;
 let consumerTokens = new Tokens({
@@ -32,8 +28,12 @@ export let consumerSessionInclude = {
 export type ConsumerSessionWithProfile = Prisma.ConsumerSessionGetPayload<{
   include: typeof consumerSessionInclude;
 }>;
+export type ConsumerProfileFull = ConsumerSessionWithProfile['consumerProfile'];
 
-export type ConsumerTokenSession = Pick<ConsumerSessionWithProfile, 'id' | 'tokenNonce' | 'expiresAt'>;
+export type ConsumerTokenSession = Pick<
+  ConsumerSessionWithProfile,
+  'id' | 'tokenNonce' | 'expiresAt'
+>;
 
 export type EffectiveConsumerGroup = ConsumerGroup & {
   assignedVia: 'default' | 'manual' | 'sso' | 'user';
@@ -50,7 +50,8 @@ export type SsoMembership = {
   roles: string[];
 };
 
-export let normalizeStringList = (values?: string[]) => Array.from(new Set(values ?? [])).sort();
+export let normalizeStringList = (values?: string[]) =>
+  Array.from(new Set(values ?? [])).sort();
 
 type AresInternalClient = ReturnType<typeof createAresInternalClient>;
 
@@ -121,7 +122,8 @@ export let getSsoGroupIdsForSession = async (d: {
     ? loggedInUsers.filter(loggedInUser => loggedInUser.user.id == d.preferredAresUserId)
     : d.preferredEmail
       ? loggedInUsers.filter(
-          loggedInUser => loggedInUser.user.email.toLowerCase() == d.preferredEmail!.toLowerCase()
+          loggedInUser =>
+            loggedInUser.user.email.toLowerCase() == d.preferredEmail!.toLowerCase()
         )
       : loggedInUsers;
 
@@ -208,24 +210,63 @@ export let getEffectiveConsumerGroups = async (d: {
   });
 };
 
-export let getConsumerAccessContextForSession = async (d: {
-  session: ConsumerSessionWithProfile;
+let getConsumerAccessContextForConsumerProfileSingle = async (d: {
+  profile: ConsumerProfileFull;
 }): Promise<ConsumerAccessContext> => {
-  let ssoGroupIds = d.session.consumerProfile.ssoGroupIds ?? [];
+  let ssoGroupIds = d.profile.ssoGroupIds ?? [];
 
   let consumerGroups = await getEffectiveConsumerGroups({
-    consumerProfile: d.session.consumerProfile,
+    consumerProfile: d.profile,
     ssoGroupIds
   });
 
   return {
     ssoGroupIds,
     consumerGroups,
-    accessTags: [
-      d.session.consumerProfile.accessTagOid,
-      ...consumerGroups.map(group => group.accessTagOid)
-    ]
+    accessTags: [d.profile.accessTagOid, ...consumerGroups.map(group => group.accessTagOid)]
   };
+};
+
+export let getConsumerAccessContextForConsumerProfile = async (d: {
+  profile: ConsumerProfileFull;
+}): Promise<ConsumerAccessContext> => {
+  if (
+    d.profile.surface.isInternal &&
+    d.profile.surface.internalSurfaceUniqueIdentifier === 'cli'
+  ) {
+    let allProfiles = await db.consumerProfile.findMany({
+      where: {
+        instanceOid: d.profile.instanceOid,
+        consumerOid: d.profile.consumerOid,
+        status: 'active'
+      },
+      include: { surface: true, consumer: true }
+    });
+
+    let all = await Promise.all(
+      allProfiles.map(profile =>
+        getConsumerAccessContextForConsumerProfileSingle({
+          profile
+        })
+      )
+    );
+
+    return {
+      ssoGroupIds: all.flatMap(a => a.ssoGroupIds),
+      consumerGroups: all.flatMap(a => a.consumerGroups),
+      accessTags: all.flatMap(a => a.accessTags)
+    };
+  }
+
+  return await getConsumerAccessContextForConsumerProfileSingle(d);
+};
+
+export let getConsumerAccessContextForSession = async (d: {
+  session: ConsumerSessionWithProfile;
+}): Promise<ConsumerAccessContext> => {
+  return await getConsumerAccessContextForConsumerProfile({
+    profile: d.session.consumerProfile
+  });
 };
 
 export let getConsumerToken = async (d: {

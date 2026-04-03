@@ -363,7 +363,7 @@ export class RestServer<AuthInfo, ApiVersion extends string> {
                     'access-control-allow-origin': origin,
                     'access-control-allow-methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
                     'access-control-allow-headers':
-                      'Content-Type, Authorization, Cookies, metorial-version, metorial-instance-id, metorial-organization-id, baggage, sentry-trace, metorial-client, metorial-consumer-session-client-secret',
+                      'Content-Type, Authorization, Cookies, metorial-version, metorial-instance-id, metorial-consumer-profile-id, metorial-organization-id, baggage, sentry-trace, metorial-client, metorial-consumer-session-client-secret',
                     'access-control-max-age': '604800',
                     'access-control-allow-credentials': 'true',
                     'x-powered-by': 'Metorial'

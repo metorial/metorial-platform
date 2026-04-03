@@ -17,6 +17,7 @@ export * from './identityDelegationConfig';
 export * from './identityDelegationRequest';
 export * from './magicMcpGroup';
 export * from './magicMcpServer';
+export * from './magicMcpServerProvider';
 export * from './magicMcpSession';
 export * from './magicMcpToken';
 export * from './provider';

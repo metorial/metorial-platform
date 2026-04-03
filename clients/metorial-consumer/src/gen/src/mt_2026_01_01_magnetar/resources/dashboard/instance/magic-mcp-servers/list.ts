@@ -6,8 +6,6 @@ export type DashboardInstanceMagicMcpServersListOutput = {
     id: string;
     status: 'active' | 'archived' | 'deleted';
     source: 'manual' | 'consumer_provider_template';
-    sessionTemplateId: string;
-    sessionId: string | null;
     providerTemplateId: string | null;
     endpoints: { id: string; alias: string; url: string }[];
     name: string | null;
@@ -29,11 +27,6 @@ export let mapDashboardInstanceMagicMcpServersListOutput =
           id: mtMap.objectField('id', mtMap.passthrough()),
           status: mtMap.objectField('status', mtMap.passthrough()),
           source: mtMap.objectField('source', mtMap.passthrough()),
-          sessionTemplateId: mtMap.objectField(
-            'session_template_id',
-            mtMap.passthrough()
-          ),
-          sessionId: mtMap.objectField('session_id', mtMap.passthrough()),
           providerTemplateId: mtMap.objectField(
             'provider_template_id',
             mtMap.passthrough()

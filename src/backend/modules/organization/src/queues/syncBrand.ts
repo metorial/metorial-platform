@@ -16,7 +16,6 @@ export let syncBrandQueueProcessor = syncBrandQueue.process(async data => {
   let brand = await db.projectBrand.findFirst({
     where: { projectOid: project.oid, isDefault: true }
   });
-  console.log(brand);
 
   if (brand && brand.isCustomized) return;
 

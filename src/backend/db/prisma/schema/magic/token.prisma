@@ -14,6 +14,9 @@ model MagicMcpToken {
   instanceOid BigInt
   instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
 
+  magicMcpServerOid BigInt?
+  magicMcpServer    MagicMcpServer? @relation(fields: [magicMcpServerOid], references: [oid], onDelete: Cascade)
+
   secret String @unique
 
   name        String?

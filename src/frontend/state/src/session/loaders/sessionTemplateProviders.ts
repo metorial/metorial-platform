@@ -1,6 +1,5 @@
 import {
   DashboardInstanceSessionTemplatesProvidersCreateBody,
-  DashboardInstanceSessionTemplatesProvidersListOutput,
   DashboardInstanceSessionTemplatesProvidersListQuery
 } from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
@@ -12,8 +11,10 @@ export let sessionTemplateProvidersLoader = createLoader({
   name: 'sessionTemplateProviders',
   parents: [sessionTemplatesLoader],
   fetch: (
-    i: { instanceId: string; sessionTemplateId: string } &
-      DashboardInstanceSessionTemplatesProvidersListQuery
+    i: {
+      instanceId: string;
+      sessionTemplateId: string;
+    } & DashboardInstanceSessionTemplatesProvidersListQuery
   ) =>
     withAuth(sdk => {
       let { instanceId, sessionTemplateId, ...query } = i;
@@ -29,34 +30,17 @@ export let useSessionTemplateProviders = (
   instanceId: string | null | undefined,
   sessionTemplateId: string | null | undefined
 ) => {
-  let data = usePaginator(pagination =>
-    sessionTemplateProvidersLoader.use(
-      instanceId && sessionTemplateId ? { instanceId, sessionTemplateId, ...pagination } : null
-    )
-  , instanceId && sessionTemplateId ? `${instanceId}:${sessionTemplateId}` : null);
+  let data = usePaginator(
+    pagination =>
+      sessionTemplateProvidersLoader.use(
+        instanceId && sessionTemplateId
+          ? { instanceId, sessionTemplateId, ...pagination }
+          : null
+      ),
+    instanceId && sessionTemplateId ? `${instanceId}:${sessionTemplateId}` : null
+  );
 
-  type SessionTemplateProviderRow = DashboardInstanceSessionTemplatesProvidersListOutput['items'][number] & {
-    session_template_id?: string;
-  };
-
-  let filteredItems =
-    sessionTemplateId && data.data?.items
-      ? data.data.items.filter((item: SessionTemplateProviderRow) => {
-          let itemSessionTemplateId =
-            item?.sessionTemplateId ?? item?.session_template_id ?? null;
-          return itemSessionTemplateId ? itemSessionTemplateId === sessionTemplateId : true;
-        })
-      : data.data?.items;
-
-  return {
-    ...data,
-    data: data.data
-      ? {
-          ...data.data,
-          items: filteredItems ?? []
-        }
-      : data.data
-  };
+  return data;
 };
 
 export let useCreateSessionTemplateProvider =
@@ -73,6 +57,8 @@ export let useDeleteSessionTemplateProvider =
       sessionTemplateId: string;
       sessionTemplateProviderId: string;
     }) =>
-      withAuth(sdk => sdk.sessionTemplates.providers.delete(i.instanceId, i.sessionTemplateProviderId)),
+      withAuth(sdk =>
+        sdk.sessionTemplates.providers.delete(i.instanceId, i.sessionTemplateProviderId)
+      ),
     { disableToast: true }
   );
