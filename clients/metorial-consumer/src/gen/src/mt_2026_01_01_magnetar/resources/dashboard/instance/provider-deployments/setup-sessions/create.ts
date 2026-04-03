@@ -559,7 +559,9 @@ export type DashboardInstanceProviderDeploymentsSetupSessionsCreateBody = {
   providerAuthMethodId?: string | undefined;
   providerAuthCredentialsId?: string | undefined;
   identityId?: string | undefined;
+  consumerId?: string | undefined;
   redirectUrl?: string | undefined;
+  type?: 'auth_only' | 'config_only' | 'auth_and_config' | 'auto' | undefined;
   configuration?:
     | {
         providerSearch?:
@@ -594,7 +596,9 @@ export let mapDashboardInstanceProviderDeploymentsSetupSessionsCreateBody =
       mtMap.passthrough()
     ),
     identityId: mtMap.objectField('identity_id', mtMap.passthrough()),
+    consumerId: mtMap.objectField('consumer_id', mtMap.passthrough()),
     redirectUrl: mtMap.objectField('redirect_url', mtMap.passthrough()),
+    type: mtMap.objectField('type', mtMap.passthrough()),
     configuration: mtMap.objectField(
       'configuration',
       mtMap.object({
