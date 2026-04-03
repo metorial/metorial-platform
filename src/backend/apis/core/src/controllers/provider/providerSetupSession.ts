@@ -195,8 +195,20 @@ export let providerSetupSessionController = Controller.create(
               description: 'Optional identity to link this setup session to'
             })
           ),
+          consumer_id: v.optional(
+            v.string({
+              examples: ['con_1a2b3c4d5e6f7g8h'],
+              description: 'Optional consumer to link this setup session to'
+            })
+          ),
           redirect_url: v.optional(
             v.string({ examples: ['https://app.example.com/oauth/callback'] })
+          ),
+          type: v.optional(
+            v.enumOf(['auth_only', 'config_only', 'auth_and_config', 'auto'], {
+              description:
+                'The type of setup session, determining the flow and outcome of the session'
+            })
           ),
           configuration: providerSetupSessionConfigurationValidator
         })
@@ -209,6 +221,7 @@ export let providerSetupSessionController = Controller.create(
           providerDeploymentId: ctx.body.provider_deployment_id,
           providerAuthMethodId: ctx.body.provider_auth_method_id,
           providerAuthCredentialsId: ctx.body.provider_auth_credentials_id,
+          consumerId: ctx.body.consumer_id,
           identityId: ctx.body.identity_id,
           configuration: (ctx.body.configuration
             ? {
@@ -242,7 +255,9 @@ export let providerSetupSessionController = Controller.create(
           name: ctx.body.name ?? 'Setup Session',
           description: ctx.body.description,
           uiMode: 'metorial_elements',
-          type: 'auth_only',
+          type:
+            ctx.body.type ??
+            (ctx.apiVersion === 'mt_2025_01_01_dashboard' ? 'auth_only' : 'auto'),
           ip: ctx.context.ip,
           ua: ctx.context.ua ?? '',
           redirectUrl: ctx.body.redirect_url,
