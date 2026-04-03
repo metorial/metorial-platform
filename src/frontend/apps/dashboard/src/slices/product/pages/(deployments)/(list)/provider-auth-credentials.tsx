@@ -107,7 +107,7 @@ let providerAuthCredentialsTableState: TableStateProvider<
   };
 };
 
-let providerAuthCredentialsTable = new DashboardTable<
+export let providerAuthCredentialsTable = new DashboardTable<
   ProviderAuthCredentialsTableProps,
   ProviderAuthCredentialRow
 >('provider-auth-credentials-overview')

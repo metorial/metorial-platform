@@ -39,7 +39,7 @@ import {
   emptyConfigurationSelection,
   type ConfigurationSelection
 } from '../../lib/configSelection';
-import { showProviderAuthConfigCreateModal } from '../providerAuthConfigs/modal';
+import { ProviderAuthConfigCreateButton } from '../providerAuthConfigs/modal';
 import { ProviderConfigurationSelection } from '../providerConfigs/selection';
 import { RouterPanel } from '../routerPanel';
 
@@ -563,24 +563,21 @@ let CallbackInstanceFormModalContent = (p: {
           <form.RenderError field="selectedAuthConfigId" />
         </div>
 
-        <Button
-          type="button"
+        <ProviderAuthConfigCreateButton
+          instanceId={p.instanceId}
+          providerDeploymentId={p.providerDeploymentId}
+          onCreate={authConfig => {
+            authConfigs.refetch?.();
+            form.setFieldValue('selectedAuthConfigId', authConfig.id);
+            form.setFieldTouched('selectedAuthConfigId', false, false);
+            form.setFieldError('selectedAuthConfigId', undefined);
+          }}
           size="3"
           iconLeft={<RiAddLine />}
-          aria-label="Create Auth Config"
-          onClick={() =>
-            showProviderAuthConfigCreateModal({
-              instanceId: p.instanceId,
-              providerDeploymentId: p.providerDeploymentId,
-              onCreate: authConfig => {
-                authConfigs.refetch?.();
-                form.setFieldValue('selectedAuthConfigId', authConfig.id);
-                form.setFieldTouched('selectedAuthConfigId', false, false);
-                form.setFieldError('selectedAuthConfigId', undefined);
-              }
-            })
-          }
-        />
+          ariaLabel="Create Auth Config"
+        >
+          Create Auth Config
+        </ProviderAuthConfigCreateButton>
       </Flex>
 
       <Spacer height={20} />

@@ -2,24 +2,192 @@ import { useForm } from '@metorial/data-hooks';
 import {
   useCreateProviderAuthCredentials,
   useCreateProviderSetupSession,
+  useCurrentProject,
   useGetProviderSetupSession,
+  useProjectBrand,
   useProvider,
   useProviderAuthCredentials,
   useProviderAuthMethods,
   useProviderDeployment,
   type DashboardInstanceProviderDeploymentsSetupSessionsCreateOutput,
-  type DashboardInstanceProviderDeploymentsSetupSessionsGetOutput
+  type DashboardInstanceProviderDeploymentsSetupSessionsGetOutput,
+  type DashboardInstanceProvidersAuthMethodsListOutput
 } from '@metorial/state';
-import { Button, Callout, Copy, Flex, Input, Select, Spacer, Text } from '@metorial/ui';
+import {
+  Avatar,
+  Badge,
+  Button,
+  Callout,
+  Copy,
+  Flex,
+  Input,
+  OptionToggle,
+  Select,
+  Spacer,
+  Text,
+  Tooltip,
+  theme
+} from '@metorial/ui';
 import { sortBy } from 'lodash';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import styled from 'styled-components';
 import { getProviderOAuthAutoRegistrationEnabled } from '../../lib/providerOAuthAutoRegistration';
 import { Stepper } from '../stepper';
 
+type AuthMethod = DashboardInstanceProvidersAuthMethodsListOutput['items'][number];
 type CredentialsMode = 'existing' | 'new';
 type SetupSessionState =
   | DashboardInstanceProviderDeploymentsSetupSessionsCreateOutput
   | DashboardInstanceProviderDeploymentsSetupSessionsGetOutput;
+
+let ManagedCredentialsLayout = styled.div`
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 20px;
+
+  @media (max-width: 800px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+let ManagedCredentialsColumn = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
+
+let RedirectUriDocsLink = styled.a`
+  color: ${theme.colors.gray700};
+  text-decoration: underline;
+  text-underline-offset: 2px;
+
+  &:hover {
+    color: ${theme.colors.gray900};
+  }
+`;
+
+let ManagedCredentialsPreview = styled.aside`
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-left: 20px;
+  border-left: 1px solid ${theme.colors.gray300};
+  align-self: stretch;
+
+  @media (max-width: 800px) {
+    padding-left: 0;
+    padding-top: 16px;
+    border-left: none;
+    border-top: 1px solid ${theme.colors.gray300};
+  }
+`;
+
+let ManagedCredentialsPreviewFrame = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid ${theme.colors.gray300};
+  background: ${theme.colors.gray100};
+  min-height: 100%;
+`;
+
+let ManagedCredentialsPreviewHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+`;
+
+let ManagedCredentialsMetaRow = styled.div`
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+`;
+
+let SummaryField = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
+
+let SummaryFieldValue = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid ${theme.colors.gray300};
+  background: ${theme.colors.gray100};
+`;
+
+let SummaryFieldMeta = styled.div`
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+`;
+
+let ManagedCredentialsPreviewBrand = styled.div`
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid ${theme.colors.gray300};
+  background: ${theme.colors.gray100};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+`;
+
+let ManagedCredentialsPreviewBrandImage = styled.img`
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+`;
+
+let ManagedCredentialsPreviewConnection = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 16px 0;
+`;
+
+let ManagedCredentialsPreviewConnector = styled.div`
+  flex: 1;
+  height: 1px;
+  background: ${theme.colors.gray300};
+`;
+
+let ManagedCredentialsPreviewAction = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 10px;
+  background: ${theme.colors.gray900};
+  color: ${theme.colors.background};
+  font-size: 14px;
+  font-weight: 600;
+`;
+
+let ManagedCredentialsPreviewTop = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+`;
+
+let ManagedCredentialsPreviewCard = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px dashed ${theme.colors.gray400};
+  background: ${theme.colors.background};
+`;
 
 export let ProviderSetupSessionEmbed = ({
   instanceId,
@@ -31,7 +199,13 @@ export let ProviderSetupSessionEmbed = ({
   initialMethodId,
   hideMethodStep = false,
   onBackToMethodSelection,
-  showMethodStepInStepper = false
+  showMethodStepInStepper = false,
+  hideCredentialsIntro = false,
+  showExternalPreviewSidebar = false,
+  collectAuthConfigDetails = false,
+  onPreviewCredentialTypeChange,
+  onPreviewModeChange,
+  onActiveStepChange
 }: {
   instanceId: string;
   providerId: string;
@@ -45,10 +219,18 @@ export let ProviderSetupSessionEmbed = ({
   hideMethodStep?: boolean;
   onBackToMethodSelection?: () => void;
   showMethodStepInStepper?: boolean;
+  hideCredentialsIntro?: boolean;
+  showExternalPreviewSidebar?: boolean;
+  collectAuthConfigDetails?: boolean;
+  onPreviewCredentialTypeChange?: (type: 'managed' | 'manual') => void;
+  onPreviewModeChange?: (mode: 'managed' | 'manual_existing' | 'manual_new') => void;
+  onActiveStepChange?: (step: 'method' | 'credentials' | 'connect') => void;
 }) => {
   let deployment = useProviderDeployment(instanceId, deploymentId);
   let lockedVersionId = deployment.data?.lockedVersion?.id;
   let provider = useProvider(instanceId, providerId);
+  let project = useCurrentProject();
+  let projectBrand = useProjectBrand(project.data?.organization.id, project.data?.id);
   let effectiveVersionId = lockedVersionId ?? provider.data?.currentVersion?.id;
 
   let methodForm = useForm({
@@ -74,9 +256,11 @@ export let ProviderSetupSessionEmbed = ({
     selectedMethodId
       ? {
           origin: ['custom', 'managed'],
+          providerId,
           providerAuthMethodId: selectedMethodId
         }
       : {
+          providerId,
           origin: ['custom']
         }
   );
@@ -100,10 +284,14 @@ export let ProviderSetupSessionEmbed = ({
         if (!providerAuthCredentialsId) return;
       }
 
-      let session = await handleStartSetup(providerAuthCredentialsId || undefined);
-      if (session) {
-        setStep(includeMethodStep ? 2 : 1);
+      if (
+        providerAuthCredentialsId &&
+        providerAuthCredentialsId !== values.selectedCredentialId
+      ) {
+        await credentialsForm.setFieldValue('selectedCredentialId', providerAuthCredentialsId);
       }
+
+      setStep(connectStepIndex);
     },
     schema: yup =>
       yup.object({
@@ -148,6 +336,12 @@ export let ProviderSetupSessionEmbed = ({
   let [setupSession, setSetupSession] = useState<SetupSessionState | null>(null);
   let [step, setStep] = useState(hideMethodStep && showMethodStepInStepper ? 1 : 0);
   let [setupWindowBlocked, setSetupWindowBlocked] = useState(false);
+  let [latestCreatedCredentialId, setLatestCreatedCredentialId] = useState<string | null>(
+    null
+  );
+  let [latestCreatedCredentialLabel, setLatestCreatedCredentialLabel] = useState<
+    string | null
+  >(null);
   let autoStartedRef = useRef(false);
 
   let completedRef = useRef(false);
@@ -207,24 +401,133 @@ export let ProviderSetupSessionEmbed = ({
   let redirectUri = provider.data?.oauth?.callbackUrl;
   let isOAuth = selectedMethod?.type === 'oauth';
   let oauthAutoRegistrationEnabled = getProviderOAuthAutoRegistrationEnabled(provider.data);
+  let projectBrandImageUrl = projectBrand.data?.imageUrl;
+  let projectBrandName = projectBrand.data?.name ?? project.data?.name ?? 'Metorial';
+  let providerImageUrl = provider.data?.publisher.imageUrl;
   let visibleAuthCredentials = sortBy(authCredentials.data?.items ?? [], [
-    credential => Number(credential.isManaged),
-    credential => Number(!credential.isDefault)
+    credential => Number(!credential.isManaged),
+    credential => Number(!credential.isDefault),
+    credential => credential.name ?? credential.id
   ]);
+  let managedVisibleCredentials = visibleAuthCredentials.filter(
+    credential => credential.isManaged
+  );
+  let customVisibleCredentials = visibleAuthCredentials.filter(
+    credential => !credential.isManaged
+  );
   let hasManagedVisibleCredentials = visibleAuthCredentials.some(
     credential => credential.isManaged
   );
   let requiresManualOAuthCredentials = isOAuth && !oauthAutoRegistrationEnabled;
   let preferredVisibleCredential =
-    visibleAuthCredentials.find(credential => !credential.isManaged && credential.isDefault) ??
-    (visibleAuthCredentials.length === 1 && !visibleAuthCredentials[0].isManaged
-      ? visibleAuthCredentials[0]
-      : null);
+    customVisibleCredentials.find(credential => credential.isDefault) ??
+    customVisibleCredentials[0] ??
+    managedVisibleCredentials[0] ??
+    (visibleAuthCredentials.length === 1 ? visibleAuthCredentials[0] : null);
+  let preferredCustomCredential =
+    customVisibleCredentials.find(credential => credential.isDefault) ??
+    customVisibleCredentials[0] ??
+    null;
+  let selectedVisibleCredential = visibleAuthCredentials.find(
+    credential => credential.id === credentialsForm.values.selectedCredentialId
+  );
+  let credentialSelectItems = [
+    ...(managedVisibleCredentials.length > 0
+      ? [
+          {
+            id: '__managed_heading__',
+            label: 'Managed by Metorial',
+            disabled: true
+          } as const,
+          ...managedVisibleCredentials.map(credential => ({
+            id: credential.id,
+            label: `${credential.name || credential.id} (Managed)`
+          }))
+        ]
+      : []),
+    ...(managedVisibleCredentials.length > 0 && customVisibleCredentials.length > 0
+      ? [{ type: 'separator' as const }]
+      : []),
+    ...(customVisibleCredentials.length > 0
+      ? [
+          {
+            id: '__custom_heading__',
+            label: 'Your credentials',
+            disabled: true
+          } as const,
+          ...customVisibleCredentials.map(credential => ({
+            id: credential.id,
+            label: credential.isDefault
+              ? `${credential.name || credential.id} (Default)`
+              : credential.name || credential.id
+          }))
+        ]
+      : []),
+    ...(visibleAuthCredentials.length > 0 ? [{ type: 'separator' as const }] : []),
+    { id: '__create_new__', label: 'Add credentials' }
+  ];
+  let showManagedChoiceStep = requiresManualOAuthCredentials;
   let isCreatingCredentials = credentialsForm.values.credentialMode === 'new';
+  let isManagedSelected = !isCreatingCredentials && !!selectedVisibleCredential?.isManaged;
+  let isCustomSelected = !isManagedSelected;
+  let isLatestCreatedCredentialSelected =
+    !!latestCreatedCredentialId &&
+    credentialsForm.values.selectedCredentialId === latestCreatedCredentialId;
+  let hasCredentialsStep = isOAuth && !oauthAutoRegistrationEnabled;
 
   let skipMethodStep = hideMethodStep || hasSingleMethod;
   let showHiddenMethodStep = hideMethodStep && showMethodStepInStepper;
   let includeMethodStep = !skipMethodStep || showHiddenMethodStep;
+  let isFirstVisibleStep = step === 0 || (showHiddenMethodStep && step === 1);
+  let connectStepIndex = includeMethodStep
+    ? hasCredentialsStep
+      ? 2
+      : 1
+    : hasCredentialsStep
+      ? 1
+      : 0;
+  let authConfigDetailsForm = useForm({
+    initialValues: {
+      name: '',
+      description: ''
+    },
+    updateInitialValues: true,
+    onSubmit: async () => undefined,
+    schema: yup =>
+      yup.object({
+        name: yup.string().trim().required('Name is required'),
+        description: yup.string().ensure()
+      })
+  });
+
+  useEffect(() => {
+    if (!onPreviewCredentialTypeChange) return;
+    onPreviewCredentialTypeChange(isManagedSelected ? 'managed' : 'manual');
+  }, [isManagedSelected, onPreviewCredentialTypeChange]);
+
+  useEffect(() => {
+    if (!onPreviewModeChange) return;
+    if (isManagedSelected) {
+      onPreviewModeChange('managed');
+      return;
+    }
+    onPreviewModeChange(isCreatingCredentials ? 'manual_new' : 'manual_existing');
+  }, [isCreatingCredentials, isManagedSelected, onPreviewModeChange]);
+
+  useEffect(() => {
+    if (!onActiveStepChange) return;
+
+    let activeStep: 'method' | 'credentials' | 'connect';
+    if (step === 0 && includeMethodStep) {
+      activeStep = 'method';
+    } else if (step === (includeMethodStep ? 1 : 0) && hasCredentialsStep) {
+      activeStep = 'credentials';
+    } else {
+      activeStep = 'connect';
+    }
+
+    onActiveStepChange(activeStep);
+  }, [hasCredentialsStep, includeMethodStep, onActiveStepChange, step]);
 
   useEffect(() => {
     if (!selectedMethodId && hasSingleMethod) {
@@ -261,6 +564,7 @@ export let ProviderSetupSessionEmbed = ({
     );
 
     if (selectedCredentialExists) return;
+    if (isLatestCreatedCredentialSelected) return;
     if (preferredVisibleCredential) {
       void credentialsForm.setFieldValue(
         'selectedCredentialId',
@@ -276,6 +580,7 @@ export let ProviderSetupSessionEmbed = ({
     credentialsForm,
     credentialsForm.values.credentialMode,
     credentialsForm.values.selectedCredentialId,
+    isLatestCreatedCredentialSelected,
     preferredVisibleCredential,
     requiresManualOAuthCredentials,
     visibleAuthCredentials
@@ -311,16 +616,54 @@ export let ProviderSetupSessionEmbed = ({
 
     if (!result) return null;
 
-    void credentialsForm.setFieldValue('credentialMode', 'existing');
-    void credentialsForm.setFieldValue('selectedCredentialId', result.id);
-    void credentialsForm.setFieldValue('newCredName', '');
-    void credentialsForm.setFieldValue('newCredClientId', '');
-    void credentialsForm.setFieldValue('newCredClientSecret', '');
+    setLatestCreatedCredentialId(result.id);
+    setLatestCreatedCredentialLabel(result.name ?? newCredName);
+    await credentialsForm.setFieldValue('credentialMode', 'existing');
+    await credentialsForm.setFieldValue('selectedCredentialId', result.id);
+    await credentialsForm.setFieldValue('newCredName', '');
+    await credentialsForm.setFieldValue('newCredClientId', '');
+    await credentialsForm.setFieldValue('newCredClientSecret', '');
     return result.id;
+  };
+
+  let selectManagedCredential = async () => {
+    if (!managedVisibleCredentials[0]) return;
+    setError(null);
+    setLatestCreatedCredentialId(null);
+    setLatestCreatedCredentialLabel(null);
+    await credentialsForm.setFieldValue('credentialMode', 'existing');
+    await credentialsForm.setFieldValue(
+      'selectedCredentialId',
+      managedVisibleCredentials[0].id
+    );
+  };
+
+  let selectCustomCredential = async () => {
+    setError(null);
+    setLatestCreatedCredentialId(null);
+    setLatestCreatedCredentialLabel(null);
+    if (preferredCustomCredential) {
+      await credentialsForm.setFieldValue('credentialMode', 'existing');
+      await credentialsForm.setFieldValue(
+        'selectedCredentialId',
+        preferredCustomCredential.id
+      );
+      return;
+    }
+
+    await credentialsForm.setFieldValue('credentialMode', 'new');
+    await credentialsForm.setFieldValue('selectedCredentialId', '');
   };
 
   let handleStartSetup = async (providerAuthCredentialsId?: string) => {
     if (!selectedMethodId) return null;
+
+    if (collectAuthConfigDetails) {
+      authConfigDetailsForm.setFieldTouched('name', true, false);
+      await authConfigDetailsForm.validateField('name');
+
+      if (!authConfigDetailsForm.values.name.trim()) return null;
+    }
 
     resetSetupSession();
     setIsStarting(true);
@@ -334,6 +677,11 @@ export let ProviderSetupSessionEmbed = ({
     }
 
     let [session, err] = await createSetupSession.mutate({
+      name: collectAuthConfigDetails ? authConfigDetailsForm.values.name.trim() : undefined,
+      description:
+        collectAuthConfigDetails && authConfigDetailsForm.values.description
+          ? authConfigDetailsForm.values.description
+          : undefined,
       providerAuthMethodId: selectedMethodId,
       providerAuthCredentialsId
     });
@@ -601,6 +949,67 @@ export let ProviderSetupSessionEmbed = ({
     );
   }
 
+  let renderConnectSummary = (p: { disabled?: boolean }) => {
+    let selectedCredentialLabel =
+      selectedVisibleCredential?.name ??
+      latestCreatedCredentialLabel ??
+      selectedVisibleCredential?.id ??
+      (isManagedSelected ? 'Managed credentials' : 'No credentials selected');
+
+    return (
+      <>
+        {hasCredentialsStep && (
+          <>
+            <SummaryField>
+              <Text size="1" color="black900" style={{ marginBottom: 6 }}>
+                Credentials
+              </Text>
+              <SummaryFieldValue>
+                <div style={{ minWidth: 0 }}>
+                  <Text size="2" weight="medium">
+                    {selectedCredentialLabel}
+                  </Text>
+                </div>
+
+                <SummaryFieldMeta>
+                  {isManagedSelected && <Badge color="gray">Managed</Badge>}
+                  {selectedVisibleCredential?.isDefault && <Badge color="blue">Default</Badge>}
+                </SummaryFieldMeta>
+              </SummaryFieldValue>
+            </SummaryField>
+
+            <Spacer size={20} />
+          </>
+        )}
+
+        {collectAuthConfigDetails && (
+          <>
+            <Input
+              label="Name"
+              required
+              description="Name for this user's connection so you can tell it apart from other auth configs."
+              {...authConfigDetailsForm.getFieldProps('name')}
+              placeholder="e.g. John Doe"
+              disabled={p.disabled}
+            />
+            <authConfigDetailsForm.RenderError field="name" />
+
+            <Spacer size={8} />
+
+            <Input
+              label="Description"
+              {...authConfigDetailsForm.getFieldProps('description')}
+              disabled={p.disabled}
+            />
+            <authConfigDetailsForm.RenderError field="description" />
+
+            <Spacer size={6} />
+          </>
+        )}
+      </>
+    );
+  };
+
   let steps = (() => {
     let methodStep = {
       title: 'Authentication',
@@ -664,102 +1073,380 @@ export let ProviderSetupSessionEmbed = ({
       subtitle: 'Select existing or add credentials',
       render: () => (
         <form onSubmit={credentialsForm.handleSubmit}>
-          <Text size="2" weight="strong">
-            Select {oauthMethodName} Credentials
-          </Text>
-          <Text size="2" color="gray600">
-            Auto-registration is disabled. Select existing credentials or add new credentials
-            to continue.
-          </Text>
-          <Spacer size={6} />
-          {!isCreatingCredentials && hasManagedVisibleCredentials && (
+          {!hideCredentialsIntro && (
             <>
-              <Callout color="blue">Managed by Metorial.</Callout>
-              <Spacer size={8} />
-            </>
-          )}
-          {redirectUri && isCreatingCredentials && (
-            <>
-              <Copy label="Redirect URI" value={redirectUri} />
-              <Text size="1" color="gray600">
-                Use this redirect URI when configuring your OAuth app.
+              <Text size="2" weight="strong">
+                Select {oauthMethodName} Credentials
               </Text>
-              <Spacer size={8} />
+              <Text size="2" color="gray600">
+                Select existing credentials or add new credentials to continue.
+              </Text>
+              <Spacer size={6} />
             </>
           )}
-          <Select
-            label={`${oauthMethodName} Existing Credentials`}
-            value={
-              credentialsForm.values.credentialMode === 'new'
-                ? '__create_new__'
-                : credentialsForm.values.selectedCredentialId
-            }
-            placeholder="Select or add credentials"
-            onChange={value => {
-              setError(null);
 
-              if (value === '__create_new__') {
-                void credentialsForm.setFieldValue('credentialMode', 'new');
-                void credentialsForm.setFieldValue('selectedCredentialId', '');
-              } else {
-                void credentialsForm.setFieldValue('credentialMode', 'existing');
-                void credentialsForm.setFieldValue('selectedCredentialId', value);
-              }
-            }}
-            items={[
-              ...visibleAuthCredentials.map(cred => ({
-                id: cred.id,
-                label: cred.isManaged
-                  ? `${cred.name || cred.id} (Managed by Metorial)`
-                  : cred.isDefault
-                    ? cred.name || `Default ${oauthMethodName} credentials`
-                    : cred.name || cred.id
-              })),
-              ...(visibleAuthCredentials.length > 0 ? [{ type: 'separator' as const }] : []),
-              {
-                id: '__create_new__',
-                label: 'Add credentials'
-              }
-            ]}
-          />
-          <credentialsForm.RenderError field="selectedCredentialId" />
-          {isCreatingCredentials && (
+          {showManagedChoiceStep ? (
             <>
-              <Spacer size={8} />
-              <Input
-                label="Name"
-                value={credentialsForm.values.newCredName}
-                onChange={e => credentialsForm.setFieldValue('newCredName', e.target.value)}
-                placeholder="My OAuth App"
-                required
-              />
-              <credentialsForm.RenderError field="newCredName" />
-              <Spacer size={8} />
-              <Input
-                label="Client ID"
-                value={credentialsForm.values.newCredClientId}
-                onChange={e =>
-                  credentialsForm.setFieldValue('newCredClientId', e.target.value)
+              <Text size="1" weight="medium" color="gray900" style={{ marginBottom: 2 }}>
+                Credential type
+              </Text>
+              <Text size="1" color="gray600" style={{ marginBottom: 5 }}>
+                Choose Metorial Managed to get started without creating your own OAuth app.
+              </Text>
+
+              {hasManagedVisibleCredentials ? (
+                <OptionToggle
+                  size="2"
+                  fullWidth
+                  value={isManagedSelected ? 'managed' : 'manual'}
+                  onChange={value => {
+                    if (value === 'managed') {
+                      void selectManagedCredential();
+                    } else {
+                      void selectCustomCredential();
+                    }
+                  }}
+                  items={[
+                    { id: 'manual', label: 'Bring Your Own' },
+                    { id: 'managed', label: 'Metorial Managed' }
+                  ]}
+                />
+              ) : (
+                <Tooltip
+                  content="Some providers have credentials managed by Metorial, but this provider does not offer managed credentials yet."
+                  delayDuration={0}
+                >
+                  <div>
+                    <OptionToggle
+                      size="2"
+                      fullWidth
+                      value="manual"
+                      items={[
+                        { id: 'manual', label: 'Bring Your Own' },
+                        { id: 'managed', label: 'Metorial Managed', disabled: true }
+                      ]}
+                    />
+                  </div>
+                </Tooltip>
+              )}
+
+              <Spacer size={12} />
+
+              {redirectUri && isCustomSelected && (
+                <>
+                  <Text size="1" weight="medium" color="gray900">
+                    Redirect URI
+                  </Text>
+                  <Text size="1" color="gray600" style={{ marginBottom: 5 }}>
+                    You must configure this redirect URI in your OAuth app.{' '}
+                    {/*
+                    <RedirectUriDocsLink
+                      href="https://metorial.com/docs"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Read the docs to learn more
+                    </RedirectUriDocsLink>
+                    .
+                    */}
+                  </Text>
+                  <Copy value={redirectUri} />
+                  <Spacer size={20} />
+                </>
+              )}
+
+              <ManagedCredentialsLayout
+                style={showExternalPreviewSidebar ? { gridTemplateColumns: '1fr' } : undefined}
+              >
+                <ManagedCredentialsColumn>
+                  {hasManagedVisibleCredentials && isManagedSelected && (
+                    <Callout color="gray">
+                      No custom OAuth app setup is required for this connection.
+                    </Callout>
+                  )}
+
+                  {isManagedSelected && managedVisibleCredentials.length > 1 && (
+                    <>
+                      <Select
+                        label={`${oauthMethodName} Managed Credentials`}
+                        value={credentialsForm.values.selectedCredentialId}
+                        placeholder="Select managed credentials"
+                        onChange={value => {
+                          setError(null);
+                          setLatestCreatedCredentialId(null);
+                          setLatestCreatedCredentialLabel(null);
+                          void credentialsForm.setFieldValue('credentialMode', 'existing');
+                          void credentialsForm.setFieldValue('selectedCredentialId', value);
+                        }}
+                        items={managedVisibleCredentials.map(credential => ({
+                          id: credential.id,
+                          label: credential.name || credential.id
+                        }))}
+                      />
+                      <Spacer size={8} />
+                    </>
+                  )}
+
+                  {isCustomSelected && (
+                    <>
+                      <Select
+                        label="Credentials"
+                        description="Select existing credentials or add new ones for this provider."
+                        value={
+                          credentialsForm.values.credentialMode === 'new'
+                            ? '__create_new__'
+                            : credentialsForm.values.selectedCredentialId
+                        }
+                        placeholder="Select or add credentials"
+                        onChange={value => {
+                          setError(null);
+
+                          if (value === '__create_new__') {
+                            setLatestCreatedCredentialId(null);
+                            setLatestCreatedCredentialLabel(null);
+                            void credentialsForm.setFieldValue('credentialMode', 'new');
+                            void credentialsForm.setFieldValue('selectedCredentialId', '');
+                          } else {
+                            setLatestCreatedCredentialId(null);
+                            setLatestCreatedCredentialLabel(null);
+                            void credentialsForm.setFieldValue('credentialMode', 'existing');
+                            void credentialsForm.setFieldValue('selectedCredentialId', value);
+                          }
+                        }}
+                        items={[
+                          ...customVisibleCredentials.map(credential => ({
+                            id: credential.id,
+                            label: credential.isDefault
+                              ? `${credential.name || credential.id} (Default)`
+                              : credential.name || credential.id
+                          })),
+                          { type: 'separator' as const },
+                          { id: '__create_new__', label: 'Add new credentials' }
+                        ]}
+                      />
+                      <credentialsForm.RenderError field="selectedCredentialId" />
+                    </>
+                  )}
+
+                  {isCreatingCredentials && (
+                    <>
+                      <Spacer size={12} />
+
+                      <Input
+                        label="Name"
+                        value={credentialsForm.values.newCredName}
+                        onChange={e =>
+                          credentialsForm.setFieldValue('newCredName', e.target.value)
+                        }
+                        placeholder="My OAuth App"
+                        required
+                      />
+                      <credentialsForm.RenderError field="newCredName" />
+
+                      <Spacer size={8} />
+
+                      <Input
+                        label="Client ID"
+                        value={credentialsForm.values.newCredClientId}
+                        onChange={e =>
+                          credentialsForm.setFieldValue('newCredClientId', e.target.value)
+                        }
+                        placeholder="Enter client ID from provider"
+                        required
+                      />
+                      <credentialsForm.RenderError field="newCredClientId" />
+
+                      <Spacer size={8} />
+
+                      <Input
+                        label="Client Secret"
+                        value={credentialsForm.values.newCredClientSecret}
+                        onChange={e =>
+                          credentialsForm.setFieldValue('newCredClientSecret', e.target.value)
+                        }
+                        placeholder="Enter client secret from provider"
+                        type="password"
+                        required
+                      />
+                      <credentialsForm.RenderError field="newCredClientSecret" />
+                    </>
+                  )}
+                </ManagedCredentialsColumn>
+
+                {!showExternalPreviewSidebar && (
+                  <ManagedCredentialsPreview>
+                    <ManagedCredentialsPreviewFrame>
+                      <ManagedCredentialsPreviewTop>
+                        <Text size="2" weight="strong">
+                          Preview
+                        </Text>
+                        <Text size="1" color="gray600">
+                          OAuth connection preview
+                        </Text>
+                      </ManagedCredentialsPreviewTop>
+
+                      <ManagedCredentialsPreviewCard>
+                        <ManagedCredentialsPreviewHeader>
+                          <ManagedCredentialsPreviewBrand>
+                            {projectBrandImageUrl ? (
+                              <ManagedCredentialsPreviewBrandImage
+                                src={projectBrandImageUrl}
+                                alt={projectBrandName}
+                              />
+                            ) : (
+                              <Avatar
+                                entity={{ name: projectBrandName }}
+                                size={28}
+                                radius={8}
+                                noTooltip
+                              />
+                            )}
+                          </ManagedCredentialsPreviewBrand>
+
+                          <div style={{ minWidth: 0 }}>
+                            <Text size="2" weight="strong">
+                              {projectBrandName}
+                            </Text>
+                            <Text size="1" color="gray600">
+                              Continue with {providerName}
+                            </Text>
+                          </div>
+                        </ManagedCredentialsPreviewHeader>
+
+                        <ManagedCredentialsPreviewConnection>
+                          <Avatar
+                            entity={{
+                              name: projectBrandName,
+                              imageUrl: projectBrandImageUrl
+                            }}
+                            size={44}
+                            radius={10}
+                            noTooltip
+                            imageFit="contain"
+                          />
+                          <ManagedCredentialsPreviewConnector />
+                          <Avatar
+                            entity={{
+                              name: providerName,
+                              imageUrl: providerImageUrl
+                            }}
+                            size={44}
+                            radius={10}
+                            noTooltip
+                            imageFit="contain"
+                          />
+                        </ManagedCredentialsPreviewConnection>
+
+                        <ManagedCredentialsPreviewAction>
+                          Connect {providerName}
+                        </ManagedCredentialsPreviewAction>
+                      </ManagedCredentialsPreviewCard>
+
+                      <ManagedCredentialsMetaRow>
+                        {isManagedSelected ? (
+                          <>
+                            <Badge color="gray">Managed</Badge>
+                            <Badge color="gray">Read-only</Badge>
+                          </>
+                        ) : hasManagedVisibleCredentials ? (
+                          <Badge color="blue">Custom</Badge>
+                        ) : (
+                          <Badge color="blue">Your credentials</Badge>
+                        )}
+                      </ManagedCredentialsMetaRow>
+                    </ManagedCredentialsPreviewFrame>
+                  </ManagedCredentialsPreview>
+                )}
+              </ManagedCredentialsLayout>
+            </>
+          ) : (
+            <>
+              <Select
+                label="Credentials"
+                description="Select existing credentials or add new ones for this provider."
+                value={
+                  credentialsForm.values.credentialMode === 'new'
+                    ? '__create_new__'
+                    : credentialsForm.values.selectedCredentialId
                 }
-                placeholder="Enter client ID from provider"
-                required
+                placeholder="Select or add credentials"
+                onChange={value => {
+                  setError(null);
+
+                  if (value === '__create_new__') {
+                    setLatestCreatedCredentialId(null);
+                    setLatestCreatedCredentialLabel(null);
+                    void credentialsForm.setFieldValue('credentialMode', 'new');
+                    void credentialsForm.setFieldValue('selectedCredentialId', '');
+                  } else {
+                    setLatestCreatedCredentialId(null);
+                    setLatestCreatedCredentialLabel(null);
+                    void credentialsForm.setFieldValue('credentialMode', 'existing');
+                    void credentialsForm.setFieldValue('selectedCredentialId', value);
+                  }
+                }}
+                items={credentialSelectItems}
               />
-              <credentialsForm.RenderError field="newCredClientId" />
-              <Spacer size={8} />
-              <Input
-                label="Client Secret"
-                value={credentialsForm.values.newCredClientSecret}
-                onChange={e =>
-                  credentialsForm.setFieldValue('newCredClientSecret', e.target.value)
-                }
-                placeholder="Enter client secret from provider"
-                type="password"
-                required
-              />
-              <credentialsForm.RenderError field="newCredClientSecret" />
+              <credentialsForm.RenderError field="selectedCredentialId" />
+
+              {hasManagedVisibleCredentials && (
+                <>
+                  <Spacer size={5} />
+                  <Text size="1" color="gray600">
+                    Managed credentials are available for quick testing, or choose Add
+                    credentials to use your own OAuth app.
+                  </Text>
+                </>
+              )}
+
+              {isCreatingCredentials && (
+                <>
+                  <Spacer size={12} />
+
+                  <Input
+                    label="Name"
+                    value={credentialsForm.values.newCredName}
+                    onChange={e =>
+                      credentialsForm.setFieldValue('newCredName', e.target.value)
+                    }
+                    placeholder="My OAuth App"
+                    required
+                  />
+                  <credentialsForm.RenderError field="newCredName" />
+
+                  <Spacer size={8} />
+
+                  <Input
+                    label="Client ID"
+                    value={credentialsForm.values.newCredClientId}
+                    onChange={e =>
+                      credentialsForm.setFieldValue('newCredClientId', e.target.value)
+                    }
+                    placeholder="Enter client ID from provider"
+                    required
+                  />
+                  <credentialsForm.RenderError field="newCredClientId" />
+
+                  <Spacer size={8} />
+
+                  <Input
+                    label="Client Secret"
+                    value={credentialsForm.values.newCredClientSecret}
+                    onChange={e =>
+                      credentialsForm.setFieldValue('newCredClientSecret', e.target.value)
+                    }
+                    placeholder="Enter client secret from provider"
+                    type="password"
+                    required
+                  />
+                  <credentialsForm.RenderError field="newCredClientSecret" />
+                </>
+              )}
             </>
           )}
+
           <createCredentials.RenderError />
+
           {error && (
             <>
               <Spacer size={5} />
@@ -768,20 +1455,15 @@ export let ProviderSetupSessionEmbed = ({
               </Text>
             </>
           )}
+
           <Spacer size={12} />
+
           <Flex gap={8}>
-            {(!skipMethodStep ||
-              (isCreatingCredentials && visibleAuthCredentials.length > 0) ||
-              onBackToMethodSelection) && (
+            {!showHiddenMethodStep && includeMethodStep && (
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => {
-                  if (isCreatingCredentials && visibleAuthCredentials.length > 0) {
-                    void credentialsForm.setFieldValue('credentialMode', 'existing');
-                    return;
-                  }
-
                   if (skipMethodStep) {
                     onBackToMethodSelection?.();
                     return;
@@ -793,11 +1475,10 @@ export let ProviderSetupSessionEmbed = ({
                 Back
               </Button>
             )}
+
             <Button
               type="submit"
-              loading={
-                createCredentials.isPending || isStarting || createSetupSession.isPending
-              }
+              loading={createCredentials.isPending}
               disabled={
                 (isCreatingCredentials &&
                   (!credentialsForm.values.newCredName ||
@@ -820,13 +1501,8 @@ export let ProviderSetupSessionEmbed = ({
         if (setupSession?.url) {
           return (
             <>
-              <Text size="2" weight="strong">
-                Continue in the {oauthMethodName} window
-              </Text>
-              <Text size="2" color="gray600">
-                Complete the sign-in flow. This modal will update automatically when
-                authentication finishes.
-              </Text>
+              {renderConnectSummary({ disabled: true })}
+
               {setupWindowBlocked && (
                 <>
                   <Spacer size={5} />
@@ -835,7 +1511,19 @@ export let ProviderSetupSessionEmbed = ({
                   </Text>
                 </>
               )}
+
+              <Spacer size={6} />
+
+              <Text size="2" weight="strong">
+                Continue in the {oauthMethodName} window
+              </Text>
+              <Text size="2" color="gray600">
+                Complete the sign-in flow. This modal will update automatically when
+                authentication finishes.
+              </Text>
+
               <Spacer size={8} />
+
               <Flex gap={8} align="center">
                 <Button
                   size="1"
@@ -846,24 +1534,27 @@ export let ProviderSetupSessionEmbed = ({
                 >
                   Open Window
                 </Button>
+
                 {onCancel && (
                   <Button size="1" variant="outline" onClick={onCancel}>
                     {cancelLabel}
                   </Button>
                 )}
               </Flex>
+
               {(!skipMethodStep || onBackToMethodSelection) && (
                 <>
                   <Spacer size={8} />
                   <span
                     style={{ cursor: 'pointer' }}
                     onClick={() => {
+                      resetSetupSession();
                       if (skipMethodStep) {
-                        resetSetupSession();
                         onBackToMethodSelection?.();
-                      } else {
-                        resetSetupSession();
+                        return;
                       }
+
+                      setStep(0);
                     }}
                   >
                     <Text size="1" color="gray500" style={{ textDecoration: 'underline' }}>
@@ -872,6 +1563,7 @@ export let ProviderSetupSessionEmbed = ({
                   </span>
                 </>
               )}
+
               {error && (
                 <>
                   <Spacer size={5} />
@@ -883,17 +1575,24 @@ export let ProviderSetupSessionEmbed = ({
             </>
           );
         }
+
         return (
           <>
+            {renderConnectSummary({ disabled: false })}
+
+            <Spacer size={12} />
+
             <Text size="2" weight="strong">
-              {isOAuth ? `Start ${oauthMethodName}` : 'Start setup'}
+              {isOAuth ? `Start Authentication` : 'Start setup'}
             </Text>
             <Text size="2" color="gray600">
               {isOAuth
                 ? `A separate window will open so you can authorize ${providerName}.`
                 : 'Start the setup session for this authentication method.'}
             </Text>
+
             <createSetupSession.RenderError />
+
             {error && (
               <>
                 <Spacer size={5} />
@@ -902,11 +1601,12 @@ export let ProviderSetupSessionEmbed = ({
                 </Text>
               </>
             )}
+
             <Spacer size={8} />
+
             <Flex gap={8} align="center">
               <Button
                 type="button"
-                size="1"
                 onClick={() =>
                   void handleStartSetup(
                     credentialsForm.values.selectedCredentialId || undefined
@@ -917,25 +1617,21 @@ export let ProviderSetupSessionEmbed = ({
               >
                 {isOAuth ? 'Open Window' : 'Start Setup'}
               </Button>
-              {(step > 0 || (skipMethodStep && onBackToMethodSelection)) && (
+
+              {!isFirstVisibleStep && (
                 <Button
                   type="button"
-                  size="1"
                   variant="outline"
                   onClick={() => {
                     if (step > 0) {
                       setStep(prev => prev - 1);
                       return;
                     }
+
                     onBackToMethodSelection?.();
                   }}
                 >
                   Back
-                </Button>
-              )}
-              {onCancel && (
-                <Button type="button" size="1" variant="outline" onClick={onCancel}>
-                  {cancelLabel}
                 </Button>
               )}
             </Flex>
@@ -961,6 +1657,7 @@ export let ProviderSetupSessionEmbed = ({
         ? [methodStep, credentialsStep, connectStep]
         : [credentialsStep, connectStep];
     }
+
     return includeMethodStep
       ? [
           methodStep,

@@ -63,13 +63,22 @@ export let ProviderDeploymentTabSection = ({
     <Wrapper>
       {search ? (
         <>
+          {intro ? (
+            <HeaderRow>
+              <Intro>{intro}</Intro>
+              {actions ? <ActionRow>{actions}</ActionRow> : null}
+            </HeaderRow>
+          ) : null}
           <ToolbarRow>
             <SearchWrap>{search}</SearchWrap>
-            {actions ? <ActionRow>{actions}</ActionRow> : null}
+            {!intro && actions ? <ActionRow>{actions}</ActionRow> : null}
           </ToolbarRow>
         </>
       ) : intro || actions ? (
-        <HeaderRow>{actions ? <ActionRow>{actions}</ActionRow> : null}</HeaderRow>
+        <HeaderRow>
+          {intro ? <Intro>{intro}</Intro> : <div />}
+          {actions ? <ActionRow>{actions}</ActionRow> : null}
+        </HeaderRow>
       ) : null}
 
       {children}

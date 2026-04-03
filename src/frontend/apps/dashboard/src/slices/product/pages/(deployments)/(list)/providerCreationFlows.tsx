@@ -1,6 +1,6 @@
 import { Button, Dialog, showModal, Spacer } from '@metorial/ui';
 import { type ReactNode } from 'react';
-import { showProviderAuthConfigCreateModal } from '../../../scenes/providerAuthConfigs/modal';
+import { showProviderAuthConfigMethodPickerModal } from '../../../scenes/providerAuthConfigs/modal';
 import { showProviderAuthCredentialsFormModal } from '../../../scenes/providerAuthCredentials/modal';
 import { showProviderConfigVaultFormModal } from '../../../scenes/providerConfigVaults/modal';
 import { showProviderConfigFormModal } from '../../../scenes/providerConfigs/modal';
@@ -302,7 +302,7 @@ export let showCreateProviderAuthConfigFlow = (
         selectionMode="authConfigCreate"
         providerId={providerId}
         onSelect={deploymentId =>
-          showProviderAuthConfigCreateModal({
+          showProviderAuthConfigMethodPickerModal({
             instanceId,
             providerDeploymentId: deploymentId,
             onBack: () => showDeploymentStep(providerId),
@@ -322,7 +322,7 @@ export let showCreateProviderAuthConfigFlow = (
       close={close}
       onSelect={providerId => {
         if (scope === 'provider') {
-          showProviderAuthConfigCreateModal({
+          showProviderAuthConfigMethodPickerModal({
             instanceId,
             providerId,
             onBack: () => showCreateProviderAuthConfigFlow(instanceId, options),
