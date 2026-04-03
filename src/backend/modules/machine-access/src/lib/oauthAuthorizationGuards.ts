@@ -11,10 +11,7 @@ import {
   OAuthInstallation,
   OAuthToken
 } from '@metorial/db';
-import { addMinutes } from 'date-fns';
 import { normalizeScopes } from './oauthAuthorizationScopes';
-
-let OAUTH_TOKEN_REFRESH_RATE_LIMIT_MINUTES = 10;
 
 export let ensureScopesAllowed = (d: {
   allowedScopes: string[];
@@ -103,21 +100,6 @@ export let ensureTokenRefreshable = (
     throw new ServiceError(
       unauthorizedError({
         message: 'OAuth token can no longer be refreshed or used'
-      })
-    );
-  }
-
-  if (
-    oauthToken.lastRefreshedAt &&
-    addMinutes(oauthToken.lastRefreshedAt, OAUTH_TOKEN_REFRESH_RATE_LIMIT_MINUTES) > new Date()
-  ) {
-    throw new ServiceError(
-      unauthorizedError({
-        message: 'OAuth token can only be refreshed once every 10 minutes',
-        oauth: {
-          error: 'invalid_grant',
-          errorMessage: 'OAuth token can only be refreshed once every 10 minutes'
-        }
       })
     );
   }
