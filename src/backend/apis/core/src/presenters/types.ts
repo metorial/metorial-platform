@@ -766,6 +766,11 @@ export let sessionTemplateProviderType = PresentableType.create<{
   sessionTemplateProvider: SubspaceSessionTemplateProvider;
 }>()('sessionTemplateProvider');
 
+export let magicMcpServerProviderType = PresentableType.create<{
+  magicMcpServer: MagicMcpServer;
+  sessionTemplateProvider: SubspaceSessionTemplateProvider;
+}>()('magicMcpServerProvider');
+
 export let sessionProviderType = PresentableType.create<{
   sessionProvider: SubspaceSessionProvider;
 }>()('sessionProvider');
