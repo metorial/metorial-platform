@@ -12,6 +12,13 @@ enum ProviderSetupSessionType {
   auth_only
   config_only
   auth_and_config
+  auto
+}
+
+enum ProviderSetupSessionTypeConcrete {
+  auth_only
+  config_only
+  auth_and_config
 }
 
 enum ProviderSetupSessionUiMode {
@@ -23,17 +30,19 @@ model ProviderSetupSession {
   oid BigInt @id
   id  String @unique
 
-  status ProviderSetupSessionStatus
-  type   ProviderSetupSessionType
-  uiMode ProviderSetupSessionUiMode @default(metorial_elements)
+  status       ProviderSetupSessionStatus
+  typeSelected ProviderSetupSessionType          @map("type")
+  typeConcrete ProviderSetupSessionTypeConcrete?
+  uiMode       ProviderSetupSessionUiMode        @default(metorial_elements)
 
   isParentDeleted Boolean @default(false)
 
   clientSecret String
 
-  name        String?
-  description String?
-  metadata    Json?
+  name            String?
+  description     String?
+  metadata        Json?
+  privateMetadata Json?
 
   /// [ProviderSetupSessionConfiguration]
   configuration Json?
@@ -67,7 +76,7 @@ model ProviderSetupSession {
   configOid BigInt?         @unique
   config    ProviderConfig? @relation(fields: [configOid], references: [oid])
 
-  identityCredentialOid BigInt?              @unique
+  identityCredentialOid BigInt?             @unique
   identityCredential    IdentityCredential? @relation(fields: [identityCredentialOid], references: [oid], onDelete: SetNull)
 
   oauthSetupOid BigInt?             @unique
@@ -88,7 +97,7 @@ model ProviderSetupSession {
   @@index([createdAt])
   @@index([updatedAt])
   @@index([status])
-  @@index([type])
+  @@index([typeSelected])
   @@index([identityOid])
 }
 

@@ -42,6 +42,7 @@ import {
 
 export type IdentityCredentialInput = ProviderCombinationInput & {
   delegationConfigId?: string;
+  privateMetadata?: Record<string, any>;
 };
 
 let include = {
@@ -324,6 +325,8 @@ class identityCredentialServiceImpl {
             configOid: c.config.oid,
             deploymentOid: c.deployment.oid,
             providerOid: c.provider.oid,
+
+            privateMetadata: input.privateMetadata,
 
             delegationConfigOid: delegationConfig?.oid
           };

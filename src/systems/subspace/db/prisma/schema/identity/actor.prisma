@@ -17,9 +17,10 @@ model IdentityActor {
   status          IdentityActorStatus
   isParentDeleted Boolean             @default(false)
 
-  name        String
-  description String?
-  metadata    Json?
+  name            String
+  description     String?
+  metadata        Json?
+  privateMetadata Json?
 
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)

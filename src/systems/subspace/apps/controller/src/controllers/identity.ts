@@ -99,6 +99,7 @@ export let identityController = app.controller({
         name: v.optional(v.string()),
         description: v.optional(v.string()),
         metadata: v.optional(v.record(v.any())),
+        privateMetadata: v.optional(v.record(v.any())),
 
         inputs: v.array(identityCredentialInputValidator)
       })
@@ -121,6 +122,7 @@ export let identityController = app.controller({
           name: ctx.input.name,
           description: ctx.input.description,
           metadata: ctx.input.metadata,
+          privateMetadata: ctx.input.privateMetadata,
           inputs: ctx.input.inputs
         }
       });

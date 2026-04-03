@@ -278,12 +278,12 @@ class providerSetupSessionInternalServiceImpl {
 
       let isComplete = false;
 
-      if (d.session.type === 'auth_only' && hasAuthConfig) isComplete = true;
+      if (d.session.typeConcrete === 'auth_only' && hasAuthConfig) isComplete = true;
 
-      if (d.session.type === 'auth_and_config' && hasAuthConfig && hasConfig)
+      if (d.session.typeConcrete === 'auth_and_config' && hasAuthConfig && hasConfig)
         isComplete = true;
 
-      if (d.session.type === 'config_only' && hasConfig) isComplete = true;
+      if (d.session.typeConcrete === 'config_only' && hasConfig) isComplete = true;
 
       if (isComplete) {
         result = await db.providerSetupSession.update({

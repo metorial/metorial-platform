@@ -57,7 +57,7 @@ let renderIndexHtml = async (preload: unknown) => {
 
   return new Response(
     new ReadableStream({
-      start(controller) {
+      start(controller: any) {
         controller.enqueue(textEncoder.encode(template.beforePreload));
         controller.enqueue(textEncoder.encode(preloadScript));
         controller.enqueue(textEncoder.encode(template.afterPreload));

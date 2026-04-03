@@ -98,6 +98,7 @@ export let providerSetupSessionController = app.controller({
         name: v.optional(v.string()),
         description: v.optional(v.string()),
         metadata: v.optional(v.record(v.any())),
+        privateMetadata: v.optional(v.record(v.any())),
 
         ip: v.string(),
         ua: v.string(),
@@ -135,7 +136,7 @@ export let providerSetupSessionController = app.controller({
           })
         ),
 
-        type: v.enumOf(['auth_and_config', 'auth_only', 'config_only']),
+        type: v.enumOf(['auth_and_config', 'auth_only', 'config_only', 'auto']),
         uiMode: v.enumOf(['metorial_elements', 'dashboard_embeddable'])
       })
     )
@@ -205,6 +206,8 @@ export let providerSetupSessionController = app.controller({
           name: ctx.input.name,
           description: ctx.input.description,
           metadata: ctx.input.metadata,
+          privateMetadata: ctx.input.privateMetadata,
+
           redirectUrl: ctx.input.redirectUrl,
           configuration: ctx.input.configuration as any,
 

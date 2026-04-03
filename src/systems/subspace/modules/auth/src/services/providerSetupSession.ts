@@ -16,6 +16,7 @@ import {
   type ProviderSetupSession,
   type ProviderSetupSessionStatus,
   type ProviderSetupSessionType,
+  ProviderSetupSessionTypeConcrete,
   type ProviderSetupSessionUiMode,
   type ProviderType,
   type ProviderVariant,
@@ -188,9 +189,11 @@ class providerSetupSessionServiceImpl {
       authMethodId?: string;
       description?: string;
       metadata?: Record<string, any>;
+      privateMetadata?: Record<string, any>;
+
       expiresAt?: Date;
       redirectUrl?: string;
-      type: ProviderSetupSessionType;
+      type: ProviderSetupSessionType | 'auto';
       uiMode: ProviderSetupSessionUiMode;
       configuration?: PrismaJson.ProviderSetupSessionConfiguration | null;
 
@@ -234,22 +237,49 @@ class providerSetupSessionServiceImpl {
       }
     }
 
+    let concreteType: ProviderSetupSessionTypeConcrete | null = null;
+
     if (d.provider) {
       checkProviderMatch(d.provider, d.credentials);
       checkProviderMatch(d.provider, d.providerDeployment);
+
+      if (d.input.type === 'auto') {
+        let type = await db.providerType.findUnique({
+          where: { oid: d.provider.typeOid }
+        });
+
+        if (
+          type?.attributes.config.status === 'enabled' &&
+          type.attributes.auth.status === 'enabled'
+        ) {
+          concreteType = 'auth_and_config';
+        } else if (type?.attributes.auth.status === 'enabled') {
+          concreteType = 'auth_only';
+        } else {
+          concreteType = 'config_only';
+        }
+      }
     }
 
-    if (d.input.type === 'config_only' && d.input.authConfigInput) {
+    if (concreteType === 'config_only' && d.input.authConfigInput) {
       throw new ServiceError(
         badRequestError({
           message: 'Auth config input provided for config_only session type'
         })
       );
     }
-    if (d.input.type === 'auth_only' && d.input.configInput) {
+    if (concreteType === 'auth_only' && d.input.configInput) {
       throw new ServiceError(
         badRequestError({
           message: 'Config input provided for auth_only session type'
+        })
+      );
+    }
+
+    if (!d.provider && (d.input.authConfigInput || d.input.configInput)) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Auth config or config input provided without provider'
         })
       );
     }
@@ -375,13 +405,17 @@ class providerSetupSessionServiceImpl {
 
           clientSecret: await ID.generateId('providerSetupSession_clientSecret'),
 
-          type: d.input.type,
+          typeSelected: d.input.type,
+          typeConcrete: concreteType,
+
           uiMode: d.input.uiMode,
           status: 'pending',
 
           name: d.input.name?.trim() || undefined,
           description: d.input.description?.trim() || undefined,
           metadata: d.input.metadata,
+          privateMetadata: d.input.privateMetadata,
+
           configuration: normalizedConfiguration,
           redirectUrl: d.input.redirectUrl,
 

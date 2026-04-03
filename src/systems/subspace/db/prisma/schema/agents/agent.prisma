@@ -11,10 +11,11 @@ model Agent {
   status          AgentStatus
   isParentDeleted Boolean     @default(false)
 
-  name        String
-  description String?
-  slug        String
-  metadata    Json?
+  name            String
+  description     String?
+  slug            String
+  metadata        Json?
+  privateMetadata Json?
 
   actorOid BigInt        @unique
   actor    IdentityActor @relation(fields: [actorOid], references: [oid], onDelete: Cascade)

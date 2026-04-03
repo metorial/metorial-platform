@@ -102,7 +102,9 @@ export let identityCredentialController = app.controller({
         deploymentId: v.optional(v.string()),
         configId: v.optional(v.string()),
         authConfigId: v.optional(v.string()),
-        delegationConfigId: v.optional(v.string())
+        delegationConfigId: v.optional(v.string()),
+
+        privateMetadata: v.optional(v.record(v.any()))
       })
     )
     .do(async ctx => {
@@ -122,7 +124,8 @@ export let identityCredentialController = app.controller({
           deploymentId: ctx.input.deploymentId,
           configId: ctx.input.configId,
           authConfigId: ctx.input.authConfigId,
-          delegationConfigId: ctx.input.delegationConfigId
+          delegationConfigId: ctx.input.delegationConfigId,
+          privateMetadata: ctx.input.privateMetadata
         }
       });
 

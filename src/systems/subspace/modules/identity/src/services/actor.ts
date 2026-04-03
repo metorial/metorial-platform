@@ -139,6 +139,7 @@ class identityActorServiceImpl {
       name: string;
       description?: string;
       metadata?: Record<string, any>;
+      privateMetadata?: Record<string, any>;
       type: IdentityActorType;
 
       _agentSlug?: string;
@@ -155,6 +156,7 @@ class identityActorServiceImpl {
           name: d.input.name.trim(),
           description: d.input.description?.trim() || undefined,
           metadata: d.input.metadata,
+          privateMetadata: d.input.privateMetadata,
 
           tenantOid: d.tenant.oid,
           solutionOid: d.solution.oid,
@@ -173,6 +175,7 @@ class identityActorServiceImpl {
             name: d.input.name.trim(),
             description: d.input.description?.trim() || undefined,
             metadata: d.input.metadata,
+            privateMetadata: d.input.privateMetadata,
 
             slug: await getAgentSlug(
               {

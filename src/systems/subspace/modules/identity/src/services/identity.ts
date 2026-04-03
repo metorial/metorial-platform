@@ -30,7 +30,7 @@ import {
   identityDeletedQueue,
   identityUpdatedQueue
 } from '../queues/lifecycle/identity';
-import { identityCredentialService, type IdentityCredentialInput } from './identityCredential';
+import { type IdentityCredentialInput, identityCredentialService } from './identityCredential';
 
 let include = {
   actor: {
@@ -142,6 +142,7 @@ class identityServiceImpl {
       name?: string;
       description?: string;
       metadata?: Record<string, any>;
+      privateMetadata?: Record<string, any>;
 
       inputs: IdentityCredentialInput[];
     };
@@ -163,6 +164,7 @@ class identityServiceImpl {
           name: d.input.name?.trim() || undefined,
           description: d.input.description?.trim() || undefined,
           metadata: d.input.metadata,
+          privateMetadata: d.input.privateMetadata,
 
           tenantOid: d.tenant.oid,
           solutionOid: d.solution.oid,

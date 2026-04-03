@@ -10,7 +10,7 @@ import {
   type ProviderDeployment,
   type ProviderDeploymentVersion,
   type ProviderSetupSession,
-  type ProviderType,
+  ProviderSetupSessionTypeConcrete,
   type ProviderVariant,
   type Solution,
   type Tenant,
@@ -65,7 +65,10 @@ class providerSetupSessionUiServiceImpl {
   async getConfigSchema(d: { providerSetupSession: ProviderSetupSession }) {
     let fullSession = await this.getSelectedSessionContext(d.providerSetupSession);
 
-    if (d.providerSetupSession.type === 'auth_only') {
+    if (
+      !d.providerSetupSession.typeConcrete ||
+      d.providerSetupSession.typeConcrete === 'auth_only'
+    ) {
       return {
         type: 'none' as const
       };
@@ -120,7 +123,10 @@ class providerSetupSessionUiServiceImpl {
   async getAuthConfigSchema(d: { providerSetupSession: ProviderSetupSession }) {
     let fullSession = await this.getSelectedSessionContext(d.providerSetupSession);
 
-    if (d.providerSetupSession.type === 'config_only') {
+    if (
+      !d.providerSetupSession.typeConcrete ||
+      d.providerSetupSession.typeConcrete === 'config_only'
+    ) {
       return {
         type: 'none' as const
       };
@@ -164,7 +170,10 @@ class providerSetupSessionUiServiceImpl {
   }) {
     await this.checkEditable(d);
 
-    if (d.providerSetupSession.type === 'config_only') {
+    if (
+      !d.providerSetupSession.typeConcrete ||
+      d.providerSetupSession.typeConcrete === 'config_only'
+    ) {
       throw new ServiceError(
         badRequestError({
           message: 'Config input is required for auth_and_config session type'
@@ -272,7 +281,10 @@ class providerSetupSessionUiServiceImpl {
   }) {
     await this.checkEditable(d);
 
-    if (d.providerSetupSession.type === 'auth_only') {
+    if (
+      !d.providerSetupSession.typeConcrete ||
+      d.providerSetupSession.typeConcrete === 'auth_only'
+    ) {
       throw new ServiceError(
         badRequestError({
           message: 'Cannot set config for auth_only session type'
@@ -369,6 +381,7 @@ class providerSetupSessionUiServiceImpl {
     limit?: number;
     after?: string;
     before?: string;
+    ids?: string[];
   }) {
     let session = await db.providerSetupSession.findUniqueOrThrow({
       where: { oid: d.providerSetupSession.oid },
@@ -397,9 +410,10 @@ class providerSetupSessionUiServiceImpl {
       ),
       orderByRank: true,
       capabilities: {
-        supportsConfig: session.type !== 'auth_only' ? true : undefined,
-        supportsAuth: session.type !== 'config_only' ? true : undefined
-      }
+        supportsConfig: session.typeSelected === 'auth_only' ? false : undefined,
+        supportsAuth: session.typeSelected === 'config_only' ? false : undefined
+      },
+      ids: d.ids
     });
 
     let rankedList = await paginator.run({
@@ -440,7 +454,10 @@ class providerSetupSessionUiServiceImpl {
           }
         });
 
-        let allowedProviders = await this.listProviders({ providerSetupSession: session });
+        let allowedProviders = await this.listProviders({
+          providerSetupSession: session,
+          ids: [d.providerId]
+        });
         if (!allowedProviders.items.some(provider => provider.id === d.providerId)) {
           throw new ServiceError(
             badRequestError({
@@ -469,10 +486,7 @@ class providerSetupSessionUiServiceImpl {
           tenant: session.tenant,
           solution: session.solution,
           environment: session.environment,
-          provider: provider as Provider & {
-            defaultVariant: ProviderVariant | null;
-            type: ProviderType;
-          }
+          provider
         });
 
         let authCredentialsOid: bigint | undefined;
@@ -503,12 +517,30 @@ class providerSetupSessionUiServiceImpl {
           authCredentialsOid = defaultCredentials.oid;
         }
 
+        let concreteType: ProviderSetupSessionTypeConcrete | null = null;
+
+        if (session.typeSelected === 'auto') {
+          if (
+            provider.type.attributes.config.status === 'enabled' &&
+            provider.type.attributes.auth.status === 'enabled'
+          ) {
+            concreteType = 'auth_and_config';
+          } else if (provider.type.attributes.config.status === 'enabled') {
+            concreteType = 'config_only';
+          } else {
+            concreteType = 'auth_only';
+          }
+        } else {
+          concreteType = session.typeSelected;
+        }
+
         let updatedSession = await db.providerSetupSession.update({
           where: { oid: session.oid },
           data: {
             providerOid: provider.oid,
             authMethodOid: authMethod.oid,
-            authCredentialsOid
+            authCredentialsOid,
+            typeConcrete: concreteType
           },
           include: {
             ...providerSetupSessionInclude,

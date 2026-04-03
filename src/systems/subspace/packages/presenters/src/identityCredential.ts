@@ -24,6 +24,7 @@ export let identityCredentialPresenter = (
   status: credential.status,
 
   identityId: credential.identity.id,
+  privateMetadata: credential.privateMetadata,
 
   providerId: credential.provider.id,
   deploymentId: credential.deployment?.id ?? null,

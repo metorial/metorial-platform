@@ -36,6 +36,7 @@ export let identityPresenter = (
   name: identity.name,
   description: identity.description,
   metadata: identity.metadata,
+  privateMetadata: identity.privateMetadata,
 
   owner: {
     type: 'actor',

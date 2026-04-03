@@ -59,7 +59,9 @@ export let providerSetupSessionPresenter = (
     object: 'provider.setup_session',
 
     id: providerSetupSession.id,
-    type: providerSetupSession.type,
+    type: providerSetupSession.typeSelected, // LEGACY fallback
+    typeSelected: providerSetupSession.typeSelected,
+    typeConcrete: providerSetupSession.typeConcrete,
 
     status,
 
@@ -68,6 +70,7 @@ export let providerSetupSessionPresenter = (
     name: providerSetupSession.name,
     description: providerSetupSession.description,
     metadata: providerSetupSession.metadata,
+    privateMetadata: providerSetupSession.privateMetadata,
 
     providerId: providerSetupSession.provider?.id ?? null,
     identityId: providerSetupSession.identity?.id ?? null,

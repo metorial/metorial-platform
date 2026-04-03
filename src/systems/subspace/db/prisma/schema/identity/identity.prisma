@@ -11,9 +11,10 @@ model Identity {
   status          IdentityStatus
   isParentDeleted Boolean        @default(false)
 
-  name        String?
-  description String?
-  metadata    Json?
+  name            String?
+  description     String?
+  metadata        Json?
+  privateMetadata Json?
 
   needsReconciliation Boolean
 
@@ -59,6 +60,8 @@ model IdentityCredential {
 
   status IdentityStatus
 
+  privateMetadata Json?
+
   identityOid BigInt
   identity    Identity @relation(fields: [identityOid], references: [oid], onDelete: Cascade)
 
@@ -81,7 +84,7 @@ model IdentityCredential {
   updatedAt  DateTime  @default(now()) @updatedAt
   archivedAt DateTime?
 
-  providerSetupSession                    ProviderSetupSession?
+  providerSetupSession                  ProviderSetupSession?
   identityDelegationCredentialOverrides IdentityDelegationCredentialOverride[]
   delegatedIdentityCredential           DelegatedIdentityCredential[]
 

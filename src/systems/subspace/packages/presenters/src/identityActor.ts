@@ -14,6 +14,7 @@ export let identityActorPresenter = (
   name: actor.name,
   description: actor.description,
   metadata: actor.metadata,
+  privateMetadata: actor.privateMetadata,
 
   agentId: actor.agent?.id ?? null,
 
