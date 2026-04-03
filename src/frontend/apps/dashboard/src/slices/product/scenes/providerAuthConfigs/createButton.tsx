@@ -22,7 +22,7 @@ export let ProviderAuthConfigCreateButton = (
     p.providerId
   );
 
-  let openCreateFlow = (authMethodId?: string) =>
+  let openCreateFlow = (authMethodId: string) =>
     showProviderAuthConfigCreateModal({
       instanceId: p.instanceId,
       providerDeploymentId: p.providerDeploymentId,
@@ -61,7 +61,7 @@ export let ProviderAuthConfigCreateButton = (
         size={p.size}
         iconLeft={p.iconLeft}
         aria-label={p.ariaLabel}
-        onClick={() => openCreateFlow(authCreation.authMethodItems[0]?.id)}
+        onClick={() => openCreateFlow(authCreation.authMethodItems[0]!.id)}
       >
         {p.children}
       </Button>

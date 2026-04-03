@@ -1,6 +1,6 @@
 import { useProviderDeployment } from '@metorial/state';
-import { Button, CenteredSpinner, Dialog, Spacer, showModal } from '@metorial/ui';
-import { useEffect } from 'react';
+import { Button, CenteredSpinner, Dialog, Select, Spacer, showModal } from '@metorial/ui';
+import { useEffect, useMemo, useState } from 'react';
 import { useProviderAuthCreationCapabilities } from '../../lib/providerCreationCapabilities';
 import { closeAndThen } from './modalHelpers';
 import {
@@ -20,6 +20,7 @@ let ProviderAuthConfigMethodPickerModalContent = (
     p.providerId ?? deployment.data?.providerId
   );
   let providerName = authCreation.provider.data?.name ?? deployment.data?.name ?? 'provider';
+  let [selectedMethodId, setSelectedMethodId] = useState('');
 
   let handleBackOrClose = () => {
     if (p.onBack) {
@@ -28,6 +29,15 @@ let ProviderAuthConfigMethodPickerModalContent = (
     }
     p.close();
   };
+
+  let selectItems = useMemo(
+    () =>
+      authCreation.authMethodItems.map(method => ({
+        id: method.id,
+        label: method.name
+      })),
+    [authCreation.authMethodItems]
+  );
 
   useEffect(() => {
     if (authCreation.isLoading || !authCreation.canCreateAuthConfig) return;
@@ -38,7 +48,7 @@ let ProviderAuthConfigMethodPickerModalContent = (
         instanceId: p.instanceId,
         providerDeploymentId: p.providerDeploymentId,
         providerId: p.providerId,
-        initialAuthMethodId: authCreation.authMethodItems[0]?.id,
+        initialAuthMethodId: authCreation.authMethodItems[0]!.id,
         onCreate: p.onCreate,
         onBack: p.onBack
       })
@@ -83,6 +93,20 @@ let ProviderAuthConfigMethodPickerModalContent = (
     return <CenteredSpinner />;
   }
 
+  let continueWithSelection = () => {
+    if (!selectedMethodId) return;
+    closeAndThen(p.close, () =>
+      showProviderAuthConfigCreateModal({
+        instanceId: p.instanceId,
+        providerDeploymentId: p.providerDeploymentId,
+        providerId: p.providerId,
+        initialAuthMethodId: selectedMethodId,
+        onCreate: p.onCreate,
+        onBack: p.onBack
+      })
+    );
+  };
+
   return (
     <>
       <Dialog.Title>Create Auth Config</Dialog.Title>
@@ -90,38 +114,32 @@ let ProviderAuthConfigMethodPickerModalContent = (
         Choose an authentication method for {providerName}.
       </Dialog.Description>
 
-      <Spacer size={15} />
+      <Spacer size={10} />
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {authCreation.authMethodItems.map(method => (
-          <Button
-            key={method.id}
-            type="button"
-            variant="outline"
-            fullWidth
-            onClick={() =>
-              closeAndThen(p.close, () =>
-                showProviderAuthConfigCreateModal({
-                  instanceId: p.instanceId,
-                  providerDeploymentId: p.providerDeploymentId,
-                  providerId: p.providerId,
-                  initialAuthMethodId: method.id,
-                  onCreate: p.onCreate,
-                  onBack: p.onBack
-                })
-              )
-            }
-          >
-            {method.name}
-          </Button>
-        ))}
-      </div>
+      <Select
+        label="Authentication method"
+        placeholder="Select a method…"
+        value={selectedMethodId}
+        onChange={setSelectedMethodId}
+        items={selectItems}
+      />
+
+      <Spacer height={12} />
 
       <Spacer size={15} />
 
       <Dialog.Actions>
-        <Button variant="outline" onClick={handleBackOrClose}>
+        <Button type="button" variant="outline" size="2" onClick={handleBackOrClose}>
           {p.onBack ? 'Back' : 'Cancel'}
+        </Button>
+        <Button
+          color="black"
+          variant="solid"
+          size="2"
+          disabled={!selectedMethodId}
+          onClick={continueWithSelection}
+        >
+          Continue
         </Button>
       </Dialog.Actions>
     </>
@@ -132,7 +150,7 @@ export let showProviderAuthConfigMethodPickerModal = (
   p: Omit<ProviderAuthConfigCreateModalProps, 'initialAuthMethodId'>
 ) =>
   showModal(({ dialogProps, close }) => (
-    <Dialog.Wrapper {...dialogProps} width={460}>
+    <Dialog.Wrapper {...dialogProps} width={650}>
       <ProviderAuthConfigMethodPickerModalContent
         {...p}
         close={close}

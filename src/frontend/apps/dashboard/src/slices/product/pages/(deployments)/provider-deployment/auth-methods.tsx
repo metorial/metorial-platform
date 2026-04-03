@@ -1,3 +1,4 @@
+import { DashboardInstanceProvidersAuthMethodsListOutput } from '@metorial/dashboard-sdk';
 import { renderWithLoader } from '@metorial/data-hooks';
 import {
   useCurrentInstance,
@@ -22,9 +23,8 @@ import {
   showProviderAuthMethodDetailsModal
 } from '../../../scenes/providers/authMethodDetails';
 
-type ProviderDeploymentAuthMethod = NonNullable<
-  ReturnType<typeof useProviderAuthMethods>['data']
->['items'][number];
+type ProviderDeploymentAuthMethod =
+  DashboardInstanceProvidersAuthMethodsListOutput['items'][number];
 
 type ProviderDeploymentAuthMethodsTableProps = {
   instanceId: string;
@@ -178,10 +178,6 @@ export let ProviderDeploymentAuthMethodsPage = () => {
   let provider = useProvider(instance.data?.id, deployment.data?.providerId);
   let effectiveVersionId =
     deployment.data?.lockedVersion?.id ?? provider.data?.currentVersion?.id;
-  let authMethods = useProviderAuthMethods(
-    instance.data?.id,
-    effectiveVersionId ? { providerVersionId: effectiveVersionId } : null
-  );
 
   return renderWithLoader({ instance, deployment, provider })(() => (
     <ProviderDeploymentTabSection>

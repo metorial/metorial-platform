@@ -1,6 +1,6 @@
 import { useProviderDeployment } from '@metorial/state';
 import { Button, CenteredSpinner, Dialog, Spacer, showModal } from '@metorial/ui';
-import { useEffect, useState } from 'react';
+import { type ReactElement, useEffect, useState } from 'react';
 import { useProviderAuthCreationCapabilities } from '../../lib/providerCreationCapabilities';
 import { ProviderAuthConfigManualCreateContent } from './createManualModal';
 import { ProviderAuthConfigSetupFlowCreateContent } from './createSetupFlowModal';
@@ -11,13 +11,17 @@ export type ProviderAuthConfigCreateModalProps = {
   instanceId: string;
   providerDeploymentId?: string;
   providerId?: string;
-  initialAuthMethodId?: string;
+  initialAuthMethodId: string;
   onCreate?: (authConfig: { id: string }) => void;
   onBack?: () => void;
 };
 
 let ProviderAuthConfigCreateModalContent = (
   p: ProviderAuthConfigCreateModalProps & {
+    dialogProps: {
+      isOpen: boolean;
+      onOpenChange: (isOpen: boolean) => void;
+    };
     close: () => void;
   }
 ) => {
@@ -34,6 +38,10 @@ let ProviderAuthConfigCreateModalContent = (
   let selectedMethod = authCreation.authMethodItems.find(
     method => method.id === p.initialAuthMethodId
   );
+  let widthMethod =
+    selectedMethod ??
+    (authCreation.authMethodItems.length === 1 ? authCreation.authMethodItems[0] : undefined);
+  let width = isSetupFlowAuthMethod(widthMethod) ? 1180 : 650;
   let [previewMode, setPreviewMode] = useState<PreviewMode>(
     selectedMethod?.type === 'oauth' && !getAuthMethodHasSchema(selectedMethod)
       ? authCreation.oauthAutoRegistrationEnabled
@@ -62,12 +70,12 @@ let ProviderAuthConfigCreateModalContent = (
     closeAndThen(p.close, p.onBack);
   };
 
-  if (authCreation.isLoading) {
-    return <CenteredSpinner />;
-  }
+  let content: ReactElement;
 
-  if (!authCreation.canCreateAuthConfig) {
-    return (
+  if (authCreation.isLoading) {
+    content = <CenteredSpinner />;
+  } else if (!authCreation.canCreateAuthConfig) {
+    content = (
       <>
         <Dialog.Title>Create Auth Config</Dialog.Title>
         <Dialog.Description>
@@ -86,114 +94,68 @@ let ProviderAuthConfigCreateModalContent = (
         </Dialog.Actions>
       </>
     );
-  }
+  } else {
+    let method = selectedMethod!;
 
-  if (!selectedMethod) {
-    return (
-      <>
-        <Dialog.Title>Create Auth Config</Dialog.Title>
-        <Dialog.Description>
-          Authentication method selection now happens before this modal opens.
-        </Dialog.Description>
+    if (isSetupFlowAuthMethod(method)) {
+      if (!providerId) {
+        content = (
+          <>
+            <Dialog.Title>Create Auth Config</Dialog.Title>
+            <Dialog.Description>
+              {isDeploymentScoped
+                ? 'Could not resolve the provider for this deployment.'
+                : 'Could not resolve the selected provider.'}
+            </Dialog.Description>
 
-        <Spacer size={15} />
+            <Spacer size={15} />
 
-        <Dialog.Actions>
-          <Button variant="outline" onClick={handleBack}>
-            Back
-          </Button>
-        </Dialog.Actions>
-      </>
-    );
-  }
-
-  if (isSetupFlowAuthMethod(selectedMethod)) {
-    if (!providerId) {
-      return (
-        <>
-          <Dialog.Title>Create Auth Config</Dialog.Title>
-          <Dialog.Description>
-            {isDeploymentScoped
-              ? 'Could not resolve the provider for this deployment.'
-              : 'Could not resolve the selected provider.'}
-          </Dialog.Description>
-
-          <Spacer size={15} />
-
-          <Dialog.Actions>
-            <Button variant="outline" onClick={handleBack}>
-              Back
-            </Button>
-          </Dialog.Actions>
-        </>
+            <Dialog.Actions>
+              <Button variant="outline" onClick={handleBack}>
+                Back
+              </Button>
+            </Dialog.Actions>
+          </>
+        );
+      } else {
+        content = (
+          <ProviderAuthConfigSetupFlowCreateContent
+            instanceId={p.instanceId}
+            providerDeploymentId={p.providerDeploymentId}
+            providerId={providerId}
+            providerName={providerName}
+            providerImageUrl={authCreation.provider.data?.publisher.imageUrl}
+            selectedMethod={method}
+            previewMode={previewMode}
+            onPreviewModeChange={setPreviewMode}
+            close={p.close}
+            onCreate={p.onCreate}
+          />
+        );
+      }
+    } else {
+      content = (
+        <ProviderAuthConfigManualCreateContent
+          instanceId={p.instanceId}
+          providerDeploymentId={p.providerDeploymentId}
+          providerId={providerId}
+          initialAuthMethodId={method.id}
+          close={p.close}
+          onBack={handleBack}
+          onCreate={p.onCreate}
+        />
       );
     }
-
-    return (
-      <ProviderAuthConfigSetupFlowCreateContent
-        instanceId={p.instanceId}
-        providerDeploymentId={p.providerDeploymentId}
-        providerId={providerId}
-        providerName={providerName}
-        providerImageUrl={authCreation.provider.data?.publisher.imageUrl}
-        selectedMethod={selectedMethod}
-        previewMode={previewMode}
-        onPreviewModeChange={setPreviewMode}
-        close={p.close}
-        onCreate={p.onCreate}
-      />
-    );
   }
-
-  return (
-    <ProviderAuthConfigManualCreateContent
-      instanceId={p.instanceId}
-      providerDeploymentId={p.providerDeploymentId}
-      providerId={providerId}
-      initialAuthMethodId={selectedMethod.id}
-      close={p.close}
-      onBack={handleBack}
-      onCreate={p.onCreate}
-    />
-  );
-};
-
-let ProviderAuthConfigCreateModalShell = (
-  p: ProviderAuthConfigCreateModalProps & {
-    dialogProps: {
-      isOpen: boolean;
-      onOpenChange: (isOpen: boolean) => void;
-    };
-    close: () => void;
-  }
-) => {
-  let deployment = useProviderDeployment(p.instanceId, p.providerDeploymentId);
-  let authCreation = useProviderAuthCreationCapabilities(
-    p.instanceId,
-    p.providerDeploymentId,
-    p.providerId ?? deployment.data?.providerId
-  );
-  let selectedMethod =
-    authCreation.authMethodItems.find(method => method.id === p.initialAuthMethodId) ??
-    (authCreation.authMethodItems.length === 1 ? authCreation.authMethodItems[0] : undefined);
-  let width = isSetupFlowAuthMethod(selectedMethod) ? 1180 : 650;
 
   return (
     <Dialog.Wrapper {...p.dialogProps} width={width}>
-      <ProviderAuthConfigCreateModalContent
-        instanceId={p.instanceId}
-        providerDeploymentId={p.providerDeploymentId}
-        providerId={p.providerId}
-        initialAuthMethodId={p.initialAuthMethodId}
-        close={p.close}
-        onCreate={p.onCreate}
-        onBack={p.onBack}
-      />
+      {content}
     </Dialog.Wrapper>
   );
 };
 
 export let showProviderAuthConfigCreateModal = (p: ProviderAuthConfigCreateModalProps) =>
   showModal(({ dialogProps, close }) => (
-    <ProviderAuthConfigCreateModalShell {...p} dialogProps={dialogProps} close={close} />
+    <ProviderAuthConfigCreateModalContent {...p} dialogProps={dialogProps} close={close} />
   ));

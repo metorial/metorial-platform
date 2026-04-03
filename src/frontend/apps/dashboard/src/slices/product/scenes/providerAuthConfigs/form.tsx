@@ -267,7 +267,7 @@ export let ProviderAuthConfigForm = (
   ) : (
     <>
       <CodeEditor
-        label="Credentials Data (JSON)"
+        label="Credentials Data"
         description="Provide the raw JSON credentials payload for this auth config."
         lang="json"
         height="240px"
@@ -411,15 +411,26 @@ export let ProviderAuthConfigForm = (
           <Dialog.Actions>
             {hasAuthMethods ? (
               <>
-                <Button variant="outline" onClick={props.close}>
+                <Button type="button" variant="outline" size="3" onClick={props.close}>
                   Cancel
                 </Button>
-                <Button onClick={goToCredentialsStep} disabled={!form.values.authMethodId}>
+                <Button
+                  color="black"
+                  variant="solid"
+                  size="3"
+                  onClick={goToCredentialsStep}
+                  disabled={!form.values.authMethodId}
+                >
                   Continue
                 </Button>
               </>
             ) : (
-              <Button variant="outline" onClick={props.onBack ?? props.close}>
+              <Button
+                type="button"
+                variant="outline"
+                size="3"
+                onClick={props.onBack ?? props.close}
+              >
                 Back
               </Button>
             )}
@@ -448,11 +459,13 @@ export let ProviderAuthConfigForm = (
 
           <Dialog.Actions>
             {!hasSingleMethod && !skipAuthMethodStep && (
-              <Button variant="outline" onClick={() => setStep(0)}>
+              <Button type="button" variant="outline" size="3" onClick={() => setStep(0)}>
                 Back
               </Button>
             )}
-            <Button onClick={goToDetailsStep}>Continue</Button>
+            <Button color="black" variant="solid" size="3" onClick={goToDetailsStep}>
+              Continue
+            </Button>
           </Dialog.Actions>
         </>
       )
@@ -488,12 +501,16 @@ export let ProviderAuthConfigForm = (
             <Button
               type="button"
               variant="outline"
+              size="3"
               onClick={() => setStep(credentialsStepIndex)}
             >
               Back
             </Button>
             <Button
               type="submit"
+              color="black"
+              variant="solid"
+              size="3"
               loading={createMutation.isLoading}
               disabled={!form.values.authMethodId}
             >
@@ -574,11 +591,14 @@ export let ProviderAuthConfigForm = (
         <Spacer size={15} />
 
         <Dialog.Actions>
-          <Button type="button" variant="outline" onClick={props.close}>
+          <Button type="button" variant="outline" size="3" onClick={props.close}>
             Cancel
           </Button>
           <Button
             type="submit"
+            color="black"
+            variant="solid"
+            size="3"
             loading={createMutation.isLoading}
             disabled={!form.values.authMethodId}
           >

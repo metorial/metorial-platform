@@ -14,7 +14,6 @@ import {
   TableStateProvider,
   TableStateProviderResult
 } from '../../../../components/table/type';
-import { getStringFilterValue } from '../../../../lib/dataTableUtils';
 
 type Consumer = DashboardInstanceConsumersListOutput['items'][number];
 type ConsumersTableProps = {
@@ -42,20 +41,15 @@ let consumersTableState: TableStateProvider<
   ConsumersTableProps,
   Consumer,
   TableStateProviderResult<Consumer>
-> = (props: ConsumersTableProps, opts: { filter: Record<string, FilterPayload> }) => {
+> = (props: ConsumersTableProps, _opts: { filter: Record<string, FilterPayload> }) => {
   let consumers = useConsumers(props.instanceId, { order: 'desc' });
-  let typeFilter = getStringFilterValue(opts.filter.type);
-  let filteredItems = (consumers.data?.items ?? []).filter(consumer => {
-    if (typeFilter && getConsumerType(consumer) !== typeFilter) return false;
-    return true;
-  });
 
   return {
     isLoading: consumers.isLoading,
     error: consumers.error,
     hasMoreAfter: consumers.data?.pagination.hasMoreAfter ?? false,
     hasMoreBefore: consumers.data?.pagination.hasMoreBefore ?? false,
-    items: filteredItems,
+    items: consumers.data?.items ?? [],
     loadNext: consumers.next,
     loadPrevious: consumers.previous
   };
@@ -118,20 +112,6 @@ let consumersTable = new DashboardTable<ConsumersTableProps, Consumer>('consumer
       isDefault: false,
       header: 'Consumer ID',
       render: consumer => <ID id={consumer.id} />
-    }
-  ])
-  .filters([
-    {
-      id: 'type',
-      fields: ['type'],
-      label: 'Type',
-      description: 'Filter by consumer type',
-      type: 'select',
-      options: [
-        { id: 'Metorial Member', label: 'Metorial Member' },
-        { id: 'Portal Member', label: 'Portal Member' },
-        { id: 'Custom', label: 'Custom' }
-      ]
     }
   ])
   .link((consumer, props) =>
