@@ -58,10 +58,6 @@ export let sessionTemplateProviderController = Controller.create(
             session_template_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by session template ID(s)'
             }),
-            session_template_template_id: v.optional(
-              v.union([v.string(), v.array(v.string())]),
-              { description: 'Filter by session template template ID(s)' }
-            ),
             provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by provider ID(s)'
             }),
@@ -86,9 +82,6 @@ export let sessionTemplateProviderController = Controller.create(
           status: normalizeArrayParam(ctx.query.status),
           ids: normalizeArrayParam(ctx.query.id),
           sessionTemplateIds: normalizeArrayParam(ctx.query.session_template_id),
-          sessionTemplateTemplateIds: normalizeArrayParam(
-            ctx.query.session_template_template_id
-          ),
           providerIds: normalizeArrayParam(ctx.query.provider_id),
           providerDeploymentIds: normalizeArrayParam(ctx.query.provider_deployment_id),
           providerConfigIds: normalizeArrayParam(ctx.query.provider_config_id),

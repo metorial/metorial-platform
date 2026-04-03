@@ -10,7 +10,7 @@ import {
 } from '@metorial/state';
 import { Attributes, Badge, RenderDate, Spacer, Text } from '@metorial/ui';
 import { Box, ID, Table } from '@metorial/ui-product';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 
 let getConsumerType = (consumer: {
   isOrganizationMember: boolean;
@@ -75,7 +75,7 @@ export let ConsumerPage = () => {
           {renderWithPagination(profiles)(profiles => (
             <>
               <Table
-                headers={['Name', 'Email', 'Surface', 'Groups', 'Created']}
+                headers={['Name', 'Email', 'Surface', 'Groups', 'ID', 'Created']}
                 data={profiles.data.items.map(profile => ({
                   data: [
                     <Text size="2" weight="strong">
@@ -86,9 +86,6 @@ export let ConsumerPage = () => {
                       <Text size="2" weight="strong">
                         {profile.surface.name}
                       </Text>
-                      <Text size="1" color="gray600">
-                        {profile.surface.id}
-                      </Text>
                     </div>,
                     profile.groups?.length ? (
                       <Badge color="gray">{profile.groups.length} groups</Badge>
@@ -97,6 +94,7 @@ export let ConsumerPage = () => {
                         None
                       </Text>
                     ),
+                    <ID id={profile.id} />,
                     <RenderDate date={profile.createdAt} />
                   ]
                 }))}
@@ -117,26 +115,16 @@ export let ConsumerPage = () => {
           {renderWithPagination(actors)(actors => (
             <>
               <Table
-                headers={['Name', 'Type', 'Status', 'Agent ID', 'Created']}
+                headers={['Name', 'Type', 'Status', 'Created']}
                 data={actors.data.items.map(actor => ({
+                  href: Paths.instance.identity.actor(
+                    organization.data,
+                    project.data,
+                    instance.data,
+                    actor.id
+                  ),
                   data: [
-                    <div>
-                      <Link
-                        to={Paths.instance.identity.actor(
-                          organization.data,
-                          project.data,
-                          instance.data,
-                          actor.id
-                        )}
-                      >
-                        {actor.name}
-                      </Link>
-                      {actor.description && (
-                        <Text size="1" color="gray600">
-                          {actor.description}
-                        </Text>
-                      )}
-                    </div>,
+                    <div>{actor.name}</div>,
                     <Text size="2">{actor.type === 'agent' ? 'Agent' : 'Person'}</Text>,
                     <Badge
                       color={
@@ -149,13 +137,6 @@ export let ConsumerPage = () => {
                     >
                       {actor.status}
                     </Badge>,
-                    actor.agentId ? (
-                      <ID id={actor.agentId} />
-                    ) : (
-                      <Text size="2" color="gray600">
-                        None
-                      </Text>
-                    ),
                     <RenderDate date={actor.createdAt} />
                   ]
                 }))}

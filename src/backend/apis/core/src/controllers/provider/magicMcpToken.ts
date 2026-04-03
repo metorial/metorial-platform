@@ -126,13 +126,13 @@ export let magicMcpTokenController = Controller.create(
           name: v.string(),
           description: v.optional(v.string()),
           metadata: v.optional(v.record(v.any())),
-          group_ids: v.optional(v.array(v.string()))
+          magic_mcp_group_ids: v.optional(v.array(v.string()))
         })
       )
       .output(magicMcpTokenPresenter)
       .use(hasFlags(['magic-mcp-enabled']))
       .do(async ctx => {
-        if (ctx.consumerProfile && ctx.body.group_ids?.length) {
+        if (ctx.consumerProfile && ctx.body.magic_mcp_group_ids?.length) {
           throw new ServiceError(
             badRequestError({
               message: 'Consumer-created magic MCP tokens cannot be locked to admin groups.'
@@ -140,9 +140,9 @@ export let magicMcpTokenController = Controller.create(
           );
         }
 
-        let groups = ctx.body.group_ids?.length
+        let groups = ctx.body.magic_mcp_group_ids?.length
           ? await magicMcpGroupService.findManyGroupsById({
-              groupIds: ctx.body.group_ids,
+              groupIds: ctx.body.magic_mcp_group_ids,
               instance: ctx.instance
             })
           : undefined;

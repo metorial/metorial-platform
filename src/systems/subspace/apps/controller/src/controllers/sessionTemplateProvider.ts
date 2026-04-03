@@ -40,7 +40,6 @@ export let sessionTemplateProviderController = app.controller({
 
           ids: v.optional(v.array(v.string())),
           sessionTemplateIds: v.optional(v.array(v.string())),
-          sessionTemplateTemplateIds: v.optional(v.array(v.string())),
           providerIds: v.optional(v.array(v.string())),
           providerDeploymentIds: v.optional(v.array(v.string())),
           providerConfigIds: v.optional(v.array(v.string())),
@@ -56,6 +55,13 @@ export let sessionTemplateProviderController = app.controller({
         tenant: ctx.tenant,
         environment: ctx.environment,
         solution: ctx.solution,
+
+        ids: ctx.input.ids,
+        sessionTemplateIds: ctx.input.sessionTemplateIds,
+        providerIds: ctx.input.providerIds,
+        providerDeploymentIds: ctx.input.providerDeploymentIds,
+        providerConfigIds: ctx.input.providerConfigIds,
+        providerAuthConfigIds: ctx.input.providerAuthConfigIds,
 
         createdAt: ctx.input.createdAt,
         updatedAt: ctx.input.updatedAt
