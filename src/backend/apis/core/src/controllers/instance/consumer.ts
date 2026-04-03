@@ -10,7 +10,11 @@ import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../middleware/checkAccess';
 import { hasFlags } from '../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
-import { consumerPresenter, consumerProfilePresenter } from '../../presenters';
+import {
+  consumerAndProfilePresenter,
+  consumerPresenter,
+  consumerProfilePresenter
+} from '../../presenters';
 
 let getAssignedConsumerGroupsByProfileId = async (d: {
   consumerProfiles: Awaited<
@@ -155,7 +159,7 @@ export let consumerController = Controller.create(
           surface_identifier: v.optional(v.enumOf(['cli']))
         })
       )
-      .output(consumerPresenter)
+      .output(consumerAndProfilePresenter)
       .do(async ctx => {
         let user =
           ctx.auth.type === 'user' || ctx.auth.type === 'machine' ? ctx.auth.user : undefined;
@@ -203,7 +207,15 @@ export let consumerController = Controller.create(
           consumerId: consumerProfile.consumer.id
         });
 
-        return consumerPresenter.present({ consumer });
+        let assignedConsumerGroups = await consumerProfileService.getGroupsForProfile({
+          consumerProfile
+        });
+
+        return consumerAndProfilePresenter.present({
+          consumer,
+          consumerProfile,
+          assignedConsumerGroups
+        });
       }),
 
     update: consumerGroup

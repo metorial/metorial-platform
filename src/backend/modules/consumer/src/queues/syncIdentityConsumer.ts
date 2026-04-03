@@ -14,33 +14,33 @@ export let syncIdentityConsumerQueue = createQueue<{
 
 export let syncIdentityConsumerQueueProcessor = syncIdentityConsumerQueue.process(
   async data => {
-    let consumer = await db.instanceConsumer.findUnique({
+    let instanceConsumer = await db.instanceConsumer.findUnique({
       where: {
         id: data.identityConsumerId
       }
     });
-    if (!consumer) throw new QueueRetryError();
+    if (!instanceConsumer) throw new QueueRetryError();
 
     await db.consumerProfile.updateMany({
       where: {
-        instanceOid: consumer.instanceOid,
-        consumerOid: consumer.oid
+        instanceOid: instanceConsumer.instanceOid,
+        consumerOid: instanceConsumer.consumerOid
       },
       data: {
-        name: consumer.name,
-        email: consumer.email
+        name: instanceConsumer.name,
+        email: instanceConsumer.email
       }
     });
 
-    let profile = await db.consumerProfile.findMany({
+    let profiles = await db.consumerProfile.findMany({
       where: {
-        instanceOid: consumer.instanceOid,
-        consumerOid: consumer.oid
+        instanceOid: instanceConsumer.instanceOid,
+        consumerOid: instanceConsumer.consumerOid
       }
     });
 
     await reconcileConsumerActorQueue.addMany(
-      profile.map(p => ({
+      profiles.map(p => ({
         profileId: p.id
       }))
     );
@@ -64,7 +64,7 @@ export let reconcileConsumerActorQueueProcessor = reconcileConsumerActorQueue.pr
         where: {
           id: data.profileId
         },
-        include: { instance: true, actors: true }
+        include: { instance: true, actors: true, consumer: true }
       });
       if (!profile) throw new QueueRetryError();
 
@@ -90,13 +90,25 @@ export let reconcileConsumerActorQueueProcessor = reconcileConsumerActorQueue.pr
         let actorRes = await subspaceIdentityActorService.create({
           instance: profile.instance,
           name: instanceConsumer.name,
-          type: 'person'
+          type: 'person',
+          privateMetadata: {
+            $owner: 'consumer',
+            consumerProfileId: profile.id,
+            instanceConsumerId: instanceConsumer.id,
+            consumerId: profile.consumer.id
+          }
         });
         let identityRes = await subspaceIdentityService.create({
           instance: profile.instance,
           identityActorId: actorRes.id,
           name: `Default Identity for ${instanceConsumer.name}`,
-          inputs: []
+          inputs: [],
+          privateMetadata: {
+            $owner: 'consumer',
+            consumerProfileId: profile.id,
+            instanceConsumerId: instanceConsumer.id,
+            consumerId: profile.consumer.id
+          }
         });
 
         await db.consumerActor.create({

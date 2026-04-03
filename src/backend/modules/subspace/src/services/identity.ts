@@ -72,7 +72,8 @@ export let subspaceIdentityService = createSubspaceService(
     //   if (!arg0.canEditConsumerActor) {
     //     let consumerActor = await db.consumerActor.findFirst({
     //       where: {
-    //         defaultIdentityId: arg0.identityId
+    //         defaultIdentityId: arg0.identityId,
+    //         instanceOid: arg0.instance.oid
     //       }
     //     });
     //     if (consumerActor) {
@@ -88,12 +89,13 @@ export let subspaceIdentityService = createSubspaceService(
     // },
 
     delete: async (
-      arg: Parameters<typeof inner.delete>[0] & { canEditConsumerActor?: boolean }
+      arg0: Parameters<typeof inner.delete>[0] & { canEditConsumerActor?: boolean }
     ) => {
-      if (!arg.canEditConsumerActor) {
+      if (!arg0.canEditConsumerActor) {
         let consumerActor = await db.consumerActor.findFirst({
           where: {
-            defaultIdentityId: arg.identityId
+            defaultIdentityId: arg0.identityId,
+            instanceOid: arg0.instance.oid
           }
         });
         if (consumerActor) {
@@ -105,7 +107,7 @@ export let subspaceIdentityService = createSubspaceService(
         }
       }
 
-      return await inner.delete(arg);
+      return await inner.delete(arg0);
     }
   })
 );

@@ -3,6 +3,7 @@ import { Service } from '@lowerdeck/service';
 import { Context } from '@metorial/context';
 import {
   ConsumerProfile,
+  db,
   MagicMcpServer,
   Organization,
   OrganizationActor,
@@ -11,6 +12,7 @@ import {
 import { type AnyAccessTagSelector } from '@metorial/module-access';
 import { magicMcpServerService } from '@metorial/module-magic';
 import {
+  subspaceIdentityCredentialService,
   subspaceProviderAuthConfigService,
   subspaceProviderConfigService,
   subspaceSessionTemplateProviderService,
@@ -110,12 +112,7 @@ class ConsumerProviderDeploymentServiceImpl {
     performedBy: OrganizationActor;
     instance: Instance;
     context: Context;
-    consumerProfile: {
-      id: string;
-      email: string;
-      oid: bigint;
-      personalConsumerGroupOid: bigint;
-    };
+    consumerProfile: ConsumerProfile;
     accessTags: AnyAccessTagSelector;
     providerTemplateId: string;
     input: ConsumerProviderDeployInput;
@@ -133,6 +130,22 @@ class ConsumerProviderDeploymentServiceImpl {
 
     let rollbackState: ConsumerProviderDeployRollbackState = {};
 
+    let instanceConsumer = await db.instanceConsumer.findFirst({
+      where: {
+        instanceOid: d.instance.oid,
+        consumerOid: d.consumerProfile.consumerOid
+      }
+    });
+    let consumerActor = instanceConsumer
+      ? await db.consumerActor.findFirst({
+          where: {
+            instanceConsumerOid: instanceConsumer.oid,
+            consumerProfileOid: d.consumerProfile.oid,
+            isDefault: true
+          }
+        })
+      : undefined;
+
     try {
       let providerConfigId = await this.createProviderConfig({
         instance: d.instance,
@@ -146,6 +159,19 @@ class ConsumerProviderDeploymentServiceImpl {
         providerContext,
         input: d.input
       });
+
+      if (consumerActor?.defaultIdentityId) {
+        try {
+          await subspaceIdentityCredentialService.create({
+            instance: d.instance,
+            identityId: consumerActor.defaultIdentityId,
+            deploymentId: providerContext.deployment.id,
+            authConfigId: providerAuthConfigId,
+            configId: providerConfigId
+          });
+        } catch (error) {}
+      }
+
       let sessionTemplate = await subspaceSessionTemplateService.create({
         instance: d.instance,
         name: d.input.name ?? providerContext.providerTemplate.name,

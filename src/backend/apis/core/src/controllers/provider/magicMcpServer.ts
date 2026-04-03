@@ -44,7 +44,7 @@ let getAccessTagsForConsumerProfiles = async (d: {
   >[];
 }) => {
   if (!d.consumerProfiles.length) {
-    return undefined;
+    return [];
   }
 
   let accessTags = new Map<bigint, { accessTagOid: bigint }>();
@@ -85,6 +85,8 @@ let getConsumerFilterAccessTags = async (d: {
   consumerIds?: string[];
   consumerProfileIds?: string[];
 }) => {
+  if (!d.consumerIds?.length && !d.consumerProfileIds?.length) return undefined;
+
   let profileIds = new Set([...(d.consumerProfileIds ?? [])]);
 
   if (d.consumerIds?.length) {
@@ -101,7 +103,9 @@ let getConsumerFilterAccessTags = async (d: {
   }
 
   if (!profileIds.size) {
-    return undefined;
+    return await getAccessTagsForConsumerProfiles({
+      consumerProfiles: []
+    });
   }
 
   let consumerProfiles = await consumerProfileService.findConsumerProfilesByIdForInstance({

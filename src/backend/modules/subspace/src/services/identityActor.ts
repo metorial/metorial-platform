@@ -79,7 +79,8 @@ export let subspaceIdentityActorService = createSubspaceService(
       if (!arg0.canEditConsumerActor) {
         let consumerActor = await db.consumerActor.findUnique({
           where: {
-            id: arg0.identityActorId
+            id: arg0.identityActorId,
+            instanceOid: arg0.instance.oid
           }
         });
         if (consumerActor) {
@@ -95,12 +96,13 @@ export let subspaceIdentityActorService = createSubspaceService(
     },
 
     delete: async (
-      arg: Parameters<typeof inner.delete>[0] & { canEditConsumerActor?: boolean }
+      arg0: Parameters<typeof inner.delete>[0] & { canEditConsumerActor?: boolean }
     ) => {
-      if (!arg.canEditConsumerActor) {
+      if (!arg0.canEditConsumerActor) {
         let consumerActor = await db.consumerActor.findUnique({
           where: {
-            id: arg.identityActorId
+            id: arg0.identityActorId,
+            instanceOid: arg0.instance.oid
           }
         });
         if (consumerActor) {
@@ -112,7 +114,7 @@ export let subspaceIdentityActorService = createSubspaceService(
         }
       }
 
-      return await inner.delete(arg);
+      return await inner.delete(arg0);
     }
   })
 );

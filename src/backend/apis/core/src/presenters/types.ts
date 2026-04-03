@@ -443,6 +443,29 @@ export let consumerType = PresentableType.create<{
   };
 }>()('consumer');
 
+export let consumerAndProfileType = PresentableType.create<{
+  consumer: InstanceConsumer & {
+    consumer: Consumer & {
+      organizationMember: OrganizationMember | null;
+      profiles: (ConsumerProfile & {
+        surface: ConsumerSurface;
+      })[];
+    };
+  };
+  consumerProfile: ConsumerProfile & {
+    consumer: Consumer;
+    surface: ConsumerSurface;
+    groups: (ConsumerProfileGroup & {
+      group: ConsumerGroup;
+    })[];
+  };
+  assignedConsumerGroups:
+    | (ConsumerGroup & {
+        assignedVia: 'default' | 'manual' | 'sso' | 'user';
+      })[]
+    | undefined;
+}>()('consumer_and_profile');
+
 export let consumerSurfaceType = PresentableType.create<{
   consumerSurface: ConsumerSurface;
 }>()('consumer.surface');

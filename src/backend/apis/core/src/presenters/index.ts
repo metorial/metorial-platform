@@ -127,6 +127,7 @@ import {
   v1ScmRepoPreviewPresenter
 } from './implementation/scm';
 
+import { v1ConsumerAndProfilePresenter } from './implementation/consumerAndProfile';
 import { v1FlagsPresenter } from './implementation/flags';
 import { v1TokenPresenter } from './implementation/token';
 import {
@@ -149,6 +150,7 @@ import {
   configSchemaType,
   consumerAccessRequestType,
   consumerAccessType,
+  consumerAndProfileType,
   consumerGroupType,
   consumerProfileType,
   consumerProviderType,
@@ -485,6 +487,11 @@ export let consumerPresenter = declarePresenter(consumerType, {
 export let consumerProfilePresenter = declarePresenter(consumerProfileType, {
   mt_2025_01_01_dashboard: dashboardConsumerProfilePresenter,
   mt_2026_01_01_magnetar: v1ConsumerProfilePresenter
+});
+
+export let consumerAndProfilePresenter = declarePresenter(consumerAndProfileType, {
+  mt_2025_01_01_dashboard: v1ConsumerAndProfilePresenter,
+  mt_2026_01_01_magnetar: v1ConsumerAndProfilePresenter
 });
 
 export let consumerSurfacePresenter = declarePresenter(consumerSurfaceType, {

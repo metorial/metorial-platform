@@ -204,7 +204,7 @@ class ConsumerServiceImpl {
     });
 
     await syncIdentityConsumerQueue.add({
-      identityConsumerId: instanceConsumer.consumer.id
+      identityConsumerId: instanceConsumer.id
     });
 
     return instanceConsumer;
@@ -266,7 +266,7 @@ class ConsumerServiceImpl {
     });
 
     await syncIdentityConsumerQueue.add({
-      identityConsumerId: consumer.consumer.id
+      identityConsumerId: consumer.id
     });
 
     return consumer;

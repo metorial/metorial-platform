@@ -224,7 +224,7 @@ class ConsumerProfileServiceImpl {
           }
         });
 
-        await db.instanceConsumer.upsert({
+        let instanceConsumer = await db.instanceConsumer.upsert({
           where: {
             instanceOid_consumerOid: {
               instanceOid: d.surface.instanceOid,
@@ -258,6 +258,7 @@ class ConsumerProfileServiceImpl {
         if (existingProfile) {
           return {
             consumer,
+            instanceConsumer,
             consumerProfile: await db.consumerProfile.update({
               where: {
                 oid: existingProfile.oid
@@ -298,6 +299,7 @@ class ConsumerProfileServiceImpl {
         });
 
         return {
+          instanceConsumer,
           consumer,
           consumerProfile: await db.consumerProfile.create({
             data: {
@@ -323,7 +325,7 @@ class ConsumerProfileServiceImpl {
     );
 
     await syncIdentityConsumerQueue.add({
-      identityConsumerId: res.consumer.id
+      identityConsumerId: res.instanceConsumer.id
     });
 
     return res.consumerProfile;
