@@ -10,8 +10,6 @@ export let v1MagicMcpServerPresenter = Presenter.create(magicMcpServerType)
     id: magicMcpServer.id,
     status: magicMcpServer.status,
     source: magicMcpServer.source,
-    session_template_id: magicMcpServer.subspaceSessionTemplateId,
-    session_id: magicMcpServer.subspaceSession?.id ?? null,
     provider_template_id: magicMcpServer.providerTemplateId,
     endpoints: magicMcpServer.aliases.map(a => ({
       id: shadowId('mgse_', [magicMcpServer.id], [a.slug]),
@@ -30,8 +28,6 @@ export let v1MagicMcpServerPresenter = Presenter.create(magicMcpServerType)
       id: v.string(),
       status: v.enumOf(['active', 'archived', 'deleted']),
       source: v.enumOf(['manual', 'consumer_provider_template']),
-      session_template_id: v.string(),
-      session_id: v.nullable(v.string()),
       provider_template_id: v.nullable(v.string()),
       endpoints: v.array(
         v.object({
@@ -46,5 +42,26 @@ export let v1MagicMcpServerPresenter = Presenter.create(magicMcpServerType)
       created_at: v.date(),
       updated_at: v.date()
     })
+  )
+  .build();
+
+export let dashboardMagicMcpServerPresenter = Presenter.create(magicMcpServerType)
+  .presenter(async ({ magicMcpServer }, opts) => {
+    let inner = await v1MagicMcpServerPresenter.present({ magicMcpServer }, opts).run();
+
+    return {
+      ...inner,
+      session_template_id: magicMcpServer.subspaceSessionTemplateId,
+      session_id: magicMcpServer.subspaceSession?.id ?? null
+    };
+  })
+  .schema(
+    v.intersection([
+      v1MagicMcpServerPresenter.schema,
+      v.object({
+        session_template_id: v.string(),
+        session_id: v.nullable(v.string())
+      })
+    ])
   )
   .build();

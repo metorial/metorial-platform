@@ -53,6 +53,7 @@ import {
   dashboardCustomProviderDeploymentPresenter,
   dashboardCustomProviderPresenter,
   dashboardIdentityActorPresenter,
+  dashboardMagicMcpServerPresenter,
   dashboardProviderPresenter,
   v1BucketEditorTokenPresenter,
   v1CallbackDestinationPresenter,
@@ -75,6 +76,7 @@ import {
   v1IdentityDelegationRequestPresenter,
   v1IdentityPresenter,
   v1MagicMcpGroupPresenter,
+  v1MagicMcpServerProviderPresenter,
   v1MagicMcpServerPresenter,
   v1MagicMcpSessionPresenter,
   v1MagicMcpTokenPresenter,
@@ -178,6 +180,7 @@ import {
   instanceType,
   machineAccessType,
   magicMcpGroupType,
+  magicMcpServerProviderType,
   magicMcpServerType,
   magicMcpSessionType,
   magicMcpTokenType,
@@ -585,7 +588,7 @@ export let providerTemplatePresenter = declarePresenter(providerTemplateType, {
 // });
 
 export let magicMcpServerPresenter = declarePresenter(magicMcpServerType, {
-  mt_2025_01_01_dashboard: v1MagicMcpServerPresenter,
+  mt_2025_01_01_dashboard: dashboardMagicMcpServerPresenter,
   mt_2026_01_01_magnetar: v1MagicMcpServerPresenter
 });
 
@@ -759,6 +762,11 @@ export let sessionTemplatePresenter = declarePresenter(sessionTemplateType, {
 export let sessionTemplateProviderPresenter = declarePresenter(sessionTemplateProviderType, {
   mt_2025_01_01_dashboard: v1SessionTemplateProviderPresenter,
   mt_2026_01_01_magnetar: v1SessionTemplateProviderPresenter
+});
+
+export let magicMcpServerProviderPresenter = declarePresenter(magicMcpServerProviderType, {
+  mt_2025_01_01_dashboard: v1MagicMcpServerProviderPresenter,
+  mt_2026_01_01_magnetar: v1MagicMcpServerProviderPresenter
 });
 
 export let sessionProviderPresenter = declarePresenter(sessionProviderType, {
