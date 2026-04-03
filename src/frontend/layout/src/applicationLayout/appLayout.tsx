@@ -23,7 +23,7 @@ let Wrapper = styled.div`
 `;
 
 let SidebarWrapper = styled.div`
-  height: calc(100dvh - 60px);
+  height: calc(100dvh - 80px);
 `;
 
 let Sidebar = styled.div`

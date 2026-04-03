@@ -10,7 +10,7 @@ import {
 } from '@metorial/state';
 import { Attributes, Badge, RenderDate, Spacer, Text } from '@metorial/ui';
 import { Box, ID, Table } from '@metorial/ui-product';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 
 let getConsumerType = (consumer: {
   isOrganizationMember: boolean;
@@ -82,16 +82,11 @@ export let ConsumerPage = () => {
                       {profile.name}
                     </Text>,
                     <Text size="2">{profile.email}</Text>,
-                    <div>
-                      <Text size="2" weight="strong">
-                        {profile.surface.name}
-                      </Text>
-                      <Text size="1" color="gray600">
-                        {profile.surface.id}
-                      </Text>
-                    </div>,
+                    <Text size="2" weight="strong">
+                      {profile.surface.name}
+                    </Text>,
                     profile.groups?.length ? (
-                      <Badge color="gray">{profile.groups.length} groups</Badge>
+                      <Text>{profile.groups.length} groups</Text>
                     ) : (
                       <Text size="2" color="gray600">
                         None
@@ -119,18 +114,15 @@ export let ConsumerPage = () => {
               <Table
                 headers={['Name', 'Type', 'Status', 'Agent ID', 'Created']}
                 data={actors.data.items.map(actor => ({
+                  href: Paths.instance.identity.actor(
+                    organization.data,
+                    project.data,
+                    instance.data,
+                    actor.id
+                  ),
                   data: [
                     <div>
-                      <Link
-                        to={Paths.instance.identity.actor(
-                          organization.data,
-                          project.data,
-                          instance.data,
-                          actor.id
-                        )}
-                      >
-                        {actor.name}
-                      </Link>
+                      {actor.name}
                       {actor.description && (
                         <Text size="1" color="gray600">
                           {actor.description}

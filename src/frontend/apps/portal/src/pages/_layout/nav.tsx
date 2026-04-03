@@ -1,94 +1,59 @@
 import { Logo, theme } from '@metorial/ui';
-import { RiArrowRightSLine, RiSearch2Line } from '@remixicon/react';
-import { AnimatePresence, motion } from 'framer-motion';
-import { useState } from 'react';
+import { RiArrowRightSLine } from '@remixicon/react';
 import styled from 'styled-components';
 import { useConsumer } from '../../state/consumer/consumer';
 import { usePortal } from '../../state/portal/client';
-import { SearchMenu } from './search';
 import { UserMenu } from './user';
 
 let Wrapper = styled.header`
-  padding: 5px 15px 5px 5px;
+  padding: 10px 16px 8px 8px;
 `;
 
 let Inner = styled.nav`
   display: grid;
-  gap: 15px;
-  height: 50px;
+  gap: 12px;
+  height: 54px;
+  align-items: center;
+  grid-template-columns: minmax(0, 1fr) auto;
 `;
 
-let Part = styled.div`
-  height: 100%;
+let LogoPart = styled.div`
   display: flex;
   align-items: center;
-`;
-
-let LogoPart = styled(Part)`
-  width: 30px;
-  justify-content: flex-start;
-  color: #222;
+  gap: 10px;
+  min-width: 0;
   padding-left: 10px;
 
   svg {
-    height: 30px;
     flex-shrink: 0;
-  }
-
-  h1 {
-    font-size: 18px;
-    margin-left: 10px;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    flex-shrink: 0;
-    font-weight: 600;
-
-    i {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-style: normal;
-      color: #888;
-
-      svg {
-        width: 16px;
-        height: 16px;
-      }
-    }
   }
 `;
 
-let SearchPart = styled(Part)`
-  justify-content: center;
-`;
-
-let SearchButton = styled(motion.button)`
-  height: 40px;
+let Breadcrumb = styled.div`
+  min-width: 0;
   display: flex;
   align-items: center;
-  padding: 0 15px;
-  border-radius: 8px;
-  background: ${theme.colors.gray400};
-  border: none;
-  gap: 10px;
-  font-size: 14px;
-  max-width: 400px;
-  width: 100%;
+  gap: 6px;
+  font-weight: 600;
 
-  svg {
-    height: 16px;
-    width: 16px;
+  span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  i {
+    display: flex;
+    color: ${theme.colors.gray900};
   }
 `;
 
-let ActionsPart = styled(Part)`
-  gap: 15px;
+let ActionsPart = styled.div`
+  display: flex;
   justify-content: flex-end;
 `;
 
 export let PortalNav = () => {
-  let [open, setOpen] = useState(false);
   let consumer = useConsumer();
   let portal = usePortal();
 
@@ -96,45 +61,25 @@ export let PortalNav = () => {
     <Wrapper
       style={{
         opacity: consumer.isLoading ? 0 : 1,
-        transition: 'opacity 0.2s'
+        transition: 'opacity 0.2s ease'
       }}
     >
-      <Inner
-        style={{
-          gridTemplateColumns: '1fr 1fr 1fr'
-        }}
-      >
+      <Inner>
         <LogoPart>
           <Logo size={30} color="#000000" />
 
-          <h1>
+          <Breadcrumb>
             <span>Metorial</span>
             <i>
               <RiArrowRightSLine />
             </i>
-            <span>{portal.data?.name}</span>
-          </h1>
+            <span>{portal.data?.name || 'Portal'}</span>
+          </Breadcrumb>
         </LogoPart>
-
-        <SearchPart>
-          <AnimatePresence>
-            <SearchButton
-              onClick={() => setOpen(!open)}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5 }}
-            >
-              <RiSearch2Line />
-              <span>Search</span>
-            </SearchButton>
-          </AnimatePresence>
-        </SearchPart>
 
         <ActionsPart>
           <UserMenu />
         </ActionsPart>
-
-        <SearchMenu open={open} setOpen={setOpen} />
       </Inner>
     </Wrapper>
   );

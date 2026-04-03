@@ -5,6 +5,7 @@ export type ManagementInstanceMagicMcpServersListOutput = {
     object: 'magic_mcp.server';
     id: string;
     status: 'active' | 'archived' | 'deleted';
+    source: 'manual' | 'consumer_provider_template';
     sessionTemplateId: string;
     providerTemplateId: string | null;
     endpoints: { id: string; alias: string; url: string }[];
@@ -26,6 +27,7 @@ export let mapManagementInstanceMagicMcpServersListOutput =
           object: mtMap.objectField('object', mtMap.passthrough()),
           id: mtMap.objectField('id', mtMap.passthrough()),
           status: mtMap.objectField('status', mtMap.passthrough()),
+          source: mtMap.objectField('source', mtMap.passthrough()),
           sessionTemplateId: mtMap.objectField(
             'session_template_id',
             mtMap.passthrough()
@@ -81,6 +83,7 @@ export type ManagementInstanceMagicMcpServersListQuery = {
   consumerId?: string | string[] | undefined;
   consumerProfileId?: string | string[] | undefined;
   search?: string | undefined;
+  preconfiguredOnly?: boolean | undefined;
 };
 
 export let mapManagementInstanceMagicMcpServersListQuery = mtMap.union([
@@ -126,7 +129,11 @@ export let mapManagementInstanceMagicMcpServersListQuery = mtMap.union([
           )
         ])
       ),
-      search: mtMap.objectField('search', mtMap.passthrough())
+      search: mtMap.objectField('search', mtMap.passthrough()),
+      preconfiguredOnly: mtMap.objectField(
+        'preconfigured_only',
+        mtMap.passthrough()
+      )
     })
   )
 ]);

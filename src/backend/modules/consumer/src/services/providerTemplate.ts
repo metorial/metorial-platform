@@ -81,6 +81,21 @@ class ProviderTemplateServiceImpl {
       }
     });
     if (existing) {
+      if (existing.status == 'archived') {
+        return await db.providerTemplate.update({
+          where: {
+            oid: existing.oid
+          },
+          data: {
+            status: 'active',
+            name: d.input.name,
+            description: d.input.description,
+            metadata: d.input.metadata ?? {},
+            archivedAt: null
+          }
+        });
+      }
+
       throw new ServiceError(
         conflictError({
           message: 'A provider template already exists for this provider deployment.'
@@ -169,6 +184,7 @@ class ProviderTemplateServiceImpl {
     status?: ProviderTemplateStatus[];
     ids?: string[];
     providerDeploymentIds?: string[];
+    search?: string;
     accessTags?: AnyAccessTagSelector;
   }) {
     let accessTagFilter = d.accessTags
@@ -187,6 +203,22 @@ class ProviderTemplateServiceImpl {
             id: d.ids?.length ? { in: d.ids } : undefined,
             providerDeploymentId: d.providerDeploymentIds?.length
               ? { in: d.providerDeploymentIds }
+              : undefined,
+            OR: d.search
+              ? [
+                  {
+                    name: {
+                      contains: d.search,
+                      mode: 'insensitive'
+                    }
+                  },
+                  {
+                    description: {
+                      contains: d.search,
+                      mode: 'insensitive'
+                    }
+                  }
+                ]
               : undefined,
             status: d.status ? { in: d.status } : 'active',
             accessTagEntities: accessTagFilter

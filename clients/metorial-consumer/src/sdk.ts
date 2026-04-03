@@ -2,6 +2,7 @@ import { createFetchWithRetry } from '@metorial/fetch';
 import { MetorialKeyPrefix, sdkBuilder } from './builder';
 
 import {
+  MetorialConsumerProvidersEndpoint,
   MetorialMagicMcpGroupsEndpoint,
   MetorialMagicMcpServersEndpoint,
   MetorialMagicMcpSessionsEndpoint,
@@ -67,6 +68,7 @@ export let createMetorialConsumerSDK = sdkBuilder.build(
       categories: new MetorialProviderCategoriesEndpoint(manager)
     })
   }),
+  consumerProviders: new MetorialConsumerProvidersEndpoint(manager),
   magicMcp: {
     servers: new MetorialMagicMcpServersEndpoint(manager),
     sessions: new MetorialMagicMcpSessionsEndpoint(manager),
