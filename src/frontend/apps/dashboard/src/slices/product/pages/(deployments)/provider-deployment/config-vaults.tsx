@@ -1,79 +1,16 @@
-import { renderWithLoader, renderWithPagination } from '@metorial/data-hooks';
+import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
   useCurrentInstance,
   useCurrentOrganization,
-  useCurrentProject,
-  useProviderConfigVaults
+  useCurrentProject
 } from '@metorial/state';
-import { Button, Input, RenderDate, Text, Tooltip } from '@metorial/ui';
-import { Table } from '@metorial/ui-product';
+import { Button, Tooltip } from '@metorial/ui';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useSearchFilter } from '../../../../../hooks/useSearchFilter';
 import { useProviderConfigCreationCapabilities } from '../../../lib/providerCreationCapabilities';
 import { showProviderConfigVaultFormModal } from '../../../scenes/providerConfigVaults/modal';
 import { ProviderDeploymentTabSection } from '../../../scenes/providerDeployments/tabSection';
-
-let ProviderDeploymentConfigVaultsTable = ({
-  instanceId,
-  providerDeploymentId,
-  search
-}: {
-  instanceId: string;
-  providerDeploymentId: string;
-  search?: string;
-}) => {
-  let instance = useCurrentInstance();
-  let organization = useCurrentOrganization();
-  let project = useCurrentProject();
-  let vaults = useProviderConfigVaults(instanceId, {
-    order: 'desc',
-    providerDeploymentId,
-    search
-  });
-
-  return renderWithPagination(vaults)(vaults => (
-    <>
-      <Table
-        headers={['Name', 'Description', 'Created', 'Updated']}
-        data={vaults.data.items.map(vault => ({
-          href: Paths.instance.providerConfigVault(
-            organization.data,
-            project.data,
-            instance.data,
-            vault.id
-          ),
-          data: [
-            <Text size="2" weight="strong">
-              {vault.name}
-            </Text>,
-            <Text
-              size="2"
-              color="gray600"
-              style={{
-                display: 'block',
-                maxWidth: '100%',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis'
-              }}
-            >
-              {vault.description ?? '-'}
-            </Text>,
-            <RenderDate date={vault.createdAt} />,
-            <RenderDate date={vault.updatedAt} />
-          ]
-        }))}
-      />
-
-      {vaults.data.items.length === 0 && (
-        <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-          No config vaults for this deployment.
-        </Text>
-      )}
-    </>
-  ));
-};
+import { providerConfigVaultsOverviewTable } from '../(list)/provider-config-vaults';
 
 export let ProviderDeploymentConfigVaultsPage = () => {
   let instance = useCurrentInstance();
@@ -81,64 +18,54 @@ export let ProviderDeploymentConfigVaultsPage = () => {
   let project = useCurrentProject();
   let navigate = useNavigate();
   let { providerDeploymentId } = useParams();
-  let { search, setSearch, searchQuery } = useSearchFilter();
   let configCreation = useProviderConfigCreationCapabilities(
     instance.data?.id,
     providerDeploymentId
   );
 
-  return renderWithLoader({ instance, organization, project })(({ instance }) => (
-    <ProviderDeploymentTabSection
-      intro="Vaults store reusable secret or shared configuration values for this deployment."
-      actions={
-        <Tooltip
-          content={configCreation.configVaultDisabledReason ?? ''}
-          enabled={!configCreation.canCreateConfigVault}
-          delayDuration={0}
-        >
-          <div style={{ display: 'inline-flex' }}>
-            <Button
-              size="2"
-              disabled={!configCreation.canCreateConfigVault}
-              onClick={() =>
-                showProviderConfigVaultFormModal({
-                  type: 'create',
-                  instanceId: instance.data.id,
-                  providerDeploymentId: providerDeploymentId!,
-                  onCreate: vault => {
-                    navigate(
-                      Paths.instance.providerConfigVault(
-                        organization.data,
-                        project.data,
-                        instance.data,
-                        vault.id
-                      )
-                    );
-                  }
-                })
-              }
-            >
-              Create Vault
-            </Button>
-          </div>
-        </Tooltip>
-      }
-      search={
-        <Input
-          label="Search"
-          hideLabel
-          size="2"
-          placeholder="Search config vaults..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-        />
-      }
-    >
-      <ProviderDeploymentConfigVaultsTable
-        instanceId={instance.data.id}
-        providerDeploymentId={providerDeploymentId!}
-        search={searchQuery}
-      />
+  return renderWithLoader({ instance, organization, project })(() => (
+    <ProviderDeploymentTabSection>
+      {providerConfigVaultsOverviewTable({
+        instanceId: instance.data!.id,
+        organization,
+        project,
+        instance,
+        filters: { providerDeploymentId: providerDeploymentId! },
+        emptyState: 'No config vaults for this deployment.',
+        headerActions: () => (
+          <Tooltip
+            content={configCreation.configVaultDisabledReason ?? ''}
+            enabled={!configCreation.canCreateConfigVault}
+            delayDuration={0}
+          >
+            <div style={{ display: 'inline-flex' }}>
+              <Button
+                size="2"
+                disabled={!configCreation.canCreateConfigVault}
+                onClick={() =>
+                  showProviderConfigVaultFormModal({
+                    type: 'create',
+                    instanceId: instance.data!.id,
+                    providerDeploymentId: providerDeploymentId!,
+                    onCreate: vault => {
+                      navigate(
+                        Paths.instance.providerConfigVault(
+                          organization.data,
+                          project.data,
+                          instance.data!,
+                          vault.id
+                        )
+                      );
+                    }
+                  })
+                }
+              >
+                Create Config Vault
+              </Button>
+            </div>
+          </Tooltip>
+        )
+      })}
     </ProviderDeploymentTabSection>
   ));
 };

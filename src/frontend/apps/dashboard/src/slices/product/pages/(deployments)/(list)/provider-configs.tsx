@@ -121,7 +121,7 @@ let providerConfigsOverviewTableState: TableStateProvider<
   };
 };
 
-let providerConfigsOverviewTable = new DashboardTable<
+export let providerConfigsOverviewTable = new DashboardTable<
   ProviderConfigsOverviewTableProps,
   ProviderConfigRow
 >('provider-configs-overview')

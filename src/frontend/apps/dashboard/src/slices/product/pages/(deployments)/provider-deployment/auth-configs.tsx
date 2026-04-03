@@ -1,71 +1,45 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import {
   useCurrentInstance,
-  useProviderAuthConfigs,
+  useCurrentOrganization,
+  useCurrentProject,
   useProviderDeployment
 } from '@metorial/state';
-import { Button, Input } from '@metorial/ui';
 import { useParams } from 'react-router-dom';
-import { useSearchFilter } from '../../../../../hooks/useSearchFilter';
-import { useProviderAuthCreationCapabilities } from '../../../lib/providerCreationCapabilities';
-import { showProviderAuthConfigCreateModal } from '../../../scenes/providerAuthConfigs/modal';
-import { ProviderAuthConfigsTable } from '../../../scenes/providerAuthConfigs/table';
+import { providerAuthConfigsFilterTable } from '../(list)/provider-auth-configs';
+import { ProviderAuthConfigCreateButton } from '../../../scenes/providerAuthConfigs/modal';
 import { ProviderDeploymentTabSection } from '../../../scenes/providerDeployments/tabSection';
 
 export let ProviderDeploymentAuthConfigsPage = () => {
   let instance = useCurrentInstance();
+  let organization = useCurrentOrganization();
+  let project = useCurrentProject();
   let { providerDeploymentId } = useParams();
   let deployment = useProviderDeployment(instance.data?.id, providerDeploymentId);
-  let { search, setSearch, searchQuery } = useSearchFilter();
-  let authConfigs = useProviderAuthConfigs(instance.data?.id, {
-    search: searchQuery,
-    providerDeploymentId
-  });
-  let authCreation = useProviderAuthCreationCapabilities(
-    instance.data?.id,
-    providerDeploymentId,
-    deployment.data?.providerId
-  );
 
-  return renderWithLoader({ instance, deployment })(({ instance, deployment }) => (
-    <ProviderDeploymentTabSection
-      intro="Auth configs connect this deployment's auth methods to credentials."
-      actions={
-        <div
-          title={authCreation.authConfigDisabledReason ?? undefined}
-          style={{ display: 'inline-flex' }}
-        >
-          <Button
-            size="2"
-            disabled={!authCreation.canCreateAuthConfig}
-            onClick={() =>
-              showProviderAuthConfigCreateModal({
-                instanceId: instance.data.id,
-                providerDeploymentId: deployment.data.id,
-                onCreate: () => authConfigs.refetch?.()
-              })
-            }
-          >
-            Create Auth Config
-          </Button>
-        </div>
-      }
-      search={
-        <Input
-          label="Search"
-          hideLabel
-          size="2"
-          placeholder="Search auth configs..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-        />
-      }
-    >
-      <ProviderAuthConfigsTable
-        instanceId={instance.data.id}
-        providerDeploymentId={providerDeploymentId!}
-        search={searchQuery}
-      />
-    </ProviderDeploymentTabSection>
-  ));
+  return renderWithLoader({ instance, deployment, organization, project })(
+    ({ deployment }) => (
+      <ProviderDeploymentTabSection>
+        <>
+          {providerAuthConfigsFilterTable({
+            instanceId: instance.data!.id,
+            organization,
+            project,
+            instance,
+            filters: { providerDeploymentId: deployment.data.id },
+            emptyState: 'No auth configs for this deployment.',
+            headerActions: () => (
+              <ProviderAuthConfigCreateButton
+                instanceId={instance.data!.id}
+                providerDeploymentId={deployment.data.id}
+                size="2"
+              >
+                Create Auth Config
+              </ProviderAuthConfigCreateButton>
+            )
+          })}
+        </>
+      </ProviderDeploymentTabSection>
+    )
+  );
 };

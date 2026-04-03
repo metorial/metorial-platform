@@ -1,3 +1,4 @@
+import { CodeEditor } from '@metorial/code-editor';
 import {
   DashboardInstanceProviderDeploymentsAuthConfigsCreateOutput,
   DashboardInstanceProvidersAuthMethodsListOutput
@@ -14,7 +15,12 @@ import { Button, CenteredSpinner, Dialog, Input, Select, Spacer, Text } from '@m
 import { useEffect, useState } from 'react';
 import { getJsonSchemaObject } from '../../lib/jsonSchema';
 import { getProviderOAuthAutoRegistrationEnabled } from '../../lib/providerOAuthAutoRegistration';
-import { JsonSchemaInput } from '../jsonSchemaInput';
+import {
+  getEmptyRequiredFieldLabels,
+  getEmptyRequiredJsonStringFieldLabels,
+  getInvalidJsonStringFieldLabels,
+  JsonSchemaInput
+} from '../jsonSchemaInput';
 import { ProviderContextCard } from '../providerContextCard';
 import { Stepper } from '../stepper';
 
@@ -145,7 +151,7 @@ export let ProviderAuthConfigForm = (
     schema: yup =>
       yup.object({
         name: yup.string().trim().required('Name is required'),
-        description: yup.string(),
+        description: yup.string().ensure(),
         authMethodId: yup.string().required('Authentication method is required'),
         credentialsData: yup.mixed<Record<string, unknown>>().defined(),
         credentialsDataJson: yup
@@ -187,6 +193,7 @@ export let ProviderAuthConfigForm = (
     selectedMethod?.type === 'oauth' &&
     !hasSchema &&
     oauthAutoRegistrationEnabled;
+  let useOAuthAuthConfigNameHints = selectedMethod?.type === 'oauth';
 
   if ((props.providerDeploymentId && deployment.isLoading) || authMethods.isLoading) {
     return <CenteredSpinner />;
@@ -211,6 +218,8 @@ export let ProviderAuthConfigForm = (
   let resetCredentials = () => {
     form.setFieldValue('credentialsData', {});
     form.setFieldValue('credentialsDataJson', '{}');
+    form.setFieldTouched('credentialsData', false, false);
+    form.setFieldError('credentialsData', undefined);
     form.setFieldTouched('credentialsDataJson', false, false);
     form.setFieldError('credentialsDataJson', undefined);
   };
@@ -243,7 +252,10 @@ export let ProviderAuthConfigForm = (
     <JsonSchemaInput
       schema={schemaObj}
       value={form.values.credentialsData}
-      onChange={value => form.setFieldValue('credentialsData', value)}
+      onChange={value => {
+        form.setFieldValue('credentialsData', value);
+        form.setFieldError('credentialsData', undefined);
+      }}
       variant="raw"
     />
   ) : isOAuthWithoutSchema ? (
@@ -254,12 +266,17 @@ export let ProviderAuthConfigForm = (
     </Text>
   ) : (
     <>
-      <Input
+      <CodeEditor
         label="Credentials Data (JSON)"
-        as="textarea"
-        minRows={5}
-        style={{ fontFamily: 'monospace' }}
-        {...form.getFieldProps('credentialsDataJson')}
+        description="Provide the raw JSON credentials payload for this auth config."
+        lang="json"
+        height="240px"
+        value={form.values.credentialsDataJson}
+        onChange={value => form.setFieldValue('credentialsDataJson', value)}
+        onBlur={() => {
+          form.setFieldTouched('credentialsDataJson', true, false);
+          void form.validateField('credentialsDataJson');
+        }}
       />
       <form.RenderError field="credentialsDataJson" />
     </>
@@ -293,7 +310,60 @@ export let ProviderAuthConfigForm = (
     };
 
     let goToDetailsStep = async () => {
-      if (!hasSchema && !isOAuthWithoutSchema) {
+      if (hasSchema) {
+        form.setFieldTouched('credentialsData', true, false);
+
+        let emptyRequiredFields = getEmptyRequiredFieldLabels({
+          schema: schemaObj,
+          value: form.values.credentialsData
+        });
+        let emptyRequiredJsonFields = getEmptyRequiredJsonStringFieldLabels({
+          schema: schemaObj,
+          value: form.values.credentialsData
+        });
+        let invalidJsonFields = getInvalidJsonStringFieldLabels({
+          schema: schemaObj,
+          value: form.values.credentialsData
+        });
+
+        if (emptyRequiredFields.length > 0) {
+          form.setFieldError(
+            'credentialsData',
+            emptyRequiredFields.length === 1
+              ? `\`${emptyRequiredFields[0]}\` is required before continuing.`
+              : `These fields are required before continuing: ${emptyRequiredFields
+                  .map(field => `\`${field}\``)
+                  .join(', ')}.`
+          );
+          return;
+        }
+
+        if (emptyRequiredJsonFields.length > 0) {
+          form.setFieldError(
+            'credentialsData',
+            emptyRequiredJsonFields.length === 1
+              ? `\`${emptyRequiredJsonFields[0]}\` is required before continuing.`
+              : `These fields are required before continuing: ${emptyRequiredJsonFields
+                  .map(field => `\`${field}\``)
+                  .join(', ')}.`
+          );
+          return;
+        }
+
+        if (invalidJsonFields.length > 0) {
+          form.setFieldError(
+            'credentialsData',
+            invalidJsonFields.length === 1
+              ? `\`${invalidJsonFields[0]}\` must contain valid JSON before continuing.`
+              : `These fields must contain valid JSON before continuing: ${invalidJsonFields
+                  .map(field => `\`${field}\``)
+                  .join(', ')}.`
+          );
+          return;
+        }
+
+        form.setFieldError('credentialsData', undefined);
+      } else if (!isOAuthWithoutSchema) {
         form.setFieldTouched('credentialsDataJson', true, false);
         await form.validateField('credentialsDataJson');
 
@@ -372,6 +442,7 @@ export let ProviderAuthConfigForm = (
           <Spacer size={10} />
 
           {credentialsSection}
+          {hasSchema && <form.RenderError field="credentialsData" />}
 
           <Spacer size={15} />
 
@@ -379,11 +450,6 @@ export let ProviderAuthConfigForm = (
             {!hasSingleMethod && !skipAuthMethodStep && (
               <Button variant="outline" onClick={() => setStep(0)}>
                 Back
-              </Button>
-            )}
-            {(hasSingleMethod || skipAuthMethodStep) && (
-              <Button variant="outline" onClick={props.onBack ?? props.close}>
-                {props.onBack ? 'Back' : 'Cancel'}
               </Button>
             )}
             <Button onClick={goToDetailsStep}>Continue</Button>
@@ -397,7 +463,18 @@ export let ProviderAuthConfigForm = (
       subtitle: 'Name and create',
       render: () => (
         <form onSubmit={form.handleSubmit}>
-          <Input label="Name" required {...form.getFieldProps('name')} />
+          <Input
+            label="Name"
+            required
+            {...form.getFieldProps('name')}
+            {...(useOAuthAuthConfigNameHints
+              ? {
+                  description:
+                    "Name for this user's connection so you can tell it apart from other auth configs.",
+                  placeholder: 'e.g. John Doe'
+                }
+              : {})}
+          />
           <form.RenderError field="name" />
 
           <Spacer size={10} />

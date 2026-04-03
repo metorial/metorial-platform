@@ -126,7 +126,7 @@ let providerAuthConfigsTableState: TableStateProvider<
   };
 };
 
-let providerAuthConfigsTable = new DashboardTable<
+export let providerAuthConfigsFilterTable = new DashboardTable<
   ProviderAuthConfigsTableProps,
   AuthConfigRow
 >('provider-auth-configs-overview')
@@ -300,7 +300,7 @@ export let ProviderAuthConfigsOverviewPage = () => {
   let project = useCurrentProject();
 
   return renderWithLoader({ organization, project, instance })(() =>
-    providerAuthConfigsTable({
+    providerAuthConfigsFilterTable({
       instanceId: instance.data!.id,
       organization,
       project,

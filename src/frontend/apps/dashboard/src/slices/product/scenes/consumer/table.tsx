@@ -10,21 +10,41 @@ import { Badge, RenderDate, Text } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import { Table as DashboardTable } from '../../../../components/table';
 import { FilterPayload } from '../../../../components/table/filter';
+import {
+  TableStateProvider,
+  TableStateProviderResult
+} from '../../../../components/table/type';
+import { getStringFilterValue } from '../../../../lib/dataTableUtils';
 
 type Consumer = DashboardInstanceConsumersListOutput['items'][number];
+type ConsumersTableProps = {
+  instanceId: string;
+  organization: ReturnType<typeof useCurrentOrganization>;
+  project: ReturnType<typeof useCurrentProject>;
+  instance: ReturnType<typeof useCurrentInstance>;
+};
 
-let getConsumerType = (consumer: Consumer) => {
+let getConsumerType = (consumer: Consumer): 'Metorial Member' | 'Portal Member' | 'Custom' => {
   if (consumer.isOrganizationMember) return 'Metorial Member';
   if (consumer.isPortalConsumer) return 'Portal Member';
   return 'Custom';
 };
 
-let useConsumersTableState = (
-  props: { instanceId: string },
-  opts: { filter: Record<string, FilterPayload> }
-) => {
+let getConsumerTypeColor = (
+  type: ReturnType<typeof getConsumerType>
+): 'blue' | 'green' | 'gray' => {
+  if (type === 'Metorial Member') return 'blue';
+  if (type === 'Portal Member') return 'green';
+  return 'gray';
+};
+
+let consumersTableState: TableStateProvider<
+  ConsumersTableProps,
+  Consumer,
+  TableStateProviderResult<Consumer>
+> = (props: ConsumersTableProps, opts: { filter: Record<string, FilterPayload> }) => {
   let consumers = useConsumers(props.instanceId, { order: 'desc' });
-  let typeFilter = opts.filter.type?.value;
+  let typeFilter = getStringFilterValue(opts.filter.type);
   let filteredItems = (consumers.data?.items ?? []).filter(consumer => {
     if (typeFilter && getConsumerType(consumer) !== typeFilter) return false;
     return true;
@@ -41,8 +61,8 @@ let useConsumersTableState = (
   };
 };
 
-let consumersTable = new DashboardTable('consumers')
-  .state(useConsumersTableState)
+let consumersTable = new DashboardTable<ConsumersTableProps, Consumer>('consumers')
+  .state(consumersTableState)
   .columns([
     {
       id: 'name',
@@ -66,9 +86,7 @@ let consumersTable = new DashboardTable('consumers')
       header: 'Type',
       render: consumer => {
         let type = getConsumerType(consumer);
-        let color = type === 'Metorial Member' ? 'blue' : type === 'Portal Member' ? 'green' : 'gray';
-
-        return <Badge color={color}>{type}</Badge>;
+        return <Badge color={getConsumerTypeColor(type)}>{type}</Badge>;
       }
     },
     {
