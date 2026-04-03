@@ -29,6 +29,16 @@ let validateAndUseRegex = (pattern: string, flags?: string) => {
   return new RegExp(pattern, flags);
 };
 
+let getToolMatchKeys = (tool: ProviderTool) => {
+  let matchKeys = [tool.key, tool.id, tool.callableId];
+
+  if ('key' in tool.value && typeof tool.value.key === 'string') {
+    matchKeys.push(tool.value.key);
+  }
+
+  return Array.from(new Set(matchKeys.filter((key): key is string => !!key)));
+};
+
 export let normalizeToolFilters = (
   input:
     | ToolFilter
@@ -144,18 +154,21 @@ let matchesToolRule = (tool: ProviderTool, filter: ToolFilterRule) => {
   let mcpToolName: string | null = null;
   if (tool.value.mcpToolType.type === 'mcp.tool') mcpToolName = tool.value.mcpToolType.key;
   if (tool.value.mcpToolType.type === 'mcp.prompt') mcpToolName = tool.value.mcpToolType.key;
+  let toolMatchKeys = getToolMatchKeys(tool);
 
   switch (filter.type) {
     case 'tool_keys':
       return (
-        filter.keys.includes(tool.key) ||
-        filter.keys.includes(tool.id) ||
+        toolMatchKeys.some(key => filter.keys.includes(key)) ||
         (mcpToolName ? filter.keys.includes(mcpToolName) : false)
       );
 
     case 'tool_regex': {
       let regex = validateAndUseRegex(filter.pattern, 'i');
-      return regex.test(tool.key) || regex.test(tool.id);
+      return (
+        toolMatchKeys.some(key => regex.test(key)) ||
+        (mcpToolName ? regex.test(mcpToolName) : false)
+      );
     }
 
     case 'prompt_keys':
