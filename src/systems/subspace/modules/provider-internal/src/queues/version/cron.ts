@@ -47,9 +47,9 @@ let syncVersionSingleCron = createQueue<{ providerVersionId: string }>({
   name: 'sub/pint/pver/sync/single',
   redisUrl: env.service.REDIS_URL,
   workerOpts: {
-    concurrency: 10,
+    concurrency: 5,
     limiter: {
-      max: 10,
+      max: 25,
       duration: 1000
     }
   }
