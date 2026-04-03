@@ -1,4 +1,4 @@
-import React, { useMemo, useReducer } from 'react';
+import React, { useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { useInterval } from 'react-use';
 import { shleemy } from 'shleemy';
 import { styled } from 'styled-components';
@@ -21,13 +21,35 @@ let Description = styled('p')`
   }
 `;
 
+let normalizeDate = (date: string | Date | undefined) => {
+  if (!date) return null;
+  return typeof date == 'string' ? new Date(date) : date;
+};
+
+let useStaticDate = (date: string | Date | undefined) => {
+  let [currentDate, setCurrentDate] = useState<Date | null>(() => normalizeDate(date));
+  let currentDateIdentifier = useRef<string>(!date ? 'none' : String(date));
+  let inputDateIdentifier = !date ? 'none' : String(date);
+
+  useLayoutEffect(() => {
+    if (currentDateIdentifier.current === inputDateIdentifier) return;
+
+    currentDateIdentifier.current = inputDateIdentifier;
+    setCurrentDate(normalizeDate(date));
+  }, [inputDateIdentifier]);
+
+  return currentDate;
+};
+
 export let RenderDate = ({ date }: { date: string | Date | undefined }) => {
   let [retriggerIndex, doRetrigger] = useReducer(s => s + 1, 0);
 
-  let result = useMemo(() => {
-    if (!date) return { date: null, utc: '', local: '', pretty: '', timeZone: '' };
+  let normalizedDate = useStaticDate(date);
 
-    let parsed = typeof date == 'string' ? new Date(date) : date;
+  let result = useMemo(() => {
+    if (!normalizedDate) return { date: null, utc: '', local: '', pretty: '', timeZone: '' };
+
+    let parsed = normalizedDate;
     let utc = new Date(parsed.toUTCString().replace('GMT', ''));
 
     let humanOffset = shleemy(parsed).forHumans;
@@ -40,7 +62,7 @@ export let RenderDate = ({ date }: { date: string | Date | undefined }) => {
       pretty: parsed.toLocaleString(),
       timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
     };
-  }, [date, retriggerIndex]);
+  }, [normalizedDate, retriggerIndex]);
 
   useInterval(() => doRetrigger(), 60 * 1000);
 
