@@ -1,10 +1,10 @@
-import { MagicMcpTokenStatus } from '@metorial/db';
 import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { Paginator } from '@lowerdeck/pagination';
+import { v } from '@lowerdeck/validation';
+import { MagicMcpTokenStatus } from '@metorial/db';
 import { consumerAccessPolicyService } from '@metorial/module-consumer';
 import { magicMcpGroupService, magicMcpTokenService } from '@metorial/module-magic';
-import { Paginator } from '@lowerdeck/pagination';
 import { Controller } from '@metorial/rest';
-import { v } from '@lowerdeck/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { hasFlags } from '../../middleware/hasFlags';
@@ -47,7 +47,10 @@ export let magicMcpTokenController = Controller.create(
       })
       .use(
         checkAccess({
-          possibleScopes: ['instance.provider.session:read', 'consumer#instance.magic_mcp:read']
+          possibleScopes: [
+            'instance.provider.session:read',
+            'consumer#instance.magic_mcp:read'
+          ]
         })
       )
       .use(requireConsumerTokenForPublishableKey())
@@ -62,7 +65,8 @@ export let magicMcpTokenController = Controller.create(
                 v.array(v.enumOf(magicMcpTokenStatusValues))
               ])
             ),
-            magic_mcp_group_id: v.optional(v.union([v.string(), v.array(v.string())]))
+            magic_mcp_group_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            magic_mcp_server_id: v.optional(v.union([v.string(), v.array(v.string())]))
           })
         )
       )
@@ -72,6 +76,7 @@ export let magicMcpTokenController = Controller.create(
           instance: ctx.instance,
           status: normalizeArrayParam<MagicMcpTokenStatus>(ctx.query.status),
           groupIds: normalizeArrayParam(ctx.query.magic_mcp_group_id),
+          serverIds: normalizeArrayParam(ctx.query.magic_mcp_server_id),
           accessTags: ctx.accessTags
         });
 
@@ -89,7 +94,10 @@ export let magicMcpTokenController = Controller.create(
       })
       .use(
         checkAccess({
-          possibleScopes: ['instance.provider.session:read', 'consumer#instance.magic_mcp:read']
+          possibleScopes: [
+            'instance.provider.session:read',
+            'consumer#instance.magic_mcp:read'
+          ]
         })
       )
       .use(requireConsumerTokenForPublishableKey())
@@ -106,7 +114,10 @@ export let magicMcpTokenController = Controller.create(
       })
       .use(
         checkAccess({
-          possibleScopes: ['instance.provider.session:write', 'consumer#instance.magic_mcp:write']
+          possibleScopes: [
+            'instance.provider.session:write',
+            'consumer#instance.magic_mcp:write'
+          ]
         })
       )
       .body(
@@ -175,7 +186,10 @@ export let magicMcpTokenController = Controller.create(
       })
       .use(
         checkAccess({
-          possibleScopes: ['instance.provider.session:write', 'consumer#instance.magic_mcp:write']
+          possibleScopes: [
+            'instance.provider.session:write',
+            'consumer#instance.magic_mcp:write'
+          ]
         })
       )
       .output(magicMcpTokenPresenter)
@@ -201,7 +215,10 @@ export let magicMcpTokenController = Controller.create(
       })
       .use(
         checkAccess({
-          possibleScopes: ['instance.provider.session:write', 'consumer#instance.magic_mcp:write']
+          possibleScopes: [
+            'instance.provider.session:write',
+            'consumer#instance.magic_mcp:write'
+          ]
         })
       )
       .body(
@@ -235,7 +252,10 @@ export let magicMcpTokenController = Controller.create(
 
     addGroups: magicMcpTokenGroup
       .post(
-        instancePath('magic-mcp-tokens/:magicMcpTokenId/add-groups', 'magicMcpTokens.addGroups'),
+        instancePath(
+          'magic-mcp-tokens/:magicMcpTokenId/add-groups',
+          'magicMcpTokens.addGroups'
+        ),
         {
           name: 'Add magic MCP groups to token',
           description: 'Adds groups to a magic MCP token.'

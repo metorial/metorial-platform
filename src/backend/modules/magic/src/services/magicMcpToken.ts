@@ -17,7 +17,6 @@ import {
   MagicMcpToken,
   MagicMcpTokenStatus
 } from '@metorial/db';
-import { env } from '../env';
 import {
   accessTagService,
   consumerMagicMcpConnectRoles,
@@ -25,6 +24,7 @@ import {
   consumerMagicMcpWriteRoles,
   type AnyAccessTagSelector
 } from '@metorial/module-access';
+import { env } from '../env';
 import { getAccessTagFilter, getActiveStatusFilter } from './consumerAccess';
 
 let createMagicMcpSecret = () =>
@@ -196,10 +196,10 @@ class MagicMcpTokenImpl {
     instance: Instance;
     status?: MagicMcpTokenStatus[];
     groupIds?: string[];
+    serverIds?: string[];
     accessTags?: AnyAccessTagSelector;
   }) {
-    let shouldFilterByGroups = !!d.groupIds?.length;
-    let groupOids = shouldFilterByGroups
+    let groupOids = !!d.groupIds?.length
       ? (
           await db.magicMcpGroup.findMany({
             where: {
@@ -210,6 +210,18 @@ class MagicMcpTokenImpl {
           })
         ).map(g => g.oid)
       : undefined;
+    let serverOids = !!d.serverIds?.length
+      ? (
+          await db.magicMcpServer.findMany({
+            where: {
+              instanceOid: d.instance.oid,
+              id: { in: d.serverIds }
+            },
+            select: { oid: true }
+          })
+        ).map(s => s.oid)
+      : undefined;
+
     let accessTagFilter = await getAccessTagFilter({
       accessTags: d.accessTags,
       roles: [...consumerMagicMcpReadRoles]
@@ -228,13 +240,42 @@ class MagicMcpTokenImpl {
             instanceOid: d.instance.oid,
             status: statusFilter ? { in: statusFilter } : undefined,
             accessTagEntities: accessTagFilter,
-            groups: shouldFilterByGroups
-              ? {
-                  some: {
-                    magicMcpGroupOid: { in: groupOids ?? [] }
+
+            AND: [
+              groupOids
+                ? {
+                    groups: {
+                      some: {
+                        magicMcpGroupOid: { in: groupOids }
+                      }
+                    }
                   }
-                }
-              : undefined
+                : undefined!,
+              serverOids
+                ? {
+                    OR: [
+                      {
+                        groups: {
+                          none: {}
+                        }
+                      },
+                      {
+                        groups: {
+                          some: {
+                            magicMcpGroup: {
+                              servers: {
+                                some: {
+                                  magicMcpServerOid: { in: serverOids }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  }
+                : undefined!
+            ].filter(Boolean)
           },
           include
         });

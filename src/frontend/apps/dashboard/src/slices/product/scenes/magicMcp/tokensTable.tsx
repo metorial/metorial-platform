@@ -316,7 +316,10 @@ let magicTokensTableState: TableStateProvider<
   let tokens = useMagicMcpTokens(props.instanceId, {
     order: props.order ?? 'asc',
     status: getTokenStatusFilterValue(opts.filter.status) ?? props.status,
-    magicMcpGroupId: getStringFilterValue(opts.filter.magicMcpGroupId) ?? props.magicMcpGroupId
+    magicMcpGroupId:
+      getStringFilterValue(opts.filter.magicMcpGroupId) ?? props.magicMcpGroupId,
+    magicMcpServerId:
+      getStringFilterValue(opts.filter.magicMcpServerId) ?? props.magicMcpServerId
   });
 
   return {

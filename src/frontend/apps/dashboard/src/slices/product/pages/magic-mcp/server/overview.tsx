@@ -89,9 +89,11 @@ export let MagicMcpServerOverviewPage = () => {
       let aliasBadges =
         server.data.endpoints.length > 0
           ? server.data.endpoints.map(endpoint => (
-              <Badge key={endpoint.id} color="gray" size="1">
-                {endpoint.alias}
-              </Badge>
+              <div>
+                <Badge key={endpoint.id} color="gray" size="1">
+                  {endpoint.alias}
+                </Badge>
+              </div>
             ))
           : null;
 
@@ -104,7 +106,7 @@ export let MagicMcpServerOverviewPage = () => {
                 {aliasBadges}
               </Flex>
             }
-            description="Key metadata for this Magic MCP server and its linked session template."
+            description="Magic MCP servers are reusable MCP servers linked to providers in Metorial."
           >
             <Attributes
               itemWidth="280px"

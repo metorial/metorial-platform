@@ -159,18 +159,24 @@ export let SessionTemplateProvidersManager = ({
   sessionTemplateId: string;
 }) => {
   let providers = useSessionTemplateProviders(instanceId, sessionTemplateId);
-  let listings = useProviderListings(instanceId, {});
-  let deployments = useProviderDeployments(instanceId);
   let items = providers.data?.items ?? [];
-  let authConfigProviderIds = useMemo(
+
+  let providerIds = useMemo(
     () =>
       Array.from(
         new Set(items.map(item => item.providerId ?? null).filter((v): v is string => !!v))
       ),
     [items]
   );
+
   let authConfigs = useProviderAuthConfigs(instanceId, {
-    providerId: authConfigProviderIds.length > 0 ? authConfigProviderIds : undefined
+    providerId: providerIds.length > 0 ? providerIds : undefined
+  });
+  let listings = useProviderListings(instanceId, {
+    id: providerIds.length > 0 ? providerIds : undefined
+  });
+  let deployments = useProviderDeployments(instanceId, {
+    providerId: providerIds.length > 0 ? providerIds : undefined
   });
 
   let authConfigNameLookup = useMemo(() => {
