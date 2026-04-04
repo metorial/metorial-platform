@@ -237,8 +237,7 @@ export let getConsumerAccessContextForConsumerProfile = async (d: {
     let allProfiles = await db.consumerProfile.findMany({
       where: {
         instanceOid: d.profile.instanceOid,
-        consumerOid: d.profile.consumerOid,
-        status: 'active'
+        consumerOid: d.profile.consumerOid
       },
       include: { surface: true, consumer: true }
     });
