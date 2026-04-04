@@ -99,17 +99,12 @@ export let ProjectPageLayout = () => {
             {
               icon: <RiFolderSettingsLine />,
               label: 'Configurations',
-              to: Paths.instance.providerDeployments(...params, 'configs'),
+              to: Paths.instance.providerDeployments(...params, 'auth-configs'),
               getProps: i => ({ isActive: checkPath(i) }),
               children: [
                 {
-                  label: 'Configs',
-                  to: Paths.instance.providerDeployments(...params, 'configs'),
-                  getProps: i => ({ isActive: checkPath(i, { exact: true }) })
-                },
-                {
-                  label: 'Vaults',
-                  to: Paths.instance.providerDeployments(...params, 'config-vaults'),
+                  label: 'Auth Configs',
+                  to: Paths.instance.providerDeployments(...params, 'auth-configs'),
                   getProps: i => ({ isActive: checkPath(i, { exact: true }) })
                 },
                 {
@@ -118,8 +113,13 @@ export let ProjectPageLayout = () => {
                   getProps: i => ({ isActive: checkPath(i, { exact: true }) })
                 },
                 {
-                  label: 'Auth Configs',
-                  to: Paths.instance.providerDeployments(...params, 'auth-configs'),
+                  label: 'Configs',
+                  to: Paths.instance.providerDeployments(...params, 'configs'),
+                  getProps: i => ({ isActive: checkPath(i, { exact: true }) })
+                },
+                {
+                  label: 'Vaults',
+                  to: Paths.instance.providerDeployments(...params, 'config-vaults'),
                   getProps: i => ({ isActive: checkPath(i, { exact: true }) })
                 }
               ]
