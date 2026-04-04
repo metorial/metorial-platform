@@ -2,6 +2,22 @@ import { ServiceError } from '@lowerdeck/error';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock external dependencies
+vi.mock('@metorial/queue', () => ({
+  createQueue: vi.fn().mockImplementation(config => ({
+    name: config.name,
+    add: vi.fn(),
+    addMany: vi.fn(),
+    process: vi.fn(handler => ({ handler }))
+  })),
+  combineQueueProcessors: vi.fn(processors => processors),
+  QueueRetryError: class QueueRetryError extends Error {
+    constructor(message?: string) {
+      super(message);
+      this.name = 'QueueRetryError';
+    }
+  }
+}));
+
 vi.mock('@metorial/db', () => ({
   db: {
     project: {
@@ -14,7 +30,7 @@ vi.mock('@metorial/db', () => ({
   ID: {
     generateId: vi.fn()
   },
-  addAfterTransactionHook: vi.fn(),
+  addAfterTransactionHook: vi.fn(async callback => await callback()),
   withTransaction: vi.fn(callback =>
     callback({
       project: {
@@ -52,6 +68,16 @@ vi.mock('@lowerdeck/slugify', () => ({
 vi.mock('../src/services/instance', () => ({
   instanceService: {
     createInstance: vi.fn()
+  }
+}));
+
+vi.mock('../src/queues/syncBrand', () => ({
+  syncBrandQueue: {
+    add: vi.fn(),
+    addMany: vi.fn()
+  },
+  syncBrandOrganizationQueue: {
+    add: vi.fn()
   }
 }));
 
