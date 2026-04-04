@@ -190,6 +190,20 @@ export class SenderManager {
     );
   }
 
+  private async ensureConnectionParticipant() {
+    if (!this.connection) return null;
+    if (this.connection.participant) return this.connection.participant;
+
+    let connection = await db.sessionConnection.findFirst({
+      where: { oid: this.connection.oid },
+      include: { participant: true }
+    });
+    if (!connection?.participant) return null;
+
+    this.connection = Object.assign(this.connection, connection);
+    return connection.participant;
+  }
+
   private async ensureProviderInstance(provider: SessionProvider) {
     let currentInstance = await db.sessionProviderInstance.findFirst({
       where: {
@@ -532,7 +546,8 @@ export class SenderManager {
     if (connection.initState !== 'completed') {
       throw new ServiceError(badRequestError({ message: 'Connection is not initialized' }));
     }
-    if (!connection.participant) {
+    let participant = await this.ensureConnectionParticipant();
+    if (!participant) {
       throw new Error('Connection participant not loaded');
     }
 
@@ -549,7 +564,7 @@ export class SenderManager {
       type: d.transport === 'mcp' ? 'mcp_message' : 'tool_call',
       source: 'client',
       input: d.input,
-      senderParticipant: connection.participant,
+      senderParticipant: participant,
       clientMcpId: d.clientMcpId,
       transport: d.transport,
       tool,
@@ -665,7 +680,7 @@ export class SenderManager {
   }
 
   async setConnection(connection: SessionConnection) {
-    this.connection = connection;
+    this.connection = Object.assign(this.connection ?? {}, connection);
   }
 
   async disableConnection() {
@@ -750,7 +765,8 @@ export class SenderManager {
     if (this.connection) {
       connection = await db.sessionConnection.update({
         where: { oid: this.connection.oid },
-        data: connectionData
+        data: connectionData,
+        include: { participant: true }
       });
     } else {
       connection = await db.sessionConnection.create({
@@ -765,7 +781,8 @@ export class SenderManager {
           solutionOid: this.solution.oid,
           environmentOid: this.session.environmentOid,
           token: await ID.generateId('sessionConnection_token')
-        }
+        },
+        include: { participant: true }
       });
     }
 
