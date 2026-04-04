@@ -17,6 +17,7 @@ import {
   OAuthAuthorization,
   OAuthAuthorizationFlowChallengeMethod,
   OAuthAuthorizationStatus,
+  OAuthToken,
   Organization,
   OrganizationActor,
   OrganizationMember,
@@ -63,7 +64,10 @@ import {
 
 class OAuthAuthorizationService {
   private assertRefreshTokenNotRateLimited(oauthToken: OAuthToken) {
-    if (oauthToken.lastRefreshedAt && addMinutes(oauthToken.lastRefreshedAt, 10) > new Date()) {
+    if (
+      oauthToken.lastRefreshedAt &&
+      addMinutes(oauthToken.lastRefreshedAt, 10) > new Date()
+    ) {
       throw new ServiceError(
         unauthorizedError({
           message: 'OAuth token can only be refreshed once every 10 minutes',
