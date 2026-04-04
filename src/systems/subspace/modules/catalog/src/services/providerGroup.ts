@@ -126,12 +126,12 @@ class ProviderListingGroupService {
     await db.providerListing.update({
       where: { id: d.providerListing.id },
       data: {
-        collections: {
+        groups: {
           connect: { id: d.providerListingGroup.id }
         }
       },
       include: {
-        collections: true
+        groups: true
       }
     });
   }
@@ -143,7 +143,7 @@ class ProviderListingGroupService {
     return db.providerListing.update({
       where: { id: d.providerListing.id },
       data: {
-        collections: {
+        groups: {
           disconnect: { id: d.providerListingGroup.id }
         }
       }
