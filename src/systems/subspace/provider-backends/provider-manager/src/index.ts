@@ -1,8 +1,8 @@
 import { createLocallyCachedFunction } from '@lowerdeck/cache';
 import { db } from '@metorial-subspace/db';
-import { nativeProvider } from '@metorial-subspace/provider-native';
-import { shuttleProvider } from '@metorial-subspace/provider-shuttle';
-import { slatesProvider } from '@metorial-subspace/provider-slates';
+import { nativeProvider } from '@metorial-subspace/provider-native/src/impl';
+import { shuttleProvider } from '@metorial-subspace/provider-shuttle/src/impl';
+import { slatesProvider } from '@metorial-subspace/provider-slates/src/impl';
 
 let getBackendRecord = createLocallyCachedFunction({
   getHash: (backendOid: bigint) => backendOid.toString(),
