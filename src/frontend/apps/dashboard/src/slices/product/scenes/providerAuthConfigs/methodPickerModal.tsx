@@ -1,8 +1,10 @@
+import { useForm } from '@metorial/data-hooks';
 import { useProviderDeployment } from '@metorial/state';
-import { Button, CenteredSpinner, Dialog, Select, Spacer, showModal } from '@metorial/ui';
-import { useEffect, useState } from 'react';
+import { Button, CenteredSpinner, Dialog, Spacer, showModal } from '@metorial/ui';
+import { useEffect } from 'react';
 import { useProviderAuthCreationCapabilities } from '../../lib/providerCreationCapabilities';
-import { closeAndThen } from './modalHelpers';
+import { AuthMethodPicker } from './authMethodPicker';
+import { closeAndThen, getCreateMethodDescription } from './modalHelpers';
 import {
   ProviderAuthConfigCreateModalProps,
   showProviderAuthConfigCreateModal
@@ -20,7 +22,32 @@ let ProviderAuthConfigMethodPickerModalContent = (
     p.providerId ?? deployment.data?.providerId
   );
   let providerName = authCreation.provider.data?.name ?? deployment.data?.name ?? 'provider';
-  let [selectedMethodId, setSelectedMethodId] = useState('');
+  let form = useForm({
+    initialValues: {
+      authMethodId: ''
+    },
+    onSubmit: async values => {
+      form.setFieldTouched('authMethodId', true, false);
+      await form.validateField('authMethodId');
+
+      if (!values.authMethodId) return;
+
+      closeAndThen(p.close, () =>
+        showProviderAuthConfigCreateModal({
+          instanceId: p.instanceId,
+          providerDeploymentId: p.providerDeploymentId,
+          providerId: p.providerId,
+          initialAuthMethodId: values.authMethodId,
+          onCreate: p.onCreate,
+          onBack: p.onBack
+        })
+      );
+    },
+    schema: yup =>
+      yup.object({
+        authMethodId: yup.string().required('Authentication method is required')
+      })
+  });
 
   let handleBackOrClose = () => {
     if (p.onBack) {
@@ -56,6 +83,22 @@ let ProviderAuthConfigMethodPickerModalContent = (
     p.onBack
   ]);
 
+  useEffect(() => {
+    if (authCreation.isLoading || !authCreation.canCreateAuthConfig) return;
+    if (form.values.authMethodId) return;
+
+    let firstMethodId = authCreation.authMethodItems[0]?.id;
+    if (!firstMethodId) return;
+
+    form.setFieldValue('authMethodId', firstMethodId);
+  }, [
+    authCreation.isLoading,
+    authCreation.canCreateAuthConfig,
+    authCreation.authMethodItems,
+    form.values.authMethodId,
+    form.setFieldValue
+  ]);
+
   if (authCreation.isLoading) {
     return <CenteredSpinner />;
   }
@@ -84,20 +127,6 @@ let ProviderAuthConfigMethodPickerModalContent = (
     return <CenteredSpinner />;
   }
 
-  let continueWithSelection = () => {
-    if (!selectedMethodId) return;
-    closeAndThen(p.close, () =>
-      showProviderAuthConfigCreateModal({
-        instanceId: p.instanceId,
-        providerDeploymentId: p.providerDeploymentId,
-        providerId: p.providerId,
-        initialAuthMethodId: selectedMethodId,
-        onCreate: p.onCreate,
-        onBack: p.onBack
-      })
-    );
-  };
-
   return (
     <>
       <Dialog.Title>Create Auth Config</Dialog.Title>
@@ -105,24 +134,26 @@ let ProviderAuthConfigMethodPickerModalContent = (
         Choose an authentication method for {providerName}.
       </Dialog.Description>
 
-      <form
-        onSubmit={e => {
-          e.preventDefault();
-          continueWithSelection();
-        }}
-      >
+      <form onSubmit={form.handleSubmit}>
         <Spacer size={10} />
 
-        <Select
+        <AuthMethodPicker
+          name="provider-auth-method"
           label="Authentication method"
-          placeholder="Select a method…"
-          value={selectedMethodId}
-          onChange={setSelectedMethodId}
+          hideLabel
+          focusOnMount
+          value={form.values.authMethodId}
+          onChange={value => {
+            form.setFieldValue('authMethodId', value);
+          }}
           items={authCreation.authMethodItems.map(method => ({
             id: method.id,
-            label: method.name
+            name: method.name,
+            description: method.description?.trim() || getCreateMethodDescription(method)
           }))}
         />
+
+        <form.RenderError field="authMethodId" />
 
         <Spacer height={12} />
 
@@ -137,7 +168,7 @@ let ProviderAuthConfigMethodPickerModalContent = (
             color="black"
             variant="solid"
             size="2"
-            disabled={!selectedMethodId}
+            disabled={!form.values.authMethodId}
           >
             Continue
           </Button>

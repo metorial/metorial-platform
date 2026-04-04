@@ -25,7 +25,13 @@ let Header = styled('header')`
 `;
 
 let Content = styled('main')`
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
   padding: 20px;
+  overflow: auto;
+  scrollbar-gutter: stable;
 `;
 
 let Title = styled(RadixDialogDialog.Title)`

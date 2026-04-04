@@ -112,7 +112,9 @@ export let ContentSide = styled(RadixDialogDialog.Content)`
   height: calc(100% - 20px);
   width: min(600px, 90vw);
   border-radius: 10px;
-  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   max-width: calc(100% - 20px);
 
   --dialog-radius: 10px;

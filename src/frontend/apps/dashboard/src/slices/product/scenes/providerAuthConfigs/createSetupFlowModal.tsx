@@ -14,6 +14,7 @@ export let ProviderAuthConfigSetupFlowCreateContent = (p: {
   onPreviewModeChange: (mode: PreviewMode) => void;
   close: () => void;
   onCreate?: (authConfig: { id: string }) => void;
+  onCancel?: () => void;
 }) => {
   return (
     <SetupFlowLayout $showPreview={true}>
@@ -38,7 +39,7 @@ export let ProviderAuthConfigSetupFlowCreateContent = (p: {
             }
             p.close();
           }}
-          onCancel={p.close}
+          onCancel={p.onCancel ?? p.close}
         />
       </div>
 

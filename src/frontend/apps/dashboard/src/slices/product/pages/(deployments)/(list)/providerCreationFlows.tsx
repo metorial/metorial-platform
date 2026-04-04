@@ -1,6 +1,7 @@
-import { Button, Dialog, showModal, Spacer } from '@metorial/ui';
+import { Button, Dialog, Panel, showModal, Spacer } from '@metorial/ui';
 import { type ReactNode } from 'react';
 import { showProviderAuthConfigMethodPickerModal } from '../../../scenes/providerAuthConfigs/modal';
+import { showProviderAuthConfigPanelFlow } from '../../../scenes/providerAuthConfigs/panelFlow';
 import { showProviderAuthCredentialsFormModal } from '../../../scenes/providerAuthCredentials/modal';
 import { showProviderConfigVaultFormModal } from '../../../scenes/providerConfigVaults/modal';
 import { showProviderConfigFormModal } from '../../../scenes/providerConfigs/modal';
@@ -20,15 +21,50 @@ let PickerDialogScaffold = ({
   description,
   close,
   onBack,
+  layout = 'dialog',
   children
 }: {
   title: string;
   description: string;
   close: () => void;
   onBack?: () => void;
+  layout?: 'dialog' | 'side';
   children: ReactNode;
 }) => {
   let hasFooterActions = !!onBack;
+
+  if (layout === 'side') {
+    return (
+      <>
+        <Panel.Header>
+          <Panel.Title>{title}</Panel.Title>
+          <Panel.Description>{description}</Panel.Description>
+        </Panel.Header>
+
+        <Panel.Content>
+          {children}
+
+          {hasFooterActions && (
+            <>
+              <Spacer size={10} />
+
+              <Panel.Actions>
+                <Button
+                  size="2"
+                  variant="outline"
+                  onClick={() => {
+                    closeAndThen(close, onBack);
+                  }}
+                >
+                  Back
+                </Button>
+              </Panel.Actions>
+            </>
+          )}
+        </Panel.Content>
+      </>
+    );
+  }
 
   return (
     <>
@@ -67,7 +103,8 @@ let DeploymentPicker = ({
   onSelect,
   onBack,
   providerId,
-  selectionMode = 'default'
+  selectionMode = 'default',
+  layout = 'dialog'
 }: {
   title: string;
   description: string;
@@ -81,6 +118,7 @@ let DeploymentPicker = ({
     | 'configVaultCreate'
     | 'authConfigCreate'
     | 'authCredentialsCreate';
+  layout?: 'dialog' | 'side';
 }) => {
   return (
     <PickerDialogScaffold
@@ -88,6 +126,7 @@ let DeploymentPicker = ({
       description={description}
       close={close}
       onBack={onBack}
+      layout={layout}
     >
       <ProviderDeploymentsList
         providerId={providerId}
@@ -116,7 +155,9 @@ let ProviderPicker = ({
   description,
   close,
   onSelect,
-  selectionMode = 'default'
+  selectionMode = 'default',
+  layout = 'dialog',
+  limit = 18
 }: {
   instanceId: string;
   title: string;
@@ -124,15 +165,26 @@ let ProviderPicker = ({
   close: () => void;
   onSelect: (providerId: string) => void;
   selectionMode?: 'default' | 'authCredentialsCreate';
+  layout?: 'dialog' | 'side';
+  limit?: number;
 }) => {
   return (
-    <PickerDialogScaffold title={title} description={description} close={close}>
+    <PickerDialogScaffold
+      title={title}
+      description={description}
+      close={close}
+      layout={layout}
+    >
       <ProvidersWithDeploymentsSearch
         instanceId={instanceId}
         columns={3}
-        limit={18}
+        limit={limit}
         selectionMode={selectionMode}
-        emptyText="No providers found. Create a deployment first."
+        variant="providerCard"
+        cardSize="compact"
+        includeAllProviders
+        prioritizeProvidersWithDeployments
+        emptyText="No providers found."
         onSelect={provider => {
           closeAndThen(close, () => onSelect(provider.id));
         }}
@@ -141,12 +193,21 @@ let ProviderPicker = ({
   );
 };
 
-let showPickerModal = (children: (d: { close: () => void }) => ReactNode) =>
-  showModal(({ dialogProps, close }) => (
-    <Dialog.Wrapper {...dialogProps} width={550}>
-      {children({ close })}
-    </Dialog.Wrapper>
-  ));
+let showPickerModal = (
+  children: (d: { close: () => void }) => ReactNode,
+  opts?: { layout?: 'dialog' | 'side'; sideWidth?: number }
+) =>
+  showModal(({ dialogProps, close }) =>
+    opts?.layout === 'side' ? (
+      <Panel.Wrapper {...dialogProps} width={opts.sideWidth ?? 1000}>
+        {children({ close })}
+      </Panel.Wrapper>
+    ) : (
+      <Dialog.Wrapper {...dialogProps} width={550}>
+        {children({ close })}
+      </Dialog.Wrapper>
+    )
+  );
 
 export let showCreateProviderConfigFlow = (instanceId: string) => {
   let scope = 'provider' as const;
@@ -293,48 +354,54 @@ export let showCreateProviderAuthConfigFlow = (
   }
 ) => {
   let scope = options?.scope ?? 'provider';
+  if (scope === 'provider') {
+    return showProviderAuthConfigPanelFlow({
+      instanceId,
+      onCreated: options?.onCreated
+    });
+  }
+
+  let authConfigPickerModalOpts = { layout: 'side' as const, sideWidth: 1000 };
   let showDeploymentStep = (providerId: string) =>
-    showPickerModal(({ close }) => (
-      <DeploymentPicker
-        title="Select Deployment"
-        description="Choose a deployment to attach this auth configuration to."
+    showPickerModal(
+      ({ close }) => (
+        <DeploymentPicker
+          title="Select Deployment"
+          description="Choose a deployment to attach this auth configuration to."
+          close={close}
+          selectionMode="authConfigCreate"
+          providerId={providerId}
+          layout="side"
+          onBack={() => showCreateProviderAuthConfigFlow(instanceId, options)}
+          onSelect={deploymentId =>
+            showProviderAuthConfigMethodPickerModal({
+              instanceId,
+              providerDeploymentId: deploymentId,
+              onBack: () => showDeploymentStep(providerId),
+              onCreate: authConfig => {
+                options?.onCreated?.(deploymentId, authConfig.id);
+              }
+            })
+          }
+        />
+      ),
+      authConfigPickerModalOpts
+    );
+
+  return showPickerModal(
+    ({ close }) => (
+      <ProviderPicker
+        instanceId={instanceId}
+        title="Create Auth Config"
+        description="Select a provider to create an authentication configuration for."
         close={close}
-        selectionMode="authConfigCreate"
-        providerId={providerId}
-        onSelect={deploymentId =>
-          showProviderAuthConfigMethodPickerModal({
-            instanceId,
-            providerDeploymentId: deploymentId,
-            onBack: () => showDeploymentStep(providerId),
-            onCreate: authConfig => {
-              options?.onCreated?.(deploymentId, authConfig.id);
-            }
-          })
-        }
+        layout="side"
+        limit={30}
+        onSelect={providerId => {
+          showDeploymentStep(providerId);
+        }}
       />
-    ));
-
-  return showPickerModal(({ close }) => (
-    <ProviderPicker
-      instanceId={instanceId}
-      title="Create Auth Config"
-      description="Select a provider to create an authentication configuration for."
-      close={close}
-      onSelect={providerId => {
-        if (scope === 'provider') {
-          showProviderAuthConfigMethodPickerModal({
-            instanceId,
-            providerId,
-            onBack: () => showCreateProviderAuthConfigFlow(instanceId, options),
-            onCreate: authConfig => {
-              options?.onCreated?.(null, authConfig.id);
-            }
-          });
-          return;
-        }
-
-        showDeploymentStep(providerId);
-      }}
-    />
-  ));
+    ),
+    authConfigPickerModalOpts
+  );
 };

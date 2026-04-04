@@ -10,16 +10,18 @@ import {
 } from '@metorial/state';
 import {
   Avatar,
+  Badge,
   ButtonSize,
   getButtonSize,
   Input,
   InputLabel,
-  Or,
   Popover,
   Spacer,
   Text,
   theme
 } from '@metorial/ui';
+import { ItemGrid } from '@metorial/ui-product';
+import { RiCheckLine } from '@remixicon/react';
 import { useMemo, useState } from 'react';
 import { useMeasure } from 'react-use';
 import styled from 'styled-components';
@@ -33,9 +35,48 @@ export type ProviderSearchItem = {
   description?: string | null;
   imageUrl?: string | null;
   oauthAutoRegistrationEnabled?: boolean;
+  attributes?: {
+    isVerified?: boolean;
+    isMetorial?: boolean;
+    isOfficial?: boolean;
+  };
+  categories?: { id: string; name: string }[];
 };
 
-let Wrapper = styled.div``;
+type ProviderSearchVariant = 'compactList' | 'providerCard';
+type ProviderCardSize = 'default' | 'compact';
+
+let Wrapper = styled.div<{
+  $internalScroll?: boolean;
+  $internalScrollHeight?: string | number;
+}>`
+  ${({ $internalScroll, $internalScrollHeight }) =>
+    $internalScroll
+      ? `
+    height: ${
+      typeof $internalScrollHeight === 'number'
+        ? `${$internalScrollHeight}px`
+        : ($internalScrollHeight ?? '100%')
+    };
+    max-height: ${
+      typeof $internalScrollHeight === 'number'
+        ? `${$internalScrollHeight}px`
+        : ($internalScrollHeight ?? '100%')
+    };
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  `
+      : ''}
+`;
+
+let ScrollBody = styled.div`
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-gutter: stable;
+`;
 
 let Grid = styled.div<{ $columns?: number }>`
   display: grid;
@@ -91,6 +132,23 @@ let ProviderName = styled.span`
   white-space: nowrap;
 `;
 
+let CardCategories = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+`;
+
+let CardCategory = styled.div`
+  background: #f0f0f0;
+  height: 26px;
+  border-radius: 50px;
+  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 500;
+`;
+
 let FieldWrapper = styled.div`
   display: flex;
   outline: 1px solid transparent;
@@ -118,19 +176,95 @@ let ProviderItemsGrid = ({
   onSelect,
   emptyText = 'No providers found',
   columns,
-  selectionMode = 'default'
+  selectionMode = 'default',
+  variant = 'compactList',
+  cardSize = 'default'
 }: {
   items: ProviderSearchItem[];
   onSelect?: (provider: ProviderSearchItem) => void;
   emptyText?: string;
   columns?: number;
   selectionMode?: 'default' | 'authCredentialsCreate';
+  variant?: ProviderSearchVariant;
+  cardSize?: ProviderCardSize;
 }) => {
   if (items.length === 0) {
     return (
       <Text size="1" color="gray600">
         {emptyText}
       </Text>
+    );
+  }
+
+  if (variant === 'providerCard') {
+    return (
+      <ItemGrid.Root width={cardSize === 'compact' ? '270px' : '300px'}>
+        {items.map(provider => {
+          let isDisabled =
+            selectionMode === 'authCredentialsCreate' && provider.oauthAutoRegistrationEnabled;
+          let disabledReason = isDisabled
+            ? 'This provider uses OAuth auto-registration, so manual app credentials are not supported.'
+            : undefined;
+          let description = provider.description
+            ? provider.description.slice(0, cardSize === 'compact' ? 80 : 100) +
+              (provider.description.length > (cardSize === 'compact' ? 80 : 100) ? '...' : '')
+            : '';
+
+          return (
+            <div
+              key={provider.id}
+              title={disabledReason}
+              style={{
+                opacity: isDisabled ? 0.55 : 1
+              }}
+            >
+              <ItemGrid.Item
+                title={provider.name ?? provider.slug ?? 'Provider'}
+                description={description}
+                height={cardSize === 'compact' ? 220 : 250}
+                onClick={isDisabled ? undefined : () => onSelect?.(provider)}
+                icon={
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <Avatar
+                      entity={{
+                        name: provider.name ?? provider.slug ?? 'Provider',
+                        photoUrl: provider.imageUrl ?? undefined
+                      }}
+                      size={30}
+                      radius={5}
+                      imageFit="contain"
+                    />
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                      {provider.attributes?.isVerified && (
+                        <Badge size="1" color="blue">
+                          <RiCheckLine size={12} style={{ marginRight: 3 }} /> Verified
+                        </Badge>
+                      )}
+
+                      {(provider.attributes?.isMetorial ||
+                        provider.attributes?.isOfficial) && (
+                        <Badge size="1" color="gray">
+                          Official
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                }
+                bottom={
+                  <CardCategories>
+                    {(provider.categories ?? [])
+                      .slice(0, cardSize === 'compact' ? 2 : 3)
+                      .map(category => (
+                        <CardCategory key={category.id}>{category.name}</CardCategory>
+                      ))}
+                  </CardCategories>
+                }
+              />
+            </div>
+          );
+        })}
+      </ItemGrid.Root>
     );
   }
 
@@ -178,7 +312,11 @@ let ProviderSearchGrid = ({
   emptyText = 'No providers found',
   sectionLabel = 'Providers',
   columns,
-  selectionMode = 'default'
+  selectionMode = 'default',
+  variant = 'compactList',
+  cardSize = 'default',
+  internalScroll = false,
+  internalScrollHeight
 }: {
   items: ProviderSearchItem[];
   onSelect?: (provider: ProviderSearchItem) => void;
@@ -188,6 +326,10 @@ let ProviderSearchGrid = ({
   sectionLabel?: string;
   columns?: number;
   selectionMode?: 'default' | 'authCredentialsCreate';
+  variant?: ProviderSearchVariant;
+  cardSize?: ProviderCardSize;
+  internalScroll?: boolean;
+  internalScrollHeight?: string | number;
 }) => {
   let [search, setSearch] = useState('');
   let searchDebounced = useDebounced(search, 300);
@@ -202,8 +344,20 @@ let ProviderSearchGrid = ({
     );
   });
 
+  let results = (
+    <ProviderItemsGrid
+      items={filteredItems}
+      emptyText={emptyText}
+      columns={columns}
+      onSelect={onSelect}
+      selectionMode={selectionMode}
+      variant={variant}
+      cardSize={cardSize}
+    />
+  );
+
   return (
-    <Wrapper>
+    <Wrapper $internalScroll={internalScroll} $internalScrollHeight={internalScrollHeight}>
       <div style={{ position: 'sticky', top: stickyTop ?? 0, zIndex: 1 }}>
         <Input
           label="Search"
@@ -216,17 +370,7 @@ let ProviderSearchGrid = ({
 
       <Spacer size={10} />
 
-      <Or text={sectionLabel} />
-
-      <Spacer size={10} />
-
-      <ProviderItemsGrid
-        items={filteredItems}
-        emptyText={emptyText}
-        columns={columns}
-        onSelect={onSelect}
-        selectionMode={selectionMode}
-      />
+      {internalScroll ? <ScrollBody>{results}</ScrollBody> : results}
     </Wrapper>
   );
 };
@@ -236,13 +380,21 @@ export let ProviderSearch = ({
   stickyTop,
   columns,
   limit,
-  filter
+  filter,
+  variant = 'compactList',
+  cardSize = 'default',
+  internalScroll = false,
+  internalScrollHeight
 }: {
   onSelect?: (provider: ProviderListingsGetOutput['provider']) => void;
   stickyTop?: number;
   columns?: number;
   limit?: number;
   filter?: DashboardInstanceProviderListingsListQuery;
+  variant?: ProviderSearchVariant;
+  cardSize?: ProviderCardSize;
+  internalScroll?: boolean;
+  internalScrollHeight?: string | number;
 }) => {
   let [search, setSearch] = useState('');
   let searchDebounced = useDebounced(search, 500);
@@ -255,8 +407,29 @@ export let ProviderSearch = ({
     ...(limit ? { limit } : {})
   });
 
+  let content = renderWithPagination(providers)(providers => (
+    <ProviderItemsGrid
+      items={providers.data.items.map(provider => ({
+        id: provider.id,
+        name: provider.name,
+        slug: provider.slug,
+        description: provider.description,
+        imageUrl: provider.imageUrl,
+        attributes: provider.attributes,
+        categories: provider.categories
+      }))}
+      columns={columns}
+      variant={variant}
+      cardSize={cardSize}
+      onSelect={provider => {
+        let selectedProvider = providers.data.items.find(item => item.id === provider.id);
+        if (selectedProvider) onSelect?.(selectedProvider.provider);
+      }}
+    />
+  ));
+
   return (
-    <Wrapper>
+    <Wrapper $internalScroll={internalScroll} $internalScrollHeight={internalScrollHeight}>
       <div style={{ position: 'sticky', top: stickyTop ?? 0, zIndex: 1 }}>
         <Input
           label="Search"
@@ -269,26 +442,7 @@ export let ProviderSearch = ({
 
       <Spacer size={10} />
 
-      <Or text="Providers" />
-
-      <Spacer size={10} />
-
-      {renderWithPagination(providers)(providers => (
-        <ProviderItemsGrid
-          items={providers.data.items.map(provider => ({
-            id: provider.id,
-            name: provider.name,
-            slug: provider.slug,
-            description: provider.description,
-            imageUrl: provider.imageUrl
-          }))}
-          columns={columns}
-          onSelect={provider => {
-            let selectedProvider = providers.data.items.find(item => item.id === provider.id);
-            if (selectedProvider) onSelect?.(selectedProvider.provider);
-          }}
-        />
-      ))}
+      {internalScroll ? <ScrollBody>{content}</ScrollBody> : content}
     </Wrapper>
   );
 };
@@ -300,7 +454,13 @@ export let ProvidersWithDeploymentsSearch = ({
   emptyText = 'No providers found. Create a deployment first.',
   columns,
   limit,
-  selectionMode = 'default'
+  selectionMode = 'default',
+  variant = 'compactList',
+  cardSize = 'default',
+  includeAllProviders = false,
+  prioritizeProvidersWithDeployments = false,
+  internalScroll = false,
+  internalScrollHeight
 }: {
   instanceId: string;
   onSelect?: (provider: ProviderSearchItem) => void;
@@ -309,6 +469,12 @@ export let ProvidersWithDeploymentsSearch = ({
   columns?: number;
   limit?: number;
   selectionMode?: 'default' | 'authCredentialsCreate';
+  variant?: ProviderSearchVariant;
+  cardSize?: ProviderCardSize;
+  includeAllProviders?: boolean;
+  prioritizeProvidersWithDeployments?: boolean;
+  internalScroll?: boolean;
+  internalScrollHeight?: string | number;
 }) => {
   let deployments = useProviderDeployments(instanceId, limit ? { limit } : undefined);
   let providerIds = useMemo(
@@ -320,13 +486,66 @@ export let ProvidersWithDeploymentsSearch = ({
   );
   let providerListings = useProviderListings(
     instanceId,
-    providerIds.length > 0
+    includeAllProviders
       ? {
           orderByRank: true,
-          limit: Math.max(providerIds.length, 100)
+          ...(limit ? { limit } : { limit: 100 })
         }
-      : null
+      : providerIds.length > 0
+        ? {
+            orderByRank: true,
+            limit: Math.max(providerIds.length, 100)
+          }
+        : null
   );
+
+  if (includeAllProviders) {
+    return renderWithPagination(providerListings, {
+      hidePaginationWhenUnavailable: true
+    })(providerListings => {
+      let deployedProviderIds = new Set(providerIds);
+      let providerItems = providerListings.data.items.map((providerListing, idx) => ({
+        idx,
+        item: {
+          id: providerListing.provider.id,
+          name: providerListing.name ?? providerListing.provider.name,
+          slug: providerListing.slug ?? providerListing.provider.slug,
+          description: providerListing.description,
+          imageUrl: providerListing.imageUrl,
+          attributes: providerListing.attributes,
+          categories: providerListing.categories,
+          oauthAutoRegistrationEnabled: getProviderOAuthAutoRegistrationEnabled(
+            providerListing.provider
+          )
+        } as ProviderSearchItem
+      }));
+
+      let sortedItems = prioritizeProvidersWithDeployments
+        ? [...providerItems].sort((a, b) => {
+            let aHas = deployedProviderIds.has(a.item.id) ? 1 : 0;
+            let bHas = deployedProviderIds.has(b.item.id) ? 1 : 0;
+            if (aHas !== bHas) return bHas - aHas;
+            return a.idx - b.idx;
+          })
+        : providerItems;
+
+      return (
+        <ProviderSearchGrid
+          items={sortedItems.map(i => i.item)}
+          stickyTop={stickyTop}
+          sectionLabel="Providers"
+          emptyText={emptyText}
+          columns={columns}
+          onSelect={onSelect}
+          selectionMode={selectionMode}
+          variant={variant}
+          cardSize={cardSize}
+          internalScroll={internalScroll}
+          internalScrollHeight={internalScrollHeight}
+        />
+      );
+    });
+  }
 
   return renderWithPagination(deployments, {
     hidePaginationWhenUnavailable: true
@@ -336,8 +555,11 @@ export let ProvidersWithDeploymentsSearch = ({
       {
         name?: string | null;
         slug?: string | null;
+        description?: string | null;
         imageUrl?: string | null;
         oauthAutoRegistrationEnabled?: boolean;
+        attributes?: ProviderSearchItem['attributes'];
+        categories?: ProviderSearchItem['categories'];
       }
     >();
 
@@ -346,7 +568,10 @@ export let ProvidersWithDeploymentsSearch = ({
       providerLookup.set(providerListing.provider.id, {
         name: providerListing.name ?? providerListing.provider.name,
         slug: providerListing.slug ?? providerListing.provider.slug,
+        description: providerListing.description,
         imageUrl: providerListing.imageUrl,
+        attributes: providerListing.attributes,
+        categories: providerListing.categories,
         oauthAutoRegistrationEnabled: getProviderOAuthAutoRegistrationEnabled(
           providerListing.provider
         )
@@ -366,7 +591,10 @@ export let ProvidersWithDeploymentsSearch = ({
         id: deployment.providerId,
         name: provider?.name ?? deployment.providerId,
         slug: provider?.slug ?? null,
+        description: provider?.description ?? null,
         imageUrl: provider?.imageUrl ?? null,
+        attributes: provider?.attributes,
+        categories: provider?.categories,
         oauthAutoRegistrationEnabled: provider?.oauthAutoRegistrationEnabled
       });
     }
@@ -380,6 +608,10 @@ export let ProvidersWithDeploymentsSearch = ({
         columns={columns}
         onSelect={onSelect}
         selectionMode={selectionMode}
+        variant={variant}
+        cardSize={cardSize}
+        internalScroll={internalScroll}
+        internalScrollHeight={internalScrollHeight}
       />
     );
   });

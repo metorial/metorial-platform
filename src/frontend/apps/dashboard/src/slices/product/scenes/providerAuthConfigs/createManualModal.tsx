@@ -9,13 +9,18 @@ export let ProviderAuthConfigManualCreateContent = (p: {
   close: () => void;
   onCreate?: (authConfig: { id: string }) => void;
   onBack?: () => void;
+  embedded?: boolean;
 }) => {
   return (
     <>
-      <Dialog.Title>Create Auth Config</Dialog.Title>
-      <Dialog.Description>
-        Create a new authentication configuration for the selected provider.
-      </Dialog.Description>
+      {!p.embedded && (
+        <>
+          <Dialog.Title>Create Auth Config</Dialog.Title>
+          <Dialog.Description>
+            Create a new authentication configuration for the selected provider.
+          </Dialog.Description>
+        </>
+      )}
 
       <ProviderAuthConfigForm
         type="create"

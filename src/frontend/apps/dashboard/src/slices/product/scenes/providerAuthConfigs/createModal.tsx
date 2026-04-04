@@ -1,5 +1,5 @@
 import { useProviderDeployment } from '@metorial/state';
-import { Button, CenteredSpinner, Dialog, Spacer, showModal } from '@metorial/ui';
+import { Button, CenteredSpinner, Dialog, Spacer, Text, showModal } from '@metorial/ui';
 import { type ReactElement, useEffect, useState } from 'react';
 import { useProviderAuthCreationCapabilities } from '../../lib/providerCreationCapabilities';
 import { ProviderAuthConfigManualCreateContent } from './createManualModal';
@@ -25,6 +25,29 @@ let ProviderAuthConfigCreateModalContent = (
     close: () => void;
   }
 ) => {
+  let handleBack = () => {
+    if (!p.onBack) {
+      p.close();
+      return;
+    }
+
+    closeAndThen(p.close, p.onBack);
+  };
+
+  return (
+    <Dialog.Wrapper {...p.dialogProps} width={650}>
+      <ProviderAuthConfigCreateFlowContent {...p} close={p.close} onBack={handleBack} />
+    </Dialog.Wrapper>
+  );
+};
+
+export let ProviderAuthConfigCreateFlowContent = (
+  p: ProviderAuthConfigCreateModalProps & {
+    close: () => void;
+    onBack: () => void;
+    embedded?: boolean;
+  }
+) => {
   let deployment = useProviderDeployment(p.instanceId, p.providerDeploymentId);
   let authCreation = useProviderAuthCreationCapabilities(
     p.instanceId,
@@ -41,7 +64,6 @@ let ProviderAuthConfigCreateModalContent = (
   let effectiveAuthMethod =
     selectedMethod ??
     (authCreation.authMethodItems.length === 1 ? authCreation.authMethodItems[0] : undefined);
-  let width = isSetupFlowAuthMethod(effectiveAuthMethod) ? 1180 : 650;
   let [previewMode, setPreviewMode] = useState<PreviewMode>(
     effectiveAuthMethod?.type === 'oauth' && !getAuthMethodHasSchema(effectiveAuthMethod)
       ? authCreation.oauthAutoRegistrationEnabled
@@ -64,79 +86,56 @@ let ProviderAuthConfigCreateModalContent = (
     setPreviewMode('manual_existing');
   }, [authCreation.oauthAutoRegistrationEnabled, effectiveAuthMethod]);
 
-  let handleBack = () => {
-    if (!p.onBack) {
-      p.close();
-      return;
-    }
-
-    closeAndThen(p.close, p.onBack);
-  };
-
   let content: ReactElement;
 
-  if (authCreation.isLoading) {
-    content = <CenteredSpinner />;
-  } else if (!authCreation.canCreateAuthConfig) {
-    content = (
+  let renderError = (message: string) =>
+    p.embedded ? (
+      <>
+        <Text size="2" color="gray600">
+          {message}
+        </Text>
+        <Spacer size={15} />
+        <Dialog.Actions>
+          <Button variant="outline" onClick={p.onBack}>
+            Back
+          </Button>
+        </Dialog.Actions>
+      </>
+    ) : (
       <>
         <Dialog.Title>Create Auth Config</Dialog.Title>
-        <Dialog.Description>
-          {authCreation.authConfigDisabledReason ??
-            (isDeploymentScoped
-              ? 'This deployment cannot create an auth config from the dashboard.'
-              : 'This provider cannot create an auth config from the dashboard.')}
-        </Dialog.Description>
-
+        <Dialog.Description>{message}</Dialog.Description>
         <Spacer size={15} />
-
         <Dialog.Actions>
-          <Button variant="outline" onClick={handleBack}>
+          <Button variant="outline" onClick={p.onBack}>
             Back
           </Button>
         </Dialog.Actions>
       </>
     );
+
+  if (authCreation.isLoading) {
+    content = <CenteredSpinner />;
+  } else if (!authCreation.canCreateAuthConfig) {
+    content = renderError(
+      authCreation.authConfigDisabledReason ??
+        (isDeploymentScoped
+          ? 'This deployment cannot create an auth config from the dashboard.'
+          : 'This provider cannot create an auth config from the dashboard.')
+    );
   } else if (!effectiveAuthMethod) {
-    content = (
-      <>
-        <Dialog.Title>Create Auth Config</Dialog.Title>
-        <Dialog.Description>
-          The selected authentication method is no longer available. Go back and choose another
-          method.
-        </Dialog.Description>
-
-        <Spacer size={15} />
-
-        <Dialog.Actions>
-          <Button variant="outline" onClick={handleBack}>
-            Back
-          </Button>
-        </Dialog.Actions>
-      </>
+    content = renderError(
+      'The selected authentication method is no longer available. Go back and choose another method.'
     );
   } else {
     let method = effectiveAuthMethod;
 
     if (isSetupFlowAuthMethod(method)) {
       if (!providerId) {
-        content = (
-          <>
-            <Dialog.Title>Create Auth Config</Dialog.Title>
-            <Dialog.Description>
-              {isDeploymentScoped
-                ? 'Could not resolve the provider for this deployment.'
-                : 'Could not resolve the selected provider.'}
-            </Dialog.Description>
-
-            <Spacer size={15} />
-
-            <Dialog.Actions>
-              <Button variant="outline" onClick={handleBack}>
-                Back
-              </Button>
-            </Dialog.Actions>
-          </>
+        content = renderError(
+          isDeploymentScoped
+            ? 'Could not resolve the provider for this deployment.'
+            : 'Could not resolve the selected provider.'
         );
       } else {
         content = (
@@ -151,6 +150,7 @@ let ProviderAuthConfigCreateModalContent = (
             onPreviewModeChange={setPreviewMode}
             close={p.close}
             onCreate={p.onCreate}
+            onCancel={p.onBack}
           />
         );
       }
@@ -162,18 +162,15 @@ let ProviderAuthConfigCreateModalContent = (
           providerId={providerId}
           initialAuthMethodId={method.id}
           close={p.close}
-          onBack={handleBack}
+          onBack={p.onBack}
           onCreate={p.onCreate}
+          embedded={p.embedded}
         />
       );
     }
   }
 
-  return (
-    <Dialog.Wrapper {...p.dialogProps} width={width}>
-      {content}
-    </Dialog.Wrapper>
-  );
+  return content;
 };
 
 export let showProviderAuthConfigCreateModal = (p: ProviderAuthConfigCreateModalProps) =>
