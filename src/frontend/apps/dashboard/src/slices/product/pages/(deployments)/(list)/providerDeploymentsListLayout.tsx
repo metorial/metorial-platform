@@ -24,10 +24,10 @@ type ProviderDeploymentsTabId =
   | 'auth-configs';
 
 let providerConfigurationsTabOrder: Exclude<ProviderDeploymentsTabId, 'deployments'>[] = [
-  'configs',
   'auth-configs',
-  'config-vaults',
-  'auth-credentials'
+  'auth-credentials',
+  'configs',
+  'config-vaults'
 ];
 
 let getActiveTab = (pathname: string): ProviderDeploymentsTabId => {
@@ -84,7 +84,7 @@ let providerDeploymentsTabs: Record<
   configs: {
     label: 'Configs',
     segment: 'configs',
-    description: 'View and manage provider configuration profiles across your deployments.',
+    description: 'Manage provider configuration profiles across your providers.',
     renderAction: ({ instance }) => (
       <Button
         size="2"
@@ -101,7 +101,7 @@ let providerDeploymentsTabs: Record<
   'config-vaults': {
     label: 'Vaults',
     segment: 'config-vaults',
-    description: 'Manage reusable configuration vaults across your deployments.',
+    description: 'Manage reusable configuration vaults across your providers.',
     renderAction: ({ instance }) => (
       <Button
         size="2"
@@ -118,7 +118,7 @@ let providerDeploymentsTabs: Record<
   'auth-credentials': {
     label: 'Auth Credentials',
     segment: 'auth-credentials',
-    description: 'View authenticated connections created through the OAuth flow.',
+    description: 'Manage authentication credentials across your providers.',
     renderAction: ({ instance }) => (
       <Button
         size="2"
@@ -135,7 +135,7 @@ let providerDeploymentsTabs: Record<
   'auth-configs': {
     label: 'Auth Configs',
     segment: 'auth-configs',
-    description: 'View and manage authentication credentials across your deployments.',
+    description: 'Manage authenticated connections to your providers.',
     renderAction: ({ instance, organization, project, navigate }) => (
       <Button
         size="2"
