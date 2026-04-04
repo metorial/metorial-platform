@@ -14,7 +14,6 @@ import {
 import { Fabric } from '@metorial/fabric';
 import { generatePlainId } from '@metorial/id';
 import { addDays, differenceInDays } from 'date-fns';
-import { sendOrgInviteEmail } from '../email/invite';
 import { env } from '../env';
 
 class OrganizationInviteService {
@@ -113,6 +112,8 @@ class OrganizationInviteService {
       });
 
       if (invite.type === 'email' && invite.email) {
+        let { sendOrgInviteEmail } = await import('../email/invite');
+
         await sendOrgInviteEmail.send({
           data: {
             organization: invite.organization,
