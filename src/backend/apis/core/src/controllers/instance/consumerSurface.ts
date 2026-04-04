@@ -36,7 +36,8 @@ export let consumerSurfaceController = Controller.create(
     list: instanceGroup
       .get(instancePath('consumer-surfaces', 'consumerSurfaces.list'), {
         name: 'List consumer surfaces',
-        description: 'Returns a paginated list of consumer surfaces for an instance.'
+        description: 'Returns a paginated list of consumer surfaces for an instance.',
+        hideInDocs: true
       })
       .use(checkAccess({ possibleScopes: ['instance.portal.consumers:read'] }))
       .use(hasFlags(['identity-management', 'paid-identity']))

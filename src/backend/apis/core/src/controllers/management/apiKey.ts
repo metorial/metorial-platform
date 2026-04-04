@@ -137,7 +137,8 @@ let canRevealApiKey = async (d: {
 export let managementApiKeyController = Controller.create(
   {
     name: 'API Key',
-    description: 'Read and write API key information'
+    description: 'Read and write API key information',
+    hideInDocs: true
   },
   {
     list: organizationGroup

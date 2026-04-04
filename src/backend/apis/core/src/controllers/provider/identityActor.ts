@@ -33,7 +33,8 @@ export let identityActorController = Controller.create(
   {
     name: 'Identity Actors',
     description:
-      'Identity actors represent people or agents that can own identities and participate in delegations.'
+      'Identity actors represent people or agents that can own identities and participate in delegations.',
+    hideInDocs: true
   },
   {
     list: instanceGroup

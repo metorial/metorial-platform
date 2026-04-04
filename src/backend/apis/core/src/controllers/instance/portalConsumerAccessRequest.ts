@@ -1,10 +1,7 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import {
-  consumerAccessRequestService,
-  consumerGroupService
-} from '@metorial/module-consumer';
+import { consumerAccessRequestService, consumerGroupService } from '@metorial/module-consumer';
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
@@ -34,7 +31,8 @@ let portalConsumerAccessRequestGroup = portalGroup.use(async ctx => {
 export let portalConsumerAccessRequestController = Controller.create(
   {
     name: 'Portal Consumer Access Requests',
-    description: 'Review and resolve consumer access requests for a portal.'
+    description: 'Review and resolve consumer access requests for a portal.',
+    hideInDocs: true
   },
   {
     list: portalGroup
@@ -123,15 +121,16 @@ export let portalConsumerAccessRequestController = Controller.create(
               })
             : undefined;
 
-        let consumerAccessRequest = await consumerAccessRequestService.reviewConsumerAccessRequest({
-          organization: ctx.organization,
-          consumerAccessRequest: ctx.consumerAccessRequest,
-          input: {
-            status: ctx.body.status,
-            resolutionMessage: ctx.body.resolution_message,
-            consumerGroup
-          }
-        });
+        let consumerAccessRequest =
+          await consumerAccessRequestService.reviewConsumerAccessRequest({
+            organization: ctx.organization,
+            consumerAccessRequest: ctx.consumerAccessRequest,
+            input: {
+              status: ctx.body.status,
+              resolutionMessage: ctx.body.resolution_message,
+              consumerGroup
+            }
+          });
 
         return consumerAccessRequestPresenter.present({
           consumerAccessRequest

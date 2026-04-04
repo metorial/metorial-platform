@@ -52,7 +52,8 @@ export let identityDelegationController = Controller.create(
   {
     name: 'Identity Delegations',
     description:
-      'Identity delegations grant provider permissions from one identity owner to another actor, with optional per-credential overrides.'
+      'Identity delegations grant provider permissions from one identity owner to another actor, with optional per-credential overrides.',
+    hideInDocs: true
   },
   {
     list: instanceGroup
