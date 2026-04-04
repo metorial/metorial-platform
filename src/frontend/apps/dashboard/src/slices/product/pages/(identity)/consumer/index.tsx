@@ -82,13 +82,11 @@ export let ConsumerPage = () => {
                       {profile.name}
                     </Text>,
                     <Text size="2">{profile.email}</Text>,
-                    <div>
-                      <Text size="2" weight="strong">
-                        {profile.surface.name}
-                      </Text>
-                    </div>,
+                    <Text size="2" weight="strong">
+                      {profile.surface.name}
+                    </Text>,
                     profile.groups?.length ? (
-                      <Badge color="gray">{profile.groups.length} groups</Badge>
+                      <Text>{profile.groups.length} groups</Text>
                     ) : (
                       <Text size="2" color="gray600">
                         None

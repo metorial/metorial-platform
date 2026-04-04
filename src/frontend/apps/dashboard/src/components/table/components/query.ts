@@ -7,6 +7,8 @@ import {
   serializeToQuery
 } from '../filter';
 
+let emptyFilters: TableFilter<any>[] = [];
+
 let getFilterQueryKeys = (filters: TableFilter<any>[]) => {
   let keys = new Set<string>();
 
@@ -36,7 +38,7 @@ export let useFilterQuery = ({
   debouncedSearch: string;
 }) => {
   let [searchParams, setSearchParams] = useSearchParams();
-  let currentFilters = filters || [];
+  let currentFilters = filters ?? emptyFilters;
   let filterKeys = useMemo(() => getFilterQueryKeys(currentFilters), [currentFilters]);
 
   let lastSetQueryRef = useRef<string | undefined>(undefined);

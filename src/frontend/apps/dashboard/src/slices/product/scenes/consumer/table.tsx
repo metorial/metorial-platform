@@ -9,9 +9,15 @@ import {
 import { Badge, RenderDate, Text } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import { Table as DashboardTable } from '../../../../components/table';
-import { FilterPayload } from '../../../../components/table/filter';
 
 type Consumer = DashboardInstanceConsumersListOutput['items'][number];
+
+type ConsumersTableProps = {
+  instanceId: string;
+  organization: ReturnType<typeof useCurrentOrganization>;
+  project: ReturnType<typeof useCurrentProject>;
+  instance: ReturnType<typeof useCurrentInstance>;
+};
 
 let getConsumerType = (consumer: Consumer) => {
   if (consumer.isOrganizationMember) return 'Metorial Member';
@@ -19,36 +25,28 @@ let getConsumerType = (consumer: Consumer) => {
   return 'Custom';
 };
 
-let useConsumersTableState = (
-  props: { instanceId: string },
-  opts: { filter: Record<string, FilterPayload> }
-) => {
+let useConsumersTableState = (props: ConsumersTableProps) => {
   let consumers = useConsumers(props.instanceId, { order: 'desc' });
-  let typeFilter = opts.filter.type?.value;
-  let filteredItems = (consumers.data?.items ?? []).filter(consumer => {
-    if (typeFilter && getConsumerType(consumer) !== typeFilter) return false;
-    return true;
-  });
 
   return {
     isLoading: consumers.isLoading,
     error: consumers.error,
     hasMoreAfter: consumers.data?.pagination.hasMoreAfter ?? false,
     hasMoreBefore: consumers.data?.pagination.hasMoreBefore ?? false,
-    items: filteredItems,
+    items: consumers.data?.items ?? [],
     loadNext: consumers.next,
     loadPrevious: consumers.previous
   };
 };
 
-let consumersTable = new DashboardTable('consumers')
+let consumersTable = new DashboardTable<ConsumersTableProps, Consumer>('consumers')
   .state(useConsumersTableState)
   .columns([
     {
       id: 'name',
       isDefault: true,
       header: 'Name',
-      render: consumer => (
+      render: (consumer: Consumer) => (
         <Text size="2" weight="strong">
           {consumer.name}
         </Text>
@@ -58,15 +56,20 @@ let consumersTable = new DashboardTable('consumers')
       id: 'email',
       isDefault: true,
       header: 'Email',
-      render: consumer => <Text size="2">{consumer.email}</Text>
+      render: (consumer: Consumer) => <Text size="2">{consumer.email}</Text>
     },
     {
       id: 'type',
       isDefault: true,
       header: 'Type',
-      render: consumer => {
+      render: (consumer: Consumer) => {
         let type = getConsumerType(consumer);
-        let color = type === 'Metorial Member' ? 'blue' : type === 'Portal Member' ? 'green' : 'gray';
+        let color =
+          type === 'Metorial Member'
+            ? ('blue' as const)
+            : type === 'Portal Member'
+              ? ('green' as const)
+              : ('gray' as const);
 
         return <Badge color={color}>{type}</Badge>;
       }
@@ -75,47 +78,37 @@ let consumersTable = new DashboardTable('consumers')
       id: 'createdAt',
       isDefault: true,
       header: 'Created',
-      render: consumer => <RenderDate date={consumer.createdAt} />
+      render: (consumer: Consumer) => <RenderDate date={consumer.createdAt} />
     },
     {
       id: 'updatedAt',
       isDefault: false,
       header: 'Updated',
-      render: consumer => <RenderDate date={consumer.updatedAt} />
+      render: (consumer: Consumer) => <RenderDate date={consumer.updatedAt} />
     },
     {
       id: 'isOrganizationMember',
       isDefault: false,
       header: 'Metorial Member',
-      render: consumer => <Text size="2">{consumer.isOrganizationMember ? 'Yes' : 'No'}</Text>
+      render: (consumer: Consumer) => (
+        <Text size="2">{consumer.isOrganizationMember ? 'Yes' : 'No'}</Text>
+      )
     },
     {
       id: 'isPortalConsumer',
       isDefault: false,
       header: 'Portal Member',
-      render: consumer => <Text size="2">{consumer.isPortalConsumer ? 'Yes' : 'No'}</Text>
+      render: (consumer: Consumer) => (
+        <Text size="2">{consumer.isPortalConsumer ? 'Yes' : 'No'}</Text>
+      )
     },
     {
       id: 'id',
       isDefault: false,
       header: 'Consumer ID',
-      render: consumer => <ID id={consumer.id} />
+      render: (consumer: Consumer) => <ID id={consumer.id} />
     }
-  ])
-  .filters([
-    {
-      id: 'type',
-      fields: ['type'],
-      label: 'Type',
-      description: 'Filter by consumer type',
-      type: 'select',
-      options: [
-        { id: 'Metorial Member', label: 'Metorial Member' },
-        { id: 'Portal Member', label: 'Portal Member' },
-        { id: 'Custom', label: 'Custom' }
-      ]
-    }
-  ])
+  ] as any)
   .link((consumer, props) =>
     Paths.instance.identity.consumer(
       props.organization.data,
