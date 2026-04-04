@@ -44,6 +44,8 @@ model ProfileUpdate {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
+  isAutoUpdate Boolean @default(false)
+
   before Json
   after  Json
 

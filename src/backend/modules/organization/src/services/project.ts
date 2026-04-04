@@ -20,6 +20,7 @@ import {
 } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { generateCode } from '@metorial/id';
+import { syncBrandQueue } from '../queues/syncBrand';
 import { instanceService } from './instance';
 
 let getProjectSlug = createSlugGenerator(
@@ -27,7 +28,6 @@ let getProjectSlug = createSlugGenerator(
 );
 
 let enqueueSyncBrand = async (projectId: string) => {
-  let { syncBrandQueue } = await import('../queues/syncBrand');
   await syncBrandQueue.add({ projectId });
 };
 

@@ -9,11 +9,20 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { createSlugGenerator } from '@lowerdeck/slugify';
 import { Context } from '@metorial/context';
-import { db, ID, Organization, OrganizationActor, User, withTransaction } from '@metorial/db';
+import {
+  addAfterTransactionHook,
+  db,
+  ID,
+  Organization,
+  OrganizationActor,
+  User,
+  withTransaction
+} from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { generateCode } from '@metorial/id';
 import { fileReferenceService } from '@metorial/module-file';
 import { differenceInMinutes } from 'date-fns';
+import { syncBrandOrganizationQueue } from '../queues/syncBrand';
 import { syncProfileQueue } from '../queues/syncProfile';
 import { authBootstrapService } from './authBootstrap';
 import { organizationActorService } from './organizationActor';
@@ -93,6 +102,10 @@ class OrganizationService {
       });
 
       await syncProfileQueue.add({ organizationId: organization.id }, { delay: 5000 });
+      await syncBrandOrganizationQueue.add(
+        { organizationId: organization.id },
+        { delay: 5000 }
+      );
 
       return {
         organization,
@@ -156,7 +169,12 @@ class OrganizationService {
         performedBy: d.performedBy
       });
 
-      await syncProfileQueue.add({ organizationId: organization.id }, { delay: 5000 });
+      await addAfterTransactionHook(() =>
+        syncProfileQueue.add({ organizationId: organization.id }, { delay: 5000 })
+      );
+      await addAfterTransactionHook(() =>
+        syncBrandOrganizationQueue.add({ organizationId: organization.id }, { delay: 5000 })
+      );
 
       return organization;
     });
