@@ -128,7 +128,8 @@ export let portalConsumerAccessController = Controller.create(
       .do(async ctx => {
         let consumerGroup = await consumerGroupService.getConsumerGroupById({
           consumerSurface: ctx.portal.surface,
-          consumerGroupId: ctx.body.consumer_group_id
+          consumerGroupId: ctx.body.consumer_group_id,
+          types: ['default', 'user_access']
         });
 
         let consumerAccess =

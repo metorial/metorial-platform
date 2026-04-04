@@ -119,7 +119,8 @@ export let portalConsumerAccessRequestController = Controller.create(
           ctx.body.status == 'approved' && ctx.body.consumer_group_id
             ? await consumerGroupService.getConsumerGroupById({
                 consumerSurface: ctx.portal.surface,
-                consumerGroupId: ctx.body.consumer_group_id
+                consumerGroupId: ctx.body.consumer_group_id,
+                types: ['default', 'user_access']
               })
             : undefined;
 
