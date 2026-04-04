@@ -1,10 +1,14 @@
-import { db } from '@metorial/db';
+import { db, getImageUrl } from '@metorial/db';
 import { createQueue, QueueRetryError } from '@metorial/queue';
 import { organizationActorService } from '../services/organizationActor';
 import { projectBrandService } from '../services/projectBrand';
 
 export let syncBrandQueue = createQueue<{ projectId: string }>({
   name: 'org/syncBrand'
+});
+
+export let syncBrandOrganizationQueue = createQueue<{ organizationId: string }>({
+  name: 'org/syncBrand/org'
 });
 
 export let syncBrandQueueProcessor = syncBrandQueue.process(async data => {
@@ -23,12 +27,30 @@ export let syncBrandQueueProcessor = syncBrandQueue.process(async data => {
     organization: project.organization
   });
 
+  let orgImage =
+    project.organization.image.type === 'default'
+      ? { type: 'url' as const, url: await getImageUrl(project.organization) }
+      : project.organization.image;
+
   await projectBrandService.upsertProjectBrand({
     project,
     performedBy: actor,
     isAutoUpdate: true,
     input: {
-      name: project.name
+      name: project.name,
+      image: orgImage
     }
   });
 });
+
+export let syncBrandOrganizationQueueProcessor = syncBrandOrganizationQueue.process(
+  async data => {
+    let organization = await db.organization.findUnique({
+      where: { id: data.organizationId },
+      include: { projects: true }
+    });
+    if (!organization) throw new QueueRetryError();
+
+    await syncBrandQueue.addMany(organization.projects.map(p => ({ projectId: p.id })));
+  }
+);

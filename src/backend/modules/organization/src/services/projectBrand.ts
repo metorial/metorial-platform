@@ -1,6 +1,7 @@
 import { canonicalize } from '@lowerdeck/canonicalize';
 import { Service } from '@lowerdeck/service';
 import {
+  addAfterTransactionHook,
   db,
   getImageUrl,
   ID,
@@ -12,6 +13,7 @@ import {
 } from '@metorial/db';
 import { fileReferenceService } from '@metorial/module-file';
 import { getTenantForSubspace, subspaceBrandService } from '@metorial/module-subspace';
+import { syncBrandQueue } from '../queues/syncBrand';
 
 export type ProjectBrandOverride = Omit<ProjectBrand, 'image'> & {
   image: PrismaJson.EntityImage;
@@ -51,6 +53,7 @@ class ProjectBrandService {
     input: {
       name?: string;
       imageFileId?: string | null;
+      image?: PrismaJson.EntityImage;
     };
     performedBy: OrganizationActor;
     isAutoUpdate?: boolean;
@@ -78,6 +81,8 @@ class ProjectBrandService {
         entityType: 'project_brand',
         entityId: d.project.id
       });
+    } else if (d.input.image !== undefined) {
+      nextImage = d.input.image;
     }
 
     let nextName = d.input.name ?? currentName;
@@ -92,6 +97,7 @@ class ProjectBrandService {
             id: await ID.generateId('projectBrandUpdate'),
             brandOid: currentBrand.oid,
             createdByOid: d.performedBy.oid,
+            isAutoUpdate: !!d.isAutoUpdate,
             before: {
               name: currentName,
               image: currentImage
@@ -104,7 +110,8 @@ class ProjectBrandService {
         });
       }
 
-      return await db.projectBrand.upsert({
+      let newId = await ID.generateId('projectBrand');
+      let res = await db.projectBrand.upsert({
         where: {
           projectOid: d.project.oid
         },
@@ -114,7 +121,7 @@ class ProjectBrandService {
           isCustomized: !d.isAutoUpdate
         },
         create: {
-          id: await ID.generateId('projectBrand'),
+          id: newId,
           identifier: d.project.id,
           projectOid: d.project.oid,
           name: nextName,
@@ -123,6 +130,12 @@ class ProjectBrandService {
           isCustomized: false
         }
       });
+
+      if (res.id === newId) {
+        await addAfterTransactionHook(() => syncBrandQueue.add({ projectId: d.project.id }));
+      }
+
+      return res;
     });
 
     let brand = await this.getCustomProjectBrand({
