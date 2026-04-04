@@ -16,13 +16,15 @@ let Global = createGlobalStyle`
 
 export let RootLayout = ({
   children,
-  Nav
+  Nav,
+  height
 }: {
   children: React.ReactNode;
   Nav: () => React.ReactNode;
+  height?: number | string;
 }) => {
   return (
-    <Wrapper>
+    <Wrapper style={{ height }}>
       <Nav />
       <Global />
 

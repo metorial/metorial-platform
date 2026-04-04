@@ -12,7 +12,6 @@ import {
 import {
   Attributes,
   Avatar,
-  Badge,
   Button,
   Copy,
   Entity,
@@ -86,16 +85,6 @@ export let MagicMcpServerOverviewPage = () => {
         instance.data,
         server.data.id
       ] as const;
-      let aliasBadges =
-        server.data.endpoints.length > 0
-          ? server.data.endpoints.map(endpoint => (
-              <div>
-                <Badge key={endpoint.id} color="gray" size="1">
-                  {endpoint.alias}
-                </Badge>
-              </div>
-            ))
-          : null;
 
       return (
         <Flex direction="column" gap={16}>
@@ -103,7 +92,6 @@ export let MagicMcpServerOverviewPage = () => {
             title={
               <Flex gap={8} style={{ alignItems: 'center', flexWrap: 'wrap' }}>
                 <span>{server.data.name ?? 'Magic MCP Server'}</span>
-                {aliasBadges}
               </Flex>
             }
             description="Magic MCP servers are reusable MCP servers linked to providers in Metorial."
@@ -116,8 +104,8 @@ export let MagicMcpServerOverviewPage = () => {
                   content: <ID id={server.data.id} />
                 },
                 {
-                  label: 'Session Template ID',
-                  content: <ID id={server.data.sessionTemplateId} />
+                  label: 'Server Identifier',
+                  content: <ID id={server.data.endpoints[0]?.alias ?? '...'} />
                 },
                 {
                   label: 'Created At',
