@@ -9,7 +9,6 @@ import { Outlet } from 'react-router-dom';
 import { Upgrade } from '../../components/emptyState';
 import { ProjectHomePage } from './pages';
 import { InstanceLayout } from './pages/_instanceLayout';
-import { PortalAuthGate, PortalManagementGate } from './pages/portal/shared';
 
 // Provider API pages
 let ProvidersHubLayout = dynamicPage(() =>
@@ -456,46 +455,6 @@ let ProjectDeveloperAPIPage = dynamicPage(() =>
   import('./pages/developer/api').then(c => c.ProjectDeveloperAPIPage)
 );
 let ExplorerPage = dynamicPage(() => import('./pages/explorer').then(c => c.ExplorerPage));
-let PortalsPage = dynamicPage(() => import('./pages/portals').then(c => c.PortalsPage));
-let ProviderTemplatesPage = dynamicPage(() =>
-  import('./pages/providerTemplates').then(c => c.ProviderTemplatesPage)
-);
-let PortalLayout = dynamicPage(() =>
-  import('./pages/portal/_layout').then(c => c.PortalLayout)
-);
-let PortalOverviewPage = dynamicPage(() =>
-  import('./pages/portal').then(c => c.PortalOverviewPage)
-);
-let PortalUsersPage = dynamicPage(() =>
-  import('./pages/portal/users').then(c => c.PortalUsersPage)
-);
-let PortalUserPage = dynamicPage(() =>
-  import('./pages/portal/user').then(c => c.PortalUserPage)
-);
-let PortalGroupsPage = dynamicPage(() =>
-  import('./pages/portal/groups').then(c => c.PortalGroupsPage)
-);
-let PortalGroupLayout = dynamicPage(() =>
-  import('./pages/portal/group/_layout').then(c => c.PortalGroupLayout)
-);
-let PortalGroupOverviewPage = dynamicPage(() =>
-  import('./pages/portal/group').then(c => c.PortalGroupOverviewPage)
-);
-let PortalGroupSettingsPage = dynamicPage(() =>
-  import('./pages/portal/group/settings').then(c => c.PortalGroupSettingsPage)
-);
-let PortalServerRequestsPage = dynamicPage(() =>
-  import('./pages/portal/serverRequests').then(c => c.PortalServerRequestsPage)
-);
-let PortalSettingsLayout = dynamicPage(() =>
-  import('./pages/portal/settings/_layout').then(c => c.PortalSettingsLayout)
-);
-let PortalSettingsOverviewPage = dynamicPage(() =>
-  import('./pages/portal/settings').then(c => c.PortalSettingsOverviewPage)
-);
-let PortalSettingsAuthPage = dynamicPage(() =>
-  import('./pages/portal/settings/auth').then(c => c.PortalSettingsAuthPage)
-);
 let FlaggedPage = ({ children, flag }: { children: React.ReactNode; flag: string }) => {
   let flags = useDashboardFlags();
 
@@ -1092,85 +1051,6 @@ export let productInnerSlice = createSlice([
           {
             path: 'explorer',
             element: <ExplorerPage />
-          },
-
-          {
-            path: 'portals',
-            element: (
-              <PortalManagementGate>
-                <PortalsPage />
-              </PortalManagementGate>
-            )
-          },
-          {
-            path: 'provider-templates',
-            element: (
-              <PortalManagementGate>
-                <ProviderTemplatesPage />
-              </PortalManagementGate>
-            )
-          },
-          {
-            path: 'portal/:portalId',
-            element: (
-              <PortalManagementGate>
-                <PortalLayout />
-              </PortalManagementGate>
-            ),
-            children: [
-              {
-                path: '',
-                element: <PortalOverviewPage />
-              },
-              {
-                path: 'users',
-                element: <PortalUsersPage />
-              },
-              {
-                path: 'user/:userId',
-                element: <PortalUserPage />
-              },
-              {
-                path: 'groups',
-                element: <PortalGroupsPage />
-              },
-              {
-                path: 'group/:groupId',
-                element: <PortalGroupLayout />,
-                children: [
-                  {
-                    path: '',
-                    element: <PortalGroupOverviewPage />
-                  },
-                  {
-                    path: 'settings',
-                    element: <PortalGroupSettingsPage />
-                  }
-                ]
-              },
-              {
-                path: 'server-requests',
-                element: <PortalServerRequestsPage />
-              },
-              {
-                path: 'settings',
-                element: <PortalSettingsLayout />,
-                children: [
-                  {
-                    path: '',
-                    element: <PortalSettingsOverviewPage />
-                  },
-                  {
-                    path: 'authentication',
-                    element: (
-                      <PortalAuthGate>
-                        <PortalSettingsAuthPage />
-                      </PortalAuthGate>
-                    )
-                  }
-                ]
-              }
-            ]
           },
 
           {
