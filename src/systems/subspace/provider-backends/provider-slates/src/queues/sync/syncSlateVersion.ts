@@ -4,7 +4,7 @@ import { Hash } from '@lowerdeck/hash';
 import { generateCode } from '@lowerdeck/id';
 import { createQueue } from '@lowerdeck/queue';
 import { slugify } from '@lowerdeck/slugify';
-import { snowflake, withTransaction } from '@metorial-subspace/db';
+import { db, snowflake } from '@metorial-subspace/db';
 import {
   providerInternalService,
   providerVersionInternalService,
@@ -70,135 +70,133 @@ export let syncSlateVersionQueueProcessor = syncSlateVersionQueue.process(async 
     slateVersionId: version.id
   });
 
-  await withTransaction(async db => {
-    let slateRecord = await db.slate.upsert({
-      where: { id: slate.id },
-      create: {
-        oid: snowflake.nextId(),
-        id: slate.id,
-        identifier: slate.identifier,
-        registryUrl: registry.url,
-        identifierInRegistry: registryRecord.fullIdentifier
-      },
-      update: {}
-    });
+  let slateRecord = await db.slate.upsert({
+    where: { id: slate.id },
+    create: {
+      oid: snowflake.nextId(),
+      id: slate.id,
+      identifier: slate.identifier,
+      registryUrl: registry.url,
+      identifierInRegistry: registryRecord.fullIdentifier
+    },
+    update: {}
+  });
 
-    let newVersionOid = snowflake.nextId();
-    let slateVersionRecord = await db.slateVersion.upsert({
-      where: { id: version.id },
-      create: {
-        oid: newVersionOid,
-        id: version.id,
-        version: version.version,
-        identifier: `${slate.identifier}::${version.version}`,
-        slateOid: slateRecord.oid
-      },
-      update: {}
-    });
+  let newVersionOid = snowflake.nextId();
+  let slateVersionRecord = await db.slateVersion.upsert({
+    where: { id: version.id },
+    create: {
+      oid: newVersionOid,
+      id: version.id,
+      version: version.version,
+      identifier: `${slate.identifier}::${version.version}`,
+      slateOid: slateRecord.oid
+    },
+    update: {}
+  });
 
-    let readmeNames = ['readme.md'];
-    let readme = registryVersionRecord.documents.find((d: any) =>
-      readmeNames.some(n => d.path.toLocaleLowerCase().endsWith(n))
-    )?.content;
+  let readmeNames = ['readme.md'];
+  let readme = registryVersionRecord.documents.find((d: any) =>
+    readmeNames.some(n => d.path.toLocaleLowerCase().endsWith(n))
+  )?.content;
 
-    let publisher = isMetorialRegistry
-      ? await publisherInternalService.upsertPublisherForMetorial()
-      : await publisherInternalService.upsertPublisherForExternal({
-          identifier: `slates::${slate.registryId}::${slate.scope.id}`,
-          name: registryRecord.name,
-          description: registryRecord.description ?? undefined
-        });
+  let publisher = isMetorialRegistry
+    ? await publisherInternalService.upsertPublisherForMetorial()
+    : await publisherInternalService.upsertPublisherForExternal({
+        identifier: `slates::${slate.registryId}::${slate.scope.id}`,
+        name: registryRecord.name,
+        description: registryRecord.description ?? undefined
+      });
 
-    let spec = version.specification?.id
-      ? await slates.slateSpecification.get({
-          slateSpecificationId: version.specification?.specificationId
-        })
-      : null;
+  let spec = version.specification?.id
+    ? await slates.slateSpecification.get({
+        slateSpecificationId: version.specification?.specificationId
+      })
+    : null;
 
-    let hasConfig = !!(spec ? normalizeJsonSchema(spec.configSchema) : null);
-    let hasAuthConfig = !!(spec && spec.authMethods.length > 0);
-    let hasOAuth = spec?.authMethods.some(am => am.type === 'oauth');
-    let hasTriggers = !!(spec ? spec.triggers.length > 0 : false);
+  let hasConfig = !!(spec ? normalizeJsonSchema(spec.configSchema) : null);
+  let hasAuthConfig = !!(spec && spec.authMethods.length > 0);
+  let hasOAuth = spec?.authMethods.some(am => am.type === 'oauth');
+  let hasTriggers = !!(spec ? spec.triggers.length > 0 : false);
 
-    let type = {
-      name: 'Slates',
+  let type = {
+    name: 'Slates',
 
-      attributes: {
-        provider: 'metorial-slates',
-        backend: 'slates',
+    attributes: {
+      provider: 'metorial-slates',
+      backend: 'slates',
 
-        triggers: hasTriggers
-          ? {
-              status: 'enabled',
-              receiverUrl: `${env.service.SLATES_HUB_PUBLIC_URL}/slates-hub/triggers/webhook/{callback.slatesTriggerId}`
-            }
-          : { status: 'disabled' },
+      triggers: hasTriggers
+        ? {
+            status: 'enabled',
+            receiverUrl: `${env.service.SLATES_HUB_PUBLIC_URL}/slates-hub/triggers/webhook/{callback.slatesTriggerId}`
+          }
+        : { status: 'disabled' },
 
-        auth: hasAuthConfig
-          ? {
-              status: 'enabled',
+      auth: hasAuthConfig
+        ? {
+            status: 'enabled',
 
-              oauth: hasOAuth
-                ? {
-                    status: 'enabled',
-                    oauthCallbackUrl: `${env.service.SLATES_HUB_PUBLIC_URL}/slates-hub/callback`
-                  }
-                : { status: 'disabled' },
+            oauth: hasOAuth
+              ? {
+                  status: 'enabled',
+                  oauthCallbackUrl: `${env.service.SLATES_HUB_PUBLIC_URL}/slates-hub/callback`
+                }
+              : { status: 'disabled' },
 
-              export: { status: 'enabled' },
+            export: { status: 'enabled' },
 
-              import: { status: 'enabled' }
-            }
-          : { status: 'disabled' },
+            import: { status: 'enabled' }
+          }
+        : { status: 'disabled' },
 
-        config: hasConfig
-          ? { status: 'enabled', read: { status: 'enabled' } }
-          : { status: 'disabled' }
-      } satisfies PrismaJson.ProviderTypeAttributes
-    };
+      config: hasConfig
+        ? { status: 'enabled', read: { status: 'enabled' } }
+        : { status: 'disabled' }
+    } satisfies PrismaJson.ProviderTypeAttributes
+  };
 
-    let provider = await providerInternalService.upsertProvider({
-      owner: null,
-      publisher,
-      source: {
-        type: 'slates',
-        slate: slateRecord,
-        backend
-      },
-      info: {
-        name: Cases.toTitleCase(slate.name),
-        description: slate.description ?? undefined,
-        slug: slugify(`${registryRecord.fullIdentifier}-${generateCode(5)}`),
-        image: registryRecord.logoUrl ? { type: 'url', url: registryRecord.logoUrl } : null,
-        skills: registryRecord.skills,
-        readme: readme,
-        categories: registryRecord.categories?.map((c: any) => c.identifier) ?? [],
-        globalIdentifier: slugify(
-          `${registryRecord.fullIdentifier}-${(await Hash.sha256(JSON.stringify(['slate', registryRecord.fullIdentifier, registry.url]))).slice(0, 6)}`
-        )
-      },
-      type
-    });
-    if (!provider?.defaultVariant) {
-      throw new Error(`No default variant after upserting provider for slate ${slate.id}`);
-    }
+  let provider = await providerInternalService.upsertProvider({
+    owner: null,
+    publisher,
+    source: {
+      type: 'slates',
+      slate: slateRecord,
+      backend
+    },
+    info: {
+      name: Cases.toTitleCase(slate.name),
+      description: slate.description ?? undefined,
+      slug: slugify(`${registryRecord.fullIdentifier}-${generateCode(5)}`),
+      image: registryRecord.logoUrl ? { type: 'url', url: registryRecord.logoUrl } : null,
+      skills: registryRecord.skills,
+      readme: readme,
+      categories: registryRecord.categories?.map((c: any) => c.identifier) ?? [],
+      globalIdentifier: slugify(
+        `${registryRecord.fullIdentifier}-${(await Hash.sha256(JSON.stringify(['slate', registryRecord.fullIdentifier, registry.url]))).slice(0, 6)}`
+      )
+    },
+    type
+  });
+  if (!provider?.defaultVariant) {
+    throw new Error(`No default variant after upserting provider for slate ${slate.id}`);
+  }
 
-    // Abort if the version already existed
-    // if (slateVersionRecord.oid !== newVersionOid) return;
+  // Abort if the version already existed
+  // if (slateVersionRecord.oid !== newVersionOid) return;
 
-    let providerVersion = await providerVersionInternalService.upsertVersion({
-      variant: provider.defaultVariant,
-      isCurrent: version.isCurrent,
-      source: {
-        type: 'slates',
-        slate: slateRecord,
-        slateVersion: slateVersionRecord,
-        backend
-      },
-      info: {
-        name: `v${version.version}`
-      },
-      type
-    });
+  await providerVersionInternalService.upsertVersion({
+    variant: provider.defaultVariant,
+    isCurrent: version.isCurrent,
+    source: {
+      type: 'slates',
+      slate: slateRecord,
+      slateVersion: slateVersionRecord,
+      backend
+    },
+    info: {
+      name: `v${version.version}`
+    },
+    type
   });
 });
