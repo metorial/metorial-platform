@@ -91,10 +91,6 @@ export let ProviderDeploymentLayout = () => {
                 to: `${Paths.instance.providerDeployment(...deploymentPathParams)}${search}`
               },
               {
-                label: 'Configs',
-                to: `${Paths.instance.providerDeployment(...deploymentPathParams, 'configs')}${search}`
-              },
-              {
                 label: 'Auth Configs',
                 to: `${Paths.instance.providerDeployment(...deploymentPathParams, 'auth-configs')}${search}`
               },
@@ -103,12 +99,16 @@ export let ProviderDeploymentLayout = () => {
                 to: `${Paths.instance.providerDeployment(...deploymentPathParams, 'auth-credentials')}${search}`
               },
               {
-                label: 'Config Vaults',
-                to: `${Paths.instance.providerDeployment(...deploymentPathParams, 'config-vaults')}${search}`
-              },
-              {
                 label: 'Auth Methods',
                 to: `${Paths.instance.providerDeployment(...deploymentPathParams, 'auth-methods')}${search}`
+              },
+              {
+                label: 'Configs',
+                to: `${Paths.instance.providerDeployment(...deploymentPathParams, 'configs')}${search}`
+              },
+              {
+                label: 'Vaults',
+                to: `${Paths.instance.providerDeployment(...deploymentPathParams, 'config-vaults')}${search}`
               },
               {
                 label: 'Settings',

@@ -49,10 +49,7 @@ let formatSchemaFieldLabel = (value: string) => formatGenericObjectTabLabel(valu
 let isObjectSchema = (property: JSONSchema7Definition): property is JSONSchema7 =>
   typeof property === 'object' && property !== null;
 
-let isJsonStringField = (p: {
-  key: string;
-  property: JSONSchema7;
-}) => {
+let isJsonStringField = (p: { key: string; property: JSONSchema7 }) => {
   if (p.property.type !== 'string') return false;
   if (p.property.format === 'password') return false;
 
@@ -61,6 +58,169 @@ let isJsonStringField = (p: {
     .join(' ');
 
   return /\bjson\b/i.test(haystack);
+};
+
+let isEmptyRequiredFieldValue = (value: unknown) => {
+  if (value == null) return true;
+  if (typeof value === 'string') return value.trim() === '';
+  if (Array.isArray(value)) return value.length === 0;
+  if (typeof value === 'object') return Object.keys(toRecord(value)).length === 0;
+  return false;
+};
+
+let collectEmptyRequiredFieldLabels = (p: {
+  schema: JSONSchema7;
+  value: unknown;
+  path?: string[];
+}): string[] => {
+  if (p.schema.type !== 'object' || !p.schema.properties) return [];
+
+  let record = toRecord(p.value);
+  let required = p.schema.required ?? [];
+
+  return Object.entries(p.schema.properties).reduce<string[]>((acc, [key, property]) => {
+    if (!isObjectSchema(property)) return acc;
+
+    let label = property.title ?? formatSchemaFieldLabel(key);
+    let nextPath = [...(p.path ?? []), label];
+    let nextValue = record[key];
+    let isRequired = required.includes(key);
+
+    if (isJsonStringField({ key, property })) {
+      return acc;
+    }
+
+    if (property.type === 'object' && property.properties) {
+      if (isRequired && nextValue == null) {
+        acc.push(nextPath.join(' > '));
+        return acc;
+      }
+
+      acc.push(
+        ...collectEmptyRequiredFieldLabels({
+          schema: property,
+          value: nextValue,
+          path: nextPath
+        })
+      );
+      return acc;
+    }
+
+    if (isRequired && isEmptyRequiredFieldValue(nextValue)) {
+      acc.push(nextPath.join(' > '));
+    }
+
+    return acc;
+  }, []);
+};
+
+let collectInvalidJsonStringFieldLabels = (p: {
+  schema: JSONSchema7;
+  value: unknown;
+  path?: string[];
+}): string[] => {
+  if (p.schema.type !== 'object' || !p.schema.properties) return [];
+
+  let record = toRecord(p.value);
+
+  return Object.entries(p.schema.properties).reduce<string[]>((acc, [key, property]) => {
+    if (!isObjectSchema(property)) return acc;
+
+    let label = property.title ?? formatSchemaFieldLabel(key);
+    let nextPath = [...(p.path ?? []), label];
+    let nextValue = record[key];
+
+    if (isJsonStringField({ key, property })) {
+      let rawValue = typeof nextValue === 'string' ? nextValue.trim() : '';
+      if (!rawValue) return acc;
+
+      try {
+        JSON.parse(rawValue);
+      } catch {
+        acc.push(nextPath.join(' > '));
+      }
+
+      return acc;
+    }
+
+    if (property.type === 'object' && property.properties) {
+      acc.push(
+        ...collectInvalidJsonStringFieldLabels({
+          schema: property,
+          value: nextValue,
+          path: nextPath
+        })
+      );
+    }
+
+    return acc;
+  }, []);
+};
+
+let collectEmptyRequiredJsonStringFieldLabels = (p: {
+  schema: JSONSchema7;
+  value: unknown;
+  path?: string[];
+}): string[] => {
+  if (p.schema.type !== 'object' || !p.schema.properties) return [];
+
+  let record = toRecord(p.value);
+  let required = p.schema.required ?? [];
+
+  return Object.entries(p.schema.properties).reduce<string[]>((acc, [key, property]) => {
+    if (!isObjectSchema(property)) return acc;
+
+    let label = property.title ?? formatSchemaFieldLabel(key);
+    let nextPath = [...(p.path ?? []), label];
+    let nextValue = record[key];
+
+    if (isJsonStringField({ key, property })) {
+      if (
+        required.includes(key) &&
+        (typeof nextValue !== 'string' || nextValue.trim() === '')
+      ) {
+        acc.push(nextPath.join(' > '));
+      }
+
+      return acc;
+    }
+
+    if (property.type === 'object' && property.properties) {
+      acc.push(
+        ...collectEmptyRequiredJsonStringFieldLabels({
+          schema: property,
+          value: nextValue,
+          path: nextPath
+        })
+      );
+    }
+
+    return acc;
+  }, []);
+};
+
+export let getInvalidJsonStringFieldLabels = (p: {
+  schema: JSONSchema7 | null | undefined;
+  value: unknown;
+}) => {
+  if (!p.schema) return [];
+  return collectInvalidJsonStringFieldLabels({ schema: p.schema, value: p.value });
+};
+
+export let getEmptyRequiredFieldLabels = (p: {
+  schema: JSONSchema7 | null | undefined;
+  value: unknown;
+}) => {
+  if (!p.schema) return [];
+  return collectEmptyRequiredFieldLabels({ schema: p.schema, value: p.value });
+};
+
+export let getEmptyRequiredJsonStringFieldLabels = (p: {
+  schema: JSONSchema7 | null | undefined;
+  value: unknown;
+}) => {
+  if (!p.schema) return [];
+  return collectEmptyRequiredJsonStringFieldLabels({ schema: p.schema, value: p.value });
 };
 
 let getGenericObjectEntryType = (value: unknown): GenericObjectEntryType => {
@@ -249,7 +409,7 @@ let GenericObjectTabs = styled.div`
   margin-top: 8px;
   margin-left: 10px;
   margin-bottom: 8px;
-  
+
   & > div {
     width: auto !important;
   }
@@ -366,7 +526,9 @@ export let JsonSchemaInput = ({
     onChange(newObject);
   };
 
-  let [currentGenericField, setCurrentGenericField] = useState(genericObjectFields[0]?.[0] ?? '');
+  let [currentGenericField, setCurrentGenericField] = useState(
+    genericObjectFields[0]?.[0] ?? ''
+  );
 
   useEffect(() => {
     if (!genericObjectFields.length) return;
@@ -451,7 +613,9 @@ let GenericObjectInput = ({
   hideLabel?: boolean;
 }) => {
   let initialSerialized = JSON.stringify(toRecord(initialValue));
-  let [entries, setEntries] = useState<GenericObjectEntry[]>(() => toGenericObjectEntries(initialValue));
+  let [entries, setEntries] = useState<GenericObjectEntry[]>(() =>
+    toGenericObjectEntries(initialValue)
+  );
   let onChangeRef = useRef(onChange);
   let lastEmittedValue = useRef(initialSerialized);
   onChangeRef.current = onChange;
@@ -508,7 +672,9 @@ let GenericObjectInput = ({
   }, [outputSerialized, validation.hasErrors]);
 
   let updateEntry = (id: string, patch: Partial<GenericObjectEntry>) => {
-    setEntries(current => current.map(entry => (entry.id === id ? { ...entry, ...patch } : entry)));
+    setEntries(current =>
+      current.map(entry => (entry.id === id ? { ...entry, ...patch } : entry))
+    );
   };
 
   let previewLabel = formatGenericObjectTabLabel(label.replace(/\s+\*$/, ''));
@@ -583,7 +749,9 @@ let GenericObjectInput = ({
                             value === 'boolean'
                               ? 'true'
                               : value === 'json'
-                                ? entry.type === 'json' ? entry.value : '{}'
+                                ? entry.type === 'json'
+                                  ? entry.value
+                                  : '{}'
                                 : entry.type === 'boolean'
                                   ? ''
                                   : entry.value
@@ -602,7 +770,9 @@ let GenericObjectInput = ({
                       size="1"
                       variant="outline"
                       onClick={() =>
-                        setEntries(current => current.filter(currentEntry => currentEntry.id !== entry.id))
+                        setEntries(current =>
+                          current.filter(currentEntry => currentEntry.id !== entry.id)
+                        )
                       }
                     >
                       Remove
@@ -642,9 +812,7 @@ let GenericObjectInput = ({
                     />
                   )}
 
-                  {validation.errors[entry.id] && (
-                    <Error>{validation.errors[entry.id]}</Error>
-                  )}
+                  {validation.errors[entry.id] && <Error>{validation.errors[entry.id]}</Error>}
                 </GenericObjectEntryCard>
               ))}
             </GenericObjectEntries>
@@ -857,7 +1025,9 @@ let RenderField = ({
             label: option.label
           }))}
           onChange={selectedId => {
-            let selectedOption = getEnumItems(property.enum).find(option => option.id === selectedId);
+            let selectedOption = getEnumItems(property.enum).find(
+              option => option.id === selectedId
+            );
             updateField(key, selectedOption?.value ?? property.default ?? '');
           }}
           placeholder="Select an option"

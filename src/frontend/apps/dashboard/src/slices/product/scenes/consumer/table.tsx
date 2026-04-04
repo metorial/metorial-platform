@@ -9,9 +9,13 @@ import {
 import { Badge, RenderDate, Text } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import { Table as DashboardTable } from '../../../../components/table';
+import { FilterPayload } from '../../../../components/table/filter';
+import {
+  TableStateProvider,
+  TableStateProviderResult
+} from '../../../../components/table/type';
 
 type Consumer = DashboardInstanceConsumersListOutput['items'][number];
-
 type ConsumersTableProps = {
   instanceId: string;
   organization: ReturnType<typeof useCurrentOrganization>;
@@ -19,13 +23,11 @@ type ConsumersTableProps = {
   instance: ReturnType<typeof useCurrentInstance>;
 };
 
-let getConsumerType = (consumer: Consumer) => {
-  if (consumer.isOrganizationMember) return 'Metorial Member';
-  if (consumer.isPortalConsumer) return 'Portal Member';
-  return 'Custom';
-};
-
-let useConsumersTableState = (props: ConsumersTableProps) => {
+let useConsumersTableState: TableStateProvider<
+  ConsumersTableProps,
+  Consumer,
+  TableStateProviderResult<Consumer>
+> = (props, _opts) => {
   let consumers = useConsumers(props.instanceId, { order: 'desc' });
 
   return {
@@ -46,7 +48,7 @@ let consumersTable = new DashboardTable<ConsumersTableProps, Consumer>('consumer
       id: 'name',
       isDefault: true,
       header: 'Name',
-      render: (consumer: Consumer) => (
+      render: (consumer, _input) => (
         <Text size="2" weight="strong">
           {consumer.name}
         </Text>
@@ -56,14 +58,18 @@ let consumersTable = new DashboardTable<ConsumersTableProps, Consumer>('consumer
       id: 'email',
       isDefault: true,
       header: 'Email',
-      render: (consumer: Consumer) => <Text size="2">{consumer.email}</Text>
+      render: (consumer, _input) => <Text size="2">{consumer.email}</Text>
     },
     {
       id: 'type',
       isDefault: true,
       header: 'Type',
-      render: (consumer: Consumer) => {
-        let type = getConsumerType(consumer);
+      render: (consumer, _input) => {
+        let type = consumer.isOrganizationMember
+          ? 'Metorial Member'
+          : consumer.isPortalConsumer
+            ? 'Portal Member'
+            : 'Custom';
         let color =
           type === 'Metorial Member'
             ? ('blue' as const)
@@ -78,19 +84,19 @@ let consumersTable = new DashboardTable<ConsumersTableProps, Consumer>('consumer
       id: 'createdAt',
       isDefault: true,
       header: 'Created',
-      render: (consumer: Consumer) => <RenderDate date={consumer.createdAt} />
+      render: (consumer, _input) => <RenderDate date={consumer.createdAt} />
     },
     {
       id: 'updatedAt',
       isDefault: false,
       header: 'Updated',
-      render: (consumer: Consumer) => <RenderDate date={consumer.updatedAt} />
+      render: (consumer, _input) => <RenderDate date={consumer.updatedAt} />
     },
     {
       id: 'isOrganizationMember',
       isDefault: false,
       header: 'Metorial Member',
-      render: (consumer: Consumer) => (
+      render: (consumer, _input) => (
         <Text size="2">{consumer.isOrganizationMember ? 'Yes' : 'No'}</Text>
       )
     },
@@ -98,7 +104,7 @@ let consumersTable = new DashboardTable<ConsumersTableProps, Consumer>('consumer
       id: 'isPortalConsumer',
       isDefault: false,
       header: 'Portal Member',
-      render: (consumer: Consumer) => (
+      render: (consumer, _input) => (
         <Text size="2">{consumer.isPortalConsumer ? 'Yes' : 'No'}</Text>
       )
     },
@@ -106,9 +112,9 @@ let consumersTable = new DashboardTable<ConsumersTableProps, Consumer>('consumer
       id: 'id',
       isDefault: false,
       header: 'Consumer ID',
-      render: (consumer: Consumer) => <ID id={consumer.id} />
+      render: (consumer, _input) => <ID id={consumer.id} />
     }
-  ] as any)
+  ])
   .link((consumer, props) =>
     Paths.instance.identity.consumer(
       props.organization.data,

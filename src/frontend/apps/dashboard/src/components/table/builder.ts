@@ -158,6 +158,10 @@ export class Table<
         sidePadding?: number;
         onItemClick?: (row: Item) => void;
         selectedItemId?: string;
+        headerActions?: (d: {
+          filter: Record<string, FilterPayload>;
+          search?: string;
+        }) => React.ReactNode;
       }
     ) => {
       return React.createElement(TableComponent, {
@@ -166,7 +170,8 @@ export class Table<
         emptyState: props.emptyState,
         props,
         onItemClick: props.onItemClick,
-        selectedItemId: props.selectedItemId
+        selectedItemId: props.selectedItemId,
+        headerActions: props.headerActions ?? opts.headerActions
       });
     };
   }

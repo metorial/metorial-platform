@@ -39,7 +39,7 @@ import {
   type ConfigurationSelection
 } from '../../lib/configSelection';
 import { getProviderConfigSchemaCapabilities } from '../../lib/providerCreationCapabilities';
-import { showProviderAuthConfigCreateModal } from '../../scenes/providerAuthConfigs/modal';
+import { showProviderAuthConfigMethodPickerModal } from '../../scenes/providerAuthConfigs/modal';
 import { ProviderConfigurationSelection } from '../../scenes/providerConfigs/selection';
 import { ProviderDeploymentsList } from '../../scenes/providerDeployments/list';
 import { ProviderSearch } from '../../scenes/providers/search';
@@ -271,7 +271,7 @@ export let ExplorerPage = () => {
   let openAuthConfigCreateModal = useCallback(() => {
     if (!instance.data || !providerDeploymentId) return false;
 
-    showProviderAuthConfigCreateModal({
+    showProviderAuthConfigMethodPickerModal({
       instanceId: instance.data.id,
       providerDeploymentId,
       onCreate: authConfig => {

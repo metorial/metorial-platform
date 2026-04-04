@@ -25,8 +25,7 @@ import {
   emptyConfigurationSelection,
   type ConfigurationSelection
 } from '../../lib/configSelection';
-import { useProviderAuthCreationCapabilities } from '../../lib/providerCreationCapabilities';
-import { showProviderAuthConfigCreateModal } from '../providerAuthConfigs/modal';
+import { ProviderAuthConfigCreateButton } from '../providerAuthConfigs/modal';
 import { ProviderConfigurationSelection } from '../providerConfigs/selection';
 import { ProviderDeploymentsList } from '../providerDeployments/list';
 import { ProviderSearch } from '../providers/search';
@@ -380,7 +379,6 @@ let DeploymentConfigureStep = ({
   let providerVersionId =
     deployment.data?.lockedVersion?.id ?? provider.data?.currentVersion?.id ?? null;
   let tools = useProviderTools(instanceId, providerVersionId ? { providerVersionId } : null);
-  let authCreation = useProviderAuthCreationCapabilities(instanceId, deploymentId, providerId);
   let authConfigItems = authConfigs.data?.items ?? [];
   let toolItems = tools.data?.items ?? [];
   let selectedAuthConfigId = form.values.selectedAuthConfigId;
@@ -447,30 +445,21 @@ let DeploymentConfigureStep = ({
               />
             </div>
 
-            <div
-              title={authCreation.authConfigDisabledReason ?? undefined}
-              style={{ display: 'inline-flex' }}
+            <ProviderAuthConfigCreateButton
+              instanceId={instanceId}
+              providerDeploymentId={deploymentId}
+              onCreate={authConfig => {
+                authConfigs.refetch?.();
+                form.setFieldValue('selectedAuthConfigId', authConfig.id);
+                form.setFieldTouched('selectedAuthConfigId', false, false);
+                form.setFieldError('selectedAuthConfigId', undefined);
+              }}
+              size="3"
+              iconLeft={<RiAddLine />}
+              ariaLabel="Create Auth Config"
             >
-              <Button
-                type="button"
-                size="3"
-                iconLeft={<RiAddLine />}
-                aria-label="Create Auth Config"
-                disabled={!authCreation.canCreateAuthConfig}
-                onClick={() =>
-                  showProviderAuthConfigCreateModal({
-                    instanceId,
-                    providerDeploymentId: deploymentId,
-                    onCreate: authConfig => {
-                      authConfigs.refetch?.();
-                      form.setFieldValue('selectedAuthConfigId', authConfig.id);
-                      form.setFieldTouched('selectedAuthConfigId', false, false);
-                      form.setFieldError('selectedAuthConfigId', undefined);
-                    }
-                  })
-                }
-              />
-            </div>
+              Create Auth Config
+            </ProviderAuthConfigCreateButton>
           </Flex>
           <form.RenderError field="selectedAuthConfigId" />
         </>

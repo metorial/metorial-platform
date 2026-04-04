@@ -362,7 +362,11 @@ export let TableComponent = reactMemo(
     let isFullLoading = initialLoading && state.isLoading;
     let navigate = useNavigate();
 
-    let hasHeader = (props.filters && props.filters.length > 0) || props.customizable;
+    let hasHeader =
+      !!props.search ||
+      !!props.headerActions ||
+      (props.filters && props.filters.length > 0) ||
+      props.customizable;
 
     let [openRowPanel, setOpenRowPanel] = useState<string[]>([]);
     let [runningBulkActionId, setRunningBulkActionId] = useState<string | null>(null);
@@ -431,11 +435,11 @@ export let TableComponent = reactMemo(
 
               <Spacer />
 
+              <Columns columns={props.columns} layoutObserver={props.layoutObserver} />
+
               {props.headerActions && (
                 <props.headerActions filter={filterPayload} search={debouncedSearch} />
               )}
-
-              <Columns columns={props.columns} layoutObserver={props.layoutObserver} />
             </HeaderSection>
           </Header>
         )}

@@ -103,7 +103,7 @@ let providerConfigVaultsOverviewState: TableStateProvider<
   };
 };
 
-let providerConfigVaultsOverviewTable = new DashboardTable<
+export let providerConfigVaultsOverviewTable = new DashboardTable<
   ProviderConfigVaultsOverviewTableProps,
   ProviderConfigVaultRow
 >('provider-config-vaults-overview')
