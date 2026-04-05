@@ -19,13 +19,15 @@ import {
   Input,
   Select,
   Spacer,
-  Text,
-  theme
+  Text
 } from '@metorial/ui';
 import { useEffect, useState } from 'react';
-import styled from 'styled-components';
 import { getProviderConfigSchemaCapabilities } from '../../lib/providerCreationCapabilities';
 import { JsonSchemaInput } from '../jsonSchemaInput';
+import {
+  FlatCreateSection,
+  FlatCreateSections
+} from '../providerCreationPanel/flatCreateLayout';
 import { ProviderContextCard } from '../providerContextCard';
 import { Stepper } from '../stepper';
 
@@ -50,22 +52,6 @@ export type ProviderConfigFormProps =
       flattenCreateFlow?: boolean;
     }
   | { type: 'update'; providerDeploymentId: string; configId: string; instanceId?: string };
-
-let FlatCreateSections = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-`;
-
-let FlatCreateSection = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 16px;
-  border-radius: 14px;
-  border: 1px solid ${theme.colors.gray300};
-  background: ${theme.colors.gray100};
-`;
 
 export let ProviderConfigForm = (
   props: ProviderConfigFormProps & {

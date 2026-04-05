@@ -277,6 +277,7 @@ let ProviderAuthConfigPanelFlow = (p: PanelFlowProps & { close: () => void }) =>
       instance.data,
       p.instanceId,
       p.close,
+      p.onCreated,
       providerId,
       selectedMethodId,
       autoSkipSingle,

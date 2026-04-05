@@ -11,18 +11,8 @@ import {
   useProviderAuthMethods,
   useProviderDeployment
 } from '@metorial/state';
-import {
-  Button,
-  CenteredSpinner,
-  Dialog,
-  Input,
-  Select,
-  Spacer,
-  Text,
-  theme
-} from '@metorial/ui';
+import { Button, CenteredSpinner, Dialog, Input, Select, Spacer, Text } from '@metorial/ui';
 import { useEffect, useState } from 'react';
-import styled from 'styled-components';
 import { getJsonSchemaObject } from '../../lib/jsonSchema';
 import { getProviderOAuthAutoRegistrationEnabled } from '../../lib/providerOAuthAutoRegistration';
 import {
@@ -31,24 +21,14 @@ import {
   getInvalidJsonStringFieldLabels,
   JsonSchemaInput
 } from '../jsonSchemaInput';
+import {
+  FlatCreateSection,
+  FlatCreateSections
+} from '../providerCreationPanel/flatCreateLayout';
 import { ProviderContextCard } from '../providerContextCard';
 import { Stepper } from '../stepper';
 
 type AuthMethod = DashboardInstanceProvidersAuthMethodsListOutput['items'][number];
-
-let FlatCreateSections = styled.div`
-  display: flex;
-  flex-direction: column;
-`;
-
-let FlatCreateSection = styled.div`
-  display: flex;
-  flex-direction: column;
-  padding: 16px;
-  border-radius: 14px;
-  border: 1px solid ${theme.colors.gray300};
-  background: ${theme.colors.gray100};
-`;
 
 let getAuthMethodHasSchema = (method: AuthMethod | undefined) => {
   let schemaObj = getJsonSchemaObject(method?.inputSchema);
@@ -424,8 +404,6 @@ export let ProviderAuthConfigForm = (
             <FlatCreateSections>
               <FlatCreateSection>{credentialsSection}</FlatCreateSection>
 
-              <Spacer size={16} />
-
               <FlatCreateSection>
                 <Input
                   label="Name"
@@ -439,8 +417,6 @@ export let ProviderAuthConfigForm = (
                     : {})}
                 />
                 <form.RenderError field="name" />
-
-                <Spacer size={8} />
 
                 <Input label="Description" {...form.getFieldProps('description')} />
                 <form.RenderError field="description" />
