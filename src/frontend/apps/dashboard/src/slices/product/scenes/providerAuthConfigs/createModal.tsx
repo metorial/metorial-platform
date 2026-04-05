@@ -25,6 +25,22 @@ let ProviderAuthConfigCreateModalContent = (
     close: () => void;
   }
 ) => {
+  let deployment = useProviderDeployment(p.instanceId, p.providerDeploymentId);
+  let authCreation = useProviderAuthCreationCapabilities(
+    p.instanceId,
+    p.providerDeploymentId,
+    p.providerId ?? deployment.data?.providerId
+  );
+  let selectedMethod = authCreation.authMethodItems.find(
+    method => method.id === p.initialAuthMethodId
+  );
+  let effectiveAuthMethod =
+    selectedMethod ??
+    (authCreation.authMethodItems.length === 1 ? authCreation.authMethodItems[0] : undefined);
+
+  let dialogWidth =
+    effectiveAuthMethod && isSetupFlowAuthMethod(effectiveAuthMethod) ? 1180 : 650;
+
   let handleBack = () => {
     if (!p.onBack) {
       p.close();
@@ -35,7 +51,7 @@ let ProviderAuthConfigCreateModalContent = (
   };
 
   return (
-    <Dialog.Wrapper {...p.dialogProps} width={650}>
+    <Dialog.Wrapper {...p.dialogProps} width={dialogWidth}>
       <ProviderAuthConfigCreateFlowContent {...p} close={p.close} onBack={handleBack} />
     </Dialog.Wrapper>
   );
