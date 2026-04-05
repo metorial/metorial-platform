@@ -9,6 +9,7 @@ export let subspaceProviderDeploymentService = createSubspaceService(
   inner => ({
     list: async (
       arg0: Parameters<typeof inner.list>[0] & {
+        actorIds?: string[];
         consumerIds?: string[];
       }
     ) => {
