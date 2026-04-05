@@ -10,7 +10,7 @@ import { Avatar, Button, Input, Or, Select, Spacer, theme, toast } from '@metori
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import { Stepper } from '../stepper';
+import { Stepper } from '../../../../components/stepper';
 import { remoteServerTemplates } from './config';
 import {
   getCustomProviderRemoteProtocolFromUrl,

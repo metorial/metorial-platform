@@ -7,7 +7,7 @@ import { Button, Input, Spacer, toast } from '@metorial/ui';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import { Stepper } from '../stepper';
+import { Stepper } from '../../../../components/stepper';
 import { getDefaultServerConfigDocker } from './config';
 
 let Actions = styled.div`

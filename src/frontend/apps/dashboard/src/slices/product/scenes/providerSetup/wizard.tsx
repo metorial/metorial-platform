@@ -1,4 +1,4 @@
-import { Stepper } from '../stepper';
+import { Stepper } from '../../../../components/stepper';
 import { useWizard, WizardStep } from './index';
 import { AuthSetupStep } from './steps/authSetup';
 import { DeploymentDetailsStep } from './steps/deploymentDetails';

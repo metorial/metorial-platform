@@ -51,14 +51,14 @@ let formatType = (type: string | null | undefined) => {
   if (type === 'oauth_automated') return 'OAuth (Automated)';
   if (type === 'oauth_manual') return 'OAuth (Manual)';
   if (type === 'manual') return 'Manual';
-  return '\u2014';
+  return '—';
 };
 
 let formatSource = (source: AuthConfigItem['source'] | null | undefined) => {
   if (source === 'manual') return 'Manual';
   if (source === 'setup_session') return 'Setup Session';
   if (source === 'system') return 'System';
-  return '\u2014';
+  return '—';
 };
 
 let getStatusFilterValue = (
@@ -138,7 +138,7 @@ export let providerAuthConfigsFilterTable = new DashboardTable<
       header: 'Name',
       render: row => (
         <Text size="2" weight="strong">
-          {row.name || '\u2014'}
+          {row.name || '—'}
         </Text>
       )
     },
@@ -152,15 +152,13 @@ export let providerAuthConfigsFilterTable = new DashboardTable<
       id: 'deployment',
       isDefault: true,
       header: 'Deployment',
-      render: row => <Text size="2">{row.deployment?.name ?? '\u2014'}</Text>
+      render: row => <Text size="2">{row.deployment?.name ?? '—'}</Text>
     },
     {
       id: 'authMethod',
       isDefault: true,
       header: 'Auth Method',
-      render: row => (
-        <Text size="2">{row.authMethod?.name ?? row.authMethod?.key ?? '\u2014'}</Text>
-      )
+      render: row => <Text size="2">{row.authMethod?.name ?? row.authMethod?.key ?? '—'}</Text>
     },
     {
       id: 'createdAt',

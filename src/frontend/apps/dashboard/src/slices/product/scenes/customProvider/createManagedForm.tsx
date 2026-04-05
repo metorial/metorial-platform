@@ -26,7 +26,7 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import { Stepper } from '../stepper';
+import { Stepper } from '../../../../components/stepper';
 import { ConnectGitHubButton, SelectRepo } from './selectRepo';
 import { waitForCustomProviderVersionId } from './utils';
 

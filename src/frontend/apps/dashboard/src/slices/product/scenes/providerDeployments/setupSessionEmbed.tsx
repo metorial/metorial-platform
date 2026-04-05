@@ -33,7 +33,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { getProviderOAuthAutoRegistrationEnabled } from '../../lib/providerOAuthAutoRegistration';
 import { AuthMethodPicker } from '../providerAuthConfigs/authMethodPicker';
-import { Stepper } from '../stepper';
+import { Stepper } from '../../../../components/stepper';
 
 type AuthMethod = DashboardInstanceProvidersAuthMethodsListOutput['items'][number];
 type CredentialsMode = 'existing' | 'new';

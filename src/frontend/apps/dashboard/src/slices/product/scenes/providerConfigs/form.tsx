@@ -29,7 +29,7 @@ import {
   FlatCreateSections
 } from '../providerCreationPanel/flatCreateLayout';
 import { ProviderContextCard } from '../providerContextCard';
-import { Stepper } from '../stepper';
+import { Stepper } from '../../../../components/stepper';
 
 type ConfigSourceMode = '' | 'raw' | 'vault';
 

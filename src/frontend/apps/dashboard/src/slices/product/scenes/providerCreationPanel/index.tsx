@@ -1,7 +1,7 @@
 import { Panel, showModal } from '@metorial/ui';
 import { type ReactNode } from 'react';
 import { ProvidersWithDeploymentsSearch } from '../providers/search';
-import { PillStepper } from '../stepper';
+import { PillStepper } from '../../../../components/stepper';
 
 type ProviderCreationPanelStep = {
   title: string;
