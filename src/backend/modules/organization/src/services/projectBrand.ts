@@ -97,7 +97,6 @@ class ProjectBrandService {
             id: await ID.generateId('projectBrandUpdate'),
             brandOid: currentBrand.oid,
             createdByOid: d.performedBy.oid,
-            isAutoUpdate: !!d.isAutoUpdate,
             before: {
               name: currentName,
               image: currentImage
