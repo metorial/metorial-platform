@@ -138,7 +138,6 @@ let ProviderAuthConfigMethodPickerModalContent = (
         <Spacer size={10} />
 
         <AuthMethodPicker
-          name="provider-auth-method"
           label="Authentication method"
           hideLabel
           focusOnMount

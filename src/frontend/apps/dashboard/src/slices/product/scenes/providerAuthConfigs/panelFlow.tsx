@@ -16,6 +16,7 @@ import { ProviderAuthConfigCreateFlowContent } from './createModal';
 import { getCreateMethodDescription } from './modalHelpers';
 import { Button, Callout, CenteredSpinner, Dialog, Spacer, Text } from '@metorial/ui';
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 type PanelFlowProps = {
   instanceId: string;
@@ -38,7 +39,6 @@ let AuthMethodStep = (p: {
     p.providerId
   );
   let methods = authCreation.authMethodItems;
-  let providerName = authCreation.provider.data?.name ?? 'this provider';
   let form = useForm({
     initialValues: {
       authMethodId: p.selectedMethodId || ''
@@ -148,7 +148,6 @@ let AuthMethodStep = (p: {
   return (
     <form onSubmit={form.handleSubmit}>
       <AuthMethodPicker
-        name="provider-auth-method"
         label="Authentication method"
         hideLabel
         focusOnMount
@@ -189,6 +188,7 @@ let ProviderAuthConfigPanelFlow = (p: PanelFlowProps & { close: () => void }) =>
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
   let instance = useCurrentInstance();
+  let navigate = useNavigate();
   let [step, setStep] = useState(0);
   let [providerId, setProviderId] = useState<string | null>(null);
   let [selectedMethodId, setSelectedMethodId] = useState('');
@@ -254,7 +254,7 @@ let ProviderAuthConfigPanelFlow = (p: PanelFlowProps & { close: () => void }) =>
               onCreate={authConfig => {
                 if (!organization.data || !project.data || !instance.data) return;
 
-                window.location.assign(
+                navigate(
                   Paths.instance.providerAuthConfig(
                     organization.data,
                     project.data,
@@ -277,7 +277,8 @@ let ProviderAuthConfigPanelFlow = (p: PanelFlowProps & { close: () => void }) =>
       p.close,
       providerId,
       selectedMethodId,
-      autoSkipSingle
+      autoSkipSingle,
+      navigate
     ]
   );
 

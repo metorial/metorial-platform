@@ -3,11 +3,8 @@ import { type ReactNode } from 'react';
 import { showProviderAuthConfigMethodPickerModal } from '../../../scenes/providerAuthConfigs/modal';
 import { showProviderAuthConfigPanelFlow } from '../../../scenes/providerAuthConfigs/panelFlow';
 import { showProviderAuthCredentialsPanelFlow } from '../../../scenes/providerAuthCredentials/panelFlow';
-import { showProviderAuthCredentialsFormModal } from '../../../scenes/providerAuthCredentials/modal';
 import { showProviderConfigVaultPanelFlow } from '../../../scenes/providerConfigVaults/panelFlow';
-import { showProviderConfigVaultFormModal } from '../../../scenes/providerConfigVaults/modal';
 import { showProviderConfigPanelFlow } from '../../../scenes/providerConfigs/panelFlow';
-import { showProviderConfigFormModal } from '../../../scenes/providerConfigs/modal';
 import { ProviderDeploymentsList } from '../../../scenes/providerDeployments/list';
 import { ProvidersWithDeploymentsSearch } from '../../../scenes/providers/search';
 

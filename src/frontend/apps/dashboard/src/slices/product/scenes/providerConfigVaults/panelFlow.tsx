@@ -1,7 +1,12 @@
-import { useCurrentInstance, useCurrentOrganization, useCurrentProject } from '@metorial/state';
+import {
+  useCurrentInstance,
+  useCurrentOrganization,
+  useCurrentProject
+} from '@metorial/state';
 import { Paths } from '@metorial/frontend-config';
 import { CenteredSpinner } from '@metorial/ui';
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   ProviderCreationPanelShell,
   ProviderSelectionStep,
@@ -13,6 +18,7 @@ export let ProviderConfigVaultPanelFlow = (p: { instanceId: string; close: () =>
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
   let instance = useCurrentInstance();
+  let navigate = useNavigate();
   let [step, setStep] = useState(0);
   let [providerId, setProviderId] = useState<string | null>(null);
 
@@ -44,7 +50,7 @@ export let ProviderConfigVaultPanelFlow = (p: { instanceId: string; close: () =>
               onCreate={vault => {
                 if (!organization.data || !project.data || !instance.data) return;
 
-                window.location.assign(
+                navigate(
                   Paths.instance.providerConfigVault(
                     organization.data,
                     project.data,
@@ -59,7 +65,15 @@ export let ProviderConfigVaultPanelFlow = (p: { instanceId: string; close: () =>
           )
       }
     ],
-    [organization.data, project.data, instance.data, p.instanceId, p.close, providerId]
+    [
+      organization.data,
+      project.data,
+      instance.data,
+      p.instanceId,
+      p.close,
+      providerId,
+      navigate
+    ]
   );
 
   return (

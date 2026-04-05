@@ -164,7 +164,6 @@ export let AuthMethodPicker = (p: {
   items: AuthMethodPickerItem[];
   value: string;
   onChange: (id: string) => void;
-  name?: string;
   label?: string;
   ariaLabel?: string;
   description?: ReactNode;
@@ -216,15 +215,6 @@ export let AuthMethodPicker = (p: {
           if (!nextValue || nextValue == p.value) return;
           p.onChange(nextValue);
         }}
-        onKeyDownCapture={e => {
-          if (e.key !== 'Enter') return;
-          e.preventDefault();
-
-          let form = (e.target as HTMLElement).closest('form');
-          requestAnimationFrame(() => {
-            form?.requestSubmit();
-          });
-        }}
         aria-label={!p.label ? p.ariaLabel : undefined}
         aria-labelledby={p.label ? labelId : undefined}
         aria-describedby={p.description ? descriptionId : undefined}
@@ -235,10 +225,6 @@ export let AuthMethodPicker = (p: {
             value={method.id}
             ref={element => {
               itemRefs.current[method.id] = element;
-            }}
-            onFocus={() => {
-              if (p.value == method.id) return;
-              p.onChange(method.id);
             }}
           >
             <MethodIndicator aria-hidden />
