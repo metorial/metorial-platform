@@ -623,7 +623,7 @@ export let createMagicMcpTokenModal = (opts?: { groupId?: string }) =>
           name: values.name,
           description: values.description || undefined,
           instanceId: instance.data!.id,
-          groupIds: values.groupIds.length > 0 ? values.groupIds : undefined
+          magicMcpGroupIds: values.groupIds.length > 0 ? values.groupIds : undefined
         });
 
         if (!res) return;

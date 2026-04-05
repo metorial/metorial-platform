@@ -47,12 +47,13 @@ class ConsumerGroupServiceImpl {
   async getConsumerGroupById(d: {
     consumerSurface: ConsumerSurface;
     consumerGroupId: string;
+    types?: ConsumerGroup['type'][];
   }) {
     let consumerGroup = await db.consumerGroup.findFirst({
       where: {
         surfaceOid: d.consumerSurface.oid,
         id: d.consumerGroupId,
-        type: 'default'
+        type: d.types?.length ? { in: d.types } : 'default'
       }
     });
     if (!consumerGroup) {
