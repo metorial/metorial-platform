@@ -81,6 +81,13 @@ vi.mock('../src/queues/syncBrand', () => ({
   }
 }));
 
+vi.mock('../src/queues/syncSubspaceTenant', () => ({
+  syncSubspaceTenantQueue: {
+    add: vi.fn(),
+    addMany: vi.fn()
+  }
+}));
+
 import { db, ID, withTransaction } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { instanceService } from '../src/services/instance';
