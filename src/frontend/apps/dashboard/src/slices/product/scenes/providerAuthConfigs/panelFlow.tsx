@@ -20,6 +20,7 @@ import { useNavigate } from 'react-router-dom';
 
 type PanelFlowProps = {
   instanceId: string;
+  onCreated?: (authConfigId: string) => void;
 };
 
 let AuthMethodStep = (p: {
@@ -252,6 +253,7 @@ let ProviderAuthConfigPanelFlow = (p: PanelFlowProps & { close: () => void }) =>
                 setStep(1);
               }}
               onCreate={authConfig => {
+                p.onCreated?.(authConfig.id);
                 if (!organization.data || !project.data || !instance.data) return;
 
                 navigate(

@@ -231,7 +231,10 @@ export let showCreateProviderAuthConfigFlow = (
   let scope = options?.scope ?? 'provider';
   if (scope === 'provider') {
     return showProviderAuthConfigPanelFlow({
-      instanceId
+      instanceId,
+      onCreated: authConfigId => {
+        options?.onCreated?.(null, authConfigId);
+      }
     });
   }
 

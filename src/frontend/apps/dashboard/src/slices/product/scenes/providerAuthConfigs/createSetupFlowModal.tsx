@@ -1,6 +1,7 @@
 import { ProviderSetupSessionEmbed } from '../providerDeployments/setupSessionEmbed';
 import { AuthMethod } from './modalHelpers';
 import { PreviewMode, SetupFlowLayout, SetupFlowPreviewSidebar } from './previewSidebar';
+import { instanceProviderAuthConfigsLoader } from '@metorial/state';
 
 export let ProviderAuthConfigSetupFlowCreateContent = (p: {
   instanceId: string;
@@ -39,6 +40,7 @@ export let ProviderAuthConfigSetupFlowCreateContent = (p: {
           onComplete={result => {
             let authConfigId = result?.authConfig?.id;
             if (authConfigId) {
+              void instanceProviderAuthConfigsLoader.refetchAll();
               p.onCreate?.({ id: authConfigId });
             }
             p.close();

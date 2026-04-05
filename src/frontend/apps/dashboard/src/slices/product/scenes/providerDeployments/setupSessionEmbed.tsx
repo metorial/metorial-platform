@@ -498,10 +498,7 @@ export let ProviderSetupSessionEmbed = ({
   let showManagedChoiceStep = requiresManualOAuthCredentials;
   let isCreatingCredentials = credentialsForm.values.credentialMode === 'new';
   let isManagedSelected = !isCreatingCredentials && !!selectedVisibleCredential?.isManaged;
-  let isCustomSelected =
-    !hasManagedVisibleCredentials ||
-    credentialsForm.values.credentialMode === 'new' ||
-    (!!selectedVisibleCredential && !selectedVisibleCredential.isManaged);
+  let isCustomSelected = !isManagedSelected;
   let isLatestCreatedCredentialSelected =
     !!latestCreatedCredentialId &&
     credentialsForm.values.selectedCredentialId === latestCreatedCredentialId;
@@ -1761,7 +1758,8 @@ export let ProviderSetupSessionEmbed = ({
                   <Button
                     type="button"
                     onClick={() => {
-                      let opened = openSetupWindow(setupSession.url!);
+                      if (!setupSession?.url) return;
+                      let opened = openSetupWindow(setupSession.url);
                       setSetupWindowBlocked(!opened);
                     }}
                   >
