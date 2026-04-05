@@ -1,5 +1,11 @@
 import { AnimatePanes, Tooltip, theme } from '@metorial/ui';
-import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
+import {
+  motion,
+  useMotionValue,
+  useSpring,
+  useTransform,
+  type MotionValue
+} from 'framer-motion';
 import React, { CSSProperties, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 
@@ -232,10 +238,12 @@ let PillStepItem = ({
   setCurrentStep: (step: number) => void;
   slotRef: (node: HTMLButtonElement | null) => void;
   rect?: { x: number; width: number };
-  activeX: ReturnType<typeof useSpring>;
-  activeWidth: ReturnType<typeof useSpring>;
+  activeX: MotionValue<number>;
+  activeWidth: MotionValue<number>;
 }) => {
-  let clipPath = useTransform([activeX, activeWidth], ([x, width]) => {
+  let clipPath = useTransform([activeX, activeWidth], (latest: number[]) => {
+    let [x = 0, width = 0] = latest;
+
     if (!rect) return 'inset(0 100% 0 0)';
 
     let overlap = Math.max(0, Math.min(x + width, rect.x + rect.width) - Math.max(x, rect.x));
