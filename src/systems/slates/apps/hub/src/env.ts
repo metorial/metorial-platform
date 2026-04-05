@@ -43,12 +43,5 @@ export let env = createValidatedEnv({
 
   slates: {
     SLATES_HUB_INSTANCE_IDENTIFIER: v.string()
-  },
-
-  slackEvents: {
-    /** Single Slack app Signing Secret (Events API). */
-    SLACK_EVENTS_SIGNING_SECRET: v.optional(v.string()),
-    /** Optional JSON map of Slack `api_app_id` → signing secret for multiple Slack apps. */
-    SLACK_EVENTS_SIGNING_SECRETS_JSON: v.optional(v.string())
   }
 });
