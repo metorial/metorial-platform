@@ -59,6 +59,7 @@ model ApiKey {
 
   secrets                       ApiKeySecret[]
   consumerSurfacePublishableKey ConsumerSurface?         @relation("ConsumerSurfacePublishableApiKey")
+  createdEmailSends             ApiKeyCreatedEmailSend[]
   expiredEmailSends             ApiKeyExpiredEmailSend[]
 
   @@index([expiresAt])

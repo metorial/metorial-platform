@@ -69,6 +69,7 @@ model Organization {
   oauthAuthorizationFlows OAuthAuthorizationFlow[]
   accessRoles             AccessRole[]
   accessPolicies          AccessPolicy[]
+  apiKeyCreatedEmailSends ApiKeyCreatedEmailSend[]
   apiKeyExpiredEmailSends ApiKeyExpiredEmailSend[]
   consumerActors          ConsumerActor[]
 

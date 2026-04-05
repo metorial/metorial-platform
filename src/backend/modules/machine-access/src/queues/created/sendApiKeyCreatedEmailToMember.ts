@@ -1,23 +1,27 @@
 import { db } from '@metorial/db';
 import { createQueue, QueueRetryError } from '@metorial/queue';
-import { apiKeyExpiredEmail } from '../email/apiKeyExpired';
+import { apiKeyCreatedEmail } from '../../email/apiKeyCreated';
 
-export let sendExpiredApiKeyEmailQueue = createQueue<{
+export let sendApiKeyCreatedEmailToMemberQueue = createQueue<{
   apiKeyId: string;
   organizationId: string;
   memberId: string;
+  performedByActorId: string;
 }>({
-  name: 'macc/apiKey/sendExpiredEmail',
+  name: 'macc/apiKey/sendCreatedEmailToMember',
   workerOpts: {
     concurrency: 10
   }
 });
 
-export let sendExpiredApiKeyEmailQueueProcessor = sendExpiredApiKeyEmailQueue.process(
-  async data => {
-    let [apiKey, organization, member] = await Promise.all([
+export let sendApiKeyCreatedEmailToMemberQueueProcessor =
+  sendApiKeyCreatedEmailToMemberQueue.process(async data => {
+    let [apiKey, organization, member, createdBy] = await Promise.all([
       db.apiKey.findUnique({
-        where: { id: data.apiKeyId }
+        where: { id: data.apiKeyId },
+        include: {
+          machineAccess: true
+        }
       }),
       db.organization.findUnique({
         where: { id: data.organizationId }
@@ -28,21 +32,26 @@ export let sendExpiredApiKeyEmailQueueProcessor = sendExpiredApiKeyEmailQueue.pr
           status: 'active',
           organization: {
             id: data.organizationId
+          },
+          user: {
+            status: 'active'
           }
         },
         include: {
           user: true
         }
+      }),
+      db.organizationActor.findUnique({
+        where: { id: data.performedByActorId }
       })
     ]);
 
-    if (!apiKey || !organization) throw new QueueRetryError();
+    if (!apiKey || !organization || !createdBy) throw new QueueRetryError();
 
     if (!member) return;
-    if (apiKey.status != 'expired' || apiKey.machineAccessOid == null) return;
-    if (member.role != 'admin' || member.user.status != 'active') return;
+    if (apiKey.machineAccess.organizationOid != organization.oid) return;
 
-    let existingSend = await db.apiKeyExpiredEmailSend.findFirst({
+    let existingSend = await db.apiKeyCreatedEmailSend.findFirst({
       where: {
         apiKeyOid: apiKey.oid,
         memberOid: member.oid
@@ -50,16 +59,17 @@ export let sendExpiredApiKeyEmailQueueProcessor = sendExpiredApiKeyEmailQueue.pr
     });
     if (existingSend) return;
 
-    await apiKeyExpiredEmail.send({
+    await apiKeyCreatedEmail.send({
       to: [member.user.email],
       data: {
         apiKey,
         organization,
-        user: member.user
+        user: member.user,
+        createdBy
       }
     });
 
-    await db.apiKeyExpiredEmailSend.create({
+    await db.apiKeyCreatedEmailSend.create({
       data: {
         apiKeyOid: apiKey.oid,
         organizationOid: organization.oid,
@@ -68,5 +78,4 @@ export let sendExpiredApiKeyEmailQueueProcessor = sendExpiredApiKeyEmailQueue.pr
         email: member.user.email
       }
     });
-  }
-);
+  });

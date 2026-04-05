@@ -38,6 +38,7 @@ model OrganizationMember {
   userConfigs             OrganizationUserConfig[]
   oauthAuthorizations     OAuthAuthorization[]
   policies                AccessPolicyAssignment[]
+  apiKeyCreatedEmailSends ApiKeyCreatedEmailSend[]
   apiKeyExpiredEmailSends ApiKeyExpiredEmailSend[]
   consumers               Consumer[]
   instanceConsumers       InstanceConsumer[]

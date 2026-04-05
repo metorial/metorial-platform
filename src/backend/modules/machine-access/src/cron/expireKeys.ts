@@ -3,7 +3,7 @@ import { db } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { organizationActorService } from '@metorial/module-organization/src/services/organizationActor';
 import { combineQueueProcessors, createQueue, QueueRetryError } from '@metorial/queue';
-import { notifyExpiredApiKeyAdminsQueue } from '../queues/notifyExpiredApiKeyAdmins';
+import { notifyExpiredApiKeyAdminsQueue } from '../queues/expired/notifyExpiredApiKeyAdmins';
 
 let expireCron = createCron(
   {
