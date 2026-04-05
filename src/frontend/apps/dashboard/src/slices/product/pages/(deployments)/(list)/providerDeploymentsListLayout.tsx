@@ -136,26 +136,13 @@ let providerDeploymentsTabs: Record<
     label: 'Auth Configs',
     segment: 'auth-configs',
     description: 'Manage authenticated connections to your providers.',
-    renderAction: ({ instance, organization, project, navigate }) => (
+    renderAction: ({ instance }) => (
       <Button
         size="2"
         onClick={() => {
           if (instance?.id) {
             showCreateProviderAuthConfigFlow(instance.id, {
-              scope: 'provider',
-              onCreated: (deploymentId, authConfigId) => {
-                if (!instance || !deploymentId) return;
-
-                navigate(
-                  Paths.instance.providerAuthConfig(
-                    organization,
-                    project,
-                    instance,
-                    deploymentId,
-                    authConfigId
-                  )
-                );
-              }
+              scope: 'provider'
             });
           }
         }}
@@ -174,7 +161,6 @@ export let ProviderDeploymentsListLayout = () => {
   let pathname = location.pathname;
   let search = location.search;
   let navigate = useNavigate();
-
   let activeTab = getActiveTab(pathname);
   let currentTab = providerDeploymentsTabs[activeTab];
   let pathParams = [organization.data, project.data, instance.data] as const;
@@ -183,7 +169,7 @@ export let ProviderDeploymentsListLayout = () => {
   return (
     <ContentLayout>
       <PageHeader
-        title={isDeploymentsPage ? 'Deployments' : 'Configuration'}
+        title={isDeploymentsPage ? 'Deployments' : 'Configurations'}
         description={currentTab.description}
         actions={currentTab.renderAction({
           instance: instance.data,

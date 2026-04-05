@@ -14,7 +14,7 @@ export type PreviewMode = 'managed' | 'manual_existing' | 'manual_new';
 export let SetupFlowLayout = styled.div<{ $showPreview: boolean }>`
   display: grid;
   grid-template-columns: ${({ $showPreview }) =>
-    $showPreview ? 'minmax(0, 3fr) minmax(0, 2fr)' : 'minmax(0, 1fr) minmax(0, 0fr)'};
+    $showPreview ? 'minmax(0, 1fr) minmax(0, 1fr)' : 'minmax(0, 1fr) minmax(0, 0fr)'};
   gap: ${({ $showPreview }) => ($showPreview ? '24px' : '0px')};
   align-items: start;
   transition:
@@ -76,9 +76,9 @@ let SetupFlowPreviewScreen = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-height: 700px;
+  min-height: 520px;
   width: 100%;
-  max-width: 500px;
+  max-width: 560px;
   margin: 0 auto;
 `;
 

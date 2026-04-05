@@ -130,12 +130,6 @@ export let providerAuthCredentialsTable = new DashboardTable<
       )
     },
     {
-      id: 'id',
-      isDefault: true,
-      header: 'ID',
-      render: row => <ID id={row.id} />
-    },
-    {
       id: 'provider',
       isDefault: true,
       header: 'Provider',
@@ -152,6 +146,12 @@ export let providerAuthCredentialsTable = new DashboardTable<
       isDefault: true,
       header: 'Created',
       render: row => <RenderDate date={row.createdAt} />
+    },
+    {
+      id: 'id',
+      isDefault: true,
+      header: 'ID',
+      render: row => <ID id={row.id} />
     },
     {
       id: 'origin',

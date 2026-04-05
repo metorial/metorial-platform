@@ -46,6 +46,7 @@ export let ProviderAuthConfigCreateFlowContent = (
     close: () => void;
     onBack: () => void;
     embedded?: boolean;
+    onWindowOpenStateChange?: (isOpen: boolean) => void;
   }
 ) => {
   let deployment = useProviderDeployment(p.instanceId, p.providerDeploymentId);
@@ -151,6 +152,7 @@ export let ProviderAuthConfigCreateFlowContent = (
             close={p.close}
             onCreate={p.onCreate}
             onCancel={p.onBack}
+            onWindowOpenStateChange={p.onWindowOpenStateChange}
           />
         );
       }

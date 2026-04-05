@@ -1,4 +1,10 @@
 import { useForm } from '@metorial/data-hooks';
+import { Paths } from '@metorial/frontend-config';
+import {
+  useCurrentInstance,
+  useCurrentOrganization,
+  useCurrentProject
+} from '@metorial/state';
 import { useProviderAuthCreationCapabilities } from '../../lib/providerCreationCapabilities';
 import { ProvidersWithDeploymentsSearch } from '../providers/search';
 import { PillStepper } from '../stepper';
@@ -6,12 +12,11 @@ import { AuthMethodPicker } from './authMethodPicker';
 import { ProviderAuthConfigCreateFlowContent } from './createModal';
 import { getCreateMethodDescription } from './modalHelpers';
 import { showPickerSidePanel } from './pickerPanel';
-import { Button, CenteredSpinner, Dialog, Panel, Spacer, Text } from '@metorial/ui';
+import { Button, Callout, CenteredSpinner, Dialog, Panel, Spacer, Text } from '@metorial/ui';
 import { useEffect, useMemo, useState } from 'react';
 
 type PanelFlowProps = {
   instanceId: string;
-  onCreated?: (deploymentId: string | null, authConfigId: string) => void;
 };
 
 let AuthMethodStep = (p: {
@@ -22,6 +27,7 @@ let AuthMethodStep = (p: {
   setAutoSkipSingle: (value: boolean) => void;
   setSelectedMethodId: (id: string) => void;
   onBack: () => void;
+  onClose: () => void;
   onContinue: () => void;
 }) => {
   let authCreation = useProviderAuthCreationCapabilities(
@@ -98,13 +104,12 @@ let AuthMethodStep = (p: {
     return <CenteredSpinner />;
   }
 
-  if (!authCreation.canCreateAuthConfig) {
+  let noAuthMethodsAvailable = methods.length === 0;
+
+  if (noAuthMethodsAvailable) {
     return (
       <>
-        <Text size="2" color="gray600">
-          {authCreation.authConfigDisabledReason ??
-            'Authentication cannot be configured for this provider right now.'}
-        </Text>
+        <Callout color="gray">This provider has no auth methods.</Callout>
         <Spacer size={15} />
         <Dialog.Actions>
           <Button variant="outline" onClick={p.onBack}>
@@ -115,11 +120,12 @@ let AuthMethodStep = (p: {
     );
   }
 
-  if (methods.length === 0) {
+  if (!authCreation.canCreateAuthConfig) {
     return (
       <>
         <Text size="2" color="gray600">
-          No authentication methods are available for {providerName}.
+          {authCreation.authConfigDisabledReason ??
+            'Authentication cannot be configured for this provider right now.'}
         </Text>
         <Spacer size={15} />
         <Dialog.Actions>
@@ -172,10 +178,14 @@ let AuthMethodStep = (p: {
 };
 
 let ProviderAuthConfigPanelFlow = (p: PanelFlowProps & { close: () => void }) => {
+  let organization = useCurrentOrganization();
+  let project = useCurrentProject();
+  let instance = useCurrentInstance();
   let [step, setStep] = useState(0);
   let [providerId, setProviderId] = useState<string | null>(null);
   let [selectedMethodId, setSelectedMethodId] = useState('');
   let [autoSkipSingle, setAutoSkipSingle] = useState(false);
+  let [isWindowOpen, setIsWindowOpen] = useState(false);
 
   let steps = useMemo(
     () => [
@@ -216,6 +226,7 @@ let ProviderAuthConfigPanelFlow = (p: PanelFlowProps & { close: () => void }) =>
               onBack={() => {
                 setStep(0);
               }}
+              onClose={p.close}
               onContinue={() => {
                 setStep(2);
               }}
@@ -234,11 +245,21 @@ let ProviderAuthConfigPanelFlow = (p: PanelFlowProps & { close: () => void }) =>
               initialAuthMethodId={selectedMethodId}
               close={p.close}
               embedded
+              onWindowOpenStateChange={setIsWindowOpen}
               onBack={() => {
                 setStep(1);
               }}
               onCreate={authConfig => {
-                p.onCreated?.(null, authConfig.id);
+                if (!organization.data || !project.data || !instance.data) return;
+
+                window.location.assign(
+                  Paths.instance.providerAuthConfig(
+                    organization.data,
+                    project.data,
+                    instance.data,
+                    authConfig.id
+                  )
+                );
               }}
             />
           ) : (
@@ -246,7 +267,16 @@ let ProviderAuthConfigPanelFlow = (p: PanelFlowProps & { close: () => void }) =>
           )
       }
     ],
-    [p.instanceId, p.onCreated, p.close, providerId, selectedMethodId, autoSkipSingle]
+    [
+      organization.data,
+      project.data,
+      instance.data,
+      p.instanceId,
+      p.close,
+      providerId,
+      selectedMethodId,
+      autoSkipSingle
+    ]
   );
 
   return (
@@ -261,7 +291,16 @@ let ProviderAuthConfigPanelFlow = (p: PanelFlowProps & { close: () => void }) =>
         <PillStepper
           steps={steps}
           currentStep={step}
+          isStepDisabled={nextStep => isWindowOpen && nextStep < 2}
+          getStepDisabledReason={nextStep =>
+            isWindowOpen && nextStep < 2
+              ? 'Finish or cancel the authentication window before going back.'
+              : undefined
+          }
           setCurrentStep={nextStep => {
+            if (isWindowOpen && nextStep < 2) {
+              return;
+            }
             if (nextStep === 0) {
               setStep(0);
               return;

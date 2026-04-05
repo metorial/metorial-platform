@@ -13,7 +13,7 @@ type AuthMethodPickerItem = {
 let PickerBox = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 7px;
   width: 100%;
 `;
 
@@ -30,21 +30,24 @@ let MethodsRoot = styled(RadixToggleGroup.Root)`
   flex-direction: column;
   width: 100%;
   border: 0;
-  border-radius: 22px;
-  background: ${theme.colors.gray100};
+  border-radius: 20px;
+  background: ${theme.colors.gray200};
   overflow: hidden;
   box-shadow: inset 0 0 0 1px ${theme.colors.gray300};
 `;
 
 let MethodItem = styled(RadixToggleGroup.Item)`
-  display: flex;
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  column-gap: 12px;
   width: 100%;
+  position: relative;
   align-items: flex-start;
   text-align: left;
   border: 0;
   border-radius: 0;
   background: transparent;
-  padding: 18px 22px;
+  padding: 16px 20px;
   cursor: pointer;
   outline: none;
   box-shadow: none;
@@ -53,21 +56,29 @@ let MethodItem = styled(RadixToggleGroup.Item)`
     box-shadow 0.18s ease;
 
   &:first-child {
-    border-top-left-radius: 21px;
-    border-top-right-radius: 21px;
+    border-top-left-radius: 19px;
+    border-top-right-radius: 19px;
   }
 
   &:last-child {
-    border-bottom-left-radius: 21px;
-    border-bottom-right-radius: 21px;
+    border-bottom-left-radius: 19px;
+    border-bottom-right-radius: 19px;
   }
 
   & + & {
-    border-top: 1px solid ${theme.colors.gray300};
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: ${theme.colors.gray300};
+    }
   }
 
   &:hover {
-    background: rgba(255, 255, 255, 0.22);
+    background: rgba(255, 255, 255, 0.16);
   }
 
   &:focus-visible {
@@ -78,36 +89,73 @@ let MethodItem = styled(RadixToggleGroup.Item)`
     position: relative;
     z-index: 1;
     background: ${theme.colors.background};
-    box-shadow:
-      inset 3px 0 0 ${theme.colors.primary},
-      inset 0 0 0 1px ${theme.colors.gray300};
+    box-shadow: inset 0 0 0 1px ${theme.colors.gray300};
   }
 
-  &[data-state='on']:not(:first-child) {
-    margin-top: -1px;
+  &[data-state='on']::before {
+    opacity: 0;
   }
 
   &[data-state='on'] + & {
-    border-top-color: transparent;
+    &::before {
+      opacity: 0;
+    }
+  }
+`;
+
+let MethodIndicator = styled.span`
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  border-radius: 999px;
+  border: 1.5px solid ${theme.colors.gray500};
+  background: ${theme.colors.background};
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    border-color 0.18s ease,
+    background 0.18s ease;
+
+  &::after {
+    content: '';
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: ${theme.colors.primary};
+    opacity: 0;
+    transform: scale(0.6);
+    transition:
+      opacity 0.18s ease,
+      transform 0.18s ease;
+  }
+
+  ${MethodItem}[data-state='on'] & {
+    border-color: ${theme.colors.primary};
+  }
+
+  ${MethodItem}[data-state='on'] &::after {
+    opacity: 1;
+    transform: scale(1);
   }
 `;
 
 let MethodContent = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
   min-width: 0;
 `;
 
 let MethodTitle = styled.div`
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
   line-height: 1.2;
   color: ${theme.colors.gray900};
 `;
 
 let MethodDescription = styled.div`
-  font-size: 14px;
+  font-size: 12px;
   line-height: 1.35;
   color: ${theme.colors.gray600};
 `;
@@ -168,6 +216,15 @@ export let AuthMethodPicker = (p: {
           if (!nextValue || nextValue == p.value) return;
           p.onChange(nextValue);
         }}
+        onKeyDownCapture={e => {
+          if (e.key !== 'Enter') return;
+          e.preventDefault();
+
+          let form = (e.target as HTMLElement).closest('form');
+          requestAnimationFrame(() => {
+            form?.requestSubmit();
+          });
+        }}
         aria-label={!p.label ? p.ariaLabel : undefined}
         aria-labelledby={p.label ? labelId : undefined}
         aria-describedby={p.description ? descriptionId : undefined}
@@ -183,17 +240,8 @@ export let AuthMethodPicker = (p: {
               if (p.value == method.id) return;
               p.onChange(method.id);
             }}
-            onKeyDown={e => {
-              if (e.key !== 'Enter') return;
-              e.preventDefault();
-              if (p.value != method.id) {
-                p.onChange(method.id);
-              }
-              requestAnimationFrame(() => {
-                e.currentTarget.form?.requestSubmit();
-              });
-            }}
           >
+            <MethodIndicator aria-hidden />
             <MethodContent>
               <MethodTitle>{method.name}</MethodTitle>
               {!!method.description?.trim() && (

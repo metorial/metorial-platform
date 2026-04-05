@@ -143,10 +143,16 @@ export let providerAuthConfigsFilterTable = new DashboardTable<
       )
     },
     {
-      id: 'id',
+      id: 'provider',
       isDefault: true,
-      header: 'ID',
-      render: row => <ID id={row.id} />
+      header: 'Provider',
+      render: row => <Text size="2">{row.providerName ?? row.providerId}</Text>
+    },
+    {
+      id: 'deployment',
+      isDefault: true,
+      header: 'Deployment',
+      render: row => <Text size="2">{row.deployment?.name ?? '\u2014'}</Text>
     },
     {
       id: 'authMethod',
@@ -157,20 +163,32 @@ export let providerAuthConfigsFilterTable = new DashboardTable<
       )
     },
     {
-      id: 'type',
+      id: 'createdAt',
       isDefault: true,
+      header: 'Created',
+      render: row => <RenderDate date={row.createdAt} />
+    },
+    {
+      id: 'id',
+      isDefault: true,
+      header: 'ID',
+      render: row => <ID id={row.id} />
+    },
+    {
+      id: 'type',
+      isDefault: false,
       header: 'Type',
       render: row => <Text size="2">{formatType(row.type)}</Text>
     },
     {
       id: 'source',
-      isDefault: true,
+      isDefault: false,
       header: 'Source',
       render: row => <Text size="2">{formatSource(row.source)}</Text>
     },
     {
       id: 'status',
-      isDefault: true,
+      isDefault: false,
       header: 'Status',
       render: row => (
         <Badge color={row.status === 'active' ? 'green' : 'gray'}>{row.status}</Badge>
@@ -178,22 +196,10 @@ export let providerAuthConfigsFilterTable = new DashboardTable<
     },
     {
       id: 'default',
-      isDefault: true,
+      isDefault: false,
       header: 'Default',
       render: row =>
         row.isDefault ? <Badge color="blue">Default</Badge> : <Text size="2">No</Text>
-    },
-    {
-      id: 'provider',
-      isDefault: true,
-      header: 'Provider',
-      render: row => <Text size="2">{row.providerName ?? row.providerId}</Text>
-    },
-    {
-      id: 'createdAt',
-      isDefault: true,
-      header: 'Created',
-      render: row => <RenderDate date={row.createdAt} />
     },
     {
       id: 'credentials',
@@ -207,12 +213,6 @@ export let providerAuthConfigsFilterTable = new DashboardTable<
             -
           </Text>
         )
-    },
-    {
-      id: 'deployment',
-      isDefault: false,
-      header: 'Deployment',
-      render: row => <Text size="2">{row.deployment?.name ?? '\u2014'}</Text>
     },
     {
       id: 'updatedAt',

@@ -11,8 +11,18 @@ import {
   useProviderAuthMethods,
   useProviderDeployment
 } from '@metorial/state';
-import { Button, CenteredSpinner, Dialog, Input, Select, Spacer, Text } from '@metorial/ui';
+import {
+  Button,
+  CenteredSpinner,
+  Dialog,
+  Input,
+  Select,
+  Spacer,
+  Text,
+  theme
+} from '@metorial/ui';
 import { useEffect, useState } from 'react';
+import styled from 'styled-components';
 import { getJsonSchemaObject } from '../../lib/jsonSchema';
 import { getProviderOAuthAutoRegistrationEnabled } from '../../lib/providerOAuthAutoRegistration';
 import {
@@ -25,6 +35,20 @@ import { ProviderContextCard } from '../providerContextCard';
 import { Stepper } from '../stepper';
 
 type AuthMethod = DashboardInstanceProvidersAuthMethodsListOutput['items'][number];
+
+let FlatCreateSections = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
+
+let FlatCreateSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px solid ${theme.colors.gray300};
+  background: ${theme.colors.gray100};
+`;
 
 let getAuthMethodHasSchema = (method: AuthMethod | undefined) => {
   let schemaObj = getJsonSchemaObject(method?.inputSchema);
@@ -47,6 +71,8 @@ export type ProviderAuthConfigFormProps =
       initialAuthMethodId?: string;
       hideAuthMethodStep?: boolean;
       showAuthMethodStepInStepper?: boolean;
+      flattenCreateStep?: boolean;
+      hideProviderContext?: boolean;
     }
   | {
       type: 'update';
@@ -111,6 +137,15 @@ export let ProviderAuthConfigForm = (
       await form.validateField('authMethodId');
 
       if (!values.authMethodId) return;
+
+      if (props.type === 'create' && props.flattenCreateStep && skipAuthMethodStep) {
+        form.setFieldTouched('name', true, false);
+        await form.validateField('name');
+        let credentialsValid = await validateCredentialsForContinuation();
+        let nameValid = !!values.name.trim();
+
+        if (!credentialsValid || !nameValid) return;
+      }
 
       let parsedCredentials: Record<string, unknown> = {};
       if (hasSchema) {
@@ -248,6 +283,46 @@ export let ProviderAuthConfigForm = (
     resetCredentials();
   };
 
+  let getSchemaCredentialsFieldErrors = (value: Record<string, unknown>) => {
+    if (!hasSchema) return {};
+
+    let emptyRequiredFields = getEmptyRequiredFieldLabels({
+      schema: schemaObj,
+      value
+    });
+    let emptyRequiredJsonFields = getEmptyRequiredJsonStringFieldLabels({
+      schema: schemaObj,
+      value
+    });
+    let invalidJsonFields = getInvalidJsonStringFieldLabels({
+      schema: schemaObj,
+      value
+    });
+
+    let nextFieldErrors: Record<string, string> = {};
+
+    for (let field of emptyRequiredFields) {
+      nextFieldErrors[field] = `\`${field}\` is required before continuing.`;
+    }
+
+    for (let field of emptyRequiredJsonFields) {
+      nextFieldErrors[field] = `\`${field}\` is required before continuing.`;
+    }
+
+    for (let field of invalidJsonFields) {
+      nextFieldErrors[field] = `\`${field}\` must contain valid JSON before continuing.`;
+    }
+
+    return nextFieldErrors;
+  };
+
+  let schemaCredentialsFieldErrors =
+    hasSchema &&
+    (form.touched.credentialsData ||
+      (props.type === 'create' && props.flattenCreateStep && form.submitCount > 0))
+      ? getSchemaCredentialsFieldErrors(form.values.credentialsData)
+      : {};
+
   let credentialsSection = hasSchema ? (
     <JsonSchemaInput
       schema={schemaObj}
@@ -256,6 +331,7 @@ export let ProviderAuthConfigForm = (
         form.setFieldValue('credentialsData', value);
         form.setFieldError('credentialsData', undefined);
       }}
+      fieldErrors={schemaCredentialsFieldErrors}
       variant="raw"
     />
   ) : isOAuthWithoutSchema ? (
@@ -283,18 +359,42 @@ export let ProviderAuthConfigForm = (
   );
 
   let providerContext = resolvedProviderId ? (
-    <>
-      <ProviderContextCard
-        providerId={resolvedProviderId}
-        providerName={provider.data?.name ?? resolvedProviderId}
-        providerImageUrl={provider.data?.publisher.imageUrl}
-        deploymentName={deployment.data?.name}
-        deploymentDescription={deployment.data?.description}
-      />
+    props.type === 'create' && props.hideProviderContext ? null : (
+      <>
+        <ProviderContextCard
+          providerId={resolvedProviderId}
+          providerName={provider.data?.name ?? resolvedProviderId}
+          providerImageUrl={provider.data?.publisher.imageUrl}
+          deploymentName={deployment.data?.name}
+          deploymentDescription={deployment.data?.description}
+        />
 
-      <Spacer size={10} />
-    </>
+        <Spacer size={10} />
+      </>
+    )
   ) : null;
+
+  let validateCredentialsForContinuation = async () => {
+    if (hasSchema) {
+      form.setFieldTouched('credentialsData', true, false);
+      return (
+        Object.keys(getSchemaCredentialsFieldErrors(form.values.credentialsData)).length === 0
+      );
+    }
+
+    if (!isOAuthWithoutSchema) {
+      form.setFieldTouched('credentialsDataJson', true, false);
+      await form.validateField('credentialsDataJson');
+
+      try {
+        JSON.parse(form.values.credentialsDataJson);
+      } catch {
+        return false;
+      }
+    }
+
+    return true;
+  };
 
   if (props.type === 'create') {
     let credentialsStepIndex = includeAuthMethodStep ? 1 : 0;
@@ -310,72 +410,71 @@ export let ProviderAuthConfigForm = (
     };
 
     let goToDetailsStep = async () => {
-      if (hasSchema) {
-        form.setFieldTouched('credentialsData', true, false);
-
-        let emptyRequiredFields = getEmptyRequiredFieldLabels({
-          schema: schemaObj,
-          value: form.values.credentialsData
-        });
-        let emptyRequiredJsonFields = getEmptyRequiredJsonStringFieldLabels({
-          schema: schemaObj,
-          value: form.values.credentialsData
-        });
-        let invalidJsonFields = getInvalidJsonStringFieldLabels({
-          schema: schemaObj,
-          value: form.values.credentialsData
-        });
-
-        if (emptyRequiredFields.length > 0) {
-          form.setFieldError(
-            'credentialsData',
-            emptyRequiredFields.length === 1
-              ? `\`${emptyRequiredFields[0]}\` is required before continuing.`
-              : `These fields are required before continuing: ${emptyRequiredFields
-                  .map(field => `\`${field}\``)
-                  .join(', ')}.`
-          );
-          return;
-        }
-
-        if (emptyRequiredJsonFields.length > 0) {
-          form.setFieldError(
-            'credentialsData',
-            emptyRequiredJsonFields.length === 1
-              ? `\`${emptyRequiredJsonFields[0]}\` is required before continuing.`
-              : `These fields are required before continuing: ${emptyRequiredJsonFields
-                  .map(field => `\`${field}\``)
-                  .join(', ')}.`
-          );
-          return;
-        }
-
-        if (invalidJsonFields.length > 0) {
-          form.setFieldError(
-            'credentialsData',
-            invalidJsonFields.length === 1
-              ? `\`${invalidJsonFields[0]}\` must contain valid JSON before continuing.`
-              : `These fields must contain valid JSON before continuing: ${invalidJsonFields
-                  .map(field => `\`${field}\``)
-                  .join(', ')}.`
-          );
-          return;
-        }
-
-        form.setFieldError('credentialsData', undefined);
-      } else if (!isOAuthWithoutSchema) {
-        form.setFieldTouched('credentialsDataJson', true, false);
-        await form.validateField('credentialsDataJson');
-
-        try {
-          JSON.parse(form.values.credentialsDataJson);
-        } catch {
-          return;
-        }
-      }
+      if (!(await validateCredentialsForContinuation())) return;
 
       setStep(detailsStepIndex);
     };
+
+    if (props.flattenCreateStep && skipAuthMethodStep) {
+      return (
+        <>
+          {providerContext}
+
+          <form noValidate onSubmit={form.handleSubmit}>
+            <FlatCreateSections>
+              <FlatCreateSection>{credentialsSection}</FlatCreateSection>
+
+              <Spacer size={16} />
+
+              <FlatCreateSection>
+                <Input
+                  label="Name"
+                  {...form.getFieldProps('name')}
+                  {...(useOAuthAuthConfigNameHints
+                    ? {
+                        description:
+                          'Name the connection so you can tell it apart from other auth configs.',
+                        placeholder: 'e.g. John Doe'
+                      }
+                    : {})}
+                />
+                <form.RenderError field="name" />
+
+                <Spacer size={8} />
+
+                <Input label="Description" {...form.getFieldProps('description')} />
+                <form.RenderError field="description" />
+              </FlatCreateSection>
+            </FlatCreateSections>
+
+            <Spacer size={15} />
+
+            <Dialog.Actions>
+              <Button
+                type="button"
+                variant="outline"
+                size="3"
+                onClick={props.onBack ?? props.close}
+              >
+                Back
+              </Button>
+              <Button
+                type="submit"
+                color="black"
+                variant="solid"
+                size="3"
+                loading={createMutation.isLoading}
+                disabled={!form.values.authMethodId}
+              >
+                Create
+              </Button>
+            </Dialog.Actions>
+
+            <createMutation.RenderError />
+          </form>
+        </>
+      );
+    }
 
     let methodStep = {
       title: 'Authentication',
@@ -453,7 +552,6 @@ export let ProviderAuthConfigForm = (
           <Spacer size={10} />
 
           {credentialsSection}
-          {hasSchema && <form.RenderError field="credentialsData" />}
 
           <Spacer size={15} />
 
@@ -475,15 +573,14 @@ export let ProviderAuthConfigForm = (
       title: 'Details',
       subtitle: 'Name and create',
       render: () => (
-        <form onSubmit={form.handleSubmit}>
+        <form noValidate onSubmit={form.handleSubmit}>
           <Input
             label="Name"
-            required
             {...form.getFieldProps('name')}
             {...(useOAuthAuthConfigNameHints
               ? {
                   description:
-                    "Name for this user's connection so you can tell it apart from other auth configs.",
+                    'Name the connection so you can tell it apart from other auth configs.',
                   placeholder: 'e.g. John Doe'
                 }
               : {})}
@@ -549,8 +646,8 @@ export let ProviderAuthConfigForm = (
     <>
       {providerContext}
 
-      <form onSubmit={form.handleSubmit}>
-        <Input label="Name" required {...form.getFieldProps('name')} />
+      <form noValidate onSubmit={form.handleSubmit}>
+        <Input label="Name" {...form.getFieldProps('name')} />
         <form.RenderError field="name" />
 
         <Spacer size={10} />

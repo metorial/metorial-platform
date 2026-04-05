@@ -1,4 +1,4 @@
-import { AnimatePanes, theme } from '@metorial/ui';
+import { AnimatePanes, Tooltip, theme } from '@metorial/ui';
 import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
 import React, { CSSProperties, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
@@ -215,6 +215,8 @@ let PillStepItem = ({
   index,
   currentStep,
   maxSeen,
+  isDisabled,
+  disabledReason,
   setCurrentStep,
   slotRef,
   rect,
@@ -225,6 +227,8 @@ let PillStepItem = ({
   index: number;
   currentStep: number;
   maxSeen: number;
+  isDisabled?: boolean;
+  disabledReason?: React.ReactNode;
   setCurrentStep: (step: number) => void;
   slotRef: (node: HTMLButtonElement | null) => void;
   rect?: { x: number; width: number };
@@ -244,12 +248,12 @@ let PillStepItem = ({
     return `inset(0 ${right}px 0 ${left}px)`;
   });
 
-  return (
+  let button = (
     <PillSlot
       ref={slotRef}
       type="button"
       onClick={() => setCurrentStep(index)}
-      disabled={index > maxSeen}
+      disabled={index > maxSeen || isDisabled}
       $state={index === currentStep ? 'active' : index < currentStep ? 'past' : 'future'}
     >
       <PillSizer>{step.title}</PillSizer>
@@ -257,6 +261,16 @@ let PillStepItem = ({
       {rect ? <PillLabelOverlay style={{ clipPath }}>{step.title}</PillLabelOverlay> : null}
     </PillSlot>
   );
+
+  if (disabledReason) {
+    return (
+      <Tooltip content={disabledReason} enabled={!!disabledReason} delayDuration={0}>
+        <span style={{ display: 'inline-flex' }}>{button}</span>
+      </Tooltip>
+    );
+  }
+
+  return button;
 };
 
 export let Stepper = ({
@@ -323,11 +337,15 @@ export let Stepper = ({
 export let PillStepper = ({
   steps,
   currentStep,
-  setCurrentStep
+  setCurrentStep,
+  isStepDisabled,
+  getStepDisabledReason
 }: {
   steps: { title: string; render: () => React.ReactNode }[];
   currentStep: number;
   setCurrentStep: (step: number) => void;
+  isStepDisabled?: (step: number) => boolean;
+  getStepDisabledReason?: (step: number) => React.ReactNode;
 }) => {
   let currentStepContent = steps[currentStep] ?? steps[steps.length - 1];
   let children = currentStepContent ? currentStepContent.render() : null;
@@ -414,6 +432,8 @@ export let PillStepper = ({
             index={index}
             currentStep={currentStep}
             maxSeen={maxSeen}
+            isDisabled={isStepDisabled?.(index)}
+            disabledReason={getStepDisabledReason?.(index)}
             setCurrentStep={setCurrentStep}
             rect={slotRects[index]}
             activeX={springX}

@@ -29,6 +29,8 @@ export let ProviderAuthConfigManualCreateContent = (p: {
         providerId={p.providerId}
         initialAuthMethodId={p.initialAuthMethodId}
         hideAuthMethodStep
+        flattenCreateStep={!!p.embedded}
+        hideProviderContext={!!p.embedded}
         close={p.close}
         onBack={p.onBack}
         onCreate={authConfig => {
