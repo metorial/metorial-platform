@@ -65,7 +65,7 @@
     "@metorial-io/layout": "^1.0.1",
     "@metorial-io/ui": "^1.0.0",
     "@metorial-io/ui-product": "^1.0.0",
-    "@metorial-services/ares-client": "^1.0.7",
+    "@metorial-services/ares-client": "^1.0.9",
     "@metorial/util-endpoint": "^1.0.1",
     "@prisma/adapter-pg": "^7.2.0",
     "@prisma/client": "^7.2.0",
