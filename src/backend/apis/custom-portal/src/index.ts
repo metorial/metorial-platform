@@ -25,7 +25,7 @@ export let customPortalApi = rpcMux(
                 origin
               })
           },
-    path: '/'
+    path: '/portal-api'
   },
   [customPortalRPC]
 );
