@@ -529,7 +529,7 @@ let InstancePaths = Object.assign(
         project,
         instance,
         'configurations',
-        'auth-credential',
+        'auth-credentials',
         ...subPages
       );
     },

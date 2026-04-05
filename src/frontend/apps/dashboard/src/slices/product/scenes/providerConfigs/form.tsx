@@ -11,8 +11,19 @@ import {
   useProviderConfigVaults,
   useProviderDeployment
 } from '@metorial/state';
-import { Button, CenteredSpinner, Dialog, Input, Select, Spacer, Text } from '@metorial/ui';
+import {
+  Button,
+  Callout,
+  CenteredSpinner,
+  Dialog,
+  Input,
+  Select,
+  Spacer,
+  Text,
+  theme
+} from '@metorial/ui';
 import { useEffect, useState } from 'react';
+import styled from 'styled-components';
 import { getProviderConfigSchemaCapabilities } from '../../lib/providerCreationCapabilities';
 import { JsonSchemaInput } from '../jsonSchemaInput';
 import { ProviderContextCard } from '../providerContextCard';
@@ -34,8 +45,27 @@ export type ProviderConfigFormProps =
       providerId?: string;
       providerDeploymentId?: string;
       instanceId?: string;
+      embedded?: boolean;
+      hideProviderContext?: boolean;
+      flattenCreateFlow?: boolean;
     }
   | { type: 'update'; providerDeploymentId: string; configId: string; instanceId?: string };
+
+let FlatCreateSections = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+`;
+
+let FlatCreateSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px solid ${theme.colors.gray300};
+  background: ${theme.colors.gray100};
+`;
 
 export let ProviderConfigForm = (
   props: ProviderConfigFormProps & {
@@ -91,9 +121,13 @@ export let ProviderConfigForm = (
     vaults.data?.items ?? [];
   let canCreateFromVault = vaultItems.length > 0;
   let showEmptyState = !schemaCapabilities.canCreateConfig;
-  let emptyStateMessage = isDeploymentScoped
-    ? 'No configuration schema or config vault is available for this deployment, so this config cannot be created from the dashboard.'
-    : 'No configuration schema or config vault is available for this provider, so this config cannot be created from the dashboard.';
+  let emptyStateCalloutMessage = schemaCapabilities.hasExplicitEmptySchema
+    ? isDeploymentScoped
+      ? 'This deployment has no configurable values. Its default config is created automatically.'
+      : 'This provider has no configurable values. Its default config is created automatically.'
+    : isDeploymentScoped
+      ? 'This deployment has no configuration schema or config vault.'
+      : 'This provider has no configuration schema or config vault.';
 
   let submitConfig = async (values: ProviderConfigFormValues) => {
     if (props.type !== 'create' || !instanceId || !providerId) {
@@ -271,7 +305,7 @@ export let ProviderConfigForm = (
 
   return (
     <>
-      {providerId && (
+      {providerId && !(props.type === 'create' && props.hideProviderContext) && (
         <>
           <ProviderContextCard
             providerId={providerId}
@@ -286,167 +320,272 @@ export let ProviderConfigForm = (
       )}
 
       {!showEmptyState ? (
-        <Stepper
-          currentStep={currentStep}
-          setCurrentStep={setCurrentStep}
-          steps={[
-            {
-              title: 'Details',
-              subtitle: 'Name the config',
-              render: () => (
-                <form
-                  onSubmit={e => {
-                    e.preventDefault();
-                    void continueToSourceStep();
+        props.type === 'create' && props.flattenCreateFlow ? (
+          <form
+            onSubmit={e => {
+              e.preventDefault();
+              void createConfig();
+            }}
+          >
+            <FlatCreateSections>
+              <FlatCreateSection>
+                <Input label="Name" {...form.getFieldProps('name')} />
+                <form.RenderError field="name" />
+
+                <Spacer size={8} />
+
+                <Input label="Description" {...form.getFieldProps('description')} />
+                <form.RenderError field="description" />
+              </FlatCreateSection>
+
+              <FlatCreateSection>
+                <Select
+                  label="Source"
+                  value={form.values.sourceMode}
+                  placeholder="Select a source..."
+                  onChange={value => {
+                    form.setFieldValue('sourceMode', value as ConfigSourceMode);
+                    form.setFieldTouched('sourceMode', false, false);
+                    form.setFieldError('sourceMode', undefined);
+
+                    if (value !== 'vault') {
+                      form.setFieldValue('providerConfigVaultId', '');
+                      form.setFieldTouched('providerConfigVaultId', false, false);
+                      form.setFieldError('providerConfigVaultId', undefined);
+                    }
                   }}
-                >
-                  <Input label="Name" required {...form.getFieldProps('name')} />
-                  <form.RenderError field="name" />
+                  items={sourceItems}
+                />
+                <form.RenderError field="sourceMode" />
 
-                  <Spacer size={10} />
-
-                  <Input label="Description" {...form.getFieldProps('description')} />
-                  <form.RenderError field="description" />
-
-                  <Spacer size={15} />
-
-                  <Dialog.Actions>
-                    <Button type="button" variant="outline" onClick={closeAction}>
-                      {closeLabel}
-                    </Button>
-                    <Button type="submit">Continue</Button>
-                  </Dialog.Actions>
-                </form>
-              )
-            },
-            {
-              title: 'Source',
-              subtitle: 'Choose where values come from',
-              render: () => (
-                <form
-                  onSubmit={e => {
-                    e.preventDefault();
-                    void continueToConfigureStep();
-                  }}
-                >
-                  <Select
-                    label="Source"
-                    value={form.values.sourceMode}
-                    placeholder="Select a source..."
-                    onChange={value => {
-                      form.setFieldValue('sourceMode', value as ConfigSourceMode);
-                      form.setFieldTouched('sourceMode', false, false);
-                      form.setFieldError('sourceMode', undefined);
-
-                      if (value !== 'vault') {
-                        form.setFieldValue('providerConfigVaultId', '');
+                {form.values.sourceMode === 'vault' ? (
+                  <>
+                    <Spacer size={8} />
+                    <Select
+                      label="Config Vault"
+                      value={form.values.providerConfigVaultId}
+                      placeholder="Select a config vault..."
+                      onChange={value => {
+                        form.setFieldValue('providerConfigVaultId', value);
                         form.setFieldTouched('providerConfigVaultId', false, false);
                         form.setFieldError('providerConfigVaultId', undefined);
-                      }
-                    }}
-                    items={sourceItems}
-                  />
-                  <form.RenderError field="sourceMode" />
-
-                  <Spacer size={10} />
-
-                  <Text size="2" color="gray600">
-                    {form.values.sourceMode === 'vault'
-                      ? 'Choose an existing config vault on the next step.'
-                      : 'Enter configuration values manually on the next step.'}
-                  </Text>
-
-                  <Spacer size={15} />
-
-                  <Dialog.Actions>
-                    <Button type="button" variant="outline" onClick={() => setCurrentStep(0)}>
-                      Back
-                    </Button>
-                    <Button type="submit">Continue</Button>
-                  </Dialog.Actions>
-                </form>
-              )
-            },
-            {
-              title: 'Configure',
-              subtitle:
-                form.values.sourceMode === 'vault'
-                  ? 'Select a config vault'
-                  : 'Set configuration values',
-              render: () => (
-                <form
-                  onSubmit={e => {
-                    e.preventDefault();
-                    void createConfig();
-                  }}
-                >
-                  {form.values.sourceMode === 'vault' ? (
-                    <>
-                      <Select
-                        label="Config Vault"
-                        value={form.values.providerConfigVaultId}
-                        placeholder="Select a config vault..."
-                        onChange={value => {
-                          form.setFieldValue('providerConfigVaultId', value);
-                          form.setFieldTouched('providerConfigVaultId', false, false);
-                          form.setFieldError('providerConfigVaultId', undefined);
-                        }}
-                        items={vaultItems.map(vault => ({
-                          id: vault.id,
-                          label: vault.name ?? vault.id
-                        }))}
-                      />
-                      <form.RenderError field="providerConfigVaultId" />
-                    </>
-                  ) : (
+                      }}
+                      items={vaultItems.map(vault => ({
+                        id: vault.id,
+                        label: vault.name ?? vault.id
+                      }))}
+                    />
+                    <form.RenderError field="providerConfigVaultId" />
+                  </>
+                ) : form.values.sourceMode === 'raw' ? (
+                  <>
+                    <Spacer size={8} />
                     <JsonSchemaInput
                       schema={schemaCapabilities.schemaObject}
                       value={form.values.configData}
                       onChange={value => form.setFieldValue('configData', value)}
                       label="Configuration"
                     />
-                  )}
+                  </>
+                ) : null}
+              </FlatCreateSection>
+            </FlatCreateSections>
 
-                  <Spacer size={15} />
+            <Spacer size={15} />
 
-                  <Dialog.Actions>
-                    <Button type="button" variant="outline" onClick={() => setCurrentStep(1)}>
-                      Back
-                    </Button>
-                    <Button
-                      type="submit"
-                      loading={createMutation.isLoading}
-                      disabled={
-                        !form.values.sourceMode ||
-                        !form.values.name.trim() ||
-                        (form.values.sourceMode === 'vault' &&
-                          !form.values.providerConfigVaultId)
-                      }
-                    >
-                      {props.type === 'create' ? 'Create' : 'Update'}
-                    </Button>
-                  </Dialog.Actions>
+            <Dialog.Actions>
+              <Button type="button" variant="outline" onClick={closeAction}>
+                {closeLabel}
+              </Button>
+              <Button
+                type="submit"
+                loading={createMutation.isLoading}
+                disabled={
+                  !form.values.sourceMode ||
+                  !form.values.name.trim() ||
+                  (form.values.sourceMode === 'vault' && !form.values.providerConfigVaultId)
+                }
+              >
+                Create
+              </Button>
+            </Dialog.Actions>
 
-                  <createMutation.RenderError />
-                </form>
-              )
-            }
-          ]}
-        />
+            <createMutation.RenderError />
+          </form>
+        ) : (
+          <Stepper
+            currentStep={currentStep}
+            setCurrentStep={setCurrentStep}
+            steps={[
+              {
+                title: 'Details',
+                subtitle: 'Name the config',
+                render: () => (
+                  <form
+                    onSubmit={e => {
+                      e.preventDefault();
+                      void continueToSourceStep();
+                    }}
+                  >
+                    <Input label="Name" required {...form.getFieldProps('name')} />
+                    <form.RenderError field="name" />
+
+                    <Spacer size={10} />
+
+                    <Input label="Description" {...form.getFieldProps('description')} />
+                    <form.RenderError field="description" />
+
+                    <Spacer size={15} />
+
+                    <Dialog.Actions>
+                      <Button type="button" variant="outline" onClick={closeAction}>
+                        {closeLabel}
+                      </Button>
+                      <Button type="submit">Continue</Button>
+                    </Dialog.Actions>
+                  </form>
+                )
+              },
+              {
+                title: 'Source',
+                subtitle: 'Choose where values come from',
+                render: () => (
+                  <form
+                    onSubmit={e => {
+                      e.preventDefault();
+                      void continueToConfigureStep();
+                    }}
+                  >
+                    <Select
+                      label="Source"
+                      value={form.values.sourceMode}
+                      placeholder="Select a source..."
+                      onChange={value => {
+                        form.setFieldValue('sourceMode', value as ConfigSourceMode);
+                        form.setFieldTouched('sourceMode', false, false);
+                        form.setFieldError('sourceMode', undefined);
+
+                        if (value !== 'vault') {
+                          form.setFieldValue('providerConfigVaultId', '');
+                          form.setFieldTouched('providerConfigVaultId', false, false);
+                          form.setFieldError('providerConfigVaultId', undefined);
+                        }
+                      }}
+                      items={sourceItems}
+                    />
+                    <form.RenderError field="sourceMode" />
+
+                    <Spacer size={10} />
+
+                    <Text size="2" color="gray600">
+                      {form.values.sourceMode === 'vault'
+                        ? 'Choose an existing config vault on the next step.'
+                        : 'Enter configuration values manually on the next step.'}
+                    </Text>
+
+                    <Spacer size={15} />
+
+                    <Dialog.Actions>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setCurrentStep(0)}
+                      >
+                        Back
+                      </Button>
+                      <Button type="submit">Continue</Button>
+                    </Dialog.Actions>
+                  </form>
+                )
+              },
+              {
+                title: 'Configure',
+                subtitle:
+                  form.values.sourceMode === 'vault'
+                    ? 'Select a config vault'
+                    : 'Set configuration values',
+                render: () => (
+                  <form
+                    onSubmit={e => {
+                      e.preventDefault();
+                      void createConfig();
+                    }}
+                  >
+                    {form.values.sourceMode === 'vault' ? (
+                      <>
+                        <Select
+                          label="Config Vault"
+                          value={form.values.providerConfigVaultId}
+                          placeholder="Select a config vault..."
+                          onChange={value => {
+                            form.setFieldValue('providerConfigVaultId', value);
+                            form.setFieldTouched('providerConfigVaultId', false, false);
+                            form.setFieldError('providerConfigVaultId', undefined);
+                          }}
+                          items={vaultItems.map(vault => ({
+                            id: vault.id,
+                            label: vault.name ?? vault.id
+                          }))}
+                        />
+                        <form.RenderError field="providerConfigVaultId" />
+                      </>
+                    ) : (
+                      <JsonSchemaInput
+                        schema={schemaCapabilities.schemaObject}
+                        value={form.values.configData}
+                        onChange={value => form.setFieldValue('configData', value)}
+                        label="Configuration"
+                      />
+                    )}
+
+                    <Spacer size={15} />
+
+                    <Dialog.Actions>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setCurrentStep(1)}
+                      >
+                        Back
+                      </Button>
+                      <Button
+                        type="submit"
+                        loading={createMutation.isLoading}
+                        disabled={
+                          !form.values.sourceMode ||
+                          !form.values.name.trim() ||
+                          (form.values.sourceMode === 'vault' &&
+                            !form.values.providerConfigVaultId)
+                        }
+                      >
+                        {props.type === 'create' ? 'Create' : 'Update'}
+                      </Button>
+                    </Dialog.Actions>
+
+                    <createMutation.RenderError />
+                  </form>
+                )
+              }
+            ]}
+          />
+        )
       ) : (
-        <Text size="2" color="gray600">
-          {emptyStateMessage}
-        </Text>
-      )}
-
-      {showEmptyState && (
         <>
+          <Callout color="gray">{emptyStateCalloutMessage}</Callout>
+
           <Spacer size={15} />
 
           <Dialog.Actions>
-            <Button variant="outline" onClick={props.onBack ?? props.close}>
-              {props.onBack ? 'Back' : 'Close'}
-            </Button>
+            {props.onBack && (
+              <Button type="button" variant="outline" onClick={props.onBack}>
+                Back
+              </Button>
+            )}
+            {props.close && (
+              <Button type="button" color="black" variant="solid" onClick={props.close}>
+                Close
+              </Button>
+            )}
           </Dialog.Actions>
         </>
       )}

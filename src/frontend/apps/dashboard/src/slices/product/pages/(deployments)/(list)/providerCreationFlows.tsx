@@ -2,8 +2,11 @@ import { Button, Dialog, Panel, showModal, Spacer } from '@metorial/ui';
 import { type ReactNode } from 'react';
 import { showProviderAuthConfigMethodPickerModal } from '../../../scenes/providerAuthConfigs/modal';
 import { showProviderAuthConfigPanelFlow } from '../../../scenes/providerAuthConfigs/panelFlow';
+import { showProviderAuthCredentialsPanelFlow } from '../../../scenes/providerAuthCredentials/panelFlow';
 import { showProviderAuthCredentialsFormModal } from '../../../scenes/providerAuthCredentials/modal';
+import { showProviderConfigVaultPanelFlow } from '../../../scenes/providerConfigVaults/panelFlow';
 import { showProviderConfigVaultFormModal } from '../../../scenes/providerConfigVaults/modal';
+import { showProviderConfigPanelFlow } from '../../../scenes/providerConfigs/panelFlow';
 import { showProviderConfigFormModal } from '../../../scenes/providerConfigs/modal';
 import { ProviderDeploymentsList } from '../../../scenes/providerDeployments/list';
 import { ProvidersWithDeploymentsSearch } from '../../../scenes/providers/search';
@@ -210,140 +213,15 @@ let showPickerModal = (
   );
 
 export let showCreateProviderConfigFlow = (instanceId: string) => {
-  let scope = 'provider' as const;
-  let showDeploymentStep = (providerId: string) =>
-    showPickerModal(({ close }) => (
-      <DeploymentPicker
-        title="Select Deployment"
-        description="Choose a deployment to create a configuration for."
-        close={close}
-        selectionMode="configCreate"
-        providerId={providerId}
-        onBack={() => showCreateProviderConfigFlow(instanceId)}
-        onSelect={deploymentId =>
-          showProviderConfigFormModal({
-            type: 'create',
-            instanceId,
-            providerId,
-            providerDeploymentId: deploymentId,
-            onBack: () => showDeploymentStep(providerId)
-          })
-        }
-      />
-    ));
-
-  return showPickerModal(({ close }) => (
-    <ProviderPicker
-      instanceId={instanceId}
-      title="Create Config"
-      description="Select a provider to create a configuration for."
-      close={close}
-      onSelect={providerId => {
-        if (scope === 'provider') {
-          showProviderConfigFormModal({
-            type: 'create',
-            instanceId,
-            providerId,
-            onBack: () => showCreateProviderConfigFlow(instanceId)
-          });
-          return;
-        }
-
-        showDeploymentStep(providerId);
-      }}
-    />
-  ));
+  return showProviderConfigPanelFlow({ instanceId });
 };
 
 export let showCreateProviderConfigVaultFlow = (instanceId: string) => {
-  let scope = 'provider' as const;
-  let showDeploymentStep = (providerId: string) =>
-    showPickerModal(({ close }) => (
-      <DeploymentPicker
-        title="Select Deployment"
-        description="Choose a deployment to create a reusable config vault for."
-        close={close}
-        selectionMode="configVaultCreate"
-        providerId={providerId}
-        onBack={() => showCreateProviderConfigVaultFlow(instanceId)}
-        onSelect={deploymentId =>
-          showProviderConfigVaultFormModal({
-            type: 'create',
-            instanceId,
-            providerId,
-            providerDeploymentId: deploymentId,
-            onBack: () => showDeploymentStep(providerId)
-          })
-        }
-      />
-    ));
-
-  return showPickerModal(({ close }) => (
-    <ProviderPicker
-      instanceId={instanceId}
-      title="Create Config Vault"
-      description="Select a provider to create a reusable config vault for."
-      close={close}
-      onSelect={providerId => {
-        if (scope === 'provider') {
-          showProviderConfigVaultFormModal({
-            type: 'create',
-            instanceId,
-            providerId,
-            onBack: () => showCreateProviderConfigVaultFlow(instanceId)
-          });
-          return;
-        }
-
-        showDeploymentStep(providerId);
-      }}
-    />
-  ));
+  return showProviderConfigVaultPanelFlow({ instanceId });
 };
 
 export let showCreateProviderAuthCredentialsFlow = (instanceId: string) => {
-  let scope = 'provider' as const;
-  let showDeploymentStep = (providerId: string) =>
-    showPickerModal(({ close }) => (
-      <DeploymentPicker
-        title="Select Deployment"
-        description="Choose a deployment to associate these credentials with."
-        close={close}
-        selectionMode="authCredentialsCreate"
-        providerId={providerId}
-        onBack={() => showCreateProviderAuthCredentialsFlow(instanceId)}
-        onSelect={deploymentId =>
-          showProviderAuthCredentialsFormModal({
-            instanceId,
-            providerId,
-            deploymentId,
-            onBack: () => showDeploymentStep(providerId)
-          })
-        }
-      />
-    ));
-
-  return showPickerModal(({ close }) => (
-    <ProviderPicker
-      instanceId={instanceId}
-      title="Create Auth Credentials"
-      description="Select a provider to create OAuth credentials for."
-      close={close}
-      selectionMode="authCredentialsCreate"
-      onSelect={providerId => {
-        if (scope === 'provider') {
-          showProviderAuthCredentialsFormModal({
-            instanceId,
-            providerId,
-            onBack: () => showCreateProviderAuthCredentialsFlow(instanceId)
-          });
-          return;
-        }
-
-        showDeploymentStep(providerId);
-      }}
-    />
-  ));
+  return showProviderAuthCredentialsPanelFlow({ instanceId });
 };
 
 export let showCreateProviderAuthConfigFlow = (
@@ -356,8 +234,7 @@ export let showCreateProviderAuthConfigFlow = (
   let scope = options?.scope ?? 'provider';
   if (scope === 'provider') {
     return showProviderAuthConfigPanelFlow({
-      instanceId,
-      onCreated: options?.onCreated
+      instanceId
     });
   }
 

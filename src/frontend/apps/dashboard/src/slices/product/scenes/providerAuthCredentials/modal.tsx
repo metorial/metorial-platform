@@ -11,6 +11,7 @@ import {
 } from '@metorial/state';
 import {
   Button,
+  Callout,
   CenteredSpinner,
   Copy,
   Dialog,
@@ -20,7 +21,7 @@ import {
   showModal
 } from '@metorial/ui';
 import { useMemo } from 'react';
-import { getProviderOAuthAutoRegistrationEnabled } from '../../lib/providerOAuthAutoRegistration';
+import { useProviderAuthCreationCapabilities } from '../../lib/providerCreationCapabilities';
 import { ProviderContextCard } from '../providerContextCard';
 
 type AuthMethod = DashboardInstanceProvidersAuthMethodsListOutput['items'][number];
@@ -31,7 +32,9 @@ export let ProviderAuthCredentialsForm = ({
   deploymentId,
   close,
   onBack,
-  onCreate
+  onCreate,
+  embedded = false,
+  hideProviderContext = false
 }: {
   instanceId: string;
   providerId: string;
@@ -41,6 +44,8 @@ export let ProviderAuthCredentialsForm = ({
   onCreate?: (
     credentials: DashboardInstanceProviderDeploymentsAuthCredentialsCreateOutput
   ) => void;
+  embedded?: boolean;
+  hideProviderContext?: boolean;
 }) => {
   let deployment = useProviderDeployment(instanceId, deploymentId);
   let provider = useProvider(instanceId, providerId);
@@ -57,7 +62,7 @@ export let ProviderAuthCredentialsForm = ({
   let redirectUri = provider.data?.oauth?.callbackUrl;
   let providerName = deployment.data?.name ?? provider.data?.name ?? providerId;
   let oauthMethodName = oauthMethod?.name ?? 'OAuth';
-  let oauthAutoRegistrationEnabled = getProviderOAuthAutoRegistrationEnabled(provider.data);
+  let authCreation = useProviderAuthCreationCapabilities(instanceId, deploymentId, providerId);
 
   let createCredentials = useCreateProviderAuthCredentials();
 
@@ -93,7 +98,7 @@ export let ProviderAuthCredentialsForm = ({
       })
   });
 
-  if ((!!deploymentId && deployment.isLoading) || authMethods.isLoading) {
+  if (authCreation.isLoading) {
     return (
       <>
         <Dialog.Title>Create Auth Credentials</Dialog.Title>
@@ -104,24 +109,37 @@ export let ProviderAuthCredentialsForm = ({
     );
   }
 
-  if (oauthAutoRegistrationEnabled) {
+  if (!authCreation.canCreateAuthCredentials) {
     return (
       <>
-        <Dialog.Title>Create Auth Credentials</Dialog.Title>
-        <Dialog.Description>
-          {providerName} uses {oauthMethodName} auto-registration, so manual app credentials
-          are not supported for this provider.
-        </Dialog.Description>
+        {!embedded && (
+          <>
+            <Dialog.Title>Create Auth Credentials</Dialog.Title>
+            <Dialog.Description>
+              Select a provider and create OAuth credentials.
+            </Dialog.Description>
+            <Spacer size={15} />
+          </>
+        )}
 
-        <Spacer size={15} />
+        {!hideProviderContext && (
+          <>
+            <ProviderContextCard
+              providerId={providerId}
+              providerName={provider.data?.name ?? providerName}
+              providerImageUrl={provider.data?.publisher.imageUrl}
+              deploymentName={deployment.data?.name}
+              deploymentDescription={deployment.data?.description}
+            />
 
-        <ProviderContextCard
-          providerId={providerId}
-          providerName={provider.data?.name ?? providerName}
-          providerImageUrl={provider.data?.publisher.imageUrl}
-          deploymentName={deployment.data?.name}
-          deploymentDescription={deployment.data?.description}
-        />
+            <Spacer size={15} />
+          </>
+        )}
+
+        <Callout color="gray">
+          {authCreation.authCredentialsDisabledReason ??
+            'This provider does not support creating auth credentials.'}
+        </Callout>
 
         <Spacer size={15} />
 
@@ -141,31 +159,41 @@ export let ProviderAuthCredentialsForm = ({
 
   return (
     <>
-      <Dialog.Title>Create Auth Credentials</Dialog.Title>
-      <Dialog.Description>
-        Enter your {oauthMethodName} app credentials for {providerName}.
-      </Dialog.Description>
+      {!embedded && (
+        <>
+          <Dialog.Title>Create Auth Credentials</Dialog.Title>
+          <Dialog.Description>
+            Enter your {oauthMethodName} app credentials for {providerName}.
+          </Dialog.Description>
 
-      <Spacer size={15} />
+          <Spacer size={15} />
+        </>
+      )}
 
-      <ProviderContextCard
-        providerId={providerId}
-        providerName={provider.data?.name ?? providerName}
-        providerImageUrl={provider.data?.publisher.imageUrl}
-        deploymentName={deployment.data?.name}
-        deploymentDescription={deployment.data?.description}
-      />
+      {!hideProviderContext && (
+        <>
+          <ProviderContextCard
+            providerId={providerId}
+            providerName={provider.data?.name ?? providerName}
+            providerImageUrl={provider.data?.publisher.imageUrl}
+            deploymentName={deployment.data?.name}
+            deploymentDescription={deployment.data?.description}
+          />
 
-      <Spacer size={15} />
+          <Spacer size={15} />
+        </>
+      )}
 
       <form onSubmit={form.handleSubmit}>
         {redirectUri && (
           <>
-            <Copy label="Redirect URI" value={redirectUri} />
-            <Text size="1" color="gray600">
-              Use this redirect URI when configuring your OAuth app.
+            <Text size="1" weight="medium" color="gray900">
+              Redirect URI
             </Text>
-
+            <Text size="1" color="gray600" style={{ marginBottom: 5 }}>
+              You must configure this redirect URI in your OAuth app.
+            </Text>
+            <Copy value={redirectUri} />
             <Spacer size={10} />
           </>
         )}

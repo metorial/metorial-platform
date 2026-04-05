@@ -34,7 +34,7 @@ export let ProviderAuthCredentialLayout = () => {
         description={credential.data?.description ?? undefined}
         pagination={[
           {
-            label: 'Configurations',
+            label: 'Auth Credentials',
             href: Paths.instance.providerAuthCredentials(
               organization.data,
               project.data,

@@ -3,6 +3,7 @@ import { createHono } from '@lowerdeck/hono';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import { env } from '../../env';
 import { slateOAuthHandlerService } from '../../services/slateOAuthHandler';
+import { slateSlackEventsIngressService } from '../../services/slateSlackEventsIngressService';
 import { slateTriggerWebhookRequestService } from '../../services/slateTriggerWebhookRequest';
 
 let SETUP_COOKIE_NAME = 'slates_hub_oauth_setup_id';
@@ -73,6 +74,31 @@ export let hubApp = createHono()
     });
 
     return c.redirect(res.redirectUrl);
+  })
+  .post('/slates-hub/slack/events', async c => {
+    let rawBody = await c.req.raw.text();
+    let signature = c.req.header('X-Slack-Signature') ?? undefined;
+    let timestamp = c.req.header('X-Slack-Request-Timestamp') ?? undefined;
+
+    try {
+      let res = await slateSlackEventsIngressService.ingest({
+        rawBody,
+        signature,
+        timestamp
+      });
+
+      if (res.type === 'challenge') {
+        return c.json({ challenge: res.challenge });
+      }
+
+      return c.json({ ok: true, dispatched: res.dispatched });
+    } catch (error) {
+      if (error instanceof ServiceError) {
+        let unauthorized = /signature/i.test(error.message);
+        return c.json({ error: error.message }, unauthorized ? 401 : 400);
+      }
+      throw error;
+    }
   })
   .post('/slates-hub/triggers/webhook/:receiverTriggerId/:key*?', async c => {
     let receiverTriggerId = c.req.param('receiverTriggerId');

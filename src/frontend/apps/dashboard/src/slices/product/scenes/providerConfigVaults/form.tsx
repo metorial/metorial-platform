@@ -7,7 +7,7 @@ import {
   useProviderConfigSchemaTarget,
   useProviderDeployment
 } from '@metorial/state';
-import { Button, CenteredSpinner, Dialog, Input, Spacer, Text } from '@metorial/ui';
+import { Button, Callout, CenteredSpinner, Dialog, Input, Spacer, Text } from '@metorial/ui';
 import { getProviderConfigSchemaCapabilities } from '../../lib/providerCreationCapabilities';
 import { JsonSchemaInput } from '../jsonSchemaInput';
 import { ProviderContextCard } from '../providerContextCard';
@@ -17,6 +17,7 @@ export type ProviderConfigVaultFormProps = {
   instanceId?: string;
   providerId?: string;
   providerDeploymentId?: string;
+  hideProviderContext?: boolean;
 };
 
 export let ProviderConfigVaultForm = (
@@ -49,13 +50,13 @@ export let ProviderConfigVaultForm = (
     isLoading: configSchema.isLoading || (!!props.providerDeploymentId && deployment.isLoading)
   });
   let showEmptyState = !schemaCapabilities.canCreateConfigVault;
-  let emptyStateMessage = schemaCapabilities.hasExplicitEmptySchema
+  let emptyStateCalloutMessage = schemaCapabilities.hasExplicitEmptySchema
     ? isDeploymentScoped
-      ? schemaCapabilities.configVaultDisabledReason
-      : 'This provider has no configurable values, so config vaults are not needed.'
+      ? 'This deployment has no configurable values. Config vaults are not available.'
+      : 'This provider has no configurable values. Config vaults are not available.'
     : isDeploymentScoped
-      ? 'No editable configuration schema is available for this deployment, so a vault cannot be created from the dashboard yet.'
-      : 'No editable configuration schema is available for this provider, so a vault cannot be created from the dashboard yet.';
+      ? 'This deployment has no editable configuration schema.'
+      : 'This provider has no editable configuration schema.';
 
   let form = useForm({
     initialValues: {
@@ -128,7 +129,7 @@ export let ProviderConfigVaultForm = (
 
   return (
     <>
-      {providerId && (
+      {providerId && !props.hideProviderContext && (
         <>
           <ProviderContextCard
             providerId={providerId}
@@ -179,19 +180,22 @@ export let ProviderConfigVaultForm = (
           <createMutation.RenderError />
         </form>
       ) : (
-        <Text size="2" color="gray600">
-          {emptyStateMessage}
-        </Text>
-      )}
-
-      {showEmptyState && (
         <>
+          <Callout color="gray">{emptyStateCalloutMessage}</Callout>
+
           <Spacer size={15} />
 
           <Dialog.Actions>
-            <Button variant="outline" onClick={props.onBack ?? props.close}>
-              {props.onBack ? 'Back' : 'Close'}
-            </Button>
+            {props.onBack && (
+              <Button type="button" variant="outline" onClick={props.onBack}>
+                Back
+              </Button>
+            )}
+            {props.close && (
+              <Button type="button" color="black" variant="solid" onClick={props.close}>
+                Close
+              </Button>
+            )}
           </Dialog.Actions>
         </>
       )}

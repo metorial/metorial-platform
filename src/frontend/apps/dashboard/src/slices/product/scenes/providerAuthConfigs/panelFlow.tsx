@@ -6,13 +6,15 @@ import {
   useCurrentProject
 } from '@metorial/state';
 import { useProviderAuthCreationCapabilities } from '../../lib/providerCreationCapabilities';
-import { ProvidersWithDeploymentsSearch } from '../providers/search';
-import { PillStepper } from '../stepper';
+import {
+  ProviderCreationPanelShell,
+  ProviderSelectionStep,
+  showProviderCreationPanel
+} from '../providerCreationPanel';
 import { AuthMethodPicker } from './authMethodPicker';
 import { ProviderAuthConfigCreateFlowContent } from './createModal';
 import { getCreateMethodDescription } from './modalHelpers';
-import { showPickerSidePanel } from './pickerPanel';
-import { Button, Callout, CenteredSpinner, Dialog, Panel, Spacer, Text } from '@metorial/ui';
+import { Button, Callout, CenteredSpinner, Dialog, Spacer, Text } from '@metorial/ui';
 import { useEffect, useMemo, useState } from 'react';
 
 type PanelFlowProps = {
@@ -112,8 +114,11 @@ let AuthMethodStep = (p: {
         <Callout color="gray">This provider has no auth methods.</Callout>
         <Spacer size={15} />
         <Dialog.Actions>
-          <Button variant="outline" onClick={p.onBack}>
+          <Button type="button" variant="outline" onClick={p.onBack}>
             Back
+          </Button>
+          <Button type="button" color="black" variant="solid" onClick={p.onClose}>
+            Close
           </Button>
         </Dialog.Actions>
       </>
@@ -129,8 +134,11 @@ let AuthMethodStep = (p: {
         </Text>
         <Spacer size={15} />
         <Dialog.Actions>
-          <Button variant="outline" onClick={p.onBack}>
+          <Button type="button" variant="outline" onClick={p.onBack}>
             Back
+          </Button>
+          <Button type="button" color="black" variant="solid" onClick={p.onClose}>
+            Close
           </Button>
         </Dialog.Actions>
       </>
@@ -192,19 +200,13 @@ let ProviderAuthConfigPanelFlow = (p: PanelFlowProps & { close: () => void }) =>
       {
         title: 'Select Provider',
         render: () => (
-          <ProvidersWithDeploymentsSearch
+          <ProviderSelectionStep
             instanceId={p.instanceId}
-            columns={3}
             limit={30}
-            variant="providerCard"
-            cardSize="compact"
-            includeAllProviders
-            prioritizeProvidersWithDeployments
-            internalScroll
             internalScrollHeight="calc(100vh - 260px)"
             emptyText="No providers found."
-            onSelect={provider => {
-              setProviderId(provider.id);
+            onSelect={providerId => {
+              setProviderId(providerId);
               setSelectedMethodId('');
               setAutoSkipSingle(true);
               setStep(1);
@@ -280,45 +282,39 @@ let ProviderAuthConfigPanelFlow = (p: PanelFlowProps & { close: () => void }) =>
   );
 
   return (
-    <>
-      <Panel.Header>
-        <Panel.Title>Create Auth Config</Panel.Title>
-        <Panel.Description>
-          Select a provider, choose an auth method, then authenticate.
-        </Panel.Description>
-      </Panel.Header>
-      <Panel.Content>
-        <PillStepper
-          steps={steps}
-          currentStep={step}
-          isStepDisabled={nextStep => isWindowOpen && nextStep < 2}
-          getStepDisabledReason={nextStep =>
-            isWindowOpen && nextStep < 2
-              ? 'Finish or cancel the authentication window before going back.'
-              : undefined
-          }
-          setCurrentStep={nextStep => {
-            if (isWindowOpen && nextStep < 2) {
-              return;
-            }
-            if (nextStep === 0) {
-              setStep(0);
-              return;
-            }
-            if (nextStep === 1 && providerId) {
-              setStep(1);
-              setAutoSkipSingle(false);
-              return;
-            }
-            if (nextStep === 2 && providerId && selectedMethodId) {
-              setStep(2);
-            }
-          }}
-        />
-      </Panel.Content>
-    </>
+    <ProviderCreationPanelShell
+      title="Create Auth Config"
+      description="Select a provider, choose an auth method, then authenticate."
+      steps={steps}
+      currentStep={step}
+      isStepDisabled={nextStep => isWindowOpen && nextStep < 2}
+      getStepDisabledReason={nextStep =>
+        isWindowOpen && nextStep < 2
+          ? 'Finish or cancel the authentication window before going back.'
+          : undefined
+      }
+      setCurrentStep={nextStep => {
+        if (isWindowOpen && nextStep < 2) {
+          return;
+        }
+        if (nextStep === 0) {
+          setStep(0);
+          return;
+        }
+        if (nextStep === 1 && providerId) {
+          setStep(1);
+          setAutoSkipSingle(false);
+          return;
+        }
+        if (nextStep === 2 && providerId && selectedMethodId) {
+          setStep(2);
+        }
+      }}
+    />
   );
 };
 
 export let showProviderAuthConfigPanelFlow = (p: PanelFlowProps) =>
-  showPickerSidePanel(({ close }) => <ProviderAuthConfigPanelFlow {...p} close={close} />);
+  showProviderCreationPanel(({ close }) => (
+    <ProviderAuthConfigPanelFlow {...p} close={close} />
+  ));
