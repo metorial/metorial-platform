@@ -46,7 +46,6 @@ export let ProviderConfigVaultPanelFlow = (p: { instanceId: string; close: () =>
               providerId={providerId}
               close={p.close}
               onBack={() => setStep(0)}
-              hideProviderContext
               onCreate={vault => {
                 if (!organization.data || !project.data || !instance.data) return;
 

@@ -116,7 +116,7 @@ let ProviderAuthConfigMethodPickerModalContent = (
 
         <Dialog.Actions>
           <Button variant="outline" onClick={handleBackOrClose}>
-            {p.onBack ? 'Back' : 'Close'}
+            Close
           </Button>
         </Dialog.Actions>
       </>
@@ -160,7 +160,7 @@ let ProviderAuthConfigMethodPickerModalContent = (
 
         <Dialog.Actions>
           <Button type="button" variant="outline" size="2" onClick={handleBackOrClose}>
-            {p.onBack ? 'Back' : 'Cancel'}
+            {p.onBack ? 'Close' : 'Cancel'}
           </Button>
           <Button
             type="submit"

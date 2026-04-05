@@ -125,7 +125,7 @@ export let ProviderAuthConfigCreateFlowContent = (
         <Spacer size={15} />
         <Dialog.Actions>
           <Button variant="outline" onClick={p.onBack}>
-            Back
+            Close
           </Button>
         </Dialog.Actions>
       </>

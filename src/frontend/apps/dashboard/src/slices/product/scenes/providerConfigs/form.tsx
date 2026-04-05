@@ -6,7 +6,6 @@ import { useForm } from '@metorial/data-hooks';
 import {
   useCreateProviderConfig,
   useCurrentInstance,
-  useProvider,
   useProviderConfigSchemaTarget,
   useProviderConfigVaults,
   useProviderDeployment
@@ -28,7 +27,6 @@ import {
   FlatCreateSection,
   FlatCreateSections
 } from '../providerCreationPanel/flatCreateLayout';
-import { ProviderContextCard } from '../providerContextCard';
 import { Stepper } from '../../../../components/stepper';
 
 type ConfigSourceMode = '' | 'raw' | 'vault';
@@ -48,7 +46,6 @@ export type ProviderConfigFormProps =
       providerDeploymentId?: string;
       instanceId?: string;
       embedded?: boolean;
-      hideProviderContext?: boolean;
       flattenCreateFlow?: boolean;
     }
   | { type: 'update'; providerDeploymentId: string; configId: string; instanceId?: string };
@@ -68,7 +65,6 @@ export let ProviderConfigForm = (
     props.type === 'create'
       ? (props.providerId ?? deployment.data?.providerId)
       : deployment.data?.providerId;
-  let provider = useProvider(instanceId, providerId);
   let vaults = useProviderConfigVaults(
     instanceId,
     props.type === 'create'
@@ -189,6 +185,26 @@ export let ProviderConfigForm = (
       })
   });
 
+  useEffect(() => {
+    if (!schemaCapabilities.hasSchemaFields && canCreateFromVault) {
+      if (form.values.sourceMode !== 'vault') {
+        form.setFieldValue('sourceMode', 'vault');
+      }
+      return;
+    }
+
+    if (schemaCapabilities.hasSchemaFields && !canCreateFromVault) {
+      if (form.values.sourceMode !== 'raw') {
+        form.setFieldValue('sourceMode', 'raw');
+      }
+      return;
+    }
+
+    if (!schemaCapabilities.hasSchemaFields && !canCreateFromVault && form.values.sourceMode) {
+      form.setFieldValue('sourceMode', '');
+    }
+  }, [canCreateFromVault, form, form.values.sourceMode, schemaCapabilities.hasSchemaFields]);
+
   if (props.providerDeploymentId && deployment.isLoading) {
     return <CenteredSpinner />;
   }
@@ -218,26 +234,6 @@ export let ProviderConfigForm = (
       </Text>
     );
   }
-
-  useEffect(() => {
-    if (!schemaCapabilities.hasSchemaFields && canCreateFromVault) {
-      if (form.values.sourceMode !== 'vault') {
-        form.setFieldValue('sourceMode', 'vault');
-      }
-      return;
-    }
-
-    if (schemaCapabilities.hasSchemaFields && !canCreateFromVault) {
-      if (form.values.sourceMode !== 'raw') {
-        form.setFieldValue('sourceMode', 'raw');
-      }
-      return;
-    }
-
-    if (!schemaCapabilities.hasSchemaFields && !canCreateFromVault && form.values.sourceMode) {
-      form.setFieldValue('sourceMode', '');
-    }
-  }, [canCreateFromVault, form, form.values.sourceMode, schemaCapabilities.hasSchemaFields]);
 
   if (configSchema.isLoading || vaults.isLoading) {
     return <CenteredSpinner />;
@@ -291,20 +287,6 @@ export let ProviderConfigForm = (
 
   return (
     <>
-      {providerId && !(props.type === 'create' && props.hideProviderContext) && (
-        <>
-          <ProviderContextCard
-            providerId={providerId}
-            providerName={provider.data?.name ?? providerId}
-            providerImageUrl={provider.data?.publisher.imageUrl}
-            deploymentName={deployment.data?.name}
-            deploymentDescription={deployment.data?.description}
-          />
-
-          <Spacer size={10} />
-        </>
-      )}
-
       {!showEmptyState ? (
         props.type === 'create' && props.flattenCreateFlow ? (
           <form

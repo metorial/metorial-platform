@@ -1738,8 +1738,7 @@ export let ProviderSetupSessionEmbed = ({
                   Continue in the {oauthMethodName} window
                 </Text>
                 <Text size="2" color="gray600">
-                  Complete the sign-in flow. This modal will update automatically when
-                  authentication finishes.
+                  Complete the sign-in flow. This modal will update automatically.
                 </Text>
 
                 <Spacer size={8} />
@@ -1822,8 +1821,7 @@ export let ProviderSetupSessionEmbed = ({
                 Continue in the {oauthMethodName} window
               </Text>
               <Text size="2" color="gray600">
-                Complete the sign-in flow. This modal will update automatically when
-                authentication finishes.
+                Complete the sign-in flow. This modal will update automatically.
               </Text>
 
               <Spacer size={8} />

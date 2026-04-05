@@ -432,7 +432,7 @@ export let ProviderAuthConfigForm = (
                 size="3"
                 onClick={props.onBack ?? props.close}
               >
-                Back
+                Close
               </Button>
               <Button
                 type="submit"

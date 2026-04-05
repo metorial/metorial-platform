@@ -1,11 +1,12 @@
 import { renderWithLoader } from '@metorial/data-hooks';
+import { Paths } from '@metorial/frontend-config';
 import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
   useProviderDeployment
 } from '@metorial/state';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { providerAuthConfigsFilterTable } from '../(list)/provider-auth-configs';
 import { ProviderAuthConfigCreateButton } from '../../../scenes/providerAuthConfigs/modal';
 import { ProviderDeploymentTabSection } from '../../../scenes/providerDeployments/tabSection';
@@ -14,6 +15,7 @@ export let ProviderDeploymentAuthConfigsPage = () => {
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
+  let navigate = useNavigate();
   let { providerDeploymentId } = useParams();
   let deployment = useProviderDeployment(instance.data?.id, providerDeploymentId);
 
@@ -33,6 +35,18 @@ export let ProviderDeploymentAuthConfigsPage = () => {
                 instanceId={instance.data!.id}
                 providerDeploymentId={deployment.data.id}
                 size="2"
+                onCreate={({ id }) => {
+                  let path = Paths.instance.providerAuthConfig(
+                    organization.data,
+                    project.data,
+                    instance.data!,
+                    id
+                  );
+                  let q = new URLSearchParams({
+                    fromDeployment: deployment.data.id
+                  });
+                  navigate(`${path}?${q.toString()}`);
+                }}
               >
                 Create Auth Config
               </ProviderAuthConfigCreateButton>

@@ -47,6 +47,8 @@ export let ProviderAuthCredentialsForm = ({
   embedded?: boolean;
   hideProviderContext?: boolean;
 }) => {
+  let effectiveHideProviderContext = hideProviderContext || !!deploymentId;
+  let dismissSecondaryLabel = effectiveHideProviderContext ? 'Close' : 'Back';
   let deployment = useProviderDeployment(instanceId, deploymentId);
   let provider = useProvider(instanceId, providerId);
   let versionId = deployment.data?.lockedVersion?.id ?? provider.data?.currentVersion?.id;
@@ -122,7 +124,7 @@ export let ProviderAuthCredentialsForm = ({
           </>
         )}
 
-        {!hideProviderContext && (
+        {!effectiveHideProviderContext && (
           <>
             <ProviderContextCard
               providerId={providerId}
@@ -146,11 +148,11 @@ export let ProviderAuthCredentialsForm = ({
         <Dialog.Actions>
           {onBack && (
             <Button type="button" size="2" variant="outline" onClick={onBack}>
-              Back
+              {dismissSecondaryLabel}
             </Button>
           )}
           <Button type="button" size="2" onClick={close}>
-            Close
+            {onBack ? 'Cancel' : 'Close'}
           </Button>
         </Dialog.Actions>
       </>
@@ -170,7 +172,7 @@ export let ProviderAuthCredentialsForm = ({
         </>
       )}
 
-      {!hideProviderContext && (
+      {!effectiveHideProviderContext && (
         <>
           <ProviderContextCard
             providerId={providerId}
@@ -234,7 +236,7 @@ export let ProviderAuthCredentialsForm = ({
         <Dialog.Actions>
           {onBack && (
             <Button type="button" size="2" variant="outline" onClick={onBack}>
-              Back
+              {dismissSecondaryLabel}
             </Button>
           )}
           <Button
@@ -261,7 +263,7 @@ export let showProviderAuthCredentialsFormModal = (p: {
   ) => void;
 }) =>
   showModal(({ dialogProps, close }) => (
-    <Dialog.Wrapper {...dialogProps} width={550}>
+    <Dialog.Wrapper {...dialogProps} width={800}>
       <ProviderAuthCredentialsForm
         {...p}
         close={close}

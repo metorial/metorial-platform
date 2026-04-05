@@ -30,7 +30,7 @@ export let ProviderAuthConfigSetupFlowCreateContent = (p: {
           flattenOAuthCredentialsFlow
           showExternalPreviewSidebar
           collectAuthConfigDetails
-          cancelLabel={p.onCancel ? 'Back' : 'Cancel'}
+          cancelLabel={p.onCancel ? 'Close' : 'Cancel'}
           onWindowOpenCancel={p.close}
           windowOpenCancelLabel="Cancel"
           onWindowOpenStateChange={p.onWindowOpenStateChange}

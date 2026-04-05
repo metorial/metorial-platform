@@ -3,21 +3,18 @@ import { useForm } from '@metorial/data-hooks';
 import {
   useCreateProviderConfigVault,
   useCurrentInstance,
-  useProvider,
   useProviderConfigSchemaTarget,
   useProviderDeployment
 } from '@metorial/state';
 import { Button, Callout, CenteredSpinner, Dialog, Input, Spacer, Text } from '@metorial/ui';
 import { getProviderConfigSchemaCapabilities } from '../../lib/providerCreationCapabilities';
 import { JsonSchemaInput } from '../jsonSchemaInput';
-import { ProviderContextCard } from '../providerContextCard';
 
 export type ProviderConfigVaultFormProps = {
   type: 'create';
   instanceId?: string;
   providerId?: string;
   providerDeploymentId?: string;
-  hideProviderContext?: boolean;
 };
 
 export let ProviderConfigVaultForm = (
@@ -32,7 +29,6 @@ export let ProviderConfigVaultForm = (
   let createMutation = useCreateProviderConfigVault();
   let deployment = useProviderDeployment(instanceId, props.providerDeploymentId);
   let providerId = props.providerId ?? deployment.data?.providerId;
-  let provider = useProvider(instanceId, providerId);
   let configSchema = useProviderConfigSchemaTarget(
     instanceId,
     providerId || props.providerDeploymentId
@@ -129,20 +125,6 @@ export let ProviderConfigVaultForm = (
 
   return (
     <>
-      {providerId && !props.hideProviderContext && (
-        <>
-          <ProviderContextCard
-            providerId={providerId}
-            providerName={provider.data?.name ?? providerId}
-            providerImageUrl={provider.data?.publisher.imageUrl}
-            deploymentName={deployment.data?.name}
-            deploymentDescription={deployment.data?.description}
-          />
-
-          <Spacer size={10} />
-        </>
-      )}
-
       {!showEmptyState ? (
         <form onSubmit={form.handleSubmit}>
           <Input label="Name" required {...form.getFieldProps('name')} />
