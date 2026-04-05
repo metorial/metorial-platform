@@ -48,7 +48,7 @@ export let tenantController = app.controller({
       v.object({
         name: v.string(),
         identifier: v.string(),
-
+        onlyAllowTrustedProviders: v.optional(v.boolean()),
         environments: v.array(
           v.object({
             name: v.string(),
@@ -63,7 +63,8 @@ export let tenantController = app.controller({
         input: {
           name: ctx.input.name,
           identifier: ctx.input.identifier,
-          environments: ctx.input.environments as any
+          environments: ctx.input.environments as any,
+          onlyAllowTrustedProviders: ctx.input.onlyAllowTrustedProviders
         }
       });
       return tenantPresenter(tenant);

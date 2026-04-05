@@ -30,13 +30,28 @@ export let getProviderTenantFilter = (d: {
   tenant?: Tenant;
   environment?: Environment;
 }) => ({
-  OR: [
-    { access: 'public' as const },
-    d.environment && d.tenant
+  AND: [
+    {
+      OR: [
+        { access: 'public' as const },
+        d.environment && d.tenant
+          ? {
+              access: 'tenant' as const,
+              ownerTenantOid: d.tenant.oid,
+              OR: [{ ownerSolutionOid: d.solution.oid }, { ownerSolutionOid: null }]
+            }
+          : undefined!
+      ].filter(Boolean)
+    },
+
+    d.tenant?.onlyAllowTrustedProviders
       ? {
-          access: 'tenant' as const,
-          ownerTenantOid: d.tenant.oid,
-          OR: [{ ownerSolutionOid: d.solution.oid }, { ownerSolutionOid: null }]
+          OR: [
+            { access: 'tenant' as const },
+            { listing: { isVerified: true } },
+            { listing: { isOfficial: true } },
+            { listing: { isMetorial: true } }
+          ]
         }
       : undefined!
   ].filter(Boolean)

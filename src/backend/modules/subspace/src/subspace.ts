@@ -58,7 +58,7 @@ let getSubspaceTenantIdentifier = (project: Project) => `mte-pro-${project.oid}`
 let getSubspaceEnvironmentIdentifier = (instance: Instance) => `mte-ins-${instance.oid}`;
 
 export let getTenantForSubspace = async (
-  instance: Instance & { organization?: Organization }
+  instance: Instance & { organization?: Organization; project?: Project }
 ) => {
   let solution = await solutionProm.promise;
 
@@ -75,28 +75,17 @@ export let getTenantForSubspace = async (
         include: { project: { include: { instances: true } } }
       });
 
-      let instanceTenantIdentifier =
-        currentInstance.subspaceTenantIdentifier ??
-        getSubspaceTenantIdentifier(currentInstance.project);
-      let instanceEnvironmentIdentifier =
-        currentInstance.subspaceEnvironmentIdentifier ??
-        getSubspaceEnvironmentIdentifier(currentInstance);
-
-      let subspaceTenant = await subspace.tenant.upsert({
-        identifier: instanceTenantIdentifier,
-        name: currentInstance.project.name,
-        environments: currentInstance.project.instances.map(instance => ({
-          identifier: getSubspaceEnvironmentIdentifier(instance),
-          name: instance.name,
-          type: instance.type
-        }))
+      let subspaceTenant = await syncSubspaceTenantForProject(currentInstance.project, {
+        subspaceTenantIdentifier: currentInstance.subspaceTenantIdentifier
       });
 
       let subspaceEnvironment = await subspace.environment.upsert({
         tenantId: subspaceTenant.id,
-        identifier: instanceEnvironmentIdentifier,
         name: currentInstance.name,
-        type: currentInstance.type
+        type: currentInstance.type,
+        identifier:
+          currentInstance.subspaceEnvironmentIdentifier ??
+          getSubspaceEnvironmentIdentifier(currentInstance)
       });
 
       return await withTransaction(async db => {
@@ -152,4 +141,42 @@ export let getActorForSubspace = async (
     organizationActorId: organizationActor.id,
     type: 'external'
   });
+};
+
+export let syncSubspaceTenantForProject = async (
+  project: Project,
+  overrides?: {
+    subspaceTenantIdentifier?: string | null;
+  }
+) => {
+  let instances = await db.instance.findMany({
+    where: { projectOid: project.oid }
+  });
+
+  let tenantIdentifier =
+    overrides?.subspaceTenantIdentifier ??
+    project.subspaceTenantIdentifier ??
+    getSubspaceTenantIdentifier(project);
+
+  let tenant = await subspace.tenant.upsert({
+    identifier: tenantIdentifier,
+    name: project.name,
+    onlyAllowTrustedProviders: project.onlyAllowTrustedProviders,
+    environments: instances.map(instance => ({
+      identifier:
+        instance.subspaceEnvironmentIdentifier ?? getSubspaceEnvironmentIdentifier(instance),
+      name: instance.name,
+      type: instance.type
+    }))
+  });
+
+  await db.project.update({
+    where: { oid: project.oid },
+    data: {
+      subspaceTenantId: tenant.id,
+      subspaceTenantIdentifier: tenant.identifier
+    }
+  });
+
+  return tenant;
 };

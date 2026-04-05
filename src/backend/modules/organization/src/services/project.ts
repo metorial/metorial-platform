@@ -21,15 +21,12 @@ import {
 import { Fabric } from '@metorial/fabric';
 import { generateCode } from '@metorial/id';
 import { syncBrandQueue } from '../queues/syncBrand';
+import { syncSubspaceTenantQueue } from '../queues/syncSubspaceTenant';
 import { instanceService } from './instance';
 
 let getProjectSlug = createSlugGenerator(
   async slug => !(await db.project.findFirst({ where: { slug } }))
 );
-
-let enqueueSyncBrand = async (projectId: string) => {
-  await syncBrandQueue.add({ projectId });
-};
 
 class ProjectService {
   private async ensureProjectActive(project: Project) {
@@ -77,7 +74,10 @@ class ProjectService {
         }
       });
 
-      await addAfterTransactionHook(() => enqueueSyncBrand(project.id));
+      await addAfterTransactionHook(() => syncBrandQueue.add({ projectId: project.id }));
+      await addAfterTransactionHook(() =>
+        syncSubspaceTenantQueue.add({ projectId: project.id })
+      );
 
       await Fabric.fire('organization.project.created:after', {
         ...d,
@@ -96,6 +96,7 @@ class ProjectService {
     context: Context;
     input: {
       name?: string;
+      onlyAllowTrustedProviders?: boolean;
     };
   }) {
     await this.ensureProjectActive(d.project);
@@ -106,14 +107,18 @@ class ProjectService {
       let project = await db.project.update({
         where: { oid: d.project.oid },
         data: {
-          name: d.input.name
+          name: d.input.name,
+          onlyAllowTrustedProviders: d.input.onlyAllowTrustedProviders
         },
         include: {
           organization: true
         }
       });
 
-      await addAfterTransactionHook(() => enqueueSyncBrand(project.id));
+      await addAfterTransactionHook(() => syncBrandQueue.add({ projectId: project.id }));
+      await addAfterTransactionHook(() =>
+        syncSubspaceTenantQueue.add({ projectId: project.id })
+      );
 
       await Fabric.fire('organization.project.updated:after', {
         ...d,

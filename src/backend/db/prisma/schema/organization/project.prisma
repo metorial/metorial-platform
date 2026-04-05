@@ -12,6 +12,8 @@ model Project {
   slug String @unique
   name String
 
+  onlyAllowTrustedProviders Boolean @default(false)
+
   organizationOid BigInt
   organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
 
