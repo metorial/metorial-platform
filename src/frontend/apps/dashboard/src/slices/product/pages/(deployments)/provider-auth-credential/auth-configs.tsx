@@ -8,7 +8,8 @@ import {
 } from '@metorial/state';
 import { RenderDate, Text, theme } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
-import { useParams } from 'react-router-dom';
+import { useLocation, useParams } from 'react-router-dom';
+import { getFromDeployment, withFromDeployment } from '../fromDeployment';
 
 let formatType = (type: string | null | undefined) => {
   if (type === 'oauth_automated') return 'OAuth (Automated)';
@@ -21,6 +22,8 @@ export let ProviderAuthCredentialAuthConfigsPage = () => {
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
+  let location = useLocation();
+  let fromDeployment = getFromDeployment(location.search);
 
   let { providerAuthCredentialsId } = useParams();
 
@@ -33,11 +36,14 @@ export let ProviderAuthCredentialAuthConfigsPage = () => {
       <Table
         headers={['Name', 'Type', 'Auth Method', 'Created']}
         data={authConfigs.data.items.map(config => ({
-          href: Paths.instance.providerAuthConfig(
-            organization.data,
-            project.data,
-            instance.data,
-            config.id
+          href: withFromDeployment(
+            Paths.instance.providerAuthConfig(
+              organization.data,
+              project.data,
+              instance.data,
+              config.id
+            ),
+            fromDeployment
           ),
           data: [
             <Text size="2" weight="strong">

@@ -25,6 +25,7 @@ import {
   getEnumListFilterValue,
   getStringFilterValue
 } from '../../../../../lib/dataTableUtils';
+import { withFromDeployment } from '../fromDeployment';
 import { showCreateProviderAuthConfigFlow } from './providerCreationFlows';
 
 type AuthConfigItem =
@@ -45,6 +46,7 @@ type ProviderAuthConfigsTableProps = {
   project: ReturnType<typeof useCurrentProject>;
   instance: ReturnType<typeof useCurrentInstance>;
   filters?: AuthConfigFilters;
+  fromDeploymentId?: string;
 };
 
 let formatType = (type: string | null | undefined) => {
@@ -283,11 +285,14 @@ export let providerAuthConfigsFilterTable = new DashboardTable<
   ])
   .search('Search auth configs...')
   .link((row, props) =>
-    Paths.instance.providerAuthConfig(
-      props.organization.data,
-      props.project.data,
-      props.instance.data,
-      row.id
+    withFromDeployment(
+      Paths.instance.providerAuthConfig(
+        props.organization.data,
+        props.project.data,
+        props.instance.data,
+        row.id
+      ),
+      props.fromDeploymentId
     )
   )
   .build();

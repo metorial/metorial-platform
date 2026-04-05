@@ -24,6 +24,7 @@ import {
   getDateRangeFilterValue,
   getStringFilterValue
 } from '../../../../../lib/dataTableUtils';
+import { withFromDeployment } from '../fromDeployment';
 import { showCreateProviderConfigVaultFlow } from './providerCreationFlows';
 
 type ProviderConfigVault =
@@ -44,6 +45,7 @@ type ProviderConfigVaultsOverviewTableProps = {
   project: ReturnType<typeof useCurrentProject>;
   instance: ReturnType<typeof useCurrentInstance>;
   filters?: ProviderConfigVaultFilters;
+  fromDeploymentId?: string;
 };
 
 let providerConfigVaultsOverviewState: TableStateProvider<
@@ -229,11 +231,14 @@ export let providerConfigVaultsOverviewTable = new DashboardTable<
   ])
   .search('Search config vaults...')
   .link((row, props) =>
-    Paths.instance.providerConfigVault(
-      props.organization.data,
-      props.project.data,
-      props.instance.data,
-      row.id
+    withFromDeployment(
+      Paths.instance.providerConfigVault(
+        props.organization.data,
+        props.project.data,
+        props.instance.data,
+        row.id
+      ),
+      props.fromDeploymentId
     )
   )
   .build();

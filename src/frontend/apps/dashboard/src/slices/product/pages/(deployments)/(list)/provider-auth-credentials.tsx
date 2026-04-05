@@ -25,6 +25,7 @@ import {
   getEnumListFilterValue,
   getStringFilterValue
 } from '../../../../../lib/dataTableUtils';
+import { withFromDeployment } from '../fromDeployment';
 import { showCreateProviderAuthCredentialsFlow } from './providerCreationFlows';
 
 type ProviderAuthCredential =
@@ -46,6 +47,7 @@ type ProviderAuthCredentialsTableProps = {
   organization: ReturnType<typeof useCurrentOrganization>;
   project: ReturnType<typeof useCurrentProject>;
   instance: ReturnType<typeof useCurrentInstance>;
+  fromDeploymentId?: string;
 };
 
 let getOriginFilterValue = (
@@ -214,11 +216,14 @@ export let providerAuthCredentialsTable = new DashboardTable<
     }
   ])
   .link((row, props) =>
-    Paths.instance.providerAuthCredential(
-      props.organization.data,
-      props.project.data,
-      props.instance.data,
-      row.id
+    withFromDeployment(
+      Paths.instance.providerAuthCredential(
+        props.organization.data,
+        props.project.data,
+        props.instance.data,
+        row.id
+      ),
+      props.fromDeploymentId
     )
   )
   .search('Search auth credentials...')

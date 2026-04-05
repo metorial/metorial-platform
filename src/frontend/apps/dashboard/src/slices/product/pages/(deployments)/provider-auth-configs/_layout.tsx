@@ -10,6 +10,7 @@ import {
 } from '@metorial/state';
 import { LinkTabs } from '@metorial/ui';
 import { Outlet, useLocation, useParams } from 'react-router-dom';
+import { getFromDeployment, withFromDeployment } from '../fromDeployment';
 
 export let ProviderAuthConfigLayout = () => {
   let instance = useCurrentInstance();
@@ -21,13 +22,7 @@ export let ProviderAuthConfigLayout = () => {
 
   let location = useLocation();
   let pathname = location.pathname;
-  let locationSearch = location.search;
-  let fromDeployment =
-    new URLSearchParams(locationSearch).get('fromDeployment') ||
-    authConfig.data?.deployment?.id;
-  let deploymentSearch = fromDeployment
-    ? `?fromDeployment=${encodeURIComponent(fromDeployment)}`
-    : '';
+  let fromDeployment = getFromDeployment(location.search, authConfig.data?.deployment?.id);
 
   let deployment = useProviderDeployment(instance.data?.id, fromDeployment);
 
@@ -45,8 +40,14 @@ export let ProviderAuthConfigLayout = () => {
     deployment.data?.id ?? fromDeployment
   ] as const;
 
-  let overviewPath = `${Paths.instance.providerAuthConfig(...authConfigPathParams)}${deploymentSearch}`;
-  let settingsPath = `${Paths.instance.providerAuthConfig(...authConfigPathParams, 'settings')}${deploymentSearch}`;
+  let overviewPath = withFromDeployment(
+    Paths.instance.providerAuthConfig(...authConfigPathParams),
+    fromDeployment
+  );
+  let settingsPath = withFromDeployment(
+    Paths.instance.providerAuthConfig(...authConfigPathParams, 'settings'),
+    fromDeployment
+  );
 
   let pagination = fromDeployment
     ? [
@@ -60,15 +61,17 @@ export let ProviderAuthConfigLayout = () => {
         },
         {
           label: deployment.data?.name ?? '...',
-          href:
-            `${Paths.instance.providerDeployment(...deploymentBreadcrumbParams)}` +
-            deploymentSearch
+          href: withFromDeployment(
+            Paths.instance.providerDeployment(...deploymentBreadcrumbParams),
+            fromDeployment
+          )
         },
         {
           label: 'Auth Configs',
-          href:
-            `${Paths.instance.providerDeployment(...deploymentBreadcrumbParams, 'auth-configs')}` +
-            deploymentSearch
+          href: withFromDeployment(
+            Paths.instance.providerDeployment(...deploymentBreadcrumbParams, 'auth-configs'),
+            fromDeployment
+          )
         },
         {
           label: authConfig.data?.name ?? '...',

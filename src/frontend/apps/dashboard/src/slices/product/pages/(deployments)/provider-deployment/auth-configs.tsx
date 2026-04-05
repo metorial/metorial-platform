@@ -7,6 +7,7 @@ import {
   useProviderDeployment
 } from '@metorial/state';
 import { useNavigate, useParams } from 'react-router-dom';
+import { withFromDeployment } from '../fromDeployment';
 import { providerAuthConfigsFilterTable } from '../(list)/provider-auth-configs';
 import { ProviderAuthConfigCreateButton } from '../../../scenes/providerAuthConfigs/modal';
 import { ProviderDeploymentTabSection } from '../../../scenes/providerDeployments/tabSection';
@@ -29,6 +30,7 @@ export let ProviderDeploymentAuthConfigsPage = () => {
             project,
             instance,
             filters: { providerDeploymentId: deployment.data.id },
+            fromDeploymentId: deployment.data.id,
             emptyState: 'No auth configs for this deployment.',
             headerActions: () => (
               <ProviderAuthConfigCreateButton
@@ -42,10 +44,7 @@ export let ProviderDeploymentAuthConfigsPage = () => {
                     instance.data!,
                     id
                   );
-                  let q = new URLSearchParams({
-                    fromDeployment: deployment.data.id
-                  });
-                  navigate(`${path}?${q.toString()}`);
+                  navigate(withFromDeployment(path, deployment.data.id));
                 }}
               >
                 Create Auth Config

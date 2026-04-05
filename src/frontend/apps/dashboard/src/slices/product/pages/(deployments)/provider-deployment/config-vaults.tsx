@@ -7,6 +7,7 @@ import {
 } from '@metorial/state';
 import { Button, Tooltip } from '@metorial/ui';
 import { useNavigate, useParams } from 'react-router-dom';
+import { withFromDeployment } from '../fromDeployment';
 import { useProviderConfigCreationCapabilities } from '../../../lib/providerCreationCapabilities';
 import { showProviderConfigVaultFormModal } from '../../../scenes/providerConfigVaults/modal';
 import { ProviderDeploymentTabSection } from '../../../scenes/providerDeployments/tabSection';
@@ -31,6 +32,7 @@ export let ProviderDeploymentConfigVaultsPage = () => {
         project,
         instance,
         filters: { providerDeploymentId: providerDeploymentId! },
+        fromDeploymentId: providerDeploymentId!,
         emptyState: 'No config vaults for this deployment.',
         headerActions: () => (
           <Tooltip
@@ -49,11 +51,14 @@ export let ProviderDeploymentConfigVaultsPage = () => {
                     providerDeploymentId: providerDeploymentId!,
                     onCreate: vault => {
                       navigate(
-                        Paths.instance.providerConfigVault(
-                          organization.data,
-                          project.data,
-                          instance.data!,
-                          vault.id
+                        withFromDeployment(
+                          Paths.instance.providerConfigVault(
+                            organization.data,
+                            project.data,
+                            instance.data!,
+                            vault.id
+                          ),
+                          providerDeploymentId
                         )
                       );
                     }

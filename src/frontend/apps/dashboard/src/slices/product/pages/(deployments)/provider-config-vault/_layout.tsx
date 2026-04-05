@@ -5,10 +5,12 @@ import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
-  useProviderConfigVault
+  useProviderConfigVault,
+  useProviderDeployment
 } from '@metorial/state';
 import { LinkTabs } from '@metorial/ui';
 import { Outlet, useLocation, useParams } from 'react-router-dom';
+import { getFromDeployment, withFromDeployment } from '../fromDeployment';
 
 export let ProviderConfigVaultLayout = () => {
   let instance = useCurrentInstance();
@@ -18,7 +20,10 @@ export let ProviderConfigVaultLayout = () => {
   let { providerConfigVaultId } = useParams();
   let vault = useProviderConfigVault(instance.data?.id, providerConfigVaultId);
 
-  let pathname = useLocation().pathname;
+  let location = useLocation();
+  let pathname = location.pathname;
+  let fromDeployment = getFromDeployment(location.search, vault.data?.deployment?.id);
+  let deployment = useProviderDeployment(instance.data?.id, fromDeployment);
 
   let vaultPathParams = [
     organization.data,
@@ -26,44 +31,96 @@ export let ProviderConfigVaultLayout = () => {
     instance.data,
     vault.data?.id ?? providerConfigVaultId
   ] as const;
+  let deploymentPathParams = [
+    organization.data,
+    project.data,
+    instance.data,
+    deployment.data?.id ?? fromDeployment
+  ] as const;
+  let overviewPath = withFromDeployment(
+    Paths.instance.providerConfigVault(...vaultPathParams),
+    fromDeployment
+  );
+  let configsPath = withFromDeployment(
+    Paths.instance.providerConfigVault(...vaultPathParams, 'configs'),
+    fromDeployment
+  );
+  let settingsPath = withFromDeployment(
+    Paths.instance.providerConfigVault(...vaultPathParams, 'settings'),
+    fromDeployment
+  );
 
   return (
     <ContentLayout>
       <PageHeader
         title={vault.data?.name ?? '...'}
         description={vault.data?.description ?? undefined}
-        pagination={[
-          {
-            label: 'Configurations',
-            href: Paths.instance.providerConfigVaults(
-              organization.data,
-              project.data,
-              instance.data
-            )
-          },
-          {
-            label: vault.data?.name ?? '...',
-            href: Paths.instance.providerConfigVault(...vaultPathParams)
-          }
-        ]}
+        pagination={
+          fromDeployment
+            ? [
+                {
+                  label: 'Deployments',
+                  href: Paths.instance.providerDeployments(
+                    organization.data,
+                    project.data,
+                    instance.data
+                  )
+                },
+                {
+                  label: deployment.data?.name ?? '...',
+                  href: withFromDeployment(
+                    Paths.instance.providerDeployment(...deploymentPathParams),
+                    fromDeployment
+                  )
+                },
+                {
+                  label: 'Vaults',
+                  href: withFromDeployment(
+                    Paths.instance.providerDeployment(
+                      ...deploymentPathParams,
+                      'config-vaults'
+                    ),
+                    fromDeployment
+                  )
+                },
+                {
+                  label: vault.data?.name ?? '...',
+                  href: overviewPath
+                }
+              ]
+            : [
+                {
+                  label: 'Configurations',
+                  href: Paths.instance.providerConfigVaults(
+                    organization.data,
+                    project.data,
+                    instance.data
+                  )
+                },
+                {
+                  label: vault.data?.name ?? '...',
+                  href: overviewPath
+                }
+              ]
+        }
       />
 
-      {renderWithLoader({ vault })(({ vault }) => (
+      {renderWithLoader({ vault })(() => (
         <>
           <LinkTabs
             current={pathname}
             links={[
               {
                 label: 'Overview',
-                to: Paths.instance.providerConfigVault(...vaultPathParams)
+                to: overviewPath
               },
               {
                 label: 'Configs',
-                to: Paths.instance.providerConfigVault(...vaultPathParams, 'configs')
+                to: configsPath
               },
               {
                 label: 'Settings',
-                to: Paths.instance.providerConfigVault(...vaultPathParams, 'settings')
+                to: settingsPath
               }
             ]}
           />

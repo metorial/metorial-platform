@@ -10,8 +10,9 @@ import {
 } from '@metorial/state';
 import { Badge, Callout, RenderDate, Spacer, Text, theme } from '@metorial/ui';
 import { Box, ID, Table } from '@metorial/ui-product';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import { styled } from 'styled-components';
+import { getFromDeployment, withFromDeployment } from '../fromDeployment';
 import {
   ProviderSessionsTable,
   SessionConnectionStatusBadge
@@ -56,6 +57,8 @@ export let ProviderConfigOverviewPage = () => {
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
+  let location = useLocation();
+  let fromDeployment = getFromDeployment(location.search);
 
   let { providerConfigId } = useParams();
   let config = useProviderConfig(instance.data?.id, providerConfigId);
@@ -123,11 +126,14 @@ export let ProviderConfigOverviewPage = () => {
               <SummaryValue>
                 <Badge color="purple">Vault</Badge>
                 <Link
-                  to={Paths.instance.providerConfigVault(
-                    organization.data,
-                    project.data,
-                    instance.data,
-                    config.data.fromVault.id
+                  to={withFromDeployment(
+                    Paths.instance.providerConfigVault(
+                      organization.data,
+                      project.data,
+                      instance.data,
+                      config.data.fromVault.id
+                    ),
+                    fromDeployment
                   )}
                 >
                   {config.data.fromVault.name ?? config.data.fromVault.id}
