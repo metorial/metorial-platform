@@ -105,7 +105,7 @@
     "react-router-dom": "^7.12.0",
     "semver": "^7.7.3",
     "sonner": "^1.5.0",
-    "styled-components": "^6.3.5",
+    "styled-components": "^6.1.13",
     "unzipper": "^0.12.3",
     "yaml": "^2.8.2",
     "zod": "^4.2.1"
