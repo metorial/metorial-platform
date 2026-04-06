@@ -2,7 +2,7 @@ import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { MagicMcpTokenStatus } from '@metorial/db';
-import { consumerAccessPolicyService } from '@metorial/module-consumer';
+import { grantConsumerOwnedMagicMcpTokenAccess } from '@metorial/module-consumer';
 import {
   magicMcpGroupService,
   magicMcpServerService,
@@ -171,22 +171,12 @@ export let magicMcpTokenController = Controller.create(
         });
 
         if (ctx.consumerProfile) {
-          for (let permission of [
-            'magic_mcp_read',
-            'magic_mcp_write',
-            'magic_mcp_connect'
-          ] as const) {
-            await consumerAccessPolicyService.grantAccess({
-              organization: ctx.organization,
-              permission,
-              subject: {
-                personalConsumerGroupForProfile: ctx.consumerProfile
-              },
-              resource: {
-                magicMcpToken
-              }
-            });
-          }
+          await grantConsumerOwnedMagicMcpTokenAccess({
+            organization: ctx.organization,
+            consumerProfile: ctx.consumerProfile,
+            consumerGroups: ctx.consumerGroups,
+            magicMcpToken
+          });
         }
 
         return magicMcpTokenPresenter.present({ magicMcpToken });

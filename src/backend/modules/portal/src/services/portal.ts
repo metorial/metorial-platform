@@ -44,14 +44,9 @@ let getPortalSlug = createSlugGenerator(async slug => {
 });
 
 let getPortalRedirectDomains = () => {
-  let template = getPortalUrlTemplate(env.portal.PORTAL_HOST_TEMPLATE);
-  let placeholder = '__portal__';
-  let parsed = new URL(template.replace('{portalId}', placeholder));
-  let hostname = parsed.hostname.includes(placeholder)
-    ? parsed.hostname.replace(placeholder, '*')
-    : parsed.hostname;
-
-  return [hostname];
+  return env.portal.PORTAL_REDIRECT_DOMAINS.split(',')
+    .map(domain => domain.trim())
+    .filter(domain => domain.length > 0);
 };
 
 let buildPortalUrlFromId = (portalId: string) => {
