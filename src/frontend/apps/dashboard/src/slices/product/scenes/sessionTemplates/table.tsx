@@ -113,8 +113,7 @@ let sessionTemplatesTable = new DashboardTable<SessionTemplatesTableProps, Sessi
       header: 'Provider Statuses',
       render: template => (
         <Text size="2">
-          {[...new Set(template.providers.map(provider => provider.status))].join(', ') ||
-            '\u2014'}
+          {[...new Set(template.providers.map(provider => provider.status))].join(', ') || '—'}
         </Text>
       )
     },

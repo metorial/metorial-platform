@@ -81,7 +81,7 @@ let providerErrorGroupsTable = new DashboardTable<ErrorGroupsTableStateProps, Er
       id: 'occurrenceCount',
       isDefault: true,
       header: 'Count',
-      render: error => <Text size="2">{error.occurrenceCount ?? '\u2014'}</Text>
+      render: error => <Text size="2">{error.occurrenceCount ?? '—'}</Text>
     },
     {
       id: 'createdAt',

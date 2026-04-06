@@ -17,15 +17,12 @@ import {
   Avatar,
   Badge,
   Button,
-  Callout,
   Copy,
   Flex,
   Input,
-  OptionToggle,
   Select,
   Spacer,
   Text,
-  Tooltip,
   theme
 } from '@metorial/ui';
 import { sortBy } from 'lodash';
@@ -54,16 +51,6 @@ let ManagedCredentialsLayout = styled.div`
 let ManagedCredentialsColumn = styled.div`
   display: flex;
   flex-direction: column;
-`;
-
-let RedirectUriDocsLink = styled.a`
-  color: ${theme.colors.gray700};
-  text-decoration: underline;
-  text-underline-offset: 2px;
-
-  &:hover {
-    color: ${theme.colors.gray900};
-  }
 `;
 
 let ManagedCredentialsPreview = styled.aside`
@@ -203,12 +190,6 @@ let FlatConnectSection = styled.section`
   border-radius: 14px;
   border: 1px solid ${theme.colors.gray300};
   background: ${theme.colors.gray100};
-`;
-
-let FlatConnectSectionHeader = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
 `;
 
 let FlatInlineField = styled.div`
@@ -371,7 +352,6 @@ export let ProviderSetupSessionEmbed = ({
     string | null
   >(null);
   let autoStartedRef = useRef(false);
-  let initializedFlatManagedSelectionRef = useRef(false);
 
   let completedRef = useRef(false);
   let pollingRef = useRef(false);
@@ -447,17 +427,12 @@ export let ProviderSetupSessionEmbed = ({
   let hasManagedVisibleCredentials = visibleAuthCredentials.some(
     credential => credential.isManaged
   );
-  let primaryManagedCredentialId = managedVisibleCredentials[0]?.id ?? '';
   let requiresManualOAuthCredentials = isOAuth && !oauthAutoRegistrationEnabled;
   let preferredVisibleCredential =
     customVisibleCredentials.find(credential => credential.isDefault) ??
     customVisibleCredentials[0] ??
     managedVisibleCredentials[0] ??
     (visibleAuthCredentials.length === 1 ? visibleAuthCredentials[0] : null);
-  let preferredCustomCredential =
-    customVisibleCredentials.find(credential => credential.isDefault) ??
-    customVisibleCredentials[0] ??
-    null;
   let selectedVisibleCredential = visibleAuthCredentials.find(
     credential => credential.id === credentialsForm.values.selectedCredentialId
   );
@@ -466,12 +441,12 @@ export let ProviderSetupSessionEmbed = ({
       ? [
           {
             id: '__managed_heading__',
-            label: 'Managed by Metorial',
+            label: 'Metorial Managed',
             disabled: true
           } as const,
           ...managedVisibleCredentials.map(credential => ({
             id: credential.id,
-            label: `${credential.name || credential.id} (Managed)`
+            label: `${credential.name || credential.id} (Metorial Managed)`
           }))
         ]
       : []),
@@ -658,56 +633,24 @@ export let ProviderSetupSessionEmbed = ({
     return result.id;
   };
 
-  let selectManagedCredential = async () => {
-    if (!primaryManagedCredentialId) return;
+  let handleCredentialSelectionChange = (value: string) => {
     setError(null);
     setLatestCreatedCredentialId(null);
     setLatestCreatedCredentialLabel(null);
-    await credentialsForm.setFieldValue('credentialMode', 'existing');
-    await credentialsForm.setFieldValue('selectedCredentialId', primaryManagedCredentialId);
-  };
 
-  let selectCustomCredential = async () => {
-    setError(null);
-    setLatestCreatedCredentialId(null);
-    setLatestCreatedCredentialLabel(null);
-    if (preferredCustomCredential) {
-      await credentialsForm.setFieldValue('credentialMode', 'existing');
-      await credentialsForm.setFieldValue(
-        'selectedCredentialId',
-        preferredCustomCredential.id
-      );
+    if (value === '__create_new__') {
+      void credentialsForm.setFieldValue('credentialMode', 'new');
+      void credentialsForm.setFieldValue('selectedCredentialId', '');
       return;
     }
 
-    await credentialsForm.setFieldValue('credentialMode', 'new');
-    await credentialsForm.setFieldValue('selectedCredentialId', '');
+    void credentialsForm.setFieldValue('credentialMode', 'existing');
+    void credentialsForm.setFieldValue('selectedCredentialId', value);
   };
 
   useEffect(() => {
     onWindowOpenStateChange?.(!!setupSession?.url);
   }, [onWindowOpenStateChange, setupSession?.url]);
-
-  useEffect(() => {
-    if (!flattenOAuthCredentialsFlow) return;
-    if (!showManagedChoiceStep) return;
-    if (!primaryManagedCredentialId) return;
-    if (initializedFlatManagedSelectionRef.current) return;
-
-    initializedFlatManagedSelectionRef.current = true;
-    void (async () => {
-      setError(null);
-      setLatestCreatedCredentialId(null);
-      setLatestCreatedCredentialLabel(null);
-      await credentialsForm.setFieldValue('credentialMode', 'existing');
-      await credentialsForm.setFieldValue('selectedCredentialId', primaryManagedCredentialId);
-    })();
-  }, [
-    flattenOAuthCredentialsFlow,
-    showManagedChoiceStep,
-    primaryManagedCredentialId,
-    credentialsForm.setFieldValue
-  ]);
 
   let resolveSelectedCredentialId = async (values: typeof credentialsForm.values) => {
     let providerAuthCredentialsId = values.selectedCredentialId;
@@ -1151,144 +1094,54 @@ export let ProviderSetupSessionEmbed = ({
 
           {showManagedChoiceStep ? (
             <>
-              <Text size="1" weight="medium" color="gray900" style={{ marginBottom: 2 }}>
-                Credential type
-              </Text>
-              <Text size="1" color="gray600" style={{ marginBottom: 5 }}>
-                Choose Metorial Managed to get started without creating your own OAuth app.
-              </Text>
-
-              {hasManagedVisibleCredentials ? (
-                <OptionToggle
-                  size="2"
-                  fullWidth
-                  value={isManagedSelected ? 'managed' : 'manual'}
-                  onChange={value => {
-                    if (value === 'managed') {
-                      void selectManagedCredential();
-                    } else {
-                      void selectCustomCredential();
-                    }
-                  }}
-                  items={[
-                    { id: 'manual', label: 'Bring Your Own' },
-                    { id: 'managed', label: 'Metorial Managed' }
-                  ]}
-                />
-              ) : (
-                <Tooltip
-                  content="Some providers have credentials managed by Metorial, but this provider does not offer managed credentials yet."
-                  delayDuration={0}
-                >
-                  <div>
-                    <OptionToggle
-                      size="2"
-                      fullWidth
-                      value="manual"
-                      items={[
-                        { id: 'manual', label: 'Bring Your Own' },
-                        { id: 'managed', label: 'Metorial Managed', disabled: true }
-                      ]}
-                    />
-                  </div>
-                </Tooltip>
-              )}
-
-              <Spacer size={12} />
-
-              {redirectUri && isCustomSelected && (
-                <>
-                  <Text size="1" weight="medium" color="gray900">
-                    Redirect URI
-                  </Text>
-                  <Text size="1" color="gray600" style={{ marginBottom: 5 }}>
-                    You must configure this redirect URI in your OAuth app.{' '}
-                    {/*
-                    <RedirectUriDocsLink
-                      href="https://metorial.com/docs"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      Read the docs to learn more
-                    </RedirectUriDocsLink>
-                    .
-                    */}
-                  </Text>
-                  <Copy value={redirectUri} />
-                  <Spacer size={20} />
-                </>
-              )}
-
               <ManagedCredentialsLayout
                 style={showExternalPreviewSidebar ? { gridTemplateColumns: '1fr' } : undefined}
               >
                 <ManagedCredentialsColumn>
-                  {hasManagedVisibleCredentials && isManagedSelected && (
-                    <Callout color="gray">
-                      No custom OAuth app setup is required for this connection.
-                    </Callout>
-                  )}
+                  <Select
+                    label="Credentials"
+                    description="Select existing credentials or add new ones for this provider."
+                    value={
+                      credentialsForm.values.credentialMode === 'new'
+                        ? '__create_new__'
+                        : credentialsForm.values.selectedCredentialId
+                    }
+                    placeholder="Select or add credentials"
+                    onChange={handleCredentialSelectionChange}
+                    items={credentialSelectItems}
+                  />
+                  <credentialsForm.RenderError field="selectedCredentialId" />
 
-                  {isManagedSelected && managedVisibleCredentials.length > 1 && (
+                  {hasManagedVisibleCredentials && (
                     <>
-                      <Select
-                        label={`${oauthMethodName} Managed Credentials`}
-                        value={credentialsForm.values.selectedCredentialId}
-                        placeholder="Select managed credentials"
-                        onChange={value => {
-                          setError(null);
-                          setLatestCreatedCredentialId(null);
-                          setLatestCreatedCredentialLabel(null);
-                          void credentialsForm.setFieldValue('credentialMode', 'existing');
-                          void credentialsForm.setFieldValue('selectedCredentialId', value);
-                        }}
-                        items={managedVisibleCredentials.map(credential => ({
-                          id: credential.id,
-                          label: credential.name || credential.id
-                        }))}
-                      />
-                      <Spacer size={8} />
+                      <Spacer size={5} />
+                      <Text size="1" color="gray600">
+                        Metorial Managed credentials are available for quick testing, or choose
+                        Add credentials to use your own OAuth app.
+                      </Text>
                     </>
                   )}
 
-                  {isCustomSelected && (
+                  {redirectUri && isCustomSelected && (
                     <>
-                      <Select
-                        label="Credentials"
-                        description="Select existing credentials or add new ones for this provider."
-                        value={
-                          credentialsForm.values.credentialMode === 'new'
-                            ? '__create_new__'
-                            : credentialsForm.values.selectedCredentialId
-                        }
-                        placeholder="Select or add credentials"
-                        onChange={value => {
-                          setError(null);
-
-                          if (value === '__create_new__') {
-                            setLatestCreatedCredentialId(null);
-                            setLatestCreatedCredentialLabel(null);
-                            void credentialsForm.setFieldValue('credentialMode', 'new');
-                            void credentialsForm.setFieldValue('selectedCredentialId', '');
-                          } else {
-                            setLatestCreatedCredentialId(null);
-                            setLatestCreatedCredentialLabel(null);
-                            void credentialsForm.setFieldValue('credentialMode', 'existing');
-                            void credentialsForm.setFieldValue('selectedCredentialId', value);
-                          }
-                        }}
-                        items={[
-                          ...customVisibleCredentials.map(credential => ({
-                            id: credential.id,
-                            label: credential.isDefault
-                              ? `${credential.name || credential.id} (Default)`
-                              : credential.name || credential.id
-                          })),
-                          { type: 'separator' as const },
-                          { id: '__create_new__', label: 'Add new credentials' }
-                        ]}
-                      />
-                      <credentialsForm.RenderError field="selectedCredentialId" />
+                      <Spacer size={12} />
+                      <Text size="1" weight="medium" color="gray900">
+                        Redirect URI
+                      </Text>
+                      <Text size="1" color="gray600" style={{ marginBottom: 5 }}>
+                        You must configure this redirect URI in your OAuth app.{' '}
+                        {/*
+                        <RedirectUriDocsLink
+                          href="https://metorial.com/docs"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          Read the docs to learn more
+                        </RedirectUriDocsLink>
+                        .
+                        */}
+                      </Text>
+                      <Copy value={redirectUri} />
                     </>
                   )}
 
@@ -1431,21 +1284,7 @@ export let ProviderSetupSessionEmbed = ({
                     : credentialsForm.values.selectedCredentialId
                 }
                 placeholder="Select or add credentials"
-                onChange={value => {
-                  setError(null);
-
-                  if (value === '__create_new__') {
-                    setLatestCreatedCredentialId(null);
-                    setLatestCreatedCredentialLabel(null);
-                    void credentialsForm.setFieldValue('credentialMode', 'new');
-                    void credentialsForm.setFieldValue('selectedCredentialId', '');
-                  } else {
-                    setLatestCreatedCredentialId(null);
-                    setLatestCreatedCredentialLabel(null);
-                    void credentialsForm.setFieldValue('credentialMode', 'existing');
-                    void credentialsForm.setFieldValue('selectedCredentialId', value);
-                  }
-                }}
+                onChange={handleCredentialSelectionChange}
                 items={credentialSelectItems}
               />
               <credentialsForm.RenderError field="selectedCredentialId" />
@@ -1454,7 +1293,7 @@ export let ProviderSetupSessionEmbed = ({
                 <>
                   <Spacer size={5} />
                   <Text size="1" color="gray600">
-                    Managed credentials are available for quick testing, or choose Add
+                    Metorial Managed credentials are available for quick testing, or choose Add
                     credentials to use your own OAuth app.
                   </Text>
                 </>
@@ -1587,134 +1426,88 @@ export let ProviderSetupSessionEmbed = ({
             }}
           >
             <FlatConnectForm>
-              {hasManagedVisibleCredentials ? (
-                <FlatConnectSection>
-                  <FlatConnectSectionHeader>
-                    <Text size="1" weight="strong">
-                      Managed credentials
-                    </Text>
-                    <Text size="1" color="gray600">
-                      Metorial Managed is selected by default for this provider.
-                    </Text>
-                  </FlatConnectSectionHeader>
-
-                  <Callout color="gray">
-                    No custom OAuth app setup is required for this connection.
-                  </Callout>
-
-                  {managedVisibleCredentials.length > 1 && (
-                    <Select
-                      label={`${oauthMethodName} Managed Credentials`}
-                      value={credentialsForm.values.selectedCredentialId}
-                      placeholder="Select managed credentials"
-                      disabled={isWindowOpen}
-                      onChange={value => {
-                        setError(null);
-                        setLatestCreatedCredentialId(null);
-                        setLatestCreatedCredentialLabel(null);
-                        void credentialsForm.setFieldValue('credentialMode', 'existing');
-                        void credentialsForm.setFieldValue('selectedCredentialId', value);
-                      }}
-                      items={managedVisibleCredentials.map(credential => ({
-                        id: credential.id,
-                        label: credential.name || credential.id
-                      }))}
-                    />
-                  )}
-                </FlatConnectSection>
-              ) : (
-                <>
-                  {redirectUri && (
-                    <FlatInlineField>
-                      <Text size="1" weight="medium" color="gray900" style={{ margin: 0 }}>
-                        Redirect URI
-                      </Text>
-                      <Text size="1" color="gray600" style={{ margin: 0 }}>
-                        You must configure this redirect URI in your OAuth app.
-                      </Text>
-                      <Copy value={redirectUri} />
-                    </FlatInlineField>
-                  )}
-
-                  <FlatConnectSection>
-                    <Select
-                      label="Credentials"
-                      description="Select existing credentials or add new ones for this provider."
-                      value={
-                        credentialsForm.values.credentialMode === 'new'
-                          ? '__create_new__'
-                          : credentialsForm.values.selectedCredentialId
-                      }
-                      placeholder="Select or add credentials"
-                      disabled={isWindowOpen}
-                      onChange={value => {
-                        setError(null);
-
-                        if (value === '__create_new__') {
-                          setLatestCreatedCredentialId(null);
-                          setLatestCreatedCredentialLabel(null);
-                          void credentialsForm.setFieldValue('credentialMode', 'new');
-                          void credentialsForm.setFieldValue('selectedCredentialId', '');
-                        } else {
-                          setLatestCreatedCredentialId(null);
-                          setLatestCreatedCredentialLabel(null);
-                          void credentialsForm.setFieldValue('credentialMode', 'existing');
-                          void credentialsForm.setFieldValue('selectedCredentialId', value);
-                        }
-                      }}
-                      items={credentialSelectItems}
-                    />
-                    <credentialsForm.RenderError field="selectedCredentialId" />
-
-                    {isCreatingCredentials && (
-                      <>
-                        <Spacer size={8} />
-
-                        <Input
-                          label="Name"
-                          value={credentialsForm.values.newCredName}
-                          disabled={isWindowOpen}
-                          onChange={e =>
-                            credentialsForm.setFieldValue('newCredName', e.target.value)
-                          }
-                          placeholder="My OAuth App"
-                        />
-                        <credentialsForm.RenderError field="newCredName" />
-
-                        <Spacer size={8} />
-
-                        <Input
-                          label="Client ID"
-                          value={credentialsForm.values.newCredClientId}
-                          disabled={isWindowOpen}
-                          onChange={e =>
-                            credentialsForm.setFieldValue('newCredClientId', e.target.value)
-                          }
-                          placeholder="Enter client ID from provider"
-                        />
-                        <credentialsForm.RenderError field="newCredClientId" />
-
-                        <Spacer size={8} />
-
-                        <Input
-                          label="Client Secret"
-                          value={credentialsForm.values.newCredClientSecret}
-                          disabled={isWindowOpen}
-                          onChange={e =>
-                            credentialsForm.setFieldValue(
-                              'newCredClientSecret',
-                              e.target.value
-                            )
-                          }
-                          placeholder="Enter client secret from provider"
-                          type="password"
-                        />
-                        <credentialsForm.RenderError field="newCredClientSecret" />
-                      </>
-                    )}
-                  </FlatConnectSection>
-                </>
+              {redirectUri && isCustomSelected && (
+                <FlatInlineField>
+                  <Text size="1" weight="medium" color="gray900" style={{ margin: 0 }}>
+                    Redirect URI
+                  </Text>
+                  <Text size="1" color="gray600" style={{ margin: 0 }}>
+                    You must configure this redirect URI in your OAuth app.
+                  </Text>
+                  <Copy value={redirectUri} />
+                </FlatInlineField>
               )}
+
+              <FlatConnectSection>
+                <Select
+                  label="Credentials"
+                  description="Select existing credentials or add new ones for this provider."
+                  value={
+                    credentialsForm.values.credentialMode === 'new'
+                      ? '__create_new__'
+                      : credentialsForm.values.selectedCredentialId
+                  }
+                  placeholder="Select or add credentials"
+                  disabled={isWindowOpen}
+                  onChange={handleCredentialSelectionChange}
+                  items={credentialSelectItems}
+                />
+                <credentialsForm.RenderError field="selectedCredentialId" />
+
+                {hasManagedVisibleCredentials && (
+                  <>
+                    <Spacer size={5} />
+                    <Text size="1" color="gray600">
+                      Metorial Managed credentials are available for quick testing, or choose
+                      Add credentials to use your own OAuth app.
+                    </Text>
+                  </>
+                )}
+
+                {isCreatingCredentials && (
+                  <>
+                    <Spacer size={8} />
+
+                    <Input
+                      label="Name"
+                      value={credentialsForm.values.newCredName}
+                      disabled={isWindowOpen}
+                      onChange={e =>
+                        credentialsForm.setFieldValue('newCredName', e.target.value)
+                      }
+                      placeholder="My OAuth App"
+                    />
+                    <credentialsForm.RenderError field="newCredName" />
+
+                    <Spacer size={8} />
+
+                    <Input
+                      label="Client ID"
+                      value={credentialsForm.values.newCredClientId}
+                      disabled={isWindowOpen}
+                      onChange={e =>
+                        credentialsForm.setFieldValue('newCredClientId', e.target.value)
+                      }
+                      placeholder="Enter client ID from provider"
+                    />
+                    <credentialsForm.RenderError field="newCredClientId" />
+
+                    <Spacer size={8} />
+
+                    <Input
+                      label="Client Secret"
+                      value={credentialsForm.values.newCredClientSecret}
+                      disabled={isWindowOpen}
+                      onChange={e =>
+                        credentialsForm.setFieldValue('newCredClientSecret', e.target.value)
+                      }
+                      placeholder="Enter client secret from provider"
+                      type="password"
+                    />
+                    <credentialsForm.RenderError field="newCredClientSecret" />
+                  </>
+                )}
+              </FlatConnectSection>
 
               {collectAuthConfigDetails && (
                 <FlatConnectSection>

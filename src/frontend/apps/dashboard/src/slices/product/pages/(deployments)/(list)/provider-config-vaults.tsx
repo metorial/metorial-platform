@@ -132,13 +132,13 @@ export let providerConfigVaultsOverviewTable = new DashboardTable<
       id: 'provider',
       isDefault: true,
       header: 'Provider',
-      render: row => <Text size="2">{row.providerName ?? row.providerId ?? '\u2014'}</Text>
+      render: row => <Text size="2">{row.providerName ?? row.providerId ?? '—'}</Text>
     },
     {
       id: 'deployment',
       isDefault: true,
       header: 'Deployment',
-      render: row => <Text size="2">{row.deployment?.name ?? '\u2014'}</Text>
+      render: row => <Text size="2">{row.deployment?.name ?? '—'}</Text>
     },
     {
       id: 'createdAt',

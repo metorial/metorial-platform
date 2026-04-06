@@ -8,6 +8,33 @@ import {
 import { getJsonSchemaObject, hasJsonSchemaProperties } from './jsonSchema';
 import { getProviderOAuthAutoRegistrationEnabled } from './providerOAuthAutoRegistration';
 
+let getAuthMethodOrderRank = (type: string | null | undefined) => {
+  switch (type) {
+    case 'oauth':
+      return 0;
+    case 'token':
+      return 1;
+    case 'custom':
+      return 2;
+    default:
+      return 100;
+  }
+};
+
+export let orderProviderAuthMethods = <T extends { type?: string | null }>(methods: T[]) =>
+  methods
+    .map((method, index) => ({
+      method,
+      index
+    }))
+    .sort((a, b) => {
+      let rankDifference =
+        getAuthMethodOrderRank(a.method.type) - getAuthMethodOrderRank(b.method.type);
+      if (rankDifference !== 0) return rankDifference;
+      return a.index - b.index;
+    })
+    .map(({ method }) => method);
+
 let getAuthMethodHasSchema = (inputSchema: unknown) => {
   let schemaObj = getJsonSchemaObject(
     inputSchema as Record<string, unknown> | null | undefined
@@ -104,7 +131,7 @@ export let useProviderAuthCreationCapabilities = (
     scopedProviderInstanceId,
     effectiveVersionId ? { providerVersionId: effectiveVersionId ?? undefined } : null
   );
-  let authMethodItems = authMethods.data?.items ?? [];
+  let authMethodItems = orderProviderAuthMethods(authMethods.data?.items ?? []);
   let oauthAutoRegistrationEnabled = getProviderOAuthAutoRegistrationEnabled(provider.data);
   let hasAuthMethods = authMethodItems.length > 0;
   let hasOAuthMethod = authMethodItems.some(method => method.type === 'oauth');

@@ -14,6 +14,7 @@ import {
 import { Button, CenteredSpinner, Dialog, Input, Select, Spacer, Text } from '@metorial/ui';
 import { useEffect, useState } from 'react';
 import { getJsonSchemaObject } from '../../lib/jsonSchema';
+import { orderProviderAuthMethods } from '../../lib/providerCreationCapabilities';
 import { getProviderOAuthAutoRegistrationEnabled } from '../../lib/providerOAuthAutoRegistration';
 import {
   getEmptyRequiredFieldLabels,
@@ -91,10 +92,12 @@ export let ProviderAuthConfigForm = (
     instanceId,
     effectiveVersionId ? { providerVersionId: effectiveVersionId } : null
   );
-  let manualAuthMethods = (authMethods.data?.items ?? []).filter((method: AuthMethod) => {
-    if (method.type !== 'oauth') return true;
-    return getAuthMethodHasSchema(method);
-  });
+  let manualAuthMethods = orderProviderAuthMethods(
+    (authMethods.data?.items ?? []).filter((method: AuthMethod) => {
+      if (method.type !== 'oauth') return true;
+      return getAuthMethodHasSchema(method);
+    })
+  );
 
   let [step, setStep] = useState(
     props.type === 'create' &&
