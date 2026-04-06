@@ -13,4 +13,5 @@ bunx turbo run --ui=stream build \
   --filter=./src/systems/slates/packages/** \
   --filter=./src/systems/shuttle/sdk/packages/** \
   --filter=@metorial-platform-systems/slates-client \
-  --filter=@metorial-platform-systems/shuttle-client
+  --filter=@metorial-platform-systems/shuttle-client \
+  --filter=@metorial-platform-systems/origin-client

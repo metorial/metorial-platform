@@ -38,6 +38,7 @@
     "src/packages/*",
     "src/packages/*/*",
     "src/systems/*/*",
+    "src/systems/_clients/*",
     "src/systems/*/*/*",
     "src/systems/*/*/*/*",
     "src/systems/*/*/*/*/*"

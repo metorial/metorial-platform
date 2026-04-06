@@ -1,0 +1,41 @@
+enum ScmBackendType {
+  github
+  github_enterprise
+  gitlab
+  gitlab_selfhosted
+}
+
+model ScmBackend {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  type ScmBackendType
+
+  defaultIdentifier String? @unique
+
+  name        String
+  description String?
+
+  apiUrl String // e.g., "https://api.github.com", "https://gitlab.com/api/v4", "https://gitlab.company.com/api/v4"
+  webUrl String // e.g., "https://github.com", "https://gitlab.com", "https://gitlab.company.com"
+
+  appId         String?
+  appSlug       String? // GitHub App slug (e.g., "my-app-name")
+  appPrivateKey String?
+
+  clientId     String?
+  clientSecret String?
+
+  tenantOid BigInt?
+  tenant    Tenant? @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  isDefault Boolean @default(false) // System-managed default backends (like github.com)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  installations        ScmInstallation[]
+  backendSetupSessions ScmBackendSetupSession[]
+  accounts             ScmAccount[]
+  repositories         ScmRepository[]
+}

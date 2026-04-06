@@ -1,0 +1,29 @@
+{
+  "name": "@metorial/code-workspace",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "setup_vscode": "FORCE_SETUP=true ./setup.sh",
+    "enterprise:dev": "./setup.sh && vite --port 3302 || true",
+    "dev": "./setup.sh && vite --port 3302",
+    "frontend:build": "./setup.sh && tsc && vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@types/node": "*",
+    "@types/vscode": "*",
+    "rollup": "^4.28.1",
+    "typescript": "~5.8.3",
+    "vite": "^7.0.4",
+    "vscode": "*",
+    "vscode-web": "^1.91.1"
+  },
+  "dependencies": {
+    "vscode-oniguruma": "^2.0.1",
+    "vscode-textmate": "^9.2.0"
+  },
+  "overrides": {
+    "rollup": "^4.28.1"
+  }
+}

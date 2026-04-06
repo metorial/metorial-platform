@@ -1,0 +1,170 @@
+enum ScmProvider {
+  github
+  gitlab
+}
+
+enum ScmAccountType {
+  user
+  organization
+}
+
+model ScmAccount {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  provider ScmProvider
+  type     ScmAccountType
+
+  name       String
+  identifier String
+
+  externalId String
+
+  backendOid BigInt
+  backend    ScmBackend @relation(fields: [backendOid], references: [oid], onDelete: Cascade)
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  scmRepos ScmRepository[]
+
+  @@unique([tenantOid, backendOid, externalId])
+}
+
+model ScmRepository {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  provider ScmProvider
+
+  name       String
+  identifier String
+
+  externalId        String
+  externalName      String
+  externalOwner     String
+  externalUrl       String
+  externalIsPrivate Boolean
+
+  defaultBranch String @default("main")
+
+  backendOid BigInt
+  backend    ScmBackend @relation(fields: [backendOid], references: [oid], onDelete: Cascade)
+
+  accountOid BigInt
+  account    ScmAccount @relation(fields: [accountOid], references: [oid], onDelete: Cascade)
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  installationOid BigInt
+  installation    ScmInstallation @relation(fields: [installationOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  codeBuckets         CodeBucket[]
+  scmRepoWebhooks     ScmRepositoryWebhook[]
+  scmRepoPushes       ScmRepositoryPush[]
+  changeNotifications ChangeNotification[]
+
+  @@unique([tenantOid, backendOid, externalId])
+}
+
+model ScmInstallation {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  provider ScmProvider
+
+  backendOid BigInt
+  backend    ScmBackend @relation(fields: [backendOid], references: [oid], onDelete: Cascade)
+
+  ownerActorOid BigInt
+  ownerActor    Actor  @relation(fields: [ownerActorOid], references: [oid], onDelete: Cascade)
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  externalInstallationId String?
+  accountType            ScmAccountType?
+
+  accessToken          String?
+  refreshToken         String?
+  accessTokenExpiresAt DateTime?
+
+  externalAccountId       String
+  externalAccountLogin    String
+  externalAccountName     String?
+  externalAccountEmail    String?
+  externalAccountImageUrl String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  repos    ScmRepository[]
+  sessions ScmInstallationSession[]
+
+  @@unique([tenantOid, provider, backendOid, externalAccountId])
+}
+
+enum ScmRepositoryWebhookType {
+  push
+}
+
+model ScmRepositoryWebhook {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  type ScmRepositoryWebhookType
+
+  repoOid BigInt        @unique
+  repo    ScmRepository @relation(fields: [repoOid], references: [oid], onDelete: Cascade)
+
+  externalId    String
+  signingSecret String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  events ScmRepositoryWebhookReceivedEvent[]
+}
+
+model ScmRepositoryWebhookReceivedEvent {
+  oid BigInt @id @default(autoincrement())
+
+  webhookOid BigInt
+  webhook    ScmRepositoryWebhook @relation(fields: [webhookOid], references: [oid], onDelete: Cascade)
+
+  idempotencyKey String?
+
+  eventType String
+  payload   String
+
+  createdAt DateTime @default(now())
+}
+
+model ScmRepositoryPush {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  repoOid BigInt
+  repo    ScmRepository @relation(fields: [repoOid], references: [oid], onDelete: Cascade)
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  pusherName       String?
+  pusherEmail      String?
+  senderIdentifier String?
+  commitMessage    String?
+
+  branchName String
+  sha        String
+
+  createdAt           DateTime             @default(now())
+  changeNotifications ChangeNotification[]
+}
