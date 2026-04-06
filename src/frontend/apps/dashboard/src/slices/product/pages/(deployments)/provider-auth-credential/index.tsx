@@ -1,6 +1,6 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import { useCurrentInstance, useProvider, useProviderAuthCredential } from '@metorial/state';
-import { Attributes, Badge, Callout, RenderDate, Spacer } from '@metorial/ui';
+import { Attributes, Callout, RenderDate, Spacer } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import { useParams } from 'react-router-dom';
 
@@ -37,7 +37,7 @@ export let ProviderAuthCredentialOverviewPage = () => {
           },
           {
             label: 'Default',
-            content: credential.data.isDefault ? <Badge color="blue">Default</Badge> : 'No'
+            content: credential.data.isDefault ? 'Yes' : 'No'
           },
           {
             label: 'Provider',
