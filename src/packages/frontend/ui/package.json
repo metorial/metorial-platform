@@ -41,7 +41,7 @@
     "react-wrap-balancer": "^1.1.1",
     "shleemy": "^1.2.2",
     "sonner": "^2.0.3",
-    "styled-components": "^6.1.17",
+    "styled-components": "^6.1.13",
     "use-delayed": "^0.1.0"
   },
   "devDependencies": {

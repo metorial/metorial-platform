@@ -256,6 +256,8 @@ export let dashboardController = Controller.create<any>(
     providerGroupController,
     publisherController,
 
+    providerSetupSessionController,
+
     providerVersionController,
     providerSpecificationController,
     providerTriggerController,
