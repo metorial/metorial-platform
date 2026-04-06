@@ -11,7 +11,7 @@ import {
   useProviderAuthCredentials,
   useProviders
 } from '@metorial/state';
-import { Badge, Flex, RenderDate, Text } from '@metorial/ui';
+import { RenderDate, Text } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import { EmptyState } from '../../../../../components/emptyState';
 import { Table as DashboardTable } from '../../../../../components/table';
@@ -120,15 +120,9 @@ export let providerAuthCredentialsTable = new DashboardTable<
       isDefault: true,
       header: 'Name',
       render: row => (
-        <Flex direction="column" gap={6}>
-          <Text size="2" weight="strong">
-            {row.name || '\u2014'}
-          </Text>
-          <Flex gap={8} align="center">
-            {row.isDefault && <Badge color="blue">Default</Badge>}
-            {row.isManaged && <Badge color="gray">Managed by Metorial</Badge>}
-          </Flex>
-        </Flex>
+        <Text size="2" weight="strong">
+          {row.name || '—'}
+        </Text>
       )
     },
     {
