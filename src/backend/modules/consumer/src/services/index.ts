@@ -11,4 +11,5 @@ export * from './consumerProviderContext';
 export * from './consumerProviderDeployment';
 export * from './consumerProviderSetupSession';
 export * from './consumerSurface';
+export * from './magicMcpTokenAccess';
 export * from './providerTemplate';

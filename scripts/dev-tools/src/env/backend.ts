@@ -24,6 +24,10 @@ export let backendEnv: Env = [
     key: 'PORTAL_HOST_TEMPLATE',
     defaultValue: 'http://localhost:4304/{portalId}'
   },
+  {
+    key: 'PORTAL_REDIRECT_DOMAINS',
+    defaultValue: 'localhost'
+  },
 
   {
     key: 'DATABASE_URL',
