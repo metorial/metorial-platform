@@ -305,7 +305,7 @@ export let Stepper = ({
           gridTemplateColumns: new Array(steps.length)
             .fill(0)
             .map((_, i) => {
-              if (i == 0) return `calc(${100 / steps.length}% - 20px)`;
+              if (i === 0) return `calc(${100 / steps.length}% - 20px)`;
               if (i === steps.length - 1) return `calc(${100 / steps.length}% + 20px)`;
 
               return `calc(${100 / steps.length}%)`;
