@@ -1,4 +1,5 @@
 import { Signer } from '@aws-sdk/rds-signer';
+import { delay } from '@lowerdeck/delay';
 import { PrismaPg } from '@prisma/adapter-pg';
 import type pg from 'pg';
 import { PrismaClient } from '../../prisma/generated/client.js';
@@ -12,7 +13,9 @@ let getGlobalDatabaseRegion = (url: URL) => {
   let hostRegion = hostParts.length >= 4 ? hostParts[hostParts.length - 4] : undefined;
   if (hostRegion) return hostRegion;
 
-  return process.env.GLOBAL_DB_REGION ?? process.env.AWS_REGION ?? process.env.AWS_DEFAULT_REGION;
+  return (
+    process.env.GLOBAL_DB_REGION ?? process.env.AWS_REGION ?? process.env.AWS_DEFAULT_REGION
+  );
 };
 
 let createGlobalDbPoolConfig = (): pg.PoolConfig => {
@@ -78,3 +81,15 @@ export type GlobalDB = typeof globalDB;
 declare global {
   namespace PrismaJson {}
 }
+
+(async () => {
+  while (true) {
+    try {
+      globalDB.$queryRaw`SELECT 1`;
+    } catch (error) {
+      console.error('Error pinging global database:', error);
+    }
+
+    await delay(10_000);
+  }
+})();

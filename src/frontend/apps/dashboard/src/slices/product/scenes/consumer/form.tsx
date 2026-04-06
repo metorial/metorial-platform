@@ -43,17 +43,12 @@ export let ConsumerForm = ({
 
   return (
     <form onSubmit={form.handleSubmit}>
-      <Input label="Name" required placeholder="Jane Doe" {...form.getFieldProps('name')} />
+      <Input label="Name" required {...form.getFieldProps('name')} />
       <form.RenderError field="name" />
 
       <Spacer size={10} />
 
-      <Input
-        label="Email"
-        required
-        placeholder="jane@example.com"
-        {...form.getFieldProps('email')}
-      />
+      <Input label="Email" required {...form.getFieldProps('email')} />
       <form.RenderError field="email" />
 
       <createMutation.RenderError />

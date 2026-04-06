@@ -7,5 +7,7 @@ export let tenantPresenter = (tenant: Tenant) => ({
   identifier: tenant.identifier,
   name: tenant.name,
 
+  onlyAllowTrustedProviders: tenant.onlyAllowTrustedProviders,
+
   createdAt: tenant.createdAt
 });

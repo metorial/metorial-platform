@@ -36,7 +36,9 @@ export let consumerAccessGroup = portalGroup.use(async ctx => {
 export let portalConsumerAccessController = Controller.create(
   {
     name: 'Portal Consumer Access',
-    description: 'Manage which consumer groups can access portal provider templates and MCP servers.'
+    description:
+      'Manage which consumer groups can access portal provider templates and MCP servers.',
+    hideInDocs: true
   },
   {
     list: portalGroup

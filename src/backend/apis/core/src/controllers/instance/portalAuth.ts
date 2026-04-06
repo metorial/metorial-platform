@@ -1,8 +1,4 @@
-import {
-  badRequestError,
-  preconditionFailedError,
-  ServiceError
-} from '@lowerdeck/error';
+import { badRequestError, preconditionFailedError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { consumerAresService } from '@metorial/module-consumer';
@@ -10,8 +6,8 @@ import { portalService } from '@metorial/module-portal';
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../middleware/checkAccess';
 import { hasFlags } from '../../middleware/hasFlags';
-import { isDashboardGroup } from '../../middleware/isDashboard';
 import { instancePath } from '../../middleware/instanceGroup';
+import { isDashboardGroup } from '../../middleware/isDashboard';
 import {
   portalAuthAppPresenter,
   portalAuthSsoConnectionPresenter,
@@ -64,7 +60,8 @@ let portalAuthManagementSsoTenantGroup = portalAuthManagementGroup.use(async ctx
 export let portalAuthDashboardController = Controller.create(
   {
     name: 'Portal Auth',
-    description: 'Manage the Ares-backed authentication configuration for a portal.'
+    description: 'Manage the Ares-backed authentication configuration for a portal.',
+    hideInDocs: true
   },
   {
     getApp: portalAuthManagementGroup
@@ -83,10 +80,13 @@ export let portalAuthDashboardController = Controller.create(
       }),
 
     listSsoTenants: portalAuthManagementGroup
-      .get(instancePath('portals/:portalId/auth/sso-tenants', 'portals.auth.ssoTenants.list'), {
-        name: 'List portal auth SSO tenants',
-        description: 'Returns the SSO tenants configured for a portal Ares app.'
-      })
+      .get(
+        instancePath('portals/:portalId/auth/sso-tenants', 'portals.auth.ssoTenants.list'),
+        {
+          name: 'List portal auth SSO tenants',
+          description: 'Returns the SSO tenants configured for a portal Ares app.'
+        }
+      )
       .use(checkAccess({ possibleScopes: ['instance.portal.auth:read'] }))
       .query('default', Paginator.validate(v.object({})))
       .outputList(portalAuthSsoTenantPresenter)
@@ -138,7 +138,8 @@ export let portalAuthDashboardController = Controller.create(
         ),
         {
           name: 'Create portal auth SSO tenant setup',
-          description: 'Creates an Ares setup URL for finishing portal SSO tenant configuration.'
+          description:
+            'Creates an Ares setup URL for finishing portal SSO tenant configuration.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.portal.auth:write'] }))

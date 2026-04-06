@@ -60,7 +60,8 @@ export let identityController = Controller.create(
   {
     name: 'Identities',
     description:
-      'Identities bundle credentials under a single owner actor so provider access can be managed and delegated consistently.'
+      'Identities bundle credentials under a single owner actor so provider access can be managed and delegated consistently.',
+    hideInDocs: true
   },
   {
     list: instanceGroup

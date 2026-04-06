@@ -1,0 +1,19 @@
+model ApiKeyCreatedEmailSend {
+  oid BigInt @id @default(autoincrement())
+
+  apiKeyOid BigInt
+  apiKey    ApiKey @relation(fields: [apiKeyOid], references: [oid], onDelete: Cascade)
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  memberOid BigInt
+  member    OrganizationMember @relation(fields: [memberOid], references: [oid], onDelete: Cascade)
+
+  userOid BigInt
+  user    User   @relation(fields: [userOid], references: [oid], onDelete: Cascade)
+
+  email String
+
+  sentAt DateTime @default(now())
+}

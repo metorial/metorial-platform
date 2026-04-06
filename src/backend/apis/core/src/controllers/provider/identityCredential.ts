@@ -33,7 +33,8 @@ export let identityCredentialController = Controller.create(
   {
     name: 'Identity Credentials',
     description:
-      'Identity credentials bind an identity to concrete provider deployment, config, and auth resources.'
+      'Identity credentials bind an identity to concrete provider deployment, config, and auth resources.',
+    hideInDocs: true
   },
   {
     list: instanceGroup

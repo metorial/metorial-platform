@@ -22,6 +22,7 @@ import { Fabric } from '@metorial/fabric';
 import { addMinutes } from 'date-fns';
 import { env } from '../env';
 import { assertValidApiKeyIpFilters } from '../lib/apiKeyIpFilters';
+import { sendApiKeyCreatedEmailQueue } from '../queues/created/sendApiKeyCreatedEmail';
 import { machineAccessService } from './machineAccess';
 
 export type ListApiKeysFilter =
@@ -169,13 +170,19 @@ class ApiKeyService {
       };
     });
 
-    addAfterTransactionHook(() =>
-      Fabric.fire('machine_access.api_key.created:after', {
+    addAfterTransactionHook(async () => {
+      await sendApiKeyCreatedEmailQueue.add({
+        apiKeyId: res.apiKey.id,
+        organizationId: d.organization.id,
+        performedByActorId: d.performedBy.id
+      });
+
+      await Fabric.fire('machine_access.api_key.created:after', {
         ...d,
         apiKey: res.apiKey,
         machineAccess: res.apiKey.machineAccess
-      })
-    );
+      });
+    });
 
     return res;
   }

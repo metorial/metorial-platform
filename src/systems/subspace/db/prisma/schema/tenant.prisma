@@ -16,6 +16,8 @@ model Tenant {
   originTenantId         String?
   originTenantIdentifier String?
 
+  onlyAllowTrustedProviders Boolean @default(false)
+
   createdAt DateTime @default(now())
 
   logRetentionInDays Int @default(30)

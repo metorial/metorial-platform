@@ -48,6 +48,11 @@ vi.mock('@lowerdeck/hash', () => ({
 vi.mock('@metorial/fabric', () => ({
   Fabric: { fire: vi.fn() }
 }));
+vi.mock('../src/queues/created/sendApiKeyCreatedEmail', () => ({
+  sendApiKeyCreatedEmailQueue: {
+    add: vi.fn()
+  }
+}));
 vi.mock('../src/services/machineAccess', () => ({
   machineAccessService: {
     createMachineAccess: vi.fn(() => Promise.resolve({ oid: 'machine-access-oid' })),
@@ -60,10 +65,10 @@ vi.mock('@lowerdeck/pagination', () => ({
 }));
 
 const baseContext = { user: { oid: 'user-oid' } } as any;
-const baseOrg = { oid: 'org-oid' } as any;
+const baseOrg = { oid: 'org-oid', id: 'org-id' } as any;
 const baseUser = { oid: 'user-oid' } as any;
 const baseInstance = { oid: 'instance-oid', type: 'production' } as any;
-const baseActor = { oid: 'actor-oid' } as any;
+const baseActor = { oid: 'actor-oid', id: 'actor-id' } as any;
 
 describe('apiKeyService', () => {
   beforeEach(() => {
@@ -90,6 +95,40 @@ describe('apiKeyService', () => {
 
     expect(result.apiKey).toBeDefined();
     expect(result.secret.secret).toBe('secret-key');
+  });
+
+  it('should enqueue created api key emails after the transaction commits', async () => {
+    // @ts-ignore
+    db.apiKey.create.mockResolvedValue({
+      oid: 'api-key-oid',
+      id: 'api-key-id',
+      type: 'organization_management_token',
+      machineAccess: {}
+    });
+    // @ts-ignore
+    db.apiKeySecret.create.mockResolvedValue({ secret: 'secret-key' });
+
+    await apiKeyService.createApiKey({
+      type: 'organization_management_token',
+      organization: baseOrg,
+      performedBy: baseActor,
+      input: { name: 'orgkey' },
+      context: baseContext
+    });
+
+    let { addAfterTransactionHook } = await import('@metorial/db');
+    let { sendApiKeyCreatedEmailQueue } = await import('../src/queues/created/sendApiKeyCreatedEmail');
+
+    expect(addAfterTransactionHook).toHaveBeenCalledTimes(1);
+
+    let hook = vi.mocked(addAfterTransactionHook).mock.calls[0]?.[0];
+    await hook();
+
+    expect(sendApiKeyCreatedEmailQueue.add).toHaveBeenCalledWith({
+      apiKeyId: 'api-key-id',
+      organizationId: 'org-id',
+      performedByActorId: 'actor-id'
+    });
   });
 
   it('should update an api key', async () => {

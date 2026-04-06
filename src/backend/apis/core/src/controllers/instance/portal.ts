@@ -27,7 +27,8 @@ export let portalController = Controller.create(
   {
     name: 'Portal',
     description:
-      'Use Portals to create custom branded MCP server marketplaces for your organization.'
+      'Use Portals to create custom branded MCP server marketplaces for your organization.',
+    hideInDocs: true
   },
   {
     list: instanceGroup

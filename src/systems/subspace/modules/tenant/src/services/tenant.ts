@@ -10,6 +10,7 @@ class tenantServiceImpl {
     input: {
       name: string;
       identifier: string;
+      onlyAllowTrustedProviders?: boolean;
       environments: {
         name: string;
         identifier: string;
@@ -21,12 +22,14 @@ class tenantServiceImpl {
       let tenant = await db.tenant.upsert({
         where: { identifier: d.input.identifier },
         update: {
-          name: d.input.name
+          name: d.input.name,
+          onlyAllowTrustedProviders: d.input.onlyAllowTrustedProviders
         },
         create: {
           ...getId('tenant'),
           name: d.input.name,
           identifier: d.input.identifier,
+          onlyAllowTrustedProviders: d.input.onlyAllowTrustedProviders,
 
           urlKey: generatePlainId(10).toLowerCase()
         }

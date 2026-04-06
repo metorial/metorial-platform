@@ -46,7 +46,8 @@ export let introspectApi = (version: {
       id: `controller_${idIndex++}`,
       name: i.descriptor.name,
       description: i.descriptor.description,
-      deprecated: !!i.descriptor.deprecated
+      deprecated: !!i.descriptor.deprecated,
+      hideInDocs: !!i.descriptor.hideInDocs
     };
 
     controllers.push(controller);

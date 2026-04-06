@@ -6,6 +6,7 @@ import {
   syncBrandQueueProcessor
 } from './queues/syncBrand';
 import { syncProfileQueueProcessor } from './queues/syncProfile';
+import { syncSubspaceTenantQueueProcessor } from './queues/syncSubspaceTenant';
 
 export * from './services';
 
@@ -16,5 +17,7 @@ export let organizationQueueProcessor = combineQueueProcessors([
   syncProfileQueueProcessor,
 
   reconcileAuthVersionProcessors,
-  reconcileDefaultPoliciesProcessors
+  reconcileDefaultPoliciesProcessors,
+
+  syncSubspaceTenantQueueProcessor
 ]);

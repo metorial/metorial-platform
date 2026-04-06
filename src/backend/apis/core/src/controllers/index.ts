@@ -295,6 +295,7 @@ export let dashboardController = Controller.create<any>(
     magicMcpSessionController,
     magicMcpTokenController,
     magicMcpGroupController,
+    magicMcpServerProviderController,
 
     customProviderController,
     customProviderCodeController,

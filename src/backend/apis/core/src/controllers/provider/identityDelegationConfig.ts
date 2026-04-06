@@ -33,7 +33,8 @@ export let identityDelegationConfigController = Controller.create(
   {
     name: 'Identity Delegation Configs',
     description:
-      'Delegation configs define the default policy for sub-delegation behavior and delegation depth.'
+      'Delegation configs define the default policy for sub-delegation behavior and delegation depth.',
+    hideInDocs: true
   },
   {
     list: instanceGroup

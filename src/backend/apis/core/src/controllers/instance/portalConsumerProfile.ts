@@ -30,14 +30,18 @@ export let consumerProfileGroup = portalGroup.use(async ctx => {
 export let portalConsumerProfileController = Controller.create(
   {
     name: 'Portal Consumer Profiles',
-    description: 'Manage the consumers and effective group assignments for a portal.'
+    description: 'Manage the consumers and effective group assignments for a portal.',
+    hideInDocs: true
   },
   {
     list: portalGroup
-      .get(instancePath('portals/:portalId/consumer-profile', 'portals.consumerProfiles.list'), {
-        name: 'List portal consumer profiles',
-        description: 'Returns a paginated list of consumer profiles for a portal.'
-      })
+      .get(
+        instancePath('portals/:portalId/consumer-profile', 'portals.consumerProfiles.list'),
+        {
+          name: 'List portal consumer profiles',
+          description: 'Returns a paginated list of consumer profiles for a portal.'
+        }
+      )
       .use(checkAccess({ possibleScopes: ['instance.portal.consumers:read'] }))
       .use(hasFlags(['paid-portals', 'portals-access']))
       .outputList(consumerProfilePresenter)
@@ -47,12 +51,11 @@ export let portalConsumerProfileController = Controller.create(
           consumerSurface: ctx.portal.surface
         });
         let list = await paginator.run(ctx.query);
-        let assignedConsumerGroupsByProfileId = await consumerProfileService.getStoredGroupsForProfiles(
-          {
+        let assignedConsumerGroupsByProfileId =
+          await consumerProfileService.getStoredGroupsForProfiles({
             consumerSurface: ctx.portal.surface,
             consumerProfiles: list.items
-          }
-        );
+          });
 
         return Paginator.present(list, consumerProfile =>
           consumerProfilePresenter.present({

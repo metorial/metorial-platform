@@ -22,8 +22,8 @@ let Wrapper = styled.div`
   position: relative;
 `;
 
-let SidebarWrapper = styled.div`
-  height: calc(100dvh - 80px);
+let SidebarWrapper = styled.div<{ $height?: number | string }>`
+  height: calc(${p => p.$height || '100dvh'} - 70px);
 `;
 
 let Sidebar = styled.div`
@@ -92,7 +92,8 @@ export let AppLayout = ({
   bottom,
   right,
   children,
-  Nav
+  Nav,
+  height
 }: {
   id: string;
   mainGroups: ISidebarGroup[];
@@ -101,17 +102,19 @@ export let AppLayout = ({
   right?: React.ReactNode;
   children: React.ReactNode;
   Nav: () => React.ReactNode;
+  height?: number | string;
 }) => {
   return (
-    <RootLayout Nav={Nav}>
+    <RootLayout Nav={Nav} height={height}>
       <Wrapper
         style={{
           gridTemplateColumns: right
             ? '260px calc(100% - 320px) 60px'
-            : '260px calc(100% - 260px)'
+            : '260px calc(100% - 260px)',
+          height
         }}
       >
-        <SidebarWrapper>
+        <SidebarWrapper $height={height}>
           <Sidebar>
             <Shadow />
 

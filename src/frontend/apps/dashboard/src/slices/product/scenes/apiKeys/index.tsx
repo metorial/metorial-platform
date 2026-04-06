@@ -117,7 +117,6 @@ export let ApiKeysScene = ({
           name: '',
           description: '',
           expiresAt: undefined,
-          ipFilters: [],
           type: getDefaultCreateApiKeyType(filter.type)
         },
         onSubmit: async values => {
@@ -128,15 +127,13 @@ export let ApiKeysScene = ({
                   instanceId: filter.instanceId,
                   name: values.name,
                   description: normalizeOptionalString(values.description),
-                  expiresAt: values.expiresAt,
-                  ipFilters: normalizeIpFilters(values.ipFilters)
+                  expiresAt: values.expiresAt
                 }
               : {
                   type: 'organization_management_token',
                   name: values.name,
                   description: normalizeOptionalString(values.description),
-                  expiresAt: values.expiresAt,
-                  ipFilters: normalizeIpFilters(values.ipFilters)
+                  expiresAt: values.expiresAt
                 };
 
           let [res] = await mutator.mutate(input);
@@ -178,7 +175,6 @@ export let ApiKeysScene = ({
               .date()
               .optional()
               .min(new Date(), 'Expires at must be in the future'),
-            ipFilters: yup.array(yup.string().trim()).required(),
             type: yup
               .mixed<ApiKeyType>()
               .oneOf([
@@ -214,17 +210,6 @@ export let ApiKeysScene = ({
               resettable
             />
             <form.RenderError field="expiresAt" />
-
-            <Spacer height={15} />
-
-            <TextArrayInput
-              label="IP Filters"
-              description="Optional allow list of IP addresses or CIDR ranges that can use this API key."
-              placeholder="203.0.113.10 or 10.0.0.0/24"
-              value={form.values.ipFilters}
-              onChange={v => form.setFieldValue('ipFilters', v)}
-            />
-            <form.RenderError field="ipFilters" />
 
             {filter.type === 'instance_access_token' && (
               <>

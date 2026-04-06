@@ -58,7 +58,8 @@ export let providerListingController = Controller.create(
     list: instanceGroup
       .get(instancePath('provider-listings', 'providerListings.list'), {
         name: 'List provider listings',
-        description: 'Returns a paginated list of provider listings.'
+        description: 'Returns a paginated list of provider listings.',
+        hideInDocs: true
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.listing:read'] }))
       .outputList(providerListingPresenter)

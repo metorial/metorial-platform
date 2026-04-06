@@ -85,7 +85,8 @@ export let consumerController = Controller.create(
   {
     name: 'Consumers',
     description:
-      'Manage instance consumers independently from portals and inspect the profiles linked to each consumer.'
+      'Manage instance consumers independently from portals and inspect the profiles linked to each consumer.',
+    hideInDocs: true
   },
   {
     list: instanceGroup

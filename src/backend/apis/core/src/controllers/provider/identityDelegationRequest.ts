@@ -52,7 +52,8 @@ export let identityDelegationRequestController = Controller.create(
   {
     name: 'Identity Delegation Requests',
     description:
-      'Identity delegation requests represent approval workflows for creating delegations that require consent.'
+      'Identity delegation requests represent approval workflows for creating delegations that require consent.',
+    hideInDocs: true
   },
   {
     list: instanceGroup

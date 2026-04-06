@@ -5,4 +5,4 @@ export let subspaceQueueProcessor = combineQueueProcessors([]);
 export * from './proxy';
 export * from './services';
 
-export { getTenantForSubspace } from './subspace';
+export { getTenantForSubspace, syncSubspaceTenantForProject } from './subspace';
