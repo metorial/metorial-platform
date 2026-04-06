@@ -24,6 +24,7 @@ import {
   getDateRangeFilterValue,
   getStringFilterValue
 } from '../../../../../lib/dataTableUtils';
+import { withFromDeployment } from '../fromDeployment';
 import { showCreateProviderConfigFlow } from './providerCreationFlows';
 
 type ProviderConfig = DashboardInstanceProviderDeploymentsConfigsListOutput['items'][number];
@@ -45,6 +46,7 @@ type ProviderConfigsOverviewTableProps = {
   project: ReturnType<typeof useCurrentProject>;
   instance: ReturnType<typeof useCurrentInstance>;
   filters?: ProviderConfigFilters;
+  fromDeploymentId?: string;
 };
 
 let providerConfigsOverviewTableState: TableStateProvider<
@@ -138,12 +140,6 @@ export let providerConfigsOverviewTable = new DashboardTable<
       )
     },
     {
-      id: 'id',
-      isDefault: true,
-      header: 'ID',
-      render: row => <ID id={row.id} />
-    },
-    {
       id: 'provider',
       isDefault: true,
       header: 'Provider',
@@ -167,6 +163,12 @@ export let providerConfigsOverviewTable = new DashboardTable<
       isDefault: true,
       header: 'Created',
       render: row => <RenderDate date={row.createdAt} />
+    },
+    {
+      id: 'id',
+      isDefault: true,
+      header: 'ID',
+      render: row => <ID id={row.id} />
     },
     {
       id: 'default',
@@ -260,11 +262,14 @@ export let providerConfigsOverviewTable = new DashboardTable<
   ])
   .search('Search configs...')
   .link((row, props) =>
-    Paths.instance.providerConfig(
-      props.organization.data,
-      props.project.data,
-      props.instance.data,
-      row.id
+    withFromDeployment(
+      Paths.instance.providerConfig(
+        props.organization.data,
+        props.project.data,
+        props.instance.data,
+        row.id
+      ),
+      props.fromDeploymentId
     )
   )
   .build();

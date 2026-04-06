@@ -32,7 +32,8 @@ import { sortBy } from 'lodash';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { getProviderOAuthAutoRegistrationEnabled } from '../../lib/providerOAuthAutoRegistration';
-import { Stepper } from '../stepper';
+import { AuthMethodPicker } from '../providerAuthConfigs/authMethodPicker';
+import { Stepper } from '../../../../components/stepper';
 
 type AuthMethod = DashboardInstanceProvidersAuthMethodsListOutput['items'][number];
 type CredentialsMode = 'existing' | 'new';
@@ -189,6 +190,33 @@ let ManagedCredentialsPreviewCard = styled.div`
   background: ${theme.colors.background};
 `;
 
+let FlatConnectForm = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+`;
+
+let FlatConnectSection = styled.section`
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px solid ${theme.colors.gray300};
+  background: ${theme.colors.gray100};
+`;
+
+let FlatConnectSectionHeader = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+`;
+
+let FlatInlineField = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+`;
+
 export let ProviderSetupSessionEmbed = ({
   instanceId,
   providerId,
@@ -196,11 +224,15 @@ export let ProviderSetupSessionEmbed = ({
   onComplete,
   onCancel,
   cancelLabel = 'Cancel',
+  onWindowOpenCancel,
+  windowOpenCancelLabel = 'Cancel',
+  onWindowOpenStateChange,
   initialMethodId,
   hideMethodStep = false,
   onBackToMethodSelection,
   showMethodStepInStepper = false,
   hideCredentialsIntro = false,
+  flattenOAuthCredentialsFlow = false,
   showExternalPreviewSidebar = false,
   collectAuthConfigDetails = false,
   onPreviewCredentialTypeChange,
@@ -215,11 +247,15 @@ export let ProviderSetupSessionEmbed = ({
   ) => void;
   onCancel?: () => void;
   cancelLabel?: string;
+  onWindowOpenCancel?: () => void;
+  windowOpenCancelLabel?: string;
+  onWindowOpenStateChange?: (isOpen: boolean) => void;
   initialMethodId?: string;
   hideMethodStep?: boolean;
   onBackToMethodSelection?: () => void;
   showMethodStepInStepper?: boolean;
   hideCredentialsIntro?: boolean;
+  flattenOAuthCredentialsFlow?: boolean;
   showExternalPreviewSidebar?: boolean;
   collectAuthConfigDetails?: boolean;
   onPreviewCredentialTypeChange?: (type: 'managed' | 'manual') => void;
@@ -237,7 +273,10 @@ export let ProviderSetupSessionEmbed = ({
     initialValues: {
       selectedMethodId: initialMethodId ?? ''
     },
-    onSubmit: async () => undefined,
+    onSubmit: async values => {
+      if (!values.selectedMethodId) return;
+      setStep(includeMethodStep ? 1 : 0);
+    },
     schema: yup =>
       yup.object({
         selectedMethodId: yup.string().required('Authentication method is required')
@@ -277,19 +316,8 @@ export let ProviderSetupSessionEmbed = ({
       newCredClientSecret: ''
     },
     onSubmit: async values => {
-      let providerAuthCredentialsId = values.selectedCredentialId;
-
-      if (values.credentialMode === 'new') {
-        providerAuthCredentialsId = (await handleCreateCredentials(values)) ?? '';
-        if (!providerAuthCredentialsId) return;
-      }
-
-      if (
-        providerAuthCredentialsId &&
-        providerAuthCredentialsId !== values.selectedCredentialId
-      ) {
-        await credentialsForm.setFieldValue('selectedCredentialId', providerAuthCredentialsId);
-      }
+      let providerAuthCredentialsId = await resolveSelectedCredentialId(values);
+      if (!providerAuthCredentialsId) return;
 
       setStep(connectStepIndex);
     },
@@ -343,6 +371,7 @@ export let ProviderSetupSessionEmbed = ({
     string | null
   >(null);
   let autoStartedRef = useRef(false);
+  let initializedFlatManagedSelectionRef = useRef(false);
 
   let completedRef = useRef(false);
   let pollingRef = useRef(false);
@@ -418,6 +447,7 @@ export let ProviderSetupSessionEmbed = ({
   let hasManagedVisibleCredentials = visibleAuthCredentials.some(
     credential => credential.isManaged
   );
+  let primaryManagedCredentialId = managedVisibleCredentials[0]?.id ?? '';
   let requiresManualOAuthCredentials = isOAuth && !oauthAutoRegistrationEnabled;
   let preferredVisibleCredential =
     customVisibleCredentials.find(credential => credential.isDefault) ??
@@ -474,6 +504,7 @@ export let ProviderSetupSessionEmbed = ({
     !!latestCreatedCredentialId &&
     credentialsForm.values.selectedCredentialId === latestCreatedCredentialId;
   let hasCredentialsStep = isOAuth && !oauthAutoRegistrationEnabled;
+  let usesFlattenedOAuthCredentialsStep = hasCredentialsStep && flattenOAuthCredentialsFlow;
 
   let skipMethodStep = hideMethodStep || hasSingleMethod;
   let showHiddenMethodStep = hideMethodStep && showMethodStepInStepper;
@@ -520,29 +551,30 @@ export let ProviderSetupSessionEmbed = ({
     let activeStep: 'method' | 'credentials' | 'connect';
     if (step === 0 && includeMethodStep) {
       activeStep = 'method';
-    } else if (step === (includeMethodStep ? 1 : 0) && hasCredentialsStep) {
+    } else if (
+      step === (includeMethodStep ? 1 : 0) &&
+      hasCredentialsStep &&
+      !usesFlattenedOAuthCredentialsStep
+    ) {
       activeStep = 'credentials';
     } else {
       activeStep = 'connect';
     }
 
     onActiveStepChange(activeStep);
-  }, [hasCredentialsStep, includeMethodStep, onActiveStepChange, step]);
+  }, [
+    hasCredentialsStep,
+    includeMethodStep,
+    onActiveStepChange,
+    step,
+    usesFlattenedOAuthCredentialsStep
+  ]);
 
   useEffect(() => {
     if (!selectedMethodId && hasSingleMethod) {
       methodForm.setFieldValue('selectedMethodId', authMethods.data!.items![0].id);
     }
   }, [authMethods.data?.items, hasSingleMethod, methodForm.setFieldValue, selectedMethodId]);
-
-  let continueToCredentialsStep = async () => {
-    methodForm.setFieldTouched('selectedMethodId', true, false);
-    await methodForm.validateField('selectedMethodId');
-
-    if (!methodForm.values.selectedMethodId) return;
-
-    setStep(includeMethodStep ? 1 : 0);
-  };
 
   useEffect(() => {
     if (!requiresManualOAuthCredentials) return;
@@ -627,15 +659,12 @@ export let ProviderSetupSessionEmbed = ({
   };
 
   let selectManagedCredential = async () => {
-    if (!managedVisibleCredentials[0]) return;
+    if (!primaryManagedCredentialId) return;
     setError(null);
     setLatestCreatedCredentialId(null);
     setLatestCreatedCredentialLabel(null);
     await credentialsForm.setFieldValue('credentialMode', 'existing');
-    await credentialsForm.setFieldValue(
-      'selectedCredentialId',
-      managedVisibleCredentials[0].id
-    );
+    await credentialsForm.setFieldValue('selectedCredentialId', primaryManagedCredentialId);
   };
 
   let selectCustomCredential = async () => {
@@ -653,6 +682,49 @@ export let ProviderSetupSessionEmbed = ({
 
     await credentialsForm.setFieldValue('credentialMode', 'new');
     await credentialsForm.setFieldValue('selectedCredentialId', '');
+  };
+
+  useEffect(() => {
+    onWindowOpenStateChange?.(!!setupSession?.url);
+  }, [onWindowOpenStateChange, setupSession?.url]);
+
+  useEffect(() => {
+    if (!flattenOAuthCredentialsFlow) return;
+    if (!showManagedChoiceStep) return;
+    if (!primaryManagedCredentialId) return;
+    if (initializedFlatManagedSelectionRef.current) return;
+
+    initializedFlatManagedSelectionRef.current = true;
+    void (async () => {
+      setError(null);
+      setLatestCreatedCredentialId(null);
+      setLatestCreatedCredentialLabel(null);
+      await credentialsForm.setFieldValue('credentialMode', 'existing');
+      await credentialsForm.setFieldValue('selectedCredentialId', primaryManagedCredentialId);
+    })();
+  }, [
+    flattenOAuthCredentialsFlow,
+    showManagedChoiceStep,
+    primaryManagedCredentialId,
+    credentialsForm.setFieldValue
+  ]);
+
+  let resolveSelectedCredentialId = async (values: typeof credentialsForm.values) => {
+    let providerAuthCredentialsId = values.selectedCredentialId;
+
+    if (values.credentialMode === 'new') {
+      providerAuthCredentialsId = (await handleCreateCredentials(values)) ?? '';
+      if (!providerAuthCredentialsId) return null;
+    }
+
+    if (
+      providerAuthCredentialsId &&
+      providerAuthCredentialsId !== values.selectedCredentialId
+    ) {
+      await credentialsForm.setFieldValue('selectedCredentialId', providerAuthCredentialsId);
+    }
+
+    return providerAuthCredentialsId || null;
   };
 
   let handleStartSetup = async (providerAuthCredentialsId?: string) => {
@@ -982,45 +1054,40 @@ export let ProviderSetupSessionEmbed = ({
           </>
         )}
 
-        {collectAuthConfigDetails && (
-          <>
-            <Input
-              label="Name"
-              required
-              description="Name for this user's connection so you can tell it apart from other auth configs."
-              {...authConfigDetailsForm.getFieldProps('name')}
-              placeholder="e.g. John Doe"
-              disabled={p.disabled}
-            />
-            <authConfigDetailsForm.RenderError field="name" />
-
-            <Spacer size={8} />
-
-            <Input
-              label="Description"
-              {...authConfigDetailsForm.getFieldProps('description')}
-              disabled={p.disabled}
-            />
-            <authConfigDetailsForm.RenderError field="description" />
-
-            <Spacer size={6} />
-          </>
-        )}
+        {renderAuthConfigDetailsFields(p)}
       </>
     );
   };
+
+  let renderAuthConfigDetailsFields = (p: { disabled?: boolean }) =>
+    collectAuthConfigDetails ? (
+      <>
+        <Input
+          label="Name"
+          description="Name the connection so you can tell it apart from other auth configs."
+          {...authConfigDetailsForm.getFieldProps('name')}
+          placeholder="e.g. John Doe"
+          disabled={p.disabled}
+        />
+        <authConfigDetailsForm.RenderError field="name" />
+
+        <Spacer size={8} />
+
+        <Input
+          label="Description"
+          {...authConfigDetailsForm.getFieldProps('description')}
+          disabled={p.disabled}
+        />
+        <authConfigDetailsForm.RenderError field="description" />
+      </>
+    ) : null;
 
   let steps = (() => {
     let methodStep = {
       title: 'Authentication',
       subtitle: 'Select auth method',
       render: () => (
-        <form
-          onSubmit={e => {
-            e.preventDefault();
-            void continueToCredentialsStep();
-          }}
-        >
+        <form onSubmit={methodForm.handleSubmit}>
           {!lockedVersionId && (
             <>
               <Text size="1" color="gray600">
@@ -1030,10 +1097,12 @@ export let ProviderSetupSessionEmbed = ({
               <Spacer size={6} />
             </>
           )}
-          <Select
+
+          <AuthMethodPicker
             label="Authentication Method"
+            hideLabel
+            focusOnMount
             value={selectedMethodId}
-            placeholder="Select an authentication method..."
             onChange={value => {
               methodForm.setFieldValue('selectedMethodId', value);
               credentialsForm.resetForm();
@@ -1041,18 +1110,13 @@ export let ProviderSetupSessionEmbed = ({
             }}
             items={(authMethods.data?.items ?? []).map(method => ({
               id: method.id,
-              label: method.name
+              name: method.name,
+              description: method.description
             }))}
           />
+
           <methodForm.RenderError field="selectedMethodId" />
-          {selectedMethod?.description && (
-            <>
-              <Spacer size={5} />
-              <Text size="1" color="gray600">
-                {selectedMethod.description}
-              </Text>
-            </>
-          )}
+
           <Spacer size={8} />
           <Flex gap={8}>
             {onCancel && (
@@ -1239,7 +1303,6 @@ export let ProviderSetupSessionEmbed = ({
                           credentialsForm.setFieldValue('newCredName', e.target.value)
                         }
                         placeholder="My OAuth App"
-                        required
                       />
                       <credentialsForm.RenderError field="newCredName" />
 
@@ -1252,7 +1315,6 @@ export let ProviderSetupSessionEmbed = ({
                           credentialsForm.setFieldValue('newCredClientId', e.target.value)
                         }
                         placeholder="Enter client ID from provider"
-                        required
                       />
                       <credentialsForm.RenderError field="newCredClientId" />
 
@@ -1266,7 +1328,6 @@ export let ProviderSetupSessionEmbed = ({
                         }
                         placeholder="Enter client secret from provider"
                         type="password"
-                        required
                       />
                       <credentialsForm.RenderError field="newCredClientSecret" />
                     </>
@@ -1410,7 +1471,6 @@ export let ProviderSetupSessionEmbed = ({
                       credentialsForm.setFieldValue('newCredName', e.target.value)
                     }
                     placeholder="My OAuth App"
-                    required
                   />
                   <credentialsForm.RenderError field="newCredName" />
 
@@ -1423,7 +1483,6 @@ export let ProviderSetupSessionEmbed = ({
                       credentialsForm.setFieldValue('newCredClientId', e.target.value)
                     }
                     placeholder="Enter client ID from provider"
-                    required
                   />
                   <credentialsForm.RenderError field="newCredClientId" />
 
@@ -1437,7 +1496,6 @@ export let ProviderSetupSessionEmbed = ({
                     }
                     placeholder="Enter client secret from provider"
                     type="password"
-                    required
                   />
                   <credentialsForm.RenderError field="newCredClientSecret" />
                 </>
@@ -1494,6 +1552,266 @@ export let ProviderSetupSessionEmbed = ({
       )
     };
 
+    let flatOauthCredentialsStep = {
+      title: 'Connect',
+      subtitle: 'Complete authentication',
+      render: () => {
+        let isWindowOpen = !!setupSession?.url;
+
+        return (
+          <form
+            onSubmit={async e => {
+              e.preventDefault();
+
+              if (isWindowOpen) return;
+
+              if (
+                isCustomSelected &&
+                !credentialsForm.values.selectedCredentialId &&
+                !isCreatingCredentials
+              ) {
+                credentialsForm.setFieldTouched('selectedCredentialId', true, false);
+                await credentialsForm.validateField('selectedCredentialId');
+                return;
+              }
+
+              let providerAuthCredentialsId = await resolveSelectedCredentialId(
+                credentialsForm.values
+              );
+
+              if (isCustomSelected && !providerAuthCredentialsId) {
+                return;
+              }
+
+              await handleStartSetup(providerAuthCredentialsId ?? undefined);
+            }}
+          >
+            <FlatConnectForm>
+              {hasManagedVisibleCredentials ? (
+                <FlatConnectSection>
+                  <FlatConnectSectionHeader>
+                    <Text size="1" weight="strong">
+                      Managed credentials
+                    </Text>
+                    <Text size="1" color="gray600">
+                      Metorial Managed is selected by default for this provider.
+                    </Text>
+                  </FlatConnectSectionHeader>
+
+                  <Callout color="gray">
+                    No custom OAuth app setup is required for this connection.
+                  </Callout>
+
+                  {managedVisibleCredentials.length > 1 && (
+                    <Select
+                      label={`${oauthMethodName} Managed Credentials`}
+                      value={credentialsForm.values.selectedCredentialId}
+                      placeholder="Select managed credentials"
+                      disabled={isWindowOpen}
+                      onChange={value => {
+                        setError(null);
+                        setLatestCreatedCredentialId(null);
+                        setLatestCreatedCredentialLabel(null);
+                        void credentialsForm.setFieldValue('credentialMode', 'existing');
+                        void credentialsForm.setFieldValue('selectedCredentialId', value);
+                      }}
+                      items={managedVisibleCredentials.map(credential => ({
+                        id: credential.id,
+                        label: credential.name || credential.id
+                      }))}
+                    />
+                  )}
+                </FlatConnectSection>
+              ) : (
+                <>
+                  {redirectUri && (
+                    <FlatInlineField>
+                      <Text size="1" weight="medium" color="gray900" style={{ margin: 0 }}>
+                        Redirect URI
+                      </Text>
+                      <Text size="1" color="gray600" style={{ margin: 0 }}>
+                        You must configure this redirect URI in your OAuth app.
+                      </Text>
+                      <Copy value={redirectUri} />
+                    </FlatInlineField>
+                  )}
+
+                  <FlatConnectSection>
+                    <Select
+                      label="Credentials"
+                      description="Select existing credentials or add new ones for this provider."
+                      value={
+                        credentialsForm.values.credentialMode === 'new'
+                          ? '__create_new__'
+                          : credentialsForm.values.selectedCredentialId
+                      }
+                      placeholder="Select or add credentials"
+                      disabled={isWindowOpen}
+                      onChange={value => {
+                        setError(null);
+
+                        if (value === '__create_new__') {
+                          setLatestCreatedCredentialId(null);
+                          setLatestCreatedCredentialLabel(null);
+                          void credentialsForm.setFieldValue('credentialMode', 'new');
+                          void credentialsForm.setFieldValue('selectedCredentialId', '');
+                        } else {
+                          setLatestCreatedCredentialId(null);
+                          setLatestCreatedCredentialLabel(null);
+                          void credentialsForm.setFieldValue('credentialMode', 'existing');
+                          void credentialsForm.setFieldValue('selectedCredentialId', value);
+                        }
+                      }}
+                      items={credentialSelectItems}
+                    />
+                    <credentialsForm.RenderError field="selectedCredentialId" />
+
+                    {isCreatingCredentials && (
+                      <>
+                        <Spacer size={8} />
+
+                        <Input
+                          label="Name"
+                          value={credentialsForm.values.newCredName}
+                          disabled={isWindowOpen}
+                          onChange={e =>
+                            credentialsForm.setFieldValue('newCredName', e.target.value)
+                          }
+                          placeholder="My OAuth App"
+                        />
+                        <credentialsForm.RenderError field="newCredName" />
+
+                        <Spacer size={8} />
+
+                        <Input
+                          label="Client ID"
+                          value={credentialsForm.values.newCredClientId}
+                          disabled={isWindowOpen}
+                          onChange={e =>
+                            credentialsForm.setFieldValue('newCredClientId', e.target.value)
+                          }
+                          placeholder="Enter client ID from provider"
+                        />
+                        <credentialsForm.RenderError field="newCredClientId" />
+
+                        <Spacer size={8} />
+
+                        <Input
+                          label="Client Secret"
+                          value={credentialsForm.values.newCredClientSecret}
+                          disabled={isWindowOpen}
+                          onChange={e =>
+                            credentialsForm.setFieldValue(
+                              'newCredClientSecret',
+                              e.target.value
+                            )
+                          }
+                          placeholder="Enter client secret from provider"
+                          type="password"
+                        />
+                        <credentialsForm.RenderError field="newCredClientSecret" />
+                      </>
+                    )}
+                  </FlatConnectSection>
+                </>
+              )}
+
+              {collectAuthConfigDetails && (
+                <FlatConnectSection>
+                  {renderAuthConfigDetailsFields({ disabled: isWindowOpen })}
+                </FlatConnectSection>
+              )}
+            </FlatConnectForm>
+
+            <createCredentials.RenderError />
+            <createSetupSession.RenderError />
+
+            {error && (
+              <>
+                <Spacer size={5} />
+                <Text size="2" color="red600">
+                  {error}
+                </Text>
+              </>
+            )}
+
+            <Spacer size={8} />
+
+            {isWindowOpen ? (
+              <>
+                {setupWindowBlocked && (
+                  <>
+                    <Text size="2" color="red600">
+                      The popup window was blocked by your browser. Open it manually to
+                      continue.
+                    </Text>
+                    <Spacer size={5} />
+                  </>
+                )}
+
+                <Text size="2" weight="strong">
+                  Continue in the {oauthMethodName} window
+                </Text>
+                <Text size="2" color="gray600">
+                  Complete the sign-in flow. This modal will update automatically.
+                </Text>
+
+                <Spacer size={8} />
+
+                <Flex gap={8} align="center">
+                  {(onWindowOpenCancel ?? onCancel) && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={onWindowOpenCancel ?? onCancel}
+                    >
+                      {onWindowOpenCancel ? windowOpenCancelLabel : cancelLabel}
+                    </Button>
+                  )}
+
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      if (!setupSession?.url) return;
+                      let opened = openSetupWindow(setupSession.url);
+                      setSetupWindowBlocked(!opened);
+                    }}
+                  >
+                    Reopen Window
+                  </Button>
+                </Flex>
+              </>
+            ) : (
+              <Flex gap={8} align="center">
+                {onCancel && (
+                  <Button type="button" variant="outline" onClick={onCancel}>
+                    {cancelLabel}
+                  </Button>
+                )}
+                <Button
+                  type="submit"
+                  loading={
+                    isStarting || createSetupSession.isPending || createCredentials.isPending
+                  }
+                  disabled={
+                    (isCreatingCredentials &&
+                      (!credentialsForm.values.newCredName ||
+                        !credentialsForm.values.newCredClientId ||
+                        !credentialsForm.values.newCredClientSecret)) ||
+                    (isCustomSelected &&
+                      !isCreatingCredentials &&
+                      !credentialsForm.values.selectedCredentialId)
+                  }
+                >
+                  Continue
+                </Button>
+              </Flex>
+            )}
+          </form>
+        );
+      }
+    };
+
     let connectStep = {
       title: 'Connect',
       subtitle: 'Complete authentication',
@@ -1518,13 +1836,18 @@ export let ProviderSetupSessionEmbed = ({
                 Continue in the {oauthMethodName} window
               </Text>
               <Text size="2" color="gray600">
-                Complete the sign-in flow. This modal will update automatically when
-                authentication finishes.
+                Complete the sign-in flow. This modal will update automatically.
               </Text>
 
               <Spacer size={8} />
 
               <Flex gap={8} align="center">
+                {(onWindowOpenCancel ?? onCancel) && (
+                  <Button size="1" variant="outline" onClick={onWindowOpenCancel ?? onCancel}>
+                    {onWindowOpenCancel ? windowOpenCancelLabel : cancelLabel}
+                  </Button>
+                )}
+
                 <Button
                   size="1"
                   onClick={() => {
@@ -1532,14 +1855,8 @@ export let ProviderSetupSessionEmbed = ({
                     setSetupWindowBlocked(!opened);
                   }}
                 >
-                  Open Window
+                  Reopen Window
                 </Button>
-
-                {onCancel && (
-                  <Button size="1" variant="outline" onClick={onCancel}>
-                    {cancelLabel}
-                  </Button>
-                )}
               </Flex>
 
               {(!skipMethodStep || onBackToMethodSelection) && (
@@ -1651,6 +1968,12 @@ export let ProviderSetupSessionEmbed = ({
               }
             ]
           : [connectStep];
+      }
+
+      if (usesFlattenedOAuthCredentialsStep) {
+        return includeMethodStep
+          ? [methodStep, flatOauthCredentialsStep]
+          : [flatOauthCredentialsStep];
       }
 
       return includeMethodStep

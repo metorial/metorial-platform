@@ -25,11 +25,11 @@ import {
   emptyConfigurationSelection,
   type ConfigurationSelection
 } from '../../lib/configSelection';
+import { Stepper } from '../../../../components/stepper';
 import { ProviderAuthConfigCreateButton } from '../providerAuthConfigs/modal';
 import { ProviderConfigurationSelection } from '../providerConfigs/selection';
 import { ProviderDeploymentsList } from '../providerDeployments/list';
 import { ProviderSearch } from '../providers/search';
-import { Stepper } from '../stepper';
 
 export type ProviderConfigurationSelectionFormValues = {
   selectedProviderId: string;

@@ -1,0 +1,324 @@
+import { useForm } from '@metorial/data-hooks';
+import { Paths } from '@metorial/frontend-config';
+import {
+  useCurrentInstance,
+  useCurrentOrganization,
+  useCurrentProject
+} from '@metorial/state';
+import { useProviderAuthCreationCapabilities } from '../../lib/providerCreationCapabilities';
+import {
+  ProviderCreationPanelShell,
+  ProviderSelectionStep,
+  showProviderCreationPanel
+} from '../providerCreationPanel';
+import { AuthMethodPicker } from './authMethodPicker';
+import { ProviderAuthConfigCreateFlowContent } from './createModal';
+import { getCreateMethodDescription } from './modalHelpers';
+import { Button, Callout, CenteredSpinner, Dialog, Spacer, Text } from '@metorial/ui';
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+
+type PanelFlowProps = {
+  instanceId: string;
+  onCreated?: (authConfigId: string) => void;
+};
+
+let AuthMethodStep = (p: {
+  instanceId: string;
+  providerId: string;
+  selectedMethodId: string;
+  autoSkipSingle: boolean;
+  setAutoSkipSingle: (value: boolean) => void;
+  setSelectedMethodId: (id: string) => void;
+  onBack: () => void;
+  onClose: () => void;
+  onContinue: () => void;
+}) => {
+  let authCreation = useProviderAuthCreationCapabilities(
+    p.instanceId,
+    undefined,
+    p.providerId
+  );
+  let methods = authCreation.authMethodItems;
+  let form = useForm({
+    initialValues: {
+      authMethodId: p.selectedMethodId || ''
+    },
+    updateInitialValues: true,
+    onSubmit: async values => {
+      form.setFieldTouched('authMethodId', true, false);
+      await form.validateField('authMethodId');
+
+      if (!values.authMethodId) return;
+
+      p.setSelectedMethodId(values.authMethodId);
+      p.setAutoSkipSingle(false);
+      p.onContinue();
+    },
+    schema: yup =>
+      yup.object({
+        authMethodId: yup.string().required('Authentication method is required')
+      })
+  });
+  let effectiveSelectedMethodId =
+    form.values.authMethodId || (methods.length === 1 ? methods[0]!.id : '');
+
+  useEffect(() => {
+    if (!p.autoSkipSingle) return;
+    if (authCreation.isLoading || !authCreation.canCreateAuthConfig) return;
+    if (methods.length !== 1) return;
+
+    form.setFieldValue('authMethodId', methods[0]!.id);
+    p.setSelectedMethodId(methods[0]!.id);
+    p.setAutoSkipSingle(false);
+    p.onContinue();
+  }, [
+    p.autoSkipSingle,
+    authCreation.isLoading,
+    authCreation.canCreateAuthConfig,
+    methods,
+    p.onContinue,
+    p.setAutoSkipSingle,
+    p.setSelectedMethodId,
+    form.setFieldValue
+  ]);
+
+  useEffect(() => {
+    if (p.autoSkipSingle) return;
+    if (authCreation.isLoading || !authCreation.canCreateAuthConfig) return;
+    if (form.values.authMethodId) return;
+
+    let firstMethodId = methods[0]?.id;
+    if (!firstMethodId) return;
+
+    form.setFieldValue('authMethodId', firstMethodId);
+    p.setSelectedMethodId(firstMethodId);
+  }, [
+    p.autoSkipSingle,
+    authCreation.isLoading,
+    authCreation.canCreateAuthConfig,
+    methods,
+    form.values.authMethodId,
+    form.setFieldValue,
+    p.setSelectedMethodId
+  ]);
+
+  if (authCreation.isLoading) {
+    return <CenteredSpinner />;
+  }
+
+  let noAuthMethodsAvailable = methods.length === 0;
+
+  if (noAuthMethodsAvailable) {
+    return (
+      <>
+        <Callout color="gray">This provider has no auth methods.</Callout>
+        <Spacer size={15} />
+        <Dialog.Actions>
+          <Button type="button" variant="outline" onClick={p.onBack}>
+            Back
+          </Button>
+          <Button type="button" color="black" variant="solid" onClick={p.onClose}>
+            Close
+          </Button>
+        </Dialog.Actions>
+      </>
+    );
+  }
+
+  if (!authCreation.canCreateAuthConfig) {
+    return (
+      <>
+        <Text size="2" color="gray600">
+          {authCreation.authConfigDisabledReason ??
+            'Authentication cannot be configured for this provider right now.'}
+        </Text>
+        <Spacer size={15} />
+        <Dialog.Actions>
+          <Button type="button" variant="outline" onClick={p.onBack}>
+            Back
+          </Button>
+          <Button type="button" color="black" variant="solid" onClick={p.onClose}>
+            Close
+          </Button>
+        </Dialog.Actions>
+      </>
+    );
+  }
+
+  return (
+    <form onSubmit={form.handleSubmit}>
+      <AuthMethodPicker
+        label="Authentication method"
+        hideLabel
+        focusOnMount
+        value={effectiveSelectedMethodId}
+        onChange={value => {
+          form.setFieldValue('authMethodId', value);
+          p.setSelectedMethodId(value);
+        }}
+        items={methods.map(method => ({
+          id: method.id,
+          name: method.name,
+          description: method.description?.trim() || getCreateMethodDescription(method)
+        }))}
+      />
+
+      <form.RenderError field="authMethodId" />
+
+      <Spacer size={15} />
+
+      <Dialog.Actions>
+        <Button type="button" variant="outline" onClick={p.onBack}>
+          Back
+        </Button>
+        <Button
+          type="submit"
+          color="black"
+          variant="solid"
+          disabled={!effectiveSelectedMethodId}
+        >
+          Continue
+        </Button>
+      </Dialog.Actions>
+    </form>
+  );
+};
+
+let ProviderAuthConfigPanelFlow = (p: PanelFlowProps & { close: () => void }) => {
+  let organization = useCurrentOrganization();
+  let project = useCurrentProject();
+  let instance = useCurrentInstance();
+  let navigate = useNavigate();
+  let [step, setStep] = useState(0);
+  let [providerId, setProviderId] = useState<string | null>(null);
+  let [selectedMethodId, setSelectedMethodId] = useState('');
+  let [autoSkipSingle, setAutoSkipSingle] = useState(false);
+  let [isWindowOpen, setIsWindowOpen] = useState(false);
+
+  let steps = useMemo(
+    () => [
+      {
+        title: 'Select Provider',
+        render: () => (
+          <ProviderSelectionStep
+            instanceId={p.instanceId}
+            limit={30}
+            internalScrollHeight="calc(100vh - 260px)"
+            emptyText="No providers found."
+            onSelect={providerId => {
+              setProviderId(providerId);
+              setSelectedMethodId('');
+              setAutoSkipSingle(true);
+              setStep(1);
+            }}
+          />
+        )
+      },
+      {
+        title: 'Select Auth Method',
+        render: () =>
+          providerId ? (
+            <AuthMethodStep
+              instanceId={p.instanceId}
+              providerId={providerId}
+              selectedMethodId={selectedMethodId}
+              autoSkipSingle={autoSkipSingle}
+              setAutoSkipSingle={setAutoSkipSingle}
+              setSelectedMethodId={setSelectedMethodId}
+              onBack={() => {
+                setStep(0);
+              }}
+              onClose={p.close}
+              onContinue={() => {
+                setStep(2);
+              }}
+            />
+          ) : (
+            <CenteredSpinner />
+          )
+      },
+      {
+        title: 'Authenticate',
+        render: () =>
+          providerId && selectedMethodId ? (
+            <ProviderAuthConfigCreateFlowContent
+              instanceId={p.instanceId}
+              providerId={providerId}
+              initialAuthMethodId={selectedMethodId}
+              close={p.close}
+              embedded
+              onWindowOpenStateChange={setIsWindowOpen}
+              onBack={() => {
+                setStep(1);
+              }}
+              onCreate={authConfig => {
+                p.onCreated?.(authConfig.id);
+                if (!organization.data || !project.data || !instance.data) return;
+
+                navigate(
+                  Paths.instance.providerAuthConfig(
+                    organization.data,
+                    project.data,
+                    instance.data,
+                    authConfig.id
+                  )
+                );
+              }}
+            />
+          ) : (
+            <CenteredSpinner />
+          )
+      }
+    ],
+    [
+      organization.data,
+      project.data,
+      instance.data,
+      p.instanceId,
+      p.close,
+      p.onCreated,
+      providerId,
+      selectedMethodId,
+      autoSkipSingle,
+      navigate
+    ]
+  );
+
+  return (
+    <ProviderCreationPanelShell
+      title="Create Auth Config"
+      description="Select a provider, choose an auth method, then authenticate."
+      steps={steps}
+      currentStep={step}
+      isStepDisabled={nextStep => isWindowOpen && nextStep < 2}
+      getStepDisabledReason={nextStep =>
+        isWindowOpen && nextStep < 2
+          ? 'Finish or cancel the authentication window before going back.'
+          : undefined
+      }
+      setCurrentStep={nextStep => {
+        if (isWindowOpen && nextStep < 2) {
+          return;
+        }
+        if (nextStep === 0) {
+          setStep(0);
+          return;
+        }
+        if (nextStep === 1 && providerId) {
+          setStep(1);
+          setAutoSkipSingle(false);
+          return;
+        }
+        if (nextStep === 2 && providerId && selectedMethodId) {
+          setStep(2);
+        }
+      }}
+    />
+  );
+};
+
+export let showProviderAuthConfigPanelFlow = (p: PanelFlowProps) =>
+  showProviderCreationPanel(({ close }) => (
+    <ProviderAuthConfigPanelFlow {...p} close={close} />
+  ));

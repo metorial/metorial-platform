@@ -8,6 +8,7 @@ import {
 } from '@metorial/state';
 import { Button, Tooltip } from '@metorial/ui';
 import { useNavigate, useParams } from 'react-router-dom';
+import { withFromDeployment } from '../fromDeployment';
 import { useProviderAuthCreationCapabilities } from '../../../lib/providerCreationCapabilities';
 import { showProviderAuthCredentialsFormModal } from '../../../scenes/providerAuthCredentials/modal';
 import { ProviderDeploymentTabSection } from '../../../scenes/providerDeployments/tabSection';
@@ -34,6 +35,7 @@ export let ProviderDeploymentAuthCredentialsPage = () => {
           project,
           instance,
           filters: { providerId: deployment.data.providerId },
+          fromDeploymentId: deployment.data.id,
           emptyState: "No auth credentials found for this deployment's provider.",
           headerActions: () => (
             <Tooltip
@@ -52,11 +54,14 @@ export let ProviderDeploymentAuthCredentialsPage = () => {
                       deploymentId: deployment.data.id,
                       onCreate: credential =>
                         navigate(
-                          Paths.instance.providerAuthCredential(
-                            organization.data,
-                            project.data,
-                            instance.data!,
-                            credential.id
+                          withFromDeployment(
+                            Paths.instance.providerAuthCredential(
+                              organization.data,
+                              project.data,
+                              instance.data!,
+                              credential.id
+                            ),
+                            deployment.data.id
                           )
                         )
                     })

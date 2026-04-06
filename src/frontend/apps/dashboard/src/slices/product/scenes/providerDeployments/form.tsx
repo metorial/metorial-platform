@@ -6,7 +6,7 @@ import { Button, Dialog, Input, Spacer, Text } from '@metorial/ui';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ProviderSearch } from '../providers/search';
-import { Stepper } from '../stepper';
+import { Stepper } from '../../../../components/stepper';
 
 export type ProviderDeploymentFormProps =
   | {

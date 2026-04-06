@@ -5,10 +5,12 @@ import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
-  useProviderAuthConfig
+  useProviderAuthConfig,
+  useProviderDeployment
 } from '@metorial/state';
 import { LinkTabs } from '@metorial/ui';
 import { Outlet, useLocation, useParams } from 'react-router-dom';
+import { getFromDeployment, withFromDeployment } from '../fromDeployment';
 
 export let ProviderAuthConfigLayout = () => {
   let instance = useCurrentInstance();
@@ -18,7 +20,11 @@ export let ProviderAuthConfigLayout = () => {
   let { providerAuthConfigId } = useParams();
   let authConfig = useProviderAuthConfig(instance.data?.id, providerAuthConfigId);
 
-  let pathname = useLocation().pathname;
+  let location = useLocation();
+  let pathname = location.pathname;
+  let fromDeployment = getFromDeployment(location.search, authConfig.data?.deployment?.id);
+
+  let deployment = useProviderDeployment(instance.data?.id, fromDeployment);
 
   let authConfigPathParams = [
     organization.data,
@@ -27,39 +33,86 @@ export let ProviderAuthConfigLayout = () => {
     authConfig.data?.id ?? providerAuthConfigId
   ] as const;
 
+  let deploymentBreadcrumbParams = [
+    organization.data,
+    project.data,
+    instance.data,
+    deployment.data?.id ?? fromDeployment
+  ] as const;
+
+  let overviewPath = withFromDeployment(
+    Paths.instance.providerAuthConfig(...authConfigPathParams),
+    fromDeployment
+  );
+  let settingsPath = withFromDeployment(
+    Paths.instance.providerAuthConfig(...authConfigPathParams, 'settings'),
+    fromDeployment
+  );
+
+  let pagination = fromDeployment
+    ? [
+        {
+          label: 'Deployments',
+          href: Paths.instance.providerDeployments(
+            organization.data,
+            project.data,
+            instance.data
+          )
+        },
+        {
+          label: deployment.data?.name ?? '...',
+          href: withFromDeployment(
+            Paths.instance.providerDeployment(...deploymentBreadcrumbParams),
+            fromDeployment
+          )
+        },
+        {
+          label: 'Auth Configs',
+          href: withFromDeployment(
+            Paths.instance.providerDeployment(...deploymentBreadcrumbParams, 'auth-configs'),
+            fromDeployment
+          )
+        },
+        {
+          label: authConfig.data?.name ?? '...',
+          href: overviewPath
+        }
+      ]
+    : [
+        {
+          label: 'Auth Configs',
+          href: Paths.instance.providerAuthConfigs(
+            organization.data,
+            project.data,
+            instance.data
+          )
+        },
+        {
+          label: authConfig.data?.name ?? '...',
+          href: overviewPath
+        }
+      ];
+
   return (
     <ContentLayout>
       <PageHeader
         title={authConfig.data?.name ?? '...'}
         description={authConfig.data?.description ?? undefined}
-        pagination={[
-          {
-            label: 'Auth Configs',
-            href: Paths.instance.providerAuthConfigs(
-              organization.data,
-              project.data,
-              instance.data
-            )
-          },
-          {
-            label: authConfig.data?.name ?? '...',
-            href: Paths.instance.providerAuthConfig(...authConfigPathParams)
-          }
-        ]}
+        pagination={pagination}
       />
 
-      {renderWithLoader({ authConfig })(({ authConfig }) => (
+      {renderWithLoader({ authConfig })(() => (
         <>
           <LinkTabs
             current={pathname}
             links={[
               {
                 label: 'Overview',
-                to: Paths.instance.providerAuthConfig(...authConfigPathParams)
+                to: overviewPath
               },
               {
                 label: 'Settings',
-                to: Paths.instance.providerAuthConfig(...authConfigPathParams, 'settings')
+                to: settingsPath
               }
             ]}
           />

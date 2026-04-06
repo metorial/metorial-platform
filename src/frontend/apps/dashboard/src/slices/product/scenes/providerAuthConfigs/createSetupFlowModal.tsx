@@ -1,7 +1,7 @@
-import { instanceProviderAuthConfigsLoader } from '@metorial/state';
 import { ProviderSetupSessionEmbed } from '../providerDeployments/setupSessionEmbed';
 import { AuthMethod } from './modalHelpers';
 import { PreviewMode, SetupFlowLayout, SetupFlowPreviewSidebar } from './previewSidebar';
+import { instanceProviderAuthConfigsLoader } from '@metorial/state';
 
 export let ProviderAuthConfigSetupFlowCreateContent = (p: {
   instanceId: string;
@@ -14,6 +14,8 @@ export let ProviderAuthConfigSetupFlowCreateContent = (p: {
   onPreviewModeChange: (mode: PreviewMode) => void;
   close: () => void;
   onCreate?: (authConfig: { id: string }) => void;
+  onCancel?: () => void;
+  onWindowOpenStateChange?: (isOpen: boolean) => void;
 }) => {
   return (
     <SetupFlowLayout $showPreview={true}>
@@ -25,20 +27,25 @@ export let ProviderAuthConfigSetupFlowCreateContent = (p: {
           initialMethodId={p.selectedMethod.id}
           hideMethodStep
           hideCredentialsIntro
+          flattenOAuthCredentialsFlow
           showExternalPreviewSidebar
           collectAuthConfigDetails
+          cancelLabel={p.onCancel ? 'Close' : 'Cancel'}
+          onWindowOpenCancel={p.close}
+          windowOpenCancelLabel="Cancel"
+          onWindowOpenStateChange={p.onWindowOpenStateChange}
           onPreviewModeChange={p.onPreviewModeChange}
           onPreviewCredentialTypeChange={() => {}}
           onActiveStepChange={() => {}}
           onComplete={result => {
             let authConfigId = result?.authConfig?.id;
             if (authConfigId) {
-              instanceProviderAuthConfigsLoader.refetchAll();
+              void instanceProviderAuthConfigsLoader.refetchAll();
               p.onCreate?.({ id: authConfigId });
             }
             p.close();
           }}
-          onCancel={p.close}
+          onCancel={p.onCancel ?? p.close}
         />
       </div>
 

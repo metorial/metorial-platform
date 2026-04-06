@@ -15,7 +15,7 @@ import { type ReactNode, useState } from 'react';
 import { ProviderContextCard } from '../providerContextCard';
 import { ProviderDeploymentsList } from '../providerDeployments/list';
 import { ProvidersWithDeploymentsSearch } from '../providers/search';
-import { Stepper } from '../stepper';
+import { Stepper } from '../../../../components/stepper';
 
 let DIALOG_EXIT_MS = 220;
 

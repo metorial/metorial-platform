@@ -25,6 +25,7 @@ import {
   getEnumListFilterValue,
   getStringFilterValue
 } from '../../../../../lib/dataTableUtils';
+import { withFromDeployment } from '../fromDeployment';
 import { showCreateProviderAuthConfigFlow } from './providerCreationFlows';
 
 type AuthConfigItem =
@@ -45,20 +46,21 @@ type ProviderAuthConfigsTableProps = {
   project: ReturnType<typeof useCurrentProject>;
   instance: ReturnType<typeof useCurrentInstance>;
   filters?: AuthConfigFilters;
+  fromDeploymentId?: string;
 };
 
 let formatType = (type: string | null | undefined) => {
   if (type === 'oauth_automated') return 'OAuth (Automated)';
   if (type === 'oauth_manual') return 'OAuth (Manual)';
   if (type === 'manual') return 'Manual';
-  return '\u2014';
+  return '—';
 };
 
 let formatSource = (source: AuthConfigItem['source'] | null | undefined) => {
   if (source === 'manual') return 'Manual';
   if (source === 'setup_session') return 'Setup Session';
   if (source === 'system') return 'System';
-  return '\u2014';
+  return '—';
 };
 
 let getStatusFilterValue = (
@@ -138,50 +140,9 @@ export let providerAuthConfigsFilterTable = new DashboardTable<
       header: 'Name',
       render: row => (
         <Text size="2" weight="strong">
-          {row.name || '\u2014'}
+          {row.name || '—'}
         </Text>
       )
-    },
-    {
-      id: 'id',
-      isDefault: true,
-      header: 'ID',
-      render: row => <ID id={row.id} />
-    },
-    {
-      id: 'authMethod',
-      isDefault: true,
-      header: 'Auth Method',
-      render: row => (
-        <Text size="2">{row.authMethod?.name ?? row.authMethod?.key ?? '\u2014'}</Text>
-      )
-    },
-    {
-      id: 'type',
-      isDefault: true,
-      header: 'Type',
-      render: row => <Text size="2">{formatType(row.type)}</Text>
-    },
-    {
-      id: 'source',
-      isDefault: true,
-      header: 'Source',
-      render: row => <Text size="2">{formatSource(row.source)}</Text>
-    },
-    {
-      id: 'status',
-      isDefault: true,
-      header: 'Status',
-      render: row => (
-        <Badge color={row.status === 'active' ? 'green' : 'gray'}>{row.status}</Badge>
-      )
-    },
-    {
-      id: 'default',
-      isDefault: true,
-      header: 'Default',
-      render: row =>
-        row.isDefault ? <Badge color="blue">Default</Badge> : <Text size="2">No</Text>
     },
     {
       id: 'provider',
@@ -190,10 +151,55 @@ export let providerAuthConfigsFilterTable = new DashboardTable<
       render: row => <Text size="2">{row.providerName ?? row.providerId}</Text>
     },
     {
+      id: 'deployment',
+      isDefault: true,
+      header: 'Deployment',
+      render: row => <Text size="2">{row.deployment?.name ?? '—'}</Text>
+    },
+    {
+      id: 'authMethod',
+      isDefault: true,
+      header: 'Auth Method',
+      render: row => <Text size="2">{row.authMethod?.name ?? row.authMethod?.key ?? '—'}</Text>
+    },
+    {
       id: 'createdAt',
       isDefault: true,
       header: 'Created',
       render: row => <RenderDate date={row.createdAt} />
+    },
+    {
+      id: 'id',
+      isDefault: true,
+      header: 'ID',
+      render: row => <ID id={row.id} />
+    },
+    {
+      id: 'type',
+      isDefault: false,
+      header: 'Type',
+      render: row => <Text size="2">{formatType(row.type)}</Text>
+    },
+    {
+      id: 'source',
+      isDefault: false,
+      header: 'Source',
+      render: row => <Text size="2">{formatSource(row.source)}</Text>
+    },
+    {
+      id: 'status',
+      isDefault: false,
+      header: 'Status',
+      render: row => (
+        <Badge color={row.status === 'active' ? 'green' : 'gray'}>{row.status}</Badge>
+      )
+    },
+    {
+      id: 'default',
+      isDefault: false,
+      header: 'Default',
+      render: row =>
+        row.isDefault ? <Badge color="blue">Default</Badge> : <Text size="2">No</Text>
     },
     {
       id: 'credentials',
@@ -207,12 +213,6 @@ export let providerAuthConfigsFilterTable = new DashboardTable<
             -
           </Text>
         )
-    },
-    {
-      id: 'deployment',
-      isDefault: false,
-      header: 'Deployment',
-      render: row => <Text size="2">{row.deployment?.name ?? '\u2014'}</Text>
     },
     {
       id: 'updatedAt',
@@ -285,11 +285,14 @@ export let providerAuthConfigsFilterTable = new DashboardTable<
   ])
   .search('Search auth configs...')
   .link((row, props) =>
-    Paths.instance.providerAuthConfig(
-      props.organization.data,
-      props.project.data,
-      props.instance.data,
-      row.id
+    withFromDeployment(
+      Paths.instance.providerAuthConfig(
+        props.organization.data,
+        props.project.data,
+        props.instance.data,
+        row.id
+      ),
+      props.fromDeploymentId
     )
   )
   .build();

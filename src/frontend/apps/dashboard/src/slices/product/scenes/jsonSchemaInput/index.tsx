@@ -444,13 +444,15 @@ export let JsonSchemaInput = ({
   value: initialValue,
   onChange,
   label,
-  variant
+  variant,
+  fieldErrors = {}
 }: {
   schema: JSONSchema7 | null | undefined;
   value: JsonSchemaInputValue;
   onChange: (value: JsonSchemaInputValue) => unknown;
   label?: string;
   variant?: 'input' | 'raw';
+  fieldErrors?: Record<string, string>;
 }) => {
   if (!schema) {
     return (
@@ -553,6 +555,7 @@ export let JsonSchemaInput = ({
             isRequired={isRequired}
             value={value}
             updateField={updateField}
+            fieldErrors={fieldErrors}
           />
         );
       })}
@@ -582,6 +585,7 @@ export let JsonSchemaInput = ({
             value={value}
             updateField={updateField}
             hideLabel={genericObjectFields.length > 1}
+            fieldErrors={fieldErrors}
           />
         </FieldWrapper>
       )}
@@ -812,7 +816,9 @@ let GenericObjectInput = ({
                     />
                   )}
 
-                  {validation.errors[entry.id] && <Error>{validation.errors[entry.id]}</Error>}
+                  {validation.errors[entry.id] && (
+                    <Error size={12}>{validation.errors[entry.id]}</Error>
+                  )}
                 </GenericObjectEntryCard>
               ))}
             </GenericObjectEntries>
@@ -843,7 +849,9 @@ let RenderField = ({
   value,
   updateField,
   hideLabel = false,
-  depth = 0
+  depth = 0,
+  path = [],
+  fieldErrors = {}
 }: {
   fieldKey: string;
   property: JSONSchema7;
@@ -852,11 +860,21 @@ let RenderField = ({
   updateField: (key: string, value: unknown) => void;
   hideLabel?: boolean;
   depth?: number;
+  path?: string[];
+  fieldErrors?: Record<string, string>;
 }) => {
   let [invalidJson, setInvalidJson] = useState(false);
 
   let baseLabel = property.title ?? formatSchemaFieldLabel(key);
   let label = baseLabel + (isRequired ? ' *' : '');
+  let fieldPath = [...path, baseLabel].join(' > ');
+  let externalError = fieldErrors[fieldPath];
+  let withExternalError = (node: React.ReactNode) => (
+    <>
+      {node}
+      {externalError && <Error size={12}>{externalError}</Error>}
+    </>
+  );
 
   if (property.type === 'object' && property.properties) {
     let nestedProperties = property.properties;
@@ -890,6 +908,8 @@ let RenderField = ({
               value={nestedValue}
               updateField={updateNestedField}
               depth={depth + 1}
+              path={[...path, baseLabel]}
+              fieldErrors={fieldErrors}
             />
           );
         })}
@@ -897,7 +917,7 @@ let RenderField = ({
     );
 
     if (depth > 0 || Object.keys(nestedProperties).length > 3) {
-      return (
+      return withExternalError(
         <FieldWrapper>
           <AccordionSingle title={label} defaultOpen={depth === 0}>
             {nestedContent}
@@ -906,7 +926,7 @@ let RenderField = ({
       );
     }
 
-    return (
+    return withExternalError(
       <FieldWrapper>
         <InputLabel>{label}</InputLabel>
         {property.description && (
@@ -920,7 +940,7 @@ let RenderField = ({
   }
 
   if (property.type === 'object') {
-    return (
+    return withExternalError(
       <GenericObjectInput
         label={label}
         description={property.description}
@@ -943,7 +963,7 @@ let RenderField = ({
       ? value[key].filter((item): item is string => typeof item === 'string')
       : [];
 
-    return (
+    return withExternalError(
       <FieldWrapper>
         <TextArrayInput
           label={label}
@@ -961,7 +981,7 @@ let RenderField = ({
   }
 
   if (property.type == undefined || property.type == 'array') {
-    return (
+    return withExternalError(
       <FieldWrapper>
         <CodeEditor
           label={label}
@@ -979,7 +999,7 @@ let RenderField = ({
         />
 
         {invalidJson && (
-          <Error style={{ marginTop: 5 }}>
+          <Error size={12} style={{ marginTop: 6 }}>
             The JSON you provided is invalid. Please check the syntax.
           </Error>
         )}
@@ -995,7 +1015,7 @@ let RenderField = ({
           ? property.default
           : false;
 
-    return (
+    return withExternalError(
       <FieldWrapper>
         <Checkbox
           label={label}
@@ -1010,7 +1030,7 @@ let RenderField = ({
   if (property.type == 'null') return null;
 
   if (property.type == 'string' && property.enum) {
-    return (
+    return withExternalError(
       <FieldWrapper>
         <Select
           label={label}
@@ -1045,7 +1065,7 @@ let RenderField = ({
 
   let renderAsTextarea = isJsonStringField({ key, property });
 
-  return (
+  return withExternalError(
     <FieldWrapper>
       {(() => {
         let currentValue = value[key] ?? property.default ?? '';
@@ -1054,14 +1074,26 @@ let RenderField = ({
             ? currentValue
             : '';
 
+        if (renderAsTextarea) {
+          return (
+            <CodeEditor
+              label={label}
+              description={property.description}
+              lang="json"
+              height="240px"
+              value={typeof inputValue === 'string' ? inputValue : String(inputValue ?? '')}
+              onChange={value => {
+                updateField(key, value);
+              }}
+            />
+          );
+        }
+
         return (
           <Input
             label={label}
             description={property.description}
-            type={renderAsTextarea ? undefined : inputType}
-            as={renderAsTextarea ? 'textarea' : undefined}
-            minRows={renderAsTextarea ? 10 : undefined}
-            style={renderAsTextarea ? { fontFamily: 'monospace' } : undefined}
+            type={inputType}
             value={inputValue}
             onChange={e => {
               let val: string | number = e.target.value;

@@ -8,12 +8,15 @@ import {
 } from '@metorial/state';
 import { RenderDate, Text, theme } from '@metorial/ui';
 import { ID, Table } from '@metorial/ui-product';
-import { useParams } from 'react-router-dom';
+import { useLocation, useParams } from 'react-router-dom';
+import { getFromDeployment, withFromDeployment } from '../fromDeployment';
 
 export let ProviderConfigVaultConfigsPage = () => {
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
+  let location = useLocation();
+  let fromDeployment = getFromDeployment(location.search);
 
   let { providerConfigVaultId } = useParams();
 
@@ -26,11 +29,14 @@ export let ProviderConfigVaultConfigsPage = () => {
       <Table
         headers={['Name', 'ID', 'Created']}
         data={configs.data.items.map(config => ({
-          href: Paths.instance.providerAuthConfig(
-            organization.data,
-            project.data,
-            instance.data,
-            config.id
+          href: withFromDeployment(
+            Paths.instance.providerConfig(
+              organization.data,
+              project.data,
+              instance.data,
+              config.id
+            ),
+            fromDeployment
           ),
           data: [
             <Text size="2" weight="strong">
