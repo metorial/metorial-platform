@@ -72,7 +72,6 @@ let SidebarInnerBottom = styled.div`
 
 let Content = styled.div`
   /* height: calc(100dvh - 70px); */
-  height: calc(100% - 10px);
   background: ${theme.colors.background};
   border-radius: 10px;
   box-shadow: ${theme.shadows.large};
@@ -93,7 +92,8 @@ export let AppLayout = ({
   right,
   children,
   Nav,
-  height
+  height,
+  bottomOffset
 }: {
   id: string;
   mainGroups: ISidebarGroup[];
@@ -103,6 +103,7 @@ export let AppLayout = ({
   children: React.ReactNode;
   Nav: () => React.ReactNode;
   height?: number | string;
+  bottomOffset?: number | string;
 }) => {
   return (
     <RootLayout Nav={Nav} height={height}>
@@ -162,7 +163,13 @@ export let AppLayout = ({
         </SidebarWrapper>
 
         <Outer>
-          <Content>{children}</Content>
+          <Content
+            style={{
+              height: `calc(100% - 10px - ${bottomOffset ?? '0px'})`
+            }}
+          >
+            {children}
+          </Content>
         </Outer>
 
         {right}
