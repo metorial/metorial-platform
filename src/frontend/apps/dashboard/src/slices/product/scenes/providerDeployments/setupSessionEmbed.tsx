@@ -447,6 +447,7 @@ export let ProviderSetupSessionEmbed = ({
   let hasManagedVisibleCredentials = visibleAuthCredentials.some(
     credential => credential.isManaged
   );
+  let primaryManagedCredentialId = managedVisibleCredentials[0]?.id ?? '';
   let requiresManualOAuthCredentials = isOAuth && !oauthAutoRegistrationEnabled;
   let preferredVisibleCredential =
     customVisibleCredentials.find(credential => credential.isDefault) ??
@@ -503,6 +504,7 @@ export let ProviderSetupSessionEmbed = ({
     !!latestCreatedCredentialId &&
     credentialsForm.values.selectedCredentialId === latestCreatedCredentialId;
   let hasCredentialsStep = isOAuth && !oauthAutoRegistrationEnabled;
+  let usesFlattenedOAuthCredentialsStep = hasCredentialsStep && flattenOAuthCredentialsFlow;
 
   let skipMethodStep = hideMethodStep || hasSingleMethod;
   let showHiddenMethodStep = hideMethodStep && showMethodStepInStepper;
@@ -549,14 +551,24 @@ export let ProviderSetupSessionEmbed = ({
     let activeStep: 'method' | 'credentials' | 'connect';
     if (step === 0 && includeMethodStep) {
       activeStep = 'method';
-    } else if (step === (includeMethodStep ? 1 : 0) && hasCredentialsStep) {
+    } else if (
+      step === (includeMethodStep ? 1 : 0) &&
+      hasCredentialsStep &&
+      !usesFlattenedOAuthCredentialsStep
+    ) {
       activeStep = 'credentials';
     } else {
       activeStep = 'connect';
     }
 
     onActiveStepChange(activeStep);
-  }, [hasCredentialsStep, includeMethodStep, onActiveStepChange, step]);
+  }, [
+    hasCredentialsStep,
+    includeMethodStep,
+    onActiveStepChange,
+    step,
+    usesFlattenedOAuthCredentialsStep
+  ]);
 
   useEffect(() => {
     if (!selectedMethodId && hasSingleMethod) {
@@ -647,15 +659,12 @@ export let ProviderSetupSessionEmbed = ({
   };
 
   let selectManagedCredential = async () => {
-    if (!managedVisibleCredentials[0]) return;
+    if (!primaryManagedCredentialId) return;
     setError(null);
     setLatestCreatedCredentialId(null);
     setLatestCreatedCredentialLabel(null);
     await credentialsForm.setFieldValue('credentialMode', 'existing');
-    await credentialsForm.setFieldValue(
-      'selectedCredentialId',
-      managedVisibleCredentials[0].id
-    );
+    await credentialsForm.setFieldValue('selectedCredentialId', primaryManagedCredentialId);
   };
 
   let selectCustomCredential = async () => {
@@ -682,16 +691,22 @@ export let ProviderSetupSessionEmbed = ({
   useEffect(() => {
     if (!flattenOAuthCredentialsFlow) return;
     if (!showManagedChoiceStep) return;
-    if (!hasManagedVisibleCredentials) return;
+    if (!primaryManagedCredentialId) return;
     if (initializedFlatManagedSelectionRef.current) return;
 
     initializedFlatManagedSelectionRef.current = true;
-    void selectManagedCredential();
+    void (async () => {
+      setError(null);
+      setLatestCreatedCredentialId(null);
+      setLatestCreatedCredentialLabel(null);
+      await credentialsForm.setFieldValue('credentialMode', 'existing');
+      await credentialsForm.setFieldValue('selectedCredentialId', primaryManagedCredentialId);
+    })();
   }, [
     flattenOAuthCredentialsFlow,
     showManagedChoiceStep,
-    hasManagedVisibleCredentials,
-    selectManagedCredential
+    primaryManagedCredentialId,
+    credentialsForm.setFieldValue
   ]);
 
   let resolveSelectedCredentialId = async (values: typeof credentialsForm.values) => {
@@ -1955,8 +1970,10 @@ export let ProviderSetupSessionEmbed = ({
           : [connectStep];
       }
 
-      if (flattenOAuthCredentialsFlow && !includeMethodStep) {
-        return [flatOauthCredentialsStep];
+      if (usesFlattenedOAuthCredentialsStep) {
+        return includeMethodStep
+          ? [methodStep, flatOauthCredentialsStep]
+          : [flatOauthCredentialsStep];
       }
 
       return includeMethodStep
