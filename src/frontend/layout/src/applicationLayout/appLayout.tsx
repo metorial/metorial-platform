@@ -165,7 +165,7 @@ export let AppLayout = ({
         <Outer>
           <Content
             style={{
-              height: `calc(100% - 10px - ${bottomOffset ?? '0px'})`
+              height: `calc(100dvh - 70px - ${bottomOffset ?? '0px'})`
             }}
           >
             {children}
