@@ -1,8 +1,8 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
-import { magicMcpSessionService } from '@metorial/module-magic';
 import { Paginator } from '@lowerdeck/pagination';
-import { Controller } from '@metorial/rest';
 import { v } from '@lowerdeck/validation';
+import { magicMcpSessionService } from '@metorial/module-magic';
+import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { hasFlags } from '../../middleware/hasFlags';
@@ -43,7 +43,10 @@ export let magicMcpSessionController = Controller.create(
       })
       .use(
         checkAccess({
-          possibleScopes: ['instance.provider.session:read', 'consumer#instance.magic_mcp:read']
+          possibleScopes: [
+            'instance.provider.session:read',
+            'consumer#instance.magic_mcp:read'
+          ]
         })
       )
       .use(requireConsumerTokenForPublishableKey())
@@ -78,7 +81,10 @@ export let magicMcpSessionController = Controller.create(
       })
       .use(
         checkAccess({
-          possibleScopes: ['instance.provider.session:read', 'consumer#instance.magic_mcp:read']
+          possibleScopes: [
+            'instance.provider.session:read',
+            'consumer#instance.magic_mcp:read'
+          ]
         })
       )
       .use(requireConsumerTokenForPublishableKey())

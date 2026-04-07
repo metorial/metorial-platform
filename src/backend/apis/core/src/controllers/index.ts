@@ -57,6 +57,7 @@ import {
   identityDelegationConfigController,
   identityDelegationController,
   identityDelegationRequestController,
+  magicMcpEndpointController,
   magicMcpGroupController,
   magicMcpServerController,
   magicMcpServerProviderController,
@@ -77,7 +78,6 @@ import {
   providerListingController,
   providerRunController,
   providerSetupSessionController,
-  providerSetupSessionDashboardController,
   providerSpecificationController,
   providerToolController,
   providerTriggerController,
@@ -163,6 +163,7 @@ export let magnetarController = Controller.create<any>(
 
     toolCallController,
 
+    magicMcpEndpointController,
     magicMcpServerController,
     magicMcpServerProviderController,
     magicMcpSessionController,
@@ -269,7 +270,7 @@ export let dashboardController = Controller.create<any>(
     providerConfigVaultController,
     providerAuthConfigController,
     providerAuthCredentialsController,
-    providerSetupSessionDashboardController,
+    // providerSetupSessionDashboardController,
 
     providerAuthImportController,
     providerAuthExportController,
@@ -293,6 +294,7 @@ export let dashboardController = Controller.create<any>(
 
     toolCallController,
 
+    magicMcpEndpointController,
     magicMcpServerController,
     magicMcpSessionController,
     magicMcpTokenController,

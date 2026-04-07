@@ -53,8 +53,7 @@ export let dashboardMagicMcpServerPresenter = Presenter.create(magicMcpServerTyp
 
     return {
       ...inner,
-      session_template_id: magicMcpServer.subspaceSessionTemplateId,
-      session_id: magicMcpServer.subspaceSession?.id ?? null
+      session_template_id: magicMcpServer.subspaceSessionTemplateId
     };
   })
   .schema(

@@ -11,7 +11,8 @@ export let v1PortalOAuthClientPresenter = Presenter.create(portalOAuthClientType
     redirect_uris: portalAuthClient.redirectUris,
     token_endpoint_auth_method: portalAuthClient.tokenEndpointAuthMethod,
     portal_id: portalAuthClient.portal.id,
-    magic_mcp_server_id: portalAuthClient.magicMcpServer.id,
+    magic_mcp_server_id: portalAuthClient.magicMcpServer?.id ?? null,
+    magic_mcp_endpoint_id: portalAuthClient.magicMcpEndpoint?.id ?? null,
     created_at: portalAuthClient.createdAt,
     expires_at: portalAuthClient.expiresAt
   }))
@@ -28,7 +29,8 @@ export let v1PortalOAuthClientPresenter = Presenter.create(portalOAuthClientType
         'none'
       ]),
       portal_id: v.string(),
-      magic_mcp_server_id: v.string(),
+      magic_mcp_server_id: v.nullable(v.string()),
+      magic_mcp_endpoint_id: v.nullable(v.string()),
       created_at: v.date(),
       expires_at: v.date()
     })

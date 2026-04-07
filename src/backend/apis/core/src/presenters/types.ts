@@ -25,11 +25,13 @@ import {
   Instance,
   InstanceConsumer,
   MachineAccess,
+  MagicMcpEndpoint,
+  MagicMcpEndpointServer,
   MagicMcpGroup,
   MagicMcpGroupToken,
   MagicMcpServer,
   MagicMcpServerAlias,
-  MagicMcpServerSubspaceSession,
+  MagicMcpSubspaceSessionConnection,
   MagicMcpToken,
   OAuthApplication,
   OAuthApplicationClientSecret,
@@ -386,23 +388,50 @@ export let flagsType = PresentableType.create<{
 export let magicMcpServerType = PresentableType.create<{
   magicMcpServer: MagicMcpServer & {
     aliases: MagicMcpServerAlias[];
-    subspaceSession: MagicMcpServerSubspaceSession | null;
   };
   portal?: Portal | null;
 }>()('magic_mcp.server');
 
+export let magicMcpEndpointType = PresentableType.create<{
+  magicMcpEndpoint: MagicMcpEndpoint & {
+    consumerProfile: ConsumerProfile | null;
+    servers: (MagicMcpEndpointServer & {
+      magicMcpServer: MagicMcpServer & {
+        aliases: MagicMcpServerAlias[];
+      };
+    })[];
+  };
+  portal?: Portal | null;
+}>()('magic_mcp.endpoint');
+
 export let magicMcpSessionType = PresentableType.create<{
-  magicMcpSession: MagicMcpServerSubspaceSession & {
-    magicMcpServer: MagicMcpServer & {
-      aliases: MagicMcpServerAlias[];
-      subspaceSession: MagicMcpServerSubspaceSession | null;
-    };
+  magicMcpSession: MagicMcpSubspaceSessionConnection & {
+    magicMcpServer:
+      | (MagicMcpServer & {
+          aliases: MagicMcpServerAlias[];
+        })
+      | null;
+    magicMcpEndpoint:
+      | (MagicMcpEndpoint & {
+          consumerProfile: ConsumerProfile | null;
+          servers: (MagicMcpEndpointServer & {
+            magicMcpServer: MagicMcpServer & {
+              aliases: MagicMcpServerAlias[];
+            };
+          })[];
+        })
+      | null;
   };
 }>()('magic_mcp.session');
 
 export let magicMcpTokenType = PresentableType.create<{
   magicMcpToken: MagicMcpToken & {
     magicMcpServer: MagicMcpServer | null;
+    magicMcpEndpoint:
+      | (MagicMcpEndpoint & {
+          servers: MagicMcpEndpointServer[];
+        })
+      | null;
     groups: (MagicMcpGroupToken & {
       magicMcpGroup: MagicMcpGroup;
     })[];
@@ -500,7 +529,8 @@ export let consumerProviderType = PresentableType.create<{
 export let portalOAuthClientType = PresentableType.create<{
   portalAuthClient: PortalAuthClient & {
     portal: Portal;
-    magicMcpServer: MagicMcpServer;
+    magicMcpServer: MagicMcpServer | null;
+    magicMcpEndpoint: MagicMcpEndpoint | null;
   };
 }>()('portal.oauth_client');
 
@@ -508,7 +538,8 @@ export let portalOAuthAuthorizationType = PresentableType.create<{
   portalOAuthAuthorization: PortalAuthAttempt & {
     portalAuthClient: PortalAuthClient & {
       portal: Portal;
-      magicMcpServer: MagicMcpServer;
+      magicMcpServer: MagicMcpServer | null;
+      magicMcpEndpoint: MagicMcpEndpoint | null;
     };
     consumerProfile: ConsumerProfile | null;
   };

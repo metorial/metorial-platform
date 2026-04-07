@@ -33,12 +33,12 @@ import { v1OrganizationActorPresenter } from './implementation/organizationActor
 import { v1OrganizationInvitePresenter } from './implementation/organizationInvite';
 import { v1OrganizationMemberPresenter } from './implementation/organizationMember';
 import { v1PortalPresenter } from './implementation/portal';
-import { v1PortalOAuthAuthorizationPresenter } from './implementation/portalOAuthAuthorization';
-import { v1PortalOAuthClientPresenter } from './implementation/portalOAuthClient';
 import { v1PortalAuthAppPresenter } from './implementation/portalAuthApp';
 import { v1PortalAuthSsoConnectionPresenter } from './implementation/portalAuthSsoConnection';
 import { v1PortalAuthSsoTenantPresenter } from './implementation/portalAuthSsoTenant';
 import { v1PortalAuthSsoTenantSetupPresenter } from './implementation/portalAuthSsoTenantSetup';
+import { v1PortalOAuthAuthorizationPresenter } from './implementation/portalOAuthAuthorization';
+import { v1PortalOAuthClientPresenter } from './implementation/portalOAuthClient';
 import { v1ProfilePresenter } from './implementation/profile';
 import { v1ProjectPresenter } from './implementation/project';
 import { v1ProjectBrandPresenter } from './implementation/projectBrand';
@@ -77,9 +77,10 @@ import {
   v1IdentityDelegationPresenter,
   v1IdentityDelegationRequestPresenter,
   v1IdentityPresenter,
+  v1MagicMcpEndpointPresenter,
   v1MagicMcpGroupPresenter,
-  v1MagicMcpServerProviderPresenter,
   v1MagicMcpServerPresenter,
+  v1MagicMcpServerProviderPresenter,
   v1MagicMcpSessionPresenter,
   v1MagicMcpTokenPresenter,
   v1ProviderAuthConfigPresenter,
@@ -158,8 +159,6 @@ import {
   consumerGroupType,
   consumerProfileType,
   consumerProviderType,
-  portalOAuthAuthorizationType,
-  portalOAuthClientType,
   consumerSessionType,
   consumerSurfaceType,
   consumerType,
@@ -183,6 +182,7 @@ import {
   instanceListType,
   instanceType,
   machineAccessType,
+  magicMcpEndpointType,
   magicMcpGroupType,
   magicMcpServerProviderType,
   magicMcpServerType,
@@ -203,6 +203,8 @@ import {
   portalAuthSsoConnectionType,
   portalAuthSsoTenantSetupType,
   portalAuthSsoTenantType,
+  portalOAuthAuthorizationType,
+  portalOAuthClientType,
   portalType,
   profileType,
   projectBrandType,
@@ -604,6 +606,11 @@ export let providerTemplatePresenter = declarePresenter(providerTemplateType, {
 export let magicMcpServerPresenter = declarePresenter(magicMcpServerType, {
   mt_2025_01_01_dashboard: dashboardMagicMcpServerPresenter,
   mt_2026_01_01_magnetar: v1MagicMcpServerPresenter
+});
+
+export let magicMcpEndpointPresenter = declarePresenter(magicMcpEndpointType, {
+  mt_2025_01_01_dashboard: v1MagicMcpEndpointPresenter,
+  mt_2026_01_01_magnetar: v1MagicMcpEndpointPresenter
 });
 
 export let magicMcpSessionPresenter = declarePresenter(magicMcpSessionType, {

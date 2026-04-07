@@ -4,6 +4,7 @@ import { v } from '@lowerdeck/validation';
 import { MagicMcpTokenStatus } from '@metorial/db';
 import { grantConsumerOwnedMagicMcpTokenAccess } from '@metorial/module-consumer';
 import {
+  magicMcpEndpointService,
   magicMcpGroupService,
   magicMcpServerService,
   magicMcpTokenService
@@ -70,7 +71,8 @@ export let magicMcpTokenController = Controller.create(
               ])
             ),
             magic_mcp_group_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            magic_mcp_server_id: v.optional(v.union([v.string(), v.array(v.string())]))
+            magic_mcp_server_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            magic_mcp_endpoint_id: v.optional(v.union([v.string(), v.array(v.string())]))
           })
         )
       )
@@ -81,6 +83,7 @@ export let magicMcpTokenController = Controller.create(
           status: normalizeArrayParam<MagicMcpTokenStatus>(ctx.query.status),
           groupIds: normalizeArrayParam(ctx.query.magic_mcp_group_id),
           serverIds: normalizeArrayParam(ctx.query.magic_mcp_server_id),
+          endpointIds: normalizeArrayParam(ctx.query.magic_mcp_endpoint_id),
           accessTags: ctx.accessTags
         });
 
@@ -131,7 +134,8 @@ export let magicMcpTokenController = Controller.create(
           description: v.optional(v.string()),
           metadata: v.optional(v.record(v.any())),
           magic_mcp_group_ids: v.optional(v.array(v.string())),
-          magic_mcp_server_id: v.optional(v.string())
+          magic_mcp_server_id: v.optional(v.string()),
+          magic_mcp_endpoint_id: v.optional(v.string())
         })
       )
       .output(magicMcpTokenPresenter)
@@ -141,6 +145,14 @@ export let magicMcpTokenController = Controller.create(
           throw new ServiceError(
             badRequestError({
               message: 'Consumer-created magic MCP tokens cannot be locked to admin groups.'
+            })
+          );
+        }
+
+        if (ctx.body.magic_mcp_server_id && ctx.body.magic_mcp_endpoint_id) {
+          throw new ServiceError(
+            badRequestError({
+              message: 'A magic MCP token can be linked to either one server or one endpoint.'
             })
           );
         }
@@ -158,6 +170,13 @@ export let magicMcpTokenController = Controller.create(
               accessTags: ctx.accessTags
             })
           : undefined;
+        let magicMcpEndpoint = ctx.body.magic_mcp_endpoint_id
+          ? await magicMcpEndpointService.getMagicMcpEndpointById({
+              magicMcpEndpointId: ctx.body.magic_mcp_endpoint_id,
+              instance: ctx.instance,
+              accessTags: ctx.accessTags
+            })
+          : undefined;
 
         let magicMcpToken = await magicMcpTokenService.createMagicMcpToken({
           instance: ctx.instance,
@@ -166,7 +185,8 @@ export let magicMcpTokenController = Controller.create(
             name: ctx.body.name,
             description: ctx.body.description,
             metadata: ctx.body.metadata,
-            magicMcpServer
+            magicMcpServer,
+            magicMcpEndpoint
           }
         });
 

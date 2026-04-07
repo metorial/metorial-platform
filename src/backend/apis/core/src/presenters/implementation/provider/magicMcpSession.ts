@@ -1,6 +1,7 @@
-import { Presenter } from '@metorial/presenter';
 import { v } from '@lowerdeck/validation';
+import { Presenter } from '@metorial/presenter';
 import { magicMcpSessionType } from '../../types';
+import { v1MagicMcpEndpointPresenter } from './magicMcpEndpoint';
 import { v1MagicMcpServerPresenter } from './magicMcpServer';
 
 export let v1MagicMcpSessionPresenter = Presenter.create(magicMcpSessionType)
@@ -9,9 +10,16 @@ export let v1MagicMcpSessionPresenter = Presenter.create(magicMcpSessionType)
     id: magicMcpSession.id,
     subspace_session_id: magicMcpSession.subspaceSessionId,
     subspace_session_template_id: magicMcpSession.subspaceSessionTemplateId,
-    magic_mcp_server: await v1MagicMcpServerPresenter
-      .present({ magicMcpServer: magicMcpSession.magicMcpServer }, opts)
-      .run(),
+    magic_mcp_server: magicMcpSession.magicMcpServer
+      ? await v1MagicMcpServerPresenter
+          .present({ magicMcpServer: magicMcpSession.magicMcpServer }, opts)
+          .run()
+      : null,
+    magic_mcp_endpoint: magicMcpSession.magicMcpEndpoint
+      ? await v1MagicMcpEndpointPresenter
+          .present({ magicMcpEndpoint: magicMcpSession.magicMcpEndpoint }, opts)
+          .run()
+      : null,
     created_at: magicMcpSession.createdAt,
     updated_at: magicMcpSession.updatedAt
   }))
@@ -21,7 +29,8 @@ export let v1MagicMcpSessionPresenter = Presenter.create(magicMcpSessionType)
       id: v.string(),
       subspace_session_id: v.string(),
       subspace_session_template_id: v.string(),
-      magic_mcp_server: v1MagicMcpServerPresenter.schema,
+      magic_mcp_server: v.nullable(v1MagicMcpServerPresenter.schema),
+      magic_mcp_endpoint: v.nullable(v1MagicMcpEndpointPresenter.schema),
       created_at: v.date(),
       updated_at: v.date()
     })

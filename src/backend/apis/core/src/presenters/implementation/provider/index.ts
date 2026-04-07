@@ -33,6 +33,7 @@ export * from './identityCredential';
 export * from './identityDelegation';
 export * from './identityDelegationConfig';
 export * from './identityDelegationRequest';
+export * from './magicMcpEndpoint';
 export * from './magicMcpGroup';
 export * from './magicMcpServer';
 export * from './magicMcpServerProvider';

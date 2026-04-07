@@ -1,9 +1,9 @@
-import { MagicMcpGroupStatus } from '@metorial/db';
 import { badRequestError, ServiceError } from '@lowerdeck/error';
-import { magicMcpGroupService } from '@metorial/module-magic';
 import { Paginator } from '@lowerdeck/pagination';
-import { Controller } from '@metorial/rest';
 import { v } from '@lowerdeck/validation';
+import { MagicMcpGroupStatus } from '@metorial/db';
+import { magicMcpGroupService } from '@metorial/module-magic';
+import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { hasFlags } from '../../middleware/hasFlags';

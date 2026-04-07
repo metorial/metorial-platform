@@ -52,8 +52,8 @@ export let providerSetupSessionDashboardController = Controller.create(
     list: instanceGroup
       .get(
         Path(
-          '/dashboard/instances/:instanceId/provider-setup-sessions',
-          'dashboard.instance.providerDeployments.setupSessions.list'
+          '/dashboard/instances/:instanceId/dashboard-provider-setup-sessions',
+          'dashboard.instance.dashboardProviderDeployments.setupSessions.list'
         ),
         {
           name: 'List provider setup sessions',
@@ -123,8 +123,8 @@ export let providerSetupSessionDashboardController = Controller.create(
     get: providerSetupSessionDashboardGroup
       .get(
         Path(
-          '/dashboard/instances/:instanceId/provider-setup-sessions/:providerSetupSessionId',
-          'dashboard.instance.providerDeployments.setupSessions.get'
+          '/dashboard/instances/:instanceId/dashboard-provider-setup-sessions/:providerSetupSessionId',
+          'dashboard.instance.dashboardProviderDeployments.setupSessions.get'
         ),
         {
           name: 'Get provider setup session',
@@ -140,8 +140,8 @@ export let providerSetupSessionDashboardController = Controller.create(
     create: instanceGroup
       .post(
         Path(
-          '/dashboard/instances/:instanceId/provider-setup-sessions',
-          'dashboard.instance.providerDeployments.setupSessions.create'
+          '/dashboard/instances/:instanceId/dashboard-provider-setup-sessions',
+          'dashboard.instance.dashboardProviderDeployments.setupSessions.create'
         ),
         {
           name: 'Create provider setup session',
@@ -245,8 +245,8 @@ export let providerSetupSessionDashboardController = Controller.create(
     update: providerSetupSessionDashboardGroup
       .patch(
         Path(
-          '/dashboard/instances/:instanceId/provider-setup-sessions/:providerSetupSessionId',
-          'dashboard.instance.providerDeployments.setupSessions.update'
+          '/dashboard/instances/:instanceId/dashboard-provider-setup-sessions/:providerSetupSessionId',
+          'dashboard.instance.dashboardProviderDeployments.setupSessions.update'
         ),
         {
           name: 'Update provider setup session',
@@ -287,8 +287,8 @@ export let providerSetupSessionDashboardController = Controller.create(
     delete: providerSetupSessionDashboardGroup
       .delete(
         Path(
-          '/dashboard/instances/:instanceId/provider-setup-sessions/:providerSetupSessionId',
-          'dashboard.instance.providerDeployments.setupSessions.delete'
+          '/dashboard/instances/:instanceId/dashboard-provider-setup-sessions/:providerSetupSessionId',
+          'dashboard.instance.dashboardProviderDeployments.setupSessions.delete'
         ),
         {
           name: 'Delete provider setup session',

@@ -1,6 +1,7 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
 import { magicMcpTokenType } from '../../types';
+import { v1MagicMcpEndpointPreview } from '../magicMcpEndpointPreview';
 import { v1MagicMcpServerPreview } from '../magicMcpServerPreview';
 import { v1MagicMcpGroupPresenter } from './magicMcpGroup';
 
@@ -15,6 +16,9 @@ export let v1MagicMcpTokenPresenter = Presenter.create(magicMcpTokenType)
     metadata: magicMcpToken.metadata,
     server: magicMcpToken.magicMcpServer
       ? v1MagicMcpServerPreview(magicMcpToken.magicMcpServer)
+      : null,
+    endpoint: magicMcpToken.magicMcpEndpoint
+      ? v1MagicMcpEndpointPreview(magicMcpToken.magicMcpEndpoint)
       : null,
     groups: await Promise.all(
       magicMcpToken.groups.map(g =>
@@ -33,6 +37,7 @@ export let v1MagicMcpTokenPresenter = Presenter.create(magicMcpTokenType)
       name: v.nullable(v.string()),
       description: v.nullable(v.string()),
       server: v.nullable(v1MagicMcpServerPreview.schema),
+      endpoint: v.nullable(v1MagicMcpEndpointPreview.schema),
       groups: v.array(v1MagicMcpGroupPresenter.schema),
       metadata: v.record(v.any()),
       created_at: v.date(),

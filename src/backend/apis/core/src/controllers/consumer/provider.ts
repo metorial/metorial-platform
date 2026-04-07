@@ -105,7 +105,8 @@ let portalOAuthClientGroup = consumerGroup.use(async ctx => {
     },
     include: {
       portal: true,
-      magicMcpServer: true
+      magicMcpServer: true,
+      magicMcpEndpoint: true
     }
   });
   if (!portalOAuthClient) {
@@ -140,7 +141,8 @@ let portalOAuthAuthorizationGroup = consumerGroup.use(async ctx => {
       portalAuthClient: {
         include: {
           portal: true,
-          magicMcpServer: true
+          magicMcpServer: true,
+          magicMcpEndpoint: true
         }
       }
     }
@@ -252,7 +254,8 @@ export let consumerProviderController = Controller.create(
             portalAuthClient: {
               include: {
                 portal: true,
-                magicMcpServer: true
+                magicMcpServer: true,
+                magicMcpEndpoint: true
               }
             }
           }
@@ -301,7 +304,8 @@ export let consumerProviderController = Controller.create(
             portalAuthClient: {
               include: {
                 portal: true,
-                magicMcpServer: true
+                magicMcpServer: true,
+                magicMcpEndpoint: true
               }
             }
           }
