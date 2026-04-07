@@ -114,31 +114,6 @@ class ConsumerAresServiceImpl {
     );
   }
 
-  async listSsoTenantsAll(d: { appId: string; maxItems?: number }) {
-    let maxItems = d.maxItems ?? 2000;
-    let all: ConsumerAresRawSsoTenantList['items'][number][] = [];
-    let after: string | undefined;
-
-    while (all.length < maxItems) {
-      let batch = await this.listSsoTenants({
-        appId: d.appId,
-        limit: 100,
-        after,
-        order: 'asc'
-      });
-
-      all.push(...batch.items);
-
-      if (!batch.pagination.hasNextPage || batch.items.length === 0) {
-        break;
-      }
-
-      after = batch.items[batch.items.length - 1]!.id;
-    }
-
-    return all;
-  }
-
   async getSsoTenant(d: { ssoTenantId: string }) {
     return await this.getClient().sso.getTenant({
       id: d.ssoTenantId
