@@ -23,7 +23,11 @@ import { syncIdentityConsumerQueue } from '../queues/syncIdentityConsumer';
 
 let include = {
   consumer: true,
-  surface: true,
+  surface: {
+    include: {
+      portal: true
+    }
+  },
   personalConsumerGroup: true,
   groups: {
     include: {

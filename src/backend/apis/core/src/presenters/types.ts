@@ -388,6 +388,7 @@ export let magicMcpServerType = PresentableType.create<{
     aliases: MagicMcpServerAlias[];
     subspaceSession: MagicMcpServerSubspaceSession | null;
   };
+  portal?: Portal | null;
 }>()('magic_mcp.server');
 
 export let magicMcpSessionType = PresentableType.create<{

@@ -179,7 +179,7 @@ export let magicMcpServerController = Controller.create(
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, magicMcpServer =>
-          magicMcpServerPresenter.present({ magicMcpServer })
+          magicMcpServerPresenter.present({ magicMcpServer, portal: ctx.portal })
         );
       }),
 
@@ -200,7 +200,10 @@ export let magicMcpServerController = Controller.create(
       .output(magicMcpServerPresenter)
       .use(hasFlags(['magic-mcp-enabled']))
       .do(async ctx => {
-        return magicMcpServerPresenter.present({ magicMcpServer: ctx.magicMcpServer });
+        return magicMcpServerPresenter.present({
+          magicMcpServer: ctx.magicMcpServer,
+          portal: ctx.portal
+        });
       }),
 
     create: instanceGroup
@@ -259,7 +262,7 @@ export let magicMcpServerController = Controller.create(
           });
         }
 
-        return magicMcpServerPresenter.present({ magicMcpServer });
+        return magicMcpServerPresenter.present({ magicMcpServer, portal: ctx.portal });
       }),
 
     delete: magicMcpServerGroup
@@ -290,7 +293,7 @@ export let magicMcpServerController = Controller.create(
           server: ctx.magicMcpServer
         });
 
-        return magicMcpServerPresenter.present({ magicMcpServer });
+        return magicMcpServerPresenter.present({ magicMcpServer, portal: ctx.portal });
       }),
 
     update: magicMcpServerGroup
@@ -350,7 +353,9 @@ export let magicMcpServerController = Controller.create(
           }
         });
 
-        return magicMcpServerPresenter.present({ magicMcpServer });
+        console.log(ctx.portal);
+
+        return magicMcpServerPresenter.present({ magicMcpServer, portal: ctx.portal });
       })
   }
 );

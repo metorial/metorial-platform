@@ -16,6 +16,7 @@ import {
   MachineAccess,
   Organization,
   OrganizationActor,
+  Portal,
   Project,
   User,
   UserSession
@@ -50,6 +51,7 @@ export type AuthenticatedConsumerContext = {
     ReturnType<typeof getConsumerAccessContextForSession>
   >['consumerGroups'];
   accessTags: bigint[];
+  portal: Portal | null;
 };
 
 export type AuthInfo =
@@ -274,7 +276,8 @@ class AuthenticationService {
               consumerSession: consumerRes.session,
               consumerProfile: consumerRes.consumerProfile,
               consumerGroups: consumerAccess.consumerGroups,
-              accessTags: consumerAccess.accessTags
+              accessTags: consumerAccess.accessTags,
+              portal: consumerRes.consumerProfile.surface.portal
             }
           : undefined;
 

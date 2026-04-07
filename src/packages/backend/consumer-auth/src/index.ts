@@ -20,7 +20,11 @@ export let consumerSessionInclude = {
   consumerProfile: {
     include: {
       consumer: true,
-      surface: true
+      surface: {
+        include: {
+          portal: true
+        }
+      }
     }
   }
 } as const;
@@ -239,7 +243,7 @@ export let getConsumerAccessContextForConsumerProfile = async (d: {
         instanceOid: d.profile.instanceOid,
         consumerOid: d.profile.consumerOid
       },
-      include: { surface: true, consumer: true }
+      include: consumerSessionInclude.consumerProfile.include
     });
 
     let all = await Promise.all(
