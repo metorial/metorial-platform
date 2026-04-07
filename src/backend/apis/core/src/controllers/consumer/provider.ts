@@ -1,23 +1,32 @@
-import { badRequestError, preconditionFailedError, ServiceError } from '@lowerdeck/error';
+import {
+  badRequestError,
+  notFoundError,
+  preconditionFailedError,
+  ServiceError
+} from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
+import { db } from '@metorial/db';
 import {
-  ConsumerProviderCatalogItem,
-  ConsumerProviderCatalogEntry,
   consumerAccessRequestService,
   consumerProfileService,
+  ConsumerProviderCatalogEntry,
+  ConsumerProviderCatalogItem,
   consumerProviderCatalogService,
   consumerProviderDeploymentService,
   consumerProviderSetupSessionService
 } from '@metorial/module-consumer';
 import { magicMcpServerService } from '@metorial/module-magic';
 import { Controller } from '@metorial/rest';
-import { hasFlags } from '../../middleware/hasFlags';
+import { addMinutes } from 'date-fns';
 import { consumerGroup, consumerPath } from '../../middleware/consumerGroup';
+import { hasFlags } from '../../middleware/hasFlags';
 import {
   consumerAccessRequestPresenter,
   consumerProviderPresenter,
   magicMcpServerPresenter,
+  portalOAuthAuthorizationPresenter,
+  portalOAuthClientPresenter,
   providerSetupSessionPresenter
 } from '../../presenters';
 
@@ -76,6 +85,84 @@ let requireProviderTemplate = (
   return consumerProvider;
 };
 
+let portalOAuthClientGroup = consumerGroup.use(async ctx => {
+  if (!ctx.params.portalAuthClientId) {
+    throw new ServiceError(
+      badRequestError({
+        message: 'portalAuthClientId is required',
+        description: 'The portalAuthClientId path parameter is required.'
+      })
+    );
+  }
+
+  let portalOAuthClient = await db.portalAuthClient.findFirst({
+    where: {
+      id: ctx.params.portalAuthClientId,
+      portal: {
+        instanceOid: ctx.instance.oid,
+        surfaceOid: ctx.consumerSurface.oid
+      }
+    },
+    include: {
+      portal: true,
+      magicMcpServer: true
+    }
+  });
+  if (!portalOAuthClient) {
+    throw new ServiceError(notFoundError('portal.oauth_client'));
+  }
+
+  return { portalOAuthClient };
+});
+
+let portalOAuthAuthorizationGroup = consumerGroup.use(async ctx => {
+  if (!ctx.params.portalAuthAttemptId) {
+    throw new ServiceError(
+      badRequestError({
+        message: 'portalAuthAttemptId is required',
+        description: 'The portalAuthAttemptId path parameter is required.'
+      })
+    );
+  }
+
+  let portalOAuthAuthorization = await db.portalAuthAttempt.findFirst({
+    where: {
+      id: ctx.params.portalAuthAttemptId,
+      portalAuthClient: {
+        portal: {
+          instanceOid: ctx.instance.oid,
+          surfaceOid: ctx.consumerSurface.oid
+        }
+      }
+    },
+    include: {
+      consumerProfile: true,
+      portalAuthClient: {
+        include: {
+          portal: true,
+          magicMcpServer: true
+        }
+      }
+    }
+  });
+  if (!portalOAuthAuthorization) {
+    throw new ServiceError(notFoundError('portal.oauth_authorization'));
+  }
+
+  if (
+    portalOAuthAuthorization.consumerProfile &&
+    portalOAuthAuthorization.consumerProfile.oid != ctx.consumerProfile.oid
+  ) {
+    throw new ServiceError(
+      preconditionFailedError({
+        message: 'This portal OAuth authorization belongs to a different consumer profile.'
+      })
+    );
+  }
+
+  return { portalOAuthAuthorization };
+});
+
 export let consumerProviderController = Controller.create(
   {
     name: 'Consumer Providers',
@@ -83,6 +170,148 @@ export let consumerProviderController = Controller.create(
     hideInDocs: true
   },
   {
+    getPortalOAuthClient: portalOAuthClientGroup
+      .get(
+        consumerPath(
+          'portal-oauth-clients/:portalAuthClientId',
+          'consumerInternal.oauth.clients.get'
+        ),
+        {
+          name: 'Get portal OAuth client',
+          description:
+            'Returns one portal OAuth client visible to the current portal consumer.'
+        }
+      )
+      .use(hasFlags(['paid-portals', 'portals-access']))
+      .output(portalOAuthClientPresenter)
+      .do(async ctx => {
+        return portalOAuthClientPresenter.present({
+          portalAuthClient: ctx.portalOAuthClient
+        });
+      }),
+
+    getPortalOAuthAuthorization: portalOAuthAuthorizationGroup
+      .get(
+        consumerPath(
+          'portal-oauth-attempts/:portalAuthAttemptId',
+          'consumerInternal.oauth.authorizations.get'
+        ),
+        {
+          name: 'Get portal OAuth authorization',
+          description:
+            'Returns the current portal OAuth authorization request for the active consumer.'
+        }
+      )
+      .use(hasFlags(['paid-portals', 'portals-access']))
+      .output(portalOAuthAuthorizationPresenter)
+      .do(async ctx => {
+        return portalOAuthAuthorizationPresenter.present({
+          portalOAuthAuthorization: ctx.portalOAuthAuthorization
+        });
+      }),
+
+    acceptPortalOAuthAuthorization: portalOAuthAuthorizationGroup
+      .post(
+        consumerPath(
+          'portal-oauth-attempts/:portalAuthAttemptId/accept',
+          'consumerInternal.oauth.authorizations.accept'
+        ),
+        {
+          name: 'Accept portal OAuth authorization',
+          description:
+            'Approves a pending portal OAuth authorization request and returns the redirect URL.'
+        }
+      )
+      .use(hasFlags(['paid-portals', 'portals-access']))
+      .output(portalOAuthAuthorizationPresenter)
+      .do(async ctx => {
+        if (ctx.portalOAuthAuthorization.status != 'pending') {
+          throw new ServiceError(
+            preconditionFailedError({
+              message: 'This portal OAuth authorization is no longer pending.'
+            })
+          );
+        }
+
+        let now = new Date();
+        let portalOAuthAuthorization = await db.portalAuthAttempt.update({
+          where: {
+            id: ctx.portalOAuthAuthorization.id
+          },
+          data: {
+            status: 'authorized',
+            consumerProfileOid: ctx.consumerProfile.oid,
+            authorizedAt: now,
+            deniedAt: null,
+            authorizationCode:
+              ctx.portalOAuthAuthorization.authorizationCode ?? crypto.randomUUID(),
+            authorizationCodeExpiresAt: addMinutes(now, 10)
+          },
+          include: {
+            consumerProfile: true,
+            portalAuthClient: {
+              include: {
+                portal: true,
+                magicMcpServer: true
+              }
+            }
+          }
+        });
+
+        return portalOAuthAuthorizationPresenter.present({
+          portalOAuthAuthorization
+        });
+      }),
+
+    rejectPortalOAuthAuthorization: portalOAuthAuthorizationGroup
+      .post(
+        consumerPath(
+          'portal-oauth-attempts/:portalAuthAttemptId/reject',
+          'consumerInternal.oauth.authorizations.reject'
+        ),
+        {
+          name: 'Reject portal OAuth authorization',
+          description:
+            'Rejects a pending portal OAuth authorization request and returns the redirect URL.'
+        }
+      )
+      .use(hasFlags(['paid-portals', 'portals-access']))
+      .output(portalOAuthAuthorizationPresenter)
+      .do(async ctx => {
+        if (ctx.portalOAuthAuthorization.status != 'pending') {
+          throw new ServiceError(
+            preconditionFailedError({
+              message: 'This portal OAuth authorization is no longer pending.'
+            })
+          );
+        }
+
+        let portalOAuthAuthorization = await db.portalAuthAttempt.update({
+          where: {
+            id: ctx.portalOAuthAuthorization.id
+          },
+          data: {
+            status: 'denied',
+            consumerProfileOid:
+              ctx.portalOAuthAuthorization.consumerProfileOid ?? ctx.consumerProfile.oid,
+            deniedAt: new Date()
+          },
+          include: {
+            consumerProfile: true,
+            portalAuthClient: {
+              include: {
+                portal: true,
+                magicMcpServer: true
+              }
+            }
+          }
+        });
+
+        return portalOAuthAuthorizationPresenter.present({
+          portalOAuthAuthorization
+        });
+      }),
+
     list: consumerGroup
       .get(consumerPath('providers', 'providers.list'), {
         name: 'List consumer providers',

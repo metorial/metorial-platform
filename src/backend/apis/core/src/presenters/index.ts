@@ -33,6 +33,8 @@ import { v1OrganizationActorPresenter } from './implementation/organizationActor
 import { v1OrganizationInvitePresenter } from './implementation/organizationInvite';
 import { v1OrganizationMemberPresenter } from './implementation/organizationMember';
 import { v1PortalPresenter } from './implementation/portal';
+import { v1PortalOAuthAuthorizationPresenter } from './implementation/portalOAuthAuthorization';
+import { v1PortalOAuthClientPresenter } from './implementation/portalOAuthClient';
 import { v1PortalAuthAppPresenter } from './implementation/portalAuthApp';
 import { v1PortalAuthSsoConnectionPresenter } from './implementation/portalAuthSsoConnection';
 import { v1PortalAuthSsoTenantPresenter } from './implementation/portalAuthSsoTenant';
@@ -156,6 +158,8 @@ import {
   consumerGroupType,
   consumerProfileType,
   consumerProviderType,
+  portalOAuthAuthorizationType,
+  portalOAuthClientType,
   consumerSessionType,
   consumerSurfaceType,
   consumerType,
@@ -510,6 +514,16 @@ export let consumerSessionPresenter = declarePresenter(consumerSessionType, {
 export let consumerProviderPresenter = declarePresenter(consumerProviderType, {
   mt_2025_01_01_dashboard: v1ConsumerProviderPresenter,
   mt_2026_01_01_magnetar: v1ConsumerProviderPresenter
+});
+
+export let portalOAuthClientPresenter = declarePresenter(portalOAuthClientType, {
+  mt_2025_01_01_dashboard: v1PortalOAuthClientPresenter,
+  mt_2026_01_01_magnetar: v1PortalOAuthClientPresenter
+});
+
+export let portalOAuthAuthorizationPresenter = declarePresenter(portalOAuthAuthorizationType, {
+  mt_2025_01_01_dashboard: v1PortalOAuthAuthorizationPresenter,
+  mt_2026_01_01_magnetar: v1PortalOAuthAuthorizationPresenter
 });
 
 // export let ssoTenantPresenter = declarePresenter(ssoTenantType, {

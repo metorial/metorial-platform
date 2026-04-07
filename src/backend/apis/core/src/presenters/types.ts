@@ -40,6 +40,8 @@ import {
   OrganizationInvite,
   OrganizationMember,
   Portal,
+  PortalAuthAttempt,
+  PortalAuthClient,
   Profile,
   Project,
   ProviderTemplate,
@@ -493,6 +495,23 @@ export let consumerSessionType = PresentableType.create<{
 export let consumerProviderType = PresentableType.create<{
   consumerProvider: ConsumerProviderCatalogEntry;
 }>()('consumer.provider');
+
+export let portalOAuthClientType = PresentableType.create<{
+  portalAuthClient: PortalAuthClient & {
+    portal: Portal;
+    magicMcpServer: MagicMcpServer;
+  };
+}>()('portal.oauth_client');
+
+export let portalOAuthAuthorizationType = PresentableType.create<{
+  portalOAuthAuthorization: PortalAuthAttempt & {
+    portalAuthClient: PortalAuthClient & {
+      portal: Portal;
+      magicMcpServer: MagicMcpServer;
+    };
+    consumerProfile: ConsumerProfile | null;
+  };
+}>()('portal.oauth_authorization');
 
 export let callbackType = PresentableType.create<{
   callback: SubspaceCallback;

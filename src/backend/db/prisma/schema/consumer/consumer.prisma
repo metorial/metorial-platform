@@ -96,6 +96,7 @@ model ConsumerProfile {
   accessRequests               ConsumerAccessRequest[]
   providerSetupSessionBindings ConsumerProviderSetupSessionBinding[]
   actors                       ConsumerActor[]
+  portalAuthAttempts           PortalAuthAttempt[]
 
   @@unique([surfaceOid, aresUserId])
   @@unique([email, surfaceOid])
