@@ -87,6 +87,23 @@ export let slateInstanceController = app.controller({
     )
     .do(async ctx => slateInstancePresenter(ctx.slateInstance)),
 
+  delete: slateInstanceApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        slateInstanceId: v.string()
+      })
+    )
+    .do(async ctx => {
+      await slateInstanceService.deleteSlateInstance({
+        tenant: ctx.tenant,
+        slateInstance: ctx.slateInstance
+      });
+
+      return { success: true };
+    }),
+
   getMany: tenantApp
     .handler()
     .input(

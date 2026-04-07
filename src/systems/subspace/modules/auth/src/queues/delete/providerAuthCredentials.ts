@@ -1,6 +1,7 @@
 import { createCron } from '@lowerdeck/cron';
 import { createQueue } from '@lowerdeck/queue';
 import { db } from '@metorial-subspace/db';
+import { getBackend } from '@metorial-subspace/provider';
 import { env } from '../../env';
 import { providerAuthCredentialsDeletedQueue } from '../lifecycle/providerAuthCredentials';
 import { getCutoffDate } from './_config';
@@ -42,8 +43,11 @@ export let providerAuthCredentialsDeleteManyQueueProcessor =
       }))
     );
 
+    let lastProviderAuthCredentials = creds[creds.length - 1];
+    if (!lastProviderAuthCredentials) return;
+
     await providerAuthCredentialsDeleteManyQueue.add({
-      cursor: creds[creds.length - 1].id
+      cursor: lastProviderAuthCredentials.id
     });
   });
 
@@ -54,12 +58,61 @@ export let providerAuthCredentialsDeleteQueue = createQueue<{
   redisUrl: env.service.REDIS_URL
 });
 
+export let providerAuthCredentialsBackendDeleteQueue = createQueue<{
+  tenantOid: string;
+  backendOid: string;
+  slateCredentialsOid?: string | null;
+  shuttleCredentialsOid?: string | null;
+}>({
+  name: 'sub/auth/delete/providerAuthCredentials/backend',
+  redisUrl: env.service.REDIS_URL
+});
+
+export let providerAuthCredentialsBackendDeleteQueueProcessor =
+  providerAuthCredentialsBackendDeleteQueue.process(async data => {
+    let tenant = await db.tenant.findUnique({
+      where: { oid: BigInt(data.tenantOid) }
+    });
+    if (!tenant) return;
+
+    let backend = await getBackend({
+      entity: { backendOid: BigInt(data.backendOid) }
+    });
+
+    await backend.auth.deleteProviderAuthCredentials({
+      tenant,
+      backing: {
+        slateCredentialsOid: data.slateCredentialsOid ? BigInt(data.slateCredentialsOid) : null,
+        shuttleCredentialsOid: data.shuttleCredentialsOid
+          ? BigInt(data.shuttleCredentialsOid)
+          : null
+      }
+    });
+  });
+
 export let providerAuthCredentialsDeleteQueueProcessor =
   providerAuthCredentialsDeleteQueue.process(async data => {
     let creds = await db.providerAuthCredentials.findUnique({
-      where: { id: data.providerAuthCredentialsId }
+      where: { id: data.providerAuthCredentialsId },
+      include: {
+        tenant: true
+      }
     });
-    if (!creds || creds.origin !== 'tenant_created' || creds.status !== 'archived') return;
+    if (
+      !creds ||
+      !creds.tenant ||
+      creds.origin !== 'tenant_created' ||
+      creds.status !== 'archived'
+    ) {
+      return;
+    }
+
+    await providerAuthCredentialsBackendDeleteQueue.add({
+      tenantOid: creds.tenant.oid.toString(),
+      backendOid: creds.backendOid.toString(),
+      slateCredentialsOid: creds.slateCredentialsOid?.toString() ?? null,
+      shuttleCredentialsOid: creds.shuttleCredentialsOid?.toString() ?? null
+    });
 
     await db.providerAuthCredentials.updateMany({
       where: { oid: creds.oid },

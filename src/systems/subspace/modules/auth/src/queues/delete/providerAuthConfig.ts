@@ -1,6 +1,7 @@
 import { createCron } from '@lowerdeck/cron';
 import { createQueue } from '@lowerdeck/queue';
 import { db } from '@metorial-subspace/db';
+import { getBackend } from '@metorial-subspace/provider';
 import { env } from '../../env';
 import { providerAuthConfigDeletedQueue } from '../lifecycle/providerAuthConfig';
 import { getCutoffDate } from './_config';
@@ -21,8 +22,8 @@ export let providerAuthConfigDeleteManyQueue = createQueue<{ cursor?: string }>(
   redisUrl: env.service.REDIS_URL
 });
 
-export let providerAuthConfigDeleteManyQueueProcessor = providerAuthConfigDeleteManyQueue.process(
-  async data => {
+export let providerAuthConfigDeleteManyQueueProcessor =
+  providerAuthConfigDeleteManyQueue.process(async data => {
     let authConfigs = await db.providerAuthConfig.findMany({
       where: {
         status: 'archived',
@@ -39,23 +40,68 @@ export let providerAuthConfigDeleteManyQueueProcessor = providerAuthConfigDelete
       authConfigs.map(authConfig => ({ providerAuthConfigId: authConfig.id }))
     );
 
+    let lastAuthConfig = authConfigs[authConfigs.length - 1];
+    if (!lastAuthConfig) return;
+
     await providerAuthConfigDeleteManyQueue.add({
-      cursor: authConfigs[authConfigs.length - 1].id
+      cursor: lastAuthConfig.id
     });
-  }
-);
+  });
 
 export let providerAuthConfigDeleteQueue = createQueue<{ providerAuthConfigId: string }>({
   name: 'sub/auth/delete/providerAuthConfig',
   redisUrl: env.service.REDIS_URL
 });
 
+export let providerAuthConfigBackendDeleteQueue = createQueue<{
+  tenantOid: string;
+  backendOid: string;
+  slateAuthConfigOid?: string | null;
+  shuttleAuthConfigOid?: string | null;
+}>({
+  name: 'sub/auth/delete/providerAuthConfig/backend',
+  redisUrl: env.service.REDIS_URL
+});
+
+export let providerAuthConfigBackendDeleteQueueProcessor =
+  providerAuthConfigBackendDeleteQueue.process(async data => {
+    let tenant = await db.tenant.findUnique({
+      where: { oid: BigInt(data.tenantOid) }
+    });
+    if (!tenant) return;
+
+    let backend = await getBackend({
+      entity: { backendOid: BigInt(data.backendOid) }
+    });
+
+    await backend.auth.deleteProviderAuthConfig({
+      tenant,
+      backing: {
+        slateAuthConfigOid: data.slateAuthConfigOid ? BigInt(data.slateAuthConfigOid) : null,
+        shuttleAuthConfigOid: data.shuttleAuthConfigOid
+          ? BigInt(data.shuttleAuthConfigOid)
+          : null
+      }
+    });
+  });
+
 export let providerAuthConfigDeleteQueueProcessor = providerAuthConfigDeleteQueue.process(
   async data => {
     let authConfig = await db.providerAuthConfig.findUnique({
-      where: { id: data.providerAuthConfigId }
+      where: { id: data.providerAuthConfigId },
+      include: {
+        tenant: true,
+        currentVersion: true
+      }
     });
     if (!authConfig || authConfig.status !== 'archived') return;
+
+    await providerAuthConfigBackendDeleteQueue.add({
+      tenantOid: authConfig.tenant.oid.toString(),
+      backendOid: authConfig.backendOid.toString(),
+      slateAuthConfigOid: authConfig.currentVersion?.slateAuthConfigOid?.toString() ?? null,
+      shuttleAuthConfigOid: authConfig.currentVersion?.shuttleAuthConfigOid?.toString() ?? null
+    });
 
     await db.sessionProvider.updateMany({
       where: { authConfigOid: authConfig.oid },

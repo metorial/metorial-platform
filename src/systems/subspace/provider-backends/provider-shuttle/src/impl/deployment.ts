@@ -4,8 +4,12 @@ import {
   IProviderDeployment,
   type ProviderConfigCreateParam,
   type ProviderConfigCreateRes,
+  type ProviderConfigDeleteParam,
+  type ProviderConfigDeleteRes,
   type ProviderDeploymentCreateParam,
   type ProviderDeploymentCreateRes,
+  type ProviderDeploymentDeleteParam,
+  type ProviderDeploymentDeleteRes,
   type ValidateNetworkingRulesetIdsParam,
   type ValidateNetworkingRulesetIdsRes
 } from '@metorial-subspace/provider-utils';
@@ -55,6 +59,12 @@ export class ProviderDeployment extends IProviderDeployment {
     return {};
   }
 
+  override async deleteProviderDeployment(
+    _data: ProviderDeploymentDeleteParam
+  ): Promise<ProviderDeploymentDeleteRes> {
+    return {};
+  }
+
   override async createProviderConfig(
     data: ProviderConfigCreateParam
   ): Promise<ProviderConfigCreateRes> {
@@ -86,5 +96,28 @@ export class ProviderDeployment extends IProviderDeployment {
 
       return { shuttleServerConfig };
     });
+  }
+
+  override async deleteProviderConfig(
+    data: ProviderConfigDeleteParam
+  ): Promise<ProviderConfigDeleteRes> {
+    if (!data.backing.shuttleConfigOid) {
+      return {};
+    }
+
+    let tenant = await getTenantForShuttle(data.tenant);
+    let shuttleServerConfig = await db.shuttleServerConfig.findUnique({
+      where: { oid: data.backing.shuttleConfigOid }
+    });
+    if (!shuttleServerConfig) {
+      return {};
+    }
+
+    await shuttle.serverConfig.delete({
+      tenantId: tenant.id,
+      serverConfigId: shuttleServerConfig.id
+    });
+
+    return {};
   }
 }

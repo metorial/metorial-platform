@@ -80,5 +80,22 @@ export let serverOAuthCredentialsController = app.controller({
         serverOAuthCredentialsId: v.string()
       })
     )
-    .do(async ctx => serverOAuthCredentialsPresenter(ctx.serverOAuthCredentials))
+    .do(async ctx => serverOAuthCredentialsPresenter(ctx.serverOAuthCredentials)),
+
+  delete: serverOAuthCredentialsApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        serverOAuthCredentialsId: v.string()
+      })
+    )
+    .do(async ctx => {
+      await serverOAuthCredentialsService.deleteServerOAuthCredentials({
+        tenant: ctx.tenant,
+        serverOAuthCredentials: ctx.serverOAuthCredentials
+      });
+
+      return { success: true };
+    })
 });

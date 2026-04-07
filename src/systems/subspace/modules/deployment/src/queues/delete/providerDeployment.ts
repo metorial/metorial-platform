@@ -1,6 +1,7 @@
 import { createCron } from '@lowerdeck/cron';
 import { createQueue } from '@lowerdeck/queue';
 import { db } from '@metorial-subspace/db';
+import { getBackend } from '@metorial-subspace/provider';
 import { env } from '../../env';
 import { providerDeploymentDeletedQueue } from '../lifecycle/providerDeployment';
 import { getCutoffDate } from './_config';
@@ -41,8 +42,11 @@ export let providerDeploymentDeleteManyQueueProcessor =
       }))
     );
 
+    let lastProviderDeployment = providerDeployments[providerDeployments.length - 1];
+    if (!lastProviderDeployment) return;
+
     await providerDeploymentDeleteManyQueue.add({
-      cursor: providerDeployments[providerDeployments.length - 1].id
+      cursor: lastProviderDeployment.id
     });
   });
 
@@ -51,12 +55,49 @@ export let providerDeploymentDeleteQueue = createQueue<{ providerDeploymentId: s
   redisUrl: env.service.REDIS_URL
 });
 
+export let providerDeploymentBackendDeleteQueue = createQueue<{
+  tenantOid: string;
+  backendOid: string;
+}>({
+  name: 'sub/dep/delete/providerDeployment/backend',
+  redisUrl: env.service.REDIS_URL
+});
+
+export let providerDeploymentBackendDeleteQueueProcessor =
+  providerDeploymentBackendDeleteQueue.process(async data => {
+    let tenant = await db.tenant.findUnique({
+      where: { oid: BigInt(data.tenantOid) }
+    });
+    if (!tenant) return;
+
+    let backend = await getBackend({
+      entity: { backendOid: BigInt(data.backendOid) }
+    });
+
+    await backend.deployment.deleteProviderDeployment({
+      tenant
+    });
+  });
+
 export let providerDeploymentDeleteQueueProcessor = providerDeploymentDeleteQueue.process(
   async data => {
     let providerDeployment = await db.providerDeployment.findUnique({
-      where: { id: data.providerDeploymentId }
+      where: { id: data.providerDeploymentId },
+      include: {
+        tenant: true,
+        providerVariant: {
+          select: {
+            backendOid: true
+          }
+        }
+      }
     });
     if (!providerDeployment || providerDeployment.status !== 'archived') return;
+
+    await providerDeploymentBackendDeleteQueue.add({
+      tenantOid: providerDeployment.tenant.oid.toString(),
+      backendOid: providerDeployment.providerVariant.backendOid.toString()
+    });
 
     await db.sessionProvider.updateMany({
       where: { deploymentOid: providerDeployment.oid },

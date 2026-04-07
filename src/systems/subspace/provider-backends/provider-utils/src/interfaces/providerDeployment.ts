@@ -15,9 +15,15 @@ export abstract class IProviderDeployment extends IProviderFunctionality {
     data: ProviderDeploymentCreateParam
   ): Promise<ProviderDeploymentCreateRes>;
 
+  abstract deleteProviderDeployment(
+    data: ProviderDeploymentDeleteParam
+  ): Promise<ProviderDeploymentDeleteRes>;
+
   abstract createProviderConfig(
     data: ProviderConfigCreateParam
   ): Promise<ProviderConfigCreateRes>;
+
+  abstract deleteProviderConfig(data: ProviderConfigDeleteParam): Promise<ProviderConfigDeleteRes>;
 
   abstract validateNetworkingRulesetIds(
     data: ValidateNetworkingRulesetIdsParam
@@ -33,6 +39,12 @@ export interface ProviderDeploymentCreateParam {
 }
 
 export interface ProviderDeploymentCreateRes {}
+
+export interface ProviderDeploymentDeleteParam {
+  tenant: Tenant;
+}
+
+export interface ProviderDeploymentDeleteRes {}
 
 export interface ProviderConfigCreateParam {
   tenant: Tenant;
@@ -53,6 +65,18 @@ export interface ProviderConfigCreateRes {
   slateInstance?: SlateInstance | null;
   shuttleServerConfig?: ShuttleServerConfig | null;
 }
+
+export interface ProviderConfigDeleteBacking {
+  slateInstanceOid?: bigint | null;
+  shuttleConfigOid?: bigint | null;
+}
+
+export interface ProviderConfigDeleteParam {
+  tenant: Tenant;
+  backing: ProviderConfigDeleteBacking;
+}
+
+export interface ProviderConfigDeleteRes {}
 
 export interface ValidateNetworkingRulesetIdsParam {
   tenant: Tenant;

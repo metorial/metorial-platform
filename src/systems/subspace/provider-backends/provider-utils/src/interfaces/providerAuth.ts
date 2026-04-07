@@ -23,6 +23,10 @@ export abstract class IProviderAuth extends IProviderFunctionality {
     data: ProviderAuthCredentialsCreateParam
   ): Promise<ProviderAuthCredentialsCreateRes>;
 
+  abstract deleteProviderAuthCredentials(
+    data: ProviderAuthCredentialsDeleteParam
+  ): Promise<ProviderAuthCredentialsDeleteRes>;
+
   abstract createProviderOAuthSetup(
     data: ProviderOAuthSetupCreateParam
   ): Promise<ProviderOAuthSetupCreateRes>;
@@ -30,6 +34,10 @@ export abstract class IProviderAuth extends IProviderFunctionality {
   abstract createProviderAuthConfig(
     data: ProviderAuthConfigCreateParam
   ): Promise<ProviderAuthConfigCreateRes>;
+
+  abstract deleteProviderAuthConfig(
+    data: ProviderAuthConfigDeleteParam
+  ): Promise<ProviderAuthConfigDeleteRes>;
 
   abstract retrieveProviderOAuthSetup(
     data: ProviderOAuthSetupRetrieveParam
@@ -60,6 +68,18 @@ export interface ProviderAuthCredentialsCreateRes {
   isAutoRegistration: boolean;
 }
 
+export interface ProviderAuthCredentialsDeleteBacking {
+  slateCredentialsOid?: bigint | null;
+  shuttleCredentialsOid?: bigint | null;
+}
+
+export interface ProviderAuthCredentialsDeleteParam {
+  tenant: Tenant;
+  backing: ProviderAuthCredentialsDeleteBacking;
+}
+
+export interface ProviderAuthCredentialsDeleteRes {}
+
 export interface ProviderAuthConfigCreateParam {
   tenant: Tenant;
   provider: Provider & { defaultVariant: ProviderVariant | null };
@@ -73,6 +93,18 @@ export interface ProviderAuthConfigCreateRes {
   shuttleAuthConfig?: ShuttleAuthConfig;
   expiresAt: Date | null;
 }
+
+export interface ProviderAuthConfigDeleteBacking {
+  slateAuthConfigOid?: bigint | null;
+  shuttleAuthConfigOid?: bigint | null;
+}
+
+export interface ProviderAuthConfigDeleteParam {
+  tenant: Tenant;
+  backing: ProviderAuthConfigDeleteBacking;
+}
+
+export interface ProviderAuthConfigDeleteRes {}
 
 export interface ProviderOAuthSetupCreateParam {
   tenant: Tenant;

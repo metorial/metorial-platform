@@ -87,6 +87,23 @@ export let slateAuthConfigController = app.controller({
     )
     .do(async ctx => slateAuthConfigPresenter(ctx.slateAuthConfig)),
 
+  delete: slateAuthConfigApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        slateAuthConfigId: v.string()
+      })
+    )
+    .do(async ctx => {
+      await slateAuthConfigService.deleteSlateAuthConfig({
+        tenant: ctx.tenant,
+        slateAuthConfig: ctx.slateAuthConfig
+      });
+
+      return { success: true };
+    }),
+
   decrypt: slateAuthConfigApp
     .handler()
     .input(
