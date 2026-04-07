@@ -20,6 +20,8 @@ export let sendApiKeyCreatedEmailQueueProcessor = sendApiKeyCreatedEmailQueue.pr
     });
     if (!apiKey) throw new QueueRetryError();
 
+    if (apiKey.kind == 'system_internal') return;
+
     let organization = await db.organization.findUnique({
       where: { id: data.organizationId }
     });
