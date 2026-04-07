@@ -248,6 +248,8 @@ class sessionServiceImpl {
     checkDeletedEdit(d.session, 'archive');
 
     return withTransaction(async db => {
+      let archivedAt = new Date();
+
       await db.sessionProvider.updateMany({
         where: {
           sessionOid: d.session.oid
@@ -264,7 +266,7 @@ class sessionServiceImpl {
           solutionOid: d.solution.oid,
           environmentOid: d.environment.oid
         },
-        data: { status: 'archived' },
+        data: { status: 'archived', archivedAt, connectionState: 'disconnected' },
         include
       });
 
@@ -282,37 +284,7 @@ class sessionServiceImpl {
     environment: Environment;
     session: Session;
   }) {
-    checkTenant(d, d.session);
-    checkDeletedEdit(d.session, 'delete');
-
-    return withTransaction(async db => {
-      let where = { sessionOid: d.session.oid };
-      let data = { isParentDeleted: true };
-
-      await db.sessionProvider.updateMany({ where, data });
-      await db.sessionConnection.updateMany({ where, data });
-      await db.sessionError.updateMany({ where, data });
-      await db.sessionEvent.updateMany({ where, data });
-      await db.sessionMessage.updateMany({ where, data });
-      await db.providerRun.updateMany({ where, data });
-
-      let session = await db.session.update({
-        where: {
-          oid: d.session.oid,
-          tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
-          environmentOid: d.environment.oid
-        },
-        data: { status: 'deleted' },
-        include
-      });
-
-      await addAfterTransactionHook(async () =>
-        sessionDeletedQueue.add({ sessionId: session.id })
-      );
-
-      return session;
-    });
+    return this.archiveSession(d);
   }
 }
 

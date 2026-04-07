@@ -179,5 +179,26 @@ export let sessionController = app.controller({
       });
 
       return sessionPresenter(session);
+    }),
+
+  delete: sessionApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
+        sessionId: v.string(),
+        allowDeleted: v.optional(v.boolean())
+      })
+    )
+    .do(async ctx => {
+      let session = await sessionService.archiveSession({
+        session: ctx.session,
+        tenant: ctx.tenant,
+        environment: ctx.environment,
+        solution: ctx.solution
+      });
+
+      return sessionPresenter(session);
     })
 });

@@ -15,7 +15,10 @@ export let indexProviderConfigQueueProcessor = indexProviderConfigQueue.process(
   });
   if (!providerConfig) throw new QueueRetryError();
 
-  if (!providerConfig.name && !providerConfig.description) {
+  if (
+    providerConfig.status !== 'active' ||
+    (!providerConfig.name && !providerConfig.description)
+  ) {
     await voyager.record.delete({
       sourceId: (await voyagerSource).id,
       indexId: voyagerIndex.providerConfig.id,

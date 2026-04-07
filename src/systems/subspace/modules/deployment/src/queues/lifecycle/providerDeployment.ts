@@ -59,3 +59,70 @@ export let providerDeploymentUpdatedQueueProcessor = providerDeploymentUpdatedQu
     });
   }
 );
+
+export let providerDeploymentArchivedQueue = createQueue<{ providerDeploymentId: string }>({
+  name: 'sub/dep/lc/providerDeployment/archived',
+  redisUrl: env.service.REDIS_URL
+});
+
+export let providerDeploymentArchivedQueueProcessor = providerDeploymentArchivedQueue.process(
+  async data => {
+    let providerDeployment = await db.providerDeployment.findUnique({
+      where: { id: data.providerDeploymentId }
+    });
+    if (!providerDeployment) return;
+
+    let archivedAt = providerDeployment.archivedAt ?? new Date();
+
+    await indexProviderDeploymentQueue.add({
+      providerDeploymentId: data.providerDeploymentId
+    });
+
+    await db.sessionProvider.updateMany({
+      where: { deploymentOid: providerDeployment.oid, status: 'active' },
+      data: { status: 'archived' }
+    });
+
+    await db.sessionTemplateProvider.updateMany({
+      where: { deploymentOid: providerDeployment.oid, status: 'active' },
+      data: { status: 'archived' }
+    });
+
+    await db.providerConfig.updateMany({
+      where: { deploymentOid: providerDeployment.oid, status: 'active' },
+      data: { status: 'archived', archivedAt }
+    });
+
+    await db.providerConfigVault.updateMany({
+      where: { deploymentOid: providerDeployment.oid, status: 'active' },
+      data: { status: 'archived', archivedAt }
+    });
+
+    await db.providerAuthConfig.updateMany({
+      where: { deploymentOid: providerDeployment.oid, status: 'active' },
+      data: { status: 'archived', archivedAt }
+    });
+
+    await db.providerDeployment.updateMany({
+      where: { oid: providerDeployment.oid },
+      data: {
+        isDefault: false,
+        defaultConfigOid: null,
+        defaultAuthConfigOid: null
+      }
+    });
+  }
+);
+
+export let providerDeploymentDeletedQueue = createQueue<{ providerDeploymentId: string }>({
+  name: 'sub/dep/lc/providerDeployment/deleted',
+  redisUrl: env.service.REDIS_URL
+});
+
+export let providerDeploymentDeletedQueueProcessor = providerDeploymentDeletedQueue.process(
+  async data => {
+    await indexProviderDeploymentQueue.add({
+      providerDeploymentId: data.providerDeploymentId
+    });
+  }
+);

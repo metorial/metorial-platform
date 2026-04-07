@@ -199,5 +199,26 @@ export let providerDeploymentController = app.controller({
       });
 
       return providerDeploymentPresenter(providerDeployment);
+    }),
+
+  delete: providerDeploymentApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
+        providerDeploymentId: v.string(),
+        allowDeleted: v.optional(v.boolean())
+      })
+    )
+    .do(async ctx => {
+      let providerDeployment = await providerDeploymentService.archiveProviderDeployment({
+        providerDeployment: ctx.providerDeployment,
+        tenant: ctx.tenant,
+        environment: ctx.environment,
+        solution: ctx.solution
+      });
+
+      return providerDeploymentPresenter(providerDeployment);
     })
 });

@@ -9,7 +9,7 @@
  * # Gets:
  * If allowDeleted is true, we include deleted items as well.
  * If allowDeleted is false, deleted items are excluded.
- * archived items are always allowed in gets.
+ * archived items are allowed in gets.
  */
 
 export let normalizeStatusForList = <T extends 'archived' | 'deleted' | string>(d: {
@@ -50,11 +50,11 @@ export let normalizeStatusForList = <T extends 'archived' | 'deleted' | string>(
 
   return {
     hasParent: {
-      status: { notIn: ['archived' as const, 'deleted' as const] },
+      status: { not: 'deleted' as const },
       isParentDeleted: false
     },
     noParent: {
-      status: { notIn: ['archived' as const, 'deleted' as const] }
+      status: { not: 'deleted' as const }
     },
     onlyParent: {
       isParentDeleted: false
@@ -80,11 +80,11 @@ export let normalizeStatusForGet = (d: { allowDeleted?: boolean }) => {
 
   return {
     hasParent: {
-      status: { not: 'deleted' as const },
+      status: { notIn: ['archived' as const, 'deleted' as const] },
       isParentDeleted: false
     },
     noParent: {
-      status: { not: 'deleted' as const }
+      status: { notIn: ['archived' as const, 'deleted' as const] }
     },
     onlyParent: {
       isParentDeleted: false

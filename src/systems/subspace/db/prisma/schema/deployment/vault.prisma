@@ -9,6 +9,7 @@ model ProviderConfigVault {
   id  String @unique
 
   status ProviderConfigVaultStatus
+  archivedAt DateTime?
 
   name        String
   description String?
@@ -40,4 +41,6 @@ model ProviderConfigVault {
   @@index([createdAt])
   @@index([updatedAt])
   @@index([status])
+  @@index([archivedAt])
+  @@index([status, archivedAt])
 }

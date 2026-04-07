@@ -1,22 +1,36 @@
 import { combineQueueProcessors } from '@lowerdeck/queue';
 import {
+  providerConfigArchivedQueueProcessor,
   providerConfigCreatedQueueProcessor,
+  providerConfigDeletedQueueProcessor,
   providerConfigUpdatedQueueProcessor
 } from './providerConfig';
 import {
+  providerConfigVaultArchiveConfigsManyQueueProcessor,
+  providerConfigVaultArchivedQueueProcessor,
   providerConfigVaultCreatedQueueProcessor,
+  providerConfigVaultDeletedQueueProcessor,
   providerConfigVaultUpdatedQueueProcessor
 } from './providerConfigVault';
 import {
+  providerDeploymentArchivedQueueProcessor,
   providerDeploymentCreatedQueueProcessor,
+  providerDeploymentDeletedQueueProcessor,
   providerDeploymentUpdatedQueueProcessor
 } from './providerDeployment';
 
 export let lifecycleQueues = combineQueueProcessors([
   providerConfigCreatedQueueProcessor,
   providerConfigUpdatedQueueProcessor,
+  providerConfigArchivedQueueProcessor,
+  providerConfigDeletedQueueProcessor,
   providerConfigVaultCreatedQueueProcessor,
   providerConfigVaultUpdatedQueueProcessor,
+  providerConfigVaultArchivedQueueProcessor,
+  providerConfigVaultArchiveConfigsManyQueueProcessor,
+  providerConfigVaultDeletedQueueProcessor,
   providerDeploymentCreatedQueueProcessor,
-  providerDeploymentUpdatedQueueProcessor
+  providerDeploymentUpdatedQueueProcessor,
+  providerDeploymentArchivedQueueProcessor,
+  providerDeploymentDeletedQueueProcessor
 ]);
