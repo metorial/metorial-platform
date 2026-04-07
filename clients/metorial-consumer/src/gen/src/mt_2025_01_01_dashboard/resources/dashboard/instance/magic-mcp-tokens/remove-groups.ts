@@ -14,6 +14,14 @@ export type DashboardInstanceMagicMcpTokensRemoveGroupsOutput = {
     name: string | null;
     description: string | null;
   } | null;
+  endpoint: {
+    object: 'magic_mcp.endpoint#preview';
+    id: string;
+    status: 'active' | 'archived' | 'deleted';
+    slug: string;
+    name: string | null;
+    description: string | null;
+  } | null;
   groups: {
     object: 'magic_mcp.group';
     id: string;
@@ -44,6 +52,17 @@ export let mapDashboardInstanceMagicMcpTokensRemoveGroupsOutput =
         object: mtMap.objectField('object', mtMap.passthrough()),
         id: mtMap.objectField('id', mtMap.passthrough()),
         status: mtMap.objectField('status', mtMap.passthrough()),
+        name: mtMap.objectField('name', mtMap.passthrough()),
+        description: mtMap.objectField('description', mtMap.passthrough())
+      })
+    ),
+    endpoint: mtMap.objectField(
+      'endpoint',
+      mtMap.object({
+        object: mtMap.objectField('object', mtMap.passthrough()),
+        id: mtMap.objectField('id', mtMap.passthrough()),
+        status: mtMap.objectField('status', mtMap.passthrough()),
+        slug: mtMap.objectField('slug', mtMap.passthrough()),
         name: mtMap.objectField('name', mtMap.passthrough()),
         description: mtMap.objectField('description', mtMap.passthrough())
       })

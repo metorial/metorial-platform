@@ -554,12 +554,14 @@ export type DashboardInstanceProviderDeploymentsSetupSessionsUpdateBody = {
   name?: string | undefined;
   description?: string | undefined;
   metadata?: Record<string, any> | undefined;
+  identityId?: string | undefined;
 };
 
 export let mapDashboardInstanceProviderDeploymentsSetupSessionsUpdateBody =
   mtMap.object<DashboardInstanceProviderDeploymentsSetupSessionsUpdateBody>({
     name: mtMap.objectField('name', mtMap.passthrough()),
     description: mtMap.objectField('description', mtMap.passthrough()),
-    metadata: mtMap.objectField('metadata', mtMap.passthrough())
+    metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+    identityId: mtMap.objectField('identity_id', mtMap.passthrough())
   });
 

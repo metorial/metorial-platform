@@ -10,6 +10,7 @@ export * from './identities';
 export * from './identity-actors';
 export * from './instance';
 export * from './instances';
+export * from './magic-mcp-endpoints';
 export * from './magic-mcp-groups';
 export * from './magic-mcp-servers';
 export * from './magic-mcp-sessions';

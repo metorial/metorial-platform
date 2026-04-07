@@ -14,6 +14,14 @@ export type DashboardInstanceMagicMcpTokensCreateOutput = {
     name: string | null;
     description: string | null;
   } | null;
+  endpoint: {
+    object: 'magic_mcp.endpoint#preview';
+    id: string;
+    status: 'active' | 'archived' | 'deleted';
+    slug: string;
+    name: string | null;
+    description: string | null;
+  } | null;
   groups: {
     object: 'magic_mcp.group';
     id: string;
@@ -48,6 +56,17 @@ export let mapDashboardInstanceMagicMcpTokensCreateOutput =
         description: mtMap.objectField('description', mtMap.passthrough())
       })
     ),
+    endpoint: mtMap.objectField(
+      'endpoint',
+      mtMap.object({
+        object: mtMap.objectField('object', mtMap.passthrough()),
+        id: mtMap.objectField('id', mtMap.passthrough()),
+        status: mtMap.objectField('status', mtMap.passthrough()),
+        slug: mtMap.objectField('slug', mtMap.passthrough()),
+        name: mtMap.objectField('name', mtMap.passthrough()),
+        description: mtMap.objectField('description', mtMap.passthrough())
+      })
+    ),
     groups: mtMap.objectField(
       'groups',
       mtMap.array(
@@ -75,6 +94,7 @@ export type DashboardInstanceMagicMcpTokensCreateBody = {
   metadata?: Record<string, any> | undefined;
   magicMcpGroupIds?: string[] | undefined;
   magicMcpServerId?: string | undefined;
+  magicMcpEndpointId?: string | undefined;
 };
 
 export let mapDashboardInstanceMagicMcpTokensCreateBody =
@@ -88,6 +108,10 @@ export let mapDashboardInstanceMagicMcpTokensCreateBody =
     ),
     magicMcpServerId: mtMap.objectField(
       'magic_mcp_server_id',
+      mtMap.passthrough()
+    ),
+    magicMcpEndpointId: mtMap.objectField(
+      'magic_mcp_endpoint_id',
       mtMap.passthrough()
     )
   });

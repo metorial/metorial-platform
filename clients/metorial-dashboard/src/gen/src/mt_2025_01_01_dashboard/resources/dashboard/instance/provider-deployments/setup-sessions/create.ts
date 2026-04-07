@@ -558,7 +558,10 @@ export type DashboardInstanceProviderDeploymentsSetupSessionsCreateBody = {
   metadata?: Record<string, any> | undefined;
   providerAuthMethodId?: string | undefined;
   providerAuthCredentialsId?: string | undefined;
+  identityId?: string | undefined;
+  consumerId?: string | undefined;
   redirectUrl?: string | undefined;
+  type?: 'auth_only' | 'config_only' | 'auth_and_config' | 'auto' | undefined;
   configuration?:
     | {
         providerSearch?:
@@ -592,7 +595,10 @@ export let mapDashboardInstanceProviderDeploymentsSetupSessionsCreateBody =
       'provider_auth_credentials_id',
       mtMap.passthrough()
     ),
+    identityId: mtMap.objectField('identity_id', mtMap.passthrough()),
+    consumerId: mtMap.objectField('consumer_id', mtMap.passthrough()),
     redirectUrl: mtMap.objectField('redirect_url', mtMap.passthrough()),
+    type: mtMap.objectField('type', mtMap.passthrough()),
     configuration: mtMap.objectField(
       'configuration',
       mtMap.object({
