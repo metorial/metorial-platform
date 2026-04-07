@@ -2,9 +2,9 @@ model DelegatedIdentity {
   oid BigInt @id
   id  String @unique
 
-  permissions IdentityDelegationPermissions[]
+  permissions     IdentityDelegationPermissions[]
   delegationLevel Int
-  isActive    Boolean
+  isActive        Boolean
 
   identityOid BigInt
   identity    Identity @relation(fields: [identityOid], references: [oid], onDelete: Cascade)

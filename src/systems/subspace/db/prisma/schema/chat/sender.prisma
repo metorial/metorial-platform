@@ -1,0 +1,23 @@
+model ChatSender {
+  oid BigInt @id
+  id  String @unique
+
+  name        String
+  description String?
+  metadata    Json?
+
+  agentOid BigInt?
+  agent    Agent?  @relation(fields: [agentOid], references: [oid], onDelete: Cascade)
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}

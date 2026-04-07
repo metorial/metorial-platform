@@ -55,4 +55,5 @@ model Solution {
   identityDelegationConfigs                IdentityDelegationConfig[]
   identityDelegations                      IdentityDelegation[]
   identityDelegationRequests               IdentityDelegationRequest[]
+  chatSenders                              ChatSender[]
 }

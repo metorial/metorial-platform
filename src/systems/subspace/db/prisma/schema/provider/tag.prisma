@@ -10,4 +10,5 @@ model ProviderTag {
   providerVersions ProviderVersion[]
   providers        Provider[]
   publisher        Publisher[]
+  chatProvider     ChatProvider?
 }

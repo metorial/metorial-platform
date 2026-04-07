@@ -33,5 +33,7 @@ model Agent {
   updatedAt  DateTime  @default(now()) @updatedAt
   archivedAt DateTime?
 
+  chatSenders ChatSender[]
+
   @@unique([environmentOid, slug])
 }
