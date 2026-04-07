@@ -51,7 +51,7 @@ export let startMcpServer = (d: { port: number; authenticate: Authenticator<Auth
       let { magicMcpServerId } = c.req.param();
       return handleMagicMcpRequest({
         c,
-        magicMcpServerIdOrAlias: magicMcpServerId,
+        magicMcpTargetIdOrAlias: magicMcpServerId,
         authenticate: d.authenticate
       });
     });

@@ -69,6 +69,9 @@ model PortalAuthAttempt {
   consumerProfileOid BigInt?
   consumerProfile    ConsumerProfile? @relation(fields: [consumerProfileOid], references: [oid], onDelete: SetNull)
 
+  magicMcpEndpointOid BigInt?
+  magicMcpEndpoint    MagicMcpEndpoint? @relation(fields: [magicMcpEndpointOid], references: [oid], onDelete: SetNull)
+
   magicMcpTokenOid BigInt?
   magicMcpToken    MagicMcpToken? @relation(fields: [magicMcpTokenOid], references: [oid], onDelete: SetNull)
 

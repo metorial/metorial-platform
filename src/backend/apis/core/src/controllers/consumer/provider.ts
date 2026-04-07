@@ -16,7 +16,7 @@ import {
   consumerProviderDeploymentService,
   consumerProviderSetupSessionService
 } from '@metorial/module-consumer';
-import { magicMcpServerService } from '@metorial/module-magic';
+import { magicMcpEndpointService, magicMcpServerService } from '@metorial/module-magic';
 import { Controller } from '@metorial/rest';
 import { addMinutes } from 'date-fns';
 import { consumerGroup, consumerPath } from '../../middleware/consumerGroup';
@@ -235,6 +235,19 @@ export let consumerProviderController = Controller.create(
           );
         }
 
+        if (
+          !ctx.portalOAuthAuthorization.portalAuthClient.magicMcpServerOid &&
+          !ctx.portalOAuthAuthorization.portalAuthClient.magicMcpEndpointOid &&
+          !ctx.portalOAuthAuthorization.magicMcpEndpointOid
+        ) {
+          throw new ServiceError(
+            preconditionFailedError({
+              message:
+                'Select at least one Magic MCP server before approving this portal OAuth authorization.'
+            })
+          );
+        }
+
         let now = new Date();
         let portalOAuthAuthorization = await db.portalAuthAttempt.update({
           where: {
@@ -248,6 +261,96 @@ export let consumerProviderController = Controller.create(
             authorizationCode:
               ctx.portalOAuthAuthorization.authorizationCode ?? crypto.randomUUID(),
             authorizationCodeExpiresAt: addMinutes(now, 10)
+          },
+          include: {
+            consumerProfile: true,
+            portalAuthClient: {
+              include: {
+                portal: true,
+                magicMcpServer: true,
+                magicMcpEndpoint: true
+              }
+            }
+          }
+        });
+
+        return portalOAuthAuthorizationPresenter.present({
+          portalOAuthAuthorization
+        });
+      }),
+
+    connectPortalOAuthAuthorizationToMagicMcpEndpoint: portalOAuthAuthorizationGroup
+      .post(
+        consumerPath(
+          'portal-oauth-attempts/:portalAuthAttemptId/connect-magic-mcp-endpoint',
+          'consumerInternal.oauth.authorizations.connectMagicMcpEndpoint'
+        ),
+        {
+          name: 'Connect portal OAuth authorization to magic MCP endpoint',
+          description:
+            'Links a pending portal OAuth authorization request to a consumer-owned magic MCP endpoint.'
+        }
+      )
+      .use(hasFlags(['paid-portals', 'portals-access', 'magic-mcp-enabled']))
+      .body(
+        'default',
+        v.object({
+          magic_mcp_endpoint_id: v.string()
+        })
+      )
+      .output(portalOAuthAuthorizationPresenter)
+      .do(async ctx => {
+        if (ctx.portalOAuthAuthorization.status != 'pending') {
+          throw new ServiceError(
+            preconditionFailedError({
+              message: 'This portal OAuth authorization is no longer pending.'
+            })
+          );
+        }
+
+        if (
+          ctx.portalOAuthAuthorization.portalAuthClient.magicMcpServerOid ||
+          ctx.portalOAuthAuthorization.portalAuthClient.magicMcpEndpointOid
+        ) {
+          throw new ServiceError(
+            preconditionFailedError({
+              message:
+                'This portal OAuth authorization already targets a specific magic MCP route.'
+            })
+          );
+        }
+
+        let magicMcpEndpoint = await magicMcpEndpointService.getMagicMcpEndpointById({
+          magicMcpEndpointId: ctx.body.magic_mcp_endpoint_id,
+          instance: ctx.instance,
+          accessTags: ctx.accessTags
+        });
+
+        if (magicMcpEndpoint.consumerProfileOid != ctx.consumerProfile.oid) {
+          throw new ServiceError(
+            preconditionFailedError({
+              message:
+                'You can only link this portal OAuth authorization to a magic MCP endpoint you own.'
+            })
+          );
+        }
+
+        if (magicMcpEndpoint.servers.length == 0) {
+          throw new ServiceError(
+            preconditionFailedError({
+              message:
+                'Add at least one Magic MCP server to the endpoint before linking it to this portal OAuth authorization.'
+            })
+          );
+        }
+
+        let portalOAuthAuthorization = await db.portalAuthAttempt.update({
+          where: {
+            id: ctx.portalOAuthAuthorization.id
+          },
+          data: {
+            consumerProfileOid: ctx.consumerProfile.oid,
+            magicMcpEndpointOid: magicMcpEndpoint.oid
           },
           include: {
             consumerProfile: true,

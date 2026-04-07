@@ -23,6 +23,7 @@ import { urlsMatch } from './utils';
 let portalAuthAttemptInclude = {
   portalAuthClient: true,
   consumerProfile: true,
+  magicMcpEndpoint: true,
   magicMcpToken: true
 } satisfies Prisma.PortalAuthAttemptInclude;
 
@@ -30,20 +31,25 @@ type PortalAuthAttemptWithRelations = Prisma.PortalAuthAttemptGetPayload<{
   include: typeof portalAuthAttemptInclude;
 }>;
 
-export let resolvePortalRoute = async (d: { portalId: string; magicMcpTargetId: string }) => {
-  let [portal, magicMcpTarget] = await Promise.all([
-    portalService.getPortalPublic({ portalId: d.portalId }),
-    resolveMagicMcpTargetByIdOrAlias(d.magicMcpTargetId)
-  ]);
+export let resolvePortalRoute = async (d: {
+  portalId: string;
+  magicMcpTargetId?: string;
+}) => {
+  let portal = await portalService.getPortalPublic({ portalId: d.portalId });
+  let magicMcpTarget = d.magicMcpTargetId
+    ? await resolveMagicMcpTargetByIdOrAlias(d.magicMcpTargetId)
+    : null;
 
-  if (portal.instance.oid != magicMcpTarget.target.instance.oid) {
+  if (magicMcpTarget && portal.instance.oid != magicMcpTarget.target.instance.oid) {
     throw new ServiceError(notFoundError('magic_mcp.target'));
   }
 
   return {
     portal,
     magicMcpTarget,
-    base: `${getConfig().urls.apiUrl}/connect/portal/${d.portalId}/${d.magicMcpTargetId}`,
+    base: `${getConfig().urls.apiUrl}/connect/portal/${d.portalId}${
+      d.magicMcpTargetId ? `/${d.magicMcpTargetId}` : ''
+    }`,
     portalUrl: portalService.getPortalHost({ portal }).host
   };
 };
@@ -128,7 +134,7 @@ let ensureAttemptNotExpired = (attempt: Pick<PortalAuthAttemptWithRelations, 'ex
 let ensureLinkedAccessToken = async (d: {
   attempt: PortalAuthAttemptWithRelations;
   portal: Awaited<ReturnType<typeof portalService.getPortalPublic>>;
-  magicMcpTarget: MagicMcpResolvedTarget;
+  magicMcpTarget: MagicMcpResolvedTarget | null;
 }) => {
   if (d.attempt.magicMcpToken) {
     if (d.attempt.magicMcpToken.status != 'active') {
@@ -158,14 +164,34 @@ let ensureLinkedAccessToken = async (d: {
     );
   }
 
+  let magicMcpEndpoint =
+    d.attempt.magicMcpEndpoint ??
+    (d.magicMcpTarget?.type === 'endpoint' ? d.magicMcpTarget.target : undefined);
+  let magicMcpServer =
+    !magicMcpEndpoint && d.magicMcpTarget?.type === 'server'
+      ? d.magicMcpTarget.target
+      : undefined;
+
+  if (!magicMcpServer && !magicMcpEndpoint) {
+    throw new ServiceError(
+      badRequestError({
+        message: 'The portal authorization is not linked to a magic MCP server or endpoint',
+        oauth: {
+          error: 'invalid_grant',
+          errorMessage:
+            'The portal authorization is not linked to a magic MCP server or endpoint'
+        }
+      })
+    );
+  }
+
   let magicMcpToken = await magicMcpTokenService.createMagicMcpToken({
     instance: d.portal.instance,
     input: {
       name: `${d.portal.name} Portal Access`,
       description: `OAuth access token for ${d.attempt.portalAuthClient.name}`,
-      magicMcpServer: d.magicMcpTarget.type === 'server' ? d.magicMcpTarget.target : undefined,
-      magicMcpEndpoint:
-        d.magicMcpTarget.type === 'endpoint' ? d.magicMcpTarget.target : undefined
+      magicMcpServer,
+      magicMcpEndpoint
     }
   });
 
@@ -194,7 +220,7 @@ let ensureLinkedAccessToken = async (d: {
 
 export let exchangeAuthorizationCodeToken = async (d: {
   portal: Awaited<ReturnType<typeof portalService.getPortalPublic>>;
-  magicMcpTarget: MagicMcpResolvedTarget;
+  magicMcpTarget: MagicMcpResolvedTarget | null;
   client: Awaited<ReturnType<typeof getPortalAuthClient>>;
   code: string;
   redirectUri: string;
@@ -322,7 +348,7 @@ export let exchangeAuthorizationCodeToken = async (d: {
 
 export let exchangeRefreshToken = async (d: {
   portal: Awaited<ReturnType<typeof portalService.getPortalPublic>>;
-  magicMcpTarget: MagicMcpResolvedTarget;
+  magicMcpTarget: MagicMcpResolvedTarget | null;
   client: Awaited<ReturnType<typeof getPortalAuthClient>>;
   refreshToken: string;
 }) => {

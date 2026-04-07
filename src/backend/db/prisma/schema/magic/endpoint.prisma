@@ -33,6 +33,7 @@ model MagicMcpEndpoint {
   tokens            MagicMcpToken[]
   accessTagEntities AccessTagEntity[]
   portalAuthClients PortalAuthClient[]
+  portalAuthAttempts PortalAuthAttempt[]
 }
 
 model MagicMcpEndpointServer {

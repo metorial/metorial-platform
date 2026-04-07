@@ -1,7 +1,13 @@
-import { forbiddenError, ServiceError, unauthorizedError } from '@lowerdeck/error';
+import {
+  badRequestError,
+  forbiddenError,
+  ServiceError,
+  unauthorizedError
+} from '@lowerdeck/error';
 import { createExecutionContext, provideExecutionContext } from '@lowerdeck/execution-context';
 import { useRequestContext } from '@lowerdeck/hono';
 import { extractToken } from '@metorial/bearer';
+import { Instance } from '@metorial/db';
 import { generateSnowflakeId } from '@metorial/id';
 import { AuthInfo } from '@metorial/module-access';
 import {
@@ -51,6 +57,36 @@ let ensureMagicMcpTokenAccess = async (d: {
       })
     );
   }
+};
+
+let resolveMagicMcpTargetFromToken = async (d: {
+  tokenSecret: string;
+  instance: Instance;
+}) => {
+  let token = await magicMcpTokenService.getMagicMcpTokenBySecret({
+    secret: d.tokenSecret,
+    instance: d.instance
+  });
+
+  if (token.magicMcpServer && token.magicMcpEndpoint) {
+    throw new ServiceError(
+      badRequestError({
+        message: 'Magic MCP token must be linked to exactly one server or endpoint'
+      })
+    );
+  }
+
+  let magicMcpTargetIdOrAlias = token.magicMcpEndpoint?.id ?? token.magicMcpServer?.id;
+  if (!magicMcpTargetIdOrAlias) {
+    throw new ServiceError(
+      badRequestError({
+        message:
+          'This portal route requires a magic MCP token linked to exactly one server or endpoint'
+      })
+    );
+  }
+
+  return await resolveMagicMcpTargetByIdOrAlias(magicMcpTargetIdOrAlias);
 };
 
 let toApiKeyRequest = (request: Request, tokenSecret: string | null) => {
@@ -115,7 +151,8 @@ let ensureMagicMcpApiKeyAccess = async (d: {
 };
 
 export let resolveMagicMcpSubspaceSession = async (d: {
-  magicMcpTargetIdOrAlias: string;
+  magicMcpTargetIdOrAlias?: string;
+  instanceForTokenRouting?: Instance;
   request: Request;
   url: URL;
   authenticate: Authenticator<AuthInfo>;
@@ -131,7 +168,25 @@ export let resolveMagicMcpSubspaceSession = async (d: {
     );
   }
 
-  let magicMcpTarget = await resolveMagicMcpTargetByIdOrAlias(d.magicMcpTargetIdOrAlias);
+  let magicMcpTarget =
+    d.magicMcpTargetIdOrAlias != null
+      ? await resolveMagicMcpTargetByIdOrAlias(d.magicMcpTargetIdOrAlias)
+      : tokenSecret.startsWith('metorial_mk_') && d.instanceForTokenRouting
+        ? await resolveMagicMcpTargetFromToken({
+            tokenSecret,
+            instance: d.instanceForTokenRouting
+          })
+        : null;
+
+  if (!magicMcpTarget) {
+    throw new ServiceError(
+      badRequestError({
+        message:
+          'A server- or endpoint-specific portal route is required unless you use a target-linked magic MCP token'
+      })
+    );
+  }
+
   if (tokenSecret.startsWith('metorial_mk_')) {
     await ensureMagicMcpTokenAccess({
       tokenSecret,
@@ -158,7 +213,8 @@ export let resolveMagicMcpSubspaceSession = async (d: {
 
 export let handleMagicMcpRequest = async (d: {
   c: Context;
-  magicMcpTargetIdOrAlias: string;
+  magicMcpTargetIdOrAlias?: string;
+  instanceForTokenRouting?: Instance;
   authenticate: Authenticator<AuthInfo>;
 }) => {
   let context = useRequestContext(d.c);
@@ -175,6 +231,7 @@ export let handleMagicMcpRequest = async (d: {
     async () => {
       let sessionInfo = await resolveMagicMcpSubspaceSession({
         magicMcpTargetIdOrAlias: d.magicMcpTargetIdOrAlias,
+        instanceForTokenRouting: d.instanceForTokenRouting,
         request,
         url,
         authenticate: d.authenticate

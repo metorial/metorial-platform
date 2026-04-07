@@ -120,7 +120,10 @@ export let magicMcpEndpointController = Controller.create(
       })
       .use(
         checkAccess({
-          possibleScopes: ['instance.provider.session:write'],
+          possibleScopes: [
+            'instance.provider.session:write',
+            'consumer#instance.magic_mcp:write'
+          ],
           fineGrainedPolicy: 'deny'
         })
       )
@@ -138,12 +141,28 @@ export let magicMcpEndpointController = Controller.create(
       .use(hasFlags(['magic-mcp-enabled']))
       .use(requireConsumerTokenForPublishableKey())
       .do(async ctx => {
-        let consumerProfile = ctx.body.consumer_profile_id
-          ? await consumerProfileService.getConsumerProfileByIdForInstance({
-              instance: ctx.instance,
-              consumerProfileId: ctx.body.consumer_profile_id
+        if (
+          ctx.consumerProfile &&
+          ctx.body.consumer_profile_id &&
+          ctx.consumerProfile.id !== ctx.body.consumer_profile_id
+        ) {
+          throw new ServiceError(
+            badRequestError({
+              message: 'consumer_profile_id does not match authenticated consumer profile',
+              description:
+                'The consumer_profile_id in the request body does not match the authenticated consumer profile.'
             })
-          : undefined;
+          );
+        }
+
+        let consumerProfile =
+          ctx.consumerProfile ??
+          (ctx.body.consumer_profile_id
+            ? await consumerProfileService.getConsumerProfileByIdForInstance({
+                instance: ctx.instance,
+                consumerProfileId: ctx.body.consumer_profile_id
+              })
+            : undefined);
 
         let magicMcpEndpoint = await magicMcpEndpointService.createMagicMcpEndpoint({
           instance: ctx.instance,
