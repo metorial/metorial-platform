@@ -14,8 +14,8 @@ model AccessTagPolicy {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
-  name  String
-  roles String[]
+  name             String
+  roles            String[]
   systemIdentifier String?
 
   organizationOid BigInt
@@ -44,6 +44,9 @@ model AccessTagEntity {
 
   magicMcpServerOid BigInt?
   magicMcpServer    MagicMcpServer? @relation(fields: [magicMcpServerOid], references: [oid], onDelete: Cascade)
+
+  magicMcpEndpointOid BigInt?
+  magicMcpEndpoint    MagicMcpEndpoint? @relation(fields: [magicMcpEndpointOid], references: [oid], onDelete: Cascade)
 
   // magicMcpGroupOid BigInt?
   // magicMcpGroup    MagicMcpGroup? @relation(fields: [magicMcpGroupOid], references: [oid], onDelete: Cascade)

@@ -95,6 +95,7 @@ model ConsumerProfile {
   groups                       ConsumerProfileGroup[]
   accessRequests               ConsumerAccessRequest[]
   providerSetupSessionBindings ConsumerProviderSetupSessionBinding[]
+  magicMcpEndpoints            MagicMcpEndpoint[]
   actors                       ConsumerActor[]
   portalAuthAttempts           PortalAuthAttempt[]
 

@@ -31,8 +31,7 @@ model Instance {
 
   subspaceEnvironmentId         String?
   subspaceEnvironmentIdentifier String?
-
-  lastSubspaceSyncAt DateTime?
+  lastSubspaceSyncAt            DateTime?
 
   createdAt DateTime  @default(now())
   deletedAt DateTime?
@@ -46,9 +45,9 @@ model Instance {
   uploads                              Upload[]
   accessTags                           AccessTag[]
   magicMcpGroups                       MagicMcpGroup[]
+  magicMcpEndpoints                    MagicMcpEndpoint[]
   magicMcpServers                      MagicMcpServer[]
   magicMcpTokens                       MagicMcpToken[]
-  magicMcpServerSubspaceSessions       MagicMcpServerSubspaceSession[]
   consumerSurfaces                     ConsumerSurface[]
   consumerProviderSetupSessionBindings ConsumerProviderSetupSessionBinding[]
   consumers                            ConsumerProfile[]
@@ -57,4 +56,5 @@ model Instance {
   accessPolicyInstances                AccessPolicyInstance[]
   instanceConsumers                    InstanceConsumer[]
   consumerActors                       ConsumerActor[]
+  magicMcpSubspaceSessionConnections   MagicMcpSubspaceSessionConnection[]
 }

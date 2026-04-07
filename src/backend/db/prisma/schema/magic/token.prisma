@@ -11,17 +11,20 @@ model MagicMcpToken {
 
   isGroupLocked Boolean @default(false)
 
+  secret String @unique
+
+  name        String?
+  description String?
+  metadata    Json
+
   instanceOid BigInt
   instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
 
   magicMcpServerOid BigInt?
   magicMcpServer    MagicMcpServer? @relation(fields: [magicMcpServerOid], references: [oid], onDelete: Cascade)
 
-  secret String @unique
-
-  name        String?
-  description String?
-  metadata    Json
+  magicMcpEndpointOid BigInt?
+  magicMcpEndpoint    MagicMcpEndpoint? @relation(fields: [magicMcpEndpointOid], references: [oid], onDelete: Cascade)
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @default(now()) @updatedAt

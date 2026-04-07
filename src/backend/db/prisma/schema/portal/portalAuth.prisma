@@ -33,8 +33,11 @@ model PortalAuthClient {
   portalOid BigInt
   portal    Portal @relation(fields: [portalOid], references: [oid], onDelete: Cascade)
 
-  magicMcpServerOid BigInt
-  magicMcpServer    MagicMcpServer @relation(fields: [magicMcpServerOid], references: [oid], onDelete: Cascade)
+  magicMcpServerOid BigInt?
+  magicMcpServer    MagicMcpServer? @relation(fields: [magicMcpServerOid], references: [oid], onDelete: Cascade)
+
+  magicMcpEndpointOid BigInt?
+  magicMcpEndpoint    MagicMcpEndpoint? @relation(fields: [magicMcpEndpointOid], references: [oid], onDelete: Cascade)
 
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @default(now()) @updatedAt

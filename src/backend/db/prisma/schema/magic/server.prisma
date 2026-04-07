@@ -31,7 +31,8 @@ model MagicMcpServer {
   deletedAt DateTime?
 
   aliases         MagicMcpServerAlias[]
-  subspaceSession MagicMcpServerSubspaceSession?
+  subspaceSession MagicMcpSubspaceSessionConnection?
+  endpoints       MagicMcpEndpointServer[]
 
   tokens            MagicMcpToken[]
   groups            MagicMcpGroupServer[]

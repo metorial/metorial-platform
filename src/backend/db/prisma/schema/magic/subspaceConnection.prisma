@@ -1,0 +1,21 @@
+model MagicMcpSubspaceSessionConnection {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  magicMcpServerOid BigInt?         @unique
+  magicMcpServer    MagicMcpServer? @relation(fields: [magicMcpServerOid], references: [oid], onDelete: Cascade)
+
+  magicMcpEndpointOid BigInt?           @unique
+  magicMcpEndpoint    MagicMcpEndpoint? @relation(fields: [magicMcpEndpointOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  subspaceSessionId         String
+  subspaceSessionTemplateId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@map("MagicMcpServerSubspaceSession")
+}

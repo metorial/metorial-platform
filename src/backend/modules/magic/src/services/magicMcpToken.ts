@@ -12,6 +12,7 @@ import {
   db,
   ID,
   Instance,
+  MagicMcpEndpoint,
   MagicMcpGroup,
   MagicMcpServer,
   MagicMcpToken,
@@ -39,6 +40,11 @@ let createMagicMcpSecret = () =>
 
 let include = {
   magicMcpServer: true,
+  magicMcpEndpoint: {
+    include: {
+      servers: true
+    }
+  },
   groups: {
     include: {
       magicMcpGroup: true
@@ -102,6 +108,7 @@ class MagicMcpTokenImpl {
       description?: string;
       metadata?: Record<string, any>;
       magicMcpServer?: MagicMcpServer;
+      magicMcpEndpoint?: MagicMcpEndpoint;
     };
   }) {
     return await db.magicMcpToken.create({
@@ -112,6 +119,7 @@ class MagicMcpTokenImpl {
         isGroupLocked: !!d.groups?.length,
         instanceOid: d.instance.oid,
         magicMcpServerOid: d.input.magicMcpServer?.oid,
+        magicMcpEndpointOid: d.input.magicMcpEndpoint?.oid,
         name: d.input.name,
         description: d.input.description,
         metadata: d.input.metadata ?? {},
@@ -205,6 +213,7 @@ class MagicMcpTokenImpl {
     status?: MagicMcpTokenStatus[];
     groupIds?: string[];
     serverIds?: string[];
+    endpointIds?: string[];
     accessTags?: AnyAccessTagSelector;
   }) {
     let groupOids = !!d.groupIds?.length
@@ -228,6 +237,19 @@ class MagicMcpTokenImpl {
             select: { oid: true }
           })
         ).map(s => s.oid)
+      : undefined;
+    let endpointOids = !!d.endpointIds?.length
+      ? (
+          await db.magicMcpEndpoint.findMany({
+            where: {
+              instanceOid: d.instance.oid,
+              id: { in: d.endpointIds }
+            },
+            select: {
+              oid: true
+            }
+          })
+        ).map(endpoint => endpoint.oid)
       : undefined;
 
     let accessTagFilter = await getAccessTagFilter({
@@ -299,6 +321,11 @@ class MagicMcpTokenImpl {
                       }
                     ]
                   }
+                : undefined!,
+              endpointOids
+                ? {
+                    magicMcpEndpointOid: { in: endpointOids }
+                  }
                 : undefined!
             ].filter(Boolean)
           },
@@ -333,30 +360,77 @@ class MagicMcpTokenImpl {
 
   async checkMagicMcpTokenAccess(d: {
     token: MagicMcpTokenWithRelations;
-    server: MagicMcpServer;
+    server?: MagicMcpServer;
+    endpoint?: Pick<MagicMcpEndpoint, 'oid'>;
   }) {
-    if (d.token.magicMcpServerOid && d.token.magicMcpServerOid !== d.server.oid) {
-      return false;
+    if (!d.server && !d.endpoint) {
+      throw new Error('Magic MCP token access requires a server or endpoint');
+    }
+
+    if (d.server) {
+      if (d.token.magicMcpEndpointOid) {
+        return false;
+      }
+
+      if (d.token.magicMcpServerOid && d.token.magicMcpServerOid !== d.server.oid) {
+        return false;
+      }
+    }
+
+    if (d.endpoint) {
+      if (d.token.magicMcpServerOid) {
+        return false;
+      }
+
+      if (d.token.magicMcpEndpointOid && d.token.magicMcpEndpointOid !== d.endpoint.oid) {
+        return false;
+      }
     }
 
     if (d.token.isGroupLocked) {
-      let group = await db.magicMcpGroup.findFirst({
-        where: {
-          status: 'active',
-          servers: {
-            some: {
-              magicMcpServerOid: d.server.oid
-            }
-          },
-          tokens: {
-            some: {
-              magicMcpTokenOid: d.token.oid
+      if (d.server) {
+        let group = await db.magicMcpGroup.findFirst({
+          where: {
+            status: 'active',
+            servers: {
+              some: {
+                magicMcpServerOid: d.server.oid
+              }
+            },
+            tokens: {
+              some: {
+                magicMcpTokenOid: d.token.oid
+              }
             }
           }
-        }
-      });
+        });
 
-      if (!group) return false;
+        if (!group) return false;
+      }
+
+      if (d.endpoint) {
+        let uncoveredServerCount = await db.magicMcpEndpointServer.count({
+          where: {
+            magicMcpEndpointOid: d.endpoint.oid,
+            magicMcpServer: {
+              groups: {
+                none: {
+                  magicMcpGroup: {
+                    status: 'active',
+                    tokens: {
+                      some: {
+                        magicMcpTokenOid: d.token.oid
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        });
+
+        if (uncoveredServerCount > 0) return false;
+      }
     }
 
     let consumerAccessTagEntities = await db.accessTagEntity.findMany({
@@ -374,9 +448,34 @@ class MagicMcpTokenImpl {
     });
     if (consumerAccessTagEntities.length == 0) return true;
 
-    let serverAccess = await db.magicMcpServer.findFirst({
+    if (d.server) {
+      let serverAccess = await db.magicMcpServer.findFirst({
+        where: {
+          oid: d.server.oid,
+          accessTagEntities: {
+            some: {
+              accessTagOid: {
+                in: consumerAccessTagEntities.map(entity => entity.accessTagOid)
+              },
+              accessTagPolicy: {
+                roles: {
+                  hasSome: [...consumerMagicMcpReadRoles]
+                }
+              }
+            }
+          }
+        },
+        select: {
+          oid: true
+        }
+      });
+
+      return !!serverAccess;
+    }
+
+    let endpointAccess = await db.magicMcpEndpoint.findFirst({
       where: {
-        oid: d.server.oid,
+        oid: d.endpoint!.oid,
         accessTagEntities: {
           some: {
             accessTagOid: {
@@ -395,10 +494,12 @@ class MagicMcpTokenImpl {
       }
     });
 
-    return !!serverAccess;
+    return !!endpointAccess;
   }
 
   async addGroupsToToken(d: { token: MagicMcpToken; groupIds: string[] }) {
+    this.assetTokenNotServerOrEndpointLinked(d.token);
+
     let groups = await db.magicMcpGroup.findMany({
       where: {
         id: { in: d.groupIds },
@@ -430,6 +531,8 @@ class MagicMcpTokenImpl {
   }
 
   async removeGroupsFromToken(d: { token: MagicMcpToken; groupIds: string[] }) {
+    this.assetTokenNotServerOrEndpointLinked(d.token);
+
     let groups = await db.magicMcpGroup.findMany({
       where: {
         id: { in: d.groupIds },
@@ -453,6 +556,16 @@ class MagicMcpTokenImpl {
       data: { isGroupLocked: otherGroups > 0 },
       include
     });
+  }
+
+  private assetTokenNotServerOrEndpointLinked(token: MagicMcpToken) {
+    if (token.magicMcpServerOid || token.magicMcpEndpointOid) {
+      throw new ServiceError(
+        preconditionFailedError({
+          message: 'This operation is not allowed for tokens linked to a server or endpoint'
+        })
+      );
+    }
   }
 }
 

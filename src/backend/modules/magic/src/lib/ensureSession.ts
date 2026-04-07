@@ -1,51 +1,229 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
-import { db, ID, Instance, MagicMcpServer, Prisma } from '@metorial/db';
+import {
+  db,
+  ID,
+  Instance,
+  MagicMcpEndpoint,
+  MagicMcpServer,
+  Prisma
+} from '@metorial/db';
 import {
   subspaceSessionService,
-  subspaceSessionTemplateProviderService
+  subspaceSessionTemplateProviderService,
+  subspaceSessionTemplateService
 } from '@metorial/module-subspace';
+import { createHash } from 'crypto';
+import {
+  MagicMcpResolvedTarget,
+  magicMcpEndpointInclude
+} from '../services';
 
-export let ensureMagicMcpSubspaceSession = async (
-  magicMcpServer: MagicMcpServer & { instance: Instance }
+type MagicMcpServerForSession = MagicMcpServer & {
+  instance: Instance;
+};
+
+type MagicMcpEndpointForSession = MagicMcpEndpoint &
+  Prisma.MagicMcpEndpointGetPayload<{
+    include: typeof magicMcpEndpointInclude & {
+      instance: true;
+    };
+  }>;
+
+let toTemplateProviderDescriptor = (templateProvider: Awaited<
+  ReturnType<typeof subspaceSessionTemplateProviderService.getMany>
+>[number]) => ({
+  sessionTemplateId: templateProvider.sessionTemplateId,
+  providerId: templateProvider.providerId,
+  providerDeploymentId: templateProvider.deployment?.id ?? null,
+  providerConfigId: templateProvider.config?.id ?? null,
+  providerAuthConfigId: templateProvider.authConfig?.id ?? null,
+  toolFilters:
+    templateProvider.toolFilter?.type === 'v1.filter'
+      ? templateProvider.toolFilter.filters
+      : null
+});
+
+let getConfigurationHash = (
+  templateProviders: Awaited<ReturnType<typeof subspaceSessionTemplateProviderService.getMany>>
 ) => {
-  if (!magicMcpServer.subspaceSessionTemplateId) {
-    throw new ServiceError(
-      badRequestError({
-        message: 'Magic MCP server is missing subspace session template configuration'
+  let descriptors = templateProviders
+    .map(toTemplateProviderDescriptor)
+    .sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)));
+
+  return createHash('sha256').update(JSON.stringify(descriptors)).digest('hex');
+};
+
+let ensureMagicMcpEndpointTemplate = async (magicMcpEndpoint: MagicMcpEndpointForSession) => {
+  let sessionTemplateIds = Array.from(
+    new Set(
+      magicMcpEndpoint.servers
+        .map(server => server.magicMcpServer.subspaceSessionTemplateId)
+        .filter(Boolean)
+    )
+  );
+
+  let templateProviders = sessionTemplateIds.length
+    ? await subspaceSessionTemplateProviderService.getMany({
+        instance: magicMcpEndpoint.instance,
+        sessionTemplateIds,
+        allowDeleted: false
       })
-    );
+    : [];
+  let configurationHash = getConfigurationHash(templateProviders);
+  let needsNewTemplate =
+    !magicMcpEndpoint.subspaceSessionTemplateId ||
+    magicMcpEndpoint.configurationHash !== configurationHash;
+
+  if (!needsNewTemplate) {
+    return {
+      magicMcpEndpoint,
+      sessionTemplateId: magicMcpEndpoint.subspaceSessionTemplateId!
+    };
   }
 
-  let mapping = await db.magicMcpServerSubspaceSession.findUnique({
+  let sessionTemplate = await subspaceSessionTemplateService.create({
+    instance: magicMcpEndpoint.instance,
+    name: magicMcpEndpoint.name ?? `Magic MCP Endpoint ${magicMcpEndpoint.id}`,
+    description: magicMcpEndpoint.description ?? undefined,
+    isInternal: true,
+    metadata: magicMcpEndpoint.metadata as Record<string, any>,
+    providers: []
+  });
+
+  for (let templateProvider of templateProviders) {
+    await subspaceSessionTemplateProviderService.create({
+      instance: magicMcpEndpoint.instance,
+      sessionTemplateId: sessionTemplate.id,
+      providerDeploymentId: templateProvider.deployment?.id,
+      providerConfigId: templateProvider.config?.id,
+      providerAuthConfigId: templateProvider.authConfig?.id,
+      toolFilters:
+        templateProvider.toolFilter?.type === 'v1.filter'
+          ? templateProvider.toolFilter.filters
+          : undefined
+    });
+  }
+
+  let nextMagicMcpEndpoint = await db.magicMcpEndpoint.update({
     where: {
-      magicMcpServerOid: magicMcpServer.oid
+      oid: magicMcpEndpoint.oid
+    },
+    data: {
+      subspaceSessionTemplateId: sessionTemplate.id,
+      configurationHash
+    },
+    include: {
+      ...magicMcpEndpointInclude,
+      instance: true
     }
   });
 
-  if (
-    mapping &&
-    mapping.subspaceSessionTemplateId !== magicMcpServer.subspaceSessionTemplateId
-  ) {
-    await db.magicMcpServerSubspaceSession
+  return {
+    magicMcpEndpoint: nextMagicMcpEndpoint,
+    sessionTemplateId: sessionTemplate.id
+  };
+};
+
+let getMagicMcpTargetInfo = async (d: MagicMcpResolvedTarget) => {
+  if (d.type === 'server') {
+    if (!d.target.subspaceSessionTemplateId) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Magic MCP server is missing subspace session template configuration'
+        })
+      );
+    }
+
+    return {
+      targetType: 'server' as const,
+      target: d.target as MagicMcpServerForSession,
+      instance: d.target.instance,
+      mappingWhere: {
+        magicMcpServerOid: d.target.oid
+      },
+      mappingData: {
+        magicMcpServerOid: d.target.oid
+      },
+      sessionTemplateId: d.target.subspaceSessionTemplateId,
+      name: d.target.name ?? `Magic MCP ${d.target.id}`,
+      description: d.target.description ?? undefined
+    };
+  }
+
+  let { magicMcpEndpoint, sessionTemplateId } = await ensureMagicMcpEndpointTemplate(
+    d.target as MagicMcpEndpointForSession
+  );
+
+  return {
+    targetType: 'endpoint' as const,
+    target: magicMcpEndpoint,
+    instance: magicMcpEndpoint.instance,
+    mappingWhere: {
+      magicMcpEndpointOid: magicMcpEndpoint.oid
+    },
+    mappingData: {
+      magicMcpEndpointOid: magicMcpEndpoint.oid
+    },
+    sessionTemplateId,
+    name: magicMcpEndpoint.name ?? `Magic MCP Endpoint ${magicMcpEndpoint.id}`,
+    description: magicMcpEndpoint.description ?? undefined
+  };
+};
+
+let getExistingMapping = async (d: Awaited<ReturnType<typeof getMagicMcpTargetInfo>>) => {
+  if (d.targetType === 'server') {
+    return await db.magicMcpSubspaceSessionConnection.findUnique({
+      where: {
+        magicMcpServerOid: d.mappingWhere.magicMcpServerOid
+      }
+    });
+  }
+
+  return await db.magicMcpSubspaceSessionConnection.findUnique({
+    where: {
+      magicMcpEndpointOid: d.mappingWhere.magicMcpEndpointOid
+    }
+  });
+};
+
+let deleteExistingMapping = async (d: Awaited<ReturnType<typeof getMagicMcpTargetInfo>>) => {
+  if (d.targetType === 'server') {
+    await db.magicMcpSubspaceSessionConnection
       .delete({
         where: {
-          magicMcpServerOid: magicMcpServer.oid
+          magicMcpServerOid: d.mappingWhere.magicMcpServerOid
         }
       })
       .catch(() => null);
-    mapping = null;
+
+    return;
   }
 
-  if (mapping) return mapping;
+  await db.magicMcpSubspaceSessionConnection
+    .delete({
+      where: {
+        magicMcpEndpointOid: d.mappingWhere.magicMcpEndpointOid
+      }
+    })
+    .catch(() => null);
+};
 
+let getWinnerMapping = async (d: Awaited<ReturnType<typeof getMagicMcpTargetInfo>>) => {
+  return await getExistingMapping(d);
+};
+
+let getSubspaceProviders = async (d: {
+  instance: Instance;
+  sessionTemplateId: string;
+}) => {
   let templateProviders = await subspaceSessionTemplateProviderService.getMany({
-    instance: magicMcpServer.instance,
-    sessionTemplateIds: [magicMcpServer.subspaceSessionTemplateId],
+    instance: d.instance,
+    sessionTemplateIds: [d.sessionTemplateId],
     allowDeleted: false
   });
 
-  let providers = templateProviders.map(templateProvider => ({
-    sessionTemplateId: magicMcpServer.subspaceSessionTemplateId,
+  return templateProviders.map(templateProvider => ({
+    sessionTemplateId: templateProvider.sessionTemplateId,
     providerDeployment: templateProvider.deployment?.id
       ? {
           type: 'reference' as const,
@@ -69,31 +247,44 @@ export let ensureMagicMcpSubspaceSession = async (
         ? templateProvider.toolFilter.filters
         : undefined
   }));
+};
+
+export let ensureMagicMcpSubspaceSession = async (magicMcpTarget: MagicMcpResolvedTarget) => {
+  let target = await getMagicMcpTargetInfo(magicMcpTarget);
+  let mapping = await getExistingMapping(target);
+
+  if (mapping && mapping.subspaceSessionTemplateId !== target.sessionTemplateId) {
+    await deleteExistingMapping(target);
+    mapping = null;
+  }
+
+  if (mapping) return mapping;
+
+  let providers = await getSubspaceProviders({
+    instance: target.instance,
+    sessionTemplateId: target.sessionTemplateId
+  });
 
   let subspaceSession = await subspaceSessionService.create({
-    instance: magicMcpServer.instance,
-    name: magicMcpServer.name ?? `Magic MCP ${magicMcpServer.id}`,
-    description: magicMcpServer.description ?? undefined,
+    instance: target.instance,
+    name: target.name,
+    description: target.description,
     providers
   });
 
   try {
-    return await db.magicMcpServerSubspaceSession.create({
+    return await db.magicMcpSubspaceSessionConnection.create({
       data: {
         id: await ID.generateId('magicMcpServerSubspaceSession'),
-        magicMcpServerOid: magicMcpServer.oid,
-        instanceOid: magicMcpServer.instanceOid,
+        instanceOid: target.instance.oid,
         subspaceSessionId: subspaceSession.id,
-        subspaceSessionTemplateId: magicMcpServer.subspaceSessionTemplateId
+        subspaceSessionTemplateId: target.sessionTemplateId,
+        ...target.mappingData
       }
     });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-      let winner = await db.magicMcpServerSubspaceSession.findUnique({
-        where: {
-          magicMcpServerOid: magicMcpServer.oid
-        }
-      });
+      let winner = await getWinnerMapping(target);
       if (winner) return winner;
     }
 
@@ -101,6 +292,4 @@ export let ensureMagicMcpSubspaceSession = async (
   }
 };
 
-export type MagicMcpSubspaceMapping = Awaited<
-  ReturnType<typeof ensureMagicMcpSubspaceSession>
->;
+export type MagicMcpSubspaceMapping = Awaited<ReturnType<typeof ensureMagicMcpSubspaceSession>>;

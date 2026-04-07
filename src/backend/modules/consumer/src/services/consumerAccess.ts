@@ -260,12 +260,8 @@ class ConsumerAccessServiceImpl {
 
     if (d.access.type == 'magic_mcp_server') {
       let portal = await db.portal.findFirst({
-        where: {
-          surfaceOid: d.consumerSurface.oid
-        },
-        select: {
-          oid: true
-        }
+        where: { surfaceOid: d.consumerSurface.oid },
+        select: { oid: true }
       });
 
       if (

@@ -5,6 +5,7 @@ import {
   ConsumerGroup,
   ConsumerProfile,
   ID,
+  MagicMcpEndpoint,
   MagicMcpGroup,
   MagicMcpServer,
   MagicMcpToken,
@@ -34,6 +35,7 @@ type ConsumerAccessPolicyScope =
 
 type ConsumerAccessResource =
   | { magicMcpServer: Pick<MagicMcpServer, 'oid'> }
+  | { magicMcpEndpoint: Pick<MagicMcpEndpoint, 'oid'> }
   | { magicMcpToken: Pick<MagicMcpToken, 'oid'> }
   | { magicMcpGroup: Pick<MagicMcpGroup, 'oid'> }
   | { providerTemplate: Pick<ProviderTemplate, 'oid'> };
@@ -226,6 +228,12 @@ class ConsumerAccessPolicyServiceImpl {
     if ('magicMcpToken' in resource) {
       return {
         magicMcpTokenOid: resource.magicMcpToken.oid
+      };
+    }
+
+    if ('magicMcpEndpoint' in resource) {
+      return {
+        magicMcpEndpointOid: resource.magicMcpEndpoint.oid
       };
     }
 

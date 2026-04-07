@@ -1,11 +1,11 @@
-import { ConsumerGroup, ConsumerProfile, MagicMcpToken, Organization } from '@metorial/db';
+import { ConsumerGroup, ConsumerProfile, MagicMcpEndpoint, Organization } from '@metorial/db';
 import { consumerAccessPolicyService } from './accessPolicy';
 
-export let grantConsumerOwnedMagicMcpTokenAccess = async (d: {
+export let grantConsumerOwnedMagicMcpEndpointAccess = async (d: {
   organization: Organization;
   consumerProfile: Pick<ConsumerProfile, 'personalConsumerGroupOid'>;
   consumerGroups?: Array<Pick<ConsumerGroup, 'oid' | 'accessTagOid'>>;
-  magicMcpToken: Pick<MagicMcpToken, 'oid'>;
+  magicMcpEndpoint: Pick<MagicMcpEndpoint, 'oid'>;
 }) => {
   for (let permission of ['magic_mcp_read', 'magic_mcp_write'] as const) {
     await consumerAccessPolicyService.grantAccess({
@@ -15,7 +15,7 @@ export let grantConsumerOwnedMagicMcpTokenAccess = async (d: {
         personalConsumerGroupForProfile: d.consumerProfile
       },
       resource: {
-        magicMcpToken: d.magicMcpToken
+        magicMcpEndpoint: d.magicMcpEndpoint
       }
     });
   }
@@ -32,7 +32,7 @@ export let grantConsumerOwnedMagicMcpTokenAccess = async (d: {
         personalConsumerGroupForProfile: d.consumerProfile
       },
       resource: {
-        magicMcpToken: d.magicMcpToken
+        magicMcpEndpoint: d.magicMcpEndpoint
       }
     });
 
@@ -47,7 +47,7 @@ export let grantConsumerOwnedMagicMcpTokenAccess = async (d: {
         consumerGroup
       },
       resource: {
-        magicMcpToken: d.magicMcpToken
+        magicMcpEndpoint: d.magicMcpEndpoint
       }
     });
   }

@@ -11,8 +11,45 @@ let include = {
       aliases: true,
       subspaceSession: true
     }
+  },
+  magicMcpEndpoint: {
+    include: {
+      consumerProfile: true,
+      servers: {
+        include: {
+          magicMcpServer: {
+            include: {
+              aliases: true,
+              subspaceSession: true
+            }
+          }
+        }
+      },
+      subspaceSession: true
+    }
   }
-} satisfies Prisma.MagicMcpServerSubspaceSessionInclude;
+} satisfies Prisma.MagicMcpSubspaceSessionConnectionInclude;
+
+let getAccessWhere = (accessTagFilter: Awaited<ReturnType<typeof getAccessTagFilter>>) => {
+  if (!accessTagFilter) return undefined;
+
+  return {
+    OR: [
+      {
+        magicMcpServer: {
+          status: 'active' as const,
+          accessTagEntities: accessTagFilter
+        }
+      },
+      {
+        magicMcpEndpoint: {
+          status: 'active' as const,
+          accessTagEntities: accessTagFilter
+        }
+      }
+    ]
+  } satisfies Prisma.MagicMcpSubspaceSessionConnectionWhereInput;
+};
 
 class MagicMcpSessionImpl {
   async getMagicMcpSessionById(d: {
@@ -24,17 +61,13 @@ class MagicMcpSessionImpl {
       accessTags: d.accessTags,
       roles: [...consumerMagicMcpReadRoles]
     });
+    let accessWhere = getAccessWhere(accessTagFilter);
 
-    let magicMcpSession = await db.magicMcpServerSubspaceSession.findFirst({
+    let magicMcpSession = await db.magicMcpSubspaceSessionConnection.findFirst({
       where: {
         id: d.magicMcpSessionId,
         instanceOid: d.instance.oid,
-        magicMcpServer: accessTagFilter
-          ? {
-              status: 'active',
-              accessTagEntities: accessTagFilter
-            }
-          : undefined
+        AND: accessWhere ? [accessWhere] : undefined
       },
       include
     });
@@ -62,26 +95,52 @@ class MagicMcpSessionImpl {
           })
         ).map(server => server.oid)
       : undefined;
+    let magicMcpEndpointOids =
+      hasMagicMcpServerFilter && magicMcpServerOids?.length
+        ? await (
+            await db.magicMcpEndpoint.findMany({
+              where: {
+                instanceOid: d.instance.oid,
+                servers: {
+                  some: {
+                    magicMcpServerOid: { in: magicMcpServerOids }
+                  }
+                }
+              },
+              select: {
+                oid: true
+              }
+            })
+          ).map(endpoint => endpoint.oid)
+        : undefined;
+
     let accessTagFilter = await getAccessTagFilter({
       accessTags: d.accessTags,
       roles: [...consumerMagicMcpReadRoles]
     });
+    let accessWhere = getAccessWhere(accessTagFilter);
 
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
-        return await db.magicMcpServerSubspaceSession.findMany({
+        return await db.magicMcpSubspaceSessionConnection.findMany({
           ...opts,
           where: {
             instanceOid: d.instance.oid,
-            magicMcpServerOid: hasMagicMcpServerFilter
-              ? { in: magicMcpServerOids ?? [] }
-              : undefined,
-            magicMcpServer: accessTagFilter
-              ? {
-                  status: 'active',
-                  accessTagEntities: accessTagFilter
-                }
-              : undefined
+            AND: [
+              hasMagicMcpServerFilter
+                ? {
+                    OR: [
+                      {
+                        magicMcpServerOid: { in: magicMcpServerOids ?? [] }
+                      },
+                      {
+                        magicMcpEndpointOid: { in: magicMcpEndpointOids ?? [] }
+                      }
+                    ]
+                  }
+                : undefined!,
+              accessWhere ?? undefined!
+            ].filter(Boolean)
           },
           include
         });
