@@ -1,57 +1,28 @@
-import {
-  forbiddenError,
-  notFoundError,
-  ServiceError,
-  unauthorizedError
-} from '@lowerdeck/error';
+import { forbiddenError, ServiceError, unauthorizedError } from '@lowerdeck/error';
 import { createExecutionContext, provideExecutionContext } from '@lowerdeck/execution-context';
 import { useRequestContext } from '@lowerdeck/hono';
 import { extractToken } from '@metorial/bearer';
-import { db } from '@metorial/db';
 import { generateSnowflakeId } from '@metorial/id';
 import { AuthInfo } from '@metorial/module-access';
 import {
   ensureMagicMcpSubspaceSession,
+  magicMcpEndpointService,
   magicMcpServerService,
   MagicMcpSubspaceMapping,
-  magicMcpTokenService
+  magicMcpTokenService,
+  resolveMagicMcpTargetByIdOrAlias
 } from '@metorial/module-magic';
 import { proxyMcpRequestToSubspace } from '@metorial/module-subspace';
 import { Authenticator } from '@metorial/rest';
 import type { Context } from 'hono';
 import { authenticateAndResolveInstance } from './getSession';
 
-type MagicMcpServerForRouting = Awaited<ReturnType<typeof getMagicMcpServerByIdOrAlias>>;
+type MagicMcpTargetForRouting = Awaited<ReturnType<typeof resolveMagicMcpTargetByIdOrAlias>>;
 
 export type MagicMcpSubspaceSessionInfo = {
   type: 'magic_mcp_subspace_session';
-  magicMcpServer: MagicMcpServerForRouting;
+  magicMcpTarget: MagicMcpTargetForRouting;
   subspaceSessionMapping: MagicMcpSubspaceMapping;
-};
-
-export let getMagicMcpServerByIdOrAlias = async (magicMcpServerIdOrAlias: string) => {
-  let magicMcpServer = await db.magicMcpServer.findFirst({
-    where: {
-      status: 'active',
-      OR: [
-        { id: magicMcpServerIdOrAlias },
-        {
-          aliases: {
-            some: {
-              slug: magicMcpServerIdOrAlias
-            }
-          }
-        }
-      ]
-    },
-    include: {
-      aliases: true,
-      instance: true
-    }
-  });
-  if (!magicMcpServer) throw new ServiceError(notFoundError('magic_mcp.server'));
-
-  return magicMcpServer;
 };
 
 export let getMagicMcpTokenSecretFromRequest = (request: Request, url: URL) => {
@@ -60,22 +31,23 @@ export let getMagicMcpTokenSecretFromRequest = (request: Request, url: URL) => {
 
 let ensureMagicMcpTokenAccess = async (d: {
   tokenSecret: string;
-  magicMcpServer: MagicMcpServerForRouting;
+  magicMcpTarget: MagicMcpTargetForRouting;
 }) => {
   let token = await magicMcpTokenService.getMagicMcpTokenBySecret({
     secret: d.tokenSecret,
-    instance: d.magicMcpServer.instance
+    instance: d.magicMcpTarget.target.instance
   });
 
   let hasAccess = await magicMcpTokenService.checkMagicMcpTokenAccess({
     token,
-    server: d.magicMcpServer
+    server: d.magicMcpTarget.type === 'server' ? d.magicMcpTarget.target : undefined,
+    endpoint: d.magicMcpTarget.type === 'endpoint' ? d.magicMcpTarget.target : undefined
   });
 
   if (!hasAccess) {
     throw new ServiceError(
       forbiddenError({
-        message: 'Magic MCP token does not have access to this server'
+        message: 'Magic MCP token does not have access to this target'
       })
     );
   }
@@ -98,7 +70,7 @@ let ensureMagicMcpApiKeyAccess = async (d: {
   request: Request;
   url: URL;
   authenticate: Authenticator<AuthInfo>;
-  magicMcpServer: MagicMcpServerForRouting;
+  magicMcpTarget: MagicMcpTargetForRouting;
 }) => {
   let requestForAuth = toApiKeyRequest(d.request, d.tokenSecret);
   let { instance, auth } = await authenticateAndResolveInstance(
@@ -107,10 +79,10 @@ let ensureMagicMcpApiKeyAccess = async (d: {
     d.authenticate
   );
 
-  if (instance.id !== d.magicMcpServer.instance.id) {
+  if (instance.id !== d.magicMcpTarget.target.instance.id) {
     throw new ServiceError(
       forbiddenError({
-        message: 'API key does not have access to this magic MCP server'
+        message: 'API key does not have access to this magic MCP target'
       })
     );
   }
@@ -128,15 +100,22 @@ let ensureMagicMcpApiKeyAccess = async (d: {
       );
     }
 
-    await magicMcpServerService.checkConsumerReadAccess({
-      server: d.magicMcpServer,
-      accessTags: auth.restrictions.consumer.accessTags
-    });
+    if (d.magicMcpTarget.type === 'server') {
+      await magicMcpServerService.checkConsumerReadAccess({
+        server: d.magicMcpTarget.target,
+        accessTags: auth.restrictions.consumer.accessTags
+      });
+    } else {
+      await magicMcpEndpointService.checkConsumerReadAccess({
+        endpoint: d.magicMcpTarget.target,
+        accessTags: auth.restrictions.consumer.accessTags
+      });
+    }
   }
 };
 
 export let resolveMagicMcpSubspaceSession = async (d: {
-  magicMcpServerIdOrAlias: string;
+  magicMcpTargetIdOrAlias: string;
   request: Request;
   url: URL;
   authenticate: Authenticator<AuthInfo>;
@@ -152,11 +131,11 @@ export let resolveMagicMcpSubspaceSession = async (d: {
     );
   }
 
-  let magicMcpServer = await getMagicMcpServerByIdOrAlias(d.magicMcpServerIdOrAlias);
+  let magicMcpTarget = await resolveMagicMcpTargetByIdOrAlias(d.magicMcpTargetIdOrAlias);
   if (tokenSecret.startsWith('metorial_mk_')) {
     await ensureMagicMcpTokenAccess({
       tokenSecret,
-      magicMcpServer
+      magicMcpTarget
     });
   } else {
     await ensureMagicMcpApiKeyAccess({
@@ -164,22 +143,22 @@ export let resolveMagicMcpSubspaceSession = async (d: {
       request: d.request,
       url: d.url,
       authenticate: d.authenticate,
-      magicMcpServer
+      magicMcpTarget
     });
   }
 
-  let subspaceSessionMapping = await ensureMagicMcpSubspaceSession(magicMcpServer);
+  let subspaceSessionMapping = await ensureMagicMcpSubspaceSession(magicMcpTarget);
 
   return {
     type: 'magic_mcp_subspace_session',
-    magicMcpServer,
+    magicMcpTarget,
     subspaceSessionMapping
   };
 };
 
 export let handleMagicMcpRequest = async (d: {
   c: Context;
-  magicMcpServerIdOrAlias: string;
+  magicMcpTargetIdOrAlias: string;
   authenticate: Authenticator<AuthInfo>;
 }) => {
   let context = useRequestContext(d.c);
@@ -195,7 +174,7 @@ export let handleMagicMcpRequest = async (d: {
     }),
     async () => {
       let sessionInfo = await resolveMagicMcpSubspaceSession({
-        magicMcpServerIdOrAlias: d.magicMcpServerIdOrAlias,
+        magicMcpTargetIdOrAlias: d.magicMcpTargetIdOrAlias,
         request,
         url,
         authenticate: d.authenticate
@@ -203,7 +182,7 @@ export let handleMagicMcpRequest = async (d: {
 
       return await proxyMcpRequestToSubspace(
         d.c,
-        sessionInfo.magicMcpServer.instance,
+        sessionInfo.magicMcpTarget.target.instance,
         sessionInfo.subspaceSessionMapping.subspaceSessionId
       );
     }

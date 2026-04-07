@@ -55,38 +55,38 @@ export let createPortalHandler = (d: {
   });
 
   let metadataServer = createOAuthHono()
-    .get(':portalId/:magicMcpServerId', async c => {
-      let { portalId, magicMcpServerId } = c.req.param();
+    .get(':portalId/:magicMcpTargetId', async c => {
+      let { portalId, magicMcpTargetId } = c.req.param();
       let { base } = await resolvePortalRoute({
         portalId,
-        magicMcpServerId
+        magicMcpTargetId
       });
 
       return c.json(getClientConfig(base));
     })
-    .get('connect/portal/:portalId/:magicMcpServerId', async c => {
-      let { portalId, magicMcpServerId } = c.req.param();
+    .get('connect/portal/:portalId/:magicMcpTargetId', async c => {
+      let { portalId, magicMcpTargetId } = c.req.param();
       let { base } = await resolvePortalRoute({
         portalId,
-        magicMcpServerId
+        magicMcpTargetId
       });
 
       return c.json(getClientConfig(base));
     });
 
   let connectPortalServer = createOAuthHono()
-    .all(':portalId/:magicMcpServerId', async c => {
-      let { portalId, magicMcpServerId } = c.req.param();
+    .all(':portalId/:magicMcpTargetId', async c => {
+      let { portalId, magicMcpTargetId } = c.req.param();
       let { base } = await resolvePortalRoute({
         portalId,
-        magicMcpServerId
+        magicMcpTargetId
       });
 
       let token = getMagicMcpTokenSecretFromRequest(c.req.raw, new URL(c.req.url));
       if (token) {
         return await handleMagicMcpRequest({
           c,
-          magicMcpServerIdOrAlias: magicMcpServerId,
+          magicMcpTargetIdOrAlias: magicMcpTargetId,
           authenticate: d.authenticate
         });
       }
@@ -106,29 +106,29 @@ export let createPortalHandler = (d: {
         }
       );
     })
-    .get(':portalId/:magicMcpServerId/.well-known/oauth-protected-resource', async c => {
-      let { portalId, magicMcpServerId } = c.req.param();
+    .get(':portalId/:magicMcpTargetId/.well-known/oauth-protected-resource', async c => {
+      let { portalId, magicMcpTargetId } = c.req.param();
       let { base } = await resolvePortalRoute({
         portalId,
-        magicMcpServerId
+        magicMcpTargetId
       });
 
       return c.json(getProtectedResource(base));
     })
-    .get(':portalId/:magicMcpServerId/.well-known/openid-configuration', async c => {
-      let { portalId, magicMcpServerId } = c.req.param();
+    .get(':portalId/:magicMcpTargetId/.well-known/openid-configuration', async c => {
+      let { portalId, magicMcpTargetId } = c.req.param();
       let { base } = await resolvePortalRoute({
         portalId,
-        magicMcpServerId
+        magicMcpTargetId
       });
 
       return c.json(getClientConfig(base));
     })
-    .post(':portalId/:magicMcpServerId/oauth/register', async c => {
-      let { portalId, magicMcpServerId } = c.req.param();
-      let { portal, magicMcpServer, base } = await resolvePortalRoute({
+    .post(':portalId/:magicMcpTargetId/oauth/register', async c => {
+      let { portalId, magicMcpTargetId } = c.req.param();
+      let { portal, magicMcpTarget, base } = await resolvePortalRoute({
         portalId,
-        magicMcpServerId
+        magicMcpTargetId
       });
 
       let input = await useValidatedBody(
@@ -156,7 +156,10 @@ export let createPortalHandler = (d: {
         data: {
           id: await ID.generateId('portalAuthClient'),
           portalOid: portal.oid,
-          magicMcpServerOid: magicMcpServer.oid,
+          magicMcpServerOid:
+            magicMcpTarget.type === 'server' ? magicMcpTarget.target.oid : null,
+          magicMcpEndpointOid:
+            magicMcpTarget.type === 'endpoint' ? magicMcpTarget.target.oid : null,
           name: input.client_name,
           redirectUris: input.redirect_uris,
           clientId: await ID.generateId('portalAuthClientId'),
@@ -186,11 +189,11 @@ export let createPortalHandler = (d: {
             : Math.floor(registration.createdAt.getTime() / 1000)
       });
     })
-    .get(':portalId/:magicMcpServerId/oauth/authorize', async c => {
-      let { portalId, magicMcpServerId } = c.req.param();
-      let { portal, magicMcpServer, portalUrl } = await resolvePortalRoute({
+    .get(':portalId/:magicMcpTargetId/oauth/authorize', async c => {
+      let { portalId, magicMcpTargetId } = c.req.param();
+      let { portal, magicMcpTarget, portalUrl } = await resolvePortalRoute({
         portalId,
-        magicMcpServerId
+        magicMcpTargetId
       });
 
       let responseType = getString(c.req.query('response_type'));
@@ -282,7 +285,10 @@ export let createPortalHandler = (d: {
       let client = await getPortalAuthClient({
         clientId,
         portalOid: portal.oid,
-        magicMcpServerOid: magicMcpServer.oid
+        magicMcpServerOid:
+          magicMcpTarget.type === 'server' ? magicMcpTarget.target.oid : undefined,
+        magicMcpEndpointOid:
+          magicMcpTarget.type === 'endpoint' ? magicMcpTarget.target.oid : undefined
       });
       validateRedirectUri(redirectUri, client.redirectUris);
 
@@ -311,11 +317,11 @@ export let createPortalHandler = (d: {
 
       return c.redirect(redirectUrl.toString(), 302);
     })
-    .post(':portalId/:magicMcpServerId/oauth/token', async c => {
-      let { portalId, magicMcpServerId } = c.req.param();
-      let { portal, magicMcpServer } = await resolvePortalRoute({
+    .post(':portalId/:magicMcpTargetId/oauth/token', async c => {
+      let { portalId, magicMcpTargetId } = c.req.param();
+      let { portal, magicMcpTarget } = await resolvePortalRoute({
         portalId,
-        magicMcpServerId
+        magicMcpTargetId
       });
 
       let body = await parseOAuthBody(c);
@@ -353,7 +359,10 @@ export let createPortalHandler = (d: {
       let client = await getPortalAuthClient({
         clientId: credentials.clientId,
         portalOid: portal.oid,
-        magicMcpServerOid: magicMcpServer.oid
+        magicMcpServerOid:
+          magicMcpTarget.type === 'server' ? magicMcpTarget.target.oid : undefined,
+        magicMcpEndpointOid:
+          magicMcpTarget.type === 'endpoint' ? magicMcpTarget.target.oid : undefined
       });
       validateClientSecret({
         client,
@@ -388,7 +397,7 @@ export let createPortalHandler = (d: {
 
         tokens = await exchangeAuthorizationCodeToken({
           portal,
-          magicMcpServer,
+          magicMcpTarget,
           client,
           code,
           redirectUri,
@@ -409,7 +418,7 @@ export let createPortalHandler = (d: {
 
         tokens = await exchangeRefreshToken({
           portal,
-          magicMcpServer,
+          magicMcpTarget,
           client,
           refreshToken
         });
@@ -431,18 +440,21 @@ export let createPortalHandler = (d: {
         refresh_token: tokens.refreshToken
       });
     })
-    .get(':portalId/:magicMcpServerId/oauth/register/:registrationId', async c => {
-      let { portalId, magicMcpServerId, registrationId } = c.req.param();
-      let { portal, magicMcpServer, base } = await resolvePortalRoute({
+    .get(':portalId/:magicMcpTargetId/oauth/register/:registrationId', async c => {
+      let { portalId, magicMcpTargetId, registrationId } = c.req.param();
+      let { portal, magicMcpTarget, base } = await resolvePortalRoute({
         portalId,
-        magicMcpServerId
+        magicMcpTargetId
       });
 
       let registration = await db.portalAuthClient.findFirst({
         where: {
           id: registrationId,
           portalOid: portal.oid,
-          magicMcpServerOid: magicMcpServer.oid
+          magicMcpServerOid:
+            magicMcpTarget.type === 'server' ? magicMcpTarget.target.oid : null,
+          magicMcpEndpointOid:
+            magicMcpTarget.type === 'endpoint' ? magicMcpTarget.target.oid : null
         }
       });
 

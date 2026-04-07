@@ -10,10 +10,13 @@ import {
   consumerProfileService,
   grantConsumerOwnedMagicMcpTokenAccess
 } from '@metorial/module-consumer';
-import { magicMcpTokenService } from '@metorial/module-magic';
+import {
+  MagicMcpResolvedTarget,
+  magicMcpTokenService,
+  resolveMagicMcpTargetByIdOrAlias
+} from '@metorial/module-magic';
 import { portalService } from '@metorial/module-portal';
 import { addDays } from 'date-fns';
-import { getMagicMcpServerByIdOrAlias } from '../magic';
 import { createCodeChallenge, createOpaqueToken } from './challenge';
 import { urlsMatch } from './utils';
 
@@ -27,20 +30,20 @@ type PortalAuthAttemptWithRelations = Prisma.PortalAuthAttemptGetPayload<{
   include: typeof portalAuthAttemptInclude;
 }>;
 
-export let resolvePortalRoute = async (d: { portalId: string; magicMcpServerId: string }) => {
-  let [portal, magicMcpServer] = await Promise.all([
+export let resolvePortalRoute = async (d: { portalId: string; magicMcpTargetId: string }) => {
+  let [portal, magicMcpTarget] = await Promise.all([
     portalService.getPortalPublic({ portalId: d.portalId }),
-    getMagicMcpServerByIdOrAlias(d.magicMcpServerId)
+    resolveMagicMcpTargetByIdOrAlias(d.magicMcpTargetId)
   ]);
 
-  if (portal.instance.oid != magicMcpServer.instance.oid) {
-    throw new ServiceError(notFoundError('magic_mcp.server'));
+  if (portal.instance.oid != magicMcpTarget.target.instance.oid) {
+    throw new ServiceError(notFoundError('magic_mcp.target'));
   }
 
   return {
     portal,
-    magicMcpServer,
-    base: `${getConfig().urls.apiUrl}/connect/portal/${d.portalId}/${d.magicMcpServerId}`,
+    magicMcpTarget,
+    base: `${getConfig().urls.apiUrl}/connect/portal/${d.portalId}/${d.magicMcpTargetId}`,
     portalUrl: portalService.getPortalHost({ portal }).host
   };
 };
@@ -48,13 +51,15 @@ export let resolvePortalRoute = async (d: { portalId: string; magicMcpServerId: 
 export let getPortalAuthClient = async (d: {
   clientId: string;
   portalOid: bigint;
-  magicMcpServerOid: bigint;
+  magicMcpServerOid?: bigint;
+  magicMcpEndpointOid?: bigint;
 }) => {
   let client = await db.portalAuthClient.findFirst({
     where: {
       clientId: d.clientId,
       portalOid: d.portalOid,
-      magicMcpServerOid: d.magicMcpServerOid
+      magicMcpServerOid: d.magicMcpServerOid ?? null,
+      magicMcpEndpointOid: d.magicMcpEndpointOid ?? null
     }
   });
 
@@ -123,7 +128,7 @@ let ensureAttemptNotExpired = (attempt: Pick<PortalAuthAttemptWithRelations, 'ex
 let ensureLinkedAccessToken = async (d: {
   attempt: PortalAuthAttemptWithRelations;
   portal: Awaited<ReturnType<typeof portalService.getPortalPublic>>;
-  magicMcpServer: Awaited<ReturnType<typeof getMagicMcpServerByIdOrAlias>>;
+  magicMcpTarget: MagicMcpResolvedTarget;
 }) => {
   if (d.attempt.magicMcpToken) {
     if (d.attempt.magicMcpToken.status != 'active') {
@@ -158,7 +163,9 @@ let ensureLinkedAccessToken = async (d: {
     input: {
       name: `${d.portal.name} Portal Access`,
       description: `OAuth access token for ${d.attempt.portalAuthClient.name}`,
-      magicMcpServer: d.magicMcpServer
+      magicMcpServer: d.magicMcpTarget.type === 'server' ? d.magicMcpTarget.target : undefined,
+      magicMcpEndpoint:
+        d.magicMcpTarget.type === 'endpoint' ? d.magicMcpTarget.target : undefined
     }
   });
 
@@ -187,7 +194,7 @@ let ensureLinkedAccessToken = async (d: {
 
 export let exchangeAuthorizationCodeToken = async (d: {
   portal: Awaited<ReturnType<typeof portalService.getPortalPublic>>;
-  magicMcpServer: Awaited<ReturnType<typeof getMagicMcpServerByIdOrAlias>>;
+  magicMcpTarget: MagicMcpResolvedTarget;
   client: Awaited<ReturnType<typeof getPortalAuthClient>>;
   code: string;
   redirectUri: string;
@@ -291,7 +298,7 @@ export let exchangeAuthorizationCodeToken = async (d: {
   let accessToken = await ensureLinkedAccessToken({
     attempt,
     portal: d.portal,
-    magicMcpServer: d.magicMcpServer
+    magicMcpTarget: d.magicMcpTarget
   });
 
   let refreshToken = createOpaqueToken();
@@ -315,7 +322,7 @@ export let exchangeAuthorizationCodeToken = async (d: {
 
 export let exchangeRefreshToken = async (d: {
   portal: Awaited<ReturnType<typeof portalService.getPortalPublic>>;
-  magicMcpServer: Awaited<ReturnType<typeof getMagicMcpServerByIdOrAlias>>;
+  magicMcpTarget: MagicMcpResolvedTarget;
   client: Awaited<ReturnType<typeof getPortalAuthClient>>;
   refreshToken: string;
 }) => {
@@ -344,7 +351,7 @@ export let exchangeRefreshToken = async (d: {
   let accessToken = await ensureLinkedAccessToken({
     attempt,
     portal: d.portal,
-    magicMcpServer: d.magicMcpServer
+    magicMcpTarget: d.magicMcpTarget
   });
 
   let nextRefreshToken = createOpaqueToken();
