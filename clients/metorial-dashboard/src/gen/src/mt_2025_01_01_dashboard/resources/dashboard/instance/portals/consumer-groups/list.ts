@@ -27,10 +27,7 @@ export let mapDashboardInstancePortalsConsumerGroupsListOutput =
           name: mtMap.objectField('name', mtMap.passthrough()),
           description: mtMap.objectField('description', mtMap.passthrough()),
           isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
-          ssoGroupIds: mtMap.objectField(
-            'sso_group_ids',
-            mtMap.array(mtMap.passthrough())
-          ),
+          ssoGroupIds: mtMap.objectField('sso_group_ids', mtMap.array(mtMap.passthrough())),
           createdAt: mtMap.objectField('created_at', mtMap.date()),
           updatedAt: mtMap.objectField('updated_at', mtMap.date())
         })
@@ -39,10 +36,7 @@ export let mapDashboardInstancePortalsConsumerGroupsListOutput =
     pagination: mtMap.objectField(
       'pagination',
       mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
+        hasMoreBefore: mtMap.objectField('has_more_before', mtMap.passthrough()),
         hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
       })
     )
@@ -61,6 +55,8 @@ export type DashboardInstancePortalsConsumerGroupsListQuery = {
     | 'deleted'
     | ('active' | 'archived' | 'deleted')[]
     | undefined;
+  search?: string | undefined;
+  id?: string | undefined;
 };
 
 export let mapDashboardInstancePortalsConsumerGroupsListQuery = mtMap.union([
@@ -75,8 +71,9 @@ export let mapDashboardInstancePortalsConsumerGroupsListQuery = mtMap.union([
       status: mtMap.objectField(
         'status',
         mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
-      )
+      ),
+      search: mtMap.objectField('search', mtMap.passthrough()),
+      id: mtMap.objectField('id', mtMap.passthrough())
     })
   )
 ]);
-

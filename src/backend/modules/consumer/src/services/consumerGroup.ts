@@ -66,7 +66,12 @@ class ConsumerGroupServiceImpl {
   async listConsumerGroups(d: {
     consumerSurface: ConsumerSurface;
     status?: ConsumerGroup['status'][];
+    search?: string;
+    id?: string;
   }) {
+    let search = d.search?.trim();
+    let idFilter = d.id?.trim();
+
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
         return await db.consumerGroup.findMany({
@@ -74,7 +79,22 @@ class ConsumerGroupServiceImpl {
           where: {
             surfaceOid: d.consumerSurface.oid,
             type: 'default',
-            status: d.status?.length ? { in: d.status } : 'active'
+            status: d.status?.length ? { in: d.status } : 'active',
+            ...(idFilter ? { id: idFilter } : {}),
+            ...(search
+              ? {
+                  OR: [
+                    { name: { contains: search, mode: 'insensitive' } },
+                    {
+                      description: {
+                        contains: search,
+                        mode: 'insensitive'
+                      }
+                    },
+                    { id: { contains: search, mode: 'insensitive' } }
+                  ]
+                }
+              : {})
           }
         });
       })
