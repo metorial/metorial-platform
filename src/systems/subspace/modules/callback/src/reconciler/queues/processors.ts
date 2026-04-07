@@ -22,8 +22,6 @@ import {
 
 export let callbackReconcileQueueProcessor = callbackRegistrationReconcileQueue.process(
   async data => {
-    console.log('Processing callback reconcile with data', data);
-
     if (data.callbackInstanceId) {
       await callbackReconcileInstanceQueue.add({
         callbackInstanceId: data.callbackInstanceId

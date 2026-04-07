@@ -1,10 +1,10 @@
 import { combineQueueProcessors } from '@lowerdeck/queue';
 import {
+  callbackReconcileInstanceQueueProcessor,
+  callbackReconcileInstancesPageQueueProcessor,
   callbackReconcileQueueProcessor,
   callbackReconcileRegistrationAuditQueueProcessor,
-  callbackReconcileRegistrationsPageQueueProcessor,
-  callbackReconcileInstanceQueueProcessor,
-  callbackReconcileInstancesPageQueueProcessor
+  callbackReconcileRegistrationsPageQueueProcessor
 } from './queues/processors';
 
 export * from './lib/state';
