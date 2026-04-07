@@ -26,8 +26,55 @@ import {
 
 export let createPortalHandler = (d: {
   authenticate: Authenticator<AuthInfo>;
-}): ReturnType<typeof createOAuthHono> =>
-  createOAuthHono()
+}): {
+  metadataServer: ReturnType<typeof createOAuthHono>;
+  connectPortalServer: ReturnType<typeof createOAuthHono>;
+} => {
+  let getProtectedResource = (base: string) => ({
+    resource: `${base}`,
+    authorization_servers: [base],
+    bearer_methods_supported: ['header', 'query'],
+    token_types_supported: ['access_token']
+  });
+
+  let getClientConfig = (base: string) => ({
+    issuer: getConfig().urls.apiUrl,
+    authorization_endpoint: `${base}/oauth/authorize`,
+    token_endpoint: `${base}/oauth/token`,
+    registration_endpoint: `${base}/oauth/register`,
+    response_types_supported: ['code'],
+    response_modes_supported: ['query'],
+    grant_types_supported: ['authorization_code', 'refresh_token'],
+    token_endpoint_auth_methods_supported: [
+      'client_secret_basic',
+      'client_secret_post',
+      'none'
+    ],
+    code_challenge_methods_supported: ['S256'],
+    client_id_metadata_document_supported: false
+  });
+
+  let metadataServer = createOAuthHono()
+    .get(':portalId/:magicMcpServerId', async c => {
+      let { portalId, magicMcpServerId } = c.req.param();
+      let { base } = await resolvePortalRoute({
+        portalId,
+        magicMcpServerId
+      });
+
+      return c.json(getClientConfig(base));
+    })
+    .get('connect/portal/:portalId/:magicMcpServerId', async c => {
+      let { portalId, magicMcpServerId } = c.req.param();
+      let { base } = await resolvePortalRoute({
+        portalId,
+        magicMcpServerId
+      });
+
+      return c.json(getClientConfig(base));
+    });
+
+  let connectPortalServer = createOAuthHono()
     .all(':portalId/:magicMcpServerId', async c => {
       let { portalId, magicMcpServerId } = c.req.param();
       let { base } = await resolvePortalRoute({
@@ -66,12 +113,7 @@ export let createPortalHandler = (d: {
         magicMcpServerId
       });
 
-      return c.json({
-        resource: `${base}`,
-        authorization_servers: [getConfig().urls.apiUrl],
-        bearer_methods_supported: ['header', 'query'],
-        token_types_supported: ['access_token']
-      });
+      return c.json(getProtectedResource(base));
     })
     .get(':portalId/:magicMcpServerId/.well-known/openid-configuration', async c => {
       let { portalId, magicMcpServerId } = c.req.param();
@@ -80,22 +122,7 @@ export let createPortalHandler = (d: {
         magicMcpServerId
       });
 
-      return c.json({
-        issuer: getConfig().urls.apiUrl,
-        authorization_endpoint: `${base}/oauth/authorize`,
-        token_endpoint: `${base}/oauth/token`,
-        registration_endpoint: `${base}/oauth/register`,
-        response_types_supported: ['code'],
-        response_modes_supported: ['query'],
-        grant_types_supported: ['authorization_code', 'refresh_token'],
-        token_endpoint_auth_methods_supported: [
-          'client_secret_basic',
-          'client_secret_post',
-          'none'
-        ],
-        code_challenge_methods_supported: ['S256'],
-        client_id_metadata_document_supported: false
-      });
+      return c.json(getClientConfig(base));
     })
     .post(':portalId/:magicMcpServerId/oauth/register', async c => {
       let { portalId, magicMcpServerId } = c.req.param();
@@ -449,3 +476,9 @@ export let createPortalHandler = (d: {
             : Math.floor(registration.createdAt.getTime() / 1000)
       });
     });
+
+  return {
+    metadataServer,
+    connectPortalServer
+  };
+};
