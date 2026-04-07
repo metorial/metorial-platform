@@ -67,39 +67,21 @@ export let mapDashboardInstancePortalsConsumerProfilesListOutput =
                     group: mtMap.objectField(
                       'group',
                       mtMap.object({
-                        object: mtMap.objectField(
-                          'object',
-                          mtMap.passthrough()
-                        ),
+                        object: mtMap.objectField('object', mtMap.passthrough()),
                         id: mtMap.objectField('id', mtMap.passthrough()),
-                        status: mtMap.objectField(
-                          'status',
-                          mtMap.passthrough()
-                        ),
+                        status: mtMap.objectField('status', mtMap.passthrough()),
                         name: mtMap.objectField('name', mtMap.passthrough()),
-                        description: mtMap.objectField(
-                          'description',
-                          mtMap.passthrough()
-                        ),
-                        isDefault: mtMap.objectField(
-                          'is_default',
-                          mtMap.passthrough()
-                        ),
+                        description: mtMap.objectField('description', mtMap.passthrough()),
+                        isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
                         ssoGroupIds: mtMap.objectField(
                           'sso_group_ids',
                           mtMap.array(mtMap.passthrough())
                         ),
-                        createdAt: mtMap.objectField(
-                          'created_at',
-                          mtMap.date()
-                        ),
+                        createdAt: mtMap.objectField('created_at', mtMap.date()),
                         updatedAt: mtMap.objectField('updated_at', mtMap.date())
                       })
                     ),
-                    assignedVia: mtMap.objectField(
-                      'assigned_via',
-                      mtMap.passthrough()
-                    )
+                    assignedVia: mtMap.objectField('assigned_via', mtMap.passthrough())
                   })
                 )
               ),
@@ -113,10 +95,7 @@ export let mapDashboardInstancePortalsConsumerProfilesListOutput =
                   id: mtMap.objectField('id', mtMap.passthrough()),
                   status: mtMap.objectField('status', mtMap.passthrough()),
                   name: mtMap.objectField('name', mtMap.passthrough()),
-                  description: mtMap.objectField(
-                    'description',
-                    mtMap.passthrough()
-                  ),
+                  description: mtMap.objectField('description', mtMap.passthrough()),
                   auth: mtMap.objectField(
                     'auth',
                     mtMap.object({
@@ -139,10 +118,7 @@ export let mapDashboardInstancePortalsConsumerProfilesListOutput =
     pagination: mtMap.objectField(
       'pagination',
       mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
+        hasMoreBefore: mtMap.objectField('has_more_before', mtMap.passthrough()),
         hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
       })
     )
@@ -154,6 +130,9 @@ export type DashboardInstancePortalsConsumerProfilesListQuery = {
   before?: string | undefined;
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
+  search?: string | undefined;
+  id?: string | undefined;
+  consumerGroupId?: string | undefined;
 } & {};
 
 export let mapDashboardInstancePortalsConsumerProfilesListQuery = mtMap.union([
@@ -164,8 +143,10 @@ export let mapDashboardInstancePortalsConsumerProfilesListQuery = mtMap.union([
       after: mtMap.objectField('after', mtMap.passthrough()),
       before: mtMap.objectField('before', mtMap.passthrough()),
       cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough())
+      order: mtMap.objectField('order', mtMap.passthrough()),
+      search: mtMap.objectField('search', mtMap.passthrough()),
+      id: mtMap.objectField('id', mtMap.passthrough()),
+      consumerGroupId: mtMap.objectField('consumer_group_id', mtMap.passthrough())
     })
   )
 ]);
-

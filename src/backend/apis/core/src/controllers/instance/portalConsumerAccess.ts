@@ -53,6 +53,8 @@ export let portalConsumerAccessController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
+            search: v.optional(v.string()),
+            id: v.optional(v.string()),
             consumer_group_id: v.optional(v.union([v.string(), v.array(v.string())])),
             provider_template_id: v.optional(v.union([v.string(), v.array(v.string())])),
             magic_mcp_server_id: v.optional(v.union([v.string(), v.array(v.string())])),
@@ -71,7 +73,9 @@ export let portalConsumerAccessController = Controller.create(
           consumerGroupIds: normalizeArrayParam(ctx.query.consumer_group_id),
           providerTemplateIds: normalizeArrayParam(ctx.query.provider_template_id),
           magicMcpServerIds: normalizeArrayParam(ctx.query.magic_mcp_server_id),
-          types: normalizeArrayParam(ctx.query.type)
+          types: normalizeArrayParam(ctx.query.type),
+          search: ctx.query.search,
+          id: ctx.query.id
         });
         let list = await paginator.run(ctx.query);
 

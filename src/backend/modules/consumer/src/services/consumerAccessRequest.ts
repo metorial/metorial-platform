@@ -100,7 +100,9 @@ class ConsumerAccessRequestServiceImpl {
     providerTemplateIds?: string[];
     magicMcpServerIds?: string[];
     statuses?: ConsumerAccessRequestStatus[];
+    search?: string;
   }) {
+    let search = d.search?.trim();
     let hasConsumerProfileFilter = !!d.consumerProfileIds?.length;
     let hasProviderTemplateFilter = !!d.providerTemplateIds?.length;
     let hasMagicMcpServerFilter = !!d.magicMcpServerIds?.length;
@@ -166,7 +168,23 @@ class ConsumerAccessRequestServiceImpl {
               ? {
                   in: magicMcpServers?.map(magicMcpServer => magicMcpServer.oid) ?? []
                 }
-              : undefined
+              : undefined,
+            ...(search
+              ? {
+                  OR: [
+                    { message: { contains: search, mode: 'insensitive' } },
+                    { id: { contains: search, mode: 'insensitive' } },
+                    {
+                      consumerProfile: {
+                        OR: [
+                          { name: { contains: search, mode: 'insensitive' } },
+                          { email: { contains: search, mode: 'insensitive' } }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              : {})
           },
           include
         });

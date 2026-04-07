@@ -39,10 +39,7 @@ export let mapDashboardInstancePortalsAuthSsoTenantsListOutput =
     pagination: mtMap.objectField(
       'pagination',
       mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
+        hasMoreBefore: mtMap.objectField('has_more_before', mtMap.passthrough()),
         hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
       })
     )
@@ -54,7 +51,11 @@ export type DashboardInstancePortalsAuthSsoTenantsListQuery = {
   before?: string | undefined;
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
-} & {};
+} & {
+  search?: string | undefined;
+  id?: string | undefined;
+  status?: 'pending' | 'completed' | ('pending' | 'completed')[] | undefined;
+};
 
 export let mapDashboardInstancePortalsAuthSsoTenantsListQuery = mtMap.union([
   mtMap.unionOption(
@@ -64,8 +65,19 @@ export let mapDashboardInstancePortalsAuthSsoTenantsListQuery = mtMap.union([
       after: mtMap.objectField('after', mtMap.passthrough()),
       before: mtMap.objectField('before', mtMap.passthrough()),
       cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough())
+      order: mtMap.objectField('order', mtMap.passthrough()),
+      search: mtMap.objectField('search', mtMap.passthrough()),
+      id: mtMap.objectField('id', mtMap.passthrough()),
+      status: mtMap.objectField(
+        'status',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      )
     })
   )
 ]);
-
