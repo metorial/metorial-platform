@@ -329,6 +329,12 @@ let MagicMcpConnectionLayout = dynamicPage(() =>
 let MagicMcpConnectionMessagesPage = dynamicPage(() =>
   import('./pages/magic-mcp/connection/messages').then(c => c.MagicMcpConnectionMessagesPage)
 );
+let MagicMcpConnectionProvidersPage = dynamicPage(() =>
+  import('./pages/magic-mcp/connection/providers').then(c => c.MagicMcpConnectionProvidersPage)
+);
+let MagicMcpConnectionRunsPage = dynamicPage(() =>
+  import('./pages/magic-mcp/connection/runs').then(c => c.MagicMcpConnectionRunsPage)
+);
 let MagicMcpGroupLayout = dynamicPage(() =>
   import('./pages/magic-mcp/group/_layout').then(c => c.MagicMcpGroupLayout)
 );
@@ -991,6 +997,14 @@ export let productInnerSlice = createSlice([
                   {
                     path: '',
                     element: <MagicMcpConnectionMessagesPage />
+                  },
+                  {
+                    path: 'providers',
+                    element: <MagicMcpConnectionProvidersPage />
+                  },
+                  {
+                    path: 'runs',
+                    element: <MagicMcpConnectionRunsPage />
                   }
                 ]
               },
