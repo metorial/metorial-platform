@@ -205,6 +205,7 @@ model SlateTriggerEventInput {
   updatedAt DateTime @default(now()) @updatedAt
 
   @@index([status])
+  @@index([receiverOid, createdAt])
 }
 
 model SlateTriggerEvent {
@@ -283,5 +284,6 @@ model SlateTriggerWebhookRequest {
   createdAt DateTime @default(now())
 
   @@index([receiverTriggerId])
+  @@index([receiverTriggerId, createdAt])
   @@index([processedAt])
 }
