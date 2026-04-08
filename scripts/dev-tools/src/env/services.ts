@@ -16,7 +16,7 @@ export let originServiceEnv: Env = [
   },
   {
     key: 'OBJECT_STORAGE_URL',
-    defaultValue: 'http://localhost:52010'
+    defaultValue: 'http://services:52010'
   },
   {
     key: 'CODE_BUCKET_OBJECT_STORAGE_BUCKET',
@@ -67,7 +67,7 @@ export let originCodeBucketEnv: Env = [
   },
   {
     key: 'CODE_BUCKET_OBJECT_STORAGE_ENDPOINT',
-    defaultValue: 'http://localhost:52010'
+    defaultValue: 'http://services:52010'
   },
   {
     key: 'CODE_BUCKET_OBJECT_STORAGE_BUCKET',
@@ -106,7 +106,7 @@ export let signalServiceEnv: Env = [
   },
   {
     key: 'OBJECT_STORAGE_URL',
-    defaultValue: 'http://localhost:52010'
+    defaultValue: 'http://services:52010'
   },
   {
     key: 'LOGS_BUCKET_NAME',
@@ -153,7 +153,7 @@ export let slatesHubEnv: Env = [
   },
   {
     key: 'OBJECT_STORAGE_URL',
-    defaultValue: 'http://localhost:52010'
+    defaultValue: 'http://services:52010'
   },
   {
     key: 'INVOCATIONS_BUCKET_NAME',
@@ -227,7 +227,7 @@ export let subspaceDevEnv: Env = [
   },
   {
     key: 'OBJECT_STORAGE_URL',
-    defaultValue: 'http://localhost:52010'
+    defaultValue: 'http://services:52010'
   },
   {
     key: 'MESSAGE_BUCKET_NAME',
@@ -294,7 +294,7 @@ export let shuttleServiceEnv: Env = [
   },
   {
     key: 'OBJECT_STORAGE_URL',
-    defaultValue: 'http://localhost:52010'
+    defaultValue: 'http://services:52010'
   },
   {
     key: 'LOGS_BUCKET_NAME',
