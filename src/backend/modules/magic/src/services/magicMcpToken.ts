@@ -56,6 +56,10 @@ type MagicMcpTokenWithRelations = Prisma.MagicMcpTokenGetPayload<{
   include: typeof include;
 }>;
 
+let isMagicMcpTokenExpired = (token: Pick<MagicMcpToken, 'expiresAt'>) => {
+  return !!token.expiresAt && token.expiresAt < new Date();
+};
+
 class MagicMcpTokenImpl {
   async getMagicMcpTokenById(d: {
     instance: Instance;
@@ -107,6 +111,7 @@ class MagicMcpTokenImpl {
       name?: string;
       description?: string;
       metadata?: Record<string, any>;
+      expiresAt?: Date | null;
       magicMcpServer?: MagicMcpServer;
       magicMcpEndpoint?: MagicMcpEndpoint;
     };
@@ -123,6 +128,7 @@ class MagicMcpTokenImpl {
         name: d.input.name,
         description: d.input.description,
         metadata: d.input.metadata ?? {},
+        expiresAt: d.input.expiresAt,
         groups: d.groups?.length
           ? {
               createMany: {
@@ -132,6 +138,28 @@ class MagicMcpTokenImpl {
               }
             }
           : undefined
+      },
+      include
+    });
+  }
+
+  async rotateMagicMcpTokenSecret(d: {
+    token: MagicMcpToken;
+    expiresAt?: Date | null;
+  }): Promise<MagicMcpTokenWithRelations> {
+    if (d.token.status !== 'active') {
+      throw new ServiceError(
+        preconditionFailedError({
+          message: 'The magic MCP token must be active to rotate its secret'
+        })
+      );
+    }
+
+    return await db.magicMcpToken.update({
+      where: { id: d.token.id },
+      data: {
+        secret: createMagicMcpSecret(),
+        expiresAt: d.expiresAt === undefined ? d.token.expiresAt : d.expiresAt
       },
       include
     });
@@ -351,6 +379,14 @@ class MagicMcpTokenImpl {
       throw new ServiceError(
         unauthorizedError({
           message: 'Invalid magic MCP token'
+        })
+      );
+    }
+
+    if (isMagicMcpTokenExpired(magicMcpToken)) {
+      throw new ServiceError(
+        unauthorizedError({
+          message: 'Magic MCP token has expired'
         })
       );
     }

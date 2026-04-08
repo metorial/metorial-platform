@@ -16,7 +16,7 @@ import {
   resolveMagicMcpTargetByIdOrAlias
 } from '@metorial/module-magic';
 import { portalService } from '@metorial/module-portal';
-import { addDays } from 'date-fns';
+import { addDays, addHours } from 'date-fns';
 import { createCodeChallenge } from './challenge';
 import { urlsMatch } from './utils';
 import { generateCustomId } from '@lowerdeck/id';
@@ -31,6 +31,12 @@ let portalAuthAttemptInclude = {
 type PortalAuthAttemptWithRelations = Prisma.PortalAuthAttemptGetPayload<{
   include: typeof portalAuthAttemptInclude;
 }>;
+
+export let portalRefreshTokenTtlSeconds = 7 * 24 * 60 * 60;
+export let portalAccessTokenTtlSeconds = 60 * 60;
+
+let getPortalRefreshTokenExpiry = () => addDays(new Date(), 7);
+let getPortalAccessTokenExpiry = () => addHours(new Date(), 1);
 
 export let resolvePortalRoute = async (d: { portalId: string; magicMcpTargetId?: string }) => {
   let portal = await portalService.getPortalPublic({ portalId: d.portalId });
@@ -133,6 +139,8 @@ let ensureLinkedAccessToken = async (d: {
   attempt: PortalAuthAttemptWithRelations;
   portal: Awaited<ReturnType<typeof portalService.getPortalPublic>>;
   magicMcpTarget: MagicMcpResolvedTarget | null;
+  createIfMissing?: boolean;
+  allowExpired?: boolean;
 }) => {
   if (d.attempt.magicMcpToken) {
     if (d.attempt.magicMcpToken.status != 'active') {
@@ -147,7 +155,35 @@ let ensureLinkedAccessToken = async (d: {
       );
     }
 
+    if (
+      d.attempt.magicMcpToken.expiresAt &&
+      d.attempt.magicMcpToken.expiresAt < new Date() &&
+      !d.allowExpired
+    ) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'The linked magic MCP token has expired',
+          oauth: {
+            error: 'invalid_grant',
+            errorMessage: 'The linked magic MCP token has expired'
+          }
+        })
+      );
+    }
+
     return d.attempt.magicMcpToken;
+  }
+
+  if (!d.createIfMissing) {
+    throw new ServiceError(
+      badRequestError({
+        message: 'The portal authorization is missing a linked magic MCP token',
+        oauth: {
+          error: 'invalid_grant',
+          errorMessage: 'The portal authorization is missing a linked magic MCP token'
+        }
+      })
+    );
   }
 
   if (!d.attempt.consumerProfile) {
@@ -188,6 +224,7 @@ let ensureLinkedAccessToken = async (d: {
     input: {
       name: `${d.portal.name} Portal Access`,
       description: `OAuth access token for ${d.attempt.portalAuthClient.name}`,
+      expiresAt: getPortalAccessTokenExpiry(),
       magicMcpServer,
       magicMcpEndpoint
     }
@@ -322,10 +359,12 @@ export let exchangeAuthorizationCodeToken = async (d: {
   let accessToken = await ensureLinkedAccessToken({
     attempt,
     portal: d.portal,
-    magicMcpTarget: d.magicMcpTarget
+    magicMcpTarget: d.magicMcpTarget,
+    createIfMissing: true
   });
 
   let refreshToken = generateCustomId('prtl_oatre_', 35);
+  let expiresAt = getPortalRefreshTokenExpiry();
   let updatedAttempt = await db.portalAuthAttempt.update({
     where: {
       id: attempt.id
@@ -334,7 +373,7 @@ export let exchangeAuthorizationCodeToken = async (d: {
       status: 'active',
       authorizationCodeUsedAt: new Date(),
       refreshToken,
-      expiresAt: addDays(new Date(), 30)
+      expiresAt
     }
   });
 
@@ -375,9 +414,15 @@ export let exchangeRefreshToken = async (d: {
   let accessToken = await ensureLinkedAccessToken({
     attempt,
     portal: d.portal,
-    magicMcpTarget: d.magicMcpTarget
+    magicMcpTarget: d.magicMcpTarget,
+    allowExpired: true
   });
 
+  let expiresAt = getPortalRefreshTokenExpiry();
+  let rotatedAccessToken = await magicMcpTokenService.rotateMagicMcpTokenSecret({
+    token: accessToken,
+    expiresAt: getPortalAccessTokenExpiry()
+  });
   let nextRefreshToken = generateCustomId('prtl_oatre_', 35);
   let updatedAttempt = await db.portalAuthAttempt.update({
     where: {
@@ -385,12 +430,12 @@ export let exchangeRefreshToken = async (d: {
     },
     data: {
       refreshToken: nextRefreshToken,
-      expiresAt: addDays(new Date(), 30)
+      expiresAt
     }
   });
 
   return {
-    accessToken: accessToken.secret,
+    accessToken: rotatedAccessToken.secret,
     refreshToken: updatedAttempt.refreshToken!
   };
 };

@@ -12,6 +12,8 @@ import {
   exchangeAuthorizationCodeToken,
   exchangeRefreshToken,
   getPortalAuthClient,
+  portalAccessTokenTtlSeconds,
+  portalRefreshTokenTtlSeconds,
   resolvePortalRoute,
   validateClientSecret
 } from './oauth/client';
@@ -318,7 +320,7 @@ export let createPortalHandler = (d: {
           authorizationCode: generateCustomId('prtl_oatc_', 35),
           codeChallengeMethod: normalizedCodeChallengeMethod,
           codeChallenge,
-          expiresAt: addDays(new Date(), 30)
+          expiresAt: addDays(new Date(), 7)
         }
       });
 
@@ -452,7 +454,9 @@ export let createPortalHandler = (d: {
       return c.json({
         access_token: tokens.accessToken,
         token_type: 'Bearer',
-        refresh_token: tokens.refreshToken
+        expires_in: portalAccessTokenTtlSeconds,
+        refresh_token: tokens.refreshToken,
+        refresh_token_expires_in: portalRefreshTokenTtlSeconds
       });
     });
   }
