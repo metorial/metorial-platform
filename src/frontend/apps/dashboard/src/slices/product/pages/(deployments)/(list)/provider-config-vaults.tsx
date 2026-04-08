@@ -335,7 +335,6 @@ export let providerConfigVaultsOverviewTable = new DashboardTable<
       label: 'Delete',
       icon: <RiDeleteBinLine />,
       disabled: row => row.status !== 'active',
-      loading: (row, state) => state.loadingIds.includes(row.id),
       action: 'delete'
     }
   ])
