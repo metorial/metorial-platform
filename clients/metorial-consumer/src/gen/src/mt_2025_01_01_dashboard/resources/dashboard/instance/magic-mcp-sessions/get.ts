@@ -3,7 +3,6 @@ import { mtMap } from '@metorial/util-resource-mapper';
 export type DashboardInstanceMagicMcpSessionsGetOutput = {
   object: 'magic_mcp.session';
   id: string;
-  sessionId: string;
   magicMcpServer: {
     object: 'magic_mcp.server';
     id: string;
@@ -58,6 +57,7 @@ export type DashboardInstanceMagicMcpSessionsGetOutput = {
     createdAt: Date;
     updatedAt: Date;
   } | null;
+  sessionId: string;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -66,7 +66,6 @@ export let mapDashboardInstanceMagicMcpSessionsGetOutput =
   mtMap.object<DashboardInstanceMagicMcpSessionsGetOutput>({
     object: mtMap.objectField('object', mtMap.passthrough()),
     id: mtMap.objectField('id', mtMap.passthrough()),
-    sessionId: mtMap.objectField('session_id', mtMap.passthrough()),
     magicMcpServer: mtMap.objectField(
       'magic_mcp_server',
       mtMap.object({
@@ -188,6 +187,7 @@ export let mapDashboardInstanceMagicMcpSessionsGetOutput =
         updatedAt: mtMap.objectField('updated_at', mtMap.date())
       })
     ),
+    sessionId: mtMap.objectField('session_id', mtMap.passthrough()),
     createdAt: mtMap.objectField('created_at', mtMap.date()),
     updatedAt: mtMap.objectField('updated_at', mtMap.date())
   });

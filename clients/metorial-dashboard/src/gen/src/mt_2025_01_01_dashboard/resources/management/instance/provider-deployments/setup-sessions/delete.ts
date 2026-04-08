@@ -4,7 +4,13 @@ export type ManagementInstanceProviderDeploymentsSetupSessionsDeleteOutput = {
   object: 'provider.setup_session';
   id: string;
   type: 'auth_only' | 'config_only' | 'auth_and_config';
-  status: 'failed' | 'archived' | 'deleted' | 'pending' | 'completed' | 'expired';
+  status:
+    | 'failed'
+    | 'archived'
+    | 'deleted'
+    | 'pending'
+    | 'completed'
+    | 'expired';
   url: string;
   name: string | null;
   description: string | null;
@@ -52,6 +58,7 @@ export type ManagementInstanceProviderDeploymentsSetupSessionsDeleteOutput = {
     object: 'provider.auth_credentials';
     id: string;
     type: 'oauth';
+    status: 'active' | 'archived' | 'deleted';
     isDefault: boolean;
     isManaged: boolean;
     name: string | null;
@@ -101,6 +108,7 @@ export type ManagementInstanceProviderDeploymentsSetupSessionsDeleteOutput = {
       object: 'provider.auth_credentials';
       id: string;
       type: 'oauth';
+      status: 'active' | 'archived' | 'deleted';
       isDefault: boolean;
       isManaged: boolean;
       name: string | null;
@@ -140,6 +148,7 @@ export type ManagementInstanceProviderDeploymentsSetupSessionsDeleteOutput = {
   config: {
     object: 'provider.config';
     id: string;
+    status: 'active' | 'archived' | 'deleted';
     isDefault: boolean;
     name: string | null;
     description: string | null;
@@ -174,6 +183,7 @@ export type ManagementInstanceProviderDeploymentsSetupSessionsDeleteOutput = {
     fromVault: {
       object: 'provider.config_vault';
       id: string;
+      status: 'active' | 'archived' | 'deleted';
       name: string;
       description: string | null;
       metadata: Record<string, any> | null;
@@ -215,7 +225,10 @@ export let mapManagementInstanceProviderDeploymentsSetupSessionsDeleteOutput =
     configuration: mtMap.objectField('configuration', mtMap.passthrough()),
     providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
     identityId: mtMap.objectField('identity_id', mtMap.passthrough()),
-    identityCredentialId: mtMap.objectField('identity_credential_id', mtMap.passthrough()),
+    identityCredentialId: mtMap.objectField(
+      'identity_credential_id',
+      mtMap.passthrough()
+    ),
     authMethod: mtMap.objectField(
       'auth_method',
       mtMap.object({
@@ -281,6 +294,7 @@ export let mapManagementInstanceProviderDeploymentsSetupSessionsDeleteOutput =
         object: mtMap.objectField('object', mtMap.passthrough()),
         id: mtMap.objectField('id', mtMap.passthrough()),
         type: mtMap.objectField('type', mtMap.passthrough()),
+        status: mtMap.objectField('status', mtMap.passthrough()),
         isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
         isManaged: mtMap.objectField('is_managed', mtMap.passthrough()),
         name: mtMap.objectField('name', mtMap.passthrough()),
@@ -323,9 +337,18 @@ export let mapManagementInstanceProviderDeploymentsSetupSessionsDeleteOutput =
                         'object',
                         mtMap.object({
                           type: mtMap.objectField('type', mtMap.passthrough()),
-                          keys: mtMap.objectField('keys', mtMap.array(mtMap.passthrough())),
-                          pattern: mtMap.objectField('pattern', mtMap.passthrough()),
-                          uris: mtMap.objectField('uris', mtMap.array(mtMap.passthrough()))
+                          keys: mtMap.objectField(
+                            'keys',
+                            mtMap.array(mtMap.passthrough())
+                          ),
+                          pattern: mtMap.objectField(
+                            'pattern',
+                            mtMap.passthrough()
+                          ),
+                          uris: mtMap.objectField(
+                            'uris',
+                            mtMap.array(mtMap.passthrough())
+                          )
                         })
                       )
                     ])
@@ -355,6 +378,7 @@ export let mapManagementInstanceProviderDeploymentsSetupSessionsDeleteOutput =
             object: mtMap.objectField('object', mtMap.passthrough()),
             id: mtMap.objectField('id', mtMap.passthrough()),
             type: mtMap.objectField('type', mtMap.passthrough()),
+            status: mtMap.objectField('status', mtMap.passthrough()),
             isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
             isManaged: mtMap.objectField('is_managed', mtMap.passthrough()),
             name: mtMap.objectField('name', mtMap.passthrough()),
@@ -374,7 +398,10 @@ export let mapManagementInstanceProviderDeploymentsSetupSessionsDeleteOutput =
             key: mtMap.objectField('key', mtMap.passthrough()),
             name: mtMap.objectField('name', mtMap.passthrough()),
             description: mtMap.objectField('description', mtMap.passthrough()),
-            capabilities: mtMap.objectField('capabilities', mtMap.passthrough()),
+            capabilities: mtMap.objectField(
+              'capabilities',
+              mtMap.passthrough()
+            ),
             inputSchema: mtMap.objectField(
               'input_schema',
               mtMap.object({
@@ -397,7 +424,10 @@ export let mapManagementInstanceProviderDeploymentsSetupSessionsDeleteOutput =
                   id: mtMap.objectField('id', mtMap.passthrough()),
                   scope: mtMap.objectField('scope', mtMap.passthrough()),
                   name: mtMap.objectField('name', mtMap.passthrough()),
-                  description: mtMap.objectField('description', mtMap.passthrough())
+                  description: mtMap.objectField(
+                    'description',
+                    mtMap.passthrough()
+                  )
                 })
               )
             ),
@@ -419,6 +449,7 @@ export let mapManagementInstanceProviderDeploymentsSetupSessionsDeleteOutput =
       mtMap.object({
         object: mtMap.objectField('object', mtMap.passthrough()),
         id: mtMap.objectField('id', mtMap.passthrough()),
+        status: mtMap.objectField('status', mtMap.passthrough()),
         isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
         name: mtMap.objectField('name', mtMap.passthrough()),
         description: mtMap.objectField('description', mtMap.passthrough()),
@@ -442,9 +473,18 @@ export let mapManagementInstanceProviderDeploymentsSetupSessionsDeleteOutput =
                         'object',
                         mtMap.object({
                           type: mtMap.objectField('type', mtMap.passthrough()),
-                          keys: mtMap.objectField('keys', mtMap.array(mtMap.passthrough())),
-                          pattern: mtMap.objectField('pattern', mtMap.passthrough()),
-                          uris: mtMap.objectField('uris', mtMap.array(mtMap.passthrough()))
+                          keys: mtMap.objectField(
+                            'keys',
+                            mtMap.array(mtMap.passthrough())
+                          ),
+                          pattern: mtMap.objectField(
+                            'pattern',
+                            mtMap.passthrough()
+                          ),
+                          uris: mtMap.objectField(
+                            'uris',
+                            mtMap.array(mtMap.passthrough())
+                          )
                         })
                       )
                     ])
@@ -455,7 +495,10 @@ export let mapManagementInstanceProviderDeploymentsSetupSessionsDeleteOutput =
           ])
         ),
         providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-        specificationId: mtMap.objectField('specification_id', mtMap.passthrough()),
+        specificationId: mtMap.objectField(
+          'specification_id',
+          mtMap.passthrough()
+        ),
         deployment: mtMap.objectField(
           'deployment',
           mtMap.object({
@@ -475,6 +518,7 @@ export let mapManagementInstanceProviderDeploymentsSetupSessionsDeleteOutput =
           mtMap.object({
             object: mtMap.objectField('object', mtMap.passthrough()),
             id: mtMap.objectField('id', mtMap.passthrough()),
+            status: mtMap.objectField('status', mtMap.passthrough()),
             name: mtMap.objectField('name', mtMap.passthrough()),
             description: mtMap.objectField('description', mtMap.passthrough()),
             metadata: mtMap.objectField('metadata', mtMap.passthrough()),
@@ -486,9 +530,15 @@ export let mapManagementInstanceProviderDeploymentsSetupSessionsDeleteOutput =
                 id: mtMap.objectField('id', mtMap.passthrough()),
                 isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
                 name: mtMap.objectField('name', mtMap.passthrough()),
-                description: mtMap.objectField('description', mtMap.passthrough()),
+                description: mtMap.objectField(
+                  'description',
+                  mtMap.passthrough()
+                ),
                 metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-                providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
+                providerId: mtMap.objectField(
+                  'provider_id',
+                  mtMap.passthrough()
+                ),
                 createdAt: mtMap.objectField('created_at', mtMap.date()),
                 updatedAt: mtMap.objectField('updated_at', mtMap.date())
               })
@@ -507,3 +557,4 @@ export let mapManagementInstanceProviderDeploymentsSetupSessionsDeleteOutput =
     updatedAt: mtMap.objectField('updated_at', mtMap.date()),
     expiresAt: mtMap.objectField('expires_at', mtMap.date())
   });
+

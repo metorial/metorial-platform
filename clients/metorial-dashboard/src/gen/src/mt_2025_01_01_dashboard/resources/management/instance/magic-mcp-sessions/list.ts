@@ -4,7 +4,6 @@ export type ManagementInstanceMagicMcpSessionsListOutput = {
   items: {
     object: 'magic_mcp.session';
     id: string;
-    sessionId: string;
     magicMcpServer: {
       object: 'magic_mcp.server';
       id: string;
@@ -59,6 +58,7 @@ export type ManagementInstanceMagicMcpSessionsListOutput = {
       createdAt: Date;
       updatedAt: Date;
     } | null;
+    sessionId: string;
     createdAt: Date;
     updatedAt: Date;
   }[];
@@ -73,7 +73,6 @@ export let mapManagementInstanceMagicMcpSessionsListOutput =
         mtMap.object({
           object: mtMap.objectField('object', mtMap.passthrough()),
           id: mtMap.objectField('id', mtMap.passthrough()),
-          sessionId: mtMap.objectField('session_id', mtMap.passthrough()),
           magicMcpServer: mtMap.objectField(
             'magic_mcp_server',
             mtMap.object({
@@ -210,6 +209,7 @@ export let mapManagementInstanceMagicMcpSessionsListOutput =
               updatedAt: mtMap.objectField('updated_at', mtMap.date())
             })
           ),
+          sessionId: mtMap.objectField('session_id', mtMap.passthrough()),
           createdAt: mtMap.objectField('created_at', mtMap.date()),
           updatedAt: mtMap.objectField('updated_at', mtMap.date())
         })
