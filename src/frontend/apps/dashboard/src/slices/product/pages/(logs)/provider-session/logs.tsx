@@ -48,7 +48,7 @@ export let ProviderSessionLogsPage = () => {
   ));
 };
 
-let ProviderSessionLogs = ({ session }: { session: DashboardInstanceSessionsGetOutput }) => {
+export let ProviderSessionLogs = ({ session }: { session: DashboardInstanceSessionsGetOutput }) => {
   let instance = useCurrentInstance();
   let instanceId = instance.data?.id;
 
