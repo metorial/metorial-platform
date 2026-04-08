@@ -28,4 +28,6 @@ model SlateInvocation {
   slateSessionToolCalls         SlateSessionToolCall[]
   slateTriggerInvocations       SlateTriggerInvocation[]
   slateTriggerEvents            SlateTriggerEvent[]
+
+  @@index([deploymentOid, createdAt])
 }

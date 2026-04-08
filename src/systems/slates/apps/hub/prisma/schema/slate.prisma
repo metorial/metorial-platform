@@ -313,6 +313,8 @@ model SlateVersionDiscovery {
   invocation    SlateInvocation? @relation(fields: [invocationOid], references: [oid])
 
   createdAt DateTime @default(now())
+
+  @@index([slateVersionOid, createdAt])
 }
 
 enum SlateSpecificationChangeType {
@@ -341,6 +343,8 @@ model SlateSpecificationChange {
   toSpecification    SlateSpecification @relation("toSpecification", fields: [toSpecificationOid], references: [oid])
 
   createdAt DateTime @default(now())
+
+  @@index([slateOid, createdAt])
 }
 
 enum SlateEventType {
@@ -370,6 +374,8 @@ model SlateEvent {
   slateVersion    SlateVersion @relation(fields: [slateVersionOid], references: [oid])
 
   createdAt DateTime @default(now())
+
+  @@index([slateOid, createdAt])
 }
 
 model DeploymentProvider {
@@ -419,4 +425,6 @@ model SlateDeployment {
 
   slateInvocations SlateInvocation[]
   slateVersions    SlateVersion[]    @relation("activeDeployment")
+
+  @@index([slateOid, createdAt])
 }

@@ -7,6 +7,8 @@ model Tenant {
 
   signalTenantId String? @unique
 
+  logRetentionInDays Int @default(30)
+
   createdAt DateTime @default(now())
 
   secrets                  Secret[]
