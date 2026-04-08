@@ -8,11 +8,14 @@ import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
+  useDeleteProviderConfig,
   useProviderConfigs,
   useProviders
 } from '@metorial/state';
-import { Badge, RenderDate, Text } from '@metorial/ui';
+import { Badge, RenderDate, Text, confirm } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
+import { RiDeleteBinLine } from '@remixicon/react';
+import { useState } from 'react';
 import { EmptyState } from '../../../../../components/emptyState';
 import { Table as DashboardTable } from '../../../../../components/table';
 import { FilterPayload } from '../../../../../components/table/filter';
@@ -22,6 +25,7 @@ import {
 } from '../../../../../components/table/type';
 import {
   getDateRangeFilterValue,
+  getEnumListFilterValue,
   getStringFilterValue
 } from '../../../../../lib/dataTableUtils';
 import { withFromDeployment } from '../fromDeployment';
@@ -35,10 +39,21 @@ type ProviderConfigRow = ProviderConfig & {
   providerDeploymentName?: string | null;
 };
 
+let getProviderConfigStatusColor = (status: ProviderConfig['status']) => {
+  if (status === 'active') return 'green';
+  if (status === 'archived') return 'orange';
+  return 'gray';
+};
+
 type ProviderConfigFilters = Omit<
   DashboardInstanceProviderDeploymentsConfigsListQuery,
   'limit' | 'after' | 'before' | 'cursor'
 >;
+
+let getStatusFilterValue = (
+  value: FilterPayload | undefined
+): DashboardInstanceProviderDeploymentsConfigsListQuery['status'] =>
+  getEnumListFilterValue(value, ['active', 'archived']);
 
 type ProviderConfigsOverviewTableProps = {
   instanceId: string;
@@ -63,6 +78,7 @@ let providerConfigsOverviewTableState: TableStateProvider<
   let configs = useProviderConfigs(props.instanceId, {
     order: 'desc',
     ...props.filters,
+    status: getStatusFilterValue(opts.filter.status) ?? props.filters?.status,
     id: getStringFilterValue(opts.filter.id) ?? props.filters?.id,
     providerId: getStringFilterValue(opts.filter.providerId) ?? props.filters?.providerId,
     providerSpecificationId:
@@ -123,11 +139,43 @@ let providerConfigsOverviewTableState: TableStateProvider<
   };
 };
 
+let useProviderConfigsOverviewTableHookState = (
+  _: ReturnType<typeof providerConfigsOverviewTableState>,
+  props: ProviderConfigsOverviewTableProps
+) => {
+  let deleteConfig = useDeleteProviderConfig();
+  let [loadingIds, setLoadingIds] = useState<string[]>([]);
+
+  return {
+    deleteConfig,
+    instanceId: props.instanceId,
+    loadingIds,
+    setLoadingIds
+  };
+};
+
+let deleteProviderConfigImmediately = async (
+  config: ProviderConfigRow,
+  state: ReturnType<typeof useProviderConfigsOverviewTableHookState>
+) => {
+  state.setLoadingIds((current: string[]) => [...new Set([...current, config.id])]);
+
+  try {
+    await state.deleteConfig.mutate({
+      instanceId: state.instanceId,
+      providerConfigId: config.id
+    });
+  } finally {
+    state.setLoadingIds((current: string[]) => current.filter(id => id != config.id));
+  }
+};
+
 export let providerConfigsOverviewTable = new DashboardTable<
   ProviderConfigsOverviewTableProps,
   ProviderConfigRow
 >('provider-configs-overview')
   .state(providerConfigsOverviewTableState)
+  .hookState(useProviderConfigsOverviewTableHookState)
   .columns([
     {
       id: 'name',
@@ -171,6 +219,14 @@ export let providerConfigsOverviewTable = new DashboardTable<
       render: row => <ID id={row.id} />
     },
     {
+      id: 'status',
+      isDefault: false,
+      header: 'Status',
+      render: row => (
+        <Badge color={getProviderConfigStatusColor(row.status)}>{row.status}</Badge>
+      )
+    },
+    {
       id: 'default',
       isDefault: false,
       header: 'Default',
@@ -210,6 +266,17 @@ export let providerConfigsOverviewTable = new DashboardTable<
     }
   ])
   .filters([
+    {
+      id: 'status',
+      fields: ['status'],
+      label: 'Status',
+      description: 'Filter by status',
+      type: 'select',
+      options: [
+        { id: 'active', label: 'Active' },
+        { id: 'archived', label: 'Archived' }
+      ]
+    },
     {
       id: 'id',
       fields: ['id'],
@@ -272,6 +339,49 @@ export let providerConfigsOverviewTable = new DashboardTable<
       props.fromDeploymentId
     )
   )
+  .actions({
+    deleteImmediate: async (configs, state) => {
+      let config = configs[0];
+      if (!config) return;
+
+      await deleteProviderConfigImmediately(config, state);
+    },
+    delete: async (configs, state) => {
+      let config = configs[0];
+      if (!config) return;
+
+      confirm({
+        title: 'Delete config',
+        description: `Are you sure you want to delete ${config.name ?? 'this config'}?`,
+        confirmText: 'Delete',
+        onConfirm: async () => {
+          await deleteProviderConfigImmediately(config, state);
+        }
+      });
+    }
+  })
+  .rowActions([
+    {
+      id: 'delete',
+      label: 'Delete',
+      icon: <RiDeleteBinLine />,
+      disabled: row => row.status !== 'active',
+      action: 'delete'
+    }
+  ])
+  .bulkActions([
+    {
+      id: 'delete-selected',
+      label: 'Delete',
+      icon: <RiDeleteBinLine />,
+      disabled: row => row.status !== 'active',
+      action: 'deleteImmediate',
+      bulkExecution: {
+        mode: 'per-row',
+        batchSize: 10
+      }
+    }
+  ])
   .build();
 
 export let ProviderConfigsOverviewPage = () => {

@@ -35,6 +35,14 @@ export let useCreateProviderAuthCredentials =
     { disableToast: true }
   );
 
+export let useDeleteProviderAuthCredentials =
+  providerAuthCredentialsLoader.createExternalMutator(
+    (i: { instanceId: string; providerAuthCredentialsId: string }) =>
+      withAuth(sdk =>
+        sdk.providerDeployments.authCredentials.delete(i.instanceId, i.providerAuthCredentialsId)
+      )
+  );
+
 export let useProviderAuthCredentials = (
   instanceId: string | null | undefined,
   query?: DashboardInstanceProviderDeploymentsAuthCredentialsListQuery
@@ -67,6 +75,10 @@ export let providerAuthCredentialLoader = createLoader({
             providerAuthCredentialsId,
             body
           )
+      ),
+    delete: (_, { input: { instanceId, providerAuthCredentialsId } }) =>
+      withAuth(sdk =>
+        sdk.providerDeployments.authCredentials.delete(instanceId, providerAuthCredentialsId)
       )
   }
 });
@@ -81,6 +93,7 @@ export let useProviderAuthCredential = (
 
   return {
     ...data,
-    useUpdateMutator: data.useMutator('update')
+    useUpdateMutator: data.useMutator('update'),
+    useDeleteMutator: data.useMutator('delete')
   };
 };

@@ -50,11 +50,11 @@ export let normalizeStatusForList = <T extends 'archived' | 'deleted' | string>(
 
   return {
     hasParent: {
-      status: { not: 'deleted' as const },
+      status: { notIn: ['deleted' as const, 'archived' as const] },
       isParentDeleted: false
     },
     noParent: {
-      status: { not: 'deleted' as const }
+      status: { notIn: ['deleted' as const, 'archived' as const] }
     },
     onlyParent: {
       isParentDeleted: false

@@ -9,6 +9,7 @@ import {
 } from '@metorial/state';
 import { Button, LinkTabs } from '@metorial/ui';
 import { Link, Outlet, useLocation, useParams } from 'react-router-dom';
+import { DeletedRecordCallout } from '../../../scenes/deletedRecordCallout';
 
 export let ProviderDeploymentLayout = () => {
   let instance = useCurrentInstance();
@@ -83,6 +84,8 @@ export let ProviderDeploymentLayout = () => {
 
       {renderWithLoader({ deployment })(({ deployment }) => (
         <>
+          <DeletedRecordCallout status={deployment.data?.status} />
+
           <LinkTabs
             current={pathname}
             links={[

@@ -7,11 +7,14 @@ import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
+  useDeleteProviderDeployment,
   useProviderDeployments,
   useProviders
 } from '@metorial/state';
-import { Badge, RenderDate, Text } from '@metorial/ui';
+import { Badge, RenderDate, Text, confirm } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
+import { RiDeleteBinLine } from '@remixicon/react';
+import { useState } from 'react';
 import { Table as DashboardTable } from '../../../../components/table';
 import { FilterPayload } from '../../../../components/table/filter';
 import {
@@ -49,6 +52,12 @@ let getProviderDeploymentStatusFilterValue = (
   value: FilterPayload | undefined
 ): DashboardInstanceProviderDeploymentsListQuery['status'] => {
   return getEnumListFilterValue(value, ['active', 'archived']);
+};
+
+let getProviderDeploymentStatusColor = (status: ProviderDeployment['status']) => {
+  if (status === 'active') return 'green';
+  if (status === 'archived') return 'orange';
+  return 'gray';
 };
 
 let useProviderDeploymentsTableState: TableStateProvider<
@@ -118,11 +127,43 @@ let useProviderDeploymentsTableState: TableStateProvider<
   };
 };
 
+let useProviderDeploymentsTableHookState = (
+  _: ReturnType<typeof useProviderDeploymentsTableState>,
+  props: ProviderDeploymentsTableProps
+) => {
+  let deleteDeployment = useDeleteProviderDeployment();
+  let [loadingIds, setLoadingIds] = useState<string[]>([]);
+
+  return {
+    deleteDeployment,
+    instanceId: props.instanceId,
+    loadingIds,
+    setLoadingIds
+  };
+};
+
+let deleteProviderDeploymentImmediately = async (
+  deployment: ProviderDeploymentRow,
+  state: ReturnType<typeof useProviderDeploymentsTableHookState>
+) => {
+  state.setLoadingIds((current: string[]) => [...new Set([...current, deployment.id])]);
+
+  try {
+    await state.deleteDeployment.mutate({
+      instanceId: state.instanceId,
+      providerDeploymentId: deployment.id
+    });
+  } finally {
+    state.setLoadingIds((current: string[]) => current.filter(id => id != deployment.id));
+  }
+};
+
 let providerDeploymentsTable = new DashboardTable<
   ProviderDeploymentsTableProps,
   ProviderDeploymentRow
 >('provider-deployments')
   .state(useProviderDeploymentsTableState)
+  .hookState(useProviderDeploymentsTableHookState)
   .columns([
     {
       id: 'name',
@@ -165,6 +206,16 @@ let providerDeploymentsTable = new DashboardTable<
       isDefault: true,
       header: 'Created',
       render: deployment => <RenderDate date={deployment.createdAt} />
+    },
+    {
+      id: 'status',
+      isDefault: false,
+      header: 'Status',
+      render: deployment => (
+        <Badge color={getProviderDeploymentStatusColor(deployment.status)}>
+          {deployment.status}
+        </Badge>
+      )
     },
     {
       id: 'default',
@@ -281,6 +332,49 @@ let providerDeploymentsTable = new DashboardTable<
       deployment.id
     )
   )
+  .actions({
+    deleteImmediate: async (deployments, state) => {
+      let deployment = deployments[0];
+      if (!deployment) return;
+
+      await deleteProviderDeploymentImmediately(deployment, state);
+    },
+    delete: async (deployments, state) => {
+      let deployment = deployments[0];
+      if (!deployment) return;
+
+      confirm({
+        title: 'Delete deployment',
+        description: `Are you sure you want to delete ${deployment.name ?? 'this deployment'}?`,
+        confirmText: 'Delete',
+        onConfirm: async () => {
+          await deleteProviderDeploymentImmediately(deployment, state);
+        }
+      });
+    }
+  })
+  .rowActions([
+    {
+      id: 'delete',
+      label: 'Delete',
+      icon: <RiDeleteBinLine />,
+      disabled: deployment => deployment.status !== 'active',
+      action: 'delete'
+    }
+  ])
+  .bulkActions([
+    {
+      id: 'delete-selected',
+      label: 'Delete',
+      icon: <RiDeleteBinLine />,
+      disabled: deployment => deployment.status !== 'active',
+      action: 'deleteImmediate',
+      bulkExecution: {
+        mode: 'per-row',
+        batchSize: 10
+      }
+    }
+  ])
   .build();
 
 export let ProviderDeploymentsTable = ({

@@ -11,6 +11,8 @@ export let providerConfigVaultPresenter = (
 
   id: providerConfigVault.id,
 
+  status: providerConfigVault.status,
+
   name: providerConfigVault.name,
   description: providerConfigVault.description,
   metadata: providerConfigVault.metadata,

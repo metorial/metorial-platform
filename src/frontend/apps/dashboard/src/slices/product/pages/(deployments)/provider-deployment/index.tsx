@@ -5,12 +5,10 @@ import {
   useProviderAuthMethods,
   useProviderDeployment
 } from '@metorial/state';
-import { Badge, Button, RenderDate, Spacer, Text, theme } from '@metorial/ui';
-import { Box, ID, SideBox } from '@metorial/ui-product';
+import { Badge, RenderDate, Spacer, Text, theme } from '@metorial/ui';
+import { Box, ID } from '@metorial/ui-product';
 import { useParams } from 'react-router-dom';
 import { styled } from 'styled-components';
-import { ProviderAuthConfigsTable } from '../../../scenes/providerAuthConfigs/table';
-import { showProviderSetupSessionModal } from '../../../scenes/providerDeployments/setupSessionModal';
 import { ProviderSessionsTable } from '../../../scenes/providerSessions/table';
 import { UsageScene } from '../../../scenes/usage/usage';
 
@@ -118,7 +116,7 @@ export let ProviderDeploymentOverviewPage = () => {
         <ProviderSessionsTable providerDeploymentId={deployment.data.id} />
       </Box>
 
-      {hasAuthMethods && (
+      {/* {hasAuthMethods && (
         <>
           <Spacer height={20} />
 
@@ -148,7 +146,7 @@ export let ProviderDeploymentOverviewPage = () => {
             providerDeploymentId={deployment.data.id}
           />
         </>
-      )}
+      )} */}
     </>
   ));
 };

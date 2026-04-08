@@ -8,10 +8,13 @@ import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
+  useDeleteSession,
   useSessions
 } from '@metorial/state';
-import { Badge, RenderDate, Text } from '@metorial/ui';
+import { Badge, RenderDate, Text, confirm } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
+import { RiDeleteBinLine } from '@remixicon/react';
+import { useState } from 'react';
 import { Table as DashboardTable } from '../../../../components/table';
 import { FilterPayload } from '../../../../components/table/filter';
 import {
@@ -39,6 +42,12 @@ let getSessionStatusFilterValue = (
   | Extract<DashboardInstanceSessionsListQuery['status'], 'active' | 'archived'>[]
   | undefined => {
   return getEnumListFilterValue(value, ['active', 'archived']);
+};
+
+let getSessionLifecycleStatusColor = (status: Session['status']) => {
+  if (status === 'active') return 'green';
+  if (status === 'archived') return 'orange';
+  return 'gray';
 };
 
 export let SessionConnectionStatusBadge = ({
@@ -91,10 +100,42 @@ let useProviderSessionsTableState: TableStateProvider<
   };
 };
 
+let useProviderSessionsTableHookState = (
+  _: ReturnType<typeof useProviderSessionsTableState>,
+  props: ProviderSessionsTableProps
+) => {
+  let deleteSession = useDeleteSession();
+  let [loadingIds, setLoadingIds] = useState<string[]>([]);
+
+  return {
+    deleteSession,
+    instanceId: props.instance.data?.id ?? '',
+    loadingIds,
+    setLoadingIds
+  };
+};
+
+let deleteProviderSessionImmediately = async (
+  session: Session,
+  state: ReturnType<typeof useProviderSessionsTableHookState>
+) => {
+  state.setLoadingIds((current: string[]) => [...new Set([...current, session.id])]);
+
+  try {
+    await state.deleteSession.mutate({
+      instanceId: state.instanceId,
+      sessionId: session.id
+    });
+  } finally {
+    state.setLoadingIds((current: string[]) => current.filter(id => id != session.id));
+  }
+};
+
 let providerSessionsTable = new DashboardTable<ProviderSessionsTableProps, Session>(
   'provider-sessions'
 )
   .state(useProviderSessionsTableState)
+  .hookState(useProviderSessionsTableHookState)
   .columns([
     {
       id: 'name',
@@ -116,13 +157,21 @@ let providerSessionsTable = new DashboardTable<ProviderSessionsTableProps, Sessi
     {
       id: 'status',
       isDefault: true,
-      header: 'Status',
+      header: 'Connection',
       render: session => (
         <SessionConnectionStatusBadge
           connectionStatus={session.connectionState}
           hasErrors={session.hasErrors}
           hasWarnings={session.hasWarnings}
         />
+      )
+    },
+    {
+      id: 'lifecycleStatus',
+      isDefault: false,
+      header: 'Lifecycle',
+      render: session => (
+        <Badge color={getSessionLifecycleStatusColor(session.status)}>{session.status}</Badge>
       )
     },
     {
@@ -213,6 +262,49 @@ let providerSessionsTable = new DashboardTable<ProviderSessionsTableProps, Sessi
       session.id
     )
   )
+  .actions({
+    deleteImmediate: async (sessions, state) => {
+      let session = sessions[0];
+      if (!session) return;
+
+      await deleteProviderSessionImmediately(session, state);
+    },
+    delete: async (sessions, state) => {
+      let session = sessions[0];
+      if (!session) return;
+
+      confirm({
+        title: 'Delete session',
+        description: `Are you sure you want to delete ${session.name ?? 'this session'}?`,
+        confirmText: 'Delete',
+        onConfirm: async () => {
+          await deleteProviderSessionImmediately(session, state);
+        }
+      });
+    }
+  })
+  .rowActions([
+    {
+      id: 'delete',
+      label: 'Delete',
+      icon: <RiDeleteBinLine />,
+      disabled: session => session.status !== 'active',
+      action: 'delete'
+    }
+  ])
+  .bulkActions([
+    {
+      id: 'delete-selected',
+      label: 'Delete',
+      icon: <RiDeleteBinLine />,
+      disabled: session => session.status !== 'active',
+      action: 'deleteImmediate',
+      bulkExecution: {
+        mode: 'per-row',
+        batchSize: 10
+      }
+    }
+  ])
   .build();
 
 export let ProviderSessionsTable = ({

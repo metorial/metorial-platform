@@ -22,7 +22,7 @@ export let ProviderConfigVaultOverviewPage = () => {
   return renderWithLoader({ vault })(({ vault }) => (
     <>
       <Attributes
-        itemWidth="250px"
+        itemWidth="300px"
         attributes={[
           {
             label: 'Name',
@@ -60,10 +60,6 @@ export let ProviderConfigVaultOverviewPage = () => {
           {
             label: 'Created',
             content: vault.data.createdAt ? <RenderDate date={vault.data.createdAt} /> : '—'
-          },
-          {
-            label: 'Updated',
-            content: vault.data.updatedAt ? <RenderDate date={vault.data.updatedAt} /> : '—'
           }
         ]}
       />

@@ -10,6 +10,7 @@ import {
 } from '@metorial/state';
 import { LinkTabs } from '@metorial/ui';
 import { Outlet, useLocation, useParams } from 'react-router-dom';
+import { DeletedRecordCallout } from '../../../scenes/deletedRecordCallout';
 import { getFromDeployment, withFromDeployment } from '../fromDeployment';
 
 export let ProviderConfigVaultLayout = () => {
@@ -107,6 +108,8 @@ export let ProviderConfigVaultLayout = () => {
 
       {renderWithLoader({ vault })(() => (
         <>
+          <DeletedRecordCallout status={vault.data?.status} />
+
           <LinkTabs
             current={pathname}
             links={[
