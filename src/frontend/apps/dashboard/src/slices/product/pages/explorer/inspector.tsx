@@ -83,9 +83,13 @@ type ExplorerConfigMessage = {
   };
 };
 
-export let InspectorFrame = ({ sessionId }: { sessionId: string }) => {
+export let InspectorFrame = (p: {
+  sessionId: string;
+  sessionTemplateId?: string | null;
+  magicMcpServerId?: string | null;
+}) => {
   let instance = useCurrentInstance();
-  let session = useSession(instance.data?.id, sessionId);
+  let session = useSession(instance.data?.id, p.sessionId);
   let iframeRef = useRef<HTMLIFrameElement | null>(null);
   let runtimeWindow = window as ExplorerRuntimeWindow;
 
@@ -172,6 +176,7 @@ export let InspectorFrame = ({ sessionId }: { sessionId: string }) => {
   }, [explorerConfig, url]);
 
   let firstDeploymentId = session.data?.providers?.[0]?.deployment?.id;
+  let resolvedSessionTemplateId = p.sessionTemplateId ?? session.data?.fromTemplatesIds?.[0];
 
   return (
     <>
@@ -212,7 +217,33 @@ export let InspectorFrame = ({ sessionId }: { sessionId: string }) => {
             </Button>
           </Menu>
 
-          {firstDeploymentId && (
+          {p.magicMcpServerId ? (
+            <Link
+              to={Paths.instance.magicMcp.server(
+                instance.data?.organization,
+                instance.data?.project,
+                instance.data,
+                p.magicMcpServerId
+              )}
+            >
+              <Button as="span" size="2" variant="outline">
+                Open Magic MCP Server
+              </Button>
+            </Link>
+          ) : resolvedSessionTemplateId ? (
+            <Link
+              to={Paths.instance.sessionTemplate(
+                instance.data?.organization,
+                instance.data?.project,
+                instance.data,
+                resolvedSessionTemplateId
+              )}
+            >
+              <Button as="span" size="2" variant="outline">
+                Open Session Template
+              </Button>
+            </Link>
+          ) : firstDeploymentId ? (
             <Link
               to={Paths.instance.providerDeployment(
                 instance.data?.organization,
@@ -225,14 +256,14 @@ export let InspectorFrame = ({ sessionId }: { sessionId: string }) => {
                 Open Provider Deployment
               </Button>
             </Link>
-          )}
+          ) : null}
 
           <Link
             to={Paths.instance.providerSession(
               instance.data?.organization,
               instance.data?.project,
               instance.data,
-              sessionId
+              p.sessionId
             )}
           >
             <Button as="span" size="2" variant="outline">
