@@ -21,13 +21,13 @@ export let IdentityLayout = () => {
   let pathname = useLocation().pathname;
   let navigate = useNavigate();
 
-  return renderWithLoader({ instance, organization, project, identity: _identity })(
-    ({ instance, organization, project, identity }) => (
-      <ContentLayout>
-        <PageHeader
-          title={identity.data.name ?? identity.data.id}
-          description={identity.data.description ?? undefined}
-          actions={
+  return (
+    <ContentLayout>
+      <PageHeader
+        title={_identity.data?.name ?? _identity.data?.id ?? '...'}
+        description={_identity.data?.description ?? undefined}
+        actions={
+          _identity.data ? (
             <Menu
               label="Delegate"
               items={[
@@ -43,11 +43,14 @@ export let IdentityLayout = () => {
                 }
               ]}
               onItemClick={itemId => {
+                if (!_identity.data || !instance.data || !organization.data || !project.data)
+                  return;
+
                 if (itemId === 'delegation') {
                   showIdentityDelegationFormModal({
                     instanceId: instance.data.id,
-                    identityId: identity.data.id,
-                    identityName: identity.data.name,
+                    identityId: _identity.data.id,
+                    identityName: _identity.data.name,
                     onCreate: delegation =>
                       navigate(
                         Paths.instance.identity.delegation(
@@ -63,8 +66,8 @@ export let IdentityLayout = () => {
 
                 showIdentityDelegationRequestFormModal({
                   instanceId: instance.data.id,
-                  identityId: identity.data.id,
-                  identityName: identity.data.name,
+                  identityId: _identity.data.id,
+                  identityName: _identity.data.name,
                   onCreate: request =>
                     navigate(
                       Paths.instance.identity.delegation(
@@ -79,75 +82,81 @@ export let IdentityLayout = () => {
             >
               <Button size="2">Delegate</Button>
             </Menu>
+          ) : undefined
+        }
+        pagination={[
+          {
+            label: 'Identities',
+            href: Paths.instance.identity.identities(
+              organization.data,
+              project.data,
+              instance.data
+            )
+          },
+          {
+            label: _identity.data?.name ?? _identity.data?.id ?? identityId ?? '...',
+            href: Paths.instance.identity.identity(
+              organization.data,
+              project.data,
+              instance.data,
+              _identity.data?.id ?? identityId
+            )
           }
-          pagination={[
-            {
-              label: 'Identities',
-              href: Paths.instance.identity.identities(
-                organization.data,
-                project.data,
-                instance.data
-              )
-            },
-            {
-              label: identity.data.name ?? identity.data.id,
-              href: Paths.instance.identity.identity(
-                organization.data,
-                project.data,
-                instance.data,
-                identity.data.id
-              )
-            }
-          ]}
-        />
+        ]}
+      />
 
-        <LinkTabs
-          current={pathname}
-          links={[
-            {
-              label: 'Overview',
-              to: Paths.instance.identity.identity(
-                organization.data,
-                project.data,
-                instance.data,
-                identity.data.id
-              )
-            },
-            {
-              label: 'Delegations',
-              to: Paths.instance.identity.identity(
-                organization.data,
-                project.data,
-                instance.data,
-                identity.data.id,
-                'delegations'
-              )
-            },
-            {
-              label: 'Delegation Requests',
-              to: Paths.instance.identity.identity(
-                organization.data,
-                project.data,
-                instance.data,
-                identity.data.id,
-                'delegation-requests'
-              )
-            },
-            {
-              label: 'Settings',
-              to: Paths.instance.identity.identity(
-                organization.data,
-                project.data,
-                instance.data,
-                identity.data.id,
-                'settings'
-              )
-            }
-          ]}
-        />
+      {renderWithLoader({ instance, organization, project, identity: _identity })(
+        ({ instance, organization, project, identity }) => (
+          <>
+            <LinkTabs
+              current={pathname}
+              links={[
+                {
+                  label: 'Overview',
+                  to: Paths.instance.identity.identity(
+                    organization.data,
+                    project.data,
+                    instance.data,
+                    identity.data.id
+                  )
+                },
+                {
+                  label: 'Delegations',
+                  to: Paths.instance.identity.identity(
+                    organization.data,
+                    project.data,
+                    instance.data,
+                    identity.data.id,
+                    'delegations'
+                  )
+                },
+                {
+                  label: 'Delegation Requests',
+                  to: Paths.instance.identity.identity(
+                    organization.data,
+                    project.data,
+                    instance.data,
+                    identity.data.id,
+                    'delegation-requests'
+                  )
+                },
+                {
+                  label: 'Settings',
+                  to: Paths.instance.identity.identity(
+                    organization.data,
+                    project.data,
+                    instance.data,
+                    identity.data.id,
+                    'settings'
+                  )
+                }
+              ]}
+            />
 
-        <Outlet />
-      </ContentLayout>
-    )
+            <Outlet />
+          </>
+        )
+      )}
+    </ContentLayout>
   );
 };
