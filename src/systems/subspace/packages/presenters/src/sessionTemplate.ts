@@ -22,6 +22,8 @@ export let sessionTemplatePresenter = (
 
   id: sessionTemplate.id,
 
+  status: sessionTemplate.status,
+
   name: sessionTemplate.name,
   description: sessionTemplate.description,
   metadata: sessionTemplate.metadata,

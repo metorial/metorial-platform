@@ -22,7 +22,6 @@
     "preserveWatchOutput": true,
     "skipLibCheck": true,
     "strict": true,
-    "downlevelIteration": true,
     "resolveJsonModule": true
   },
   "exclude": [

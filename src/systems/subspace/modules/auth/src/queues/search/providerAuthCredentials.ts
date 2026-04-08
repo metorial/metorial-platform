@@ -31,7 +31,7 @@ export let indexProviderAuthCredentialsQueueProcessor =
       return;
     }
 
-    if (!name && !description) {
+    if (providerAuthCredentials.status !== 'active' || (!name && !description)) {
       await voyager.record.delete({
         sourceId: (await voyagerSource).id,
         indexId: voyagerIndex.providerAuthCredentials.id,

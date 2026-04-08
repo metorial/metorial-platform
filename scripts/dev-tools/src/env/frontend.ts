@@ -59,6 +59,11 @@ export let frontendEnv: Env = [
     defaultValue: `http://${HOSTNAME}:4310`,
     isEnterprise: true
   },
+  {
+    key: 'VITE_CORE_API_URL',
+    defaultValue: `http://${HOSTNAME}:4310`,
+    isEnterprise: true
+  },
 
   // {
   //   key: 'VITE_AUTH_API_URL',

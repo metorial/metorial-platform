@@ -25,6 +25,7 @@ import { serverVersionCreatedQueueProcessor } from './queues/lifecycle/serverVer
 import { repositoryTagCreatedQueueProcessor } from './queues/lifecycle/tag';
 import { delegatedOAuthErrorCheckQueueProcessor } from './queues/oauth/delegatedErrorCheck';
 import { remoteOAuthErrorCheckQueueProcessor } from './queues/oauth/remoteErrorCheck';
+import { retentionQueues } from './queues/retention';
 import { deployRemoteServerStartQueueProcessor } from './queues/remote/startDeployment';
 import {
   propagateRepoVersionToServerQueueProcessor,
@@ -55,6 +56,8 @@ await runQueueProcessors([
 
   delegatedOAuthErrorCheckQueueProcessor,
   remoteOAuthErrorCheckQueueProcessor,
+
+  retentionQueues,
 
   expiresConnectionsCron,
 

@@ -16,35 +16,35 @@ export let IdentityDelegationConfigLayout = () => {
   let { identityDelegationConfigId } = useParams();
   let config = useIdentityDelegationConfig(instance.data?.id, identityDelegationConfigId);
 
-  return renderWithLoader({ instance, organization, project, config })(
-    ({ instance, organization, project, config }) => (
-      <ContentLayout>
-        <PageHeader
-          title={config.data.name ?? config.data.id}
-          description={config.data.description ?? undefined}
-          pagination={[
-            {
-              label: 'Delegation Configs',
-              href: Paths.instance.identity.delegationConfigs(
-                organization.data,
-                project.data,
-                instance.data
-              )
-            },
-            {
-              label: config.data.name ?? config.data.id,
-              href: Paths.instance.identity.delegationConfig(
-                organization.data,
-                project.data,
-                instance.data,
-                config.data.id
-              )
-            }
-          ]}
-        />
+  return (
+    <ContentLayout>
+      <PageHeader
+        title={config.data?.name ?? config.data?.id ?? '...'}
+        description={config.data?.description ?? undefined}
+        pagination={[
+          {
+            label: 'Delegation Configs',
+            href: Paths.instance.identity.delegationConfigs(
+              organization.data,
+              project.data,
+              instance.data
+            )
+          },
+          {
+            label: config.data?.name ?? config.data?.id ?? identityDelegationConfigId ?? '...',
+            href: Paths.instance.identity.delegationConfig(
+              organization.data,
+              project.data,
+              instance.data,
+              config.data?.id ?? identityDelegationConfigId
+            )
+          }
+        ]}
+      />
 
+      {renderWithLoader({ instance, organization, project, config })(() => (
         <Outlet />
-      </ContentLayout>
-    )
+      ))}
+    </ContentLayout>
   );
 };

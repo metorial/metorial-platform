@@ -81,7 +81,7 @@ export let ProviderDeploymentTabSection = ({
         </HeaderRow>
       ) : null}
 
-      {children}
+      <div>{children}</div>
 
       {emptyState ? <EmptyState>{emptyState}</EmptyState> : null}
     </Wrapper>

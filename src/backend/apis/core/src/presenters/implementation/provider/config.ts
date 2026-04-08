@@ -10,6 +10,7 @@ export let v1ConfigPresenter = Presenter.create(providerConfigType)
     object: 'provider.config' as const,
 
     id: config.id,
+    status: config.status,
 
     is_default: config.isDefault,
 
@@ -45,6 +46,10 @@ export let v1ConfigPresenter = Presenter.create(providerConfigType)
         name: 'id',
         description: 'Unique config identifier',
         examples: ['pcf_7dEfGhJkLmNpQrSt']
+      }),
+      status: v.enumOf(['active', 'archived', 'deleted'], {
+        name: 'status',
+        description: 'Config status'
       }),
       is_default: v.boolean({
         name: 'is_default',

@@ -19,7 +19,7 @@ import {
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
-import { ProviderSetupSessionUncheckedUpdateInput } from '@metorial-subspace/db/prisma/generated/models';
+import type { ProviderSetupSessionUncheckedUpdateInput } from '@metorial-subspace/db/prisma/generated/models';
 import { providerConfigService } from '@metorial-subspace/module-deployment';
 import { identityCredentialService } from '@metorial-subspace/module-identity';
 import { checkProviderMatch } from '@metorial-subspace/module-provider-internal';

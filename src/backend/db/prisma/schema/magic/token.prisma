@@ -27,6 +27,7 @@ model MagicMcpToken {
   updatedAt DateTime  @default(now()) @updatedAt
   deletedAt DateTime?
 
-  groups            MagicMcpGroupToken[]
-  accessTagEntities AccessTagEntity[]
+  groups             MagicMcpGroupToken[]
+  accessTagEntities  AccessTagEntity[]
+  portalAuthAttempts PortalAuthAttempt[]
 }

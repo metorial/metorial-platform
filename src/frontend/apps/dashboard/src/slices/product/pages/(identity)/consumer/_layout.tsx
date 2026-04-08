@@ -18,60 +18,64 @@ export let ConsumerLayout = () => {
   let consumer = useConsumer(instance.data?.id, consumerId);
   let pathname = useLocation().pathname;
 
-  return renderWithLoader({ instance, organization, project, consumer })(
-    ({ instance, organization, project, consumer }) => (
-      <ContentLayout>
-        <PageHeader
-          title={consumer.data.name}
-          description={consumer.data.email}
-          pagination={[
-            {
-              label: 'Consumers',
-              href: Paths.instance.identity.consumers(
-                organization.data,
-                project.data,
-                instance.data
-              )
-            },
-            {
-              label: consumer.data.name,
-              href: Paths.instance.identity.consumer(
-                organization.data,
-                project.data,
-                instance.data,
-                consumer.data.id
-              )
-            }
-          ]}
-        />
+  return (
+    <ContentLayout>
+      <PageHeader
+        title={consumer.data?.name ?? '...'}
+        description={consumer.data?.email ?? undefined}
+        pagination={[
+          {
+            label: 'Consumers',
+            href: Paths.instance.identity.consumers(
+              organization.data,
+              project.data,
+              instance.data
+            )
+          },
+          {
+            label: consumer.data?.name ?? '...',
+            href: Paths.instance.identity.consumer(
+              organization.data,
+              project.data,
+              instance.data,
+              consumer.data?.id ?? consumerId
+            )
+          }
+        ]}
+      />
 
-        <LinkTabs
-          current={pathname}
-          links={[
-            {
-              label: 'Overview',
-              to: Paths.instance.identity.consumer(
-                organization.data,
-                project.data,
-                instance.data,
-                consumer.data.id
-              )
-            },
-            {
-              label: 'Settings',
-              to: Paths.instance.identity.consumer(
-                organization.data,
-                project.data,
-                instance.data,
-                consumer.data.id,
-                'settings'
-              )
-            }
-          ]}
-        />
+      {renderWithLoader({ instance, organization, project, consumer })(
+        ({ instance, organization, project, consumer }) => (
+          <>
+            <LinkTabs
+              current={pathname}
+              links={[
+                {
+                  label: 'Overview',
+                  to: Paths.instance.identity.consumer(
+                    organization.data,
+                    project.data,
+                    instance.data,
+                    consumer.data.id
+                  )
+                },
+                {
+                  label: 'Settings',
+                  to: Paths.instance.identity.consumer(
+                    organization.data,
+                    project.data,
+                    instance.data,
+                    consumer.data.id,
+                    'settings'
+                  )
+                }
+              ]}
+            />
 
-        <Outlet />
-      </ContentLayout>
-    )
+            <Outlet />
+          </>
+        )
+      )}
+    </ContentLayout>
   );
 };

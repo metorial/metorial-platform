@@ -33,6 +33,7 @@ import { getBackend } from '@metorial-subspace/provider';
 import { env } from '../env';
 import { getManagedOAuthScopeIds, type ManagedOAuthScopes } from '../lib/managedOAuthScopes';
 import {
+  providerAuthCredentialsArchivedQueue,
   providerAuthCredentialsCreatedQueue,
   providerAuthCredentialsUpdatedQueue
 } from '../queues/lifecycle/providerAuthCredentials';
@@ -445,6 +446,50 @@ class providerAuthCredentialsServiceImpl {
 
       await addAfterTransactionHook(async () =>
         providerAuthCredentialsUpdatedQueue.add({ providerAuthCredentialsId: creds.id })
+      );
+
+      return creds;
+    });
+  }
+
+  async archiveProviderAuthCredentials(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    providerAuthCredentials: ProviderAuthCredentials;
+  }) {
+    checkTenant(d, d.providerAuthCredentials);
+    checkDeletedEdit(d.providerAuthCredentials, 'archive');
+
+    if (d.providerAuthCredentials.origin !== 'tenant_created') {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Managed credentials cannot be deleted through tenant APIs',
+          code: 'managed_credentials_readonly'
+        })
+      );
+    }
+
+    return withTransaction(async db => {
+      let creds = await db.providerAuthCredentials.update({
+        where: {
+          oid: d.providerAuthCredentials.oid,
+          tenantOid: d.tenant.oid,
+          solutionOid: d.solution.oid,
+          environmentOid: d.environment.oid
+        },
+        data: {
+          status: 'archived',
+          archivedAt: new Date(),
+          isDefault: false
+        },
+        include
+      });
+
+      await addAfterTransactionHook(async () =>
+        providerAuthCredentialsArchivedQueue.add({
+          providerAuthCredentialsId: creds.id
+        })
       );
 
       return creds;

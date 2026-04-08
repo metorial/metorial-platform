@@ -67,3 +67,4 @@ export let startMcpServer = (d: { port: number; authenticate: Authenticator<Auth
 
 export { authenticateAndResolveInstance } from './getSession';
 export { handleMagicMcpRequest } from './magic';
+export * from './portal';

@@ -147,6 +147,7 @@ export type DashboardInstancePortalsAccessRequestsListQuery = {
     | ('pending' | 'approved' | 'rejected')[]
     | undefined;
   consumerProfileId?: string | string[] | undefined;
+  search?: string | undefined;
 };
 
 export let mapDashboardInstancePortalsAccessRequestsListQuery = mtMap.union([
@@ -171,7 +172,8 @@ export let mapDashboardInstancePortalsAccessRequestsListQuery = mtMap.union([
             mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
           )
         ])
-      )
+      ),
+      search: mtMap.objectField('search', mtMap.passthrough())
     })
   )
 ]);

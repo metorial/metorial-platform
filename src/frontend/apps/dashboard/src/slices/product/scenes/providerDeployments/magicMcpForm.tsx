@@ -10,6 +10,7 @@ import { Button, confirm, Input, Spacer, toast } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { showAddProviderModal } from '../sessionTemplates/providersManager';
 
 export type MagicMcpServerFormProps =
   | { type: 'update'; magicMcpServerId: string; for?: undefined }
@@ -65,23 +66,34 @@ export let MagicMcpServerForm = (
         name: values.name,
         description: values.description || undefined
       });
-
       if (!res) return;
 
-      if (p.onCreate) {
-        p.onCreate(res);
-        p.close?.();
-        return;
-      }
+      p.close?.();
 
-      navigate(
-        Paths.instance.magicMcp.server(
-          instance.data.organization,
-          instance.data.project,
-          instance.data,
-          res.id
-        )
-      );
+      showAddProviderModal({
+        title: 'Configure Magic MCP Server',
+        description: 'Set up authentication and other settings for this Magic MCP server.',
+        action: 'Create Magic MCP Server',
+
+        instanceId: instance.data.id,
+        sessionTemplateId: res.sessionTemplateId,
+        providerId: p.type === 'create' ? p.for?.providerId : undefined,
+        onComplete: () => {
+          if (p.onCreate) {
+            p.onCreate(res);
+            return;
+          }
+
+          navigate(
+            Paths.instance.magicMcp.server(
+              instance.data.organization,
+              instance.data.project,
+              instance.data,
+              res.id
+            )
+          );
+        }
+      });
     }
   });
 
@@ -181,7 +193,7 @@ export let MagicMcpServerForm = (
           loading={createMutator.isLoading}
           success={createMutator.isSuccess}
         >
-          Create
+          Continue
         </Button>
       </div>
     </form>

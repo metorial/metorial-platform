@@ -275,7 +275,12 @@ export let providerAuthConfigController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
       .output(providerAuthConfigPresenter)
       .do(async ctx => {
-        return providerAuthConfigPresenter.present({ authConfig: ctx.authConfig });
+        let authConfig = await subspaceProviderAuthConfigService.delete({
+          instance: ctx.instance,
+          providerAuthConfigId: ctx.authConfig.id
+        });
+
+        return providerAuthConfigPresenter.present({ authConfig });
       })
   }
 );

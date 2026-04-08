@@ -6,6 +6,7 @@ export let tenantPresenter = (tenant: Tenant) => ({
   id: tenant.id,
   identifier: tenant.identifier,
   name: tenant.name,
+  logRetentionInDays: tenant.logRetentionInDays,
 
   onlyAllowTrustedProviders: tenant.onlyAllowTrustedProviders,
 

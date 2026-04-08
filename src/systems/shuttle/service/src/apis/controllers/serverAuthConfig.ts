@@ -106,5 +106,22 @@ export let serverAuthConfigController = app.controller({
         serverAuthConfigId: v.string()
       })
     )
-    .do(async ctx => serverAuthConfigPresenter(ctx.serverAuthConfig))
+    .do(async ctx => serverAuthConfigPresenter(ctx.serverAuthConfig)),
+
+  delete: serverAuthConfigApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        serverAuthConfigId: v.string()
+      })
+    )
+    .do(async ctx => {
+      await serverAuthConfigService.deleteServerAuthConfig({
+        tenant: ctx.tenant,
+        serverAuthConfig: ctx.serverAuthConfig
+      });
+
+      return { success: true };
+    })
 });

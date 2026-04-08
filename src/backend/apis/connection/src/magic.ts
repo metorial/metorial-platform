@@ -29,7 +29,7 @@ export type MagicMcpSubspaceSessionInfo = {
   subspaceSessionMapping: MagicMcpSubspaceMapping;
 };
 
-let getMagicMcpServerByIdOrAlias = async (magicMcpServerIdOrAlias: string) => {
+export let getMagicMcpServerByIdOrAlias = async (magicMcpServerIdOrAlias: string) => {
   let magicMcpServer = await db.magicMcpServer.findFirst({
     where: {
       status: 'active',
@@ -54,7 +54,7 @@ let getMagicMcpServerByIdOrAlias = async (magicMcpServerIdOrAlias: string) => {
   return magicMcpServer;
 };
 
-let getMagicMcpTokenSecretFromRequest = (request: Request, url: URL) => {
+export let getMagicMcpTokenSecretFromRequest = (request: Request, url: URL) => {
   return url.searchParams.get('key') ?? extractToken(request, url) ?? null;
 };
 

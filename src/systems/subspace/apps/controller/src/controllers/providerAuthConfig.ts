@@ -258,5 +258,26 @@ export let providerAuthConfigController = app.controller({
       });
 
       return providerAuthConfigPresenter(providerAuthConfig);
+    }),
+
+  delete: providerAuthConfigApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
+        providerAuthConfigId: v.string(),
+        allowDeleted: v.optional(v.boolean())
+      })
+    )
+    .do(async ctx => {
+      let providerAuthConfig = await providerAuthConfigService.archiveProviderAuthConfig({
+        providerAuthConfig: ctx.providerAuthConfig,
+        tenant: ctx.tenant,
+        environment: ctx.environment,
+        solution: ctx.solution
+      });
+
+      return providerAuthConfigPresenter(providerAuthConfig);
     })
 });

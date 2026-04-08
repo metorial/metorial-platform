@@ -6,6 +6,7 @@ import {
 import {
   mapDashboardInstanceSessionsCreateBody,
   mapDashboardInstanceSessionsCreateOutput,
+  mapDashboardInstanceSessionsDeleteOutput,
   mapDashboardInstanceSessionsGetOutput,
   mapDashboardInstanceSessionsListOutput,
   mapDashboardInstanceSessionsListQuery,
@@ -13,6 +14,7 @@ import {
   mapDashboardInstanceSessionsUpdateOutput,
   type DashboardInstanceSessionsCreateBody,
   type DashboardInstanceSessionsCreateOutput,
+  type DashboardInstanceSessionsDeleteOutput,
   type DashboardInstanceSessionsGetOutput,
   type DashboardInstanceSessionsListOutput,
   type DashboardInstanceSessionsListQuery,
@@ -155,6 +157,33 @@ export class MetorialSessionsEndpoint {
 
     return this._patch(request).transform(
       mapDashboardInstanceSessionsUpdateOutput
+    );
+  }
+
+  /**
+   * @name Delete session
+   * @description Deletes a session.
+   *
+   * @param `sessionId` - string
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardInstanceSessionsDeleteOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  delete(
+    sessionId: string,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceSessionsDeleteOutput> {
+    let path = `sessions/${sessionId}`;
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._delete(request).transform(
+      mapDashboardInstanceSessionsDeleteOutput
     );
   }
 }

@@ -4,6 +4,8 @@ export * from './callbacks_events';
 export * from './callbacks_instances';
 export * from './callbacks_notifications';
 export * from './consumer-surfaces';
+export * from './consumer_consumer-internal_oauth_authorizations';
+export * from './consumer_consumer-internal_oauth_clients';
 export * from './consumer_profile';
 export * from './consumer_profile_groups';
 export * from './consumer_providers';

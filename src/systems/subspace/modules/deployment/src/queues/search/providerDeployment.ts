@@ -16,7 +16,10 @@ export let indexProviderDeploymentQueueProcessor = indexProviderDeploymentQueue.
     });
     if (!providerDeployment) throw new QueueRetryError();
 
-    if (!providerDeployment.name && !providerDeployment.description) {
+    if (
+      providerDeployment.status !== 'active' ||
+      (!providerDeployment.name && !providerDeployment.description)
+    ) {
       await voyager.record.delete({
         sourceId: (await voyagerSource).id,
         indexId: voyagerIndex.providerDeployment.id,

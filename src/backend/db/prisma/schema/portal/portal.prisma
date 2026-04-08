@@ -12,19 +12,21 @@ model Portal {
 
   name        String
   description String?
-  slug        String @unique
+  slug        String  @unique
 
   organizationOid BigInt
   organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
 
-  surfaceOid BigInt @unique
+  surfaceOid BigInt          @unique
   surface    ConsumerSurface @relation("PortalSurface", fields: [surfaceOid], references: [oid], onDelete: Cascade)
 
   instanceOid BigInt
   instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
   archivedAt DateTime?
-  deletedAt DateTime?
+  deletedAt  DateTime?
+
+  portalAuthClients PortalAuthClient[]
 }

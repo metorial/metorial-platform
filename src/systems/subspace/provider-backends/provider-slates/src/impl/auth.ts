@@ -5,8 +5,12 @@ import type {
   GetDecryptedAuthConfigRes,
   ProviderAuthConfigCreateParam,
   ProviderAuthConfigCreateRes,
+  ProviderAuthConfigDeleteParam,
+  ProviderAuthConfigDeleteRes,
   ProviderAuthCredentialsCreateParam,
   ProviderAuthCredentialsCreateRes,
+  ProviderAuthCredentialsDeleteParam,
+  ProviderAuthCredentialsDeleteRes,
   ProviderOAuthSetupCreateParam,
   ProviderOAuthSetupCreateRes,
   ProviderOAuthSetupRetrieveParam,
@@ -60,6 +64,29 @@ export class ProviderAuth extends IProviderAuth {
       isAutoRegistration: false,
       type: 'oauth'
     };
+  }
+
+  override async deleteProviderAuthCredentials(
+    data: ProviderAuthCredentialsDeleteParam
+  ): Promise<ProviderAuthCredentialsDeleteRes> {
+    if (!data.backing.slateCredentialsOid) {
+      return {};
+    }
+
+    let tenant = await getTenantForSlates(data.tenant);
+    let slateOAuthCredentials = await db.slateOAuthCredentials.findUnique({
+      where: { oid: data.backing.slateCredentialsOid }
+    });
+    if (!slateOAuthCredentials) {
+      return {};
+    }
+
+    await slates.slateOAuthCredentials.delete({
+      tenantId: tenant.id,
+      slateOAuthCredentialsId: slateOAuthCredentials.id
+    });
+
+    return {};
   }
 
   override async createProviderOAuthSetup(
@@ -157,6 +184,29 @@ export class ProviderAuth extends IProviderAuth {
       slateAuthConfig,
       expiresAt: config.tokenExpiresAt
     };
+  }
+
+  override async deleteProviderAuthConfig(
+    data: ProviderAuthConfigDeleteParam
+  ): Promise<ProviderAuthConfigDeleteRes> {
+    if (!data.backing.slateAuthConfigOid) {
+      return {};
+    }
+
+    let tenant = await getTenantForSlates(data.tenant);
+    let slateAuthConfig = await db.slateAuthConfig.findUnique({
+      where: { oid: data.backing.slateAuthConfigOid }
+    });
+    if (!slateAuthConfig) {
+      return {};
+    }
+
+    await slates.slateAuthConfig.delete({
+      tenantId: tenant.id,
+      slateAuthConfigId: slateAuthConfig.id
+    });
+
+    return {};
   }
 
   override async retrieveProviderOAuthSetup(

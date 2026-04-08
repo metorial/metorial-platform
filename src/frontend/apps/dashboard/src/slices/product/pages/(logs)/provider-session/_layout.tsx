@@ -11,6 +11,7 @@ import { LinkTabs, RenderDate } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import { Outlet, useLocation, useParams } from 'react-router-dom';
 import { AttributesLayout } from '../../../scenes/attributesLayout';
+import { DeletedRecordCallout } from '../../../scenes/deletedRecordCallout';
 import { SessionConnectionStatusBadge } from '../../../scenes/providerSessions/table';
 
 export let ProviderSessionLayout = () => {
@@ -56,58 +57,62 @@ export let ProviderSessionLayout = () => {
         ]}
       />
 
-      <LinkTabs
-        current={pathname}
-        links={[
-          {
-            label: 'Logs',
-            to: Paths.instance.providerSession(...sessionPathParams)
-          },
-          {
-            label: 'Deployments',
-            to: Paths.instance.providerSession(...sessionPathParams, 'providers')
-          },
-          {
-            label: 'Provider Runs',
-            to: Paths.instance.providerSession(...sessionPathParams, 'runs')
-          }
-        ]}
-      />
-
       {renderWithLoader({ session })(({ session }) => (
-        <AttributesLayout
-          variant="large"
-          items={[
-            {
-              label: 'Status',
-              value: (
-                <SessionConnectionStatusBadge
-                  connectionStatus={session.data.connectionState}
-                  hasErrors={session.data.hasErrors}
-                  hasWarnings={session.data.hasWarnings}
-                />
-              )
-            },
-            {
-              label: 'Health',
-              value: session.data.hasErrors
-                ? 'Error'
-                : session.data.hasWarnings
-                  ? 'Warning'
-                  : 'Healthy'
-            },
-            { label: 'Session ID', value: <ID id={session.data.id} /> },
-            { label: 'Created At', value: <RenderDate date={session.data.createdAt} /> },
-            {
-              label: 'Messages',
-              value:
-                (session.data.usage?.totalProductiveClientMessageCount ?? 0) +
-                (session.data.usage?.totalProductiveProviderMessageCount ?? 0)
-            }
-          ]}
-        >
-          <Outlet />
-        </AttributesLayout>
+        <>
+          <DeletedRecordCallout status={session.data?.status} />
+
+          <LinkTabs
+            current={pathname}
+            links={[
+              {
+                label: 'Logs',
+                to: Paths.instance.providerSession(...sessionPathParams)
+              },
+              {
+                label: 'Deployments',
+                to: Paths.instance.providerSession(...sessionPathParams, 'providers')
+              },
+              {
+                label: 'Provider Runs',
+                to: Paths.instance.providerSession(...sessionPathParams, 'runs')
+              }
+            ]}
+          />
+
+          <AttributesLayout
+            variant="large"
+            items={[
+              {
+                label: 'Status',
+                value: (
+                  <SessionConnectionStatusBadge
+                    connectionStatus={session.data.connectionState}
+                    hasErrors={session.data.hasErrors}
+                    hasWarnings={session.data.hasWarnings}
+                  />
+                )
+              },
+              {
+                label: 'Health',
+                value: session.data.hasErrors
+                  ? 'Error'
+                  : session.data.hasWarnings
+                    ? 'Warning'
+                    : 'Healthy'
+              },
+              { label: 'Session ID', value: <ID id={session.data.id} /> },
+              { label: 'Created At', value: <RenderDate date={session.data.createdAt} /> },
+              {
+                label: 'Messages',
+                value:
+                  (session.data.usage?.totalProductiveClientMessageCount ?? 0) +
+                  (session.data.usage?.totalProductiveProviderMessageCount ?? 0)
+              }
+            ]}
+          >
+            <Outlet />
+          </AttributesLayout>
+        </>
       ))}
     </ContentLayout>
   );

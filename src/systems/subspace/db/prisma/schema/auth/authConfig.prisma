@@ -23,6 +23,7 @@ model ProviderAuthConfig {
   type   ProviderAuthConfigType
   source ProviderAuthConfigSource
   status ProviderAuthConfigStatus
+  archivedAt DateTime?
 
   isParentDeleted Boolean @default(false)
 
@@ -83,6 +84,8 @@ model ProviderAuthConfig {
   @@index([isDefault])
   @@index([isEphemeral])
   @@index([status])
+  @@index([archivedAt])
+  @@index([status, archivedAt])
   @@index([type])
   @@index([source])
 }

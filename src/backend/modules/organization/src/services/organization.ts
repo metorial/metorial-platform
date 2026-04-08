@@ -30,7 +30,9 @@ import { organizationMemberService } from './organizationMember';
 import { projectService } from './project';
 
 let getOrgSlug = createSlugGenerator(
-  async slug => !(await db.organization.findFirst({ where: { slug } }))
+  async slug =>
+    !(await db.organization.findFirst({ where: { slug } })) &&
+    !(await db.cellOrganization.findFirst({ where: { slug } }))
 );
 
 class OrganizationService {

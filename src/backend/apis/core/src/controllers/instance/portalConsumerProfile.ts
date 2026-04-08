@@ -45,10 +45,22 @@ export let portalConsumerProfileController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.portal.consumers:read'] }))
       .use(hasFlags(['paid-portals', 'portals-access']))
       .outputList(consumerProfilePresenter)
-      .query('default', Paginator.validate(v.object({})))
+      .query(
+        'default',
+        Paginator.validate(
+          v.object({
+            search: v.optional(v.string()),
+            id: v.optional(v.string()),
+            consumer_group_id: v.optional(v.string())
+          })
+        )
+      )
       .do(async ctx => {
         let paginator = await consumerProfileService.listConsumerProfiles({
-          consumerSurface: ctx.portal.surface
+          consumerSurface: ctx.portal.surface,
+          search: ctx.query.search,
+          id: ctx.query.id,
+          consumerGroupId: ctx.query.consumer_group_id
         });
         let list = await paginator.run(ctx.query);
         let assignedConsumerGroupsByProfileId =

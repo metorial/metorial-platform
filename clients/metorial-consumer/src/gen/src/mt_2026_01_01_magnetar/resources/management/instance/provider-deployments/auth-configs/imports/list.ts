@@ -49,6 +49,7 @@ export type ManagementInstanceProviderDeploymentsAuthConfigsImportsListOutput =
           object: 'provider.auth_credentials';
           id: string;
           type: 'oauth';
+          status: 'active' | 'archived' | 'deleted';
           isDefault: boolean;
           isManaged: boolean;
           name: string | null;
@@ -208,6 +209,7 @@ export let mapManagementInstanceProviderDeploymentsAuthConfigsImportsListOutput 
                     object: mtMap.objectField('object', mtMap.passthrough()),
                     id: mtMap.objectField('id', mtMap.passthrough()),
                     type: mtMap.objectField('type', mtMap.passthrough()),
+                    status: mtMap.objectField('status', mtMap.passthrough()),
                     isDefault: mtMap.objectField(
                       'is_default',
                       mtMap.passthrough()

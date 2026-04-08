@@ -260,5 +260,26 @@ export let providerConfigController = app.controller({
       });
 
       return providerConfigPresenter(providerConfig);
+    }),
+
+  delete: providerConfigApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
+        providerConfigId: v.string(),
+        allowDeleted: v.optional(v.boolean())
+      })
+    )
+    .do(async ctx => {
+      let providerConfig = await providerConfigService.archiveProviderConfig({
+        providerConfig: ctx.providerConfig,
+        tenant: ctx.tenant,
+        environment: ctx.environment,
+        solution: ctx.solution
+      });
+
+      return providerConfigPresenter(providerConfig);
     })
 });

@@ -189,6 +189,22 @@ export let sessionTemplateController = Controller.create(
         });
 
         return sessionTemplatePresenter.present({ sessionTemplate });
+      }),
+
+    delete: sessionTemplateGroup
+      .delete(instancePath('session-templates/:sessionTemplateId', 'sessionTemplates.delete'), {
+        name: 'Delete session template',
+        description: 'Deletes a specific session template.'
+      })
+      .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
+      .output(sessionTemplatePresenter)
+      .do(async ctx => {
+        let sessionTemplate = await subspaceSessionTemplateService.delete({
+          instance: ctx.instance,
+          sessionTemplateId: ctx.sessionTemplate.id
+        });
+
+        return sessionTemplatePresenter.present({ sessionTemplate });
       })
   }
 );

@@ -41,7 +41,10 @@ import {
 } from '@metorial-subspace/module-provider-internal';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
 import { checkTenant } from '@metorial-subspace/module-tenant';
-import { providerAuthConfigUpdatedQueue } from '../queues/lifecycle/providerAuthConfig';
+import {
+  providerAuthConfigArchivedQueue,
+  providerAuthConfigUpdatedQueue
+} from '../queues/lifecycle/providerAuthConfig';
 import { providerAuthConfigInternalService } from './providerAuthConfigInternal';
 import { providerAuthCredentialsService } from './providerAuthCredentials';
 
@@ -488,6 +491,42 @@ class providerAuthConfigServiceImpl {
         ...config,
         authImport
       };
+    });
+  }
+
+  async archiveProviderAuthConfig(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    providerAuthConfig: ProviderAuthConfig;
+  }) {
+    checkTenant(d, d.providerAuthConfig);
+    checkDeletedEdit(d.providerAuthConfig, 'archive');
+
+    return withTransaction(async db => {
+      let archivedAt = new Date();
+      let providerAuthConfig = await db.providerAuthConfig.update({
+        where: {
+          oid: d.providerAuthConfig.oid,
+          tenantOid: d.tenant.oid,
+          solutionOid: d.solution.oid,
+          environmentOid: d.environment.oid
+        },
+        data: {
+          status: 'archived',
+          archivedAt,
+          isDefault: false
+        },
+        include
+      });
+
+      await addAfterTransactionHook(async () =>
+        providerAuthConfigArchivedQueue.add({
+          providerAuthConfigId: providerAuthConfig.id
+        })
+      );
+
+      return providerAuthConfig;
     });
   }
 }

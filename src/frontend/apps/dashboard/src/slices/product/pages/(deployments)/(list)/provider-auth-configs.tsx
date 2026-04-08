@@ -8,11 +8,14 @@ import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
+  useDeleteProviderAuthConfig,
   useProviderAuthConfigs,
   useProviders
 } from '@metorial/state';
-import { Badge, RenderDate, Text } from '@metorial/ui';
+import { Badge, RenderDate, Text, confirm } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
+import { RiDeleteBinLine } from '@remixicon/react';
+import { useState } from 'react';
 import { EmptyState } from '../../../../../components/emptyState';
 import { Table as DashboardTable } from '../../../../../components/table';
 import { FilterPayload } from '../../../../../components/table/filter';
@@ -67,6 +70,12 @@ let getStatusFilterValue = (
   value: FilterPayload | undefined
 ): DashboardInstanceProviderDeploymentsAuthConfigsListQuery['status'] => {
   return getEnumListFilterValue(value, ['active', 'archived']);
+};
+
+let getAuthConfigStatusColor = (status: AuthConfigItem['status']) => {
+  if (status === 'active') return 'green';
+  if (status === 'archived') return 'orange';
+  return 'gray';
 };
 
 let providerAuthConfigsTableState: TableStateProvider<
@@ -128,11 +137,43 @@ let providerAuthConfigsTableState: TableStateProvider<
   };
 };
 
+let useProviderAuthConfigsTableHookState = (
+  _: ReturnType<typeof providerAuthConfigsTableState>,
+  props: ProviderAuthConfigsTableProps
+) => {
+  let deleteAuthConfig = useDeleteProviderAuthConfig();
+  let [loadingIds, setLoadingIds] = useState<string[]>([]);
+
+  return {
+    deleteAuthConfig,
+    instanceId: props.instanceId,
+    loadingIds,
+    setLoadingIds
+  };
+};
+
+let deleteProviderAuthConfigImmediately = async (
+  authConfig: AuthConfigRow,
+  state: ReturnType<typeof useProviderAuthConfigsTableHookState>
+) => {
+  state.setLoadingIds((current: string[]) => [...new Set([...current, authConfig.id])]);
+
+  try {
+    await state.deleteAuthConfig.mutate({
+      instanceId: state.instanceId,
+      providerAuthConfigId: authConfig.id
+    });
+  } finally {
+    state.setLoadingIds((current: string[]) => current.filter(id => id != authConfig.id));
+  }
+};
+
 export let providerAuthConfigsFilterTable = new DashboardTable<
   ProviderAuthConfigsTableProps,
   AuthConfigRow
 >('provider-auth-configs-overview')
   .state(providerAuthConfigsTableState)
+  .hookState(useProviderAuthConfigsTableHookState)
   .columns([
     {
       id: 'name',
@@ -190,9 +231,7 @@ export let providerAuthConfigsFilterTable = new DashboardTable<
       id: 'status',
       isDefault: false,
       header: 'Status',
-      render: row => (
-        <Badge color={row.status === 'active' ? 'green' : 'gray'}>{row.status}</Badge>
-      )
+      render: row => <Badge color={getAuthConfigStatusColor(row.status)}>{row.status}</Badge>
     },
     {
       id: 'default',
@@ -295,6 +334,49 @@ export let providerAuthConfigsFilterTable = new DashboardTable<
       props.fromDeploymentId
     )
   )
+  .actions({
+    deleteImmediate: async (authConfigs, state) => {
+      let authConfig = authConfigs[0];
+      if (!authConfig) return;
+
+      await deleteProviderAuthConfigImmediately(authConfig, state);
+    },
+    delete: async (authConfigs, state) => {
+      let authConfig = authConfigs[0];
+      if (!authConfig) return;
+
+      confirm({
+        title: 'Delete auth config',
+        description: `Are you sure you want to delete ${authConfig.name ?? 'this auth config'}?`,
+        confirmText: 'Delete',
+        onConfirm: async () => {
+          await deleteProviderAuthConfigImmediately(authConfig, state);
+        }
+      });
+    }
+  })
+  .rowActions([
+    {
+      id: 'delete',
+      label: 'Delete',
+      icon: <RiDeleteBinLine />,
+      disabled: row => row.status !== 'active',
+      action: 'delete'
+    }
+  ])
+  .bulkActions([
+    {
+      id: 'delete-selected',
+      label: 'Delete',
+      icon: <RiDeleteBinLine />,
+      disabled: row => row.status !== 'active',
+      action: 'deleteImmediate',
+      bulkExecution: {
+        mode: 'per-row',
+        batchSize: 10
+      }
+    }
+  ])
   .build();
 
 export let ProviderAuthConfigsOverviewPage = () => {

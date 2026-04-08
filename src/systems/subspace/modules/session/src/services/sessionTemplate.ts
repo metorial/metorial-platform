@@ -2,6 +2,7 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
+  addAfterTransactionHook,
   db,
   type Environment,
   getId,
@@ -24,6 +25,7 @@ import {
   resolveSessions
 } from '@metorial-subspace/list-utils';
 import { checkTenant } from '@metorial-subspace/module-tenant';
+import { sessionTemplateArchivedQueue } from '../queues/lifecycle/sessionTemplate';
 import {
   type SessionProviderInput,
   sessionProviderInputService
@@ -219,6 +221,8 @@ class sessionTemplateServiceImpl {
     checkDeletedEdit(d.sessionTemplate, 'archive');
 
     return withTransaction(async db => {
+      let archivedAt = new Date();
+
       await db.sessionTemplateProvider.updateMany({
         where: {
           sessionTemplateOid: d.sessionTemplate.oid
@@ -228,16 +232,34 @@ class sessionTemplateServiceImpl {
         }
       });
 
-      return await db.sessionTemplate.update({
+      let sessionTemplate = await db.sessionTemplate.update({
         where: {
           oid: d.sessionTemplate.oid
         },
         data: {
-          status: 'archived' as const
+          status: 'archived' as const,
+          archivedAt
         },
         include
       });
+
+      await addAfterTransactionHook(async () =>
+        sessionTemplateArchivedQueue.add({
+          sessionTemplateId: sessionTemplate.id
+        })
+      );
+
+      return sessionTemplate;
     });
+  }
+
+  async deleteSessionTemplate(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    sessionTemplate: SessionTemplate;
+  }) {
+    return this.archiveSessionTemplate(d);
   }
 }
 

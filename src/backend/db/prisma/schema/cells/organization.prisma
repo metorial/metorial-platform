@@ -1,0 +1,18 @@
+model CellOrganization {
+  id String @id
+
+  type   OrganizationType
+  status OrganizationStatus
+
+  slug String @unique
+  name String
+
+  isOwnedByDeployment Boolean
+
+  /// [EntityImage]
+  image Json
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+}

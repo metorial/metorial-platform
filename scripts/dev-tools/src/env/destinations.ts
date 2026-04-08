@@ -96,7 +96,7 @@ export let destinations: Destination[] = [
     path: 'systems/horizon/apps/horizon'
   },
 
-  ...['admin', 'dashboard'].map(v => ({
+  ...['admin', 'dashboard', 'portal'].map(v => ({
     type: 'enterprise' as const,
     env: frontendEnv,
     path: `federation/frontend/apps/${v}`

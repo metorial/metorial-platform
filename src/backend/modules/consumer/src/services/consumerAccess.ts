@@ -39,7 +39,11 @@ class ConsumerAccessServiceImpl {
     providerTemplateIds?: string[];
     magicMcpServerIds?: string[];
     types?: ConsumerAccessTargetType[];
+    search?: string;
+    id?: string;
   }) {
+    let search = d.search?.trim();
+    let idFilter = d.id?.trim();
     let hasConsumerGroupFilter = !!d.consumerGroupIds?.length;
     let hasProviderTemplateFilter = !!d.providerTemplateIds?.length;
     let hasMagicMcpServerFilter = !!d.magicMcpServerIds?.length;
@@ -90,19 +94,71 @@ class ConsumerAccessServiceImpl {
           ...opts,
           where: {
             surfaceOid: d.consumerSurface.oid,
-            OR: [
+            id: idFilter ? idFilter : undefined,
+            AND: [
               {
-                type: 'provider_template',
-                providerTemplate: {
-                  status: 'active'
-                }
+                OR: [
+                  {
+                    type: 'provider_template',
+                    providerTemplate: {
+                      status: 'active'
+                    }
+                  },
+                  {
+                    type: 'magic_mcp_server',
+                    magicMcpServer: {
+                      status: 'active'
+                    }
+                  }
+                ]
               },
-              {
-                type: 'magic_mcp_server',
-                magicMcpServer: {
-                  status: 'active'
-                }
-              }
+              ...(search
+                ? [
+                    {
+                      OR: [
+                        { id: { contains: search, mode: 'insensitive' as const } },
+                        {
+                          AND: [
+                            { type: 'provider_template' as const },
+                            {
+                              providerTemplate: {
+                                OR: [
+                                  { name: { contains: search, mode: 'insensitive' as const } },
+                                  {
+                                    description: {
+                                      contains: search,
+                                      mode: 'insensitive' as const
+                                    }
+                                  },
+                                  { id: { contains: search, mode: 'insensitive' as const } }
+                                ]
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          AND: [
+                            { type: 'magic_mcp_server' as const },
+                            {
+                              magicMcpServer: {
+                                OR: [
+                                  { name: { contains: search, mode: 'insensitive' as const } },
+                                  {
+                                    description: {
+                                      contains: search,
+                                      mode: 'insensitive' as const
+                                    }
+                                  },
+                                  { id: { contains: search, mode: 'insensitive' as const } }
+                                ]
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                : [])
             ],
             type: d.types?.length ? { in: d.types } : undefined,
             consumerGroupOid: hasConsumerGroupFilter

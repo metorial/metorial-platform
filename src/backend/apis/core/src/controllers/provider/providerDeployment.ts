@@ -355,8 +355,13 @@ export let providerDeploymentController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.provider.deployment:write'] }))
       .output(providerDeploymentPresenter)
       .do(async ctx => {
+        let deployment = await subspaceProviderDeploymentService.delete({
+          instance: ctx.instance,
+          providerDeploymentId: ctx.deployment.id
+        });
+
         return providerDeploymentPresenter.present({
-          deployment: ctx.deployment
+          deployment
         });
       })
   }

@@ -127,7 +127,10 @@ export let sessionController = app.controller({
           return {
             ...resolved,
             sessionTemplateId: p.sessionTemplateId,
-            toolFilters: normalizeToolFilters(p.toolFilters),
+            toolFilters:
+              typeof p.toolFilters === 'undefined'
+                ? undefined
+                : normalizeToolFilters(p.toolFilters),
             __allowEphemeral: resolved.hasEphemeral
           };
         })
@@ -176,6 +179,27 @@ export let sessionController = app.controller({
           description: ctx.input.description,
           metadata: ctx.input.metadata
         }
+      });
+
+      return sessionPresenter(session);
+    }),
+
+  delete: sessionApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
+        sessionId: v.string(),
+        allowDeleted: v.optional(v.boolean())
+      })
+    )
+    .do(async ctx => {
+      let session = await sessionService.archiveSession({
+        session: ctx.session,
+        tenant: ctx.tenant,
+        environment: ctx.environment,
+        solution: ctx.solution
       });
 
       return sessionPresenter(session);

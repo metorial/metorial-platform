@@ -43,6 +43,12 @@ let getAuthMethodHasSchema = (method: AuthMethod | undefined) => {
   );
 };
 
+let authConfigDescriptionInputHints = {
+  description:
+    'Optional context for your team about what this connection is used for.',
+  placeholder: 'e.g. Production workspace for the CRM sync'
+};
+
 export type ProviderAuthConfigFormProps =
   | {
       type: 'create';
@@ -421,7 +427,11 @@ export let ProviderAuthConfigForm = (
                 />
                 <form.RenderError field="name" />
 
-                <Input label="Description" {...form.getFieldProps('description')} />
+                <Input
+                  label="Description"
+                  {...authConfigDescriptionInputHints}
+                  {...form.getFieldProps('description')}
+                />
                 <form.RenderError field="description" />
               </FlatCreateSection>
             </FlatCreateSections>
@@ -568,7 +578,11 @@ export let ProviderAuthConfigForm = (
 
           <Spacer size={10} />
 
-          <Input label="Description" {...form.getFieldProps('description')} />
+          <Input
+            label="Description"
+            {...authConfigDescriptionInputHints}
+            {...form.getFieldProps('description')}
+          />
           <form.RenderError field="description" />
 
           <Spacer size={15} />
@@ -631,7 +645,11 @@ export let ProviderAuthConfigForm = (
 
         <Spacer size={10} />
 
-        <Input label="Description" {...form.getFieldProps('description')} />
+        <Input
+          label="Description"
+          {...authConfigDescriptionInputHints}
+          {...form.getFieldProps('description')}
+        />
         <form.RenderError field="description" />
 
         <Spacer size={10} />

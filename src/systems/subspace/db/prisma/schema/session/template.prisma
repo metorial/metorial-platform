@@ -9,6 +9,7 @@ model SessionTemplate {
   id  String @unique
 
   status     SessionTemplateStatus
+  archivedAt DateTime?
   isInternal Boolean               @default(false)
 
   name        String?
@@ -33,6 +34,8 @@ model SessionTemplate {
   @@index([createdAt])
   @@index([updatedAt])
   @@index([status])
+  @@index([archivedAt])
+  @@index([status, archivedAt])
 }
 
 enum SessionTemplateProviderStatus {

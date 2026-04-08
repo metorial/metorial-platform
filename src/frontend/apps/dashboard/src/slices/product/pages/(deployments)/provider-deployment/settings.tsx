@@ -1,16 +1,20 @@
 import { renderWithLoader, useForm } from '@metorial/data-hooks';
+import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, useProviderDeployment } from '@metorial/state';
 import { Button, Input, Spacer } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
+import { DeleteResourceDangerZone } from '../../../scenes/deleteResourceDangerZone';
 import { ProviderDeploymentTabSection } from '../../../scenes/providerDeployments/tabSection';
 
 export let ProviderDeploymentSettingsPage = () => {
   let instance = useCurrentInstance();
+  let navigate = useNavigate();
 
   let { providerDeploymentId } = useParams();
   let deployment = useProviderDeployment(instance.data?.id, providerDeploymentId);
   let updateMutator = deployment.useUpdateMutator();
+  let deleteMutator = deployment.useDeleteMutator();
   let form = useForm({
     initialValues: {
       name: deployment.data?.name ?? '',
@@ -58,6 +62,29 @@ export let ProviderDeploymentSettingsPage = () => {
           <updateMutator.RenderError />
         </form>
       </Box>
+
+      <Spacer size={20} />
+
+      <DeleteResourceDangerZone
+        description="Delete this deployment and remove it from your instance."
+        buttonLabel="Delete Deployment"
+        confirmTitle="Delete deployment"
+        confirmDescription="Are you sure you want to delete this deployment?"
+        loading={deleteMutator.isLoading}
+        success={deleteMutator.isSuccess}
+        onDelete={async () => {
+          let [res] = await deleteMutator.mutate({});
+          if (!res) return;
+
+          navigate(
+            Paths.instance.providerDeployments(
+              instance.data?.organization,
+              instance.data?.project,
+              instance.data
+            )
+          );
+        }}
+      />
     </ProviderDeploymentTabSection>
   ));
 };

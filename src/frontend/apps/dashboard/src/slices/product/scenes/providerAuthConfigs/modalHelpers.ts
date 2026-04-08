@@ -26,15 +26,11 @@ export let getAuthMethodHasSchema = (method: AuthMethod | undefined) => {
 };
 
 export let isSetupFlowAuthMethod = (method: AuthMethod | undefined) =>
-  method?.type === 'oauth' && !getAuthMethodHasSchema(method);
+  method?.type === 'oauth';
 
 export let getCreateMethodDescription = (method: AuthMethod) => {
-  if (isSetupFlowAuthMethod(method)) {
-    return 'OAuth setup flow';
-  }
-
   if (method.type === 'oauth') {
-    return 'Manual credentials';
+    return getAuthMethodHasSchema(method) ? 'Manual credentials' : 'OAuth setup flow';
   }
 
   return 'Manual configuration';

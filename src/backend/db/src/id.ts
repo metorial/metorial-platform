@@ -180,5 +180,9 @@ export let ID = createIdGenerator({
   consumerProviderSetupSessionBinding: idType.sorted('cpsb'),
   providerTemplate: idType.sorted('ptm'),
 
-  portal: idType.sorted('ptl')
+  portal: idType.sorted('ptl'),
+  portalAuthClient: idType.sorted('ptac'),
+  portalAuthAttempt: idType.sorted('ptaa'),
+  portalAuthClientId: idType.unsorted('ptaci'),
+  portalAuthClientSecret: idType.unsorted('ptacs', 32)
 });

@@ -108,13 +108,16 @@ export class SenderManager {
         solution: true,
         connections: d.connectionToken
           ? {
-              where: { token: d.connectionToken, status: { not: 'deleted' } },
+              where: { token: d.connectionToken, status: 'active' },
               include: { participant: true }
             }
           : false
       }
     });
     if (!session) throw new ServiceError(notFoundError('session'));
+    if (isRecordDeleted(session)) {
+      throw new ServiceError(goneError({ message: 'Session has been archived or deleted' }));
+    }
 
     let connection = session.connections?.[0];
     if (d.connectionToken && !connection) {

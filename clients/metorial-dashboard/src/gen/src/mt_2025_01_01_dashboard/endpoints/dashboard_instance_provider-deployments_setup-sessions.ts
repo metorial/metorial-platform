@@ -23,7 +23,7 @@ import {
 } from '../resources';
 
 /**
- * @name Provider Setup Sessions (Dashboard) controller
+ * @name Provider Setup Sessions controller
  * @description A setup session tracks an in-progress OAuth flow, storing state during the redirect. On success, it creates an auth config with the user's access token.
  *
  * @see https://metorial.com/api

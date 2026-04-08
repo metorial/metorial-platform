@@ -31,7 +31,8 @@ export let TextArrayInput = ({
   error,
   onChange,
   placeholder,
-  autoAdd
+  autoAdd,
+  hideAddButton
 }: {
   label: string;
   description?: string;
@@ -40,6 +41,7 @@ export let TextArrayInput = ({
   error?: (string | undefined)[] | string;
   onChange: (value: string[]) => void;
   autoAdd?: boolean;
+  hideAddButton?: boolean;
 }) => {
   useEffect(() => {
     if (value.length === 0) onChange(['']);
@@ -103,7 +105,7 @@ export let TextArrayInput = ({
           </Item>
         ))}
 
-        {!autoAdd && (
+        {!autoAdd && !hideAddButton && (
           <div
             style={{
               display: 'flex',

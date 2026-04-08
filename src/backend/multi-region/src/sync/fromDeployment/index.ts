@@ -1,5 +1,4 @@
 import { combineQueueProcessors } from '@lowerdeck/queue';
-
 import {
   syncAppsCron,
   syncAppsManyQueueProcessor,
@@ -10,6 +9,11 @@ import {
   syncOrgSingleQueueProcessor,
   syncOrgsManyQueueProcessor
 } from './organization';
+import {
+  syncPortalsCron,
+  syncPortalSingleQueueProcessor,
+  syncPortalsManyQueueProcessor
+} from './portal';
 import {
   syncUsersCron,
   syncUserSingleQueueProcessor,
@@ -24,6 +28,10 @@ export let fromDeploymentSyncProcessors = combineQueueProcessors([
   syncUsersCron,
   syncUsersManyQueueProcessor,
   syncUserSingleQueueProcessor,
+
+  syncPortalsCron,
+  syncPortalsManyQueueProcessor,
+  syncPortalSingleQueueProcessor,
 
   syncAppsCron,
   syncAppsManyQueueProcessor,

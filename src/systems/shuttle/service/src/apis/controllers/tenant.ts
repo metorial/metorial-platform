@@ -26,14 +26,16 @@ export let tenantController = app.controller({
     .input(
       v.object({
         name: v.string(),
-        identifier: v.string()
+        identifier: v.string(),
+        logRetentionInDays: v.optional(v.number())
       })
     )
     .do(async ctx => {
       let tenant = await tenantService.upsertTenant({
         input: {
           name: ctx.input.name,
-          identifier: ctx.input.identifier
+          identifier: ctx.input.identifier,
+          logRetentionInDays: ctx.input.logRetentionInDays
         }
       });
       return tenantPresenter(tenant);

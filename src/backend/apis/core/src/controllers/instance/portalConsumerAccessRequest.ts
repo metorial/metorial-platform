@@ -52,7 +52,8 @@ export let portalConsumerAccessRequestController = Controller.create(
                 v.array(v.enumOf(['pending', 'approved', 'rejected']))
               ])
             ),
-            consumer_profile_id: v.optional(v.union([v.string(), v.array(v.string())]))
+            consumer_profile_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            search: v.optional(v.string())
           })
         )
       )
@@ -61,7 +62,8 @@ export let portalConsumerAccessRequestController = Controller.create(
         let paginator = await consumerAccessRequestService.listConsumerAccessRequests({
           consumerSurface: ctx.portal.surface,
           statuses: normalizeArrayParam(ctx.query.status),
-          consumerProfileIds: normalizeArrayParam(ctx.query.consumer_profile_id)
+          consumerProfileIds: normalizeArrayParam(ctx.query.consumer_profile_id),
+          search: ctx.query.search
         });
         let list = await paginator.run(ctx.query);
 

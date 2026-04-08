@@ -1,3 +1,4 @@
+import { DashboardInstanceSessionsGetOutput } from '@metorial/dashboard-sdk';
 import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
@@ -19,17 +20,36 @@ export let ProviderSessionProvidersPage = () => {
 
   let { sessionId } = useParams();
   let session = useSession(instance.data?.id, sessionId);
-  let providerIds = useMemo(
-    () =>
-      Array.from(
-        new Set((session.data?.providers ?? []).map(dep => dep.providerId).filter(Boolean))
-      ),
-    [session.data?.providers]
-  );
-  let providers = useProviders(instance.data?.id, { id: providerIds });
 
-  return renderWithLoader({ session, providers })(({ session, providers }) => {
-    let deployments = session.data?.providers ?? [];
+  return renderWithLoader({ session })(({ session }) => (
+    <ProviderSessionProviders
+      organization={organization.data}
+      project={project.data}
+      instance={instance.data}
+      session={session.data}
+    />
+  ));
+};
+
+export let ProviderSessionProviders = ({
+  organization,
+  project,
+  instance,
+  session
+}: {
+  organization: ReturnType<typeof useCurrentOrganization>['data'];
+  project: ReturnType<typeof useCurrentProject>['data'];
+  instance: ReturnType<typeof useCurrentInstance>['data'];
+  session: DashboardInstanceSessionsGetOutput;
+}) => {
+  let providerIds = useMemo(
+    () => Array.from(new Set((session.providers ?? []).map(dep => dep.providerId).filter(Boolean))),
+    [session.providers]
+  );
+  let providers = useProviders(instance?.id, { id: providerIds });
+
+  return renderWithLoader({ providers })(({ providers }) => {
+    let deployments = session.providers ?? [];
     let providerNameMap = new Map<string, string>();
     for (let provider of providers.data?.items ?? []) {
       if (provider.id && provider.name) providerNameMap.set(provider.id, provider.name);
@@ -45,15 +65,10 @@ export let ProviderSessionProvidersPage = () => {
                 {dep.deployment?.name ?? 'Unnamed'}
               </Text>,
               <Text size="2">{providerNameMap.get(dep.providerId) ?? dep.providerId}</Text>,
-              <RenderDate date={session.data.createdAt} />
+              <RenderDate date={session.createdAt} />
             ],
             href: dep.deployment?.id
-              ? Paths.instance.providerDeployment(
-                  organization.data,
-                  project.data,
-                  instance.data,
-                  dep.deployment.id
-                )
+              ? Paths.instance.providerDeployment(organization, project, instance, dep.deployment.id)
               : undefined
           }))}
         />

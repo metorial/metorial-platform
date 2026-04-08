@@ -91,4 +91,6 @@ model FunctionServerInvocation {
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
 
   createdAt DateTime @default(now())
+
+  @@index([tenantOid, createdAt])
 }

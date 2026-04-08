@@ -57,6 +57,7 @@ type ProviderConfigurationSelectionForm = ReturnType<
 
 export let ProviderConfigurationSelectionModalContent = ({
   instanceId,
+  providerId,
   saving,
   mutationError,
   submitLabel,
@@ -65,6 +66,7 @@ export let ProviderConfigurationSelectionModalContent = ({
   allowConfigVaultSelection = true
 }: {
   instanceId: string;
+  providerId?: string;
   saving: boolean;
   mutationError?: ReactNode;
   submitLabel: string;
@@ -75,10 +77,13 @@ export let ProviderConfigurationSelectionModalContent = ({
   allowConfigVaultSelection?: boolean;
 }) => {
   let [currentStep, setCurrentStep] = useState(0);
+  let selectedProvider = useProvider(instanceId, providerId);
+  let resolvedProviderName =
+    selectedProvider.data?.name ?? selectedProvider.data?.slug ?? providerId ?? '';
   let form = useForm<ProviderConfigurationSelectionFormValues, any>({
     initialValues: {
-      selectedProviderId: '',
-      selectedProviderName: '',
+      selectedProviderId: providerId ?? '',
+      selectedProviderName: resolvedProviderName,
       selectedDeploymentId: '',
       selectedConfiguration: emptyConfigurationSelection(),
       selectedAuthConfigId: '',
@@ -128,6 +133,26 @@ export let ProviderConfigurationSelectionModalContent = ({
       })
   });
 
+  useEffect(() => {
+    if (!providerId) return;
+
+    if (form.values.selectedProviderId !== providerId) {
+      form.setFieldValue('selectedProviderId', providerId);
+    }
+
+    if (
+      resolvedProviderName &&
+      form.values.selectedProviderName !== resolvedProviderName
+    ) {
+      form.setFieldValue('selectedProviderName', resolvedProviderName);
+    }
+  }, [
+    providerId,
+    resolvedProviderName,
+    form.values.selectedProviderId,
+    form.values.selectedProviderName
+  ]);
+
   let resetConfigurationState = () => {
     form.setFieldValue('selectedConfiguration', emptyConfigurationSelection());
     form.setFieldValue('selectedAuthConfigId', '');
@@ -139,11 +164,50 @@ export let ProviderConfigurationSelectionModalContent = ({
     form.setFieldError('selectedAuthConfigId', undefined);
   };
 
-  return (
-    <Stepper
-      currentStep={currentStep}
-      setCurrentStep={setCurrentStep}
-      steps={[
+  let deploymentStepIndex = providerId ? 0 : 1;
+  let configureStepIndex = providerId ? 1 : 2;
+  let steps = providerId
+    ? [
+        {
+          title: 'Deployment',
+          subtitle: 'Select a deployment',
+          render: () => (
+            <PickDeploymentStep
+              instanceId={instanceId}
+              providerId={form.values.selectedProviderId}
+              providerName={form.values.selectedProviderName || resolvedProviderName}
+              onSelect={deploymentId => {
+                form.setFieldValue('selectedDeploymentId', deploymentId);
+                form.setFieldTouched('selectedDeploymentId', false, false);
+                form.setFieldError('selectedDeploymentId', undefined);
+                resetConfigurationState();
+                setCurrentStep(configureStepIndex);
+              }}
+            />
+          )
+        },
+        {
+          title: 'Configure',
+          subtitle: 'Set up the provider',
+          render: () => (
+            <form onSubmit={form.handleSubmit}>
+              <DeploymentConfigureStep
+                form={form}
+                instanceId={instanceId}
+                deploymentId={form.values.selectedDeploymentId}
+                providerId={form.values.selectedProviderId}
+                providerName={form.values.selectedProviderName || resolvedProviderName}
+                saving={saving}
+                mutationError={mutationError}
+                submitLabel={submitLabel}
+                includeToolFilters={includeToolFilters}
+                allowConfigVaultSelection={allowConfigVaultSelection}
+              />
+            </form>
+          )
+        }
+      ]
+    : [
         {
           title: 'Provider',
           subtitle: 'Choose a provider',
@@ -156,7 +220,7 @@ export let ProviderConfigurationSelectionModalContent = ({
                 form.setFieldTouched('selectedDeploymentId', false, false);
                 form.setFieldError('selectedDeploymentId', undefined);
                 resetConfigurationState();
-                setCurrentStep(1);
+                setCurrentStep(deploymentStepIndex);
               }}
             />
           )
@@ -174,7 +238,7 @@ export let ProviderConfigurationSelectionModalContent = ({
                 form.setFieldTouched('selectedDeploymentId', false, false);
                 form.setFieldError('selectedDeploymentId', undefined);
                 resetConfigurationState();
-                setCurrentStep(2);
+                setCurrentStep(configureStepIndex);
               }}
             />
           )
@@ -199,7 +263,13 @@ export let ProviderConfigurationSelectionModalContent = ({
             </form>
           )
         }
-      ]}
+      ];
+
+  return (
+    <Stepper
+      currentStep={currentStep}
+      setCurrentStep={setCurrentStep}
+      steps={steps}
     />
   );
 };
@@ -402,7 +472,7 @@ let DeploymentConfigureStep = ({
     deployment.isLoading ||
     authConfigs.isLoading ||
     (deployment.data && !deployment.data.lockedVersion?.id && provider.isLoading) ||
-    (includeToolFilters && tools.isLoading)
+    (includeToolFilters && !!providerVersionId && tools.isLoading)
   ) {
     return <CenteredSpinner />;
   }

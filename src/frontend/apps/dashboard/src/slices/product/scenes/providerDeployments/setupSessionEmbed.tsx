@@ -216,6 +216,7 @@ export let ProviderSetupSessionEmbed = ({
   flattenOAuthCredentialsFlow = false,
   showExternalPreviewSidebar = false,
   collectAuthConfigDetails = false,
+  onAuthConfigDetailsChange,
   onPreviewCredentialTypeChange,
   onPreviewModeChange,
   onActiveStepChange
@@ -239,6 +240,7 @@ export let ProviderSetupSessionEmbed = ({
   flattenOAuthCredentialsFlow?: boolean;
   showExternalPreviewSidebar?: boolean;
   collectAuthConfigDetails?: boolean;
+  onAuthConfigDetailsChange?: (details: { name: string; description: string }) => void;
   onPreviewCredentialTypeChange?: (type: 'managed' | 'manual') => void;
   onPreviewModeChange?: (mode: 'managed' | 'manual_existing' | 'manual_new') => void;
   onActiveStepChange?: (step: 'method' | 'credentials' | 'connect') => void;
@@ -505,6 +507,20 @@ export let ProviderSetupSessionEmbed = ({
         description: yup.string().ensure()
       })
   });
+
+  useEffect(() => {
+    if (!collectAuthConfigDetails || !onAuthConfigDetailsChange) return;
+
+    onAuthConfigDetailsChange({
+      name: authConfigDetailsForm.values.name,
+      description: authConfigDetailsForm.values.description
+    });
+  }, [
+    collectAuthConfigDetails,
+    onAuthConfigDetailsChange,
+    authConfigDetailsForm.values.name,
+    authConfigDetailsForm.values.description
+  ]);
 
   useEffect(() => {
     if (!onPreviewCredentialTypeChange) return;
@@ -1018,6 +1034,8 @@ export let ProviderSetupSessionEmbed = ({
 
         <Input
           label="Description"
+          description="Optional context for your team about what this connection is used for."
+          placeholder="e.g. Production workspace for the CRM sync"
           {...authConfigDetailsForm.getFieldProps('description')}
           disabled={p.disabled}
         />

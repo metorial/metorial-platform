@@ -1,118 +1,132 @@
-import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
 import {
   useCurrentInstance,
   useCurrentOrganization,
-  useCurrentProject,
-  useSessionConnection
+  useCurrentProject
 } from '@metorial/state';
-import { Badge, RenderDate } from '@metorial/ui';
+import { LinkTabs, RenderDate, Text } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
-import { Outlet, useParams } from 'react-router-dom';
+import { Outlet, useLocation, useParams } from 'react-router-dom';
 import { AttributesLayout } from '../../../scenes/attributesLayout';
-
-let ConnectionStatusBadge = ({ state }: { state: string }) => {
-  return (
-    <Badge
-      color={
-        {
-          connected: 'blue' as const,
-          disconnected: 'gray' as const
-        }[state] ?? ('gray' as const)
-      }
-    >
-      {{
-        connected: 'Connected',
-        disconnected: 'Disconnected'
-      }[state] ?? state}
-    </Badge>
-  );
-};
+import { DeletedRecordCallout } from '../../../scenes/deletedRecordCallout';
+import { RenderWithResolvedMagicMcpSession } from '../../../scenes/magicMcp/resolvedSession';
+import { SessionConnectionStatusBadge } from '../../../scenes/providerSessions/table';
 
 export let MagicMcpConnectionLayout = () => {
   let instance = useCurrentInstance();
   let project = useCurrentProject();
   let organization = useCurrentOrganization();
+  let pathname = useLocation().pathname;
 
   let { connectionId } = useParams();
-  let connection = useSessionConnection(instance.data?.id, connectionId);
 
   return (
     <ContentLayout>
-      <PageHeader
-        title={connection.data?.participant?.name ?? 'Connection'}
-        pagination={[
-          {
-            label: 'Connections',
-            href: Paths.instance.magicMcp.connections(
-              organization.data,
-              project.data,
-              instance.data
-            )
-          },
-          {
-            label: connection.data?.participant?.name ?? 'Connection',
-            href: Paths.instance.magicMcp.connection(
-              organization.data,
-              project.data,
-              instance.data,
-              connection.data?.id ?? connectionId
-            )
-          }
-        ]}
-      />
+      <RenderWithResolvedMagicMcpSession magicMcpSessionId={connectionId}>
+        {({ magicMcpSession, session }) => {
+          let connectionPathParams = [
+            organization.data,
+            project.data,
+            instance.data,
+            magicMcpSession.id
+          ] as const;
 
-      {renderWithLoader({ connection })(({ connection }) => (
-        <AttributesLayout
-          variant="large"
-          items={[
-            {
-              label: 'Status',
-              value: <ConnectionStatusBadge state={connection.data.connectionState} />
-            },
-            { label: 'Connection ID', value: <ID id={connection.data.id} /> },
-            {
-              label: 'MCP Client',
-              value: connection.data.participant?.name ?? 'Unknown'
-            },
-            {
-              label: 'Transport',
-              value: connection.data.transport
-            },
-            ...(connection.data.mcp?.protocolVersion
-              ? [
+          return (
+            <>
+              <PageHeader
+                title={session.name ?? `Session ${session.id.slice(0, 8)}...`}
+                description={
+                  session.description ??
+                  magicMcpSession.magicMcpServer.description ??
+                  undefined
+                }
+                pagination={[
                   {
-                    label: 'Protocol Version',
-                    value: connection.data.mcp.protocolVersion
+                    label: 'Connections',
+                    href: Paths.instance.magicMcp.connections(
+                      organization.data,
+                      project.data,
+                      instance.data
+                    )
+                  },
+                  {
+                    label: session.name ?? 'Connection',
+                    href: Paths.instance.magicMcp.connection(...connectionPathParams)
                   }
-                ]
-              : []),
-            {
-              label: 'Client Messages',
-              value: connection.data.usage?.totalProductiveClientMessageCount ?? 0
-            },
-            {
-              label: 'Provider Messages',
-              value: connection.data.usage?.totalProductiveProviderMessageCount ?? 0
-            },
-            {
-              label: 'Connected At',
-              value: <RenderDate date={connection.data.createdAt} />
-            },
-            {
-              label: 'Last Active',
-              value: connection.data.lastActiveAt ? (
-                <RenderDate date={connection.data.lastActiveAt} />
-              ) : (
-                'N/A'
-              )
-            }
-          ]}
-        >
-          <Outlet />
-        </AttributesLayout>
-      ))}
+                ]}
+              />
+
+              <DeletedRecordCallout status={session.status} />
+
+              <LinkTabs
+                current={pathname}
+                links={[
+                  {
+                    label: 'Logs',
+                    to: Paths.instance.magicMcp.connection(...connectionPathParams)
+                  },
+                  {
+                    label: 'Deployments',
+                    to: Paths.instance.magicMcp.connection(
+                      ...connectionPathParams,
+                      'providers'
+                    )
+                  },
+                  {
+                    label: 'Provider Runs',
+                    to: Paths.instance.magicMcp.connection(...connectionPathParams, 'runs')
+                  }
+                ]}
+              />
+
+              <AttributesLayout
+                variant="large"
+                items={[
+                  {
+                    label: 'Status',
+                    value: (
+                      <SessionConnectionStatusBadge
+                        connectionStatus={session.connectionState}
+                        hasErrors={session.hasErrors}
+                        hasWarnings={session.hasWarnings}
+                      />
+                    )
+                  },
+                  {
+                    label: 'Magic MCP Server',
+                    value: magicMcpSession.magicMcpServer.name ?? (
+                      <Text size="2" color="gray600">
+                        Unnamed Server
+                      </Text>
+                    )
+                  },
+                  {
+                    label: 'Magic MCP Session ID',
+                    value: <ID id={magicMcpSession.id} />
+                  },
+                  {
+                    label: 'Session ID',
+                    value: <ID id={session.id} />
+                  },
+                  {
+                    label: 'Created At',
+                    value: <RenderDate date={magicMcpSession.createdAt} />
+                  },
+                  {
+                    label: 'Messages',
+                    value:
+                      (session.usage?.totalProductiveClientMessageCount ?? 0) +
+                      (session.usage?.totalProductiveProviderMessageCount ?? 0)
+                  }
+                ]}
+              >
+                <Outlet />
+              </AttributesLayout>
+            </>
+          );
+        }}
+      </RenderWithResolvedMagicMcpSession>
     </ContentLayout>
   );
 };

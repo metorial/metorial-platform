@@ -129,6 +129,74 @@ class serverConfigServiceImpl {
     return serverConfig;
   }
 
+  async deleteServerConfig(d: {
+    tenant: Tenant;
+    serverConfig: {
+      oid: bigint;
+      secretOid: bigint;
+    };
+  }) {
+    return await db.$transaction(async db => {
+      let connections = await db.serverConnection.findMany({
+        where: {
+          serverConfigOid: d.serverConfig.oid
+        },
+        select: { oid: true }
+      });
+      let connectionOids = connections.map(connection => connection.oid);
+
+      await db.serverDiscovery.deleteMany({
+        where: {
+          OR: [
+            { serverConfigOid: d.serverConfig.oid },
+            connectionOids.length ? { connectionOid: { in: connectionOids } } : undefined!
+          ].filter(Boolean)
+        }
+      });
+
+      if (connectionOids.length) {
+        await db.serverConnectionNetworkRule.deleteMany({
+          where: {
+            serverConnectionOid: { in: connectionOids }
+          }
+        });
+
+        await db.serverConnectionLogsTemp.deleteMany({
+          where: {
+            serverConnectionOid: { in: connectionOids }
+          }
+        });
+
+        await db.functionServerInvocation.updateMany({
+          where: {
+            connectionOid: { in: connectionOids }
+          },
+          data: {
+            connectionOid: null
+          }
+        });
+
+        await db.serverConnection.deleteMany({
+          where: {
+            oid: { in: connectionOids }
+          }
+        });
+      }
+
+      await secretService.DANGEROUSLY_deleteSecret({
+        secretOid: d.serverConfig.secretOid,
+        tenant: d.tenant,
+        db
+      });
+
+      await db.serverConfig.deleteMany({
+        where: {
+          oid: d.serverConfig.oid
+        }
+      });
+    });
+  }
+
   async listServerConfigs(d: { tenant: Tenant }) {
     return Paginator.create(({ prisma }) =>
       prisma(

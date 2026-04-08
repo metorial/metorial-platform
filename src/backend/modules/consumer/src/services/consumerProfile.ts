@@ -15,6 +15,7 @@ import {
   Instance,
   InstanceConsumer,
   OrganizationMember,
+  Prisma,
   withTransaction
 } from '@metorial/db';
 import { createLock } from '@metorial/lock';
@@ -22,7 +23,11 @@ import { syncIdentityConsumerQueue } from '../queues/syncIdentityConsumer';
 
 let include = {
   consumer: true,
-  surface: true,
+  surface: {
+    include: {
+      portal: true
+    }
+  },
   personalConsumerGroup: true,
   groups: {
     include: {
@@ -79,13 +84,79 @@ class ConsumerProfileServiceImpl {
     return consumerProfile;
   }
 
-  async listConsumerProfiles(d: { consumerSurface: ConsumerSurface }) {
+  async listConsumerProfiles(d: {
+    consumerSurface: ConsumerSurface;
+    search?: string;
+    id?: string;
+    consumerGroupId?: string;
+  }) {
+    let search = d.search?.trim();
+    let idFilter = d.id?.trim();
+    let consumerGroupId = d.consumerGroupId?.trim();
+
+    let groupMembershipWhere: Prisma.ConsumerProfileWhereInput | undefined;
+
+    if (consumerGroupId) {
+      let group = await db.consumerGroup.findFirst({
+        where: {
+          id: consumerGroupId,
+          surfaceOid: d.consumerSurface.oid,
+          status: 'active'
+        }
+      });
+
+      if (!group) {
+        groupMembershipWhere = { id: { in: [] } };
+      } else if (group.isDefault) {
+        groupMembershipWhere = undefined;
+      } else {
+        let or: Prisma.ConsumerProfileWhereInput[] = [
+          {
+            groups: {
+              some: {
+                group: {
+                  id: consumerGroupId,
+                  surfaceOid: d.consumerSurface.oid
+                }
+              }
+            }
+          },
+          { personalConsumerGroupOid: group.oid }
+        ];
+
+        if (group.ssoGroupIds.length) {
+          or.push({
+            ssoGroupIds: { hasSome: group.ssoGroupIds }
+          });
+        }
+
+        groupMembershipWhere = { OR: or };
+      }
+    }
+
+    let andParts: Prisma.ConsumerProfileWhereInput[] = [
+      { surfaceOid: d.consumerSurface.oid },
+      ...(idFilter ? [{ id: idFilter }] : []),
+      ...(groupMembershipWhere ? [groupMembershipWhere] : []),
+      ...(search
+        ? [
+            {
+              OR: [
+                { name: { contains: search, mode: 'insensitive' as const } },
+                { email: { contains: search, mode: 'insensitive' as const } },
+                { id: { contains: search, mode: 'insensitive' as const } }
+              ]
+            }
+          ]
+        : [])
+    ];
+
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
         return await db.consumerProfile.findMany({
           ...opts,
           where: {
-            surfaceOid: d.consumerSurface.oid
+            AND: andParts
           },
           include
         });

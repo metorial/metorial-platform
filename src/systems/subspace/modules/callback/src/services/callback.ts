@@ -12,7 +12,8 @@ import {
   type ProviderType,
   snowflake,
   type Solution,
-  type Tenant
+  type Tenant,
+  withTransaction
 } from '@metorial-subspace/db';
 import {
   type DateFilter,
@@ -477,15 +478,24 @@ class callbackServiceImpl {
     environment: Environment;
     callback: Callback;
   }) {
-    let archived = await db.callback.update({
-      where: { oid: d.callback.oid },
-      data: { status: 'archived' },
-      include: callbackInclude
-    });
+    let archivedAt = new Date();
 
-    await db.callbackInstance.updateMany({
-      where: { callbackOid: d.callback.oid },
-      data: { isParentDeleted: true }
+    let archived = await withTransaction(async db => {
+      let archived = await db.callback.update({
+        where: { oid: d.callback.oid },
+        data: {
+          status: 'archived',
+          archivedAt
+        },
+        include: callbackInclude
+      });
+
+      await db.callbackInstance.updateMany({
+        where: { callbackOid: d.callback.oid },
+        data: { isParentDeleted: true }
+      });
+
+      return archived;
     });
 
     await callbackRegistrationService.enqueueReconcile({ callbackId: archived.id });

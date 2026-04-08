@@ -1,5 +1,6 @@
 export * from './connections';
 export * from './create';
+export * from './delete';
 export * from './error-groups';
 export * from './errors';
 export * from './events';

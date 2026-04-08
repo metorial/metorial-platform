@@ -5,7 +5,7 @@ import { Presenter } from '@metorial/presenter';
 import { magicMcpServerType } from '../../types';
 
 export let v1MagicMcpServerPresenter = Presenter.create(magicMcpServerType)
-  .presenter(async ({ magicMcpServer }) => ({
+  .presenter(async ({ magicMcpServer, portal }) => ({
     object: 'magic_mcp.server' as const,
     id: magicMcpServer.id,
     status: magicMcpServer.status,
@@ -14,7 +14,9 @@ export let v1MagicMcpServerPresenter = Presenter.create(magicMcpServerType)
     endpoints: magicMcpServer.aliases.map(a => ({
       id: shadowId('mgse_', [magicMcpServer.id], [a.slug]),
       alias: a.slug,
-      url: `${getConfig().urls.apiUrl}/connect/magic/${a.slug}`
+      url: portal?.id
+        ? `${getConfig().urls.apiUrl}/connect/portal/${portal.slug}/${a.slug}`
+        : `${getConfig().urls.apiUrl}/connect/magic/${a.slug}`
     })),
     name: magicMcpServer.name,
     description: magicMcpServer.description,

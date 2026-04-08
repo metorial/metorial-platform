@@ -14,6 +14,7 @@ import {
   subspaceProviderService
 } from '@metorial/module-subspace';
 import {
+  getProviderVersionIdForAuthMethods,
   listProviderAuthMethods,
   type ConsumerProvider,
   type ConsumerProviderAuthMethodList,
@@ -787,6 +788,10 @@ class ConsumerProviderCatalogServiceImpl {
           if (!deployment) {
             throw new ServiceError(notFoundError('provider.deployment'));
           }
+          let provider = providerMap.get(deployment.providerId);
+          if (!provider) {
+            throw new ServiceError(notFoundError('provider'));
+          }
 
           let [configSchema, authMethods] = await Promise.all([
             subspaceProviderConfigService.getConfigSchema({
@@ -795,7 +800,10 @@ class ConsumerProviderCatalogServiceImpl {
             }),
             listProviderAuthMethods({
               instance: d.instance,
-              providerVersionId: deployment.lockedVersion?.id
+              providerVersionId: getProviderVersionIdForAuthMethods({
+                deployment,
+                provider
+              })
             })
           ]);
 
