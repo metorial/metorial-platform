@@ -368,7 +368,12 @@ export let ExplorerPage = () => {
   let activeProvider = useProvider(instance.data?.id, activeProviderId ?? undefined);
 
   useEffect(() => {
-    if (!selectedProvider && activeProvider.data && selectedDeployment.data?.providerId) {
+    if (
+      !selectedProvider &&
+      !!providerDeploymentId &&
+      activeProvider.data &&
+      selectedDeployment.data?.providerId
+    ) {
       _setSelectedProvider(activeProvider.data);
       setSearch(
         v => {
@@ -378,7 +383,13 @@ export let ExplorerPage = () => {
         { replace: true }
       );
     }
-  }, [selectedProvider, activeProvider.data, selectedDeployment.data, setSearch]);
+  }, [
+    selectedProvider,
+    providerDeploymentId,
+    activeProvider.data,
+    selectedDeployment.data,
+    setSearch
+  ]);
 
   let effectiveVersionIdForAuth =
     selectedDeployment.data?.lockedVersion?.id ?? activeProvider.data?.currentVersion?.id;
