@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "skipLibCheck": true,
+    "noEmit": true,
+    "skipDefaultLibCheck": true,
+    "types": [],
+    "baseUrl": ".",
+    "paths": {
+      "@metorial/code-bucket-service-generated": ["./stubs/code-bucket-service-generated.ts"]
+    }
+  },
+  "exclude": [
+    "dist",
+    "node_modules"
+  ]
+}
