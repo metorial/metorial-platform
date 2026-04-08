@@ -1,12 +1,6 @@
-import {
-  badRequestError,
-  notFoundError,
-  preconditionFailedError,
-  ServiceError
-} from '@lowerdeck/error';
+import { badRequestError, preconditionFailedError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { db } from '@metorial/db';
 import {
   consumerAccessRequestService,
   consumerProfileService,
@@ -16,9 +10,9 @@ import {
   consumerProviderDeploymentService,
   consumerProviderSetupSessionService
 } from '@metorial/module-consumer';
-import { magicMcpEndpointService, magicMcpServerService } from '@metorial/module-magic';
+import { magicMcpServerService } from '@metorial/module-magic';
+import { consumerOAuthService } from '@metorial/module-portal';
 import { Controller } from '@metorial/rest';
-import { addMinutes } from 'date-fns';
 import { consumerGroup, consumerPath } from '../../middleware/consumerGroup';
 import { hasFlags } from '../../middleware/hasFlags';
 import {
@@ -95,23 +89,11 @@ let portalOAuthClientGroup = consumerGroup.use(async ctx => {
     );
   }
 
-  let portalOAuthClient = await db.portalAuthClient.findFirst({
-    where: {
-      id: ctx.params.portalAuthClientId,
-      portal: {
-        instanceOid: ctx.instance.oid,
-        surfaceOid: ctx.consumerSurface.oid
-      }
-    },
-    include: {
-      portal: true,
-      magicMcpServer: true,
-      magicMcpEndpoint: true
-    }
+  let portalOAuthClient = await consumerOAuthService.getPortalOAuthClientForConsumer({
+    instance: ctx.instance,
+    consumerSurface: ctx.consumerSurface,
+    portalAuthClientId: ctx.params.portalAuthClientId
   });
-  if (!portalOAuthClient) {
-    throw new ServiceError(notFoundError('portal.oauth_client'));
-  }
 
   return { portalOAuthClient };
 });
@@ -126,42 +108,13 @@ let portalOAuthAuthorizationGroup = consumerGroup.use(async ctx => {
     );
   }
 
-  let portalOAuthAuthorization = await db.portalAuthAttempt.findFirst({
-    where: {
-      id: ctx.params.portalAuthAttemptId,
-      portalAuthClient: {
-        portal: {
-          instanceOid: ctx.instance.oid,
-          surfaceOid: ctx.consumerSurface.oid
-        }
-      }
-    },
-    include: {
-      consumerProfile: true,
-      magicMcpEndpoint: true,
-      portalAuthClient: {
-        include: {
-          portal: true,
-          magicMcpServer: true,
-          magicMcpEndpoint: true
-        }
-      }
-    }
-  });
-  if (!portalOAuthAuthorization) {
-    throw new ServiceError(notFoundError('portal.oauth_authorization'));
-  }
-
-  if (
-    portalOAuthAuthorization.consumerProfile &&
-    portalOAuthAuthorization.consumerProfile.oid != ctx.consumerProfile.oid
-  ) {
-    throw new ServiceError(
-      preconditionFailedError({
-        message: 'This portal OAuth authorization belongs to a different consumer profile.'
-      })
-    );
-  }
+  let portalOAuthAuthorization =
+    await consumerOAuthService.getPortalOAuthAuthorizationForConsumer({
+      instance: ctx.instance,
+      consumerSurface: ctx.consumerSurface,
+      consumerProfile: ctx.consumerProfile,
+      portalAuthAttemptId: ctx.params.portalAuthAttemptId
+    });
 
   return { portalOAuthAuthorization };
 });
@@ -228,53 +181,11 @@ export let consumerProviderController = Controller.create(
       .use(hasFlags(['paid-portals', 'portals-access']))
       .output(portalOAuthAuthorizationPresenter)
       .do(async ctx => {
-        if (ctx.portalOAuthAuthorization.status != 'pending') {
-          throw new ServiceError(
-            preconditionFailedError({
-              message: 'This portal OAuth authorization is no longer pending.'
-            })
-          );
-        }
-
-        if (
-          !ctx.portalOAuthAuthorization.portalAuthClient.magicMcpServerOid &&
-          !ctx.portalOAuthAuthorization.portalAuthClient.magicMcpEndpointOid &&
-          !ctx.portalOAuthAuthorization.magicMcpEndpointOid
-        ) {
-          throw new ServiceError(
-            preconditionFailedError({
-              message:
-                'Select at least one Magic MCP server before approving this portal OAuth authorization.'
-            })
-          );
-        }
-
-        let now = new Date();
-        let portalOAuthAuthorization = await db.portalAuthAttempt.update({
-          where: {
-            id: ctx.portalOAuthAuthorization.id
-          },
-          data: {
-            status: 'authorized',
-            consumerProfileOid: ctx.consumerProfile.oid,
-            authorizedAt: now,
-            deniedAt: null,
-            authorizationCode:
-              ctx.portalOAuthAuthorization.authorizationCode ?? crypto.randomUUID(),
-            authorizationCodeExpiresAt: addMinutes(now, 10)
-          },
-          include: {
-            consumerProfile: true,
-            magicMcpEndpoint: true,
-            portalAuthClient: {
-              include: {
-                portal: true,
-                magicMcpServer: true,
-                magicMcpEndpoint: true
-              }
-            }
-          }
-        });
+        let portalOAuthAuthorization =
+          await consumerOAuthService.acceptPortalOAuthAuthorization({
+            portalOAuthAuthorization: ctx.portalOAuthAuthorization,
+            consumerProfile: ctx.consumerProfile
+          });
 
         return portalOAuthAuthorizationPresenter.present({
           portalOAuthAuthorization
@@ -302,58 +213,14 @@ export let consumerProviderController = Controller.create(
       )
       .output(portalOAuthAuthorizationPresenter)
       .do(async ctx => {
-        if (ctx.portalOAuthAuthorization.status != 'pending') {
-          throw new ServiceError(
-            preconditionFailedError({
-              message: 'This portal OAuth authorization is no longer pending.'
-            })
-          );
-        }
-
-        let magicMcpEndpoint = await magicMcpEndpointService.getMagicMcpEndpointById({
-          magicMcpEndpointId: ctx.body.magic_mcp_endpoint_id,
-          instance: ctx.instance,
-          accessTags: ctx.accessTags
-        });
-
-        if (magicMcpEndpoint.consumerProfileOid != ctx.consumerProfile.oid) {
-          throw new ServiceError(
-            preconditionFailedError({
-              message:
-                'You can only link this portal OAuth authorization to a magic MCP endpoint you own.'
-            })
-          );
-        }
-
-        if (magicMcpEndpoint.servers.length == 0) {
-          throw new ServiceError(
-            preconditionFailedError({
-              message:
-                'Add at least one Magic MCP server to the endpoint before linking it to this portal OAuth authorization.'
-            })
-          );
-        }
-
-        let portalOAuthAuthorization = await db.portalAuthAttempt.update({
-          where: {
-            id: ctx.portalOAuthAuthorization.id
-          },
-          data: {
-            consumerProfileOid: ctx.consumerProfile.oid,
-            magicMcpEndpointOid: magicMcpEndpoint.oid
-          },
-          include: {
-            consumerProfile: true,
-            magicMcpEndpoint: true,
-            portalAuthClient: {
-              include: {
-                portal: true,
-                magicMcpServer: true,
-                magicMcpEndpoint: true
-              }
-            }
-          }
-        });
+        let portalOAuthAuthorization =
+          await consumerOAuthService.connectPortalOAuthAuthorizationToMagicMcpEndpoint({
+            portalOAuthAuthorization: ctx.portalOAuthAuthorization,
+            instance: ctx.instance,
+            accessTags: ctx.accessTags,
+            consumerProfile: ctx.consumerProfile,
+            magicMcpEndpointId: ctx.body.magic_mcp_endpoint_id
+          });
 
         return portalOAuthAuthorizationPresenter.present({
           portalOAuthAuthorization
@@ -375,36 +242,11 @@ export let consumerProviderController = Controller.create(
       .use(hasFlags(['paid-portals', 'portals-access']))
       .output(portalOAuthAuthorizationPresenter)
       .do(async ctx => {
-        if (ctx.portalOAuthAuthorization.status != 'pending') {
-          throw new ServiceError(
-            preconditionFailedError({
-              message: 'This portal OAuth authorization is no longer pending.'
-            })
-          );
-        }
-
-        let portalOAuthAuthorization = await db.portalAuthAttempt.update({
-          where: {
-            id: ctx.portalOAuthAuthorization.id
-          },
-          data: {
-            status: 'denied',
-            consumerProfileOid:
-              ctx.portalOAuthAuthorization.consumerProfileOid ?? ctx.consumerProfile.oid,
-            deniedAt: new Date()
-          },
-          include: {
-            consumerProfile: true,
-            magicMcpEndpoint: true,
-            portalAuthClient: {
-              include: {
-                portal: true,
-                magicMcpServer: true,
-                magicMcpEndpoint: true
-              }
-            }
-          }
-        });
+        let portalOAuthAuthorization =
+          await consumerOAuthService.rejectPortalOAuthAuthorization({
+            portalOAuthAuthorization: ctx.portalOAuthAuthorization,
+            consumerProfile: ctx.consumerProfile
+          });
 
         return portalOAuthAuthorizationPresenter.present({
           portalOAuthAuthorization
