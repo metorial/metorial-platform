@@ -30,7 +30,7 @@ export let IdentityActorLayout = () => {
             <Button
               size="2"
               onClick={() => {
-                if (!instance.data) return;
+                if (!instance.data || !actor.data) return;
 
                 showIdentityFormModal({
                   instanceId: instance.data.id,
