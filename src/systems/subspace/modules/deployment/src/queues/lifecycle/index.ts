@@ -13,6 +13,9 @@ import {
   providerConfigVaultUpdatedQueueProcessor
 } from './providerConfigVault';
 import {
+  providerDeploymentArchiveAuthConfigsManyQueueProcessor,
+  providerDeploymentArchiveConfigsManyQueueProcessor,
+  providerDeploymentArchiveConfigVaultsManyQueueProcessor,
   providerDeploymentArchivedQueueProcessor,
   providerDeploymentCreatedQueueProcessor,
   providerDeploymentDeletedQueueProcessor,
@@ -32,5 +35,8 @@ export let lifecycleQueues = combineQueueProcessors([
   providerDeploymentCreatedQueueProcessor,
   providerDeploymentUpdatedQueueProcessor,
   providerDeploymentArchivedQueueProcessor,
+  providerDeploymentArchiveConfigsManyQueueProcessor,
+  providerDeploymentArchiveConfigVaultsManyQueueProcessor,
+  providerDeploymentArchiveAuthConfigsManyQueueProcessor,
   providerDeploymentDeletedQueueProcessor
 ]);
