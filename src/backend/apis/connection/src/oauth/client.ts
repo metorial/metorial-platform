@@ -4,6 +4,7 @@ import {
   ServiceError,
   unauthorizedError
 } from '@lowerdeck/error';
+import { generateCustomId } from '@lowerdeck/id';
 import { getConfig } from '@metorial/config';
 import { db, Prisma } from '@metorial/db';
 import {
@@ -16,10 +17,9 @@ import {
   resolveMagicMcpTargetByIdOrAlias
 } from '@metorial/module-magic';
 import { portalService } from '@metorial/module-portal';
-import { addDays, addHours } from 'date-fns';
+import { addSeconds } from 'date-fns';
 import { createCodeChallenge } from './challenge';
 import { urlsMatch } from './utils';
-import { generateCustomId } from '@lowerdeck/id';
 
 let portalAuthAttemptInclude = {
   portalAuthClient: true,
@@ -35,8 +35,8 @@ type PortalAuthAttemptWithRelations = Prisma.PortalAuthAttemptGetPayload<{
 export let portalRefreshTokenTtlSeconds = 7 * 24 * 60 * 60;
 export let portalAccessTokenTtlSeconds = 60 * 60;
 
-let getPortalRefreshTokenExpiry = () => addDays(new Date(), 7);
-let getPortalAccessTokenExpiry = () => addHours(new Date(), 1);
+let getPortalRefreshTokenExpiry = () => addSeconds(new Date(), portalRefreshTokenTtlSeconds);
+let getPortalAccessTokenExpiry = () => addSeconds(new Date(), portalAccessTokenTtlSeconds);
 
 export let resolvePortalRoute = async (d: { portalId: string; magicMcpTargetId?: string }) => {
   let portal = await portalService.getPortalPublic({ portalId: d.portalId });
