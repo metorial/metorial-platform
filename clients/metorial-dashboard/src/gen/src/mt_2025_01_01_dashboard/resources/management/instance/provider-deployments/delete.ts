@@ -3,6 +3,7 @@ import { mtMap } from '@metorial/util-resource-mapper';
 export type ManagementInstanceProviderDeploymentsDeleteOutput = {
   object: 'provider.deployment';
   id: string;
+  status: 'active' | 'archived' | 'deleted';
   isDefault: boolean;
   name: string | null;
   description: string | null;
@@ -54,6 +55,7 @@ export let mapManagementInstanceProviderDeploymentsDeleteOutput =
   mtMap.object<ManagementInstanceProviderDeploymentsDeleteOutput>({
     object: mtMap.objectField('object', mtMap.passthrough()),
     id: mtMap.objectField('id', mtMap.passthrough()),
+    status: mtMap.objectField('status', mtMap.passthrough()),
     isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
     name: mtMap.objectField('name', mtMap.passthrough()),
     description: mtMap.objectField('description', mtMap.passthrough()),

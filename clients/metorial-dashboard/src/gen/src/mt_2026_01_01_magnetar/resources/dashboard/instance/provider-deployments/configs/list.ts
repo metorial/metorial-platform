@@ -4,6 +4,7 @@ export type DashboardInstanceProviderDeploymentsConfigsListOutput = {
   items: {
     object: 'provider.config';
     id: string;
+    status: 'active' | 'archived' | 'deleted';
     isDefault: boolean;
     name: string | null;
     description: string | null;
@@ -38,6 +39,7 @@ export type DashboardInstanceProviderDeploymentsConfigsListOutput = {
     fromVault: {
       object: 'provider.config_vault';
       id: string;
+      status: 'active' | 'archived' | 'deleted';
       name: string;
       description: string | null;
       metadata: Record<string, any> | null;
@@ -70,6 +72,7 @@ export let mapDashboardInstanceProviderDeploymentsConfigsListOutput =
         mtMap.object({
           object: mtMap.objectField('object', mtMap.passthrough()),
           id: mtMap.objectField('id', mtMap.passthrough()),
+          status: mtMap.objectField('status', mtMap.passthrough()),
           isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
           name: mtMap.objectField('name', mtMap.passthrough()),
           description: mtMap.objectField('description', mtMap.passthrough()),
@@ -144,6 +147,7 @@ export let mapDashboardInstanceProviderDeploymentsConfigsListOutput =
             mtMap.object({
               object: mtMap.objectField('object', mtMap.passthrough()),
               id: mtMap.objectField('id', mtMap.passthrough()),
+              status: mtMap.objectField('status', mtMap.passthrough()),
               name: mtMap.objectField('name', mtMap.passthrough()),
               description: mtMap.objectField(
                 'description',

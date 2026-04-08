@@ -145,6 +145,8 @@ export type DashboardInstancePortalsConsumerAccessListQuery = {
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
 } & {
+  search?: string | undefined;
+  id?: string | undefined;
   consumerGroupId?: string | string[] | undefined;
   providerTemplateId?: string | string[] | undefined;
   magicMcpServerId?: string | string[] | undefined;
@@ -164,6 +166,8 @@ export let mapDashboardInstancePortalsConsumerAccessListQuery = mtMap.union([
       before: mtMap.objectField('before', mtMap.passthrough()),
       cursor: mtMap.objectField('cursor', mtMap.passthrough()),
       order: mtMap.objectField('order', mtMap.passthrough()),
+      search: mtMap.objectField('search', mtMap.passthrough()),
+      id: mtMap.objectField('id', mtMap.passthrough()),
       consumerGroupId: mtMap.objectField(
         'consumer_group_id',
         mtMap.union([

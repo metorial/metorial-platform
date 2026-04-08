@@ -6,6 +6,7 @@ import {
 import {
   mapDashboardInstanceSessionTemplatesCreateBody,
   mapDashboardInstanceSessionTemplatesCreateOutput,
+  mapDashboardInstanceSessionTemplatesDeleteOutput,
   mapDashboardInstanceSessionTemplatesGetOutput,
   mapDashboardInstanceSessionTemplatesListOutput,
   mapDashboardInstanceSessionTemplatesListQuery,
@@ -13,6 +14,7 @@ import {
   mapDashboardInstanceSessionTemplatesUpdateOutput,
   type DashboardInstanceSessionTemplatesCreateBody,
   type DashboardInstanceSessionTemplatesCreateOutput,
+  type DashboardInstanceSessionTemplatesDeleteOutput,
   type DashboardInstanceSessionTemplatesGetOutput,
   type DashboardInstanceSessionTemplatesListOutput,
   type DashboardInstanceSessionTemplatesListQuery,
@@ -167,6 +169,35 @@ export class MetorialManagementInstanceSessionTemplatesEndpoint {
 
     return this._patch(request).transform(
       mapDashboardInstanceSessionTemplatesUpdateOutput
+    );
+  }
+
+  /**
+   * @name Delete session template
+   * @description Deletes a specific session template.
+   *
+   * @param `instanceId` - string
+   * @param `sessionTemplateId` - string
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardInstanceSessionTemplatesDeleteOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  delete(
+    instanceId: string,
+    sessionTemplateId: string,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceSessionTemplatesDeleteOutput> {
+    let path = `instances/${instanceId}/session-templates/${sessionTemplateId}`;
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._delete(request).transform(
+      mapDashboardInstanceSessionTemplatesDeleteOutput
     );
   }
 }
