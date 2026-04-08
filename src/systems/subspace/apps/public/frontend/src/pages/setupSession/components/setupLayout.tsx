@@ -126,7 +126,7 @@ export let SetupLayout = ({
             }}
             transition={{ duration, ease: 'anticipate' }}
           >
-            {brand && (
+            {brand ? (
               <>
                 <ProviderHeader>
                   <IconsRow>
@@ -151,13 +151,13 @@ export let SetupLayout = ({
                     {providerName ? `Connect to ${providerName}` : 'Choose a provider'}
                   </ProviderHeaderText>
                 </ProviderHeader>
-                <Spacer size={18} />
               </>
+            ) : (
+              <Title as="h1" size="5" weight="bold">
+                {main.title}
+              </Title>
             )}
 
-            <Title as="h1" size="5" weight="bold">
-              {main.title}
-            </Title>
             {main.description && (
               <>
                 <Spacer size={5} />
