@@ -1,3 +1,5 @@
+import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { db } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { createSubspaceService, toEventBase } from '../lib/subspaceService';
 import { subspace } from '../subspace';
@@ -19,11 +21,24 @@ export let subspaceSessionTemplateService = createSubspaceService(
 
       return sessionTemplate;
     },
-    update: async (...params: Parameters<typeof inner.update>) => {
-      let eventBase = toEventBase(params[0]);
+    update: async (
+      arg0: Parameters<typeof inner.update>[0] & { _allowMagicMcpUpdate?: boolean }
+    ) => {
+      let eventBase = toEventBase(arg0);
       await Fabric.fire('provider.session_template.updated:before', eventBase);
 
-      let sessionTemplate = await inner.update(...params);
+      let magicMcpLink = await db.magicMcpSubspaceSessionConnection.findFirst({
+        where: { subspaceSessionTemplateId: arg0.sessionTemplateId }
+      });
+      if (magicMcpLink && !arg0._allowMagicMcpUpdate) {
+        throw new ServiceError(
+          badRequestError({
+            message: 'This session template cannot be updated.'
+          })
+        );
+      }
+
+      let sessionTemplate = await inner.update(arg0);
 
       await Fabric.fire('provider.session_template.updated:after', {
         ...eventBase,
@@ -32,11 +47,24 @@ export let subspaceSessionTemplateService = createSubspaceService(
 
       return sessionTemplate;
     },
-    delete: async (...params: Parameters<typeof inner.delete>) => {
-      let eventBase = toEventBase(params[0]);
+    delete: async (
+      arg0: Parameters<typeof inner.delete>[0] & { _allowMagicMcpDelete?: boolean }
+    ) => {
+      let eventBase = toEventBase(arg0);
       await Fabric.fire('provider.session_template.deleted:before', eventBase);
 
-      let sessionTemplate = await inner.delete(...params);
+      let magicMcpLink = await db.magicMcpSubspaceSessionConnection.findFirst({
+        where: { subspaceSessionTemplateId: arg0.sessionTemplateId }
+      });
+      if (magicMcpLink && !arg0._allowMagicMcpDelete) {
+        throw new ServiceError(
+          badRequestError({
+            message: 'This session template cannot be deleted.'
+          })
+        );
+      }
+
+      let sessionTemplate = await inner.delete(arg0);
 
       await Fabric.fire('provider.session_template.deleted:after', {
         ...eventBase,

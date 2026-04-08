@@ -1,5 +1,6 @@
+import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { getSentry } from '@lowerdeck/sentry';
-import { Instance } from '@metorial/db';
+import { db, Instance } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { sessionClientSecretReferenceService } from '@metorial/module-access';
 import { usageService } from '@metorial/module-usage';
@@ -174,29 +175,55 @@ export let subspaceSessionService = createSubspaceService(
         session
       });
     },
-    update: async (...params: Parameters<typeof inner.update>) => {
-      let eventBase = toEventBase(params[0]);
+    update: async (
+      arg0: Parameters<typeof inner.update>[0] & { _allowMagicMcpUpdate?: boolean }
+    ) => {
+      let eventBase = toEventBase(arg0);
       await Fabric.fire('provider.session.updated:before', eventBase);
 
-      let session = await inner.update(...params);
+      let magicMcpLink = await db.magicMcpSubspaceSessionConnection.findFirst({
+        where: { subspaceSessionId: arg0.sessionId }
+      });
+      if (magicMcpLink && !arg0._allowMagicMcpUpdate) {
+        throw new ServiceError(
+          badRequestError({
+            message: 'This session cannot be updated.'
+          })
+        );
+      }
+
+      let session = await inner.update(arg0);
 
       await Fabric.fire('provider.session.updated:after', { ...eventBase, session });
 
       return await enrichSessionWithClientSecret({
-        instance: params[0].instance,
+        instance: arg0.instance,
         session
       });
     },
-    delete: async (...params: Parameters<typeof inner.delete>) => {
-      let eventBase = toEventBase(params[0]);
+    delete: async (
+      arg0: Parameters<typeof inner.delete>[0] & { _allowMagicMcpDelete?: boolean }
+    ) => {
+      let eventBase = toEventBase(arg0);
       await Fabric.fire('provider.session.deleted:before', eventBase);
 
-      let session = await inner.delete(...params);
+      let magicMcpLink = await db.magicMcpSubspaceSessionConnection.findFirst({
+        where: { subspaceSessionId: arg0.sessionId }
+      });
+      if (magicMcpLink && !arg0._allowMagicMcpDelete) {
+        throw new ServiceError(
+          badRequestError({
+            message: 'This session cannot be deleted.'
+          })
+        );
+      }
+
+      let session = await inner.delete(arg0);
 
       await Fabric.fire('provider.session.deleted:after', { ...eventBase, session });
 
       return await enrichSessionWithClientSecret({
-        instance: params[0].instance,
+        instance: arg0.instance,
         session
       });
     }
