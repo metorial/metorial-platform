@@ -245,12 +245,33 @@ class MagicMcpGroupImpl {
       );
     }
 
+    if (d.group.status != 'active') {
+      throw new ServiceError(
+        preconditionFailedError({
+          message: 'Cannot add servers to a magic MCP group that is not active'
+        })
+      );
+    }
+
+    let uniqueServerIds = [...new Set(d.serverIds)];
     let servers = await db.magicMcpServer.findMany({
       where: {
-        id: { in: d.serverIds },
+        id: { in: uniqueServerIds },
         instanceOid: d.group.instanceOid
       }
     });
+
+    if (servers.length !== uniqueServerIds.length) {
+      throw new ServiceError(notFoundError('magic_mcp.server'));
+    }
+
+    if (servers.some(server => server.status !== 'active')) {
+      throw new ServiceError(
+        preconditionFailedError({
+          message: 'Magic MCP groups can only be linked to active magic MCP servers'
+        })
+      );
+    }
 
     await db.magicMcpGroupServer.createMany({
       data: servers.map(s => ({
@@ -303,6 +324,14 @@ class MagicMcpGroupImpl {
 
     if (groups.length !== idSet.length) {
       throw new ServiceError(notFoundError('magic_mcp.group'));
+    }
+
+    if (groups.some(group => group.status !== 'active')) {
+      throw new ServiceError(
+        preconditionFailedError({
+          message: 'Magic MCP tokens can only be linked to active magic MCP groups'
+        })
+      );
     }
 
     return groups;

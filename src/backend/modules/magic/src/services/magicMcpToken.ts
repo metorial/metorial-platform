@@ -60,6 +60,18 @@ let isMagicMcpTokenExpired = (token: Pick<MagicMcpToken, 'expiresAt'>) => {
   return !!token.expiresAt && token.expiresAt < new Date();
 };
 
+let getInactiveLinkedResourceMessage = (resource: 'server' | 'endpoint' | 'group') => {
+  if (resource == 'server') {
+    return 'The magic MCP token is linked to a magic MCP server that is no longer active';
+  }
+
+  if (resource == 'endpoint') {
+    return 'The magic MCP token is linked to a magic MCP endpoint that is no longer active';
+  }
+
+  return 'The magic MCP token is linked to a magic MCP group that is no longer active';
+};
+
 class MagicMcpTokenImpl {
   async getMagicMcpTokenById(d: {
     instance: Instance;
@@ -116,6 +128,20 @@ class MagicMcpTokenImpl {
       magicMcpEndpoint?: MagicMcpEndpoint;
     };
   }) {
+    if (d.input.magicMcpServer && d.input.magicMcpEndpoint) {
+      throw new ServiceError(
+        preconditionFailedError({
+          message: 'A magic MCP token can only be linked to one server or one endpoint'
+        })
+      );
+    }
+
+    await this.ensureLinkedResourcesAreActive({
+      groups: d.groups,
+      magicMcpServer: d.input.magicMcpServer,
+      magicMcpEndpoint: d.input.magicMcpEndpoint
+    });
+
     return await db.magicMcpToken.create({
       data: {
         id: await ID.generateId('magicMcpToken'),
@@ -151,6 +177,17 @@ class MagicMcpTokenImpl {
       throw new ServiceError(
         preconditionFailedError({
           message: 'The magic MCP token must be active to rotate its secret'
+        })
+      );
+    }
+
+    let invalidLinkedResourceMessage = await this.getInvalidLinkedResourceMessage({
+      token: d.token
+    });
+    if (invalidLinkedResourceMessage) {
+      throw new ServiceError(
+        preconditionFailedError({
+          message: invalidLinkedResourceMessage
         })
       );
     }
@@ -391,19 +428,34 @@ class MagicMcpTokenImpl {
       );
     }
 
+    let invalidLinkedResourceMessage = await this.getInvalidLinkedResourceMessage({
+      token: magicMcpToken
+    });
+    if (invalidLinkedResourceMessage) {
+      throw new ServiceError(
+        unauthorizedError({
+          message: invalidLinkedResourceMessage
+        })
+      );
+    }
+
     return magicMcpToken;
   }
 
   async checkMagicMcpTokenAccess(d: {
     token: MagicMcpTokenWithRelations;
     server?: MagicMcpServer;
-    endpoint?: Pick<MagicMcpEndpoint, 'oid'>;
+    endpoint?: Pick<MagicMcpEndpoint, 'oid' | 'status'>;
   }) {
     if (!d.server && !d.endpoint) {
       throw new Error('Magic MCP token access requires a server or endpoint');
     }
 
     if (d.server) {
+      if (d.server.status !== 'active') {
+        return false;
+      }
+
       if (d.token.magicMcpEndpointOid) {
         return false;
       }
@@ -414,6 +466,10 @@ class MagicMcpTokenImpl {
     }
 
     if (d.endpoint) {
+      if (d.endpoint.status !== 'active') {
+        return false;
+      }
+
       if (d.token.magicMcpServerOid) {
         return false;
       }
@@ -449,6 +505,7 @@ class MagicMcpTokenImpl {
           where: {
             magicMcpEndpointOid: d.endpoint.oid,
             magicMcpServer: {
+              status: 'active',
               groups: {
                 none: {
                   magicMcpGroup: {
@@ -488,6 +545,7 @@ class MagicMcpTokenImpl {
       let serverAccess = await db.magicMcpServer.findFirst({
         where: {
           oid: d.server.oid,
+          status: 'active',
           accessTagEntities: {
             some: {
               accessTagOid: {
@@ -512,6 +570,7 @@ class MagicMcpTokenImpl {
     let endpointAccess = await db.magicMcpEndpoint.findFirst({
       where: {
         oid: d.endpoint!.oid,
+        status: 'active',
         accessTagEntities: {
           some: {
             accessTagOid: {
@@ -536,11 +595,20 @@ class MagicMcpTokenImpl {
   async addGroupsToToken(d: { token: MagicMcpToken; groupIds: string[] }) {
     this.assetTokenNotServerOrEndpointLinked(d.token);
 
+    let uniqueGroupIds = [...new Set(d.groupIds)];
     let groups = await db.magicMcpGroup.findMany({
       where: {
-        id: { in: d.groupIds },
+        id: { in: uniqueGroupIds },
         instanceOid: d.token.instanceOid
       }
+    });
+
+    if (groups.length !== uniqueGroupIds.length) {
+      throw new ServiceError(notFoundError('magic_mcp.group'));
+    }
+
+    await this.ensureLinkedResourcesAreActive({
+      groups
     });
 
     if (groups.length > 0) {
@@ -602,6 +670,124 @@ class MagicMcpTokenImpl {
         })
       );
     }
+  }
+
+  private async ensureLinkedResourcesAreActive(d: {
+    groups?: Pick<MagicMcpGroup, 'status'>[];
+    magicMcpServer?: Pick<MagicMcpServer, 'status'> | null;
+    magicMcpEndpoint?: Pick<MagicMcpEndpoint, 'oid' | 'status'> | null;
+  }) {
+    if (d.groups?.some(group => group.status !== 'active')) {
+      throw new ServiceError(
+        preconditionFailedError({
+          message: getInactiveLinkedResourceMessage('group')
+        })
+      );
+    }
+
+    if (d.magicMcpServer && d.magicMcpServer.status !== 'active') {
+      throw new ServiceError(
+        preconditionFailedError({
+          message: getInactiveLinkedResourceMessage('server')
+        })
+      );
+    }
+
+    if (d.magicMcpEndpoint) {
+      if (d.magicMcpEndpoint.status !== 'active') {
+        throw new ServiceError(
+          preconditionFailedError({
+            message: getInactiveLinkedResourceMessage('endpoint')
+          })
+        );
+      }
+
+      let inactiveServerCount = await db.magicMcpEndpointServer.count({
+        where: {
+          magicMcpEndpointOid: d.magicMcpEndpoint.oid,
+          magicMcpServer: {
+            status: {
+              not: 'active'
+            }
+          }
+        }
+      });
+
+      if (inactiveServerCount > 0) {
+        throw new ServiceError(
+          preconditionFailedError({
+            message:
+              'The magic MCP endpoint is linked to one or more magic MCP servers that are no longer active'
+          })
+        );
+      }
+    }
+  }
+
+  private async getInvalidLinkedResourceMessage(d: {
+    token: Pick<
+      MagicMcpToken,
+      'oid' | 'magicMcpServerOid' | 'magicMcpEndpointOid' | 'isGroupLocked'
+    >;
+  }) {
+    if (d.token.magicMcpServerOid) {
+      let magicMcpServer = await db.magicMcpServer.findUnique({
+        where: { oid: d.token.magicMcpServerOid },
+        select: { status: true }
+      });
+
+      if (!magicMcpServer || magicMcpServer.status !== 'active') {
+        return getInactiveLinkedResourceMessage('server');
+      }
+    }
+
+    if (d.token.magicMcpEndpointOid) {
+      let magicMcpEndpoint = await db.magicMcpEndpoint.findUnique({
+        where: { oid: d.token.magicMcpEndpointOid },
+        select: {
+          oid: true,
+          status: true
+        }
+      });
+
+      if (!magicMcpEndpoint || magicMcpEndpoint.status !== 'active') {
+        return getInactiveLinkedResourceMessage('endpoint');
+      }
+
+      let inactiveEndpointServerCount = await db.magicMcpEndpointServer.count({
+        where: {
+          magicMcpEndpointOid: magicMcpEndpoint.oid,
+          magicMcpServer: {
+            status: {
+              not: 'active'
+            }
+          }
+        }
+      });
+
+      if (inactiveEndpointServerCount > 0) {
+        return 'The magic MCP token is linked to a magic MCP endpoint with one or more inactive servers';
+      }
+    }
+
+    if (d.token.isGroupLocked) {
+      let inactiveGroupCount = await db.magicMcpGroupToken.count({
+        where: {
+          magicMcpTokenOid: d.token.oid,
+          magicMcpGroup: {
+            status: {
+              not: 'active'
+            }
+          }
+        }
+      });
+
+      if (inactiveGroupCount > 0) {
+        return getInactiveLinkedResourceMessage('group');
+      }
+    }
+
+    return null;
   }
 }
 
