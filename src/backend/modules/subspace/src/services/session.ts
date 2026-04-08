@@ -28,7 +28,7 @@ let enrichSessionWithClientSecret = async (d: {
 
 export let subspaceSessionService = createSubspaceService(
   subspace.session,
-  ['get', 'list', 'create', 'update'],
+  ['get', 'list', 'create', 'update', 'delete'],
   inner => ({
     get: async (...params: Parameters<typeof inner.get>) => {
       let session = await inner.get(...params);
@@ -181,6 +181,19 @@ export let subspaceSessionService = createSubspaceService(
       let session = await inner.update(...params);
 
       await Fabric.fire('provider.session.updated:after', { ...eventBase, session });
+
+      return await enrichSessionWithClientSecret({
+        instance: params[0].instance,
+        session
+      });
+    },
+    delete: async (...params: Parameters<typeof inner.delete>) => {
+      let eventBase = toEventBase(params[0]);
+      await Fabric.fire('provider.session.deleted:before', eventBase);
+
+      let session = await inner.delete(...params);
+
+      await Fabric.fire('provider.session.deleted:after', { ...eventBase, session });
 
       return await enrichSessionWithClientSecret({
         instance: params[0].instance,

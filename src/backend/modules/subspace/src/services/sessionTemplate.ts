@@ -4,7 +4,7 @@ import { subspace } from '../subspace';
 
 export let subspaceSessionTemplateService = createSubspaceService(
   subspace.sessionTemplate,
-  ['get', 'list', 'create', 'update'],
+  ['get', 'list', 'create', 'update', 'delete'],
   inner => ({
     create: async (...params: Parameters<typeof inner.create>) => {
       let eventBase = toEventBase(params[0]);
@@ -26,6 +26,19 @@ export let subspaceSessionTemplateService = createSubspaceService(
       let sessionTemplate = await inner.update(...params);
 
       await Fabric.fire('provider.session_template.updated:after', {
+        ...eventBase,
+        sessionTemplate
+      });
+
+      return sessionTemplate;
+    },
+    delete: async (...params: Parameters<typeof inner.delete>) => {
+      let eventBase = toEventBase(params[0]);
+      await Fabric.fire('provider.session_template.deleted:before', eventBase);
+
+      let sessionTemplate = await inner.delete(...params);
+
+      await Fabric.fire('provider.session_template.deleted:after', {
         ...eventBase,
         sessionTemplate
       });

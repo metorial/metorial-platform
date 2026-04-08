@@ -77,7 +77,6 @@ import {
   providerListingController,
   providerRunController,
   providerSetupSessionController,
-  providerSetupSessionDashboardController,
   providerSpecificationController,
   providerToolController,
   providerTriggerController,
@@ -269,7 +268,6 @@ export let dashboardController = Controller.create<any>(
     providerConfigVaultController,
     providerAuthConfigController,
     providerAuthCredentialsController,
-    providerSetupSessionDashboardController,
 
     providerAuthImportController,
     providerAuthExportController,
