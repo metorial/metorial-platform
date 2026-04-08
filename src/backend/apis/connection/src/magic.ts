@@ -7,7 +7,7 @@ import {
 import { createExecutionContext, provideExecutionContext } from '@lowerdeck/execution-context';
 import { useRequestContext } from '@lowerdeck/hono';
 import { extractToken } from '@metorial/bearer';
-import { Instance } from '@metorial/db';
+import { db, Instance } from '@metorial/db';
 import { generateSnowflakeId } from '@metorial/id';
 import { AuthInfo } from '@metorial/module-access';
 import {
@@ -24,6 +24,9 @@ import type { Context } from 'hono';
 import { authenticateAndResolveInstance } from './getSession';
 
 type MagicMcpTargetForRouting = Awaited<ReturnType<typeof resolveMagicMcpTargetByIdOrAlias>>;
+type MagicMcpTokenForRouting = Awaited<
+  ReturnType<typeof magicMcpTokenService.getMagicMcpTokenBySecret>
+>;
 
 export type MagicMcpSubspaceSessionInfo = {
   type: 'magic_mcp_subspace_session';
@@ -36,16 +39,11 @@ export let getMagicMcpTokenSecretFromRequest = (request: Request, url: URL) => {
 };
 
 let ensureMagicMcpTokenAccess = async (d: {
-  tokenSecret: string;
+  token: MagicMcpTokenForRouting;
   magicMcpTarget: MagicMcpTargetForRouting;
 }) => {
-  let token = await magicMcpTokenService.getMagicMcpTokenBySecret({
-    secret: d.tokenSecret,
-    instance: d.magicMcpTarget.target.instance
-  });
-
   let hasAccess = await magicMcpTokenService.checkMagicMcpTokenAccess({
-    token,
+    token: d.token,
     server: d.magicMcpTarget.type === 'server' ? d.magicMcpTarget.target : undefined,
     endpoint: d.magicMcpTarget.type === 'endpoint' ? d.magicMcpTarget.target : undefined
   });
@@ -59,16 +57,28 @@ let ensureMagicMcpTokenAccess = async (d: {
   }
 };
 
-let resolveMagicMcpTargetFromToken = async (d: {
+let getMagicMcpTokenFromSecretIfPresent = async (d: {
   tokenSecret: string;
   instance: Instance;
 }) => {
-  let token = await magicMcpTokenService.getMagicMcpTokenBySecret({
+  let magicMcpToken = await db.magicMcpToken.findFirst({
+    where: {
+      secret: d.tokenSecret,
+      instanceOid: d.instance.oid
+    }
+  });
+  if (!magicMcpToken) return null;
+
+  return await magicMcpTokenService.getMagicMcpTokenBySecret({
     secret: d.tokenSecret,
     instance: d.instance
   });
+};
 
-  if (token.magicMcpServer && token.magicMcpEndpoint) {
+let resolveMagicMcpTargetFromToken = async (d: {
+  token: MagicMcpTokenForRouting;
+}) => {
+  if (d.token.magicMcpServer && d.token.magicMcpEndpoint) {
     throw new ServiceError(
       badRequestError({
         message: 'Magic MCP token must be linked to exactly one server or endpoint'
@@ -76,14 +86,9 @@ let resolveMagicMcpTargetFromToken = async (d: {
     );
   }
 
-  let magicMcpTargetIdOrAlias = token.magicMcpEndpoint?.id ?? token.magicMcpServer?.id;
+  let magicMcpTargetIdOrAlias = d.token.magicMcpEndpoint?.id ?? d.token.magicMcpServer?.id;
   if (!magicMcpTargetIdOrAlias) {
-    throw new ServiceError(
-      badRequestError({
-        message:
-          'This portal route requires a magic MCP token linked to exactly one server or endpoint'
-      })
-    );
+    return null;
   }
 
   return await resolveMagicMcpTargetByIdOrAlias(magicMcpTargetIdOrAlias);
@@ -168,15 +173,22 @@ export let resolveMagicMcpSubspaceSession = async (d: {
     );
   }
 
+  let magicMcpToken =
+    d.instanceForTokenRouting
+      ? await getMagicMcpTokenFromSecretIfPresent({
+          tokenSecret,
+          instance: d.instanceForTokenRouting
+        })
+      : null;
   let magicMcpTarget =
-    d.magicMcpTargetIdOrAlias != null
+    (magicMcpToken
+      ? await resolveMagicMcpTargetFromToken({
+          token: magicMcpToken
+        })
+      : null) ??
+    (d.magicMcpTargetIdOrAlias != null
       ? await resolveMagicMcpTargetByIdOrAlias(d.magicMcpTargetIdOrAlias)
-      : tokenSecret.startsWith('metorial_mk_') && d.instanceForTokenRouting
-        ? await resolveMagicMcpTargetFromToken({
-            tokenSecret,
-            instance: d.instanceForTokenRouting
-          })
-        : null;
+      : null);
 
   if (!magicMcpTarget) {
     throw new ServiceError(
@@ -187,9 +199,9 @@ export let resolveMagicMcpSubspaceSession = async (d: {
     );
   }
 
-  if (tokenSecret.startsWith('metorial_mk_')) {
+  if (magicMcpToken) {
     await ensureMagicMcpTokenAccess({
-      tokenSecret,
+      token: magicMcpToken,
       magicMcpTarget
     });
   } else {

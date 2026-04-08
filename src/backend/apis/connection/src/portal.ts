@@ -92,12 +92,13 @@ export let createPortalHandler = (d: {
   for (let path of [':portalId/:magicMcpTargetId', ':portalId']) {
     connectPortalServer = connectPortalServer.all(path, async c => {
       let { portal, magicMcpTarget, base } = await resolveRoute(c);
+      let routeMagicMcpTargetIdOrAlias = magicMcpTarget?.target.id;
 
       let token = getMagicMcpTokenSecretFromRequest(c.req.raw, new URL(c.req.url));
       if (token) {
         return await handleMagicMcpRequest({
           c,
-          magicMcpTargetIdOrAlias: magicMcpTarget?.target.id,
+          magicMcpTargetIdOrAlias: routeMagicMcpTargetIdOrAlias,
           instanceForTokenRouting: portal.instance,
           authenticate: d.authenticate
         });
