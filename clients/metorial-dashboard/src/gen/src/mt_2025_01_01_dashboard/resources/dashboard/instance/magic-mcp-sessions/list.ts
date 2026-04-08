@@ -4,8 +4,7 @@ export type DashboardInstanceMagicMcpSessionsListOutput = {
   items: {
     object: 'magic_mcp.session';
     id: string;
-    subspaceSessionId: string;
-    subspaceSessionTemplateId: string;
+    sessionId: string;
     magicMcpServer: {
       object: 'magic_mcp.server';
       id: string;
@@ -33,14 +32,7 @@ export let mapDashboardInstanceMagicMcpSessionsListOutput =
         mtMap.object({
           object: mtMap.objectField('object', mtMap.passthrough()),
           id: mtMap.objectField('id', mtMap.passthrough()),
-          subspaceSessionId: mtMap.objectField(
-            'subspace_session_id',
-            mtMap.passthrough()
-          ),
-          subspaceSessionTemplateId: mtMap.objectField(
-            'subspace_session_template_id',
-            mtMap.passthrough()
-          ),
+          sessionId: mtMap.objectField('session_id', mtMap.passthrough()),
           magicMcpServer: mtMap.objectField(
             'magic_mcp_server',
             mtMap.object({

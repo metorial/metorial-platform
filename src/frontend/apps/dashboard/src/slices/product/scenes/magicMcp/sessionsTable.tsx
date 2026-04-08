@@ -1,219 +1,135 @@
 import {
-  DashboardInstanceSessionsConnectionsListOutput,
-  DashboardInstanceSessionsConnectionsListQuery
+  DashboardInstanceMagicMcpSessionsListOutput,
+  DashboardInstanceMagicMcpSessionsListQuery
 } from '@metorial/dashboard-sdk';
 import { Paths } from '@metorial/frontend-config';
-import { useAllSessionConnections, useCurrentInstance } from '@metorial/state';
-import { Badge, RenderDate, Text } from '@metorial/ui';
+import {
+  useCurrentInstance,
+  useCurrentOrganization,
+  useCurrentProject,
+  useMagicMcpSessions
+} from '@metorial/state';
+import { RenderDate, Text } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import { Table as DashboardTable } from '../../../../components/table';
-import { FilterPayload } from '../../../../components/table/filter';
 import {
   TableStateProvider,
   TableStateProviderResult
 } from '../../../../components/table/type';
-import {
-  getDateRangeFilterValue,
-  getEnumListFilterValue,
-  getStringFilterValue
-} from '../../../../lib/dataTableUtils';
 
-type Connection = DashboardInstanceSessionsConnectionsListOutput['items'][number];
-type MagicConnectionsTableProps = Omit<
-  DashboardInstanceSessionsConnectionsListQuery,
-  'sessionId'
-> & {
+type MagicMcpSession = DashboardInstanceMagicMcpSessionsListOutput['items'][number];
+
+type MagicMcpSessionsTableProps = DashboardInstanceMagicMcpSessionsListQuery & {
   instance: ReturnType<typeof useCurrentInstance>;
+  organization: ReturnType<typeof useCurrentOrganization>;
+  project: ReturnType<typeof useCurrentProject>;
 };
 
-let ConnectionStatusBadge = ({ state }: { state: string }) => (
-  <Badge
-    color={{ connected: 'blue' as const, disconnected: 'gray' as const }[state] ?? 'gray'}
-  >
-    {{ connected: 'Connected', disconnected: 'Disconnected' }[state] ?? state}
-  </Badge>
-);
-
-let getConnectionStateFilterValue = (
-  value: FilterPayload | undefined
-): DashboardInstanceSessionsConnectionsListQuery['connectionState'] => {
-  return getEnumListFilterValue(value, ['connected', 'disconnected']);
-};
-
-let magicConnectionsState: TableStateProvider<
-  MagicConnectionsTableProps,
-  Connection,
-  TableStateProviderResult<Connection>
-> = (props, opts) => {
-  let connections = useAllSessionConnections(props.instance.data?.id, {
+let magicMcpSessionsState: TableStateProvider<
+  MagicMcpSessionsTableProps,
+  MagicMcpSession,
+  TableStateProviderResult<MagicMcpSession>
+> = props => {
+  let sessions = useMagicMcpSessions(props.instance.data?.id, {
     order: props.order ?? 'desc',
-    status: props.status,
-    connectionState:
-      getConnectionStateFilterValue(opts.filter.connectionState) ?? props.connectionState,
-    id: getStringFilterValue(opts.filter.id) ?? props.id,
-    sessionProviderId:
-      getStringFilterValue(opts.filter.sessionProviderId) ?? props.sessionProviderId,
-    participantId: getStringFilterValue(opts.filter.participantId) ?? props.participantId,
-    createdAt: getDateRangeFilterValue(opts.filter.createdAt) ?? props.createdAt,
-    updatedAt: getDateRangeFilterValue(opts.filter.updatedAt) ?? props.updatedAt
+    magicMcpServerId: props.magicMcpServerId
   });
 
   return {
-    isLoading: connections.isLoading,
-    error: connections.error,
-    hasMoreAfter: connections.data?.pagination.hasMoreAfter ?? false,
-    hasMoreBefore: connections.data?.pagination.hasMoreBefore ?? false,
-    items: connections.data?.items ?? [],
-    loadNext: connections.next,
-    loadPrevious: connections.previous
+    isLoading: sessions.isLoading,
+    error: sessions.error,
+    hasMoreAfter: sessions.data?.pagination.hasMoreAfter ?? false,
+    hasMoreBefore: sessions.data?.pagination.hasMoreBefore ?? false,
+    items: sessions.data?.items ?? [],
+    loadNext: sessions.next,
+    loadPrevious: sessions.previous
   };
 };
 
-let magicConnectionsTable = new DashboardTable<
-  MagicConnectionsTableProps,
-  Connection
->('magic-mcp-connections')
-  .state(magicConnectionsState)
+let magicMcpSessionsTable = new DashboardTable<MagicMcpSessionsTableProps, MagicMcpSession>(
+  'magic-mcp-sessions'
+)
+  .state(magicMcpSessionsState)
   .columns([
     {
-      id: 'status',
+      id: 'server',
       isDefault: true,
-      header: 'Status',
-      render: connection => <ConnectionStatusBadge state={connection.connectionState} />
+      header: 'Server',
+      render: session => (
+        <div>
+          <Text size="2" weight="strong">
+            {session.magicMcpServer.name ?? 'Unnamed Server'}
+          </Text>
+          {session.magicMcpServer.description && (
+            <Text size="1" color="gray600">
+              {session.magicMcpServer.description}
+            </Text>
+          )}
+        </div>
+      )
     },
+
     {
-      id: 'client',
+      id: 'endpoint',
       isDefault: true,
-      header: 'MCP Client',
-      render: connection => (
-        <Text size="2" weight="strong">
-          {connection.participant?.name ?? 'Unknown Client'}
+      header: 'Endpoint',
+      render: session => (
+        <Text size="2">
+          {session.magicMcpServer.endpoints[0]?.alias ?? 'No endpoint alias'}
         </Text>
       )
     },
     {
-      id: 'transport',
-      isDefault: true,
-      header: 'Transport',
-      render: connection => <Text size="2">{connection.transport}</Text>
-    },
-    {
       id: 'createdAt',
       isDefault: true,
-      header: 'Connected At',
-      render: connection => <RenderDate date={connection.createdAt} />
+      header: 'Created',
+      render: session => <RenderDate date={session.createdAt} />
     },
     {
-      id: 'participantId',
-      isDefault: false,
-      header: 'Participant ID',
-      render: connection =>
-        connection.participant?.id ? (
-          <ID id={connection.participant.id} />
-        ) : (
-          <Text size="2" color="gray600">
-            -
-          </Text>
-        )
+      id: 'updatedAt',
+      isDefault: true,
+      header: 'Updated',
+      render: session => <RenderDate date={session.updatedAt} />
     },
     {
       id: 'sessionId',
       isDefault: false,
       header: 'Session ID',
-      render: connection => <ID id={connection.sessionId} />
+      render: session => <ID id={session.sessionId} />
     },
     {
-      id: 'lastMessageAt',
+      id: 'serverId',
       isDefault: false,
-      header: 'Last Message',
-      render: connection => <RenderDate date={connection.lastMessageAt} />
-    },
-    {
-      id: 'lastActiveAt',
-      isDefault: false,
-      header: 'Last Active',
-      render: connection =>
-        connection.lastActiveAt ? (
-          <RenderDate date={connection.lastActiveAt} />
-        ) : (
-          <Text size="2" color="gray600">
-            -
-          </Text>
-        )
+      header: 'Server ID',
+      render: session => <ID id={session.magicMcpServer.id} />
     },
     {
       id: 'id',
       isDefault: false,
-      header: 'Connection ID',
-      render: connection => <ID id={connection.id} />
+      header: 'Magic MCP Session ID',
+      render: session => <ID id={session.id} />
     }
   ])
-  .filters([
-    {
-      id: 'connectionState',
-      fields: ['connectionState'],
-      label: 'Connection State',
-      description: 'Filter by connection state',
-      type: 'select',
-      options: [
-        { id: 'connected', label: 'Connected' },
-        { id: 'disconnected', label: 'Disconnected' }
-      ]
-    },
-    {
-      id: 'id',
-      fields: ['id'],
-      label: 'Connection ID',
-      description: 'Filter by connection ID',
-      type: 'string'
-    },
-    {
-      id: 'sessionProviderId',
-      fields: ['sessionProviderId'],
-      label: 'Session Provider ID',
-      description: 'Filter by session provider ID',
-      type: 'string'
-    },
-    {
-      id: 'participantId',
-      fields: ['participantId'],
-      label: 'Participant ID',
-      description: 'Filter by participant ID',
-      type: 'string'
-    },
-    {
-      id: 'createdAt',
-      fields: ['createdAt'],
-      label: 'Created',
-      description: 'Filter by created date',
-      type: 'date'
-    },
-    {
-      id: 'updatedAt',
-      fields: ['updatedAt'],
-      label: 'Updated',
-      description: 'Filter by updated date',
-      type: 'date'
-    }
-  ])
-  .link((connection, props) =>
+  .link((session, props) =>
     Paths.instance.magicMcp.connection(
-      props.instance.data?.organization,
-      props.instance.data?.project,
+      props.organization.data,
+      props.project.data,
       props.instance.data,
-      connection.id
+      session.id
     )
   )
   .build();
 
-export let MagicConnectionsTable = (
-  filter: Omit<DashboardInstanceSessionsConnectionsListQuery, 'sessionId'>
-) => {
+export let MagicMcpSessionsTable = (filter: DashboardInstanceMagicMcpSessionsListQuery) => {
   let instance = useCurrentInstance();
+  let organization = useCurrentOrganization();
+  let project = useCurrentProject();
 
-  return magicConnectionsTable({
+  return magicMcpSessionsTable({
     ...filter,
     instance,
-    emptyState: 'No Magic MCP connections found.'
+    organization,
+    project,
+    emptyState: 'No Magic MCP sessions found.'
   });
 };
