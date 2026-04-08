@@ -1,4 +1,4 @@
-import { useValidatedBody } from '@lowerdeck/hono';
+import { useRequestContext, useValidatedBody } from '@lowerdeck/hono';
 import { v } from '@lowerdeck/validation';
 import { getConfig } from '@metorial/config';
 import { AuthInfo } from '@metorial/module-access';
@@ -165,6 +165,17 @@ export let createPortalHandler = (d: {
   ]) {
     connectPortalServer = connectPortalServer.post(path, async c => {
       let { portal, magicMcpTarget, base } = await resolveRoute(c);
+      let { ip } = useRequestContext(c);
+
+      if (!ip) {
+        return c.json(
+          {
+            error: 'invalid_request',
+            error_description: 'Unable to determine the request IP address'
+          },
+          400
+        );
+      }
 
       let input = await useValidatedBody(
         c,
@@ -183,6 +194,7 @@ export let createPortalHandler = (d: {
         input: {
           clientName: input.client_name,
           redirectUris: input.redirect_uris,
+          registrationIp: ip,
           tokenEndpointAuthMethod: input.token_endpoint_auth_method
         }
       });
@@ -249,7 +261,7 @@ export let createPortalHandler = (d: {
     ':portalId/oauth/register/:registrationId'
   ]) {
     connectPortalServer = connectPortalServer.get(path, async c => {
-      let registrationId = c.req.param('registrationId');
+      let registrationId = c.req.param('registrationId')!;
       let { portal, magicMcpTarget, base } = await resolveRoute(c);
       let registration = await consumerOAuthService.getPortalOAuthRegistration({
         portal,

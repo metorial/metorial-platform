@@ -1,5 +1,6 @@
 import {
   badRequestError,
+  createError,
   notFoundError,
   preconditionFailedError,
   ServiceError,
@@ -12,6 +13,7 @@ import {
   db,
   ID,
   Prisma,
+  withTransaction,
   type ConsumerProfile,
   type ConsumerSurface,
   type Instance,
@@ -64,9 +66,17 @@ export type PortalOAuthAuthorization = Prisma.PortalAuthAttemptGetPayload<{
 
 export let portalRefreshTokenTtlSeconds = 7 * 24 * 60 * 60;
 export let portalAccessTokenTtlSeconds = 60 * 60;
+export let portalOAuthClientRegistrationsPerMinuteLimit = 10;
+export let portalOAuthClientRegistrationsPerHourLimit = 20;
 
 let getPortalRefreshTokenExpiry = () => addSeconds(new Date(), portalRefreshTokenTtlSeconds);
 let getPortalAccessTokenExpiry = () => addSeconds(new Date(), portalAccessTokenTtlSeconds);
+let portalOAuthClientRegistrationRateLimitError = createError({
+  status: 429,
+  code: 'rate_limit_exceeded',
+  message: 'Too many portal OAuth client registrations from this IP address',
+  hint: 'Portal OAuth client registrations are limited to 10 per minute and 20 per hour.'
+});
 
 let ensurePendingPortalOAuthAuthorization = (
   portalOAuthAuthorization: Pick<PortalAuthAttempt, 'status'>
@@ -120,6 +130,7 @@ class ConsumerOAuthServiceImpl {
     input: {
       clientName: string;
       redirectUris: string[];
+      registrationIp: string;
       tokenEndpointAuthMethod?: 'client_secret_basic' | 'client_secret_post' | 'none';
     };
   }) {
@@ -137,22 +148,50 @@ class ConsumerOAuthServiceImpl {
     let clientSecret =
       tokenEndpointAuthMethod == 'none' ? null : await ID.generateId('portalAuthClientSecret');
 
-    return await db.portalAuthClient.create({
-      data: {
-        id: await ID.generateId('portalAuthClient'),
-        portalOid: d.portal.oid,
-        magicMcpServerOid:
-          d.magicMcpTarget?.type === 'server' ? d.magicMcpTarget.target.oid : null,
-        magicMcpEndpointOid:
-          d.magicMcpTarget?.type === 'endpoint' ? d.magicMcpTarget.target.oid : null,
-        name: d.input.clientName,
-        redirectUris: d.input.redirectUris,
-        clientId: await ID.generateId('portalAuthClientId'),
-        clientSecret,
-        tokenEndpointAuthMethod,
-        expiresAt: addDays(new Date(), 30)
-      },
-      include: portalAuthClientInclude
+    return await withTransaction(async db => {
+      let now = new Date();
+      let registrationsPerMinute = await db.portalAuthClient.count({
+        where: {
+          registrationIp: d.input.registrationIp,
+          createdAt: {
+            gte: addMinutes(now, -1)
+          }
+        }
+      });
+      if (registrationsPerMinute >= portalOAuthClientRegistrationsPerMinuteLimit) {
+        throw new ServiceError(portalOAuthClientRegistrationRateLimitError);
+      }
+
+      let registrationsPerHour = await db.portalAuthClient.count({
+        where: {
+          registrationIp: d.input.registrationIp,
+          createdAt: {
+            gte: addMinutes(now, -60)
+          }
+        }
+      });
+      if (registrationsPerHour >= portalOAuthClientRegistrationsPerHourLimit) {
+        throw new ServiceError(portalOAuthClientRegistrationRateLimitError);
+      }
+
+      return await db.portalAuthClient.create({
+        data: {
+          id: await ID.generateId('portalAuthClient'),
+          portalOid: d.portal.oid,
+          magicMcpServerOid:
+            d.magicMcpTarget?.type === 'server' ? d.magicMcpTarget.target.oid : null,
+          magicMcpEndpointOid:
+            d.magicMcpTarget?.type === 'endpoint' ? d.magicMcpTarget.target.oid : null,
+          name: d.input.clientName,
+          redirectUris: d.input.redirectUris,
+          registrationIp: d.input.registrationIp,
+          clientId: await ID.generateId('portalAuthClientId'),
+          clientSecret,
+          tokenEndpointAuthMethod,
+          expiresAt: addDays(new Date(), 30)
+        },
+        include: portalAuthClientInclude
+      });
     });
   }
 

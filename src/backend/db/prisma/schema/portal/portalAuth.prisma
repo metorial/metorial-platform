@@ -25,6 +25,7 @@ model PortalAuthClient {
 
   clientId     String  @unique
   clientSecret String?
+  registrationIp String?
 
   tokenEndpointAuthMethod PortalAuthClientTokenEndpointAuthMethod @default(client_secret_basic)
 
@@ -43,6 +44,8 @@ model PortalAuthClient {
   updatedAt          DateTime            @default(now()) @updatedAt
   expiresAt          DateTime
   portalAuthAttempts PortalAuthAttempt[]
+
+  @@index([registrationIp, createdAt])
 }
 
 model PortalAuthAttempt {

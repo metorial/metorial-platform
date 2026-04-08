@@ -75,9 +75,7 @@ let getMagicMcpTokenFromSecretIfPresent = async (d: {
   });
 };
 
-let resolveMagicMcpTargetFromToken = async (d: {
-  token: MagicMcpTokenForRouting;
-}) => {
+let resolveMagicMcpTargetFromToken = async (d: { token: MagicMcpTokenForRouting }) => {
   if (d.token.magicMcpServer && d.token.magicMcpEndpoint) {
     throw new ServiceError(
       badRequestError({
@@ -173,13 +171,12 @@ export let resolveMagicMcpSubspaceSession = async (d: {
     );
   }
 
-  let magicMcpToken =
-    d.instanceForTokenRouting
-      ? await getMagicMcpTokenFromSecretIfPresent({
-          tokenSecret,
-          instance: d.instanceForTokenRouting
-        })
-      : null;
+  let magicMcpToken = d.instanceForTokenRouting
+    ? await getMagicMcpTokenFromSecretIfPresent({
+        tokenSecret,
+        instance: d.instanceForTokenRouting
+      })
+    : null;
   let magicMcpTarget =
     (magicMcpToken
       ? await resolveMagicMcpTargetFromToken({
