@@ -1,8 +1,8 @@
 import { badRequestError, preconditionFailedError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
+import { getConfig } from '@metorial/config';
 import { consumerAresService } from '@metorial/module-consumer';
-import { portalService } from '@metorial/module-portal';
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../middleware/checkAccess';
 import { hasFlags } from '../../middleware/hasFlags';
@@ -147,7 +147,7 @@ export let portalAuthDashboardController = Controller.create(
       .do(async ctx => {
         let ssoTenantSetup = await consumerAresService.createSsoTenantSetup({
           ssoTenantId: ctx.ssoTenant.id,
-          redirectUrl: portalService.getPortalHost({ portal: ctx.portal }).host
+          redirectUrl: `${getConfig().urls.appUrl}/i/${ctx.organization.slug}/${ctx.instance.project.slug}/${ctx.instance.slug}/portal/${ctx.portal.id}/authentication`
         });
 
         return portalAuthSsoTenantSetupPresenter.present({ ssoTenantSetup });
