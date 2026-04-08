@@ -7,7 +7,11 @@ export type PortalsUpdateOutput = {
   name: string;
   slug: string;
   description: string | null;
-  auth: { object: 'portal.auth'; sessionExpiryTimeInSeconds: number };
+  auth: {
+    object: 'portal.auth';
+    sessionExpiryTimeInSeconds: number;
+    allowedRedirectUrlFilters: { url: string }[];
+  };
   urls: { type: 'default'; url: string }[];
   brand: { image: string; name: string };
   createdAt: Date;
@@ -28,6 +32,12 @@ export let mapPortalsUpdateOutput = mtMap.object<PortalsUpdateOutput>({
       sessionExpiryTimeInSeconds: mtMap.objectField(
         'session_expiry_time_in_seconds',
         mtMap.passthrough()
+      ),
+      allowedRedirectUrlFilters: mtMap.objectField(
+        'allowed_redirect_url_filters',
+        mtMap.array(
+          mtMap.object({ url: mtMap.objectField('url', mtMap.passthrough()) })
+        )
       )
     })
   ),
@@ -54,12 +64,19 @@ export let mapPortalsUpdateOutput = mtMap.object<PortalsUpdateOutput>({
 export type PortalsUpdateBody = {
   name?: string | undefined;
   description?: string | undefined;
+  allowedRedirectUrlFilters?: { url: string }[] | undefined;
   sessionExpiryTimeInSeconds?: number | undefined;
 };
 
 export let mapPortalsUpdateBody = mtMap.object<PortalsUpdateBody>({
   name: mtMap.objectField('name', mtMap.passthrough()),
   description: mtMap.objectField('description', mtMap.passthrough()),
+  allowedRedirectUrlFilters: mtMap.objectField(
+    'allowed_redirect_url_filters',
+    mtMap.array(
+      mtMap.object({ url: mtMap.objectField('url', mtMap.passthrough()) })
+    )
+  ),
   sessionExpiryTimeInSeconds: mtMap.objectField(
     'session_expiry_time_in_seconds',
     mtMap.passthrough()

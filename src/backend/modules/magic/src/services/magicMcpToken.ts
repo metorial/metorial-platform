@@ -26,6 +26,7 @@ import {
   consumerMagicMcpWriteRoles,
   type AnyAccessTagSelector
 } from '@metorial/module-access';
+import { startOfHour } from 'date-fns';
 import { env } from '../env';
 import { getAccessTagFilter, getActiveStatusFilter } from './consumerAccess';
 
@@ -590,6 +591,33 @@ class MagicMcpTokenImpl {
     });
 
     return !!endpointAccess;
+  }
+
+  async recordMagicMcpTokenUse(d: {
+    token: MagicMcpToken;
+    server?: MagicMcpServer;
+    endpoint?: MagicMcpEndpoint;
+    ip?: string | null;
+    ua?: string | null;
+  }) {
+    if ((!d.server && !d.endpoint) || (d.server && d.endpoint)) {
+      throw new Error('Magic MCP token use requires exactly one server or endpoint');
+    }
+
+    await db.magicMcpTokenUse.createMany({
+      data: [
+        {
+          magicMcpTokenOid: d.token.oid,
+          magicMcpServerOid: d.server?.oid,
+          magicMcpEndpointOid: d.endpoint?.oid,
+          magicMcpTarget: d.server?.oid.toString(36) ?? d.endpoint?.oid.toString(36) ?? '',
+          ip: d.ip ?? '',
+          ua: d.ua ?? '',
+          hour: startOfHour(new Date())
+        }
+      ],
+      skipDuplicates: true
+    });
   }
 
   async addGroupsToToken(d: { token: MagicMcpToken; groupIds: string[] }) {

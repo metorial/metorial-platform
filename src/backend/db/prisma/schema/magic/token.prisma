@@ -32,6 +32,34 @@ model MagicMcpToken {
   expiresAt DateTime?
 
   groups             MagicMcpGroupToken[]
+  uses               MagicMcpTokenUse[]
   accessTagEntities  AccessTagEntity[]
   portalAuthAttempts PortalAuthAttempt[]
+}
+
+model MagicMcpTokenUse {
+  oid BigInt @id @default(autoincrement())
+
+  magicMcpTokenOid BigInt
+  magicMcpToken    MagicMcpToken @relation(fields: [magicMcpTokenOid], references: [oid], onDelete: Cascade)
+
+  magicMcpServerOid BigInt?
+  magicMcpServer    MagicMcpServer? @relation(fields: [magicMcpServerOid], references: [oid], onDelete: SetNull)
+
+  magicMcpEndpointOid BigInt?
+  magicMcpEndpoint    MagicMcpEndpoint? @relation(fields: [magicMcpEndpointOid], references: [oid], onDelete: SetNull)
+
+  magicMcpTarget String
+
+  ip String
+  ua String @default("")
+
+  hour DateTime
+
+  createdAt DateTime @default(now())
+
+  @@unique([magicMcpTokenOid, magicMcpTarget, ip, ua, hour])
+  @@index([magicMcpServerOid])
+  @@index([magicMcpEndpointOid])
+  @@index([hour])
 }

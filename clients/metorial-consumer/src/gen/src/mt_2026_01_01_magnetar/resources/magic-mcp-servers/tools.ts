@@ -1,6 +1,7 @@
 import { mtMap } from '@metorial/util-resource-mapper';
 
 export type MagicMcpServersToolsOutput = {
+  object: 'provider.tools';
   items: {
     object: 'provider.tool';
     id: string;
@@ -22,6 +23,7 @@ export type MagicMcpServersToolsOutput = {
 
 export let mapMagicMcpServersToolsOutput =
   mtMap.object<MagicMcpServersToolsOutput>({
+    object: mtMap.objectField('object', mtMap.passthrough()),
     items: mtMap.objectField(
       'items',
       mtMap.array(

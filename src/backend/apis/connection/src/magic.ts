@@ -159,6 +159,8 @@ export let resolveMagicMcpSubspaceSession = async (d: {
   request: Request;
   url: URL;
   authenticate: Authenticator<AuthInfo>;
+  ip?: string | null;
+  ua?: string | null;
 }): Promise<MagicMcpSubspaceSessionInfo> => {
   let tokenSecret = getMagicMcpTokenSecretFromRequest(d.request, d.url);
   if (!tokenSecret) {
@@ -200,6 +202,14 @@ export let resolveMagicMcpSubspaceSession = async (d: {
     await ensureMagicMcpTokenAccess({
       token: magicMcpToken,
       magicMcpTarget
+    });
+
+    await magicMcpTokenService.recordMagicMcpTokenUse({
+      token: magicMcpToken,
+      server: magicMcpTarget.type === 'server' ? magicMcpTarget.target : undefined,
+      endpoint: magicMcpTarget.type === 'endpoint' ? magicMcpTarget.target : undefined,
+      ip: d.ip,
+      ua: d.ua
     });
   } else {
     await ensureMagicMcpApiKeyAccess({
@@ -243,7 +253,9 @@ export let handleMagicMcpRequest = async (d: {
         instanceForTokenRouting: d.instanceForTokenRouting,
         request,
         url,
-        authenticate: d.authenticate
+        authenticate: d.authenticate,
+        ip: context.ip,
+        ua: context.ua
       });
 
       return await proxyMcpRequestToSubspace(

@@ -8,7 +8,11 @@ export type PortalsListOutput = {
     name: string;
     slug: string;
     description: string | null;
-    auth: { object: 'portal.auth'; sessionExpiryTimeInSeconds: number };
+    auth: {
+      object: 'portal.auth';
+      sessionExpiryTimeInSeconds: number;
+      allowedRedirectUrlFilters: { url: string }[];
+    };
     urls: { type: 'default'; url: string }[];
     brand: { image: string; name: string };
     createdAt: Date;
@@ -35,6 +39,14 @@ export let mapPortalsListOutput = mtMap.object<PortalsListOutput>({
             sessionExpiryTimeInSeconds: mtMap.objectField(
               'session_expiry_time_in_seconds',
               mtMap.passthrough()
+            ),
+            allowedRedirectUrlFilters: mtMap.objectField(
+              'allowed_redirect_url_filters',
+              mtMap.array(
+                mtMap.object({
+                  url: mtMap.objectField('url', mtMap.passthrough())
+                })
+              )
             )
           })
         ),

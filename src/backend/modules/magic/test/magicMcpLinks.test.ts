@@ -7,6 +7,9 @@ vi.mock('@metorial/db', () => {
       findFirst: vi.fn(),
       update: vi.fn()
     },
+    magicMcpTokenUse: {
+      createMany: vi.fn()
+    },
     magicMcpServer: {
       findUnique: vi.fn(),
       findMany: vi.fn(),
@@ -191,5 +194,37 @@ describe('magic MCP link guards', () => {
     ).rejects.toThrow('only be linked to active magic MCP servers');
 
     expect(db.magicMcpGroupServer.createMany).not.toHaveBeenCalled();
+  });
+
+  it('records a token use once per target, ip, ua and hour', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-04-08T12:34:56.000Z'));
+
+    vi.mocked(db.magicMcpTokenUse.createMany).mockResolvedValue({ count: 1 } as any);
+
+    await magicMcpTokenService.recordMagicMcpTokenUse({
+      token: { oid: 10n } as any,
+      server: { oid: 20n } as any,
+      magicMcpTarget: 'server-alias',
+      ip: '203.0.113.10',
+      ua: null
+    });
+
+    expect(db.magicMcpTokenUse.createMany).toHaveBeenCalledWith({
+      data: [
+        {
+          magicMcpTokenOid: 10n,
+          magicMcpServerOid: 20n,
+          magicMcpEndpointOid: undefined,
+          magicMcpTarget: 'server-alias',
+          ip: '203.0.113.10',
+          ua: '',
+          hour: new Date('2026-04-08T12:00:00.000Z')
+        }
+      ],
+      skipDuplicates: true
+    });
+
+    vi.useRealTimers();
   });
 });

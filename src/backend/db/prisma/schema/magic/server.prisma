@@ -35,6 +35,7 @@ model MagicMcpServer {
   endpoints       MagicMcpEndpointServer[]
 
   tokens            MagicMcpToken[]
+  uses              MagicMcpTokenUse[]
   groups            MagicMcpGroupServer[]
   accessTagEntities AccessTagEntity[]
   consumerAccesses  ConsumerAccess[]        @relation("ConsumerAccessMagicMcpServer")

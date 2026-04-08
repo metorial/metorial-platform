@@ -28,11 +28,12 @@ model MagicMcpEndpoint {
   updatedAt DateTime  @default(now()) @updatedAt
   deletedAt DateTime?
 
-  servers           MagicMcpEndpointServer[]
-  subspaceSession   MagicMcpSubspaceSessionConnection[]
-  tokens            MagicMcpToken[]
-  accessTagEntities AccessTagEntity[]
-  portalAuthClients PortalAuthClient[]
+  servers            MagicMcpEndpointServer[]
+  subspaceSession    MagicMcpSubspaceSessionConnection[]
+  tokens             MagicMcpToken[]
+  uses               MagicMcpTokenUse[]
+  accessTagEntities  AccessTagEntity[]
+  portalAuthClients  PortalAuthClient[]
   portalAuthAttempts PortalAuthAttempt[]
 }
 

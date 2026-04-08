@@ -1,6 +1,7 @@
 import { mtMap } from '@metorial/util-resource-mapper';
 
 export type MagicMcpServersToolsOutput = {
+  object: 'provider.tools';
   items: {
     object: 'provider.tool';
     id: string;
@@ -18,11 +19,11 @@ export type MagicMcpServersToolsOutput = {
     createdAt: Date;
     updatedAt: Date;
   }[];
-  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
 export let mapMagicMcpServersToolsOutput =
   mtMap.object<MagicMcpServersToolsOutput>({
+    object: mtMap.objectField('object', mtMap.passthrough()),
     items: mtMap.objectField(
       'items',
       mtMap.array(
@@ -74,16 +75,6 @@ export let mapMagicMcpServersToolsOutput =
           updatedAt: mtMap.objectField('updated_at', mtMap.date())
         })
       )
-    ),
-    pagination: mtMap.objectField(
-      'pagination',
-      mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
-        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-      })
     )
   });
 
