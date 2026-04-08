@@ -4,6 +4,44 @@ import { Presenter } from '@metorial/presenter';
 import { magicMcpEndpointType } from '../../types';
 import { v1MagicMcpServerPreview } from '../magicMcpServerPreview';
 
+let endpointToolFilterSchema = v.union([
+  v.object({
+    type: v.literal('tool_keys'),
+    keys: v.array(v.string())
+  }),
+  v.object({
+    type: v.literal('tool_regex'),
+    pattern: v.string()
+  }),
+  v.object({
+    type: v.literal('resource_regex'),
+    pattern: v.string()
+  }),
+  v.object({
+    type: v.literal('resource_uris'),
+    uris: v.array(v.string())
+  }),
+  v.object({
+    type: v.literal('prompt_keys'),
+    keys: v.array(v.string())
+  }),
+  v.object({
+    type: v.literal('prompt_regex'),
+    pattern: v.string()
+  })
+]);
+
+let endpointToolFiltersSchema = v.nullable(
+  v.union([endpointToolFilterSchema, v.array(endpointToolFilterSchema)])
+);
+
+let endpointServerSchema = v.intersection([
+  v1MagicMcpServerPreview.schema,
+  v.object({
+    tool_filters: endpointToolFiltersSchema
+  })
+]);
+
 export let v1MagicMcpEndpointPresenter = Presenter.create(magicMcpEndpointType)
   .presenter(async ({ magicMcpEndpoint, portal }) => ({
     object: 'magic_mcp.endpoint' as const,
@@ -14,9 +52,10 @@ export let v1MagicMcpEndpointPresenter = Presenter.create(magicMcpEndpointType)
       ? `${getConfig().urls.apiUrl}/connect/portal/${portal.slug}/${magicMcpEndpoint.slug}`
       : `${getConfig().urls.apiUrl}/connect/magic/${magicMcpEndpoint.slug}`,
     consumer_profile_id: magicMcpEndpoint.consumerProfile?.id ?? null,
-    servers: magicMcpEndpoint.servers.map(server =>
-      v1MagicMcpServerPreview(server.magicMcpServer)
-    ),
+    servers: magicMcpEndpoint.servers.map(server => ({
+      ...v1MagicMcpServerPreview(server.magicMcpServer),
+      tool_filters: server.toolFilters ?? null
+    })),
     name: magicMcpEndpoint.name,
     description: magicMcpEndpoint.description,
     metadata: magicMcpEndpoint.metadata,
@@ -33,7 +72,7 @@ export let v1MagicMcpEndpointPresenter = Presenter.create(magicMcpEndpointType)
       consumer_profile_id: v.nullable(v.string()),
       session_template_id: v.nullable(v.string()),
       session_id: v.nullable(v.string()),
-      servers: v.array(v1MagicMcpServerPreview.schema),
+      servers: v.array(endpointServerSchema),
       name: v.nullable(v.string()),
       description: v.nullable(v.string()),
       metadata: v.record(v.any()),

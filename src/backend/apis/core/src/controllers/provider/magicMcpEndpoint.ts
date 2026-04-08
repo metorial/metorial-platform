@@ -6,7 +6,10 @@ import {
   consumerProfileService,
   grantConsumerOwnedMagicMcpEndpointAccess
 } from '@metorial/module-consumer';
-import { magicMcpEndpointService } from '@metorial/module-magic';
+import {
+  magicMcpEndpointService,
+  type MagicMcpEndpointToolFilters
+} from '@metorial/module-magic';
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
@@ -14,6 +17,7 @@ import { hasFlags } from '../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../middleware/requireConsumerTokenForPublishableKey';
 import { magicMcpEndpointPresenter } from '../../presenters';
+import { toolFiltersValidator } from './session';
 
 export let magicMcpEndpointGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.magicMcpEndpointId) {
@@ -35,6 +39,54 @@ export let magicMcpEndpointGroup = instanceGroup.use(async ctx => {
 });
 
 let magicMcpEndpointStatusValues = ['active', 'archived', 'deleted'] as const;
+let magicMcpEndpointServerValidator = v.object({
+  magic_mcp_server_id: v.string(),
+  tool_filters: toolFiltersValidator
+});
+
+let resolveMagicMcpEndpointServers = (d: {
+  magicMcpServerIds?: string[];
+  servers?: {
+    magic_mcp_server_id: string;
+    tool_filters?: MagicMcpEndpointToolFilters;
+  }[];
+  required?: boolean;
+}) => {
+  if (d.magicMcpServerIds?.length && d.servers?.length) {
+    throw new ServiceError(
+      badRequestError({
+        message: 'Provide either magic_mcp_server_ids or servers, not both.',
+        description:
+          'Use `servers` when you need per-server tool filters, otherwise use `magic_mcp_server_ids`.'
+      })
+    );
+  }
+
+  if (d.servers?.length) {
+    return d.servers.map(server => ({
+      magicMcpServerId: server.magic_mcp_server_id,
+      toolFilters: server.tool_filters
+    }));
+  }
+
+  if (d.magicMcpServerIds?.length) {
+    return d.magicMcpServerIds.map(magicMcpServerId => ({
+      magicMcpServerId,
+      toolFilters: null
+    }));
+  }
+
+  if (d.required) {
+    throw new ServiceError(
+      badRequestError({
+        message: 'At least one server is required.',
+        description: 'Provide either `magic_mcp_server_ids` or `servers` with at least one entry.'
+      })
+    );
+  }
+
+  return undefined;
+};
 
 export let magicMcpEndpointController = Controller.create(
   {
@@ -134,7 +186,8 @@ export let magicMcpEndpointController = Controller.create(
           description: v.optional(v.string()),
           metadata: v.optional(v.record(v.any())),
           consumer_profile_id: v.optional(v.string()),
-          magic_mcp_server_ids: v.optional(v.array(v.string()))
+          magic_mcp_server_ids: v.optional(v.array(v.string())),
+          servers: v.optional(v.array(magicMcpEndpointServerValidator))
         })
       )
       .output(magicMcpEndpointPresenter)
@@ -171,7 +224,10 @@ export let magicMcpEndpointController = Controller.create(
             description: ctx.body.description,
             metadata: ctx.body.metadata,
             consumerProfile,
-            magicMcpServerIds: ctx.body.magic_mcp_server_ids
+            servers: resolveMagicMcpEndpointServers({
+              magicMcpServerIds: ctx.body.magic_mcp_server_ids,
+              servers: ctx.body.servers
+            })
           }
         });
 
@@ -297,7 +353,8 @@ export let magicMcpEndpointController = Controller.create(
       .body(
         'default',
         v.object({
-          magic_mcp_server_ids: v.array(v.string())
+          magic_mcp_server_ids: v.optional(v.array(v.string())),
+          servers: v.optional(v.array(magicMcpEndpointServerValidator))
         })
       )
       .output(magicMcpEndpointPresenter)
@@ -311,7 +368,12 @@ export let magicMcpEndpointController = Controller.create(
 
         let magicMcpEndpoint = await magicMcpEndpointService.addServersToEndpoint({
           endpoint: ctx.magicMcpEndpoint,
-          magicMcpServerIds: ctx.body.magic_mcp_server_ids
+          servers:
+            resolveMagicMcpEndpointServers({
+              magicMcpServerIds: ctx.body.magic_mcp_server_ids,
+              servers: ctx.body.servers,
+              required: true
+            }) ?? []
         });
 
         return magicMcpEndpointPresenter.present({

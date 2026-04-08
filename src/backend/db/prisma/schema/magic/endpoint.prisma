@@ -45,6 +45,8 @@ model MagicMcpEndpointServer {
   magicMcpServerOid BigInt
   magicMcpServer    MagicMcpServer @relation(fields: [magicMcpServerOid], references: [oid], onDelete: Cascade)
 
+  toolFilters Json?
+
   createdAt DateTime @default(now())
 
   @@unique([magicMcpEndpointOid, magicMcpServerOid])

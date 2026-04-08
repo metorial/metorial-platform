@@ -29,22 +29,58 @@ type MagicMcpEndpointForSession = MagicMcpEndpoint &
     };
   }>;
 
-let toTemplateProviderDescriptor = (templateProvider: Awaited<
+type SessionTemplateProvider = Awaited<
   ReturnType<typeof subspaceSessionTemplateProviderService.getMany>
->[number]) => ({
-  sessionTemplateId: templateProvider.sessionTemplateId,
-  providerId: templateProvider.providerId,
-  providerDeploymentId: templateProvider.deployment?.id ?? null,
-  providerConfigId: templateProvider.config?.id ?? null,
-  providerAuthConfigId: templateProvider.authConfig?.id ?? null,
-  toolFilters:
-    templateProvider.toolFilter?.type === 'v1.filter'
-      ? templateProvider.toolFilter.filters
-      : null
+>[number];
+
+type EffectiveTemplateProvider = {
+  templateProvider: SessionTemplateProvider;
+  toolFilters?: unknown[];
+};
+
+type TemplateTarget = {
+  sessionTemplateId: string;
+  toolFilters: unknown[];
+};
+
+let normalizeToolFilters = (toolFilters: unknown) => {
+  if (toolFilters == null) return [] as unknown[];
+
+  return Array.isArray(toolFilters) ? toolFilters : [toolFilters];
+};
+
+let getTemplateProviderToolFilters = (templateProvider: SessionTemplateProvider) => {
+  return templateProvider.toolFilter?.type === 'v1.filter'
+    ? templateProvider.toolFilter.filters
+    : [];
+};
+
+let getEffectiveTemplateProvider = (d: {
+  templateProvider: SessionTemplateProvider;
+  toolFilters: unknown[];
+}): EffectiveTemplateProvider => {
+  let mergedToolFilters = [
+    ...getTemplateProviderToolFilters(d.templateProvider),
+    ...d.toolFilters
+  ];
+
+  return {
+    templateProvider: d.templateProvider,
+    toolFilters: mergedToolFilters.length ? mergedToolFilters : undefined
+  };
+};
+
+let toTemplateProviderDescriptor = (templateProvider: EffectiveTemplateProvider) => ({
+  sessionTemplateId: templateProvider.templateProvider.sessionTemplateId,
+  providerId: templateProvider.templateProvider.providerId,
+  providerDeploymentId: templateProvider.templateProvider.deployment?.id ?? null,
+  providerConfigId: templateProvider.templateProvider.config?.id ?? null,
+  providerAuthConfigId: templateProvider.templateProvider.authConfig?.id ?? null,
+  toolFilters: templateProvider.toolFilters ?? null
 });
 
 let getConfigurationHash = (
-  templateProviders: Awaited<ReturnType<typeof subspaceSessionTemplateProviderService.getMany>>
+  templateProviders: EffectiveTemplateProvider[]
 ) => {
   let descriptors = templateProviders
     .map(toTemplateProviderDescriptor)
@@ -54,12 +90,30 @@ let getConfigurationHash = (
 };
 
 let ensureMagicMcpEndpointTemplate = async (magicMcpEndpoint: MagicMcpEndpointForSession) => {
+  let rawTemplateTargets = magicMcpEndpoint.servers
+    .map(server => {
+      let sessionTemplateId = server.magicMcpServer.subspaceSessionTemplateId;
+      if (!sessionTemplateId) return null;
+
+      return {
+        sessionTemplateId,
+        toolFilters: normalizeToolFilters(server.toolFilters)
+      } satisfies TemplateTarget;
+    })
+    .filter((templateTarget): templateTarget is TemplateTarget => templateTarget != null);
+  let templateTargets = Array.from(
+    new Map(
+      rawTemplateTargets.map(templateTarget => [
+        JSON.stringify({
+          sessionTemplateId: templateTarget.sessionTemplateId,
+          toolFilters: templateTarget.toolFilters.length ? templateTarget.toolFilters : null
+        }),
+        templateTarget
+      ])
+    ).values()
+  );
   let sessionTemplateIds = Array.from(
-    new Set(
-      magicMcpEndpoint.servers
-        .map(server => server.magicMcpServer.subspaceSessionTemplateId)
-        .filter(Boolean)
-    )
+    new Set(templateTargets.map(templateTarget => templateTarget.sessionTemplateId))
   );
 
   let templateProviders = sessionTemplateIds.length
@@ -69,7 +123,23 @@ let ensureMagicMcpEndpointTemplate = async (magicMcpEndpoint: MagicMcpEndpointFo
         allowDeleted: false
       })
     : [];
-  let configurationHash = getConfigurationHash(templateProviders);
+  let templateProvidersBySessionTemplateId = new Map<string, SessionTemplateProvider[]>();
+  for (let templateProvider of templateProviders) {
+    let existing = templateProvidersBySessionTemplateId.get(templateProvider.sessionTemplateId) ?? [];
+    existing.push(templateProvider);
+    templateProvidersBySessionTemplateId.set(templateProvider.sessionTemplateId, existing);
+  }
+
+  let effectiveTemplateProviders = templateTargets.flatMap(templateTarget => {
+    return (templateProvidersBySessionTemplateId.get(templateTarget.sessionTemplateId) ?? []).map(
+      templateProvider =>
+        getEffectiveTemplateProvider({
+          templateProvider,
+          toolFilters: templateTarget.toolFilters
+        })
+    );
+  });
+  let configurationHash = getConfigurationHash(effectiveTemplateProviders);
   let needsNewTemplate =
     !magicMcpEndpoint.subspaceSessionTemplateId ||
     magicMcpEndpoint.configurationHash !== configurationHash;
@@ -90,17 +160,14 @@ let ensureMagicMcpEndpointTemplate = async (magicMcpEndpoint: MagicMcpEndpointFo
     providers: []
   });
 
-  for (let templateProvider of templateProviders) {
+  for (let templateProvider of effectiveTemplateProviders) {
     await subspaceSessionTemplateProviderService.create({
       instance: magicMcpEndpoint.instance,
       sessionTemplateId: sessionTemplate.id,
-      providerDeploymentId: templateProvider.deployment?.id,
-      providerConfigId: templateProvider.config?.id,
-      providerAuthConfigId: templateProvider.authConfig?.id,
-      toolFilters:
-        templateProvider.toolFilter?.type === 'v1.filter'
-          ? templateProvider.toolFilter.filters
-          : undefined
+      providerDeploymentId: templateProvider.templateProvider.deployment?.id,
+      providerConfigId: templateProvider.templateProvider.config?.id,
+      providerAuthConfigId: templateProvider.templateProvider.authConfig?.id,
+      toolFilters: templateProvider.toolFilters
     });
   }
 

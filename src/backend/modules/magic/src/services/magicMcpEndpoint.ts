@@ -31,6 +31,60 @@ let buildSlug = (name?: string | null) => {
   return `magic-endpoint-${generatePlainId(10)}`;
 };
 
+type MagicMcpEndpointToolFilter =
+  | {
+      type: 'tool_keys';
+      keys: string[];
+    }
+  | {
+      type: 'tool_regex';
+      pattern: string;
+    }
+  | {
+      type: 'resource_regex';
+      pattern: string;
+    }
+  | {
+      type: 'resource_uris';
+      uris: string[];
+    }
+  | {
+      type: 'prompt_keys';
+      keys: string[];
+    }
+  | {
+      type: 'prompt_regex';
+      pattern: string;
+    };
+
+export type MagicMcpEndpointToolFilters =
+  | MagicMcpEndpointToolFilter
+  | MagicMcpEndpointToolFilter[]
+  | null;
+
+type MagicMcpEndpointServerInput = {
+  magicMcpServerId: string;
+  toolFilters?: MagicMcpEndpointToolFilters;
+};
+
+let toNullableJson = (value: Prisma.InputJsonValue | null | undefined) => {
+  if (value === undefined) return undefined;
+  if (value === null) return Prisma.JsonNull;
+
+  return value;
+};
+
+let dedupeServerInputs = (servers?: MagicMcpEndpointServerInput[]) => {
+  if (!servers?.length) return [];
+
+  let entries = new Map<string, MagicMcpEndpointServerInput>();
+  for (let server of servers) {
+    entries.set(server.magicMcpServerId, server);
+  }
+
+  return Array.from(entries.values());
+};
+
 export let magicMcpEndpointInclude = {
   consumerProfile: true,
   servers: {
@@ -168,16 +222,21 @@ class MagicMcpEndpointImpl {
       description?: string;
       metadata?: Record<string, unknown>;
       consumerProfile?: Pick<ConsumerProfile, 'oid'>;
-      magicMcpServerIds?: string[];
+      servers?: MagicMcpEndpointServerInput[];
     };
   }) {
-    let servers = d.input.magicMcpServerIds?.length
+    let requestedServers = dedupeServerInputs(d.input.servers);
+    let serverInputsById = new Map(
+      requestedServers.map(server => [server.magicMcpServerId, server] as const)
+    );
+    let servers = requestedServers.length
       ? await db.magicMcpServer.findMany({
           where: {
-            id: { in: d.input.magicMcpServerIds },
+            id: { in: requestedServers.map(server => server.magicMcpServerId) },
             instanceOid: d.instance.oid
           },
           select: {
+            id: true,
             oid: true
           }
         })
@@ -198,7 +257,10 @@ class MagicMcpEndpointImpl {
             ? {
                 createMany: {
                   data: servers.map(server => ({
-                    magicMcpServerOid: server.oid
+                    magicMcpServerOid: server.oid,
+                    toolFilters: toNullableJson(
+                      serverInputsById.get(server.id)?.toolFilters ?? null
+                    )
                   }))
                 }
               }
@@ -270,22 +332,46 @@ class MagicMcpEndpointImpl {
     });
   }
 
-  async addServersToEndpoint(d: { endpoint: MagicMcpEndpoint; magicMcpServerIds: string[] }) {
+  async addServersToEndpoint(d: {
+    endpoint: MagicMcpEndpoint;
+    servers: MagicMcpEndpointServerInput[];
+  }) {
+    let serverInputs = dedupeServerInputs(d.servers);
+    let serverInputsById = new Map(
+      serverInputs.map(server => [server.magicMcpServerId, server] as const)
+    );
     let servers = await db.magicMcpServer.findMany({
       where: {
-        id: { in: d.magicMcpServerIds },
+        id: { in: serverInputs.map(server => server.magicMcpServerId) },
         instanceOid: d.endpoint.instanceOid
+      },
+      select: {
+        id: true,
+        oid: true
       }
     });
 
     if (servers.length) {
-      await db.magicMcpEndpointServer.createMany({
-        data: servers.map(server => ({
-          magicMcpEndpointOid: d.endpoint.oid,
-          magicMcpServerOid: server.oid
-        })),
-        skipDuplicates: true
-      });
+      await Promise.all(
+        servers.map(server => {
+          return db.magicMcpEndpointServer.upsert({
+            where: {
+              magicMcpEndpointOid_magicMcpServerOid: {
+                magicMcpEndpointOid: d.endpoint.oid,
+                magicMcpServerOid: server.oid
+              }
+            },
+            create: {
+              magicMcpEndpointOid: d.endpoint.oid,
+              magicMcpServerOid: server.oid,
+              toolFilters: toNullableJson(serverInputsById.get(server.id)?.toolFilters ?? null)
+            },
+            update: {
+              toolFilters: toNullableJson(serverInputsById.get(server.id)?.toolFilters ?? null)
+            }
+          });
+        })
+      );
     }
 
     return await db.magicMcpEndpoint.findUniqueOrThrow({
