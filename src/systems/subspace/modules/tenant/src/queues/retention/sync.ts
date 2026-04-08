@@ -1,13 +1,10 @@
 import { createCron } from '@lowerdeck/cron';
 import { createQueue } from '@lowerdeck/queue';
-import { createClient } from '@lowerdeck/rpc-client';
 import { db } from '@metorial-subspace/db';
 import { shuttleClient } from '@metorial-subspace/provider-shuttle';
 import { slatesClient } from '@metorial-subspace/provider-slates';
 import { env } from '../../env';
 import { RETENTION_BATCH_SIZE, retentionSyncWorkerOpts } from './_config';
-
-type ClientOpts = Parameters<typeof createClient>[0];
 
 export let tenantLogRetentionSyncSearchQueue = createQueue<{ cursor?: string }>({
   name: 'sub/ten/ret/sync/search',
