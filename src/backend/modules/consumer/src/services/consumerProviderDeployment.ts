@@ -44,6 +44,10 @@ type ConsumerProviderDeployInput = {
         providerSetupSessionId: string;
       }
     | {
+        type: 'auth_config';
+        providerAuthConfigId: string;
+      }
+    | {
         type: 'manual';
         providerAuthMethodId: string;
         value: Record<string, unknown>;
@@ -313,6 +317,26 @@ class ConsumerProviderDeploymentServiceImpl {
       });
 
       return setupSession.authConfig!.id;
+    }
+
+    if (authInput.type == 'auth_config') {
+      let authConfig = await subspaceProviderAuthConfigService.get({
+        instance: d.instance,
+        providerAuthConfigId: authInput.providerAuthConfigId
+      });
+
+      if (authConfig.providerId != d.providerContext.provider.id) {
+        throw new ServiceError(notFoundError('provider.auth_config'));
+      }
+
+      if (
+        authConfig.deploymentPreview &&
+        authConfig.deploymentPreview.id != d.providerContext.deployment.id
+      ) {
+        throw new ServiceError(notFoundError('provider.auth_config'));
+      }
+
+      return authConfig.id;
     }
 
     let authMethod = d.providerContext.authMethods.find(method => {

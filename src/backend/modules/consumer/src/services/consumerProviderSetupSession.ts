@@ -16,11 +16,7 @@ import {
 } from '@metorial/db';
 import { type AnyAccessTagSelector } from '@metorial/module-access';
 import { subspaceProviderSetupSessionService } from '@metorial/module-subspace';
-import {
-  getDefaultOauthMethod,
-  loadTemplateContextForSetup,
-  type ConsumerProviderAuthMethodList
-} from './consumerProviderContext';
+import { loadTemplateContextForSetup } from './consumerProviderContext';
 
 let buildProviderSetupRedirectUrl = (portalSlug: string) => {
   let template = process.env.PORTAL_HOST_TEMPLATE;
@@ -38,25 +34,6 @@ let buildProviderSetupRedirectUrl = (portalSlug: string) => {
   }
 
   return raw.replace('{portalId}', portalSlug).replace(/\/+$/, '');
-};
-
-let getRequestedOauthMethod = (d: {
-  authMethods: ConsumerProviderAuthMethodList;
-  providerAuthMethodId?: string;
-}) => {
-  let authMethod = d.providerAuthMethodId
-    ? (d.authMethods.find(method => method.id == d.providerAuthMethodId) ?? null)
-    : getDefaultOauthMethod(d.authMethods);
-
-  if (!authMethod || authMethod.type != 'oauth') {
-    throw new ServiceError(
-      preconditionFailedError({
-        message: 'This provider template does not expose an OAuth setup flow.'
-      })
-    );
-  }
-
-  return authMethod;
 };
 
 let assertSetupSessionBindingMatchesConsumerProvider = (d: {
@@ -101,10 +78,7 @@ class ConsumerProviderSetupSessionServiceImpl {
       accessTags: d.accessTags,
       providerTemplateId: d.providerTemplateId
     });
-    let authMethod = getRequestedOauthMethod({
-      authMethods: providerContext.authMethods,
-      providerAuthMethodId: d.input.providerAuthMethodId
-    });
+
     let portal = await db.portal.findFirst({
       where: {
         instanceOid: d.instance.oid,
@@ -123,14 +97,21 @@ class ConsumerProviderSetupSessionServiceImpl {
       instance: d.instance,
       providerId: providerContext.provider.id,
       providerDeploymentId: providerContext.deployment.id,
-      providerAuthMethodId: authMethod.id,
       name: providerContext.provider.name,
       description: providerContext.provider.description ?? undefined,
       uiMode: 'metorial_elements',
       type: 'auth_only',
       ip: d.context.ip,
       ua: d.context.ua ?? '',
-      redirectUrl: buildProviderSetupRedirectUrl(portal.slug)
+      redirectUrl: buildProviderSetupRedirectUrl(portal.slug),
+      configuration: {
+        toolFilters: {
+          enabled: true
+        },
+        ui: {
+          layout: 'side'
+        }
+      }
     });
 
     await db.consumerProviderSetupSessionBinding.create({

@@ -603,6 +603,10 @@ export let consumerProviderController = Controller.create(
                 provider_setup_session_id: v.string()
               }),
               v.object({
+                type: v.literal('auth_config'),
+                provider_auth_config_id: v.string()
+              }),
+              v.object({
                 type: v.literal('manual'),
                 provider_auth_method_id: v.string(),
                 value: v.record(v.any())
@@ -633,6 +637,11 @@ export let consumerProviderController = Controller.create(
                     type: 'setup_session',
                     providerSetupSessionId: ctx.body.auth.provider_setup_session_id
                   }
+                : ctx.body.auth?.type == 'auth_config'
+                  ? {
+                      type: 'auth_config',
+                      providerAuthConfigId: ctx.body.auth.provider_auth_config_id
+                    }
                 : ctx.body.auth?.type == 'manual'
                   ? {
                       type: 'manual',

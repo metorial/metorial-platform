@@ -48,6 +48,7 @@ export type ConsumerProvidersDeployBody = {
   config?: Record<string, any> | undefined;
   auth?:
     | { type: 'setup_session'; providerSetupSessionId: string }
+    | { type: 'auth_config'; providerAuthConfigId: string }
     | {
         type: 'manual';
         providerAuthMethodId: string;
@@ -71,6 +72,10 @@ export let mapConsumerProvidersDeployBody =
             type: mtMap.objectField('type', mtMap.passthrough()),
             providerSetupSessionId: mtMap.objectField(
               'provider_setup_session_id',
+              mtMap.passthrough()
+            ),
+            providerAuthConfigId: mtMap.objectField(
+              'provider_auth_config_id',
               mtMap.passthrough()
             ),
             providerAuthMethodId: mtMap.objectField(
