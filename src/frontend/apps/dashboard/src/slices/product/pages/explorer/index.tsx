@@ -263,6 +263,7 @@ export let ExplorerPage = () => {
     instance.data?.id,
     sessionProviderIds.length > 0
       ? {
+          id: sessionProviderIds,
           orderByRank: true,
           limit: Math.max(sessionProviderIds.length, 100)
         }
@@ -749,54 +750,70 @@ export let ExplorerPage = () => {
                           </Text>
                         ) : (
                           <TemplateSessionCards>
-                            {session.data.providers.map(provider => (
-                              <TemplateSessionCard
-                                key={provider.id}
-                                to={Paths.instance.providerDeployment(
-                                  instance.data?.organization,
-                                  instance.data?.project,
-                                  instance.data,
-                                  provider.deployment.id
-                                )}
-                              >
-                                <TemplateSessionCardButton>
-                                  <Entity.Wrapper style={{ width: '100%' }}>
-                                    <Entity.Content>
-                                      <Entity.Field
-                                        prefix={
-                                          <Avatar
-                                            entity={{
-                                              name:
-                                                sessionProviderLookup.get(provider.providerId)?.name ??
-                                                provider.providerId,
-                                              imageUrl:
-                                                sessionProviderLookup.get(provider.providerId)?.imageUrl
-                                            }}
-                                            size={28}
-                                            radius={8}
-                                            noTooltip
-                                            imageFit="contain"
-                                          />
-                                        }
-                                        title={
-                                          provider.deployment.name ??
-                                          provider.deployment.id ??
-                                          provider.providerId
-                                        }
-                                      />
-                                      <Entity.Field
-                                        title={
-                                          <Text size="1" color="gray500">
-                                            <RenderDate date={provider.deployment.createdAt} />
-                                          </Text>
-                                        }
-                                        right
-                                      />
-                                    </Entity.Content>
-                                  </Entity.Wrapper>
-                                </TemplateSessionCardButton>
-                              </TemplateSessionCard>
-                            ))}
+                            {session.data.providers.map(provider => {
+                              let providerDeploymentId = provider.deployment?.id ?? null;
+                              let providerDeploymentName =
+                                provider.deployment?.name ??
+                                providerDeploymentId ??
+                                provider.providerId;
+                              let providerDeploymentCreatedAt = provider.deployment?.createdAt ?? null;
+
+                              return (
+                                <TemplateSessionCard
+                                  key={provider.id}
+                                  to={
+                                    providerDeploymentId
+                                      ? Paths.instance.providerDeployment(
+                                          instance.data?.organization,
+                                          instance.data?.project,
+                                          instance.data,
+                                          providerDeploymentId
+                                        )
+                                      : '#'
+                                  }
+                                  onClick={event => {
+                                    if (!providerDeploymentId) event.preventDefault();
+                                  }}
+                                >
+                                  <TemplateSessionCardButton>
+                                    <Entity.Wrapper style={{ width: '100%' }}>
+                                      <Entity.Content>
+                                        <Entity.Field
+                                          prefix={
+                                            <Avatar
+                                              entity={{
+                                                name:
+                                                  sessionProviderLookup.get(provider.providerId)?.name ??
+                                                  provider.providerId,
+                                                imageUrl:
+                                                  sessionProviderLookup.get(provider.providerId)?.imageUrl
+                                              }}
+                                              size={28}
+                                              radius={8}
+                                              noTooltip
+                                              imageFit="contain"
+                                            />
+                                          }
+                                          title={providerDeploymentName}
+                                        />
+                                        <Entity.Field
+                                          title={
+                                            <Text size="1" color="gray500">
+                                              {providerDeploymentCreatedAt ? (
+                                                <RenderDate date={providerDeploymentCreatedAt} />
+                                              ) : (
+                                                'Deployment unavailable'
+                                              )}
+                                            </Text>
+                                          }
+                                          right
+                                        />
+                                      </Entity.Content>
+                                    </Entity.Wrapper>
+                                  </TemplateSessionCardButton>
+                                </TemplateSessionCard>
+                              );
+                            })}
                           </TemplateSessionCards>
                         )}
                       </Flex>

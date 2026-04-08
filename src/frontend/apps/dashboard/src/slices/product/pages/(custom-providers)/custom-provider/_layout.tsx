@@ -74,6 +74,7 @@ export let CustomProviderLayout = () => {
                 </Button>
               </Link>
             )}
+
             <DeployServerButton providerId={customProvider.data?.provider?.id}>
               Deploy Provider
             </DeployServerButton>
@@ -169,6 +170,7 @@ export let DeployServerButton = ({
           label: 'Provider Deployment',
           description: 'More powerful and flexible.'
         },
+
         ...(flags.data?.flags['magic-mcp-enabled']
           ? [
               {

@@ -23,20 +23,25 @@ type SessionTemplateProviderRow =
 let AddProviderModalContent = ({
   instanceId,
   sessionTemplateId,
-  onComplete
+  providerId,
+  onComplete,
+  action
 }: {
   instanceId: string;
   sessionTemplateId: string;
+  providerId?: string;
   onComplete: () => void;
+  action?: string;
 }) => {
   let createMutation = useCreateSessionTemplateProvider();
 
   return (
     <ProviderConfigurationSelectionModalContent
       instanceId={instanceId}
+      providerId={providerId}
       saving={createMutation.isPending}
       mutationError={<createMutation.RenderError />}
-      submitLabel="Add Provider"
+      submitLabel={action || 'Add Provider'}
       includeToolFilters
       onSubmit={async values => {
         let [result, error] = await createMutation.mutate({
@@ -83,14 +88,25 @@ export let showAddProviderModal = (p: {
   instanceId: string;
   sessionTemplateId: string;
   onComplete: () => void;
+  providerId?: string;
+  title?: string;
+  description?: string;
+  action?: string;
 }) =>
   showProviderConfigurationSelectionModal({
-    title: 'Add Provider',
-    description: 'Select a provider to add to this template.',
+    title: p.title ?? 'Add Provider',
+    description:
+      p.description ??
+      (p.providerId
+        ? 'Select a deployment and optional configuration to add to this template.'
+        : 'Select a provider to add to this template.'),
+
     render: close => (
       <AddProviderModalContent
         instanceId={p.instanceId}
         sessionTemplateId={p.sessionTemplateId}
+        providerId={p.providerId}
+        action={p.action}
         onComplete={() => {
           p.onComplete();
           close();

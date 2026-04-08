@@ -18,7 +18,11 @@ export let magicMcpServersLoader = createLoader({
 
 export let useCreateMagicMcpServer = magicMcpServersLoader.createExternalMutator(
   (i: DashboardInstanceMagicMcpServersCreateBody & { instanceId: string }) =>
-    withAuth(sdk => sdk.magicMcp.servers.create(i.instanceId, i)),
+    withAuth(async sdk => {
+      let server = await sdk.magicMcp.servers.create(i.instanceId, i);
+
+      return server;
+    }),
   {
     disableToast: true
   }

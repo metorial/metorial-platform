@@ -13,6 +13,7 @@
   "dependencies": {
     "@aws-sdk/rds-signer": "^3.1018.0",
     "@lowerdeck/base62": "^1.0.4",
+    "@lowerdeck/delay": "^1.0.1",
     "@lowerdeck/env": "^1.0.4",
     "@lowerdeck/error": "^1.2.2",
     "@lowerdeck/service": "^1.0.7",
@@ -26,7 +27,9 @@
     "@prisma/adapter-pg": "6.19.0",
     "@prisma/client": "^7.4.1",
     "@prisma/extension-read-replicas": "^0.5.0",
+    "@types/pg": "^8.11.11",
     "@types/bun": "^1.2.12",
+    "pg": "^8.11.3",
     "prisma": "^7.4.1",
     "prisma-json-types-generator": "^4.1.1",
     "stripe": "^18.5.0",
