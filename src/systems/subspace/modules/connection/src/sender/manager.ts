@@ -108,7 +108,7 @@ export class SenderManager {
         solution: true,
         connections: d.connectionToken
           ? {
-              where: { token: d.connectionToken, status: { not: 'deleted' } },
+              where: { token: d.connectionToken, status: 'active' },
               include: { participant: true }
             }
           : false
