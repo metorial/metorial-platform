@@ -5,6 +5,7 @@ import { Service } from '@lowerdeck/service';
 import type { Server, Tenant } from '../../../prisma/generated/client';
 import { db } from '../../db';
 import { env } from '../../env';
+import { secretService } from '../secret';
 import { delegatedOAuthConnectionService } from './delegated';
 import { remoteOAuthConnectionService } from './remote';
 
@@ -169,6 +170,154 @@ class serverOAuthCredentialsServiceImpl {
     });
     if (!serverOAuthCredentials) throw new ServiceError(notFoundError('server_config'));
     return serverOAuthCredentials;
+  }
+
+  async deleteServerOAuthCredentials(d: {
+    tenant: Tenant;
+    serverOAuthCredentials: {
+      oid: bigint;
+      remoteConnectionOid: bigint | null;
+      delegatedConnectionOid: bigint | null;
+    };
+  }) {
+    let remoteConnection = d.serverOAuthCredentials.remoteConnectionOid
+      ? await db.remoteOAuthConnection.findUnique({
+          where: {
+            oid: d.serverOAuthCredentials.remoteConnectionOid
+          },
+          select: {
+            oid: true,
+            secretOid: true
+          }
+        })
+      : null;
+
+    let delegatedConnection = d.serverOAuthCredentials.delegatedConnectionOid
+      ? await db.delegatedOAuthConnection.findUnique({
+          where: {
+            oid: d.serverOAuthCredentials.delegatedConnectionOid
+          },
+          select: {
+            oid: true,
+            secretOid: true
+          }
+        })
+      : null;
+
+    let remoteTokens = remoteConnection
+      ? await db.remoteOAuthConnectionAuthToken.findMany({
+          where: {
+            connectionOid: remoteConnection.oid
+          },
+          select: {
+            oid: true,
+            secretOid: true
+          }
+        })
+      : [];
+
+    let delegatedTokens = delegatedConnection
+      ? await db.delegatedOAuthConnectionAuthToken.findMany({
+          where: {
+            connectionOid: delegatedConnection.oid
+          },
+          select: {
+            oid: true,
+            secretOid: true
+          }
+        })
+      : [];
+
+    return await db.$transaction(async db => {
+      await db.serverOAuthSetup.deleteMany({
+        where: {
+          credentialsOid: d.serverOAuthCredentials.oid
+        }
+      });
+
+      await db.serverAuthConfig.updateMany({
+        where: {
+          credentialsOid: d.serverOAuthCredentials.oid
+        },
+        data: {
+          credentialsOid: null
+        }
+      });
+
+      if (remoteConnection) {
+        for (let secretOid of [
+          ...remoteTokens.map(token => token.secretOid),
+          ...(remoteConnection.secretOid ? [remoteConnection.secretOid] : [])
+        ]) {
+          await secretService.DANGEROUSLY_deleteSecret({
+            secretOid,
+            tenant: d.tenant,
+            db
+          });
+        }
+
+        await db.remoteOAuthConnectionAuthToken.deleteMany({
+          where: {
+            oid: { in: remoteTokens.map(token => token.oid) }
+          }
+        });
+
+        await db.remoteOAuthConnectionSetup.deleteMany({
+          where: {
+            connectionOid: remoteConnection.oid
+          }
+        });
+
+        await db.remoteOAuthConnectionProfile.deleteMany({
+          where: {
+            connectionOid: remoteConnection.oid
+          }
+        });
+
+        await db.remoteOAuthConnection.delete({
+          where: {
+            oid: remoteConnection.oid
+          }
+        });
+      }
+
+      if (delegatedConnection) {
+        for (let secretOid of [
+          ...delegatedTokens.map(token => token.secretOid),
+          ...(delegatedConnection.secretOid ? [delegatedConnection.secretOid] : [])
+        ]) {
+          await secretService.DANGEROUSLY_deleteSecret({
+            secretOid,
+            tenant: d.tenant,
+            db
+          });
+        }
+
+        await db.delegatedOAuthConnectionAuthToken.deleteMany({
+          where: {
+            oid: { in: delegatedTokens.map(token => token.oid) }
+          }
+        });
+
+        await db.delegatedOAuthConnectionSetup.deleteMany({
+          where: {
+            connectionOid: delegatedConnection.oid
+          }
+        });
+
+        await db.delegatedOAuthConnection.delete({
+          where: {
+            oid: delegatedConnection.oid
+          }
+        });
+      }
+
+      await db.serverOAuthCredentials.delete({
+        where: {
+          oid: d.serverOAuthCredentials.oid
+        }
+      });
+    });
   }
 
   async listServerOAuthCredentials(d: { tenant: Tenant }) {

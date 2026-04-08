@@ -31,6 +31,7 @@ import {
 import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
 import { checkTenant } from '@metorial-subspace/module-tenant';
 import {
+  providerConfigVaultArchivedQueue,
   providerConfigVaultCreatedQueue,
   providerConfigVaultUpdatedQueue
 } from '../queues/lifecycle/providerConfigVault';
@@ -224,6 +225,41 @@ class providerConfigVaultServiceImpl {
 
       await addAfterTransactionHook(async () =>
         providerConfigVaultUpdatedQueue.add({ providerConfigVaultId: vault.id })
+      );
+
+      return vault;
+    });
+  }
+
+  async archiveProviderConfigVault(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    providerConfigVault: ProviderConfigVault;
+  }) {
+    checkTenant(d, d.providerConfigVault);
+    checkDeletedEdit(d.providerConfigVault, 'archive');
+
+    return withTransaction(async db => {
+      let archivedAt = new Date();
+      let vault = await db.providerConfigVault.update({
+        where: {
+          oid: d.providerConfigVault.oid,
+          tenantOid: d.tenant.oid,
+          solutionOid: d.solution.oid,
+          environmentOid: d.environment.oid
+        },
+        data: {
+          status: 'archived',
+          archivedAt
+        },
+        include
+      });
+
+      await addAfterTransactionHook(async () =>
+        providerConfigVaultArchivedQueue.add({
+          providerConfigVaultId: vault.id
+        })
       );
 
       return vault;

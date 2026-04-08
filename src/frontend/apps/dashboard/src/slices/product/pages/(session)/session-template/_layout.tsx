@@ -16,6 +16,7 @@ import {
 import { Button, Flex, LinkTabs } from '@metorial/ui';
 import { useState } from 'react';
 import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { DeletedRecordCallout } from '../../../scenes/deletedRecordCallout';
 import { showAddProviderModal } from '../../../scenes/sessionTemplates/providersManager';
 
 export let SessionTemplateLayout = () => {
@@ -138,6 +139,8 @@ export let SessionTemplateLayout = () => {
 
       {renderWithLoader({ template })(({ template }) => (
         <>
+          <DeletedRecordCallout status={template.data?.status} />
+
           <LinkTabs
             current={pathname}
             links={[

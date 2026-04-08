@@ -2,6 +2,7 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { generatePlainId } from '@lowerdeck/id';
 import { Service } from '@lowerdeck/service';
 import { db, type EnvironmentType, getId } from '@metorial-subspace/db';
+import { tenantLogRetentionSyncQueue } from '../queues/retention/sync';
 
 let include = {};
 
@@ -11,6 +12,7 @@ class tenantServiceImpl {
       name: string;
       identifier: string;
       onlyAllowTrustedProviders?: boolean;
+      logRetentionInDays?: number;
       environments: {
         name: string;
         identifier: string;
@@ -19,21 +21,41 @@ class tenantServiceImpl {
     };
   }) {
     try {
+      let existingTenant = await db.tenant.findUnique({
+        where: { identifier: d.input.identifier },
+        select: {
+          id: true,
+          logRetentionInDays: true
+        }
+      });
+
       let tenant = await db.tenant.upsert({
         where: { identifier: d.input.identifier },
         update: {
           name: d.input.name,
-          onlyAllowTrustedProviders: d.input.onlyAllowTrustedProviders
+          onlyAllowTrustedProviders: d.input.onlyAllowTrustedProviders,
+          logRetentionInDays: d.input.logRetentionInDays
         },
         create: {
           ...getId('tenant'),
           name: d.input.name,
           identifier: d.input.identifier,
           onlyAllowTrustedProviders: d.input.onlyAllowTrustedProviders,
+          logRetentionInDays: d.input.logRetentionInDays ?? 30,
 
           urlKey: generatePlainId(10).toLowerCase()
         }
       });
+
+      if (
+        d.input.logRetentionInDays !== undefined &&
+        existingTenant?.logRetentionInDays !== tenant.logRetentionInDays
+      ) {
+        await tenantLogRetentionSyncQueue.add(
+          { tenantId: tenant.id },
+          { id: `tenant-retention-sync:${tenant.id}` }
+        );
+      }
 
       await db.environment.createMany({
         skipDuplicates: true,

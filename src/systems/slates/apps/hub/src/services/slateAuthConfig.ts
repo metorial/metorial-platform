@@ -135,6 +135,48 @@ class slateAuthConfigServiceImpl {
     return slateAuthConfig;
   }
 
+  async deleteSlateAuthConfig(d: { tenant: Tenant; slateAuthConfig: SlateAuthConfig }) {
+    return await db.$transaction(async db => {
+      await db.slateAuthConfigUsedForInstance.deleteMany({
+        where: {
+          configOid: d.slateAuthConfig.oid
+        }
+      });
+
+      await db.slateInstance.updateMany({
+        where: {
+          tenantOid: d.tenant.oid,
+          defaultAuthConfigOid: d.slateAuthConfig.oid
+        },
+        data: {
+          defaultAuthConfigOid: null
+        }
+      });
+
+      await db.slateInstanceOAuthSetup.updateMany({
+        where: {
+          tenantOid: d.tenant.oid,
+          slateAuthConfigOid: d.slateAuthConfig.oid
+        },
+        data: {
+          slateAuthConfigOid: null
+        }
+      });
+
+      await secretService.DANGEROUSLY_deleteSecret({
+        secretOid: d.slateAuthConfig.secretOid,
+        tenant: d.tenant,
+        db
+      });
+
+      await db.slateAuthConfig.deleteMany({
+        where: {
+          oid: d.slateAuthConfig.oid
+        }
+      });
+    });
+  }
+
   async listSlateAuthConfigs(d: {
     tenant: Tenant;
     slateInstanceIds?: string[];

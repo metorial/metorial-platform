@@ -69,9 +69,10 @@ class sessionProviderInputServiceImpl {
             d.providers.map(async s => {
               if (s.sessionTemplateId) {
                 let template = await db.sessionTemplate.findFirstOrThrow({
-                  where: { ...ts, id: s.sessionTemplateId },
+                  where: { ...ts, id: s.sessionTemplateId, status: 'active' as const },
                   include: {
                     providers: {
+                      where: { status: 'active' as const },
                       include: {
                         deployment: true,
                         config: true,

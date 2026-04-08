@@ -4,6 +4,7 @@ export type ManagementInstanceSessionTemplatesListOutput = {
   items: {
     object: 'session.template';
     id: string;
+    status: 'active' | 'archived' | 'deleted';
     name: string;
     description: string | null;
     metadata: Record<string, any> | null;
@@ -67,6 +68,7 @@ export let mapManagementInstanceSessionTemplatesListOutput =
         mtMap.object({
           object: mtMap.objectField('object', mtMap.passthrough()),
           id: mtMap.objectField('id', mtMap.passthrough()),
+          status: mtMap.objectField('status', mtMap.passthrough()),
           name: mtMap.objectField('name', mtMap.passthrough()),
           description: mtMap.objectField('description', mtMap.passthrough()),
           metadata: mtMap.objectField('metadata', mtMap.passthrough()),

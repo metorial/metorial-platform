@@ -29,7 +29,8 @@ export let getTenantForSlates = async (tenant: Tenant) => {
   if (!tenant.slateTenantId) {
     let slateTenant = await slates.tenant.upsert({
       identifier: tenant.identifier,
-      name: tenant.name
+      name: tenant.name,
+      logRetentionInDays: tenant.logRetentionInDays
     });
 
     tenant = await db.tenant.update({

@@ -8,7 +8,7 @@ export type SubspaceProviderAuthCredentials = Awaited<
 
 export let subspaceProviderAuthCredentialsService = createSubspaceService(
   subspace.providerAuthCredentials,
-  ['get', 'list', 'update', 'create'],
+  ['get', 'list', 'update', 'create', 'delete'],
   inner => ({
     create: async (...params: Parameters<typeof inner.create>) => {
       let eventBase = toEventBase(params[0]);
@@ -30,6 +30,19 @@ export let subspaceProviderAuthCredentialsService = createSubspaceService(
       let authCredentials = await inner.update(...params);
 
       await Fabric.fire('provider.auth_credentials.updated:after', {
+        ...eventBase,
+        authCredentials
+      });
+
+      return authCredentials;
+    },
+    delete: async (...params: Parameters<typeof inner.delete>) => {
+      let eventBase = toEventBase(params[0]);
+      await Fabric.fire('provider.auth_credentials.deleted:before', eventBase);
+
+      let authCredentials = await inner.delete(...params);
+
+      await Fabric.fire('provider.auth_credentials.deleted:after', {
         ...eventBase,
         authCredentials
       });

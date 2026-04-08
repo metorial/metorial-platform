@@ -8,11 +8,14 @@ import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
+  useDeleteProviderAuthCredentials,
   useProviderAuthCredentials,
   useProviders
 } from '@metorial/state';
-import { RenderDate, Text } from '@metorial/ui';
+import { Badge, RenderDate, Text, confirm } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
+import { RiDeleteBinLine } from '@remixicon/react';
+import { useState } from 'react';
 import { EmptyState } from '../../../../../components/emptyState';
 import { Table as DashboardTable } from '../../../../../components/table';
 import { FilterPayload } from '../../../../../components/table/filter';
@@ -56,6 +59,18 @@ let getOriginFilterValue = (
   return getEnumListFilterValue(value, ['custom', 'managed']);
 };
 
+let getStatusFilterValue = (
+  value: FilterPayload | undefined
+): DashboardInstanceProviderDeploymentsAuthCredentialsListQuery['status'] => {
+  return getEnumListFilterValue(value, ['active', 'archived']);
+};
+
+let getAuthCredentialsStatusColor = (status: ProviderAuthCredential['status']) => {
+  if (status === 'active') return 'green';
+  if (status === 'archived') return 'orange';
+  return 'gray';
+};
+
 let providerAuthCredentialsTableState: TableStateProvider<
   ProviderAuthCredentialsTableProps,
   ProviderAuthCredentialRow,
@@ -70,6 +85,7 @@ let providerAuthCredentialsTableState: TableStateProvider<
   let authCredentials = useProviderAuthCredentials(props.instanceId, {
     order: 'desc',
     ...props.filters,
+    status: getStatusFilterValue(opts.filter.status) ?? props.filters?.status,
     id: getStringFilterValue(opts.filter.id) ?? props.filters?.id,
     providerId: getStringFilterValue(opts.filter.providerId) ?? props.filters?.providerId,
     origin: getOriginFilterValue(opts.filter.origin) ?? props.filters?.origin,
@@ -109,11 +125,43 @@ let providerAuthCredentialsTableState: TableStateProvider<
   };
 };
 
+let useProviderAuthCredentialsTableHookState = (
+  _: ReturnType<typeof providerAuthCredentialsTableState>,
+  props: ProviderAuthCredentialsTableProps
+) => {
+  let deleteAuthCredentials = useDeleteProviderAuthCredentials();
+  let [loadingIds, setLoadingIds] = useState<string[]>([]);
+
+  return {
+    deleteAuthCredentials,
+    instanceId: props.instanceId,
+    loadingIds,
+    setLoadingIds
+  };
+};
+
+let deleteProviderAuthCredentialsImmediately = async (
+  authCredentials: ProviderAuthCredentialRow,
+  state: ReturnType<typeof useProviderAuthCredentialsTableHookState>
+) => {
+  state.setLoadingIds((current: string[]) => [...new Set([...current, authCredentials.id])]);
+
+  try {
+    await state.deleteAuthCredentials.mutate({
+      instanceId: state.instanceId,
+      providerAuthCredentialsId: authCredentials.id
+    });
+  } finally {
+    state.setLoadingIds((current: string[]) => current.filter(id => id != authCredentials.id));
+  }
+};
+
 export let providerAuthCredentialsTable = new DashboardTable<
   ProviderAuthCredentialsTableProps,
   ProviderAuthCredentialRow
 >('provider-auth-credentials-overview')
   .state(providerAuthCredentialsTableState)
+  .hookState(useProviderAuthCredentialsTableHookState)
   .columns([
     {
       id: 'name',
@@ -150,6 +198,14 @@ export let providerAuthCredentialsTable = new DashboardTable<
       render: row => <ID id={row.id} />
     },
     {
+      id: 'status',
+      isDefault: false,
+      header: 'Status',
+      render: row => (
+        <Badge color={getAuthCredentialsStatusColor(row.status)}>{row.status}</Badge>
+      )
+    },
+    {
       id: 'origin',
       isDefault: false,
       header: 'Origin',
@@ -169,6 +225,17 @@ export let providerAuthCredentialsTable = new DashboardTable<
     }
   ])
   .filters([
+    {
+      id: 'status',
+      fields: ['status'],
+      label: 'Status',
+      description: 'Filter by status',
+      type: 'select',
+      options: [
+        { id: 'active', label: 'Active' },
+        { id: 'archived', label: 'Archived' }
+      ]
+    },
     {
       id: 'id',
       fields: ['id'],
@@ -221,6 +288,49 @@ export let providerAuthCredentialsTable = new DashboardTable<
     )
   )
   .search('Search auth credentials...')
+  .actions({
+    deleteImmediate: async (credentials, state) => {
+      let authCredentials = credentials[0];
+      if (!authCredentials) return;
+
+      await deleteProviderAuthCredentialsImmediately(authCredentials, state);
+    },
+    delete: async (credentials, state) => {
+      let authCredentials = credentials[0];
+      if (!authCredentials) return;
+
+      confirm({
+        title: 'Delete auth credentials',
+        description: `Are you sure you want to delete ${authCredentials.name ?? 'these auth credentials'}?`,
+        confirmText: 'Delete',
+        onConfirm: async () => {
+          await deleteProviderAuthCredentialsImmediately(authCredentials, state);
+        }
+      });
+    }
+  })
+  .rowActions([
+    {
+      id: 'delete',
+      label: 'Delete',
+      icon: <RiDeleteBinLine />,
+      disabled: row => row.status !== 'active' || row.isManaged,
+      action: 'delete'
+    }
+  ])
+  .bulkActions([
+    {
+      id: 'delete-selected',
+      label: 'Delete',
+      icon: <RiDeleteBinLine />,
+      disabled: row => row.status !== 'active' || row.isManaged,
+      action: 'deleteImmediate',
+      bulkExecution: {
+        mode: 'per-row',
+        batchSize: 10
+      }
+    }
+  ])
   .build();
 
 export let ProviderAuthCredentialsOverviewPage = () => {

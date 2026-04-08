@@ -74,5 +74,22 @@ export let serverConfigController = app.controller({
         serverConfigId: v.string()
       })
     )
-    .do(async ctx => serverConfigPresenter(ctx.serverConfig))
+    .do(async ctx => serverConfigPresenter(ctx.serverConfig)),
+
+  delete: serverConfigApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        serverConfigId: v.string()
+      })
+    )
+    .do(async ctx => {
+      await serverConfigService.deleteServerConfig({
+        tenant: ctx.tenant,
+        serverConfig: ctx.serverConfig
+      });
+
+      return { success: true };
+    })
 });

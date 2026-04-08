@@ -63,3 +63,58 @@ export let providerAuthConfigUpdatedQueueProcessor = providerAuthConfigUpdatedQu
     });
   }
 );
+
+export let providerAuthConfigArchivedQueue = createQueue<{
+  providerAuthConfigId: string;
+}>({
+  name: 'sub/auth/lc/providerAuthConfig/archived',
+  redisUrl: env.service.REDIS_URL
+});
+
+export let providerAuthConfigArchivedQueueProcessor = providerAuthConfigArchivedQueue.process(
+  async data => {
+    let providerAuthConfig = await db.providerAuthConfig.findUnique({
+      where: { id: data.providerAuthConfigId }
+    });
+    if (!providerAuthConfig) return;
+
+    await indexProviderAuthConfigQueue.add({
+      providerAuthConfigId: data.providerAuthConfigId
+    });
+
+    await db.sessionProvider.updateMany({
+      where: { authConfigOid: providerAuthConfig.oid, status: 'active' },
+      data: { status: 'archived' }
+    });
+
+    await db.sessionTemplateProvider.updateMany({
+      where: { authConfigOid: providerAuthConfig.oid, status: 'active' },
+      data: { status: 'archived' }
+    });
+
+    if (providerAuthConfig.deploymentOid) {
+      await db.providerDeployment.updateMany({
+        where: {
+          oid: providerAuthConfig.deploymentOid,
+          defaultAuthConfigOid: providerAuthConfig.oid
+        },
+        data: { defaultAuthConfigOid: null }
+      });
+    }
+  }
+);
+
+export let providerAuthConfigDeletedQueue = createQueue<{
+  providerAuthConfigId: string;
+}>({
+  name: 'sub/auth/lc/providerAuthConfig/deleted',
+  redisUrl: env.service.REDIS_URL
+});
+
+export let providerAuthConfigDeletedQueueProcessor = providerAuthConfigDeletedQueue.process(
+  async data => {
+    await indexProviderAuthConfigQueue.add({
+      providerAuthConfigId: data.providerAuthConfigId
+    });
+  }
+);

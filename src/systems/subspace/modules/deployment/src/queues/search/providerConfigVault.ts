@@ -16,7 +16,10 @@ export let indexProviderConfigVaultQueueProcessor = indexProviderConfigVaultQueu
     });
     if (!providerConfigVault) throw new QueueRetryError();
 
-    if (!providerConfigVault.name && !providerConfigVault.description) {
+    if (
+      providerConfigVault.status !== 'active' ||
+      (!providerConfigVault.name && !providerConfigVault.description)
+    ) {
       await voyager.record.delete({
         sourceId: (await voyagerSource).id,
         indexId: voyagerIndex.providerConfigVault.id,

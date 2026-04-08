@@ -7,7 +7,7 @@ cd $ROOT_DIR
 echo "Building OSS packages..."
 if [ "$IS_ENTERPRISE" = true ]; then
   bunx turbo run --ui=stream build --filter='./oss/**' --filter='!./oss/src/systems/**'
-  bunx turbo run --ui=stream build --filter='./oss/src/systems/_clients/**'
+  bunx turbo run --ui=stream build --filter='./oss/src/systems/_clients/**' --force
   bunx turbo run --ui=stream build --filter='./oss/src/systems/shuttle/sdk/packages/**'
   bunx turbo run --ui=stream build --filter='./oss/src/systems/slates/packages/**'
   bunx turbo run --ui=stream build:client --filter='./systems/horizon/ares/clients/**'

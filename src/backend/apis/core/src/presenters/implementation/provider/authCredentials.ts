@@ -8,6 +8,7 @@ export let v1ProviderAuthCredentialsPresenter = Presenter.create(providerAuthCre
 
     id: authCredentials.id,
     type: authCredentials.type,
+    status: authCredentials.status,
 
     is_default: authCredentials.isDefault,
     is_managed: authCredentials.isManaged,
@@ -32,6 +33,10 @@ export let v1ProviderAuthCredentialsPresenter = Presenter.create(providerAuthCre
         examples: ['par_4sTuVwXyZaBcDeFg']
       }),
       type: v.literal('oauth'),
+      status: v.enumOf(['active', 'archived', 'deleted'], {
+        name: 'status',
+        description: 'Credentials status'
+      }),
       is_default: v.boolean({
         name: 'is_default',
         description: 'Whether this is the default credentials for the provider',

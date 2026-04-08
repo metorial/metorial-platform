@@ -50,6 +50,7 @@ import { checkTenant } from '@metorial-subspace/module-tenant';
 import { getBackend } from '@metorial-subspace/provider';
 import { env } from '../env';
 import {
+  providerConfigArchivedQueue,
   providerConfigCreatedQueue,
   providerConfigUpdatedQueue
 } from '../queues/lifecycle/providerConfig';
@@ -163,6 +164,7 @@ class providerConfigServiceImpl {
         tenantOid: d.tenant.oid,
         solutionOid: d.solution.oid,
         environmentOid: d.environment.oid,
+        isForVault: false,
         ...normalizeStatusForGet(d).noParent
       },
       include
@@ -531,6 +533,7 @@ class providerConfigServiceImpl {
       toolFilters?: PrismaJson.ToolFilter | null;
     };
   }) {
+    await this.assertNotForVault(d);
     checkTenant(d, d.providerConfig);
     checkDeletedEdit(d.providerConfig, 'update');
 
@@ -562,6 +565,41 @@ class providerConfigServiceImpl {
     });
   }
 
+  async archiveProviderConfig(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    providerConfig: ProviderConfig;
+  }) {
+    await this.assertNotForVault(d);
+    checkTenant(d, d.providerConfig);
+    checkDeletedEdit(d.providerConfig, 'archive');
+
+    return withTransaction(async db => {
+      let archivedAt = new Date();
+      let config = await db.providerConfig.update({
+        where: {
+          oid: d.providerConfig.oid,
+          tenantOid: d.tenant.oid,
+          solutionOid: d.solution.oid,
+          environmentOid: d.environment.oid
+        },
+        data: {
+          status: 'archived',
+          archivedAt,
+          isDefault: false
+        },
+        include
+      });
+
+      await addAfterTransactionHook(async () =>
+        providerConfigArchivedQueue.add({ providerConfigId: config.id })
+      );
+
+      return config;
+    });
+  }
+
   private async getDefaultProviderConfig(d: {
     tenant: Tenant;
     solution: Solution;
@@ -580,6 +618,17 @@ class providerConfigServiceImpl {
         include: { ...include, currentVersion: true }
       })
     );
+  }
+
+  private async assertNotForVault(d: { providerConfig: ProviderConfig }) {
+    if (d.providerConfig.isForVault) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Operation not allowed on vault provider configs',
+          code: 'vault_config_operation'
+        })
+      );
+    }
   }
 }
 

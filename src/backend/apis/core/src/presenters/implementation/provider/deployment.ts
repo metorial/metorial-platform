@@ -10,6 +10,7 @@ export let v1ProviderDeploymentPresenter = Presenter.create(providerDeploymentTy
     object: 'provider.deployment' as const,
 
     id: deployment.id,
+    status: deployment.status,
 
     is_default: deployment.isDefault,
 
@@ -44,6 +45,10 @@ export let v1ProviderDeploymentPresenter = Presenter.create(providerDeploymentTy
         name: 'id',
         description: 'Unique deployment identifier',
         examples: ['pde_1aBcDeFgHjKlMnPq']
+      }),
+      status: v.enumOf(['active', 'archived', 'deleted'], {
+        name: 'status',
+        description: 'Deployment status'
       }),
       is_default: v.boolean({
         name: 'is_default',

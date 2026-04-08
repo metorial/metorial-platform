@@ -15,6 +15,11 @@ export let sessionsLoader = createLoader({
   mutators: {}
 });
 
+export let useDeleteSession = sessionsLoader.createExternalMutator(
+  (i: { instanceId: string; sessionId: string }) =>
+    withAuth(sdk => sdk.sessions.delete(i.instanceId, i.sessionId))
+);
+
 export let useSessions = (
   instanceId: string | null | undefined,
   query?: DashboardInstanceSessionsListQuery
@@ -26,10 +31,13 @@ export let useSessions = (
 
 export let sessionLoader = createLoader({
   name: 'session',
-  parents: [],
+  parents: [sessionsLoader],
   fetch: (i: { instanceId: string; sessionId: string }) =>
     withAuth(sdk => sdk.sessions.get(i.instanceId, i.sessionId)),
-  mutators: {}
+  mutators: {
+    delete: (_, { input: { instanceId, sessionId } }) =>
+      withAuth(sdk => sdk.sessions.delete(instanceId, sessionId))
+  }
 });
 
 export let useSession = (
@@ -38,7 +46,10 @@ export let useSession = (
 ) => {
   let data = sessionLoader.use(instanceId && sessionId ? { instanceId, sessionId } : null);
 
-  return data;
+  return {
+    ...data,
+    useDeleteMutator: data.useMutator('delete')
+  };
 };
 
 export let useCreateSession = (instanceId: string | null | undefined) => {

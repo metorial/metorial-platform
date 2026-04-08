@@ -7,10 +7,13 @@ import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
+  useDeleteSessionTemplate,
   useSessionTemplates
 } from '@metorial/state';
-import { RenderDate, Text } from '@metorial/ui';
+import { RenderDate, Text, confirm } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
+import { RiDeleteBinLine } from '@remixicon/react';
+import { useState } from 'react';
 import { Table as DashboardTable } from '../../../../components/table';
 import { FilterPayload } from '../../../../components/table/filter';
 import {
@@ -67,10 +70,42 @@ let sessionTemplatesState: TableStateProvider<
   };
 };
 
+let useSessionTemplatesTableHookState = (
+  _: ReturnType<typeof sessionTemplatesState>,
+  props: SessionTemplatesTableProps
+) => {
+  let deleteTemplate = useDeleteSessionTemplate();
+  let [loadingIds, setLoadingIds] = useState<string[]>([]);
+
+  return {
+    deleteTemplate,
+    instanceId: props.instanceId,
+    loadingIds,
+    setLoadingIds
+  };
+};
+
+let deleteSessionTemplateImmediately = async (
+  template: SessionTemplate,
+  state: ReturnType<typeof useSessionTemplatesTableHookState>
+) => {
+  state.setLoadingIds((current: string[]) => [...new Set([...current, template.id])]);
+
+  try {
+    await state.deleteTemplate.mutate({
+      instanceId: state.instanceId,
+      sessionTemplateId: template.id
+    });
+  } finally {
+    state.setLoadingIds((current: string[]) => current.filter(id => id != template.id));
+  }
+};
+
 let sessionTemplatesTable = new DashboardTable<SessionTemplatesTableProps, SessionTemplate>(
   'session-templates'
 )
   .state(sessionTemplatesState)
+  .hookState(useSessionTemplatesTableHookState)
   .columns([
     {
       id: 'name',
@@ -208,6 +243,47 @@ let sessionTemplatesTable = new DashboardTable<SessionTemplatesTableProps, Sessi
       template.id
     )
   )
+  .actions({
+    deleteImmediate: async (templates, state) => {
+      let template = templates[0];
+      if (!template) return;
+
+      await deleteSessionTemplateImmediately(template, state);
+    },
+    delete: async (templates, state) => {
+      let template = templates[0];
+      if (!template) return;
+
+      confirm({
+        title: 'Delete session template',
+        description: `Are you sure you want to delete ${template.name ?? 'this session template'}?`,
+        confirmText: 'Delete',
+        onConfirm: async () => {
+          await deleteSessionTemplateImmediately(template, state);
+        }
+      });
+    }
+  })
+  .rowActions([
+    {
+      id: 'delete',
+      label: 'Delete',
+      icon: <RiDeleteBinLine />,
+      action: 'delete'
+    }
+  ])
+  .bulkActions([
+    {
+      id: 'delete-selected',
+      label: 'Delete',
+      icon: <RiDeleteBinLine />,
+      action: 'deleteImmediate',
+      bulkExecution: {
+        mode: 'per-row',
+        batchSize: 10
+      }
+    }
+  ])
   .build();
 
 export let SessionTemplatesTable = ({ instanceId }: { instanceId: string }) => {

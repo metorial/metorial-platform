@@ -1,15 +1,22 @@
 import { renderWithLoader, useForm } from '@metorial/data-hooks';
+import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, useProviderAuthConfig } from '@metorial/state';
 import { Button, Input, Spacer } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
-import { useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { DeleteResourceDangerZone } from '../../../scenes/deleteResourceDangerZone';
+import { getFromDeployment } from '../fromDeployment';
 
 export let ProviderAuthConfigSettingsPage = () => {
   let instance = useCurrentInstance();
+  let navigate = useNavigate();
+  let location = useLocation();
 
   let { providerAuthConfigId } = useParams();
   let authConfig = useProviderAuthConfig(instance.data?.id, providerAuthConfigId);
   let updateMutator = authConfig.useUpdateMutator();
+  let deleteMutator = authConfig.useDeleteMutator();
+  let fromDeploymentId = getFromDeployment(location.search);
   let form = useForm({
     initialValues: {
       name: authConfig.data?.name ?? '',
@@ -57,6 +64,37 @@ export let ProviderAuthConfigSettingsPage = () => {
           <updateMutator.RenderError />
         </form>
       </Box>
+
+      <Spacer size={20} />
+
+      <DeleteResourceDangerZone
+        description="Delete this auth config and remove it from your saved provider authentication setup."
+        buttonLabel="Delete Auth Config"
+        confirmTitle="Delete auth config"
+        confirmDescription="Are you sure you want to delete this auth config?"
+        loading={deleteMutator.isLoading}
+        success={deleteMutator.isSuccess}
+        onDelete={async () => {
+          let [res] = await deleteMutator.mutate({});
+          if (!res) return;
+
+          navigate(
+            fromDeploymentId
+              ? Paths.instance.providerDeployment(
+                  instance.data?.organization,
+                  instance.data?.project,
+                  instance.data,
+                  fromDeploymentId,
+                  'auth-configs'
+                )
+              : Paths.instance.providerAuthConfigs(
+                  instance.data?.organization,
+                  instance.data?.project,
+                  instance.data
+                )
+          );
+        }}
+      />
     </>
   ));
 };

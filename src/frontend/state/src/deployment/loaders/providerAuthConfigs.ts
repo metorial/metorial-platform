@@ -30,6 +30,14 @@ export let useCreateProviderAuthConfig =
     { disableToast: true }
   );
 
+export let useDeleteProviderAuthConfig =
+  instanceProviderAuthConfigsLoader.createExternalMutator(
+    (i: { instanceId: string; providerAuthConfigId: string }) =>
+      withAuth(sdk =>
+        sdk.providerDeployments.authConfigs.delete(i.instanceId, i.providerAuthConfigId)
+      )
+  );
+
 export let useProviderAuthConfigs = (
   instanceId: string | null | undefined,
   opts?: DashboardInstanceProviderDeploymentsAuthConfigsListQuery
@@ -64,6 +72,10 @@ export let providerAuthConfigLoader = createLoader({
     ) =>
       withAuth(sdk =>
         sdk.providerDeployments.authConfigs.update(instanceId, providerAuthConfigId, body)
+      ),
+    delete: (_, { input: { instanceId, providerAuthConfigId } }) =>
+      withAuth(sdk =>
+        sdk.providerDeployments.authConfigs.delete(instanceId, providerAuthConfigId)
       )
   }
 });
@@ -78,6 +90,7 @@ export let useProviderAuthConfig = (
 
   return {
     ...data,
-    useUpdateMutator: data.useMutator('update')
+    useUpdateMutator: data.useMutator('update'),
+    useDeleteMutator: data.useMutator('delete')
   };
 };

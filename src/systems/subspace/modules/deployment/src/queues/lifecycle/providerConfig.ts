@@ -55,3 +55,68 @@ export let providerConfigUpdatedQueueProcessor = providerConfigUpdatedQueue.proc
     await indexProviderConfigQueue.add({ providerConfigId: data.providerConfigId });
   }
 );
+
+export let providerConfigArchivedQueue = createQueue<{ providerConfigId: string }>({
+  name: 'sub/dep/lc/providerConfig/archived',
+  redisUrl: env.service.REDIS_URL
+});
+
+export let providerConfigArchivedQueueProcessor = providerConfigArchivedQueue.process(
+  async data => {
+    let providerConfig = await db.providerConfig.findUnique({
+      where: { id: data.providerConfigId },
+      include: { deployment: true }
+    });
+    if (!providerConfig) return;
+
+    let archivedAt = providerConfig.archivedAt ?? new Date();
+
+    await indexProviderConfigQueue.add({ providerConfigId: data.providerConfigId });
+
+    let relatedConfigs = [
+      providerConfig.oid,
+      ...(await db.providerConfig
+        .findMany({
+          where: { parentConfigOid: providerConfig.oid },
+          select: { oid: true }
+        })
+        .then(configs => configs.map(config => config.oid)))
+    ];
+
+    await db.sessionProvider.updateMany({
+      where: { configOid: { in: relatedConfigs }, status: 'active' },
+      data: { status: 'archived' }
+    });
+
+    await db.sessionTemplateProvider.updateMany({
+      where: { configOid: { in: relatedConfigs }, status: 'active' },
+      data: { status: 'archived' }
+    });
+
+    await db.providerConfig.updateMany({
+      where: { oid: { in: relatedConfigs }, status: 'active' },
+      data: { status: 'archived', archivedAt }
+    });
+
+    if (providerConfig.deploymentOid) {
+      await db.providerDeployment.updateMany({
+        where: {
+          oid: providerConfig.deploymentOid,
+          defaultConfigOid: { in: relatedConfigs }
+        },
+        data: { defaultConfigOid: null }
+      });
+    }
+  }
+);
+
+export let providerConfigDeletedQueue = createQueue<{ providerConfigId: string }>({
+  name: 'sub/dep/lc/providerConfig/deleted',
+  redisUrl: env.service.REDIS_URL
+});
+
+export let providerConfigDeletedQueueProcessor = providerConfigDeletedQueue.process(
+  async data => {
+    await indexProviderConfigQueue.add({ providerConfigId: data.providerConfigId });
+  }
+);

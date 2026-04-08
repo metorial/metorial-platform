@@ -115,6 +115,9 @@ export class SenderManager {
       }
     });
     if (!session) throw new ServiceError(notFoundError('session'));
+    if (isRecordDeleted(session)) {
+      throw new ServiceError(goneError({ message: 'Session has been archived or deleted' }));
+    }
 
     let connection = session.connections?.[0];
     if (d.connectionToken && !connection) {

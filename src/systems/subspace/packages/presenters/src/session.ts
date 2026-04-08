@@ -30,6 +30,8 @@ export let sessionPresenter = (
   description: session.description,
   metadata: session.metadata,
 
+  status: session.status,
+
   connectionState: session.connectionState,
 
   hasErrors: session.hasErrors,

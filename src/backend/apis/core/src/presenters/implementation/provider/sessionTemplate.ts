@@ -8,6 +8,8 @@ export let v1SessionTemplatePresenter = Presenter.create(sessionTemplateType)
     object: 'session.template' as const,
     id: sessionTemplate.id,
 
+    status: sessionTemplate.status,
+
     name: sessionTemplate.name,
     description: sessionTemplate.description,
     metadata: sessionTemplate.metadata,
@@ -34,6 +36,10 @@ export let v1SessionTemplatePresenter = Presenter.create(sessionTemplateType)
         name: 'id',
         description: 'Unique session template identifier',
         examples: ['stm_2bCdEfGhJkLmNpQr']
+      }),
+      status: v.enumOf(['active', 'archived', 'deleted'] as const, {
+        name: 'status',
+        description: 'Status of the session template'
       }),
       name: v.string({
         name: 'name',

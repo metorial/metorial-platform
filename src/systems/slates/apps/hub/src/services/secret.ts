@@ -7,6 +7,7 @@ import { encryption } from '../encryption';
 import { getId } from '../id';
 
 let include = {};
+type SecretDbClient = Pick<typeof db, 'secret'>;
 
 export type SecretSlateInstanceOauthSetup = {
   input: Record<string, any>;
@@ -82,18 +83,26 @@ class secretServiceImpl {
   }
 
   async DANGEROUSLY_decryptSecret<Type extends keyof SecretTypes>(
-    d: ({ secret: Secret } | { secretOid: bigint }) & { purpose: Type; tenant: Tenant }
+    d: ({ secret: Secret } | { secretOid: bigint }) & {
+      purpose: Type;
+      tenant: Tenant;
+      db?: SecretDbClient;
+    }
   ) {
+    let client = d.db ?? db;
     let secret =
       'secret' in d
         ? d.secret
-        : await db.secret.findUniqueOrThrow({ where: { oid: d.secretOid } });
+        : await client.secret.findUniqueOrThrow({ where: { oid: d.secretOid } });
     if (secret.tenantOid !== d.tenant.oid) {
       throw new Error('WTF - Secret tenant mismatch');
     }
 
     if (secret.type !== d.purpose) {
       throw new Error('WTF - Secret purpose mismatch');
+    }
+    if (secret.status !== 'active') {
+      throw new ServiceError(notFoundError('secret'));
     }
 
     let decrypted = await encryption.decrypt({
@@ -109,12 +118,14 @@ class secretServiceImpl {
       purpose: Type;
       tenant: Tenant;
       secretData: SecretTypes[Type];
+      db?: SecretDbClient;
     }
   ) {
+    let client = d.db ?? db;
     let secret =
       'secret' in d
         ? d.secret
-        : await db.secret.findUniqueOrThrow({ where: { oid: d.secretOid } });
+        : await client.secret.findUniqueOrThrow({ where: { oid: d.secretOid } });
     if (secret.type !== d.purpose) {
       throw new Error('WTF - Secret purpose mismatch');
     }
@@ -127,9 +138,27 @@ class secretServiceImpl {
       entityId: String(secret.tenantOid)
     });
 
-    return await db.secret.update({
+    return await client.secret.update({
       where: { oid: secret.oid },
       data: { encryptedSecret: encrypted }
+    });
+  }
+
+  async DANGEROUSLY_deleteSecret(
+    d: ({ secret: Secret } | { secretOid: bigint }) & { tenant: Tenant; db?: SecretDbClient }
+  ) {
+    let client = d.db ?? db;
+    let secret =
+      'secret' in d
+        ? d.secret
+        : await client.secret.findUniqueOrThrow({ where: { oid: d.secretOid } });
+    if (secret.tenantOid !== d.tenant.oid) {
+      throw new Error('WTF - Secret tenant mismatch');
+    }
+
+    return await client.secret.update({
+      where: { oid: secret.oid },
+      data: { status: 'deleted', encryptedSecret: '' }
     });
   }
 }

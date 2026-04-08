@@ -154,7 +154,11 @@ export type PortalsConsumerProfilesListQuery = {
   before?: string | undefined;
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
-} & {};
+} & {
+  search?: string | undefined;
+  id?: string | undefined;
+  consumerGroupId?: string | undefined;
+};
 
 export let mapPortalsConsumerProfilesListQuery = mtMap.union([
   mtMap.unionOption(
@@ -164,7 +168,13 @@ export let mapPortalsConsumerProfilesListQuery = mtMap.union([
       after: mtMap.objectField('after', mtMap.passthrough()),
       before: mtMap.objectField('before', mtMap.passthrough()),
       cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough())
+      order: mtMap.objectField('order', mtMap.passthrough()),
+      search: mtMap.objectField('search', mtMap.passthrough()),
+      id: mtMap.objectField('id', mtMap.passthrough()),
+      consumerGroupId: mtMap.objectField(
+        'consumer_group_id',
+        mtMap.passthrough()
+      )
     })
   )
 ]);

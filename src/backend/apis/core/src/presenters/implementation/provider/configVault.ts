@@ -9,6 +9,8 @@ export let v1ProviderConfigVaultPresenter = Presenter.create(providerConfigVault
 
     id: configVault.id,
 
+    status: configVault.status,
+
     name: configVault.name,
     description: configVault.description,
     metadata: configVault.metadata,
@@ -33,6 +35,10 @@ export let v1ProviderConfigVaultPresenter = Presenter.create(providerConfigVault
         name: 'id',
         description: 'Unique config vault identifier',
         examples: ['pcvt_3bCdEfGhJkLmNpQr']
+      }),
+      status: v.enumOf(['active', 'archived', 'deleted'] as const, {
+        name: 'status',
+        description: 'Status of the config vault'
       }),
       name: v.string({
         name: 'name',

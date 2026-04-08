@@ -55,7 +55,10 @@ export let mapDashboardInstancePortalsAccessRequestsListOutput =
           id: mtMap.objectField('id', mtMap.passthrough()),
           status: mtMap.objectField('status', mtMap.passthrough()),
           message: mtMap.objectField('message', mtMap.passthrough()),
-          resolutionMessage: mtMap.objectField('resolution_message', mtMap.passthrough()),
+          resolutionMessage: mtMap.objectField(
+            'resolution_message',
+            mtMap.passthrough()
+          ),
           consumerProfile: mtMap.objectField(
             'consumer_profile',
             mtMap.object({
@@ -79,8 +82,14 @@ export let mapDashboardInstancePortalsAccessRequestsListOutput =
                       id: mtMap.objectField('id', mtMap.passthrough()),
                       status: mtMap.objectField('status', mtMap.passthrough()),
                       name: mtMap.objectField('name', mtMap.passthrough()),
-                      description: mtMap.objectField('description', mtMap.passthrough()),
-                      metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+                      description: mtMap.objectField(
+                        'description',
+                        mtMap.passthrough()
+                      ),
+                      metadata: mtMap.objectField(
+                        'metadata',
+                        mtMap.passthrough()
+                      ),
                       providerDeploymentId: mtMap.objectField(
                         'provider_deployment_id',
                         mtMap.passthrough()
@@ -96,7 +105,10 @@ export let mapDashboardInstancePortalsAccessRequestsListOutput =
                       id: mtMap.objectField('id', mtMap.passthrough()),
                       status: mtMap.objectField('status', mtMap.passthrough()),
                       name: mtMap.objectField('name', mtMap.passthrough()),
-                      description: mtMap.objectField('description', mtMap.passthrough())
+                      description: mtMap.objectField(
+                        'description',
+                        mtMap.passthrough()
+                      )
                     })
                   )
                 })
@@ -112,7 +124,10 @@ export let mapDashboardInstancePortalsAccessRequestsListOutput =
     pagination: mtMap.objectField(
       'pagination',
       mtMap.object({
-        hasMoreBefore: mtMap.objectField('has_more_before', mtMap.passthrough()),
+        hasMoreBefore: mtMap.objectField(
+          'has_more_before',
+          mtMap.passthrough()
+        ),
         hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
       })
     )
@@ -162,3 +177,4 @@ export let mapDashboardInstancePortalsAccessRequestsListQuery = mtMap.union([
     })
   )
 ]);
+
