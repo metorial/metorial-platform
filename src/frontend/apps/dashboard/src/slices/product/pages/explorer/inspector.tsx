@@ -83,7 +83,11 @@ type ExplorerConfigMessage = {
   };
 };
 
-export let InspectorFrame = (p: { sessionId: string; sessionTemplateId?: string | null }) => {
+export let InspectorFrame = (p: {
+  sessionId: string;
+  sessionTemplateId?: string | null;
+  magicMcpServerId?: string | null;
+}) => {
   let instance = useCurrentInstance();
   let session = useSession(instance.data?.id, p.sessionId);
   let iframeRef = useRef<HTMLIFrameElement | null>(null);
@@ -213,7 +217,20 @@ export let InspectorFrame = (p: { sessionId: string; sessionTemplateId?: string 
             </Button>
           </Menu>
 
-          {resolvedSessionTemplateId ? (
+          {p.magicMcpServerId ? (
+            <Link
+              to={Paths.instance.magicMcp.server(
+                instance.data?.organization,
+                instance.data?.project,
+                instance.data,
+                p.magicMcpServerId
+              )}
+            >
+              <Button as="span" size="2" variant="outline">
+                Open Magic MCP Server
+              </Button>
+            </Link>
+          ) : resolvedSessionTemplateId ? (
             <Link
               to={Paths.instance.sessionTemplate(
                 instance.data?.organization,

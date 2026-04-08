@@ -174,6 +174,8 @@ export let ExplorerPage = () => {
   let sessionIdParam = search.get('session_id');
   let sessionTemplateIdFromState =
     (location.state as { sessionTemplateId?: string } | null)?.sessionTemplateId ?? null;
+  let magicMcpServerIdFromState =
+    (location.state as { magicMcpServerId?: string } | null)?.magicMcpServerId ?? null;
   let isSessionFirstMode = !!sessionIdParam && !providerDeploymentIdParam && !providerIdParam;
 
   let [open, setOpen] = useState(!providerDeploymentIdParam && !sessionIdParam);
@@ -720,7 +722,7 @@ export let ExplorerPage = () => {
                   <>
                     <Flex justify="space-between" align="center">
                       <Text as="p" size="3" weight="strong" color="gray900">
-                        Template session
+                        {magicMcpServerIdFromState ? 'Magic MCP session' : 'Template session'}
                       </Text>
                       <Button
                         iconLeft={<RiCloseLine />}
@@ -985,6 +987,7 @@ export let ExplorerPage = () => {
           <InspectorFrame
             sessionId={sessionId}
             sessionTemplateId={resolvedSessionTemplateId}
+            magicMcpServerId={magicMcpServerIdFromState}
           />
         )}
       </Main>
