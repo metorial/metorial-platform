@@ -7,6 +7,7 @@ export type ConsumerConsumerInternalOauthAuthorizationsRejectOutput = {
   redirectUri: string;
   redirectUrl: string | null;
   consumerProfileId: string | null;
+  magicMcpEndpointId: string | null;
   createdAt: Date;
   updatedAt: Date;
   expiresAt: Date;
@@ -39,6 +40,10 @@ export let mapConsumerConsumerInternalOauthAuthorizationsRejectOutput =
     redirectUrl: mtMap.objectField('redirect_url', mtMap.passthrough()),
     consumerProfileId: mtMap.objectField(
       'consumer_profile_id',
+      mtMap.passthrough()
+    ),
+    magicMcpEndpointId: mtMap.objectField(
+      'magic_mcp_endpoint_id',
       mtMap.passthrough()
     ),
     createdAt: mtMap.objectField('created_at', mtMap.date()),

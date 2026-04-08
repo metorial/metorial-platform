@@ -10,6 +10,7 @@ import {
   mapDashboardInstanceMagicMcpServersGetOutput,
   mapDashboardInstanceMagicMcpServersListOutput,
   mapDashboardInstanceMagicMcpServersListQuery,
+  mapDashboardInstanceMagicMcpServersToolsOutput,
   mapDashboardInstanceMagicMcpServersUpdateBody,
   mapDashboardInstanceMagicMcpServersUpdateOutput,
   type DashboardInstanceMagicMcpServersCreateBody,
@@ -18,6 +19,7 @@ import {
   type DashboardInstanceMagicMcpServersGetOutput,
   type DashboardInstanceMagicMcpServersListOutput,
   type DashboardInstanceMagicMcpServersListQuery,
+  type DashboardInstanceMagicMcpServersToolsOutput,
   type DashboardInstanceMagicMcpServersUpdateBody,
   type DashboardInstanceMagicMcpServersUpdateOutput
 } from '../resources';
@@ -103,6 +105,33 @@ export class MetorialMagicMcpServersEndpoint {
 
     return this._get(request).transform(
       mapDashboardInstanceMagicMcpServersGetOutput
+    );
+  }
+
+  /**
+   * @name List magic MCP server tools
+   * @description Returns the effective set of tools available through the providers backing a magic MCP server.
+   *
+   * @param `magicMcpServerId` - string
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardInstanceMagicMcpServersToolsOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  tools(
+    magicMcpServerId: string,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceMagicMcpServersToolsOutput> {
+    let path = `magic-mcp-servers/${magicMcpServerId}/tools`;
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._get(request).transform(
+      mapDashboardInstanceMagicMcpServersToolsOutput
     );
   }
 

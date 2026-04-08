@@ -138,6 +138,7 @@ let portalOAuthAuthorizationGroup = consumerGroup.use(async ctx => {
     },
     include: {
       consumerProfile: true,
+      magicMcpEndpoint: true,
       portalAuthClient: {
         include: {
           portal: true,
@@ -264,6 +265,7 @@ export let consumerProviderController = Controller.create(
           },
           include: {
             consumerProfile: true,
+            magicMcpEndpoint: true,
             portalAuthClient: {
               include: {
                 portal: true,
@@ -308,18 +310,6 @@ export let consumerProviderController = Controller.create(
           );
         }
 
-        if (
-          ctx.portalOAuthAuthorization.portalAuthClient.magicMcpServerOid ||
-          ctx.portalOAuthAuthorization.portalAuthClient.magicMcpEndpointOid
-        ) {
-          throw new ServiceError(
-            preconditionFailedError({
-              message:
-                'This portal OAuth authorization already targets a specific magic MCP route.'
-            })
-          );
-        }
-
         let magicMcpEndpoint = await magicMcpEndpointService.getMagicMcpEndpointById({
           magicMcpEndpointId: ctx.body.magic_mcp_endpoint_id,
           instance: ctx.instance,
@@ -354,6 +344,7 @@ export let consumerProviderController = Controller.create(
           },
           include: {
             consumerProfile: true,
+            magicMcpEndpoint: true,
             portalAuthClient: {
               include: {
                 portal: true,
@@ -404,6 +395,7 @@ export let consumerProviderController = Controller.create(
           },
           include: {
             consumerProfile: true,
+            magicMcpEndpoint: true,
             portalAuthClient: {
               include: {
                 portal: true,
@@ -642,13 +634,13 @@ export let consumerProviderController = Controller.create(
                       type: 'auth_config',
                       providerAuthConfigId: ctx.body.auth.provider_auth_config_id
                     }
-                : ctx.body.auth?.type == 'manual'
-                  ? {
-                      type: 'manual',
-                      providerAuthMethodId: ctx.body.auth.provider_auth_method_id,
-                      value: ctx.body.auth.value
-                    }
-                  : undefined
+                  : ctx.body.auth?.type == 'manual'
+                    ? {
+                        type: 'manual',
+                        providerAuthMethodId: ctx.body.auth.provider_auth_method_id,
+                        value: ctx.body.auth.value
+                      }
+                    : undefined
           }
         });
 

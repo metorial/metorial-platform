@@ -1,9 +1,9 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { useValidatedBody } from '@lowerdeck/hono';
+import { generateCustomId } from '@lowerdeck/id';
 import { v } from '@lowerdeck/validation';
 import { getConfig } from '@metorial/config';
 import { db, ID } from '@metorial/db';
-import { generateCustomId } from '@lowerdeck/id';
 import { AuthInfo } from '@metorial/module-access';
 import { Authenticator } from '@metorial/rest';
 import { addDays } from 'date-fns';

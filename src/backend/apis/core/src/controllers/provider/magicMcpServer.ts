@@ -15,7 +15,7 @@ import { checkAccess } from '../../middleware/checkAccess';
 import { hasFlags } from '../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../middleware/requireConsumerTokenForPublishableKey';
-import { magicMcpServerPresenter } from '../../presenters';
+import { magicMcpServerPresenter, providerToolsPresenter } from '../../presenters';
 
 export let magicMcpServerGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.magicMcpServerId) {
@@ -206,6 +206,36 @@ export let magicMcpServerController = Controller.create(
         });
       }),
 
+    listTools: magicMcpServerGroup
+      .get(
+        instancePath('magic-mcp-servers/:magicMcpServerId/tools', 'magicMcpServers.tools'),
+        {
+          name: 'List magic MCP server tools',
+          description:
+            'Returns the effective set of tools available through the providers backing a magic MCP server.'
+        }
+      )
+      .use(
+        checkAccess({
+          possibleScopes: [
+            'instance.provider.session:read',
+            'consumer#instance.magic_mcp:read'
+          ]
+        })
+      )
+      .use(requireConsumerTokenForPublishableKey())
+      .output(providerToolsPresenter)
+      .use(hasFlags(['magic-mcp-enabled']))
+      .do(async ctx => {
+        let items = await magicMcpServerService.listMagicMcpServerTools({
+          server: ctx.magicMcpServer,
+          instance: ctx.instance,
+          accessTags: ctx.accessTags
+        });
+
+        return providerToolsPresenter.present({ items });
+      }),
+
     create: instanceGroup
       .post(instancePath('magic-mcp-servers', 'magicMcpServers.create'), {
         name: 'Create magic MCP server',
@@ -352,8 +382,6 @@ export let magicMcpServerController = Controller.create(
             sessionTemplateId
           }
         });
-
-        console.log(ctx.portal);
 
         return magicMcpServerPresenter.present({ magicMcpServer, portal: ctx.portal });
       })

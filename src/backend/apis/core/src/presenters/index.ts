@@ -105,6 +105,7 @@ import {
   v1ProviderSpecificationPresenter,
   v1ProviderToolCallPresenter,
   v1ProviderToolPresenter,
+  v1ProviderToolsPresenter,
   v1ProviderTriggerPresenter,
   v1ProviderTypePresenter,
   v1ProviderVersionPresenter,
@@ -228,6 +229,7 @@ import {
   providerSpecificationType,
   providerTemplateType,
   providerToolType,
+  providerToolsType,
   providerTriggerType,
   providerType,
   providerTypeType,
@@ -704,6 +706,11 @@ export let providerListingPresenter = declarePresenter(providerListingType, {
 export let providerToolPresenter = declarePresenter(providerToolType, {
   mt_2025_01_01_dashboard: v1ProviderToolPresenter,
   mt_2026_01_01_magnetar: v1ProviderToolPresenter
+});
+
+export let providerToolsPresenter = declarePresenter(providerToolsType, {
+  mt_2025_01_01_dashboard: v1ProviderToolsPresenter,
+  mt_2026_01_01_magnetar: v1ProviderToolsPresenter
 });
 
 export let providerTriggerPresenter = declarePresenter(providerTriggerType, {

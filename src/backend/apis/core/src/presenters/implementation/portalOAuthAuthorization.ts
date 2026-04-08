@@ -42,6 +42,7 @@ export let v1PortalOAuthAuthorizationPresenter = Presenter.create(portalOAuthAut
       authorizationCode: portalOAuthAuthorization.authorizationCode
     }),
     consumer_profile_id: portalOAuthAuthorization.consumerProfile?.id ?? null,
+    magic_mcp_endpoint_id: portalOAuthAuthorization.magicMcpEndpoint?.id ?? null,
     created_at: portalOAuthAuthorization.createdAt,
     updated_at: portalOAuthAuthorization.updatedAt,
     expires_at: portalOAuthAuthorization.expiresAt,
@@ -64,6 +65,7 @@ export let v1PortalOAuthAuthorizationPresenter = Presenter.create(portalOAuthAut
       redirect_uri: v.string(),
       redirect_url: v.nullable(v.string()),
       consumer_profile_id: v.nullable(v.string()),
+      magic_mcp_endpoint_id: v.nullable(v.string()),
       created_at: v.date(),
       updated_at: v.date(),
       expires_at: v.date(),

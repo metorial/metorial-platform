@@ -28,7 +28,12 @@ import {
   type AnyAccessTagSelector
 } from '@metorial/module-access';
 import { searchMagicMcpServerIds } from '@metorial/module-search';
-import { subspaceSessionTemplateService } from '@metorial/module-subspace';
+import {
+  subspaceProviderService,
+  subspaceProviderToolService,
+  subspaceSessionTemplateProviderService,
+  subspaceSessionTemplateService
+} from '@metorial/module-subspace';
 import {
   enqueueMagicMcpServerCreated,
   enqueueMagicMcpServerUpdated
@@ -104,6 +109,63 @@ class MagicMcpServerImpl {
         });
       }
     });
+  }
+
+  async listMagicMcpServerTools(d: {
+    server: MagicMcpServer;
+    instance: Instance;
+    accessTags?: AnyAccessTagSelector;
+  }) {
+    await this.checkWriteOrReadAccess({
+      server: d.server,
+      instance: d.instance,
+      accessTags: d.accessTags
+    });
+
+    let templateProviders = await subspaceSessionTemplateProviderService.getMany({
+      instance: d.instance,
+      sessionTemplateIds: [d.server.subspaceSessionTemplateId],
+      allowDeleted: false
+    });
+    let providerVersionIds = new Set<string>();
+    let providerCurrentVersionIds = new Map<string, string | null>();
+
+    for (let templateProvider of templateProviders) {
+      if (!providerCurrentVersionIds.has(templateProvider.providerId)) {
+        let provider = await subspaceProviderService.get({
+          instance: d.instance,
+          providerId: templateProvider.providerId
+        });
+        providerCurrentVersionIds.set(
+          templateProvider.providerId,
+          provider.currentVersion?.id ?? null
+        );
+      }
+
+      let currentVersionId = providerCurrentVersionIds.get(templateProvider.providerId);
+      if (currentVersionId) {
+        providerVersionIds.add(currentVersionId);
+      }
+    }
+
+    let toolMap = new Map<string, any>();
+    for (let providerVersionId of providerVersionIds) {
+      let paginator = await subspaceProviderToolService.list({
+        instance: d.instance,
+        providerVersionId
+      });
+      let list = await paginator.run({
+        limit: 100
+      });
+
+      for (let tool of list.items) {
+        if (!toolMap.has(tool.key)) {
+          toolMap.set(tool.key, tool);
+        }
+      }
+    }
+
+    return Array.from(toolMap.values()).sort((a, b) => a.name.localeCompare(b.name));
   }
 
   async createMagicMcpServer(d: {
@@ -182,6 +244,24 @@ class MagicMcpServerImpl {
         }
       });
 
+      return;
+    }
+
+    if (!d.instance || d.server.instanceOid !== d.instance.oid) {
+      throw new ServiceError(notFoundError('magic_mcp.server'));
+    }
+  }
+
+  async checkWriteOrReadAccess(d: {
+    server: MagicMcpServer;
+    instance?: Instance;
+    accessTags?: AnyAccessTagSelector;
+  }) {
+    if (d.accessTags) {
+      await this.checkConsumerReadAccess({
+        server: d.server,
+        accessTags: d.accessTags
+      });
       return;
     }
 

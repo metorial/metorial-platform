@@ -542,6 +542,7 @@ export let portalOAuthAuthorizationType = PresentableType.create<{
       magicMcpEndpoint: MagicMcpEndpoint | null;
     };
     consumerProfile: ConsumerProfile | null;
+    magicMcpEndpoint: MagicMcpEndpoint | null;
   };
 }>()('portal.oauth_authorization');
 
@@ -752,6 +753,10 @@ export let providerListingType = PresentableType.create<{
 }>()('providerListing');
 
 export let providerToolType = PresentableType.create<{ tool: SubspaceProviderTool }>()('tool');
+
+export let providerToolsType = PresentableType.create<{
+  items: SubspaceProviderTool[];
+}>()('provider.tools');
 
 export let providerTriggerType = PresentableType.create<{
   trigger: SubspaceProviderTrigger;

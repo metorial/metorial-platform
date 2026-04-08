@@ -44,6 +44,7 @@ export * from './providerListing';
 export * from './providerRun';
 export * from './providerRunLogs';
 export * from './providerTool';
+export * from './providerTools';
 export * from './providerTrigger';
 export * from './providerType';
 export * from './providerVersion';
