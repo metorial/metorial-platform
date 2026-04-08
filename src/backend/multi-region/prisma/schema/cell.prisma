@@ -9,6 +9,7 @@ model Cell {
   updatedAt DateTime @default(now()) @updatedAt
 
   organizations                     Organization[]
+  portals                           Portal[]
   users                             User[]
   oauthApplications                 OAuthApplication[]
   oauthAuthorizationRequestsCreated OAuthAuthorizationRequest[] @relation("createdBy")

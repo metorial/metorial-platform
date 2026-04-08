@@ -1,0 +1,28 @@
+enum PortalStatus {
+  active
+  archived
+  deleted
+}
+
+model Portal {
+  id String @id
+
+  status PortalStatus
+
+  name        String
+  description String?
+  slug        String  @unique
+
+  ownerOid Int
+  owner    Cell @relation(fields: [ownerOid], references: [oid])
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  instanceId String
+
+  archivedAt DateTime?
+  deletedAt  DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
+}

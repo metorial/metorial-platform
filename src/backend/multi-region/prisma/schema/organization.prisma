@@ -28,4 +28,5 @@ model Organization {
   updatedAt DateTime  @default(now()) @updatedAt
 
   oauthApplications OAuthApplication[]
+  portals           Portal[]
 }
