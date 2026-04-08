@@ -277,6 +277,8 @@ export let SetupFlowPreviewSidebar = (p: {
   providerImageUrl?: string | null;
   showBrandingLink?: boolean;
   previewMode?: PreviewMode;
+  previewAuthName?: string;
+  previewAuthDescription?: string;
 }) => {
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
@@ -289,6 +291,12 @@ export let SetupFlowPreviewSidebar = (p: {
   let projectBrandName = projectBrand.data?.name ?? project.data?.name ?? 'Metorial';
   let resolvedProviderImageUrl = providerListing?.imageUrl ?? p.providerImageUrl;
   let previewMode = p.previewMode ?? 'manual_existing';
+  let previewHeadline = p.previewAuthName?.trim()
+    ? p.previewAuthName.trim()
+    : 'Sign in required';
+  let previewSubtext = p.previewAuthDescription?.trim()
+    ? p.previewAuthDescription.trim()
+    : "You'll be redirected to connect your account.";
   let previewBrandImageUrl = projectBrandImageUrl;
   let previewBrandName = projectBrandName;
   let previewBrandInitial = previewBrandName.charAt(0).toUpperCase();
@@ -382,10 +390,10 @@ export let SetupFlowPreviewSidebar = (p: {
 
               <SetupFlowPreviewBody>
                 <Text size="4" weight="strong">
-                  Sign in required
+                  {previewHeadline}
                 </Text>
                 <Text size="2" color="gray600">
-                  You&apos;ll be redirected to connect your account.
+                  {previewSubtext}
                 </Text>
 
                 <Spacer size={15} />

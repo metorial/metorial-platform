@@ -5,7 +5,7 @@ import { subspace } from '../subspace';
 
 export let subspaceProviderDeploymentService = createSubspaceService(
   subspace.providerDeployment,
-  ['get', 'list', 'update', 'create'],
+  ['get', 'list', 'update', 'create', 'delete'],
   inner => ({
     list: async (
       arg0: Parameters<typeof inner.list>[0] & {
@@ -37,6 +37,16 @@ export let subspaceProviderDeploymentService = createSubspaceService(
       let deployment = await inner.update(...params);
 
       await Fabric.fire('provider.deployment.updated:after', { ...eventBase, deployment });
+
+      return deployment;
+    },
+    delete: async (...params: Parameters<typeof inner.delete>) => {
+      let eventBase = toEventBase(params[0]);
+      await Fabric.fire('provider.deployment.deleted:before', eventBase);
+
+      let deployment = await inner.delete(...params);
+
+      await Fabric.fire('provider.deployment.deleted:after', { ...eventBase, deployment });
 
       return deployment;
     }

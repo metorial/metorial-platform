@@ -37,6 +37,7 @@ model ServerDiscovery {
   createdAt DateTime @default(now())
 
   @@index([createdAt])
+  @@index([tenantOid, createdAt])
   @@index([status])
 }
 

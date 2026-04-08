@@ -1,11 +1,15 @@
 import { ServiceError, badRequestError } from '@lowerdeck/error';
-import { snowflake, withTransaction } from '@metorial-subspace/db';
+import { db, snowflake, withTransaction } from '@metorial-subspace/db';
 import {
   IProviderDeployment,
   type ProviderConfigCreateParam,
   type ProviderConfigCreateRes,
+  type ProviderConfigDeleteParam,
+  type ProviderConfigDeleteRes,
   type ProviderDeploymentCreateParam,
   type ProviderDeploymentCreateRes,
+  type ProviderDeploymentDeleteParam,
+  type ProviderDeploymentDeleteRes,
   type ValidateNetworkingRulesetIdsParam,
   type ValidateNetworkingRulesetIdsRes
 } from '@metorial-subspace/provider-utils';
@@ -25,6 +29,12 @@ export class ProviderDeployment extends IProviderDeployment {
   override async createProviderDeployment(
     _data: ProviderDeploymentCreateParam
   ): Promise<ProviderDeploymentCreateRes> {
+    return {};
+  }
+
+  override async deleteProviderDeployment(
+    _data: ProviderDeploymentDeleteParam
+  ): Promise<ProviderDeploymentDeleteRes> {
     return {};
   }
 
@@ -68,5 +78,28 @@ export class ProviderDeployment extends IProviderDeployment {
 
       return { slateInstance };
     });
+  }
+
+  override async deleteProviderConfig(
+    data: ProviderConfigDeleteParam
+  ): Promise<ProviderConfigDeleteRes> {
+    if (!data.backing.slateInstanceOid) {
+      return {};
+    }
+
+    let tenant = await getTenantForSlates(data.tenant);
+    let slateInstance = await db.slateInstance.findUnique({
+      where: { oid: data.backing.slateInstanceOid }
+    });
+    if (!slateInstance) {
+      return {};
+    }
+
+    await slates.slateInstance.delete({
+      tenantId: tenant.id,
+      slateInstanceId: slateInstance.id
+    });
+
+    return {};
   }
 }

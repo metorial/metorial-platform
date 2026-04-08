@@ -26,9 +26,10 @@ model Portal {
   instanceOid BigInt
   instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
 
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @default(now()) @updatedAt
-  archivedAt        DateTime?
-  deletedAt         DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
+  archivedAt DateTime?
+  deletedAt  DateTime?
+
   portalAuthClients PortalAuthClient[]
 }

@@ -5,7 +5,7 @@ import { subspace } from '../subspace';
 
 export let subspaceProviderAuthConfigService = createSubspaceService(
   subspace.providerAuthConfig,
-  ['get', 'list', 'update', 'create', 'getConfigSchema'],
+  ['get', 'list', 'update', 'create', 'delete', 'getConfigSchema'],
   inner => ({
     list: async (
       arg0: Parameters<typeof inner.list>[0] & {
@@ -37,6 +37,16 @@ export let subspaceProviderAuthConfigService = createSubspaceService(
       let authConfig = await inner.update(...params);
 
       await Fabric.fire('provider.auth_config.updated:after', { ...eventBase, authConfig });
+
+      return authConfig;
+    },
+    delete: async (...params: Parameters<typeof inner.delete>) => {
+      let eventBase = toEventBase(params[0]);
+      await Fabric.fire('provider.auth_config.deleted:before', eventBase);
+
+      let authConfig = await inner.delete(...params);
+
+      await Fabric.fire('provider.auth_config.deleted:after', { ...eventBase, authConfig });
 
       return authConfig;
     }

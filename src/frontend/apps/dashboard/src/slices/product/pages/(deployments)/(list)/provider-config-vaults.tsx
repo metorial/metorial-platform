@@ -8,11 +8,14 @@ import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
+  useDeleteProviderConfigVault,
   useProviderConfigVaults,
   useProviders
 } from '@metorial/state';
-import { RenderDate, Text } from '@metorial/ui';
+import { Badge, RenderDate, Text, confirm } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
+import { RiDeleteBinLine } from '@remixicon/react';
+import { useState } from 'react';
 import { EmptyState } from '../../../../../components/emptyState';
 import { Table as DashboardTable } from '../../../../../components/table';
 import { FilterPayload } from '../../../../../components/table/filter';
@@ -22,6 +25,7 @@ import {
 } from '../../../../../components/table/type';
 import {
   getDateRangeFilterValue,
+  getEnumListFilterValue,
   getStringFilterValue
 } from '../../../../../lib/dataTableUtils';
 import { withFromDeployment } from '../fromDeployment';
@@ -48,6 +52,17 @@ type ProviderConfigVaultsOverviewTableProps = {
   fromDeploymentId?: string;
 };
 
+let getProviderConfigVaultStatusColor = (status: ProviderConfigVault['status']) => {
+  if (status === 'active') return 'green';
+  if (status === 'archived') return 'orange';
+  return 'gray';
+};
+
+let getStatusFilterValue = (
+  value: FilterPayload | undefined
+): DashboardInstanceProviderDeploymentsConfigVaultsListQuery['status'] =>
+  getEnumListFilterValue(value, ['active', 'archived']);
+
 let providerConfigVaultsOverviewState: TableStateProvider<
   ProviderConfigVaultsOverviewTableProps,
   ProviderConfigVaultRow,
@@ -62,6 +77,7 @@ let providerConfigVaultsOverviewState: TableStateProvider<
   let vaults = useProviderConfigVaults(props.instanceId, {
     order: 'desc',
     ...props.filters,
+    status: getStatusFilterValue(opts.filter.status) ?? props.filters?.status,
     id: getStringFilterValue(opts.filter.id) ?? props.filters?.id,
     providerId: getStringFilterValue(opts.filter.providerId) ?? props.filters?.providerId,
     providerDeploymentId:
@@ -105,11 +121,43 @@ let providerConfigVaultsOverviewState: TableStateProvider<
   };
 };
 
+let useProviderConfigVaultsOverviewHookState = (
+  _: ReturnType<typeof providerConfigVaultsOverviewState>,
+  props: ProviderConfigVaultsOverviewTableProps
+) => {
+  let deleteVault = useDeleteProviderConfigVault();
+  let [loadingIds, setLoadingIds] = useState<string[]>([]);
+
+  return {
+    deleteVault,
+    instanceId: props.instanceId,
+    loadingIds,
+    setLoadingIds
+  };
+};
+
+let deleteProviderConfigVaultImmediately = async (
+  vault: ProviderConfigVaultRow,
+  state: ReturnType<typeof useProviderConfigVaultsOverviewHookState>
+) => {
+  state.setLoadingIds((current: string[]) => [...new Set([...current, vault.id])]);
+
+  try {
+    await state.deleteVault.mutate({
+      instanceId: state.instanceId,
+      providerConfigVaultId: vault.id
+    });
+  } finally {
+    state.setLoadingIds((current: string[]) => current.filter(id => id != vault.id));
+  }
+};
+
 export let providerConfigVaultsOverviewTable = new DashboardTable<
   ProviderConfigVaultsOverviewTableProps,
   ProviderConfigVaultRow
 >('provider-config-vaults-overview')
   .state(providerConfigVaultsOverviewState)
+  .hookState(useProviderConfigVaultsOverviewHookState)
   .columns([
     {
       id: 'name',
@@ -139,6 +187,14 @@ export let providerConfigVaultsOverviewTable = new DashboardTable<
       isDefault: true,
       header: 'Deployment',
       render: row => <Text size="2">{row.deployment?.name ?? '—'}</Text>
+    },
+    {
+      id: 'status',
+      isDefault: true,
+      header: 'Status',
+      render: row => (
+        <Badge color={getProviderConfigVaultStatusColor(row.status)}>{row.status}</Badge>
+      )
     },
     {
       id: 'createdAt',
@@ -179,6 +235,17 @@ export let providerConfigVaultsOverviewTable = new DashboardTable<
     }
   ])
   .filters([
+    {
+      id: 'status',
+      fields: ['status'],
+      label: 'Status',
+      description: 'Filter by status',
+      type: 'select',
+      options: [
+        { id: 'active', label: 'Active' },
+        { id: 'archived', label: 'Archived' }
+      ]
+    },
     {
       id: 'id',
       fields: ['id'],
@@ -241,6 +308,49 @@ export let providerConfigVaultsOverviewTable = new DashboardTable<
       props.fromDeploymentId
     )
   )
+  .actions({
+    deleteImmediate: async (vaults, state) => {
+      let vault = vaults[0];
+      if (!vault) return;
+
+      await deleteProviderConfigVaultImmediately(vault, state);
+    },
+    delete: async (vaults, state) => {
+      let vault = vaults[0];
+      if (!vault) return;
+
+      confirm({
+        title: 'Delete config vault',
+        description: `Are you sure you want to delete ${vault.name ?? 'this config vault'}?`,
+        confirmText: 'Delete',
+        onConfirm: async () => {
+          await deleteProviderConfigVaultImmediately(vault, state);
+        }
+      });
+    }
+  })
+  .rowActions([
+    {
+      id: 'delete',
+      label: 'Delete',
+      icon: <RiDeleteBinLine />,
+      disabled: row => row.status !== 'active',
+      action: 'delete'
+    }
+  ])
+  .bulkActions([
+    {
+      id: 'delete-selected',
+      label: 'Delete',
+      icon: <RiDeleteBinLine />,
+      disabled: row => row.status !== 'active',
+      action: 'deleteImmediate',
+      bulkExecution: {
+        mode: 'per-row',
+        batchSize: 10
+      }
+    }
+  ])
   .build();
 
 export let ProviderConfigVaultsOverviewPage = () => {

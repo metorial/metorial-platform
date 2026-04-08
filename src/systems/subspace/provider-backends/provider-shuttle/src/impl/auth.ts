@@ -6,8 +6,12 @@ import type {
   GetDecryptedAuthConfigRes,
   ProviderAuthConfigCreateParam,
   ProviderAuthConfigCreateRes,
+  ProviderAuthConfigDeleteParam,
+  ProviderAuthConfigDeleteRes,
   ProviderAuthCredentialsCreateParam,
   ProviderAuthCredentialsCreateRes,
+  ProviderAuthCredentialsDeleteParam,
+  ProviderAuthCredentialsDeleteRes,
   ProviderOAuthSetupCreateParam,
   ProviderOAuthSetupCreateRes,
   ProviderOAuthSetupRetrieveParam,
@@ -57,6 +61,29 @@ export class ProviderAuth extends IProviderAuth {
       shuttleOAuthCredentials,
       isAutoRegistration: data.input.type === 'auto_registration'
     };
+  }
+
+  override async deleteProviderAuthCredentials(
+    data: ProviderAuthCredentialsDeleteParam
+  ): Promise<ProviderAuthCredentialsDeleteRes> {
+    if (!data.backing.shuttleCredentialsOid) {
+      return {};
+    }
+
+    let tenant = await getTenantForShuttle(data.tenant);
+    let shuttleOAuthCredentials = await db.shuttleOAuthCredentials.findUnique({
+      where: { oid: data.backing.shuttleCredentialsOid }
+    });
+    if (!shuttleOAuthCredentials) {
+      return {};
+    }
+
+    await shuttle.serverOAuthCredentials.delete({
+      tenantId: tenant.id,
+      serverOAuthCredentialsId: shuttleOAuthCredentials.id
+    });
+
+    return {};
   }
 
   override async createProviderOAuthSetup(
@@ -168,6 +195,29 @@ export class ProviderAuth extends IProviderAuth {
       shuttleAuthConfig,
       expiresAt: validatedAuthConfig.value.expiresAt ?? null
     };
+  }
+
+  override async deleteProviderAuthConfig(
+    data: ProviderAuthConfigDeleteParam
+  ): Promise<ProviderAuthConfigDeleteRes> {
+    if (!data.backing.shuttleAuthConfigOid) {
+      return {};
+    }
+
+    let tenant = await getTenantForShuttle(data.tenant);
+    let shuttleAuthConfig = await db.shuttleAuthConfig.findUnique({
+      where: { oid: data.backing.shuttleAuthConfigOid }
+    });
+    if (!shuttleAuthConfig) {
+      return {};
+    }
+
+    await shuttle.serverAuthConfig.delete({
+      tenantId: tenant.id,
+      serverAuthConfigId: shuttleAuthConfig.id
+    });
+
+    return {};
   }
 
   override async retrieveProviderOAuthSetup(

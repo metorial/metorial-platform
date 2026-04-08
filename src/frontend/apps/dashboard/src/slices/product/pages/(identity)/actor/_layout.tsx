@@ -20,16 +20,18 @@ export let IdentityActorLayout = () => {
   let { identityActorId } = useParams();
   let actor = useIdentityActor(instance.data?.id, identityActorId);
 
-  return renderWithLoader({ instance, organization, project, actor })(
-    ({ instance, organization, project, actor }) => (
-      <ContentLayout>
-        <PageHeader
-          title={actor.data.name}
-          description={actor.data.description ?? undefined}
-          actions={
+  return (
+    <ContentLayout>
+      <PageHeader
+        title={actor.data?.name ?? '...'}
+        description={actor.data?.description ?? undefined}
+        actions={
+          actor.data ? (
             <Button
               size="2"
-              onClick={() =>
+              onClick={() => {
+                if (!instance.data || !actor.data) return;
+
                 showIdentityFormModal({
                   instanceId: instance.data.id,
                   actorId: actor.data.id,
@@ -43,60 +45,66 @@ export let IdentityActorLayout = () => {
                         identity.id
                       )
                     )
-                })
-              }
+                });
+              }}
             >
               Create Identity
             </Button>
+          ) : undefined
+        }
+        pagination={[
+          {
+            label: 'Identity Actors',
+            href: Paths.instance.identity.actors(
+              organization.data,
+              project.data,
+              instance.data
+            )
+          },
+          {
+            label: actor.data?.name ?? identityActorId ?? '...',
+            href: Paths.instance.identity.actor(
+              organization.data,
+              project.data,
+              instance.data,
+              actor.data?.id ?? identityActorId
+            )
           }
-          pagination={[
-            {
-              label: 'Identity Actors',
-              href: Paths.instance.identity.actors(
-                organization.data,
-                project.data,
-                instance.data
-              )
-            },
-            {
-              label: actor.data.name,
-              href: Paths.instance.identity.actor(
-                organization.data,
-                project.data,
-                instance.data,
-                actor.data.id
-              )
-            }
-          ]}
-        />
+        ]}
+      />
 
-        <LinkTabs
-          current={location.pathname}
-          links={[
-            {
-              label: 'Overview',
-              to: Paths.instance.identity.actor(
-                organization.data,
-                project.data,
-                instance.data,
-                actor.data.id
-              )
-            },
-            {
-              label: 'Settings',
-              to: Paths.instance.identity.actor(
-                organization.data,
-                project.data,
-                instance.data,
-                actor.data.id,
-                'settings'
-              )
-            }
-          ]}
-        />
+      {renderWithLoader({ instance, organization, project, actor })(
+        ({ instance, organization, project, actor }) => (
+          <>
+            <LinkTabs
+              current={location.pathname}
+              links={[
+                {
+                  label: 'Overview',
+                  to: Paths.instance.identity.actor(
+                    organization.data,
+                    project.data,
+                    instance.data,
+                    actor.data.id
+                  )
+                },
+                {
+                  label: 'Settings',
+                  to: Paths.instance.identity.actor(
+                    organization.data,
+                    project.data,
+                    instance.data,
+                    actor.data.id,
+                    'settings'
+                  )
+                }
+              ]}
+            />
 
-        <Outlet />
-      </ContentLayout>
-    )
+            <Outlet />
+          </>
+        )
+      )}
+    </ContentLayout>
   );
 };

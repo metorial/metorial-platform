@@ -10,16 +10,21 @@ class tenantServiceImpl {
     input: {
       name: string;
       identifier: string;
+      logRetentionInDays?: number;
     };
   }) {
     return await db.tenant.upsert({
       where: { identifier: d.input.identifier },
-      update: { name: d.input.name },
+      update: {
+        name: d.input.name,
+        logRetentionInDays: d.input.logRetentionInDays
+      },
       create: {
         oid: snowflake.nextId(),
         id: await ID.generateId('tenant'),
         name: d.input.name,
-        identifier: d.input.identifier
+        identifier: d.input.identifier,
+        logRetentionInDays: d.input.logRetentionInDays
       }
     });
   }

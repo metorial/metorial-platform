@@ -270,7 +270,6 @@ export let dashboardController = Controller.create<any>(
     providerConfigVaultController,
     providerAuthConfigController,
     providerAuthCredentialsController,
-    // providerSetupSessionDashboardController,
 
     providerAuthImportController,
     providerAuthExportController,

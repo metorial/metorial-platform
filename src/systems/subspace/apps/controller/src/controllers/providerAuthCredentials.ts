@@ -164,5 +164,27 @@ export let providerAuthCredentialsController = app.controller({
         });
 
       return providerAuthCredentialsPresenter(providerAuthCredentials);
+    }),
+
+  delete: providerAuthCredentialsApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
+        providerAuthCredentialsId: v.string(),
+        allowDeleted: v.optional(v.boolean())
+      })
+    )
+    .do(async ctx => {
+      let providerAuthCredentials =
+        await providerAuthCredentialsService.archiveProviderAuthCredentials({
+          providerAuthCredentials: ctx.providerAuthCredentials,
+          tenant: ctx.tenant,
+          environment: ctx.environment,
+          solution: ctx.solution
+        });
+
+      return providerAuthCredentialsPresenter(providerAuthCredentials);
     })
 });

@@ -172,5 +172,26 @@ export let providerConfigVaultController = app.controller({
       });
 
       return providerConfigVaultPresenter(providerConfigVault);
+    }),
+
+  delete: providerConfigVaultApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
+        providerConfigVaultId: v.string(),
+        allowDeleted: v.optional(v.boolean())
+      })
+    )
+    .do(async ctx => {
+      let providerConfigVault = await providerConfigVaultService.archiveProviderConfigVault({
+        providerConfigVault: ctx.providerConfigVault,
+        tenant: ctx.tenant,
+        environment: ctx.environment,
+        solution: ctx.solution
+      });
+
+      return providerConfigVaultPresenter(providerConfigVault);
     })
 });

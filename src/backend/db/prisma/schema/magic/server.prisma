@@ -15,12 +15,13 @@ model MagicMcpServer {
 
   status             MagicMcpServerStatus
   source             MagicMcpServerSource @default(manual)
+
   providerTemplateId String?
+  subspaceSessionTemplateId String
 
   instanceOid BigInt
   instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
 
-  subspaceSessionTemplateId String
 
   name        String?
   description String?

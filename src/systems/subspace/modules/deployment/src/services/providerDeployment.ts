@@ -46,6 +46,7 @@ import { getBackend } from '@metorial-subspace/provider';
 import { normalizeJsonSchema } from '@metorial-subspace/provider-utils';
 import { env } from '../env';
 import {
+  providerDeploymentArchivedQueue,
   providerDeploymentCreatedQueue,
   providerDeploymentUpdatedQueue
 } from '../queues/lifecycle/providerDeployment';
@@ -454,6 +455,44 @@ class providerDeploymentServiceImpl {
 
       await addAfterTransactionHook(async () =>
         providerDeploymentUpdatedQueue.add({ providerDeploymentId: providerDeployment.id })
+      );
+
+      return providerDeployment;
+    });
+  }
+
+  async archiveProviderDeployment(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    providerDeployment: ProviderDeployment;
+  }) {
+    checkTenant(d, d.providerDeployment);
+    checkDeletedEdit(d.providerDeployment, 'archive');
+
+    return withTransaction(async db => {
+      let archivedAt = new Date();
+      let providerDeployment = await db.providerDeployment.update({
+        where: {
+          oid: d.providerDeployment.oid,
+          tenantOid: d.tenant.oid,
+          solutionOid: d.solution.oid,
+          environmentOid: d.environment.oid
+        },
+        data: {
+          status: 'archived',
+          archivedAt,
+          isDefault: false,
+          defaultConfigOid: null,
+          defaultAuthConfigOid: null
+        },
+        include
+      });
+
+      await addAfterTransactionHook(async () =>
+        providerDeploymentArchivedQueue.add({
+          providerDeploymentId: providerDeployment.id
+        })
       );
 
       return providerDeployment;

@@ -332,6 +332,29 @@ export let sessionController = Controller.create(
         return providerSessionPresenter.present({
           session: session
         });
+      }),
+
+    delete: sessionGroup
+      .delete(instancePath('sessions/:sessionId', 'sessions.delete'), {
+        name: 'Delete session',
+        description: 'Deletes a session.'
+      })
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.provider.session:write'],
+          fineGrainedPolicy: 'allow'
+        })
+      )
+      .output(providerSessionPresenter)
+      .do(async ctx => {
+        let session = await subspaceSessionService.delete({
+          instance: ctx.instance,
+          sessionId: ctx.session.id
+        });
+
+        return providerSessionPresenter.present({
+          session
+        });
       })
   }
 );

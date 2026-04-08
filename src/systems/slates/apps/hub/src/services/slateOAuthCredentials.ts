@@ -107,6 +107,55 @@ class slateOAuthCredentialsServiceImpl {
     return slateOAuthCredentials;
   }
 
+  async deleteSlateOAuthCredentials(d: {
+    tenant: Tenant;
+    slateOAuthCredentials: SlateOAuthCredentials;
+  }) {
+    let setupSecrets = await db.slateInstanceOAuthSetup.findMany({
+      where: {
+        tenantOid: d.tenant.oid,
+        oauthCredentialsOid: d.slateOAuthCredentials.oid
+      },
+      select: { secretOid: true }
+    });
+
+    return await db.$transaction(async db => {
+      await db.slateAuthConfig.updateMany({
+        where: {
+          tenantOid: d.tenant.oid,
+          oauthCredentialsOid: d.slateOAuthCredentials.oid
+        },
+        data: {
+          oauthCredentialsOid: null
+        }
+      });
+
+      for (let secretOid of [
+        d.slateOAuthCredentials.secretOid,
+        ...setupSecrets.map(setup => setup.secretOid)
+      ]) {
+        await secretService.DANGEROUSLY_deleteSecret({
+          secretOid,
+          tenant: d.tenant,
+          db
+        });
+      }
+
+      await db.slateInstanceOAuthSetup.deleteMany({
+        where: {
+          tenantOid: d.tenant.oid,
+          oauthCredentialsOid: d.slateOAuthCredentials.oid
+        }
+      });
+
+      await db.slateOAuthCredentials.delete({
+        where: {
+          oid: d.slateOAuthCredentials.oid
+        }
+      });
+    });
+  }
+
   async listSlateOAuthCredentials(d: { tenant: Tenant; slateIds?: string[] }) {
     let slates = d.slateIds
       ? await db.slate.findMany({

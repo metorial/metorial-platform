@@ -6,6 +6,11 @@ import {
   sessionUpdatedQueueProcessor
 } from './session';
 import { sessionProviderCreatedQueueProcessor } from './sessionProvider';
+import {
+  sessionTemplateArchivedQueueProcessor,
+  sessionTemplateArchiveSessionsManyQueueProcessor,
+  sessionTemplateDeletedQueueProcessor
+} from './sessionTemplate';
 import { sessionTemplateProviderCreatedQueueProcessor } from './sessionTemplateProvider';
 
 export let lifecycleQueues = combineQueueProcessors([
@@ -14,5 +19,8 @@ export let lifecycleQueues = combineQueueProcessors([
   sessionArchivedQueueProcessor,
   sessionDeletedQueueProcessor,
   sessionProviderCreatedQueueProcessor,
+  sessionTemplateArchivedQueueProcessor,
+  sessionTemplateArchiveSessionsManyQueueProcessor,
+  sessionTemplateDeletedQueueProcessor,
   sessionTemplateProviderCreatedQueueProcessor
 ]);

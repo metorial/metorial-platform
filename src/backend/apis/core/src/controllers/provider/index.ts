@@ -37,7 +37,6 @@ export * from './providerListing';
 export * from './providerPublisher';
 export * from './providerRun';
 export * from './providerSetupSession';
-export * from './providerSetupSessionDashboard';
 export * from './providerSpecification';
 export * from './providerTool';
 export * from './providerTrigger';

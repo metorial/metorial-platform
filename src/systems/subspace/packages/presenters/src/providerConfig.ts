@@ -23,6 +23,7 @@ export let providerConfigPresenter = (
   object: 'provider.config',
 
   id: providerConfig.id,
+  status: providerConfig.status,
 
   isEphemeral: providerConfig.isEphemeral,
   isDefault: providerConfig.isDefault,
@@ -61,6 +62,7 @@ export let providerConfigPreviewPresenter = (
   object: 'provider.config#preview',
 
   id: providerConfig.id,
+  status: providerConfig.status,
 
   isEphemeral: providerConfig.isEphemeral,
   isDefault: providerConfig.isDefault,

@@ -15,6 +15,7 @@ import {
   OrganizationInvite,
   OrganizationInviteJoin,
   OrganizationMember,
+  Portal,
   Project,
   ServiceAccount,
   ServiceAccountCredential,
@@ -264,25 +265,40 @@ export interface FabricEvents {
   'machine_access.service_account_credential.created:before': { serviceAccount: ServiceAccount; oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; organization: Organization; appActor: OrganizationActor | null; context?: Context; };
   'machine_access.service_account_credential.created:after': { serviceAccount: ServiceAccount; serviceAccountCredential: ServiceAccountCredential; oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; organization: Organization; appActor: OrganizationActor | null; context?: Context; };
 
+  'portal.created:before': { organization: Organization; instance: Instance; context: Context; input: { name: string; description?: string; sessionExpiryTimeInSeconds?: number; } };
+  'portal.created:after': { organization: Organization; instance: Instance; portal: Portal; context: Context; input: { name: string; description?: string; sessionExpiryTimeInSeconds?: number; } };
+  'portal.updated:before': { portal: Portal; input: { name?: string; description?: string; sessionExpiryTimeInSeconds?: number; } };
+  'portal.updated:after': { portal: Portal; input: { name?: string; description?: string; sessionExpiryTimeInSeconds?: number; } };
+  'portal.archived:before': { portal: Portal };
+  'portal.archived:after': { portal: Portal };
+
   'provider.deployment.created:before': ProviderEventBase;
   'provider.deployment.created:after': ProviderEventBase & { deployment: SubspaceProviderDeployment };
   'provider.deployment.updated:before': ProviderEventBase;
   'provider.deployment.updated:after': ProviderEventBase & { deployment: SubspaceProviderDeployment };
+  'provider.deployment.deleted:before': ProviderEventBase;
+  'provider.deployment.deleted:after': ProviderEventBase & { deployment: SubspaceProviderDeployment };
 
   'provider.config.created:before': ProviderEventBase;
   'provider.config.created:after': ProviderEventBase & { config: SubspaceProviderConfig };
   'provider.config.updated:before': ProviderEventBase;
   'provider.config.updated:after': ProviderEventBase & { config: SubspaceProviderConfig };
+  'provider.config.deleted:before': ProviderEventBase;
+  'provider.config.deleted:after': ProviderEventBase & { config: SubspaceProviderConfig };
 
   'provider.auth_config.created:before': ProviderEventBase;
   'provider.auth_config.created:after': ProviderEventBase & { authConfig: SubspaceProviderAuthConfig };
   'provider.auth_config.updated:before': ProviderEventBase;
   'provider.auth_config.updated:after': ProviderEventBase & { authConfig: SubspaceProviderAuthConfig };
+  'provider.auth_config.deleted:before': ProviderEventBase;
+  'provider.auth_config.deleted:after': ProviderEventBase & { authConfig: SubspaceProviderAuthConfig };
 
   'provider.auth_credentials.created:before': ProviderEventBase;
   'provider.auth_credentials.created:after': ProviderEventBase & { authCredentials: SubspaceProviderAuthCredentials };
   'provider.auth_credentials.updated:before': ProviderEventBase;
   'provider.auth_credentials.updated:after': ProviderEventBase & { authCredentials: SubspaceProviderAuthCredentials };
+  'provider.auth_credentials.deleted:before': ProviderEventBase;
+  'provider.auth_credentials.deleted:after': ProviderEventBase & { authCredentials: SubspaceProviderAuthCredentials };
 
   'provider.auth_export.created:before': ProviderEventBase;
   'provider.auth_export.created:after': ProviderEventBase & { authExport: SubspaceProviderAuthExport };
@@ -294,6 +310,8 @@ export interface FabricEvents {
   'provider.config_vault.created:after': ProviderEventBase & { configVault: SubspaceProviderConfigVault };
   'provider.config_vault.updated:before': ProviderEventBase;
   'provider.config_vault.updated:after': ProviderEventBase & { configVault: SubspaceProviderConfigVault };
+  'provider.config_vault.deleted:before': ProviderEventBase;
+  'provider.config_vault.deleted:after': ProviderEventBase & { configVault: SubspaceProviderConfigVault };
 
   'provider.setup_session.created:before': ProviderEventBase;
   'provider.setup_session.created:after': ProviderEventBase & { setupSession: SubspaceProviderSetupSession };
@@ -304,6 +322,8 @@ export interface FabricEvents {
   'provider.session.created:after': ProviderEventBase & { session: SubspaceSession };
   'provider.session.updated:before': ProviderEventBase;
   'provider.session.updated:after': ProviderEventBase & { session: SubspaceSession };
+  'provider.session.deleted:before': ProviderEventBase;
+  'provider.session.deleted:after': ProviderEventBase & { session: SubspaceSession };
 
   'provider.session.provider.created:before': ProviderEventBase;
   'provider.session.provider.created:after': ProviderEventBase & { sessionProvider: SubspaceSessionProvider };
@@ -316,6 +336,8 @@ export interface FabricEvents {
   'provider.session_template.created:after': ProviderEventBase & { sessionTemplate: SubspaceSessionTemplate };
   'provider.session_template.updated:before': ProviderEventBase;
   'provider.session_template.updated:after': ProviderEventBase & { sessionTemplate: SubspaceSessionTemplate };
+  'provider.session_template.deleted:before': ProviderEventBase;
+  'provider.session_template.deleted:after': ProviderEventBase & { sessionTemplate: SubspaceSessionTemplate };
 
   'provider.session_template.provider.created:before': ProviderEventBase;
   'provider.session_template.provider.created:after': ProviderEventBase & { sessionTemplateProvider: SubspaceSessionTemplateProvider };

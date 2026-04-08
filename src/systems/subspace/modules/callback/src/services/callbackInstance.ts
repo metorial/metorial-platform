@@ -5,6 +5,7 @@ import {
   CallbackReceiverRegistrationStatus,
   db,
   getId,
+  withTransaction,
   type Callback,
   type CallbackInstance,
   type CallbackReceiverRegistration,
@@ -17,12 +18,12 @@ import {
   type Tenant
 } from '@metorial-subspace/db';
 import {
-  type DateFilter,
   normalizeDateFilter,
   normalizeStatusForList,
   resolveCallbacks,
   resolveProviderAuthConfigs,
-  resolveProviderConfigs
+  resolveProviderConfigs,
+  type DateFilter
 } from '@metorial-subspace/list-utils';
 import {
   providerCombinationService,
@@ -235,7 +236,7 @@ class callbackInstanceServiceImpl {
       }
     }
 
-    return await db.$transaction(async db => {
+    return await withTransaction(async db => {
       if (d.callbackInstance.activeRegistration) {
         await db.callbackReceiverRegistration.update({
           where: { oid: d.callbackInstance.activeRegistration.oid },

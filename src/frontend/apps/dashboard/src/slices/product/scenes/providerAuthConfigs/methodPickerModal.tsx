@@ -1,7 +1,7 @@
 import { useForm } from '@metorial/data-hooks';
 import { useProviderDeployment } from '@metorial/state';
 import { Button, CenteredSpinner, Dialog, Spacer, showModal } from '@metorial/ui';
-import { useEffect } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useProviderAuthCreationCapabilities } from '../../lib/providerCreationCapabilities';
 import { AuthMethodPicker } from './authMethodPicker';
 import { closeAndThen, getCreateMethodDescription } from './modalHelpers';
@@ -9,6 +9,8 @@ import {
   ProviderAuthConfigCreateModalProps,
   showProviderAuthConfigCreateModal
 } from './createModal';
+
+let lastSingleMethodAutoAdvance: { key: string; at: number } = { key: '', at: 0 };
 
 let ProviderAuthConfigMethodPickerModalContent = (
   p: Omit<ProviderAuthConfigCreateModalProps, 'initialAuthMethodId'> & {
@@ -22,6 +24,19 @@ let ProviderAuthConfigMethodPickerModalContent = (
     p.providerId ?? deployment.data?.providerId
   );
   let providerName = authCreation.provider.data?.name ?? deployment.data?.name ?? 'provider';
+
+  let onCreateRef = useRef(p.onCreate);
+  let onBackRef = useRef(p.onBack);
+  useEffect(() => {
+    onCreateRef.current = p.onCreate;
+    onBackRef.current = p.onBack;
+  });
+
+  let singleMethodId = useMemo(() => {
+    if (authCreation.authMethodItems.length !== 1) return null;
+    return authCreation.authMethodItems[0]?.id ?? null;
+  }, [authCreation.authMethodItems.length, authCreation.authMethodItems[0]?.id]);
+
   let form = useForm({
     initialValues: {
       authMethodId: ''
@@ -59,28 +74,37 @@ let ProviderAuthConfigMethodPickerModalContent = (
 
   useEffect(() => {
     if (authCreation.isLoading || !authCreation.canCreateAuthConfig) return;
-    if (authCreation.authMethodItems.length !== 1) return;
+    if (!singleMethodId) return;
+
+    let dedupeKey = `${p.instanceId}:${p.providerDeploymentId ?? ''}:${singleMethodId}`;
+    let now = Date.now();
+    if (
+      lastSingleMethodAutoAdvance.key === dedupeKey &&
+      now - lastSingleMethodAutoAdvance.at < 600
+    ) {
+      return;
+    }
+
+    lastSingleMethodAutoAdvance = { key: dedupeKey, at: now };
 
     closeAndThen(p.close, () =>
       showProviderAuthConfigCreateModal({
         instanceId: p.instanceId,
         providerDeploymentId: p.providerDeploymentId,
         providerId: p.providerId,
-        initialAuthMethodId: authCreation.authMethodItems[0]!.id,
-        onCreate: p.onCreate,
-        onBack: p.onBack
+        initialAuthMethodId: singleMethodId,
+        onCreate: onCreateRef.current,
+        onBack: onBackRef.current
       })
     );
   }, [
     authCreation.isLoading,
     authCreation.canCreateAuthConfig,
-    authCreation.authMethodItems,
+    singleMethodId,
     p.close,
     p.instanceId,
     p.providerDeploymentId,
-    p.providerId,
-    p.onCreate,
-    p.onBack
+    p.providerId
   ]);
 
   useEffect(() => {
@@ -94,7 +118,8 @@ let ProviderAuthConfigMethodPickerModalContent = (
   }, [
     authCreation.isLoading,
     authCreation.canCreateAuthConfig,
-    authCreation.authMethodItems,
+    authCreation.authMethodItems.length,
+    authCreation.authMethodItems[0]?.id,
     form.values.authMethodId,
     form.setFieldValue
   ]);

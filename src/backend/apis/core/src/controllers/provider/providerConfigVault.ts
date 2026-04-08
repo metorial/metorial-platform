@@ -228,8 +228,13 @@ export let providerConfigVaultController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.provider.config_vault:write'] }))
       .output(providerConfigVaultPresenter)
       .do(async ctx => {
+        let configVault = await subspaceProviderConfigVaultService.delete({
+          instance: ctx.instance,
+          providerConfigVaultId: ctx.configVault.id
+        });
+
         return providerConfigVaultPresenter.present({
-          configVault: ctx.configVault
+          configVault
         });
       })
   }

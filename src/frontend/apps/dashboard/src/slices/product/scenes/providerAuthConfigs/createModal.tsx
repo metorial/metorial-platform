@@ -4,7 +4,7 @@ import { type ReactElement, useEffect, useState } from 'react';
 import { useProviderAuthCreationCapabilities } from '../../lib/providerCreationCapabilities';
 import { ProviderAuthConfigManualCreateContent } from './createManualModal';
 import { ProviderAuthConfigSetupFlowCreateContent } from './createSetupFlowModal';
-import { closeAndThen, getAuthMethodHasSchema, isSetupFlowAuthMethod } from './modalHelpers';
+import { closeAndThen, isSetupFlowAuthMethod } from './modalHelpers';
 import { PreviewMode } from './previewSidebar';
 
 export type ProviderAuthConfigCreateModalProps = {
@@ -82,7 +82,7 @@ export let ProviderAuthConfigCreateFlowContent = (
     selectedMethod ??
     (authCreation.authMethodItems.length === 1 ? authCreation.authMethodItems[0] : undefined);
   let [previewMode, setPreviewMode] = useState<PreviewMode>(
-    effectiveAuthMethod?.type === 'oauth' && !getAuthMethodHasSchema(effectiveAuthMethod)
+    effectiveAuthMethod?.type === 'oauth'
       ? authCreation.oauthAutoRegistrationEnabled
         ? 'managed'
         : 'manual_existing'
@@ -90,10 +90,7 @@ export let ProviderAuthConfigCreateFlowContent = (
   );
 
   useEffect(() => {
-    if (
-      effectiveAuthMethod?.type === 'oauth' &&
-      !getAuthMethodHasSchema(effectiveAuthMethod)
-    ) {
+    if (effectiveAuthMethod?.type === 'oauth') {
       setPreviewMode(
         authCreation.oauthAutoRegistrationEnabled ? 'managed' : 'manual_existing'
       );
@@ -169,6 +166,7 @@ export let ProviderAuthConfigCreateFlowContent = (
             onCreate={p.onCreate}
             onCancel={p.onBack}
             onWindowOpenStateChange={p.onWindowOpenStateChange}
+            embedded={p.embedded}
           />
         );
       }

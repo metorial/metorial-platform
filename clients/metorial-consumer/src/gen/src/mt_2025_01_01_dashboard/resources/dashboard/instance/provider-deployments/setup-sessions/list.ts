@@ -59,6 +59,7 @@ export type DashboardInstanceProviderDeploymentsSetupSessionsListOutput = {
       object: 'provider.auth_credentials';
       id: string;
       type: 'oauth';
+      status: 'active' | 'archived' | 'deleted';
       isDefault: boolean;
       isManaged: boolean;
       name: string | null;
@@ -108,6 +109,7 @@ export type DashboardInstanceProviderDeploymentsSetupSessionsListOutput = {
         object: 'provider.auth_credentials';
         id: string;
         type: 'oauth';
+        status: 'active' | 'archived' | 'deleted';
         isDefault: boolean;
         isManaged: boolean;
         name: string | null;
@@ -153,6 +155,7 @@ export type DashboardInstanceProviderDeploymentsSetupSessionsListOutput = {
     config: {
       object: 'provider.config';
       id: string;
+      status: 'active' | 'archived' | 'deleted';
       isDefault: boolean;
       name: string | null;
       description: string | null;
@@ -187,6 +190,7 @@ export type DashboardInstanceProviderDeploymentsSetupSessionsListOutput = {
       fromVault: {
         object: 'provider.config_vault';
         id: string;
+        status: 'active' | 'archived' | 'deleted';
         name: string;
         description: string | null;
         metadata: Record<string, any> | null;
@@ -318,6 +322,7 @@ export let mapDashboardInstanceProviderDeploymentsSetupSessionsListOutput =
               object: mtMap.objectField('object', mtMap.passthrough()),
               id: mtMap.objectField('id', mtMap.passthrough()),
               type: mtMap.objectField('type', mtMap.passthrough()),
+              status: mtMap.objectField('status', mtMap.passthrough()),
               isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
               isManaged: mtMap.objectField('is_managed', mtMap.passthrough()),
               name: mtMap.objectField('name', mtMap.passthrough()),
@@ -419,6 +424,7 @@ export let mapDashboardInstanceProviderDeploymentsSetupSessionsListOutput =
                   object: mtMap.objectField('object', mtMap.passthrough()),
                   id: mtMap.objectField('id', mtMap.passthrough()),
                   type: mtMap.objectField('type', mtMap.passthrough()),
+                  status: mtMap.objectField('status', mtMap.passthrough()),
                   isDefault: mtMap.objectField(
                     'is_default',
                     mtMap.passthrough()
@@ -510,6 +516,7 @@ export let mapDashboardInstanceProviderDeploymentsSetupSessionsListOutput =
             mtMap.object({
               object: mtMap.objectField('object', mtMap.passthrough()),
               id: mtMap.objectField('id', mtMap.passthrough()),
+              status: mtMap.objectField('status', mtMap.passthrough()),
               isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
               name: mtMap.objectField('name', mtMap.passthrough()),
               description: mtMap.objectField(
@@ -593,6 +600,7 @@ export let mapDashboardInstanceProviderDeploymentsSetupSessionsListOutput =
                 mtMap.object({
                   object: mtMap.objectField('object', mtMap.passthrough()),
                   id: mtMap.objectField('id', mtMap.passthrough()),
+                  status: mtMap.objectField('status', mtMap.passthrough()),
                   name: mtMap.objectField('name', mtMap.passthrough()),
                   description: mtMap.objectField(
                     'description',

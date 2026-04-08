@@ -138,4 +138,6 @@ model ServerConnectionLogsTemp {
   logLines Json
 
   createdAt DateTime @default(now())
+
+  @@index([serverConnectionOid, createdAt])
 }

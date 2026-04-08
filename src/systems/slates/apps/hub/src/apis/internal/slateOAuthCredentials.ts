@@ -82,6 +82,23 @@ export let slateOAuthCredentialsController = app.controller({
     )
     .do(async ctx => slateOAuthCredentialsPresenter(ctx.slateOAuthCredentials)),
 
+  delete: slateOAuthCredentialsApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        slateOAuthCredentialsId: v.string()
+      })
+    )
+    .do(async ctx => {
+      await slateOAuthCredentialsService.deleteSlateOAuthCredentials({
+        tenant: ctx.tenant,
+        slateOAuthCredentials: ctx.slateOAuthCredentials
+      });
+
+      return { success: true };
+    }),
+
   getMany: tenantApp
     .handler()
     .input(

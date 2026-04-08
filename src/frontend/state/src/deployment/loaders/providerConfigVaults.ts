@@ -25,6 +25,11 @@ export let useCreateProviderConfigVault = providerConfigVaultsLoader.createExter
   { disableToast: true }
 );
 
+export let useDeleteProviderConfigVault = providerConfigVaultsLoader.createExternalMutator(
+  (i: { instanceId: string; providerConfigVaultId: string }) =>
+    withAuth(sdk => sdk.providerDeployments.configVaults.delete(i.instanceId, i.providerConfigVaultId))
+);
+
 export let useProviderConfigVaults = (
   instanceId: string | null | undefined,
   query?: DashboardInstanceProviderDeploymentsConfigVaultsListQuery
@@ -59,7 +64,9 @@ export let providerConfigVaultLoader = createLoader({
     ) =>
       withAuth(sdk =>
         sdk.providerDeployments.configVaults.update(instanceId, providerConfigVaultId, body)
-      )
+      ),
+    delete: (_, { input: { instanceId, providerConfigVaultId } }) =>
+      withAuth(sdk => sdk.providerDeployments.configVaults.delete(instanceId, providerConfigVaultId))
   }
 });
 
@@ -73,6 +80,7 @@ export let useProviderConfigVault = (
 
   return {
     ...data,
-    useUpdateMutator: data.useMutator('update')
+    useUpdateMutator: data.useMutator('update'),
+    useDeleteMutator: data.useMutator('delete')
   };
 };

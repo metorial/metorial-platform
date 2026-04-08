@@ -4,13 +4,7 @@ export type ManagementInstanceProviderDeploymentsSetupSessionsCreateOutput = {
   object: 'provider.setup_session';
   id: string;
   type: 'auth_only' | 'config_only' | 'auth_and_config';
-  status:
-    | 'failed'
-    | 'archived'
-    | 'deleted'
-    | 'pending'
-    | 'completed'
-    | 'expired';
+  status: 'failed' | 'archived' | 'deleted' | 'pending' | 'completed' | 'expired';
   url: string;
   name: string | null;
   description: string | null;
@@ -221,10 +215,7 @@ export let mapManagementInstanceProviderDeploymentsSetupSessionsCreateOutput =
     configuration: mtMap.objectField('configuration', mtMap.passthrough()),
     providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
     identityId: mtMap.objectField('identity_id', mtMap.passthrough()),
-    identityCredentialId: mtMap.objectField(
-      'identity_credential_id',
-      mtMap.passthrough()
-    ),
+    identityCredentialId: mtMap.objectField('identity_credential_id', mtMap.passthrough()),
     authMethod: mtMap.objectField(
       'auth_method',
       mtMap.object({
@@ -332,18 +323,9 @@ export let mapManagementInstanceProviderDeploymentsSetupSessionsCreateOutput =
                         'object',
                         mtMap.object({
                           type: mtMap.objectField('type', mtMap.passthrough()),
-                          keys: mtMap.objectField(
-                            'keys',
-                            mtMap.array(mtMap.passthrough())
-                          ),
-                          pattern: mtMap.objectField(
-                            'pattern',
-                            mtMap.passthrough()
-                          ),
-                          uris: mtMap.objectField(
-                            'uris',
-                            mtMap.array(mtMap.passthrough())
-                          )
+                          keys: mtMap.objectField('keys', mtMap.array(mtMap.passthrough())),
+                          pattern: mtMap.objectField('pattern', mtMap.passthrough()),
+                          uris: mtMap.objectField('uris', mtMap.array(mtMap.passthrough()))
                         })
                       )
                     ])
@@ -392,10 +374,7 @@ export let mapManagementInstanceProviderDeploymentsSetupSessionsCreateOutput =
             key: mtMap.objectField('key', mtMap.passthrough()),
             name: mtMap.objectField('name', mtMap.passthrough()),
             description: mtMap.objectField('description', mtMap.passthrough()),
-            capabilities: mtMap.objectField(
-              'capabilities',
-              mtMap.passthrough()
-            ),
+            capabilities: mtMap.objectField('capabilities', mtMap.passthrough()),
             inputSchema: mtMap.objectField(
               'input_schema',
               mtMap.object({
@@ -418,10 +397,7 @@ export let mapManagementInstanceProviderDeploymentsSetupSessionsCreateOutput =
                   id: mtMap.objectField('id', mtMap.passthrough()),
                   scope: mtMap.objectField('scope', mtMap.passthrough()),
                   name: mtMap.objectField('name', mtMap.passthrough()),
-                  description: mtMap.objectField(
-                    'description',
-                    mtMap.passthrough()
-                  )
+                  description: mtMap.objectField('description', mtMap.passthrough())
                 })
               )
             ),
@@ -466,18 +442,9 @@ export let mapManagementInstanceProviderDeploymentsSetupSessionsCreateOutput =
                         'object',
                         mtMap.object({
                           type: mtMap.objectField('type', mtMap.passthrough()),
-                          keys: mtMap.objectField(
-                            'keys',
-                            mtMap.array(mtMap.passthrough())
-                          ),
-                          pattern: mtMap.objectField(
-                            'pattern',
-                            mtMap.passthrough()
-                          ),
-                          uris: mtMap.objectField(
-                            'uris',
-                            mtMap.array(mtMap.passthrough())
-                          )
+                          keys: mtMap.objectField('keys', mtMap.array(mtMap.passthrough())),
+                          pattern: mtMap.objectField('pattern', mtMap.passthrough()),
+                          uris: mtMap.objectField('uris', mtMap.array(mtMap.passthrough()))
                         })
                       )
                     ])
@@ -488,10 +455,7 @@ export let mapManagementInstanceProviderDeploymentsSetupSessionsCreateOutput =
           ])
         ),
         providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-        specificationId: mtMap.objectField(
-          'specification_id',
-          mtMap.passthrough()
-        ),
+        specificationId: mtMap.objectField('specification_id', mtMap.passthrough()),
         deployment: mtMap.objectField(
           'deployment',
           mtMap.object({
@@ -522,15 +486,9 @@ export let mapManagementInstanceProviderDeploymentsSetupSessionsCreateOutput =
                 id: mtMap.objectField('id', mtMap.passthrough()),
                 isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
                 name: mtMap.objectField('name', mtMap.passthrough()),
-                description: mtMap.objectField(
-                  'description',
-                  mtMap.passthrough()
-                ),
+                description: mtMap.objectField('description', mtMap.passthrough()),
                 metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-                providerId: mtMap.objectField(
-                  'provider_id',
-                  mtMap.passthrough()
-                ),
+                providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
                 createdAt: mtMap.objectField('created_at', mtMap.date()),
                 updatedAt: mtMap.objectField('updated_at', mtMap.date())
               })
@@ -580,17 +538,11 @@ export type ManagementInstanceProviderDeploymentsSetupSessionsCreateBody = {
 export let mapManagementInstanceProviderDeploymentsSetupSessionsCreateBody =
   mtMap.object<ManagementInstanceProviderDeploymentsSetupSessionsCreateBody>({
     providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-    providerDeploymentId: mtMap.objectField(
-      'provider_deployment_id',
-      mtMap.passthrough()
-    ),
+    providerDeploymentId: mtMap.objectField('provider_deployment_id', mtMap.passthrough()),
     name: mtMap.objectField('name', mtMap.passthrough()),
     description: mtMap.objectField('description', mtMap.passthrough()),
     metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-    providerAuthMethodId: mtMap.objectField(
-      'provider_auth_method_id',
-      mtMap.passthrough()
-    ),
+    providerAuthMethodId: mtMap.objectField('provider_auth_method_id', mtMap.passthrough()),
     providerAuthCredentialsId: mtMap.objectField(
       'provider_auth_credentials_id',
       mtMap.passthrough()
@@ -617,10 +569,7 @@ export let mapManagementInstanceProviderDeploymentsSetupSessionsCreateBody =
               'collections',
               mtMap.array(
                 mtMap.object({
-                  collectionId: mtMap.objectField(
-                    'collection_id',
-                    mtMap.passthrough()
-                  )
+                  collectionId: mtMap.objectField('collection_id', mtMap.passthrough())
                 })
               )
             ),
@@ -628,10 +577,7 @@ export let mapManagementInstanceProviderDeploymentsSetupSessionsCreateBody =
               'categories',
               mtMap.array(
                 mtMap.object({
-                  categoryId: mtMap.objectField(
-                    'category_id',
-                    mtMap.passthrough()
-                  )
+                  categoryId: mtMap.objectField('category_id', mtMap.passthrough())
                 })
               )
             )
@@ -652,4 +598,3 @@ export let mapManagementInstanceProviderDeploymentsSetupSessionsCreateBody =
       })
     )
   });
-

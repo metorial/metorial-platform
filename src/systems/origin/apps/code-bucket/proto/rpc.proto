@@ -1,0 +1,164 @@
+syntax = "proto3";
+
+package rpc.rpc;
+
+option go_package = "github.com/metorial/metorial/services/rpc/gen/rpc;rpc";
+
+service CodeBucket {
+  rpc CloneBucket(CloneBucketRequest) returns (CreateBucketResponse);
+  rpc CreateBucketFromContents(CreateBucketFromContentsRequest) returns (CreateBucketResponse);
+  rpc CreateBucketFromZip(CreateBucketFromZipRequest) returns (CreateBucketResponse);
+  rpc CreateBucketFromGithub(CreateBucketFromGithubRequest) returns (CreateBucketResponse);
+  rpc CreateBucketFromGitlab(CreateBucketFromGitlabRequest) returns (CreateBucketResponse);
+
+  rpc GetBucketToken(GetBucketTokenRequest) returns (GetBucketTokenResponse);
+  rpc GetBucketFile(GetBucketFileRequest) returns (GetBucketFileResponse);
+  rpc GetBucketFiles(GetBucketFilesRequest) returns (GetBucketFilesResponse);
+  rpc GetBucketFilesWithContent(GetBucketFilesRequest) returns (GetBucketFilesWithContentResponse);
+  rpc GetBucketFilesAsZip(GetBucketFilesAsZipRequest) returns (GetBucketFilesAsZipResponse);
+
+  rpc SetBucketFiles(SetBucketFilesRequest) returns (SetBucketFilesResponse);
+  rpc SetBucketFile(SetBucketFileRequest) returns (SetBucketFileResponse);
+  rpc DeleteBucketFile(DeleteBucketFileRequest) returns (DeleteBucketFileResponse);
+
+  rpc ExportBucketToGithub(ExportBucketToGithubRequest) returns (ExportBucketToGithubResponse);
+  rpc ExportBucketToGitlab(ExportBucketToGitlabRequest) returns (ExportBucketToGitlabResponse);
+}
+
+message FileInfo {
+  string path = 1;
+  int64 size = 2;
+  string content_type = 3;
+  int64 modified_at = 4;
+}
+
+message FileContent {
+  bytes content = 1;
+  FileInfo file_info = 2;
+}
+
+message CloneBucketRequest {
+  string source_bucket_id = 1;
+  string new_bucket_id = 2;
+}
+
+message CreateBucketFromZipRequest {
+  string new_bucket_id = 1;
+  string zip_url = 2;
+  string path = 3;
+  map<string, string> headers = 4; 
+}
+
+message FileContentsBase {
+  string path = 1;
+  bytes content = 2;
+}
+
+message CreateBucketFromContentsRequest {
+  string new_bucket_id = 1;
+  repeated FileContentsBase contents = 2;
+}
+
+message CreateBucketFromGithubRequest {
+  string new_bucket_id = 1;
+  string owner = 2;
+  string repo = 3;
+  string path = 4;
+  string ref = 5;
+  string token = 6;
+}
+
+message CreateBucketResponse {}
+
+message GetBucketTokenRequest {
+  string bucket_id = 1;
+  int64 expires_in_seconds = 2;
+  bool is_read_only = 3;
+}
+
+message GetBucketTokenResponse {
+  string token = 1;
+}
+
+message GetBucketFileRequest {
+  string bucket_id = 1;
+  string path = 2;
+}
+
+message GetBucketFileResponse {
+  FileContent content = 1;
+}
+
+message GetBucketFilesRequest {
+  string bucket_id = 1;
+  string prefix = 2; // Optional filter
+}
+
+message GetBucketFilesResponse {
+  repeated FileInfo files = 1;
+}
+
+message GetBucketFilesWithContentResponse {
+  repeated FileContent files = 1;
+}
+
+message GetBucketFilesAsZipRequest {
+  string bucket_id = 1;
+  string prefix = 2; // Optional filter
+}
+
+message GetBucketFilesAsZipResponse {
+  string download_url = 1;
+  int64 expires_at = 2;
+}
+
+message SetBucketFilesRequest {
+  string bucket_id = 1;
+  repeated FileContentsBase files = 2;
+}
+
+message SetBucketFilesResponse {}
+
+message SetBucketFileRequest {
+  string bucket_id = 1;
+  string path = 2;
+  bytes content = 3;
+}
+
+message SetBucketFileResponse {}
+
+message DeleteBucketFileRequest {
+  string bucket_id = 1;
+  string path = 2;
+}
+
+message DeleteBucketFileResponse {}
+
+message ExportBucketToGithubRequest {
+  string bucket_id = 1;
+  string owner = 2;
+  string repo = 3;
+  string path = 4;
+  string token = 5;
+}
+
+message ExportBucketToGithubResponse {}
+
+message CreateBucketFromGitlabRequest {
+  string new_bucket_id = 1;
+  int64 project_id = 2;
+  string path = 3;
+  string ref = 4;
+  string token = 5;
+  string gitlab_api_url = 6;
+}
+
+message ExportBucketToGitlabRequest {
+  string bucket_id = 1;
+  int64 project_id = 2;
+  string path = 3;
+  string token = 4;
+  string gitlab_api_url = 5;
+}
+
+message ExportBucketToGitlabResponse {}

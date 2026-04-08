@@ -28,6 +28,8 @@ export let providerDeploymentPresenter = (
 
   id: providerDeployment.id,
 
+  status: providerDeployment.status,
+
   isEphemeral: providerDeployment.isEphemeral,
   isDefault: providerDeployment.isDefault,
 

@@ -21,6 +21,11 @@ export let useCreateProviderDeployment = providerDeploymentsLoader.createExterna
   { disableToast: true }
 );
 
+export let useDeleteProviderDeployment = providerDeploymentsLoader.createExternalMutator(
+  (i: { instanceId: string; providerDeploymentId: string }) =>
+    withAuth(sdk => sdk.providerDeployments.delete(i.instanceId, i.providerDeploymentId))
+);
+
 export let useProviderDeployments = (
   instanceId: string | null | undefined,
   opts?: DashboardInstanceProviderDeploymentsListQuery
@@ -50,7 +55,9 @@ export let providerDeploymentLoader = createLoader({
       body: DashboardInstanceProviderDeploymentsUpdateBody,
       { input: { instanceId, providerDeploymentId } }
     ) =>
-      withAuth(sdk => sdk.providerDeployments.update(instanceId, providerDeploymentId, body))
+      withAuth(sdk => sdk.providerDeployments.update(instanceId, providerDeploymentId, body)),
+    delete: (_, { input: { instanceId, providerDeploymentId } }) =>
+      withAuth(sdk => sdk.providerDeployments.delete(instanceId, providerDeploymentId))
   }
 });
 
@@ -64,6 +71,7 @@ export let useProviderDeployment = (
 
   return {
     ...data,
-    useUpdateMutator: data.useMutator('update')
+    useUpdateMutator: data.useMutator('update'),
+    useDeleteMutator: data.useMutator('delete')
   };
 };

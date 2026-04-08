@@ -1,0 +1,16 @@
+model CellPortal {
+  id String @id
+
+  status PortalStatus
+
+  name        String
+  description String?
+  slug        String  @unique
+
+  isOwnedByDeployment Boolean
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
+  archivedAt DateTime?
+  deletedAt  DateTime?
+}

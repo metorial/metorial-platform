@@ -3,6 +3,8 @@ import { createQueue } from '@metorial/queue';
 import { cell } from '../../cell';
 import { globalDB } from '../../db';
 import { syncOAuthAppToDeploymentQueue } from './oauth';
+import { syncOrganizationToDeploymentQueue } from './organization';
+import { syncPortalToDeploymentQueue } from './portal';
 import { syncUserToDeploymentQueue } from './user';
 
 let syncToDeploymentQueue = createQueue({
@@ -37,6 +39,42 @@ export let syncToDeploymentQueueProcessor = syncToDeploymentQueue.process(async 
     userCursor = users[users.length - 1].id as string;
   }
 
+  let organizationCursor: string | undefined = undefined;
+  while (true) {
+    let organizations = await globalDB.organization.findMany({
+      where: {
+        id: { gt: organizationCursor },
+        updatedAt: timeRange
+      },
+      orderBy: { id: 'asc' },
+      take: 100
+    });
+    if (organizations.length === 0) break;
+
+    await syncOrganizationToDeploymentQueue.addMany(
+      organizations.map(organization => ({ organization }))
+    );
+
+    organizationCursor = organizations[organizations.length - 1].id as string;
+  }
+
+  let portalCursor: string | undefined = undefined;
+  while (true) {
+    let portals = await globalDB.portal.findMany({
+      where: {
+        id: { gt: portalCursor },
+        updatedAt: timeRange
+      },
+      orderBy: { id: 'asc' },
+      take: 100
+    });
+    if (portals.length === 0) break;
+
+    await syncPortalToDeploymentQueue.addMany(portals.map(portal => ({ portal })));
+
+    portalCursor = portals[portals.length - 1].id as string;
+  }
+
   let oAuthAppCursor: string | undefined = undefined;
   while (true) {
     let oAuthApps = await globalDB.oAuthApplication.findMany({
@@ -64,7 +102,7 @@ export let syncToDeploymentQueueProcessor = syncToDeploymentQueue.process(async 
   await syncToDeploymentQueue.add({}, { delay: 1000, id: 'sync' });
 });
 
-let syncCron = createCron(
+export let syncCron = createCron(
   {
     name: 'global/sync/to-deployment/cron',
     cron: '* * * * *'

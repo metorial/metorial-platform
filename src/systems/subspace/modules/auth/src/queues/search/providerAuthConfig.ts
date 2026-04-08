@@ -16,7 +16,10 @@ export let indexProviderAuthConfigQueueProcessor = indexProviderAuthConfigQueue.
     });
     if (!providerAuthConfig) throw new QueueRetryError();
 
-    if (!providerAuthConfig.name && !providerAuthConfig.description) {
+    if (
+      providerAuthConfig.status !== 'active' ||
+      (!providerAuthConfig.name && !providerAuthConfig.description)
+    ) {
       await voyager.record.delete({
         sourceId: (await voyagerSource).id,
         indexId: voyagerIndex.providerAuthConfig.id,

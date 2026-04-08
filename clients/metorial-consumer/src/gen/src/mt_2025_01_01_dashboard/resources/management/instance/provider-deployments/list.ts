@@ -4,6 +4,7 @@ export type ManagementInstanceProviderDeploymentsListOutput = {
   items: {
     object: 'provider.deployment';
     id: string;
+    status: 'active' | 'archived' | 'deleted';
     isDefault: boolean;
     name: string | null;
     description: string | null;
@@ -61,6 +62,7 @@ export let mapManagementInstanceProviderDeploymentsListOutput =
         mtMap.object({
           object: mtMap.objectField('object', mtMap.passthrough()),
           id: mtMap.objectField('id', mtMap.passthrough()),
+          status: mtMap.objectField('status', mtMap.passthrough()),
           isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
           name: mtMap.objectField('name', mtMap.passthrough()),
           description: mtMap.objectField('description', mtMap.passthrough()),

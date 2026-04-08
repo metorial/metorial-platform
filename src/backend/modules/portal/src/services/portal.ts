@@ -3,7 +3,16 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { createSlugGenerator } from '@lowerdeck/slugify';
 import { Context } from '@metorial/context';
-import { db, getOrganizationBrand, ID, Instance, Organization, Portal } from '@metorial/db';
+import {
+  db,
+  getOrganizationBrand,
+  ID,
+  Instance,
+  Organization,
+  Portal,
+  withTransaction
+} from '@metorial/db';
+import { Fabric } from '@metorial/fabric';
 import {
   consumerSurfaceService,
   type ConsumerSurfaceWithPublishableApiKey
@@ -36,9 +45,11 @@ let include = {
   }
 } as const;
 
-let getPortalSlug = createSlugGenerator(async slug => {
-  return !(await db.portal.findFirst({ where: { slug } }));
-});
+let getPortalSlug = createSlugGenerator(
+  async slug =>
+    !(await db.portal.findFirst({ where: { slug } })) &&
+    !(await db.cellPortal.findFirst({ where: { slug } }))
+);
 
 let getPortalRedirectDomains = () => {
   return env.portal.PORTAL_REDIRECT_DOMAINS.split(',')
@@ -181,21 +192,32 @@ class PortalServiceImpl {
         surface
       });
 
-      return await db.portal.create({
-        data: {
-          id: portalId,
-          status: 'active',
-          name: d.input.name,
-          description: d.input.description,
-          slug,
-          allowedRedirectUrlFilters: resolvePortalAllowedRedirectUrlFilters(
-            d.input.allowedRedirectUrlFilters
-          ),
-          organizationOid: d.organization.oid,
-          surfaceOid: surface.oid,
-          instanceOid: d.instance.oid
-        },
-        include
+      return await withTransaction(async db => {
+        await Fabric.fire('portal.created:before', d);
+
+        let portal = await db.portal.create({
+          data: {
+            id: portalId,
+            status: 'active',
+            name: d.input.name,
+            description: d.input.description,
+            slug,
+            allowedRedirectUrlFilters: resolvePortalAllowedRedirectUrlFilters(
+              d.input.allowedRedirectUrlFilters
+            ),
+            organizationOid: d.organization.oid,
+            surfaceOid: surface.oid,
+            instanceOid: d.instance.oid
+          },
+          include
+        });
+
+        await Fabric.fire('portal.created:after', {
+          ...d,
+          portal
+        });
+
+        return portal;
       });
     } catch (error) {
       await Promise.allSettled([
@@ -236,19 +258,30 @@ class PortalServiceImpl {
       }
     });
 
-    let portal = await db.portal.update({
-      where: {
-        oid: d.portal.oid
-      },
-      data: {
-        name: d.input.name,
-        description: d.input.description,
-        allowedRedirectUrlFilters:
-          d.input.allowedRedirectUrlFilters !== undefined
-            ? resolvePortalAllowedRedirectUrlFilters(d.input.allowedRedirectUrlFilters)
-            : undefined
-      },
-      include
+    let portal = await withTransaction(async db => {
+      await Fabric.fire('portal.updated:before', d);
+
+      let portal = await db.portal.update({
+        where: {
+          oid: d.portal.oid
+        },
+        data: {
+          name: d.input.name,
+          description: d.input.description,
+          allowedRedirectUrlFilters:
+            d.input.allowedRedirectUrlFilters !== undefined
+              ? resolvePortalAllowedRedirectUrlFilters(d.input.allowedRedirectUrlFilters)
+              : undefined
+        },
+        include
+      });
+
+      await Fabric.fire('portal.updated:after', {
+        ...d,
+        portal
+      });
+
+      return portal;
     });
 
     surface = await this.configurePortalAres({
@@ -280,15 +313,25 @@ class PortalServiceImpl {
       consumerSurface: d.portal.surface
     });
 
-    return await db.portal.update({
-      where: {
-        oid: d.portal.oid
-      },
-      data: {
-        status: 'archived',
-        archivedAt: new Date()
-      },
-      include
+    return await withTransaction(async db => {
+      await Fabric.fire('portal.archived:before', d);
+
+      let portal = await db.portal.update({
+        where: {
+          oid: d.portal.oid
+        },
+        data: {
+          status: 'archived',
+          archivedAt: new Date()
+        },
+        include
+      });
+
+      await Fabric.fire('portal.archived:after', {
+        portal
+      });
+
+      return portal;
     });
   }
 

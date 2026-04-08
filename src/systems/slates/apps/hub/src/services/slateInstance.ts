@@ -14,6 +14,7 @@ import { db } from '../db';
 import { getId } from '../id';
 import { validateJsonSchema } from '../lib/validateJsonSchema';
 import { slateInstanceConfigChangedQueue } from '../queues/instance/configChanged';
+import { secretService } from './secret';
 
 let include = {
   lockedSlateVersion: true,
@@ -155,6 +156,39 @@ class slateInstanceServiceImpl {
     });
     if (!slateInstance) throw new ServiceError(notFoundError('slate.instance'));
     return slateInstance;
+  }
+
+  async deleteSlateInstance(d: { tenant: Tenant; slateInstance: SlateInstance }) {
+    let setupSecrets = await db.slateInstanceOAuthSetup.findMany({
+      where: {
+        tenantOid: d.tenant.oid,
+        slateInstanceOid: d.slateInstance.oid
+      },
+      select: { secretOid: true }
+    });
+
+    return await db.$transaction(async db => {
+      for (let setupSecret of setupSecrets) {
+        await secretService.DANGEROUSLY_deleteSecret({
+          secretOid: setupSecret.secretOid,
+          tenant: d.tenant,
+          db
+        });
+      }
+
+      await db.slateInstanceOAuthSetup.deleteMany({
+        where: {
+          tenantOid: d.tenant.oid,
+          slateInstanceOid: d.slateInstance.oid
+        }
+      });
+
+      await db.slateInstance.delete({
+        where: {
+          oid: d.slateInstance.oid
+        }
+      });
+    });
   }
 
   async listSlateInstances(d: { tenant: Tenant; slateIds?: string[] }) {

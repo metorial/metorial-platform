@@ -86,7 +86,8 @@ let loadCallbackInstanceCached = createLocallyCachedFunction({
 
 export let loadCallbackInstance = async (callbackInstanceId: string) => {
   let callbackInstance = await loadCallbackInstanceCached(callbackInstanceId);
-  if (!callbackInstance) callbackInstance = await loadCallbackInstanceUncached(callbackInstanceId);
+  if (!callbackInstance)
+    callbackInstance = await loadCallbackInstanceUncached(callbackInstanceId);
   return callbackInstance;
 };
 

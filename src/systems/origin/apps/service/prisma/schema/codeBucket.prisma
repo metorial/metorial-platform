@@ -1,0 +1,65 @@
+model CodeBucketPurpose {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  identifier String @unique
+
+  createdAt DateTime @default(now())
+
+  codeBuckets CodeBucket[]
+}
+
+enum CodeBucketStatus {
+  ready
+  importing
+}
+
+model CodeBucket {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  purposeOid BigInt
+  purpose    CodeBucketPurpose @relation(fields: [purposeOid], references: [oid])
+
+  status CodeBucketStatus @default(ready)
+
+  isReadOnly Boolean @default(false)
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  parentOid BigInt?
+  parent    CodeBucket?  @relation("CodeBucketParent", fields: [parentOid], references: [oid], onDelete: SetNull)
+  children  CodeBucket[] @relation("CodeBucketParent")
+
+  templateOid BigInt?
+  template    CodeBucketTemplate? @relation(fields: [templateOid], references: [oid])
+
+  repositoryOid BigInt?
+  repository    ScmRepository? @relation(fields: [repositoryOid], references: [oid])
+  path          String?
+
+  isSynced Boolean @default(false)
+  syncRef  String?
+
+  createdAt DateTime @default(now())
+
+  providerFor CodeBucketTemplate[] @relation("ProviderBucket")
+}
+
+model CodeBucketTemplate {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  name String
+
+  /// [CodeBucketTemplateContents]
+  contents Json
+
+  providerBucketOid BigInt?
+  providerBucket    CodeBucket? @relation(fields: [providerBucketOid], references: [oid], name: "ProviderBucket")
+
+  createdAt DateTime @default(now())
+
+  buckets CodeBucket[]
+}

@@ -83,7 +83,9 @@ class ConsumerAresServiceImpl {
     return await this.getClient().app.upsert({
       slug: d.slug,
       defaultRedirectUrl: d.defaultRedirectUrl,
-      redirectDomains: d.redirectDomains
+      redirectDomains: d.redirectDomains,
+      isSessionless: true,
+      disableEmailAuth: true
     });
   }
 
@@ -102,16 +104,35 @@ class ConsumerAresServiceImpl {
   }
 
   async listSsoTenants(d: { appId: string } & PaginationInput) {
-    return this.normalizePagination(
-      await this.getClient().sso.listTenants({
-        appId: d.appId,
-        limit: d.limit,
-        after: d.after,
-        before: d.before,
-        cursor: d.cursor,
-        order: d.order
-      })
-    );
+    let client = this.getClient();
+    let res = await client.sso.listTenants({
+      appId: d.appId,
+      limit: d.limit,
+      after: d.after,
+      before: d.before,
+      cursor: d.cursor,
+      order: d.order
+    });
+
+    let connections = res.items
+      .filter(i => i.status == 'completed')
+      .reduce((c, i) => c + i.counts.connections, 0);
+
+    if (connections > 0) {
+      await client.app.update({
+        id: d.appId,
+        isSessionless: true,
+        disableEmailAuth: true
+      });
+    } else {
+      await client.app.update({
+        id: d.appId,
+        isSessionless: true,
+        disableEmailAuth: false
+      });
+    }
+
+    return this.normalizePagination(res);
   }
 
   async getSsoTenant(d: { ssoTenantId: string }) {

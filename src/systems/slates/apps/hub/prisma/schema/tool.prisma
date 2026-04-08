@@ -18,6 +18,8 @@ model SlateSession {
   lastActiveAt DateTime?
 
   toolCalls SlateSessionToolCall[]
+
+  @@index([tenantOid, createdAt])
 }
 
 enum SlateSessionToolCallStatus {

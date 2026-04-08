@@ -9,7 +9,7 @@ let Sentry = getSentry();
 
 export let subspaceProviderConfigService = createSubspaceService(
   subspace.providerConfig,
-  ['get', 'list', 'update', 'create', 'getConfigSchema'],
+  ['get', 'list', 'update', 'create', 'delete', 'getConfigSchema'],
   inner => ({
     list: async (
       arg0: Parameters<typeof inner.list>[0] & {
@@ -57,6 +57,16 @@ export let subspaceProviderConfigService = createSubspaceService(
       let config = await inner.update(...params);
 
       await Fabric.fire('provider.config.updated:after', { ...eventBase, config });
+
+      return config;
+    },
+    delete: async (...params: Parameters<typeof inner.delete>) => {
+      let eventBase = toEventBase(params[0]);
+      await Fabric.fire('provider.config.deleted:before', eventBase);
+
+      let config = await inner.delete(...params);
+
+      await Fabric.fire('provider.config.deleted:after', { ...eventBase, config });
 
       return config;
     }

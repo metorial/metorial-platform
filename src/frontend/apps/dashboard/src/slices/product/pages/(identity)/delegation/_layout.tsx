@@ -19,42 +19,44 @@ export let IdentityDelegationLayout = () => {
   let owner = delegation.data?.parties.find(party => party.roles.includes('owner'));
   let delegatee = delegation.data?.parties.find(party => party.roles.includes('delegatee'));
 
-  return renderWithLoader({ instance, organization, project, delegation })(
-    ({ instance, organization, project, delegation }) => (
-      <ContentLayout>
-        <PageHeader
-          title={
-            owner?.actor.name && delegatee?.actor.name ? (
-              <>
-                {owner.actor.name} → {delegatee.actor.name}
-              </>
-            ) : (
-              'Identity Delegation'
+  return (
+    <ContentLayout>
+      <PageHeader
+        title={
+          owner?.actor.name && delegatee?.actor.name ? (
+            <>
+              {owner.actor.name} → {delegatee.actor.name}
+            </>
+          ) : delegation.data ? (
+            'Identity Delegation'
+          ) : (
+            '...'
+          )
+        }
+        pagination={[
+          {
+            label: 'Delegations',
+            href: Paths.instance.identity.delegations(
+              organization.data,
+              project.data,
+              instance.data
+            )
+          },
+          {
+            label: delegation.data?.id ?? identityDelegationId ?? '...',
+            href: Paths.instance.identity.delegation(
+              organization.data,
+              project.data,
+              instance.data,
+              delegation.data?.id ?? identityDelegationId
             )
           }
-          pagination={[
-            {
-              label: 'Delegations',
-              href: Paths.instance.identity.delegations(
-                organization.data,
-                project.data,
-                instance.data
-              )
-            },
-            {
-              label: delegation.data.id,
-              href: Paths.instance.identity.delegation(
-                organization.data,
-                project.data,
-                instance.data,
-                delegation.data.id
-              )
-            }
-          ]}
-        />
+        ]}
+      />
 
+      {renderWithLoader({ instance, organization, project, delegation })(() => (
         <Outlet />
-      </ContentLayout>
-    )
+      ))}
+    </ContentLayout>
   );
 };

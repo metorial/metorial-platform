@@ -54,6 +54,8 @@ model SlateInstanceEvent {
   tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
 
   createdAt DateTime @default(now())
+
+  @@index([tenantOid, createdAt])
 }
 
 model SlateInstanceConfig {
@@ -197,6 +199,8 @@ model SlateAuthConfigEvent {
   invocation    SlateInvocation? @relation(fields: [invocationOid], references: [oid], onDelete: Cascade)
 
   createdAt DateTime @default(now())
+
+  @@index([configOid, createdAt])
 }
 
 enum SlateInstanceOAuthSetupStatus {
@@ -267,4 +271,6 @@ model SlateInstanceOAuthSetupEvent {
   invocation    SlateInvocation? @relation(fields: [invocationOid], references: [oid], onDelete: Cascade)
 
   createdAt DateTime @default(now())
+
+  @@index([setupOid, createdAt])
 }

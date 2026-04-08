@@ -1,7 +1,3 @@
-import {
-  DashboardInstanceSessionsCreateOutput,
-  DashboardInstanceSessionTemplatesProvidersListOutput
-} from '@metorial/dashboard-sdk';
 import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
@@ -42,10 +38,6 @@ export let MagicMcpServerLayout = () => {
     server.data?.id ?? magicMcpServerId
   ] as const;
 
-  let getFirstSessionDeploymentId = (
-    session: DashboardInstanceSessionsCreateOutput
-  ): string | null => session.providers[0]?.deployment?.id ?? null;
-
   let handleOpenExplorer = async () => {
     let activeSessionTemplateId = server.data?.sessionTemplateId;
     if (
@@ -64,24 +56,14 @@ export let MagicMcpServerLayout = () => {
     setIsCreatingSession(false);
 
     if (res) {
-      let firstDeploymentId =
-        getFirstSessionDeploymentId(res) ??
-        providers.data.items.find(
-          (
-            provider
-          ): provider is DashboardInstanceSessionTemplatesProvidersListOutput['items'][number] & {
-            deployment: { id: string };
-          } => !!provider.deployment?.id
-        )?.deployment.id ??
-        null;
-      if (firstDeploymentId) {
-        navigate(
-          Paths.instance.explorer(organization.data, project.data, instance.data, {
-            provider_deployment_id: firstDeploymentId,
-            session_id: res.id
-          })
-        );
-      }
+      navigate(
+        Paths.instance.explorer(organization.data, project.data, instance.data, {
+          session_id: res.id
+        }),
+        {
+          state: { magicMcpServerId: server.data?.id ?? magicMcpServerId }
+        }
+      );
     }
   };
 

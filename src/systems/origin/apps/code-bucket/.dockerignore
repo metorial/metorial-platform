@@ -1,0 +1,22 @@
+# Ignore everything not needed for build
+.git
+.gitignore
+.env
+.env.local
+*.md
+LICENSE
+
+# Ignore test files
+*_test.go
+testdata/
+
+# Ignore local development files
+.vscode/
+.idea/
+
+# Ignore built binaries
+code-bucket
+*.exe
+*.dll
+*.so
+*.dylib

@@ -23,6 +23,7 @@ describe('tenant.e2e', () => {
     let tenant = await client.tenant.upsert({
       name: 'Test Tenant',
       identifier: 'test-tenant',
+      logRetentionInDays: 14,
       environments: [
         {
           name: 'Development',
@@ -36,6 +37,7 @@ describe('tenant.e2e', () => {
       id: expect.any(String),
       identifier: 'test-tenant',
       name: 'Test Tenant',
+      logRetentionInDays: 14,
       createdAt: expect.any(Date)
     });
 
@@ -47,7 +49,8 @@ describe('tenant.e2e', () => {
     expect(fetched).toMatchObject({
       id: tenant.id,
       identifier: tenant.identifier,
-      name: tenant.name
+      name: tenant.name,
+      logRetentionInDays: 14
     });
   });
 });

@@ -131,6 +131,136 @@ class serverAuthConfigServiceImpl {
     return serverAuthConfig;
   }
 
+  async deleteServerAuthConfig(d: {
+    tenant: Tenant;
+    serverAuthConfig: {
+      oid: bigint;
+      remoteOAuthConnectionAuthTokenOid: bigint | null;
+      delegatedOAuthConnectionAuthTokenOid: bigint | null;
+    };
+  }) {
+    let remoteToken = d.serverAuthConfig.remoteOAuthConnectionAuthTokenOid
+      ? await db.remoteOAuthConnectionAuthToken.findUnique({
+          where: {
+            oid: d.serverAuthConfig.remoteOAuthConnectionAuthTokenOid
+          },
+          select: {
+            oid: true,
+            secretOid: true
+          }
+        })
+      : null;
+
+    let delegatedToken = d.serverAuthConfig.delegatedOAuthConnectionAuthTokenOid
+      ? await db.delegatedOAuthConnectionAuthToken.findUnique({
+          where: {
+            oid: d.serverAuthConfig.delegatedOAuthConnectionAuthTokenOid
+          },
+          select: {
+            oid: true,
+            secretOid: true
+          }
+        })
+      : null;
+
+    let connections = await db.serverConnection.findMany({
+      where: {
+        serverAuthConfigOid: d.serverAuthConfig.oid
+      },
+      select: { oid: true }
+    });
+    let connectionOids = connections.map(connection => connection.oid);
+
+    return await db.$transaction(async db => {
+      await db.serverAuthConfigExport.deleteMany({
+        where: {
+          serverAuthConfigOid: d.serverAuthConfig.oid
+        }
+      });
+
+      await db.serverOAuthSetup.deleteMany({
+        where: {
+          authConfigOid: d.serverAuthConfig.oid
+        }
+      });
+
+      await db.serverDiscovery.deleteMany({
+        where: {
+          serverAuthConfigOid: d.serverAuthConfig.oid
+        }
+      });
+
+      if (connectionOids.length) {
+        await db.serverDiscovery.deleteMany({
+          where: {
+            connectionOid: { in: connectionOids }
+          }
+        });
+
+        await db.serverConnectionNetworkRule.deleteMany({
+          where: {
+            serverConnectionOid: { in: connectionOids }
+          }
+        });
+
+        await db.serverConnectionLogsTemp.deleteMany({
+          where: {
+            serverConnectionOid: { in: connectionOids }
+          }
+        });
+
+        await db.functionServerInvocation.updateMany({
+          where: {
+            connectionOid: { in: connectionOids }
+          },
+          data: {
+            connectionOid: null
+          }
+        });
+
+        await db.serverConnection.deleteMany({
+          where: {
+            oid: { in: connectionOids }
+          }
+        });
+      }
+
+      if (remoteToken) {
+        await secretService.DANGEROUSLY_deleteSecret({
+          secretOid: remoteToken.secretOid,
+          tenant: d.tenant,
+          db
+        });
+
+        await db.remoteOAuthConnectionAuthToken.delete({
+          where: {
+            oid: remoteToken.oid
+          }
+        });
+      }
+
+      if (delegatedToken) {
+        await secretService.DANGEROUSLY_deleteSecret({
+          secretOid: delegatedToken.secretOid,
+          tenant: d.tenant,
+          db
+        });
+
+        await db.delegatedOAuthConnectionAuthToken.delete({
+          where: {
+            oid: delegatedToken.oid
+          }
+        });
+      }
+
+      await db.serverAuthConfig.delete({
+        where: {
+          oid: d.serverAuthConfig.oid
+        }
+      });
+    });
+  }
+
   async listServerAuthConfigs(d: { tenant: Tenant }) {
     return Paginator.create(({ prisma }) =>
       prisma(

@@ -250,8 +250,13 @@ export let providerAuthCredentialsController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
       .output(providerAuthCredentialsPresenter)
       .do(async ctx => {
+        let authCredentials = await subspaceProviderAuthCredentialsService.delete({
+          instance: ctx.instance,
+          providerAuthCredentialsId: ctx.authCredentials.id
+        });
+
         return providerAuthCredentialsPresenter.present({
-          authCredentials: ctx.authCredentials
+          authCredentials
         });
       })
   }

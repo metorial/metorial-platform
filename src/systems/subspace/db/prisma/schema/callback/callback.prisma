@@ -69,6 +69,7 @@ model Callback {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
+  archivedAt DateTime?
 
   callbackProviderTriggers      CallbackProviderTrigger[]
   callbackDestinationLinks      CallbackDestinationLink[]

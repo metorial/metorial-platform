@@ -5,13 +5,7 @@ export type ProviderDeploymentsSetupSessionsListOutput = {
     object: 'provider.setup_session';
     id: string;
     type: 'auth_only' | 'config_only' | 'auth_and_config';
-    status:
-      | 'failed'
-      | 'archived'
-      | 'deleted'
-      | 'pending'
-      | 'completed'
-      | 'expired';
+    status: 'failed' | 'archived' | 'deleted' | 'pending' | 'completed' | 'expired';
     url: string;
     name: string | null;
     description: string | null;
@@ -231,10 +225,7 @@ export let mapProviderDeploymentsSetupSessionsListOutput =
           name: mtMap.objectField('name', mtMap.passthrough()),
           description: mtMap.objectField('description', mtMap.passthrough()),
           metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-          configuration: mtMap.objectField(
-            'configuration',
-            mtMap.passthrough()
-          ),
+          configuration: mtMap.objectField('configuration', mtMap.passthrough()),
           providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
           identityId: mtMap.objectField('identity_id', mtMap.passthrough()),
           identityCredentialId: mtMap.objectField(
@@ -249,14 +240,8 @@ export let mapProviderDeploymentsSetupSessionsListOutput =
               type: mtMap.objectField('type', mtMap.passthrough()),
               key: mtMap.objectField('key', mtMap.passthrough()),
               name: mtMap.objectField('name', mtMap.passthrough()),
-              description: mtMap.objectField(
-                'description',
-                mtMap.passthrough()
-              ),
-              capabilities: mtMap.objectField(
-                'capabilities',
-                mtMap.passthrough()
-              ),
+              description: mtMap.objectField('description', mtMap.passthrough()),
+              capabilities: mtMap.objectField('capabilities', mtMap.passthrough()),
               inputSchema: mtMap.objectField(
                 'input_schema',
                 mtMap.object({
@@ -279,10 +264,7 @@ export let mapProviderDeploymentsSetupSessionsListOutput =
                     id: mtMap.objectField('id', mtMap.passthrough()),
                     scope: mtMap.objectField('scope', mtMap.passthrough()),
                     name: mtMap.objectField('name', mtMap.passthrough()),
-                    description: mtMap.objectField(
-                      'description',
-                      mtMap.passthrough()
-                    )
+                    description: mtMap.objectField('description', mtMap.passthrough())
                   })
                 )
               ),
@@ -302,10 +284,7 @@ export let mapProviderDeploymentsSetupSessionsListOutput =
               id: mtMap.objectField('id', mtMap.passthrough()),
               isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
               name: mtMap.objectField('name', mtMap.passthrough()),
-              description: mtMap.objectField(
-                'description',
-                mtMap.passthrough()
-              ),
+              description: mtMap.objectField('description', mtMap.passthrough()),
               metadata: mtMap.objectField('metadata', mtMap.passthrough()),
               providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
               createdAt: mtMap.objectField('created_at', mtMap.date()),
@@ -321,10 +300,7 @@ export let mapProviderDeploymentsSetupSessionsListOutput =
               isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
               isManaged: mtMap.objectField('is_managed', mtMap.passthrough()),
               name: mtMap.objectField('name', mtMap.passthrough()),
-              description: mtMap.objectField(
-                'description',
-                mtMap.passthrough()
-              ),
+              description: mtMap.objectField('description', mtMap.passthrough()),
               metadata: mtMap.objectField('metadata', mtMap.passthrough()),
               providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
               createdAt: mtMap.objectField('created_at', mtMap.date()),
@@ -342,10 +318,7 @@ export let mapProviderDeploymentsSetupSessionsListOutput =
               isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
               providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
               name: mtMap.objectField('name', mtMap.passthrough()),
-              description: mtMap.objectField(
-                'description',
-                mtMap.passthrough()
-              ),
+              description: mtMap.objectField('description', mtMap.passthrough()),
               metadata: mtMap.objectField('metadata', mtMap.passthrough()),
               toolFilter: mtMap.objectField(
                 'tool_filter',
@@ -365,18 +338,12 @@ export let mapProviderDeploymentsSetupSessionsListOutput =
                             mtMap.unionOption(
                               'object',
                               mtMap.object({
-                                type: mtMap.objectField(
-                                  'type',
-                                  mtMap.passthrough()
-                                ),
+                                type: mtMap.objectField('type', mtMap.passthrough()),
                                 keys: mtMap.objectField(
                                   'keys',
                                   mtMap.array(mtMap.passthrough())
                                 ),
-                                pattern: mtMap.objectField(
-                                  'pattern',
-                                  mtMap.passthrough()
-                                ),
+                                pattern: mtMap.objectField('pattern', mtMap.passthrough()),
                                 uris: mtMap.objectField(
                                   'uris',
                                   mtMap.array(mtMap.passthrough())
@@ -395,20 +362,11 @@ export let mapProviderDeploymentsSetupSessionsListOutput =
                 mtMap.object({
                   object: mtMap.objectField('object', mtMap.passthrough()),
                   id: mtMap.objectField('id', mtMap.passthrough()),
-                  isDefault: mtMap.objectField(
-                    'is_default',
-                    mtMap.passthrough()
-                  ),
+                  isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
                   name: mtMap.objectField('name', mtMap.passthrough()),
-                  description: mtMap.objectField(
-                    'description',
-                    mtMap.passthrough()
-                  ),
+                  description: mtMap.objectField('description', mtMap.passthrough()),
                   metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-                  providerId: mtMap.objectField(
-                    'provider_id',
-                    mtMap.passthrough()
-                  ),
+                  providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
                   createdAt: mtMap.objectField('created_at', mtMap.date()),
                   updatedAt: mtMap.objectField('updated_at', mtMap.date())
                 })
@@ -419,24 +377,12 @@ export let mapProviderDeploymentsSetupSessionsListOutput =
                   object: mtMap.objectField('object', mtMap.passthrough()),
                   id: mtMap.objectField('id', mtMap.passthrough()),
                   type: mtMap.objectField('type', mtMap.passthrough()),
-                  isDefault: mtMap.objectField(
-                    'is_default',
-                    mtMap.passthrough()
-                  ),
-                  isManaged: mtMap.objectField(
-                    'is_managed',
-                    mtMap.passthrough()
-                  ),
+                  isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
+                  isManaged: mtMap.objectField('is_managed', mtMap.passthrough()),
                   name: mtMap.objectField('name', mtMap.passthrough()),
-                  description: mtMap.objectField(
-                    'description',
-                    mtMap.passthrough()
-                  ),
+                  description: mtMap.objectField('description', mtMap.passthrough()),
                   metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-                  providerId: mtMap.objectField(
-                    'provider_id',
-                    mtMap.passthrough()
-                  ),
+                  providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
                   createdAt: mtMap.objectField('created_at', mtMap.date()),
                   updatedAt: mtMap.objectField('updated_at', mtMap.date())
                 })
@@ -449,14 +395,8 @@ export let mapProviderDeploymentsSetupSessionsListOutput =
                   type: mtMap.objectField('type', mtMap.passthrough()),
                   key: mtMap.objectField('key', mtMap.passthrough()),
                   name: mtMap.objectField('name', mtMap.passthrough()),
-                  description: mtMap.objectField(
-                    'description',
-                    mtMap.passthrough()
-                  ),
-                  capabilities: mtMap.objectField(
-                    'capabilities',
-                    mtMap.passthrough()
-                  ),
+                  description: mtMap.objectField('description', mtMap.passthrough()),
+                  capabilities: mtMap.objectField('capabilities', mtMap.passthrough()),
                   inputSchema: mtMap.objectField(
                     'input_schema',
                     mtMap.object({
@@ -475,24 +415,15 @@ export let mapProviderDeploymentsSetupSessionsListOutput =
                     'scopes',
                     mtMap.array(
                       mtMap.object({
-                        object: mtMap.objectField(
-                          'object',
-                          mtMap.passthrough()
-                        ),
+                        object: mtMap.objectField('object', mtMap.passthrough()),
                         id: mtMap.objectField('id', mtMap.passthrough()),
                         scope: mtMap.objectField('scope', mtMap.passthrough()),
                         name: mtMap.objectField('name', mtMap.passthrough()),
-                        description: mtMap.objectField(
-                          'description',
-                          mtMap.passthrough()
-                        )
+                        description: mtMap.objectField('description', mtMap.passthrough())
                       })
                     )
                   ),
-                  providerId: mtMap.objectField(
-                    'provider_id',
-                    mtMap.passthrough()
-                  ),
+                  providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
                   providerSpecificationId: mtMap.objectField(
                     'provider_specification_id',
                     mtMap.passthrough()
@@ -512,10 +443,7 @@ export let mapProviderDeploymentsSetupSessionsListOutput =
               id: mtMap.objectField('id', mtMap.passthrough()),
               isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
               name: mtMap.objectField('name', mtMap.passthrough()),
-              description: mtMap.objectField(
-                'description',
-                mtMap.passthrough()
-              ),
+              description: mtMap.objectField('description', mtMap.passthrough()),
               metadata: mtMap.objectField('metadata', mtMap.passthrough()),
               toolFilter: mtMap.objectField(
                 'tool_filter',
@@ -535,18 +463,12 @@ export let mapProviderDeploymentsSetupSessionsListOutput =
                             mtMap.unionOption(
                               'object',
                               mtMap.object({
-                                type: mtMap.objectField(
-                                  'type',
-                                  mtMap.passthrough()
-                                ),
+                                type: mtMap.objectField('type', mtMap.passthrough()),
                                 keys: mtMap.objectField(
                                   'keys',
                                   mtMap.array(mtMap.passthrough())
                                 ),
-                                pattern: mtMap.objectField(
-                                  'pattern',
-                                  mtMap.passthrough()
-                                ),
+                                pattern: mtMap.objectField('pattern', mtMap.passthrough()),
                                 uris: mtMap.objectField(
                                   'uris',
                                   mtMap.array(mtMap.passthrough())
@@ -561,29 +483,17 @@ export let mapProviderDeploymentsSetupSessionsListOutput =
                 ])
               ),
               providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-              specificationId: mtMap.objectField(
-                'specification_id',
-                mtMap.passthrough()
-              ),
+              specificationId: mtMap.objectField('specification_id', mtMap.passthrough()),
               deployment: mtMap.objectField(
                 'deployment',
                 mtMap.object({
                   object: mtMap.objectField('object', mtMap.passthrough()),
                   id: mtMap.objectField('id', mtMap.passthrough()),
-                  isDefault: mtMap.objectField(
-                    'is_default',
-                    mtMap.passthrough()
-                  ),
+                  isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
                   name: mtMap.objectField('name', mtMap.passthrough()),
-                  description: mtMap.objectField(
-                    'description',
-                    mtMap.passthrough()
-                  ),
+                  description: mtMap.objectField('description', mtMap.passthrough()),
                   metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-                  providerId: mtMap.objectField(
-                    'provider_id',
-                    mtMap.passthrough()
-                  ),
+                  providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
                   createdAt: mtMap.objectField('created_at', mtMap.date()),
                   updatedAt: mtMap.objectField('updated_at', mtMap.date())
                 })
@@ -594,37 +504,19 @@ export let mapProviderDeploymentsSetupSessionsListOutput =
                   object: mtMap.objectField('object', mtMap.passthrough()),
                   id: mtMap.objectField('id', mtMap.passthrough()),
                   name: mtMap.objectField('name', mtMap.passthrough()),
-                  description: mtMap.objectField(
-                    'description',
-                    mtMap.passthrough()
-                  ),
+                  description: mtMap.objectField('description', mtMap.passthrough()),
                   metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-                  providerId: mtMap.objectField(
-                    'provider_id',
-                    mtMap.passthrough()
-                  ),
+                  providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
                   deployment: mtMap.objectField(
                     'deployment',
                     mtMap.object({
                       object: mtMap.objectField('object', mtMap.passthrough()),
                       id: mtMap.objectField('id', mtMap.passthrough()),
-                      isDefault: mtMap.objectField(
-                        'is_default',
-                        mtMap.passthrough()
-                      ),
+                      isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
                       name: mtMap.objectField('name', mtMap.passthrough()),
-                      description: mtMap.objectField(
-                        'description',
-                        mtMap.passthrough()
-                      ),
-                      metadata: mtMap.objectField(
-                        'metadata',
-                        mtMap.passthrough()
-                      ),
-                      providerId: mtMap.objectField(
-                        'provider_id',
-                        mtMap.passthrough()
-                      ),
+                      description: mtMap.objectField('description', mtMap.passthrough()),
+                      metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+                      providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
                       createdAt: mtMap.objectField('created_at', mtMap.date()),
                       updatedAt: mtMap.objectField('updated_at', mtMap.date())
                     })
@@ -648,10 +540,7 @@ export let mapProviderDeploymentsSetupSessionsListOutput =
     pagination: mtMap.objectField(
       'pagination',
       mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
+        hasMoreBefore: mtMap.objectField('has_more_before', mtMap.passthrough()),
         hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
       })
     )
@@ -772,4 +661,3 @@ export let mapProviderDeploymentsSetupSessionsListQuery = mtMap.union([
     })
   )
 ]);
-

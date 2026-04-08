@@ -22,6 +22,11 @@ export let useCreateSessionTemplate = sessionTemplatesLoader.createExternalMutat
   { disableToast: true }
 );
 
+export let useDeleteSessionTemplate = sessionTemplatesLoader.createExternalMutator(
+  (i: { instanceId: string; sessionTemplateId: string }) =>
+    withAuth(sdk => sdk.sessionTemplates.delete(i.instanceId, i.sessionTemplateId))
+);
+
 export let useSessionTemplates = (
   instanceId: string | null | undefined,
   query?: DashboardInstanceSessionTemplatesListQuery
@@ -42,7 +47,9 @@ export let sessionTemplateLoader = createLoader({
     update: (
       body: { name?: string; description?: string; metadata?: Record<string, any> },
       { input: { instanceId, sessionTemplateId } }
-    ) => withAuth(sdk => sdk.sessionTemplates.update(instanceId, sessionTemplateId, body))
+    ) => withAuth(sdk => sdk.sessionTemplates.update(instanceId, sessionTemplateId, body)),
+    delete: (_, { input: { instanceId, sessionTemplateId } }) =>
+      withAuth(sdk => sdk.sessionTemplates.delete(instanceId, sessionTemplateId))
   }
 });
 
@@ -56,7 +63,8 @@ export let useSessionTemplate = (
 
   return {
     ...data,
-    useUpdateMutator: data.useMutator('update')
+    useUpdateMutator: data.useMutator('update'),
+    useDeleteMutator: data.useMutator('delete')
   };
 };
 

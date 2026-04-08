@@ -1,0 +1,53 @@
+model ScmInstallationSession {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  ownerActorOid BigInt
+  ownerActor    Actor  @relation(fields: [ownerActorOid], references: [oid], onDelete: Cascade)
+
+  installationOid BigInt?          @unique
+  installation    ScmInstallation? @relation(fields: [installationOid], references: [oid], onDelete: Cascade)
+
+  redirectUrl String?
+
+  state String @unique
+
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  backendSetupSessions ScmBackendSetupSession[]
+
+  @@index([tenantOid])
+  @@index([state])
+}
+
+model ScmBackendSetupSession {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  backendOid BigInt?     @unique
+  backend    ScmBackend? @relation(fields: [backendOid], references: [oid], onDelete: Cascade)
+
+  parentInstallationSessionOid BigInt?
+  parentInstallationSession    ScmInstallationSession? @relation(fields: [parentInstallationSessionOid], references: [oid], onDelete: Cascade)
+
+  type ScmBackendType
+
+  redirectUrl String?
+
+  state String @unique
+
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([tenantOid])
+  @@index([state])
+}

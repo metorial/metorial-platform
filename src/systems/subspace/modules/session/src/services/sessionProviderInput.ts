@@ -69,9 +69,10 @@ class sessionProviderInputServiceImpl {
             d.providers.map(async s => {
               if (s.sessionTemplateId) {
                 let template = await db.sessionTemplate.findFirstOrThrow({
-                  where: { ...ts, id: s.sessionTemplateId },
+                  where: { ...ts, id: s.sessionTemplateId, status: 'active' as const },
                   include: {
                     providers: {
+                      where: { status: 'active' as const },
                       include: {
                         deployment: true,
                         config: true,
@@ -85,7 +86,7 @@ class sessionProviderInputServiceImpl {
                   deploymentId: tp.deployment.id,
                   configId: tp.config?.id,
                   authConfigId: tp.authConfig?.id,
-                  toolFilters: s.toolFilters,
+                  toolFilters: s.toolFilters ?? tp.toolFilter,
                   template,
                   templateProvider: tp
                 }));

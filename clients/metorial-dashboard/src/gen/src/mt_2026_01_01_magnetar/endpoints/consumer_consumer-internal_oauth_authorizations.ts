@@ -1,7 +1,4 @@
-import {
-  BaseMetorialEndpoint,
-  MetorialEndpointManager
-} from '@metorial/util-endpoint';
+import { MetorialEndpointManager } from '@metorial/util-endpoint';
 
 import {
   mapConsumerConsumerInternalOauthAuthorizationsAcceptOutput,

@@ -1,8 +1,12 @@
 import { ServiceError, badRequestError } from '@lowerdeck/error';
 import {
   IProviderDeployment,
+  type ProviderConfigDeleteParam,
+  type ProviderConfigDeleteRes,
   type ProviderConfigCreateParam,
   type ProviderConfigCreateRes,
+  type ProviderDeploymentDeleteParam,
+  type ProviderDeploymentDeleteRes,
   type ProviderDeploymentCreateParam,
   type ProviderDeploymentCreateRes,
   type ValidateNetworkingRulesetIdsParam,
@@ -26,9 +30,21 @@ export class ProviderDeployment extends IProviderDeployment {
     return {};
   }
 
+  override async deleteProviderDeployment(
+    _data: ProviderDeploymentDeleteParam
+  ): Promise<ProviderDeploymentDeleteRes> {
+    return {};
+  }
+
   override async createProviderConfig(
     _data: ProviderConfigCreateParam
   ): Promise<ProviderConfigCreateRes> {
+    return {};
+  }
+
+  override async deleteProviderConfig(
+    _data: ProviderConfigDeleteParam
+  ): Promise<ProviderConfigDeleteRes> {
     return {};
   }
 }

@@ -256,7 +256,12 @@ export let providerConfigController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.provider.config:write'] }))
       .output(providerConfigPresenter)
       .do(async ctx => {
-        return providerConfigPresenter.present({ config: ctx.config });
+        let config = await subspaceProviderConfigService.delete({
+          instance: ctx.instance,
+          providerConfigId: ctx.config.id
+        });
+
+        return providerConfigPresenter.present({ config });
       }),
 
     getConfigSchema: instanceGroup

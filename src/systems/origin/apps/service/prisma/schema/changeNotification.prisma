@@ -1,0 +1,21 @@
+enum ChangeNotificationType {
+  repo_push
+}
+
+model ChangeNotification {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  type ChangeNotificationType
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  repoOid BigInt
+  repo    ScmRepository @relation(fields: [repoOid], references: [oid])
+
+  repoPushOid BigInt?
+  repoPush    ScmRepositoryPush? @relation(fields: [repoPushOid], references: [oid])
+
+  createdAt DateTime @default(now())
+}

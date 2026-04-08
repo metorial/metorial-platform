@@ -8,6 +8,7 @@ export let v1SessionPresenter = Presenter.create(providerSessionType)
   .presenter(async ({ session }, opts) => ({
     object: 'session' as const,
     id: session.id,
+    status: session.status,
     name: session.name,
     description: session.description,
     metadata: session.metadata,
@@ -37,6 +38,10 @@ export let v1SessionPresenter = Presenter.create(providerSessionType)
         name: 'id',
         description: 'Unique session identifier',
         examples: ['ses_4dEfGhJkLmNpQrSt']
+      }),
+      status: v.enumOf(['active', 'archived', 'deleted'], {
+        name: 'status',
+        description: 'Session status'
       }),
       name: v.nullable(
         v.string({
