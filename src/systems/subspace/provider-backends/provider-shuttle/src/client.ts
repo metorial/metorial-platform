@@ -1,9 +1,9 @@
 import { delay } from '@lowerdeck/delay';
-import { db, type Tenant } from '@metorial-subspace/db';
 import {
   createLiveConnectionClient,
   createShuttleClient
-} from '../../../../_clients/shuttle/src';
+} from '@metorial-platform-systems/shuttle-client';
+import { db, type Tenant } from '@metorial-subspace/db';
 import { env } from './env';
 import { withShuttleRetry } from './shuttleRetry';
 

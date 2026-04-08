@@ -23,7 +23,7 @@ class tenantServiceImpl {
         ...getId('tenant'),
         name: d.input.name,
         identifier: d.input.identifier,
-        logRetentionInDays: d.input.logRetentionInDays ?? 30
+        logRetentionInDays: d.input.logRetentionInDays
       },
       include
     });

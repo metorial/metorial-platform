@@ -1,10 +1,13 @@
 import { createCron } from '@lowerdeck/cron';
 import { createQueue } from '@lowerdeck/queue';
+import { createClient } from '@lowerdeck/rpc-client';
 import { db } from '@metorial-subspace/db';
-import { createShuttleClient } from '../../../../../../_clients/shuttle/src';
-import { createSlatesHubInternalClient } from '../../../../../../_clients/slates/src';
+import { shuttleClient } from '@metorial-subspace/provider-shuttle';
+import { slatesClient } from '@metorial-subspace/provider-slates';
 import { env } from '../../env';
 import { RETENTION_BATCH_SIZE, retentionSyncWorkerOpts } from './_config';
+
+type ClientOpts = Parameters<typeof createClient>[0];
 
 export let tenantLogRetentionSyncSearchQueue = createQueue<{ cursor?: string }>({
   name: 'sub/ten/ret/sync/search',
@@ -60,11 +63,7 @@ export let tenantLogRetentionSyncQueueProcessor = tenantLogRetentionSyncQueue.pr
     if (!tenant) return;
 
     if (tenant.slateTenantId && env.service.SLATES_HUB_URL) {
-      let slates = createSlatesHubInternalClient({
-        endpoint: env.service.SLATES_HUB_URL
-      });
-
-      await slates.tenant.upsert({
+      await slatesClient.tenant.upsert({
         identifier: tenant.slateTenantIdentifier ?? tenant.identifier,
         name: tenant.name,
         logRetentionInDays: tenant.logRetentionInDays
@@ -72,11 +71,7 @@ export let tenantLogRetentionSyncQueueProcessor = tenantLogRetentionSyncQueue.pr
     }
 
     if (tenant.shuttleTenantId && env.service.SHUTTLE_URL) {
-      let shuttle = createShuttleClient({
-        endpoint: env.service.SHUTTLE_URL
-      });
-
-      await shuttle.tenant.upsert({
+      await shuttleClient.tenant.upsert({
         identifier: tenant.shuttleTenantIdentifier ?? tenant.identifier,
         name: tenant.name,
         logRetentionInDays: tenant.logRetentionInDays
