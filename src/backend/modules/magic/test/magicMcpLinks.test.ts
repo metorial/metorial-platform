@@ -205,7 +205,6 @@ describe('magic MCP link guards', () => {
     await magicMcpTokenService.recordMagicMcpTokenUse({
       token: { oid: 10n } as any,
       server: { oid: 20n } as any,
-      magicMcpTarget: 'server-alias',
       ip: '203.0.113.10',
       ua: null
     });
@@ -216,7 +215,7 @@ describe('magic MCP link guards', () => {
           magicMcpTokenOid: 10n,
           magicMcpServerOid: 20n,
           magicMcpEndpointOid: undefined,
-          magicMcpTarget: 'server-alias',
+          magicMcpTarget: 20n.toString(36),
           ip: '203.0.113.10',
           ua: '',
           hour: new Date('2026-04-08T12:00:00.000Z')
