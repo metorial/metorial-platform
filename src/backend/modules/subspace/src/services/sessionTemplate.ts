@@ -25,7 +25,6 @@ export let subspaceSessionTemplateService = createSubspaceService(
       arg0: Parameters<typeof inner.update>[0] & { _allowMagicMcpUpdate?: boolean }
     ) => {
       let eventBase = toEventBase(arg0);
-      await Fabric.fire('provider.session_template.updated:before', eventBase);
 
       let magicMcpLink = await db.magicMcpSubspaceSessionConnection.findFirst({
         where: { subspaceSessionTemplateId: arg0.sessionTemplateId }
@@ -37,6 +36,8 @@ export let subspaceSessionTemplateService = createSubspaceService(
           })
         );
       }
+
+      await Fabric.fire('provider.session_template.updated:before', eventBase);
 
       let sessionTemplate = await inner.update(arg0);
 
@@ -51,7 +52,6 @@ export let subspaceSessionTemplateService = createSubspaceService(
       arg0: Parameters<typeof inner.delete>[0] & { _allowMagicMcpDelete?: boolean }
     ) => {
       let eventBase = toEventBase(arg0);
-      await Fabric.fire('provider.session_template.deleted:before', eventBase);
 
       let magicMcpLink = await db.magicMcpSubspaceSessionConnection.findFirst({
         where: { subspaceSessionTemplateId: arg0.sessionTemplateId }
@@ -63,6 +63,8 @@ export let subspaceSessionTemplateService = createSubspaceService(
           })
         );
       }
+
+      await Fabric.fire('provider.session_template.deleted:before', eventBase);
 
       let sessionTemplate = await inner.delete(arg0);
 

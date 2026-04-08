@@ -22,6 +22,11 @@ import {
   consumerMagicMcpWriteRoles,
   type AnyAccessTagSelector
 } from '@metorial/module-access';
+import {
+  enqueueMagicMcpEndpointCreated,
+  enqueueMagicMcpEndpointDeleted,
+  enqueueMagicMcpEndpointUpdated
+} from '../queues/lifecycle/magicMcpEndpoint';
 import { getAccessTagFilter, getActiveStatusFilter } from './consumerAccess';
 
 let buildSlug = (name?: string | null) => {
@@ -243,7 +248,7 @@ class MagicMcpEndpointImpl {
       : [];
 
     try {
-      return await db.magicMcpEndpoint.create({
+      let magicMcpEndpoint = await db.magicMcpEndpoint.create({
         data: {
           id: await ID.generateId('magicMcpEndpoint'),
           status: 'active',
@@ -268,6 +273,10 @@ class MagicMcpEndpointImpl {
         },
         include: magicMcpEndpointInclude
       });
+
+      await enqueueMagicMcpEndpointCreated(magicMcpEndpoint.id);
+
+      return magicMcpEndpoint;
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
         throw new ServiceError(
@@ -290,7 +299,7 @@ class MagicMcpEndpointImpl {
       );
     }
 
-    return await db.magicMcpEndpoint.update({
+    let magicMcpEndpoint = await db.magicMcpEndpoint.update({
       where: {
         id: d.endpoint.id
       },
@@ -300,6 +309,10 @@ class MagicMcpEndpointImpl {
       },
       include: magicMcpEndpointInclude
     });
+
+    await enqueueMagicMcpEndpointDeleted(magicMcpEndpoint.id);
+
+    return magicMcpEndpoint;
   }
 
   async updateMagicMcpEndpoint(d: {
@@ -318,7 +331,7 @@ class MagicMcpEndpointImpl {
       );
     }
 
-    return await db.magicMcpEndpoint.update({
+    let magicMcpEndpoint = await db.magicMcpEndpoint.update({
       where: {
         id: d.endpoint.id
       },
@@ -330,6 +343,10 @@ class MagicMcpEndpointImpl {
       },
       include: magicMcpEndpointInclude
     });
+
+    await enqueueMagicMcpEndpointUpdated(magicMcpEndpoint.id);
+
+    return magicMcpEndpoint;
   }
 
   async addServersToEndpoint(d: {
@@ -374,12 +391,16 @@ class MagicMcpEndpointImpl {
       );
     }
 
-    return await db.magicMcpEndpoint.findUniqueOrThrow({
+    let magicMcpEndpoint = await db.magicMcpEndpoint.findUniqueOrThrow({
       where: {
         id: d.endpoint.id
       },
       include: magicMcpEndpointInclude
     });
+
+    await enqueueMagicMcpEndpointUpdated(magicMcpEndpoint.id);
+
+    return magicMcpEndpoint;
   }
 
   async removeServersFromEndpoint(d: {
@@ -402,12 +423,16 @@ class MagicMcpEndpointImpl {
       });
     }
 
-    return await db.magicMcpEndpoint.findUniqueOrThrow({
+    let magicMcpEndpoint = await db.magicMcpEndpoint.findUniqueOrThrow({
       where: {
         id: d.endpoint.id
       },
       include: magicMcpEndpointInclude
     });
+
+    await enqueueMagicMcpEndpointUpdated(magicMcpEndpoint.id);
+
+    return magicMcpEndpoint;
   }
 
   async listMagicMcpEndpoints(d: {

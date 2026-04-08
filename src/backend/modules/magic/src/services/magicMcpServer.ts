@@ -36,6 +36,7 @@ import {
 } from '@metorial/module-subspace';
 import {
   enqueueMagicMcpServerCreated,
+  enqueueMagicMcpServerDeleted,
   enqueueMagicMcpServerUpdated
 } from '../queues/lifecycle/magicMcpServer';
 import { getAccessTagFilter, getActiveStatusFilter } from './consumerAccess';
@@ -271,7 +272,7 @@ class MagicMcpServerImpl {
   }
 
   async archiveMagicMcpServer(d: { server: MagicMcpServer }) {
-    if (d.server.status === 'archived') {
+    if (d.server.status !== 'active') {
       throw new ServiceError(
         preconditionFailedError({
           message: 'The magic MCP server is already archived'
@@ -285,7 +286,7 @@ class MagicMcpServerImpl {
       include
     });
 
-    await enqueueMagicMcpServerUpdated(magicMcpServer.id);
+    await enqueueMagicMcpServerDeleted(magicMcpServer.id);
 
     return magicMcpServer;
   }
