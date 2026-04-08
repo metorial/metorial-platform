@@ -1,5 +1,3 @@
-import { subDays } from 'date-fns';
-
 export let RETENTION_BATCH_SIZE = 500;
 
 export let retentionCleanupWorkerOpts = {
@@ -18,6 +16,16 @@ export let retentionStorageCleanupWorkerOpts = {
   }
 };
 
+export let retentionSyncWorkerOpts = {
+  concurrency: 5,
+  limiter: {
+    max: 5,
+    duration: 1000
+  }
+};
+
 export let getRetentionCutoffDate = (logRetentionInDays: number) => {
-  return subDays(new Date(), Math.max(logRetentionInDays, 0));
+  let cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - Math.max(logRetentionInDays, 0));
+  return cutoffDate;
 };

@@ -48,7 +48,8 @@ export let getTenantForShuttle = async (tenant: Tenant) => {
   if (!tenant.shuttleTenantId) {
     let shuttleTenant = await shuttle.tenant.upsert({
       identifier: tenant.identifier,
-      name: tenant.name
+      name: tenant.name,
+      logRetentionInDays: tenant.logRetentionInDays
     });
 
     tenant = await db.tenant.update({

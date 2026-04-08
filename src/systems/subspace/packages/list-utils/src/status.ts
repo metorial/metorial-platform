@@ -80,11 +80,11 @@ export let normalizeStatusForGet = (d: { allowDeleted?: boolean }) => {
 
   return {
     hasParent: {
-      status: { notIn: ['archived' as const, 'deleted' as const] },
+      status: { notIn: ['deleted' as const] },
       isParentDeleted: false
     },
     noParent: {
-      status: { notIn: ['archived' as const, 'deleted' as const] }
+      status: { notIn: ['deleted' as const] }
     },
     onlyParent: {
       isParentDeleted: false

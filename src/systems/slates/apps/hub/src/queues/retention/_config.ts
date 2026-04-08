@@ -1,6 +1,6 @@
 import { subDays } from 'date-fns';
 
-export let RETENTION_BATCH_SIZE = 100;
+export let RETENTION_BATCH_SIZE = 500;
 
 export let retentionCleanupWorkerOpts = {
   concurrency: 2,

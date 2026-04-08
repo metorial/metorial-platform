@@ -49,6 +49,7 @@ export let tenantController = app.controller({
         name: v.string(),
         identifier: v.string(),
         onlyAllowTrustedProviders: v.optional(v.boolean()),
+        logRetentionInDays: v.optional(v.number()),
         environments: v.array(
           v.object({
             name: v.string(),
@@ -64,7 +65,8 @@ export let tenantController = app.controller({
           name: ctx.input.name,
           identifier: ctx.input.identifier,
           environments: ctx.input.environments as any,
-          onlyAllowTrustedProviders: ctx.input.onlyAllowTrustedProviders
+          onlyAllowTrustedProviders: ctx.input.onlyAllowTrustedProviders,
+          logRetentionInDays: ctx.input.logRetentionInDays
         }
       });
       return tenantPresenter(tenant);
