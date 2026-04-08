@@ -40,9 +40,11 @@ let include = {
   }
 } as const;
 
-let getPortalSlug = createSlugGenerator(async slug => {
-  return !(await db.portal.findFirst({ where: { slug } }));
-});
+let getPortalSlug = createSlugGenerator(
+  async slug =>
+    !(await db.portal.findFirst({ where: { slug } })) &&
+    !(await db.cellPortal.findFirst({ where: { slug } }))
+);
 
 let getPortalRedirectDomains = () => {
   return env.portal.PORTAL_REDIRECT_DOMAINS.split(',')
