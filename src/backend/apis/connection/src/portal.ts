@@ -3,11 +3,11 @@ import { useValidatedBody } from '@lowerdeck/hono';
 import { v } from '@lowerdeck/validation';
 import { getConfig } from '@metorial/config';
 import { db, ID } from '@metorial/db';
+import { generateCustomId } from '@lowerdeck/id';
 import { AuthInfo } from '@metorial/module-access';
 import { Authenticator } from '@metorial/rest';
 import { addDays } from 'date-fns';
 import { getMagicMcpTokenSecretFromRequest, handleMagicMcpRequest } from './magic';
-import { createOpaqueToken } from './oauth/challenge';
 import {
   exchangeAuthorizationCodeToken,
   exchangeRefreshToken,
@@ -138,7 +138,10 @@ export let createPortalHandler = (d: {
     });
   }
 
-  for (let path of [':portalId/:magicMcpTargetId/oauth/register', ':portalId/oauth/register']) {
+  for (let path of [
+    ':portalId/:magicMcpTargetId/oauth/register',
+    ':portalId/oauth/register'
+  ]) {
     connectPortalServer = connectPortalServer.post(path, async c => {
       let { portal, magicMcpTarget, base } = await resolveRoute(c);
 
@@ -202,7 +205,10 @@ export let createPortalHandler = (d: {
     });
   }
 
-  for (let path of [':portalId/:magicMcpTargetId/oauth/authorize', ':portalId/oauth/authorize']) {
+  for (let path of [
+    ':portalId/:magicMcpTargetId/oauth/authorize',
+    ':portalId/oauth/authorize'
+  ]) {
     connectPortalServer = connectPortalServer.get(path, async c => {
       let { portal, magicMcpTarget, portalUrl } = await resolveRoute(c);
 
@@ -309,7 +315,7 @@ export let createPortalHandler = (d: {
           status: 'pending',
           redirectUri,
           state,
-          authorizationCode: createOpaqueToken(),
+          authorizationCode: generateCustomId('prtl_oatc_', 35),
           codeChallengeMethod: normalizedCodeChallengeMethod,
           codeChallenge,
           expiresAt: addDays(new Date(), 30)

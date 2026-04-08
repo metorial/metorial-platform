@@ -17,8 +17,9 @@ import {
 } from '@metorial/module-magic';
 import { portalService } from '@metorial/module-portal';
 import { addDays } from 'date-fns';
-import { createCodeChallenge, createOpaqueToken } from './challenge';
+import { createCodeChallenge } from './challenge';
 import { urlsMatch } from './utils';
+import { generateCustomId } from '@lowerdeck/id';
 
 let portalAuthAttemptInclude = {
   portalAuthClient: true,
@@ -31,10 +32,7 @@ type PortalAuthAttemptWithRelations = Prisma.PortalAuthAttemptGetPayload<{
   include: typeof portalAuthAttemptInclude;
 }>;
 
-export let resolvePortalRoute = async (d: {
-  portalId: string;
-  magicMcpTargetId?: string;
-}) => {
+export let resolvePortalRoute = async (d: { portalId: string; magicMcpTargetId?: string }) => {
   let portal = await portalService.getPortalPublic({ portalId: d.portalId });
   let magicMcpTarget = d.magicMcpTargetId
     ? await resolveMagicMcpTargetByIdOrAlias(d.magicMcpTargetId)
@@ -327,7 +325,7 @@ export let exchangeAuthorizationCodeToken = async (d: {
     magicMcpTarget: d.magicMcpTarget
   });
 
-  let refreshToken = createOpaqueToken();
+  let refreshToken = generateCustomId('prtl_oatre_', 35);
   let updatedAttempt = await db.portalAuthAttempt.update({
     where: {
       id: attempt.id
@@ -380,7 +378,7 @@ export let exchangeRefreshToken = async (d: {
     magicMcpTarget: d.magicMcpTarget
   });
 
-  let nextRefreshToken = createOpaqueToken();
+  let nextRefreshToken = generateCustomId('prtl_oatre_', 35);
   let updatedAttempt = await db.portalAuthAttempt.update({
     where: {
       id: attempt.id
