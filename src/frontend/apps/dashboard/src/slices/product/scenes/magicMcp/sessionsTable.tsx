@@ -9,7 +9,7 @@ import {
   useCurrentProject,
   useMagicMcpSessions
 } from '@metorial/state';
-import { Badge, RenderDate, Text } from '@metorial/ui';
+import { RenderDate, Text } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import { Table as DashboardTable } from '../../../../components/table';
 import {
@@ -24,24 +24,6 @@ type MagicMcpSessionsTableProps = DashboardInstanceMagicMcpSessionsListQuery & {
   organization: ReturnType<typeof useCurrentOrganization>;
   project: ReturnType<typeof useCurrentProject>;
 };
-
-let MagicMcpServerStatusBadge = ({
-  status
-}: {
-  status: MagicMcpSession['magicMcpServer']['status'];
-}) => (
-  <Badge
-    color={
-      {
-        active: 'green' as const,
-        archived: 'orange' as const,
-        deleted: 'gray' as const
-      }[status] ?? 'gray'
-    }
-  >
-    {{ active: 'Active', archived: 'Archived', deleted: 'Deleted' }[status] ?? status}
-  </Badge>
-);
 
 let magicMcpSessionsState: TableStateProvider<
   MagicMcpSessionsTableProps,
