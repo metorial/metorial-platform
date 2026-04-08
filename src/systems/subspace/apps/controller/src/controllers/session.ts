@@ -127,7 +127,10 @@ export let sessionController = app.controller({
           return {
             ...resolved,
             sessionTemplateId: p.sessionTemplateId,
-            toolFilters: normalizeToolFilters(p.toolFilters),
+            toolFilters:
+              typeof p.toolFilters === 'undefined'
+                ? undefined
+                : normalizeToolFilters(p.toolFilters),
             __allowEphemeral: resolved.hasEphemeral
           };
         })
