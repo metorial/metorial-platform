@@ -268,21 +268,23 @@ export let ExplorerPage = () => {
   providerAuthConfigsRef.current = providerAuthConfigs;
 
   let pendingAuthConfigIdRef = useRef<string | null>(null);
+  let handleAuthConfigCreated = useCallback((authConfig: { id: string }) => {
+    pendingAuthConfigIdRef.current = authConfig.id;
+    setSelectedAuthConfigId(authConfig.id);
+    providerAuthConfigsRef.current.refetch();
+  }, []);
+
   let openAuthConfigCreateModal = useCallback(() => {
     if (!instance.data || !providerDeploymentId) return false;
 
     showProviderAuthConfigMethodPickerModal({
       instanceId: instance.data.id,
       providerDeploymentId,
-      onCreate: authConfig => {
-        pendingAuthConfigIdRef.current = authConfig.id;
-        setSelectedAuthConfigId(authConfig.id);
-        providerAuthConfigsRef.current.refetch();
-      }
+      onCreate: handleAuthConfigCreated
     });
 
     return true;
-  }, [instance.data, providerDeploymentId]);
+  }, [handleAuthConfigCreated, instance.data, providerDeploymentId]);
 
   useEffect(() => {
     let deploymentsForCurrentProvider = deployments.data?.items.filter(

@@ -166,6 +166,7 @@ export let ProviderAuthConfigCreateFlowContent = (
             onCreate={p.onCreate}
             onCancel={p.onBack}
             onWindowOpenStateChange={p.onWindowOpenStateChange}
+            embedded={p.embedded}
           />
         );
       }
