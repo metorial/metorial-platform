@@ -1,8 +1,4 @@
-import {
-  notFoundError,
-  preconditionFailedError,
-  ServiceError
-} from '@lowerdeck/error';
+import { notFoundError, preconditionFailedError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { createSlugGenerator } from '@lowerdeck/slugify';
@@ -14,10 +10,11 @@ import {
 } from '@metorial/module-consumer';
 import { env } from '../env';
 import {
-  buildPortalUrlFromTemplate,
-  getPortalUrlTemplate,
-  parsePortalIdFromTemplate
-} from '../portalUrlTemplate';
+  getPortalAllowedRedirectUrlFilters,
+  type PortalAllowedRedirectUrlFilter,
+  validatePortalAllowedRedirectUrlFilters
+} from '../lib/oauth';
+import { buildPortalUrlFromTemplate, parsePortalIdFromTemplate } from '../portalUrlTemplate';
 
 let include = {
   surface: {
@@ -66,6 +63,15 @@ let buildPortalAresAppSlug = (portalId: string) => {
 };
 
 type PortalSurface = ConsumerSurfaceWithPublishableApiKey;
+
+let resolvePortalAllowedRedirectUrlFilters = (
+  input?: PortalAllowedRedirectUrlFilter[] | null
+) => {
+  let allowedRedirectUrlFilters = getPortalAllowedRedirectUrlFilters(input);
+  validatePortalAllowedRedirectUrlFilters(allowedRedirectUrlFilters);
+
+  return allowedRedirectUrlFilters;
+};
 
 class PortalServiceImpl {
   private async configurePortalAres(d: {
@@ -149,6 +155,7 @@ class PortalServiceImpl {
       name: string;
       description?: string;
       sessionExpiryTimeInSeconds?: number;
+      allowedRedirectUrlFilters?: PortalAllowedRedirectUrlFilter[];
     };
   }) {
     let portalId = await ID.generateId('portal');
@@ -181,6 +188,9 @@ class PortalServiceImpl {
           name: d.input.name,
           description: d.input.description,
           slug,
+          allowedRedirectUrlFilters: resolvePortalAllowedRedirectUrlFilters(
+            d.input.allowedRedirectUrlFilters
+          ),
           organizationOid: d.organization.oid,
           surfaceOid: surface.oid,
           instanceOid: d.instance.oid
@@ -206,6 +216,7 @@ class PortalServiceImpl {
       name?: string;
       description?: string;
       sessionExpiryTimeInSeconds?: number;
+      allowedRedirectUrlFilters?: PortalAllowedRedirectUrlFilter[];
     };
   }) {
     if (d.portal.status != 'active') {
@@ -231,7 +242,11 @@ class PortalServiceImpl {
       },
       data: {
         name: d.input.name,
-        description: d.input.description
+        description: d.input.description,
+        allowedRedirectUrlFilters:
+          d.input.allowedRedirectUrlFilters !== undefined
+            ? resolvePortalAllowedRedirectUrlFilters(d.input.allowedRedirectUrlFilters)
+            : undefined
       },
       include
     });
@@ -299,4 +314,7 @@ class PortalServiceImpl {
   }
 }
 
-export let portalService = Service.create('portalService', () => new PortalServiceImpl()).build();
+export let portalService = Service.create(
+  'portalService',
+  () => new PortalServiceImpl()
+).build();

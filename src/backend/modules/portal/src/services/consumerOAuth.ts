@@ -15,24 +15,25 @@ import {
   type ConsumerProfile,
   type ConsumerSurface,
   type Instance,
-  type PortalAuthClient,
   type PortalAuthAttempt
 } from '@metorial/db';
+import { type AnyAccessTagSelector } from '@metorial/module-access';
 import {
   consumerProfileService,
   grantConsumerOwnedMagicMcpTokenAccess
 } from '@metorial/module-consumer';
-import { type AnyAccessTagSelector } from '@metorial/module-access';
 import {
   magicMcpEndpointService,
-  type MagicMcpResolvedTarget,
   magicMcpTokenService,
-  resolveMagicMcpTargetByIdOrAlias
+  resolveMagicMcpTargetByIdOrAlias,
+  type MagicMcpResolvedTarget
 } from '@metorial/module-magic';
 import { addDays, addMinutes, addSeconds } from 'date-fns';
 import {
   createCodeChallenge,
+  getPortalAllowedRedirectUrlFilters,
   urlsMatch,
+  validatePortalRedirectUrisAgainstAllowedFilters,
   validateRedirectUri,
   validateUrlString
 } from '../lib/oauth';
@@ -125,6 +126,12 @@ class ConsumerOAuthServiceImpl {
     for (let redirectUri of d.input.redirectUris) {
       validateUrlString(redirectUri, 'redirect_uri');
     }
+    validatePortalRedirectUrisAgainstAllowedFilters({
+      redirectUris: d.input.redirectUris,
+      allowedRedirectUrlFilters: getPortalAllowedRedirectUrlFilters(
+        d.portal.allowedRedirectUrlFilters
+      )
+    });
 
     let tokenEndpointAuthMethod = d.input.tokenEndpointAuthMethod ?? 'client_secret_basic';
     let clientSecret =

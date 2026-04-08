@@ -288,5 +288,9 @@ declare global {
         roles?: string[];
       }[];
     };
+
+    type PortalAllowedRedirectUrlFilters = {
+      url: string;
+    }[];
   }
 }

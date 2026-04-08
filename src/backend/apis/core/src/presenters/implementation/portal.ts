@@ -1,5 +1,6 @@
 import { v } from '@lowerdeck/validation';
 import { getOrganizationBrand } from '@metorial/db';
+import { getPortalAllowedRedirectUrlFilters } from '@metorial/module-portal';
 import { Presenter } from '@metorial/presenter';
 import { portalType } from '../types';
 
@@ -13,7 +14,10 @@ export let v1PortalPresenter = Presenter.create(portalType)
     description: portal.description,
     auth: {
       object: 'portal.auth' as const,
-      session_expiry_time_in_seconds: portal.surface.sessionExpiryTimeInSeconds
+      session_expiry_time_in_seconds: portal.surface.sessionExpiryTimeInSeconds,
+      allowed_redirect_url_filters: getPortalAllowedRedirectUrlFilters(
+        portal.allowedRedirectUrlFilters
+      )
     },
     urls: [
       {
@@ -35,7 +39,12 @@ export let v1PortalPresenter = Presenter.create(portalType)
       description: v.nullable(v.string()),
       auth: v.object({
         object: v.literal('portal.auth'),
-        session_expiry_time_in_seconds: v.number()
+        session_expiry_time_in_seconds: v.number(),
+        allowed_redirect_url_filters: v.array(
+          v.object({
+            url: v.string()
+          })
+        )
       }),
       urls: v.array(
         v.object({
