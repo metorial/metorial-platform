@@ -4,6 +4,7 @@ import type {
   ProviderListingsGetOutput
 } from '@metorial/dashboard-sdk';
 import { renderWithLoader, useForm } from '@metorial/data-hooks';
+import { Paths } from '@metorial/frontend-config';
 import {
   useCreateProviderDeployment,
   useCreateSession,
@@ -15,13 +16,18 @@ import {
   useProviderConfigs,
   useProviderDeployment,
   useProviderDeploymentConfigSchema,
-  useProviderDeployments
+  useProviderDeployments,
+  useProviderListings,
+  useSession
 } from '@metorial/state';
 import {
+  Avatar,
   Button,
   CenteredSpinner,
+  Entity,
   Flex,
   Input,
+  RenderDate,
   Select,
   Spacer,
   Tabs,
@@ -31,7 +37,7 @@ import {
 import { RiAddLine, RiArrowLeftLine, RiArrowRightLine, RiCloseLine } from '@remixicon/react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { Explainer } from '../../../../components/explainer';
 import {
@@ -135,11 +141,40 @@ let SetupCard = styled.div`
   padding: 20px;
 `;
 
+let TemplateSessionCards = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+`;
+
+let TemplateSessionCard = styled(Link)`
+  display: block;
+  text-decoration: none;
+  width: 100%;
+`;
+
+let TemplateSessionCardButton = styled.div`
+  display: flex;
+  width: 100%;
+  transition:
+    transform 0.15s ease,
+    filter 0.15s ease;
+
+  &:hover {
+    filter: brightness(0.99);
+  }
+`;
+
 export let ExplorerPage = () => {
+  let location = useLocation();
   let [search, setSearch] = useSearchParams();
   let providerIdParam = search.get('provider_id');
   let providerDeploymentIdParam = search.get('provider_deployment_id');
   let sessionIdParam = search.get('session_id');
+  let sessionTemplateIdFromState =
+    (location.state as { sessionTemplateId?: string } | null)?.sessionTemplateId ?? null;
+  let isSessionFirstMode = !!sessionIdParam && !providerDeploymentIdParam && !providerIdParam;
 
   let [open, setOpen] = useState(!providerDeploymentIdParam && !sessionIdParam);
 
@@ -212,6 +247,35 @@ export let ExplorerPage = () => {
   );
 
   let provider = useProvider(instance.data?.id, providerIdParam ?? undefined);
+  let sessionFromQuery = useSession(instance.data?.id, sessionIdParam ?? undefined);
+  let resolvedSessionTemplateId =
+    sessionTemplateIdFromState ?? sessionFromQuery.data?.fromTemplatesIds?.[0] ?? null;
+  let sessionProviderIds = useMemo(
+    () =>
+      [
+        ...new Set((sessionFromQuery.data?.providers ?? []).map(sessionProvider => sessionProvider.providerId))
+      ].sort(),
+    [sessionFromQuery.data?.providers]
+  );
+  let sessionProviderListings = useProviderListings(
+    instance.data?.id,
+    sessionProviderIds.length > 0
+      ? {
+          orderByRank: true,
+          limit: Math.max(sessionProviderIds.length, 100)
+        }
+      : null
+  );
+  let sessionProviderLookup = useMemo(() => {
+    let lookup = new Map<string, { name?: string | null; imageUrl?: string | null }>();
+    for (let providerListing of sessionProviderListings.data?.items ?? []) {
+      lookup.set(providerListing.provider.id, {
+        name: providerListing.name ?? providerListing.provider.name,
+        imageUrl: providerListing.imageUrl
+      });
+    }
+    return lookup;
+  }, [sessionProviderListings.data?.items]);
   let [selectedProvider, _setSelectedProvider] = useState<ProviderSelection | null>(null);
   useEffect(() => {
     if (provider.data) {
@@ -236,7 +300,6 @@ export let ExplorerPage = () => {
     },
     [resetSessionSetupSelections]
   );
-
   let deploymentsFilter = useMemo(
     () => ({
       providerId: selectedProvider ? selectedProvider.id : undefined
@@ -370,6 +433,7 @@ export let ExplorerPage = () => {
   useEffect(() => {
     if (
       !selectedProvider &&
+      !isSessionFirstMode &&
       !!providerDeploymentId &&
       activeProvider.data &&
       selectedDeployment.data?.providerId
@@ -385,6 +449,7 @@ export let ExplorerPage = () => {
     }
   }, [
     selectedProvider,
+    isSessionFirstMode,
     providerDeploymentId,
     activeProvider.data,
     selectedDeployment.data,
@@ -651,7 +716,93 @@ export let ExplorerPage = () => {
 
             {open && (
               <Providers>
-                {!selectedProvider && !providerIdParam && (
+                {isSessionFirstMode && !selectedProvider && !providerIdParam && (
+                  <>
+                    <Flex justify="space-between" align="center">
+                      <Text as="p" size="3" weight="strong" color="gray900">
+                        Template session
+                      </Text>
+                      <Button
+                        iconLeft={<RiCloseLine />}
+                        onClick={() => setOpen(false)}
+                        size="1"
+                        variant="outline"
+                        type="button"
+                      >
+                        Close
+                      </Button>
+                    </Flex>
+
+                    <Spacer height={8} />
+
+                    {renderWithLoader({ session: sessionFromQuery })(({ session }) => (
+                      <Flex direction="column" gap={8} style={{ width: '100%' }}>
+                        <Text as="p" size="2" color="gray600">
+                          Providers in this session
+                        </Text>
+
+                        {session.data.providers.length === 0 ? (
+                          <Text size="2" color="gray600">
+                            No providers are attached to this session.
+                          </Text>
+                        ) : (
+                          <TemplateSessionCards>
+                            {session.data.providers.map(provider => (
+                              <TemplateSessionCard
+                                key={provider.id}
+                                to={Paths.instance.providerDeployment(
+                                  instance.data?.organization,
+                                  instance.data?.project,
+                                  instance.data,
+                                  provider.deployment.id
+                                )}
+                              >
+                                <TemplateSessionCardButton>
+                                  <Entity.Wrapper style={{ width: '100%' }}>
+                                    <Entity.Content>
+                                      <Entity.Field
+                                        prefix={
+                                          <Avatar
+                                            entity={{
+                                              name:
+                                                sessionProviderLookup.get(provider.providerId)?.name ??
+                                                provider.providerId,
+                                              imageUrl:
+                                                sessionProviderLookup.get(provider.providerId)?.imageUrl
+                                            }}
+                                            size={28}
+                                            radius={8}
+                                            noTooltip
+                                            imageFit="contain"
+                                          />
+                                        }
+                                        title={
+                                          provider.deployment.name ??
+                                          provider.deployment.id ??
+                                          provider.providerId
+                                        }
+                                      />
+                                      <Entity.Field
+                                        title={
+                                          <Text size="1" color="gray500">
+                                            <RenderDate date={provider.deployment.createdAt} />
+                                          </Text>
+                                        }
+                                        right
+                                      />
+                                    </Entity.Content>
+                                  </Entity.Wrapper>
+                                </TemplateSessionCardButton>
+                              </TemplateSessionCard>
+                            ))}
+                          </TemplateSessionCards>
+                        )}
+                      </Flex>
+                    ))}
+                  </>
+                )}
+
+                {!isSessionFirstMode && !selectedProvider && !providerIdParam && (
                   <>
                     {providerDeploymentId && (
                       <>
@@ -830,7 +981,12 @@ export let ExplorerPage = () => {
           </MainEmpty>
         )}
 
-        {sessionId && !isCreatingSession && <InspectorFrame sessionId={sessionId} />}
+        {sessionId && !isCreatingSession && (
+          <InspectorFrame
+            sessionId={sessionId}
+            sessionTemplateId={resolvedSessionTemplateId}
+          />
+        )}
       </Main>
 
       <Explainer
