@@ -788,6 +788,10 @@ class ConsumerProviderCatalogServiceImpl {
           if (!deployment) {
             throw new ServiceError(notFoundError('provider.deployment'));
           }
+          let provider = providerMap.get(deployment.providerId);
+          if (!provider) {
+            throw new ServiceError(notFoundError('provider'));
+          }
 
           let [configSchema, authMethods] = await Promise.all([
             subspaceProviderConfigService.getConfigSchema({
