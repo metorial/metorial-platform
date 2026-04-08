@@ -1,5 +1,5 @@
-import { ChannelCredentials, type ChannelOptions } from '@grpc/grpc-js';
-import { createChannel, createClient, type Client } from 'nice-grpc';
+import type { ChannelOptions } from '@grpc/grpc-js';
+import { ChannelCredentials, createChannel, createClient, type Client } from 'nice-grpc';
 import { CodeBucketService } from './ts-proto-gen/rpc';
 
 export let createCodeBucketClient = (opts: {

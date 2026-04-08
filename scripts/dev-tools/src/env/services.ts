@@ -15,6 +15,14 @@ export let originServiceEnv: Env = [
     defaultValue: `http://${HOSTNAME}:52093`
   },
   {
+    key: 'OBJECT_STORAGE_URL',
+    defaultValue: 'http://services:52010'
+  },
+  {
+    key: 'CODE_BUCKET_OBJECT_STORAGE_BUCKET',
+    defaultValue: 'code-bucket'
+  },
+  {
     key: 'CODE_BUCKET_SERVICE_URL',
     defaultValue: `${HOSTNAME}:5050`
   },
@@ -63,7 +71,7 @@ export let originCodeBucketEnv: Env = [
   },
   {
     key: 'CODE_BUCKET_OBJECT_STORAGE_BUCKET',
-    defaultValue: 'metorial-code-bucket-dev'
+    defaultValue: 'code-bucket'
   },
   {
     key: 'CODE_BUCKET_REDIS_URL',
@@ -227,7 +235,7 @@ export let subspaceDevEnv: Env = [
   },
   {
     key: 'ORIGIN_URL',
-    defaultValue: `http://services:52090/metorial-origin`
+    defaultValue: `http://localhost:52090/metorial-origin`
   },
   {
     key: 'REGISTRY_URL',

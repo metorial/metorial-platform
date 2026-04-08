@@ -1486,6 +1486,7 @@
         "@lowerdeck/cache": "^1.0.1",
         "@lowerdeck/canonicalize": "^1.0.4",
         "@lowerdeck/cron": "^1.0.7",
+        "@lowerdeck/delay": "^1.0.4",
         "@lowerdeck/encryption": "^1.0.7",
         "@lowerdeck/env": "^1.0.4",
         "@lowerdeck/error": "^1.1.0",

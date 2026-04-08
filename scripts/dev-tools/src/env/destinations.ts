@@ -2,6 +2,8 @@ import { backendEnv } from './backend';
 import { frontendEnv } from './frontend';
 import {
   horizonServiceEnv,
+  originCodeBucketEnv,
+  originServiceEnv,
   shuttleServiceEnv,
   slatesHubEnv,
   slatesRegistryEnv,
@@ -73,16 +75,16 @@ export let destinations: Destination[] = [
     env: slatesRegistryEnv,
     path: 'src/systems/slates/apps/registry'
   },
-  // {
-  //   type: 'enterprise',
-  //   env: originServiceEnv,
-  //   path: 'systems/origin/apps/service'
-  // },
-  // {
-  //   type: 'enterprise',
-  //   env: originCodeBucketEnv,
-  //   path: 'systems/origin/apps/code-bucket'
-  // },
+  {
+    type: 'oss',
+    env: originServiceEnv,
+    path: 'src/systems/origin/apps/service'
+  },
+  {
+    type: 'oss',
+    env: originCodeBucketEnv,
+    path: 'src/systems/origin/apps/code-bucket'
+  },
   {
     type: 'oss',
     env: shuttleServiceEnv,
