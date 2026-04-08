@@ -86,7 +86,7 @@ class sessionProviderInputServiceImpl {
                   deploymentId: tp.deployment.id,
                   configId: tp.config?.id,
                   authConfigId: tp.authConfig?.id,
-                  toolFilters: s.toolFilters,
+                  toolFilters: s.toolFilters ?? tp.toolFilter,
                   template,
                   templateProvider: tp
                 }));
