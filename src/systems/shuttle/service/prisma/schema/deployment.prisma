@@ -27,6 +27,8 @@ model ServerDeployment {
 
   steps         ServerDeploymentStep[]
   serverVersion ServerVersion?
+
+  @@index([tenantOid, createdAt])
 }
 
 enum ServerDeploymentStepType {
@@ -58,4 +60,6 @@ model ServerDeploymentStep {
   createdAt DateTime  @default(now())
   startedAt DateTime?
   endedAt   DateTime?
+
+  @@index([deploymentOid, createdAt])
 }
