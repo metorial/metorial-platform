@@ -57,6 +57,8 @@ services:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/postgres
       REDIS_URL: redis://redis:6379/0
       ORIGIN_SERVICE_PUBLIC_URL: http://localhost:52093
+      OBJECT_STORAGE_URL: http://object-storage:52010
+      CODE_BUCKET_OBJECT_STORAGE_BUCKET: code-bucket
       CODE_BUCKET_SERVICE_URL: code-bucket:5050
       CODE_BUCKET_EDITOR_URL: ${CODE_BUCKET_EDITOR_URL:-http://localhost:52092}
       SCM_GITHUB_APP_ID: ${SCM_GITHUB_APP_ID}

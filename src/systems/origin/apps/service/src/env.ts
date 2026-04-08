@@ -9,6 +9,11 @@ export let env = createValidatedEnv({
     ORIGIN_SERVICE_PUBLIC_URL: v.string()
   },
 
+  storage: {
+    OBJECT_STORAGE_URL: v.string(),
+    CODE_BUCKET_OBJECT_STORAGE_BUCKET: v.string()
+  },
+
   codeBucket: {
     CODE_BUCKET_SERVICE_URL: v.string(),
     CODE_BUCKET_EDITOR_URL: v.string()

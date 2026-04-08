@@ -7,6 +7,7 @@ const require = createRequire(import.meta.url);
 
 async function main() {
   await import('./init');
+  await import('./storage');
   await import('./instrument');
   await import('./endpoints');
   await import('./worker');

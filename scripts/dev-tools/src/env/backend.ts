@@ -69,7 +69,7 @@ export let backendEnv: Env = [
 
   { key: 'ENCRYPTION_SECRET', defaultValue: `encryption-secret` },
 
-  { key: 'OBJECT_STORAGE_URL', defaultValue: 'http://services:52010' },
+  { key: 'OBJECT_STORAGE_URL', defaultValue: 'http://localhost:52010' },
   { key: 'FILES_BUCKET_NAME', defaultValue: 'metorial-oss-files-dev' },
 
   {

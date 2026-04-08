@@ -1,12 +1,14 @@
 .PHONY: test proto vet staticcheck lint build run dev
 
 build:
+	./build-workspace.sh
 	go build -o bin/server ./cmd/server
 
 run: build
 	./bin/server $(ARGS)
 
 dev:
+	./build-workspace.sh
 	air --build.exclude_dir node_modules --build.cmd "go build -o bin/server ./cmd/server" --build.bin "./bin/server"
 
 vet:

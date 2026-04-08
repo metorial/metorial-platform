@@ -49,6 +49,25 @@ services:
     command: postgres -c 'max_connections=1000'
     restart: unless-stopped
 
+  object-storage:
+    image: ghcr.io/metorial/object-storage:latest
+    ports:
+      - '52010:52010'
+    volumes:
+      - object_store_1:/app/data
+    environment:
+      RUST_LOG: info
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_REGION: us-east-1
+      OBJECT_STORE__SERVER__HOST: 0.0.0.0
+      OBJECT_STORE__SERVER__PORT: 52010
+      OBJECT_STORE__BACKEND__TYPE: local
+      OBJECT_STORE__BACKEND__ROOT_PATH: /app/data
+      OBJECT_STORE__BACKEND__REGION: us-east-1
+      OBJECT_STORE__BACKEND__PHYSICAL_BUCKET: dev-services-local
+    restart: unless-stopped
+
   nats-1:
     image: nats
     command: '--cluster_name NATS --cluster nats://0.0.0.0:6222 --http_port 8222'
@@ -109,4 +128,5 @@ volumes:
   redis_2:
   meilisearch_1:
   pg_v2_1:
+  object_store_1:
   open_search_1:

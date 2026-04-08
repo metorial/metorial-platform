@@ -31,6 +31,7 @@ start_services() {
   # wait_for_port 127.0.0.1 37700 "MeiliSearch"
   wait_for_port 127.0.0.1 35432 "Postgres"
   wait_for_port 127.0.0.1 34222 "NATS"
+  wait_for_port 127.0.0.1 52010 "Object Storage"
 
   echo "All checks completed."
 }
