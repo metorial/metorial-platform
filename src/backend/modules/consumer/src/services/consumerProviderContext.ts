@@ -30,6 +30,32 @@ export type ConsumerProviderTemplateContext = {
   configSchema: ConsumerProviderConfigSchema | null;
 };
 
+let getProviderVersionIdForAuthMethods = (d: {
+  deployment: ConsumerProviderDeployment;
+  provider: ConsumerProvider;
+}) => {
+  if (d.deployment.lockedVersion?.id) {
+    return d.deployment.lockedVersion.id;
+  }
+
+  let currentVersion = (d.deployment as any).currentVersion as
+    | {
+        lockedVersionId?: string | null;
+        providerVersionId?: string | null;
+      }
+    | null
+    | undefined;
+
+  if (currentVersion?.lockedVersionId) {
+    return currentVersion.lockedVersionId;
+  }
+  if (currentVersion?.providerVersionId) {
+    return currentVersion.providerVersionId;
+  }
+
+  return d.provider.defaultVariant?.currentVersion?.id ?? null;
+};
+
 let loadBaseTemplateContext = async (d: {
   instance: Instance;
   providerTemplateId: string;
@@ -65,7 +91,10 @@ export let loadTemplateContextForSetup = async (d: {
   let context = await loadBaseTemplateContext(d);
   let authMethods = await listProviderAuthMethods({
     instance: d.instance,
-    providerVersionId: context.deployment.lockedVersion?.id
+    providerVersionId: getProviderVersionIdForAuthMethods({
+      deployment: context.deployment,
+      provider: context.provider
+    })
   });
 
   return {
@@ -81,10 +110,14 @@ export let loadTemplateContextForDeployment = async (d: {
   accessTags: AnyAccessTagSelector;
 }): Promise<ConsumerProviderTemplateContext> => {
   let context = await loadBaseTemplateContext(d);
+  let providerVersionId = getProviderVersionIdForAuthMethods({
+    deployment: context.deployment,
+    provider: context.provider
+  });
   let [authMethods, configSchema] = await Promise.all([
     listProviderAuthMethods({
       instance: d.instance,
-      providerVersionId: context.deployment.lockedVersion?.id
+      providerVersionId
     }),
     subspaceProviderConfigService.getConfigSchema({
       instance: d.instance,
@@ -121,3 +154,5 @@ export let listProviderAuthMethods = async (d: {
 export let getDefaultOauthMethod = (authMethods: ConsumerProviderAuthMethodList) => {
   return authMethods.find(authMethod => authMethod.type == 'oauth') ?? null;
 };
+
+export { getProviderVersionIdForAuthMethods };

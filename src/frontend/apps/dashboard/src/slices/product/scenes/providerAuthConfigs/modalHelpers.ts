@@ -26,7 +26,7 @@ export let getAuthMethodHasSchema = (method: AuthMethod | undefined) => {
 };
 
 export let isSetupFlowAuthMethod = (method: AuthMethod | undefined) =>
-  method?.type === 'oauth' && !getAuthMethodHasSchema(method);
+  method?.type === 'oauth';
 
 export let getCreateMethodDescription = (method: AuthMethod) => {
   if (isSetupFlowAuthMethod(method)) {

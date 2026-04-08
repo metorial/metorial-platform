@@ -14,6 +14,7 @@ import {
   subspaceProviderService
 } from '@metorial/module-subspace';
 import {
+  getProviderVersionIdForAuthMethods,
   listProviderAuthMethods,
   type ConsumerProvider,
   type ConsumerProviderAuthMethodList,
@@ -795,7 +796,10 @@ class ConsumerProviderCatalogServiceImpl {
             }),
             listProviderAuthMethods({
               instance: d.instance,
-              providerVersionId: deployment.lockedVersion?.id
+              providerVersionId: getProviderVersionIdForAuthMethods({
+                deployment,
+                provider
+              })
             })
           ]);
 
