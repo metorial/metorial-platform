@@ -30,7 +30,7 @@ export class Table<
     bulkActions?: TableItemAction<Item, Actions>[];
     filters?: TableFilter<Item>[];
     search?: { placeholder: string };
-    link?: (item: Item, input: StateProps) => string;
+    link?: (item: Item, input: StateProps) => string | null | undefined;
     clickable?: TableClickable<Item, StateProps>;
     hasPagination: boolean;
     customizable: boolean;
@@ -67,7 +67,7 @@ export class Table<
     return this;
   }
 
-  link(link: (item: Item, input: StateProps) => string) {
+  link(link: (item: Item, input: StateProps) => string | null | undefined) {
     this.opts.link = link;
     return this;
   }

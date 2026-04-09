@@ -22,11 +22,16 @@ export let sendConsumerInviteEmail = notificationClient.createTemplate(
         subject: `You're invited to ${portal.name}`,
         preview: `${invitedBy.name} invited you to access ${portal.name} on Metorial.`,
         content: (
-          <Layout
-            title={`Open ${portal.name}`}
-            description={`${invitedBy.name} invited ${consumerProfile.email} to access ${portal.name}. Sign in or create an account to accept the invite and get started.`}
-          >
-            <Button href={portalUrl}>Open Portal</Button>
+          <Layout title={`Open ${portal.name}`}>
+            <Text>Hi {consumerProfile.name},</Text>
+
+            <Text>
+              {invitedBy.name} has invited you to join
+              <strong>{portal.name}</strong> on Metorial. This allows you to connect 1000+
+              tools and integrations to your MCP clients.
+            </Text>
+
+            <Button href={portalUrl}>Open Metorial</Button>
 
             {!!invite.message?.trim().length && (
               <Text>
@@ -36,8 +41,7 @@ export let sendConsumerInviteEmail = notificationClient.createTemplate(
             )}
 
             <Text>
-              This invite is currently marked as <strong>{invite.status}</strong>. It will be
-              accepted automatically the first time you log in to the portal.
+              If you have any questions, feel free to reach out to {invitedBy.email}.
             </Text>
           </Layout>
         )

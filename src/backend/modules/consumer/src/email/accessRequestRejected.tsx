@@ -57,10 +57,7 @@ export let consumerAccessRequestRejectedEmail = notificationClient.createTemplat
         subject: `Your access request for ${target.name} was rejected`,
         preview: `Your request for ${target.name} in ${organization.name} was not approved.`,
         content: (
-          <Layout
-            title={`Your access request was rejected`}
-            description={`Your request for ${target.name} in ${organization.name} was reviewed and not approved.`}
-          >
+          <Layout title={`Your access request was rejected`}>
             <Text>Hi {consumerAccessRequest.consumerProfile.name},</Text>
 
             <Text>
@@ -70,17 +67,12 @@ export let consumerAccessRequestRejectedEmail = notificationClient.createTemplat
             <DataList
               items={[
                 { label: 'Organization', value: organization.name },
-                { label: 'Integration', value: target.name }
+                { label: 'Integration', value: target.name },
+                ...(consumerAccessRequest.resolutionMessage
+                  ? [{ label: 'Message', value: consumerAccessRequest.resolutionMessage }]
+                  : [])
               ]}
             />
-
-            {!!consumerAccessRequest.resolutionMessage?.trim().length && (
-              <Text>
-                Resolution message:
-                <br />
-                {consumerAccessRequest.resolutionMessage}
-              </Text>
-            )}
 
             <Button href={url.toString()}>Open Metorial</Button>
 
