@@ -610,7 +610,9 @@ class MagicMcpTokenImpl {
           magicMcpTokenOid: d.token.oid,
           magicMcpServerOid: d.server?.oid,
           magicMcpEndpointOid: d.endpoint?.oid,
-          magicMcpTarget: d.server?.oid.toString(36) ?? d.endpoint?.oid.toString(36) ?? '',
+          magicMcpTarget: d.server
+            ? `s${d.server.oid.toString(36)}`
+            : `e${d.endpoint!.oid.toString(36)}`,
           ip: d.ip ?? '',
           ua: d.ua ?? '',
           hour: startOfHour(new Date())

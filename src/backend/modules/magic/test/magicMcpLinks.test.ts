@@ -215,7 +215,7 @@ describe('magic MCP link guards', () => {
           magicMcpTokenOid: 10n,
           magicMcpServerOid: 20n,
           magicMcpEndpointOid: undefined,
-          magicMcpTarget: 20n.toString(36),
+          magicMcpTarget: 'sk',
           ip: '203.0.113.10',
           ua: '',
           hour: new Date('2026-04-08T12:00:00.000Z')

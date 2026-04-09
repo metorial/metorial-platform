@@ -58,14 +58,16 @@ export let magicMcpEndpointDeletedQueueProcessor = magicMcpEndpointDeletedQueue.
     for (let subspaceSessionTemplateId of uniqueSubspaceTemplateIds) {
       await subspaceSessionTemplateService.delete({
         instance: magicMcpEndpoint.instance,
-        sessionTemplateId: subspaceSessionTemplateId
+        sessionTemplateId: subspaceSessionTemplateId,
+        _allowMagicMcpDelete: true
       });
     }
 
     for (let subspaceSessionId of uniqueSubspaceSessionIds) {
       await subspaceSessionService.delete({
         instance: magicMcpEndpoint.instance,
-        sessionId: subspaceSessionId
+        sessionId: subspaceSessionId,
+        _allowMagicMcpDelete: true
       });
     }
   }

@@ -1,5 +1,8 @@
 import { db } from '@metorial/db';
-import { subspaceSessionTemplateService } from '@metorial/module-subspace';
+import {
+  subspaceSessionService,
+  subspaceSessionTemplateService
+} from '@metorial/module-subspace';
 import { createQueue } from '@metorial/queue';
 import { indexMagicMcpServerSearchQueue } from '../search/magicMcpServer';
 
@@ -62,14 +65,16 @@ export let magicMcpServerDeletedQueueProcessor = magicMcpServerDeletedQueue.proc
     for (let subspaceSessionTemplateId of uniqueSubspaceTemplateIds) {
       await subspaceSessionTemplateService.delete({
         instance: magicMcpServer.instance,
-        sessionTemplateId: subspaceSessionTemplateId
+        sessionTemplateId: subspaceSessionTemplateId,
+        _allowMagicMcpDelete: true
       });
     }
 
     for (let subspaceSessionId of uniqueSubspaceSessionIds) {
-      await subspaceSessionTemplateService.delete({
+      await subspaceSessionService.delete({
         instance: magicMcpServer.instance,
-        sessionTemplateId: subspaceSessionId
+        sessionId: subspaceSessionId,
+        _allowMagicMcpDelete: true
       });
     }
   }
