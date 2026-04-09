@@ -5,39 +5,11 @@ import {
   useProviderAuthMethods,
   useProviderDeployment
 } from '@metorial/state';
-import { Badge, RenderDate, Spacer, Text, theme } from '@metorial/ui';
+import { Attributes, Badge, RenderDate, Spacer } from '@metorial/ui';
 import { Box, ID } from '@metorial/ui-product';
 import { useParams } from 'react-router-dom';
-import { styled } from 'styled-components';
 import { ProviderSessionsTable } from '../../../scenes/providerSessions/table';
 import { UsageScene } from '../../../scenes/usage/usage';
-
-let SummaryGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1px;
-  background: ${theme.colors.gray300};
-  border: 1px solid ${theme.colors.gray300};
-  border-radius: 10px;
-  overflow: hidden;
-
-  @media (max-width: 1100px) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  @media (max-width: 720px) {
-    grid-template-columns: minmax(0, 1fr);
-  }
-`;
-
-let SummaryItem = styled.div`
-  background: ${theme.colors.background};
-  padding: 12px 16px;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  gap: 4px;
-`;
 
 export let ProviderDeploymentOverviewPage = () => {
   let instance = useCurrentInstance();
@@ -52,11 +24,11 @@ export let ProviderDeploymentOverviewPage = () => {
     effectiveVersionId ? { providerVersionId: effectiveVersionId } : null
   );
 
-  let hasAuthMethods = (authMethods.data?.items?.length ?? 0) > 0;
   return renderWithLoader({ deployment, provider })(({ deployment, provider }) => (
     <>
-      <SummaryGrid>
-        {[
+      <Attributes
+        itemWidth="300px"
+        attributes={[
           {
             label: 'Name',
             content: deployment.data.name ?? '—'
@@ -87,17 +59,8 @@ export let ProviderDeploymentOverviewPage = () => {
             label: 'Updated At',
             content: <RenderDate date={deployment.data.updatedAt!} />
           }
-        ].map(item => (
-          <SummaryItem key={String(item.label)}>
-            <Text weight="bold" size="1">
-              {item.label}
-            </Text>
-            <Text size="1" weight="medium" color="gray700" as="div">
-              {item.content}
-            </Text>
-          </SummaryItem>
-        ))}
-      </SummaryGrid>
+        ]}
+      />
 
       <Spacer height={20} />
 

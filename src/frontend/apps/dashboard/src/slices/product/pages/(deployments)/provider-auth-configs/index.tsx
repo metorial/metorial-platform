@@ -7,7 +7,7 @@ import {
   useCurrentProject,
   useProviderAuthConfig
 } from '@metorial/state';
-import { Badge, RenderDate, Spacer, Text, theme } from '@metorial/ui';
+import { Attributes, Badge, RenderDate, Spacer, Text, theme } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
 import dedent from 'dedent';
 import { Link, useParams } from 'react-router-dom';
@@ -19,33 +19,6 @@ import { UsageScene } from '../../../scenes/usage/usage';
 import { InstructionItem, Instructions } from '../../provider/components/instructions';
 import { KeySelector } from '../../provider/components/keySelector';
 import { formatAuthConfigSource, formatAuthConfigType } from './helpers';
-
-let SummaryGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1px;
-  background: ${theme.colors.gray300};
-  border: 1px solid ${theme.colors.gray300};
-  border-radius: 10px;
-  overflow: hidden;
-
-  @media (max-width: 1100px) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  @media (max-width: 720px) {
-    grid-template-columns: minmax(0, 1fr);
-  }
-`;
-
-let SummaryItem = styled.div`
-  background: ${theme.colors.background};
-  padding: 12px 16px;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  gap: 4px;
-`;
 
 let VariantIcon = styled.div`
   width: 24px;
@@ -271,8 +244,9 @@ export let ProviderAuthConfigOverviewPage = () => {
 
     return (
       <>
-        <SummaryGrid>
-          {[
+        <Attributes
+          itemWidth="300px"
+          attributes={[
             {
               label: 'Type',
               content: formatAuthConfigType(authConfig.data.type)
@@ -316,17 +290,8 @@ export let ProviderAuthConfigOverviewPage = () => {
               label: 'Updated At',
               content: <RenderDate date={authConfig.data.updatedAt} />
             }
-          ].map(item => (
-            <SummaryItem key={String(item.label)}>
-              <Text weight="bold" size="1">
-                {item.label}
-              </Text>
-              <Text size="1" weight="medium" color="gray700" as="div">
-                {item.content}
-              </Text>
-            </SummaryItem>
-          ))}
-        </SummaryGrid>
+          ]}
+        />
 
         <Spacer height={15} />
 
