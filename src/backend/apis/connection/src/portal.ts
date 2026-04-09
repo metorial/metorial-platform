@@ -1,6 +1,5 @@
 import { useRequestContext, useValidatedBody } from '@lowerdeck/hono';
 import { v } from '@lowerdeck/validation';
-import { getConfig } from '@metorial/config';
 import { AuthInfo } from '@metorial/module-access';
 import {
   consumerOAuthService,
@@ -9,14 +8,20 @@ import {
 } from '@metorial/module-portal';
 import { Authenticator } from '@metorial/rest';
 import { getMagicMcpTokenSecretFromRequest, handleMagicMcpRequest } from './magic';
-import { createOAuthHono } from './oauth/hono';
+import {
+  buildPortalOAuthClientConfig,
+  buildPortalOAuthProtectedResource,
+  createPortalOAuthServers
+} from './oauth/skeleton';
 import { getClientCredentials, getString, parseOAuthBody } from './oauth/utils';
+
+export { createPortalOAuthServers } from './oauth/skeleton';
 
 export let createPortalHandler = (d: {
   authenticate: Authenticator<AuthInfo>;
 }): {
-  metadataServer: ReturnType<typeof createOAuthHono>;
-  connectPortalServer: ReturnType<typeof createOAuthHono>;
+  metadataServer: ReturnType<typeof createPortalOAuthServers>['metadataServer'];
+  connectPortalServer: ReturnType<typeof createPortalOAuthServers>['connectPortalServer'];
 } => {
   let buildPortalOAuthClientRegistration = (d: {
     registration: {
@@ -50,66 +55,20 @@ export let createPortalHandler = (d: {
         : Math.floor(d.registration.createdAt.getTime() / 1000)
   });
 
-  let getProtectedResource = (base: string) => ({
-    resource: `${base}`,
-    authorization_servers: [base],
-    bearer_methods_supported: ['header', 'query'],
-    token_types_supported: ['access_token']
-  });
+  return createPortalOAuthServers({
+    resolveRoute: async ({ portalId, magicMcpTargetId }) => {
+      return await consumerOAuthService.resolvePortalRoute({
+        portalId,
+        magicMcpTargetId
+      });
+    },
 
-  let getClientConfig = (base: string) => ({
-    issuer: getConfig().urls.apiUrl,
-    authorization_endpoint: `${base}/oauth/authorize`,
-    token_endpoint: `${base}/oauth/token`,
-    registration_endpoint: `${base}/oauth/register`,
-    response_types_supported: ['code'],
-    response_modes_supported: ['query'],
-    grant_types_supported: ['authorization_code', 'refresh_token'],
-    token_endpoint_auth_methods_supported: [
-      'client_secret_basic',
-      'client_secret_post',
-      'none'
-    ],
-    code_challenge_methods_supported: ['S256'],
-    client_id_metadata_document_supported: false
-  });
+    metadata: async ({ route }, c) => {
+      return c.json(buildPortalOAuthClientConfig(route.base));
+    },
 
-  let resolveRoute = async (c: {
-    req: {
-      param: (key?: string) => string | Record<string, string>;
-    };
-  }) => {
-    let portalId = c.req.param('portalId') as string;
-    let rawMagicMcpTargetId = c.req.param('magicMcpTargetId');
-    let magicMcpTargetId =
-      typeof rawMagicMcpTargetId == 'string' && rawMagicMcpTargetId.length > 0
-        ? rawMagicMcpTargetId
-        : undefined;
-
-    return await consumerOAuthService.resolvePortalRoute({
-      portalId,
-      magicMcpTargetId
-    });
-  };
-
-  let metadataServer = createOAuthHono();
-  for (let path of [
-    ':portalId/:magicMcpTargetId',
-    ':portalId',
-    'connect/portal/:portalId/:magicMcpTargetId',
-    'connect/portal/:portalId'
-  ]) {
-    metadataServer = metadataServer.get(path, async c => {
-      let { base } = await resolveRoute(c);
-      return c.json(getClientConfig(base));
-    });
-  }
-
-  let connectPortalServer = createOAuthHono();
-
-  for (let path of [':portalId/:magicMcpTargetId', ':portalId']) {
-    connectPortalServer = connectPortalServer.all(path, async c => {
-      let { portal, magicMcpTarget, base } = await resolveRoute(c);
+    portal: async ({ route }, c) => {
+      let { portal, magicMcpTarget, base } = route;
       let routeMagicMcpTargetIdOrAlias = magicMcpTarget?.target.id;
 
       let token = getMagicMcpTokenSecretFromRequest(c.req.raw, new URL(c.req.url));
@@ -136,35 +95,18 @@ export let createPortalHandler = (d: {
           'WWW-Authenticate': `Bearer realm="OAuth", resource_metadata="${base}/.well-known/oauth-protected-resource", error="${error}", error_description="${message}"`
         }
       );
-    });
-  }
+    },
 
-  for (let path of [
-    ':portalId/:magicMcpTargetId/.well-known/oauth-protected-resource',
-    ':portalId/.well-known/oauth-protected-resource'
-  ]) {
-    connectPortalServer = connectPortalServer.get(path, async c => {
-      let { base } = await resolveRoute(c);
-      return c.json(getProtectedResource(base));
-    });
-  }
+    protectedResource: async ({ route }, c) => {
+      return c.json(buildPortalOAuthProtectedResource(route.base));
+    },
 
-  for (let path of [
-    ':portalId/:magicMcpTargetId/.well-known/openid-configuration',
-    ':portalId/.well-known/openid-configuration'
-  ]) {
-    connectPortalServer = connectPortalServer.get(path, async c => {
-      let { base } = await resolveRoute(c);
-      return c.json(getClientConfig(base));
-    });
-  }
+    openIdConfiguration: async ({ route }, c) => {
+      return c.json(buildPortalOAuthClientConfig(route.base));
+    },
 
-  for (let path of [
-    ':portalId/:magicMcpTargetId/oauth/register',
-    ':portalId/oauth/register'
-  ]) {
-    connectPortalServer = connectPortalServer.post(path, async c => {
-      let { portal, magicMcpTarget, base } = await resolveRoute(c);
+    register: async ({ route }, c) => {
+      let { portal, magicMcpTarget, base } = route;
       let { ip } = useRequestContext(c);
 
       if (!ip) {
@@ -200,15 +142,10 @@ export let createPortalHandler = (d: {
       });
 
       return c.json(buildPortalOAuthClientRegistration({ registration, base }));
-    });
-  }
+    },
 
-  for (let path of [
-    ':portalId/:magicMcpTargetId/oauth/authorize',
-    ':portalId/oauth/authorize'
-  ]) {
-    connectPortalServer = connectPortalServer.get(path, async c => {
-      let { portal, magicMcpTarget } = await resolveRoute(c);
+    authorize: async ({ route }, c) => {
+      let { portal, magicMcpTarget } = route;
       let authorization = await consumerOAuthService.createPortalOAuthAuthorization({
         portal,
         magicMcpTarget,
@@ -223,12 +160,10 @@ export let createPortalHandler = (d: {
       });
 
       return c.redirect(authorization.redirectUrl, 302);
-    });
-  }
+    },
 
-  for (let path of [':portalId/:magicMcpTargetId/oauth/token', ':portalId/oauth/token']) {
-    connectPortalServer = connectPortalServer.post(path, async c => {
-      let { portal, magicMcpTarget } = await resolveRoute(c);
+    token: async ({ route }, c) => {
+      let { portal, magicMcpTarget } = route;
 
       let body = await parseOAuthBody(c);
       let credentials = getClientCredentials(c, body);
@@ -253,16 +188,10 @@ export let createPortalHandler = (d: {
         refresh_token: tokens.refreshToken,
         refresh_token_expires_in: portalRefreshTokenTtlSeconds
       });
-    });
-  }
+    },
 
-  for (let path of [
-    ':portalId/:magicMcpTargetId/oauth/register/:registrationId',
-    ':portalId/oauth/register/:registrationId'
-  ]) {
-    connectPortalServer = connectPortalServer.get(path, async c => {
-      let registrationId = c.req.param('registrationId')!;
-      let { portal, magicMcpTarget, base } = await resolveRoute(c);
+    registration: async ({ route, registrationId }, c) => {
+      let { portal, magicMcpTarget, base } = route;
       let registration = await consumerOAuthService.getPortalOAuthRegistration({
         portal,
         magicMcpTarget,
@@ -280,11 +209,6 @@ export let createPortalHandler = (d: {
       }
 
       return c.json(buildPortalOAuthClientRegistration({ registration, base }));
-    });
-  }
-
-  return {
-    metadataServer,
-    connectPortalServer
-  };
+    }
+  });
 };
