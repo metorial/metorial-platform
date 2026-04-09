@@ -51,10 +51,8 @@ type EnrichedConsumerProfile<T extends ConsumerProfileWithRelations> = T & {
   instanceConsumer: InstanceConsumer | null;
 };
 
-let getInstanceConsumerKey = (d: {
-  instanceOid: bigint;
-  consumerOid: bigint;
-}) => `${d.instanceOid.toString()}:${d.consumerOid.toString()}`;
+let getInstanceConsumerKey = (d: { instanceOid: bigint; consumerOid: bigint }) =>
+  `${d.instanceOid.toString()}:${d.consumerOid.toString()}`;
 
 export let ensureProfileLock = createLock({
   name: 'cons/ensureProfile'
@@ -427,15 +425,39 @@ class ConsumerProfileServiceImpl {
         }
 
         return await withTransaction(async db => {
-          let existingProfile = await db.consumerProfile.findUnique({
-            where: d.aresUserId
+          let existingProfile = await db.consumerProfile.findFirst({
+            where: {
+              OR: [
+                ...(d.aresUserId
+                  ? [
+                      {
+                        surfaceOid: d.surface.oid,
+                        aresUserId: d.aresUserId
+                      }
+                    ]
+                  : []),
+                {
+                  email: d.email,
+                  surfaceOid: d.surface.oid
+                }
+              ]
+            }
+          });
+          console.log({
+            existingProfile,
+            a: d.aresUserId
               ? {
                   surfaceOid_aresUserId: {
                     surfaceOid: d.surface.oid,
                     aresUserId: d.aresUserId
                   }
                 }
-              : { email_surfaceOid: { email: d.email, surfaceOid: d.surface.oid } }
+              : {
+                  email_surfaceOid: {
+                    email: d.email,
+                    surfaceOid: d.surface.oid
+                  }
+                }
           });
           if (existingProfile) {
             if (d.rejectIfActiveProfileExists && existingProfile.inviteStatus != 'invited') {
