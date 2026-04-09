@@ -152,7 +152,7 @@ let Footer = styled('footer')`
 
 let ActionBarWrapper = styled('div')`
   position: fixed;
-  bottom: 20px;
+  bottom: 60px;
   left: 0;
   right: 0;
   display: flex;
@@ -806,7 +806,15 @@ export let TableComponent = reactMemo(
                     }}
                   >
                     <Text size="1" color="gray400" weight="medium">
-                      <strong>{selectedItems.length}</strong> items selected
+                      {selectedItems.length == 1 ? (
+                        <>
+                          <strong>1</strong> item selected
+                        </>
+                      ) : (
+                        <>
+                          <strong>{selectedItems.length}</strong> items selected
+                        </>
+                      )}
                     </Text>
 
                     {props.bulkActions!.map(action => (
