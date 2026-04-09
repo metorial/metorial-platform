@@ -5,6 +5,7 @@ export * from './consumerAccess';
 export * from './consumerAccessRequest';
 export * from './consumerAuth';
 export * from './consumerGroup';
+export * from './consumerInvite';
 export * from './consumerProfile';
 export * from './consumerProviderCatalog';
 export * from './consumerProviderContext';

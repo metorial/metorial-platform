@@ -1,4 +1,4 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { conflictError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
@@ -9,6 +9,7 @@ import {
 import {
   ConsumerGroup,
   ConsumerProfile,
+  ConsumerProfileInviteStatus,
   ConsumerSurface,
   db,
   ID,
@@ -20,9 +21,10 @@ import {
 } from '@metorial/db';
 import { createLock } from '@metorial/lock';
 import { searchConsumerIds } from '@metorial/module-search';
+import { consumerInviteUpdatedQueue } from '../queues/lifecycle/consumerInvite';
 import {
-  enqueueConsumerProfileCreated,
-  enqueueConsumerProfileUpdated
+  consumerProfileCreatedQueue,
+  consumerProfileUpdatedQueue
 } from '../queues/lifecycle/consumerProfile';
 import { consumerService } from './consumer';
 
@@ -93,9 +95,11 @@ class ConsumerProfileServiceImpl {
     consumerSurface: ConsumerSurface;
     search?: string;
     consumerGroupId?: string;
+    statuses?: Array<'active' | 'invited'>;
   }) {
     let search = d.search?.trim();
     let consumerGroupId = d.consumerGroupId?.trim();
+    let statuses = d.statuses?.length ? new Set(d.statuses) : null;
     let instance = search
       ? await db.instance.findFirst({
           where: {
@@ -130,6 +134,7 @@ class ConsumerProfileServiceImpl {
           : undefined;
 
     let groupMembershipWhere: Prisma.ConsumerProfileWhereInput | undefined;
+    let inviteStatusWhere: Prisma.ConsumerProfileWhereInput | undefined;
 
     if (consumerGroupId) {
       let group = await db.consumerGroup.findFirst({
@@ -169,9 +174,16 @@ class ConsumerProfileServiceImpl {
       }
     }
 
+    if (statuses && !(statuses.has('active') && statuses.has('invited'))) {
+      inviteStatusWhere = statuses.has('active')
+        ? { inviteStatus: { in: ['unset', 'accepted'] } }
+        : { inviteStatus: 'invited' };
+    }
+
     let andParts: Prisma.ConsumerProfileWhereInput[] = [
       { surfaceOid: d.consumerSurface.oid },
       ...(groupMembershipWhere ? [groupMembershipWhere] : []),
+      ...(inviteStatusWhere ? [inviteStatusWhere] : []),
       ...(search ? [{ consumerOid: { in: searchedConsumerOids ?? [] } }] : [])
     ];
 
@@ -266,11 +278,14 @@ class ConsumerProfileServiceImpl {
     email: string;
     name: string;
     member?: OrganizationMember;
+    inviteStatus?: ConsumerProfileInviteStatus;
+    rejectIfActiveProfileExists?: boolean;
 
     aresUserId?: string;
     ssoGroupIds?: string[];
     ssoRoles?: string[];
   }) {
+    let updatedInviteIds: string[] = [];
     let res = await ensureProfileLock.usingLock(
       `${d.surface.instanceOid}-${d.email}`,
       async () => {
@@ -319,27 +334,64 @@ class ConsumerProfileServiceImpl {
               : { email_surfaceOid: { email: d.email, surfaceOid: d.surface.oid } }
           });
           if (existingProfile) {
+            if (d.rejectIfActiveProfileExists && existingProfile.inviteStatus != 'invited') {
+              throw new ServiceError(
+                conflictError({
+                  message: 'Consumer already has an active profile for this portal.'
+                })
+              );
+            }
+
+            let nextInviteStatus =
+              d.aresUserId && existingProfile.inviteStatus == 'invited'
+                ? ('accepted' as const)
+                : (d.inviteStatus ?? existingProfile.inviteStatus);
+            let consumerProfile = await db.consumerProfile.update({
+              where: {
+                oid: existingProfile.oid
+              },
+              data: {
+                aresUserId: d.aresUserId,
+                email: d.email,
+                name: d.name,
+                inviteStatus: nextInviteStatus,
+                consumerOid: instanceConsumer.consumerOid,
+                organizationMemberOid: d.member?.oid ?? instanceConsumer.organizationMemberOid,
+                organizationActorOid:
+                  d.member?.actorOid ?? instanceConsumer.organizationActorOid,
+                ssoGroupIds,
+                ssoRoles
+              },
+              include
+            });
+            if (nextInviteStatus == 'accepted' && existingProfile.inviteStatus != 'accepted') {
+              let pendingInvites = await db.consumerInvite.findMany({
+                where: {
+                  consumerProfileOid: existingProfile.oid,
+                  status: 'pending'
+                },
+                select: {
+                  id: true
+                }
+              });
+              updatedInviteIds.push(...pendingInvites.map(invite => invite.id));
+
+              await db.consumerInvite.updateMany({
+                where: {
+                  consumerProfileOid: existingProfile.oid,
+                  status: 'pending'
+                },
+                data: {
+                  status: 'accepted',
+                  acceptedAt: new Date()
+                }
+              });
+            }
+
             return {
               lifecycleAction: 'updated' as const,
               instanceConsumer,
-              consumerProfile: await db.consumerProfile.update({
-                where: {
-                  oid: existingProfile.oid
-                },
-                data: {
-                  aresUserId: d.aresUserId,
-                  email: d.email,
-                  name: d.name,
-                  consumerOid: instanceConsumer.consumerOid,
-                  organizationMemberOid:
-                    d.member?.oid ?? instanceConsumer.organizationMemberOid,
-                  organizationActorOid:
-                    d.member?.actorOid ?? instanceConsumer.organizationActorOid,
-                  ssoGroupIds,
-                  ssoRoles
-                },
-                include
-              })
+              consumerProfile
             };
           }
 
@@ -372,6 +424,7 @@ class ConsumerProfileServiceImpl {
                 aresUserId: d.aresUserId,
                 email: d.email,
                 name: d.name,
+                inviteStatus: d.inviteStatus ?? 'unset',
                 ssoGroupIds,
                 ssoRoles,
                 organizationOid: d.surface.organizationOid,
@@ -392,9 +445,15 @@ class ConsumerProfileServiceImpl {
     );
 
     if (res.lifecycleAction === 'created') {
-      await enqueueConsumerProfileCreated(res.consumerProfile.id);
+      await consumerProfileCreatedQueue.add({ consumerProfileId: res.consumerProfile.id });
     } else {
-      await enqueueConsumerProfileUpdated(res.consumerProfile.id);
+      await consumerProfileUpdatedQueue.add({ consumerProfileId: res.consumerProfile.id });
+    }
+
+    if (updatedInviteIds.length > 0) {
+      await consumerInviteUpdatedQueue.addMany(
+        updatedInviteIds.map(consumerInviteId => ({ consumerInviteId }))
+      );
     }
 
     return res.consumerProfile;

@@ -146,6 +146,9 @@ export let consumerController = Controller.create(
         let consumer = await consumerService.createConsumer({
           organization: ctx.organization,
           instance: ctx.instance,
+          flags: {
+            isManuallyCreated: true
+          },
           input: {
             name: ctx.body.name,
             email: ctx.body.email

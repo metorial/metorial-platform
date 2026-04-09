@@ -23,9 +23,9 @@ import {
   type AnyAccessTagSelector
 } from '@metorial/module-access';
 import {
-  enqueueMagicMcpEndpointCreated,
-  enqueueMagicMcpEndpointDeleted,
-  enqueueMagicMcpEndpointUpdated
+  magicMcpEndpointCreatedQueue,
+  magicMcpEndpointDeletedQueue,
+  magicMcpEndpointUpdatedQueue
 } from '../queues/lifecycle/magicMcpEndpoint';
 import { getAccessTagFilter, getActiveStatusFilter } from './consumerAccess';
 
@@ -274,7 +274,7 @@ class MagicMcpEndpointImpl {
         include: magicMcpEndpointInclude
       });
 
-      await enqueueMagicMcpEndpointCreated(magicMcpEndpoint.id);
+      await magicMcpEndpointCreatedQueue.add({ magicMcpEndpointId: magicMcpEndpoint.id });
 
       return magicMcpEndpoint;
     } catch (error) {
@@ -310,7 +310,7 @@ class MagicMcpEndpointImpl {
       include: magicMcpEndpointInclude
     });
 
-    await enqueueMagicMcpEndpointDeleted(magicMcpEndpoint.id);
+    await magicMcpEndpointDeletedQueue.add({ magicMcpEndpointId: magicMcpEndpoint.id });
 
     return magicMcpEndpoint;
   }
@@ -344,7 +344,7 @@ class MagicMcpEndpointImpl {
       include: magicMcpEndpointInclude
     });
 
-    await enqueueMagicMcpEndpointUpdated(magicMcpEndpoint.id);
+    await magicMcpEndpointUpdatedQueue.add({ magicMcpEndpointId: magicMcpEndpoint.id });
 
     return magicMcpEndpoint;
   }
@@ -398,7 +398,7 @@ class MagicMcpEndpointImpl {
       include: magicMcpEndpointInclude
     });
 
-    await enqueueMagicMcpEndpointUpdated(magicMcpEndpoint.id);
+    await magicMcpEndpointUpdatedQueue.add({ magicMcpEndpointId: magicMcpEndpoint.id });
 
     return magicMcpEndpoint;
   }
@@ -430,7 +430,7 @@ class MagicMcpEndpointImpl {
       include: magicMcpEndpointInclude
     });
 
-    await enqueueMagicMcpEndpointUpdated(magicMcpEndpoint.id);
+    await magicMcpEndpointUpdatedQueue.add({ magicMcpEndpointId: magicMcpEndpoint.id });
 
     return magicMcpEndpoint;
   }

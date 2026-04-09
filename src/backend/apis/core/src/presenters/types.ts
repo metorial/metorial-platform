@@ -15,6 +15,7 @@ import {
   ConsumerAccess,
   ConsumerAccessRequest,
   ConsumerGroup,
+  ConsumerInvite,
   ConsumerProfile,
   ConsumerProfileGroup,
   ConsumerSession,
@@ -464,6 +465,16 @@ export let consumerAccessRequestType = PresentableType.create<{
     magicMcpServer: MagicMcpServer | null;
   };
 }>()('consumer.access_request');
+
+export let consumerInviteType = PresentableType.create<{
+  consumerInvite: ConsumerInvite & {
+    consumerProfile: ConsumerProfile;
+    invitedBy: OrganizationActor;
+    surface: ConsumerSurface & {
+      portal: Portal | null;
+    };
+  };
+}>()('consumer.invite');
 
 export let consumerType = PresentableType.create<{
   consumer: InstanceConsumer & {

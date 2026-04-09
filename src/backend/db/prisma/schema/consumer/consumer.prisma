@@ -16,6 +16,8 @@ model Consumer {
 
   isOrganizationMember Boolean @default(false)
   isPortalConsumer     Boolean @default(false)
+  isManuallyCreated    Boolean @default(false)
+  isPending            Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
@@ -23,6 +25,7 @@ model Consumer {
   profiles          ConsumerProfile[]
   instanceConsumers InstanceConsumer[]
   consumerActors    ConsumerActor[]
+  invites           ConsumerInvite[]
 
   @@unique([email, organizationOid])
 }
@@ -46,6 +49,8 @@ model InstanceConsumer {
   organizationActorOid BigInt?
   organizationActor    OrganizationActor? @relation(fields: [organizationActorOid], references: [oid], onDelete: SetNull)
 
+  isPending Boolean @default(false)
+
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @default(now()) @updatedAt
   consumerActors ConsumerActor[]
@@ -53,13 +58,20 @@ model InstanceConsumer {
   @@unique([instanceOid, consumerOid])
 }
 
+enum ConsumerProfileInviteStatus {
+  unset
+  invited
+  accepted
+}
+
 model ConsumerProfile {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
-  aresUserId  String?
-  ssoGroupIds String[] @default([])
-  ssoRoles    String[] @default([])
+  aresUserId   String?
+  ssoGroupIds  String[]                    @default([])
+  ssoRoles     String[]                    @default([])
+  inviteStatus ConsumerProfileInviteStatus @default(unset)
 
   name  String
   email String
@@ -98,9 +110,46 @@ model ConsumerProfile {
   magicMcpEndpoints            MagicMcpEndpoint[]
   actors                       ConsumerActor[]
   portalAuthAttempts           PortalAuthAttempt[]
+  invite                       ConsumerInvite?
 
   @@unique([surfaceOid, aresUserId])
   @@unique([email, surfaceOid])
+}
+
+enum ConsumerInviteStatus {
+  pending
+  accepted
+}
+
+model ConsumerInvite {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status ConsumerInviteStatus @default(pending)
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  surfaceOid BigInt
+  surface    ConsumerSurface @relation(fields: [surfaceOid], references: [oid], onDelete: Cascade)
+
+  consumerOid BigInt
+  consumer    Consumer @relation(fields: [consumerOid], references: [oid], onDelete: Cascade)
+
+  consumerProfileOid BigInt          @unique
+  consumerProfile    ConsumerProfile @relation(fields: [consumerProfileOid], references: [oid], onDelete: Cascade)
+
+  invitedByOid BigInt
+  invitedBy    OrganizationActor @relation(fields: [invitedByOid], references: [oid], onDelete: Cascade)
+
+  acceptedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
+
+  @@unique([surfaceOid, consumerOid])
 }
 
 model ConsumerProfileGroup {

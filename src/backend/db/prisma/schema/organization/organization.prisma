@@ -59,6 +59,7 @@ model Organization {
   consumerAuthTenants     ConsumerAuthTenant[]
   consumers               Consumer[]
   consumerProfiles        ConsumerProfile[]
+  consumerInvites         ConsumerInvite[]
   portals                 Portal[]
   providerTemplates       ProviderTemplate[]
   oauthApplications       OAuthApplication[]

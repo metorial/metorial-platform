@@ -29,6 +29,8 @@ export let v1ConsumerProfilePresenter = Presenter.create(consumerProfileType)
         )
       : null,
     consumer_id: consumerProfile.consumer.id,
+    status:
+      consumerProfile.inviteStatus == 'invited' ? ('invited' as const) : ('active' as const),
     created_at: consumerProfile.createdAt,
     updated_at: consumerProfile.updatedAt
   }))
@@ -49,6 +51,7 @@ export let v1ConsumerProfilePresenter = Presenter.create(consumerProfileType)
         )
       ),
       consumer_id: v.string(),
+      status: v.enumOf(['active', 'invited']),
       created_at: v.date(),
       updated_at: v.date()
     })

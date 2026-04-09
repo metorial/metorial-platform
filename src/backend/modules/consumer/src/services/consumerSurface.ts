@@ -15,10 +15,10 @@ import { createLock } from '@metorial/lock';
 import { apiKeyService } from '@metorial/module-machine-access';
 import { organizationActorService } from '@metorial/module-organization';
 import {
-  enqueueConsumerSurfaceArchived,
-  enqueueConsumerSurfaceCreated,
-  enqueueConsumerSurfaceDeleted,
-  enqueueConsumerSurfaceUpdated
+  consumerSurfaceArchivedQueue,
+  consumerSurfaceCreatedQueue,
+  consumerSurfaceDeletedQueue,
+  consumerSurfaceUpdatedQueue
 } from '../queues/lifecycle/consumerSurface';
 import { consumerAresService } from './ares';
 
@@ -221,7 +221,7 @@ class ConsumerSurfaceServiceImpl {
         });
       });
 
-      await enqueueConsumerSurfaceCreated(consumerSurface.id);
+      await consumerSurfaceCreatedQueue.add({ consumerSurfaceId: consumerSurface.id });
 
       return consumerSurface;
     } catch (error) {
@@ -347,7 +347,7 @@ class ConsumerSurfaceServiceImpl {
       include: consumerSurfaceInclude
     });
 
-    await enqueueConsumerSurfaceUpdated(consumerSurface.id);
+    await consumerSurfaceUpdatedQueue.add({ consumerSurfaceId: consumerSurface.id });
 
     return consumerSurface;
   }
@@ -369,7 +369,7 @@ class ConsumerSurfaceServiceImpl {
       include: consumerSurfaceInclude
     });
 
-    await enqueueConsumerSurfaceArchived(consumerSurface.id);
+    await consumerSurfaceArchivedQueue.add({ consumerSurfaceId: consumerSurface.id });
 
     return consumerSurface;
   }
@@ -391,7 +391,7 @@ class ConsumerSurfaceServiceImpl {
       include: consumerSurfaceInclude
     });
 
-    await enqueueConsumerSurfaceDeleted(consumerSurface.id);
+    await consumerSurfaceDeletedQueue.add({ consumerSurfaceId: consumerSurface.id });
 
     return consumerSurface;
   }

@@ -42,6 +42,7 @@ model ConsumerSurface {
   deletedAt  DateTime?
 
   consumerProfiles ConsumerProfile[]
+  consumerInvites  ConsumerInvite[]
   consumerGroups   ConsumerGroup[]
   consumerAccesses ConsumerAccess[]
   accessRequests   ConsumerAccessRequest[]

@@ -172,39 +172,3 @@ export let consumerSurfaceDeletedQueueProcessor = consumerSurfaceDeletedQueue.pr
     });
   }
 );
-
-export let enqueueConsumerSurfaceCreated = async (consumerSurfaceId: string) => {
-  await consumerSurfaceCreatedQueue.add({ consumerSurfaceId }).catch(error => {
-    console.error(
-      '[module-consumer] Failed to enqueue consumer surface create lifecycle',
-      error
-    );
-  });
-};
-
-export let enqueueConsumerSurfaceUpdated = async (consumerSurfaceId: string) => {
-  await consumerSurfaceUpdatedQueue.add({ consumerSurfaceId }).catch(error => {
-    console.error(
-      '[module-consumer] Failed to enqueue consumer surface update lifecycle',
-      error
-    );
-  });
-};
-
-export let enqueueConsumerSurfaceArchived = async (consumerSurfaceId: string) => {
-  await consumerSurfaceArchivedQueue.add({ consumerSurfaceId }).catch(error => {
-    console.error(
-      '[module-consumer] Failed to enqueue consumer surface archive lifecycle',
-      error
-    );
-  });
-};
-
-export let enqueueConsumerSurfaceDeleted = async (consumerSurfaceId: string) => {
-  await consumerSurfaceDeletedQueue.add({ consumerSurfaceId }).catch(error => {
-    console.error(
-      '[module-consumer] Failed to enqueue consumer surface delete lifecycle',
-      error
-    );
-  });
-};

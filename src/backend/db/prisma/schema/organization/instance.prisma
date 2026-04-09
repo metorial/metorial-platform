@@ -55,6 +55,7 @@ model Instance {
   providerTemplates                    ProviderTemplate[]
   accessPolicyInstances                AccessPolicyInstance[]
   instanceConsumers                    InstanceConsumer[]
+  consumerInvites                      ConsumerInvite[]
   consumerActors                       ConsumerActor[]
   magicMcpSubspaceSessionConnections   MagicMcpSubspaceSessionConnection[]
 }

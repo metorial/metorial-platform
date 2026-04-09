@@ -26,13 +26,11 @@ let getAccessRequestTarget = (
 ) => {
   if (consumerAccessRequest.type == 'provider_template') {
     return {
-      type: 'Provider template',
       name: consumerAccessRequest.providerTemplate?.name ?? 'Provider template'
     };
   }
 
   return {
-    type: 'Magic MCP server',
     name: consumerAccessRequest.magicMcpServer?.name ?? 'Magic MCP server'
   };
 };
@@ -72,9 +70,7 @@ export let consumerAccessRequestApprovedEmail = notificationClient.createTemplat
             <DataList
               items={[
                 { label: 'Organization', value: organization.name },
-                { label: 'Surface', value: consumerSurface.name },
-                { label: 'Target Type', value: target.type },
-                { label: 'Target', value: target.name }
+                { label: 'Integration', value: target.name }
               ]}
             />
 

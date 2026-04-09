@@ -35,9 +35,9 @@ import {
   subspaceSessionTemplateService
 } from '@metorial/module-subspace';
 import {
-  enqueueMagicMcpServerCreated,
-  enqueueMagicMcpServerDeleted,
-  enqueueMagicMcpServerUpdated
+  magicMcpServerCreatedQueue,
+  magicMcpServerDeletedQueue,
+  magicMcpServerUpdatedQueue
 } from '../queues/lifecycle/magicMcpServer';
 import { getAccessTagFilter, getActiveStatusFilter } from './consumerAccess';
 
@@ -218,7 +218,7 @@ class MagicMcpServerImpl {
       }
     });
 
-    await enqueueMagicMcpServerCreated(magicMcpServer.id);
+    await magicMcpServerCreatedQueue.add({ magicMcpServerId: magicMcpServer.id });
 
     return await db.magicMcpServer.findUniqueOrThrow({
       where: { id: magicMcpServer.id },
@@ -286,7 +286,7 @@ class MagicMcpServerImpl {
       include
     });
 
-    await enqueueMagicMcpServerDeleted(magicMcpServer.id);
+    await magicMcpServerDeletedQueue.add({ magicMcpServerId: magicMcpServer.id });
 
     return magicMcpServer;
   }
@@ -385,7 +385,7 @@ class MagicMcpServerImpl {
       throw error;
     }
 
-    await enqueueMagicMcpServerUpdated(server.id);
+    await magicMcpServerUpdatedQueue.add({ magicMcpServerId: server.id });
 
     return server;
   }

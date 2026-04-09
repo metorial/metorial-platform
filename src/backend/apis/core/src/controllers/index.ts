@@ -20,6 +20,7 @@ import { portalAuthDashboardController } from './instance/portalAuth';
 import { portalConsumerAccessController } from './instance/portalConsumerAccess';
 import { portalConsumerAccessRequestController } from './instance/portalConsumerAccessRequest';
 import { portalConsumerGroupController } from './instance/portalConsumerGroup';
+import { portalConsumerInviteController } from './instance/portalConsumerInvite';
 import { portalConsumerProfileController } from './instance/portalConsumerProfile';
 import { providerTemplateController } from './instance/providerTemplate';
 import { tokenController } from './instance/token';
@@ -318,6 +319,7 @@ export let dashboardController = Controller.create<any>(
     providerTemplateController,
     portalConsumerGroupController,
     portalConsumerAccessController,
+    portalConsumerInviteController,
     portalConsumerProfileController,
     portalConsumerAccessRequestController
 

@@ -17,7 +17,6 @@ export let v1ConsumerPresenter = Presenter.create(consumerType)
       id: v.string(),
       name: v.string(),
       email: v.string(),
-
       created_at: v.date(),
       updated_at: v.date()
     })

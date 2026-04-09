@@ -28,21 +28,3 @@ export let magicMcpGroupDeletedQueue = createQueue<{ magicMcpGroupId: string }>(
 export let magicMcpGroupDeletedQueueProcessor = magicMcpGroupDeletedQueue.process(async data => {
   await queueMagicMcpGroupIndex(data.magicMcpGroupId);
 });
-
-export let enqueueMagicMcpGroupCreated = async (magicMcpGroupId: string) => {
-  await magicMcpGroupCreatedQueue.add({ magicMcpGroupId }).catch(error => {
-    console.error('[module-magic] Failed to enqueue magic MCP group create indexing', error);
-  });
-};
-
-export let enqueueMagicMcpGroupUpdated = async (magicMcpGroupId: string) => {
-  await magicMcpGroupUpdatedQueue.add({ magicMcpGroupId }).catch(error => {
-    console.error('[module-magic] Failed to enqueue magic MCP group update indexing', error);
-  });
-};
-
-export let enqueueMagicMcpGroupDeleted = async (magicMcpGroupId: string) => {
-  await magicMcpGroupDeletedQueue.add({ magicMcpGroupId }).catch(error => {
-    console.error('[module-magic] Failed to enqueue magic MCP group delete indexing', error);
-  });
-};
