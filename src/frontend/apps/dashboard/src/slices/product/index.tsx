@@ -248,6 +248,11 @@ let ConsumerPage = dynamicPage(() =>
 let ConsumerSettingsPage = dynamicPage(() =>
   import('./pages/(identity)/consumer/settings').then(c => c.ConsumerSettingsPage)
 );
+let ConsumerMagicMcpServersPage = dynamicPage(() =>
+  import('./pages/(identity)/consumer/magic-mcp-servers').then(
+    c => c.ConsumerMagicMcpServersPage
+  )
+);
 let IdentityActorPage = dynamicPage(() =>
   import('./pages/(identity)/actor').then(c => c.IdentityActorPage)
 );
@@ -877,6 +882,10 @@ export let productInnerSlice = createSlice([
               {
                 path: 'settings',
                 element: <ConsumerSettingsPage />
+              },
+              {
+                path: 'magic-mcp-servers',
+                element: <ConsumerMagicMcpServersPage />
               }
             ]
           },

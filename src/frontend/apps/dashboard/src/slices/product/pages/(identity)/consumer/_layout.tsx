@@ -60,6 +60,16 @@ export let ConsumerLayout = () => {
                   )
                 },
                 {
+                  label: 'Magic MCP Servers',
+                  to: Paths.instance.identity.consumer(
+                    organization.data,
+                    project.data,
+                    instance.data,
+                    consumer.data.id,
+                    'magic-mcp-servers'
+                  )
+                },
+                {
                   label: 'Settings',
                   to: Paths.instance.identity.consumer(
                     organization.data,

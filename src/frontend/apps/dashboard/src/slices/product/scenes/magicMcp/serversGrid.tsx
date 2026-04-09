@@ -13,7 +13,10 @@ import { Badge, RenderDate, Text } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import { Table as DashboardTable } from '../../../../components/table';
 import { FilterPayload } from '../../../../components/table/filter';
-import { TableStateProvider, TableStateProviderResult } from '../../../../components/table/type';
+import {
+  TableStateProvider,
+  TableStateProviderResult
+} from '../../../../components/table/type';
 import { getEnumListFilterValue, getStringFilterValue } from '../../../../lib/dataTableUtils';
 
 type Server = DashboardInstanceMagicMcpServersListOutput['items'][number];
@@ -38,7 +41,10 @@ let magicServersState: TableStateProvider<
   let servers = useMagicMcpServers(props.instanceId, {
     order: props.order ?? 'desc',
     status: getServerStatusFilterValue(opts.filter.status) ?? props.status,
-    magicMcpGroupId: getStringFilterValue(opts.filter.magicMcpGroupId) ?? props.magicMcpGroupId,
+    magicMcpGroupId:
+      getStringFilterValue(opts.filter.magicMcpGroupId) ?? props.magicMcpGroupId,
+    consumerId: props.consumerId,
+    consumerProfileId: props.consumerProfileId,
     search: opts.search ?? props.search
   });
 
@@ -53,7 +59,9 @@ let magicServersState: TableStateProvider<
   };
 };
 
-let magicServersTable = new DashboardTable<MagicMcpServersTableProps, Server>('magic-mcp-servers')
+let magicServersTable = new DashboardTable<MagicMcpServersTableProps, Server>(
+  'magic-mcp-servers'
+)
   .state(magicServersState)
   .columns([
     {
@@ -78,7 +86,11 @@ let magicServersTable = new DashboardTable<MagicMcpServersTableProps, Server>('m
       isDefault: true,
       header: 'Status',
       render: server => (
-        <Badge color={{ active: 'green', archived: 'orange', deleted: 'gray' }[server.status] as any}>
+        <Badge
+          color={
+            { active: 'green', archived: 'orange', deleted: 'gray' }[server.status] as any
+          }
+        >
           {server.status}
         </Badge>
       )
@@ -88,7 +100,9 @@ let magicServersTable = new DashboardTable<MagicMcpServersTableProps, Server>('m
       isDefault: true,
       header: 'Aliases',
       render: server => (
-        <Text size="2">{server.endpoints.map(endpoint => endpoint.alias).join(', ') || '-'}</Text>
+        <Text size="2">
+          {server.endpoints.map(endpoint => endpoint.alias).join(', ') || '-'}
+        </Text>
       )
     },
     {
@@ -108,7 +122,9 @@ let magicServersTable = new DashboardTable<MagicMcpServersTableProps, Server>('m
       isDefault: false,
       header: 'Endpoint URLs',
       render: server => (
-        <Text size="2">{server.endpoints.map(endpoint => endpoint.url).join(', ') || '-'}</Text>
+        <Text size="2">
+          {server.endpoints.map(endpoint => endpoint.url).join(', ') || '-'}
+        </Text>
       )
     },
     {
@@ -175,7 +191,11 @@ let magicServersTable = new DashboardTable<MagicMcpServersTableProps, Server>('m
   )
   .build();
 
-export let MagicMcpServersTable = (filter: DashboardInstanceMagicMcpServersListQuery = {}) => {
+export let MagicMcpServersTable = (
+  filter: DashboardInstanceMagicMcpServersListQuery & {
+    headerActions?: React.ReactNode;
+  }
+) => {
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
@@ -186,7 +206,8 @@ export let MagicMcpServersTable = (filter: DashboardInstanceMagicMcpServersListQ
     project,
     instance,
     ...filter,
-    emptyState: 'No Magic MCP servers found.'
+    emptyState: 'No Magic MCP servers found.',
+    headerActions: () => filter.headerActions
   });
 };
 
