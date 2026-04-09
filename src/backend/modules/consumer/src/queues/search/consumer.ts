@@ -15,7 +15,6 @@ export let indexConsumerSearchQueueProcessor = indexConsumerSearchQueue.process(
       instance: true
     }
   });
-  console.log('indexing consumer', data.instanceConsumerId, instanceConsumer);
   if (!instanceConsumer) throw new QueueRetryError();
 
   await indexConsumerDocument({

@@ -207,7 +207,7 @@ export let MagicMcpServersTable = (
     instance,
     ...filter,
     emptyState: 'No Magic MCP servers found.',
-    headerActions: () => filter.headerActions
+    headerActions: filter.headerActions ? () => filter.headerActions : undefined
   });
 };
 
