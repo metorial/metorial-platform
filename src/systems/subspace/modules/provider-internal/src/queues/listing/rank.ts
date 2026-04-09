@@ -117,6 +117,12 @@ let processSingleRankQueueProcessor = processSingleRankQueue.process(async data 
     rank = 10_000 + Math.ceil(rank * 5);
   } else if (isOfficial || isVerified) rank = Math.ceil(rank * 3);
 
+  let hasManagedCredentials = await db.managedProviderAuthCredentials.findFirst({
+    where: { providerAuthMethod: { providerOid: providerListing.providerOid } }
+  });
+
+  if (hasManagedCredentials) rank += 50_000;
+
   rank = Math.min(rank, 1_000_000_000);
 
   await db.providerListing.updateMany({
