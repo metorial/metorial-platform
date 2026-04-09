@@ -4,7 +4,9 @@ import { MetorialKeyPrefix, sdkBuilder } from './builder';
 import {
   MetorialConsumerConsumerInternalOauthAuthorizationsEndpoint,
   MetorialConsumerConsumerInternalOauthClientsEndpoint,
+  MetorialConsumerProfileEndpoint,
   MetorialConsumerProvidersEndpoint,
+  MetorialConsumerSessionEndpoint,
   MetorialMagicMcpEndpointsEndpoint,
   MetorialMagicMcpGroupsEndpoint,
   MetorialMagicMcpServersEndpoint,
@@ -39,31 +41,8 @@ export let createMetorialConsumerSDK = sdkBuilder.build(
     }
   })
 )(manager => ({
-  profile: {
-    get: (opts?: { headers?: Record<string, string> }) =>
-      manager
-        ._post({
-          path: 'consumer/profile',
-          ...(opts?.headers ? { headers: opts.headers } : {})
-        } as any)
-        .transform(identityMapper)
-  },
-  session: {
-    get: (opts?: { headers?: Record<string, string> }) =>
-      manager
-        ._post({
-          path: 'consumer/session',
-          ...(opts?.headers ? { headers: opts.headers } : {})
-        } as any)
-        .transform(identityMapper),
-    logout: (opts?: { headers?: Record<string, string> }) =>
-      manager
-        ._post({
-          path: 'consumer/session/logout',
-          ...(opts?.headers ? { headers: opts.headers } : {})
-        } as any)
-        .transform(identityMapper)
-  },
+  profile: new MetorialConsumerProfileEndpoint(manager),
+  session: new MetorialConsumerSessionEndpoint(manager),
   providers: Object.assign(new MetorialProvidersEndpoint(manager), {
     versions: new MetorialProvidersVersionsEndpoint(manager),
     listings: Object.assign(new MetorialProviderListingsEndpoint(manager), {

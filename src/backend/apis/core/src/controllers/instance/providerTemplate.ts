@@ -107,13 +107,10 @@ export let providerTemplateController = Controller.create(
       }),
 
     get: providerTemplateGroup
-      .get(
-        instancePath('provider-templates/:providerTemplateId', 'providerTemplates.get'),
-        {
-          name: 'Get provider template',
-          description: 'Retrieves a specific provider template.'
-        }
-      )
+      .get(instancePath('provider-templates/:providerTemplateId', 'providerTemplates.get'), {
+        name: 'Get provider template',
+        description: 'Retrieves a specific provider template.'
+      })
       .use(
         checkAccess({
           possibleScopes: [
