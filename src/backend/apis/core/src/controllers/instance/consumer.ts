@@ -97,10 +97,20 @@ export let consumerController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.portal.consumers:read'] }))
       .use(hasFlags(['identity-management', 'paid-identity']))
       .outputList(consumerPresenter)
-      .query('default', Paginator.validate(v.object({})))
+      .query(
+        'default',
+        Paginator.validate(
+          v.object({
+            search: v.optional(v.string()),
+            id: v.optional(v.string())
+          })
+        )
+      )
       .do(async ctx => {
         let paginator = await consumerService.listConsumers({
-          instance: ctx.instance
+          instance: ctx.instance,
+          search: ctx.query.search,
+          id: ctx.query.id
         });
         let list = await paginator.run(ctx.query);
 
