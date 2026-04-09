@@ -45,7 +45,7 @@ export type ManagementInstanceConsumersListQuery = {
   before?: string | undefined;
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
-} & { search?: string | undefined };
+} & { search?: string | undefined; id?: string | undefined };
 
 export let mapManagementInstanceConsumersListQuery = mtMap.union([
   mtMap.unionOption(
@@ -56,7 +56,8 @@ export let mapManagementInstanceConsumersListQuery = mtMap.union([
       before: mtMap.objectField('before', mtMap.passthrough()),
       cursor: mtMap.objectField('cursor', mtMap.passthrough()),
       order: mtMap.objectField('order', mtMap.passthrough()),
-      search: mtMap.objectField('search', mtMap.passthrough())
+      search: mtMap.objectField('search', mtMap.passthrough()),
+      id: mtMap.objectField('id', mtMap.passthrough())
     })
   )
 ]);
