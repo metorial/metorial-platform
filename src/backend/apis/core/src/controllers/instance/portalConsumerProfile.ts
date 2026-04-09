@@ -50,7 +50,6 @@ export let portalConsumerProfileController = Controller.create(
         Paginator.validate(
           v.object({
             search: v.optional(v.string()),
-            id: v.optional(v.string()),
             consumer_group_id: v.optional(v.string())
           })
         )
@@ -59,7 +58,6 @@ export let portalConsumerProfileController = Controller.create(
         let paginator = await consumerProfileService.listConsumerProfiles({
           consumerSurface: ctx.portal.surface,
           search: ctx.query.search,
-          id: ctx.query.id,
           consumerGroupId: ctx.query.consumer_group_id
         });
         let list = await paginator.run(ctx.query);

@@ -62,7 +62,6 @@ export type ManagementInstancePortalsConsumerGroupsListQuery = {
     | ('active' | 'archived' | 'deleted')[]
     | undefined;
   search?: string | undefined;
-  id?: string | undefined;
 };
 
 export let mapManagementInstancePortalsConsumerGroupsListQuery = mtMap.union([
@@ -78,8 +77,7 @@ export let mapManagementInstancePortalsConsumerGroupsListQuery = mtMap.union([
         'status',
         mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
       ),
-      search: mtMap.objectField('search', mtMap.passthrough()),
-      id: mtMap.objectField('id', mtMap.passthrough())
+      search: mtMap.objectField('search', mtMap.passthrough())
     })
   )
 ]);

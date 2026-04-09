@@ -53,8 +53,7 @@ export let portalConsumerGroupController = Controller.create(
                 v.array(v.enumOf(['active', 'archived', 'deleted']))
               ])
             ),
-            search: v.optional(v.string()),
-            id: v.optional(v.string())
+            search: v.optional(v.string())
           })
         )
       )
@@ -62,8 +61,7 @@ export let portalConsumerGroupController = Controller.create(
         let paginator = await consumerGroupService.listConsumerGroups({
           consumerSurface: ctx.portal.surface,
           status: normalizeArrayParam(ctx.query.status),
-          search: ctx.query.search,
-          id: ctx.query.id
+          search: ctx.query.search
         });
         let list = await paginator.run(ctx.query);
 
