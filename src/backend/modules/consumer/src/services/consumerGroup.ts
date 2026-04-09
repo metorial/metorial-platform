@@ -1,15 +1,13 @@
 import { notFoundError, preconditionFailedError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
+import { ConsumerGroup, ConsumerSurface, db, ID, Organization } from '@metorial/db';
+import { searchConsumerGroupIds } from '@metorial/module-search';
 import {
-  ConsumerGroup,
-  ConsumerSurface,
-  db,
-  ID,
-  Organization,
-  withTransaction
-} from '@metorial/db';
-import { consumerAccessPolicyService } from './accessPolicy';
+  enqueueConsumerGroupArchived,
+  enqueueConsumerGroupCreated,
+  enqueueConsumerGroupUpdated
+} from '../queues/lifecycle/consumerGroup';
 
 class ConsumerGroupServiceImpl {
   async createConsumerGroup(d: {
@@ -21,7 +19,7 @@ class ConsumerGroupServiceImpl {
       isDefault?: boolean;
     };
   }) {
-    return await withTransaction(async tx => {
+    let consumerGroup = await db.$transaction(async tx => {
       let accessTag = await tx.accessTag.create({
         data: {
           instanceOid: d.consumerSurface.instanceOid
@@ -42,6 +40,10 @@ class ConsumerGroupServiceImpl {
         }
       });
     });
+
+    await enqueueConsumerGroupCreated(consumerGroup.id);
+
+    return consumerGroup;
   }
 
   async getConsumerGroupById(d: {
@@ -67,34 +69,39 @@ class ConsumerGroupServiceImpl {
     consumerSurface: ConsumerSurface;
     status?: ConsumerGroup['status'][];
     search?: string;
-    id?: string;
   }) {
     let search = d.search?.trim();
-    let idFilter = d.id?.trim();
+    let instance = search
+      ? await db.instance.findFirst({
+          where: {
+            oid: d.consumerSurface.instanceOid
+          },
+          select: {
+            id: true
+          }
+        })
+      : null;
+    let searchedConsumerGroupIds =
+      search && instance
+        ? await searchConsumerGroupIds({
+            instanceId: instance.id,
+            query: search
+          })
+        : undefined;
 
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
         return await db.consumerGroup.findMany({
           ...opts,
           where: {
-            surfaceOid: d.consumerSurface.oid,
-            type: 'default',
-            status: d.status?.length ? { in: d.status } : 'active',
-            ...(idFilter ? { id: idFilter } : {}),
-            ...(search
-              ? {
-                  OR: [
-                    { name: { contains: search, mode: 'insensitive' } },
-                    {
-                      description: {
-                        contains: search,
-                        mode: 'insensitive'
-                      }
-                    },
-                    { id: { contains: search, mode: 'insensitive' } }
-                  ]
-                }
-              : {})
+            AND: [
+              {
+                surfaceOid: d.consumerSurface.oid,
+                type: 'default',
+                status: d.status?.length ? { in: d.status } : 'active'
+              },
+              ...(search ? [{ id: { in: searchedConsumerGroupIds ?? [] } }] : [])
+            ]
           }
         });
       })
@@ -122,7 +129,7 @@ class ConsumerGroupServiceImpl {
       throw new ServiceError(notFoundError('consumer.group'));
     }
 
-    return await db.consumerGroup.update({
+    let consumerGroup = await db.consumerGroup.update({
       where: {
         oid: d.consumerGroup.oid
       },
@@ -133,6 +140,10 @@ class ConsumerGroupServiceImpl {
         isDefault: d.input.isDefault
       }
     });
+
+    await enqueueConsumerGroupUpdated(consumerGroup.id);
+
+    return consumerGroup;
   }
 
   async deleteConsumerGroup(d: { organization: Organization; consumerGroup: ConsumerGroup }) {
@@ -148,42 +159,20 @@ class ConsumerGroupServiceImpl {
       throw new ServiceError(notFoundError('consumer.group'));
     }
 
-    return await withTransaction(async tx => {
-      let consumerAccesses = await tx.consumerAccess.findMany({
-        where: {
-          consumerGroupOid: d.consumerGroup.oid
-        },
-        include: {
-          consumerGroup: true,
-          providerTemplate: true,
-          magicMcpServer: true
-        }
-      });
-
-      for (let consumerAccess of consumerAccesses) {
-        await consumerAccessPolicyService.revokeAccessForConsumerAccess({
-          organization: d.organization,
-          consumerAccess
-        });
+    let consumerGroup = await db.consumerGroup.update({
+      where: {
+        oid: d.consumerGroup.oid
+      },
+      data: {
+        status: 'archived',
+        archivedAt: new Date(),
+        deletedAt: null
       }
-
-      await tx.consumerAccess.deleteMany({
-        where: {
-          consumerGroupOid: d.consumerGroup.oid
-        }
-      });
-
-      return await tx.consumerGroup.update({
-        where: {
-          oid: d.consumerGroup.oid
-        },
-        data: {
-          status: 'archived',
-          archivedAt: new Date(),
-          deletedAt: null
-        }
-      });
     });
+
+    await enqueueConsumerGroupArchived(consumerGroup.id);
+
+    return consumerGroup;
   }
 }
 

@@ -14,6 +14,12 @@ import {
 import { createLock } from '@metorial/lock';
 import { apiKeyService } from '@metorial/module-machine-access';
 import { organizationActorService } from '@metorial/module-organization';
+import {
+  enqueueConsumerSurfaceArchived,
+  enqueueConsumerSurfaceCreated,
+  enqueueConsumerSurfaceDeleted,
+  enqueueConsumerSurfaceUpdated
+} from '../queues/lifecycle/consumerSurface';
 import { consumerAresService } from './ares';
 
 export let consumerSurfaceInclude = {
@@ -77,42 +83,6 @@ class ConsumerSurfaceServiceImpl {
         })
       );
     }
-  }
-
-  private async disconnectConsumerSurfaceAres(d: {
-    consumerSurface: ConsumerSurface;
-    status: 'archived' | 'deleted';
-  }) {
-    if (!d.consumerSurface.consumerAuthTenantOid) return;
-
-    return await withTransaction(async tx => {
-      let consumerAuthTenant = await tx.consumerAuthTenant.findUniqueOrThrow({
-        where: {
-          oid: d.consumerSurface.consumerAuthTenantOid!
-        }
-      });
-
-      if (consumerAuthTenant.aresAppId) {
-        await consumerAresService.updateApp({
-          id: consumerAuthTenant.aresAppId,
-          slug: consumerAuthTenant.aresAppSlug
-            ? `${consumerAuthTenant.aresAppSlug}-${d.status}-${Date.now()}`
-            : undefined,
-          redirectDomains: ['invalid.invalid']
-        });
-
-        await tx.consumerAuthTenant.update({
-          where: {
-            oid: consumerAuthTenant.oid
-          },
-          data: {
-            aresAppId: null,
-            aresAppSlug: null,
-            aresClientId: null
-          }
-        });
-      }
-    });
   }
 
   private async updateConsumerAuthTenantAres(d: {
@@ -226,7 +196,7 @@ class ConsumerSurfaceServiceImpl {
     });
 
     try {
-      return await withTransaction(async tx => {
+      let consumerSurface = await withTransaction(async tx => {
         let consumerAuthTenant = await tx.consumerAuthTenant.create({
           data: {
             id: await ID.generateId('consumerAuthTenant'),
@@ -250,6 +220,10 @@ class ConsumerSurfaceServiceImpl {
           include: consumerSurfaceInclude
         });
       });
+
+      await enqueueConsumerSurfaceCreated(consumerSurface.id);
+
+      return consumerSurface;
     } catch (error) {
       await this.deactivateConsumerSurfaceResources({
         publishableApiKeyOid: apiKey.oid
@@ -361,7 +335,7 @@ class ConsumerSurfaceServiceImpl {
       );
     }
 
-    return await db.consumerSurface.update({
+    let consumerSurface = await db.consumerSurface.update({
       where: {
         oid: d.consumerSurface.oid
       },
@@ -372,6 +346,10 @@ class ConsumerSurfaceServiceImpl {
       },
       include: consumerSurfaceInclude
     });
+
+    await enqueueConsumerSurfaceUpdated(consumerSurface.id);
+
+    return consumerSurface;
   }
 
   async archiveConsumerSurface(d: { consumerSurface: ConsumerSurface }) {
@@ -379,17 +357,7 @@ class ConsumerSurfaceServiceImpl {
 
     let now = new Date();
 
-    await this.disconnectConsumerSurfaceAres({
-      consumerSurface: d.consumerSurface,
-      status: 'archived'
-    });
-
-    await this.deactivateConsumerSurfaceResources({
-      publishableApiKeyOid: d.consumerSurface.publishableApiKeyOid,
-      consumerSurfaceOid: d.consumerSurface.oid
-    });
-
-    return await db.consumerSurface.update({
+    let consumerSurface = await db.consumerSurface.update({
       where: {
         oid: d.consumerSurface.oid
       },
@@ -400,6 +368,10 @@ class ConsumerSurfaceServiceImpl {
       },
       include: consumerSurfaceInclude
     });
+
+    await enqueueConsumerSurfaceArchived(consumerSurface.id);
+
+    return consumerSurface;
   }
 
   async deleteConsumerSurface(d: { consumerSurface: ConsumerSurface }) {
@@ -407,17 +379,7 @@ class ConsumerSurfaceServiceImpl {
 
     let now = new Date();
 
-    await this.disconnectConsumerSurfaceAres({
-      consumerSurface: d.consumerSurface,
-      status: 'deleted'
-    });
-
-    await this.deactivateConsumerSurfaceResources({
-      publishableApiKeyOid: d.consumerSurface.publishableApiKeyOid,
-      consumerSurfaceOid: d.consumerSurface.oid
-    });
-
-    return await db.consumerSurface.update({
+    let consumerSurface = await db.consumerSurface.update({
       where: {
         oid: d.consumerSurface.oid
       },
@@ -428,6 +390,10 @@ class ConsumerSurfaceServiceImpl {
       },
       include: consumerSurfaceInclude
     });
+
+    await enqueueConsumerSurfaceDeleted(consumerSurface.id);
+
+    return consumerSurface;
   }
 }
 

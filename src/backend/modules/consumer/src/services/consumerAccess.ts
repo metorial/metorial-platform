@@ -13,6 +13,11 @@ import {
   ProviderTemplate,
   withTransaction
 } from '@metorial/db';
+import {
+  searchConsumerGroupIds,
+  searchMagicMcpServerIds,
+  searchProviderTemplateIds
+} from '@metorial/module-search';
 import { consumerAccessPolicyService } from './accessPolicy';
 import { isPreconfiguredMagicMcpServer } from './magicMcpServerSource';
 
@@ -40,13 +45,75 @@ class ConsumerAccessServiceImpl {
     magicMcpServerIds?: string[];
     types?: ConsumerAccessTargetType[];
     search?: string;
-    id?: string;
   }) {
     let search = d.search?.trim();
-    let idFilter = d.id?.trim();
     let hasConsumerGroupFilter = !!d.consumerGroupIds?.length;
     let hasProviderTemplateFilter = !!d.providerTemplateIds?.length;
     let hasMagicMcpServerFilter = !!d.magicMcpServerIds?.length;
+    let instance = search
+      ? await db.instance.findFirst({
+          where: {
+            oid: d.consumerSurface.instanceOid
+          },
+          select: {
+            id: true
+          }
+        })
+      : null;
+    let [searchedConsumerGroupIds, searchedProviderTemplateIds, searchedMagicMcpServerIds] =
+      search && instance
+        ? await Promise.all([
+            searchConsumerGroupIds({
+              instanceId: instance.id,
+              query: search
+            }),
+            searchProviderTemplateIds({
+              instanceId: instance.id,
+              query: search
+            }),
+            searchMagicMcpServerIds({
+              instanceId: instance.id,
+              query: search
+            })
+          ])
+        : [undefined, undefined, undefined];
+    let [searchedConsumerGroups, searchedProviderTemplates, searchedMagicMcpServers] = search
+      ? await Promise.all([
+          db.consumerGroup.findMany({
+            where: {
+              surfaceOid: d.consumerSurface.oid,
+              id: {
+                in: searchedConsumerGroupIds ?? []
+              }
+            },
+            select: {
+              oid: true
+            }
+          }),
+          db.providerTemplate.findMany({
+            where: {
+              instanceOid: d.consumerSurface.instanceOid,
+              id: {
+                in: searchedProviderTemplateIds ?? []
+              }
+            },
+            select: {
+              oid: true
+            }
+          }),
+          db.magicMcpServer.findMany({
+            where: {
+              instanceOid: d.consumerSurface.instanceOid,
+              id: {
+                in: searchedMagicMcpServerIds ?? []
+              }
+            },
+            select: {
+              oid: true
+            }
+          })
+        ])
+      : [undefined, undefined, undefined];
 
     let consumerGroups = hasConsumerGroupFilter
       ? await db.consumerGroup.findMany({
@@ -93,9 +160,27 @@ class ConsumerAccessServiceImpl {
         return await db.consumerAccess.findMany({
           ...opts,
           where: {
-            surfaceOid: d.consumerSurface.oid,
-            id: idFilter ? idFilter : undefined,
             AND: [
+              {
+                surfaceOid: d.consumerSurface.oid,
+                type: d.types?.length ? { in: d.types } : undefined,
+                consumerGroupOid: hasConsumerGroupFilter
+                  ? {
+                      in: consumerGroups?.map(group => group.oid) ?? []
+                    }
+                  : undefined,
+                providerTemplateOid: hasProviderTemplateFilter
+                  ? {
+                      in:
+                        providerTemplates?.map(providerTemplate => providerTemplate.oid) ?? []
+                    }
+                  : undefined,
+                magicMcpServerOid: hasMagicMcpServerFilter
+                  ? {
+                      in: magicMcpServers?.map(magicMcpServer => magicMcpServer.oid) ?? []
+                    }
+                  : undefined
+              },
               {
                 OR: [
                   {
@@ -116,66 +201,32 @@ class ConsumerAccessServiceImpl {
                 ? [
                     {
                       OR: [
-                        { id: { contains: search, mode: 'insensitive' as const } },
                         {
-                          AND: [
-                            { type: 'provider_template' as const },
-                            {
-                              providerTemplate: {
-                                OR: [
-                                  { name: { contains: search, mode: 'insensitive' as const } },
-                                  {
-                                    description: {
-                                      contains: search,
-                                      mode: 'insensitive' as const
-                                    }
-                                  },
-                                  { id: { contains: search, mode: 'insensitive' as const } }
-                                ]
-                              }
-                            }
-                          ]
+                          consumerGroupOid: {
+                            in: searchedConsumerGroups?.map(group => group.oid) ?? []
+                          }
                         },
                         {
-                          AND: [
-                            { type: 'magic_mcp_server' as const },
-                            {
-                              magicMcpServer: {
-                                OR: [
-                                  { name: { contains: search, mode: 'insensitive' as const } },
-                                  {
-                                    description: {
-                                      contains: search,
-                                      mode: 'insensitive' as const
-                                    }
-                                  },
-                                  { id: { contains: search, mode: 'insensitive' as const } }
-                                ]
-                              }
-                            }
-                          ]
+                          providerTemplateOid: {
+                            in:
+                              searchedProviderTemplates?.map(
+                                providerTemplate => providerTemplate.oid
+                              ) ?? []
+                          }
+                        },
+                        {
+                          magicMcpServerOid: {
+                            in:
+                              searchedMagicMcpServers?.map(
+                                magicMcpServer => magicMcpServer.oid
+                              ) ?? []
+                          }
                         }
                       ]
                     }
                   ]
                 : [])
-            ],
-            type: d.types?.length ? { in: d.types } : undefined,
-            consumerGroupOid: hasConsumerGroupFilter
-              ? {
-                  in: consumerGroups?.map(group => group.oid) ?? []
-                }
-              : undefined,
-            providerTemplateOid: hasProviderTemplateFilter
-              ? {
-                  in: providerTemplates?.map(providerTemplate => providerTemplate.oid) ?? []
-                }
-              : undefined,
-            magicMcpServerOid: hasMagicMcpServerFilter
-              ? {
-                  in: magicMcpServers?.map(magicMcpServer => magicMcpServer.oid) ?? []
-                }
-              : undefined
+            ]
           },
           include
         });

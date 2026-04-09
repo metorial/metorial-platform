@@ -19,7 +19,12 @@ import {
   withTransaction
 } from '@metorial/db';
 import { createLock } from '@metorial/lock';
-import { syncIdentityConsumerQueue } from '../queues/syncIdentityConsumer';
+import { searchConsumerIds } from '@metorial/module-search';
+import {
+  enqueueConsumerProfileCreated,
+  enqueueConsumerProfileUpdated
+} from '../queues/lifecycle/consumerProfile';
+import { consumerService } from './consumer';
 
 let include = {
   consumer: true,
@@ -87,12 +92,42 @@ class ConsumerProfileServiceImpl {
   async listConsumerProfiles(d: {
     consumerSurface: ConsumerSurface;
     search?: string;
-    id?: string;
     consumerGroupId?: string;
   }) {
     let search = d.search?.trim();
-    let idFilter = d.id?.trim();
     let consumerGroupId = d.consumerGroupId?.trim();
+    let instance = search
+      ? await db.instance.findFirst({
+          where: {
+            oid: d.consumerSurface.instanceOid
+          },
+          select: {
+            id: true
+          }
+        })
+      : null;
+    let searchedConsumerIds =
+      search && instance
+        ? await searchConsumerIds({
+            instanceId: instance.id,
+            query: search
+          })
+        : undefined;
+    let searchedConsumerOids =
+      search && searchedConsumerIds?.length
+        ? (
+            await db.instanceConsumer.findMany({
+              where: {
+                instanceOid: d.consumerSurface.instanceOid,
+                id: { in: searchedConsumerIds }
+              },
+              select: { consumerOid: true },
+              distinct: ['consumerOid']
+            })
+          ).map(consumer => consumer.consumerOid)
+        : search
+          ? []
+          : undefined;
 
     let groupMembershipWhere: Prisma.ConsumerProfileWhereInput | undefined;
 
@@ -136,19 +171,8 @@ class ConsumerProfileServiceImpl {
 
     let andParts: Prisma.ConsumerProfileWhereInput[] = [
       { surfaceOid: d.consumerSurface.oid },
-      ...(idFilter ? [{ id: idFilter }] : []),
       ...(groupMembershipWhere ? [groupMembershipWhere] : []),
-      ...(search
-        ? [
-            {
-              OR: [
-                { name: { contains: search, mode: 'insensitive' as const } },
-                { email: { contains: search, mode: 'insensitive' as const } },
-                { id: { contains: search, mode: 'insensitive' as const } }
-              ]
-            }
-          ]
-        : [])
+      ...(search ? [{ consumerOid: { in: searchedConsumerOids ?? [] } }] : [])
     ];
 
     return Paginator.create(({ prisma }) =>
@@ -247,51 +271,32 @@ class ConsumerProfileServiceImpl {
     ssoGroupIds?: string[];
     ssoRoles?: string[];
   }) {
-    let res = await ensureProfileLock.usingLock(`${d.surface.instanceOid}-${d.email}`, () =>
-      withTransaction(async db => {
+    let res = await ensureProfileLock.usingLock(
+      `${d.surface.instanceOid}-${d.email}`,
+      async () => {
         let ssoGroupIds = normalizeStringList(d.ssoGroupIds);
         let ssoRoles = normalizeStringList(d.ssoRoles);
-        let existingConsumer = await db.consumer.findUnique({
+        let organization = await db.organization.findFirstOrThrow({
           where: {
-            email_organizationOid: {
-              email: d.email,
-              organizationOid: d.surface.organizationOid
-            }
-          },
-          select: {
-            isOrganizationMember: true,
-            isPortalConsumer: true,
-            organizationMemberOid: true,
-            organizationActorOid: true
+            oid: d.surface.organizationOid
           }
         });
-        let consumer = await db.consumer.upsert({
+        let instance = await db.instance.findFirstOrThrow({
           where: {
-            email_organizationOid: {
-              email: d.email,
-              organizationOid: d.surface.organizationOid
-            }
-          },
-          create: {
-            id: await ID.generateId('consumer'),
-            email: d.email,
-            name: d.name,
-            organizationOid: d.surface.organizationOid,
-            organizationMemberOid: d.member?.oid,
-            organizationActorOid: d.member?.actorOid,
-            isOrganizationMember: !!d.member || d.surface.type === 'organization_members',
+            oid: d.surface.instanceOid
+          }
+        });
+        let instanceConsumer = await consumerService.upsertConsumer({
+          organization,
+          instance,
+          member: d.member,
+          flags: {
+            isOrganizationMember: d.surface.type === 'organization_members',
             isPortalConsumer: d.surface.type === 'portal'
           },
-          update: {
-            email: d.email,
+          input: {
             name: d.name,
-            organizationMemberOid: d.member?.oid ?? existingConsumer?.organizationMemberOid,
-            organizationActorOid: d.member?.actorOid ?? existingConsumer?.organizationActorOid,
-            isOrganizationMember:
-              !!d.member ||
-              !!existingConsumer?.isOrganizationMember ||
-              d.surface.type === 'organization_members',
-            isPortalConsumer: existingConsumer?.isPortalConsumer || d.surface.type === 'portal'
+            email: d.email
           }
         });
 
@@ -302,109 +307,95 @@ class ConsumerProfileServiceImpl {
           });
         }
 
-        let instanceConsumer = await db.instanceConsumer.upsert({
-          where: {
-            instanceOid_consumerOid: {
-              instanceOid: d.surface.instanceOid,
-              consumerOid: consumer.oid
-            }
-          },
-          create: {
-            id: await ID.generateId('instanceConsumer'),
-            name: d.name,
-            email: d.email,
-            instanceOid: d.surface.instanceOid,
-            consumerOid: consumer.oid,
-            organizationMemberOid: d.member?.oid,
-            organizationActorOid: d.member?.actorOid
-          },
-          update: {
-            name: d.name,
-            email: d.email,
-            organizationMemberOid: d.member?.oid ?? consumer.organizationMemberOid,
-            organizationActorOid: d.member?.actorOid ?? consumer.organizationActorOid
+        return await withTransaction(async db => {
+          let existingProfile = await db.consumerProfile.findUnique({
+            where: d.aresUserId
+              ? {
+                  surfaceOid_aresUserId: {
+                    surfaceOid: d.surface.oid,
+                    aresUserId: d.aresUserId
+                  }
+                }
+              : { email_surfaceOid: { email: d.email, surfaceOid: d.surface.oid } }
+          });
+          if (existingProfile) {
+            return {
+              lifecycleAction: 'updated' as const,
+              instanceConsumer,
+              consumerProfile: await db.consumerProfile.update({
+                where: {
+                  oid: existingProfile.oid
+                },
+                data: {
+                  aresUserId: d.aresUserId,
+                  email: d.email,
+                  name: d.name,
+                  consumerOid: instanceConsumer.consumerOid,
+                  organizationMemberOid:
+                    d.member?.oid ?? instanceConsumer.organizationMemberOid,
+                  organizationActorOid:
+                    d.member?.actorOid ?? instanceConsumer.organizationActorOid,
+                  ssoGroupIds,
+                  ssoRoles
+                },
+                include
+              })
+            };
           }
-        });
 
-        let existingProfile = await db.consumerProfile.findUnique({
-          where: d.aresUserId
-            ? {
-                surfaceOid_aresUserId: { surfaceOid: d.surface.oid, aresUserId: d.aresUserId }
-              }
-            : { email_surfaceOid: { email: d.email, surfaceOid: d.surface.oid } }
-        });
-        if (existingProfile) {
+          let accessTag = await db.accessTag.create({
+            data: {
+              instanceOid: d.surface.instanceOid
+            }
+          });
+
+          let personalConsumerGroup = await db.consumerGroup.create({
+            data: {
+              id: await ID.generateId('consumerGroup'),
+              status: 'active',
+              type: 'user_access',
+              isDefault: false,
+              ssoGroupIds: [],
+              name: `Personal Group for ${d.email}`,
+              description: null,
+              surfaceOid: d.surface.oid,
+              accessTagOid: accessTag.oid
+            }
+          });
+
           return {
-            consumer,
+            lifecycleAction: 'created' as const,
             instanceConsumer,
-            consumerProfile: await db.consumerProfile.update({
-              where: {
-                oid: existingProfile.oid
-              },
+            consumerProfile: await db.consumerProfile.create({
               data: {
+                id: await ID.generateId('consumerProfile'),
                 aresUserId: d.aresUserId,
                 email: d.email,
                 name: d.name,
-                consumerOid: consumer.oid,
-                organizationMemberOid: d.member?.oid ?? consumer.organizationMemberOid,
-                organizationActorOid: d.member?.actorOid ?? consumer.organizationActorOid,
                 ssoGroupIds,
-                ssoRoles
+                ssoRoles,
+                organizationOid: d.surface.organizationOid,
+                instanceOid: d.surface.instanceOid,
+                surfaceOid: d.surface.oid,
+                consumerOid: instanceConsumer.consumerOid,
+                organizationMemberOid: d.member?.oid ?? instanceConsumer.organizationMemberOid,
+                organizationActorOid:
+                  d.member?.actorOid ?? instanceConsumer.organizationActorOid,
+                accessTagOid: accessTag.oid,
+                personalConsumerGroupOid: personalConsumerGroup.oid
               },
               include
             })
           };
-        }
-
-        let accessTag = await db.accessTag.create({
-          data: {
-            instanceOid: d.surface.instanceOid
-          }
         });
-
-        let personalConsumerGroup = await db.consumerGroup.create({
-          data: {
-            id: await ID.generateId('consumerGroup'),
-            status: 'active',
-            type: 'user_access',
-            isDefault: false,
-            ssoGroupIds: [],
-            name: `Personal Group for ${d.email}`,
-            description: null,
-            surfaceOid: d.surface.oid,
-            accessTagOid: accessTag.oid
-          }
-        });
-
-        return {
-          instanceConsumer,
-          consumer,
-          consumerProfile: await db.consumerProfile.create({
-            data: {
-              id: await ID.generateId('consumerProfile'),
-              aresUserId: d.aresUserId,
-              email: d.email,
-              name: d.name,
-              ssoGroupIds,
-              ssoRoles,
-              organizationOid: d.surface.organizationOid,
-              instanceOid: d.surface.instanceOid,
-              surfaceOid: d.surface.oid,
-              consumerOid: consumer.oid,
-              organizationMemberOid: d.member?.oid ?? consumer.organizationMemberOid,
-              organizationActorOid: d.member?.actorOid ?? consumer.organizationActorOid,
-              accessTagOid: accessTag.oid,
-              personalConsumerGroupOid: personalConsumerGroup.oid
-            },
-            include
-          })
-        };
-      })
+      }
     );
 
-    await syncIdentityConsumerQueue.add({
-      identityConsumerId: res.instanceConsumer.id
-    });
+    if (res.lifecycleAction === 'created') {
+      await enqueueConsumerProfileCreated(res.consumerProfile.id);
+    } else {
+      await enqueueConsumerProfileUpdated(res.consumerProfile.id);
+    }
 
     return res.consumerProfile;
   }

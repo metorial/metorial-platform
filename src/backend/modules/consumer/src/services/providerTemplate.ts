@@ -7,12 +7,6 @@ import {
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
-  accessTagService,
-  consumerProviderTemplateReadRoles,
-  type AnyAccessTagSelector
-} from '@metorial/module-access';
-import { subspaceProviderDeploymentService } from '@metorial/module-subspace';
-import {
   db,
   ID,
   Instance,
@@ -21,6 +15,18 @@ import {
   ProviderTemplateStatus,
   withTransaction
 } from '@metorial/db';
+import {
+  accessTagService,
+  consumerProviderTemplateReadRoles,
+  type AnyAccessTagSelector
+} from '@metorial/module-access';
+import { searchProviderTemplateIds } from '@metorial/module-search';
+import { subspaceProviderDeploymentService } from '@metorial/module-subspace';
+import {
+  enqueueProviderTemplateArchived,
+  enqueueProviderTemplateCreated,
+  enqueueProviderTemplateUpdated
+} from '../queues/lifecycle/providerTemplate';
 
 type ProviderTemplateDeploymentCreateInput = Pick<
   Parameters<typeof subspaceProviderDeploymentService.create>[0],
@@ -82,7 +88,7 @@ class ProviderTemplateServiceImpl {
     });
     if (existing) {
       if (existing.status == 'archived') {
-        return await db.providerTemplate.update({
+        let providerTemplate = await db.providerTemplate.update({
           where: {
             oid: existing.oid
           },
@@ -94,6 +100,10 @@ class ProviderTemplateServiceImpl {
             archivedAt: null
           }
         });
+
+        await enqueueProviderTemplateUpdated(providerTemplate.id);
+
+        return providerTemplate;
       }
 
       throw new ServiceError(
@@ -103,7 +113,7 @@ class ProviderTemplateServiceImpl {
       );
     }
 
-    return await db.providerTemplate.create({
+    let providerTemplate = await db.providerTemplate.create({
       data: {
         id: await ID.generateId('providerTemplate'),
         status: 'active',
@@ -115,6 +125,10 @@ class ProviderTemplateServiceImpl {
         instanceOid: d.instance.oid
       }
     });
+
+    await enqueueProviderTemplateCreated(providerTemplate.id);
+
+    return providerTemplate;
   }
 
   async updateProviderTemplate(d: {
@@ -133,7 +147,7 @@ class ProviderTemplateServiceImpl {
       );
     }
 
-    return await db.providerTemplate.update({
+    let providerTemplate = await db.providerTemplate.update({
       where: {
         oid: d.providerTemplate.oid
       },
@@ -143,6 +157,10 @@ class ProviderTemplateServiceImpl {
         metadata: d.input.metadata
       }
     });
+
+    await enqueueProviderTemplateUpdated(providerTemplate.id);
+
+    return providerTemplate;
   }
 
   async archiveProviderTemplate(d: { providerTemplate: ProviderTemplate }) {
@@ -154,19 +172,7 @@ class ProviderTemplateServiceImpl {
       );
     }
 
-    return await withTransaction(async tx => {
-      await tx.accessTagEntity.deleteMany({
-        where: {
-          providerTemplateOid: d.providerTemplate.oid,
-          accessTagPolicy: {
-            organizationOid: d.providerTemplate.organizationOid,
-            roles: {
-              hasSome: [...consumerProviderTemplateReadRoles]
-            }
-          }
-        }
-      });
-
+    let providerTemplate = await withTransaction(async tx => {
       return await tx.providerTemplate.update({
         where: {
           oid: d.providerTemplate.oid
@@ -177,6 +183,10 @@ class ProviderTemplateServiceImpl {
         }
       });
     });
+
+    await enqueueProviderTemplateArchived(providerTemplate.id);
+
+    return providerTemplate;
   }
 
   async listProviderTemplates(d: {
@@ -187,10 +197,17 @@ class ProviderTemplateServiceImpl {
     search?: string;
     accessTags?: AnyAccessTagSelector;
   }) {
+    let search = d.search?.trim();
     let accessTagFilter = d.accessTags
       ? await accessTagService.getAccessTagFilter({
           tags: d.accessTags,
           roles: [...consumerProviderTemplateReadRoles]
+        })
+      : undefined;
+    let searchedProviderTemplateIds = search
+      ? await searchProviderTemplateIds({
+          instanceId: d.instance.id,
+          query: search
         })
       : undefined;
 
@@ -199,29 +216,36 @@ class ProviderTemplateServiceImpl {
         return await db.providerTemplate.findMany({
           ...opts,
           where: {
-            instanceOid: d.instance.oid,
-            id: d.ids?.length ? { in: d.ids } : undefined,
-            providerDeploymentId: d.providerDeploymentIds?.length
-              ? { in: d.providerDeploymentIds }
-              : undefined,
-            OR: d.search
-              ? [
-                  {
-                    name: {
-                      contains: d.search,
-                      mode: 'insensitive'
+            AND: [
+              {
+                instanceOid: d.instance.oid,
+                status: d.status ? { in: d.status } : 'active',
+                accessTagEntities: accessTagFilter
+              },
+              ...(d.ids?.length
+                ? [
+                    {
+                      id: { in: d.ids }
                     }
-                  },
-                  {
-                    description: {
-                      contains: d.search,
-                      mode: 'insensitive'
+                  ]
+                : []),
+              ...(d.providerDeploymentIds?.length
+                ? [
+                    {
+                      providerDeploymentId: { in: d.providerDeploymentIds }
                     }
-                  }
-                ]
-              : undefined,
-            status: d.status ? { in: d.status } : 'active',
-            accessTagEntities: accessTagFilter
+                  ]
+                : []),
+              ...(search
+                ? [
+                    {
+                      id: {
+                        in: searchedProviderTemplateIds ?? []
+                      }
+                    }
+                  ]
+                : [])
+            ]
           }
         });
       })
