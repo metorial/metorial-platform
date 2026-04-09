@@ -82,6 +82,7 @@ let Content = styled.div`
 let Shadow = styled.div`
   height: 10px;
   background: linear-gradient(0deg, rgba(240, 240, 240, 0) 0%, rgba(240, 240, 240, 1) 100%);
+  flex-shrink: 0;
 `;
 
 export let AppLayout = ({

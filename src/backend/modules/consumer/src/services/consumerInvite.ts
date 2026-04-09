@@ -26,6 +26,7 @@ class ConsumerInviteServiceImpl {
     input: {
       name: string;
       email: string;
+      message?: string;
     };
   }) {
     let consumerProfile = await consumerProfileService.ensureConsumerProfile({
@@ -51,6 +52,7 @@ class ConsumerInviteServiceImpl {
           },
           data: {
             status: 'pending',
+            message: d.input.message,
             invitedByOid: d.performedBy.oid,
             acceptedAt: null
           },
@@ -60,6 +62,7 @@ class ConsumerInviteServiceImpl {
           data: {
             id: await ID.generateId('consumerInvite'),
             status: 'pending',
+            message: d.input.message,
             organizationOid: d.consumerSurface.organizationOid,
             instanceOid: d.consumerSurface.instanceOid,
             surfaceOid: d.consumerSurface.oid,

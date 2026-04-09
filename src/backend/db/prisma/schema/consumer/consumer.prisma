@@ -126,6 +126,7 @@ model ConsumerInvite {
   id  String @unique
 
   status ConsumerInviteStatus @default(pending)
+  message String?
 
   organizationOid BigInt
   organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)

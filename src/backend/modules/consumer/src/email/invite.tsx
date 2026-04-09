@@ -28,6 +28,13 @@ export let sendConsumerInviteEmail = notificationClient.createTemplate(
           >
             <Button href={portalUrl}>Open Portal</Button>
 
+            {!!invite.message?.trim().length && (
+              <Text>
+                {invitedBy.name} sent the following message: <br />
+                {invite.message}
+              </Text>
+            )}
+
             <Text>
               This invite is currently marked as <strong>{invite.status}</strong>. It will be
               accepted automatically the first time you log in to the portal.

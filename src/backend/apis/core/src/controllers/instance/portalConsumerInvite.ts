@@ -81,7 +81,8 @@ export let portalConsumerInviteController = Controller.create(
         'default',
         v.object({
           name: v.string(),
-          email: v.string({ modifiers: [v.email()] })
+          email: v.string({ modifiers: [v.email()] }),
+          message: v.optional(v.string())
         })
       )
       .output(consumerInvitePresenter)
@@ -91,7 +92,8 @@ export let portalConsumerInviteController = Controller.create(
           performedBy: ctx.actor!,
           input: {
             name: ctx.body.name,
-            email: ctx.body.email
+            email: ctx.body.email,
+            message: ctx.body.message
           }
         });
 

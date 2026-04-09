@@ -23,6 +23,7 @@ export let v1ConsumerInvitePresenter = Presenter.create(consumerInviteType)
       name: consumerInvite.invitedBy.name,
       email: consumerInvite.invitedBy.email
     },
+    message: consumerInvite.message,
     accepted_at: consumerInvite.acceptedAt,
     created_at: consumerInvite.createdAt,
     updated_at: consumerInvite.updatedAt
@@ -45,6 +46,7 @@ export let v1ConsumerInvitePresenter = Presenter.create(consumerInviteType)
         name: v.string(),
         email: v.nullable(v.string())
       }),
+      message: v.nullable(v.string()),
       accepted_at: v.nullable(v.date()),
       created_at: v.date(),
       updated_at: v.date()
