@@ -105,9 +105,6 @@ class ConsumerProviderSetupSessionServiceImpl {
       ua: d.context.ua ?? '',
       redirectUrl: buildProviderSetupRedirectUrl(portal.slug),
       configuration: {
-        toolFilters: {
-          enabled: true
-        },
         ui: {
           layout: 'side'
         }
