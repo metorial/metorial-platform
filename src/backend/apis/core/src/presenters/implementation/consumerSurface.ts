@@ -12,7 +12,8 @@ export let v1ConsumerSurfacePresenter = Presenter.create(consumerSurfaceType)
 
     auth: {
       object: 'consumer.surface.auth' as const,
-      session_expiry_time_in_seconds: consumerSurface.sessionExpiryTimeInSeconds
+      session_expiry_time_in_seconds: consumerSurface.sessionExpiryTimeInSeconds,
+      email_whitelist: consumerSurface.emailWhitelist
     },
 
     created_at: consumerSurface.createdAt,
@@ -27,7 +28,8 @@ export let v1ConsumerSurfacePresenter = Presenter.create(consumerSurfaceType)
       description: v.nullable(v.string()),
       auth: v.object({
         object: v.literal('consumer.surface.auth'),
-        session_expiry_time_in_seconds: v.number()
+        session_expiry_time_in_seconds: v.number(),
+        email_whitelist: v.array(v.string())
       }),
       created_at: v.date(),
       updated_at: v.date()

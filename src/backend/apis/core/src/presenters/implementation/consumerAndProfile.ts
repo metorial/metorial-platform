@@ -8,7 +8,14 @@ export let v1ConsumerAndProfilePresenter = Presenter.create(consumerAndProfileTy
   .presenter(async ({ consumer, consumerProfile, assignedConsumerGroups }, opts) => {
     let consumerPresented = await v1ConsumerPresenter.present({ consumer }, opts).run();
     let consumerProfilePresented = await v1ConsumerProfilePresenter
-      .present({ consumerProfile, assignedConsumerGroups }, opts)
+      .present(
+        {
+          consumerProfile,
+          assignedConsumerGroups,
+          instanceConsumer: consumer
+        },
+        opts
+      )
       .run();
 
     return {

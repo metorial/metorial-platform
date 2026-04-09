@@ -7,6 +7,7 @@ export type ManagementInstancePortalsAuthAppGetOutput = {
   slug: string | null;
   defaultRedirectUrl: string;
   redirectDomains: string[];
+  emailWhitelist: string[];
   createdAt: Date;
   updatedAt: Date;
 };
@@ -23,6 +24,10 @@ export let mapManagementInstancePortalsAuthAppGetOutput =
     ),
     redirectDomains: mtMap.objectField(
       'redirect_domains',
+      mtMap.array(mtMap.passthrough())
+    ),
+    emailWhitelist: mtMap.objectField(
+      'email_whitelist',
       mtMap.array(mtMap.passthrough())
     ),
     createdAt: mtMap.objectField('created_at', mtMap.date()),

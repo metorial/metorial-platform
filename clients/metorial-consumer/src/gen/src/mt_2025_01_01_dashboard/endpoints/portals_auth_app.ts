@@ -5,7 +5,11 @@ import {
 
 import {
   mapDashboardInstancePortalsAuthAppGetOutput,
-  type DashboardInstancePortalsAuthAppGetOutput
+  mapDashboardInstancePortalsAuthAppUpdateBody,
+  mapDashboardInstancePortalsAuthAppUpdateOutput,
+  type DashboardInstancePortalsAuthAppGetOutput,
+  type DashboardInstancePortalsAuthAppUpdateBody,
+  type DashboardInstancePortalsAuthAppUpdateOutput
 } from '../resources';
 
 /**
@@ -59,6 +63,36 @@ export class MetorialPortalsAuthAppEndpoint {
 
     return this._get(request).transform(
       mapDashboardInstancePortalsAuthAppGetOutput
+    );
+  }
+
+  /**
+   * @name Update portal auth app
+   * @description Updates the portal auth app configuration stored on the portal surface.
+   *
+   * @param `portalId` - string
+   * @param `body` - DashboardInstancePortalsAuthAppUpdateBody
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardInstancePortalsAuthAppUpdateOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  update(
+    portalId: string,
+    body: DashboardInstancePortalsAuthAppUpdateBody,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstancePortalsAuthAppUpdateOutput> {
+    let path = `portals/${portalId}/auth/app`;
+
+    let request = {
+      path,
+      body: mapDashboardInstancePortalsAuthAppUpdateBody.transformTo(body),
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._patch(request).transform(
+      mapDashboardInstancePortalsAuthAppUpdateOutput
     );
   }
 }

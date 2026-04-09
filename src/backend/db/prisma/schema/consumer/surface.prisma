@@ -23,6 +23,7 @@ model ConsumerSurface {
   description String?
 
   sessionExpiryTimeInSeconds Int
+  emailWhitelist             String[] @default([])
 
   organizationOid BigInt
   organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)

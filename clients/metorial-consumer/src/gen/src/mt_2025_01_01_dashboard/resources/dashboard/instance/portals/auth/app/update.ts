@@ -1,6 +1,6 @@
 import { mtMap } from '@metorial/util-resource-mapper';
 
-export type DashboardInstancePortalsAuthAppGetOutput = {
+export type DashboardInstancePortalsAuthAppUpdateOutput = {
   object: 'portal.auth.app';
   id: string;
   clientId: string;
@@ -12,8 +12,8 @@ export type DashboardInstancePortalsAuthAppGetOutput = {
   updatedAt: Date;
 };
 
-export let mapDashboardInstancePortalsAuthAppGetOutput =
-  mtMap.object<DashboardInstancePortalsAuthAppGetOutput>({
+export let mapDashboardInstancePortalsAuthAppUpdateOutput =
+  mtMap.object<DashboardInstancePortalsAuthAppUpdateOutput>({
     object: mtMap.objectField('object', mtMap.passthrough()),
     id: mtMap.objectField('id', mtMap.passthrough()),
     clientId: mtMap.objectField('client_id', mtMap.passthrough()),
@@ -32,5 +32,17 @@ export let mapDashboardInstancePortalsAuthAppGetOutput =
     ),
     createdAt: mtMap.objectField('created_at', mtMap.date()),
     updatedAt: mtMap.objectField('updated_at', mtMap.date())
+  });
+
+export type DashboardInstancePortalsAuthAppUpdateBody = {
+  emailWhitelist?: string[] | undefined;
+};
+
+export let mapDashboardInstancePortalsAuthAppUpdateBody =
+  mtMap.object<DashboardInstancePortalsAuthAppUpdateBody>({
+    emailWhitelist: mtMap.objectField(
+      'email_whitelist',
+      mtMap.array(mtMap.passthrough())
+    )
   });
 

@@ -21,8 +21,8 @@ import {
   type ConsumerProviderAuthMethodList,
   type ConsumerProviderConfigSchema,
   type ConsumerProviderDeployment
-} from './consumerProviderContext';
-import { isPreconfiguredMagicMcpServer } from './magicMcpServerSource';
+} from '../lib/consumerProviderContext';
+import { isPreconfiguredMagicMcpServer } from '../lib/magicMcpServerSource';
 
 export type ConsumerProviderAvailability = 'available_now' | 'request_access';
 

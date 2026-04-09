@@ -6,7 +6,11 @@ export type DashboardInstanceConsumerSurfacesGetOutput = {
   status: 'active' | 'archived' | 'deleted';
   name: string;
   description: string | null;
-  auth: { object: 'consumer.surface.auth'; sessionExpiryTimeInSeconds: number };
+  auth: {
+    object: 'consumer.surface.auth';
+    sessionExpiryTimeInSeconds: number;
+    emailWhitelist: string[];
+  };
   createdAt: Date;
   updatedAt: Date;
 };
@@ -25,6 +29,10 @@ export let mapDashboardInstanceConsumerSurfacesGetOutput =
         sessionExpiryTimeInSeconds: mtMap.objectField(
           'session_expiry_time_in_seconds',
           mtMap.passthrough()
+        ),
+        emailWhitelist: mtMap.objectField(
+          'email_whitelist',
+          mtMap.array(mtMap.passthrough())
         )
       })
     ),

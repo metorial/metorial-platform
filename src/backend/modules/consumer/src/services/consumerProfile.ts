@@ -43,6 +43,19 @@ let include = {
   }
 } as const;
 
+type ConsumerProfileWithRelations = Prisma.ConsumerProfileGetPayload<{
+  include: typeof include;
+}>;
+
+type EnrichedConsumerProfile<T extends ConsumerProfileWithRelations> = T & {
+  instanceConsumer: InstanceConsumer | null;
+};
+
+let getInstanceConsumerKey = (d: {
+  instanceOid: bigint;
+  consumerOid: bigint;
+}) => `${d.instanceOid.toString()}:${d.consumerOid.toString()}`;
+
 export let ensureProfileLock = createLock({
   name: 'cons/ensureProfile'
 });
@@ -73,6 +86,69 @@ class ConsumerProfileServiceImpl {
     return groups;
   }
 
+  async enrichConsumerProfile<T extends ConsumerProfileWithRelations>(d: {
+    consumerProfile: T;
+    instanceConsumer?: InstanceConsumer | null;
+  }) {
+    let [consumerProfile] = await this.enrichConsumerProfiles({
+      consumerProfiles: [d.consumerProfile],
+      instanceConsumers: d.instanceConsumer ? [d.instanceConsumer] : undefined
+    });
+
+    return consumerProfile!;
+  }
+
+  async enrichConsumerProfiles<T extends ConsumerProfileWithRelations>(d: {
+    consumerProfiles: T[];
+    instanceConsumers?: InstanceConsumer[];
+  }) {
+    if (!d.consumerProfiles.length) {
+      return [] as EnrichedConsumerProfile<T>[];
+    }
+
+    let instanceConsumers = d.instanceConsumers ?? [];
+    let instanceConsumerMap = new Map(
+      instanceConsumers.map(instanceConsumer => [
+        getInstanceConsumerKey(instanceConsumer),
+        instanceConsumer
+      ])
+    );
+    let missingInstanceConsumerPairs = Array.from(
+      new Map(
+        d.consumerProfiles
+          .filter(
+            consumerProfile =>
+              !instanceConsumerMap.has(getInstanceConsumerKey(consumerProfile))
+          )
+          .map(consumerProfile => [
+            getInstanceConsumerKey(consumerProfile),
+            {
+              instanceOid: consumerProfile.instanceOid,
+              consumerOid: consumerProfile.consumerOid
+            }
+          ])
+      ).values()
+    );
+
+    if (missingInstanceConsumerPairs.length) {
+      let foundInstanceConsumers = await db.instanceConsumer.findMany({
+        where: {
+          OR: missingInstanceConsumerPairs
+        }
+      });
+
+      for (let instanceConsumer of foundInstanceConsumers) {
+        instanceConsumerMap.set(getInstanceConsumerKey(instanceConsumer), instanceConsumer);
+      }
+    }
+
+    return d.consumerProfiles.map(consumerProfile => ({
+      ...consumerProfile,
+      instanceConsumer:
+        instanceConsumerMap.get(getInstanceConsumerKey(consumerProfile)) ?? null
+    })) as EnrichedConsumerProfile<T>[];
+  }
+
   async getConsumerProfileById(d: {
     consumerSurface: ConsumerSurface;
     consumerProfileId: string;
@@ -88,7 +164,7 @@ class ConsumerProfileServiceImpl {
       throw new ServiceError(notFoundError('consumer.profile'));
     }
 
-    return consumerProfile;
+    return await this.enrichConsumerProfile({ consumerProfile });
   }
 
   async listConsumerProfiles(d: {
@@ -187,7 +263,7 @@ class ConsumerProfileServiceImpl {
       ...(search ? [{ consumerOid: { in: searchedConsumerOids ?? [] } }] : [])
     ];
 
-    return Paginator.create(({ prisma }) =>
+    let paginator = Paginator.create(({ prisma }) =>
       prisma(async opts => {
         return await db.consumerProfile.findMany({
           ...opts,
@@ -198,6 +274,19 @@ class ConsumerProfileServiceImpl {
         });
       })
     );
+
+    return {
+      run: async (...args: Parameters<typeof paginator.run>) => {
+        let list = await paginator.run(...args);
+
+        return {
+          ...list,
+          items: await this.enrichConsumerProfiles({
+            consumerProfiles: list.items
+          })
+        };
+      }
+    };
   }
 
   async getConsumerProfileByIdForConsumer(d: {
@@ -216,13 +305,13 @@ class ConsumerProfileServiceImpl {
       throw new ServiceError(notFoundError('consumer.profile'));
     }
 
-    return consumerProfile;
+    return await this.enrichConsumerProfile({ consumerProfile });
   }
 
   async listConsumerProfilesForConsumer(d: {
     consumer: Pick<InstanceConsumer, 'instanceOid' | 'consumerOid'>;
   }) {
-    return Paginator.create(({ prisma }) =>
+    let paginator = Paginator.create(({ prisma }) =>
       prisma(async opts => {
         return await db.consumerProfile.findMany({
           ...opts,
@@ -234,6 +323,19 @@ class ConsumerProfileServiceImpl {
         });
       })
     );
+
+    return {
+      run: async (...args: Parameters<typeof paginator.run>) => {
+        let list = await paginator.run(...args);
+
+        return {
+          ...list,
+          items: await this.enrichConsumerProfiles({
+            consumerProfiles: list.items
+          })
+        };
+      }
+    };
   }
 
   async getConsumerProfileByIdForInstance(d: {
@@ -251,7 +353,7 @@ class ConsumerProfileServiceImpl {
       throw new ServiceError(notFoundError('consumer.profile'));
     }
 
-    return consumerProfile;
+    return await this.enrichConsumerProfile({ consumerProfile });
   }
 
   async findConsumerProfilesByIdForInstance(d: {
@@ -262,14 +364,16 @@ class ConsumerProfileServiceImpl {
       return [];
     }
 
-    return await db.consumerProfile.findMany({
-      where: {
-        instanceOid: d.instance.oid,
-        id: {
-          in: d.consumerProfileIds
-        }
-      },
-      include
+    return await this.enrichConsumerProfiles({
+      consumerProfiles: await db.consumerProfile.findMany({
+        where: {
+          instanceOid: d.instance.oid,
+          id: {
+            in: d.consumerProfileIds
+          }
+        },
+        include
+      })
     });
   }
 
@@ -456,13 +560,16 @@ class ConsumerProfileServiceImpl {
       );
     }
 
-    return res.consumerProfile;
+    return await this.enrichConsumerProfile({
+      consumerProfile: res.consumerProfile,
+      instanceConsumer: res.instanceConsumer
+    });
   }
 
   async getStoredGroupsForProfiles(d: {
     consumerSurface: ConsumerSurface;
     consumerProfiles: Array<
-      ConsumerProfile & {
+      ConsumerProfileWithRelations & {
         personalConsumerGroup: ConsumerGroup;
         groups: Array<{ group: ConsumerGroup }>;
       }
@@ -516,7 +623,7 @@ class ConsumerProfileServiceImpl {
     return groupsByProfile;
   }
 
-  async assignToGroups<T extends ConsumerProfile>(d: {
+  async assignToGroups<T extends ConsumerProfileWithRelations>(d: {
     consumerProfile: T;
     groupIds: string[];
   }) {
@@ -532,10 +639,12 @@ class ConsumerProfileServiceImpl {
       });
     }
 
-    return d.consumerProfile;
+    return await this.enrichConsumerProfile({
+      consumerProfile: d.consumerProfile
+    });
   }
 
-  async removeFromGroups<T extends ConsumerProfile>(d: {
+  async removeFromGroups<T extends ConsumerProfileWithRelations>(d: {
     consumerProfile: T;
     groupIds: string[];
   }) {
@@ -548,7 +657,9 @@ class ConsumerProfileServiceImpl {
       }
     });
 
-    return d.consumerProfile;
+    return await this.enrichConsumerProfile({
+      consumerProfile: d.consumerProfile
+    });
   }
 
   async getGroupsForProfile(d: { consumerProfile: ConsumerProfile; ssoGroupIds?: string[] }) {

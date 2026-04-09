@@ -78,6 +78,7 @@ export let portalConsumerProfileController = Controller.create(
         return Paginator.present(list, consumerProfile =>
           consumerProfilePresenter.present({
             consumerProfile,
+            instanceConsumer: consumerProfile.instanceConsumer,
             assignedConsumerGroups: assignedConsumerGroupsByProfileId[consumerProfile.id] ?? []
           })
         );
@@ -104,6 +105,7 @@ export let portalConsumerProfileController = Controller.create(
 
         return consumerProfilePresenter.present({
           consumerProfile: ctx.consumerProfile,
+          instanceConsumer: ctx.consumerProfile.instanceConsumer,
           assignedConsumerGroups
         });
       }),
@@ -139,6 +141,7 @@ export let portalConsumerProfileController = Controller.create(
 
         return consumerProfilePresenter.present({
           consumerProfile,
+          instanceConsumer: consumerProfile.instanceConsumer,
           assignedConsumerGroups
         });
       }),
@@ -174,6 +177,7 @@ export let portalConsumerProfileController = Controller.create(
 
         return consumerProfilePresenter.present({
           consumerProfile,
+          instanceConsumer: consumerProfile.instanceConsumer,
           assignedConsumerGroups
         });
       })

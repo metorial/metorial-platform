@@ -280,6 +280,7 @@ export let consumerController = Controller.create(
         return Paginator.present(list, consumerProfile =>
           consumerProfilePresenter.present({
             consumerProfile,
+            instanceConsumer: consumerProfile.instanceConsumer,
             assignedConsumerGroups: assignedConsumerGroupsByProfileId[consumerProfile.id] ?? []
           })
         );
@@ -306,6 +307,7 @@ export let consumerController = Controller.create(
 
         return consumerProfilePresenter.present({
           consumerProfile: ctx.consumerProfile,
+          instanceConsumer: ctx.consumerProfile.instanceConsumer,
           assignedConsumerGroups
         });
       })

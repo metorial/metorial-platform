@@ -522,6 +522,7 @@ export let consumerProfileType = PresentableType.create<{
       group: ConsumerGroup;
     })[];
   };
+  instanceConsumer: InstanceConsumer | null;
   assignedConsumerGroups:
     | (ConsumerGroup & {
         assignedVia: 'default' | 'manual' | 'sso' | 'user';
@@ -591,6 +592,7 @@ export let providerTemplateType = PresentableType.create<{
 
 export let portalAuthAppType = PresentableType.create<{
   app: ConsumerAresApp;
+  consumerSurface: ConsumerSurface;
 }>()('portal.auth.app');
 
 export let portalAuthSsoTenantType = PresentableType.create<{

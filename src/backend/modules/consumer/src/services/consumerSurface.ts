@@ -14,6 +14,7 @@ import {
 import { createLock } from '@metorial/lock';
 import { apiKeyService } from '@metorial/module-machine-access';
 import { organizationActorService } from '@metorial/module-organization';
+import { normalizeConsumerSurfaceEmailWhitelist } from '../lib/consumerSurfaceEmailWhitelist';
 import {
   consumerSurfaceArchivedQueue,
   consumerSurfaceCreatedQueue,
@@ -177,6 +178,7 @@ class ConsumerSurfaceServiceImpl {
       name: string;
       description?: string;
       sessionExpiryTimeInSeconds: number;
+      emailWhitelist?: string[];
     };
     internalSurfaceUniqueIdentifier?: string;
   }) {
@@ -211,6 +213,9 @@ class ConsumerSurfaceServiceImpl {
             name: d.input.name,
             description: d.input.description,
             sessionExpiryTimeInSeconds: d.input.sessionExpiryTimeInSeconds,
+            emailWhitelist: normalizeConsumerSurfaceEmailWhitelist(
+              d.input.emailWhitelist ?? []
+            ),
             organizationOid: d.organization.oid,
             instanceOid: d.instance.oid,
             consumerAuthTenantOid: consumerAuthTenant.oid,
@@ -325,6 +330,7 @@ class ConsumerSurfaceServiceImpl {
       name?: string;
       description?: string;
       sessionExpiryTimeInSeconds?: number;
+      emailWhitelist?: string[];
     };
   }) {
     if (d.consumerSurface.status !== 'active') {
@@ -342,7 +348,11 @@ class ConsumerSurfaceServiceImpl {
       data: {
         name: d.input.name,
         description: d.input.description,
-        sessionExpiryTimeInSeconds: d.input.sessionExpiryTimeInSeconds
+        sessionExpiryTimeInSeconds: d.input.sessionExpiryTimeInSeconds,
+        emailWhitelist:
+          d.input.emailWhitelist === undefined
+            ? undefined
+            : normalizeConsumerSurfaceEmailWhitelist(d.input.emailWhitelist)
       },
       include: consumerSurfaceInclude
     });

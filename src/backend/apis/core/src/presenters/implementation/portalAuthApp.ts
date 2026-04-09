@@ -3,13 +3,14 @@ import { Presenter } from '@metorial/presenter';
 import { portalAuthAppType } from '../types';
 
 export let v1PortalAuthAppPresenter = Presenter.create(portalAuthAppType)
-  .presenter(async ({ app }) => ({
+  .presenter(async ({ app, consumerSurface }) => ({
     object: 'portal.auth.app' as const,
     id: app.id,
     client_id: app.clientId,
     slug: app.slug ?? null,
     default_redirect_url: app.defaultRedirectUrl,
     redirect_domains: app.redirectDomains,
+    email_whitelist: consumerSurface.emailWhitelist,
     created_at: app.createdAt,
     updated_at: app.updatedAt
   }))
@@ -26,6 +27,12 @@ export let v1PortalAuthAppPresenter = Presenter.create(portalAuthAppType)
       redirect_domains: v.array(
         v.string({
           description: 'A hostname or wildcard hostname allowed for redirect callbacks.'
+        })
+      ),
+      email_whitelist: v.array(
+        v.string({
+          description:
+            'Allowed email whitelist entries in the format "*@domain", "domain", or "email@domain".'
         })
       ),
       created_at: v.date(),

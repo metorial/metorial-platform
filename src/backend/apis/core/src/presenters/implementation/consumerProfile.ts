@@ -6,34 +6,36 @@ import { v1ConsumerGroupPresenter } from './consumerGroup';
 import { v1ConsumerSurfacePresenter } from './consumerSurface';
 
 export let v1ConsumerProfilePresenter = Presenter.create(consumerProfileType)
-  .presenter(async ({ consumerProfile, assignedConsumerGroups }, opts) => ({
-    object: 'consumer.profile' as const,
-    id: consumerProfile.id,
-    name: consumerProfile.name,
-    email: consumerProfile.email,
-    image_url: await getImageUrl({
+  .presenter(async ({ consumerProfile, assignedConsumerGroups, instanceConsumer }, opts) => {
+    return {
+      object: 'consumer.profile' as const,
       id: consumerProfile.id,
       name: consumerProfile.name,
       email: consumerProfile.email,
-      image: null
-    }),
-    groups: assignedConsumerGroups
-      ? await Promise.all(
-          assignedConsumerGroups.map(async group => ({
-            object: 'consumer.profile.group_assignment' as const,
-            group: await v1ConsumerGroupPresenter
-              .present({ consumerGroup: group }, opts)
-              .run(),
-            assigned_via: group.assignedVia
-          }))
-        )
-      : null,
-    consumer_id: consumerProfile.consumer.id,
-    status:
-      consumerProfile.inviteStatus == 'invited' ? ('invited' as const) : ('active' as const),
-    created_at: consumerProfile.createdAt,
-    updated_at: consumerProfile.updatedAt
-  }))
+      image_url: await getImageUrl({
+        id: consumerProfile.id,
+        name: consumerProfile.name,
+        email: consumerProfile.email,
+        image: null
+      }),
+      groups: assignedConsumerGroups
+        ? await Promise.all(
+            assignedConsumerGroups.map(async group => ({
+              object: 'consumer.profile.group_assignment' as const,
+              group: await v1ConsumerGroupPresenter
+                .present({ consumerGroup: group }, opts)
+                .run(),
+              assigned_via: group.assignedVia
+            }))
+          )
+        : null,
+      consumer_id: instanceConsumer?.id ?? consumerProfile.consumer.id,
+      status:
+        consumerProfile.inviteStatus == 'invited' ? ('invited' as const) : ('active' as const),
+      created_at: consumerProfile.createdAt,
+      updated_at: consumerProfile.updatedAt
+    };
+  })
   .schema(
     v.object({
       object: v.literal('consumer.profile'),
@@ -59,9 +61,9 @@ export let v1ConsumerProfilePresenter = Presenter.create(consumerProfileType)
   .build();
 
 export let dashboardConsumerProfilePresenter = Presenter.create(consumerProfileType)
-  .presenter(async ({ consumerProfile, assignedConsumerGroups }, opts) => {
+  .presenter(async ({ consumerProfile, assignedConsumerGroups, instanceConsumer }, opts) => {
     let inner = await v1ConsumerProfilePresenter
-      .present({ consumerProfile, assignedConsumerGroups }, opts)
+      .present({ consumerProfile, assignedConsumerGroups, instanceConsumer }, opts)
       .run();
 
     return {
