@@ -23,6 +23,10 @@ import {
   db,
   ID
 } from '@metorial/db';
+import {
+  isConsumerSurfaceEmailWhitelisted,
+  normalizeConsumerSurfaceEmail
+} from '../lib/consumerSurfaceEmailWhitelist';
 import { consumerAresService } from './ares';
 import { consumerProfileService } from './consumerProfile';
 
@@ -110,6 +114,55 @@ class ConsumerAuthServiceImpl {
     }
 
     return authExchange;
+  }
+
+  private async hasInviteBypassForEmail(d: { surface: ConsumerSurface; email: string }) {
+    let email = normalizeConsumerSurfaceEmail(d.email);
+    let invite = await db.consumerInvite.findFirst({
+      where: {
+        surfaceOid: d.surface.oid,
+        status: {
+          in: ['pending', 'accepted']
+        },
+        consumerProfile: {
+          email: {
+            equals: email,
+            mode: 'insensitive'
+          }
+        }
+      },
+      select: {
+        id: true
+      }
+    });
+
+    return Boolean(invite);
+  }
+
+  private async assertEmailCanAccessSurface(d: { surface: ConsumerSurface; email: string }) {
+    if (
+      isConsumerSurfaceEmailWhitelisted({
+        email: d.email,
+        emailWhitelist: d.surface.emailWhitelist
+      })
+    ) {
+      return;
+    }
+
+    if (
+      await this.hasInviteBypassForEmail({
+        surface: d.surface,
+        email: d.email
+      })
+    ) {
+      return;
+    }
+
+    throw new ServiceError(
+      unauthorizedError({
+        message: 'This email address is not allowed to access this portal.'
+      })
+    );
   }
 
   private async getOrCreateAresConsumerSession(d: {
@@ -382,6 +435,11 @@ class ConsumerAuthServiceImpl {
         user
       });
     }
+
+    await this.assertEmailCanAccessSurface({
+      surface: d.surface,
+      email
+    });
 
     let { session } = await this.materializeAresConsumerSession({
       context: d.context,

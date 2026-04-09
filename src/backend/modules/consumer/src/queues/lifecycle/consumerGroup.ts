@@ -76,30 +76,3 @@ export let consumerGroupArchivedQueueProcessor = consumerGroupArchivedQueue.proc
     });
   }
 );
-
-export let enqueueConsumerGroupCreated = async (consumerGroupId: string) => {
-  await consumerGroupCreatedQueue.add({ consumerGroupId }).catch(error => {
-    console.error(
-      '[module-consumer] Failed to enqueue consumer group create lifecycle',
-      error
-    );
-  });
-};
-
-export let enqueueConsumerGroupUpdated = async (consumerGroupId: string) => {
-  await consumerGroupUpdatedQueue.add({ consumerGroupId }).catch(error => {
-    console.error(
-      '[module-consumer] Failed to enqueue consumer group update lifecycle',
-      error
-    );
-  });
-};
-
-export let enqueueConsumerGroupArchived = async (consumerGroupId: string) => {
-  await consumerGroupArchivedQueue.add({ consumerGroupId }).catch(error => {
-    console.error(
-      '[module-consumer] Failed to enqueue consumer group archive lifecycle',
-      error
-    );
-  });
-};

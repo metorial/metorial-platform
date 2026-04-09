@@ -4,9 +4,9 @@ import { Service } from '@lowerdeck/service';
 import { ConsumerGroup, ConsumerSurface, db, ID, Organization } from '@metorial/db';
 import { searchConsumerGroupIds } from '@metorial/module-search';
 import {
-  enqueueConsumerGroupArchived,
-  enqueueConsumerGroupCreated,
-  enqueueConsumerGroupUpdated
+  consumerGroupArchivedQueue,
+  consumerGroupCreatedQueue,
+  consumerGroupUpdatedQueue
 } from '../queues/lifecycle/consumerGroup';
 
 class ConsumerGroupServiceImpl {
@@ -41,7 +41,7 @@ class ConsumerGroupServiceImpl {
       });
     });
 
-    await enqueueConsumerGroupCreated(consumerGroup.id);
+    await consumerGroupCreatedQueue.add({ consumerGroupId: consumerGroup.id });
 
     return consumerGroup;
   }
@@ -141,7 +141,7 @@ class ConsumerGroupServiceImpl {
       }
     });
 
-    await enqueueConsumerGroupUpdated(consumerGroup.id);
+    await consumerGroupUpdatedQueue.add({ consumerGroupId: consumerGroup.id });
 
     return consumerGroup;
   }
@@ -170,7 +170,7 @@ class ConsumerGroupServiceImpl {
       }
     });
 
-    await enqueueConsumerGroupArchived(consumerGroup.id);
+    await consumerGroupArchivedQueue.add({ consumerGroupId: consumerGroup.id });
 
     return consumerGroup;
   }

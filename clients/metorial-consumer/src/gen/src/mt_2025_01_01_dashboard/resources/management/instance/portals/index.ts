@@ -2,6 +2,7 @@ export * from './access-requests';
 export * from './auth';
 export * from './consumer-access';
 export * from './consumer-groups';
+export * from './consumer-invites';
 export * from './consumer-profiles';
 export * from './create';
 export * from './delete';

@@ -37,6 +37,7 @@ model OrganizationActor {
   consumers           Consumer[]
   instanceConsumers   InstanceConsumer[]
   consumerProfiles    ConsumerProfile[]
+  consumerInvites     ConsumerInvite[]
 
   @@unique([isSystem, organizationOid])
 }

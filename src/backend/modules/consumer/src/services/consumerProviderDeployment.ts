@@ -19,11 +19,11 @@ import {
   subspaceSessionTemplateProviderService,
   subspaceSessionTemplateService
 } from '@metorial/module-subspace';
-import { consumerAccessPolicyService } from './accessPolicy';
 import {
   loadTemplateContextForDeployment,
   type ConsumerProviderTemplateContext
-} from './consumerProviderContext';
+} from '../lib/consumerProviderContext';
+import { consumerAccessPolicyService } from './accessPolicy';
 import { consumerProviderSetupSessionService } from './consumerProviderSetupSession';
 
 let Sentry = getSentry();

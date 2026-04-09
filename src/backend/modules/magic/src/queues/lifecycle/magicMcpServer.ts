@@ -79,21 +79,3 @@ export let magicMcpServerDeletedQueueProcessor = magicMcpServerDeletedQueue.proc
     }
   }
 );
-
-export let enqueueMagicMcpServerCreated = async (magicMcpServerId: string) => {
-  await magicMcpServerCreatedQueue.add({ magicMcpServerId }).catch(error => {
-    console.error('[module-magic] Failed to enqueue magic MCP server create indexing', error);
-  });
-};
-
-export let enqueueMagicMcpServerUpdated = async (magicMcpServerId: string) => {
-  await magicMcpServerUpdatedQueue.add({ magicMcpServerId }).catch(error => {
-    console.error('[module-magic] Failed to enqueue magic MCP server update indexing', error);
-  });
-};
-
-export let enqueueMagicMcpServerDeleted = async (magicMcpServerId: string) => {
-  await magicMcpServerDeletedQueue.add({ magicMcpServerId }).catch(error => {
-    console.error('[module-magic] Failed to enqueue magic MCP server delete indexing', error);
-  });
-};

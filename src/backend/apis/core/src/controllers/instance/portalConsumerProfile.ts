@@ -3,6 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { consumerProfileService } from '@metorial/module-consumer';
 import { Controller } from '@metorial/rest';
+import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { hasFlags } from '../../middleware/hasFlags';
 import { instancePath } from '../../middleware/instanceGroup';
@@ -50,7 +51,13 @@ export let portalConsumerProfileController = Controller.create(
         Paginator.validate(
           v.object({
             search: v.optional(v.string()),
-            consumer_group_id: v.optional(v.string())
+            consumer_group_id: v.optional(v.string()),
+            status: v.optional(
+              v.union([
+                v.enumOf(['active', 'invited']),
+                v.array(v.enumOf(['active', 'invited']))
+              ])
+            )
           })
         )
       )
@@ -58,7 +65,8 @@ export let portalConsumerProfileController = Controller.create(
         let paginator = await consumerProfileService.listConsumerProfiles({
           consumerSurface: ctx.portal.surface,
           search: ctx.query.search,
-          consumerGroupId: ctx.query.consumer_group_id
+          consumerGroupId: ctx.query.consumer_group_id,
+          statuses: normalizeArrayParam(ctx.query.status)
         });
         let list = await paginator.run(ctx.query);
         let assignedConsumerGroupsByProfileId =
@@ -70,6 +78,7 @@ export let portalConsumerProfileController = Controller.create(
         return Paginator.present(list, consumerProfile =>
           consumerProfilePresenter.present({
             consumerProfile,
+            instanceConsumer: consumerProfile.instanceConsumer,
             assignedConsumerGroups: assignedConsumerGroupsByProfileId[consumerProfile.id] ?? []
           })
         );
@@ -96,6 +105,7 @@ export let portalConsumerProfileController = Controller.create(
 
         return consumerProfilePresenter.present({
           consumerProfile: ctx.consumerProfile,
+          instanceConsumer: ctx.consumerProfile.instanceConsumer,
           assignedConsumerGroups
         });
       }),
@@ -131,6 +141,7 @@ export let portalConsumerProfileController = Controller.create(
 
         return consumerProfilePresenter.present({
           consumerProfile,
+          instanceConsumer: consumerProfile.instanceConsumer,
           assignedConsumerGroups
         });
       }),
@@ -166,6 +177,7 @@ export let portalConsumerProfileController = Controller.create(
 
         return consumerProfilePresenter.present({
           consumerProfile,
+          instanceConsumer: consumerProfile.instanceConsumer,
           assignedConsumerGroups
         });
       })

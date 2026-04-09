@@ -281,7 +281,7 @@ export let TableComponent = reactMemo(
       placeholder: string;
     };
     props: any;
-    link?: (item: any, stateProps: any) => string;
+    link?: (item: any, stateProps: any) => string | null | undefined;
     clickable?: TableClickable<any, any>;
     sidePadding?: number;
     hasPagination: boolean;
@@ -368,7 +368,10 @@ export let TableComponent = reactMemo(
       if (!state.isLoading) setInitialLoading(false);
     }, [state.isLoading]);
 
-    let link = useMemo(() => (props.link ? memo(props.link) : undefined), [props.link]);
+    let link = useMemo(
+      () => (props.link ? memo(props.link) || undefined : undefined),
+      [props.link]
+    );
 
     let isFullLoading = initialLoading && state.isLoading;
     let navigate = useNavigate();
@@ -551,7 +554,8 @@ export let TableComponent = reactMemo(
                 <TableBody>
                   {state.items.map((row, i) => {
                     let to = link?.(row, props.props);
-                    let isRowInteractive = !!props.clickable || !!props.onItemClick || !!props.rowPanel;
+                    let isRowInteractive =
+                      !!props.clickable || !!props.onItemClick || !!props.rowPanel;
 
                     return (
                       <Fragment key={`wrapper-${row.id}`}>

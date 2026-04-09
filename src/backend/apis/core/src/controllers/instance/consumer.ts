@@ -146,6 +146,9 @@ export let consumerController = Controller.create(
         let consumer = await consumerService.createConsumer({
           organization: ctx.organization,
           instance: ctx.instance,
+          flags: {
+            isManuallyCreated: true
+          },
           input: {
             name: ctx.body.name,
             email: ctx.body.email
@@ -277,6 +280,7 @@ export let consumerController = Controller.create(
         return Paginator.present(list, consumerProfile =>
           consumerProfilePresenter.present({
             consumerProfile,
+            instanceConsumer: consumerProfile.instanceConsumer,
             assignedConsumerGroups: assignedConsumerGroupsByProfileId[consumerProfile.id] ?? []
           })
         );
@@ -303,6 +307,7 @@ export let consumerController = Controller.create(
 
         return consumerProfilePresenter.present({
           consumerProfile: ctx.consumerProfile,
+          instanceConsumer: ctx.consumerProfile.instanceConsumer,
           assignedConsumerGroups
         });
       })

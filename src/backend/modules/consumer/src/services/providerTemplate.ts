@@ -23,9 +23,9 @@ import {
 import { searchProviderTemplateIds } from '@metorial/module-search';
 import { subspaceProviderDeploymentService } from '@metorial/module-subspace';
 import {
-  enqueueProviderTemplateArchived,
-  enqueueProviderTemplateCreated,
-  enqueueProviderTemplateUpdated
+  providerTemplateArchivedQueue,
+  providerTemplateCreatedQueue,
+  providerTemplateUpdatedQueue
 } from '../queues/lifecycle/providerTemplate';
 
 type ProviderTemplateDeploymentCreateInput = Pick<
@@ -101,7 +101,9 @@ class ProviderTemplateServiceImpl {
           }
         });
 
-        await enqueueProviderTemplateUpdated(providerTemplate.id);
+        await providerTemplateUpdatedQueue.add({
+          providerTemplateId: providerTemplate.id
+        });
 
         return providerTemplate;
       }
@@ -126,7 +128,7 @@ class ProviderTemplateServiceImpl {
       }
     });
 
-    await enqueueProviderTemplateCreated(providerTemplate.id);
+    await providerTemplateCreatedQueue.add({ providerTemplateId: providerTemplate.id });
 
     return providerTemplate;
   }
@@ -158,7 +160,7 @@ class ProviderTemplateServiceImpl {
       }
     });
 
-    await enqueueProviderTemplateUpdated(providerTemplate.id);
+    await providerTemplateUpdatedQueue.add({ providerTemplateId: providerTemplate.id });
 
     return providerTemplate;
   }
@@ -184,7 +186,7 @@ class ProviderTemplateServiceImpl {
       });
     });
 
-    await enqueueProviderTemplateArchived(providerTemplate.id);
+    await providerTemplateArchivedQueue.add({ providerTemplateId: providerTemplate.id });
 
     return providerTemplate;
   }

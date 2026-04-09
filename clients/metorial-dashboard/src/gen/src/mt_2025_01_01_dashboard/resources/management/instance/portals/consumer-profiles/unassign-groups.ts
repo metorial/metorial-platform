@@ -24,6 +24,7 @@ export type ManagementInstancePortalsConsumerProfilesUnassignGroupsOutput = {
       }[]
     | null;
   consumerId: string;
+  status: 'active' | 'invited';
   createdAt: Date;
   updatedAt: Date;
 } & {
@@ -36,6 +37,7 @@ export type ManagementInstancePortalsConsumerProfilesUnassignGroupsOutput = {
     auth: {
       object: 'consumer.surface.auth';
       sessionExpiryTimeInSeconds: number;
+      emailWhitelist: string[];
     };
     createdAt: Date;
     updatedAt: Date;
@@ -88,6 +90,7 @@ export let mapManagementInstancePortalsConsumerProfilesUnassignGroupsOutput =
           )
         ),
         consumerId: mtMap.objectField('consumer_id', mtMap.passthrough()),
+        status: mtMap.objectField('status', mtMap.passthrough()),
         createdAt: mtMap.objectField('created_at', mtMap.date()),
         updatedAt: mtMap.objectField('updated_at', mtMap.date()),
         surface: mtMap.objectField(
@@ -105,6 +108,10 @@ export let mapManagementInstancePortalsConsumerProfilesUnassignGroupsOutput =
                 sessionExpiryTimeInSeconds: mtMap.objectField(
                   'session_expiry_time_in_seconds',
                   mtMap.passthrough()
+                ),
+                emailWhitelist: mtMap.objectField(
+                  'email_whitelist',
+                  mtMap.array(mtMap.passthrough())
                 )
               })
             ),

@@ -72,30 +72,3 @@ export let magicMcpEndpointDeletedQueueProcessor = magicMcpEndpointDeletedQueue.
     }
   }
 );
-
-export let enqueueMagicMcpEndpointCreated = async (magicMcpEndpointId: string) => {
-  await magicMcpEndpointCreatedQueue.add({ magicMcpEndpointId }).catch(error => {
-    console.error(
-      '[module-magic] Failed to enqueue magic MCP endpoint create lifecycle',
-      error
-    );
-  });
-};
-
-export let enqueueMagicMcpEndpointUpdated = async (magicMcpEndpointId: string) => {
-  await magicMcpEndpointUpdatedQueue.add({ magicMcpEndpointId }).catch(error => {
-    console.error(
-      '[module-magic] Failed to enqueue magic MCP endpoint update lifecycle',
-      error
-    );
-  });
-};
-
-export let enqueueMagicMcpEndpointDeleted = async (magicMcpEndpointId: string) => {
-  await magicMcpEndpointDeletedQueue.add({ magicMcpEndpointId }).catch(error => {
-    console.error(
-      '[module-magic] Failed to enqueue magic MCP endpoint delete lifecycle',
-      error
-    );
-  });
-};

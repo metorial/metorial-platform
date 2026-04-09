@@ -14,11 +14,12 @@ import {
 import { createLock } from '@metorial/lock';
 import { apiKeyService } from '@metorial/module-machine-access';
 import { organizationActorService } from '@metorial/module-organization';
+import { normalizeConsumerSurfaceEmailWhitelist } from '../lib/consumerSurfaceEmailWhitelist';
 import {
-  enqueueConsumerSurfaceArchived,
-  enqueueConsumerSurfaceCreated,
-  enqueueConsumerSurfaceDeleted,
-  enqueueConsumerSurfaceUpdated
+  consumerSurfaceArchivedQueue,
+  consumerSurfaceCreatedQueue,
+  consumerSurfaceDeletedQueue,
+  consumerSurfaceUpdatedQueue
 } from '../queues/lifecycle/consumerSurface';
 import { consumerAresService } from './ares';
 
@@ -177,6 +178,7 @@ class ConsumerSurfaceServiceImpl {
       name: string;
       description?: string;
       sessionExpiryTimeInSeconds: number;
+      emailWhitelist?: string[];
     };
     internalSurfaceUniqueIdentifier?: string;
   }) {
@@ -211,6 +213,9 @@ class ConsumerSurfaceServiceImpl {
             name: d.input.name,
             description: d.input.description,
             sessionExpiryTimeInSeconds: d.input.sessionExpiryTimeInSeconds,
+            emailWhitelist: normalizeConsumerSurfaceEmailWhitelist(
+              d.input.emailWhitelist ?? []
+            ),
             organizationOid: d.organization.oid,
             instanceOid: d.instance.oid,
             consumerAuthTenantOid: consumerAuthTenant.oid,
@@ -221,7 +226,7 @@ class ConsumerSurfaceServiceImpl {
         });
       });
 
-      await enqueueConsumerSurfaceCreated(consumerSurface.id);
+      await consumerSurfaceCreatedQueue.add({ consumerSurfaceId: consumerSurface.id });
 
       return consumerSurface;
     } catch (error) {
@@ -325,6 +330,7 @@ class ConsumerSurfaceServiceImpl {
       name?: string;
       description?: string;
       sessionExpiryTimeInSeconds?: number;
+      emailWhitelist?: string[];
     };
   }) {
     if (d.consumerSurface.status !== 'active') {
@@ -342,12 +348,16 @@ class ConsumerSurfaceServiceImpl {
       data: {
         name: d.input.name,
         description: d.input.description,
-        sessionExpiryTimeInSeconds: d.input.sessionExpiryTimeInSeconds
+        sessionExpiryTimeInSeconds: d.input.sessionExpiryTimeInSeconds,
+        emailWhitelist:
+          d.input.emailWhitelist === undefined
+            ? undefined
+            : normalizeConsumerSurfaceEmailWhitelist(d.input.emailWhitelist)
       },
       include: consumerSurfaceInclude
     });
 
-    await enqueueConsumerSurfaceUpdated(consumerSurface.id);
+    await consumerSurfaceUpdatedQueue.add({ consumerSurfaceId: consumerSurface.id });
 
     return consumerSurface;
   }
@@ -369,7 +379,7 @@ class ConsumerSurfaceServiceImpl {
       include: consumerSurfaceInclude
     });
 
-    await enqueueConsumerSurfaceArchived(consumerSurface.id);
+    await consumerSurfaceArchivedQueue.add({ consumerSurfaceId: consumerSurface.id });
 
     return consumerSurface;
   }
@@ -391,7 +401,7 @@ class ConsumerSurfaceServiceImpl {
       include: consumerSurfaceInclude
     });
 
-    await enqueueConsumerSurfaceDeleted(consumerSurface.id);
+    await consumerSurfaceDeletedQueue.add({ consumerSurfaceId: consumerSurface.id });
 
     return consumerSurface;
   }

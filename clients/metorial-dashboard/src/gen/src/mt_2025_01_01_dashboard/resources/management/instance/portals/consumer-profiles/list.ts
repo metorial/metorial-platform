@@ -25,6 +25,7 @@ export type ManagementInstancePortalsConsumerProfilesListOutput = {
         }[]
       | null;
     consumerId: string;
+    status: 'active' | 'invited';
     createdAt: Date;
     updatedAt: Date;
   } & {
@@ -37,6 +38,7 @@ export type ManagementInstancePortalsConsumerProfilesListOutput = {
       auth: {
         object: 'consumer.surface.auth';
         sessionExpiryTimeInSeconds: number;
+        emailWhitelist: string[];
       };
       createdAt: Date;
       updatedAt: Date;
@@ -104,6 +106,7 @@ export let mapManagementInstancePortalsConsumerProfilesListOutput =
                 )
               ),
               consumerId: mtMap.objectField('consumer_id', mtMap.passthrough()),
+              status: mtMap.objectField('status', mtMap.passthrough()),
               createdAt: mtMap.objectField('created_at', mtMap.date()),
               updatedAt: mtMap.objectField('updated_at', mtMap.date()),
               surface: mtMap.objectField(
@@ -124,6 +127,10 @@ export let mapManagementInstancePortalsConsumerProfilesListOutput =
                       sessionExpiryTimeInSeconds: mtMap.objectField(
                         'session_expiry_time_in_seconds',
                         mtMap.passthrough()
+                      ),
+                      emailWhitelist: mtMap.objectField(
+                        'email_whitelist',
+                        mtMap.array(mtMap.passthrough())
                       )
                     })
                   ),
@@ -154,7 +161,11 @@ export type ManagementInstancePortalsConsumerProfilesListQuery = {
   before?: string | undefined;
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
-} & { search?: string | undefined; consumerGroupId?: string | undefined };
+} & {
+  search?: string | undefined;
+  consumerGroupId?: string | undefined;
+  status?: 'active' | 'invited' | ('active' | 'invited')[] | undefined;
+};
 
 export let mapManagementInstancePortalsConsumerProfilesListQuery = mtMap.union([
   mtMap.unionOption(
@@ -169,6 +180,10 @@ export let mapManagementInstancePortalsConsumerProfilesListQuery = mtMap.union([
       consumerGroupId: mtMap.objectField(
         'consumer_group_id',
         mtMap.passthrough()
+      ),
+      status: mtMap.objectField(
+        'status',
+        mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
       )
     })
   )

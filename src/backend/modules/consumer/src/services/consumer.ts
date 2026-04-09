@@ -4,6 +4,7 @@ import { Service } from '@lowerdeck/service';
 import {
   Consumer,
   ConsumerProfile,
+  ConsumerProfileInviteStatus,
   ConsumerSurface,
   db,
   ID,
@@ -15,7 +16,7 @@ import {
 } from '@metorial/db';
 import { createLock } from '@metorial/lock';
 import { searchConsumerIds } from '@metorial/module-search';
-import { enqueueConsumerCreated, enqueueConsumerUpdated } from '../queues/lifecycle/consumer';
+import { consumerCreatedQueue, consumerUpdatedQueue } from '../queues/lifecycle/consumer';
 
 type ConsumerWithRelations = Consumer & {
   organizationMember: OrganizationMember | null;
@@ -56,11 +57,13 @@ class ConsumerServiceImpl {
     flags?: {
       isOrganizationMember?: boolean;
       isPortalConsumer?: boolean;
+      isManuallyCreated?: boolean;
     };
   }) {
     return (
       (!d.flags?.isOrganizationMember || d.consumer.consumer.isOrganizationMember) &&
-      (!d.flags?.isPortalConsumer || d.consumer.consumer.isPortalConsumer)
+      (!d.flags?.isPortalConsumer || d.consumer.consumer.isPortalConsumer) &&
+      (!d.flags?.isManuallyCreated || d.consumer.consumer.isManuallyCreated)
     );
   }
 
@@ -93,8 +96,9 @@ class ConsumerServiceImpl {
     return consumer;
   }
 
-  async listConsumers(d: { instance: Instance; search?: string }) {
+  async listConsumers(d: { instance: Instance; search?: string; id?: string }) {
     let search = d.search?.trim();
+    let id = d.id?.trim();
     let searchedConsumerIds = search
       ? await searchConsumerIds({
           instanceId: d.instance.id,
@@ -109,17 +113,11 @@ class ConsumerServiceImpl {
           where: {
             AND: [
               {
-                instanceOid: d.instance.oid
+                instanceOid: d.instance.oid,
+                isPending: false
               },
-              ...(search
-                ? [
-                    {
-                      id: {
-                        in: searchedConsumerIds ?? []
-                      }
-                    }
-                  ]
-                : [])
+              ...(search ? [{ id: { in: searchedConsumerIds ?? [] } }] : []),
+              ...(id ? [{ OR: [{ id }, { consumer: { id } }] }] : [])
             ]
           },
           include: {
@@ -165,6 +163,7 @@ class ConsumerServiceImpl {
     flags?: {
       isOrganizationMember?: boolean;
       isPortalConsumer?: boolean;
+      isManuallyCreated?: boolean;
     };
     input: {
       name: string;
@@ -189,7 +188,8 @@ class ConsumerServiceImpl {
           organizationActorOid: d.member?.actorOid,
 
           isOrganizationMember: !!d.member || !!d.flags?.isOrganizationMember,
-          isPortalConsumer: !!d.flags?.isPortalConsumer
+          isPortalConsumer: !!d.flags?.isPortalConsumer,
+          isManuallyCreated: !!d.flags?.isManuallyCreated
         },
         update: {
           name: d.input.name,
@@ -199,7 +199,8 @@ class ConsumerServiceImpl {
           organizationActorOid: d.member?.actorOid,
 
           isOrganizationMember: !!d.member || d.flags?.isOrganizationMember ? true : undefined,
-          isPortalConsumer: d.flags?.isPortalConsumer ? true : undefined
+          isPortalConsumer: d.flags?.isPortalConsumer ? true : undefined,
+          isManuallyCreated: d.flags?.isManuallyCreated ? true : undefined
         }
       });
 
@@ -244,7 +245,7 @@ class ConsumerServiceImpl {
       return instanceConsumer;
     });
 
-    await enqueueConsumerCreated(instanceConsumer.id);
+    await consumerCreatedQueue.add({ instanceConsumerId: instanceConsumer.id });
 
     return instanceConsumer;
   }
@@ -255,6 +256,7 @@ class ConsumerServiceImpl {
     flags?: {
       isOrganizationMember?: boolean;
       isPortalConsumer?: boolean;
+      isManuallyCreated?: boolean;
     };
     input: {
       name?: string;
@@ -280,7 +282,8 @@ class ConsumerServiceImpl {
             !!d.member || !!d.consumer.organizationMemberOid || d.flags?.isOrganizationMember
               ? true
               : undefined,
-          isPortalConsumer: d.flags?.isPortalConsumer ? true : undefined
+          isPortalConsumer: d.flags?.isPortalConsumer ? true : undefined,
+          isManuallyCreated: d.flags?.isManuallyCreated ? true : undefined
         }
       });
 
@@ -312,7 +315,7 @@ class ConsumerServiceImpl {
       return consumer;
     });
 
-    await enqueueConsumerUpdated(consumer.id);
+    await consumerUpdatedQueue.add({ instanceConsumerId: consumer.id });
 
     return consumer;
   }
@@ -324,6 +327,7 @@ class ConsumerServiceImpl {
     flags?: {
       isOrganizationMember?: boolean;
       isPortalConsumer?: boolean;
+      isManuallyCreated?: boolean;
     };
     input: {
       name: string;
@@ -402,6 +406,55 @@ class ConsumerServiceImpl {
         }
       });
     });
+  }
+
+  async syncPendingStatus(d: { consumer: Consumer; instance: Instance }) {
+    let activeInviteStatuses: ConsumerProfileInviteStatus[] = ['unset', 'accepted'];
+    let hasActiveProfiles = await db.consumerProfile.count({
+      where: {
+        consumerOid: d.consumer.oid,
+        inviteStatus: {
+          in: activeInviteStatuses
+        }
+      }
+    });
+    let hasActiveInstanceProfiles = await db.consumerProfile.count({
+      where: {
+        consumerOid: d.consumer.oid,
+        instanceOid: d.instance.oid,
+        inviteStatus: {
+          in: activeInviteStatuses
+        }
+      }
+    });
+    let isConsumerPending = hasActiveProfiles === 0;
+    let isInstancePending = hasActiveInstanceProfiles === 0;
+
+    if (d.consumer.isOrganizationMember || d.consumer.isManuallyCreated) {
+      isConsumerPending = false;
+      isInstancePending = false;
+    }
+
+    await withTransaction(async tx => {
+      await tx.consumer.updateMany({
+        where: {
+          oid: d.consumer.oid
+        },
+        data: { isPending: isConsumerPending }
+      });
+      await tx.instanceConsumer.updateMany({
+        where: {
+          consumerOid: d.consumer.oid,
+          instanceOid: d.instance.oid
+        },
+        data: { isPending: isInstancePending }
+      });
+    });
+
+    return {
+      isConsumerPending,
+      isInstancePending
+    };
   }
 }
 

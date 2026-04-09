@@ -111,24 +111,3 @@ export let consumerAccessRequestUpdatedQueueProcessor =
       });
     }
   });
-
-export let enqueueConsumerAccessRequestCreated = async (consumerAccessRequestId: string) => {
-  await consumerAccessRequestCreatedQueue.add({ consumerAccessRequestId }).catch(error => {
-    console.error(
-      '[module-consumer] Failed to enqueue consumer access request create lifecycle',
-      error
-    );
-  });
-};
-
-export let enqueueConsumerAccessRequestUpdated = async (d: {
-  consumerAccessRequestId: string;
-  consumerGroupId?: string;
-}) => {
-  await consumerAccessRequestUpdatedQueue.add(d).catch(error => {
-    console.error(
-      '[module-consumer] Failed to enqueue consumer access request update lifecycle',
-      error
-    );
-  });
-};

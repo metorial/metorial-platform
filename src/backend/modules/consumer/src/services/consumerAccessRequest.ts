@@ -21,11 +21,11 @@ import {
   withTransaction
 } from '@metorial/db';
 import { searchConsumerAccessRequestIds, searchConsumerIds } from '@metorial/module-search';
+import { isPreconfiguredMagicMcpServer } from '../lib/magicMcpServerSource';
 import {
-  enqueueConsumerAccessRequestCreated,
-  enqueueConsumerAccessRequestUpdated
+  consumerAccessRequestCreatedQueue,
+  consumerAccessRequestUpdatedQueue
 } from '../queues/lifecycle/consumerAccessRequest';
-import { isPreconfiguredMagicMcpServer } from './magicMcpServerSource';
 
 let include = {
   surface: true,
@@ -311,7 +311,9 @@ class ConsumerAccessRequestServiceImpl {
         });
       });
 
-      await enqueueConsumerAccessRequestCreated(consumerAccessRequest.id);
+      await consumerAccessRequestCreatedQueue.add({
+        consumerAccessRequestId: consumerAccessRequest.id
+      });
 
       return consumerAccessRequest;
     } catch (error) {
@@ -386,7 +388,7 @@ class ConsumerAccessRequestServiceImpl {
       }
     }
 
-    await enqueueConsumerAccessRequestUpdated({
+    await consumerAccessRequestUpdatedQueue.add({
       consumerAccessRequestId: consumerAccessRequest.id,
       consumerGroupId: d.input.consumerGroup?.id
     });

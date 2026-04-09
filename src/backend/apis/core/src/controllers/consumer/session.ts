@@ -58,6 +58,7 @@ export let consumerSessionController = Controller.create(
 
         return consumerProfilePresenter.present({
           consumerProfile,
+          instanceConsumer: consumerProfile.instanceConsumer,
           assignedConsumerGroups: ctx.consumerGroups
         });
       }),
