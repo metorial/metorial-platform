@@ -8,6 +8,11 @@ export type TableColumn<Item extends { id: string }, Input extends {}> = {
   render: (row: Item, input: Input) => React.ReactNode;
 };
 
+export type TableClickable<Item extends { id: string }, Input extends {}> = (
+  row: Item,
+  input: Input
+) => void;
+
 export type TableStateProvider<
   Props,
   Item extends { id: string },

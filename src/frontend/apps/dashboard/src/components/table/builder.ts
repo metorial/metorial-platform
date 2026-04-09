@@ -4,6 +4,7 @@ import { FilterPayload, TableFilter } from './filter';
 import { Observer } from './state';
 import {
   TableActions,
+  TableClickable,
   TableColumn,
   TableItemAction,
   TableStateProvider,
@@ -30,6 +31,7 @@ export class Table<
     filters?: TableFilter<Item>[];
     search?: { placeholder: string };
     link?: (item: Item, input: StateProps) => string;
+    clickable?: TableClickable<Item, StateProps>;
     hasPagination: boolean;
     customizable: boolean;
     rowPanel?: (row: Item) => React.ReactNode;
@@ -67,6 +69,11 @@ export class Table<
 
   link(link: (item: Item, input: StateProps) => string) {
     this.opts.link = link;
+    return this;
+  }
+
+  clickable(clickable: TableClickable<Item, StateProps>) {
+    this.opts.clickable = clickable;
     return this;
   }
 
@@ -169,6 +176,7 @@ export class Table<
         sidePadding: props.sidePadding,
         emptyState: props.emptyState,
         props,
+        clickable: opts.clickable,
         onItemClick: props.onItemClick,
         selectedItemId: props.selectedItemId,
         headerActions: props.headerActions ?? opts.headerActions

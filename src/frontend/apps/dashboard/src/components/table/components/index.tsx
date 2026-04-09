@@ -20,6 +20,7 @@ import { TableFilter, TableFilterState, getFilterPayload } from '../filter';
 import { Observer, useObserver } from '../state';
 import {
   TableActions,
+  TableClickable,
   TableColumn,
   TableItemAction,
   TableStateProvider,
@@ -70,9 +71,10 @@ let TableHead = styled('thead')``;
 let TableBody = styled('tbody')``;
 
 let TableRow = styled('tr').withConfig({
-  shouldForwardProp: prop => prop != 'sidePadding'
-})<{ sidePadding?: number }>`
+  shouldForwardProp: prop => prop != 'sidePadding' && prop != '$isInteractive'
+})<{ sidePadding?: number; $isInteractive?: boolean }>`
   user-select: none;
+  cursor: ${p => (p.$isInteractive ? 'pointer' : 'default')};
 
   ${p =>
     typeof p.sidePadding == 'number'
@@ -256,6 +258,14 @@ let getStoredLayout = (name: string, columns: TableColumn<any, any>[]) => {
   }
 };
 
+let isInteractiveElement = (target: EventTarget | null) => {
+  if (!(target instanceof HTMLElement)) return false;
+
+  return !!target.closest(
+    'a, button, input, textarea, select, summary, [role="button"], [role="menuitem"]'
+  );
+};
+
 export let TableComponent = reactMemo(
   (props: {
     name: string;
@@ -272,6 +282,7 @@ export let TableComponent = reactMemo(
     };
     props: any;
     link?: (item: any, stateProps: any) => string;
+    clickable?: TableClickable<any, any>;
     sidePadding?: number;
     hasPagination: boolean;
     customizable: boolean;
@@ -540,13 +551,19 @@ export let TableComponent = reactMemo(
                 <TableBody>
                   {state.items.map((row, i) => {
                     let to = link?.(row, props.props);
+                    let isRowInteractive = !!props.clickable || !!props.onItemClick || !!props.rowPanel;
 
                     return (
                       <Fragment key={`wrapper-${row.id}`}>
                         <TableRow
                           sidePadding={sidePadding}
+                          $isInteractive={isRowInteractive}
                           key={row.id}
                           onClick={e => {
+                            if (isInteractiveElement(e.target)) {
+                              return;
+                            }
+
                             props.onItemClick?.(row);
 
                             if (e.shiftKey) {
@@ -570,6 +587,8 @@ export let TableComponent = reactMemo(
                                 setSelectedItems([...selectedItems, row.id]);
                               }
                             } else {
+                              props.clickable?.(row, props.props);
+
                               if (props.rowPanel) {
                                 setOpenRowPanel(p => {
                                   if (p.includes(row.id)) return p.filter(id => id != row.id);
