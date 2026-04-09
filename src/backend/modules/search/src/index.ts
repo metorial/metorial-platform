@@ -1,24 +1,63 @@
 import { env } from './env';
 
-type MagicVoyagerIndex = 'magicMcpGroup' | 'magicMcpServer';
+type VoyagerIndex =
+  | 'consumer'
+  | 'consumerGroup'
+  | 'consumerAccessRequest'
+  | 'providerTemplate'
+  | 'magicMcpGroup'
+  | 'magicMcpServer';
 
 type VoyagerSearchInput = {
-  index: MagicVoyagerIndex;
+  index: VoyagerIndex;
   instanceId: string;
   query: string;
 };
 
 type VoyagerDeleteInput = {
-  index: MagicVoyagerIndex;
+  index: VoyagerIndex;
   id: string;
 };
 
 type VoyagerIndexInput = {
-  index: MagicVoyagerIndex;
+  index: VoyagerIndex;
   id: string;
   instanceId: string;
   fields: Record<string, unknown>;
   body: Record<string, unknown>;
+};
+
+type ConsumerIndexInput = {
+  id: string;
+  instanceId: string;
+  name?: string | null;
+  email: string;
+};
+
+type ConsumerGroupIndexInput = {
+  id: string;
+  instanceId: string;
+  status: 'active' | 'archived' | 'deleted';
+  name: string;
+  description?: string | null;
+  ssoGroupIds: string[];
+};
+
+type ProviderTemplateIndexInput = {
+  id: string;
+  instanceId: string;
+  status: 'active' | 'archived' | 'deleted';
+  name: string;
+  description?: string | null;
+  providerDeploymentId: string;
+};
+
+type ConsumerAccessRequestIndexInput = {
+  id: string;
+  instanceId: string;
+  status: 'pending' | 'approved' | 'rejected';
+  message?: string | null;
+  resolutionMessage?: string | null;
 };
 
 type MagicMcpGroupIndexInput = {
@@ -49,9 +88,25 @@ let voyagerPromise: Promise<any> | null = null;
 let voyagerLoadFailed = false;
 
 let voyagerSourcePromise: Promise<any> | null = null;
-let voyagerIndexPromises: Partial<Record<MagicVoyagerIndex, Promise<any>>> = {};
+let voyagerIndexPromises: Partial<Record<VoyagerIndex, Promise<any>>> = {};
 
 let voyagerIndexes = {
+  consumer: {
+    identifier: 'consumer',
+    name: 'Consumers'
+  },
+  consumerGroup: {
+    identifier: 'consumer_group',
+    name: 'Consumer Groups'
+  },
+  consumerAccessRequest: {
+    identifier: 'consumer_access_request',
+    name: 'Consumer Access Requests'
+  },
+  providerTemplate: {
+    identifier: 'provider_template',
+    name: 'Provider Templates'
+  },
   magicMcpGroup: {
     identifier: 'magic_mcp_group',
     name: 'Magic MCP Groups'
@@ -60,7 +115,7 @@ let voyagerIndexes = {
     identifier: 'magic_mcp_server',
     name: 'Magic MCP Servers'
   }
-} satisfies Record<MagicVoyagerIndex, { identifier: string; name: string }>;
+} satisfies Record<VoyagerIndex, { identifier: string; name: string }>;
 
 let getVoyager = async () => {
   if (!env.service.VOYAGER_URL || voyagerLoadFailed) return null;
@@ -107,7 +162,7 @@ let ensureVoyagerSource = async () => {
   return await voyagerSourcePromise;
 };
 
-let ensureVoyagerIndex = async (index: MagicVoyagerIndex) => {
+let ensureVoyagerIndex = async (index: VoyagerIndex) => {
   let voyagerClient = await getVoyager();
   if (!voyagerClient) return null;
 
@@ -196,6 +251,34 @@ let deleteByType = async (d: VoyagerDeleteInput) => {
   }
 };
 
+export let searchConsumerIds = async (d: { instanceId: string; query: string }) =>
+  await searchByIndex({
+    index: 'consumer',
+    instanceId: d.instanceId,
+    query: d.query
+  });
+
+export let searchConsumerGroupIds = async (d: { instanceId: string; query: string }) =>
+  await searchByIndex({
+    index: 'consumerGroup',
+    instanceId: d.instanceId,
+    query: d.query
+  });
+
+export let searchConsumerAccessRequestIds = async (d: { instanceId: string; query: string }) =>
+  await searchByIndex({
+    index: 'consumerAccessRequest',
+    instanceId: d.instanceId,
+    query: d.query
+  });
+
+export let searchProviderTemplateIds = async (d: { instanceId: string; query: string }) =>
+  await searchByIndex({
+    index: 'providerTemplate',
+    instanceId: d.instanceId,
+    query: d.query
+  });
+
 export let searchMagicMcpGroupIds = async (d: { instanceId: string; query: string }) =>
   await searchByIndex({
     index: 'magicMcpGroup',
@@ -208,6 +291,74 @@ export let searchMagicMcpServerIds = async (d: { instanceId: string; query: stri
     index: 'magicMcpServer',
     instanceId: d.instanceId,
     query: d.query
+  });
+
+export let indexConsumerDocument = async (d: ConsumerIndexInput) =>
+  await indexByType({
+    index: 'consumer',
+    id: d.id,
+    instanceId: d.instanceId,
+    fields: {
+      consumerId: d.id
+    },
+    body: {
+      id: d.id,
+      name: d.name ?? undefined,
+      email: d.email
+    }
+  });
+
+export let indexConsumerGroupDocument = async (d: ConsumerGroupIndexInput) =>
+  await indexByType({
+    index: 'consumerGroup',
+    id: d.id,
+    instanceId: d.instanceId,
+    fields: {
+      consumerGroupId: d.id,
+      status: d.status
+    },
+    body: {
+      id: d.id,
+      status: d.status,
+      name: d.name,
+      description: d.description ?? undefined,
+      ssoGroupIds: d.ssoGroupIds.join(' ')
+    }
+  });
+
+export let indexConsumerAccessRequestDocument = async (d: ConsumerAccessRequestIndexInput) =>
+  await indexByType({
+    index: 'consumerAccessRequest',
+    id: d.id,
+    instanceId: d.instanceId,
+    fields: {
+      consumerAccessRequestId: d.id,
+      status: d.status
+    },
+    body: {
+      status: d.status,
+      message: d.message ?? undefined,
+      resolutionMessage: d.resolutionMessage ?? undefined
+    }
+  });
+
+export let indexProviderTemplateDocument = async (d: ProviderTemplateIndexInput) =>
+  await indexByType({
+    index: 'providerTemplate',
+    id: d.id,
+    instanceId: d.instanceId,
+    fields: {
+      providerTemplateId: d.id,
+      status: d.status,
+      providerDeploymentId: d.providerDeploymentId
+    },
+    body: {
+      id: d.id,
+      status: d.status,
+      name: d.name,
+      description: d.description ?? undefined,
+      providerDeploymentId: d.providerDeploymentId
+    }
   });
 
 export let indexMagicMcpGroupDocument = async (d: MagicMcpGroupIndexInput) =>
@@ -241,6 +392,30 @@ export let indexMagicMcpServerDocument = async (d: MagicMcpServerIndexInput) =>
       description: d.description ?? undefined,
       aliases: d.aliases.join(' ')
     }
+  });
+
+export let deleteConsumerDocument = async (d: { id: string }) =>
+  await deleteByType({
+    index: 'consumer',
+    id: d.id
+  });
+
+export let deleteConsumerGroupDocument = async (d: { id: string }) =>
+  await deleteByType({
+    index: 'consumerGroup',
+    id: d.id
+  });
+
+export let deleteConsumerAccessRequestDocument = async (d: { id: string }) =>
+  await deleteByType({
+    index: 'consumerAccessRequest',
+    id: d.id
+  });
+
+export let deleteProviderTemplateDocument = async (d: { id: string }) =>
+  await deleteByType({
+    index: 'providerTemplate',
+    id: d.id
   });
 
 export let deleteMagicMcpGroupDocument = async (d: { id: string }) =>

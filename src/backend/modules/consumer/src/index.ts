@@ -1,5 +1,7 @@
 import { OrganizationMember } from '@metorial/db';
 import { combineQueueProcessors } from '@metorial/queue';
+import { consumerLifecycleQueueProcessor } from './queues/lifecycle';
+import { consumerSearchQueueProcessor } from './queues/search';
 import {
   reconcileConsumerActorQueueProcessor,
   syncIdentityConsumerQueueProcessor
@@ -14,6 +16,8 @@ import {
 export * from './services';
 
 export let consumerQueueProcessor = combineQueueProcessors([
+  consumerSearchQueueProcessor,
+  consumerLifecycleQueueProcessor,
   syncIdentityConsumerQueueProcessor,
   reconcileConsumerActorQueueProcessor,
 

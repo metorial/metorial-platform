@@ -14,7 +14,8 @@ import {
   withTransaction
 } from '@metorial/db';
 import { createLock } from '@metorial/lock';
-import { syncIdentityConsumerQueue } from '../queues/syncIdentityConsumer';
+import { searchConsumerIds } from '@metorial/module-search';
+import { enqueueConsumerCreated, enqueueConsumerUpdated } from '../queues/lifecycle/consumer';
 
 type ConsumerWithRelations = Consumer & {
   organizationMember: OrganizationMember | null;
@@ -50,6 +51,19 @@ let getInclude = (d: { instanceOid: bigint }) => ({
 });
 
 class ConsumerServiceImpl {
+  private hasRequiredFlags(d: {
+    consumer: InstanceConsumerWithRelations;
+    flags?: {
+      isOrganizationMember?: boolean;
+      isPortalConsumer?: boolean;
+    };
+  }) {
+    return (
+      (!d.flags?.isOrganizationMember || d.consumer.consumer.isOrganizationMember) &&
+      (!d.flags?.isPortalConsumer || d.consumer.consumer.isPortalConsumer)
+    );
+  }
+
   async getConsumerById(d: { instance: Instance; consumerId: string }) {
     let consumer = await db.instanceConsumer.findFirst({
       where: {
@@ -79,13 +93,34 @@ class ConsumerServiceImpl {
     return consumer;
   }
 
-  async listConsumers(d: { instance: Instance }) {
+  async listConsumers(d: { instance: Instance; search?: string }) {
+    let search = d.search?.trim();
+    let searchedConsumerIds = search
+      ? await searchConsumerIds({
+          instanceId: d.instance.id,
+          query: search
+        })
+      : undefined;
+
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
         return await db.instanceConsumer.findMany({
           ...opts,
           where: {
-            instanceOid: d.instance.oid
+            AND: [
+              {
+                instanceOid: d.instance.oid
+              },
+              ...(search
+                ? [
+                    {
+                      id: {
+                        in: searchedConsumerIds ?? []
+                      }
+                    }
+                  ]
+                : [])
+            ]
           },
           include: {
             consumer: {
@@ -127,6 +162,10 @@ class ConsumerServiceImpl {
     organization: Organization;
     instance: Instance;
     member?: OrganizationMember;
+    flags?: {
+      isOrganizationMember?: boolean;
+      isPortalConsumer?: boolean;
+    };
     input: {
       name: string;
       email: string;
@@ -149,7 +188,8 @@ class ConsumerServiceImpl {
           organizationMemberOid: d.member?.oid,
           organizationActorOid: d.member?.actorOid,
 
-          isOrganizationMember: !!d.member
+          isOrganizationMember: !!d.member || !!d.flags?.isOrganizationMember,
+          isPortalConsumer: !!d.flags?.isPortalConsumer
         },
         update: {
           name: d.input.name,
@@ -158,7 +198,8 @@ class ConsumerServiceImpl {
           organizationMemberOid: d.member?.oid,
           organizationActorOid: d.member?.actorOid,
 
-          isOrganizationMember: d.member ? true : undefined
+          isOrganizationMember: !!d.member || d.flags?.isOrganizationMember ? true : undefined,
+          isPortalConsumer: d.flags?.isPortalConsumer ? true : undefined
         }
       });
 
@@ -203,9 +244,7 @@ class ConsumerServiceImpl {
       return instanceConsumer;
     });
 
-    await syncIdentityConsumerQueue.add({
-      identityConsumerId: instanceConsumer.id
-    });
+    await enqueueConsumerCreated(instanceConsumer.id);
 
     return instanceConsumer;
   }
@@ -213,6 +252,10 @@ class ConsumerServiceImpl {
   async updateConsumer(d: {
     consumer: InstanceConsumer;
     member?: OrganizationMember;
+    flags?: {
+      isOrganizationMember?: boolean;
+      isPortalConsumer?: boolean;
+    };
     input: {
       name?: string;
       email?: string;
@@ -233,7 +276,11 @@ class ConsumerServiceImpl {
           organizationMemberOid: d.member?.oid,
           organizationActorOid: d.member?.actorOid,
 
-          isOrganizationMember: !!d.member || !!d.consumer.organizationMemberOid
+          isOrganizationMember:
+            !!d.member || !!d.consumer.organizationMemberOid || d.flags?.isOrganizationMember
+              ? true
+              : undefined,
+          isPortalConsumer: d.flags?.isPortalConsumer ? true : undefined
         }
       });
 
@@ -265,9 +312,7 @@ class ConsumerServiceImpl {
       return consumer;
     });
 
-    await syncIdentityConsumerQueue.add({
-      identityConsumerId: consumer.id
-    });
+    await enqueueConsumerUpdated(consumer.id);
 
     return consumer;
   }
@@ -276,6 +321,10 @@ class ConsumerServiceImpl {
     organization: Organization;
     instance: Instance;
     member?: OrganizationMember;
+    flags?: {
+      isOrganizationMember?: boolean;
+      isPortalConsumer?: boolean;
+    };
     input: {
       name: string;
       email: string;
@@ -289,13 +338,21 @@ class ConsumerServiceImpl {
       include: getInclude({ instanceOid: d.instance.oid })
     });
     if (existing) {
-      if (existing.name === d.input.name && existing.organizationMemberOid == d.member?.oid) {
+      if (
+        existing.name === d.input.name &&
+        existing.organizationMemberOid == d.member?.oid &&
+        this.hasRequiredFlags({
+          consumer: existing as InstanceConsumerWithRelations,
+          flags: d.flags
+        })
+      ) {
         return existing;
       }
 
       return await this.updateConsumer({
         consumer: existing as InstanceConsumerWithRelations,
         member: d.member,
+        flags: d.flags,
         input: {
           name: d.input.name,
           email: d.input.email
@@ -314,7 +371,11 @@ class ConsumerServiceImpl {
       if (existing) {
         if (
           existing.name === d.input.name &&
-          existing.organizationMemberOid == d.member?.oid
+          existing.organizationMemberOid == d.member?.oid &&
+          this.hasRequiredFlags({
+            consumer: existing as InstanceConsumerWithRelations,
+            flags: d.flags
+          })
         ) {
           return existing;
         }
@@ -322,6 +383,7 @@ class ConsumerServiceImpl {
         return await this.updateConsumer({
           consumer: existing as InstanceConsumerWithRelations,
           member: d.member,
+          flags: d.flags,
           input: {
             name: d.input.name,
             email: d.input.email
@@ -333,6 +395,7 @@ class ConsumerServiceImpl {
         organization: d.organization,
         instance: d.instance,
         member: d.member,
+        flags: d.flags,
         input: {
           name: d.input.name,
           email: d.input.email

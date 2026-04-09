@@ -9,7 +9,6 @@ import { Service } from '@lowerdeck/service';
 import {
   ConsumerAccessRequest,
   ConsumerAccessRequestStatus,
-  ConsumerAccessRequestTargetType,
   ConsumerGroup,
   ConsumerProfile,
   ConsumerSurface,
@@ -21,7 +20,11 @@ import {
   ProviderTemplate,
   withTransaction
 } from '@metorial/db';
-import { consumerAccessService } from './consumerAccess';
+import { searchConsumerAccessRequestIds, searchConsumerIds } from '@metorial/module-search';
+import {
+  enqueueConsumerAccessRequestCreated,
+  enqueueConsumerAccessRequestUpdated
+} from '../queues/lifecycle/consumerAccessRequest';
 import { isPreconfiguredMagicMcpServer } from './magicMcpServerSource';
 
 let include = {
@@ -46,13 +49,6 @@ type ConsumerAccessRequestCreateInput =
       magicMcpServer: MagicMcpServer;
     };
 
-let invalidConsumerAccessRequestTargetError = () =>
-  new ServiceError(
-    preconditionFailedError({
-      message: 'Consumer access request target is invalid.'
-    })
-  );
-
 let getPendingConsumerAccessRequestKey = (d: {
   consumerProfileOid: bigint;
   accessRequest: ConsumerAccessRequestCreateInput;
@@ -67,32 +63,6 @@ let getPendingConsumerAccessRequestKey = (d: {
 let isDuplicatePendingConsumerAccessRequestError = (error: unknown) =>
   error instanceof Prisma.PrismaClientKnownRequestError && error.code == 'P2002';
 
-let getStoredConsumerAccessRequestTarget = (consumerAccessRequest: {
-  type: ConsumerAccessRequestTargetType;
-  providerTemplate: ProviderTemplate | null;
-  magicMcpServer: MagicMcpServer | null;
-}) => {
-  if (consumerAccessRequest.type == 'provider_template') {
-    if (!consumerAccessRequest.providerTemplate || consumerAccessRequest.magicMcpServer) {
-      throw invalidConsumerAccessRequestTargetError();
-    }
-
-    return {
-      type: 'provider_template' as const,
-      providerTemplate: consumerAccessRequest.providerTemplate
-    };
-  }
-
-  if (!consumerAccessRequest.magicMcpServer || consumerAccessRequest.providerTemplate) {
-    throw invalidConsumerAccessRequestTargetError();
-  }
-
-  return {
-    type: 'magic_mcp_server' as const,
-    magicMcpServer: consumerAccessRequest.magicMcpServer
-  };
-};
-
 class ConsumerAccessRequestServiceImpl {
   async listConsumerAccessRequests(d: {
     consumerSurface: ConsumerSurface;
@@ -106,6 +76,54 @@ class ConsumerAccessRequestServiceImpl {
     let hasConsumerProfileFilter = !!d.consumerProfileIds?.length;
     let hasProviderTemplateFilter = !!d.providerTemplateIds?.length;
     let hasMagicMcpServerFilter = !!d.magicMcpServerIds?.length;
+    let instance = search
+      ? await db.instance.findFirst({
+          where: {
+            oid: d.consumerSurface.instanceOid
+          },
+          select: {
+            id: true
+          }
+        })
+      : null;
+    let [searchedConsumerAccessRequestIds, searchedConsumerIds] =
+      search && instance
+        ? await Promise.all([
+            searchConsumerAccessRequestIds({
+              instanceId: instance.id,
+              query: search
+            }),
+            searchConsumerIds({
+              instanceId: instance.id,
+              query: search
+            })
+          ])
+        : [undefined, undefined];
+    let searchedConsumerProfileOids =
+      search && searchedConsumerIds?.length
+        ? (
+            await db.consumerProfile.findMany({
+              where: {
+                surfaceOid: d.consumerSurface.oid,
+                consumer: {
+                  instanceConsumers: {
+                    some: {
+                      instanceOid: d.consumerSurface.instanceOid,
+                      id: {
+                        in: searchedConsumerIds
+                      }
+                    }
+                  }
+                }
+              },
+              select: {
+                oid: true
+              }
+            })
+          ).map(consumerProfile => consumerProfile.oid)
+        : search
+          ? []
+          : undefined;
 
     let consumerProfiles = hasConsumerProfileFilter
       ? await db.consumerProfile.findMany({
@@ -152,39 +170,46 @@ class ConsumerAccessRequestServiceImpl {
         return await db.consumerAccessRequest.findMany({
           ...opts,
           where: {
-            surfaceOid: d.consumerSurface.oid,
-            status: d.statuses?.length ? { in: d.statuses } : undefined,
-            consumerProfileOid: hasConsumerProfileFilter
-              ? {
-                  in: consumerProfiles?.map(profile => profile.oid) ?? []
-                }
-              : undefined,
-            providerTemplateOid: hasProviderTemplateFilter
-              ? {
-                  in: providerTemplates?.map(providerTemplate => providerTemplate.oid) ?? []
-                }
-              : undefined,
-            magicMcpServerOid: hasMagicMcpServerFilter
-              ? {
-                  in: magicMcpServers?.map(magicMcpServer => magicMcpServer.oid) ?? []
-                }
-              : undefined,
-            ...(search
-              ? {
-                  OR: [
-                    { message: { contains: search, mode: 'insensitive' } },
-                    { id: { contains: search, mode: 'insensitive' } },
+            AND: [
+              {
+                surfaceOid: d.consumerSurface.oid,
+                status: d.statuses?.length ? { in: d.statuses } : undefined,
+                consumerProfileOid: hasConsumerProfileFilter
+                  ? {
+                      in: consumerProfiles?.map(profile => profile.oid) ?? []
+                    }
+                  : undefined,
+                providerTemplateOid: hasProviderTemplateFilter
+                  ? {
+                      in:
+                        providerTemplates?.map(providerTemplate => providerTemplate.oid) ?? []
+                    }
+                  : undefined,
+                magicMcpServerOid: hasMagicMcpServerFilter
+                  ? {
+                      in: magicMcpServers?.map(magicMcpServer => magicMcpServer.oid) ?? []
+                    }
+                  : undefined
+              },
+              ...(search
+                ? [
                     {
-                      consumerProfile: {
-                        OR: [
-                          { name: { contains: search, mode: 'insensitive' } },
-                          { email: { contains: search, mode: 'insensitive' } }
-                        ]
-                      }
+                      OR: [
+                        {
+                          id: {
+                            in: searchedConsumerAccessRequestIds ?? []
+                          }
+                        },
+                        {
+                          consumerProfileOid: {
+                            in: searchedConsumerProfileOids ?? []
+                          }
+                        }
+                      ]
                     }
                   ]
-                }
-              : {})
+                : [])
+            ]
           },
           include
         });
@@ -259,7 +284,7 @@ class ConsumerAccessRequestServiceImpl {
     }
 
     try {
-      return await withTransaction(async tx => {
+      let consumerAccessRequest = await withTransaction(async tx => {
         return await tx.consumerAccessRequest.create({
           data: {
             id: await ID.generateId('consumerAccessRequest'),
@@ -285,6 +310,10 @@ class ConsumerAccessRequestServiceImpl {
           include
         });
       });
+
+      await enqueueConsumerAccessRequestCreated(consumerAccessRequest.id);
+
+      return consumerAccessRequest;
     } catch (error) {
       if (isDuplicatePendingConsumerAccessRequestError(error)) {
         throw new ServiceError(
@@ -325,13 +354,8 @@ class ConsumerAccessRequestServiceImpl {
       );
     }
 
-    let accessRequestTarget =
-      d.input.status == 'approved'
-        ? getStoredConsumerAccessRequestTarget(d.consumerAccessRequest)
-        : null;
-
-    return await withTransaction(async tx => {
-      let consumerAccessRequest = await tx.consumerAccessRequest.update({
+    let consumerAccessRequest = await withTransaction(async tx => {
+      return await tx.consumerAccessRequest.update({
         where: {
           oid: d.consumerAccessRequest.oid
         },
@@ -343,50 +367,31 @@ class ConsumerAccessRequestServiceImpl {
         },
         include
       });
+    });
 
-      if (consumerAccessRequest.status == 'approved') {
-        let consumerGroup =
-          d.input.consumerGroup ?? consumerAccessRequest.consumerProfile.personalConsumerGroup;
+    if (consumerAccessRequest.status == 'approved') {
+      let consumerGroup =
+        d.input.consumerGroup ?? consumerAccessRequest.consumerProfile.personalConsumerGroup;
 
-        if (consumerGroup.surfaceOid != consumerAccessRequest.surface.oid) {
-          throw new ServiceError(notFoundError('consumer.group'));
-        }
-
-        if (consumerGroup.status != 'active') {
-          throw new ServiceError(
-            preconditionFailedError({
-              message: 'Cannot grant access to an inactive consumer group.'
-            })
-          );
-        }
-
-        if (accessRequestTarget?.type == 'provider_template') {
-          await consumerAccessService.createConsumerAccess({
-            organization: d.organization,
-            consumerSurface: consumerAccessRequest.surface,
-            consumerGroup,
-            access: {
-              type: 'provider_template',
-              providerTemplate: accessRequestTarget.providerTemplate
-            }
-          });
-        }
-
-        if (accessRequestTarget?.type == 'magic_mcp_server') {
-          await consumerAccessService.createConsumerAccess({
-            organization: d.organization,
-            consumerSurface: consumerAccessRequest.surface,
-            consumerGroup,
-            access: {
-              type: 'magic_mcp_server',
-              magicMcpServer: accessRequestTarget.magicMcpServer
-            }
-          });
-        }
+      if (consumerGroup.surfaceOid != consumerAccessRequest.surface.oid) {
+        throw new ServiceError(notFoundError('consumer.group'));
       }
 
-      return consumerAccessRequest;
+      if (consumerGroup.status != 'active') {
+        throw new ServiceError(
+          preconditionFailedError({
+            message: 'Cannot grant access to an inactive consumer group.'
+          })
+        );
+      }
+    }
+
+    await enqueueConsumerAccessRequestUpdated({
+      consumerAccessRequestId: consumerAccessRequest.id,
+      consumerGroupId: d.input.consumerGroup?.id
     });
+
+    return consumerAccessRequest;
   }
 }
 

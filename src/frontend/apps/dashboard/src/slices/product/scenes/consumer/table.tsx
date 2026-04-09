@@ -9,7 +9,6 @@ import {
 import { Badge, RenderDate, Text } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import { Table as DashboardTable } from '../../../../components/table';
-import { FilterPayload } from '../../../../components/table/filter';
 import {
   TableStateProvider,
   TableStateProviderResult
@@ -27,8 +26,11 @@ let useConsumersTableState: TableStateProvider<
   ConsumersTableProps,
   Consumer,
   TableStateProviderResult<Consumer>
-> = (props, _opts) => {
-  let consumers = useConsumers(props.instanceId, { order: 'desc' });
+> = (props, opts) => {
+  let consumers = useConsumers(props.instanceId, {
+    order: 'desc',
+    search: opts.search
+  });
 
   return {
     isLoading: consumers.isLoading,
@@ -43,6 +45,7 @@ let useConsumersTableState: TableStateProvider<
 
 let consumersTable = new DashboardTable<ConsumersTableProps, Consumer>('consumers')
   .state(useConsumersTableState)
+  .search('Search consumers...')
   .columns([
     {
       id: 'name',

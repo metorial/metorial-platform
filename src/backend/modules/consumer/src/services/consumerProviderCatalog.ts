@@ -1,13 +1,14 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator, type PaginatorInput } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { ConsumerProfile, Prisma, ProviderTemplate, db, type Instance } from '@metorial/db';
+import { ConsumerProfile, db, Prisma, ProviderTemplate, type Instance } from '@metorial/db';
 import {
   accessTagService,
   consumerMagicMcpReadRoles,
   consumerProviderTemplateReadRoles,
   type AnyAccessTagSelector
 } from '@metorial/module-access';
+import { searchMagicMcpServerIds, searchProviderTemplateIds } from '@metorial/module-search';
 import {
   subspaceProviderConfigService,
   subspaceProviderDeploymentService,
@@ -107,6 +108,11 @@ type ConsumerProviderAvailabilityState = {
   accessibleOids: Set<bigint> | null;
 };
 
+type ConsumerCatalogSearchMatches = {
+  providerTemplateIds?: string[];
+  magicMcpServerIds?: string[];
+};
+
 let getCatalogEntryId = (
   entry: ConsumerProviderCatalogItem | ConsumerProviderCatalogEntry | ConsumerCatalogRecord
 ) => {
@@ -145,29 +151,6 @@ let getCatalogRecordKey = (record: ConsumerCatalogRecord) => {
 
 let getCatalogSortName = (d: { name?: string | null; fallbackId: string }) => {
   return d.name?.trim() || d.fallbackId;
-};
-
-let buildCatalogSearchFilter = (search?: string) => {
-  if (!search) {
-    return undefined;
-  }
-
-  return {
-    OR: [
-      {
-        name: {
-          contains: search,
-          mode: 'insensitive'
-        }
-      },
-      {
-        description: {
-          contains: search,
-          mode: 'insensitive'
-        }
-      }
-    ]
-  };
 };
 
 let getCatalogComparisonOperator = (d: {
@@ -401,11 +384,15 @@ class ConsumerProviderCatalogServiceImpl {
             catalogItemId: String(boundaryId)
           })
         : null;
+    let searchMatches = await this.resolveCatalogSearchMatches({
+      instance: d.instance,
+      search: d.search
+    });
 
     let [providerTemplates, magicMcpServers] = await Promise.all([
       this.listProviderTemplateRecords({
         instance: d.instance,
-        search: d.search,
+        searchMatches,
         limit,
         direction,
         order,
@@ -413,7 +400,7 @@ class ConsumerProviderCatalogServiceImpl {
       }),
       this.listMagicMcpServerRecords({
         instance: d.instance,
-        search: d.search,
+        searchMatches,
         limit,
         direction,
         order,
@@ -444,7 +431,7 @@ class ConsumerProviderCatalogServiceImpl {
 
   private async listProviderTemplateRecords(d: {
     instance: Instance;
-    search?: string;
+    searchMatches?: ConsumerCatalogSearchMatches;
     limit: number;
     direction: ConsumerCatalogDirection;
     order: 'asc' | 'desc';
@@ -452,11 +439,14 @@ class ConsumerProviderCatalogServiceImpl {
   }): Promise<ConsumerCatalogRecordPage> {
     let queryOrder = d.direction == 'before' ? reverseCatalogOrder(d.order) : d.order;
     let filters: Prisma.ProviderTemplateWhereInput[] = [];
-    let searchFilter = buildCatalogSearchFilter(d.search);
     let boundaryFilter = buildNamedCatalogBoundaryFilter(d);
 
-    if (searchFilter) {
-      filters.push(searchFilter as Prisma.ProviderTemplateWhereInput);
+    if (d.searchMatches?.providerTemplateIds) {
+      filters.push({
+        id: {
+          in: d.searchMatches.providerTemplateIds
+        }
+      });
     }
     if (boundaryFilter) {
       filters.push(boundaryFilter as Prisma.ProviderTemplateWhereInput);
@@ -482,7 +472,7 @@ class ConsumerProviderCatalogServiceImpl {
 
   private async listMagicMcpServerRecords(d: {
     instance: Instance;
-    search?: string;
+    searchMatches?: ConsumerCatalogSearchMatches;
     limit: number;
     direction: ConsumerCatalogDirection;
     order: 'asc' | 'desc';
@@ -507,7 +497,7 @@ class ConsumerProviderCatalogServiceImpl {
 
   private async listMagicMcpServerRecordPage(d: {
     instance: Instance;
-    search?: string;
+    searchMatches?: ConsumerCatalogSearchMatches;
     limit: number;
     direction: ConsumerCatalogDirection;
     order: 'asc' | 'desc';
@@ -522,14 +512,17 @@ class ConsumerProviderCatalogServiceImpl {
         }
       }
     ];
-    let searchFilter = buildCatalogSearchFilter(d.search);
     let boundaryFilter =
       d.nameMode == 'named'
         ? buildNamedCatalogBoundaryFilter(d)
         : buildUnnamedMagicMcpBoundaryFilter(d);
 
-    if (searchFilter) {
-      filters.push(searchFilter as Prisma.MagicMcpServerWhereInput);
+    if (d.searchMatches?.magicMcpServerIds) {
+      filters.push({
+        id: {
+          in: d.searchMatches.magicMcpServerIds
+        }
+      });
     }
     if (boundaryFilter) {
       filters.push(boundaryFilter as Prisma.MagicMcpServerWhereInput);
@@ -555,6 +548,32 @@ class ConsumerProviderCatalogServiceImpl {
         .slice(0, d.limit)
         .map(magicMcpServer => this.createMagicMcpServerRecord(magicMcpServer)),
       hasMore: magicMcpServers.length > d.limit
+    };
+  }
+
+  private async resolveCatalogSearchMatches(d: {
+    instance: Instance;
+    search?: string;
+  }): Promise<ConsumerCatalogSearchMatches> {
+    let search = d.search?.trim();
+    if (!search) {
+      return {};
+    }
+
+    let [providerTemplateIds, magicMcpServerIds] = await Promise.all([
+      searchProviderTemplateIds({
+        instanceId: d.instance.id,
+        query: search
+      }),
+      searchMagicMcpServerIds({
+        instanceId: d.instance.id,
+        query: search
+      })
+    ]);
+
+    return {
+      providerTemplateIds,
+      magicMcpServerIds
     };
   }
 
