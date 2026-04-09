@@ -30,10 +30,10 @@ import {
   resolveProviders,
   resolveScmRepos
 } from '@metorial-subspace/list-utils';
-import type { ProviderVariantEnrichment } from '@metorial-subspace/provider-utils';
 import { providerInternalService } from '@metorial-subspace/module-provider-internal';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
 import { checkTenant } from '@metorial-subspace/module-tenant';
+import type { ProviderVariantEnrichment } from '@metorial-subspace/provider-utils';
 import { prepareVersion } from '../internal/createVersion';
 import { linkRepo } from '../internal/linkRepo';
 import { getTenantForOrigin, origin } from '../origin';
