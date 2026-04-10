@@ -64,7 +64,6 @@ export let ProviderConfigPanelFlow = (p: {
               providerId={providerId}
               close={p.close}
               onBack={() => setStep(0)}
-              flattenCreateFlow
               onCreate={config => {
                 if (!organization.data || !project.data || !instance.data) return;
 

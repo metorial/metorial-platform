@@ -317,6 +317,7 @@ let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
     form.values.selectedProviderName,
     resolvedProviderName,
     createMutation.isPending,
+    deleteMutation.isPending,
     form.handleSubmit,
     p.action,
     p.hideProviderStep,

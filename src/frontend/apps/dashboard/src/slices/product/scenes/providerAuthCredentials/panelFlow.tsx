@@ -46,8 +46,8 @@ export let ProviderAuthCredentialsPanelFlow = (p: {
             limit={30}
             providerListingsFilter={{
               capabilities: {
-                supportsOAuth: true,
-                supportsOAuthAutoRegistration: false
+                supportsOauth: true,
+                supportsOauthAutoRegistration: false
               }
             }}
             emptyText="No providers found."
