@@ -10,12 +10,16 @@ import {
   mapDashboardInstancePortalsConsumerAccessGetOutput,
   mapDashboardInstancePortalsConsumerAccessListOutput,
   mapDashboardInstancePortalsConsumerAccessListQuery,
+  mapDashboardInstancePortalsConsumerAccessUpdateBody,
+  mapDashboardInstancePortalsConsumerAccessUpdateOutput,
   type DashboardInstancePortalsConsumerAccessCreateBody,
   type DashboardInstancePortalsConsumerAccessCreateOutput,
   type DashboardInstancePortalsConsumerAccessDeleteOutput,
   type DashboardInstancePortalsConsumerAccessGetOutput,
   type DashboardInstancePortalsConsumerAccessListOutput,
-  type DashboardInstancePortalsConsumerAccessListQuery
+  type DashboardInstancePortalsConsumerAccessListQuery,
+  type DashboardInstancePortalsConsumerAccessUpdateBody,
+  type DashboardInstancePortalsConsumerAccessUpdateOutput
 } from '../resources';
 
 /**
@@ -135,6 +139,40 @@ export class MetorialPortalsConsumerAccessEndpoint {
 
     return this._post(request).transform(
       mapDashboardInstancePortalsConsumerAccessCreateOutput
+    );
+  }
+
+  /**
+   * @name Update portal consumer access
+   * @description Updates the shared listing fields for a portal consumer access rule.
+   *
+   * @param `portalId` - string
+   * @param `consumerAccessId` - string
+   * @param `body` - DashboardInstancePortalsConsumerAccessUpdateBody
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardInstancePortalsConsumerAccessUpdateOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  update(
+    portalId: string,
+    consumerAccessId: string,
+    body: DashboardInstancePortalsConsumerAccessUpdateBody,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstancePortalsConsumerAccessUpdateOutput> {
+    let path = `portals/${portalId}/consumer-access/${consumerAccessId}`;
+
+    let request = {
+      path,
+      body: mapDashboardInstancePortalsConsumerAccessUpdateBody.transformTo(
+        body
+      ),
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._patch(request).transform(
+      mapDashboardInstancePortalsConsumerAccessUpdateOutput
     );
   }
 

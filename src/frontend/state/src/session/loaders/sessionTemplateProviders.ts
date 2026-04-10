@@ -1,6 +1,7 @@
 import {
   DashboardInstanceSessionTemplatesProvidersCreateBody,
-  DashboardInstanceSessionTemplatesProvidersListQuery
+  DashboardInstanceSessionTemplatesProvidersListQuery,
+  DashboardInstanceSessionTemplatesProvidersUpdateBody
 } from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
 import { usePaginator } from '../../lib/usePaginator';
@@ -59,6 +60,20 @@ export let useDeleteSessionTemplateProvider =
     }) =>
       withAuth(sdk =>
         sdk.sessionTemplates.providers.delete(i.instanceId, i.sessionTemplateProviderId)
+      ),
+    { disableToast: true }
+  );
+
+export let useUpdateSessionTemplateProvider =
+  sessionTemplateProvidersLoader.createExternalMutator(
+    (
+      i: {
+        instanceId: string;
+        sessionTemplateProviderId: string;
+      } & DashboardInstanceSessionTemplatesProvidersUpdateBody
+    ) =>
+      withAuth(sdk =>
+        sdk.sessionTemplates.providers.update(i.instanceId, i.sessionTemplateProviderId, i)
       ),
     { disableToast: true }
   );

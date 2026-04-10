@@ -125,6 +125,25 @@ class providerConfigVaultServiceImpl {
     return providerConfigVault;
   }
 
+  async getManyProviderConfigVaultsByIds(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    ids: string[];
+    allowDeleted?: boolean;
+  }) {
+    return await db.providerConfigVault.findMany({
+      where: {
+        id: { in: d.ids },
+        tenantOid: d.tenant.oid,
+        solutionOid: d.solution.oid,
+        environmentOid: d.environment.oid,
+        ...normalizeStatusForGet(d).noParent
+      },
+      include
+    });
+  }
+
   async createProviderConfigVault(d: {
     tenant: Tenant;
     solution: Solution;

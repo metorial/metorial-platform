@@ -175,6 +175,26 @@ class providerConfigServiceImpl {
     return providerConfig;
   }
 
+  async getManyProviderConfigsByIds(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    ids: string[];
+    allowDeleted?: boolean;
+  }) {
+    return await db.providerConfig.findMany({
+      where: {
+        id: { in: d.ids },
+        tenantOid: d.tenant.oid,
+        solutionOid: d.solution.oid,
+        environmentOid: d.environment.oid,
+        isForVault: false,
+        ...normalizeStatusForGet(d).noParent
+      },
+      include
+    });
+  }
+
   async getProviderConfigSchema(d: {
     tenant: Tenant;
     solution: Solution;

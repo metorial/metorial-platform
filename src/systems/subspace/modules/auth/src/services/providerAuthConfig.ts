@@ -164,6 +164,25 @@ class providerAuthConfigServiceImpl {
     return providerAuthConfig;
   }
 
+  async getManyProviderAuthConfigsByIds(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    ids: string[];
+    allowDeleted?: boolean;
+  }) {
+    return await db.providerAuthConfig.findMany({
+      where: {
+        id: { in: d.ids },
+        tenantOid: d.tenant.oid,
+        solutionOid: d.solution.oid,
+        environmentOid: d.environment.oid,
+        ...normalizeStatusForGet(d).hasParent
+      },
+      include
+    });
+  }
+
   async getProviderAuthConfigSchema(d: {
     tenant: Tenant;
     solution: Solution;

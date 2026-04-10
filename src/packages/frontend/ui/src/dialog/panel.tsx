@@ -7,7 +7,9 @@ import { theme } from '../theme';
 import { DialogProvider, useDialogZIndex } from './state';
 import { ContentSide, Overlay } from './styles';
 
-let Wrapper = styled(ContentSide)``;
+let Wrapper = styled(ContentSide)`
+  transition: width 0.2s ease;
+`;
 
 let Header = styled('header')`
   display: flex;

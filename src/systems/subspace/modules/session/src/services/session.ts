@@ -28,7 +28,6 @@ import { checkTenant } from '@metorial-subspace/module-tenant';
 import {
   sessionArchivedQueue,
   sessionCreatedQueue,
-  sessionDeletedQueue,
   sessionUpdatedQueue
 } from '../queues/lifecycle/session';
 import { sessionProviderInclude } from './sessionProvider';
@@ -140,6 +139,25 @@ class sessionServiceImpl {
     if (!session) throw new ServiceError(notFoundError('session', d.sessionId));
 
     return session;
+  }
+
+  async getManySessionsByIds(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    ids: string[];
+    allowDeleted?: boolean;
+  }) {
+    return await db.session.findMany({
+      where: {
+        id: { in: d.ids },
+        tenantOid: d.tenant.oid,
+        solutionOid: d.solution.oid,
+        environmentOid: d.environment.oid,
+        ...normalizeStatusForGet(d).noParent
+      },
+      include
+    });
   }
 
   async createSession(d: {

@@ -1,11 +1,11 @@
-import { Presenter } from '@metorial/presenter';
 import { v } from '@lowerdeck/validation';
+import { Presenter } from '@metorial/presenter';
 import { consumerAccessRequestType } from '../types';
 import { v1MagicMcpServerPreview } from './magicMcpServerPreview';
-import { v1ProviderTemplatePresenter } from './providerTemplate';
+import { v1ProviderTemplatePreview } from './providerTemplate';
 
 export let v1ConsumerAccessRequestPresenter = Presenter.create(consumerAccessRequestType)
-  .presenter(async ({ consumerAccessRequest }, opts) => ({
+  .presenter(async ({ consumerAccessRequest }) => ({
     object: 'consumer.access_request' as const,
     id: consumerAccessRequest.id,
     status: consumerAccessRequest.status,
@@ -21,14 +21,9 @@ export let v1ConsumerAccessRequestPresenter = Presenter.create(consumerAccessReq
       consumerAccessRequest.type == 'provider_template'
         ? {
             type: 'provider_template' as const,
-            provider_template: await v1ProviderTemplatePresenter
-              .present(
-                {
-                  providerTemplate: consumerAccessRequest.providerTemplate!
-                },
-                opts
-              )
-              .run()
+            provider_template: v1ProviderTemplatePreview(
+              consumerAccessRequest.providerTemplate!
+            )
           }
         : {
             type: 'magic_mcp_server' as const,
@@ -54,7 +49,7 @@ export let v1ConsumerAccessRequestPresenter = Presenter.create(consumerAccessReq
       target: v.union([
         v.object({
           type: v.literal('provider_template'),
-          provider_template: v1ProviderTemplatePresenter.schema
+          provider_template: v1ProviderTemplatePreview.schema
         }),
         v.object({
           type: v.literal('magic_mcp_server'),

@@ -6,7 +6,7 @@ import { subspace } from '../subspace';
 
 export let subspaceSessionTemplateService = createSubspaceService(
   subspace.sessionTemplate,
-  ['get', 'list', 'create', 'update', 'delete'],
+  ['get', 'getMany', 'list', 'create', 'update', 'delete', 'listTools'],
   inner => ({
     create: async (...params: Parameters<typeof inner.create>) => {
       let eventBase = toEventBase(params[0]);

@@ -4,6 +4,7 @@ import { consumerProviderType } from '../types';
 import { v1MagicMcpServerPreview } from './magicMcpServerPreview';
 import { v1ProviderAuthMethodPresenter } from './provider/authMethod';
 import { v1ProviderPresenter } from './provider/provider';
+import { v1ProviderTemplatePreview } from './providerTemplate';
 
 export let v1ConsumerProviderPresenter = Presenter.create(consumerProviderType)
   .presenter(async ({ consumerProvider }, opts) => {
@@ -24,16 +25,11 @@ export let v1ConsumerProviderPresenter = Presenter.create(consumerProviderType)
       type: 'provider_template' as const,
       availability: consumerProvider.availability,
       has_pending_access_request: consumerProvider.hasPendingAccessRequest,
-      provider_template: {
-        object: 'provider.template#preview' as const,
-        id: consumerProvider.providerTemplate.id,
-        status: consumerProvider.providerTemplate.status,
-        name: consumerProvider.providerTemplate.name,
-        description: consumerProvider.providerTemplate.description,
-        metadata: consumerProvider.providerTemplate.metadata,
-        provider_deployment_id: consumerProvider.providerTemplate.providerDeploymentId
-      },
-      provider: await v1ProviderPresenter.present({ provider: consumerProvider.provider }, opts).run(),
+      provider_template: v1ProviderTemplatePreview(consumerProvider.providerTemplate),
+      provider: await v1ProviderPresenter
+        .present({ provider: consumerProvider.provider }, opts)
+        .run(),
+
       deployment: {
         object: 'provider.deployment#preview' as const,
         id: consumerProvider.deployment.id,
@@ -43,6 +39,7 @@ export let v1ConsumerProviderPresenter = Presenter.create(consumerProviderType)
         provider_id: consumerProvider.deployment.providerId,
         locked_version_id: consumerProvider.deployment.lockedVersion?.id ?? null
       },
+
       config_schema: consumerProvider.configSchema?.configSchema
         ? {
             type: 'json_schema' as const,
@@ -66,15 +63,7 @@ export let v1ConsumerProviderPresenter = Presenter.create(consumerProviderType)
         type: v.literal('provider_template'),
         availability: v.enumOf(['available_now', 'request_access']),
         has_pending_access_request: v.boolean(),
-        provider_template: v.object({
-          object: v.literal('provider.template#preview'),
-          id: v.string(),
-          status: v.enumOf(['active', 'archived', 'deleted']),
-          name: v.string(),
-          description: v.nullable(v.string()),
-          metadata: v.record(v.any()),
-          provider_deployment_id: v.string()
-        }),
+        provider_template: v1ProviderTemplatePreview.schema,
         provider: v1ProviderPresenter.schema,
         deployment: v.object({
           object: v.literal('provider.deployment#preview'),

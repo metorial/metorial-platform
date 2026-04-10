@@ -24,6 +24,8 @@ import {
   resolveProviders,
   resolveSessions
 } from '@metorial-subspace/list-utils';
+import { providerToolService } from '@metorial-subspace/module-catalog';
+import { checkToolAccess } from '@metorial-subspace/module-provider-internal';
 import { checkTenant } from '@metorial-subspace/module-tenant';
 import { sessionTemplateArchivedQueue } from '../queues/lifecycle/sessionTemplate';
 import {
@@ -131,6 +133,25 @@ class sessionTemplateServiceImpl {
       throw new ServiceError(notFoundError('session.template', d.sessionTemplateId));
 
     return session;
+  }
+
+  async getManySessionTemplatesByIds(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    ids: string[];
+    allowDeleted?: boolean;
+  }) {
+    return await db.sessionTemplate.findMany({
+      where: {
+        id: { in: d.ids },
+        tenantOid: d.tenant.oid,
+        solutionOid: d.solution.oid,
+        environmentOid: d.environment.oid,
+        ...normalizeStatusForGet(d).noParent
+      },
+      include
+    });
   }
 
   async createSessionTemplate(d: {
@@ -260,6 +281,50 @@ class sessionTemplateServiceImpl {
     sessionTemplate: SessionTemplate;
   }) {
     return this.archiveSessionTemplate(d);
+  }
+
+  async listSessionTemplateTools(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    sessionTemplateId: string;
+  }) {
+    let sessionTemplate = await this.getSessionTemplateById({
+      tenant: d.tenant,
+      solution: d.solution,
+      environment: d.environment,
+      sessionTemplateId: d.sessionTemplateId
+    });
+
+    let toolMap = new Map<string, any>();
+
+    for (let templateProvider of sessionTemplate.providers) {
+      let currentVersion = await db.providerVersion.findFirst({
+        where: {
+          providerOid: templateProvider.providerOid,
+          isCurrent: true
+        }
+      });
+      if (!currentVersion) continue;
+
+      let paginator = await providerToolService.listProviderTools({
+        solution: d.solution,
+        tenant: d.tenant,
+        environment: d.environment,
+        providerVersion: currentVersion
+      });
+
+      let list = await paginator.run({ limit: 100 });
+
+      for (let tool of list.items) {
+        if (toolMap.has(tool.key)) continue;
+
+        let { allowed } = checkToolAccess(tool, templateProvider, 'list');
+        if (allowed) toolMap.set(tool.key, tool);
+      }
+    }
+
+    return Array.from(toolMap.values());
   }
 }
 

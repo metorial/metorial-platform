@@ -10,6 +10,7 @@ import {
   mapDashboardInstanceSessionTemplatesGetOutput,
   mapDashboardInstanceSessionTemplatesListOutput,
   mapDashboardInstanceSessionTemplatesListQuery,
+  mapDashboardInstanceSessionTemplatesListToolsOutput,
   mapDashboardInstanceSessionTemplatesUpdateBody,
   mapDashboardInstanceSessionTemplatesUpdateOutput,
   type DashboardInstanceSessionTemplatesCreateBody,
@@ -18,6 +19,7 @@ import {
   type DashboardInstanceSessionTemplatesGetOutput,
   type DashboardInstanceSessionTemplatesListOutput,
   type DashboardInstanceSessionTemplatesListQuery,
+  type DashboardInstanceSessionTemplatesListToolsOutput,
   type DashboardInstanceSessionTemplatesUpdateBody,
   type DashboardInstanceSessionTemplatesUpdateOutput
 } from '../resources';
@@ -198,6 +200,35 @@ export class MetorialDashboardInstanceSessionTemplatesEndpoint {
 
     return this._delete(request).transform(
       mapDashboardInstanceSessionTemplatesDeleteOutput
+    );
+  }
+
+  /**
+   * @name List session template tools
+   * @description Returns the effective set of tools available through the providers in a session template, filtered by the tool filters of each provider, deployment, config, and auth config.
+   *
+   * @param `instanceId` - string
+   * @param `sessionTemplateId` - string
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardInstanceSessionTemplatesListToolsOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  listTools(
+    instanceId: string,
+    sessionTemplateId: string,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceSessionTemplatesListToolsOutput> {
+    let path = `dashboard/instances/${instanceId}/session-templates/${sessionTemplateId}/tools`;
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._get(request).transform(
+      mapDashboardInstanceSessionTemplatesListToolsOutput
     );
   }
 }

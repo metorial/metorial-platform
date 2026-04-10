@@ -17,19 +17,21 @@ import {
   Text,
   showModal
 } from '@metorial/ui';
+import { ID } from '@metorial/ui-product';
 import { RiDeleteBinLine, RiPencilLine } from '@remixicon/react';
-import { useMemo, useState } from 'react';
+import { type ReactNode, useMemo, useState } from 'react';
+import { EmptyState } from '../../../../components/emptyState';
 import { Table as DashboardTable } from '../../../../components/table';
 import {
   TableStateProvider,
   TableStateProviderResult
 } from '../../../../components/table/type';
-import { EmptyState } from '../../../../components/emptyState';
-import { ID } from '@metorial/ui-product';
 import { showAddProviderPanelFlow } from './addProviderPanelFlow';
 
 type SessionTemplateProviderRow =
   DashboardInstanceSessionTemplatesProvidersListOutput['items'][number];
+
+type SessionTemplateProviderToolFilter = SessionTemplateProviderRow['toolFilter'] | null;
 
 type SessionTemplateProvidersTableProps = {
   instanceId: string;
@@ -38,6 +40,7 @@ type SessionTemplateProvidersTableProps = {
   listingLookup: Record<string, { name: string; imageUrl: string }>;
   deploymentLookup: Record<string, string>;
   authConfigNameLookup: Record<string, string>;
+  emptyState?: () => ReactNode;
 };
 
 type SessionTemplateProvidersTableHookState = {
@@ -45,6 +48,56 @@ type SessionTemplateProvidersTableHookState = {
   sessionTemplateId: string;
   providers: ReturnType<typeof useSessionTemplateProviders>;
   listingLookup: Record<string, { name: string; imageUrl: string }>;
+};
+
+type ToolFilterSummaryState = {
+  selectedToolKeys: string[];
+  hasUnsupportedFilters: boolean;
+};
+
+let getToolFilterSummaryState = (
+  toolFilter: SessionTemplateProviderToolFilter
+): ToolFilterSummaryState => {
+  if (!toolFilter || toolFilter.type === 'allow_all') {
+    return {
+      selectedToolKeys: [],
+      hasUnsupportedFilters: false
+    };
+  }
+
+  let selectedToolKeySet = new Set<string>();
+  let hasUnsupportedFilters = false;
+
+  for (let filter of toolFilter.filters) {
+    if (filter.type === 'tool_keys') {
+      for (let key of filter.keys) {
+        selectedToolKeySet.add(key);
+      }
+      continue;
+    }
+
+    hasUnsupportedFilters = true;
+  }
+
+  return {
+    selectedToolKeys: Array.from(selectedToolKeySet),
+    hasUnsupportedFilters
+  };
+};
+
+let getToolFilterSummary = (toolFilter: SessionTemplateProviderToolFilter) => {
+  if (!toolFilter || toolFilter.type === 'allow_all') return 'All tools';
+
+  let summary = getToolFilterSummaryState(toolFilter);
+  if (summary.hasUnsupportedFilters && summary.selectedToolKeys.length > 0) {
+    return `Custom + ${summary.selectedToolKeys.length} selected`;
+  }
+
+  if (summary.hasUnsupportedFilters) return 'Custom filter';
+  if (summary.selectedToolKeys.length === 0) return 'All tools';
+  if (summary.selectedToolKeys.length === 1) return '1 selected';
+
+  return `${summary.selectedToolKeys.length} selected`;
 };
 
 let getProviderId = (provider: SessionTemplateProviderRow) =>
@@ -77,22 +130,13 @@ export let showAddProviderSidePanel = (p: {
   initialDeploymentId?: string;
   initialConfigId?: string;
   initialAuthConfigId?: string;
-  initialToolFilter?:
-    | {
-        type: 'allow_all';
-      }
-    | {
-        type: 'filter';
-        filters: {
-          type: string;
-          keys?: string[];
-        }[];
-      }
-    | null;
+  initialToolFilter?: SessionTemplateProviderToolFilter;
   title?: string;
   description?: string;
   action?: string;
 }) => showAddProviderPanelFlow(p);
+
+export let showAddProviderModal = showAddProviderSidePanel;
 
 let showRemoveProviderModal = (p: {
   instanceId: string;
@@ -355,6 +399,12 @@ let sessionTemplateProvidersTable = new DashboardTable<
       }
     },
     {
+      id: 'toolFilters',
+      isDefault: true,
+      header: 'Tool Filters',
+      render: provider => <Text size="2">{getToolFilterSummary(provider.toolFilter)}</Text>
+    },
+    {
       id: 'status',
       isDefault: false,
       header: 'Status',
@@ -475,17 +525,21 @@ let sessionTemplateProvidersTable = new DashboardTable<
 
 export let SessionTemplateProvidersManager = ({
   instanceId,
-  sessionTemplateId
+  sessionTemplateId,
+  actions
 }: {
   instanceId: string;
   sessionTemplateId: string;
+  actions?: ReactNode;
 }) => {
   let providers = useSessionTemplateProviders(instanceId, sessionTemplateId);
   let items = providers.data?.items ?? [];
   let providerIds = useMemo(
     () =>
       Array.from(
-        new Set(items.map(item => item.providerId ?? null).filter((v): v is string => !!v))
+        new Set(
+          items.map(item => getProviderId(item)).filter((value): value is string => !!value)
+        )
       ),
     [items]
   );
@@ -511,15 +565,15 @@ export let SessionTemplateProvidersManager = ({
 
   return renderWithLoader({ listings, deployments, authConfigs })(() => {
     let listingLookup: Record<string, { name: string; imageUrl: string }> = {};
-    for (let l of listings.data?.items ?? []) {
-      let providerId = l.provider?.id;
+    for (let listing of listings.data?.items ?? []) {
+      let providerId = listing.provider?.id;
       if (!providerId) continue;
-      listingLookup[providerId] = { name: l.name, imageUrl: l.imageUrl };
+      listingLookup[providerId] = { name: listing.name, imageUrl: listing.imageUrl };
     }
 
     let deploymentLookup: Record<string, string> = {};
-    for (let d of deployments.data?.items ?? []) {
-      if (d.name) deploymentLookup[d.id] = d.name;
+    for (let deployment of deployments.data?.items ?? []) {
+      if (deployment.name) deploymentLookup[deployment.id] = deployment.name;
     }
 
     return sessionTemplateProvidersTable({
@@ -529,10 +583,11 @@ export let SessionTemplateProvidersManager = ({
       listingLookup,
       deploymentLookup,
       authConfigNameLookup,
+      headerActions: actions ? () => actions : undefined,
       emptyState: () => (
         <EmptyState
           title="No providers configured"
-          description="Add providers to this template so sessions created from it will automatically include them."
+          description="Add providers to this setup so new sessions automatically include them."
           action={{
             label: 'Add Provider',
             onClick: () =>

@@ -21,9 +21,38 @@ model ConsumerAccess {
   magicMcpServerOid BigInt?
   magicMcpServer    MagicMcpServer? @relation("ConsumerAccessMagicMcpServer", fields: [magicMcpServerOid], references: [oid], onDelete: Cascade)
 
+  listingOid BigInt?
+  listing    ConsumerAccessListing? @relation(fields: [listingOid], references: [oid], onDelete: Cascade)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
   @@unique([consumerGroupOid, providerTemplateOid])
   @@unique([consumerGroupOid, magicMcpServerOid])
+}
+
+model ConsumerAccessListing {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  name        String
+  description String?
+  readme      String?
+
+  surfaceOid BigInt
+  surface    ConsumerSurface @relation(fields: [surfaceOid], references: [oid], onDelete: Cascade)
+
+  providerTemplateOid BigInt?
+  providerTemplate    ProviderTemplate? @relation(fields: [providerTemplateOid], references: [oid], onDelete: Cascade)
+
+  magicMcpServerOid BigInt?
+  magicMcpServer    MagicMcpServer? @relation(fields: [magicMcpServerOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  consumerAccesses ConsumerAccess[]
+
+  @@unique([surfaceOid, providerTemplateOid])
+  @@unique([surfaceOid, magicMcpServerOid])
 }

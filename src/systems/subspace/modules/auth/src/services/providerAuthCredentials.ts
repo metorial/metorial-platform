@@ -328,6 +328,23 @@ class providerAuthCredentialsServiceImpl {
     });
   }
 
+  async getManyProviderAuthCredentialsByIds(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    ids: string[];
+    allowDeleted?: boolean;
+  }) {
+    return await db.providerAuthCredentials.findMany({
+      where: {
+        id: { in: d.ids },
+        ...normalizeStatusForGet(d).noParent,
+        OR: [getTenantOwnedWhere(d), getManagedWhere(d), getManagedBackingWhere(d)]
+      },
+      include
+    });
+  }
+
   private async ensureManagedProviderAuthCredentialsBackingsForTenantList(d: {
     tenant: Tenant;
     solution: Solution;

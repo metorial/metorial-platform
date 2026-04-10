@@ -16,6 +16,8 @@ export type ConsumerProvidersListOutput = {
           description: string | null;
           metadata: Record<string, any>;
           providerDeploymentId: string;
+          createdAt: Date;
+          updatedAt: Date;
         };
         provider: {
           object: 'provider';
@@ -154,7 +156,9 @@ export let mapConsumerProvidersListOutput =
                   providerDeploymentId: mtMap.objectField(
                     'provider_deployment_id',
                     mtMap.passthrough()
-                  )
+                  ),
+                  createdAt: mtMap.objectField('created_at', mtMap.date()),
+                  updatedAt: mtMap.objectField('updated_at', mtMap.date())
                 })
               ),
               provider: mtMap.objectField(

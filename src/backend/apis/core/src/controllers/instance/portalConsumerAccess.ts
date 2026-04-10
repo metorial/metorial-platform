@@ -116,6 +116,9 @@ export let portalConsumerAccessController = Controller.create(
         'default',
         v.object({
           consumer_group_id: v.string(),
+          name: v.optional(v.string()),
+          description: v.optional(v.nullable(v.string())),
+          readme: v.optional(v.nullable(v.string())),
           access: v.union([
             v.object({
               type: v.literal('provider_template'),
@@ -142,6 +145,11 @@ export let portalConsumerAccessController = Controller.create(
                 organization: ctx.organization,
                 consumerSurface: ctx.portal.surface,
                 consumerGroup,
+                input: {
+                  name: ctx.body.name,
+                  description: ctx.body.description,
+                  readme: ctx.body.readme
+                },
                 access: {
                   type: 'provider_template',
                   providerTemplate: await providerTemplateService.getProviderTemplateById({
@@ -154,6 +162,11 @@ export let portalConsumerAccessController = Controller.create(
                 organization: ctx.organization,
                 consumerSurface: ctx.portal.surface,
                 consumerGroup,
+                input: {
+                  name: ctx.body.name,
+                  description: ctx.body.description,
+                  readme: ctx.body.readme
+                },
                 access: {
                   type: 'magic_mcp_server',
                   magicMcpServer: await magicMcpServerService.getMagicMcpServerById({
@@ -162,6 +175,41 @@ export let portalConsumerAccessController = Controller.create(
                   })
                 }
               });
+
+        return consumerAccessPresenter.present({ consumerAccess });
+      }),
+
+    update: consumerAccessGroup
+      .patch(
+        instancePath(
+          'portals/:portalId/consumer-access/:consumerAccessId',
+          'portals.consumerAccess.update'
+        ),
+        {
+          name: 'Update portal consumer access',
+          description: 'Updates the shared listing fields for a portal consumer access rule.'
+        }
+      )
+      .use(checkAccess({ possibleScopes: ['instance.portal.access:write'] }))
+      .use(hasFlags(['paid-portals', 'portals-access']))
+      .body(
+        'default',
+        v.object({
+          name: v.optional(v.string()),
+          description: v.optional(v.nullable(v.string())),
+          readme: v.optional(v.nullable(v.string()))
+        })
+      )
+      .output(consumerAccessPresenter)
+      .do(async ctx => {
+        let consumerAccess = await consumerAccessService.updateConsumerAccess({
+          consumerAccess: ctx.consumerAccess,
+          input: {
+            name: ctx.body.name,
+            description: ctx.body.description,
+            readme: ctx.body.readme
+          }
+        });
 
         return consumerAccessPresenter.present({ consumerAccess });
       }),

@@ -22,15 +22,16 @@ model ProviderTemplate {
   instanceOid BigInt
   instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
   archivedAt DateTime?
-  deletedAt DateTime?
+  deletedAt  DateTime?
 
-  accessTagEntities AccessTagEntity[]
-  consumerAccesses  ConsumerAccess[]        @relation("ConsumerAccessProviderTemplate")
-  accessRequests    ConsumerAccessRequest[] @relation("ConsumerAccessRequestProviderTemplate")
+  accessTagEntities            AccessTagEntity[]
+  consumerAccesses             ConsumerAccess[]                      @relation("ConsumerAccessProviderTemplate")
+  accessRequests               ConsumerAccessRequest[]               @relation("ConsumerAccessRequestProviderTemplate")
   providerSetupSessionBindings ConsumerProviderSetupSessionBinding[]
+  consumerAccessListings       ConsumerAccessListing[]
 
   @@unique([instanceOid, providerDeploymentId])
 }

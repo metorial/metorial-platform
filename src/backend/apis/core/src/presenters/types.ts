@@ -13,6 +13,7 @@ import {
   CliDevice,
   Consumer,
   ConsumerAccess,
+  ConsumerAccessListing,
   ConsumerAccessRequest,
   ConsumerGroup,
   ConsumerInvite,
@@ -62,7 +63,8 @@ import {
   ConsumerAresSsoConnection,
   ConsumerAresSsoTenant,
   ConsumerAresSsoTenantSetup,
-  ConsumerProviderCatalogEntry
+  ConsumerProviderCatalogEntry,
+  type EnrichedProviderTemplate
 } from '@metorial/module-consumer';
 import { Flags } from '@metorial/module-flags';
 import type {
@@ -452,6 +454,7 @@ export let consumerAccessType = PresentableType.create<{
     consumerGroup: ConsumerGroup;
     providerTemplate: ProviderTemplate | null;
     magicMcpServer: MagicMcpServer | null;
+    listing: ConsumerAccessListing | null;
   };
 }>()('consumer.access');
 
@@ -587,7 +590,7 @@ export let portalType = PresentableType.create<{
 }>()('portal');
 
 export let providerTemplateType = PresentableType.create<{
-  providerTemplate: ProviderTemplate;
+  providerTemplate: EnrichedProviderTemplate;
 }>()('provider.template');
 
 export let portalAuthAppType = PresentableType.create<{
