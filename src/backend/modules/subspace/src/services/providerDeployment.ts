@@ -7,7 +7,7 @@ import { subspace } from '../subspace';
 
 export let subspaceProviderDeploymentService = createSubspaceService(
   subspace.providerDeployment,
-  ['get', 'list', 'update', 'create', 'delete'],
+  ['get', 'getMany', 'list', 'update', 'create', 'delete'],
   inner => ({
     list: async (
       arg0: Parameters<typeof inner.list>[0] & {

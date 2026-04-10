@@ -4,7 +4,7 @@ import { subspace } from '../subspace';
 
 export let subspaceProviderConfigVaultService = createSubspaceService(
   subspace.providerConfigVault,
-  ['get', 'list', 'update', 'create', 'delete'],
+  ['get', 'getMany', 'list', 'update', 'create', 'delete'],
   inner => ({
     create: async (...params: Parameters<typeof inner.create>) => {
       let eventBase = toEventBase(params[0]);

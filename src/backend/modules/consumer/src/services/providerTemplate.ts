@@ -16,7 +16,10 @@ import {
   type AnyAccessTagSelector
 } from '@metorial/module-access';
 import { searchProviderTemplateIds } from '@metorial/module-search';
-import { subspaceProviderDeploymentService } from '@metorial/module-subspace';
+import {
+  subspaceProviderDeploymentService,
+  type SubspaceProviderDeployment
+} from '@metorial/module-subspace';
 import {
   providerTemplateArchivedQueue,
   providerTemplateCreatedQueue,
@@ -27,6 +30,10 @@ type ProviderTemplateDeploymentCreateInput = Pick<
   Parameters<typeof subspaceProviderDeploymentService.create>[0],
   'providerId' | 'name' | 'description' | 'metadata' | 'lockedProviderVersionId'
 >;
+
+export type EnrichedProviderTemplate = ProviderTemplate & {
+  providerDeployment: SubspaceProviderDeployment;
+};
 
 class ProviderTemplateServiceImpl {
   async getProviderTemplateById(d: {
@@ -52,7 +59,7 @@ class ProviderTemplateServiceImpl {
       });
     }
 
-    return providerTemplate;
+    return (await this.enrich([providerTemplate], d.instance))[0];
   }
 
   async createProviderTemplate(d: {
@@ -134,7 +141,7 @@ class ProviderTemplateServiceImpl {
 
     await providerTemplateCreatedQueue.add({ providerTemplateId: providerTemplate.id });
 
-    return providerTemplate;
+    return (await this.enrich([providerTemplate], d.instance))[0];
   }
 
   async updateProviderTemplate(d: {
@@ -176,7 +183,7 @@ class ProviderTemplateServiceImpl {
 
     await providerTemplateUpdatedQueue.add({ providerTemplateId: providerTemplate.id });
 
-    return providerTemplate;
+    return (await this.enrich([providerTemplate], d.instance))[0];
   }
 
   async archiveProviderTemplate(d: {
@@ -205,7 +212,7 @@ class ProviderTemplateServiceImpl {
 
     await providerTemplateArchivedQueue.add({ providerTemplateId: providerTemplate.id });
 
-    return providerTemplate;
+    return (await this.enrich([providerTemplate], d.instance))[0];
   }
 
   async listProviderTemplates(d: {
@@ -230,7 +237,7 @@ class ProviderTemplateServiceImpl {
         })
       : undefined;
 
-    return Paginator.create(({ prisma }) =>
+    let paginator = Paginator.create(({ prisma }) =>
       prisma(async opts => {
         return await db.providerTemplate.findMany({
           ...opts,
@@ -269,6 +276,16 @@ class ProviderTemplateServiceImpl {
         });
       })
     );
+
+    return {
+      run: async (input: Parameters<typeof paginator.run>[0]) => {
+        let result = await paginator.run(input);
+        return {
+          ...result,
+          items: await this.enrich(result.items, d.instance)
+        };
+      }
+    };
   }
 
   async checkConsumerReadAccess(d: {
@@ -287,6 +304,25 @@ class ProviderTemplateServiceImpl {
         });
       }
     });
+  }
+
+  private async enrich(
+    templates: ProviderTemplate[],
+    instance: Instance
+  ): Promise<EnrichedProviderTemplate[]> {
+    if (templates.length === 0) return [];
+
+    let deploymentIds = [...new Set(templates.map(t => t.providerDeploymentId))];
+    let deployments = await subspaceProviderDeploymentService.getMany({
+      instance,
+      ids: deploymentIds
+    });
+    let deploymentMap = new Map(deployments.map(d => [d.id, d]));
+
+    return templates.map(t => ({
+      ...t,
+      providerDeployment: deploymentMap.get(t.providerDeploymentId)!
+    }));
   }
 
   private async getOrCreateProviderDeployment(d: {

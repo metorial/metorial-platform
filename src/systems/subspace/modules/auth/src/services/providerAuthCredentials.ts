@@ -338,7 +338,7 @@ class providerAuthCredentialsServiceImpl {
     return await db.providerAuthCredentials.findMany({
       where: {
         id: { in: d.ids },
-        ...normalizeStatusForList(d).noParent,
+        ...normalizeStatusForGet(d).noParent,
         OR: [getTenantOwnedWhere(d), getManagedWhere(d), getManagedBackingWhere(d)]
       },
       include

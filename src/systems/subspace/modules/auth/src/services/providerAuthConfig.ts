@@ -177,7 +177,7 @@ class providerAuthConfigServiceImpl {
         tenantOid: d.tenant.oid,
         solutionOid: d.solution.oid,
         environmentOid: d.environment.oid,
-        ...normalizeStatusForList(d).hasParent
+        ...normalizeStatusForGet(d).hasParent
       },
       include
     });

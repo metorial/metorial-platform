@@ -9,7 +9,7 @@ let Sentry = getSentry();
 
 export let subspaceProviderConfigService = createSubspaceService(
   subspace.providerConfig,
-  ['get', 'list', 'update', 'create', 'delete', 'getConfigSchema'],
+  ['get', 'getMany', 'list', 'update', 'create', 'delete', 'getConfigSchema'],
   inner => ({
     list: async (
       arg0: Parameters<typeof inner.list>[0] & {

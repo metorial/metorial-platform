@@ -62,7 +62,8 @@ import {
   ConsumerAresSsoConnection,
   ConsumerAresSsoTenant,
   ConsumerAresSsoTenantSetup,
-  ConsumerProviderCatalogEntry
+  ConsumerProviderCatalogEntry,
+  type EnrichedProviderTemplate
 } from '@metorial/module-consumer';
 import { Flags } from '@metorial/module-flags';
 import type {
@@ -587,7 +588,7 @@ export let portalType = PresentableType.create<{
 }>()('portal');
 
 export let providerTemplateType = PresentableType.create<{
-  providerTemplate: ProviderTemplate;
+  providerTemplate: EnrichedProviderTemplate;
 }>()('provider.template');
 
 export let portalAuthAppType = PresentableType.create<{

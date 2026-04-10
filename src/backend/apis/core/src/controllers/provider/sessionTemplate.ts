@@ -7,7 +7,7 @@ import { dateFilterValidator } from '../../lib/dateFilter';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
-import { sessionTemplatePresenter } from '../../presenters';
+import { providerToolsPresenter, sessionTemplatePresenter } from '../../presenters';
 import { toolFiltersValidator } from './session';
 
 let sessionTemplateGroup = instanceGroup.use(async ctx => {
@@ -205,6 +205,29 @@ export let sessionTemplateController = Controller.create(
         });
 
         return sessionTemplatePresenter.present({ sessionTemplate });
+      }),
+
+    listTools: sessionTemplateGroup
+      .get(
+        instancePath(
+          'session-templates/:sessionTemplateId/tools',
+          'sessionTemplates.listTools'
+        ),
+        {
+          name: 'List session template tools',
+          description:
+            'Returns the effective set of tools available through the providers in a session template, filtered by the tool filters of each provider, deployment, config, and auth config.'
+        }
+      )
+      .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
+      .output(providerToolsPresenter)
+      .do(async ctx => {
+        let items = await subspaceSessionTemplateService.listTools({
+          instance: ctx.instance,
+          sessionTemplateId: ctx.sessionTemplate.id
+        });
+
+        return providerToolsPresenter.present({ items });
       })
   }
 );

@@ -28,7 +28,6 @@ import { checkTenant } from '@metorial-subspace/module-tenant';
 import {
   sessionArchivedQueue,
   sessionCreatedQueue,
-  sessionDeletedQueue,
   sessionUpdatedQueue
 } from '../queues/lifecycle/session';
 import { sessionProviderInclude } from './sessionProvider';
@@ -155,7 +154,7 @@ class sessionServiceImpl {
         tenantOid: d.tenant.oid,
         solutionOid: d.solution.oid,
         environmentOid: d.environment.oid,
-        ...normalizeStatusForList(d).noParent
+        ...normalizeStatusForGet(d).noParent
       },
       include
     });

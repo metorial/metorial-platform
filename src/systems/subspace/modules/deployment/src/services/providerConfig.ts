@@ -189,7 +189,7 @@ class providerConfigServiceImpl {
         solutionOid: d.solution.oid,
         environmentOid: d.environment.oid,
         isForVault: false,
-        ...normalizeStatusForList(d).noParent
+        ...normalizeStatusForGet(d).noParent
       },
       include
     });

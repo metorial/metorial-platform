@@ -138,7 +138,7 @@ class providerConfigVaultServiceImpl {
         tenantOid: d.tenant.oid,
         solutionOid: d.solution.oid,
         environmentOid: d.environment.oid,
-        ...normalizeStatusForList(d).noParent
+        ...normalizeStatusForGet(d).noParent
       },
       include
     });
