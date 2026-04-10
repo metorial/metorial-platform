@@ -1,5 +1,5 @@
 import { ConsumerGroup, ConsumerProfile, MagicMcpEndpoint, Organization } from '@metorial/db';
-import { consumerAccessPolicyService } from './accessPolicy';
+import { consumerAccessPolicyService } from '../services/accessPolicy';
 
 export let grantConsumerOwnedMagicMcpEndpointAccess = async (d: {
   organization: Organization;

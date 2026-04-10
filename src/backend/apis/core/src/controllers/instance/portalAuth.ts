@@ -2,7 +2,7 @@ import { badRequestError, preconditionFailedError, ServiceError } from '@lowerde
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { getConfig } from '@metorial/config';
-import { consumerAresService } from '@metorial/module-consumer';
+import { consumerAresService, consumerSurfaceService } from '@metorial/module-consumer';
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../middleware/checkAccess';
 import { hasFlags } from '../../middleware/hasFlags';
@@ -73,8 +73,40 @@ export let portalAuthDashboardController = Controller.create(
       .output(portalAuthAppPresenter)
       .do(async ctx => {
         return portalAuthAppPresenter.present({
+          consumerSurface: ctx.portal.surface,
           app: await consumerAresService.getApp({
             appId: getPortalAresAppId(ctx.portal)
+          })
+        });
+      }),
+
+    updateApp: portalAuthManagementGroup
+      .patch(instancePath('portals/:portalId/auth/app', 'portals.auth.app.update'), {
+        name: 'Update portal auth app',
+        description: 'Updates the portal auth app configuration stored on the portal surface.'
+      })
+      .use(checkAccess({ possibleScopes: ['instance.portal.auth:write'] }))
+      .body(
+        'default',
+        v.object({
+          email_whitelist: v.optional(v.array(v.string()))
+        })
+      )
+      .output(portalAuthAppPresenter)
+      .do(async ctx => {
+        let consumerSurface = await consumerSurfaceService.updateConsumerSurface({
+          consumerSurface: ctx.portal.surface,
+          input: {
+            emailWhitelist: ctx.body.email_whitelist
+          }
+        });
+
+        return portalAuthAppPresenter.present({
+          consumerSurface,
+          app: await consumerAresService.getApp({
+            appId: getPortalAresAppId({
+              surface: consumerSurface
+            })
           })
         });
       }),

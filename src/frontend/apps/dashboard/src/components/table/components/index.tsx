@@ -152,7 +152,7 @@ let Footer = styled('footer')`
 
 let ActionBarWrapper = styled('div')`
   position: fixed;
-  bottom: 20px;
+  bottom: 60px;
   left: 0;
   right: 0;
   display: flex;
@@ -281,7 +281,7 @@ export let TableComponent = reactMemo(
       placeholder: string;
     };
     props: any;
-    link?: (item: any, stateProps: any) => string;
+    link?: (item: any, stateProps: any) => string | null | undefined;
     clickable?: TableClickable<any, any>;
     sidePadding?: number;
     hasPagination: boolean;
@@ -368,7 +368,10 @@ export let TableComponent = reactMemo(
       if (!state.isLoading) setInitialLoading(false);
     }, [state.isLoading]);
 
-    let link = useMemo(() => (props.link ? memo(props.link) : undefined), [props.link]);
+    let link = useMemo(
+      () => (props.link ? memo(props.link) || undefined : undefined),
+      [props.link]
+    );
 
     let isFullLoading = initialLoading && state.isLoading;
     let navigate = useNavigate();
@@ -803,7 +806,15 @@ export let TableComponent = reactMemo(
                     }}
                   >
                     <Text size="1" color="gray400" weight="medium">
-                      <strong>{selectedItems.length}</strong> items selected
+                      {selectedItems.length == 1 ? (
+                        <>
+                          <strong>1</strong> item selected
+                        </>
+                      ) : (
+                        <>
+                          <strong>{selectedItems.length}</strong> items selected
+                        </>
+                      )}
                     </Text>
 
                     {props.bulkActions!.map(action => (

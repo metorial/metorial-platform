@@ -25,6 +25,7 @@ export let MagicMcpConnectionLayout = () => {
     <ContentLayout>
       <RenderWithResolvedMagicMcpSession magicMcpSessionId={connectionId}>
         {({ magicMcpSession, session }) => {
+          let magicMcpServer = magicMcpSession.magicMcpServer;
           let connectionPathParams = [
             organization.data,
             project.data,
@@ -36,11 +37,7 @@ export let MagicMcpConnectionLayout = () => {
             <>
               <PageHeader
                 title={session.name ?? `Session ${session.id.slice(0, 8)}...`}
-                description={
-                  session.description ??
-                  magicMcpSession.magicMcpServer.description ??
-                  undefined
-                }
+                description={session.description ?? magicMcpServer?.description ?? undefined}
                 pagination={[
                   {
                     label: 'Connections',
@@ -95,7 +92,7 @@ export let MagicMcpConnectionLayout = () => {
                   },
                   {
                     label: 'Magic MCP Server',
-                    value: magicMcpSession.magicMcpServer.name ?? (
+                    value: magicMcpServer?.name ?? (
                       <Text size="2" color="gray600">
                         Unnamed Server
                       </Text>

@@ -6,7 +6,7 @@ import {
   subspaceProviderDeploymentService,
   subspaceProviderService
 } from '@metorial/module-subspace';
-import { providerTemplateService } from './providerTemplate';
+import { providerTemplateService } from '../services/providerTemplate';
 
 export type ConsumerProviderDeployment = Awaited<
   ReturnType<typeof subspaceProviderDeploymentService.get>

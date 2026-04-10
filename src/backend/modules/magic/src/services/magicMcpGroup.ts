@@ -21,9 +21,9 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { slugify } from '@lowerdeck/slugify';
 import {
-  enqueueMagicMcpGroupCreated,
-  enqueueMagicMcpGroupDeleted,
-  enqueueMagicMcpGroupUpdated
+  magicMcpGroupCreatedQueue,
+  magicMcpGroupDeletedQueue,
+  magicMcpGroupUpdatedQueue
 } from '../queues/lifecycle/magicMcpGroup';
 
 class MagicMcpGroupImpl {
@@ -64,7 +64,7 @@ class MagicMcpGroupImpl {
       }
     });
 
-    await enqueueMagicMcpGroupCreated(magicMcpGroup.id);
+    await magicMcpGroupCreatedQueue.add({ magicMcpGroupId: magicMcpGroup.id });
 
     return magicMcpGroup;
   }
@@ -103,7 +103,7 @@ class MagicMcpGroupImpl {
       }
     });
 
-    await enqueueMagicMcpGroupUpdated(magicMcpGroup.id);
+    await magicMcpGroupUpdatedQueue.add({ magicMcpGroupId: magicMcpGroup.id });
 
     return magicMcpGroup;
   }
@@ -231,7 +231,7 @@ class MagicMcpGroupImpl {
       return deletedGroup;
     });
 
-    await enqueueMagicMcpGroupDeleted(deletedGroup.id);
+    await magicMcpGroupDeletedQueue.add({ magicMcpGroupId: deletedGroup.id });
 
     return deletedGroup;
   }

@@ -57,30 +57,3 @@ export let providerTemplateArchivedQueueProcessor = providerTemplateArchivedQueu
     });
   }
 );
-
-export let enqueueProviderTemplateCreated = async (providerTemplateId: string) => {
-  await providerTemplateCreatedQueue.add({ providerTemplateId }).catch(error => {
-    console.error(
-      '[module-consumer] Failed to enqueue provider template create lifecycle',
-      error
-    );
-  });
-};
-
-export let enqueueProviderTemplateUpdated = async (providerTemplateId: string) => {
-  await providerTemplateUpdatedQueue.add({ providerTemplateId }).catch(error => {
-    console.error(
-      '[module-consumer] Failed to enqueue provider template update lifecycle',
-      error
-    );
-  });
-};
-
-export let enqueueProviderTemplateArchived = async (providerTemplateId: string) => {
-  await providerTemplateArchivedQueue.add({ providerTemplateId }).catch(error => {
-    console.error(
-      '[module-consumer] Failed to enqueue provider template archive lifecycle',
-      error
-    );
-  });
-};

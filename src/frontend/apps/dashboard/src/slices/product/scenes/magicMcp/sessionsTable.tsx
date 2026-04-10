@@ -55,18 +55,22 @@ let magicMcpSessionsTable = new DashboardTable<MagicMcpSessionsTableProps, Magic
       id: 'server',
       isDefault: true,
       header: 'Server',
-      render: session => (
-        <div>
-          <Text size="2" weight="strong">
-            {session.magicMcpServer.name ?? 'Unnamed Server'}
-          </Text>
-          {session.magicMcpServer.description && (
-            <Text size="1" color="gray600">
-              {session.magicMcpServer.description}
+      render: session => {
+        let magicMcpServer = session.magicMcpServer;
+
+        return (
+          <div>
+            <Text size="2" weight="strong">
+              {magicMcpServer?.name ?? 'Unnamed Server'}
             </Text>
-          )}
-        </div>
-      )
+            {magicMcpServer?.description && (
+              <Text size="1" color="gray600">
+                {magicMcpServer.description}
+              </Text>
+            )}
+          </div>
+        );
+      }
     },
 
     {
@@ -75,7 +79,7 @@ let magicMcpSessionsTable = new DashboardTable<MagicMcpSessionsTableProps, Magic
       header: 'Endpoint',
       render: session => (
         <Text size="2">
-          {session.magicMcpServer.endpoints[0]?.alias ?? 'No endpoint alias'}
+          {session.magicMcpServer?.endpoints[0]?.alias ?? 'No endpoint alias'}
         </Text>
       )
     },
@@ -101,7 +105,14 @@ let magicMcpSessionsTable = new DashboardTable<MagicMcpSessionsTableProps, Magic
       id: 'serverId',
       isDefault: false,
       header: 'Server ID',
-      render: session => <ID id={session.magicMcpServer.id} />
+      render: session =>
+        session.magicMcpServer ? (
+          <ID id={session.magicMcpServer.id} />
+        ) : (
+          <Text size="2" color="gray600">
+            -
+          </Text>
+        )
     },
     {
       id: 'id',

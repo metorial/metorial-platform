@@ -18,8 +18,8 @@ import {
   searchMagicMcpServerIds,
   searchProviderTemplateIds
 } from '@metorial/module-search';
+import { isPreconfiguredMagicMcpServer } from '../lib/magicMcpServerSource';
 import { consumerAccessPolicyService } from './accessPolicy';
-import { isPreconfiguredMagicMcpServer } from './magicMcpServerSource';
 
 let include = {
   consumerGroup: true,

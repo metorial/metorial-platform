@@ -1,6 +1,8 @@
 import { db } from '@metorial/db';
 import { createQueue } from '@metorial/queue';
 import { consumerAccessService } from '../../services/consumerAccess';
+import { sendApprovedConsumerAccessRequestEmailQueue } from '../accessRequest/sendApprovedConsumerAccessRequestEmail';
+import { sendRejectedConsumerAccessRequestEmailQueue } from '../accessRequest/sendRejectedConsumerAccessRequestEmail';
 import { indexConsumerAccessRequestSearchQueue } from '../search/consumerAccessRequest';
 
 export let consumerAccessRequestCreatedQueue = createQueue<{
@@ -48,7 +50,16 @@ export let consumerAccessRequestUpdatedQueueProcessor =
         magicMcpServer: true
       }
     });
-    if (!consumerAccessRequest || consumerAccessRequest.status !== 'approved') return;
+    if (!consumerAccessRequest) return;
+
+    if (consumerAccessRequest.status == 'rejected') {
+      await sendRejectedConsumerAccessRequestEmailQueue.add({
+        consumerAccessRequestId: consumerAccessRequest.id
+      });
+      return;
+    }
+
+    if (consumerAccessRequest.status != 'approved') return;
 
     let consumerGroup = data.consumerGroupId
       ? await db.consumerGroup.findFirst({
@@ -74,6 +85,11 @@ export let consumerAccessRequestUpdatedQueueProcessor =
           providerTemplate: consumerAccessRequest.providerTemplate
         }
       });
+
+      await sendApprovedConsumerAccessRequestEmailQueue.add({
+        consumerAccessRequestId: consumerAccessRequest.id
+      });
+      return;
     }
 
     if (
@@ -89,26 +105,9 @@ export let consumerAccessRequestUpdatedQueueProcessor =
           magicMcpServer: consumerAccessRequest.magicMcpServer
         }
       });
+
+      await sendApprovedConsumerAccessRequestEmailQueue.add({
+        consumerAccessRequestId: consumerAccessRequest.id
+      });
     }
   });
-
-export let enqueueConsumerAccessRequestCreated = async (consumerAccessRequestId: string) => {
-  await consumerAccessRequestCreatedQueue.add({ consumerAccessRequestId }).catch(error => {
-    console.error(
-      '[module-consumer] Failed to enqueue consumer access request create lifecycle',
-      error
-    );
-  });
-};
-
-export let enqueueConsumerAccessRequestUpdated = async (d: {
-  consumerAccessRequestId: string;
-  consumerGroupId?: string;
-}) => {
-  await consumerAccessRequestUpdatedQueue.add(d).catch(error => {
-    console.error(
-      '[module-consumer] Failed to enqueue consumer access request update lifecycle',
-      error
-    );
-  });
-};

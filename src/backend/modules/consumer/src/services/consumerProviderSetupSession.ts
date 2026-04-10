@@ -16,7 +16,7 @@ import {
 } from '@metorial/db';
 import { type AnyAccessTagSelector } from '@metorial/module-access';
 import { subspaceProviderSetupSessionService } from '@metorial/module-subspace';
-import { loadTemplateContextForSetup } from './consumerProviderContext';
+import { loadTemplateContextForSetup } from '../lib/consumerProviderContext';
 
 let buildProviderSetupRedirectUrl = (portalSlug: string) => {
   let template = process.env.PORTAL_HOST_TEMPLATE;
@@ -105,9 +105,6 @@ class ConsumerProviderSetupSessionServiceImpl {
       ua: d.context.ua ?? '',
       redirectUrl: buildProviderSetupRedirectUrl(portal.slug),
       configuration: {
-        toolFilters: {
-          enabled: true
-        },
         ui: {
           layout: 'side'
         }

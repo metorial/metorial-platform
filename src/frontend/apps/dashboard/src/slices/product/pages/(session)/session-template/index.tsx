@@ -104,6 +104,7 @@ export let SessionTemplateOverviewPage = () => {
     return (
       <>
         <Attributes
+          itemWidth="450px"
           attributes={[
             {
               label: 'ID',

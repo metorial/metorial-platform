@@ -15,12 +15,28 @@ export let sendApiKeyCreatedEmailQueueProcessor = sendApiKeyCreatedEmailQueue.pr
     let apiKey = await db.apiKey.findUnique({
       where: { id: data.apiKeyId },
       include: {
-        machineAccess: true
+        machineAccess: {
+          include: {
+            instance: true
+          }
+        }
       }
     });
     if (!apiKey) throw new QueueRetryError();
 
     if (apiKey.kind == 'system_internal') return;
+
+    let otherTokenInInstance = apiKey.machineAccess.instanceOid
+      ? await db.apiKey.findFirst({
+          where: {
+            oid: { not: apiKey.oid },
+            machineAccess: {
+              instanceOid: apiKey.machineAccess.instanceOid
+            }
+          }
+        })
+      : null;
+    if (apiKey.name == 'Default Token' && !otherTokenInInstance) return;
 
     let organization = await db.organization.findUnique({
       where: { id: data.organizationId }

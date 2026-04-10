@@ -134,6 +134,7 @@ import {
 } from './implementation/scm';
 
 import { v1ConsumerAndProfilePresenter } from './implementation/consumerAndProfile';
+import { v1ConsumerInvitePresenter } from './implementation/consumerInvite';
 import { v1FlagsPresenter } from './implementation/flags';
 import { v1TokenPresenter } from './implementation/token';
 import {
@@ -158,6 +159,7 @@ import {
   consumerAccessType,
   consumerAndProfileType,
   consumerGroupType,
+  consumerInviteType,
   consumerProfileType,
   consumerProviderType,
   consumerSessionType,
@@ -488,6 +490,11 @@ export let consumerAccessPresenter = declarePresenter(consumerAccessType, {
 export let consumerAccessRequestPresenter = declarePresenter(consumerAccessRequestType, {
   mt_2025_01_01_dashboard: v1ConsumerAccessRequestPresenter,
   mt_2026_01_01_magnetar: v1ConsumerAccessRequestPresenter
+});
+
+export let consumerInvitePresenter = declarePresenter(consumerInviteType, {
+  mt_2025_01_01_dashboard: v1ConsumerInvitePresenter,
+  mt_2026_01_01_magnetar: v1ConsumerInvitePresenter
 });
 
 export let consumerPresenter = declarePresenter(consumerType, {

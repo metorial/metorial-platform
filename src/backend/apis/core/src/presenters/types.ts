@@ -15,6 +15,7 @@ import {
   ConsumerAccess,
   ConsumerAccessRequest,
   ConsumerGroup,
+  ConsumerInvite,
   ConsumerProfile,
   ConsumerProfileGroup,
   ConsumerSession,
@@ -465,6 +466,16 @@ export let consumerAccessRequestType = PresentableType.create<{
   };
 }>()('consumer.access_request');
 
+export let consumerInviteType = PresentableType.create<{
+  consumerInvite: ConsumerInvite & {
+    consumerProfile: ConsumerProfile;
+    invitedBy: OrganizationActor;
+    surface: ConsumerSurface & {
+      portal: Portal | null;
+    };
+  };
+}>()('consumer.invite');
+
 export let consumerType = PresentableType.create<{
   consumer: InstanceConsumer & {
     consumer: Consumer & {
@@ -511,6 +522,7 @@ export let consumerProfileType = PresentableType.create<{
       group: ConsumerGroup;
     })[];
   };
+  instanceConsumer: InstanceConsumer | null;
   assignedConsumerGroups:
     | (ConsumerGroup & {
         assignedVia: 'default' | 'manual' | 'sso' | 'user';
@@ -580,6 +592,7 @@ export let providerTemplateType = PresentableType.create<{
 
 export let portalAuthAppType = PresentableType.create<{
   app: ConsumerAresApp;
+  consumerSurface: ConsumerSurface;
 }>()('portal.auth.app');
 
 export let portalAuthSsoTenantType = PresentableType.create<{

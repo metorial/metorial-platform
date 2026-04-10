@@ -25,6 +25,7 @@ export type ManagementInstanceConsumersProfilesListOutput = {
         }[]
       | null;
     consumerId: string;
+    status: 'active' | 'invited';
     createdAt: Date;
     updatedAt: Date;
   }[];
@@ -78,6 +79,7 @@ export let mapManagementInstanceConsumersProfilesListOutput =
             )
           ),
           consumerId: mtMap.objectField('consumer_id', mtMap.passthrough()),
+          status: mtMap.objectField('status', mtMap.passthrough()),
           createdAt: mtMap.objectField('created_at', mtMap.date()),
           updatedAt: mtMap.objectField('updated_at', mtMap.date())
         })

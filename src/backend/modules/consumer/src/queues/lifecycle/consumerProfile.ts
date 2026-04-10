@@ -1,6 +1,7 @@
 import { db } from '@metorial/db';
 import { createQueue, QueueRetryError } from '@metorial/queue';
 import { syncIdentityConsumerQueue } from '../syncIdentityConsumer';
+import { syncPendingStatusForInstanceConsumer } from './pendingStatus';
 
 let queueConsumerProfileSync = async (consumerProfileId: string) => {
   let consumerProfile = await db.consumerProfile.findUnique({
@@ -28,6 +29,8 @@ let queueConsumerProfileSync = async (consumerProfileId: string) => {
   });
   if (!instanceConsumer) throw new QueueRetryError();
 
+  await syncPendingStatusForInstanceConsumer(instanceConsumer.id);
+
   await syncIdentityConsumerQueue.add({
     identityConsumerId: instanceConsumer.id
   });
@@ -52,21 +55,3 @@ export let consumerProfileUpdatedQueueProcessor = consumerProfileUpdatedQueue.pr
     await queueConsumerProfileSync(data.consumerProfileId);
   }
 );
-
-export let enqueueConsumerProfileCreated = async (consumerProfileId: string) => {
-  await consumerProfileCreatedQueue.add({ consumerProfileId }).catch(error => {
-    console.error(
-      '[module-consumer] Failed to enqueue consumer profile create lifecycle',
-      error
-    );
-  });
-};
-
-export let enqueueConsumerProfileUpdated = async (consumerProfileId: string) => {
-  await consumerProfileUpdatedQueue.add({ consumerProfileId }).catch(error => {
-    console.error(
-      '[module-consumer] Failed to enqueue consumer profile update lifecycle',
-      error
-    );
-  });
-};

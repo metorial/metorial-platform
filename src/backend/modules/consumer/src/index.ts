@@ -1,5 +1,7 @@
 import { OrganizationMember } from '@metorial/db';
 import { combineQueueProcessors } from '@metorial/queue';
+import { sendApprovedConsumerAccessRequestEmailQueueProcessor } from './queues/accessRequest/sendApprovedConsumerAccessRequestEmail';
+import { sendRejectedConsumerAccessRequestEmailQueueProcessor } from './queues/accessRequest/sendRejectedConsumerAccessRequestEmail';
 import { consumerLifecycleQueueProcessor } from './queues/lifecycle';
 import { consumerSearchQueueProcessor } from './queues/search';
 import {
@@ -18,6 +20,8 @@ export * from './services';
 export let consumerQueueProcessor = combineQueueProcessors([
   consumerSearchQueueProcessor,
   consumerLifecycleQueueProcessor,
+  sendApprovedConsumerAccessRequestEmailQueueProcessor,
+  sendRejectedConsumerAccessRequestEmailQueueProcessor,
   syncIdentityConsumerQueueProcessor,
   reconcileConsumerActorQueueProcessor,
 

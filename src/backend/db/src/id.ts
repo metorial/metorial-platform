@@ -170,6 +170,7 @@ export let ID = createIdGenerator({
   consumer: idType.sorted('cng'),
   instanceConsumer: idType.sorted('cns'),
   consumerProfile: idType.sorted('cop'),
+  consumerInvite: idType.sorted('coi'),
   consumerSession: idType.sorted('csn'),
   consumerSurfaceAuthFactor: idType.sorted('csaf'),
   consumerAuthCode: idType.sorted('cac'),
