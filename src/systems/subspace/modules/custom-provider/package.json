@@ -9,6 +9,7 @@
     "lint": "prettier src/**/*.ts --check"
   },
   "dependencies": {
+    "@lowerdeck/cron": "^1.1.0",
     "@lowerdeck/env": "^1.0.5",
     "@lowerdeck/error": "^1.2.2",
     "@lowerdeck/lock": "^1.0.5",

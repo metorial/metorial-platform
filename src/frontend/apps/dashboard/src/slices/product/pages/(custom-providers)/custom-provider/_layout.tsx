@@ -14,6 +14,7 @@ import {
   showMagicMcpServerFormModal,
   showProviderDeploymentFormModal
 } from '../../../scenes/providerDeployments/modal';
+import { isCustomProviderScmBacked } from '../../../scenes/customProvider/utils';
 
 export let CustomProviderLayout = () => {
   let instance = useCurrentInstance();
@@ -33,8 +34,12 @@ export let CustomProviderLayout = () => {
   ] as const;
 
   let isExternalProvider = customProvider.data?.type == 'remote';
+  let isScmBackedProvider = isCustomProviderScmBacked(customProvider.data);
   let hasCodeManagement = Boolean(
-    customProvider.data && !isExternalProvider && !customProvider.data.draft?.containerImage
+    customProvider.data &&
+      !isExternalProvider &&
+      !customProvider.data.draft?.containerImage &&
+      !isScmBackedProvider
   );
   let hasVersionManagement = Boolean(customProvider.data);
 
@@ -75,9 +80,11 @@ export let CustomProviderLayout = () => {
               </Link>
             )}
 
-            <DeployServerButton providerId={customProvider.data?.provider?.id}>
-              Deploy Provider
-            </DeployServerButton>
+            {!isScmBackedProvider && (
+              <DeployServerButton providerId={customProvider.data?.provider?.id}>
+                Deploy Provider
+              </DeployServerButton>
+            )}
           </>
         }
       />

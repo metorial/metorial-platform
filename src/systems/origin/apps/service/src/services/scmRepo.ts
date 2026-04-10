@@ -670,6 +670,8 @@ class scmRepoServiceImpl {
 
         await createHandleRepoPushQueue.add({ pushId: push.id });
       }
+
+      return;
     }
 
     throw new ServiceError(badRequestError({ message: 'Unsupported provider' }));
