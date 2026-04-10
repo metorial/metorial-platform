@@ -133,6 +133,25 @@ class sessionTemplateServiceImpl {
     return session;
   }
 
+  async getManySessionTemplatesByIds(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    ids: string[];
+    allowDeleted?: boolean;
+  }) {
+    return await db.sessionTemplate.findMany({
+      where: {
+        id: { in: d.ids },
+        tenantOid: d.tenant.oid,
+        solutionOid: d.solution.oid,
+        environmentOid: d.environment.oid,
+        ...normalizeStatusForList(d).noParent
+      },
+      include
+    });
+  }
+
   async createSessionTemplate(d: {
     tenant: Tenant;
     solution: Solution;

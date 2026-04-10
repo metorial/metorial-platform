@@ -1,9 +1,4 @@
-import {
-  conflictError,
-  notFoundError,
-  preconditionFailedError,
-  ServiceError
-} from '@lowerdeck/error';
+import { notFoundError, preconditionFailedError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
@@ -67,6 +62,7 @@ class ProviderTemplateServiceImpl {
       name: string;
       description?: string;
       metadata?: Record<string, unknown>;
+      toolFilters?: any;
     } & (
       | {
           providerDeploymentId: string;
@@ -80,39 +76,47 @@ class ProviderTemplateServiceImpl {
   }) {
     let providerDeploymentId = await this.getOrCreateProviderDeployment(d);
 
-    let existing = await db.providerTemplate.findFirst({
-      where: {
-        instanceOid: d.instance.oid,
-        providerDeploymentId
-      }
-    });
-    if (existing) {
-      if (existing.status == 'archived') {
-        let providerTemplate = await db.providerTemplate.update({
-          where: {
-            oid: existing.oid
-          },
-          data: {
-            status: 'active',
-            name: d.input.name,
-            description: d.input.description,
-            metadata: d.input.metadata ?? {},
-            archivedAt: null
-          }
-        });
+    // let existing = await db.providerTemplate.findFirst({
+    //   where: {
+    //     instanceOid: d.instance.oid,
+    //     providerDeploymentId
+    //   }
+    // });
+    // if (existing) {
+    //   if (existing.status == 'archived') {
+    //     let providerTemplate = await db.providerTemplate.update({
+    //       where: {
+    //         oid: existing.oid
+    //       },
+    //       data: {
+    //         status: 'active',
+    //         name: d.input.name,
+    //         description: d.input.description,
+    //         metadata: d.input.metadata ?? {},
+    //         archivedAt: null
+    //       }
+    //     });
 
-        await providerTemplateUpdatedQueue.add({
-          providerTemplateId: providerTemplate.id
-        });
+    //     await providerTemplateUpdatedQueue.add({
+    //       providerTemplateId: providerTemplate.id
+    //     });
 
-        return providerTemplate;
-      }
+    //     return providerTemplate;
+    //   }
 
-      throw new ServiceError(
-        conflictError({
-          message: 'A provider template already exists for this provider deployment.'
-        })
-      );
+    //   throw new ServiceError(
+    //     conflictError({
+    //       message: 'A provider template already exists for this provider deployment.'
+    //     })
+    //   );
+    // }
+
+    if (d.input.toolFilters) {
+      await subspaceProviderDeploymentService.update({
+        instance: d.instance,
+        providerDeploymentId,
+        toolFilters: d.input.toolFilters
+      });
     }
 
     let providerTemplate = await db.providerTemplate.create({
@@ -135,10 +139,12 @@ class ProviderTemplateServiceImpl {
 
   async updateProviderTemplate(d: {
     providerTemplate: ProviderTemplate;
+    instance: Instance;
     input: {
       name?: string;
       description?: string;
       metadata?: Record<string, unknown>;
+      toolFilters?: any;
     };
   }) {
     if (d.providerTemplate.status != 'active') {
@@ -160,12 +166,23 @@ class ProviderTemplateServiceImpl {
       }
     });
 
+    if (d.input.toolFilters) {
+      await subspaceProviderDeploymentService.update({
+        instance: d.instance,
+        providerDeploymentId: providerTemplate.providerDeploymentId,
+        toolFilters: d.input.toolFilters
+      });
+    }
+
     await providerTemplateUpdatedQueue.add({ providerTemplateId: providerTemplate.id });
 
     return providerTemplate;
   }
 
-  async archiveProviderTemplate(d: { providerTemplate: ProviderTemplate }) {
+  async archiveProviderTemplate(d: {
+    instance: Instance;
+    providerTemplate: ProviderTemplate;
+  }) {
     if (d.providerTemplate.status != 'active') {
       throw new ServiceError(
         preconditionFailedError({

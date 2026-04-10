@@ -22,7 +22,6 @@ import { portalConsumerAccessRequestController } from './instance/portalConsumer
 import { portalConsumerGroupController } from './instance/portalConsumerGroup';
 import { portalConsumerInviteController } from './instance/portalConsumerInvite';
 import { portalConsumerProfileController } from './instance/portalConsumerProfile';
-import { providerTemplateController } from './instance/providerTemplate';
 import { tokenController } from './instance/token';
 import { accessPolicyManagementController } from './management/accessPolicy';
 import { accessRoleManagementController } from './management/accessRole';
@@ -95,6 +94,7 @@ import {
   sessionTemplateController,
   sessionTemplateProviderController
 } from './provider';
+import { providerTemplateController } from './provider/providerTemplate';
 import { toolCallController } from './provider/toolCall';
 import {
   scmAccountsController,

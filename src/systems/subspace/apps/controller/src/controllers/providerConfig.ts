@@ -139,6 +139,28 @@ export let providerConfigController = app.controller({
       return providerConfigSchemaPresenter(config);
     }),
 
+  getMany: tenantApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
+        ids: v.array(v.string()),
+        allowDeleted: v.optional(v.boolean())
+      })
+    )
+    .do(async ctx => {
+      let providerConfigs = await providerConfigService.getManyProviderConfigsByIds({
+        tenant: ctx.tenant,
+        environment: ctx.environment,
+        solution: ctx.solution,
+        ids: ctx.input.ids,
+        allowDeleted: ctx.input.allowDeleted
+      });
+
+      return providerConfigs.map(providerConfigPresenter);
+    }),
+
   get: providerConfigApp
     .handler()
     .input(
