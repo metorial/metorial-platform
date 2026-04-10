@@ -130,12 +130,8 @@ class MagicMcpSessionImpl {
               hasMagicMcpServerFilter
                 ? {
                     OR: [
-                      {
-                        magicMcpServerOid: { in: magicMcpServerOids ?? [] }
-                      },
-                      {
-                        magicMcpEndpointOid: { in: magicMcpEndpointOids ?? [] }
-                      }
+                      { magicMcpServerOid: { in: magicMcpServerOids ?? [] } },
+                      { magicMcpEndpointOid: { in: magicMcpEndpointOids ?? [] } }
                     ]
                   }
                 : undefined!,

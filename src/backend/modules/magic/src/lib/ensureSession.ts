@@ -1,22 +1,12 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
-import {
-  db,
-  ID,
-  Instance,
-  MagicMcpEndpoint,
-  MagicMcpServer,
-  Prisma
-} from '@metorial/db';
+import { db, ID, Instance, MagicMcpEndpoint, MagicMcpServer, Prisma } from '@metorial/db';
 import {
   subspaceSessionService,
   subspaceSessionTemplateProviderService,
   subspaceSessionTemplateService
 } from '@metorial/module-subspace';
 import { createHash } from 'crypto';
-import {
-  MagicMcpResolvedTarget,
-  magicMcpEndpointInclude
-} from '../services';
+import { magicMcpEndpointInclude, MagicMcpResolvedTarget } from '../services';
 
 type MagicMcpServerForSession = MagicMcpServer & {
   instance: Instance;
@@ -79,9 +69,7 @@ let toTemplateProviderDescriptor = (templateProvider: EffectiveTemplateProvider)
   toolFilters: templateProvider.toolFilters ?? null
 });
 
-let getConfigurationHash = (
-  templateProviders: EffectiveTemplateProvider[]
-) => {
+let getConfigurationHash = (templateProviders: EffectiveTemplateProvider[]) => {
   let descriptors = templateProviders
     .map(toTemplateProviderDescriptor)
     .sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)));
@@ -125,18 +113,20 @@ let ensureMagicMcpEndpointTemplate = async (magicMcpEndpoint: MagicMcpEndpointFo
     : [];
   let templateProvidersBySessionTemplateId = new Map<string, SessionTemplateProvider[]>();
   for (let templateProvider of templateProviders) {
-    let existing = templateProvidersBySessionTemplateId.get(templateProvider.sessionTemplateId) ?? [];
+    let existing =
+      templateProvidersBySessionTemplateId.get(templateProvider.sessionTemplateId) ?? [];
     existing.push(templateProvider);
     templateProvidersBySessionTemplateId.set(templateProvider.sessionTemplateId, existing);
   }
 
   let effectiveTemplateProviders = templateTargets.flatMap(templateTarget => {
-    return (templateProvidersBySessionTemplateId.get(templateTarget.sessionTemplateId) ?? []).map(
-      templateProvider =>
-        getEffectiveTemplateProvider({
-          templateProvider,
-          toolFilters: templateTarget.toolFilters
-        })
+    return (
+      templateProvidersBySessionTemplateId.get(templateTarget.sessionTemplateId) ?? []
+    ).map(templateProvider =>
+      getEffectiveTemplateProvider({
+        templateProvider,
+        toolFilters: templateTarget.toolFilters
+      })
     );
   });
   let configurationHash = getConfigurationHash(effectiveTemplateProviders);
@@ -241,48 +231,41 @@ let getExistingMapping = async (d: Awaited<ReturnType<typeof getMagicMcpTargetIn
   if (d.targetType === 'server') {
     return await db.magicMcpSubspaceSessionConnection.findUnique({
       where: {
-        magicMcpServerOid: d.mappingWhere.magicMcpServerOid
+        magicMcpServerOid: d.mappingWhere.magicMcpServerOid,
+        isActive: true
       }
     });
   }
 
   return await db.magicMcpSubspaceSessionConnection.findUnique({
     where: {
-      magicMcpEndpointOid: d.mappingWhere.magicMcpEndpointOid
+      magicMcpEndpointOid: d.mappingWhere.magicMcpEndpointOid,
+      isActive: true
     }
   });
 };
 
 let deleteExistingMapping = async (d: Awaited<ReturnType<typeof getMagicMcpTargetInfo>>) => {
   if (d.targetType === 'server') {
-    await db.magicMcpSubspaceSessionConnection
-      .delete({
-        where: {
-          magicMcpServerOid: d.mappingWhere.magicMcpServerOid
-        }
-      })
-      .catch(() => null);
+    await db.magicMcpSubspaceSessionConnection.updateMany({
+      where: { magicMcpServerOid: d.mappingWhere.magicMcpServerOid },
+      data: { isActive: true }
+    });
 
     return;
   }
 
-  await db.magicMcpSubspaceSessionConnection
-    .delete({
-      where: {
-        magicMcpEndpointOid: d.mappingWhere.magicMcpEndpointOid
-      }
-    })
-    .catch(() => null);
+  await db.magicMcpSubspaceSessionConnection.updateMany({
+    where: { magicMcpEndpointOid: d.mappingWhere.magicMcpEndpointOid },
+    data: { isActive: true }
+  });
 };
 
 let getWinnerMapping = async (d: Awaited<ReturnType<typeof getMagicMcpTargetInfo>>) => {
   return await getExistingMapping(d);
 };
 
-let getSubspaceProviders = async (d: {
-  instance: Instance;
-  sessionTemplateId: string;
-}) => {
+let getSubspaceProviders = async (d: { instance: Instance; sessionTemplateId: string }) => {
   let templateProviders = await subspaceSessionTemplateProviderService.getMany({
     instance: d.instance,
     sessionTemplateIds: [d.sessionTemplateId],
@@ -346,6 +329,7 @@ export let ensureMagicMcpSubspaceSession = async (magicMcpTarget: MagicMcpResolv
         instanceOid: target.instance.oid,
         subspaceSessionId: subspaceSession.id,
         subspaceSessionTemplateId: target.sessionTemplateId,
+        isActive: true,
         ...target.mappingData
       }
     });
@@ -359,4 +343,6 @@ export let ensureMagicMcpSubspaceSession = async (magicMcpTarget: MagicMcpResolv
   }
 };
 
-export type MagicMcpSubspaceMapping = Awaited<ReturnType<typeof ensureMagicMcpSubspaceSession>>;
+export type MagicMcpSubspaceMapping = Awaited<
+  ReturnType<typeof ensureMagicMcpSubspaceSession>
+>;
