@@ -104,6 +104,7 @@ export let providerAuthConfigController = app.controller({
         name: v.optional(v.string()),
         description: v.optional(v.string()),
         metadata: v.optional(v.record(v.any())),
+        privateMetadata: v.optional(v.record(v.any())),
 
         isEphemeral: v.optional(v.boolean()),
 
@@ -152,6 +153,7 @@ export let providerAuthConfigController = app.controller({
           name: ctx.input.name,
           description: ctx.input.description,
           metadata: ctx.input.metadata,
+          privateMetadata: ctx.input.privateMetadata,
           isEphemeral: ctx.input.isEphemeral,
           toolFilters: normalizeToolFilters(ctx.input.toolFilters),
           config: ctx.input.config
@@ -234,6 +236,7 @@ export let providerAuthConfigController = app.controller({
         name: v.optional(v.string()),
         description: v.optional(v.string()),
         metadata: v.optional(v.record(v.any())),
+        privateMetadata: v.optional(v.record(v.any())),
         toolFilters: toolFiltersValidator
       })
     )
@@ -253,6 +256,7 @@ export let providerAuthConfigController = app.controller({
           name: ctx.input.name,
           description: ctx.input.description,
           metadata: ctx.input.metadata,
+          privateMetadata: ctx.input.privateMetadata,
           toolFilters: normalizeToolFilters(ctx.input.toolFilters)
         }
       });

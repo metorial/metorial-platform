@@ -255,6 +255,7 @@ class providerConfigServiceImpl {
       name?: string;
       description?: string;
       metadata?: Record<string, any>;
+      privateMetadata?: Record<string, any>;
       isEphemeral?: boolean;
       isDefault?: boolean;
       isForVault?: boolean;
@@ -305,6 +306,7 @@ class providerConfigServiceImpl {
         name: d.input.name?.trim() || undefined,
         description: d.input.description?.trim() || undefined,
         metadata: d.input.metadata,
+        privateMetadata: d.input.privateMetadata,
         toolFilter: normalizeToolFilters(d.input.toolFilters),
 
         isEphemeral: !!d.input.isEphemeral,
@@ -530,6 +532,7 @@ class providerConfigServiceImpl {
       name?: string;
       description?: string;
       metadata?: Record<string, any>;
+      privateMetadata?: Record<string, any>;
       toolFilters?: PrismaJson.ToolFilter | null;
     };
   }) {
@@ -549,6 +552,7 @@ class providerConfigServiceImpl {
           name: d.input.name ?? d.providerConfig.name,
           description: d.input.description ?? d.providerConfig.description,
           metadata: d.input.metadata ?? d.providerConfig.metadata,
+          privateMetadata: d.input.privateMetadata ?? d.providerConfig.privateMetadata,
           toolFilter:
             d.input.toolFilters || d.input.toolFilters === null
               ? normalizeToolFilters(d.input.toolFilters)

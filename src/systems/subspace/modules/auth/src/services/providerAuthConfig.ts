@@ -255,6 +255,7 @@ class providerAuthConfigServiceImpl {
       name?: string;
       description?: string;
       metadata?: Record<string, any>;
+      privateMetadata?: Record<string, any>;
       isEphemeral?: boolean;
       isDefault?: boolean;
       authMethodId?: string;
@@ -354,6 +355,7 @@ class providerAuthConfigServiceImpl {
       name?: string;
       description?: string;
       metadata?: Record<string, any>;
+      privateMetadata?: Record<string, any>;
       config?: Record<string, any>;
 
       authMethodId?: string;
@@ -441,6 +443,7 @@ class providerAuthConfigServiceImpl {
           name: d.input.name?.trim() || d.providerAuthConfig.name,
           description: d.input.description?.trim() || d.providerAuthConfig.description,
           metadata: d.input.metadata ?? d.providerAuthConfig.metadata,
+          privateMetadata: d.input.privateMetadata ?? d.providerAuthConfig.privateMetadata,
           toolFilter:
             d.input.toolFilters || d.input.toolFilters === null
               ? normalizeToolFilters(d.input.toolFilters)

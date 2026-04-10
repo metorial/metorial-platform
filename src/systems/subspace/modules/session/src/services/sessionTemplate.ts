@@ -141,6 +141,7 @@ class sessionTemplateServiceImpl {
       name?: string;
       description?: string;
       metadata?: Record<string, any>;
+      privateMetadata?: Record<string, any>;
       isInternal?: boolean;
       providers: SessionProviderInput[];
     };
@@ -154,6 +155,7 @@ class sessionTemplateServiceImpl {
           name: d.input.name?.trim() || undefined,
           description: d.input.description?.trim() || undefined,
           metadata: d.input.metadata,
+          privateMetadata: d.input.privateMetadata,
 
           isInternal: !!d.input.isInternal,
 
@@ -187,6 +189,7 @@ class sessionTemplateServiceImpl {
       name?: string;
       description?: string;
       metadata?: Record<string, any>;
+      privateMetadata?: Record<string, any>;
     };
   }) {
     checkTenant(d, d.template);
@@ -202,7 +205,8 @@ class sessionTemplateServiceImpl {
         data: {
           name: d.input.name,
           description: d.input.description,
-          metadata: d.input.metadata
+          metadata: d.input.metadata,
+          privateMetadata: d.input.privateMetadata
         },
         include
       });

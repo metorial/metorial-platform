@@ -100,6 +100,7 @@ export let sessionController = app.controller({
         name: v.string(),
         description: v.optional(v.string()),
         metadata: v.optional(v.record(v.any())),
+        privateMetadata: v.optional(v.record(v.any())),
 
         providers: v.array(
           v.object({
@@ -145,6 +146,7 @@ export let sessionController = app.controller({
           name: ctx.input.name,
           description: ctx.input.description,
           metadata: ctx.input.metadata,
+          privateMetadata: ctx.input.privateMetadata,
           providers: resolvedProviders
         }
       });
@@ -164,7 +166,8 @@ export let sessionController = app.controller({
 
         name: v.optional(v.string()),
         description: v.optional(v.string()),
-        metadata: v.optional(v.record(v.any()))
+        metadata: v.optional(v.record(v.any())),
+        privateMetadata: v.optional(v.record(v.any()))
       })
     )
     .do(async ctx => {
@@ -177,7 +180,8 @@ export let sessionController = app.controller({
         input: {
           name: ctx.input.name,
           description: ctx.input.description,
-          metadata: ctx.input.metadata
+          metadata: ctx.input.metadata,
+          privateMetadata: ctx.input.privateMetadata
         }
       });
 
