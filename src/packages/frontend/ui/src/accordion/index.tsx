@@ -110,7 +110,7 @@ export let Accordion = (p: AccordionProps) => {
     let initialIndex = p.items.findIndex(item => item.defaultOpen);
     return initialIndex >= 0 ? initialIndex.toString() : undefined;
   });
-  let isControlled = 'value' in p;
+  let isControlled = p.value !== undefined;
   let resolvedValue = isControlled ? p.value : internalValue;
 
   let handleValueChange = (nextValue: string | string[]) => {

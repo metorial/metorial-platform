@@ -86,13 +86,16 @@ export let ProviderConfigForm = (
     schemaCapabilities.hasSchemaFields || schemaCapabilities.hasExplicitEmptySchema;
   let canCreateFromVault = vaultItems.length > 0;
   let showEmptyState = !schemaCapabilities.canCreateConfig;
-  let emptyStateCalloutMessage = schemaCapabilities.hasExplicitEmptySchema
+  let emptyStateCalloutMessage = isDeploymentScoped
+    ? 'This deployment has no configuration schema or config vault.'
+    : 'This provider has no configuration schema or config vault.';
+  let emptyConfigCalloutMessage = schemaCapabilities.hasExplicitEmptySchema
     ? isDeploymentScoped
-      ? 'This deployment has no configurable values. Its default config is created automatically.'
-      : 'This provider has no configurable values. Its default config is created automatically.'
+      ? 'This deployment has no configurable values. The config will be created with empty values.'
+      : 'This provider has no configurable values. The config will be created with empty values.'
     : isDeploymentScoped
-      ? 'This deployment has no configuration schema or config vault.'
-      : 'This provider has no configuration schema or config vault.';
+      ? 'This deployment has no configurable fields. The config will be created with empty values.'
+      : 'This provider has no configurable fields. The config will be created with empty values.';
 
   let submitConfig = async (values: ProviderConfigFormValues) => {
     if (!instanceId || !providerId) {
@@ -325,10 +328,7 @@ export let ProviderConfigForm = (
                   </FlatCreateSection>
                 </>
               ) : (
-                <Callout color="gray">
-                  This provider has no configurable fields. The config will be created with
-                  empty values.
-                </Callout>
+                <Callout color="gray">{emptyConfigCalloutMessage}</Callout>
               )}
             </>
           ) : null}
