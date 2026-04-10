@@ -3,31 +3,20 @@ import { mtMap } from '@metorial/util-resource-mapper';
 export type PortalsConsumerAccessCreateOutput = {
   object: 'consumer.access';
   id: string;
+  name: string;
+  description: string | null;
+  readme: string | null;
   access:
     | {
         type: 'provider_template';
         providerTemplate: {
-          object: 'provider.template';
+          object: 'provider.template#preview';
           id: string;
           status: 'active' | 'archived' | 'deleted';
           name: string;
           description: string | null;
           metadata: Record<string, any>;
           providerDeploymentId: string;
-          toolFilters:
-            | { type: 'allow_all'; ignoreParentFilters: boolean }
-            | {
-                type: 'filter';
-                filters: (
-                  | { type: 'tool_keys'; keys: string[] }
-                  | { type: 'tool_regex'; pattern: string }
-                  | { type: 'resource_regex'; pattern: string }
-                  | { type: 'resource_uris'; uris: string[] }
-                  | { type: 'prompt_keys'; keys: string[] }
-                  | { type: 'prompt_regex'; pattern: string }
-                )[];
-                ignoreParentFilters: boolean;
-              };
           createdAt: Date;
           updatedAt: Date;
         };
@@ -61,6 +50,9 @@ export let mapPortalsConsumerAccessCreateOutput =
   mtMap.object<PortalsConsumerAccessCreateOutput>({
     object: mtMap.objectField('object', mtMap.passthrough()),
     id: mtMap.objectField('id', mtMap.passthrough()),
+    name: mtMap.objectField('name', mtMap.passthrough()),
+    description: mtMap.objectField('description', mtMap.passthrough()),
+    readme: mtMap.objectField('readme', mtMap.passthrough()),
     access: mtMap.objectField(
       'access',
       mtMap.union([
@@ -83,49 +75,6 @@ export let mapPortalsConsumerAccessCreateOutput =
                 providerDeploymentId: mtMap.objectField(
                   'provider_deployment_id',
                   mtMap.passthrough()
-                ),
-                toolFilters: mtMap.objectField(
-                  'tool_filters',
-                  mtMap.union([
-                    mtMap.unionOption(
-                      'object',
-                      mtMap.object({
-                        type: mtMap.objectField('type', mtMap.passthrough()),
-                        ignoreParentFilters: mtMap.objectField(
-                          'ignore_parent_filters',
-                          mtMap.passthrough()
-                        ),
-                        filters: mtMap.objectField(
-                          'filters',
-                          mtMap.array(
-                            mtMap.union([
-                              mtMap.unionOption(
-                                'object',
-                                mtMap.object({
-                                  type: mtMap.objectField(
-                                    'type',
-                                    mtMap.passthrough()
-                                  ),
-                                  keys: mtMap.objectField(
-                                    'keys',
-                                    mtMap.array(mtMap.passthrough())
-                                  ),
-                                  pattern: mtMap.objectField(
-                                    'pattern',
-                                    mtMap.passthrough()
-                                  ),
-                                  uris: mtMap.objectField(
-                                    'uris',
-                                    mtMap.array(mtMap.passthrough())
-                                  )
-                                })
-                              )
-                            ])
-                          )
-                        )
-                      })
-                    )
-                  ])
                 ),
                 createdAt: mtMap.objectField('created_at', mtMap.date()),
                 updatedAt: mtMap.objectField('updated_at', mtMap.date())
@@ -171,6 +120,9 @@ export let mapPortalsConsumerAccessCreateOutput =
 
 export type PortalsConsumerAccessCreateBody = {
   consumerGroupId: string;
+  name?: string | undefined;
+  description?: string | null | undefined;
+  readme?: string | null | undefined;
   access:
     | { type: 'provider_template'; providerTemplateId: string }
     | { type: 'magic_mcp_server'; magicMcpServerId: string };
@@ -182,6 +134,9 @@ export let mapPortalsConsumerAccessCreateBody =
       'consumer_group_id',
       mtMap.passthrough()
     ),
+    name: mtMap.objectField('name', mtMap.passthrough()),
+    description: mtMap.objectField('description', mtMap.passthrough()),
+    readme: mtMap.objectField('readme', mtMap.passthrough()),
     access: mtMap.objectField(
       'access',
       mtMap.union([

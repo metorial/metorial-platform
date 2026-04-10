@@ -3,14 +3,29 @@ import { renderWithLoader } from '@metorial/data-hooks';
 import {
   useCreateSessionTemplateProvider,
   useDeleteSessionTemplateProvider,
+  useProvider,
   useProviderAuthConfigs,
+  useProviderDeployment,
   useProviderDeployments,
   useProviderListings,
-  useSessionTemplateProviders
+  useProviderTools,
+  useSessionTemplateProviders,
+  useUpdateSessionTemplateProvider
 } from '@metorial/state';
-import { Avatar, Button, Dialog, Flex, Spacer, Text, showModal } from '@metorial/ui';
+import {
+  Avatar,
+  Button,
+  CenteredSpinner,
+  CheckList,
+  Dialog,
+  Flex,
+  OptionToggle,
+  Spacer,
+  Text,
+  showModal
+} from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { EmptyState } from '../../../../components/emptyState';
 import {
   ProviderConfigurationSelectionModalContent,
@@ -19,6 +34,71 @@ import {
 
 type SessionTemplateProviderRow =
   DashboardInstanceSessionTemplatesProvidersListOutput['items'][number];
+
+type ToolFilterMode = 'all' | 'select';
+
+type ToolFilterEditorState = {
+  mode: ToolFilterMode;
+  selectedToolKeys: string[];
+  hasUnsupportedFilters: boolean;
+};
+
+let getToolFilterEditorState = (
+  toolFilter: SessionTemplateProviderRow['toolFilter']
+): ToolFilterEditorState => {
+  if (toolFilter.type === 'allow_all') {
+    return {
+      mode: 'all',
+      selectedToolKeys: [],
+      hasUnsupportedFilters: false
+    };
+  }
+
+  let selectedToolKeySet = new Set<string>();
+  let hasUnsupportedFilters = false;
+
+  for (let filter of toolFilter.filters) {
+    if (filter.type === 'tool_keys') {
+      for (let key of filter.keys) {
+        selectedToolKeySet.add(key);
+      }
+      continue;
+    }
+
+    hasUnsupportedFilters = true;
+  }
+
+  let selectedToolKeys = Array.from(selectedToolKeySet);
+
+  return {
+    mode: selectedToolKeys.length > 0 ? 'select' : 'all',
+    selectedToolKeys,
+    hasUnsupportedFilters
+  };
+};
+
+let getToolFiltersPayload = (mode: ToolFilterMode, selectedToolKeys: string[]) =>
+  mode === 'select' && selectedToolKeys.length > 0
+    ? {
+        type: 'tool_keys' as const,
+        keys: selectedToolKeys
+      }
+    : null;
+
+let getToolFilterSummary = (toolFilter: SessionTemplateProviderRow['toolFilter']) => {
+  if (toolFilter.type === 'allow_all') return 'All tools';
+
+  let selection = getToolFilterEditorState(toolFilter);
+  if (selection.hasUnsupportedFilters && selection.selectedToolKeys.length > 0) {
+    return `Custom + ${selection.selectedToolKeys.length} selected`;
+  }
+
+  if (selection.hasUnsupportedFilters) return 'Custom filter';
+  if (selection.selectedToolKeys.length === 0) return 'All tools';
+  if (selection.selectedToolKeys.length === 1) return '1 selected';
+
+  return `${selection.selectedToolKeys.length} selected`;
+};
 
 let AddProviderModalContent = ({
   instanceId,
@@ -63,14 +143,7 @@ let AddProviderModalContent = ({
                 providerAuthConfigId: values.selectedAuthConfigId
               }
             : {}),
-          ...(values.toolFilterMode === 'select' && values.selectedToolKeys.length > 0
-            ? {
-                toolFilters: {
-                  type: 'tool_keys',
-                  keys: values.selectedToolKeys
-                }
-              }
-            : {})
+          toolFilters: getToolFiltersPayload(values.toolFilterMode, values.selectedToolKeys)
         });
 
         if (result && !error) {
@@ -98,8 +171,8 @@ export let showAddProviderModal = (p: {
     description:
       p.description ??
       (p.providerId
-        ? 'Select a deployment and optional configuration to add to this template.'
-        : 'Select a provider to add to this template.'),
+        ? 'Select a deployment and optional configuration to add to this setup.'
+        : 'Select a provider to add to this setup.'),
 
     render: close => (
       <AddProviderModalContent
@@ -130,8 +203,8 @@ let showRemoveProviderModal = (p: {
       <Dialog.Wrapper {...dialogProps} width={450}>
         <Dialog.Title>Remove Provider</Dialog.Title>
         <Dialog.Description>
-          Are you sure you want to remove <strong>{p.displayName}</strong> from this template?
-          Sessions created from this template will no longer include this provider.
+          Are you sure you want to remove <strong>{p.displayName}</strong> from this setup? New
+          sessions created from it will no longer include this provider.
         </Dialog.Description>
 
         <Spacer size={20} />
@@ -166,6 +239,175 @@ let showRemoveProviderModal = (p: {
       </Dialog.Wrapper>
     );
   });
+
+let EditToolFiltersModalContent = (p: {
+  instanceId: string;
+  provider: SessionTemplateProviderRow;
+  displayName: string;
+  onComplete: () => void;
+  close: () => void;
+  dialogProps: any;
+}) => {
+  let updateMutation = useUpdateSessionTemplateProvider();
+  let deployment = useProviderDeployment(p.instanceId, p.provider.deployment.id);
+  let providerRecord = useProvider(p.instanceId, p.provider.providerId);
+  let initialState = useMemo(
+    () => getToolFilterEditorState(p.provider.toolFilter),
+    [p.provider.toolFilter]
+  );
+  let [toolFilterMode, setToolFilterMode] = useState<ToolFilterMode>(initialState.mode);
+  let [selectedToolKeys, setSelectedToolKeys] = useState<string[]>(
+    initialState.selectedToolKeys
+  );
+
+  let providerVersionId =
+    deployment.data?.lockedVersion?.id ?? providerRecord.data?.currentVersion?.id ?? null;
+  let tools = useProviderTools(p.instanceId, providerVersionId ? { providerVersionId } : null);
+
+  useEffect(() => {
+    if (toolFilterMode !== 'all' || selectedToolKeys.length === 0) return;
+    setSelectedToolKeys([]);
+  }, [selectedToolKeys.length, toolFilterMode]);
+
+  let isLoading =
+    deployment.isLoading ||
+    providerRecord.isLoading ||
+    (!!providerVersionId && tools.isLoading);
+  let toolItems = tools.data?.items ?? [];
+  let availableToolKeySet = new Set(toolItems.map(tool => tool.key ?? tool.name));
+  let unavailableSelectedToolKeys = selectedToolKeys.filter(
+    key => !availableToolKeySet.has(key)
+  );
+  let normalizedSelectedToolKeys = selectedToolKeys.filter(key =>
+    availableToolKeySet.has(key)
+  );
+  let isSelectModeInvalid =
+    toolFilterMode === 'select' && normalizedSelectedToolKeys.length === 0;
+
+  return (
+    <Dialog.Wrapper {...p.dialogProps} width={520}>
+      <Dialog.Title>Edit Tool Filters</Dialog.Title>
+      <Dialog.Description>
+        Choose which tools are available for <strong>{p.displayName}</strong>.
+      </Dialog.Description>
+
+      {isLoading ? (
+        <CenteredSpinner />
+      ) : (
+        <Flex direction="column" gap={10}>
+          {initialState.hasUnsupportedFilters && (
+            <Text size="1" color="gray600">
+              Saving here replaces any existing regex, resource, or prompt-based filter rules
+              with the tool selection below.
+            </Text>
+          )}
+
+          {unavailableSelectedToolKeys.length > 0 && (
+            <Text size="1" color="gray600">
+              Some currently selected tools are no longer available for this provider version
+              and will be removed when you save.
+            </Text>
+          )}
+
+          <OptionToggle
+            label="Tool Filters"
+            size="2"
+            value={toolFilterMode}
+            onChange={value => {
+              if (value !== 'all' && value !== 'select') return;
+              setToolFilterMode(value);
+            }}
+            items={[
+              {
+                id: 'all',
+                label: 'Allow all tools'
+              },
+              {
+                id: 'select',
+                label: 'Select tools'
+              }
+            ]}
+          />
+
+          {toolFilterMode === 'select' &&
+            (toolItems.length > 0 ? (
+              <CheckList
+                items={toolItems.map(tool => {
+                  let toolKey = tool.key ?? tool.name;
+
+                  return {
+                    id: toolKey,
+                    label: tool.name,
+                    isChecked: selectedToolKeys.includes(toolKey)
+                  };
+                })}
+                onChange={items => {
+                  setSelectedToolKeys(
+                    items.filter(item => item.isChecked).map(item => item.id)
+                  );
+                }}
+              />
+            ) : (
+              <Text size="2" color="gray500">
+                No tools are currently available for this provider version.
+              </Text>
+            ))}
+
+          {isSelectModeInvalid && (
+            <Text size="1" color="gray600">
+              Select at least one tool or switch back to allowing all tools.
+            </Text>
+          )}
+
+          <updateMutation.RenderError />
+        </Flex>
+      )}
+
+      <Spacer size={20} />
+
+      <Dialog.Actions>
+        <Button variant="outline" onClick={p.close} disabled={updateMutation.isPending}>
+          Cancel
+        </Button>
+        <Button
+          loading={updateMutation.isPending}
+          disabled={isLoading || isSelectModeInvalid}
+          onClick={async () => {
+            let [result, error] = await updateMutation.mutate({
+              instanceId: p.instanceId,
+              sessionTemplateProviderId: p.provider.id,
+              toolFilters: getToolFiltersPayload(toolFilterMode, normalizedSelectedToolKeys)
+            });
+
+            if (result && !error) {
+              p.onComplete();
+              p.close();
+            }
+          }}
+        >
+          Save
+        </Button>
+      </Dialog.Actions>
+    </Dialog.Wrapper>
+  );
+};
+
+let showEditToolFiltersModal = (p: {
+  instanceId: string;
+  provider: SessionTemplateProviderRow;
+  displayName: string;
+  onComplete: () => void;
+}) =>
+  showModal(({ dialogProps, close }) => (
+    <EditToolFiltersModalContent
+      instanceId={p.instanceId}
+      provider={p.provider}
+      displayName={p.displayName}
+      onComplete={p.onComplete}
+      close={close}
+      dialogProps={dialogProps}
+    />
+  ));
 
 export let SessionTemplateProvidersManager = ({
   instanceId,
@@ -221,7 +463,7 @@ export let SessionTemplateProvidersManager = ({
       return (
         <EmptyState
           title="No providers configured"
-          description="Add providers to this template so sessions created from it will automatically include them."
+          description="Add providers to this setup so new sessions automatically include them."
           action={{
             label: 'Add Provider',
             onClick: () =>
@@ -237,7 +479,7 @@ export let SessionTemplateProvidersManager = ({
 
     return (
       <Table
-        headers={['Provider', 'Deployment', 'Config', 'Auth Config', '']}
+        headers={['Provider', 'Deployment', 'Config', 'Auth Config', 'Tool Filters', '']}
         data={providers.data.items.map(provider => {
           let providerId = provider.providerId;
           let listing = providerId ? listingLookup[providerId] : undefined;
@@ -292,23 +534,44 @@ export let SessionTemplateProvidersManager = ({
                 </Text>
               ),
 
-              <Button
-                size="1"
-                variant="outline"
-                onClick={e => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  showRemoveProviderModal({
-                    instanceId,
-                    sessionTemplateId,
-                    provider,
-                    displayName: providerName,
-                    onComplete: () => providers.refetch()
-                  });
-                }}
-              >
-                Remove
-              </Button>
+              <Text size="2">{getToolFilterSummary(provider.toolFilter)}</Text>,
+
+              <Flex gap={8}>
+                <Button
+                  size="1"
+                  variant="outline"
+                  onClick={e => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    showEditToolFiltersModal({
+                      instanceId,
+                      provider,
+                      displayName: providerName,
+                      onComplete: () => providers.refetch()
+                    });
+                  }}
+                >
+                  Edit Filters
+                </Button>
+
+                <Button
+                  size="1"
+                  variant="outline"
+                  onClick={e => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    showRemoveProviderModal({
+                      instanceId,
+                      sessionTemplateId,
+                      provider,
+                      displayName: providerName,
+                      onComplete: () => providers.refetch()
+                    });
+                  }}
+                >
+                  Remove
+                </Button>
+              </Flex>
             ]
           };
         })}

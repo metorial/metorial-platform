@@ -1,18 +1,12 @@
 import { mtMap } from '@metorial/util-resource-mapper';
 
-export type PortalsAccessRequestsUpdateOutput = {
-  object: 'consumer.access_request';
+export type ManagementInstancePortalsConsumerAccessUpdateOutput = {
+  object: 'consumer.access';
   id: string;
-  status: 'pending' | 'approved' | 'rejected';
-  message: string | null;
-  resolutionMessage: string | null;
-  consumerProfile: {
-    object: 'consumer.profile#preview';
-    id: string;
-    name: string;
-    email: string;
-  };
-  target:
+  name: string;
+  description: string | null;
+  readme: string | null;
+  access:
     | {
         type: 'provider_template';
         providerTemplate: {
@@ -37,32 +31,30 @@ export type PortalsAccessRequestsUpdateOutput = {
           description: string | null;
         };
       };
+  consumerGroup: {
+    object: 'consumer.group';
+    id: string;
+    status: 'active' | 'archived' | 'deleted';
+    name: string;
+    description: string | null;
+    isDefault: boolean;
+    ssoGroupIds: string[];
+    createdAt: Date;
+    updatedAt: Date;
+  };
   createdAt: Date;
   updatedAt: Date;
-  reviewedAt: Date | null;
 };
 
-export let mapPortalsAccessRequestsUpdateOutput =
-  mtMap.object<PortalsAccessRequestsUpdateOutput>({
+export let mapManagementInstancePortalsConsumerAccessUpdateOutput =
+  mtMap.object<ManagementInstancePortalsConsumerAccessUpdateOutput>({
     object: mtMap.objectField('object', mtMap.passthrough()),
     id: mtMap.objectField('id', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    message: mtMap.objectField('message', mtMap.passthrough()),
-    resolutionMessage: mtMap.objectField(
-      'resolution_message',
-      mtMap.passthrough()
-    ),
-    consumerProfile: mtMap.objectField(
-      'consumer_profile',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        email: mtMap.objectField('email', mtMap.passthrough())
-      })
-    ),
-    target: mtMap.objectField(
-      'target',
+    name: mtMap.objectField('name', mtMap.passthrough()),
+    description: mtMap.objectField('description', mtMap.passthrough()),
+    readme: mtMap.objectField('readme', mtMap.passthrough()),
+    access: mtMap.objectField(
+      'access',
       mtMap.union([
         mtMap.unionOption(
           'object',
@@ -105,24 +97,37 @@ export let mapPortalsAccessRequestsUpdateOutput =
         )
       ])
     ),
+    consumerGroup: mtMap.objectField(
+      'consumer_group',
+      mtMap.object({
+        object: mtMap.objectField('object', mtMap.passthrough()),
+        id: mtMap.objectField('id', mtMap.passthrough()),
+        status: mtMap.objectField('status', mtMap.passthrough()),
+        name: mtMap.objectField('name', mtMap.passthrough()),
+        description: mtMap.objectField('description', mtMap.passthrough()),
+        isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
+        ssoGroupIds: mtMap.objectField(
+          'sso_group_ids',
+          mtMap.array(mtMap.passthrough())
+        ),
+        createdAt: mtMap.objectField('created_at', mtMap.date()),
+        updatedAt: mtMap.objectField('updated_at', mtMap.date())
+      })
+    ),
     createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-    reviewedAt: mtMap.objectField('reviewed_at', mtMap.date())
+    updatedAt: mtMap.objectField('updated_at', mtMap.date())
   });
 
-export type PortalsAccessRequestsUpdateBody = {
-  status: 'approved' | 'rejected';
-  resolutionMessage?: string | undefined;
-  consumerGroupId?: string | undefined;
+export type ManagementInstancePortalsConsumerAccessUpdateBody = {
+  name?: string | undefined;
+  description?: string | null | undefined;
+  readme?: string | null | undefined;
 };
 
-export let mapPortalsAccessRequestsUpdateBody =
-  mtMap.object<PortalsAccessRequestsUpdateBody>({
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    resolutionMessage: mtMap.objectField(
-      'resolution_message',
-      mtMap.passthrough()
-    ),
-    consumerGroupId: mtMap.objectField('consumer_group_id', mtMap.passthrough())
+export let mapManagementInstancePortalsConsumerAccessUpdateBody =
+  mtMap.object<ManagementInstancePortalsConsumerAccessUpdateBody>({
+    name: mtMap.objectField('name', mtMap.passthrough()),
+    description: mtMap.objectField('description', mtMap.passthrough()),
+    readme: mtMap.objectField('readme', mtMap.passthrough())
   });
 
