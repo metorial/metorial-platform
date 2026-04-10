@@ -72,6 +72,29 @@ export let providerConfigVaultController = app.controller({
       return Paginator.presentLight(list, providerConfigVaultPresenter);
     }),
 
+  getMany: tenantApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
+        ids: v.array(v.string()),
+        allowDeleted: v.optional(v.boolean())
+      })
+    )
+    .do(async ctx => {
+      let providerConfigVaults =
+        await providerConfigVaultService.getManyProviderConfigVaultsByIds({
+          tenant: ctx.tenant,
+          environment: ctx.environment,
+          solution: ctx.solution,
+          ids: ctx.input.ids,
+          allowDeleted: ctx.input.allowDeleted
+        });
+
+      return providerConfigVaults.map(providerConfigVaultPresenter);
+    }),
+
   get: providerConfigVaultApp
     .handler()
     .input(

@@ -83,6 +83,28 @@ export let providerAuthConfigController = app.controller({
       return Paginator.presentLight(list, providerAuthConfigPresenter);
     }),
 
+  getMany: tenantApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
+        ids: v.array(v.string()),
+        allowDeleted: v.optional(v.boolean())
+      })
+    )
+    .do(async ctx => {
+      let providerAuthConfigs = await providerAuthConfigService.getManyProviderAuthConfigsByIds({
+        tenant: ctx.tenant,
+        environment: ctx.environment,
+        solution: ctx.solution,
+        ids: ctx.input.ids,
+        allowDeleted: ctx.input.allowDeleted
+      });
+
+      return providerAuthConfigs.map(providerAuthConfigPresenter);
+    }),
+
   get: providerAuthConfigApp
     .handler()
     .input(

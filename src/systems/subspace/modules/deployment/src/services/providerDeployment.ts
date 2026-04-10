@@ -166,6 +166,25 @@ class providerDeploymentServiceImpl {
     return providerDeployment;
   }
 
+  async getManyProviderDeploymentsByIds(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    ids: string[];
+    allowDeleted?: boolean;
+  }) {
+    return await db.providerDeployment.findMany({
+      where: {
+        id: { in: d.ids },
+        tenantOid: d.tenant.oid,
+        solutionOid: d.solution.oid,
+        environmentOid: d.environment.oid,
+        ...normalizeStatusForList(d).noParent
+      },
+      include
+    });
+  }
+
   async createProviderDeployment(d: {
     tenant: Tenant;
     solution: Solution;

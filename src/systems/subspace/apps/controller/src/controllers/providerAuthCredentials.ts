@@ -72,6 +72,29 @@ export let providerAuthCredentialsController = app.controller({
       return Paginator.presentLight(list, providerAuthCredentialsPresenter);
     }),
 
+  getMany: tenantApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
+        ids: v.array(v.string()),
+        allowDeleted: v.optional(v.boolean())
+      })
+    )
+    .do(async ctx => {
+      let providerAuthCredentials =
+        await providerAuthCredentialsService.getManyProviderAuthCredentialsByIds({
+          tenant: ctx.tenant,
+          environment: ctx.environment,
+          solution: ctx.solution,
+          ids: ctx.input.ids,
+          allowDeleted: ctx.input.allowDeleted
+        });
+
+      return providerAuthCredentials.map(providerAuthCredentialsPresenter);
+    }),
+
   get: providerAuthCredentialsApp
     .handler()
     .input(

@@ -142,6 +142,25 @@ class sessionServiceImpl {
     return session;
   }
 
+  async getManySessionsByIds(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    ids: string[];
+    allowDeleted?: boolean;
+  }) {
+    return await db.session.findMany({
+      where: {
+        id: { in: d.ids },
+        tenantOid: d.tenant.oid,
+        solutionOid: d.solution.oid,
+        environmentOid: d.environment.oid,
+        ...normalizeStatusForList(d).noParent
+      },
+      include
+    });
+  }
+
   async createSession(d: {
     tenant: Tenant;
     solution: Solution;
