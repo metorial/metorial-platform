@@ -13,6 +13,7 @@ import {
   CliDevice,
   Consumer,
   ConsumerAccess,
+  ConsumerAccessListing,
   ConsumerAccessRequest,
   ConsumerGroup,
   ConsumerInvite,
@@ -453,6 +454,7 @@ export let consumerAccessType = PresentableType.create<{
     consumerGroup: ConsumerGroup;
     providerTemplate: ProviderTemplate | null;
     magicMcpServer: MagicMcpServer | null;
+    listing: ConsumerAccessListing | null;
   };
 }>()('consumer.access');
 

@@ -13,15 +13,14 @@ model MagicMcpServer {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
-  status             MagicMcpServerStatus
-  source             MagicMcpServerSource @default(manual)
+  status MagicMcpServerStatus
+  source MagicMcpServerSource @default(manual)
 
-  providerTemplateId String?
+  providerTemplateId        String?
   subspaceSessionTemplateId String
 
   instanceOid BigInt
   instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
-
 
   name        String?
   description String?
@@ -35,13 +34,14 @@ model MagicMcpServer {
   subspaceSession MagicMcpSubspaceSessionConnection?
   endpoints       MagicMcpEndpointServer[]
 
-  tokens            MagicMcpToken[]
-  uses              MagicMcpTokenUse[]
-  groups            MagicMcpGroupServer[]
-  accessTagEntities AccessTagEntity[]
-  consumerAccesses  ConsumerAccess[]        @relation("ConsumerAccessMagicMcpServer")
-  accessRequests    ConsumerAccessRequest[] @relation("ConsumerAccessRequestMagicMcpServer")
-  portalAuthClients PortalAuthClient[]
+  tokens                 MagicMcpToken[]
+  uses                   MagicMcpTokenUse[]
+  groups                 MagicMcpGroupServer[]
+  accessTagEntities      AccessTagEntity[]
+  consumerAccesses       ConsumerAccess[]        @relation("ConsumerAccessMagicMcpServer")
+  accessRequests         ConsumerAccessRequest[] @relation("ConsumerAccessRequestMagicMcpServer")
+  portalAuthClients      PortalAuthClient[]
+  consumerAccessListings ConsumerAccessListing[]
 }
 
 model MagicMcpServerAlias {
