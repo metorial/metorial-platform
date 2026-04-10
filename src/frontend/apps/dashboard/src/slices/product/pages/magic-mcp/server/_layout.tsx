@@ -13,7 +13,7 @@ import { Button, Flex, LinkTabs } from '@metorial/ui';
 import { useState } from 'react';
 import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { createMagicMcpTokenModal } from '../../../scenes/magicMcp/tokensTable';
-import { showAddProviderModal } from '../../../scenes/sessionTemplates/providersManager';
+import { showAddProviderSidePanel } from '../../../scenes/sessionTemplates/providersManager';
 
 export let MagicMcpServerLayout = () => {
   let instance = useCurrentInstance();
@@ -110,7 +110,7 @@ export let MagicMcpServerLayout = () => {
                         return;
                       }
 
-                      showAddProviderModal({
+                      showAddProviderSidePanel({
                         instanceId: instance.data!.id,
                         sessionTemplateId: server.data.sessionTemplateId,
                         onComplete: () => providers.refetch()

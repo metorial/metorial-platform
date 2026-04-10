@@ -60,23 +60,19 @@ export let getProviderConfigSchemaCapabilities = (d: {
   let hasExplicitEmptySchema = Boolean(
     schemaObject && !hasSchemaFields && schemaObject.additionalProperties === false
   );
-  let canCreateConfig = hasSchemaFields || d.hasVaults;
-  let canCreateConfigVault = hasSchemaFields;
+  let canCreateConfig = hasSchemaFields || hasExplicitEmptySchema || d.hasVaults;
+  let canCreateConfigVault = hasSchemaFields || hasExplicitEmptySchema;
   let isLoading = !!d.isLoading;
   let configDisabledReason = isLoading
     ? 'Loading configuration options...'
     : canCreateConfig
       ? null
-      : hasExplicitEmptySchema
-        ? 'This deployment has no configurable values. Its default config is created automatically.'
-        : 'No configuration schema or config vault is available for this deployment.';
+      : 'No configuration schema or config vault is available for this deployment.';
   let configVaultDisabledReason = isLoading
     ? 'Loading configuration options...'
-    : hasExplicitEmptySchema
-      ? 'This deployment has no configurable values, so config vaults are not needed.'
-      : canCreateConfigVault
-        ? null
-        : 'No editable configuration schema is available for this deployment.';
+    : canCreateConfigVault
+      ? null
+      : 'No editable configuration schema is available for this deployment.';
 
   return {
     schemaObject,

@@ -1,5 +1,6 @@
 import { Panel, showModal } from '@metorial/ui';
-import { type ReactNode } from 'react';
+import { type ReactNode, useState } from 'react';
+import type { DashboardInstanceProviderListingsListQuery } from '@metorial/dashboard-sdk';
 import { ProvidersWithDeploymentsSearch } from '../providers/search';
 import { PillStepper } from '../../../../components/stepper';
 
@@ -16,7 +17,11 @@ export let ProviderCreationPanelShell = (p: {
   setCurrentStep: (step: number) => void;
   isStepDisabled?: (step: number) => boolean;
   getStepDisabledReason?: (step: number) => ReactNode;
+  paneAnimationDelayMs?: number;
+  hideStepper?: boolean;
 }) => {
+  let currentStepContent = p.steps[p.currentStep] ?? p.steps[p.steps.length - 1];
+
   return (
     <>
       <Panel.Header>
@@ -25,13 +30,18 @@ export let ProviderCreationPanelShell = (p: {
       </Panel.Header>
 
       <Panel.Content>
-        <PillStepper
-          steps={p.steps}
-          currentStep={p.currentStep}
-          setCurrentStep={p.setCurrentStep}
-          isStepDisabled={p.isStepDisabled}
-          getStepDisabledReason={p.getStepDisabledReason}
-        />
+        {p.hideStepper ? (
+          (currentStepContent?.render() ?? null)
+        ) : (
+          <PillStepper
+            steps={p.steps}
+            currentStep={p.currentStep}
+            setCurrentStep={p.setCurrentStep}
+            isStepDisabled={p.isStepDisabled}
+            getStepDisabledReason={p.getStepDisabledReason}
+            paneAnimationDelayMs={p.paneAnimationDelayMs}
+          />
+        )}
       </Panel.Content>
     </>
   );
@@ -44,6 +54,7 @@ export let ProviderSelectionStep = (p: {
   limit?: number;
   emptyText?: string;
   internalScrollHeight?: string | number;
+  providerListingsFilter?: DashboardInstanceProviderListingsListQuery;
 }) => {
   return (
     <ProvidersWithDeploymentsSearch
@@ -57,6 +68,7 @@ export let ProviderSelectionStep = (p: {
       internalScroll
       internalScrollHeight={p.internalScrollHeight ?? 'calc(100vh - 260px)'}
       selectionMode={p.selectionMode}
+      providerListingsFilter={p.providerListingsFilter}
       emptyText={p.emptyText ?? 'No providers found.'}
       onSelect={provider => {
         p.onSelect(provider.id);
@@ -66,11 +78,22 @@ export let ProviderSelectionStep = (p: {
 };
 
 export let showProviderCreationPanel = (
-  children: (d: { close: () => void }) => ReactNode,
+  children: (d: { close: () => void; setWidth: (width: number) => void }) => ReactNode,
   opts?: { width?: number }
 ) =>
-  showModal(({ dialogProps, close }) => (
-    <Panel.Wrapper {...dialogProps} width={opts?.width ?? 1000}>
-      {children({ close })}
-    </Panel.Wrapper>
-  ));
+  showModal(({ dialogProps, close }) => {
+    let defaultWidth = opts?.width ?? 1100;
+    let [width, setWidth] = useState(defaultWidth);
+
+    return (
+      <Panel.Wrapper
+        {...dialogProps}
+        width={width}
+        style={{
+          transition: 'width 0.42s cubic-bezier(0.22, 1, 0.36, 1)'
+        }}
+      >
+        {children({ close, setWidth })}
+      </Panel.Wrapper>
+    );
+  });

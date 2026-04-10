@@ -138,6 +138,19 @@ let CardCategories = styled.div`
   gap: 10px;
 `;
 
+let ProviderCardWrapper = styled.div`
+  &[data-disabled='true'] {
+    opacity: 0.55;
+  }
+
+  [data-button='true'] {
+    &:hover,
+    &:focus {
+      box-shadow: none;
+    }
+  }
+`;
+
 let CardCategory = styled.div`
   background: #f0f0f0;
   height: 26px;
@@ -211,12 +224,10 @@ let ProviderItemsGrid = ({
             : '';
 
           return (
-            <div
+            <ProviderCardWrapper
               key={provider.id}
               title={disabledReason}
-              style={{
-                opacity: isDisabled ? 0.55 : 1
-              }}
+              data-disabled={isDisabled ? 'true' : 'false'}
             >
               <ItemGrid.Item
                 title={provider.name ?? provider.slug ?? 'Provider'}
@@ -261,7 +272,7 @@ let ProviderItemsGrid = ({
                   </CardCategories>
                 }
               />
-            </div>
+            </ProviderCardWrapper>
           );
         })}
       </ItemGrid.Root>
@@ -315,6 +326,7 @@ let ProviderSearchGrid = ({
   selectionMode = 'default',
   variant = 'compactList',
   cardSize = 'default',
+  hideSearch = false,
   internalScroll = false,
   internalScrollHeight
 }: {
@@ -328,6 +340,7 @@ let ProviderSearchGrid = ({
   selectionMode?: 'default' | 'authCredentialsCreate';
   variant?: ProviderSearchVariant;
   cardSize?: ProviderCardSize;
+  hideSearch?: boolean;
   internalScroll?: boolean;
   internalScrollHeight?: string | number;
 }) => {
@@ -358,17 +371,21 @@ let ProviderSearchGrid = ({
 
   return (
     <Wrapper $internalScroll={internalScroll} $internalScrollHeight={internalScrollHeight}>
-      <div style={{ position: 'sticky', top: stickyTop ?? 0, zIndex: 1 }}>
-        <Input
-          label="Search"
-          hideLabel
-          placeholder={placeholder}
-          value={search}
-          onInput={setSearch}
-        />
-      </div>
+      {!hideSearch && (
+        <>
+          <div style={{ position: 'sticky', top: stickyTop ?? 0, zIndex: 1 }}>
+            <Input
+              label="Search"
+              hideLabel
+              placeholder={placeholder}
+              value={search}
+              onInput={setSearch}
+            />
+          </div>
 
-      <Spacer size={10} />
+          <Spacer size={10} />
+        </>
+      )}
 
       {internalScroll ? <ScrollBody>{results}</ScrollBody> : results}
     </Wrapper>
@@ -383,6 +400,7 @@ export let ProviderSearch = ({
   filter,
   variant = 'compactList',
   cardSize = 'default',
+  hideSearch = false,
   internalScroll = false,
   internalScrollHeight
 }: {
@@ -393,6 +411,7 @@ export let ProviderSearch = ({
   filter?: DashboardInstanceProviderListingsListQuery;
   variant?: ProviderSearchVariant;
   cardSize?: ProviderCardSize;
+  hideSearch?: boolean;
   internalScroll?: boolean;
   internalScrollHeight?: string | number;
 }) => {
@@ -430,17 +449,21 @@ export let ProviderSearch = ({
 
   return (
     <Wrapper $internalScroll={internalScroll} $internalScrollHeight={internalScrollHeight}>
-      <div style={{ position: 'sticky', top: stickyTop ?? 0, zIndex: 1 }}>
-        <Input
-          label="Search"
-          hideLabel
-          placeholder="Search for providers"
-          value={search}
-          onInput={setSearch}
-        />
-      </div>
+      {!hideSearch && (
+        <>
+          <div style={{ position: 'sticky', top: stickyTop ?? 0, zIndex: 1 }}>
+            <Input
+              label="Search"
+              hideLabel
+              placeholder="Search for providers"
+              value={search}
+              onInput={setSearch}
+            />
+          </div>
 
-      <Spacer size={10} />
+          <Spacer size={10} />
+        </>
+      )}
 
       {internalScroll ? <ScrollBody>{content}</ScrollBody> : content}
     </Wrapper>
@@ -459,6 +482,8 @@ export let ProvidersWithDeploymentsSearch = ({
   cardSize = 'default',
   includeAllProviders = false,
   prioritizeProvidersWithDeployments = false,
+  providerListingsFilter,
+  hideSearch = false,
   internalScroll = false,
   internalScrollHeight
 }: {
@@ -473,6 +498,8 @@ export let ProvidersWithDeploymentsSearch = ({
   cardSize?: ProviderCardSize;
   includeAllProviders?: boolean;
   prioritizeProvidersWithDeployments?: boolean;
+  providerListingsFilter?: DashboardInstanceProviderListingsListQuery;
+  hideSearch?: boolean;
   internalScroll?: boolean;
   internalScrollHeight?: string | number;
 }) => {
@@ -488,11 +515,13 @@ export let ProvidersWithDeploymentsSearch = ({
     instanceId,
     includeAllProviders
       ? {
+          ...providerListingsFilter,
           orderByRank: true,
           ...(limit ? { limit } : { limit: 100 })
         }
       : providerIds.length > 0
         ? {
+            ...providerListingsFilter,
             orderByRank: true,
             limit: Math.max(providerIds.length, 100)
           }
@@ -540,6 +569,7 @@ export let ProvidersWithDeploymentsSearch = ({
           selectionMode={selectionMode}
           variant={variant}
           cardSize={cardSize}
+          hideSearch={hideSearch}
           internalScroll={internalScroll}
           internalScrollHeight={internalScrollHeight}
         />
@@ -610,6 +640,7 @@ export let ProvidersWithDeploymentsSearch = ({
         selectionMode={selectionMode}
         variant={variant}
         cardSize={cardSize}
+        hideSearch={hideSearch}
         internalScroll={internalScroll}
         internalScrollHeight={internalScrollHeight}
       />

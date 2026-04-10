@@ -2,7 +2,11 @@ import {
   DashboardInstanceProviderDeploymentsConfigsListOutput,
   DashboardInstanceProviderDeploymentsConfigVaultsListOutput
 } from '@metorial/dashboard-sdk';
-import { useProviderConfigs, useProviderConfigVaults } from '@metorial/state';
+import {
+  useProviderConfigs,
+  useProviderConfigSchemaTarget,
+  useProviderConfigVaults
+} from '@metorial/state';
 import { Button, Flex, Select, Text, Tooltip } from '@metorial/ui';
 import { RiAddLine, RiSafeLine } from '@remixicon/react';
 import { useEffect, useRef } from 'react';
@@ -11,7 +15,7 @@ import {
   decodeConfigurationSelection,
   encodeConfigurationSelection
 } from '../../lib/configSelection';
-import { useProviderConfigCreationCapabilities } from '../../lib/providerCreationCapabilities';
+import { getProviderConfigSchemaCapabilities } from '../../lib/providerCreationCapabilities';
 import { showProviderConfigVaultFormModal } from '../providerConfigVaults/modal';
 import { showProviderConfigFormModal } from './modal';
 
@@ -21,41 +25,59 @@ type VaultItem = DashboardInstanceProviderDeploymentsConfigVaultsListOutput['ite
 export let ProviderConfigurationSelection = ({
   instanceId,
   providerDeploymentId,
+  providerId,
   value,
   onChange,
   label = 'Config',
-  includeVaults = true
+  includeVaults = true,
+  createConfigButtonLabel
 }: {
   instanceId: string;
-  providerDeploymentId: string;
+  providerDeploymentId?: string;
+  providerId?: string;
   value: ConfigurationSelection;
   onChange: (value: ConfigurationSelection) => void;
   label?: string;
   includeVaults?: boolean;
+  createConfigButtonLabel?: string;
 }) => {
-  let configs = useProviderConfigs(instanceId, { providerDeploymentId });
-  let vaults = useProviderConfigVaults(instanceId, { providerDeploymentId });
-  let configCreation = useProviderConfigCreationCapabilities(instanceId, providerDeploymentId);
+  let query = providerDeploymentId
+    ? { providerDeploymentId }
+    : providerId
+      ? { providerId }
+      : {};
+  let configs = useProviderConfigs(instanceId, query);
+  let vaults = useProviderConfigVaults(instanceId, query);
+  let configSchema = useProviderConfigSchemaTarget(
+    instanceId,
+    providerDeploymentId ? { providerDeploymentId } : providerId ? { providerId } : null
+  );
+  let configCreation = getProviderConfigSchemaCapabilities({
+    schemaValue: configSchema.data?.schema,
+    hasVaults: (vaults.data?.items?.length ?? 0) > 0,
+    isLoading: configSchema.isLoading || vaults.isLoading
+  });
+  let scopeKey = providerDeploymentId ?? providerId ?? '__none__';
   let handledAutoSelectionRef = useRef<string | null>(null);
 
   useEffect(() => {
     handledAutoSelectionRef.current = null;
-  }, [providerDeploymentId]);
+  }, [scopeKey]);
 
   useEffect(() => {
     if (value.kind !== 'none') {
-      handledAutoSelectionRef.current = providerDeploymentId;
+      handledAutoSelectionRef.current = scopeKey;
       return;
     }
 
-    if (configs.isLoading || handledAutoSelectionRef.current === providerDeploymentId) return;
+    if (configs.isLoading || handledAutoSelectionRef.current === scopeKey) return;
 
     let defaultConfig = (configs.data?.items ?? []).find(config => config.isDefault);
     if (!defaultConfig) return;
 
-    handledAutoSelectionRef.current = providerDeploymentId;
+    handledAutoSelectionRef.current = scopeKey;
     onChange({ kind: 'config', id: defaultConfig.id });
-  }, [configs.data?.items, configs.isLoading, onChange, providerDeploymentId, value.kind]);
+  }, [configs.data?.items, configs.isLoading, onChange, scopeKey, value.kind]);
 
   let defaultConfig = (configs.data?.items ?? []).find(config => config.isDefault);
   let effectiveValue: ConfigurationSelection =
@@ -101,14 +123,18 @@ export let ProviderConfigurationSelection = ({
                 showProviderConfigFormModal({
                   type: 'create',
                   instanceId,
-                  providerDeploymentId,
-                  onCreate: config => {
-                    configs.refetch?.();
+                  ...(providerDeploymentId ? { providerDeploymentId } : {}),
+                  ...(providerId ? { providerId } : {}),
+                  onCreate: async config => {
+                    onChange({ kind: 'config', id: config.id });
+                    await Promise.resolve(configs.refetch?.());
                     onChange({ kind: 'config', id: config.id });
                   }
                 })
               }
-            />
+            >
+              {createConfigButtonLabel}
+            </Button>
           </div>
         </Tooltip>
 
@@ -128,9 +154,11 @@ export let ProviderConfigurationSelection = ({
                   showProviderConfigVaultFormModal({
                     type: 'create',
                     instanceId,
-                    providerDeploymentId,
-                    onCreate: vault => {
-                      vaults.refetch?.();
+                    ...(providerDeploymentId ? { providerDeploymentId } : {}),
+                    ...(providerId ? { providerId } : {}),
+                    onCreate: async vault => {
+                      onChange({ kind: 'vault', id: vault.id });
+                      await Promise.resolve(vaults.refetch?.());
                       onChange({ kind: 'vault', id: vault.id });
                     }
                   })
