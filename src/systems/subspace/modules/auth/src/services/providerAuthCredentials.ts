@@ -92,6 +92,7 @@ interface CreateParams {
     name?: string;
     description?: string;
     metadata?: Record<string, any>;
+    privateMetadata?: Record<string, any>;
     isEphemeral?: boolean;
 
     config:
@@ -432,6 +433,7 @@ class providerAuthCredentialsServiceImpl {
       name?: string;
       description?: string;
       metadata?: Record<string, any>;
+      privateMetadata?: Record<string, any>;
     };
   }) {
     checkTenant(d, d.providerAuthCredentials);
@@ -456,7 +458,8 @@ class providerAuthCredentialsServiceImpl {
         data: {
           name: d.input.name ?? d.providerAuthCredentials.name,
           description: d.input.description ?? d.providerAuthCredentials.description,
-          metadata: d.input.metadata ?? d.providerAuthCredentials.metadata
+          metadata: d.input.metadata ?? d.providerAuthCredentials.metadata,
+          privateMetadata: d.input.privateMetadata ?? d.providerAuthCredentials.privateMetadata
         },
         include
       });
@@ -786,6 +789,7 @@ class providerAuthCredentialsServiceImpl {
           name: d.input.name?.trim() || undefined,
           description: d.input.description?.trim() || undefined,
           metadata: d.input.metadata,
+          privateMetadata: d.input.privateMetadata,
 
           isEphemeral: !!d.input.isEphemeral,
           isDefault: !!d.isDefault,

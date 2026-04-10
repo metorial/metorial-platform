@@ -119,6 +119,7 @@ export let sessionTemplateController = app.controller({
         name: v.string(),
         description: v.optional(v.string()),
         metadata: v.optional(v.record(v.any())),
+        privateMetadata: v.optional(v.record(v.any())),
 
         isInternal: v.optional(v.boolean()),
 
@@ -142,6 +143,7 @@ export let sessionTemplateController = app.controller({
           name: ctx.input.name,
           description: ctx.input.description,
           metadata: ctx.input.metadata,
+          privateMetadata: ctx.input.privateMetadata,
 
           isInternal: !!ctx.input.isInternal,
 
@@ -169,7 +171,8 @@ export let sessionTemplateController = app.controller({
 
         name: v.optional(v.string()),
         description: v.optional(v.string()),
-        metadata: v.optional(v.record(v.any()))
+        metadata: v.optional(v.record(v.any())),
+        privateMetadata: v.optional(v.record(v.any()))
       })
     )
     .do(async ctx => {
@@ -182,7 +185,8 @@ export let sessionTemplateController = app.controller({
         input: {
           name: ctx.input.name,
           description: ctx.input.description,
-          metadata: ctx.input.metadata
+          metadata: ctx.input.metadata,
+          privateMetadata: ctx.input.privateMetadata
         }
       });
 

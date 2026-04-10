@@ -195,6 +195,7 @@ class providerDeploymentServiceImpl {
       name?: string;
       description?: string;
       metadata?: Record<string, any>;
+      privateMetadata?: Record<string, any>;
       toolFilters?: PrismaJson.ToolFilter | null;
       isEphemeral?: boolean;
       isDefault?: boolean;
@@ -292,6 +293,7 @@ class providerDeploymentServiceImpl {
           name: d.input.name?.trim() || undefined,
           description: d.input.description?.trim() || undefined,
           metadata: d.input.metadata,
+          privateMetadata: d.input.privateMetadata,
           toolFilter: normalizeToolFilters(d.input.toolFilters),
 
           networkingRulesetIds: d.input.networkingRulesetIds || [],
@@ -435,6 +437,7 @@ class providerDeploymentServiceImpl {
       name?: string;
       description?: string;
       metadata?: Record<string, any>;
+      privateMetadata?: Record<string, any>;
       toolFilters?: PrismaJson.ToolFilter | null;
       networkingRulesetIds?: string[];
     };
@@ -463,6 +466,7 @@ class providerDeploymentServiceImpl {
           name: d.input.name ?? d.providerDeployment.name,
           description: d.input.description ?? d.providerDeployment.description,
           metadata: d.input.metadata ?? d.providerDeployment.metadata,
+          privateMetadata: d.input.privateMetadata ?? d.providerDeployment.privateMetadata,
           toolFilter: d.input.toolFilters
             ? normalizeToolFilters(d.input.toolFilters)
             : d.providerDeployment.toolFilter,

@@ -116,6 +116,7 @@ export let providerAuthCredentialsController = app.controller({
         name: v.optional(v.string()),
         description: v.optional(v.string()),
         metadata: v.optional(v.record(v.any())),
+        privateMetadata: v.optional(v.record(v.any())),
 
         isEphemeral: v.optional(v.boolean()),
 
@@ -149,6 +150,7 @@ export let providerAuthCredentialsController = app.controller({
             name: ctx.input.name,
             description: ctx.input.description,
             metadata: ctx.input.metadata,
+            privateMetadata: ctx.input.privateMetadata,
             isEphemeral: ctx.input.isEphemeral,
             config: ctx.input.config as any
           }
@@ -168,7 +170,8 @@ export let providerAuthCredentialsController = app.controller({
 
         name: v.optional(v.string()),
         description: v.optional(v.string()),
-        metadata: v.optional(v.record(v.any()))
+        metadata: v.optional(v.record(v.any())),
+        privateMetadata: v.optional(v.record(v.any()))
       })
     )
     .do(async ctx => {
@@ -182,7 +185,8 @@ export let providerAuthCredentialsController = app.controller({
           input: {
             name: ctx.input.name,
             description: ctx.input.description,
-            metadata: ctx.input.metadata
+            metadata: ctx.input.metadata,
+            privateMetadata: ctx.input.privateMetadata
           }
         });
 

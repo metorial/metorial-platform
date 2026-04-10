@@ -27,6 +27,7 @@ export let sessionTemplatePresenter = (
   name: sessionTemplate.name,
   description: sessionTemplate.description,
   metadata: sessionTemplate.metadata,
+  privateMetadata: sessionTemplate.privateMetadata,
 
   providers: sessionTemplate.providers
     .filter(p => p.status === 'active')
