@@ -72,6 +72,29 @@ export let providerAuthCredentialsController = app.controller({
       return Paginator.presentLight(list, providerAuthCredentialsPresenter);
     }),
 
+  getMany: tenantApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
+        ids: v.array(v.string()),
+        allowDeleted: v.optional(v.boolean())
+      })
+    )
+    .do(async ctx => {
+      let providerAuthCredentials =
+        await providerAuthCredentialsService.getManyProviderAuthCredentialsByIds({
+          tenant: ctx.tenant,
+          environment: ctx.environment,
+          solution: ctx.solution,
+          ids: ctx.input.ids,
+          allowDeleted: ctx.input.allowDeleted
+        });
+
+      return providerAuthCredentials.map(providerAuthCredentialsPresenter);
+    }),
+
   get: providerAuthCredentialsApp
     .handler()
     .input(
@@ -93,6 +116,7 @@ export let providerAuthCredentialsController = app.controller({
         name: v.optional(v.string()),
         description: v.optional(v.string()),
         metadata: v.optional(v.record(v.any())),
+        privateMetadata: v.optional(v.record(v.any())),
 
         isEphemeral: v.optional(v.boolean()),
 
@@ -126,6 +150,7 @@ export let providerAuthCredentialsController = app.controller({
             name: ctx.input.name,
             description: ctx.input.description,
             metadata: ctx.input.metadata,
+            privateMetadata: ctx.input.privateMetadata,
             isEphemeral: ctx.input.isEphemeral,
             config: ctx.input.config as any
           }
@@ -145,7 +170,8 @@ export let providerAuthCredentialsController = app.controller({
 
         name: v.optional(v.string()),
         description: v.optional(v.string()),
-        metadata: v.optional(v.record(v.any()))
+        metadata: v.optional(v.record(v.any())),
+        privateMetadata: v.optional(v.record(v.any()))
       })
     )
     .do(async ctx => {
@@ -159,7 +185,8 @@ export let providerAuthCredentialsController = app.controller({
           input: {
             name: ctx.input.name,
             description: ctx.input.description,
-            metadata: ctx.input.metadata
+            metadata: ctx.input.metadata,
+            privateMetadata: ctx.input.privateMetadata
           }
         });
 

@@ -6,7 +6,7 @@ import { subspace } from '../subspace';
 
 export let subspaceSessionTemplateService = createSubspaceService(
   subspace.sessionTemplate,
-  ['get', 'list', 'create', 'update', 'delete'],
+  ['get', 'getMany', 'list', 'create', 'update', 'delete', 'listTools'],
   inner => ({
     create: async (...params: Parameters<typeof inner.create>) => {
       let eventBase = toEventBase(params[0]);
@@ -26,10 +26,13 @@ export let subspaceSessionTemplateService = createSubspaceService(
     ) => {
       let eventBase = toEventBase(arg0);
 
-      let magicMcpLink = await db.magicMcpSubspaceSessionConnection.findFirst({
+      let magicMcpLink1 = await db.magicMcpSubspaceSessionConnection.findFirst({
         where: { subspaceSessionTemplateId: arg0.sessionTemplateId }
       });
-      if (magicMcpLink && !arg0._allowMagicMcpUpdate) {
+      let magicMcpLink2 = await db.magicMcpServer.findFirst({
+        where: { subspaceSessionTemplateId: arg0.sessionTemplateId }
+      });
+      if ((magicMcpLink1 || magicMcpLink2) && !arg0._allowMagicMcpUpdate) {
         throw new ServiceError(
           badRequestError({
             message: 'This session template cannot be updated.'
@@ -53,10 +56,13 @@ export let subspaceSessionTemplateService = createSubspaceService(
     ) => {
       let eventBase = toEventBase(arg0);
 
-      let magicMcpLink = await db.magicMcpSubspaceSessionConnection.findFirst({
+      let magicMcpLink1 = await db.magicMcpSubspaceSessionConnection.findFirst({
         where: { subspaceSessionTemplateId: arg0.sessionTemplateId }
       });
-      if (magicMcpLink && !arg0._allowMagicMcpDelete) {
+      let magicMcpLink2 = await db.magicMcpServer.findFirst({
+        where: { subspaceSessionTemplateId: arg0.sessionTemplateId }
+      });
+      if ((magicMcpLink1 || magicMcpLink2) && !arg0._allowMagicMcpDelete) {
         throw new ServiceError(
           badRequestError({
             message: 'This session template cannot be deleted.'

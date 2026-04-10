@@ -8,12 +8,13 @@ model ProviderConfigVault {
   oid BigInt @id
   id  String @unique
 
-  status ProviderConfigVaultStatus
+  status     ProviderConfigVaultStatus
   archivedAt DateTime?
 
-  name        String
-  description String?
-  metadata    Json?
+  name            String
+  description     String?
+  metadata        Json?
+  privateMetadata Json?
 
   configOid BigInt         @unique
   config    ProviderConfig @relation(fields: [configOid], references: [oid])

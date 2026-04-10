@@ -164,6 +164,25 @@ class providerAuthConfigServiceImpl {
     return providerAuthConfig;
   }
 
+  async getManyProviderAuthConfigsByIds(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    ids: string[];
+    allowDeleted?: boolean;
+  }) {
+    return await db.providerAuthConfig.findMany({
+      where: {
+        id: { in: d.ids },
+        tenantOid: d.tenant.oid,
+        solutionOid: d.solution.oid,
+        environmentOid: d.environment.oid,
+        ...normalizeStatusForGet(d).hasParent
+      },
+      include
+    });
+  }
+
   async getProviderAuthConfigSchema(d: {
     tenant: Tenant;
     solution: Solution;
@@ -255,6 +274,7 @@ class providerAuthConfigServiceImpl {
       name?: string;
       description?: string;
       metadata?: Record<string, any>;
+      privateMetadata?: Record<string, any>;
       isEphemeral?: boolean;
       isDefault?: boolean;
       authMethodId?: string;
@@ -354,6 +374,7 @@ class providerAuthConfigServiceImpl {
       name?: string;
       description?: string;
       metadata?: Record<string, any>;
+      privateMetadata?: Record<string, any>;
       config?: Record<string, any>;
 
       authMethodId?: string;
@@ -441,6 +462,7 @@ class providerAuthConfigServiceImpl {
           name: d.input.name?.trim() || d.providerAuthConfig.name,
           description: d.input.description?.trim() || d.providerAuthConfig.description,
           metadata: d.input.metadata ?? d.providerAuthConfig.metadata,
+          privateMetadata: d.input.privateMetadata ?? d.providerAuthConfig.privateMetadata,
           toolFilter:
             d.input.toolFilters || d.input.toolFilters === null
               ? normalizeToolFilters(d.input.toolFilters)

@@ -137,7 +137,7 @@ class sessionTemplateProviderServiceImpl {
         tenantOid: d.tenant.oid,
         solutionOid: d.solution.oid,
         environmentOid: d.environment.oid,
-        ...normalizeStatusForList(d).noParent,
+        ...normalizeStatusForGet(d).noParent,
         AND: [
           sessionTemplates ? { sessionTemplateOid: sessionTemplates.in } : undefined!
         ].filter(Boolean)

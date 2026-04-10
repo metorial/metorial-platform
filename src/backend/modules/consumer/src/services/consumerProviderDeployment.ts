@@ -201,7 +201,8 @@ class ConsumerProviderDeploymentServiceImpl {
           providerContext.provider.description ??
           undefined,
         metadata: d.input.metadata ?? {},
-        providers: []
+        providers: [],
+        isInternal: true
       });
       let sessionTemplateProvider = await subspaceSessionTemplateProviderService.create({
         instance: d.instance,

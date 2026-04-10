@@ -31,7 +31,7 @@ let MethodsRoot = styled(RadixToggleGroup.Root)`
   width: 100%;
   border: 0;
   border-radius: 20px;
-  background: ${theme.colors.gray200};
+  background: ${theme.colors.background};
   overflow: hidden;
   box-shadow: inset 0 0 0 1px ${theme.colors.gray300};
 `;
@@ -78,7 +78,7 @@ let MethodItem = styled(RadixToggleGroup.Item)`
   }
 
   &:hover {
-    background: rgba(255, 255, 255, 0.16);
+    background: ${theme.colors.gray100};
   }
 
   &:focus-visible {
@@ -88,7 +88,7 @@ let MethodItem = styled(RadixToggleGroup.Item)`
   &[data-state='on'] {
     position: relative;
     z-index: 1;
-    background: ${theme.colors.background};
+    background: ${theme.colors.gray200};
     box-shadow: inset 0 0 0 1px ${theme.colors.gray300};
   }
 

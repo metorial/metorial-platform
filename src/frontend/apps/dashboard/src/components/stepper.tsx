@@ -92,7 +92,7 @@ let Main = styled.main`
   flex-direction: column;
 `;
 
-let PillsWrapper = styled.div`
+let PillsWrapper = styled.div<{ $gap?: number }>`
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -107,14 +107,17 @@ let PillsHeader = styled.header`
   align-items: center;
   gap: 16px;
   flex-wrap: wrap;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto;
 `;
 
 let PillSlot = styled.button<{ $state: 'past' | 'active' | 'future' }>`
   position: relative;
   border: none;
   background: transparent;
-  padding: 0 14px;
-  height: 42px;
+  padding: 0 13px;
+  height: 40px;
   box-sizing: border-box;
   display: inline-flex;
   flex: 0 0 auto;
@@ -134,7 +137,7 @@ let PillSlot = styled.button<{ $state: 'past' | 'active' | 'future' }>`
   &::before {
     content: '';
     position: absolute;
-    inset: 4px 0;
+    inset: 2px 0;
     border-radius: 999px;
     z-index: 1;
     background: ${({ $state }) =>
@@ -148,8 +151,8 @@ let PillSlot = styled.button<{ $state: 'past' | 'active' | 'future' }>`
 
 let ActivePillBackground = styled(motion.div)`
   position: absolute;
-  top: 4px;
-  bottom: 4px;
+  top: 2px;
+  bottom: 2px;
   left: 0;
   border-radius: 999px;
   background: #111111;
@@ -167,10 +170,10 @@ let PillLabel = styled.span<{ $state: 'past' | 'active' | 'future' }>`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0 14px;
+  padding: 0 13px;
   box-sizing: border-box;
   white-space: nowrap;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   line-height: 1.1;
   transition: color 0.18s ease;
@@ -190,10 +193,10 @@ let PillSizer = styled.span`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0 14px;
+  padding: 0 13px;
   box-sizing: border-box;
   white-space: nowrap;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   line-height: 1.1;
   pointer-events: none;
@@ -206,10 +209,10 @@ let PillLabelOverlay = styled(motion.span)`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0 14px;
+  padding: 0 13px;
   box-sizing: border-box;
   white-space: nowrap;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   line-height: 1.1;
   color: white;
@@ -347,13 +350,15 @@ export let PillStepper = ({
   currentStep,
   setCurrentStep,
   isStepDisabled,
-  getStepDisabledReason
+  getStepDisabledReason,
+  paneAnimationDelayMs
 }: {
   steps: { title: string; render: () => React.ReactNode }[];
   currentStep: number;
   setCurrentStep: (step: number) => void;
   isStepDisabled?: (step: number) => boolean;
   getStepDisabledReason?: (step: number) => React.ReactNode;
+  paneAnimationDelayMs?: number;
 }) => {
   let currentStepContent = steps[currentStep] ?? steps[steps.length - 1];
   let children = currentStepContent ? currentStepContent.render() : null;
@@ -451,7 +456,9 @@ export let PillStepper = ({
       </PillsHeader>
 
       <Main>
-        <AnimatePanes orderedIdentifier={currentStep}>{children}</AnimatePanes>
+        <AnimatePanes orderedIdentifier={currentStep} delayMs={paneAnimationDelayMs}>
+          {children}
+        </AnimatePanes>
       </Main>
     </PillsWrapper>
   );

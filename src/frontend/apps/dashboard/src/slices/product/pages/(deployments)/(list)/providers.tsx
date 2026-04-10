@@ -1,25 +1,40 @@
-import { Input, Spacer } from '@metorial/ui';
+import type { DashboardInstanceProviderListingsListQuery } from '@metorial/dashboard-sdk';
+import { Spacer } from '@metorial/ui';
 import { useState } from 'react';
-import { useDebounced } from '../../../../../hooks/useDebounced';
+import { useFilterQuery } from '../../../../../components/table/components/query';
+import { TableFilterState } from '../../../../../components/table/filter';
 import { ProvidersGrid } from '../../../scenes/providers/grid';
+import {
+  ProviderListingFilters,
+  useProviderListingFilters
+} from '../../../scenes/providers/filters';
 
 export let ProvidersPage = () => {
   let [search, setSearch] = useState('');
-  let searchDebounced = useDebounced(search, 500);
+  let [filterState, setFilterState] = useState<TableFilterState[]>([]);
+  let { filters, searchDebounced, providerListingsFilter } = useProviderListingFilters({
+    search,
+    filterState
+  });
+
+  useFilterQuery({
+    filters,
+    filterState: [filterState, setFilterState],
+    searchState: [search, setSearch],
+    debouncedSearch: searchDebounced
+  });
 
   return (
     <>
-      <Input
-        label="Search"
-        hideLabel
-        placeholder="Search for providers..."
-        value={search}
-        onInput={setSearch}
+      <ProviderListingFilters
+        searchState={[search, setSearch]}
+        filterState={[filterState, setFilterState]}
+        filters={filters}
       />
 
       <Spacer size={15} />
 
-      <ProvidersGrid search={searchDebounced} limit={21} />
+      <ProvidersGrid {...providerListingsFilter} limit={21} />
     </>
   );
 };

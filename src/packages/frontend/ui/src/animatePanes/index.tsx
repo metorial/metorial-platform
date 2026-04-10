@@ -5,6 +5,7 @@ import { AnimateHeight } from '../animateHeight';
 export let AnimatePanes = (props: {
   children: React.ReactNode;
   orderedIdentifier: number;
+  delayMs?: number;
 }) => {
   let [prevOrderedIdentifier, setPrevOrderedIdentifier] = useState(
     () => props.orderedIdentifier
@@ -19,13 +20,16 @@ export let AnimatePanes = (props: {
   let prevChildren = useRef(props.children);
 
   useEffect(() => {
-    let to = setTimeout(() => {
-      setPrevOrderedIdentifier(props.orderedIdentifier);
-      prevChildren.current = props.children;
-    }, 300);
+    let to = setTimeout(
+      () => {
+        setPrevOrderedIdentifier(props.orderedIdentifier);
+        prevChildren.current = props.children;
+      },
+      300 + (props.delayMs ?? 0)
+    );
 
     return () => clearTimeout(to);
-  }, [props.orderedIdentifier]);
+  }, [props.orderedIdentifier, props.delayMs, props.children]);
 
   useEffect(() => {
     if (direction == 'none') prevChildren.current = props.children;
@@ -46,7 +50,11 @@ export let AnimatePanes = (props: {
         <motion.div
           initial={{ x: direction == 'right' ? '-100%' : direction == 'left' ? '100%' : 0 }}
           animate={{ x: 0 }}
-          transition={{ duration: 0.2, ease: 'easeInOut' }}
+          transition={{
+            duration: 0.2,
+            ease: 'easeInOut',
+            delay: (props.delayMs ?? 0) / 1000
+          }}
           key={props.orderedIdentifier}
         >
           {props.children}
@@ -56,7 +64,11 @@ export let AnimatePanes = (props: {
           <motion.div
             initial={{ x: 0 }}
             animate={{ x: direction == 'right' ? '100%' : '-100%' }}
-            transition={{ duration: 0.2, ease: 'easeInOut' }}
+            transition={{
+              duration: 0.2,
+              ease: 'easeInOut',
+              delay: (props.delayMs ?? 0) / 1000
+            }}
             key={prevOrderedIdentifier}
             style={{
               position: 'absolute',

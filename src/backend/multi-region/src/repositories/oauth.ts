@@ -1,6 +1,8 @@
 import { Service } from '@lowerdeck/service';
+import { User } from '@metorial/db';
 import { cell } from '../cell';
 import { globalDB, Prisma } from '../db';
+import { upsertUser } from '../lib/upsertUser';
 
 let oauthApplicationInclude = {
   owner: true,
@@ -137,8 +139,8 @@ class OAuthGlobalRepository {
 
   async claimOAuthAuthorizationRequest(d: { id: string }) {
     let currentCell = await cell;
-    let accepted = await globalDB.$transaction(async tx => {
-      let count = await tx.oAuthAuthorizationRequest.updateMany({
+    let accepted = await globalDB.$transaction(async db => {
+      let count = await db.oAuthAuthorizationRequest.updateMany({
         where: {
           id: d.id,
           status: 'pending',
@@ -154,7 +156,7 @@ class OAuthGlobalRepository {
 
       if (count.count !== 1) return null;
 
-      return await tx.oAuthAuthorizationRequest.findFirst({
+      return await db.oAuthAuthorizationRequest.findFirst({
         where: {
           id: d.id
         },
@@ -165,11 +167,13 @@ class OAuthGlobalRepository {
     return accepted;
   }
 
-  async acceptOAuthAuthorizationRequest(d: { id: string; userId: string; expiresAt: Date }) {
+  async acceptOAuthAuthorizationRequest(d: { id: string; user: User; expiresAt: Date }) {
     let currentCell = await cell;
 
-    return await globalDB.$transaction(async tx => {
-      let count = await tx.oAuthAuthorizationRequest.updateMany({
+    return await globalDB.$transaction(async db => {
+      let user = await upsertUser(d.user);
+
+      let count = await db.oAuthAuthorizationRequest.updateMany({
         where: {
           id: d.id,
           status: 'pending',
@@ -178,14 +182,14 @@ class OAuthGlobalRepository {
         data: {
           status: 'accepted',
           acceptedAt: new Date(),
-          userId: d.userId,
+          userId: user.id,
           expiresAt: d.expiresAt
         }
       });
 
       if (count.count !== 1) return null;
 
-      return await tx.oAuthAuthorizationRequest.findFirst({
+      return await db.oAuthAuthorizationRequest.findFirst({
         where: {
           id: d.id
         },
@@ -194,9 +198,11 @@ class OAuthGlobalRepository {
     });
   }
 
-  async rejectOAuthAuthorizationRequest(d: { id: string; userId: string }) {
-    return await globalDB.$transaction(async tx => {
-      let count = await tx.oAuthAuthorizationRequest.updateMany({
+  async rejectOAuthAuthorizationRequest(d: { id: string; user: User }) {
+    return await globalDB.$transaction(async db => {
+      let user = await upsertUser(d.user);
+
+      let count = await db.oAuthAuthorizationRequest.updateMany({
         where: {
           id: d.id,
           status: 'pending'
@@ -204,13 +210,13 @@ class OAuthGlobalRepository {
         data: {
           status: 'denied',
           deniedAt: new Date(),
-          userId: d.userId
+          userId: user.id
         }
       });
 
       if (count.count !== 1) return null;
 
-      return await tx.oAuthAuthorizationRequest.findFirst({
+      return await db.oAuthAuthorizationRequest.findFirst({
         where: {
           id: d.id
         },

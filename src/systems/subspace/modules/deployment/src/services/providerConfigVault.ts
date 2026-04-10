@@ -125,6 +125,25 @@ class providerConfigVaultServiceImpl {
     return providerConfigVault;
   }
 
+  async getManyProviderConfigVaultsByIds(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    ids: string[];
+    allowDeleted?: boolean;
+  }) {
+    return await db.providerConfigVault.findMany({
+      where: {
+        id: { in: d.ids },
+        tenantOid: d.tenant.oid,
+        solutionOid: d.solution.oid,
+        environmentOid: d.environment.oid,
+        ...normalizeStatusForGet(d).noParent
+      },
+      include
+    });
+  }
+
   async createProviderConfigVault(d: {
     tenant: Tenant;
     solution: Solution;
@@ -141,6 +160,7 @@ class providerConfigVaultServiceImpl {
       name: string;
       description?: string;
       metadata?: Record<string, any>;
+      privateMetadata?: Record<string, any>;
       config: {
         type: 'inline';
         data: Record<string, any>;
@@ -175,6 +195,7 @@ class providerConfigVaultServiceImpl {
           name: d.input.name,
           description: d.input.description?.trim() || undefined,
           metadata: d.input.metadata,
+          privateMetadata: d.input.privateMetadata,
           tenantOid: d.tenant.oid,
           configOid: config.oid,
           providerOid: d.provider.oid,
@@ -202,6 +223,7 @@ class providerConfigVaultServiceImpl {
       name?: string;
       description?: string;
       metadata?: Record<string, any>;
+      privateMetadata?: Record<string, any>;
     };
   }) {
     checkTenant(d, d.providerConfigVault);
@@ -218,7 +240,8 @@ class providerConfigVaultServiceImpl {
         data: {
           name: d.input.name ?? d.providerConfigVault.name,
           description: d.input.description ?? d.providerConfigVault.description,
-          metadata: d.input.metadata ?? d.providerConfigVault.metadata
+          metadata: d.input.metadata ?? d.providerConfigVault.metadata,
+          privateMetadata: d.input.privateMetadata ?? d.providerConfigVault.privateMetadata
         },
         include
       });

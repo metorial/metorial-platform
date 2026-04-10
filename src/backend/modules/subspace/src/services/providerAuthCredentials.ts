@@ -8,7 +8,7 @@ export type SubspaceProviderAuthCredentials = Awaited<
 
 export let subspaceProviderAuthCredentialsService = createSubspaceService(
   subspace.providerAuthCredentials,
-  ['get', 'list', 'update', 'create', 'delete'],
+  ['get', 'getMany', 'list', 'update', 'create', 'delete'],
   inner => ({
     create: async (...params: Parameters<typeof inner.create>) => {
       let eventBase = toEventBase(params[0]);

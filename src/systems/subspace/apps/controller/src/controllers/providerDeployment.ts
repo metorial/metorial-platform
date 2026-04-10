@@ -91,6 +91,28 @@ export let providerDeploymentController = app.controller({
       return Paginator.presentLight(list, providerDeploymentPresenter);
     }),
 
+  getMany: tenantApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
+        ids: v.array(v.string()),
+        allowDeleted: v.optional(v.boolean())
+      })
+    )
+    .do(async ctx => {
+      let providerDeployments = await providerDeploymentService.getManyProviderDeploymentsByIds({
+        tenant: ctx.tenant,
+        environment: ctx.environment,
+        solution: ctx.solution,
+        ids: ctx.input.ids,
+        allowDeleted: ctx.input.allowDeleted
+      });
+
+      return providerDeployments.map(providerDeploymentPresenter);
+    }),
+
   get: providerDeploymentApp
     .handler()
     .input(
@@ -113,6 +135,7 @@ export let providerDeploymentController = app.controller({
         name: v.optional(v.string()),
         description: v.optional(v.string()),
         metadata: v.optional(v.record(v.any())),
+        privateMetadata: v.optional(v.record(v.any())),
 
         isEphemeral: v.optional(v.boolean()),
 
@@ -154,6 +177,7 @@ export let providerDeploymentController = app.controller({
           name: ctx.input.name,
           description: ctx.input.description,
           metadata: ctx.input.metadata,
+          privateMetadata: ctx.input.privateMetadata,
           toolFilters: normalizeToolFilters(ctx.input.toolFilters as any),
 
           isEphemeral: ctx.input.isEphemeral,
@@ -180,6 +204,7 @@ export let providerDeploymentController = app.controller({
         name: v.optional(v.string()),
         description: v.optional(v.string()),
         metadata: v.optional(v.record(v.any())),
+        privateMetadata: v.optional(v.record(v.any())),
         toolFilters: toolFiltersValidator
       })
     )
@@ -194,6 +219,7 @@ export let providerDeploymentController = app.controller({
           name: ctx.input.name,
           description: ctx.input.description,
           metadata: ctx.input.metadata,
+          privateMetadata: ctx.input.privateMetadata,
           toolFilters: normalizeToolFilters(ctx.input.toolFilters as any)
         }
       });

@@ -185,7 +185,9 @@ let AuthMethodStep = (p: {
   );
 };
 
-let ProviderAuthConfigPanelFlow = (p: PanelFlowProps & { close: () => void }) => {
+let ProviderAuthConfigPanelFlow = (
+  p: PanelFlowProps & { close: () => void; setPanelWidth: (width: number) => void }
+) => {
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
   let instance = useCurrentInstance();
@@ -195,6 +197,24 @@ let ProviderAuthConfigPanelFlow = (p: PanelFlowProps & { close: () => void }) =>
   let [selectedMethodId, setSelectedMethodId] = useState('');
   let [autoSkipSingle, setAutoSkipSingle] = useState(false);
   let [isWindowOpen, setIsWindowOpen] = useState(false);
+  let authCreation = useProviderAuthCreationCapabilities(p.instanceId, undefined, providerId);
+  let selectedMethod = authCreation.authMethodItems.find(
+    method => method.id === selectedMethodId
+  );
+
+  useEffect(() => {
+    if (step === 0) {
+      p.setPanelWidth(1050);
+      return;
+    }
+
+    if (step === 2 && selectedMethod?.type === 'oauth') {
+      p.setPanelWidth(1180);
+      return;
+    }
+
+    p.setPanelWidth(660);
+  }, [step, selectedMethod?.type, p.setPanelWidth]);
 
   let steps = useMemo(
     () => [
@@ -205,6 +225,11 @@ let ProviderAuthConfigPanelFlow = (p: PanelFlowProps & { close: () => void }) =>
             instanceId={p.instanceId}
             limit={30}
             internalScrollHeight="calc(100vh - 260px)"
+            providerListingsFilter={{
+              capabilities: {
+                supportsAuth: true
+              }
+            }}
             emptyText="No providers found."
             onSelect={providerId => {
               setProviderId(providerId);
@@ -319,6 +344,6 @@ let ProviderAuthConfigPanelFlow = (p: PanelFlowProps & { close: () => void }) =>
 };
 
 export let showProviderAuthConfigPanelFlow = (p: PanelFlowProps) =>
-  showProviderCreationPanel(({ close }) => (
-    <ProviderAuthConfigPanelFlow {...p} close={close} />
+  showProviderCreationPanel(({ close, setWidth }) => (
+    <ProviderAuthConfigPanelFlow {...p} close={close} setPanelWidth={setWidth} />
   ));

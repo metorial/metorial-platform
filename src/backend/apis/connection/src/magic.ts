@@ -7,7 +7,7 @@ import {
 import { createExecutionContext, provideExecutionContext } from '@lowerdeck/execution-context';
 import { useRequestContext } from '@lowerdeck/hono';
 import { extractToken } from '@metorial/bearer';
-import { db, Instance } from '@metorial/db';
+import { Instance } from '@metorial/db';
 import { generateSnowflakeId } from '@metorial/id';
 import { AuthInfo } from '@metorial/module-access';
 import {
@@ -16,7 +16,8 @@ import {
   magicMcpServerService,
   MagicMcpSubspaceMapping,
   magicMcpTokenService,
-  resolveMagicMcpTargetByIdOrAlias
+  resolveMagicMcpTargetByIdOrAlias,
+  resolveMagicMcpTargetByIdOrAliasSafe
 } from '@metorial/module-magic';
 import { proxyMcpRequestToSubspace } from '@metorial/module-subspace';
 import { Authenticator } from '@metorial/rest';
@@ -47,7 +48,6 @@ let ensureMagicMcpTokenAccess = async (d: {
     server: d.magicMcpTarget.type === 'server' ? d.magicMcpTarget.target : undefined,
     endpoint: d.magicMcpTarget.type === 'endpoint' ? d.magicMcpTarget.target : undefined
   });
-
   if (!hasAccess) {
     throw new ServiceError(
       forbiddenError({
@@ -55,24 +55,6 @@ let ensureMagicMcpTokenAccess = async (d: {
       })
     );
   }
-};
-
-let getMagicMcpTokenFromSecretIfPresent = async (d: {
-  tokenSecret: string;
-  instance: Instance;
-}) => {
-  let magicMcpToken = await db.magicMcpToken.findFirst({
-    where: {
-      secret: d.tokenSecret,
-      instanceOid: d.instance.oid
-    }
-  });
-  if (!magicMcpToken) return null;
-
-  return await magicMcpTokenService.getMagicMcpTokenBySecret({
-    secret: d.tokenSecret,
-    instance: d.instance
-  });
 };
 
 let resolveMagicMcpTargetFromToken = async (d: { token: MagicMcpTokenForRouting }) => {
@@ -173,21 +155,34 @@ export let resolveMagicMcpSubspaceSession = async (d: {
     );
   }
 
-  let magicMcpToken = d.instanceForTokenRouting
-    ? await getMagicMcpTokenFromSecretIfPresent({
-        tokenSecret,
-        instance: d.instanceForTokenRouting
+  let magicMcpTarget = d.magicMcpTargetIdOrAlias
+    ? await resolveMagicMcpTargetByIdOrAliasSafe(d.magicMcpTargetIdOrAlias)
+    : null;
+
+  let instance = magicMcpTarget?.target.instance ?? d.instanceForTokenRouting;
+
+  let magicMcpToken = instance
+    ? await magicMcpTokenService.getMagicMcpTokenBySecret({
+        secret: tokenSecret,
+        instance
       })
     : null;
-  let magicMcpTarget =
-    (magicMcpToken
-      ? await resolveMagicMcpTargetFromToken({
-          token: magicMcpToken
-        })
-      : null) ??
-    (d.magicMcpTargetIdOrAlias != null
-      ? await resolveMagicMcpTargetByIdOrAlias(d.magicMcpTargetIdOrAlias)
-      : null);
+
+  if (
+    magicMcpToken &&
+    (!magicMcpTarget || magicMcpToken?.magicMcpEndpointOid || magicMcpToken?.magicMcpServerOid)
+  ) {
+    let tokenTarget = await resolveMagicMcpTargetFromToken({ token: magicMcpToken });
+
+    if (tokenTarget?.type == 'server' && !magicMcpTarget) {
+      magicMcpTarget = tokenTarget;
+    } else if (
+      tokenTarget?.type == 'endpoint' &&
+      (!magicMcpTarget || magicMcpTarget.type == 'server')
+    ) {
+      magicMcpTarget = tokenTarget;
+    }
+  }
 
   if (!magicMcpTarget) {
     throw new ServiceError(

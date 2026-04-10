@@ -28,7 +28,6 @@ import { checkTenant } from '@metorial-subspace/module-tenant';
 import {
   sessionArchivedQueue,
   sessionCreatedQueue,
-  sessionDeletedQueue,
   sessionUpdatedQueue
 } from '../queues/lifecycle/session';
 import { sessionProviderInclude } from './sessionProvider';
@@ -142,6 +141,25 @@ class sessionServiceImpl {
     return session;
   }
 
+  async getManySessionsByIds(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    ids: string[];
+    allowDeleted?: boolean;
+  }) {
+    return await db.session.findMany({
+      where: {
+        id: { in: d.ids },
+        tenantOid: d.tenant.oid,
+        solutionOid: d.solution.oid,
+        environmentOid: d.environment.oid,
+        ...normalizeStatusForGet(d).noParent
+      },
+      include
+    });
+  }
+
   async createSession(d: {
     tenant: Tenant;
     solution: Solution;
@@ -150,6 +168,7 @@ class sessionServiceImpl {
       name?: string;
       description?: string;
       metadata?: Record<string, any>;
+      privateMetadata?: Record<string, any>;
 
       providers: SessionProviderInput[];
     };
@@ -165,6 +184,7 @@ class sessionServiceImpl {
           name: d.input.name?.trim() || undefined,
           description: d.input.description?.trim() || undefined,
           metadata: d.input.metadata,
+          privateMetadata: d.input.privateMetadata,
 
           tenantOid: d.tenant.oid,
           solutionOid: d.solution.oid,
@@ -209,6 +229,7 @@ class sessionServiceImpl {
       name?: string;
       description?: string;
       metadata?: Record<string, any>;
+      privateMetadata?: Record<string, any>;
     };
   }) {
     checkTenant(d, d.session);
@@ -225,7 +246,8 @@ class sessionServiceImpl {
         data: {
           name: d.input.name ?? d.session.name,
           description: d.input.description ?? d.session.description,
-          metadata: d.input.metadata ?? d.session.metadata
+          metadata: d.input.metadata ?? d.session.metadata,
+          privateMetadata: d.input.privateMetadata ?? d.session.privateMetadata
         },
         include
       });

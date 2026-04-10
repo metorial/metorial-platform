@@ -79,6 +79,28 @@ export let sessionController = app.controller({
       return Paginator.presentLight(list, sessionPresenter);
     }),
 
+  getMany: tenantApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
+        ids: v.array(v.string()),
+        allowDeleted: v.optional(v.boolean())
+      })
+    )
+    .do(async ctx => {
+      let sessions = await sessionService.getManySessionsByIds({
+        tenant: ctx.tenant,
+        environment: ctx.environment,
+        solution: ctx.solution,
+        ids: ctx.input.ids,
+        allowDeleted: ctx.input.allowDeleted
+      });
+
+      return sessions.map(sessionPresenter);
+    }),
+
   get: sessionApp
     .handler()
     .input(
@@ -100,6 +122,7 @@ export let sessionController = app.controller({
         name: v.string(),
         description: v.optional(v.string()),
         metadata: v.optional(v.record(v.any())),
+        privateMetadata: v.optional(v.record(v.any())),
 
         providers: v.array(
           v.object({
@@ -145,6 +168,7 @@ export let sessionController = app.controller({
           name: ctx.input.name,
           description: ctx.input.description,
           metadata: ctx.input.metadata,
+          privateMetadata: ctx.input.privateMetadata,
           providers: resolvedProviders
         }
       });
@@ -164,7 +188,8 @@ export let sessionController = app.controller({
 
         name: v.optional(v.string()),
         description: v.optional(v.string()),
-        metadata: v.optional(v.record(v.any()))
+        metadata: v.optional(v.record(v.any())),
+        privateMetadata: v.optional(v.record(v.any()))
       })
     )
     .do(async ctx => {
@@ -177,7 +202,8 @@ export let sessionController = app.controller({
         input: {
           name: ctx.input.name,
           description: ctx.input.description,
-          metadata: ctx.input.metadata
+          metadata: ctx.input.metadata,
+          privateMetadata: ctx.input.privateMetadata
         }
       });
 

@@ -1,7 +1,10 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { sessionTemplateService } from '@metorial-subspace/module-session';
-import { sessionTemplatePresenter } from '@metorial-subspace/presenters';
+import {
+  providerToolPresenter,
+  sessionTemplatePresenter
+} from '@metorial-subspace/presenters';
 import { app } from './_app';
 import { createdAtValidator, updatedAtValidator } from './_dateFilter';
 import { toolFiltersValidator } from './sessionProvider';
@@ -73,6 +76,28 @@ export let sessionTemplateController = app.controller({
       return Paginator.presentLight(list, sessionTemplatePresenter);
     }),
 
+  getMany: tenantApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
+        ids: v.array(v.string()),
+        allowDeleted: v.optional(v.boolean())
+      })
+    )
+    .do(async ctx => {
+      let sessionTemplates = await sessionTemplateService.getManySessionTemplatesByIds({
+        tenant: ctx.tenant,
+        environment: ctx.environment,
+        solution: ctx.solution,
+        ids: ctx.input.ids,
+        allowDeleted: ctx.input.allowDeleted
+      });
+
+      return sessionTemplates.map(sessionTemplatePresenter);
+    }),
+
   get: sessionTemplateApp
     .handler()
     .input(
@@ -94,6 +119,7 @@ export let sessionTemplateController = app.controller({
         name: v.string(),
         description: v.optional(v.string()),
         metadata: v.optional(v.record(v.any())),
+        privateMetadata: v.optional(v.record(v.any())),
 
         isInternal: v.optional(v.boolean()),
 
@@ -117,6 +143,7 @@ export let sessionTemplateController = app.controller({
           name: ctx.input.name,
           description: ctx.input.description,
           metadata: ctx.input.metadata,
+          privateMetadata: ctx.input.privateMetadata,
 
           isInternal: !!ctx.input.isInternal,
 
@@ -144,7 +171,8 @@ export let sessionTemplateController = app.controller({
 
         name: v.optional(v.string()),
         description: v.optional(v.string()),
-        metadata: v.optional(v.record(v.any()))
+        metadata: v.optional(v.record(v.any())),
+        privateMetadata: v.optional(v.record(v.any()))
       })
     )
     .do(async ctx => {
@@ -157,7 +185,8 @@ export let sessionTemplateController = app.controller({
         input: {
           name: ctx.input.name,
           description: ctx.input.description,
-          metadata: ctx.input.metadata
+          metadata: ctx.input.metadata,
+          privateMetadata: ctx.input.privateMetadata
         }
       });
 
@@ -183,5 +212,25 @@ export let sessionTemplateController = app.controller({
       });
 
       return sessionTemplatePresenter(sessionTemplate);
+    }),
+
+  listTools: sessionTemplateApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
+        sessionTemplateId: v.string()
+      })
+    )
+    .do(async ctx => {
+      let tools = await sessionTemplateService.listSessionTemplateTools({
+        tenant: ctx.tenant,
+        environment: ctx.environment,
+        solution: ctx.solution,
+        sessionTemplateId: ctx.input.sessionTemplateId
+      });
+
+      return tools.map(providerToolPresenter);
     })
 });

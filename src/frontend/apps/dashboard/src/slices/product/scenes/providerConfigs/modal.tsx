@@ -10,14 +10,12 @@ export let showProviderConfigFormModal = (
 ) =>
   showModal(({ dialogProps, close }) => (
     <Dialog.Wrapper {...dialogProps} width={650}>
-      <Dialog.Title>{p.type == 'update' ? 'Update Config' : 'Create Config'}</Dialog.Title>
+      <Dialog.Title>Create Config</Dialog.Title>
 
       <Dialog.Description>
-        {p.type == 'update'
-          ? 'Update the config details.'
-          : p.providerDeploymentId
-            ? 'Create a new configuration for this deployment.'
-            : 'Create a new configuration for this provider.'}
+        {p.providerDeploymentId
+          ? 'Create a new configuration for this deployment.'
+          : 'Create a new configuration for this provider.'}
       </Dialog.Description>
 
       <ProviderConfigForm

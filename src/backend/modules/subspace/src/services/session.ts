@@ -29,7 +29,7 @@ let enrichSessionWithClientSecret = async (d: {
 
 export let subspaceSessionService = createSubspaceService(
   subspace.session,
-  ['get', 'list', 'create', 'update', 'delete'],
+  ['get', 'getMany', 'list', 'create', 'update', 'delete'],
   inner => ({
     get: async (...params: Parameters<typeof inner.get>) => {
       let session = await inner.get(...params);

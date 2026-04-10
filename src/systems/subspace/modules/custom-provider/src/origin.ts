@@ -3,7 +3,7 @@ import { createOriginClient } from '@metorial-platform-systems/origin-client';
 import { db, type Tenant } from '@metorial-subspace/db';
 import { env } from './env';
 
-export let origin = createOriginClient({
+export let origin: ReturnType<typeof createOriginClient> = createOriginClient({
   endpoint: env.origin.ORIGIN_URL
 });
 

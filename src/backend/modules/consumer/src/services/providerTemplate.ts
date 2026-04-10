@@ -1,9 +1,4 @@
-import {
-  conflictError,
-  notFoundError,
-  preconditionFailedError,
-  ServiceError
-} from '@lowerdeck/error';
+import { notFoundError, preconditionFailedError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
@@ -21,7 +16,10 @@ import {
   type AnyAccessTagSelector
 } from '@metorial/module-access';
 import { searchProviderTemplateIds } from '@metorial/module-search';
-import { subspaceProviderDeploymentService } from '@metorial/module-subspace';
+import {
+  subspaceProviderDeploymentService,
+  type SubspaceProviderDeployment
+} from '@metorial/module-subspace';
 import {
   providerTemplateArchivedQueue,
   providerTemplateCreatedQueue,
@@ -32,6 +30,10 @@ type ProviderTemplateDeploymentCreateInput = Pick<
   Parameters<typeof subspaceProviderDeploymentService.create>[0],
   'providerId' | 'name' | 'description' | 'metadata' | 'lockedProviderVersionId'
 >;
+
+export type EnrichedProviderTemplate = ProviderTemplate & {
+  providerDeployment: SubspaceProviderDeployment;
+};
 
 class ProviderTemplateServiceImpl {
   async getProviderTemplateById(d: {
@@ -57,7 +59,7 @@ class ProviderTemplateServiceImpl {
       });
     }
 
-    return providerTemplate;
+    return (await this.enrich([providerTemplate], d.instance))[0];
   }
 
   async createProviderTemplate(d: {
@@ -67,6 +69,7 @@ class ProviderTemplateServiceImpl {
       name: string;
       description?: string;
       metadata?: Record<string, unknown>;
+      toolFilters?: any;
     } & (
       | {
           providerDeploymentId: string;
@@ -80,39 +83,47 @@ class ProviderTemplateServiceImpl {
   }) {
     let providerDeploymentId = await this.getOrCreateProviderDeployment(d);
 
-    let existing = await db.providerTemplate.findFirst({
-      where: {
-        instanceOid: d.instance.oid,
-        providerDeploymentId
-      }
-    });
-    if (existing) {
-      if (existing.status == 'archived') {
-        let providerTemplate = await db.providerTemplate.update({
-          where: {
-            oid: existing.oid
-          },
-          data: {
-            status: 'active',
-            name: d.input.name,
-            description: d.input.description,
-            metadata: d.input.metadata ?? {},
-            archivedAt: null
-          }
-        });
+    // let existing = await db.providerTemplate.findFirst({
+    //   where: {
+    //     instanceOid: d.instance.oid,
+    //     providerDeploymentId
+    //   }
+    // });
+    // if (existing) {
+    //   if (existing.status == 'archived') {
+    //     let providerTemplate = await db.providerTemplate.update({
+    //       where: {
+    //         oid: existing.oid
+    //       },
+    //       data: {
+    //         status: 'active',
+    //         name: d.input.name,
+    //         description: d.input.description,
+    //         metadata: d.input.metadata ?? {},
+    //         archivedAt: null
+    //       }
+    //     });
 
-        await providerTemplateUpdatedQueue.add({
-          providerTemplateId: providerTemplate.id
-        });
+    //     await providerTemplateUpdatedQueue.add({
+    //       providerTemplateId: providerTemplate.id
+    //     });
 
-        return providerTemplate;
-      }
+    //     return providerTemplate;
+    //   }
 
-      throw new ServiceError(
-        conflictError({
-          message: 'A provider template already exists for this provider deployment.'
-        })
-      );
+    //   throw new ServiceError(
+    //     conflictError({
+    //       message: 'A provider template already exists for this provider deployment.'
+    //     })
+    //   );
+    // }
+
+    if (d.input.toolFilters) {
+      await subspaceProviderDeploymentService.update({
+        instance: d.instance,
+        providerDeploymentId,
+        toolFilters: d.input.toolFilters
+      });
     }
 
     let providerTemplate = await db.providerTemplate.create({
@@ -130,15 +141,17 @@ class ProviderTemplateServiceImpl {
 
     await providerTemplateCreatedQueue.add({ providerTemplateId: providerTemplate.id });
 
-    return providerTemplate;
+    return (await this.enrich([providerTemplate], d.instance))[0];
   }
 
   async updateProviderTemplate(d: {
     providerTemplate: ProviderTemplate;
+    instance: Instance;
     input: {
       name?: string;
       description?: string;
       metadata?: Record<string, unknown>;
+      toolFilters?: any;
     };
   }) {
     if (d.providerTemplate.status != 'active') {
@@ -160,12 +173,23 @@ class ProviderTemplateServiceImpl {
       }
     });
 
+    if (d.input.toolFilters) {
+      await subspaceProviderDeploymentService.update({
+        instance: d.instance,
+        providerDeploymentId: providerTemplate.providerDeploymentId,
+        toolFilters: d.input.toolFilters
+      });
+    }
+
     await providerTemplateUpdatedQueue.add({ providerTemplateId: providerTemplate.id });
 
-    return providerTemplate;
+    return (await this.enrich([providerTemplate], d.instance))[0];
   }
 
-  async archiveProviderTemplate(d: { providerTemplate: ProviderTemplate }) {
+  async archiveProviderTemplate(d: {
+    instance: Instance;
+    providerTemplate: ProviderTemplate;
+  }) {
     if (d.providerTemplate.status != 'active') {
       throw new ServiceError(
         preconditionFailedError({
@@ -188,7 +212,7 @@ class ProviderTemplateServiceImpl {
 
     await providerTemplateArchivedQueue.add({ providerTemplateId: providerTemplate.id });
 
-    return providerTemplate;
+    return (await this.enrich([providerTemplate], d.instance))[0];
   }
 
   async listProviderTemplates(d: {
@@ -213,7 +237,7 @@ class ProviderTemplateServiceImpl {
         })
       : undefined;
 
-    return Paginator.create(({ prisma }) =>
+    let paginator = Paginator.create(({ prisma }) =>
       prisma(async opts => {
         return await db.providerTemplate.findMany({
           ...opts,
@@ -252,6 +276,16 @@ class ProviderTemplateServiceImpl {
         });
       })
     );
+
+    return {
+      run: async (input: Parameters<typeof paginator.run>[0]) => {
+        let result = await paginator.run(input);
+        return {
+          ...result,
+          items: await this.enrich(result.items, d.instance)
+        };
+      }
+    };
   }
 
   async checkConsumerReadAccess(d: {
@@ -270,6 +304,25 @@ class ProviderTemplateServiceImpl {
         });
       }
     });
+  }
+
+  private async enrich(
+    templates: ProviderTemplate[],
+    instance: Instance
+  ): Promise<EnrichedProviderTemplate[]> {
+    if (templates.length === 0) return [];
+
+    let deploymentIds = [...new Set(templates.map(t => t.providerDeploymentId))];
+    let deployments = await subspaceProviderDeploymentService.getMany({
+      instance,
+      ids: deploymentIds
+    });
+    let deploymentMap = new Map(deployments.map(d => [d.id, d]));
+
+    return templates.map(t => ({
+      ...t,
+      providerDeployment: deploymentMap.get(t.providerDeploymentId)!
+    }));
   }
 
   private async getOrCreateProviderDeployment(d: {

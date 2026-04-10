@@ -29,6 +29,7 @@ export let sessionPresenter = (
   name: session.name,
   description: session.description,
   metadata: session.metadata,
+  privateMetadata: session.privateMetadata,
 
   status: session.status,
 

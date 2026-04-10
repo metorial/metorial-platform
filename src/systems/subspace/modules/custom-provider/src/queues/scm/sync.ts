@@ -1,5 +1,5 @@
 import { createLock } from '@lowerdeck/lock';
-import { createQueue, QueueRetryError } from '@lowerdeck/queue';
+import { createQueue } from '@lowerdeck/queue';
 import { db, snowflake } from '@metorial-subspace/db';
 import { env } from '../../env';
 import { origin } from '../../origin';
@@ -22,11 +22,10 @@ export let scmSyncManyQueueProcessor = scmSyncManyQueue.process(async data =>
     let changeNotification = await db.originSyncChangeNotificationCursor.findFirst({
       where: { id: CURSOR_ID }
     });
-    if (!changeNotification) throw new QueueRetryError();
 
     let changeNotifications = await origin.changeNotification.list({
       limit: 100,
-      after: changeNotification.cursor,
+      after: changeNotification?.cursor,
       order: 'asc'
     });
     if (!changeNotifications.items.length) return;
@@ -83,5 +82,7 @@ export let scmSyncManyQueueProcessor = scmSyncManyQueue.process(async data =>
       create: { id: CURSOR_ID, cursor: lastItem.id },
       update: { cursor: lastItem.id }
     });
+
+    await scmSyncManyQueue.add({});
   })
 );

@@ -8,16 +8,17 @@ model ProviderConfig {
   oid BigInt @id
   id  String @unique
 
-  status ProviderConfigStatus
+  status     ProviderConfigStatus
   archivedAt DateTime?
 
   isDefault   Boolean
   isEphemeral Boolean
   isForVault  Boolean
 
-  name        String?
-  description String?
-  metadata    Json?
+  name            String?
+  description     String?
+  metadata        Json?
+  privateMetadata Json?
 
   /// [ToolFilter]
   toolFilter Json @default("{\"type\":\"v1.allow_all\"}")

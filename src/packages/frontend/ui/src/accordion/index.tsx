@@ -15,62 +15,33 @@ let slideUp = keyframes`
 `;
 
 let Item = styled(RadixAccordion.Item)`
-  border: solid 1px ${theme.colors.gray200};
+  border: 1px solid ${theme.colors.gray300};
   display: flex;
   flex-direction: column;
-  transition: all 0.3s ease;
+  background: ${theme.colors.background};
+  overflow: hidden;
+  border-radius: 10px;
+  transition: border-color 0.2s ease;
 
   &:focus-within {
-    background: ${theme.colors.gray100};
+    border-color: ${theme.colors.gray500};
   }
 
-  &:not(:last-child) {
-    border-bottom: solid 1px transparent;
-  }
-
-  &:first-child {
-    border-top-left-radius: 10px;
-    border-top-right-radius: 10px;
-  }
-
-  &:last-child {
-    border-bottom-left-radius: 10px;
-    border-bottom-right-radius: 10px;
-  }
-
-  &[data-state='open'][data-type='multiple'] {
-    margin-bottom: 20px;
-    border-radius: 10px;
-    box-shadow: ${theme.shadows.medium};
-    border: solid 1px ${theme.colors.gray800};
-    background: transparent;
-  }
-
-  &:not(:first-child)[data-state='open'] {
+  &:not(:first-child) {
     margin-top: 10px;
-  }
-
-  &[data-before-open='true'] {
-    border-bottom: solid 1px ${theme.colors.gray200};
-    border-bottom-left-radius: 10px;
-    border-bottom-right-radius: 10px;
-  }
-
-  &[data-after-open='true'] {
-    border-top-left-radius: 10px;
-    border-top-right-radius: 10px;
   }
 `;
 
 let Trigger = styled(RadixAccordion.Trigger).attrs({
   type: 'button'
 })`
-  height: 50px;
+  min-height: 48px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 20px;
-  font-size: 16px;
+  width: 100%;
+  padding: 12px 16px;
+  font-size: 14px;
   font-weight: 600;
   border: none;
   outline: none;
@@ -78,12 +49,32 @@ let Trigger = styled(RadixAccordion.Trigger).attrs({
   background: transparent;
   text-align: left;
   user-select: none;
+  color: ${theme.colors.gray900};
+
+  &[data-disabled] {
+    color: ${theme.colors.gray600};
+    cursor: not-allowed;
+  }
+`;
+
+let TriggerTitleText = styled.span`
+  display: inline-flex;
+  flex-direction: column;
+  gap: 3px;
+`;
+
+let TriggerDescription = styled.span`
+  font-size: 12px;
+  font-weight: 500;
+  color: ${theme.colors.gray600};
+  line-height: 1.2;
 `;
 
 let Content = styled(RadixAccordion.Content)`
   font-size: 14px;
-  border-top: solid 1px ${theme.colors.gray200};
+  border-top: 1px solid ${theme.colors.gray300};
   overflow: hidden;
+  background: ${theme.colors.background};
 
   &[data-state='open'] {
     animation: ${slideDown} 0.3s ease;
@@ -95,53 +86,66 @@ let Content = styled(RadixAccordion.Content)`
   }
 `;
 
-export let Accordion = ({
-  items,
-  type = 'single',
-  disabled
-}: {
+type AccordionProps = {
   items: {
     title: React.ReactNode;
+    description?: React.ReactNode;
     content: React.ReactNode;
     defaultOpen?: boolean;
+    disabled?: boolean;
   }[];
   type?: 'single' | 'multiple';
   disabled?: boolean;
-}) => {
-  let [value, setValue] = useState<string | string[] | undefined>(() =>
-    type == 'single'
-      ? items.findIndex(item => item.defaultOpen).toString()
-      : items.filter(item => item.defaultOpen).map((_, i) => i.toString())
-  );
+  value?: string | string[];
+  onValueChange?: (value: string | string[]) => void;
+  collapsible?: boolean;
+};
+
+export let Accordion = (p: AccordionProps) => {
+  let [internalValue, setInternalValue] = useState<string | string[] | undefined>(() => {
+    if (p.type === 'multiple') {
+      return p.items.flatMap((item, i) => (item.defaultOpen ? [i.toString()] : []));
+    }
+
+    let initialIndex = p.items.findIndex(item => item.defaultOpen);
+    return initialIndex >= 0 ? initialIndex.toString() : undefined;
+  });
+  let isControlled = p.value !== undefined;
+  let resolvedValue = isControlled ? p.value : internalValue;
+
+  let handleValueChange = (nextValue: string | string[]) => {
+    if (!isControlled) {
+      if (Array.isArray(nextValue)) {
+        setInternalValue(nextValue);
+      } else {
+        setInternalValue(nextValue || undefined);
+      }
+    }
+    p.onValueChange?.(nextValue);
+  };
 
   return (
     <RadixAccordion.Root
-      type={type}
-      disabled={disabled}
-      value={value as any}
-      onValueChange={setValue}
+      type={p.type ?? 'single'}
+      collapsible={(p.type ?? 'single') === 'single' ? p.collapsible : undefined}
+      disabled={p.disabled}
+      value={resolvedValue as any}
+      onValueChange={handleValueChange as any}
     >
-      {items.map((item, i) => {
-        let afterOpen = Array.isArray(value)
-          ? value.includes((i - 1).toString())
-          : value == (i - 1).toString();
-        let beforeOpen = Array.isArray(value)
-          ? value.includes((i + 1).toString())
-          : value == (i + 1).toString();
-        let isOpen = Array.isArray(value)
-          ? value.includes(i.toString())
-          : value == i.toString();
+      {p.items.map((item, i) => {
+        let isOpen = Array.isArray(resolvedValue)
+          ? resolvedValue.includes(i.toString())
+          : resolvedValue == i.toString();
 
         return (
-          <Item
-            value={i.toString()}
-            key={i}
-            data-before-open={beforeOpen && !isOpen}
-            data-after-open={afterOpen && !isOpen}
-            data-type={type}
-          >
-            <Trigger>
-              <span>{item.title}</span>
+          <Item value={i.toString()} key={i} disabled={item.disabled}>
+            <Trigger disabled={item.disabled}>
+              <TriggerTitleText>
+                <span>{item.title}</span>
+                {item.description ? (
+                  <TriggerDescription>{item.description}</TriggerDescription>
+                ) : null}
+              </TriggerTitleText>
 
               <RiArrowDownSLine
                 style={{
@@ -153,7 +157,7 @@ export let Accordion = ({
               />
             </Trigger>
             <Content>
-              <div style={{ padding: '15px 20px' }}>{item.content}</div>
+              <div style={{ padding: '16px' }}>{item.content}</div>
             </Content>
           </Item>
         );
@@ -178,11 +182,11 @@ export let AccordionSingle = ({
       items={[
         {
           title,
+          disabled,
           content: children,
           defaultOpen
         }
       ]}
-      disabled={disabled}
       type="multiple"
     />
   );

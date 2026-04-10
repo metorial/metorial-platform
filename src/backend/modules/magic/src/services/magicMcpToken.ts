@@ -21,7 +21,6 @@ import {
 } from '@metorial/db';
 import {
   accessTagService,
-  consumerMagicMcpConnectRoles,
   consumerMagicMcpReadRoles,
   consumerMagicMcpWriteRoles,
   type AnyAccessTagSelector
@@ -401,10 +400,10 @@ class MagicMcpTokenImpl {
     );
   }
 
-  async getMagicMcpTokenBySecret(d: {
+  async getMagicMcpTokenBySecretSafe(d: {
     secret: string;
     instance: Instance;
-  }): Promise<MagicMcpTokenWithRelations> {
+  }): Promise<MagicMcpTokenWithRelations | null> {
     let magicMcpToken = await db.magicMcpToken.findFirst({
       where: {
         secret: d.secret,
@@ -413,13 +412,7 @@ class MagicMcpTokenImpl {
       },
       include
     });
-    if (!magicMcpToken) {
-      throw new ServiceError(
-        unauthorizedError({
-          message: 'Invalid magic MCP token'
-        })
-      );
-    }
+    if (!magicMcpToken) return null;
 
     if (isMagicMcpTokenExpired(magicMcpToken)) {
       throw new ServiceError(
@@ -436,6 +429,22 @@ class MagicMcpTokenImpl {
       throw new ServiceError(
         unauthorizedError({
           message: invalidLinkedResourceMessage
+        })
+      );
+    }
+
+    return magicMcpToken;
+  }
+
+  async getMagicMcpTokenBySecret(d: {
+    secret: string;
+    instance: Instance;
+  }): Promise<MagicMcpTokenWithRelations> {
+    let magicMcpToken = await this.getMagicMcpTokenBySecretSafe(d);
+    if (!magicMcpToken) {
+      throw new ServiceError(
+        unauthorizedError({
+          message: 'Invalid magic MCP token'
         })
       );
     }
@@ -529,12 +538,12 @@ class MagicMcpTokenImpl {
 
     let consumerAccessTagEntities = await db.accessTagEntity.findMany({
       where: {
-        magicMcpTokenOid: d.token.oid,
-        accessTagPolicy: {
-          roles: {
-            hasSome: [...consumerMagicMcpReadRoles, ...consumerMagicMcpConnectRoles]
-          }
-        }
+        magicMcpTokenOid: d.token.oid
+        // accessTagPolicy: {
+        //   roles: {
+        //     hasSome: [...consumerMagicMcpReadRoles, ...consumerMagicMcpConnectRoles]
+        //   }
+        // }
       },
       select: {
         accessTagOid: true

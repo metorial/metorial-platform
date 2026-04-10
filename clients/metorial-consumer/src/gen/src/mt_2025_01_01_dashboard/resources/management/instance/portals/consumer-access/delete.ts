@@ -3,11 +3,14 @@ import { mtMap } from '@metorial/util-resource-mapper';
 export type ManagementInstancePortalsConsumerAccessDeleteOutput = {
   object: 'consumer.access';
   id: string;
+  name: string;
+  description: string | null;
+  readme: string | null;
   access:
     | {
         type: 'provider_template';
         providerTemplate: {
-          object: 'provider.template';
+          object: 'provider.template#preview';
           id: string;
           status: 'active' | 'archived' | 'deleted';
           name: string;
@@ -47,6 +50,9 @@ export let mapManagementInstancePortalsConsumerAccessDeleteOutput =
   mtMap.object<ManagementInstancePortalsConsumerAccessDeleteOutput>({
     object: mtMap.objectField('object', mtMap.passthrough()),
     id: mtMap.objectField('id', mtMap.passthrough()),
+    name: mtMap.objectField('name', mtMap.passthrough()),
+    description: mtMap.objectField('description', mtMap.passthrough()),
+    readme: mtMap.objectField('readme', mtMap.passthrough()),
     access: mtMap.objectField(
       'access',
       mtMap.union([

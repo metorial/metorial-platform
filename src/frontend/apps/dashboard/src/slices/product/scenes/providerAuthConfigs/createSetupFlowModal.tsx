@@ -72,7 +72,7 @@ export let ProviderAuthConfigSetupFlowCreateContent = (p: {
           providerName={p.providerName}
           providerId={p.providerId}
           providerImageUrl={p.providerImageUrl}
-          showBrandingLink={p.previewMode !== 'managed'}
+          showBrandingLink
           previewMode={p.previewMode}
           previewAuthName={authPreviewDetails.name}
           previewAuthDescription={authPreviewDetails.description}

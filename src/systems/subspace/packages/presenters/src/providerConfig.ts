@@ -31,6 +31,7 @@ export let providerConfigPresenter = (
   name: providerConfig.name,
   description: providerConfig.description,
   metadata: providerConfig.metadata,
+  privateMetadata: providerConfig.privateMetadata,
   toolFilter: providerConfig.toolFilter,
 
   providerId: providerConfig.provider.id,
@@ -70,6 +71,7 @@ export let providerConfigPreviewPresenter = (
   name: providerConfig.name,
   description: providerConfig.description,
   metadata: providerConfig.metadata,
+  privateMetadata: providerConfig.privateMetadata,
   toolFilter: providerConfig.toolFilter,
 
   providerId: providerConfig.provider.id,

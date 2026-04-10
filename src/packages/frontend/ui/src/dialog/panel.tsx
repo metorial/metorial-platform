@@ -7,7 +7,9 @@ import { theme } from '../theme';
 import { DialogProvider, useDialogZIndex } from './state';
 import { ContentSide, Overlay } from './styles';
 
-let Wrapper = styled(ContentSide)``;
+let Wrapper = styled(ContentSide)`
+  transition: width 0.2s ease;
+`;
 
 let Header = styled('header')`
   display: flex;
@@ -31,13 +33,14 @@ let Content = styled('main')`
   min-height: 0;
   padding: 20px;
   overflow: auto;
-  scrollbar-gutter: stable;
+  scrollbar-gutter: stable both-edges;
 `;
 
 let Title = styled(RadixDialogDialog.Title)`
   padding: 0;
   font-size: 20px;
   font-weight: 600;
+  margin-bottom: 4px;
 `;
 
 let Description = styled(RadixDialogDialog.Description)`

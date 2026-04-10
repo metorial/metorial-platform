@@ -3,14 +3,26 @@ import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
-  useDashboardFlags
+  useDashboardFlags,
+  useUser
 } from '@metorial/state';
 import { Button, Menu } from '@metorial/ui';
 import { Outlet, useLocation } from 'react-router-dom';
 import { showCustomProviderRemoteFormModal } from '../../../scenes/customProvider/modal';
+import { isMetorialInternalEmail } from '../../../scenes/customProvider/utils';
 
 export let ManagedProvidersListLayout = () => {
   let flags = useDashboardFlags();
+  let user = useUser();
+  let shouldStartWithoutRepository = !isMetorialInternalEmail(user.data?.email);
+  let openManagedCreateModal = () => {
+    if (!user.data) return;
+
+    showCustomProviderRemoteFormModal({
+      type: 'managed',
+      startWithoutRepository: shouldStartWithoutRepository
+    });
+  };
 
   return (
     <ContentLayout>
@@ -34,12 +46,19 @@ export let ManagedProvidersListLayout = () => {
                 }
               ]}
               onItemClick={id => {
+                if (id === 'managed') {
+                  openManagedCreateModal();
+                  return;
+                }
+
                 showCustomProviderRemoteFormModal({
-                  type: id as 'docker' | 'managed'
+                  type: 'docker'
                 });
               }}
             >
-              <Button size="2">Create Custom Provider</Button>
+              <Button size="2" loading={user.isLoading} disabled={!user.data && !user.isLoading}>
+                Create Custom Provider
+              </Button>
             </Menu>
           ) : (
             !!(
@@ -47,11 +66,9 @@ export let ManagedProvidersListLayout = () => {
               flags.data?.flags['paid-custom-providers']
             ) && (
               <Button
-                onClick={() =>
-                  showCustomProviderRemoteFormModal({
-                    type: 'managed'
-                  })
-                }
+                onClick={openManagedCreateModal}
+                loading={user.isLoading}
+                disabled={!user.data && !user.isLoading}
                 size="2"
               >
                 Create Custom Provider

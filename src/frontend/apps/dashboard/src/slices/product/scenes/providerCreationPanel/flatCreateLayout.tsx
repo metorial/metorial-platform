@@ -4,7 +4,7 @@ import styled from 'styled-components';
 export let FlatCreateSections = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 0;
 `;
 
 export let FlatCreateSection = styled.div`
@@ -14,5 +14,12 @@ export let FlatCreateSection = styled.div`
   padding: 16px;
   border-radius: 14px;
   border: 1px solid ${theme.colors.gray300};
-  background: ${theme.colors.gray100};
+`;
+
+export let FlatCreateSectionLabel = styled.div`
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: ${theme.colors.gray700};
+  margin: 0 0 8px 0;
 `;

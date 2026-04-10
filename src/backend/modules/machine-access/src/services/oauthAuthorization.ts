@@ -1194,7 +1194,7 @@ class OAuthAuthorizationService {
 
     let acceptedRequest = await oauthGlobalRepository.acceptOAuthAuthorizationRequest({
       id: d.oauthAuthorizationRequest.id,
-      userId: d.user.id,
+      user: d.user,
       expiresAt
     });
     if (!acceptedRequest) {
@@ -1274,7 +1274,7 @@ class OAuthAuthorizationService {
 
     let rejectedRequest = await oauthGlobalRepository.rejectOAuthAuthorizationRequest({
       id: d.oauthAuthorizationRequest.id,
-      userId: d.user.id
+      user: d.user
     });
     if (!rejectedRequest) {
       throw new ServiceError(

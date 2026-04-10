@@ -16,7 +16,7 @@ export type ManagementInstancePortalsAccessRequestsUpdateOutput = {
     | {
         type: 'provider_template';
         providerTemplate: {
-          object: 'provider.template';
+          object: 'provider.template#preview';
           id: string;
           status: 'active' | 'archived' | 'deleted';
           name: string;

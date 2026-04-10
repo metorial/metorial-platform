@@ -64,8 +64,8 @@ let SetupFlowPreviewCard = styled.div`
   flex-direction: column;
   border-radius: 12px;
   border: 1px solid ${theme.colors.gray300};
-  background: ${theme.colors.gray100};
   overflow: hidden;
+  background: #efefef;
 `;
 
 let SetupFlowPreviewScreen = styled.div`
@@ -319,7 +319,6 @@ export let SetupFlowPreviewSidebar = (p: {
 
         <SetupFlowPreviewCard
           style={{
-            background: theme.colors.gray200,
             padding: 32,
             display: 'flex',
             alignItems: 'center',
@@ -341,7 +340,6 @@ export let SetupFlowPreviewSidebar = (p: {
                         style={{
                           width: '100%',
                           height: '100%',
-                          background: theme.colors.gray100,
                           color: theme.colors.gray900,
                           display: 'flex',
                           alignItems: 'center',

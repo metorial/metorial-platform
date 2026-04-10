@@ -3,6 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
   ConsumerAccess,
+  ConsumerAccessListing,
   ConsumerAccessTargetType,
   ConsumerGroup,
   ConsumerSurface,
@@ -24,7 +25,8 @@ import { consumerAccessPolicyService } from './accessPolicy';
 let include = {
   consumerGroup: true,
   providerTemplate: true,
-  magicMcpServer: true
+  magicMcpServer: true,
+  listing: true
 } as const;
 
 type ConsumerAccessCreateInput =
@@ -37,7 +39,97 @@ type ConsumerAccessCreateInput =
       magicMcpServer: MagicMcpServer;
     };
 
+type ConsumerAccessWithRelations = ConsumerAccess & {
+  consumerGroup: ConsumerGroup;
+  providerTemplate: ProviderTemplate | null;
+  magicMcpServer: MagicMcpServer | null;
+  listing: ConsumerAccessListing | null;
+};
+
 class ConsumerAccessServiceImpl {
+  private getDefaultListingValues(
+    access: ConsumerAccessCreateInput | ConsumerAccessWithRelations
+  ): Pick<ConsumerAccessListing, 'name' | 'description' | 'readme'> {
+    if (access.type == 'provider_template') {
+      return {
+        name: access.providerTemplate!.name,
+        description: access.providerTemplate!.description,
+        readme: null
+      };
+    }
+
+    return {
+      name: access.magicMcpServer!.name ?? access.magicMcpServer!.id,
+      description: access.magicMcpServer!.description,
+      readme: null
+    };
+  }
+
+  private async upsertSharedListing(d: {
+    consumerSurface: Pick<ConsumerSurface, 'oid'>;
+    access: ConsumerAccessCreateInput | ConsumerAccessWithRelations;
+    input: {
+      name?: string;
+      description?: string | null;
+      readme?: string | null;
+    };
+  }) {
+    let defaults = this.getDefaultListingValues(d.access);
+
+    return withTransaction(async db => {
+      let listing = await db.consumerAccessListing.upsert({
+        where:
+          d.access.type == 'provider_template'
+            ? {
+                surfaceOid_providerTemplateOid: {
+                  surfaceOid: d.consumerSurface.oid,
+                  providerTemplateOid: d.access.providerTemplate!.oid
+                }
+              }
+            : {
+                surfaceOid_magicMcpServerOid: {
+                  surfaceOid: d.consumerSurface.oid,
+                  magicMcpServerOid: d.access.magicMcpServer!.oid
+                }
+              },
+        create: {
+          id: await ID.generateId('consumerAccess'),
+          surfaceOid: d.consumerSurface.oid,
+          providerTemplateOid:
+            d.access.type == 'provider_template' ? d.access.providerTemplate!.oid : undefined,
+          magicMcpServerOid:
+            d.access.type == 'magic_mcp_server' ? d.access.magicMcpServer!.oid : undefined,
+          name: d.input.name ?? defaults.name,
+          description: d.input.description ?? defaults.description,
+          readme: d.input.readme ?? defaults.readme
+        },
+        update: {
+          name: d.input.name,
+          description: d.input.description,
+          readme: d.input.readme
+        }
+      });
+
+      await db.consumerAccess.updateMany({
+        where:
+          d.access.type == 'provider_template'
+            ? {
+                surfaceOid: d.consumerSurface.oid,
+                providerTemplateOid: d.access.providerTemplate!.oid
+              }
+            : {
+                surfaceOid: d.consumerSurface.oid,
+                magicMcpServerOid: d.access.magicMcpServer!.oid
+              },
+        data: {
+          listingOid: listing.oid
+        }
+      });
+
+      return listing;
+    });
+  }
+
   async listConsumerAccesses(d: {
     consumerSurface: ConsumerSurface;
     consumerGroupIds?: string[];
@@ -271,6 +363,11 @@ class ConsumerAccessServiceImpl {
     consumerSurface: ConsumerSurface;
     consumerGroup: ConsumerGroup;
     access: ConsumerAccessCreateInput;
+    input?: {
+      name?: string;
+      description?: string | null;
+      readme?: string | null;
+    };
   }) {
     if (d.consumerGroup.surfaceOid != d.consumerSurface.oid) {
       throw new ServiceError(notFoundError('consumer.group'));
@@ -324,8 +421,8 @@ class ConsumerAccessServiceImpl {
       }
     }
 
-    return await withTransaction(async tx => {
-      let consumerAccess = await tx.consumerAccess.upsert({
+    return await withTransaction(async db => {
+      let consumerAccess = await db.consumerAccess.upsert({
         where:
           d.access.type == 'provider_template'
             ? {
@@ -388,17 +485,50 @@ class ConsumerAccessServiceImpl {
         }
       }
 
-      return consumerAccess;
+      await this.upsertSharedListing({
+        consumerSurface: d.consumerSurface,
+        access: d.access,
+        input: d.input ?? {}
+      });
+
+      return (await db.consumerAccess.findUnique({
+        where: {
+          oid: consumerAccess.oid
+        },
+        include
+      }))!;
+    });
+  }
+
+  async updateConsumerAccess(d: {
+    consumerAccess: ConsumerAccessWithRelations;
+    input: {
+      name?: string;
+      description?: string | null;
+      readme?: string | null;
+    };
+  }) {
+    return await withTransaction(async db => {
+      await this.upsertSharedListing({
+        consumerSurface: {
+          oid: d.consumerAccess.surfaceOid
+        },
+        access: d.consumerAccess,
+        input: d.input
+      });
+
+      return (await db.consumerAccess.findUnique({
+        where: {
+          oid: d.consumerAccess.oid
+        },
+        include
+      }))!;
     });
   }
 
   async deleteConsumerAccess(d: {
     organization: Organization;
-    consumerAccess: ConsumerAccess & {
-      consumerGroup: ConsumerGroup;
-      providerTemplate: ProviderTemplate | null;
-      magicMcpServer: MagicMcpServer | null;
-    };
+    consumerAccess: ConsumerAccessWithRelations;
   }) {
     return await withTransaction(async tx => {
       let consumerAccess = await tx.consumerAccess.delete({

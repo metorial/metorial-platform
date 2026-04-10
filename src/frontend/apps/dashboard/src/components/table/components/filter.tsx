@@ -47,19 +47,19 @@ let fadeOut = keyframes`
   }
 `;
 
-let Wrapper = styled('div')`
+let Wrapper = styled('div')<{ $fullWidth: boolean; $wrap: boolean }>`
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: ${p => (p.$wrap ? 'wrap' : 'nowrap')};
   gap: 10px;
-  width: 100%;
+  width: ${p => (p.$fullWidth ? '100%' : 'auto')};
 `;
 
-let CurrentFilters = styled('div')`
+let CurrentFilters = styled('div')<{ $wrap: boolean }>`
   display: flex;
   gap: 10px;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: ${p => (p.$wrap ? 'wrap' : 'nowrap')};
 `;
 
 let CurrentFilter = styled('div')`
@@ -203,13 +203,21 @@ let getFilterText = (filter: TableFilter<any>, state: TableFilterState): string 
 export let TableFilters = memo(
   ({
     filters,
-    filterState: [filterState, setFilterState]
+    filterState: [filterState, setFilterState],
+    fullWidth = true,
+    defaultFilterId,
+    resetCurrentFilterOnOpen = false,
+    wrap = true
   }: {
     filters: TableFilter<any>[];
     filterState: [
       TableFilterState[],
       React.Dispatch<React.SetStateAction<TableFilterState[]>>
     ];
+    fullWidth?: boolean;
+    defaultFilterId?: string;
+    resetCurrentFilterOnOpen?: boolean;
+    wrap?: boolean;
   }) => {
     let [open, setOpen] = useState(false);
     let closedAtRef = useRef(0);
@@ -218,7 +226,9 @@ export let TableFilters = memo(
       if (!open) closedAtRef.current = Date.now();
     }, [open]);
 
-    let [currentFilterId, setCurrentFilterId] = useState(() => filters[0].id);
+    let [currentFilterId, setCurrentFilterId] = useState(
+      () => defaultFilterId ?? filters[0].id
+    );
     let currentFilter = useMemo(
       () => filters.find(f => f.id == currentFilterId),
       [currentFilterId, filters]
@@ -228,6 +238,17 @@ export let TableFilters = memo(
       () => filterState.find(f => f.id == currentFilterId),
       [currentFilterId, filterState]
     );
+
+    useEffect(() => {
+      if (!filters.some(filter => filter.id == currentFilterId)) {
+        setCurrentFilterId(defaultFilterId ?? filters[0]?.id);
+      }
+    }, [currentFilterId, defaultFilterId, filters]);
+
+    useEffect(() => {
+      if (!open || !resetCurrentFilterOnOpen) return;
+      setCurrentFilterId(defaultFilterId ?? filters[0]?.id);
+    }, [defaultFilterId, filters, open, resetCurrentFilterOnOpen]);
 
     let applyFilter = (state: TableFilterState) => {
       setFilterState(prev => {
@@ -253,7 +274,7 @@ export let TableFilters = memo(
     };
 
     return (
-      <Wrapper>
+      <Wrapper $fullWidth={fullWidth} $wrap={wrap}>
         <RadixPopover.Root open={open} onOpenChange={setOpen}>
           <RadixPopover.Trigger asChild>
             <Button iconLeft={<RiFilter2Line />} size="2">
@@ -268,7 +289,8 @@ export let TableFilters = memo(
                   <Button
                     variant="ghost"
                     onClick={() => setCurrentFilterId(filter.id)}
-                    onHover={() => setCurrentFilterId(filter.id)}
+                    onMouseEnter={() => setCurrentFilterId(filter.id)}
+                    onFocus={() => setCurrentFilterId(filter.id)}
                     color={filter.id == currentFilterId ? 'blue' : undefined}
                     size="2"
                     key={filter.id}
@@ -287,6 +309,7 @@ export let TableFilters = memo(
 
                 {currentFilter?.type == 'string' && (
                   <FilterString
+                    key={currentFilter.id}
                     filter={currentFilter}
                     state={currentFilterState as TableFilterStateString}
                     apply={applyFilter}
@@ -296,6 +319,7 @@ export let TableFilters = memo(
 
                 {currentFilter?.type == 'select' && (
                   <FilterSelect
+                    key={currentFilter.id}
                     filter={currentFilter}
                     state={currentFilterState as TableFilterStateSelect}
                     apply={applyFilter}
@@ -305,6 +329,7 @@ export let TableFilters = memo(
 
                 {currentFilter?.type == 'number' && (
                   <FilterNumber
+                    key={currentFilter.id}
                     filter={currentFilter}
                     state={currentFilterState as TableFilterStateNumber}
                     apply={applyFilter}
@@ -314,6 +339,7 @@ export let TableFilters = memo(
 
                 {currentFilter?.type == 'date' && (
                   <FilterDate
+                    key={currentFilter.id}
                     filter={currentFilter}
                     state={currentFilterState as TableFilterStateDate}
                     apply={applyFilter}
@@ -325,7 +351,7 @@ export let TableFilters = memo(
           </RadixPopover.Portal>
         </RadixPopover.Root>
 
-        <CurrentFilters>
+        <CurrentFilters $wrap={wrap}>
           {filterState.map(state => {
             let filter = filters.find(f => f.id == state.id);
             if (!filter) return null;
@@ -447,7 +473,7 @@ let FilterSelect = ({
   reset?: () => void;
 }) => {
   let [value, setValue] = useState(() => state?.value ?? []);
-  useEffect(() => setValue(state?.value ?? []), [state]);
+  useEffect(() => setValue(state?.value ?? []), [state, filter.id]);
 
   return (
     <form onSubmit={e => e.preventDefault()}>
