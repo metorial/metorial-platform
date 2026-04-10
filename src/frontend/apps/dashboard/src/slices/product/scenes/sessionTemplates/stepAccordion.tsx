@@ -1,8 +1,8 @@
+import { theme } from '@metorial/ui';
 import * as RadixAccordion from '@radix-ui/react-accordion';
 import { RiArrowDownSLine, RiCheckLine } from '@remixicon/react';
 import React, { useState } from 'react';
 import { keyframes, styled } from 'styled-components';
-import { theme } from '@metorial/ui';
 
 let slideDown = keyframes`
   from { height: 0 }
@@ -20,14 +20,10 @@ let Item = styled(RadixAccordion.Item)`
   flex-direction: column;
   overflow: hidden;
   transition: all 0.3s ease;
-  background: #f6f6f6;
+  background: #fafafa;
 
   &[data-state='open'] {
     background: #efefef;
-  }
-
-  &:focus-within {
-    background: ${theme.colors.gray100};
   }
 
   &:not(:last-child) {

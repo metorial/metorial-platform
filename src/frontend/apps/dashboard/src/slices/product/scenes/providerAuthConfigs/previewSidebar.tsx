@@ -65,6 +65,7 @@ let SetupFlowPreviewCard = styled.div`
   border-radius: 12px;
   border: 1px solid ${theme.colors.gray300};
   overflow: hidden;
+  background: #efefef;
 `;
 
 let SetupFlowPreviewScreen = styled.div`

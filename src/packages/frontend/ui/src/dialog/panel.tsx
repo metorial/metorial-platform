@@ -40,6 +40,7 @@ let Title = styled(RadixDialogDialog.Title)`
   padding: 0;
   font-size: 20px;
   font-weight: 600;
+  margin-bottom: 4px;
 `;
 
 let Description = styled(RadixDialogDialog.Description)`

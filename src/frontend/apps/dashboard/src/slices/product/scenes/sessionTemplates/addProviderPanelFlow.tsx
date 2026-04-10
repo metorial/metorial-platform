@@ -17,21 +17,21 @@ import {
   Text
 } from '@metorial/ui';
 import { RiAddLine } from '@remixicon/react';
-import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { TableFilterState } from '../../../../components/table/filter';
-import { SessionTemplateStepAccordion } from './stepAccordion';
 import {
   emptyConfigurationSelection,
   type ConfigurationSelection
 } from '../../lib/configSelection';
+import { ProviderAuthConfigCreateButton } from '../providerAuthConfigs/modal';
+import { ProviderConfigurationSelection } from '../providerConfigs/selection';
 import {
   ProviderCreationPanelShell,
   showProviderCreationPanel
 } from '../providerCreationPanel';
-import { ProviderAuthConfigCreateButton } from '../providerAuthConfigs/modal';
 import { ProviderListingFilters, useProviderListingFilters } from '../providers/filters';
-import { ProviderConfigurationSelection } from '../providerConfigs/selection';
 import { ProvidersWithDeploymentsSearch } from '../providers/search';
+import { SessionTemplateStepAccordion } from './stepAccordion';
 
 type AddProviderPanelFormValues = {
   selectedProviderId: string;
