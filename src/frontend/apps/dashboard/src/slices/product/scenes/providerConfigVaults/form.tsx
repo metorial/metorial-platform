@@ -9,6 +9,10 @@ import {
 import { Button, Callout, CenteredSpinner, Dialog, Input, Spacer, Text } from '@metorial/ui';
 import { getProviderConfigSchemaCapabilities } from '../../lib/providerCreationCapabilities';
 import { JsonSchemaInput } from '../jsonSchemaInput';
+import {
+  FlatCreateSection,
+  FlatCreateSectionLabel
+} from '../providerCreationPanel/flatCreateLayout';
 
 export type ProviderConfigVaultFormProps = {
   type: 'create';
@@ -137,12 +141,29 @@ export let ProviderConfigVaultForm = (
 
           <Spacer size={10} />
 
-          <JsonSchemaInput
-            schema={schemaCapabilities.schemaObject}
-            value={form.values.vaultData}
-            onChange={value => form.setFieldValue('vaultData', value)}
-            label="Vault Values"
-          />
+          {schemaCapabilities.hasSchemaFields ? (
+            <>
+              <FlatCreateSectionLabel>Vault Values</FlatCreateSectionLabel>
+              <FlatCreateSection>
+                <JsonSchemaInput
+                  schema={schemaCapabilities.schemaObject}
+                  value={form.values.vaultData}
+                  onChange={value => form.setFieldValue('vaultData', value)}
+                />
+              </FlatCreateSection>
+            </>
+          ) : (
+            <>
+              <Text size="2" color="gray700" style={{ fontWeight: 600 }}>
+                Vault Values
+              </Text>
+              <Spacer size={6} />
+              <Callout color="gray">
+                This provider has no configurable fields. The vault will be created with empty
+                values.
+              </Callout>
+            </>
+          )}
 
           <Spacer size={15} />
 

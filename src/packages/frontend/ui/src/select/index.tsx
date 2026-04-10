@@ -37,8 +37,12 @@ let Trigger = styled(RadixSelect.Trigger).attrs({
   font-weight: 500;
   flex-shrink: 0;
 
-  &:focus-within,
   &:focus {
+    background: ${theme.colors.gray300};
+    outline: none;
+  }
+
+  &:focus-visible {
     background: ${theme.colors.gray300};
     outline: 1px solid ${theme.colors.gray600};
   }
@@ -160,8 +164,7 @@ export let Select = ({
   );
   useEffect(() => {
     let disabledSelected = (items as any).find(
-      (item: { id: string; disabled: boolean }) =>
-        item.id === normalizedValue && item.disabled
+      (item: { id: string; disabled: boolean }) => item.id === normalizedValue && item.disabled
     );
     if (disabledSelected) {
       let notDisabled = (items as any).find(

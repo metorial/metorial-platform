@@ -5,7 +5,7 @@ import {
 } from '@metorial/state';
 import { Paths } from '@metorial/frontend-config';
 import { CenteredSpinner } from '@metorial/ui';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ProviderCreationPanelShell,
@@ -14,13 +14,26 @@ import {
 } from '../providerCreationPanel';
 import { ProviderConfigVaultForm } from './form';
 
-export let ProviderConfigVaultPanelFlow = (p: { instanceId: string; close: () => void }) => {
+export let ProviderConfigVaultPanelFlow = (p: {
+  instanceId: string;
+  close: () => void;
+  setPanelWidth: (width: number) => void;
+}) => {
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
   let instance = useCurrentInstance();
   let navigate = useNavigate();
   let [step, setStep] = useState(0);
   let [providerId, setProviderId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (step === 0) {
+      p.setPanelWidth(1050);
+      return;
+    }
+
+    p.setPanelWidth(660);
+  }, [step, p.setPanelWidth]);
 
   let steps = useMemo(
     () => [
@@ -29,6 +42,11 @@ export let ProviderConfigVaultPanelFlow = (p: { instanceId: string; close: () =>
         render: () => (
           <ProviderSelectionStep
             instanceId={p.instanceId}
+            providerListingsFilter={{
+              capabilities: {
+                supportsConfig: true
+              }
+            }}
             onSelect={nextProviderId => {
               setProviderId(nextProviderId);
               setStep(1);
@@ -95,6 +113,6 @@ export let ProviderConfigVaultPanelFlow = (p: { instanceId: string; close: () =>
 };
 
 export let showProviderConfigVaultPanelFlow = (p: { instanceId: string }) =>
-  showProviderCreationPanel(({ close }) => (
-    <ProviderConfigVaultPanelFlow {...p} close={close} />
+  showProviderCreationPanel(({ close, setWidth }) => (
+    <ProviderConfigVaultPanelFlow {...p} close={close} setPanelWidth={setWidth} />
   ));

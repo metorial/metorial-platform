@@ -13,7 +13,7 @@ import { Button, Flex, LinkTabs } from '@metorial/ui';
 import { useState } from 'react';
 import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { DeletedRecordCallout } from '../../../scenes/deletedRecordCallout';
-import { showAddProviderModal } from '../../../scenes/sessionTemplates/providersManager';
+import { showAddProviderSidePanel } from '../../../scenes/sessionTemplates/providersManager';
 
 export let SessionTemplateLayout = () => {
   let instance = useCurrentInstance();
@@ -105,7 +105,7 @@ export let SessionTemplateLayout = () => {
               <Button
                 size="2"
                 onClick={() =>
-                  showAddProviderModal({
+                  showAddProviderSidePanel({
                     instanceId: instance.data!.id,
                     sessionTemplateId: sessionTemplateId!,
                     onComplete: () => providers.refetch()

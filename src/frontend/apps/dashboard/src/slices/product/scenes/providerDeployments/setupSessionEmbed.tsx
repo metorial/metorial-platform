@@ -76,7 +76,6 @@ let ManagedCredentialsPreviewFrame = styled.div`
   padding: 20px;
   border-radius: 12px;
   border: 1px solid ${theme.colors.gray300};
-  background: ${theme.colors.gray100};
   min-height: 100%;
 `;
 
@@ -106,7 +105,6 @@ let SummaryFieldValue = styled.div`
   padding: 12px 14px;
   border-radius: 10px;
   border: 1px solid ${theme.colors.gray300};
-  background: ${theme.colors.gray100};
 `;
 
 let SummaryFieldMeta = styled.div`
@@ -120,7 +118,6 @@ let ManagedCredentialsPreviewBrand = styled.div`
   height: 40px;
   border-radius: 10px;
   border: 1px solid ${theme.colors.gray300};
-  background: ${theme.colors.gray100};
   display: flex;
   align-items: center;
   justify-content: center;
@@ -180,7 +177,6 @@ let ManagedCredentialsPreviewCard = styled.div`
 let FlatConnectForm = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 16px;
 `;
 
 let FlatConnectSection = styled.section`
@@ -188,14 +184,14 @@ let FlatConnectSection = styled.section`
   flex-direction: column;
   padding: 16px;
   border-radius: 14px;
+  margin-top: 15px;
   border: 1px solid ${theme.colors.gray300};
-  background: ${theme.colors.gray100};
 `;
 
 let FlatInlineField = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  margin-top: 15px;
 `;
 
 export let ProviderSetupSessionEmbed = ({
@@ -431,9 +427,10 @@ export let ProviderSetupSessionEmbed = ({
   );
   let requiresManualOAuthCredentials = isOAuth && !oauthAutoRegistrationEnabled;
   let preferredVisibleCredential =
+    managedVisibleCredentials.find(credential => credential.isDefault) ??
+    managedVisibleCredentials[0] ??
     customVisibleCredentials.find(credential => credential.isDefault) ??
     customVisibleCredentials[0] ??
-    managedVisibleCredentials[0] ??
     (visibleAuthCredentials.length === 1 ? visibleAuthCredentials[0] : null);
   let selectedVisibleCredential = visibleAuthCredentials.find(
     credential => credential.id === credentialsForm.values.selectedCredentialId
@@ -1022,7 +1019,7 @@ export let ProviderSetupSessionEmbed = ({
     collectAuthConfigDetails ? (
       <>
         <Input
-          label="Name"
+          label="Auth Config Name"
           description="Name the connection so you can tell it apart from other auth configs."
           {...authConfigDetailsForm.getFieldProps('name')}
           placeholder="e.g. John Doe"
@@ -1030,10 +1027,10 @@ export let ProviderSetupSessionEmbed = ({
         />
         <authConfigDetailsForm.RenderError field="name" />
 
-        <Spacer size={8} />
+        <Spacer size={10} />
 
         <Input
-          label="Description"
+          label="Auth Config Description"
           description="Optional context for your team about what this connection is used for."
           placeholder="e.g. Production workspace for the CRM sync"
           {...authConfigDetailsForm.getFieldProps('description')}
@@ -1444,6 +1441,9 @@ export let ProviderSetupSessionEmbed = ({
             }}
           >
             <FlatConnectForm>
+              {collectAuthConfigDetails &&
+                renderAuthConfigDetailsFields({ disabled: isWindowOpen })}
+
               {redirectUri && isCustomSelected && (
                 <FlatInlineField>
                   <Text size="1" weight="medium" color="gray900" style={{ margin: 0 }}>
@@ -1452,6 +1452,7 @@ export let ProviderSetupSessionEmbed = ({
                   <Text size="1" color="gray600" style={{ margin: 0 }}>
                     You must configure this redirect URI in your OAuth app.
                   </Text>
+                  <Spacer size={10} />
                   <Copy value={redirectUri} />
                 </FlatInlineField>
               )}
@@ -1526,12 +1527,6 @@ export let ProviderSetupSessionEmbed = ({
                   </>
                 )}
               </FlatConnectSection>
-
-              {collectAuthConfigDetails && (
-                <FlatConnectSection>
-                  {renderAuthConfigDetailsFields({ disabled: isWindowOpen })}
-                </FlatConnectSection>
-              )}
             </FlatConnectForm>
 
             <createCredentials.RenderError />

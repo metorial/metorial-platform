@@ -10,7 +10,7 @@ import { Button, confirm, Input, Spacer, toast } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { showAddProviderModal } from '../sessionTemplates/providersManager';
+import { showAddProviderSidePanel } from '../sessionTemplates/providersManager';
 
 export type MagicMcpServerFormProps =
   | { type: 'update'; magicMcpServerId: string; for?: undefined }
@@ -70,7 +70,7 @@ export let MagicMcpServerForm = (
 
       p.close?.();
 
-      showAddProviderModal({
+      showAddProviderSidePanel({
         title: 'Configure Magic MCP Server',
         description: 'Set up authentication and other settings for this Magic MCP server.',
         action: 'Create Magic MCP Server',

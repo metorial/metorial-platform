@@ -13,6 +13,7 @@ import {
 } from '@metorial/state';
 import { Button, CenteredSpinner, Dialog, Input, Select, Spacer, Text } from '@metorial/ui';
 import { useEffect, useState } from 'react';
+import styled from 'styled-components';
 import { getJsonSchemaObject } from '../../lib/jsonSchema';
 import { orderProviderAuthMethods } from '../../lib/providerCreationCapabilities';
 import { getProviderOAuthAutoRegistrationEnabled } from '../../lib/providerOAuthAutoRegistration';
@@ -24,12 +25,18 @@ import {
 } from '../jsonSchemaInput';
 import {
   FlatCreateSection,
+  FlatCreateSectionLabel,
   FlatCreateSections
 } from '../providerCreationPanel/flatCreateLayout';
 import { ProviderContextCard } from '../providerContextCard';
 import { Stepper } from '../../../../components/stepper';
 
 type AuthMethod = DashboardInstanceProvidersAuthMethodsListOutput['items'][number];
+
+let FlatCreateSectionGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
 
 let getAuthMethodHasSchema = (method: AuthMethod | undefined) => {
   let schemaObj = getJsonSchemaObject(method?.inputSchema);
@@ -44,8 +51,7 @@ let getAuthMethodHasSchema = (method: AuthMethod | undefined) => {
 };
 
 let authConfigDescriptionInputHints = {
-  description:
-    'Optional context for your team about what this connection is used for.',
+  description: 'Optional context for your team about what this connection is used for.',
   placeholder: 'e.g. Production workspace for the CRM sync'
 };
 
@@ -411,29 +417,33 @@ export let ProviderAuthConfigForm = (
 
           <form noValidate onSubmit={form.handleSubmit}>
             <FlatCreateSections>
-              <FlatCreateSection>{credentialsSection}</FlatCreateSection>
+              <Input
+                label="Auth Config Name"
+                {...form.getFieldProps('name')}
+                description="Name this auth config so your team can identify it quickly."
+                placeholder={
+                  useOAuthAuthConfigNameHints
+                    ? 'e.g. John Doe'
+                    : 'e.g. CRM Production Connection'
+                }
+              />
+              <form.RenderError field="name" />
 
-              <FlatCreateSection>
-                <Input
-                  label="Name"
-                  {...form.getFieldProps('name')}
-                  {...(useOAuthAuthConfigNameHints
-                    ? {
-                        description:
-                          'Name the connection so you can tell it apart from other auth configs.',
-                        placeholder: 'e.g. John Doe'
-                      }
-                    : {})}
-                />
-                <form.RenderError field="name" />
+              <Spacer size={10} />
 
-                <Input
-                  label="Description"
-                  {...authConfigDescriptionInputHints}
-                  {...form.getFieldProps('description')}
-                />
-                <form.RenderError field="description" />
-              </FlatCreateSection>
+              <Input
+                label="Auth Config Description"
+                {...authConfigDescriptionInputHints}
+                {...form.getFieldProps('description')}
+              />
+              <form.RenderError field="description" />
+
+              <Spacer size={15} />
+
+              <FlatCreateSectionGroup>
+                <FlatCreateSectionLabel>Credentials</FlatCreateSectionLabel>
+                <FlatCreateSection>{credentialsSection}</FlatCreateSection>
+              </FlatCreateSectionGroup>
             </FlatCreateSections>
 
             <Spacer size={15} />

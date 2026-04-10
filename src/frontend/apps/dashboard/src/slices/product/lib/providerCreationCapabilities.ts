@@ -60,8 +60,8 @@ export let getProviderConfigSchemaCapabilities = (d: {
   let hasExplicitEmptySchema = Boolean(
     schemaObject && !hasSchemaFields && schemaObject.additionalProperties === false
   );
-  let canCreateConfig = hasSchemaFields || d.hasVaults;
-  let canCreateConfigVault = hasSchemaFields;
+  let canCreateConfig = hasSchemaFields || hasExplicitEmptySchema || d.hasVaults;
+  let canCreateConfigVault = hasSchemaFields || hasExplicitEmptySchema;
   let isLoading = !!d.isLoading;
   let configDisabledReason = isLoading
     ? 'Loading configuration options...'

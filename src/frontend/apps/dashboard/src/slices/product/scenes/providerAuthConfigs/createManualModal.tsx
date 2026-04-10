@@ -1,6 +1,4 @@
-import { useProviderDeployment } from '@metorial/state';
 import { Dialog } from '@metorial/ui';
-import { useProviderAuthCreationCapabilities } from '../../lib/providerCreationCapabilities';
 import { ProviderAuthConfigForm } from './form';
 
 export let ProviderAuthConfigManualCreateContent = (p: {
@@ -13,19 +11,7 @@ export let ProviderAuthConfigManualCreateContent = (p: {
   onBack?: () => void;
   embedded?: boolean;
 }) => {
-  let deployment = useProviderDeployment(p.instanceId, p.providerDeploymentId);
-  let authCreation = useProviderAuthCreationCapabilities(
-    p.instanceId,
-    p.providerDeploymentId,
-    p.providerId ?? deployment.data?.providerId
-  );
-  let selectedMethod = authCreation.authMethodItems.find(
-    method => method.id === p.initialAuthMethodId
-  );
-  let isManualCredentialStyle =
-    selectedMethod?.type === 'custom' || selectedMethod?.type === 'token';
-
-  let useFlatLayout = !!p.embedded || !!p.providerDeploymentId || isManualCredentialStyle;
+  let useFlatLayout = true;
 
   return (
     <>

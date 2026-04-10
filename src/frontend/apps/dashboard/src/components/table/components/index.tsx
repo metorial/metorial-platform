@@ -551,7 +551,8 @@ export let TableComponent = reactMemo(
                 <TableBody>
                   {state.items.map((row, i) => {
                     let to = link?.(row, props.props);
-                    let isRowInteractive = !!props.clickable || !!props.onItemClick || !!props.rowPanel;
+                    let isRowInteractive =
+                      !!props.clickable || !!props.onItemClick || !!props.rowPanel;
 
                     return (
                       <Fragment key={`wrapper-${row.id}`}>

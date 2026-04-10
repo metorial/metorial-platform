@@ -1,5 +1,5 @@
 import * as RadixMenu from '@radix-ui/react-dropdown-menu';
-import React, { useEffect, useLayoutEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { keyframes, styled } from 'styled-components';
 import { theme } from '..';
 import { useDialogZIndex } from '../dialog/state';
@@ -55,8 +55,6 @@ let Content = styled(RadixMenu.Content)`
   border-radius: 10px;
   min-width: 200px;
   gap: 5px;
-  z-index: 11;
-
   &[data-state='open'][data-side='top'] {
     animation: ${fadeInTop} 0.2s ease forwards;
   }
@@ -177,13 +175,7 @@ export let Menu = ({
   setIsOpen?: (isOpen: boolean) => void;
 }) => {
   let [open, setOpen] = useState(false);
-  let [content, setContent] = useState<HTMLElement | null>(null);
   let zIndex = useDialogZIndex(open);
-
-  useLayoutEffect(() => {
-    let parent = content?.parentElement;
-    if (parent) parent.style.zIndex = zIndex.toString();
-  }, [content, zIndex]);
 
   useEffect(() => setIsOpen?.(open), [open]);
 
@@ -193,7 +185,7 @@ export let Menu = ({
         {children}
       </RadixMenu.Trigger>
       <RadixMenu.Portal>
-        <Content sideOffset={5} ref={setContent}>
+        <Content sideOffset={5} style={{ zIndex }}>
           {title && (
             <>
               <Title>{title}</Title>

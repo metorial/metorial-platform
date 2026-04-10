@@ -5,7 +5,7 @@ import {
 } from '@metorial/state';
 import { Paths } from '@metorial/frontend-config';
 import { CenteredSpinner } from '@metorial/ui';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ProviderCreationPanelShell,
@@ -17,6 +17,7 @@ import { ProviderAuthCredentialsForm } from './modal';
 export let ProviderAuthCredentialsPanelFlow = (p: {
   instanceId: string;
   close: () => void;
+  setPanelWidth: (width: number) => void;
 }) => {
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
@@ -24,6 +25,15 @@ export let ProviderAuthCredentialsPanelFlow = (p: {
   let navigate = useNavigate();
   let [step, setStep] = useState(0);
   let [providerId, setProviderId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (step === 0) {
+      p.setPanelWidth(1050);
+      return;
+    }
+
+    p.setPanelWidth(660);
+  }, [step, p.setPanelWidth]);
 
   let steps = useMemo(
     () => [
@@ -34,6 +44,12 @@ export let ProviderAuthCredentialsPanelFlow = (p: {
             instanceId={p.instanceId}
             selectionMode="authCredentialsCreate"
             limit={30}
+            providerListingsFilter={{
+              capabilities: {
+                supportsOAuth: true,
+                supportsOAuthAutoRegistration: false
+              }
+            }}
             emptyText="No providers found."
             onSelect={nextProviderId => {
               setProviderId(nextProviderId);
@@ -103,6 +119,6 @@ export let ProviderAuthCredentialsPanelFlow = (p: {
 };
 
 export let showProviderAuthCredentialsPanelFlow = (p: { instanceId: string }) =>
-  showProviderCreationPanel(({ close }) => (
-    <ProviderAuthCredentialsPanelFlow {...p} close={close} />
+  showProviderCreationPanel(({ close, setWidth }) => (
+    <ProviderAuthCredentialsPanelFlow {...p} close={close} setPanelWidth={setWidth} />
   ));

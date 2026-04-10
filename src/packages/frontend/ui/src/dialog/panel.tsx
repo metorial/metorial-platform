@@ -31,7 +31,7 @@ let Content = styled('main')`
   min-height: 0;
   padding: 20px;
   overflow: auto;
-  scrollbar-gutter: stable;
+  scrollbar-gutter: stable both-edges;
 `;
 
 let Title = styled(RadixDialogDialog.Title)`
