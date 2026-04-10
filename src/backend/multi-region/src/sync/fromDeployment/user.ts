@@ -4,6 +4,7 @@ import { Fabric } from '@metorial/fabric';
 import { createQueue } from '@metorial/queue';
 import { cell } from '../../cell';
 import { globalDB } from '../../db';
+import { upsertUser } from '../../lib/upsertUser';
 
 export let syncUsersCron = createCron(
   {
@@ -53,25 +54,7 @@ export let syncUserSingleQueueProcessor = syncUserSingleQueue.process(async data
   if (!data.force && multiRegionUser && multiRegionUser.lastEditByOid === (await cell).oid)
     return;
 
-  let inner = {
-    status: user.status,
-    type: user.type,
-    email: user.email,
-    name: user.name,
-    firstName: user.firstName,
-    lastName: user.lastName,
-    image: user.image,
-    createdAt: user.createdAt,
-    deletedAt: user.deletedAt,
-
-    lastEditByOid: (await cell).oid
-  };
-
-  await globalDB.user.upsert({
-    where: { id: user.id },
-    update: inner,
-    create: { id: user.id, ...inner }
-  });
+  await upsertUser(user);
 });
 
 Fabric.listen('user.updated:after', async event => {
