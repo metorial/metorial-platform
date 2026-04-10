@@ -16,6 +16,7 @@ import {
   MetorialProviderCollectionsEndpoint,
   MetorialProviderListingsEndpoint,
   MetorialProvidersEndpoint,
+  MetorialProvidersSpecificationsEndpoint,
   MetorialProvidersVersionsEndpoint
 } from './gen/src/mt_2026_01_01_magnetar';
 
@@ -45,6 +46,7 @@ export let createMetorialConsumerSDK = sdkBuilder.build(
   session: new MetorialConsumerSessionEndpoint(manager),
   providers: Object.assign(new MetorialProvidersEndpoint(manager), {
     versions: new MetorialProvidersVersionsEndpoint(manager),
+    specifications: new MetorialProvidersSpecificationsEndpoint(manager),
     listings: Object.assign(new MetorialProviderListingsEndpoint(manager), {
       collections: new MetorialProviderCollectionsEndpoint(manager),
       categories: new MetorialProviderCategoriesEndpoint(manager)
