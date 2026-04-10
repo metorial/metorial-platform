@@ -180,11 +180,7 @@ export let resolveMagicMcpSubspaceSession = async (d: {
       })
     : null;
   let magicMcpTarget =
-    (magicMcpToken
-      ? await resolveMagicMcpTargetFromToken({
-          token: magicMcpToken
-        })
-      : null) ??
+    (magicMcpToken ? await resolveMagicMcpTargetFromToken({ token: magicMcpToken }) : null) ??
     (d.magicMcpTargetIdOrAlias != null
       ? await resolveMagicMcpTargetByIdOrAlias(d.magicMcpTargetIdOrAlias)
       : null);

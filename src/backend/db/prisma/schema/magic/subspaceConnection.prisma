@@ -2,6 +2,8 @@ model MagicMcpSubspaceSessionConnection {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
+  isActive Boolean @default(true)
+
   magicMcpServerOid BigInt?         @unique
   magicMcpServer    MagicMcpServer? @relation(fields: [magicMcpServerOid], references: [oid], onDelete: Cascade)
 
