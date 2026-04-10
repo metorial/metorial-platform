@@ -6,7 +6,8 @@ import {
   subspaceSessionTemplateService
 } from '@metorial/module-subspace';
 import { createHash } from 'crypto';
-import { magicMcpEndpointInclude, MagicMcpResolvedTarget } from '../services';
+import { magicMcpEndpointInclude } from '../services';
+import { MagicMcpResolvedTarget } from './magicMcpTarget';
 
 type MagicMcpServerForSession = MagicMcpServer & {
   instance: Instance;

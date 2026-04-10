@@ -5,11 +5,9 @@ import { v1ProviderToolPresenter } from './providerTool';
 
 export let v1ProviderToolsPresenter = Presenter.create(providerToolsType)
   .presenter(async ({ items }, opts) => {
-    console.log(1);
     let res = await Promise.all(
       items.map(tool => v1ProviderToolPresenter.present({ tool }, opts).run())
     );
-    console.log(2);
     return {
       object: 'provider.tools' as const,
       items: res
