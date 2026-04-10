@@ -7,6 +7,7 @@ import { CustomProviderRemoteCreateForm } from './createRemoteForm';
 export let showCustomProviderRemoteFormModal = (p: {
   type: 'remote' | 'managed' | 'docker';
   templateId?: string;
+  startWithoutRepository?: boolean;
   onCreate?: (deal: CustomProvidersGetOutput) => any;
 }) =>
   showModal(({ dialogProps, close }) => {
@@ -28,7 +29,12 @@ export let showCustomProviderRemoteFormModal = (p: {
               Create a new custom MCP provider powered by Metorial.
             </Dialog.Description>
 
-            <CustomProviderManagedCreateForm {...p} close={close} onCreate={p.onCreate} />
+            <CustomProviderManagedCreateForm
+              {...p}
+              close={close}
+              onCreate={p.onCreate}
+              startWithoutRepository={p.startWithoutRepository}
+            />
           </>
         )}
 

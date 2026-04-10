@@ -44,7 +44,7 @@ export let processProviderPushQueue = createQueue<{
   scmRepoPushId: string;
   customProviderId: string;
 }>({
-  name: 'sub/cpr/scm/push',
+  name: 'sub/cpr/scm/push/provider',
   redisUrl: env.service.REDIS_URL,
   workerOpts: {
     limiter: {
@@ -107,7 +107,8 @@ export let processProviderPushQueueProcessor = processProviderPushQueue.process(
       environment: env.environment,
       customProvider: provider,
       trigger: 'scm',
-      repoPush: push
+      repoPush: push,
+      payload: provider.payload
     });
 
     let upcoming = await db.upcomingCustomProvider.create({

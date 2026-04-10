@@ -5,6 +5,7 @@ import { Attributes, Badge, Button, RenderDate, Spacer } from '@metorial/ui';
 import { Box, ID, SideBox } from '@metorial/ui-product';
 import { useNavigate, useParams } from 'react-router-dom';
 import { CustomProviderEventsTable } from '../../../scenes/customProvider/events';
+import { getCustomProviderScmLink } from '../../../scenes/customProvider/utils';
 import { UsageScene } from '../../../scenes/usage/usage';
 
 export let CustomProviderOverviewPage = () => {
@@ -62,7 +63,30 @@ export let CustomProviderOverviewPage = () => {
           {
             label: 'Custom Provider ID',
             content: <ID id={customProvider.data.id} />
-          }
+          },
+          ...(() => {
+            let scmLink = getCustomProviderScmLink(customProvider.data);
+            if (!scmLink) return [];
+
+            return [
+              {
+                label: 'Repository URL',
+                content: (
+                  <a href={scmLink.repositoryUrl} target="_blank" rel="noreferrer">
+                    {scmLink.repositoryUrl}
+                  </a>
+                )
+              },
+              ...(scmLink.branch
+                ? [
+                    {
+                      label: 'Branch',
+                      content: scmLink.branch
+                    }
+                  ]
+                : [])
+            ];
+          })()
         ]}
       />
 

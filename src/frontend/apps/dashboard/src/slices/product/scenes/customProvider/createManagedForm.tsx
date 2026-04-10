@@ -73,6 +73,7 @@ let Form = styled.div`
 
 export let CustomProviderManagedCreateForm = (p: {
   templateId?: string;
+  startWithoutRepository?: boolean;
   close?: () => any;
   onCreate?: (out: CustomProvidersGetOutput) => any;
 }) => {
@@ -89,11 +90,11 @@ export let CustomProviderManagedCreateForm = (p: {
   >(undefined);
   let selectedRepoId = selectedRepo?.id;
 
-  let [currentStep, setCurrentStep] = useState(0);
-
   let navigate = useNavigate();
   let [templateId, setTemplateId] = useState<string | undefined>(undefined);
   let hasTemplates = managedServerTemplates.data.items.length > 0;
+  let finishStep = hasTemplates ? 2 : 1;
+  let [currentStep, setCurrentStep] = useState(p.startWithoutRepository ? finishStep : 0);
 
   let form = useForm({
     initialValues: {
@@ -326,6 +327,14 @@ export let CustomProviderManagedCreateForm = (p: {
 
     setTemplate(p.templateId);
   }, [p.templateId, managedServerTemplates.data, installations.isLoading]);
+
+  useEffect(() => {
+    if (!p.startWithoutRepository) return;
+
+    setSelectedRepo(undefined);
+    setTemplateId(undefined);
+    setCurrentStep(finishStep);
+  }, [finishStep, p.startWithoutRepository]);
 
   if (p.templateId && !templateId) return <CenteredSpinner />;
 
