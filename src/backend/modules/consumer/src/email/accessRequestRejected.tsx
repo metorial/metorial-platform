@@ -1,4 +1,3 @@
-import { getConfig } from '@metorial/config';
 import {
   ConsumerAccessRequest,
   ConsumerProfile,
@@ -7,14 +6,7 @@ import {
   Organization,
   ProviderTemplate
 } from '@metorial/db';
-import {
-  Button,
-  createEmail,
-  createTemplate,
-  DataList,
-  Layout,
-  Text
-} from '@metorial/module-email';
+import { createEmail, createTemplate, DataList, Layout, Text } from '@metorial/module-email';
 import React from 'react';
 import { notificationClient } from './client';
 
@@ -50,7 +42,6 @@ export let consumerAccessRequestRejectedEmail = notificationClient.createTemplat
         magicMcpServer: MagicMcpServer | null;
       };
     }) => {
-      let url = new URL(getConfig().urls.appUrl);
       let target = getAccessRequestTarget(consumerAccessRequest);
 
       return createEmail({
@@ -73,8 +64,6 @@ export let consumerAccessRequestRejectedEmail = notificationClient.createTemplat
                   : [])
               ]}
             />
-
-            <Button href={url.toString()}>Open Metorial</Button>
 
             <Text>
               You can return to Metorial to review your request details or submit a new request
