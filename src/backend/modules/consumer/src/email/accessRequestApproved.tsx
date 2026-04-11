@@ -1,4 +1,3 @@
-import { getConfig } from '@metorial/config';
 import {
   ConsumerAccessRequest,
   ConsumerProfile,
@@ -40,7 +39,8 @@ export let consumerAccessRequestApprovedEmail = notificationClient.createTemplat
     render: ({
       organization,
       consumerSurface,
-      consumerAccessRequest
+      consumerAccessRequest,
+      url
     }: {
       organization: Organization;
       consumerSurface: ConsumerSurface;
@@ -49,8 +49,8 @@ export let consumerAccessRequestApprovedEmail = notificationClient.createTemplat
         providerTemplate: ProviderTemplate | null;
         magicMcpServer: MagicMcpServer | null;
       };
+      url: string;
     }) => {
-      let url = new URL(getConfig().urls.appUrl);
       let target = getAccessRequestTarget(consumerAccessRequest);
 
       return createEmail({
@@ -74,7 +74,7 @@ export let consumerAccessRequestApprovedEmail = notificationClient.createTemplat
               ]}
             />
 
-            <Button href={url.toString()}>Open Metorial</Button>
+            <Button href={url}>Open Metorial</Button>
 
             <Text>
               You can now continue in the Metorial app and use the approved resource.

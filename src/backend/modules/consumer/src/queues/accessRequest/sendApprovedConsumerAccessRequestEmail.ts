@@ -1,4 +1,5 @@
 import { db } from '@metorial/db';
+import { portalService } from '@metorial/module-portal';
 import { createQueue, QueueRetryError } from '@metorial/queue';
 import { consumerAccessRequestApprovedEmail } from '../../email/accessRequestApproved';
 
@@ -20,7 +21,8 @@ export let sendApprovedConsumerAccessRequestEmailQueueProcessor =
       include: {
         surface: {
           include: {
-            organization: true
+            organization: true,
+            portal: true
           }
         },
         consumerProfile: true,
@@ -32,13 +34,19 @@ export let sendApprovedConsumerAccessRequestEmailQueueProcessor =
     if (!consumerAccessRequest) throw new QueueRetryError();
     if (consumerAccessRequest.status != 'approved') return;
     if (!consumerAccessRequest.consumerProfile.email.trim()) return;
+    if (!consumerAccessRequest.surface.portal) return;
+
+    let urlRes = portalService.getPortalHost({
+      portal: consumerAccessRequest.surface.portal
+    });
 
     await consumerAccessRequestApprovedEmail.send({
       to: [consumerAccessRequest.consumerProfile.email],
       data: {
         organization: consumerAccessRequest.surface.organization,
         consumerSurface: consumerAccessRequest.surface,
-        consumerAccessRequest
+        consumerAccessRequest,
+        url: urlRes.host
       }
     });
   });
