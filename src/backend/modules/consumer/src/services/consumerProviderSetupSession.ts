@@ -33,7 +33,9 @@ let buildProviderSetupRedirectUrl = (portalSlug: string) => {
     raw = `${url.origin}${pathname}${url.search}${url.hash}`.replace(/\/+$/, '');
   }
 
-  return raw.replace('{portalId}', portalSlug).replace(/\/+$/, '');
+  let baseUrl = raw.replace('{portalId}', portalSlug).replace(/\/+$/, '');
+
+  return `${baseUrl}/provider-setup-complete`;
 };
 
 let assertSetupSessionBindingMatchesConsumerProvider = (d: {

@@ -34,9 +34,7 @@ class ChangeNotificationServiceImpl {
             repoPush: { include: { repo: true } },
             tenant: true
           },
-          orderBy: {
-            createdAt: 'desc'
-          }
+          orderBy: opts.orderBy?.length ? opts.orderBy : [{ createdAt: 'desc' }]
         })
       )
     );

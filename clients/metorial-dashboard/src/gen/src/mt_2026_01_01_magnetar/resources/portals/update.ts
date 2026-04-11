@@ -13,7 +13,6 @@ export type PortalsUpdateOutput = {
     allowedRedirectUrlFilters: { url: string }[];
   };
   urls: { type: 'default'; url: string }[];
-  brand: { image: string; name: string };
   createdAt: Date;
   updatedAt: Date;
 };
@@ -49,13 +48,6 @@ export let mapPortalsUpdateOutput = mtMap.object<PortalsUpdateOutput>({
         url: mtMap.objectField('url', mtMap.passthrough())
       })
     )
-  ),
-  brand: mtMap.objectField(
-    'brand',
-    mtMap.object({
-      image: mtMap.objectField('image', mtMap.passthrough()),
-      name: mtMap.objectField('name', mtMap.passthrough())
-    })
   ),
   createdAt: mtMap.objectField('created_at', mtMap.date()),
   updatedAt: mtMap.objectField('updated_at', mtMap.date())

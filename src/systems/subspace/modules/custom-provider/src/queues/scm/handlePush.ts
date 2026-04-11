@@ -121,7 +121,7 @@ export let processProviderPushQueueProcessor = processProviderPushQueue.process(
 
         message: `Git push: ${push.commitMessage} (${push.sha.substring(0, 7)})`,
 
-        type: 'create_custom_provider',
+        type: 'create_custom_provider_version',
 
         customProviderOid: provider.oid,
         customProviderDeploymentOid: versionPrep.deployment.oid,

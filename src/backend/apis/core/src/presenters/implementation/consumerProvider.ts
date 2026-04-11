@@ -8,10 +8,19 @@ import { v1ProviderTemplatePreview } from './providerTemplate';
 
 export let v1ConsumerProviderPresenter = Presenter.create(consumerProviderType)
   .presenter(async ({ consumerProvider }, opts) => {
+    let base = {
+      object: 'consumer.provider' as const,
+      id: consumerProvider.listing.id,
+      name: consumerProvider.listing.name,
+      description: consumerProvider.listing.description,
+      readme: consumerProvider.listing.readme,
+      availability: consumerProvider.availability,
+      has_pending_access_request: consumerProvider.hasPendingAccessRequest
+    };
+
     if (consumerProvider.type == 'magic_mcp_server') {
       return {
-        object: 'consumer.provider' as const,
-        id: consumerProvider.magicMcpServer.id,
+        ...base,
         type: 'magic_mcp_server' as const,
         name: consumerProvider.listing.name,
         description: consumerProvider.listing.description,
@@ -23,14 +32,14 @@ export let v1ConsumerProviderPresenter = Presenter.create(consumerProviderType)
     }
 
     return {
-      object: 'consumer.provider' as const,
-      id: consumerProvider.providerTemplate.id,
+      ...base,
       type: 'provider_template' as const,
       name: consumerProvider.listing.name,
       description: consumerProvider.listing.description,
       readme: consumerProvider.listing.readme ?? null,
       availability: consumerProvider.availability,
       has_pending_access_request: consumerProvider.hasPendingAccessRequest,
+
       provider_template: v1ProviderTemplatePreview(consumerProvider.providerTemplate),
       provider: await v1ProviderPresenter
         .present({ provider: consumerProvider.provider }, opts)
@@ -52,6 +61,7 @@ export let v1ConsumerProviderPresenter = Presenter.create(consumerProviderType)
             schema: consumerProvider.configSchema.configSchema
           }
         : null,
+
       auth_methods: consumerProvider.authMethods.length
         ? await Promise.all(
             consumerProvider.authMethods.map(authMethod => {
@@ -66,12 +76,13 @@ export let v1ConsumerProviderPresenter = Presenter.create(consumerProviderType)
       v.object({
         object: v.literal('consumer.provider'),
         id: v.string(),
-        type: v.literal('provider_template'),
         name: v.string(),
         description: v.nullable(v.string()),
         readme: v.nullable(v.string()),
+        type: v.literal('provider_template'),
         availability: v.enumOf(['available_now', 'request_access']),
         has_pending_access_request: v.boolean(),
+        consumer_access_ids: v.array(v.string()),
         provider_template: v1ProviderTemplatePreview.schema,
         provider: v1ProviderPresenter.schema,
         deployment: v.object({
@@ -94,12 +105,13 @@ export let v1ConsumerProviderPresenter = Presenter.create(consumerProviderType)
       v.object({
         object: v.literal('consumer.provider'),
         id: v.string(),
-        type: v.literal('magic_mcp_server'),
         name: v.string(),
         description: v.nullable(v.string()),
         readme: v.nullable(v.string()),
+        type: v.literal('magic_mcp_server'),
         availability: v.enumOf(['available_now', 'request_access']),
         has_pending_access_request: v.boolean(),
+        consumer_access_ids: v.array(v.string()),
         magic_mcp_server: v1MagicMcpServerPreview.schema
       })
     ])

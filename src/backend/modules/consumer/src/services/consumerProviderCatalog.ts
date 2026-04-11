@@ -3,6 +3,7 @@ import { Paginator, type PaginatorInput } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
   ConsumerAccessListing,
+  ConsumerGroup,
   ConsumerProfile,
   ConsumerSurface,
   db,
@@ -16,6 +17,7 @@ import {
   consumerProviderTemplateReadRoles,
   type AnyAccessTagSelector
 } from '@metorial/module-access';
+import { searchMagicMcpServerIds, searchProviderTemplateIds } from '@metorial/module-search';
 import {
   subspaceProviderConfigService,
   subspaceProviderDeploymentService,
@@ -43,32 +45,53 @@ type ConsumerMagicMcpCatalogServer = Prisma.MagicMcpServerGetPayload<{
   include: typeof magicMcpCatalogInclude;
 }>;
 
-let consumerAccessListingCatalogInclude = {
-  providerTemplate: true,
+type ConsumerAccessListingCatalogInclude = {
+  providerTemplate: true;
   magicMcpServer: {
-    include: magicMcpCatalogInclude
-  }
-} as const;
+    include: typeof magicMcpCatalogInclude;
+  };
+  consumerAccesses: {
+    where: {
+      consumerGroupOid: {
+        in: bigint[];
+      };
+    };
+    select: {
+      id: true;
+    };
+  };
+};
 
-type ConsumerCatalogAccessListing = Prisma.ConsumerAccessListingGetPayload<{
-  include: typeof consumerAccessListingCatalogInclude;
-}>;
+type ConsumerCatalogRecord = ConsumerAccessListing & {
+  providerTemplate: ProviderTemplate | null;
+  magicMcpServer: ConsumerMagicMcpCatalogServer | null;
+  consumerAccesses: {
+    id: string;
+  }[];
+};
+
+type ConsumerProviderCatalogBase = {
+  id: string;
+  listing: ConsumerAccessListing;
+  name: string;
+  description: string | null;
+  readme: string | null;
+  availability: ConsumerProviderAvailability;
+  hasPendingAccessRequest: boolean;
+  consumerAccessIds: string[];
+  providerTemplateId: string | null;
+  magicMcpServerId: string | null;
+};
 
 export type ConsumerProviderCatalogItem =
-  | {
+  | (ConsumerProviderCatalogBase & {
       type: 'provider_template';
-      availability: ConsumerProviderAvailability;
-      hasPendingAccessRequest: boolean;
-      listing: ConsumerAccessListing;
       providerTemplate: ProviderTemplate;
-    }
-  | {
+    })
+  | (ConsumerProviderCatalogBase & {
       type: 'magic_mcp_server';
-      availability: ConsumerProviderAvailability;
-      hasPendingAccessRequest: boolean;
-      listing: ConsumerAccessListing;
       magicMcpServer: ConsumerMagicMcpCatalogServer;
-    };
+    });
 
 export type ConsumerProviderCatalogEntry =
   | (Extract<
@@ -103,29 +126,19 @@ type ConsumerCatalogBoundary = {
   sortName: string;
 };
 
-type ConsumerCatalogRecord =
-  | {
-      type: 'provider_template';
-      id: string;
-      sortName: string;
-      listing: ConsumerAccessListing;
-      providerTemplate: ProviderTemplate;
-    }
-  | {
-      type: 'magic_mcp_server';
-      id: string;
-      sortName: string;
-      listing: ConsumerAccessListing;
-      magicMcpServer: ConsumerMagicMcpCatalogServer;
-    };
+type ConsumerCatalogRecordPage = {
+  items: ConsumerCatalogRecord[];
+  hasMore: boolean;
+};
 
 type ConsumerProviderAvailabilityState = {
   protectedOids: Set<bigint>;
   accessibleOids: Set<bigint> | null;
 };
 
-let getCatalogRecordKey = (record: ConsumerCatalogRecord) => {
-  return `${record.type}:${record.id}`;
+type ConsumerCatalogSearchMatches = {
+  providerTemplateIds?: string[];
+  magicMcpServerIds?: string[];
 };
 
 let getCatalogSortName = (d: { name?: string | null; fallbackId: string }) => {
@@ -151,7 +164,7 @@ let buildNamedCatalogBoundaryFilter = (d: {
   boundary?: ConsumerCatalogBoundary | null;
   direction: ConsumerCatalogDirection;
   order: 'asc' | 'desc';
-}) => {
+}): Prisma.ConsumerAccessListingWhereInput | undefined => {
   if (!d.boundary) {
     return undefined;
   }
@@ -194,6 +207,7 @@ class ConsumerProviderCatalogServiceImpl {
   async listCatalogEntries(d: {
     instance: Instance;
     consumerSurface: Pick<ConsumerSurface, 'oid'>;
+    consumerGroups: Pick<ConsumerGroup, 'oid'>[];
     consumerProfile?: Pick<ConsumerProfile, 'oid'>;
     search?: string;
     providerGroupId?: string;
@@ -206,6 +220,7 @@ class ConsumerProviderCatalogServiceImpl {
         let recordPage = await this.listCatalogPage({
           instance: d.instance,
           consumerSurface: d.consumerSurface,
+          consumerGroups: d.consumerGroups,
           search: d.search,
           providerGroupId: d.providerGroupId,
           pagination: input
@@ -232,6 +247,7 @@ class ConsumerProviderCatalogServiceImpl {
   async listFeaturedCatalogItems(d: {
     instance: Instance;
     consumerSurface: Pick<ConsumerSurface, 'oid'>;
+    consumerGroups: Pick<ConsumerGroup, 'oid'>[];
     consumerProfile?: Pick<ConsumerProfile, 'oid'>;
     accessTags?: AnyAccessTagSelector;
     limit?: number;
@@ -239,6 +255,7 @@ class ConsumerProviderCatalogServiceImpl {
     let recordPage = await this.listCatalogPage({
       instance: d.instance,
       consumerSurface: d.consumerSurface,
+      consumerGroups: d.consumerGroups,
       pagination: {
         limit: d.limit ?? 6,
         order: 'asc'
@@ -255,13 +272,14 @@ class ConsumerProviderCatalogServiceImpl {
   async getCatalogItem(d: {
     instance: Instance;
     consumerSurface: Pick<ConsumerSurface, 'oid'>;
+    consumerGroups: Pick<ConsumerGroup, 'oid'>[];
     consumerProfile?: Pick<ConsumerProfile, 'oid'>;
     catalogItemId: string;
     accessTags?: AnyAccessTagSelector;
   }): Promise<ConsumerProviderCatalogItem> {
     let record = await this.findCatalogRecord({
-      instance: d.instance,
       consumerSurface: d.consumerSurface,
+      consumerGroups: d.consumerGroups,
       catalogItemId: d.catalogItemId
     });
 
@@ -281,14 +299,15 @@ class ConsumerProviderCatalogServiceImpl {
   async getCatalogEntry(d: {
     instance: Instance;
     consumerSurface: Pick<ConsumerSurface, 'oid'>;
+    consumerGroups: Pick<ConsumerGroup, 'oid'>[];
     consumerProfile?: Pick<ConsumerProfile, 'oid'>;
     catalogItemId: string;
     accessTags?: AnyAccessTagSelector;
     includeCapabilities?: boolean;
   }): Promise<ConsumerProviderCatalogEntry> {
     let record = await this.findCatalogRecord({
-      instance: d.instance,
       consumerSurface: d.consumerSurface,
+      consumerGroups: d.consumerGroups,
       catalogItemId: d.catalogItemId
     });
 
@@ -310,6 +329,7 @@ class ConsumerProviderCatalogServiceImpl {
   private async listCatalogPage(d: {
     instance: Instance;
     consumerSurface: Pick<ConsumerSurface, 'oid'>;
+    consumerGroups: Pick<ConsumerGroup, 'oid'>[];
     search?: string;
     providerGroupId?: string;
     pagination: ConsumerCatalogListInput;
@@ -324,25 +344,110 @@ class ConsumerProviderCatalogServiceImpl {
     let boundary =
       boundaryId != undefined
         ? await this.findCatalogBoundary({
-            instance: d.instance,
             consumerSurface: d.consumerSurface,
+            consumerGroups: d.consumerGroups,
             catalogItemId: String(boundaryId)
           })
         : null;
-
-    let queryOrder = direction == 'before' ? reverseCatalogOrder(order) : order;
-    let boundaryFilter = buildNamedCatalogBoundaryFilter({
-      boundary,
+    let records = await this.listCatalogRecords({
+      instance: d.instance,
+      consumerSurface: d.consumerSurface,
+      consumerGroups: d.consumerGroups,
+      search: d.search,
+      providerGroupId: d.providerGroupId,
+      limit,
       direction,
-      order
+      order,
+      boundary
     });
+    let items = records.items.slice(0, limit);
+
+    if (direction == 'before') {
+      items.reverse();
+    }
+
+    return {
+      items,
+      pagination: {
+        hasNextPage: direction == 'before' ? !!boundary : records.hasMore,
+        hasPreviousPage: direction == 'before' ? records.hasMore : !!boundary
+      }
+    };
+  }
+
+  private async listCatalogRecords(d: {
+    instance: Instance;
+    consumerSurface: Pick<ConsumerSurface, 'oid'>;
+    consumerGroups: Pick<ConsumerGroup, 'oid'>[];
+    search?: string;
+    providerGroupId?: string;
+    limit: number;
+    direction: ConsumerCatalogDirection;
+    order: 'asc' | 'desc';
+    boundary?: ConsumerCatalogBoundary | null;
+  }): Promise<ConsumerCatalogRecordPage> {
+    let queryOrder = d.direction == 'before' ? reverseCatalogOrder(d.order) : d.order;
+    let groupOids = d.consumerGroups.map(group => group.oid);
+    let search = d.search?.trim();
+    let searchMatches = await this.resolveCatalogSearchMatches({
+      instance: d.instance,
+      search
+    });
+    let boundaryFilter = buildNamedCatalogBoundaryFilter(d);
+    let searchFilters: Prisma.ConsumerAccessListingWhereInput[] = [];
+
+    if (search) {
+      searchFilters.push(
+        {
+          name: {
+            contains: search,
+            mode: 'insensitive'
+          }
+        },
+        {
+          description: {
+            contains: search,
+            mode: 'insensitive'
+          }
+        },
+        {
+          readme: {
+            contains: search,
+            mode: 'insensitive'
+          }
+        },
+        {
+          providerTemplate: {
+            id: {
+              in: searchMatches.providerTemplateIds ?? []
+            }
+          }
+        },
+        {
+          magicMcpServer: {
+            id: {
+              in: searchMatches.magicMcpServerIds ?? []
+            }
+          }
+        }
+      );
+    }
 
     let listings = await db.consumerAccessListing.findMany({
       where: {
         surfaceOid: d.consumerSurface.oid,
-        consumerAccesses: {
-          some: {}
-        },
+        OR: [
+          {
+            providerTemplate: {
+              status: 'active'
+            }
+          },
+          {
+            magicMcpServer: {
+              status: 'active'
+            }
+          }
+        ],
         AND: [
           d.providerGroupId
             ? {
@@ -356,62 +461,48 @@ class ConsumerProviderCatalogServiceImpl {
                 }
               }
             : undefined!,
-          d.search?.trim()
+          boundaryFilter,
+          searchFilters.length
             ? {
-                OR: [
-                  { name: { contains: d.search.trim(), mode: 'insensitive' } },
-                  { description: { contains: d.search.trim(), mode: 'insensitive' } },
-                  { readme: { contains: d.search.trim(), mode: 'insensitive' } },
-                  {
-                    providerTemplate: {
-                      name: { contains: d.search.trim(), mode: 'insensitive' }
-                    }
-                  },
-                  {
-                    magicMcpServer: {
-                      name: { contains: d.search.trim(), mode: 'insensitive' }
-                    }
-                  }
-                ]
+                OR: searchFilters
               }
-            : undefined!,
-          boundaryFilter as Prisma.ConsumerAccessListingWhereInput | undefined,
-          {
-            OR: [
-              {
-                providerTemplate: {
-                  status: 'active'
-                }
-              },
-              {
-                magicMcpServer: {
-                  status: 'active'
-                }
-              }
-            ]
-          }
+            : undefined!
         ].filter(Boolean)
       },
-      include: consumerAccessListingCatalogInclude,
+      include: this.getCatalogInclude(groupOids),
       orderBy: [{ name: queryOrder }, { id: queryOrder }],
-      take: limit + 1
+      take: d.limit + 1
     });
 
-    let hasMore = listings.length > limit;
-    let items = listings
-      .slice(0, limit)
-      .map(listing => this.createCatalogRecordFromListing(listing));
+    return {
+      items: listings.slice(0, d.limit),
+      hasMore: listings.length > d.limit
+    };
+  }
 
-    if (direction == 'before') {
-      items.reverse();
+  private async resolveCatalogSearchMatches(d: {
+    instance: Instance;
+    search?: string;
+  }): Promise<ConsumerCatalogSearchMatches> {
+    let search = d.search?.trim();
+    if (!search) {
+      return {};
     }
 
+    let [providerTemplateIds, magicMcpServerIds] = await Promise.all([
+      searchProviderTemplateIds({
+        instanceId: d.instance.id,
+        query: search
+      }),
+      searchMagicMcpServerIds({
+        instanceId: d.instance.id,
+        query: search
+      })
+    ]);
+
     return {
-      items,
-      pagination: {
-        hasNextPage: direction == 'before' ? !!boundary : hasMore,
-        hasPreviousPage: direction == 'before' ? hasMore : !!boundary
-      }
+      providerTemplateIds,
+      magicMcpServerIds
     };
   }
 
@@ -425,44 +516,46 @@ class ConsumerProviderCatalogServiceImpl {
     }
 
     let providerTemplateRecords = d.records.filter(
-      (record): record is Extract<ConsumerCatalogRecord, { type: 'provider_template' }> => {
-        return record.type == 'provider_template';
+      (record): record is ConsumerCatalogRecord & { providerTemplate: ProviderTemplate } => {
+        return !!record.providerTemplate;
       }
     );
     let magicMcpServerRecords = d.records.filter(
-      (record): record is Extract<ConsumerCatalogRecord, { type: 'magic_mcp_server' }> => {
-        return record.type == 'magic_mcp_server';
+      (
+        record
+      ): record is ConsumerCatalogRecord & {
+        magicMcpServer: ConsumerMagicMcpCatalogServer;
+      } => {
+        return !!record.magicMcpServer;
       }
     );
 
     let [providerItems, magicMcpServerItems] = await Promise.all([
       this.hydrateProviderTemplateItems({
-        listings: providerTemplateRecords.map(record => record.listing),
-        providerTemplates: providerTemplateRecords.map(record => record.providerTemplate),
+        records: providerTemplateRecords,
         consumerProfile: d.consumerProfile,
         accessTags: d.accessTags
       }),
       this.hydrateMagicMcpServerItems({
-        listings: magicMcpServerRecords.map(record => record.listing),
-        magicMcpServers: magicMcpServerRecords.map(record => record.magicMcpServer),
+        records: magicMcpServerRecords,
         consumerProfile: d.consumerProfile,
         accessTags: d.accessTags
       })
     ]);
 
-    let itemsByKey = new Map<string, ConsumerProviderCatalogItem>();
+    let itemsById = new Map<string, ConsumerProviderCatalogItem>();
 
     for (let item of providerItems) {
-      itemsByKey.set(`provider_template:${item.providerTemplate.id}`, item);
+      itemsById.set(item.id, item);
     }
     for (let item of magicMcpServerItems) {
-      itemsByKey.set(`magic_mcp_server:${item.magicMcpServer.id}`, item);
+      itemsById.set(item.id, item);
     }
 
     return d.records.map(record => {
-      let item = itemsByKey.get(getCatalogRecordKey(record));
+      let item = itemsById.get(record.id);
       if (!item) {
-        throw new Error(`Missing catalog item for ${getCatalogRecordKey(record)}`);
+        throw new Error(`Missing catalog item for ${record.id}`);
       }
 
       return item;
@@ -481,46 +574,48 @@ class ConsumerProviderCatalogServiceImpl {
     }
 
     let providerTemplateRecords = d.records.filter(
-      (record): record is Extract<ConsumerCatalogRecord, { type: 'provider_template' }> => {
-        return record.type == 'provider_template';
+      (record): record is ConsumerCatalogRecord & { providerTemplate: ProviderTemplate } => {
+        return !!record.providerTemplate;
       }
     );
     let magicMcpServerRecords = d.records.filter(
-      (record): record is Extract<ConsumerCatalogRecord, { type: 'magic_mcp_server' }> => {
-        return record.type == 'magic_mcp_server';
+      (
+        record
+      ): record is ConsumerCatalogRecord & {
+        magicMcpServer: ConsumerMagicMcpCatalogServer;
+      } => {
+        return !!record.magicMcpServer;
       }
     );
 
     let [providerEntries, magicMcpServerEntries] = await Promise.all([
       this.hydrateProviderTemplateEntries({
         instance: d.instance,
-        listings: providerTemplateRecords.map(record => record.listing),
-        providerTemplates: providerTemplateRecords.map(record => record.providerTemplate),
+        records: providerTemplateRecords,
         consumerProfile: d.consumerProfile,
         includeCapabilities: d.includeCapabilities,
         accessTags: d.accessTags
       }),
       this.hydrateMagicMcpServerEntries({
-        listings: magicMcpServerRecords.map(record => record.listing),
-        magicMcpServers: magicMcpServerRecords.map(record => record.magicMcpServer),
+        records: magicMcpServerRecords,
         consumerProfile: d.consumerProfile,
         accessTags: d.accessTags
       })
     ]);
 
-    let entriesByKey = new Map<string, ConsumerProviderCatalogEntry>();
+    let entriesById = new Map<string, ConsumerProviderCatalogEntry>();
 
     for (let entry of providerEntries) {
-      entriesByKey.set(`provider_template:${entry.providerTemplate.id}`, entry);
+      entriesById.set(entry.id, entry);
     }
     for (let entry of magicMcpServerEntries) {
-      entriesByKey.set(`magic_mcp_server:${entry.magicMcpServer.id}`, entry);
+      entriesById.set(entry.id, entry);
     }
 
     return d.records.map(record => {
-      let entry = entriesByKey.get(getCatalogRecordKey(record));
+      let entry = entriesById.get(record.id);
       if (!entry) {
-        throw new Error(`Missing hydrated catalog entry for ${getCatalogRecordKey(record)}`);
+        throw new Error(`Missing hydrated catalog entry for ${record.id}`);
       }
 
       return entry;
@@ -528,8 +623,7 @@ class ConsumerProviderCatalogServiceImpl {
   }
 
   private async hydrateProviderTemplateItems(d: {
-    listings: ConsumerAccessListing[];
-    providerTemplates: ProviderTemplate[];
+    records: (ConsumerCatalogRecord & { providerTemplate: ProviderTemplate })[];
     consumerProfile?: Pick<ConsumerProfile, 'oid'>;
     accessTags?: AnyAccessTagSelector;
   }): Promise<
@@ -540,30 +634,43 @@ class ConsumerProviderCatalogServiceImpl {
       }
     >[]
   > {
-    if (!d.providerTemplates.length) {
+    if (!d.records.length) {
       return [];
     }
 
+    let providerTemplates = d.records.map(record => record.providerTemplate);
     let availabilityState = await this.getProviderTemplateAvailabilityState({
-      providerTemplates: d.providerTemplates,
+      providerTemplates,
       accessTags: d.accessTags
     });
     let pendingAccessRequestState = await this.getPendingAccessRequestState({
       consumerProfile: d.consumerProfile,
-      providerTemplates: d.providerTemplates
+      providerTemplates
     });
 
-    return d.providerTemplates.map((providerTemplate, index) => {
+    return d.records.map(record => {
+      let providerTemplate = record.providerTemplate;
+      let hasConsumerAccess = record.consumerAccesses.length > 0;
+
       return {
-        type: 'provider_template' as const,
-        availability: getConsumerProviderAvailability({
-          oid: providerTemplate.oid,
-          availabilityState
-        }),
+        id: record.id,
+        listing: record,
+        name: this.getCatalogRecordName(record),
+        description: this.getCatalogRecordDescription(record),
+        readme: record.readme ?? null,
+        availability: hasConsumerAccess
+          ? getConsumerProviderAvailability({
+              oid: providerTemplate.oid,
+              availabilityState
+            })
+          : 'request_access',
         hasPendingAccessRequest: pendingAccessRequestState.providerTemplateOids.has(
           providerTemplate.oid
         ),
-        listing: d.listings[index]!,
+        consumerAccessIds: record.consumerAccesses.map(consumerAccess => consumerAccess.id),
+        providerTemplateId: providerTemplate.id,
+        magicMcpServerId: null,
+        type: 'provider_template' as const,
         providerTemplate
       };
     });
@@ -571,29 +678,27 @@ class ConsumerProviderCatalogServiceImpl {
 
   private async hydrateProviderTemplateEntries(d: {
     instance: Instance;
-    listings: ConsumerAccessListing[];
-    providerTemplates: ProviderTemplate[];
+    records: (ConsumerCatalogRecord & { providerTemplate: ProviderTemplate })[];
     consumerProfile?: Pick<ConsumerProfile, 'oid'>;
     includeCapabilities?: boolean;
     accessTags?: AnyAccessTagSelector;
   }): Promise<ConsumerProviderTemplateCatalogEntry[]> {
-    if (!d.providerTemplates.length) {
+    if (!d.records.length) {
       return [];
     }
 
+    let providerTemplates = d.records.map(record => record.providerTemplate);
     let availabilityState = await this.getProviderTemplateAvailabilityState({
-      providerTemplates: d.providerTemplates,
+      providerTemplates,
       accessTags: d.accessTags
     });
     let pendingAccessRequestState = await this.getPendingAccessRequestState({
       consumerProfile: d.consumerProfile,
-      providerTemplates: d.providerTemplates
+      providerTemplates
     });
 
     let deploymentIds = Array.from(
-      new Set(
-        d.providerTemplates.map(providerTemplate => providerTemplate.providerDeploymentId)
-      )
+      new Set(providerTemplates.map(providerTemplate => providerTemplate.providerDeploymentId))
     );
     let deployments = await Promise.all(
       deploymentIds.map(async providerDeploymentId => {
@@ -634,9 +739,15 @@ class ConsumerProviderCatalogServiceImpl {
 
     if (d.includeCapabilities) {
       let accessibleDeploymentIds = new Set<string>();
+      let oidsWithConsumerAccess = new Set(
+        d.records
+          .filter(record => record.consumerAccesses.length > 0)
+          .map(record => record.providerTemplate.oid)
+      );
 
-      for (let providerTemplate of d.providerTemplates) {
+      for (let providerTemplate of providerTemplates) {
         if (
+          oidsWithConsumerAccess.has(providerTemplate.oid) &&
           getConsumerProviderAvailability({
             oid: providerTemplate.oid,
             availabilityState
@@ -679,7 +790,8 @@ class ConsumerProviderCatalogServiceImpl {
       );
     }
 
-    return d.providerTemplates.map((providerTemplate, index) => {
+    return d.records.map(record => {
+      let providerTemplate = record.providerTemplate;
       let deployment = deploymentMap.get(providerTemplate.providerDeploymentId);
       if (!deployment) {
         throw new ServiceError(notFoundError('provider.deployment'));
@@ -690,19 +802,29 @@ class ConsumerProviderCatalogServiceImpl {
         throw new ServiceError(notFoundError('provider'));
       }
 
-      let availability = getConsumerProviderAvailability({
-        oid: providerTemplate.oid,
-        availabilityState
-      });
+      let hasConsumerAccess = record.consumerAccesses.length > 0;
+      let availability: ConsumerProviderAvailability = hasConsumerAccess
+        ? getConsumerProviderAvailability({
+            oid: providerTemplate.oid,
+            availabilityState
+          })
+        : 'request_access';
       let capabilities = capabilityMap.get(providerTemplate.providerDeploymentId);
 
       return {
-        type: 'provider_template' as const,
+        id: record.id,
+        listing: record,
+        name: this.getCatalogRecordName(record),
+        description: this.getCatalogRecordDescription(record),
+        readme: record.readme ?? null,
         availability,
         hasPendingAccessRequest: pendingAccessRequestState.providerTemplateOids.has(
           providerTemplate.oid
         ),
-        listing: d.listings[index]!,
+        consumerAccessIds: record.consumerAccesses.map(consumerAccess => consumerAccess.id),
+        providerTemplateId: providerTemplate.id,
+        magicMcpServerId: null,
+        type: 'provider_template' as const,
         providerTemplate,
         deployment,
         provider,
@@ -714,8 +836,7 @@ class ConsumerProviderCatalogServiceImpl {
   }
 
   private async hydrateMagicMcpServerItems(d: {
-    listings: ConsumerAccessListing[];
-    magicMcpServers: ConsumerMagicMcpCatalogServer[];
+    records: (ConsumerCatalogRecord & { magicMcpServer: ConsumerMagicMcpCatalogServer })[];
     consumerProfile?: Pick<ConsumerProfile, 'oid'>;
     accessTags?: AnyAccessTagSelector;
   }): Promise<
@@ -726,38 +847,50 @@ class ConsumerProviderCatalogServiceImpl {
       }
     >[]
   > {
-    if (!d.magicMcpServers.length) {
+    if (!d.records.length) {
       return [];
     }
 
+    let magicMcpServers = d.records.map(record => record.magicMcpServer);
     let availabilityState = await this.getMagicMcpServerAvailabilityState({
-      magicMcpServers: d.magicMcpServers,
+      magicMcpServers,
       accessTags: d.accessTags
     });
     let pendingAccessRequestState = await this.getPendingAccessRequestState({
       consumerProfile: d.consumerProfile,
-      magicMcpServers: d.magicMcpServers
+      magicMcpServers
     });
 
-    return d.magicMcpServers.map((magicMcpServer, index) => {
+    return d.records.map(record => {
+      let magicMcpServer = record.magicMcpServer;
+      let hasConsumerAccess = record.consumerAccesses.length > 0;
+
       return {
-        type: 'magic_mcp_server' as const,
-        availability: getConsumerProviderAvailability({
-          oid: magicMcpServer.oid,
-          availabilityState
-        }),
+        id: record.id,
+        listing: record,
+        name: this.getCatalogRecordName(record),
+        description: this.getCatalogRecordDescription(record),
+        readme: record.readme ?? null,
+        availability: hasConsumerAccess
+          ? getConsumerProviderAvailability({
+              oid: magicMcpServer.oid,
+              availabilityState
+            })
+          : 'request_access',
         hasPendingAccessRequest: pendingAccessRequestState.magicMcpServerOids.has(
           magicMcpServer.oid
         ),
-        listing: d.listings[index]!,
+        consumerAccessIds: record.consumerAccesses.map(consumerAccess => consumerAccess.id),
+        providerTemplateId: null,
+        magicMcpServerId: magicMcpServer.id,
+        type: 'magic_mcp_server' as const,
         magicMcpServer
       };
     });
   }
 
   private async hydrateMagicMcpServerEntries(d: {
-    listings: ConsumerAccessListing[];
-    magicMcpServers: ConsumerMagicMcpCatalogServer[];
+    records: (ConsumerCatalogRecord & { magicMcpServer: ConsumerMagicMcpCatalogServer })[];
     consumerProfile?: Pick<ConsumerProfile, 'oid'>;
     accessTags?: AnyAccessTagSelector;
   }): Promise<
@@ -976,120 +1109,112 @@ class ConsumerProviderCatalogServiceImpl {
   }
 
   private async findCatalogBoundary(d: {
-    instance: Instance;
     consumerSurface: Pick<ConsumerSurface, 'oid'>;
+    consumerGroups: Pick<ConsumerGroup, 'oid'>[];
     catalogItemId: string;
   }): Promise<ConsumerCatalogBoundary | null> {
-    let listing = await db.consumerAccessListing.findFirst({
-      where: {
-        surfaceOid: d.consumerSurface.oid,
-        consumerAccesses: {
-          some: {}
-        },
-        OR: [
-          {
-            providerTemplate: {
-              id: d.catalogItemId,
-              instanceOid: d.instance.oid,
-              status: 'active'
-            }
-          },
-          {
-            magicMcpServer: {
-              id: d.catalogItemId,
-              instanceOid: d.instance.oid,
-              status: 'active'
-            }
-          }
-        ]
-      },
-      select: {
-        id: true,
-        name: true
-      }
-    });
-
-    if (!listing) {
+    let record = await this.findCatalogRecord(d);
+    if (!record) {
       return null;
     }
 
     return {
-      id: listing.id,
+      id: record.id,
       sortName: getCatalogSortName({
-        name: listing.name,
-        fallbackId: listing.id
+        name: record.name,
+        fallbackId: record.id
       })
     };
   }
 
   private async findCatalogRecord(d: {
-    instance: Instance;
     consumerSurface: Pick<ConsumerSurface, 'oid'>;
+    consumerGroups: Pick<ConsumerGroup, 'oid'>[];
     catalogItemId: string;
   }): Promise<ConsumerCatalogRecord | null> {
-    let listing = await db.consumerAccessListing.findFirst({
+    let groupOids = d.consumerGroups.map(group => group.oid);
+
+    return await db.consumerAccessListing.findFirst({
       where: {
         surfaceOid: d.consumerSurface.oid,
-        consumerAccesses: {
-          some: {}
-        },
         OR: [
           {
             providerTemplate: {
-              id: d.catalogItemId,
-              instanceOid: d.instance.oid,
               status: 'active'
             }
           },
           {
             magicMcpServer: {
-              id: d.catalogItemId,
-              instanceOid: d.instance.oid,
               status: 'active'
             }
           }
+        ],
+        AND: [
+          {
+            OR: [
+              {
+                id: d.catalogItemId
+              },
+              {
+                consumerAccesses: {
+                  some: {
+                    id: d.catalogItemId
+                  }
+                }
+              },
+              {
+                providerTemplate: {
+                  id: d.catalogItemId
+                }
+              },
+              {
+                magicMcpServer: {
+                  id: d.catalogItemId
+                }
+              }
+            ]
+          }
         ]
       },
-      include: consumerAccessListingCatalogInclude
+      include: this.getCatalogInclude(groupOids)
     });
-
-    if (!listing) {
-      return null;
-    }
-
-    return this.createCatalogRecordFromListing(listing);
   }
 
-  private createCatalogRecordFromListing(
-    listing: ConsumerCatalogAccessListing
-  ): ConsumerCatalogRecord {
-    if (listing.providerTemplate) {
-      return {
-        type: 'provider_template',
-        id: listing.providerTemplate.id,
-        sortName: getCatalogSortName({
-          name: listing.name,
-          fallbackId: listing.id
-        }),
-        listing,
-        providerTemplate: listing.providerTemplate
-      };
-    }
-
-    if (!listing.magicMcpServer) {
-      throw new ServiceError(notFoundError('consumer.access_listing'));
-    }
-
+  private getCatalogInclude(groupOids: bigint[]): ConsumerAccessListingCatalogInclude {
     return {
-      type: 'magic_mcp_server',
-      id: listing.magicMcpServer.id,
-      sortName: getCatalogSortName({
-        name: listing.name,
-        fallbackId: listing.id
-      }),
-      listing,
-      magicMcpServer: listing.magicMcpServer
+      providerTemplate: true,
+      magicMcpServer: {
+        include: magicMcpCatalogInclude
+      },
+      consumerAccesses: {
+        where: {
+          consumerGroupOid: {
+            in: groupOids
+          }
+        },
+        select: {
+          id: true
+        }
+      }
     };
+  }
+
+  private getCatalogRecordName(record: ConsumerCatalogRecord) {
+    return (
+      record.name.trim() ||
+      (record.providerTemplate
+        ? record.providerTemplate.name
+        : (record.magicMcpServer?.name ?? record.magicMcpServer?.id ?? record.id))
+    );
+  }
+
+  private getCatalogRecordDescription(record: ConsumerCatalogRecord) {
+    return (
+      record.description ??
+      (record.providerTemplate
+        ? record.providerTemplate.description
+        : (record.magicMcpServer?.description ?? null))
+    );
   }
 }
 

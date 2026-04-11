@@ -88,9 +88,11 @@ export type ManagementInstanceMagicMcpServersListQuery = {
     | ('active' | 'archived' | 'deleted')[]
     | undefined;
   magicMcpGroupId?: string | string[] | undefined;
+  providerTemplateId?: string | string[] | undefined;
   consumerId?: string | string[] | undefined;
   consumerProfileId?: string | string[] | undefined;
   search?: string | undefined;
+  id?: string | string[] | undefined;
   preconfiguredOnly?: boolean | undefined;
 };
 
@@ -109,6 +111,16 @@ export let mapManagementInstanceMagicMcpServersListQuery = mtMap.union([
       ),
       magicMcpGroupId: mtMap.objectField(
         'magic_mcp_group_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      providerTemplateId: mtMap.objectField(
+        'provider_template_id',
         mtMap.union([
           mtMap.unionOption('string', mtMap.passthrough()),
           mtMap.unionOption(
@@ -138,6 +150,16 @@ export let mapManagementInstanceMagicMcpServersListQuery = mtMap.union([
         ])
       ),
       search: mtMap.objectField('search', mtMap.passthrough()),
+      id: mtMap.objectField(
+        'id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
       preconfiguredOnly: mtMap.objectField(
         'preconfigured_only',
         mtMap.passthrough()

@@ -5,12 +5,16 @@ export type ConsumerProvidersListOutput = {
     | {
         object: 'consumer.provider';
         id: string;
+        name: string;
+        description: string | null;
+        readme: string | null;
         type: 'provider_template';
         name: string;
         description: string | null;
         readme: string | null;
         availability: 'available_now' | 'request_access';
         hasPendingAccessRequest: boolean;
+        consumerAccessIds: string[];
         providerTemplate: {
           object: 'provider.template#preview';
           id: string;
@@ -109,12 +113,16 @@ export type ConsumerProvidersListOutput = {
     | {
         object: 'consumer.provider';
         id: string;
+        name: string;
+        description: string | null;
+        readme: string | null;
         type: 'magic_mcp_server';
         name: string;
         description: string | null;
         readme: string | null;
         availability: 'available_now' | 'request_access';
         hasPendingAccessRequest: boolean;
+        consumerAccessIds: string[];
         magicMcpServer: {
           object: 'magic_mcp.server#preview';
           id: string;
@@ -138,6 +146,12 @@ export let mapConsumerProvidersListOutput =
             mtMap.object({
               object: mtMap.objectField('object', mtMap.passthrough()),
               id: mtMap.objectField('id', mtMap.passthrough()),
+              name: mtMap.objectField('name', mtMap.passthrough()),
+              description: mtMap.objectField(
+                'description',
+                mtMap.passthrough()
+              ),
+              readme: mtMap.objectField('readme', mtMap.passthrough()),
               type: mtMap.objectField('type', mtMap.passthrough()),
               name: mtMap.objectField('name', mtMap.passthrough()),
               description: mtMap.objectField(
@@ -152,6 +166,10 @@ export let mapConsumerProvidersListOutput =
               hasPendingAccessRequest: mtMap.objectField(
                 'has_pending_access_request',
                 mtMap.passthrough()
+              ),
+              consumerAccessIds: mtMap.objectField(
+                'consumer_access_ids',
+                mtMap.array(mtMap.passthrough())
               ),
               providerTemplate: mtMap.objectField(
                 'provider_template',
