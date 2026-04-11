@@ -34,7 +34,7 @@ export let handlePushQueueProcessor = handlePushQueue.process(async data => {
     }))
   );
 
-  let lastCodeBucket = codeBuckets.at(-1);
+  let lastCodeBucket = codeBuckets[codeBuckets.length - 1];
   if (!lastCodeBucket) return;
 
   await handlePushQueue.add({
