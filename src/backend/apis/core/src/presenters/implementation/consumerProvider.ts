@@ -8,31 +8,29 @@ import { v1ProviderTemplatePreview } from './providerTemplate';
 
 export let v1ConsumerProviderPresenter = Presenter.create(consumerProviderType)
   .presenter(async ({ consumerProvider }, opts) => {
-    if (consumerProvider.type == 'magic_mcp_server') {
-      return {
-        object: 'consumer.provider' as const,
-        id: consumerProvider.id,
-        name: consumerProvider.name,
-        description: consumerProvider.description,
-        readme: consumerProvider.readme,
-        type: 'magic_mcp_server' as const,
-        availability: consumerProvider.availability,
-        has_pending_access_request: consumerProvider.hasPendingAccessRequest,
-        consumer_access_ids: consumerProvider.consumerAccessIds,
-        magic_mcp_server: v1MagicMcpServerPreview(consumerProvider.magicMcpServer)
-      };
-    }
-
-    return {
+    let base = {
       object: 'consumer.provider' as const,
       id: consumerProvider.id,
       name: consumerProvider.name,
       description: consumerProvider.description,
       readme: consumerProvider.readme,
-      type: 'provider_template' as const,
       availability: consumerProvider.availability,
       has_pending_access_request: consumerProvider.hasPendingAccessRequest,
-      consumer_access_ids: consumerProvider.consumerAccessIds,
+      consumer_access_ids: consumerProvider.consumerAccessIds
+    };
+
+    if (consumerProvider.type == 'magic_mcp_server') {
+      return {
+        ...base,
+        type: 'magic_mcp_server' as const,
+        magic_mcp_server: v1MagicMcpServerPreview(consumerProvider.magicMcpServer)
+      };
+    }
+
+    return {
+      ...base,
+      type: 'provider_template' as const,
+
       provider_template: v1ProviderTemplatePreview(consumerProvider.providerTemplate),
       provider: await v1ProviderPresenter
         .present({ provider: consumerProvider.provider }, opts)
@@ -54,6 +52,7 @@ export let v1ConsumerProviderPresenter = Presenter.create(consumerProviderType)
             schema: consumerProvider.configSchema.configSchema
           }
         : null,
+
       auth_methods: consumerProvider.authMethods.length
         ? await Promise.all(
             consumerProvider.authMethods.map(authMethod => {

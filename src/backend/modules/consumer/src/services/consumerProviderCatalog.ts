@@ -330,16 +330,6 @@ class ConsumerProviderCatalogServiceImpl {
     search?: string;
     pagination: ConsumerCatalogListInput;
   }) {
-    if (!d.consumerGroups.length) {
-      return {
-        items: [],
-        pagination: {
-          hasNextPage: false,
-          hasPreviousPage: false
-        }
-      };
-    }
-
     let limit =
       typeof d.pagination.limit == 'number'
         ? d.pagination.limit
@@ -390,13 +380,6 @@ class ConsumerProviderCatalogServiceImpl {
     order: 'asc' | 'desc';
     boundary?: ConsumerCatalogBoundary | null;
   }): Promise<ConsumerCatalogRecordPage> {
-    if (!d.consumerGroups.length) {
-      return {
-        items: [],
-        hasMore: false
-      };
-    }
-
     let queryOrder = d.direction == 'before' ? reverseCatalogOrder(d.order) : d.order;
     let groupOids = d.consumerGroups.map(group => group.oid);
     let search = d.search?.trim();
@@ -441,13 +424,6 @@ class ConsumerProviderCatalogServiceImpl {
     let listings = await db.consumerAccessListing.findMany({
       where: {
         surfaceOid: d.consumerSurface.oid,
-        consumerAccesses: {
-          some: {
-            consumerGroupOid: {
-              in: groupOids
-            }
-          }
-        },
         OR: [
           {
             providerTemplate: {
@@ -526,7 +502,9 @@ class ConsumerProviderCatalogServiceImpl {
     let magicMcpServerRecords = d.records.filter(
       (
         record
-      ): record is ConsumerCatalogRecord & { magicMcpServer: ConsumerMagicMcpCatalogServer } => {
+      ): record is ConsumerCatalogRecord & {
+        magicMcpServer: ConsumerMagicMcpCatalogServer;
+      } => {
         return !!record.magicMcpServer;
       }
     );
@@ -582,7 +560,9 @@ class ConsumerProviderCatalogServiceImpl {
     let magicMcpServerRecords = d.records.filter(
       (
         record
-      ): record is ConsumerCatalogRecord & { magicMcpServer: ConsumerMagicMcpCatalogServer } => {
+      ): record is ConsumerCatalogRecord & {
+        magicMcpServer: ConsumerMagicMcpCatalogServer;
+      } => {
         return !!record.magicMcpServer;
       }
     );
@@ -649,16 +629,19 @@ class ConsumerProviderCatalogServiceImpl {
 
     return d.records.map(record => {
       let providerTemplate = record.providerTemplate;
+      let hasConsumerAccess = record.consumerAccesses.length > 0;
 
       return {
         id: record.id,
         name: this.getCatalogRecordName(record),
         description: this.getCatalogRecordDescription(record),
         readme: record.readme ?? null,
-        availability: getConsumerProviderAvailability({
-          oid: providerTemplate.oid,
-          availabilityState
-        }),
+        availability: hasConsumerAccess
+          ? getConsumerProviderAvailability({
+              oid: providerTemplate.oid,
+              availabilityState
+            })
+          : 'request_access',
         hasPendingAccessRequest: pendingAccessRequestState.providerTemplateOids.has(
           providerTemplate.oid
         ),
@@ -734,9 +717,15 @@ class ConsumerProviderCatalogServiceImpl {
 
     if (d.includeCapabilities) {
       let accessibleDeploymentIds = new Set<string>();
+      let oidsWithConsumerAccess = new Set(
+        d.records
+          .filter(record => record.consumerAccesses.length > 0)
+          .map(record => record.providerTemplate.oid)
+      );
 
       for (let providerTemplate of providerTemplates) {
         if (
+          oidsWithConsumerAccess.has(providerTemplate.oid) &&
           getConsumerProviderAvailability({
             oid: providerTemplate.oid,
             availabilityState
@@ -791,10 +780,13 @@ class ConsumerProviderCatalogServiceImpl {
         throw new ServiceError(notFoundError('provider'));
       }
 
-      let availability = getConsumerProviderAvailability({
-        oid: providerTemplate.oid,
-        availabilityState
-      });
+      let hasConsumerAccess = record.consumerAccesses.length > 0;
+      let availability: ConsumerProviderAvailability = hasConsumerAccess
+        ? getConsumerProviderAvailability({
+            oid: providerTemplate.oid,
+            availabilityState
+          })
+        : 'request_access';
       let capabilities = capabilityMap.get(providerTemplate.providerDeploymentId);
 
       return {
@@ -848,16 +840,19 @@ class ConsumerProviderCatalogServiceImpl {
 
     return d.records.map(record => {
       let magicMcpServer = record.magicMcpServer;
+      let hasConsumerAccess = record.consumerAccesses.length > 0;
 
       return {
         id: record.id,
         name: this.getCatalogRecordName(record),
         description: this.getCatalogRecordDescription(record),
         readme: record.readme ?? null,
-        availability: getConsumerProviderAvailability({
-          oid: magicMcpServer.oid,
-          availabilityState
-        }),
+        availability: hasConsumerAccess
+          ? getConsumerProviderAvailability({
+              oid: magicMcpServer.oid,
+              availabilityState
+            })
+          : 'request_access',
         hasPendingAccessRequest: pendingAccessRequestState.magicMcpServerOids.has(
           magicMcpServer.oid
         ),
@@ -1113,22 +1108,11 @@ class ConsumerProviderCatalogServiceImpl {
     consumerGroups: Pick<ConsumerGroup, 'oid'>[];
     catalogItemId: string;
   }): Promise<ConsumerCatalogRecord | null> {
-    if (!d.consumerGroups.length) {
-      return null;
-    }
-
     let groupOids = d.consumerGroups.map(group => group.oid);
 
     return await db.consumerAccessListing.findFirst({
       where: {
         surfaceOid: d.consumerSurface.oid,
-        consumerAccesses: {
-          some: {
-            consumerGroupOid: {
-              in: groupOids
-            }
-          }
-        },
         OR: [
           {
             providerTemplate: {
@@ -1150,9 +1134,6 @@ class ConsumerProviderCatalogServiceImpl {
               {
                 consumerAccesses: {
                   some: {
-                    consumerGroupOid: {
-                      in: groupOids
-                    },
                     id: d.catalogItemId
                   }
                 }
