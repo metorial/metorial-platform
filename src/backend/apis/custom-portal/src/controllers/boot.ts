@@ -1,9 +1,6 @@
 import { v } from '@lowerdeck/validation';
 import { getConfig } from '@metorial/config';
-import {
-  consumerAuthService,
-  consumerProviderCatalogService
-} from '@metorial/module-consumer';
+import { consumerAuthService } from '@metorial/module-consumer';
 import { projectBrandService } from '@metorial/module-organization';
 import { portalFromUrlApp } from '../group';
 import {
@@ -15,12 +12,7 @@ import {
   getPortalSessionFromCookie,
   issuePortalTokens
 } from '../lib/portal';
-import {
-  instancePresenter,
-  portalFeaturedContentPresenter,
-  portalPresenter,
-  sessionPresenter
-} from '../presenters';
+import { instancePresenter, portalPresenter, sessionPresenter } from '../presenters';
 import { brandPresenter } from '../presenters/brand';
 
 export let bootController = portalFromUrlApp.controller({
@@ -61,15 +53,6 @@ export let bootController = portalFromUrlApp.controller({
       let consumerAccess = await consumerAuthService.getConsumerAccessContextForSession({
         session: sessionRes.session
       });
-      let featuredContent = portalFeaturedContentPresenter(
-        await consumerProviderCatalogService.listFeaturedCatalogItems({
-          instance: ctx.portal.instance,
-          consumerSurface: ctx.portal.surface,
-          consumerGroups: consumerAccess.consumerGroups,
-          accessTags: consumerAccess?.accessTags,
-          limit: 6
-        })
-      );
 
       let tokens = await issuePortalTokens({
         ctx,
@@ -79,7 +62,6 @@ export let bootController = portalFromUrlApp.controller({
 
       return await createAuthenticatedPortalBootResponse({
         ...baseResponse,
-        featuredContent,
         session: sessionPresenter({
           session: sessionRes.session
         }),

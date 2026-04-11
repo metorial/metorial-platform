@@ -1,9 +1,4 @@
-import {
-  instancePresenter,
-  portalFeaturedContentPresenter,
-  portalPresenter,
-  sessionPresenter
-} from '../presenters';
+import { instancePresenter, portalPresenter, sessionPresenter } from '../presenters';
 import { brandPresenter } from '../presenters/brand';
 
 type PortalBootSharedResponse = {
@@ -24,12 +19,8 @@ export let createUnauthenticatedPortalBootResponse = async (d: PortalBootSharedR
 
 export let createAuthenticatedPortalBootResponse = async (
   d: PortalBootSharedResponse & {
-    featuredContent: ReturnType<typeof portalFeaturedContentPresenter>;
     session: ReturnType<typeof sessionPresenter>;
-    consumerSessionToken: {
-      token: string;
-      expiresAt: Date;
-    };
+    consumerSessionToken: { token: string; expiresAt: Date };
   }
 ) => ({
   ...d,
