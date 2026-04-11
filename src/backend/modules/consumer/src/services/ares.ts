@@ -85,7 +85,7 @@ class ConsumerAresServiceImpl {
       defaultRedirectUrl: d.defaultRedirectUrl,
       redirectDomains: d.redirectDomains,
       isSessionless: true,
-      disableEmailAuth: true
+      disableEmailAuth: false
     });
   }
 
