@@ -26,6 +26,7 @@ import {
   resolveCustomProviderDeployments,
   resolveCustomProviderEnvironments,
   resolveCustomProviders,
+  resolveProviderVersions,
   resolveProviders
 } from '@metorial-subspace/list-utils';
 import type { ProviderVersionEnrichment } from '@metorial-subspace/provider-utils';
@@ -175,7 +176,7 @@ class customProviderVersionServiceImpl {
 
           message: d.input.message,
 
-          type: 'create_custom_provider',
+          type: 'create_custom_provider_version',
 
           customProviderOid: d.customProvider.oid,
           customProviderVersionOid: versionPrep.version.oid,
@@ -220,7 +221,7 @@ class customProviderVersionServiceImpl {
     customProviderEnvironmentIds?: string[];
   }) {
     let providers = await resolveProviders(d, d.providerIds);
-    let providerVersions = await resolveProviders(d, d.providerVersionIds);
+    let providerVersions = await resolveProviderVersions(d, d.providerVersionIds);
     let customProviders = await resolveCustomProviders(d, d.customProviderIds);
     let customProviderDeployments = await resolveCustomProviderDeployments(
       d,
