@@ -1,0 +1,16 @@
+model CellConsumerSurface {
+  id String @id
+
+  status ConsumerSurfaceStatus
+  type   ConsumerSurfaceType
+
+  name        String
+  description String?
+
+  isOwnedByDeployment Boolean
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
+  archivedAt DateTime?
+  deletedAt  DateTime?
+}

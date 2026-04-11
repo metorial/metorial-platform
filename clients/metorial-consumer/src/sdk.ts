@@ -8,7 +8,6 @@ import {
   MetorialConsumerProvidersEndpoint,
   MetorialConsumerProvidersGroupsEndpoint,
   MetorialConsumerSessionEndpoint,
-  MetorialConsumerSurfaceProviderGroupsEndpoint,
   MetorialMagicMcpEndpointsEndpoint,
   MetorialMagicMcpGroupsEndpoint,
   MetorialMagicMcpServersEndpoint,
@@ -54,7 +53,7 @@ export let createMetorialConsumerSDK = sdkBuilder.build(
       collections: new MetorialProviderCollectionsEndpoint(manager),
       categories: new MetorialProviderCategoriesEndpoint(manager)
     }),
-    groups: new MetorialConsumerSurfaceProviderGroupsEndpoint(manager)
+    groups: new MetorialConsumerProvidersGroupsEndpoint(manager)
   }),
   consumerProviders: Object.assign(new MetorialConsumerProvidersEndpoint(manager), {
     groups: new MetorialConsumerProvidersGroupsEndpoint(manager)
