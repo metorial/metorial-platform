@@ -24,7 +24,8 @@ export type ConsumerConsumerInternalOauthAuthorizationsConnectMagicMcpEndpointOu
         | 'client_secret_basic'
         | 'client_secret_post'
         | 'none';
-      portalId: string;
+      portalId: string | null;
+      consumerSurfaceId: string;
       magicMcpServerId: string | null;
       magicMcpEndpointId: string | null;
       createdAt: Date;
@@ -69,6 +70,10 @@ export let mapConsumerConsumerInternalOauthAuthorizationsConnectMagicMcpEndpoint
             mtMap.passthrough()
           ),
           portalId: mtMap.objectField('portal_id', mtMap.passthrough()),
+          consumerSurfaceId: mtMap.objectField(
+            'consumer_surface_id',
+            mtMap.passthrough()
+          ),
           magicMcpServerId: mtMap.objectField(
             'magic_mcp_server_id',
             mtMap.passthrough()
