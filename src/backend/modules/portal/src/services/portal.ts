@@ -3,15 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { createSlugGenerator } from '@lowerdeck/slugify';
 import { Context } from '@metorial/context';
-import {
-  db,
-  getOrganizationBrand,
-  ID,
-  Instance,
-  Organization,
-  Portal,
-  withTransaction
-} from '@metorial/db';
+import { db, ID, Instance, Organization, Portal, withTransaction } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import {
   consumerSurfaceService,
@@ -346,14 +338,6 @@ class PortalServiceImpl {
       template: env.portal.PORTAL_HOST_TEMPLATE,
       url: d.url
     });
-  }
-
-  async getBrand(d: {
-    portal: {
-      organization: Pick<Organization, 'id' | 'name' | 'image'>;
-    };
-  }) {
-    return await getOrganizationBrand(d.portal.organization);
   }
 }
 

@@ -6,16 +6,16 @@ export let portalFeaturedContentPresenter = (items: ConsumerProviderCatalogItem[
     return item.type == 'provider_template'
       ? {
           type: 'provider_template' as const,
-          id: item.providerTemplate.id,
-          name: item.providerTemplate.name,
-          description: item.providerTemplate.description,
+          id: item.id,
+          name: item.name,
+          description: item.description,
           availability: item.availability
         }
       : {
           type: 'magic_mcp_server' as const,
-          id: item.magicMcpServer.id,
-          name: item.magicMcpServer.name,
-          description: item.magicMcpServer.description,
+          id: item.id,
+          name: item.name,
+          description: item.description,
           availability: item.availability
         };
   })

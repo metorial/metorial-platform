@@ -352,6 +352,8 @@ class MagicMcpServerImpl {
     status?: MagicMcpServerStatus[];
     search?: string;
     groupIds?: string[];
+    providerTemplateIds?: string[];
+    ids?: string[];
     preconfiguredOnly?: boolean;
     accessTags?: AnyAccessTagSelector;
     filterAccessTags?: AnyAccessTagSelector;
@@ -413,8 +415,12 @@ class MagicMcpServerImpl {
           ...opts,
           where: {
             instanceOid: d.instance.oid,
+            id: d.ids ? { in: d.ids } : undefined,
             status: statusFilter ? { in: statusFilter } : { not: 'archived' as const },
             source: d.preconfiguredOnly ? { not: 'consumer_provider_template' } : undefined,
+            providerTemplateId: d.providerTemplateIds?.length
+              ? { in: d.providerTemplateIds }
+              : undefined,
             groups: shouldFilterByGroups
               ? {
                   some: {
