@@ -6,7 +6,9 @@ import {
   MetorialConsumerConsumerInternalOauthClientsEndpoint,
   MetorialConsumerProfileEndpoint,
   MetorialConsumerProvidersEndpoint,
+  MetorialConsumerProvidersGroupsEndpoint,
   MetorialConsumerSessionEndpoint,
+  MetorialConsumerSurfaceProviderGroupsEndpoint,
   MetorialMagicMcpEndpointsEndpoint,
   MetorialMagicMcpGroupsEndpoint,
   MetorialMagicMcpServersEndpoint,
@@ -51,9 +53,12 @@ export let createMetorialConsumerSDK = sdkBuilder.build(
     listings: Object.assign(new MetorialProviderListingsEndpoint(manager), {
       collections: new MetorialProviderCollectionsEndpoint(manager),
       categories: new MetorialProviderCategoriesEndpoint(manager)
-    })
+    }),
+    groups: new MetorialConsumerSurfaceProviderGroupsEndpoint(manager)
   }),
-  consumerProviders: new MetorialConsumerProvidersEndpoint(manager),
+  consumerProviders: Object.assign(new MetorialConsumerProvidersEndpoint(manager), {
+    groups: new MetorialConsumerProvidersGroupsEndpoint(manager)
+  }),
   magicMcp: {
     servers: Object.assign(new MetorialMagicMcpServersEndpoint(manager), {
       providers: new MetorialMagicMcpServersProvidersEndpoint(manager)

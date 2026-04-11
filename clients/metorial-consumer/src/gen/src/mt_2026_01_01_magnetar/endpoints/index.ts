@@ -9,6 +9,7 @@ export * from './consumer_consumer-internal_oauth_clients';
 export * from './consumer_profile';
 export * from './consumer_profile_groups';
 export * from './consumer_providers';
+export * from './consumer_providers_groups';
 export * from './consumer_session';
 export * from './consumer_surface-provider-groups';
 export * from './consumers';

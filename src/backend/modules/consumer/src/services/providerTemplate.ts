@@ -83,40 +83,32 @@ class ProviderTemplateServiceImpl {
   }) {
     let providerDeploymentId = await this.getOrCreateProviderDeployment(d);
 
-    // let existing = await db.providerTemplate.findFirst({
-    //   where: {
-    //     instanceOid: d.instance.oid,
-    //     providerDeploymentId
-    //   }
-    // });
-    // if (existing) {
-    //   if (existing.status == 'archived') {
-    //     let providerTemplate = await db.providerTemplate.update({
-    //       where: {
-    //         oid: existing.oid
-    //       },
-    //       data: {
-    //         status: 'active',
-    //         name: d.input.name,
-    //         description: d.input.description,
-    //         metadata: d.input.metadata ?? {},
-    //         archivedAt: null
-    //       }
-    //     });
+    let existing = await db.providerTemplate.findFirst({
+      where: {
+        instanceOid: d.instance.oid,
+        providerDeploymentId
+      }
+    });
+    if (existing) {
+      let providerTemplate = await db.providerTemplate.update({
+        where: {
+          oid: existing.oid
+        },
+        data: {
+          status: 'active',
+          name: d.input.name,
+          description: d.input.description,
+          metadata: d.input.metadata ?? {},
+          archivedAt: null
+        }
+      });
 
-    //     await providerTemplateUpdatedQueue.add({
-    //       providerTemplateId: providerTemplate.id
-    //     });
+      await providerTemplateUpdatedQueue.add({
+        providerTemplateId: providerTemplate.id
+      });
 
-    //     return providerTemplate;
-    //   }
-
-    //   throw new ServiceError(
-    //     conflictError({
-    //       message: 'A provider template already exists for this provider deployment.'
-    //     })
-    //   );
-    // }
+      return providerTemplate;
+    }
 
     if (d.input.toolFilters) {
       await subspaceProviderDeploymentService.update({

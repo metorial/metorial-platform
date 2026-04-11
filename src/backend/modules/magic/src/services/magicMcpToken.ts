@@ -280,6 +280,7 @@ class MagicMcpTokenImpl {
     serverIds?: string[];
     endpointIds?: string[];
     accessTags?: AnyAccessTagSelector;
+    filterAccessTags?: AnyAccessTagSelector;
   }) {
     let groupOids = !!d.groupIds?.length
       ? (
@@ -321,11 +322,20 @@ class MagicMcpTokenImpl {
       accessTags: d.accessTags,
       roles: [...consumerMagicMcpReadRoles]
     });
+    let filterAccessTagFilter = await getAccessTagFilter({
+      accessTags: d.filterAccessTags,
+      roles: [...consumerMagicMcpReadRoles]
+    });
     let statusFilter = getActiveStatusFilter({
       accessTags: d.accessTags,
       status: d.status,
       activeStatus: 'active'
     });
+    let defaultAccessTagFilter = !accessTagFilter && !filterAccessTagFilter
+      ? {
+          none: {}
+        }
+      : undefined;
 
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
@@ -334,7 +344,7 @@ class MagicMcpTokenImpl {
           where: {
             instanceOid: d.instance.oid,
             status: statusFilter ? { in: statusFilter } : undefined,
-            accessTagEntities: accessTagFilter,
+            accessTagEntities: accessTagFilter ?? filterAccessTagFilter ?? defaultAccessTagFilter,
 
             AND: [
               groupOids

@@ -433,7 +433,32 @@ class ConsumerProviderCatalogServiceImpl {
       );
     }
 
-    let listings = await db.consumerAccessListing.findMany({
+    let filters: Prisma.ConsumerAccessListingWhereInput[] = [];
+
+    if (d.providerGroupId) {
+      filters.push({
+        consumerSurfaceProviderGroups: {
+          some: {
+            consumerSurfaceProviderGroup: {
+              id: d.providerGroupId,
+              consumerSurfaceOid: d.consumerSurface.oid
+            }
+          }
+        }
+      });
+    }
+
+    if (boundaryFilter) {
+      filters.push(boundaryFilter);
+    }
+
+    if (searchFilters.length) {
+      filters.push({
+        OR: searchFilters
+      });
+    }
+
+    let listings = (await db.consumerAccessListing.findMany({
       where: {
         surfaceOid: d.consumerSurface.oid,
         OR: [
@@ -448,31 +473,12 @@ class ConsumerProviderCatalogServiceImpl {
             }
           }
         ],
-        AND: [
-          d.providerGroupId
-            ? {
-                consumerSurfaceProviderGroups: {
-                  some: {
-                    consumerSurfaceProviderGroup: {
-                      id: d.providerGroupId,
-                      consumerSurfaceOid: d.consumerSurface.oid
-                    }
-                  }
-                }
-              }
-            : undefined!,
-          boundaryFilter,
-          searchFilters.length
-            ? {
-                OR: searchFilters
-              }
-            : undefined!
-        ].filter(Boolean)
+        AND: filters
       },
       include: this.getCatalogInclude(groupOids),
       orderBy: [{ name: queryOrder }, { id: queryOrder }],
       take: d.limit + 1
-    });
+    })) as ConsumerCatalogRecord[];
 
     return {
       items: listings.slice(0, d.limit),
