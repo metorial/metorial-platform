@@ -155,6 +155,7 @@ export let magicMcpServerController = Controller.create(
             consumer_id: v.optional(v.union([v.string(), v.array(v.string())])),
             consumer_profile_id: v.optional(v.union([v.string(), v.array(v.string())])),
             search: v.optional(v.string()),
+            id: v.optional(v.union([v.string(), v.array(v.string())])),
             preconfigured_only: v.optional(v.boolean())
           })
         )
@@ -172,6 +173,7 @@ export let magicMcpServerController = Controller.create(
           status: normalizeArrayParam<MagicMcpServerStatus>(ctx.query.status),
           groupIds: normalizeArrayParam(ctx.query.magic_mcp_group_id),
           providerTemplateIds: normalizeArrayParam(ctx.query.provider_template_id),
+          ids: normalizeArrayParam(ctx.query.id),
           search: ctx.query.search,
           accessTags: ctx.accessTags,
           preconfiguredOnly: ctx.query.preconfigured_only,

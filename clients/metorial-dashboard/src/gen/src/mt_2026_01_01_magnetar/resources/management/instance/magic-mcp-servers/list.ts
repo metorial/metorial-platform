@@ -79,6 +79,7 @@ export type ManagementInstanceMagicMcpServersListQuery = {
   consumerId?: string | string[] | undefined;
   consumerProfileId?: string | string[] | undefined;
   search?: string | undefined;
+  id?: string | string[] | undefined;
   preconfiguredOnly?: boolean | undefined;
 };
 
@@ -136,6 +137,16 @@ export let mapManagementInstanceMagicMcpServersListQuery = mtMap.union([
         ])
       ),
       search: mtMap.objectField('search', mtMap.passthrough()),
+      id: mtMap.objectField(
+        'id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
       preconfiguredOnly: mtMap.objectField(
         'preconfigured_only',
         mtMap.passthrough()

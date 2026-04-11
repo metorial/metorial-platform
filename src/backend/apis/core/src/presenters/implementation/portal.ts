@@ -1,5 +1,4 @@
 import { v } from '@lowerdeck/validation';
-import { getOrganizationBrand } from '@metorial/db';
 import { getPortalAllowedRedirectUrlFilters } from '@metorial/module-portal';
 import { Presenter } from '@metorial/presenter';
 import { portalType } from '../types';
@@ -25,7 +24,6 @@ export let v1PortalPresenter = Presenter.create(portalType)
         url: portalUrl
       }
     ],
-    brand: await getOrganizationBrand(portal.organization),
     created_at: portal.createdAt,
     updated_at: portal.updatedAt
   }))
@@ -52,10 +50,6 @@ export let v1PortalPresenter = Presenter.create(portalType)
           url: v.string()
         })
       ),
-      brand: v.object({
-        image: v.string(),
-        name: v.string()
-      }),
       created_at: v.date(),
       updated_at: v.date()
     })

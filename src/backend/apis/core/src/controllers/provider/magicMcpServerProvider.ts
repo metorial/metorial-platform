@@ -62,8 +62,8 @@ export let magicMcpServerProviderController = Controller.create(
     list: magicMcpServerGroup
       .get(
         instancePath(
-          'magic-mcp-servers/:magicMcpServerId/provider',
-          'magicMcpServers.provider.list'
+          'magic-mcp-servers/:magicMcpServerId/providers',
+          'magicMcpServers.providers.list'
         ),
         {
           name: 'List magic MCP server providers',
@@ -140,8 +140,8 @@ export let magicMcpServerProviderController = Controller.create(
     get: magicMcpServerProviderGroup
       .get(
         instancePath(
-          'magic-mcp-servers/:magicMcpServerId/provider/:magicMcpServerProviderId',
-          'magicMcpServers.provider.get'
+          'magic-mcp-servers/:magicMcpServerId/providers/:magicMcpServerProviderId',
+          'magicMcpServers.providers.get'
         ),
         {
           name: 'Get magic MCP server provider',
@@ -169,8 +169,8 @@ export let magicMcpServerProviderController = Controller.create(
     create: magicMcpServerGroup
       .post(
         instancePath(
-          'magic-mcp-servers/:magicMcpServerId/provider',
-          'magicMcpServers.provider.create'
+          'magic-mcp-servers/:magicMcpServerId/providers',
+          'magicMcpServers.providers.create'
         ),
         {
           name: 'Create magic MCP server provider',
@@ -228,8 +228,8 @@ export let magicMcpServerProviderController = Controller.create(
     update: magicMcpServerProviderGroup
       .patch(
         instancePath(
-          'magic-mcp-servers/:magicMcpServerId/provider/:magicMcpServerProviderId',
-          'magicMcpServers.provider.update'
+          'magic-mcp-servers/:magicMcpServerId/providers/:magicMcpServerProviderId',
+          'magicMcpServers.providers.update'
         ),
         {
           name: 'Update magic MCP server provider',
@@ -276,8 +276,8 @@ export let magicMcpServerProviderController = Controller.create(
     delete: magicMcpServerProviderGroup
       .delete(
         instancePath(
-          'magic-mcp-servers/:magicMcpServerId/provider/:magicMcpServerProviderId',
-          'magicMcpServers.provider.delete'
+          'magic-mcp-servers/:magicMcpServerId/providers/:magicMcpServerProviderId',
+          'magicMcpServers.providers.delete'
         ),
         {
           name: 'Delete magic MCP server provider',
