@@ -16,6 +16,8 @@ import {
   resolveCustomProviderDeployments,
   resolveCustomProviderEnvironments,
   resolveCustomProviders,
+  resolveProviderVersions,
+  resolveCustomProviderVersions,
   resolveProviders
 } from '@metorial-subspace/list-utils';
 import { getTenantForShuttle, shuttle } from '@metorial-subspace/provider-shuttle/src/client';
@@ -52,12 +54,9 @@ class customProviderDeploymentServiceImpl {
     customProviderEnvironmentIds?: string[];
   }) {
     let providers = await resolveProviders(d, d.providerIds);
-    let providerVersions = await resolveProviders(d, d.providerVersionIds);
+    let providerVersions = await resolveProviderVersions(d, d.providerVersionIds);
     let customProviders = await resolveCustomProviders(d, d.customProviderIds);
-    let customProviderVersions = await resolveCustomProviderDeployments(
-      d,
-      d.customProviderVersionIds
-    );
+    let customProviderVersions = await resolveCustomProviderVersions(d, d.customProviderVersionIds);
     let customProviderEnvironments = await resolveCustomProviderEnvironments(
       d,
       d.customProviderEnvironmentIds

@@ -39,40 +39,46 @@ export let scmSyncManyQueueProcessor = scmSyncManyQueue.process(async data =>
     });
     let repoMap = new Map(repos.map(t => [t.id, t]));
 
-    let pushes = await db.scmRepoPush.createManyAndReturn({
-      skipDuplicates: true,
-      select: { id: true },
-      data: changeNotifications.items
-        .map(item => {
-          if (item.type !== 'repo_push' || !item.repoPush?.repo) return undefined!;
-          let repo = repoMap.get(item.repoPush.repo.id);
-          if (!repo) return undefined!;
+    let pushData = changeNotifications.items.flatMap(item => {
+      if (item.type !== 'repo_push' || !item.repoPush?.repo) return [];
+      let repo = repoMap.get(item.repoPush.repo.id);
+      if (!repo) return [];
 
-          return {
-            oid: snowflake.nextId(),
-            id: item.id,
+      return [
+        {
+          oid: snowflake.nextId(),
+          id: item.id,
 
-            pusherName: item.repoPush?.pusherName,
-            pusherEmail: item.repoPush?.pusherEmail,
-            senderIdentifier: item.repoPush?.senderIdentifier,
-            commitMessage: item.repoPush?.commitMessage,
+          pusherName: item.repoPush?.pusherName,
+          pusherEmail: item.repoPush?.pusherEmail,
+          senderIdentifier: item.repoPush?.senderIdentifier,
+          commitMessage: item.repoPush?.commitMessage,
 
-            branchName: item.repoPush?.branchName,
-            sha: item.repoPush?.sha,
+          branchName: item.repoPush?.branchName,
+          sha: item.repoPush?.sha,
 
-            repoOid: repo.oid,
-            tenantOid: repo.tenantOid,
-            solutionOid: repo.solutionOid
-          };
-        })
-        .filter(Boolean)
+          repoOid: repo.oid,
+          tenantOid: repo.tenantOid,
+          solutionOid: repo.solutionOid
+        }
+      ];
     });
 
-    await handlePushQueue.addMany(
-      pushes.map(item => ({
-        scmRepoPushId: item.id
-      }))
-    );
+    let pushes = pushData.length
+      ? await db.scmRepoPush.createManyAndReturn({
+          skipDuplicates: true,
+          select: { id: true },
+          data: pushData
+        })
+      : [];
+
+    if (pushes.length) {
+      await handlePushQueue.addMany(
+        pushes.map(item => ({
+          scmRepoPushId: item.id
+        }))
+      );
+    }
 
     let lastItem = changeNotifications.items[changeNotifications.items.length - 1];
     if (!lastItem) return;
