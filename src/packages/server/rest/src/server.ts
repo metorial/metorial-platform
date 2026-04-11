@@ -199,7 +199,8 @@ export class RestServer<AuthInfo, ApiVersion extends string> {
                       let body = await parseBody(c);
 
                       let query = qs.parse(c.env.url.search, {
-                        ignoreQueryPrefix: true
+                        ignoreQueryPrefix: true,
+                        arrayLimit: 5000
                       }) as any;
 
                       Sentry.getCurrentScope().setContext('rpc.request', {

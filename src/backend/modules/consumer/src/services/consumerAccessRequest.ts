@@ -284,8 +284,8 @@ class ConsumerAccessRequestServiceImpl {
     }
 
     try {
-      let consumerAccessRequest = await withTransaction(async tx => {
-        return await tx.consumerAccessRequest.create({
+      let consumerAccessRequest = await withTransaction(async db => {
+        return await db.consumerAccessRequest.create({
           data: {
             id: await ID.generateId('consumerAccessRequest'),
             type: d.accessRequest.type,
@@ -356,8 +356,8 @@ class ConsumerAccessRequestServiceImpl {
       );
     }
 
-    let consumerAccessRequest = await withTransaction(async tx => {
-      return await tx.consumerAccessRequest.update({
+    let consumerAccessRequest = await withTransaction(async db => {
+      return await db.consumerAccessRequest.update({
         where: {
           oid: d.consumerAccessRequest.oid
         },
