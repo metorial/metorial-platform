@@ -31,9 +31,9 @@ let Content = styled('main')`
   flex-direction: column;
   flex: 1;
   min-height: 0;
-  padding: 20px;
+  padding: 15px 10px;
   overflow: auto;
-  scrollbar-gutter: stable both-edges;
+  /* scrollbar-gutter: stable both-edges; */
 `;
 
 let Title = styled(RadixDialogDialog.Title)`
