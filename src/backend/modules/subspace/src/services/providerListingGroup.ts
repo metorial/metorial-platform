@@ -3,7 +3,8 @@ import { subspace } from '../subspace';
 
 export let subspaceProviderListingGroupService = createSubspaceService(
   subspace.providerListingGroup,
-  ['get', 'list', 'create', 'update', 'delete', 'addProvider', 'removeProvider']
+  ['get', 'list', 'create', 'update', 'delete', 'addProvider', 'removeProvider'],
+  () => ({})
 );
 
 export type SubspaceProviderListingGroup = Awaited<
