@@ -1,0 +1,33 @@
+enum ConsumerSurfaceStatus {
+  active
+  archived
+  deleted
+}
+
+enum ConsumerSurfaceType {
+  portal
+  organization_members
+}
+
+model ConsumerSurface {
+  id String @id
+
+  status ConsumerSurfaceStatus
+  type   ConsumerSurfaceType
+
+  name        String
+  description String?
+
+  ownerOid Int
+  owner    Cell @relation(fields: [ownerOid], references: [oid])
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  instanceId String
+
+  archivedAt DateTime?
+  deletedAt  DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
+}

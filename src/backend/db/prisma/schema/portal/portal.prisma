@@ -31,5 +31,4 @@ model Portal {
   archivedAt DateTime?
   deletedAt  DateTime?
 
-  portalAuthClients PortalAuthClient[]
 }

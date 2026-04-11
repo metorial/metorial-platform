@@ -184,8 +184,9 @@ export let ID = createIdGenerator({
   providerTemplate: idType.sorted('ptm'),
 
   portal: idType.sorted('ptl'),
-  portalAuthClient: idType.sorted('ptac'),
-  portalAuthAttempt: idType.sorted('ptaa'),
-  portalAuthClientId: idType.unsorted('ptaci'),
-  portalAuthClientSecret: idType.unsorted('ptacs', 32)
+  consumerAuthClient: idType.sorted('coac'),
+  consumerAuthAttempt: idType.sorted('coaa'),
+  consumerAuthClientId: idType.unsorted('coaci'),
+  consumerAuthClientSecret: idType.unsorted('coacs', 32),
+
 });

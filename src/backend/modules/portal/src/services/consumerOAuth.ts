@@ -12,12 +12,15 @@ import { getConfig } from '@metorial/config';
 import {
   db,
   ID,
+  Organization,
+  Portal,
   Prisma,
+  Project,
   withTransaction,
+  type ConsumerAuthAttempt,
   type ConsumerProfile,
   type ConsumerSurface,
-  type Instance,
-  type PortalAuthAttempt
+  type Instance
 } from '@metorial/db';
 import { type AnyAccessTagSelector } from '@metorial/module-access';
 import {
@@ -41,82 +44,157 @@ import {
 } from '../lib/oauth';
 import { portalService } from './portal';
 
-let portalAuthClientInclude = {
-  portal: true,
+let consumerAuthClientInclude = {
+  consumerSurface: {
+    include: {
+      portal: true
+    }
+  },
   magicMcpServer: true,
   magicMcpEndpoint: true
-} satisfies Prisma.PortalAuthClientInclude;
+} satisfies Prisma.ConsumerAuthClientInclude;
 
-let portalAuthAttemptInclude = {
-  portalAuthClient: {
-    include: portalAuthClientInclude
+let consumerAuthAttemptInclude = {
+  consumerAuthClient: {
+    include: consumerAuthClientInclude
   },
   consumerProfile: true,
   magicMcpEndpoint: true,
   magicMcpToken: true
-} satisfies Prisma.PortalAuthAttemptInclude;
+} satisfies Prisma.ConsumerAuthAttemptInclude;
 
-export type PortalOAuthClient = Prisma.PortalAuthClientGetPayload<{
-  include: typeof portalAuthClientInclude;
+export type ConsumerOAuthClient = Prisma.ConsumerAuthClientGetPayload<{
+  include: typeof consumerAuthClientInclude;
 }>;
 
-export type PortalOAuthAuthorization = Prisma.PortalAuthAttemptGetPayload<{
-  include: typeof portalAuthAttemptInclude;
+export type ConsumerOAuthAuthorization = Prisma.ConsumerAuthAttemptGetPayload<{
+  include: typeof consumerAuthAttemptInclude;
 }>;
 
-export let portalRefreshTokenTtlSeconds = 7 * 24 * 60 * 60;
-export let portalAccessTokenTtlSeconds = 60 * 60;
-export let portalOAuthClientRegistrationsPerMinuteLimit = 10;
-export let portalOAuthClientRegistrationsPerHourLimit = 20;
+type DashboardConsumerSurface = ConsumerSurface & {
+  instance: Instance & {
+    project: Project;
+    organization: Organization;
+  };
+};
 
-let getPortalRefreshTokenExpiry = () => addSeconds(new Date(), portalRefreshTokenTtlSeconds);
-let getPortalAccessTokenExpiry = () => addSeconds(new Date(), portalAccessTokenTtlSeconds);
-let portalOAuthClientRegistrationRateLimitError = createError({
+export let consumerAuthRefreshTokenTtlSeconds = 7 * 24 * 60 * 60;
+export let consumerAuthAccessTokenTtlSeconds = 60 * 60;
+export let consumerAuthClientRegistrationsPerMinuteLimit = 10;
+export let consumerAuthClientRegistrationsPerHourLimit = 20;
+
+let getConsumerAuthRefreshTokenExpiry = () =>
+  addSeconds(new Date(), consumerAuthRefreshTokenTtlSeconds);
+let getConsumerAuthAccessTokenExpiry = () =>
+  addSeconds(new Date(), consumerAuthAccessTokenTtlSeconds);
+let consumerAuthClientRegistrationRateLimitError = createError({
   status: 429,
   code: 'rate_limit_exceeded',
-  message: 'Too many portal OAuth client registrations from this IP address',
-  hint: 'Portal OAuth client registrations are limited to 10 per minute and 20 per hour.'
+  message: 'Too many OAuth client registrations from this IP address',
+  hint: 'OAuth client registrations are limited to 10 per minute and 20 per hour.'
 });
 
-let ensurePendingPortalOAuthAuthorization = (
-  portalOAuthAuthorization: Pick<PortalAuthAttempt, 'status'>
+let ensurePendingConsumerAuthAuthorization = (
+  portalOAuthAuthorization: Pick<ConsumerAuthAttempt, 'status'>
 ) => {
   if (portalOAuthAuthorization.status != 'pending') {
     throw new ServiceError(
       preconditionFailedError({
-        message: 'This portal OAuth authorization is no longer pending.'
+        message: 'This OAuth authorization is no longer pending.'
       })
     );
   }
 };
 
-let ensureAttemptNotExpired = (attempt: Pick<PortalOAuthAuthorization, 'expiresAt'>) => {
+let ensureAttemptNotExpired = (attempt: Pick<ConsumerOAuthAuthorization, 'expiresAt'>) => {
   if (attempt.expiresAt < new Date()) {
     throw new ServiceError(
       badRequestError({
-        message: 'The portal authorization has expired',
+        message: 'The authorization has expired',
         oauth: {
           error: 'invalid_grant',
-          errorMessage: 'The portal authorization has expired'
+          errorMessage: 'The authorization has expired'
         }
       })
     );
   }
 };
 
+let resolveConsumerSurface = (d: {
+  portal?: { surface: ConsumerSurface };
+  consumerSurface?: ConsumerSurface;
+}) => {
+  return d.consumerSurface ?? d.portal?.surface;
+};
+
+let buildDashboardConsumerAuthUrl = (d: {
+  consumerSurface: DashboardConsumerSurface;
+  consumerAuthAttemptId: string;
+}) => {
+  let url = new URL(getConfig().urls.appUrl);
+  let basePath = url.pathname.replace(/\/+$/, '');
+  url.pathname =
+    `${basePath}/i/${d.consumerSurface.instance.organization.id}/${d.consumerSurface.instance.project.id}/${d.consumerSurface.instance.id}/consumer-auth/authorize/${d.consumerAuthAttemptId}`.replace(
+      /\/{2,}/g,
+      '/'
+    );
+  url.search = '';
+  url.hash = '';
+
+  return url.toString();
+};
+
 class ConsumerOAuthServiceImpl {
   async resolvePortalRoute(d: { portalId: string; magicMcpTargetId?: string }) {
-    let portal = await portalService.getPortalPublic({ portalId: d.portalId });
+    let portal: Awaited<ReturnType<typeof portalService.getPortalPublic>> | null = null;
+    let consumerSurface:
+      | (DashboardConsumerSurface & {
+          organization: Organization;
+          portal: Portal | null;
+        })
+      | null = null;
+
+    try {
+      portal = await portalService.getPortalPublic({ portalId: d.portalId });
+    } catch {
+      let surface = await db.consumerSurface.findFirst({
+        where: {
+          id: d.portalId,
+          status: 'active'
+        },
+        include: {
+          instance: {
+            include: {
+              project: true,
+              organization: true
+            }
+          },
+          organization: true,
+          portal: true
+        }
+      });
+
+      if (!surface) {
+        throw new ServiceError(notFoundError('portal'));
+      }
+
+      consumerSurface = surface;
+    }
+
+    let instance = portal?.instance ?? consumerSurface!.instance;
+
     let magicMcpTarget = d.magicMcpTargetId
       ? await resolveMagicMcpTargetByIdOrAlias(d.magicMcpTargetId)
       : null;
 
-    if (magicMcpTarget && portal.instance.oid != magicMcpTarget.target.instance.oid) {
+    if (magicMcpTarget && instance.oid != magicMcpTarget.target.instance.oid) {
       throw new ServiceError(notFoundError('magic_mcp.target'));
     }
 
     return {
       portal,
+      consumerSurface,
+      instance,
       magicMcpTarget,
       base: `${getConfig().urls.apiUrl}/connect/portal/${d.portalId}${
         d.magicMcpTargetId ? `/${d.magicMcpTargetId}` : ''
@@ -124,8 +202,9 @@ class ConsumerOAuthServiceImpl {
     };
   }
 
-  async registerPortalOAuthClient(d: {
-    portal: Awaited<ReturnType<typeof portalService.getPortalPublic>>;
+  async registerConsumerAuthClient(d: {
+    portal?: Awaited<ReturnType<typeof portalService.getPortalPublic>>;
+    consumerSurface?: ConsumerSurface;
     magicMcpTarget: MagicMcpResolvedTarget | null;
     input: {
       clientName: string;
@@ -134,23 +213,32 @@ class ConsumerOAuthServiceImpl {
       tokenEndpointAuthMethod?: 'client_secret_basic' | 'client_secret_post' | 'none';
     };
   }) {
+    let consumerSurface = resolveConsumerSurface(d);
+    if (!consumerSurface) {
+      throw new ServiceError(notFoundError('consumer.surface'));
+    }
+
     for (let redirectUri of d.input.redirectUris) {
       validateUrlString(redirectUri, 'redirect_uri');
     }
-    validatePortalRedirectUrisAgainstAllowedFilters({
-      redirectUris: d.input.redirectUris,
-      allowedRedirectUrlFilters: getPortalAllowedRedirectUrlFilters(
-        d.portal.allowedRedirectUrlFilters
-      )
-    });
+    if (d.portal) {
+      validatePortalRedirectUrisAgainstAllowedFilters({
+        redirectUris: d.input.redirectUris,
+        allowedRedirectUrlFilters: getPortalAllowedRedirectUrlFilters(
+          d.portal.allowedRedirectUrlFilters
+        )
+      });
+    }
 
     let tokenEndpointAuthMethod = d.input.tokenEndpointAuthMethod ?? 'client_secret_basic';
     let clientSecret =
-      tokenEndpointAuthMethod == 'none' ? null : await ID.generateId('portalAuthClientSecret');
+      tokenEndpointAuthMethod == 'none'
+        ? null
+        : await ID.generateId('consumerAuthClientSecret');
 
     return await withTransaction(async db => {
       let now = new Date();
-      let registrationsPerMinute = await db.portalAuthClient.count({
+      let registrationsPerMinute = await db.consumerAuthClient.count({
         where: {
           registrationIp: d.input.registrationIp,
           createdAt: {
@@ -158,11 +246,11 @@ class ConsumerOAuthServiceImpl {
           }
         }
       });
-      if (registrationsPerMinute >= portalOAuthClientRegistrationsPerMinuteLimit) {
-        throw new ServiceError(portalOAuthClientRegistrationRateLimitError);
+      if (registrationsPerMinute >= consumerAuthClientRegistrationsPerMinuteLimit) {
+        throw new ServiceError(consumerAuthClientRegistrationRateLimitError);
       }
 
-      let registrationsPerHour = await db.portalAuthClient.count({
+      let registrationsPerHour = await db.consumerAuthClient.count({
         where: {
           registrationIp: d.input.registrationIp,
           createdAt: {
@@ -170,14 +258,14 @@ class ConsumerOAuthServiceImpl {
           }
         }
       });
-      if (registrationsPerHour >= portalOAuthClientRegistrationsPerHourLimit) {
-        throw new ServiceError(portalOAuthClientRegistrationRateLimitError);
+      if (registrationsPerHour >= consumerAuthClientRegistrationsPerHourLimit) {
+        throw new ServiceError(consumerAuthClientRegistrationRateLimitError);
       }
 
-      return await db.portalAuthClient.create({
+      return await db.consumerAuthClient.create({
         data: {
-          id: await ID.generateId('portalAuthClient'),
-          portalOid: d.portal.oid,
+          id: await ID.generateId('consumerAuthClient'),
+          consumerSurfaceOid: consumerSurface.oid,
           magicMcpServerOid:
             d.magicMcpTarget?.type === 'server' ? d.magicMcpTarget.target.oid : null,
           magicMcpEndpointOid:
@@ -185,38 +273,45 @@ class ConsumerOAuthServiceImpl {
           name: d.input.clientName,
           redirectUris: d.input.redirectUris,
           registrationIp: d.input.registrationIp,
-          clientId: await ID.generateId('portalAuthClientId'),
+          clientId: await ID.generateId('consumerAuthClientId'),
           clientSecret,
           tokenEndpointAuthMethod,
           expiresAt: addDays(new Date(), 30)
         },
-        include: portalAuthClientInclude
+        include: consumerAuthClientInclude
       });
     });
   }
 
-  async getPortalOAuthRegistration(d: {
-    portal: Awaited<ReturnType<typeof portalService.getPortalPublic>>;
+  async getConsumerAuthRegistration(d: {
+    portal?: Awaited<ReturnType<typeof portalService.getPortalPublic>>;
+    consumerSurface?: ConsumerSurface;
     magicMcpTarget: MagicMcpResolvedTarget | null;
     registrationId: string;
   }) {
-    let registration = await db.portalAuthClient.findFirst({
+    let consumerSurface = resolveConsumerSurface(d);
+    if (!consumerSurface) {
+      throw new ServiceError(notFoundError('consumer.surface'));
+    }
+
+    let registration = await db.consumerAuthClient.findFirst({
       where: {
         id: d.registrationId,
-        portalOid: d.portal.oid,
+        consumerSurfaceOid: consumerSurface.oid,
         magicMcpServerOid:
           d.magicMcpTarget?.type === 'server' ? d.magicMcpTarget.target.oid : null,
         magicMcpEndpointOid:
           d.magicMcpTarget?.type === 'endpoint' ? d.magicMcpTarget.target.oid : null
       },
-      include: portalAuthClientInclude
+      include: consumerAuthClientInclude
     });
 
     return registration;
   }
 
-  async createPortalOAuthAuthorization(d: {
-    portal: Awaited<ReturnType<typeof portalService.getPortalPublic>>;
+  async createConsumerAuthAuthorization(d: {
+    portal?: Awaited<ReturnType<typeof portalService.getPortalPublic>>;
+    consumerSurface?: DashboardConsumerSurface;
     magicMcpTarget: MagicMcpResolvedTarget | null;
     input: {
       responseType?: string;
@@ -309,9 +404,14 @@ class ConsumerOAuthServiceImpl {
       );
     }
 
-    let client = await this.getPortalAuthClient({
+    let consumerSurface = resolveConsumerSurface(d);
+    if (!consumerSurface) {
+      throw new ServiceError(notFoundError('consumer.surface'));
+    }
+
+    let client = await this.getConsumerAuthClient({
       clientId: d.input.clientId,
-      portalOid: d.portal.oid,
+      consumerSurfaceOid: consumerSurface.oid,
       magicMcpServerOid:
         d.magicMcpTarget?.type === 'server' ? d.magicMcpTarget.target.oid : undefined,
       magicMcpEndpointOid:
@@ -319,10 +419,10 @@ class ConsumerOAuthServiceImpl {
     });
     validateRedirectUri(d.input.redirectUri, client.redirectUris);
 
-    let attempt = await db.portalAuthAttempt.create({
+    let attempt = await db.consumerAuthAttempt.create({
       data: {
-        id: await ID.generateId('portalAuthAttempt'),
-        portalAuthClientOid: client.oid,
+        id: await ID.generateId('consumerAuthAttempt'),
+        consumerAuthClientOid: client.oid,
         status: 'pending',
         redirectUri: d.input.redirectUri,
         state: d.input.state,
@@ -333,20 +433,30 @@ class ConsumerOAuthServiceImpl {
       }
     });
 
-    let redirectUrl = new URL(portalService.getPortalHost({ portal: d.portal }).host);
-    let basePath = redirectUrl.pathname.replace(/\/+$/, '');
-    redirectUrl.pathname = `${basePath}/oauth/authorize/${attempt.id}`.replace(/\/{2,}/g, '/');
-    redirectUrl.search = '';
-    redirectUrl.hash = '';
+    let redirectUrl = d.portal
+      ? (() => {
+          let url = new URL(portalService.getPortalHost({ portal: d.portal! }).host);
+          let basePath = url.pathname.replace(/\/+$/, '');
+          url.pathname = `${basePath}/oauth/authorize/${attempt.id}`.replace(/\/{2,}/g, '/');
+          url.search = '';
+          url.hash = '';
+
+          return url.toString();
+        })()
+      : buildDashboardConsumerAuthUrl({
+          consumerSurface: d.consumerSurface!,
+          consumerAuthAttemptId: attempt.id
+        });
 
     return {
       attempt,
-      redirectUrl: redirectUrl.toString()
+      redirectUrl
     };
   }
 
-  async exchangePortalOAuthToken(d: {
-    portal: Awaited<ReturnType<typeof portalService.getPortalPublic>>;
+  async exchangeConsumerAuthToken(d: {
+    portal?: Awaited<ReturnType<typeof portalService.getPortalPublic>>;
+    consumerSurface?: ConsumerSurface;
     magicMcpTarget: MagicMcpResolvedTarget | null;
     input: {
       clientId?: string;
@@ -382,9 +492,14 @@ class ConsumerOAuthServiceImpl {
       );
     }
 
-    let client = await this.getPortalAuthClient({
+    let consumerSurface = resolveConsumerSurface(d);
+    if (!consumerSurface) {
+      throw new ServiceError(notFoundError('consumer.surface'));
+    }
+
+    let client = await this.getConsumerAuthClient({
       clientId: d.input.clientId,
-      portalOid: d.portal.oid,
+      consumerSurfaceOid: consumerSurface.oid,
       magicMcpServerOid:
         d.magicMcpTarget?.type === 'server' ? d.magicMcpTarget.target.oid : undefined,
       magicMcpEndpointOid:
@@ -422,6 +537,7 @@ class ConsumerOAuthServiceImpl {
 
       return await this.exchangeAuthorizationCodeToken({
         portal: d.portal,
+        consumerSurface,
         magicMcpTarget: d.magicMcpTarget,
         client,
         code: d.input.code,
@@ -445,6 +561,7 @@ class ConsumerOAuthServiceImpl {
 
       return await this.exchangeRefreshToken({
         portal: d.portal,
+        consumerSurface,
         magicMcpTarget: d.magicMcpTarget,
         client,
         refreshToken: d.input.refreshToken
@@ -462,20 +579,20 @@ class ConsumerOAuthServiceImpl {
     );
   }
 
-  async getPortalOAuthClientForConsumer(d: {
+  async getConsumerAuthClientForConsumer(d: {
     instance: Instance;
     consumerSurface: ConsumerSurface;
     portalAuthClientId: string;
   }) {
-    let portalOAuthClient = await db.portalAuthClient.findFirst({
+    let portalOAuthClient = await db.consumerAuthClient.findFirst({
       where: {
         id: d.portalAuthClientId,
-        portal: {
+        consumerSurface: {
           instanceOid: d.instance.oid,
-          surfaceOid: d.consumerSurface.oid
+          oid: d.consumerSurface.oid
         }
       },
-      include: portalAuthClientInclude
+      include: consumerAuthClientInclude
     });
 
     if (!portalOAuthClient) {
@@ -485,23 +602,23 @@ class ConsumerOAuthServiceImpl {
     return portalOAuthClient;
   }
 
-  async getPortalOAuthAuthorizationForConsumer(d: {
+  async getConsumerAuthAuthorizationForConsumer(d: {
     instance: Instance;
     consumerSurface: ConsumerSurface;
     consumerProfile: ConsumerProfile;
     portalAuthAttemptId: string;
   }) {
-    let portalOAuthAuthorization = await db.portalAuthAttempt.findFirst({
+    let portalOAuthAuthorization = await db.consumerAuthAttempt.findFirst({
       where: {
         id: d.portalAuthAttemptId,
-        portalAuthClient: {
-          portal: {
+        consumerAuthClient: {
+          consumerSurface: {
             instanceOid: d.instance.oid,
-            surfaceOid: d.consumerSurface.oid
+            oid: d.consumerSurface.oid
           }
         }
       },
-      include: portalAuthAttemptInclude
+      include: consumerAuthAttemptInclude
     });
 
     if (!portalOAuthAuthorization) {
@@ -514,7 +631,7 @@ class ConsumerOAuthServiceImpl {
     ) {
       throw new ServiceError(
         preconditionFailedError({
-          message: 'This portal OAuth authorization belongs to a different consumer profile.'
+          message: 'This OAuth authorization belongs to a different consumer profile.'
         })
       );
     }
@@ -522,27 +639,27 @@ class ConsumerOAuthServiceImpl {
     return portalOAuthAuthorization;
   }
 
-  async acceptPortalOAuthAuthorization(d: {
-    portalOAuthAuthorization: PortalOAuthAuthorization;
+  async acceptConsumerAuthAuthorization(d: {
+    portalOAuthAuthorization: ConsumerOAuthAuthorization;
     consumerProfile: ConsumerProfile;
   }) {
-    ensurePendingPortalOAuthAuthorization(d.portalOAuthAuthorization);
+    ensurePendingConsumerAuthAuthorization(d.portalOAuthAuthorization);
 
     if (
-      !d.portalOAuthAuthorization.portalAuthClient.magicMcpServerOid &&
-      !d.portalOAuthAuthorization.portalAuthClient.magicMcpEndpointOid &&
+      !d.portalOAuthAuthorization.consumerAuthClient.magicMcpServerOid &&
+      !d.portalOAuthAuthorization.consumerAuthClient.magicMcpEndpointOid &&
       !d.portalOAuthAuthorization.magicMcpEndpointOid
     ) {
       throw new ServiceError(
         preconditionFailedError({
           message:
-            'Select at least one Magic MCP server before approving this portal OAuth authorization.'
+            'Select at least one Magic MCP server before approving this OAuth authorization.'
         })
       );
     }
 
     let now = new Date();
-    return await db.portalAuthAttempt.update({
+    return await db.consumerAuthAttempt.update({
       where: {
         id: d.portalOAuthAuthorization.id
       },
@@ -554,18 +671,18 @@ class ConsumerOAuthServiceImpl {
         authorizationCode: d.portalOAuthAuthorization.authorizationCode ?? crypto.randomUUID(),
         authorizationCodeExpiresAt: addMinutes(now, 10)
       },
-      include: portalAuthAttemptInclude
+      include: consumerAuthAttemptInclude
     });
   }
 
-  async connectPortalOAuthAuthorizationToMagicMcpEndpoint(d: {
-    portalOAuthAuthorization: PortalOAuthAuthorization;
+  async connectConsumerAuthAuthorizationToMagicMcpEndpoint(d: {
+    portalOAuthAuthorization: ConsumerOAuthAuthorization;
     instance: Instance;
     accessTags?: AnyAccessTagSelector;
     consumerProfile: ConsumerProfile;
     magicMcpEndpointId: string;
   }) {
-    ensurePendingPortalOAuthAuthorization(d.portalOAuthAuthorization);
+    ensurePendingConsumerAuthAuthorization(d.portalOAuthAuthorization);
 
     let magicMcpEndpoint = await magicMcpEndpointService.getMagicMcpEndpointById({
       magicMcpEndpointId: d.magicMcpEndpointId,
@@ -577,7 +694,7 @@ class ConsumerOAuthServiceImpl {
       throw new ServiceError(
         preconditionFailedError({
           message:
-            'You can only link this portal OAuth authorization to a magic MCP endpoint you own.'
+            'You can only link this OAuth authorization to a magic MCP endpoint you own.'
         })
       );
     }
@@ -586,12 +703,12 @@ class ConsumerOAuthServiceImpl {
       throw new ServiceError(
         preconditionFailedError({
           message:
-            'Add at least one Magic MCP server to the endpoint before linking it to this portal OAuth authorization.'
+            'Add at least one Magic MCP server to the endpoint before linking it to this OAuth authorization.'
         })
       );
     }
 
-    return await db.portalAuthAttempt.update({
+    return await db.consumerAuthAttempt.update({
       where: {
         id: d.portalOAuthAuthorization.id
       },
@@ -599,17 +716,17 @@ class ConsumerOAuthServiceImpl {
         consumerProfileOid: d.consumerProfile.oid,
         magicMcpEndpointOid: magicMcpEndpoint.oid
       },
-      include: portalAuthAttemptInclude
+      include: consumerAuthAttemptInclude
     });
   }
 
-  async rejectPortalOAuthAuthorization(d: {
-    portalOAuthAuthorization: PortalOAuthAuthorization;
+  async rejectConsumerAuthAuthorization(d: {
+    portalOAuthAuthorization: ConsumerOAuthAuthorization;
     consumerProfile: ConsumerProfile;
   }) {
-    ensurePendingPortalOAuthAuthorization(d.portalOAuthAuthorization);
+    ensurePendingConsumerAuthAuthorization(d.portalOAuthAuthorization);
 
-    return await db.portalAuthAttempt.update({
+    return await db.consumerAuthAttempt.update({
       where: {
         id: d.portalOAuthAuthorization.id
       },
@@ -619,20 +736,20 @@ class ConsumerOAuthServiceImpl {
           d.portalOAuthAuthorization.consumerProfileOid ?? d.consumerProfile.oid,
         deniedAt: new Date()
       },
-      include: portalAuthAttemptInclude
+      include: consumerAuthAttemptInclude
     });
   }
 
-  private async getPortalAuthClient(d: {
+  private async getConsumerAuthClient(d: {
     clientId: string;
-    portalOid: bigint;
+    consumerSurfaceOid: bigint;
     magicMcpServerOid?: bigint;
     magicMcpEndpointOid?: bigint;
   }) {
-    let client = await db.portalAuthClient.findFirst({
+    let client = await db.consumerAuthClient.findFirst({
       where: {
         clientId: d.clientId,
-        portalOid: d.portalOid,
+        consumerSurfaceOid: d.consumerSurfaceOid,
         magicMcpServerOid: d.magicMcpServerOid ?? null,
         magicMcpEndpointOid: d.magicMcpEndpointOid ?? null
       }
@@ -654,7 +771,7 @@ class ConsumerOAuthServiceImpl {
   }
 
   private validateClientSecret(d: {
-    client: Awaited<ReturnType<ConsumerOAuthServiceImpl['getPortalAuthClient']>>;
+    client: Awaited<ReturnType<ConsumerOAuthServiceImpl['getConsumerAuthClient']>>;
     clientSecret?: string;
   }) {
     if (d.client.tokenEndpointAuthMethod == 'none') {
@@ -687,19 +804,20 @@ class ConsumerOAuthServiceImpl {
   }
 
   private async exchangeAuthorizationCodeToken(d: {
-    portal: Awaited<ReturnType<typeof portalService.getPortalPublic>>;
+    portal?: Awaited<ReturnType<typeof portalService.getPortalPublic>>;
+    consumerSurface: ConsumerSurface;
     magicMcpTarget: MagicMcpResolvedTarget | null;
-    client: Awaited<ReturnType<ConsumerOAuthServiceImpl['getPortalAuthClient']>>;
+    client: Awaited<ReturnType<ConsumerOAuthServiceImpl['getConsumerAuthClient']>>;
     code: string;
     redirectUri: string;
     codeVerifier?: string;
   }) {
-    let attempt = await db.portalAuthAttempt.findFirst({
+    let attempt = await db.consumerAuthAttempt.findFirst({
       where: {
-        portalAuthClientOid: d.client.oid,
+        consumerAuthClientOid: d.client.oid,
         authorizationCode: d.code
       },
-      include: portalAuthAttemptInclude
+      include: consumerAuthAttemptInclude
     });
 
     if (!attempt || attempt.status != 'authorized') {
@@ -795,13 +913,14 @@ class ConsumerOAuthServiceImpl {
     let accessToken = await this.ensureLinkedAccessToken({
       attempt,
       portal: d.portal,
+      consumerSurface: d.consumerSurface,
       magicMcpTarget: d.magicMcpTarget,
       createIfMissing: true
     });
 
     let refreshToken = generateCustomId('prtl_oatre_', 35);
-    let expiresAt = getPortalRefreshTokenExpiry();
-    let updatedAttempt = await db.portalAuthAttempt.update({
+    let expiresAt = getConsumerAuthRefreshTokenExpiry();
+    let updatedAttempt = await db.consumerAuthAttempt.update({
       where: {
         id: attempt.id
       },
@@ -820,17 +939,18 @@ class ConsumerOAuthServiceImpl {
   }
 
   private async exchangeRefreshToken(d: {
-    portal: Awaited<ReturnType<typeof portalService.getPortalPublic>>;
+    portal?: Awaited<ReturnType<typeof portalService.getPortalPublic>>;
+    consumerSurface: ConsumerSurface;
     magicMcpTarget: MagicMcpResolvedTarget | null;
-    client: Awaited<ReturnType<ConsumerOAuthServiceImpl['getPortalAuthClient']>>;
+    client: Awaited<ReturnType<ConsumerOAuthServiceImpl['getConsumerAuthClient']>>;
     refreshToken: string;
   }) {
-    let attempt = await db.portalAuthAttempt.findFirst({
+    let attempt = await db.consumerAuthAttempt.findFirst({
       where: {
-        portalAuthClientOid: d.client.oid,
+        consumerAuthClientOid: d.client.oid,
         refreshToken: d.refreshToken
       },
-      include: portalAuthAttemptInclude
+      include: consumerAuthAttemptInclude
     });
 
     if (!attempt || attempt.status != 'active') {
@@ -850,17 +970,18 @@ class ConsumerOAuthServiceImpl {
     let accessToken = await this.ensureLinkedAccessToken({
       attempt,
       portal: d.portal,
+      consumerSurface: d.consumerSurface,
       magicMcpTarget: d.magicMcpTarget,
       allowExpired: true
     });
 
-    let expiresAt = getPortalRefreshTokenExpiry();
+    let expiresAt = getConsumerAuthRefreshTokenExpiry();
     let rotatedAccessToken = await magicMcpTokenService.rotateMagicMcpTokenSecret({
       token: accessToken,
-      expiresAt: getPortalAccessTokenExpiry()
+      expiresAt: getConsumerAuthAccessTokenExpiry()
     });
     let nextRefreshToken = generateCustomId('prtl_oatre_', 35);
-    let updatedAttempt = await db.portalAuthAttempt.update({
+    let updatedAttempt = await db.consumerAuthAttempt.update({
       where: {
         id: attempt.id
       },
@@ -877,8 +998,9 @@ class ConsumerOAuthServiceImpl {
   }
 
   private async ensureLinkedAccessToken(d: {
-    attempt: PortalOAuthAuthorization;
-    portal: Awaited<ReturnType<typeof portalService.getPortalPublic>>;
+    attempt: ConsumerOAuthAuthorization;
+    portal?: Awaited<ReturnType<typeof portalService.getPortalPublic>>;
+    consumerSurface: ConsumerSurface;
     magicMcpTarget: MagicMcpResolvedTarget | null;
     createIfMissing?: boolean;
     allowExpired?: boolean;
@@ -918,10 +1040,10 @@ class ConsumerOAuthServiceImpl {
     if (!d.createIfMissing) {
       throw new ServiceError(
         badRequestError({
-          message: 'The portal authorization is missing a linked magic MCP token',
+          message: 'The authorization is missing a linked magic MCP token',
           oauth: {
             error: 'invalid_grant',
-            errorMessage: 'The portal authorization is missing a linked magic MCP token'
+            errorMessage: 'The authorization is missing a linked magic MCP token'
           }
         })
       );
@@ -930,10 +1052,10 @@ class ConsumerOAuthServiceImpl {
     if (!d.attempt.consumerProfile) {
       throw new ServiceError(
         badRequestError({
-          message: 'The portal authorization is missing a consumer profile',
+          message: 'The authorization is missing a consumer profile',
           oauth: {
             error: 'invalid_grant',
-            errorMessage: 'The portal authorization is missing a consumer profile'
+            errorMessage: 'The authorization is missing a consumer profile'
           }
         })
       );
@@ -950,22 +1072,26 @@ class ConsumerOAuthServiceImpl {
     if (!magicMcpServer && !magicMcpEndpoint) {
       throw new ServiceError(
         badRequestError({
-          message: 'The portal authorization is not linked to a magic MCP server or endpoint',
+          message: 'The authorization is not linked to a magic MCP server or endpoint',
           oauth: {
             error: 'invalid_grant',
-            errorMessage:
-              'The portal authorization is not linked to a magic MCP server or endpoint'
+            errorMessage: 'The authorization is not linked to a magic MCP server or endpoint'
           }
         })
       );
     }
 
+    let nonPortalConsumerSurface = d.consumerSurface as ConsumerSurface & {
+      instance: Instance;
+      organization: Organization;
+    };
+
     let magicMcpToken = await magicMcpTokenService.createMagicMcpToken({
-      instance: d.portal.instance,
+      instance: d.portal?.instance ?? nonPortalConsumerSurface.instance,
       input: {
-        name: `${d.portal.name} Portal Access`,
-        description: `OAuth access token for ${d.attempt.portalAuthClient.name}`,
-        expiresAt: getPortalAccessTokenExpiry(),
+        name: d.portal ? `${d.portal.name} Portal Access` : `${d.consumerSurface.name} Access`,
+        description: `OAuth access token for ${d.attempt.consumerAuthClient.name}`,
+        expiresAt: getConsumerAuthAccessTokenExpiry(),
         magicMcpServer,
         magicMcpEndpoint
       }
@@ -976,13 +1102,13 @@ class ConsumerOAuthServiceImpl {
     });
 
     await grantConsumerOwnedMagicMcpTokenAccess({
-      organization: d.portal.organization,
+      organization: d.portal?.organization ?? nonPortalConsumerSurface.organization,
       consumerProfile: d.attempt.consumerProfile,
       consumerGroups,
       magicMcpToken
     });
 
-    await db.portalAuthAttempt.update({
+    await db.consumerAuthAttempt.update({
       where: {
         id: d.attempt.id
       },

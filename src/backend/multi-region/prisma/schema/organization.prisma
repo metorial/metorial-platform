@@ -29,4 +29,5 @@ model Organization {
 
   oauthApplications OAuthApplication[]
   portals           Portal[]
+  consumerSurfaces  ConsumerSurface[]
 }

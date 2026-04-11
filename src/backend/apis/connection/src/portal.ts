@@ -3,19 +3,51 @@ import { v } from '@lowerdeck/validation';
 import { AuthInfo } from '@metorial/module-access';
 import {
   consumerOAuthService,
-  portalAccessTokenTtlSeconds,
-  portalRefreshTokenTtlSeconds
+  consumerAuthAccessTokenTtlSeconds,
+  consumerAuthRefreshTokenTtlSeconds
 } from '@metorial/module-portal';
 import { Authenticator } from '@metorial/rest';
 import { getMagicMcpTokenSecretFromRequest, handleMagicMcpRequest } from './magic';
 import {
-  buildPortalOAuthClientConfig,
-  buildPortalOAuthProtectedResource,
+  buildOAuthClientConfig,
+  buildOAuthProtectedResource,
   createPortalOAuthServers
 } from './oauth/skeleton';
 import { getClientCredentials, getString, parseOAuthBody } from './oauth/utils';
 
 export { createPortalOAuthServers } from './oauth/skeleton';
+
+let buildOAuthClientRegistration = (d: {
+  registration: {
+    id: string;
+    clientId: string;
+    clientSecret: string | null;
+    redirectUris: string[];
+    name: string;
+    tokenEndpointAuthMethod: 'client_secret_basic' | 'client_secret_post' | 'none';
+    createdAt: Date;
+    expiresAt: Date;
+  };
+  base: string;
+}) => ({
+  client_id: d.registration.clientId,
+  client_secret: d.registration.clientSecret ?? undefined,
+  redirect_uris: d.registration.redirectUris,
+  client_name: d.registration.name,
+  grant_types: ['authorization_code', 'refresh_token'],
+  response_types: ['code'],
+  token_endpoint_auth_method: d.registration.tokenEndpointAuthMethod,
+  registration_client_uri: `${d.base}/oauth/register/${d.registration.id}`,
+  client_id_issued_at: Math.floor(d.registration.createdAt.getTime() / 1000),
+  client_secret_expires_at:
+    d.registration.clientSecret == null
+      ? 0
+      : Math.floor(d.registration.expiresAt.getTime() / 1000),
+  client_secret_issued_at:
+    d.registration.clientSecret == null
+      ? undefined
+      : Math.floor(d.registration.createdAt.getTime() / 1000)
+});
 
 export let createPortalHandler = (d: {
   authenticate: Authenticator<AuthInfo>;
@@ -23,37 +55,6 @@ export let createPortalHandler = (d: {
   metadataServer: ReturnType<typeof createPortalOAuthServers>['metadataServer'];
   connectPortalServer: ReturnType<typeof createPortalOAuthServers>['connectPortalServer'];
 } => {
-  let buildPortalOAuthClientRegistration = (d: {
-    registration: {
-      id: string;
-      clientId: string;
-      clientSecret: string | null;
-      redirectUris: string[];
-      name: string;
-      tokenEndpointAuthMethod: 'client_secret_basic' | 'client_secret_post' | 'none';
-      createdAt: Date;
-      expiresAt: Date;
-    };
-    base: string;
-  }) => ({
-    client_id: d.registration.clientId,
-    client_secret: d.registration.clientSecret ?? undefined,
-    redirect_uris: d.registration.redirectUris,
-    client_name: d.registration.name,
-    grant_types: ['authorization_code', 'refresh_token'],
-    response_types: ['code'],
-    token_endpoint_auth_method: d.registration.tokenEndpointAuthMethod,
-    registration_client_uri: `${d.base}/oauth/register/${d.registration.id}`,
-    client_id_issued_at: Math.floor(d.registration.createdAt.getTime() / 1000),
-    client_secret_expires_at:
-      d.registration.clientSecret == null
-        ? 0
-        : Math.floor(d.registration.expiresAt.getTime() / 1000),
-    client_secret_issued_at:
-      d.registration.clientSecret == null
-        ? undefined
-        : Math.floor(d.registration.createdAt.getTime() / 1000)
-  });
 
   return createPortalOAuthServers({
     resolveRoute: async ({ portalId, magicMcpTargetId }) => {
@@ -64,11 +65,11 @@ export let createPortalHandler = (d: {
     },
 
     metadata: async ({ route }, c) => {
-      return c.json(buildPortalOAuthClientConfig(route.base));
+      return c.json(buildOAuthClientConfig(route.base));
     },
 
     portal: async ({ route }, c) => {
-      let { portal, magicMcpTarget, base } = route;
+      let { instance, magicMcpTarget, base } = route;
       let routeMagicMcpTargetIdOrAlias = magicMcpTarget?.target.id;
 
       let token = getMagicMcpTokenSecretFromRequest(c.req.raw, new URL(c.req.url));
@@ -76,14 +77,14 @@ export let createPortalHandler = (d: {
         return await handleMagicMcpRequest({
           c,
           magicMcpTargetIdOrAlias: routeMagicMcpTargetIdOrAlias,
-          instanceForTokenRouting: portal.instance,
+          instanceForTokenRouting: instance,
           authenticate: d.authenticate
         });
       }
 
       let error = 'invalid_token';
       let message =
-        'Missing access token. Please provide a valid token in the "Authorization" header or as a "token" query parameter to access this portal.';
+        'Missing access token. Please provide a valid token in the "Authorization" header or as a "token" query parameter.';
 
       return c.json(
         {
@@ -98,15 +99,15 @@ export let createPortalHandler = (d: {
     },
 
     protectedResource: async ({ route }, c) => {
-      return c.json(buildPortalOAuthProtectedResource(route.base));
+      return c.json(buildOAuthProtectedResource(route.base));
     },
 
     openIdConfiguration: async ({ route }, c) => {
-      return c.json(buildPortalOAuthClientConfig(route.base));
+      return c.json(buildOAuthClientConfig(route.base));
     },
 
     register: async ({ route }, c) => {
-      let { portal, magicMcpTarget, base } = route;
+      let { portal, consumerSurface, magicMcpTarget, base } = route;
       let { ip } = useRequestContext(c);
 
       if (!ip) {
@@ -130,8 +131,9 @@ export let createPortalHandler = (d: {
         })
       );
 
-      let registration = await consumerOAuthService.registerPortalOAuthClient({
-        portal,
+      let registration = await consumerOAuthService.registerConsumerAuthClient({
+        portal: portal ?? undefined,
+        consumerSurface: consumerSurface ?? undefined,
         magicMcpTarget,
         input: {
           clientName: input.client_name,
@@ -141,13 +143,14 @@ export let createPortalHandler = (d: {
         }
       });
 
-      return c.json(buildPortalOAuthClientRegistration({ registration, base }));
+      return c.json(buildOAuthClientRegistration({ registration, base }));
     },
 
     authorize: async ({ route }, c) => {
-      let { portal, magicMcpTarget } = route;
-      let authorization = await consumerOAuthService.createPortalOAuthAuthorization({
-        portal,
+      let { portal, consumerSurface, magicMcpTarget } = route;
+      let authorization = await consumerOAuthService.createConsumerAuthAuthorization({
+        portal: portal ?? undefined,
+        consumerSurface: consumerSurface ?? undefined,
         magicMcpTarget,
         input: {
           responseType: getString(c.req.query('response_type')),
@@ -163,12 +166,13 @@ export let createPortalHandler = (d: {
     },
 
     token: async ({ route }, c) => {
-      let { portal, magicMcpTarget } = route;
+      let { portal, consumerSurface, magicMcpTarget } = route;
 
       let body = await parseOAuthBody(c);
       let credentials = getClientCredentials(c, body);
-      let tokens = await consumerOAuthService.exchangePortalOAuthToken({
-        portal,
+      let tokens = await consumerOAuthService.exchangeConsumerAuthToken({
+        portal: portal ?? undefined,
+        consumerSurface: consumerSurface ?? undefined,
         magicMcpTarget,
         input: {
           clientId: credentials.clientId,
@@ -184,16 +188,17 @@ export let createPortalHandler = (d: {
       return c.json({
         access_token: tokens.accessToken,
         token_type: 'Bearer',
-        expires_in: portalAccessTokenTtlSeconds,
+        expires_in: consumerAuthAccessTokenTtlSeconds,
         refresh_token: tokens.refreshToken,
-        refresh_token_expires_in: portalRefreshTokenTtlSeconds
+        refresh_token_expires_in: consumerAuthRefreshTokenTtlSeconds
       });
     },
 
     registration: async ({ route, registrationId }, c) => {
-      let { portal, magicMcpTarget, base } = route;
-      let registration = await consumerOAuthService.getPortalOAuthRegistration({
-        portal,
+      let { portal, consumerSurface, magicMcpTarget, base } = route;
+      let registration = await consumerOAuthService.getConsumerAuthRegistration({
+        portal: portal ?? undefined,
+        consumerSurface: consumerSurface ?? undefined,
         magicMcpTarget,
         registrationId
       });
@@ -208,7 +213,8 @@ export let createPortalHandler = (d: {
         );
       }
 
-      return c.json(buildPortalOAuthClientRegistration({ registration, base }));
+      return c.json(buildOAuthClientRegistration({ registration, base }));
     }
   });
 };
+

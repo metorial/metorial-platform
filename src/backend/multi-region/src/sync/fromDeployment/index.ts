@@ -1,5 +1,10 @@
 import { combineQueueProcessors } from '@lowerdeck/queue';
 import {
+  syncConsumerSurfacesCron,
+  syncConsumerSurfacesManyQueueProcessor,
+  syncConsumerSurfaceSingleQueueProcessor
+} from './consumerSurface';
+import {
   syncAppsCron,
   syncAppsManyQueueProcessor,
   syncOAuthAppSingleQueueProcessor
@@ -32,6 +37,10 @@ export let fromDeploymentSyncProcessors = combineQueueProcessors([
   syncPortalsCron,
   syncPortalsManyQueueProcessor,
   syncPortalSingleQueueProcessor,
+
+  syncConsumerSurfacesCron,
+  syncConsumerSurfacesManyQueueProcessor,
+  syncConsumerSurfaceSingleQueueProcessor,
 
   syncAppsCron,
   syncAppsManyQueueProcessor,

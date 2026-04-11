@@ -49,12 +49,7 @@ export let v1PortalOAuthAuthorizationPresenter = Presenter.create(portalOAuthAut
     authorized_at: portalOAuthAuthorization.authorizedAt,
     denied_at: portalOAuthAuthorization.deniedAt,
     oauth_client: await v1PortalOAuthClientPresenter
-      .present(
-        {
-          portalAuthClient: portalOAuthAuthorization.portalAuthClient
-        },
-        opts
-      )
+      .present({ portalAuthClient: portalOAuthAuthorization.consumerAuthClient }, opts)
       .run()
   }))
   .schema(

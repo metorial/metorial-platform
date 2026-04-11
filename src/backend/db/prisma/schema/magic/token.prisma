@@ -34,7 +34,7 @@ model MagicMcpToken {
   groups             MagicMcpGroupToken[]
   uses               MagicMcpTokenUse[]
   accessTagEntities  AccessTagEntity[]
-  portalAuthAttempts PortalAuthAttempt[]
+  consumerAuthAttempts ConsumerAuthAttempt[]
 }
 
 model MagicMcpTokenUse {
