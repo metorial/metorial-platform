@@ -4,9 +4,13 @@ export type ConsumerProvidersGetOutput =
   | {
       object: 'consumer.provider';
       id: string;
+      name: string;
+      description: string | null;
+      readme: string | null;
       type: 'provider_template';
       availability: 'available_now' | 'request_access';
       hasPendingAccessRequest: boolean;
+      consumerAccessIds: string[];
       providerTemplate: {
         object: 'provider.template#preview';
         id: string;
@@ -102,9 +106,13 @@ export type ConsumerProvidersGetOutput =
   | {
       object: 'consumer.provider';
       id: string;
+      name: string;
+      description: string | null;
+      readme: string | null;
       type: 'magic_mcp_server';
       availability: 'available_now' | 'request_access';
       hasPendingAccessRequest: boolean;
+      consumerAccessIds: string[];
       magicMcpServer: {
         object: 'magic_mcp.server#preview';
         id: string;
@@ -120,11 +128,18 @@ export let mapConsumerProvidersGetOutput = mtMap.union([
     mtMap.object({
       object: mtMap.objectField('object', mtMap.passthrough()),
       id: mtMap.objectField('id', mtMap.passthrough()),
+      name: mtMap.objectField('name', mtMap.passthrough()),
+      description: mtMap.objectField('description', mtMap.passthrough()),
+      readme: mtMap.objectField('readme', mtMap.passthrough()),
       type: mtMap.objectField('type', mtMap.passthrough()),
       availability: mtMap.objectField('availability', mtMap.passthrough()),
       hasPendingAccessRequest: mtMap.objectField(
         'has_pending_access_request',
         mtMap.passthrough()
+      ),
+      consumerAccessIds: mtMap.objectField(
+        'consumer_access_ids',
+        mtMap.array(mtMap.passthrough())
       ),
       providerTemplate: mtMap.objectField(
         'provider_template',

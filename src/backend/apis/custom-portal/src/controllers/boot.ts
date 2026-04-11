@@ -9,16 +9,16 @@ import {
   createUnauthenticatedPortalBootResponse
 } from '../lib/boot';
 import {
-  instancePresenter,
-  portalPresenter,
-  portalFeaturedContentPresenter,
-  sessionPresenter
-} from '../presenters';
-import {
   getPortalPublishableApiKey,
   getPortalSessionFromCookie,
   issuePortalTokens
 } from '../lib/portal';
+import {
+  instancePresenter,
+  portalFeaturedContentPresenter,
+  portalPresenter,
+  sessionPresenter
+} from '../presenters';
 
 export let bootController = portalFromUrlApp.controller({
   bootPortal: portalFromUrlApp
@@ -52,6 +52,8 @@ export let bootController = portalFromUrlApp.controller({
       let featuredContent = portalFeaturedContentPresenter(
         await consumerProviderCatalogService.listFeaturedCatalogItems({
           instance: ctx.portal.instance,
+          consumerSurface: ctx.portal.surface,
+          consumerGroups: consumerAccess.consumerGroups,
           accessTags: consumerAccess?.accessTags,
           limit: 6
         })

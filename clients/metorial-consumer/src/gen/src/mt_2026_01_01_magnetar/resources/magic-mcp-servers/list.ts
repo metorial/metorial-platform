@@ -17,42 +17,49 @@ export type MagicMcpServersListOutput = {
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
-export let mapMagicMcpServersListOutput = mtMap.object<MagicMcpServersListOutput>({
-  items: mtMap.objectField(
-    'items',
-    mtMap.array(
+export let mapMagicMcpServersListOutput =
+  mtMap.object<MagicMcpServersListOutput>({
+    items: mtMap.objectField(
+      'items',
+      mtMap.array(
+        mtMap.object({
+          object: mtMap.objectField('object', mtMap.passthrough()),
+          id: mtMap.objectField('id', mtMap.passthrough()),
+          status: mtMap.objectField('status', mtMap.passthrough()),
+          source: mtMap.objectField('source', mtMap.passthrough()),
+          providerTemplateId: mtMap.objectField(
+            'provider_template_id',
+            mtMap.passthrough()
+          ),
+          endpoints: mtMap.objectField(
+            'endpoints',
+            mtMap.array(
+              mtMap.object({
+                id: mtMap.objectField('id', mtMap.passthrough()),
+                alias: mtMap.objectField('alias', mtMap.passthrough()),
+                url: mtMap.objectField('url', mtMap.passthrough())
+              })
+            )
+          ),
+          name: mtMap.objectField('name', mtMap.passthrough()),
+          description: mtMap.objectField('description', mtMap.passthrough()),
+          metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+          createdAt: mtMap.objectField('created_at', mtMap.date()),
+          updatedAt: mtMap.objectField('updated_at', mtMap.date())
+        })
+      )
+    ),
+    pagination: mtMap.objectField(
+      'pagination',
       mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        status: mtMap.objectField('status', mtMap.passthrough()),
-        source: mtMap.objectField('source', mtMap.passthrough()),
-        providerTemplateId: mtMap.objectField('provider_template_id', mtMap.passthrough()),
-        endpoints: mtMap.objectField(
-          'endpoints',
-          mtMap.array(
-            mtMap.object({
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              alias: mtMap.objectField('alias', mtMap.passthrough()),
-              url: mtMap.objectField('url', mtMap.passthrough())
-            })
-          )
+        hasMoreBefore: mtMap.objectField(
+          'has_more_before',
+          mtMap.passthrough()
         ),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        description: mtMap.objectField('description', mtMap.passthrough()),
-        metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date())
+        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
       })
     )
-  ),
-  pagination: mtMap.objectField(
-    'pagination',
-    mtMap.object({
-      hasMoreBefore: mtMap.objectField('has_more_before', mtMap.passthrough()),
-      hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-    })
-  )
-});
+  });
 
 export type MagicMcpServersListQuery = {
   limit?: number | undefined;
@@ -129,7 +136,11 @@ export let mapMagicMcpServersListQuery = mtMap.union([
         ])
       ),
       search: mtMap.objectField('search', mtMap.passthrough()),
-      preconfiguredOnly: mtMap.objectField('preconfigured_only', mtMap.passthrough())
+      preconfiguredOnly: mtMap.objectField(
+        'preconfigured_only',
+        mtMap.passthrough()
+      )
     })
   )
 ]);
+
