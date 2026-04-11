@@ -179,6 +179,7 @@ export let ID = createIdGenerator({
   consumerAccess: idType.sorted('coa'),
   consumerAccessRequest: idType.sorted('coar'),
   consumerServerRequest: idType.sorted('csr'),
+  consumerSurfaceProviderGroup: idType.sorted('cspg'),
   consumerProviderSetupSessionBinding: idType.sorted('cpsb'),
   providerTemplate: idType.sorted('ptm'),
 

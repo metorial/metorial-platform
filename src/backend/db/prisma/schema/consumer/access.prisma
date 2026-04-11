@@ -51,7 +51,8 @@ model ConsumerAccessListing {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  consumerAccesses ConsumerAccess[]
+  consumerAccesses              ConsumerAccess[]
+  consumerSurfaceProviderGroups ConsumerSurfaceProviderGroupListing[]
 
   @@unique([surfaceOid, providerTemplateOid])
   @@unique([surfaceOid, magicMcpServerOid])

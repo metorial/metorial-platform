@@ -120,6 +120,23 @@ export let providerListingGroupController = app.controller({
       return providerListingGroupPresenter(providerListingGroup);
     }),
 
+  delete: providerListingGroupApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
+        providerListingGroupId: v.string()
+      })
+    )
+    .do(async ctx => {
+      await providerListingGroupService.deleteProviderListingGroup({
+        providerListingGroup: ctx.providerListingGroup
+      });
+
+      return {};
+    }),
+
   addProvider: providerListingGroupApp
     .handler()
     .input(

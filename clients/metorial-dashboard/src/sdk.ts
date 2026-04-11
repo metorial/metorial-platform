@@ -35,10 +35,12 @@ import {
   MetorialDashboardInstancePortalsAuthSsoTenantsConnectionsEndpoint,
   MetorialDashboardInstancePortalsAuthSsoTenantsEndpoint,
   MetorialDashboardInstancePortalsConsumerAccessEndpoint,
+  MetorialDashboardInstancePortalsConsumerAccessListingsEndpoint,
   MetorialDashboardInstancePortalsConsumerGroupsEndpoint,
   MetorialDashboardInstancePortalsConsumerInvitesEndpoint,
   MetorialDashboardInstancePortalsConsumerProfilesEndpoint,
   MetorialDashboardInstancePortalsEndpoint,
+  MetorialDashboardInstancePortalsSurfaceProviderGroupsEndpoint,
   MetorialDashboardInstanceProviderCategoriesEndpoint,
   MetorialDashboardInstanceProviderCollectionsEndpoint,
   MetorialDashboardInstanceProviderDeploymentsAuthConfigsEndpoint,
@@ -196,8 +198,12 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
   portals: Object.assign(new MetorialDashboardInstancePortalsEndpoint(manager), {
     consumerGroups: new MetorialDashboardInstancePortalsConsumerGroupsEndpoint(manager),
     consumerAccess: new MetorialDashboardInstancePortalsConsumerAccessEndpoint(manager),
+    consumerAccessListings: new MetorialDashboardInstancePortalsConsumerAccessListingsEndpoint(
+      manager
+    ),
     consumerProfiles: new MetorialDashboardInstancePortalsConsumerProfilesEndpoint(manager),
     consumerInvites: new MetorialDashboardInstancePortalsConsumerInvitesEndpoint(manager),
+    providerGroups: new MetorialDashboardInstancePortalsSurfaceProviderGroupsEndpoint(manager),
     auth: {
       app: new MetorialDashboardInstancePortalsAuthAppEndpoint(manager),
       ssoTenants: Object.assign(

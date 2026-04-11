@@ -1,0 +1,30 @@
+model ConsumerSurfaceProviderGroup {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  name        String
+  description String?
+  index       Int
+
+  consumerSurfaceOid BigInt
+  consumerSurface    ConsumerSurface @relation(fields: [consumerSurfaceOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  listings ConsumerSurfaceProviderGroupListing[]
+}
+
+model ConsumerSurfaceProviderGroupListing {
+  oid BigInt @id @default(autoincrement())
+
+  consumerSurfaceProviderGroupOid BigInt
+  consumerSurfaceProviderGroup    ConsumerSurfaceProviderGroup @relation(fields: [consumerSurfaceProviderGroupOid], references: [oid], onDelete: Cascade)
+
+  consumerAccessListingOid BigInt
+  consumerAccessListing    ConsumerAccessListing @relation(fields: [consumerAccessListingOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([consumerSurfaceProviderGroupOid, consumerAccessListingOid])
+}

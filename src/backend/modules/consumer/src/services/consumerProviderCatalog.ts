@@ -1,14 +1,21 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator, type PaginatorInput } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { ConsumerProfile, db, Prisma, ProviderTemplate, type Instance } from '@metorial/db';
+import {
+  ConsumerAccessListing,
+  ConsumerProfile,
+  ConsumerSurface,
+  db,
+  Prisma,
+  ProviderTemplate,
+  type Instance
+} from '@metorial/db';
 import {
   accessTagService,
   consumerMagicMcpReadRoles,
   consumerProviderTemplateReadRoles,
   type AnyAccessTagSelector
 } from '@metorial/module-access';
-import { searchMagicMcpServerIds, searchProviderTemplateIds } from '@metorial/module-search';
 import {
   subspaceProviderConfigService,
   subspaceProviderDeploymentService,
@@ -22,7 +29,6 @@ import {
   type ConsumerProviderConfigSchema,
   type ConsumerProviderDeployment
 } from '../lib/consumerProviderContext';
-import { isPreconfiguredMagicMcpServer } from '../lib/magicMcpServerSource';
 
 export type ConsumerProviderAvailability = 'available_now' | 'request_access';
 
@@ -37,17 +43,30 @@ type ConsumerMagicMcpCatalogServer = Prisma.MagicMcpServerGetPayload<{
   include: typeof magicMcpCatalogInclude;
 }>;
 
+let consumerAccessListingCatalogInclude = {
+  providerTemplate: true,
+  magicMcpServer: {
+    include: magicMcpCatalogInclude
+  }
+} as const;
+
+type ConsumerCatalogAccessListing = Prisma.ConsumerAccessListingGetPayload<{
+  include: typeof consumerAccessListingCatalogInclude;
+}>;
+
 export type ConsumerProviderCatalogItem =
   | {
       type: 'provider_template';
       availability: ConsumerProviderAvailability;
       hasPendingAccessRequest: boolean;
+      listing: ConsumerAccessListing;
       providerTemplate: ProviderTemplate;
     }
   | {
       type: 'magic_mcp_server';
       availability: ConsumerProviderAvailability;
       hasPendingAccessRequest: boolean;
+      listing: ConsumerAccessListing;
       magicMcpServer: ConsumerMagicMcpCatalogServer;
     };
 
@@ -89,60 +108,20 @@ type ConsumerCatalogRecord =
       type: 'provider_template';
       id: string;
       sortName: string;
+      listing: ConsumerAccessListing;
       providerTemplate: ProviderTemplate;
     }
   | {
       type: 'magic_mcp_server';
       id: string;
       sortName: string;
+      listing: ConsumerAccessListing;
       magicMcpServer: ConsumerMagicMcpCatalogServer;
     };
-
-type ConsumerCatalogRecordPage = {
-  items: ConsumerCatalogRecord[];
-  hasMore: boolean;
-};
 
 type ConsumerProviderAvailabilityState = {
   protectedOids: Set<bigint>;
   accessibleOids: Set<bigint> | null;
-};
-
-type ConsumerCatalogSearchMatches = {
-  providerTemplateIds?: string[];
-  magicMcpServerIds?: string[];
-};
-
-let getCatalogEntryId = (
-  entry: ConsumerProviderCatalogItem | ConsumerProviderCatalogEntry | ConsumerCatalogRecord
-) => {
-  return entry.type == 'provider_template'
-    ? entry.providerTemplate.id
-    : entry.magicMcpServer.id;
-};
-
-let getCatalogEntryName = (
-  entry: ConsumerProviderCatalogItem | ConsumerProviderCatalogEntry | ConsumerCatalogRecord
-) => {
-  if (entry.type == 'provider_template') {
-    return entry.providerTemplate.name.trim() || entry.providerTemplate.id;
-  }
-
-  return entry.magicMcpServer.name?.trim() || entry.magicMcpServer.id;
-};
-
-let compareCatalogRecords = (
-  left: ConsumerCatalogRecord,
-  right: ConsumerCatalogRecord,
-  order: 'asc' | 'desc'
-) => {
-  let nameCompare = getCatalogEntryName(left).localeCompare(getCatalogEntryName(right));
-  if (nameCompare != 0) {
-    return order == 'asc' ? nameCompare : -nameCompare;
-  }
-
-  let idCompare = getCatalogEntryId(left).localeCompare(getCatalogEntryId(right));
-  return order == 'asc' ? idCompare : -idCompare;
 };
 
 let getCatalogRecordKey = (record: ConsumerCatalogRecord) => {
@@ -166,19 +145,6 @@ let getCatalogComparisonOperator = (d: {
 
 let reverseCatalogOrder = (order: 'asc' | 'desc') => {
   return order == 'asc' ? 'desc' : 'asc';
-};
-
-let shouldIncludeUnnamedMagicMcpBoundaryId = (d: {
-  boundary: ConsumerCatalogBoundary;
-  direction: ConsumerCatalogDirection;
-  order: 'asc' | 'desc';
-}) => {
-  let comparison = d.boundary.sortName.localeCompare(d.boundary.id);
-  if (d.direction == 'after') {
-    return d.order == 'asc' ? comparison > 0 : comparison < 0;
-  }
-
-  return d.order == 'asc' ? comparison < 0 : comparison > 0;
 };
 
 let buildNamedCatalogBoundaryFilter = (d: {
@@ -209,40 +175,6 @@ let buildNamedCatalogBoundaryFilter = (d: {
   };
 };
 
-let buildUnnamedMagicMcpBoundaryFilter = (d: {
-  boundary?: ConsumerCatalogBoundary | null;
-  direction: ConsumerCatalogDirection;
-  order: 'asc' | 'desc';
-}) => {
-  let boundary = d.boundary;
-  if (!boundary) {
-    return undefined;
-  }
-
-  let operator = getCatalogComparisonOperator(d);
-
-  return {
-    OR: [
-      {
-        id: {
-          [operator]: boundary.sortName
-        }
-      },
-      ...(shouldIncludeUnnamedMagicMcpBoundaryId({
-        boundary,
-        direction: d.direction,
-        order: d.order
-      })
-        ? [
-            {
-              id: boundary.id
-            }
-          ]
-        : [])
-    ]
-  };
-};
-
 let getConsumerProviderAvailability = (d: {
   oid: bigint;
   availabilityState: ConsumerProviderAvailabilityState;
@@ -261,8 +193,10 @@ let getConsumerProviderAvailability = (d: {
 class ConsumerProviderCatalogServiceImpl {
   async listCatalogEntries(d: {
     instance: Instance;
+    consumerSurface: Pick<ConsumerSurface, 'oid'>;
     consumerProfile?: Pick<ConsumerProfile, 'oid'>;
     search?: string;
+    providerGroupId?: string;
     accessTags?: AnyAccessTagSelector;
     includeCapabilities?: boolean;
     pagination?: ConsumerCatalogListInput;
@@ -271,7 +205,9 @@ class ConsumerProviderCatalogServiceImpl {
       () => async input => {
         let recordPage = await this.listCatalogPage({
           instance: d.instance,
+          consumerSurface: d.consumerSurface,
           search: d.search,
+          providerGroupId: d.providerGroupId,
           pagination: input
         });
 
@@ -295,12 +231,14 @@ class ConsumerProviderCatalogServiceImpl {
 
   async listFeaturedCatalogItems(d: {
     instance: Instance;
+    consumerSurface: Pick<ConsumerSurface, 'oid'>;
     consumerProfile?: Pick<ConsumerProfile, 'oid'>;
     accessTags?: AnyAccessTagSelector;
     limit?: number;
   }) {
     let recordPage = await this.listCatalogPage({
       instance: d.instance,
+      consumerSurface: d.consumerSurface,
       pagination: {
         limit: d.limit ?? 6,
         order: 'asc'
@@ -316,12 +254,14 @@ class ConsumerProviderCatalogServiceImpl {
 
   async getCatalogItem(d: {
     instance: Instance;
+    consumerSurface: Pick<ConsumerSurface, 'oid'>;
     consumerProfile?: Pick<ConsumerProfile, 'oid'>;
     catalogItemId: string;
     accessTags?: AnyAccessTagSelector;
   }): Promise<ConsumerProviderCatalogItem> {
     let record = await this.findCatalogRecord({
       instance: d.instance,
+      consumerSurface: d.consumerSurface,
       catalogItemId: d.catalogItemId
     });
 
@@ -340,6 +280,7 @@ class ConsumerProviderCatalogServiceImpl {
 
   async getCatalogEntry(d: {
     instance: Instance;
+    consumerSurface: Pick<ConsumerSurface, 'oid'>;
     consumerProfile?: Pick<ConsumerProfile, 'oid'>;
     catalogItemId: string;
     accessTags?: AnyAccessTagSelector;
@@ -347,6 +288,7 @@ class ConsumerProviderCatalogServiceImpl {
   }): Promise<ConsumerProviderCatalogEntry> {
     let record = await this.findCatalogRecord({
       instance: d.instance,
+      consumerSurface: d.consumerSurface,
       catalogItemId: d.catalogItemId
     });
 
@@ -367,7 +309,9 @@ class ConsumerProviderCatalogServiceImpl {
 
   private async listCatalogPage(d: {
     instance: Instance;
+    consumerSurface: Pick<ConsumerSurface, 'oid'>;
     search?: string;
+    providerGroupId?: string;
     pagination: ConsumerCatalogListInput;
   }) {
     let limit =
@@ -381,40 +325,82 @@ class ConsumerProviderCatalogServiceImpl {
       boundaryId != undefined
         ? await this.findCatalogBoundary({
             instance: d.instance,
+            consumerSurface: d.consumerSurface,
             catalogItemId: String(boundaryId)
           })
         : null;
-    let searchMatches = await this.resolveCatalogSearchMatches({
-      instance: d.instance,
-      search: d.search
-    });
-
-    let [providerTemplates, magicMcpServers] = await Promise.all([
-      this.listProviderTemplateRecords({
-        instance: d.instance,
-        searchMatches,
-        limit,
-        direction,
-        order,
-        boundary
-      }),
-      this.listMagicMcpServerRecords({
-        instance: d.instance,
-        searchMatches,
-        limit,
-        direction,
-        order,
-        boundary
-      })
-    ]);
 
     let queryOrder = direction == 'before' ? reverseCatalogOrder(order) : order;
-    let records = [...providerTemplates.items, ...magicMcpServers.items].sort((left, right) =>
-      compareCatalogRecords(left, right, queryOrder)
-    );
-    let hasMore =
-      records.length > limit || providerTemplates.hasMore || magicMcpServers.hasMore;
-    let items = records.slice(0, limit);
+    let boundaryFilter = buildNamedCatalogBoundaryFilter({
+      boundary,
+      direction,
+      order
+    });
+
+    let listings = await db.consumerAccessListing.findMany({
+      where: {
+        surfaceOid: d.consumerSurface.oid,
+        consumerAccesses: {
+          some: {}
+        },
+        AND: [
+          d.providerGroupId
+            ? {
+                consumerSurfaceProviderGroups: {
+                  some: {
+                    consumerSurfaceProviderGroup: {
+                      id: d.providerGroupId,
+                      consumerSurfaceOid: d.consumerSurface.oid
+                    }
+                  }
+                }
+              }
+            : undefined!,
+          d.search?.trim()
+            ? {
+                OR: [
+                  { name: { contains: d.search.trim(), mode: 'insensitive' } },
+                  { description: { contains: d.search.trim(), mode: 'insensitive' } },
+                  { readme: { contains: d.search.trim(), mode: 'insensitive' } },
+                  {
+                    providerTemplate: {
+                      name: { contains: d.search.trim(), mode: 'insensitive' }
+                    }
+                  },
+                  {
+                    magicMcpServer: {
+                      name: { contains: d.search.trim(), mode: 'insensitive' }
+                    }
+                  }
+                ]
+              }
+            : undefined!,
+          boundaryFilter as Prisma.ConsumerAccessListingWhereInput | undefined,
+          {
+            OR: [
+              {
+                providerTemplate: {
+                  status: 'active'
+                }
+              },
+              {
+                magicMcpServer: {
+                  status: 'active'
+                }
+              }
+            ]
+          }
+        ].filter(Boolean)
+      },
+      include: consumerAccessListingCatalogInclude,
+      orderBy: [{ name: queryOrder }, { id: queryOrder }],
+      take: limit + 1
+    });
+
+    let hasMore = listings.length > limit;
+    let items = listings
+      .slice(0, limit)
+      .map(listing => this.createCatalogRecordFromListing(listing));
 
     if (direction == 'before') {
       items.reverse();
@@ -426,154 +412,6 @@ class ConsumerProviderCatalogServiceImpl {
         hasNextPage: direction == 'before' ? !!boundary : hasMore,
         hasPreviousPage: direction == 'before' ? hasMore : !!boundary
       }
-    };
-  }
-
-  private async listProviderTemplateRecords(d: {
-    instance: Instance;
-    searchMatches?: ConsumerCatalogSearchMatches;
-    limit: number;
-    direction: ConsumerCatalogDirection;
-    order: 'asc' | 'desc';
-    boundary?: ConsumerCatalogBoundary | null;
-  }): Promise<ConsumerCatalogRecordPage> {
-    let queryOrder = d.direction == 'before' ? reverseCatalogOrder(d.order) : d.order;
-    let filters: Prisma.ProviderTemplateWhereInput[] = [];
-    let boundaryFilter = buildNamedCatalogBoundaryFilter(d);
-
-    if (d.searchMatches?.providerTemplateIds) {
-      filters.push({
-        id: {
-          in: d.searchMatches.providerTemplateIds
-        }
-      });
-    }
-    if (boundaryFilter) {
-      filters.push(boundaryFilter as Prisma.ProviderTemplateWhereInput);
-    }
-
-    let providerTemplates = await db.providerTemplate.findMany({
-      where: {
-        instanceOid: d.instance.oid,
-        status: 'active',
-        AND: filters
-      },
-      orderBy: [{ name: queryOrder }, { id: queryOrder }],
-      take: d.limit + 1
-    });
-
-    return {
-      items: providerTemplates
-        .slice(0, d.limit)
-        .map(providerTemplate => this.createProviderTemplateRecord(providerTemplate)),
-      hasMore: providerTemplates.length > d.limit
-    };
-  }
-
-  private async listMagicMcpServerRecords(d: {
-    instance: Instance;
-    searchMatches?: ConsumerCatalogSearchMatches;
-    limit: number;
-    direction: ConsumerCatalogDirection;
-    order: 'asc' | 'desc';
-    boundary?: ConsumerCatalogBoundary | null;
-  }): Promise<ConsumerCatalogRecordPage> {
-    let [namedServers, unnamedServers] = await Promise.all([
-      this.listMagicMcpServerRecordPage({
-        ...d,
-        nameMode: 'named'
-      }),
-      this.listMagicMcpServerRecordPage({
-        ...d,
-        nameMode: 'unnamed'
-      })
-    ]);
-
-    return {
-      items: [...namedServers.items, ...unnamedServers.items],
-      hasMore: namedServers.hasMore || unnamedServers.hasMore
-    };
-  }
-
-  private async listMagicMcpServerRecordPage(d: {
-    instance: Instance;
-    searchMatches?: ConsumerCatalogSearchMatches;
-    limit: number;
-    direction: ConsumerCatalogDirection;
-    order: 'asc' | 'desc';
-    boundary?: ConsumerCatalogBoundary | null;
-    nameMode: 'named' | 'unnamed';
-  }): Promise<ConsumerCatalogRecordPage> {
-    let queryOrder = d.direction == 'before' ? reverseCatalogOrder(d.order) : d.order;
-    let filters: Prisma.MagicMcpServerWhereInput[] = [
-      {
-        NOT: {
-          source: 'consumer_provider_template'
-        }
-      }
-    ];
-    let boundaryFilter =
-      d.nameMode == 'named'
-        ? buildNamedCatalogBoundaryFilter(d)
-        : buildUnnamedMagicMcpBoundaryFilter(d);
-
-    if (d.searchMatches?.magicMcpServerIds) {
-      filters.push({
-        id: {
-          in: d.searchMatches.magicMcpServerIds
-        }
-      });
-    }
-    if (boundaryFilter) {
-      filters.push(boundaryFilter as Prisma.MagicMcpServerWhereInput);
-    }
-
-    let magicMcpServers = await db.magicMcpServer.findMany({
-      where: {
-        instanceOid: d.instance.oid,
-        status: 'active',
-        name: d.nameMode == 'named' ? { not: null } : null,
-        AND: filters
-      },
-      include: magicMcpCatalogInclude,
-      orderBy:
-        d.nameMode == 'named'
-          ? [{ name: queryOrder }, { id: queryOrder }]
-          : [{ id: queryOrder }],
-      take: d.limit + 1
-    });
-
-    return {
-      items: magicMcpServers
-        .slice(0, d.limit)
-        .map(magicMcpServer => this.createMagicMcpServerRecord(magicMcpServer)),
-      hasMore: magicMcpServers.length > d.limit
-    };
-  }
-
-  private async resolveCatalogSearchMatches(d: {
-    instance: Instance;
-    search?: string;
-  }): Promise<ConsumerCatalogSearchMatches> {
-    let search = d.search?.trim();
-    if (!search) {
-      return {};
-    }
-
-    let [providerTemplateIds, magicMcpServerIds] = await Promise.all([
-      searchProviderTemplateIds({
-        instanceId: d.instance.id,
-        query: search
-      }),
-      searchMagicMcpServerIds({
-        instanceId: d.instance.id,
-        query: search
-      })
-    ]);
-
-    return {
-      providerTemplateIds,
-      magicMcpServerIds
     };
   }
 
@@ -599,11 +437,13 @@ class ConsumerProviderCatalogServiceImpl {
 
     let [providerItems, magicMcpServerItems] = await Promise.all([
       this.hydrateProviderTemplateItems({
+        listings: providerTemplateRecords.map(record => record.listing),
         providerTemplates: providerTemplateRecords.map(record => record.providerTemplate),
         consumerProfile: d.consumerProfile,
         accessTags: d.accessTags
       }),
       this.hydrateMagicMcpServerItems({
+        listings: magicMcpServerRecords.map(record => record.listing),
         magicMcpServers: magicMcpServerRecords.map(record => record.magicMcpServer),
         consumerProfile: d.consumerProfile,
         accessTags: d.accessTags
@@ -654,12 +494,14 @@ class ConsumerProviderCatalogServiceImpl {
     let [providerEntries, magicMcpServerEntries] = await Promise.all([
       this.hydrateProviderTemplateEntries({
         instance: d.instance,
+        listings: providerTemplateRecords.map(record => record.listing),
         providerTemplates: providerTemplateRecords.map(record => record.providerTemplate),
         consumerProfile: d.consumerProfile,
         includeCapabilities: d.includeCapabilities,
         accessTags: d.accessTags
       }),
       this.hydrateMagicMcpServerEntries({
+        listings: magicMcpServerRecords.map(record => record.listing),
         magicMcpServers: magicMcpServerRecords.map(record => record.magicMcpServer),
         consumerProfile: d.consumerProfile,
         accessTags: d.accessTags
@@ -686,6 +528,7 @@ class ConsumerProviderCatalogServiceImpl {
   }
 
   private async hydrateProviderTemplateItems(d: {
+    listings: ConsumerAccessListing[];
     providerTemplates: ProviderTemplate[];
     consumerProfile?: Pick<ConsumerProfile, 'oid'>;
     accessTags?: AnyAccessTagSelector;
@@ -710,7 +553,7 @@ class ConsumerProviderCatalogServiceImpl {
       providerTemplates: d.providerTemplates
     });
 
-    return d.providerTemplates.map(providerTemplate => {
+    return d.providerTemplates.map((providerTemplate, index) => {
       return {
         type: 'provider_template' as const,
         availability: getConsumerProviderAvailability({
@@ -720,6 +563,7 @@ class ConsumerProviderCatalogServiceImpl {
         hasPendingAccessRequest: pendingAccessRequestState.providerTemplateOids.has(
           providerTemplate.oid
         ),
+        listing: d.listings[index]!,
         providerTemplate
       };
     });
@@ -727,6 +571,7 @@ class ConsumerProviderCatalogServiceImpl {
 
   private async hydrateProviderTemplateEntries(d: {
     instance: Instance;
+    listings: ConsumerAccessListing[];
     providerTemplates: ProviderTemplate[];
     consumerProfile?: Pick<ConsumerProfile, 'oid'>;
     includeCapabilities?: boolean;
@@ -834,7 +679,7 @@ class ConsumerProviderCatalogServiceImpl {
       );
     }
 
-    return d.providerTemplates.map(providerTemplate => {
+    return d.providerTemplates.map((providerTemplate, index) => {
       let deployment = deploymentMap.get(providerTemplate.providerDeploymentId);
       if (!deployment) {
         throw new ServiceError(notFoundError('provider.deployment'));
@@ -857,6 +702,7 @@ class ConsumerProviderCatalogServiceImpl {
         hasPendingAccessRequest: pendingAccessRequestState.providerTemplateOids.has(
           providerTemplate.oid
         ),
+        listing: d.listings[index]!,
         providerTemplate,
         deployment,
         provider,
@@ -868,6 +714,7 @@ class ConsumerProviderCatalogServiceImpl {
   }
 
   private async hydrateMagicMcpServerItems(d: {
+    listings: ConsumerAccessListing[];
     magicMcpServers: ConsumerMagicMcpCatalogServer[];
     consumerProfile?: Pick<ConsumerProfile, 'oid'>;
     accessTags?: AnyAccessTagSelector;
@@ -892,7 +739,7 @@ class ConsumerProviderCatalogServiceImpl {
       magicMcpServers: d.magicMcpServers
     });
 
-    return d.magicMcpServers.map(magicMcpServer => {
+    return d.magicMcpServers.map((magicMcpServer, index) => {
       return {
         type: 'magic_mcp_server' as const,
         availability: getConsumerProviderAvailability({
@@ -902,12 +749,14 @@ class ConsumerProviderCatalogServiceImpl {
         hasPendingAccessRequest: pendingAccessRequestState.magicMcpServerOids.has(
           magicMcpServer.oid
         ),
+        listing: d.listings[index]!,
         magicMcpServer
       };
     });
   }
 
   private async hydrateMagicMcpServerEntries(d: {
+    listings: ConsumerAccessListing[];
     magicMcpServers: ConsumerMagicMcpCatalogServer[];
     consumerProfile?: Pick<ConsumerProfile, 'oid'>;
     accessTags?: AnyAccessTagSelector;
@@ -1128,13 +977,31 @@ class ConsumerProviderCatalogServiceImpl {
 
   private async findCatalogBoundary(d: {
     instance: Instance;
+    consumerSurface: Pick<ConsumerSurface, 'oid'>;
     catalogItemId: string;
   }): Promise<ConsumerCatalogBoundary | null> {
-    let providerTemplate = await db.providerTemplate.findFirst({
+    let listing = await db.consumerAccessListing.findFirst({
       where: {
-        instanceOid: d.instance.oid,
-        id: d.catalogItemId,
-        status: 'active'
+        surfaceOid: d.consumerSurface.oid,
+        consumerAccesses: {
+          some: {}
+        },
+        OR: [
+          {
+            providerTemplate: {
+              id: d.catalogItemId,
+              instanceOid: d.instance.oid,
+              status: 'active'
+            }
+          },
+          {
+            magicMcpServer: {
+              id: d.catalogItemId,
+              instanceOid: d.instance.oid,
+              status: 'active'
+            }
+          }
+        ]
       },
       select: {
         id: true,
@@ -1142,101 +1009,86 @@ class ConsumerProviderCatalogServiceImpl {
       }
     });
 
-    if (providerTemplate) {
-      return {
-        id: providerTemplate.id,
-        sortName: getCatalogSortName({
-          name: providerTemplate.name,
-          fallbackId: providerTemplate.id
-        })
-      };
-    }
-
-    let magicMcpServer = await db.magicMcpServer.findFirst({
-      where: {
-        instanceOid: d.instance.oid,
-        id: d.catalogItemId,
-        status: 'active',
-        NOT: {
-          source: 'consumer_provider_template'
-        }
-      },
-      select: {
-        id: true,
-        name: true
-      }
-    });
-
-    if (!magicMcpServer) {
+    if (!listing) {
       return null;
     }
 
     return {
-      id: magicMcpServer.id,
+      id: listing.id,
       sortName: getCatalogSortName({
-        name: magicMcpServer.name,
-        fallbackId: magicMcpServer.id
+        name: listing.name,
+        fallbackId: listing.id
       })
     };
   }
 
   private async findCatalogRecord(d: {
     instance: Instance;
+    consumerSurface: Pick<ConsumerSurface, 'oid'>;
     catalogItemId: string;
   }): Promise<ConsumerCatalogRecord | null> {
-    let providerTemplate = await db.providerTemplate.findFirst({
+    let listing = await db.consumerAccessListing.findFirst({
       where: {
-        instanceOid: d.instance.oid,
-        id: d.catalogItemId,
-        status: 'active'
-      }
-    });
-
-    if (providerTemplate) {
-      return this.createProviderTemplateRecord(providerTemplate);
-    }
-
-    let magicMcpServer = await db.magicMcpServer.findFirst({
-      where: {
-        instanceOid: d.instance.oid,
-        id: d.catalogItemId,
-        status: 'active'
+        surfaceOid: d.consumerSurface.oid,
+        consumerAccesses: {
+          some: {}
+        },
+        OR: [
+          {
+            providerTemplate: {
+              id: d.catalogItemId,
+              instanceOid: d.instance.oid,
+              status: 'active'
+            }
+          },
+          {
+            magicMcpServer: {
+              id: d.catalogItemId,
+              instanceOid: d.instance.oid,
+              status: 'active'
+            }
+          }
+        ]
       },
-      include: magicMcpCatalogInclude
+      include: consumerAccessListingCatalogInclude
     });
 
-    if (!magicMcpServer || !isPreconfiguredMagicMcpServer(magicMcpServer)) {
+    if (!listing) {
       return null;
     }
 
-    return this.createMagicMcpServerRecord(magicMcpServer);
+    return this.createCatalogRecordFromListing(listing);
   }
 
-  private createProviderTemplateRecord(
-    providerTemplate: ProviderTemplate
+  private createCatalogRecordFromListing(
+    listing: ConsumerCatalogAccessListing
   ): ConsumerCatalogRecord {
-    return {
-      type: 'provider_template',
-      id: providerTemplate.id,
-      sortName: getCatalogSortName({
-        name: providerTemplate.name,
-        fallbackId: providerTemplate.id
-      }),
-      providerTemplate
-    };
-  }
+    if (listing.providerTemplate) {
+      return {
+        type: 'provider_template',
+        id: listing.providerTemplate.id,
+        sortName: getCatalogSortName({
+          name: listing.name,
+          fallbackId: listing.id
+        }),
+        listing,
+        providerTemplate: listing.providerTemplate
+      };
+    }
 
-  private createMagicMcpServerRecord(
-    magicMcpServer: ConsumerMagicMcpCatalogServer
-  ): ConsumerCatalogRecord {
+    if (!listing.magicMcpServer) {
+      throw new ServiceError(notFoundError('consumer.access_listing'));
+    }
+
     return {
       type: 'magic_mcp_server',
-      id: magicMcpServer.id,
+      id: listing.magicMcpServer.id,
       sortName: getCatalogSortName({
-        name: magicMcpServer.name,
-        fallbackId: magicMcpServer.id
+        name: listing.name,
+        fallbackId: listing.id
       }),
-      magicMcpServer
+      listing,
+      magicMcpServer: listing.magicMcpServer
     };
   }
 }

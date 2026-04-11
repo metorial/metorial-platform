@@ -119,6 +119,12 @@ class ProviderListingGroupService {
     });
   }
 
+  async deleteProviderListingGroup(d: { providerListingGroup: ProviderListingGroup }) {
+    await db.providerListingGroup.delete({
+      where: { id: d.providerListingGroup.id }
+    });
+  }
+
   async addProviderToGroup(d: {
     providerListingGroup: ProviderListingGroup;
     providerListing: ProviderListing;

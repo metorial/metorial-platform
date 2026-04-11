@@ -5,6 +5,9 @@ export type ConsumerProvidersGetOutput =
       object: 'consumer.provider';
       id: string;
       type: 'provider_template';
+      name: string;
+      description: string | null;
+      readme: string | null;
       availability: 'available_now' | 'request_access';
       hasPendingAccessRequest: boolean;
       providerTemplate: {
@@ -103,6 +106,9 @@ export type ConsumerProvidersGetOutput =
       object: 'consumer.provider';
       id: string;
       type: 'magic_mcp_server';
+      name: string;
+      description: string | null;
+      readme: string | null;
       availability: 'available_now' | 'request_access';
       hasPendingAccessRequest: boolean;
       magicMcpServer: {
@@ -121,6 +127,9 @@ export let mapConsumerProvidersGetOutput = mtMap.union([
       object: mtMap.objectField('object', mtMap.passthrough()),
       id: mtMap.objectField('id', mtMap.passthrough()),
       type: mtMap.objectField('type', mtMap.passthrough()),
+      name: mtMap.objectField('name', mtMap.passthrough()),
+      description: mtMap.objectField('description', mtMap.passthrough()),
+      readme: mtMap.objectField('readme', mtMap.passthrough()),
       availability: mtMap.objectField('availability', mtMap.passthrough()),
       hasPendingAccessRequest: mtMap.objectField(
         'has_pending_access_request',

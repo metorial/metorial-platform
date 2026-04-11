@@ -6,6 +6,9 @@ export type ConsumerProvidersListOutput = {
         object: 'consumer.provider';
         id: string;
         type: 'provider_template';
+        name: string;
+        description: string | null;
+        readme: string | null;
         availability: 'available_now' | 'request_access';
         hasPendingAccessRequest: boolean;
         providerTemplate: {
@@ -107,6 +110,9 @@ export type ConsumerProvidersListOutput = {
         object: 'consumer.provider';
         id: string;
         type: 'magic_mcp_server';
+        name: string;
+        description: string | null;
+        readme: string | null;
         availability: 'available_now' | 'request_access';
         hasPendingAccessRequest: boolean;
         magicMcpServer: {
@@ -133,6 +139,12 @@ export let mapConsumerProvidersListOutput =
               object: mtMap.objectField('object', mtMap.passthrough()),
               id: mtMap.objectField('id', mtMap.passthrough()),
               type: mtMap.objectField('type', mtMap.passthrough()),
+              name: mtMap.objectField('name', mtMap.passthrough()),
+              description: mtMap.objectField(
+                'description',
+                mtMap.passthrough()
+              ),
+              readme: mtMap.objectField('readme', mtMap.passthrough()),
               availability: mtMap.objectField(
                 'availability',
                 mtMap.passthrough()
@@ -386,7 +398,7 @@ export type ConsumerProvidersListQuery = {
   before?: string | undefined;
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
-} & { search?: string | undefined };
+} & { search?: string | undefined; providerGroupId?: string | undefined };
 
 export let mapConsumerProvidersListQuery = mtMap.union([
   mtMap.unionOption(
@@ -397,7 +409,11 @@ export let mapConsumerProvidersListQuery = mtMap.union([
       before: mtMap.objectField('before', mtMap.passthrough()),
       cursor: mtMap.objectField('cursor', mtMap.passthrough()),
       order: mtMap.objectField('order', mtMap.passthrough()),
-      search: mtMap.objectField('search', mtMap.passthrough())
+      search: mtMap.objectField('search', mtMap.passthrough()),
+      providerGroupId: mtMap.objectField(
+        'provider_group_id',
+        mtMap.passthrough()
+      )
     })
   )
 ]);

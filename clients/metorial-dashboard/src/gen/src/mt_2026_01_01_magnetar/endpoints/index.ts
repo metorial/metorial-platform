@@ -10,6 +10,7 @@ export * from './consumer_profile';
 export * from './consumer_profile_groups';
 export * from './consumer_providers';
 export * from './consumer_session';
+export * from './consumer_surface-provider-groups';
 export * from './consumers';
 export * from './consumers_profiles';
 export * from './custom-providers';

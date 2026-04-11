@@ -21,6 +21,7 @@ import {
   ConsumerProfileGroup,
   ConsumerSession,
   ConsumerSurface,
+  ConsumerSurfaceProviderGroup,
   File,
   FileLink,
   FilePurpose,
@@ -458,6 +459,16 @@ export let consumerAccessType = PresentableType.create<{
   };
 }>()('consumer.access');
 
+export let consumerAccessListingType = PresentableType.create<{
+  consumerAccessListing: ConsumerAccessListing & {
+    providerTemplate: ProviderTemplate | null;
+    magicMcpServer: MagicMcpServer | null;
+    consumerSurfaceProviderGroups: {
+      consumerSurfaceProviderGroup: ConsumerSurfaceProviderGroup;
+    }[];
+  };
+}>()('consumer.access_listing');
+
 export let consumerAccessRequestType = PresentableType.create<{
   consumerAccessRequest: ConsumerAccessRequest & {
     consumerProfile: ConsumerProfile & {
@@ -516,6 +527,10 @@ export let consumerAndProfileType = PresentableType.create<{
 export let consumerSurfaceType = PresentableType.create<{
   consumerSurface: ConsumerSurface;
 }>()('consumer.surface');
+
+export let consumerSurfaceProviderGroupType = PresentableType.create<{
+  consumerSurfaceProviderGroup: ConsumerSurfaceProviderGroup;
+}>()('consumer.surface_provider_group');
 
 export let consumerProfileType = PresentableType.create<{
   consumerProfile: ConsumerProfile & {

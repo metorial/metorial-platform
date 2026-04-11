@@ -8,6 +8,7 @@ import { v1BootPresenter } from './implementation/boot';
 import { v1CliDevicePresenter } from './implementation/cliDevice';
 import { dashboardConsumerPresenter, v1ConsumerPresenter } from './implementation/consumer';
 import { v1ConsumerAccessPresenter } from './implementation/consumerAccess';
+import { v1ConsumerAccessListingPresenter } from './implementation/consumerAccessListing';
 import { v1ConsumerAccessRequestPresenter } from './implementation/consumerAccessRequest';
 import { v1ConsumerGroupPresenter } from './implementation/consumerGroup';
 import {
@@ -17,6 +18,7 @@ import {
 import { v1ConsumerProviderPresenter } from './implementation/consumerProvider';
 import { v1ConsumerSessionPresenter } from './implementation/consumerSession';
 import { v1ConsumerSurfacePresenter } from './implementation/consumerSurface';
+import { v1ConsumerSurfaceProviderGroupPresenter } from './implementation/consumerSurfaceProviderGroup';
 import { v1FilePresenter } from './implementation/file';
 import { v1FileLinkPresenter } from './implementation/fileLink';
 import { v1InstanceListPresenter, v1InstancePresenter } from './implementation/instance';
@@ -155,6 +157,7 @@ import {
   cliDeviceType,
   configPreviewType,
   configSchemaType,
+  consumerAccessListingType,
   consumerAccessRequestType,
   consumerAccessType,
   consumerAndProfileType,
@@ -163,6 +166,7 @@ import {
   consumerProfileType,
   consumerProviderType,
   consumerSessionType,
+  consumerSurfaceProviderGroupType,
   consumerSurfaceType,
   consumerType,
   customProviderCommitType,
@@ -487,6 +491,11 @@ export let consumerAccessPresenter = declarePresenter(consumerAccessType, {
   mt_2026_01_01_magnetar: v1ConsumerAccessPresenter
 });
 
+export let consumerAccessListingPresenter = declarePresenter(consumerAccessListingType, {
+  mt_2025_01_01_dashboard: v1ConsumerAccessListingPresenter,
+  mt_2026_01_01_magnetar: v1ConsumerAccessListingPresenter
+});
+
 export let consumerAccessRequestPresenter = declarePresenter(consumerAccessRequestType, {
   mt_2025_01_01_dashboard: v1ConsumerAccessRequestPresenter,
   mt_2026_01_01_magnetar: v1ConsumerAccessRequestPresenter
@@ -516,6 +525,14 @@ export let consumerSurfacePresenter = declarePresenter(consumerSurfaceType, {
   mt_2025_01_01_dashboard: v1ConsumerSurfacePresenter,
   mt_2026_01_01_magnetar: v1ConsumerSurfacePresenter
 });
+
+export let consumerSurfaceProviderGroupPresenter = declarePresenter(
+  consumerSurfaceProviderGroupType,
+  {
+    mt_2025_01_01_dashboard: v1ConsumerSurfaceProviderGroupPresenter,
+    mt_2026_01_01_magnetar: v1ConsumerSurfaceProviderGroupPresenter
+  }
+);
 
 export let consumerSessionPresenter = declarePresenter(consumerSessionType, {
   mt_2025_01_01_dashboard: v1ConsumerSessionPresenter,

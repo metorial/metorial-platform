@@ -8,7 +8,8 @@ import {
   ConsumerProviderCatalogItem,
   consumerProviderCatalogService,
   consumerProviderDeploymentService,
-  consumerProviderSetupSessionService
+  consumerProviderSetupSessionService,
+  consumerSurfaceProviderGroupService
 } from '@metorial/module-consumer';
 import { magicMcpServerService } from '@metorial/module-magic';
 import { consumerOAuthService } from '@metorial/module-portal';
@@ -18,6 +19,7 @@ import { hasFlags } from '../../middleware/hasFlags';
 import {
   consumerAccessRequestPresenter,
   consumerProviderPresenter,
+  consumerSurfaceProviderGroupPresenter,
   magicMcpServerPresenter,
   portalOAuthAuthorizationPresenter,
   portalOAuthClientPresenter,
@@ -36,6 +38,7 @@ let consumerProviderItemGroup = consumerGroup.use(async ctx => {
 
   let consumerProvider = await consumerProviderCatalogService.getCatalogItem({
     instance: ctx.instance,
+    consumerSurface: ctx.consumerSurface,
     catalogItemId: ctx.params.catalogItemId,
     consumerProfile: ctx.consumerProfile,
     accessTags: ctx.accessTags
@@ -56,6 +59,7 @@ let consumerProviderGroup = consumerGroup.use(async ctx => {
 
   let consumerProvider = await consumerProviderCatalogService.getCatalogEntry({
     instance: ctx.instance,
+    consumerSurface: ctx.consumerSurface,
     catalogItemId: ctx.params.catalogItemId,
     consumerProfile: ctx.consumerProfile,
     accessTags: ctx.accessTags,
@@ -263,7 +267,8 @@ export let consumerProviderController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            search: v.optional(v.string())
+            search: v.optional(v.string()),
+            provider_group_id: v.optional(v.string())
           })
         )
       )
@@ -271,8 +276,10 @@ export let consumerProviderController = Controller.create(
       .do(async ctx => {
         let list = await consumerProviderCatalogService.listCatalogEntries({
           instance: ctx.instance,
+          consumerSurface: ctx.consumerSurface,
           consumerProfile: ctx.consumerProfile,
           search: ctx.query.search,
+          providerGroupId: ctx.query.provider_group_id,
           accessTags: ctx.accessTags,
           includeCapabilities: false,
           pagination: {
@@ -494,6 +501,62 @@ export let consumerProviderController = Controller.create(
 
         return magicMcpServerPresenter.present({
           magicMcpServer: hydratedMagicMcpServer
+        });
+      }),
+
+    listSurfaceProviderGroups: consumerGroup
+      .get(consumerPath('surface-provider-groups', 'surfaceProviderGroups.list'), {
+        name: 'List consumer surface provider groups',
+        description:
+          'Returns a paginated list of provider groups for the consumer surface, ordered by index.'
+      })
+      .use(hasFlags(['paid-portals', 'portals-access']))
+      .query('default', Paginator.validate())
+      .outputList(consumerSurfaceProviderGroupPresenter)
+      .do(async ctx => {
+        let paginator = await consumerSurfaceProviderGroupService.list({
+          consumerSurface: ctx.consumerSurface
+        });
+        let list = await paginator.run(ctx.query);
+
+        return Paginator.present(list, consumerSurfaceProviderGroup =>
+          consumerSurfaceProviderGroupPresenter.present({ consumerSurfaceProviderGroup })
+        );
+      }),
+
+    getSurfaceProviderGroup: consumerGroup
+      .use(async ctx => {
+        if (!ctx.params.consumerSurfaceProviderGroupId) {
+          throw new ServiceError(
+            badRequestError({
+              message: 'consumerSurfaceProviderGroupId is required',
+              description: 'The consumerSurfaceProviderGroupId path parameter is required.'
+            })
+          );
+        }
+
+        let consumerSurfaceProviderGroup = await consumerSurfaceProviderGroupService.get({
+          consumerSurface: ctx.consumerSurface,
+          consumerSurfaceProviderGroupId: ctx.params.consumerSurfaceProviderGroupId
+        });
+
+        return { consumerSurfaceProviderGroup };
+      })
+      .get(
+        consumerPath(
+          'surface-provider-groups/:consumerSurfaceProviderGroupId',
+          'surfaceProviderGroups.get'
+        ),
+        {
+          name: 'Get consumer surface provider group',
+          description: 'Retrieves a specific surface provider group by ID.'
+        }
+      )
+      .use(hasFlags(['paid-portals', 'portals-access']))
+      .output(consumerSurfaceProviderGroupPresenter)
+      .do(async ctx => {
+        return consumerSurfaceProviderGroupPresenter.present({
+          consumerSurfaceProviderGroup: ctx.consumerSurfaceProviderGroup
         });
       })
   }

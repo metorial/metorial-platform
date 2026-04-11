@@ -543,6 +543,19 @@ class ConsumerAccessServiceImpl {
         consumerAccess
       });
 
+      if (d.consumerAccess.listingOid) {
+        let remainingAccess = await tx.consumerAccess.findFirst({
+          where: { listingOid: d.consumerAccess.listingOid },
+          select: { oid: true }
+        });
+
+        if (!remainingAccess) {
+          await tx.consumerAccessListing.delete({
+            where: { oid: d.consumerAccess.listingOid }
+          });
+        }
+      }
+
       return consumerAccess;
     });
   }

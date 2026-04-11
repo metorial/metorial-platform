@@ -18,10 +18,12 @@ import { instancesController } from './instance/instances';
 import { portalController } from './instance/portal';
 import { portalAuthDashboardController } from './instance/portalAuth';
 import { portalConsumerAccessController } from './instance/portalConsumerAccess';
+import { portalConsumerAccessListingController } from './instance/portalConsumerAccessListing';
 import { portalConsumerAccessRequestController } from './instance/portalConsumerAccessRequest';
 import { portalConsumerGroupController } from './instance/portalConsumerGroup';
 import { portalConsumerInviteController } from './instance/portalConsumerInvite';
 import { portalConsumerProfileController } from './instance/portalConsumerProfile';
+import { portalConsumerSurfaceProviderGroupController } from './instance/portalConsumerSurfaceProviderGroup';
 import { tokenController } from './instance/token';
 import { accessPolicyManagementController } from './management/accessPolicy';
 import { accessRoleManagementController } from './management/accessRole';
@@ -318,7 +320,9 @@ export let dashboardController = Controller.create<any>(
     portalAuthDashboardController,
     providerTemplateController,
     portalConsumerGroupController,
+    portalConsumerSurfaceProviderGroupController,
     portalConsumerAccessController,
+    portalConsumerAccessListingController,
     portalConsumerInviteController,
     portalConsumerProfileController,
     portalConsumerAccessRequestController
