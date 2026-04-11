@@ -34,9 +34,12 @@ export let handlePushQueueProcessor = handlePushQueue.process(async data => {
     }))
   );
 
+  let lastCodeBucket = codeBuckets[codeBuckets.length - 1];
+  if (!lastCodeBucket) return;
+
   await handlePushQueue.add({
     scmRepoPushId: data.scmRepoPushId,
-    cursor: codeBuckets[codeBuckets.length - 1].id
+    cursor: lastCodeBucket.id
   });
 });
 

@@ -39,7 +39,7 @@ model CustomProviderDeployment {
   shuttleServerVersionOid BigInt?               @unique
   shuttleServerVersion    ShuttleServerVersion? @relation(fields: [shuttleServerVersionOid], references: [oid])
 
-  shuttleCustomServerOid BigInt?              @unique
+  shuttleCustomServerOid BigInt?
   shuttleCustomServer    ShuttleCustomServer? @relation(fields: [shuttleCustomServerOid], references: [oid])
 
   shuttleCustomServerDeploymentOid BigInt?                        @unique
@@ -66,4 +66,5 @@ model CustomProviderDeployment {
   @@index([updatedAt])
   @@index([status])
   @@index([trigger])
+  @@index([shuttleCustomServerOid])
 }
