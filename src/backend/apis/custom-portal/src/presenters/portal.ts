@@ -8,8 +8,5 @@ export let portalPresenter = async (d: { portal: PortalWithSurface }) => ({
   status: d.portal.status,
   name: d.portal.name,
   slug: d.portal.slug,
-  description: d.portal.description,
-  brand: await portalService.getBrand({
-    portal: d.portal
-  })
+  description: d.portal.description
 });
