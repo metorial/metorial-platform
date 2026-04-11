@@ -35,7 +35,7 @@ export let CustomProviderProviderDeploymentsPage = () => {
               {deployment.status}
             </Badge>,
             deployment.customProviderVersionId ? (
-              <ID color="gray">{deployment.customProviderVersionId}</ID>
+              <ID id={deployment.customProviderVersionId} />
             ) : (
               <Text size="2" color="gray600">
                 --
