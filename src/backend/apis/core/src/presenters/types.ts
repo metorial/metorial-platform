@@ -44,8 +44,8 @@ import {
   OrganizationInvite,
   OrganizationMember,
   Portal,
-  PortalAuthAttempt,
-  PortalAuthClient,
+  ConsumerAuthAttempt,
+  ConsumerAuthClient,
   Profile,
   Project,
   ProviderTemplate,
@@ -542,17 +542,21 @@ export let consumerProviderType = PresentableType.create<{
 }>()('consumer.provider');
 
 export let portalOAuthClientType = PresentableType.create<{
-  portalAuthClient: PortalAuthClient & {
-    portal: Portal;
+  portalAuthClient: ConsumerAuthClient & {
+    consumerSurface: ConsumerSurface & {
+      portal: Portal | null;
+    };
     magicMcpServer: MagicMcpServer | null;
     magicMcpEndpoint: MagicMcpEndpoint | null;
   };
 }>()('portal.oauth_client');
 
 export let portalOAuthAuthorizationType = PresentableType.create<{
-  portalOAuthAuthorization: PortalAuthAttempt & {
-    portalAuthClient: PortalAuthClient & {
-      portal: Portal;
+  portalOAuthAuthorization: ConsumerAuthAttempt & {
+    consumerAuthClient: ConsumerAuthClient & {
+      consumerSurface: ConsumerSurface & {
+        portal: Portal | null;
+      };
       magicMcpServer: MagicMcpServer | null;
       magicMcpEndpoint: MagicMcpEndpoint | null;
     };

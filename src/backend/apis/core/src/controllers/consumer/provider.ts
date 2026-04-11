@@ -89,7 +89,7 @@ let portalOAuthClientGroup = consumerGroup.use(async ctx => {
     );
   }
 
-  let portalOAuthClient = await consumerOAuthService.getPortalOAuthClientForConsumer({
+  let portalOAuthClient = await consumerOAuthService.getConsumerAuthClientForConsumer({
     instance: ctx.instance,
     consumerSurface: ctx.consumerSurface,
     portalAuthClientId: ctx.params.portalAuthClientId
@@ -109,7 +109,7 @@ let portalOAuthAuthorizationGroup = consumerGroup.use(async ctx => {
   }
 
   let portalOAuthAuthorization =
-    await consumerOAuthService.getPortalOAuthAuthorizationForConsumer({
+    await consumerOAuthService.getConsumerAuthAuthorizationForConsumer({
       instance: ctx.instance,
       consumerSurface: ctx.consumerSurface,
       consumerProfile: ctx.consumerProfile,
@@ -182,7 +182,7 @@ export let consumerProviderController = Controller.create(
       .output(portalOAuthAuthorizationPresenter)
       .do(async ctx => {
         let portalOAuthAuthorization =
-          await consumerOAuthService.acceptPortalOAuthAuthorization({
+          await consumerOAuthService.acceptConsumerAuthAuthorization({
             portalOAuthAuthorization: ctx.portalOAuthAuthorization,
             consumerProfile: ctx.consumerProfile
           });
@@ -214,7 +214,7 @@ export let consumerProviderController = Controller.create(
       .output(portalOAuthAuthorizationPresenter)
       .do(async ctx => {
         let portalOAuthAuthorization =
-          await consumerOAuthService.connectPortalOAuthAuthorizationToMagicMcpEndpoint({
+          await consumerOAuthService.connectConsumerAuthAuthorizationToMagicMcpEndpoint({
             portalOAuthAuthorization: ctx.portalOAuthAuthorization,
             instance: ctx.instance,
             accessTags: ctx.accessTags,
@@ -243,7 +243,7 @@ export let consumerProviderController = Controller.create(
       .output(portalOAuthAuthorizationPresenter)
       .do(async ctx => {
         let portalOAuthAuthorization =
-          await consumerOAuthService.rejectPortalOAuthAuthorization({
+          await consumerOAuthService.rejectConsumerAuthAuthorization({
             portalOAuthAuthorization: ctx.portalOAuthAuthorization,
             consumerProfile: ctx.consumerProfile
           });

@@ -40,7 +40,7 @@ model MagicMcpServer {
   accessTagEntities      AccessTagEntity[]
   consumerAccesses       ConsumerAccess[]        @relation("ConsumerAccessMagicMcpServer")
   accessRequests         ConsumerAccessRequest[] @relation("ConsumerAccessRequestMagicMcpServer")
-  portalAuthClients      PortalAuthClient[]
+  consumerAuthClients    ConsumerAuthClient[]
   consumerAccessListings ConsumerAccessListing[]
 }
 

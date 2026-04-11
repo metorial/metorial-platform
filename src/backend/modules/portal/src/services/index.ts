@@ -1,2 +1,2 @@
-export * from './portal';
 export * from './consumerOAuth';
+export * from './portal';

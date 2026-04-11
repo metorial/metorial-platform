@@ -2,6 +2,7 @@ import { createCron } from '@metorial/cron';
 import { createQueue } from '@metorial/queue';
 import { cell } from '../../cell';
 import { globalDB } from '../../db';
+import { syncConsumerSurfaceToDeploymentQueue } from './consumerSurface';
 import { syncOAuthAppToDeploymentQueue } from './oauth';
 import { syncOrganizationToDeploymentQueue } from './organization';
 import { syncPortalToDeploymentQueue } from './portal';
@@ -73,6 +74,25 @@ export let syncToDeploymentQueueProcessor = syncToDeploymentQueue.process(async 
     await syncPortalToDeploymentQueue.addMany(portals.map(portal => ({ portal })));
 
     portalCursor = portals[portals.length - 1].id as string;
+  }
+
+  let consumerSurfaceCursor: string | undefined = undefined;
+  while (true) {
+    let consumerSurfaces = await globalDB.consumerSurface.findMany({
+      where: {
+        id: { gt: consumerSurfaceCursor },
+        updatedAt: timeRange
+      },
+      orderBy: { id: 'asc' },
+      take: 100
+    });
+    if (consumerSurfaces.length === 0) break;
+
+    await syncConsumerSurfaceToDeploymentQueue.addMany(
+      consumerSurfaces.map(consumerSurface => ({ consumerSurface }))
+    );
+
+    consumerSurfaceCursor = consumerSurfaces[consumerSurfaces.length - 1].id as string;
   }
 
   let oAuthAppCursor: string | undefined = undefined;

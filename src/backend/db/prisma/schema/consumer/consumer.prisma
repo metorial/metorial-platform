@@ -109,7 +109,7 @@ model ConsumerProfile {
   providerSetupSessionBindings ConsumerProviderSetupSessionBinding[]
   magicMcpEndpoints            MagicMcpEndpoint[]
   actors                       ConsumerActor[]
-  portalAuthAttempts           PortalAuthAttempt[]
+  consumerAuthAttempts         ConsumerAuthAttempt[]
   invite                       ConsumerInvite?
 
   @@unique([surfaceOid, aresUserId])

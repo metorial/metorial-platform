@@ -45,6 +45,7 @@ model ConsumerSurface {
   consumerProfiles       ConsumerProfile[]
   consumerInvites        ConsumerInvite[]
   consumerGroups         ConsumerGroup[]
+  consumerAuthClients    ConsumerAuthClient[]
   consumerAccesses       ConsumerAccess[]
   accessRequests         ConsumerAccessRequest[]
   authExchanges          ConsumerAuthExchange[]

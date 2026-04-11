@@ -11,14 +11,14 @@ export type PortalOAuthResolvedRoute = {
   base: string;
 };
 
-export let buildPortalOAuthProtectedResource = (base: string) => ({
+export let buildOAuthProtectedResource = (base: string) => ({
   resource: `${base}`,
   authorization_servers: [base],
   bearer_methods_supported: ['header', 'query'],
   token_types_supported: ['access_token']
 });
 
-export let buildPortalOAuthClientConfig = (base: string) => ({
+export let buildOAuthClientConfig = (base: string) => ({
   authorization_endpoint: `${base}/oauth/authorize`,
   client_id_metadata_document_supported: false,
   code_challenge_methods_supported: ['S256'],

@@ -1,10 +1,10 @@
-enum PortalAuthClientTokenEndpointAuthMethod {
+enum ConsumerAuthClientTokenEndpointAuthMethod {
   client_secret_basic
   client_secret_post
   none
 }
 
-enum PortalAuthAttemptStatus {
+enum ConsumerAuthAttemptStatus {
   pending
   authorized
   active
@@ -12,12 +12,12 @@ enum PortalAuthAttemptStatus {
   revoked
 }
 
-enum PortalAuthAttemptCodeChallengeMethod {
+enum ConsumerAuthAttemptCodeChallengeMethod {
   none
   s256
 }
 
-model PortalAuthClient {
+model ConsumerAuthClient {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
@@ -27,12 +27,12 @@ model PortalAuthClient {
   clientSecret String?
   registrationIp String?
 
-  tokenEndpointAuthMethod PortalAuthClientTokenEndpointAuthMethod @default(client_secret_basic)
+  tokenEndpointAuthMethod ConsumerAuthClientTokenEndpointAuthMethod @default(client_secret_basic)
 
   redirectUris String[]
 
-  portalOid BigInt
-  portal    Portal @relation(fields: [portalOid], references: [oid], onDelete: Cascade)
+  consumerSurfaceOid BigInt
+  consumerSurface    ConsumerSurface @relation(fields: [consumerSurfaceOid], references: [oid], onDelete: Cascade)
 
   magicMcpServerOid BigInt?
   magicMcpServer    MagicMcpServer? @relation(fields: [magicMcpServerOid], references: [oid], onDelete: Cascade)
@@ -43,19 +43,19 @@ model PortalAuthClient {
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @default(now()) @updatedAt
   expiresAt          DateTime
-  portalAuthAttempts PortalAuthAttempt[]
+  consumerAuthAttempts ConsumerAuthAttempt[]
 
   @@index([registrationIp, createdAt])
 }
 
-model PortalAuthAttempt {
+model ConsumerAuthAttempt {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
-  status PortalAuthAttemptStatus @default(pending)
+  status ConsumerAuthAttemptStatus @default(pending)
 
-  portalAuthClientOid BigInt
-  portalAuthClient    PortalAuthClient @relation(fields: [portalAuthClientOid], references: [oid], onDelete: Cascade)
+  consumerAuthClientOid BigInt
+  consumerAuthClient    ConsumerAuthClient @relation(fields: [consumerAuthClientOid], references: [oid], onDelete: Cascade)
 
   redirectUri String
   state       String?
@@ -66,7 +66,7 @@ model PortalAuthAttempt {
 
   refreshToken String? @unique
 
-  codeChallengeMethod PortalAuthAttemptCodeChallengeMethod @default(none)
+  codeChallengeMethod ConsumerAuthAttemptCodeChallengeMethod @default(none)
   codeChallenge       String?
 
   consumerProfileOid BigInt?
