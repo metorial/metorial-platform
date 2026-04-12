@@ -1,0 +1,35 @@
+name: Forge E2E Tests
+
+on:
+  push:
+    branches: [main, feature/**]
+    paths:
+      - 'service/**'
+      - 'clients/**'
+      - 'package.json'
+      - 'bun.lock'
+      - '.github/workflows/forge-e2e-tests.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'service/**'
+      - 'clients/**'
+      - 'package.json'
+      - 'bun.lock'
+
+jobs:
+  e2e-tests:
+    name: Run Forge E2E Tests
+    uses: metorial/.github/.github/workflows/reusable-e2e-tests.yml@main
+    with:
+      service_directory: service
+      compose_project_prefix: forge-ci
+      compose_profiles: 'infra service'
+      wait_services: |
+        forge-postgres
+        forge-redis
+        forge-object-storage
+        forge-service
+      test_container: forge-service
+      test_command: cd /app && bun run test -- --mode ci --reporter verbose
+      pre_start_command: cp bun.lock service/bun.lock

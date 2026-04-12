@@ -1,0 +1,250 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "./generated"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Tenant {
+  oid BigInt @id
+  id  String @unique
+
+  identifier String @unique
+  name       String
+
+  createdAt DateTime @default(now())
+
+  workflows Workflow[]
+}
+
+model Provider {
+  oid BigInt @id
+  id  String @unique
+
+  identifier String @unique
+  name       String
+
+  createdAt DateTime @default(now())
+
+  workflows Workflow[]
+  versions  WorkflowVersion[]
+  runs      WorkflowRun[]
+}
+
+enum WorkflowStatus {
+  active
+  deleted
+}
+
+model Workflow {
+  oid    BigInt         @id
+  id     String         @unique
+  status WorkflowStatus
+
+  identifier String
+  name       String
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  providerOid BigInt
+  provider    Provider @relation(fields: [providerOid], references: [oid])
+
+  currentVersionOid BigInt?
+  currentVersion    WorkflowVersion? @relation("CurrentWorkflowVersion", fields: [currentVersionOid], references: [oid])
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+  deletedAt DateTime?
+
+  versions  WorkflowVersion[]
+  artifacts WorkflowArtifact[]
+  runs      WorkflowRun[]
+
+  @@unique([tenantOid, identifier])
+}
+
+model WorkflowVersion {
+  oid BigInt @id
+  id  String @unique
+
+  isCurrent Boolean
+
+  identifier String
+  name       String
+
+  workflowOid BigInt
+  workflow    Workflow @relation(fields: [workflowOid], references: [oid], onDelete: Cascade)
+
+  providerOid BigInt
+  provider    Provider @relation(fields: [providerOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  workflows Workflow[]            @relation("CurrentWorkflowVersion")
+  steps     WorkflowVersionStep[]
+  runs      WorkflowRun[]
+
+  @@unique([workflowOid, identifier])
+}
+
+enum WorkflowVersionStepType {
+  script
+  upload_artifact
+  download_artifact
+}
+
+model WorkflowVersionStep {
+  oid BigInt @id
+  id  String @unique
+
+  type WorkflowVersionStepType
+
+  name  String
+  index Int
+
+  workflowVersionOid BigInt
+  workflowVersion    WorkflowVersion @relation(fields: [workflowVersionOid], references: [oid], onDelete: Cascade)
+
+  artifactToDownloadOid  BigInt?
+  artifactToDownload     WorkflowArtifact? @relation("DownloadArtifact", fields: [artifactToDownloadOid], references: [oid])
+  artifactToDownloadPath String?
+
+  artifactToUploadPath String?
+  artifactToUploadName String?
+
+  initScript    String[]
+  actionScript  String[]
+  cleanupScript String[]
+
+  createdAt DateTime @default(now())
+
+  steps WorkflowRunStep[]
+}
+
+enum WorkflowArtifactType {
+  input
+  output
+}
+
+model WorkflowArtifact {
+  oid BigInt @id
+  id  String @unique
+
+  name String
+  type WorkflowArtifactType
+
+  storageKey String
+  bucket     String
+
+  workflowOid BigInt
+  workflow    Workflow @relation(fields: [workflowOid], references: [oid], onDelete: Cascade)
+
+  runOid BigInt
+  run    WorkflowRun @relation(fields: [runOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  workflowVersionSteps WorkflowVersionStep[] @relation("DownloadArtifact")
+}
+
+enum WorkflowRunStatus {
+  pending
+  running
+  succeeded
+  failed
+}
+
+model WorkflowRun {
+  oid BigInt @id
+  id  String @unique
+
+  status WorkflowRunStatus
+
+  workflowOid BigInt
+  workflow    Workflow @relation(fields: [workflowOid], references: [oid], onDelete: Cascade)
+
+  providerOid BigInt
+  provider    Provider @relation(fields: [providerOid], references: [oid])
+
+  versionOid BigInt
+  version    WorkflowVersion @relation(fields: [versionOid], references: [oid], onDelete: Cascade)
+
+  encryptedEnvironmentVariables String
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+  startedAt DateTime?
+  endedAt   DateTime?
+
+  artifacts              WorkflowArtifact[]
+  steps                  WorkflowRunStep[]
+  workflowRunOutputTemps WorkflowRunOutputTemp[]
+}
+
+enum WorkflowRunStepType {
+  // System
+  setup
+  teardown
+
+  // User provided
+  init
+  action
+  cleanup
+}
+
+enum WorkflowRunStepStatus {
+  pending
+  running
+  succeeded
+  failed
+  canceled
+}
+
+model WorkflowRunStep {
+  oid BigInt @id
+  id  String @unique
+
+  type   WorkflowRunStepType
+  status WorkflowRunStepStatus
+
+  name  String
+  index Int
+
+  runOid BigInt
+  run    WorkflowRun @relation(fields: [runOid], references: [oid], onDelete: Cascade)
+
+  stepOid BigInt?
+  step    WorkflowVersionStep? @relation(fields: [stepOid], references: [oid])
+
+  outputStorageKey String?
+  outputBucket     String?
+
+  createdAt DateTime  @default(now())
+  startedAt DateTime?
+  endedAt   DateTime?
+
+  workflowRunOutputTemps WorkflowRunOutputTemp[]
+}
+
+model WorkflowRunOutputTemp {
+  oid BigInt @id
+
+  output String
+
+  runOid BigInt
+  run    WorkflowRun @relation(fields: [runOid], references: [oid], onDelete: Cascade)
+
+  stepOid BigInt
+  step    WorkflowRunStep @relation(fields: [stepOid], references: [oid])
+
+  createdAt DateTime @default(now())
+}

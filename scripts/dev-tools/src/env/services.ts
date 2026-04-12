@@ -1,5 +1,8 @@
 import { HOSTNAME } from '../const';
 import type { Env } from './type';
+let localForgeDatabaseUrl = 'postgresql://postgres:postgres@localhost:35432/forge';
+let localFunctionBayDatabaseUrl =
+  'postgresql://postgres:postgres@localhost:35432/function-bay';
 
 export let originServiceEnv: Env = [
   {
@@ -114,6 +117,120 @@ export let signalServiceEnv: Env = [
   }
 ];
 
+export let forgeServiceEnv: Env = [
+  {
+    key: 'FORGE_DATABASE_URL',
+    defaultValue: localForgeDatabaseUrl
+  },
+  {
+    key: 'REDIS_URL',
+    defaultValue: 'redis://localhost:36379/0'
+  },
+  {
+    key: 'OBJECT_STORAGE_URL',
+    defaultValue: 'http://services:52010'
+  },
+  {
+    key: 'ARTIFACT_BUCKET_NAME',
+    defaultValue: 'forge-artifacts'
+  },
+  {
+    key: 'LOG_BUCKET_NAME',
+    defaultValue: 'forge-logs'
+  },
+  {
+    key: 'ENCRYPTION_KEY',
+    defaultValue: 'forge-dev-encryption-key'
+  },
+  {
+    key: 'DEFAULT_PROVIDER',
+    defaultValue: 'aws.code-build'
+  },
+  {
+    key: 'CODE_BUILD_AWS_REGION',
+    defaultValue: 'eu-central-1'
+  },
+  {
+    key: 'CODE_BUILD_PROJECT_NAME',
+    isRequired: false
+  },
+  {
+    key: 'CODE_BUILD_ROLE_ARN',
+    isRequired: false
+  },
+  {
+    key: 'CODE_BUILD_CONCURRENCY_LIMIT',
+    defaultValue: '5'
+  },
+  {
+    key: 'CODE_BUILD_LOG_RETENTION_DAYS',
+    defaultValue: '7'
+  },
+  {
+    key: 'CODE_BUILD_LOG_GROUP_NAME',
+    isRequired: false
+  },
+  {
+    key: 'CODE_BUILD_AWS_ACCESS_KEY_ID',
+    isRequired: false
+  },
+  {
+    key: 'CODE_BUILD_AWS_SECRET_ACCESS_KEY',
+    isRequired: false
+  }
+];
+
+export let functionBayServiceEnv: Env = [
+  {
+    key: 'FUNCTION_BAY_DATABASE_URL',
+    defaultValue: localFunctionBayDatabaseUrl
+  },
+  {
+    key: 'REDIS_URL',
+    defaultValue: 'redis://localhost:36379/0'
+  },
+  {
+    key: 'OBJECT_STORAGE_URL',
+    defaultValue: 'http://services:52010'
+  },
+  {
+    key: 'BUNDLE_BUCKET_NAME',
+    defaultValue: 'function-bay-bundles'
+  },
+  {
+    key: 'FORGE_API_URL',
+    defaultValue: `http://${HOSTNAME}:52020/metorial-forge`
+  },
+  {
+    key: 'ENCRYPTION_KEY',
+    defaultValue: 'function-bay-dev-encryption-key'
+  },
+  {
+    key: 'DEFAULT_PROVIDER',
+    defaultValue: 'aws.lambda'
+  },
+  {
+    key: 'LAMBDA_AWS_REGION',
+    defaultValue: 'eu-central-1'
+  },
+  {
+    key: 'LAMBDA_EXECUTION_ROLE_ARN',
+    defaultValue: 'arn:aws:iam::000000000000:role/function-bay-dev'
+  },
+  {
+    key: 'REDIS_AUTH_TOKEN',
+    isRequired: false
+  },
+  {
+    key: 'SENTRY_DSN',
+    isRequired: false
+  },
+  {
+    key: 'HEARTBEAT_URL',
+    isRequired: false
+  }
+];
+
 export let slatesHubEnv: Env = [
   {
     key: 'DATABASE_URL',
@@ -129,7 +246,7 @@ export let slatesHubEnv: Env = [
   },
   {
     key: 'FUNCTION_BAY_API_URL',
-    defaultValue: 'http://services:52030/metorial-function-bay'
+    defaultValue: 'http://localhost:52030/metorial-function-bay'
   },
   {
     key: 'FUNCTION_BAY_TENANT_IDENTIFIER',
@@ -302,7 +419,7 @@ export let shuttleServiceEnv: Env = [
   },
   {
     key: 'FUNCTION_BAY_API_URL',
-    defaultValue: 'http://services:52030/metorial-function-bay'
+    defaultValue: 'http://localhost:52030/metorial-function-bay'
   },
   {
     key: 'FUNCTION_BAY_TENANT_IDENTIFIER',

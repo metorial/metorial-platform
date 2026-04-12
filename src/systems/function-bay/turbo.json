@@ -1,0 +1,96 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "ui": "tui",
+  "tasks": {
+    "enterprise:dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "build": {
+      "dependsOn": [
+        "^build"
+      ]
+    },
+    "prisma:generate": {
+      "dependsOn": [
+        "^prisma:generate"
+      ]
+    },
+    "generate:client": {
+      "dependsOn": [
+        "^generate:client"
+      ],
+      "cache": false
+    },
+    "generate:client:dashboard": {
+      "dependsOn": [
+        "^generate:client:dashboard"
+      ],
+      "cache": false
+    },
+    "prisma:push": {
+      "cache": false,
+      "dependsOn": [
+        "^prisma:push"
+      ],
+      "env": [
+        "DATABASE_URL",
+        "PAYMENT_DATABASE_URL",
+        "FEDERATION_CORE_DATABASE_URL"
+      ]
+    },
+    "frontend:build": {
+      "cache": false,
+      "dependsOn": [
+        "^frontend:build"
+      ],
+      "env": [
+        "SENTRY_AUTH_TOKEN",
+        "METORIAL_ENV",
+        "VITE_*"
+      ]
+    },
+    "deploy:only": {
+      "env": [
+        "SENTRY_AUTH_TOKEN",
+        "METORIAL_ENV",
+        "VITE_*",
+        "CLOUDFLARE_API_TOKEN",
+        "CLOUDFLARE_ACCOUNT_ID"
+      ]
+    },
+    "deploy": {
+      "env": [
+        "SENTRY_AUTH_TOKEN",
+        "METORIAL_ENV",
+        "VITE_*",
+        "CLOUDFLARE_API_TOKEN",
+        "CLOUDFLARE_ACCOUNT_ID"
+      ]
+    },
+    "server:build": {
+      "dependsOn": [
+        "^build"
+      ],
+      "env": [
+        "SENTRY_AUTH_TOKEN",
+        "METORIAL_ENV"
+      ]
+    },
+    "test": {
+      "cache": false,
+      "dependsOn": [
+        "^test"
+      ]
+    },
+    "check-types": {
+      "dependsOn": [
+        "^check-types"
+      ]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    }
+  }
+}

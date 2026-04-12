@@ -1,6 +1,8 @@
 import { backendEnv } from './backend';
 import { frontendEnv } from './frontend';
 import {
+  forgeServiceEnv,
+  functionBayServiceEnv,
   horizonServiceEnv,
   originCodeBucketEnv,
   originServiceEnv,
@@ -84,6 +86,16 @@ export let destinations: Destination[] = [
     type: 'oss',
     env: originCodeBucketEnv,
     path: 'src/systems/origin/apps/code-bucket'
+  },
+  {
+    type: 'oss',
+    env: forgeServiceEnv,
+    path: 'src/systems/forge/service'
+  },
+  {
+    type: 'oss',
+    env: functionBayServiceEnv,
+    path: 'src/systems/function-bay/service'
   },
   {
     type: 'oss',
