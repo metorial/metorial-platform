@@ -1,5 +1,5 @@
 {
-  "name": "origin-service",
+  "name": "@metorial/origin",
   "module": "index.ts",
   "type": "commonjs",
   "private": true,

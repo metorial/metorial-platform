@@ -15,7 +15,10 @@ import {
   type Instance
 } from '@metorial/db';
 import { type AnyAccessTagSelector } from '@metorial/module-access';
-import { subspaceProviderSetupSessionService } from '@metorial/module-subspace';
+import {
+  subspaceProviderAuthCredentialsService,
+  subspaceProviderSetupSessionService
+} from '@metorial/module-subspace';
 import { loadTemplateContextForSetup } from '../lib/consumerProviderContext';
 
 let buildProviderSetupRedirectUrl = (portalSlug: string) => {
@@ -95,6 +98,17 @@ class ConsumerProviderSetupSessionServiceImpl {
       throw new ServiceError(notFoundError('portal'));
     }
 
+    let credentials = await (
+      await subspaceProviderAuthCredentialsService.list({
+        instance: d.instance,
+        status: ['active'],
+        providerIds: [providerContext.provider.id],
+        providerAuthMethodIds: d.input.providerAuthMethodId
+          ? [d.input.providerAuthMethodId]
+          : undefined
+      })
+    ).run({ limit: 1 });
+
     let setupSession = await subspaceProviderSetupSessionService.create({
       instance: d.instance,
       providerId: providerContext.provider.id,
@@ -106,6 +120,7 @@ class ConsumerProviderSetupSessionServiceImpl {
       ip: d.context.ip,
       ua: d.context.ua ?? '',
       redirectUrl: buildProviderSetupRedirectUrl(portal.slug),
+      providerAuthCredentialsId: credentials.items[0]?.id,
       configuration: {
         ui: {
           layout: 'side'

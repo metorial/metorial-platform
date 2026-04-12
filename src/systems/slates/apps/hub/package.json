@@ -1,5 +1,5 @@
 {
-  "name": "slates-hub",
+  "name": "@metorial/slates",
   "module": "index.ts",
   "type": "commonjs",
   "private": true,

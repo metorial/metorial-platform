@@ -26,9 +26,10 @@ export let sendConsumerInviteEmail = notificationClient.createTemplate(
             <Text>Hi {consumerProfile.name},</Text>
 
             <Text>
-              {invitedBy.name} has invited you to join
-              <strong>{portal.name}</strong> on Metorial. This allows you to connect 1000+
-              tools and integrations to your MCP clients.
+              {invitedBy.name} has invited you to join <strong>{portal.name}</strong> on
+              Metorial. Metorial lets you connect 1000+ tools and integrations to AI agents.
+              Connect coding agents to project management tools, automate CRM workflows, and
+              much more. Metorial is managed by your organization administrators.
             </Text>
 
             <Button href={portalUrl}>Open Metorial</Button>

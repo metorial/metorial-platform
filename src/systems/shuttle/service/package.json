@@ -1,5 +1,5 @@
 {
-  "name": "shuttle-service",
+  "name": "@metorial/shuttle",
   "module": "index.ts",
   "type": "commonjs",
   "private": true,

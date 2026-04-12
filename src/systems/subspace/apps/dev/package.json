@@ -1,5 +1,5 @@
 {
-  "name": "@metorial-subspace/app-test",
+  "name": "@metorial/subspace-dev",
   "module": "index.ts",
   "type": "module",
   "private": true,

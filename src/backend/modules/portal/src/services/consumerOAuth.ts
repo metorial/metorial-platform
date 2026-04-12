@@ -78,8 +78,8 @@ type DashboardConsumerSurface = ConsumerSurface & {
   };
 };
 
-export let consumerAuthRefreshTokenTtlSeconds = 7 * 24 * 60 * 60;
-export let consumerAuthAccessTokenTtlSeconds = 60 * 60;
+export let consumerAuthRefreshTokenTtlSeconds = 30 * 24 * 60 * 60;
+export let consumerAuthAccessTokenTtlSeconds = consumerAuthRefreshTokenTtlSeconds;
 export let consumerAuthClientRegistrationsPerMinuteLimit = 10;
 export let consumerAuthClientRegistrationsPerHourLimit = 20;
 
