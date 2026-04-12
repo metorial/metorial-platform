@@ -108,6 +108,7 @@ class ConsumerProviderSetupSessionServiceImpl {
           : undefined
       })
     ).run({ limit: 1 });
+    let creds = credentials.items[0];
 
     let setupSession = await subspaceProviderSetupSessionService.create({
       instance: d.instance,
@@ -120,7 +121,8 @@ class ConsumerProviderSetupSessionServiceImpl {
       ip: d.context.ip,
       ua: d.context.ua ?? '',
       redirectUrl: buildProviderSetupRedirectUrl(portal.slug),
-      providerAuthCredentialsId: credentials.items[0]?.id,
+      providerAuthCredentialsId: creds?.id,
+      providerAuthMethodId: d.input.providerAuthMethodId ?? 'oauth',
       configuration: {
         ui: {
           layout: 'side'

@@ -1,6 +1,6 @@
 import { db } from '@metorial/db';
 import { createQueue } from '@metorial/queue';
-import { consumerAccessPolicyService } from '../../services/accessPolicy';
+import { consumerAccessService } from '../../services';
 import { indexConsumerGroupSearchQueue } from '../search/consumerGroup';
 
 export let consumerGroupCreatedQueue = createQueue<{ consumerGroupId: string }>({
@@ -45,6 +45,7 @@ export let consumerGroupArchivedQueueProcessor = consumerGroupArchivedQueue.proc
         }
       }
     });
+    console.log('Processing consumer group archived queue for consumer group', consumerGroup);
     if (!consumerGroup || consumerGroup.status !== 'archived') return;
 
     let consumerAccesses = await db.consumerAccess.findMany({
@@ -54,21 +55,25 @@ export let consumerGroupArchivedQueueProcessor = consumerGroupArchivedQueue.proc
       include: {
         consumerGroup: true,
         providerTemplate: true,
-        magicMcpServer: true
+        magicMcpServer: true,
+        listing: true,
+        surface: { include: { organization: true } }
       }
     });
+    console.log(
+      'Found consumer accesses to revoke for archived consumer group',
+      consumerAccesses
+    );
 
     for (let consumerAccess of consumerAccesses) {
-      await consumerAccessPolicyService.revokeAccessForConsumerAccess({
+      await consumerAccessService.deleteConsumerAccess({
         organization: consumerGroup.surface.organization,
-        consumerAccess
+        consumerAccess: consumerAccess
       });
     }
 
     await db.consumerAccess.deleteMany({
-      where: {
-        consumerGroupOid: consumerGroup.oid
-      }
+      where: { consumerGroupOid: consumerGroup.oid }
     });
 
     await indexConsumerGroupSearchQueue.add({
