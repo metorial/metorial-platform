@@ -351,48 +351,48 @@ export let TableFilters = memo(
           </RadixPopover.Portal>
         </RadixPopover.Root>
 
-        <CurrentFilters $wrap={wrap}>
-          {filterState.map(state => {
-            let filter = filters.find(f => f.id == state.id);
-            if (!filter) return null;
+        {filterState.length > 0 && (
+          <CurrentFilters $wrap={wrap}>
+            {filterState.map(state => {
+              let filter = filters.find(f => f.id == state.id);
+              if (!filter) return null;
 
-            let text = getFilterText(filter, state);
+              let text = getFilterText(filter, state);
 
-            return (
-              <Tooltip key={state.id} content={text}>
-                <CurrentFilter
-                  onClick={() => {
-                    if (
-                      state.id == currentFilterId &&
-                      (open || Date.now() - closedAtRef.current < 200)
-                    ) {
-                      setOpen(false);
-                      return;
-                    }
+              return (
+                <Tooltip key={state.id} content={text}>
+                  <CurrentFilter
+                    onClick={() => {
+                      if (
+                        state.id == currentFilterId &&
+                        (open || Date.now() - closedAtRef.current < 200)
+                      ) {
+                        setOpen(false);
+                        return;
+                      }
 
-                    setOpen(true);
-                    setCurrentFilterId(state.id);
-                    setTimeout(() => setCurrentFilterId(state.id), 20);
-                  }}
-                >
-                  <FilterIcon>
-                    <RiFilter2Line size={12} />
-                  </FilterIcon>
+                      setOpen(true);
+                      setCurrentFilterId(state.id);
+                      setTimeout(() => setCurrentFilterId(state.id), 20);
+                    }}
+                  >
+                    <FilterIcon>
+                      <RiFilter2Line size={12} />
+                    </FilterIcon>
 
-                  <FilterLabel>{filter.label}</FilterLabel>
+                    <FilterLabel>{filter.label}</FilterLabel>
 
-                  <FilterValue>{text}</FilterValue>
-                </CurrentFilter>
-              </Tooltip>
-            );
-          })}
+                    <FilterValue>{text}</FilterValue>
+                  </CurrentFilter>
+                </Tooltip>
+              );
+            })}
 
-          {filterState.length > 0 && (
             <Button size="1" variant="ghost" onClick={() => setFilterState([])}>
               Clear all filters
             </Button>
-          )}
-        </CurrentFilters>
+          </CurrentFilters>
+        )}
       </Wrapper>
     );
   }

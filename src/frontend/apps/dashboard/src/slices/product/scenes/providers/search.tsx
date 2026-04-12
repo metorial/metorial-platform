@@ -46,6 +46,17 @@ export type ProviderSearchItem = {
 type ProviderSearchVariant = 'compactList' | 'providerCard';
 type ProviderCardSize = 'default' | 'compact';
 
+// height: ${
+//   typeof $internalScrollHeight === 'number'
+//     ? `${$internalScrollHeight}px`
+//     : ($internalScrollHeight ?? '100%')
+// };
+// max-height: ${
+//   typeof $internalScrollHeight === 'number'
+//     ? `${$internalScrollHeight}px`
+//     : ($internalScrollHeight ?? '100%')
+// };
+
 let Wrapper = styled.div<{
   $internalScroll?: boolean;
   $internalScrollHeight?: string | number;
@@ -53,16 +64,7 @@ let Wrapper = styled.div<{
   ${({ $internalScroll, $internalScrollHeight }) =>
     $internalScroll
       ? `
-    height: ${
-      typeof $internalScrollHeight === 'number'
-        ? `${$internalScrollHeight}px`
-        : ($internalScrollHeight ?? '100%')
-    };
-    max-height: ${
-      typeof $internalScrollHeight === 'number'
-        ? `${$internalScrollHeight}px`
-        : ($internalScrollHeight ?? '100%')
-    };
+
     display: flex;
     flex-direction: column;
     flex: 1;
@@ -75,7 +77,7 @@ let ScrollBody = styled.div`
   flex: 1;
   min-height: 0;
   overflow: auto;
-  scrollbar-gutter: stable;
+  /* scrollbar-gutter: stable; */
 `;
 
 let Grid = styled.div<{ $columns?: number }>`

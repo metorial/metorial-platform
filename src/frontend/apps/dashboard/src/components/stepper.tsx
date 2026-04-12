@@ -87,7 +87,6 @@ let Step = styled.button`
 
 let Main = styled.main`
   flex: 1;
-  min-height: 0;
   display: flex;
   flex-direction: column;
 `;
@@ -97,7 +96,6 @@ let PillsWrapper = styled.div<{ $gap?: number }>`
   flex-direction: column;
   gap: 20px;
   flex: 1;
-  min-height: 0;
 `;
 
 let PillsHeader = styled.header`

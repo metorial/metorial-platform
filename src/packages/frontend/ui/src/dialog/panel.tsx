@@ -31,7 +31,7 @@ let Content = styled('main')`
   flex-direction: column;
   flex: 1;
   min-height: 0;
-  padding: 15px 10px;
+  padding: 15px 20px;
   overflow: auto;
   /* scrollbar-gutter: stable both-edges; */
 `;
