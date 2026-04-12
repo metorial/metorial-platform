@@ -28,7 +28,7 @@
     "test": "vitest run --passWithNoTests",
     "lint": "prettier src/**/*.ts --check",
     "prebuild": "cd ../../origin/apps/service && bunx prisma generate",
-    "build": "rm -rf ./dist && microbundle && dts-bundle-generator --config dts-bundle-generator.config.json",
+    "build": "rm -rf ./dist && microbundle && cp ./src/index.d.ts ./dist/index.d.ts",
     "prepublish": "bun run build"
   },
   "dependencies": {
