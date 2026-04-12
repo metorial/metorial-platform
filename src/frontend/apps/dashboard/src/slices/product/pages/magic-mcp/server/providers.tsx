@@ -5,7 +5,6 @@ import {
   useProviderDeployments,
   useSessionTemplateProviders
 } from '@metorial/state';
-import { Spacer } from '@metorial/ui';
 import { useParams } from 'react-router-dom';
 import { SessionTemplateProvidersManager } from '../../../scenes/sessionTemplates/providersManager';
 
@@ -21,8 +20,6 @@ export let MagicMcpServerProvidersPage = () => {
 
   return renderWithLoader({ server, templateProviders, deployments })(({ server }) => (
     <>
-      <Spacer size={16} />
-
       <SessionTemplateProvidersManager
         instanceId={instance.data!.id}
         sessionTemplateId={server.data.sessionTemplateId}

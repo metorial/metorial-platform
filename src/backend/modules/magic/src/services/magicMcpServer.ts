@@ -10,6 +10,7 @@ import { Service } from '@lowerdeck/service';
 import { slugify } from '@lowerdeck/slugify';
 import { Context } from '@metorial/context';
 import {
+  ConsumerSurface,
   db,
   ID,
   Instance,
@@ -57,6 +58,7 @@ class MagicMcpServerImpl {
     instance: Instance;
     magicMcpServerId: string;
     accessTags?: AnyAccessTagSelector;
+    consumerSurface?: ConsumerSurface;
   }) {
     let magicMcpServer = await db.magicMcpServer.findFirst({
       where: {
@@ -82,7 +84,8 @@ class MagicMcpServerImpl {
     if (d.accessTags) {
       await this.checkConsumerReadAccess({
         server: magicMcpServer,
-        accessTags: d.accessTags
+        accessTags: d.accessTags,
+        consumerSurface: d.consumerSurface
       });
     }
 
@@ -92,7 +95,20 @@ class MagicMcpServerImpl {
   async checkConsumerReadAccess(d: {
     server: MagicMcpServer;
     accessTags: AnyAccessTagSelector;
+    consumerSurface?: ConsumerSurface;
   }) {
+    if (d.consumerSurface) {
+      // We allow to fetch magic mcp server that the consumer doesn't have access to
+      // from the same portal by id, but we still need to check if the server is in the same portal
+      let access = await db.consumerAccess.findFirst({
+        where: {
+          consumerGroup: { surfaceOid: d.consumerSurface.oid },
+          magicMcpServerOid: d.server.oid
+        }
+      });
+      if (access) return;
+    }
+
     await accessTagService.checkResourceAccess({
       tags: d.accessTags,
       roles: [...consumerMagicMcpReadRoles],
@@ -357,6 +373,7 @@ class MagicMcpServerImpl {
     preconfiguredOnly?: boolean;
     accessTags?: AnyAccessTagSelector;
     filterAccessTags?: AnyAccessTagSelector;
+    consumerSurface?: ConsumerSurface;
   }) {
     let normalizedSearch = d.search?.trim();
     if (!normalizedSearch?.length) normalizedSearch = undefined;
@@ -368,8 +385,7 @@ class MagicMcpServerImpl {
         })
       : undefined;
 
-    let shouldFilterByGroups = !!d.groupIds?.length;
-    let groupOids = shouldFilterByGroups
+    let groupOids = d.groupIds?.length
       ? (
           await db.magicMcpGroup.findMany({
             where: {
@@ -380,6 +396,7 @@ class MagicMcpServerImpl {
           })
         ).map(g => g.oid)
       : undefined;
+
     let accessTagFilter = await getAccessTagFilter({
       accessTags: d.accessTags,
       roles: [...consumerMagicMcpReadRoles]
@@ -409,6 +426,27 @@ class MagicMcpServerImpl {
       });
     }
 
+    if (accessTagFilter) {
+      if (d.ids && d.consumerSurface) {
+        // We allow to fetch magic mcp server that the consumer doesn't have access to
+        // from the same portal by id
+        andFilters.push({
+          OR: [
+            { accessTagEntities: accessTagFilter },
+            {
+              consumerAccesses: {
+                some: { consumerGroup: { surfaceOid: d.consumerSurface.oid } }
+              }
+            }
+          ]
+        });
+      } else {
+        andFilters.push({
+          accessTagEntities: accessTagFilter
+        });
+      }
+    }
+
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
         return await db.magicMcpServer.findMany({
@@ -421,14 +459,9 @@ class MagicMcpServerImpl {
             providerTemplateId: d.providerTemplateIds?.length
               ? { in: d.providerTemplateIds }
               : undefined,
-            groups: shouldFilterByGroups
-              ? {
-                  some: {
-                    magicMcpGroupOid: { in: groupOids ?? [] }
-                  }
-                }
+            groups: groupOids
+              ? { some: { magicMcpGroupOid: { in: groupOids ?? [] } } }
               : undefined,
-            accessTagEntities: accessTagFilter,
             AND: andFilters
           },
           include

@@ -30,7 +30,8 @@ export let magicMcpServerGroup = instanceGroup.use(async ctx => {
   let magicMcpServer = await magicMcpServerService.getMagicMcpServerById({
     magicMcpServerId: ctx.params.magicMcpServerId,
     instance: ctx.instance,
-    accessTags: ctx.accessTags
+    accessTags: ctx.accessTags,
+    consumerSurface: ctx.consumerSurface
   });
 
   return { magicMcpServer };
@@ -170,6 +171,7 @@ export let magicMcpServerController = Controller.create(
 
         let paginator = await magicMcpServerService.listMagicMcpServers({
           instance: ctx.instance,
+          consumerSurface: ctx.consumerSurface,
           status: normalizeArrayParam<MagicMcpServerStatus>(ctx.query.status),
           groupIds: normalizeArrayParam(ctx.query.magic_mcp_group_id),
           providerTemplateIds: normalizeArrayParam(ctx.query.provider_template_id),

@@ -10,10 +10,14 @@
     "inlineSources": false,
     "isolatedModules": true,
     "moduleResolution": "node",
+    "ignoreDeprecations": "6.0",
     "lib": [
       "ESNext",
       "DOM",
       "DOM.Iterable"
+    ],
+    "types": [
+      "bun"
     ],
     "module": "ESNext",
     "target": "ESNext",
