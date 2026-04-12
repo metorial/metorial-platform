@@ -40,7 +40,9 @@ export let v1ProviderTemplatePresenter = Presenter.create(providerTemplateType)
     description: providerTemplate.description,
     metadata: providerTemplate.metadata,
     provider_deployment_id: providerTemplate.providerDeploymentId,
-    tool_filters: toolFilterPresenter(providerTemplate.providerDeployment.toolFilter),
+    tool_filters: providerTemplate.providerDeployment
+      ? toolFilterPresenter(providerTemplate.providerDeployment.toolFilter)
+      : { type: 'allow_all' as const },
     created_at: providerTemplate.createdAt,
     updated_at: providerTemplate.updatedAt
   }))

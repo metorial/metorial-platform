@@ -1,4 +1,4 @@
-import { Spacer, Text, Title } from '@metorial/ui';
+import { Spacer, Title } from '@metorial/ui';
 import { AnimatePresence, motion } from 'framer-motion';
 import React from 'react';
 import { keyframes, styled } from 'styled-components';
@@ -158,14 +158,14 @@ export let SetupLayout = ({
               </Title>
             )}
 
-            {main.description && (
+            {/* {main.description && (
               <>
                 <Spacer size={5} />
                 <Text size="3" color="gray700" weight="medium">
                   {main.description}
                 </Text>
               </>
-            )}
+            )} */}
             <Spacer size={25} />
 
             {children}
