@@ -8,6 +8,7 @@ cd /app
 bun install --linker=hoisted
 
 bun run --cwd ./src/systems/slates/apps/hub db:generate
+bun run --cwd ./src/systems/slates/apps/registry db:generate
 
 bunx turbo run --ui=stream build \
   --filter=./src/systems/slates/packages/** \
