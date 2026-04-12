@@ -16,7 +16,7 @@
     "@lowerdeck/delay": "^1.0.4",
     "@lowerdeck/env": "^1.0.5",
     "@lowerdeck/programmable-promise": "^1.0.6",
-    "@lowerdeck/validation": "^1.0.8",
+    "@lowerdeck/validation": "^1.0.9",
     "@metorial-services/voyager-client": "^1.0.1"
   }
 }

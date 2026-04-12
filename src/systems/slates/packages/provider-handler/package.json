@@ -31,7 +31,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@lowerdeck/error": "^1.1.0",
+    "@lowerdeck/error": "^1.2.2",
     "@slates/proto": "^1.0.0-rc.6",
     "@slates/provider": "^1.0.0-rc.6",
     "zod": "^4.2.1"

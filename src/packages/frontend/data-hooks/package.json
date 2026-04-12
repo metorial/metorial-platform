@@ -15,7 +15,7 @@
     "yup": "^1.4.0",
     "@metorial/ui": "1.0.0",
     "@lowerdeck/error": "^1.2.2",
-    "@lowerdeck/memo": "1.0.0"
+    "@lowerdeck/memo": "1.0.4"
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",

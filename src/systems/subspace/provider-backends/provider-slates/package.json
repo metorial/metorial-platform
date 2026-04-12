@@ -23,7 +23,7 @@
     "@lowerdeck/lock": "^1.0.5",
     "@lowerdeck/queue": "^1.0.8",
     "@lowerdeck/slugify": "^1.0.5",
-    "@lowerdeck/validation": "^1.0.8",
+    "@lowerdeck/validation": "^1.0.9",
     "@metorial-services/registry-client": "^1.0.0",
     "@metorial-platform-systems/slates-client": "^1.0.0",
     "@metorial-subspace/db": "^1.0.0",

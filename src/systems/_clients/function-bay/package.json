@@ -4,7 +4,12 @@
   "publishConfig": {
     "access": "public"
   },
-  "files": ["src/**", "dist/**", "README.md", "package.json"],
+  "files": [
+    "src/**",
+    "dist/**",
+    "README.md",
+    "package.json"
+  ],
   "author": "Tobias Herber",
   "license": "Apache 2",
   "type": "module",
@@ -28,7 +33,7 @@
   },
   "dependencies": {
     "@function-bay/types": "^1.0.0",
-    "@lowerdeck/rpc-client": "^1.1.0"
+    "@lowerdeck/rpc-client": "^1.1.3"
   },
   "devDependencies": {
     "@types/node": "^25.0.3",

@@ -36,7 +36,7 @@
     "@lowerdeck/rpc-server": "^1.0.10",
     "@lowerdeck/sentry": "^1.0.2",
     "@lowerdeck/serialize": "^1.0.4",
-    "@lowerdeck/validation": "^1.0.8",
+    "@lowerdeck/validation": "^1.0.9",
     "@metorial-subspace/db": "^1.0.0",
     "@metorial-subspace/module-auth": "^1.0.0",
     "@metorial-subspace/module-catalog": "^1.0.0",

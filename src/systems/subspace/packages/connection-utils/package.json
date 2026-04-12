@@ -16,7 +16,7 @@
     "@lowerdeck/delay": "^1.0.4",
     "@lowerdeck/env": "^1.0.5",
     "@lowerdeck/error": "^1.2.2",
-    "@lowerdeck/validation": "^1.0.8",
+    "@lowerdeck/validation": "^1.0.9",
     "@metorial-subspace/db": "^1.0.0",
     "@metorial-subspace/module-provider-internal": "^1.0.0",
     "@modelcontextprotocol/sdk": "^1.25.2",

@@ -33,7 +33,7 @@
     "@lowerdeck/error": "^1.2.2",
     "@lowerdeck/hono": "^1.0.9",
     "@lowerdeck/rpc-server": "^1.0.10",
-    "@lowerdeck/validation": "^1.0.8",
+    "@lowerdeck/validation": "^1.0.9",
     "@metorial-io/data-hooks": "^1.0.1",
     "@metorial-io/pages": "^1.0.0",
     "@metorial-subspace/app-controller": "workspace:*",

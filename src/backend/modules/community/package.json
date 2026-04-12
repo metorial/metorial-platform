@@ -15,7 +15,7 @@
     "@lowerdeck/error": "^1.2.2",
     "@metorial/fabric": "^1.0.0",
     "@lowerdeck/hash": "^1.0.4",
-    "@lowerdeck/pagination": "^1.0.6",
+    "@lowerdeck/pagination": "^1.0.7",
     "@metorial/queue": "^1.0.0",
     "@lowerdeck/service": "^1.0.7",
     "@types/fs-extra": "^11.0.4",
