@@ -1,6 +1,6 @@
+import { createVitestConfig, loadTestEnv, withAliases } from '@lowerdeck/testing-tools';
 import { resolve } from 'path';
 import { defineConfig } from 'vitest/config';
-import { createVitestConfig, loadTestEnv, withAliases } from '@lowerdeck/testing-tools';
 
 export default defineConfig(({ mode }) => {
   const env = loadTestEnv(mode || 'test', process.cwd(), '');
@@ -8,6 +8,13 @@ export default defineConfig(({ mode }) => {
   const config = createVitestConfig({
     test: {
       pool: 'forks',
+      poolOptions: {
+        forks: {
+          singleFork: true,
+          minForks: 1,
+          maxForks: 1
+        }
+      },
       setupFiles: ['./src/test/setup.ts'],
       env: {
         ...env,
