@@ -8,13 +8,6 @@ export default defineConfig(({ mode }) => {
   const config = createVitestConfig({
     test: {
       pool: 'forks',
-      poolOptions: {
-        forks: {
-          singleFork: true,
-          minForks: 1,
-          maxForks: 1
-        }
-      },
       setupFiles: ['./src/test/setup.ts'],
       env: {
         ...env,
