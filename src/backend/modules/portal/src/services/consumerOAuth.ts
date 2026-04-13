@@ -1089,8 +1089,8 @@ class ConsumerOAuthServiceImpl {
     let magicMcpToken = await magicMcpTokenService.createMagicMcpToken({
       instance: d.portal?.instance ?? nonPortalConsumerSurface.instance,
       input: {
-        name: d.portal ? `${d.portal.name} Portal Access` : `${d.consumerSurface.name} Access`,
-        description: `OAuth access token for ${d.attempt.consumerAuthClient.name}`,
+        name: d.attempt.consumerAuthClient.name,
+        description: `Access token for ${d.attempt.consumerAuthClient.name} (via ${d.portal ? d.portal.name : d.consumerSurface.name})`,
         expiresAt: getConsumerAuthAccessTokenExpiry(),
         magicMcpServer,
         magicMcpEndpoint
