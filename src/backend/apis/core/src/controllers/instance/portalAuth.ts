@@ -179,7 +179,7 @@ export let portalAuthDashboardController = Controller.create(
       .do(async ctx => {
         let ssoTenantSetup = await consumerAresService.createSsoTenantSetup({
           ssoTenantId: ctx.ssoTenant.id,
-          redirectUrl: `${getConfig().urls.appUrl}/i/${ctx.organization.slug}/${ctx.instance.project.slug}/${ctx.instance.slug}/portal/${ctx.portal.id}/authentication`
+          redirectUrl: `${getConfig().urls.appUrl}/i/${ctx.organization.slug}/${ctx.instance.project.slug}/${ctx.instance.slug}/portal/${ctx.portal.slug}/settings/authentication`
         });
 
         return portalAuthSsoTenantSetupPresenter.present({ ssoTenantSetup });
