@@ -1,4 +1,5 @@
 import {
+  forbiddenError,
   isServiceError,
   preconditionFailedError,
   ServiceError,
@@ -159,7 +160,7 @@ class ConsumerAuthServiceImpl {
     }
 
     throw new ServiceError(
-      unauthorizedError({
+      forbiddenError({
         message: 'This email address is not allowed to access this portal.'
       })
     );
