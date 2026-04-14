@@ -7,7 +7,7 @@
     "start": "bun run server:start",
     "dev": "bun --watch ./src/server.ts",
     "enterprise:dev": "bun run dev",
-    "server:build": "ncc build ./src/server.ts -o ./dist --source-map && bun run sentry:sourcemaps",
+    "server:build": "ncc build ./src/server.ts -o ./dist --source-map --transpile-only && bun run sentry:sourcemaps",
     "sentry:sourcemaps": "sentry-cli sourcemaps inject --org metorial --project mte-signal ./dist && sentry-cli sourcemaps upload --org metorial --project mte-signal ./dist",
     "server:start": "bun ./dist/index.js",
     "infra:up": "docker compose -p signal -f ./docker-compose.dev.yml --profile infra up -d --pull always",
