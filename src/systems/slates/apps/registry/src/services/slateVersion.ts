@@ -1,22 +1,29 @@
 import {
-  badRequestError,
   forbiddenError,
   notFoundError,
   preconditionFailedError,
   ServiceError,
-  unauthorizedError,
-  validationError
+  unauthorizedError
 } from '@lowerdeck/error';
 import { createLock } from '@lowerdeck/lock';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { type ValidationTypeValue, v } from '@lowerdeck/validation';
-import semver from 'semver';
-import unzipper from 'unzipper';
-import type { Slate, SlateAccess, User } from '../../prisma/generated/client';
+import type {
+  Slate,
+  SlateAccess,
+  SlateVersionBackend,
+  User
+} from '../../prisma/generated/client';
 import { db } from '../db';
 import { env } from '../env';
 import { getId, ID, snowflake } from '../id';
+import {
+  createZipBuffer,
+  readTarballEntries,
+  readZipEntries
+} from '../lib/slatePackage/archive';
+import { normalizeSlatePackage } from '../lib/slatePackage/manifest';
+import { getSlateVersionPromotion } from '../lib/slateVersion/promotion';
 import { storage } from '../storage';
 
 let include = {
@@ -37,26 +44,6 @@ let packageLock = createLock({
   redisUrl: env.service.REDIS_URL
 });
 
-let slateJsonValidation = v.object({
-  name: v.string(),
-  description: v.optional(v.string()),
-  version: v.string({
-    modifiers: [
-      v => {
-        if (!semver.valid(v))
-          return [
-            { code: 'invalid_semver', message: 'Version is not a valid semver string.' }
-          ];
-
-        return [];
-      }
-    ]
-  }),
-  categories: v.optional(v.array(v.string())),
-  skills: v.optional(v.array(v.string())),
-  logoUrl: v.optional(v.string())
-});
-
 class slateVersionServiceImpl {
   async publishSlateVersion(d: {
     user: User;
@@ -70,101 +57,65 @@ class slateVersionServiceImpl {
       versionOverride?: string;
     };
   }) {
-    let directory = await unzipper.Open.buffer(Buffer.from(d.input.contentBase64, 'base64'));
-    let docsFiles: {
-      path: string;
-      content: string;
-    }[] = [];
-    let slateJson: ValidationTypeValue<typeof slateJsonValidation> | null = null;
+    let buffer = Buffer.from(d.input.contentBase64, 'base64');
+    let entries = await readZipEntries(buffer);
+    let slatePackage = normalizeSlatePackage({
+      entries,
+      identifier: d.input.identifier,
+      versionOverride: d.input.versionOverride
+    });
 
-    let fullIdentifier = '';
-
-    for (let entry of directory.files) {
-      if (entry.type !== 'File') continue;
-
-      if (entry.path.toLowerCase() === 'slate.json') {
-        let content = (await entry.buffer()).toString('utf-8');
-
-        try {
-          slateJson = JSON.parse(content) as ValidationTypeValue<typeof slateJsonValidation>;
-        } catch {
-          throw new ServiceError(
-            badRequestError({
-              message: 'slate.json is not valid JSON.'
-            })
-          );
-        }
-
-        let valRes = slateJsonValidation.validate(slateJson);
-        if (!valRes.success) {
-          throw new ServiceError(
-            validationError({
-              message: 'slate.json is invalid.',
-              entity: 'slate.json',
-              errors: valRes.errors
-            })
-          );
-        }
-
-        fullIdentifier = slateJson.name.replace('@', '');
-
-        if (
-          d.input.identifier &&
-          slateJson.name !==
-            `@${d.input.identifier.scopeIdentifier}/${d.input.identifier.slateIdentifier}`
-        ) {
-          throw new ServiceError(
-            badRequestError({
-              message: `slate.json name "${slateJson.name}" does not match scope/slate identifier.`
-            })
-          );
-        }
+    return this.publishNormalizedSlateVersion({
+      user: d.user,
+      input: {
+        access: d.input.access,
+        backend: 'local_unbuilt',
+        bundleBuffer: buffer,
+        slatePackage
       }
+    });
+  }
 
-      if (
-        (!entry.path.startsWith(`docs/`) || !entry.path.endsWith('.md')) &&
-        entry.path.toLowerCase() !== 'readme.md'
-      )
-        continue;
+  async importSlateVersionFromNpmTarball(d: {
+    user: User;
+    input: {
+      tarballBuffer: Buffer;
+      access: SlateAccess;
+    };
+  }) {
+    let entries = await readTarballEntries(d.input.tarballBuffer);
+    let slatePackage = normalizeSlatePackage({
+      entries,
+      identifier: null
+    });
+    let bundleBuffer = await createZipBuffer(entries);
 
-      docsFiles.push({
-        path: entry.path,
-        content: (await entry.buffer()).toString('utf-8')
-      });
-    }
+    return this.publishNormalizedSlateVersion({
+      user: d.user,
+      input: {
+        access: d.input.access,
+        backend: 'npm',
+        bundleBuffer,
+        npmPackageName: slatePackage.npmPackageName,
+        slatePackage
+      }
+    });
+  }
 
-    if (!slateJson) {
-      throw new ServiceError(
-        badRequestError({
-          message: 'slate.json is required in the root of the project archive.'
-        })
-      );
-    }
-
-    let fullParts = fullIdentifier.split('/');
-    if (fullParts.length !== 2) {
-      throw new ServiceError(
-        badRequestError({
-          message: 'slate.json name must be in the format @scope/identifier.'
-        })
-      );
-    }
-
-    let scopeIdentifier = fullParts[0]!;
-    let slateIdentifier = fullParts[1]!;
+  async publishNormalizedSlateVersion(d: {
+    user: User;
+    input: {
+      access: SlateAccess;
+      backend: SlateVersionBackend;
+      bundleBuffer: Buffer;
+      npmPackageName?: string;
+      slatePackage: ReturnType<typeof normalizeSlatePackage>;
+    };
+  }) {
+    let slateJson = d.input.slatePackage.manifest;
 
     return packageLock.usingLock(slateJson.name, () =>
       db.$transaction(async db => {
-        let valid = semver.valid(d.input.versionOverride ?? slateJson.version);
-        if (!valid) {
-          throw new ServiceError(
-            badRequestError({
-              message: `Version ${slateJson.version} is not a valid semver version.`
-            })
-          );
-        }
-        slateJson.version = valid;
-
         if (d.input.access === 'public' && env.access.PUBLIC_ACCESS_PERMITTED === false) {
           throw new ServiceError(
             forbiddenError({
@@ -183,7 +134,7 @@ class slateVersionServiceImpl {
 
         let scope = await db.scope.findFirst({
           where: {
-            identifier: scopeIdentifier,
+            identifier: d.input.slatePackage.scopeIdentifier,
             status: 'active'
           }
         });
@@ -199,11 +150,14 @@ class slateVersionServiceImpl {
 
         let slate = await db.slate.findFirst({
           where: {
-            identifier: slateIdentifier,
+            identifier: d.input.slatePackage.slateIdentifier,
             scopeOid: scope.oid,
             tenantOid: d.user.tenantOid
           },
-          include: { currentVersion: true }
+          include: {
+            unbuiltCurrentVersion: true,
+            builtOrUnbuiltCurrentVersion: true
+          }
         });
         if (slate?.status === 'deleted') {
           throw new ServiceError(
@@ -213,16 +167,6 @@ class slateVersionServiceImpl {
           );
         }
 
-        if (slate?.currentVersion) {
-          if (!semver.gt(slateJson.version, slate.currentVersion.version)) {
-            throw new ServiceError(
-              preconditionFailedError({
-                message: `New version ${slateJson.version} must be greater than existing version ${slate.currentVersion.version}.`
-              })
-            );
-          }
-        }
-
         if (!slate) {
           slate = await db.slate.create({
             data: {
@@ -230,15 +174,18 @@ class slateVersionServiceImpl {
               status: 'active',
               access: d.input.access,
 
-              identifier: slateIdentifier,
-              fullIdentifier: fullIdentifier,
-              name: slateIdentifier,
+              identifier: d.input.slatePackage.slateIdentifier,
+              fullIdentifier: d.input.slatePackage.fullIdentifier,
+              name: d.input.slatePackage.slateIdentifier,
 
               scopeOid: scope.oid,
               tenantOid: d.user.tenantOid,
               createdByUserOid: d.user.oid
             },
-            include: { currentVersion: true }
+            include: {
+              unbuiltCurrentVersion: true,
+              builtOrUnbuiltCurrentVersion: true
+            }
           });
         }
 
@@ -246,21 +193,33 @@ class slateVersionServiceImpl {
           where: { oid: slate.oid },
           data: {
             access: d.input.access,
-            name: slateIdentifier,
+            name: d.input.slatePackage.slateIdentifier,
             description: slateJson.description,
             skills: slateJson.skills,
             logoUrl: slateJson.logoUrl
           },
-          include: { currentVersion: true }
+          include: {
+            unbuiltCurrentVersion: true,
+            builtOrUnbuiltCurrentVersion: true
+          }
+        });
+
+        let promotion = getSlateVersionPromotion({
+          backend: d.input.backend,
+          version: slateJson.version,
+          unbuiltCurrentVersion: slate.unbuiltCurrentVersion?.version ?? null,
+          builtOrUnbuiltCurrentVersion: slate.builtOrUnbuiltCurrentVersion?.version ?? null
         });
 
         let existingCategories = await db.slateCategory.findMany({
           where: { identifier: { in: slateJson.categories ?? [] } }
         });
-        let existingCategoryIds = existingCategories.map(c => c.oid);
-        let existingCategoryIdentifiers = existingCategories.map(c => c.identifier);
+        let existingCategoryIds = existingCategories.map(category => category.oid);
+        let existingCategoryIdentifiers = existingCategories.map(
+          category => category.identifier
+        );
         let missingCategories = (slateJson.categories ?? []).filter(
-          c => !existingCategoryIdentifiers.includes(c)
+          category => !existingCategoryIdentifiers.includes(category)
         );
 
         for (let missing of missingCategories) {
@@ -287,9 +246,7 @@ class slateVersionServiceImpl {
         let storageKey = `slate/${slate.id}/${slateJson.version}/bundle.zip`;
         let bucket = env.storage.PACKAGE_BUCKET_NAME;
 
-        let buffer = Buffer.from(d.input.contentBase64, 'base64');
-
-        await storage.putObject(bucket, storageKey, buffer, 'application/zip');
+        await storage.putObject(bucket, storageKey, d.input.bundleBuffer, 'application/zip');
 
         let artifact = await db.artifact.create({
           data: {
@@ -302,10 +259,12 @@ class slateVersionServiceImpl {
           }
         });
 
-        await db.slateVersion.updateMany({
-          where: { slateOid: slate.oid, isCurrent: true },
-          data: { isCurrent: false }
-        });
+        if (promotion.shouldSetUnbuiltCurrentVersion) {
+          await db.slateVersion.updateMany({
+            where: { slateOid: slate.oid, isCurrent: true },
+            data: { isCurrent: false }
+          });
+        }
 
         let version = await db.slateVersion.create({
           data: {
@@ -314,7 +273,9 @@ class slateVersionServiceImpl {
             slateOid: slate.oid,
             bundleArtifactOid: artifact.oid,
             createdByUserOid: d.user.oid,
-            isCurrent: true,
+            isCurrent: promotion.shouldSetUnbuiltCurrentVersion,
+            backend: d.input.backend,
+            npmPackageName: d.input.npmPackageName,
             slateJson
           }
         });
@@ -335,19 +296,24 @@ class slateVersionServiceImpl {
         });
 
         await db.slateDocument.createMany({
-          data: docsFiles.map(f => ({
+          data: d.input.slatePackage.docsFiles.map(file => ({
             oid: snowflake.nextId(),
             id: ID.generateIdSync('slateDocument'),
             slateVersionOid: version.oid,
-            path: f.path,
-            content: f.content
+            path: file.path,
+            content: file.content
           }))
         });
 
         await db.slate.update({
           where: { oid: slate.oid },
           data: {
-            currentVersionOid: version.oid,
+            unbuiltCurrentVersionOid: promotion.shouldSetUnbuiltCurrentVersion
+              ? version.oid
+              : undefined,
+            builtOrUnbuiltCurrentVersionOid: promotion.shouldSetBuiltOrUnbuiltCurrentVersion
+              ? version.oid
+              : undefined,
             access: d.input.access,
             description: slateJson.description
           }

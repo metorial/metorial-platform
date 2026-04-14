@@ -73,7 +73,17 @@ export let SlateList = () => {
                       </Text>
                     </Flex>
                   </Flex>,
-                  <Badge color="blue">v{slate.currentVersion?.version ?? '-'}</Badge>,
+                  <Flex gap={6} wrap="wrap">
+                    <Badge color="blue">v{slate.currentVersion?.version ?? '-'}</Badge>
+                    {slate.unbuiltCurrentVersion && (
+                      <Badge color="orange">unbuilt: v{slate.unbuiltCurrentVersion.version}</Badge>
+                    )}
+                    {slate.builtOrUnbuiltCurrentVersion && (
+                      <Badge color="purple">
+                        built/unbuilt: v{slate.builtOrUnbuiltCurrentVersion.version}
+                      </Badge>
+                    )}
+                  </Flex>,
                   <Badge color={slate.access === 'public' ? 'green' : 'gray'}>
                     {slate.access}
                   </Badge>,

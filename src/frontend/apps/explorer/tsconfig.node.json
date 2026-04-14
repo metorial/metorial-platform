@@ -4,6 +4,11 @@
     "lib": ["ES2023"],
     "module": "ESNext",
     "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "@vitejs/plugin-react": ["../../../../../node_modules/@vitejs/plugin-react"],
+      "vite": ["../../../../../node_modules/vite"]
+    },
 
     /* Bundler mode */
     "moduleResolution": "bundler",

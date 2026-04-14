@@ -1,12 +1,17 @@
 import { createHono } from '@lowerdeck/hono';
 import { Paginator } from '@lowerdeck/pagination';
 import { z } from 'zod';
+import { getPreferredCurrentSlateVersion } from '../../lib/slateVersion/current';
 import { paginatorSchema } from '../../lib/paginatorSchema';
 import { useValidation } from '../../lib/validator';
 import { slatePresenter, slateVersionPresenter } from '../../presenters';
 import { slateService, slateVersionService } from '../../services';
 import { storage } from '../../storage';
 import { useAuth, useUserAuth } from './_app';
+
+let supportsPrebuiltSchema = z.object({
+  supports_prebuilt: z.coerce.boolean().optional()
+});
 
 export let slatesController = createHono()
   .get(
@@ -16,7 +21,8 @@ export let slatesController = createHono()
       paginatorSchema.extend({
         scopeId: z.string().optional(),
         userId: z.string().optional(),
-        workspaceId: z.string().optional()
+        workspaceId: z.string().optional(),
+        supports_prebuilt: z.coerce.boolean().optional()
       })
     ),
     async c => {
@@ -32,11 +38,18 @@ export let slatesController = createHono()
       });
       let list = await paginator.run(query);
 
-      return c.json(await Paginator.presentLight(list, slatePresenter));
+      return c.json(
+        await Paginator.presentLight(list, slate =>
+          slatePresenter(slate, {
+            supportsPrebuilt: query.supports_prebuilt
+          })
+        )
+      );
     }
   )
-  .get(':scopeId/:slateId', async c => {
+  .get(':scopeId/:slateId', useValidation('query', supportsPrebuiltSchema), async c => {
     let auth = await useAuth(c);
+    let query = c.req.valid('query');
 
     let slate = await slateService.getSlateById({
       tenant: auth.tenant,
@@ -44,7 +57,11 @@ export let slatesController = createHono()
       id: `${c.req.param('scopeId')}/${c.req.param('slateId')}`
     });
 
-    return c.json(await slatePresenter(slate));
+    return c.json(
+      await slatePresenter(slate, {
+        supportsPrebuilt: query.supports_prebuilt
+      })
+    );
   })
   .post(
     ':scopeId/:slateId/versions',
@@ -78,37 +95,72 @@ export let slatesController = createHono()
       return c.json(await slateVersionPresenter(slateVersion));
     }
   )
-  .get(':scopeId/:slateId/versions', useValidation('query', paginatorSchema), async c => {
-    let auth = await useAuth(c);
-    let query = c.req.valid('query');
+  .get(
+    ':scopeId/:slateId/versions',
+    useValidation(
+      'query',
+      paginatorSchema.extend({
+        supports_prebuilt: z.coerce.boolean().optional()
+      })
+    ),
+    async c => {
+      let auth = await useAuth(c);
+      let query = c.req.valid('query');
 
-    let slate = await slateService.getSlateById({
-      tenant: auth.tenant,
-      subRegistry: auth.subRegistry,
-      id: `${c.req.param('scopeId')}/${c.req.param('slateId')}`
-    });
+      let slate = await slateService.getSlateById({
+        tenant: auth.tenant,
+        subRegistry: auth.subRegistry,
+        id: `${c.req.param('scopeId')}/${c.req.param('slateId')}`
+      });
 
-    let paginator = await slateVersionService.listSlateVersions({ slate });
-    let list = await paginator.run(query);
+      let paginator = await slateVersionService.listSlateVersions({ slate });
+      let list = await paginator.run(query);
+      let currentVersionId =
+        getPreferredCurrentSlateVersion({
+          supportsBuilt: query.supports_prebuilt ?? false,
+          unbuiltCurrentVersion: slate.unbuiltCurrentVersion,
+          builtOrUnbuiltCurrentVersion: slate.builtOrUnbuiltCurrentVersion
+        })?.id ?? null;
 
-    return c.json(await Paginator.presentLight(list, slateVersionPresenter));
-  })
-  .get(':scopeId/:slateId/versions/:versionId', async c => {
-    let auth = await useAuth(c);
+      return c.json(
+        await Paginator.presentLight(list, slateVersion =>
+          slateVersionPresenter(slateVersion, {
+            currentVersionId
+          })
+        )
+      );
+    }
+  )
+  .get(
+    ':scopeId/:slateId/versions/:versionId',
+    useValidation('query', supportsPrebuiltSchema),
+    async c => {
+      let auth = await useAuth(c);
+      let query = c.req.valid('query');
 
-    let slate = await slateService.getSlateById({
-      tenant: auth.tenant,
-      subRegistry: auth.subRegistry,
-      id: `${c.req.param('scopeId')}/${c.req.param('slateId')}`
-    });
+      let slate = await slateService.getSlateById({
+        tenant: auth.tenant,
+        subRegistry: auth.subRegistry,
+        id: `${c.req.param('scopeId')}/${c.req.param('slateId')}`
+      });
 
-    let slateVersion = await slateVersionService.getSlateVersionById({
-      slate,
-      id: c.req.param('versionId')
-    });
+      let slateVersion = await slateVersionService.getSlateVersionById({
+        slate,
+        id: c.req.param('versionId')
+      });
 
-    return c.json(await slateVersionPresenter(slateVersion));
-  })
+      return c.json(
+        await slateVersionPresenter(slateVersion, {
+          currentVersionId:
+            getPreferredCurrentSlateVersion({
+              supportsBuilt: query.supports_prebuilt ?? false,
+              unbuiltCurrentVersion: slate.unbuiltCurrentVersion,
+              builtOrUnbuiltCurrentVersion: slate.builtOrUnbuiltCurrentVersion
+            })?.id ?? null
+        })
+      );
+    }
+  )
   .get(':scopeId/:slateId/versions/:versionId/download', async c => {
     let auth = await useAuth(c);
 

@@ -45,8 +45,8 @@ model SubRegistry {
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @default(now()) @updatedAt
   filters   SubRegistryFilter[]
 }
 
@@ -232,6 +232,11 @@ enum SlateAccess {
   private
 }
 
+enum SlateVersionBackend {
+  local_unbuilt
+  npm
+}
+
 model Slate {
   oid    BigInt      @id
   id     String      @unique
@@ -256,8 +261,11 @@ model Slate {
   createdByUserOid BigInt
   createdByUser    User   @relation(fields: [createdByUserOid], references: [oid])
 
-  currentVersionOid BigInt?
-  currentVersion    SlateVersion? @relation(fields: [currentVersionOid], references: [oid], name: "currentVersion")
+  unbuiltCurrentVersionOid BigInt?       @map("currentVersionOid")
+  unbuiltCurrentVersion    SlateVersion? @relation(fields: [unbuiltCurrentVersionOid], references: [oid], name: "unbuiltCurrentVersion")
+
+  builtOrUnbuiltCurrentVersionOid BigInt?
+  builtOrUnbuiltCurrentVersion    SlateVersion? @relation(fields: [builtOrUnbuiltCurrentVersionOid], references: [oid], name: "builtOrUnbuiltCurrentVersion")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
@@ -287,8 +295,10 @@ model SlateVersion {
   id  String @unique
 
   isCurrent Boolean
+  backend   SlateVersionBackend @default(local_unbuilt)
 
   version String
+  npmPackageName String?
 
   /// [SlateJson]
   slateJson Json
@@ -304,11 +314,13 @@ model SlateVersion {
 
   createdAt DateTime @default(now())
 
-  slateDocuments      SlateDocument[]
-  currentInSlates     Slate[]              @relation("currentVersion")
-  changeNotifications ChangeNotification[]
+  slateDocuments                SlateDocument[]
+  unbuiltCurrentInSlates        Slate[]              @relation("unbuiltCurrentVersion")
+  builtOrUnbuiltCurrentInSlates Slate[]              @relation("builtOrUnbuiltCurrentVersion")
+  changeNotifications           ChangeNotification[]
 
   @@unique([slateOid, version])
+  @@unique([npmPackageName, version])
 }
 
 model SlateDocument {

@@ -15,13 +15,19 @@ export let slateVersionPresenter = (
     };
     createdByUser: User & { scope: Scope };
     slateDocuments: SlateDocument[];
+  },
+  o?: {
+    currentVersionId?: string | null;
   }
 ) => ({
   object: 'slate.version',
 
   id: slateVersion.id,
   version: slateVersion.version,
-  isCurrent: slateVersion.isCurrent,
+  isCurrent: o?.currentVersionId
+    ? o.currentVersionId === slateVersion.id
+    : slateVersion.isCurrent,
+  build: slateVersion.backend === 'npm' ? 'prebuilt' : 'unbuilt',
 
   slateId: slateVersion.slate.id,
 

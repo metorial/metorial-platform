@@ -7,6 +7,7 @@ import type {
   Tenant,
   User
 } from '../../prisma/generated/client';
+import { getPreferredCurrentSlateVersion } from '../lib/slateVersion/current';
 import { scopePresenter } from './scope';
 import { slateCategoryPresenter } from './slateCategory';
 import { userPresenter } from './user';
@@ -15,47 +16,59 @@ export let slatePresenter = (
   slate: Slate & {
     scope: Scope;
     tenant: Tenant;
-    currentVersion: SlateVersion | null;
+    unbuiltCurrentVersion: SlateVersion | null;
+    builtOrUnbuiltCurrentVersion: SlateVersion | null;
     createdByUser: User & { scope: Scope };
     categories: (SlateCategoryAssignment & {
       category: SlateCategory;
     })[];
+  },
+  o?: {
+    supportsPrebuilt?: boolean;
   }
-) => ({
-  object: 'slate',
+) => {
+  let currentVersion = getPreferredCurrentSlateVersion({
+    supportsBuilt: o?.supportsPrebuilt ?? false,
+    unbuiltCurrentVersion: slate.unbuiltCurrentVersion,
+    builtOrUnbuiltCurrentVersion: slate.builtOrUnbuiltCurrentVersion
+  });
 
-  id: slate.id,
-  status: slate.status,
-  access: slate.access,
+  return {
+    object: 'slate',
 
-  name: slate.name,
-  description: slate.description,
+    id: slate.id,
+    status: slate.status,
+    access: slate.access,
 
-  logoUrl: slate.logoUrl,
-  skills: slate.skills,
+    name: slate.name,
+    description: slate.description,
 
-  categories: slate.categories.map(ca => slateCategoryPresenter(ca.category)),
+    logoUrl: slate.logoUrl,
+    skills: slate.skills,
 
-  identifier: slate.identifier,
-  fullIdentifier: slate.fullIdentifier,
+    categories: slate.categories.map(ca => slateCategoryPresenter(ca.category)),
 
-  createdByUser: userPresenter({
-    ...slate.createdByUser,
-    tenant: slate.tenant
-  }),
+    identifier: slate.identifier,
+    fullIdentifier: slate.fullIdentifier,
 
-  scope: scopePresenter({ ...slate.scope, tenant: slate.tenant }),
+    createdByUser: userPresenter({
+      ...slate.createdByUser,
+      tenant: slate.tenant
+    }),
 
-  currentVersion: slate.currentVersion
-    ? {
-        id: slate.currentVersion.id,
-        version: slate.currentVersion.version,
-        createdAt: slate.currentVersion.createdAt
-      }
-    : null,
+    scope: scopePresenter({ ...slate.scope, tenant: slate.tenant }),
 
-  tenantId: slate.tenant.id,
+    currentVersion: currentVersion
+      ? {
+          id: currentVersion.id,
+          version: currentVersion.version,
+          createdAt: currentVersion.createdAt
+        }
+      : null,
 
-  createdAt: slate.createdAt,
-  updatedAt: slate.updatedAt
-});
+    tenantId: slate.tenant.id,
+
+    createdAt: slate.createdAt,
+    updatedAt: slate.updatedAt
+  };
+};

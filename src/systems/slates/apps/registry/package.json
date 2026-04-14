@@ -1,5 +1,5 @@
 {
-  "name": "slates-registry",
+  "name": "@metorial/slates-registry",
   "module": "index.ts",
   "type": "commonjs",
   "private": true,
@@ -14,7 +14,7 @@
     "prisma:generate": "bun run db:generate",
     "prisma:push": "bun run db:push:dev",
     "db:generate": "bun prisma generate --schema prisma/schema.prisma",
-    "db:push:dev": "bun prisma db push --schema prisma/schema.prisma",
+    "db:push:dev": "bun prisma db push --schema prisma/schema.prisma --accept-data-loss",
     "infra:dev": "docker compose -p slates-registry -f ./docker-compose.dev.yml up --pull always --build slates-registry object-storage",
     "infra:up": "docker compose -p slates-registry -f ./docker-compose.dev.yml up --pull always --build slates-registry object-storage",
     "admin:build": "vite build --config admin/vite.config.ts",
@@ -24,12 +24,13 @@
   },
   "devDependencies": {
     "@types/bun": "latest",
+    "@types/minimatch": "^6.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "@types/tar-stream": "^3.1.4",
     "@vercel/ncc": "^0.38.1",
     "@vitejs/plugin-react": "^4.3.0",
     "autoprefixer": "^10.4.0",
-    "@types/minimatch": "^6.0.0",
     "vite": "^5.4.0"
   },
   "peerDependencies": {
@@ -88,6 +89,7 @@
     "react-router-dom": "^7.12.0",
     "semver": "^7.7.3",
     "styled-components": "^6.1.13",
+    "tar-stream": "^3.1.8",
     "unzipper": "^0.12.3",
     "yaml": "^2.8.2"
   }

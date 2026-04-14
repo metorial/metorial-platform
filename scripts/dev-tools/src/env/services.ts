@@ -166,21 +166,54 @@ export let slatesHubEnv: Env = [
   {
     key: 'SERVICE_PUBLIC_URL',
     defaultValue: `http://${HOSTNAME}:52045`
-  },
-  {
-    key: 'ARES_AUTH_URL',
-    defaultValue: 'http://services:52120'
-  },
-  {
-    key: 'ARES_INTERNAL_URL',
-    defaultValue: 'http://services:52123/metorial-ares-internal/api'
   }
+  // {
+  //   key: 'ARES_AUTH_URL',
+  //   defaultValue: 'http://services:52120'
+  // },
+  // {
+  //   key: 'ARES_INTERNAL_URL',
+  //   defaultValue: 'http://services:52123/metorial-ares-internal/api'
+  // }
 ];
 
 export let slatesRegistryEnv: Env = [
   {
     key: 'DATABASE_URL',
     defaultValue: 'postgresql://postgres:postgres@localhost:35432/slates-registry'
+  },
+  {
+    key: 'REDIS_URL',
+    defaultValue: 'redis://localhost:36379/0'
+  },
+
+  {
+    key: 'OBJECT_STORAGE_URL',
+    defaultValue: 'http://services:52010'
+  },
+  {
+    key: 'PACKAGE_BUCKET_NAME',
+    defaultValue: 'package-bucket'
+  },
+  {
+    key: 'NPM_REGISTRY_URL',
+    defaultValue: 'https://registry.npmjs.org'
+  },
+  {
+    key: 'NPM_SEARCH_URL',
+    defaultValue: 'https://registry.npmjs.org/-/v1/search'
+  },
+  {
+    key: 'NPM_TOKEN',
+    isRequired: false
+  },
+  {
+    key: 'SERVICE_PUBLIC_URL',
+    defaultValue: 'http://${HOSTNAME}:52040'
+  },
+  {
+    key: 'NPM_ORG',
+    defaultValue: 'slates-integrations'
   }
 ];
 
@@ -240,7 +273,7 @@ export let subspaceDevEnv: Env = [
   {
     key: 'REGISTRY_URL',
     defaultValue:
-      'https://metorial-saas-dev.registry.metorial-enterprise.com/metorial-registry-root'
+      'https://metorial-saas-dev2.registry.metorial-enterprise.com/metorial-registry-root'
   },
   {
     key: 'SCOUT_URL',
