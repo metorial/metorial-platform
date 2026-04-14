@@ -43,7 +43,8 @@ export class BuildContext {
   async listSteps() {
     return await db.workflowRunStep.findMany({
       where: { runOid: this.run.oid },
-      include: { step: { include: { artifactToDownload: true } } }
+      include: { step: { include: { artifactToDownload: true } } },
+      orderBy: { index: 'asc' }
     });
   }
 

@@ -42,7 +42,7 @@ class workflowRunServiceImpl {
 
     let currentVersion = await db.workflowVersion.findUniqueOrThrow({
       where: { oid: d.workflow.currentVersionOid },
-      include: { steps: true }
+      include: { steps: { orderBy: { index: 'asc' } } }
     });
 
     let id = await ID.generateId('workflowRun');
