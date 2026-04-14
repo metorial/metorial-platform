@@ -68,7 +68,6 @@
     "@lowerdeck/snowflake": "^1.0.2",
     "@lowerdeck/tokens": "^1.0.5",
     "@lowerdeck/validation": "^1.0.4",
-    "@metorial-services/forge-client": "^1.0.3",
     "@metorial-services/function-bay-client": "^1.0.3",
     "@metorial/mcp-server": "^1.0.0-rc.7",
     "@modelcontextprotocol/sdk": "^1.25.3",

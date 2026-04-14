@@ -1,5 +1,5 @@
 {
-  "name": "@metorial-services/forge-client",
+  "name": "@metorial-platform-systems/forge-client",
   "version": "1.0.4",
   "publishConfig": {
     "access": "public"
