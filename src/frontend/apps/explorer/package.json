@@ -25,11 +25,14 @@
     "styled-components": "^6.1.13"
   },
   "devDependencies": {
+    "vite-plugin-html": "^3.2.2",
+    "@sentry/vite-plugin": "^3.1.1",
+    "@types/lodash.throttle": "^4.1.9",
     "@types/react": "^19.0.8",
-    "@types/react-dom": "^19.0.4",
-    "@vitejs/plugin-react": "^4.3.1",
+    "@vitejs/plugin-react": "4.3.1",
     "babel-plugin-styled-components": "^2.1.4",
+    "sass-embedded": "^1.93.2",
     "typescript": "^5.5.3",
-    "vite": "^5.4.1"
+    "vite": "5.4.21"
   }
 }
