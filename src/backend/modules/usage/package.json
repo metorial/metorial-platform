@@ -11,21 +11,21 @@
   "dependencies": {
     "@metorial/cron": "^1.0.0",
     "@metorial/db": "^1.0.0",
-    "@lowerdeck/env": "^1.0.4",
-    "@lowerdeck/error": "^1.2.2",
+    "@lowerdeck/env": "^1.0.6",
+    "@lowerdeck/error": "^1.2.3",
     "@metorial/fabric": "^1.0.0",
     "@metorial/id": "^1.0.0",
     "@metorial/queue": "^1.0.0",
     "@lowerdeck/delay": "^1.0.4",
     "@lowerdeck/sentry": "^1.0.2",
-    "@lowerdeck/validation": "^1.0.8",
+    "@lowerdeck/validation": "^1.0.10",
     "@lowerdeck/service": "^1.0.7",
     "date-fns": "^4.1.0",
     "mongoose": "^8.14.2"
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",
-    "typescript": "5.8.2",
-    "vitest": "^3.1.2"
+    "typescript": "^5.5.3",
+    "vitest": "4.0.17"
   }
 }

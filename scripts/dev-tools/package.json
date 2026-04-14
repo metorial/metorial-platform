@@ -9,7 +9,7 @@
     "@types/bun": "latest"
   },
   "peerDependencies": {
-    "typescript": "^5"
+    "typescript": "^5.5.3"
   },
   "dependencies": {
     "fs-extra": "^11.3.0",

@@ -5,9 +5,9 @@
     "dev": "docker compose -p origin2 -f ./docker-compose.dev.yml up --pull always --build code-bucket service"
   },
   "devDependencies": {
-    "prettier": "^3.5.3",
-    "turbo": "^2.5.5",
-    "typescript": "5.8.2"
+    "prettier": "^3.8.1",
+    "turbo": "^2.8.20",
+    "typescript": "^5.5.3"
   },
   "engines": {
     "node": ">=18",

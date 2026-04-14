@@ -10,12 +10,12 @@
   },
   "dependencies": {
     "@metorial-services/voyager-client": "^1.0.1",
-    "@lowerdeck/env": "^1.0.4",
-    "@lowerdeck/validation": "^1.0.8"
+    "@lowerdeck/env": "^1.0.6",
+    "@lowerdeck/validation": "^1.0.10"
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",
-    "typescript": "5.8.2",
-    "vitest": "^3.1.2"
+    "typescript": "^5.5.3",
+    "vitest": "4.0.17"
   }
 }

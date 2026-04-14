@@ -10,7 +10,7 @@
     "@types/bun": "latest"
   },
   "peerDependencies": {
-    "typescript": "^5"
+    "typescript": "^5.5.3"
   },
   "dependencies": {
     "@lowerdeck/delay": "^1.0.4"

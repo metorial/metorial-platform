@@ -30,15 +30,15 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@lowerdeck/error": "^1.1.0",
+    "@lowerdeck/error": "^1.2.3",
     "@slates/proto": "^1.0.0-rc.6",
     "@slates/provider": "^1.0.0-rc.6",
     "zod": "^4.2.1"
   },
   "devDependencies": {
     "@slates/tsconfig": "^1.0.0",
-    "tsup": "^8.5.1",
-    "typescript": "5.8.2",
-    "vitest": "^3.1.2"
+    "tsup": "^7.1.0",
+    "typescript": "^5.5.3",
+    "vitest": "4.0.17"
   }
 }

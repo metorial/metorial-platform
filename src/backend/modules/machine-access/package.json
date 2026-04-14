@@ -12,9 +12,9 @@
     "@metorial/context": "^1.0.0",
     "@metorial/cron": "^1.0.0",
     "@metorial/db": "^1.0.0",
-    "@lowerdeck/error": "^1.2.2",
+    "@lowerdeck/error": "^1.2.3",
     "@metorial/fabric": "^1.0.0",
-    "@lowerdeck/pagination": "^1.0.6",
+    "@lowerdeck/pagination": "^1.0.8",
     "@metorial/multi-region": "^1.0.0",
     "@metorial/queue": "^1.0.0",
     "@lowerdeck/service": "^1.0.7",
@@ -28,7 +28,7 @@
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",
-    "typescript": "5.8.2",
-    "vitest": "^3.1.2"
+    "typescript": "^5.5.3",
+    "vitest": "4.0.17"
   }
 }

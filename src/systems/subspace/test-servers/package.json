@@ -13,7 +13,7 @@
     "@types/express": "^5.0.6"
   },
   "peerDependencies": {
-    "typescript": "^5"
+    "typescript": "^5.5.3"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.25.3",

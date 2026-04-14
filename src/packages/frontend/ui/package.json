@@ -33,8 +33,8 @@
     "copy-to-clipboard": "^3.3.3",
     "date-fns": "^4.1.0",
     "framer-motion": "^12.9.4",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
     "react-feather": "^2.0.10",
     "react-textarea-autosize": "^8.5.9",
     "react-use": "^17.6.0",
@@ -46,7 +46,7 @@
   },
   "devDependencies": {
     "esbuild-plugin-styled-components": "^3.0.1",
-    "tsup": "^8.4.0",
-    "typescript": "^5.8.3"
+    "tsup": "^7.1.0",
+    "typescript": "^5.5.3"
   }
 }

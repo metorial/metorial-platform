@@ -12,7 +12,7 @@
     "@floating-ui/react": "^0.27.16",
     "@lowerdeck/canonicalize": "^1.0.4",
     "@lowerdeck/case": "^1.0.9",
-    "@lowerdeck/error": "^1.2.2",
+    "@lowerdeck/error": "^1.2.3",
     "@lowerdeck/programmable-promise": "^1.0.6",
     "@lowerdeck/sentry": "^1.0.2",
     "@metorial/chart": "^1.0.0",

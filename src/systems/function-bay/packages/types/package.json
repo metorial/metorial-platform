@@ -33,10 +33,10 @@
   "devDependencies": {
     "microbundle": "^0.15.1",
     "@function-bay/tsconfig": "^1.0.0",
-    "typescript": "^5.9.3",
-    "vitest": "^3.2.4"
+    "typescript": "^5.5.3",
+    "vitest": "4.0.17"
   },
   "dependencies": {
-    "@lowerdeck/validation": "^1.0.4"
+    "@lowerdeck/validation": "^1.0.10"
   }
 }

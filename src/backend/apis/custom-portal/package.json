@@ -9,8 +9,8 @@
     "lint": "prettier src/**/*.ts test/**/*.ts --check"
   },
   "dependencies": {
-    "@lowerdeck/error": "^1.2.1",
-    "@lowerdeck/validation": "^1.0.8",
+    "@lowerdeck/error": "^1.2.3",
+    "@lowerdeck/validation": "^1.0.10",
     "@metorial/module-consumer": "1.0.0",
     "@metorial/module-portal": "1.0.0",
     "@metorial/rpc": "1.0.0"
@@ -18,7 +18,7 @@
   "devDependencies": {
     "@lowerdeck/serialize": "^1.0.4",
     "@metorial/tsconfig": "^1.0.0",
-    "typescript": "5.8.2",
-    "vitest": "^3.1.2"
+    "typescript": "^5.5.3",
+    "vitest": "4.0.17"
   }
 }

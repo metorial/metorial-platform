@@ -10,20 +10,20 @@
     "@types/bun": "latest"
   },
   "peerDependencies": {
-    "typescript": "^5"
+    "typescript": "^5.5.3"
   },
   "dependencies": {
-    "@lowerdeck/cache": "^1.0.1",
-    "@lowerdeck/cron": "^1.1.0",
+    "@lowerdeck/cache": "^1.0.2",
+    "@lowerdeck/cron": "^1.1.1",
     "@lowerdeck/delay": "^1.0.4",
-    "@lowerdeck/env": "^1.0.5",
-    "@lowerdeck/error": "^1.2.2",
+    "@lowerdeck/env": "^1.0.6",
+    "@lowerdeck/error": "^1.2.3",
     "@lowerdeck/hash": "^1.0.4",
     "@lowerdeck/id": "^1.0.8",
-    "@lowerdeck/lock": "^1.0.5",
-    "@lowerdeck/queue": "^1.0.8",
-    "@lowerdeck/slugify": "^1.0.5",
-    "@lowerdeck/validation": "^1.0.8",
+    "@lowerdeck/lock": "^1.0.6",
+    "@lowerdeck/queue": "^1.0.9",
+    "@lowerdeck/slugify": "^1.0.6",
+    "@lowerdeck/validation": "^1.0.10",
     "@metorial-services/registry-client": "^1.0.0",
     "@metorial-platform-systems/slates-client": "^1.0.0",
     "@metorial-subspace/db": "^1.0.0",

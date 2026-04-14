@@ -30,9 +30,9 @@
     "build": "rm -rf ./dist && tsup"
   },
   "devDependencies": {
-    "typescript": "^5.8.3",
-    "vitest": "^3.1.2",
-    "tsup": "^8.5.1"
+    "typescript": "^5.5.3",
+    "vitest": "4.0.17",
+    "tsup": "^7.1.0"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.25.3"

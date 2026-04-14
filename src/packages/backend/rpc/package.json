@@ -10,19 +10,19 @@
   },
   "dependencies": {
     "@lowerdeck/canonicalize": "^1.0.4",
-    "@lowerdeck/error": "^1.2.2",
-    "@lowerdeck/execution-context": "^1.1.0",
+    "@lowerdeck/error": "^1.2.3",
+    "@lowerdeck/execution-context": "^1.1.1",
     "@metorial/id": "^1.0.0",
     "@lowerdeck/memo": "^1.0.4",
     "@lowerdeck/proxy": "^1.0.4",
     "@lowerdeck/serialize": "^1.0.4",
-    "@lowerdeck/validation": "^1.0.8",
+    "@lowerdeck/validation": "^1.0.10",
     "@sentry/core": "^8.22.0",
     "cookie": "^1.0.2"
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",
-    "typescript": "5.8.2",
-    "vitest": "^3.1.2"
+    "typescript": "^5.5.3",
+    "vitest": "4.0.17"
   }
 }

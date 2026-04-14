@@ -12,6 +12,6 @@
     "base.json"
   ],
   "dependencies": {
-    "@types/node": "^22.15.3"
+    "@types/node": "^25.0.3"
   }
 }

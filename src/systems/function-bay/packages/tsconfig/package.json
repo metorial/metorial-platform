@@ -11,6 +11,6 @@
     "test": "echo \"Error: no test specified\""
   },
   "dependencies": {
-    "@types/node": "^22.15.3"
+    "@types/node": "^25.0.3"
   }
 }

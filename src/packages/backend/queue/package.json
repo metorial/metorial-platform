@@ -10,11 +10,11 @@
   },
   "dependencies": {
     "@metorial/config": "^1.0.0",
-    "@lowerdeck/queue": "^1.0.8"
+    "@lowerdeck/queue": "^1.0.9"
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",
-    "typescript": "5.8.2",
-    "vitest": "^3.1.2"
+    "typescript": "^5.5.3",
+    "vitest": "4.0.17"
   }
 }

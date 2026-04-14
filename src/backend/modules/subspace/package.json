@@ -9,9 +9,9 @@
     "lint": "prettier src/**/*.ts --check"
   },
   "dependencies": {
-    "@lowerdeck/error": "^1.2.2",
+    "@lowerdeck/error": "^1.2.3",
     "@lowerdeck/programmable-promise": "^1.0.6",
-    "@lowerdeck/validation": "^1.0.8",
+    "@lowerdeck/validation": "^1.0.10",
     "@metorial-platform-systems/subspace-client": "^1.0.0",
     "@metorial/context": "1.0.0",
     "@metorial/db": "1.0.0",
@@ -23,9 +23,9 @@
     "@metorial/queue": "1.0.0"
   },
   "devDependencies": {
-    "@lowerdeck/rpc-server": "^1.0.7",
+    "@lowerdeck/rpc-server": "^1.0.11",
     "@metorial/tsconfig": "^1.0.0",
-    "typescript": "5.8.2",
-    "vitest": "^3.1.2"
+    "typescript": "^5.5.3",
+    "vitest": "4.0.17"
   }
 }

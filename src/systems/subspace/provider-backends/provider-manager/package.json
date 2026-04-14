@@ -10,13 +10,13 @@
     "@types/bun": "latest"
   },
   "peerDependencies": {
-    "typescript": "^5"
+    "typescript": "^5.5.3"
   },
   "dependencies": {
     "@metorial-subspace/provider-native": "^1.0.0",
     "@metorial-subspace/provider-slates": "^1.0.0",
     "@metorial-subspace/provider-shuttle": "^1.0.0",
-    "@lowerdeck/cache": "^1.0.1",
+    "@lowerdeck/cache": "^1.0.2",
     "@metorial-subspace/db": "^1.0.0"
   }
 }

@@ -16,9 +16,9 @@
     "preinstall": "[ -f \"../metorial_enterprise_install.sh\" ] && { ../metorial_enterprise_install.sh; } || { [ ! -f \"../metorial_enterprise_install.sh\" ] && echo \"Ignoring enterprise dependencies.\"; }"
   },
   "devDependencies": {
-    "prettier": "^3.5.3",
-    "turbo": "^2.5.4",
-    "typescript": "5.8.2"
+    "prettier": "^3.8.1",
+    "turbo": "^2.8.20",
+    "typescript": "^5.5.3"
   },
   "engines": {
     "node": ">=18",

@@ -14,10 +14,10 @@
     "@types/bun": "latest"
   },
   "peerDependencies": {
-    "typescript": "^5"
+    "typescript": "^5.5.3"
   },
   "dependencies": {
-    "@lowerdeck/queue": "^1.0.8",
+    "@lowerdeck/queue": "^1.0.9",
     "@metorial-subspace/app-controller": "workspace:*",
     "@metorial-subspace/module-auth": "^1.0.0",
     "@metorial-subspace/module-catalog": "^1.0.0",
@@ -28,7 +28,7 @@
     "@metorial-subspace/module-tenant": "^1.0.0",
     "@metorial-subspace/provider-native": "^1.0.0",
     "@metorial-subspace/provider-slates": "^1.0.0",
-    "@sentry/bun": "^10.34.0",
+    "@sentry/bun": "^10.38.0",
     "@vercel/ncc": "^0.38.3",
     "@sentry/cli": "^3.2.0",
     "@metorial-subspace/module-callback": "^1.0.0"

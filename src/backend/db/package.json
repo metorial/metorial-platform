@@ -12,10 +12,10 @@
   },
   "dependencies": {
     "@lowerdeck/snowflake": "^1.0.2",
-    "@lowerdeck/execution-context": "^1.1.0",
+    "@lowerdeck/execution-context": "^1.1.1",
     "@metorial/id": "^1.0.0",
     "@modelcontextprotocol/sdk": "^1.11.4",
-    "@prisma/adapter-pg": "6.19.0",
+    "@prisma/adapter-pg": "^7.4.1",
     "@prisma/client": "^7.4.1",
     "@types/json-schema": "^7.0.15",
     "json-schema": "^0.4.0",
@@ -27,8 +27,8 @@
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",
-    "typescript": "5.8.2",
-    "vitest": "^3.1.2"
+    "typescript": "^5.5.3",
+    "vitest": "4.0.17"
   },
   "prisma": {
     "schema": "./prisma/schema"
