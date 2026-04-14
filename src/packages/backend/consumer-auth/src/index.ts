@@ -1,6 +1,6 @@
 import { preconditionFailedError, ServiceError, unauthorizedError } from '@lowerdeck/error';
 import { Tokens } from '@lowerdeck/tokens';
-import { createAresInternalClient } from '@metorial-services/ares-client';
+import { createAresInternalClient } from '@metorial-platform-systems/ares-client';
 import { getConfig } from '@metorial/config';
 import {
   ConsumerGroup,
