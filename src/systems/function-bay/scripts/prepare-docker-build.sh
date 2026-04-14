@@ -7,4 +7,5 @@ cd /app
 # packages before the service bundle is built.
 bun install --linker=hoisted
 
-bunx turbo run --ui=stream build --filter=./src/systems/function-bay/packages/**
+bun run --cwd ./src/systems/forge/service db:generate
+bunx turbo run --ui=stream build --filter=@metorial-platform-systems/forge-client
