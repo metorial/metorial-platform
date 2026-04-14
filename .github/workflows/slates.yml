@@ -90,6 +90,5 @@ jobs:
         slates-hub-signal
         slates-hub-function-bay
         slates-hub-registry
-      pre_start_command: bun i && ./src/systems/subspace/scripts/prepare-docker-build.sh
       test_container: slates-hub-service
       test_command: cd /app/src/systems/slates/apps/hub && bun run test
