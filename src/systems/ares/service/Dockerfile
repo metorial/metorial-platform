@@ -40,12 +40,12 @@ COPY --from=builder /app/src/systems/ares/service/package.json /app/package.json
 COPY --from=builder /app/src/systems/ares/service/frontend/auth/dist /app/frontend/auth/dist
 COPY --from=builder /app/src/systems/ares/service/frontend/admin/dist /app/frontend/admin/dist
 
-# Expose port
-EXPOSE 52030
+# Expose ports (auth: 52120, admin: 52121, sso: 52122, internal: 52123, health: 12121)
+EXPOSE 52120 52121 52122 52123 12121
 
 # Health check using curl
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:52050/ping && curl -f http://localhost:12121/ || exit 1
+    CMD curl -f http://localhost:52120/ping && curl -f http://localhost:12121/ || exit 1
 
 # Start command: push schema and start service
 CMD ["sh", "-c", "bun prisma db push --accept-data-loss && bun /app/dist/index.js"]

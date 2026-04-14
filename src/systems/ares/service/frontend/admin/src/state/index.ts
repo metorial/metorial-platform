@@ -44,6 +44,7 @@ export let adminsState = createLoader({
   fetch: (d: { search?: string; after?: string }) => {
     return redirectToAuthIfNotAuthenticated(() =>
       adminClient.admin.list({
+        search: d.search,
         after: d.after
       })
     );
@@ -56,6 +57,7 @@ export let appsState = createLoader({
   fetch: (d: { search?: string; after?: string }) => {
     return redirectToAuthIfNotAuthenticated(() =>
       adminClient.app.list({
+        search: d.search,
         after: d.after
       })
     );
@@ -77,6 +79,7 @@ export let tenantsState = createLoader({
     return redirectToAuthIfNotAuthenticated(() =>
       adminClient.tenant.list({
         appId: d.appId,
+        search: d.search,
         after: d.after
       })
     );

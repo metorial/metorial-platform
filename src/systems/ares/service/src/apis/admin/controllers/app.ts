@@ -7,9 +7,15 @@ import { appPresenter } from '../presenters';
 export let appController = adminApp.controller({
   list: adminApp
     .handler()
-    .input(Paginator.validate())
+    .input(
+      Paginator.validate(
+        v.object({
+          search: v.optional(v.string())
+        })
+      )
+    )
     .do(async ({ input }) => {
-      let paginator = await adminService.listApps();
+      let paginator = await adminService.listApps({ search: input.search });
       let list = await paginator.run(input);
       return Paginator.presentLight(list, appPresenter);
     }),

@@ -150,13 +150,7 @@ export let AccessGroupPage = () => {
 
               let existingAssignments = accessGroup.data.assignments ?? [];
               let isAppAssigned = existingAssignments.some(
-                (a: any) => a.target?.type === 'app' && a.target.id === accessGroup.data.id
-              );
-
-              let assignedSurfaceIds = new Set(
-                existingAssignments
-                  .filter((a: any) => a.target?.type === 'surface')
-                  .map((a: any) => a.target.id)
+                (a: any) => a.target?.type === 'app' && a.target.id === appId
               );
 
               let targets = [
@@ -231,7 +225,7 @@ export let AccessGroupPage = () => {
           let targetLabel = target
             ? target.type === 'app'
               ? target.clientId
-              : target.clientId
+              : target.name ?? target.id
             : 'Unknown';
           let targetType = target?.type === 'app' ? 'App' : 'Surface';
 

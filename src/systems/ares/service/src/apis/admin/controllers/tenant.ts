@@ -10,13 +10,14 @@ export let tenantController = adminApp.controller({
     .input(
       Paginator.validate(
         v.object({
-          appId: v.string()
+          appId: v.string(),
+          search: v.optional(v.string())
         })
       )
     )
     .do(async ({ input }) => {
       let app = await adminService.getApp({ appId: input.appId });
-      let paginator = await adminService.listTenants({ app });
+      let paginator = await adminService.listTenants({ app, search: input.search });
       let list = await paginator.run(input);
       return Paginator.presentLight(list, tenantPresenter);
     }),

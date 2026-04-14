@@ -65,12 +65,20 @@ class AdminServiceImpl {
     return user;
   }
 
-  async listAdmins() {
+  async listAdmins(d?: { search?: string }) {
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
           await db.admin.findMany({
-            ...opts
+            ...opts,
+            where: d?.search
+              ? {
+                  OR: [
+                    { email: { contains: d.search } },
+                    { name: { contains: d.search } }
+                  ]
+                }
+              : undefined
           })
       )
     );
@@ -209,12 +217,20 @@ class AdminServiceImpl {
     });
   }
 
-  async listApps() {
+  async listApps(d?: { search?: string }) {
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
           await db.app.findMany({
             ...opts,
+            where: d?.search
+              ? {
+                  OR: [
+                    { clientId: { contains: d.search } },
+                    { slug: { contains: d.search } }
+                  ]
+                }
+              : undefined,
             include: {
               defaultTenant: true,
               _count: { select: { users: true, tenants: true } }
@@ -237,13 +253,16 @@ class AdminServiceImpl {
     return app;
   }
 
-  async listTenants(d: { app: App }) {
+  async listTenants(d: { app: App; search?: string }) {
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
           await db.tenant.findMany({
             ...opts,
-            where: { appOid: d.app.oid },
+            where: {
+              appOid: d.app.oid,
+              ...(d.search ? { clientId: { contains: d.search } } : {})
+            },
             include: {
               _count: { select: { users: true } }
             }
