@@ -60,7 +60,9 @@ vi.mock('@metorial/config', () => ({
 }));
 
 vi.mock('@lowerdeck/tokens', () => ({
-  Tokens: vi.fn(() => mocks.consumerTokens)
+  Tokens: vi.fn(function () {
+    return mocks.consumerTokens;
+  })
 }));
 
 vi.mock('@metorial-services/ares-client', () => ({
