@@ -1,6 +1,6 @@
 import { delay } from '@lowerdeck/delay';
 import { ProgrammablePromise } from '@lowerdeck/programmable-promise';
-import { createFunctionBayClient } from '@metorial-services/function-bay-client';
+import { createFunctionBayClient } from '@metorial-platform-systems/function-bay-client';
 import { db } from './db';
 import { env } from './env';
 import { getId } from './id';
