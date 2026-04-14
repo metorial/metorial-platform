@@ -172,12 +172,12 @@ class workflowRunServiceImpl {
     return array
       .map(line => {
         if (!line.startsWith('[')) return undefined!;
-        let [ts, message] = JSON.parse(line);
-
-        return {
-          timestamp: ts,
-          message
-        };
+        try {
+          let [ts, message] = JSON.parse(line);
+          return { timestamp: ts, message };
+        } catch {
+          return undefined!;
+        }
       })
       .filter(Boolean);
   }
