@@ -18,9 +18,17 @@ export let slateApp = authedApp.use(async ctx => {
 export let slateController = authedApp.controller({
   list: authedApp
     .handler()
-    .input(Paginator.validate(v.object({})))
+    .input(
+      Paginator.validate(
+        v.object({
+          search: v.optional(v.string())
+        })
+      )
+    )
     .do(async ctx => {
-      let paginator = await slateService.listSlates({});
+      let paginator = await slateService.listSlates({
+        search: ctx.input.search
+      });
 
       let list = await paginator.run(ctx.input);
 
