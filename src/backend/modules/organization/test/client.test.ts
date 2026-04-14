@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { notificationClient } from '../src/email/client';
 
-// Mock the EmailClient
-vi.mock('@metorial/module-email', () => ({
-  EmailClient: vi.fn().mockImplementation(() => ({
-    send: vi.fn()
-  }))
-}));
+vi.mock('@metorial/module-email', () => {
+  let MockEmailClient = vi.fn(function (this: any) {
+    this.send = vi.fn();
+  });
+  return { EmailClient: MockEmailClient };
+});
 
 describe('Email Client', () => {
   beforeEach(() => {
