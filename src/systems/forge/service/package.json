@@ -1,5 +1,5 @@
 {
-  "name": "forge",
+  "name": "@metorial/forge",
   "module": "index.ts",
   "type": "commonjs",
   "private": true,

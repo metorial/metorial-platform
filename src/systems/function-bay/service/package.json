@@ -1,5 +1,5 @@
 {
-  "name": "function-bay-service",
+  "name": "@metorial/function-bay",
   "module": "index.ts",
   "type": "commonjs",
   "private": true,

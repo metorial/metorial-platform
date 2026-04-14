@@ -4,7 +4,7 @@ import { readReplicas } from '@prisma/extension-read-replicas';
 import { PrismaClient } from '../prisma/generated/client';
 
 let mainAdapter = new PrismaPg({
-  connectionString: process.env.DATABASE_URL
+  connectionString: process.env.FUNCTION_BAY_DATABASE_URL ?? process.env.DATABASE_URL
 });
 
 let replicaAdapter = process.env.DATABASE_URL_READER

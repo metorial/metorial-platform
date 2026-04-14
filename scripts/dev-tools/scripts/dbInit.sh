@@ -17,6 +17,8 @@ export SLATES_HUB_DATABASE_URL="postgres://postgres:postgres@localhost:35432/sla
 export SLATES_REGISTRY_DATABASE_URL="postgres://postgres:postgres@localhost:35432/slates-registry"
 export SUBSPACE_DATABASE_URL="postgres://postgres:postgres@localhost:35432/subspace"
 export SHUTTLE_DATABASE_URL="postgres://postgres:postgres@localhost:35432/shuttle"
+export FORGE_DATABASE_URL="postgres://postgres:postgres@localhost:35432/forge"
+export FUNCTION_BAY_DATABASE_URL="postgres://postgres:postgres@localhost:35432/function-bay"
 export HORIZON_DATABASE_URL="postgres://postgres:postgres@localhost:35432/horizon"
 
 export MIGRATION_DATABASE_URL="postgres://postgres:postgres@localhost:35432/migrate-$DB_PREFIX"

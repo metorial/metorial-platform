@@ -10,6 +10,7 @@ if [ "$IS_ENTERPRISE" = true ]; then
   bunx turbo run --ui=stream build --filter='./oss/src/systems/_clients/**' --force
   bunx turbo run --ui=stream build --filter='./oss/src/systems/shuttle/sdk/packages/**'
   bunx turbo run --ui=stream build --filter='./oss/src/systems/slates/packages/**'
+  bunx turbo run --ui=stream build --filter='./oss/src/systems/function-bay/packages/**'
   bunx turbo run --ui=stream build:client --filter='./systems/horizon/ares/clients/**'
   bunx turbo run --ui=stream build --filter='./systems/horizon/clients/**'
   bunx turbo run --ui=stream frontend:build --filter='./systems/horizon/apps/horizon/**'

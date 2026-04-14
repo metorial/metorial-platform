@@ -318,6 +318,104 @@ export let shuttleServiceEnv: Env = [
   }
 ];
 
+export let forgeServiceEnv: Env = [
+  {
+    key: 'DATABASE_URL',
+    defaultValue: 'postgresql://postgres:postgres@localhost:35432/forge'
+  },
+  {
+    key: 'REDIS_URL',
+    defaultValue: 'redis://localhost:36379/0'
+  },
+  {
+    key: 'ENCRYPTION_KEY',
+    defaultValue: 'sTrG+z8ewVo7JJsgmv39UL/YDdgxlHSVhVPJOV7Omdg'
+  },
+  {
+    key: 'DEFAULT_PROVIDER',
+    defaultValue: 'aws.code-build'
+  },
+  {
+    key: 'OBJECT_STORAGE_URL',
+    defaultValue: 'http://services:52010'
+  },
+  {
+    key: 'ARTIFACT_BUCKET_NAME',
+    defaultValue: 'artifacts'
+  },
+  {
+    key: 'LOG_BUCKET_NAME',
+    defaultValue: 'logs'
+  },
+  {
+    key: 'CODE_BUILD_AWS_REGION',
+    isRequired: false
+  },
+  {
+    key: 'CODE_BUILD_AWS_ACCESS_KEY_ID',
+    isRequired: false
+  },
+  {
+    key: 'CODE_BUILD_AWS_SECRET_ACCESS_KEY',
+    isRequired: false
+  },
+  {
+    key: 'CODE_BUILD_PROJECT_NAME',
+    isRequired: false
+  },
+  {
+    key: 'CODE_BUILD_ROLE_ARN',
+    isRequired: false
+  }
+];
+
+export let functionBayServiceEnv: Env = [
+  {
+    key: 'DATABASE_URL',
+    defaultValue: 'postgresql://postgres:postgres@localhost:35432/function-bay'
+  },
+  {
+    key: 'REDIS_URL',
+    defaultValue: 'redis://localhost:36379/0'
+  },
+  {
+    key: 'ENCRYPTION_KEY',
+    defaultValue: 'sTrG+z8ewVo7JJsgmv39UL/YDdgxlHSVhVPJOV7Omdg'
+  },
+  {
+    key: 'DEFAULT_PROVIDER',
+    defaultValue: 'aws.lambda'
+  },
+  {
+    key: 'OBJECT_STORAGE_URL',
+    defaultValue: 'http://services:52010'
+  },
+  {
+    key: 'BUNDLE_BUCKET_NAME',
+    defaultValue: 'function-bay-bundles'
+  },
+  {
+    key: 'FORGE_API_URL',
+    defaultValue: `http://${HOSTNAME}:52020/metorial-forge`
+  },
+  {
+    key: 'LAMBDA_AWS_REGION',
+    isRequired: false
+  },
+  {
+    key: 'LAMBDA_AWS_ACCESS_KEY_ID',
+    isRequired: false
+  },
+  {
+    key: 'LAMBDA_AWS_SECRET_ACCESS_KEY',
+    isRequired: false
+  },
+  {
+    key: 'LAMBDA_EXECUTION_ROLE_ARN',
+    isRequired: false
+  }
+];
+
 export let horizonServiceEnv: Env = [
   {
     key: 'DATABASE_URL',
