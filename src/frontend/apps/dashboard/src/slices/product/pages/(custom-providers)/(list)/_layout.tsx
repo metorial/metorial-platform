@@ -9,18 +9,15 @@ import {
 import { Button, Menu } from '@metorial/ui';
 import { Outlet, useLocation } from 'react-router-dom';
 import { showCustomProviderRemoteFormModal } from '../../../scenes/customProvider/modal';
-import { isMetorialInternalEmail } from '../../../scenes/customProvider/utils';
 
 export let ManagedProvidersListLayout = () => {
   let flags = useDashboardFlags();
   let user = useUser();
-  let shouldStartWithoutRepository = !isMetorialInternalEmail(user.data?.email);
   let openManagedCreateModal = () => {
     if (!user.data) return;
 
     showCustomProviderRemoteFormModal({
-      type: 'managed',
-      startWithoutRepository: shouldStartWithoutRepository
+      type: 'managed'
     });
   };
 
