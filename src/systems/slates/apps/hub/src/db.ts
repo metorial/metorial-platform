@@ -37,11 +37,11 @@ export let db = baseClient;
 
 declare global {
   namespace PrismaJson {
-    type SlateJson = {
+    interface SlateJson {
       name: string;
       version: string;
       description?: string;
-    };
+    }
 
     type SlateDeploymentProviderDeploymentInfo = {
       functionId: string;

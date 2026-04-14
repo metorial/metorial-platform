@@ -14,11 +14,11 @@ declare global {
       label: string;
     }[];
 
-    type SlateJson = {
+    interface SlateJson {
       name: string;
       version: string;
       description?: string;
-    };
+    }
 
     type FilterExpression = {
       type: 'prefix' | 'scope' | 'slate';

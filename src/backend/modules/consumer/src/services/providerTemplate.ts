@@ -40,7 +40,7 @@ class ProviderTemplateServiceImpl {
     instance: Instance;
     providerTemplateId: string;
     accessTags?: AnyAccessTagSelector;
-  }) {
+  }): Promise<EnrichedProviderTemplate> {
     let providerTemplate = await db.providerTemplate.findFirst({
       where: {
         instanceOid: d.instance.oid,
@@ -59,7 +59,7 @@ class ProviderTemplateServiceImpl {
       });
     }
 
-    return (await this.enrich([providerTemplate], d.instance))[0];
+    return await this.enrichOne(providerTemplate, d.instance);
   }
 
   async createProviderTemplate(d: {
@@ -80,7 +80,7 @@ class ProviderTemplateServiceImpl {
           providerDeploymentId?: never;
         }
     );
-  }) {
+  }): Promise<EnrichedProviderTemplate> {
     let providerDeploymentId = await this.getOrCreateProviderDeployment(d);
 
     let existing = await db.providerTemplate.findFirst({
@@ -107,7 +107,7 @@ class ProviderTemplateServiceImpl {
         providerTemplateId: providerTemplate.id
       });
 
-      return providerTemplate;
+      return await this.enrichOne(providerTemplate, d.instance);
     }
 
     if (d.input.toolFilters) {
@@ -133,7 +133,7 @@ class ProviderTemplateServiceImpl {
 
     await providerTemplateCreatedQueue.add({ providerTemplateId: providerTemplate.id });
 
-    return (await this.enrich([providerTemplate], d.instance))[0];
+    return await this.enrichOne(providerTemplate, d.instance);
   }
 
   async updateProviderTemplate(d: {
@@ -145,7 +145,7 @@ class ProviderTemplateServiceImpl {
       metadata?: Record<string, unknown>;
       toolFilters?: any;
     };
-  }) {
+  }): Promise<EnrichedProviderTemplate> {
     if (d.providerTemplate.status != 'active') {
       throw new ServiceError(
         preconditionFailedError({
@@ -175,13 +175,13 @@ class ProviderTemplateServiceImpl {
 
     await providerTemplateUpdatedQueue.add({ providerTemplateId: providerTemplate.id });
 
-    return (await this.enrich([providerTemplate], d.instance))[0];
+    return await this.enrichOne(providerTemplate, d.instance);
   }
 
   async archiveProviderTemplate(d: {
     instance: Instance;
     providerTemplate: ProviderTemplate;
-  }) {
+  }): Promise<EnrichedProviderTemplate> {
     if (d.providerTemplate.status != 'active') {
       throw new ServiceError(
         preconditionFailedError({
@@ -204,7 +204,7 @@ class ProviderTemplateServiceImpl {
 
     await providerTemplateArchivedQueue.add({ providerTemplateId: providerTemplate.id });
 
-    return (await this.enrich([providerTemplate], d.instance))[0];
+    return await this.enrichOne(providerTemplate, d.instance);
   }
 
   async listProviderTemplates(d: {
@@ -315,6 +315,14 @@ class ProviderTemplateServiceImpl {
       ...t,
       providerDeployment: deploymentMap.get(t.providerDeploymentId)!
     }));
+  }
+
+  private async enrichOne(
+    providerTemplate: ProviderTemplate,
+    instance: Instance
+  ): Promise<EnrichedProviderTemplate> {
+    let [enrichedProviderTemplate] = await this.enrich([providerTemplate], instance);
+    return enrichedProviderTemplate!;
   }
 
   private async getOrCreateProviderDeployment(d: {
