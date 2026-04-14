@@ -1,11 +1,13 @@
 import { backendEnv } from './backend';
 import { frontendEnv } from './frontend';
 import {
+  aresServiceEnv,
   forgeServiceEnv,
   functionBayServiceEnv,
   horizonServiceEnv,
   originCodeBucketEnv,
   originServiceEnv,
+  signalServiceEnv,
   shuttleServiceEnv,
   slatesHubEnv,
   slatesRegistryEnv,
@@ -62,11 +64,11 @@ export let destinations: Destination[] = [
     path: 'src/systems/subspace/db'
   },
 
-  // {
-  //   type: 'oss',
-  //   env: signalServiceEnv,
-  //   path: 'src/systems/signal/service'
-  // },
+  {
+    type: 'oss',
+    env: signalServiceEnv,
+    path: 'src/systems/signal/service'
+  },
   {
     type: 'oss',
     env: slatesHubEnv,
@@ -101,6 +103,11 @@ export let destinations: Destination[] = [
     type: 'oss',
     env: functionBayServiceEnv,
     path: 'src/systems/function-bay/service'
+  },
+  {
+    type: 'oss',
+    env: aresServiceEnv,
+    path: 'src/systems/ares/service'
   },
   {
     type: 'enterprise',

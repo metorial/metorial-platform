@@ -1,0 +1,240 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "./generated"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+generator json {
+  provider = "prisma-json-types-generator"
+}
+
+model Tenant {
+  oid BigInt @id
+  id  String @unique
+
+  identifier String @unique
+  name       String
+
+  createdAt DateTime @default(now())
+
+  eventDestinations          EventDestination[]
+  webhookDestinationWebhooks WebhookDestinationWebhook[]
+  events                     Event[]
+}
+
+model Sender {
+  oid BigInt @id
+  id  String @unique
+
+  identifier String @unique
+  name       String
+
+  createdAt DateTime @default(now())
+
+  events            Event[]
+  eventDestinations EventDestination[]
+}
+
+enum EventDestinationType {
+  http_endpoint
+}
+
+enum EventDestinationStatus {
+  active
+  inactive
+}
+
+enum EventRetryType {
+  linear
+  exponential
+}
+
+model EventDestination {
+  oid    BigInt                 @id
+  id     String                 @unique
+  status EventDestinationStatus
+
+  type EventDestinationType
+
+  eventTypes          String[]
+  hasEventTypesFilter Boolean
+
+  name        String
+  description String?
+
+  retryType         EventRetryType
+  retryDelaySeconds Int
+  retryMaxAttempts  Int
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  senderOid BigInt
+  sender    Sender @relation(fields: [senderOid], references: [oid])
+
+  currentInstanceOid BigInt?
+  currentInstance    EventDestinationInstance? @relation(fields: [currentInstanceOid], references: [oid], name: "currentInstance")
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @default(now()) @updatedAt
+  deletedAt    DateTime?
+  lastActiveAt DateTime?
+  expiresAt    DateTime?
+
+  intents                   EventDeliveryIntent[]
+  eventDestinationInstances EventDestinationInstance[]
+}
+
+model EventDestinationInstance {
+  oid BigInt @id
+
+  type EventDestinationType
+
+  webhookOid BigInt?
+  webhook    WebhookDestinationWebhook? @relation(fields: [webhookOid], references: [oid])
+
+  destinationOid BigInt
+  destination    EventDestination @relation(fields: [destinationOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  currentForDestinations EventDestination[]     @relation(name: "currentInstance")
+  eventDeliveryAttempts  EventDeliveryAttempt[]
+}
+
+enum WebhookMethod {
+  POST
+  PUT
+  PATCH
+}
+
+model WebhookDestinationWebhook {
+  oid BigInt @id
+  id  String @unique
+
+  url    String
+  method WebhookMethod
+
+  signingSecret String
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  eventDestinationInstances EventDestinationInstance[]
+}
+
+enum EventStatus {
+  pending
+  delivered
+  failed
+}
+
+model Event {
+  oid    BigInt      @id
+  id     String      @unique
+  status EventStatus
+
+  topics String[]
+
+  deliveryDestinationCount Int
+  deliverySuccessCount     Int
+  deliveryFailureCount     Int
+
+  eventType   String
+  payloadJson String?
+
+  onlyForDestinations          String[]
+  hasOnlyForDestinationsFilter Boolean  @default(false)
+
+  /// [Headers]
+  headers Json @default("[]")
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  senderOid BigInt
+  sender    Sender @relation(fields: [senderOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  intents EventDeliveryIntent[]
+
+  @@index([topics])
+  @@index([eventType])
+}
+
+enum EventDeliveryIntentStatus {
+  pending
+  delivered
+  retrying
+  failed
+}
+
+model EventDeliveryIntent {
+  oid    BigInt                    @id
+  id     String                    @unique
+  status EventDeliveryIntentStatus
+
+  attemptCount Int @default(0)
+
+  errorCode    String?
+  errorMessage String?
+
+  eventOid BigInt
+  event    Event  @relation(fields: [eventOid], references: [oid])
+
+  destinationOid BigInt
+  destination    EventDestination @relation(fields: [destinationOid], references: [oid])
+
+  lastAttemptAt DateTime?
+  nextAttemptAt DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @default(now()) @updatedAt
+
+  attempts EventDeliveryAttempt[]
+
+  @@index([status])
+}
+
+enum EventDeliveryAttemptStatus {
+  succeeded
+  failed
+}
+
+model EventDeliveryAttempt {
+  oid    BigInt                     @id
+  id     String                     @unique
+  status EventDeliveryAttemptStatus
+
+  attemptNumber Int
+  durationMs    Int
+
+  errorCode    String?
+  errorMessage String?
+
+  responseStatusCode Int?
+  // responseBody       String?
+  // responseHeaders    String?
+
+  destinationInstanceOid BigInt
+  destinationInstance    EventDestinationInstance @relation(fields: [destinationInstanceOid], references: [oid])
+
+  intentOid BigInt
+  intent    EventDeliveryIntent @relation(fields: [intentOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  @@index([status])
+}

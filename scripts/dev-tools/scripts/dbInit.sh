@@ -20,6 +20,8 @@ export SHUTTLE_DATABASE_URL="postgres://postgres:postgres@localhost:35432/shuttl
 export FORGE_DATABASE_URL="postgres://postgres:postgres@localhost:35432/forge"
 export FUNCTION_BAY_DATABASE_URL="postgres://postgres:postgres@localhost:35432/function-bay"
 export HORIZON_DATABASE_URL="postgres://postgres:postgres@localhost:35432/horizon"
+export ARES_DATABASE_URL="postgres://postgres:postgres@localhost:35432/ares"
+export ARES_SSO_DATABASE_URL="postgres://postgres:postgres@localhost:35432/ares-sso"
 
 export MIGRATION_DATABASE_URL="postgres://postgres:postgres@localhost:35432/migrate-$DB_PREFIX"
 export MIGRATION_PAYMENT_DATABASE_URL="postgres://postgres:postgres@localhost:35432/migrate-$DB_PREFIX-payment"

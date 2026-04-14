@@ -47,7 +47,7 @@
     "@lowerdeck/serialize": "^1.0.4",
     "@lowerdeck/telemetry": "^1.1.1",
     "@lowerdeck/validation": "^1.0.10",
-    "@metorial-services/signal-client": "^1.0.0",
+    "@metorial-platform-systems/signal-client": "workspace:*",
     "@metorial-subspace/db": "^1.0.0",
     "@metorial-subspace/module-auth": "^1.0.0",
     "@metorial-subspace/module-callback": "^1.0.0",
