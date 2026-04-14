@@ -1,0 +1,27 @@
+model Admin {
+  oid      BigInt @id
+  id       String @unique
+  email    String @unique
+  password String
+  name     String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  adminSessions AdminSession[]
+}
+
+model AdminSession {
+  oid          BigInt @id
+  id           String @unique
+  clientSecret String @unique
+
+  adminOid BigInt
+  admin    Admin  @relation(fields: [adminOid], references: [oid], onDelete: Cascade)
+
+  ip String?
+  ua String?
+
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+}

@@ -1,0 +1,164 @@
+enum AuthIntentType {
+  email_code
+  oauth
+}
+
+enum AuthIntentIdentifier {
+  email
+}
+
+model AuthIntent {
+  oid          BigInt @id
+  id           String @unique
+  clientSecret String @unique
+
+  type AuthIntentType
+
+  ua String? @db.Text
+  ip String
+
+  redirectUrl String
+
+  identifierType AuthIntentIdentifier
+  identifier     String
+
+  captchaVerifiedAt DateTime?
+
+  userOid BigInt?
+  user    User?   @relation(fields: [userOid], references: [oid], onDelete: Cascade)
+
+  userIdentityOid BigInt?
+  userIdentity    UserIdentity? @relation(fields: [userIdentityOid], references: [oid], onDelete: SetNull)
+
+  deviceOid BigInt
+  device    AuthDevice @relation(fields: [deviceOid], references: [oid], onDelete: Cascade)
+
+  appOid BigInt
+  app    App    @relation(fields: [appOid], references: [oid])
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
+  expiresAt  DateTime
+  verifiedAt DateTime?
+  consumedAt DateTime?
+
+  steps                AuthIntentStep[]
+  verificationAttempts AuthIntentVerificationAttempt[]
+  codes                AuthIntentCode[]
+  authAttempts         AuthAttempt[]
+}
+
+enum AuthIntentStepType {
+  email_code
+}
+
+model AuthIntentStep {
+  oid   BigInt @id
+  id    String @unique
+  index Int
+
+  type AuthIntentStepType
+
+  email String?
+
+  authIntentOid BigInt
+  authIntent    AuthIntent @relation(fields: [authIntentOid], references: [oid], onDelete: Cascade)
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
+  verifiedAt DateTime?
+
+  verifications AuthIntentVerificationAttempt[]
+  codes         AuthIntentCode[]
+}
+
+enum AuthIntentVerificationAttemptStatus {
+  success
+  failure
+}
+
+model AuthIntentVerificationAttempt {
+  oid BigInt @id
+  id  String @unique
+
+  status AuthIntentVerificationAttemptStatus
+
+  authIntentOid BigInt
+  authIntent    AuthIntent @relation(fields: [authIntentOid], references: [oid], onDelete: Cascade)
+
+  stepId String
+  step   AuthIntentStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}
+
+model AuthIntentCode {
+  oid BigInt @id
+  id  String @unique
+
+  email String
+  code  String
+
+  authIntentOid BigInt
+  authIntent    AuthIntent @relation(fields: [authIntentOid], references: [oid], onDelete: Cascade)
+
+  stepOid BigInt
+  step    AuthIntentStep @relation(fields: [stepOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}
+
+enum AuthAttemptStatus {
+  pending
+  consumed
+}
+
+model AuthAttempt {
+  oid          BigInt @id
+  id           String @unique
+  clientSecret String @unique
+
+  status AuthAttemptStatus
+
+  authorizationCode String? @unique
+
+  redirectUrl String
+
+  ip String
+  ua String? @db.Text
+
+  userOid BigInt
+  user    User   @relation(fields: [userOid], references: [oid], onDelete: Cascade)
+
+  deviceOid BigInt
+  device    AuthDevice @relation(fields: [deviceOid], references: [oid], onDelete: Cascade)
+
+  appOid BigInt
+  app    App    @relation(fields: [appOid], references: [oid])
+
+  authIntentOid BigInt?
+  authIntent    AuthIntent? @relation(fields: [authIntentOid], references: [oid], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+}
+
+enum AuthBlockIdentifierType {
+  email
+  ip
+}
+
+model AuthBlock {
+  id String @id @default(uuid()) @db.Uuid
+
+  identifierType AuthBlockIdentifierType
+  identifier     String
+
+  ip String
+
+  blockedAt    DateTime @default(now())
+  blockedUntil DateTime
+
+  @@index([identifierType, identifier])
+  @@index([ip])
+  @@index([blockedUntil])
+}
