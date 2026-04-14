@@ -14,6 +14,7 @@ import { motion } from 'framer-motion';
 import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import styled from 'styled-components';
+import { getCustomProviderLinkedRepo } from '../../../scenes/customProvider/utils';
 import { SelectRepo } from '../../../scenes/customProvider/selectRepo';
 
 let Wrapper = styled.div`
@@ -83,31 +84,10 @@ export let CustomProviderCodePage = () => {
   let createVersion = useCreateCustomProviderVersion();
   let navigate = useNavigate();
 
-  let linkedRepo = useMemo(() => {
-    let repoFromApi =
-      customProvider.data?.scmRepo ??
-      customProvider.data?.draftBucket?.scmRepoLink?.repository;
-    if (repoFromApi) {
-      return {
-        id: repoFromApi.id,
-        url: repoFromApi.url,
-        defaultBranch: repoFromApi.defaultBranch,
-        path: customProvider.data?.draftBucket?.scmRepoLink?.path ?? undefined
-      };
-    }
-
-    let metadataRepo = customProvider.data?.metadata?.repository as
-      | { url?: string; branch?: string; path?: string }
-      | undefined;
-    if (!metadataRepo?.url) return null;
-
-    return {
-      id: undefined,
-      url: metadataRepo.url,
-      defaultBranch: metadataRepo.branch ?? 'main',
-      path: metadataRepo.path
-    };
-  }, [customProvider.data]);
+  let linkedRepo = useMemo(
+    () => getCustomProviderLinkedRepo(customProvider.data),
+    [customProvider.data]
+  );
   let codeManagementUnavailable =
     Boolean(customProvider.data?.draft?.remoteMcpServer) ||
     Boolean(customProvider.data?.draft?.containerImage);

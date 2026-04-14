@@ -80,11 +80,9 @@ export let CustomProviderLayout = () => {
               </Link>
             )}
 
-            {!isScmBackedProvider && (
-              <DeployServerButton providerId={customProvider.data?.provider?.id}>
-                Deploy Provider
-              </DeployServerButton>
-            )}
+            <DeployServerButton providerId={customProvider.data?.provider?.id}>
+              Deploy Provider
+            </DeployServerButton>
           </>
         }
       />

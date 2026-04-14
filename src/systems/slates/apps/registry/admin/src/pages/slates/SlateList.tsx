@@ -1,14 +1,25 @@
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { renderWithPagination } from '@metorial-io/data-hooks';
-import { Button, Text, Title, Badge, Flex, Spacer, Group } from '@metorial-io/ui';
+import { Button, Text, Title, Badge, Flex, Spacer, Group, Input } from '@metorial-io/ui';
 import { Table } from '@metorial-io/ui-product';
+import { useEffect, useState } from 'react';
 import { useSlates } from '../../hooks';
 import { EmptyState, SlateLogoImage, SlateLogoPlaceholder } from '../../components/styled';
 
 export let SlateList = () => {
   let navigate = useNavigate();
   let { tenantId } = useParams<{ tenantId: string }>();
-  let slates = useSlates(tenantId);
+  let [search, setSearch] = useState('');
+  let [debouncedSearch, setDebouncedSearch] = useState(search);
+
+  useEffect(() => {
+    let timeout = window.setTimeout(() => setDebouncedSearch(search), 250);
+
+    return () => window.clearTimeout(timeout);
+  }, [search]);
+
+  let searchQuery = debouncedSearch.trim() || undefined;
+  let slates = useSlates(tenantId, searchQuery);
 
   let emptyState = (
     <EmptyState direction="column" align="center">
@@ -17,14 +28,16 @@ export let SlateList = () => {
       </Title>
       <Spacer size={8} />
       <Text size="2" color="gray600">
-        This tenant doesn't have any slates yet.
+        {searchQuery
+          ? `No slates match "${searchQuery}".`
+          : "This tenant doesn't have any slates yet."}
       </Text>
     </EmptyState>
   );
 
   return (
     <Flex direction="column" gap={32}>
-      <Flex justify="space-between" align="center">
+      <Flex justify="space-between" align="center" gap={16} style={{ flexWrap: 'wrap' }}>
         <div>
           <Title size="6" weight="strong">
             Slates
@@ -44,6 +57,16 @@ export let SlateList = () => {
           </Button>
         </Flex>
       </Flex>
+
+      <div style={{ width: '100%', maxWidth: 320 }}>
+        <Input
+          label="Search slates"
+          hideLabel
+          placeholder="Search by slate name"
+          value={search}
+          onInput={value => setSearch(value)}
+        />
+      </div>
 
       {renderWithPagination(slates, { emptyState })(({ data }) => {
         let items = data.items;

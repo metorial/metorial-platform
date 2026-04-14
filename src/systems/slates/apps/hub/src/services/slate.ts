@@ -46,14 +46,24 @@ class slateServiceImpl {
     return await res.json();
   }
 
-  async listSlates(_d: {}) {
+  async listSlates(d: { search?: string }) {
+    let search = d.search?.trim();
+
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
           await db.slate.findMany({
             ...opts,
             where: {
-              status: 'active'
+              status: 'active',
+              ...(search
+                ? {
+                    name: {
+                      contains: search,
+                      mode: 'insensitive'
+                    }
+                  }
+                : {})
             },
             include
           })
