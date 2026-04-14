@@ -9,8 +9,8 @@
     "lint": "prettier src/**/*.ts --check"
   },
   "dependencies": {
-    "@lowerdeck/error": "1.2.1",
-    "@lowerdeck/pagination": "^1.0.6",
+    "@lowerdeck/error": "1.2.3",
+    "@lowerdeck/pagination": "^1.0.8",
     "@lowerdeck/service": "^1.0.7",
     "@lowerdeck/tokens": "^1.0.5",
     "@metorial/consumer-auth": "1.0.0",

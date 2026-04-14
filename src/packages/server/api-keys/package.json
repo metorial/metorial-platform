@@ -9,7 +9,7 @@
     "lint": "prettier src/**/*.ts --check"
   },
   "dependencies": {
-    "@lowerdeck/error": "^1.2.2"
+    "@lowerdeck/error": "^1.2.3"
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",

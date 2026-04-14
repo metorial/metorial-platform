@@ -14,9 +14,9 @@
   },
   "dependencies": {
     "@lowerdeck/delay": "^1.0.4",
-    "@lowerdeck/env": "^1.0.5",
+    "@lowerdeck/env": "^1.0.6",
     "@lowerdeck/shadow-id": "^1.0.7",
-    "@lowerdeck/validation": "^1.0.8",
+    "@lowerdeck/validation": "^1.0.10",
     "@metorial-subspace/connection-utils": "^1.0.0",
     "@metorial-platform-systems/slates-client": "^1.0.0",
     "@metorial-subspace/db": "^1.0.0",

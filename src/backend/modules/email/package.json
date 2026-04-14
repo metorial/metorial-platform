@@ -9,7 +9,7 @@
     "lint": "prettier src/**/*.ts --check"
   },
   "dependencies": {
-    "@lowerdeck/programmable-promise": "latest",
+    "@lowerdeck/programmable-promise": "1.0.6",
     "@metorial-services/relay-client": "^1.0.5",
     "@metorial/db": "^1.0.0",
     "@metorial/queue": "^1.0.0",
