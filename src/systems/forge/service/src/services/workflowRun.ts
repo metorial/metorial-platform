@@ -239,7 +239,7 @@ class workflowRunServiceImpl {
     });
 
     return {
-      logs: this.presentOutput(tempOutputs.map(o => o.output)),
+      logs: this.presentOutput(tempOutputs.flatMap(o => o.output.split('\n'))),
       source: 'temp' as const
     };
   }

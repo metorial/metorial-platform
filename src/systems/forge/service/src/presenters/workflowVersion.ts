@@ -42,7 +42,7 @@ export let workflowVersionStepPresenter = (
   cleanupScript: step.cleanupScript,
 
   artifactId: step.artifactToDownload ? step.artifactToDownload.id : undefined,
-  artifactDestinationPath: step.artifactToDownload ? step.artifactToDownload.name : undefined,
+  artifactDestinationPath: step.artifactToDownloadPath ?? undefined,
 
   artifactSourcePath: step.artifactToUploadPath,
   artifactName: step.artifactToUploadName,

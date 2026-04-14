@@ -17,7 +17,7 @@ let logSystem = (data: any) =>
 let parseSystemLog = (line: string) => {
   let idx = line.indexOf(SYSTEM_OUTPUT_PREFIX);
   if (idx === -1) return null;
-  let json = line.slice(SYSTEM_OUTPUT_PREFIX.length);
+  let json = line.slice(idx + SYSTEM_OUTPUT_PREFIX.length);
   try {
     return JSON.parse(json);
   } catch {

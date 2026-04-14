@@ -23,7 +23,7 @@ export let workflowRunPresenter = async (
     artifacts: WorkflowArtifact[];
   }
 ) => ({
-  object: 'forgeworkflow.run',
+  object: 'forge#workflow.run',
 
   id: run.id,
   status: run.status,

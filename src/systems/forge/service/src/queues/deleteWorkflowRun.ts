@@ -24,8 +24,8 @@ let deleteWorkflowRunsQueueProcessor = deleteWorkflowRunsQueue.process(async dat
   if (currentSet.length === 0) return;
 
   await deleteWorkflowRunQueue.addMany(
-    currentSet.map(artifact => ({
-      artifactId: artifact.id
+    currentSet.map(run => ({
+      runId: run.id
     }))
   );
 
@@ -38,7 +38,7 @@ let deleteWorkflowRunsQueueProcessor = deleteWorkflowRunsQueue.process(async dat
   }
 });
 
-export let deleteWorkflowRunQueue = createQueue<{ artifactId: string }>({
+export let deleteWorkflowRunQueue = createQueue<{ runId: string }>({
   redisUrl: env.service.REDIS_URL,
   name: 'forge/del-run',
   workerOpts: {
@@ -48,10 +48,10 @@ export let deleteWorkflowRunQueue = createQueue<{ artifactId: string }>({
 
 let deleteWorkflowRunQueueProcessor = deleteWorkflowRunQueue.process(async data => {
   let steps = await db.workflowRunStep.findMany({
-    where: { run: { id: data.artifactId } }
+    where: { run: { id: data.runId } }
   });
 
-  await db.workflowRun.delete({ where: { id: data.artifactId } });
+  await db.workflowRun.delete({ where: { id: data.runId } });
 
   for (let step of steps) {
     if (step.outputBucket && step.outputStorageKey) {
