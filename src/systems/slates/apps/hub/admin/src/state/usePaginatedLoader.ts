@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 type PaginatedData<T> = {
   items: T[];
@@ -21,6 +21,13 @@ export let usePaginatedLoader = <T extends { id: string }, P>(
   params: Omit<P, 'after' | 'before'> | null
 ) => {
   let [cursor, setCursor] = useState<{ after?: string; before?: string }>({});
+  let serializedParams = JSON.stringify(params ?? null);
+
+  useEffect(() => {
+    setCursor(currentCursor =>
+      currentCursor.after || currentCursor.before ? {} : currentCursor
+    );
+  }, [serializedParams]);
 
   let result = loader.use(params ? ({ ...params, ...cursor } as P) : null);
 

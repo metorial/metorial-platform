@@ -4,12 +4,12 @@ import { usePaginatedLoader } from './usePaginatedLoader.js';
 
 export let slatesLoader = createLoader({
   name: 'slates',
-  fetch: (params: { after?: string; before?: string }) =>
+  fetch: (params: { after?: string; before?: string; search?: string }) =>
     withAuthRedirect(() => adminClient.slate.list(params)),
   mutators: {}
 });
 
-export let useSlates = () => usePaginatedLoader(slatesLoader, {});
+export let useSlates = (search?: string) => usePaginatedLoader(slatesLoader, { search });
 
 export let slateLoader = createLoader({
   name: 'slate',

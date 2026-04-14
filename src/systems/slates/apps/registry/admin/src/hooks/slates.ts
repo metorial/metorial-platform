@@ -1,19 +1,27 @@
 import { createLoader } from '@metorial-io/data-hooks';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { adminClient, withAuthRedirect } from './client';
 
 export let slatesLoader = createLoader({
   name: 'slates',
-  fetch: (params: { tenantId: string; after?: string; before?: string }) =>
+  fetch: (params: { tenantId: string; after?: string; before?: string; search?: string }) =>
     withAuthRedirect(() => adminClient.slate.list(params)),
-  hash: params => `${params.tenantId}:${params.after ?? ''}:${params.before ?? ''}`,
+  hash: params =>
+    `${params.tenantId}:${params.after ?? ''}:${params.before ?? ''}:${params.search ?? ''}`,
   mutators: {}
 });
 
-export let useSlates = (tenantId: string | undefined) => {
+export let useSlates = (tenantId: string | undefined, search?: string) => {
   let [cursor, setCursor] = useState<{ after?: string; before?: string }>({});
+  let serializedParams = JSON.stringify({ tenantId, search });
 
-  let loader = slatesLoader.use(tenantId ? { tenantId, ...cursor } : null);
+  useEffect(() => {
+    setCursor(currentCursor =>
+      currentCursor.after || currentCursor.before ? {} : currentCursor
+    );
+  }, [serializedParams]);
+
+  let loader = slatesLoader.use(tenantId ? { tenantId, search, ...cursor } : null);
 
   let transformedData = useMemo(() => {
     if (!loader.data) return null;
