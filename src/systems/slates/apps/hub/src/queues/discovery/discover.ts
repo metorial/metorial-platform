@@ -201,6 +201,7 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
             canonicalize({
               id: method.id,
               type: method.type,
+              scopes: method.scopes?.map(s => s.id)?.sort(),
               output: method.outputSchema
             })
           );

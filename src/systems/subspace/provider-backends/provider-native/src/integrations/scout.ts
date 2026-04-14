@@ -6,15 +6,17 @@ if (scout != null) {
 
   let searchResultSchema = z.union([
     z.object({
-      title: z.any().describe('Result title as returned by Scout.'),
+      title: z.any().describe('Result title.'),
       url: z.any().describe('Canonical URL for the search result.'),
       imageUrl: z.any().describe('Image URL for image-style results.')
     }),
     z.object({
-      title: z.any().describe('Result title as returned by Scout.'),
+      title: z.any().describe('Result title.'),
       url: z.any().describe('Canonical URL for the search result.'),
       description: z.any().describe('Short summary snippet for the result.'),
-      category: z.any().describe('Scout category label for the result.')
+      category: z
+        .any()
+        .describe('Result category such as "news", "research", "code", "documents", or "web".')
     })
   ]);
 
@@ -38,7 +40,7 @@ if (scout != null) {
       key: 'webSearch',
       name: 'Web Search',
       description:
-        'Search the web through Scout. Use this first when you need to discover relevant URLs, recent coverage, documents, images, code, or research before opening a page.',
+        'Search the web. Use this first when you need to discover relevant URLs, recent coverage, documents, images, code, or research before opening a page.',
       input: z.object({
         query: z
           .string()
@@ -63,11 +65,11 @@ if (scout != null) {
           results: z
             .array(searchResultSchema)
             .describe(
-              'Ordered search results from Scout. Inspect titles and URLs, then fetch the most relevant pages with getWebContent or extractWebContent.'
+              'Search results ordered by relevance. Inspect titles and URLs, then fetch the most relevant pages with getWebContent or extractWebContent.'
             )
         })
         .describe(
-          'Search response from Scout. The results array contains the candidate pages or assets to inspect next.'
+          'Structured search results with URLs and metadata. Use these to identify which pages to fetch next for content extraction.'
         ),
       tags: {
         readOnly: true

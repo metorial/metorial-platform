@@ -50,7 +50,19 @@ let sanitizeOptionalValues = (
   }
 
   if (schema.type === 'array' && Array.isArray(value)) {
-    return value;
+    let itemSchema =
+      schema.items && !Array.isArray(schema.items) ? getSchemaDefinition(schema.items) : null;
+    let nextValue = itemSchema
+      ? value
+          .map(item => sanitizeOptionalValues(itemSchema, item, false))
+          .filter(item => item !== undefined)
+      : value;
+
+    if (!required && nextValue.length === 0) {
+      return undefined;
+    }
+
+    return nextValue;
   }
 
   if (!required && value === '') {
@@ -375,15 +387,16 @@ let renderField = (d: {
         : [];
 
       return (
-        <TextArrayInput
-          key={d.path}
-          label={label}
-          description={description}
-          value={value}
-          onChange={nextValue => d.setFieldValue(d.path, nextValue)}
-          error={error}
-          autoAdd
-        />
+        <div key={d.path}>
+          <TextArrayInput
+            label={label}
+            description={description}
+            value={value}
+            onChange={nextValue => d.setFieldValue(d.path, nextValue)}
+            error={error}
+            autoAdd
+          />
+        </div>
       );
     }
   }
@@ -404,29 +417,32 @@ let renderField = (d: {
 
   if (d.schema.type === 'string' && Array.isArray(d.schema.enum)) {
     return (
-      <Select
-        key={d.path}
-        label={label}
-        description={description}
-        value={typeof fieldValue === 'string' ? fieldValue : undefined}
-        onChange={value => d.setFieldValue(d.path, value)}
-        error={error || false}
-        items={d.schema.enum.map(item => ({ id: String(item), label: String(item) }))}
-      />
+      <div key={d.path}>
+        <Select
+          label={label}
+          description={description}
+          value={typeof fieldValue === 'string' ? fieldValue : undefined}
+          onChange={value => d.setFieldValue(d.path, value)}
+          error={error || false}
+          items={d.schema.enum.map(item => ({ id: String(item), label: String(item) }))}
+        />
+      </div>
     );
   }
 
   if (d.schema.type === 'array' || d.schema.type === 'object' || !d.schema.type) {
     return (
-      <JsonField
-        key={d.path}
-        name={d.path}
-        label={label}
-        description={description}
-        value={fieldValue}
-        onChange={nextValue => d.setFieldValue(d.path, nextValue)}
-        error={error}
-      />
+      <div key={d.path}>
+        <JsonField
+          key={d.path}
+          name={d.path}
+          label={label}
+          description={description}
+          value={fieldValue}
+          onChange={nextValue => d.setFieldValue(d.path, nextValue)}
+          error={error}
+        />
+      </div>
     );
   }
 
@@ -435,28 +451,29 @@ let renderField = (d: {
   if (d.schema.type === 'string' && d.schema.format === 'password') inputType = 'password';
 
   return (
-    <Input
-      key={d.path}
-      label={label}
-      description={description}
-      type={inputType}
-      value={fieldValue as any}
-      onChange={event => {
-        let nextValue: unknown = event.target.value;
+    <div key={d.path}>
+      <Input
+        label={label}
+        description={description}
+        type={inputType}
+        value={fieldValue as any}
+        onChange={event => {
+          let nextValue: unknown = event.target.value;
 
-        if (d.schema.type === 'integer') {
-          nextValue = event.target.value === '' ? '' : parseInt(event.target.value, 10);
-        }
+          if (d.schema.type === 'integer') {
+            nextValue = event.target.value === '' ? '' : parseInt(event.target.value, 10);
+          }
 
-        if (d.schema.type === 'number') {
-          nextValue = event.target.value === '' ? '' : parseFloat(event.target.value);
-        }
+          if (d.schema.type === 'number') {
+            nextValue = event.target.value === '' ? '' : parseFloat(event.target.value);
+          }
 
-        d.setFieldValue(d.path, nextValue);
-      }}
-      onBlur={() => d.setFieldTouched(d.path, true, true)}
-      error={error}
-    />
+          d.setFieldValue(d.path, nextValue);
+        }}
+        onBlur={() => d.setFieldTouched(d.path, true, true)}
+        error={error}
+      />
+    </div>
   );
 };
 
@@ -496,7 +513,7 @@ export let SchemaForm = ({
     validateOnChange: true,
     validate: values => {
       let sanitizedValues = sanitizeOptionalValues(normalizedSchema, values) as JsonObject;
-      let requiredFieldErrors = validateRequiredFields(normalizedSchema, values);
+      let requiredFieldErrors = validateRequiredFields(normalizedSchema, sanitizedValues);
 
       if (!compiled.validator) {
         return mergeErrors(requiredFieldErrors, {

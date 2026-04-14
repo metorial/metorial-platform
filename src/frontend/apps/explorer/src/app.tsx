@@ -936,7 +936,7 @@ export let ExplorerApp = () => {
             <HeroTitle>{query.name}</HeroTitle>
             <Text color="gray700" style={{ maxWidth: 760, lineHeight: 1.6 }}>
               {query.description?.slice(0, 300) ??
-                `Explore the capabilities of the ${query.name} provider on Metorial`}
+                `Explore the capabilities of the "${query.name}" provider on Metorial`}
             </Text>
           </Flex>
 

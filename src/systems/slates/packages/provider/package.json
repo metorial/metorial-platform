@@ -17,17 +17,16 @@
   "exports": {
     "types": "./dist/index.d.ts",
     "require": "./dist/index.cjs",
-    "import": "./dist/index.module.js",
-    "default": "./dist/index.module.js"
+    "import": "./dist/index.js",
+    "default": "./dist/index.js"
   },
   "main": "./dist/index.cjs",
-  "module": "./dist/index.module.js",
+  "module": "./dist/index.js",
   "types": "dist/index.d.ts",
-  "unpkg": "./dist/index.umd.js",
   "scripts": {
     "test": "vitest run --passWithNoTests",
     "lint": "prettier src/**/*.ts --check",
-    "build": "microbundle --external async_hooks",
+    "build": "tsup",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -36,8 +35,8 @@
     "zod": "^4.2.1"
   },
   "devDependencies": {
-    "microbundle": "^0.15.1",
     "@slates/tsconfig": "^1.0.0",
+    "tsup": "^8.5.1",
     "typescript": "5.8.2",
     "vitest": "^3.1.2"
   }
