@@ -15,7 +15,7 @@
     "@types/vscode": "*",
     "rollup": "^4.28.1",
     "typescript": "~5.8.3",
-    "vite": "^7.0.4",
+    "vite": "^5.4.1",
     "vscode": "*",
     "vscode-web": "^1.91.1"
   },
