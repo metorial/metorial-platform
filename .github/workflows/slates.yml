@@ -82,7 +82,6 @@ jobs:
       compose_project_prefix: slates-hub-ci
       compose_profiles: 'hub infra'
       wait_mode: healthy
-      runs-on: depot-ubuntu-24.04-4
       wait_services: |
         slates-hub-postgres
         slates-hub-redis
