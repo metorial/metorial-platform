@@ -10,6 +10,7 @@ export type ManagementInstanceProviderDeploymentsAuthCredentialsDeleteOutput = {
   name: string | null;
   description: string | null;
   metadata: Record<string, any> | null;
+  scopes: string[] | null;
   providerId: string;
   createdAt: Date;
   updatedAt: Date;
@@ -27,6 +28,7 @@ export let mapManagementInstanceProviderDeploymentsAuthCredentialsDeleteOutput =
       name: mtMap.objectField('name', mtMap.passthrough()),
       description: mtMap.objectField('description', mtMap.passthrough()),
       metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+      scopes: mtMap.objectField('scopes', mtMap.array(mtMap.passthrough())),
       providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
       createdAt: mtMap.objectField('created_at', mtMap.date()),
       updatedAt: mtMap.objectField('updated_at', mtMap.date())

@@ -50,6 +50,25 @@ export abstract class IProviderAuth extends IProviderFunctionality {
   abstract getDecryptedAuthConfig(
     data: GetDecryptedAuthConfigParam
   ): Promise<GetDecryptedAuthConfigRes>;
+
+  async getManyProviderAuthCredentialsScopes(
+    data: ProviderAuthCredentialsScopesParam
+  ): Promise<ProviderAuthCredentialsScopesRes> {
+    return { scopes: new Map() };
+  }
+}
+
+export interface ProviderAuthCredentialsScopesParam {
+  tenant: Tenant;
+  backings: {
+    id: string;
+    slateCredentialsOid?: bigint | null;
+    shuttleCredentialsOid?: bigint | null;
+  }[];
+}
+
+export interface ProviderAuthCredentialsScopesRes {
+  scopes: Map<string, string[]>;
 }
 
 export interface ProviderAuthCredentialsCreateParam {

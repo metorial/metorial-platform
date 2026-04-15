@@ -301,6 +301,39 @@ class providerAuthCredentialsServiceImpl {
     );
   }
 
+  async enrichWithScopes<T extends ProviderAuthCredentials>(d: {
+    tenant: Tenant;
+    credentials: T[];
+  }): Promise<(T & { scopes: string[] | null })[]> {
+    let byBackend = new Map<bigint, T[]>();
+    for (let cred of d.credentials) {
+      let group = byBackend.get(cred.backendOid) ?? [];
+      group.push(cred);
+      byBackend.set(cred.backendOid, group);
+    }
+
+    let results = await Promise.all(
+      Array.from(byBackend.entries()).map(async ([_, creds]) => {
+        let backend = await getBackend({ entity: creds[0]! });
+        let { scopes } = await backend.auth.getManyProviderAuthCredentialsScopes({
+          tenant: d.tenant,
+          backings: creds.map(c => ({
+            id: c.id,
+            slateCredentialsOid: c.slateCredentialsOid,
+            shuttleCredentialsOid: c.shuttleCredentialsOid
+          }))
+        });
+
+        return creds.map(c => ({
+          ...c,
+          scopes: scopes.get(c.id) ?? null
+        }));
+      })
+    );
+
+    return results.flat();
+  }
+
   async getProviderAuthCredentialsById(d: {
     tenant: Tenant;
     solution: Solution;

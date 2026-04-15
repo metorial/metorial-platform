@@ -11,6 +11,8 @@ import type {
   ProviderAuthCredentialsCreateRes,
   ProviderAuthCredentialsDeleteParam,
   ProviderAuthCredentialsDeleteRes,
+  ProviderAuthCredentialsScopesParam,
+  ProviderAuthCredentialsScopesRes,
   ProviderAuthCredentialsUpdateParam,
   ProviderAuthCredentialsUpdateRes,
   ProviderOAuthSetupCreateParam,
@@ -116,6 +118,43 @@ export class ProviderAuth extends IProviderAuth {
     });
 
     return {};
+  }
+
+  override async getManyProviderAuthCredentialsScopes(
+    data: ProviderAuthCredentialsScopesParam
+  ): Promise<ProviderAuthCredentialsScopesRes> {
+    let oids = data.backings
+      .filter(b => b.slateCredentialsOid)
+      .map(b => b.slateCredentialsOid!);
+
+    if (oids.length === 0) return { scopes: new Map() };
+
+    let slateRows = await db.slateOAuthCredentials.findMany({
+      where: { oid: { in: oids } }
+    });
+    if (slateRows.length === 0) return { scopes: new Map() };
+
+    let tenant = await getTenantForSlates(data.tenant);
+    let slateCreds = await slates.slateOAuthCredentials.getMany({
+      tenantId: tenant.id,
+      slateOAuthCredentialsIds: slateRows.map(r => r.id)
+    });
+
+    let slateIdToOid = new Map(slateRows.map(r => [r.id, r.oid]));
+    let oidToBackingId = new Map(
+      data.backings.filter(b => b.slateCredentialsOid).map(b => [b.slateCredentialsOid!, b.id])
+    );
+
+    let scopes = new Map<string, string[]>();
+    for (let cred of slateCreds) {
+      let oid = slateIdToOid.get(cred.id);
+      if (!oid) continue;
+      let backingId = oidToBackingId.get(oid);
+      if (!backingId) continue;
+      scopes.set(backingId, cred.scopes);
+    }
+
+    return { scopes };
   }
 
   override async createProviderOAuthSetup(

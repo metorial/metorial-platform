@@ -105,7 +105,14 @@ export let providerAuthCredentialsController = app.controller({
         allowDeleted: v.optional(v.boolean())
       })
     )
-    .do(async ctx => providerAuthCredentialsPresenter(ctx.providerAuthCredentials)),
+    .do(async ctx => {
+      let [enriched] = await providerAuthCredentialsService.enrichWithScopes({
+        tenant: ctx.tenant,
+        credentials: [ctx.providerAuthCredentials]
+      });
+
+      return providerAuthCredentialsPresenter(enriched!);
+    }),
 
   create: tenantApp
     .handler()

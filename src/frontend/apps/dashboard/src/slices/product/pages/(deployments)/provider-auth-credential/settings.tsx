@@ -1,11 +1,30 @@
 import { renderWithLoader, useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
-import { useCurrentInstance, useProviderAuthCredential } from '@metorial/state';
-import { Button, Callout, Input, Spacer } from '@metorial/ui';
+import {
+  useCurrentInstance,
+  useProvider,
+  useProviderAuthCredential,
+  useProviderAuthMethods
+} from '@metorial/state';
+import { Button, Callout, Checkbox, Flex, Input, Spacer, Text } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
+import { useMemo, useState } from 'react';
+import styled from 'styled-components';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { DeleteResourceDangerZone } from '../../../scenes/deleteResourceDangerZone';
 import { getFromDeployment } from '../fromDeployment';
+
+let ScopesList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+`;
+
+let ScopeItem = styled.div`
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+`;
 
 export let ProviderAuthCredentialSettingsPage = () => {
   let instance = useCurrentInstance();
@@ -14,7 +33,26 @@ export let ProviderAuthCredentialSettingsPage = () => {
 
   let { providerAuthCredentialsId } = useParams();
   let credential = useProviderAuthCredential(instance.data?.id, providerAuthCredentialsId);
+  let provider = useProvider(instance.data?.id, credential.data?.providerId);
+  let versionId = provider.data?.currentVersion?.id;
+  let authMethods = useProviderAuthMethods(
+    instance.data?.id,
+    versionId ? { providerVersionId: versionId } : null
+  );
+
+  let availableScopes = useMemo(() => {
+    let oauthMethod = (authMethods.data?.items ?? []).find(m => m.type === 'oauth');
+    return oauthMethod?.scopes ?? [];
+  }, [authMethods.data?.items]);
+
+  let [selectedScopes, setSelectedScopes] = useState<Set<string> | null>(null);
+
+  let credentialScopes = credential.data?.scopes;
+  let effectiveScopes =
+    selectedScopes ?? new Set(credentialScopes ?? availableScopes.map(s => s.scope));
+
   let updateMutator = credential.useUpdateMutator();
+  let scopesMutator = credential.useUpdateMutator();
   let deleteMutator = credential.useDeleteMutator();
   let fromDeploymentId = getFromDeployment(location.search);
   let form = useForm({
@@ -37,6 +75,21 @@ export let ProviderAuthCredentialSettingsPage = () => {
         description: yup.string()
       }) as any
   });
+
+  let toggleScope = (scope: string) => {
+    let next = new Set(effectiveScopes);
+    if (next.has(scope)) {
+      next.delete(scope);
+    } else {
+      next.add(scope);
+    }
+    setSelectedScopes(next);
+  };
+
+  let saveScopes = async () => {
+    if (credential.data?.isManaged) return;
+    await scopesMutator.mutate({ scopes: [...effectiveScopes] });
+  };
 
   return renderWithLoader({ credential })(({ credential }) => (
     <>
@@ -77,6 +130,64 @@ export let ProviderAuthCredentialSettingsPage = () => {
           <updateMutator.RenderError />
         </form>
       </Box>
+
+      {availableScopes.length > 0 && (
+        <>
+          <Spacer size={20} />
+
+          <Box
+            title="Scopes"
+            description="Select which OAuth scopes this credential should request."
+          >
+            {credential.data.isManaged && (
+              <>
+                <Callout color="blue">Managed by Metorial.</Callout>
+                <Spacer size={15} />
+              </>
+            )}
+
+            <ScopesList>
+              {availableScopes.map(scope => (
+                <ScopeItem key={scope.id}>
+                  <Checkbox
+                    checked={effectiveScopes.has(scope.scope)}
+                    onCheckedChange={() => toggleScope(scope.scope)}
+                    disabled={credential.data.isManaged}
+                    label={
+                      <Flex direction="column" gap={2}>
+                        <Text size="2" weight="medium">
+                          {scope.name}
+                        </Text>
+                        {scope.description && (
+                          <Text size="1" color="gray600">
+                            {scope.description}
+                          </Text>
+                        )}
+                      </Flex>
+                    }
+                  />
+                </ScopeItem>
+              ))}
+            </ScopesList>
+
+            <Spacer size={15} />
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <Button
+                size="2"
+                onClick={saveScopes}
+                loading={scopesMutator.isLoading}
+                success={scopesMutator.isSuccess}
+                disabled={credential.data.isManaged}
+              >
+                Save
+              </Button>
+            </div>
+
+            <scopesMutator.RenderError />
+          </Box>
+        </>
+      )}
 
       <Spacer size={20} />
 
