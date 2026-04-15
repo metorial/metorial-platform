@@ -170,7 +170,7 @@ class customProviderDeploymentServiceImpl {
         id: shadowId('cpds_', [l.id]),
         object: 'custom_provider.deployment.step',
 
-        logs: l.logs.map(log => ({
+        logs: l.logs.map((log: any) => ({
           ...log,
           object: 'custom_provider.deployment.log'
         }))
