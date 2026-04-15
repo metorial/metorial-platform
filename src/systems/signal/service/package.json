@@ -14,6 +14,7 @@
     "infra:down": "docker compose -p signal -f ./docker-compose.dev.yml --profile infra down",
     "infra:logs": "docker compose -p signal -f ./docker-compose.dev.yml --profile infra logs -f",
     "prisma:generate": "bun run db:generate",
+    "prisma:push": "bun run db:push:dev",
     "db:generate": "bun prisma generate",
     "db:push:dev": "sh -c 'set -a; . .env; set +a; bun prisma db push --accept-data-loss'",
     "db:push:test": "sh -c 'set -a; . .env.test; set +a; bun prisma db push --accept-data-loss'",

@@ -18,7 +18,7 @@ export let env = createValidatedEnv({
   },
 
   provider: {
-    DEFAULT_PROVIDER: v.enumOf(['aws.code-build'])
+    DEFAULT_PROVIDER: v.enumOf(['aws.code-build', 'local'])
   },
 
   codeBuild: {
