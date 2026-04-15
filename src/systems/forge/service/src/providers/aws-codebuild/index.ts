@@ -12,7 +12,7 @@ import { ensureProject } from './project';
 
 let SYSTEM_OUTPUT_PREFIX = `X@%%MT0RL-)AL:: `;
 
-class AwsCodeBuildAdapter extends ForgeBuildAdapter {
+export class AwsCodeBuildAdapter extends ForgeBuildAdapter {
   readonly startBuildQueue = createQueue<{ runId: string }>({
     redisUrl: env.service.REDIS_URL,
     name: 'frg/aws.cb/bld/start',
@@ -486,10 +486,6 @@ class AwsCodeBuildAdapter extends ForgeBuildAdapter {
     }
   }
 }
-
-export let awsCodeBuildAdapter = new AwsCodeBuildAdapter();
-export let startBuildQueue = awsCodeBuildAdapter.startBuildQueue;
-export let buildProviderProcessors = awsCodeBuildAdapter.buildProviderProcessors;
 
 if (
   process.env.NODE_ENV == 'production' &&

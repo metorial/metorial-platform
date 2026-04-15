@@ -3,10 +3,15 @@ import { promises as fs } from 'fs';
 import JSZip from 'jszip';
 import { createQueue } from '@lowerdeck/queue';
 import { tmpdir } from 'os';
-import { dirname, join, resolve, sep } from 'path';
+import { dirname, join, posix, resolve, sep } from 'path';
 import { env } from '../../env';
 import { storage } from '../../storage';
 import { ForgeBuildAdapter } from '../_lib/adapter';
+
+// Use a public Bun image so local workflows can run `bun`/`bunx`
+// while still allowing package installation via `apt-get`.
+let LOCAL_BUILD_IMAGE = 'oven/bun:1';
+let CONTAINER_WORKDIR = '/workspace';
 
 let ensurePathWithin = (basePath: string, targetPath: string) => {
   let resolvedBasePath = resolve(basePath);
@@ -38,14 +43,15 @@ let extractZipToDirectory = async (data: Buffer, targetDirectory: string) => {
   }
 };
 
-let runCommand = async (d: {
+let runProcess = async (d: {
   command: string;
-  cwd: string;
-  envVars: Record<string, string>;
+  args: string[];
+  cwd?: string;
+  envVars?: Record<string, string>;
   onLine: (line: string) => Promise<void>;
 }) => {
   return await new Promise<number>((resolvePromise, rejectPromise) => {
-    let child = spawn('/bin/sh', ['-lc', d.command], {
+    let child = spawn(d.command, d.args, {
       cwd: d.cwd,
       env: {
         ...process.env,
@@ -97,19 +103,22 @@ let runCommand = async (d: {
   });
 };
 
+let resolveContainerPath = (targetPath: string) => posix.resolve(CONTAINER_WORKDIR, targetPath);
+
+let createContainerName = (runId: string) =>
+  `metorial-forge-${runId}`.toLowerCase().replace(/[^a-z0-9_.-]/g, '-').slice(0, 63);
+
 let runCommands = async (d: {
+  containerName: string;
   commands: string[];
-  cwd: string;
-  envVars: Record<string, string>;
   logger: { writeLine: (message: string, timestamp?: number) => Promise<void> };
 }) => {
   for (let command of d.commands) {
     await d.logger.writeLine(`$ ${command}`);
 
-    let exitCode = await runCommand({
-      command,
-      cwd: d.cwd,
-      envVars: d.envVars,
+    let exitCode = await runProcess({
+      command: 'docker',
+      args: ['exec', d.containerName, 'sh', '-lc', command],
       onLine: async line => {
         if (!line.trim()) return;
         await d.logger.writeLine(line);
@@ -122,7 +131,29 @@ let runCommands = async (d: {
   }
 };
 
-class LocalBuildAdapter extends ForgeBuildAdapter {
+let runDockerCommand = async (args: string[], onLine?: (line: string) => Promise<void>) => {
+  let lines: string[] = [];
+
+  let exitCode = await runProcess({
+    command: 'docker',
+    args,
+    onLine: async line => {
+      lines.push(line);
+      if (onLine) await onLine(line);
+    }
+  });
+
+  if (exitCode !== 0) {
+    let output = lines.join('\n').trim();
+    throw new Error(
+      `Docker command failed: docker ${args.join(' ')}${output ? `\n\n${output}` : ''}`
+    );
+  }
+
+  return lines.join('\n').trim();
+};
+
+export class LocalBuildAdapter extends ForgeBuildAdapter {
   readonly startBuildQueue = createQueue<{ runId: string }>({
     redisUrl: env.service.REDIS_URL,
     name: 'frg/local/bld/start',
@@ -144,9 +175,29 @@ class LocalBuildAdapter extends ForgeBuildAdapter {
     let artifactData: Record<string, { bucket: string; storageKey: string }> = {};
     let tempDirectory = await fs.mkdtemp(join(tmpdir(), 'metorial-forge-local-'));
     let forgeDirectory = join(tempDirectory, 'forge');
+    let containerName = createContainerName(runId);
 
     try {
       await fs.mkdir(join(forgeDirectory, 'output'), { recursive: true });
+
+      await runDockerCommand([
+        'run',
+        '--detach',
+        '--rm',
+        '--name',
+        containerName,
+        '--workdir',
+        CONTAINER_WORKDIR,
+        '--volume',
+        `${forgeDirectory}:${CONTAINER_WORKDIR}`,
+        '--env',
+        'DEBIAN_FRONTEND=noninteractive',
+        ...Object.entries(run.runtimeEnv).flatMap(([key, value]) => ['--env', `${key}=${value}`]),
+        LOCAL_BUILD_IMAGE,
+        'sh',
+        '-lc',
+        'while true; do sleep 3600; done'
+      ]);
 
       await run.ctx.startRun({
         startedAt: new Date()
@@ -155,6 +206,12 @@ class LocalBuildAdapter extends ForgeBuildAdapter {
       await this.withManagedStep(run.ctx, run.setupStep, async logger => {
         await logger.writeLine('Started build on Metorial Forge (runner: LOCAL/1) ...');
         await logger.writeLine('Setting up local build environment ...');
+        await logger.writeLine(`Booting local Docker image ${LOCAL_BUILD_IMAGE} ...`);
+        await runCommands({
+          containerName,
+            commands: ['apt-get update && apt-get install -y zip unzip curl'],
+          logger
+        });
         await logger.writeLine('Downloading initial files ...');
 
         for (let artifact of run.artifacts) {
@@ -170,9 +227,8 @@ class LocalBuildAdapter extends ForgeBuildAdapter {
       for (let step of run.initSteps) {
         await this.withManagedStep(run.ctx, step, async logger => {
           await runCommands({
+            containerName,
             commands: step.step?.initScript ?? ['echo "No action"'],
-            cwd: forgeDirectory,
-            envVars: run.runtimeEnv,
             logger
           });
         });
@@ -182,9 +238,8 @@ class LocalBuildAdapter extends ForgeBuildAdapter {
         await this.withManagedStep(run.ctx, step, async logger => {
           if (step.step?.type === 'script') {
             await runCommands({
+              containerName,
               commands: step.step.actionScript ?? ['echo "No action"'],
-              cwd: forgeDirectory,
-              envVars: run.runtimeEnv,
               logger
             });
             return;
@@ -196,16 +251,19 @@ class LocalBuildAdapter extends ForgeBuildAdapter {
               throw new Error('Artifact download step is missing configuration');
             }
 
-            let destinationPath = ensurePathWithin(
-              forgeDirectory,
-              step.step.artifactToDownloadPath
-            );
+            let destinationPath = resolveContainerPath(step.step.artifactToDownloadPath);
+            let tempArtifactPath = join(tempDirectory, `download-${artifact.id}`);
 
             await logger.writeLine(`Downloading artifact ${artifact.name} ...`);
-            await fs.mkdir(dirname(destinationPath), { recursive: true });
 
             let downloadedArtifact = await storage.getObject(artifact.bucket, artifact.storageKey);
-            await fs.writeFile(destinationPath, downloadedArtifact.data);
+            await fs.writeFile(tempArtifactPath, downloadedArtifact.data);
+            await runCommands({
+              containerName,
+              commands: [`mkdir -p ${JSON.stringify(posix.dirname(destinationPath))}`],
+              logger
+            });
+            await runDockerCommand(['cp', tempArtifactPath, `${containerName}:${destinationPath}`]);
             await logger.writeLine('Download complete.');
             return;
           }
@@ -215,14 +273,16 @@ class LocalBuildAdapter extends ForgeBuildAdapter {
               throw new Error('Artifact upload step is missing configuration');
             }
 
-            let uploadPath = ensurePathWithin(forgeDirectory, step.step.artifactToUploadPath);
+            let uploadPath = resolveContainerPath(step.step.artifactToUploadPath);
             let uploadInfo = await run.ctx.getArtifactUploadInfo();
-            let fileContents = await fs.readFile(uploadPath);
+            let tempArtifactPath = join(tempDirectory, `upload-${step.id}`);
 
             await logger.writeLine(
               `Uploading artifact ${step.step.artifactToUploadName} from ${step.step.artifactToUploadPath} ...`
             );
 
+            await runDockerCommand(['cp', `${containerName}:${uploadPath}`, tempArtifactPath]);
+            let fileContents = await fs.readFile(tempArtifactPath);
             await storage.putObject(uploadInfo.bucket, uploadInfo.storageKey, fileContents);
 
             let uploadedArtifactData = {
@@ -247,9 +307,8 @@ class LocalBuildAdapter extends ForgeBuildAdapter {
       for (let step of run.cleanupSteps) {
         await this.withManagedStep(run.ctx, step, async logger => {
           await runCommands({
+            containerName,
             commands: step.step?.cleanupScript ?? ['echo "No action"'],
-            cwd: forgeDirectory,
-            envVars: run.runtimeEnv,
             logger
           });
         });
@@ -270,11 +329,10 @@ class LocalBuildAdapter extends ForgeBuildAdapter {
     } catch (err) {
       await this.failBuild(run.ctx, err, 'Local forge build failed');
     } finally {
+      try {
+        await runDockerCommand(['rm', '--force', containerName]);
+      } catch {}
       await fs.rm(tempDirectory, { recursive: true, force: true });
     }
   }
 }
-
-export let localBuildAdapter = new LocalBuildAdapter();
-export let startBuildQueue = localBuildAdapter.startBuildQueue;
-export let buildProviderProcessors = localBuildAdapter.buildProviderProcessors;

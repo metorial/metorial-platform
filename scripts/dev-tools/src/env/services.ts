@@ -366,7 +366,7 @@ export let forgeServiceEnv: Env = [
   },
   {
     key: 'DEFAULT_PROVIDER',
-    defaultValue: 'aws.code-build'
+    defaultValue: 'local' // aws.code-build
   },
   {
     key: 'OBJECT_STORAGE_URL',
@@ -379,27 +379,27 @@ export let forgeServiceEnv: Env = [
   {
     key: 'LOG_BUCKET_NAME',
     defaultValue: 'logs'
-  },
-  {
-    key: 'CODE_BUILD_AWS_REGION',
-    isRequired: false
-  },
-  {
-    key: 'CODE_BUILD_AWS_ACCESS_KEY_ID',
-    isRequired: false
-  },
-  {
-    key: 'CODE_BUILD_AWS_SECRET_ACCESS_KEY',
-    isRequired: false
-  },
-  {
-    key: 'CODE_BUILD_PROJECT_NAME',
-    isRequired: false
-  },
-  {
-    key: 'CODE_BUILD_ROLE_ARN',
-    isRequired: false
   }
+  // {
+  //   key: 'CODE_BUILD_AWS_REGION',
+  //   isRequired: false
+  // },
+  // {
+  //   key: 'CODE_BUILD_AWS_ACCESS_KEY_ID',
+  //   isRequired: false
+  // },
+  // {
+  //   key: 'CODE_BUILD_AWS_SECRET_ACCESS_KEY',
+  //   isRequired: false
+  // },
+  // {
+  //   key: 'CODE_BUILD_PROJECT_NAME',
+  //   isRequired: false
+  // },
+  // {
+  //   key: 'CODE_BUILD_ROLE_ARN',
+  //   isRequired: false
+  // }
 ];
 
 export let functionBayServiceEnv: Env = [
@@ -417,7 +417,7 @@ export let functionBayServiceEnv: Env = [
   },
   {
     key: 'DEFAULT_PROVIDER',
-    defaultValue: 'aws.lambda'
+    defaultValue: 'local' // aws.lambda
   },
   {
     key: 'OBJECT_STORAGE_URL',
@@ -430,23 +430,23 @@ export let functionBayServiceEnv: Env = [
   {
     key: 'FORGE_API_URL',
     defaultValue: `http://${HOSTNAME}:52020/metorial-forge`
-  },
-  {
-    key: 'LAMBDA_AWS_REGION',
-    isRequired: false
-  },
-  {
-    key: 'LAMBDA_AWS_ACCESS_KEY_ID',
-    isRequired: false
-  },
-  {
-    key: 'LAMBDA_AWS_SECRET_ACCESS_KEY',
-    isRequired: false
-  },
-  {
-    key: 'LAMBDA_EXECUTION_ROLE_ARN',
-    isRequired: false
   }
+  // {
+  //   key: 'LAMBDA_AWS_REGION',
+  //   isRequired: false
+  // },
+  // {
+  //   key: 'LAMBDA_AWS_ACCESS_KEY_ID',
+  //   isRequired: false
+  // },
+  // {
+  //   key: 'LAMBDA_AWS_SECRET_ACCESS_KEY',
+  //   isRequired: false
+  // },
+  // {
+  //   key: 'LAMBDA_EXECUTION_ROLE_ARN',
+  //   isRequired: false
+  // }
 ];
 
 export let aresServiceEnv: Env = [
