@@ -9,8 +9,6 @@ await runQueueProcessors([
   deleteWorkflowProcessors,
   deleteWorkflowRunProcessors,
   deleteWorkflowArtifactProcessors,
-
   buildProviderProcessors,
-
   buildQueueProcessors
 ]);

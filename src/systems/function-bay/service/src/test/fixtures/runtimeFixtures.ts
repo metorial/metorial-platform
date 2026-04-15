@@ -1,7 +1,7 @@
-import { randomBytes } from 'crypto';
-import type { PrismaClient, Runtime, Provider } from '../../../prisma/generated/client';
-import { getId } from '../../id';
 import { defineFactory } from '@lowerdeck/testing-tools';
+import { randomBytes } from 'crypto';
+import type { PrismaClient, Provider, Runtime } from '../../../prisma/generated/client';
+import { getId } from '../../id';
 import { ProviderFixtures } from './providerFixtures';
 
 export const RuntimeFixtures = (db: PrismaClient) => {
@@ -23,8 +23,15 @@ export const RuntimeFixtures = (db: PrismaClient) => {
         name: data.overrides?.name ?? `Test Runtime ${identifier}`,
         providerOid: data.providerOid,
         configuration: data.overrides?.configuration ?? {
-          runtime: { provider: 'aws.lambda', runtime: 'nodejs22.x' },
-          layer: { type: 'aws.arn', arn: 'arn:aws:lambda:us-east-1:123456789:layer:test:1' }
+          runtime: { identifier: 'nodejs', version: '22.x' },
+          layer: {
+            provider: 'aws.lambda',
+            identifier: 'test-layer',
+            version: '2026-01-01',
+            os: 'linux',
+            osIdentifier: 'aws-linux.any',
+            arch: 'x86_64'
+          }
         }
       } as Runtime,
       {
@@ -52,6 +59,23 @@ export const RuntimeFixtures = (db: PrismaClient) => {
     }) as Promise<Runtime & { provider: Provider }>;
   };
 
+  const withLocalProvider = async (data?: {
+    providerOverrides?: Partial<Provider>;
+    runtimeOverrides?: Partial<Runtime>;
+  }): Promise<Runtime & { provider: Provider }> => {
+    const provider = await providerFixtures.local(data?.providerOverrides);
+
+    const runtime = await defaultRuntime({
+      providerOid: provider.oid,
+      overrides: data?.runtimeOverrides
+    });
+
+    return db.runtime.findUniqueOrThrow({
+      where: { id: runtime.id },
+      include: { provider: true }
+    }) as Promise<Runtime & { provider: Provider }>;
+  };
+
   const nodejs22 = async (data?: {
     providerOverrides?: Partial<Provider>;
     runtimeOverrides?: Partial<Runtime>;
@@ -62,8 +86,39 @@ export const RuntimeFixtures = (db: PrismaClient) => {
         identifier: 'aws.lambda.nodejs22.x',
         name: 'AWS Lambda Node.js 22.x',
         configuration: {
-          runtime: { provider: 'aws.lambda', runtime: 'nodejs22.x' },
-          layer: { type: 'aws.arn', arn: 'arn:aws:lambda:us-east-1:123456789:layer:nodejs:1' }
+          runtime: { identifier: 'nodejs', version: '22.x' },
+          layer: {
+            provider: 'aws.lambda',
+            identifier: 'aws-layer-nodejs22',
+            version: '2026-01-01',
+            os: 'linux',
+            osIdentifier: 'aws-linux.any',
+            arch: 'x86_64'
+          }
+        },
+        ...data?.runtimeOverrides
+      }
+    });
+
+  const localNodejs22 = async (data?: {
+    providerOverrides?: Partial<Provider>;
+    runtimeOverrides?: Partial<Runtime>;
+  }): Promise<Runtime & { provider: Provider }> =>
+    withLocalProvider({
+      providerOverrides: data?.providerOverrides,
+      runtimeOverrides: {
+        identifier: 'local.nodejs22.x',
+        name: 'Local Node.js 22.x (Lambda-compatible)',
+        configuration: {
+          runtime: { identifier: 'nodejs', version: '22.x' },
+          layer: {
+            provider: 'aws.lambda',
+            identifier: 'local-layer-nodejs22',
+            version: '2026-01-01',
+            os: 'linux',
+            osIdentifier: 'aws-linux.any',
+            arch: 'x86_64'
+          }
         },
         ...data?.runtimeOverrides
       }
@@ -72,6 +127,8 @@ export const RuntimeFixtures = (db: PrismaClient) => {
   return {
     default: defaultRuntime,
     withProvider,
-    nodejs22
+    withLocalProvider,
+    nodejs22,
+    localNodejs22
   };
 };
