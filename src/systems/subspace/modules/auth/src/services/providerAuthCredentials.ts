@@ -434,6 +434,10 @@ class providerAuthCredentialsServiceImpl {
       description?: string;
       metadata?: Record<string, any>;
       privateMetadata?: Record<string, any>;
+
+      clientId?: string;
+      clientSecret?: string;
+      scopes?: string[];
     };
   }) {
     checkTenant(d, d.providerAuthCredentials);
@@ -449,6 +453,21 @@ class providerAuthCredentialsServiceImpl {
     }
 
     return withTransaction(async db => {
+      let backend = await getBackend({ entity: d.providerAuthCredentials });
+
+      if (d.input.clientId || d.input.clientSecret || d.input.scopes) {
+        await backend.auth.updateProviderAuthCredentials({
+          tenant: d.tenant,
+          backing: d.providerAuthCredentials,
+          input: {
+            type: 'oauth',
+            clientId: d.input.clientId,
+            clientSecret: d.input.clientSecret,
+            scopes: d.input.scopes
+          }
+        });
+      }
+
       let creds = await db.providerAuthCredentials.update({
         where: {
           oid: d.providerAuthCredentials.oid,

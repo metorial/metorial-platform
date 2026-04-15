@@ -23,6 +23,10 @@ export abstract class IProviderAuth extends IProviderFunctionality {
     data: ProviderAuthCredentialsCreateParam
   ): Promise<ProviderAuthCredentialsCreateRes>;
 
+  abstract updateProviderAuthCredentials(
+    data: ProviderAuthCredentialsUpdateParam
+  ): Promise<ProviderAuthCredentialsUpdateRes>;
+
   abstract deleteProviderAuthCredentials(
     data: ProviderAuthCredentialsDeleteParam
   ): Promise<ProviderAuthCredentialsDeleteRes>;
@@ -68,14 +72,27 @@ export interface ProviderAuthCredentialsCreateRes {
   isAutoRegistration: boolean;
 }
 
-export interface ProviderAuthCredentialsDeleteBacking {
+export interface ProviderAuthCredentialsEditBacking {
   slateCredentialsOid?: bigint | null;
   shuttleCredentialsOid?: bigint | null;
 }
 
+export interface ProviderAuthCredentialsUpdateParam {
+  tenant: Tenant;
+  backing: ProviderAuthCredentialsEditBacking;
+  input: {
+    type: 'oauth';
+    clientId?: string;
+    clientSecret?: string;
+    scopes?: string[];
+  };
+}
+
+export interface ProviderAuthCredentialsUpdateRes {}
+
 export interface ProviderAuthCredentialsDeleteParam {
   tenant: Tenant;
-  backing: ProviderAuthCredentialsDeleteBacking;
+  backing: ProviderAuthCredentialsEditBacking;
 }
 
 export interface ProviderAuthCredentialsDeleteRes {}

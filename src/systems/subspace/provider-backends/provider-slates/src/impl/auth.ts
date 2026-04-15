@@ -11,6 +11,8 @@ import type {
   ProviderAuthCredentialsCreateRes,
   ProviderAuthCredentialsDeleteParam,
   ProviderAuthCredentialsDeleteRes,
+  ProviderAuthCredentialsUpdateParam,
+  ProviderAuthCredentialsUpdateRes,
   ProviderOAuthSetupCreateParam,
   ProviderOAuthSetupCreateRes,
   ProviderOAuthSetupRetrieveParam,
@@ -64,6 +66,33 @@ export class ProviderAuth extends IProviderAuth {
       isAutoRegistration: false,
       type: 'oauth'
     };
+  }
+
+  override async updateProviderAuthCredentials(
+    data: ProviderAuthCredentialsUpdateParam
+  ): Promise<ProviderAuthCredentialsUpdateRes> {
+    if (!data.backing.slateCredentialsOid) {
+      return {};
+    }
+
+    let tenant = await getTenantForSlates(data.tenant);
+    let slateOAuthCredentials = await db.slateOAuthCredentials.findUnique({
+      where: { oid: data.backing.slateCredentialsOid }
+    });
+    if (!slateOAuthCredentials) {
+      return {};
+    }
+
+    await slates.slateOAuthCredentials.update({
+      tenantId: tenant.id,
+      slateOAuthCredentialsId: slateOAuthCredentials.id,
+
+      clientId: data.input.clientId,
+      clientSecret: data.input.clientSecret,
+      scopes: data.input.scopes
+    });
+
+    return {};
   }
 
   override async deleteProviderAuthCredentials(

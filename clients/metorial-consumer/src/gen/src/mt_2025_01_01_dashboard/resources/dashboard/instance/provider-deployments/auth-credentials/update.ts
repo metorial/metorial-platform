@@ -37,12 +37,18 @@ export type DashboardInstanceProviderDeploymentsAuthCredentialsUpdateBody = {
   name?: string | undefined;
   description?: string | undefined;
   metadata?: Record<string, any> | undefined;
+  clientId?: string | undefined;
+  clientSecret?: string | undefined;
+  scopes?: string[] | undefined;
 };
 
 export let mapDashboardInstanceProviderDeploymentsAuthCredentialsUpdateBody =
   mtMap.object<DashboardInstanceProviderDeploymentsAuthCredentialsUpdateBody>({
     name: mtMap.objectField('name', mtMap.passthrough()),
     description: mtMap.objectField('description', mtMap.passthrough()),
-    metadata: mtMap.objectField('metadata', mtMap.passthrough())
+    metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+    clientId: mtMap.objectField('client_id', mtMap.passthrough()),
+    clientSecret: mtMap.objectField('client_secret', mtMap.passthrough()),
+    scopes: mtMap.objectField('scopes', mtMap.array(mtMap.passthrough()))
   });
 

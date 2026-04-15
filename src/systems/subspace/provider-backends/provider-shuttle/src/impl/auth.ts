@@ -12,6 +12,8 @@ import type {
   ProviderAuthCredentialsCreateRes,
   ProviderAuthCredentialsDeleteParam,
   ProviderAuthCredentialsDeleteRes,
+  ProviderAuthCredentialsUpdateParam,
+  ProviderAuthCredentialsUpdateRes,
   ProviderOAuthSetupCreateParam,
   ProviderOAuthSetupCreateRes,
   ProviderOAuthSetupRetrieveParam,
@@ -61,6 +63,16 @@ export class ProviderAuth extends IProviderAuth {
       shuttleOAuthCredentials,
       isAutoRegistration: data.input.type === 'auto_registration'
     };
+  }
+
+  override updateProviderAuthCredentials(
+    _data: ProviderAuthCredentialsUpdateParam
+  ): Promise<ProviderAuthCredentialsUpdateRes> {
+    throw new ServiceError(
+      badRequestError({
+        message: 'This integration does not support authentication configuration'
+      })
+    );
   }
 
   override async deleteProviderAuthCredentials(
