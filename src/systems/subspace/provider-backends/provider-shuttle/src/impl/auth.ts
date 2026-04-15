@@ -65,7 +65,7 @@ export class ProviderAuth extends IProviderAuth {
     };
   }
 
-  override updateProviderAuthCredentials(
+  override async updateProviderAuthCredentials(
     _data: ProviderAuthCredentialsUpdateParam
   ): Promise<ProviderAuthCredentialsUpdateRes> {
     throw new ServiceError(

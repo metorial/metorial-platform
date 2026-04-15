@@ -33,7 +33,7 @@ export class ProviderAuth extends IProviderAuth {
     throw unsupportedAuthError();
   }
 
-  override updateProviderAuthCredentials(
+  override async updateProviderAuthCredentials(
     _data: ProviderAuthCredentialsUpdateParam
   ): Promise<ProviderAuthCredentialsUpdateRes> {
     throw unsupportedAuthError();
