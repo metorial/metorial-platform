@@ -12,3 +12,4 @@ bun run --cwd ./src/systems/function-bay/service db:generate
 
 bunx turbo run --ui=stream build --filter=@metorial-platform-systems/forge-client
 bunx turbo run --ui=stream build --filter=@metorial-platform-systems/function-bay-client
+bunx turbo run --ui=stream build --filter=./src/systems/shuttle/sdk
