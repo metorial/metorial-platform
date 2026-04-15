@@ -3,7 +3,7 @@ import { createQueue } from '@lowerdeck/queue';
 import { db } from '../../db';
 import { env } from '../../env';
 import { getId } from '../../id';
-import { getRegistryClient } from '../../registry';
+import { getRegistryClient, getRegistryQuery } from '../../registry';
 import { syncSlateQueue } from './syncSlate';
 
 export let syncRegistryQueue = createQueue<{
@@ -23,7 +23,6 @@ export let syncRegistryQueueProcessor = syncRegistryQueue.process(data =>
     let reg = await db.registry.findUnique({
       where: { id: data.registryId }
     });
-    console.log('Syncing registry', data.registryId);
     if (!reg) return;
 
     let client = await getRegistryClient(reg);
@@ -32,7 +31,8 @@ export let syncRegistryQueueProcessor = syncRegistryQueue.process(data =>
       query: {
         limit: '100',
         after: reg.changeNotificationCursor ?? undefined,
-        order: 'asc'
+        order: 'asc',
+        ...getRegistryQuery()
       }
     });
     if (changeNotifications.status !== 200) return;

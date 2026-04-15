@@ -3,7 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type { Registry, Slate } from '../../prisma/generated/client';
 import { db } from '../db';
-import { getRegistryClient } from '../registry';
+import { getRegistryClient, getRegistryQuery } from '../registry';
 
 let include = {
   registry: true,
@@ -34,7 +34,8 @@ class slateServiceImpl {
       param: {
         scopeId: d.slate.slateScopeIdentifierOnRegistry,
         slateId: d.slate.slateIdentifierOnRegistry
-      }
+      },
+      query: getRegistryQuery()
     });
     if (res.status !== 200)
       throw new ServiceError(

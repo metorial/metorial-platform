@@ -4,7 +4,7 @@ import { createQueue } from '@lowerdeck/queue';
 import { db } from '../../db';
 import { env } from '../../env';
 import { getId, ID, snowflake } from '../../id';
-import { getRegistryClient } from '../../registry';
+import { getRegistryClient, getRegistryQuery } from '../../registry';
 import { deploySlateVersionQueue } from '../deployment/deploy';
 
 export let syncSlateQueue = createQueue<{
@@ -38,7 +38,8 @@ export let syncSlateQueueProcessor = syncSlateQueue.process(data =>
       param: {
         scopeId: scopeId!,
         slateId: slateId!
-      }
+      },
+      query: getRegistryQuery()
     });
     if (slateRes.status !== 200)
       throw new Error(
@@ -86,14 +87,22 @@ export let syncSlateQueueProcessor = syncSlateQueue.process(data =>
           scopeId: scopeId!,
           slateId: slateId!,
           versionId: data.version
-        }
+        },
+        query: getRegistryQuery()
       });
       if (slateVersionRes.status !== 200)
         throw new Error(
-          `Failed to fetch slate - status ${slateRes.status} - ${await slateRes.text()} - ${scopeId} - ${slateId} - ${data.version}`
+          `Failed to fetch slate version - status ${slateVersionRes.status} - ${await slateVersionRes.text()} - ${scopeId} - ${slateId} - ${data.version}`
         );
 
       let slateVersionData = await slateVersionRes.json();
+
+      if (
+        slateVersionData.build === 'prebuilt' &&
+        env.registry.SUPPORTS_PREBUILT_SLATES !== true
+      ) {
+        return;
+      }
 
       let slateVersionUpsertData = {
         version: slateVersionData.version,

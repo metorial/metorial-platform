@@ -9,32 +9,48 @@ import {
 } from '../lib/subRegistryFilter';
 
 class changeNotificationServiceImpl {
+  private buildVisibilityClause(supportsPrebuilt?: boolean) {
+    if (supportsPrebuilt === true) return {};
+
+    return {
+      OR: [{ slateVersionOid: null }, { slateVersion: { backend: 'local_unbuilt' as const } }]
+    };
+  }
+
   async getChangeNotificationById(d: {
     id: string;
     tenant?: Tenant;
     subRegistry?: SubRegistryWithFilters | null;
+    supportsPrebuilt?: boolean;
   }) {
     let filterClause = buildChangeNotificationFilterClause(d.subRegistry, d.tenant?.oid);
+    let visibilityClause = this.buildVisibilityClause(d.supportsPrebuilt);
 
     let notification = await db.changeNotification.findFirst({
       where: {
-        id: d.id,
-        ...filterClause
+        AND: [{ id: d.id }, filterClause, visibilityClause]
       }
     });
     if (!notification) throw new ServiceError(notFoundError('change_notification'));
     return notification;
   }
 
-  async listChangeNotifications(d: { tenant?: Tenant; subRegistry?: SubRegistryWithFilters | null }) {
+  async listChangeNotifications(d: {
+    tenant?: Tenant;
+    subRegistry?: SubRegistryWithFilters | null;
+    supportsPrebuilt?: boolean;
+  }) {
     let filterClause = buildChangeNotificationFilterClause(d.subRegistry, d.tenant?.oid);
+    let visibilityClause = this.buildVisibilityClause(d.supportsPrebuilt);
 
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
           await db.changeNotification.findMany({
             ...opts,
-            where: filterClause
+            where: {
+              AND: [filterClause, visibilityClause]
+            }
           })
       )
     );

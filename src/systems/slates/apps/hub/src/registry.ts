@@ -115,11 +115,17 @@ let getReaderToken = async (registry: Registry) => {
   return prom;
 };
 
-export let createSlatesRegistryClient = (o: { endpoint: string; token?: string }): RegistryClient =>
+export let createSlatesRegistryClient = (o: {
+  endpoint: string;
+  token?: string;
+}): RegistryClient =>
   hc(o.endpoint, {
     headers: o.token ? { Authorization: `Bearer ${o.token}` } : {},
     init: { redirect: 'follow' }
   }) as unknown as RegistryClient;
+
+export let getRegistryQuery = () =>
+  env.registry.SUPPORTS_PREBUILT_SLATES ? { supports_prebuilt: true } : {};
 
 export let getRegistryClient = async (registry: Registry): Promise<RegistryClient> => {
   let token = await getReaderToken(registry);

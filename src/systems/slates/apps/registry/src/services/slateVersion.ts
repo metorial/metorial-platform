@@ -39,6 +39,9 @@ let include = {
   slateDocuments: true
 };
 
+let getSlateVersionVisibilityWhere = (supportsPrebuilt = true) =>
+  supportsPrebuilt ? {} : { backend: 'local_unbuilt' as const };
+
 let packageLock = createLock({
   name: 'sreg/slate/pub',
   redisUrl: env.service.REDIS_URL
@@ -327,11 +330,12 @@ class slateVersionServiceImpl {
     );
   }
 
-  async getSlateVersionById(d: { id: string; slate: Slate }) {
+  async getSlateVersionById(d: { id: string; slate: Slate; supportsPrebuilt?: boolean }) {
     let version = await db.slateVersion.findFirst({
       where: {
         slateOid: d.slate.oid,
-        OR: [{ id: d.id }, { version: d.id }]
+        OR: [{ id: d.id }, { version: d.id }],
+        ...getSlateVersionVisibilityWhere(d.supportsPrebuilt)
       },
       include
     });
@@ -339,14 +343,15 @@ class slateVersionServiceImpl {
     return version;
   }
 
-  async listSlateVersions(d: { slate: Slate }) {
+  async listSlateVersions(d: { slate: Slate; supportsPrebuilt?: boolean }) {
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
           await db.slateVersion.findMany({
             ...opts,
             where: {
-              slateOid: d.slate.oid
+              slateOid: d.slate.oid,
+              ...getSlateVersionVisibilityWhere(d.supportsPrebuilt)
             },
             include
           })

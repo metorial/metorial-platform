@@ -1,8 +1,8 @@
 import { createHono } from '@lowerdeck/hono';
 import { Paginator } from '@lowerdeck/pagination';
 import { z } from 'zod';
-import { getPreferredCurrentSlateVersion } from '../../lib/slateVersion/current';
 import { paginatorSchema } from '../../lib/paginatorSchema';
+import { getPreferredCurrentSlateVersion } from '../../lib/slateVersion/current';
 import { useValidation } from '../../lib/validator';
 import { slatePresenter, slateVersionPresenter } from '../../presenters';
 import { slateService, slateVersionService } from '../../services';
@@ -113,7 +113,10 @@ export let slatesController = createHono()
         id: `${c.req.param('scopeId')}/${c.req.param('slateId')}`
       });
 
-      let paginator = await slateVersionService.listSlateVersions({ slate });
+      let paginator = await slateVersionService.listSlateVersions({
+        slate,
+        supportsPrebuilt: query.supports_prebuilt === true
+      });
       let list = await paginator.run(query);
       let currentVersionId =
         getPreferredCurrentSlateVersion({
@@ -146,7 +149,8 @@ export let slatesController = createHono()
 
       let slateVersion = await slateVersionService.getSlateVersionById({
         slate,
-        id: c.req.param('versionId')
+        id: c.req.param('versionId'),
+        supportsPrebuilt: query.supports_prebuilt === true
       });
 
       return c.json(
@@ -161,8 +165,12 @@ export let slatesController = createHono()
       );
     }
   )
-  .get(':scopeId/:slateId/versions/:versionId/download', async c => {
+  .get(
+    ':scopeId/:slateId/versions/:versionId/download',
+    useValidation('query', supportsPrebuiltSchema),
+    async c => {
     let auth = await useAuth(c);
+    let query = c.req.valid('query');
 
     let slate = await slateService.getSlateById({
       tenant: auth.tenant,
@@ -172,7 +180,8 @@ export let slatesController = createHono()
 
     let slateVersion = await slateVersionService.getSlateVersionById({
       slate,
-      id: c.req.param('versionId')
+      id: c.req.param('versionId'),
+      supportsPrebuilt: query.supports_prebuilt === true
     });
 
     let { url } = await storage.getPublicURL(

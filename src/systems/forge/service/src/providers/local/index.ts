@@ -115,18 +115,24 @@ let runCommands = async (d: {
 }) => {
   for (let command of d.commands) {
     await d.logger.writeLine(`$ ${command}`);
+    let outputLines: string[] = [];
 
     let exitCode = await runProcess({
       command: 'docker',
       args: ['exec', d.containerName, 'sh', '-lc', command],
       onLine: async line => {
         if (!line.trim()) return;
+        outputLines.push(line);
+        if (outputLines.length > 40) outputLines.shift();
         await d.logger.writeLine(line);
       }
     });
 
     if (exitCode !== 0) {
-      throw new Error(`Command failed with exit code ${exitCode}: ${command}`);
+      let output = outputLines.join('\n').trim();
+      throw new Error(
+        `Command failed with exit code ${exitCode}: ${command}${output ? `\n\n${output}` : ''}`
+      );
     }
   }
 };

@@ -166,7 +166,7 @@ export let slatesHubEnv: Env = [
   {
     key: 'SERVICE_PUBLIC_URL',
     defaultValue: `http://${HOSTNAME}:52045`
-  }
+  },
   // {
   //   key: 'ARES_AUTH_URL',
   //   defaultValue: 'http://services:52120'
@@ -175,6 +175,10 @@ export let slatesHubEnv: Env = [
   //   key: 'ARES_INTERNAL_URL',
   //   defaultValue: 'http://services:52123/metorial-ares-internal/api'
   // }
+  {
+    key: 'SUPPORTS_PREBUILT_SLATES',
+    defaultValue: 'true'
+  }
 ];
 
 export let slatesRegistryEnv: Env = [
