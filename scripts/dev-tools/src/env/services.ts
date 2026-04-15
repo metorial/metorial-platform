@@ -209,7 +209,7 @@ export let slatesRegistryEnv: Env = [
   },
   {
     key: 'SERVICE_PUBLIC_URL',
-    defaultValue: 'http://${HOSTNAME}:52040'
+    defaultValue: `http://${HOSTNAME}:52040`
   },
   {
     key: 'NPM_ORG',
