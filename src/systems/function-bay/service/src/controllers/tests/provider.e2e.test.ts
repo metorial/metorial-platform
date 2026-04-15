@@ -1,6 +1,12 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { functionBayClient } from '../../test/client';
 import { cleanDatabase } from '../../test/setup';
+import { env } from '../../env';
+
+let expectedProviders = {
+  'aws.lambda': 'AWS Lambda',
+  local: 'Local Runtime'
+} as const;
 
 describe('provider:getDefault E2E', () => {
   beforeEach(async () => {
@@ -8,13 +14,12 @@ describe('provider:getDefault E2E', () => {
   });
 
   it('returns the default provider', async () => {
-    // Provider is auto-seeded at module load time in aws-lambda/provider.ts
     const result = await functionBayClient.provider.getDefault({});
 
     expect(result).toMatchObject({
       id: expect.any(String),
-      identifier: 'aws.lambda',
-      name: 'AWS Lambda',
+      identifier: env.provider.DEFAULT_PROVIDER,
+      name: expectedProviders[env.provider.DEFAULT_PROVIDER],
       createdAt: expect.any(Date)
     });
   });

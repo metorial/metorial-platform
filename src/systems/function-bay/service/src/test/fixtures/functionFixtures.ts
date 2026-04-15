@@ -1,16 +1,16 @@
+import { defineFactory } from '@lowerdeck/testing-tools';
 import { randomBytes } from 'crypto';
 import type {
-  PrismaClient,
   Function as FunctionModel,
-  Tenant,
+  PrismaClient,
+  Provider,
   Runtime,
-  Provider
+  Tenant
 } from '../../../prisma/generated/client';
 import { FunctionStatus } from '../../../prisma/generated/client';
 import { getId } from '../../id';
-import { defineFactory } from '@lowerdeck/testing-tools';
-import { TenantFixtures } from './tenantFixtures';
 import { RuntimeFixtures } from './runtimeFixtures';
+import { TenantFixtures } from './tenantFixtures';
 
 export const FunctionFixtures = (db: PrismaClient) => {
   const tenantFixtures = TenantFixtures(db);
@@ -65,11 +65,18 @@ export const FunctionFixtures = (db: PrismaClient) => {
     tenantOverrides?: Partial<Tenant>;
     runtimeOverrides?: Partial<Runtime>;
     functionOverrides?: Partial<FunctionModel>;
-  }): Promise<FunctionModel & { tenant: Tenant; runtime: Runtime & { provider: Provider } }> => {
+    localRuntime?: boolean;
+  }): Promise<
+    FunctionModel & { tenant: Tenant; runtime: Runtime & { provider: Provider } }
+  > => {
     const tenant = await tenantFixtures.default(data?.tenantOverrides);
-    const runtime = await runtimeFixtures.nodejs22({
-      runtimeOverrides: data?.runtimeOverrides
-    });
+    const runtime = data?.localRuntime
+      ? await runtimeFixtures.localNodejs22({
+          runtimeOverrides: data?.runtimeOverrides
+        })
+      : await runtimeFixtures.nodejs22({
+          runtimeOverrides: data?.runtimeOverrides
+        });
 
     const func = await defaultFunction({
       tenantOid: tenant.oid,
