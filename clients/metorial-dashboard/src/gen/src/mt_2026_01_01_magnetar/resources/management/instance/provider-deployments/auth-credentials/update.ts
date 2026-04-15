@@ -10,6 +10,7 @@ export type ManagementInstanceProviderDeploymentsAuthCredentialsUpdateOutput = {
   name: string | null;
   description: string | null;
   metadata: Record<string, any> | null;
+  scopes: string[] | null;
   providerId: string;
   createdAt: Date;
   updatedAt: Date;
@@ -27,6 +28,7 @@ export let mapManagementInstanceProviderDeploymentsAuthCredentialsUpdateOutput =
       name: mtMap.objectField('name', mtMap.passthrough()),
       description: mtMap.objectField('description', mtMap.passthrough()),
       metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+      scopes: mtMap.objectField('scopes', mtMap.array(mtMap.passthrough())),
       providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
       createdAt: mtMap.objectField('created_at', mtMap.date()),
       updatedAt: mtMap.objectField('updated_at', mtMap.date())
@@ -37,12 +39,18 @@ export type ManagementInstanceProviderDeploymentsAuthCredentialsUpdateBody = {
   name?: string | undefined;
   description?: string | undefined;
   metadata?: Record<string, any> | undefined;
+  clientId?: string | undefined;
+  clientSecret?: string | undefined;
+  scopes?: string[] | undefined;
 };
 
 export let mapManagementInstanceProviderDeploymentsAuthCredentialsUpdateBody =
   mtMap.object<ManagementInstanceProviderDeploymentsAuthCredentialsUpdateBody>({
     name: mtMap.objectField('name', mtMap.passthrough()),
     description: mtMap.objectField('description', mtMap.passthrough()),
-    metadata: mtMap.objectField('metadata', mtMap.passthrough())
+    metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+    clientId: mtMap.objectField('client_id', mtMap.passthrough()),
+    clientSecret: mtMap.objectField('client_secret', mtMap.passthrough()),
+    scopes: mtMap.objectField('scopes', mtMap.array(mtMap.passthrough()))
   });
 

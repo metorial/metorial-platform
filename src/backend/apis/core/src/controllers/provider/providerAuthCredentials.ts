@@ -218,7 +218,11 @@ export let providerAuthCredentialsController = Controller.create(
           description: v.optional(v.string()),
           metadata: v.optional(v.record(v.any()), {
             description: 'Custom key-value pairs for storing additional information'
-          })
+          }),
+
+          client_id: v.optional(v.string()),
+          client_secret: v.optional(v.string()),
+          scopes: v.optional(v.array(v.string()))
         })
       )
       .output(providerAuthCredentialsPresenter)
@@ -228,7 +232,10 @@ export let providerAuthCredentialsController = Controller.create(
           providerAuthCredentialsId: ctx.authCredentials.id,
           name: ctx.body.name,
           description: ctx.body.description,
-          metadata: ctx.body.metadata
+          metadata: ctx.body.metadata,
+          clientId: ctx.body.client_id,
+          clientSecret: ctx.body.client_secret,
+          scopes: ctx.body.scopes
         });
 
         return providerAuthCredentialsPresenter.present({

@@ -301,6 +301,39 @@ class providerAuthCredentialsServiceImpl {
     );
   }
 
+  async enrichWithScopes<T extends ProviderAuthCredentials>(d: {
+    tenant: Tenant;
+    credentials: T[];
+  }): Promise<(T & { scopes: string[] | null })[]> {
+    let byBackend = new Map<bigint, T[]>();
+    for (let cred of d.credentials) {
+      let group = byBackend.get(cred.backendOid) ?? [];
+      group.push(cred);
+      byBackend.set(cred.backendOid, group);
+    }
+
+    let results = await Promise.all(
+      Array.from(byBackend.entries()).map(async ([_, creds]) => {
+        let backend = await getBackend({ entity: creds[0]! });
+        let { scopes } = await backend.auth.getManyProviderAuthCredentialsScopes({
+          tenant: d.tenant,
+          backings: creds.map(c => ({
+            id: c.id,
+            slateCredentialsOid: c.slateCredentialsOid,
+            shuttleCredentialsOid: c.shuttleCredentialsOid
+          }))
+        });
+
+        return creds.map(c => ({
+          ...c,
+          scopes: scopes.get(c.id) ?? null
+        }));
+      })
+    );
+
+    return results.flat();
+  }
+
   async getProviderAuthCredentialsById(d: {
     tenant: Tenant;
     solution: Solution;
@@ -434,6 +467,10 @@ class providerAuthCredentialsServiceImpl {
       description?: string;
       metadata?: Record<string, any>;
       privateMetadata?: Record<string, any>;
+
+      clientId?: string;
+      clientSecret?: string;
+      scopes?: string[];
     };
   }) {
     checkTenant(d, d.providerAuthCredentials);
@@ -449,6 +486,21 @@ class providerAuthCredentialsServiceImpl {
     }
 
     return withTransaction(async db => {
+      let backend = await getBackend({ entity: d.providerAuthCredentials });
+
+      if (d.input.clientId || d.input.clientSecret || d.input.scopes) {
+        await backend.auth.updateProviderAuthCredentials({
+          tenant: d.tenant,
+          backing: d.providerAuthCredentials,
+          input: {
+            type: 'oauth',
+            clientId: d.input.clientId,
+            clientSecret: d.input.clientSecret,
+            scopes: d.input.scopes
+          }
+        });
+      }
+
       let creds = await db.providerAuthCredentials.update({
         where: {
           oid: d.providerAuthCredentials.oid,
