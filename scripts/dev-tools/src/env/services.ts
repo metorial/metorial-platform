@@ -129,7 +129,7 @@ export let slatesHubEnv: Env = [
   },
   {
     key: 'FUNCTION_BAY_API_URL',
-    defaultValue: 'http://services:52030/metorial-function-bay'
+    defaultValue: 'http://localhost:52030/metorial-function-bay'
   },
   {
     key: 'FUNCTION_BAY_TENANT_IDENTIFIER',
@@ -145,7 +145,7 @@ export let slatesHubEnv: Env = [
   },
   {
     key: 'SIGNAL_API_URL',
-    defaultValue: `http://services:52050/metorial-signal`
+    defaultValue: `http://localhost:52050/metorial-signal`
   },
   {
     key: 'SIGNAL_SENDER_IDENTIFIER',
@@ -335,7 +335,7 @@ export let shuttleServiceEnv: Env = [
   },
   {
     key: 'FUNCTION_BAY_API_URL',
-    defaultValue: 'http://services:52030/metorial-function-bay'
+    defaultValue: 'http://localhost:52030/metorial-function-bay'
   },
   {
     key: 'FUNCTION_BAY_TENANT_IDENTIFIER',
@@ -348,6 +348,159 @@ export let shuttleServiceEnv: Env = [
   {
     key: 'FUNCTION_BAY_DEFAULT_TIMEOUT_SECONDS',
     defaultValue: '15'
+  }
+];
+
+export let forgeServiceEnv: Env = [
+  {
+    key: 'DATABASE_URL',
+    defaultValue: 'postgresql://postgres:postgres@localhost:35432/forge'
+  },
+  {
+    key: 'REDIS_URL',
+    defaultValue: 'redis://localhost:36379/0'
+  },
+  {
+    key: 'ENCRYPTION_KEY',
+    defaultValue: 'sTrG+z8ewVo7JJsgmv39UL/YDdgxlHSVhVPJOV7Omdg'
+  },
+  {
+    key: 'DEFAULT_PROVIDER',
+    defaultValue: 'aws.code-build'
+  },
+  {
+    key: 'OBJECT_STORAGE_URL',
+    defaultValue: 'http://services:52010'
+  },
+  {
+    key: 'ARTIFACT_BUCKET_NAME',
+    defaultValue: 'artifacts'
+  },
+  {
+    key: 'LOG_BUCKET_NAME',
+    defaultValue: 'logs'
+  },
+  {
+    key: 'CODE_BUILD_AWS_REGION',
+    isRequired: false
+  },
+  {
+    key: 'CODE_BUILD_AWS_ACCESS_KEY_ID',
+    isRequired: false
+  },
+  {
+    key: 'CODE_BUILD_AWS_SECRET_ACCESS_KEY',
+    isRequired: false
+  },
+  {
+    key: 'CODE_BUILD_PROJECT_NAME',
+    isRequired: false
+  },
+  {
+    key: 'CODE_BUILD_ROLE_ARN',
+    isRequired: false
+  }
+];
+
+export let functionBayServiceEnv: Env = [
+  {
+    key: 'DATABASE_URL',
+    defaultValue: 'postgresql://postgres:postgres@localhost:35432/function-bay'
+  },
+  {
+    key: 'REDIS_URL',
+    defaultValue: 'redis://localhost:36379/0'
+  },
+  {
+    key: 'ENCRYPTION_KEY',
+    defaultValue: 'sTrG+z8ewVo7JJsgmv39UL/YDdgxlHSVhVPJOV7Omdg'
+  },
+  {
+    key: 'DEFAULT_PROVIDER',
+    defaultValue: 'aws.lambda'
+  },
+  {
+    key: 'OBJECT_STORAGE_URL',
+    defaultValue: 'http://services:52010'
+  },
+  {
+    key: 'BUNDLE_BUCKET_NAME',
+    defaultValue: 'function-bay-bundles'
+  },
+  {
+    key: 'FORGE_API_URL',
+    defaultValue: `http://${HOSTNAME}:52020/metorial-forge`
+  },
+  {
+    key: 'LAMBDA_AWS_REGION',
+    isRequired: false
+  },
+  {
+    key: 'LAMBDA_AWS_ACCESS_KEY_ID',
+    isRequired: false
+  },
+  {
+    key: 'LAMBDA_AWS_SECRET_ACCESS_KEY',
+    isRequired: false
+  },
+  {
+    key: 'LAMBDA_EXECUTION_ROLE_ARN',
+    isRequired: false
+  }
+];
+
+export let aresServiceEnv: Env = [
+  {
+    key: 'DATABASE_URL',
+    defaultValue: 'postgresql://postgres:postgres@localhost:35432/ares'
+  },
+  {
+    key: 'SSO_DATABASE_URL',
+    defaultValue: 'postgresql://postgres:postgres@localhost:35432/ares-sso'
+  },
+  {
+    key: 'REDIS_URL',
+    defaultValue: 'redis://localhost:36379/0'
+  },
+  {
+    key: 'RELAY_URL',
+    defaultValue: 'http://services:52110/metorial-relay'
+  },
+  {
+    key: 'ARES_AUTH_URL',
+    defaultValue: `http://${HOSTNAME}:52120`
+  },
+  {
+    key: 'ARES_ADMIN_URL',
+    defaultValue: `http://${HOSTNAME}:52121`
+  },
+  {
+    key: 'ARES_SSO_URL',
+    defaultValue: `http://${HOSTNAME}:52122`
+  },
+  {
+    key: 'EMAIL_NAME',
+    defaultValue: 'Ares Dev'
+  },
+  {
+    key: 'EMAIL_ADDRESS',
+    defaultValue: 'dev@metorial.com'
+  },
+  {
+    key: 'SAML_AUDIENCE',
+    defaultValue: 'https://saml.dev.metorial.com'
+  },
+  {
+    key: 'AUTH_TICKET_SECRET',
+    defaultValue: 'dev-secret-change-in-production'
+  },
+  {
+    key: 'TURNSTILE_SITE_KEY',
+    isRequired: false
+  },
+  {
+    key: 'TURNSTILE_SECRET_KEY',
+    isRequired: false
   }
 ];
 
@@ -366,11 +519,11 @@ export let horizonServiceEnv: Env = [
   },
   {
     key: 'ARES_AUTH_URL',
-    defaultValue: 'http://services:52120'
+    defaultValue: 'http://localhost:52120'
   },
   {
     key: 'ARES_INTERNAL_URL',
-    defaultValue: 'http://services:52123/metorial-ares-internal/api'
+    defaultValue: 'http://localhost:52123/metorial-ares-internal/api'
   },
   {
     key: 'EMAIL_NAME',

@@ -1,0 +1,43 @@
+model AccessGroup {
+  oid BigInt @id
+  id  String @unique
+
+  name String
+
+  appOid BigInt
+  app    App    @relation(fields: [appOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  rules       AccessGroupRule[]
+  assignments AccessGroupAssignment[]
+}
+
+model AccessGroupRule {
+  oid BigInt @id
+  id  String @unique
+
+  accessGroupOid BigInt
+  accessGroup    AccessGroup @relation(fields: [accessGroupOid], references: [oid], onDelete: Cascade)
+
+  type  String
+  value String
+
+  createdAt DateTime @default(now())
+}
+
+model AccessGroupAssignment {
+  oid BigInt @id
+  id  String @unique
+
+  accessGroupOid BigInt
+  accessGroup    AccessGroup @relation(fields: [accessGroupOid], references: [oid], onDelete: Cascade)
+
+  appOid BigInt
+  app    App    @relation(fields: [appOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([accessGroupOid, appOid])
+}

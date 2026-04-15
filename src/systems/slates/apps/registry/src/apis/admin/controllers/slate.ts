@@ -64,13 +64,15 @@ export let slateController = app.controller({
     .input(
       Paginator.validate(
         v.object({
-          tenantId: v.string()
+          tenantId: v.string(),
+          search: v.optional(v.string())
         })
       )
     )
     .do(async ctx => {
       let paginator = await slateService.listSlates({
-        tenant: ctx.tenant
+        tenant: ctx.tenant,
+        search: ctx.input.search
       });
 
       let list = await paginator.run(ctx.input);

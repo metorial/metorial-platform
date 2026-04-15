@@ -1,0 +1,35 @@
+model App {
+  oid BigInt @id
+  id  String @unique
+
+  clientId String  @unique
+  slug     String? @unique
+
+  hasTerms Boolean @default(true)
+
+  isSessionless    Boolean @default(false)
+  disableEmailAuth Boolean @default(false)
+
+  defaultRedirectUrl String
+  redirectDomains    String[] @default([])
+
+  defaultTenantOid BigInt?
+  defaultTenant    Tenant? @relation(fields: [defaultTenantOid], references: [oid], onDelete: SetNull, name: "DefaultTenant")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  tenants                Tenant[]
+  users                  User[]
+  authIntents            AuthIntent[]
+  authAttempts           AuthAttempt[]
+  authDeviceUserSessions AuthDeviceUserSession[]
+  emailDomains           EmailDomain[]
+  userEmails             UserEmail[]
+  oauthProviders         AppOAuthProvider[]
+  ssoTenants             SsoTenant[]
+  auditLogs              AuditLog[]
+  accessGroups           AccessGroup[]
+  accessGroupAssignments AccessGroupAssignment[]
+  ssoTenantDomain        SsoTenantDomain[]
+}

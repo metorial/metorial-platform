@@ -1,0 +1,56 @@
+enum UserType {
+  user
+  system
+}
+
+enum UserOwner {
+  self
+  tenant
+}
+
+enum UserStatus {
+  active
+  deleted
+}
+
+model User {
+  oid BigInt @id
+  id  String @unique
+
+  type   UserType
+  owner  UserOwner
+  status UserStatus
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  appOid BigInt
+  app    App    @relation(fields: [appOid], references: [oid])
+
+  email     String
+  name      String
+  firstName String
+  lastName  String
+
+  /// [EntityImage]
+  image Json
+
+  isFullyCreated Boolean @default(true)
+
+  lastLoginAt  DateTime?
+  lastActiveAt DateTime?
+  deletedAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @default(now()) @updatedAt
+
+  authIntents            AuthIntent[]
+  authAttempts           AuthAttempt[]
+  authDeviceUserSessions AuthDeviceUserSession[]
+  userEmails             UserEmail[]
+  userEmailVerifications UserEmailVerification[]
+  userIdentities         UserIdentity[]
+  userTermsAgreements    UserTermsAgreement[]
+  auditLogs              AuditLog[]
+
+  @@unique([appOid, email])
+}

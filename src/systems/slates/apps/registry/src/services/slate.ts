@@ -73,7 +73,9 @@ class slateServiceImpl {
     scopeIds?: string[];
     userIds?: string[];
     workspaceIds?: string[];
+    search?: string;
   }) {
+    let search = d.search?.trim();
     let scopes = d.scopeIds
       ? await db.scope.findMany({
           where: {
@@ -118,6 +120,14 @@ class slateServiceImpl {
               status: 'active',
 
               scopeOid: anyScopeOids ? { in: anyScopeOids } : undefined,
+              ...(search
+                ? {
+                    name: {
+                      contains: search,
+                      mode: 'insensitive'
+                    }
+                  }
+                : {}),
 
               AND: [filterClause]
             },

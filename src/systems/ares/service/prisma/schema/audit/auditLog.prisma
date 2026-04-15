@@ -1,0 +1,24 @@
+model AuditLog {
+  oid BigInt @id
+  id  String @unique
+
+  appOid BigInt
+  app    App    @relation(fields: [appOid], references: [oid], onDelete: Cascade)
+
+  type String
+
+  userOid BigInt?
+  user    User?  @relation(fields: [userOid], references: [oid], onDelete: SetNull)
+
+  ip String?
+  ua String? @db.Text
+
+  /// [JsonObject]
+  metadata Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([appOid, createdAt])
+  @@index([userOid, createdAt])
+  @@index([type, createdAt])
+}

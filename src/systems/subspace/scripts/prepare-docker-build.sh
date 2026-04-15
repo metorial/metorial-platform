@@ -8,10 +8,17 @@ cd /app
 bun install --linker=hoisted
 
 bun run --cwd ./src/systems/slates/apps/hub db:generate
+bun run --cwd ./src/systems/forge/service db:generate
+bun run --cwd ./src/systems/function-bay/service db:generate
+bun run --cwd ./src/systems/signal/service db:generate
 
-bunx turbo run --ui=stream build \
-  --filter=./src/systems/slates/packages/** \
-  --filter=./src/systems/shuttle/sdk/packages/** \
-  --filter=@metorial-platform-systems/slates-client \
-  --filter=@metorial-platform-systems/shuttle-client \
-  --filter=@metorial-platform-systems/origin-client
+bunx turbo run --ui=stream build --filter=@metorial-platform-systems/origin-client
+bunx turbo run --ui=stream build --filter=@metorial-platform-systems/forge-client
+bunx turbo run --ui=stream build --filter=@metorial-platform-systems/function-bay-client
+bunx turbo run --ui=stream build --filter=@metorial-platform-systems/signal-client
+
+bunx turbo run --ui=stream build --filter=./src/systems/slates/packages/**
+bunx turbo run --ui=stream build --filter=./src/systems/shuttle/sdk/packages/**
+
+bunx turbo run --ui=stream build --filter=@metorial-platform-systems/slates-client
+bunx turbo run --ui=stream build --filter=@metorial-platform-systems/shuttle-client

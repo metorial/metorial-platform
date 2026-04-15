@@ -1,0 +1,15 @@
+model Tenant {
+  oid BigInt @id
+  id  String @unique
+
+  clientId String @unique
+
+  appOid BigInt
+  app    App    @relation(fields: [appOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  users User[]
+  apps  App[]  @relation("DefaultTenant")
+}

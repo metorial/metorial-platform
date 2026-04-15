@@ -15,8 +15,8 @@
     "p-queue": "^8.0.1",
     "redis": "^5.6.0",
     "@lowerdeck/serialize": "^1.0.4",
-    "@lowerdeck/execution-context": "^1.1.0",
-    "@lowerdeck/error": "^1.2.2",
+    "@lowerdeck/execution-context": "^1.1.1",
+    "@lowerdeck/error": "^1.2.3",
     "@lowerdeck/random-number": "^1.0.4",
     "@metorial/config": "^1.0.0",
     "@metorial/id": "^1.0.0"

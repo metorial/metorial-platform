@@ -1,0 +1,56 @@
+model EmailDomain {
+  oid BigInt @id
+  id  String @unique
+
+  domain String @unique
+
+  appOid BigInt
+  app    App    @relation(fields: [appOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  emails UserEmail[]
+}
+
+model UserEmail {
+  oid BigInt @id
+  id  String @unique
+
+  isPrimary Boolean @default(false)
+
+  email           String
+  normalizedEmail String
+
+  domainOid BigInt
+  domain    EmailDomain @relation(fields: [domainOid], references: [oid])
+
+  userOid BigInt
+  user    User   @relation(fields: [userOid], references: [oid], onDelete: Cascade)
+
+  appOid BigInt
+  app    App    @relation(fields: [appOid], references: [oid])
+
+  verifiedAt   DateTime?
+  lastResentAt DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @default(now()) @updatedAt
+
+  verifications UserEmailVerification[]
+
+  @@unique([email, appOid])
+}
+
+model UserEmailVerification {
+  oid BigInt @id
+  id  String @unique
+  key String @unique
+
+  userOid BigInt
+  user    User   @relation(fields: [userOid], references: [oid], onDelete: Cascade)
+
+  userEmailOid BigInt
+  userEmail    UserEmail @relation(fields: [userEmailOid], references: [oid], onDelete: Cascade)
+
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+}

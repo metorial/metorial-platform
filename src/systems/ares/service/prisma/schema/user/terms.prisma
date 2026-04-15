@@ -1,0 +1,30 @@
+model UserTermsType {
+  oid BigInt @id
+  id  String @unique
+
+  identifier String
+  version    String
+  name       String
+
+  createdAt DateTime @default(now())
+
+  userTermsAgreements UserTermsAgreement[]
+
+  @@unique([identifier, version])
+}
+
+model UserTermsAgreement {
+  oid BigInt @id
+  id  String @unique
+
+  userOid BigInt
+  user    User   @relation(fields: [userOid], references: [oid], onDelete: Cascade)
+
+  typeOid BigInt
+  type    UserTermsType @relation(fields: [typeOid], references: [oid], onDelete: Cascade)
+
+  ip String
+  ua String? @db.Text
+
+  createdAt DateTime @default(now())
+}

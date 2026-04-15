@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@lowerdeck/snowflake": "^1.0.2",
-    "@lowerdeck/execution-context": "^1.1.0",
+    "@lowerdeck/execution-context": "^1.1.1",
     "@metorial/id": "^1.0.0",
     "@modelcontextprotocol/sdk": "^1.11.4",
     "@prisma/adapter-pg": "6.19.0",

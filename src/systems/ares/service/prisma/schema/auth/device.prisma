@@ -1,0 +1,52 @@
+model AuthDevice {
+  oid BigInt @id
+  id  String @unique
+
+  clientSecret String @unique
+
+  ip String
+  ua String? @db.Text
+
+  lastIp String
+  lastUa String? @db.Text
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @default(now()) @updatedAt
+  lastActiveAt DateTime?
+
+  history      AuthDeviceHistory[]
+  sessions     AuthDeviceUserSession[]
+  authAttempts AuthAttempt[]
+  authIntents  AuthIntent[]
+}
+
+model AuthDeviceHistory {
+  id BigInt @id
+
+  ip String
+  ua String? @db.Text
+
+  deviceOid BigInt
+  device    AuthDevice @relation(fields: [deviceOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}
+
+model AuthDeviceUserSession {
+  oid BigInt @id
+  id  String @unique
+
+  deviceOid BigInt
+  device    AuthDevice @relation(fields: [deviceOid], references: [oid], onDelete: Cascade)
+
+  userOid BigInt
+  user    User   @relation(fields: [userOid], references: [oid], onDelete: Cascade)
+
+  appOid BigInt
+  app    App    @relation(fields: [appOid], references: [oid])
+
+  createdAt    DateTime  @default(now())
+  loggedOutAt  DateTime?
+  lastActiveAt DateTime?
+  expiresAt    DateTime
+}

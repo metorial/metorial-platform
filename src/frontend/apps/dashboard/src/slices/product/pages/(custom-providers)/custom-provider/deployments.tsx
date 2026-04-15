@@ -1,75 +1,52 @@
-import { renderWithLoader, renderWithPagination } from '@metorial/data-hooks';
-import {
-  useCurrentInstance,
-  useCustomProvider,
-  useCustomProviderDeployments
-} from '@metorial/state';
+import { renderWithLoader } from '@metorial/data-hooks';
+import { useCurrentInstance, useCustomProvider } from '@metorial/state';
 import { useParams } from 'react-router-dom';
-import { Badge, RenderDate, Text } from '@metorial/ui';
-import { ID, Table } from '@metorial/ui-product';
+import { Input, Text } from '@metorial/ui';
+import { useState } from 'react';
+import { useDebounced } from '../../../../../hooks/useDebounced';
+import { ProviderDeploymentsTableSimple } from '../../../scenes/providerDeployments/tableSimple';
 import { ProviderDeploymentTabSection } from '../../../scenes/providerDeployments/tabSection';
+import { Table } from '@metorial/ui-product';
 
 export let CustomProviderProviderDeploymentsPage = () => {
   let instance = useCurrentInstance();
   let { customProviderId } = useParams();
   let customProvider = useCustomProvider(instance.data?.id, customProviderId);
-  let deployments = useCustomProviderDeployments(instance.data?.id, customProvider.data?.id, {
-    order: 'desc'
+  let [search, setSearch] = useState('');
+  let searchDebounced = useDebounced(search, 500);
+
+  return renderWithLoader({ instance, customProvider })(({ instance, customProvider }) => {
+    let providerId = customProvider.data.provider?.id;
+
+    return (
+      <ProviderDeploymentTabSection
+        search={
+          <Input
+            label="Search"
+            hideLabel
+            placeholder="Search for deployments..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        }
+      >
+        {providerId ? (
+          <ProviderDeploymentsTableSimple
+            instanceId={instance.data.id}
+            providerId={providerId}
+            providerName={customProvider.data.provider?.name ?? customProvider.data.name}
+            search={searchDebounced}
+          />
+        ) : (
+          <>
+            <Table headers={['Name', 'Provider', 'Version', 'Created']} data={[]} />
+
+            <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
+              No deployments for this instance.
+            </Text>
+          </>
+        )}
+      </ProviderDeploymentTabSection>
+    );
   });
-
-  let deploymentsContent = renderWithPagination(deployments)(deployments => (
-    <>
-      <Table
-        headers={['Status', 'Version', 'Trigger', 'Source', 'Actor', 'Created']}
-        data={deployments.data.items.map(deployment => ({
-          data: [
-            <Badge
-              color={
-                deployment.status === 'succeeded'
-                  ? 'green'
-                  : deployment.status === 'failed'
-                    ? 'red'
-                    : 'orange'
-              }
-            >
-              {deployment.status}
-            </Badge>,
-            deployment.customProviderVersionId ? (
-              <ID id={deployment.customProviderVersionId} />
-            ) : (
-              <Text size="2" color="gray600">
-                --
-              </Text>
-            ),
-            <Text size="2">{deployment.trigger ?? 'manual'}</Text>,
-            deployment.scmPush ? (
-              <Text size="2">
-                {deployment.scmPush.commit.branch}@{deployment.scmPush.commit.sha.substring(0, 7)}
-              </Text>
-            ) : deployment.commit?.message ? (
-              <Text size="2">{deployment.commit.message}</Text>
-            ) : (
-              <Text size="2" color="gray600">
-                Manual
-              </Text>
-            ),
-            <Text size="2">{deployment.actor?.name ?? 'System'}</Text>,
-            <RenderDate date={deployment.createdAt} />
-          ]
-        }))}
-      />
-
-      {deployments.data.items.length === 0 && (
-        <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-          No deployments found.
-        </Text>
-      )}
-    </>
-  ));
-
-  return renderWithLoader({ instance, customProvider })(() => (
-    <ProviderDeploymentTabSection>
-      {deploymentsContent}
-    </ProviderDeploymentTabSection>
-  ));
 };

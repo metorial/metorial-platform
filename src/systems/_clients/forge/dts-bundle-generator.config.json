@@ -1,0 +1,17 @@
+{
+  "entries": [
+    {
+      "filePath": "./src/index.ts",
+      "outFile": "./dist/index.d.ts",
+      "noCheck": false,
+      "libraries": {
+        "inlinedLibraries": [
+          "@lowerdeck/rpc-client",
+          "@lowerdeck/rpc-server",
+          "@lowerdeck/validation",
+          "object-storage-client"
+        ]
+      }
+    }
+  ]
+}

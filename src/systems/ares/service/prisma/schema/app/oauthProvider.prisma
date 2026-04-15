@@ -1,0 +1,26 @@
+enum OAuthProviderType {
+  github
+  google
+}
+
+model AppOAuthProvider {
+  oid BigInt @id
+  id  String @unique
+
+  appOid BigInt
+  app    App    @relation(fields: [appOid], references: [oid], onDelete: Cascade)
+
+  provider     OAuthProviderType
+  clientId     String
+  clientSecret String
+  redirectUri  String
+
+  enabled Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  identityProvider UserIdentityProvider?
+
+  @@unique([appOid, provider])
+}

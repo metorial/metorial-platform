@@ -1,0 +1,200 @@
+enum SsoTenantStatus {
+  pending
+  completed
+}
+
+model SsoTenant {
+  oid BigInt @id
+  id  String @unique
+
+  status SsoTenantStatus @default(pending)
+
+  clientId   String  @unique
+  name       String
+  externalId String? @unique
+
+  /// [JsonObject]
+  metadata Json?
+
+  isGlobal Boolean @default(false)
+  hideInUI Boolean @default(false)
+
+  appOid BigInt
+  app    App    @relation(fields: [appOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  connections      SsoConnection[]
+  connectionSetups SsoConnectionSetup[]
+  users            SsoUser[]
+  userProfiles     SsoUserProfile[]
+  auths            SsoAuth[]
+
+  identityProvider UserIdentityProvider?
+  ssoTenantDomain  SsoTenantDomain[]
+}
+
+model SsoTenantDomain {
+  oid BigInt @id
+  id  String @unique
+
+  domain String
+
+  tenantOid BigInt
+  tenant    SsoTenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  appOid BigInt
+  app    App    @relation(fields: [appOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([appOid, domain])
+}
+
+enum SsoConnectionProviderType {
+  saml
+  oidc
+}
+
+model SsoConnection {
+  oid BigInt @id
+  id  String @unique
+
+  tenantOid BigInt
+  tenant    SsoTenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  internalId           String
+  internalClientId     String
+  internalClientSecret String
+
+  providerType SsoConnectionProviderType
+  providerName String?
+
+  name String
+
+  /// [JsonObject]
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  connectionSetups SsoConnectionSetup[]
+  userProfiles     SsoUserProfile[]
+  auths            SsoAuth[]
+}
+
+enum SsoConnectionSetupStatus {
+  pending
+  completed
+}
+
+model SsoConnectionSetup {
+  oid BigInt @id
+  id  String @unique
+
+  status SsoConnectionSetupStatus @default(pending)
+
+  tenantOid BigInt
+  tenant    SsoTenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  connectionOid BigInt?
+  connection    SsoConnection? @relation(fields: [connectionOid], references: [oid], onDelete: SetNull)
+
+  clientSecret String @unique
+
+  redirectUri String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+model SsoUser {
+  oid BigInt @id
+  id  String @unique
+
+  tenantOid BigInt
+  tenant    SsoTenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  email     String
+  firstName String
+  lastName  String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  profiles SsoUserProfile[]
+  auths    SsoAuth[]
+
+  @@index([tenantOid, email])
+}
+
+model SsoUserProfile {
+  oid BigInt @id
+  id  String @unique
+
+  tenantOid BigInt
+  tenant    SsoTenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  connectionOid BigInt
+  connection    SsoConnection @relation(fields: [connectionOid], references: [oid], onDelete: Cascade)
+
+  userOid BigInt
+  user    SsoUser @relation(fields: [userOid], references: [oid], onDelete: Cascade)
+
+  email     String
+  uid       String
+  uidHash   String
+  sub       String?
+  firstName String
+  lastName  String
+  roles     String[]
+  groups    String[]
+
+  /// [JsonObject]
+  raw Json
+
+  /// [JsonObject]
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  auths SsoAuth[]
+
+  userIdentities UserIdentity[]
+}
+
+enum SsoAuthStatus {
+  pending
+  completed
+}
+
+model SsoAuth {
+  oid          BigInt @id
+  id           String @unique
+  clientSecret String @unique
+
+  status SsoAuthStatus @default(pending)
+
+  redirectUri  String
+  state        String
+  codeVerifier String?
+  email        String?
+
+  tenantOid BigInt
+  tenant    SsoTenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  connectionOid BigInt?
+  connection    SsoConnection? @relation(fields: [connectionOid], references: [oid], onDelete: SetNull)
+
+  userProfileOid BigInt?
+  userProfile    SsoUserProfile? @relation(fields: [userProfileOid], references: [oid], onDelete: SetNull)
+
+  userOid BigInt?
+  user    SsoUser? @relation(fields: [userOid], references: [oid], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}

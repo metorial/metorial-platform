@@ -1,0 +1,80 @@
+name: 'Function Bay'
+
+on:
+  workflow_dispatch:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  build:
+    name: 'Function Bay Build'
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/metorial/function-bay
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./src/systems/function-bay/service/Dockerfile
+          platforms: linux/amd64
+          push: false
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
+
+  test:
+    name: 'Function Bay Test'
+    permissions:
+      contents: read
+      packages: read
+    uses: metorial/.github/.github/workflows/reusable-e2e-tests.yml@main
+    secrets: inherit
+    with:
+      service_directory: src/systems/function-bay/service
+      compose_project_prefix: function-bay-ci
+      compose_profiles: 'infra service'
+      wait_services: |
+        function-bay-postgres
+        function-bay-redis
+        function-bay-object-storage
+        function-bay-forge
+        function-bay-service
+      test_container: function-bay-service
+      test_command: cd /app/src/systems/function-bay/service && bun run test
