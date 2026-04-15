@@ -225,6 +225,7 @@ interface MetorialElementsLayoutProps {
   currentStep?: number;
   stepLabels?: string[];
   variant?: 'box' | 'light';
+  isWhitelabel?: boolean;
 }
 
 export let MetorialElementsLayout = ({
@@ -235,7 +236,8 @@ export let MetorialElementsLayout = ({
   hideHeader = false,
   currentStep = 0,
   stepLabels = [],
-  variant = 'box'
+  variant = 'box',
+  isWhitelabel
 }: MetorialElementsLayoutProps) => {
   return (
     <Wrapper
@@ -332,13 +334,15 @@ export let MetorialElementsLayout = ({
             <Content $hideHeader={hideHeader}>{children}</Content>
           </AnimateHeight>
 
-          <Footer>
-            <span>Secured by</span>
-            <FooterLink href="https://metorial.com" target="_blank" rel="noopener noreferrer">
-              <FooterLogo src={METORIAL_LOGO_URL} alt="Metorial" />
-              Metorial
-            </FooterLink>
-          </Footer>
+          {!isWhitelabel && (
+            <Footer>
+              <span>Secured by</span>
+              <FooterLink href="https://metorial.com" target="_blank" rel="noopener noreferrer">
+                <FooterLogo src={METORIAL_LOGO_URL} alt="Metorial" />
+                Metorial
+              </FooterLink>
+            </Footer>
+          )}
         </Card>
       </Inner>
     </Wrapper>
