@@ -3,8 +3,8 @@ import { forgeClient } from '../../test/client';
 import { fixtures } from '../../test/fixtures';
 import { cleanDatabase, testDb } from '../../test/setup';
 
-vi.mock('../../providers/aws-codebuild', () => ({
-  startAwsCodeBuildQueue: { add: vi.fn().mockResolvedValue({ id: 'test-job' }) }
+vi.mock('../../providers', () => ({
+  startBuildQueue: { add: vi.fn().mockResolvedValue({ id: 'test-job' }) }
 }));
 
 vi.mock('../../storage', () => ({

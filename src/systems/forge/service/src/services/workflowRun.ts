@@ -6,7 +6,7 @@ import { db } from '../db';
 import { encryption } from '../encryption';
 import { ID, snowflake } from '../id';
 import { createZipFromFiles } from '../lib/zip';
-import { startAwsCodeBuildQueue } from '../providers/aws-codebuild';
+import { startBuildQueue } from '../providers';
 import { storage } from '../storage';
 import { providerService } from './provider';
 import { workflowArtifactService } from './workflowArtifact';
@@ -132,7 +132,7 @@ class workflowRunServiceImpl {
     });
     run.artifacts.push(input);
 
-    await startAwsCodeBuildQueue.add({
+    await startBuildQueue.add({
       runId: run.id
     });
 
