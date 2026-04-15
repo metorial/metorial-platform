@@ -17,6 +17,10 @@ export let connectionApp = createHono().get(
     let tenantId = c.req.param('tenantId');
     let serverConnectionId = c.req.param('connectionId');
 
+    if (!tenantId || !serverConnectionId) {
+      throw new Error('Missing connection route params');
+    }
+
     let tenant = await tenantService.getTenantById({ id: tenantId });
     let connection = await serverConnectionService.getServerConnectionById({
       tenant,
