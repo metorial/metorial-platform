@@ -21,10 +21,7 @@ let include = {
 };
 
 class slateAuthConfigEventServiceImpl {
-  async listSlateAuthConfigEvents(d: {
-    tenant: Tenant;
-    authConfigIds?: string[];
-  }) {
+  async listSlateAuthConfigEvents(d: { tenant: Tenant; authConfigIds?: string[] }) {
     let authConfigs = d.authConfigIds
       ? await db.slateAuthConfig.findMany({
           where: { id: { in: d.authConfigIds }, tenantOid: d.tenant.oid }
@@ -32,20 +29,21 @@ class slateAuthConfigEventServiceImpl {
       : undefined;
 
     return Paginator.create(({ prisma }) =>
-      prisma(
-        async opts =>
-          await db.slateAuthConfigEvent.findMany({
-            ...opts,
-            where: {
-              config: { tenantOid: d.tenant.oid },
+      prisma(async opts => {
+        let res = await db.slateAuthConfigEvent.findMany({
+          ...opts,
+          where: {
+            config: { tenantOid: d.tenant.oid },
+            configOid: authConfigs ? { in: authConfigs.map(c => c.oid) } : undefined
+          },
+          include
+        });
 
-              configOid: authConfigs
-                ? { in: authConfigs.map(c => c.oid) }
-                : undefined
-            },
-            include
-          })
-      )
+        return res.map(e => ({
+          ...e,
+          id: e.id ?? String(e.oid)
+        }));
+      })
     );
   }
 }

@@ -32,7 +32,7 @@ export let slateInstanceOAuthSetupLogsPresenter = async (
   events: await Promise.all(
     setup.events.map(async inv => ({
       object: 'slate.oauth_setup.log',
-      id: shadowId('shsoxl_', [setup.id], [inv.oid]),
+      id: inv.id ?? shadowId('shsoxl_', [setup.id], [inv.oid]),
       type: inv.type,
       invocation: inv.invocation ? await slateInvocationLitePresenter(inv.invocation) : null,
       createdAt: inv.createdAt

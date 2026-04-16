@@ -5,9 +5,12 @@ import { deploymentQueues } from './queues/deployment';
 import { discoveryQueues } from './queues/discovery';
 import { errorQueues } from './queues/error';
 import { instanceQueues } from './queues/instance';
+import { reconcileEventIdsQueue } from './queues/instance/reconcileEventIds';
 import { registryQueues } from './queues/registry';
 import { retentionQueues } from './queues/retention';
 import { triggerQueues } from './queues/trigger';
+
+await reconcileEventIdsQueue.add({});
 
 await runQueueProcessors([
   attachmentQueues,

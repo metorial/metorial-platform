@@ -195,6 +195,7 @@ enum SlateAuthConfigEventType {
 
 model SlateAuthConfigEvent {
   oid  BigInt                   @id
+  id   String?                  @unique
   type SlateAuthConfigEventType
 
   configOid BigInt
@@ -268,6 +269,7 @@ enum SlateInstanceOAuthSetupEventType {
 
 model SlateInstanceOAuthSetupEvent {
   oid  BigInt                           @id
+  id   String?                          @unique
   type SlateInstanceOAuthSetupEventType
 
   setupOid BigInt

@@ -24,7 +24,7 @@ export let slateAuthConfigEventPresenter = async (
 ) => ({
   object: 'slate.auth_config.event',
 
-  id: shadowId('shace_', [event.config.id], [event.oid]),
+  id: event.id ?? shadowId('shace_', [event.config.id], [event.oid]),
   type: event.type,
   authConfigId: event.config.id,
   authMethodKey: event.config.authMethod.key,

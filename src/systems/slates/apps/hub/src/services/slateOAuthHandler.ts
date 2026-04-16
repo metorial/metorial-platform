@@ -2,7 +2,7 @@ import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import { db } from '../db';
 import { env } from '../env';
-import { getId, snowflake } from '../id';
+import { getId, ID, snowflake } from '../id';
 import { extractExpiresAt } from '../lib/extractExpiresAt';
 import { processAuthQueue } from '../queues/instance/processAuth';
 import { slateErrorService } from './slateError';
@@ -34,6 +34,7 @@ class slateOAuthHandlerServiceImpl {
     await db.slateInstanceOAuthSetupEvent.createMany({
       data: {
         oid: snowflake.nextId(),
+        id: ID.generateIdSync('slateInstanceOAuthSetupEvent'),
         type: 'setup_link_opened',
         setupOid: setup.oid
       }
@@ -68,6 +69,7 @@ class slateOAuthHandlerServiceImpl {
     await db.slateInstanceOAuthSetupEvent.createMany({
       data: {
         oid: snowflake.nextId(),
+        id: ID.generateIdSync('slateInstanceOAuthSetupEvent'),
         type: 'get_authorization_url',
         setupOid: setup.oid,
         invocationOid: urlRes.invocation.oid
@@ -225,6 +227,7 @@ class slateOAuthHandlerServiceImpl {
     await db.slateInstanceOAuthSetupEvent.createMany({
       data: {
         oid: snowflake.nextId(),
+        id: ID.generateIdSync('slateInstanceOAuthSetupEvent'),
         type: 'exchange_authorization_code',
         setupOid: setup.oid,
         invocationOid: authRes.invocation.oid
@@ -235,6 +238,7 @@ class slateOAuthHandlerServiceImpl {
       await db.slateInstanceOAuthSetupEvent.createMany({
         data: {
           oid: snowflake.nextId(),
+          id: ID.generateIdSync('slateInstanceOAuthSetupEvent'),
           type: 'oauth_setup_failed',
           setupOid: setup.oid
         }
@@ -273,11 +277,13 @@ class slateOAuthHandlerServiceImpl {
       data: [
         {
           oid: snowflake.nextId(),
+          id: ID.generateIdSync('slateInstanceOAuthSetupEvent'),
           type: 'access_token_received',
           setupOid: setup.oid
         },
         {
           oid: snowflake.nextId(),
+          id: ID.generateIdSync('slateInstanceOAuthSetupEvent'),
           type: 'oauth_setup_completed',
           setupOid: setup.oid
         }

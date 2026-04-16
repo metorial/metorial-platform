@@ -4,7 +4,7 @@ import { getSentry } from '@lowerdeck/sentry';
 import { Service } from '@lowerdeck/service';
 import type { SlateInstance, Tenant } from '../../prisma/generated/client';
 import { db } from '../db';
-import { snowflake } from '../id';
+import { ID, snowflake } from '../id';
 import { extractExpiresAt } from '../lib/extractExpiresAt';
 import { slateErrorService } from './slateError';
 import { secretService } from './secret';
@@ -145,6 +145,7 @@ class slateAuthHandlerServiceImpl {
         await db.slateAuthConfigEvent.createMany({
           data: {
             oid: snowflake.nextId(),
+            id: ID.generateIdSync('slateAuthConfigEvent'),
             type:
               res.status === 'error'
                 ? 'oauth_token_refresh_failed'
