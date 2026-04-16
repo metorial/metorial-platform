@@ -3,6 +3,7 @@ export * from './registry';
 export * from './secret';
 export * from './slate';
 export * from './slateAction';
+export * from './slateAttachment';
 export * from './slateAuthConfig';
 export * from './slateDeployment';
 export * from './slateDiscoveryBuildOutput';

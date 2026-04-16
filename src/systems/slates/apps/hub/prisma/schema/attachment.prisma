@@ -1,0 +1,14 @@
+model SlateAttachment {
+  oid BigInt @id
+  id  String @unique
+
+  digest Bytes @unique
+
+  createdAt     DateTime @default(now())
+  expiresAt     DateTime
+  lastCreatedAt DateTime @default(now())
+
+  slateInvocationAttachments SlateInvocationAttachment[]
+
+  @@index([expiresAt])
+}

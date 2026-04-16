@@ -9,6 +9,11 @@ let include = {
     include: {
       slateVersion: true
     }
+  },
+  slateInvocationAttachment: {
+    include: {
+      attachments: true
+    }
   }
 };
 

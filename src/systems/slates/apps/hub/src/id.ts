@@ -48,7 +48,10 @@ export let ID = createIdGenerator({
   changeNotification: idType.sorted('shcn'),
 
   adminUser: idType.sorted('shadu'),
-  adminSession: idType.sorted('shads')
+  adminSession: idType.sorted('shads'),
+
+  slateAttachment: idType.sorted('shsa'),
+  slateInvocationAttachment: idType.sorted('shsia')
 });
 
 let workerIdBits = 12;

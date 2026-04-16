@@ -1,4 +1,5 @@
 import type {
+  SlateAttachment,
   SlateDeployment,
   SlateInvocation,
   SlateVersion
@@ -7,15 +8,29 @@ import { db } from '../db';
 import { getStoredInvocationStorageKey } from '../lib/invocation/store';
 import type { StoredSlateInvocation } from '../lib/invocation/types';
 import { invocationsBucketRecord, storage } from '../storage';
+import { slateInvocationAttachmentsPresenter } from './slateAttachment';
 
-export let slateInvocationLitePresenter = async (inv: SlateInvocation) => {
+type InvocationWithStoredAttachments = SlateInvocation & {
+  slateInvocationAttachment?: Array<{
+    attachments: SlateAttachment;
+  }>;
+};
+
+export let slateInvocationLitePresenter = async (inv: InvocationWithStoredAttachments) => {
   let i = 0;
   while (inv.isPending) {
     if (i++ > 10) {
     }
 
     let res = await db.slateInvocation.findUniqueOrThrow({
-      where: { oid: inv.oid }
+      where: { oid: inv.oid },
+      include: {
+        slateInvocationAttachment: {
+          include: {
+            attachments: true
+          }
+        }
+      }
     });
     if (!res.isPending) {
       inv = {
@@ -62,6 +77,7 @@ export let slateInvocationLitePresenter = async (inv: SlateInvocation) => {
       timestamp,
       message
     })),
+    attachments: await slateInvocationAttachmentsPresenter(inv),
 
     provider: output.provider
       ? {
@@ -77,7 +93,7 @@ export let slateInvocationLitePresenter = async (inv: SlateInvocation) => {
 };
 
 export let slateInvocationPresenter = async (
-  inv: SlateInvocation & {
+  inv: InvocationWithStoredAttachments & {
     deployment: SlateDeployment & {
       slateVersion: SlateVersion;
     };

@@ -22,5 +22,5 @@ export let slateInvocationController = app.controller({
         slateInvocationId: v.string()
       })
     )
-    .do(async ctx => slateInvocationPresenter(ctx.slateInvocation))
+    .do(async ctx => await slateInvocationPresenter(ctx.slateInvocation))
 });

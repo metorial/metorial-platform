@@ -28,6 +28,20 @@ model SlateInvocation {
   slateSessionToolCalls         SlateSessionToolCall[]
   slateTriggerInvocations       SlateTriggerInvocation[]
   slateTriggerEvents            SlateTriggerEvent[]
+  slateInvocationAttachment     SlateInvocationAttachment[]
 
   @@index([deploymentOid, createdAt])
+}
+
+model SlateInvocationAttachment {
+  oid BigInt @id
+  id  String @unique
+
+  invocationOid BigInt
+  invocation    SlateInvocation @relation(fields: [invocationOid], references: [oid], onDelete: Cascade)
+
+  attachmentsOid BigInt
+  attachments    SlateAttachment @relation(fields: [attachmentsOid], references: [oid])
+
+  createdAt DateTime @default(now())
 }

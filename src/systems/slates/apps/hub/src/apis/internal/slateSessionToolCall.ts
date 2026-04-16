@@ -39,7 +39,7 @@ export let slateSessionToolCallController = app.controller({
 
       let list = await paginator.run(ctx.input);
 
-      return Paginator.presentLight(list, slateSessionToolCallPresenter);
+      return await Paginator.presentLight(list, slateSessionToolCallPresenter);
     }),
 
   call: app
@@ -91,7 +91,7 @@ export let slateSessionToolCallController = app.controller({
         slateSessionToolCallId: v.string()
       })
     )
-    .do(async ctx => slateSessionToolCallPresenter(ctx.slateSessionToolCall)),
+    .do(async ctx => await slateSessionToolCallPresenter(ctx.slateSessionToolCall)),
 
   getLogs: slateSessionToolCallApp
     .handler()
@@ -119,6 +119,6 @@ export let slateSessionToolCallController = app.controller({
         }
       );
 
-      return slateSessionToolCalls.map(slateSessionToolCallPresenter);
+      return await Promise.all(slateSessionToolCalls.map(slateSessionToolCallPresenter));
     })
 });

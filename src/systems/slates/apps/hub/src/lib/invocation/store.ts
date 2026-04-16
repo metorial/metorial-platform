@@ -181,3 +181,7 @@ export let storeSlateInvocation = (
 export let getStoredInvocationStorageKey = (invocation: SlateInvocation) => {
   return `invocations/${invocation.id}/logs`;
 };
+
+export let getStoredAttachmentsStorageKey = (digest: string) => {
+  return `attachments/${digest}`;
+};

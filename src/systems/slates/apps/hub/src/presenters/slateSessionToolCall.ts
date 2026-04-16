@@ -1,16 +1,24 @@
 import type { SlateAction } from '../../prisma/generated/browser';
 import type {
+  SlateAttachment,
   SlateInvocation,
   SlateSession,
   SlateSessionToolCall,
   SlateVersion
 } from '../../prisma/generated/client';
+import { slateInvocationAttachmentsPresenter } from './slateAttachment';
 import { slateInvocationLitePresenter } from './slateInvocation';
 
-export let slateSessionToolCallPresenter = (
+type InvocationWithStoredAttachments = SlateInvocation & {
+  slateInvocationAttachment?: Array<{
+    attachments: SlateAttachment;
+  }>;
+};
+
+export let slateSessionToolCallPresenter = async (
   call: SlateSessionToolCall & {
     action: SlateAction;
-    invocation: SlateInvocation;
+    invocation: InvocationWithStoredAttachments;
     session: SlateSession;
     slateVersion: SlateVersion;
   }
@@ -30,6 +38,7 @@ export let slateSessionToolCallPresenter = (
       name: call.action.name
     },
 
+    attachments: await slateInvocationAttachmentsPresenter(call.invocation),
     createdAt: call.createdAt
   };
 };
@@ -37,7 +46,7 @@ export let slateSessionToolCallPresenter = (
 export let slateSessionToolCallLogsPresenter = async (
   call: SlateSessionToolCall & {
     action: SlateAction;
-    invocation: SlateInvocation;
+    invocation: InvocationWithStoredAttachments;
     session: SlateSession;
     slateVersion: SlateVersion;
   }
@@ -57,6 +66,7 @@ export let slateSessionToolCallLogsPresenter = async (
       name: call.action.name
     },
 
+    attachments: await slateInvocationAttachmentsPresenter(call.invocation),
     invocation: await slateInvocationLitePresenter(call.invocation),
 
     createdAt: call.createdAt

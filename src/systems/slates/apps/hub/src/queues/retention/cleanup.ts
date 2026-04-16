@@ -278,9 +278,15 @@ let cleanupTenantInvocations = async (d: { tenantOid: bigint; cutoffDate: Date }
         },
         orderBy: { createdAt: 'asc' },
         take: RETENTION_BATCH_SIZE,
-        select: { id: true }
+        select: { oid: true, id: true }
       }),
     beforeDelete: async records => {
+      await db.slateInvocationAttachment.deleteMany({
+        where: {
+          invocationOid: { in: records.map(record => record.oid) }
+        }
+      });
+
       await enqueueStorageDeletes(records.map(record => `invocations/${record.id}/logs`));
     },
     deleteMany: records =>
