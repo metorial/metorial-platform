@@ -60,7 +60,8 @@ export let processAuthQueueProcessor = processAuthQueue.process(async data => {
         data: {
           isProcessing: false,
           errorCode: res.error.code,
-          errorMessage: res.error.message
+          errorMessage: res.error.message,
+          errorInvocationId: res.invocation.id
         }
       });
       throw new QueueRetryError();
@@ -88,7 +89,8 @@ export let processAuthQueueProcessor = processAuthQueue.process(async data => {
         data: {
           isProcessing: false,
           errorCode: res.error.code,
-          errorMessage: res.error.message
+          errorMessage: res.error.message,
+          errorInvocationId: res.invocation.id
         }
       });
       throw new QueueRetryError();
@@ -117,7 +119,7 @@ export let processAuthQueueProcessor = processAuthQueue.process(async data => {
 
   await db.slateAuthConfig.updateMany({
     where: { oid: authConfig.oid },
-    data: { isProcessing: false, errorCode: null, errorMessage: null }
+    data: { isProcessing: false, errorCode: null, errorMessage: null, errorInvocationId: null }
   });
 
   if (authConfig.authMethod.spec.capabilities.getProfile?.enabled) {

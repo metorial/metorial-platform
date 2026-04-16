@@ -79,7 +79,8 @@ export let slateSessionToolCallController = app.controller({
       return {
         ...res,
         call: undefined,
-        toolCallId: res.call.id
+        toolCallId: res.call.id,
+        invocationId: res.invocationId
       };
     }),
 

@@ -17,7 +17,7 @@ bunx turbo run --ui=stream build --filter=@metorial-platform-systems/forge-clien
 bunx turbo run --ui=stream build --filter=@metorial-platform-systems/function-bay-client
 bunx turbo run --ui=stream build --filter=@metorial-platform-systems/signal-client
 
-bunx turbo run --ui=stream build --filter=./src/systems/slates/packages/**
+# bunx turbo run --ui=stream build --filter=./src/systems/slates/packages/**
 bunx turbo run --ui=stream build --filter=./src/systems/shuttle/sdk/packages/**
 
 bunx turbo run --ui=stream build --filter=@metorial-platform-systems/slates-client

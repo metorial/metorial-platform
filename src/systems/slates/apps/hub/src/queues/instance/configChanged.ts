@@ -44,7 +44,8 @@ export let slateInstanceConfigChangedQueueProcessor = slateInstanceConfigChanged
         where: { oid: newConfig.oid },
         data: {
           errorCode: res.error.code,
-          errorMessage: res.error.message
+          errorMessage: res.error.message,
+          errorInvocationId: res.invocation.id
         }
       });
       return;
@@ -55,7 +56,8 @@ export let slateInstanceConfigChangedQueueProcessor = slateInstanceConfigChanged
         data: {
           errorCode: 'invalid_config',
           errorMessage:
-            `The provided configuration is invalid ${res.data.errors ? `- ${(res.data.errors ?? []).map(e => e.message).join(', ')}` : ''}`.trim()
+            `The provided configuration is invalid ${res.data.errors ? `- ${(res.data.errors ?? []).map(e => e.message).join(', ')}` : ''}`.trim(),
+          errorInvocationId: res.invocation.id
         }
       });
       return;
@@ -66,7 +68,8 @@ export let slateInstanceConfigChangedQueueProcessor = slateInstanceConfigChanged
       data: {
         value: res.data.config ?? newConfig.value,
         errorCode: null,
-        errorMessage: null
+        errorMessage: null,
+        errorInvocationId: null
       }
     });
   }

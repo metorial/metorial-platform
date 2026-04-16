@@ -71,8 +71,9 @@ model SlateInstanceConfig {
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
 
-  errorCode    String?
-  errorMessage String?
+  errorCode         String?
+  errorMessage      String?
+  errorInvocationId String?
 
   /// [AnyRecord]
   value Json
@@ -118,8 +119,9 @@ model SlateAuthConfig {
 
   isProcessing Boolean
 
-  errorCode    String?
-  errorMessage String?
+  errorCode         String?
+  errorMessage      String?
+  errorInvocationId String?
 
   tokenExpiresAt DateTime?
 

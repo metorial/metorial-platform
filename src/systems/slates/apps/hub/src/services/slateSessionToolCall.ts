@@ -156,6 +156,8 @@ class slateSessionToolCallServiceImpl {
       );
     }
 
+    let startTime = Date.now();
+
     let stack = await slateInvocationService.createInvocationWithState({
       participants: d.input.participants,
       slateVersion: session.slateVersion,
@@ -174,11 +176,17 @@ class slateSessionToolCallServiceImpl {
       actionId: action.key,
       input: d.input.input
     });
+
+    let durationMs = Date.now() - startTime;
+
     let call = await db.slateSessionToolCall.create({
       data: {
         ...getId('slateToolCall'),
 
         status: callRes.status === 'success' ? 'succeeded' : 'failed',
+        errorCode: callRes.status === 'error' ? callRes.error.code : null,
+        errorMessage: callRes.status === 'error' ? callRes.error.message : null,
+        durationMs,
 
         actionOid: action.oid,
         sessionOid: session.oid,
@@ -187,10 +195,16 @@ class slateSessionToolCallServiceImpl {
       }
     });
 
+    await db.slateSession.updateMany({
+      where: { oid: session.oid },
+      data: { lastActiveAt: new Date() }
+    });
+
     if (callRes.status === 'error') {
       return {
         status: 'error' as const,
         call,
+        invocationId: callRes.invocation.id,
         error: callRes.error
       };
     }
@@ -207,6 +221,7 @@ class slateSessionToolCallServiceImpl {
 
     return {
       call,
+      invocationId: callRes.invocation.id,
       status: 'success' as const,
 
       output: callRes.data.output,

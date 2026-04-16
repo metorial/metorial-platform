@@ -25,6 +25,7 @@ export let slateActionPresenter = (
   instructions: method.spec.instructions,
   metadata: method.spec.metadata,
   tags: method.spec.tags,
+  scopes: method.spec.scopes,
 
   createdAt: method.createdAt
 });

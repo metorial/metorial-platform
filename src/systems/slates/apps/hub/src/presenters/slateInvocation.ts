@@ -1,3 +1,4 @@
+import { getSentry } from '@lowerdeck/sentry';
 import type {
   SlateAttachment,
   SlateDeployment,
@@ -10,6 +11,8 @@ import type { StoredSlateInvocation } from '../lib/invocation/types';
 import { invocationsBucketRecord, storage } from '../storage';
 import { slateInvocationAttachmentsPresenter } from './slateAttachment';
 
+let Sentry = getSentry();
+
 type InvocationWithStoredAttachments = SlateInvocation & {
   slateInvocationAttachment?: Array<{
     attachments: SlateAttachment;
@@ -20,6 +23,11 @@ export let slateInvocationLitePresenter = async (inv: InvocationWithStoredAttach
   let i = 0;
   while (inv.isPending) {
     if (i++ > 10) {
+      Sentry.captureMessage('Invocation still pending after 10 poll attempts', {
+        level: 'warning',
+        extra: { invocationId: inv.id, invocationOid: String(inv.oid) }
+      });
+      break;
     }
 
     let res = await db.slateInvocation.findUniqueOrThrow({

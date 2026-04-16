@@ -23,7 +23,8 @@ export let slateInstancePresenter = (
   error: inst.currentConfig?.errorCode
     ? {
         code: inst.currentConfig.errorCode,
-        message: inst.currentConfig.errorMessage ?? inst.currentConfig.errorCode
+        message: inst.currentConfig.errorMessage ?? inst.currentConfig.errorCode,
+        invocationId: inst.currentConfig.errorInvocationId ?? null
       }
     : null,
 
