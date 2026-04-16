@@ -9,7 +9,6 @@ import { Service } from '@lowerdeck/service';
 import { createSlugGenerator } from '@lowerdeck/slugify';
 import { Context } from '@metorial/context';
 import {
-  addAfterTransactionHook,
   db,
   ID,
   Instance,
@@ -23,7 +22,6 @@ import {
 } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { generateCode } from '@metorial/id';
-import { getTenantForSubspace } from '@metorial/module-subspace';
 import { differenceInMinutes } from 'date-fns';
 
 let getInstanceSlug = createSlugGenerator(
@@ -75,8 +73,6 @@ class InstanceService {
         instance,
         performedBy: d.performedBy
       });
-
-      await addAfterTransactionHook(() => getTenantForSubspace(instance));
 
       return instance;
     });
