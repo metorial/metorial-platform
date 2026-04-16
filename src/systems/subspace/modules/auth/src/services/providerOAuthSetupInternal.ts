@@ -95,6 +95,11 @@ class providerOAuthSetupInternalServiceImpl {
                 expiresAt: null
               }
             });
+
+          authConfig = await providerAuthConfigInternalService.syncProviderAuthConfigScopes({
+            tenant: providerOAuthSetup.tenant,
+            providerAuthConfig: authConfig
+          });
         }
 
         let setup = await db.providerOAuthSetup.update({

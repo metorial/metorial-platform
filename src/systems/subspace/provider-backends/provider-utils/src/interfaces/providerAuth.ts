@@ -23,6 +23,10 @@ export abstract class IProviderAuth extends IProviderFunctionality {
     data: ProviderAuthCredentialsCreateParam
   ): Promise<ProviderAuthCredentialsCreateRes>;
 
+  abstract updateProviderAuthCredentials(
+    data: ProviderAuthCredentialsUpdateParam
+  ): Promise<ProviderAuthCredentialsUpdateRes>;
+
   abstract deleteProviderAuthCredentials(
     data: ProviderAuthCredentialsDeleteParam
   ): Promise<ProviderAuthCredentialsDeleteRes>;
@@ -46,6 +50,14 @@ export abstract class IProviderAuth extends IProviderFunctionality {
   abstract getDecryptedAuthConfig(
     data: GetDecryptedAuthConfigParam
   ): Promise<GetDecryptedAuthConfigRes>;
+
+  abstract getProviderAuthCredentialsScopes(
+    data: GetProviderAuthCredentialsScopesParam
+  ): Promise<GetProviderAuthScopesRes>;
+
+  abstract getProviderAuthConfigScopes(
+    data: GetProviderAuthConfigScopesParam
+  ): Promise<GetProviderAuthScopesRes>;
 }
 
 export interface ProviderAuthCredentialsCreateParam {
@@ -79,6 +91,18 @@ export interface ProviderAuthCredentialsDeleteParam {
 }
 
 export interface ProviderAuthCredentialsDeleteRes {}
+
+export interface ProviderAuthCredentialsUpdateParam {
+  tenant: Tenant;
+  providerAuthCredentials: ProviderAuthCredentials;
+  input: {
+    clientId?: string;
+    clientSecret?: string;
+    scopes?: string[];
+  };
+}
+
+export interface ProviderAuthCredentialsUpdateRes {}
 
 export interface ProviderAuthConfigCreateParam {
   tenant: Tenant;
@@ -153,4 +177,18 @@ export interface GetDecryptedAuthConfigParam {
 export interface GetDecryptedAuthConfigRes {
   decryptedConfigData: Record<string, any>;
   expiresAt: Date | null;
+}
+
+export interface GetProviderAuthCredentialsScopesParam {
+  tenant: Tenant;
+  providerAuthCredentials: ProviderAuthCredentials;
+}
+
+export interface GetProviderAuthConfigScopesParam {
+  tenant: Tenant;
+  authConfigVersion: ProviderAuthConfigVersion;
+}
+
+export interface GetProviderAuthScopesRes {
+  scopes: string[];
 }

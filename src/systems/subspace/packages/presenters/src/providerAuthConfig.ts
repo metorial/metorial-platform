@@ -34,6 +34,7 @@ export let providerAuthConfigPresenter = (
   description: providerAuthConfig.description,
   metadata: providerAuthConfig.metadata,
   privateMetadata: providerAuthConfig.privateMetadata,
+  scopes: providerAuthConfig.scopes,
   toolFilter: providerAuthConfig.toolFilter,
 
   deploymentPreview: providerAuthConfig.deployment
@@ -79,6 +80,7 @@ export let providerAuthConfigPreviewPresenter = (
   description: providerAuthConfig.description,
   metadata: providerAuthConfig.metadata,
   privateMetadata: providerAuthConfig.privateMetadata,
+  scopes: providerAuthConfig.scopes,
   toolFilter: providerAuthConfig.toolFilter,
 
   createdAt: providerAuthConfig.createdAt,

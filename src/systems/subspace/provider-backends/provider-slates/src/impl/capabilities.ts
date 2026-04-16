@@ -130,6 +130,7 @@ export class ProviderCapabilities extends IProviderCapabilities {
             outputJsonSchema: t.outputSchema,
             capabilities: t.capabilities ?? {},
             metadata: t.metadata ?? {},
+            scopes: t.scopes ?? null,
             invocation:
               invocation.type === 'polling'
                 ? {
@@ -172,6 +173,7 @@ export class ProviderCapabilities extends IProviderCapabilities {
         mcpToolType: {
           type: 'tool.callable'
         },
+        scopes: t.scopes ?? null,
         tags: t.tags,
         metadata: {}
       }))

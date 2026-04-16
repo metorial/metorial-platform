@@ -16,6 +16,7 @@ export let providerTriggerPresenter = (
 
   inputJsonSchema: providerTrigger.value.inputJsonSchema,
   outputJsonSchema: providerTrigger.value.outputJsonSchema,
+  scopes: providerTrigger.value.scopes ?? null,
   invocation:
     providerTrigger.value.invocation.type === 'polling'
       ? {

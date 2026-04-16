@@ -31,6 +31,7 @@ export let providerVersionSetSpecificationQueueProcessor =
       where: { oid: data.versionOid }
     });
     if (!version) throw new QueueRetryError();
+    let previousSpecificationOid = version.specificationOid;
 
     let result: {
       specificationDiscoveryStatus: ProviderVersionSpecificationDiscoveryStatus;
@@ -53,6 +54,25 @@ export let providerVersionSetSpecificationQueueProcessor =
       where: { oid: version.oid },
       data: result
     });
+
+    if (previousSpecificationOid !== version.specificationOid) {
+      await Promise.all([
+        db.providerAuthConfig.updateMany({
+          where: {
+            providerOid: version.providerOid,
+            status: { not: 'deleted' }
+          },
+          data: { needsScopeSync: true }
+        }),
+        db.providerAuthCredentials.updateMany({
+          where: {
+            providerOid: version.providerOid,
+            status: { not: 'deleted' }
+          },
+          data: { needsScopeSync: true }
+        })
+      ]);
+    }
 
     if (version.specificationOid && version.previousVersionOid) {
       let previousVersion = await db.providerVersion.findFirstOrThrow({

@@ -3,6 +3,9 @@ import { db, snowflake } from '@metorial-subspace/db';
 import type {
   GetDecryptedAuthConfigParam,
   GetDecryptedAuthConfigRes,
+  GetProviderAuthConfigScopesParam,
+  GetProviderAuthCredentialsScopesParam,
+  GetProviderAuthScopesRes,
   ProviderAuthConfigCreateParam,
   ProviderAuthConfigCreateRes,
   ProviderAuthConfigDeleteParam,
@@ -11,6 +14,8 @@ import type {
   ProviderAuthCredentialsCreateRes,
   ProviderAuthCredentialsDeleteParam,
   ProviderAuthCredentialsDeleteRes,
+  ProviderAuthCredentialsUpdateParam,
+  ProviderAuthCredentialsUpdateRes,
   ProviderOAuthSetupCreateParam,
   ProviderOAuthSetupCreateRes,
   ProviderOAuthSetupRetrieveParam,
@@ -84,6 +89,32 @@ export class ProviderAuth extends IProviderAuth {
     await slates.slateOAuthCredentials.delete({
       tenantId: tenant.id,
       slateOAuthCredentialsId: slateOAuthCredentials.id
+    });
+
+    return {};
+  }
+
+  override async updateProviderAuthCredentials(
+    data: ProviderAuthCredentialsUpdateParam
+  ): Promise<ProviderAuthCredentialsUpdateRes> {
+    if (!data.providerAuthCredentials.slateCredentialsOid) {
+      return {};
+    }
+
+    let tenant = await getTenantForSlates(data.tenant);
+    let slateOAuthCredentials = await db.slateOAuthCredentials.findUnique({
+      where: { oid: data.providerAuthCredentials.slateCredentialsOid }
+    });
+    if (!slateOAuthCredentials) {
+      return {};
+    }
+
+    await slates.slateOAuthCredentials.update({
+      tenantId: tenant.id,
+      slateOAuthCredentialsId: slateOAuthCredentials.id,
+      clientId: data.input.clientId,
+      clientSecret: data.input.clientSecret,
+      scopes: data.input.scopes
     });
 
     return {};
@@ -275,6 +306,56 @@ export class ProviderAuth extends IProviderAuth {
     return {
       decryptedConfigData: record.decryptedAuthConfig,
       expiresAt: record.authConfig.tokenExpiresAt
+    };
+  }
+
+  override async getProviderAuthCredentialsScopes(
+    data: GetProviderAuthCredentialsScopesParam
+  ): Promise<GetProviderAuthScopesRes> {
+    if (!data.providerAuthCredentials.slateCredentialsOid) {
+      return { scopes: [] };
+    }
+
+    let tenant = await getTenantForSlates(data.tenant);
+    let slateOAuthCredentials = await db.slateOAuthCredentials.findUnique({
+      where: { oid: data.providerAuthCredentials.slateCredentialsOid }
+    });
+    if (!slateOAuthCredentials) {
+      return { scopes: [] };
+    }
+
+    let record = await slates.slateOAuthCredentials.get({
+      tenantId: tenant.id,
+      slateOAuthCredentialsId: slateOAuthCredentials.id
+    });
+
+    return {
+      scopes: record.scopes ?? []
+    };
+  }
+
+  override async getProviderAuthConfigScopes(
+    data: GetProviderAuthConfigScopesParam
+  ): Promise<GetProviderAuthScopesRes> {
+    if (!data.authConfigVersion.slateAuthConfigOid) {
+      return { scopes: [] };
+    }
+
+    let tenant = await getTenantForSlates(data.tenant);
+    let slateAuthConfig = await db.slateAuthConfig.findUnique({
+      where: { oid: data.authConfigVersion.slateAuthConfigOid }
+    });
+    if (!slateAuthConfig) {
+      return { scopes: [] };
+    }
+
+    let record = await slates.slateAuthConfig.get({
+      tenantId: tenant.id,
+      slateAuthConfigId: slateAuthConfig.id
+    });
+
+    return {
+      scopes: record.oauthCredentials?.scopes ?? []
     };
   }
 }

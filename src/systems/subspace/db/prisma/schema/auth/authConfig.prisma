@@ -35,6 +35,11 @@ model ProviderAuthConfig {
   metadata        Json?
   privateMetadata Json?
 
+  /// [ProviderAuthScopes]
+  scopes Json @default("[]")
+
+  needsScopeSync Boolean @default(true)
+
   /// [ToolFilter]
   toolFilter Json @default("{\"type\":\"v1.allow_all\"}")
 
@@ -89,6 +94,7 @@ model ProviderAuthConfig {
   @@index([status, archivedAt])
   @@index([type])
   @@index([source])
+  @@index([needsScopeSync])
 }
 
 model ProviderAuthConfigVersion {

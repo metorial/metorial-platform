@@ -22,6 +22,7 @@ export let providerAuthCredentialsPresenter = (
   description: providerAuthCredentials.description,
   metadata: providerAuthCredentials.metadata,
   privateMetadata: providerAuthCredentials.privateMetadata,
+  scopes: providerAuthCredentials.scopes,
 
   createdAt: providerAuthCredentials.createdAt,
   updatedAt: providerAuthCredentials.updatedAt

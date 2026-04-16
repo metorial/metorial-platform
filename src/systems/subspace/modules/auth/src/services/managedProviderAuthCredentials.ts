@@ -9,14 +9,14 @@ import { Service } from '@lowerdeck/service';
 import {
   db,
   getId,
-  type Prisma,
   type ManagedProviderAuthCredentialsStatus,
+  type Prisma,
   type Solution,
   withTransaction
 } from '@metorial-subspace/db';
 import { providerService } from '@metorial-subspace/module-catalog';
 import { getBackend } from '@metorial-subspace/provider';
-import { type ManagedOAuthScopes } from '../lib/managedOAuthScopes';
+import { getManagedOAuthScopeIds, type ManagedOAuthScopes } from '../lib/managedOAuthScopes';
 
 let include = {
   providerAuthCredentials: {
@@ -31,11 +31,12 @@ type ManagedProviderAuthCredentialsRecord = Prisma.ManagedProviderAuthCredential
   include: typeof include;
 }>;
 
-type ManagedProviderAuthCredentialsWithPublicCredential = ManagedProviderAuthCredentialsRecord & {
-  providerAuthCredentials: NonNullable<
-    ManagedProviderAuthCredentialsRecord['providerAuthCredentials']
-  >;
-};
+type ManagedProviderAuthCredentialsWithPublicCredential =
+  ManagedProviderAuthCredentialsRecord & {
+    providerAuthCredentials: NonNullable<
+      ManagedProviderAuthCredentialsRecord['providerAuthCredentials']
+    >;
+  };
 
 let requireManagedProviderAuthCredentialsPublicCredential = (
   managedProviderAuthCredentials: ManagedProviderAuthCredentialsRecord
@@ -94,32 +95,31 @@ class managedProviderAuthCredentialsServiceImpl {
     providerIds?: string[];
   }) {
     return Paginator.create(({ prisma }) =>
-      prisma(
-        async opts =>
-          (
-            await db.managedProviderAuthCredentials.findMany({
-              ...opts,
-              where: {
-                solutionOid: d.solution.oid,
-                AND: [
-                  d.status?.length ? { status: { in: d.status } } : undefined!,
-                  d.ids?.length ? { id: { in: d.ids } } : undefined!,
-                  d.providerIds?.length
-                    ? {
-                        providerAuthCredentials: {
-                          is: {
-                            provider: {
-                              id: { in: d.providerIds }
-                            }
+      prisma(async opts =>
+        (
+          await db.managedProviderAuthCredentials.findMany({
+            ...opts,
+            where: {
+              solutionOid: d.solution.oid,
+              AND: [
+                d.status?.length ? { status: { in: d.status } } : undefined!,
+                d.ids?.length ? { id: { in: d.ids } } : undefined!,
+                d.providerIds?.length
+                  ? {
+                      providerAuthCredentials: {
+                        is: {
+                          provider: {
+                            id: { in: d.providerIds }
                           }
                         }
                       }
-                    : undefined!
-                ].filter(Boolean)
-              },
-              include
-            })
-          ).map(requireManagedProviderAuthCredentialsPublicCredential)
+                    }
+                  : undefined!
+              ].filter(Boolean)
+            },
+            include
+          })
+        ).map(requireManagedProviderAuthCredentialsPublicCredential)
       )
     );
   }
@@ -209,11 +209,15 @@ class managedProviderAuthCredentialsServiceImpl {
           name: d.input.name,
           description: d.input.description || undefined,
           metadata: d.input.metadata,
+          scopes: getManagedOAuthScopeIds(
+            (providerAuthMethod.value.scopes ?? []) as ManagedOAuthScopes
+          ),
+          needsScopeSync: false,
           isEphemeral: false,
           isDefault: false,
           providerOid: provider.oid,
           managedCredentialsOid: managedProviderAuthCredentials.oid,
-          solutionOid: d.solution.oid,
+          solutionOid: d.solution.oid
         }
       });
 
@@ -265,9 +269,8 @@ class managedProviderAuthCredentialsServiceImpl {
       });
 
       managedProviderAuthCredentialsData.providerAuthMethodOid = providerAuthMethod.oid;
-      managedProviderAuthCredentialsData.oauthScopes = (
-        providerAuthMethod.value.scopes ?? []
-      ) as ManagedOAuthScopes;
+      managedProviderAuthCredentialsData.oauthScopes = (providerAuthMethod.value.scopes ??
+        []) as ManagedOAuthScopes;
     }
 
     if (d.input.clientId !== undefined) {
@@ -291,15 +294,17 @@ class managedProviderAuthCredentialsServiceImpl {
           oid: d.managedProviderAuthCredentials.providerAuthCredentials.oid
         },
         data: {
-          name:
-            d.input.name ??
-            d.managedProviderAuthCredentials.providerAuthCredentials.name,
+          name: d.input.name ?? d.managedProviderAuthCredentials.providerAuthCredentials.name,
           description:
             d.input.description ||
             d.managedProviderAuthCredentials.providerAuthCredentials.description,
           metadata:
             d.input.metadata ??
-            d.managedProviderAuthCredentials.providerAuthCredentials.metadata
+            d.managedProviderAuthCredentials.providerAuthCredentials.metadata,
+          scopes: managedProviderAuthCredentialsData.oauthScopes
+            ? getManagedOAuthScopeIds(managedProviderAuthCredentialsData.oauthScopes)
+            : undefined,
+          needsScopeSync: managedProviderAuthCredentialsData.oauthScopes ? false : undefined
         }
       });
 
@@ -357,14 +362,13 @@ class managedProviderAuthCredentialsServiceImpl {
   }
 
   private async getManagedProviderAuthCredentialsByOid(oid: bigint) {
-    return await withTransaction(
-      async db =>
-        requireManagedProviderAuthCredentialsPublicCredential(
-          await db.managedProviderAuthCredentials.findUniqueOrThrow({
-            where: { oid },
-            include
-          })
-        )
+    return await withTransaction(async db =>
+      requireManagedProviderAuthCredentialsPublicCredential(
+        await db.managedProviderAuthCredentials.findUniqueOrThrow({
+          where: { oid },
+          include
+        })
+      )
     );
   }
 }

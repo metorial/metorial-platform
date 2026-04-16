@@ -9,7 +9,6 @@ import {
   withTransaction,
   type Instance
 } from '@metorial/db';
-import { createLock } from '@metorial/lock';
 import { env } from './env';
 
 let solutionProm = new ProgrammablePromise<
@@ -49,10 +48,6 @@ export let subspace: ReturnType<typeof createSubspaceControllerClient> =
     retryDelay = Math.min(retryDelay * 2, 5000);
   }
 })();
-
-let lock = createLock({
-  name: 'mte/sub/up-ten'
-});
 
 let getSubspaceTenantIdentifier = (project: Project) => `mte-pro-${project.oid}`;
 let getSubspaceEnvironmentIdentifier = (instance: Instance) => `mte-ins-${instance.oid}`;
@@ -96,7 +91,7 @@ export let getTenantForSubspace = async (
         getSubspaceEnvironmentIdentifier(currentInstance)
     });
 
-    return await withTransaction(async db => {
+    instance = await withTransaction(async db => {
       instance = await db.instance.update({
         where: { oid: currentInstance.oid },
         data: {

@@ -171,7 +171,8 @@ export let providerAuthCredentialsController = app.controller({
         name: v.optional(v.string()),
         description: v.optional(v.string()),
         metadata: v.optional(v.record(v.any())),
-        privateMetadata: v.optional(v.record(v.any()))
+        privateMetadata: v.optional(v.record(v.any())),
+        scopes: v.optional(v.array(v.string()))
       })
     )
     .do(async ctx => {
@@ -186,7 +187,8 @@ export let providerAuthCredentialsController = app.controller({
             name: ctx.input.name,
             description: ctx.input.description,
             metadata: ctx.input.metadata,
-            privateMetadata: ctx.input.privateMetadata
+            privateMetadata: ctx.input.privateMetadata,
+            scopes: ctx.input.scopes
           }
         });
 

@@ -434,18 +434,52 @@ class providerAuthCredentialsServiceImpl {
       description?: string;
       metadata?: Record<string, any>;
       privateMetadata?: Record<string, any>;
+      scopes?: string[];
     };
   }) {
     checkTenant(d, d.providerAuthCredentials);
     checkDeletedEdit(d.providerAuthCredentials, 'update');
 
-    if (d.providerAuthCredentials.origin !== 'tenant_created') {
+    if (d.providerAuthCredentials.origin === 'managed_public') {
       throw new ServiceError(
         badRequestError({
           message: 'Managed credentials cannot be modified through tenant APIs',
           code: 'managed_credentials_readonly'
         })
       );
+    }
+
+    let managedCredentials = await this.getManagedProviderAuthCredentialsContext({
+      tenant: d.tenant,
+      solution: d.solution,
+      providerAuthCredentials: d.providerAuthCredentials
+    });
+
+    if (d.input.scopes && managedCredentials) {
+      let allowedScopes = new Set(managedCredentials.providerAuthCredentials.scopes);
+      let invalidScopes = d.input.scopes.filter(scope => !allowedScopes.has(scope));
+      if (invalidScopes.length > 0) {
+        throw new ServiceError(
+          badRequestError({
+            message: 'Scopes must be a subset of the managed credentials scopes',
+            code: 'managed_credentials_scope_mismatch'
+          })
+        );
+      }
+    }
+
+    if (d.input.scopes) {
+      let backend = await getBackend({
+        entity: d.providerAuthCredentials
+      });
+
+      await backend.auth.updateProviderAuthCredentials({
+        tenant: d.tenant,
+        providerAuthCredentials: d.providerAuthCredentials,
+        input: {
+          scopes: d.input.scopes
+        }
+      });
     }
 
     return withTransaction(async db => {
@@ -459,7 +493,10 @@ class providerAuthCredentialsServiceImpl {
           name: d.input.name ?? d.providerAuthCredentials.name,
           description: d.input.description ?? d.providerAuthCredentials.description,
           metadata: d.input.metadata ?? d.providerAuthCredentials.metadata,
-          privateMetadata: d.input.privateMetadata ?? d.providerAuthCredentials.privateMetadata
+          privateMetadata:
+            d.input.privateMetadata ?? d.providerAuthCredentials.privateMetadata,
+          scopes: d.input.scopes ?? d.providerAuthCredentials.scopes,
+          needsScopeSync: d.input.scopes ? false : d.providerAuthCredentials.needsScopeSync
         },
         include
       });
@@ -469,6 +506,49 @@ class providerAuthCredentialsServiceImpl {
       );
 
       return creds;
+    });
+  }
+
+  async syncProviderAuthCredentialsScopes(d: {
+    tenant?: Tenant | null;
+    providerAuthCredentials: ProviderAuthCredentials;
+  }) {
+    let scopes =
+      d.providerAuthCredentials.origin === 'managed_public' &&
+      d.providerAuthCredentials.managedCredentialsOid
+        ? getManagedOAuthScopeIds(
+            (
+              await db.managedProviderAuthCredentials.findUniqueOrThrow({
+                where: { oid: d.providerAuthCredentials.managedCredentialsOid }
+              })
+            ).oauthScopes as ManagedOAuthScopes
+          )
+        : (
+            await (
+              await getBackend({
+                entity: {
+                  backendOid: d.providerAuthCredentials.backendOid
+                }
+              })
+            ).auth.getProviderAuthCredentialsScopes({
+              tenant:
+                d.tenant ??
+                (() => {
+                  throw new Error(
+                    `Tenant is required to sync scopes for provider auth credentials ${d.providerAuthCredentials.id}`
+                  );
+                })(),
+              providerAuthCredentials: d.providerAuthCredentials
+            })
+          ).scopes;
+
+    return await db.providerAuthCredentials.update({
+      where: { oid: d.providerAuthCredentials.oid },
+      data: {
+        scopes,
+        needsScopeSync: false
+      },
+      include
     });
   }
 
@@ -597,6 +677,9 @@ class providerAuthCredentialsServiceImpl {
       }
     });
     syncAfter.push(managedCredentials.updatedAt.getTime());
+    let managedScopeIds = getManagedOAuthScopeIds(
+      managedCredentials.oauthScopes as ManagedOAuthScopes
+    );
 
     if (managedCredentials.providerAuthMethodOid !== d.providerAuthMethod.oid) {
       throw new ServiceError(
@@ -642,6 +725,10 @@ class providerAuthCredentialsServiceImpl {
         }
       });
 
+      let desiredScopes = (existing?.scopes ?? d.providerAuthCredentials.scopes).filter(
+        scope => managedScopeIds.includes(scope)
+      );
+
       let backendProviderAuthCredentials = await backend.auth.createProviderAuthCredentials({
         tenant: d.tenant,
         provider: d.provider,
@@ -649,7 +736,7 @@ class providerAuthCredentialsServiceImpl {
           type: 'oauth',
           clientId: managedCredentials.oauthClientId,
           clientSecret: managedCredentials.oauthClientSecret,
-          scopes: getManagedOAuthScopeIds(managedCredentials.oauthScopes as ManagedOAuthScopes)
+          scopes: desiredScopes
         }
       });
 
@@ -670,7 +757,9 @@ class providerAuthCredentialsServiceImpl {
                 backendProviderAuthCredentials.shuttleOAuthCredentials?.oid,
               name: d.providerAuthCredentials.name,
               description: d.providerAuthCredentials.description,
-              metadata: d.providerAuthCredentials.metadata
+              metadata: d.providerAuthCredentials.metadata,
+              scopes: desiredScopes,
+              needsScopeSync: false
             },
             include
           });
@@ -699,6 +788,8 @@ class providerAuthCredentialsServiceImpl {
             name: d.providerAuthCredentials.name,
             description: d.providerAuthCredentials.description,
             metadata: d.providerAuthCredentials.metadata,
+            scopes: desiredScopes,
+            needsScopeSync: false,
             isEphemeral: false,
             isDefault: false,
             tenantOid: d.tenant.oid,
@@ -822,7 +913,10 @@ class providerAuthCredentialsServiceImpl {
         })
       );
 
-      return providerAuthCredentials;
+      return await this.syncProviderAuthCredentialsScopes({
+        tenant: d.tenant,
+        providerAuthCredentials
+      });
     });
   }
 

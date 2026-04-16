@@ -7,8 +7,10 @@ import {
   type Environment,
   getId,
   type Provider,
+  type ProviderAuthConfig,
   type ProviderAuthConfigSource,
   type ProviderAuthConfigType,
+  type ProviderAuthConfigVersion,
   type ProviderAuthCredentials,
   type ProviderAuthImport,
   type ProviderAuthMethod,
@@ -270,6 +272,45 @@ class providerAuthConfigInternalServiceImpl {
         authImport,
         currentVersion
       };
+    });
+  }
+
+  async syncProviderAuthConfigScopes(d: {
+    tenant: Tenant;
+    providerAuthConfig: ProviderAuthConfig & {
+      currentVersion?: ProviderAuthConfigVersion | null;
+    };
+  }) {
+    let currentVersion =
+      d.providerAuthConfig.currentVersion ??
+      (d.providerAuthConfig.currentVersionOid
+        ? await db.providerAuthConfigVersion.findUnique({
+            where: { oid: d.providerAuthConfig.currentVersionOid }
+          })
+        : null);
+
+    let scopes: string[] = [];
+    if (currentVersion) {
+      let backend = await getBackend({
+        entity: {
+          backendOid: d.providerAuthConfig.backendOid
+        }
+      });
+
+      let res = await backend.auth.getProviderAuthConfigScopes({
+        tenant: d.tenant,
+        authConfigVersion: currentVersion
+      });
+      scopes = res.scopes;
+    }
+
+    return await db.providerAuthConfig.update({
+      where: { oid: d.providerAuthConfig.oid },
+      data: {
+        scopes,
+        needsScopeSync: false
+      },
+      include: providerAuthConfigInclude
     });
   }
 

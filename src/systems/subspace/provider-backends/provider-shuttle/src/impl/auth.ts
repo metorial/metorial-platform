@@ -4,6 +4,9 @@ import { db, snowflake } from '@metorial-subspace/db';
 import type {
   GetDecryptedAuthConfigParam,
   GetDecryptedAuthConfigRes,
+  GetProviderAuthConfigScopesParam,
+  GetProviderAuthCredentialsScopesParam,
+  GetProviderAuthScopesRes,
   ProviderAuthConfigCreateParam,
   ProviderAuthConfigCreateRes,
   ProviderAuthConfigDeleteParam,
@@ -12,6 +15,8 @@ import type {
   ProviderAuthCredentialsCreateRes,
   ProviderAuthCredentialsDeleteParam,
   ProviderAuthCredentialsDeleteRes,
+  ProviderAuthCredentialsUpdateParam,
+  ProviderAuthCredentialsUpdateRes,
   ProviderOAuthSetupCreateParam,
   ProviderOAuthSetupCreateRes,
   ProviderOAuthSetupRetrieveParam,
@@ -84,6 +89,16 @@ export class ProviderAuth extends IProviderAuth {
     });
 
     return {};
+  }
+
+  override async updateProviderAuthCredentials(
+    _data: ProviderAuthCredentialsUpdateParam
+  ): Promise<ProviderAuthCredentialsUpdateRes> {
+    throw new ServiceError(
+      badRequestError({
+        message: 'Updating OAuth credentials is not supported for this provider'
+      })
+    );
   }
 
   override async createProviderOAuthSetup(
@@ -286,5 +301,17 @@ export class ProviderAuth extends IProviderAuth {
       decryptedConfigData: record.decryptedAuthConfig,
       expiresAt: record.decryptedAuthConfig.expiresAt
     };
+  }
+
+  override async getProviderAuthCredentialsScopes(
+    _data: GetProviderAuthCredentialsScopesParam
+  ): Promise<GetProviderAuthScopesRes> {
+    return { scopes: [] };
+  }
+
+  override async getProviderAuthConfigScopes(
+    _data: GetProviderAuthConfigScopesParam
+  ): Promise<GetProviderAuthScopesRes> {
+    return { scopes: [] };
   }
 }

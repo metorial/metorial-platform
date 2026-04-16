@@ -3,14 +3,19 @@ import {
   IProviderAuth,
   type GetDecryptedAuthConfigParam,
   type GetDecryptedAuthConfigRes,
-  type ProviderAuthConfigDeleteParam,
-  type ProviderAuthConfigDeleteRes,
+  type GetProviderAuthConfigScopesParam,
+  type GetProviderAuthCredentialsScopesParam,
+  type GetProviderAuthScopesRes,
   type ProviderAuthConfigCreateParam,
   type ProviderAuthConfigCreateRes,
-  type ProviderAuthCredentialsDeleteParam,
-  type ProviderAuthCredentialsDeleteRes,
+  type ProviderAuthConfigDeleteParam,
+  type ProviderAuthConfigDeleteRes,
   type ProviderAuthCredentialsCreateParam,
   type ProviderAuthCredentialsCreateRes,
+  type ProviderAuthCredentialsDeleteParam,
+  type ProviderAuthCredentialsDeleteRes,
+  type ProviderAuthCredentialsUpdateParam,
+  type ProviderAuthCredentialsUpdateRes,
   type ProviderOAuthSetupCreateParam,
   type ProviderOAuthSetupCreateRes,
   type ProviderOAuthSetupRetrieveParam,
@@ -35,6 +40,12 @@ export class ProviderAuth extends IProviderAuth {
     _data: ProviderAuthCredentialsDeleteParam
   ): Promise<ProviderAuthCredentialsDeleteRes> {
     return {};
+  }
+
+  override async updateProviderAuthCredentials(
+    _data: ProviderAuthCredentialsUpdateParam
+  ): Promise<ProviderAuthCredentialsUpdateRes> {
+    throw unsupportedAuthError();
   }
 
   override async createProviderOAuthSetup(
@@ -65,5 +76,17 @@ export class ProviderAuth extends IProviderAuth {
     _data: GetDecryptedAuthConfigParam
   ): Promise<GetDecryptedAuthConfigRes> {
     throw unsupportedAuthError();
+  }
+
+  override async getProviderAuthCredentialsScopes(
+    _data: GetProviderAuthCredentialsScopesParam
+  ): Promise<GetProviderAuthScopesRes> {
+    return { scopes: [] };
+  }
+
+  override async getProviderAuthConfigScopes(
+    _data: GetProviderAuthConfigScopesParam
+  ): Promise<GetProviderAuthScopesRes> {
+    return { scopes: [] };
   }
 }
