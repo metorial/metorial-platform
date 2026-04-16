@@ -38,6 +38,7 @@ import {
   createCodeChallenge,
   getPortalAllowedRedirectUrlFilters,
   urlsMatch,
+  validatePortalRedirectUriAgainstAllowedFilters,
   validatePortalRedirectUrisAgainstAllowedFilters,
   validateRedirectUri,
   validateUrlString
@@ -418,6 +419,14 @@ class ConsumerOAuthServiceImpl {
         d.magicMcpTarget?.type === 'endpoint' ? d.magicMcpTarget.target.oid : undefined
     });
     validateRedirectUri(d.input.redirectUri, client.redirectUris);
+    if (d.portal) {
+      validatePortalRedirectUriAgainstAllowedFilters({
+        redirectUri: d.input.redirectUri,
+        allowedRedirectUrlFilters: getPortalAllowedRedirectUrlFilters(
+          d.portal.allowedRedirectUrlFilters
+        )
+      });
+    }
 
     let attempt = await db.consumerAuthAttempt.create({
       data: {

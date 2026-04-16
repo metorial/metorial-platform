@@ -21,10 +21,39 @@ type ParsedPortalAllowedRedirectUrlFilter = {
 let portalAllowedRedirectUrlFilterPattern =
   /^(?<protocol>\*|[a-z][a-z0-9+.-]*):\/\/(?<authority>[^/?#]+)(?<path>\/[^?#]*)?$/i;
 
+let normalizeLoopbackHostname = (hostname: string) => {
+  let normalizedHostname = hostname.toLowerCase();
+  let unwrappedHostname = normalizedHostname.replace(/^\[(.*)\]$/, '$1');
+
+  if (unwrappedHostname == 'localhost' || unwrappedHostname == '::1') {
+    return 'localhost';
+  }
+
+  let ipv4Parts = unwrappedHostname.split('.');
+  if (
+    ipv4Parts.length == 4 &&
+    ipv4Parts.every(part => /^\d+$/.test(part) && Number(part) >= 0 && Number(part) <= 255) &&
+    Number(ipv4Parts[0]) == 127
+  ) {
+    return 'localhost';
+  }
+
+  return normalizedHostname;
+};
+
+let normalizeUrlForComparison = (url: URL) => {
+  return {
+    protocol: url.protocol.replace(/:$/, '').toLowerCase(),
+    hostname: normalizeLoopbackHostname(url.hostname),
+    port: url.port,
+    pathname: url.pathname
+  };
+};
+
 export let urlsMatch = (url1: string, url2: string) => {
   try {
-    let u1 = new URL(url1);
-    let u2 = new URL(url2);
+    let u1 = normalizeUrlForComparison(new URL(url1));
+    let u2 = normalizeUrlForComparison(new URL(url2));
 
     return (
       u1.protocol == u2.protocol &&
@@ -116,7 +145,7 @@ let parsePortalAllowedRedirectUrlFilter = (
 
   return {
     protocol: match.groups.protocol.toLowerCase(),
-    hostname: hostname.toLowerCase(),
+    hostname: normalizeLoopbackHostname(hostname),
     port,
     path: match.groups.path
   };
@@ -209,6 +238,30 @@ export let validatePortalAllowedRedirectUrlFilters = (
   }
 };
 
+export let portalAllowedRedirectUrlFiltersEqual = (
+  filters1: PortalAllowedRedirectUrlFilter[],
+  filters2: PortalAllowedRedirectUrlFilter[]
+) => {
+  if (filters1.length != filters2.length) return false;
+
+  let normalizeFilter = (filter: PortalAllowedRedirectUrlFilter) => {
+    let parsedFilter = parsePortalAllowedRedirectUrlFilter(
+      filter.url,
+      'allowed_redirect_url_filters.url'
+    );
+
+    return `${parsedFilter.protocol}://${parsedFilter.hostname}${
+      parsedFilter.port ? `:${parsedFilter.port}` : ''
+    }${parsedFilter.path ?? ''}`;
+  };
+
+  let normalizedFilters1 = new Set(filters1.map(normalizeFilter));
+  let normalizedFilters2 = new Set(filters2.map(normalizeFilter));
+  if (normalizedFilters1.size != normalizedFilters2.size) return false;
+
+  return [...normalizedFilters1].every(filter => normalizedFilters2.has(filter));
+};
+
 export let portalAllowedRedirectUrlFilterMatches = (
   filter: PortalAllowedRedirectUrlFilter,
   redirectUri: string
@@ -219,48 +272,83 @@ export let portalAllowedRedirectUrlFilterMatches = (
     filter.url,
     'allowed_redirect_url_filters.url'
   );
-  let redirectUrl = new URL(redirectUri);
+  let redirectUrl = normalizeUrlForComparison(new URL(redirectUri));
 
   return (
     matchesPortalAllowedRedirectUrlFilterProtocol(
       parsedFilter.protocol,
-      redirectUrl.protocol.replace(/:$/, '').toLowerCase()
+      redirectUrl.protocol
     ) &&
     matchesPortalAllowedRedirectUrlFilterHostname(
       parsedFilter.hostname,
-      redirectUrl.hostname.toLowerCase()
+      redirectUrl.hostname
     ) &&
     matchesPortalAllowedRedirectUrlFilterPort(parsedFilter.port, redirectUrl.port) &&
     matchesPortalAllowedRedirectUrlFilterPath(parsedFilter.path, redirectUrl.pathname)
   );
 };
 
+export let portalRedirectUriMatchesAllowedFilters = (d: {
+  redirectUri: string;
+  allowedRedirectUrlFilters?: PortalAllowedRedirectUrlFilter[] | null;
+}) => {
+  validateUrlString(d.redirectUri, 'redirect_uri');
+
+  let allowedRedirectUrlFilters = getPortalAllowedRedirectUrlFilters(
+    d.allowedRedirectUrlFilters
+  );
+  return allowedRedirectUrlFilters.some(filter =>
+    portalAllowedRedirectUrlFilterMatches(filter, d.redirectUri)
+  );
+};
+
+export let validatePortalRedirectUriAgainstAllowedFilters = (d: {
+  redirectUri: string;
+  allowedRedirectUrlFilters?: PortalAllowedRedirectUrlFilter[] | null;
+}) => {
+  if (
+    !portalRedirectUriMatchesAllowedFilters({
+      redirectUri: d.redirectUri,
+      allowedRedirectUrlFilters: d.allowedRedirectUrlFilters
+    })
+  ) {
+    throw new ServiceError(
+      badRequestError({
+        message: 'redirect_uri is not allowed for this portal',
+        oauth: {
+          error: 'invalid_request',
+          errorMessage: 'redirect_uri is not allowed for this portal'
+        }
+      })
+    );
+  }
+};
+
 export let validatePortalRedirectUrisAgainstAllowedFilters = (d: {
   redirectUris: string[];
   allowedRedirectUrlFilters?: PortalAllowedRedirectUrlFilter[] | null;
 }) => {
-  let allowedRedirectUrlFilters = getPortalAllowedRedirectUrlFilters(
-    d.allowedRedirectUrlFilters
-  );
-
   for (let redirectUri of d.redirectUris) {
     validateUrlString(redirectUri, 'redirect_uri');
+  }
 
-    if (
-      !allowedRedirectUrlFilters.some(filter =>
-        portalAllowedRedirectUrlFilterMatches(filter, redirectUri)
-      )
-    ) {
-      throw new ServiceError(
-        badRequestError({
-          message: 'redirect_uri is not allowed for this portal',
-          oauth: {
-            error: 'invalid_request',
-            errorMessage: 'redirect_uri is not allowed for this portal'
-          }
-        })
-      );
-    }
+  if (
+    !d.redirectUris.some(redirectUri =>
+      portalRedirectUriMatchesAllowedFilters({
+        redirectUri,
+        allowedRedirectUrlFilters: d.allowedRedirectUrlFilters
+      })
+    )
+  ) {
+    throw new ServiceError(
+      badRequestError({
+        message: 'redirect_uri is not allowed for this portal',
+        oauth: {
+          error: 'invalid_request',
+          errorMessage: 'redirect_uri is not allowed for this portal'
+        }
+      })
+    );
   }
 };
 
