@@ -16,8 +16,11 @@ model ProviderListing {
   isVerified Boolean @default(false)
   isOfficial Boolean @default(false)
 
-  name String
-  slug String @unique
+  name       String
+  slug       String  @unique
+  prettySlug String? @unique
+
+  aliases String[]
 
   /// [EntityImage]
   image Json?
@@ -63,6 +66,7 @@ model ProviderListing {
   @@index([isPublic])
   @@index([rank])
   @@index([status])
+  @@index([aliases])
 }
 
 model ProviderListingUpdate {

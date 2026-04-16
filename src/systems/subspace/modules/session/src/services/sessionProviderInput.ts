@@ -1,5 +1,5 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
-import { generateCode } from '@lowerdeck/id';
+import { generatePlainId } from '@lowerdeck/id';
 import { Service } from '@lowerdeck/service';
 import {
   addAfterTransactionHook,
@@ -167,7 +167,7 @@ class sessionProviderInputServiceImpl {
           providerSessions.map(async ps => ({
             ...getId('sessionProvider'),
 
-            tag: generateCode(5),
+            tag: generatePlainId(4).toLowerCase(),
             status: 'active' as const,
             isEphemeral: d.session.isEphemeral,
 

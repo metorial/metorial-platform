@@ -59,8 +59,10 @@ export let providerListingPresenter = (
 
   name: providerListing.name,
   description: providerListing.description,
-  slug: providerListing.slug,
+  slug: providerListing.prettySlug || providerListing.slug,
   image: providerListing.image,
+
+  aliases: providerListing.aliases,
 
   readme: providerListing.readme ?? null,
   skills: providerListing.skills,

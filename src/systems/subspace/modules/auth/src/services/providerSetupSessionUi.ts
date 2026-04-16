@@ -439,7 +439,7 @@ class providerSetupSessionUiServiceImpl {
         listingId: providerListing.id,
         name: providerListing.name ?? providerListing.provider.name,
         description: providerListing.description ?? providerListing.provider.description,
-        slug: providerListing.slug ?? providerListing.provider.slug,
+        slug: providerListing.prettySlug || providerListing.slug,
         image: providerListing.image,
         groups: providerListing.groups?.map(group => ({
           id: group.id,

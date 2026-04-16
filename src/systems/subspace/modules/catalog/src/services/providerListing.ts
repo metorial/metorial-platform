@@ -65,6 +65,8 @@ class ProviderListingService {
             OR: [
               { id: d.providerListingId },
               { slug: d.providerListingId },
+              { prettySlug: d.providerListingId },
+              { aliases: { has: d.providerListingId } },
               { provider: { id: d.providerListingId } },
               { provider: { globalIdentifier: d.providerListingId } }
             ]

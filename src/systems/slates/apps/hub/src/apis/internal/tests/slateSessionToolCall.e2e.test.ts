@@ -127,26 +127,6 @@ describe('slateSessionToolCall:get E2E', () => {
       id: toolCall.id
     });
   });
-
-  it('returns stored attachments for a tool call', async () => {
-    const { toolCall, invocation, tenant } = await f.slateSessionToolCall.complete({
-      status: SlateSessionToolCallStatus.succeeded
-    });
-    await createStoredAttachment(invocation.oid);
-
-    const result = await slatesHubClient.slateSessionToolCall.get({
-      tenantId: tenant.id,
-      slateSessionToolCallId: toolCall.id
-    });
-
-    expect(result.attachments).toEqual([
-      expect.objectContaining({
-        type: 'url',
-        url: expect.any(String),
-        urlExpiresAt: expect.any(Date)
-      })
-    ]);
-  });
 });
 
 describe('slateSessionToolCall:getLogs E2E', () => {

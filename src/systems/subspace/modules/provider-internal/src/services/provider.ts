@@ -1,7 +1,9 @@
+import { generateCode } from '@lowerdeck/id';
 import { Service } from '@lowerdeck/service';
 import {
   addAfterTransactionHook,
   type Backend,
+  db,
   type EntityImage,
   getId,
   type Provider,
@@ -91,6 +93,8 @@ class providerInternalServiceImpl {
       name: string;
       description?: string;
       slug: string;
+      prettySlug?: string;
+      aliases?: string[];
       globalIdentifier: string | null;
       image?: EntityImage | null;
       skills?: string[];
@@ -103,6 +107,14 @@ class providerInternalServiceImpl {
       attributes: PrismaJson.ProviderTypeAttributes;
     };
   }) {
+    let existingWithPrettySlug = d.info.prettySlug
+      ? await db.providerListing.findFirst({
+          where: { prettySlug: d.info.prettySlug }
+        })
+      : null;
+
+    if (existingWithPrettySlug) d.info.prettySlug = `${d.info.prettySlug}-${generateCode(5)}`;
+
     return withTransaction(async db => {
       let identifier = `provider::${d.source.type}::`;
 
@@ -252,6 +264,8 @@ class providerInternalServiceImpl {
           name: d.info.name,
           description: d.info.description,
           slug: d.info.slug,
+          prettySlug: d.info.prettySlug,
+          aliases: [...new Set(d.info.aliases)],
 
           image: d.info.image ?? { type: 'default' as const },
 
