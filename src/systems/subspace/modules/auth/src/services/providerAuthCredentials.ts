@@ -510,7 +510,7 @@ class providerAuthCredentialsServiceImpl {
   }
 
   async syncProviderAuthCredentialsScopes(d: {
-    tenant?: Tenant | null;
+    tenant: Tenant;
     providerAuthCredentials: ProviderAuthCredentials;
   }) {
     let scopes =
@@ -531,13 +531,7 @@ class providerAuthCredentialsServiceImpl {
                 }
               })
             ).auth.getProviderAuthCredentialsScopes({
-              tenant:
-                d.tenant ??
-                (() => {
-                  throw new Error(
-                    `Tenant is required to sync scopes for provider auth credentials ${d.providerAuthCredentials.id}`
-                  );
-                })(),
+              tenant: d.tenant,
               providerAuthCredentials: d.providerAuthCredentials
             })
           ).scopes;

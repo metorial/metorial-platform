@@ -160,6 +160,7 @@ export let reconcileProviderAuthCredentialsScopesQueueProcessor =
       }
     });
     if (!providerAuthCredentials) throw new QueueRetryError();
+    if (!providerAuthCredentials.tenant) return;
 
     await providerAuthCredentialsService.syncProviderAuthCredentialsScopes({
       tenant: providerAuthCredentials.tenant,

@@ -39,7 +39,7 @@ export let syncRegistryAllQueueProcessor = syncRegistryAllQueue.process(async _d
     await syncRegistryQueue.addManyWithOps(
       regs.map(r => ({
         data: { registryId: r.id },
-        opts: { id: r.id }
+        opts: { id: `1${r.id}` }
       }))
     );
 

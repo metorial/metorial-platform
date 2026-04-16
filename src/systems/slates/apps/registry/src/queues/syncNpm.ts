@@ -74,6 +74,10 @@ let syncNpmPackagesQueue = createQueue<{
   redisUrl: env.service.REDIS_URL
 });
 
+if (process.env.NODE_ENV === 'development') {
+  await syncNpmPackagesQueue.add({ cursor: 0 }, { id: 'page_0' });
+}
+
 export let syncNpmPackagesQueueProcessor = syncNpmPackagesQueue.process(async data => {
   if (!env.npm.NPM_ORG) return;
 
@@ -92,7 +96,7 @@ export let syncNpmPackagesQueueProcessor = syncNpmPackagesQueue.process(async da
   await syncNpmPackageQueue.addManyWithOps(
     currentPage.map(packageName => ({
       data: { packageName },
-      opts: { id: packageName }
+      opts: { id: btoa(packageName) }
     }))
   );
 
@@ -110,53 +114,46 @@ let syncNpmPackageQueue = createQueue<{
   workerOpts: { concurrency: 5 }
 });
 
-let syncNpmPackageLock = createLock({
-  name: 'sreg/slate/npm/pkg/lock',
-  redisUrl: env.service.REDIS_URL
-});
+export let syncNpmPackageQueueProcessor = syncNpmPackageQueue.process(async data => {
+  let metadata = await fetchJson<{
+    name: string;
+    versions?: Record<string, { version: string; dist?: { tarball?: string } }>;
+  }>(`${getNpmRegistryUrl()}/${encodeURIComponent(data.packageName)}`);
+  if (metadata.name !== data.packageName) return;
 
-export let syncNpmPackageQueueProcessor = syncNpmPackageQueue.process(data =>
-  syncNpmPackageLock.usingLock(data.packageName, async () => {
-    let metadata = await fetchJson<{
-      name: string;
-      versions?: Record<string, { version: string; dist?: { tarball?: string } }>;
-    }>(`${getNpmRegistryUrl()}/${encodeURIComponent(data.packageName)}`);
-    if (metadata.name !== data.packageName) return;
-
-    let existingVersions = new Set(
-      (
-        await db.slateVersion.findMany({
-          where: {
-            npmPackageName: data.packageName
-          },
-          select: {
-            version: true
-          }
-        })
-      ).map(version => version.version)
-    );
-
-    let versions = Object.values(metadata.versions ?? {})
-      .filter(version => version.dist?.tarball && semver.valid(version.version))
-      .sort((a, b) => semver.compare(a.version, b.version));
-
-    let newVersions = versions.filter(version => !existingVersions.has(version.version));
-    if (newVersions.length === 0) return;
-
-    await syncNpmVersionQueue.addManyWithOps(
-      newVersions.map(version => ({
-        data: {
-          packageName: data.packageName,
-          version: version.version,
-          tarballUrl: version.dist!.tarball!
+  let existingVersions = new Set(
+    (
+      await db.slateVersion.findMany({
+        where: {
+          npmPackageName: data.packageName
         },
-        opts: {
-          id: `${data.packageName}@${version.version}`
+        select: {
+          version: true
         }
-      }))
-    );
-  })
-);
+      })
+    ).map(version => version.version)
+  );
+
+  let versions = Object.values(metadata.versions ?? {})
+    .filter(version => version.dist?.tarball && semver.valid(version.version))
+    .sort((a, b) => semver.compare(a.version, b.version));
+
+  let newVersions = versions.filter(version => !existingVersions.has(version.version));
+  if (newVersions.length === 0) return;
+
+  await syncNpmVersionQueue.addManyWithOps(
+    newVersions.map(version => ({
+      data: {
+        packageName: data.packageName,
+        version: version.version,
+        tarballUrl: version.dist!.tarball!
+      },
+      opts: {
+        id: `${data.packageName}@${version.version}`
+      }
+    }))
+  );
+});
 
 let syncNpmVersionQueue = createQueue<{
   packageName: string;
