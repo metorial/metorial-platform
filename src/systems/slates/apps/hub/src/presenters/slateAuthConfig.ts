@@ -53,6 +53,8 @@ export let slateAuthConfigPresenter = (
       })
     : null,
 
+  grantedScopes: config.grantedScopes,
+
   tokenExpiresAt: config.tokenExpiresAt,
 
   createdAt: config.createdAt,

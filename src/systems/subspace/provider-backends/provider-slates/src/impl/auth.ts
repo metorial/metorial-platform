@@ -354,6 +354,10 @@ export class ProviderAuth extends IProviderAuth {
       slateAuthConfigId: slateAuthConfig.id
     });
 
+    if (record.grantedScopes?.length) {
+      return { scopes: record.grantedScopes };
+    }
+
     return {
       scopes: record.oauthCredentials?.scopes ?? []
     };

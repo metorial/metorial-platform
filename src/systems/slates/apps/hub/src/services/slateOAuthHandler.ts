@@ -5,8 +5,8 @@ import { env } from '../env';
 import { getId, ID, snowflake } from '../id';
 import { extractExpiresAt } from '../lib/extractExpiresAt';
 import { processAuthQueue } from '../queues/instance/processAuth';
-import { slateErrorService } from './slateError';
 import { secretService } from './secret';
+import { slateErrorService } from './slateError';
 import { slateInvocationService } from './slateInvocation';
 
 let callbackUrlBase = new URL(env.service.SERVICE_PUBLIC_URL);
@@ -307,6 +307,7 @@ class slateOAuthHandlerServiceImpl {
         isProcessing: true,
         type: 'oauth_automated',
         tokenExpiresAt,
+        grantedScopes: authRes.data.scopes ?? setup.oauthCredentials.scopes,
 
         tenantOid: setup.tenantOid,
         secretOid: authConfigSecret.oid,

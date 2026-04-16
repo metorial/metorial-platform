@@ -18,10 +18,10 @@ export type ScopeSource = {
  */
 export let resolveGrantedScopes = (source: ScopeSource): string[] | null => {
   let credentialScopes = source.authCredentials?.scopes;
-  if (credentialScopes) return credentialScopes;
+  if (credentialScopes?.length) return credentialScopes;
 
   let configScopes = source.authConfig?.scopes;
-  if (configScopes) return configScopes;
+  if (configScopes?.length) return configScopes;
 
   return null;
 };

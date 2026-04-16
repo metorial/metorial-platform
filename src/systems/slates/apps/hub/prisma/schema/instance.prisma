@@ -127,6 +127,8 @@ model SlateAuthConfig {
 
   tokenExpiresAt DateTime?
 
+  grantedScopes String[]
+
   /// [AuthProfile]
   profile      Json?
   profileUid   String?
