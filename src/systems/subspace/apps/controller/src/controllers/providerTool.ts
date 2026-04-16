@@ -1,6 +1,10 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import {
+  providerAuthConfigService,
+  providerAuthCredentialsService
+} from '@metorial-subspace/module-auth';
+import {
   providerToolService,
   providerVersionService
 } from '@metorial-subspace/module-catalog';
@@ -30,7 +34,9 @@ export let providerToolController = app.controller({
         v.object({
           tenantId: v.optional(v.string()),
           environmentId: v.optional(v.string()),
-          providerVersionId: v.string()
+          providerVersionId: v.string(),
+          providerAuthConfigId: v.optional(v.string()),
+          providerAuthCredentialsId: v.optional(v.string())
         })
       )
     )
@@ -42,11 +48,33 @@ export let providerToolController = app.controller({
         solution: ctx.solution
       });
 
+      let providerAuthConfig =
+        ctx.input.providerAuthConfigId && ctx.tenant && ctx.environment
+          ? await providerAuthConfigService.getProviderAuthConfigById({
+              tenant: ctx.tenant,
+              environment: ctx.environment,
+              solution: ctx.solution,
+              providerAuthConfigId: ctx.input.providerAuthConfigId
+            })
+          : null;
+
+      let providerAuthCredentials =
+        ctx.input.providerAuthCredentialsId && ctx.tenant && ctx.environment
+          ? await providerAuthCredentialsService.getProviderAuthCredentialsById({
+              tenant: ctx.tenant,
+              environment: ctx.environment,
+              solution: ctx.solution,
+              providerAuthCredentialsId: ctx.input.providerAuthCredentialsId
+            })
+          : null;
+
       let paginator = await providerToolService.listProviderTools({
         tenant: ctx.tenant,
         environment: ctx.environment,
         solution: ctx.solution,
-        providerVersion
+        providerVersion,
+        providerAuthConfig,
+        providerAuthCredentials
       });
 
       let list = await paginator.run(ctx.input);

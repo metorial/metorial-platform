@@ -14,6 +14,8 @@ import {
   db,
   getId,
   ID,
+  type ProviderAuthConfig,
+  type ProviderAuthCredentials,
   type ProviderDeployment,
   type Session,
   type SessionConnection,
@@ -28,8 +30,10 @@ import {
 import { isRecordDeleted } from '@metorial-subspace/list-utils';
 import {
   checkToolAccess,
+  checkToolScopesSatisfied,
   providerDeploymentConfigPairInternalService,
-  providerDeploymentInternalService
+  providerDeploymentInternalService,
+  resolveGrantedScopes
 } from '@metorial-subspace/module-provider-internal';
 import { addDays, addMinutes } from 'date-fns';
 import {
@@ -360,7 +364,12 @@ export class SenderManager {
   }
 
   private async listToolsForProvider(
-    provider: SessionProvider & { deployment: ProviderDeployment }
+    provider: SessionProvider & {
+      deployment: ProviderDeployment;
+      authConfig?:
+        | (ProviderAuthConfig & { authCredentials?: ProviderAuthCredentials | null })
+        | null;
+    }
   ) {
     let res = await this.ensureProviderInstance(provider);
     if (!res) {
@@ -384,9 +393,19 @@ export class SenderManager {
       }
     });
 
+    let grantedScopes = resolveGrantedScopes({
+      authConfig: provider.authConfig,
+      authCredentials: provider.authConfig?.authCredentials
+    });
+
+    let scopeFilteredTools =
+      grantedScopes === null
+        ? tools
+        : tools.filter(tool => checkToolScopesSatisfied(tool, grantedScopes).allowed);
+
     return {
       status: 'ok' as const,
-      tools: tools.map(t => ({
+      tools: scopeFilteredTools.map(t => ({
         ...t,
         key: `${t.key}_${provider.tag}`,
         sessionProvider: provider,
@@ -398,7 +417,12 @@ export class SenderManager {
   async listProviders() {
     return await db.sessionProvider.findMany({
       where: { sessionOid: this.session.oid, status: 'active', isParentDeleted: false },
-      include: { provider: true, deployment: true, config: true, authConfig: true }
+      include: {
+        provider: true,
+        deployment: true,
+        config: true,
+        authConfig: { include: { authCredentials: true } }
+      }
     });
   }
 
@@ -461,7 +485,11 @@ export class SenderManager {
         tag: d.tag,
         status: 'active'
       },
-      include: { deployment: true, config: true, authConfig: true }
+      include: {
+        deployment: true,
+        config: true,
+        authConfig: { include: { authCredentials: true } }
+      }
     });
     if (!provider) throw new ServiceError(notFoundError('provider', d.tag));
     return provider;
@@ -517,6 +545,21 @@ export class SenderManager {
     let { allowed } = checkToolAccess(tool, provider, 'call');
     if (!allowed) {
       throw new ServiceError(badRequestError({ message: 'Tool access not allowed' }));
+    }
+
+    let grantedScopes = resolveGrantedScopes({
+      authConfig: provider.authConfig,
+      authCredentials: provider.authConfig?.authCredentials
+    });
+    if (grantedScopes !== null) {
+      let scopeCheck = checkToolScopesSatisfied(tool, grantedScopes);
+      if (!scopeCheck.allowed) {
+        throw new ServiceError(
+          badRequestError({
+            message: 'Tool requires scopes that have not been granted to this credential'
+          })
+        );
+      }
     }
 
     return {

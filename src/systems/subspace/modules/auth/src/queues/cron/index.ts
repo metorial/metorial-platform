@@ -2,8 +2,10 @@ import { combineQueueProcessors } from '@lowerdeck/queue';
 import { expireOAuthSetupCron } from './expireOAuthSetup';
 import {
   reconcileProviderAuthConfigScopesCron,
+  reconcileProviderAuthConfigScopesManyQueueProcessor,
   reconcileProviderAuthConfigScopesQueueProcessor,
   reconcileProviderAuthCredentialsScopesCron,
+  reconcileProviderAuthCredentialsScopesManyQueueProcessor,
   reconcileProviderAuthCredentialsScopesQueueProcessor
 } from './reconcileScopes';
 
@@ -12,5 +14,7 @@ export let cronQueues = combineQueueProcessors([
   reconcileProviderAuthConfigScopesCron,
   reconcileProviderAuthConfigScopesQueueProcessor,
   reconcileProviderAuthCredentialsScopesCron,
-  reconcileProviderAuthCredentialsScopesQueueProcessor
+  reconcileProviderAuthCredentialsScopesQueueProcessor,
+  reconcileProviderAuthConfigScopesManyQueueProcessor,
+  reconcileProviderAuthCredentialsScopesManyQueueProcessor
 ]);
