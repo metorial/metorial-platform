@@ -1,0 +1,61 @@
+enum SlateErrorType {
+  tool_call_failed
+  config_validation_failed
+  auth_processing_failed
+  oauth_token_refresh_failed
+  oauth_setup_failed
+  trigger_event_input_failed
+  profile_fetch_failed
+}
+
+model SlateError {
+  oid BigInt @id
+  id  String @unique
+
+  type SlateErrorType
+
+  errorCode    String
+  errorMessage String
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  slateOid BigInt?
+  slate    Slate?  @relation(fields: [slateOid], references: [oid], onDelete: Cascade)
+
+  slateVersionOid BigInt?
+  slateVersion    SlateVersion? @relation(fields: [slateVersionOid], references: [oid], onDelete: Cascade)
+
+  slateInstanceOid BigInt?
+  slateInstance    SlateInstance? @relation(fields: [slateInstanceOid], references: [oid], onDelete: Cascade)
+
+  invocationOid BigInt?
+  invocation    SlateInvocation? @relation(fields: [invocationOid], references: [oid], onDelete: Cascade)
+
+  toolCallOid BigInt?
+  toolCall    SlateSessionToolCall? @relation(fields: [toolCallOid], references: [oid], onDelete: Cascade)
+
+  sessionOid BigInt?
+  session    SlateSession? @relation(fields: [sessionOid], references: [oid], onDelete: Cascade)
+
+  authConfigOid BigInt?
+  authConfig    SlateAuthConfig? @relation(fields: [authConfigOid], references: [oid], onDelete: Cascade)
+
+  instanceConfigOid BigInt?
+  instanceConfig    SlateInstanceConfig? @relation(fields: [instanceConfigOid], references: [oid], onDelete: Cascade)
+
+  oauthSetupOid BigInt?
+  oauthSetup    SlateInstanceOAuthSetup? @relation(fields: [oauthSetupOid], references: [oid], onDelete: Cascade)
+
+  triggerReceiverOid BigInt?
+  triggerReceiver    SlateTriggerReceiver? @relation(fields: [triggerReceiverOid], references: [oid], onDelete: Cascade)
+
+  triggerEventInputOid BigInt?
+  triggerEventInput    SlateTriggerEventInput? @relation(fields: [triggerEventInputOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([type, createdAt])
+  @@index([tenantOid, createdAt])
+  @@index([slateOid, createdAt])
+}

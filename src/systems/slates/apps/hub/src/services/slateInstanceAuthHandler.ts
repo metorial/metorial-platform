@@ -6,6 +6,7 @@ import type { SlateInstance, Tenant } from '../../prisma/generated/client';
 import { db } from '../db';
 import { snowflake } from '../id';
 import { extractExpiresAt } from '../lib/extractExpiresAt';
+import { slateErrorService } from './slateError';
 import { secretService } from './secret';
 import { slateInvocationService } from './slateInvocation';
 
@@ -153,6 +154,20 @@ class slateAuthHandlerServiceImpl {
           }
         });
         if (res.status === 'error') {
+          slateErrorService
+            .recordSlateError({
+              type: 'oauth_token_refresh_failed',
+              errorCode: res.error.code,
+              errorMessage: res.error.message,
+              tenantOid: d.tenant.oid,
+              slateOid: slate.oid,
+              slateVersionOid: version.oid,
+              slateInstanceOid: d.slateInstance?.oid,
+              invocationOid: res.invocation.oid,
+              authConfigOid: authConfig.oid
+            })
+            .catch(() => {});
+
           throw new ServiceError(
             badRequestError({
               code: 'oauth_token_refresh_failed',

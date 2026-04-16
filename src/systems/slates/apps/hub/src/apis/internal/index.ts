@@ -6,8 +6,10 @@ import { registryController } from './registry';
 import { secretController } from './secret';
 import { slateController } from './slate';
 import { slateAuthConfigController } from './slateAuthConfig';
+import { slateAuthConfigEventController } from './slateAuthConfigEvent';
 import { slateDeploymentController } from './slateDeployment';
 import { slateDiscoveryController } from './slateDiscovery';
+import { slateErrorController } from './slateError';
 import { slateEventController } from './slateEvent';
 import { slateInstanceController } from './slateInstance';
 import { slateInvocationController } from './slateInvocation';
@@ -16,14 +18,15 @@ import { slateOAuthSetupController } from './slateOAuthSetup';
 import { slateSessionController } from './slateSession';
 import { slateSessionToolCallController } from './slateSessionToolCall';
 import { slateSpecificationController } from './slateSpecification';
+import { slateSpecificationChangeController } from './slateSpecificationChange';
 import { slateTriggerDeliveryController } from './slateTriggerDelivery';
 import { slateTriggerDestinationController } from './slateTriggerDestination';
 import { slateTriggerEventController } from './slateTriggerEvent';
+import { slateTriggerEventInputController } from './slateTriggerEventInput';
 import { slateTriggerInvocationController } from './slateTriggerInvocation';
 import { slateTriggerReceiverController } from './slateTriggerReceiver';
 import { slateVersionController } from './slateVersion';
 import { slateVersionDiscoveryController } from './slateVersionDiscovery';
-import { slateSpecificationChangeController } from './slateSpecificationChange';
 import { tenantController } from './tenant';
 
 export let rootController = app.controller({
@@ -38,6 +41,7 @@ export let rootController = app.controller({
   slateVersion: slateVersionController,
   slateInvocation: slateInvocationController,
   slateDeployment: slateDeploymentController,
+  slateError: slateErrorController,
   slateDiscovery: slateDiscoveryController,
   slateEvent: slateEventController,
   slateSpecification: slateSpecificationController,
@@ -45,12 +49,14 @@ export let rootController = app.controller({
   slateOAuthCredentials: slateOAuthCredentialsController,
   slateOAuthSetup: slateOAuthSetupController,
   slateAuthConfig: slateAuthConfigController,
+  slateAuthConfigEvent: slateAuthConfigEventController,
   slateSession: slateSessionController,
   slateSessionToolCall: slateSessionToolCallController,
 
   slateTriggerDestination: slateTriggerDestinationController,
   slateTriggerReceiver: slateTriggerReceiverController,
   slateTriggerEvent: slateTriggerEventController,
+  slateTriggerEventInput: slateTriggerEventInputController,
   slateTriggerInvocation: slateTriggerInvocationController,
   slateTriggerDelivery: slateTriggerDeliveryController,
   slateVersionDiscovery: slateVersionDiscoveryController,

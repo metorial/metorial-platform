@@ -12,7 +12,8 @@ import { getId } from '../id';
 
 let include = {
   slate: true,
-  slateInstance: true
+  slateInstance: true,
+  slateVersion: true
 };
 
 class slateSessionServiceImpl {

@@ -5,6 +5,7 @@ import { env } from '../env';
 import { getId, snowflake } from '../id';
 import { extractExpiresAt } from '../lib/extractExpiresAt';
 import { processAuthQueue } from '../queues/instance/processAuth';
+import { slateErrorService } from './slateError';
 import { secretService } from './secret';
 import { slateInvocationService } from './slateInvocation';
 
@@ -82,6 +83,17 @@ class slateOAuthHandlerServiceImpl {
           errorMessage: urlRes.error.message
         }
       });
+      slateErrorService
+        .recordSlateError({
+          type: 'oauth_setup_failed',
+          errorCode: urlRes.error.code,
+          errorMessage: urlRes.error.message,
+          tenantOid: setup.tenantOid,
+          slateVersionOid: setup.slateVersionOid,
+          invocationOid: urlRes.invocation.oid,
+          oauthSetupOid: setup.oid
+        })
+        .catch(() => {});
 
       throw new ServiceError(
         badRequestError({
@@ -236,6 +248,17 @@ class slateOAuthHandlerServiceImpl {
           errorMessage: authRes.error.message
         }
       });
+      slateErrorService
+        .recordSlateError({
+          type: 'oauth_setup_failed',
+          errorCode: authRes.error.code,
+          errorMessage: authRes.error.message,
+          tenantOid: setup.tenantOid,
+          slateVersionOid: setup.slateVersionOid,
+          invocationOid: authRes.invocation.oid,
+          oauthSetupOid: setup.oid
+        })
+        .catch(() => {});
 
       let redirectUrl = new URL(setup.redirectUrl);
       redirectUrl.searchParams.set('slate_oauth_setup_id', setup.id);

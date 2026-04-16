@@ -9,6 +9,7 @@ import { db } from '../db';
 import { getId } from '../id';
 import { getStoredAttachmentsStorageKey } from '../lib/invocation/store';
 import { invocationsBucketRecord, storage } from '../storage';
+import { slateErrorService } from './slateError';
 import { slateAuthHandlerService } from './slateInstanceAuthHandler';
 import { slateInvocationService } from './slateInvocation';
 import { slateSessionService } from './slateSession';
@@ -156,6 +157,8 @@ class slateSessionToolCallServiceImpl {
       );
     }
 
+    let startTime = Date.now();
+
     let stack = await slateInvocationService.createInvocationWithState({
       participants: d.input.participants,
       slateVersion: session.slateVersion,
@@ -174,11 +177,17 @@ class slateSessionToolCallServiceImpl {
       actionId: action.key,
       input: d.input.input
     });
+
+    let durationMs = Date.now() - startTime;
+
     let call = await db.slateSessionToolCall.create({
       data: {
         ...getId('slateToolCall'),
 
         status: callRes.status === 'success' ? 'succeeded' : 'failed',
+        errorCode: callRes.status === 'error' ? callRes.error.code : null,
+        errorMessage: callRes.status === 'error' ? callRes.error.message : null,
+        durationMs,
 
         actionOid: action.oid,
         sessionOid: session.oid,
@@ -187,10 +196,31 @@ class slateSessionToolCallServiceImpl {
       }
     });
 
+    await db.slateSession.updateMany({
+      where: { oid: session.oid },
+      data: { lastActiveAt: new Date() }
+    });
+
     if (callRes.status === 'error') {
+      slateErrorService
+        .recordSlateError({
+          type: 'tool_call_failed',
+          errorCode: callRes.error.code,
+          errorMessage: callRes.error.message,
+          tenantOid: session.tenantOid,
+          slateOid: session.slateOid,
+          slateVersionOid: session.slateVersionOid,
+          slateInstanceOid: session.slateInstanceOid,
+          invocationOid: callRes.invocation.oid,
+          toolCallOid: call.oid,
+          sessionOid: session.oid
+        })
+        .catch(() => {});
+
       return {
         status: 'error' as const,
         call,
+        invocationId: callRes.invocation.id,
         error: callRes.error
       };
     }
@@ -207,6 +237,7 @@ class slateSessionToolCallServiceImpl {
 
     return {
       call,
+      invocationId: callRes.invocation.id,
       status: 'success' as const,
 
       output: callRes.data.output,

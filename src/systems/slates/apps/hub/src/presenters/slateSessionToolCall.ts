@@ -27,8 +27,17 @@ export let slateSessionToolCallPresenter = async (
     object: 'slate.session.tool_call',
 
     id: call.id,
+    status: call.status,
     sessionId: call.session.id,
     slateVersionId: call.slateVersion.id,
+
+    error: call.errorCode
+      ? {
+          code: call.errorCode,
+          message: call.errorMessage ?? call.errorCode
+        }
+      : null,
+    durationMs: call.durationMs,
 
     action: {
       object: 'slate.au',
@@ -55,8 +64,17 @@ export let slateSessionToolCallLogsPresenter = async (
     object: 'slate.session.tool_call',
 
     id: call.id,
+    status: call.status,
     sessionId: call.session.id,
     slateVersionId: call.slateVersion.id,
+
+    error: call.errorCode
+      ? {
+          code: call.errorCode,
+          message: call.errorMessage ?? call.errorCode
+        }
+      : null,
+    durationMs: call.durationMs,
 
     action: {
       object: 'slate.au',

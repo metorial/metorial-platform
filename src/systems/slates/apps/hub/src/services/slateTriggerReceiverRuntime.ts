@@ -19,6 +19,7 @@ import {
   slateTriggerEventProcessQueue,
   slateTriggerEventSendQueue
 } from '../queues/trigger/eventQueues';
+import { slateErrorService } from './slateError';
 import { slateInvocationService } from './slateInvocation';
 import type { SlateTriggerReceiverCore } from './slateTriggerReceiverCore';
 import {
@@ -72,6 +73,18 @@ export class SlateTriggerReceiverRuntime {
         where: { oid: eventInput.receiverTrigger.receiver.oid },
         data: { consecutiveEventFailures: { increment: 1 } }
       });
+      slateErrorService
+        .recordSlateError({
+          type: 'trigger_event_input_failed',
+          errorCode: 'missing_input',
+          errorMessage: 'Event input payload is missing.',
+          tenantOid: eventInput.receiverTrigger.receiver.tenantOid,
+          slateOid: eventInput.receiverTrigger.receiver.slateOid,
+          slateInstanceOid: eventInput.receiverTrigger.receiver.slateInstanceOid,
+          triggerReceiverOid: eventInput.receiverTrigger.receiver.oid,
+          triggerEventInputOid: eventInput.oid
+        })
+        .catch(() => {});
       return;
     }
     if (eventInput.receiverTrigger.receiver.status !== SlateTriggerReceiverStatus.active) {
@@ -136,6 +149,19 @@ export class SlateTriggerReceiverRuntime {
           where: { oid: eventInput.receiverTrigger.receiver.oid },
           data: { consecutiveEventFailures: { increment: 1 } }
         });
+        slateErrorService
+          .recordSlateError({
+            type: 'trigger_event_input_failed',
+            errorCode: mapRes.error.code,
+            errorMessage: mapRes.error.message,
+            tenantOid: eventInput.receiverTrigger.receiver.tenantOid,
+            slateOid: eventInput.receiverTrigger.receiver.slateOid,
+            slateInstanceOid: eventInput.receiverTrigger.receiver.slateInstanceOid,
+            invocationOid: mapRes.invocation.oid,
+            triggerReceiverOid: eventInput.receiverTrigger.receiver.oid,
+            triggerEventInputOid: eventInput.oid
+          })
+          .catch(() => {});
 
         if (status === SlateTriggerEventInputStatus.retrying) {
           await slateTriggerEventProcessQueue.add(
@@ -274,6 +300,18 @@ export class SlateTriggerReceiverRuntime {
         where: { oid: eventInput.receiverTrigger.receiver.oid },
         data: { consecutiveEventFailures: { increment: 1 } }
       });
+      slateErrorService
+        .recordSlateError({
+          type: 'trigger_event_input_failed',
+          errorCode,
+          errorMessage,
+          tenantOid: eventInput.receiverTrigger.receiver.tenantOid,
+          slateOid: eventInput.receiverTrigger.receiver.slateOid,
+          slateInstanceOid: eventInput.receiverTrigger.receiver.slateInstanceOid,
+          triggerReceiverOid: eventInput.receiverTrigger.receiver.oid,
+          triggerEventInputOid: eventInput.oid
+        })
+        .catch(() => {});
 
       if (status === SlateTriggerEventInputStatus.retrying) {
         await slateTriggerEventProcessQueue.add(
