@@ -6,6 +6,7 @@ export * from './slate';
 export * from './slateAuthConfig';
 export * from './slateAuthConfigEvent';
 export * from './slateDeployment';
+export * from './slateError';
 export * from './slateEvent';
 export * from './slateInstance';
 export * from './slateInstanceEvent';

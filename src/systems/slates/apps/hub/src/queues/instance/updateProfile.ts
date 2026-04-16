@@ -2,7 +2,7 @@ import { createQueue, QueueRetryError } from '@lowerdeck/queue';
 import { getSentry } from '@lowerdeck/sentry';
 import { db } from '../../db';
 import { env } from '../../env';
-import { secretService, slateInvocationService } from '../../services';
+import { secretService, slateErrorService, slateInvocationService } from '../../services';
 
 let Sentry = getSentry();
 
@@ -66,6 +66,18 @@ export let updateProfileQueueProcessor = updateProfileQueue.process(async data =
         invocationId: res.invocation.id
       }
     });
+    slateErrorService
+      .recordSlateError({
+        type: 'profile_fetch_failed',
+        errorCode: res.error.code,
+        errorMessage: res.error.message,
+        tenantOid: authConfig.tenant.oid,
+        slateOid: authConfig.authMethod.mostRecentSpecification?.slateOid,
+        slateVersionOid: version?.oid,
+        invocationOid: res.invocation.oid,
+        authConfigOid: authConfig.oid
+      })
+      .catch(() => {});
     return;
   }
 

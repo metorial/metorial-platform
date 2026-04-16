@@ -2,7 +2,7 @@ import { createQueue, QueueRetryError } from '@lowerdeck/queue';
 import { db } from '../../db';
 import { env } from '../../env';
 import { extractExpiresAt } from '../../lib/extractExpiresAt';
-import { secretService, slateInvocationService } from '../../services';
+import { secretService, slateErrorService, slateInvocationService } from '../../services';
 import { updateProfileQueue } from './updateProfile';
 
 export let processAuthQueue = createQueue<{
@@ -64,6 +64,19 @@ export let processAuthQueueProcessor = processAuthQueue.process(async data => {
           errorInvocationId: res.invocation.id
         }
       });
+      slateErrorService
+        .recordSlateError({
+          type: 'auth_processing_failed',
+          errorCode: res.error.code,
+          errorMessage: res.error.message,
+          tenantOid: authConfig.tenant.oid,
+          slateOid: authConfig.slateOid,
+          slateVersionOid: version.oid,
+          slateInstanceOid: authConfig.instance?.oid,
+          invocationOid: res.invocation.oid,
+          authConfigOid: authConfig.oid
+        })
+        .catch(() => {});
       throw new QueueRetryError();
     }
 
@@ -93,6 +106,19 @@ export let processAuthQueueProcessor = processAuthQueue.process(async data => {
           errorInvocationId: res.invocation.id
         }
       });
+      slateErrorService
+        .recordSlateError({
+          type: 'auth_processing_failed',
+          errorCode: res.error.code,
+          errorMessage: res.error.message,
+          tenantOid: authConfig.tenant.oid,
+          slateOid: authConfig.slateOid,
+          slateVersionOid: version.oid,
+          slateInstanceOid: authConfig.instance?.oid,
+          invocationOid: res.invocation.oid,
+          authConfigOid: authConfig.oid
+        })
+        .catch(() => {});
       throw new QueueRetryError();
     }
 

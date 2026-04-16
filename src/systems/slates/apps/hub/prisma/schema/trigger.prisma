@@ -86,11 +86,11 @@ model SlateTriggerReceiver {
 
   status SlateTriggerReceiverStatus @default(active)
 
-  name        String?
-  description String?
-  eventTypes  String[]
-  consecutivePollingFailures Int @default(0)
-  consecutiveEventFailures   Int @default(0)
+  name                       String?
+  description                String?
+  eventTypes                 String[]
+  consecutivePollingFailures Int      @default(0)
+  consecutiveEventFailures   Int      @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
@@ -100,6 +100,7 @@ model SlateTriggerReceiver {
   events       SlateTriggerEvent[]
   eventInputs  SlateTriggerEventInput[]
   invocations  SlateTriggerInvocation[]
+  slateErrors  SlateError[]
 
   @@index([tenantOid, slateInstanceOid])
   @@index([tenantOid, slateOid])
@@ -203,6 +204,8 @@ model SlateTriggerEventInput {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
+
+  slateErrors SlateError[]
 
   @@index([status])
   @@index([receiverOid, createdAt])

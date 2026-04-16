@@ -45,6 +45,7 @@ model Slate {
   slateTriggerEvents        SlateTriggerEvent[]
   slateTriggerEventInputs   SlateTriggerEventInput[]
   changeNotifications       ChangeNotification[]
+  slateErrors               SlateError[]
 
   @@unique([registryOid, slateIdOnRegistry])
   @@unique([registryOid, slateFullIdentifierOnRegistry])
@@ -107,6 +108,7 @@ model SlateVersion {
   slateSessions              SlateSession[]
   slateSessionToolCalls      SlateSessionToolCall[]
   changeNotifications        ChangeNotification[]
+  slateErrors                SlateError[]
 
   @@unique([slateOid, version])
 }

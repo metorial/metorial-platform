@@ -51,7 +51,9 @@ export let ID = createIdGenerator({
   adminSession: idType.sorted('shads'),
 
   slateAttachment: idType.sorted('shsa'),
-  slateInvocationAttachment: idType.sorted('shsia')
+  slateInvocationAttachment: idType.sorted('shsia'),
+
+  slateError: idType.sorted('sher')
 });
 
 let workerIdBits = 12;

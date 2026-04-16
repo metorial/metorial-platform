@@ -8,6 +8,7 @@ export * from './slateAuthConfig';
 export * from './slateAuthConfigEvent';
 export * from './slateDeployment';
 export * from './slateDiscoveryBuildOutput';
+export * from './slateError';
 export * from './slateDiscoveryToolCallStats';
 export * from './slateEvent';
 export * from './slateInstance';

@@ -9,6 +9,7 @@ import { db } from '../db';
 import { getId } from '../id';
 import { getStoredAttachmentsStorageKey } from '../lib/invocation/store';
 import { invocationsBucketRecord, storage } from '../storage';
+import { slateErrorService } from './slateError';
 import { slateAuthHandlerService } from './slateInstanceAuthHandler';
 import { slateInvocationService } from './slateInvocation';
 import { slateSessionService } from './slateSession';
@@ -201,6 +202,21 @@ class slateSessionToolCallServiceImpl {
     });
 
     if (callRes.status === 'error') {
+      slateErrorService
+        .recordSlateError({
+          type: 'tool_call_failed',
+          errorCode: callRes.error.code,
+          errorMessage: callRes.error.message,
+          tenantOid: session.tenantOid,
+          slateOid: session.slateOid,
+          slateVersionOid: session.slateVersionOid,
+          slateInstanceOid: session.slateInstanceOid,
+          invocationOid: callRes.invocation.oid,
+          toolCallOid: call.oid,
+          sessionOid: session.oid
+        })
+        .catch(() => {});
+
       return {
         status: 'error' as const,
         call,

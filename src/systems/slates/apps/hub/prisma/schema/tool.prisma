@@ -17,7 +17,8 @@ model SlateSession {
   createdAt    DateTime  @default(now())
   lastActiveAt DateTime?
 
-  toolCalls SlateSessionToolCall[]
+  toolCalls   SlateSessionToolCall[]
+  slateErrors SlateError[]
 
   @@index([tenantOid, createdAt])
 }
@@ -49,4 +50,6 @@ model SlateSessionToolCall {
   slateVersion    SlateVersion @relation(fields: [slateVersionOid], references: [oid], onDelete: Cascade)
 
   createdAt DateTime @default(now())
+
+  slateErrors SlateError[]
 }
