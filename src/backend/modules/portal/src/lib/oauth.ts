@@ -21,6 +21,49 @@ type ParsedPortalAllowedRedirectUrlFilter = {
 let portalAllowedRedirectUrlFilterPattern =
   /^(?<protocol>\*|[a-z][a-z0-9+.-]*):\/\/(?<authority>[^/?#]+)(?<path>\/[^?#]*)?$/i;
 
+let blockedPortalRedirectProtocols = new Set([
+  'about',
+  'blob',
+  'chrome',
+  'chrome-extension',
+  'data',
+  'file',
+  'ftp',
+  'ftps',
+  'gopher',
+  'http+unix',
+  'imap',
+  'irc',
+  'ircs',
+  'ldap',
+  'ldaps',
+  'mailto',
+  'news',
+  'nntp',
+  'sftp',
+  'sms',
+  'ssh',
+  'tel',
+  'telnet',
+  'urn',
+  'ws',
+  'wss'
+]);
+
+let validatePortalRedirectProtocol = (protocol: string, field: string) => {
+  if (!blockedPortalRedirectProtocols.has(protocol)) return;
+
+  throw new ServiceError(
+    badRequestError({
+      message: `${field} uses a blocked redirect protocol`,
+      oauth: {
+        error: 'invalid_request',
+        errorMessage: `${field} uses a blocked redirect protocol`
+      }
+    })
+  );
+};
+
 let normalizeLoopbackHostname = (hostname: string) => {
   let normalizedHostname = hostname.toLowerCase();
   let unwrappedHostname = normalizedHostname.replace(/^\[(.*)\]$/, '$1');
@@ -143,6 +186,10 @@ let parsePortalAllowedRedirectUrlFilter = (
     );
   }
 
+  if (match.groups.protocol != '*') {
+    validatePortalRedirectProtocol(match.groups.protocol.toLowerCase(), field);
+  }
+
   return {
     protocol: match.groups.protocol.toLowerCase(),
     hostname: normalizeLoopbackHostname(hostname),
@@ -156,7 +203,7 @@ let matchesPortalAllowedRedirectUrlFilterProtocol = (
   protocol: string
 ) => {
   if (protocolPattern == '*') {
-    return protocol != 'http' && protocol != 'https';
+    return protocol != 'http' && protocol != 'https' && !blockedPortalRedirectProtocols.has(protocol);
   }
 
   return protocolPattern == protocol;
@@ -201,8 +248,11 @@ let matchesPortalAllowedRedirectUrlFilterPath = (
 
 export let validateUrlString = (value: string, field: string) => {
   try {
-    new URL(value);
-  } catch {
+    let url = new URL(value);
+    validatePortalRedirectProtocol(url.protocol.replace(/:$/, '').toLowerCase(), field);
+  } catch (error) {
+    if (error instanceof ServiceError) throw error;
+
     throw new ServiceError(
       badRequestError({
         message: `${field} must be a valid URL`,

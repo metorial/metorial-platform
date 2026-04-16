@@ -6,7 +6,8 @@ import {
   validatePortalRedirectUriAgainstAllowedFilters,
   validatePortalAllowedRedirectUrlFilters,
   validatePortalRedirectUrisAgainstAllowedFilters,
-  validateRedirectUri
+  validateRedirectUri,
+  validateUrlString
 } from '../src/lib/oauth';
 
 describe('portal oauth redirect filters', () => {
@@ -84,6 +85,9 @@ describe('portal oauth redirect filters', () => {
     expect(() =>
       validatePortalAllowedRedirectUrlFilters([{ url: 'http://loc*alhost:*/*' }])
     ).toThrow('unsupported hostname wildcard');
+    expect(() => validatePortalAllowedRedirectUrlFilters([{ url: 'ssh://*' }])).toThrow(
+      'blocked redirect protocol'
+    );
   });
 
   it('allows client registration when at least one redirect uri matches the portal allowlist', () => {
@@ -108,6 +112,15 @@ describe('portal oauth redirect filters', () => {
     expect(() =>
       validateRedirectUri('http://127.0.0.1:33418/', ['http://localhost:33418/'])
     ).not.toThrow();
+  });
+
+  it('rejects blocked well known redirect protocols', () => {
+    expect(() => validateUrlString('ftp://example.com/callback', 'redirect_uri')).toThrow(
+      'blocked redirect protocol'
+    );
+    expect(() =>
+      portalAllowedRedirectUrlFilterMatches({ url: '*://*' }, 'ssh://example.com/callback')
+    ).toThrow('blocked redirect protocol');
   });
 
   it('normalizes the default filters back to null storage', () => {
