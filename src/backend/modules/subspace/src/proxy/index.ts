@@ -25,6 +25,21 @@ export let proxyMcpRequestToSubspace = async (
   let subspaceUrl = await getSubspaceMcpUrl(instance, sessionId, inputUrl);
 
   let headers = new Headers(c.req.raw.headers);
+
+  let finalHostName = inputUrl.hostname;
+  if (
+    finalHostName.endsWith('.metorial.com') &&
+    (finalHostName.startsWith('api-') ||
+      finalHostName.startsWith('connect-') ||
+      finalHostName.startsWith('mcp-'))
+  ) {
+    let parts = finalHostName.split('.');
+    let fistPart = parts[0];
+    let identifier = fistPart.split('-')[0];
+
+    finalHostName = `${identifier}.metorial.com`;
+  }
+
   headers.set(
     'Metorial-Proxy-URL',
     process.env.NODE_ENV == 'production'
