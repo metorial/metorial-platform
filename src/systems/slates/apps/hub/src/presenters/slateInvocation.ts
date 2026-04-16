@@ -72,6 +72,7 @@ export let slateInvocationLitePresenter = async (inv: InvocationWithStoredAttach
 
     requests: output.requests,
     responses: output.responses,
+    requestTraces: output.requestTraces,
     error: output.provider?.error,
     logs: (output.logs ?? []).map(([timestamp, message]) => ({
       timestamp,

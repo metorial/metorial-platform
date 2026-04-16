@@ -109,6 +109,14 @@ export let storeSlateInvocation = (
         return m;
       });
 
+      let requestTraces = (d.responseMessages ?? []).flatMap(m => {
+        let result = 'result' in m ? m.result : undefined;
+        if (!result) return [];
+
+        let requestTraces = 'requestTraces' in result ? result.requestTraces : undefined;
+        return requestTraces ?? [];
+      });
+
       // Handle error case where invocationResult.id may be undefined
       if (!d.invocationResult.id) {
         let storageKey = getStoredInvocationStorageKey(d.record);
@@ -120,7 +128,8 @@ export let storeSlateInvocation = (
             requests: sanitizedRequests as any,
             responses: (sanitizedResponses ?? []) as any,
             provider: { error: (d.invocationResult as any).error } as any,
-            logs: []
+            logs: [],
+            requestTraces
           } satisfies StoredSlateInvocation)
         );
 
@@ -152,7 +161,8 @@ export let storeSlateInvocation = (
           requests: sanitizedRequests as any,
           responses: (sanitizedResponses ?? []) as any,
           provider: { ...invocationResult, logs: undefined } as any,
-          logs: invocationResult.logs.map(log => [log.timestamp, log.message] as const)
+          logs: invocationResult.logs.map(log => [log.timestamp, log.message] as const),
+          requestTraces
         } satisfies StoredSlateInvocation)
       );
 
