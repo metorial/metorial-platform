@@ -173,7 +173,7 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
           };
         })
       );
-      await db.slateAction.createManyAndReturn({
+      await db.slateAction.createMany({
         skipDuplicates: true,
         data: actionUpsertData
       });
@@ -229,7 +229,7 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
           };
         })
       );
-      await db.slateAuthMethod.createManyAndReturn({
+      await db.slateAuthMethod.createMany({
         skipDuplicates: true,
         data: authMethodUpsertData
       });

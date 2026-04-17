@@ -68,6 +68,29 @@ class tenantServiceImpl {
         }))
       });
 
+      if (!existingTenant) {
+        let [{ reconcileTenantManagedBackingsQueue }, solutions] = await Promise.all([
+          import('@metorial-subspace/module-auth'),
+          db.solution.findMany({
+            select: {
+              id: true
+            }
+          })
+        ]);
+
+        await reconcileTenantManagedBackingsQueue.addManyWithOps(
+          solutions.map(solution => ({
+            data: {
+              tenantId: tenant.id,
+              solutionId: solution.id
+            },
+            opts: {
+              id: `tenant-${tenant.id}-solution-${solution.id}`
+            }
+          }))
+        );
+      }
+
       return await db.tenant.findFirstOrThrow({
         where: { identifier: d.input.identifier },
         include

@@ -64,7 +64,7 @@ export let reconcileProviderAuthConfigScopesManyQueueProcessor =
     );
 
     await reconcileProviderAuthConfigScopesManyQueue.add({
-      cursor: providerAuthConfigs[providerAuthConfigs.length - 1].id
+      cursor: providerAuthConfigs[providerAuthConfigs.length - 1]!.id
     });
   });
 
@@ -100,7 +100,7 @@ export let reconcileProviderAuthCredentialsScopesManyQueueProcessor =
     );
 
     await reconcileProviderAuthCredentialsScopesManyQueue.add({
-      cursor: providerAuthCredentials[providerAuthCredentials.length - 1].id
+      cursor: providerAuthCredentials[providerAuthCredentials.length - 1]!.id
     });
   });
 

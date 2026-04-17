@@ -70,7 +70,8 @@ model ProviderAuthMethodGlobal {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  providerAuthMethods ProviderAuthMethod[]
+  providerAuthMethods            ProviderAuthMethod[]
+  managedProviderAuthCredentials ManagedProviderAuthCredentials[]
 
   @@unique([providerOid, key])
 }
@@ -222,7 +223,7 @@ model ProviderTrigger {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  currentInGlobal          ProviderTriggerGlobal[]    @relation("currentTriggerInstance")
+  currentInGlobal          ProviderTriggerGlobal[]   @relation("currentTriggerInstance")
   callbackProviderTriggers CallbackProviderTrigger[]
 
   @@unique([providerOid, specificationOid, hash])

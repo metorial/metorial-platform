@@ -2,32 +2,45 @@ import type {
   ManagedProviderAuthCredentials,
   Provider,
   ProviderAuthMethod,
-  ProviderAuthCredentials
+  ProviderAuthMethodGlobal
 } from '@metorial-subspace/db';
-import { providerAuthCredentialsPresenter } from './authCredentials';
 
 export let managedProviderAuthCredentialsPresenter = (
   managedProviderAuthCredentials: ManagedProviderAuthCredentials & {
-    providerAuthMethod: ProviderAuthMethod;
-    providerAuthCredentials: ProviderAuthCredentials & {
+    provider: Provider | null;
+    providerAuthMethodGlobal:
+      | (ProviderAuthMethodGlobal & {
+          currentInstance: ProviderAuthMethod | null;
+        })
+      | null;
+    initialProviderAuthMethod: ProviderAuthMethod & {
       provider: Provider;
     };
   }
-) => ({
-  object: 'provider.auth_credentials.managed',
+) => {
+  let provider =
+    managedProviderAuthCredentials.provider ??
+    managedProviderAuthCredentials.initialProviderAuthMethod.provider;
+  let providerAuthMethod =
+    managedProviderAuthCredentials.providerAuthMethodGlobal?.currentInstance ??
+    managedProviderAuthCredentials.initialProviderAuthMethod;
 
-  id: managedProviderAuthCredentials.id,
-  status: managedProviderAuthCredentials.status,
+  return {
+    object: 'provider.auth_credentials.managed',
 
-  providerAuthMethodId: managedProviderAuthCredentials.providerAuthMethod.id,
-  providerAuthMethodName: managedProviderAuthCredentials.providerAuthMethod.name,
-  oauthScopes: managedProviderAuthCredentials.oauthScopes,
+    id: managedProviderAuthCredentials.id,
+    status: managedProviderAuthCredentials.status,
 
-  providerAuthCredentialsId: managedProviderAuthCredentials.providerAuthCredentials.id,
-  authCredentials: providerAuthCredentialsPresenter(
-    managedProviderAuthCredentials.providerAuthCredentials
-  ),
+    providerId: provider.id,
+    providerAuthMethodId: providerAuthMethod.id,
+    providerAuthMethodName: providerAuthMethod.name,
 
-  createdAt: managedProviderAuthCredentials.createdAt,
-  updatedAt: managedProviderAuthCredentials.updatedAt
-});
+    name: managedProviderAuthCredentials.name,
+    description: managedProviderAuthCredentials.description,
+    metadata: managedProviderAuthCredentials.metadata,
+    oauthScopes: managedProviderAuthCredentials.oauthScopes,
+
+    createdAt: managedProviderAuthCredentials.createdAt,
+    updatedAt: managedProviderAuthCredentials.updatedAt
+  };
+};
