@@ -60,7 +60,8 @@ export let getFullSession = async (
         }
       : null,
     session: providerSetupSessionPresenter(session),
-    brand: brandPresenter(brand)
+    brand: brandPresenter(brand),
+    isWhitelabel: session.tenant.isWhitelabel
   };
 };
 

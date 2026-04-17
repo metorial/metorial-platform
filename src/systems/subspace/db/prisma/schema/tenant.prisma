@@ -17,6 +17,7 @@ model Tenant {
   originTenantIdentifier String?
 
   onlyAllowTrustedProviders Boolean @default(false)
+  isWhitelabel              Boolean @default(false)
 
   createdAt DateTime @default(now())
 

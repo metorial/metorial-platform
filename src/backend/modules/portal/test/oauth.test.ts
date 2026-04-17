@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
   defaultPortalAllowedRedirectUrlFilters,
+  portalAllowedRedirectUrlFiltersEqual,
   portalAllowedRedirectUrlFilterMatches,
+  validatePortalRedirectUriAgainstAllowedFilters,
   validatePortalAllowedRedirectUrlFilters,
-  validatePortalRedirectUrisAgainstAllowedFilters
+  validatePortalRedirectUrisAgainstAllowedFilters,
+  validateRedirectUri,
+  validateUrlString
 } from '../src/lib/oauth';
 
 describe('portal oauth redirect filters', () => {
@@ -40,6 +44,12 @@ describe('portal oauth redirect filters', () => {
       )
     ).toBe(false);
     expect(
+      portalAllowedRedirectUrlFilterMatches(
+        { url: 'http://localhost:*/*' },
+        'http://127.0.0.1:4310/callback'
+      )
+    ).toBe(true);
+    expect(
       portalAllowedRedirectUrlFilterMatches({ url: 'https://*/*' }, 'https://example.com/test')
     ).toBe(true);
     expect(
@@ -75,14 +85,55 @@ describe('portal oauth redirect filters', () => {
     expect(() =>
       validatePortalAllowedRedirectUrlFilters([{ url: 'http://loc*alhost:*/*' }])
     ).toThrow('unsupported hostname wildcard');
+    expect(() => validatePortalAllowedRedirectUrlFilters([{ url: 'ssh://*' }])).toThrow(
+      'blocked redirect protocol'
+    );
   });
 
-  it('rejects client redirect uris outside the portal allowlist', () => {
+  it('allows client registration when at least one redirect uri matches the portal allowlist', () => {
     expect(() =>
       validatePortalRedirectUrisAgainstAllowedFilters({
-        redirectUris: ['https://example.com/callback'],
+        redirectUris: ['https://example.com/callback', 'http://127.0.0.1:33418/'],
+        allowedRedirectUrlFilters: [{ url: 'http://localhost:*/*' }]
+      })
+    ).not.toThrow();
+  });
+
+  it('rejects authorization redirect uris outside the portal allowlist', () => {
+    expect(() =>
+      validatePortalRedirectUriAgainstAllowedFilters({
+        redirectUri: 'https://example.com/callback',
         allowedRedirectUrlFilters: [{ url: 'http://localhost:*/*' }]
       })
     ).toThrow('redirect_uri is not allowed for this portal');
+  });
+
+  it('treats loopback hosts as equivalent during redirect uri matching', () => {
+    expect(() =>
+      validateRedirectUri('http://127.0.0.1:33418/', ['http://localhost:33418/'])
+    ).not.toThrow();
+  });
+
+  it('rejects blocked well known redirect protocols', () => {
+    expect(() => validateUrlString('ftp://example.com/callback', 'redirect_uri')).toThrow(
+      'blocked redirect protocol'
+    );
+    expect(() =>
+      portalAllowedRedirectUrlFilterMatches({ url: '*://*' }, 'ssh://example.com/callback')
+    ).toThrow('blocked redirect protocol');
+  });
+
+  it('normalizes the default filters back to null storage', () => {
+    expect(
+      portalAllowedRedirectUrlFiltersEqual(
+        [
+          { url: 'https://*/*' },
+          { url: '*://*' },
+          { url: 'http://*.localhost:*/*' },
+          { url: 'http://127.0.0.1:*/*' }
+        ],
+        defaultPortalAllowedRedirectUrlFilters
+      )
+    ).toBe(true);
   });
 });

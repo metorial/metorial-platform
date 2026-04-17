@@ -25,6 +25,7 @@ interface SetupSessionFlowProps {
   brand: Brand;
   provider: Provider | null;
   clientSecret: string;
+  isWhitelabel?: boolean;
 }
 
 interface ProviderSelectionPaneProps {
@@ -105,7 +106,8 @@ export let SetupSessionFlow = ({
   session,
   brand,
   clientSecret,
-  provider
+  provider,
+  isWhitelabel
 }: SetupSessionFlowProps) => {
   let [flowSession, setFlowSession] = useState(session);
   let [flowProvider, setFlowProvider] = useState(provider);
@@ -546,6 +548,7 @@ export let SetupSessionFlow = ({
         currentStep={currentStepIndex}
         stepLabels={isCompleted ? [] : stepLabels}
         variant={layoutVariant === 'light' ? 'light' : 'box'}
+        isWhitelabel={isWhitelabel}
       >
         {innerContent}
       </MetorialElementsLayout>

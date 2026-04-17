@@ -58,6 +58,25 @@ export abstract class IProviderAuth extends IProviderFunctionality {
   abstract getProviderAuthConfigScopes(
     data: GetProviderAuthConfigScopesParam
   ): Promise<GetProviderAuthScopesRes>;
+
+  async getManyProviderAuthCredentialsScopes(
+    data: ProviderAuthCredentialsScopesParam
+  ): Promise<ProviderAuthCredentialsScopesRes> {
+    return { scopes: new Map() };
+  }
+}
+
+export interface ProviderAuthCredentialsScopesParam {
+  tenant: Tenant;
+  backings: {
+    id: string;
+    slateCredentialsOid?: bigint | null;
+    shuttleCredentialsOid?: bigint | null;
+  }[];
+}
+
+export interface ProviderAuthCredentialsScopesRes {
+  scopes: Map<string, string[]>;
 }
 
 export interface ProviderAuthCredentialsCreateParam {
@@ -80,27 +99,30 @@ export interface ProviderAuthCredentialsCreateRes {
   isAutoRegistration: boolean;
 }
 
-export interface ProviderAuthCredentialsDeleteBacking {
+export interface ProviderAuthCredentialsEditBacking {
   slateCredentialsOid?: bigint | null;
   shuttleCredentialsOid?: bigint | null;
 }
 
-export interface ProviderAuthCredentialsDeleteParam {
-  tenant: Tenant;
-  backing: ProviderAuthCredentialsDeleteBacking;
-}
-
-export interface ProviderAuthCredentialsDeleteRes {}
-
 export interface ProviderAuthCredentialsUpdateParam {
   tenant: Tenant;
-  providerAuthCredentials: ProviderAuthCredentials;
+  backing: ProviderAuthCredentialsEditBacking;
   input: {
+    type?: 'oauth';
     clientId?: string;
     clientSecret?: string;
     scopes?: string[];
   };
 }
+
+export interface ProviderAuthCredentialsUpdateRes {}
+
+export interface ProviderAuthCredentialsDeleteParam {
+  tenant: Tenant;
+  backing: ProviderAuthCredentialsEditBacking;
+}
+
+export interface ProviderAuthCredentialsDeleteRes {}
 
 export interface ProviderAuthCredentialsUpdateRes {}
 

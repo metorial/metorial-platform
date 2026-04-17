@@ -16,6 +16,7 @@ export let v1ProviderAuthCredentialsPresenter = Presenter.create(providerAuthCre
     name: authCredentials.name,
     description: authCredentials.description,
     metadata: authCredentials.metadata,
+    scopes: authCredentials.scopes ?? null,
 
     provider_id: authCredentials.providerId,
 
@@ -62,6 +63,13 @@ export let v1ProviderAuthCredentialsPresenter = Presenter.create(providerAuthCre
           name: 'metadata',
           description: 'Custom key-value pairs for storing additional information',
           examples: [{ app_name: 'My GitHub App', created_by: 'admin@company.com' }]
+        })
+      ),
+      scopes: v.nullable(
+        v.array(v.string(), {
+          name: 'scopes',
+          description: 'OAuth scopes requested by this credential',
+          examples: [['read', 'write']]
         })
       ),
       provider_id: v.string({

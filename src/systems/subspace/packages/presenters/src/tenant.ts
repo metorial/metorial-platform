@@ -9,6 +9,7 @@ export let tenantPresenter = (tenant: Tenant) => ({
   logRetentionInDays: tenant.logRetentionInDays,
 
   onlyAllowTrustedProviders: tenant.onlyAllowTrustedProviders,
+  isWhitelabel: tenant.isWhitelabel,
 
   createdAt: tenant.createdAt
 });

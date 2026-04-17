@@ -3,6 +3,7 @@ import type { Provider, ProviderAuthCredentials } from '@metorial-subspace/db';
 export let providerAuthCredentialsPresenter = (
   providerAuthCredentials: ProviderAuthCredentials & {
     provider: Provider;
+    scopes?: string[] | null;
   }
 ) => ({
   object: 'provider.auth_credentials',
@@ -22,7 +23,7 @@ export let providerAuthCredentialsPresenter = (
   description: providerAuthCredentials.description,
   metadata: providerAuthCredentials.metadata,
   privateMetadata: providerAuthCredentials.privateMetadata,
-  scopes: providerAuthCredentials.scopes,
+  scopes: providerAuthCredentials.scopes ?? null,
 
   createdAt: providerAuthCredentials.createdAt,
   updatedAt: providerAuthCredentials.updatedAt

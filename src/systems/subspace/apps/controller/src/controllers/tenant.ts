@@ -49,6 +49,7 @@ export let tenantController = app.controller({
         name: v.string(),
         identifier: v.string(),
         onlyAllowTrustedProviders: v.optional(v.boolean()),
+        isWhitelabel: v.optional(v.boolean()),
         logRetentionInDays: v.optional(v.number()),
         environments: v.array(
           v.object({
@@ -66,6 +67,7 @@ export let tenantController = app.controller({
           identifier: ctx.input.identifier,
           environments: ctx.input.environments as any,
           onlyAllowTrustedProviders: ctx.input.onlyAllowTrustedProviders,
+          isWhitelabel: ctx.input.isWhitelabel,
           logRetentionInDays: ctx.input.logRetentionInDays
         }
       });

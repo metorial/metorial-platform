@@ -68,6 +68,16 @@ export class ProviderAuth extends IProviderAuth {
     };
   }
 
+  override async updateProviderAuthCredentials(
+    _data: ProviderAuthCredentialsUpdateParam
+  ): Promise<ProviderAuthCredentialsUpdateRes> {
+    throw new ServiceError(
+      badRequestError({
+        message: 'This integration does not support authentication configuration'
+      })
+    );
+  }
+
   override async deleteProviderAuthCredentials(
     data: ProviderAuthCredentialsDeleteParam
   ): Promise<ProviderAuthCredentialsDeleteRes> {

@@ -25,7 +25,7 @@ export let SetupSessionPage = () => {
     return <LoadingPage />;
   }
 
-  let { session, brand, provider } = setupSession.data;
+  let { session, brand, provider, isWhitelabel } = setupSession.data;
   let clientSecret = new URLSearchParams(window.location.search).get('client_secret') || '';
 
   if (session.status === 'completed') {
@@ -45,6 +45,7 @@ export let SetupSessionPage = () => {
         icon={<SuccessIcon />}
         title="Setup Complete"
         description="This setup session has already been completed. You can close this window."
+        isWhitelabel={isWhitelabel}
       />
     );
   }
@@ -55,6 +56,7 @@ export let SetupSessionPage = () => {
         icon={<WarningIcon />}
         title="Session Expired"
         description="This setup session has expired. Please request a new setup link."
+        isWhitelabel={isWhitelabel}
       />
     );
   }
@@ -65,6 +67,7 @@ export let SetupSessionPage = () => {
         icon={<ErrorIcon />}
         title="Setup Failed"
         description="This setup session has failed. Please request a new setup link or contact support."
+        isWhitelabel={isWhitelabel}
       />
     );
   }
@@ -75,6 +78,7 @@ export let SetupSessionPage = () => {
       brand={brand}
       provider={provider}
       clientSecret={clientSecret}
+      isWhitelabel={isWhitelabel}
     />
   );
 };
@@ -174,9 +178,10 @@ interface StatusPageViewProps {
   title: string;
   description: string;
   noPadding?: boolean;
+  isWhitelabel?: boolean;
 }
 
-let StatusPageView = ({ icon, title, description, noPadding }: StatusPageViewProps) => {
+let StatusPageView = ({ icon, title, description, noPadding, isWhitelabel }: StatusPageViewProps) => {
   return (
     <Wrapper>
       <Inner>
@@ -189,9 +194,11 @@ let StatusPageView = ({ icon, title, description, noPadding }: StatusPageViewPro
             <StatusDescription>{description}</StatusDescription>
           </StatusContent>
 
-          <Footer>
-            <SecuredByFooter logoSize={16} isMetorialElement />
-          </Footer>
+          {!isWhitelabel && (
+            <Footer>
+              <SecuredByFooter logoSize={16} isMetorialElement />
+            </Footer>
+          )}
         </Card>
       </Inner>
     </Wrapper>

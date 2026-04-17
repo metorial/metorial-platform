@@ -3,7 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { createSlugGenerator } from '@lowerdeck/slugify';
 import { Context } from '@metorial/context';
-import { db, ID, Instance, Organization, Portal, withTransaction } from '@metorial/db';
+import { db, ID, Instance, Organization, Portal, Prisma, withTransaction } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import {
   consumerSurfaceService,
@@ -12,8 +12,9 @@ import {
 import { env } from '../env';
 import {
   getPortalAllowedRedirectUrlFilters,
-  type PortalAllowedRedirectUrlFilter,
-  validatePortalAllowedRedirectUrlFilters
+  portalAllowedRedirectUrlFiltersEqual,
+  validatePortalAllowedRedirectUrlFilters,
+  type PortalAllowedRedirectUrlFilter
 } from '../lib/oauth';
 import { buildPortalUrlFromTemplate, parsePortalIdFromTemplate } from '../portalUrlTemplate';
 
@@ -70,10 +71,24 @@ type PortalSurface = ConsumerSurfaceWithPublishableApiKey;
 let resolvePortalAllowedRedirectUrlFilters = (
   input?: PortalAllowedRedirectUrlFilter[] | null
 ) => {
-  let allowedRedirectUrlFilters = getPortalAllowedRedirectUrlFilters(input);
-  validatePortalAllowedRedirectUrlFilters(allowedRedirectUrlFilters);
+  if (input == null) return null;
 
-  return allowedRedirectUrlFilters;
+  validatePortalAllowedRedirectUrlFilters(input);
+
+  if (portalAllowedRedirectUrlFiltersEqual(input, getPortalAllowedRedirectUrlFilters())) {
+    return null;
+  }
+
+  return input;
+};
+
+let toNullablePortalAllowedRedirectUrlFilters = (
+  value: PortalAllowedRedirectUrlFilter[] | null | undefined
+) => {
+  if (value === undefined) return undefined;
+  if (value === null) return Prisma.DbNull;
+
+  return value;
 };
 
 class PortalServiceImpl {
@@ -194,8 +209,8 @@ class PortalServiceImpl {
             name: d.input.name,
             description: d.input.description,
             slug,
-            allowedRedirectUrlFilters: resolvePortalAllowedRedirectUrlFilters(
-              d.input.allowedRedirectUrlFilters
+            allowedRedirectUrlFilters: toNullablePortalAllowedRedirectUrlFilters(
+              resolvePortalAllowedRedirectUrlFilters(d.input.allowedRedirectUrlFilters)
             ),
             organizationOid: d.organization.oid,
             surfaceOid: surface.oid,
@@ -262,7 +277,9 @@ class PortalServiceImpl {
           description: d.input.description,
           allowedRedirectUrlFilters:
             d.input.allowedRedirectUrlFilters !== undefined
-              ? resolvePortalAllowedRedirectUrlFilters(d.input.allowedRedirectUrlFilters)
+              ? toNullablePortalAllowedRedirectUrlFilters(
+                  resolvePortalAllowedRedirectUrlFilters(d.input.allowedRedirectUrlFilters)
+                )
               : undefined
         },
         include

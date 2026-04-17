@@ -36,6 +36,12 @@ export class ProviderAuth extends IProviderAuth {
     throw unsupportedAuthError();
   }
 
+  override async updateProviderAuthCredentials(
+    _data: ProviderAuthCredentialsUpdateParam
+  ): Promise<ProviderAuthCredentialsUpdateRes> {
+    throw unsupportedAuthError();
+  }
+
   override async deleteProviderAuthCredentials(
     _data: ProviderAuthCredentialsDeleteParam
   ): Promise<ProviderAuthCredentialsDeleteRes> {

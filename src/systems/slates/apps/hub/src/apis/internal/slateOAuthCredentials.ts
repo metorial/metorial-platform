@@ -88,23 +88,25 @@ export let slateOAuthCredentialsController = app.controller({
       v.object({
         tenantId: v.string(),
         slateOAuthCredentialsId: v.string(),
+
         clientId: v.optional(v.string()),
         clientSecret: v.optional(v.string()),
         scopes: v.optional(v.array(v.string()))
       })
     )
     .do(async ctx => {
-      let result = await slateOAuthCredentialsService.updateSlateOAuthCredentials({
-        slateOAuthCredentials: ctx.slateOAuthCredentials,
+      let res = await slateOAuthCredentialsService.updateSlateOAuthCredentials({
         tenant: ctx.tenant,
+        slateOAuthCredentials: ctx.slateOAuthCredentials,
+
         input: {
+          scopes: ctx.input.scopes,
           clientId: ctx.input.clientId,
-          clientSecret: ctx.input.clientSecret,
-          scopes: ctx.input.scopes
+          clientSecret: ctx.input.clientSecret
         }
       });
 
-      return slateOAuthCredentialsPresenter(result);
+      return slateOAuthCredentialsPresenter(res);
     }),
 
   delete: slateOAuthCredentialsApp

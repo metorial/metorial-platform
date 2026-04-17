@@ -27,8 +27,14 @@ export let createProject = (
         let [res] = await create.mutate(values);
 
         if (res) {
-          if (!opts?.noRedirect) window.location.href = Paths.project(org, res);
-          close();
+          if (!opts?.noRedirect) {
+            setTimeout(() => {
+              close();
+              window.location.href = Paths.project(org, res);
+            }, 5000);
+          } else {
+            close();
+          }
         }
       },
       schema: yup =>
@@ -53,7 +59,7 @@ export let createProject = (
               fullWidth
               type="submit"
               loading={create.isLoading}
-              success={create.isSuccess}
+              success={create.isSuccessPermanent}
             >
               Create
             </Button>
