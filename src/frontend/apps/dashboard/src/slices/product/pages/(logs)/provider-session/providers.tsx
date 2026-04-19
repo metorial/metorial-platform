@@ -12,6 +12,7 @@ import { RenderDate, Text } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
 import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
+import { ProviderSessionContent } from './_content';
 
 export let ProviderSessionProvidersPage = () => {
   let instance = useCurrentInstance();
@@ -43,42 +44,56 @@ export let ProviderSessionProviders = ({
   session: DashboardInstanceSessionsGetOutput;
 }) => {
   let providerIds = useMemo(
-    () => Array.from(new Set((session.providers ?? []).map(dep => dep.providerId).filter(Boolean))),
+    () =>
+      Array.from(
+        new Set((session.providers ?? []).map(dep => dep.providerId).filter(Boolean))
+      ),
     [session.providers]
   );
   let providers = useProviders(instance?.id, { id: providerIds });
 
-  return renderWithLoader({ providers })(({ providers }) => {
-    let deployments = session.providers ?? [];
-    let providerNameMap = new Map<string, string>();
-    for (let provider of providers.data?.items ?? []) {
-      if (provider.id && provider.name) providerNameMap.set(provider.id, provider.name);
-    }
+  return (
+    <ProviderSessionContent>
+      {renderWithLoader({ providers })(({ providers }) => {
+        let deployments = session.providers ?? [];
+        let providerNameMap = new Map<string, string>();
+        for (let provider of providers.data?.items ?? []) {
+          if (provider.id && provider.name) providerNameMap.set(provider.id, provider.name);
+        }
 
-    return (
-      <>
-        <Table
-          headers={['Deployment', 'Provider', 'Created']}
-          data={deployments.map(dep => ({
-            data: [
-              <Text size="2" weight="strong">
-                {dep.deployment?.name ?? 'Unnamed'}
-              </Text>,
-              <Text size="2">{providerNameMap.get(dep.providerId) ?? dep.providerId}</Text>,
-              <RenderDate date={session.createdAt} />
-            ],
-            href: dep.deployment?.id
-              ? Paths.instance.providerDeployment(organization, project, instance, dep.deployment.id)
-              : undefined
-          }))}
-        />
+        return (
+          <>
+            <Table
+              headers={['Deployment', 'Provider', 'Created']}
+              data={deployments.map(dep => ({
+                data: [
+                  <Text size="2" weight="strong">
+                    {dep.deployment?.name ?? 'Unnamed'}
+                  </Text>,
+                  <Text size="2">
+                    {providerNameMap.get(dep.providerId) ?? dep.providerId}
+                  </Text>,
+                  <RenderDate date={session.createdAt} />
+                ],
+                href: dep.deployment?.id
+                  ? Paths.instance.providerDeployment(
+                      organization,
+                      project,
+                      instance,
+                      dep.deployment.id
+                    )
+                  : undefined
+              }))}
+            />
 
-        {deployments.length === 0 && (
-          <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-            No provider deployments in this session.
-          </Text>
-        )}
-      </>
-    );
-  });
+            {deployments.length === 0 && (
+              <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
+                No provider deployments in this session.
+              </Text>
+            )}
+          </>
+        );
+      })}
+    </ProviderSessionContent>
+  );
 };

@@ -36,7 +36,7 @@ let getRegistries = createLocallyCachedFunction({
   provider: async id => slates.registry.get({ registryId: id })
 });
 
-function generatePrettySlug(fullIdentifier: string): string {
+let generatePrettySlug = (fullIdentifier: string) => {
   let withoutAt = fullIdentifier.startsWith('@') ? fullIdentifier.slice(1) : fullIdentifier;
   let slashIndex = withoutAt.indexOf('/');
   if (slashIndex === -1) return slugify(withoutAt);
@@ -47,7 +47,7 @@ function generatePrettySlug(fullIdentifier: string): string {
   if (workspace === 'metorial') return slugify(name);
   if (name.startsWith(workspace)) return slugify(name);
   return slugify(`${workspace}-${name}`);
-}
+};
 
 let metorialDomains = [
   '.slates.dev',
@@ -57,7 +57,8 @@ let metorialDomains = [
   '.metorial.app',
   '.metorial.io',
   '.metorial.ai',
-  '.metorial-enterprise.com'
+  '.metorial-enterprise.com',
+  'localhost'
 ];
 
 export let syncSlateVersionQueueProcessor = syncSlateVersionQueue.process(async data => {

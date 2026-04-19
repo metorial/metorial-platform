@@ -66,7 +66,6 @@ let LineIndicator = styled('div')`
 
 let TabIndicator = styled('div')`
   position: absolute;
-  top: calc(50% - 2px);
   transform: translateY(-50%);
   /* height: 30px; */
   transition: all 0.3s ease;
@@ -226,6 +225,8 @@ export let Tabs = ({
                 left: indicatorOffset + (currentIndex - 0.5) * gap + listOffset,
                 width: indicatorWidth + gap,
                 height,
+
+                top: `calc(50% - ${padding.bottom / 2}px)`,
 
                 ...(variant === 'soft' && {
                   background: theme.colors.gray300
