@@ -29,6 +29,10 @@ class providerToolServiceImpl {
 
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
+        if (version && !version.specificationOid) {
+          return [];
+        }
+
         let listRes = await db.providerToolGlobal.findMany({
           ...opts,
 
@@ -66,7 +70,7 @@ class providerToolServiceImpl {
         });
 
         return listRes
-          .filter(g => g.currentInstance || g.providerTools.length)
+          .filter(g => g.currentInstance || (g.providerTools?.length ?? 0) > 0)
           .map(global => {
             let inner = global.providerTools?.[0] ?? global.currentInstance!;
 

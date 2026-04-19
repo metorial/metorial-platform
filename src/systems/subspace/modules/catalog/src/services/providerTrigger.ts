@@ -29,6 +29,10 @@ class providerTriggerServiceImpl {
 
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
+        if (version && !version.specificationOid) {
+          return [];
+        }
+
         let listRes = await db.providerTriggerGlobal.findMany({
           ...opts,
 
@@ -66,7 +70,7 @@ class providerTriggerServiceImpl {
         });
 
         return listRes
-          .filter(g => g.currentInstance || g.providerTriggers.length)
+          .filter(g => g.currentInstance || (g.providerTriggers?.length ?? 0) > 0)
           .map(global => {
             let inner = global.providerTriggers?.[0] ?? global.currentInstance!;
 
