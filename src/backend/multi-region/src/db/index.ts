@@ -51,19 +51,8 @@ let getGlobalDatabaseRegion = (url: URL) => {
   );
 };
 
-let createPoolConfigFromUrl = (url: URL): pg.PoolConfig => {
-  let port = Number.parseInt(url.port || '5432', 10);
-
+let createBasePoolConfigFromUrl = (url: URL): pg.PoolConfig => {
   return {
-    host: url.hostname,
-    port: Number.isFinite(port) ? port : 5432,
-    database: decodeURIComponent(url.pathname.replace(/^\//, '')),
-    user: decodeURIComponent(url.username),
-    password: decodeURIComponent(url.password),
-    ssl:
-      url.searchParams.get('sslmode') === 'require'
-        ? { rejectUnauthorized: false }
-        : undefined,
     max: getPositiveInteger(
       Number.parseInt(url.searchParams.get('connection_limit') || '10', 10),
       10
@@ -72,6 +61,13 @@ let createPoolConfigFromUrl = (url: URL): pg.PoolConfig => {
     keepAliveInitialDelayMillis: 0,
     idleTimeoutMillis: GLOBAL_DB_POOL_IDLE_TIMEOUT_MS,
     connectionTimeoutMillis: GLOBAL_DB_CONNECTION_TIMEOUT_MS
+  };
+};
+
+let createStaticPasswordPoolConfigFromUrl = (url: URL): pg.PoolConfig => {
+  return {
+    ...createBasePoolConfigFromUrl(url),
+    connectionString: url.toString()
   };
 };
 
@@ -95,7 +91,16 @@ let createGlobalDbPoolConfig = (): pg.PoolConfig => {
   });
 
   return {
-    ...createPoolConfigFromUrl(url),
+    ...createBasePoolConfigFromUrl(url),
+    host: url.hostname,
+    port: Number.parseInt(url.port || '5432', 10),
+    database: decodeURIComponent(url.pathname.replace(/^\//, '')),
+    user: decodeURIComponent(url.username),
+    ssl:
+      url.searchParams.get('sslmode') === 'require' ||
+      url.searchParams.get('sslmode') === 'no-verify'
+        ? { rejectUnauthorized: false }
+        : undefined,
     password: async () => await signer.getAuthToken()
   };
 };
@@ -108,7 +113,7 @@ let createClient = () => {
   let url = new URL(process.env.GLOBAL_DATABASE_URL);
   let mainAdapter = process.env.GLOBAL_DATABASE_ARN
     ? new PrismaPg(createGlobalDbPoolConfig())
-    : new PrismaPg(createPoolConfigFromUrl(url));
+    : new PrismaPg(createStaticPasswordPoolConfigFromUrl(url));
 
   let baseClient = new PrismaClient({
     adapter: mainAdapter,
