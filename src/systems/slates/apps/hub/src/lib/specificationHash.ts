@@ -62,17 +62,15 @@ export let buildDiscoveredSpecificationHashes = async (d: {
 }) => {
   let providerInfoHash = await hashDiscoveredProviderInfo(d.providerInfo);
   let configSchemaHash = await hashDiscoveredConfigSchema(d.configSchema);
-  let authMethodHashes = (
-    await Promise.all(d.authMethods.map(hashDiscoveredAuthMethod))
-  ).sort();
-  let actionHashes = (await Promise.all(d.actions.map(hashDiscoveredAction))).sort();
+  let authMethodHashes = await Promise.all(d.authMethods.map(hashDiscoveredAuthMethod));
+  let actionHashes = await Promise.all(d.actions.map(hashDiscoveredAction));
 
   let specificationHash = await Hash.sha256(
     canonicalize({
       providerInfoHash,
       configSchemaHash,
-      authMethodHashes,
-      actionHashes
+      authMethodHashes: [...authMethodHashes].sort(),
+      actionHashes: [...actionHashes].sort()
     })
   );
 

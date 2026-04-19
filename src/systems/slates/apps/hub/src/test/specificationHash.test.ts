@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildDiscoveredSpecificationHashes,
+  hashDiscoveredAction,
+  hashDiscoveredAuthMethod,
   dedupeDiscoveredItems
 } from '../lib/specificationHash';
 
@@ -133,6 +135,29 @@ describe('specificationHash', () => {
     });
 
     expect(otherOrder.specificationHash).toBe(oneOrder.specificationHash);
+  });
+
+  it('keeps returned per-item hashes aligned with the original item order', async () => {
+    let authA = createAuthMethod({ id: 'oauth', type: 'auth.oauth', scopes: [] });
+    let authB = createAuthMethod();
+    let actionA = createAction({ id: 'get_repository' });
+    let actionB = createAction({ id: 'list_repositories' });
+
+    let result = await buildDiscoveredSpecificationHashes({
+      providerInfo: baseProviderInfo,
+      configSchema: baseConfigSchema,
+      authMethods: [authB, authA],
+      actions: [actionB, actionA]
+    });
+
+    expect(result.authMethodHashes).toEqual([
+      await hashDiscoveredAuthMethod(authB),
+      await hashDiscoveredAuthMethod(authA)
+    ]);
+    expect(result.actionHashes).toEqual([
+      await hashDiscoveredAction(actionB),
+      await hashDiscoveredAction(actionA)
+    ]);
   });
 
   it('deduplicates discovered items by logical key', () => {
