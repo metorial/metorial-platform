@@ -1,8 +1,11 @@
 import { User } from '@metorial/db';
 import { cell } from '../cell';
-import { globalDB } from '../db';
+import { globalDB, Prisma } from '../db';
 
-export let upsertUser = async (user: User) => {
+export let upsertUser = async (
+  user: User,
+  db: Pick<Prisma.TransactionClient, 'user'> = globalDB
+) => {
   let inner = {
     status: user.status,
     type: user.type,
@@ -17,7 +20,7 @@ export let upsertUser = async (user: User) => {
     lastEditByOid: (await cell).oid
   };
 
-  return await globalDB.user.upsert({
+  return await db.user.upsert({
     where: { id: user.id },
     update: inner,
     create: { id: user.id, ...inner }

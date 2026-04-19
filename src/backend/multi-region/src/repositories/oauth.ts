@@ -171,7 +171,7 @@ class OAuthGlobalRepository {
     let currentCell = await cell;
 
     return await globalDB.$transaction(async db => {
-      let user = await upsertUser(d.user);
+      let user = await upsertUser(d.user, db);
 
       let count = await db.oAuthAuthorizationRequest.updateMany({
         where: {
@@ -200,7 +200,7 @@ class OAuthGlobalRepository {
 
   async rejectOAuthAuthorizationRequest(d: { id: string; user: User }) {
     return await globalDB.$transaction(async db => {
-      let user = await upsertUser(d.user);
+      let user = await upsertUser(d.user, db);
 
       let count = await db.oAuthAuthorizationRequest.updateMany({
         where: {
