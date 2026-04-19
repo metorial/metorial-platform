@@ -14,6 +14,7 @@ let Header = styled('header')`
   top: 0;
   background: ${theme.colors.background};
   z-index: 45;
+  flex-shrink: 0;
 `;
 
 let HeaderInner = styled('div')`
@@ -28,7 +29,12 @@ let HeaderWrapperLine = styled('div')`
   padding-bottom: 10px;
 `;
 
-let Content = styled('main')``;
+let Content = styled('main')`
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+`;
 
 let LinksWrapper = styled('div')``;
 
@@ -86,6 +92,7 @@ export let ContentPanelLayout = ({
             current={links.current}
             links={links.items}
             padding={{ bottom: 6, left: 20, right: 20 }}
+            margin={{ bottom: 0 }}
           />
         </LinksWrapper>
       </>

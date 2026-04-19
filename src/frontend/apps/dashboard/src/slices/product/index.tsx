@@ -197,7 +197,7 @@ let ProviderSessionRunsPage = dynamicPage(() =>
   import('./pages/(logs)/provider-session/runs').then(c => c.ProviderSessionRunsPage)
 );
 let ProviderSessionLogsPage = dynamicPage(() =>
-  import('./pages/(logs)/provider-session/logs').then(c => c.ProviderSessionLogsPage)
+  import('./pages/(logs)/provider-session').then(c => c.ProviderSessionLogsPage)
 );
 let SessionTemplateLayout = dynamicPage(() =>
   import('./pages/(session)/session-template/_layout').then(c => c.SessionTemplateLayout)

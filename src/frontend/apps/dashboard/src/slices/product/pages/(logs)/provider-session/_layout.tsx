@@ -8,7 +8,20 @@ import {
   useSession
 } from '@metorial/state';
 import { Outlet, useLocation, useParams } from 'react-router-dom';
+import styled from 'styled-components';
 import { DeletedRecordCallout } from '../../../scenes/deletedRecordCallout';
+
+let OutletWrapper = styled.div`
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  overflow: hidden;
+
+  > * {
+    flex: 1;
+    min-height: 0;
+  }
+`;
 
 export let ProviderSessionLayout = () => {
   let instance = useCurrentInstance();
@@ -66,7 +79,9 @@ export let ProviderSessionLayout = () => {
       }}
     >
       {renderWithLoader({ session })(({ session }) => (
-        <Outlet />
+        <OutletWrapper>
+          <Outlet />
+        </OutletWrapper>
       ))}
     </ContentPanelLayout>
   );
