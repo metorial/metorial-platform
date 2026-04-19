@@ -100,88 +100,99 @@ class providerVersionInternalServiceImpl {
     return versionCreateLock.usingLock(
       [String(d.variant.oid), String(d.variant.slateOid)],
       () =>
-        withTransaction(async db => {
-          let identifier = `provider::${d.source.type}::`;
-          if (d.source.type === 'slates') {
-            identifier += `${d.source.slate.oid}::${d.source.slateVersion.oid}`;
-          } else if (d.source.type === 'shuttle') {
-            identifier += `${d.source.shuttleServer.oid}::${d.source.shuttleServerVersion.oid}`;
-          } else if (d.source.type === 'native') {
-            identifier += `${d.source.integrationIdentifier}::version`;
-          } else {
-            throw new Error('Unknown provider source type');
-          }
-
-          let currentVariant = await db.providerVariant.findFirst({
-            where: { oid: d.variant.oid }
-          });
-
-          let versionData = {
-            identifier,
-
-            name: d.info.name,
-            backendOid: d.source.backend.oid,
-            providerOid: d.variant.providerOid,
-            providerVariantOid: d.variant.oid,
-
-            typeOid: type.oid,
-
-            slateOid: d.source.type === 'slates' ? d.source.slate.oid : null,
-            slateVersionOid: d.source.type === 'slates' ? d.source.slateVersion.oid : null,
-
-            shuttleServerOid: d.source.type === 'shuttle' ? d.source.shuttleServer.oid : null,
-            shuttleServerVersionOid:
-              d.source.type === 'shuttle' ? d.source.shuttleServerVersion.oid : null,
-
-            isCurrent: d.isCurrent
-          };
-
-          let existingVersion = await db.providerVersion.findFirst({
-            where: { identifier: versionData.identifier }
-          });
-
-          let newId = getId('providerVersion');
-          let providerVersion = existingVersion
-            ? await db.providerVersion.update({
-                where: { identifier: versionData.identifier },
-                data: versionData
-              })
-            : await db.providerVersion.upsert({
-                where: { identifier: versionData.identifier },
-                create: {
-                  ...newId,
-                  ...versionData,
-                  specificationDiscoveryStatus: 'discovering',
-                  previousVersionOid: currentVariant?.currentVersionOid,
-                  tag: await createTag()
-                },
-                update: versionData
-              });
-
-          if (d.isCurrent) {
-            await db.providerVariant.updateMany({
-              where: { oid: d.variant.oid },
-              data: { currentVersionOid: providerVersion.oid }
-            });
-            await db.providerVersion.updateMany({
-              where: {
-                providerVariantOid: d.variant.oid,
-                oid: { not: providerVersion.oid }
-              },
-              data: { isCurrent: false }
-            });
-          }
-
-          await addAfterTransactionHook(async () => {
-            if (providerVersion.id === newId.id) {
-              await providerVersionCreatedQueue.add({ providerVersionId: providerVersion.id });
+        withTransaction(
+          async db => {
+            let identifier = `provider::${d.source.type}::`;
+            if (d.source.type === 'slates') {
+              identifier += `${d.source.slate.oid}::${d.source.slateVersion.oid}`;
+            } else if (d.source.type === 'shuttle') {
+              identifier += `${d.source.shuttleServer.oid}::${d.source.shuttleServerVersion.oid}`;
+            } else if (d.source.type === 'native') {
+              identifier += `${d.source.integrationIdentifier}::version`;
             } else {
-              await providerVersionUpdatedQueue.add({ providerVersionId: providerVersion.id });
+              throw new Error('Unknown provider source type');
             }
-          });
 
-          return providerVersion;
-        })
+            let currentVariant = await db.providerVariant.findFirst({
+              where: { oid: d.variant.oid }
+            });
+
+            let versionData = {
+              identifier,
+
+              name: d.info.name,
+              backendOid: d.source.backend.oid,
+              providerOid: d.variant.providerOid,
+              providerVariantOid: d.variant.oid,
+
+              typeOid: type.oid,
+
+              slateOid: d.source.type === 'slates' ? d.source.slate.oid : null,
+              slateVersionOid: d.source.type === 'slates' ? d.source.slateVersion.oid : null,
+
+              shuttleServerOid:
+                d.source.type === 'shuttle' ? d.source.shuttleServer.oid : null,
+              shuttleServerVersionOid:
+                d.source.type === 'shuttle' ? d.source.shuttleServerVersion.oid : null,
+
+              isCurrent: d.isCurrent
+            };
+
+            let existingVersion = await db.providerVersion.findFirst({
+              where: { identifier: versionData.identifier }
+            });
+
+            let newId = getId('providerVersion');
+            let providerVersion = existingVersion
+              ? await db.providerVersion.update({
+                  where: { identifier: versionData.identifier },
+                  data: versionData
+                })
+              : await db.providerVersion.upsert({
+                  where: { identifier: versionData.identifier },
+                  create: {
+                    ...newId,
+                    ...versionData,
+                    specificationDiscoveryStatus: 'discovering',
+                    previousVersionOid: currentVariant?.currentVersionOid,
+                    tag: await createTag()
+                  },
+                  update: versionData
+                });
+
+            if (d.isCurrent) {
+              await db.providerVariant.updateMany({
+                where: { oid: d.variant.oid },
+                data: { currentVersionOid: providerVersion.oid }
+              });
+              await db.providerVersion.updateMany({
+                where: {
+                  providerVariantOid: d.variant.oid,
+                  oid: { not: providerVersion.oid }
+                },
+                data: { isCurrent: false }
+              });
+            }
+
+            await addAfterTransactionHook(async () => {
+              if (providerVersion.id === newId.id) {
+                await providerVersionCreatedQueue.add({
+                  providerVersionId: providerVersion.id
+                });
+              } else {
+                await providerVersionUpdatedQueue.add({
+                  providerVersionId: providerVersion.id
+                });
+              }
+            });
+
+            return providerVersion;
+          },
+          {
+            timeout: 20000,
+            maxWait: 20000
+          }
+        )
     );
   }
 }

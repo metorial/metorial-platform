@@ -17,7 +17,7 @@ let afterQueue = new PQueue({ concurrency: Number.POSITIVE_INFINITY });
 
 export let withTransaction = async <T>(
   cb: (tdb: TransactionDB) => Promise<T>,
-  opts?: { ifExists?: boolean }
+  opts?: { ifExists?: boolean; timeout?: number; maxWait?: number }
 ): Promise<T> => {
   let tdb = tdbStorage.getStore();
 
@@ -26,17 +26,23 @@ export let withTransaction = async <T>(
   } else {
     let afterHooks: Array<() => Promise<undefined | any>> = [];
 
-    let res = await db.$transaction(async tdb => {
-      return await tdbStorage.run(
-        {
-          tdb,
-          afterHooks
-        },
-        async () => {
-          return await cb(tdb);
-        }
-      );
-    });
+    let res = await db.$transaction(
+      async tdb => {
+        return await tdbStorage.run(
+          {
+            tdb,
+            afterHooks
+          },
+          async () => {
+            return await cb(tdb);
+          }
+        );
+      },
+      {
+        timeout: opts?.timeout,
+        maxWait: opts?.maxWait
+      }
+    );
 
     afterQueue.add(async () => {
       let inner = async () => await Promise.all(afterHooks.map(hook => hook()));
