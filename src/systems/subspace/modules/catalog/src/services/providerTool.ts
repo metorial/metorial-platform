@@ -33,6 +33,24 @@ class providerToolServiceImpl {
           return [];
         }
 
+        // We need to patch the cursor from the versioned tool to
+        // the global one for pagination to work correctly
+        if (opts.cursor?.id) {
+          let tool = await db.providerTool.findFirst({
+            where: {
+              provider: getProviderTenantFilter(d),
+              OR: [{ id: opts.cursor.id }, { global: { id: opts.cursor.id } }]
+            },
+            include: {
+              global: true
+            }
+          });
+
+          if (tool?.global) {
+            opts.cursor = { id: tool.global.id };
+          }
+        }
+
         let listRes = await db.providerToolGlobal.findMany({
           ...opts,
 

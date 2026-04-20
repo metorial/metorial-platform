@@ -33,6 +33,24 @@ class providerTriggerServiceImpl {
           return [];
         }
 
+        // We need to patch the cursor from the versioned tool to
+        // the global one for pagination to work correctly
+        if (opts.cursor?.id) {
+          let trigger = await db.providerTrigger.findFirst({
+            where: {
+              provider: getProviderTenantFilter(d),
+              OR: [{ id: opts.cursor.id }, { global: { id: opts.cursor.id } }]
+            },
+            include: {
+              global: true
+            }
+          });
+
+          if (trigger?.global) {
+            opts.cursor = { id: trigger.global.id };
+          }
+        }
+
         let listRes = await db.providerTriggerGlobal.findMany({
           ...opts,
 

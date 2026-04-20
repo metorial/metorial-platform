@@ -1,5 +1,5 @@
 export let autoPaginate = async <T>(
-  cb: (cursor: { after?: string }) => Promise<{
+  cb: (cursor: { after?: string; limit?: number }) => Promise<{
     items: T[];
     pagination: {
       hasMoreAfter: boolean;
@@ -11,7 +11,7 @@ export let autoPaginate = async <T>(
   let after: string | undefined = undefined;
 
   while (true) {
-    let { items: newItems, pagination } = await cb({ after });
+    let { items: newItems, pagination } = await cb({ after, limit: 100 });
 
     items = [...items, ...newItems];
     let lastItem = newItems[newItems.length - 1];
