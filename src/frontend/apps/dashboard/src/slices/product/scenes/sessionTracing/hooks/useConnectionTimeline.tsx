@@ -18,7 +18,13 @@ import {
 } from '@remixicon/react';
 import { useMemo } from 'react';
 import { Entry } from '../../session/components/entry';
-import { Message } from '../../session/components/message';
+import {
+  ExplorerCapabilitiesMessageGroup,
+  Message,
+  getMessageMethod,
+  isExplorerCapabilityMethod,
+  shouldRenderStandaloneMessage
+} from '../../session/components/message';
 import { ProviderRunLogs } from '../../session/components/providerRunLogs';
 import { useAggregatedMessages } from '../../session/hooks/useAggregatedMessages';
 import { SessionConnection, TimelineItem } from '../types';
@@ -80,14 +86,45 @@ export let useConnectionTimeline = ({
         connectionType?: string | null;
       })
     | undefined;
+  let visibleMessages = useMemo(
+    () => allMessages.filter(message => shouldRenderStandaloneMessage(message, aggregatedMessages)),
+    [aggregatedMessages, allMessages]
+  );
 
   let messageItems = useMemo<TimelineItem[]>(
-    () =>
-      allMessages.map(message => ({
-        component: <Message message={message} aggregatedMessages={aggregatedMessages} />,
-        time: message.createdAt
-      })),
-    [aggregatedMessages, allMessages]
+    () => {
+      let capabilityMessages = visibleMessages.filter(message =>
+        isExplorerCapabilityMethod(getMessageMethod(message, aggregatedMessages))
+      );
+      let capabilityMessageIds = new Set(capabilityMessages.map(message => message.id));
+      let clientName = mcp?.client?.name ?? connection.participant?.name ?? 'Client';
+      let items: TimelineItem[] = [];
+
+      if (capabilityMessages.length > 0) {
+        items.push({
+          component: (
+            <ExplorerCapabilitiesMessageGroup
+              aggregatedMessages={aggregatedMessages}
+              clientName={clientName}
+              messages={capabilityMessages}
+            />
+          ),
+          time: capabilityMessages[0].createdAt
+        });
+      }
+
+      for (let message of visibleMessages) {
+        if (capabilityMessageIds.has(message.id)) continue;
+
+        items.push({
+          component: <Message message={message} aggregatedMessages={aggregatedMessages} />,
+          time: message.createdAt
+        });
+      }
+
+      return items;
+    },
+    [aggregatedMessages, connection.participant?.name, mcp?.client?.name, visibleMessages]
   );
 
   let providerRunItems = providerRuns.data?.items ?? [];

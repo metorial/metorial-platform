@@ -239,7 +239,7 @@ export let messageInputToMcpBasic = async (
   if (input.type === 'mcp') {
     return {
       jsonrpc: '2.0',
-      id: message?.clientMcpId ?? message?.id,
+      // id: message?.clientMcpId ?? message?.id
       ...(input.data as any)
     };
   }

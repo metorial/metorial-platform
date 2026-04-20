@@ -3,7 +3,7 @@ import { useMemo } from 'react';
 
 export interface AggregatedMessages {
   unifiedId: string;
-  originalId: string;
+  originalId?: string;
   method?: string;
 
   request: DashboardInstanceSessionsMessagesGetOutput;
@@ -27,7 +27,11 @@ export let useAggregatedMessages = (
       let current = (map.get(msgId) ?? {}) as AggregatedMessages;
 
       current.unifiedId = msgId;
-      current.originalId = current.originalId ?? String(payload.id ?? mcpTransport.id);
+
+      current.originalId =
+        typeof payload.id === 'string' || typeof payload.id === 'number'
+          ? String(payload.id)
+          : undefined;
 
       if (typeof payload.method === 'string') {
         current.method = payload.method;

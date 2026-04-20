@@ -78,7 +78,10 @@ export let ProviderSessionLayout = () => {
         ]
       }}
     >
-      {renderWithLoader({ session })(({ session }) => (
+      {renderWithLoader(
+        { session },
+        { spaceTop: 20 }
+      )(({ session }) => (
         <OutletWrapper>
           <Outlet />
         </OutletWrapper>

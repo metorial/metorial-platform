@@ -1,18 +1,18 @@
 import { RenderDate, theme } from '@metorial/ui';
 import styled from 'styled-components';
 
-let EntryWrapper = styled.div`
+export let EntryWrapper = styled.div`
   display: flex;
   gap: 10px;
   align-items: center;
   color: ${theme.colors.gray600};
 
-  svg {
+  > svg {
     width: 20px;
     height: 20px;
   }
 
-  span {
+  > span {
     font-size: 13px;
     font-weight: 500;
     flex: 1;
@@ -24,6 +24,10 @@ let EntryWrapper = styled.div`
 
   &[data-variant='warning'] {
     color: ${theme.colors.orange700};
+  }
+
+  time {
+    font-size: 13px;
   }
 `;
 

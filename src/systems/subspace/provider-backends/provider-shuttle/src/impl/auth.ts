@@ -101,16 +101,6 @@ export class ProviderAuth extends IProviderAuth {
     return {};
   }
 
-  override async updateProviderAuthCredentials(
-    _data: ProviderAuthCredentialsUpdateParam
-  ): Promise<ProviderAuthCredentialsUpdateRes> {
-    throw new ServiceError(
-      badRequestError({
-        message: 'Updating OAuth credentials is not supported for this provider'
-      })
-    );
-  }
-
   override async createProviderOAuthSetup(
     data: ProviderOAuthSetupCreateParam
   ): Promise<ProviderOAuthSetupCreateRes> {

@@ -59,6 +59,10 @@ let Root = styled(RadixCheckbox.Root)`
     opacity: 0.5;
   }
 
+  &.readonly {
+    opacity: 1;
+  }
+
   &::before {
     position: absolute;
     top: 50%;
@@ -107,7 +111,8 @@ export let Checkbox = ({
   description,
   label,
   disabled,
-  hideLabel
+  hideLabel,
+  readOnly
 }: {
   checked?: boolean;
   onCheckedChange?: (checked: boolean) => void;
@@ -115,6 +120,7 @@ export let Checkbox = ({
   description?: React.ReactNode;
   disabled?: boolean;
   hideLabel?: boolean;
+  readOnly?: boolean;
 }) => {
   let [animate, setAnimate] = useState(false);
   let [initialValue] = useState(() => checked);
@@ -126,13 +132,13 @@ export let Checkbox = ({
 
   return (
     <>
-      <Wrapper>
+      <Wrapper style={{ cursor: readOnly ? 'default' : undefined }}>
         <Root
-          className={clsx({ disabled })}
+          className={clsx({ disabled, readonly: readOnly })}
           id={id}
           checked={checked}
-          onCheckedChange={onCheckedChange}
-          disabled={disabled}
+          onCheckedChange={readOnly ? undefined : onCheckedChange}
+          disabled={disabled || readOnly}
         >
           <Indicator data-animate={animate}>
             <Check size={12} strokeWidth={3} />
@@ -149,7 +155,7 @@ export let Checkbox = ({
               paddingLeft: 10,
               display: 'flex',
               alignItems: 'center',
-              cursor: 'pointer'
+              cursor: readOnly ? 'default' : 'pointer'
             }}
           >
             {label}
