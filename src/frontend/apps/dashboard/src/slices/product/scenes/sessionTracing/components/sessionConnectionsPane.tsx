@@ -118,7 +118,12 @@ let ConnectionButton = styled.div`
   }
 
   &[data-error='true'] {
-    border-color: ${theme.colors.red500};
+    border-color: ${theme.colors.red600};
+
+    &[data-active='true'] {
+      border-color: ${theme.colors.red600};
+      box-shadow: 0 0 0 1px ${theme.colors.red600};
+    }
   }
 
   &:hover {

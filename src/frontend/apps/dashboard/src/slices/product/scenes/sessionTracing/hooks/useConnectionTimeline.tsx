@@ -124,6 +124,22 @@ export let useConnectionTimeline = ({
           ),
           time: evt.createdAt
         });
+      } else if (type === 'warning_occurred') {
+        let warningMsg =
+          evt.warning?.code && evt.warning?.message
+            ? `${evt.warning.code} - ${evt.warning.message}`
+            : (evt.warning?.message ?? evt.warning?.message ?? null);
+        items.push({
+          component: (
+            <Entry
+              icon={<RiErrorWarningLine />}
+              title={warningMsg ? `warning: ${warningMsg}` : 'warning occurred'}
+              time={evt.createdAt}
+              variant="warning"
+            />
+          ),
+          time: evt.createdAt
+        });
       } else if (type === 'provider_run_started') {
         items.push({
           component: (

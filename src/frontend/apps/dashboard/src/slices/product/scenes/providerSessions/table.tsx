@@ -198,12 +198,6 @@ let providerSessionsTable = new DashboardTable<ProviderSessionsTableProps, Sessi
       render: session => <RenderDate date={session.updatedAt} />
     },
     {
-      id: 'connectionState',
-      isDefault: false,
-      header: 'Connection',
-      render: session => <Text size="2">{session.connectionState}</Text>
-    },
-    {
       id: 'deploymentIds',
       isDefault: false,
       header: 'Deployment IDs',

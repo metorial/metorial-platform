@@ -21,6 +21,10 @@ let EntryWrapper = styled.div`
   &[data-variant='error'] {
     color: ${theme.colors.red600};
   }
+
+  &[data-variant='warning'] {
+    color: ${theme.colors.orange700};
+  }
 `;
 
 export let Entry = ({
@@ -32,7 +36,7 @@ export let Entry = ({
   icon: React.ReactNode;
   title: React.ReactNode;
   time: Date;
-  variant?: 'default' | 'error';
+  variant?: 'default' | 'error' | 'warning';
 }) => {
   return (
     <EntryWrapper data-variant={variant}>
