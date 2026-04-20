@@ -416,27 +416,32 @@ class providerAuthCredentialsServiceImpl {
     tenant: Tenant;
     providerAuthCredentials: ProviderAuthCredentials;
   }) {
-    let scopes = (
-      await (
-        await getBackend({
-          entity: {
-            backendOid: d.providerAuthCredentials.backendOid
-          }
-        })
-      ).auth.getProviderAuthCredentialsScopes({
-        tenant: d.tenant,
-        providerAuthCredentials: d.providerAuthCredentials
-      })
-    ).scopes;
+    return withTransaction(
+      async db => {
+        let scopes = (
+          await (
+            await getBackend({
+              entity: {
+                backendOid: d.providerAuthCredentials.backendOid
+              }
+            })
+          ).auth.getProviderAuthCredentialsScopes({
+            tenant: d.tenant,
+            providerAuthCredentials: d.providerAuthCredentials
+          })
+        ).scopes;
 
-    return await db.providerAuthCredentials.update({
-      where: { oid: d.providerAuthCredentials.oid },
-      data: {
-        scopes,
-        needsScopeSync: false
+        return await db.providerAuthCredentials.update({
+          where: { oid: d.providerAuthCredentials.oid },
+          data: {
+            scopes,
+            needsScopeSync: false
+          },
+          include
+        });
       },
-      include
-    });
+      { ifExists: true }
+    );
   }
 
   async archiveProviderAuthCredentials(d: {

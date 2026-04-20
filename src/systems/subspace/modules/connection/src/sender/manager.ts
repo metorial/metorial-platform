@@ -173,6 +173,14 @@ export class SenderManager {
             }
           });
 
+          await db.session.updateMany({
+            where: { oid: session.oid },
+            data: {
+              connectionState: 'connected',
+              lastActiveAt: new Date()
+            }
+          });
+
           await db.sessionEvent.createMany({
             data: {
               ...getId('sessionEvent'),
@@ -719,6 +727,16 @@ export class SenderManager {
       })
       .then(c => c); // Force promise to run
 
+    void (async () => {
+      await db.session.updateMany({
+        where: { oid: this.session.oid },
+        data: {
+          connectionState: 'connected',
+          lastActiveAt: new Date()
+        }
+      });
+    })().catch(() => {});
+
     this.#createConnectionPromise = con;
     this.connection = await con;
 
@@ -843,6 +861,7 @@ export class SenderManager {
     await db.session.updateMany({
       where: { oid: this.session.oid },
       data: {
+        connectionState: 'connected',
         lastConnectionCreatedAt: new Date(),
         lastActiveAt: new Date()
       }

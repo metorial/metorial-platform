@@ -4,6 +4,7 @@ import { createQueue } from '@lowerdeck/queue';
 import semver from 'semver';
 import { db } from '../db';
 import { env } from '../env';
+import { randomIntBetween } from '../lib/randomNumber';
 import { createZipBuffer, readTarballEntries } from '../lib/slatePackage/archive';
 import { normalizeSlatePackage } from '../lib/slatePackage/manifest';
 import { tenantService, workspaceService } from '../services';
@@ -96,7 +97,10 @@ export let syncNpmPackagesQueueProcessor = syncNpmPackagesQueue.process(async da
   await syncNpmPackageQueue.addManyWithOps(
     currentPage.map(packageName => ({
       data: { packageName },
-      opts: { id: btoa(packageName) }
+      opts: {
+        id: btoa(packageName),
+        delay: 1000 * randomIntBetween(60 * 3, 60 * 7) // Delay because npm's caches can take a bit to update
+      }
     }))
   );
 
