@@ -1,5 +1,5 @@
 import type { DashboardInstanceProvidersTriggersListOutput } from '@metorial/dashboard-sdk';
-import { renderWithLoader, renderWithPagination } from '@metorial/data-hooks';
+import { renderWithLoader } from '@metorial/data-hooks';
 import { useCurrentInstance, useProviderTriggers } from '@metorial/state';
 import { Badge, Button, Dialog, Flex, Text, showModal, theme } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
@@ -498,7 +498,7 @@ export let ProviderTriggersPage = () => {
     ));
   };
 
-  let triggersContent = renderWithPagination(triggers)(triggers => (
+  let triggersContent = renderWithLoader({ triggers })(({ triggers }) => (
     <>
       <Table
         headers={['Name', 'Mode', '']}

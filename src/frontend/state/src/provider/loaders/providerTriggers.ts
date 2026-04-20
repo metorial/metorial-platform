@@ -1,6 +1,6 @@
 import { DashboardInstanceProvidersTriggersListQuery } from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
-import { usePaginator } from '../../lib/usePaginator';
+import { autoPaginate } from '../../lib/autoPaginate';
 import { withAuth } from '../../user';
 
 export let providerTriggersLoader = createLoader({
@@ -12,7 +12,9 @@ export let providerTriggersLoader = createLoader({
       providerVersionId: string;
     } & DashboardInstanceProvidersTriggersListQuery
   ) => {
-    return await withAuth(sdk => sdk.providers.triggers.list(i.instanceId, i));
+    return await withAuth(sdk =>
+      autoPaginate(c => sdk.providers.triggers.list(i.instanceId, { ...i, ...c }))
+    );
   },
   mutators: {}
 });
@@ -21,19 +23,20 @@ export let useProviderTriggers = (
   instanceId: string | null | undefined,
   opts: DashboardInstanceProvidersTriggersListQuery | null
 ) => {
-  let data = usePaginator(pagination =>
-    providerTriggersLoader.use(
-      instanceId && opts
-        ? {
-            instanceId,
-            ...opts,
-            ...pagination
-          }
-        : null
-    )
-  );
+  let data = providerTriggersLoader.use(instanceId && opts ? { instanceId, ...opts } : null);
 
-  return data;
+  return {
+    ...data,
+    data: data.data
+      ? {
+          items: data.data,
+          pagination: {
+            hasMoreAfter: false,
+            hasMoreBefore: false
+          }
+        }
+      : null
+  };
 };
 
 export let providerTriggerLoader = createLoader({

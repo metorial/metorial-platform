@@ -1,4 +1,4 @@
-import { renderWithPagination } from '@metorial/data-hooks';
+import { renderWithLoader } from '@metorial/data-hooks';
 import { useProviderTools } from '@metorial/state';
 import { Text, theme } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
@@ -12,7 +12,7 @@ export let ProviderToolsTable = ({
 }) => {
   let tools = useProviderTools(instanceId, providerVersionId ? { providerVersionId } : null);
 
-  return renderWithPagination(tools)(tools => (
+  return renderWithLoader({ tools })(({ tools }) => (
     <>
       <Table
         headers={['Name', 'Key', 'Description']}

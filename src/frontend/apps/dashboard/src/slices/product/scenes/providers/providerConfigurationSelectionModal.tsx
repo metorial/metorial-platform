@@ -21,11 +21,11 @@ import {
 } from '@metorial/ui';
 import { RiAddLine } from '@remixicon/react';
 import { useEffect, useState, type ReactNode } from 'react';
+import { Stepper } from '../../../../components/stepper';
 import {
   emptyConfigurationSelection,
   type ConfigurationSelection
 } from '../../lib/configSelection';
-import { Stepper } from '../../../../components/stepper';
 import { ProviderAuthConfigCreateButton } from '../providerAuthConfigs/modal';
 import { ProviderConfigurationSelection } from '../providerConfigs/selection';
 import { ProviderDeploymentsList } from '../providerDeployments/list';
@@ -140,10 +140,7 @@ export let ProviderConfigurationSelectionModalContent = ({
       form.setFieldValue('selectedProviderId', providerId);
     }
 
-    if (
-      resolvedProviderName &&
-      form.values.selectedProviderName !== resolvedProviderName
-    ) {
+    if (resolvedProviderName && form.values.selectedProviderName !== resolvedProviderName) {
       form.setFieldValue('selectedProviderName', resolvedProviderName);
     }
   }, [
@@ -265,13 +262,7 @@ export let ProviderConfigurationSelectionModalContent = ({
         }
       ];
 
-  return (
-    <Stepper
-      currentStep={currentStep}
-      setCurrentStep={setCurrentStep}
-      steps={steps}
-    />
-  );
+  return <Stepper currentStep={currentStep} setCurrentStep={setCurrentStep} steps={steps} />;
 };
 
 export let showProviderConfigurationSelectionModal = (p: {

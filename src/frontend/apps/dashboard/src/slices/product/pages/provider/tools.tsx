@@ -1,5 +1,5 @@
 import { DashboardInstanceProvidersToolsListOutput } from '@metorial/dashboard-sdk';
-import { renderWithLoader, renderWithPagination } from '@metorial/data-hooks';
+import { renderWithLoader } from '@metorial/data-hooks';
 import { useCurrentInstance, useProviderTools } from '@metorial/state';
 import { Badge, Button, Dialog, Flex, Text, showModal, theme } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
@@ -508,7 +508,7 @@ export let ProviderToolsPage = () => {
     ));
   };
 
-  let toolsContent = renderWithPagination(tools)(tools => (
+  let toolsContent = renderWithLoader({ tools })(({ tools }) => (
     <>
       <Table
         headers={['Name', 'Type', '']}
