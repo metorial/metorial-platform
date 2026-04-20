@@ -1,14 +1,4 @@
-import {
-  Attributes,
-  Button,
-  Callout,
-  CenteredSpinner,
-  Flex,
-  Tabs,
-  Text,
-  theme
-} from '@metorial/ui';
-import { ID } from '@metorial/ui-product';
+import { Button, Callout, CenteredSpinner, Flex, Tabs, Text, theme } from '@metorial/ui';
 import type {
   CompatibilityCallToolResult,
   GetPromptResult,
@@ -406,8 +396,6 @@ let ResourceCard = ({
 
     <Button
       type="button"
-      variant="solid"
-      color="gray"
       style={blackButtonStyle}
       loading={state?.status === 'loading'}
       onClick={() => onRead(resource)}
@@ -458,8 +446,6 @@ let ResourceTemplateCard = ({
       ) : (
         <Button
           type="button"
-          variant="solid"
-          color="gray"
           style={blackButtonStyle}
           loading={state?.status === 'loading'}
           onClick={() => onRead(resourceTemplate, {})}
@@ -511,8 +497,6 @@ let PromptCard = ({
         <div>
           <Button
             type="button"
-            variant="solid"
-            color="gray"
             style={blackButtonStyle}
             loading={state?.status === 'loading'}
             onClick={() => onGet(prompt, {})}
@@ -857,7 +841,7 @@ export let ExplorerApp = () => {
           <Panel>
             {renderTruncationNotice(collections.tools.truncated)}
             {collections.tools.items.length === 0
-              ? renderEmptyState('No tools found', 'This MCP server did not return any tools.')
+              ? renderEmptyState('No tools found', "This provider doesn't support tools.")
               : collections.tools.items.map(tool => (
                   <ToolCard
                     key={tool.name}
@@ -875,7 +859,7 @@ export let ExplorerApp = () => {
             {collections.resources.items.length === 0
               ? renderEmptyState(
                   'No resources found',
-                  'This MCP server did not return any resources.'
+                  "This provider doesn't support resources."
                 )
               : collections.resources.items.map(resource => (
                   <ResourceCard
@@ -894,7 +878,7 @@ export let ExplorerApp = () => {
             {collections.resourceTemplates.items.length === 0
               ? renderEmptyState(
                   'No resource templates found',
-                  'This MCP server did not return any resource templates.'
+                  "This provider doesn't support resource templates."
                 )
               : collections.resourceTemplates.items.map(resourceTemplate => (
                   <ResourceTemplateCard
@@ -911,10 +895,7 @@ export let ExplorerApp = () => {
           <Panel>
             {renderTruncationNotice(collections.prompts.truncated)}
             {collections.prompts.items.length === 0
-              ? renderEmptyState(
-                  'No prompts found',
-                  'This MCP server did not return any prompts.'
-                )
+              ? renderEmptyState('No prompts found', "This provider doesn't support prompts.")
               : collections.prompts.items.map(prompt => (
                   <PromptCard
                     key={prompt.name}
@@ -940,7 +921,7 @@ export let ExplorerApp = () => {
             </Text>
           </Flex>
 
-          <Attributes
+          {/* <Attributes
             attributes={[
               {
                 label: 'Status',
@@ -961,7 +942,7 @@ export let ExplorerApp = () => {
                 content: <ID id={query.url} />
               }
             ]}
-          />
+          /> */}
 
           {query.errors.length > 0 ? (
             <Callout color="red" size="2">

@@ -568,8 +568,6 @@ export let SchemaForm = ({
       <div>
         <Button
           type="submit"
-          variant="solid"
-          color="gray"
           size="2"
           style={blackButtonStyle}
           loading={isSubmitting}
@@ -651,13 +649,7 @@ export let NamedArgumentsForm = ({
         />
       ))}
 
-      <Button
-        type="submit"
-        variant="solid"
-        color="gray"
-        style={blackButtonStyle}
-        loading={isSubmitting}
-      >
+      <Button type="submit" style={blackButtonStyle} loading={isSubmitting}>
         {submitLabel}
       </Button>
     </Form>

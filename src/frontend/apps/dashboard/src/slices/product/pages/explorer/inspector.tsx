@@ -47,7 +47,7 @@ let ConnectionNav = styled.nav`
   display: flex;
   gap: 10px;
   justify-content: space-between;
-  border-bottom: solid ${theme.colors.gray400} 1px;
+  border-bottom: solid ${theme.colors.gray300} 1px;
 `;
 
 let ConnectionNavSection = styled.nav`
@@ -217,48 +217,52 @@ export let InspectorFrame = (p: {
             </Button>
           </Menu>
 
-          {p.magicMcpServerId ? (
-            <Link
-              to={Paths.instance.magicMcp.server(
-                instance.data?.organization,
-                instance.data?.project,
-                instance.data,
-                p.magicMcpServerId
-              )}
-            >
-              <Button as="span" size="2" variant="outline">
-                Open Magic MCP Server
-              </Button>
-            </Link>
-          ) : resolvedSessionTemplateId ? (
-            <Link
-              to={Paths.instance.sessionTemplate(
-                instance.data?.organization,
-                instance.data?.project,
-                instance.data,
-                resolvedSessionTemplateId
-              )}
-            >
-              <Button as="span" size="2" variant="outline">
-                Open Session Template
-              </Button>
-            </Link>
-          ) : firstDeploymentId ? (
-            <Link
-              to={Paths.instance.providerDeployment(
-                instance.data?.organization,
-                instance.data?.project,
-                instance.data,
-                firstDeploymentId
-              )}
-            >
-              <Button as="span" size="2" variant="outline">
-                Open Provider Deployment
-              </Button>
-            </Link>
-          ) : null}
+          {
+            p.magicMcpServerId ? (
+              <Link
+                to={Paths.instance.magicMcp.server(
+                  instance.data?.organization,
+                  instance.data?.project,
+                  instance.data,
+                  p.magicMcpServerId
+                )}
+              >
+                <Button as="span" size="2" variant="outline">
+                  Open Magic MCP Server
+                </Button>
+              </Link>
+            ) : resolvedSessionTemplateId ? (
+              <Link
+                to={Paths.instance.sessionTemplate(
+                  instance.data?.organization,
+                  instance.data?.project,
+                  instance.data,
+                  resolvedSessionTemplateId
+                )}
+              >
+                <Button as="span" size="2" variant="outline">
+                  Open Session Template
+                </Button>
+              </Link>
+            ) : null
 
-          <Link
+            // firstDeploymentId ? (
+            //   <Link
+            //     to={Paths.instance.providerDeployment(
+            //       instance.data?.organization,
+            //       instance.data?.project,
+            //       instance.data,
+            //       firstDeploymentId
+            //     )}
+            //   >
+            //     <Button as="span" size="2" variant="outline">
+            //       Open Provider Deployment
+            //     </Button>
+            //   </Link>
+            // ) : null
+          }
+
+          {/* <Link
             to={Paths.instance.providerSession(
               instance.data?.organization,
               instance.data?.project,
@@ -269,7 +273,7 @@ export let InspectorFrame = (p: {
             <Button as="span" size="2" variant="outline">
               Open Session
             </Button>
-          </Link>
+          </Link> */}
         </ConnectionNavSection>
       </ConnectionNav>
 

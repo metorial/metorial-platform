@@ -9,8 +9,11 @@ let Wrapper = styled.div`
   flex-shrink: 0;
   gap: 1px;
   overflow-x: auto;
-  border-bottom: 1px solid ${theme.colors.gray400};
-  background: ${theme.colors.gray300};
+  overflow-y: hidden;
+  border-bottom: 1px solid ${theme.colors.gray300};
+  background: ${theme.colors.gray100};
+  scrollbar-width: thin;
+  scrollbar-color: ${theme.colors.gray300} ${theme.colors.background};
 `;
 
 let TabSlot = styled.div`
@@ -193,7 +196,10 @@ export let EditorTabs = ({
             onDragLeave={event => {
               if (!onReorder) return;
               let relatedTarget = event.relatedTarget;
-              if (relatedTarget instanceof Node && event.currentTarget.contains(relatedTarget)) {
+              if (
+                relatedTarget instanceof Node &&
+                event.currentTarget.contains(relatedTarget)
+              ) {
                 return;
               }
 

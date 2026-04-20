@@ -46,6 +46,8 @@ export let useSessionConnections = (
 
 type SessionConnectionItem = DashboardInstanceSessionsConnectionsListOutput['items'][number];
 
+let SESSION_CONNECTIONS_POLL_INTERVAL_MS = 5_000;
+
 export let useAccumulatedSessionConnections = (
   instanceId: string | null | undefined,
   sessionId: string | null | undefined,
@@ -60,89 +62,108 @@ export let useAccumulatedSessionConnections = (
       }),
     [instanceId, query, sessionId]
   );
-  let [after, setAfter] = useState<string | undefined>();
-  let [items, setItems] = useState<SessionConnectionItem[]>([]);
-  let seenPagesRef = useRef<Set<string>>(new Set());
+
+  let [after, setAfter] = useState<string | undefined>(undefined);
+  let [pendingAfter, setPendingAfter] = useState<string | null>(null);
+  let [itemsMap, setItemsMap] = useState<Map<string, SessionConnectionItem>>(() => new Map());
 
   useEffect(() => {
     setAfter(undefined);
-    setItems([]);
-    seenPagesRef.current = new Set();
+    setPendingAfter(null);
+    setItemsMap(new Map());
   }, [queryKey]);
 
-  let page = sessionConnectionsLoader.use(
-    instanceId && sessionId ? { instanceId, sessionId, after, ...query } : null
+  let firstPage = sessionConnectionsLoader.use(
+    instanceId && sessionId ? { instanceId, sessionId, ...query } : null
+  );
+
+  let cursorPage = sessionConnectionsLoader.use(
+    instanceId && sessionId && after !== undefined
+      ? { instanceId, sessionId, after, ...query }
+      : null
   );
 
   useEffect(() => {
-    let pageItems = page.data?.items;
-    if (!pageItems?.length) return;
+    let firstItems = firstPage.data?.items ?? [];
+    let cursorItems = cursorPage.data?.items ?? [];
+    if (!firstItems.length && !cursorItems.length) return;
 
-    let pageKey = `${after ?? '__first__'}:${pageItems.map(item => item.id).join(',')}`;
-    if (seenPagesRef.current.has(pageKey)) return;
-    seenPagesRef.current.add(pageKey);
-
-    setItems(current => {
-      let next = [...current];
-      let seenIds = new Set(current.map(item => item.id));
-
-      for (let item of pageItems) {
-        if (seenIds.has(item.id)) continue;
-        seenIds.add(item.id);
-        next.push(item);
-      }
-
+    setItemsMap(current => {
+      let next = new Map(current);
+      for (let item of firstItems) next.set(item.id, item);
+      for (let item of cursorItems) next.set(item.id, item);
       return next;
     });
-  }, [after, page.data?.items]);
+  }, [firstPage.data?.items, cursorPage.data?.items]);
+
+  useEffect(() => {
+    if (!pendingAfter) return;
+    if (after !== pendingAfter) return;
+    if (!cursorPage.data && !cursorPage.error) return;
+    setPendingAfter(null);
+  }, [after, cursorPage.data, cursorPage.error, pendingAfter]);
+
+  let refetchFirstPageRef = useRef(firstPage.refetch);
+  refetchFirstPageRef.current = firstPage.refetch;
+
+  useEffect(() => {
+    if (!instanceId || !sessionId) return;
+    let id = setInterval(() => {
+      refetchFirstPageRef.current();
+    }, SESSION_CONNECTIONS_POLL_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, [instanceId, sessionId, queryKey]);
+
+  let items = useMemo(() => Array.from(itemsMap.values()), [itemsMap]);
+
+  let pageForPagination = after !== undefined ? cursorPage : firstPage;
+  let hasMoreAfter = pageForPagination.data?.pagination.hasMoreAfter ?? false;
+  let isLoading = firstPage.isLoading && items.length === 0;
+  let isLoadingMore = pendingAfter !== null;
 
   let loadMore = () => {
-    if (page.isLoading) return;
-
-    let pageItems = page.data?.items ?? [];
-    let lastItem = pageItems[pageItems.length - 1];
-    if (!lastItem || !page.data?.pagination.hasMoreAfter) return;
-
+    if (pendingAfter !== null || firstPage.isLoading || cursorPage.isLoading) return;
+    let currentItems = pageForPagination.data?.items ?? [];
+    let lastItem = currentItems[currentItems.length - 1];
+    if (!lastItem || !hasMoreAfter) return;
+    setPendingAfter(lastItem.id);
     setAfter(current => (current === lastItem.id ? current : lastItem.id));
   };
 
   return {
-    ...page,
-    data: page.data
+    ...firstPage,
+    isLoading,
+    data: firstPage.data
       ? {
-          ...page.data,
+          ...firstPage.data,
           items,
           pagination: {
-            ...page.data.pagination,
-            hasMoreBefore: false
+            ...firstPage.data.pagination,
+            hasMoreBefore: false,
+            hasMoreAfter
           }
         }
       : null,
     items,
-    hasMoreAfter: page.data?.pagination.hasMoreAfter ?? false,
+    hasMoreAfter,
     hasMoreBefore: false,
-    isLoadingMore: page.isLoading && items.length > 0,
+    isLoadingMore,
     loadMore,
     reset: () => {
       setAfter(undefined);
-      setItems([]);
-      seenPagesRef.current = new Set();
+      setPendingAfter(null);
+      setItemsMap(new Map());
     }
   };
 };
 
-type AllConnectionsQuery = Omit<
-  DashboardInstanceSessionsConnectionsListQuery,
-  'sessionId'
->;
+type AllConnectionsQuery = Omit<DashboardInstanceSessionsConnectionsListQuery, 'sessionId'>;
 
 export let allSessionConnectionsLoader = createLoader({
   name: 'allSessionConnections',
   parents: [],
   fetch: (i: { instanceId: string } & AllConnectionsQuery) =>
-    withAuth(sdk =>
-      sdk.sessions.connections.list(i.instanceId, i)
-    ),
+    withAuth(sdk => sdk.sessions.connections.list(i.instanceId, i)),
   mutators: {}
 });
 
