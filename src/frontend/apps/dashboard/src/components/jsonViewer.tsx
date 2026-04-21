@@ -1,6 +1,6 @@
 import { theme } from '@metorial/ui';
 import { JsonValue, TreeView, VisualJson, useStudio } from '@visual-json/react';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import styled from 'styled-components';
 
 let Viewer = styled.div`
@@ -51,11 +51,18 @@ let TreeRoot = styled.div`
 `;
 
 let JsonViewerTree = () => {
-  let { actions } = useStudio();
+  let { actions, state } = useStudio();
+  let actionsRef = useRef(actions);
+  actionsRef.current = actions;
+
+  let rootId = state.tree.root.id;
+  let expandedRootRef = useRef<string | null>(null);
 
   useEffect(() => {
-    actions.expandAll();
-  }, [actions]);
+    if (expandedRootRef.current === rootId) return;
+    expandedRootRef.current = rootId;
+    actionsRef.current.expandAll();
+  }, [rootId]);
 
   return <TreeView showValues showCounts />;
 };
@@ -68,11 +75,11 @@ export let JsonViewer = ({ className, value }: { className?: string; value: Json
       onDragStartCapture={event => event.preventDefault()}
       onDropCapture={event => event.preventDefault()}
       style={{
-        ['--vj-bg' as string]: theme.colors.background,
-        ['--vj-bg-panel' as string]: theme.colors.background,
-        ['--vj-bg-hover' as string]: theme.colors.gray100,
-        ['--vj-bg-selected' as string]: theme.colors.gray200,
-        ['--vj-bg-selected-muted' as string]: theme.colors.gray100,
+        ['--vj-bg' as string]: 'transparent',
+        ['--vj-bg-panel' as string]: 'transparent',
+        ['--vj-bg-hover' as string]: 'rgba(0, 0, 0, 0.04)',
+        ['--vj-bg-selected' as string]: 'rgba(0, 0, 0, 0.08)',
+        ['--vj-bg-selected-muted' as string]: 'rgba(0, 0, 0, 0.04)',
         ['--vj-bg-match' as string]: theme.colors.yellow100,
         ['--vj-bg-match-active' as string]: theme.colors.yellow200,
         ['--vj-border' as string]: theme.colors.gray300,
@@ -81,7 +88,7 @@ export let JsonViewer = ({ className, value }: { className?: string; value: Json
         ['--vj-text-muted' as string]: theme.colors.gray700,
         ['--vj-text-dim' as string]: theme.colors.gray600,
         ['--vj-text-dimmer' as string]: theme.colors.gray500,
-        ['--vj-string' as string]: theme.colors.orange700,
+        ['--vj-string' as string]: theme.colors.orange800,
         ['--vj-number' as string]: theme.colors.blue700,
         ['--vj-boolean' as string]: theme.colors.purple700,
         ['--vj-accent' as string]: theme.colors.blue600,

@@ -5,6 +5,7 @@ import {
 import {
   useCurrentInstance,
   useProviderRuns,
+  useSessionConnection,
   useSessionEvents,
   useSessionMessages
 } from '@metorial/state';
@@ -16,7 +17,7 @@ import {
   RiSendPlane2Line,
   RiServerLine
 } from '@remixicon/react';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { Entry } from '../../session/components/entry';
 import {
   ExplorerCapabilitiesMessageGroup,
@@ -32,13 +33,16 @@ import { formatConnectionLabel, getEventConnectionId } from '../utils';
 
 export let useConnectionTimeline = ({
   session,
-  connection
+  connection: connectionProp
 }: {
   session: DashboardInstanceSessionsGetOutput;
   connection: SessionConnection;
 }) => {
   let instance = useCurrentInstance();
   let instanceId = instance.data?.id;
+
+  let connectionQuery = useSessionConnection(instanceId, connectionProp.id);
+  let connection = (connectionQuery.data ?? connectionProp) as SessionConnection;
 
   let messages = useSessionMessages(instanceId, session.id, {
     limit: 100,
@@ -52,6 +56,26 @@ export let useConnectionTimeline = ({
     limit: 100,
     sessionConnectionId: [connection.id]
   });
+
+  let refetchMessagesRef = useRef(messages.refetch);
+  refetchMessagesRef.current = messages.refetch;
+  let refetchEventsRef = useRef(events.refetch);
+  refetchEventsRef.current = events.refetch;
+  let refetchProviderRunsRef = useRef(providerRuns.refetch);
+  refetchProviderRunsRef.current = providerRuns.refetch;
+  let refetchConnectionRef = useRef(connectionQuery.refetch);
+  refetchConnectionRef.current = connectionQuery.refetch;
+
+  useEffect(() => {
+    if (!instanceId) return;
+    let id = setInterval(() => {
+      refetchConnectionRef.current?.();
+      refetchMessagesRef.current?.();
+      refetchEventsRef.current?.();
+      refetchProviderRunsRef.current?.();
+    }, 5_000);
+    return () => clearInterval(id);
+  }, [instanceId, session.id, connection.id]);
 
   let allMessages = useMemo(() => {
     let messageMap = new Map<string, DashboardInstanceSessionsMessagesGetOutput>();

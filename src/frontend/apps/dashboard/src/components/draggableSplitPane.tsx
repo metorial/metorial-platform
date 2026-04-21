@@ -54,6 +54,14 @@ let Divider = styled.div`
   }
 `;
 
+let DragOverlay = styled.div`
+  position: absolute;
+  inset: 0;
+  z-index: 1000;
+  cursor: col-resize;
+  background: transparent;
+`;
+
 let CollapsedGutter = styled.button`
   width: 40px;
   min-width: 40px;
@@ -93,13 +101,50 @@ let CollapsedGutter = styled.button`
 
 type CollapsedSide = 'left' | 'right' | null;
 
+type PersistedState = {
+  leftSize: number;
+  collapsedSide: CollapsedSide;
+};
+
+let readPersistedState = (storageKey: string | undefined): PersistedState | null => {
+  if (!storageKey) return null;
+  if (typeof window === 'undefined') return null;
+
+  try {
+    let raw = window.localStorage.getItem(storageKey);
+    if (!raw) return null;
+    let parsed = JSON.parse(raw) as Partial<PersistedState>;
+    let leftSize = typeof parsed.leftSize === 'number' ? parsed.leftSize : null;
+    let collapsedSide =
+      parsed.collapsedSide === 'left' ||
+      parsed.collapsedSide === 'right' ||
+      parsed.collapsedSide === null
+        ? parsed.collapsedSide
+        : null;
+    if (leftSize === null) return null;
+    return { leftSize, collapsedSide };
+  } catch {
+    return null;
+  }
+};
+
+let writePersistedState = (storageKey: string | undefined, state: PersistedState) => {
+  if (!storageKey) return;
+  if (typeof window === 'undefined') return;
+
+  try {
+    window.localStorage.setItem(storageKey, JSON.stringify(state));
+  } catch {}
+};
+
 export let DraggableSplitPane = ({
   left,
   right,
   initialLeftSize = 360,
   minLeftSize = 260,
   minRightSize = 360,
-  collapseThreshold = 200
+  collapseThreshold = 200,
+  storageKey
 }: {
   left: React.ReactNode;
   right: React.ReactNode;
@@ -107,15 +152,23 @@ export let DraggableSplitPane = ({
   minLeftSize?: number;
   minRightSize?: number;
   collapseThreshold?: number;
+  storageKey?: string;
 }) => {
   let collapsedGutterWidth = 40;
   let wrapperRef = useRef<HTMLDivElement>(null);
-  let [leftSize, setLeftSize] = useState(initialLeftSize);
-  let [collapsedSide, setCollapsedSide] = useState<CollapsedSide>(null);
+  let [leftSize, setLeftSize] = useState(() => {
+    let persisted = readPersistedState(storageKey);
+    return persisted?.leftSize ?? initialLeftSize;
+  });
+  let [collapsedSide, setCollapsedSide] = useState<CollapsedSide>(() => {
+    let persisted = readPersistedState(storageKey);
+    return persisted?.collapsedSide ?? null;
+  });
+  let [isDragging, setIsDragging] = useState(false);
 
   useEffect(() => {
-    setLeftSize(initialLeftSize);
-  }, [initialLeftSize]);
+    writePersistedState(storageKey, { leftSize, collapsedSide });
+  }, [storageKey, leftSize, collapsedSide]);
 
   let openLeft = () => {
     setCollapsedSide(null);
@@ -133,6 +186,7 @@ export let DraggableSplitPane = ({
     if (!wrapper) return;
 
     event.preventDefault();
+    setIsDragging(true);
 
     let startX = event.clientX;
     let { left: wrapperLeft, width } = wrapper.getBoundingClientRect();
@@ -160,6 +214,7 @@ export let DraggableSplitPane = ({
     let handleUp = () => {
       window.removeEventListener('pointermove', handleMove);
       window.removeEventListener('pointerup', handleUp);
+      setIsDragging(false);
     };
 
     window.addEventListener('pointermove', handleMove);
@@ -220,6 +275,8 @@ export let DraggableSplitPane = ({
           <RiArrowLeftSLine />
         </CollapsedGutter>
       )}
+
+      {isDragging && <DragOverlay />}
     </Wrapper>
   );
 };

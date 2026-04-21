@@ -51,8 +51,10 @@ let SESSION_CONNECTIONS_POLL_INTERVAL_MS = 5_000;
 export let useAccumulatedSessionConnections = (
   instanceId: string | null | undefined,
   sessionId: string | null | undefined,
-  query?: SessionConnectionsQuery
+  query?: SessionConnectionsQuery,
+  options?: { pollIntervalMs?: number }
 ) => {
+  let pollIntervalMs = options?.pollIntervalMs ?? SESSION_CONNECTIONS_POLL_INTERVAL_MS;
   let queryKey = useMemo(
     () =>
       JSON.stringify({
@@ -110,9 +112,9 @@ export let useAccumulatedSessionConnections = (
     if (!instanceId || !sessionId) return;
     let id = setInterval(() => {
       refetchFirstPageRef.current();
-    }, SESSION_CONNECTIONS_POLL_INTERVAL_MS);
+    }, pollIntervalMs);
     return () => clearInterval(id);
-  }, [instanceId, sessionId, queryKey]);
+  }, [instanceId, sessionId, queryKey, pollIntervalMs]);
 
   let items = useMemo(() => Array.from(itemsMap.values()), [itemsMap]);
 
