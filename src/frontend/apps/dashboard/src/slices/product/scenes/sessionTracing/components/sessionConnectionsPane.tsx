@@ -13,8 +13,13 @@ import {
 import { RiArrowDownSLine, RiCompass3Line } from '@remixicon/react';
 import { ReactNode, RefObject } from 'react';
 import styled from 'styled-components';
-import { GroupedConnectionItems, TracingConnectionItem } from '../types';
+import {
+  GroupedConnectionItems,
+  PlaceholderConnectionItem,
+  TracingConnectionItem
+} from '../types';
 import { formatConnectionLabel, getConnectionAccentColor } from '../utils';
+import { BreathingIndicator } from './breathing';
 
 let PaneSection = styled.div`
   display: flex;
@@ -193,6 +198,7 @@ let LoadingWrap = styled.div`
 
 export let SessionConnectionsPane = ({
   activeConnectionId,
+  activeTabId,
   connectionCount,
   explorerTabIdByConnectionId,
   groupedConnections,
@@ -204,10 +210,12 @@ export let SessionConnectionsPane = ({
   onOpenConnectTab,
   onOpenConnection,
   onOpenExplorerTab,
+  onSelectTab,
   session,
   setConnectionRowElement
 }: {
   activeConnectionId?: string | null;
+  activeTabId?: string | null;
   connectionCount: number;
   explorerTabIdByConnectionId: Map<string, string>;
   groupedConnections: GroupedConnectionItems[];
@@ -219,6 +227,7 @@ export let SessionConnectionsPane = ({
   onOpenConnectTab: () => void;
   onOpenConnection: (connectionId: string) => void;
   onOpenExplorerTab: () => void;
+  onSelectTab: (tabId: string) => void;
   session: DashboardInstanceSessionsGetOutput;
   setConnectionRowElement: (connectionId: string, element: HTMLDivElement | null) => void;
 }) => {
@@ -257,18 +266,27 @@ export let SessionConnectionsPane = ({
             <ConnectionGroup key={group.label}>
               <ConnectionGroupLabel>{group.label}</ConnectionGroupLabel>
 
-              {group.items.map(connection => (
-                <SessionConnectionRow
-                  key={connection.id}
-                  activeConnectionId={activeConnectionId}
-                  connection={connection}
-                  explorerTabIdByConnectionId={explorerTabIdByConnectionId}
-                  onOpenAssignedExplorer={onOpenAssignedExplorer}
-                  onOpenConnection={onOpenConnection}
-                  session={session}
-                  setConnectionRowElement={setConnectionRowElement}
-                />
-              ))}
+              {group.items.map(item =>
+                item.kind === 'placeholder' ? (
+                  <PlaceholderConnectionRow
+                    key={item.id}
+                    activeTabId={activeTabId}
+                    item={item}
+                    onSelectTab={onSelectTab}
+                  />
+                ) : (
+                  <SessionConnectionRow
+                    key={item.id}
+                    activeConnectionId={activeConnectionId}
+                    connection={item}
+                    explorerTabIdByConnectionId={explorerTabIdByConnectionId}
+                    onOpenAssignedExplorer={onOpenAssignedExplorer}
+                    onOpenConnection={onOpenConnection}
+                    session={session}
+                    setConnectionRowElement={setConnectionRowElement}
+                  />
+                )
+              )}
             </ConnectionGroup>
           ))}
 
@@ -371,6 +389,44 @@ let SessionConnectionRow = ({
       </ConnectionButtonRow>
 
       {meta.length > 0 && <ConnectionMeta>{meta}</ConnectionMeta>}
+    </ConnectionButton>
+  );
+};
+
+let PlaceholderConnectionRow = ({
+  activeTabId,
+  item,
+  onSelectTab
+}: {
+  activeTabId?: string | null;
+  item: PlaceholderConnectionItem;
+  onSelectTab: (tabId: string) => void;
+}) => {
+  return (
+    <ConnectionButton
+      role="button"
+      tabIndex={0}
+      data-active={activeTabId === item.tabId}
+      onClick={() => onSelectTab(item.tabId)}
+      onKeyDown={event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onSelectTab(item.tabId);
+        }
+      }}
+    >
+      <ConnectionButtonRow>
+        <ConnectionMain>
+          <BreathingIndicator />
+          <ConnectionTitle>{item.label}</ConnectionTitle>
+        </ConnectionMain>
+
+        <ConnectionButtonMeta>
+          <Text size="1" color="gray600">
+            Connecting…
+          </Text>
+        </ConnectionButtonMeta>
+      </ConnectionButtonRow>
     </ConnectionButton>
   );
 };

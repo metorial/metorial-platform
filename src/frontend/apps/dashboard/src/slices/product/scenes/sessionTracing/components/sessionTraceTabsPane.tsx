@@ -2,11 +2,11 @@ import { DashboardInstanceSessionsGetOutput } from '@metorial/dashboard-sdk';
 import { theme } from '@metorial/ui';
 import styled from 'styled-components';
 import { EditorTabItem, EditorTabs } from '../../../../../components/editorTabs';
-import { InspectorFrame } from '../../../pages/explorer/inspector';
 import { TracingConnectionItem } from '../types';
 import { CONNECT_TAB_ID } from '../utils';
 import { ConnectTabPanel } from './connectTabPanel';
 import { ConnectionLogs } from './connectionLogs';
+import { InspectorFrame } from './inspectorFrame';
 
 let PaneSection = styled.div`
   display: flex;
@@ -76,6 +76,7 @@ export let SessionTraceTabsPane = ({
   activeConnection,
   activeTabId,
   explorerTabIds,
+  inspectorOptions,
   isExplorerActive,
   onCloseTab,
   onReorderTabs,
@@ -86,6 +87,10 @@ export let SessionTraceTabsPane = ({
   activeConnection: TracingConnectionItem | null;
   activeTabId: string | null;
   explorerTabIds: string[];
+  inspectorOptions?: {
+    sessionTemplateId?: string | null;
+    magicMcpServerId?: string | null;
+  };
   isExplorerActive: boolean;
   onCloseTab: (id: string) => void;
   onReorderTabs: (sourceId: string, targetId: string, position: 'before' | 'after') => void;
@@ -105,7 +110,11 @@ export let SessionTraceTabsPane = ({
 
       {explorerTabIds.map(id => (
         <ExplorerHost key={id} data-active={id === activeTabId}>
-          <InspectorFrame sessionId={session.id} />
+          <InspectorFrame
+            sessionId={session.id}
+            sessionTemplateId={inspectorOptions?.sessionTemplateId}
+            magicMcpServerId={inspectorOptions?.magicMcpServerId}
+          />
         </ExplorerHost>
       ))}
 

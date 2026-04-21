@@ -4,7 +4,7 @@ import {
   GroupedConnectionItems,
   SessionConnection,
   SessionEvent,
-  TracingConnectionItem
+  TracingConnectionRowItem
 } from './types';
 
 export let CONNECT_TAB_ID = '__connect__';
@@ -86,24 +86,24 @@ export let reorderList = (
   return next;
 };
 
-export let groupConnectionsByDay = (connectionItems: TracingConnectionItem[]) => {
+export let groupConnectionsByDay = (connectionItems: TracingConnectionRowItem[]) => {
   let grouped = new Map<string, GroupedConnectionItems>();
 
-  for (let connection of connectionItems) {
-    let date = new Date(connection.createdAt);
+  for (let item of connectionItems) {
+    let date = new Date(item.createdAt);
     let day = new Date(date);
     day.setHours(0, 0, 0, 0);
     let key = day.toDateString();
     let existing = grouped.get(key);
 
     if (existing) {
-      existing.items.push(connection);
+      existing.items.push(item);
       continue;
     }
 
     grouped.set(key, {
-      label: formatGroupDateLabel(connection.createdAt),
-      items: [connection],
+      label: formatGroupDateLabel(date),
+      items: [item],
       dayTime: day.getTime()
     });
   }

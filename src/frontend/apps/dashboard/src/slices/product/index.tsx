@@ -537,30 +537,6 @@ export let productTraceSlice = createSlice([
                     element: <ServerErrorsPage />
                   }
                 ]
-              },
-
-              {
-                path: 'provider-error/:providerErrorId',
-                element: <ServerErrorLayout />,
-
-                children: [
-                  {
-                    path: '',
-                    element: <ServerErrorPage />
-                  }
-                ]
-              },
-
-              {
-                path: 'provider-run/:providerRunId',
-                element: <ServerRunLayout />,
-
-                children: [
-                  {
-                    path: '',
-                    element: <ServerRunPage />
-                  }
-                ]
               }
             ]
           },
@@ -592,6 +568,44 @@ export let productTraceSlice = createSlice([
               {
                 path: '',
                 element: <ServerErrorsPage />
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]);
+
+export let productTraceDetailSlice = createSlice([
+  {
+    element: <ProductWrapper />,
+
+    children: [
+      {
+        element: <InstanceLayout />,
+
+        children: [
+          {
+            path: 'provider-error/:providerErrorId',
+            element: <ServerErrorLayout />,
+
+            children: [
+              {
+                path: '',
+                element: <ServerErrorPage />
+              }
+            ]
+          },
+
+          {
+            path: 'provider-run/:providerRunId',
+            element: <ServerRunLayout />,
+
+            children: [
+              {
+                path: '',
+                element: <ServerRunPage />
               }
             ]
           },
@@ -1232,6 +1246,7 @@ export let productSlice = createSlice([
 
     children: [
       ...productTraceSlice.routes,
+      ...productTraceDetailSlice.routes,
       ...productExplorerSlice.routes,
       ...productHomeSlice.routes
     ]

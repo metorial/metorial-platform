@@ -6,12 +6,18 @@ import {
   RiArrowRightSLine,
   RiChatQuoteLine,
   RiCheckboxCircleLine,
+  RiErrorWarningLine,
   RiExchangeLine,
   RiFileListLine,
   RiFileTextLine,
   RiFolderLine,
+  RiImageLine,
+  RiLink,
+  RiMusic2Line,
   RiServerLine,
-  RiToolsLine
+  RiToolsLine,
+  RiUser3Line,
+  RiRobot2Line
 } from '@remixicon/react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { type ReactNode, useState } from 'react';
@@ -34,6 +40,13 @@ let Wrapper = styled.div`
   border: 1px solid ${theme.colors.gray400};
   width: 100%;
   overflow: hidden;
+  background: ${theme.colors.background};
+
+  &[data-error='true'] {
+    border-color: ${theme.colors.red600};
+    background: ${theme.colors.red100};
+    box-shadow: 0 0 10px rgba(229, 72, 77, 0.18);
+  }
 `;
 
 let Header = styled.header`
@@ -45,6 +58,11 @@ let Header = styled.header`
   justify-content: space-between;
   align-items: center;
   gap: 12px;
+
+  [data-error='true'] & {
+    border-bottom-color: ${theme.colors.red300};
+    color: ${theme.colors.red800};
+  }
 `;
 
 let HeaderSection = styled.div`
@@ -70,12 +88,38 @@ let ID = styled.span`
   justify-content: center;
   align-items: center;
   padding: 0px 3px;
+
+  [data-error='true'] & {
+    background: ${theme.colors.red300};
+    color: ${theme.colors.red800};
+  }
 `;
 
 let Title = styled.p`
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+`;
+
+let InlineCode = styled.code`
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    monospace;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: ${theme.colors.gray200};
+  color: ${theme.colors.gray800};
+  border: 1px solid ${theme.colors.gray300};
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 320px;
+  min-width: 0;
 `;
 
 let Main = styled.main`
@@ -97,6 +141,10 @@ let Section = styled.section`
 
   &:not(:last-child) {
     border-bottom: 1px solid ${theme.colors.gray400};
+  }
+
+  [data-error='true'] &:not(:last-child) {
+    border-bottom-color: ${theme.colors.red300};
   }
 `;
 
@@ -443,7 +491,7 @@ type EntityDetail = {
 type MessagePresentation = {
   defaultViewMode?: 'overview' | 'properties' | 'raw';
   hideCard?: boolean;
-  label: string;
+  label: ReactNode;
   overviewSections?: OverviewSection[];
   summaryIcon: ReactNode;
   summaryText: ReactNode;
@@ -775,6 +823,665 @@ let getToolsOverviewSections = ({
   ];
 };
 
+let mimeTypeLanguageMap: Record<string, string> = {
+  'application/json': 'json',
+  'application/xml': 'xml',
+  'application/yaml': 'yaml',
+  'application/x-yaml': 'yaml',
+  'application/javascript': 'javascript',
+  'application/x-javascript': 'javascript',
+  'application/typescript': 'typescript',
+  'application/x-sh': 'bash',
+  'text/plain': 'text',
+  'text/markdown': 'markdown',
+  'text/x-markdown': 'markdown',
+  'text/html': 'html',
+  'text/css': 'css',
+  'text/xml': 'xml',
+  'text/yaml': 'yaml',
+  'text/x-yaml': 'yaml',
+  'text/javascript': 'javascript',
+  'text/typescript': 'typescript',
+  'text/x-typescript': 'typescript',
+  'text/x-python': 'python',
+  'text/x-rust': 'rust',
+  'text/x-go': 'go',
+  'text/x-java': 'java',
+  'text/x-c': 'c',
+  'text/x-c++': 'cpp',
+  'text/x-csharp': 'csharp',
+  'text/x-ruby': 'ruby',
+  'text/x-php': 'php',
+  'text/x-swift': 'swift',
+  'text/x-kotlin': 'kotlin',
+  'text/x-scala': 'scala',
+  'text/x-shellscript': 'bash',
+  'text/x-sh': 'bash',
+  'text/x-sql': 'sql',
+  'text/csv': 'text',
+  'text/tab-separated-values': 'text'
+};
+
+let uriExtensionLanguageMap: Record<string, string> = {
+  json: 'json',
+  yaml: 'yaml',
+  yml: 'yaml',
+  xml: 'xml',
+  html: 'html',
+  htm: 'html',
+  css: 'css',
+  md: 'markdown',
+  markdown: 'markdown',
+  js: 'javascript',
+  mjs: 'javascript',
+  cjs: 'javascript',
+  jsx: 'jsx',
+  ts: 'typescript',
+  tsx: 'tsx',
+  py: 'python',
+  rb: 'ruby',
+  rs: 'rust',
+  go: 'go',
+  java: 'java',
+  c: 'c',
+  h: 'c',
+  cpp: 'cpp',
+  cc: 'cpp',
+  hpp: 'cpp',
+  cs: 'csharp',
+  php: 'php',
+  swift: 'swift',
+  kt: 'kotlin',
+  scala: 'scala',
+  sh: 'bash',
+  bash: 'bash',
+  zsh: 'bash',
+  sql: 'sql',
+  toml: 'toml',
+  ini: 'ini',
+  txt: 'text'
+};
+
+let detectLanguage = (mimeType?: string | null, uri?: string | null) => {
+  if (mimeType) {
+    let normalized = mimeType.split(';')[0].trim().toLowerCase();
+    if (mimeTypeLanguageMap[normalized]) return mimeTypeLanguageMap[normalized];
+    if (normalized.startsWith('text/')) return 'text';
+    if (normalized.endsWith('+json')) return 'json';
+    if (normalized.endsWith('+xml')) return 'xml';
+    if (normalized.endsWith('+yaml')) return 'yaml';
+  }
+
+  if (uri) {
+    let withoutQuery = uri.split(/[?#]/)[0];
+    let lastSegment = withoutQuery.split('/').pop() ?? '';
+    let ext = lastSegment.includes('.')
+      ? lastSegment.split('.').pop()?.toLowerCase()
+      : undefined;
+    if (ext && uriExtensionLanguageMap[ext]) return uriExtensionLanguageMap[ext];
+  }
+
+  return 'text';
+};
+
+let isImageMime = (mimeType?: string | null) =>
+  !!mimeType && mimeType.toLowerCase().startsWith('image/');
+
+let isAudioMime = (mimeType?: string | null) =>
+  !!mimeType && mimeType.toLowerCase().startsWith('audio/');
+
+let ResourceMeta = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  font-size: 12px;
+  color: ${theme.colors.gray700};
+  align-items: center;
+`;
+
+let ResourceMetaItem = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+
+  strong {
+    font-weight: 600;
+    color: ${theme.colors.gray800};
+  }
+`;
+
+let MediaWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid ${theme.colors.gray300};
+  border-radius: 8px;
+  background: ${theme.colors.gray100};
+`;
+
+let MediaPreview = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  img {
+    max-width: 100%;
+    max-height: 320px;
+    border-radius: 6px;
+    display: block;
+  }
+
+  audio {
+    width: 100%;
+  }
+`;
+
+let MessageBlockWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid ${theme.colors.gray300};
+  border-radius: 8px;
+  background: ${theme.colors.background};
+`;
+
+let MessageBlockHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: ${theme.colors.gray700};
+
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+`;
+
+let ResourceLinkRow = styled.a`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid ${theme.colors.gray300};
+  background: ${theme.colors.gray100};
+  color: ${theme.colors.gray800};
+  font-size: 12px;
+  text-decoration: none;
+
+  &:hover {
+    background: ${theme.colors.gray200};
+  }
+`;
+
+let StatusBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+
+  &[data-variant='error'] {
+    background: ${theme.colors.red100};
+    color: ${theme.colors.red800};
+    border: 1px solid ${theme.colors.red300};
+  }
+
+  &[data-variant='success'] {
+    background: ${theme.colors.green100};
+    color: ${theme.colors.green800};
+    border: 1px solid ${theme.colors.green300};
+  }
+`;
+
+let BlockStack = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+`;
+
+let ArgumentsView = ({ args }: { args: Record<string, any> | null | undefined }) => {
+  if (!args || Object.keys(args).length === 0) {
+    return (
+      <Text size="1" color="gray700">
+        No arguments provided.
+      </Text>
+    );
+  }
+
+  return <JsonViewer value={args} />;
+};
+
+let TextContentBlock = ({
+  text,
+  language
+}: {
+  text: string;
+  language?: string;
+}) => {
+  let effectiveLanguage = language ?? 'text';
+  let isPlain = effectiveLanguage === 'text' || effectiveLanguage === 'markdown';
+
+  if (isPlain) {
+    return (
+      <pre
+        style={{
+          margin: 0,
+          whiteSpace: 'pre-wrap',
+          wordBreak: 'break-word',
+          fontFamily:
+            "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+          fontSize: 12,
+          padding: '10px 12px',
+          border: `1px solid ${theme.colors.gray300}`,
+          borderRadius: 8,
+          background: theme.colors.gray100,
+          color: theme.colors.gray900
+        }}
+      >
+        {text}
+      </pre>
+    );
+  }
+
+  return <CodeBlock language={effectiveLanguage} variant="bordered" code={text} />;
+};
+
+let ContentBlockView = ({ content, index }: { content: any; index: number }) => {
+  let record = asRecord(content);
+  let type = record?.type ? String(record.type) : undefined;
+
+  if (type === 'text') {
+    return (
+      <TextContentBlock text={String(record?.text ?? '')} language="markdown" />
+    );
+  }
+
+  if (type === 'image') {
+    let mimeType = record?.mimeType ? String(record.mimeType) : 'image/png';
+    let data = record?.data ? String(record.data) : '';
+    return (
+      <MediaWrapper>
+        <MessageBlockHeader>
+          <RiImageLine />
+          <span>Image · {mimeType}</span>
+        </MessageBlockHeader>
+        {data ? (
+          <MediaPreview>
+            <img src={`data:${mimeType};base64,${data}`} alt={`Image ${index + 1}`} />
+          </MediaPreview>
+        ) : (
+          <Text size="1" color="gray700">
+            Image data missing.
+          </Text>
+        )}
+      </MediaWrapper>
+    );
+  }
+
+  if (type === 'audio') {
+    let mimeType = record?.mimeType ? String(record.mimeType) : 'audio/wav';
+    let data = record?.data ? String(record.data) : '';
+    return (
+      <MediaWrapper>
+        <MessageBlockHeader>
+          <RiMusic2Line />
+          <span>Audio · {mimeType}</span>
+        </MessageBlockHeader>
+        {data ? (
+          <MediaPreview>
+            <audio controls src={`data:${mimeType};base64,${data}`} />
+          </MediaPreview>
+        ) : (
+          <Text size="1" color="gray700">
+            Audio data missing.
+          </Text>
+        )}
+      </MediaWrapper>
+    );
+  }
+
+  if (type === 'resource_link') {
+    let uri = record?.uri ? String(record.uri) : '';
+    let name = record?.name ? String(record.name) : uri;
+    let description = record?.description ? String(record.description) : null;
+    let mimeType = record?.mimeType ? String(record.mimeType) : null;
+
+    return (
+      <MediaWrapper>
+        <MessageBlockHeader>
+          <RiLink />
+          <span>Resource Link</span>
+        </MessageBlockHeader>
+        <ResourceLinkRow href={uri} target="_blank" rel="noreferrer noopener">
+          <RiFileTextLine />
+          <span>
+            <strong>{name}</strong>
+            {uri && uri !== name ? ` · ${uri}` : null}
+          </span>
+        </ResourceLinkRow>
+        {description ? (
+          <Text size="1" color="gray700">
+            {description}
+          </Text>
+        ) : null}
+        {mimeType ? (
+          <ResourceMeta>
+            <ResourceMetaItem>
+              <strong>MIME Type:</strong> {mimeType}
+            </ResourceMetaItem>
+          </ResourceMeta>
+        ) : null}
+      </MediaWrapper>
+    );
+  }
+
+  if (type === 'resource') {
+    let resource = asRecord(record?.resource);
+    return <EmbeddedResourceView resource={resource} />;
+  }
+
+  return (
+    <CodeBlock language="json" variant="bordered" code={formatRawJson(content)} />
+  );
+};
+
+let EmbeddedResourceView = ({
+  resource
+}: {
+  resource: Record<string, any> | null | undefined;
+}) => {
+  if (!resource) {
+    return (
+      <Text size="1" color="gray700">
+        Empty resource.
+      </Text>
+    );
+  }
+
+  let uri = resource.uri ? String(resource.uri) : null;
+  let mimeType = resource.mimeType ? String(resource.mimeType) : null;
+  let name = resource.name ? String(resource.name) : null;
+  let title = resource.title ? String(resource.title) : null;
+  let hasBlob = typeof resource.blob === 'string' && resource.blob.length > 0;
+  let text = typeof resource.text === 'string' ? resource.text : null;
+  let language = detectLanguage(mimeType, uri);
+
+  return (
+    <MessageBlockWrapper>
+      <MessageBlockHeader>
+        {isImageMime(mimeType) ? (
+          <RiImageLine />
+        ) : isAudioMime(mimeType) ? (
+          <RiMusic2Line />
+        ) : (
+          <RiFileTextLine />
+        )}
+        <span>Resource{title || name ? ` · ${title ?? name}` : ''}</span>
+      </MessageBlockHeader>
+
+      {(uri || mimeType) && (
+        <ResourceMeta>
+          {uri ? (
+            <ResourceMetaItem>
+              <strong>URI:</strong> {uri}
+            </ResourceMetaItem>
+          ) : null}
+          {mimeType ? (
+            <ResourceMetaItem>
+              <strong>MIME Type:</strong> {mimeType}
+            </ResourceMetaItem>
+          ) : null}
+        </ResourceMeta>
+      )}
+
+      {text != null ? (
+        <TextContentBlock text={text} language={language} />
+      ) : hasBlob && isImageMime(mimeType) ? (
+        <MediaPreview>
+          <img
+            src={`data:${mimeType};base64,${String(resource.blob)}`}
+            alt={name ?? title ?? uri ?? 'Resource'}
+          />
+        </MediaPreview>
+      ) : hasBlob && isAudioMime(mimeType) ? (
+        <MediaPreview>
+          <audio controls src={`data:${mimeType};base64,${String(resource.blob)}`} />
+        </MediaPreview>
+      ) : hasBlob ? (
+        <Text size="1" color="gray700">
+          Binary content ({String(resource.blob).length.toLocaleString()} base64 chars).
+        </Text>
+      ) : (
+        <Text size="1" color="gray700">
+          No inline content.
+        </Text>
+      )}
+    </MessageBlockWrapper>
+  );
+};
+
+let ContentBlocksView = ({ content }: { content: unknown }) => {
+  if (!Array.isArray(content) || content.length === 0) {
+    return (
+      <Text size="1" color="gray700">
+        No content returned.
+      </Text>
+    );
+  }
+
+  return (
+    <BlockStack>
+      {content.map((block, index) => (
+        <ContentBlockView key={index} content={block} index={index} />
+      ))}
+    </BlockStack>
+  );
+};
+
+let roleMeta: Record<string, { icon: ReactNode; label: string }> = {
+  user: { icon: <RiUser3Line />, label: 'User' },
+  assistant: { icon: <RiRobot2Line />, label: 'Assistant' },
+  system: { icon: <RiServerLine />, label: 'System' }
+};
+
+let PromptMessageView = ({ message }: { message: any }) => {
+  let record = asRecord(message);
+  let role = record?.role ? String(record.role) : 'user';
+  let meta = roleMeta[role] ?? { icon: <RiChatQuoteLine />, label: role };
+  let content = record?.content;
+  let contents = Array.isArray(content) ? content : content ? [content] : [];
+
+  return (
+    <MessageBlockWrapper>
+      <MessageBlockHeader>
+        {meta.icon}
+        <span>{meta.label}</span>
+      </MessageBlockHeader>
+      {contents.length === 0 ? (
+        <Text size="1" color="gray700">
+          Empty content.
+        </Text>
+      ) : (
+        <BlockStack>
+          {contents.map((block, index) => (
+            <ContentBlockView key={index} content={block} index={index} />
+          ))}
+        </BlockStack>
+      )}
+    </MessageBlockWrapper>
+  );
+};
+
+let getToolCallOverviewSections = ({
+  input,
+  output
+}: {
+  input: Record<string, any> | null;
+  output: Record<string, any> | null;
+}): OverviewSection[] => {
+  let params = getMethodParams(input);
+  let result = getMethodResult(output);
+  let args = asRecord(params?.arguments);
+  let isError = result?.isError === true;
+  let structuredContent = asRecord(result?.structuredContent);
+  let content = result?.content;
+  let hasContent = Array.isArray(content) && content.length > 0;
+
+  let sections: OverviewSection[] = [
+    {
+      id: 'tool-arguments',
+      label: 'Arguments',
+      content: <ArgumentsView args={args} />
+    }
+  ];
+
+  if (result || output) {
+    sections.push({
+      id: 'tool-result',
+      label: 'Result',
+      content: (
+        <BlockStack>
+          {isError ? (
+            <div>
+              <StatusBadge data-variant="error">
+                <RiErrorWarningLine size={12} />
+                Tool reported an error
+              </StatusBadge>
+            </div>
+          ) : null}
+          {structuredContent ? (
+            <CodeBlock
+              language="json"
+              variant="bordered"
+              code={formatRawJson(structuredContent)}
+            />
+          ) : hasContent ? (
+            <ContentBlocksView content={content} />
+          ) : (
+            <Text size="1" color="gray700">
+              No content returned.
+            </Text>
+          )}
+        </BlockStack>
+      )
+    });
+  }
+
+  return sections;
+};
+
+let getResourceReadOverviewSections = ({
+  input,
+  output
+}: {
+  input: Record<string, any> | null;
+  output: Record<string, any> | null;
+}): OverviewSection[] => {
+  let params = getMethodParams(input);
+  let result = getMethodResult(output);
+  let uri = params?.uri ? String(params.uri) : null;
+  let contents = Array.isArray(result?.contents) ? result.contents : [];
+
+  return [
+    {
+      id: 'resource-request',
+      label: 'Request',
+      content: (
+        <Entity.Wrapper>
+          <Entity.Content>
+            <Entity.Field
+              title={uri ?? 'Unknown URI'}
+              prefix={
+                <OverviewEntityIcon>
+                  <RiFileTextLine />
+                </OverviewEntityIcon>
+              }
+            />
+          </Entity.Content>
+        </Entity.Wrapper>
+      )
+    },
+    {
+      id: 'resource-contents',
+      label: 'Contents',
+      content:
+        contents.length === 0 ? (
+          <Text size="1" color="gray700">
+            No contents returned.
+          </Text>
+        ) : (
+          <BlockStack>
+            {contents.map((resource: any, index: number) => (
+              <EmbeddedResourceView key={index} resource={asRecord(resource)} />
+            ))}
+          </BlockStack>
+        )
+    }
+  ];
+};
+
+let getPromptGetOverviewSections = ({
+  input,
+  output
+}: {
+  input: Record<string, any> | null;
+  output: Record<string, any> | null;
+}): OverviewSection[] => {
+  let params = getMethodParams(input);
+  let result = getMethodResult(output);
+  let args = asRecord(params?.arguments);
+  let description = result?.description ? String(result.description) : null;
+  let messages = Array.isArray(result?.messages) ? result.messages : [];
+
+  let sections: OverviewSection[] = [
+    {
+      id: 'prompt-arguments',
+      label: 'Arguments',
+      content: <ArgumentsView args={args} />
+    }
+  ];
+
+  if (description) {
+    sections.push({
+      id: 'prompt-description',
+      label: 'Description',
+      content: (
+        <Text size="1" color="gray800">
+          {description}
+        </Text>
+      )
+    });
+  }
+
+  sections.push({
+    id: 'prompt-messages',
+    label: 'Messages',
+    content:
+      messages.length === 0 ? (
+        <Text size="1" color="gray700">
+          No messages returned.
+        </Text>
+      ) : (
+        <BlockStack>
+          {messages.map((message, index) => (
+            <PromptMessageView key={index} message={message} />
+          ))}
+        </BlockStack>
+      )
+  });
+
+  return sections;
+};
+
 let getPromptsOverviewSections = ({
   output
 }: {
@@ -934,7 +1641,14 @@ let getMessagePresentation = ({
     let toolName = params?.name ? String(params.name) : 'unknown tool';
 
     return {
-      label: 'Tool Call',
+      defaultViewMode: 'overview',
+      label: (
+        <>
+          <span>Tool Call</span>
+          <InlineCode>{toolName}</InlineCode>
+        </>
+      ),
+      overviewSections: getToolCallOverviewSections({ input, output }),
       summaryIcon: <RiToolsLine />,
       summaryText: (
         <SummaryTitle>
@@ -950,7 +1664,14 @@ let getMessagePresentation = ({
     let resourceName = params?.uri ? String(params.uri) : 'unknown resource';
 
     return {
-      label: 'Resource Request',
+      defaultViewMode: 'overview',
+      label: (
+        <>
+          <span>Resource Read</span>
+          <InlineCode>{resourceName}</InlineCode>
+        </>
+      ),
+      overviewSections: getResourceReadOverviewSections({ input, output }),
       summaryIcon: <RiFileTextLine />,
       summaryText: (
         <SummaryTitle>
@@ -966,7 +1687,14 @@ let getMessagePresentation = ({
     let promptName = params?.name ? String(params.name) : 'unknown prompt';
 
     return {
-      label: 'Prompt Request',
+      defaultViewMode: 'overview',
+      label: (
+        <>
+          <span>Prompt Get</span>
+          <InlineCode>{promptName}</InlineCode>
+        </>
+      ),
+      overviewSections: getPromptGetOverviewSections({ input, output }),
       summaryIcon: <RiChatQuoteLine />,
       summaryText: (
         <SummaryTitle>
@@ -997,6 +1725,7 @@ let MessageCard = ({
   error,
   id,
   input,
+  isToolError,
   label,
   overviewSections = [],
   output,
@@ -1007,11 +1736,13 @@ let MessageCard = ({
   error?: DashboardInstanceSessionsMessagesGetOutput['error'];
   id?: string;
   input?: Record<string, any> | null;
-  label: string;
+  isToolError?: boolean;
+  label: ReactNode;
   overviewSections?: OverviewSection[];
   output?: Record<string, any> | null;
   position: string;
 }) => {
+  let hasError = !!error || !!isToolError;
   let hasOverview = overviewSections.length > 0;
   let [viewMode, setViewMode] = useState<'overview' | 'properties' | 'raw'>(
     hasOverview ? defaultViewMode : 'properties'
@@ -1040,7 +1771,7 @@ let MessageCard = ({
 
   return (
     <Output data-position={position}>
-      <Wrapper>
+      <Wrapper data-error={hasError ? 'true' : undefined}>
         <Header>
           <HeaderSection>
             {id && <ID>{shorten(id)}</ID>}
@@ -1241,10 +1972,19 @@ export let Message = ({
     method,
     output
   });
+  let isToolError = getMethodResult(output)?.isError === true;
+
+  let messageError = outputMessage?.error ?? message.error ?? undefined;
+  let hasError = !!messageError || isToolError;
 
   return (
     <MessageStack>
-      <Entry icon={presentation.summaryIcon} title={presentation.summaryText} time={date} />
+      <Entry
+        icon={presentation.summaryIcon}
+        title={presentation.summaryText}
+        time={date}
+        variant={hasError ? 'error' : undefined}
+      />
 
       {!presentation.hideCard && (
         <MessageCard
@@ -1256,7 +1996,8 @@ export let Message = ({
           position={position}
           overviewSections={presentation.overviewSections}
           defaultViewMode={presentation.defaultViewMode}
-          error={outputMessage?.error ?? message.error ?? undefined}
+          error={messageError}
+          isToolError={isToolError}
         />
       )}
     </MessageStack>

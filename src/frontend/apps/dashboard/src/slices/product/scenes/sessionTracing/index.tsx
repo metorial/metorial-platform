@@ -19,19 +19,28 @@ let SplitPaneWrapper = styled.div`
 `;
 
 export let SessionTracingScene = ({
-  session
+  session,
+  initialExplorerTab,
+  inspectorOptions
 }: {
   session: DashboardInstanceSessionsGetOutput;
+  initialExplorerTab?: boolean;
+  inspectorOptions?: {
+    sessionTemplateId?: string | null;
+    magicMcpServerId?: string | null;
+  };
 }) => {
-  let tracing = useSessionTracing(session);
+  let tracing = useSessionTracing(session, { initialExplorerTab });
 
   return (
     <SplitPaneWrapper>
       <DraggableSplitPane
         initialLeftSize={380}
+        storageKey="metorial.sessionTracing.splitPane"
         left={
           <SessionConnectionsPane
             activeConnectionId={tracing.activeConnection?.id}
+            activeTabId={tracing.activeTabId}
             connectionCount={tracing.connectionCount}
             explorerTabIdByConnectionId={tracing.explorerTabIdByConnectionId}
             groupedConnections={tracing.groupedConnections}
@@ -43,6 +52,7 @@ export let SessionTracingScene = ({
             onOpenConnectTab={tracing.onOpenConnectTab}
             onOpenConnection={tracing.onOpenConnection}
             onOpenExplorerTab={tracing.onOpenExplorerTab}
+            onSelectTab={tracing.setActiveTabId}
             session={session}
             setConnectionRowElement={tracing.setConnectionRowElement}
           />
@@ -52,6 +62,7 @@ export let SessionTracingScene = ({
             activeConnection={tracing.activeConnection}
             activeTabId={tracing.activeTabId}
             explorerTabIds={tracing.explorerTabIds}
+            inspectorOptions={inspectorOptions}
             isExplorerActive={tracing.isExplorerActive}
             onCloseTab={tracing.onCloseTab}
             onReorderTabs={tracing.onReorderTabs}

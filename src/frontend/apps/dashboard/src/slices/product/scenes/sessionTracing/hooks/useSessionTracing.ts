@@ -7,7 +7,11 @@ import {
 import { theme } from '@metorial/ui';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { EditorTabItem } from '../../../../../components/editorTabs';
-import { GroupedConnectionItems, TracingConnectionItem } from '../types';
+import {
+  GroupedConnectionItems,
+  PlaceholderConnectionItem,
+  TracingConnectionItem
+} from '../types';
 import {
   CONNECT_TAB_ID,
   EXPLORER_TAB_PREFIX,
@@ -19,14 +23,20 @@ import {
   reorderList
 } from '../utils';
 
-export let useSessionTracing = (session: DashboardInstanceSessionsGetOutput) => {
+export let useSessionTracing = (
+  session: DashboardInstanceSessionsGetOutput,
+  options?: { initialExplorerTab?: boolean }
+) => {
+  let initialExplorerTab = options?.initialExplorerTab ?? false;
   let instance = useCurrentInstance();
   let instanceId = instance.data?.id;
   let [openTabIds, setOpenTabIds] = useState<string[]>([]);
   let [activeTabId, setActiveTabId] = useState<string | null>(null);
   let [didInitializeTabs, setDidInitializeTabs] = useState(false);
   let [explorerTabCounter, setExplorerTabCounter] = useState(0);
-  let [pendingExplorerTabIds, setPendingExplorerTabIds] = useState<string[]>([]);
+  let [pendingExplorerTabs, setPendingExplorerTabs] = useState<
+    { tabId: string; createdAt: number }[]
+  >([]);
   let [explorerConnectionByTabId, setExplorerConnectionByTabId] = useState<
     Record<string, string>
   >({});
@@ -38,10 +48,34 @@ export let useSessionTracing = (session: DashboardInstanceSessionsGetOutput) => 
   let previousConnectionIdsRef = useRef<Set<string>>(new Set());
   let previousNewestConnectionAtRef = useRef<number | null>(null);
 
-  let connections = useAccumulatedSessionConnections(instanceId, session.id, {
-    limit: 50,
-    order: 'desc'
-  });
+  let [fastPollPending, setFastPollPending] = useState(false);
+
+  useEffect(() => {
+    if (pendingExplorerTabs.length === 0) {
+      setFastPollPending(false);
+      return;
+    }
+
+    let now = Date.now();
+    let latestCreatedAt = Math.max(...pendingExplorerTabs.map(t => t.createdAt));
+    let remaining = latestCreatedAt + 30_000 - now;
+
+    if (remaining <= 0) {
+      setFastPollPending(false);
+      return;
+    }
+
+    setFastPollPending(true);
+    let timeoutId = setTimeout(() => setFastPollPending(false), remaining);
+    return () => clearTimeout(timeoutId);
+  }, [pendingExplorerTabs]);
+
+  let connections = useAccumulatedSessionConnections(
+    instanceId,
+    session.id,
+    { limit: 50, order: 'desc' },
+    { pollIntervalMs: fastPollPending ? 1_000 : undefined }
+  );
   let errorScopedConnectionIds = connections.items
     .slice(0, 100)
     .map(connection => connection.id);
@@ -55,7 +89,7 @@ export let useSessionTracing = (session: DashboardInstanceSessionsGetOutput) => 
     setActiveTabId(null);
     setDidInitializeTabs(false);
     setExplorerTabCounter(0);
-    setPendingExplorerTabIds([]);
+    setPendingExplorerTabs([]);
     setExplorerConnectionByTabId({});
   }, [session.id]);
 
@@ -154,13 +188,23 @@ export let useSessionTracing = (session: DashboardInstanceSessionsGetOutput) => 
   useEffect(() => {
     if (didInitializeTabs) return;
 
+    if (initialExplorerTab) {
+      let tabId = `${EXPLORER_TAB_PREFIX}0__`;
+      setExplorerTabCounter(1);
+      setOpenTabIds([tabId]);
+      setPendingExplorerTabs([{ tabId, createdAt: Date.now() }]);
+      setActiveTabId(tabId);
+      setDidInitializeTabs(true);
+      return;
+    }
+
     let firstConnection = connectionItems[0];
     if (!firstConnection) return;
 
     setOpenTabIds([firstConnection.id]);
     setActiveTabId(firstConnection.id);
     setDidInitializeTabs(true);
-  }, [connectionItems, didInitializeTabs]);
+  }, [connectionItems, didInitializeTabs, initialExplorerTab]);
 
   useEffect(() => {
     let previousIds = previousConnectionIdsRef.current;
@@ -178,31 +222,6 @@ export let useSessionTracing = (session: DashboardInstanceSessionsGetOutput) => 
         .filter(connection => new Date(connection.createdAt).getTime() > previousNewestAt)
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-      if (pendingExplorerTabIds.length > 0) {
-        let assignedConnectionIds = new Set(Object.values(explorerConnectionByTabId));
-        let unclaimedExplorerConnections = newlyPolledConnections
-          .filter(isMetorialExplorerConnection)
-          .filter(connection => !assignedConnectionIds.has(connection.id))
-          .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-
-        if (unclaimedExplorerConnections.length > 0) {
-          let assignmentCount = Math.min(
-            pendingExplorerTabIds.length,
-            unclaimedExplorerConnections.length
-          );
-
-          setExplorerConnectionByTabId(current => {
-            let next = { ...current };
-            for (let i = 0; i < assignmentCount; i++) {
-              next[pendingExplorerTabIds[i]] = unclaimedExplorerConnections[i].id;
-            }
-            return next;
-          });
-
-          setPendingExplorerTabIds(current => current.slice(assignmentCount));
-        }
-      }
-
       let newestConnection = newlyPolledConnections[0];
       if (newestConnection) {
         requestAnimationFrame(() => scrollConnectionIntoView(newestConnection.id));
@@ -211,12 +230,49 @@ export let useSessionTracing = (session: DashboardInstanceSessionsGetOutput) => 
 
     previousConnectionIdsRef.current = nextIds;
     previousNewestConnectionAtRef.current = nextNewestAt;
-  }, [
-    connectionItems,
-    explorerConnectionByTabId,
-    pendingExplorerTabIds,
-    scrollConnectionIntoView
-  ]);
+  }, [connectionItems, scrollConnectionIntoView]);
+
+  useEffect(() => {
+    if (pendingExplorerTabs.length === 0) return;
+
+    let assignedConnectionIds = new Set(Object.values(explorerConnectionByTabId));
+    let candidateConnections = connectionItems
+      .filter(isMetorialExplorerConnection)
+      .filter(connection => !assignedConnectionIds.has(connection.id))
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+    if (candidateConnections.length === 0) return;
+
+    let assignments: { tabId: string; connectionId: string }[] = [];
+    let claimed = new Set<string>();
+    let clockSkewBufferMs = 5_000;
+
+    for (let pending of pendingExplorerTabs) {
+      let match = candidateConnections.find(
+        connection =>
+          !claimed.has(connection.id) &&
+          new Date(connection.createdAt).getTime() >= pending.createdAt - clockSkewBufferMs
+      );
+
+      if (match) {
+        assignments.push({ tabId: pending.tabId, connectionId: match.id });
+        claimed.add(match.id);
+      }
+    }
+
+    if (assignments.length === 0) return;
+
+    setExplorerConnectionByTabId(current => {
+      let next = { ...current };
+      for (let { tabId, connectionId } of assignments) {
+        next[tabId] = connectionId;
+      }
+      return next;
+    });
+
+    let assignedTabIds = new Set(assignments.map(a => a.tabId));
+    setPendingExplorerTabs(current => current.filter(t => !assignedTabIds.has(t.tabId)));
+  }, [connectionItems, explorerConnectionByTabId, pendingExplorerTabs]);
 
   let connectionsById = useMemo(
     () => new Map(connectionItems.map(connection => [connection.id, connection])),
@@ -231,9 +287,28 @@ export let useSessionTracing = (session: DashboardInstanceSessionsGetOutput) => 
     return map;
   }, [explorerConnectionByTabId]);
 
+  let placeholderConnectionItems = useMemo<PlaceholderConnectionItem[]>(
+    () =>
+      pendingExplorerTabs.map(tab => ({
+        kind: 'placeholder',
+        id: `__placeholder_${tab.tabId}`,
+        tabId: tab.tabId,
+        label: 'Metorial Explorer',
+        createdAt: new Date(tab.createdAt)
+      })),
+    [pendingExplorerTabs]
+  );
+
   let groupedConnections = useMemo<GroupedConnectionItems[]>(
-    () => groupConnectionsByDay(connectionItems),
-    [connectionItems]
+    () =>
+      groupConnectionsByDay([
+        ...connectionItems.map(connection => ({
+          kind: 'connection' as const,
+          ...connection
+        })),
+        ...placeholderConnectionItems
+      ]),
+    [connectionItems, placeholderConnectionItems]
   );
 
   let openConnection = useCallback((connectionId: string) => {
@@ -254,14 +329,14 @@ export let useSessionTracing = (session: DashboardInstanceSessionsGetOutput) => 
     let nextId = `${EXPLORER_TAB_PREFIX}${explorerTabCounter}__`;
     setExplorerTabCounter(c => c + 1);
     setOpenTabIds(current => [...current, nextId]);
-    setPendingExplorerTabIds(current => [...current, nextId]);
+    setPendingExplorerTabs(current => [...current, { tabId: nextId, createdAt: Date.now() }]);
     setActiveTabId(nextId);
   }, [explorerTabCounter]);
 
   let closeTab = useCallback(
     (tabId: string) => {
       if (isExplorerTabId(tabId)) {
-        setPendingExplorerTabIds(current => current.filter(id => id !== tabId));
+        setPendingExplorerTabs(current => current.filter(t => t.tabId !== tabId));
         setExplorerConnectionByTabId(current => {
           if (!(tabId in current)) return current;
           let next = { ...current };
