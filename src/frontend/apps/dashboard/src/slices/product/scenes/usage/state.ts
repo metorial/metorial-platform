@@ -6,7 +6,7 @@ import { useNow } from '../../../../hooks/useNow';
 export let useUsageState = (opts: {
   entities: {
     type: string;
-    id: string;
+    id?: string;
   }[];
 
   from?: number;

@@ -90,6 +90,7 @@ setInterval(async () => {
 
 export let getUsageTimeline = async (opts: {
   ownerIds?: string[];
+  entities?: { type: string; id?: string }[];
   entityTypes?: string[];
   entityIds?: string[];
 
@@ -110,18 +111,41 @@ export let getUsageTimeline = async (opts: {
 
   if (opts.ownerIds?.length) match.ownerId = { $in: opts.ownerIds };
 
-  if (opts.entityTypes?.length) match.entityType = { $in: opts.entityTypes };
+  let normalizedEntities = opts.entities?.length
+    ? opts.entities
+    : opts.entityIds?.length
+      ? opts.entityIds.map((entityId, index) => ({
+          id: entityId,
+          type: opts.entityTypes?.[index] ?? opts.entityTypes?.[0] ?? 'any'
+        }))
+      : opts.entityTypes?.map(type => ({ type })) ?? [];
 
-  if (opts.entityIds?.length) match.entityId = { $in: opts.entityIds };
+  normalizedEntities = Array.from(
+    new Map(normalizedEntities.map(entity => [`${entity.type}:${entity.id ?? '*'}`, entity])).values()
+  );
+
+  if (normalizedEntities.length) {
+    match.$or = normalizedEntities.map(entity =>
+      entity.id ? { entityType: entity.type, entityId: entity.id } : { entityType: entity.type }
+    );
+  }
 
   let intervalMs =
     (opts.interval.unit === 'day' ? 24 * 60 * 60 * 1000 : 60 * 60 * 1000) *
     opts.interval.count;
 
+  let aggregateEntityTypes = Array.from(
+    new Set(normalizedEntities.filter(entity => !entity.id).map(entity => entity.type))
+  );
+
   let group: any = {
     _id: {
       ownerId: '$ownerId',
-      entityId: '$entityId',
+      entityId: aggregateEntityTypes.length
+        ? {
+            $cond: [{ $in: ['$entityType', aggregateEntityTypes] }, null, '$entityId']
+          }
+        : '$entityId',
       entityType: '$entityType',
       type: '$type',
       ts: {
@@ -143,7 +167,7 @@ export let getUsageTimeline = async (opts: {
     ? ((await UsageRecordModel.aggregate([{ $match: match }, { $group: group }])) as {
         _id: {
           ownerId: string;
-          entityId: string;
+          entityId: string | null;
           entityType: string;
           type: string;
           ts: Date;
@@ -163,15 +187,15 @@ export let getUsageTimeline = async (opts: {
   >(
     timeline.length
       ? []
-      : opts.entityIds?.map(entityId => {
-          let type = opts.entityTypes?.[0] ?? 'any';
-          let key = `none:${entityId}:${type}`;
+      : normalizedEntities.map(entity => {
+          let entityId = entity.id ?? 'all';
+          let key = `none:${entityId}:${entity.type}`;
           return [
             key,
             {
               ownerId: 'none',
               entityId,
-              entityType: type,
+              entityType: entity.type,
               series: new Map<number, number>()
             }
           ];
@@ -179,12 +203,13 @@ export let getUsageTimeline = async (opts: {
   );
 
   for (let record of timeline) {
-    let key = `${record._id.ownerId}:${record._id.entityId}:${record._id.entityType}`;
+    let entityId = record._id.entityId ?? 'all';
+    let key = `${record._id.ownerId}:${entityId}:${record._id.entityType}`;
     let series = timelineMap.get(key);
     if (!series) {
       series = {
         ownerId: record._id.ownerId,
-        entityId: record._id.entityId,
+        entityId,
         entityType: record._id.entityType,
         series: new Map<number, number>()
       };

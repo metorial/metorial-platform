@@ -1,13 +1,7 @@
 import { CodeBlock } from '@metorial/code';
 import { theme } from '@metorial/ui';
 
-export let TextContentBlock = ({
-  text,
-  language
-}: {
-  text: string;
-  language?: string;
-}) => {
+export let TextContentBlock = ({ text, language }: { text: string; language?: string }) => {
   let effectiveLanguage = language ?? 'text';
   let isPlain = effectiveLanguage === 'text' || effectiveLanguage === 'markdown';
 

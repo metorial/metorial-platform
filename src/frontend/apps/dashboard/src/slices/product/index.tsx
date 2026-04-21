@@ -426,6 +426,9 @@ let CallbackTriggersPage = dynamicPage(() =>
 let CallbackDestinationsPage = dynamicPage(() =>
   import('./pages/(callbacks)/destinations').then(c => c.CallbackDestinationsPage)
 );
+let LogsHomePage = dynamicPage(() =>
+  import('./pages/(logs)/home').then(c => c.LogsHomePage)
+);
 let LogsListLayout = dynamicPage(() =>
   import('./pages/(logs)/(list)/_layout').then(c => c.LogsListLayout)
 );
@@ -517,6 +520,11 @@ export let productTraceSlice = createSlice([
         element: <InstanceLayout />,
 
         children: [
+          {
+            path: 'logs',
+            element: <LogsHomePage />
+          },
+
           {
             children: [
               {

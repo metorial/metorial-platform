@@ -132,6 +132,13 @@ let InstancePaths = Object.assign(
       );
     },
 
+    logs: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'logs', ...subPages),
+
     providerErrors: (
       organization: EntityParam,
       project: EntityParam,

@@ -47,7 +47,7 @@ export let getToolCallOverviewSections = ({
           {structuredContent ? (
             <CodeBlock
               language="json"
-              variant="bordered"
+              variant="seamless"
               code={formatRawJson(structuredContent)}
             />
           ) : hasContent ? (

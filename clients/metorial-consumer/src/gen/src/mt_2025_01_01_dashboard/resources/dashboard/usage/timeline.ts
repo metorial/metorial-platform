@@ -35,7 +35,7 @@ export let mapDashboardUsageTimelineOutput =
   });
 
 export type DashboardUsageTimelineQuery = {
-  entities: { type: string; id: string }[];
+  entities: { type: string; id?: string | undefined }[];
   from: Date;
   to: Date;
   interval: { unit: 'day' | 'hour'; count: number };
