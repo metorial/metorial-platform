@@ -7,6 +7,7 @@ import { getId } from '../../id';
 import { validateWithJsonSchema } from '../../lib/jsonSchema/validateData';
 import { delegatedOauthAuthorizationService } from './delegated';
 import { remoteOauthAuthorizationService } from './remote';
+import { serverEventService } from './serverEvent';
 import { serverOAuthCredentialsService } from './serverOAuthCredentials';
 
 let include = {
@@ -28,6 +29,11 @@ let include = {
         include: { connectionProfile: true }
       },
       delegatedOAuthConnectionAuthToken: true
+    }
+  },
+  events: {
+    orderBy: {
+      createdAt: 'asc' as const
     }
   }
 };
@@ -88,7 +94,7 @@ class serverOAuthSetupServiceImpl {
     };
 
     if (d.input.server.type == 'remote') {
-      return await db.serverOAuthSetup.create({
+      let setup = await db.serverOAuthSetup.create({
         data: {
           ...authSetupCreateParams,
           type: 'remote',
@@ -96,6 +102,16 @@ class serverOAuthSetupServiceImpl {
         },
         include
       });
+
+      await serverEventService.recordServerOAuthSetupEvent({
+        serverOAuthSetup: setup,
+        type: 'oauth_setup_created',
+        payload: {
+          type: 'remote'
+        }
+      });
+
+      return setup;
     }
 
     if (d.input.server.type == 'function') {
@@ -119,7 +135,7 @@ class serverOAuthSetupServiceImpl {
         authConfig = {};
       }
 
-      return await db.serverOAuthSetup.create({
+      let setup = await db.serverOAuthSetup.create({
         data: {
           ...authSetupCreateParams,
           type: 'delegated',
@@ -127,6 +143,16 @@ class serverOAuthSetupServiceImpl {
         },
         include
       });
+
+      await serverEventService.recordServerOAuthSetupEvent({
+        serverOAuthSetup: setup,
+        type: 'oauth_setup_created',
+        payload: {
+          type: 'delegated'
+        }
+      });
+
+      return setup;
     }
 
     throw new ServiceError(
@@ -169,6 +195,15 @@ class serverOAuthSetupServiceImpl {
         }
       });
 
+      await serverEventService.recordServerOAuthSetupEvent({
+        serverOAuthSetup: setup,
+        type: 'oauth_setup_authorization_started',
+        message: 'Started OAuth authorization',
+        payload: {
+          state: inner.setup.stateIdentifier
+        }
+      });
+
       return { url: inner.redirectUrl, state: inner.setup.stateIdentifier };
     }
 
@@ -190,6 +225,16 @@ class serverOAuthSetupServiceImpl {
         data: {
           delegatedOAuthConnectionSetupOid: inner.setup.oid
         }
+      });
+
+      await serverEventService.recordServerOAuthSetupEvent({
+        serverOAuthSetup: setup,
+        type: 'oauth_setup_authorization_started',
+        message: 'Started OAuth authorization',
+        payload: {
+          state: inner.setup.stateIdentifier
+        },
+        functionInvocationId: inner.functionInvocationId ?? null
       });
 
       return { url: inner.redirectUrl, state: inner.setup.stateIdentifier };
@@ -218,6 +263,19 @@ class serverOAuthSetupServiceImpl {
       include
     });
     if (!serverOAuthSetup) throw new ServiceError(notFoundError('server_config'));
+    return serverOAuthSetup;
+  }
+
+  async getServerOAuthSetupLogs(d: { serverOAuthSetupId: string; tenant?: Tenant }) {
+    let serverOAuthSetup = await db.serverOAuthSetup.findFirst({
+      where: {
+        id: d.serverOAuthSetupId,
+        tenantOid: d.tenant?.oid
+      },
+      include
+    });
+    if (!serverOAuthSetup) throw new ServiceError(notFoundError('server_config'));
+
     return serverOAuthSetup;
   }
 

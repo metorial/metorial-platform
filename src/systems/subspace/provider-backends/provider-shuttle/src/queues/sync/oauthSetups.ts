@@ -8,7 +8,8 @@ import { backend as shuttleBackend } from '../../backend';
 import { shuttle } from '../../client';
 import { env } from '../../env';
 
-type ShuttleOAuthSetup = Awaited<ReturnType<typeof shuttle.serverOAuthSetup.getSync>>;
+type ShuttleOAuthSetup = Awaited<ReturnType<typeof shuttle.serverOAuthSetup.getLogsSync>>;
+type ShuttleOAuthSetupEvent = ShuttleOAuthSetup['events'][number];
 
 export let syncOAuthSetupsQueue = createQueue<{ cursor?: string }>({
   name: 'sub/shut/oauthSetup/many',
@@ -26,8 +27,30 @@ let lock = createLock({
   redisUrl: env.service.REDIS_URL
 });
 
-let createErrorForSetup = async (d: {
-  sourceId: string;
+let getErrorInfo = (event: ShuttleOAuthSetupEvent) => {
+  let payload =
+    event.payload && typeof event.payload === 'object' && !Array.isArray(event.payload)
+      ? event.payload
+      : null;
+
+  let code =
+    payload &&
+    'errorCode' in payload &&
+    typeof payload.errorCode === 'string' &&
+    payload.errorCode.length
+      ? payload.errorCode
+      : event.type;
+
+  let message = event.message?.length ? event.message : code;
+
+  return { code, message };
+};
+
+let isErrorEvent = (event: ShuttleOAuthSetupEvent) =>
+  event.type.endsWith('_failed') || event.type.includes('error');
+
+let createErrorForEvent = async (d: {
+  event: ShuttleOAuthSetupEvent;
   setup: ShuttleOAuthSetup;
   providerOAuthSetup: {
     oid: bigint;
@@ -40,29 +63,34 @@ let createErrorForSetup = async (d: {
   };
   authConfigEventOid: bigint;
 }) => {
+  let sourceId = d.event.id;
+
   let existingError = await db.authConfigError.findUnique({
     where: {
       sourceType_sourceId: {
         sourceType: 'shuttle.server_oauth_setup',
-        sourceId: d.sourceId
+        sourceId
       }
     }
   });
   if (existingError) return;
 
-  let code = 'oauth_setup_failed';
-  let message = 'OAuth setup failed';
+  let { code, message } = getErrorInfo(d.event);
 
   let error = await db.authConfigError.create({
     data: {
       ...getId('authConfigError'),
-      type: 'oauth_setup_failed',
+      type: d.event.type,
       sourceType: 'shuttle.server_oauth_setup',
-      sourceId: d.sourceId,
+      sourceId,
       isProcessing: true,
       code,
       message,
-      payload: d.setup,
+      payload: {
+        setup: d.setup,
+        event: d.event
+      },
+      providerInvocationId: d.event.functionInvocationId ?? null,
       authConfigEventOid: d.authConfigEventOid,
       authConfigOid: d.providerOAuthSetup.authConfigOid,
       authCredentialsOid: d.providerOAuthSetup.authCredentialsOid,
@@ -117,6 +145,54 @@ let createErrorForSetup = async (d: {
   });
 };
 
+let ensureAuthConfigEvent = async (d: {
+  setup: ShuttleOAuthSetup;
+  providerOAuthSetup: {
+    oid: bigint;
+    authConfigOid: bigint | null;
+    authCredentialsOid: bigint;
+    providerOid: bigint;
+    tenantOid: bigint;
+    environmentOid: bigint;
+    solutionOid: number;
+  };
+  event: ShuttleOAuthSetupEvent;
+}) => {
+  let authConfigEvent = await db.authConfigEvent.findUnique({
+    where: {
+      sourceType_sourceId: {
+        sourceType: 'shuttle.server_oauth_setup',
+        sourceId: d.event.id
+      }
+    }
+  });
+
+  if (!authConfigEvent) {
+    authConfigEvent = await db.authConfigEvent.create({
+      data: {
+        ...getId('authConfigEvent'),
+        type: d.event.type,
+        sourceType: 'shuttle.server_oauth_setup',
+        sourceId: d.event.id,
+        providerInvocationId: d.event.functionInvocationId ?? null,
+        payload: {
+          setup: d.setup,
+          event: d.event
+        },
+        authConfigOid: d.providerOAuthSetup.authConfigOid,
+        authCredentialsOid: d.providerOAuthSetup.authCredentialsOid,
+        oauthSetupOid: d.providerOAuthSetup.oid,
+        providerOid: d.providerOAuthSetup.providerOid,
+        tenantOid: d.providerOAuthSetup.tenantOid,
+        environmentOid: d.providerOAuthSetup.environmentOid,
+        solutionOid: d.providerOAuthSetup.solutionOid
+      }
+    });
+  }
+
+  return authConfigEvent;
+};
+
 export let syncOAuthSetupsQueueProcessor = syncOAuthSetupsQueue.process(async data =>
   lock.usingLock(shuttleBackend.id, async () => {
     let setups = await db.providerOAuthSetup.findMany({
@@ -164,7 +240,7 @@ export let syncOAuthSetupQueueProcessor = syncOAuthSetupQueue.process(async data
   });
   if (!shuttleOAuthSetup) throw new QueueRetryError();
 
-  let remoteSetup = await shuttle.serverOAuthSetup.getSync({
+  let remoteSetup = await shuttle.serverOAuthSetup.getLogsSync({
     serverOAuthSetupId: shuttleOAuthSetup.id
   });
 
@@ -182,45 +258,43 @@ export let syncOAuthSetupQueueProcessor = syncOAuthSetupQueue.process(async data
   });
   if (!refreshedSetup) throw new QueueRetryError();
 
-  if (remoteSetup.status === 'pending') return;
+  let events = remoteSetup.events.length
+    ? remoteSetup.events
+    : [
+        {
+          object: 'shuttle#server.oauth_setup.event',
+          id: `${remoteSetup.id}:${remoteSetup.status}`,
+          type:
+            remoteSetup.status === 'completed'
+              ? 'oauth_setup_completed'
+              : 'oauth_setup_failed',
+          message:
+            remoteSetup.status === 'completed'
+              ? 'OAuth setup completed'
+              : 'OAuth setup failed',
+          payload: null,
+          functionInvocationId: null,
+          serverConnectionId: null,
+          createdAt: remoteSetup.updatedAt
+        }
+      ];
 
-  let sourceId = `${remoteSetup.id}:${remoteSetup.status}`;
+  for (let event of events) {
+    let authConfigEvent = await ensureAuthConfigEvent({
+      setup: remoteSetup,
+      providerOAuthSetup: refreshedSetup,
+      event
+    });
 
-  let authConfigEvent = await db.authConfigEvent.findUnique({
-    where: {
-      sourceType_sourceId: {
-        sourceType: 'shuttle.server_oauth_setup',
-        sourceId
-      }
-    }
-  });
+    if (!isErrorEvent(event)) continue;
 
-  if (!authConfigEvent) {
-    authConfigEvent = await db.authConfigEvent.create({
-      data: {
-        ...getId('authConfigEvent'),
-        type:
-          remoteSetup.status === 'completed' ? 'oauth_setup_completed' : 'oauth_setup_failed',
-        sourceType: 'shuttle.server_oauth_setup',
-        sourceId,
-        payload: remoteSetup,
-        authConfigOid: refreshedSetup.authConfigOid,
-        authCredentialsOid: refreshedSetup.authCredentialsOid,
-        oauthSetupOid: refreshedSetup.oid,
-        providerOid: refreshedSetup.providerOid,
-        tenantOid: refreshedSetup.tenantOid,
-        environmentOid: refreshedSetup.environmentOid,
-        solutionOid: refreshedSetup.solutionOid
-      }
+    await createErrorForEvent({
+      event,
+      setup: remoteSetup,
+      providerOAuthSetup: refreshedSetup,
+      authConfigEventOid: authConfigEvent.oid
     });
   }
 
-  if (remoteSetup.status !== 'failed') return;
-
-  await createErrorForSetup({
-    sourceId,
-    setup: remoteSetup,
-    providerOAuthSetup: refreshedSetup,
-    authConfigEventOid: authConfigEvent.oid
-  });
+  if (remoteSetup.status === 'pending') return;
 });

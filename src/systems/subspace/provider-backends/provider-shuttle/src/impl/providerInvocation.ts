@@ -32,12 +32,37 @@ let mergeInvocation = (
   );
 };
 
+let getObject = (value: unknown): Record<string, unknown> | null =>
+  value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+
+let getServerConnectionIdFromPayload = (payload: unknown) => {
+  let object = getObject(payload);
+  if (!object) return null;
+
+  if (typeof object.serverConnectionId === 'string') {
+    return object.serverConnectionId;
+  }
+
+  let event = getObject(object.event);
+  if (event && typeof event.serverConnectionId === 'string') {
+    return event.serverConnectionId;
+  }
+
+  return null;
+};
+
 export class ProviderInvocation extends IProviderInvocation {
   override async listProviderInvocations(
     data: ProviderInvocationListParam
   ): Promise<ProviderInvocationListRes> {
     let invocationMap = new Map<string, UnifiedProviderInvocation>();
     let queue = new PQueue({ concurrency: 5 });
+    let serverConnectionLogsCache = new Map<
+      string,
+      Awaited<ReturnType<typeof shuttle.serverConnection.getLogsSync>>
+    >();
 
     let messageProviderRuns = data.inputs.sessionMessageIds?.length
       ? await db.sessionMessage.findMany({
@@ -82,8 +107,7 @@ export class ProviderInvocation extends IProviderInvocation {
     let authConfigEvents = data.inputs.authConfigEventIds?.length
       ? await db.authConfigEvent.findMany({
           where: {
-            id: { in: data.inputs.authConfigEventIds },
-            providerInvocationId: { not: null }
+            id: { in: data.inputs.authConfigEventIds }
           },
           include: {
             oauthSetup: true
@@ -99,6 +123,52 @@ export class ProviderInvocation extends IProviderInvocation {
 
     let providerRunIdByConnectionId = new Map(
       localConnections.map(connection => [connection.id, connection.providerRun.id])
+    );
+
+    let getServerConnectionLogs = async (serverConnectionId: string) => {
+      let cached = serverConnectionLogsCache.get(serverConnectionId);
+      if (cached) return cached;
+
+      let logs = await shuttle.serverConnection.getLogsSync({
+        serverConnectionId
+      });
+      serverConnectionLogsCache.set(serverConnectionId, logs);
+      return logs;
+    };
+
+    await queue.addAll(
+      localConnections.map(connection => async () => {
+        let logs = await getServerConnectionLogs(connection.id);
+        let providerRunId = connection.providerRun.id;
+
+        mergeInvocation(invocationMap, {
+          id: `server_connection:${connection.id}`,
+          source: 'shuttle',
+          type: 'tool_call',
+          status: 'unknown',
+          providerRunIds: [providerRunId],
+          sessionMessageIds: sessionMessageIdsByProviderRunId.get(providerRunId) ?? [],
+          authConfigEventIds: [],
+          providerOAuthSetupIds: [],
+          toolCallId: null,
+          action: null,
+          requests: [],
+          responses: [],
+          requestTraces: [],
+          logs: logs.map(log => ({
+            timestamp: log.timestamp,
+            message: log.message,
+            outputType: log.outputType
+          })),
+          attachments: [],
+          error: null,
+          provider: null,
+          metadata: {
+            serverConnectionId: connection.id
+          },
+          createdAt: connection.providerRun.createdAt
+        });
+      })
     );
 
     await queue.addAll(
@@ -151,26 +221,77 @@ export class ProviderInvocation extends IProviderInvocation {
 
     await queue.addAll(
       authConfigEvents.map(event => async () => {
-        if (!event.providerInvocationId) return;
+        let type: UnifiedProviderInvocation['type'] = event.type.includes('oauth_setup')
+          ? 'oauth_setup'
+          : 'auth_config_event';
 
-        let invocation = await shuttle.functionServerInvocation.get({
-          functionInvocationId: event.providerInvocationId
-        });
-        let logs = await shuttle.functionServerInvocation.getLogs({
-          functionInvocationId: event.providerInvocationId
-        });
+        if (event.providerInvocationId) {
+          let invocation = await shuttle.functionServerInvocation.get({
+            functionInvocationId: event.providerInvocationId
+          });
+          let logs = await shuttle.functionServerInvocation.getLogs({
+            functionInvocationId: event.providerInvocationId
+          });
+
+          mergeInvocation(invocationMap, {
+            id: invocation.id,
+            source: 'shuttle',
+            type,
+            status: invocation.isError ? 'failed' : 'succeeded',
+            providerRunIds:
+              invocation.serverConnectionId &&
+              providerRunIdByConnectionId.get(invocation.serverConnectionId)
+                ? [providerRunIdByConnectionId.get(invocation.serverConnectionId)!]
+                : [],
+            sessionMessageIds: [],
+            authConfigEventIds: [event.id],
+            providerOAuthSetupIds: event.oauthSetup ? [event.oauthSetup.id] : [],
+            toolCallId: null,
+            action: null,
+            requests: [],
+            responses: [],
+            requestTraces: [],
+            logs: logs.logs.map(log => ({
+              timestamp: log.timestamp,
+              message: log.message,
+              outputType: log.outputType
+            })),
+            attachments: [],
+            error: invocation.isError
+              ? {
+                  code: 'function_invocation_failed',
+                  message: 'Function invocation failed'
+                }
+              : null,
+            provider: null,
+            metadata: {
+              serverConnectionId: invocation.serverConnectionId,
+              functionServerId: invocation.functionServerId
+            },
+            createdAt: invocation.createdAt
+          });
+          return;
+        }
+
+        let serverConnectionId = getServerConnectionIdFromPayload(event.payload);
+        if (!serverConnectionId) return;
+
+        let logs = await getServerConnectionLogs(serverConnectionId);
+        let providerRunId = providerRunIdByConnectionId.get(serverConnectionId) ?? null;
 
         mergeInvocation(invocationMap, {
-          id: invocation.id,
+          id: `server_connection:${serverConnectionId}`,
           source: 'shuttle',
-          type: event.type.includes('oauth_setup') ? 'oauth_setup' : 'auth_config_event',
-          status: invocation.isError ? 'failed' : 'succeeded',
-          providerRunIds:
-            invocation.serverConnectionId &&
-            providerRunIdByConnectionId.get(invocation.serverConnectionId)
-              ? [providerRunIdByConnectionId.get(invocation.serverConnectionId)!]
-              : [],
-          sessionMessageIds: [],
+          type,
+          status: event.type.endsWith('_failed')
+            ? 'failed'
+            : event.type.endsWith('_completed') || event.type.endsWith('_succeeded')
+              ? 'succeeded'
+              : 'unknown',
+          providerRunIds: providerRunId ? [providerRunId] : [],
+          sessionMessageIds: providerRunId
+            ? (sessionMessageIdsByProviderRunId.get(providerRunId) ?? [])
+            : [],
           authConfigEventIds: [event.id],
           providerOAuthSetupIds: event.oauthSetup ? [event.oauthSetup.id] : [],
           toolCallId: null,
@@ -178,24 +299,23 @@ export class ProviderInvocation extends IProviderInvocation {
           requests: [],
           responses: [],
           requestTraces: [],
-          logs: logs.logs.map(log => ({
+          logs: logs.map(log => ({
             timestamp: log.timestamp,
             message: log.message,
             outputType: log.outputType
           })),
           attachments: [],
-          error: invocation.isError
+          error: event.type.endsWith('_failed')
             ? {
-                code: 'function_invocation_failed',
-                message: 'Function invocation failed'
+                code: event.type,
+                message: event.type
               }
             : null,
           provider: null,
           metadata: {
-            serverConnectionId: invocation.serverConnectionId,
-            functionServerId: invocation.functionServerId
+            serverConnectionId
           },
-          createdAt: invocation.createdAt
+          createdAt: event.createdAt
         });
       })
     );

@@ -11,7 +11,9 @@ import { db } from '../../../db';
 import { getId } from '../../../id';
 import { callFunction } from '../../../lib/function/call';
 import { oauthErrorDescriptions } from '../../../lib/oauth/oauthErrors';
+import { functionServerInvocationService } from '../../functionServerInvocation';
 import { secretService } from '../../secret';
+import { serverEventService } from '../serverEvent';
 import { delegatedOAuthConnectionService } from './connection';
 
 class delegatedOauthAuthorizationServiceImpl {
@@ -67,6 +69,14 @@ class delegatedOauthAuthorizationServiceImpl {
       })
     );
 
+    let functionInvocation =
+      await functionServerInvocationService.ensureFunctionServerInvocation({
+        functionServer: setup.connection.functionServer,
+        tenant: setup.tenant,
+        functionInvocationId: res.functionCallId,
+        isError: res.status == 'error' || !res.result
+      });
+
     if (res.status == 'error' || !res.result) {
       await db.delegatedOAuthConnectionSetup.update({
         where: { oid: setup.oid },
@@ -78,6 +88,21 @@ class delegatedOauthAuthorizationServiceImpl {
             'Failed to get authorization URL from function server. OAuth not supported by provider.'
         }
       });
+
+      if (setup.serverOAuthSetup) {
+        await serverEventService.recordServerOAuthSetupEvent({
+          serverOAuthSetup: setup.serverOAuthSetup,
+          type: 'oauth_setup_authorization_failed',
+          message:
+            res.error?.message ??
+            'Failed to get authorization URL from function server. OAuth not supported by provider.',
+          payload: {
+            errorCode: res.error?.code ?? 'authorization_url_failed'
+          },
+          functionInvocationId:
+            functionInvocation?.functionBayInvocationId ?? res.functionCallId
+        });
+      }
 
       throw new ServiceError(
         badRequestError({
@@ -91,10 +116,23 @@ class delegatedOauthAuthorizationServiceImpl {
       data: { authStateValue: res.result.authState ?? undefined }
     });
 
+    if (setup.serverOAuthSetup) {
+      await serverEventService.recordServerOAuthSetupEvent({
+        serverOAuthSetup: setup.serverOAuthSetup,
+        type: 'oauth_setup_authorization_url_generated',
+        message: 'Generated delegated OAuth authorization URL',
+        payload: {
+          state: setup.stateIdentifier
+        },
+        functionInvocationId: functionInvocation?.functionBayInvocationId ?? res.functionCallId
+      });
+    }
+
     return {
       type: 'redirect' as const,
       setup,
-      redirectUrl: res.result.authorizationUrl
+      redirectUrl: res.result.authorizationUrl,
+      functionInvocationId: functionInvocation?.functionBayInvocationId ?? res.functionCallId
     };
   }
 
@@ -132,6 +170,24 @@ class delegatedOauthAuthorizationServiceImpl {
             where: { delegatedOAuthConnectionSetupOid: res.oid },
             data: { status: 'failed' }
           });
+
+          let serverOAuthSetup = await db.serverOAuthSetup.findFirst({
+            where: { delegatedOAuthConnectionSetupOid: res.oid },
+            select: { oid: true }
+          });
+          if (serverOAuthSetup) {
+            await serverEventService.recordServerOAuthSetupEvent({
+              serverOAuthSetup,
+              type: 'oauth_setup_callback_failed',
+              message:
+                d.response.errorDescription ??
+                oauthErrorDescriptions[d.response.error] ??
+                d.response.error,
+              payload: {
+                errorCode: d.response.error
+              }
+            });
+          }
         } catch {
           throw new ServiceError(
             badRequestError({
@@ -207,8 +263,16 @@ class delegatedOauthAuthorizationServiceImpl {
       })
     );
 
+    let functionInvocation =
+      await functionServerInvocationService.ensureFunctionServerInvocation({
+        functionServer: connection.functionServer,
+        tenant: setup.tenant,
+        functionInvocationId: res.functionCallId,
+        isError: res.status == 'error' || !res.result
+      });
+
     if (res.status == 'error' || !res.result) {
-      let setup = await db.delegatedOAuthConnectionSetup.update({
+      let updatedSetup = await db.delegatedOAuthConnectionSetup.update({
         where: {
           connectionOid: connection.oid,
           stateIdentifier: d.response.state!,
@@ -225,8 +289,18 @@ class delegatedOauthAuthorizationServiceImpl {
       });
 
       await db.serverOAuthSetup.updateMany({
-        where: { delegatedOAuthConnectionSetupOid: setup.oid },
+        where: { delegatedOAuthConnectionSetupOid: updatedSetup.oid },
         data: { status: 'failed' }
+      });
+
+      await serverEventService.recordServerOAuthSetupEvent({
+        serverOAuthSetup: setup.serverOAuthSetup,
+        type: 'oauth_setup_callback_failed',
+        message: res.error?.message ?? 'Failed to complete authorization with OAuth provider',
+        payload: {
+          errorCode: res.error?.code ?? 'authorization_callback_failed'
+        },
+        functionInvocationId: functionInvocation?.functionBayInvocationId ?? res.functionCallId
       });
 
       throw new ServiceError(
@@ -305,6 +379,16 @@ class delegatedOauthAuthorizationServiceImpl {
         status: 'completed',
         authConfigOid: authConfig.oid
       }
+    });
+
+    await serverEventService.recordServerOAuthSetupEvent({
+      serverOAuthSetup: oauthSetup,
+      type: 'oauth_setup_completed',
+      message: 'Completed OAuth setup',
+      payload: {
+        authConfigId: authConfig.id
+      },
+      functionInvocationId: functionInvocation?.functionBayInvocationId ?? res.functionCallId
     });
 
     let url = new URL(setup.serverOAuthSetup.redirectUri);

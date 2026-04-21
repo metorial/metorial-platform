@@ -7,13 +7,16 @@ import type {
   DelegatedOAuthConnection,
   DelegatedOAuthConnectionAuthToken,
   FunctionServer,
+  ServerAuthConfig,
   Tenant
 } from '../../../../prisma/generated/client';
 import { db } from '../../../db';
 import { getId } from '../../../id';
 import { callFunction } from '../../../lib/function/call';
 import { addDelegatedErrorCheck } from '../../../queues/oauth/delegatedErrorCheck';
+import { functionServerInvocationService } from '../../functionServerInvocation';
 import { secretService, type SecretOAuthToken } from '../../secret';
+import { serverEventService } from '../serverEvent';
 import { delegatedOAuthConnectionService } from './connection';
 
 let Sentry = getSentry();
@@ -21,6 +24,7 @@ let Sentry = getSentry();
 let refreshToken = async (d: {
   tenant: Tenant;
   token: DelegatedOAuthConnectionAuthToken;
+  serverAuthConfig?: ServerAuthConfig;
   connection: DelegatedOAuthConnection & {
     config: DelegatedOAuthConfig;
     functionServer: FunctionServer;
@@ -72,6 +76,14 @@ let refreshToken = async (d: {
     })
   );
 
+  let functionInvocation =
+    await functionServerInvocationService.ensureFunctionServerInvocation({
+      functionServer: d.connection.functionServer,
+      tenant: d.tenant,
+      functionInvocationId: res.functionCallId,
+      isError: res.status == 'error' || !res.result
+    });
+
   if (res.status == 'error' || !res.result) {
     await db.delegatedOAuthConnectionAuthToken.update({
       where: { oid: token.oid },
@@ -98,6 +110,18 @@ let refreshToken = async (d: {
         functionInvocationId: res.functionCallId
       }
     });
+
+    if (d.serverAuthConfig) {
+      await serverEventService.recordServerAuthConfigEvent({
+        serverAuthConfig: d.serverAuthConfig,
+        type: 'oauth_token_refresh_failed',
+        message: res.error?.message ?? 'Provider does not support token refresh',
+        payload: {
+          errorCode: res.error?.code ?? 'token_refresh_failed'
+        },
+        functionInvocationId: functionInvocation?.functionBayInvocationId ?? res.functionCallId
+      });
+    }
 
     await addDelegatedErrorCheck(d.connection.id);
 
@@ -139,12 +163,17 @@ let refreshToken = async (d: {
 
   return {
     token,
-    DANGEROUS_secretData
+    DANGEROUS_secretData,
+    functionInvocationId: functionInvocation?.functionBayInvocationId ?? res.functionCallId
   };
 };
 
 class delegatedAuthTokenServiceImpl {
-  async useAuthToken(d: { tenant: Tenant; delegatedOAuthConnectionAuthTokenOid: bigint }) {
+  async useAuthToken(d: {
+    tenant: Tenant;
+    delegatedOAuthConnectionAuthTokenOid: bigint;
+    serverAuthConfig?: ServerAuthConfig;
+  }) {
     let token = await db.delegatedOAuthConnectionAuthToken.findFirstOrThrow({
       where: { oid: d.delegatedOAuthConnectionAuthTokenOid, tenantOid: d.tenant.oid },
       include: {
@@ -187,12 +216,25 @@ class delegatedAuthTokenServiceImpl {
         token,
         connection: token.connection,
         tenant: d.tenant,
-        DANGEROUS_secretData
+        DANGEROUS_secretData,
+        serverAuthConfig: d.serverAuthConfig
       });
 
       DANGEROUS_secretData = refreshRes.DANGEROUS_secretData;
       token = { ...token, ...refreshRes.token };
       didRefresh = true;
+
+      if (d.serverAuthConfig) {
+        await serverEventService.recordServerAuthConfigEvent({
+          serverAuthConfig: d.serverAuthConfig,
+          type: 'oauth_token_refresh_succeeded',
+          message: 'Successfully refreshed OAuth token',
+          payload: {
+            authTokenId: token.id
+          },
+          functionInvocationId: refreshRes.functionInvocationId
+        });
+      }
     }
 
     if (token.errorCount) {

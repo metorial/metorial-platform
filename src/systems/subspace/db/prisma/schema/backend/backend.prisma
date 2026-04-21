@@ -17,6 +17,7 @@ model Backend {
   slatesSyncChangeNotificationCursor  SlatesSyncChangeNotificationCursor?
   slatesSyncAuthConfigEventCursor     SlatesSyncAuthConfigEventCursor?
   shuttleSyncChangeNotificationCursor ShuttleSyncChangeNotificationCursor?
+  shuttleSyncAuthConfigEventCursor    ShuttleSyncAuthConfigEventCursor?
 
   providerVersions        ProviderVersion[]
   providerVariants        ProviderVariant[]

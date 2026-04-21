@@ -1,7 +1,13 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import type { FunctionServer, FunctionServerInvocation } from '../../prisma/generated/client';
+import type {
+  FunctionServer,
+  FunctionServerInvocation,
+  ServerConnection,
+  Tenant
+} from '../../prisma/generated/client';
 import { db } from '../db';
+import { snowflake } from '../id';
 import { getFunctionCallLogs } from '../lib/function/call';
 
 let include = {
@@ -10,6 +16,36 @@ let include = {
 };
 
 class functionServerInvocationServiceImpl {
+  async ensureFunctionServerInvocation(d: {
+    functionServer: FunctionServer;
+    tenant: Tenant;
+    functionInvocationId: string | null | undefined;
+    isError: boolean;
+    connection?: ServerConnection | null;
+  }) {
+    if (!d.functionInvocationId) return null;
+
+    let existing = await db.functionServerInvocation.findFirst({
+      where: {
+        functionBayInvocationId: d.functionInvocationId
+      },
+      include
+    });
+    if (existing) return existing;
+
+    return await db.functionServerInvocation.create({
+      data: {
+        oid: snowflake.nextId(),
+        isError: d.isError,
+        functionBayInvocationId: d.functionInvocationId,
+        connectionOid: d.connection?.oid ?? null,
+        functionServerOid: d.functionServer.oid,
+        tenantOid: d.tenant.oid
+      },
+      include
+    });
+  }
+
   async listFunctionServerInvocations(d: {
     functionInvocationIds?: string[];
     serverConnectionIds?: string[];

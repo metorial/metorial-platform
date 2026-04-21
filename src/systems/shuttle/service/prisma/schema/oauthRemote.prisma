@@ -298,4 +298,18 @@ model RemoteOAuthConnectionAuthToken {
 
   authAttempts      RemoteOAuthConnectionSetup[]
   serverAuthConfigs ServerAuthConfig[]
+  errors            RemoteOAuthConnectionAuthTokenError[]
+}
+
+model RemoteOAuthConnectionAuthTokenError {
+  oid BigInt @id
+  id  String @unique
+
+  authTokenOid BigInt
+  authToken    RemoteOAuthConnectionAuthToken @relation(fields: [authTokenOid], references: [oid], onDelete: Cascade)
+
+  errorCode    String
+  errorMessage String?
+
+  createdAt DateTime @default(now())
 }

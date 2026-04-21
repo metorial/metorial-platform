@@ -246,7 +246,7 @@ export class ProviderAuth extends IProviderAuth {
       where: { oid: data.setup.shuttleOAuthSetupOid }
     });
 
-    let record = await shuttle.serverOAuthSetup.getSync({
+    let record = await shuttle.serverOAuthSetup.getLogsSync({
       serverOAuthSetupId: setup.id
     });
 
@@ -263,6 +263,10 @@ export class ProviderAuth extends IProviderAuth {
         })
       : null;
 
+    let lastFailedEvent = [...record.events]
+      .reverse()
+      .find(event => event.type.endsWith('_failed'));
+
     return {
       shuttleOAuthSetup: setup,
       shuttleAuthConfig,
@@ -272,7 +276,13 @@ export class ProviderAuth extends IProviderAuth {
         failed: 'failed' as const
       }[record.status],
       url: record.url,
-      error: null
+      error:
+        record.status === 'failed'
+          ? {
+              code: lastFailedEvent?.type ?? 'oauth_setup_failed',
+              message: lastFailedEvent?.message ?? 'OAuth setup failed'
+            }
+          : null
     };
   }
 

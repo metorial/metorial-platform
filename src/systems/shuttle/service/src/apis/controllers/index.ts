@@ -9,6 +9,7 @@ import { functionServerInvocationController } from './functionServerInvocation';
 import { networkingRulesetController } from './networkingRuleset';
 import { serverController } from './server';
 import { serverAuthConfigController } from './serverAuthConfig';
+import { serverAuthConfigEventController } from './serverAuthConfigEvent';
 import { serverConfigController } from './serverConfig';
 import { serverConnectionController } from './serverConnection';
 import { serverDeploymentController } from './serverDeployment';
@@ -34,6 +35,7 @@ export let rootController = app.controller({
   serverDeployment: serverDeploymentController,
   serverConnection: serverConnectionController,
   serverAuthConfig: serverAuthConfigController,
+  serverAuthConfigEvent: serverAuthConfigEventController,
 
   serverOAuthSetup: serverOAuthSetupController,
   serverOAuthCredentials: serverOAuthCredentialsController,

@@ -1,6 +1,6 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { serverOAuthSetupPresenter } from '../../presenters';
+import { serverOAuthSetupLogsPresenter, serverOAuthSetupPresenter } from '../../presenters';
 import {
   serverOAuthCredentialsService,
   serverOAuthSetupService,
@@ -154,5 +154,37 @@ export let serverOAuthSetupController = app.controller({
         serverOAuthSetupId: v.string()
       })
     )
-    .do(async ctx => serverOAuthSetupPresenter(ctx.serverOAuthSetup))
+    .do(async ctx => serverOAuthSetupPresenter(ctx.serverOAuthSetup)),
+
+  getLogs: serverOAuthSetupApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        serverOAuthSetupId: v.string()
+      })
+    )
+    .do(async ctx =>
+      serverOAuthSetupLogsPresenter(
+        await serverOAuthSetupService.getServerOAuthSetupLogs({
+          tenant: ctx.tenant,
+          serverOAuthSetupId: ctx.serverOAuthSetup.id
+        })
+      )
+    ),
+
+  getLogsSync: serverOAuthSetupSyncApp
+    .handler()
+    .input(
+      v.object({
+        serverOAuthSetupId: v.string()
+      })
+    )
+    .do(async ctx =>
+      serverOAuthSetupLogsPresenter(
+        await serverOAuthSetupService.getServerOAuthSetupLogs({
+          serverOAuthSetupId: ctx.serverOAuthSetup.id
+        })
+      )
+    )
 });

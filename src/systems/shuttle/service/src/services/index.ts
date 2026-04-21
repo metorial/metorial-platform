@@ -12,5 +12,6 @@ export * from './serverConfig';
 export * from './serverConnection';
 export * from './serverDeployment';
 export * from './serverDiscovery';
+export * from './functionServerInvocation';
 export * from './serverVersion';
 export * from './tenant';
