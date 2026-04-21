@@ -216,7 +216,7 @@ let ProviderDeploymentListItem = ({
                       {disabledReason && (
                         <>
                           {description ? <br /> : null}
-                          <Text size="1" color="gray500">
+                          <Text size="1" color="gray700">
                             {disabledReason}
                           </Text>
                         </>
@@ -226,7 +226,7 @@ let ProviderDeploymentListItem = ({
                 />
                 <Entity.Field
                   title={
-                    <Text size="1" color="gray500">
+                    <Text size="1" color="gray700">
                       <RenderDate date={deployment.createdAt} />
                     </Text>
                   }

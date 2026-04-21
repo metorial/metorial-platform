@@ -50,11 +50,6 @@ let CredentialCard = styled.div`
     border-color 0.2s ease,
     box-shadow 0.2s ease,
     transform 0.2s ease;
-
-  &:hover {
-    border-color: ${theme.colors.gray400};
-    box-shadow: 0 6px 24px -12px rgba(0, 0, 0, 0.12);
-  }
 `;
 
 let CredentialIcon = styled.div`
@@ -183,19 +178,11 @@ let ClientScrollShadow = styled.div<{ $side: 'left' | 'right' }>`
     p.$side === 'left'
       ? css`
           left: 0;
-          background: linear-gradient(
-            to right,
-            #fff 0%,
-            rgba(255, 255, 255, 0) 100%
-          );
+          background: linear-gradient(to right, #fff 0%, rgba(255, 255, 255, 0) 100%);
         `
       : css`
           right: 0;
-          background: linear-gradient(
-            to left,
-            #fff 0%,
-            rgba(255, 255, 255, 0) 100%
-          );
+          background: linear-gradient(to left, #fff 0%, rgba(255, 255, 255, 0) 100%);
         `}
 `;
 

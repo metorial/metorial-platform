@@ -455,6 +455,7 @@ export let useSessionTracing = (
     activeConnection,
     activeTabId,
     connectionCount: connectionItems.length,
+    connectionIdByExplorerTabId: explorerConnectionByTabId,
     explorerTabIdByConnectionId,
     explorerTabIds,
     groupedConnections,

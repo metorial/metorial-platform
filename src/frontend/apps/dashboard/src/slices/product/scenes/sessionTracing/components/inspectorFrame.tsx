@@ -1,7 +1,7 @@
 import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, useSession } from '@metorial/state';
 import { Button, CenteredSpinner, Error, Menu, theme } from '@metorial/ui';
-import { RiArrowDownSLine } from '@remixicon/react';
+import { RiArrowDownSLine, RiFileList3Line } from '@remixicon/react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -87,6 +87,7 @@ export let InspectorFrame = (p: {
   sessionId: string;
   sessionTemplateId?: string | null;
   magicMcpServerId?: string | null;
+  onOpenLogs?: () => void;
 }) => {
   let instance = useCurrentInstance();
   let session = useSession(instance.data?.id, p.sessionId);
@@ -215,6 +216,17 @@ export let InspectorFrame = (p: {
               }
             </Button>
           </Menu>
+
+          {p.onOpenLogs && (
+            <Button
+              size="2"
+              variant="outline"
+              iconLeft={<RiFileList3Line />}
+              onClick={p.onOpenLogs}
+            >
+              Open Logs
+            </Button>
+          )}
 
           {p.magicMcpServerId ? (
             <Link

@@ -75,10 +75,12 @@ let DetailEmptyState = styled.div`
 export let SessionTraceTabsPane = ({
   activeConnection,
   activeTabId,
+  connectionIdByExplorerTabId,
   explorerTabIds,
   inspectorOptions,
   isExplorerActive,
   onCloseTab,
+  onOpenConnection,
   onReorderTabs,
   onSelectTab,
   openTabs,
@@ -86,6 +88,7 @@ export let SessionTraceTabsPane = ({
 }: {
   activeConnection: TracingConnectionItem | null;
   activeTabId: string | null;
+  connectionIdByExplorerTabId: Record<string, string>;
   explorerTabIds: string[];
   inspectorOptions?: {
     sessionTemplateId?: string | null;
@@ -93,6 +96,7 @@ export let SessionTraceTabsPane = ({
   };
   isExplorerActive: boolean;
   onCloseTab: (id: string) => void;
+  onOpenConnection: (connectionId: string) => void;
   onReorderTabs: (sourceId: string, targetId: string, position: 'before' | 'after') => void;
   onSelectTab: (id: string) => void;
   openTabs: EditorTabItem[];
@@ -108,15 +112,19 @@ export let SessionTraceTabsPane = ({
         onReorder={onReorderTabs}
       />
 
-      {explorerTabIds.map(id => (
-        <ExplorerHost key={id} data-active={id === activeTabId}>
-          <InspectorFrame
-            sessionId={session.id}
-            sessionTemplateId={inspectorOptions?.sessionTemplateId}
-            magicMcpServerId={inspectorOptions?.magicMcpServerId}
-          />
-        </ExplorerHost>
-      ))}
+      {explorerTabIds.map(id => {
+        let connectionId = connectionIdByExplorerTabId[id];
+        return (
+          <ExplorerHost key={id} data-active={id === activeTabId}>
+            <InspectorFrame
+              sessionId={session.id}
+              sessionTemplateId={inspectorOptions?.sessionTemplateId}
+              magicMcpServerId={inspectorOptions?.magicMcpServerId}
+              onOpenLogs={connectionId ? () => onOpenConnection(connectionId) : undefined}
+            />
+          </ExplorerHost>
+        );
+      })}
 
       {!isExplorerActive && (
         <PaneBody>

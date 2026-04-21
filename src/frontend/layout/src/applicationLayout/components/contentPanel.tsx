@@ -7,6 +7,7 @@ let Wrapper = styled('div')`
   display: flex;
   flex-direction: column;
   position: relative;
+  height: 100%;
 `;
 
 let Header = styled('header')`

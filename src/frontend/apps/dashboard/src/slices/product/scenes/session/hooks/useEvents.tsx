@@ -1,8 +1,8 @@
 import { useCurrentInstance, useSessionEvents, useSessionMessages } from '@metorial/state';
 import { RiErrorWarningLine } from '@remixicon/react';
 import { useMemo } from 'react';
+import { Message } from '../../session-messages';
 import { Entry } from '../components/entry';
-import { Message } from '../components/message';
 import { useAggregatedMessages } from './useAggregatedMessages';
 
 export let useEvents = (

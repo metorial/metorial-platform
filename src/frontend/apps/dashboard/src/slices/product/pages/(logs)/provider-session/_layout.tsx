@@ -1,13 +1,15 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
-import { ContentPanelLayout } from '@metorial/layout';
+import { ContentPanelLayout, ExtraHeaderLayout } from '@metorial/layout';
 import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
   useSession
 } from '@metorial/state';
-import { Outlet, useLocation, useParams } from 'react-router-dom';
+import { Button } from '@metorial/ui';
+import { RiArrowLeftSLine } from '@remixicon/react';
+import { Link, Outlet, useLocation, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { DeletedRecordCallout } from '../../../scenes/deletedRecordCallout';
 
@@ -41,51 +43,67 @@ export let ProviderSessionLayout = () => {
   ] as const;
 
   return (
-    <ContentPanelLayout
-      title={session.data?.name ?? `Session ${sessionId?.slice(0, 8)}...`}
-      breadcrumbs={[
-        {
-          label: 'Sessions',
-          to: Paths.instance.providerSessions(organization.data, project.data, instance.data)
-        },
-        {
-          label: session.data?.name ?? 'Session',
-          to: Paths.instance.providerSession(
+    <ExtraHeaderLayout
+      header={
+        <Link
+          to={Paths.instance.providerSessions(
             organization.data,
             project.data,
-            instance.data,
-            session.data?.id ?? sessionId
-          )
-        }
-      ]}
-      description={session.data?.description ?? undefined}
-      extra={<DeletedRecordCallout status={session.data?.status} />}
-      links={{
-        current: pathname,
-        items: [
-          {
-            label: 'Logs',
-            to: Paths.instance.providerSession(...sessionPathParams)
-          },
-          {
-            label: 'Deployments',
-            to: Paths.instance.providerSession(...sessionPathParams, 'providers')
-          },
-          {
-            label: 'Provider Runs',
-            to: Paths.instance.providerSession(...sessionPathParams, 'runs')
-          }
-        ]
-      }}
+            instance.data
+          )}
+        >
+          <Button size="2" variant="outline" iconLeft={<RiArrowLeftSLine />}>
+            Back to all sessions
+          </Button>
+        </Link>
+      }
     >
-      {renderWithLoader(
-        { session },
-        { spaceTop: 20 }
-      )(({ session }) => (
-        <OutletWrapper>
-          <Outlet />
-        </OutletWrapper>
-      ))}
-    </ContentPanelLayout>
+      <ContentPanelLayout
+        title={session.data?.name ?? `Session ${sessionId?.slice(0, 8)}...`}
+        breadcrumbs={[
+          {
+            label: 'Sessions',
+            to: Paths.instance.providerSessions(organization.data, project.data, instance.data)
+          },
+          {
+            label: session.data?.name ?? 'Session',
+            to: Paths.instance.providerSession(
+              organization.data,
+              project.data,
+              instance.data,
+              session.data?.id ?? sessionId
+            )
+          }
+        ]}
+        description={session.data?.description ?? undefined}
+        extra={<DeletedRecordCallout status={session.data?.status} />}
+        links={{
+          current: pathname,
+          items: [
+            {
+              label: 'Logs',
+              to: Paths.instance.providerSession(...sessionPathParams)
+            },
+            {
+              label: 'Deployments',
+              to: Paths.instance.providerSession(...sessionPathParams, 'providers')
+            },
+            {
+              label: 'Provider Runs',
+              to: Paths.instance.providerSession(...sessionPathParams, 'runs')
+            }
+          ]
+        }}
+      >
+        {renderWithLoader(
+          { session },
+          { spaceTop: 20 }
+        )(({ session }) => (
+          <OutletWrapper>
+            <Outlet />
+          </OutletWrapper>
+        ))}
+      </ContentPanelLayout>
+    </ExtraHeaderLayout>
   );
 };

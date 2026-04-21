@@ -61,10 +61,12 @@ export let SessionTracingScene = ({
           <SessionTraceTabsPane
             activeConnection={tracing.activeConnection}
             activeTabId={tracing.activeTabId}
+            connectionIdByExplorerTabId={tracing.connectionIdByExplorerTabId}
             explorerTabIds={tracing.explorerTabIds}
             inspectorOptions={inspectorOptions}
             isExplorerActive={tracing.isExplorerActive}
             onCloseTab={tracing.onCloseTab}
+            onOpenConnection={tracing.onOpenConnection}
             onReorderTabs={tracing.onReorderTabs}
             onSelectTab={tracing.setActiveTabId}
             openTabs={tracing.openTabs}

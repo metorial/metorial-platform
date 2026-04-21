@@ -18,14 +18,14 @@ import {
   RiServerLine
 } from '@remixicon/react';
 import { useEffect, useMemo, useRef } from 'react';
-import { Entry } from '../../session/components/entry';
 import {
   ExplorerCapabilitiesMessageGroup,
   Message,
   getMessageMethod,
   isExplorerCapabilityMethod,
   shouldRenderStandaloneMessage
-} from '../../session/components/message';
+} from '../../session-messages';
+import { Entry } from '../../session/components/entry';
 import { ProviderRunLogs } from '../../session/components/providerRunLogs';
 import { useAggregatedMessages } from '../../session/hooks/useAggregatedMessages';
 import { SessionConnection, TimelineItem } from '../types';
@@ -285,8 +285,22 @@ export let useConnectionTimeline = ({
     [connection.createdAt, eventItems, messageItems]
   );
 
+  let connectionProviders = useMemo(() => {
+    let sessionProviderIds = new Set(
+      providerRunItems.map(run => run.sessionProviderId).filter(Boolean)
+    );
+
+    if (sessionProviderIds.size === 0) return session.providers ?? [];
+
+    return (session.providers ?? []).filter(provider =>
+      sessionProviderIds.has(provider.id)
+    );
+  }, [providerRunItems, session.providers]);
+
   return {
+    connection,
     connectionName: formatConnectionLabel(connection, session),
+    connectionProviders,
     isLoading: messages.isLoading || events.isLoading || providerRuns.isLoading,
     hasTimelineActivity: timelineItems.length > 2,
     mcp,

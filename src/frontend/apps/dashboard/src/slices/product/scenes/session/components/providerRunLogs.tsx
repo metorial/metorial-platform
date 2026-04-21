@@ -10,6 +10,7 @@ let Wrapper = styled.div`
   border: 1px solid #2a2a2a;
   background: #1a1a1a;
   overflow: hidden;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
 `;
 
 let Header = styled.header`
