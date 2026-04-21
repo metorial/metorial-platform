@@ -5,6 +5,7 @@ import { containerRegistryController } from './containerRegistry';
 import { containerRepositoryController } from './containerRepository';
 import { containerRepositoryTagController } from './containerRepositoryTag';
 import { containerRepositoryVersionController } from './containerRepositoryVersion';
+import { functionServerInvocationController } from './functionServerInvocation';
 import { networkingRulesetController } from './networkingRuleset';
 import { serverController } from './server';
 import { serverAuthConfigController } from './serverAuthConfig';
@@ -24,6 +25,7 @@ export let rootController = app.controller({
   containerRepository: containerRepositoryController,
   containerRepositoryTag: containerRepositoryTagController,
   containerRepositoryVersion: containerRepositoryVersionController,
+  functionServerInvocation: functionServerInvocationController,
 
   server: serverController,
   serverVersion: serverVersionController,

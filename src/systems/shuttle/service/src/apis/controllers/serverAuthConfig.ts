@@ -18,6 +18,17 @@ export let serverAuthConfigApp = tenantApp.use(async ctx => {
   return { serverAuthConfig };
 });
 
+export let serverAuthConfigSyncApp = app.use(async ctx => {
+  let serverAuthConfigId = ctx.body.serverAuthConfigId;
+  if (!serverAuthConfigId) throw new Error('serverAuthConfigId is required');
+
+  let serverAuthConfig = await serverAuthConfigService.DANGEROUSLY_getServerAuthConfigById({
+    serverAuthConfigId
+  });
+
+  return { serverAuthConfig };
+});
+
 export let serverAuthConfigController = app.controller({
   list: tenantApp
     .handler()
@@ -31,6 +42,27 @@ export let serverAuthConfigController = app.controller({
     .do(async ctx => {
       let paginator = await serverAuthConfigService.listServerAuthConfigs({
         tenant: ctx.tenant
+      });
+
+      let list = await paginator.run(ctx.input);
+
+      return Paginator.presentLight(list, serverAuthConfigPresenter);
+    }),
+
+  listSync: app
+    .handler()
+    .input(
+      Paginator.validate(
+        v.object({
+          serverAuthConfigIds: v.optional(v.array(v.string())),
+          serverIds: v.optional(v.array(v.string()))
+        })
+      )
+    )
+    .do(async ctx => {
+      let paginator = await serverAuthConfigService.listServerAuthConfigsGlobal({
+        serverAuthConfigIds: ctx.input.serverAuthConfigIds,
+        serverIds: ctx.input.serverIds
       });
 
       let list = await paginator.run(ctx.input);
@@ -103,6 +135,15 @@ export let serverAuthConfigController = app.controller({
     .input(
       v.object({
         tenantId: v.string(),
+        serverAuthConfigId: v.string()
+      })
+    )
+    .do(async ctx => serverAuthConfigPresenter(ctx.serverAuthConfig)),
+
+  getSync: serverAuthConfigSyncApp
+    .handler()
+    .input(
+      v.object({
         serverAuthConfigId: v.string()
       })
     )

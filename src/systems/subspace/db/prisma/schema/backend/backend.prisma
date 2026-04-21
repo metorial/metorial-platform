@@ -15,6 +15,7 @@ model Backend {
   createdAt DateTime @default(now())
 
   slatesSyncChangeNotificationCursor  SlatesSyncChangeNotificationCursor?
+  slatesSyncAuthConfigEventCursor     SlatesSyncAuthConfigEventCursor?
   shuttleSyncChangeNotificationCursor ShuttleSyncChangeNotificationCursor?
 
   providerVersions        ProviderVersion[]

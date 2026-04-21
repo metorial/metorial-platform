@@ -77,7 +77,7 @@ export let slateSessionToolCallLogsPresenter = async (
     durationMs: call.durationMs,
 
     action: {
-      object: 'slate.au',
+      object: 'slate.action',
 
       id: call.action.id,
       key: call.action.key,

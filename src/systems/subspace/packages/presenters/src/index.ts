@@ -1,4 +1,7 @@
 export * from './actor';
+export * from './authConfigError';
+export * from './authConfigErrorGlobal';
+export * from './authConfigEvent';
 export * from './authCredentials';
 export * from './authExport';
 export * from './authImport';
@@ -29,6 +32,7 @@ export * from './providerAuthMethod';
 export * from './providerConfig';
 export * from './providerEntry';
 export * from './providerListing';
+export * from './providerInvocation';
 export * from './providerListingCategory';
 export * from './providerListingCollection';
 export * from './providerListingGroup';

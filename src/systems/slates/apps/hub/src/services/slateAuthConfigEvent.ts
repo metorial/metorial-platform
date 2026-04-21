@@ -46,6 +46,31 @@ class slateAuthConfigEventServiceImpl {
       })
     );
   }
+
+  async listSlateAuthConfigEventsGlobal(d: { authConfigIds?: string[] }) {
+    let authConfigs = d.authConfigIds
+      ? await db.slateAuthConfig.findMany({
+          where: { id: { in: d.authConfigIds } }
+        })
+      : undefined;
+
+    return Paginator.create(({ prisma }) =>
+      prisma(async opts => {
+        let res = await db.slateAuthConfigEvent.findMany({
+          ...opts,
+          where: {
+            configOid: authConfigs ? { in: authConfigs.map(c => c.oid) } : undefined
+          },
+          include
+        });
+
+        return res.map(e => ({
+          ...e,
+          id: e.id ?? String(e.oid)
+        }));
+      })
+    );
+  }
 }
 
 export let slateAuthConfigEventService = Service.create(

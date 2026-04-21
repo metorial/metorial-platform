@@ -91,6 +91,9 @@ model Provider {
   sessionTemplateProviders       SessionTemplateProvider[]
   sessionParticipants            SessionParticipant[]
   sessionErrorGroups             SessionErrorGroup[]
+  authConfigEvents               AuthConfigEvent[]
+  authConfigErrors               AuthConfigError[]
+  authConfigErrorGlobals         AuthConfigErrorGlobal[]
   environmentProviders           EnvironmentProvider[]
   customProvider                 CustomProvider?
   providerEnvironments           ProviderEnvironment[]

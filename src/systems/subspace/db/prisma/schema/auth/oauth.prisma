@@ -20,7 +20,7 @@ model ProviderOAuthSetup {
   name        String?
   description String?
   metadata    Json?
-  toolFilter  Json @default("{\"type\":\"v1.allow_all\"}")
+  toolFilter  Json    @default("{\"type\":\"v1.allow_all\"}")
 
   redirectUrl String?
   backendUrl  String
@@ -64,6 +64,8 @@ model ProviderOAuthSetup {
 
   providerSetupSession       ProviderSetupSession?
   providerSetupSessionEvents ProviderSetupSessionEvent[]
+  authConfigEvents           AuthConfigEvent[]
+  authConfigErrors           AuthConfigError[]
 
   @@index([status])
   @@index([expiresAt])

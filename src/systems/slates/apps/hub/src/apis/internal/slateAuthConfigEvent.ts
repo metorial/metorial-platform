@@ -25,5 +25,24 @@ export let slateAuthConfigEventController = app.controller({
       let list = await paginator.run(ctx.input);
 
       return await Paginator.presentLight(list, slateAuthConfigEventPresenter);
+    }),
+
+  listSync: app
+    .handler()
+    .input(
+      Paginator.validate(
+        v.object({
+          authConfigIds: v.optional(v.array(v.string()))
+        })
+      )
+    )
+    .do(async ctx => {
+      let paginator = await slateAuthConfigEventService.listSlateAuthConfigEventsGlobal({
+        authConfigIds: ctx.input.authConfigIds
+      });
+
+      let list = await paginator.run(ctx.input);
+
+      return await Paginator.presentLight(list, slateAuthConfigEventPresenter);
     })
 });

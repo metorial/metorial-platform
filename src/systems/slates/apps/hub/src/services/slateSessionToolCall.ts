@@ -260,7 +260,7 @@ class slateSessionToolCallServiceImpl {
     }
 
     let contentBuffer = Buffer.from(d.content.content, d.content.encoding);
-    let digest = new Uint8Array(new Bun.CryptoHasher('sha256').update(contentBuffer).digest());
+    let digest = new Uint8Array(await crypto.subtle.digest('SHA-256', contentBuffer));
     let digestString = Buffer.from(digest).toString('hex');
     let storageKey = getStoredAttachmentsStorageKey(digestString);
 

@@ -1,6 +1,8 @@
 import { createCron } from '@lowerdeck/cron';
+import { syncAuthConfigEventsQueue } from './authConfigEvents';
 import { env } from '../../env';
 import { syncChangeNotificationsQueue } from './changeNotifications';
+import { syncOAuthSetupsQueue } from './oauthSetups';
 import { syncSlatesQueue } from './syncSlates';
 
 export let syncChangeNotificationsCron = createCron(
@@ -11,6 +13,28 @@ export let syncChangeNotificationsCron = createCron(
   },
   async () => {
     await syncChangeNotificationsQueue.add({});
+  }
+);
+
+export let syncAuthConfigEventsCron = createCron(
+  {
+    name: 'sub/slt/authEvt/cron',
+    redisUrl: env.service.REDIS_URL,
+    cron: '* * * * *'
+  },
+  async () => {
+    await syncAuthConfigEventsQueue.add({});
+  }
+);
+
+export let syncOAuthSetupsCron = createCron(
+  {
+    name: 'sub/slt/oauthSetup/cron',
+    redisUrl: env.service.REDIS_URL,
+    cron: '* * * * *'
+  },
+  async () => {
+    await syncOAuthSetupsQueue.add({});
   }
 );
 

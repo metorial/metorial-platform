@@ -145,6 +145,7 @@ export interface HandleMcpNotificationOrRequestRes {
 export interface ProviderRunLogsParam {
   tenant: Tenant;
   providerRun: ProviderRun;
+  sessionMessageIds?: string[];
 }
 
 export interface ProviderRunLog {

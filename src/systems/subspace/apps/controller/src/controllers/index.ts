@@ -2,6 +2,9 @@ import { apiMux } from '@lowerdeck/api-mux';
 import { createServer, type InferClient, rpcMux } from '@lowerdeck/rpc-server';
 import { app } from './_app';
 import { actorController } from './actor';
+import { authConfigErrorController } from './authConfigError';
+import { authConfigErrorGlobalController } from './authConfigErrorGlobal';
+import { authConfigEventController } from './authConfigEvent';
 import { brandController } from './brand';
 import { bucketController } from './bucket';
 import { callbackController } from './callback';
@@ -18,12 +21,12 @@ import { customProviderDeploymentController } from './customProviderDeployment';
 import { customProviderEnvironmentController } from './customProviderEnvironment';
 import { customProviderVersionController } from './customProviderVersion';
 import { environmentController } from './environment';
-import { identityActorController } from './identityActor';
 import { identityController } from './identity';
-import { identityDelegationConfigController } from './identityDelegationConfig';
-import { identityDelegationController } from './identityDelegation';
-import { identityDelegationRequestController } from './identityDelegationRequest';
+import { identityActorController } from './identityActor';
 import { identityCredentialController } from './identityCredential';
+import { identityDelegationController } from './identityDelegation';
+import { identityDelegationConfigController } from './identityDelegationConfig';
+import { identityDelegationRequestController } from './identityDelegationRequest';
 import { managedProviderAuthCredentialsController } from './managedProviderAuthCredentials';
 import { networkingRulesetController } from './networkingRuleset';
 import { providerController } from './provider';
@@ -38,6 +41,7 @@ import { providerConfigController } from './providerConfig';
 import { providerConfigVaultController } from './providerConfigVault';
 import { providerDeploymentController } from './providerDeployment';
 import { providerListingGroupController } from './providerGroup';
+import { providerInvocationController } from './providerInvocation';
 import { providerListingController } from './providerListing';
 import { providerOAuthSetupController } from './providerOAuthSetup';
 import { providerRunController } from './providerRun';
@@ -73,6 +77,9 @@ import { toolCallController } from './toolCall';
 export let rootController = app.controller({
   environment: environmentController,
   actor: actorController,
+  authConfigEvent: authConfigEventController,
+  authConfigError: authConfigErrorController,
+  authConfigErrorGlobal: authConfigErrorGlobalController,
   identity: identityController,
   identityActor: identityActorController,
   identityDelegation: identityDelegationController,
@@ -95,6 +102,7 @@ export let rootController = app.controller({
   toolCall: toolCallController,
 
   provider: providerController,
+  providerInvocation: providerInvocationController,
   managedProviderAuthCredentials: managedProviderAuthCredentialsController,
   providerAuthConfig: providerAuthConfigController,
   providerAuthCredentials: providerAuthCredentialsController,

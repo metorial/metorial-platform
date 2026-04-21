@@ -113,6 +113,18 @@ class slateOAuthSetupServiceImpl {
     return slateInstanceOAuthSetup;
   }
 
+  async DANGEROUSLY_getSlateInstanceOAuthSetupById(d: { id: string }) {
+    let slateInstanceOAuthSetup = await db.slateInstanceOAuthSetup.findFirst({
+      where: {
+        id: d.id
+      },
+      include
+    });
+    if (!slateInstanceOAuthSetup)
+      throw new ServiceError(notFoundError('slate.instance.oauth_setup'));
+    return slateInstanceOAuthSetup;
+  }
+
   async listSlateInstanceOAuthSetups(d: { tenant: Tenant; slateIds?: string[] }) {
     let slates = d.slateIds
       ? await db.slate.findMany({
@@ -137,6 +149,24 @@ class slateOAuthSetupServiceImpl {
     );
   }
 
+  async listIncompleteSlateInstanceOAuthSetups(d: { slateOAuthSetupIds?: string[] }) {
+    return Paginator.create(({ prisma }) =>
+      prisma(
+        async opts =>
+          await db.slateInstanceOAuthSetup.findMany({
+            ...opts,
+            where: {
+              id: d.slateOAuthSetupIds ? { in: d.slateOAuthSetupIds } : undefined,
+              status: {
+                in: ['unused', 'opened']
+              }
+            },
+            include
+          })
+      )
+    );
+  }
+
   async getSlateInstanceOAuthSetupLogs(d: { setup: SlateInstanceOAuthSetup }) {
     return await db.slateInstanceOAuthSetup.findFirstOrThrow({
       where: { oid: d.setup.oid },
@@ -149,6 +179,11 @@ class slateOAuthSetupServiceImpl {
         }
       }
     });
+  }
+
+  async DANGEROUSLY_getSlateInstanceOAuthSetupLogs(d: { id: string }) {
+    let setup = await this.DANGEROUSLY_getSlateInstanceOAuthSetupById({ id: d.id });
+    return this.getSlateInstanceOAuthSetupLogs({ setup });
   }
 
   private async getVersion(d: { slate: Slate; lockedVersionOid?: bigint }) {

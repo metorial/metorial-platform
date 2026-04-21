@@ -1,10 +1,14 @@
 import { combineQueueProcessors } from '@lowerdeck/queue';
 import { syncChangeNotificationsQueueProcessor } from './changeNotifications';
-import { syncChangeNotificationsCron } from './cron';
+import { syncChangeNotificationsCron, syncOAuthSetupsCron } from './cron';
+import { syncOAuthSetupQueueProcessor, syncOAuthSetupsQueueProcessor } from './oauthSetups';
 import { syncShuttleVersionQueueProcessor } from './syncShuttleVersion';
 
 export let syncQueues = combineQueueProcessors([
   syncChangeNotificationsQueueProcessor,
   syncChangeNotificationsCron,
+  syncOAuthSetupsQueueProcessor,
+  syncOAuthSetupQueueProcessor,
+  syncOAuthSetupsCron,
   syncShuttleVersionQueueProcessor
 ]);

@@ -1,0 +1,126 @@
+model AuthConfigEvent {
+  oid BigInt @id
+  id  String @unique
+
+  type       String
+  sourceType String
+  sourceId   String
+
+  providerInvocationId String?
+
+  payload Json?
+
+  authConfigOid BigInt?
+  authConfig    ProviderAuthConfig? @relation(fields: [authConfigOid], references: [oid])
+
+  authCredentialsOid BigInt?
+  authCredentials    ProviderAuthCredentials? @relation(fields: [authCredentialsOid], references: [oid])
+
+  oauthSetupOid BigInt?
+  oauthSetup    ProviderOAuthSetup? @relation(fields: [oauthSetupOid], references: [oid])
+
+  providerOid    BigInt
+  provider       Provider @relation(fields: [providerOid], references: [oid])
+  tenantOid      BigInt
+  environmentOid BigInt
+  solutionOid    Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  errors AuthConfigError[]
+
+  @@unique([sourceType, sourceId])
+  @@index([createdAt])
+  @@index([updatedAt])
+  @@index([type])
+  @@index([authConfigOid])
+  @@index([authCredentialsOid])
+  @@index([oauthSetupOid])
+  @@index([providerInvocationId])
+  @@index([providerOid, createdAt])
+}
+
+model AuthConfigErrorGlobal {
+  oid BigInt @id
+  id  String @unique
+
+  type String
+
+  code    String
+  message String
+
+  hash String
+
+  firstOccurrenceOid BigInt?
+  firstOccurrence    AuthConfigError? @relation(fields: [firstOccurrenceOid], references: [oid], name: "AuthConfigErrorGroupToOccurrence")
+
+  providerOid    BigInt
+  provider       Provider @relation(fields: [providerOid], references: [oid])
+  tenantOid      BigInt
+  environmentOid BigInt
+
+  createdAt DateTime @default(now())
+
+  occurrenceCount Int @default(0)
+
+  instances AuthConfigError[]
+
+  @@unique([type, hash, tenantOid])
+  @@index([createdAt])
+  @@index([type])
+}
+
+model AuthConfigError {
+  oid BigInt @id
+  id  String @unique
+
+  type       String
+  sourceType String
+  sourceId   String
+
+  isParentDeleted Boolean @default(false)
+  isProcessing    Boolean
+
+  code    String
+  message String
+
+  payload Json?
+
+  providerInvocationId String?
+
+  groupOid BigInt?
+  group    AuthConfigErrorGlobal? @relation(fields: [groupOid], references: [oid])
+
+  authConfigEventOid BigInt?
+  authConfigEvent    AuthConfigEvent? @relation(fields: [authConfigEventOid], references: [oid])
+
+  authConfigOid BigInt?
+  authConfig    ProviderAuthConfig? @relation(fields: [authConfigOid], references: [oid])
+
+  authCredentialsOid BigInt?
+  authCredentials    ProviderAuthCredentials? @relation(fields: [authCredentialsOid], references: [oid])
+
+  oauthSetupOid BigInt?
+  oauthSetup    ProviderOAuthSetup? @relation(fields: [oauthSetupOid], references: [oid])
+
+  providerOid    BigInt
+  provider       Provider @relation(fields: [providerOid], references: [oid])
+  tenantOid      BigInt
+  environmentOid BigInt
+  solutionOid    Int
+
+  createdAt DateTime @default(now())
+
+  instanceForGroup AuthConfigErrorGlobal[] @relation(name: "AuthConfigErrorGroupToOccurrence")
+
+  @@unique([sourceType, sourceId])
+  @@index([createdAt])
+  @@index([type])
+  @@index([groupOid])
+  @@index([authConfigEventOid])
+  @@index([authConfigOid])
+  @@index([authCredentialsOid])
+  @@index([oauthSetupOid])
+  @@index([providerInvocationId])
+}

@@ -242,13 +242,11 @@ export class ProviderAuth extends IProviderAuth {
       throw new Error('Setup does not have associated shuttle OAuth setup');
     }
 
-    let tenant = await getTenantForShuttle(data.tenant);
     let setup = await db.shuttleOAuthSetup.findUniqueOrThrow({
       where: { oid: data.setup.shuttleOAuthSetupOid }
     });
 
-    let record = await shuttle.serverOAuthSetup.get({
-      tenantId: tenant.id,
+    let record = await shuttle.serverOAuthSetup.getSync({
       serverOAuthSetupId: setup.id
     });
 

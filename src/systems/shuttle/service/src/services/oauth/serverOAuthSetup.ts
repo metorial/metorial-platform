@@ -210,6 +210,17 @@ class serverOAuthSetupServiceImpl {
     return serverOAuthSetup;
   }
 
+  async DANGEROUSLY_getServerOAuthSetupById(d: { serverOAuthSetupId: string }) {
+    let serverOAuthSetup = await db.serverOAuthSetup.findFirst({
+      where: {
+        id: d.serverOAuthSetupId
+      },
+      include
+    });
+    if (!serverOAuthSetup) throw new ServiceError(notFoundError('server_config'));
+    return serverOAuthSetup;
+  }
+
   async listServerOAuthSetups(d: { tenant: Tenant }) {
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -217,6 +228,27 @@ class serverOAuthSetupServiceImpl {
           await db.serverOAuthSetup.findMany({
             ...opts,
             where: { tenantOid: d.tenant.oid },
+            include
+          })
+      )
+    );
+  }
+
+  async listServerOAuthSetupsGlobal(d: {
+    serverOAuthSetupIds?: string[];
+    serverIds?: string[];
+    statuses?: Array<'pending' | 'completed' | 'failed'>;
+  }) {
+    return Paginator.create(({ prisma }) =>
+      prisma(
+        async opts =>
+          await db.serverOAuthSetup.findMany({
+            ...opts,
+            where: {
+              id: d.serverOAuthSetupIds ? { in: d.serverOAuthSetupIds } : undefined,
+              server: d.serverIds ? { id: { in: d.serverIds } } : undefined,
+              status: d.statuses?.length ? { in: d.statuses } : undefined
+            },
             include
           })
       )

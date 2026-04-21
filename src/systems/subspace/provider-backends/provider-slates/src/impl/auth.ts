@@ -287,13 +287,11 @@ export class ProviderAuth extends IProviderAuth {
       throw new Error('Setup does not have associated slate OAuth setup');
     }
 
-    let tenant = await getTenantForSlates(data.tenant);
     let setup = await db.slateOAuthSetup.findUniqueOrThrow({
       where: { oid: data.setup.slateOAuthSetupOid }
     });
 
-    let record = await slates.slateOAuthSetup.get({
-      tenantId: tenant.id,
+    let record = await slates.slateOAuthSetup.getLogsSync({
       slateOAuthSetupId: setup.id
     });
 
