@@ -29,7 +29,7 @@ type SessionProvider = DashboardInstanceSessionsGetOutput['providers'][number];
 let Wrapper = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 8px;
 `;
 
 let HeaderGrid = styled.div`
@@ -119,14 +119,22 @@ let getProviderDisplayName = (provider: SessionProvider) =>
 
 let formatCount = (value: number) => value.toLocaleString();
 
+let joinWithAnd = (values: string[]) => {
+  if (values.length === 0) return '';
+  if (values.length === 1) return values[0];
+  if (values.length === 2) return `${values[0]} and ${values[1]}`;
+  return `${values.slice(0, -1).join(', ')}, and ${values[values.length - 1]}`;
+};
+
 let SessionBox = ({ session }: { session: DashboardInstanceSessionsGetOutput }) => {
   let usage = session.usage;
 
   return (
     <CollapsibleBox
+      defaultCollapsed
       id="session"
       title="Session"
-      description="Lifecycle and usage for this session."
+      description={session.name ?? 'Lifecycle and usage for this session.'}
     >
       <Datalist
         items={[
@@ -153,12 +161,17 @@ let ConnectionBox = ({
   session: DashboardInstanceSessionsGetOutput;
 }) => {
   let usage = connection.usage;
+  let totalMessages =
+    usage.totalProductiveClientMessageCount + usage.totalProductiveProviderMessageCount;
+  let transportLabel =
+    getConnectionTransportLabel(connection.transport) ?? connection.transport;
 
   return (
     <CollapsibleBox
+      defaultCollapsed
       id="connection"
       title="Connection"
-      description={formatConnectionLabel(connection, session)}
+      description={`${formatCount(totalMessages)} messages via ${transportLabel}`}
       rightActions={
         <SessionConnectionStatusBadge
           connectionStatus={connection.connectionState}
@@ -241,9 +254,10 @@ let ClientBox = ({ mcp }: { mcp: ConnectionMcp }) => {
 
   return (
     <CollapsibleBox
+      defaultCollapsed
       id="client"
       title="Client"
-      description="The connected MCP client's details and capabilities."
+      description={clientName ?? "The connected MCP client's details and capabilities."}
     >
       {items.length > 0 ? (
         <Datalist items={items} />
@@ -276,16 +290,19 @@ let ProvidersBox = ({ providers }: { providers: SessionProvider[] }) => {
   });
   let providerNameMap = new Map(listings.data?.items.map(p => [p.provider.id, p.name]) ?? []);
 
+  let providerNames = providers
+    .map(p => providerNameMap.get(p.providerId) ?? getProviderDisplayName(p) ?? p.providerId)
+    .filter((name): name is string => Boolean(name));
+
   return (
     <CollapsibleBox
+      defaultCollapsed
       id="providers"
       title="Providers"
       description={
         providers.length === 0
           ? 'No providers have been used by this connection.'
-          : providers.length === 1
-            ? 'The provider backing this connection.'
-            : `${providers.length} providers are backing this connection.`
+          : joinWithAnd(providerNames)
       }
     >
       {providers.length === 0 ? (

@@ -5,6 +5,7 @@ import styled from 'styled-components';
 
 let Viewer = styled.div`
   overflow: hidden;
+  font-size: 12px;
   /* border: 1px solid ${theme.colors.gray300};
   border-radius: 10px;
   background: ${theme.colors.background}; */

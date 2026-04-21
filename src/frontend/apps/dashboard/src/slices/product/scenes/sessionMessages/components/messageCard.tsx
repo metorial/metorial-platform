@@ -1,5 +1,5 @@
 import { CodeBlock } from '@metorial/code';
-import { Button, Menu, RenderDate, Text } from '@metorial/ui';
+import { Button, Menu, Text } from '@metorial/ui';
 import { RiArrowDownSLine } from '@remixicon/react';
 import { type ReactNode, useState } from 'react';
 import { JsonViewer } from '../../../../../components/jsonViewer';
@@ -84,7 +84,7 @@ export let MessageCard = ({
           </HeaderSection>
 
           <HeaderActions>
-            <RenderDate date={date} />
+            {/* <RenderDate date={date} /> */}
 
             <Menu
               items={[

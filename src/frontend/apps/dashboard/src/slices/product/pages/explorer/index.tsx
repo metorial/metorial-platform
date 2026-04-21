@@ -12,8 +12,8 @@ import {
   useProvider,
   useProviderAuthConfigs,
   useProviderAuthMethods,
-  useProviderConfigVaults,
   useProviderConfigs,
+  useProviderConfigVaults,
   useProviderDeployment,
   useProviderDeploymentConfigSchema,
   useProviderDeployments,
@@ -32,7 +32,8 @@ import {
   Spacer,
   Tabs,
   Text,
-  theme
+  theme,
+  Title
 } from '@metorial/ui';
 import { RiAddLine, RiArrowLeftLine, RiArrowRightLine, RiCloseLine } from '@remixicon/react';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -538,15 +539,15 @@ export let ExplorerPage = () => {
     return (
       <MainSetup>
         <SetupCard>
-          <Text as="p" size="4" weight="strong" color="gray900">
-            Complete setup
-          </Text>
+          <Title as="h1" size="7" weight="strong" color="gray900">
+            Connect to {selectedDeployment.data?.name ?? provider.data?.name ?? 'Provider'}
+          </Title>
 
           <Spacer height={6} />
 
-          <Text size="2" color="gray600">
-            Choose or create configuration and authentication for this deployment, then open
-            the Explorer session.
+          <Text size="2" color="gray600" weight="medium">
+            Configure the connection to your provider deployment before connecting with the
+            Metorial Explorer.
           </Text>
 
           <Spacer height={16} />
