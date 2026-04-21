@@ -175,7 +175,6 @@ export let InspectorFrame = (p: {
     return () => window.clearInterval(timer);
   }, [explorerConfig, url]);
 
-  let firstDeploymentId = session.data?.providers?.[0]?.deployment?.id;
   let resolvedSessionTemplateId = p.sessionTemplateId ?? session.data?.fromTemplatesIds?.[0];
 
   return (
@@ -217,63 +216,33 @@ export let InspectorFrame = (p: {
             </Button>
           </Menu>
 
-          {
-            p.magicMcpServerId ? (
-              <Link
-                to={Paths.instance.magicMcp.server(
-                  instance.data?.organization,
-                  instance.data?.project,
-                  instance.data,
-                  p.magicMcpServerId
-                )}
-              >
-                <Button as="span" size="2" variant="outline">
-                  Open Magic MCP Server
-                </Button>
-              </Link>
-            ) : resolvedSessionTemplateId ? (
-              <Link
-                to={Paths.instance.sessionTemplate(
-                  instance.data?.organization,
-                  instance.data?.project,
-                  instance.data,
-                  resolvedSessionTemplateId
-                )}
-              >
-                <Button as="span" size="2" variant="outline">
-                  Open Session Template
-                </Button>
-              </Link>
-            ) : null
-
-            // firstDeploymentId ? (
-            //   <Link
-            //     to={Paths.instance.providerDeployment(
-            //       instance.data?.organization,
-            //       instance.data?.project,
-            //       instance.data,
-            //       firstDeploymentId
-            //     )}
-            //   >
-            //     <Button as="span" size="2" variant="outline">
-            //       Open Provider Deployment
-            //     </Button>
-            //   </Link>
-            // ) : null
-          }
-
-          {/* <Link
-            to={Paths.instance.providerSession(
-              instance.data?.organization,
-              instance.data?.project,
-              instance.data,
-              p.sessionId
-            )}
-          >
-            <Button as="span" size="2" variant="outline">
-              Open Session
-            </Button>
-          </Link> */}
+          {p.magicMcpServerId ? (
+            <Link
+              to={Paths.instance.magicMcp.server(
+                instance.data?.organization,
+                instance.data?.project,
+                instance.data,
+                p.magicMcpServerId
+              )}
+            >
+              <Button as="span" size="2" variant="outline">
+                Open Magic MCP Server
+              </Button>
+            </Link>
+          ) : resolvedSessionTemplateId ? (
+            <Link
+              to={Paths.instance.sessionTemplate(
+                instance.data?.organization,
+                instance.data?.project,
+                instance.data,
+                resolvedSessionTemplateId
+              )}
+            >
+              <Button as="span" size="2" variant="outline">
+                Open Session Template
+              </Button>
+            </Link>
+          ) : null}
         </ConnectionNavSection>
       </ConnectionNav>
 

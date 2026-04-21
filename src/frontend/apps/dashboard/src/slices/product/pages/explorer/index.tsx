@@ -49,7 +49,7 @@ import { showProviderAuthConfigMethodPickerModal } from '../../scenes/providerAu
 import { ProviderConfigurationSelection } from '../../scenes/providerConfigs/selection';
 import { ProviderDeploymentsList } from '../../scenes/providerDeployments/list';
 import { ProviderSearch } from '../../scenes/providers/search';
-import { InspectorFrame } from './inspector';
+import { SessionTracingScene } from '../../scenes/sessionTracing';
 
 type ProviderSelection =
   | DashboardInstanceProvidersListOutput['items'][number]
@@ -255,7 +255,11 @@ export let ExplorerPage = () => {
   let sessionProviderIds = useMemo(
     () =>
       [
-        ...new Set((sessionFromQuery.data?.providers ?? []).map(sessionProvider => sessionProvider.providerId))
+        ...new Set(
+          (sessionFromQuery.data?.providers ?? []).map(
+            sessionProvider => sessionProvider.providerId
+          )
+        )
       ].sort(),
     [sessionFromQuery.data?.providers]
   );
@@ -756,7 +760,8 @@ export let ExplorerPage = () => {
                                 provider.deployment?.name ??
                                 providerDeploymentId ??
                                 provider.providerId;
-                              let providerDeploymentCreatedAt = provider.deployment?.createdAt ?? null;
+                              let providerDeploymentCreatedAt =
+                                provider.deployment?.createdAt ?? null;
 
                               return (
                                 <TemplateSessionCard
@@ -783,10 +788,12 @@ export let ExplorerPage = () => {
                                             <Avatar
                                               entity={{
                                                 name:
-                                                  sessionProviderLookup.get(provider.providerId)?.name ??
-                                                  provider.providerId,
-                                                imageUrl:
-                                                  sessionProviderLookup.get(provider.providerId)?.imageUrl
+                                                  sessionProviderLookup.get(
+                                                    provider.providerId
+                                                  )?.name ?? provider.providerId,
+                                                imageUrl: sessionProviderLookup.get(
+                                                  provider.providerId
+                                                )?.imageUrl
                                               }}
                                               size={28}
                                               radius={8}
@@ -800,7 +807,9 @@ export let ExplorerPage = () => {
                                           title={
                                             <Text size="1" color="gray500">
                                               {providerDeploymentCreatedAt ? (
-                                                <RenderDate date={providerDeploymentCreatedAt} />
+                                                <RenderDate
+                                                  date={providerDeploymentCreatedAt}
+                                                />
                                               ) : (
                                                 'Deployment unavailable'
                                               )}
@@ -1000,13 +1009,18 @@ export let ExplorerPage = () => {
           </MainEmpty>
         )}
 
-        {sessionId && !isCreatingSession && (
-          <InspectorFrame
-            sessionId={sessionId}
-            sessionTemplateId={resolvedSessionTemplateId}
-            magicMcpServerId={magicMcpServerIdFromState}
-          />
-        )}
+        {sessionId &&
+          !isCreatingSession &&
+          renderWithLoader({ session: sessionFromQuery })(({ session }) => (
+            <SessionTracingScene
+              session={session.data}
+              initialExplorerTab
+              inspectorOptions={{
+                sessionTemplateId: resolvedSessionTemplateId,
+                magicMcpServerId: magicMcpServerIdFromState
+              }}
+            />
+          ))}
       </Main>
 
       <Explainer
