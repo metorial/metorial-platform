@@ -28,9 +28,9 @@ import {
 import { sortBy } from 'lodash';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import styled from 'styled-components';
+import { Stepper } from '../../../../components/stepper';
 import { getProviderOAuthAutoRegistrationEnabled } from '../../lib/providerOAuthAutoRegistration';
 import { AuthMethodPicker } from '../providerAuthConfigs/authMethodPicker';
-import { Stepper } from '../../../../components/stepper';
 
 type AuthMethod = DashboardInstanceProvidersAuthMethodsListOutput['items'][number];
 type CredentialsMode = 'existing' | 'new';
@@ -1555,11 +1555,8 @@ export let ProviderSetupSessionEmbed = ({
                   </>
                 )}
 
-                <Text size="2" weight="strong">
-                  Continue in the {oauthMethodName} window
-                </Text>
-                <Text size="2" color="gray600">
-                  Complete the sign-in flow. This modal will update automatically.
+                <Text size="2" weight="medium">
+                  Continue in the authentication window
                 </Text>
 
                 <Spacer size={8} />

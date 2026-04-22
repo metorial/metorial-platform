@@ -173,6 +173,56 @@ let InstancePaths = Object.assign(
       return InstancePaths(organization, project, instance, 'provider-run', id, ...subPages);
     },
 
+    providerAuthErrors: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) =>
+      InstancePaths(organization, project, instance, 'provider-auth-errors', ...subPages),
+    providerAuthError: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(
+        organization,
+        project,
+        instance,
+        'provider-auth-error',
+        id,
+        ...subPages
+      );
+    },
+
+    providerAuthEvents: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) =>
+      InstancePaths(organization, project, instance, 'provider-auth-events', ...subPages),
+    providerAuthEvent: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(
+        organization,
+        project,
+        instance,
+        'provider-auth-event',
+        id,
+        ...subPages
+      );
+    },
+
     portals: (
       organization: EntityParam,
       project: EntityParam,
