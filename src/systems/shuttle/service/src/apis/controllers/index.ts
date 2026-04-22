@@ -16,6 +16,7 @@ import { serverDeploymentController } from './serverDeployment';
 import { serverDiscoveryController } from './serverDiscovery';
 import { serverOAuthCredentialsController } from './serverOAuthCredentials';
 import { serverOAuthSetupController } from './serverOAuthSetup';
+import { serverOAuthSetupEventController } from './serverOAuthSetupEvent';
 import { serverVersionController } from './serverVersion';
 import { tenantController } from './tenant';
 
@@ -38,6 +39,7 @@ export let rootController = app.controller({
   serverAuthConfigEvent: serverAuthConfigEventController,
 
   serverOAuthSetup: serverOAuthSetupController,
+  serverOAuthSetupEvent: serverOAuthSetupEventController,
   serverOAuthCredentials: serverOAuthCredentialsController,
 
   changeNotification: changeNotificationController,

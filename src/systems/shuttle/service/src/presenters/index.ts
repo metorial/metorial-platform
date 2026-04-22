@@ -14,6 +14,7 @@ export * from './serverConnection';
 export * from './serverDeployment';
 export * from './serverOAuthCredentials';
 export * from './serverOAuthSetup';
+export * from './serverOAuthSetupEvent';
 export * from './serverOAuthSetupLogs';
 export * from './serverVersion';
 export * from './tenant';

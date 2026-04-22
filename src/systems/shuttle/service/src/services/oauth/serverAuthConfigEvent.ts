@@ -24,6 +24,9 @@ class serverAuthConfigEventServiceImpl {
         await db.serverAuthConfigEvent.findMany({
           ...opts,
           where: {
+            serverAuthConfig: {
+              tenantOid: d.tenant.oid
+            },
             serverAuthConfigOid: authConfigs
               ? { in: authConfigs.map(authConfig => authConfig.oid) }
               : undefined

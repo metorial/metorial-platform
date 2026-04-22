@@ -4,3 +4,4 @@ export * from './serverAuthConfigEvent';
 export * from './serverEvent';
 export * from './serverOAuthCredentials';
 export * from './serverOAuthSetup';
+export * from './serverOAuthSetupEvent';
