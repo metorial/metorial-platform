@@ -109,12 +109,17 @@ export let storeSlateInvocation = (
         return m;
       });
 
+      let extractRequestTraces = (source: unknown) => {
+        if (!source || typeof source !== 'object') return [];
+        if (!('requestTraces' in source)) return [];
+        let traces = (source as { requestTraces?: unknown }).requestTraces;
+        return Array.isArray(traces) ? traces : [];
+      };
+
       let requestTraces = (d.responseMessages ?? []).flatMap(m => {
         let result = 'result' in m ? m.result : undefined;
-        if (!result) return [];
-
-        let requestTraces = 'requestTraces' in result ? result.requestTraces : undefined;
-        return requestTraces ?? [];
+        let error = 'error' in m ? (m as { error?: unknown }).error : undefined;
+        return [...extractRequestTraces(result), ...extractRequestTraces(error)];
       });
 
       // Handle error case where invocationResult.id may be undefined

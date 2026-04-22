@@ -2,6 +2,7 @@ import { canonicalize } from '@lowerdeck/canonicalize';
 import { Hash } from '@lowerdeck/hash';
 import { createLock } from '@lowerdeck/lock';
 import { createQueue, QueueRetryError } from '@lowerdeck/queue';
+import { slugify } from '@lowerdeck/slugify';
 import { db, getId } from '@metorial-subspace/db';
 import { providerOAuthSetupInternalService } from '@metorial-subspace/module-auth';
 import { createProviderInvocationId } from '@metorial-subspace/provider-utils';
@@ -23,28 +24,77 @@ type SyncedProviderOAuthSetup = {
   solutionOid: number;
 };
 
-let getErrorInfo = (value: unknown, fallback: string) => {
+let DEFAULT_ERROR_MESSAGES: Record<string, string> = {
+  oauth_setup_failed: 'The OAuth setup flow could not be completed.'
+};
+
+let pickErrorSource = (value: unknown) => {
   if (
     value &&
     typeof value === 'object' &&
     'code' in value &&
-    typeof value.code === 'string'
+    typeof (value as any).code === 'string'
   ) {
+    let v = value as { code: string; message?: unknown };
     return {
-      code: value.code,
-      message:
-        'message' in value && typeof value.message === 'string' ? value.message : value.code
+      code: v.code,
+      message: typeof v.message === 'string' && v.message.length ? v.message : null
+    };
+  }
+  return null;
+};
+
+let getErrorInfo = (event: SlateOAuthSetupEventItem) => {
+  let fromEvent = pickErrorSource(event.error);
+  if (fromEvent) {
+    if (fromEvent.code.startsWith('upstream.') && fromEvent.message) {
+      fromEvent.code = slugify(fromEvent.message.replaceAll('_', '-')).replaceAll('-', '_');
+    }
+
+    return {
+      code: fromEvent.code,
+      message: fromEvent.message ?? DEFAULT_ERROR_MESSAGES[fromEvent.code] ?? fromEvent.code
     };
   }
 
+  let fromInvocation = pickErrorSource(event.invocation?.error);
+  if (fromInvocation) {
+    if (fromInvocation.code.startsWith('upstream.') && fromInvocation.message) {
+      fromInvocation.code = slugify(fromInvocation.message.replaceAll('_', '-')).replaceAll(
+        '-',
+        '_'
+      );
+    }
+
+    return {
+      code: fromInvocation.code,
+      message:
+        fromInvocation.message ??
+        DEFAULT_ERROR_MESSAGES[fromInvocation.code] ??
+        fromInvocation.code
+    };
+  }
+
+  let code = event.type;
   return {
-    code: fallback,
-    message: fallback
+    code,
+    message: DEFAULT_ERROR_MESSAGES[code] ?? 'An unknown error occurred during OAuth setup.'
   };
 };
 
 let getProviderInvocationId = (slateInvocationId: string | null | undefined) =>
   slateInvocationId ? createProviderInvocationId('slate.invocation', slateInvocationId) : null;
+
+let getEventStatus = (event: SlateOAuthSetupEventItem): 'succeeded' | 'failed' => {
+  if (event.type.endsWith('_failed')) return 'failed';
+
+  let invocationStatus = event.invocation?.status;
+  if (invocationStatus === 'invocation_failed' || invocationStatus === 'message_failed') {
+    return 'failed';
+  }
+
+  return 'succeeded';
+};
 
 export let syncOAuthSetupsQueue = createQueue<{}>({
   name: 'sub/slt/oauthSetup/many',
@@ -82,6 +132,7 @@ let ensureProviderAuthConfigEvent = async (d: {
       data: {
         ...getId('providerAuthConfigEvent'),
         type: d.event.type,
+        status: getEventStatus(d.event),
         sourceType: 'slates.oauth_setup_event',
         sourceId: d.event.id,
         providerInvocationId: getProviderInvocationId(d.event.invocation?.id),
@@ -115,7 +166,7 @@ let createErrorForEvent = async (d: {
   });
   if (existingError) return;
 
-  let { code, message } = getErrorInfo(d.event.invocation?.error, d.event.type);
+  let { code, message } = getErrorInfo(d.event);
 
   let error = await db.providerAuthConfigError.create({
     data: {
@@ -213,8 +264,6 @@ export let syncOAuthSetupsQueueProcessor = syncOAuthSetupsQueue.process(async ()
       include: { slatesSyncOAuthSetupEventCursor: true }
     });
     if (!backend) throw new QueueRetryError();
-
-    console.log(backend.slatesSyncOAuthSetupEventCursor?.cursor);
 
     let events = await slates.slateOAuthSetupEvent.listSync({
       limit: 100,

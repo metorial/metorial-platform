@@ -16,6 +16,7 @@ export let v1ProviderAuthConfigErrorPresenter = Presenter.create(providerAuthCon
     auth_config_event_id: authConfigError.authConfigEventId,
     provider_auth_config_id: authConfigError.authConfigId,
     provider_auth_credentials_id: authConfigError.authCredentialsId,
+    provider_oauth_setup_id: authConfigError.providerOAuthSetupId,
     provider_id: authConfigError.providerId,
 
     provider_invocation_id: authConfigError.providerInvocationId,

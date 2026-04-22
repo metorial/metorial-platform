@@ -14,6 +14,18 @@ type InvocationWithStoredAttachments = SlateInvocation & {
   }>;
 };
 
+let getEventError = (event: {
+  type: SlateAuthConfigEvent['type'];
+  config: SlateAuthConfig;
+}) => {
+  if (event.type !== 'oauth_token_refresh_failed') return null;
+
+  let code = event.config.errorCode ?? 'oauth_token_refresh_failed';
+  let message =
+    event.config.errorMessage ?? 'Failed to refresh the OAuth authentication token.';
+  return { code, message };
+};
+
 export let slateAuthConfigEventPresenter = async (
   event: SlateAuthConfigEvent & {
     config: SlateAuthConfig & {
@@ -28,6 +40,7 @@ export let slateAuthConfigEventPresenter = async (
   type: event.type,
   authConfigId: event.config.id,
   authMethodKey: event.config.authMethod.key,
+  error: getEventError(event),
 
   invocation: event.invocation ? await slateInvocationLitePresenter(event.invocation) : null,
 

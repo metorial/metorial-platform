@@ -98,8 +98,6 @@ export class SlateInvocationStack {
       })
     ]);
 
-    console.log('Provider invocation result:', JSON.stringify(providerInvocation));
-
     if (providerInvocation.type === 'error') {
       storeSlateInvocation({
         slateVersion: this.#slateVersion,

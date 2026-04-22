@@ -27,9 +27,11 @@ let normalizeAuthConfigEventSourceType = (sourceType: string) => {
 };
 
 let normalizeAuthConfigEventStatus = (d: {
+  status: ProviderAuthConfigEvent['status'];
   type: string;
   authConfigErrorId: string | null;
 }) => {
+  if (d.status === 'failed') return 'error' as const;
   if (d.authConfigErrorId) return 'error' as const;
   if (d.type.endsWith('_failed') || d.type.includes('error')) return 'error' as const;
   return 'success' as const;
@@ -47,6 +49,7 @@ export let authConfigEventPresenter = async (
   let normalizedSourceType = normalizeAuthConfigEventSourceType(event.sourceType);
   let authConfigErrorId = event.errors[0]?.id ?? null;
   let status = normalizeAuthConfigEventStatus({
+    status: event.status,
     type: event.type,
     authConfigErrorId
   });

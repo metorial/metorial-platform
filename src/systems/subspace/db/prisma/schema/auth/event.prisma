@@ -1,3 +1,8 @@
+enum ProviderAuthConfigEventStatus {
+  succeeded
+  failed
+}
+
 model ProviderAuthConfigEvent {
   oid BigInt @id
   id  String @unique
@@ -5,6 +10,8 @@ model ProviderAuthConfigEvent {
   type       String
   sourceType String
   sourceId   String
+
+  status ProviderAuthConfigEventStatus @default(succeeded)
 
   providerInvocationId String?
 
@@ -34,6 +41,7 @@ model ProviderAuthConfigEvent {
   @@index([createdAt])
   @@index([updatedAt])
   @@index([type])
+  @@index([status])
   @@index([authConfigOid])
   @@index([authCredentialsOid])
   @@index([oauthSetupOid])

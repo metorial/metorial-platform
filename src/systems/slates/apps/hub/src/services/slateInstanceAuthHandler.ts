@@ -142,6 +142,26 @@ class slateAuthHandlerServiceImpl {
           clientSecret: oauthDecrypted.clientSecret,
           scopes: oauthCredentials.scopes
         });
+        if (res.status === 'error') {
+          await db.slateAuthConfig.updateMany({
+            where: { oid: authConfig.oid },
+            data: {
+              errorCode: res.error.code,
+              errorMessage: res.error.message,
+              errorInvocationId: res.invocation.id
+            }
+          });
+        } else {
+          await db.slateAuthConfig.updateMany({
+            where: { oid: authConfig.oid },
+            data: {
+              errorCode: null,
+              errorMessage: null,
+              errorInvocationId: null
+            }
+          });
+        }
+
         await db.slateAuthConfigEvent.createMany({
           data: {
             oid: snowflake.nextId(),

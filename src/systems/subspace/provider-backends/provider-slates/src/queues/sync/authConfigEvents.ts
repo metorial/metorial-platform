@@ -12,23 +12,53 @@ type SlateAuthConfigEventItem = Awaited<
   ReturnType<typeof slates.slateAuthConfigEvent.listSync>
 >['items'][number];
 
-let getErrorInfo = (value: unknown, fallback: string) => {
+let DEFAULT_ERROR_MESSAGES: Record<string, string> = {
+  oauth_token_refresh_failed: 'Failed to refresh the OAuth authentication token.'
+};
+
+let pickErrorSource = (value: unknown) => {
   if (
     value &&
     typeof value === 'object' &&
     'code' in value &&
-    typeof value.code === 'string'
+    typeof (value as any).code === 'string'
   ) {
+    let v = value as { code: string; message?: unknown };
     return {
-      code: value.code,
+      code: v.code,
+      message: typeof v.message === 'string' && v.message.length ? v.message : null
+    };
+  }
+  return null;
+};
+
+let getErrorInfo = (event: SlateAuthConfigEventItem) => {
+  let fromEvent = pickErrorSource(event.error);
+  if (fromEvent) {
+    return {
+      code: fromEvent.code,
       message:
-        'message' in value && typeof value.message === 'string' ? value.message : value.code
+        fromEvent.message ?? DEFAULT_ERROR_MESSAGES[fromEvent.code] ?? fromEvent.code
     };
   }
 
+  let fromInvocation = pickErrorSource(event.invocation?.error);
+  if (fromInvocation) {
+    return {
+      code: fromInvocation.code,
+      message:
+        fromInvocation.message ??
+        DEFAULT_ERROR_MESSAGES[fromInvocation.code] ??
+        fromInvocation.code
+    };
+  }
+
+  let code = event.type;
   return {
-    code: fallback,
-    message: fallback
+    code,
+    message:
+      DEFAULT_ERROR_MESSAGES[code] ??
+      'An unknown error occurred while processing the authentication configuration.'
   };
 };
 
@@ -36,6 +66,20 @@ let getProviderInvocationId = (slateInvocationId: string | null | undefined) =>
   slateInvocationId
     ? createProviderInvocationId('slate.invocation', slateInvocationId)
     : null;
+
+let getEventStatus = (event: SlateAuthConfigEventItem): 'succeeded' | 'failed' => {
+  if (event.type.endsWith('_failed')) return 'failed';
+
+  let invocationStatus = event.invocation?.status;
+  if (
+    invocationStatus === 'invocation_failed' ||
+    invocationStatus === 'message_failed'
+  ) {
+    return 'failed';
+  }
+
+  return 'succeeded';
+};
 
 export let syncAuthConfigEventsQueue = createQueue<{}>({
   name: 'sub/slt/authEvt/many',
@@ -116,6 +160,7 @@ export let syncAuthConfigEventQueueProcessor = syncAuthConfigEventQueue.process(
       data: {
         ...getId('providerAuthConfigEvent'),
         type: data.event.type,
+        status: getEventStatus(data.event),
         sourceType: 'slates.auth_config_event',
         sourceId: data.event.id,
         providerInvocationId: getProviderInvocationId(data.event.invocation?.id),
@@ -143,7 +188,7 @@ export let syncAuthConfigEventQueueProcessor = syncAuthConfigEventQueue.process(
   });
   if (existingError) return;
 
-  let { code, message } = getErrorInfo(data.event.invocation?.error, data.event.type);
+  let { code, message } = getErrorInfo(data.event);
 
   let error = await db.providerAuthConfigError.create({
     data: {
