@@ -25,6 +25,7 @@ export let proxyMcpRequestToSubspace = async (
   let subspaceUrl = await getSubspaceMcpUrl(instance, sessionId, inputUrl);
 
   let headers = new Headers(c.req.raw.headers);
+  headers.set('User-Agent', c.req.header('User-Agent') || 'unknown');
 
   let finalHostName = inputUrl.hostname;
   if (
