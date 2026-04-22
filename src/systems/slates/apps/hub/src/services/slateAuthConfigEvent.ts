@@ -33,6 +33,7 @@ class slateAuthConfigEventServiceImpl {
         let res = await db.slateAuthConfigEvent.findMany({
           ...opts,
           where: {
+            id: { not: null },
             config: { tenantOid: d.tenant.oid },
             configOid: authConfigs ? { in: authConfigs.map(c => c.oid) } : undefined
           },
@@ -41,7 +42,7 @@ class slateAuthConfigEventServiceImpl {
 
         return res.map(e => ({
           ...e,
-          id: e.id ?? String(e.oid)
+          id: e.id!
         }));
       })
     );
@@ -59,6 +60,7 @@ class slateAuthConfigEventServiceImpl {
         let res = await db.slateAuthConfigEvent.findMany({
           ...opts,
           where: {
+            id: { not: null },
             configOid: authConfigs ? { in: authConfigs.map(c => c.oid) } : undefined
           },
           include
@@ -66,7 +68,7 @@ class slateAuthConfigEventServiceImpl {
 
         return res.map(e => ({
           ...e,
-          id: e.id ?? String(e.oid)
+          id: e.id!
         }));
       })
     );

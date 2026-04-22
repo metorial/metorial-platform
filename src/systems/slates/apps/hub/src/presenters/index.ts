@@ -15,6 +15,7 @@ export * from './slateInstance';
 export * from './slateInvocation';
 export * from './slateOAuthCredentials';
 export * from './slateOAuthSetup';
+export * from './slateOAuthSetupEvent';
 export * from './slateOAuthSetupLogs';
 export * from './slateSession';
 export * from './slateSessionToolCall';
