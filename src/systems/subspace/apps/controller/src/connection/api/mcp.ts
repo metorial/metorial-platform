@@ -161,7 +161,7 @@ export let mcpRouter = createHono().all(`/:key?`, async c => {
 
         // if (!res) return c.text('No response');
 
-        return new Response(null, { status: 204 });
+        return new Response(null, { status: 202 });
       }
 
       if (con.connection) {

@@ -117,7 +117,7 @@ class ConsumerProviderSetupSessionServiceImpl {
       name: providerContext.provider.name,
       description: providerContext.provider.description ?? undefined,
       uiMode: 'metorial_elements',
-      type: 'auth_and_config',
+      type: 'auto',
       ip: d.context.ip,
       ua: d.context.ua ?? '',
       redirectUrl: buildProviderSetupRedirectUrl(portal.slug),
