@@ -86,6 +86,9 @@ import {
   SubspaceCustomProviderDeploymentLogs,
   SubspaceCustomProviderEnvironment,
   SubspaceCustomProviderVersion,
+  SubspaceAuthConfigError,
+  SubspaceAuthConfigErrorGlobal,
+  SubspaceAuthConfigEvent,
   SubspaceIdentity,
   SubspaceIdentityActor,
   SubspaceIdentityCredential,
@@ -104,6 +107,7 @@ import {
   SubspaceProviderConfigSchema,
   SubspaceProviderConfigVault,
   SubspaceProviderDeployment,
+  SubspaceProviderInvocation,
   SubspaceProviderListing,
   SubspaceProviderListingCategory,
   SubspaceProviderListingCollection,
@@ -833,6 +837,18 @@ export let providerAuthConfigType = PresentableType.create<{
   authConfig: SubspaceProviderAuthConfig;
 }>()('provider.auth_config');
 
+export let providerAuthConfigEventType = PresentableType.create<{
+  authConfigEvent: SubspaceAuthConfigEvent;
+}>()('provider.auth_config_event');
+
+export let providerAuthConfigErrorType = PresentableType.create<{
+  authConfigError: SubspaceAuthConfigError;
+}>()('provider.auth_config_error');
+
+export let providerAuthConfigErrorGroupType = PresentableType.create<{
+  authConfigErrorGroup: SubspaceAuthConfigErrorGlobal;
+}>()('provider.auth_config_error_group');
+
 export let providerAuthCredentialsType = PresentableType.create<{
   authCredentials: SubspaceProviderAuthCredentials;
 }>()('provider.auth_credentials');
@@ -890,6 +906,14 @@ export let providerRunType = PresentableType.create<{
 export let providerRunLogsType = PresentableType.create<{
   logs: SubspaceProviderRunLogs;
 }>()('providerRunLogs');
+
+export let providerInvocationType = PresentableType.create<{
+  providerInvocation: SubspaceProviderInvocation;
+}>()('providerInvocation');
+
+export let providerInvocationsType = PresentableType.create<{
+  items: SubspaceProviderInvocation[];
+}>()('providerInvocations');
 
 export let providerSessionType = PresentableType.create<{
   session: SubspaceSession;

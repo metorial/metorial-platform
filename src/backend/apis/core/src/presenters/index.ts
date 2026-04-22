@@ -86,6 +86,9 @@ import {
   v1MagicMcpSessionPresenter,
   v1MagicMcpTokenPresenter,
   v1ProviderAuthConfigPresenter,
+  v1ProviderAuthConfigErrorGroupPresenter,
+  v1ProviderAuthConfigErrorPresenter,
+  v1ProviderAuthConfigEventPresenter,
   v1ProviderAuthConfigSchemaPresenter,
   v1ProviderAuthCredentialsPresenter,
   v1ProviderAuthExportPresenter,
@@ -102,6 +105,8 @@ import {
   v1ProviderListingGroupPresenter,
   v1ProviderListingPresenter,
   v1ProviderPresenter,
+  v1ProviderInvocationPresenter,
+  v1ProviderInvocationsPresenter,
   v1ProviderRunLogsPresenter,
   v1ProviderRunPresenter,
   v1ProviderSpecificationPresenter,
@@ -217,6 +222,9 @@ import {
   projectBrandType,
   projectType,
   providerAuthConfigType,
+  providerAuthConfigErrorGroupType,
+  providerAuthConfigErrorType,
+  providerAuthConfigEventType,
   providerAuthCredentialsType,
   providerAuthExportType,
   providerAuthImportType,
@@ -224,6 +232,8 @@ import {
   providerConfigType,
   providerConfigVaultType,
   providerDeploymentType,
+  providerInvocationType,
+  providerInvocationsType,
   providerListingCategoryType,
   providerListingCollectionType,
   providerListingGroupType,
@@ -782,6 +792,24 @@ export let providerAuthConfigPresenter = declarePresenter(providerAuthConfigType
   mt_2026_01_01_magnetar: v1ProviderAuthConfigPresenter
 });
 
+export let providerAuthConfigEventPresenter = declarePresenter(providerAuthConfigEventType, {
+  mt_2025_01_01_dashboard: v1ProviderAuthConfigEventPresenter,
+  mt_2026_01_01_magnetar: v1ProviderAuthConfigEventPresenter
+});
+
+export let providerAuthConfigErrorPresenter = declarePresenter(providerAuthConfigErrorType, {
+  mt_2025_01_01_dashboard: v1ProviderAuthConfigErrorPresenter,
+  mt_2026_01_01_magnetar: v1ProviderAuthConfigErrorPresenter
+});
+
+export let providerAuthConfigErrorGroupPresenter = declarePresenter(
+  providerAuthConfigErrorGroupType,
+  {
+    mt_2025_01_01_dashboard: v1ProviderAuthConfigErrorGroupPresenter,
+    mt_2026_01_01_magnetar: v1ProviderAuthConfigErrorGroupPresenter
+  }
+);
+
 export let providerAuthCredentialsPresenter = declarePresenter(providerAuthCredentialsType, {
   mt_2025_01_01_dashboard: v1ProviderAuthCredentialsPresenter,
   mt_2026_01_01_magnetar: v1ProviderAuthCredentialsPresenter
@@ -871,6 +899,16 @@ export let subspaceSessionEventPresenter = declarePresenter(sessionEventType, {
 export let providerRunLogsPresenter = declarePresenter(providerRunLogsType, {
   mt_2025_01_01_dashboard: v1ProviderRunLogsPresenter,
   mt_2026_01_01_magnetar: v1ProviderRunLogsPresenter
+});
+
+export let providerInvocationPresenter = declarePresenter(providerInvocationType, {
+  mt_2025_01_01_dashboard: v1ProviderInvocationPresenter,
+  mt_2026_01_01_magnetar: v1ProviderInvocationPresenter
+});
+
+export let providerInvocationsPresenter = declarePresenter(providerInvocationsType, {
+  mt_2025_01_01_dashboard: v1ProviderInvocationsPresenter,
+  mt_2026_01_01_magnetar: v1ProviderInvocationsPresenter
 });
 
 export let configSchemaPresenter = declarePresenter(configSchemaType, {

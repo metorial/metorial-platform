@@ -1,5 +1,8 @@
 export * from './actorPreview';
 export * from './authConfig';
+export * from './authConfigError';
+export * from './authConfigErrorGroup';
+export * from './authConfigEvent';
 export * from './authConfigSchema';
 export * from './authCredentials';
 export * from './authExport';
@@ -40,6 +43,7 @@ export * from './magicMcpServerProvider';
 export * from './magicMcpSession';
 export * from './magicMcpToken';
 export * from './provider';
+export * from './providerInvocation';
 export * from './providerListing';
 export * from './providerRun';
 export * from './providerRunLogs';

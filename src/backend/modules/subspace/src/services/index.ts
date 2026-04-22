@@ -1,4 +1,7 @@
 export * from './brand';
+export * from './authConfigError';
+export * from './authConfigErrorGlobal';
+export * from './authConfigEvent';
 export * from './bucket';
 export * from './callback';
 export * from './callbackDestination';
@@ -28,6 +31,7 @@ export * from './providerAuthMethod';
 export * from './providerConfig';
 export * from './providerConfigVault';
 export * from './providerDeployment';
+export * from './providerInvocation';
 export * from './providerListing';
 export * from './providerListingCategory';
 export * from './providerListingCollection';
