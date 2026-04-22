@@ -129,7 +129,6 @@ export let SectionHeader = styled.div`
   font-size: 12px;
   font-weight: 600;
   color: ${theme.colors.gray700};
-  text-transform: uppercase;
   letter-spacing: 0.03em;
 `;
 
@@ -356,7 +355,6 @@ export let MessageBlockHeader = styled.div`
   gap: 8px;
   font-size: 12px;
   font-weight: 600;
-  text-transform: uppercase;
   letter-spacing: 0.04em;
   color: ${theme.colors.gray700};
 

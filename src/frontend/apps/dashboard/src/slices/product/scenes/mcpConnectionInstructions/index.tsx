@@ -27,7 +27,6 @@ let SectionLabel = styled.div`
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.08em;
-  text-transform: uppercase;
   color: ${theme.colors.gray600};
 `;
 
@@ -338,7 +337,6 @@ let CodeCardLabel = styled.div`
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.06em;
-  text-transform: uppercase;
   color: ${theme.colors.gray600};
 `;
 

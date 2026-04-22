@@ -29,7 +29,7 @@ let SectionHeading = styled.div`
   font-size: 12px;
   font-weight: 600;
   color: ${theme.colors.gray700};
-  text-transform: uppercase;
+
   letter-spacing: 0.03em;
 `;
 

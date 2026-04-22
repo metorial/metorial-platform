@@ -110,7 +110,6 @@ let ConnectionGroupLabel = styled.div`
   font-size: 12px;
   font-weight: 600;
   color: ${theme.colors.gray600};
-  text-transform: uppercase;
   letter-spacing: 0.04em;
 `;
 

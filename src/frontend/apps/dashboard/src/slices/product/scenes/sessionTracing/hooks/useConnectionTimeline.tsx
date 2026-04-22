@@ -18,16 +18,16 @@ import {
   RiServerLine
 } from '@remixicon/react';
 import { useEffect, useMemo, useRef } from 'react';
+import { Entry } from '../../session/components/entry';
+import { ProviderRunLogs } from '../../session/components/providerRunLogs';
+import { useAggregatedMessages } from '../../session/hooks/useAggregatedMessages';
 import {
   ExplorerCapabilitiesMessageGroup,
   Message,
   getMessageMethod,
   isExplorerCapabilityMethod,
   shouldRenderStandaloneMessage
-} from '../../session-messages';
-import { Entry } from '../../session/components/entry';
-import { ProviderRunLogs } from '../../session/components/providerRunLogs';
-import { useAggregatedMessages } from '../../session/hooks/useAggregatedMessages';
+} from '../../sessionMessages';
 import { SessionConnection, TimelineItem } from '../types';
 import { formatConnectionLabel, getEventConnectionId } from '../utils';
 
@@ -111,45 +111,45 @@ export let useConnectionTimeline = ({
       })
     | undefined;
   let visibleMessages = useMemo(
-    () => allMessages.filter(message => shouldRenderStandaloneMessage(message, aggregatedMessages)),
+    () =>
+      allMessages.filter(message =>
+        shouldRenderStandaloneMessage(message, aggregatedMessages)
+      ),
     [aggregatedMessages, allMessages]
   );
 
-  let messageItems = useMemo<TimelineItem[]>(
-    () => {
-      let capabilityMessages = visibleMessages.filter(message =>
-        isExplorerCapabilityMethod(getMessageMethod(message, aggregatedMessages))
-      );
-      let capabilityMessageIds = new Set(capabilityMessages.map(message => message.id));
-      let clientName = mcp?.client?.name ?? connection.participant?.name ?? 'Client';
-      let items: TimelineItem[] = [];
+  let messageItems = useMemo<TimelineItem[]>(() => {
+    let capabilityMessages = visibleMessages.filter(message =>
+      isExplorerCapabilityMethod(getMessageMethod(message, aggregatedMessages))
+    );
+    let capabilityMessageIds = new Set(capabilityMessages.map(message => message.id));
+    let clientName = mcp?.client?.name ?? connection.participant?.name ?? 'Client';
+    let items: TimelineItem[] = [];
 
-      if (capabilityMessages.length > 0) {
-        items.push({
-          component: (
-            <ExplorerCapabilitiesMessageGroup
-              aggregatedMessages={aggregatedMessages}
-              clientName={clientName}
-              messages={capabilityMessages}
-            />
-          ),
-          time: capabilityMessages[0].createdAt
-        });
-      }
+    if (capabilityMessages.length > 0) {
+      items.push({
+        component: (
+          <ExplorerCapabilitiesMessageGroup
+            aggregatedMessages={aggregatedMessages}
+            clientName={clientName}
+            messages={capabilityMessages}
+          />
+        ),
+        time: capabilityMessages[0].createdAt
+      });
+    }
 
-      for (let message of visibleMessages) {
-        if (capabilityMessageIds.has(message.id)) continue;
+    for (let message of visibleMessages) {
+      if (capabilityMessageIds.has(message.id)) continue;
 
-        items.push({
-          component: <Message message={message} aggregatedMessages={aggregatedMessages} />,
-          time: message.createdAt
-        });
-      }
+      items.push({
+        component: <Message message={message} aggregatedMessages={aggregatedMessages} />,
+        time: message.createdAt
+      });
+    }
 
-      return items;
-    },
-    [aggregatedMessages, connection.participant?.name, mcp?.client?.name, visibleMessages]
-  );
+    return items;
+  }, [aggregatedMessages, connection.participant?.name, mcp?.client?.name, visibleMessages]);
 
   let providerRunItems = providerRuns.data?.items ?? [];
   let providerRunById = useMemo(
@@ -292,9 +292,7 @@ export let useConnectionTimeline = ({
 
     if (sessionProviderIds.size === 0) return session.providers ?? [];
 
-    return (session.providers ?? []).filter(provider =>
-      sessionProviderIds.has(provider.id)
-    );
+    return (session.providers ?? []).filter(provider => sessionProviderIds.has(provider.id));
   }, [providerRunItems, session.providers]);
 
   return {

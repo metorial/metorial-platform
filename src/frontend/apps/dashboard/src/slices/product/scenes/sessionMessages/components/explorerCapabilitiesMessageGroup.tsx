@@ -34,7 +34,7 @@ export let ExplorerCapabilitiesMessageGroup = ({
         <RiToolsLine />
         <span>
           <GroupTitle>
-            <strong>{clientName} Explorer Capabilities</strong>
+            <strong>{clientName} explored capabilities</strong>
 
             <RiArrowRightSLine
               size={16}
