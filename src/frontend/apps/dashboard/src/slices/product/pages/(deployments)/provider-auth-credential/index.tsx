@@ -1,8 +1,9 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import { useCurrentInstance, useProvider, useProviderAuthCredential } from '@metorial/state';
 import { Attributes, Callout, RenderDate, Spacer } from '@metorial/ui';
-import { ID } from '@metorial/ui-product';
+import { Box, ID } from '@metorial/ui-product';
 import { useParams } from 'react-router-dom';
+import { ProviderAuthErrorsTable } from '../../../scenes/providerAuthErrors/table';
 
 export let ProviderAuthCredentialOverviewPage = () => {
   let instance = useCurrentInstance();
@@ -53,6 +54,18 @@ export let ProviderAuthCredentialOverviewPage = () => {
           }
         ]}
       />
+
+      <Spacer size={12} />
+
+      <Box
+        title="Auth Errors"
+        description="Recent authentication failures captured for this credential."
+      >
+        <ProviderAuthErrorsTable
+          providerAuthCredentialsId={credential.data.id}
+          emptyText="No auth errors have been captured for this credential yet."
+        />
+      </Box>
     </>
   ));
 };

@@ -74,7 +74,10 @@ export let ProviderSessionsListLayout = () => {
 
   return (
     <ContentLayout>
-      <PageHeader title="Logs" description="Check the logs of your provider connections." />
+      <PageHeader
+        title="Session Logs"
+        description="View detailed logs of provider connections, including connections and errors."
+      />
 
       <LinkTabs
         current={pathname}
