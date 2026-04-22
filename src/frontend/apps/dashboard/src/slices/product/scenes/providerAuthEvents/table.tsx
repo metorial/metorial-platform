@@ -11,23 +11,13 @@ import { Badge, Button, Flex, RenderDate, Text } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
 import { showProviderInvocationPanel } from '../providerInvocations/panel';
 
-type EventBadgeColor =
-  | 'red'
-  | 'green'
-  | 'blue'
-  | 'orange'
-  | 'gray'
-  | 'cyan'
-  | 'indigo'
-  | 'purple';
-
-let EVENT_META: Record<string, { label: string; color: EventBadgeColor }> = {
-  setup_link_opened: { label: 'Setup Link Opened', color: 'blue' },
-  get_authorization_url: { label: 'Authorization URL Generated', color: 'cyan' },
-  exchange_authorization_code: { label: 'Authorization Code Exchanged', color: 'indigo' },
-  access_token_received: { label: 'Access Token Received', color: 'green' },
-  oauth_setup_completed: { label: 'OAuth Setup Completed', color: 'green' },
-  oauth_setup_failed: { label: 'OAuth Setup Failed', color: 'red' }
+let EVENT_LABELS: Record<string, string> = {
+  setup_link_opened: 'Setup Link Opened',
+  get_authorization_url: 'Authorization URL Generated',
+  exchange_authorization_code: 'Authorization Code Exchanged',
+  access_token_received: 'Access Token Received',
+  oauth_setup_completed: 'OAuth Setup Completed',
+  oauth_setup_failed: 'OAuth Setup Failed'
 };
 
 let humanizeType = (type: string) =>
@@ -36,16 +26,19 @@ let humanizeType = (type: string) =>
     .map(part => part.charAt(0).toUpperCase() + part.slice(1))
     .join(' ');
 
-let getEventBadgeColor = (type: string): EventBadgeColor => {
-  if (EVENT_META[type]) return EVENT_META[type].color;
-  if (type.endsWith('_failed') || type.includes('error')) return 'red';
-  if (type.endsWith('_succeeded') || type.endsWith('_completed')) return 'green';
-  if (type.includes('refresh') || type.includes('token')) return 'orange';
-  if (type.includes('started') || type.includes('opened')) return 'blue';
+let getEventLabel = (type: string) => EVENT_LABELS[type] ?? humanizeType(type);
+
+let getStatusBadgeColor = (status: string): 'green' | 'red' | 'gray' => {
+  if (status === 'success') return 'green';
+  if (status === 'error') return 'red';
   return 'gray';
 };
 
-let getEventLabel = (type: string) => EVENT_META[type]?.label ?? humanizeType(type);
+let getStatusLabel = (status: string) => {
+  if (status === 'success') return 'Success';
+  if (status === 'error') return 'Error';
+  return status.charAt(0).toUpperCase() + status.slice(1);
+};
 
 export let ProviderAuthEventsTable = (
   props: DashboardInstanceProviderAuthConfigEventsListQuery & {
@@ -72,7 +65,7 @@ export let ProviderAuthEventsTable = (
   })(events => (
     <>
       <Table
-        headers={['Event', 'Created', ...(!linkToDetail ? [''] : [])]}
+        headers={['Event', 'Status', 'Created', ...(!linkToDetail ? [''] : [])]}
         data={events.data.items.map(event => {
           let actions = (
             <Flex justify="end" gap={8} style={{ width: '100%' }}>
@@ -97,7 +90,10 @@ export let ProviderAuthEventsTable = (
           return {
             href: linkToDetail ? getDetailHref(event.id) : undefined,
             data: [
-              <Badge color={getEventBadgeColor(event.type)}>{getEventLabel(event.type)}</Badge>,
+              <Text size="2">{getEventLabel(event.type)}</Text>,
+              <Badge size="1" color={getStatusBadgeColor(event.status)}>
+                {getStatusLabel(event.status)}
+              </Badge>,
               <RenderDate date={event.createdAt} />,
               ...(!linkToDetail ? [actions] : [])
             ]

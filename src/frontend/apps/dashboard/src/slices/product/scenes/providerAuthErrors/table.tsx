@@ -7,20 +7,18 @@ import {
   useCurrentProject,
   useProviderAuthConfigErrors
 } from '@metorial/state';
-import { Badge, Button, Flex, RenderDate, Text } from '@metorial/ui';
+import { Button, Flex, RenderDate, Text } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
 import { showProviderInvocationPanel } from '../providerInvocations/panel';
 
-type ErrorBadgeColor = 'red' | 'orange' | 'yellow' | 'purple' | 'gray';
-
-let ERROR_META: Record<string, { label: string; color: ErrorBadgeColor }> = {
-  tool_call_failed: { label: 'Tool Call Failed', color: 'red' },
-  config_validation_failed: { label: 'Config Validation Failed', color: 'orange' },
-  auth_processing_failed: { label: 'Auth Processing Failed', color: 'red' },
-  oauth_token_refresh_failed: { label: 'OAuth Token Refresh Failed', color: 'orange' },
-  oauth_setup_failed: { label: 'OAuth Setup Failed', color: 'red' },
-  trigger_event_input_failed: { label: 'Trigger Event Input Failed', color: 'yellow' },
-  profile_fetch_failed: { label: 'Profile Fetch Failed', color: 'purple' }
+let ERROR_LABELS: Record<string, string> = {
+  tool_call_failed: 'Tool Call Failed',
+  config_validation_failed: 'Config Validation Failed',
+  auth_processing_failed: 'Auth Processing Failed',
+  oauth_token_refresh_failed: 'OAuth Token Refresh Failed',
+  oauth_setup_failed: 'OAuth Setup Failed',
+  trigger_event_input_failed: 'Trigger Event Input Failed',
+  profile_fetch_failed: 'Profile Fetch Failed'
 };
 
 let humanizeCode = (code: string) =>
@@ -29,15 +27,7 @@ let humanizeCode = (code: string) =>
     .map(part => part.charAt(0).toUpperCase() + part.slice(1))
     .join(' ');
 
-let getErrorBadgeColor = (code: string): ErrorBadgeColor => {
-  if (ERROR_META[code]) return ERROR_META[code].color;
-  if (code.includes('validation') || code.includes('refresh') || code.includes('input'))
-    return 'orange';
-  if (code.endsWith('_failed') || code.includes('error')) return 'red';
-  return 'gray';
-};
-
-let getErrorLabel = (code: string) => ERROR_META[code]?.label ?? humanizeCode(code);
+let getErrorLabel = (code: string) => ERROR_LABELS[code] ?? humanizeCode(code);
 
 export let ProviderAuthErrorsTable = (
   props: DashboardInstanceProviderAuthConfigErrorsListQuery & {
@@ -89,7 +79,7 @@ export let ProviderAuthErrorsTable = (
           return {
             href: linkToDetail ? getDetailHref(error.id) : undefined,
             data: [
-              <Badge color={getErrorBadgeColor(error.code)}>{getErrorLabel(error.code)}</Badge>,
+              <Text size="2">{getErrorLabel(error.code)}</Text>,
               <Text size="2">{error.message}</Text>,
               <RenderDate date={error.createdAt} />,
               ...(!linkToDetail ? [actions] : [])

@@ -163,7 +163,6 @@ let GroupLabel = styled(BaseCombobox.GroupLabel)`
   font-weight: 600;
   color: ${theme.colors.gray700};
   padding: 6px 8px 2px;
-  text-transform: uppercase;
   letter-spacing: 0.04em;
 `;
 

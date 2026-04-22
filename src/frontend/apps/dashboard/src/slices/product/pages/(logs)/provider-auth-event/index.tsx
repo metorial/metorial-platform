@@ -6,15 +6,54 @@ import {
   useCurrentProject,
   useProviderAuthConfigEvent
 } from '@metorial/state';
-import { Attributes, Callout, RenderDate, Text } from '@metorial/ui';
+import { Badge, Callout, Datalist, RenderDate, theme } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
+import type { ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import styled from 'styled-components';
 import { ProviderInvocationById } from '../../../scenes/providerInvocations/details';
-import {
-  Section,
-  SectionHeading,
-  SectionList
-} from '../../../scenes/providerInvocations/styled';
+import { SectionList } from '../../../scenes/providerInvocations/styled';
+import { CollapsibleBox } from '../../../scenes/sessionTracing/components/collapsibleBox';
+
+let EVENT_LABELS: Record<string, string> = {
+  setup_link_opened: 'Setup Link Opened',
+  get_authorization_url: 'Authorization URL Generated',
+  exchange_authorization_code: 'Authorization Code Exchanged',
+  access_token_received: 'Access Token Received',
+  oauth_setup_completed: 'OAuth Setup Completed',
+  oauth_setup_failed: 'OAuth Setup Failed',
+  oauth_token_refresh_failed: 'OAuth Token Refresh Failed'
+};
+
+let humanizeType = (type: string) =>
+  type
+    .split('_')
+    .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+
+let getEventLabel = (type: string) => EVENT_LABELS[type] ?? humanizeType(type);
+
+let DashedLink = styled(Link)`
+  color: ${theme.colors.gray900};
+  text-decoration: underline dashed;
+  text-decoration-color: ${theme.colors.gray500};
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+  font-weight: 500;
+  word-break: break-all;
+  transition:
+    color 120ms ease,
+    text-decoration-color 120ms ease;
+
+  &:hover {
+    color: ${theme.colors.gray700};
+    text-decoration-color: ${theme.colors.gray700};
+  }
+`;
+
+let ErrorCallout = styled.div`
+  margin-bottom: 4px;
+`;
 
 export let ProviderAuthEventPage = () => {
   let { providerAuthEventId } = useParams();
@@ -30,16 +69,25 @@ export let ProviderAuthEventPage = () => {
 
     let isError = data.status === 'error';
 
-    let metadata: { label: React.ReactNode; value: React.ReactNode }[] = [
+    let items: { label: ReactNode; value: ReactNode }[] = [
       { label: 'Event ID', value: <ID id={data.id} /> },
       {
-        label: 'Type',
-        value: <Text size="2">{data.type}</Text>
+        label: 'Status',
+        value: (
+          <Badge size="1" color={isError ? 'red' : 'green'}>
+            {data.status}
+          </Badge>
+        )
       },
-      {
+      { label: 'Type', value: <>{getEventLabel(data.type)}</> },
+      { label: 'Created', value: <RenderDate date={data.createdAt} /> }
+    ];
+
+    if (data.providerId) {
+      items.push({
         label: 'Provider',
-        value: data.providerId ? (
-          <Link
+        value: (
+          <DashedLink
             to={Paths.instance.provider(
               organization.data,
               project.data,
@@ -48,15 +96,16 @@ export let ProviderAuthEventPage = () => {
             )}
           >
             <ID id={data.providerId} />
-          </Link>
-        ) : (
-          <Text size="2">—</Text>
+          </DashedLink>
         )
-      },
-      {
+      });
+    }
+
+    if (data.providerAuthConfigId) {
+      items.push({
         label: 'Auth Config',
-        value: data.providerAuthConfigId ? (
-          <Link
+        value: (
+          <DashedLink
             to={Paths.instance.providerAuthConfig(
               organization.data,
               project.data,
@@ -65,15 +114,16 @@ export let ProviderAuthEventPage = () => {
             )}
           >
             <ID id={data.providerAuthConfigId} />
-          </Link>
-        ) : (
-          <Text size="2">—</Text>
+          </DashedLink>
         )
-      },
-      {
+      });
+    }
+
+    if (data.providerAuthCredentialsId) {
+      items.push({
         label: 'Auth Credentials',
-        value: data.providerAuthCredentialsId ? (
-          <Link
+        value: (
+          <DashedLink
             to={Paths.instance.providerAuthCredential(
               organization.data,
               project.data,
@@ -82,43 +132,60 @@ export let ProviderAuthEventPage = () => {
             )}
           >
             <ID id={data.providerAuthCredentialsId} />
-          </Link>
-        ) : (
-          <Text size="2">—</Text>
+          </DashedLink>
         )
-      },
-      { label: 'Created', value: <RenderDate date={data.createdAt} /> }
-    ];
+      });
+    }
+
+    if (data.providerAuthErrorId) {
+      items.push({
+        label: 'Auth Error',
+        value: (
+          <DashedLink
+            to={Paths.instance.providerAuthError(
+              organization.data,
+              project.data,
+              instance.data,
+              data.providerAuthErrorId
+            )}
+          >
+            <ID id={data.providerAuthErrorId} />
+          </DashedLink>
+        )
+      });
+    }
 
     return (
       <SectionList>
         {isError ? (
-          <Section>
-            <SectionHeading>Error</SectionHeading>
+          <ErrorCallout>
             <Callout color="red">
               <span>
-                This authentication event failed. See the linked auth error
-                {data.providerAuthErrorId ? ' and ' : ' or '}
-                provider invocation below for more context.
+                <strong>{getEventLabel(data.type)}</strong> — this authentication event failed.{' '}
+                See below for details.
               </span>
             </Callout>
-          </Section>
+          </ErrorCallout>
         ) : null}
 
-        <Section>
-          <Attributes
-            attributes={metadata.map(a => ({ label: a.label, content: a.value }))}
-            itemWidth="450px"
-          />
-        </Section>
+        <CollapsibleBox
+          id="provider-auth-event-details"
+          title="Details"
+          description={`${getEventLabel(data.type)} event metadata.`}
+          rightActions={
+            <Badge size="1" color={isError ? 'red' : 'green'}>
+              {data.status}
+            </Badge>
+          }
+        >
+          <Datalist items={items} />
+        </CollapsibleBox>
 
         {data.providerInvocationId && (
-          <Section>
-            <ProviderInvocationById
-              providerInvocationId={data.providerInvocationId}
-              hideHeader
-            />
-          </Section>
+          <ProviderInvocationById
+            providerInvocationId={data.providerInvocationId}
+            hideHeader
+          />
         )}
       </SectionList>
     );

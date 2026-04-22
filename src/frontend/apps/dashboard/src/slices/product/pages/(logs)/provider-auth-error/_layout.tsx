@@ -1,21 +1,28 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
-import {
-  ContentPanelLayout,
-  ContentPanelLayoutInner,
-  ExtraHeaderLayout
-} from '@metorial/layout';
+import { ContentPanelLayout, ExtraHeaderLayout } from '@metorial/layout';
 import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
-  useProviderAuthConfigError
+  useProviderAuthConfigErrorGroup
 } from '@metorial/state';
 import { Badge, Button, RenderDate, Text, theme } from '@metorial/ui';
-import { ID } from '@metorial/ui-product';
 import { RiArrowLeftSLine } from '@remixicon/react';
 import { Link, Outlet, useLocation, useParams } from 'react-router-dom';
 import styled from 'styled-components';
+
+let OutletWrapper = styled.div`
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  overflow: hidden;
+
+  > * {
+    flex: 1;
+    min-height: 0;
+  }
+`;
 
 let ExtraRow = styled.div`
   display: flex;
@@ -38,11 +45,23 @@ let ExtraLabel = styled.span`
   color: ${theme.colors.gray600};
 `;
 
-let getStatusColor = (status: string): 'red' | 'orange' | 'gray' => {
-  if (status === 'processing') return 'orange';
-  if (status === 'processed') return 'red';
-  return 'gray';
+let ERROR_LABELS: Record<string, string> = {
+  tool_call_failed: 'Tool Call Failed',
+  config_validation_failed: 'Config Validation Failed',
+  auth_processing_failed: 'Auth Processing Failed',
+  oauth_token_refresh_failed: 'OAuth Token Refresh Failed',
+  oauth_setup_failed: 'OAuth Setup Failed',
+  trigger_event_input_failed: 'Trigger Event Input Failed',
+  profile_fetch_failed: 'Profile Fetch Failed'
 };
+
+let humanizeCode = (code: string) =>
+  code
+    .split('_')
+    .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+
+let getErrorLabel = (code: string) => ERROR_LABELS[code] ?? humanizeCode(code);
 
 export let ProviderAuthErrorLayout = () => {
   let instance = useCurrentInstance();
@@ -50,15 +69,15 @@ export let ProviderAuthErrorLayout = () => {
   let organization = useCurrentOrganization();
 
   let { providerAuthErrorId } = useParams();
-  let error = useProviderAuthConfigError(instance.data?.id, providerAuthErrorId);
+  let group = useProviderAuthConfigErrorGroup(instance.data?.id, providerAuthErrorId);
 
   let pathname = useLocation().pathname;
 
-  let authErrorParams = [
+  let authErrorPathParams = [
     organization.data,
     project.data,
     instance.data,
-    error.data?.id ?? providerAuthErrorId
+    group.data?.id ?? providerAuthErrorId
   ] as const;
 
   return (
@@ -78,7 +97,7 @@ export let ProviderAuthErrorLayout = () => {
       }
     >
       <ContentPanelLayout
-        title={error.data?.message ?? `Auth error ${providerAuthErrorId?.slice(0, 8)}...`}
+        title={group.data?.message ?? `Auth error ${providerAuthErrorId?.slice(0, 8)}...`}
         breadcrumbs={[
           {
             label: 'Auth Errors',
@@ -89,41 +108,31 @@ export let ProviderAuthErrorLayout = () => {
             )
           },
           {
-            label: error.data?.code ?? 'Auth Error',
-            to: Paths.instance.providerAuthError(...authErrorParams)
+            label: group.data?.code ? getErrorLabel(group.data.code) : 'Auth Error',
+            to: Paths.instance.providerAuthError(...authErrorPathParams)
           }
         ]}
         extra={
-          error.data ? (
+          group.data ? (
             <ExtraRow>
               <ExtraItem>
-                <ExtraLabel>Status</ExtraLabel>
-                <Badge size="1" color={getStatusColor(error.data.status)}>
-                  {error.data.status}
-                </Badge>
-              </ExtraItem>
-              <ExtraItem>
                 <ExtraLabel>Code</ExtraLabel>
-                {error.data.code ? (
+                {group.data.code ? (
                   <Badge size="1" color="red">
-                    {error.data.code}
+                    {getErrorLabel(group.data.code)}
                   </Badge>
                 ) : (
                   <Text size="2">—</Text>
                 )}
               </ExtraItem>
               <ExtraItem>
-                <ExtraLabel>Auth Error ID</ExtraLabel>
-                <ID id={error.data.id} />
+                <ExtraLabel>Occurrences</ExtraLabel>
+                <Text size="2">{group.data.occurrenceCount ?? '—'}</Text>
               </ExtraItem>
               <ExtraItem>
-                <ExtraLabel>Similar</ExtraLabel>
-                <Text size="2">{error.data.similarErrorCount ?? '—'}</Text>
-              </ExtraItem>
-              <ExtraItem>
-                <ExtraLabel>Created</ExtraLabel>
+                <ExtraLabel>First Seen</ExtraLabel>
                 <Text size="2">
-                  <RenderDate date={error.data.createdAt} />
+                  <RenderDate date={group.data.createdAt} />
                 </Text>
               </ExtraItem>
             </ExtraRow>
@@ -133,17 +142,20 @@ export let ProviderAuthErrorLayout = () => {
           current: pathname,
           items: [
             {
-              label: 'Details',
-              to: Paths.instance.providerAuthError(...authErrorParams)
+              label: 'Occurrences',
+              to: Paths.instance.providerAuthError(...authErrorPathParams)
             }
           ]
         }}
       >
-        <ContentPanelLayoutInner>
-          {renderWithLoader({ error })(({ error: _error }) => (
+        {renderWithLoader(
+          { group },
+          { spaceTop: 20 }
+        )(({ group: _group }) => (
+          <OutletWrapper>
             <Outlet />
-          ))}
-        </ContentPanelLayoutInner>
+          </OutletWrapper>
+        ))}
       </ContentPanelLayout>
     </ExtraHeaderLayout>
   );

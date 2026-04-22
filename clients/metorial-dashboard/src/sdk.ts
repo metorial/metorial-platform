@@ -42,6 +42,7 @@ import {
   MetorialDashboardInstancePortalsEndpoint,
   MetorialDashboardInstancePortalsSurfaceProviderGroupsEndpoint,
   MetorialDashboardInstanceProviderAuthConfigErrorsEndpoint,
+  MetorialDashboardInstanceProviderAuthConfigErrorsGroupsEndpoint,
   MetorialDashboardInstanceProviderAuthConfigEventsEndpoint,
   MetorialDashboardInstanceProviderCategoriesEndpoint,
   MetorialDashboardInstanceProviderCollectionsEndpoint,
@@ -335,8 +336,11 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
   }),
 
   providerRuns: new MetorialDashboardInstanceProviderRunsEndpoint(manager),
-  providerAuthConfigErrors: new MetorialDashboardInstanceProviderAuthConfigErrorsEndpoint(
-    manager
+  providerAuthConfigErrors: Object.assign(
+    new MetorialDashboardInstanceProviderAuthConfigErrorsEndpoint(manager),
+    {
+      groups: new MetorialDashboardInstanceProviderAuthConfigErrorsGroupsEndpoint(manager)
+    }
   ),
   providerAuthConfigEvents: new MetorialDashboardInstanceProviderAuthConfigEventsEndpoint(
     manager
@@ -384,5 +388,7 @@ export type MetorialDashboardSDK = ReturnType<typeof createMetorialDashboardSDK>
     profiles: MetorialDashboardInstanceConsumersProfilesEndpoint;
   };
   consumerSurfaces: MetorialDashboardInstanceConsumerSurfacesEndpoint;
-  providerAuthConfigErrors: MetorialDashboardInstanceProviderAuthConfigErrorsEndpoint;
+  providerAuthConfigErrors: MetorialDashboardInstanceProviderAuthConfigErrorsEndpoint & {
+    groups: MetorialDashboardInstanceProviderAuthConfigErrorsGroupsEndpoint;
+  };
 };
