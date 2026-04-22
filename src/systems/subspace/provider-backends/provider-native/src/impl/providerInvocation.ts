@@ -1,4 +1,5 @@
 import {
+  type ProviderInvocationGetParam,
   IProviderInvocation,
   type ProviderInvocationListParam,
   type ProviderInvocationListRes
@@ -11,5 +12,11 @@ export class ProviderInvocation extends IProviderInvocation {
     return {
       items: []
     };
+  }
+
+  override async getProviderInvocation(
+    _data: ProviderInvocationGetParam
+  ): Promise<null> {
+    return null;
   }
 }

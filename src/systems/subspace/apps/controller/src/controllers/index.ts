@@ -74,7 +74,7 @@ import { solutionController } from './solution';
 import { tenantController } from './tenant';
 import { toolCallController } from './toolCall';
 
-export let rootController = app.controller({
+let systemControllers = {
   environment: environmentController,
   actor: actorController,
   authConfigEvent: authConfigEventController,
@@ -87,8 +87,10 @@ export let rootController = app.controller({
   identityDelegationRequest: identityDelegationRequestController,
   identityCredential: identityCredentialController,
   solution: solutionController,
-  tenant: tenantController,
+  tenant: tenantController
+};
 
+let callbackControllers = {
   brand: brandController,
   callback: callbackController,
   callbackDestination: callbackDestinationController,
@@ -96,11 +98,11 @@ export let rootController = app.controller({
   callbackInstance: callbackInstanceController,
   callbackDelivery: callbackDeliveryController,
   callbackDeliveryAttempt: callbackDeliveryAttemptController,
-
   publisher: publisherController,
+  toolCall: toolCallController
+};
 
-  toolCall: toolCallController,
-
+let providerControllers = {
   provider: providerController,
   providerInvocation: providerInvocationController,
   managedProviderAuthCredentials: managedProviderAuthCredentialsController,
@@ -123,7 +125,10 @@ export let rootController = app.controller({
   providerTrigger: providerTriggerController,
   providerVariant: providerVariantController,
   providerVersion: providerVersionController,
+  providerRun: providerRunController
+};
 
+let sessionControllers = {
   session: sessionController,
   sessionProvider: sessionProviderController,
   sessionConnection: sessionConnectionController,
@@ -134,30 +139,52 @@ export let rootController = app.controller({
   sessionParticipant: sessionParticipantController,
   sessionTemplate: sessionTemplateController,
   sessionTemplateProvider: sessionTemplateProviderController,
+  sessionUsageRecord: sessionUsageRecordController,
+  providerRunUsageRecord: providerRunUsageRecordController
+};
 
+let extensionControllers = {
   customProvider: customProviderController,
   customProviderCommit: customProviderCommitController,
   customProviderDeployment: customProviderDeploymentController,
   customProviderVersion: customProviderVersionController,
   customProviderEnvironment: customProviderEnvironmentController,
-
   containerRegistry: containerRegistryController,
   containerRepository: containerRepositoryController,
   networkingRuleset: networkingRulesetController,
-
-  providerRun: providerRunController,
-
   scmConnection: scmConnectionController,
   scmConnectionSetupSession: scmConnectionSetupSessionController,
   scmProvider: scmProviderController,
   scmProviderSetupSession: scmProviderSetupSessionController,
   scmRepository: scmRepositoryController,
   scmPush: scmPushController,
-  bucket: bucketController,
+  bucket: bucketController
+};
 
-  sessionUsageRecord: sessionUsageRecordController,
-  providerRunUsageRecord: providerRunUsageRecordController
-});
+type SystemControllers = typeof systemControllers;
+type CallbackControllers = typeof callbackControllers;
+type ProviderControllers = typeof providerControllers;
+type SessionControllers = typeof sessionControllers;
+type ExtensionControllers = typeof extensionControllers;
+
+type RootController = SystemControllers &
+  CallbackControllers &
+  ProviderControllers &
+  SessionControllers &
+  ExtensionControllers;
+
+let createRootController = (): RootController =>
+  app.controller({
+    ...systemControllers,
+    ...callbackControllers,
+    ...providerControllers,
+    ...sessionControllers,
+    ...extensionControllers
+  });
+
+export type SubspaceControllerRoot = RootController;
+
+let rootController: SubspaceControllerRoot = createRootController();
 
 export let subspaceControllerRPC = createServer({})(rootController);
 export let subspaceControllerApi = apiMux([

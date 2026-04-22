@@ -1,6 +1,9 @@
 import { db } from '@metorial-subspace/db';
 import {
+  createProviderInvocationId,
   IProviderInvocation,
+  parseStoredProviderInvocationId,
+  type ProviderInvocationGetParam,
   type ProviderInvocationListParam,
   type ProviderInvocationListRes,
   type ProviderInvocation as UnifiedProviderInvocation
@@ -52,6 +55,12 @@ let getServerConnectionIdFromPayload = (payload: unknown) => {
 
   return null;
 };
+
+let getShuttleFunctionProviderInvocationId = (functionInvocationId: string) =>
+  createProviderInvocationId('shuttle.function_invocation', functionInvocationId);
+
+let getShuttleServerConnectionProviderInvocationId = (serverConnectionId: string) =>
+  createProviderInvocationId('shuttle.server_connection', serverConnectionId);
 
 export class ProviderInvocation extends IProviderInvocation {
   override async listProviderInvocations(
@@ -105,7 +114,7 @@ export class ProviderInvocation extends IProviderInvocation {
     }
 
     let authConfigEvents = data.inputs.authConfigEventIds?.length
-      ? await db.authConfigEvent.findMany({
+      ? await db.providerAuthConfigEvent.findMany({
           where: {
             id: { in: data.inputs.authConfigEventIds }
           },
@@ -142,7 +151,7 @@ export class ProviderInvocation extends IProviderInvocation {
         let providerRunId = connection.providerRun.id;
 
         mergeInvocation(invocationMap, {
-          id: `server_connection:${connection.id}`,
+          id: getShuttleServerConnectionProviderInvocationId(connection.id),
           source: 'shuttle',
           type: 'tool_call',
           status: 'unknown',
@@ -182,7 +191,7 @@ export class ProviderInvocation extends IProviderInvocation {
           : null;
 
         mergeInvocation(invocationMap, {
-          id: invocation.id,
+          id: getShuttleFunctionProviderInvocationId(invocation.id),
           source: 'shuttle',
           type: 'tool_call',
           status: invocation.isError ? 'failed' : 'succeeded',
@@ -226,15 +235,21 @@ export class ProviderInvocation extends IProviderInvocation {
           : 'auth_config_event';
 
         if (event.providerInvocationId) {
+          let parsedId = parseStoredProviderInvocationId({
+            sourceType: event.sourceType,
+            providerInvocationId: event.providerInvocationId
+          });
+          if (!parsedId || parsedId.sourceType !== 'shuttle.function_invocation') return;
+
           let invocation = await shuttle.functionServerInvocation.get({
-            functionInvocationId: event.providerInvocationId
+            functionInvocationId: parsedId.sourceId
           });
           let logs = await shuttle.functionServerInvocation.getLogs({
-            functionInvocationId: event.providerInvocationId
+            functionInvocationId: parsedId.sourceId
           });
 
           mergeInvocation(invocationMap, {
-            id: invocation.id,
+            id: getShuttleFunctionProviderInvocationId(invocation.id),
             source: 'shuttle',
             type,
             status: invocation.isError ? 'failed' : 'succeeded',
@@ -280,7 +295,7 @@ export class ProviderInvocation extends IProviderInvocation {
         let providerRunId = providerRunIdByConnectionId.get(serverConnectionId) ?? null;
 
         mergeInvocation(invocationMap, {
-          id: `server_connection:${serverConnectionId}`,
+          id: getShuttleServerConnectionProviderInvocationId(serverConnectionId),
           source: 'shuttle',
           type,
           status: event.type.endsWith('_failed')
@@ -324,6 +339,193 @@ export class ProviderInvocation extends IProviderInvocation {
       items: Array.from(invocationMap.values()).sort(
         (a, b) => a.createdAt.getTime() - b.createdAt.getTime()
       )
+    };
+  }
+
+  override async getProviderInvocation(
+    data: ProviderInvocationGetParam
+  ): Promise<UnifiedProviderInvocation | null> {
+    let relatedEvents = await db.providerAuthConfigEvent.findMany({
+      where: {
+        providerInvocationId: data.input.providerInvocationId,
+        tenantOid: data.tenant.oid,
+        environmentOid: data.environment.oid,
+        solutionOid: data.solution.oid
+      },
+      include: {
+        oauthSetup: true
+      }
+    });
+
+    if (data.input.sourceType === 'shuttle.function_invocation') {
+      let invocation = await shuttle.functionServerInvocation.get({
+        functionInvocationId: data.input.sourceId
+      });
+      let logs = await shuttle.functionServerInvocation.getLogs({
+        functionInvocationId: data.input.sourceId
+      });
+      let connection = invocation.serverConnectionId
+        ? await db.shuttleConnection.findFirst({
+            where: {
+              id: invocation.serverConnectionId,
+              providerRun: {
+                tenantOid: data.tenant.oid,
+                environmentOid: data.environment.oid,
+                solutionOid: data.solution.oid
+              }
+            },
+            include: {
+              providerRun: true
+            }
+          })
+        : null;
+      let sessionMessages = connection
+        ? await db.sessionMessage.findMany({
+            where: {
+              providerRunOid: connection.providerRunOid,
+              tenantOid: data.tenant.oid,
+              environmentOid: data.environment.oid,
+              solutionOid: data.solution.oid
+            },
+            select: {
+              id: true
+            }
+          })
+        : [];
+
+      let type: UnifiedProviderInvocation['type'] = relatedEvents.length
+        ? relatedEvents.every(event => event.type.includes('oauth_setup'))
+          ? 'oauth_setup'
+          : 'auth_config_event'
+        : 'tool_call';
+
+      return {
+        id: data.input.providerInvocationId,
+        source: 'shuttle',
+        type,
+        status: invocation.isError ? 'failed' : 'succeeded',
+        providerRunIds: connection ? [connection.providerRun.id] : [],
+        sessionMessageIds: sessionMessages.map(message => message.id),
+        authConfigEventIds: relatedEvents.map(event => event.id),
+        providerOAuthSetupIds: Array.from(
+          new Set(
+            relatedEvents
+              .map(event => event.oauthSetup?.id)
+              .filter((id): id is string => Boolean(id))
+          )
+        ),
+        toolCallId: null,
+        action: null,
+        requests: [],
+        responses: [],
+        requestTraces: [],
+        logs: logs.logs.map(log => ({
+          timestamp: log.timestamp,
+          message: log.message,
+          outputType: log.outputType
+        })),
+        attachments: [],
+        error: invocation.isError
+          ? {
+              code: 'function_invocation_failed',
+              message: 'Function invocation failed'
+            }
+          : null,
+        provider: null,
+        metadata: {
+          serverConnectionId: invocation.serverConnectionId,
+          functionServerId: invocation.functionServerId
+        },
+        createdAt: invocation.createdAt
+      };
+    }
+
+    if (data.input.sourceType !== 'shuttle.server_connection') return null;
+
+    let logs = await shuttle.serverConnection.getLogsSync({
+      serverConnectionId: data.input.sourceId
+    });
+    let connection = await db.shuttleConnection.findFirst({
+      where: {
+        id: data.input.sourceId,
+        providerRun: {
+          tenantOid: data.tenant.oid,
+          environmentOid: data.environment.oid,
+          solutionOid: data.solution.oid
+        }
+      },
+      include: {
+        providerRun: true
+      }
+    });
+    let sessionMessages = connection
+      ? await db.sessionMessage.findMany({
+          where: {
+            providerRunOid: connection.providerRunOid,
+            tenantOid: data.tenant.oid,
+            environmentOid: data.environment.oid,
+            solutionOid: data.solution.oid
+          },
+          select: {
+            id: true
+          }
+        })
+      : [];
+
+    let type: UnifiedProviderInvocation['type'] = relatedEvents.length
+      ? relatedEvents.every(event => event.type.includes('oauth_setup'))
+        ? 'oauth_setup'
+        : 'auth_config_event'
+      : 'tool_call';
+    let status: UnifiedProviderInvocation['status'] = relatedEvents.some(event =>
+      event.type.endsWith('_failed')
+    )
+      ? 'failed'
+      : relatedEvents.some(
+            event =>
+              event.type.endsWith('_completed') || event.type.endsWith('_succeeded')
+          )
+        ? 'succeeded'
+        : 'unknown';
+
+    return {
+      id: data.input.providerInvocationId,
+      source: 'shuttle',
+      type,
+      status,
+      providerRunIds: connection ? [connection.providerRun.id] : [],
+      sessionMessageIds: sessionMessages.map(message => message.id),
+      authConfigEventIds: relatedEvents.map(event => event.id),
+      providerOAuthSetupIds: Array.from(
+        new Set(
+          relatedEvents
+            .map(event => event.oauthSetup?.id)
+            .filter((id): id is string => Boolean(id))
+        )
+      ),
+      toolCallId: null,
+      action: null,
+      requests: [],
+      responses: [],
+      requestTraces: [],
+      logs: logs.map(log => ({
+        timestamp: log.timestamp,
+        message: log.message,
+        outputType: log.outputType
+      })),
+      attachments: [],
+      error:
+        status === 'failed'
+          ? {
+              code: 'server_connection_failed',
+              message: 'Server connection failed'
+            }
+          : null,
+      provider: null,
+      metadata: {
+        serverConnectionId: data.input.sourceId
+      },
+      createdAt: connection?.providerRun.createdAt ?? relatedEvents[0]?.createdAt ?? new Date()
     };
   }
 }

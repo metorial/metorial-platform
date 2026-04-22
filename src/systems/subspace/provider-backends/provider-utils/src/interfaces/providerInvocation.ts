@@ -1,4 +1,5 @@
-import type { Tenant } from '@metorial-subspace/db';
+import type { Environment, Solution, Tenant } from '@metorial-subspace/db';
+import type { ProviderInvocationSourceType } from '../lib/providerInvocationId';
 import { IProviderFunctionality } from '../providerFunctionality';
 
 export interface ProviderInvocation {
@@ -54,8 +55,23 @@ export interface ProviderInvocationListRes {
   items: ProviderInvocation[];
 }
 
+export interface ProviderInvocationGetParam {
+  tenant: Tenant;
+  solution: Solution;
+  environment: Environment;
+  input: {
+    providerInvocationId: string;
+    sourceType: ProviderInvocationSourceType;
+    sourceId: string;
+  };
+}
+
 export abstract class IProviderInvocation extends IProviderFunctionality {
   abstract listProviderInvocations(
     data: ProviderInvocationListParam
   ): Promise<ProviderInvocationListRes>;
+
+  abstract getProviderInvocation(
+    data: ProviderInvocationGetParam
+  ): Promise<ProviderInvocation | null>;
 }

@@ -84,8 +84,8 @@ model ProviderAuthConfig {
   sessionTemplateProviders   SessionTemplateProvider[]
   providerAuthConfigVersions ProviderAuthConfigVersion[]
   identityCredentials        IdentityCredential[]
-  authConfigEvents           AuthConfigEvent[]
-  authConfigErrors           AuthConfigError[]
+  authConfigEvents           ProviderAuthConfigEvent[]
+  authConfigErrors           ProviderAuthConfigError[]
 
   @@index([createdAt])
   @@index([updatedAt])

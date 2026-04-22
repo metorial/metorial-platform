@@ -34,7 +34,7 @@ class authConfigErrorGlobalServiceImpl {
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
-          await db.authConfigErrorGlobal.findMany({
+          await db.providerAuthConfigErrorGlobal.findMany({
             ...opts,
             where: {
               tenantOid: d.tenant.oid,
@@ -64,7 +64,7 @@ class authConfigErrorGlobalServiceImpl {
     environment: Environment;
     authConfigErrorGlobalId: string;
   }) {
-    let authConfigErrorGlobal = await db.authConfigErrorGlobal.findFirst({
+    let authConfigErrorGlobal = await db.providerAuthConfigErrorGlobal.findFirst({
       where: {
         id: d.authConfigErrorGlobalId,
         tenantOid: d.tenant.oid,

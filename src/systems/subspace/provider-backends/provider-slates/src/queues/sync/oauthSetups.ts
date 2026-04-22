@@ -4,11 +4,24 @@ import { createLock } from '@lowerdeck/lock';
 import { createQueue, QueueRetryError } from '@lowerdeck/queue';
 import { db, getId } from '@metorial-subspace/db';
 import { providerOAuthSetupInternalService } from '@metorial-subspace/module-auth';
+import { createProviderInvocationId } from '@metorial-subspace/provider-utils';
 import { backend as slatesBackend } from '../../backend';
 import { slates } from '../../client';
 import { env } from '../../env';
 
-type SlateOAuthSetupLogs = Awaited<ReturnType<typeof slates.slateOAuthSetup.getLogsSync>>;
+type SlateOAuthSetupEventItem = Awaited<
+  ReturnType<typeof slates.slateOAuthSetupEvent.listSync>
+>['items'][number];
+
+type SyncedProviderOAuthSetup = {
+  oid: bigint;
+  authConfigOid: bigint | null;
+  authCredentialsOid: bigint;
+  providerOid: bigint;
+  tenantOid: bigint;
+  environmentOid: bigint;
+  solutionOid: number;
+};
 
 let getErrorInfo = (value: unknown, fallback: string) => {
   if (
@@ -30,12 +43,17 @@ let getErrorInfo = (value: unknown, fallback: string) => {
   };
 };
 
-export let syncOAuthSetupsQueue = createQueue<{ cursor?: string }>({
+let getProviderInvocationId = (slateInvocationId: string | null | undefined) =>
+  slateInvocationId ? createProviderInvocationId('slate.invocation', slateInvocationId) : null;
+
+export let syncOAuthSetupsQueue = createQueue<{}>({
   name: 'sub/slt/oauthSetup/many',
   redisUrl: env.service.REDIS_URL
 });
 
-export let syncOAuthSetupQueue = createQueue<{ providerOAuthSetupId: string }>({
+export let syncOAuthSetupQueue = createQueue<{
+  event: SlateOAuthSetupEventItem;
+}>({
   name: 'sub/slt/oauthSetup/single',
   redisUrl: env.service.REDIS_URL,
   workerOpts: { concurrency: 10 }
@@ -46,47 +64,71 @@ let lock = createLock({
   redisUrl: env.service.REDIS_URL
 });
 
-let createErrorForEvent = async (d: {
-  sourceType: string;
-  sourceId: string;
-  type: string;
-  code: string;
-  message: string;
-  payload: unknown;
-  providerInvocationId?: string | null;
-  authConfigEventOid?: bigint | null;
-  providerOAuthSetup: {
-    oid: bigint;
-    authConfigOid: bigint | null;
-    authCredentialsOid: bigint;
-    providerOid: bigint;
-    tenantOid: bigint;
-    environmentOid: bigint;
-    solutionOid: number;
-  };
+let ensureProviderAuthConfigEvent = async (d: {
+  event: SlateOAuthSetupEventItem;
+  providerOAuthSetup: SyncedProviderOAuthSetup;
 }) => {
-  let existingError = await db.authConfigError.findUnique({
+  let providerAuthConfigEvent = await db.providerAuthConfigEvent.findUnique({
     where: {
       sourceType_sourceId: {
-        sourceType: d.sourceType,
-        sourceId: d.sourceId
+        sourceType: 'slates.oauth_setup_event',
+        sourceId: d.event.id
+      }
+    }
+  });
+
+  if (!providerAuthConfigEvent) {
+    providerAuthConfigEvent = await db.providerAuthConfigEvent.create({
+      data: {
+        ...getId('providerAuthConfigEvent'),
+        type: d.event.type,
+        sourceType: 'slates.oauth_setup_event',
+        sourceId: d.event.id,
+        providerInvocationId: getProviderInvocationId(d.event.invocation?.id),
+        payload: d.event,
+        authConfigOid: d.providerOAuthSetup.authConfigOid,
+        authCredentialsOid: d.providerOAuthSetup.authCredentialsOid,
+        oauthSetupOid: d.providerOAuthSetup.oid,
+        providerOid: d.providerOAuthSetup.providerOid,
+        tenantOid: d.providerOAuthSetup.tenantOid,
+        environmentOid: d.providerOAuthSetup.environmentOid,
+        solutionOid: d.providerOAuthSetup.solutionOid
+      }
+    });
+  }
+
+  return providerAuthConfigEvent;
+};
+
+let createErrorForEvent = async (d: {
+  event: SlateOAuthSetupEventItem;
+  providerOAuthSetup: SyncedProviderOAuthSetup;
+  providerAuthConfigEventOid: bigint;
+}) => {
+  let existingError = await db.providerAuthConfigError.findUnique({
+    where: {
+      sourceType_sourceId: {
+        sourceType: 'slates.oauth_setup_event',
+        sourceId: d.event.id
       }
     }
   });
   if (existingError) return;
 
-  let error = await db.authConfigError.create({
+  let { code, message } = getErrorInfo(d.event.invocation?.error, d.event.type);
+
+  let error = await db.providerAuthConfigError.create({
     data: {
-      ...getId('authConfigError'),
-      type: d.type,
-      sourceType: d.sourceType,
-      sourceId: d.sourceId,
+      ...getId('providerAuthConfigError'),
+      type: d.event.type,
+      sourceType: 'slates.oauth_setup_event',
+      sourceId: d.event.id,
       isProcessing: true,
-      code: d.code,
-      message: d.message,
-      payload: d.payload,
-      providerInvocationId: d.providerInvocationId ?? null,
-      authConfigEventOid: d.authConfigEventOid ?? null,
+      code,
+      message,
+      payload: d.event,
+      providerInvocationId: getProviderInvocationId(d.event.invocation?.id),
+      authConfigEventOid: d.providerAuthConfigEventOid,
       authConfigOid: d.providerOAuthSetup.authConfigOid,
       authCredentialsOid: d.providerOAuthSetup.authCredentialsOid,
       oauthSetupOid: d.providerOAuthSetup.oid,
@@ -107,7 +149,7 @@ let createErrorForEvent = async (d: {
     ])
   );
 
-  let group = await db.authConfigErrorGlobal.upsert({
+  let group = await db.providerAuthConfigErrorGlobal.upsert({
     where: {
       type_hash_tenantOid: {
         type: error.type,
@@ -116,7 +158,7 @@ let createErrorForEvent = async (d: {
       }
     },
     create: {
-      ...getId('authConfigErrorGlobal'),
+      ...getId('providerAuthConfigErrorGlobal'),
       type: error.type,
       code: error.code,
       message: error.message,
@@ -129,157 +171,88 @@ let createErrorForEvent = async (d: {
     update: {}
   });
 
-  await db.authConfigErrorGlobal.updateMany({
+  await db.providerAuthConfigErrorGlobal.updateMany({
     where: { oid: group.oid },
     data: { occurrenceCount: { increment: 1 } }
   });
 
-  await db.authConfigError.update({
+  await db.providerAuthConfigError.update({
     where: { oid: error.oid },
     data: { isProcessing: false, groupOid: group.oid }
   });
 };
 
-let syncRemoteEvents = async (d: {
-  providerOAuthSetup: {
-    oid: bigint;
-    authConfigOid: bigint | null;
-    authCredentialsOid: bigint;
-    providerOid: bigint;
-    tenantOid: bigint;
-    environmentOid: bigint;
-    solutionOid: number;
-  };
-  remoteSetup: SlateOAuthSetupLogs;
-}) => {
-  for (let event of d.remoteSetup.events) {
-    let authConfigEvent = await db.authConfigEvent.findUnique({
-      where: {
-        sourceType_sourceId: {
-          sourceType: 'slates.oauth_setup_event',
-          sourceId: event.id
-        }
-      }
-    });
+let backfillSetupLinks = async (d: { providerOAuthSetup: SyncedProviderOAuthSetup }) => {
+  if (!d.providerOAuthSetup.authConfigOid) return;
 
-    if (!authConfigEvent) {
-      authConfigEvent = await db.authConfigEvent.create({
-        data: {
-          ...getId('authConfigEvent'),
-          type: event.type,
-          sourceType: 'slates.oauth_setup_event',
-          sourceId: event.id,
-          providerInvocationId: event.invocation?.id ?? null,
-          payload: event,
-          authConfigOid: d.providerOAuthSetup.authConfigOid,
-          authCredentialsOid: d.providerOAuthSetup.authCredentialsOid,
-          oauthSetupOid: d.providerOAuthSetup.oid,
-          providerOid: d.providerOAuthSetup.providerOid,
-          tenantOid: d.providerOAuthSetup.tenantOid,
-          environmentOid: d.providerOAuthSetup.environmentOid,
-          solutionOid: d.providerOAuthSetup.solutionOid
-        }
-      });
+  await db.providerAuthConfigEvent.updateMany({
+    where: {
+      oauthSetupOid: d.providerOAuthSetup.oid,
+      authConfigOid: null
+    },
+    data: {
+      authConfigOid: d.providerOAuthSetup.authConfigOid
     }
+  });
 
-    if (event.type !== 'oauth_setup_failed') continue;
-
-    let errorInfo = getErrorInfo(
-      event.invocation?.error,
-      d.remoteSetup.error?.code ?? event.type
-    );
-
-    await createErrorForEvent({
-      sourceType: 'slates.oauth_setup_event',
-      sourceId: event.id,
-      type: event.type,
-      code: errorInfo.code,
-      message: d.remoteSetup.error?.message ?? errorInfo.message,
-      payload: event,
-      providerInvocationId: event.invocation?.id ?? null,
-      authConfigEventOid: authConfigEvent.oid,
-      providerOAuthSetup: d.providerOAuthSetup
-    });
-  }
-
-  let failedEvent = d.remoteSetup.events.find(event => event.type === 'oauth_setup_failed');
-  if (!failedEvent && d.remoteSetup.status === 'failed' && d.remoteSetup.error) {
-    let sourceId = `${d.remoteSetup.id}:failed`;
-
-    let authConfigEvent = await db.authConfigEvent.findUnique({
-      where: {
-        sourceType_sourceId: {
-          sourceType: 'slates.oauth_setup',
-          sourceId
-        }
-      }
-    });
-
-    if (!authConfigEvent) {
-      authConfigEvent = await db.authConfigEvent.create({
-        data: {
-          ...getId('authConfigEvent'),
-          type: 'oauth_setup_failed',
-          sourceType: 'slates.oauth_setup',
-          sourceId,
-          payload: d.remoteSetup,
-          authConfigOid: d.providerOAuthSetup.authConfigOid,
-          authCredentialsOid: d.providerOAuthSetup.authCredentialsOid,
-          oauthSetupOid: d.providerOAuthSetup.oid,
-          providerOid: d.providerOAuthSetup.providerOid,
-          tenantOid: d.providerOAuthSetup.tenantOid,
-          environmentOid: d.providerOAuthSetup.environmentOid,
-          solutionOid: d.providerOAuthSetup.solutionOid
-        }
-      });
+  await db.providerAuthConfigError.updateMany({
+    where: {
+      oauthSetupOid: d.providerOAuthSetup.oid,
+      authConfigOid: null
+    },
+    data: {
+      authConfigOid: d.providerOAuthSetup.authConfigOid
     }
-
-    await createErrorForEvent({
-      sourceType: 'slates.oauth_setup',
-      sourceId,
-      type: 'oauth_setup_failed',
-      code: d.remoteSetup.error.code,
-      message: d.remoteSetup.error.message ?? d.remoteSetup.error.code,
-      payload: d.remoteSetup,
-      authConfigEventOid: authConfigEvent.oid,
-      providerOAuthSetup: d.providerOAuthSetup
-    });
-  }
+  });
 };
 
-export let syncOAuthSetupsQueueProcessor = syncOAuthSetupsQueue.process(async data =>
+export let syncOAuthSetupsQueueProcessor = syncOAuthSetupsQueue.process(async () =>
   lock.usingLock(slatesBackend.id, async () => {
-    let setups = await db.providerOAuthSetup.findMany({
-      where: {
-        id: data.cursor ? { gt: data.cursor } : undefined,
-        status: { in: ['unused', 'opened'] },
-        slateOAuthSetupOid: { not: null }
-      },
-      take: 100,
-      orderBy: { id: 'asc' },
-      select: { id: true }
+    let backend = await db.backend.findFirst({
+      where: { id: slatesBackend.id },
+      include: { slatesSyncOAuthSetupEventCursor: true }
     });
-    if (setups.length === 0) return;
+    if (!backend) throw new QueueRetryError();
+
+    console.log(backend.slatesSyncOAuthSetupEventCursor?.cursor);
+
+    let events = await slates.slateOAuthSetupEvent.listSync({
+      limit: 100,
+      after: backend.slatesSyncOAuthSetupEventCursor?.cursor,
+      order: 'asc'
+    });
+    if (!events.items.length) return;
 
     await syncOAuthSetupQueue.addManyWithOps(
-      setups.map(setup => ({
-        data: { providerOAuthSetupId: setup.id },
-        opts: { id: setup.id }
+      events.items.map(event => ({
+        data: { event },
+        opts: { id: event.id }
       }))
     );
 
-    await syncOAuthSetupsQueue.add({
-      cursor: setups[setups.length - 1]!.id
+    let lastItem = events.items[events.items.length - 1];
+    if (!lastItem) return;
+
+    await db.slatesSyncOAuthSetupEventCursor.upsert({
+      where: { backendOid: backend.oid },
+      create: { backendOid: backend.oid, cursor: lastItem.id },
+      update: { cursor: lastItem.id }
     });
+
+    await syncOAuthSetupsQueue.add({});
   })
 );
 
 export let syncOAuthSetupQueueProcessor = syncOAuthSetupQueue.process(async data => {
-  let providerOAuthSetup = await db.providerOAuthSetup.findUnique({
-    where: { id: data.providerOAuthSetupId }
+  let slateOAuthSetup = await db.slateOAuthSetup.findUnique({
+    where: { id: data.event.slateOAuthSetupId }
+  });
+  if (!slateOAuthSetup) throw new QueueRetryError();
+
+  let providerOAuthSetup = await db.providerOAuthSetup.findFirst({
+    where: { slateOAuthSetupOid: slateOAuthSetup.oid }
   });
   if (!providerOAuthSetup) throw new QueueRetryError();
-  if (!providerOAuthSetup.slateOAuthSetupOid) return;
 
   await providerOAuthSetupInternalService.handleOAuthSetupResponse({
     providerOAuthSetup,
@@ -289,17 +262,8 @@ export let syncOAuthSetupQueueProcessor = syncOAuthSetupQueue.process(async data
     }
   });
 
-  let slateOAuthSetup = await db.slateOAuthSetup.findUnique({
-    where: { oid: providerOAuthSetup.slateOAuthSetupOid }
-  });
-  if (!slateOAuthSetup) throw new QueueRetryError();
-
-  let remoteSetup = await slates.slateOAuthSetup.getLogsSync({
-    slateOAuthSetupId: slateOAuthSetup.id
-  });
-
   let refreshedSetup = await db.providerOAuthSetup.findUnique({
-    where: { id: data.providerOAuthSetupId },
+    where: { id: providerOAuthSetup.id },
     select: {
       oid: true,
       authConfigOid: true,
@@ -312,8 +276,20 @@ export let syncOAuthSetupQueueProcessor = syncOAuthSetupQueue.process(async data
   });
   if (!refreshedSetup) throw new QueueRetryError();
 
-  await syncRemoteEvents({
+  await backfillSetupLinks({
+    providerOAuthSetup: refreshedSetup
+  });
+
+  let providerAuthConfigEvent = await ensureProviderAuthConfigEvent({
+    event: data.event,
+    providerOAuthSetup: refreshedSetup
+  });
+
+  if (data.event.type !== 'oauth_setup_failed') return;
+
+  await createErrorForEvent({
+    event: data.event,
     providerOAuthSetup: refreshedSetup,
-    remoteSetup
+    providerAuthConfigEventOid: providerAuthConfigEvent.oid
   });
 });

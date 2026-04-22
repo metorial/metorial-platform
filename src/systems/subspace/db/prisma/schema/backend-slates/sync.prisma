@@ -15,3 +15,12 @@ model SlatesSyncAuthConfigEventCursor {
 
   createdAt DateTime @default(now())
 }
+
+model SlatesSyncOAuthSetupEventCursor {
+  backendOid BigInt  @id
+  backend    Backend @relation(fields: [backendOid], references: [oid])
+
+  cursor String
+
+  createdAt DateTime @default(now())
+}

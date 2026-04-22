@@ -1,9 +1,12 @@
 import { db } from '@metorial-subspace/db';
 import {
   IProviderInvocation,
+  type ProviderInvocationGetParam,
   type ProviderInvocation as UnifiedProviderInvocation,
   type ProviderInvocationListParam,
-  type ProviderInvocationListRes
+  type ProviderInvocationListRes,
+  createProviderInvocationId,
+  parseStoredProviderInvocationId
 } from '@metorial-subspace/provider-utils';
 import PQueue from 'p-queue';
 import { getTenantForSlates, slates } from '../client';
@@ -43,6 +46,23 @@ let toInvocationError = (value: unknown): { code: string; message: string } | nu
   };
 };
 
+let getInvocationStatus = (status: string) =>
+  status === 'processing_result'
+    ? ('processing' as const)
+    : status === 'succeeded'
+      ? ('succeeded' as const)
+      : ('failed' as const);
+
+let toLogs = (logs: Array<{ timestamp: number | Date; message: string }> = []) =>
+  logs.map(log => ({
+    timestamp: log.timestamp,
+    message: log.message,
+    outputType: 'stdout'
+  }));
+
+let getSlateProviderInvocationId = (slateInvocationId: string) =>
+  createProviderInvocationId('slate.invocation', slateInvocationId);
+
 export class ProviderInvocation extends IProviderInvocation {
   override async listProviderInvocations(
     data: ProviderInvocationListParam
@@ -80,15 +100,10 @@ export class ProviderInvocation extends IProviderInvocation {
         });
 
         mergeInvocation(invocationMap, {
-          id: remote.invocation.id,
+          id: getSlateProviderInvocationId(remote.invocation.id),
           source: 'slates',
           type: 'tool_call',
-          status:
-            remote.invocation.status === 'processing_result'
-              ? 'processing'
-              : remote.invocation.status === 'succeeded'
-                ? 'succeeded'
-                : 'failed',
+          status: getInvocationStatus(remote.invocation.status),
           providerRunIds: [localToolCall.session.providerRun.id],
           sessionMessageIds: localToolCall.sessionMessages.map(message => message.id),
           authConfigEventIds: [],
@@ -98,11 +113,7 @@ export class ProviderInvocation extends IProviderInvocation {
           requests: remote.invocation.requests ?? [],
           responses: remote.invocation.responses ?? [],
           requestTraces: remote.invocation.requestTraces ?? [],
-          logs: (remote.invocation.logs ?? []).map(log => ({
-            timestamp: log.timestamp,
-            message: log.message,
-            outputType: 'stdout'
-          })),
+          logs: toLogs(remote.invocation.logs ?? []),
           attachments: remote.invocation.attachments ?? remote.attachments ?? [],
           error: toInvocationError(remote.invocation.error) ?? toInvocationError(remote.error),
           provider: remote.invocation.provider ?? null,
@@ -116,7 +127,7 @@ export class ProviderInvocation extends IProviderInvocation {
     );
 
     let authConfigEvents = data.inputs.authConfigEventIds?.length
-      ? await db.authConfigEvent.findMany({
+      ? await db.providerAuthConfigEvent.findMany({
           where: {
             id: { in: data.inputs.authConfigEventIds },
             providerInvocationId: { not: null },
@@ -131,21 +142,21 @@ export class ProviderInvocation extends IProviderInvocation {
     await queue.addAll(
       authConfigEvents.map(event => async () => {
         if (!event.providerInvocationId) return;
+        let parsedId = parseStoredProviderInvocationId({
+          sourceType: event.sourceType,
+          providerInvocationId: event.providerInvocationId
+        });
+        if (!parsedId || parsedId.sourceType !== 'slate.invocation') return;
 
         let remote = await slates.slateInvocation.DANGEROUSLY_get({
-          slateInvocationId: event.providerInvocationId
+          slateInvocationId: parsedId.sourceId
         });
 
         mergeInvocation(invocationMap, {
-          id: remote.id,
+          id: getSlateProviderInvocationId(remote.id),
           source: 'slates',
           type: event.sourceType === 'slates.auth_config_event' ? 'auth_config_event' : 'oauth_setup',
-          status:
-            remote.status === 'processing_result'
-              ? 'processing'
-              : remote.status === 'succeeded'
-                ? 'succeeded'
-                : 'failed',
+          status: getInvocationStatus(remote.status),
           providerRunIds: [],
           sessionMessageIds: [],
           authConfigEventIds: [event.id],
@@ -155,11 +166,7 @@ export class ProviderInvocation extends IProviderInvocation {
           requests: remote.requests ?? [],
           responses: remote.responses ?? [],
           requestTraces: remote.requestTraces ?? [],
-          logs: (remote.logs ?? []).map(log => ({
-            timestamp: log.timestamp,
-            message: log.message,
-            outputType: 'stdout'
-          })),
+          logs: toLogs(remote.logs ?? []),
           attachments: remote.attachments ?? [],
           error: toInvocationError(remote.error),
           provider: remote.provider ?? null,
@@ -176,6 +183,70 @@ export class ProviderInvocation extends IProviderInvocation {
       items: Array.from(invocationMap.values()).sort(
         (a, b) => a.createdAt.getTime() - b.createdAt.getTime()
       )
+    };
+  }
+
+  override async getProviderInvocation(
+    data: ProviderInvocationGetParam
+  ): Promise<UnifiedProviderInvocation | null> {
+    if (data.input.sourceType !== 'slate.invocation') return null;
+
+    let relatedEvents = await db.providerAuthConfigEvent.findMany({
+      where: {
+        providerInvocationId: data.input.providerInvocationId,
+        tenantOid: data.tenant.oid,
+        environmentOid: data.environment.oid,
+        solutionOid: data.solution.oid
+      },
+      include: {
+        oauthSetup: true
+      }
+    });
+
+    let remote = await slates.slateInvocation.DANGEROUSLY_get({
+      slateInvocationId: data.input.sourceId
+    });
+
+    let type: UnifiedProviderInvocation['type'] = 'unknown';
+    if (relatedEvents.length > 0) {
+      type = relatedEvents.every(
+        event =>
+          event.sourceType === 'slates.oauth_setup_event' ||
+          event.sourceType === 'slates.oauth_setup'
+      )
+        ? 'oauth_setup'
+        : 'auth_config_event';
+    }
+
+    return {
+      id: data.input.providerInvocationId,
+      source: 'slates',
+      type,
+      status: getInvocationStatus(remote.status),
+      providerRunIds: [],
+      sessionMessageIds: [],
+      authConfigEventIds: relatedEvents.map(event => event.id),
+      providerOAuthSetupIds: Array.from(
+        new Set(
+          relatedEvents
+            .map(event => event.oauthSetup?.id)
+            .filter((id): id is string => Boolean(id))
+        )
+      ),
+      toolCallId: null,
+      action: null,
+      requests: remote.requests ?? [],
+      responses: remote.responses ?? [],
+      requestTraces: remote.requestTraces ?? [],
+      logs: toLogs(remote.logs ?? []),
+      attachments: remote.attachments ?? [],
+      error: toInvocationError(remote.error),
+      provider: remote.provider ?? null,
+      metadata: {
+        slateDeploymentId: remote.slateDeploymentId,
+        slateVersionId: remote.slateVersionId
+      },
+      createdAt: remote.createdAt
     };
   }
 }

@@ -3,6 +3,7 @@ import { Hash } from '@lowerdeck/hash';
 import { createLock } from '@lowerdeck/lock';
 import { createQueue, QueueRetryError } from '@lowerdeck/queue';
 import { db, getId } from '@metorial-subspace/db';
+import { createProviderInvocationId } from '@metorial-subspace/provider-utils';
 import { backend as shuttleBackend } from '../../backend';
 import { shuttle } from '../../client';
 import { env } from '../../env';
@@ -32,6 +33,11 @@ let getErrorInfo = (event: ShuttleAuthConfigEvent) => {
 
 let isErrorEvent = (event: ShuttleAuthConfigEvent) =>
   event.type.endsWith('_failed') || event.type.includes('error');
+
+let getProviderInvocationId = (functionInvocationId: string | null | undefined) =>
+  functionInvocationId
+    ? createProviderInvocationId('shuttle.function_invocation', functionInvocationId)
+    : null;
 
 export let syncAuthConfigEventsQueue = createQueue<{}>({
   name: 'sub/shut/authEvt/many',
@@ -98,7 +104,7 @@ export let syncAuthConfigEventQueueProcessor = syncAuthConfigEventQueue.process(
   });
   if (!authConfigVersion) throw new QueueRetryError();
 
-  let authConfigEvent = await db.authConfigEvent.findUnique({
+  let authConfigEvent = await db.providerAuthConfigEvent.findUnique({
     where: {
       sourceType_sourceId: {
         sourceType: 'shuttle.server_auth_config_event',
@@ -108,13 +114,13 @@ export let syncAuthConfigEventQueueProcessor = syncAuthConfigEventQueue.process(
   });
 
   if (!authConfigEvent) {
-    authConfigEvent = await db.authConfigEvent.create({
+    authConfigEvent = await db.providerAuthConfigEvent.create({
       data: {
-        ...getId('authConfigEvent'),
+        ...getId('providerAuthConfigEvent'),
         type: data.event.type,
         sourceType: 'shuttle.server_auth_config_event',
         sourceId: data.event.id,
-        providerInvocationId: data.event.functionInvocationId ?? null,
+        providerInvocationId: getProviderInvocationId(data.event.functionInvocationId),
         payload: data.event,
         authConfigOid: authConfigVersion.authConfigOid,
         authCredentialsOid:
@@ -130,7 +136,7 @@ export let syncAuthConfigEventQueueProcessor = syncAuthConfigEventQueue.process(
 
   if (!isErrorEvent(data.event)) return;
 
-  let existingError = await db.authConfigError.findUnique({
+  let existingError = await db.providerAuthConfigError.findUnique({
     where: {
       sourceType_sourceId: {
         sourceType: 'shuttle.server_auth_config_event',
@@ -142,9 +148,9 @@ export let syncAuthConfigEventQueueProcessor = syncAuthConfigEventQueue.process(
 
   let { code, message } = getErrorInfo(data.event);
 
-  let error = await db.authConfigError.create({
+  let error = await db.providerAuthConfigError.create({
     data: {
-      ...getId('authConfigError'),
+      ...getId('providerAuthConfigError'),
       type: data.event.type,
       sourceType: 'shuttle.server_auth_config_event',
       sourceId: data.event.id,
@@ -152,7 +158,7 @@ export let syncAuthConfigEventQueueProcessor = syncAuthConfigEventQueue.process(
       code,
       message,
       payload: data.event,
-      providerInvocationId: data.event.functionInvocationId ?? null,
+      providerInvocationId: getProviderInvocationId(data.event.functionInvocationId),
       authConfigEventOid: authConfigEvent.oid,
       authConfigOid: authConfigVersion.authConfigOid,
       authCredentialsOid:
@@ -175,7 +181,7 @@ export let syncAuthConfigEventQueueProcessor = syncAuthConfigEventQueue.process(
     ])
   );
 
-  let group = await db.authConfigErrorGlobal.upsert({
+  let group = await db.providerAuthConfigErrorGlobal.upsert({
     where: {
       type_hash_tenantOid: {
         type: error.type,
@@ -184,7 +190,7 @@ export let syncAuthConfigEventQueueProcessor = syncAuthConfigEventQueue.process(
       }
     },
     create: {
-      ...getId('authConfigErrorGlobal'),
+      ...getId('providerAuthConfigErrorGlobal'),
       type: error.type,
       code: error.code,
       message: error.message,
@@ -197,12 +203,12 @@ export let syncAuthConfigEventQueueProcessor = syncAuthConfigEventQueue.process(
     update: {}
   });
 
-  await db.authConfigErrorGlobal.updateMany({
+  await db.providerAuthConfigErrorGlobal.updateMany({
     where: { oid: group.oid },
     data: { occurrenceCount: { increment: 1 } }
   });
 
-  await db.authConfigError.update({
+  await db.providerAuthConfigError.update({
     where: { oid: error.oid },
     data: {
       isProcessing: false,

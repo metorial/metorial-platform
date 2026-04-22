@@ -1,16 +1,18 @@
 import { Service } from '@lowerdeck/service';
 import { db, type Environment, type Solution, type Tenant } from '@metorial-subspace/db';
 import { getBackend } from '@metorial-subspace/provider';
-import type { ProviderInvocation } from '@metorial-subspace/provider-utils';
+import {
+  parseProviderInvocationId,
+  type ProviderInvocation
+} from '@metorial-subspace/provider-utils';
 
 let mergeInvocation = (
   map: Map<string, ProviderInvocation>,
   invocation: ProviderInvocation
 ) => {
-  let key = `${invocation.source}:${invocation.id}`;
-  let existing = map.get(key);
+  let existing = map.get(invocation.id);
   if (!existing) {
-    map.set(key, invocation);
+    map.set(invocation.id, invocation);
     return;
   }
 
@@ -110,7 +112,7 @@ class providerInvocationServiceImpl {
     }
 
     if (d.inputs.authConfigEventIds?.length) {
-      let authConfigEvents = await db.authConfigEvent.findMany({
+      let authConfigEvents = await db.providerAuthConfigEvent.findMany({
         where: {
           id: { in: d.inputs.authConfigEventIds },
           tenantOid: d.tenant.oid,
@@ -154,6 +156,42 @@ class providerInvocationServiceImpl {
     return Array.from(invocations.values()).sort(
       (a, b) => a.createdAt.getTime() - b.createdAt.getTime()
     );
+  }
+
+  async getProviderInvocation(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    providerInvocationId: string;
+  }) {
+    let parsedId = parseProviderInvocationId(d.providerInvocationId);
+    if (!parsedId) {
+      throw new Error('Invalid provider invocation ID');
+    }
+
+    let backendRecord = await db.backend.findFirstOrThrow({
+      where: {
+        type: parsedId.backendType
+      }
+    });
+
+    let backend = await getBackend({ entity: { backendOid: backendRecord.oid } });
+    let invocation = await backend.providerInvocation.getProviderInvocation({
+      tenant: d.tenant,
+      solution: d.solution,
+      environment: d.environment,
+      input: {
+        providerInvocationId: d.providerInvocationId,
+        sourceType: parsedId.sourceType,
+        sourceId: parsedId.sourceId
+      }
+    });
+
+    if (!invocation) {
+      throw new Error('Provider invocation not found');
+    }
+
+    return invocation;
   }
 }
 

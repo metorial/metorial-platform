@@ -1,4 +1,4 @@
-model AuthConfigEvent {
+model ProviderAuthConfigEvent {
   oid BigInt @id
   id  String @unique
 
@@ -28,7 +28,7 @@ model AuthConfigEvent {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  errors AuthConfigError[]
+  errors ProviderAuthConfigError[]
 
   @@unique([sourceType, sourceId])
   @@index([createdAt])
@@ -41,7 +41,7 @@ model AuthConfigEvent {
   @@index([providerOid, createdAt])
 }
 
-model AuthConfigErrorGlobal {
+model ProviderAuthConfigErrorGlobal {
   oid BigInt @id
   id  String @unique
 
@@ -53,7 +53,7 @@ model AuthConfigErrorGlobal {
   hash String
 
   firstOccurrenceOid BigInt?
-  firstOccurrence    AuthConfigError? @relation(fields: [firstOccurrenceOid], references: [oid], name: "AuthConfigErrorGroupToOccurrence")
+  firstOccurrence    ProviderAuthConfigError? @relation(fields: [firstOccurrenceOid], references: [oid], name: "ProviderAuthConfigErrorGroupToOccurrence")
 
   providerOid    BigInt
   provider       Provider @relation(fields: [providerOid], references: [oid])
@@ -64,14 +64,14 @@ model AuthConfigErrorGlobal {
 
   occurrenceCount Int @default(0)
 
-  instances AuthConfigError[]
+  instances ProviderAuthConfigError[]
 
   @@unique([type, hash, tenantOid])
   @@index([createdAt])
   @@index([type])
 }
 
-model AuthConfigError {
+model ProviderAuthConfigError {
   oid BigInt @id
   id  String @unique
 
@@ -90,10 +90,10 @@ model AuthConfigError {
   providerInvocationId String?
 
   groupOid BigInt?
-  group    AuthConfigErrorGlobal? @relation(fields: [groupOid], references: [oid])
+  group    ProviderAuthConfigErrorGlobal? @relation(fields: [groupOid], references: [oid])
 
   authConfigEventOid BigInt?
-  authConfigEvent    AuthConfigEvent? @relation(fields: [authConfigEventOid], references: [oid])
+  authConfigEvent    ProviderAuthConfigEvent? @relation(fields: [authConfigEventOid], references: [oid])
 
   authConfigOid BigInt?
   authConfig    ProviderAuthConfig? @relation(fields: [authConfigOid], references: [oid])
@@ -112,7 +112,7 @@ model AuthConfigError {
 
   createdAt DateTime @default(now())
 
-  instanceForGroup AuthConfigErrorGlobal[] @relation(name: "AuthConfigErrorGroupToOccurrence")
+  instanceForGroup ProviderAuthConfigErrorGlobal[] @relation(name: "ProviderAuthConfigErrorGroupToOccurrence")
 
   @@unique([sourceType, sourceId])
   @@index([createdAt])

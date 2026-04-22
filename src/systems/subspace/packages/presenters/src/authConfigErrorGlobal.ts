@@ -1,9 +1,13 @@
-import type { AuthConfigError, AuthConfigErrorGlobal, Provider } from '@metorial-subspace/db';
+import type {
+  Provider,
+  ProviderAuthConfigError,
+  ProviderAuthConfigErrorGlobal
+} from '@metorial-subspace/db';
 
 export let authConfigErrorGlobalPresenter = async (
-  error: AuthConfigErrorGlobal & {
+  error: ProviderAuthConfigErrorGlobal & {
     provider: Provider;
-    firstOccurrence: AuthConfigError | null;
+    firstOccurrence: ProviderAuthConfigError | null;
   }
 ) => ({
   object: 'auth_config.error_global',

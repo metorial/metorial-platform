@@ -5,6 +5,26 @@ import { app } from './_app';
 import { tenantApp } from './tenant';
 
 export let providerInvocationController = app.controller({
+  get: tenantApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
+        providerInvocationId: v.string()
+      })
+    )
+    .do(async ctx => {
+      let res = await providerInvocationService.getProviderInvocation({
+        tenant: ctx.tenant,
+        environment: ctx.environment,
+        solution: ctx.solution,
+        providerInvocationId: ctx.input.providerInvocationId
+      });
+
+      return providerInvocationPresenter(res);
+    }),
+
   list: tenantApp
     .handler()
     .input(

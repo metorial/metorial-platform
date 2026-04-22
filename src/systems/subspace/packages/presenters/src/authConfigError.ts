@@ -1,19 +1,20 @@
 import { delay } from '@lowerdeck/delay';
 import {
   db,
-  type AuthConfigError,
-  type AuthConfigErrorGlobal,
-  type AuthConfigEvent,
   type Provider,
   type ProviderAuthConfig,
+  type ProviderAuthConfigError,
+  type ProviderAuthConfigErrorGlobal,
+  type ProviderAuthConfigEvent,
   type ProviderAuthCredentials,
   type ProviderOAuthSetup
 } from '@metorial-subspace/db';
+import { normalizeStoredProviderInvocationId } from '@metorial-subspace/provider-utils';
 
 export let authConfigErrorPresenter = async (
-  error: AuthConfigError & {
-    group: AuthConfigErrorGlobal | null;
-    authConfigEvent: AuthConfigEvent | null;
+  error: ProviderAuthConfigError & {
+    group: ProviderAuthConfigErrorGlobal | null;
+    authConfigEvent: ProviderAuthConfigEvent | null;
     authConfig: ProviderAuthConfig | null;
     authCredentials: ProviderAuthCredentials | null;
     oauthSetup: ProviderOAuthSetup | null;
@@ -27,7 +28,7 @@ export let authConfigErrorPresenter = async (
 
       await delay(250);
 
-      let refreshedError = await db.authConfigError.findUniqueOrThrow({
+      let refreshedError = await db.providerAuthConfigError.findUniqueOrThrow({
         where: { oid: error.oid },
         include: { group: true }
       });
@@ -56,7 +57,10 @@ export let authConfigErrorPresenter = async (
     providerOAuthSetupId: error.oauthSetup?.id ?? null,
     providerId: error.provider.id,
 
-    providerInvocationId: error.providerInvocationId,
+    providerInvocationId: normalizeStoredProviderInvocationId({
+      sourceType: error.sourceType,
+      providerInvocationId: error.providerInvocationId
+    }),
 
     groupId: error.group?.id ?? null,
     similarErrorCount: error.group?.occurrenceCount ?? 0,

@@ -9,12 +9,22 @@ import {
   resolveProviderAuthCredentials,
   resolveProviders
 } from '@metorial-subspace/list-utils';
+import { buildStoredProviderInvocationIdFilter } from '@metorial-subspace/provider-utils';
 
 let include = {
   authConfig: true,
   authCredentials: true,
   oauthSetup: true,
-  provider: true
+  provider: true,
+  errors: {
+    select: {
+      id: true
+    },
+    orderBy: {
+      createdAt: 'asc' as const
+    },
+    take: 1
+  }
 };
 export let authConfigEventInclude = include;
 
@@ -51,7 +61,7 @@ class authConfigEventServiceImpl {
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
-          await db.authConfigEvent.findMany({
+          await db.providerAuthConfigEvent.findMany({
             ...opts,
             where: {
               tenantOid: d.tenant.oid,
@@ -66,9 +76,7 @@ class authConfigEventServiceImpl {
                   ? { oauthSetupOid: { in: providerOAuthSetups.map(setup => setup.oid) } }
                   : undefined!,
                 providers ? { providerOid: providers.in } : undefined!,
-                d.providerInvocationIds?.length
-                  ? { providerInvocationId: { in: d.providerInvocationIds } }
-                  : undefined!,
+                buildStoredProviderInvocationIdFilter(d.providerInvocationIds) ?? undefined!,
                 d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
                 d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
               ].filter(Boolean)
@@ -85,7 +93,7 @@ class authConfigEventServiceImpl {
     environment: Environment;
     authConfigEventId: string;
   }) {
-    let authConfigEvent = await db.authConfigEvent.findFirst({
+    let authConfigEvent = await db.providerAuthConfigEvent.findFirst({
       where: {
         id: d.authConfigEventId,
         tenantOid: d.tenant.oid,

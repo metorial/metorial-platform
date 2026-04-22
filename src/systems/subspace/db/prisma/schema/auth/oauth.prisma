@@ -64,8 +64,8 @@ model ProviderOAuthSetup {
 
   providerSetupSession       ProviderSetupSession?
   providerSetupSessionEvents ProviderSetupSessionEvent[]
-  authConfigEvents           AuthConfigEvent[]
-  authConfigErrors           AuthConfigError[]
+  authConfigEvents           ProviderAuthConfigEvent[]
+  authConfigErrors           ProviderAuthConfigError[]
 
   @@index([status])
   @@index([expiresAt])

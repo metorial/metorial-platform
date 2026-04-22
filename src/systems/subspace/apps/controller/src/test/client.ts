@@ -2,7 +2,7 @@ import { createClient } from '@lowerdeck/rpc-client';
 import { createServer, type InferClient, rpcMux } from '@lowerdeck/rpc-server';
 import { createFetchRouter } from '@lowerdeck/testing-tools';
 import { appWithoutSolution } from '../controllers/_app';
-import { type rootController, subspaceControllerRPC } from '../controllers';
+import { type SubspaceControllerRoot, subspaceControllerRPC } from '../controllers';
 import { solutionController } from '../controllers/solution';
 import { tenantController } from '../controllers/tenant';
 
@@ -76,4 +76,4 @@ export let createSubspaceControllerRootTestClient = (opts: Partial<ClientOptsLik
     rpc: fullTestRpc
   });
 
-export type SubspaceControllerRootTestClient = InferClient<typeof rootController>;
+export type SubspaceControllerRootTestClient = InferClient<SubspaceControllerRoot>;

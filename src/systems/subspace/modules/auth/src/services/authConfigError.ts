@@ -9,6 +9,7 @@ import {
   resolveProviderAuthCredentials,
   resolveProviders
 } from '@metorial-subspace/list-utils';
+import { buildStoredProviderInvocationIdFilter } from '@metorial-subspace/provider-utils';
 
 let include = {
   group: true,
@@ -40,7 +41,7 @@ class authConfigErrorServiceImpl {
     let authCredentials = await resolveProviderAuthCredentials(d, d.authCredentialsIds);
     let providers = await resolveProviders(d, d.providerIds);
     let authConfigEvents = d.authConfigEventIds?.length
-      ? await db.authConfigEvent.findMany({
+      ? await db.providerAuthConfigEvent.findMany({
           where: {
             tenantOid: d.tenant.oid,
             solutionOid: d.solution.oid,
@@ -62,7 +63,7 @@ class authConfigErrorServiceImpl {
         })
       : null;
     let groups = d.authConfigErrorGlobalIds?.length
-      ? await db.authConfigErrorGlobal.findMany({
+      ? await db.providerAuthConfigErrorGlobal.findMany({
           where: {
             tenantOid: d.tenant.oid,
             id: { in: d.authConfigErrorGlobalIds }
@@ -74,7 +75,7 @@ class authConfigErrorServiceImpl {
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
-          await db.authConfigError.findMany({
+          await db.providerAuthConfigError.findMany({
             ...opts,
             where: {
               tenantOid: d.tenant.oid,
@@ -95,9 +96,7 @@ class authConfigErrorServiceImpl {
                 groups?.length
                   ? { groupOid: { in: groups.map(group => group.oid) } }
                   : undefined!,
-                d.providerInvocationIds?.length
-                  ? { providerInvocationId: { in: d.providerInvocationIds } }
-                  : undefined!,
+                buildStoredProviderInvocationIdFilter(d.providerInvocationIds) ?? undefined!,
                 d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!
               ].filter(Boolean)
             },
@@ -113,7 +112,7 @@ class authConfigErrorServiceImpl {
     environment: Environment;
     authConfigErrorId: string;
   }) {
-    let authConfigError = await db.authConfigError.findFirst({
+    let authConfigError = await db.providerAuthConfigError.findFirst({
       where: {
         id: d.authConfigErrorId,
         tenantOid: d.tenant.oid,
