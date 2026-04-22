@@ -8,7 +8,12 @@ import {
   type Solution,
   type Tenant
 } from '@metorial-subspace/db';
-import { type DateFilter, normalizeDateFilter, resolveProviders, resolveSessions } from '@metorial-subspace/list-utils';
+import {
+  type DateFilter,
+  normalizeDateFilter,
+  resolveProviders,
+  resolveSessions
+} from '@metorial-subspace/list-utils';
 
 let include = {
   provider: true,
@@ -39,6 +44,7 @@ class sessionErrorGroupServiceImpl {
             ...opts,
             where: {
               tenantOid: d.tenant.oid,
+              environmentOid: d.environment.oid,
 
               AND: [
                 d.ids ? { id: { in: d.ids } } : undefined!,
@@ -67,7 +73,8 @@ class sessionErrorGroupServiceImpl {
     let sessionErrorGroup = await db.sessionErrorGroup.findFirst({
       where: {
         id: d.sessionErrorGroupId,
-        tenantOid: d.tenant.oid
+        tenantOid: d.tenant.oid,
+        environmentOid: d.environment.oid
       },
       include
     });
