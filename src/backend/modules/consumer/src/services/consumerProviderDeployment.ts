@@ -159,13 +159,16 @@ class ConsumerProviderDeploymentServiceImpl {
         providerContext,
         input: d.input
       });
-      let providerAuthConfigId = await this.createProviderAuthConfig({
+      let providerAuthConfigIdRes = await this.createProviderAuthConfig({
         instance: d.instance,
         context: d.context,
         consumerProfile: d.consumerProfile,
         providerContext,
         input: d.input
       });
+      let providerAuthConfigId = providerAuthConfigIdRes?.authConfigId;
+      if (providerAuthConfigIdRes?.configId)
+        providerConfigId = providerAuthConfigIdRes.configId;
 
       if (consumerActor?.defaultIdentityId) {
         try {
@@ -317,7 +320,10 @@ class ConsumerProviderDeploymentServiceImpl {
         providerSetupSessionId: authInput.providerSetupSessionId
       });
 
-      return setupSession.authConfig!.id;
+      return {
+        authConfigId: setupSession.authConfig!.id,
+        configId: setupSession.config?.id
+      };
     }
 
     if (authInput.type == 'auth_config') {
@@ -337,7 +343,9 @@ class ConsumerProviderDeploymentServiceImpl {
         throw new ServiceError(notFoundError('provider.auth_config'));
       }
 
-      return authConfig.id;
+      return {
+        authConfigId: authConfig.id
+      };
     }
 
     let authMethod = d.providerContext.authMethods.find(method => {
@@ -363,7 +371,9 @@ class ConsumerProviderDeploymentServiceImpl {
       config: authInput.value
     });
 
-    return authConfig.id;
+    return {
+      authConfigId: authConfig.id
+    };
   }
 
   private async rollbackFailedDeployment(d: {
