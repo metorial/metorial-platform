@@ -45,10 +45,6 @@ export let ProviderInvocationDetails = ({
                   value: formatTitleCase(invocation.type)
                 },
                 {
-                  label: 'Source',
-                  value: formatTitleCase(invocation.source)
-                },
-                {
                   label: 'Created',
                   value: <RenderDate date={invocation.createdAt} />
                 }

@@ -4,6 +4,7 @@ import {
 } from '@metorial/dashboard-sdk';
 import {
   useCurrentInstance,
+  useProviderInvocations,
   useProviderRuns,
   useSessionConnection,
   useSessionEvents,
@@ -18,6 +19,7 @@ import {
   RiServerLine
 } from '@remixicon/react';
 import { useEffect, useMemo, useRef } from 'react';
+import { ProviderInvocationEntry } from '../../providerInvocations';
 import { Entry } from '../../session/components/entry';
 import { ProviderRunLogs } from '../../session/components/providerRunLogs';
 import { useAggregatedMessages } from '../../session/hooks/useAggregatedMessages';
@@ -57,6 +59,20 @@ export let useConnectionTimeline = ({
     sessionConnectionId: [connection.id]
   });
 
+  let providerRunItems = useMemo(
+    () => providerRuns.data?.items ?? [],
+    [providerRuns.data?.items]
+  );
+  let providerRunIds = useMemo(
+    () => providerRunItems.map(run => run.id),
+    [providerRunItems]
+  );
+
+  let providerInvocations = useProviderInvocations(
+    instanceId && providerRunIds.length > 0 ? instanceId : undefined,
+    providerRunIds.length > 0 ? { providerRunId: providerRunIds } : undefined
+  );
+
   let refetchMessagesRef = useRef(messages.refetch);
   refetchMessagesRef.current = messages.refetch;
   let refetchEventsRef = useRef(events.refetch);
@@ -65,6 +81,8 @@ export let useConnectionTimeline = ({
   refetchProviderRunsRef.current = providerRuns.refetch;
   let refetchConnectionRef = useRef(connectionQuery.refetch);
   refetchConnectionRef.current = connectionQuery.refetch;
+  let refetchProviderInvocationsRef = useRef(providerInvocations.refetch);
+  refetchProviderInvocationsRef.current = providerInvocations.refetch;
 
   useEffect(() => {
     if (!instanceId) return;
@@ -73,6 +91,7 @@ export let useConnectionTimeline = ({
       refetchMessagesRef.current?.();
       refetchEventsRef.current?.();
       refetchProviderRunsRef.current?.();
+      refetchProviderInvocationsRef.current?.();
     }, 5_000);
     return () => clearInterval(id);
   }, [instanceId, session.id, connection.id]);
@@ -101,6 +120,11 @@ export let useConnectionTimeline = ({
       return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
     });
   }, [events.data?.items, messages.data?.items]);
+
+  let messageById = useMemo(
+    () => new Map(allMessages.map(message => [message.id, message])),
+    [allMessages]
+  );
 
   let aggregatedMessages = useAggregatedMessages(allMessages);
   let mcp = connection.mcp as
@@ -151,11 +175,16 @@ export let useConnectionTimeline = ({
     return items;
   }, [aggregatedMessages, connection.participant?.name, mcp?.client?.name, visibleMessages]);
 
-  let providerRunItems = providerRuns.data?.items ?? [];
   let providerRunById = useMemo(
     () => new Map(providerRunItems.map(run => [run.id, run])),
     [providerRunItems]
   );
+
+  let invocationItems = useMemo(
+    () => providerInvocations.data?.items ?? [],
+    [providerInvocations.data?.items]
+  );
+  let hasInvocations = invocationItems.length > 0;
 
   let eventItems = useMemo(() => {
     let items: TimelineItem[] = [];
@@ -208,7 +237,7 @@ export let useConnectionTimeline = ({
           ),
           time: evt.createdAt
         });
-        if (runId && !renderedProviderRunLogs.has(runId)) {
+        if (!hasInvocations && runId && !renderedProviderRunLogs.has(runId)) {
           renderedProviderRunLogs.add(runId);
           items.push({
             component: <ProviderRunLogs providerRunId={runId} lazy />,
@@ -222,7 +251,7 @@ export let useConnectionTimeline = ({
           ),
           time: evt.createdAt
         });
-        if (runId && !renderedProviderRunLogs.has(runId)) {
+        if (!hasInvocations && runId && !renderedProviderRunLogs.has(runId)) {
           renderedProviderRunLogs.add(runId);
           items.push({
             component: <ProviderRunLogs providerRunId={runId} lazy />,
@@ -243,23 +272,53 @@ export let useConnectionTimeline = ({
       }
     }
 
-    for (let run of providerRunItems) {
-      if (!renderedProviderRunLogs.has(run.id)) {
-        let evtForConn = (events.data?.items ?? []).some(
-          event =>
-            getEventConnectionId(event) === connection.id && event.providerRun?.id === run.id
-        );
-        if (evtForConn) {
-          items.push({
-            component: <ProviderRunLogs providerRunId={run.id} lazy />,
-            time: run.createdAt
-          });
+    if (!hasInvocations) {
+      for (let run of providerRunItems) {
+        if (!renderedProviderRunLogs.has(run.id)) {
+          let evtForConn = (events.data?.items ?? []).some(
+            event =>
+              getEventConnectionId(event) === connection.id &&
+              event.providerRun?.id === run.id
+          );
+          if (evtForConn) {
+            items.push({
+              component: <ProviderRunLogs providerRunId={run.id} lazy />,
+              time: run.createdAt
+            });
+          }
         }
       }
     }
 
+    for (let invocation of invocationItems) {
+      let relatedMessageTimes = invocation.sessionMessageIds
+        .map(id => messageById.get(id)?.createdAt)
+        .filter((d): d is Date => d instanceof Date);
+
+      let time = invocation.createdAt;
+      if (relatedMessageTimes.length > 0) {
+        let latestMessage = relatedMessageTimes.reduce((max, d) =>
+          d.getTime() > max.getTime() ? d : max
+        );
+        time = new Date(latestMessage.getTime() + 1);
+      }
+
+      items.push({
+        component: <ProviderInvocationEntry invocation={invocation} />,
+        time
+      });
+    }
+
     return items;
-  }, [connection.id, events.data?.items, providerRunById, providerRunItems]);
+  }, [
+    connection.id,
+    events.data?.items,
+    hasInvocations,
+    invocationItems,
+    messageById,
+    providerRunById,
+    providerRunItems
+  ]);
 
   let timelineItems = useMemo<TimelineItem[]>(
     () => [
@@ -299,7 +358,11 @@ export let useConnectionTimeline = ({
     connection,
     connectionName: formatConnectionLabel(connection, session),
     connectionProviders,
-    isLoading: messages.isLoading || events.isLoading || providerRuns.isLoading,
+    isLoading:
+      messages.isLoading ||
+      events.isLoading ||
+      providerRuns.isLoading ||
+      (providerRunIds.length > 0 && providerInvocations.isLoading),
     hasTimelineActivity: timelineItems.length > 2,
     mcp,
     timelineItems,
