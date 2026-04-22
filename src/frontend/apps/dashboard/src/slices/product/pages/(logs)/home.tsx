@@ -19,7 +19,7 @@ export let LogsHomePage = () => {
   return (
     <ContentLayout>
       <PageHeader
-        title="Logs"
+        title="Activity"
         description="Trace sessions, MCP connections, errors, and more across Metorial."
       />
 

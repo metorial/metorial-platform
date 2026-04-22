@@ -1,28 +1,21 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
-import { ContentPanelLayout, ExtraHeaderLayout } from '@metorial/layout';
+import {
+  ContentPanelLayout,
+  ContentPanelLayoutInner,
+  ExtraHeaderLayout
+} from '@metorial/layout';
 import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
-  useSessionErrorGroup
+  useProviderAuthConfigError
 } from '@metorial/state';
 import { Badge, Button, RenderDate, Text, theme } from '@metorial/ui';
+import { ID } from '@metorial/ui-product';
 import { RiArrowLeftSLine } from '@remixicon/react';
 import { Link, Outlet, useLocation, useParams } from 'react-router-dom';
 import styled from 'styled-components';
-
-let OutletWrapper = styled.div`
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  overflow: hidden;
-
-  > * {
-    flex: 1;
-    min-height: 0;
-  }
-`;
 
 let ExtraRow = styled.div`
   display: flex;
@@ -45,50 +38,70 @@ let ExtraLabel = styled.span`
   color: ${theme.colors.gray600};
 `;
 
-export let ProviderErrorLayout = () => {
+let getStatusColor = (status: string): 'red' | 'orange' | 'gray' => {
+  if (status === 'processing') return 'orange';
+  if (status === 'processed') return 'red';
+  return 'gray';
+};
+
+export let ProviderAuthErrorLayout = () => {
   let instance = useCurrentInstance();
   let project = useCurrentProject();
   let organization = useCurrentOrganization();
 
-  let { providerErrorId } = useParams();
-  let error = useSessionErrorGroup(instance.data?.id, providerErrorId);
+  let { providerAuthErrorId } = useParams();
+  let error = useProviderAuthConfigError(instance.data?.id, providerAuthErrorId);
 
   let pathname = useLocation().pathname;
 
-  let providerPathParams = [
+  let authErrorParams = [
     organization.data,
     project.data,
     instance.data,
-    error.data?.id ?? providerErrorId
+    error.data?.id ?? providerAuthErrorId
   ] as const;
 
   return (
     <ExtraHeaderLayout
       header={
         <Link
-          to={Paths.instance.providerErrors(organization.data, project.data, instance.data)}
+          to={Paths.instance.providerAuthErrors(
+            organization.data,
+            project.data,
+            instance.data
+          )}
         >
           <Button size="2" variant="outline" iconLeft={<RiArrowLeftSLine />}>
-            Back to all errors
+            Back to all auth errors
           </Button>
         </Link>
       }
     >
       <ContentPanelLayout
-        title={error.data?.message ?? `Error ${providerErrorId?.slice(0, 8)}...`}
+        title={error.data?.message ?? `Auth error ${providerAuthErrorId?.slice(0, 8)}...`}
         breadcrumbs={[
           {
-            label: 'Errors',
-            to: Paths.instance.providerErrors(organization.data, project.data, instance.data)
+            label: 'Auth Errors',
+            to: Paths.instance.providerAuthErrors(
+              organization.data,
+              project.data,
+              instance.data
+            )
           },
           {
-            label: error.data?.code ?? 'Error',
-            to: Paths.instance.providerError(...providerPathParams)
+            label: error.data?.code ?? 'Auth Error',
+            to: Paths.instance.providerAuthError(...authErrorParams)
           }
         ]}
         extra={
           error.data ? (
             <ExtraRow>
+              <ExtraItem>
+                <ExtraLabel>Status</ExtraLabel>
+                <Badge size="1" color={getStatusColor(error.data.status)}>
+                  {error.data.status}
+                </Badge>
+              </ExtraItem>
               <ExtraItem>
                 <ExtraLabel>Code</ExtraLabel>
                 {error.data.code ? (
@@ -100,11 +113,15 @@ export let ProviderErrorLayout = () => {
                 )}
               </ExtraItem>
               <ExtraItem>
-                <ExtraLabel>Occurrences</ExtraLabel>
-                <Text size="2">{error.data.occurrenceCount ?? '—'}</Text>
+                <ExtraLabel>Auth Error ID</ExtraLabel>
+                <ID id={error.data.id} />
               </ExtraItem>
               <ExtraItem>
-                <ExtraLabel>First Seen</ExtraLabel>
+                <ExtraLabel>Similar</ExtraLabel>
+                <Text size="2">{error.data.similarErrorCount ?? '—'}</Text>
+              </ExtraItem>
+              <ExtraItem>
+                <ExtraLabel>Created</ExtraLabel>
                 <Text size="2">
                   <RenderDate date={error.data.createdAt} />
                 </Text>
@@ -116,20 +133,17 @@ export let ProviderErrorLayout = () => {
           current: pathname,
           items: [
             {
-              label: 'Occurrences',
-              to: Paths.instance.providerError(...providerPathParams)
+              label: 'Details',
+              to: Paths.instance.providerAuthError(...authErrorParams)
             }
           ]
         }}
       >
-        {renderWithLoader(
-          { error },
-          { spaceTop: 20 }
-        )(({ error }) => (
-          <OutletWrapper>
+        <ContentPanelLayoutInner>
+          {renderWithLoader({ error })(({ error: _error }) => (
             <Outlet />
-          </OutletWrapper>
-        ))}
+          ))}
+        </ContentPanelLayoutInner>
       </ContentPanelLayout>
     </ExtraHeaderLayout>
   );
