@@ -16,6 +16,7 @@ import {
   CenteredSpinner,
   Dialog,
   Input,
+  InputLabel,
   Select,
   Spacer,
   Text
@@ -23,10 +24,7 @@ import {
 import { useEffect } from 'react';
 import { getProviderConfigSchemaCapabilities } from '../../lib/providerCreationCapabilities';
 import { JsonSchemaInput } from '../jsonSchemaInput';
-import {
-  FlatCreateSection,
-  FlatCreateSectionLabel
-} from '../providerCreationPanel/flatCreateLayout';
+import { FlatCreateSection } from '../providerCreationPanel/flatCreateLayout';
 
 type ConfigSourceMode = '' | 'raw' | 'vault';
 
@@ -318,7 +316,7 @@ export let ProviderConfigForm = (
                 </FlatCreateSection>
               ) : schemaCapabilities.hasSchemaFields ? (
                 <>
-                  <FlatCreateSectionLabel>Configuration</FlatCreateSectionLabel>
+                  <InputLabel>Configuration</InputLabel>
                   <FlatCreateSection>
                     <JsonSchemaInput
                       schema={schemaCapabilities.schemaObject}

@@ -77,7 +77,7 @@ export let ProviderAuthErrorsTable = (
           );
 
           return {
-            href: linkToDetail ? getDetailHref(error.id) : undefined,
+            href: linkToDetail ? getDetailHref(error.groupId ?? error.id) : undefined,
             data: [
               <Text size="2">{getErrorLabel(error.code)}</Text>,
               <Text size="2">{error.message}</Text>,

@@ -60,10 +60,9 @@ let errorGroupsTableState: TableStateProvider<
   };
 };
 
-let providerAuthErrorGroupsTable = new DashboardTable<
-  ErrorGroupsTableStateProps,
-  ErrorGroup
->('provider-auth-error-groups')
+let providerAuthErrorGroupsTable = new DashboardTable<ErrorGroupsTableStateProps, ErrorGroup>(
+  'provider-auth-error-groups'
+)
   .state(errorGroupsTableState)
   .columns([
     {

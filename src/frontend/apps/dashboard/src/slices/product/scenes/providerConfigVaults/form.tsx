@@ -6,13 +6,19 @@ import {
   useProviderConfigSchemaTarget,
   useProviderDeployment
 } from '@metorial/state';
-import { Button, Callout, CenteredSpinner, Dialog, Input, Spacer, Text } from '@metorial/ui';
+import {
+  Button,
+  Callout,
+  CenteredSpinner,
+  Dialog,
+  Input,
+  InputLabel,
+  Spacer,
+  Text
+} from '@metorial/ui';
 import { getProviderConfigSchemaCapabilities } from '../../lib/providerCreationCapabilities';
 import { JsonSchemaInput } from '../jsonSchemaInput';
-import {
-  FlatCreateSection,
-  FlatCreateSectionLabel
-} from '../providerCreationPanel/flatCreateLayout';
+import { FlatCreateSection } from '../providerCreationPanel/flatCreateLayout';
 
 export type ProviderConfigVaultFormProps = {
   type: 'create';
@@ -143,7 +149,7 @@ export let ProviderConfigVaultForm = (
 
           {schemaCapabilities.hasSchemaFields ? (
             <>
-              <FlatCreateSectionLabel>Vault Values</FlatCreateSectionLabel>
+              <InputLabel>Vault Values</InputLabel>
               <FlatCreateSection>
                 <JsonSchemaInput
                   schema={schemaCapabilities.schemaObject}
