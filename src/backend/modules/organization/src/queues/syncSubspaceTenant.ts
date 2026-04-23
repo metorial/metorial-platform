@@ -13,5 +13,7 @@ export let syncSubspaceTenantQueueProcessor = syncSubspaceTenantQueue.process(as
   });
   if (!project) throw new QueueRetryError();
 
-  await syncSubspaceTenantForProject(project);
+  await syncSubspaceTenantForProject(project, {
+    await: true
+  });
 });

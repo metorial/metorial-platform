@@ -79,7 +79,8 @@ export let getTenantForSubspace = async (
     });
 
     let subspaceTenant = await syncSubspaceTenantForProject(currentInstance.project, {
-      subspaceTenantIdentifier: currentInstance.subspaceTenantIdentifier
+      subspaceTenantIdentifier: currentInstance.subspaceTenantIdentifier,
+      await: false
     });
 
     let subspaceEnvironment = await subspace.environment.upsert({
@@ -103,7 +104,7 @@ export let getTenantForSubspace = async (
         }
       });
 
-      await db.project.update({
+      await db.project.updateMany({
         where: { oid: currentInstance.projectOid },
         data: {
           subspaceTenantId: subspaceTenant.id,
@@ -111,7 +112,7 @@ export let getTenantForSubspace = async (
         }
       });
 
-      await db.organization.update({
+      await db.organization.updateMany({
         where: { oid: currentInstance.organizationOid },
         data: {
           subspaceTenantIds: { push: subspaceTenant.id }
@@ -147,16 +148,18 @@ export let getActorForSubspace = async (
 
 export let syncSubspaceTenantForProject = async (
   project: Project,
-  overrides?: {
+  opts?: {
     subspaceTenantIdentifier?: string | null;
+    await?: boolean;
   }
 ) => {
   let instances = await db.instance.findMany({
-    where: { projectOid: project.oid }
+    where: { projectOid: project.oid },
+    include: { project: true }
   });
 
   let tenantIdentifier =
-    overrides?.subspaceTenantIdentifier ??
+    opts?.subspaceTenantIdentifier ??
     project.subspaceTenantIdentifier ??
     getSubspaceTenantIdentifier(project);
 
@@ -172,13 +175,21 @@ export let syncSubspaceTenantForProject = async (
     }))
   });
 
-  await db.project.update({
+  let projectPromise = db.project.updateMany({
     where: { oid: project.oid },
     data: {
       subspaceTenantId: tenant.id,
       subspaceTenantIdentifier: tenant.identifier
     }
   });
+
+  if (opts?.await) {
+    await projectPromise;
+  } else {
+    projectPromise.catch(err => {
+      console.log('Failed to update project with subspace tenant id', err);
+    });
+  }
 
   return tenant;
 };
