@@ -64,6 +64,7 @@ export let ProviderAuthCredentialOverviewPage = () => {
         <ProviderAuthErrorsTable
           providerAuthCredentialsId={credential.data.id}
           emptyText="No auth errors have been captured for this credential yet."
+          linkToDetail
         />
       </Box>
     </>
