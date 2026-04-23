@@ -3,6 +3,18 @@ import { subDays } from 'date-fns';
 import { db } from '../../db';
 import { env } from '../../env';
 
+export let SLATE_DISCOVERY_RETENTION_DAYS = 5;
+
+export let cleanupExpiredSlateVersionDiscoveries = async () => {
+  let fiveDaysAgo = subDays(new Date(), SLATE_DISCOVERY_RETENTION_DAYS);
+
+  await db.slateVersionDiscovery.deleteMany({
+    where: {
+      createdAt: { lt: fiveDaysAgo }
+    }
+  });
+};
+
 export let cleanupCron = createCron(
   {
     name: 'shub/cleanup/cron',
@@ -17,5 +29,7 @@ export let cleanupCron = createCron(
         createdAt: { lt: threeDaysAga }
       }
     });
+
+    await cleanupExpiredSlateVersionDiscoveries();
   }
 );

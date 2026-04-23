@@ -25,6 +25,9 @@ type ListToolsContext = {
   version: ProviderVersion | null;
 };
 
+let hasVersionWithoutSpecification = (ctx: ListToolsContext) =>
+  !!ctx.version && !ctx.version.specificationOid;
+
 let buildToolsWhere = (ctx: ListToolsContext) => ({
   AND: [{ provider: getProviderTenantFilter(ctx) }],
   providerOid: ctx.providerVersion.providerOid,
@@ -46,6 +49,29 @@ let buildToolsInclude = (ctx: ListToolsContext) => ({
     : false
 });
 
+let patchGlobalCursor = async (
+  ctx: ListToolsContext,
+  cursor?: { id: string }
+) => {
+  if (!cursor?.id) return cursor;
+
+  let tool = await db.providerTool.findFirst({
+    where: {
+      provider: getProviderTenantFilter(ctx),
+      OR: [{ id: cursor.id }, { global: { id: cursor.id } }]
+    },
+    include: {
+      global: true
+    }
+  });
+
+  if (tool?.global) {
+    return { id: tool.global.id };
+  }
+
+  return cursor;
+};
+
 let queryTools = async (
   ctx: ListToolsContext,
   opts?: {
@@ -55,8 +81,19 @@ let queryTools = async (
     orderBy: [{ id: 'asc' | 'desc' }];
   }
 ) => {
+  if (hasVersionWithoutSpecification(ctx)) {
+    return [];
+  }
+
+  let patchedOpts = opts
+    ? {
+        ...opts,
+        cursor: await patchGlobalCursor(ctx, opts.cursor)
+      }
+    : undefined;
+
   let globals = await db.providerToolGlobal.findMany({
-    ...opts,
+    ...patchedOpts,
     where: buildToolsWhere(ctx),
     include: buildToolsInclude(ctx)
   });

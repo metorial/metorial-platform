@@ -28,6 +28,10 @@ class providerAuthMethodServiceImpl {
 
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
+        if (version && !version.specificationOid) {
+          return [];
+        }
+
         let listRes = await db.providerAuthMethodGlobal.findMany({
           ...opts,
 

@@ -107,234 +107,242 @@ class providerInternalServiceImpl {
       attributes: PrismaJson.ProviderTypeAttributes;
     };
   }) {
-    let existingWithPrettySlug = d.info.prettySlug
+    let prettySlug = d.info.prettySlug;
+    let existingWithPrettySlug = prettySlug
       ? await db.providerListing.findFirst({
-          where: { prettySlug: d.info.prettySlug }
+          where: { prettySlug }
         })
       : null;
 
-    if (existingWithPrettySlug) d.info.prettySlug = `${d.info.prettySlug}-${generateCode(5)}`;
+    if (existingWithPrettySlug) prettySlug = `${prettySlug}-${generateCode(5)}`;
 
-    return withTransaction(async db => {
-      let identifier = `provider::${d.source.type}::`;
+    return withTransaction(
+      async db => {
+        let identifier = `provider::${d.source.type}::`;
 
-      if (d.source.type === 'slates') {
-        identifier += `${d.source.slate.oid}`;
-      } else if (d.source.type === 'shuttle') {
-        identifier += `${d.source.shuttleServer.oid}`;
-      } else if (d.source.type === 'native') {
-        identifier += d.source.integrationIdentifier;
-      } else {
-        throw new Error('Unknown provider source type');
-      }
-
-      let providerEntryData = {
-        identifier: `${identifier}::entry`,
-        name: d.info.name,
-        description: d.info.description,
-        publisherOid: d.publisher.oid
-      };
-      let entry = await db.providerEntry.upsert({
-        where: {
-          identifier: providerEntryData.identifier
-        },
-        create: {
-          ...getId('providerEntry'),
-          ...providerEntryData
-        },
-        update: providerEntryData
-      });
-
-      let type = await ensureProviderType(d.type.name, d.type.attributes);
-
-      let providerData = {
-        identifier: `${identifier}::provider`,
-
-        ...(d.owner
-          ? {
-              access: 'tenant' as const,
-              ownerTenantOid: d.owner.tenant.oid,
-              ownerSolutionOid: d.owner.solution?.oid
-            }
-          : {
-              access: 'public' as const
-            }),
-
-        status: 'active' as const,
-
-        name: d.info.name,
-        description: d.info.description,
-
-        entryOid: entry.oid,
-        publisherOid: d.publisher.oid,
-        typeOid: type.oid,
-
-        globalIdentifier: d.info.globalIdentifier
-      };
-      let existingProvider = await db.provider.findFirst({
-        where: {
-          OR: [
-            { identifier: providerData.identifier },
-            providerData.globalIdentifier
-              ? { globalIdentifier: providerData.globalIdentifier }
-              : undefined!
-          ].filter(Boolean)
+        if (d.source.type === 'slates') {
+          identifier += `${d.source.slate.oid}`;
+        } else if (d.source.type === 'shuttle') {
+          identifier += `${d.source.shuttleServer.oid}`;
+        } else if (d.source.type === 'native') {
+          identifier += d.source.integrationIdentifier;
+        } else {
+          throw new Error('Unknown provider source type');
         }
-      });
 
-      let newProviderId = getId('provider');
-      let provider = existingProvider
-        ? await db.provider.update({
-            where: { oid: existingProvider.oid },
-            data: providerData
-          })
-        : await db.provider.upsert({
-            where: {
-              identifier: providerData.identifier
-            },
-            create: {
-              ...newProviderId,
-              ...providerData,
-              slug: d.info.slug,
-              tag: await createTag()
-            },
-            update: providerData
-          });
+        let providerEntryData = {
+          identifier: `${identifier}::entry`,
+          name: d.info.name,
+          description: d.info.description,
+          publisherOid: d.publisher.oid
+        };
+        let entry = await db.providerEntry.upsert({
+          where: {
+            identifier: providerEntryData.identifier
+          },
+          create: {
+            ...getId('providerEntry'),
+            ...providerEntryData
+          },
+          update: providerEntryData
+        });
 
-      let variantData = {
-        identifier: `${identifier}::variant`,
+        let type = await ensureProviderType(d.type.name, d.type.attributes);
 
-        isDefault: true,
+        let providerData = {
+          identifier: `${identifier}::provider`,
 
-        name: d.info.name,
-        description: d.info.description,
+          ...(d.owner
+            ? {
+                access: 'tenant' as const,
+                ownerTenantOid: d.owner.tenant.oid,
+                ownerSolutionOid: d.owner.solution?.oid
+              }
+            : {
+                access: 'public' as const
+              }),
 
-        backendOid: d.source.backend.oid,
-        providerOid: provider.oid,
-        publisherOid: d.publisher.oid,
-
-        slateOid: d.source.type === 'slates' ? d.source.slate.oid : null,
-        shuttleServerOid: d.source.type === 'shuttle' ? d.source.shuttleServer.oid : null
-      };
-
-      let existingVariant = await db.providerVariant.findFirst({
-        where: { identifier: variantData.identifier }
-      });
-
-      let variant = existingVariant
-        ? await db.providerVariant.update({
-            where: { identifier: variantData.identifier },
-            data: variantData
-          })
-        : await db.providerVariant.upsert({
-            where: { identifier: variantData.identifier },
-            create: {
-              ...getId('providerVariant'),
-              ...variantData,
-              tag: await createTag()
-            },
-            update: variantData
-          });
-
-      await db.provider.updateMany({
-        where: { oid: provider.oid },
-        data: { defaultVariantOid: variant.oid }
-      });
-
-      let listing = await db.providerListing.findFirst({
-        where: { providerOid: provider.oid }
-      });
-
-      let allData = {
-        isPublic: provider.access === 'public',
-        ownerTenantOid: provider.access === 'tenant' ? provider.ownerTenantOid : null,
-        ownerSolutionOid: provider.access === 'tenant' ? provider.ownerSolutionOid : null,
-
-        publisherOid: provider.publisherOid,
-        providerOid: provider.oid,
-
-        typeOid: provider.typeOid
-      };
-
-      let newListingId = getId('providerListing');
-      if (!listing?.isCustomized) {
-        let inner = {
-          ...allData,
+          status: 'active' as const,
 
           name: d.info.name,
           description: d.info.description,
           slug: d.info.slug,
-          prettySlug: d.info.prettySlug,
+          prettySlug,
           aliases: [...new Set(d.info.aliases)],
 
-          image: d.info.image ?? { type: 'default' as const },
+          entryOid: entry.oid,
+          publisherOid: d.publisher.oid,
+          typeOid: type.oid,
 
-          readme: d.info.readme,
+          globalIdentifier: d.info.globalIdentifier
+        };
+        let existingProvider = await db.provider.findFirst({
+          where: {
+            OR: [
+              { identifier: providerData.identifier },
+              providerData.globalIdentifier
+                ? { globalIdentifier: providerData.globalIdentifier }
+                : undefined!
+            ].filter(Boolean)
+          }
+        });
 
-          skills: d.info.skills || [],
+        let newProviderId = getId('provider');
+        let provider = existingProvider
+          ? await db.provider.update({
+              where: { oid: existingProvider.oid },
+              data: providerData
+            })
+          : await db.provider.upsert({
+              where: {
+                identifier: providerData.identifier
+              },
+              create: {
+                ...newProviderId,
+                ...providerData,
+                slug: d.info.slug,
+                tag: await createTag()
+              },
+              update: providerData
+            });
 
-          isCustomized: false,
+        let variantData = {
+          identifier: `${identifier}::variant`,
 
-          isMetorial: d.publisher.type === 'metorial',
-          isVerified: d.publisher.type === 'metorial',
-          isOfficial: false
+          isDefault: true,
+
+          name: d.info.name,
+          description: d.info.description,
+
+          backendOid: d.source.backend.oid,
+          providerOid: provider.oid,
+          publisherOid: d.publisher.oid,
+
+          slateOid: d.source.type === 'slates' ? d.source.slate.oid : null,
+          shuttleServerOid: d.source.type === 'shuttle' ? d.source.shuttleServer.oid : null
         };
 
-        listing = await db.providerListing.upsert({
-          where: { providerOid: provider.oid },
-          create: {
-            ...newListingId,
-            ...inner,
-            status: 'active'
-          },
-          update: inner
+        let existingVariant = await db.providerVariant.findFirst({
+          where: { identifier: variantData.identifier }
         });
-      } else {
-        listing = await db.providerListing.update({
-          where: { providerOid: provider.oid },
-          data: allData
-        });
-      }
 
-      if (d.info.categories) {
-        let categories = await db.providerListingCategory.findMany({
-          where: {
-            slug: { in: d.info.categories }
-          }
+        let variant = existingVariant
+          ? await db.providerVariant.update({
+              where: { identifier: variantData.identifier },
+              data: variantData
+            })
+          : await db.providerVariant.upsert({
+              where: { identifier: variantData.identifier },
+              create: {
+                ...getId('providerVariant'),
+                ...variantData,
+                tag: await createTag()
+              },
+              update: variantData
+            });
+
+        await db.provider.updateMany({
+          where: { oid: provider.oid },
+          data: { defaultVariantOid: variant.oid }
         });
-        await db.providerListing.update({
-          where: { id: listing.id },
-          data: {
-            categories: {
-              set: categories.map(c => ({ oid: c.oid }))
+
+        let listing = await db.providerListing.findFirst({
+          where: { providerOid: provider.oid }
+        });
+
+        let allData = {
+          isPublic: provider.access === 'public',
+          ownerTenantOid: provider.access === 'tenant' ? provider.ownerTenantOid : null,
+          ownerSolutionOid: provider.access === 'tenant' ? provider.ownerSolutionOid : null,
+
+          publisherOid: provider.publisherOid,
+          providerOid: provider.oid,
+
+          typeOid: provider.typeOid
+        };
+
+        let newListingId = getId('providerListing');
+        if (!listing?.isCustomized) {
+          let inner = {
+            ...allData,
+
+            name: d.info.name,
+            description: d.info.description,
+            slug: d.info.slug,
+
+            image: d.info.image ?? { type: 'default' as const },
+
+            readme: d.info.readme,
+
+            skills: d.info.skills || [],
+
+            isCustomized: false,
+
+            isMetorial: d.publisher.type === 'metorial',
+            isVerified: d.publisher.type === 'metorial',
+            isOfficial: false
+          };
+
+          listing = await db.providerListing.upsert({
+            where: { providerOid: provider.oid },
+            create: {
+              ...newListingId,
+              ...inner,
+              status: 'active'
+            },
+            update: inner
+          });
+        } else {
+          listing = await db.providerListing.update({
+            where: { providerOid: provider.oid },
+            data: allData
+          });
+        }
+
+        if (d.info.categories) {
+          let categories = await db.providerListingCategory.findMany({
+            where: {
+              slug: { in: d.info.categories }
             }
+          });
+          await db.providerListing.update({
+            where: { id: listing.id },
+            data: {
+              categories: {
+                set: categories.map(c => ({ oid: c.oid }))
+              }
+            }
+          });
+        }
+
+        await addAfterTransactionHook(async () => {
+          if (provider.id === newProviderId.id) {
+            await providerCreatedQueue.add({ providerId: provider.id });
+          } else {
+            await providerUpdatedQueue.add({ providerId: provider.id });
           }
         });
+
+        await addAfterTransactionHook(async () => {
+          if (listing.id === newListingId.id) {
+            await listingCreatedQueue.add({ providerListingId: listing.id });
+          } else {
+            await listingUpdatedQueue.add({ providerListingId: listing.id });
+          }
+        });
+
+        return await db.provider.findFirstOrThrow({
+          where: { oid: provider.oid },
+          include: {
+            defaultVariant: true
+          }
+        });
+      },
+      {
+        timeout: 20000,
+        maxWait: 20000
       }
-
-      await addAfterTransactionHook(async () => {
-        if (provider.id === newProviderId.id) {
-          await providerCreatedQueue.add({ providerId: provider.id });
-        } else {
-          await providerUpdatedQueue.add({ providerId: provider.id });
-        }
-      });
-
-      await addAfterTransactionHook(async () => {
-        if (listing.id === newListingId.id) {
-          await listingCreatedQueue.add({ providerListingId: listing.id });
-        } else {
-          await listingUpdatedQueue.add({ providerListingId: listing.id });
-        }
-      });
-
-      return await db.provider.findFirstOrThrow({
-        where: { oid: provider.oid },
-        include: {
-          defaultVariant: true
-        }
-      });
-    });
+    );
   }
 
   async updateProvider(d: {

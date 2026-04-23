@@ -1,8 +1,7 @@
-import { canonicalize } from '@lowerdeck/canonicalize';
-import { Hash } from '@lowerdeck/hash';
 import { createLock } from '@lowerdeck/lock';
 import { createQueue, QueueRetryError } from '@lowerdeck/queue';
 import { getSentry } from '@lowerdeck/sentry';
+import type { SlateAuthenticationMethod, SlatesAction } from '@slates/proto';
 import { differenceInMinutes } from 'date-fns';
 import semver from 'semver';
 import { db } from '../../db';
@@ -10,9 +9,154 @@ import { env } from '../../env';
 import { getId, snowflake } from '../../id';
 import { getStackError, getStackResultsOrThrow } from '../../lib/invocation/error';
 import type { InvocationError } from '../../lib/invocation/types';
+import {
+  buildDiscoveredSpecificationHashes,
+  dedupeDiscoveredItems
+} from '../../lib/specificationHash';
 import { slateInvocationService } from '../../services';
 
 let Sentry = getSentry();
+
+let syncSpecificationActions = async (d: {
+  specificationOid: bigint;
+  actions: Array<{ oid: bigint }>;
+}) => {
+  let actionOids = d.actions.map(action => action.oid);
+
+  await db.slateSpecificationAction.deleteMany({
+    where: {
+      specificationOid: d.specificationOid,
+      actionOid: actionOids.length > 0 ? { notIn: actionOids } : undefined
+    }
+  });
+
+  if (actionOids.length === 0) return;
+
+  await db.slateSpecificationAction.createMany({
+    skipDuplicates: true,
+    data: actionOids.map(actionOid => ({
+      oid: snowflake.nextId(),
+      actionOid,
+      specificationOid: d.specificationOid
+    }))
+  });
+};
+
+let syncSpecificationAuthMethods = async (d: {
+  specificationOid: bigint;
+  authMethods: Array<{ oid: bigint }>;
+}) => {
+  let authMethodOids = d.authMethods.map(authMethod => authMethod.oid);
+
+  await db.slateSpecificationAuthMethod.deleteMany({
+    where: {
+      specificationOid: d.specificationOid,
+      authMethodOid: authMethodOids.length > 0 ? { notIn: authMethodOids } : undefined
+    }
+  });
+
+  if (authMethodOids.length === 0) return;
+
+  await db.slateSpecificationAuthMethod.createMany({
+    skipDuplicates: true,
+    data: authMethodOids.map(authMethodOid => ({
+      oid: snowflake.nextId(),
+      authMethodOid,
+      specificationOid: d.specificationOid
+    }))
+  });
+};
+
+let syncSpecificationConfigSchema = async (d: {
+  specificationOid: bigint;
+  configSchemaOid: bigint;
+}) => {
+  await db.slateSpecificationConfigSchema.deleteMany({
+    where: {
+      specificationOid: d.specificationOid,
+      configSchemaOid: { not: d.configSchemaOid }
+    }
+  });
+
+  await db.slateSpecificationConfigSchema.upsert({
+    where: {
+      specificationOid_configSchemaOid: {
+        specificationOid: d.specificationOid,
+        configSchemaOid: d.configSchemaOid
+      }
+    },
+    create: {
+      oid: snowflake.nextId(),
+      specificationOid: d.specificationOid,
+      configSchemaOid: d.configSchemaOid
+    },
+    update: {}
+  });
+};
+
+let buildActionUpsertData = async (d: {
+  actions: SlatesAction[];
+  slateOid: bigint;
+  specificationOid: bigint;
+  identifierBase: string;
+  actionHashes: string[];
+}) =>
+  d.actions.map((action, index) => {
+    let hash = d.actionHashes[index]!;
+    let identifier = `${d.identifierBase}::action::${action.id}::${hash}`;
+
+    return {
+      ...getId('slateAction'),
+      slateOid: d.slateOid,
+      mostRecentSpecificationOid: d.specificationOid,
+
+      type: {
+        'action.tool': 'tool' as const,
+        'action.trigger': 'trigger' as const
+      }[action.type],
+
+      hash,
+      identifier,
+
+      spec: action,
+
+      key: action.id,
+      name: action.name
+    };
+  });
+
+let buildAuthMethodUpsertData = async (d: {
+  authMethods: SlateAuthenticationMethod[];
+  slateOid: bigint;
+  specificationOid: bigint;
+  identifierBase: string;
+  authMethodHashes: string[];
+}) =>
+  d.authMethods.map((method, index) => {
+    let hash = d.authMethodHashes[index]!;
+    let identifier = `${d.identifierBase}::auth_method::${method.id}::${hash}`;
+
+    return {
+      ...getId('slateAuthMethod'),
+      slateOid: d.slateOid,
+      mostRecentSpecificationOid: d.specificationOid,
+
+      type: {
+        'auth.oauth': 'oauth' as const,
+        'auth.token': 'token' as const,
+        'auth.service_account': 'service_account' as const,
+        'auth.custom': 'custom' as const
+      }[method.type],
+
+      hash,
+      identifier,
+
+      spec: method,
+
+      key: method.id,
+      name: method.name
+    };
+  });
 
 export let discoverSlateQueue = createQueue<{ versionId: string }>({
   name: 'shub/dis/sing',
@@ -101,16 +245,29 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
       let [providerInfo, configSchema, authMethods, actions] =
         getStackResultsOrThrow(stackResult);
 
-      let hash = await Hash.sha256(
-        canonicalize({
-          providerInfo,
-          configSchema,
-          authMethods,
-          actions
-        })
-      );
+      let discoveredAuthMethods = dedupeDiscoveredItems(authMethods.authenticationMethods, {
+        entity: 'auth_methods',
+        slateId: slate.id,
+        versionId: version.id
+      });
+      let discoveredActions = dedupeDiscoveredItems(actions.actions, {
+        entity: 'actions',
+        slateId: slate.id,
+        versionId: version.id,
+        getKey: action => `${action.type}:${action.id}`
+      });
+
+      let discoveryHashes = await buildDiscoveredSpecificationHashes({
+        providerInfo: {
+          protocol: providerInfo.protocol,
+          provider: providerInfo.provider
+        },
+        configSchema: configSchema.schema,
+        authMethods: discoveredAuthMethods,
+        actions: discoveredActions
+      });
       let identifierBase = `slate::spec::${slate.id}`;
-      let specificationIdentifier = `${identifierBase}::${hash}`;
+      let specificationIdentifier = `${identifierBase}::${discoveryHashes.specificationHash}`;
 
       let specificationData = {
         name: providerInfo.provider.name,
@@ -119,8 +276,8 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
 
         providerInfo: providerInfo.provider,
         configSchema: configSchema.schema,
-        authMethods: authMethods.authenticationMethods,
-        actions: actions.actions
+        authMethods: discoveredAuthMethods,
+        actions: discoveredActions
       };
       let specification = await db.slateSpecification.upsert({
         where: {
@@ -128,7 +285,7 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
         },
         create: {
           ...getId('slateSpecification'),
-          hash,
+          hash: discoveryHashes.specificationHash,
           identifier: specificationIdentifier,
           slateOid: slate.oid,
 
@@ -139,41 +296,14 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
         update: specificationData
       });
 
-      let actionUpsertData = await Promise.all(
-        specification.actions.map(async action => {
-          let hash = await Hash.sha256(
-            canonicalize({
-              id: action.id,
-              type: action.type,
-              input: action.inputSchema,
-              output: action.outputSchema,
-              invocationType:
-                action.type === 'action.trigger' ? action.invocation.type : undefined
-            })
-          );
-          let identifier = `${identifierBase}::action::${action.id}::${hash}`;
-
-          return {
-            ...getId('slateAction'),
-            slateOid: slate.oid,
-            mostRecentSpecificationOid: specification.oid,
-
-            type: {
-              'action.tool': 'tool' as const,
-              'action.trigger': 'trigger' as const
-            }[action.type],
-
-            hash,
-            identifier,
-
-            spec: action,
-
-            key: action.id,
-            name: action.name
-          };
-        })
-      );
-      await db.slateAction.createMany({
+      let actionUpsertData = await buildActionUpsertData({
+        actions: discoveredActions,
+        slateOid: slate.oid,
+        specificationOid: specification.oid,
+        identifierBase,
+        actionHashes: discoveryHashes.actionHashes
+      });
+      await db.slateAction.createManyAndReturn({
         skipDuplicates: true,
         data: actionUpsertData
       });
@@ -186,50 +316,19 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
         }
       });
 
-      await db.slateSpecificationAction.createMany({
-        skipDuplicates: true,
-        data: upsertedActions.map(action => ({
-          oid: snowflake.nextId(),
-          actionOid: action.oid,
-          specificationOid: specification.oid
-        }))
+      await syncSpecificationActions({
+        specificationOid: specification.oid,
+        actions: upsertedActions
       });
 
-      let authMethodUpsertData = await Promise.all(
-        specification.authMethods.map(async method => {
-          let hash = await Hash.sha256(
-            canonicalize({
-              id: method.id,
-              type: method.type,
-              scopes: method.scopes?.map(s => s.id)?.sort(),
-              output: method.outputSchema
-            })
-          );
-          let identifier = `${identifierBase}::auth_method::${method.id}::${hash}`;
-
-          return {
-            ...getId('slateAuthMethod'),
-            slateOid: slate.oid,
-            mostRecentSpecificationOid: specification.oid,
-
-            type: {
-              'auth.oauth': 'oauth' as const,
-              'auth.token': 'token' as const,
-              'auth.service_account': 'service_account' as const,
-              'auth.custom': 'custom' as const
-            }[method.type],
-
-            hash,
-            identifier,
-
-            spec: method,
-
-            key: method.id,
-            name: method.name
-          };
-        })
-      );
-      await db.slateAuthMethod.createMany({
+      let authMethodUpsertData = await buildAuthMethodUpsertData({
+        authMethods: discoveredAuthMethods,
+        slateOid: slate.oid,
+        specificationOid: specification.oid,
+        identifierBase,
+        authMethodHashes: discoveryHashes.authMethodHashes
+      });
+      await db.slateAuthMethod.createManyAndReturn({
         skipDuplicates: true,
         data: authMethodUpsertData
       });
@@ -242,17 +341,12 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
         }
       });
 
-      await db.slateSpecificationAuthMethod.createMany({
-        skipDuplicates: true,
-        data: upsertedAuthMethods.map(authMethod => ({
-          oid: snowflake.nextId(),
-          authMethodOid: authMethod.oid,
-          specificationOid: specification.oid
-        }))
+      await syncSpecificationAuthMethods({
+        specificationOid: specification.oid,
+        authMethods: upsertedAuthMethods
       });
 
-      let configHash = await Hash.sha256(canonicalize({ configSchema: configSchema.schema }));
-      let configIdentifier = `${identifierBase}::config::${configHash}`;
+      let configIdentifier = `${identifierBase}::config::${discoveryHashes.configSchemaHash}`;
 
       let upsertedConfig = await db.slateConfigSchema.upsert({
         where: {
@@ -263,7 +357,7 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
           mostRecentSpecificationOid: specification.oid,
           slateOid: slate.oid,
 
-          hash: configHash,
+          hash: discoveryHashes.configSchemaHash,
           identifier: configIdentifier,
 
           schema: configSchema.schema
@@ -272,19 +366,10 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
           schema: configSchema.schema
         }
       });
-      await db.slateSpecificationConfigSchema.upsert({
-        where: {
-          specificationOid_configSchemaOid: {
-            specificationOid: specification.oid,
-            configSchemaOid: upsertedConfig.oid
-          }
-        },
-        create: {
-          oid: snowflake.nextId(),
-          specificationOid: specification.oid,
-          configSchemaOid: upsertedConfig.oid
-        },
-        update: {}
+
+      await syncSpecificationConfigSchema({
+        specificationOid: specification.oid,
+        configSchemaOid: upsertedConfig.oid
       });
 
       await db.slateVersionDiscovery.createMany({

@@ -456,14 +456,16 @@ class providerAuthConfigServiceImpl {
           })
         : undefined;
 
-      let newConfigVersion = await db.providerAuthConfigVersion.create({
-        data: {
-          ...getId('providerAuthConfigVersion'),
-          authConfigOid: d.providerAuthConfig.oid,
-          slateAuthConfigOid: backendRes?.backendProviderAuthConfig.slateAuthConfig?.oid,
-          shuttleAuthConfigOid: backendRes?.backendProviderAuthConfig.shuttleAuthConfig?.oid
-        }
-      });
+      let newConfigVersion = backendRes
+        ? await db.providerAuthConfigVersion.create({
+            data: {
+              ...getId('providerAuthConfigVersion'),
+              authConfigOid: d.providerAuthConfig.oid,
+              slateAuthConfigOid: backendRes.backendProviderAuthConfig.slateAuthConfig?.oid,
+              shuttleAuthConfigOid: backendRes.backendProviderAuthConfig.shuttleAuthConfig?.oid
+            }
+          })
+        : null;
       let fromVersionOid = d.providerAuthConfig.currentVersionOid;
 
       let config = await db.providerAuthConfig.update({
@@ -480,14 +482,14 @@ class providerAuthConfigServiceImpl {
               ? normalizeToolFilters(d.input.toolFilters)
               : d.providerAuthConfig.toolFilter,
 
-          currentVersionOid: newConfigVersion.oid
+          currentVersionOid: newConfigVersion?.oid ?? d.providerAuthConfig.currentVersionOid
         },
         include
       });
 
       let authImport: ProviderAuthImport | undefined;
 
-      if (backendRes) {
+      if (backendRes && newConfigVersion) {
         let update = await db.providerAuthConfigUpdate.create({
           data: {
             ...getId('providerAuthConfigUpdate'),

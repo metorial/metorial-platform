@@ -1,9 +1,42 @@
 import { Signer } from '@aws-sdk/rds-signer';
-import { delay } from '@lowerdeck/delay';
 import { PrismaPg } from '@prisma/adapter-pg';
 import type pg from 'pg';
 import { PrismaClient } from '../../prisma/generated/client.js';
+import { env } from '../env';
 export * from '../../prisma/generated/client.js';
+
+let getPositiveInteger = (value: number | undefined, fallback: number) => {
+  if (!Number.isFinite(value) || value == null || value < 1) {
+    return fallback;
+  }
+
+  return Math.floor(value);
+};
+
+let GLOBAL_DB_TRANSACTION_MAX_WAIT_MS = getPositiveInteger(
+  env.service.GLOBAL_DB_TRANSACTION_MAX_WAIT_MS,
+  15_000
+);
+
+let GLOBAL_DB_TRANSACTION_TIMEOUT_MS = getPositiveInteger(
+  env.service.GLOBAL_DB_TRANSACTION_TIMEOUT_MS,
+  30_000
+);
+
+let GLOBAL_DB_KEEPALIVE_INTERVAL_MS = getPositiveInteger(
+  env.service.GLOBAL_DB_KEEPALIVE_INTERVAL_MS,
+  30_000
+);
+
+let GLOBAL_DB_POOL_IDLE_TIMEOUT_MS = getPositiveInteger(
+  env.service.GLOBAL_DB_POOL_IDLE_TIMEOUT_MS,
+  5 * 60_000
+);
+
+let GLOBAL_DB_CONNECTION_TIMEOUT_MS = getPositiveInteger(
+  env.service.GLOBAL_DB_CONNECTION_TIMEOUT_MS,
+  10_000
+);
 
 let getGlobalDatabaseRegion = (url: URL) => {
   let arnRegion = process.env.GLOBAL_DATABASE_ARN?.split(':')[3];
@@ -18,6 +51,26 @@ let getGlobalDatabaseRegion = (url: URL) => {
   );
 };
 
+let createBasePoolConfigFromUrl = (url: URL): pg.PoolConfig => {
+  return {
+    max: getPositiveInteger(
+      Number.parseInt(url.searchParams.get('connection_limit') || '10', 10),
+      10
+    ),
+    keepAlive: true,
+    keepAliveInitialDelayMillis: 0,
+    idleTimeoutMillis: GLOBAL_DB_POOL_IDLE_TIMEOUT_MS,
+    connectionTimeoutMillis: GLOBAL_DB_CONNECTION_TIMEOUT_MS
+  };
+};
+
+let createStaticPasswordPoolConfigFromUrl = (url: URL): pg.PoolConfig => {
+  return {
+    ...createBasePoolConfigFromUrl(url),
+    connectionString: url.toString()
+  };
+};
+
 let createGlobalDbPoolConfig = (): pg.PoolConfig => {
   if (!process.env.GLOBAL_DATABASE_URL) {
     throw new Error('GLOBAL_DATABASE_URL is required');
@@ -30,42 +83,43 @@ let createGlobalDbPoolConfig = (): pg.PoolConfig => {
     throw new Error('AWS region is required for GLOBAL_DATABASE_URL');
   }
 
-  let username = decodeURIComponent(url.username);
-  let port = Number.parseInt(url.port || '5432', 10);
   let signer = new Signer({
     region,
     hostname: url.hostname,
-    port,
-    username
+    port: Number.parseInt(url.port || '5432', 10),
+    username: decodeURIComponent(url.username)
   });
 
   return {
+    ...createBasePoolConfigFromUrl(url),
     host: url.hostname,
-    port,
+    port: Number.parseInt(url.port || '5432', 10),
     database: decodeURIComponent(url.pathname.replace(/^\//, '')),
-    user: username,
-    password: async () => await signer.getAuthToken(),
+    user: decodeURIComponent(url.username),
     ssl:
-      url.searchParams.get('sslmode') === 'require'
+      url.searchParams.get('sslmode') === 'require' ||
+      url.searchParams.get('sslmode') === 'no-verify'
         ? { rejectUnauthorized: false }
         : undefined,
-    max: Number.parseInt(url.searchParams.get('connection_limit') || '10', 10)
+    password: async () => await signer.getAuthToken()
   };
 };
 
 let createClient = () => {
-  let mainAdapter =
-    process.env.GLOBAL_DATABASE_ARN && process.env.GLOBAL_DATABASE_URL
-      ? new PrismaPg(createGlobalDbPoolConfig())
-      : new PrismaPg({
-          connectionString: process.env.GLOBAL_DATABASE_URL
-        });
+  if (!process.env.GLOBAL_DATABASE_URL) {
+    throw new Error('GLOBAL_DATABASE_URL is required');
+  }
+
+  let url = new URL(process.env.GLOBAL_DATABASE_URL);
+  let mainAdapter = process.env.GLOBAL_DATABASE_ARN
+    ? new PrismaPg(createGlobalDbPoolConfig())
+    : new PrismaPg(createStaticPasswordPoolConfigFromUrl(url));
 
   let baseClient = new PrismaClient({
     adapter: mainAdapter,
     transactionOptions: {
-      maxWait: 10000,
-      timeout: 12000
+      maxWait: GLOBAL_DB_TRANSACTION_MAX_WAIT_MS,
+      timeout: GLOBAL_DB_TRANSACTION_TIMEOUT_MS
     }
   });
 
@@ -78,18 +132,22 @@ export { globalDB };
 
 export type GlobalDB = typeof globalDB;
 
+let keepGlobalDbWarm = async () => {
+  try {
+    await globalDB.$queryRaw`SELECT 1`;
+  } catch (error) {
+    console.error('Error pinging global database:', error);
+  }
+
+  let timeout = setTimeout(() => {
+    void keepGlobalDbWarm();
+  }, GLOBAL_DB_KEEPALIVE_INTERVAL_MS);
+
+  timeout.unref?.();
+};
+
+void keepGlobalDbWarm();
+
 declare global {
   namespace PrismaJson {}
 }
-
-(async () => {
-  while (true) {
-    try {
-      globalDB.$queryRaw`SELECT 1`;
-    } catch (error) {
-      console.error('Error pinging global database:', error);
-    }
-
-    await delay(10_000);
-  }
-})();

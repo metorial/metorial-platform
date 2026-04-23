@@ -24,6 +24,39 @@ let specLock = createLock({
   redisUrl: env.service.REDIS_URL
 });
 
+let dedupeByKey = <T extends { key: string }>(
+  items: T[],
+  d: {
+    entity: string;
+    providerId: string;
+    providerVersionId?: string;
+  }
+) => {
+  let deduped: T[] = [];
+  let seen = new Set<string>();
+  let duplicateKeys = new Set<string>();
+
+  for (let item of items) {
+    if (seen.has(item.key)) {
+      duplicateKeys.add(item.key);
+      continue;
+    }
+
+    seen.add(item.key);
+    deduped.push(item);
+  }
+
+  if (duplicateKeys.size > 0) {
+    console.warn(`Filtered duplicate provider specification ${d.entity}`, {
+      providerId: d.providerId,
+      providerVersionId: d.providerVersionId,
+      duplicateKeys: [...duplicateKeys]
+    });
+  }
+
+  return deduped;
+};
+
 class providerSpecificationInternalServiceImpl {
   async ensureProviderSpecification(d: {
     provider: Provider;
@@ -37,15 +70,31 @@ class providerSpecificationInternalServiceImpl {
     tools: SpecificationTool[];
     triggers: SpecificationTrigger[];
   }) {
+    let authMethods = dedupeByKey(d.authMethods, {
+      entity: 'auth_methods',
+      providerId: d.provider.id,
+      providerVersionId: d.providerVersion.id
+    });
+    let tools = dedupeByKey(d.tools, {
+      entity: 'tools',
+      providerId: d.provider.id,
+      providerVersionId: d.providerVersion.id
+    });
+    let triggers = dedupeByKey(d.triggers, {
+      entity: 'triggers',
+      providerId: d.provider.id,
+      providerVersionId: d.providerVersion.id
+    });
+
     let specHash = await Hash.sha256(
       canonicalize({
         type: d.type,
         providerId: d.provider.id,
         specification: d.specification,
-        authMethods: d.authMethods,
+        authMethods,
         features: d.features,
-        tools: d.tools,
-        triggers: d.triggers
+        tools,
+        triggers
       })
     );
 
@@ -61,15 +110,15 @@ class providerSpecificationInternalServiceImpl {
       if (existingSpec) return existingSpec;
 
       let defaultAuthConfig =
-        d.authMethods.find(am => am.type === 'token') ??
-        d.authMethods.find(am => am.type === 'oauth') ??
-        d.authMethods[0];
+        authMethods.find(am => am.type === 'token') ??
+        authMethods.find(am => am.type === 'oauth') ??
+        authMethods[0];
 
       try {
         return await db.$transaction(async db => {
           await db.providerToolGlobal.createMany({
             skipDuplicates: true,
-            data: d.tools.map(t => ({
+            data: tools.map(t => ({
               ...getId('providerToolGlobal'),
               key: t.key,
               providerOid: d.provider.oid
@@ -77,7 +126,7 @@ class providerSpecificationInternalServiceImpl {
           });
           await db.providerAuthMethodGlobal.createMany({
             skipDuplicates: true,
-            data: d.authMethods.map(am => ({
+            data: authMethods.map(am => ({
               ...getId('providerAuthMethodGlobal'),
               key: am.key,
               providerOid: d.provider.oid
@@ -85,7 +134,7 @@ class providerSpecificationInternalServiceImpl {
           });
           await db.providerTriggerGlobal.createMany({
             skipDuplicates: true,
-            data: d.triggers.map(t => ({
+            data: triggers.map(t => ({
               ...getId('providerTriggerGlobal'),
               key: t.key,
               providerOid: d.provider.oid
@@ -128,10 +177,10 @@ class providerSpecificationInternalServiceImpl {
 
               value: {
                 specification: d.specification,
-                authMethods: d.authMethods,
+                authMethods,
                 features: d.features,
-                tools: d.tools,
-                triggers: d.triggers
+                tools,
+                triggers
               },
 
               supportsAuthMethod: d.features.supportsAuthMethod,
@@ -139,7 +188,7 @@ class providerSpecificationInternalServiceImpl {
 
               providerAuthMethods: {
                 create: await Promise.all(
-                  d.authMethods.map(async am => ({
+                  authMethods.map(async am => ({
                     ...getId('providerAuthMethod'),
                     specId: am.specId,
                     specUniqueIdentifier: am.specUniqueIdentifier ?? am.specId,
@@ -163,7 +212,7 @@ class providerSpecificationInternalServiceImpl {
 
               providerTools: {
                 create: await Promise.all(
-                  d.tools.map(async t => ({
+                  tools.map(async t => ({
                     ...getId('providerTool'),
                     specId: t.specId,
                     specUniqueIdentifier: t.specUniqueIdentifier ?? t.specId,
@@ -184,7 +233,7 @@ class providerSpecificationInternalServiceImpl {
 
               providerTriggers: {
                 create: await Promise.all(
-                  d.triggers.map(async t => ({
+                  triggers.map(async t => ({
                     ...getId('providerTrigger'),
                     specId: t.specId,
                     specUniqueIdentifier: t.specUniqueIdentifier ?? t.specId,

@@ -154,7 +154,15 @@ export let mcpRouter = createHono().all(`/:key?`, async c => {
       let res = await con.handleMessage(json, {
         waitForResponse: true
       });
-      if (!res) return c.text('No response');
+      if (!res) {
+        // return streamSSE(c, async stream => {
+        //   await delay(100); // ensure the message is sent before closing
+        // });
+
+        // if (!res) return c.text('No response');
+
+        return new Response(null, { status: 202 });
+      }
 
       if (con.connection) {
         c.res.headers.set('mcp-session-id', con.connection.token);

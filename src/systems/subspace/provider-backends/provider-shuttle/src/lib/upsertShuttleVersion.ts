@@ -47,7 +47,7 @@ let getBackendForServerType = (
   }
 };
 
-export let upsertShuttleServerVersion = ({
+export let upsertShuttleServerVersion = async ({
   publisherId,
   globalIdentifier,
 
@@ -72,145 +72,149 @@ export let upsertShuttleServerVersion = ({
     categories: string[];
     readme?: string;
   };
-}) =>
-  withTransaction(async db => {
-    let publisher: Publisher | null = null;
-    let owner: { tenant: Tenant } | null = null;
+}) => {
+  return await withTransaction(
+    async db => {
+      let publisher: Publisher | null = null;
+      let owner: { tenant: Tenant } | null = null;
 
-    if (server.tenantId) {
-      let tenant = await db.tenant.findFirst({
-        where: { shuttleTenantId: server.tenantId }
-      });
-
-      if (tenant) {
-        publisher = await publisherInternalService.upsertPublisherForTenant({
-          tenant
+      if (server.tenantId) {
+        let tenant = await db.tenant.findFirst({
+          where: { shuttleTenantId: server.tenantId }
         });
-        owner = { tenant };
-      }
-    }
 
-    if (!publisher && publisherId) {
-      publisher = await db.publisher.findFirst({
-        where: { OR: [{ id: publisherId }, { identifier: publisherId }] }
-      });
-    }
-
-    if (!publisher) {
-      if (server.type === 'container') {
-        if (
-          version.repositoryVersion &&
-          (version.repositoryVersion.repository.registry.url === 'https://ghcr.io' ||
-            version.repositoryVersion.repository.registry.url === 'ghcr.io') &&
-          version.repositoryVersion.repository.name.startsWith('metorial/mcp-container--')
-        ) {
-          publisher = await publisherInternalService.upsertPublisherForExternal({
-            identifier: `shuttle::registry::metorial.com/mcp-container`,
-            name: 'Metorial MCP Containers'
+        if (tenant) {
+          publisher = await publisherInternalService.upsertPublisherForTenant({
+            tenant
           });
-        } else if (
-          version.repositoryVersion &&
-          (version.repositoryVersion.repository.registry.url === 'https://ghcr.io' ||
-            version.repositoryVersion.repository.registry.url === 'ghcr.io') &&
-          version.repositoryVersion.repository.name.startsWith('metorial/')
-        ) {
-          publisher = await publisherInternalService.upsertPublisherForMetorial();
-        } else {
+          owner = { tenant };
+        }
+      }
+
+      if (!publisher && publisherId) {
+        publisher = await db.publisher.findFirst({
+          where: { OR: [{ id: publisherId }, { identifier: publisherId }] }
+        });
+      }
+
+      if (!publisher) {
+        if (server.type === 'container') {
+          if (
+            version.repositoryVersion &&
+            (version.repositoryVersion.repository.registry.url === 'https://ghcr.io' ||
+              version.repositoryVersion.repository.registry.url === 'ghcr.io') &&
+            version.repositoryVersion.repository.name.startsWith('metorial/mcp-container--')
+          ) {
+            publisher = await publisherInternalService.upsertPublisherForExternal({
+              identifier: `shuttle::registry::metorial.com/mcp-container`,
+              name: 'Metorial MCP Containers'
+            });
+          } else if (
+            version.repositoryVersion &&
+            (version.repositoryVersion.repository.registry.url === 'https://ghcr.io' ||
+              version.repositoryVersion.repository.registry.url === 'ghcr.io') &&
+            version.repositoryVersion.repository.name.startsWith('metorial/')
+          ) {
+            publisher = await publisherInternalService.upsertPublisherForMetorial();
+          } else {
+            publisher = await publisherInternalService.upsertPublisherForExternal({
+              identifier: `shuttle::registry::${version.repositoryVersion?.repository.registry.id}`,
+              name:
+                version.repositoryVersion?.repository.registry.name ??
+                version.repositoryVersion?.repository.registry.url ??
+                'Unknown Registry'
+            });
+          }
+        } else if (server.type === 'remote') {
           publisher = await publisherInternalService.upsertPublisherForExternal({
-            identifier: `shuttle::registry::${version.repositoryVersion?.repository.registry.id}`,
-            name:
-              version.repositoryVersion?.repository.registry.name ??
-              version.repositoryVersion?.repository.registry.url ??
-              'Unknown Registry'
+            identifier: `shuttle::remote::${version.remoteUrl}`,
+            name: `MCP Remote (${version.remoteUrl ?? 'unknown'})`
           });
         }
-      } else if (server.type === 'remote') {
-        publisher = await publisherInternalService.upsertPublisherForExternal({
-          identifier: `shuttle::remote::${version.remoteUrl}`,
-          name: `MCP Remote (${version.remoteUrl ?? 'unknown'})`
-        });
       }
-    }
 
-    if (!publisher) {
-      publisher = await publisherInternalService.upsertUnknownPublisher();
-    }
+      if (!publisher) {
+        publisher = await publisherInternalService.upsertUnknownPublisher();
+      }
 
-    let hasConfig = !!normalizeJsonSchema(getConfigSchema(version.configSchema));
-    let providerBackend = getBackendForServerType(server.type);
+      let hasConfig = !!normalizeJsonSchema(getConfigSchema(version.configSchema));
+      let providerBackend = getBackendForServerType(server.type);
 
-    let type = {
-      name: `MCP`,
+      let type = {
+        name: `MCP`,
 
-      attributes: {
-        provider: 'metorial-shuttle',
-        backend: providerBackend,
+        attributes: {
+          provider: 'metorial-shuttle',
+          backend: providerBackend,
 
-        triggers: { status: 'disabled' },
+          triggers: { status: 'disabled' },
 
-        auth: server.oauthConfig
-          ? {
-              status: 'enabled',
-
-              oauth: {
+          auth: server.oauthConfig
+            ? {
                 status: 'enabled',
-                oauthCallbackUrl: `${env.service.SHUTTLE_PUBLIC_URL}/shuttle-oauth/callback`,
-                oauthAutoRegistration: {
-                  status:
-                    server.oauthConfig?.discovery.status === 'supports_auto_registration'
-                      ? 'supported'
-                      : 'unsupported'
-                }
-              },
 
-              export: { status: 'enabled' },
-              import: { status: 'enabled' }
-            }
-          : { status: 'disabled' },
+                oauth: {
+                  status: 'enabled',
+                  oauthCallbackUrl: `${env.service.SHUTTLE_PUBLIC_URL}/shuttle-oauth/callback`,
+                  oauthAutoRegistration: {
+                    status:
+                      server.oauthConfig?.discovery.status === 'supports_auto_registration'
+                        ? 'supported'
+                        : 'unsupported'
+                  }
+                },
 
-        config: hasConfig
-          ? { status: 'enabled', read: { status: 'disabled' } }
-          : { status: 'disabled' }
-      } satisfies PrismaJson.ProviderTypeAttributes
-    };
+                export: { status: 'enabled' },
+                import: { status: 'enabled' }
+              }
+            : { status: 'disabled' },
 
-    let provider = await providerInternalService.upsertProvider({
-      owner,
-      publisher,
-      source: {
-        type: 'shuttle',
-        shuttleServer: shuttleServerRecord,
-        backend
-      },
-      info: {
-        name: server.name,
-        description: server.description ?? undefined,
-        slug: slugify(`${server.name}-${generateCode(5)}`),
-        globalIdentifier: owner ? null : (globalIdentifier ?? null),
+          config: hasConfig
+            ? { status: 'enabled', read: { status: 'disabled' } }
+            : { status: 'disabled' }
+        } satisfies PrismaJson.ProviderTypeAttributes
+      };
 
-        categories: info?.categories,
-        readme: info?.readme
-      },
-      type
-    });
-    if (!provider?.defaultVariant) {
-      throw new Error(`No default variant after upserting provider for server ${server.id}`);
-    }
+      let provider = await providerInternalService.upsertProvider({
+        owner,
+        publisher,
+        source: {
+          type: 'shuttle',
+          shuttleServer: shuttleServerRecord,
+          backend
+        },
+        info: {
+          name: server.name,
+          description: server.description ?? undefined,
+          slug: slugify(`${server.name}-${generateCode(5)}`),
+          globalIdentifier: owner ? null : (globalIdentifier ?? null),
 
-    let providerVersion = await providerVersionInternalService.upsertVersion({
-      variant: provider.defaultVariant,
-      isCurrent: version.isCurrent,
-      source: {
-        type: 'shuttle',
-        shuttleServer: shuttleServerRecord,
-        shuttleServerVersion: shuttleServerVersionRecord,
-        backend
-      },
-      info: {
-        name: generatePlainId(8)
-      },
-      type
-    });
+          categories: info?.categories,
+          readme: info?.readme
+        },
+        type
+      });
+      if (!provider?.defaultVariant) {
+        throw new Error(`No default variant after upserting provider for server ${server.id}`);
+      }
 
-    return { provider, providerVersion };
-  });
+      let providerVersion = await providerVersionInternalService.upsertVersion({
+        variant: provider.defaultVariant,
+        isCurrent: version.isCurrent,
+        source: {
+          type: 'shuttle',
+          shuttleServer: shuttleServerRecord,
+          shuttleServerVersion: shuttleServerVersionRecord,
+          backend
+        },
+        info: {
+          name: generatePlainId(8)
+        },
+        type
+      });
+
+      return { provider, providerVersion };
+    },
+    { ifExists: true }
+  );
+};
