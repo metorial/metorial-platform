@@ -9,8 +9,7 @@ import {
   LinkButton,
   Spacer,
   Switch,
-  Text,
-  Title
+  Text
 } from '@metorial-io/ui';
 import { differenceInMinutes } from 'date-fns';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -61,19 +60,12 @@ let CreateUserStep = ({
   });
 
   return (
-    <AuthLayout>
-      <Title as="h1" weight="bold" size="4">
-        Let's finish setting up your account
-      </Title>
-
-      <Spacer height={10} />
-
-      <Text color="gray600" weight="medium" size="2">
-        Please tell us a little bit more about yourself.
-      </Text>
-
-      <Spacer height={25} />
-
+    <AuthLayout
+      main={{
+        title: `Let's finish setting up your account`,
+        description: 'Please tell us a little bit more about yourself.'
+      }}
+    >
       <form onSubmit={form.handleSubmit}>
         <div
           style={{
@@ -192,19 +184,12 @@ let AuthIntentStep = ({
 
   if (step?.type == 'email_code') {
     return (
-      <AuthLayout>
-        <Title as="h1" weight="bold" size="4">
-          Verify Your Email
-        </Title>
-
-        <Spacer height={10} />
-
-        <Text color="gray600" weight="medium" size="2">
-          We've sent a 6-digit code to {step.email}. Please enter it below.
-        </Text>
-
-        <Spacer height={25} />
-
+      <AuthLayout
+        main={{
+          title: 'Verify Your Email',
+          description: `We've sent a 6-digit code to ${step.email}. Please enter it below.`
+        }}
+      >
         <div>
           <CodeInput
             onComplete={code => {

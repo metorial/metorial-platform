@@ -14,6 +14,7 @@ export let ProviderAuthConfigCreateButton = (
     iconLeft?: ReactNode;
     children: ReactNode;
     ariaLabel?: string;
+    disabled?: boolean;
   }
 ) => {
   let authCreation = useProviderAuthCreationCapabilities(
@@ -32,11 +33,11 @@ export let ProviderAuthConfigCreateButton = (
       onBack: p.onBack
     });
 
-  if (!authCreation.canCreateAuthConfig) {
+  if (p.disabled || !authCreation.canCreateAuthConfig) {
     return (
       <Tooltip
         content={authCreation.authConfigDisabledReason ?? ''}
-        enabled={!authCreation.canCreateAuthConfig}
+        enabled={!p.disabled && !authCreation.canCreateAuthConfig}
         delayDuration={0}
       >
         <div style={{ display: 'inline-flex' }}>
@@ -61,6 +62,7 @@ export let ProviderAuthConfigCreateButton = (
         size={p.size}
         iconLeft={p.iconLeft}
         aria-label={p.ariaLabel}
+        disabled={p.disabled}
         onClick={() => openCreateFlow(authCreation.authMethodItems[0]!.id)}
       >
         {p.children}
@@ -79,7 +81,13 @@ export let ProviderAuthConfigCreateButton = (
       }))}
       onItemClick={authMethodId => openCreateFlow(authMethodId)}
     >
-      <Button type="button" size={p.size} iconLeft={p.iconLeft} aria-label={p.ariaLabel}>
+      <Button
+        type="button"
+        size={p.size}
+        iconLeft={p.iconLeft}
+        aria-label={p.ariaLabel}
+        disabled={p.disabled}
+      >
         {p.children}
       </Button>
     </Menu>

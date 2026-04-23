@@ -27,7 +27,7 @@ let SectionLabel = styled.div`
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.08em;
-  color: ${theme.colors.gray600};
+  color: ${theme.colors.gray800};
 `;
 
 let CredentialGroup = styled.div`
@@ -382,6 +382,8 @@ let languageDotColor: Record<string, string> = {
   javascript: '#f7df1e'
 };
 
+let capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
 let LuxeCodeBlock = ({
   code,
   language = 'bash',
@@ -399,7 +401,7 @@ let LuxeCodeBlock = ({
       <CodeCardHeader>
         <CodeCardLabel>
           <CodeLanguageDot $color={dotColor} />
-          {label ?? language}
+          {capitalize(label ?? language)}
         </CodeCardLabel>
         <IconButton
           type="button"
@@ -571,7 +573,7 @@ export let McpConnectionInstructionsScene = ({
   return (
     <Wrapper>
       <div>
-        <SectionLabel style={{ marginBottom: 10 }}>Credentials</SectionLabel>
+        <SectionLabel style={{ marginBottom: 5 }}>Credentials</SectionLabel>
 
         <CredentialGroup>
           <CredentialRow
@@ -596,7 +598,7 @@ export let McpConnectionInstructionsScene = ({
       {connection ? (
         <>
           <div>
-            <SectionLabel style={{ marginBottom: 10 }}>Choose your client</SectionLabel>
+            <SectionLabel style={{ marginBottom: 5 }}>Choose your client</SectionLabel>
 
             <ClientScroller>
               <ClientScrollArea ref={clientScrollRef}>
@@ -672,7 +674,7 @@ export let McpConnectionInstructionsScene = ({
                 <LuxeCodeBlock
                   code={JSON.stringify(connection.config, null, 2)}
                   language="json"
-                  label="configuration"
+                  label="Configuration"
                 />
               </motion.div>
             )}

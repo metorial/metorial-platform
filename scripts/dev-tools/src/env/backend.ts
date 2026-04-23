@@ -139,11 +139,11 @@ export let backendEnv: Env = [
 
   {
     key: 'ARES_INTERNAL_URL',
-    defaultValue: 'http://services:52123/metorial-ares-internal/api'
+    defaultValue: 'http://localhost:52123/metorial-ares-internal/api'
   },
   {
     key: 'ARES_AUTH_URL',
-    defaultValue: 'http://services:52120'
+    defaultValue: 'http://localhost:52120'
   },
 
   {

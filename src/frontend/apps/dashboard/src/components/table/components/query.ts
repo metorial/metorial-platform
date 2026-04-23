@@ -26,6 +26,19 @@ let getFilterQueryKeys = (filters: TableFilter<any>[]) => {
   return keys;
 };
 
+let getManagedQueryString = (searchParams: URLSearchParams, filterKeys: Set<string>) => {
+  let managedSearchParams = new URLSearchParams();
+  let orderedKeys = ['search', ...[...filterKeys].sort()];
+
+  for (let key of orderedKeys) {
+    for (let value of searchParams.getAll(key)) {
+      managedSearchParams.append(key, value);
+    }
+  }
+
+  return managedSearchParams.toString();
+};
+
 export let useFilterQuery = ({
   filters,
   filterState: [filterState, setFilterState],
@@ -62,6 +75,7 @@ export let useFilterQuery = ({
     try {
       let filterQuery = serializeToQuery(filterState);
       let nextSearchParams = new URLSearchParams(searchParams);
+      let currentManagedQuery = getManagedQueryString(searchParams, filterKeys);
 
       for (let key of filterKeys) {
         nextSearchParams.delete(key);
@@ -75,8 +89,12 @@ export let useFilterQuery = ({
       if (debouncedSearch) nextSearchParams.set('search', debouncedSearch);
       else nextSearchParams.delete('search');
 
-      nextSearchParams.delete('before');
-      nextSearchParams.delete('after');
+      let nextManagedQuery = getManagedQueryString(nextSearchParams, filterKeys);
+      let didManagedQueryChange = currentManagedQuery != nextManagedQuery;
+      if (didManagedQueryChange) {
+        nextSearchParams.delete('before');
+        nextSearchParams.delete('after');
+      }
 
       let query = nextSearchParams.toString();
       if (searchParams.toString() == query) return;

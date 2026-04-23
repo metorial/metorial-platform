@@ -11,9 +11,19 @@ import {
   useProviderAuthMethods,
   useProviderDeployment
 } from '@metorial/state';
-import { Button, CenteredSpinner, Dialog, Input, Select, Spacer, Text } from '@metorial/ui';
+import {
+  Button,
+  CenteredSpinner,
+  Dialog,
+  Input,
+  InputLabel,
+  Select,
+  Spacer,
+  Text
+} from '@metorial/ui';
 import { useEffect, useState } from 'react';
 import styled from 'styled-components';
+import { Stepper } from '../../../../components/stepper';
 import { getJsonSchemaObject } from '../../lib/jsonSchema';
 import { orderProviderAuthMethods } from '../../lib/providerCreationCapabilities';
 import { getProviderOAuthAutoRegistrationEnabled } from '../../lib/providerOAuthAutoRegistration';
@@ -23,13 +33,11 @@ import {
   getInvalidJsonStringFieldLabels,
   JsonSchemaInput
 } from '../jsonSchemaInput';
+import { ProviderContextCard } from '../providerContextCard';
 import {
   FlatCreateSection,
-  FlatCreateSectionLabel,
   FlatCreateSections
 } from '../providerCreationPanel/flatCreateLayout';
-import { ProviderContextCard } from '../providerContextCard';
-import { Stepper } from '../../../../components/stepper';
 
 type AuthMethod = DashboardInstanceProvidersAuthMethodsListOutput['items'][number];
 
@@ -441,7 +449,7 @@ export let ProviderAuthConfigForm = (
               <Spacer size={15} />
 
               <FlatCreateSectionGroup>
-                <FlatCreateSectionLabel>Credentials</FlatCreateSectionLabel>
+                <InputLabel>Credentials</InputLabel>
                 <FlatCreateSection>{credentialsSection}</FlatCreateSection>
               </FlatCreateSectionGroup>
             </FlatCreateSections>
@@ -548,7 +556,7 @@ export let ProviderAuthConfigForm = (
             </Text>
           )}
 
-          <Spacer size={10} />
+          <Spacer size={8} />
 
           {credentialsSection}
 

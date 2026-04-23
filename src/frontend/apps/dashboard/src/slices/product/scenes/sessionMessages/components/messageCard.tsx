@@ -1,28 +1,179 @@
 import { CodeBlock } from '@metorial/code';
-import { Button, Menu, Text } from '@metorial/ui';
-import { RiArrowDownSLine } from '@remixicon/react';
+import { Button, Datalist, Menu, Text } from '@metorial/ui';
+import { RiArrowDownSLine, RiErrorWarningLine } from '@remixicon/react';
 import { type ReactNode, useState } from 'react';
 import { JsonViewer } from '../../../../../components/jsonViewer';
 import {
   EmptyState,
-  ErrorLabel,
-  ErrorRow,
-  ErrorSection,
-  ErrorValue,
   Header,
   HeaderActions,
   HeaderSection,
   ID,
+  InlineCode,
   Main,
+  MetaCard,
+  MetaDescription,
+  MetaHeader,
   Output,
   Section,
   SectionHeader,
   Sections,
+  StatusBadge,
   Title,
   Wrapper
 } from '../styles';
 import type { DashboardInstanceSessionsMessagesGetOutput, OverviewSection } from '../types';
-import { formatRawJson, getDefaultSection, shorten } from '../utils';
+import { asRecord, formatRawJson, getDefaultSection, shorten } from '../utils';
+
+let isPresentValue = (value: unknown) => value !== null && value !== undefined && value !== '';
+
+let stringifyValue = (value: unknown) => {
+  if (!isPresentValue(value)) return null;
+  return typeof value === 'string' ? value : String(value);
+};
+
+let getMergedError = (error?: DashboardInstanceSessionsMessagesGetOutput['error']) => {
+  let errorRecord = asRecord(error);
+  if (!errorRecord) return null;
+
+  let nestedData = asRecord(errorRecord.data);
+  let { data, ...topLevel } = errorRecord;
+
+  return {
+    ...nestedData,
+    ...topLevel
+  };
+};
+
+let getTraceRecord = (value: unknown) => {
+  if (!Array.isArray(value) || value.length === 0) return null;
+  return asRecord(value[0]);
+};
+
+let parseJsonRecord = (value: unknown) => {
+  if (typeof value !== 'string') return null;
+
+  try {
+    return asRecord(JSON.parse(value));
+  } catch {
+    return null;
+  }
+};
+
+type MetaEntry = {
+  label: string;
+  value: ReactNode;
+};
+
+let buildErrorOverviewSections = (
+  error?: DashboardInstanceSessionsMessagesGetOutput['error']
+): OverviewSection[] => {
+  let normalizedError = getMergedError(error);
+  if (!normalizedError) return [];
+
+  let provider = asRecord(normalizedError.provider);
+  let upstream = asRecord(normalizedError.upstream);
+  let baggage = asRecord(normalizedError.baggage);
+  let baggageResponse = asRecord(baggage?.response);
+  let trace = getTraceRecord(normalizedError.requestTraces);
+  let traceRequest = asRecord(trace?.request);
+  let traceResponse = asRecord(trace?.response);
+  let traceError = asRecord(trace?.error);
+  let traceResponseBody = asRecord(traceResponse?.body);
+  let parsedTraceBody = parseJsonRecord(traceResponseBody?.text);
+
+  let code = stringifyValue(normalizedError.code);
+  let message = stringifyValue(normalizedError.message);
+  let kind = stringifyValue(normalizedError.kind);
+  let status = stringifyValue(normalizedError.status);
+  let providerName = stringifyValue(provider?.key ?? provider?.name);
+  let retryable =
+    typeof normalizedError.retryable === 'boolean' ? normalizedError.retryable : null;
+
+  let upstreamMethod = stringifyValue(upstream?.method ?? traceRequest?.method);
+  let upstreamUrl = stringifyValue(upstream?.url ?? traceRequest?.url);
+  let traceRows = [
+    upstreamUrl
+      ? {
+          label: 'Endpoint',
+          value: (
+            <>
+              {upstreamMethod ? <InlineCode>{upstreamMethod}</InlineCode> : null}
+              {upstreamMethod ? ' ' : null}
+              {upstreamUrl}
+            </>
+          )
+        }
+      : null,
+    { label: 'Upstream Code', value: stringifyValue(upstream?.code) },
+    { label: 'Status', value: stringifyValue(upstream?.status ?? traceResponse?.status) },
+    { label: 'Status Text', value: stringifyValue(traceResponse?.statusText) },
+    {
+      label: 'Duration',
+      value: isPresentValue(trace?.durationMs) ? `${trace?.durationMs} ms` : null
+    },
+    {
+      label: 'Response Error',
+      value: stringifyValue(baggageResponse?.error ?? parsedTraceBody?.error)
+    },
+    {
+      label: 'Description',
+      value: stringifyValue(
+        baggageResponse?.error_description ?? parsedTraceBody?.error_description
+      )
+    },
+    { label: 'Axios Code', value: stringifyValue(baggage?.axiosCode) },
+    { label: 'Trace Error', value: stringifyValue(traceError?.message) },
+    { label: 'Trace Code', value: stringifyValue(traceError?.code) }
+  ].filter(row => !!row && isPresentValue(row.value)) as MetaEntry[];
+
+  let traceCount = Array.isArray(normalizedError.requestTraces)
+    ? normalizedError.requestTraces.length
+    : 0;
+
+  return [
+    {
+      id: 'error-summary',
+      label: 'Summary',
+      content: (
+        <MetaCard>
+          <MetaHeader>
+            <StatusBadge data-variant="error">
+              <RiErrorWarningLine size={12} />
+              Error
+            </StatusBadge>
+            {code ? <InlineCode>{code}</InlineCode> : null}
+            {kind ? <InlineCode>{kind}</InlineCode> : null}
+            {status ? <InlineCode>{status}</InlineCode> : null}
+            {retryable !== null ? (
+              <InlineCode>{retryable ? 'retryable' : 'not retryable'}</InlineCode>
+            ) : null}
+          </MetaHeader>
+
+          {message ? <MetaDescription>{message}</MetaDescription> : null}
+        </MetaCard>
+      )
+    },
+    ...(traceRows.length > 0 || traceCount > 1
+      ? [
+          {
+            id: 'error-trace',
+            label: 'Trace',
+            content: (
+              <MetaCard>
+                <Datalist items={traceRows} />
+                {traceCount > 1 ? (
+                  <Text size="1" color="gray700">
+                    Showing the first of {traceCount} request traces.
+                  </Text>
+                ) : null}
+              </MetaCard>
+            )
+          }
+        ]
+      : [])
+  ];
+};
 
 export let MessageCard = ({
   date,
@@ -48,12 +199,19 @@ export let MessageCard = ({
   position: string;
 }) => {
   let hasError = !!error || !!isToolError;
-  let hasOverview = overviewSections.length > 0;
+  let errorOverviewSections = buildErrorOverviewSections(error);
+  let combinedOverviewSections = [...errorOverviewSections, ...overviewSections];
+  let hasOverview = combinedOverviewSections.length > 0;
   let [viewMode, setViewMode] = useState<'overview' | 'properties' | 'raw'>(
-    hasOverview ? defaultViewMode : 'properties'
+    errorOverviewSections.length > 0
+      ? 'overview'
+      : hasOverview
+        ? defaultViewMode
+        : 'properties'
   );
 
   let propertySections = [
+    ...(error ? [{ id: 'error', label: 'Error', value: error }] : []),
     ...(getDefaultSection(input, 'Input')
       ? [{ id: 'input', ...getDefaultSection(input, 'Input')! }]
       : []),
@@ -63,13 +221,14 @@ export let MessageCard = ({
   ];
 
   let rawSections = [
+    ...(error ? [{ id: 'error-raw', label: 'Error JSON', value: error }] : []),
     ...(input ? [{ id: 'input-raw', label: 'Input JSON', value: input }] : []),
     ...(output ? [{ id: 'output-raw', label: 'Output JSON', value: output }] : [])
   ];
 
   let hasSections =
     viewMode === 'overview'
-      ? overviewSections.length > 0
+      ? combinedOverviewSections.length > 0
       : viewMode === 'properties'
         ? propertySections.length > 0
         : rawSections.length > 0;
@@ -93,7 +252,7 @@ export let MessageCard = ({
                       {
                         id: 'overview',
                         label: 'Overview',
-                        description: 'Show a concise MCP-specific summary of this message.'
+                        description: 'Show the most important details from this message first.'
                       }
                     ]
                   : []),
@@ -125,7 +284,7 @@ export let MessageCard = ({
           {hasSections ? (
             <Sections>
               {viewMode === 'overview'
-                ? overviewSections.map(section => (
+                ? combinedOverviewSections.map(section => (
                     <Section key={section.id}>
                       {section.label ? <SectionHeader>{section.label}</SectionHeader> : null}
                       {section.content}
@@ -155,25 +314,6 @@ export let MessageCard = ({
             </EmptyState>
           )}
         </Main>
-
-        {error && (
-          <ErrorSection>
-            <ErrorRow>
-              <ErrorLabel>Code</ErrorLabel>
-              <ErrorValue>{error.code}</ErrorValue>
-            </ErrorRow>
-            <ErrorRow>
-              <ErrorLabel>Message</ErrorLabel>
-              <ErrorValue>{error.message}</ErrorValue>
-            </ErrorRow>
-            {error.data && Object.keys(error.data).length > 0 && (
-              <Section>
-                <SectionHeader>Error Data</SectionHeader>
-                <JsonViewer value={error.data} />
-              </Section>
-            )}
-          </ErrorSection>
-        )}
       </Wrapper>
     </Output>
   );

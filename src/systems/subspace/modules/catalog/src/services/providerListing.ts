@@ -200,7 +200,16 @@ class ProviderListingService {
               //   : undefined!,
 
               d.ids
-                ? { OR: [{ id: { in: d.ids } }, { provider: { id: { in: d.ids } } }] }
+                ? {
+                    OR: [
+                      { id: { in: d.ids } },
+                      { slug: { in: d.ids } },
+                      { prettySlug: { in: d.ids } },
+                      { aliases: { hasSome: d.ids } },
+                      { provider: { id: { in: d.ids } } },
+                      { provider: { globalIdentifier: { in: d.ids } } }
+                    ]
+                  }
                 : undefined!,
 
               search ? { id: { in: search.map(r => r.documentId) } } : undefined!,

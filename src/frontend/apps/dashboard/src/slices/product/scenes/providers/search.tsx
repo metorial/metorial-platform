@@ -146,10 +146,25 @@ let ProviderCardWrapper = styled.div`
   }
 
   [data-button='true'] {
+    transition:
+      border-color 0.18s ease,
+      box-shadow 0.18s ease;
+
     &:hover,
     &:focus {
-      box-shadow: none;
+      border-color: ${theme.colors.gray400};
+      box-shadow: ${theme.shadows.small};
     }
+  }
+
+  &[data-selected='true'] [data-button='true'] {
+    border-color: ${theme.colors.black900};
+    box-shadow: ${theme.shadows.small};
+  }
+
+  &[data-selected='true'] [data-button='true']:hover,
+  &[data-selected='true'] [data-button='true']:focus {
+    border-color: ${theme.colors.black900};
   }
 `;
 
@@ -193,7 +208,8 @@ let ProviderItemsGrid = ({
   columns,
   selectionMode = 'default',
   variant = 'compactList',
-  cardSize = 'default'
+  cardSize = 'default',
+  selectedProviderId
 }: {
   items: ProviderSearchItem[];
   onSelect?: (provider: ProviderSearchItem) => void;
@@ -202,6 +218,7 @@ let ProviderItemsGrid = ({
   selectionMode?: 'default' | 'authCredentialsCreate';
   variant?: ProviderSearchVariant;
   cardSize?: ProviderCardSize;
+  selectedProviderId?: string;
 }) => {
   if (items.length === 0) {
     return (
@@ -230,6 +247,7 @@ let ProviderItemsGrid = ({
               key={provider.id}
               title={disabledReason}
               data-disabled={isDisabled ? 'true' : 'false'}
+              data-selected={selectedProviderId === provider.id ? 'true' : 'false'}
             >
               <ItemGrid.Item
                 title={provider.name ?? provider.slug ?? 'Provider'}
@@ -330,7 +348,8 @@ let ProviderSearchGrid = ({
   cardSize = 'default',
   hideSearch = false,
   internalScroll = false,
-  internalScrollHeight
+  internalScrollHeight,
+  selectedProviderId
 }: {
   items: ProviderSearchItem[];
   onSelect?: (provider: ProviderSearchItem) => void;
@@ -345,6 +364,7 @@ let ProviderSearchGrid = ({
   hideSearch?: boolean;
   internalScroll?: boolean;
   internalScrollHeight?: string | number;
+  selectedProviderId?: string;
 }) => {
   let [search, setSearch] = useState('');
   let searchDebounced = useDebounced(search, 300);
@@ -368,6 +388,7 @@ let ProviderSearchGrid = ({
       selectionMode={selectionMode}
       variant={variant}
       cardSize={cardSize}
+      selectedProviderId={selectedProviderId}
     />
   );
 
@@ -404,7 +425,8 @@ export let ProviderSearch = ({
   cardSize = 'default',
   hideSearch = false,
   internalScroll = false,
-  internalScrollHeight
+  internalScrollHeight,
+  selectedProviderId
 }: {
   onSelect?: (provider: ProviderListingsGetOutput['provider']) => void;
   stickyTop?: number;
@@ -416,6 +438,7 @@ export let ProviderSearch = ({
   hideSearch?: boolean;
   internalScroll?: boolean;
   internalScrollHeight?: string | number;
+  selectedProviderId?: string;
 }) => {
   let [search, setSearch] = useState('');
   let searchDebounced = useDebounced(search, 500);
@@ -442,6 +465,7 @@ export let ProviderSearch = ({
       columns={columns}
       variant={variant}
       cardSize={cardSize}
+      selectedProviderId={selectedProviderId}
       onSelect={provider => {
         let selectedProvider = providers.data.items.find(item => item.id === provider.id);
         if (selectedProvider) onSelect?.(selectedProvider.provider);
@@ -487,7 +511,8 @@ export let ProvidersWithDeploymentsSearch = ({
   providerListingsFilter,
   hideSearch = false,
   internalScroll = false,
-  internalScrollHeight
+  internalScrollHeight,
+  selectedProviderId
 }: {
   instanceId: string;
   onSelect?: (provider: ProviderSearchItem) => void;
@@ -504,6 +529,7 @@ export let ProvidersWithDeploymentsSearch = ({
   hideSearch?: boolean;
   internalScroll?: boolean;
   internalScrollHeight?: string | number;
+  selectedProviderId?: string;
 }) => {
   let deployments = useProviderDeployments(instanceId, limit ? { limit } : undefined);
   let providerIds = useMemo(
@@ -574,6 +600,7 @@ export let ProvidersWithDeploymentsSearch = ({
           hideSearch={hideSearch}
           internalScroll={internalScroll}
           internalScrollHeight={internalScrollHeight}
+          selectedProviderId={selectedProviderId}
         />
       );
     });
@@ -645,6 +672,7 @@ export let ProvidersWithDeploymentsSearch = ({
         hideSearch={hideSearch}
         internalScroll={internalScroll}
         internalScrollHeight={internalScrollHeight}
+        selectedProviderId={selectedProviderId}
       />
     );
   });
