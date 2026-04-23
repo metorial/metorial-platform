@@ -9,6 +9,11 @@
   ],
   "compilerOptions": {
     "outDir": "dist",
-    "types": ["bun"]
+    "types": ["bun"],
+    "baseUrl": ".",
+    "paths": {
+      "@function-bay/build": ["../build/src/index.ts"],
+      "@function-bay/utils": ["../utils/src/index.ts"]
+    }
   }
 }
