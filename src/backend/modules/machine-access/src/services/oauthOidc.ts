@@ -98,6 +98,18 @@ class OAuthOidcService {
     };
   }
 
+  async getOAuthProtectedResourceMetadata() {
+    let issuer = getConfig().urls.apiUrl;
+
+    return {
+      resource: issuer,
+      authorization_servers: [issuer],
+      bearer_methods_supported: ['header'],
+      token_types_supported: ['access_token'],
+      scopes_supported: [...oidcScopes, ...coreScopes]
+    };
+  }
+
   async getOAuthAuthorizationServerMetadata() {
     return await this.getOpenIdConfiguration();
   }
