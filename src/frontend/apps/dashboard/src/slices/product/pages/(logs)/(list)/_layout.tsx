@@ -18,7 +18,7 @@ export let SessionLogsListLayout = () => {
   return (
     <ContentLayout>
       <PageHeader
-        title="Session Logs"
+        title="Connection Logs"
         description="Inspect sessions, provider runs, and errors captured during MCP traffic."
       />
 
