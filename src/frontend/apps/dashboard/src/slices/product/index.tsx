@@ -205,11 +205,6 @@ let SessionTemplateLayout = dynamicPage(() =>
 let SessionTemplateOverviewPage = dynamicPage(() =>
   import('./pages/(session)/session-template/index').then(c => c.SessionTemplateOverviewPage)
 );
-let SessionTemplateProvidersPage = dynamicPage(() =>
-  import('./pages/(session)/session-template/providers').then(
-    c => c.SessionTemplateProvidersPage
-  )
-);
 let SessionTemplateSettingsPage = dynamicPage(() =>
   import('./pages/(session)/session-template/settings').then(
     c => c.SessionTemplateSettingsPage
@@ -426,9 +421,7 @@ let CallbackTriggersPage = dynamicPage(() =>
 let CallbackDestinationsPage = dynamicPage(() =>
   import('./pages/(callbacks)/destinations').then(c => c.CallbackDestinationsPage)
 );
-let LogsHomePage = dynamicPage(() =>
-  import('./pages/(logs)/home').then(c => c.LogsHomePage)
-);
+let LogsHomePage = dynamicPage(() => import('./pages/(logs)/home').then(c => c.LogsHomePage));
 let SessionLogsListLayout = dynamicPage(() =>
   import('./pages/(logs)/(list)/_layout').then(c => c.SessionLogsListLayout)
 );
@@ -925,10 +918,6 @@ export let productHomeSlice = createSlice([
               {
                 path: '',
                 element: <SessionTemplateOverviewPage />
-              },
-              {
-                path: 'providers',
-                element: <SessionTemplateProvidersPage />
               },
               {
                 path: 'settings',

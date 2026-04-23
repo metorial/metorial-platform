@@ -294,28 +294,28 @@ export let InnerLayout = ({ children }: { children: React.ReactNode }) => {
         <Inner>
           <IntroSide>
             <IntroBlock>
-              <Eyebrow>Connect 1000+ AI integrations</Eyebrow>
+              <Eyebrow>Connect to 1000+ verified integrations</Eyebrow>
               <IntroTitle>The infra layer for AI integrations.</IntroTitle>
               <IntroText>
-                Deploy MCP servers with built-in observability, instant scaling, and
-                enterprise-grade isolation from day one.
+                Deploy MCP servers with build-in observability and enterprise-grade isolation
+                from day one.
               </IntroText>
             </IntroBlock>
 
             <FeatureList>
               <FeatureRow>
                 <FeatureMark />
-                <FeatureText>Verified integrations</FeatureText>
+                <FeatureText>Available via API, MCP & CLI</FeatureText>
               </FeatureRow>
 
               <FeatureRow>
                 <FeatureMark />
-                <FeatureText>Advanced tracing and observability</FeatureText>
+                <FeatureText>AI Native Access Control</FeatureText>
               </FeatureRow>
 
               <FeatureRow>
                 <FeatureMark />
-                <FeatureText>Enterprise-grade security and isolation</FeatureText>
+                <FeatureText>RBAC, SAML SSO & IAM</FeatureText>
               </FeatureRow>
             </FeatureList>
 

@@ -1,5 +1,4 @@
 import { renderWithLoader } from '@metorial/data-hooks';
-import { Paths } from '@metorial/frontend-config';
 import {
   useCurrentInstance,
   useMagicMcpServer,
@@ -7,20 +6,10 @@ import {
   useProviders,
   useSessionTemplateProviders
 } from '@metorial/state';
-import {
-  Attributes,
-  Avatar,
-  Button,
-  Entity,
-  Flex,
-  RenderDate,
-  Spacer,
-  Copy,
-  Text
-} from '@metorial/ui';
+import { Attributes, Flex, RenderDate, Text } from '@metorial/ui';
 import { Box, ID } from '@metorial/ui-product';
-import { useMemo } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { McpConnectionInstructionsScene } from '../../../scenes/mcpConnectionInstructions';
 
 export let MagicMcpServerOverviewPage = () => {
@@ -31,10 +20,13 @@ export let MagicMcpServerOverviewPage = () => {
   let tokens = useMagicMcpTokens(instance.data?.id, {
     status: 'active'
   });
+  let createToken = tokens.createMutator();
   let templateProviders = useSessionTemplateProviders(
     instance.data?.id,
     server.data?.sessionTemplateId
   );
+  let initializingTokenRef = useRef<string | undefined>(undefined);
+  let [creatingInitialToken, setCreatingInitialToken] = useState(false);
   let providerIds = useMemo(
     () => [
       ...new Set(
@@ -46,6 +38,38 @@ export let MagicMcpServerOverviewPage = () => {
     [templateProviders.data?.items]
   );
   let providers = useProviders(instance.data?.id, { id: providerIds });
+
+  useEffect(() => {
+    if (!instance.data?.id) return;
+
+    if (
+      !tokens.error &&
+      !tokens.isLoading &&
+      !tokens.data?.items.length &&
+      initializingTokenRef.current !== instance.data.id
+    ) {
+      setCreatingInitialToken(true);
+      initializingTokenRef.current = instance.data.id;
+
+      createToken
+        .mutate({
+          instanceId: instance.data.id,
+          name: 'Default Token'
+        })
+        .then(([res]) => {
+          if (!res) initializingTokenRef.current = undefined;
+        })
+        .finally(() => {
+          setCreatingInitialToken(false);
+        });
+    }
+  }, [
+    createToken,
+    instance.data?.id,
+    tokens.data?.items.length,
+    tokens.error,
+    tokens.isLoading
+  ]);
 
   return renderWithLoader({ server, tokens, templateProviders, providers })(
     ({ server, tokens, templateProviders, providers }) => {
@@ -103,16 +127,16 @@ export let MagicMcpServerOverviewPage = () => {
               ]}
             />
 
-            <Spacer height={16} />
+            {/* <Spacer height={16} />
 
             <Copy
               label="Primary Endpoint"
               value={streamableHttpUrl ?? '...'}
               copyValue={streamableHttpUrl ?? ''}
-            />
+            /> */}
           </Box>
 
-          <Box
+          {/* <Box
             title="Providers"
             description="Sessions created through this server inherit providers from its session template."
             rightActions={
@@ -174,7 +198,7 @@ export let MagicMcpServerOverviewPage = () => {
                 </Flex>
               )}
             </Flex>
-          </Box>
+          </Box> */}
 
           <Box
             title={`Connect to ${server.data.name ?? 'Magic MCP Server'}`}
@@ -190,9 +214,11 @@ export let MagicMcpServerOverviewPage = () => {
               emptyState={
                 <Flex direction="column" gap={12} style={{ alignItems: 'flex-start' }}>
                   <Text size="2">
-                    {hasRestrictedActiveToken
-                      ? 'No unrestricted Magic MCP token found. Create a token without group restrictions from the Tokens tab to generate a guaranteed working connection snippet.'
-                      : 'No active Magic MCP token found. Create one from the Tokens tab to connect clients.'}
+                    {creatingInitialToken
+                      ? 'Creating a default Magic MCP token for this instance...'
+                      : hasRestrictedActiveToken
+                        ? 'No unrestricted Magic MCP token found. Create a token without group restrictions from the Tokens tab to generate a guaranteed working connection snippet.'
+                        : 'No active Magic MCP token found. Create one from the Tokens tab to connect clients.'}
                   </Text>
                 </Flex>
               }

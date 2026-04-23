@@ -1,3 +1,4 @@
+import { usePaginationSearchParamsEnabled } from '@metorial/data-hooks';
 import { memo } from '@lowerdeck/memo';
 import {
   Button,
@@ -14,7 +15,7 @@ import {
 import { RiArrowDownSLine, RiMore2Line } from '@remixicon/react';
 import { AnimatePresence, motion } from 'framer-motion';
 import React, { Fragment, memo as reactMemo, useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { styled } from 'styled-components';
 import { TableFilter, TableFilterState, getFilterPayload } from '../filter';
 import { Observer, useObserver } from '../state';
@@ -375,6 +376,8 @@ export let TableComponent = reactMemo(
 
     let isFullLoading = initialLoading && state.isLoading;
     let navigate = useNavigate();
+    let paginationSearchParamsEnabled = usePaginationSearchParamsEnabled();
+    let [, setSearchParams] = useSearchParams();
 
     let hasHeader =
       !!props.search ||
@@ -384,6 +387,44 @@ export let TableComponent = reactMemo(
 
     let [openRowPanel, setOpenRowPanel] = useState<string[]>([]);
     let [runningBulkActionId, setRunningBulkActionId] = useState<string | null>(null);
+
+    let goToPreviousPage = () => {
+      let firstItem = state.items[0];
+      if (!firstItem) return;
+
+      if (paginationSearchParamsEnabled) {
+        setSearchParams(
+          currentSearchParams => {
+            let nextSearchParams = new URLSearchParams(currentSearchParams);
+            nextSearchParams.set('before', firstItem.id);
+            nextSearchParams.delete('after');
+            return nextSearchParams;
+          },
+          { replace: true }
+        );
+      }
+
+      state.loadPrevious();
+    };
+
+    let goToNextPage = () => {
+      let lastItem = state.items[state.items.length - 1];
+      if (!lastItem) return;
+
+      if (paginationSearchParamsEnabled) {
+        setSearchParams(
+          currentSearchParams => {
+            let nextSearchParams = new URLSearchParams(currentSearchParams);
+            nextSearchParams.set('after', lastItem.id);
+            nextSearchParams.delete('before');
+            return nextSearchParams;
+          },
+          { replace: true }
+        );
+      }
+
+      state.loadNext();
+    };
 
     let runTableAction = async (action: TableItemAction<any, any>, rows: any[]) => {
       if (!props.actions) return;
@@ -774,7 +815,7 @@ export let TableComponent = reactMemo(
                     size="1"
                     variant="outline"
                     disabled={!state.hasMoreBefore}
-                    onClick={state.loadPrevious}
+                    onClick={goToPreviousPage}
                   >
                     Previous
                   </Button>
@@ -783,7 +824,7 @@ export let TableComponent = reactMemo(
                     size="1"
                     variant="outline"
                     disabled={!state.hasMoreAfter}
-                    onClick={state.loadNext}
+                    onClick={goToNextPage}
                   >
                     Next
                   </Button>

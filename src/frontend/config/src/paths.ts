@@ -178,8 +178,7 @@ let InstancePaths = Object.assign(
       project: EntityParam,
       instance: EntityParam,
       ...subPages: SubPages
-    ) =>
-      InstancePaths(organization, project, instance, 'provider-auth-errors', ...subPages),
+    ) => InstancePaths(organization, project, instance, 'provider-auth-errors', ...subPages),
     providerAuthError: (
       organization: EntityParam,
       project: EntityParam,
@@ -203,8 +202,7 @@ let InstancePaths = Object.assign(
       project: EntityParam,
       instance: EntityParam,
       ...subPages: SubPages
-    ) =>
-      InstancePaths(organization, project, instance, 'provider-auth-events', ...subPages),
+    ) => InstancePaths(organization, project, instance, 'provider-auth-events', ...subPages),
     providerAuthEvent: (
       organization: EntityParam,
       project: EntityParam,
@@ -737,6 +735,14 @@ export let WelcomePaths = Object.assign(
     createProject: (i: { organizationId: string }, ...subPages: SubPages) => {
       let inner = WelcomePaths('create-project');
       let search = new URLSearchParams({ organization_id: i.organizationId });
+      return `${inner}?${search.toString()}`;
+    },
+    setupProvider: (i: { organizationId: string; projectId: string }) => {
+      let inner = WelcomePaths('setup-provider');
+      let search = new URLSearchParams({
+        organization_id: i.organizationId,
+        project_id: i.projectId
+      });
       return `${inner}?${search.toString()}`;
     }
   }

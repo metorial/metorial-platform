@@ -13,7 +13,6 @@ import { Button, Flex, LinkTabs } from '@metorial/ui';
 import { useState } from 'react';
 import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { DeletedRecordCallout } from '../../../scenes/deletedRecordCallout';
-import { showAddProviderSidePanel } from '../../../scenes/sessionTemplates/providersManager';
 
 export let SessionTemplateLayout = () => {
   let instance = useCurrentInstance();
@@ -101,19 +100,6 @@ export let SessionTemplateLayout = () => {
               >
                 Open Explorer
               </Button>
-
-              <Button
-                size="2"
-                onClick={() =>
-                  showAddProviderSidePanel({
-                    instanceId: instance.data!.id,
-                    sessionTemplateId: sessionTemplateId!,
-                    onComplete: () => providers.refetch()
-                  })
-                }
-              >
-                Add Provider
-              </Button>
             </Flex>
           ) : undefined
         }
@@ -129,10 +115,6 @@ export let SessionTemplateLayout = () => {
               {
                 label: 'Overview',
                 to: Paths.instance.sessionTemplate(...templatePathParams)
-              },
-              {
-                label: 'Providers',
-                to: Paths.instance.sessionTemplate(...templatePathParams, 'providers')
               },
               {
                 label: 'Settings',
