@@ -167,8 +167,6 @@ class providerInternalServiceImpl {
           name: d.info.name,
           description: d.info.description,
           slug: d.info.slug,
-          prettySlug,
-          aliases: [...new Set(d.info.aliases)],
 
           entryOid: entry.oid,
           publisherOid: d.publisher.oid,
@@ -269,6 +267,9 @@ class providerInternalServiceImpl {
             name: d.info.name,
             description: d.info.description,
             slug: d.info.slug,
+
+            prettySlug,
+            aliases: [...new Set(d.info.aliases)],
 
             image: d.info.image ?? { type: 'default' as const },
 
