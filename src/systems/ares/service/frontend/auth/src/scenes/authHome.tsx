@@ -11,8 +11,7 @@ import {
   Input,
   Or,
   Spacer,
-  Text,
-  Title
+  Text
 } from '@metorial-io/ui';
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -331,40 +330,29 @@ export let AuthHomeScene = ({
   }
 
   return (
-    <AuthLayout>
+    <AuthLayout
+      main={{
+        title: {
+          login: 'Log in',
+          signup: 'Sign up',
+          switch: 'Choose account'
+        }[type],
+        description: {
+          login: hasEmailOption
+            ? `Welcome back! Enter your email to continue.`
+            : hasAlternativeOptions
+              ? `Welcome back! Choose a sign-in method to continue.`
+              : `Welcome back! No sign-in methods are currently available.`,
+          signup: hasEmailOption
+            ? `Nice to meet you! Enter your email to get started.`
+            : hasAlternativeOptions
+              ? `Nice to meet you! Choose a sign-in method to get started.`
+              : `No sign-in methods are currently available for sign up.`,
+          switch: `Choose the account you'd like to continue with.`
+        }[type]
+      }}
+    >
       {captcha}
-
-      <Title as="h1" weight="bold" size="4">
-        {
-          {
-            login: 'Log in',
-            signup: 'Sign up',
-            switch: 'Choose account'
-          }[type]
-        }
-      </Title>
-
-      <Spacer height={10} />
-
-      <Text color="gray600" weight="medium" size="2">
-        {
-          {
-            login: hasEmailOption
-              ? `Welcome back! Enter your email to continue.`
-              : hasAlternativeOptions
-                ? `Welcome back! Choose a sign-in method to continue.`
-                : `Welcome back! No sign-in methods are currently available.`,
-            signup: hasEmailOption
-              ? `Nice to meet you! Enter your email to get started.`
-              : hasAlternativeOptions
-                ? `Nice to meet you! Choose a sign-in method to get started.`
-                : `No sign-in methods are currently available for sign up.`,
-            switch: `Choose the account you'd like to continue with.`
-          }[type]
-        }
-      </Text>
-
-      <Spacer height={25} />
 
       {!!auth.data?.users.length && (
         <>
