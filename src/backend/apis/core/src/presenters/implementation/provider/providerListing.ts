@@ -5,7 +5,7 @@ import { providerListingType } from '../../types';
 import { v1ProviderListingCategoryPresenter } from './category';
 import { v1ProviderListingCollectionPresenter } from './collection';
 import { v1ProviderListingGroupPresenter } from './group';
-import { v1ProviderPresenter } from './provider';
+import { dashboardProviderPresenter, v1ProviderPresenter } from './provider';
 
 export let v1ProviderListingPresenter = Presenter.create(providerListingType)
   .presenter(async ({ providerListing }, opts) => {
@@ -144,5 +144,26 @@ export let v1ProviderListingPresenter = Presenter.create(providerListingType)
         examples: [new Date('2026-01-10T14:45:00Z')]
       })
     })
+  )
+  .build();
+
+export let dashboardProviderListingPresenter = Presenter.create(providerListingType)
+  .presenter(async (input, opts) => {
+    let inner = await v1ProviderListingPresenter.present(input, opts).run();
+
+    return {
+      ...inner,
+      provider: await dashboardProviderPresenter
+        .present({ provider: input.providerListing.provider }, opts)
+        .run()
+    };
+  })
+  .schema(
+    v.intersection([
+      v1ProviderListingPresenter.schema,
+      v.object({
+        provider: dashboardProviderPresenter.schema
+      })
+    ])
   )
   .build();

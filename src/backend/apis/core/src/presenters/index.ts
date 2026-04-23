@@ -58,6 +58,7 @@ import {
   dashboardCustomProviderPresenter,
   dashboardIdentityActorPresenter,
   dashboardMagicMcpServerPresenter,
+  dashboardProviderListingPresenter,
   dashboardProviderPresenter,
   v1BucketEditorTokenPresenter,
   v1CallbackDestinationPresenter,
@@ -85,10 +86,10 @@ import {
   v1MagicMcpServerProviderPresenter,
   v1MagicMcpSessionPresenter,
   v1MagicMcpTokenPresenter,
-  v1ProviderAuthConfigPresenter,
   v1ProviderAuthConfigErrorGroupPresenter,
   v1ProviderAuthConfigErrorPresenter,
   v1ProviderAuthConfigEventPresenter,
+  v1ProviderAuthConfigPresenter,
   v1ProviderAuthConfigSchemaPresenter,
   v1ProviderAuthCredentialsPresenter,
   v1ProviderAuthExportPresenter,
@@ -100,13 +101,13 @@ import {
   v1ProviderConfigVaultPresenter,
   v1ProviderDeploymentPresenter,
   v1ProviderDeploymentPreviewPresenter,
+  v1ProviderInvocationPresenter,
+  v1ProviderInvocationsPresenter,
   v1ProviderListingCategoryPresenter,
   v1ProviderListingCollectionPresenter,
   v1ProviderListingGroupPresenter,
   v1ProviderListingPresenter,
   v1ProviderPresenter,
-  v1ProviderInvocationPresenter,
-  v1ProviderInvocationsPresenter,
   v1ProviderRunLogsPresenter,
   v1ProviderRunPresenter,
   v1ProviderSpecificationPresenter,
@@ -221,10 +222,10 @@ import {
   profileType,
   projectBrandType,
   projectType,
-  providerAuthConfigType,
   providerAuthConfigErrorGroupType,
   providerAuthConfigErrorType,
   providerAuthConfigEventType,
+  providerAuthConfigType,
   providerAuthCredentialsType,
   providerAuthExportType,
   providerAuthImportType,
@@ -733,7 +734,7 @@ export let providerGroupPresenter = declarePresenter(providerListingGroupType, {
 });
 
 export let providerListingPresenter = declarePresenter(providerListingType, {
-  mt_2025_01_01_dashboard: v1ProviderListingPresenter,
+  mt_2025_01_01_dashboard: dashboardProviderListingPresenter,
   mt_2026_01_01_magnetar: v1ProviderListingPresenter
 });
 
