@@ -15,11 +15,3 @@ export let FlatCreateSection = styled.div`
   border-radius: 14px;
   border: 1px solid ${theme.colors.gray300};
 `;
-
-export let FlatCreateSectionLabel = styled.div`
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.4;
-  color: ${theme.colors.gray700};
-  margin: 0 0 8px 0;
-`;

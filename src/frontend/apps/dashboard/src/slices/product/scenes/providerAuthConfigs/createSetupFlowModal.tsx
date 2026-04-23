@@ -5,6 +5,11 @@ import { ProviderSetupSessionEmbed } from '../providerDeployments/setupSessionEm
 import { AuthMethod } from './modalHelpers';
 import { PreviewMode, SetupFlowLayout, SetupFlowPreviewSidebar } from './previewSidebar';
 
+let onboardingAuthDetails = {
+  name: 'Onboarding Auth',
+  description: ''
+};
+
 export let ProviderAuthConfigSetupFlowCreateContent = (p: {
   instanceId: string;
   providerDeploymentId?: string;
@@ -15,22 +20,18 @@ export let ProviderAuthConfigSetupFlowCreateContent = (p: {
   previewMode: PreviewMode;
   onPreviewModeChange: (mode: PreviewMode) => void;
   close: () => void;
-  onCreate?: (authConfig: { id: string }) => void;
+  onCreate?: (authConfig: { id: string; name?: string | null }) => void;
   onCancel?: () => void;
   onWindowOpenStateChange?: (isOpen: boolean) => void;
   embedded?: boolean;
 }) => {
-  let [authPreviewDetails, setAuthPreviewDetails] = useState({ name: '', description: '' });
+  let [authPreviewDetails, setAuthPreviewDetails] = useState(onboardingAuthDetails);
 
   return (
     <>
       {!p.embedded && (
         <>
           <Dialog.Title>Create Auth Config</Dialog.Title>
-          <Dialog.Description>
-            Set up OAuth credentials, name this connection, and preview how users will see the
-            sign-in experience.
-          </Dialog.Description>
           <Spacer size={12} />
         </>
       )}
@@ -47,6 +48,8 @@ export let ProviderAuthConfigSetupFlowCreateContent = (p: {
             flattenOAuthCredentialsFlow
             showExternalPreviewSidebar
             collectAuthConfigDetails
+            initialAuthConfigDetails={onboardingAuthDetails}
+            autoStartManagedCredentialSetup
             onAuthConfigDetailsChange={setAuthPreviewDetails}
             cancelLabel={p.onCancel ? 'Close' : 'Cancel'}
             onWindowOpenCancel={p.close}
@@ -56,10 +59,9 @@ export let ProviderAuthConfigSetupFlowCreateContent = (p: {
             onPreviewCredentialTypeChange={() => {}}
             onActiveStepChange={() => {}}
             onComplete={result => {
-              let authConfigId = result?.authConfig?.id;
-              if (authConfigId) {
+              if (result?.authConfig) {
                 void instanceProviderAuthConfigsLoader.refetchAll();
-                p.onCreate?.({ id: authConfigId });
+                p.onCreate?.(result.authConfig);
               }
               p.close();
             }}

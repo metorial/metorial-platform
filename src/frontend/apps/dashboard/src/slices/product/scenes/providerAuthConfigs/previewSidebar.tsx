@@ -65,7 +65,15 @@ let SetupFlowPreviewCard = styled.div`
   border-radius: 12px;
   border: 1px solid ${theme.colors.gray300};
   overflow: hidden;
-  background: #efefef;
+
+  padding: 60px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background-color: #fafafa;
+  background-image: radial-gradient(#ddd 1px, transparent 1px);
+  background-size: 12px 12px;
 `;
 
 let SetupFlowPreviewScreen = styled.div`
@@ -313,14 +321,7 @@ export let SetupFlowPreviewSidebar = (p: {
           </Text>
         </div>
 
-        <SetupFlowPreviewCard
-          style={{
-            padding: 32,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}
-        >
+        <SetupFlowPreviewCard>
           <div style={{ width: '100%' }}>
             <SetupFlowPreviewScreen>
               <SetupFlowPreviewHeader>
@@ -432,12 +433,10 @@ export let SetupFlowPreviewSidebar = (p: {
 
         <SetupFlowPreviewBrandingSlot>
           {brandingPath && p.showBrandingLink && (
-            <SetupFlowPreviewBrandingLink
-              to={brandingPath}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Click here to customize branding and white-label settings
+            <SetupFlowPreviewBrandingLink to={brandingPath}>
+              <Button as="span" size="2">
+                Customize branding
+              </Button>
             </SetupFlowPreviewBrandingLink>
           )}
         </SetupFlowPreviewBrandingSlot>

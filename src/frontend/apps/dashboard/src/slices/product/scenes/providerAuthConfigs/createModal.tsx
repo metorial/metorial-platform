@@ -12,7 +12,7 @@ export type ProviderAuthConfigCreateModalProps = {
   providerDeploymentId?: string;
   providerId?: string;
   initialAuthMethodId: string;
-  onCreate?: (authConfig: { id: string }) => void;
+  onCreate?: (authConfig: { id: string; name?: string | null }) => void;
   onBack?: () => void;
 };
 
