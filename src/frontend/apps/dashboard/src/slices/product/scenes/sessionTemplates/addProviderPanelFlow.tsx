@@ -1,5 +1,6 @@
 import { useForm } from '@metorial/data-hooks';
 import {
+  useCreateProviderConfig,
   useCreateSessionTemplateProvider,
   useDeleteSessionTemplateProvider,
   useProvider,
@@ -87,6 +88,7 @@ type AddProviderPanelFlowProps = {
 };
 
 let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
+  let createConfigMutation = useCreateProviderConfig();
   let createMutation = useCreateSessionTemplateProvider();
   let deleteMutation = useDeleteSessionTemplateProvider();
   let selectedProvider = useProvider(p.instanceId, p.providerId);
@@ -128,6 +130,29 @@ let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
       selectedToolKeys: initialSelectedToolKeys
     },
     onSubmit: async values => {
+      let fallbackProviderConfigId: string | undefined;
+      let needsFallbackConfig =
+        !values.selectedDeploymentId &&
+        values.selectedConfiguration.kind === 'none' &&
+        !values.selectedAuthConfigId;
+
+      if (needsFallbackConfig) {
+        let fallbackConfigName = `${values.selectedProviderName || 'Provider'} Config`;
+        let [config, configError] = await createConfigMutation.mutate({
+          instanceId: p.instanceId,
+          providerId: values.selectedProviderId,
+          name: fallbackConfigName,
+          description: 'Automatically created for session template provider setup.',
+          value: {}
+        });
+
+        if (!config || configError) {
+          return { error: configError };
+        }
+
+        fallbackProviderConfigId = config.id;
+      }
+
       let createInput = {
         instanceId: p.instanceId,
         sessionTemplateId: p.sessionTemplateId,
@@ -137,6 +162,11 @@ let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
         ...(values.selectedConfiguration.kind === 'config'
           ? {
               providerConfigId: values.selectedConfiguration.id
+            }
+          : {}),
+        ...(fallbackProviderConfigId
+          ? {
+              providerConfigId: fallbackProviderConfigId
             }
           : {}),
         ...(values.selectedConfiguration.kind === 'vault'
@@ -307,9 +337,14 @@ let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
               instanceId={p.instanceId}
               providerId={form.values.selectedProviderId}
               providerName={form.values.selectedProviderName}
-              saving={createMutation.isPending || deleteMutation.isPending}
+              saving={
+                createConfigMutation.isLoading ||
+                createMutation.isPending ||
+                deleteMutation.isPending
+              }
               mutationError={
                 <>
+                  <createConfigMutation.RenderError />
                   <createMutation.RenderError />
                   <deleteMutation.RenderError />
                 </>
@@ -346,6 +381,7 @@ let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
     form.values.selectedProviderId,
     form.values.selectedProviderName,
     resolvedProviderName,
+    createConfigMutation.isLoading,
     createMutation.isPending,
     deleteMutation.isPending,
     form.handleSubmit,
