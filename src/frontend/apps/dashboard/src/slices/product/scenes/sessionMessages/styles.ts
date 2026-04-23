@@ -312,6 +312,36 @@ export let ResourceMetaItem = styled.span`
   }
 `;
 
+export let MetaCard = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid ${theme.colors.gray300};
+  border-radius: 8px;
+  background: ${theme.colors.gray100};
+
+  [data-error='true'] & {
+    border-color: ${theme.colors.red600};
+    background: ${theme.colors.red200};
+  }
+`;
+
+export let MetaHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  min-width: 0;
+`;
+
+export let MetaDescription = styled.div`
+  font-size: 12px;
+  line-height: 1.45;
+  color: ${theme.colors.gray800};
+  word-break: break-word;
+`;
+
 export let MediaWrapper = styled.div`
   display: flex;
   flex-direction: column;
