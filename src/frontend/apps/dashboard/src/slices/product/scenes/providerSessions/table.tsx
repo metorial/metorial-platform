@@ -28,6 +28,7 @@ type Session = DashboardInstanceSessionsListOutput['items'][number];
 type ProviderSessionsTableProps = {
   providerId?: string;
   status?: string;
+  limit?: DashboardInstanceSessionsListQuery['limit'];
   providerDeploymentId?: string;
   providerAuthConfigId?: string;
   providerConfigId?: string;
@@ -79,6 +80,7 @@ let useProviderSessionsTableState: TableStateProvider<
 ) => {
   let sessions = useSessions(props.instance.data?.id, {
     order: 'desc',
+    limit: props.limit,
     providerId: getStringFilterValue(opts.filter.providerId) ?? props.providerId ?? undefined,
     status: getSessionStatusFilterValue(opts.filter.status) ?? (props.status as any),
     providerDeploymentId:
@@ -304,12 +306,14 @@ let providerSessionsTable = new DashboardTable<ProviderSessionsTableProps, Sessi
 export let ProviderSessionsTable = ({
   providerId,
   status,
+  limit,
   providerDeploymentId,
   providerAuthConfigId,
   providerConfigId
 }: {
   providerId?: string;
   status?: string;
+  limit?: DashboardInstanceSessionsListQuery['limit'];
   providerDeploymentId?: string;
   providerAuthConfigId?: string;
   providerConfigId?: string;
@@ -321,6 +325,7 @@ export let ProviderSessionsTable = ({
   return providerSessionsTable({
     providerId,
     status,
+    limit,
     providerDeploymentId,
     providerAuthConfigId,
     providerConfigId,

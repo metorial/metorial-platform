@@ -20,7 +20,7 @@ import { RiArrowDownSLine } from '@remixicon/react';
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 import styled from 'styled-components';
-import { showProviderDeploymentFormModal } from '../../scenes/providerDeployments/modal';
+import { DeployServerButton } from '../(custom-providers)/custom-provider/_layout';
 
 type ProviderVersion = DashboardInstanceProvidersVersionsListOutput['items'][number];
 type ProviderVersionId = ProviderVersion['id'];
@@ -248,35 +248,9 @@ export let ProviderLayout = () => {
                 </Button>
               </Link>
 
-              <Button
-                size="2"
-                onClick={() =>
-                  instance.data &&
-                  showProviderDeploymentFormModal({
-                    type: 'create',
-                    instanceId: instance.data.id,
-                    providerId: providerData?.id,
-                    providerName: providerData?.name,
-                    ...(!isDefaultVersion && selectedVersion
-                      ? {
-                          lockedProviderVersionId: selectedVersion.id,
-                          lockedProviderVersionLabel: selectedVersion.version
-                        }
-                      : {}),
-                    onCreate: deployment =>
-                      navigate(
-                        Paths.instance.providerDeployment(
-                          organization.data,
-                          project.data,
-                          instance.data,
-                          deployment.id
-                        )
-                      )
-                  })
-                }
-              >
+              <DeployServerButton providerId={providerData?.id}>
                 Deploy Provider
-              </Button>
+              </DeployServerButton>
             </>
           }
         />
