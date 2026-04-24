@@ -1,4 +1,5 @@
-import { Function, Runtime, tempDir } from '@function-bay/build';
+import { Function, Runtime } from '@function-bay/build';
+import { tempDir } from '@function-bay/utils';
 import { v, ValidationTypeValue } from '@lowerdeck/validation';
 import { $ as _$ } from 'bun';
 import fs from 'fs/promises';
