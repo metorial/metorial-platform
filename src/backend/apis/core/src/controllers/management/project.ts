@@ -12,6 +12,10 @@ import {
 } from '../../middleware/organizationGroup';
 import { projectBrandPresenter, projectPresenter } from '../../presenters';
 
+let magicMcpSessionDurationMinutesValidator = v.optional(
+  v.number({ modifiers: [v.positive(), v.integer(), v.minValue(15), v.maxValue(108000)] })
+);
+
 export let projectManagementController = Controller.create(
   {
     name: 'Project',
@@ -117,14 +121,16 @@ export let projectManagementController = Controller.create(
       .body(
         'default',
         v.object({
-          name: v.string()
+          name: v.string(),
+          magic_mcp_session_duration_minutes: magicMcpSessionDurationMinutesValidator
         })
       )
       .output(projectPresenter)
       .do(async ctx => {
         let project = await projectService.createProject({
           input: {
-            name: ctx.body.name
+            name: ctx.body.name,
+            magicMcpSessionDurationMinutes: ctx.body.magic_mcp_session_duration_minutes
           },
           organization: ctx.organization,
           context: ctx.context,
@@ -176,7 +182,8 @@ export let projectManagementController = Controller.create(
       .body(
         'default',
         v.object({
-          name: v.optional(v.string())
+          name: v.optional(v.string()),
+          magic_mcp_session_duration_minutes: magicMcpSessionDurationMinutesValidator
         })
       )
       .output(projectPresenter)
@@ -200,7 +207,8 @@ export let projectManagementController = Controller.create(
           project,
           organization: ctx.organization,
           input: {
-            name: ctx.body.name
+            name: ctx.body.name,
+            magicMcpSessionDurationMinutes: ctx.body.magic_mcp_session_duration_minutes
           },
           context: ctx.context,
           performedBy: ctx.actor

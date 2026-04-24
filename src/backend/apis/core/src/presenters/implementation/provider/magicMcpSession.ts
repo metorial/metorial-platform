@@ -19,6 +19,7 @@ export let v1MagicMcpSessionPresenter = Presenter.create(magicMcpSessionType)
           .run()
       : null,
     session_id: magicMcpSession.subspaceSessionId,
+    expires_at: magicMcpSession.expiresAt ?? null,
 
     created_at: magicMcpSession.createdAt,
     updated_at: magicMcpSession.updatedAt
@@ -30,6 +31,7 @@ export let v1MagicMcpSessionPresenter = Presenter.create(magicMcpSessionType)
       magic_mcp_server: v.nullable(v1MagicMcpServerPresenter.schema),
       magic_mcp_endpoint: v.nullable(v1MagicMcpEndpointPresenter.schema),
       session_id: v.string(),
+      expires_at: v.nullable(v.date()),
       created_at: v.date(),
       updated_at: v.date()
     })
