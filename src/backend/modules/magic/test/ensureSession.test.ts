@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('@metorial/db', () => {
   let db = {
     project: {
-      findUnique: vi.fn()
+      findUniqueOrThrow: vi.fn()
     },
     magicMcpSubspaceSessionConnection: {
       findUnique: vi.fn(),
@@ -115,7 +115,7 @@ describe('ensureMagicMcpSubspaceSession', () => {
     vi.mocked(db.magicMcpSubspaceSessionConnection.updateMany).mockResolvedValue({
       count: 1
     } as any);
-    vi.mocked(db.project.findUnique).mockResolvedValue({
+    vi.mocked(db.project.findUniqueOrThrow).mockResolvedValue({
       magicMcpSessionDurationMinutes: 60
     } as any);
     vi.mocked(subspaceSessionTemplateProviderService.getMany).mockResolvedValue([]);
