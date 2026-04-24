@@ -1,12 +1,19 @@
 import { ConsumerGroup, ConsumerProfile, MagicMcpEndpoint, Organization } from '@metorial/db';
 import { consumerAccessPolicyService } from '../services/accessPolicy';
+import { consumerIntegrationService } from '../services/consumerIntegration';
 
 export let grantConsumerOwnedMagicMcpEndpointAccess = async (d: {
   organization: Organization;
-  consumerProfile: Pick<ConsumerProfile, 'personalConsumerGroupOid'>;
+  consumerProfile: Pick<ConsumerProfile, 'oid' | 'instanceOid' | 'consumerOid' | 'personalConsumerGroupOid'>;
   consumerGroups?: Array<Pick<ConsumerGroup, 'oid' | 'accessTagOid'>>;
-  magicMcpEndpoint: Pick<MagicMcpEndpoint, 'oid'>;
+  magicMcpEndpoint: Pick<MagicMcpEndpoint, 'oid' | 'instanceOid'>;
 }) => {
+  await consumerIntegrationService.upsertConsumerIntegrationEndpoint({
+    consumerProfile: d.consumerProfile,
+    magicMcpEndpoint: d.magicMcpEndpoint,
+    isManaged: false
+  });
+
   for (let permission of ['magic_mcp_read', 'magic_mcp_write'] as const) {
     await consumerAccessPolicyService.grantAccess({
       organization: d.organization,
