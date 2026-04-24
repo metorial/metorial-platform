@@ -80,7 +80,6 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 export let syncNpmPackagesQueueProcessor = syncNpmPackagesQueue.process(async data => {
-  console.log(`Syncing npm packages, cursor: ${data.cursor} - ${env.npm.NPM_ORG}`);
   if (!env.npm.NPM_ORG) return;
 
   let normalizedOrg = env.npm.NPM_ORG.startsWith('@')
@@ -93,9 +92,6 @@ export let syncNpmPackagesQueueProcessor = syncNpmPackagesQueue.process(async da
 
   let packageNames = Object.keys(response).sort();
   let currentPage = packageNames.slice(data.cursor, data.cursor + pageSize);
-  console.log(
-    `Found ${packageNames.length} packages, processing ${currentPage.length} in current page`
-  );
   if (currentPage.length === 0) return;
 
   await syncNpmPackageQueue.addManyWithOps(
