@@ -393,8 +393,6 @@ class providerInternalServiceImpl {
   }
 
   async deprecateProvider(d: { provider: Provider }) {
-    // if (d.provider.isDeprecated) return d.provider;
-
     return withTransaction(async db => {
       let provider = await db.provider.update({
         where: { id: d.provider.id },

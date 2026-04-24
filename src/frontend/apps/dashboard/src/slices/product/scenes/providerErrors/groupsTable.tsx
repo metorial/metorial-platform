@@ -13,6 +13,7 @@ import {
   TableStateProviderResult
 } from '../../../../components/table/type';
 import { getEnumListFilterValue, getStringFilterValue } from '../../../../lib/dataTableUtils';
+import { getErrorLabel } from '../errorGroupLabel';
 
 type ErrorGroup = DashboardInstanceSessionsErrorGroupsListOutput['items'][number];
 
@@ -20,18 +21,6 @@ type ErrorGroupsTableProps = { sessionId?: string; type?: string };
 type ErrorGroupsTableStateProps = ErrorGroupsTableProps & {
   instance: ReturnType<typeof useCurrentInstance>;
 };
-
-let splitMany = (str: string, separators: string[]) => {
-  let regex = new RegExp(separators.map(s => `\\${s}`).join('|'), 'g');
-  return str.split(regex);
-};
-
-let humanizeCode = (code: string) =>
-  splitMany(code, ['_', '-', '.', ' '])
-    .map(part => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ');
-
-let getErrorLabel = (code: string) => humanizeCode(code);
 
 let getErrorTypeFilterValue = (
   value: FilterPayload | undefined
