@@ -410,7 +410,7 @@ export let magicMcpServerType = PresentableType.create<{
 
 export let magicMcpEndpointType = PresentableType.create<{
   magicMcpEndpoint: MagicMcpEndpoint & {
-    consumerProfile: ConsumerProfile;
+    consumerProfile: ConsumerProfile | null;
     consumerIntegrationEndpoints: (ConsumerIntegrationEndpoint & {
       consumer: Consumer;
       consumerProfile: ConsumerProfile;
@@ -437,7 +437,7 @@ export let magicMcpSessionType = PresentableType.create<{
       | null;
     magicMcpEndpoint:
       | (MagicMcpEndpoint & {
-          consumerProfile: ConsumerProfile;
+          consumerProfile: ConsumerProfile | null;
           consumerIntegrationEndpoints: (ConsumerIntegrationEndpoint & {
             consumer: Consumer;
             consumerProfile: ConsumerProfile;

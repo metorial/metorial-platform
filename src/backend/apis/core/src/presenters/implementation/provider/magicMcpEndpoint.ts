@@ -52,7 +52,6 @@ export let v1MagicMcpEndpointPresenter = Presenter.create(magicMcpEndpointType)
     url: portal?.id
       ? `${getConfig().urls.apiUrl}/connect/portal/${portal.slug}/${magicMcpEndpoint.slug}`
       : `${getConfig().urls.apiUrl}/connect/magic/${magicMcpEndpoint.slug}`,
-    consumer_profile_id: magicMcpEndpoint.consumerProfile?.id ?? null,
     servers: magicMcpEndpoint.servers.map(server => ({
       ...v1MagicMcpServerPreview(server.magicMcpServer),
       tool_filters: server.toolFilters ?? null
@@ -70,9 +69,6 @@ export let v1MagicMcpEndpointPresenter = Presenter.create(magicMcpEndpointType)
       status: v.enumOf(['active', 'archived', 'deleted']),
       slug: v.string(),
       url: v.string(),
-      consumer_profile_id: v.nullable(v.string()),
-      session_template_id: v.nullable(v.string()),
-      session_id: v.nullable(v.string()),
       servers: v.array(endpointServerSchema),
       name: v.nullable(v.string()),
       description: v.nullable(v.string()),

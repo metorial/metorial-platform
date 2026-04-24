@@ -6,7 +6,7 @@ export let v1ScmAccountPreviewPresenter = Presenter.create(scmAccountPreviewType
   .presenter(async ({ accountPreviews }) => ({
     object: 'scm.account.list#preview' as const,
 
-    accounts: accountPreviews.map(a => ({
+    accounts: accountPreviews.map((a: any) => ({
       object: 'scm.account.item#preview' as const,
       provider: a.provider,
       external_id: a.externalId,

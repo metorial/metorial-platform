@@ -111,22 +111,26 @@ export let getUsageTimeline = async (opts: {
 
   if (opts.ownerIds?.length) match.ownerId = { $in: opts.ownerIds };
 
-  let normalizedEntities = opts.entities?.length
+  let normalizedEntities: { id?: string; type: string }[] = opts.entities?.length
     ? opts.entities
     : opts.entityIds?.length
       ? opts.entityIds.map((entityId, index) => ({
           id: entityId,
           type: opts.entityTypes?.[index] ?? opts.entityTypes?.[0] ?? 'any'
         }))
-      : opts.entityTypes?.map(type => ({ type })) ?? [];
+      : (opts.entityTypes?.map(type => ({ type })) ?? []);
 
   normalizedEntities = Array.from(
-    new Map(normalizedEntities.map(entity => [`${entity.type}:${entity.id ?? '*'}`, entity])).values()
+    new Map(
+      normalizedEntities.map(entity => [`${entity.type}:${entity.id ?? '*'}`, entity])
+    ).values()
   );
 
   if (normalizedEntities.length) {
     match.$or = normalizedEntities.map(entity =>
-      entity.id ? { entityType: entity.type, entityId: entity.id } : { entityType: entity.type }
+      entity.id
+        ? { entityType: entity.type, entityId: entity.id }
+        : { entityType: entity.type }
     );
   }
 

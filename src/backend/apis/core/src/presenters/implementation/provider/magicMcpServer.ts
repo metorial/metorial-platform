@@ -11,7 +11,6 @@ export let v1MagicMcpServerPresenter = Presenter.create(magicMcpServerType)
     id: magicMcpServer.id,
     status: magicMcpServer.status,
     source: magicMcpServer.source,
-    provider_template_id: magicMcpServer.providerTemplateId,
     endpoints: magicMcpServer.aliases.map(a => ({
       id: shadowId('mgse_', [magicMcpServer.id], [a.slug]),
       alias: a.slug,
@@ -31,7 +30,6 @@ export let v1MagicMcpServerPresenter = Presenter.create(magicMcpServerType)
       id: v.string(),
       status: v.enumOf(['active', 'archived', 'deleted']),
       source: v.enumOf(['manual', 'consumer_provider_template']),
-      provider_template_id: v.nullable(v.string()),
       endpoints: v.array(
         v.object({
           id: v.string(),
@@ -70,7 +68,9 @@ export let dashboardMagicMcpServerPresenter = Presenter.create(magicMcpServerTyp
 
 export let consumerMagicMcpServerPresenter = Presenter.create(magicMcpServerType)
   .presenter(async ({ magicMcpServer, portal }, opts) => {
-    let inner = await v1MagicMcpServerPresenter.present({ magicMcpServer, portal }, opts).run();
+    let inner = await v1MagicMcpServerPresenter
+      .present({ magicMcpServer, portal }, opts)
+      .run();
 
     return {
       ...inner,
