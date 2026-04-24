@@ -252,6 +252,7 @@ class MagicMcpEndpointImpl {
         data: {
           id: await ID.generateId('magicMcpEndpoint'),
           status: 'active',
+          isConsumerReconciled: true,
           instanceOid: d.instance.oid,
           consumerProfileOid: d.input.consumerProfile?.oid,
           name: d.input.name,

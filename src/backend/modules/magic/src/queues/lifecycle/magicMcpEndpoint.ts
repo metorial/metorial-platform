@@ -33,7 +33,7 @@ export let magicMcpEndpointDeletedQueueProcessor = magicMcpEndpointDeletedQueue.
     });
     if (!magicMcpEndpoint) return;
 
-    let uniqueSubspaceTemplatesRaw = await db.magicMcpSubspaceSessionConnection.findMany({
+    let uniqueSubspaceTemplatesRaw = await db.magicMcpSession.findMany({
       where: { magicMcpEndpointOid: magicMcpEndpoint.oid },
       select: { subspaceSessionTemplateId: true },
       distinct: ['subspaceSessionTemplateId']
@@ -42,7 +42,7 @@ export let magicMcpEndpointDeletedQueueProcessor = magicMcpEndpointDeletedQueue.
       .map(record => record.subspaceSessionTemplateId)
       .filter((value): value is string => !!value);
 
-    let uniqueSubspaceSessionsRaw = await db.magicMcpSubspaceSessionConnection.findMany({
+    let uniqueSubspaceSessionsRaw = await db.magicMcpSession.findMany({
       where: { magicMcpEndpointOid: magicMcpEndpoint.oid },
       select: { subspaceSessionId: true },
       distinct: ['subspaceSessionId']
@@ -51,7 +51,7 @@ export let magicMcpEndpointDeletedQueueProcessor = magicMcpEndpointDeletedQueue.
       .map(record => record.subspaceSessionId)
       .filter((value): value is string => !!value);
 
-    await db.magicMcpSubspaceSessionConnection.deleteMany({
+    await db.magicMcpSession.deleteMany({
       where: { magicMcpEndpointOid: magicMcpEndpoint.oid }
     });
 

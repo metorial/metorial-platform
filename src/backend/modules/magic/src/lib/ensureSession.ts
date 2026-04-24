@@ -244,7 +244,7 @@ let getMagicMcpTargetInfo = async (d: MagicMcpResolvedTarget) => {
 
 let getExistingMapping = async (d: Awaited<ReturnType<typeof getMagicMcpTargetInfo>>) => {
   if (d.targetType === 'server') {
-    return await db.magicMcpSubspaceSessionConnection.findUnique({
+    return await db.magicMcpSession.findUnique({
       where: {
         magicMcpServerOid: d.mappingWhere.magicMcpServerOid,
         isActive: true
@@ -252,7 +252,7 @@ let getExistingMapping = async (d: Awaited<ReturnType<typeof getMagicMcpTargetIn
     });
   }
 
-  return await db.magicMcpSubspaceSessionConnection.findUnique({
+  return await db.magicMcpSession.findUnique({
     where: {
       magicMcpEndpointOid: d.mappingWhere.magicMcpEndpointOid,
       isActive: true
@@ -346,7 +346,7 @@ export let ensureMagicMcpSubspaceSession = async (magicMcpTarget: MagicMcpResolv
 
   try {
     if (mapping) {
-      let updated = await db.magicMcpSubspaceSessionConnection.updateMany({
+      let updated = await db.magicMcpSession.updateMany({
         where: {
           oid: mapping.oid,
           subspaceSessionId: mapping.subspaceSessionId
@@ -355,7 +355,8 @@ export let ensureMagicMcpSubspaceSession = async (magicMcpTarget: MagicMcpResolv
           subspaceSessionId: subspaceSession.id,
           subspaceSessionTemplateId: target.sessionTemplateId,
           expiresAt,
-          isActive: true
+          isActive: true,
+          isConsumerReconciled: true
         }
       });
       let winner = await getWinnerMapping(target);
@@ -382,7 +383,7 @@ export let ensureMagicMcpSubspaceSession = async (magicMcpTarget: MagicMcpResolv
       return winner;
     }
 
-    return await db.magicMcpSubspaceSessionConnection.create({
+    return await db.magicMcpSession.create({
       data: {
         id: await ID.generateId('magicMcpServerSubspaceSession'),
         instanceOid: target.instance.oid,
@@ -390,6 +391,7 @@ export let ensureMagicMcpSubspaceSession = async (magicMcpTarget: MagicMcpResolv
         subspaceSessionTemplateId: target.sessionTemplateId,
         expiresAt,
         isActive: true,
+        isConsumerReconciled: true,
         ...target.mappingData
       }
     });

@@ -27,8 +27,14 @@ let include = {
       },
       subspaceSession: true
     }
+  },
+  consumerIntegrationSessions: {
+    include: {
+      consumerIntegration: true,
+      consumerProfile: true
+    }
   }
-} satisfies Prisma.MagicMcpSubspaceSessionConnectionInclude;
+} satisfies Prisma.MagicMcpSessionInclude;
 
 let getAccessWhere = (accessTagFilter: Awaited<ReturnType<typeof getAccessTagFilter>>) => {
   if (!accessTagFilter) return undefined;
@@ -48,7 +54,7 @@ let getAccessWhere = (accessTagFilter: Awaited<ReturnType<typeof getAccessTagFil
         }
       }
     ]
-  } satisfies Prisma.MagicMcpSubspaceSessionConnectionWhereInput;
+  } satisfies Prisma.MagicMcpSessionWhereInput;
 };
 
 class MagicMcpSessionImpl {
@@ -63,7 +69,7 @@ class MagicMcpSessionImpl {
     });
     let accessWhere = getAccessWhere(accessTagFilter);
 
-    let magicMcpSession = await db.magicMcpSubspaceSessionConnection.findFirst({
+    let magicMcpSession = await db.magicMcpSession.findFirst({
       where: {
         id: d.magicMcpSessionId,
         instanceOid: d.instance.oid,
@@ -122,7 +128,7 @@ class MagicMcpSessionImpl {
 
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
-        return await db.magicMcpSubspaceSessionConnection.findMany({
+        return await db.magicMcpSession.findMany({
           ...opts,
           where: {
             instanceOid: d.instance.oid,

@@ -1,6 +1,7 @@
 export * from '../lib/consumerProviderContext';
 export * from '../lib/consumerSurfaceEmailWhitelist';
 export * from '../lib/magicMcpEndpointAccess';
+export * from '../lib/magicMcpServerAccess';
 export * from '../lib/magicMcpTokenAccess';
 export * from './accessPolicy';
 export * from './ares';
@@ -10,6 +11,7 @@ export * from './consumerAccessListing';
 export * from './consumerAccessRequest';
 export * from './consumerAuth';
 export * from './consumerGroup';
+export * from './consumerIntegration';
 export * from './consumerInvite';
 export * from './consumerProfile';
 export * from './consumerProviderCatalog';

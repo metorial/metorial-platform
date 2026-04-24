@@ -11,14 +11,13 @@ import { subspace } from '../subspace';
 let Sentry = getSentry();
 
 type RawSubspaceSession = Awaited<ReturnType<typeof subspace.session.get>>;
-type MagicMcpSubspaceSessionConnectionWithRelations =
-  Prisma.MagicMcpSubspaceSessionConnectionGetPayload<{
-    include: {
-      instance: true;
-      magicMcpEndpoint: true;
-      magicMcpServer: true;
-    };
-  }>;
+type MagicMcpSessionWithRelations = Prisma.MagicMcpSessionGetPayload<{
+  include: {
+    instance: true;
+    magicMcpEndpoint: true;
+    magicMcpServer: true;
+  };
+}>;
 
 let enrichSessions = async (d: { instance: Instance; sessions: RawSubspaceSession[] }) => {
   if (d.sessions.length === 0) return [];
@@ -28,7 +27,7 @@ let enrichSessions = async (d: { instance: Instance; sessions: RawSubspaceSessio
       instance: d.instance as any,
       sessionIds: d.sessions.map(session => session.id)
     }),
-    db.magicMcpSubspaceSessionConnection.findMany({
+    db.magicMcpSession.findMany({
       where: {
         instanceOid: d.instance.oid,
         subspaceSessionId: {
@@ -56,7 +55,7 @@ let enrichSessions = async (d: { instance: Instance; sessions: RawSubspaceSessio
     ...session,
     clientSecret: referenceMap.get(session.id) ?? null,
     magicMcpServer: magicMcpConnectionMap.get(session.id)?.magicMcpServer ?? null,
-    magicMcpSubspaceSessionConnection: magicMcpConnectionMap.get(session.id) ?? null
+    magicMcpSession: magicMcpConnectionMap.get(session.id) ?? null
   }));
 };
 
@@ -213,7 +212,7 @@ export let subspaceSessionService = createSubspaceService(
     ) => {
       let eventBase = toEventBase(arg0);
 
-      let magicMcpLink = await db.magicMcpSubspaceSessionConnection.findFirst({
+      let magicMcpLink = await db.magicMcpSession.findFirst({
         where: { subspaceSessionId: arg0.sessionId }
       });
       if (magicMcpLink && !arg0._allowMagicMcpUpdate) {
@@ -240,7 +239,7 @@ export let subspaceSessionService = createSubspaceService(
     ) => {
       let eventBase = toEventBase(arg0);
 
-      let magicMcpLink = await db.magicMcpSubspaceSessionConnection.findFirst({
+      let magicMcpLink = await db.magicMcpSession.findFirst({
         where: { subspaceSessionId: arg0.sessionId }
       });
       if (magicMcpLink && !arg0._allowMagicMcpDelete) {
@@ -268,5 +267,5 @@ export let subspaceSessionService = createSubspaceService(
 export type SubspaceSession = RawSubspaceSession & {
   clientSecret?: string | null;
   magicMcpServer?: MagicMcpServer | null;
-  magicMcpSubspaceSessionConnection?: MagicMcpSubspaceSessionConnectionWithRelations | null;
+  magicMcpSession?: MagicMcpSessionWithRelations | null;
 };

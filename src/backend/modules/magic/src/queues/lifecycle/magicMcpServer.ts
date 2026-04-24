@@ -44,7 +44,7 @@ export let magicMcpServerDeletedQueueProcessor = magicMcpServerDeletedQueue.proc
 
     await queueMagicMcpServerIndex(data.magicMcpServerId);
 
-    let uniqueSubspaceTemplatesRaw = await db.magicMcpSubspaceSessionConnection.findMany({
+    let uniqueSubspaceTemplatesRaw = await db.magicMcpSession.findMany({
       where: { magicMcpServerOid: magicMcpServer.oid },
       select: { subspaceSessionTemplateId: true },
       distinct: ['subspaceSessionTemplateId']
@@ -56,7 +56,7 @@ export let magicMcpServerDeletedQueueProcessor = magicMcpServerDeletedQueue.proc
       ])
     );
 
-    let uniqueSubspaceSessionsRaw = await db.magicMcpSubspaceSessionConnection.findMany({
+    let uniqueSubspaceSessionsRaw = await db.magicMcpSession.findMany({
       where: { magicMcpServerOid: magicMcpServer.oid },
       select: { subspaceSessionId: true },
       distinct: ['subspaceSessionId']

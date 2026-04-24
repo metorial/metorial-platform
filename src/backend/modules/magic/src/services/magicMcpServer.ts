@@ -174,6 +174,7 @@ class MagicMcpServerImpl {
         id: await ID.generateId('magicMcpServer'),
         status: 'active',
         source: d.input.source ?? 'manual',
+        isConsumerReconciled: true,
         providerTemplateId: d.input.providerTemplateId,
         subspaceSessionTemplateId: sessionTemplateId,
         name: d.input.name,

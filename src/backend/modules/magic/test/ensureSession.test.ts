@@ -3,9 +3,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('@metorial/db', () => {
   let db = {
     project: {
-      findUnique: vi.fn()
+      findUniqueOrThrow: vi.fn()
     },
-    magicMcpSubspaceSessionConnection: {
+    magicMcpSession: {
       findUnique: vi.fn(),
       updateMany: vi.fn(),
       create: vi.fn()
@@ -68,9 +68,7 @@ describe('ensureMagicMcpSubspaceSession', () => {
       expiresAt: new Date('2026-04-25T12:00:00.000Z')
     };
 
-    vi.mocked(db.magicMcpSubspaceSessionConnection.findUnique).mockResolvedValue(
-      mapping as any
-    );
+    vi.mocked(db.magicMcpSession.findUnique).mockResolvedValue(mapping as any);
 
     let result = await ensureMagicMcpSubspaceSession({
       type: 'server',
@@ -109,13 +107,13 @@ describe('ensureMagicMcpSubspaceSession', () => {
       expiresAt: new Date('2026-04-24T10:15:00.000Z')
     };
 
-    vi.mocked(db.magicMcpSubspaceSessionConnection.findUnique)
+    vi.mocked(db.magicMcpSession.findUnique)
       .mockResolvedValueOnce(existingMapping as any)
       .mockResolvedValueOnce(nextMapping as any);
-    vi.mocked(db.magicMcpSubspaceSessionConnection.updateMany).mockResolvedValue({
+    vi.mocked(db.magicMcpSession.updateMany).mockResolvedValue({
       count: 1
     } as any);
-    vi.mocked(db.project.findUnique).mockResolvedValue({
+    vi.mocked(db.project.findUniqueOrThrow).mockResolvedValue({
       magicMcpSessionDurationMinutes: 60
     } as any);
     vi.mocked(subspaceSessionTemplateProviderService.getMany).mockResolvedValue([]);
@@ -147,7 +145,7 @@ describe('ensureMagicMcpSubspaceSession', () => {
       description: 'Magic MCP server',
       providers: []
     });
-    expect(db.magicMcpSubspaceSessionConnection.updateMany).toHaveBeenCalledWith({
+    expect(db.magicMcpSession.updateMany).toHaveBeenCalledWith({
       where: {
         oid: 1n,
         subspaceSessionId: 'ses_old'

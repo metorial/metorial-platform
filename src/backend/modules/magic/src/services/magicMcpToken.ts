@@ -148,6 +148,7 @@ class MagicMcpTokenImpl {
         secret: createMagicMcpSecret(),
         status: 'active',
         isGroupLocked: !!d.groups?.length,
+        isConsumerReconciled: true,
         instanceOid: d.instance.oid,
         magicMcpServerOid: d.input.magicMcpServer?.oid,
         magicMcpEndpointOid: d.input.magicMcpEndpoint?.oid,
