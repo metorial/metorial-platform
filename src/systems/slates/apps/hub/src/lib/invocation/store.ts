@@ -166,6 +166,7 @@ export let storeSlateInvocation = (
           requests: sanitizedRequests as any,
           responses: (sanitizedResponses ?? []) as any,
           provider: { ...invocationResult, logs: undefined } as any,
+          // @ts-ignore
           logs: invocationResult.logs.map(log => [log.timestamp, log.message] as const),
           requestTraces
         } satisfies StoredSlateInvocation)
