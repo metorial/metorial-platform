@@ -118,7 +118,9 @@ let extractPortalIdFromTemplate = (d: { template: string; url: string }) => {
 };
 
 export let buildPortalUrlFromTemplate = (template: string, portalId: string) => {
-  return getPortalUrlTemplate(template).replace(portalIdPlaceholder, portalId).replace(/\/+$/, '');
+  return getPortalUrlTemplate(template)
+    .replace(portalIdPlaceholder, portalId)
+    .replace(/\/+$/, '');
 };
 
 export let parsePortalIdFromTemplate = (d: { template: string; url: string }) => {

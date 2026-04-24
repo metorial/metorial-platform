@@ -69,6 +69,8 @@ model ConsumerAuthClient {
   expiresAt DateTime
 
   consumerAuthAttempts ConsumerAuthAttempt[]
+
+  @@index([registrationIp, createdAt])
 }
 
 model ConsumerAuthAttempt {
