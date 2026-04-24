@@ -17,6 +17,8 @@ import {
   ConsumerAccessRequest,
   ConsumerGroup,
   ConsumerInvite,
+  ConsumerIntegration,
+  ConsumerIntegrationSession,
   ConsumerProfile,
   ConsumerProfileGroup,
   ConsumerSession,
@@ -34,7 +36,7 @@ import {
   MagicMcpGroupToken,
   MagicMcpServer,
   MagicMcpServerAlias,
-  MagicMcpSubspaceSessionConnection,
+  MagicMcpSession,
   MagicMcpToken,
   OAuthApplication,
   OAuthApplicationClientSecret,
@@ -413,7 +415,7 @@ export let magicMcpEndpointType = PresentableType.create<{
 }>()('magic_mcp.endpoint');
 
 export let magicMcpSessionType = PresentableType.create<{
-  magicMcpSession: MagicMcpSubspaceSessionConnection & {
+  magicMcpSession: MagicMcpSession & {
     magicMcpServer:
       | (MagicMcpServer & {
           aliases: MagicMcpServerAlias[];
@@ -429,6 +431,10 @@ export let magicMcpSessionType = PresentableType.create<{
           })[];
         })
       | null;
+    consumerIntegrationSessions: (ConsumerIntegrationSession & {
+      consumerIntegration: ConsumerIntegration;
+      consumerProfile: ConsumerProfile;
+    })[];
   };
 }>()('magic_mcp.session');
 
