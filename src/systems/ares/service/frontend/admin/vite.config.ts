@@ -7,7 +7,7 @@ export default defineConfig({
   base: '/metorial-ares-admin',
 
   resolve: {
-    dedupe: ['react', 'react-dom']
+    dedupe: ['react', 'react-dom', 'react-router', 'react-router-dom']
   },
 
   server: {
