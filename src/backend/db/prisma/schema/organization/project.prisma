@@ -13,6 +13,7 @@ model Project {
   name String
 
   onlyAllowTrustedProviders Boolean @default(false)
+  magicMcpSessionDurationMinutes Int @default(1440)
 
   organizationOid BigInt
   organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)

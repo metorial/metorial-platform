@@ -78,6 +78,20 @@ let getConfigurationHash = (templateProviders: EffectiveTemplateProvider[]) => {
   return createHash('sha256').update(JSON.stringify(descriptors)).digest('hex');
 };
 
+let getMagicMcpSessionName = (name: string, now: Date) => {
+  return `Magic MCP ${name} - ${now.toISOString().slice(0, 10)}`;
+};
+
+let getMagicMcpSessionExpiresAt = async (instance: Instance, now: Date) => {
+  let project = await db.project.findUniqueOrThrow({
+    where: { oid: instance.projectOid },
+    select: { magicMcpSessionDurationMinutes: true }
+  });
+  let durationMinutes = project?.magicMcpSessionDurationMinutes;
+
+  return new Date(now.getTime() + durationMinutes * 60 * 1000);
+};
+
 let ensureMagicMcpEndpointTemplate = async (magicMcpEndpoint: MagicMcpEndpointForSession) => {
   let rawTemplateTargets = magicMcpEndpoint.servers
     .map(server => {
@@ -203,7 +217,7 @@ let getMagicMcpTargetInfo = async (d: MagicMcpResolvedTarget) => {
         magicMcpServerOid: d.target.oid
       },
       sessionTemplateId: d.target.subspaceSessionTemplateId,
-      name: d.target.name ?? `Magic MCP ${d.target.id}`,
+      name: d.target.name ?? d.target.id,
       description: d.target.description ?? undefined
     };
   }
@@ -223,7 +237,7 @@ let getMagicMcpTargetInfo = async (d: MagicMcpResolvedTarget) => {
       magicMcpEndpointOid: magicMcpEndpoint.oid
     },
     sessionTemplateId,
-    name: magicMcpEndpoint.name ?? `Magic MCP Endpoint ${magicMcpEndpoint.id}`,
+    name: magicMcpEndpoint.name ?? magicMcpEndpoint.id,
     description: magicMcpEndpoint.description ?? undefined
   };
 };
@@ -246,24 +260,34 @@ let getExistingMapping = async (d: Awaited<ReturnType<typeof getMagicMcpTargetIn
   });
 };
 
-let deleteExistingMapping = async (d: Awaited<ReturnType<typeof getMagicMcpTargetInfo>>) => {
-  if (d.targetType === 'server') {
-    await db.magicMcpSubspaceSessionConnection.updateMany({
-      where: { magicMcpServerOid: d.mappingWhere.magicMcpServerOid },
-      data: { isActive: true }
-    });
-
-    return;
-  }
-
-  await db.magicMcpSubspaceSessionConnection.updateMany({
-    where: { magicMcpEndpointOid: d.mappingWhere.magicMcpEndpointOid },
-    data: { isActive: true }
-  });
-};
-
 let getWinnerMapping = async (d: Awaited<ReturnType<typeof getMagicMcpTargetInfo>>) => {
   return await getExistingMapping(d);
+};
+
+let isReusableMapping = (
+  mapping: Awaited<ReturnType<typeof getExistingMapping>>,
+  target: Awaited<ReturnType<typeof getMagicMcpTargetInfo>>,
+  now: Date
+) => {
+  if (!mapping) return false;
+  if (mapping.subspaceSessionTemplateId !== target.sessionTemplateId) return false;
+  if (!mapping.expiresAt) return false;
+  if (mapping.expiresAt <= now) return false;
+
+  return true;
+};
+
+let deleteSubspaceSessionSafe = async (d: {
+  instance: Instance;
+  subspaceSessionId: string;
+}) => {
+  try {
+    await subspaceSessionService.delete({
+      instance: d.instance,
+      sessionId: d.subspaceSessionId,
+      _allowMagicMcpDelete: true
+    });
+  } catch {}
 };
 
 let getSubspaceProviders = async (d: { instance: Instance; sessionTemplateId: string }) => {
@@ -303,33 +327,68 @@ let getSubspaceProviders = async (d: { instance: Instance; sessionTemplateId: st
 export let ensureMagicMcpSubspaceSession = async (magicMcpTarget: MagicMcpResolvedTarget) => {
   let target = await getMagicMcpTargetInfo(magicMcpTarget);
   let mapping = await getExistingMapping(target);
+  let now = new Date();
 
-  if (mapping && mapping.subspaceSessionTemplateId !== target.sessionTemplateId) {
-    await deleteExistingMapping(target);
-    mapping = null;
-  }
-
-  if (mapping) return mapping;
+  if (isReusableMapping(mapping, target, now)) return mapping!;
 
   let providers = await getSubspaceProviders({
     instance: target.instance,
     sessionTemplateId: target.sessionTemplateId
   });
+  let expiresAt = await getMagicMcpSessionExpiresAt(target.instance, now);
 
   let subspaceSession = await subspaceSessionService.create({
     instance: target.instance,
-    name: target.name,
+    name: getMagicMcpSessionName(target.name, now),
     description: target.description,
     providers
   });
 
   try {
+    if (mapping) {
+      let updated = await db.magicMcpSubspaceSessionConnection.updateMany({
+        where: {
+          oid: mapping.oid,
+          subspaceSessionId: mapping.subspaceSessionId
+        },
+        data: {
+          subspaceSessionId: subspaceSession.id,
+          subspaceSessionTemplateId: target.sessionTemplateId,
+          expiresAt,
+          isActive: true
+        }
+      });
+      let winner = await getWinnerMapping(target);
+      if (!winner) {
+        throw new ServiceError(
+          badRequestError({
+            message: 'Failed to persist magic MCP session mapping'
+          })
+        );
+      }
+      if (updated.count === 0 && winner.subspaceSessionId !== subspaceSession.id) {
+        void deleteSubspaceSessionSafe({
+          instance: target.instance,
+          subspaceSessionId: subspaceSession.id
+        });
+      }
+      if (updated.count > 0 && mapping.subspaceSessionId !== winner.subspaceSessionId) {
+        void deleteSubspaceSessionSafe({
+          instance: target.instance,
+          subspaceSessionId: mapping.subspaceSessionId
+        });
+      }
+
+      return winner;
+    }
+
     return await db.magicMcpSubspaceSessionConnection.create({
       data: {
         id: await ID.generateId('magicMcpServerSubspaceSession'),
         instanceOid: target.instance.oid,
         subspaceSessionId: subspaceSession.id,
         subspaceSessionTemplateId: target.sessionTemplateId,
+        expiresAt,
         isActive: true,
         ...target.mappingData
       }
@@ -337,7 +396,15 @@ export let ensureMagicMcpSubspaceSession = async (magicMcpTarget: MagicMcpResolv
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
       let winner = await getWinnerMapping(target);
-      if (winner) return winner;
+      if (winner) {
+        if (winner.subspaceSessionId !== subspaceSession.id) {
+          void deleteSubspaceSessionSafe({
+            instance: target.instance,
+            subspaceSessionId: subspaceSession.id
+          });
+        }
+        return winner;
+      }
     }
 
     throw error;

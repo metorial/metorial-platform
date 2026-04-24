@@ -1,6 +1,6 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { getSentry } from '@lowerdeck/sentry';
-import { db, Instance } from '@metorial/db';
+import { db, Instance, MagicMcpServer, Prisma } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { sessionClientSecretReferenceService } from '@metorial/module-access';
 import { usageService } from '@metorial/module-usage';
@@ -11,20 +11,62 @@ import { subspace } from '../subspace';
 let Sentry = getSentry();
 
 type RawSubspaceSession = Awaited<ReturnType<typeof subspace.session.get>>;
+type MagicMcpSubspaceSessionConnectionWithRelations =
+  Prisma.MagicMcpSubspaceSessionConnectionGetPayload<{
+    include: {
+      instance: true;
+      magicMcpEndpoint: true;
+      magicMcpServer: true;
+    };
+  }>;
 
-let enrichSessionWithClientSecret = async (d: {
-  instance: Instance;
-  session: RawSubspaceSession;
-}) => {
-  let reference = await sessionClientSecretReferenceService.getForSession({
-    instance: d.instance as any,
-    sessionId: d.session.id
+let enrichSessions = async (d: { instance: Instance; sessions: RawSubspaceSession[] }) => {
+  if (d.sessions.length === 0) return [];
+
+  let [references, magicMcpConnections] = await Promise.all([
+    sessionClientSecretReferenceService.getForSessions({
+      instance: d.instance as any,
+      sessionIds: d.sessions.map(session => session.id)
+    }),
+    db.magicMcpSubspaceSessionConnection.findMany({
+      where: {
+        instanceOid: d.instance.oid,
+        subspaceSessionId: {
+          in: d.sessions.map(session => session.id)
+        }
+      },
+      include: {
+        instance: true,
+        magicMcpEndpoint: true,
+        magicMcpServer: true
+      }
+    })
+  ]);
+
+  let referenceMap = new Map(
+    references.map(
+      reference => [reference.sessionId, reference.fineGrainedKey.secret] as const
+    )
+  );
+  let magicMcpConnectionMap = new Map(
+    magicMcpConnections.map(connection => [connection.subspaceSessionId, connection] as const)
+  );
+
+  return d.sessions.map(session => ({
+    ...session,
+    clientSecret: referenceMap.get(session.id) ?? null,
+    magicMcpServer: magicMcpConnectionMap.get(session.id)?.magicMcpServer ?? null,
+    magicMcpSubspaceSessionConnection: magicMcpConnectionMap.get(session.id) ?? null
+  }));
+};
+
+let enrichSession = async (d: { instance: Instance; session: RawSubspaceSession }) => {
+  let [session] = await enrichSessions({
+    instance: d.instance,
+    sessions: [d.session]
   });
 
-  return {
-    ...d.session,
-    clientSecret: reference?.fineGrainedKey.secret ?? null
-  };
+  return session!;
 };
 
 export let subspaceSessionService = createSubspaceService(
@@ -34,9 +76,17 @@ export let subspaceSessionService = createSubspaceService(
     get: async (...params: Parameters<typeof inner.get>) => {
       let session = await inner.get(...params);
 
-      return await enrichSessionWithClientSecret({
+      return await enrichSession({
         instance: params[0].instance,
         session
+      });
+    },
+    getMany: async (...params: Parameters<typeof inner.getMany>) => {
+      let sessions = await inner.getMany(...params);
+
+      return await enrichSessions({
+        instance: params[0].instance,
+        sessions
       });
     },
     list: async (
@@ -52,29 +102,12 @@ export let subspaceSessionService = createSubspaceService(
         ids
       });
 
-      return {
-        run: async (query: any) => {
-          let res = await paginator.run(query);
-          let references = await sessionClientSecretReferenceService.getForSessions({
-            instance: input.instance,
-            sessionIds: res.items.map((item: RawSubspaceSession) => item.id)
-          });
-          let referenceMap = new Map(
-            (references as any[]).map(reference => [
-              String(reference.sessionId),
-              String(reference.fineGrainedKey.secret)
-            ])
-          );
-
-          return {
-            ...res,
-            items: res.items.map((item: RawSubspaceSession) => ({
-              ...item,
-              clientSecret: referenceMap.get(item.id) ?? null
-            }))
-          };
-        }
-      };
+      return paginator.map(items =>
+        enrichSessions({
+          instance: input.instance,
+          sessions: items
+        })
+      );
     },
     create: async (...params: Parameters<typeof inner.create>) => {
       let eventBase = toEventBase(params[0]);
@@ -170,7 +203,7 @@ export let subspaceSessionService = createSubspaceService(
         }
       }
 
-      return await enrichSessionWithClientSecret({
+      return await enrichSession({
         instance: params[0].instance,
         session
       });
@@ -197,7 +230,7 @@ export let subspaceSessionService = createSubspaceService(
 
       await Fabric.fire('provider.session.updated:after', { ...eventBase, session });
 
-      return await enrichSessionWithClientSecret({
+      return await enrichSession({
         instance: arg0.instance,
         session
       });
@@ -224,7 +257,7 @@ export let subspaceSessionService = createSubspaceService(
 
       await Fabric.fire('provider.session.deleted:after', { ...eventBase, session });
 
-      return await enrichSessionWithClientSecret({
+      return await enrichSession({
         instance: arg0.instance,
         session
       });
@@ -234,4 +267,6 @@ export let subspaceSessionService = createSubspaceService(
 
 export type SubspaceSession = RawSubspaceSession & {
   clientSecret?: string | null;
+  magicMcpServer?: MagicMcpServer | null;
+  magicMcpSubspaceSessionConnection?: MagicMcpSubspaceSessionConnectionWithRelations | null;
 };
