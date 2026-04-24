@@ -22,10 +22,14 @@ model Consumer {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  profiles          ConsumerProfile[]
-  instanceConsumers InstanceConsumer[]
-  consumerActors    ConsumerActor[]
-  invites           ConsumerInvite[]
+  profiles             ConsumerProfile[]
+  instanceConsumers    InstanceConsumer[]
+  consumerActors       ConsumerActor[]
+  consumerTokens       ConsumerToken[]
+  integrations         ConsumerIntegration[]
+  integrationEndpoints ConsumerIntegrationEndpoint[]
+  integrationSessions  ConsumerIntegrationSession[]
+  invites              ConsumerInvite[]
 
   @@unique([email, organizationOid])
 }
@@ -109,6 +113,10 @@ model ConsumerProfile {
   providerSetupSessionBindings ConsumerProviderSetupSessionBinding[]
   magicMcpEndpoints            MagicMcpEndpoint[]
   actors                       ConsumerActor[]
+  consumerTokens               ConsumerToken[]
+  integrations                 ConsumerIntegration[]
+  integrationEndpoints         ConsumerIntegrationEndpoint[]
+  integrationSessions          ConsumerIntegrationSession[]
   consumerAuthAttempts         ConsumerAuthAttempt[]
   invite                       ConsumerInvite?
 
@@ -125,7 +133,7 @@ model ConsumerInvite {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
-  status ConsumerInviteStatus @default(pending)
+  status  ConsumerInviteStatus @default(pending)
   message String?
 
   organizationOid BigInt

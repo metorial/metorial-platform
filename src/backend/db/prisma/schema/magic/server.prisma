@@ -13,8 +13,9 @@ model MagicMcpServer {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
-  status MagicMcpServerStatus
-  source MagicMcpServerSource @default(manual)
+  status               MagicMcpServerStatus
+  source               MagicMcpServerSource @default(manual)
+  isConsumerReconciled Boolean              @default(false)
 
   providerTemplateId        String?
   subspaceSessionTemplateId String
@@ -31,7 +32,7 @@ model MagicMcpServer {
   deletedAt DateTime?
 
   aliases         MagicMcpServerAlias[]
-  subspaceSession MagicMcpSubspaceSessionConnection?
+  subspaceSession MagicMcpSession?
   endpoints       MagicMcpEndpointServer[]
 
   tokens                 MagicMcpToken[]
@@ -42,6 +43,7 @@ model MagicMcpServer {
   accessRequests         ConsumerAccessRequest[] @relation("ConsumerAccessRequestMagicMcpServer")
   consumerAuthClients    ConsumerAuthClient[]
   consumerAccessListings ConsumerAccessListing[]
+  consumerIntegrations   ConsumerIntegration[]
 }
 
 model MagicMcpServerAlias {

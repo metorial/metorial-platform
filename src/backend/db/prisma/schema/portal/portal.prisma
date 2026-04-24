@@ -30,5 +30,4 @@ model Portal {
   updatedAt  DateTime  @default(now()) @updatedAt
   archivedAt DateTime?
   deletedAt  DateTime?
-
 }

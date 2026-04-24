@@ -9,7 +9,8 @@ model MagicMcpToken {
 
   status MagicMcpTokenStatus
 
-  isGroupLocked Boolean @default(false)
+  isGroupLocked        Boolean @default(false)
+  isConsumerReconciled Boolean @default(false)
 
   secret String @unique
 
@@ -31,9 +32,10 @@ model MagicMcpToken {
   deletedAt DateTime?
   expiresAt DateTime?
 
-  groups             MagicMcpGroupToken[]
-  uses               MagicMcpTokenUse[]
-  accessTagEntities  AccessTagEntity[]
+  groups               MagicMcpGroupToken[]
+  uses                 MagicMcpTokenUse[]
+  accessTagEntities    AccessTagEntity[]
+  consumerTokens       ConsumerToken[]
   consumerAuthAttempts ConsumerAuthAttempt[]
 }
 

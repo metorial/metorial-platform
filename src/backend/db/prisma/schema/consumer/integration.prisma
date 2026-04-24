@@ -1,0 +1,113 @@
+model ConsumerToken {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  consumerOid BigInt
+  consumer    Consumer @relation(fields: [consumerOid], references: [oid], onDelete: Cascade)
+
+  consumerProfileOid BigInt
+  consumerProfile    ConsumerProfile @relation(fields: [consumerProfileOid], references: [oid], onDelete: Cascade)
+
+  magicMcpTokenOid BigInt
+  magicMcpToken    MagicMcpToken @relation(fields: [magicMcpTokenOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([consumerProfileOid, magicMcpTokenOid])
+  @@index([instanceOid])
+  @@index([consumerOid])
+  @@index([consumerProfileOid])
+  @@index([magicMcpTokenOid])
+}
+
+model ConsumerIntegration {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  isManaged Boolean @default(false)
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  consumerOid BigInt
+  consumer    Consumer @relation(fields: [consumerOid], references: [oid], onDelete: Cascade)
+
+  consumerProfileOid BigInt
+  consumerProfile    ConsumerProfile @relation(fields: [consumerProfileOid], references: [oid], onDelete: Cascade)
+
+  magicMcpServerOid BigInt
+  magicMcpServer    MagicMcpServer @relation(fields: [magicMcpServerOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  sessions ConsumerIntegrationSession[]
+
+  @@unique([consumerProfileOid, magicMcpServerOid])
+  @@index([instanceOid])
+  @@index([consumerOid])
+  @@index([consumerProfileOid])
+  @@index([magicMcpServerOid])
+}
+
+model ConsumerIntegrationEndpoint {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  isManaged Boolean @default(false)
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  consumerOid BigInt
+  consumer    Consumer @relation(fields: [consumerOid], references: [oid], onDelete: Cascade)
+
+  consumerProfileOid BigInt
+  consumerProfile    ConsumerProfile @relation(fields: [consumerProfileOid], references: [oid], onDelete: Cascade)
+
+  magicMcpEndpointOid BigInt
+  magicMcpEndpoint    MagicMcpEndpoint @relation(fields: [magicMcpEndpointOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([consumerProfileOid, magicMcpEndpointOid])
+  @@index([instanceOid])
+  @@index([consumerOid])
+  @@index([consumerProfileOid])
+  @@index([magicMcpEndpointOid])
+}
+
+model ConsumerIntegrationSession {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  consumerOid BigInt
+  consumer    Consumer @relation(fields: [consumerOid], references: [oid], onDelete: Cascade)
+
+  consumerProfileOid BigInt
+  consumerProfile    ConsumerProfile @relation(fields: [consumerProfileOid], references: [oid], onDelete: Cascade)
+
+  consumerIntegrationOid BigInt
+  consumerIntegration    ConsumerIntegration @relation(fields: [consumerIntegrationOid], references: [oid], onDelete: Cascade)
+
+  magicMcpSessionOid BigInt
+  magicMcpSession    MagicMcpSession @relation(fields: [magicMcpSessionOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([consumerIntegrationOid, magicMcpSessionOid])
+  @@index([instanceOid])
+  @@index([consumerOid])
+  @@index([consumerProfileOid])
+  @@index([consumerIntegrationOid])
+  @@index([magicMcpSessionOid])
+}

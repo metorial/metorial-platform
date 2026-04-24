@@ -16,7 +16,7 @@ model ConsumerGroup {
   status ConsumerGroupStatus
   type   ConsumerGroupType   @default(default)
 
-  isDefault   Boolean @default(false)
+  isDefault   Boolean  @default(false)
   ssoGroupIds String[]
 
   name        String
@@ -25,15 +25,15 @@ model ConsumerGroup {
   surfaceOid BigInt
   surface    ConsumerSurface @relation(fields: [surfaceOid], references: [oid], onDelete: Cascade)
 
-  accessTagOid BigInt @unique
+  accessTagOid BigInt    @unique
   accessTag    AccessTag @relation(fields: [accessTagOid], references: [oid], onDelete: Cascade)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
   archivedAt DateTime?
   deletedAt  DateTime?
 
   profiles         ConsumerProfileGroup[]
   consumerAccesses ConsumerAccess[]
-  personalOwner    ConsumerProfile?      @relation("ConsumerProfilePersonalGroup")
+  personalOwner    ConsumerProfile?       @relation("ConsumerProfilePersonalGroup")
 }

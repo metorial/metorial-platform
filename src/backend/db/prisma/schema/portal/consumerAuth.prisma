@@ -23,8 +23,8 @@ model ConsumerAuthClient {
 
   name String
 
-  clientId     String  @unique
-  clientSecret String?
+  clientId       String  @unique
+  clientSecret   String?
   registrationIp String?
 
   tokenEndpointAuthMethod ConsumerAuthClientTokenEndpointAuthMethod @default(client_secret_basic)
@@ -40,9 +40,10 @@ model ConsumerAuthClient {
   magicMcpEndpointOid BigInt?
   magicMcpEndpoint    MagicMcpEndpoint? @relation(fields: [magicMcpEndpointOid], references: [oid], onDelete: Cascade)
 
-  createdAt          DateTime            @default(now())
-  updatedAt          DateTime            @default(now()) @updatedAt
-  expiresAt          DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  expiresAt DateTime
+
   consumerAuthAttempts ConsumerAuthAttempt[]
 
   @@index([registrationIp, createdAt])

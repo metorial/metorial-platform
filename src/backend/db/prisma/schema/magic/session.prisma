@@ -1,8 +1,9 @@
-model MagicMcpSubspaceSessionConnection {
+model MagicMcpSession {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
-  isActive Boolean @default(true)
+  isActive             Boolean @default(true)
+  isConsumerReconciled Boolean @default(false)
 
   magicMcpServerOid BigInt?         @unique
   magicMcpServer    MagicMcpServer? @relation(fields: [magicMcpServerOid], references: [oid], onDelete: Cascade)
@@ -19,6 +20,8 @@ model MagicMcpSubspaceSessionConnection {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
+
+  consumerIntegrationSessions ConsumerIntegrationSession[]
 
   @@map("MagicMcpServerSubspaceSession")
 }
