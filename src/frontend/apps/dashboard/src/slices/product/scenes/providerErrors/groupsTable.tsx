@@ -21,6 +21,18 @@ type ErrorGroupsTableStateProps = ErrorGroupsTableProps & {
   instance: ReturnType<typeof useCurrentInstance>;
 };
 
+let splitMany = (str: string, separators: string[]) => {
+  let regex = new RegExp(separators.map(s => `\\${s}`).join('|'), 'g');
+  return str.split(regex);
+};
+
+let humanizeCode = (code: string) =>
+  splitMany(code, ['_', '-', '.', ' '])
+    .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+
+let getErrorLabel = (code: string) => humanizeCode(code);
+
 let getErrorTypeFilterValue = (
   value: FilterPayload | undefined
 ): DashboardInstanceSessionsErrorGroupsListQuery['type'] => {
@@ -63,10 +75,10 @@ let providerErrorGroupsTable = new DashboardTable<ErrorGroupsTableStateProps, Er
     {
       id: 'code',
       isDefault: true,
-      header: 'Code',
+      header: 'Name',
       render: error =>
         error.code ? (
-          <Badge color="red">{error.code}</Badge>
+          <Badge color="red">{getErrorLabel(error.code)}</Badge>
         ) : (
           <Badge color="gray">Unknown</Badge>
         )
@@ -74,13 +86,13 @@ let providerErrorGroupsTable = new DashboardTable<ErrorGroupsTableStateProps, Er
     {
       id: 'message',
       isDefault: true,
-      header: 'Message',
+      header: 'Details',
       render: error => <Text size="2">{error.message}</Text>
     },
     {
       id: 'occurrenceCount',
       isDefault: true,
-      header: 'Count',
+      header: 'Occurrences',
       render: error => <Text size="2">{error.occurrenceCount ?? '—'}</Text>
     },
     {

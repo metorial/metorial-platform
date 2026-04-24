@@ -17,23 +17,17 @@ type ErrorGroupsTableStateProps = ErrorGroupsTableProps & {
   instance: ReturnType<typeof useCurrentInstance>;
 };
 
-let ERROR_LABELS: Record<string, string> = {
-  tool_call_failed: 'Tool Call Failed',
-  config_validation_failed: 'Config Validation Failed',
-  auth_processing_failed: 'Auth Processing Failed',
-  oauth_token_refresh_failed: 'OAuth Token Refresh Failed',
-  oauth_setup_failed: 'OAuth Setup Failed',
-  trigger_event_input_failed: 'Trigger Event Input Failed',
-  profile_fetch_failed: 'Profile Fetch Failed'
+let splitMany = (str: string, separators: string[]) => {
+  let regex = new RegExp(separators.map(s => `\\${s}`).join('|'), 'g');
+  return str.split(regex);
 };
 
 let humanizeCode = (code: string) =>
-  code
-    .split('_')
+  splitMany(code, ['_', '-', '.', ' '])
     .map(part => part.charAt(0).toUpperCase() + part.slice(1))
     .join(' ');
 
-let getErrorLabel = (code: string) => ERROR_LABELS[code] ?? humanizeCode(code);
+let getErrorLabel = (code: string) => humanizeCode(code);
 
 let errorGroupsTableState: TableStateProvider<
   ErrorGroupsTableStateProps,
@@ -68,7 +62,7 @@ let providerAuthErrorGroupsTable = new DashboardTable<ErrorGroupsTableStateProps
     {
       id: 'code',
       isDefault: true,
-      header: 'Code',
+      header: 'Name',
       render: group =>
         group.code ? (
           <Badge color="red">{getErrorLabel(group.code)}</Badge>
@@ -79,13 +73,13 @@ let providerAuthErrorGroupsTable = new DashboardTable<ErrorGroupsTableStateProps
     {
       id: 'message',
       isDefault: true,
-      header: 'Message',
+      header: 'Details',
       render: group => <Text size="2">{group.message}</Text>
     },
     {
       id: 'occurrenceCount',
       isDefault: true,
-      header: 'Count',
+      header: 'Occurrences',
       render: group => <Text size="2">{group.occurrenceCount ?? '—'}</Text>
     },
     {

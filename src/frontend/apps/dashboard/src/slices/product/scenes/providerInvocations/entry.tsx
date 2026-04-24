@@ -1,11 +1,6 @@
 import type { DashboardInstanceProviderInvocationsListOutput } from '@metorial/dashboard-sdk';
 import { Badge, Button, RenderDate, theme } from '@metorial/ui';
-import {
-  RiKey2Line,
-  RiPulseLine,
-  RiShieldKeyholeLine,
-  RiToolsLine
-} from '@remixicon/react';
+import { RiKey2Line, RiPulseLine, RiShieldKeyholeLine, RiToolsLine } from '@remixicon/react';
 import type { ReactNode } from 'react';
 import styled from 'styled-components';
 import { RunLogs } from '../../components/runLogs';
@@ -84,13 +79,8 @@ let getInvocationTitle = (invocation: InvocationItem): string => {
   return formatTitleCase(invocation.type);
 };
 
-export let ProviderInvocationEntry = ({
-  invocation
-}: {
-  invocation: InvocationItem;
-}) => {
-  let variant: 'error' | 'default' =
-    invocation.status === 'error' ? 'error' : 'default';
+export let ProviderInvocationEntry = ({ invocation }: { invocation: InvocationItem }) => {
+  let variant: 'error' | 'default' = invocation.status === 'error' ? 'error' : 'default';
 
   return (
     <Wrapper>
@@ -107,12 +97,11 @@ export let ProviderInvocationEntry = ({
         <Actions>
           <Button
             size="2"
-            variant="outline"
             onClick={() =>
               showProviderInvocationPanel({ providerInvocationId: invocation.id })
             }
           >
-            View Details
+            View invocation details
           </Button>
         </Actions>
 
