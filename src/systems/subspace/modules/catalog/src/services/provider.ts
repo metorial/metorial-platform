@@ -29,8 +29,10 @@ export let getProviderTenantFilter = (d: {
   solution: Solution;
   tenant?: Tenant;
   environment?: Environment;
+  includeDeprecated?: boolean;
 }) => ({
   AND: [
+    d.includeDeprecated ? undefined! : { isDeprecated: false },
     {
       OR: [
         { access: 'public' as const },
@@ -94,11 +96,15 @@ class providerServiceImpl {
     solution: Solution;
     tenant?: Tenant;
     environment?: Environment;
+    includeDeprecated?: boolean;
   }) {
     let provider = await db.provider.findFirst({
       where: {
         AND: [
-          getProviderTenantFilter(d),
+          getProviderTenantFilter({
+            ...d,
+            includeDeprecated: true
+          }),
 
           {
             OR: [
@@ -130,8 +136,10 @@ class providerServiceImpl {
 
     ids?: string[];
     capabilities?: ProviderCapabilityFilter;
+    includeDeprecated?: boolean;
   }) {
     let capFilters = getProviderCapabilityFilter(d.capabilities || {});
+    let includeDeprecated = d.includeDeprecated || !!d.ids?.length;
 
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -140,7 +148,10 @@ class providerServiceImpl {
             ...opts,
             where: {
               AND: [
-                getProviderTenantFilter(d),
+                getProviderTenantFilter({
+                  ...d,
+                  includeDeprecated
+                }),
                 {
                   AND: [
                     d.ids

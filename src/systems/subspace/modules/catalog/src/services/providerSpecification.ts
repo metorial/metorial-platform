@@ -19,7 +19,15 @@ class providerSpecificationServiceImpl {
 
     createdAt?: DateFilter;
     updatedAt?: DateFilter;
+    includeDeprecated?: boolean;
   }) {
+    let includeDeprecated =
+      d.includeDeprecated ||
+      !!d.ids?.length ||
+      !!d.providerIds?.length ||
+      !!d.providerVersionIds?.length ||
+      !!d.providerDeploymentIds?.length ||
+      !!d.providerConfigIds?.length;
     let providers = await resolveProviders(d, d.providerIds);
 
     let versions = d.providerVersionIds
@@ -56,7 +64,10 @@ class providerSpecificationServiceImpl {
             where: {
               AND: [
                 {
-                  provider: getProviderTenantFilter(d)
+                  provider: getProviderTenantFilter({
+                    ...d,
+                    includeDeprecated
+                  })
                 },
 
                 d.ids ? { id: { in: d.ids } } : undefined!,
@@ -83,10 +94,14 @@ class providerSpecificationServiceImpl {
     tenant?: Tenant;
     environment?: Environment;
     providerSpecificationId: string;
+    includeDeprecated?: boolean;
   }) {
     let providerSpecification = await db.providerSpecification.findFirst({
       where: {
-        provider: getProviderTenantFilter(d),
+        provider: getProviderTenantFilter({
+          ...d,
+          includeDeprecated: true
+        }),
 
         id: d.providerSpecificationId
       },

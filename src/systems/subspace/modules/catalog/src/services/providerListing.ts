@@ -57,6 +57,7 @@ class ProviderListingService {
     solution: Solution;
     tenant?: Tenant;
     environment?: Environment;
+    includeDeprecated?: boolean;
   }) {
     let providerListing = await db.providerListing.findFirst({
       where: {
@@ -83,7 +84,7 @@ class ProviderListingService {
                 : undefined!
             ].filter(Boolean)
           }
-        ]
+        ].filter(Boolean)
       },
       include: getInclude(d.tenant, d.solution)
     });
@@ -121,10 +122,12 @@ class ProviderListingService {
     orderByUse?: ProviderListingOrderByUse;
 
     capabilities?: ProviderCapabilityFilter;
+    includeDeprecated?: boolean;
   }) {
     let collections = await resolveProviderCollections(d.providerCollectionIds);
     let categories = await resolveProviderCategories(d.providerCategoryIds);
     let publishers = await resolvePublishers(d.publisherIds);
+    let includeDeprecated = d.includeDeprecated || !!d.ids?.length;
 
     let capFilters = getProviderCapabilityFilter(d.capabilities || {});
 
@@ -177,6 +180,7 @@ class ProviderListingService {
             status: 'active',
 
             AND: [
+              includeDeprecated ? undefined! : { isDeprecated: false },
               {
                 OR: [
                   { isPublic: true },

@@ -34,6 +34,7 @@ model Provider {
 
   access ProviderAccess
   status ProviderStatus
+  isDeprecated Boolean @default(false)
 
   hasEnvironments Boolean @default(false)
 
@@ -103,4 +104,5 @@ model Provider {
 
   @@index([status])
   @@index([access])
+  @@index([isDeprecated])
 }

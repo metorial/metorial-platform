@@ -39,6 +39,7 @@ export let providerListingController = app.controller({
           providerGroupIds: v.optional(v.array(v.string())),
           publisherIds: v.optional(v.array(v.string())),
           ids: v.optional(v.array(v.string())),
+          includeDeprecated: v.optional(v.boolean()),
 
           isPublic: v.optional(v.boolean()),
           onlyFromTenant: v.optional(v.boolean()),
@@ -102,6 +103,7 @@ export let providerListingController = app.controller({
         providerGroupIds: ctx.input.providerGroupIds,
         publisherIds: ctx.input.publisherIds,
         ids: ctx.input.ids,
+        includeDeprecated: ctx.input.includeDeprecated,
 
         capabilities: ctx.input.capabilities,
 

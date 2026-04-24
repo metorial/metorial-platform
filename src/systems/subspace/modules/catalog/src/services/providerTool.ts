@@ -29,7 +29,14 @@ let hasVersionWithoutSpecification = (ctx: ListToolsContext) =>
   !!ctx.version && !ctx.version.specificationOid;
 
 let buildToolsWhere = (ctx: ListToolsContext) => ({
-  AND: [{ provider: getProviderTenantFilter(ctx) }],
+  AND: [
+    {
+      provider: getProviderTenantFilter({
+        ...ctx,
+        includeDeprecated: true
+      })
+    }
+  ],
   providerOid: ctx.providerVersion.providerOid,
   ...(ctx.version?.specificationOid
     ? { providerTools: { some: { specificationOid: ctx.version.specificationOid } } }
@@ -57,7 +64,10 @@ let patchGlobalCursor = async (
 
   let tool = await db.providerTool.findFirst({
     where: {
-      provider: getProviderTenantFilter(ctx),
+      provider: getProviderTenantFilter({
+        ...ctx,
+        includeDeprecated: true
+      }),
       OR: [{ id: cursor.id }, { global: { id: cursor.id } }]
     },
     include: {
@@ -213,7 +223,10 @@ class providerToolServiceImpl {
   }) {
     let providerTool = await db.providerTool.findFirst({
       where: {
-        provider: getProviderTenantFilter(d),
+        provider: getProviderTenantFilter({
+          ...d,
+          includeDeprecated: true
+        }),
 
         id: d.providerToolId
       },

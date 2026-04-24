@@ -31,7 +31,8 @@ export let providerAuthMethodController = app.controller({
           tenantId: v.optional(v.string()),
           environmentId: v.optional(v.string()),
 
-          providerVersionId: v.string()
+          providerVersionId: v.string(),
+          includeDeprecated: v.optional(v.boolean())
         })
       )
     )
@@ -40,7 +41,8 @@ export let providerAuthMethodController = app.controller({
         providerVersionId: ctx.input.providerVersionId,
         tenant: ctx.tenant,
         environment: ctx.environment,
-        solution: ctx.solution
+        solution: ctx.solution,
+        includeDeprecated: ctx.input.includeDeprecated
       });
 
       let paginator = await providerAuthMethodService.listProviderAuthMethods({
@@ -48,7 +50,8 @@ export let providerAuthMethodController = app.controller({
         environment: ctx.environment,
         solution: ctx.solution,
 
-        providerVersion
+        providerVersion,
+        includeDeprecated: ctx.input.includeDeprecated
       });
 
       let list = await paginator.run(ctx.input);

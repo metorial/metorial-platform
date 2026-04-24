@@ -47,6 +47,7 @@ export let providerPresenter = (
     id: provider.id,
     access: provider.access,
     status: provider.status,
+    isDeprecated: provider.isDeprecated,
 
     ownerTenant: provider.ownerTenant ? tenantPresenter(provider.ownerTenant) : null,
     publisher: publisherPresenter(provider.publisher),
@@ -101,6 +102,7 @@ export let providerPreviewPresenter = (provider: Provider) => ({
   id: provider.id,
   access: provider.access,
   status: provider.status,
+  isDeprecated: provider.isDeprecated,
 
   tag: provider.tag,
 

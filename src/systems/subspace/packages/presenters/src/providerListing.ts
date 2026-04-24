@@ -49,6 +49,7 @@ export let providerListingPresenter = (
   object: 'provider.listing',
 
   id: providerListing.id,
+  isDeprecated: providerListing.isDeprecated,
 
   isPublic: providerListing.isPublic,
   isCustomized: providerListing.isCustomized,

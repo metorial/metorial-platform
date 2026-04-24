@@ -250,6 +250,7 @@ class providerInternalServiceImpl {
 
         let allData = {
           isPublic: provider.access === 'public',
+          isDeprecated: provider.isDeprecated,
           ownerTenantOid: provider.access === 'tenant' ? provider.ownerTenantOid : null,
           ownerSolutionOid: provider.access === 'tenant' ? provider.ownerSolutionOid : null,
 
@@ -378,13 +379,46 @@ class providerInternalServiceImpl {
           readme: d.input.readme,
           skills: d.input.skills,
           image: d.input.image ?? undefined,
-          isPublic: provider.access === 'public'
+          isPublic: provider.access === 'public',
+          isDeprecated: provider.isDeprecated
         }
       });
 
       await addAfterTransactionHook(() =>
         listingUpdatedQueue.add({ providerListingId: listing.id })
       );
+
+      return provider;
+    });
+  }
+
+  async deprecateProvider(d: { provider: Provider }) {
+    // if (d.provider.isDeprecated) return d.provider;
+
+    return withTransaction(async db => {
+      let provider = await db.provider.update({
+        where: { id: d.provider.id },
+        data: { isDeprecated: true }
+      });
+
+      let listing = await db.providerListing.findFirst({
+        where: { providerOid: provider.oid }
+      });
+
+      if (listing) {
+        listing = await db.providerListing.update({
+          where: { providerOid: provider.oid },
+          data: { isDeprecated: true }
+        });
+      }
+
+      await addAfterTransactionHook(async () => {
+        await providerUpdatedQueue.add({ providerId: provider.id });
+
+        if (listing) {
+          await listingUpdatedQueue.add({ providerListingId: listing.id });
+        }
+      });
 
       return provider;
     });

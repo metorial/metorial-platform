@@ -34,6 +34,7 @@ export let providerSpecificationController = app.controller({
           providerVersionIds: v.optional(v.array(v.string())),
           providerDeploymentIds: v.optional(v.array(v.string())),
           providerConfigIds: v.optional(v.array(v.string())),
+          includeDeprecated: v.optional(v.boolean()),
 
           createdAt: createdAtValidator,
           updatedAt: updatedAtValidator
@@ -51,6 +52,7 @@ export let providerSpecificationController = app.controller({
         providerVersionIds: ctx.input.providerVersionIds,
         providerDeploymentIds: ctx.input.providerDeploymentIds,
         providerConfigIds: ctx.input.providerConfigIds,
+        includeDeprecated: ctx.input.includeDeprecated,
 
         createdAt: ctx.input.createdAt,
         updatedAt: ctx.input.updatedAt
