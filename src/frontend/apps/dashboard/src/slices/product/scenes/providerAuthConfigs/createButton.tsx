@@ -29,6 +29,7 @@ export let ProviderAuthConfigCreateButton = (
       providerDeploymentId: p.providerDeploymentId,
       providerId: p.providerId,
       initialAuthMethodId: authMethodId,
+      autoStartManagedCredentialSetup: p.autoStartManagedCredentialSetup,
       onCreate: p.onCreate,
       onBack: p.onBack
     });

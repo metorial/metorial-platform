@@ -17,6 +17,7 @@ export let ProviderAuthConfigSetupFlowCreateContent = (p: {
   providerName: string;
   providerImageUrl?: string | null;
   selectedMethod: AuthMethod;
+  autoStartManagedCredentialSetup?: boolean;
   previewMode: PreviewMode;
   onPreviewModeChange: (mode: PreviewMode) => void;
   close: () => void;
@@ -49,7 +50,7 @@ export let ProviderAuthConfigSetupFlowCreateContent = (p: {
             showExternalPreviewSidebar
             collectAuthConfigDetails
             initialAuthConfigDetails={onboardingAuthDetails}
-            autoStartManagedCredentialSetup
+            autoStartManagedCredentialSetup={p.autoStartManagedCredentialSetup}
             onAuthConfigDetailsChange={setAuthPreviewDetails}
             cancelLabel={p.onCancel ? 'Close' : 'Cancel'}
             onWindowOpenCancel={p.close}

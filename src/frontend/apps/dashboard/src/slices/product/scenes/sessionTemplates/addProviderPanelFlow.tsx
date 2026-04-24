@@ -274,7 +274,11 @@ let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
       form.setFieldValue('selectedConfiguration', { kind: 'config', id: p.initialConfigId });
     }
 
-    if (p.initialAuthConfigId && selectedProviderRequiresAuth && !form.values.selectedAuthConfigId) {
+    if (
+      p.initialAuthConfigId &&
+      selectedProviderRequiresAuth &&
+      !form.values.selectedAuthConfigId
+    ) {
       form.setFieldValue('selectedAuthConfigId', p.initialAuthConfigId);
     }
 
@@ -620,6 +624,7 @@ type ProviderSetupSectionsProps = {
   showToolFilters?: boolean;
   showExistingConfigOptions?: boolean;
   showExistingAuthOptions?: boolean;
+  autoStartManagedCredentialSetup?: boolean;
   emptyState?: ReactNode;
   supplementaryContent?: ReactNode;
   footer?: ReactNode;
@@ -649,6 +654,7 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
   let showToolFilters = p.showToolFilters ?? true;
   let showExistingConfigOptions = p.showExistingConfigOptions ?? true;
   let showExistingAuthOptions = p.showExistingAuthOptions ?? true;
+  let autoStartManagedCredentialSetup = p.autoStartManagedCredentialSetup ?? false;
   let tools = useProviderTools(
     p.instanceId,
     showToolFilters && providerVersionId ? { providerVersionId } : null
@@ -905,6 +911,7 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
                 instanceId={p.instanceId}
                 providerDeploymentId={p.providerDeploymentId ?? undefined}
                 providerId={p.providerId}
+                autoStartManagedCredentialSetup={autoStartManagedCredentialSetup}
                 onCreate={async authConfig => {
                   pendingCreatedAuthConfigIdRef.current = authConfig.id;
                   setCreatedAuthConfigSelection({
@@ -990,7 +997,9 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
       setSectionModeOverrides(prev => ({ ...prev, [sectionId]: undefined }));
       let sectionToolKeySet = new Set(sectionTools.map(tool => tool.key));
       if (mode === 'allow') {
-        let nextKeys = [...new Set([...selectedToolKeys, ...sectionTools.map(tool => tool.key)])];
+        let nextKeys = [
+          ...new Set([...selectedToolKeys, ...sectionTools.map(tool => tool.key)])
+        ];
         let isAllSelected =
           normalizedTools.length > 0 &&
           normalizedTools.every(tool => nextKeys.includes(tool.key)) &&
@@ -1171,7 +1180,7 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
           ) : null}
         </div>
       ) : (
-        p.emptyState ?? null
+        (p.emptyState ?? null)
       )}
 
       {p.supplementaryContent}
