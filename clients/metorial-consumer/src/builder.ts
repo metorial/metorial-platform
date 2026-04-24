@@ -3,14 +3,14 @@ import { GetMetorialSDKConfig, MetorialSDKBuilder } from '@metorial/util-endpoin
 export type MetorialKeyPrefix = 'metorial_pk_';
 
 export let sdkBuilder = MetorialSDKBuilder.create<
-  '2026-01-01-magnetar',
+  '2026-04-01-consumer',
   {
-    apiVersion: '2026-01-01-magnetar';
+    apiVersion: '2026-04-01-consumer';
     apiKey?: `${MetorialKeyPrefix}${string}` | string;
     headers?: Record<string, string>;
     apiHost?: string;
   }
->('metorial-consumer-api', '2026-01-01-magnetar')
+>('metorial-consumer-api', '2026-04-01-consumer')
   .setGetApiHost(config => config.apiHost ?? 'https://api.metorial.com')
   .setGetHeaders(config => ({
     'Metorial-Version': config.apiVersion,

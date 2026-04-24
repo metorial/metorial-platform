@@ -20,7 +20,7 @@ import {
   MetorialProvidersEndpoint,
   MetorialProvidersSpecificationsEndpoint,
   MetorialProvidersVersionsEndpoint
-} from './gen/src/mt_2026_01_01_magnetar';
+} from './gen/src/mt_2026_04_01_consumer';
 
 let fetchWithRetry = createFetchWithRetry();
 let identityMapper = {
@@ -30,13 +30,13 @@ let identityMapper = {
 export let createMetorialConsumerSDK = sdkBuilder.build(
   (soft: {
     apiKey?: `${MetorialKeyPrefix}${string}` | string;
-    apiVersion?: '2026-01-01-magnetar';
+    apiVersion?: '2026-04-01-consumer';
     headers?: Record<string, string>;
     apiHost?: string;
     consumerToken: string;
   }) => ({
     ...soft,
-    apiVersion: '2026-01-01-magnetar',
+    apiVersion: '2026-04-01-consumer',
     fetch: fetchWithRetry,
     headers: {
       ...soft.headers,
