@@ -73,7 +73,7 @@ export let deprecateDockerProviderSingleQueueProcessor =
     if (provider.isDeprecated || provider.ownerTenantOid !== null) return;
 
     let backend = provider.type.attributes.backend;
-    if (backend !== 'mcp.container' && backend !== 'mcp.function') return;
+    if (backend !== 'mcp.container') return;
 
     await providerInternalService.deprecateProvider({ provider });
   });
