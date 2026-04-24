@@ -1,9 +1,9 @@
 import { ServiceError, preconditionFailedError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import {
+  ConsumerAuthAttempt,
   ConsumerIntegration,
   ConsumerProfile,
-  ConsumerToken,
   ID,
   MagicMcpEndpoint,
   MagicMcpServer,
@@ -66,13 +66,11 @@ let assertMagicResourceOwnership = <
   T extends {
     instanceOid: bigint;
   }
->(
-  d: {
-    consumerProfile: ConsumerOwnership;
-    resource: T;
-    resourceType: 'token' | 'server' | 'endpoint' | 'session';
-  }
-) => {
+>(d: {
+  consumerProfile: ConsumerOwnership;
+  resource: T;
+  resourceType: 'token' | 'server' | 'endpoint' | 'session';
+}) => {
   if (d.consumerProfile.instanceOid !== d.resource.instanceOid) {
     throw new ServiceError(
       preconditionFailedError({
@@ -84,7 +82,10 @@ let assertMagicResourceOwnership = <
 
 let assertConsumerIntegrationOwnership = (d: {
   consumerProfile: ConsumerOwnership;
-  consumerIntegration: Pick<ConsumerIntegration, 'instanceOid' | 'consumerOid' | 'consumerProfileOid'>;
+  consumerIntegration: Pick<
+    ConsumerIntegration,
+    'instanceOid' | 'consumerOid' | 'consumerProfileOid'
+  >;
 }) => {
   if (
     d.consumerIntegration.instanceOid !== d.consumerProfile.instanceOid ||
@@ -100,9 +101,7 @@ let assertConsumerIntegrationOwnership = (d: {
 };
 
 class ConsumerIntegrationServiceImpl {
-  async findConsumerTokenByMagicMcpToken(d: {
-    magicMcpToken: Pick<MagicMcpToken, 'oid'>;
-  }) {
+  async findConsumerTokenByMagicMcpToken(d: { magicMcpToken: Pick<MagicMcpToken, 'oid'> }) {
     return await db.consumerToken.findFirst({
       where: {
         magicMcpTokenOid: d.magicMcpToken.oid
@@ -211,6 +210,30 @@ class ConsumerIntegrationServiceImpl {
       },
       include: consumerIntegrationEndpointInclude
     });
+  }
+
+  async linkConsumerAuthAttemptToConsumerIntegrationEndpoint(d: {
+    consumerAuthAttempt: Pick<ConsumerAuthAttempt, 'oid'>;
+    consumerProfile: ConsumerOwnership;
+    magicMcpEndpoint: Pick<MagicMcpEndpoint, 'oid' | 'instanceOid'>;
+    isManaged: boolean;
+  }) {
+    let consumerIntegrationEndpoint = await this.upsertConsumerIntegrationEndpoint({
+      consumerProfile: d.consumerProfile,
+      magicMcpEndpoint: d.magicMcpEndpoint,
+      isManaged: d.isManaged
+    });
+
+    await db.consumerAuthAttempt.updateMany({
+      where: {
+        oid: d.consumerAuthAttempt.oid
+      },
+      data: {
+        consumerIntegrationEndpointOid: consumerIntegrationEndpoint.oid
+      }
+    });
+
+    return consumerIntegrationEndpoint;
   }
 
   async upsertConsumerIntegrationSession(d: {

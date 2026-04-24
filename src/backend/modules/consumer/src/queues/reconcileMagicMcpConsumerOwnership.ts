@@ -1,10 +1,15 @@
 import { createCron } from '@metorial/cron';
-import { MagicMcpSession, db } from '@metorial/db';
+import { MagicMcpEndpoint, MagicMcpSession, db } from '@metorial/db';
 import { combineQueueProcessors, createQueue } from '@metorial/queue';
 import { consumerIntegrationService } from '../services/consumerIntegration';
 
 let BATCH_SIZE = 100;
-let magicMcpConsumerOwnershipResourceTypes = ['token', 'server', 'endpoint', 'session'] as const;
+let magicMcpConsumerOwnershipResourceTypes = [
+  'token',
+  'server',
+  'endpoint',
+  'session'
+] as const;
 
 type MagicMcpConsumerOwnershipResourceType =
   (typeof magicMcpConsumerOwnershipResourceTypes)[number];
@@ -195,9 +200,61 @@ let reconcileMagicMcpEndpoint = async (d: { resourceId: string }) => {
     }
   }
 
+  await reconcileConsumerAuthAttemptsForMagicMcpEndpoint({
+    magicMcpEndpoint
+  });
+
   await consumerIntegrationService.markMagicMcpResourcesConsumerReconciled({
     magicMcpEndpoint
   });
+};
+
+let reconcileConsumerAuthAttemptsForMagicMcpEndpoint = async (d: {
+  magicMcpEndpoint: Pick<MagicMcpEndpoint, 'oid' | 'instanceOid' | 'consumerProfileOid'>;
+}) => {
+  let consumerAuthAttempts = await db.consumerAuthAttempt.findMany({
+    where: {
+      consumerIntegrationEndpointOid: null,
+      consumerProfileOid: {
+        not: null
+      },
+      OR: [
+        {
+          magicMcpEndpointOid: d.magicMcpEndpoint.oid
+        },
+        {
+          magicMcpEndpointOid: null,
+          consumerAuthClient: {
+            magicMcpEndpointOid: d.magicMcpEndpoint.oid
+          }
+        }
+      ]
+    },
+    select: {
+      oid: true,
+      consumerProfile: {
+        select: {
+          oid: true,
+          instanceOid: true,
+          consumerOid: true
+        }
+      }
+    }
+  });
+
+  for (let consumerAuthAttempt of consumerAuthAttempts) {
+    if (!consumerAuthAttempt.consumerProfile) {
+      continue;
+    }
+
+    await consumerIntegrationService.linkConsumerAuthAttemptToConsumerIntegrationEndpoint({
+      consumerAuthAttempt,
+      consumerProfile: consumerAuthAttempt.consumerProfile,
+      magicMcpEndpoint: d.magicMcpEndpoint,
+      isManaged:
+        d.magicMcpEndpoint.consumerProfileOid !== consumerAuthAttempt.consumerProfile.oid
+    });
+  }
 };
 
 let getSessionOwner = async (d: {
@@ -217,7 +274,9 @@ let getSessionOwner = async (d: {
     });
 
     return await getUniqueConsumerProfile({
-      consumerProfileOids: consumerTokens.map(consumerToken => consumerToken.consumerProfileOid)
+      consumerProfileOids: consumerTokens.map(
+        consumerToken => consumerToken.consumerProfileOid
+      )
     });
   }
 
@@ -235,7 +294,9 @@ let getSessionOwner = async (d: {
     });
 
     return await getUniqueConsumerProfile({
-      consumerProfileOids: consumerTokens.map(consumerToken => consumerToken.consumerProfileOid)
+      consumerProfileOids: consumerTokens.map(
+        consumerToken => consumerToken.consumerProfileOid
+      )
     });
   }
 
@@ -299,7 +360,7 @@ let reconcileMagicMcpSession = async (d: { resourceId: string }) => {
 export let reconcileMagicMcpConsumerOwnershipCron = createCron(
   {
     name: 'cons/magic/reconcile/cron',
-    cron: '* * * * *'
+    cron: process.env.NODE_ENV === 'production' ? '0 * * * *' : '* * * * *'
   },
   async () => {
     await reconcileMagicMcpConsumerOwnershipManyQueue.addMany(

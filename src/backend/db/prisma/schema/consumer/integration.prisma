@@ -18,10 +18,6 @@ model ConsumerToken {
   updatedAt DateTime @default(now()) @updatedAt
 
   @@unique([consumerProfileOid, magicMcpTokenOid])
-  @@index([instanceOid])
-  @@index([consumerOid])
-  @@index([consumerProfileOid])
-  @@index([magicMcpTokenOid])
 }
 
 model ConsumerIntegration {
@@ -48,10 +44,6 @@ model ConsumerIntegration {
   sessions ConsumerIntegrationSession[]
 
   @@unique([consumerProfileOid, magicMcpServerOid])
-  @@index([instanceOid])
-  @@index([consumerOid])
-  @@index([consumerProfileOid])
-  @@index([magicMcpServerOid])
 }
 
 model ConsumerIntegrationEndpoint {
@@ -69,17 +61,14 @@ model ConsumerIntegrationEndpoint {
   consumerProfileOid BigInt
   consumerProfile    ConsumerProfile @relation(fields: [consumerProfileOid], references: [oid], onDelete: Cascade)
 
-  magicMcpEndpointOid BigInt
-  magicMcpEndpoint    MagicMcpEndpoint @relation(fields: [magicMcpEndpointOid], references: [oid], onDelete: Cascade)
+  magicMcpEndpointOid  BigInt
+  magicMcpEndpoint     MagicMcpEndpoint      @relation(fields: [magicMcpEndpointOid], references: [oid], onDelete: Cascade)
+  consumerAuthAttempts ConsumerAuthAttempt[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
   @@unique([consumerProfileOid, magicMcpEndpointOid])
-  @@index([instanceOid])
-  @@index([consumerOid])
-  @@index([consumerProfileOid])
-  @@index([magicMcpEndpointOid])
 }
 
 model ConsumerIntegrationSession {
@@ -105,9 +94,4 @@ model ConsumerIntegrationSession {
   updatedAt DateTime @default(now()) @updatedAt
 
   @@unique([consumerIntegrationOid, magicMcpSessionOid])
-  @@index([instanceOid])
-  @@index([consumerOid])
-  @@index([consumerProfileOid])
-  @@index([consumerIntegrationOid])
-  @@index([magicMcpSessionOid])
 }

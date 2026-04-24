@@ -178,6 +178,7 @@ export let ID = createIdGenerator({
   consumerGroup: idType.sorted('cog'),
   consumerAccess: idType.sorted('coa'),
   consumerAccessRequest: idType.sorted('coar'),
+  consumerClient: idType.sorted('cocl'),
   consumerToken: idType.sorted('cotk'),
   consumerIntegration: idType.sorted('coig'),
   consumerIntegrationEndpoint: idType.sorted('coie'),

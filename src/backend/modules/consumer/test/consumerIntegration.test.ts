@@ -2,6 +2,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@metorial/db', () => {
   let db = {
+    consumerAuthAttempt: {
+      updateMany: vi.fn()
+    },
     consumerToken: {
       findFirst: vi.fn(),
       upsert: vi.fn()
@@ -173,5 +176,37 @@ describe('consumerIntegrationService', () => {
         })
       })
     );
+  });
+
+  it('links auth attempts to an upserted consumer integration endpoint', async () => {
+    (db.consumerIntegrationEndpoint.upsert as any).mockResolvedValue({
+      oid: 99n,
+      id: 'consumerIntegrationEndpoint-1'
+    } as any);
+
+    await consumerIntegrationService.linkConsumerAuthAttemptToConsumerIntegrationEndpoint({
+      consumerAuthAttempt: {
+        oid: 72n
+      },
+      consumerProfile: {
+        oid: 30n,
+        instanceOid: 10n,
+        consumerOid: 20n
+      },
+      magicMcpEndpoint: {
+        oid: 40n,
+        instanceOid: 10n
+      },
+      isManaged: true
+    });
+
+    expect(db.consumerAuthAttempt.updateMany).toHaveBeenCalledWith({
+      where: {
+        oid: 72n
+      },
+      data: {
+        consumerIntegrationEndpointOid: 99n
+      }
+    });
   });
 });

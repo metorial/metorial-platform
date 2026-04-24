@@ -51,6 +51,7 @@ model ConsumerSurface {
   portal                        Portal?                        @relation("PortalSurface")
   consumerAccessListings        ConsumerAccessListing[]
   consumerSurfaceProviderGroups ConsumerSurfaceProviderGroup[]
+  consumerClients               ConsumerClient[]
   consumerAuthClients           ConsumerAuthClient[]
 
   @@unique([instanceOid, internalSurfaceUniqueIdentifier])

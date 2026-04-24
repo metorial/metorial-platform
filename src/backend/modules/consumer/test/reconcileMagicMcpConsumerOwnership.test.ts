@@ -57,6 +57,7 @@ vi.mock('../src/services/consumerIntegration', () => ({
     upsertConsumerToken: vi.fn(),
     upsertConsumerIntegration: vi.fn(),
     upsertConsumerIntegrationEndpoint: vi.fn(),
+    linkConsumerAuthAttemptToConsumerIntegrationEndpoint: vi.fn(),
     upsertConsumerIntegrationSession: vi.fn(),
     materializeMagicMcpSessionOwnership: vi.fn(),
     markMagicMcpResourcesConsumerReconciled: vi.fn()
@@ -64,8 +65,8 @@ vi.mock('../src/services/consumerIntegration', () => ({
 }));
 
 import { db } from '@metorial/db';
-import { consumerIntegrationService } from '../src/services/consumerIntegration';
 import { reconcileMagicMcpConsumerOwnershipSingleQueueProcessor } from '../src/queues/reconcileMagicMcpConsumerOwnership';
+import { consumerIntegrationService } from '../src/services/consumerIntegration';
 
 describe('reconcileMagicMcpConsumerOwnership', () => {
   beforeEach(() => {
@@ -150,6 +151,58 @@ describe('reconcileMagicMcpConsumerOwnership', () => {
       magicMcpSession: expect.objectContaining({
         oid: 70n
       })
+    });
+  });
+
+  it('backfills oauth attempt endpoint links during endpoint reconciliation', async () => {
+    vi.mocked(db.magicMcpEndpoint.findUnique).mockResolvedValue({
+      oid: 40n,
+      instanceOid: 1n,
+      consumerProfileOid: 22n
+    } as any);
+    vi.mocked(db.consumerProfile.findUnique).mockResolvedValue({
+      oid: 22n,
+      instanceOid: 1n,
+      consumerOid: 33n
+    } as any);
+    vi.mocked(db.consumerAuthAttempt.findMany).mockResolvedValue([
+      {
+        oid: 60n,
+        consumerProfile: {
+          oid: 22n,
+          instanceOid: 1n,
+          consumerOid: 33n
+        }
+      }
+    ] as any);
+
+    await (reconcileMagicMcpConsumerOwnershipSingleQueueProcessor as any).handler({
+      resourceType: 'endpoint',
+      resourceId: 'magic-endpoint-1'
+    });
+
+    expect(
+      consumerIntegrationService.linkConsumerAuthAttemptToConsumerIntegrationEndpoint
+    ).toHaveBeenCalledWith({
+      consumerAuthAttempt: {
+        oid: 60n,
+        consumerProfile: {
+          oid: 22n,
+          instanceOid: 1n,
+          consumerOid: 33n
+        }
+      },
+      consumerProfile: {
+        oid: 22n,
+        instanceOid: 1n,
+        consumerOid: 33n
+      },
+      magicMcpEndpoint: {
+        oid: 40n,
+        instanceOid: 1n,
+        consumerProfileOid: 22n
+      },
+      isManaged: false
     });
   });
 });
