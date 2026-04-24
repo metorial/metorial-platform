@@ -19,15 +19,18 @@
     },
     "generate:client": {
       "dependsOn": ["^generate:client"],
-      "cache": false
+      "cache": false,
+      "env": ["API_URL"]
     },
     "generate:client:dashboard": {
       "dependsOn": ["^generate:client:dashboard"],
-      "cache": false
+      "cache": false,
+      "env": ["API_URL"]
     },
     "generate:client:consumer": {
       "dependsOn": ["^generate:client:consumer"],
-      "cache": false
+      "cache": false,
+      "env": ["API_URL"]
     },
     "frontend:build": {
       "dependsOn": ["^frontend:build"],

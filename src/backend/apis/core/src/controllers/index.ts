@@ -208,6 +208,31 @@ export let magnetarController = Controller.create<any>(
   }
 );
 
+export let consumerApiController = Controller.create<any>(
+  {
+    name: 'Consumer API',
+    description: 'Consumer API'
+  },
+  {
+    providerController,
+    providerCategoryController,
+    providerCollectionController,
+    providerListingController,
+    providerVersionController,
+    providerSpecificationController,
+
+    magicMcpEndpointController,
+    magicMcpServerController,
+    magicMcpServerProviderController,
+    magicMcpSessionController,
+    magicMcpTokenController,
+    magicMcpGroupController,
+
+    consumerSessionController,
+    consumerProviderController
+  }
+);
+
 export let dashboardController = Controller.create<any>(
   {
     name: 'Dashboard API',

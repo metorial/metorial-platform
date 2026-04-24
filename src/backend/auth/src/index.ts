@@ -91,7 +91,17 @@ export let authenticate = async (req: Request, url: URL) => {
     auth,
     context,
     flags: {},
-    defaultVersion: 'mt_2025_01_01_dashboard',
-    allowedVersions: ['mt_2025_01_01_dashboard', 'mt_2026_01_01_magnetar']
+    defaultVersion:
+      auth.type == 'machine' &&
+      auth.restrictions.type == 'instance' &&
+      auth.restrictions.consumer
+        ? 'mt_2026_04_01_consumer'
+        : 'mt_2025_01_01_dashboard',
+    allowedVersions:
+      auth.type == 'machine' &&
+      auth.restrictions.type == 'instance' &&
+      auth.restrictions.consumer
+        ? ['mt_2026_01_01_magnetar', 'mt_2026_04_01_consumer']
+        : ['mt_2025_01_01_dashboard', 'mt_2026_01_01_magnetar']
   };
 };
