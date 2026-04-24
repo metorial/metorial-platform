@@ -3,6 +3,7 @@ import { getConfig } from '@metorial/config';
 import { Presenter } from '@metorial/presenter';
 import { magicMcpEndpointType } from '../../types';
 import { v1MagicMcpServerPreview } from '../magicMcpServerPreview';
+import { v1ConsumerIntegrationEndpointPresenter } from './consumerOwnership';
 
 let endpointToolFilterSchema = v.union([
   v.object({
@@ -79,5 +80,32 @@ export let v1MagicMcpEndpointPresenter = Presenter.create(magicMcpEndpointType)
       created_at: v.date(),
       updated_at: v.date()
     })
+  )
+  .build();
+
+export let consumerMagicMcpEndpointPresenter = Presenter.create(magicMcpEndpointType)
+  .presenter(async ({ magicMcpEndpoint, portal }, opts) => {
+    let inner = await v1MagicMcpEndpointPresenter
+      .present({ magicMcpEndpoint, portal }, opts)
+      .run();
+
+    return {
+      ...inner,
+      consumer_integration_endpoints: await Promise.all(
+        magicMcpEndpoint.consumerIntegrationEndpoints.map(consumerIntegrationEndpoint =>
+          v1ConsumerIntegrationEndpointPresenter
+            .present({ consumerIntegrationEndpoint }, opts)
+            .run()
+        )
+      )
+    };
+  })
+  .schema(
+    v.intersection([
+      v1MagicMcpEndpointPresenter.schema,
+      v.object({
+        consumer_integration_endpoints: v.array(v1ConsumerIntegrationEndpointPresenter.schema)
+      })
+    ])
   )
   .build();

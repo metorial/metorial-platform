@@ -9,17 +9,35 @@ let include = {
   magicMcpServer: {
     include: {
       aliases: true,
+      consumerIntegrations: {
+        include: {
+          consumer: true,
+          consumerProfile: true
+        }
+      },
       subspaceSession: true
     }
   },
   magicMcpEndpoint: {
     include: {
       consumerProfile: true,
+      consumerIntegrationEndpoints: {
+        include: {
+          consumer: true,
+          consumerProfile: true
+        }
+      },
       servers: {
         include: {
           magicMcpServer: {
             include: {
               aliases: true,
+              consumerIntegrations: {
+                include: {
+                  consumer: true,
+                  consumerProfile: true
+                }
+              },
               subspaceSession: true
             }
           }
@@ -30,8 +48,14 @@ let include = {
   },
   consumerIntegrationSessions: {
     include: {
-      consumerIntegration: true,
-      consumerProfile: true
+      consumer: true,
+      consumerProfile: true,
+      consumerIntegration: {
+        include: {
+          consumer: true,
+          consumerProfile: true
+        }
+      }
     }
   }
 } satisfies Prisma.MagicMcpSessionInclude;

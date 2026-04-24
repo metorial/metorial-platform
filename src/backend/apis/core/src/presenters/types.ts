@@ -15,15 +15,19 @@ import {
   ConsumerAccess,
   ConsumerAccessListing,
   ConsumerAccessRequest,
+  ConsumerAuthAttempt,
+  ConsumerAuthClient,
   ConsumerGroup,
-  ConsumerInvite,
   ConsumerIntegration,
+  ConsumerIntegrationEndpoint,
   ConsumerIntegrationSession,
+  ConsumerInvite,
   ConsumerProfile,
   ConsumerProfileGroup,
   ConsumerSession,
   ConsumerSurface,
   ConsumerSurfaceProviderGroup,
+  ConsumerToken,
   File,
   FileLink,
   FilePurpose,
@@ -47,8 +51,6 @@ import {
   OrganizationInvite,
   OrganizationMember,
   Portal,
-  ConsumerAuthAttempt,
-  ConsumerAuthClient,
   Profile,
   Project,
   ProviderTemplate,
@@ -76,6 +78,9 @@ import type {
 } from '@metorial/module-machine-access';
 import type { PolicyDocument, ProjectBrandOverride } from '@metorial/module-organization';
 import {
+  SubspaceAuthConfigError,
+  SubspaceAuthConfigErrorGlobal,
+  SubspaceAuthConfigEvent,
   SubspaceBucket,
   SubspaceCallback,
   SubspaceCallbackDestination,
@@ -88,9 +93,6 @@ import {
   SubspaceCustomProviderDeploymentLogs,
   SubspaceCustomProviderEnvironment,
   SubspaceCustomProviderVersion,
-  SubspaceAuthConfigError,
-  SubspaceAuthConfigErrorGlobal,
-  SubspaceAuthConfigEvent,
   SubspaceIdentity,
   SubspaceIdentityActor,
   SubspaceIdentityCredential,
@@ -398,13 +400,21 @@ export let flagsType = PresentableType.create<{
 export let magicMcpServerType = PresentableType.create<{
   magicMcpServer: MagicMcpServer & {
     aliases: MagicMcpServerAlias[];
+    consumerIntegrations: (ConsumerIntegration & {
+      consumer: Consumer;
+      consumerProfile: ConsumerProfile;
+    })[];
   };
   portal?: Portal | null;
 }>()('magic_mcp.server');
 
 export let magicMcpEndpointType = PresentableType.create<{
   magicMcpEndpoint: MagicMcpEndpoint & {
-    consumerProfile: ConsumerProfile | null;
+    consumerProfile: ConsumerProfile;
+    consumerIntegrationEndpoints: (ConsumerIntegrationEndpoint & {
+      consumer: Consumer;
+      consumerProfile: ConsumerProfile;
+    })[];
     servers: (MagicMcpEndpointServer & {
       magicMcpServer: MagicMcpServer & {
         aliases: MagicMcpServerAlias[];
@@ -419,27 +429,47 @@ export let magicMcpSessionType = PresentableType.create<{
     magicMcpServer:
       | (MagicMcpServer & {
           aliases: MagicMcpServerAlias[];
+          consumerIntegrations: (ConsumerIntegration & {
+            consumer: Consumer;
+            consumerProfile: ConsumerProfile;
+          })[];
         })
       | null;
     magicMcpEndpoint:
       | (MagicMcpEndpoint & {
-          consumerProfile: ConsumerProfile | null;
+          consumerProfile: ConsumerProfile;
+          consumerIntegrationEndpoints: (ConsumerIntegrationEndpoint & {
+            consumer: Consumer;
+            consumerProfile: ConsumerProfile;
+          })[];
           servers: (MagicMcpEndpointServer & {
             magicMcpServer: MagicMcpServer & {
               aliases: MagicMcpServerAlias[];
+              consumerIntegrations: (ConsumerIntegration & {
+                consumer: Consumer;
+                consumerProfile: ConsumerProfile;
+              })[];
             };
           })[];
         })
       | null;
     consumerIntegrationSessions: (ConsumerIntegrationSession & {
-      consumerIntegration: ConsumerIntegration;
+      consumer: Consumer;
       consumerProfile: ConsumerProfile;
+      consumerIntegration: ConsumerIntegration & {
+        consumer: Consumer;
+        consumerProfile: ConsumerProfile;
+      };
     })[];
   };
 }>()('magic_mcp.session');
 
 export let magicMcpTokenType = PresentableType.create<{
   magicMcpToken: MagicMcpToken & {
+    consumerTokens: (ConsumerToken & {
+      consumer: Consumer;
+      consumerProfile: ConsumerProfile;
+    })[];
     magicMcpServer: MagicMcpServer | null;
     magicMcpEndpoint:
       | (MagicMcpEndpoint & {
@@ -451,6 +481,38 @@ export let magicMcpTokenType = PresentableType.create<{
     })[];
   };
 }>()('magic_mcp.token');
+
+export let consumerTokenType = PresentableType.create<{
+  consumerToken: ConsumerToken & {
+    consumer: Consumer;
+    consumerProfile: ConsumerProfile;
+  };
+}>()('consumer.token');
+
+export let consumerIntegrationType = PresentableType.create<{
+  consumerIntegration: ConsumerIntegration & {
+    consumer: Consumer;
+    consumerProfile: ConsumerProfile;
+  };
+}>()('consumer.integration');
+
+export let consumerIntegrationEndpointType = PresentableType.create<{
+  consumerIntegrationEndpoint: ConsumerIntegrationEndpoint & {
+    consumer: Consumer;
+    consumerProfile: ConsumerProfile;
+  };
+}>()('consumer.integration_endpoint');
+
+export let consumerIntegrationSessionType = PresentableType.create<{
+  consumerIntegrationSession: ConsumerIntegrationSession & {
+    consumer: Consumer;
+    consumerProfile: ConsumerProfile;
+    consumerIntegration: ConsumerIntegration & {
+      consumer: Consumer;
+      consumerProfile: ConsumerProfile;
+    };
+  };
+}>()('consumer.integration_session');
 
 export let magicMcpGroupType = PresentableType.create<{
   magicMcpGroup: MagicMcpGroup;

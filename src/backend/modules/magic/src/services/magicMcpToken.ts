@@ -39,6 +39,12 @@ let createMagicMcpSecret = () =>
   }).toString();
 
 let include = {
+  consumerTokens: {
+    include: {
+      consumer: true,
+      consumerProfile: true
+    }
+  },
   magicMcpServer: true,
   magicMcpEndpoint: {
     include: {
@@ -332,11 +338,12 @@ class MagicMcpTokenImpl {
       status: d.status,
       activeStatus: 'active'
     });
-    let defaultAccessTagFilter = !accessTagFilter && !filterAccessTagFilter
-      ? {
-          none: {}
-        }
-      : undefined;
+    let defaultAccessTagFilter =
+      !accessTagFilter && !filterAccessTagFilter
+        ? {
+            none: {}
+          }
+        : undefined;
 
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
@@ -345,7 +352,8 @@ class MagicMcpTokenImpl {
           where: {
             instanceOid: d.instance.oid,
             status: statusFilter ? { in: statusFilter } : undefined,
-            accessTagEntities: accessTagFilter ?? filterAccessTagFilter ?? defaultAccessTagFilter,
+            accessTagEntities:
+              accessTagFilter ?? filterAccessTagFilter ?? defaultAccessTagFilter,
 
             AND: [
               groupOids

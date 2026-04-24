@@ -92,6 +92,12 @@ let dedupeServerInputs = (servers?: MagicMcpEndpointServerInput[]) => {
 
 export let magicMcpEndpointInclude = {
   consumerProfile: true,
+  consumerIntegrationEndpoints: {
+    include: {
+      consumer: true,
+      consumerProfile: true
+    }
+  },
   servers: {
     include: {
       magicMcpServer: {

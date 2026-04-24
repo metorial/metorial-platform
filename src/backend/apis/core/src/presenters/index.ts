@@ -10,7 +10,9 @@ import { dashboardConsumerPresenter, v1ConsumerPresenter } from './implementatio
 import { v1ConsumerAccessPresenter } from './implementation/consumerAccess';
 import { v1ConsumerAccessListingPresenter } from './implementation/consumerAccessListing';
 import { v1ConsumerAccessRequestPresenter } from './implementation/consumerAccessRequest';
+import { v1ConsumerAndProfilePresenter } from './implementation/consumerAndProfile';
 import { v1ConsumerGroupPresenter } from './implementation/consumerGroup';
+import { v1ConsumerInvitePresenter } from './implementation/consumerInvite';
 import {
   dashboardConsumerProfilePresenter,
   v1ConsumerProfilePresenter
@@ -21,6 +23,7 @@ import { v1ConsumerSurfacePresenter } from './implementation/consumerSurface';
 import { v1ConsumerSurfaceProviderGroupPresenter } from './implementation/consumerSurfaceProviderGroup';
 import { v1FilePresenter } from './implementation/file';
 import { v1FileLinkPresenter } from './implementation/fileLink';
+import { v1FlagsPresenter } from './implementation/flags';
 import { v1InstanceListPresenter, v1InstancePresenter } from './implementation/instance';
 import { v1MachineAccessPresenter } from './implementation/machineAccess';
 import { v1OAuthApplicationPresenter } from './implementation/oauthApplication';
@@ -44,16 +47,11 @@ import { v1PortalOAuthClientPresenter } from './implementation/portalOAuthClient
 import { v1ProfilePresenter } from './implementation/profile';
 import { v1ProjectPresenter } from './implementation/project';
 import { v1ProjectBrandPresenter } from './implementation/projectBrand';
-import { v1ProviderTemplatePresenter } from './implementation/providerTemplate';
-import { v1SecretPresenter } from './implementation/secret';
-import { v1ServiceAccountPresenter } from './implementation/serviceAccount';
-import { v1ServiceAccountCredentialPresenter } from './implementation/serviceAccountCredential';
-import { v1TeamPresenter } from './implementation/team';
-import { v1UsagePresenter } from './implementation/usage';
-import { v1UserPresenter } from './implementation/user';
-
-// Provider API presenters
 import {
+  consumerMagicMcpEndpointPresenter,
+  consumerMagicMcpServerPresenter,
+  consumerMagicMcpSessionPresenter,
+  consumerMagicMcpTokenPresenter,
   dashboardCustomProviderDeploymentPresenter,
   dashboardCustomProviderPresenter,
   dashboardIdentityActorPresenter,
@@ -130,7 +128,7 @@ import {
   v1SubspaceSessionEventPresenter,
   v1SubspaceSessionMessagePresenter
 } from './implementation/provider';
-
+import { v1ProviderTemplatePresenter } from './implementation/providerTemplate';
 import {
   v1ScmAccountPreviewPresenter,
   v1ScmConnectionPresenter,
@@ -140,11 +138,13 @@ import {
   v1ScmRepoPresenter,
   v1ScmRepoPreviewPresenter
 } from './implementation/scm';
-
-import { v1ConsumerAndProfilePresenter } from './implementation/consumerAndProfile';
-import { v1ConsumerInvitePresenter } from './implementation/consumerInvite';
-import { v1FlagsPresenter } from './implementation/flags';
+import { v1SecretPresenter } from './implementation/secret';
+import { v1ServiceAccountPresenter } from './implementation/serviceAccount';
+import { v1ServiceAccountCredentialPresenter } from './implementation/serviceAccountCredential';
+import { v1TeamPresenter } from './implementation/team';
 import { v1TokenPresenter } from './implementation/token';
+import { v1UsagePresenter } from './implementation/usage';
+import { v1UserPresenter } from './implementation/user';
 import {
   accessPolicyType,
   accessPolicyVersionType,
@@ -262,10 +262,6 @@ import {
   secretType,
   serviceAccountCredentialType,
   serviceAccountType,
-  // ssoTenantSetupType,
-  // ssoTenantType,
-  // ssoUserProfileType,
-  // ssoUserType,
   sessionConnectionType,
   sessionErrorGroupType,
   sessionErrorType,
@@ -281,10 +277,6 @@ import {
   usageType,
   userType
 } from './types';
-
-// =============================================================================
-// Core API Presenters (available in all versions)
-// =============================================================================
 
 export let apiKeyPresenter = declarePresenter(apiKeyType, {
   mt_2025_01_01_dashboard: dashboardApiKeyPresenter,
@@ -573,26 +565,6 @@ export let portalOAuthAuthorizationPresenter = declarePresenter(portalOAuthAutho
   mt_2026_04_01_consumer: v1PortalOAuthAuthorizationPresenter
 });
 
-// export let ssoTenantPresenter = declarePresenter(ssoTenantType, {
-//   mt_2025_01_01_dashboard: v1SsoTenantPresenter,
-//   mt_2026_01_01_magnetar: v1SsoTenantPresenter,
-// });
-
-// export let ssoTenantSetupPresenter = declarePresenter(ssoTenantSetupType, {
-//   mt_2025_01_01_dashboard: v1SsoTenantSetupPresenter,
-//   mt_2026_01_01_magnetar: v1SsoTenantSetupPresenter,
-// });
-
-// export let ssoUserPresenter = declarePresenter(ssoUserType, {
-//   mt_2025_01_01_dashboard: v1SsoUserPresenter,
-//   mt_2026_01_01_magnetar: v1SsoUserPresenter,
-// });
-
-// export let ssoUserProfilePresenter = declarePresenter(ssoUserProfileType, {
-//   mt_2025_01_01_dashboard: v1SsoUserProfilePresenter,
-//   mt_2026_01_01_magnetar: v1SsoUserProfilePresenter,
-// });
-
 export let portalPresenter = declarePresenter(portalType, {
   mt_2025_01_01_dashboard: v1PortalPresenter,
   mt_2026_01_01_magnetar: v1PortalPresenter
@@ -618,58 +590,28 @@ export let providerTemplatePresenter = declarePresenter(providerTemplateType, {
   mt_2026_01_01_magnetar: v1ProviderTemplatePresenter
 });
 
-// export let consumerGroupPresenter = declarePresenter(consumerGroupType, {
-//   mt_2025_01_01_dashboard: v1ConsumerGroupPresenter,
-//   mt_2026_01_01_magnetar: v1ConsumerGroupPresenter,
-// });
-
-// export let consumerAuthFactorPresenter = declarePresenter(consumerAuthFactorType, {
-//   mt_2025_01_01_dashboard: v1ConsumerAuthFactorPresenter,
-//   mt_2026_01_01_magnetar: v1ConsumerAuthFactorPresenter,
-// });
-
-// export let consumerAccessPresenter = declarePresenter(consumerAccessType, {
-//   mt_2025_01_01_dashboard: v1ConsumerAccessPresenter,
-//   mt_2026_01_01_magnetar: v1ConsumerAccessPresenter,
-// });
-
-// export let consumerProfilePresenter = declarePresenter(consumerProfileType, {
-//   mt_2025_01_01_dashboard: v1ConsumerProfilePresenter,
-//   mt_2026_01_01_magnetar: v1ConsumerProfilePresenter,
-// });
-
-// export let consumerSessionPresenter = declarePresenter(consumerSessionType, {
-//   mt_2025_01_01_dashboard: v1ConsumerSessionPresenter,
-//   mt_2026_01_01_magnetar: v1ConsumerSessionPresenter,
-// });
-
-// export let consumerServerRequestPresenter = declarePresenter(consumerServerRequestType, {
-//   mt_2025_01_01_dashboard: v1ConsumerServerRequestPresenter,
-//   mt_2026_01_01_magnetar: v1ConsumerServerRequestPresenter,
-// });
-
 export let magicMcpServerPresenter = declarePresenter(magicMcpServerType, {
   mt_2025_01_01_dashboard: dashboardMagicMcpServerPresenter,
   mt_2026_01_01_magnetar: v1MagicMcpServerPresenter,
-  mt_2026_04_01_consumer: v1MagicMcpServerPresenter
+  mt_2026_04_01_consumer: consumerMagicMcpServerPresenter
 });
 
 export let magicMcpEndpointPresenter = declarePresenter(magicMcpEndpointType, {
   mt_2025_01_01_dashboard: v1MagicMcpEndpointPresenter,
   mt_2026_01_01_magnetar: v1MagicMcpEndpointPresenter,
-  mt_2026_04_01_consumer: v1MagicMcpEndpointPresenter
+  mt_2026_04_01_consumer: consumerMagicMcpEndpointPresenter
 });
 
 export let magicMcpSessionPresenter = declarePresenter(magicMcpSessionType, {
   mt_2025_01_01_dashboard: v1MagicMcpSessionPresenter,
   mt_2026_01_01_magnetar: v1MagicMcpSessionPresenter,
-  mt_2026_04_01_consumer: v1MagicMcpSessionPresenter
+  mt_2026_04_01_consumer: consumerMagicMcpSessionPresenter
 });
 
 export let magicMcpTokenPresenter = declarePresenter(magicMcpTokenType, {
   mt_2025_01_01_dashboard: v1MagicMcpTokenPresenter,
   mt_2026_01_01_magnetar: v1MagicMcpTokenPresenter,
-  mt_2026_04_01_consumer: v1MagicMcpTokenPresenter
+  mt_2026_04_01_consumer: consumerMagicMcpTokenPresenter
 });
 
 export let magicMcpGroupPresenter = declarePresenter(magicMcpGroupType, {
@@ -851,10 +793,6 @@ export let providerAuthExportPresenter = declarePresenter(providerAuthExportType
   mt_2026_01_01_magnetar: v1ProviderAuthExportPresenter
 });
 
-// =============================================================================
-// Session Template & Session-Nested Presenters
-// =============================================================================
-
 export let sessionTemplatePresenter = declarePresenter(sessionTemplateType, {
   mt_2025_01_01_dashboard: v1SessionTemplatePresenter,
   mt_2026_01_01_magnetar: v1SessionTemplatePresenter
@@ -902,7 +840,6 @@ export let providerSessionPresenter = declarePresenter(providerSessionType, {
   mt_2026_01_01_magnetar: v1SessionPresenter
 });
 
-// Provider API session-nested presenters (Magnetar only)
 export let subspaceSessionMessagePresenter = declarePresenter(sessionMessageType, {
   mt_2025_01_01_dashboard: v1SubspaceSessionMessagePresenter,
   mt_2026_01_01_magnetar: v1SubspaceSessionMessagePresenter
@@ -947,10 +884,6 @@ export let authConfigSchemaPresenter = declarePresenter(authConfigSchemaType, {
   mt_2025_01_01_dashboard: v1ProviderAuthConfigSchemaPresenter,
   mt_2026_01_01_magnetar: v1ProviderAuthConfigSchemaPresenter
 });
-
-// =============================================================================
-// Custom Provider Presenters
-// =============================================================================
 
 export let bucketEditorTokenPresenter = declarePresenter(bucketEditorTokenType, {
   mt_2025_01_01_dashboard: v1BucketEditorTokenPresenter,
@@ -1003,10 +936,6 @@ export let toolCallPresenter = declarePresenter(toolCallType, {
   mt_2025_01_01_dashboard: v1ProviderToolCallPresenter,
   mt_2026_01_01_magnetar: v1ProviderToolCallPresenter
 });
-
-// =============================================================================
-// SCM Presenters
-// =============================================================================
 
 export let scmConnectionPresenter = declarePresenter(scmConnectionType, {
   mt_2025_01_01_dashboard: v1ScmConnectionPresenter,

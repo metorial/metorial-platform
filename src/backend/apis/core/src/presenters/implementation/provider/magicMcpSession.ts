@@ -1,6 +1,7 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
 import { magicMcpSessionType } from '../../types';
+import { v1ConsumerIntegrationSessionPresenter } from './consumerOwnership';
 import { v1MagicMcpEndpointPresenter } from './magicMcpEndpoint';
 import { v1MagicMcpServerPresenter } from './magicMcpServer';
 
@@ -51,5 +52,30 @@ export let v1MagicMcpSessionPresenter = Presenter.create(magicMcpSessionType)
       created_at: v.date(),
       updated_at: v.date()
     })
+  )
+  .build();
+
+export let consumerMagicMcpSessionPresenter = Presenter.create(magicMcpSessionType)
+  .presenter(async ({ magicMcpSession }, opts) => {
+    let inner = await v1MagicMcpSessionPresenter.present({ magicMcpSession }, opts).run();
+
+    return {
+      ...inner,
+      consumer_integration_sessions: await Promise.all(
+        magicMcpSession.consumerIntegrationSessions.map(consumerIntegrationSession =>
+          v1ConsumerIntegrationSessionPresenter
+            .present({ consumerIntegrationSession }, opts)
+            .run()
+        )
+      )
+    };
+  })
+  .schema(
+    v.intersection([
+      v1MagicMcpSessionPresenter.schema,
+      v.object({
+        consumer_integration_sessions: v.array(v1ConsumerIntegrationSessionPresenter.schema)
+      })
+    ])
   )
   .build();

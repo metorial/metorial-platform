@@ -11,10 +11,10 @@ import { consumerIntegrationService } from '../services/consumerIntegration';
 export let grantConsumerOwnedMagicMcpServerAccess = async (d: {
   organization: Organization;
   consumerProfile: Pick<ConsumerProfile, 'oid' | 'instanceOid' | 'consumerOid'> & {
-    surface: Pick<ConsumerSurface, 'oid'>;
-    personalConsumerGroup: Pick<ConsumerGroup, 'oid'>;
+    surface: ConsumerSurface;
+    personalConsumerGroup: ConsumerGroup;
   };
-  magicMcpServer: Pick<MagicMcpServer, 'oid' | 'instanceOid'>;
+  magicMcpServer: MagicMcpServer;
 }) => {
   await consumerAccessService.createConsumerAccess({
     organization: d.organization,

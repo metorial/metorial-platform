@@ -22,6 +22,7 @@ export * from './config';
 export * from './configPreview';
 export * from './configSchema';
 export * from './configVault';
+export * from './consumerOwnership';
 export * from './customProvider';
 export * from './customProviderCommit';
 export * from './customProviderDeployment';

@@ -3,6 +3,7 @@ import { v } from '@lowerdeck/validation';
 import { getConfig } from '@metorial/config';
 import { Presenter } from '@metorial/presenter';
 import { magicMcpServerType } from '../../types';
+import { v1ConsumerIntegrationPresenter } from './consumerOwnership';
 
 export let v1MagicMcpServerPresenter = Presenter.create(magicMcpServerType)
   .presenter(async ({ magicMcpServer, portal }) => ({
@@ -62,6 +63,29 @@ export let dashboardMagicMcpServerPresenter = Presenter.create(magicMcpServerTyp
       v.object({
         session_template_id: v.string(),
         session_id: v.nullable(v.string())
+      })
+    ])
+  )
+  .build();
+
+export let consumerMagicMcpServerPresenter = Presenter.create(magicMcpServerType)
+  .presenter(async ({ magicMcpServer, portal }, opts) => {
+    let inner = await v1MagicMcpServerPresenter.present({ magicMcpServer, portal }, opts).run();
+
+    return {
+      ...inner,
+      consumer_integrations: await Promise.all(
+        magicMcpServer.consumerIntegrations.map(consumerIntegration =>
+          v1ConsumerIntegrationPresenter.present({ consumerIntegration }, opts).run()
+        )
+      )
+    };
+  })
+  .schema(
+    v.intersection([
+      v1MagicMcpServerPresenter.schema,
+      v.object({
+        consumer_integrations: v.array(v1ConsumerIntegrationPresenter.schema)
       })
     ])
   )

@@ -3,6 +3,7 @@ import { Presenter } from '@metorial/presenter';
 import { magicMcpTokenType } from '../../types';
 import { v1MagicMcpEndpointPreview } from '../magicMcpEndpointPreview';
 import { v1MagicMcpServerPreview } from '../magicMcpServerPreview';
+import { v1ConsumerTokenPresenter } from './consumerOwnership';
 import { v1MagicMcpGroupPresenter } from './magicMcpGroup';
 
 export let v1MagicMcpTokenPresenter = Presenter.create(magicMcpTokenType)
@@ -43,5 +44,28 @@ export let v1MagicMcpTokenPresenter = Presenter.create(magicMcpTokenType)
       created_at: v.date(),
       updated_at: v.date()
     })
+  )
+  .build();
+
+export let consumerMagicMcpTokenPresenter = Presenter.create(magicMcpTokenType)
+  .presenter(async ({ magicMcpToken }, opts) => {
+    let inner = await v1MagicMcpTokenPresenter.present({ magicMcpToken }, opts).run();
+
+    return {
+      ...inner,
+      consumer_tokens: await Promise.all(
+        magicMcpToken.consumerTokens.map(consumerToken =>
+          v1ConsumerTokenPresenter.present({ consumerToken }, opts).run()
+        )
+      )
+    };
+  })
+  .schema(
+    v.intersection([
+      v1MagicMcpTokenPresenter.schema,
+      v.object({
+        consumer_tokens: v.array(v1ConsumerTokenPresenter.schema)
+      })
+    ])
   )
   .build();
