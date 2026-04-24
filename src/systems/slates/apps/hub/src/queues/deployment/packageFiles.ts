@@ -110,6 +110,7 @@ export let buildSlateDeploymentFiles = (files: DeploymentArchiveFile[]) => {
     {
       filename: 'slates_entry_point.js',
       content: `
+          import { createRequire } from 'node:module';
           import { provider } from './${slateEntrypoint}';
           import { createProviderHandler } from '@slates/provider-handler';
           import { SlatesProviderProtoHandlerManager } from '@slates/proto';
@@ -123,6 +124,8 @@ export let buildSlateDeploymentFiles = (files: DeploymentArchiveFile[]) => {
           for (let key of Object.getOwnPropertyNames(globalThis)) {
             initialGlobals[key] = globalThis[key]
           }
+
+          let moduleRequire = typeof require == 'function' ? require : createRequire(import.meta.url)
 
           let reset = () => {
             for (let key of Object.getOwnPropertyNames(globalThis)) {
@@ -139,9 +142,9 @@ export let buildSlateDeploymentFiles = (files: DeploymentArchiveFile[]) => {
               } catch {}
             }
 
-            for (let key in require.cache) {
+            for (let key in moduleRequire.cache) {
               try {
-                delete require.cache[key];
+                delete moduleRequire.cache[key];
               } catch {}
             }
           }
