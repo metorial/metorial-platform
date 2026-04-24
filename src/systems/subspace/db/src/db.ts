@@ -80,6 +80,14 @@ declare global {
 
     type ProviderTriggerValue = SpecificationTrigger;
 
+    type ActionScopes = {
+      AND: {
+        OR: string[];
+      }[];
+    } | null;
+
+    type ProviderAuthScopes = string[];
+
     type ToolFilter =
       | {
           type: 'v1.allow_all';

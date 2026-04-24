@@ -1,4 +1,3 @@
-import { createLock } from '@lowerdeck/lock';
 import { createQueue, QueueRetryError } from '@lowerdeck/queue';
 import { db, snowflake } from '@metorial-subspace/db';
 import { getTenantForShuttle, shuttle } from '@metorial-subspace/provider-shuttle/src/client';
@@ -14,11 +13,6 @@ export let customDeploymentMonitorQueue = createQueue<{
   workerOpts: {
     concurrency: 5
   }
-});
-
-let shuttleServerVersionUpsertLock = createLock({
-  name: 'sub/shut/serverVersion/upsert/lock',
-  redisUrl: env.service.REDIS_URL
 });
 
 export let customDeploymentMonitorQueueProcessor = customDeploymentMonitorQueue.process(

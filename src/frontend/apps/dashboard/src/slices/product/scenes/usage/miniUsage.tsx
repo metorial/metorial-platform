@@ -14,7 +14,7 @@ export let MiniUsageScene = ({
 }: {
   entities: {
     type: string;
-    id: string;
+    id?: string;
   }[];
 }) => {
   let [ref, { width }] = useMeasure<HTMLDivElement>();

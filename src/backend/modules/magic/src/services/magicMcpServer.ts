@@ -39,6 +39,12 @@ import { getAccessTagFilter, getActiveStatusFilter } from './consumerAccess';
 
 let include = {
   aliases: true,
+  consumerIntegrations: {
+    include: {
+      consumer: true,
+      consumerProfile: true
+    }
+  },
   subspaceSession: true
 } satisfies Prisma.MagicMcpServerInclude;
 
@@ -174,6 +180,7 @@ class MagicMcpServerImpl {
         id: await ID.generateId('magicMcpServer'),
         status: 'active',
         source: d.input.source ?? 'manual',
+        isConsumerReconciled: true,
         providerTemplateId: d.input.providerTemplateId,
         subspaceSessionTemplateId: sessionTemplateId,
         name: d.input.name,

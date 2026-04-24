@@ -6,6 +6,7 @@ import {
   ServiceError,
   unauthorizedError
 } from '@lowerdeck/error';
+import { Hash } from '@lowerdeck/hash';
 import { generateCustomId } from '@lowerdeck/id';
 import { Service } from '@lowerdeck/service';
 import { getConfig } from '@metorial/config';
@@ -24,6 +25,7 @@ import {
 } from '@metorial/db';
 import { type AnyAccessTagSelector } from '@metorial/module-access';
 import {
+  consumerIntegrationService,
   consumerProfileService,
   grantConsumerOwnedMagicMcpTokenAccess
 } from '@metorial/module-consumer';
@@ -128,6 +130,24 @@ let resolveConsumerSurface = (d: {
   return d.consumerSurface ?? d.portal?.surface;
 };
 
+let normalizeConsumerClientRedirectUris = (redirectUris: string[]) => [...redirectUris].sort();
+
+let getConsumerClientHash = async (d: { name: string; redirectUris: string[] }) =>
+  await Hash.sha256(
+    JSON.stringify([d.name, normalizeConsumerClientRedirectUris(d.redirectUris)])
+  );
+
+let getAttemptMagicMcpEndpoint = (
+  attempt: Pick<ConsumerOAuthAuthorization, 'magicMcpEndpoint' | 'consumerProfile'> & {
+    consumerAuthClient: Pick<
+      ConsumerOAuthAuthorization['consumerAuthClient'],
+      'magicMcpEndpoint'
+    >;
+  }
+) => {
+  return attempt.magicMcpEndpoint ?? attempt.consumerAuthClient.magicMcpEndpoint ?? null;
+};
+
 let buildDashboardConsumerAuthUrl = (d: {
   consumerSurface: DashboardConsumerSurface;
   consumerAuthAttemptId: string;
@@ -146,6 +166,64 @@ let buildDashboardConsumerAuthUrl = (d: {
 };
 
 class ConsumerOAuthServiceImpl {
+  async upsertConsumerClient(d: {
+    consumerSurface: Pick<ConsumerSurface, 'oid'>;
+    name: string;
+    redirectUris: string[];
+  }) {
+    let redirectUris = normalizeConsumerClientRedirectUris(d.redirectUris);
+    let hash = await getConsumerClientHash({
+      name: d.name,
+      redirectUris
+    });
+
+    return await db.consumerClient.upsert({
+      where: {
+        consumerSurfaceOid_hash: {
+          consumerSurfaceOid: d.consumerSurface.oid,
+          hash
+        }
+      },
+      create: {
+        id: await ID.generateId('consumerClient'),
+        consumerSurfaceOid: d.consumerSurface.oid,
+        hash,
+        name: d.name,
+        redirectUris
+      },
+      update: {
+        name: d.name,
+        redirectUris
+      }
+    });
+  }
+
+  async linkConsumerAuthClientToConsumerClient(d: {
+    consumerAuthClient: Pick<
+      ConsumerOAuthClient,
+      'oid' | 'name' | 'redirectUris' | 'consumerSurfaceOid'
+    >;
+  }) {
+    let consumerClient = await this.upsertConsumerClient({
+      consumerSurface: {
+        oid: d.consumerAuthClient.consumerSurfaceOid
+      },
+      name: d.consumerAuthClient.name,
+      redirectUris: d.consumerAuthClient.redirectUris
+    });
+
+    await db.consumerAuthClient.updateMany({
+      where: {
+        oid: d.consumerAuthClient.oid
+      },
+      data: {
+        consumerClientOid: consumerClient.oid
+      }
+    });
+
+    return consumerClient;
+  }
+
   async resolvePortalRoute(d: { portalId: string; magicMcpTargetId?: string }) {
     let portal: Awaited<ReturnType<typeof portalService.getPortalPublic>> | null = null;
     let consumerSurface:
@@ -236,6 +314,11 @@ class ConsumerOAuthServiceImpl {
       tokenEndpointAuthMethod == 'none'
         ? null
         : await ID.generateId('consumerAuthClientSecret');
+    let redirectUris = normalizeConsumerClientRedirectUris(d.input.redirectUris);
+    let consumerClientHash = await getConsumerClientHash({
+      name: d.input.clientName,
+      redirectUris
+    });
 
     return await withTransaction(async db => {
       let now = new Date();
@@ -263,16 +346,37 @@ class ConsumerOAuthServiceImpl {
         throw new ServiceError(consumerAuthClientRegistrationRateLimitError);
       }
 
-      return await db.consumerAuthClient.create({
+      let consumerClient = await db.consumerClient.upsert({
+        where: {
+          consumerSurfaceOid_hash: {
+            consumerSurfaceOid: consumerSurface.oid,
+            hash: consumerClientHash
+          }
+        },
+        create: {
+          id: await ID.generateId('consumerClient'),
+          consumerSurfaceOid: consumerSurface.oid,
+          hash: consumerClientHash,
+          name: d.input.clientName,
+          redirectUris
+        },
+        update: {
+          name: d.input.clientName,
+          redirectUris
+        }
+      });
+
+      let registration = await db.consumerAuthClient.create({
         data: {
           id: await ID.generateId('consumerAuthClient'),
           consumerSurfaceOid: consumerSurface.oid,
+          consumerClientOid: consumerClient.oid,
           magicMcpServerOid:
             d.magicMcpTarget?.type === 'server' ? d.magicMcpTarget.target.oid : null,
           magicMcpEndpointOid:
             d.magicMcpTarget?.type === 'endpoint' ? d.magicMcpTarget.target.oid : null,
           name: d.input.clientName,
-          redirectUris: d.input.redirectUris,
+          redirectUris,
           registrationIp: d.input.registrationIp,
           clientId: await ID.generateId('consumerAuthClientId'),
           clientSecret,
@@ -281,6 +385,8 @@ class ConsumerOAuthServiceImpl {
         },
         include: consumerAuthClientInclude
       });
+
+      return registration;
     });
   }
 
@@ -668,7 +774,7 @@ class ConsumerOAuthServiceImpl {
     }
 
     let now = new Date();
-    return await db.consumerAuthAttempt.update({
+    let portalOAuthAuthorization = await db.consumerAuthAttempt.update({
       where: {
         id: d.portalOAuthAuthorization.id
       },
@@ -682,6 +788,20 @@ class ConsumerOAuthServiceImpl {
       },
       include: consumerAuthAttemptInclude
     });
+
+    let magicMcpEndpoint = getAttemptMagicMcpEndpoint(portalOAuthAuthorization);
+    if (magicMcpEndpoint) {
+      let isManaged = magicMcpEndpoint.consumerProfileOid !== d.consumerProfile.oid;
+
+      await consumerIntegrationService.linkConsumerAuthAttemptToConsumerIntegrationEndpoint({
+        consumerAuthAttempt: portalOAuthAuthorization,
+        consumerProfile: d.consumerProfile,
+        magicMcpEndpoint,
+        isManaged
+      });
+    }
+
+    return portalOAuthAuthorization;
   }
 
   async connectConsumerAuthAuthorizationToMagicMcpEndpoint(d: {
@@ -717,7 +837,7 @@ class ConsumerOAuthServiceImpl {
       );
     }
 
-    return await db.consumerAuthAttempt.update({
+    let portalOAuthAuthorization = await db.consumerAuthAttempt.update({
       where: {
         id: d.portalOAuthAuthorization.id
       },
@@ -727,6 +847,15 @@ class ConsumerOAuthServiceImpl {
       },
       include: consumerAuthAttemptInclude
     });
+
+    await consumerIntegrationService.linkConsumerAuthAttemptToConsumerIntegrationEndpoint({
+      consumerAuthAttempt: portalOAuthAuthorization,
+      consumerProfile: d.consumerProfile,
+      magicMcpEndpoint,
+      isManaged: false
+    });
+
+    return portalOAuthAuthorization;
   }
 
   async rejectConsumerAuthAuthorization(d: {
@@ -1088,6 +1217,17 @@ class ConsumerOAuthServiceImpl {
           }
         })
       );
+    }
+
+    if (magicMcpEndpoint) {
+      let isManaged = magicMcpEndpoint.consumerProfileOid !== d.attempt.consumerProfile.oid;
+
+      await consumerIntegrationService.linkConsumerAuthAttemptToConsumerIntegrationEndpoint({
+        consumerAuthAttempt: d.attempt,
+        consumerProfile: d.attempt.consumerProfile,
+        magicMcpEndpoint,
+        isManaged
+      });
     }
 
     let nonPortalConsumerSurface = d.consumerSurface as ConsumerSurface & {

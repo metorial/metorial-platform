@@ -1,7 +1,9 @@
+import { generateCode } from '@lowerdeck/id';
 import { Service } from '@lowerdeck/service';
 import {
   addAfterTransactionHook,
   type Backend,
+  db,
   type EntityImage,
   getId,
   type Provider,
@@ -91,6 +93,8 @@ class providerInternalServiceImpl {
       name: string;
       description?: string;
       slug: string;
+      prettySlug?: string;
+      aliases?: string[];
       globalIdentifier: string | null;
       image?: EntityImage | null;
       skills?: string[];
@@ -103,6 +107,15 @@ class providerInternalServiceImpl {
       attributes: PrismaJson.ProviderTypeAttributes;
     };
   }) {
+    let prettySlug = d.info.prettySlug;
+    let existingWithPrettySlug = prettySlug
+      ? await db.providerListing.findFirst({
+          where: { prettySlug }
+        })
+      : null;
+
+    if (existingWithPrettySlug) prettySlug = `${prettySlug}-${generateCode(5)}`;
+
     return withTransaction(
       async db => {
         let identifier = `provider::${d.source.type}::`;
@@ -153,6 +166,7 @@ class providerInternalServiceImpl {
 
           name: d.info.name,
           description: d.info.description,
+          slug: d.info.slug,
 
           entryOid: entry.oid,
           publisherOid: d.publisher.oid,
@@ -236,6 +250,7 @@ class providerInternalServiceImpl {
 
         let allData = {
           isPublic: provider.access === 'public',
+          isDeprecated: provider.isDeprecated,
           ownerTenantOid: provider.access === 'tenant' ? provider.ownerTenantOid : null,
           ownerSolutionOid: provider.access === 'tenant' ? provider.ownerSolutionOid : null,
 
@@ -253,6 +268,9 @@ class providerInternalServiceImpl {
             name: d.info.name,
             description: d.info.description,
             slug: d.info.slug,
+
+            prettySlug,
+            aliases: [...new Set(d.info.aliases)],
 
             image: d.info.image ?? { type: 'default' as const },
 
@@ -361,13 +379,44 @@ class providerInternalServiceImpl {
           readme: d.input.readme,
           skills: d.input.skills,
           image: d.input.image ?? undefined,
-          isPublic: provider.access === 'public'
+          isPublic: provider.access === 'public',
+          isDeprecated: provider.isDeprecated
         }
       });
 
       await addAfterTransactionHook(() =>
         listingUpdatedQueue.add({ providerListingId: listing.id })
       );
+
+      return provider;
+    });
+  }
+
+  async deprecateProvider(d: { provider: Provider }) {
+    return withTransaction(async db => {
+      let provider = await db.provider.update({
+        where: { id: d.provider.id },
+        data: { isDeprecated: true }
+      });
+
+      let listing = await db.providerListing.findFirst({
+        where: { providerOid: provider.oid }
+      });
+
+      if (listing) {
+        listing = await db.providerListing.update({
+          where: { providerOid: provider.oid },
+          data: { isDeprecated: true }
+        });
+      }
+
+      await addAfterTransactionHook(async () => {
+        await providerUpdatedQueue.add({ providerId: provider.id });
+
+        if (listing) {
+          await listingUpdatedQueue.add({ providerListingId: listing.id });
+        }
+      });
 
       return provider;
     });

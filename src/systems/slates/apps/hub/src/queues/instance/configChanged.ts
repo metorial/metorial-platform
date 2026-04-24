@@ -1,7 +1,7 @@
 import { createQueue, QueueRetryError } from '@lowerdeck/queue';
 import { db } from '../../db';
 import { env } from '../../env';
-import { slateInvocationService } from '../../services';
+import { slateErrorService, slateInvocationService } from '../../services';
 
 export let slateInstanceConfigChangedQueue = createQueue<{
   previousConfigId?: string | null;
@@ -22,7 +22,7 @@ export let slateInstanceConfigChangedQueueProcessor = slateInstanceConfigChanged
       : null;
     let newConfig = await db.slateInstanceConfig.findUnique({
       where: { id: data.newConfigId },
-      include: {}
+      include: { instance: true }
     });
     let version = await db.slateVersion.findUnique({
       where: { id: data.versionId },
@@ -44,20 +44,49 @@ export let slateInstanceConfigChangedQueueProcessor = slateInstanceConfigChanged
         where: { oid: newConfig.oid },
         data: {
           errorCode: res.error.code,
-          errorMessage: res.error.message
+          errorMessage: res.error.message,
+          errorInvocationId: res.invocation.id
         }
       });
+      slateErrorService
+        .recordSlateError({
+          type: 'config_validation_failed',
+          errorCode: res.error.code,
+          errorMessage: res.error.message,
+          tenantOid: newConfig.tenantOid,
+          slateOid: newConfig.instance.slateOid,
+          slateVersionOid: version.oid,
+          slateInstanceOid: newConfig.instance.oid,
+          invocationOid: res.invocation.oid,
+          instanceConfigOid: newConfig.oid
+        })
+        .catch(() => {});
       return;
     }
     if (!res.data.success) {
+      let errorMessage =
+        `The provided configuration is invalid ${res.data.errors ? `- ${(res.data.errors ?? []).map(e => e.message).join(', ')}` : ''}`.trim();
       await db.slateInstanceConfig.updateMany({
         where: { oid: newConfig.oid },
         data: {
           errorCode: 'invalid_config',
-          errorMessage:
-            `The provided configuration is invalid ${res.data.errors ? `- ${(res.data.errors ?? []).map(e => e.message).join(', ')}` : ''}`.trim()
+          errorMessage,
+          errorInvocationId: res.invocation.id
         }
       });
+      slateErrorService
+        .recordSlateError({
+          type: 'config_validation_failed',
+          errorCode: 'invalid_config',
+          errorMessage,
+          tenantOid: newConfig.tenantOid,
+          slateOid: newConfig.instance.slateOid,
+          slateVersionOid: version.oid,
+          slateInstanceOid: newConfig.instance.oid,
+          invocationOid: res.invocation.oid,
+          instanceConfigOid: newConfig.oid
+        })
+        .catch(() => {});
       return;
     }
 
@@ -66,7 +95,8 @@ export let slateInstanceConfigChangedQueueProcessor = slateInstanceConfigChanged
       data: {
         value: res.data.config ?? newConfig.value,
         errorCode: null,
-        errorMessage: null
+        errorMessage: null,
+        errorInvocationId: null
       }
     });
   }

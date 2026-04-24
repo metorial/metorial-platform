@@ -7,6 +7,24 @@ model ShuttleSyncChangeNotificationCursor {
   createdAt DateTime @default(now())
 }
 
+model ShuttleSyncAuthConfigEventCursor {
+  backendOid BigInt  @id
+  backend    Backend @relation(fields: [backendOid], references: [oid])
+
+  cursor String
+
+  createdAt DateTime @default(now())
+}
+
+model ShuttleSyncOAuthSetupEventCursor {
+  backendOid BigInt  @id
+  backend    Backend @relation(fields: [backendOid], references: [oid])
+
+  cursor String
+
+  createdAt DateTime @default(now())
+}
+
 model ShuttleSyncMcpServerRegistryCursor {
   registryUrl String @id
 

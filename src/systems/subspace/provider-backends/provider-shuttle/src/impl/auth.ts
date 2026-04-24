@@ -4,6 +4,9 @@ import { db, snowflake } from '@metorial-subspace/db';
 import type {
   GetDecryptedAuthConfigParam,
   GetDecryptedAuthConfigRes,
+  GetProviderAuthConfigScopesParam,
+  GetProviderAuthCredentialsScopesParam,
+  GetProviderAuthScopesRes,
   ProviderAuthConfigCreateParam,
   ProviderAuthConfigCreateRes,
   ProviderAuthConfigDeleteParam,
@@ -239,13 +242,11 @@ export class ProviderAuth extends IProviderAuth {
       throw new Error('Setup does not have associated shuttle OAuth setup');
     }
 
-    let tenant = await getTenantForShuttle(data.tenant);
     let setup = await db.shuttleOAuthSetup.findUniqueOrThrow({
       where: { oid: data.setup.shuttleOAuthSetupOid }
     });
 
-    let record = await shuttle.serverOAuthSetup.get({
-      tenantId: tenant.id,
+    let record = await shuttle.serverOAuthSetup.getLogsSync({
       serverOAuthSetupId: setup.id
     });
 
@@ -262,6 +263,10 @@ export class ProviderAuth extends IProviderAuth {
         })
       : null;
 
+    let lastFailedEvent = [...record.events]
+      .reverse()
+      .find(event => event.type.endsWith('_failed'));
+
     return {
       shuttleOAuthSetup: setup,
       shuttleAuthConfig,
@@ -271,7 +276,13 @@ export class ProviderAuth extends IProviderAuth {
         failed: 'failed' as const
       }[record.status],
       url: record.url,
-      error: null
+      error:
+        record.status === 'failed'
+          ? {
+              code: lastFailedEvent?.type ?? 'oauth_setup_failed',
+              message: lastFailedEvent?.message ?? 'OAuth setup failed'
+            }
+          : null
     };
   }
 
@@ -298,5 +309,17 @@ export class ProviderAuth extends IProviderAuth {
       decryptedConfigData: record.decryptedAuthConfig,
       expiresAt: record.decryptedAuthConfig.expiresAt
     };
+  }
+
+  override async getProviderAuthCredentialsScopes(
+    _data: GetProviderAuthCredentialsScopesParam
+  ): Promise<GetProviderAuthScopesRes> {
+    return { scopes: [] };
+  }
+
+  override async getProviderAuthConfigScopes(
+    _data: GetProviderAuthConfigScopesParam
+  ): Promise<GetProviderAuthScopesRes> {
+    return { scopes: [] };
   }
 }

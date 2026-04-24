@@ -10,12 +10,9 @@ import {
   useCreateSession,
   useCurrentInstance,
   useProvider,
-  useProviderAuthConfigs,
-  useProviderAuthMethods,
-  useProviderConfigVaults,
   useProviderConfigs,
+  useProviderConfigVaults,
   useProviderDeployment,
-  useProviderDeploymentConfigSchema,
   useProviderDeployments,
   useProviderListings,
   useSession
@@ -28,15 +25,15 @@ import {
   Flex,
   Input,
   RenderDate,
-  Select,
   Spacer,
   Tabs,
   Text,
-  theme
+  theme,
+  Title
 } from '@metorial/ui';
-import { RiAddLine, RiArrowLeftLine, RiArrowRightLine, RiCloseLine } from '@remixicon/react';
+import { RiArrowLeftLine, RiArrowRightLine, RiCloseLine } from '@remixicon/react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { Explainer } from '../../../../components/explainer';
@@ -44,12 +41,10 @@ import {
   emptyConfigurationSelection,
   type ConfigurationSelection
 } from '../../lib/configSelection';
-import { getProviderConfigSchemaCapabilities } from '../../lib/providerCreationCapabilities';
-import { showProviderAuthConfigMethodPickerModal } from '../../scenes/providerAuthConfigs/modal';
-import { ProviderConfigurationSelection } from '../../scenes/providerConfigs/selection';
 import { ProviderDeploymentsList } from '../../scenes/providerDeployments/list';
 import { ProviderSearch } from '../../scenes/providers/search';
-import { InspectorFrame } from './inspector';
+import { SessionTracingScene } from '../../scenes/sessionTracing';
+import { ProviderSetupSections } from '../../scenes/sessionTemplates/addProviderPanelFlow';
 
 type ProviderSelection =
   | DashboardInstanceProvidersListOutput['items'][number]
@@ -255,7 +250,11 @@ export let ExplorerPage = () => {
   let sessionProviderIds = useMemo(
     () =>
       [
-        ...new Set((sessionFromQuery.data?.providers ?? []).map(sessionProvider => sessionProvider.providerId))
+        ...new Set(
+          (sessionFromQuery.data?.providers ?? []).map(
+            sessionProvider => sessionProvider.providerId
+          )
+        )
       ].sort(),
     [sessionFromQuery.data?.providers]
   );
@@ -315,42 +314,15 @@ export let ExplorerPage = () => {
     instance.data?.id,
     providerDeploymentId ?? undefined
   );
+  let activeProviderId =
+    selectedProvider?.id ?? providerIdParam ?? selectedDeployment.data?.providerId ?? null;
+  let activeProvider = useProvider(instance.data?.id, activeProviderId ?? undefined);
   let providerConfigs = useProviderConfigs(instance.data?.id, {
-    providerId: selectedProvider?.id
+    providerId: activeProviderId ?? undefined
   });
   let providerConfigVaults = useProviderConfigVaults(instance.data?.id, {
     providerDeploymentId: providerDeploymentId ?? undefined
   });
-  let providerConfigSchema = useProviderDeploymentConfigSchema(
-    instance.data?.id,
-    providerDeploymentId ?? undefined
-  );
-  let providerAuthConfigs = useProviderAuthConfigs(
-    instance.data?.id,
-    providerDeploymentId ? { providerId: selectedDeployment.data?.providerId } : undefined
-  );
-
-  let providerAuthConfigsRef = useRef(providerAuthConfigs);
-  providerAuthConfigsRef.current = providerAuthConfigs;
-
-  let pendingAuthConfigIdRef = useRef<string | null>(null);
-  let handleAuthConfigCreated = useCallback((authConfig: { id: string }) => {
-    pendingAuthConfigIdRef.current = authConfig.id;
-    setSelectedAuthConfigId(authConfig.id);
-    providerAuthConfigsRef.current.refetch();
-  }, []);
-
-  let openAuthConfigCreateModal = useCallback(() => {
-    if (!instance.data || !providerDeploymentId) return false;
-
-    showProviderAuthConfigMethodPickerModal({
-      instanceId: instance.data.id,
-      providerDeploymentId,
-      onCreate: handleAuthConfigCreated
-    });
-
-    return true;
-  }, [handleAuthConfigCreated, instance.data, providerDeploymentId]);
 
   useEffect(() => {
     let deploymentsForCurrentProvider = deployments.data?.items.filter(
@@ -384,21 +356,6 @@ export let ExplorerPage = () => {
     if (!exists) setSelectedConfiguration(emptyConfigurationSelection());
   }, [providerConfigVaults.data, providerConfigVaults.isLoading, selectedConfiguration]);
 
-  useEffect(() => {
-    if (providerAuthConfigs.isLoading || !selectedAuthConfigId) return;
-    if (pendingAuthConfigIdRef.current === selectedAuthConfigId) {
-      let exists = (providerAuthConfigs.data?.items ?? []).some(
-        c => c.id === selectedAuthConfigId
-      );
-      if (exists) pendingAuthConfigIdRef.current = null;
-      return;
-    }
-    let exists = (providerAuthConfigs.data?.items ?? []).some(
-      c => c.id === selectedAuthConfigId
-    );
-    if (!exists) setSelectedAuthConfigId('');
-  }, [providerAuthConfigs.data, providerAuthConfigs.isLoading, selectedAuthConfigId]);
-
   let createMutation = useCreateProviderDeployment();
   let createDeploymentForm = useForm({
     initialValues: {
@@ -429,10 +386,6 @@ export let ExplorerPage = () => {
       })
   });
 
-  let activeProviderId =
-    selectedProvider?.id ?? providerIdParam ?? selectedDeployment.data?.providerId ?? null;
-  let activeProvider = useProvider(instance.data?.id, activeProviderId ?? undefined);
-
   useEffect(() => {
     if (
       !selectedProvider &&
@@ -459,36 +412,18 @@ export let ExplorerPage = () => {
     setSearch
   ]);
 
-  let effectiveVersionIdForAuth =
-    selectedDeployment.data?.lockedVersion?.id ?? activeProvider.data?.currentVersion?.id;
-  let providerAuthMethods = useProviderAuthMethods(
-    instance.data?.id,
-    effectiveVersionIdForAuth ? { providerVersionId: effectiveVersionIdForAuth } : null
-  );
-
-  let hasAuthMethods = (providerAuthMethods.data?.items?.length ?? 0) > 0;
-  let hasExistingConfigs = (providerConfigs.data?.items?.length ?? 0) > 0;
-  let hasExistingVaults = (providerConfigVaults.data?.items?.length ?? 0) > 0;
-  let configCreation = getProviderConfigSchemaCapabilities({
-    schemaValue: providerConfigSchema.data?.schema,
-    hasVaults: hasExistingVaults,
-    isLoading: providerConfigSchema.isLoading || providerConfigVaults.isLoading
-  });
-  let needsConfigStep =
-    configCreation.hasSchemaFields || hasExistingConfigs || hasExistingVaults;
-  let needsAuthStep = hasAuthMethods || (providerAuthConfigs.data?.items?.length ?? 0) > 0;
+  let requiresProviderConfig = activeProvider.data?.type.config.status == 'enabled';
+  let requiresAuthConfig = activeProvider.data?.type.auth.status == 'enabled';
 
   useEffect(() => {
     if (
       providerDeploymentId &&
       !sessionId &&
       !isCreatingSession &&
-      !providerConfigs.isLoading &&
-      !providerConfigSchema.isLoading &&
-      !providerAuthMethods.isLoading &&
-      !providerAuthConfigs.isLoading &&
-      !needsConfigStep &&
-      !needsAuthStep
+      !!activeProvider.data &&
+      !activeProvider.isLoading &&
+      !requiresProviderConfig &&
+      !requiresAuthConfig
     ) {
       createSessionForDeployment(providerDeploymentId);
     }
@@ -496,199 +431,104 @@ export let ExplorerPage = () => {
     providerDeploymentId,
     sessionId,
     isCreatingSession,
-    providerConfigs.isLoading,
-    providerConfigSchema.isLoading,
-    providerAuthMethods.isLoading,
-    providerAuthConfigs.isLoading,
-    needsConfigStep,
-    needsAuthStep
+    activeProvider.data,
+    activeProvider.isLoading,
+    requiresProviderConfig,
+    requiresAuthConfig,
+    createSessionForDeployment
   ]);
 
   let renderSetupPanel = () => {
     if (!providerDeploymentId || !instance.data) return null;
+    if (!activeProviderId && (selectedDeployment.isLoading || activeProvider.isLoading)) {
+      return (
+        <MainSetup>
+          <SetupCard>
+            <CenteredSpinner />
+          </SetupCard>
+        </MainSetup>
+      );
+    }
 
-    let emptyAuthConfigLabel = hasAuthMethods ? 'Select an auth config to continue' : 'None';
-    let authConfigItems = providerAuthConfigs.data?.items ?? [];
-    let hasAvailableAuthConfigs = authConfigItems.length > 0;
-    let lockedProviderVersionId = selectedDeployment.data?.lockedVersion?.id ?? null;
-    let currentProviderVersionId = activeProvider.data?.currentVersion?.id ?? null;
-    let effectiveProviderVersionId = lockedProviderVersionId ?? currentProviderVersionId;
-    let isAuthSetupLoadingVersion =
-      !!activeProviderId && !lockedProviderVersionId && activeProvider.isLoading;
-    let authPlusTooltip = !activeProviderId
-      ? 'Could not resolve the provider for this deployment yet.'
-      : selectedDeployment.isLoading || isAuthSetupLoadingVersion
-        ? 'Loading provider version...'
-        : activeProvider.error && !lockedProviderVersionId
-          ? (activeProvider.error.message ?? 'Failed to load provider details.')
-          : !effectiveProviderVersionId
-            ? 'No provider version is available yet, so authentication cannot be configured.'
-            : 'Connect / Create Auth Config';
-    let authPlusDisabled =
-      !activeProviderId ||
-      selectedDeployment.isLoading ||
-      isAuthSetupLoadingVersion ||
-      (!!activeProvider.error && !lockedProviderVersionId) ||
-      !effectiveProviderVersionId;
+    let resolvedProviderId =
+      activeProviderId ?? selectedProvider?.id ?? providerIdParam ?? provider.data?.id ?? null;
+    let canOpenExplorer =
+      (!requiresProviderConfig || selectedConfiguration.kind !== 'none') &&
+      (!requiresAuthConfig || Boolean(selectedAuthConfigId));
+
+    if (!resolvedProviderId) return null;
 
     return (
       <MainSetup>
         <SetupCard>
-          <Text as="p" size="4" weight="strong" color="gray900">
-            Complete setup
-          </Text>
+          <Title as="h1" size="7" weight="strong" color="gray900">
+            Connect to {selectedDeployment.data?.name ?? provider.data?.name ?? 'Provider'}
+          </Title>
 
           <Spacer height={6} />
 
-          <Text size="2" color="gray600">
-            Choose or create configuration and authentication for this deployment, then open
-            the Explorer session.
+          <Text size="2" color="gray600" weight="medium">
+            Configure the connection to your provider deployment before connecting with the
+            Metorial Explorer.
           </Text>
 
           <Spacer height={16} />
 
-          <Flex direction="column" gap={20}>
-            {needsConfigStep && (
-              <Flex direction="column" gap={12}>
-                {selectedDeployment.isLoading ? (
-                  <Flex align="center" gap={8}>
-                    <CenteredSpinner />
-                    <Text size="2" color="gray600">
-                      Loading deployment details...
-                    </Text>
-                  </Flex>
-                ) : (
-                  <ProviderConfigurationSelection
-                    instanceId={instance.data.id}
-                    providerDeploymentId={providerDeploymentId}
-                    value={selectedConfiguration}
-                    onChange={setSelectedConfiguration}
-                    label="Config (optional)"
-                  />
-                )}
+          <ProviderSetupSections
+            instanceId={instance.data.id}
+            providerId={resolvedProviderId}
+            providerName={
+              selectedDeployment.data?.name ??
+              activeProvider.data?.name ??
+              provider.data?.name ??
+              'Provider'
+            }
+            providerDeploymentId={providerDeploymentId}
+            selectedConfiguration={selectedConfiguration}
+            onSelectedConfigurationChange={setSelectedConfiguration}
+            selectedAuthConfigId={selectedAuthConfigId}
+            onSelectedAuthConfigIdChange={setSelectedAuthConfigId}
+            showToolFilters={false}
+            configError={
+              providerConfigs.error || providerConfigVaults.error ? (
+                <Text size="2" color="red500">
+                  {providerConfigs.error?.message ??
+                    providerConfigVaults.error?.message ??
+                    'Failed to load configs and config vaults.'}
+                </Text>
+              ) : null
+            }
+            emptyState={null}
+            supplementaryContent={<createSession.RenderError />}
+            footer={
+              (requiresProviderConfig || requiresAuthConfig) && (
+                <Flex gap={10}>
+                  <Button
+                    type="button"
+                    disabled={!canOpenExplorer}
+                    onClick={() => {
+                      if (!canOpenExplorer) return;
 
-                {(providerConfigs.error || providerConfigVaults.error) && (
-                  <Text size="2" color="red500">
-                    {providerConfigs.error?.message ??
-                      providerConfigVaults.error?.message ??
-                      'Failed to load configs and config vaults.'}
-                  </Text>
-                )}
-              </Flex>
-            )}
-
-            {needsAuthStep && (
-              <Flex direction="column" gap={12}>
-                <Flex gap={8} align="end">
-                  <div style={{ flex: 1 }}>
-                    <Select
-                      label={
-                        hasAuthMethods ? 'Auth Config (required)' : 'Auth Config (optional)'
-                      }
-                      value={selectedAuthConfigId || '__none__'}
-                      onChange={value =>
-                        setSelectedAuthConfigId(value === '__none__' ? '' : value)
-                      }
-                      items={[
-                        { id: '__none__', label: emptyAuthConfigLabel },
-                        ...authConfigItems.map(config => ({
-                          id: config.id,
-                          label: config.name ?? config.id
-                        }))
-                      ]}
-                    />
-                  </div>
-
-                  <div title={authPlusTooltip} style={{ display: 'inline-flex' }}>
-                    <Button
-                      type="button"
-                      size="3"
-                      iconLeft={<RiAddLine />}
-                      aria-label="Connect / Create Auth Config"
-                      disabled={authPlusDisabled}
-                      onClick={() => {
-                        openAuthConfigCreateModal();
-                      }}
-                      style={
-                        !authPlusDisabled
-                          ? {
-                              background: theme.colors.gray900,
-                              borderColor: theme.colors.gray900,
-                              color: 'white'
-                            }
-                          : {
-                              background: theme.colors.gray200,
-                              borderColor: theme.colors.gray300,
-                              color: theme.colors.gray600
-                            }
-                      }
-                    />
-                  </div>
+                      createSessionForDeployment(providerDeploymentId, {
+                        providerConfigId:
+                          selectedConfiguration.kind === 'config'
+                            ? selectedConfiguration.id
+                            : undefined,
+                        providerConfigVaultId:
+                          selectedConfiguration.kind === 'vault'
+                            ? selectedConfiguration.id
+                            : undefined,
+                        providerAuthConfigId: selectedAuthConfigId || undefined
+                      });
+                    }}
+                    loading={isCreatingSession}
+                  >
+                    Open Explorer
+                  </Button>
                 </Flex>
-
-                {!activeProviderId && !selectedDeployment.isLoading && (
-                  <Text size="2" color="red500">
-                    Could not resolve the provider for this deployment yet. Re-open the sidebar
-                    and re-select the deployment.
-                  </Text>
-                )}
-
-                {activeProviderId &&
-                  !selectedDeployment.isLoading &&
-                  !isAuthSetupLoadingVersion &&
-                  !effectiveProviderVersionId &&
-                  !(activeProvider.error && !lockedProviderVersionId) && (
-                    <Text size="2" color="gray600">
-                      No provider version is available yet, so authentication cannot be
-                      configured.
-                    </Text>
-                  )}
-
-                {activeProvider.error && !lockedProviderVersionId && (
-                  <Text size="2" color="red500">
-                    {activeProvider.error.message ?? 'Failed to load provider details.'}
-                  </Text>
-                )}
-
-                {providerAuthConfigs.error && (
-                  <Text size="2" color="red500">
-                    {providerAuthConfigs.error.message ?? 'Failed to load auth configs.'}
-                  </Text>
-                )}
-              </Flex>
-            )}
-
-            <createSession.RenderError />
-
-            {(needsConfigStep || needsAuthStep) && (
-              <Flex gap={10}>
-                <Button
-                  type="button"
-                  onClick={() => {
-                    if (hasAuthMethods && !selectedAuthConfigId && !hasAvailableAuthConfigs) {
-                      openAuthConfigCreateModal();
-                      return;
-                    }
-
-                    createSessionForDeployment(providerDeploymentId, {
-                      providerConfigId:
-                        selectedConfiguration.kind === 'config'
-                          ? selectedConfiguration.id
-                          : undefined,
-                      providerConfigVaultId:
-                        selectedConfiguration.kind === 'vault'
-                          ? selectedConfiguration.id
-                          : undefined,
-                      providerAuthConfigId: selectedAuthConfigId || undefined
-                    });
-                  }}
-                  loading={isCreatingSession}
-                >
-                  Open Explorer
-                </Button>
-              </Flex>
-            )}
-          </Flex>
+              )
+            }
+          />
         </SetupCard>
       </MainSetup>
     );
@@ -756,7 +596,8 @@ export let ExplorerPage = () => {
                                 provider.deployment?.name ??
                                 providerDeploymentId ??
                                 provider.providerId;
-                              let providerDeploymentCreatedAt = provider.deployment?.createdAt ?? null;
+                              let providerDeploymentCreatedAt =
+                                provider.deployment?.createdAt ?? null;
 
                               return (
                                 <TemplateSessionCard
@@ -783,10 +624,12 @@ export let ExplorerPage = () => {
                                             <Avatar
                                               entity={{
                                                 name:
-                                                  sessionProviderLookup.get(provider.providerId)?.name ??
-                                                  provider.providerId,
-                                                imageUrl:
-                                                  sessionProviderLookup.get(provider.providerId)?.imageUrl
+                                                  sessionProviderLookup.get(
+                                                    provider.providerId
+                                                  )?.name ?? provider.providerId,
+                                                imageUrl: sessionProviderLookup.get(
+                                                  provider.providerId
+                                                )?.imageUrl
                                               }}
                                               size={28}
                                               radius={8}
@@ -800,7 +643,9 @@ export let ExplorerPage = () => {
                                           title={
                                             <Text size="1" color="gray500">
                                               {providerDeploymentCreatedAt ? (
-                                                <RenderDate date={providerDeploymentCreatedAt} />
+                                                <RenderDate
+                                                  date={providerDeploymentCreatedAt}
+                                                />
                                               ) : (
                                                 'Deployment unavailable'
                                               )}
@@ -1000,13 +845,18 @@ export let ExplorerPage = () => {
           </MainEmpty>
         )}
 
-        {sessionId && !isCreatingSession && (
-          <InspectorFrame
-            sessionId={sessionId}
-            sessionTemplateId={resolvedSessionTemplateId}
-            magicMcpServerId={magicMcpServerIdFromState}
-          />
-        )}
+        {sessionId &&
+          !isCreatingSession &&
+          renderWithLoader({ session: sessionFromQuery })(({ session }) => (
+            <SessionTracingScene
+              session={session.data}
+              initialExplorerTab
+              inspectorOptions={{
+                sessionTemplateId: resolvedSessionTemplateId,
+                magicMcpServerId: magicMcpServerIdFromState
+              }}
+            />
+          ))}
       </Main>
 
       <Explainer

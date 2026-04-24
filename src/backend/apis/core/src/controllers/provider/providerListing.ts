@@ -90,6 +90,32 @@ export let providerListingController = Controller.create(
         })
       )
       .query(
+        'mt_2026_04_01_consumer',
+        Paginator.validate(
+          v.object({
+            search: v.optional(v.string()),
+
+            id: v.optional(v.union([v.string(), v.array(v.string())])),
+            provider_category_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            provider_collection_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            provider_group_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            publisher_id: v.optional(v.union([v.string(), v.array(v.string())])),
+
+            is_owner: v.optional(v.boolean()),
+            is_public: v.optional(v.boolean()),
+            is_verified: v.optional(v.boolean()),
+            is_official: v.optional(v.boolean()),
+            is_metorial: v.optional(v.boolean()),
+            created_at: dateFilterValidator('provider listing creation time'),
+            updated_at: dateFilterValidator('provider listing last update time')
+          })
+        ),
+        v => ({
+          ...v,
+          only_from_tenant: v.is_owner
+        })
+      )
+      .query(
         'default',
         Paginator.validate(
           v.object({

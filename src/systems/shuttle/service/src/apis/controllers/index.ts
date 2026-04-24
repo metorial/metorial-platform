@@ -5,15 +5,18 @@ import { containerRegistryController } from './containerRegistry';
 import { containerRepositoryController } from './containerRepository';
 import { containerRepositoryTagController } from './containerRepositoryTag';
 import { containerRepositoryVersionController } from './containerRepositoryVersion';
+import { functionServerInvocationController } from './functionServerInvocation';
 import { networkingRulesetController } from './networkingRuleset';
 import { serverController } from './server';
 import { serverAuthConfigController } from './serverAuthConfig';
+import { serverAuthConfigEventController } from './serverAuthConfigEvent';
 import { serverConfigController } from './serverConfig';
 import { serverConnectionController } from './serverConnection';
 import { serverDeploymentController } from './serverDeployment';
 import { serverDiscoveryController } from './serverDiscovery';
 import { serverOAuthCredentialsController } from './serverOAuthCredentials';
 import { serverOAuthSetupController } from './serverOAuthSetup';
+import { serverOAuthSetupEventController } from './serverOAuthSetupEvent';
 import { serverVersionController } from './serverVersion';
 import { tenantController } from './tenant';
 
@@ -24,6 +27,7 @@ export let rootController = app.controller({
   containerRepository: containerRepositoryController,
   containerRepositoryTag: containerRepositoryTagController,
   containerRepositoryVersion: containerRepositoryVersionController,
+  functionServerInvocation: functionServerInvocationController,
 
   server: serverController,
   serverVersion: serverVersionController,
@@ -32,8 +36,10 @@ export let rootController = app.controller({
   serverDeployment: serverDeploymentController,
   serverConnection: serverConnectionController,
   serverAuthConfig: serverAuthConfigController,
+  serverAuthConfigEvent: serverAuthConfigEventController,
 
   serverOAuthSetup: serverOAuthSetupController,
+  serverOAuthSetupEvent: serverOAuthSetupEventController,
   serverOAuthCredentials: serverOAuthCredentialsController,
 
   changeNotification: changeNotificationController,

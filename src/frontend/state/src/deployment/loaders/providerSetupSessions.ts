@@ -48,7 +48,12 @@ export let useCreateProviderSetupSession = (
             ...body,
             providerId,
             providerDeploymentId:
-              body.providerDeploymentId ?? providerDeploymentId ?? undefined
+              body.providerDeploymentId ?? providerDeploymentId ?? undefined,
+            configuration: {
+              ui: {
+                layout: 'light'
+              }
+            }
           })
         );
       },

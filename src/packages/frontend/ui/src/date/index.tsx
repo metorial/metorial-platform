@@ -41,7 +41,15 @@ let useStaticDate = (date: string | Date | undefined) => {
   return currentDate;
 };
 
-export let RenderDate = ({ date }: { date: string | Date | undefined }) => {
+type RenderDateFormat = 'full' | 'time' | 'date';
+
+export let RenderDate = ({
+  date,
+  format = 'full'
+}: {
+  date: string | Date | undefined;
+  format?: RenderDateFormat;
+}) => {
   let [retriggerIndex, doRetrigger] = useReducer(s => s + 1, 0);
 
   let normalizedDate = useStaticDate(date);
@@ -53,16 +61,22 @@ export let RenderDate = ({ date }: { date: string | Date | undefined }) => {
     let utc = new Date(parsed.toUTCString().replace('GMT', ''));
 
     let humanOffset = shleemy(parsed).forHumans;
+    let pretty =
+      format == 'date'
+        ? parsed.toLocaleDateString()
+        : format == 'time'
+          ? parsed.toLocaleTimeString()
+          : parsed.toLocaleString();
 
     return {
       date: parsed,
       humanOffset,
       utc: utc.toLocaleString(),
       local: parsed.toLocaleString(),
-      pretty: parsed.toLocaleString(),
+      pretty,
       timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
     };
-  }, [normalizedDate, retriggerIndex]);
+  }, [format, normalizedDate, retriggerIndex]);
 
   useInterval(() => doRetrigger(), 60 * 1000);
 

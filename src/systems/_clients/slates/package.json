@@ -31,8 +31,7 @@
   },
   "dependencies": {
     "@lowerdeck/rpc-client": "^1.1.3",
-    "@lowerdeck/validation": "^1.0.10",
-    "@slates/proto": "workspace:*"
+    "@lowerdeck/validation": "^1.0.10"
   },
   "devDependencies": {
     "tsup": "^8.5.1",

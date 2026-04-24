@@ -1,6 +1,7 @@
 import { delay } from '@lowerdeck/delay';
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { generatePlainId } from '@lowerdeck/id';
+import { getSentry } from '@lowerdeck/sentry';
 import { serialize } from '@lowerdeck/serialize';
 import type {
   SlatesParticipant,
@@ -22,6 +23,8 @@ import type {
   SlatesRequest,
   SlatesResponse
 } from './types';
+
+let Sentry = getSentry();
 
 let errorSchema = z.object({
   jsonrpc: z.literal('2.0'),
@@ -264,8 +267,15 @@ export class SlateInvocationStack {
     params: z.infer<(typeof slatesRequestsByMethod)[Key]>['params']
   ): Promise<InvocationResult<Key>> {
     if (this.#alreadyInvoked) {
-      console.log(
-        `SlateInvocationStack was already invoked but still received a new message. We're creating a new invocation but this does indicate an issue.`
+      Sentry.captureMessage(
+        'SlateInvocationStack was already invoked but still received a new message',
+        {
+          level: 'warning',
+          extra: {
+            method,
+            slateVersionId: this.#slateVersion.id
+          }
+        }
       );
 
       return new SlateInvocationStack({

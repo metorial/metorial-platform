@@ -64,12 +64,21 @@ export let SlatePublish = () => {
             <Group.Content>
               {slateData.currentVersion && (
                 <Callout color="gray" style={{ marginBottom: 20 }}>
-                  <Text size="2" color="gray600">
-                    Current version:{' '}
-                    <Text as="span" weight="medium" color="gray900">
-                      v{slateData.currentVersion.version}
+                  <Flex direction="column" gap={6}>
+                    <Text size="2" color="gray600">
+                      Preferred current version:{' '}
+                      <Text as="span" weight="medium" color="gray900">
+                        v{slateData.currentVersion.version}
+                      </Text>
                     </Text>
-                  </Text>
+                    <Text size="2" color="gray600">
+                      Unbuilt current: {slateData.unbuiltCurrentVersion?.version ?? 'none'}
+                    </Text>
+                    <Text size="2" color="gray600">
+                      Built/unbuilt current:{' '}
+                      {slateData.builtOrUnbuiltCurrentVersion?.version ?? 'none'}
+                    </Text>
+                  </Flex>
                 </Callout>
               )}
 

@@ -45,6 +45,7 @@ class ProjectService {
     context: Context;
     input: {
       name: string;
+      magicMcpSessionDurationMinutes?: number;
     };
   }) {
     return withTransaction(async db => {
@@ -56,6 +57,7 @@ class ProjectService {
           status: 'active',
           slug: await getProjectSlug({ input: `${d.input.name}-${generateCode(5)}` }),
           name: d.input.name,
+          magicMcpSessionDurationMinutes: d.input.magicMcpSessionDurationMinutes,
           organizationOid: d.organization.oid
         },
         include: {
@@ -97,6 +99,7 @@ class ProjectService {
     input: {
       name?: string;
       onlyAllowTrustedProviders?: boolean;
+      magicMcpSessionDurationMinutes?: number;
     };
   }) {
     await this.ensureProjectActive(d.project);
@@ -108,7 +111,8 @@ class ProjectService {
         where: { oid: d.project.oid },
         data: {
           name: d.input.name,
-          onlyAllowTrustedProviders: d.input.onlyAllowTrustedProviders
+          onlyAllowTrustedProviders: d.input.onlyAllowTrustedProviders,
+          magicMcpSessionDurationMinutes: d.input.magicMcpSessionDurationMinutes
         },
         include: {
           organization: true

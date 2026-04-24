@@ -3,13 +3,11 @@ import { Button, Flex, Group, Select, Spacer, Text } from '@metorial-io/ui';
 import { useNavigate, useParams } from 'react-router-dom';
 import { BackLink } from '../../components/BackLink';
 import { FileInput, FormWrapper } from '../../components/styled';
-import { usePublishNewSlate, useUsers, useWorkspaces } from '../../hooks';
+import { usePublishNewSlate } from '../../hooks';
 
 export let SlateCreate = () => {
   let { tenantId } = useParams<{ tenantId: string }>();
   let navigate = useNavigate();
-  let users = useUsers(tenantId);
-  let workspaces = useWorkspaces(tenantId);
   let publishNewSlate = usePublishNewSlate();
 
   let form = useForm({

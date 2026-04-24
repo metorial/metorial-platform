@@ -30,9 +30,12 @@ export let ID = createIdGenerator({
   remoteOAuthConnectionSetup: idType.sorted('csoaat_'),
   remoteOAuthConnectionProfile: idType.sorted('csoap_'),
   remoteOAuthConnectionAuthToken: idType.sorted('csoat_'),
+  remoteOAuthConnectionAuthTokenError: idType.sorted('csoate_'),
 
   serverAuthConfig: idType.sorted('csac_'),
+  serverAuthConfigEvent: idType.sorted('csace_'),
   serverOAuthSetup: idType.sorted('csos_'),
+  serverOAuthSetupEvent: idType.sorted('csose_'),
   serverOAuthCredentials: idType.sorted('csocd_'),
 
   networkingRuleset: idType.sorted('cnr_'),

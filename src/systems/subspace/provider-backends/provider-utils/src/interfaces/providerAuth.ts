@@ -51,6 +51,14 @@ export abstract class IProviderAuth extends IProviderFunctionality {
     data: GetDecryptedAuthConfigParam
   ): Promise<GetDecryptedAuthConfigRes>;
 
+  abstract getProviderAuthCredentialsScopes(
+    data: GetProviderAuthCredentialsScopesParam
+  ): Promise<GetProviderAuthScopesRes>;
+
+  abstract getProviderAuthConfigScopes(
+    data: GetProviderAuthConfigScopesParam
+  ): Promise<GetProviderAuthScopesRes>;
+
   async getManyProviderAuthCredentialsScopes(
     data: ProviderAuthCredentialsScopesParam
   ): Promise<ProviderAuthCredentialsScopesRes> {
@@ -100,7 +108,7 @@ export interface ProviderAuthCredentialsUpdateParam {
   tenant: Tenant;
   backing: ProviderAuthCredentialsEditBacking;
   input: {
-    type: 'oauth';
+    type?: 'oauth';
     clientId?: string;
     clientSecret?: string;
     scopes?: string[];
@@ -115,6 +123,8 @@ export interface ProviderAuthCredentialsDeleteParam {
 }
 
 export interface ProviderAuthCredentialsDeleteRes {}
+
+export interface ProviderAuthCredentialsUpdateRes {}
 
 export interface ProviderAuthConfigCreateParam {
   tenant: Tenant;
@@ -189,4 +199,18 @@ export interface GetDecryptedAuthConfigParam {
 export interface GetDecryptedAuthConfigRes {
   decryptedConfigData: Record<string, any>;
   expiresAt: Date | null;
+}
+
+export interface GetProviderAuthCredentialsScopesParam {
+  tenant: Tenant;
+  providerAuthCredentials: ProviderAuthCredentials;
+}
+
+export interface GetProviderAuthConfigScopesParam {
+  tenant: Tenant;
+  authConfigVersion: ProviderAuthConfigVersion;
+}
+
+export interface GetProviderAuthScopesRes {
+  scopes: string[];
 }

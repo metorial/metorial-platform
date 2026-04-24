@@ -21,6 +21,9 @@ class providerRunLogsServiceImpl {
     solution: Solution;
     environment: Environment;
     providerRun: ProviderRun;
+    inputs: {
+      sessionMessageIds?: string[];
+    };
   }) {
     let fullProviderRun = await db.providerRun.findFirstOrThrow({
       where: { oid: d.providerRun.oid },
@@ -31,7 +34,8 @@ class providerRunLogsServiceImpl {
 
     let allLogs = await backend.providerRun.getProviderRunLogs({
       providerRun: fullProviderRun,
-      tenant: d.tenant
+      tenant: d.tenant,
+      sessionMessageIds: d.inputs.sessionMessageIds
     });
 
     return {

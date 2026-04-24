@@ -26,7 +26,8 @@ export let providerVariantController = app.controller({
       Paginator.validate(
         v.object({
           tenantId: v.optional(v.string()),
-          environmentId: v.optional(v.string())
+          environmentId: v.optional(v.string()),
+          includeDeprecated: v.optional(v.boolean())
         })
       )
     )
@@ -34,7 +35,8 @@ export let providerVariantController = app.controller({
       let paginator = await providerVariantService.listProviderVariants({
         tenant: ctx.tenant,
         environment: ctx.environment,
-        solution: ctx.solution
+        solution: ctx.solution,
+        includeDeprecated: ctx.input.includeDeprecated
       });
 
       let list = await paginator.run(ctx.input);

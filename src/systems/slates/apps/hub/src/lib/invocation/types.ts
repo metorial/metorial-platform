@@ -2,6 +2,7 @@ import type {
   SlatesNotifications,
   SlatesParticipant,
   SlatesRequests,
+  slatesRequestTrace,
   SlatesResponses,
   slatesResponsesByMethod
 } from '@slates/proto';
@@ -16,6 +17,7 @@ export interface SlateInvocationBaseParams {
 
 export type SlatesRequest = SlatesNotifications | SlatesRequests;
 export type SlatesResponse = SlatesNotifications | SlatesResponses;
+export type SlatesRequestTrace = z.infer<typeof slatesRequestTrace>;
 
 export interface InvocationError {
   code: string;
@@ -41,4 +43,5 @@ export interface StoredSlateInvocation {
   responses: SlatesResponse[];
   logs: [number, string][];
   provider?: Omit<SlateInvocationResult, 'logs'>;
+  requestTraces?: SlatesRequestTrace[];
 }

@@ -68,7 +68,12 @@ export class ProviderRun extends IProviderRun {
     let tenant = await getTenantForSlates(data.tenant);
 
     let toolCalls = await db.slateToolCall.findMany({
-      where: { session: { providerRunOid: data.providerRun.oid } },
+      where: {
+        session: { providerRunOid: data.providerRun.oid },
+        sessionMessages: data.sessionMessageIds
+          ? { some: { id: { in: data.sessionMessageIds } } }
+          : undefined
+      },
       take: 100,
       orderBy: { createdAt: 'desc' } // Get the latest 100 tool calls
     });

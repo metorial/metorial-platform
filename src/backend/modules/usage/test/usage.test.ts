@@ -67,8 +67,10 @@ describe('UsageService', () => {
           { id: 'ownerA', type: 'instance' as const },
           { id: 'ownerB', type: 'organization' as const }
         ],
-        entityIds: ['entityA', 'entityB'],
-        entityTypes: ['typeA', 'typeB'],
+        entities: [
+          { type: 'typeA', id: 'entityA' },
+          { type: 'typeB', id: 'entityB' }
+        ],
         from: new Date('2023-01-01'),
         to: new Date('2023-01-31'),
         interval: { unit: 'day' as const, count: 1 }
@@ -78,8 +80,10 @@ describe('UsageService', () => {
 
       expect(getUsageTimelineSpy).toHaveBeenCalledWith({
         ownerIds: ['ownerA', 'ownerB'],
-        entityIds: ['entityA', 'entityB'],
-        entityTypes: ['typeA', 'typeB'],
+        entities: [
+          { type: 'typeA', id: 'entityA' },
+          { type: 'typeB', id: 'entityB' }
+        ],
         from: opts.from,
         to: opts.to,
         interval: opts.interval

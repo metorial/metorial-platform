@@ -16,6 +16,18 @@ let fadeIn = keyframes`
   }
 `;
 
+let sidebarEnter = keyframes`
+  from {
+    opacity: 0;
+    transform: translateX(var(--sidebar-enter-x, 18px));
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+`;
+
 let Wrapper = styled.div`
   height: 100%;
   display: grid;
@@ -66,6 +78,10 @@ let SidebarInnerTop = styled.div`
   padding: 10px 10px 0px 10px;
 `;
 
+let SidebarAnimatedInnerTop = styled(SidebarInnerTop)`
+  animation: ${sidebarEnter} 0.26s cubic-bezier(0.22, 1, 0.36, 1);
+`;
+
 let SidebarInnerBottom = styled.div`
   padding: 0px 10px 0px 10px;
 `;
@@ -94,7 +110,8 @@ export let AppLayout = ({
   children,
   Nav,
   height,
-  bottomOffset
+  bottomOffset,
+  sidebarTransition
 }: {
   id: string;
   mainGroups: ISidebarGroup[];
@@ -105,6 +122,10 @@ export let AppLayout = ({
   Nav: () => React.ReactNode;
   height?: number | string;
   bottomOffset?: number | string;
+  sidebarTransition?: {
+    key: string;
+    direction?: 'forward' | 'backward';
+  };
 }) => {
   return (
     <RootLayout Nav={Nav} height={height}>
@@ -120,9 +141,23 @@ export let AppLayout = ({
           <Sidebar>
             <Shadow />
 
-            <SidebarInnerTop>
-              <SidebarItems groups={mainGroups} id={id} />
-            </SidebarInnerTop>
+            {sidebarTransition ? (
+              <SidebarAnimatedInnerTop
+                key={sidebarTransition.key}
+                style={
+                  {
+                    ['--sidebar-enter-x' as string]:
+                      sidebarTransition.direction === 'backward' ? '-18px' : '18px'
+                  } as React.CSSProperties
+                }
+              >
+                <SidebarItems groups={mainGroups} id={id} />
+              </SidebarAnimatedInnerTop>
+            ) : (
+              <SidebarInnerTop>
+                <SidebarItems groups={mainGroups} id={id} />
+              </SidebarInnerTop>
+            )}
 
             <Spacer />
 

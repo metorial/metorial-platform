@@ -13,6 +13,7 @@ import {
   TableStateProviderResult
 } from '../../../../components/table/type';
 import { getEnumListFilterValue, getStringFilterValue } from '../../../../lib/dataTableUtils';
+import { getErrorLabel } from '../errorGroupLabel';
 
 type ErrorGroup = DashboardInstanceSessionsErrorGroupsListOutput['items'][number];
 
@@ -63,10 +64,10 @@ let providerErrorGroupsTable = new DashboardTable<ErrorGroupsTableStateProps, Er
     {
       id: 'code',
       isDefault: true,
-      header: 'Code',
+      header: 'Name',
       render: error =>
         error.code ? (
-          <Badge color="red">{error.code}</Badge>
+          <Badge color="red">{getErrorLabel(error.code)}</Badge>
         ) : (
           <Badge color="gray">Unknown</Badge>
         )
@@ -74,13 +75,13 @@ let providerErrorGroupsTable = new DashboardTable<ErrorGroupsTableStateProps, Er
     {
       id: 'message',
       isDefault: true,
-      header: 'Message',
+      header: 'Details',
       render: error => <Text size="2">{error.message}</Text>
     },
     {
       id: 'occurrenceCount',
       isDefault: true,
-      header: 'Count',
+      header: 'Occurrences',
       render: error => <Text size="2">{error.occurrenceCount ?? '—'}</Text>
     },
     {

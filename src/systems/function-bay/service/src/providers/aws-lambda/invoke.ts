@@ -1,6 +1,7 @@
 import { InvokeCommand, type InvokeCommandOutput } from '@aws-sdk/client-lambda';
 import { getSentry } from '@lowerdeck/sentry';
 import type { Function, FunctionVersion } from '../../../prisma/generated/client';
+import { parseInvocationPayload } from '../_lib';
 import { lambdaClient } from './lambda';
 
 let Sentry = getSentry();
@@ -139,66 +140,11 @@ export let invokeFunction = async (d: {
   }
 
   try {
-    let body: { statusCode?: number; body?: { error?: Record<string, any>; result?: any } } =
-      JSON.parse(new TextDecoder().decode(res.Payload));
-    let statusCode = body.statusCode || res.StatusCode || 500;
-    let result = body.body || {};
-
-    if (statusCode == 200 && result.result) {
-      return {
-        type: 'success' as const,
-        result: result.result,
-        ...outputs
-      };
-    }
-
-    if (result.error) {
-      return {
-        type: 'error' as const,
-        error: {
-          ...result.error,
-          code: result.error.code || 'function_bay.function_error',
-          message: result.error.message || 'Function invocation resulted in an error'
-        },
-        ...outputs
-      };
-    }
-
-    let errorBody = body as any;
-    if (errorBody?.errorType == 'Error' && typeof errorBody?.errorMessage == 'string') {
-      let traceArr = errorBody?.trace && Array.isArray(errorBody.trace) ? errorBody.trace : [];
-      let trace = traceArr.join('\n');
-
-      return {
-        type: 'error' as const,
-        error: {
-          code: 'function_bay.function_error',
-          message: `Function invocation resulted in an error:\nError ${errorBody.errorMessage}\n\n${trace}`
-        },
-        ...outputs
-      };
-    }
-
-    if (hasBootError) {
-      return {
-        type: 'error' as const,
-        error: {
-          code: 'function_bay.function_error',
-          message:
-            'Function threw an error during initialization. This is often due to the global/root scope throwing an error, or the code being malformed.'
-        },
-        ...outputs
-      };
-    }
-
-    return {
-      type: 'error' as const,
-      error: {
-        code: 'function_bay.invalid_response',
-        message: 'Function returned an invalid response'
-      },
-      ...outputs
-    };
+    return parseInvocationPayload({
+      payload: res.Payload,
+      outputs,
+      hasBootError
+    });
   } catch (err) {
     Sentry.captureException(err, {
       extra: {
@@ -220,14 +166,11 @@ export let invokeFunction = async (d: {
       };
     }
 
-    return {
-      type: 'error' as const,
-      error: {
-        code: 'function_bay.invalid_response',
-        message: 'Function returned an invalid response'
-      },
-      internalError: String(err),
-      ...outputs
-    };
+    return parseInvocationPayload({
+      payload: res.Payload,
+      outputs,
+      hasBootError,
+      internalError: String(err)
+    });
   }
 };

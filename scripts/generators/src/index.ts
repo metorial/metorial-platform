@@ -147,10 +147,80 @@ if (!workingUrl) {
 
 let versions = await getEndpointVersions(workingUrl);
 
-// For Go, only generate magnetar versions
-let filteredVersions = language === 'go'
-  ? versions.versions.filter(v => v.version.includes('magnetar'))
-  : versions.versions;
+let isDashboardSdkTarget = rootOutputFolder.includes('clients/metorial-dashboard');
+let isConsumerSdkTarget = rootOutputFolder.includes('clients/metorial-consumer');
+let isGenericSdkTarget =
+  rootOutputFolder.includes('clients/metorial-node') ||
+  rootOutputFolder.includes('clients/metorial-python') ||
+  rootOutputFolder.includes('clients/metorial-go');
+
+let filteredVersions = versions.versions.filter(version => {
+  if (isDashboardSdkTarget) {
+    return version.version.includes('dashboard');
+  }
+
+  if (isConsumerSdkTarget) {
+    return version.version.includes('consumer');
+  }
+
+  if (isGenericSdkTarget) {
+    return (
+      !version.version.includes('dashboard') &&
+      !version.version.includes('consumer')
+    );
+  }
+
+  return true;
+});
+
+// For Go, only generate magnetar-style public versions.
+if (language === 'go') {
+  filteredVersions = filteredVersions.filter(v => v.version.includes('magnetar'));
+}
+
+let versionsRoot =
+  language === 'typescript' || language === 'python'
+    ? path.join(rootOutputFolder, 'src')
+    : rootOutputFolder;
+
+let getVersionAlias = (version: string) =>
+  version.replace(/^mt_\d{4}_\d{2}_\d{2}_/, '');
+
+if (language !== 'go') {
+  await fs.ensureDir(versionsRoot);
+
+  let keepVersions = new Set(filteredVersions.map(version => version.version));
+  let existingEntries = await fs.readdir(versionsRoot);
+
+  for (let entry of existingEntries) {
+    if (!entry.startsWith('mt_') || keepVersions.has(entry)) continue;
+    await fs.remove(path.join(versionsRoot, entry));
+  }
+
+  if (language === 'python') {
+    let keepAliases = new Set(filteredVersions.map(version => getVersionAlias(version.version)));
+    let knownAliases = new Set(versions.versions.map(version => getVersionAlias(version.version)));
+    let rootEntries = await fs.readdir(rootOutputFolder);
+
+    for (let entry of rootEntries) {
+      if (!knownAliases.has(entry) || keepAliases.has(entry)) continue;
+      await fs.remove(path.join(rootOutputFolder, entry));
+    }
+
+    let exportedAliases = Array.from(keepAliases).sort();
+    await fs.writeFile(
+      path.join(rootOutputFolder, '__init__.py'),
+      `"""
+Metorial Generated API Endpoints
+"""
+
+${exportedAliases.map(alias => `from . import ${alias}`).join('\n')}
+
+__all__ = [${exportedAliases.map(alias => `"${alias}"`).join(', ')}]
+`
+    );
+  }
+}
 
 for (let version of filteredVersions) {
   let { endpoints, types, controllers } = await getEndpoints(url, version.version);

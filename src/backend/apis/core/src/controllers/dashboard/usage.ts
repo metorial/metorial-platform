@@ -27,7 +27,7 @@ export let dashboardUsageController = Controller.create(
       .query(
         'default',
         v.object({
-          entities: v.array(v.object({ type: v.string(), id: v.string() })),
+          entities: v.array(v.object({ type: v.string(), id: v.optional(v.string()) })),
           from: v.date(),
           to: v.date(),
           interval: v.object({
@@ -47,8 +47,7 @@ export let dashboardUsageController = Controller.create(
             { type: 'organization', id: ctx.organization.id },
             ...instances.map(i => ({ type: 'instance' as const, id: i.id }))
           ],
-          entityIds: ctx.query.entities.map(e => e.id),
-          entityTypes: ctx.query.entities.map(e => e.type),
+          entities: ctx.query.entities,
           from: ctx.query.from,
           to: ctx.query.to,
           interval: ctx.query.interval

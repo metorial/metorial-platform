@@ -4,8 +4,9 @@ import { getSentry } from '@lowerdeck/sentry';
 import { Service } from '@lowerdeck/service';
 import type { SlateInstance, Tenant } from '../../prisma/generated/client';
 import { db } from '../db';
-import { snowflake } from '../id';
+import { ID, snowflake } from '../id';
 import { extractExpiresAt } from '../lib/extractExpiresAt';
+import { slateErrorService } from './slateError';
 import { secretService } from './secret';
 import { slateInvocationService } from './slateInvocation';
 
@@ -141,9 +142,30 @@ class slateAuthHandlerServiceImpl {
           clientSecret: oauthDecrypted.clientSecret,
           scopes: oauthCredentials.scopes
         });
+        if (res.status === 'error') {
+          await db.slateAuthConfig.updateMany({
+            where: { oid: authConfig.oid },
+            data: {
+              errorCode: res.error.code,
+              errorMessage: res.error.message,
+              errorInvocationId: res.invocation.id
+            }
+          });
+        } else {
+          await db.slateAuthConfig.updateMany({
+            where: { oid: authConfig.oid },
+            data: {
+              errorCode: null,
+              errorMessage: null,
+              errorInvocationId: null
+            }
+          });
+        }
+
         await db.slateAuthConfigEvent.createMany({
           data: {
             oid: snowflake.nextId(),
+            id: ID.generateIdSync('slateAuthConfigEvent'),
             type:
               res.status === 'error'
                 ? 'oauth_token_refresh_failed'
@@ -153,6 +175,20 @@ class slateAuthHandlerServiceImpl {
           }
         });
         if (res.status === 'error') {
+          slateErrorService
+            .recordSlateError({
+              type: 'oauth_token_refresh_failed',
+              errorCode: res.error.code,
+              errorMessage: res.error.message,
+              tenantOid: d.tenant.oid,
+              slateOid: slate.oid,
+              slateVersionOid: version.oid,
+              slateInstanceOid: d.slateInstance?.oid,
+              invocationOid: res.invocation.oid,
+              authConfigOid: authConfig.oid
+            })
+            .catch(() => {});
+
           throw new ServiceError(
             badRequestError({
               code: 'oauth_token_refresh_failed',

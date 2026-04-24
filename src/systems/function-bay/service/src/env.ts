@@ -21,7 +21,7 @@ export let env = createValidatedEnv({
   },
 
   provider: {
-    DEFAULT_PROVIDER: v.enumOf(['aws.lambda'])
+    DEFAULT_PROVIDER: v.enumOf(['aws.lambda', 'local'])
   },
 
   lambda: {
@@ -33,3 +33,7 @@ export let env = createValidatedEnv({
     LAMBDA_EXECUTION_ROLE_ARN: v.optional(v.string())
   }
 });
+
+if (env.provider.DEFAULT_PROVIDER === 'local' && process.env.NODE_ENV === 'production') {
+  throw new Error('Local provider cannot be used in production');
+}

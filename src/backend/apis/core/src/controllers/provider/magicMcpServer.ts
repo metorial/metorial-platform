@@ -3,7 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { MagicMcpServerStatus } from '@metorial/db';
 import {
-  consumerAccessService,
+  grantConsumerOwnedMagicMcpServerAccess,
   consumerProfileService,
   consumerService
 } from '@metorial/module-consumer';
@@ -287,14 +287,10 @@ export let magicMcpServerController = Controller.create(
         });
 
         if (consumerProfile) {
-          await consumerAccessService.createConsumerAccess({
+          await grantConsumerOwnedMagicMcpServerAccess({
             organization: ctx.organization,
-            consumerSurface: consumerProfile.surface,
-            consumerGroup: consumerProfile.personalConsumerGroup,
-            access: {
-              type: 'magic_mcp_server',
-              magicMcpServer
-            }
+            consumerProfile,
+            magicMcpServer
           });
         }
 

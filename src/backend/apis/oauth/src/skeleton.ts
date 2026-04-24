@@ -64,6 +64,10 @@ export let createOAuthAppSkeleton = (d: {
       d: { context: ReturnType<typeof useRequestContext> },
       c: Context
     ) => Promise<Response>;
+    oauthProtectedResourceMetadata: (
+      d: { context: ReturnType<typeof useRequestContext> },
+      c: Context
+    ) => Promise<Response>;
     oauthAuthorizationServerMetadata: (
       d: { context: ReturnType<typeof useRequestContext> },
       c: Context
@@ -281,6 +285,10 @@ export let createOAuthAppSkeleton = (d: {
     .get('/.well-known/openid-configuration', async c => {
       let context = useRequestContext(c);
       return await d.oauth.openIdConfiguration({ context }, c);
+    })
+    .get('/.well-known/oauth-protected-resource', async c => {
+      let context = useRequestContext(c);
+      return await d.oauth.oauthProtectedResourceMetadata({ context }, c);
     })
     .get('/.well-known/oauth-authorization-server', async c => {
       let context = useRequestContext(c);

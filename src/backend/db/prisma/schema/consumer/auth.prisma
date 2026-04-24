@@ -13,8 +13,8 @@ model ConsumerSession {
   ip String
 
   expiresAt   DateTime
-  createdAt   DateTime @default(now())
-  lastUsedAt  DateTime @default(now())
+  createdAt   DateTime  @default(now())
+  lastUsedAt  DateTime  @default(now())
   loggedOutAt DateTime?
 
   authExchanges ConsumerAuthExchange[]

@@ -15,13 +15,19 @@ import {
   ConsumerAccess,
   ConsumerAccessListing,
   ConsumerAccessRequest,
+  ConsumerAuthAttempt,
+  ConsumerAuthClient,
   ConsumerGroup,
+  ConsumerIntegration,
+  ConsumerIntegrationEndpoint,
+  ConsumerIntegrationSession,
   ConsumerInvite,
   ConsumerProfile,
   ConsumerProfileGroup,
   ConsumerSession,
   ConsumerSurface,
   ConsumerSurfaceProviderGroup,
+  ConsumerToken,
   File,
   FileLink,
   FilePurpose,
@@ -34,7 +40,7 @@ import {
   MagicMcpGroupToken,
   MagicMcpServer,
   MagicMcpServerAlias,
-  MagicMcpSubspaceSessionConnection,
+  MagicMcpSession,
   MagicMcpToken,
   OAuthApplication,
   OAuthApplicationClientSecret,
@@ -45,8 +51,6 @@ import {
   OrganizationInvite,
   OrganizationMember,
   Portal,
-  ConsumerAuthAttempt,
-  ConsumerAuthClient,
   Profile,
   Project,
   ProviderTemplate,
@@ -74,6 +78,9 @@ import type {
 } from '@metorial/module-machine-access';
 import type { PolicyDocument, ProjectBrandOverride } from '@metorial/module-organization';
 import {
+  SubspaceAuthConfigError,
+  SubspaceAuthConfigErrorGlobal,
+  SubspaceAuthConfigEvent,
   SubspaceBucket,
   SubspaceCallback,
   SubspaceCallbackDestination,
@@ -104,6 +111,7 @@ import {
   SubspaceProviderConfigSchema,
   SubspaceProviderConfigVault,
   SubspaceProviderDeployment,
+  SubspaceProviderInvocation,
   SubspaceProviderListing,
   SubspaceProviderListingCategory,
   SubspaceProviderListingCollection,
@@ -392,13 +400,21 @@ export let flagsType = PresentableType.create<{
 export let magicMcpServerType = PresentableType.create<{
   magicMcpServer: MagicMcpServer & {
     aliases: MagicMcpServerAlias[];
+    consumerIntegrations: (ConsumerIntegration & {
+      consumer: Consumer;
+      consumerProfile: ConsumerProfile;
+    })[];
   };
   portal?: Portal | null;
 }>()('magic_mcp.server');
 
 export let magicMcpEndpointType = PresentableType.create<{
   magicMcpEndpoint: MagicMcpEndpoint & {
-    consumerProfile: ConsumerProfile | null;
+    consumerProfile: ConsumerProfile;
+    consumerIntegrationEndpoints: (ConsumerIntegrationEndpoint & {
+      consumer: Consumer;
+      consumerProfile: ConsumerProfile;
+    })[];
     servers: (MagicMcpEndpointServer & {
       magicMcpServer: MagicMcpServer & {
         aliases: MagicMcpServerAlias[];
@@ -409,27 +425,51 @@ export let magicMcpEndpointType = PresentableType.create<{
 }>()('magic_mcp.endpoint');
 
 export let magicMcpSessionType = PresentableType.create<{
-  magicMcpSession: MagicMcpSubspaceSessionConnection & {
+  magicMcpSession: MagicMcpSession & {
     magicMcpServer:
       | (MagicMcpServer & {
           aliases: MagicMcpServerAlias[];
+          consumerIntegrations: (ConsumerIntegration & {
+            consumer: Consumer;
+            consumerProfile: ConsumerProfile;
+          })[];
         })
       | null;
     magicMcpEndpoint:
       | (MagicMcpEndpoint & {
-          consumerProfile: ConsumerProfile | null;
+          consumerProfile: ConsumerProfile;
+          consumerIntegrationEndpoints: (ConsumerIntegrationEndpoint & {
+            consumer: Consumer;
+            consumerProfile: ConsumerProfile;
+          })[];
           servers: (MagicMcpEndpointServer & {
             magicMcpServer: MagicMcpServer & {
               aliases: MagicMcpServerAlias[];
+              consumerIntegrations: (ConsumerIntegration & {
+                consumer: Consumer;
+                consumerProfile: ConsumerProfile;
+              })[];
             };
           })[];
         })
       | null;
+    consumerIntegrationSessions: (ConsumerIntegrationSession & {
+      consumer: Consumer;
+      consumerProfile: ConsumerProfile;
+      consumerIntegration: ConsumerIntegration & {
+        consumer: Consumer;
+        consumerProfile: ConsumerProfile;
+      };
+    })[];
   };
 }>()('magic_mcp.session');
 
 export let magicMcpTokenType = PresentableType.create<{
   magicMcpToken: MagicMcpToken & {
+    consumerTokens: (ConsumerToken & {
+      consumer: Consumer;
+      consumerProfile: ConsumerProfile;
+    })[];
     magicMcpServer: MagicMcpServer | null;
     magicMcpEndpoint:
       | (MagicMcpEndpoint & {
@@ -441,6 +481,38 @@ export let magicMcpTokenType = PresentableType.create<{
     })[];
   };
 }>()('magic_mcp.token');
+
+export let consumerTokenType = PresentableType.create<{
+  consumerToken: ConsumerToken & {
+    consumer: Consumer;
+    consumerProfile: ConsumerProfile;
+  };
+}>()('consumer.token');
+
+export let consumerIntegrationType = PresentableType.create<{
+  consumerIntegration: ConsumerIntegration & {
+    consumer: Consumer;
+    consumerProfile: ConsumerProfile;
+  };
+}>()('consumer.integration');
+
+export let consumerIntegrationEndpointType = PresentableType.create<{
+  consumerIntegrationEndpoint: ConsumerIntegrationEndpoint & {
+    consumer: Consumer;
+    consumerProfile: ConsumerProfile;
+  };
+}>()('consumer.integration_endpoint');
+
+export let consumerIntegrationSessionType = PresentableType.create<{
+  consumerIntegrationSession: ConsumerIntegrationSession & {
+    consumer: Consumer;
+    consumerProfile: ConsumerProfile;
+    consumerIntegration: ConsumerIntegration & {
+      consumer: Consumer;
+      consumerProfile: ConsumerProfile;
+    };
+  };
+}>()('consumer.integration_session');
 
 export let magicMcpGroupType = PresentableType.create<{
   magicMcpGroup: MagicMcpGroup;
@@ -833,6 +905,18 @@ export let providerAuthConfigType = PresentableType.create<{
   authConfig: SubspaceProviderAuthConfig;
 }>()('provider.auth_config');
 
+export let providerAuthConfigEventType = PresentableType.create<{
+  authConfigEvent: SubspaceAuthConfigEvent;
+}>()('provider.auth_config_event');
+
+export let providerAuthConfigErrorType = PresentableType.create<{
+  authConfigError: SubspaceAuthConfigError;
+}>()('provider.auth_config_error');
+
+export let providerAuthConfigErrorGroupType = PresentableType.create<{
+  authConfigErrorGroup: SubspaceAuthConfigErrorGlobal;
+}>()('provider.auth_config_error_group');
+
 export let providerAuthCredentialsType = PresentableType.create<{
   authCredentials: SubspaceProviderAuthCredentials;
 }>()('provider.auth_credentials');
@@ -890,6 +974,14 @@ export let providerRunType = PresentableType.create<{
 export let providerRunLogsType = PresentableType.create<{
   logs: SubspaceProviderRunLogs;
 }>()('providerRunLogs');
+
+export let providerInvocationType = PresentableType.create<{
+  providerInvocation: SubspaceProviderInvocation;
+}>()('providerInvocation');
+
+export let providerInvocationsType = PresentableType.create<{
+  items: SubspaceProviderInvocation[];
+}>()('providerInvocations');
 
 export let providerSessionType = PresentableType.create<{
   session: SubspaceSession;

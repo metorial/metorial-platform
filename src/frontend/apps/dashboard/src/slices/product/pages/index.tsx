@@ -2,9 +2,15 @@ import { CodeBlock } from '@metorial/code';
 import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
-import type { MetorialEnterpriseWindow } from '@metorial/state';
-import { useCurrentInstance, useProviderDeployments, useUser } from '@metorial/state';
-import { Button, Spacer, Text } from '@metorial/ui';
+import {
+  MetorialEnterpriseWindow,
+  useCurrentInstance,
+  useDashboardFlags,
+  usePortals,
+  useProviderDeployments,
+  useUser
+} from '@metorial/state';
+import { Avatar, Button, Entity, Spacer, Text } from '@metorial/ui';
 import { ID, SideBox } from '@metorial/ui-product';
 import dedent from 'dedent';
 import { Link } from 'react-router-dom';
@@ -15,7 +21,8 @@ import {
 import { ApiKeySecret } from '../scenes/apiKeys';
 import { useResolvedInstanceApiKeySecret } from '../scenes/apiKeys/useResolvedInstanceApiKeySecret';
 import { ProvidersGrid } from '../scenes/providers/grid';
-import { InstructionItem, Instructions } from './provider/components/instructions';
+import { ProviderSessionsTable } from '../scenes/providerSessions/table';
+import { InstructionItem } from './provider/components/instructions';
 import { KeySelector } from './provider/components/keySelector';
 
 declare global {
@@ -27,6 +34,11 @@ declare global {
 export let ProjectHomePage = () => {
   let instance = useCurrentInstance();
   let user = useUser();
+  let flags = useDashboardFlags();
+  let portalsEnabled =
+    flags.data?.flags['portals-access'] && flags.data?.flags['paid-portals'];
+
+  let portals = usePortals(portalsEnabled ? instance.data?.id : null);
 
   let deployments = useProviderDeployments(instance.data?.id);
   let hasDeployments = !!deployments.data?.items.length;
@@ -234,15 +246,15 @@ export let ProjectHomePage = () => {
 
           <Spacer height={25} />
 
-          <PageHeader
+          {/* <PageHeader
             title="Get Started"
             description="Integrate Metorial into your application in just a few steps."
             size="5"
           />
 
-          <Spacer height={15} />
+          <Spacer height={15} /> */}
 
-          <Instructions
+          {/* <Instructions
             variants={[
               {
                 title: 'JS & AI SDK',
@@ -311,18 +323,72 @@ export let ProjectHomePage = () => {
             ]}
           />
 
-          <Spacer height={35} />
+          <Spacer height={35} /> */}
+
+          {portalsEnabled && !!portals.data?.items.length && (
+            <>
+              <PageHeader
+                title="Your Portals"
+                description="Portals let you give employees, partners, or customers access to specific integrations and configurations."
+                size="5"
+              />
+
+              <div
+                style={{
+                  display: 'grid',
+                  gap: 10,
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))'
+                }}
+              >
+                {portals.data?.items.map(p => (
+                  <Link to={Paths.instance.portal(...pathItems, p.id)} key={p.id}>
+                    <Entity.Wrapper>
+                      <Entity.Content>
+                        <Entity.Field
+                          title={p.name}
+                          prefix={
+                            <Avatar
+                              entity={{
+                                ...p,
+                                imageUrl: `https://avatar-cdn.metorial.com/${p.id}`
+                              }}
+                              size={30}
+                            />
+                          }
+                        />
+
+                        <Entity.Field right title="Actions">
+                          <Button size="2" as="span">
+                            Manage Portal
+                          </Button>
+                        </Entity.Field>
+                      </Entity.Content>
+                    </Entity.Wrapper>
+                  </Link>
+                ))}
+              </div>
+
+              <Spacer height={25} />
+            </>
+          )}
 
           <PageHeader
-            title="Featured Providers"
-            description="Explore some of the most popular providers in the Metorial community."
+            title="Your Integrations"
+            description="Your providers and popular providers on Metorial at a glance."
             size="5"
           />
 
-          <ProvidersGrid
-            limit={6}
-            providerCollectionId={window.metorial_enterprise?.landing_collection_ids}
+          <ProvidersGrid limit={9} orderByUse="last_deployment_at" orderByRank />
+
+          <Spacer height={25} />
+
+          <PageHeader
+            title="Recent Sessions"
+            description="Your recent sessions are listed below. Click on a session to view its details."
+            size="5"
           />
+
+          <ProviderSessionsTable limit={15} />
         </>
       ))}
     </ContentLayout>

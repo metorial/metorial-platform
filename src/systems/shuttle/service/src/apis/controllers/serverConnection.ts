@@ -24,6 +24,17 @@ export let serverConnectionApp = tenantApp.use(async ctx => {
   return { serverConnection };
 });
 
+export let serverConnectionSyncApp = app.use(async ctx => {
+  let serverConnectionId = ctx.body.serverConnectionId;
+  if (!serverConnectionId) throw new Error('serverConnectionId is required');
+
+  let serverConnection = await serverConnectionService.DANGEROUSLY_getServerConnectionById({
+    serverConnectionId
+  });
+
+  return { serverConnection };
+});
+
 export let serverConnectionController = app.controller({
   list: tenantApp
     .handler()
@@ -37,6 +48,25 @@ export let serverConnectionController = app.controller({
     .do(async ctx => {
       let paginator = await serverConnectionService.listServerConnections({
         tenant: ctx.tenant
+      });
+
+      let list = await paginator.run(ctx.input);
+
+      return Paginator.presentLight(list, serverConnectionPresenter);
+    }),
+
+  listSync: app
+    .handler()
+    .input(
+      Paginator.validate(
+        v.object({
+          serverConnectionIds: v.optional(v.array(v.string()))
+        })
+      )
+    )
+    .do(async ctx => {
+      let paginator = await serverConnectionService.listServerConnectionsGlobal({
+        serverConnectionIds: ctx.input.serverConnectionIds
       });
 
       let list = await paginator.run(ctx.input);
@@ -124,11 +154,33 @@ export let serverConnectionController = app.controller({
     )
     .do(async ctx => serverConnectionPresenter(ctx.serverConnection)),
 
+  getSync: serverConnectionSyncApp
+    .handler()
+    .input(
+      v.object({
+        serverConnectionId: v.string()
+      })
+    )
+    .do(async ctx => serverConnectionPresenter(ctx.serverConnection)),
+
   getLogs: serverConnectionApp
     .handler()
     .input(
       v.object({
         tenantId: v.string(),
+        serverConnectionId: v.string()
+      })
+    )
+    .do(async ctx =>
+      serverConnectionService.getLogs({
+        serverConnection: ctx.serverConnection
+      })
+    ),
+
+  getLogsSync: serverConnectionSyncApp
+    .handler()
+    .input(
+      v.object({
         serverConnectionId: v.string()
       })
     )

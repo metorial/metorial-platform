@@ -18,7 +18,7 @@ export let env = createValidatedEnv({
   },
 
   provider: {
-    DEFAULT_PROVIDER: v.enumOf(['aws.code-build'])
+    DEFAULT_PROVIDER: v.enumOf(['aws.code-build', 'local'])
   },
 
   codeBuild: {
@@ -38,3 +38,7 @@ export let env = createValidatedEnv({
     CODE_BUILD_LOG_GROUP_NAME: v.optional(v.string())
   }
 });
+
+if (env.provider.DEFAULT_PROVIDER === 'local' && process.env.NODE_ENV === 'production') {
+  throw new Error('Local provider cannot be used in production');
+}

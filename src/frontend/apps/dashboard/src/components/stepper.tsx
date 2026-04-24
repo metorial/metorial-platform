@@ -6,6 +6,7 @@ import {
   useTransform,
   type MotionValue
 } from 'framer-motion';
+import { RiCheckLine } from '@remixicon/react';
 import React, { CSSProperties, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 
@@ -13,6 +14,8 @@ let Wrapper = styled.div`
   display: flex;
   flex-direction: column;
   gap: 20px;
+  flex: 1;
+  min-height: 0;
 `;
 
 let Header = styled.header`
@@ -89,13 +92,28 @@ let Main = styled.main`
   flex: 1;
   display: flex;
   flex-direction: column;
+  min-height: 0;
 `;
 
 let PillsWrapper = styled.div<{ $gap?: number }>`
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 14px;
   flex: 1;
+  min-height: 0;
+  height: 100%;
+`;
+
+let PaneFill = styled.div`
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+
+  > * {
+    flex: 1;
+    min-height: 0;
+  }
 `;
 
 let PillsHeader = styled.header`
@@ -103,19 +121,44 @@ let PillsHeader = styled.header`
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 16px;
+  gap: 10px;
   flex-wrap: wrap;
   width: fit-content;
   max-width: 100%;
   margin: 0 auto;
+  padding: 2px 4px;
+`;
+
+let PillsRailTrack = styled.div`
+  position: absolute;
+  top: 50%;
+  left: 18px;
+  right: 18px;
+  height: 3px;
+  transform: translateY(-50%);
+  border-radius: 999px;
+  background: rgba(17, 17, 17, 0.08);
+  z-index: 0;
+  pointer-events: none;
+`;
+
+let PillsRailProgress = styled(motion.div)`
+  position: absolute;
+  top: 50%;
+  height: 3px;
+  transform: translateY(-50%);
+  border-radius: 999px;
+  background: #111111;
+  z-index: 0;
+  pointer-events: none;
 `;
 
 let PillSlot = styled.button<{ $state: 'past' | 'active' | 'future' }>`
   position: relative;
   border: none;
   background: transparent;
-  padding: 0 13px;
-  height: 40px;
+  padding: 0 9px;
+  height: 34px;
   box-sizing: border-box;
   display: inline-flex;
   flex: 0 0 auto;
@@ -123,6 +166,8 @@ let PillSlot = styled.button<{ $state: 'past' | 'active' | 'future' }>`
   justify-content: center;
   overflow: visible;
   cursor: pointer;
+  z-index: 3;
+  transition: transform 0.18s ease;
 
   &:focus {
     outline: none;
@@ -130,60 +175,75 @@ let PillSlot = styled.button<{ $state: 'past' | 'active' | 'future' }>`
 
   &:focus-visible {
     outline: none;
+    transform: translateY(-1px);
   }
 
   &::before {
     content: '';
     position: absolute;
-    inset: 2px 0;
+    inset: 0;
     border-radius: 999px;
     z-index: 1;
+    border: 1px solid
+      ${({ $state }) =>
+        $state === 'active'
+          ? 'transparent'
+          : $state === 'future'
+            ? theme.colors.gray300
+            : 'rgba(17, 17, 17, 0.08)'};
     background: ${({ $state }) =>
-      $state === 'past' ? theme.colors.gray300 : theme.colors.gray200};
+      $state === 'active'
+        ? 'transparent'
+        : $state === 'past'
+          ? '#eeeeee'
+          : '#ffffff'};
+    box-shadow: ${({ $state }) =>
+      $state === 'active'
+        ? 'none'
+        : '0 1px 2px rgba(17, 17, 17, 0.04)'};
+  }
+
+  &:not(:disabled):hover {
+    transform: translateY(-1px);
+  }
+
+  &:focus-visible::before {
+    box-shadow:
+      0 0 0 4px rgba(17, 17, 17, 0.08),
+      0 1px 2px rgba(17, 17, 17, 0.04);
   }
 
   &:disabled {
     cursor: not-allowed;
+    opacity: 0.56;
+    transform: none;
   }
 `;
 
 let ActivePillBackground = styled(motion.div)`
   position: absolute;
-  top: 2px;
-  bottom: 2px;
+  top: 0;
+  bottom: 0;
   left: 0;
   border-radius: 999px;
   background: #111111;
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.08),
-    ${theme.shadows.small};
+    0 6px 16px rgba(17, 17, 17, 0.16);
   z-index: 2;
   pointer-events: none;
 `;
 
-let PillLabel = styled.span<{ $state: 'past' | 'active' | 'future' }>`
+let PillLabel = styled.span`
   position: absolute;
   inset: 0;
   z-index: 3;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0 13px;
+  padding: 0 9px;
   box-sizing: border-box;
   white-space: nowrap;
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 1.1;
-  transition: color 0.18s ease;
-
-  ${({ $state }) =>
-    $state === 'past'
-      ? `
-    color: ${theme.colors.gray900};
-  `
-      : `
-    color: ${theme.colors.gray700};
-  `}
 `;
 
 let PillSizer = styled.span`
@@ -191,12 +251,9 @@ let PillSizer = styled.span`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0 13px;
+  padding: 0 9px;
   box-sizing: border-box;
   white-space: nowrap;
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 1.1;
   pointer-events: none;
 `;
 
@@ -207,15 +264,95 @@ let PillLabelOverlay = styled(motion.span)`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0 13px;
+  padding: 0 9px;
   box-sizing: border-box;
   white-space: nowrap;
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 1.1;
-  color: white;
   pointer-events: none;
 `;
+
+let PillContent = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+`;
+
+let getPillIndexBadgeStyle = ({
+  state,
+  overlay
+}: {
+  state: 'past' | 'active' | 'future';
+  overlay?: boolean;
+}): CSSProperties => ({
+  width: 15,
+  height: 15,
+  minWidth: 15,
+  borderRadius: 999,
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  fontSize: 9,
+  fontWeight: 700,
+  lineHeight: 1,
+  border: `1px solid ${
+    overlay
+      ? 'rgba(255, 255, 255, 0.16)'
+      : state === 'active'
+        ? 'rgba(255, 255, 255, 0.18)'
+        : state === 'future'
+          ? theme.colors.gray400
+          : 'rgba(17, 17, 17, 0.08)'
+  }`,
+  background: overlay
+    ? 'rgba(255, 255, 255, 0.18)'
+    : state === 'active'
+      ? 'rgba(255, 255, 255, 0.14)'
+      : state === 'past'
+        ? '#111111'
+        : '#ffffff',
+  color: overlay
+    ? '#ffffff'
+    : state === 'active' || state === 'past'
+      ? '#ffffff'
+      : theme.colors.gray700,
+  boxShadow: 'none'
+});
+
+let getPillTitleStyle = ({
+  state,
+  overlay
+}: {
+  state: 'past' | 'active' | 'future';
+  overlay?: boolean;
+}): CSSProperties => ({
+  fontSize: 12,
+  fontWeight: 700,
+  lineHeight: 1.1,
+  color: overlay
+    ? '#ffffff'
+    : state === 'active'
+      ? '#ffffff'
+      : state === 'past'
+        ? theme.colors.gray900
+        : theme.colors.gray700
+});
+
+let PillLabelContent = (p: {
+  index: number;
+  title: string;
+  state: 'past' | 'active' | 'future';
+  overlay?: boolean;
+}) => (
+  <PillContent>
+    <span style={getPillIndexBadgeStyle({ state: p.state, overlay: p.overlay })}>
+      {p.state === 'past' && !p.overlay ? <RiCheckLine size={12} /> : p.index + 1}
+    </span>
+    <span style={getPillTitleStyle({ state: p.state, overlay: p.overlay })}>
+      {p.title}
+    </span>
+  </PillContent>
+);
 
 let PillStepItem = ({
   step,
@@ -242,6 +379,8 @@ let PillStepItem = ({
   activeX: MotionValue<number>;
   activeWidth: MotionValue<number>;
 }) => {
+  let state: 'past' | 'active' | 'future' =
+    index === currentStep ? 'active' : index < currentStep ? 'past' : 'future';
   let clipPath = useTransform([activeX, activeWidth], (latest: number[]) => {
     let [x = 0, width = 0] = latest;
 
@@ -263,11 +402,19 @@ let PillStepItem = ({
       type="button"
       onClick={() => setCurrentStep(index)}
       disabled={index > maxSeen || isDisabled}
-      $state={index === currentStep ? 'active' : index < currentStep ? 'past' : 'future'}
+      $state={state}
     >
-      <PillSizer>{step.title}</PillSizer>
-      <PillLabel $state={index < currentStep ? 'past' : 'future'}>{step.title}</PillLabel>
-      {rect ? <PillLabelOverlay style={{ clipPath }}>{step.title}</PillLabelOverlay> : null}
+      <PillSizer>
+        <PillLabelContent index={index} title={step.title} state={state} />
+      </PillSizer>
+      <PillLabel>
+        <PillLabelContent index={index} title={step.title} state={state} />
+      </PillLabel>
+      {rect ? (
+        <PillLabelOverlay style={{ clipPath }}>
+          <PillLabelContent index={index} title={step.title} state={state} overlay />
+        </PillLabelOverlay>
+      ) : null}
     </PillSlot>
   );
 
@@ -337,7 +484,9 @@ export let Stepper = ({
       </Header>
 
       <Main>
-        <AnimatePanes orderedIdentifier={currentStep}>{children}</AnimatePanes>
+        <PaneFill>
+          <AnimatePanes orderedIdentifier={currentStep}>{children}</AnimatePanes>
+        </PaneFill>
       </Main>
     </Wrapper>
   );
@@ -374,6 +523,15 @@ export let PillStepper = ({
     stiffness: 240,
     damping: 30,
     mass: 0.95
+  });
+  let railProgressWidth = useTransform([springX, springWidth], (latest: number[]) => {
+    let [x = 0, width = 0] = latest;
+    let firstRect = slotRects[0];
+    if (!firstRect) return 0;
+
+    let railStart = firstRect.x + firstRect.width / 2;
+    let railEnd = x + width / 2;
+    return Math.max(0, railEnd - railStart);
   });
 
   let [maxSeen, setMaxSeen] = useState(currentStep);
@@ -422,9 +580,20 @@ export let PillStepper = ({
     activeWidth.set(rect.width);
   }, [slotRects, currentStep, activeX, activeWidth]);
 
+  let railLeft = slotRects[0] ? slotRects[0]!.x + slotRects[0]!.width / 2 : 0;
+
   return (
     <PillsWrapper>
       <PillsHeader ref={headerRef}>
+        {steps.length > 1 ? <PillsRailTrack /> : null}
+        {slotRects[0] ? (
+          <PillsRailProgress
+            style={{
+              left: railLeft,
+              width: railProgressWidth
+            }}
+          />
+        ) : null}
         {slotRects[currentStep] ? (
           <ActivePillBackground
             style={{
@@ -454,9 +623,11 @@ export let PillStepper = ({
       </PillsHeader>
 
       <Main>
-        <AnimatePanes orderedIdentifier={currentStep} delayMs={paneAnimationDelayMs}>
-          {children}
-        </AnimatePanes>
+        <PaneFill>
+          <AnimatePanes orderedIdentifier={currentStep} delayMs={paneAnimationDelayMs}>
+            {children}
+          </AnimatePanes>
+        </PaneFill>
       </Main>
     </PillsWrapper>
   );

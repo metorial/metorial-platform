@@ -18,6 +18,9 @@ declare global {
       name: string;
       version: string;
       description?: string;
+      categories?: string[];
+      skills?: string[];
+      logoUrl?: string;
     }
 
     type FilterExpression = {

@@ -19,6 +19,7 @@ export let providerAuthCredentialsCreatedQueueProcessor =
     let { tenantOid, solutionOid, environmentOid, providerOid, origin } =
       providerAuthCredentials;
 
+    // Legacy managed_public rows stay hidden from search results.
     if (origin !== 'managed_public') {
       await indexProviderAuthCredentialsQueue.add({
         providerAuthCredentialsId: data.providerAuthCredentialsId
@@ -139,7 +140,7 @@ export let providerAuthCredentialsArchiveAuthConfigsManyQueueProcessor =
 
     await providerAuthCredentialsArchiveAuthConfigsManyQueue.add({
       providerAuthCredentialsId: data.providerAuthCredentialsId,
-      cursor: authConfigs[authConfigs.length - 1].id
+      cursor: authConfigs[authConfigs.length - 1]!.id
     });
   });
 

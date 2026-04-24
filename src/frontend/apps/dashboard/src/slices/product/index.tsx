@@ -197,18 +197,13 @@ let ProviderSessionRunsPage = dynamicPage(() =>
   import('./pages/(logs)/provider-session/runs').then(c => c.ProviderSessionRunsPage)
 );
 let ProviderSessionLogsPage = dynamicPage(() =>
-  import('./pages/(logs)/provider-session/logs').then(c => c.ProviderSessionLogsPage)
+  import('./pages/(logs)/provider-session').then(c => c.ProviderSessionLogsPage)
 );
 let SessionTemplateLayout = dynamicPage(() =>
   import('./pages/(session)/session-template/_layout').then(c => c.SessionTemplateLayout)
 );
 let SessionTemplateOverviewPage = dynamicPage(() =>
   import('./pages/(session)/session-template/index').then(c => c.SessionTemplateOverviewPage)
-);
-let SessionTemplateProvidersPage = dynamicPage(() =>
-  import('./pages/(session)/session-template/providers').then(
-    c => c.SessionTemplateProvidersPage
-  )
 );
 let SessionTemplateSettingsPage = dynamicPage(() =>
   import('./pages/(session)/session-template/settings').then(
@@ -426,8 +421,12 @@ let CallbackTriggersPage = dynamicPage(() =>
 let CallbackDestinationsPage = dynamicPage(() =>
   import('./pages/(callbacks)/destinations').then(c => c.CallbackDestinationsPage)
 );
-let LogsListLayout = dynamicPage(() =>
-  import('./pages/(logs)/(list)/_layout').then(c => c.LogsListLayout)
+let LogsHomePage = dynamicPage(() => import('./pages/(logs)/home').then(c => c.LogsHomePage));
+let SessionLogsListLayout = dynamicPage(() =>
+  import('./pages/(logs)/(list)/_layout').then(c => c.SessionLogsListLayout)
+);
+let AuthLogsListLayout = dynamicPage(() =>
+  import('./pages/(logs)/(list)/_layout').then(c => c.AuthLogsListLayout)
 );
 let ServerErrorsPage = dynamicPage(() =>
   import('./pages/(logs)/(list)/provider-errors').then(c => c.ProviderErrorsPage)
@@ -449,6 +448,24 @@ let ServerRunPage = dynamicPage(() =>
 );
 let ServerRunLayout = dynamicPage(() =>
   import('./pages/(logs)/provider-run/_layout').then(c => c.ProviderRunLayout)
+);
+let ProviderAuthErrorsPage = dynamicPage(() =>
+  import('./pages/(logs)/(list)/provider-auth-errors').then(c => c.ProviderAuthErrorsPage)
+);
+let ProviderAuthEventsPage = dynamicPage(() =>
+  import('./pages/(logs)/(list)/provider-auth-events').then(c => c.ProviderAuthEventsPage)
+);
+let ProviderAuthErrorPage = dynamicPage(() =>
+  import('./pages/(logs)/provider-auth-error').then(c => c.ProviderAuthErrorPage)
+);
+let ProviderAuthErrorLayout = dynamicPage(() =>
+  import('./pages/(logs)/provider-auth-error/_layout').then(c => c.ProviderAuthErrorLayout)
+);
+let ProviderAuthEventPage = dynamicPage(() =>
+  import('./pages/(logs)/provider-auth-event').then(c => c.ProviderAuthEventPage)
+);
+let ProviderAuthEventLayout = dynamicPage(() =>
+  import('./pages/(logs)/provider-auth-event/_layout').then(c => c.ProviderAuthEventLayout)
 );
 let ProjectPageLayout = dynamicPage(() =>
   import('./pages/_layout').then(c => c.ProjectPageLayout)
@@ -508,10 +525,8 @@ let ProductWrapper = () => {
   );
 };
 
-export let productInnerSlice = createSlice([
+export let productTraceSlice = createSlice([
   {
-    path: ':organizationId/:projectId/:instanceId',
-
     element: <ProductWrapper />,
 
     children: [
@@ -520,18 +535,15 @@ export let productInnerSlice = createSlice([
 
         children: [
           {
-            path: '',
-            element: <ProjectHomePage />
+            path: 'logs',
+            element: <LogsHomePage />
           },
 
-          /***************
-           * Logs
-           *************** */
           {
             children: [
               {
                 path: '',
-                element: <LogsListLayout />,
+                element: <SessionLogsListLayout />,
 
                 children: [
                   {
@@ -548,36 +560,174 @@ export let productInnerSlice = createSlice([
                   }
                 ]
               },
-
               {
-                path: 'provider-error/:providerErrorId',
-                element: <ServerErrorLayout />,
+                path: '',
+                element: <AuthLogsListLayout />,
 
                 children: [
                   {
-                    path: '',
-                    element: <ServerErrorPage />
-                  }
-                ]
-              },
-
-              {
-                path: 'provider-run/:providerRunId',
-                element: <ServerRunLayout />,
-
-                children: [
+                    path: 'provider-auth-events',
+                    element: <ProviderAuthEventsPage />
+                  },
                   {
-                    path: '',
-                    element: <ServerRunPage />
+                    path: 'provider-auth-errors',
+                    element: <ProviderAuthErrorsPage />
                   }
                 ]
               }
             ]
           },
 
-          /***************
-           * Provider API (Magnetar)
-           *************** */
+          {
+            path: 'provider-sessions',
+            element: <ProviderSessionsListLayout />,
+            children: [
+              {
+                path: '',
+                element: <ProviderSessionsPage />
+              }
+            ]
+          },
+          {
+            path: 'provider-runs',
+            element: <ProviderSessionsListLayout />,
+            children: [
+              {
+                path: '',
+                element: <ServerRunsPage />
+              }
+            ]
+          },
+          {
+            path: 'provider-errors',
+            element: <ProviderSessionsListLayout />,
+            children: [
+              {
+                path: '',
+                element: <ServerErrorsPage />
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]);
+
+export let productTraceDetailSlice = createSlice([
+  {
+    element: <ProductWrapper />,
+
+    children: [
+      {
+        element: <InstanceLayout />,
+
+        children: [
+          {
+            path: 'provider-error/:providerErrorId',
+            element: <ServerErrorLayout />,
+
+            children: [
+              {
+                path: '',
+                element: <ServerErrorPage />
+              }
+            ]
+          },
+
+          {
+            path: 'provider-run/:providerRunId',
+            element: <ServerRunLayout />,
+
+            children: [
+              {
+                path: '',
+                element: <ServerRunPage />
+              }
+            ]
+          },
+
+          {
+            path: 'provider-auth-error/:providerAuthErrorId',
+            element: <ProviderAuthErrorLayout />,
+
+            children: [
+              {
+                path: '',
+                element: <ProviderAuthErrorPage />
+              }
+            ]
+          },
+
+          {
+            path: 'provider-auth-event/:providerAuthEventId',
+            element: <ProviderAuthEventLayout />,
+
+            children: [
+              {
+                path: '',
+                element: <ProviderAuthEventPage />
+              }
+            ]
+          },
+
+          {
+            path: 'provider-session/:sessionId',
+            element: <ProviderSessionLayout />,
+            children: [
+              {
+                path: '',
+                element: <ProviderSessionLogsPage />
+              },
+              {
+                path: 'providers',
+                element: <ProviderSessionProvidersPage />
+              },
+              {
+                path: 'runs',
+                element: <ProviderSessionRunsPage />
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]);
+
+export let productExplorerSlice = createSlice([
+  {
+    element: <ProductWrapper />,
+
+    children: [
+      {
+        element: <InstanceLayout />,
+
+        children: [
+          {
+            path: 'explorer',
+            element: <ExplorerPage />
+          }
+        ]
+      }
+    ]
+  }
+]);
+
+export let productHomeSlice = createSlice([
+  {
+    element: <ProductWrapper />,
+
+    children: [
+      {
+        element: <InstanceLayout />,
+
+        children: [
+          {
+            path: '',
+            element: <ProjectHomePage />
+          },
+
           {
             path: 'providers',
             element: <ProvidersHubLayout />,
@@ -751,56 +901,6 @@ export let productInnerSlice = createSlice([
           },
 
           {
-            path: 'provider-sessions',
-            element: <ProviderSessionsListLayout />,
-            children: [
-              {
-                path: '',
-                element: <ProviderSessionsPage />
-              }
-            ]
-          },
-          {
-            path: 'provider-runs',
-            element: <ProviderSessionsListLayout />,
-            children: [
-              {
-                path: '',
-                element: <ServerRunsPage />
-              }
-            ]
-          },
-          {
-            path: 'provider-errors',
-            element: <ProviderSessionsListLayout />,
-            children: [
-              {
-                path: '',
-                element: <ServerErrorsPage />
-              }
-            ]
-          },
-
-          {
-            path: 'provider-session/:sessionId',
-            element: <ProviderSessionLayout />,
-            children: [
-              {
-                path: '',
-                element: <ProviderSessionLogsPage />
-              },
-              {
-                path: 'providers',
-                element: <ProviderSessionProvidersPage />
-              },
-              {
-                path: 'runs',
-                element: <ProviderSessionRunsPage />
-              }
-            ]
-          },
-
-          {
             path: 'session-templates',
             element: <SessionTemplatesListLayout />,
             children: [
@@ -818,10 +918,6 @@ export let productInnerSlice = createSlice([
               {
                 path: '',
                 element: <SessionTemplateOverviewPage />
-              },
-              {
-                path: 'providers',
-                element: <SessionTemplateProvidersPage />
               },
               {
                 path: 'settings',
@@ -964,9 +1060,6 @@ export let productInnerSlice = createSlice([
             ]
           },
 
-          /***************
-           * Magic MCP
-           *************** */
           {
             path: 'magic-mcp',
             children: [
@@ -1068,14 +1161,6 @@ export let productInnerSlice = createSlice([
             ]
           },
 
-          /***************
-           * Explorer
-           *************** */
-          {
-            path: 'explorer',
-            element: <ExplorerPage />
-          },
-
           {
             path: 'callback/:callbackId',
             element: <CallbackLayout />,
@@ -1132,9 +1217,6 @@ export let productInnerSlice = createSlice([
         ]
       },
 
-      /***************
-       * Servers
-       *************** */
       {
         children: [
           {
@@ -1215,8 +1297,16 @@ export let deploySlice = createSlice([
 
 export let productSlice = createSlice([
   {
+    path: ':organizationId/:projectId/:instanceId',
+
     element: <ProjectPageLayout />,
-    children: productInnerSlice.routes
+
+    children: [
+      ...productTraceSlice.routes,
+      ...productTraceDetailSlice.routes,
+      ...productExplorerSlice.routes,
+      ...productHomeSlice.routes
+    ]
   },
   {
     children: deploySlice.routes

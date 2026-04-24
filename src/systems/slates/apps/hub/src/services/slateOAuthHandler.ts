@@ -2,10 +2,11 @@ import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import { db } from '../db';
 import { env } from '../env';
-import { getId, snowflake } from '../id';
+import { getId, ID, snowflake } from '../id';
 import { extractExpiresAt } from '../lib/extractExpiresAt';
 import { processAuthQueue } from '../queues/instance/processAuth';
 import { secretService } from './secret';
+import { slateErrorService } from './slateError';
 import { slateInvocationService } from './slateInvocation';
 
 let callbackUrlBase = new URL(env.service.SERVICE_PUBLIC_URL);
@@ -33,6 +34,7 @@ class slateOAuthHandlerServiceImpl {
     await db.slateInstanceOAuthSetupEvent.createMany({
       data: {
         oid: snowflake.nextId(),
+        id: ID.generateIdSync('slateInstanceOAuthSetupEvent'),
         type: 'setup_link_opened',
         setupOid: setup.oid
       }
@@ -67,6 +69,7 @@ class slateOAuthHandlerServiceImpl {
     await db.slateInstanceOAuthSetupEvent.createMany({
       data: {
         oid: snowflake.nextId(),
+        id: ID.generateIdSync('slateInstanceOAuthSetupEvent'),
         type: 'get_authorization_url',
         setupOid: setup.oid,
         invocationOid: urlRes.invocation.oid
@@ -82,6 +85,17 @@ class slateOAuthHandlerServiceImpl {
           errorMessage: urlRes.error.message
         }
       });
+      slateErrorService
+        .recordSlateError({
+          type: 'oauth_setup_failed',
+          errorCode: urlRes.error.code,
+          errorMessage: urlRes.error.message,
+          tenantOid: setup.tenantOid,
+          slateVersionOid: setup.slateVersionOid,
+          invocationOid: urlRes.invocation.oid,
+          oauthSetupOid: setup.oid
+        })
+        .catch(() => {});
 
       throw new ServiceError(
         badRequestError({
@@ -213,6 +227,7 @@ class slateOAuthHandlerServiceImpl {
     await db.slateInstanceOAuthSetupEvent.createMany({
       data: {
         oid: snowflake.nextId(),
+        id: ID.generateIdSync('slateInstanceOAuthSetupEvent'),
         type: 'exchange_authorization_code',
         setupOid: setup.oid,
         invocationOid: authRes.invocation.oid
@@ -223,6 +238,7 @@ class slateOAuthHandlerServiceImpl {
       await db.slateInstanceOAuthSetupEvent.createMany({
         data: {
           oid: snowflake.nextId(),
+          id: ID.generateIdSync('slateInstanceOAuthSetupEvent'),
           type: 'oauth_setup_failed',
           setupOid: setup.oid
         }
@@ -236,6 +252,17 @@ class slateOAuthHandlerServiceImpl {
           errorMessage: authRes.error.message
         }
       });
+      slateErrorService
+        .recordSlateError({
+          type: 'oauth_setup_failed',
+          errorCode: authRes.error.code,
+          errorMessage: authRes.error.message,
+          tenantOid: setup.tenantOid,
+          slateVersionOid: setup.slateVersionOid,
+          invocationOid: authRes.invocation.oid,
+          oauthSetupOid: setup.oid
+        })
+        .catch(() => {});
 
       let redirectUrl = new URL(setup.redirectUrl);
       redirectUrl.searchParams.set('slate_oauth_setup_id', setup.id);
@@ -250,11 +277,13 @@ class slateOAuthHandlerServiceImpl {
       data: [
         {
           oid: snowflake.nextId(),
+          id: ID.generateIdSync('slateInstanceOAuthSetupEvent'),
           type: 'access_token_received',
           setupOid: setup.oid
         },
         {
           oid: snowflake.nextId(),
+          id: ID.generateIdSync('slateInstanceOAuthSetupEvent'),
           type: 'oauth_setup_completed',
           setupOid: setup.oid
         }
@@ -278,6 +307,7 @@ class slateOAuthHandlerServiceImpl {
         isProcessing: true,
         type: 'oauth_automated',
         tokenExpiresAt,
+        grantedScopes: authRes.data.scopes ?? setup.oauthCredentials.scopes,
 
         tenantOid: setup.tenantOid,
         secretOid: authConfigSecret.oid,

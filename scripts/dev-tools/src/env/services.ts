@@ -167,13 +167,17 @@ export let slatesHubEnv: Env = [
     key: 'SERVICE_PUBLIC_URL',
     defaultValue: `http://${HOSTNAME}:52045`
   },
+  // {
+  //   key: 'ARES_AUTH_URL',
+  //   defaultValue: 'http://services:52120'
+  // },
+  // {
+  //   key: 'ARES_INTERNAL_URL',
+  //   defaultValue: 'http://services:52123/metorial-ares-internal/api'
+  // }
   {
-    key: 'ARES_AUTH_URL',
-    defaultValue: 'http://localhost:52120'
-  },
-  {
-    key: 'ARES_INTERNAL_URL',
-    defaultValue: 'http://localhost:52123/metorial-ares-internal/api'
+    key: 'SUPPORTS_PREBUILT_SLATES',
+    defaultValue: 'true'
   }
 ];
 
@@ -181,6 +185,39 @@ export let slatesRegistryEnv: Env = [
   {
     key: 'DATABASE_URL',
     defaultValue: 'postgresql://postgres:postgres@localhost:35432/slates-registry'
+  },
+  {
+    key: 'REDIS_URL',
+    defaultValue: 'redis://localhost:36379/0'
+  },
+
+  {
+    key: 'OBJECT_STORAGE_URL',
+    defaultValue: 'http://services:52010'
+  },
+  {
+    key: 'PACKAGE_BUCKET_NAME',
+    defaultValue: 'package-bucket'
+  },
+  {
+    key: 'NPM_REGISTRY_URL',
+    defaultValue: 'https://registry.npmjs.org'
+  },
+  {
+    key: 'NPM_SEARCH_URL',
+    defaultValue: 'https://registry.npmjs.org/-/v1/search'
+  },
+  {
+    key: 'NPM_TOKEN',
+    isRequired: false
+  },
+  {
+    key: 'SERVICE_PUBLIC_URL',
+    defaultValue: `http://${HOSTNAME}:52040`
+  },
+  {
+    key: 'NPM_ORG',
+    defaultValue: 'slates-integrations'
   }
 ];
 
@@ -240,7 +277,7 @@ export let subspaceDevEnv: Env = [
   {
     key: 'REGISTRY_URL',
     defaultValue:
-      'https://metorial-saas-dev.registry.metorial-enterprise.com/metorial-registry-root'
+      'https://metorial-saas-dev2.registry.metorial-enterprise.com/metorial-registry-root'
   },
   {
     key: 'SCOUT_URL',
@@ -333,7 +370,7 @@ export let forgeServiceEnv: Env = [
   },
   {
     key: 'DEFAULT_PROVIDER',
-    defaultValue: 'aws.code-build'
+    defaultValue: 'local' // aws.code-build
   },
   {
     key: 'OBJECT_STORAGE_URL',
@@ -346,27 +383,27 @@ export let forgeServiceEnv: Env = [
   {
     key: 'LOG_BUCKET_NAME',
     defaultValue: 'logs'
-  },
-  {
-    key: 'CODE_BUILD_AWS_REGION',
-    isRequired: false
-  },
-  {
-    key: 'CODE_BUILD_AWS_ACCESS_KEY_ID',
-    isRequired: false
-  },
-  {
-    key: 'CODE_BUILD_AWS_SECRET_ACCESS_KEY',
-    isRequired: false
-  },
-  {
-    key: 'CODE_BUILD_PROJECT_NAME',
-    isRequired: false
-  },
-  {
-    key: 'CODE_BUILD_ROLE_ARN',
-    isRequired: false
   }
+  // {
+  //   key: 'CODE_BUILD_AWS_REGION',
+  //   isRequired: false
+  // },
+  // {
+  //   key: 'CODE_BUILD_AWS_ACCESS_KEY_ID',
+  //   isRequired: false
+  // },
+  // {
+  //   key: 'CODE_BUILD_AWS_SECRET_ACCESS_KEY',
+  //   isRequired: false
+  // },
+  // {
+  //   key: 'CODE_BUILD_PROJECT_NAME',
+  //   isRequired: false
+  // },
+  // {
+  //   key: 'CODE_BUILD_ROLE_ARN',
+  //   isRequired: false
+  // }
 ];
 
 export let functionBayServiceEnv: Env = [
@@ -384,7 +421,7 @@ export let functionBayServiceEnv: Env = [
   },
   {
     key: 'DEFAULT_PROVIDER',
-    defaultValue: 'aws.lambda'
+    defaultValue: 'local' // aws.lambda
   },
   {
     key: 'OBJECT_STORAGE_URL',
@@ -397,23 +434,23 @@ export let functionBayServiceEnv: Env = [
   {
     key: 'FORGE_API_URL',
     defaultValue: `http://${HOSTNAME}:52020/metorial-forge`
-  },
-  {
-    key: 'LAMBDA_AWS_REGION',
-    isRequired: false
-  },
-  {
-    key: 'LAMBDA_AWS_ACCESS_KEY_ID',
-    isRequired: false
-  },
-  {
-    key: 'LAMBDA_AWS_SECRET_ACCESS_KEY',
-    isRequired: false
-  },
-  {
-    key: 'LAMBDA_EXECUTION_ROLE_ARN',
-    isRequired: false
   }
+  // {
+  //   key: 'LAMBDA_AWS_REGION',
+  //   isRequired: false
+  // },
+  // {
+  //   key: 'LAMBDA_AWS_ACCESS_KEY_ID',
+  //   isRequired: false
+  // },
+  // {
+  //   key: 'LAMBDA_AWS_SECRET_ACCESS_KEY',
+  //   isRequired: false
+  // },
+  // {
+  //   key: 'LAMBDA_EXECUTION_ROLE_ARN',
+  //   isRequired: false
+  // }
 ];
 
 export let aresServiceEnv: Env = [

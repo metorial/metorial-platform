@@ -29,6 +29,7 @@ model SlateInstance {
   slateTriggerReceivers   SlateTriggerReceiver[]
   slateTriggerEvents      SlateTriggerEvent[]
   slateTriggerEventInputs SlateTriggerEventInput[]
+  slateErrors             SlateError[]
 }
 
 enum SlateInstanceEventType {
@@ -71,8 +72,9 @@ model SlateInstanceConfig {
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
 
-  errorCode    String?
-  errorMessage String?
+  errorCode         String?
+  errorMessage      String?
+  errorInvocationId String?
 
   /// [AnyRecord]
   value Json
@@ -80,6 +82,7 @@ model SlateInstanceConfig {
   createdAt DateTime @default(now())
 
   currentConfigForInstances SlateInstance[] @relation(name: "currentConfig")
+  slateErrors               SlateError[]
 }
 
 model SlateOAuthCredentials {
@@ -118,10 +121,13 @@ model SlateAuthConfig {
 
   isProcessing Boolean
 
-  errorCode    String?
-  errorMessage String?
+  errorCode         String?
+  errorMessage      String?
+  errorInvocationId String?
 
   tokenExpiresAt DateTime?
+
+  grantedScopes String[]
 
   /// [AuthProfile]
   profile      Json?
@@ -156,6 +162,7 @@ model SlateAuthConfig {
   slateAuthConfigEvents         SlateAuthConfigEvent[]
   slateAuthConfigManualDecrypts SlateAuthConfigManualDecrypt[]
   slateTriggerReceivers         SlateTriggerReceiver[]
+  slateErrors                   SlateError[]
 }
 
 model SlateAuthConfigManualDecrypt {
@@ -190,6 +197,7 @@ enum SlateAuthConfigEventType {
 
 model SlateAuthConfigEvent {
   oid  BigInt                   @id
+  id   String?                  @unique
   type SlateAuthConfigEventType
 
   configOid BigInt
@@ -248,7 +256,8 @@ model SlateInstanceOAuthSetup {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  events SlateInstanceOAuthSetupEvent[]
+  events      SlateInstanceOAuthSetupEvent[]
+  slateErrors SlateError[]
 }
 
 enum SlateInstanceOAuthSetupEventType {
@@ -262,6 +271,7 @@ enum SlateInstanceOAuthSetupEventType {
 
 model SlateInstanceOAuthSetupEvent {
   oid  BigInt                           @id
+  id   String?                          @unique
   type SlateInstanceOAuthSetupEventType
 
   setupOid BigInt

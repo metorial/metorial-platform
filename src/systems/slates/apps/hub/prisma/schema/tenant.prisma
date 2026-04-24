@@ -22,4 +22,5 @@ model Tenant {
   slateSessions            SlateSession[]
   slateTriggerDestinations SlateTriggerDestination[]
   slateTriggerReceivers    SlateTriggerReceiver[]
+  slateErrors              SlateError[]
 }

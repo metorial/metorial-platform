@@ -13,7 +13,6 @@ import {
   type ProviderAuthCredentialsStatus,
   type ProviderType,
   type ProviderVariant,
-  snowflake,
   type Solution,
   type Tenant,
   withTransaction
@@ -31,7 +30,11 @@ import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-
 import { checkTenant } from '@metorial-subspace/module-tenant';
 import { getBackend } from '@metorial-subspace/provider';
 import { env } from '../env';
-import { getManagedOAuthScopeIds, type ManagedOAuthScopes } from '../lib/managedOAuthScopes';
+import {
+  ensureManagedProviderAuthCredentialsBacking,
+  type ManagedProviderAuthCredentialsBackingSource,
+  managedProviderAuthCredentialsBackingSourceInclude
+} from '../lib/managedProviderAuthCredentialsBacking';
 import {
   providerAuthCredentialsArchivedQueue,
   providerAuthCredentialsCreatedQueue,
@@ -39,14 +42,10 @@ import {
 } from '../queues/lifecycle/providerAuthCredentials';
 
 let managedCredentialsInclude = {
-  providerAuthMethod: true,
-  providerAuthCredentials: {
+  ...managedProviderAuthCredentialsBackingSourceInclude,
+  providerAuthMethodGlobal: {
     include: {
-      provider: {
-        include: {
-          defaultVariant: true
-        }
-      }
+      currentInstance: true
     }
   }
 };
@@ -75,11 +74,6 @@ type ProviderAuthCredentialsRecord = Prisma.ProviderAuthCredentialsGetPayload<{
 
 let createDefaultLock = createLock({
   name: 'sub/auth/acred/def/lock',
-  redisUrl: env.service.REDIS_URL
-});
-
-let createManagedBackingLock = createLock({
-  name: 'sub/auth/acred/mng/backing/lock',
   redisUrl: env.service.REDIS_URL
 });
 
@@ -126,11 +120,6 @@ let getTenantOwnedWhere = (d: {
   origin: 'tenant_created' as const
 });
 
-let getManagedWhere = (d: { solution: Solution }) => ({
-  solutionOid: d.solution.oid,
-  origin: 'managed_public' as const
-});
-
 let getManagedBackingWhere = (d: { tenant: Tenant; solution: Solution }) => ({
   tenantOid: d.tenant.oid,
   solutionOid: d.solution.oid,
@@ -140,64 +129,24 @@ let getManagedBackingWhere = (d: { tenant: Tenant; solution: Solution }) => ({
 let getManagedBackingWhereForTenantList = (d: {
   tenant: Tenant;
   solution: Solution;
-  providerAuthMethodIds?: string[];
+  providerAuthMethodGlobalOids?: bigint[];
   ids?: string[];
 }) => ({
   ...getManagedBackingWhere(d),
   ...(d.ids !== undefined ? { id: { in: d.ids } } : {}),
-  ...(d.providerAuthMethodIds?.length
+  ...(d.providerAuthMethodGlobalOids?.length
     ? {
         managedCredentialsBacking: {
           is: {
             managedCredentials: {
-              providerAuthMethod: {
-                id: {
-                  in: d.providerAuthMethodIds
-                }
+              providerAuthMethodGlobalOid: {
+                in: d.providerAuthMethodGlobalOids
               }
             }
           }
         }
       }
     : {})
-});
-
-let getManagedPublicWhereForTenantPrefill = (d: {
-  tenant: Tenant;
-  solution: Solution;
-  providerAuthMethodIds?: string[];
-  ids?: string[];
-}) => ({
-  solutionOid: d.solution.oid,
-  origin: 'managed_public' as const,
-  managedCredentials: {
-    is: {
-      ...(d.providerAuthMethodIds?.length
-        ? {
-            providerAuthMethod: {
-              id: {
-                in: d.providerAuthMethodIds
-              }
-            }
-          }
-        : {}),
-      ...(d.ids !== undefined
-        ? {
-            backings: {
-              some: {
-                tenantOid: d.tenant.oid,
-                solutionOid: d.solution.oid,
-                providerAuthCredentials: {
-                  id: {
-                    in: d.ids
-                  }
-                }
-              }
-            }
-          }
-        : {})
-    }
-  }
 });
 
 class providerAuthCredentialsServiceImpl {
@@ -231,21 +180,13 @@ class providerAuthCredentialsServiceImpl {
           sourceId: (await voyagerSource).id,
           indexId: voyagerIndex.providerAuthCredentials.id,
           query: d.search,
-          // managed_public never gets indexed; omit the origin filter if both types are passed
+          // Legacy managed_public rows were never indexed; keep the filter logic origin-based.
           filters: origin.length === 1 ? { origin: origin[0] } : undefined
         })
       : null;
     let searchIds = search?.map(r => r.documentId);
     let credentialIds =
       d.ids && searchIds ? d.ids.filter(id => searchIds.includes(id)) : (d.ids ?? searchIds);
-
-    if (includeManagedBacking) {
-      await this.ensureManagedProviderAuthCredentialsBackingsForTenantList({
-        ...d,
-        ids: credentialIds,
-        providerOid: providers?.in
-      });
-    }
 
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
@@ -285,8 +226,10 @@ class providerAuthCredentialsServiceImpl {
                     : undefined!,
                   includeManagedBacking
                     ? getManagedBackingWhereForTenantList({
-                        ...d,
-                        ids: credentialIds
+                        tenant: d.tenant,
+                        solution: d.solution,
+                        ids: credentialIds,
+                        providerAuthMethodGlobalOids: authMethodsGlobal?.oidIn.oid.in
                       })
                     : undefined!
                 ].filter(Boolean)
@@ -345,7 +288,7 @@ class providerAuthCredentialsServiceImpl {
       where: {
         id: d.providerAuthCredentialsId,
         ...normalizeStatusForGet(d).noParent,
-        OR: [getTenantOwnedWhere(d), getManagedWhere(d), getManagedBackingWhere(d)]
+        OR: [getTenantOwnedWhere(d), getManagedBackingWhere(d)]
       },
       include
     });
@@ -373,88 +316,10 @@ class providerAuthCredentialsServiceImpl {
       where: {
         id: { in: d.ids },
         ...normalizeStatusForGet(d).noParent,
-        OR: [getTenantOwnedWhere(d), getManagedWhere(d), getManagedBackingWhere(d)]
+        OR: [getTenantOwnedWhere(d), getManagedBackingWhere(d)]
       },
       include
     });
-  }
-
-  private async ensureManagedProviderAuthCredentialsBackingsForTenantList(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    status?: ProviderAuthCredentialsStatus[];
-    allowDeleted?: boolean;
-    providerAuthMethodIds?: string[];
-    ids?: string[];
-    providerOid?: {
-      in: bigint[];
-    };
-  }) {
-    let managedPublicCredentials = await db.providerAuthCredentials.findMany({
-      where: {
-        isEphemeral: false,
-        ...normalizeStatusForList(d).noParent,
-        AND: [
-          getManagedPublicWhereForTenantPrefill(d),
-          d.providerOid ? { providerOid: d.providerOid } : undefined!
-        ].filter(Boolean)
-      },
-      include: {
-        provider: {
-          include: {
-            defaultVariant: true
-          }
-        },
-        managedCredentials: {
-          include: {
-            providerAuthMethod: true,
-            backings: {
-              where: {
-                tenantOid: d.tenant.oid,
-                solutionOid: d.solution.oid
-              },
-              take: 1,
-              include: {
-                providerAuthCredentials: {
-                  select: {
-                    updatedAt: true
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    });
-
-    await Promise.all(
-      managedPublicCredentials
-        .filter(providerAuthCredentials => {
-          let backing =
-            providerAuthCredentials.managedCredentials!.backings[0]?.providerAuthCredentials;
-
-          if (!backing) {
-            return true;
-          }
-
-          let syncAfter = Math.max(
-            providerAuthCredentials.updatedAt.getTime(),
-            providerAuthCredentials.managedCredentials!.updatedAt.getTime()
-          );
-
-          return backing.updatedAt.getTime() < syncAfter;
-        })
-        .map(providerAuthCredentials =>
-          this.ensureManagedProviderAuthCredentialsBacking({
-            tenant: d.tenant,
-            solution: d.solution,
-            provider: providerAuthCredentials.provider,
-            providerAuthCredentials,
-            providerAuthMethod: providerAuthCredentials.managedCredentials!.providerAuthMethod
-          })
-        )
-    );
   }
 
   async updateProviderAuthCredentials(d: {
@@ -467,40 +332,60 @@ class providerAuthCredentialsServiceImpl {
       description?: string;
       metadata?: Record<string, any>;
       privateMetadata?: Record<string, any>;
-
+      scopes?: string[];
       clientId?: string;
       clientSecret?: string;
-      scopes?: string[];
     };
   }) {
     checkTenant(d, d.providerAuthCredentials);
     checkDeletedEdit(d.providerAuthCredentials, 'update');
 
-    if (d.providerAuthCredentials.origin !== 'tenant_created') {
+    let managedCredentials = await this.getManagedProviderAuthCredentialsContext({
+      tenant: d.tenant,
+      solution: d.solution,
+      providerAuthCredentials: d.providerAuthCredentials
+    });
+
+    if (d.input.scopes && managedCredentials) {
+      let allowedScopes = new Set(managedCredentials.oauthScopes);
+      let invalidScopes = d.input.scopes.filter(scope => !allowedScopes.has(scope));
+      if (invalidScopes.length > 0) {
+        throw new ServiceError(
+          badRequestError({
+            message: 'Scopes must be a subset of the managed credentials scopes',
+            code: 'managed_credentials_scope_mismatch'
+          })
+        );
+      }
+    }
+
+    if (managedCredentials && (d.input.clientId || d.input.clientSecret)) {
       throw new ServiceError(
         badRequestError({
-          message: 'Managed credentials cannot be modified through tenant APIs',
+          message: 'Client ID and secret cannot be updated for managed credentials',
           code: 'managed_credentials_readonly'
         })
       );
     }
 
+    if (d.input.scopes || d.input.clientId || d.input.clientSecret) {
+      let backend = await getBackend({
+        entity: d.providerAuthCredentials
+      });
+
+      await backend.auth.updateProviderAuthCredentials({
+        tenant: d.tenant,
+        backing: d.providerAuthCredentials,
+        input: {
+          type: 'oauth',
+          scopes: d.input.scopes,
+          clientId: d.input.clientId,
+          clientSecret: d.input.clientSecret
+        }
+      });
+    }
+
     return withTransaction(async db => {
-      let backend = await getBackend({ entity: d.providerAuthCredentials });
-
-      if (d.input.clientId || d.input.clientSecret || d.input.scopes) {
-        await backend.auth.updateProviderAuthCredentials({
-          tenant: d.tenant,
-          backing: d.providerAuthCredentials,
-          input: {
-            type: 'oauth',
-            clientId: d.input.clientId,
-            clientSecret: d.input.clientSecret,
-            scopes: d.input.scopes
-          }
-        });
-      }
-
       let creds = await db.providerAuthCredentials.update({
         where: {
           oid: d.providerAuthCredentials.oid,
@@ -511,7 +396,10 @@ class providerAuthCredentialsServiceImpl {
           name: d.input.name ?? d.providerAuthCredentials.name,
           description: d.input.description ?? d.providerAuthCredentials.description,
           metadata: d.input.metadata ?? d.providerAuthCredentials.metadata,
-          privateMetadata: d.input.privateMetadata ?? d.providerAuthCredentials.privateMetadata
+          privateMetadata:
+            d.input.privateMetadata ?? d.providerAuthCredentials.privateMetadata,
+          scopes: d.input.scopes ?? d.providerAuthCredentials.scopes,
+          needsScopeSync: d.input.scopes ? false : d.providerAuthCredentials.needsScopeSync
         },
         include
       });
@@ -522,6 +410,38 @@ class providerAuthCredentialsServiceImpl {
 
       return creds;
     });
+  }
+
+  async syncProviderAuthCredentialsScopes(d: {
+    tenant: Tenant;
+    providerAuthCredentials: ProviderAuthCredentials;
+  }) {
+    return withTransaction(
+      async db => {
+        let scopes = (
+          await (
+            await getBackend({
+              entity: {
+                backendOid: d.providerAuthCredentials.backendOid
+              }
+            })
+          ).auth.getProviderAuthCredentialsScopes({
+            tenant: d.tenant,
+            providerAuthCredentials: d.providerAuthCredentials
+          })
+        ).scopes;
+
+        return await db.providerAuthCredentials.update({
+          where: { oid: d.providerAuthCredentials.oid },
+          data: {
+            scopes,
+            needsScopeSync: false
+          },
+          include
+        });
+      },
+      { ifExists: true }
+    );
   }
 
   async archiveProviderAuthCredentials(d: {
@@ -613,7 +533,7 @@ class providerAuthCredentialsServiceImpl {
     provider: Provider & { defaultVariant: ProviderVariant | null };
     providerAuthCredentials: ProviderAuthCredentials;
     providerAuthMethod: {
-      oid: bigint;
+      globalOid: bigint;
     };
   }) {
     let managedCredentials = await this.getManagedProviderAuthCredentialsContext(d);
@@ -621,179 +541,12 @@ class providerAuthCredentialsServiceImpl {
       return d.providerAuthCredentials;
     }
 
-    return this.ensureManagedProviderAuthCredentialsBacking({
+    return ensureManagedProviderAuthCredentialsBacking({
       tenant: d.tenant,
       solution: d.solution,
-      provider: managedCredentials.provider,
-      providerAuthCredentials: managedCredentials.providerAuthCredentials,
-      providerAuthMethod: managedCredentials.providerAuthMethod
+      managedCredentials,
+      providerAuthMethod: d.providerAuthMethod
     });
-  }
-
-  private async ensureManagedProviderAuthCredentialsBacking(d: {
-    tenant: Tenant;
-    solution: Solution;
-    provider: Provider & { defaultVariant: ProviderVariant | null };
-    providerAuthCredentials: ProviderAuthCredentials;
-    providerAuthMethod: {
-      oid: bigint;
-    };
-  }) {
-    let managedCredentialsOid = d.providerAuthCredentials.managedCredentialsOid!;
-    let syncAfter = [d.providerAuthCredentials.updatedAt.getTime()];
-
-    let managedCredentials = await db.managedProviderAuthCredentials.findFirstOrThrow({
-      where: {
-        oid: managedCredentialsOid,
-        solutionOid: d.solution.oid
-      }
-    });
-    syncAfter.push(managedCredentials.updatedAt.getTime());
-
-    if (managedCredentials.providerAuthMethodOid !== d.providerAuthMethod.oid) {
-      throw new ServiceError(
-        badRequestError({
-          message: 'Managed credentials can only be used with their configured auth method',
-          code: 'managed_credentials_auth_method_mismatch'
-        })
-      );
-    }
-
-    let getExistingBacking = async () => {
-      let backing = await db.managedProviderAuthCredentialsBacking.findUnique({
-        where: {
-          managedCredentialsOid_tenantOid: {
-            managedCredentialsOid,
-            tenantOid: d.tenant.oid
-          }
-        },
-        include: {
-          providerAuthCredentials: {
-            include
-          }
-        }
-      });
-
-      return backing?.providerAuthCredentials ?? null;
-    };
-
-    let isBackingFresh = (
-      backing: ProviderAuthCredentials | null
-    ): backing is ProviderAuthCredentials =>
-      !!backing && backing.updatedAt.getTime() >= Math.max(...syncAfter);
-
-    let syncBacking = async (existing: ProviderAuthCredentials | null) => {
-      let defaultVariant = d.provider.defaultVariant;
-      if (!defaultVariant) {
-        throw new Error('Provider has no default variant');
-      }
-
-      let backend = await getBackend({
-        entity: {
-          backendOid: defaultVariant.backendOid
-        }
-      });
-
-      let backendProviderAuthCredentials = await backend.auth.createProviderAuthCredentials({
-        tenant: d.tenant,
-        provider: d.provider,
-        input: {
-          type: 'oauth',
-          clientId: managedCredentials.oauthClientId,
-          clientSecret: managedCredentials.oauthClientSecret,
-          scopes: getManagedOAuthScopeIds(managedCredentials.oauthScopes as ManagedOAuthScopes)
-        }
-      });
-
-      if (existing) {
-        return await withTransaction(async db => {
-          let updated = await db.providerAuthCredentials.update({
-            where: {
-              oid: existing.oid
-            },
-            data: {
-              type: backendProviderAuthCredentials.type,
-              status: managedCredentials.status === 'archived' ? 'archived' : 'active',
-              origin: 'managed_backing',
-              backendOid: backend.backend.oid,
-              isAutoRegistration: backendProviderAuthCredentials.isAutoRegistration,
-              slateCredentialsOid: backendProviderAuthCredentials.slateOAuthCredentials?.oid,
-              shuttleCredentialsOid:
-                backendProviderAuthCredentials.shuttleOAuthCredentials?.oid,
-              name: d.providerAuthCredentials.name,
-              description: d.providerAuthCredentials.description,
-              metadata: d.providerAuthCredentials.metadata
-            },
-            include
-          });
-
-          await addAfterTransactionHook(async () =>
-            providerAuthCredentialsUpdatedQueue.add({
-              providerAuthCredentialsId: updated.id
-            })
-          );
-
-          return updated;
-        });
-      }
-
-      return await withTransaction(async db => {
-        let backingCredentials = await db.providerAuthCredentials.create({
-          data: {
-            ...getId('providerAuthCredentials'),
-            type: backendProviderAuthCredentials.type,
-            status: managedCredentials.status === 'archived' ? 'archived' : 'active',
-            origin: 'managed_backing',
-            backendOid: backend.backend.oid,
-            isAutoRegistration: backendProviderAuthCredentials.isAutoRegistration,
-            slateCredentialsOid: backendProviderAuthCredentials.slateOAuthCredentials?.oid,
-            shuttleCredentialsOid: backendProviderAuthCredentials.shuttleOAuthCredentials?.oid,
-            name: d.providerAuthCredentials.name,
-            description: d.providerAuthCredentials.description,
-            metadata: d.providerAuthCredentials.metadata,
-            isEphemeral: false,
-            isDefault: false,
-            tenantOid: d.tenant.oid,
-            solutionOid: d.solution.oid,
-            providerOid: d.provider.oid
-          },
-          include
-        });
-
-        await db.managedProviderAuthCredentialsBacking.create({
-          data: {
-            oid: snowflake.nextId(),
-            managedCredentialsOid,
-            providerAuthCredentialsOid: backingCredentials.oid,
-            tenantOid: d.tenant.oid,
-            solutionOid: d.solution.oid
-          }
-        });
-
-        await addAfterTransactionHook(async () =>
-          providerAuthCredentialsCreatedQueue.add({
-            providerAuthCredentialsId: backingCredentials.id
-          })
-        );
-
-        return backingCredentials;
-      });
-    };
-
-    let existingBacking = await getExistingBacking();
-    if (isBackingFresh(existingBacking)) return existingBacking;
-
-    return await createManagedBackingLock.usingLock(
-      [String(managedCredentialsOid), d.tenant.id],
-      async () => {
-        let lockedExistingBacking = await getExistingBacking();
-        if (isBackingFresh(lockedExistingBacking)) {
-          return lockedExistingBacking;
-        }
-
-        return await syncBacking(lockedExistingBacking);
-      }
-    );
   }
 
   private async createProviderAuthCredentialsInner(d: CreateParams & { isDefault?: boolean }) {
@@ -874,7 +627,10 @@ class providerAuthCredentialsServiceImpl {
         })
       );
 
-      return providerAuthCredentials;
+      return await this.syncProviderAuthCredentialsScopes({
+        tenant: d.tenant,
+        providerAuthCredentials
+      });
     });
   }
 
@@ -883,22 +639,17 @@ class providerAuthCredentialsServiceImpl {
     solution: Solution;
     providerAuthCredentials: ProviderAuthCredentials;
   }) {
-    if (d.providerAuthCredentials.origin === 'managed_public') {
-      let managedCredentials = await db.managedProviderAuthCredentials.findFirstOrThrow({
+    if (
+      d.providerAuthCredentials.origin === 'managed_public' &&
+      d.providerAuthCredentials.managedCredentialsOid
+    ) {
+      return await db.managedProviderAuthCredentials.findFirstOrThrow({
         where: {
-          oid: d.providerAuthCredentials.managedCredentialsOid!,
+          oid: d.providerAuthCredentials.managedCredentialsOid,
           solutionOid: d.solution.oid
         },
         include: managedCredentialsInclude
       });
-
-      let publicCredential = managedCredentials.providerAuthCredentials!;
-
-      return {
-        provider: publicCredential.provider,
-        providerAuthCredentials: publicCredential,
-        providerAuthMethod: managedCredentials.providerAuthMethod
-      };
     }
 
     if (d.providerAuthCredentials.origin !== 'managed_backing') {
@@ -918,13 +669,7 @@ class providerAuthCredentialsServiceImpl {
       }
     });
 
-    let publicCredential = managedBacking.managedCredentials.providerAuthCredentials!;
-
-    return {
-      provider: publicCredential.provider,
-      providerAuthCredentials: publicCredential,
-      providerAuthMethod: managedBacking.managedCredentials.providerAuthMethod
-    };
+    return managedBacking.managedCredentials;
   }
 
   private async getProviderAuthCredentialsForTenantRead(d: {
@@ -933,30 +678,29 @@ class providerAuthCredentialsServiceImpl {
     providerAuthCredentials: ProviderAuthCredentialsRecord;
   }) {
     if (d.providerAuthCredentials.origin === 'managed_backing') {
-      let managedCredentials =
-        d.providerAuthCredentials.managedCredentialsBacking!.managedCredentials;
-      let publicCredential = managedCredentials.providerAuthCredentials!;
-
-      return this.ensureManagedProviderAuthCredentialsBacking({
+      let backingCredentials = await ensureManagedProviderAuthCredentialsBacking({
         tenant: d.tenant,
         solution: d.solution,
-        provider: publicCredential.provider,
-        providerAuthCredentials: publicCredential,
-        providerAuthMethod: managedCredentials.providerAuthMethod
+        managedCredentials: d.providerAuthCredentials.managedCredentialsBacking!
+          .managedCredentials as ManagedProviderAuthCredentialsBackingSource,
+        providerAuthMethod: {
+          globalOid:
+            d.providerAuthCredentials.managedCredentialsBacking!.managedCredentials
+              .providerAuthMethodGlobalOid ??
+            d.providerAuthCredentials.managedCredentialsBacking!.managedCredentials
+              .initialProviderAuthMethod.globalOid
+        }
+      });
+
+      return await db.providerAuthCredentials.findUniqueOrThrow({
+        where: {
+          oid: backingCredentials.oid
+        },
+        include
       });
     }
 
-    if (d.providerAuthCredentials.origin === 'tenant_created') {
-      return d.providerAuthCredentials;
-    }
-
-    return this.ensureManagedProviderAuthCredentialsBacking({
-      tenant: d.tenant,
-      solution: d.solution,
-      provider: d.providerAuthCredentials.provider,
-      providerAuthCredentials: d.providerAuthCredentials,
-      providerAuthMethod: d.providerAuthCredentials.managedCredentials!.providerAuthMethod
-    });
+    return d.providerAuthCredentials;
   }
 }
 

@@ -161,6 +161,8 @@ let Root = ({
   arrow,
   operationKey,
   onOpenChange,
+  side,
+  align,
   sideOffset,
   alignOffset,
   open: openProp
@@ -171,6 +173,8 @@ let Root = ({
   onOpenChange?: (open: boolean) => void;
   open?: boolean;
 
+  side?: React.ComponentProps<typeof RadixPopover.Content>['side'];
+  align?: React.ComponentProps<typeof RadixPopover.Content>['align'];
   sideOffset?: number;
   alignOffset?: number;
 
@@ -198,7 +202,13 @@ let Root = ({
       <RadixPopover.Trigger asChild>{trigger}</RadixPopover.Trigger>
 
       <RadixPopover.Portal>
-        <Wrapper style={{ zIndex }} sideOffset={sideOffset} alignOffset={alignOffset}>
+        <Wrapper
+          style={{ zIndex }}
+          side={side}
+          align={align}
+          sideOffset={sideOffset}
+          alignOffset={alignOffset}
+        >
           {children}
 
           {arrow && <Arrow />}

@@ -9,7 +9,6 @@ import { env } from '../env';
 import { ensureForgeWorkflow, forge } from '../forge';
 import { ID, snowflake } from '../id';
 import { defaultProvider } from '../providers';
-import { layer } from '../providers/aws-lambda/runtime';
 import {
   MANIFEST_ARTIFACT_NAME,
   MANIFEST_PATH,
@@ -63,7 +62,7 @@ let startBuildQueueProcessor = startBuildQueue.process(async data => {
 
       METORIAL_FUNCTION_BAY_MANIFEST_DESTINATION: MANIFEST_PATH,
       METORIAL_FUNCTION_BAY_OUTPUT_DESTINATION: OUTPUT_ZIP_PATH,
-      METORIAL_FUNCTION_BAY_BUILD_LAYER: JSON.stringify(layer)
+      METORIAL_FUNCTION_BAY_BUILD_LAYER: JSON.stringify(deployment.runtime.configuration.layer)
     }
   });
 

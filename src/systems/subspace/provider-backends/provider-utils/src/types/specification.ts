@@ -8,6 +8,12 @@ import type {
 
 export type SpecificationAuthMethodType = 'oauth' | 'token' | 'service_account' | 'custom';
 
+export interface SpecificationActionScopes {
+  AND: {
+    OR: string[];
+  }[];
+}
+
 export interface SpecificationTool {
   specId: string;
   specUniqueIdentifier?: string;
@@ -77,6 +83,8 @@ export interface SpecificationTool {
     readOnly?: boolean | undefined;
   };
 
+  scopes?: SpecificationActionScopes | null;
+
   metadata: Record<string, any>;
 }
 
@@ -135,6 +143,8 @@ export interface SpecificationTrigger {
   capabilities: {
     [key: string]: any;
   };
+
+  scopes?: SpecificationActionScopes | null;
 
   metadata: Record<string, any>;
 }

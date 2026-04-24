@@ -52,6 +52,17 @@ export let providerController = Controller.create(
         v => v
       )
       .query(
+        'mt_2026_04_01_consumer',
+        Paginator.validate(
+          v.object({
+            id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by provider ID(s)'
+            })
+          })
+        ),
+        v => v
+      )
+      .query(
         'default',
         Paginator.validate(
           v.object({

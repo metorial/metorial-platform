@@ -7,7 +7,7 @@ import {
 } from '@metorial/state';
 import { Menu, theme } from '@metorial/ui';
 import { RiArrowDownSLine } from '@remixicon/react';
-import React, { useState } from 'react';
+import React, { useLayoutEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { createInstance } from './actions';
@@ -104,11 +104,40 @@ let TitleButton = styled('button')`
   }
 `;
 
+let RestrictedWrapper = styled('div')`
+  &[data-state='active'] {
+    height: calc(100% - ${HEIGHT}px);
+    overflow: hidden;
+
+    & > * {
+      height: 100%;
+    }
+  }
+`;
+
 export let InstanceMenuLayout = ({ children }: { children: React.ReactNode }) => {
   let instance = useCurrentInstance();
   let project = useCurrentProject();
   let org = useCurrentOrganization();
   let projects = useInstances(instance.data?.organizationId);
+
+  let [restrictHeight, setRestrictHeight] = useState(false);
+  let restrictHeightRef = useRef(false);
+
+  useLayoutEffect(() => {
+    let applyRestrictHeight = (value: boolean) => {
+      if (restrictHeightRef.current === value) return;
+      restrictHeightRef.current = value;
+      setRestrictHeight(value);
+    };
+
+    (window as any).metorial_setRestrictHeight = applyRestrictHeight;
+    return () => {
+      if ((window as any).metorial_setRestrictHeight === applyRestrictHeight) {
+        delete (window as any).metorial_setRestrictHeight;
+      }
+    };
+  }, []);
 
   let navigate = useNavigate();
   let [selectorOpen, setSelectorOpen] = useState(false);
@@ -122,7 +151,11 @@ export let InstanceMenuLayout = ({ children }: { children: React.ReactNode }) =>
       : ('orange' as const);
 
   return (
-    <Wrapper>
+    <Wrapper
+      style={{
+        height: restrictHeight ? '100%' : undefined
+      }}
+    >
       <Header
         style={{
           background: theme.colors[`${color}700`]
@@ -195,7 +228,9 @@ export let InstanceMenuLayout = ({ children }: { children: React.ReactNode }) =>
         </HeaderMarker>
       </Header>
 
-      {children}
+      <RestrictedWrapper data-state={restrictHeight ? 'active' : 'closed'}>
+        {children}
+      </RestrictedWrapper>
     </Wrapper>
   );
 };

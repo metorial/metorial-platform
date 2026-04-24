@@ -1,8 +1,10 @@
-import { InfoTooltip, theme } from '@metorial/ui';
+import { AnimateHeight, Button, InfoTooltip, theme } from '@metorial/ui';
 import { RiCheckLine } from '@remixicon/react';
+import { motion } from 'framer-motion';
+import { useState } from 'react';
 import styled from 'styled-components';
 
-let Wrapper = styled.ul`
+let Wrapper = styled.div`
   border: 1px solid ${theme.colors.gray300};
   border-radius: 8px;
   padding: 20px;
@@ -48,8 +50,21 @@ let Item = styled.li`
   }
 `;
 
+let MotionItem = motion(Item);
+
+let Actions = styled.div`
+  margin-top: 14px;
+`;
+
+let DEFAULT_VISIBLE_SKILLS = 3;
+
 export let Skills = ({ skills }: { skills: string[] }) => {
+  let [showAll, setShowAll] = useState(false);
+
   if (skills.length === 0) return null;
+
+  let visibleSkills = skills.slice(0, DEFAULT_VISIBLE_SKILLS);
+  let hiddenSkills = skills.slice(DEFAULT_VISIBLE_SKILLS);
 
   return (
     <Wrapper>
@@ -61,14 +76,43 @@ export let Skills = ({ skills }: { skills: string[] }) => {
         </InfoTooltip>
       </Header>
 
-      <List>
-        {skills.map((skill, index) => (
-          <Item key={index}>
-            <RiCheckLine />
-            <p>{skill}</p>
-          </Item>
-        ))}
-      </List>
+      <AnimateHeight>
+        <>
+          <List>
+            {visibleSkills.map((skill, index) => (
+              <Item key={index}>
+                <RiCheckLine />
+                <p>{skill}</p>
+              </Item>
+            ))}
+
+            {showAll &&
+              hiddenSkills.map((skill, index) => (
+                <MotionItem
+                  key={`${index + DEFAULT_VISIBLE_SKILLS}-${skill}`}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{
+                    duration: 0.22,
+                    ease: 'easeOut',
+                    delay: index * 0.06
+                  }}
+                >
+                  <RiCheckLine />
+                  <p>{skill}</p>
+                </MotionItem>
+              ))}
+          </List>
+
+          {!showAll && hiddenSkills.length > 0 && (
+            <Actions>
+              <Button type="button" size="1" variant="outline" onClick={() => setShowAll(true)}>
+                Show more
+              </Button>
+            </Actions>
+          )}
+        </>
+      </AnimateHeight>
     </Wrapper>
   );
 };

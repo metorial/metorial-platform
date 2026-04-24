@@ -132,6 +132,13 @@ let InstancePaths = Object.assign(
       );
     },
 
+    logs: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'logs', ...subPages),
+
     providerErrors: (
       organization: EntityParam,
       project: EntityParam,
@@ -164,6 +171,54 @@ let InstancePaths = Object.assign(
     ) => {
       if (!id) return '#';
       return InstancePaths(organization, project, instance, 'provider-run', id, ...subPages);
+    },
+
+    providerAuthErrors: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'provider-auth-errors', ...subPages),
+    providerAuthError: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(
+        organization,
+        project,
+        instance,
+        'provider-auth-error',
+        id,
+        ...subPages
+      );
+    },
+
+    providerAuthEvents: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'provider-auth-events', ...subPages),
+    providerAuthEvent: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(
+        organization,
+        project,
+        instance,
+        'provider-auth-event',
+        id,
+        ...subPages
+      );
     },
 
     portals: (
@@ -680,6 +735,14 @@ export let WelcomePaths = Object.assign(
     createProject: (i: { organizationId: string }, ...subPages: SubPages) => {
       let inner = WelcomePaths('create-project');
       let search = new URLSearchParams({ organization_id: i.organizationId });
+      return `${inner}?${search.toString()}`;
+    },
+    setupProvider: (i: { organizationId: string; projectId: string }) => {
+      let inner = WelcomePaths('setup-provider');
+      let search = new URLSearchParams({
+        organization_id: i.organizationId,
+        project_id: i.projectId
+      });
       return `${inner}?${search.toString()}`;
     }
   }

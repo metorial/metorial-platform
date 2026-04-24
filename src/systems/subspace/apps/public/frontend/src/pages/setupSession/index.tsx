@@ -66,7 +66,7 @@ export let SetupSessionPage = () => {
       <StatusPageView
         icon={<ErrorIcon />}
         title="Setup Failed"
-        description="This setup session has failed. Please request a new setup link or contact support."
+        description="This authentication session has failed. Please request a new setup link or contact support."
         isWhitelabel={isWhitelabel}
       />
     );
@@ -181,7 +181,13 @@ interface StatusPageViewProps {
   isWhitelabel?: boolean;
 }
 
-let StatusPageView = ({ icon, title, description, noPadding, isWhitelabel }: StatusPageViewProps) => {
+let StatusPageView = ({
+  icon,
+  title,
+  description,
+  noPadding,
+  isWhitelabel
+}: StatusPageViewProps) => {
   return (
     <Wrapper>
       <Inner>

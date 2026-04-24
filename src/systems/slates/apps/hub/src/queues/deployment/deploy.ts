@@ -9,10 +9,9 @@ import { db } from '../../db';
 import { env } from '../../env';
 import { functionBay, functionBayProvider, functionBayTenant } from '../../functionBay';
 import { getId } from '../../id';
-import { getRegistryClient } from '../../registry';
+import { getRegistryClient, getRegistryQuery } from '../../registry';
 import { discoverSlateQueue } from '../discovery/discover';
-
-let logoFiles = ['png', 'jpg', 'jpeg', 'svg'].map(ext => `logo.${ext}`);
+import { buildSlateDeploymentFiles } from './packageFiles';
 
 let log = (deployment: { id: string } | string, message: string, ...args: any[]) => {
   let deploymentId = typeof deployment === 'string' ? deployment : deployment.id;
@@ -129,7 +128,8 @@ export let deploySlateVersionStartQueueProcessor = deploySlateVersionStartQueue.
           scopeId: slate.slateScopeIdentifierOnRegistry,
           slateId: slate.slateIdentifierOnRegistry,
           versionId: version.version
-        }
+        },
+        query: getRegistryQuery()
       });
       if ((zipRes.status as any) !== 200)
         throw new Error(
@@ -138,47 +138,15 @@ export let deploySlateVersionStartQueueProcessor = deploySlateVersionStartQueue.
       let zipBuffer = await zipRes.arrayBuffer();
 
       let directory = await unzipper.Open.buffer(Buffer.from(zipBuffer));
+      let archiveFiles = await Promise.all(
+        directory.files.map(async file => ({
+          path: file.path,
+          buffer: await file.buffer()
+        }))
+      );
+      let deploymentFiles = buildSlateDeploymentFiles(archiveFiles);
 
-      let slatePackageJsonFile = directory.files.find(f => f.path === 'package.json');
-      let slateEntrypoint: string | undefined;
-
-      if (slatePackageJsonFile) {
-        try {
-          let slatePackageJson = JSON.parse((await slatePackageJsonFile.buffer()).toString());
-          if (slatePackageJson.main) {
-            slateEntrypoint = './' + slatePackageJson.main.replace(/\.(js|ts)$/, '');
-          }
-        } catch (e) {
-          console.warn(
-            `[Deployment]: Failed to parse slate package.json, using no dependencies`,
-            e
-          );
-        }
-      }
-
-      if (!slateEntrypoint) {
-        let commonEntrypoints = [
-          'src/index.ts',
-          'src/index.js',
-          'index.ts',
-          'index.js',
-          'dist/index.js'
-        ];
-        for (let entry of commonEntrypoints) {
-          if (directory.files.some(f => f.path === entry)) {
-            slateEntrypoint = './' + entry.replace(/\.(js|ts)$/, '');
-            break;
-          }
-        }
-      }
-
-      if (!slateEntrypoint) {
-        throw new Error(
-          'Could not determine slate entrypoint - no main field in package.json and no common entry files found'
-        );
-      }
-
-      await log(deployment, `Using entrypoint ${slateEntrypoint}`);
+      await log(deployment, `Using entrypoint ./${deploymentFiles.slateEntrypoint}`);
 
       let func = await functionBay.function.upsert({
         identifier: `slates::slate_version::${version.id}::${generateCode(6)}`,
@@ -187,100 +155,6 @@ export let deploySlateVersionStartQueueProcessor = deploySlateVersionStartQueue.
       });
 
       await log(deployment, `Created function with id ${func.id} for deployment`);
-
-      let initialFiles = [
-        {
-          filename: 'package.json',
-          content: JSON.stringify(
-            {
-              name: 'slate-version-function',
-              version: '1.0.0',
-              main: 'slates_entry_point.js',
-              dependencies: {
-                '@slates/provider-handler': 'latest',
-                '@slates/proto': 'latest',
-                slates: 'latest',
-                '@lowerdeck/serialize': 'latest'
-              }
-            },
-            null,
-            2
-          )
-        },
-        {
-          filename: 'slates_entry_point.js',
-          content: `
-          import { provider } from '${slateEntrypoint}';
-          import { createProviderHandler } from '@slates/provider-handler';
-          import { SlatesProviderProtoHandlerManager } from '@slates/proto';
-          import { serialize } from '@lowerdeck/serialize';
-
-          let handler = createProviderHandler(provider, [
-            e => e.forEach(e => console.log(e.type.toUpperCase(), e.message))
-          ]);
-
-          let initialGlobals = {}
-          for (let key of Object.getOwnPropertyNames(globalThis)) {
-            initialGlobals[key] = globalThis[key]
-          }
-
-          let reset = () => {
-            for (let key of Object.getOwnPropertyNames(globalThis)) {
-              if (!(key in initialGlobals)) {
-                try {
-                  delete globalThis[key];
-                } catch {}
-              }
-            }
-
-            for (let key in initialGlobals) {
-              try {
-                globalThis[key] = initialGlobals[key];
-              } catch {}
-            }
-
-            for (let key in require.cache) {
-              try {
-                delete require.cache[key];
-              } catch {}
-            }
-          }
-
-          export default async (input) => {
-            reset();
-
-            if (input._encoded) {
-              input = serialize.decode(input._encoded);
-            }
-
-            let manager = await handler.run();
-
-            let messages = [];
-
-            for (let m of input.messages) {
-              console.log('[Slates:] Processing input message', m.method + (m.id ? \`(\${m.id})\` : ''));
-              let result = await SlatesProviderProtoHandlerManager.handleInput(manager, m);
-              if (result) {
-                if (m.id) result.id = m.id;
-                messages.push(result);
-
-                if (typeof result.error == 'object' && result.error) {
-                  console.error('[Slates:] Error in processing:', result.error);
-                  break;
-                }
-              }
-            }
-
-            if (input._encoded) {
-              return { _encoded: serialize.encode({ messages }) };
-            }
-
-            return { messages };
-          };
-        `
-        }
-      ];
-      let initialFilenames = new Set(initialFiles.map(f => f.filename));
 
       await log(
         deployment,
@@ -300,18 +174,7 @@ export let deploySlateVersionStartQueueProcessor = deploySlateVersionStartQueue.
           timeoutSeconds: env.functionBay.FUNCTION_BAY_DEFAULT_TIMEOUT_SECONDS
         },
         env: {},
-        files: [
-          ...initialFiles,
-          ...(await Promise.all(
-            directory.files
-              .filter(f => !logoFiles.some(logo => f.path.endsWith(logo)))
-              .map(async f => ({
-                filename: initialFilenames.has(f.path) ? `_${f.path}` : f.path,
-                content: (await f.buffer()).toString('base64'),
-                encoding: 'base64' as const
-              }))
-          ))
-        ]
+        files: deploymentFiles.files
       });
 
       await log(

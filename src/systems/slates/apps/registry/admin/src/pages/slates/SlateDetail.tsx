@@ -101,7 +101,18 @@ export let SlateDetail = () => {
             <Datalist
               items={[
                 { label: 'ID', value: <MonoCode>{slateData.id}</MonoCode> },
-                { label: 'Current Version', value: slateData.currentVersion?.version ?? 'No version' },
+                {
+                  label: 'Current Version',
+                  value: slateData.currentVersion?.version ?? 'No version'
+                },
+                {
+                  label: 'Unbuilt Current Version',
+                  value: slateData.unbuiltCurrentVersion?.version ?? 'No version'
+                },
+                {
+                  label: 'Built/Unbuilt Current Version',
+                  value: slateData.builtOrUnbuiltCurrentVersion?.version ?? 'No version'
+                },
                 { label: 'Created By', value: slateData.createdByUser?.name ?? 'Unknown' },
                 { label: 'Created', value: <RenderDate date={slateData.createdAt} /> }
               ]}
@@ -150,9 +161,17 @@ export let SlateDetail = () => {
                       <Text size="3" weight="bold" style={{ fontFamily: 'monospace' }}>
                         v{version.version}
                       </Text>
-                      {version.isCurrent && (
+                      <Badge color={version.backend === 'npm' ? 'purple' : 'orange'} size="1">
+                        {version.backend}
+                      </Badge>
+                      {version.isUnbuiltCurrent && (
                         <Badge color="green" size="1">
-                          Current
+                          Unbuilt Current
+                        </Badge>
+                      )}
+                      {version.isBuiltOrUnbuiltCurrent && (
+                        <Badge color="blue" size="1">
+                          Built/Unbuilt Current
                         </Badge>
                       )}
                     </Flex>

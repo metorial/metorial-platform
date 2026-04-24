@@ -23,6 +23,8 @@ import {
   CallToolRequestSchema,
   type GetPromptRequest,
   GetPromptRequestSchema,
+  type InitializedNotification,
+  InitializedNotificationSchema,
   type InitializeRequest,
   InitializeRequestSchema,
   type InitializeResult,
@@ -77,7 +79,7 @@ export class McpSender {
 
     try {
       let res = await this.handleMessageInternal(msg, opts);
-      if (!res || !res.mcp) return null;
+      if (!res || (!res.mcp && !res.store)) return null;
 
       let message = 'message' in res && res.message ? res.message : null;
       let isBroadcastBySender = !!message;
@@ -95,7 +97,7 @@ export class McpSender {
         });
 
         message = await this.manager.createMessage({
-          status: 'error' in res.mcp ? 'failed' : 'succeeded',
+          status: res.mcp && 'error' in res.mcp ? 'failed' : 'succeeded',
           type: 'mcp_control',
           source: 'client',
           isProductive: true,
@@ -104,7 +106,7 @@ export class McpSender {
           responderParticipant,
 
           input: { type: 'mcp', data: msg },
-          output: { type: 'mcp', data: res.mcp },
+          output: res.mcp ? { type: 'mcp', data: res.mcp } : undefined,
 
           methodOrToolKey: method,
           clientMcpId: id ?? null,
@@ -112,7 +114,7 @@ export class McpSender {
         });
       }
 
-      if (!isBroadcastBySender) {
+      if (!isBroadcastBySender && res.mcp) {
         await this.control.sendControlMessage({
           type: 'mcp_control_message',
           conduit: {
@@ -228,6 +230,17 @@ export class McpSender {
     }
 
     if (id === undefined || id === null || method.startsWith('notifications/')) {
+      console.warn(
+        'Received MCP message without id or with notification method, ignoring:',
+        msg
+      );
+
+      if (method === 'notifications/initialized') {
+        let initNotification = mcpValidate(id, InitializedNotificationSchema, msg);
+        if (!initNotification.success) return { mcp: initNotification.error, store: false };
+        return this.handleInitializedMessage(initNotification.data);
+      }
+
       // TODO: handle notification for mcp-compatible backends
       // -> send to all backends that support it
       return;
@@ -807,6 +820,13 @@ export class McpSender {
           }
         } satisfies InitializeResult
       } satisfies JSONRPCResponse
+    };
+  }
+
+  private async handleInitializedMessage(msg: InitializedNotification) {
+    return {
+      store: true,
+      mcp: null
     };
   }
 }

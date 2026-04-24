@@ -65,7 +65,15 @@ let SetupFlowPreviewCard = styled.div`
   border-radius: 12px;
   border: 1px solid ${theme.colors.gray300};
   overflow: hidden;
-  background: #efefef;
+
+  padding: 60px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background-color: #fafafa;
+  background-image: radial-gradient(#ddd 1px, transparent 1px);
+  background-size: 12px 12px;
 `;
 
 let SetupFlowPreviewScreen = styled.div`
@@ -291,12 +299,8 @@ export let SetupFlowPreviewSidebar = (p: {
   let projectBrandName = projectBrand.data?.name ?? project.data?.name ?? 'Metorial';
   let resolvedProviderImageUrl = providerListing?.imageUrl ?? p.providerImageUrl;
   let previewMode = p.previewMode ?? 'manual_existing';
-  let previewHeadline = p.previewAuthName?.trim()
-    ? p.previewAuthName.trim()
-    : 'Sign in required';
-  let previewSubtext = p.previewAuthDescription?.trim()
-    ? p.previewAuthDescription.trim()
-    : "You'll be redirected to connect your account.";
+  let previewHeadline = 'Sign in required';
+  let previewSubtext = "You'll be redirected to connect your account.";
   let previewBrandImageUrl = projectBrandImageUrl;
   let previewBrandName = projectBrandName;
   let previewBrandInitial = previewBrandName.charAt(0).toUpperCase();
@@ -317,14 +321,7 @@ export let SetupFlowPreviewSidebar = (p: {
           </Text>
         </div>
 
-        <SetupFlowPreviewCard
-          style={{
-            padding: 32,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}
-        >
+        <SetupFlowPreviewCard>
           <div style={{ width: '100%' }}>
             <SetupFlowPreviewScreen>
               <SetupFlowPreviewHeader>
@@ -436,12 +433,10 @@ export let SetupFlowPreviewSidebar = (p: {
 
         <SetupFlowPreviewBrandingSlot>
           {brandingPath && p.showBrandingLink && (
-            <SetupFlowPreviewBrandingLink
-              to={brandingPath}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Click here to customize branding and white-label settings
+            <SetupFlowPreviewBrandingLink to={brandingPath}>
+              <Button as="span" size="2">
+                Customize branding
+              </Button>
             </SetupFlowPreviewBrandingLink>
           )}
         </SetupFlowPreviewBrandingSlot>

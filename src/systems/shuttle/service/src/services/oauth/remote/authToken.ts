@@ -6,12 +6,15 @@ import type {
   RemoteOAuthConfig,
   RemoteOAuthConnection,
   RemoteOAuthConnectionAuthToken,
+  ServerAuthConfig,
   Tenant
 } from '../../../../prisma/generated/client';
 import { db } from '../../../db';
+import { getId } from '../../../id';
 import { OAuthUtils } from '../../../lib/oauth/oauthUtils';
 import { addRemoteErrorCheck } from '../../../queues/oauth/remoteErrorCheck';
 import { secretService, type SecretOAuthToken } from '../../secret';
+import { serverEventService } from '../serverEvent';
 import { remoteOAuthConnectionService } from './connection';
 
 let Sentry = getSentry();
@@ -19,6 +22,7 @@ let Sentry = getSentry();
 let refreshToken = async (d: {
   tenant: Tenant;
   token: RemoteOAuthConnectionAuthToken;
+  serverAuthConfig?: ServerAuthConfig;
   connection: RemoteOAuthConnection & { config: RemoteOAuthConfig };
   DANGEROUS_secretData: SecretOAuthToken;
 }) => {
@@ -58,7 +62,7 @@ let refreshToken = async (d: {
   });
 
   if (!res.ok) {
-    let update = await db.remoteOAuthConnectionAuthToken.update({
+    await db.remoteOAuthConnectionAuthToken.update({
       where: { oid: token.oid },
       data: {
         firstErrorAt: token.firstErrorAt ?? new Date(),
@@ -73,6 +77,26 @@ let refreshToken = async (d: {
             : null
       }
     });
+
+    await db.remoteOAuthConnectionAuthTokenError.create({
+      data: {
+        ...getId('remoteOAuthConnectionAuthTokenError'),
+        authTokenOid: token.oid,
+        errorCode: 'token_refresh_failed',
+        errorMessage: 'Failed to refresh access token'
+      }
+    });
+
+    if (d.serverAuthConfig) {
+      await serverEventService.recordServerAuthConfigEvent({
+        serverAuthConfig: d.serverAuthConfig,
+        type: 'oauth_token_refresh_failed',
+        message: 'Failed to refresh remote OAuth token',
+        payload: {
+          errorCode: 'token_refresh_failed'
+        }
+      });
+    }
 
     await addRemoteErrorCheck(d.connection.id);
 
@@ -120,7 +144,11 @@ let refreshToken = async (d: {
 };
 
 class remoteAuthTokenServiceImpl {
-  async useAuthToken(d: { tenant: Tenant; remoteOAuthConnectionAuthTokenOid: bigint }) {
+  async useAuthToken(d: {
+    tenant: Tenant;
+    remoteOAuthConnectionAuthTokenOid: bigint;
+    serverAuthConfig?: ServerAuthConfig;
+  }) {
     let token = await db.remoteOAuthConnectionAuthToken.findFirstOrThrow({
       where: { oid: d.remoteOAuthConnectionAuthTokenOid, tenantOid: d.tenant.oid },
       include: {
@@ -163,12 +191,24 @@ class remoteAuthTokenServiceImpl {
         token,
         connection: token.connection,
         tenant: d.tenant,
-        DANGEROUS_secretData
+        DANGEROUS_secretData,
+        serverAuthConfig: d.serverAuthConfig
       });
 
       DANGEROUS_secretData = refreshRes.DANGEROUS_secretData;
       token = { ...token, ...refreshRes.token };
       didRefresh = true;
+
+      if (d.serverAuthConfig) {
+        await serverEventService.recordServerAuthConfigEvent({
+          serverAuthConfig: d.serverAuthConfig,
+          type: 'oauth_token_refresh_succeeded',
+          message: 'Successfully refreshed remote OAuth token',
+          payload: {
+            authTokenId: token.id
+          }
+        });
+      }
     }
 
     if (token.errorCount) {

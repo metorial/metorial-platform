@@ -10,7 +10,9 @@ import { dashboardConsumerPresenter, v1ConsumerPresenter } from './implementatio
 import { v1ConsumerAccessPresenter } from './implementation/consumerAccess';
 import { v1ConsumerAccessListingPresenter } from './implementation/consumerAccessListing';
 import { v1ConsumerAccessRequestPresenter } from './implementation/consumerAccessRequest';
+import { v1ConsumerAndProfilePresenter } from './implementation/consumerAndProfile';
 import { v1ConsumerGroupPresenter } from './implementation/consumerGroup';
+import { v1ConsumerInvitePresenter } from './implementation/consumerInvite';
 import {
   dashboardConsumerProfilePresenter,
   v1ConsumerProfilePresenter
@@ -21,6 +23,7 @@ import { v1ConsumerSurfacePresenter } from './implementation/consumerSurface';
 import { v1ConsumerSurfaceProviderGroupPresenter } from './implementation/consumerSurfaceProviderGroup';
 import { v1FilePresenter } from './implementation/file';
 import { v1FileLinkPresenter } from './implementation/fileLink';
+import { v1FlagsPresenter } from './implementation/flags';
 import { v1InstanceListPresenter, v1InstancePresenter } from './implementation/instance';
 import { v1MachineAccessPresenter } from './implementation/machineAccess';
 import { v1OAuthApplicationPresenter } from './implementation/oauthApplication';
@@ -44,20 +47,16 @@ import { v1PortalOAuthClientPresenter } from './implementation/portalOAuthClient
 import { v1ProfilePresenter } from './implementation/profile';
 import { v1ProjectPresenter } from './implementation/project';
 import { v1ProjectBrandPresenter } from './implementation/projectBrand';
-import { v1ProviderTemplatePresenter } from './implementation/providerTemplate';
-import { v1SecretPresenter } from './implementation/secret';
-import { v1ServiceAccountPresenter } from './implementation/serviceAccount';
-import { v1ServiceAccountCredentialPresenter } from './implementation/serviceAccountCredential';
-import { v1TeamPresenter } from './implementation/team';
-import { v1UsagePresenter } from './implementation/usage';
-import { v1UserPresenter } from './implementation/user';
-
-// Provider API presenters
 import {
+  consumerMagicMcpEndpointPresenter,
+  consumerMagicMcpServerPresenter,
+  consumerMagicMcpSessionPresenter,
+  consumerMagicMcpTokenPresenter,
   dashboardCustomProviderDeploymentPresenter,
   dashboardCustomProviderPresenter,
   dashboardIdentityActorPresenter,
   dashboardMagicMcpServerPresenter,
+  dashboardProviderListingPresenter,
   dashboardProviderPresenter,
   v1BucketEditorTokenPresenter,
   v1CallbackDestinationPresenter,
@@ -85,6 +84,9 @@ import {
   v1MagicMcpServerProviderPresenter,
   v1MagicMcpSessionPresenter,
   v1MagicMcpTokenPresenter,
+  v1ProviderAuthConfigErrorGroupPresenter,
+  v1ProviderAuthConfigErrorPresenter,
+  v1ProviderAuthConfigEventPresenter,
   v1ProviderAuthConfigPresenter,
   v1ProviderAuthConfigSchemaPresenter,
   v1ProviderAuthCredentialsPresenter,
@@ -97,6 +99,8 @@ import {
   v1ProviderConfigVaultPresenter,
   v1ProviderDeploymentPresenter,
   v1ProviderDeploymentPreviewPresenter,
+  v1ProviderInvocationPresenter,
+  v1ProviderInvocationsPresenter,
   v1ProviderListingCategoryPresenter,
   v1ProviderListingCollectionPresenter,
   v1ProviderListingGroupPresenter,
@@ -124,7 +128,7 @@ import {
   v1SubspaceSessionEventPresenter,
   v1SubspaceSessionMessagePresenter
 } from './implementation/provider';
-
+import { v1ProviderTemplatePresenter } from './implementation/providerTemplate';
 import {
   v1ScmAccountPreviewPresenter,
   v1ScmConnectionPresenter,
@@ -134,11 +138,13 @@ import {
   v1ScmRepoPresenter,
   v1ScmRepoPreviewPresenter
 } from './implementation/scm';
-
-import { v1ConsumerAndProfilePresenter } from './implementation/consumerAndProfile';
-import { v1ConsumerInvitePresenter } from './implementation/consumerInvite';
-import { v1FlagsPresenter } from './implementation/flags';
+import { v1SecretPresenter } from './implementation/secret';
+import { v1ServiceAccountPresenter } from './implementation/serviceAccount';
+import { v1ServiceAccountCredentialPresenter } from './implementation/serviceAccountCredential';
+import { v1TeamPresenter } from './implementation/team';
 import { v1TokenPresenter } from './implementation/token';
+import { v1UsagePresenter } from './implementation/usage';
+import { v1UserPresenter } from './implementation/user';
 import {
   accessPolicyType,
   accessPolicyVersionType,
@@ -216,6 +222,9 @@ import {
   profileType,
   projectBrandType,
   projectType,
+  providerAuthConfigErrorGroupType,
+  providerAuthConfigErrorType,
+  providerAuthConfigEventType,
   providerAuthConfigType,
   providerAuthCredentialsType,
   providerAuthExportType,
@@ -224,6 +233,8 @@ import {
   providerConfigType,
   providerConfigVaultType,
   providerDeploymentType,
+  providerInvocationType,
+  providerInvocationsType,
   providerListingCategoryType,
   providerListingCollectionType,
   providerListingGroupType,
@@ -251,10 +262,6 @@ import {
   secretType,
   serviceAccountCredentialType,
   serviceAccountType,
-  // ssoTenantSetupType,
-  // ssoTenantType,
-  // ssoUserProfileType,
-  // ssoUserType,
   sessionConnectionType,
   sessionErrorGroupType,
   sessionErrorType,
@@ -270,10 +277,6 @@ import {
   usageType,
   userType
 } from './types';
-
-// =============================================================================
-// Core API Presenters (available in all versions)
-// =============================================================================
 
 export let apiKeyPresenter = declarePresenter(apiKeyType, {
   mt_2025_01_01_dashboard: dashboardApiKeyPresenter,
@@ -483,7 +486,8 @@ export let oauthScopePermissionsPresenter = declarePresenter(oauthScopePermissio
 
 export let consumerGroupPresenter = declarePresenter(consumerGroupType, {
   mt_2025_01_01_dashboard: v1ConsumerGroupPresenter,
-  mt_2026_01_01_magnetar: v1ConsumerGroupPresenter
+  mt_2026_01_01_magnetar: v1ConsumerGroupPresenter,
+  mt_2026_04_01_consumer: v1ConsumerGroupPresenter
 });
 
 export let consumerAccessPresenter = declarePresenter(consumerAccessType, {
@@ -498,7 +502,8 @@ export let consumerAccessListingPresenter = declarePresenter(consumerAccessListi
 
 export let consumerAccessRequestPresenter = declarePresenter(consumerAccessRequestType, {
   mt_2025_01_01_dashboard: v1ConsumerAccessRequestPresenter,
-  mt_2026_01_01_magnetar: v1ConsumerAccessRequestPresenter
+  mt_2026_01_01_magnetar: v1ConsumerAccessRequestPresenter,
+  mt_2026_04_01_consumer: v1ConsumerAccessRequestPresenter
 });
 
 export let consumerInvitePresenter = declarePresenter(consumerInviteType, {
@@ -513,7 +518,8 @@ export let consumerPresenter = declarePresenter(consumerType, {
 
 export let consumerProfilePresenter = declarePresenter(consumerProfileType, {
   mt_2025_01_01_dashboard: dashboardConsumerProfilePresenter,
-  mt_2026_01_01_magnetar: v1ConsumerProfilePresenter
+  mt_2026_01_01_magnetar: v1ConsumerProfilePresenter,
+  mt_2026_04_01_consumer: v1ConsumerProfilePresenter
 });
 
 export let consumerAndProfilePresenter = declarePresenter(consumerAndProfileType, {
@@ -530,49 +536,34 @@ export let consumerSurfaceProviderGroupPresenter = declarePresenter(
   consumerSurfaceProviderGroupType,
   {
     mt_2025_01_01_dashboard: v1ConsumerSurfaceProviderGroupPresenter,
-    mt_2026_01_01_magnetar: v1ConsumerSurfaceProviderGroupPresenter
+    mt_2026_01_01_magnetar: v1ConsumerSurfaceProviderGroupPresenter,
+    mt_2026_04_01_consumer: v1ConsumerSurfaceProviderGroupPresenter
   }
 );
 
 export let consumerSessionPresenter = declarePresenter(consumerSessionType, {
   mt_2025_01_01_dashboard: v1ConsumerSessionPresenter,
-  mt_2026_01_01_magnetar: v1ConsumerSessionPresenter
+  mt_2026_01_01_magnetar: v1ConsumerSessionPresenter,
+  mt_2026_04_01_consumer: v1ConsumerSessionPresenter
 });
 
 export let consumerProviderPresenter = declarePresenter(consumerProviderType, {
   mt_2025_01_01_dashboard: v1ConsumerProviderPresenter,
-  mt_2026_01_01_magnetar: v1ConsumerProviderPresenter
+  mt_2026_01_01_magnetar: v1ConsumerProviderPresenter,
+  mt_2026_04_01_consumer: v1ConsumerProviderPresenter
 });
 
 export let portalOAuthClientPresenter = declarePresenter(portalOAuthClientType, {
   mt_2025_01_01_dashboard: v1PortalOAuthClientPresenter,
-  mt_2026_01_01_magnetar: v1PortalOAuthClientPresenter
+  mt_2026_01_01_magnetar: v1PortalOAuthClientPresenter,
+  mt_2026_04_01_consumer: v1PortalOAuthClientPresenter
 });
 
 export let portalOAuthAuthorizationPresenter = declarePresenter(portalOAuthAuthorizationType, {
   mt_2025_01_01_dashboard: v1PortalOAuthAuthorizationPresenter,
-  mt_2026_01_01_magnetar: v1PortalOAuthAuthorizationPresenter
+  mt_2026_01_01_magnetar: v1PortalOAuthAuthorizationPresenter,
+  mt_2026_04_01_consumer: v1PortalOAuthAuthorizationPresenter
 });
-
-// export let ssoTenantPresenter = declarePresenter(ssoTenantType, {
-//   mt_2025_01_01_dashboard: v1SsoTenantPresenter,
-//   mt_2026_01_01_magnetar: v1SsoTenantPresenter,
-// });
-
-// export let ssoTenantSetupPresenter = declarePresenter(ssoTenantSetupType, {
-//   mt_2025_01_01_dashboard: v1SsoTenantSetupPresenter,
-//   mt_2026_01_01_magnetar: v1SsoTenantSetupPresenter,
-// });
-
-// export let ssoUserPresenter = declarePresenter(ssoUserType, {
-//   mt_2025_01_01_dashboard: v1SsoUserPresenter,
-//   mt_2026_01_01_magnetar: v1SsoUserPresenter,
-// });
-
-// export let ssoUserProfilePresenter = declarePresenter(ssoUserProfileType, {
-//   mt_2025_01_01_dashboard: v1SsoUserProfilePresenter,
-//   mt_2026_01_01_magnetar: v1SsoUserProfilePresenter,
-// });
 
 export let portalPresenter = declarePresenter(portalType, {
   mt_2025_01_01_dashboard: v1PortalPresenter,
@@ -599,59 +590,34 @@ export let providerTemplatePresenter = declarePresenter(providerTemplateType, {
   mt_2026_01_01_magnetar: v1ProviderTemplatePresenter
 });
 
-// export let consumerGroupPresenter = declarePresenter(consumerGroupType, {
-//   mt_2025_01_01_dashboard: v1ConsumerGroupPresenter,
-//   mt_2026_01_01_magnetar: v1ConsumerGroupPresenter,
-// });
-
-// export let consumerAuthFactorPresenter = declarePresenter(consumerAuthFactorType, {
-//   mt_2025_01_01_dashboard: v1ConsumerAuthFactorPresenter,
-//   mt_2026_01_01_magnetar: v1ConsumerAuthFactorPresenter,
-// });
-
-// export let consumerAccessPresenter = declarePresenter(consumerAccessType, {
-//   mt_2025_01_01_dashboard: v1ConsumerAccessPresenter,
-//   mt_2026_01_01_magnetar: v1ConsumerAccessPresenter,
-// });
-
-// export let consumerProfilePresenter = declarePresenter(consumerProfileType, {
-//   mt_2025_01_01_dashboard: v1ConsumerProfilePresenter,
-//   mt_2026_01_01_magnetar: v1ConsumerProfilePresenter,
-// });
-
-// export let consumerSessionPresenter = declarePresenter(consumerSessionType, {
-//   mt_2025_01_01_dashboard: v1ConsumerSessionPresenter,
-//   mt_2026_01_01_magnetar: v1ConsumerSessionPresenter,
-// });
-
-// export let consumerServerRequestPresenter = declarePresenter(consumerServerRequestType, {
-//   mt_2025_01_01_dashboard: v1ConsumerServerRequestPresenter,
-//   mt_2026_01_01_magnetar: v1ConsumerServerRequestPresenter,
-// });
-
 export let magicMcpServerPresenter = declarePresenter(magicMcpServerType, {
   mt_2025_01_01_dashboard: dashboardMagicMcpServerPresenter,
-  mt_2026_01_01_magnetar: v1MagicMcpServerPresenter
+  mt_2026_01_01_magnetar: v1MagicMcpServerPresenter,
+  mt_2026_04_01_consumer: consumerMagicMcpServerPresenter
 });
 
 export let magicMcpEndpointPresenter = declarePresenter(magicMcpEndpointType, {
   mt_2025_01_01_dashboard: v1MagicMcpEndpointPresenter,
-  mt_2026_01_01_magnetar: v1MagicMcpEndpointPresenter
+  mt_2026_01_01_magnetar: v1MagicMcpEndpointPresenter,
+  mt_2026_04_01_consumer: consumerMagicMcpEndpointPresenter
 });
 
 export let magicMcpSessionPresenter = declarePresenter(magicMcpSessionType, {
   mt_2025_01_01_dashboard: v1MagicMcpSessionPresenter,
-  mt_2026_01_01_magnetar: v1MagicMcpSessionPresenter
+  mt_2026_01_01_magnetar: v1MagicMcpSessionPresenter,
+  mt_2026_04_01_consumer: consumerMagicMcpSessionPresenter
 });
 
 export let magicMcpTokenPresenter = declarePresenter(magicMcpTokenType, {
   mt_2025_01_01_dashboard: v1MagicMcpTokenPresenter,
-  mt_2026_01_01_magnetar: v1MagicMcpTokenPresenter
+  mt_2026_01_01_magnetar: v1MagicMcpTokenPresenter,
+  mt_2026_04_01_consumer: consumerMagicMcpTokenPresenter
 });
 
 export let magicMcpGroupPresenter = declarePresenter(magicMcpGroupType, {
   mt_2025_01_01_dashboard: v1MagicMcpGroupPresenter,
-  mt_2026_01_01_magnetar: v1MagicMcpGroupPresenter
+  mt_2026_01_01_magnetar: v1MagicMcpGroupPresenter,
+  mt_2026_04_01_consumer: v1MagicMcpGroupPresenter
 });
 
 export let publisherPresenter = declarePresenter(publisherType, {
@@ -661,12 +627,14 @@ export let publisherPresenter = declarePresenter(publisherType, {
 
 export let providerVersionPresenter = declarePresenter(providerVersionType, {
   mt_2025_01_01_dashboard: v1ProviderVersionPresenter,
-  mt_2026_01_01_magnetar: v1ProviderVersionPresenter
+  mt_2026_01_01_magnetar: v1ProviderVersionPresenter,
+  mt_2026_04_01_consumer: v1ProviderVersionPresenter
 });
 
 export let providerPresenter = declarePresenter(providerType, {
   mt_2025_01_01_dashboard: dashboardProviderPresenter,
-  mt_2026_01_01_magnetar: v1ProviderPresenter
+  mt_2026_01_01_magnetar: v1ProviderPresenter,
+  mt_2026_04_01_consumer: v1ProviderPresenter
 });
 
 export let identityPresenter = declarePresenter(identityType, {
@@ -709,12 +677,14 @@ export let providerTypePresenter = declarePresenter(providerTypeType, {
 
 export let providerCategoryPresenter = declarePresenter(providerListingCategoryType, {
   mt_2025_01_01_dashboard: v1ProviderListingCategoryPresenter,
-  mt_2026_01_01_magnetar: v1ProviderListingCategoryPresenter
+  mt_2026_01_01_magnetar: v1ProviderListingCategoryPresenter,
+  mt_2026_04_01_consumer: v1ProviderListingCategoryPresenter
 });
 
 export let providerCollectionPresenter = declarePresenter(providerListingCollectionType, {
   mt_2025_01_01_dashboard: v1ProviderListingCollectionPresenter,
-  mt_2026_01_01_magnetar: v1ProviderListingCollectionPresenter
+  mt_2026_01_01_magnetar: v1ProviderListingCollectionPresenter,
+  mt_2026_04_01_consumer: v1ProviderListingCollectionPresenter
 });
 
 export let providerGroupPresenter = declarePresenter(providerListingGroupType, {
@@ -723,8 +693,9 @@ export let providerGroupPresenter = declarePresenter(providerListingGroupType, {
 });
 
 export let providerListingPresenter = declarePresenter(providerListingType, {
-  mt_2025_01_01_dashboard: v1ProviderListingPresenter,
-  mt_2026_01_01_magnetar: v1ProviderListingPresenter
+  mt_2025_01_01_dashboard: dashboardProviderListingPresenter,
+  mt_2026_01_01_magnetar: v1ProviderListingPresenter,
+  mt_2026_04_01_consumer: v1ProviderListingPresenter
 });
 
 export let providerToolPresenter = declarePresenter(providerToolType, {
@@ -749,7 +720,8 @@ export let providerAuthMethodPresenter = declarePresenter(providerAuthMethodType
 
 export let providerSpecificationPresenter = declarePresenter(providerSpecificationType, {
   mt_2025_01_01_dashboard: v1ProviderSpecificationPresenter,
-  mt_2026_01_01_magnetar: v1ProviderSpecificationPresenter
+  mt_2026_01_01_magnetar: v1ProviderSpecificationPresenter,
+  mt_2026_04_01_consumer: v1ProviderSpecificationPresenter
 });
 
 export let providerDeploymentPresenter = declarePresenter(providerDeploymentType, {
@@ -782,6 +754,24 @@ export let providerAuthConfigPresenter = declarePresenter(providerAuthConfigType
   mt_2026_01_01_magnetar: v1ProviderAuthConfigPresenter
 });
 
+export let providerAuthConfigEventPresenter = declarePresenter(providerAuthConfigEventType, {
+  mt_2025_01_01_dashboard: v1ProviderAuthConfigEventPresenter,
+  mt_2026_01_01_magnetar: v1ProviderAuthConfigEventPresenter
+});
+
+export let providerAuthConfigErrorPresenter = declarePresenter(providerAuthConfigErrorType, {
+  mt_2025_01_01_dashboard: v1ProviderAuthConfigErrorPresenter,
+  mt_2026_01_01_magnetar: v1ProviderAuthConfigErrorPresenter
+});
+
+export let providerAuthConfigErrorGroupPresenter = declarePresenter(
+  providerAuthConfigErrorGroupType,
+  {
+    mt_2025_01_01_dashboard: v1ProviderAuthConfigErrorGroupPresenter,
+    mt_2026_01_01_magnetar: v1ProviderAuthConfigErrorGroupPresenter
+  }
+);
+
 export let providerAuthCredentialsPresenter = declarePresenter(providerAuthCredentialsType, {
   mt_2025_01_01_dashboard: v1ProviderAuthCredentialsPresenter,
   mt_2026_01_01_magnetar: v1ProviderAuthCredentialsPresenter
@@ -789,7 +779,8 @@ export let providerAuthCredentialsPresenter = declarePresenter(providerAuthCrede
 
 export let providerSetupSessionPresenter = declarePresenter(providerSetupSessionType, {
   mt_2025_01_01_dashboard: v1SetupSessionPresenter,
-  mt_2026_01_01_magnetar: v1SetupSessionPresenter
+  mt_2026_01_01_magnetar: v1SetupSessionPresenter,
+  mt_2026_04_01_consumer: v1SetupSessionPresenter
 });
 
 export let providerAuthImportPresenter = declarePresenter(providerAuthImportType, {
@@ -801,10 +792,6 @@ export let providerAuthExportPresenter = declarePresenter(providerAuthExportType
   mt_2025_01_01_dashboard: v1ProviderAuthExportPresenter,
   mt_2026_01_01_magnetar: v1ProviderAuthExportPresenter
 });
-
-// =============================================================================
-// Session Template & Session-Nested Presenters
-// =============================================================================
 
 export let sessionTemplatePresenter = declarePresenter(sessionTemplateType, {
   mt_2025_01_01_dashboard: v1SessionTemplatePresenter,
@@ -818,7 +805,8 @@ export let sessionTemplateProviderPresenter = declarePresenter(sessionTemplatePr
 
 export let magicMcpServerProviderPresenter = declarePresenter(magicMcpServerProviderType, {
   mt_2025_01_01_dashboard: v1MagicMcpServerProviderPresenter,
-  mt_2026_01_01_magnetar: v1MagicMcpServerProviderPresenter
+  mt_2026_01_01_magnetar: v1MagicMcpServerProviderPresenter,
+  mt_2026_04_01_consumer: v1MagicMcpServerProviderPresenter
 });
 
 export let sessionProviderPresenter = declarePresenter(sessionProviderType, {
@@ -852,7 +840,6 @@ export let providerSessionPresenter = declarePresenter(providerSessionType, {
   mt_2026_01_01_magnetar: v1SessionPresenter
 });
 
-// Provider API session-nested presenters (Magnetar only)
 export let subspaceSessionMessagePresenter = declarePresenter(sessionMessageType, {
   mt_2025_01_01_dashboard: v1SubspaceSessionMessagePresenter,
   mt_2026_01_01_magnetar: v1SubspaceSessionMessagePresenter
@@ -873,6 +860,16 @@ export let providerRunLogsPresenter = declarePresenter(providerRunLogsType, {
   mt_2026_01_01_magnetar: v1ProviderRunLogsPresenter
 });
 
+export let providerInvocationPresenter = declarePresenter(providerInvocationType, {
+  mt_2025_01_01_dashboard: v1ProviderInvocationPresenter,
+  mt_2026_01_01_magnetar: v1ProviderInvocationPresenter
+});
+
+export let providerInvocationsPresenter = declarePresenter(providerInvocationsType, {
+  mt_2025_01_01_dashboard: v1ProviderInvocationsPresenter,
+  mt_2026_01_01_magnetar: v1ProviderInvocationsPresenter
+});
+
 export let configSchemaPresenter = declarePresenter(configSchemaType, {
   mt_2025_01_01_dashboard: v1ProviderConfigSchemaPresenter,
   mt_2026_01_01_magnetar: v1ProviderConfigSchemaPresenter
@@ -887,10 +884,6 @@ export let authConfigSchemaPresenter = declarePresenter(authConfigSchemaType, {
   mt_2025_01_01_dashboard: v1ProviderAuthConfigSchemaPresenter,
   mt_2026_01_01_magnetar: v1ProviderAuthConfigSchemaPresenter
 });
-
-// =============================================================================
-// Custom Provider Presenters
-// =============================================================================
 
 export let bucketEditorTokenPresenter = declarePresenter(bucketEditorTokenType, {
   mt_2025_01_01_dashboard: v1BucketEditorTokenPresenter,
@@ -943,10 +936,6 @@ export let toolCallPresenter = declarePresenter(toolCallType, {
   mt_2025_01_01_dashboard: v1ProviderToolCallPresenter,
   mt_2026_01_01_magnetar: v1ProviderToolCallPresenter
 });
-
-// =============================================================================
-// SCM Presenters
-// =============================================================================
 
 export let scmConnectionPresenter = declarePresenter(scmConnectionType, {
   mt_2025_01_01_dashboard: v1ScmConnectionPresenter,

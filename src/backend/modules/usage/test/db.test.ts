@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import type { UsageRecord } from '../src/db';
 
 // Mock dependencies
@@ -12,6 +12,14 @@ vi.mock('@lowerdeck/sentry', () => ({
   getSentry: vi.fn(() => ({
     captureException: vi.fn()
   }))
+}));
+
+vi.mock('../src/env', () => ({
+  env: {
+    db: {
+      USAGE_MONGO_URL: 'mongodb://localhost:27017/test'
+    }
+  }
 }));
 
 vi.mock('mongoose', () => {
@@ -38,9 +46,13 @@ vi.mock('mongoose', () => {
   };
 });
 
-import { getUsageTimeline, ingestUsage, UsageRecordSchema } from '../src/db';
+import { getUsageTimeline, ingestUsage, UsageRecordModel, UsageRecordSchema } from '../src/db';
 
 describe('db', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   describe('UsageRecordSchema', () => {
     it('should be defined', () => {
       expect(UsageRecordSchema).toBeDefined();
@@ -214,6 +226,24 @@ describe('db', () => {
       expect(result[0].entries.length).toBe(3); // 3 days
     });
 
+    it('should return one aggregated series for entityType-only filters', async () => {
+      const from = new Date('2023-01-01T00:00:00Z');
+      const to = new Date('2023-01-03T00:00:00Z');
+
+      const result = await getUsageTimeline({
+        entities: [{ type: 'typeA' }],
+        from,
+        to,
+        interval: { unit: 'day', count: 1 }
+      });
+
+      expect(result.length).toBe(1);
+      expect(result[0].entityId).toBe('all');
+      expect(result[0].entityType).toBe('typeA');
+      expect(result[0].ownerId).toBe('none');
+      expect(result[0].entries.length).toBe(3);
+    });
+
     it('should handle day interval', async () => {
       const from = new Date('2023-01-01T00:00:00Z');
       const to = new Date('2023-01-03T00:00:00Z');
@@ -271,6 +301,54 @@ describe('db', () => {
           interval: { unit: 'day', count: 1 }
         })
       ).resolves.toBeDefined();
+    });
+
+    it('should build aggregate match and group stages for entityType-only filters', async () => {
+      let aggregateSpy = vi.spyOn(UsageRecordModel, 'aggregate').mockResolvedValue([]);
+
+      await getUsageTimeline({
+        entities: [{ type: 'typeA' }],
+        from: new Date('2023-01-01'),
+        to: new Date('2023-01-31'),
+        interval: { unit: 'day', count: 1 }
+      });
+
+      expect(aggregateSpy).toHaveBeenCalledWith([
+        {
+          $match: expect.objectContaining({
+            $or: [{ entityType: 'typeA' }]
+          })
+        },
+        {
+          $group: expect.objectContaining({
+            _id: expect.objectContaining({
+              entityId: {
+                $cond: [{ $in: ['$entityType', ['typeA']] }, null, '$entityId']
+              }
+            })
+          })
+        }
+      ]);
+    });
+
+    it('should support mixing exact and entityType-only filters', async () => {
+      let aggregateSpy = vi.spyOn(UsageRecordModel, 'aggregate').mockResolvedValue([]);
+
+      await getUsageTimeline({
+        entities: [{ type: 'typeA', id: 'entity1' }, { type: 'typeB' }],
+        from: new Date('2023-01-01'),
+        to: new Date('2023-01-31'),
+        interval: { unit: 'day', count: 1 }
+      });
+
+      expect(aggregateSpy).toHaveBeenCalledWith([
+        {
+          $match: expect.objectContaining({
+            $or: [{ entityType: 'typeA', entityId: 'entity1' }, { entityType: 'typeB' }]
+          })
+        },
+        expect.any(Object)
+      ]);
     });
 
     it('should handle multi-day intervals', async () => {

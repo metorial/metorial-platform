@@ -12,6 +12,12 @@ export let env = createValidatedEnv({
     PACKAGE_BUCKET_NAME: v.string()
   },
 
+  npm: {
+    NPM_ORG: v.optional(v.string()),
+    NPM_REGISTRY_URL: v.optional(v.string()),
+    NPM_TOKEN: v.optional(v.string())
+  },
+
   access: {
     PUBLIC_ACCESS_PERMITTED: v.optional(v.boolean())
   },

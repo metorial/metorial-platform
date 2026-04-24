@@ -36,6 +36,19 @@ let getRegistries = createLocallyCachedFunction({
   provider: async id => slates.registry.get({ registryId: id })
 });
 
+let generatePrettySlug = (fullIdentifier: string) => {
+  let withoutAt = fullIdentifier.startsWith('@') ? fullIdentifier.slice(1) : fullIdentifier;
+  let slashIndex = withoutAt.indexOf('/');
+  if (slashIndex === -1) return slugify(withoutAt);
+
+  let workspace = withoutAt.slice(0, slashIndex);
+  let name = withoutAt.slice(slashIndex + 1);
+
+  if (workspace === 'metorial') return slugify(name);
+  if (name.startsWith(workspace)) return slugify(name);
+  return slugify(`${workspace}-${name}`);
+};
+
 let metorialDomains = [
   '.slates.dev',
   '.metorial.com',
@@ -44,7 +57,8 @@ let metorialDomains = [
   '.metorial.app',
   '.metorial.io',
   '.metorial.ai',
-  '.metorial-enterprise.com'
+  '.metorial-enterprise.com',
+  'localhost'
 ];
 
 export let syncSlateVersionQueueProcessor = syncSlateVersionQueue.process(async data => {
@@ -164,18 +178,28 @@ export let syncSlateVersionQueueProcessor = syncSlateVersionQueue.process(async 
       slate: slateRecord,
       backend
     },
-    info: {
-      name: Cases.toTitleCase(slate.name),
-      description: slate.description ?? undefined,
-      slug: slugify(`${registryRecord.fullIdentifier}-${generateCode(5)}`),
-      image: registryRecord.logoUrl ? { type: 'url', url: registryRecord.logoUrl } : null,
-      skills: registryRecord.skills,
-      readme: readme,
-      categories: registryRecord.categories?.map((c: any) => c.identifier) ?? [],
-      globalIdentifier: slugify(
-        `${registryRecord.fullIdentifier}-${(await Hash.sha256(JSON.stringify(['slate', registryRecord.fullIdentifier, registry.url]))).slice(0, 6)}`
-      )
-    },
+    info: await (async () => {
+      let regIdentifier = registryRecord.fullIdentifier as string;
+      let slug = slugify(`${regIdentifier}-${generateCode(5)}`);
+      let globalIdentifier = slugify(
+        `${regIdentifier}-${(await Hash.sha256(JSON.stringify(['slate', regIdentifier, registry.url]))).slice(0, 6)}`
+      );
+      let prettySlug = generatePrettySlug(regIdentifier);
+      let aliases = [slug, globalIdentifier, prettySlug, regIdentifier];
+
+      return {
+        name: Cases.toTitleCase(slate.name),
+        description: slate.description ?? undefined,
+        slug,
+        prettySlug,
+        aliases,
+        image: registryRecord.logoUrl ? { type: 'url', url: registryRecord.logoUrl } : null,
+        skills: registryRecord.skills,
+        readme: readme,
+        categories: registryRecord.categories?.map((c: any) => c.identifier) ?? [],
+        globalIdentifier
+      };
+    })(),
     type
   });
   if (!provider?.defaultVariant) {

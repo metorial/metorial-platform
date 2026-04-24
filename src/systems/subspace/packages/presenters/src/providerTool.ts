@@ -19,6 +19,7 @@ export let providerToolPresenter = (
   inputJsonSchema: providerTool.value.inputJsonSchema,
   instructions: providerTool.value.instructions,
   outputJsonSchema: providerTool.value.outputJsonSchema,
+  scopes: providerTool.value.scopes ?? null,
   tags: providerTool.value.tags,
 
   specificationId: providerTool.specification.id,

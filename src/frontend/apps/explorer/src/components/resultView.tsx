@@ -32,7 +32,6 @@ let SectionTitle = styled.div`
   font-size: 12px;
   font-weight: 700;
   color: ${cssValue(theme.colors.gray800)};
-  text-transform: uppercase;
   letter-spacing: 0.08em;
 `;
 

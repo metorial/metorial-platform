@@ -343,24 +343,36 @@ class providerAuthConfigServiceImpl {
         }
       );
 
-      return await providerAuthConfigInternalService.createProviderAuthConfigInternal({
+      let providerAuthConfig =
+        await providerAuthConfigInternalService.createProviderAuthConfigInternal({
+          tenant: d.tenant,
+          solution: d.solution,
+          environment: d.environment,
+          provider: d.provider,
+          providerDeployment: d.providerDeployment,
+          source: d.source,
+          input: {
+            ...d.input,
+            toolFilters: normalizeToolFilters(d.input.toolFilters)
+          },
+          import: d.import,
+          authMethod,
+          credentials,
+          backend: backendRes.backend,
+          backendProviderAuthConfig: backendRes.backendProviderAuthConfig,
+          type: authMethod.type === 'oauth' ? 'oauth_manual' : 'manual'
+        });
+
+      let synced = await providerAuthConfigInternalService.syncProviderAuthConfigScopes({
         tenant: d.tenant,
-        solution: d.solution,
-        environment: d.environment,
-        provider: d.provider,
-        providerDeployment: d.providerDeployment,
-        source: d.source,
-        input: {
-          ...d.input,
-          toolFilters: normalizeToolFilters(d.input.toolFilters)
-        },
-        import: d.import,
-        authMethod,
-        credentials,
-        backend: backendRes.backend,
-        backendProviderAuthConfig: backendRes.backendProviderAuthConfig,
-        type: authMethod.type === 'oauth' ? 'oauth_manual' : 'manual'
+        providerAuthConfig
       });
+
+      return {
+        ...synced,
+        currentVersion: providerAuthConfig.currentVersion,
+        authImport: providerAuthConfig.authImport
+      };
     });
   }
 
@@ -511,8 +523,16 @@ class providerAuthConfigServiceImpl {
         providerAuthConfigUpdatedQueue.add({ providerAuthConfigId: config.id })
       );
 
+      let synced = await providerAuthConfigInternalService.syncProviderAuthConfigScopes({
+        tenant: d.tenant,
+        providerAuthConfig: {
+          ...config,
+          currentVersion: newConfigVersion
+        }
+      });
+
       return {
-        ...config,
+        ...synced,
         authImport
       };
     });

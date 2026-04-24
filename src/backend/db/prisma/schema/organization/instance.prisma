@@ -57,5 +57,9 @@ model Instance {
   instanceConsumers                    InstanceConsumer[]
   consumerInvites                      ConsumerInvite[]
   consumerActors                       ConsumerActor[]
-  magicMcpSubspaceSessionConnections   MagicMcpSubspaceSessionConnection[]
+  consumerTokens                       ConsumerToken[]
+  consumerIntegrations                 ConsumerIntegration[]
+  consumerIntegrationEndpoints         ConsumerIntegrationEndpoint[]
+  consumerIntegrationSessions          ConsumerIntegrationSession[]
+  magicMcpSessions                     MagicMcpSession[]
 }

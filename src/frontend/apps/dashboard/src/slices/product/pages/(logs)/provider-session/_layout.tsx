@@ -1,18 +1,29 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
-import { ContentLayout, PageHeader } from '@metorial/layout';
+import { ContentPanelLayout, ExtraHeaderLayout } from '@metorial/layout';
 import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
   useSession
 } from '@metorial/state';
-import { LinkTabs, RenderDate } from '@metorial/ui';
-import { ID } from '@metorial/ui-product';
-import { Outlet, useLocation, useParams } from 'react-router-dom';
-import { AttributesLayout } from '../../../scenes/attributesLayout';
+import { Button } from '@metorial/ui';
+import { RiArrowLeftSLine } from '@remixicon/react';
+import { Link, Outlet, useLocation, useParams } from 'react-router-dom';
+import styled from 'styled-components';
 import { DeletedRecordCallout } from '../../../scenes/deletedRecordCallout';
-import { SessionConnectionStatusBadge } from '../../../scenes/providerSessions/table';
+
+let OutletWrapper = styled.div`
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  overflow: hidden;
+
+  > * {
+    flex: 1;
+    min-height: 0;
+  }
+`;
 
 export let ProviderSessionLayout = () => {
   let instance = useCurrentInstance();
@@ -32,22 +43,31 @@ export let ProviderSessionLayout = () => {
   ] as const;
 
   return (
-    <ContentLayout>
-      <PageHeader
+    <ExtraHeaderLayout
+      header={
+        <Link
+          to={Paths.instance.providerSessions(
+            organization.data,
+            project.data,
+            instance.data
+          )}
+        >
+          <Button size="2" variant="outline" iconLeft={<RiArrowLeftSLine />}>
+            Back to all sessions
+          </Button>
+        </Link>
+      }
+    >
+      <ContentPanelLayout
         title={session.data?.name ?? `Session ${sessionId?.slice(0, 8)}...`}
-        description={session.data?.description ?? undefined}
-        pagination={[
+        breadcrumbs={[
           {
             label: 'Sessions',
-            href: Paths.instance.providerSessions(
-              organization.data,
-              project.data,
-              instance.data
-            )
+            to: Paths.instance.providerSessions(organization.data, project.data, instance.data)
           },
           {
             label: session.data?.name ?? 'Session',
-            href: Paths.instance.providerSession(
+            to: Paths.instance.providerSession(
               organization.data,
               project.data,
               instance.data,
@@ -55,65 +75,35 @@ export let ProviderSessionLayout = () => {
             )
           }
         ]}
-      />
-
-      {renderWithLoader({ session })(({ session }) => (
-        <>
-          <DeletedRecordCallout status={session.data?.status} />
-
-          <LinkTabs
-            current={pathname}
-            links={[
-              {
-                label: 'Logs',
-                to: Paths.instance.providerSession(...sessionPathParams)
-              },
-              {
-                label: 'Deployments',
-                to: Paths.instance.providerSession(...sessionPathParams, 'providers')
-              },
-              {
-                label: 'Provider Runs',
-                to: Paths.instance.providerSession(...sessionPathParams, 'runs')
-              }
-            ]}
-          />
-
-          <AttributesLayout
-            variant="large"
-            items={[
-              {
-                label: 'Status',
-                value: (
-                  <SessionConnectionStatusBadge
-                    connectionStatus={session.data.connectionState}
-                    hasErrors={session.data.hasErrors}
-                    hasWarnings={session.data.hasWarnings}
-                  />
-                )
-              },
-              {
-                label: 'Health',
-                value: session.data.hasErrors
-                  ? 'Error'
-                  : session.data.hasWarnings
-                    ? 'Warning'
-                    : 'Healthy'
-              },
-              { label: 'Session ID', value: <ID id={session.data.id} /> },
-              { label: 'Created At', value: <RenderDate date={session.data.createdAt} /> },
-              {
-                label: 'Messages',
-                value:
-                  (session.data.usage?.totalProductiveClientMessageCount ?? 0) +
-                  (session.data.usage?.totalProductiveProviderMessageCount ?? 0)
-              }
-            ]}
-          >
+        description={session.data?.description ?? undefined}
+        extra={<DeletedRecordCallout status={session.data?.status} />}
+        links={{
+          current: pathname,
+          items: [
+            {
+              label: 'Logs',
+              to: Paths.instance.providerSession(...sessionPathParams)
+            },
+            {
+              label: 'Deployments',
+              to: Paths.instance.providerSession(...sessionPathParams, 'providers')
+            },
+            {
+              label: 'Provider Runs',
+              to: Paths.instance.providerSession(...sessionPathParams, 'runs')
+            }
+          ]
+        }}
+      >
+        {renderWithLoader(
+          { session },
+          { spaceTop: 20 }
+        )(({ session }) => (
+          <OutletWrapper>
             <Outlet />
-          </AttributesLayout>
-        </>
-      ))}
-    </ContentLayout>
+          </OutletWrapper>
+        ))}
+      </ContentPanelLayout>
+    </ExtraHeaderLayout>
   );
 };

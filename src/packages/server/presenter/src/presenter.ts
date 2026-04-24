@@ -2,7 +2,10 @@ import { introspectType, ValidationType } from '@lowerdeck/validation';
 
 export interface PresenterContext {
   // instance: Instance;
-  apiVersion: 'mt_2026_01_01_magnetar' | 'mt_2025_01_01_dashboard';
+  apiVersion:
+    | 'mt_2026_01_01_magnetar'
+    | 'mt_2025_01_01_dashboard'
+    | 'mt_2026_04_01_consumer';
   accessType:
     | 'instance_secret'
     | 'instance_publishable'
@@ -173,13 +176,22 @@ export let declarePresenter = <Type extends PresentableType<any, any>>(
   presenters: {
     mt_2026_01_01_magnetar: Presenter<Type, any>;
     mt_2025_01_01_dashboard: Presenter<Type, any>;
+    mt_2026_04_01_consumer?: Presenter<Type, any>;
   }
 ) => ({
   type,
   present:
     (input: GetTypeOfPresentable<Type>) =>
     (context: PresenterContext): PresenterResult =>
-      presenters[context.apiVersion].present(input, context),
+      (
+        context.apiVersion == 'mt_2026_04_01_consumer'
+          ? presenters.mt_2026_04_01_consumer ?? presenters.mt_2026_01_01_magnetar
+          : presenters[context.apiVersion]
+      ).present(input, context),
   introspect: ({ apiVersion }: { apiVersion: string }) =>
-    (presenters as any)[apiVersion].introspect()
+    (
+      (apiVersion == 'mt_2026_04_01_consumer'
+        ? presenters.mt_2026_04_01_consumer ?? presenters.mt_2026_01_01_magnetar
+        : (presenters as any)[apiVersion]) as Presenter<Type, any>
+    ).introspect()
 });

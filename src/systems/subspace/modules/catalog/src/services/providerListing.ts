@@ -57,6 +57,7 @@ class ProviderListingService {
     solution: Solution;
     tenant?: Tenant;
     environment?: Environment;
+    includeDeprecated?: boolean;
   }) {
     let providerListing = await db.providerListing.findFirst({
       where: {
@@ -65,6 +66,8 @@ class ProviderListingService {
             OR: [
               { id: d.providerListingId },
               { slug: d.providerListingId },
+              { prettySlug: d.providerListingId },
+              { aliases: { has: d.providerListingId } },
               { provider: { id: d.providerListingId } },
               { provider: { globalIdentifier: d.providerListingId } }
             ]
@@ -81,7 +84,7 @@ class ProviderListingService {
                 : undefined!
             ].filter(Boolean)
           }
-        ]
+        ].filter(Boolean)
       },
       include: getInclude(d.tenant, d.solution)
     });
@@ -119,10 +122,12 @@ class ProviderListingService {
     orderByUse?: ProviderListingOrderByUse;
 
     capabilities?: ProviderCapabilityFilter;
+    includeDeprecated?: boolean;
   }) {
     let collections = await resolveProviderCollections(d.providerCollectionIds);
     let categories = await resolveProviderCategories(d.providerCategoryIds);
     let publishers = await resolvePublishers(d.publisherIds);
+    let includeDeprecated = d.includeDeprecated || !!d.ids?.length;
 
     let capFilters = getProviderCapabilityFilter(d.capabilities || {});
 
@@ -175,6 +180,7 @@ class ProviderListingService {
             status: 'active',
 
             AND: [
+              includeDeprecated ? undefined! : { isDeprecated: false },
               {
                 OR: [
                   { isPublic: true },
@@ -198,7 +204,16 @@ class ProviderListingService {
               //   : undefined!,
 
               d.ids
-                ? { OR: [{ id: { in: d.ids } }, { provider: { id: { in: d.ids } } }] }
+                ? {
+                    OR: [
+                      { id: { in: d.ids } },
+                      { slug: { in: d.ids } },
+                      { prettySlug: { in: d.ids } },
+                      { aliases: { hasSome: d.ids } },
+                      { provider: { id: { in: d.ids } } },
+                      { provider: { globalIdentifier: { in: d.ids } } }
+                    ]
+                  }
                 : undefined!,
 
               search ? { id: { in: search.map(r => r.documentId) } } : undefined!,

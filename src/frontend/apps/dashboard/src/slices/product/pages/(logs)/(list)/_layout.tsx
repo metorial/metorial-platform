@@ -7,9 +7,8 @@ import {
 } from '@metorial/state';
 import { LinkTabs } from '@metorial/ui';
 import { Outlet, useLocation } from 'react-router-dom';
-import { Explainer } from '../../../../../components/explainer';
 
-export let LogsListLayout = () => {
+export let SessionLogsListLayout = () => {
   let instance = useCurrentInstance();
   let project = useCurrentProject();
   let organization = useCurrentOrganization();
@@ -19,8 +18,8 @@ export let LogsListLayout = () => {
   return (
     <ContentLayout>
       <PageHeader
-        title="Logs"
-        description="Check the logs of your sessions and MCP providers."
+        title="Connection Logs"
+        description="Inspect sessions, provider runs, and errors captured during MCP traffic."
       />
 
       <LinkTabs
@@ -42,13 +41,53 @@ export let LogsListLayout = () => {
       />
 
       <Outlet />
-
-      <Explainer
-        title="Using the MCP Logs"
-        description="Learn how to use the logs to understand what's happening in your MCP provider."
-        youtubeId="utz9yBfQ88k"
-        id="logs"
-      />
     </ContentLayout>
   );
 };
+
+export let AuthLogsListLayout = () => {
+  let instance = useCurrentInstance();
+  let project = useCurrentProject();
+  let organization = useCurrentOrganization();
+
+  let pathname = useLocation().pathname;
+
+  return (
+    <ContentLayout>
+      <PageHeader
+        title="Auth Logs"
+        description="Investigate authentication lifecycle events and auth failures across your providers."
+      />
+
+      <LinkTabs
+        current={pathname}
+        links={[
+          {
+            label: 'Auth Events',
+            to: Paths.instance.providerAuthEvents(
+              organization.data,
+              project.data,
+              instance.data
+            )
+          },
+          {
+            label: 'Auth Errors',
+            to: Paths.instance.providerAuthErrors(
+              organization.data,
+              project.data,
+              instance.data
+            )
+          }
+        ]}
+      />
+
+      <Outlet />
+    </ContentLayout>
+  );
+};
+
+/**
+ * @deprecated Use {@link SessionLogsListLayout} for session logs or
+ * {@link AuthLogsListLayout} for auth logs instead.
+ */
+export let LogsListLayout = SessionLogsListLayout;

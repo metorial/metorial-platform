@@ -69,32 +69,41 @@ class providerOAuthSetupInternalServiceImpl {
         let authConfig = providerOAuthSetup.authConfig;
 
         if (record.slateAuthConfig || record.shuttleAuthConfig) {
-          authConfig =
-            await providerAuthConfigInternalService.createProviderAuthConfigInternal({
-              backend: backend.backend,
-              source: providerOAuthSetup.providerSetupSession ? 'setup_session' : 'system',
-              type: 'oauth_automated',
+          if (!authConfig) {
+            authConfig =
+              await providerAuthConfigInternalService.createProviderAuthConfigInternal({
+                backend: backend.backend,
+                source: providerOAuthSetup.providerSetupSession ? 'setup_session' : 'system',
+                type: 'oauth_automated',
+                tenant: providerOAuthSetup.tenant,
+                environment: providerOAuthSetup.environment,
+                solution: providerOAuthSetup.solution,
+                provider: providerOAuthSetup.provider,
+                providerDeployment: providerOAuthSetup.deployment ?? undefined,
+                credentials: providerOAuthSetup.authCredentials,
+                input: {
+                  name: providerOAuthSetup.name ?? undefined,
+                  description: providerOAuthSetup.description ?? undefined,
+                  metadata: providerOAuthSetup.metadata ?? undefined,
+                  toolFilters: providerOAuthSetup.toolFilter as PrismaJson.ToolFilter,
+                  isEphemeral: providerOAuthSetup.isEphemeral,
+                  isDefault: false
+                },
+                authMethod: providerOAuthSetup.authMethod,
+                backendProviderAuthConfig: {
+                  slateAuthConfig: record.slateAuthConfig ?? undefined,
+                  shuttleAuthConfig: record.shuttleAuthConfig ?? undefined,
+                  expiresAt: null
+                }
+              });
+          }
+
+          if (authConfig) {
+            authConfig = await providerAuthConfigInternalService.syncProviderAuthConfigScopes({
               tenant: providerOAuthSetup.tenant,
-              environment: providerOAuthSetup.environment,
-              solution: providerOAuthSetup.solution,
-              provider: providerOAuthSetup.provider,
-              providerDeployment: providerOAuthSetup.deployment ?? undefined,
-              credentials: providerOAuthSetup.authCredentials,
-              input: {
-                name: providerOAuthSetup.name ?? undefined,
-                description: providerOAuthSetup.description ?? undefined,
-                metadata: providerOAuthSetup.metadata ?? undefined,
-                toolFilters: providerOAuthSetup.toolFilter as PrismaJson.ToolFilter,
-                isEphemeral: providerOAuthSetup.isEphemeral,
-                isDefault: false
-              },
-              authMethod: providerOAuthSetup.authMethod,
-              backendProviderAuthConfig: {
-                slateAuthConfig: record.slateAuthConfig ?? undefined,
-                shuttleAuthConfig: record.shuttleAuthConfig ?? undefined,
-                expiresAt: null
-              }
+              providerAuthConfig: authConfig
             });
+          }
         }
 
         let setup = await db.providerOAuthSetup.update({

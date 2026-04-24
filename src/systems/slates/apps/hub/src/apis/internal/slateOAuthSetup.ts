@@ -23,6 +23,18 @@ export let slateOAuthSetupApp = tenantApp.use(async ctx => {
   return { slateOAuthSetup };
 });
 
+export let slateOAuthSetupSyncApp = app.use(async ctx => {
+  let slateOAuthSetupId = ctx.body.slateOAuthSetupId;
+  if (!slateOAuthSetupId) throw new Error('Slate OAuthSetup ID is required');
+
+  let slateOAuthSetup =
+    await slateOAuthSetupService.DANGEROUSLY_getSlateInstanceOAuthSetupById({
+      id: slateOAuthSetupId
+    });
+
+  return { slateOAuthSetup };
+});
+
 export let slateOAuthSetupController = app.controller({
   list: tenantApp
     .handler()
@@ -38,6 +50,25 @@ export let slateOAuthSetupController = app.controller({
       let paginator = await slateOAuthSetupService.listSlateInstanceOAuthSetups({
         tenant: ctx.tenant,
         slateIds: ctx.input.slateIds
+      });
+
+      let list = await paginator.run(ctx.input);
+
+      return Paginator.presentLight(list, slateInstanceOAuthSetupPresenter);
+    }),
+
+  listIncomplete: app
+    .handler()
+    .input(
+      Paginator.validate(
+        v.object({
+          slateOAuthSetupIds: v.optional(v.array(v.string()))
+        })
+      )
+    )
+    .do(async ctx => {
+      let paginator = await slateOAuthSetupService.listIncompleteSlateInstanceOAuthSetups({
+        slateOAuthSetupIds: ctx.input.slateOAuthSetupIds
       });
 
       let list = await paginator.run(ctx.input);
@@ -111,6 +142,21 @@ export let slateOAuthSetupController = app.controller({
     .input(
       v.object({
         tenantId: v.string(),
+        slateOAuthSetupId: v.string()
+      })
+    )
+    .do(async ctx => {
+      let logs = await slateOAuthSetupService.getSlateInstanceOAuthSetupLogs({
+        setup: ctx.slateOAuthSetup
+      });
+
+      return await slateInstanceOAuthSetupLogsPresenter(logs);
+    }),
+
+  getLogsSync: slateOAuthSetupSyncApp
+    .handler()
+    .input(
+      v.object({
         slateOAuthSetupId: v.string()
       })
     )

@@ -1,4 +1,6 @@
+import { getSentry } from '@lowerdeck/sentry';
 import type {
+  SlateAttachment,
   SlateDeployment,
   SlateInvocation,
   SlateVersion
@@ -7,15 +9,36 @@ import { db } from '../db';
 import { getStoredInvocationStorageKey } from '../lib/invocation/store';
 import type { StoredSlateInvocation } from '../lib/invocation/types';
 import { invocationsBucketRecord, storage } from '../storage';
+import { slateInvocationAttachmentsPresenter } from './slateAttachment';
 
-export let slateInvocationLitePresenter = async (inv: SlateInvocation) => {
+let Sentry = getSentry();
+
+type InvocationWithStoredAttachments = SlateInvocation & {
+  slateInvocationAttachment?: Array<{
+    attachments: SlateAttachment;
+  }>;
+};
+
+export let slateInvocationLitePresenter = async (inv: InvocationWithStoredAttachments) => {
   let i = 0;
   while (inv.isPending) {
     if (i++ > 10) {
+      Sentry.captureMessage('Invocation still pending after 10 poll attempts', {
+        level: 'warning',
+        extra: { invocationId: inv.id, invocationOid: String(inv.oid) }
+      });
+      break;
     }
 
     let res = await db.slateInvocation.findUniqueOrThrow({
-      where: { oid: inv.oid }
+      where: { oid: inv.oid },
+      include: {
+        slateInvocationAttachment: {
+          include: {
+            attachments: true
+          }
+        }
+      }
     });
     if (!res.isPending) {
       inv = {
@@ -57,11 +80,13 @@ export let slateInvocationLitePresenter = async (inv: SlateInvocation) => {
 
     requests: output.requests,
     responses: output.responses,
+    requestTraces: output.requestTraces,
     error: output.provider?.error,
     logs: (output.logs ?? []).map(([timestamp, message]) => ({
       timestamp,
       message
     })),
+    attachments: await slateInvocationAttachmentsPresenter(inv),
 
     provider: output.provider
       ? {
@@ -77,7 +102,7 @@ export let slateInvocationLitePresenter = async (inv: SlateInvocation) => {
 };
 
 export let slateInvocationPresenter = async (
-  inv: SlateInvocation & {
+  inv: InvocationWithStoredAttachments & {
     deployment: SlateDeployment & {
       slateVersion: SlateVersion;
     };

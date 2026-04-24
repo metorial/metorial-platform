@@ -1,56 +1,37 @@
-import {
-  badRequestError,
-  internalServerError,
-  notFoundError,
-  ServiceError
-} from '@lowerdeck/error';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
+  addAfterTransactionHook,
   db,
   getId,
-  type Prisma,
   type ManagedProviderAuthCredentialsStatus,
+  type Prisma,
   type Solution,
   withTransaction
 } from '@metorial-subspace/db';
 import { providerService } from '@metorial-subspace/module-catalog';
-import { getBackend } from '@metorial-subspace/provider';
-import { type ManagedOAuthScopes } from '../lib/managedOAuthScopes';
+import { getManagedOAuthScopeIds, type ManagedOAuthScopes } from '../lib/managedOAuthScopes';
+import { reconcileAllTenantsManagedBackingsQueue } from '../queues/reconcile';
+import { reconcileManagedCredentialProviderSingleQueue } from '../queues/reconcile/managedCredentialProvider';
 
 let include = {
-  providerAuthCredentials: {
+  provider: true,
+  providerAuthMethodGlobal: {
+    include: {
+      currentInstance: true
+    }
+  },
+  initialProviderAuthMethod: {
     include: {
       provider: true
     }
-  },
-  providerAuthMethod: true
+  }
 };
 
 type ManagedProviderAuthCredentialsRecord = Prisma.ManagedProviderAuthCredentialsGetPayload<{
   include: typeof include;
 }>;
-
-type ManagedProviderAuthCredentialsWithPublicCredential = ManagedProviderAuthCredentialsRecord & {
-  providerAuthCredentials: NonNullable<
-    ManagedProviderAuthCredentialsRecord['providerAuthCredentials']
-  >;
-};
-
-let requireManagedProviderAuthCredentialsPublicCredential = (
-  managedProviderAuthCredentials: ManagedProviderAuthCredentialsRecord
-): ManagedProviderAuthCredentialsWithPublicCredential => {
-  if (managedProviderAuthCredentials.providerAuthCredentials) {
-    return managedProviderAuthCredentials as ManagedProviderAuthCredentialsWithPublicCredential;
-  }
-
-  throw new ServiceError(
-    internalServerError({
-      code: 'managed_provider_auth_credentials_public_credential_missing',
-      message: 'Managed provider auth credentials are missing their public credential'
-    })
-  );
-};
 
 let getProviderAuthMethodForProvider = async (d: {
   provider: Awaited<ReturnType<typeof providerService.getProviderById>>;
@@ -96,30 +77,20 @@ class managedProviderAuthCredentialsServiceImpl {
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
-          (
-            await db.managedProviderAuthCredentials.findMany({
-              ...opts,
-              where: {
-                solutionOid: d.solution.oid,
-                AND: [
-                  d.status?.length ? { status: { in: d.status } } : undefined!,
-                  d.ids?.length ? { id: { in: d.ids } } : undefined!,
-                  d.providerIds?.length
-                    ? {
-                        providerAuthCredentials: {
-                          is: {
-                            provider: {
-                              id: { in: d.providerIds }
-                            }
-                          }
-                        }
-                      }
-                    : undefined!
-                ].filter(Boolean)
-              },
-              include
-            })
-          ).map(requireManagedProviderAuthCredentialsPublicCredential)
+          await db.managedProviderAuthCredentials.findMany({
+            ...opts,
+            where: {
+              solutionOid: d.solution.oid,
+              AND: [
+                d.status?.length ? { status: { in: d.status } } : undefined!,
+                d.ids?.length ? { id: { in: d.ids } } : undefined!,
+                d.providerIds?.length
+                  ? { provider: { id: { in: d.providerIds } } }
+                  : undefined!
+              ].filter(Boolean)
+            },
+            include
+          })
       )
     );
   }
@@ -142,9 +113,7 @@ class managedProviderAuthCredentialsServiceImpl {
       );
     }
 
-    return requireManagedProviderAuthCredentialsPublicCredential(
-      managedProviderAuthCredentials
-    );
+    return managedProviderAuthCredentials;
   }
 
   async createManagedProviderAuthCredentials(d: {
@@ -169,53 +138,32 @@ class managedProviderAuthCredentialsServiceImpl {
       providerAuthMethodId: d.input.providerAuthMethodId
     });
 
-    let defaultVariant = provider.defaultVariant;
-    if (!defaultVariant) {
-      throw new ServiceError(
-        badRequestError({
-          message: 'Provider has not been discovered',
-          code: 'provider_not_discovered'
-        })
-      );
-    }
-
-    let backend = await getBackend({
-      entity: {
-        backendOid: defaultVariant.backendOid
-      }
-    });
-
     return withTransaction(async db => {
       let managedProviderAuthCredentials = await db.managedProviderAuthCredentials.create({
         data: {
           ...getId('managedProviderAuthCredentials'),
           status: 'active',
-          solutionOid: d.solution.oid,
-          providerAuthMethodOid: providerAuthMethod.oid,
-          oauthClientId: d.input.clientId,
-          oauthClientSecret: d.input.clientSecret,
-          oauthScopes: (providerAuthMethod.value.scopes ?? []) as ManagedOAuthScopes
-        }
-      });
-
-      await db.providerAuthCredentials.create({
-        data: {
-          ...getId('providerAuthCredentials'),
-          type: 'oauth',
-          status: 'active',
-          origin: 'managed_public',
-          backendOid: backend.backend.oid,
-          isAutoRegistration: false,
           name: d.input.name,
           description: d.input.description || undefined,
           metadata: d.input.metadata,
-          isEphemeral: false,
-          isDefault: false,
-          providerOid: provider.oid,
-          managedCredentialsOid: managedProviderAuthCredentials.oid,
           solutionOid: d.solution.oid,
+          initialProviderAuthMethodOid: providerAuthMethod.oid,
+          providerOid: providerAuthMethod.providerOid,
+          providerAuthMethodGlobalOid: providerAuthMethod.globalOid,
+          oauthClientId: d.input.clientId,
+          oauthClientSecret: d.input.clientSecret,
+          oauthScopes: getManagedOAuthScopeIds(
+            (providerAuthMethod.value.scopes ?? []) as ManagedOAuthScopes
+          )
         }
       });
+
+      await addAfterTransactionHook(async () =>
+        reconcileManagedCredentialProviderSingleQueue.add(
+          { managedProviderAuthCredentialsId: managedProviderAuthCredentials.id },
+          { id: `single-${managedProviderAuthCredentials.id}` }
+        )
+      );
 
       return await this.getManagedProviderAuthCredentialsByOid(
         managedProviderAuthCredentials.oid
@@ -225,18 +173,7 @@ class managedProviderAuthCredentialsServiceImpl {
 
   async updateManagedProviderAuthCredentials(d: {
     solution: Solution;
-    managedProviderAuthCredentials: {
-      oid: bigint;
-      providerAuthCredentials: {
-        oid: bigint;
-        name: string | null;
-        description: string | null;
-        metadata: unknown;
-        provider: {
-          id: string;
-        };
-      };
-    };
+    managedProviderAuthCredentials: ManagedProviderAuthCredentialsRecord;
     input: {
       name?: string;
       description?: string;
@@ -246,16 +183,14 @@ class managedProviderAuthCredentialsServiceImpl {
       clientSecret?: string;
     };
   }) {
-    let managedProviderAuthCredentialsData: {
-      providerAuthMethodOid?: bigint;
-      oauthClientId?: string;
-      oauthClientSecret?: string;
-      oauthScopes?: ManagedOAuthScopes;
-    } = {};
+    let managedProviderAuthCredentialsData: Prisma.ManagedProviderAuthCredentialsUncheckedUpdateInput =
+      {};
 
     if (d.input.providerAuthMethodId) {
       let provider = await providerService.getProviderById({
-        providerId: d.managedProviderAuthCredentials.providerAuthCredentials.provider.id,
+        providerId:
+          d.managedProviderAuthCredentials.provider?.id ??
+          d.managedProviderAuthCredentials.initialProviderAuthMethod.provider.id,
         solution: d.solution
       });
 
@@ -264,10 +199,24 @@ class managedProviderAuthCredentialsServiceImpl {
         providerAuthMethodId: d.input.providerAuthMethodId
       });
 
-      managedProviderAuthCredentialsData.providerAuthMethodOid = providerAuthMethod.oid;
-      managedProviderAuthCredentialsData.oauthScopes = (
-        providerAuthMethod.value.scopes ?? []
-      ) as ManagedOAuthScopes;
+      managedProviderAuthCredentialsData.providerOid = providerAuthMethod.providerOid;
+      managedProviderAuthCredentialsData.providerAuthMethodGlobalOid =
+        providerAuthMethod.globalOid;
+      managedProviderAuthCredentialsData.oauthScopes = getManagedOAuthScopeIds(
+        (providerAuthMethod.value.scopes ?? []) as ManagedOAuthScopes
+      );
+    }
+
+    if (d.input.name !== undefined) {
+      managedProviderAuthCredentialsData.name = d.input.name;
+    }
+
+    if (d.input.description !== undefined) {
+      managedProviderAuthCredentialsData.description = d.input.description;
+    }
+
+    if (d.input.metadata !== undefined) {
+      managedProviderAuthCredentialsData.metadata = d.input.metadata;
     }
 
     if (d.input.clientId !== undefined) {
@@ -280,28 +229,29 @@ class managedProviderAuthCredentialsServiceImpl {
 
     return withTransaction(async db => {
       if (Object.keys(managedProviderAuthCredentialsData).length > 0) {
-        await db.managedProviderAuthCredentials.update({
+        let managedProviderAuthCredentials = await db.managedProviderAuthCredentials.update({
           where: { oid: d.managedProviderAuthCredentials.oid },
           data: managedProviderAuthCredentialsData
         });
-      }
 
-      await db.providerAuthCredentials.update({
-        where: {
-          oid: d.managedProviderAuthCredentials.providerAuthCredentials.oid
-        },
-        data: {
-          name:
-            d.input.name ??
-            d.managedProviderAuthCredentials.providerAuthCredentials.name,
-          description:
-            d.input.description ||
-            d.managedProviderAuthCredentials.providerAuthCredentials.description,
-          metadata:
-            d.input.metadata ??
-            d.managedProviderAuthCredentials.providerAuthCredentials.metadata
-        }
-      });
+        await addAfterTransactionHook(async () =>
+          reconcileManagedCredentialProviderSingleQueue.add(
+            {
+              managedProviderAuthCredentialsId: managedProviderAuthCredentials.id
+            },
+            {
+              id: `single-${managedProviderAuthCredentials.id}`
+            }
+          )
+        );
+
+        await addAfterTransactionHook(async () =>
+          reconcileAllTenantsManagedBackingsQueue.add(
+            { solutionId: d.solution.id },
+            { id: `all-tenants-${managedProviderAuthCredentials.id}` }
+          )
+        );
+      }
 
       return await this.getManagedProviderAuthCredentialsByOid(
         d.managedProviderAuthCredentials.oid
@@ -310,23 +260,12 @@ class managedProviderAuthCredentialsServiceImpl {
   }
 
   async archiveManagedProviderAuthCredentials(d: {
-    managedProviderAuthCredentials: {
-      oid: bigint;
-      providerAuthCredentials: {
-        oid: bigint;
-      };
-    };
+    solution: Solution;
+    managedProviderAuthCredentials: ManagedProviderAuthCredentialsRecord;
   }) {
     return withTransaction(async db => {
-      await db.managedProviderAuthCredentials.update({
+      let managedProviderAuthCredentials = await db.managedProviderAuthCredentials.update({
         where: { oid: d.managedProviderAuthCredentials.oid },
-        data: { status: 'archived' }
-      });
-
-      await db.providerAuthCredentials.update({
-        where: {
-          oid: d.managedProviderAuthCredentials.providerAuthCredentials.oid
-        },
         data: { status: 'archived' }
       });
 
@@ -350,6 +289,13 @@ class managedProviderAuthCredentialsServiceImpl {
         });
       }
 
+      await addAfterTransactionHook(async () =>
+        reconcileAllTenantsManagedBackingsQueue.add(
+          { solutionId: d.solution.id },
+          { id: `all-tenants-${managedProviderAuthCredentials.id}` }
+        )
+      );
+
       return await this.getManagedProviderAuthCredentialsByOid(
         d.managedProviderAuthCredentials.oid
       );
@@ -357,14 +303,11 @@ class managedProviderAuthCredentialsServiceImpl {
   }
 
   private async getManagedProviderAuthCredentialsByOid(oid: bigint) {
-    return await withTransaction(
-      async db =>
-        requireManagedProviderAuthCredentialsPublicCredential(
-          await db.managedProviderAuthCredentials.findUniqueOrThrow({
-            where: { oid },
-            include
-          })
-        )
+    return await withTransaction(async db =>
+      db.managedProviderAuthCredentials.findUniqueOrThrow({
+        where: { oid },
+        include
+      })
     );
   }
 }

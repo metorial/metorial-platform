@@ -1,6 +1,9 @@
 import { runQueueProcessors } from '@lowerdeck/queue';
 import { agentQueueProcessor } from '@metorial-subspace/module-agent';
-import { authQueueProcessor } from '@metorial-subspace/module-auth';
+import {
+  authQueueProcessor,
+  reconcileManagedCredentialProviderManyQueue
+} from '@metorial-subspace/module-auth';
 import { callbackQueueProcessor } from '@metorial-subspace/module-callback';
 import { catalogQueueProcessor } from '@metorial-subspace/module-catalog';
 import { connectionQueueProcessor } from '@metorial-subspace/module-connection';
@@ -30,3 +33,10 @@ runQueueProcessors([
   identityQueueProcessor,
   agentQueueProcessor
 ]);
+
+setTimeout(() => {
+  reconcileManagedCredentialProviderManyQueue.add(
+    {},
+    { id: 'boot-reconcile-managed-provider' }
+  );
+}, 10_000);

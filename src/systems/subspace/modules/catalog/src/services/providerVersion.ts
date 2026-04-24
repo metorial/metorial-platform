@@ -25,7 +25,9 @@ class providerVersionServiceImpl {
 
     createdAt?: DateFilter;
     updatedAt?: DateFilter;
+    includeDeprecated?: boolean;
   }) {
+    let includeDeprecated = d.includeDeprecated || !!d.ids?.length || !!d.providerIds?.length;
     let providers = await resolveProviders(d, d.providerIds);
 
     return Paginator.create(({ prisma }) =>
@@ -34,7 +36,10 @@ class providerVersionServiceImpl {
           await db.providerVersion.findMany({
             ...opts,
             where: {
-              provider: getProviderTenantFilter(d),
+              provider: getProviderTenantFilter({
+                ...d,
+                includeDeprecated
+              }),
 
               OR: [
                 { isEnvironmentLocked: false },
@@ -65,10 +70,14 @@ class providerVersionServiceImpl {
     solution: Solution;
     tenant?: Tenant;
     environment?: Environment;
+    includeDeprecated?: boolean;
   }) {
     let providerVersion = await db.providerVersion.findFirst({
       where: {
-        provider: getProviderTenantFilter(d),
+        provider: getProviderTenantFilter({
+          ...d,
+          includeDeprecated: true
+        }),
 
         OR: [
           { isEnvironmentLocked: false },

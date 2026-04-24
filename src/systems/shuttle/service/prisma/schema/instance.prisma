@@ -59,6 +59,7 @@ model ServerAuthConfig {
   serverDiscoveries              ServerDiscovery[]
   serverAuthConfigExports        ServerAuthConfigExport[]
   delegatedOAuthConnectionSetups DelegatedOAuthConnectionSetup[]
+  serverAuthConfigEvents         ServerAuthConfigEvent[]
 }
 
 model ServerAuthConfigExport {
@@ -114,6 +115,28 @@ model ServerConnection {
   serverDiscoveries         ServerDiscovery[]
   serverConnectionLogsTemps ServerConnectionLogsTemp[]
   functionServerInvocations FunctionServerInvocation[]
+}
+
+model ServerAuthConfigEvent {
+  oid BigInt @id
+  id  String @unique
+
+  type String
+
+  message String?
+  payload Json?
+
+  functionInvocationId String?
+  serverConnectionId   String?
+
+  serverAuthConfigOid BigInt
+  serverAuthConfig    ServerAuthConfig @relation(fields: [serverAuthConfigOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([serverAuthConfigOid, createdAt])
+  @@index([functionInvocationId])
+  @@index([serverConnectionId])
 }
 
 model ServerConnectionNetworkRule {

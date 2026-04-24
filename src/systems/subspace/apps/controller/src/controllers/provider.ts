@@ -29,6 +29,7 @@ export let providerController = app.controller({
           environmentId: v.string(),
 
           ids: v.optional(v.array(v.string())),
+          includeDeprecated: v.optional(v.boolean()),
 
           capabilities: v.optional(
             v.object({
@@ -51,6 +52,7 @@ export let providerController = app.controller({
         solution: ctx.solution,
 
         ids: ctx.input.ids,
+        includeDeprecated: ctx.input.includeDeprecated,
         capabilities: ctx.input.capabilities
       });
 

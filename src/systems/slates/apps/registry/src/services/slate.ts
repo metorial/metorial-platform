@@ -8,7 +8,8 @@ import { buildSlateFilterClause, type SubRegistryWithFilters } from '../lib/subR
 let include = {
   scope: true,
   tenant: true,
-  currentVersion: true,
+  unbuiltCurrentVersion: true,
+  builtOrUnbuiltCurrentVersion: true,
   createdByUser: { include: { scope: true } },
   categories: { include: { category: true } }
 };

@@ -28,6 +28,8 @@ export let ID = createIdGenerator({
   slateAuthConfig: idType.sorted('shiac'),
   slateInstanceEvent: idType.sorted('hsiev'),
   slateInstanceOAuthSetup: idType.sorted('shios'),
+  slateAuthConfigEvent: idType.sorted('shace'),
+  slateInstanceOAuthSetupEvent: idType.sorted('shiose'),
 
   slateInvocation: idType.sorted('shiv'),
 
@@ -48,7 +50,12 @@ export let ID = createIdGenerator({
   changeNotification: idType.sorted('shcn'),
 
   adminUser: idType.sorted('shadu'),
-  adminSession: idType.sorted('shads')
+  adminSession: idType.sorted('shads'),
+
+  slateAttachment: idType.sorted('shsa'),
+  slateInvocationAttachment: idType.sorted('shsia'),
+
+  slateError: idType.sorted('sher')
 });
 
 let workerIdBits = 12;

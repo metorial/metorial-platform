@@ -17,14 +17,35 @@ enum ConsumerAuthAttemptCodeChallengeMethod {
   s256
 }
 
+model ConsumerClient {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  hash String
+  name String
+
+  redirectUris String[]
+
+  consumerSurfaceOid BigInt
+  consumerSurface    ConsumerSurface @relation(fields: [consumerSurfaceOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  consumerAuthClients ConsumerAuthClient[]
+
+  @@unique([consumerSurfaceOid, hash])
+  @@index([hash])
+}
+
 model ConsumerAuthClient {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
   name String
 
-  clientId     String  @unique
-  clientSecret String?
+  clientId       String  @unique
+  clientSecret   String?
   registrationIp String?
 
   tokenEndpointAuthMethod ConsumerAuthClientTokenEndpointAuthMethod @default(client_secret_basic)
@@ -40,9 +61,13 @@ model ConsumerAuthClient {
   magicMcpEndpointOid BigInt?
   magicMcpEndpoint    MagicMcpEndpoint? @relation(fields: [magicMcpEndpointOid], references: [oid], onDelete: Cascade)
 
-  createdAt          DateTime            @default(now())
-  updatedAt          DateTime            @default(now()) @updatedAt
-  expiresAt          DateTime
+  consumerClientOid BigInt?
+  consumerClient    ConsumerClient? @relation(fields: [consumerClientOid], references: [oid], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  expiresAt DateTime
+
   consumerAuthAttempts ConsumerAuthAttempt[]
 
   @@index([registrationIp, createdAt])
@@ -75,6 +100,9 @@ model ConsumerAuthAttempt {
   magicMcpEndpointOid BigInt?
   magicMcpEndpoint    MagicMcpEndpoint? @relation(fields: [magicMcpEndpointOid], references: [oid], onDelete: SetNull)
 
+  consumerIntegrationEndpointOid BigInt?
+  consumerIntegrationEndpoint    ConsumerIntegrationEndpoint? @relation(fields: [consumerIntegrationEndpointOid], references: [oid], onDelete: SetNull)
+
   magicMcpTokenOid BigInt?
   magicMcpToken    MagicMcpToken? @relation(fields: [magicMcpTokenOid], references: [oid], onDelete: SetNull)
 
@@ -84,4 +112,6 @@ model ConsumerAuthAttempt {
   deniedAt     DateTime?
   revokedAt    DateTime?
   expiresAt    DateTime
+
+  @@index([consumerIntegrationEndpointOid])
 }

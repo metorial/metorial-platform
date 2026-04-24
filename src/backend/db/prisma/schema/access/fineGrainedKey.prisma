@@ -10,7 +10,7 @@ model FineGrainedKey {
 
   status FineGrainedKeyStatus
 
-  secret       String @unique
+  secret         String @unique
   secretRedacted String
   secretLength   Int
 

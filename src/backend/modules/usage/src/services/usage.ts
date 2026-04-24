@@ -20,8 +20,7 @@ class UsageServiceImpl {
 
   async getUsageTimeline(opts: {
     owners: { id: string; type: 'instance' | 'organization' }[];
-    entityIds: string[];
-    entityTypes: string[];
+    entities: { type: string; id?: string }[];
 
     from: Date;
     to: Date;
@@ -33,8 +32,7 @@ class UsageServiceImpl {
   }) {
     return getUsageTimeline({
       ownerIds: opts.owners.map(owner => owner.id),
-      entityIds: opts.entityIds,
-      entityTypes: opts.entityTypes,
+      entities: opts.entities,
       from: opts.from,
       to: opts.to,
       interval: opts.interval

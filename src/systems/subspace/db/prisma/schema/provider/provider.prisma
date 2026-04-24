@@ -34,6 +34,7 @@ model Provider {
 
   access ProviderAccess
   status ProviderStatus
+  isDeprecated Boolean @default(false)
 
   hasEnvironments Boolean @default(false)
 
@@ -69,34 +70,39 @@ model Provider {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  variants                  ProviderVariant[]
-  providerVersions          ProviderVersion[]
-  deployment                ProviderDeployment[]
-  listing                   ProviderListing?
-  providerConfigs           ProviderConfig[]
-  tools                     ProviderTool[]
-  authMethods               ProviderAuthMethod[]
-  providerSpecifications    ProviderSpecification[]
-  providerConfigVaults      ProviderConfigVault[]
-  providerAuthCredentials   ProviderAuthCredentials[]
-  providerOAuthSetups       ProviderOAuthSetup[]
-  providerAuthConfigs       ProviderAuthConfig[]
-  providerTriggers          ProviderTrigger[]
-  providerToolGlobals       ProviderToolGlobal[]
-  providerAuthMethodGlobals ProviderAuthMethodGlobal[]
-  providerTriggerGlobals    ProviderTriggerGlobal[]
-  providerSetupSessions     ProviderSetupSession[]
-  sessionProviders          SessionProvider[]
-  providerRuns              ProviderRun[]
-  sessionTemplateProviders  SessionTemplateProvider[]
-  sessionParticipants       SessionParticipant[]
-  sessionErrorGroups        SessionErrorGroup[]
-  environmentProviders      EnvironmentProvider[]
-  customProvider            CustomProvider?
-  providerEnvironments      ProviderEnvironment[]
-  providerUses              ProviderUse[]
-  identityCredentials       IdentityCredential[]
+  variants                       ProviderVariant[]
+  providerVersions               ProviderVersion[]
+  deployment                     ProviderDeployment[]
+  listing                        ProviderListing?
+  providerConfigs                ProviderConfig[]
+  tools                          ProviderTool[]
+  authMethods                    ProviderAuthMethod[]
+  providerSpecifications         ProviderSpecification[]
+  providerConfigVaults           ProviderConfigVault[]
+  providerAuthCredentials        ProviderAuthCredentials[]
+  providerOAuthSetups            ProviderOAuthSetup[]
+  providerAuthConfigs            ProviderAuthConfig[]
+  providerTriggers               ProviderTrigger[]
+  providerToolGlobals            ProviderToolGlobal[]
+  providerAuthMethodGlobals      ProviderAuthMethodGlobal[]
+  providerTriggerGlobals         ProviderTriggerGlobal[]
+  providerSetupSessions          ProviderSetupSession[]
+  sessionProviders               SessionProvider[]
+  providerRuns                   ProviderRun[]
+  sessionTemplateProviders       SessionTemplateProvider[]
+  sessionParticipants            SessionParticipant[]
+  sessionErrorGroups             SessionErrorGroup[]
+  authConfigEvents               ProviderAuthConfigEvent[]
+  authConfigErrors               ProviderAuthConfigError[]
+  authConfigErrorGlobals         ProviderAuthConfigErrorGlobal[]
+  environmentProviders           EnvironmentProvider[]
+  customProvider                 CustomProvider?
+  providerEnvironments           ProviderEnvironment[]
+  providerUses                   ProviderUse[]
+  identityCredentials            IdentityCredential[]
+  managedProviderAuthCredentials ManagedProviderAuthCredentials[]
 
   @@index([status])
   @@index([access])
+  @@index([isDeprecated])
 }

@@ -10,6 +10,7 @@ import { extractToken } from '@metorial/bearer';
 import { Instance } from '@metorial/db';
 import { generateSnowflakeId } from '@metorial/id';
 import { AuthInfo } from '@metorial/module-access';
+import { consumerIntegrationService } from '@metorial/module-consumer';
 import {
   ensureMagicMcpSubspaceSession,
   magicMcpEndpointService,
@@ -32,7 +33,7 @@ type MagicMcpTokenForRouting = Awaited<
 export type MagicMcpSubspaceSessionInfo = {
   type: 'magic_mcp_subspace_session';
   magicMcpTarget: MagicMcpTargetForRouting;
-  subspaceSessionMapping: MagicMcpSubspaceMapping;
+  magicMcpSessionMapping: MagicMcpSubspaceMapping;
 };
 
 export let getMagicMcpTokenSecretFromRequest = (request: Request, url: URL) => {
@@ -216,12 +217,36 @@ export let resolveMagicMcpSubspaceSession = async (d: {
     });
   }
 
-  let subspaceSessionMapping = await ensureMagicMcpSubspaceSession(magicMcpTarget);
+  let magicMcpSessionMapping = await ensureMagicMcpSubspaceSession(magicMcpTarget);
+  let consumerToken = magicMcpToken
+    ? await consumerIntegrationService.findConsumerTokenByMagicMcpToken({
+        magicMcpToken
+      })
+    : null;
+
+  if (consumerToken) {
+    await consumerIntegrationService.materializeMagicMcpSessionOwnership({
+      consumerProfile: consumerToken.consumerProfile,
+      magicMcpTarget,
+      magicMcpSession: magicMcpSessionMapping
+    });
+
+    await consumerIntegrationService.markMagicMcpResourcesConsumerReconciled({
+      magicMcpToken,
+      magicMcpServer: magicMcpTarget.type === 'server' ? magicMcpTarget.target : null,
+      magicMcpEndpoint: magicMcpTarget.type === 'endpoint' ? magicMcpTarget.target : null,
+      magicMcpServers:
+        magicMcpTarget.type === 'endpoint'
+          ? magicMcpTarget.target.servers.map(server => server.magicMcpServer)
+          : undefined,
+      magicMcpSession: magicMcpSessionMapping
+    });
+  }
 
   return {
     type: 'magic_mcp_subspace_session',
     magicMcpTarget,
-    subspaceSessionMapping
+    magicMcpSessionMapping
   };
 };
 
@@ -256,7 +281,7 @@ export let handleMagicMcpRequest = async (d: {
       return await proxyMcpRequestToSubspace(
         d.c,
         sessionInfo.magicMcpTarget.target.instance,
-        sessionInfo.subspaceSessionMapping.subspaceSessionId
+        sessionInfo.magicMcpSessionMapping.subspaceSessionId
       );
     }
   );

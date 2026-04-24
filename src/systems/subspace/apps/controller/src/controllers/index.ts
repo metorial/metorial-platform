@@ -2,6 +2,9 @@ import { apiMux } from '@lowerdeck/api-mux';
 import { createServer, type InferClient, rpcMux } from '@lowerdeck/rpc-server';
 import { app } from './_app';
 import { actorController } from './actor';
+import { authConfigErrorController } from './authConfigError';
+import { authConfigErrorGlobalController } from './authConfigErrorGlobal';
+import { authConfigEventController } from './authConfigEvent';
 import { brandController } from './brand';
 import { bucketController } from './bucket';
 import { callbackController } from './callback';
@@ -18,12 +21,12 @@ import { customProviderDeploymentController } from './customProviderDeployment';
 import { customProviderEnvironmentController } from './customProviderEnvironment';
 import { customProviderVersionController } from './customProviderVersion';
 import { environmentController } from './environment';
-import { identityActorController } from './identityActor';
 import { identityController } from './identity';
-import { identityDelegationConfigController } from './identityDelegationConfig';
-import { identityDelegationController } from './identityDelegation';
-import { identityDelegationRequestController } from './identityDelegationRequest';
+import { identityActorController } from './identityActor';
 import { identityCredentialController } from './identityCredential';
+import { identityDelegationController } from './identityDelegation';
+import { identityDelegationConfigController } from './identityDelegationConfig';
+import { identityDelegationRequestController } from './identityDelegationRequest';
 import { managedProviderAuthCredentialsController } from './managedProviderAuthCredentials';
 import { networkingRulesetController } from './networkingRuleset';
 import { providerController } from './provider';
@@ -38,6 +41,7 @@ import { providerConfigController } from './providerConfig';
 import { providerConfigVaultController } from './providerConfigVault';
 import { providerDeploymentController } from './providerDeployment';
 import { providerListingGroupController } from './providerGroup';
+import { providerInvocationController } from './providerInvocation';
 import { providerListingController } from './providerListing';
 import { providerOAuthSetupController } from './providerOAuthSetup';
 import { providerRunController } from './providerRun';
@@ -70,9 +74,12 @@ import { solutionController } from './solution';
 import { tenantController } from './tenant';
 import { toolCallController } from './toolCall';
 
-export let rootController = app.controller({
+let systemControllers = {
   environment: environmentController,
   actor: actorController,
+  authConfigEvent: authConfigEventController,
+  authConfigError: authConfigErrorController,
+  authConfigErrorGlobal: authConfigErrorGlobalController,
   identity: identityController,
   identityActor: identityActorController,
   identityDelegation: identityDelegationController,
@@ -80,8 +87,10 @@ export let rootController = app.controller({
   identityDelegationRequest: identityDelegationRequestController,
   identityCredential: identityCredentialController,
   solution: solutionController,
-  tenant: tenantController,
+  tenant: tenantController
+};
 
+let callbackControllers = {
   brand: brandController,
   callback: callbackController,
   callbackDestination: callbackDestinationController,
@@ -89,12 +98,13 @@ export let rootController = app.controller({
   callbackInstance: callbackInstanceController,
   callbackDelivery: callbackDeliveryController,
   callbackDeliveryAttempt: callbackDeliveryAttemptController,
-
   publisher: publisherController,
+  toolCall: toolCallController
+};
 
-  toolCall: toolCallController,
-
+let providerControllers = {
   provider: providerController,
+  providerInvocation: providerInvocationController,
   managedProviderAuthCredentials: managedProviderAuthCredentialsController,
   providerAuthConfig: providerAuthConfigController,
   providerAuthCredentials: providerAuthCredentialsController,
@@ -115,7 +125,10 @@ export let rootController = app.controller({
   providerTrigger: providerTriggerController,
   providerVariant: providerVariantController,
   providerVersion: providerVersionController,
+  providerRun: providerRunController
+};
 
+let sessionControllers = {
   session: sessionController,
   sessionProvider: sessionProviderController,
   sessionConnection: sessionConnectionController,
@@ -126,30 +139,52 @@ export let rootController = app.controller({
   sessionParticipant: sessionParticipantController,
   sessionTemplate: sessionTemplateController,
   sessionTemplateProvider: sessionTemplateProviderController,
+  sessionUsageRecord: sessionUsageRecordController,
+  providerRunUsageRecord: providerRunUsageRecordController
+};
 
+let extensionControllers = {
   customProvider: customProviderController,
   customProviderCommit: customProviderCommitController,
   customProviderDeployment: customProviderDeploymentController,
   customProviderVersion: customProviderVersionController,
   customProviderEnvironment: customProviderEnvironmentController,
-
   containerRegistry: containerRegistryController,
   containerRepository: containerRepositoryController,
   networkingRuleset: networkingRulesetController,
-
-  providerRun: providerRunController,
-
   scmConnection: scmConnectionController,
   scmConnectionSetupSession: scmConnectionSetupSessionController,
   scmProvider: scmProviderController,
   scmProviderSetupSession: scmProviderSetupSessionController,
   scmRepository: scmRepositoryController,
   scmPush: scmPushController,
-  bucket: bucketController,
+  bucket: bucketController
+};
 
-  sessionUsageRecord: sessionUsageRecordController,
-  providerRunUsageRecord: providerRunUsageRecordController
-});
+type SystemControllers = typeof systemControllers;
+type CallbackControllers = typeof callbackControllers;
+type ProviderControllers = typeof providerControllers;
+type SessionControllers = typeof sessionControllers;
+type ExtensionControllers = typeof extensionControllers;
+
+type RootController = SystemControllers &
+  CallbackControllers &
+  ProviderControllers &
+  SessionControllers &
+  ExtensionControllers;
+
+let createRootController = (): RootController =>
+  app.controller({
+    ...systemControllers,
+    ...callbackControllers,
+    ...providerControllers,
+    ...sessionControllers,
+    ...extensionControllers
+  });
+
+export type SubspaceControllerRoot = RootController;
+
+let rootController: SubspaceControllerRoot = createRootController();
 
 export let subspaceControllerRPC = createServer({})(rootController);
 export let subspaceControllerApi = apiMux([

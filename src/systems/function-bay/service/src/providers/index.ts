@@ -1,8 +1,13 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { env } from '../env';
 import { awsLambda } from './aws-lambda';
+import { localProvider } from './local';
 
 export let providers = [awsLambda];
+if (env.provider.DEFAULT_PROVIDER === 'local' && process.env.NODE_ENV !== 'production') {
+  providers.push(localProvider);
+}
+
 export let defaultProvider = providers.find(
   p => p.identifier == env.provider.DEFAULT_PROVIDER
 )!;

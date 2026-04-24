@@ -1,25 +1,24 @@
+import { Encryption } from '@lowerdeck/encryption';
+import { defineFactory } from '@lowerdeck/testing-tools';
 import { randomBytes } from 'crypto';
 import type {
-  PrismaClient,
-  FunctionVersion,
-  Function as FunctionModel,
-  Runtime,
   FunctionBundle,
-  Tenant,
-  Provider
+  Function as FunctionModel,
+  FunctionVersion,
+  PrismaClient,
+  Provider,
+  Runtime,
+  Tenant
 } from '../../../prisma/generated/client';
 import { FunctionVersionStatus } from '../../../prisma/generated/client';
 import { getId } from '../../id';
-import { defineFactory } from '@lowerdeck/testing-tools';
-import { FunctionFixtures } from './functionFixtures';
 import { FunctionBundleFixtures } from './functionBundleFixtures';
-import { Encryption } from '@lowerdeck/encryption';
-import {
-  resolveEncryptedEnvironmentVariables,
-  withoutEncryptedEnvOverrides
-} from './helpers';
+import { FunctionFixtures } from './functionFixtures';
+import { resolveEncryptedEnvironmentVariables, withoutEncryptedEnvOverrides } from './helpers';
 
-const testEncryption = new Encryption(process.env.ENCRYPTION_KEY || 'test-encryption-key-32-bytes-key');
+const testEncryption = new Encryption(
+  process.env.ENCRYPTION_KEY || 'test-encryption-key-32-bytes-key'
+);
 
 export const FunctionVersionFixtures = (db: PrismaClient) => {
   const functionFixtures = FunctionFixtures(db);
@@ -32,8 +31,7 @@ export const FunctionVersionFixtures = (db: PrismaClient) => {
     overrides?: Partial<FunctionVersion>;
   }): Promise<FunctionVersion> => {
     const { oid, id } = getId('functionVersion');
-    const identifier =
-      data.overrides?.identifier ?? `v${randomBytes(2).toString('hex')}`;
+    const identifier = data.overrides?.identifier ?? `v${randomBytes(2).toString('hex')}`;
 
     const encryptedEnv = await resolveEncryptedEnvironmentVariables({
       overrides: data.overrides,
@@ -78,6 +76,7 @@ export const FunctionVersionFixtures = (db: PrismaClient) => {
     functionOverrides?: Partial<FunctionModel>;
     versionOverrides?: Partial<FunctionVersion>;
     bundleOverrides?: Partial<FunctionBundle>;
+    localRuntime?: boolean;
   }): Promise<
     FunctionVersion & {
       function: FunctionModel & { tenant: Tenant; runtime: Runtime & { provider: Provider } };
@@ -87,7 +86,8 @@ export const FunctionVersionFixtures = (db: PrismaClient) => {
   > => {
     const func = await functionFixtures.withTenantAndRuntime({
       tenantOverrides: data?.tenantOverrides,
-      functionOverrides: data?.functionOverrides
+      functionOverrides: data?.functionOverrides,
+      localRuntime: data?.localRuntime
     });
 
     const bundle = await bundleFixtures.available({
@@ -121,7 +121,10 @@ export const FunctionVersionFixtures = (db: PrismaClient) => {
       }
     }) as Promise<
       FunctionVersion & {
-        function: FunctionModel & { tenant: Tenant; runtime: Runtime & { provider: Provider } };
+        function: FunctionModel & {
+          tenant: Tenant;
+          runtime: Runtime & { provider: Provider };
+        };
         runtime: Runtime;
         functionBundle: FunctionBundle;
       }

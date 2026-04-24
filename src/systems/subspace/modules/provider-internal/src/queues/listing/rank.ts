@@ -51,7 +51,7 @@ let startRankQueueProcessor = startRankQueue.process(async data => {
     }))
   );
 
-  await startRankQueue.add({ cursor: providers[providers.length - 1].id });
+  await startRankQueue.add({ cursor: providers[providers.length - 1]!.id });
 });
 
 let processSingleRankQueueProcessor = processSingleRankQueue.process(async data => {
@@ -118,7 +118,7 @@ let processSingleRankQueueProcessor = processSingleRankQueue.process(async data 
   } else if (isOfficial || isVerified) rank = Math.ceil(rank * 3);
 
   let hasManagedCredentials = await db.managedProviderAuthCredentials.findFirst({
-    where: { providerAuthMethod: { providerOid: providerListing.providerOid } }
+    where: { providerOid: providerListing.providerOid }
   });
 
   if (hasManagedCredentials) rank += 50_000;

@@ -152,6 +152,7 @@ export let managedProviderAuthCredentialsController = app.controller({
     .do(async ctx =>
       managedProviderAuthCredentialsPresenter(
         await managedProviderAuthCredentialsService.archiveManagedProviderAuthCredentials({
+          solution: ctx.solution,
           managedProviderAuthCredentials: ctx.managedProviderAuthCredentials
         })
       )

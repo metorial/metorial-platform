@@ -3,6 +3,7 @@ import { cleanupCron } from './cron/cleanup';
 import { deploymentConfigPairQueues } from './queues/deploymentConfigPair';
 import { lifecycleQueues } from './queues/lifecycle';
 import { listingQueues } from './queues/listing';
+import { reconcilerQueues } from './queues/reconciler';
 import { searchQueues } from './queues/search';
 import { versionQueues } from './queues/version';
 
@@ -10,6 +11,7 @@ export * from './services';
 
 export * from './lib/checkProviderMatch';
 export * from './lib/toolFilter';
+export * from './lib/toolScopes';
 
 export let providerInternalQueueProcessor = combineQueueProcessors([
   listingQueues,
@@ -17,5 +19,6 @@ export let providerInternalQueueProcessor = combineQueueProcessors([
   lifecycleQueues,
   deploymentConfigPairQueues,
   versionQueues,
-  searchQueues
+  searchQueues,
+  reconcilerQueues
 ]);

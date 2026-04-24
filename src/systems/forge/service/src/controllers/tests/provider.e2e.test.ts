@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { env } from '../../env';
 import { forgeClient } from '../../test/client';
 import { cleanDatabase } from '../../test/setup';
 
-vi.mock('../../providers/aws-codebuild', () => ({
-  startAwsCodeBuildQueue: { add: vi.fn().mockResolvedValue({ id: 'test-job' }) }
+vi.mock('../../providers', () => ({
+  startBuildQueue: { add: vi.fn().mockResolvedValue({ id: 'test-job' }) }
 }));
 
 vi.mock('../../storage', () => ({
@@ -26,7 +27,7 @@ describe('provider:getDefault E2E', () => {
     expect(result).toMatchObject({
       id: expect.any(String),
       identifier: expect.any(String),
-      name: 'aws.code-build',
+      name: env.provider.DEFAULT_PROVIDER,
       createdAt: expect.any(Date)
     });
   });

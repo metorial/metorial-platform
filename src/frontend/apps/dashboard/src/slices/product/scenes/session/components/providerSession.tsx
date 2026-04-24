@@ -1,6 +1,10 @@
 import { DashboardInstanceSessionsProvidersGetOutput } from '@metorial/dashboard-sdk';
 import { renderWithLoader } from '@metorial/data-hooks';
-import { useCurrentInstance, useProviderRuns } from '@metorial/state';
+import {
+  useCurrentInstance,
+  useProviderInvocations,
+  useProviderRuns
+} from '@metorial/state';
 import { Button, theme } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import {
@@ -10,8 +14,9 @@ import {
   RiServerLine
 } from '@remixicon/react';
 import { useInView } from 'framer-motion';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import styled from 'styled-components';
+import { ProviderInvocationEntry } from '../../providerInvocations';
 import { useEvents } from '../hooks/useEvents';
 import { Entry } from './entry';
 import { ItemList } from './itemList';
@@ -107,6 +112,18 @@ export let ProviderSession = ({
     }
   );
 
+  let providerRunIds = useMemo(
+    () => providerRuns.data?.items.map(run => run.id) ?? [],
+    [providerRuns.data?.items]
+  );
+
+  let providerInvocations = useProviderInvocations(
+    canFetch && instance.data?.id && providerRunIds.length > 0
+      ? instance.data.id
+      : undefined,
+    providerRunIds.length > 0 ? { providerRunId: providerRunIds } : undefined
+  );
+
   let eventItems = useEvents(canFetch ? providerSession.sessionId : undefined, {
     providerSessionId: [providerSession.id],
     limit: 100
@@ -136,6 +153,9 @@ export let ProviderSession = ({
 
         <Main>
           {renderWithLoader({ providerRuns, eventItems })(({ providerRuns, eventItems }) => {
+            let invocationItems = providerInvocations.data?.items ?? [];
+            let hasInvocations = invocationItems.length > 0;
+
             let items = [
               {
                 component: (
@@ -183,6 +203,11 @@ export let ProviderSession = ({
                 }
               ]),
 
+              ...invocationItems.map(invocation => ({
+                component: <ProviderInvocationEntry invocation={invocation} />,
+                time: invocation.createdAt
+              })),
+
               ...eventItems.data
             ];
 
@@ -193,11 +218,12 @@ export let ProviderSession = ({
             return (
               <>
                 <ItemList items={items} />
-                {providerRuns.data.items.map(run => (
-                  <div key={run.id} style={{ marginTop: 16 }}>
-                    <ProviderRunLogs providerRunId={run.id} lazy />
-                  </div>
-                ))}
+                {!hasInvocations &&
+                  providerRuns.data.items.map(run => (
+                    <div key={run.id} style={{ marginTop: 16 }}>
+                      <ProviderRunLogs providerRunId={run.id} lazy />
+                    </div>
+                  ))}
               </>
             );
           })}

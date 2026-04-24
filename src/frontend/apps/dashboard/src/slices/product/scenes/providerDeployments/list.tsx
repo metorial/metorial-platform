@@ -206,27 +206,11 @@ let ProviderDeploymentListItem = ({
                     />
                   }
                   title={deployment.name ?? 'Unnamed Deployment'}
-                  description={
-                    <>
-                      <Text size="1" color="gray600">
-                        {providerName}
-                      </Text>
-                      {(description || disabledReason) && <br />}
-                      {description}
-                      {disabledReason && (
-                        <>
-                          {description ? <br /> : null}
-                          <Text size="1" color="gray500">
-                            {disabledReason}
-                          </Text>
-                        </>
-                      )}
-                    </>
-                  }
+                  description={providerName}
                 />
                 <Entity.Field
                   title={
-                    <Text size="1" color="gray500">
+                    <Text size="1" color="gray700">
                       <RenderDate date={deployment.createdAt} />
                     </Text>
                   }

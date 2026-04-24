@@ -17,6 +17,7 @@ class providerAuthMethodServiceImpl {
     tenant?: Tenant;
     environment?: Environment;
     providerVersion: ProviderVersion;
+    includeDeprecated?: boolean;
   }) {
     let versionOid = d.providerVersion?.oid;
 
@@ -38,7 +39,10 @@ class providerAuthMethodServiceImpl {
           where: {
             AND: [
               {
-                provider: getProviderTenantFilter(d)
+                provider: getProviderTenantFilter({
+                  ...d,
+                  includeDeprecated: true
+                })
               }
             ],
             providerOid: d.providerVersion.providerOid,
@@ -90,10 +94,14 @@ class providerAuthMethodServiceImpl {
     solution: Solution;
     environment: Environment;
     providerAuthMethodId: string;
+    includeDeprecated?: boolean;
   }) {
     let providerAuthMethod = await db.providerAuthMethod.findFirst({
       where: {
-        provider: getProviderTenantFilter(d),
+        provider: getProviderTenantFilter({
+          ...d,
+          includeDeprecated: true
+        }),
         id: d.providerAuthMethodId
       },
       include: {

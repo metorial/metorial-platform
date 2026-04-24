@@ -26,7 +26,7 @@ export let subspaceSessionTemplateService = createSubspaceService(
     ) => {
       let eventBase = toEventBase(arg0);
 
-      let magicMcpLink1 = await db.magicMcpSubspaceSessionConnection.findFirst({
+      let magicMcpLink1 = await db.magicMcpSession.findFirst({
         where: { subspaceSessionTemplateId: arg0.sessionTemplateId }
       });
       let magicMcpLink2 = await db.magicMcpServer.findFirst({
@@ -56,7 +56,7 @@ export let subspaceSessionTemplateService = createSubspaceService(
     ) => {
       let eventBase = toEventBase(arg0);
 
-      let magicMcpLink1 = await db.magicMcpSubspaceSessionConnection.findFirst({
+      let magicMcpLink1 = await db.magicMcpSession.findFirst({
         where: { subspaceSessionTemplateId: arg0.sessionTemplateId }
       });
       let magicMcpLink2 = await db.magicMcpServer.findFirst({

@@ -131,6 +131,17 @@ class serverAuthConfigServiceImpl {
     return serverAuthConfig;
   }
 
+  async DANGEROUSLY_getServerAuthConfigById(d: { serverAuthConfigId: string }) {
+    let serverAuthConfig = await db.serverAuthConfig.findFirst({
+      where: {
+        id: d.serverAuthConfigId
+      },
+      include
+    });
+    if (!serverAuthConfig) throw new ServiceError(notFoundError('server.auth_config'));
+    return serverAuthConfig;
+  }
+
   async deleteServerAuthConfig(d: {
     tenant: Tenant;
     serverAuthConfig: {
@@ -268,6 +279,25 @@ class serverAuthConfigServiceImpl {
           await db.serverAuthConfig.findMany({
             ...opts,
             where: { tenantOid: d.tenant.oid },
+            include
+          })
+      )
+    );
+  }
+
+  async listServerAuthConfigsGlobal(d: {
+    serverAuthConfigIds?: string[];
+    serverIds?: string[];
+  }) {
+    return Paginator.create(({ prisma }) =>
+      prisma(
+        async opts =>
+          await db.serverAuthConfig.findMany({
+            ...opts,
+            where: {
+              id: d.serverAuthConfigIds ? { in: d.serverAuthConfigIds } : undefined,
+              server: d.serverIds ? { id: { in: d.serverIds } } : undefined
+            },
             include
           })
       )

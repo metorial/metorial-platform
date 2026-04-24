@@ -1,4 +1,4 @@
-import { fullDashboardController, magnetarController } from './controllers';
+import { consumerApiController, fullDashboardController, magnetarController } from './controllers';
 import { restServer } from './rest';
 
 export let apiServer = restServer.launch({
@@ -26,6 +26,18 @@ export let apiServer = restServer.launch({
         '2026-01-01-magnetar'
       ],
       controller: magnetarController
+    },
+    mt_2026_04_01_consumer: {
+      displayVersion: '2026-04-01',
+      apiVersion: 'mt_2026_04_01_consumer',
+      alternativeIdentifiers: [
+        'consumer',
+        '2026_04_01',
+        '2026-04-01',
+        'mt_2026_04_01_consumer',
+        '2026-04-01-consumer'
+      ],
+      controller: consumerApiController
     }
   },
   currentVersion: 'mt_2025_01_01_dashboard'

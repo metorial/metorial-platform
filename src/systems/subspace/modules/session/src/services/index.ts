@@ -1,3 +1,4 @@
+export * from './providerInvocation';
 export * from './providerRun';
 export * from './providerRunLogs';
 export * from './providerRunUsageRecord';

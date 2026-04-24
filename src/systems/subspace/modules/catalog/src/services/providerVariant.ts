@@ -25,6 +25,7 @@ class providerVariantServiceImpl {
     solution: Solution;
     tenant?: Tenant;
     environment?: Environment;
+    includeDeprecated?: boolean;
   }) {
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -32,7 +33,10 @@ class providerVariantServiceImpl {
           await db.providerVariant.findMany({
             ...opts,
             where: {
-              provider: getProviderTenantFilter(d)
+              provider: getProviderTenantFilter({
+                ...d,
+                includeDeprecated: d.includeDeprecated
+              })
             },
             include
           })
@@ -46,11 +50,15 @@ class providerVariantServiceImpl {
     tenant?: Tenant;
     environment?: Environment;
     provider?: Provider;
+    includeDeprecated?: boolean;
   }) {
     let providerVariant = await db.providerVariant.findFirst({
       where: {
         providerOid: d.provider ? d.provider.oid : undefined,
-        provider: getProviderTenantFilter(d),
+        provider: getProviderTenantFilter({
+          ...d,
+          includeDeprecated: true
+        }),
 
         AND: [
           {

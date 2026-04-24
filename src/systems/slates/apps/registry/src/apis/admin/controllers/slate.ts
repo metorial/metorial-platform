@@ -1,9 +1,50 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
+import { getPreferredCurrentSlateVersion } from '../../../lib/slateVersion/current';
 import { slatePresenter, slateVersionPresenter } from '../../../presenters';
 import { slateService, slateVersionService, userService } from '../../../services';
 import { app } from './_app';
 import { tenantApp } from './tenant';
+
+let presentCurrentVersion = (
+  version: {
+    id: string;
+    version: string;
+    createdAt: Date;
+  } | null
+) =>
+  version
+    ? {
+        id: version.id,
+        version: version.version,
+        createdAt: version.createdAt
+      }
+    : null;
+
+let presentAdminSlate = (slate: Awaited<ReturnType<typeof slateService.getSlateById>>) => {
+  let preferredCurrentVersion = getPreferredCurrentSlateVersion({
+    supportsBuilt: true,
+    unbuiltCurrentVersion: slate.unbuiltCurrentVersion,
+    builtOrUnbuiltCurrentVersion: slate.builtOrUnbuiltCurrentVersion
+  });
+
+  return {
+    ...slatePresenter(slate, { supportsPrebuilt: true }),
+    currentVersion: presentCurrentVersion(preferredCurrentVersion),
+    unbuiltCurrentVersion: presentCurrentVersion(slate.unbuiltCurrentVersion),
+    builtOrUnbuiltCurrentVersion: presentCurrentVersion(slate.builtOrUnbuiltCurrentVersion)
+  };
+};
+
+let presentAdminSlateVersion = (
+  slate: Awaited<ReturnType<typeof slateService.getSlateById>>,
+  slateVersion: Awaited<ReturnType<typeof slateVersionService.getSlateVersionById>>
+) => ({
+  ...slateVersionPresenter(slateVersion),
+  backend: slateVersion.backend,
+  isUnbuiltCurrent: slate.unbuiltCurrentVersion?.id === slateVersion.id,
+  isBuiltOrUnbuiltCurrent: slate.builtOrUnbuiltCurrentVersion?.id === slateVersion.id
+});
 
 export let slateApp = tenantApp.use(async ctx => {
   let slateId = ctx.body.slateId;
@@ -36,7 +77,7 @@ export let slateController = app.controller({
 
       let list = await paginator.run(ctx.input);
 
-      return Paginator.presentLight(list, slatePresenter);
+      return Paginator.presentLight(list, presentAdminSlate);
     }),
 
   get: slateApp
@@ -47,7 +88,7 @@ export let slateController = app.controller({
         slateId: v.string()
       })
     )
-    .do(async ctx => slatePresenter(ctx.slate)),
+    .do(async ctx => presentAdminSlate(ctx.slate)),
 
   updateSlate: slateApp
     .handler()
@@ -82,7 +123,7 @@ export let slateController = app.controller({
         }
       });
 
-      return slatePresenter(slate);
+      return presentAdminSlate(slate);
     }),
 
   version: app.controller({
@@ -103,7 +144,9 @@ export let slateController = app.controller({
 
         let list = await paginator.run(ctx.input);
 
-        return Paginator.presentLight(list, slateVersionPresenter);
+        return Paginator.presentLight(list, slateVersion =>
+          presentAdminSlateVersion(ctx.slate, slateVersion)
+        );
       }),
 
     create: tenantApp
@@ -126,7 +169,7 @@ export let slateController = app.controller({
           tenant: ctx.tenant
         });
 
-        let slate = await slateVersionService.publishSlateVersion({
+        let slateVersion = await slateVersionService.publishSlateVersion({
           user,
           input: {
             identifier:
@@ -141,7 +184,13 @@ export let slateController = app.controller({
             contentBase64: ctx.input.contentBase64
           }
         });
-        return slateVersionPresenter(slate);
+
+        let slate = await slateService.getSlateById({
+          id: slateVersion.slate.id,
+          tenant: ctx.tenant
+        });
+
+        return presentAdminSlateVersion(slate, slateVersion);
       }),
 
     get: slateApp

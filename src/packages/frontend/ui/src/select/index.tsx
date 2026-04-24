@@ -1,9 +1,10 @@
 import * as RadixSelect from '@radix-ui/react-select';
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { RiArrowDownSLine, RiArrowUpSLine, RiCheckLine } from '@remixicon/react';
-import React, { useEffect, useId, useMemo } from 'react';
+import React, { useEffect, useId, useMemo, useState } from 'react';
 import { keyframes, styled } from 'styled-components';
 import { ButtonSize, getButtonSize } from '../button/constants';
+import { useDialogZIndex } from '../dialog/state';
 import { Error } from '../error';
 import { InputDescription, InputLabel } from '../input';
 import { theme } from '../theme';
@@ -153,6 +154,9 @@ export let Select = ({
   let sizeStyles = getButtonSize(size);
   let normalizedValue = value === '' ? undefined : value;
 
+  let [isOpen, setIsOpen] = useState(false);
+  let zIndex = useDialogZIndex(isOpen);
+
   let disabledItems = useMemo(
     () =>
       items
@@ -190,7 +194,12 @@ export let Select = ({
 
       {description && <InputDescription>{description}</InputDescription>}
 
-      <RadixSelect.Root value={normalizedValue} onValueChange={onChange}>
+      <RadixSelect.Root
+        value={normalizedValue}
+        onValueChange={onChange}
+        open={isOpen}
+        onOpenChange={setIsOpen}
+      >
         <Trigger
           id={id}
           disabled={disabled}
@@ -206,7 +215,7 @@ export let Select = ({
           </RadixSelect.Icon>
         </Trigger>
         <RadixSelect.Portal>
-          <Content style={{ zIndex: 9999 }}>
+          <Content style={{ zIndex }}>
             <RadixSelect.ScrollUpButton className="SelectScrollButton">
               <RiArrowUpSLine size={14} />
             </RadixSelect.ScrollUpButton>

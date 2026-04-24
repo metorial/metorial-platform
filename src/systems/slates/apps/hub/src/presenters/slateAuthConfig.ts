@@ -27,7 +27,8 @@ export let slateAuthConfigPresenter = (
   error: config.errorCode
     ? {
         code: config.errorCode,
-        message: config.errorMessage ?? config.errorCode
+        message: config.errorMessage ?? config.errorCode,
+        invocationId: config.errorInvocationId ?? null
       }
     : null,
 
@@ -51,6 +52,8 @@ export let slateAuthConfigPresenter = (
         slate: config.slate
       })
     : null,
+
+  grantedScopes: config.grantedScopes,
 
   tokenExpiresAt: config.tokenExpiresAt,
 

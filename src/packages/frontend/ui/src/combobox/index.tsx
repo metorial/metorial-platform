@@ -163,7 +163,6 @@ let GroupLabel = styled(BaseCombobox.GroupLabel)`
   font-weight: 600;
   color: ${theme.colors.gray700};
   padding: 6px 8px 2px;
-  text-transform: uppercase;
   letter-spacing: 0.04em;
 `;
 
@@ -275,6 +274,12 @@ export type ComboboxProviderArgs<TData = unknown> = {
 export type ComboboxProviderResult<TData = unknown> = {
   items: ComboboxData<TData>;
   isLoading?: boolean;
+  status?: React.ReactNode;
+  empty?: React.ReactNode;
+};
+
+type CachedComboboxProviderResult<TData = unknown> = {
+  items: ComboboxData<TData>;
   status?: React.ReactNode;
   empty?: React.ReactNode;
 };
@@ -425,6 +430,12 @@ let ComboboxInner = <TData,>({
   let previousLoading = useRef(!!isLoading);
   let [animateArrowIn, setAnimateArrowIn] = useState(false);
   let dialog = useDialogContext();
+  let showLoading = open && !!isLoading;
+  let clearSelectedLabelSearch = () => {
+    if (search !== selectedLabel) return;
+    setSearch('');
+    onSearchChange?.('');
+  };
 
   useEffect(() => {
     if (flatItems.length === 0) return;
@@ -512,6 +523,11 @@ let ComboboxInner = <TData,>({
         onOpenChange={(nextOpen: boolean) => {
           setOpen(nextOpen);
 
+          if (nextOpen) {
+            clearSelectedLabelSearch();
+            return;
+          }
+
           if (!nextOpen && selectedLabel) {
             setSearch(selectedLabel);
           }
@@ -538,6 +554,7 @@ let ComboboxInner = <TData,>({
             readOnly={readOnly}
             onFocus={e => {
               setOpen(true);
+              clearSelectedLabelSearch();
               onFocus?.(e);
             }}
             style={{
@@ -550,13 +567,13 @@ let ComboboxInner = <TData,>({
           />
 
           <EndSlot>
-            <SpinnerSlot $visible={!!isLoading} aria-hidden={!isLoading}>
+            <SpinnerSlot $visible={showLoading} aria-hidden={!showLoading}>
               <Spinner size={14} foreground={theme.colors.gray700} background="transparent" />
             </SpinnerSlot>
 
             <Trigger
               $animateIn={animateArrowIn}
-              $loading={!!isLoading}
+              $loading={showLoading}
               aria-label={typeof label == 'string' ? label : 'Toggle options'}
             >
               <RiArrowDownSLine size={16} />
@@ -647,12 +664,41 @@ let ProvidedCombobox = <TData,>({
   ...props
 }: ProviderComboboxProps<TData>) => {
   let [search, setSearch] = useState(props.valueLabel ?? '');
-  let searchQuery = useDebouncedValue(search, props.debounceMs ?? 500).trim() || undefined;
-  let result = provider({
+  let immediateSearchQuery = search.trim() || undefined;
+  let debouncedSearchQuery =
+    useDebouncedValue(immediateSearchQuery, props.debounceMs ?? 500) || undefined;
+  let searchQuery = immediateSearchQuery ? debouncedSearchQuery : undefined;
+  let isSearchPending = immediateSearchQuery !== searchQuery;
+  let cacheRef = useRef<Map<string, CachedComboboxProviderResult<TData>>>(new Map());
+  let liveResult = provider({
     search,
     searchQuery,
     value
   });
+  let resolvedQueryKey = searchQuery ?? '';
+  let pendingQueryKey = immediateSearchQuery ?? '';
+  let activeCacheKey = isSearchPending ? pendingQueryKey : resolvedQueryKey;
+
+  useEffect(() => {
+    if (liveResult.isLoading) return;
+
+    cacheRef.current.set(resolvedQueryKey, {
+      items: liveResult.items,
+      status: liveResult.status,
+      empty: liveResult.empty
+    });
+  }, [liveResult.empty, liveResult.isLoading, liveResult.items, liveResult.status, resolvedQueryKey]);
+
+  let cachedResult = cacheRef.current.get(activeCacheKey);
+  let result =
+    cachedResult && (liveResult.isLoading || isSearchPending)
+      ? {
+          items: cachedResult.items,
+          status: liveResult.status ?? cachedResult.status,
+          empty: liveResult.empty ?? cachedResult.empty,
+          isLoading: true
+        }
+      : liveResult;
 
   return (
     <ComboboxInner
@@ -661,6 +707,7 @@ let ProvidedCombobox = <TData,>({
       search={search}
       setSearch={setSearch}
       {...result}
+      isLoading={result.isLoading || (isSearchPending && !cachedResult)}
       onSearchChange={props.onSearchChange}
     />
   );

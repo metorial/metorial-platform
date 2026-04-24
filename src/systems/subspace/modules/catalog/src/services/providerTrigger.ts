@@ -38,7 +38,10 @@ class providerTriggerServiceImpl {
         if (opts.cursor?.id) {
           let trigger = await db.providerTrigger.findFirst({
             where: {
-              provider: getProviderTenantFilter(d),
+              provider: getProviderTenantFilter({
+                ...d,
+                includeDeprecated: true
+              }),
               OR: [{ id: opts.cursor.id }, { global: { id: opts.cursor.id } }]
             },
             include: {
@@ -57,7 +60,10 @@ class providerTriggerServiceImpl {
           where: {
             AND: [
               {
-                provider: getProviderTenantFilter(d)
+                provider: getProviderTenantFilter({
+                  ...d,
+                  includeDeprecated: true
+                })
               }
             ],
             providerOid: d.providerVersion.providerOid,
@@ -111,7 +117,10 @@ class providerTriggerServiceImpl {
   }) {
     let providerTrigger = await db.providerTrigger.findFirst({
       where: {
-        provider: getProviderTenantFilter(d),
+        provider: getProviderTenantFilter({
+          ...d,
+          includeDeprecated: true
+        }),
 
         id: d.providerTriggerId
       },

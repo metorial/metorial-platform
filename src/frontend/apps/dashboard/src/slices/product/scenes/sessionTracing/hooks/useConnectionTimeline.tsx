@@ -1,0 +1,377 @@
+import {
+  DashboardInstanceSessionsGetOutput,
+  DashboardInstanceSessionsMessagesGetOutput
+} from '@metorial/dashboard-sdk';
+import {
+  useCurrentInstance,
+  useProviderInvocations,
+  useProviderRuns,
+  useSessionConnection,
+  useSessionEvents,
+  useSessionMessages
+} from '@metorial/state';
+import {
+  RiCornerUpRightDoubleLine,
+  RiErrorWarningLine,
+  RiPlugLine,
+  RiRadarLine,
+  RiSendPlane2Line,
+  RiServerLine
+} from '@remixicon/react';
+import { useEffect, useMemo, useRef } from 'react';
+import { ProviderInvocationEntry } from '../../providerInvocations';
+import { Entry } from '../../session/components/entry';
+import { ProviderRunLogs } from '../../session/components/providerRunLogs';
+import { useAggregatedMessages } from '../../session/hooks/useAggregatedMessages';
+import {
+  ExplorerCapabilitiesMessageGroup,
+  Message,
+  getMessageMethod,
+  isExplorerCapabilityMethod,
+  shouldRenderStandaloneMessage
+} from '../../sessionMessages';
+import { SessionConnection, TimelineItem } from '../types';
+import { formatConnectionLabel, getEventConnectionId } from '../utils';
+
+export let useConnectionTimeline = ({
+  session,
+  connection: connectionProp
+}: {
+  session: DashboardInstanceSessionsGetOutput;
+  connection: SessionConnection;
+}) => {
+  let instance = useCurrentInstance();
+  let instanceId = instance.data?.id;
+
+  let connectionQuery = useSessionConnection(instanceId, connectionProp.id);
+  let connection = (connectionQuery.data ?? connectionProp) as SessionConnection;
+
+  let messages = useSessionMessages(instanceId, session.id, {
+    limit: 100,
+    sessionConnectionId: [connection.id]
+  });
+  let events = useSessionEvents(instanceId, session.id, {
+    limit: 100,
+    sessionConnectionId: [connection.id]
+  });
+  let providerRuns = useProviderRuns(instanceId, session.id, {
+    limit: 100,
+    sessionConnectionId: [connection.id]
+  });
+
+  let providerRunItems = useMemo(
+    () => providerRuns.data?.items ?? [],
+    [providerRuns.data?.items]
+  );
+  let providerRunIds = useMemo(
+    () => providerRunItems.map(run => run.id),
+    [providerRunItems]
+  );
+
+  let providerInvocations = useProviderInvocations(
+    instanceId && providerRunIds.length > 0 ? instanceId : undefined,
+    providerRunIds.length > 0 ? { providerRunId: providerRunIds } : undefined
+  );
+
+  let refetchMessagesRef = useRef(messages.refetch);
+  refetchMessagesRef.current = messages.refetch;
+  let refetchEventsRef = useRef(events.refetch);
+  refetchEventsRef.current = events.refetch;
+  let refetchProviderRunsRef = useRef(providerRuns.refetch);
+  refetchProviderRunsRef.current = providerRuns.refetch;
+  let refetchConnectionRef = useRef(connectionQuery.refetch);
+  refetchConnectionRef.current = connectionQuery.refetch;
+  let refetchProviderInvocationsRef = useRef(providerInvocations.refetch);
+  refetchProviderInvocationsRef.current = providerInvocations.refetch;
+
+  useEffect(() => {
+    if (!instanceId) return;
+    let id = setInterval(() => {
+      refetchConnectionRef.current?.();
+      refetchMessagesRef.current?.();
+      refetchEventsRef.current?.();
+      refetchProviderRunsRef.current?.();
+      refetchProviderInvocationsRef.current?.();
+    }, 5_000);
+    return () => clearInterval(id);
+  }, [instanceId, session.id, connection.id]);
+
+  let allMessages = useMemo(() => {
+    let messageMap = new Map<string, DashboardInstanceSessionsMessagesGetOutput>();
+
+    for (let msg of messages.data?.items ?? []) {
+      messageMap.set(msg.id, msg);
+    }
+
+    for (let evt of events.data?.items ?? []) {
+      if (evt.type === 'message_created' && evt.message) {
+        let evtMsg = evt.message as DashboardInstanceSessionsMessagesGetOutput;
+        let existing = messageMap.get(evtMsg.id);
+        if (!existing || (!existing.output && evtMsg.output)) {
+          messageMap.set(evtMsg.id, evtMsg);
+        }
+      }
+    }
+
+    return Array.from(messageMap.values()).sort((a, b) => {
+      let aId = Number(a.transport?.mcp?.id ?? 0);
+      let bId = Number(b.transport?.mcp?.id ?? 0);
+      if (aId !== bId) return aId - bId;
+      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    });
+  }, [events.data?.items, messages.data?.items]);
+
+  let messageById = useMemo(
+    () => new Map(allMessages.map(message => [message.id, message])),
+    [allMessages]
+  );
+
+  let aggregatedMessages = useAggregatedMessages(allMessages);
+  let mcp = connection.mcp as
+    | (NonNullable<SessionConnection['mcp']> & {
+        client?: { name?: string; version?: string } | null;
+        server?: { name?: string; version?: string } | null;
+        connectionType?: string | null;
+      })
+    | undefined;
+  let visibleMessages = useMemo(
+    () =>
+      allMessages.filter(message =>
+        shouldRenderStandaloneMessage(message, aggregatedMessages)
+      ),
+    [aggregatedMessages, allMessages]
+  );
+
+  let messageItems = useMemo<TimelineItem[]>(() => {
+    let capabilityMessages = visibleMessages.filter(message =>
+      isExplorerCapabilityMethod(getMessageMethod(message, aggregatedMessages))
+    );
+    let capabilityMessageIds = new Set(capabilityMessages.map(message => message.id));
+    let clientName = mcp?.client?.name ?? connection.participant?.name ?? 'Client';
+    let items: TimelineItem[] = [];
+
+    if (capabilityMessages.length > 0) {
+      items.push({
+        component: (
+          <ExplorerCapabilitiesMessageGroup
+            aggregatedMessages={aggregatedMessages}
+            clientName={clientName}
+            messages={capabilityMessages}
+          />
+        ),
+        time: capabilityMessages[0].createdAt
+      });
+    }
+
+    for (let message of visibleMessages) {
+      if (capabilityMessageIds.has(message.id)) continue;
+
+      items.push({
+        component: <Message message={message} aggregatedMessages={aggregatedMessages} />,
+        time: message.createdAt
+      });
+    }
+
+    return items;
+  }, [aggregatedMessages, connection.participant?.name, mcp?.client?.name, visibleMessages]);
+
+  let providerRunById = useMemo(
+    () => new Map(providerRunItems.map(run => [run.id, run])),
+    [providerRunItems]
+  );
+
+  let invocationItems = useMemo(
+    () => providerInvocations.data?.items ?? [],
+    [providerInvocations.data?.items]
+  );
+  let hasInvocations = invocationItems.length > 0;
+
+  let eventItems = useMemo(() => {
+    let items: TimelineItem[] = [];
+    let renderedProviderRunLogs = new Set<string>();
+
+    for (let evt of events.data?.items ?? []) {
+      if (getEventConnectionId(evt) !== connection.id) continue;
+
+      let type = evt.type as string;
+      let runId = evt.providerRun?.id;
+      let providerRun = runId ? providerRunById.get(runId) : undefined;
+      let providerRunLogTime = providerRun?.createdAt ?? evt.createdAt;
+
+      if (type === 'error_occurred') {
+        let errorMsg =
+          evt.error?.code && evt.error?.message
+            ? `${evt.error.code} - ${evt.error.message}`
+            : (evt.error?.message ?? evt.warning?.message ?? null);
+        items.push({
+          component: (
+            <Entry
+              icon={<RiErrorWarningLine />}
+              title={errorMsg ? `Error: ${errorMsg}` : 'Error occurred'}
+              time={evt.createdAt}
+              variant="error"
+            />
+          ),
+          time: evt.createdAt
+        });
+      } else if (type === 'warning_occurred') {
+        let warningMsg =
+          evt.warning?.code && evt.warning?.message
+            ? `${evt.warning.code} - ${evt.warning.message}`
+            : (evt.warning?.message ?? evt.warning?.message ?? null);
+        items.push({
+          component: (
+            <Entry
+              icon={<RiErrorWarningLine />}
+              title={warningMsg ? `warning: ${warningMsg}` : 'warning occurred'}
+              time={evt.createdAt}
+              variant="warning"
+            />
+          ),
+          time: evt.createdAt
+        });
+      } else if (type === 'provider_run_started') {
+        items.push({
+          component: (
+            <Entry icon={<RiServerLine />} title="Provider started" time={evt.createdAt} />
+          ),
+          time: evt.createdAt
+        });
+        if (!hasInvocations && runId && !renderedProviderRunLogs.has(runId)) {
+          renderedProviderRunLogs.add(runId);
+          items.push({
+            component: <ProviderRunLogs providerRunId={runId} lazy />,
+            time: providerRunLogTime
+          });
+        }
+      } else if (type === 'provider_run_stopped') {
+        items.push({
+          component: (
+            <Entry icon={<RiServerLine />} title="Provider stopped" time={evt.createdAt} />
+          ),
+          time: evt.createdAt
+        });
+        if (!hasInvocations && runId && !renderedProviderRunLogs.has(runId)) {
+          renderedProviderRunLogs.add(runId);
+          items.push({
+            component: <ProviderRunLogs providerRunId={runId} lazy />,
+            time: providerRunLogTime
+          });
+        }
+      } else if (type === 'connection_disconnected') {
+        items.push({
+          component: (
+            <Entry
+              icon={<RiPlugLine />}
+              title="Connection disconnected"
+              time={evt.createdAt}
+            />
+          ),
+          time: evt.createdAt
+        });
+      }
+    }
+
+    if (!hasInvocations) {
+      for (let run of providerRunItems) {
+        if (!renderedProviderRunLogs.has(run.id)) {
+          let evtForConn = (events.data?.items ?? []).some(
+            event =>
+              getEventConnectionId(event) === connection.id &&
+              event.providerRun?.id === run.id
+          );
+          if (evtForConn) {
+            items.push({
+              component: <ProviderRunLogs providerRunId={run.id} lazy />,
+              time: run.createdAt
+            });
+          }
+        }
+      }
+    }
+
+    for (let invocation of invocationItems) {
+      let relatedMessageTimes = invocation.sessionMessageIds
+        .map(id => messageById.get(id)?.createdAt)
+        .filter((d): d is Date => d instanceof Date);
+
+      let time = invocation.createdAt;
+      if (relatedMessageTimes.length > 0) {
+        let latestMessage = relatedMessageTimes.reduce((max, d) =>
+          d.getTime() > max.getTime() ? d : max
+        );
+        time = new Date(latestMessage.getTime() + 1);
+      }
+
+      items.push({
+        component: <ProviderInvocationEntry invocation={invocation} />,
+        time
+      });
+    }
+
+    return items;
+  }, [
+    connection.id,
+    events.data?.items,
+    hasInvocations,
+    invocationItems,
+    messageById,
+    providerRunById,
+    providerRunItems
+  ]);
+
+  let timelineItems = useMemo<TimelineItem[]>(
+    () => [
+      {
+        component: (
+          <Entry icon={<RiRadarLine />} title="Client connected" time={connection.createdAt} />
+        ),
+        time: connection.createdAt
+      },
+      {
+        component: (
+          <Entry
+            icon={<RiSendPlane2Line />}
+            title="Session connection created"
+            time={connection.createdAt}
+          />
+        ),
+        time: connection.createdAt
+      },
+      ...eventItems,
+      ...messageItems
+    ],
+    [connection.createdAt, eventItems, messageItems]
+  );
+
+  let connectionProviders = useMemo(() => {
+    let sessionProviderIds = new Set(
+      providerRunItems.map(run => run.sessionProviderId).filter(Boolean)
+    );
+
+    if (sessionProviderIds.size === 0) return session.providers ?? [];
+
+    return (session.providers ?? []).filter(provider => sessionProviderIds.has(provider.id));
+  }, [providerRunItems, session.providers]);
+
+  return {
+    connection,
+    connectionName: formatConnectionLabel(connection, session),
+    connectionProviders,
+    isLoading:
+      messages.isLoading ||
+      events.isLoading ||
+      providerRuns.isLoading ||
+      (providerRunIds.length > 0 && providerInvocations.isLoading),
+    hasTimelineActivity: timelineItems.length > 2,
+    mcp,
+    timelineItems,
+    sessionEntry: (
+      <Entry
+        icon={<RiCornerUpRightDoubleLine />}
+        title="Session created"
+        time={session.createdAt}
+      />
+    )
+  };
+};

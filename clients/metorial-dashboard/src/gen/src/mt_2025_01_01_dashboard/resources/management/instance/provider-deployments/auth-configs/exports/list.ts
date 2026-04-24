@@ -55,6 +55,7 @@ export type ManagementInstanceProviderDeploymentsAuthConfigsExportsListOutput =
           name: string | null;
           description: string | null;
           metadata: Record<string, any> | null;
+          scopes: string[] | null;
           providerId: string;
           createdAt: Date;
           updatedAt: Date;
@@ -227,6 +228,10 @@ export let mapManagementInstanceProviderDeploymentsAuthConfigsExportsListOutput 
                     metadata: mtMap.objectField(
                       'metadata',
                       mtMap.passthrough()
+                    ),
+                    scopes: mtMap.objectField(
+                      'scopes',
+                      mtMap.array(mtMap.passthrough())
                     ),
                     providerId: mtMap.objectField(
                       'provider_id',

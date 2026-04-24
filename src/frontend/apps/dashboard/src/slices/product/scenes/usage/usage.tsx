@@ -1,6 +1,6 @@
 import { Chart } from '@metorial/chart';
 import { renderWithLoader } from '@metorial/data-hooks';
-import { useCurrentOrganization } from '@metorial/state';
+import { useCurrentOrganization, useInstances } from '@metorial/state';
 import { DatePicker, Select } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
 import { useUsageState } from './state';
@@ -11,13 +11,14 @@ export let UsageScene = ({
   entities,
   from,
   interval,
-  entityNames
+  entityNames,
+  labelBy = 'entity'
 }: {
   title: React.ReactNode;
   description?: React.ReactNode;
   entities: {
     type: string;
-    id: string;
+    id?: string;
   }[];
   from?: number;
   interval?: {
@@ -25,12 +26,57 @@ export let UsageScene = ({
     count: number;
   };
   entityNames: Record<string, string>;
+  labelBy?: 'entity' | 'owner';
 }) => {
   let isUsageIntervalUnit = (value: string): value is 'day' | 'hour' => {
     return value === 'day' || value === 'hour';
   };
 
-  let org = useCurrentOrganization();
+  let formatEntityTypeName = (entityType: string) =>
+    entityType
+      .split('_')
+      .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(' ');
+
+  let organization = useCurrentOrganization();
+  let instances = useInstances(labelBy === 'owner' ? organization.data?.id : null);
+
+  let ownerNames = new Map<string, string>();
+  if (organization.data) {
+    ownerNames.set(organization.data.id, organization.data.name);
+  }
+
+  let instanceItems = instances.data ?? [];
+  let nameCounts = new Map<string, number>();
+  for (let i of instanceItems) {
+    nameCounts.set(i.name, (nameCounts.get(i.name) ?? 0) + 1);
+  }
+  for (let i of instanceItems) {
+    let needsDisambiguation = (nameCounts.get(i.name) ?? 0) > 1;
+    let label =
+      needsDisambiguation && i.project?.name ? `${i.project.name} / ${i.name}` : i.name;
+    ownerNames.set(i.id, label);
+  }
+
+  let getSeriesName = (timeline: {
+    entityId: string;
+    entityType: string;
+    ownerId: string;
+  }) => {
+    if (labelBy === 'owner') {
+      return ownerNames.get(timeline.ownerId) ?? timeline.ownerId;
+    }
+
+    return (
+      entityNames[timeline.entityId] ??
+      entityNames[`type:${timeline.entityType}`] ??
+      entityNames[timeline.entityType] ??
+      (timeline.entityId === 'all'
+        ? `All ${formatEntityTypeName(timeline.entityType)}`
+        : timeline.entityId)
+    );
+  };
+
   let [usage, range] = useUsageState({
     entities,
     from,
@@ -86,8 +132,8 @@ export let UsageScene = ({
             height={300}
             type="line"
             series={usage.data.map(tl => ({
-              id: tl.entityId,
-              name: entityNames[tl.entityId] ?? tl.entityId,
+              id: `${tl.ownerId}:${tl.entityType}:${tl.entityId}`,
+              name: getSeriesName(tl),
               entries: tl.entries.map(e => ({ key: e.ts, value: e.count }))
             }))}
           />

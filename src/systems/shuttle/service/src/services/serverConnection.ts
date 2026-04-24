@@ -126,6 +126,17 @@ class serverConnectionServiceImpl {
     return serverConnection;
   }
 
+  async DANGEROUSLY_getServerConnectionById(d: { serverConnectionId: string }) {
+    let serverConnection = await db.serverConnection.findFirst({
+      where: {
+        id: d.serverConnectionId
+      },
+      include
+    });
+    if (!serverConnection) throw new ServiceError(notFoundError('server_connection'));
+    return serverConnection;
+  }
+
   async listServerConnections(d: { tenant: Tenant }) {
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -133,6 +144,19 @@ class serverConnectionServiceImpl {
           await db.serverConnection.findMany({
             ...opts,
             where: { tenantOid: d.tenant.oid },
+            include
+          })
+      )
+    );
+  }
+
+  async listServerConnectionsGlobal(d: { serverConnectionIds?: string[] }) {
+    return Paginator.create(({ prisma }) =>
+      prisma(
+        async opts =>
+          await db.serverConnection.findMany({
+            ...opts,
+            where: { id: d.serverConnectionIds ? { in: d.serverConnectionIds } : undefined },
             include
           })
       )
@@ -155,6 +179,24 @@ class serverConnectionServiceImpl {
         }));
       });
     }
+
+    let logs = await db.serverConnectionLogsTemp.findMany({
+      where: { serverConnectionOid: d.serverConnection.oid },
+      orderBy: { createdAt: 'asc' }
+    });
+
+    return logs.flatMap(log =>
+      log.logLines.flatMap(([tsRaw, outputTypeRaw, lines]) => {
+        let ts = new Date(tsRaw);
+        let outputType = outputTypeMapper.get(outputTypeRaw);
+
+        return lines.map(line => ({
+          timestamp: ts,
+          outputType: outputType!,
+          message: line
+        }));
+      })
+    );
   }
 }
 

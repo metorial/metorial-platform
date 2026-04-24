@@ -60,6 +60,14 @@ export let serverOAuthSetupPresenter = (
 
   url: `${env.service.PROVIDER_OAUTH_URL}/shuttle-oauth/start?setup_id=${serverOAuthSetup.id}`,
 
+  error:
+    serverOAuthSetup.status === 'failed'
+      ? {
+          code: 'oauth_setup_failed',
+          message: 'OAuth setup failed'
+        }
+      : null,
+
   authConfig: serverOAuthSetup.authConfig
     ? serverAuthConfigPresenter({
         ...serverOAuthSetup.authConfig,

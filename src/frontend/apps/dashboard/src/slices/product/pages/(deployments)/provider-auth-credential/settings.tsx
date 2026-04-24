@@ -9,8 +9,8 @@ import {
 import { Button, Callout, Checkbox, Flex, Input, Spacer, Text } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
 import { useMemo, useState } from 'react';
-import styled from 'styled-components';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import styled from 'styled-components';
 import { DeleteResourceDangerZone } from '../../../scenes/deleteResourceDangerZone';
 import { getFromDeployment } from '../fromDeployment';
 
@@ -62,8 +62,6 @@ export let ProviderAuthCredentialSettingsPage = () => {
     },
     updateInitialValues: true,
     onSubmit: async values => {
-      if (credential.data?.isManaged) return;
-
       await updateMutator.mutate({
         name: values.name.trim(),
         description: values.description || undefined
@@ -87,7 +85,7 @@ export let ProviderAuthCredentialSettingsPage = () => {
   };
 
   let saveScopes = async () => {
-    if (credential.data?.isManaged) return;
+    // if (credential.data?.isManaged) return;
     await scopesMutator.mutate({ scopes: [...effectiveScopes] });
   };
 
@@ -97,13 +95,6 @@ export let ProviderAuthCredentialSettingsPage = () => {
         title="Auth Credential Settings"
         description="Modify the settings of this auth credential."
       >
-        {credential.data.isManaged && (
-          <>
-            <Callout color="blue">Managed by Metorial.</Callout>
-            <Spacer size={15} />
-          </>
-        )}
-
         <form onSubmit={form.handleSubmit}>
           <Input label="Name" {...form.getFieldProps('name')} />
           <form.RenderError field="name" />
@@ -121,7 +112,6 @@ export let ProviderAuthCredentialSettingsPage = () => {
               type="submit"
               loading={updateMutator.isLoading}
               success={updateMutator.isSuccess}
-              disabled={credential.data.isManaged}
             >
               Save
             </Button>
@@ -139,20 +129,12 @@ export let ProviderAuthCredentialSettingsPage = () => {
             title="Scopes"
             description="Select which OAuth scopes this credential should request."
           >
-            {credential.data.isManaged && (
-              <>
-                <Callout color="blue">Managed by Metorial.</Callout>
-                <Spacer size={15} />
-              </>
-            )}
-
             <ScopesList>
               {availableScopes.map(scope => (
                 <ScopeItem key={scope.id}>
                   <Checkbox
                     checked={effectiveScopes.has(scope.scope)}
                     onCheckedChange={() => toggleScope(scope.scope)}
-                    disabled={credential.data.isManaged}
                     label={
                       <Flex direction="column" gap={2}>
                         <Text size="2" weight="medium">
@@ -178,7 +160,6 @@ export let ProviderAuthCredentialSettingsPage = () => {
                 onClick={saveScopes}
                 loading={scopesMutator.isLoading}
                 success={scopesMutator.isSuccess}
-                disabled={credential.data.isManaged}
               >
                 Save
               </Button>

@@ -75,4 +75,28 @@ model ServerOAuthSetup {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
+
+  events ServerOAuthSetupEvent[]
+}
+
+model ServerOAuthSetupEvent {
+  oid BigInt @id
+  id  String @unique
+
+  type String
+
+  message String?
+  payload Json?
+
+  functionInvocationId String?
+  serverConnectionId   String?
+
+  serverOAuthSetupOid BigInt
+  serverOAuthSetup    ServerOAuthSetup @relation(fields: [serverOAuthSetupOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([serverOAuthSetupOid, createdAt])
+  @@index([functionInvocationId])
+  @@index([serverConnectionId])
 }

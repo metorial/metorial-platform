@@ -108,6 +108,7 @@ describe('ProjectService', () => {
         slug: 'test-project',
         name: 'Test Project',
         status: 'active',
+        magicMcpSessionDurationMinutes: 1440,
         organizationOid: 1,
         organization: mockOrg
       };
@@ -156,6 +157,50 @@ describe('ProjectService', () => {
       });
     });
 
+    it('should persist a custom magic MCP session duration', async () => {
+      let mockOrg = { id: 'org-1', oid: 1 };
+      let mockProject = {
+        id: 'proj-1',
+        oid: 1,
+        slug: 'test-project',
+        name: 'Test Project',
+        status: 'active',
+        magicMcpSessionDurationMinutes: 30,
+        organizationOid: 1,
+        organization: mockOrg
+      };
+      let create = vi.fn().mockResolvedValue(mockProject);
+
+      vi.mocked(ID.generateId).mockResolvedValue('proj-1');
+      vi.mocked(withTransaction).mockImplementation(async callback => {
+        let mockDb = {
+          project: {
+            create
+          }
+        };
+        return callback(mockDb as any);
+      });
+      vi.mocked(instanceService.createInstance).mockResolvedValue({} as any);
+
+      await projectService.createProject({
+        organization: mockOrg as any,
+        performedBy: { id: 'actor-1', oid: 1 } as any,
+        context: {} as any,
+        input: {
+          name: 'Test Project',
+          magicMcpSessionDurationMinutes: 30
+        }
+      });
+
+      expect(create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            magicMcpSessionDurationMinutes: 30
+          })
+        })
+      );
+    });
+
     it('should handle slug generation', async () => {
       let mockProject = { id: 'proj-1', slug: 'test-slug' };
 
@@ -189,7 +234,8 @@ describe('ProjectService', () => {
         id: 'proj-1',
         oid: 1,
         status: 'active',
-        name: 'Old Name'
+        name: 'Old Name',
+        magicMcpSessionDurationMinutes: 1440
       };
       let updatedProject = {
         ...mockProject,
@@ -272,6 +318,47 @@ describe('ProjectService', () => {
       });
 
       expect(Fabric.fire).toHaveBeenCalled();
+    });
+
+    it('should update the magic MCP session duration', async () => {
+      let mockProject = {
+        id: 'proj-1',
+        oid: 1,
+        status: 'active',
+        name: 'Original Name',
+        magicMcpSessionDurationMinutes: 1440
+      };
+      let update = vi.fn().mockResolvedValue({
+        ...mockProject,
+        magicMcpSessionDurationMinutes: 60
+      });
+
+      vi.mocked(withTransaction).mockImplementation(async callback => {
+        let mockDb = {
+          project: {
+            update
+          }
+        };
+        return callback(mockDb as any);
+      });
+
+      await projectService.updateProject({
+        project: mockProject as any,
+        organization: { id: 'org-1', oid: 1 } as any,
+        performedBy: { id: 'actor-1', oid: 1 } as any,
+        context: {} as any,
+        input: {
+          magicMcpSessionDurationMinutes: 60
+        }
+      });
+
+      expect(update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            magicMcpSessionDurationMinutes: 60
+          })
+        })
+      );
     });
   });
 

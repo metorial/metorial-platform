@@ -31,6 +31,7 @@ export let providerVersionController = app.controller({
 
           ids: v.optional(v.array(v.string())),
           providerIds: v.optional(v.array(v.string())),
+          includeDeprecated: v.optional(v.boolean()),
 
           createdAt: createdAtValidator,
           updatedAt: updatedAtValidator
@@ -45,6 +46,7 @@ export let providerVersionController = app.controller({
 
         ids: ctx.input.ids,
         providerIds: ctx.input.providerIds,
+        includeDeprecated: ctx.input.includeDeprecated,
 
         createdAt: ctx.input.createdAt,
         updatedAt: ctx.input.updatedAt

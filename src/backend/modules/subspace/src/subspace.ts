@@ -9,7 +9,6 @@ import {
   withTransaction,
   type Instance
 } from '@metorial/db';
-import { createLock } from '@metorial/lock';
 import { env } from './env';
 
 let solutionProm = new ProgrammablePromise<
@@ -31,92 +30,96 @@ export let subspace: ReturnType<typeof createSubspaceControllerClient> =
     endpoint: env.subspace.SUBSPACE_URL
   });
 
+  let retryDelay = 500;
+
   while (true) {
     try {
-      console.log('Trying to create subspace solution');
-
       let sol = await client.solution.upsert({
         name: 'Metorial Platform',
         identifier: env.subspace.SUBSPACE_SOLUTION
       });
       solutionProm.resolve(sol);
-      console.log('Created subspace solution: ', sol.id);
       return;
     } catch (err) {
       console.log('Failed to create subspace solution ... retrying', err);
     }
 
-    await delay(5000);
+    await delay(retryDelay);
+    retryDelay = Math.min(retryDelay * 2, 5000);
   }
 })();
 
-let lock = createLock({
-  name: 'mte/sub/up-ten'
-});
-
 let getSubspaceTenantIdentifier = (project: Project) => `mte-pro-${project.oid}`;
 let getSubspaceEnvironmentIdentifier = (instance: Instance) => `mte-ins-${instance.oid}`;
+
+let needsSubspaceSync = (
+  instance: Instance & { organization?: Organization; project?: Project }
+) => {
+  return (
+    !instance.subspaceTenantId ||
+    !instance.subspaceEnvironmentId ||
+    (instance.organization && !instance.organization.subspaceTenantIds.length) ||
+    !instance.lastSubspaceSyncAt ||
+    Date.now() - instance.lastSubspaceSyncAt.getTime() > 1000 * 60 * 60 * 24
+  );
+};
 
 export let getTenantForSubspace = async (
   instance: Instance & { organization?: Organization; project?: Project }
 ) => {
   let solution = await solutionProm.promise;
 
-  if (
-    !instance.subspaceTenantId ||
-    !instance.subspaceEnvironmentId ||
-    (instance.organization && !instance.organization.subspaceTenantIds.length) ||
-    !instance.lastSubspaceSyncAt ||
-    Date.now() - instance.lastSubspaceSyncAt.getTime() > 1000 * 60 * 60 * 24
-  ) {
-    instance = await lock.usingLock(String(instance.organizationOid), async () => {
-      let currentInstance = await db.instance.findUniqueOrThrow({
-        where: { oid: instance.oid },
-        include: { project: { include: { instances: true } } }
+  if (needsSubspaceSync(instance)) {
+    let currentInstance = await db.instance.findUniqueOrThrow({
+      where: { oid: instance.oid },
+      include: {
+        organization: true,
+        project: { include: { instances: true } }
+      }
+    });
+
+    let subspaceTenant = await syncSubspaceTenantForProject(currentInstance.project, {
+      subspaceTenantIdentifier: currentInstance.subspaceTenantIdentifier,
+      await: false
+    });
+
+    let subspaceEnvironment = await subspace.environment.upsert({
+      tenantId: subspaceTenant.id,
+      name: currentInstance.name,
+      type: currentInstance.type,
+      identifier:
+        currentInstance.subspaceEnvironmentIdentifier ??
+        getSubspaceEnvironmentIdentifier(currentInstance)
+    });
+
+    instance = await withTransaction(async db => {
+      instance = await db.instance.update({
+        where: { oid: currentInstance.oid },
+        data: {
+          subspaceTenantId: subspaceTenant.id,
+          subspaceTenantIdentifier: subspaceTenant.identifier,
+          subspaceEnvironmentId: subspaceEnvironment.id,
+          subspaceEnvironmentIdentifier: subspaceEnvironment.identifier,
+          lastSubspaceSyncAt: new Date()
+        }
       });
 
-      let subspaceTenant = await syncSubspaceTenantForProject(currentInstance.project, {
-        subspaceTenantIdentifier: currentInstance.subspaceTenantIdentifier
+      await db.project.updateMany({
+        where: { oid: currentInstance.projectOid },
+        data: {
+          subspaceTenantId: subspaceTenant.id,
+          subspaceTenantIdentifier: subspaceTenant.identifier
+        }
       });
 
-      let subspaceEnvironment = await subspace.environment.upsert({
-        tenantId: subspaceTenant.id,
-        name: currentInstance.name,
-        type: currentInstance.type,
-        identifier:
-          currentInstance.subspaceEnvironmentIdentifier ??
-          getSubspaceEnvironmentIdentifier(currentInstance)
+      await db.organization.updateMany({
+        where: { oid: currentInstance.organizationOid },
+        data: {
+          subspaceTenantIds: { push: subspaceTenant.id }
+        }
       });
 
-      return await withTransaction(async db => {
-        instance = await db.instance.update({
-          where: { oid: currentInstance.oid },
-          data: {
-            subspaceTenantId: subspaceTenant.id,
-            subspaceTenantIdentifier: subspaceTenant.identifier,
-            subspaceEnvironmentId: subspaceEnvironment.id,
-            subspaceEnvironmentIdentifier: subspaceEnvironment.identifier,
-            lastSubspaceSyncAt: new Date()
-          }
-        });
-
-        await db.project.update({
-          where: { oid: currentInstance.projectOid },
-          data: {
-            subspaceTenantId: subspaceTenant.id,
-            subspaceTenantIdentifier: subspaceTenant.identifier
-          }
-        });
-
-        await db.organization.update({
-          where: { oid: currentInstance.organizationOid },
-          data: {
-            subspaceTenantIds: { push: subspaceTenant.id }
-          }
-        });
-
-        return instance;
-      });
+      return instance;
     });
   }
 
@@ -145,16 +148,18 @@ export let getActorForSubspace = async (
 
 export let syncSubspaceTenantForProject = async (
   project: Project,
-  overrides?: {
+  opts?: {
     subspaceTenantIdentifier?: string | null;
+    await?: boolean;
   }
 ) => {
   let instances = await db.instance.findMany({
-    where: { projectOid: project.oid }
+    where: { projectOid: project.oid },
+    include: { project: true }
   });
 
   let tenantIdentifier =
-    overrides?.subspaceTenantIdentifier ??
+    opts?.subspaceTenantIdentifier ??
     project.subspaceTenantIdentifier ??
     getSubspaceTenantIdentifier(project);
 
@@ -170,13 +175,21 @@ export let syncSubspaceTenantForProject = async (
     }))
   });
 
-  await db.project.update({
+  let projectPromise = db.project.updateMany({
     where: { oid: project.oid },
     data: {
       subspaceTenantId: tenant.id,
       subspaceTenantIdentifier: tenant.identifier
     }
   });
+
+  if (opts?.await) {
+    await projectPromise;
+  } else {
+    projectPromise.catch(err => {
+      console.log('Failed to update project with subspace tenant id', err);
+    });
+  }
 
   return tenant;
 };

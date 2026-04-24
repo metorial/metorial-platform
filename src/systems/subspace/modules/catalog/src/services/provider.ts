@@ -29,8 +29,10 @@ export let getProviderTenantFilter = (d: {
   solution: Solution;
   tenant?: Tenant;
   environment?: Environment;
+  includeDeprecated?: boolean;
 }) => ({
   AND: [
+    d.includeDeprecated ? undefined! : { isDeprecated: false },
     {
       OR: [
         { access: 'public' as const },
@@ -94,18 +96,25 @@ class providerServiceImpl {
     solution: Solution;
     tenant?: Tenant;
     environment?: Environment;
+    includeDeprecated?: boolean;
   }) {
     let provider = await db.provider.findFirst({
       where: {
         AND: [
-          getProviderTenantFilter(d),
+          getProviderTenantFilter({
+            ...d,
+            includeDeprecated: true
+          }),
 
           {
             OR: [
               { id: d.providerId },
+              { slug: d.providerId },
               { globalIdentifier: d.providerId },
               { listing: { id: d.providerId } },
-              { listing: { slug: d.providerId } }
+              { listing: { slug: d.providerId } },
+              { listing: { prettySlug: d.providerId } },
+              { listing: { aliases: { has: d.providerId } } }
             ]
           }
         ].filter(Boolean)
@@ -127,8 +136,10 @@ class providerServiceImpl {
 
     ids?: string[];
     capabilities?: ProviderCapabilityFilter;
+    includeDeprecated?: boolean;
   }) {
     let capFilters = getProviderCapabilityFilter(d.capabilities || {});
+    let includeDeprecated = d.includeDeprecated || !!d.ids?.length;
 
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -137,10 +148,25 @@ class providerServiceImpl {
             ...opts,
             where: {
               AND: [
-                getProviderTenantFilter(d),
+                getProviderTenantFilter({
+                  ...d,
+                  includeDeprecated
+                }),
                 {
                   AND: [
-                    d.ids ? { id: { in: d.ids } } : undefined!,
+                    d.ids
+                      ? {
+                          OR: [
+                            { id: { in: d.ids } },
+                            { slug: { in: d.ids } },
+                            { globalIdentifier: { in: d.ids } },
+                            { listing: { id: { in: d.ids } } },
+                            { listing: { slug: { in: d.ids } } },
+                            { listing: { prettySlug: { in: d.ids } } },
+                            { listing: { aliases: { hasSome: d.ids } } }
+                          ]
+                        }
+                      : undefined!,
                     capFilters ? { type: capFilters } : undefined!
                   ].filter(Boolean)
                 }

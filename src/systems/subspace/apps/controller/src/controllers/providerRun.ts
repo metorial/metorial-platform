@@ -88,7 +88,8 @@ export let providerRunController = app.controller({
       v.object({
         tenantId: v.string(),
         environmentId: v.string(),
-        providerRunId: v.string()
+        providerRunId: v.string(),
+        sessionMessageIds: v.optional(v.array(v.string()))
       })
     )
     .do(async ctx =>
@@ -96,7 +97,10 @@ export let providerRunController = app.controller({
         tenant: ctx.tenant,
         environment: ctx.environment,
         solution: ctx.solution,
-        providerRun: ctx.providerRun
+        providerRun: ctx.providerRun,
+        inputs: {
+          sessionMessageIds: ctx.input.sessionMessageIds
+        }
       })
     )
 });

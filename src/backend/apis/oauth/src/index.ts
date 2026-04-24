@@ -241,6 +241,10 @@ export let oauthApi = createOAuthAppSkeleton({
       return c.json(await oauthOidcService.getOpenIdConfiguration());
     },
 
+    oauthProtectedResourceMetadata: async ({}, c) => {
+      return c.json(await oauthOidcService.getOAuthProtectedResourceMetadata());
+    },
+
     oauthAuthorizationServerMetadata: async ({}, c) => {
       return c.json(await oauthOidcService.getOAuthAuthorizationServerMetadata());
     },

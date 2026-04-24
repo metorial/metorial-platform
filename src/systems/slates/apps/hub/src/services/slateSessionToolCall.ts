@@ -2,20 +2,48 @@ import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type { SlatesParticipant } from '@slates/proto';
-import { differenceInMinutes } from 'date-fns';
-import type { Tenant } from '../../prisma/generated/client';
+import { addDays, differenceInMinutes } from 'date-fns';
+import { PublicUrlPurpose } from 'object-storage-client';
+import type { SlateInvocation, Tenant } from '../../prisma/generated/client';
 import { db } from '../db';
 import { getId } from '../id';
+import { getStoredAttachmentsStorageKey } from '../lib/invocation/store';
+import { invocationsBucketRecord, storage } from '../storage';
+import { slateErrorService } from './slateError';
 import { slateAuthHandlerService } from './slateInstanceAuthHandler';
 import { slateInvocationService } from './slateInvocation';
 import { slateSessionService } from './slateSession';
 
 let include = {
   action: true,
-  invocation: true,
+  invocation: {
+    include: {
+      slateInvocationAttachment: {
+        include: {
+          attachments: true
+        }
+      }
+    }
+  },
   session: true,
   slateVersion: true
 };
+
+type SlateToolCallAttachment = {
+  content:
+    | {
+        type: 'url';
+        url: string;
+      }
+    | {
+        type: 'content';
+        encoding: 'base64' | 'utf-8';
+        content: string;
+      };
+  mimeType?: string;
+};
+
+let ATTACHMENT_EXPIRATION_DAYS = 7;
 
 class slateSessionToolCallServiceImpl {
   async createSlateToolCall(d: {
@@ -129,6 +157,8 @@ class slateSessionToolCallServiceImpl {
       );
     }
 
+    let startTime = Date.now();
+
     let stack = await slateInvocationService.createInvocationWithState({
       participants: d.input.participants,
       slateVersion: session.slateVersion,
@@ -147,11 +177,17 @@ class slateSessionToolCallServiceImpl {
       actionId: action.key,
       input: d.input.input
     });
+
+    let durationMs = Date.now() - startTime;
+
     let call = await db.slateSessionToolCall.create({
       data: {
         ...getId('slateToolCall'),
 
         status: callRes.status === 'success' ? 'succeeded' : 'failed',
+        errorCode: callRes.status === 'error' ? callRes.error.code : null,
+        errorMessage: callRes.status === 'error' ? callRes.error.message : null,
+        durationMs,
 
         actionOid: action.oid,
         sessionOid: session.oid,
@@ -160,20 +196,122 @@ class slateSessionToolCallServiceImpl {
       }
     });
 
+    await db.slateSession.updateMany({
+      where: { oid: session.oid },
+      data: { lastActiveAt: new Date() }
+    });
+
     if (callRes.status === 'error') {
+      slateErrorService
+        .recordSlateError({
+          type: 'tool_call_failed',
+          errorCode: callRes.error.code,
+          errorMessage: callRes.error.message,
+          tenantOid: session.tenantOid,
+          slateOid: session.slateOid,
+          slateVersionOid: session.slateVersionOid,
+          slateInstanceOid: session.slateInstanceOid,
+          invocationOid: callRes.invocation.oid,
+          toolCallOid: call.oid,
+          sessionOid: session.oid
+        })
+        .catch(() => {});
+
       return {
         status: 'error' as const,
         call,
+        invocationId: callRes.invocation.id,
         error: callRes.error
       };
     }
 
+    let attachments = await Promise.all(
+      (callRes.data.attachments ?? []).map(attachment =>
+        this.ensureAttachment({
+          content: attachment.content,
+          mimeType: attachment.mimeType,
+          invocation: callRes.invocation
+        })
+      )
+    );
+
     return {
       call,
+      invocationId: callRes.invocation.id,
       status: 'success' as const,
 
       output: callRes.data.output,
-      message: callRes.data.message
+      message: callRes.data.message,
+      attachments
+    };
+  }
+
+  private async ensureAttachment(d: {
+    content: SlateToolCallAttachment['content'];
+    mimeType?: string | undefined;
+    invocation: SlateInvocation;
+  }) {
+    if (d.content.type === 'url') {
+      return {
+        type: 'url' as const,
+        url: d.content.url,
+        mimeType: d.mimeType
+      };
+    }
+
+    let contentBuffer = Buffer.from(d.content.content, d.content.encoding);
+    let digest = new Uint8Array(await crypto.subtle.digest('SHA-256', contentBuffer));
+    let digestString = Buffer.from(digest).toString('hex');
+    let storageKey = getStoredAttachmentsStorageKey(digestString);
+
+    let attachment = await db.slateAttachment.findFirst({
+      where: { digest }
+    });
+    if (!attachment) {
+      await storage.putObject(
+        invocationsBucketRecord.bucket,
+        storageKey,
+        contentBuffer,
+        d.mimeType ?? 'application/octet-stream'
+      );
+    }
+
+    let expiresAt = addDays(new Date(), ATTACHMENT_EXPIRATION_DAYS);
+    let inner = {
+      digest,
+      expiresAt,
+      lastCreatedAt: new Date()
+    };
+
+    attachment = await db.slateAttachment.upsert({
+      where: { digest },
+      create: {
+        ...getId('slateAttachment'),
+        ...inner
+      },
+      update: inner
+    });
+
+    await db.slateInvocationAttachment.createMany({
+      data: {
+        ...getId('slateInvocationAttachment'),
+        invocationOid: d.invocation.oid,
+        attachmentsOid: attachment.oid
+      }
+    });
+
+    let url = await storage.getPublicURL(
+      invocationsBucketRecord.bucket,
+      storageKey,
+      ATTACHMENT_EXPIRATION_DAYS * 24 * 60 * 60,
+      PublicUrlPurpose.Retrieve
+    );
+
+    return {
+      type: 'url' as const,
+      url: url.url,
+      mimeType: d.mimeType,
+      urlExpiresAt: addDays(new Date(), ATTACHMENT_EXPIRATION_DAYS)
     };
   }
 
@@ -240,12 +378,14 @@ class slateSessionToolCallServiceImpl {
                   : []),
 
                 ...(slateInstances
-                  ? [{ session: { slateInstanceOid: { in: slateInstances.map(si => si.oid) } } }]
+                  ? [
+                      {
+                        session: { slateInstanceOid: { in: slateInstances.map(si => si.oid) } }
+                      }
+                    ]
                   : []),
 
-                ...(slates
-                  ? [{ session: { slateOid: { in: slates.map(s => s.oid) } } }]
-                  : []),
+                ...(slates ? [{ session: { slateOid: { in: slates.map(s => s.oid) } } }] : []),
 
                 ...(sessions ? [{ sessionOid: { in: sessions.map(s => s.oid) } }] : [])
               ]

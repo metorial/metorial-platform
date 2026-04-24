@@ -18,7 +18,7 @@ let Sidebar = styled('div')`
   border-right: 1px solid ${theme.colors.gray300};
   padding: 25px 20px;
   position: relative;
-  width: 250px;
+  width: 310px;
   flex-shrink: 0;
 `;
 

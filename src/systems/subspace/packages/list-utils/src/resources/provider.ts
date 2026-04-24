@@ -26,8 +26,8 @@ export let resolveProviders = createOptionalResolver(async ({ ts, ids }) =>
                 }
               : undefined!
           ].filter(Boolean)
-        }
-      ]
+        },
+      ].filter(Boolean)
     },
     select: { oid: true }
   })

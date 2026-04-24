@@ -5,6 +5,7 @@ import {
   createCredentialsUpdateEventsQueueProcessor
 } from './credentials';
 import { processAuthQueueProcessor } from './processAuth';
+import { reconcileEventIdsQueueProcessor } from './reconcileEventIds';
 import { updateProfileQueueProcessor } from './updateProfile';
 
 export let instanceQueues = combineQueueProcessors([
@@ -12,5 +13,6 @@ export let instanceQueues = combineQueueProcessors([
   createCredentialsUpdateEventQueueProcessor,
   slateInstanceConfigChangedQueueProcessor,
   processAuthQueueProcessor,
-  updateProfileQueueProcessor
+  updateProfileQueueProcessor,
+  reconcileEventIdsQueueProcessor
 ]);

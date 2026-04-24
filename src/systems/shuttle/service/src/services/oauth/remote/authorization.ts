@@ -15,6 +15,7 @@ import { oauthErrorDescriptions } from '../../../lib/oauth/oauthErrors';
 import { OAuthUtils } from '../../../lib/oauth/oauthUtils';
 import type { OAuthConfiguration, TokenResponse, UserProfile } from '../../../lib/oauth/types';
 import { secretService } from '../../secret';
+import { serverEventService } from '../serverEvent';
 import { remoteOAuthConnectionService } from './connection';
 
 class remoteOauthAuthorizationServiceImpl {
@@ -141,6 +142,24 @@ class remoteOauthAuthorizationServiceImpl {
             where: { remoteOAuthConnectionSetupOid: res.oid },
             data: { status: 'failed' }
           });
+
+          let serverOAuthSetup = await db.serverOAuthSetup.findFirst({
+            where: { remoteOAuthConnectionSetupOid: res.oid },
+            select: { oid: true }
+          });
+          if (serverOAuthSetup) {
+            await serverEventService.recordServerOAuthSetupEvent({
+              serverOAuthSetup,
+              type: 'oauth_setup_callback_failed',
+              message:
+                d.response.errorDescription ??
+                oauthErrorDescriptions[d.response.error] ??
+                d.response.error,
+              payload: {
+                errorCode: d.response.error
+              }
+            });
+          }
         } catch {
           throw new ServiceError(
             badRequestError({
@@ -239,6 +258,17 @@ class remoteOauthAuthorizationServiceImpl {
         where: { remoteOAuthConnectionSetupOid: res.oid },
         data: { status: 'failed' }
       });
+
+      if (attempt.serverOAuthSetup) {
+        await serverEventService.recordServerOAuthSetupEvent({
+          serverOAuthSetup: attempt.serverOAuthSetup,
+          type: 'oauth_setup_callback_failed',
+          message: `Failed to exchange authorization code for tokens: ${error.message}`,
+          payload: {
+            errorCode: 'token_exchange_failed'
+          }
+        });
+      }
 
       throw error;
     }
@@ -350,6 +380,15 @@ class remoteOauthAuthorizationServiceImpl {
       data: {
         status: 'completed',
         authConfigOid: authConfig.oid
+      }
+    });
+
+    await serverEventService.recordServerOAuthSetupEvent({
+      serverOAuthSetup: setup,
+      type: 'oauth_setup_completed',
+      message: 'Completed remote OAuth setup',
+      payload: {
+        authConfigId: authConfig.id
       }
     });
 
