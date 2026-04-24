@@ -154,7 +154,8 @@ describe('ensureMagicMcpSubspaceSession', () => {
         subspaceSessionId: 'ses_new',
         subspaceSessionTemplateId: 'tmpl_1',
         expiresAt: new Date('2026-04-24T10:15:00.000Z'),
-        isActive: true
+        isActive: true,
+        isConsumerReconciled: true
       }
     });
     expect(subspaceSessionService.delete).toHaveBeenCalledWith({

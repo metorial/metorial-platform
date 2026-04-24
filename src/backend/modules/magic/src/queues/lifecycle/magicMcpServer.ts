@@ -34,6 +34,30 @@ export let magicMcpServerDeletedQueue = createQueue<{ magicMcpServerId: string }
   name: 'mgc/lc/server/deleted'
 });
 
+export let magicMcpServerDeletedSubspaceSessionQueue = createQueue<{
+  instanceId: string;
+  subspaceSessionId: string;
+}>({
+  name: 'mgc/lc/server/deleted/subspaceSession',
+  workerOpts: {
+    concurrency: 20
+  }
+});
+
+export let magicMcpServerDeletedSubspaceSessionQueueProcessor =
+  magicMcpServerDeletedSubspaceSessionQueue.process(async data => {
+    let instance = await db.instance.findUnique({
+      where: { id: data.instanceId }
+    });
+    if (!instance) return;
+
+    await subspaceSessionService.delete({
+      instance,
+      sessionId: data.subspaceSessionId,
+      _allowMagicMcpDelete: true
+    });
+  });
+
 export let magicMcpServerDeletedQueueProcessor = magicMcpServerDeletedQueue.process(
   async data => {
     let magicMcpServer = await db.magicMcpServer.findUnique({
@@ -73,12 +97,13 @@ export let magicMcpServerDeletedQueueProcessor = magicMcpServerDeletedQueue.proc
       });
     }
 
-    for (let subspaceSessionId of uniqueSubspaceSessionIds) {
-      await subspaceSessionService.delete({
-        instance: magicMcpServer.instance,
-        sessionId: subspaceSessionId,
-        _allowMagicMcpDelete: true
-      });
+    if (uniqueSubspaceSessionIds.length) {
+      await magicMcpServerDeletedSubspaceSessionQueue.addMany(
+        uniqueSubspaceSessionIds.map(subspaceSessionId => ({
+          instanceId: magicMcpServer.instance.id,
+          subspaceSessionId
+        }))
+      );
     }
   }
 );
