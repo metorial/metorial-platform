@@ -67,6 +67,7 @@
     "@lowerdeck/service": "^1.0.7",
     "@lowerdeck/slugify": "^1.0.6",
     "@lowerdeck/snowflake": "^1.0.2",
+    "@lowerdeck/telemetry": "^1.1.1",
     "@lowerdeck/tokens": "^1.0.5",
     "@lowerdeck/validation": "^1.0.10",
     "@metorial-platform-systems/function-bay-client": "workspace:*",
