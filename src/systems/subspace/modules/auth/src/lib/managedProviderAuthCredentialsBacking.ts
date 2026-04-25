@@ -11,6 +11,7 @@ import {
   withTransaction
 } from '@metorial-subspace/db';
 import { getBackend } from '@metorial-subspace/provider';
+import { normalizeManagedOAuthScopeIds } from './managedOAuthScopes';
 import { env } from '../env';
 import {
   providerAuthCredentialsCreatedQueue,
@@ -81,7 +82,7 @@ export let ensureManagedProviderAuthCredentialsBacking = async (d: {
 }) => {
   let provider = getProviderForManagedCredentials(d.managedCredentials);
   let managedCredentialsGlobalOid = getProviderAuthMethodGlobalOid(d.managedCredentials);
-  let managedScopeIds = d.managedCredentials.oauthScopes as unknown as string[];
+  let managedScopeIds = normalizeManagedOAuthScopeIds(d.managedCredentials.oauthScopes);
   let desiredStatus =
     d.managedCredentials.status === 'archived' ? ('archived' as const) : ('active' as const);
   let syncAfter = d.managedCredentials.updatedAt.getTime();
@@ -128,8 +129,10 @@ export let ensureManagedProviderAuthCredentialsBacking = async (d: {
       }
     });
 
-    let desiredScopes = (existing?.scopes ?? managedScopeIds).filter(scope =>
-      managedScopeIds.includes(scope)
+    // Older rows may still contain scope objects instead of scope IDs.
+    let existingScopeIds = normalizeManagedOAuthScopeIds(existing?.scopes);
+    let desiredScopes = (existingScopeIds.length ? existingScopeIds : managedScopeIds).filter(
+      scope => managedScopeIds.includes(scope)
     );
 
     let backendProviderAuthCredentials = await backend.auth.createProviderAuthCredentials({
