@@ -168,7 +168,18 @@ export let providerAuthCredentialsTable = new DashboardTable<
       isDefault: true,
       header: 'Name',
       render: row => (
-        <Text size="2" weight="strong">
+        <Text
+          size="2"
+          weight="strong"
+          style={{ display: 'inline-flex', alignItems: 'center' }}
+        >
+          {row.isManaged && (
+            <div style={{ marginRight: 5, display: 'inline-flex', verticalAlign: 'middle' }}>
+              <Badge color="blue" size="1">
+                Managed
+              </Badge>
+            </div>
+          )}
           {row.name || '—'}
         </Text>
       )

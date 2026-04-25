@@ -26,10 +26,12 @@ export let aresAdminApp = aresAdminAppProm.promise;
         slug: 'metorial-slates-hub-admin',
         defaultRedirectUrl: `${env.service.SERVICE_PUBLIC_URL}`,
         redirectDomains: [
+          new URL(env.service.SERVICE_PUBLIC_URL).hostname,
           '*.metorial.com',
           '*.metorial.dev',
           '*.metorial.net',
-          '*.metorial-internal.com'
+          '*.metorial-internal.com',
+          '*.metorial-staging.com'
         ]
       });
 

@@ -1,4 +1,4 @@
-import { renderWithLoader } from '@metorial/data-hooks';
+import { PaginationSearchParamsProvider, renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
 import {
@@ -111,7 +111,9 @@ export let IdentityListLayout = () => {
         ) : !isPaidIdentityEnabled(flags.data.flags) ? (
           getIdentityUpgrade()
         ) : (
-          <Outlet />
+          <PaginationSearchParamsProvider enabled={true}>
+            <Outlet />
+          </PaginationSearchParamsProvider>
         )}
       </ContentLayout>
     )

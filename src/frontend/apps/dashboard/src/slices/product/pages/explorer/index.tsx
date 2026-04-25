@@ -43,8 +43,8 @@ import {
 } from '../../lib/configSelection';
 import { ProviderDeploymentsList } from '../../scenes/providerDeployments/list';
 import { ProviderSearch } from '../../scenes/providers/search';
-import { SessionTracingScene } from '../../scenes/sessionTracing';
 import { ProviderSetupSections } from '../../scenes/sessionTemplates/addProviderPanelFlow';
+import { SessionTracingScene } from '../../scenes/sessionTracing';
 
 type ProviderSelection =
   | DashboardInstanceProvidersListOutput['items'][number]
@@ -847,7 +847,10 @@ export let ExplorerPage = () => {
 
         {sessionId &&
           !isCreatingSession &&
-          renderWithLoader({ session: sessionFromQuery })(({ session }) => (
+          renderWithLoader(
+            { session: sessionFromQuery },
+            { spaceTop: 20 }
+          )(({ session }) => (
             <SessionTracingScene
               session={session.data}
               initialExplorerTab

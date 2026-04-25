@@ -1,3 +1,4 @@
+import { PaginationSearchParamsProvider } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
 import {
@@ -40,7 +41,9 @@ export let SessionLogsListLayout = () => {
         ]}
       />
 
-      <Outlet />
+      <PaginationSearchParamsProvider enabled={true}>
+        <Outlet />
+      </PaginationSearchParamsProvider>
     </ContentLayout>
   );
 };
@@ -81,7 +84,9 @@ export let AuthLogsListLayout = () => {
         ]}
       />
 
-      <Outlet />
+      <PaginationSearchParamsProvider enabled={true}>
+        <Outlet />
+      </PaginationSearchParamsProvider>
     </ContentLayout>
   );
 };

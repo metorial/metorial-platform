@@ -1,3 +1,4 @@
+import { PaginationSearchParamsProvider } from '@metorial/data-hooks';
 import { ContentLayout, PageHeader } from '@metorial/layout';
 import {
   useCurrentInstance,
@@ -53,7 +54,11 @@ export let ManagedProvidersListLayout = () => {
                 });
               }}
             >
-              <Button size="2" loading={user.isLoading} disabled={!user.data && !user.isLoading}>
+              <Button
+                size="2"
+                loading={user.isLoading}
+                disabled={!user.data && !user.isLoading}
+              >
                 Create Custom Provider
               </Button>
             </Menu>
@@ -75,7 +80,9 @@ export let ManagedProvidersListLayout = () => {
         }
       />
 
-      <Outlet />
+      <PaginationSearchParamsProvider enabled={true}>
+        <Outlet />
+      </PaginationSearchParamsProvider>
     </ContentLayout>
   );
 };

@@ -178,7 +178,7 @@ export let ProjectHomePage = () => {
       {user.data && (
         <PageHeader
           title={`Welcome to Metorial, ${user.data?.name}!`}
-          description="It's a good day to build something amazing."
+          description="It's a good day to build something amazing. Here are your resource at a glance."
         />
       )}
 
@@ -376,6 +376,13 @@ export let ProjectHomePage = () => {
             title="Your Integrations"
             description="Your providers and popular providers on Metorial at a glance."
             size="5"
+            actions={
+              <Link to={Paths.instance.providers(...pathItems)}>
+                <Button size="2" as="span" variant="outline">
+                  View All Providers
+                </Button>
+              </Link>
+            }
           />
 
           <ProvidersGrid limit={9} orderByUse="last_deployment_at" orderByRank />
@@ -386,6 +393,13 @@ export let ProjectHomePage = () => {
             title="Recent Sessions"
             description="Your recent sessions are listed below. Click on a session to view its details."
             size="5"
+            actions={
+              <Link to={Paths.instance.logs(...pathItems)}>
+                <Button size="2" as="span" variant="outline">
+                  View Logs
+                </Button>
+              </Link>
+            }
           />
 
           <ProviderSessionsTable limit={15} />

@@ -6,25 +6,13 @@ import {
   useProviderAuthCredential,
   useProviderAuthMethods
 } from '@metorial/state';
-import { Button, Callout, Checkbox, Flex, Input, Spacer, Text } from '@metorial/ui';
+import { Button, Callout, Input, Spacer } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
 import { useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import styled from 'styled-components';
 import { DeleteResourceDangerZone } from '../../../scenes/deleteResourceDangerZone';
 import { getFromDeployment } from '../fromDeployment';
-
-let ScopesList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-`;
-
-let ScopeItem = styled.div`
-  display: flex;
-  align-items: flex-start;
-  gap: 4px;
-`;
+import { ScopePicker } from './components/scopePicker';
 
 export let ProviderAuthCredentialSettingsPage = () => {
   let instance = useCurrentInstance();
@@ -45,11 +33,11 @@ export let ProviderAuthCredentialSettingsPage = () => {
     return oauthMethod?.scopes ?? [];
   }, [authMethods.data?.items]);
 
-  let [selectedScopes, setSelectedScopes] = useState<Set<string> | null>(null);
+  let [selectedScopes, setSelectedScopes] = useState<string[] | null>(null);
 
   let credentialScopes = credential.data?.scopes;
   let effectiveScopes =
-    selectedScopes ?? new Set(credentialScopes ?? availableScopes.map(s => s.scope));
+    selectedScopes ?? credentialScopes ?? availableScopes.map(s => s.scope);
 
   let updateMutator = credential.useUpdateMutator();
   let scopesMutator = credential.useUpdateMutator();
@@ -74,19 +62,9 @@ export let ProviderAuthCredentialSettingsPage = () => {
       }) as any
   });
 
-  let toggleScope = (scope: string) => {
-    let next = new Set(effectiveScopes);
-    if (next.has(scope)) {
-      next.delete(scope);
-    } else {
-      next.add(scope);
-    }
-    setSelectedScopes(next);
-  };
-
   let saveScopes = async () => {
     // if (credential.data?.isManaged) return;
-    await scopesMutator.mutate({ scopes: [...effectiveScopes] });
+    await scopesMutator.mutate({ scopes: effectiveScopes });
   };
 
   return renderWithLoader({ credential })(({ credential }) => (
@@ -129,28 +107,11 @@ export let ProviderAuthCredentialSettingsPage = () => {
             title="Scopes"
             description="Select which OAuth scopes this credential should request."
           >
-            <ScopesList>
-              {availableScopes.map(scope => (
-                <ScopeItem key={scope.id}>
-                  <Checkbox
-                    checked={effectiveScopes.has(scope.scope)}
-                    onCheckedChange={() => toggleScope(scope.scope)}
-                    label={
-                      <Flex direction="column" gap={2}>
-                        <Text size="2" weight="medium">
-                          {scope.name}
-                        </Text>
-                        {scope.description && (
-                          <Text size="1" color="gray600">
-                            {scope.description}
-                          </Text>
-                        )}
-                      </Flex>
-                    }
-                  />
-                </ScopeItem>
-              ))}
-            </ScopesList>
+            <ScopePicker
+              scopes={availableScopes}
+              selectedScopes={effectiveScopes}
+              onSelectedScopesChange={setSelectedScopes}
+            />
 
             <Spacer size={15} />
 

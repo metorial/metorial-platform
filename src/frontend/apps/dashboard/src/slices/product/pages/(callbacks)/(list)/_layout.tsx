@@ -1,3 +1,4 @@
+import { PaginationSearchParamsProvider } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
 import {
@@ -53,7 +54,9 @@ export let CallbacksListLayout = () => {
         }
       />
 
-      <Outlet />
+      <PaginationSearchParamsProvider enabled={true}>
+        <Outlet />
+      </PaginationSearchParamsProvider>
     </ContentLayout>
   );
 };

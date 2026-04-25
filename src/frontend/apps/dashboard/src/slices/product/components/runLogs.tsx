@@ -9,6 +9,11 @@ let Wrapper = styled.div`
   background: #1a1a1a;
   overflow: hidden;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+
+  ::selection {
+    background-color: #ffcc00;
+    color: #000;
+  }
 `;
 
 let Header = styled.header`

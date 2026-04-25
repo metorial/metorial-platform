@@ -1,9 +1,16 @@
 import { renderWithLoader } from '@metorial/data-hooks';
-import { useCurrentInstance, useProvider, useProviderAuthCredential } from '@metorial/state';
-import { Attributes, Callout, RenderDate, Spacer } from '@metorial/ui';
+import {
+  useCurrentInstance,
+  useProvider,
+  useProviderAuthCredential,
+  useProviderAuthMethods
+} from '@metorial/state';
+import { Attributes, Button, Callout, RenderDate, Spacer } from '@metorial/ui';
 import { Box, ID } from '@metorial/ui-product';
+import { useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { ProviderAuthErrorsTable } from '../../../scenes/providerAuthErrors/table';
+import { ScopePicker } from './components/scopePicker';
 
 export let ProviderAuthCredentialOverviewPage = () => {
   let instance = useCurrentInstance();
@@ -11,12 +18,31 @@ export let ProviderAuthCredentialOverviewPage = () => {
   let { providerAuthCredentialsId } = useParams();
   let credential = useProviderAuthCredential(instance.data?.id, providerAuthCredentialsId);
   let provider = useProvider(instance.data?.id, credential.data?.providerId);
+  let versionId = provider.data?.currentVersion?.id;
+  let authMethods = useProviderAuthMethods(
+    instance.data?.id,
+    versionId ? { providerVersionId: versionId } : null
+  );
+  let availableScopes = useMemo(() => {
+    let oauthMethod = (authMethods.data?.items ?? []).find(m => m.type === 'oauth');
+    return oauthMethod?.scopes ?? [];
+  }, [authMethods.data?.items]);
+  let [selectedScopes, setSelectedScopes] = useState<string[] | null>(null);
+
+  let credentialScopes = credential.data?.scopes;
+  let effectiveScopes =
+    selectedScopes ?? credentialScopes ?? availableScopes.map(s => s.scope);
+  let scopesMutator = credential.useUpdateMutator();
+
+  let saveScopes = async () => {
+    await scopesMutator.mutate({ scopes: effectiveScopes });
+  };
 
   return renderWithLoader({ credential })(({ credential }) => (
     <>
       {credential.data.isManaged && (
         <>
-          <Callout color="blue">Managed by Metorial.</Callout>
+          <Callout color="blue">These auth credentials are managed by Metorial.</Callout>
           <Spacer size={12} />
         </>
       )}
@@ -67,6 +93,38 @@ export let ProviderAuthCredentialOverviewPage = () => {
           linkToDetail
         />
       </Box>
+
+      {availableScopes.length > 0 && (
+        <>
+          <Spacer size={12} />
+
+          <Box
+            title="Scopes"
+            description="Select which OAuth scopes this credential should request."
+          >
+            <ScopePicker
+              scopes={availableScopes}
+              selectedScopes={effectiveScopes}
+              onSelectedScopesChange={setSelectedScopes}
+            />
+
+            <Spacer size={15} />
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <Button
+                size="2"
+                onClick={saveScopes}
+                loading={scopesMutator.isLoading}
+                success={scopesMutator.isSuccess}
+              >
+                Save
+              </Button>
+            </div>
+
+            <scopesMutator.RenderError />
+          </Box>
+        </>
+      )}
     </>
   ));
 };

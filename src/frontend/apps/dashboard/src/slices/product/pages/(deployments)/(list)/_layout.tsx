@@ -1,3 +1,4 @@
+import { PaginationSearchParamsProvider } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
 import {
@@ -15,7 +16,9 @@ export let ProvidersListLayout = () => {
   return (
     <ContentLayout>
       <PageHeader title="Providers" description="Browse and deploy providers on Metorial." />
-      <Outlet />
+      <PaginationSearchParamsProvider enabled={true}>
+        <Outlet />
+      </PaginationSearchParamsProvider>
     </ContentLayout>
   );
 };
@@ -61,7 +64,9 @@ export let SessionTemplatesListLayout = () => {
         }
       />
 
-      <Outlet />
+      <PaginationSearchParamsProvider enabled={true}>
+        <Outlet />
+      </PaginationSearchParamsProvider>
     </ContentLayout>
   );
 };
@@ -97,7 +102,9 @@ export let ProviderSessionsListLayout = () => {
         ]}
       />
 
-      <Outlet />
+      <PaginationSearchParamsProvider enabled={true}>
+        <Outlet />
+      </PaginationSearchParamsProvider>
     </ContentLayout>
   );
 };
