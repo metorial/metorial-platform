@@ -59,6 +59,7 @@ class slateOAuthSetupServiceImpl {
       ? authMethods.find(
           m =>
             m.id === d.input.authMethodId ||
+            m.identifier === d.input.authMethodId ||
             m.type === d.input.authMethodId ||
             m.key === d.input.authMethodId
         )
