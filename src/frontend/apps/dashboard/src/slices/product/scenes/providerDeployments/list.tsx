@@ -1,5 +1,5 @@
 import { DashboardInstanceProviderDeploymentsListOutput } from '@metorial/dashboard-sdk';
-import { renderWithPagination } from '@metorial/data-hooks';
+import { renderWithLoader } from '@metorial/data-hooks';
 import {
   useCurrentInstance,
   useProviderDeployments,
@@ -229,7 +229,7 @@ export let ProviderDeploymentsList = ({
   providerId,
   order = 'desc',
   onDeploymentClick,
-  searchable = false,
+  searchable = true,
   compact = false,
   columns,
   limit,
@@ -255,6 +255,7 @@ export let ProviderDeploymentsList = ({
   let searchDebounced = useDebounced(search, 300);
   let deployments = useProviderDeployments(instance.data?.id, {
     ...(limit ? { limit } : {}),
+    ...(searchDebounced.trim() ? { search: searchDebounced.trim() } : {}),
     providerId: providerId
       ? Array.isArray(providerId)
         ? providerId[0]
@@ -270,17 +271,10 @@ export let ProviderDeploymentsList = ({
   );
   let providerListings = useProviderListings(
     instance.data?.id,
-    providerIds.length > 0
-      ? {
-          orderByRank: true,
-          limit: Math.max(providerIds.length, 100)
-        }
-      : null
+    providerIds.length > 0 ? { id: providerIds, limit: 100 } : null
   );
 
-  return renderWithPagination(deployments, {
-    hidePaginationWhenUnavailable: true
-  })(deployments => {
+  let renderContent = () => {
     let providerLookup = new Map<
       string,
       {
@@ -297,7 +291,7 @@ export let ProviderDeploymentsList = ({
       });
     }
 
-    let sortedDeployments = [...deployments.data.items].sort((a, b) => {
+    let sortedDeployments = [...(deployments.data?.items ?? [])].sort((a, b) => {
       let dateA = new Date(a.createdAt).getTime();
       let dateB = new Date(b.createdAt).getTime();
       return order === 'desc' ? dateB - dateA : dateA - dateB;
@@ -316,7 +310,8 @@ export let ProviderDeploymentsList = ({
     if (sortedDeployments.length === 0) {
       return (
         <>
-          <Spacer size={20} />
+          {searchable && <Spacer size={10} />}
+          {!searchable && <Spacer size={20} />}
           <Text size="2" color="gray600" align="center">
             {emptyText}
           </Text>
@@ -326,27 +321,6 @@ export let ProviderDeploymentsList = ({
 
     return (
       <div>
-        {searchable && (
-          <>
-            <Input
-              label="Search"
-              hideLabel
-              placeholder="Search deployments..."
-              value={search}
-              onInput={value => setSearch(value)}
-            />
-            {sectionLabel ? (
-              <>
-                <Spacer size={10} />
-                <Or text={sectionLabel} />
-                <Spacer size={10} />
-              </>
-            ) : (
-              <Spacer size={10} />
-            )}
-          </>
-        )}
-
         {filteredDeployments.length === 0 && (
           <Text size="2" color="gray600" align="center">
             No deployments found matching your search.
@@ -385,5 +359,59 @@ export let ProviderDeploymentsList = ({
         )}
       </div>
     );
-  });
+  };
+
+  if (providerIds.length > 0) {
+    return (
+      <div>
+        {searchable && (
+          <>
+            <Input
+              label="Search"
+              hideLabel
+              placeholder="Search deployments..."
+              value={search}
+              onInput={value => setSearch(value)}
+            />
+            {sectionLabel ? (
+              <>
+                <Spacer size={10} />
+                <Or text={sectionLabel} />
+                <Spacer size={10} />
+              </>
+            ) : (
+              <Spacer size={10} />
+            )}
+          </>
+        )}
+        {renderWithLoader({ deployments, providerListings })(renderContent)}
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {searchable && (
+        <>
+          <Input
+            label="Search"
+            hideLabel
+            placeholder="Search deployments..."
+            value={search}
+            onInput={value => setSearch(value)}
+          />
+          {sectionLabel ? (
+            <>
+              <Spacer size={10} />
+              <Or text={sectionLabel} />
+              <Spacer size={10} />
+            </>
+          ) : (
+            <Spacer size={10} />
+          )}
+        </>
+      )}
+      {renderWithLoader({ deployments })(renderContent)}
+    </div>
+  );
 };

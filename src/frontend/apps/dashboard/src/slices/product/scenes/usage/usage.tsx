@@ -3,6 +3,7 @@ import { renderWithLoader } from '@metorial/data-hooks';
 import { useCurrentOrganization, useInstances } from '@metorial/state';
 import { CenteredSpinner, DatePicker, Select } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
+import { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { useUsageState } from './state';
 
@@ -23,6 +24,18 @@ let LoadingChartOverlay = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
+`;
+
+let ChartFadeLayer = styled.div<{ $visible: boolean }>`
+  position: absolute;
+  inset: 0;
+  opacity: ${({ $visible }) => ($visible ? 1 : 0)};
+  transition: opacity 240ms ease;
+`;
+
+let ChartContent = styled.div<{ $visible: boolean }>`
+  opacity: ${({ $visible }) => ($visible ? 1 : 0)};
+  transition: opacity 240ms ease;
 `;
 
 let getPlaceholderUsageSeries = (from: Date, to: Date) => {
@@ -67,30 +80,81 @@ type UsageTimeline = {
 let UsageChart = ({
   data,
   isLoading,
+  from,
+  to,
   getSeriesName
 }: {
-  data: UsageTimeline[];
+  data: UsageTimeline[] | null | undefined;
   isLoading?: boolean;
+  from: Date;
+  to: Date;
   getSeriesName: (timeline: UsageTimeline) => string;
-}) => (
-  <LoadingChartWrapper>
-    <Chart
-      height={300}
-      type="line"
-      series={data.map(tl => ({
-        id: `${tl.ownerId}:${tl.entityType}:${tl.entityId}`,
-        name: getSeriesName(tl),
-        entries: tl.entries.map(e => ({ key: e.ts, value: e.count }))
-      }))}
-    />
+}) => {
+  let [showPreview, setShowPreview] = useState(() => !data);
+  let [showChart, setShowChart] = useState(() => !!data);
+  let [hasShownData, setHasShownData] = useState(() => !!data);
 
-    {isLoading ? (
-      <LoadingChartOverlay>
-        <CenteredSpinner />
-      </LoadingChartOverlay>
-    ) : null}
-  </LoadingChartWrapper>
-);
+  useEffect(() => {
+    if (!data) {
+      setShowPreview(true);
+      setShowChart(false);
+      setHasShownData(false);
+      return;
+    }
+
+    if (hasShownData) {
+      setShowChart(true);
+      setShowPreview(false);
+      return;
+    }
+
+    setShowPreview(true);
+    setShowChart(false);
+
+    let animationFrame = window.requestAnimationFrame(() => {
+      setShowChart(true);
+      setShowPreview(false);
+    });
+    let timeout = window.setTimeout(() => {
+      setHasShownData(true);
+    }, 240);
+
+    return () => {
+      window.cancelAnimationFrame(animationFrame);
+      window.clearTimeout(timeout);
+    };
+  }, [data, hasShownData]);
+
+  if (!data) return <UsageChartLoading from={from} to={to} />;
+
+  return (
+    <LoadingChartWrapper>
+      <ChartContent $visible={showChart}>
+        <Chart
+          height={300}
+          type="line"
+          series={data.map(tl => ({
+            id: `${tl.ownerId}:${tl.entityType}:${tl.entityId}`,
+            name: getSeriesName(tl),
+            entries: tl.entries.map(e => ({ key: e.ts, value: e.count }))
+          }))}
+        />
+      </ChartContent>
+
+      <ChartFadeLayer $visible={showPreview}>
+        <LoadingChartBackdrop>
+          <Chart height={300} type="line" series={getPlaceholderUsageSeries(from, to)} />
+        </LoadingChartBackdrop>
+      </ChartFadeLayer>
+
+      {isLoading ? (
+        <LoadingChartOverlay>
+          <CenteredSpinner />
+        </LoadingChartOverlay>
+      ) : null}
+    </LoadingChartWrapper>
+  );
+};
 
 export let UsageScene = ({
   title,
@@ -213,10 +277,12 @@ export let UsageScene = ({
             here.
           </p>
         </>
-      ) : usage.data ? (
+      ) : usage.data || usage.isLoading ? (
         <UsageChart
           data={usage.data}
           isLoading={usage.isLoading}
+          from={range.from}
+          to={range.to}
           getSeriesName={getSeriesName}
         />
       ) : (
@@ -225,7 +291,14 @@ export let UsageScene = ({
           {
             loading: () => <UsageChartLoading from={range.from} to={range.to} />
           }
-        )(({ usage }) => <UsageChart data={usage.data} getSeriesName={getSeriesName} />)
+        )(({ usage }) => (
+          <UsageChart
+            data={usage.data}
+            from={range.from}
+            to={range.to}
+            getSeriesName={getSeriesName}
+          />
+        ))
       )}
     </Box>
   );

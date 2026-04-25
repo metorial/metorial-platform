@@ -58,13 +58,8 @@ let CredentialIcon = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  color: ${theme.colors.primary600};
-  background: linear-gradient(
-    135deg,
-    ${theme.colors.primary100} 0%,
-    ${theme.colors.iris300} 100%
-  );
-  border: 1px solid ${theme.colors.primary200};
+  color: ${theme.colors.white100};
+  background: ${theme.colors.primary};
 `;
 
 let CredentialBody = styled.div`
@@ -77,7 +72,7 @@ let CredentialBody = styled.div`
 let CredentialLabel = styled.span`
   font-size: 11px;
   font-weight: 600;
-  color: ${theme.colors.gray600};
+  color: ${theme.colors.gray800};
 `;
 
 let CredentialValue = styled.code`
@@ -85,7 +80,7 @@ let CredentialValue = styled.code`
   font-size: 13px;
   padding: 4px 8px;
   color: ${theme.colors.gray900};
-  background: ${theme.colors.gray100};
+  background: ${theme.colors.gray200};
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -340,6 +335,12 @@ let CodeCardLabel = styled.div`
   color: ${theme.colors.gray600};
 `;
 
+let CodeCardActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+`;
+
 let CodeLanguageDot = styled.span<{ $color: string }>`
   width: 7px;
   height: 7px;
@@ -384,17 +385,26 @@ let languageDotColor: Record<string, string> = {
 
 let capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
+let getTokenPreview = (token: string) =>
+  `${token.slice(0, 20)}${token.length > 20 ? '...' : ''}`;
+
 let LuxeCodeBlock = ({
   code,
   language = 'bash',
-  label
+  label,
+  token
 }: {
   code: string;
   language?: string;
   label?: string;
+  token?: string | null;
 }) => {
   let copy = useCopy();
+  let [revealed, setRevealed] = useState(false);
   let dotColor = languageDotColor[language] ?? theme.colors.gray500;
+  let hasToken = !!token && code.includes(token);
+  let displayCode =
+    hasToken && token && !revealed ? code.split(token).join(getTokenPreview(token)) : code;
 
   return (
     <CodeCard>
@@ -403,42 +413,53 @@ let LuxeCodeBlock = ({
           <CodeLanguageDot $color={dotColor} />
           {capitalize(label ?? language)}
         </CodeCardLabel>
-        <IconButton
-          type="button"
-          aria-label="Copy"
-          onClick={() => copy.copy(code)}
-          $success={copy.copied}
-        >
-          <AnimatePresence mode="wait" initial={false}>
-            {copy.copied ? (
-              <motion.span
-                key="check"
-                initial={{ opacity: 0, scale: 0.7 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.7 }}
-                transition={{ duration: 0.15 }}
-                style={{ display: 'inline-flex' }}
-              >
-                <RiCheckLine size={15} />
-              </motion.span>
-            ) : (
-              <motion.span
-                key="copy"
-                initial={{ opacity: 0, scale: 0.7 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.7 }}
-                transition={{ duration: 0.15 }}
-                style={{ display: 'inline-flex' }}
-              >
-                <RiFileCopyLine size={15} />
-              </motion.span>
-            )}
-          </AnimatePresence>
-        </IconButton>
+        <CodeCardActions>
+          {hasToken && (
+            <IconButton
+              type="button"
+              aria-label={revealed ? 'Hide token' : 'Show token'}
+              onClick={() => setRevealed(r => !r)}
+            >
+              {revealed ? <RiEyeOffLine size={15} /> : <RiEyeLine size={15} />}
+            </IconButton>
+          )}
+          <IconButton
+            type="button"
+            aria-label="Copy"
+            onClick={() => copy.copy(code)}
+            $success={copy.copied}
+          >
+            <AnimatePresence mode="wait" initial={false}>
+              {copy.copied ? (
+                <motion.span
+                  key="check"
+                  initial={{ opacity: 0, scale: 0.7 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.7 }}
+                  transition={{ duration: 0.15 }}
+                  style={{ display: 'inline-flex' }}
+                >
+                  <RiCheckLine size={15} />
+                </motion.span>
+              ) : (
+                <motion.span
+                  key="copy"
+                  initial={{ opacity: 0, scale: 0.7 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.7 }}
+                  transition={{ duration: 0.15 }}
+                  style={{ display: 'inline-flex' }}
+                >
+                  <RiFileCopyLine size={15} />
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </IconButton>
+        </CodeCardActions>
       </CodeCardHeader>
 
       <CodeCardBody>
-        <CodeBlock code={code} language={language} lineNumbers={false} />
+        <CodeBlock code={displayCode} language={language} lineNumbers={false} />
       </CodeCardBody>
     </CodeCard>
   );
@@ -653,7 +674,11 @@ export let McpConnectionInstructionsScene = ({
                     <TimelineText>{step.text}</TimelineText>
 
                     {'command' in step && step.command && (
-                      <LuxeCodeBlock code={step.command} language="bash" />
+                      <LuxeCodeBlock
+                        code={step.command}
+                        language="bash"
+                        token={snippetToken}
+                      />
                     )}
                   </TimelineBody>
                 </TimelineStep>
@@ -675,6 +700,7 @@ export let McpConnectionInstructionsScene = ({
                   code={JSON.stringify(connection.config, null, 2)}
                   language="json"
                   label="Configuration"
+                  token={snippetToken}
                 />
               </motion.div>
             )}

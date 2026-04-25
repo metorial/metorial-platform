@@ -17,9 +17,13 @@ export let MagicMcpServerOverviewPage = () => {
   let { magicMcpServerId } = useParams();
 
   let server = useMagicMcpServer(instance.data?.id, magicMcpServerId);
-  let tokens = useMagicMcpTokens(instance.data?.id, {
-    status: 'active'
-  });
+  let tokens = useMagicMcpTokens(
+    instance.data?.id && server.data?.id ? instance.data.id : null,
+    {
+      status: 'active',
+      magicMcpServerId: server.data?.id
+    }
+  );
   let createToken = tokens.createMutator();
   let templateProviders = useSessionTemplateProviders(
     instance.data?.id,
@@ -27,6 +31,14 @@ export let MagicMcpServerOverviewPage = () => {
   );
   let initializingTokenRef = useRef<string | undefined>(undefined);
   let [creatingInitialToken, setCreatingInitialToken] = useState(false);
+  let [createdInitialToken, setCreatedInitialToken] = useState<{
+    instanceId: string;
+    serverId: string;
+    id: string;
+    secret: string;
+    status: 'active';
+    groups: [];
+  } | null>(null);
   let providerIds = useMemo(
     () => [
       ...new Set(
@@ -38,26 +50,44 @@ export let MagicMcpServerOverviewPage = () => {
     [templateProviders.data?.items]
   );
   let providers = useProviders(instance.data?.id, { id: providerIds });
+  let existingServerTokenId = tokens.data?.items.find(
+    t => t.status === 'active' && t.server?.id === server.data?.id
+  )?.id;
 
   useEffect(() => {
-    if (!instance.data?.id) return;
+    if (!instance.data?.id || !server.data?.id) return;
+    let instanceId = instance.data.id;
+    let serverId = server.data.id;
+    let initializingKey = `${instanceId}:${serverId}`;
 
     if (
       !tokens.error &&
       !tokens.isLoading &&
-      !tokens.data?.items.length &&
-      initializingTokenRef.current !== instance.data.id
+      tokens.data &&
+      !existingServerTokenId &&
+      initializingTokenRef.current !== initializingKey
     ) {
       setCreatingInitialToken(true);
-      initializingTokenRef.current = instance.data.id;
+      initializingTokenRef.current = initializingKey;
 
       createToken
         .mutate({
-          instanceId: instance.data.id,
-          name: 'Default Token'
+          instanceId,
+          name: `${server.data.name ?? 'Magic MCP Server'} Token`,
+          magicMcpServerId: serverId
         })
         .then(([res]) => {
           if (!res) initializingTokenRef.current = undefined;
+          if (res?.secret) {
+            setCreatedInitialToken({
+              instanceId,
+              serverId,
+              id: res.id,
+              secret: res.secret,
+              status: 'active',
+              groups: []
+            });
+          }
         })
         .finally(() => {
           setCreatingInitialToken(false);
@@ -65,8 +95,10 @@ export let MagicMcpServerOverviewPage = () => {
     }
   }, [
     createToken,
+    existingServerTokenId,
     instance.data?.id,
-    tokens.data?.items.length,
+    server.data?.id,
+    server.data?.name,
     tokens.error,
     tokens.isLoading
   ]);
@@ -74,16 +106,22 @@ export let MagicMcpServerOverviewPage = () => {
   return renderWithLoader({ server, tokens, templateProviders, providers })(
     ({ server, tokens, templateProviders, providers }) => {
       let streamableHttpUrl = server.data.endpoints[0]?.url;
-      let activeToken = tokens.data.items.find(
-        t => t.status === 'active' && t.groups.length === 0
-      );
-      let fullUrl =
-        streamableHttpUrl && activeToken
-          ? `${streamableHttpUrl}?key=${activeToken.secret}`
+      let createdToken =
+        createdInitialToken?.instanceId === instance.data?.id &&
+        createdInitialToken?.serverId === server.data.id
+          ? createdInitialToken
           : null;
-      let hasRestrictedActiveToken = tokens.data.items.some(
-        token => token.status === 'active' && token.groups.length > 0
-      );
+      let activeToken =
+        tokens.data.items.find(
+          t => t.status === 'active' && t.server?.id === server.data.id
+        ) ??
+        createdToken;
+      let activeTokenSecret = activeToken?.secret;
+      let fullUrl =
+        streamableHttpUrl && activeTokenSecret
+          ? `${streamableHttpUrl}?key=${activeTokenSecret}`
+          : null;
+      let hasRelatedActiveToken = tokens.data.items.length > 0;
       let providerNameMap = new Map<string, string>();
       for (let provider of providers.data?.items ?? []) {
         if (provider.id && provider.name) providerNameMap.set(provider.id, provider.name);
@@ -206,19 +244,22 @@ export let MagicMcpServerOverviewPage = () => {
           >
             <McpConnectionInstructionsScene
               name={server.data.name ?? 'Magic MCP Server'}
+              tokenLabel="Magic MCP Token"
+              tokenValue={activeTokenSecret ?? null}
+              tokenCopyValue={activeTokenSecret ?? ''}
               endpointLabel="Endpoint"
               endpointValue={fullUrl ?? streamableHttpUrl ?? '...'}
               endpointCopyValue={fullUrl ?? streamableHttpUrl ?? ''}
               snippetUrl={streamableHttpUrl ?? null}
-              snippetToken={activeToken?.secret ?? null}
+              snippetToken={activeTokenSecret ?? null}
               emptyState={
                 <Flex direction="column" gap={12} style={{ alignItems: 'flex-start' }}>
                   <Text size="2">
                     {creatingInitialToken
-                      ? 'Creating a default Magic MCP token for this instance...'
-                      : hasRestrictedActiveToken
-                        ? 'No unrestricted Magic MCP token found. Create a token without group restrictions from the Tokens tab to generate a guaranteed working connection snippet.'
-                        : 'No active Magic MCP token found. Create one from the Tokens tab to connect clients.'}
+                      ? 'Creating a Magic MCP token for this server...'
+                      : hasRelatedActiveToken
+                        ? 'No token directly linked to this Magic MCP server found. Create a server-specific token from the Tokens tab to generate a guaranteed working connection snippet.'
+                        : 'No active Magic MCP token found for this server. Create one from the Tokens tab to connect clients.'}
                   </Text>
                 </Flex>
               }

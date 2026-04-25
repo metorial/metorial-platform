@@ -886,7 +886,8 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
                       let comboboxAuthConfigs = useProviderAuthConfigs(p.instanceId, {
                         providerId: p.providerId,
                         limit: 25,
-                        search: searchQuery || undefined
+                        search: searchQuery || undefined,
+                        providerDeploymentId: p.providerDeploymentId ?? undefined
                       });
 
                       return {

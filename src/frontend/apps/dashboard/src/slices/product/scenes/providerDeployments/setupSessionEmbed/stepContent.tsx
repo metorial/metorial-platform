@@ -193,6 +193,11 @@ let CredentialsSelector = (p: {
   isCustomSelected: boolean;
   disabled?: boolean;
 }) => {
+  let shouldShowRedirectUri =
+    !!p.redirectUri &&
+    p.isCustomSelected &&
+    (p.isCreatingCredentials || !!p.selectedCredentialId);
+
   return (
     <>
       <Select
@@ -220,7 +225,7 @@ let CredentialsSelector = (p: {
         </>
       )}
 
-      {p.redirectUri && p.isCreatingCredentials && (
+      {shouldShowRedirectUri && p.redirectUri && (
         <RedirectUriField redirectUri={p.redirectUri} />
       )}
 
@@ -497,6 +502,7 @@ export let CredentialsSelectionStep = (p: {
             handleCredentialSelectionChange={p.handleCredentialSelectionChange}
             hasManagedVisibleCredentials={p.hasManagedVisibleCredentials}
             isCreatingCredentials={p.isCreatingCredentials}
+            redirectUri={p.redirectUri}
             isCustomSelected={p.isCustomSelected}
           />
         )}
@@ -590,11 +596,7 @@ export let FlatOAuthConnectStep = (p: {
 
             if (isWindowOpen) return;
 
-            if (
-              p.isCustomSelected &&
-              !p.hasSelectedCredential &&
-              !p.isCreatingCredentials
-            ) {
+            if (p.isCustomSelected && !p.hasSelectedCredential && !p.isCreatingCredentials) {
               p.credentialsForm.setFieldTouched('selectedCredentialId', true, false);
               await p.credentialsForm.validateField('selectedCredentialId');
               return;
@@ -694,9 +696,7 @@ export let FlatOAuthConnectStep = (p: {
                     (!p.credentialsForm.values.newCredName ||
                       !p.credentialsForm.values.newCredClientId ||
                       !p.credentialsForm.values.newCredClientSecret)) ||
-                  (p.isCustomSelected &&
-                    !p.isCreatingCredentials &&
-                    !p.hasSelectedCredential)
+                  (p.isCustomSelected && !p.isCreatingCredentials && !p.hasSelectedCredential)
                 }
               >
                 Continue

@@ -117,9 +117,9 @@ export let ProviderConfigurationSelection = ({
   let valueLabel =
     createdSelection?.label ??
     (effectiveValue.kind === 'config'
-      ? selectedConfig.data?.name ?? defaultConfig?.name ?? defaultConfig?.id
+      ? (selectedConfig.data?.name ?? defaultConfig?.name ?? defaultConfig?.id)
       : effectiveValue.kind === 'vault'
-        ? selectedVault.data?.name ?? selectedVault.data?.id
+        ? (selectedVault.data?.name ?? selectedVault.data?.id)
         : undefined);
 
   return (
