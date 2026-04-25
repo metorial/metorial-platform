@@ -249,10 +249,10 @@ export let createLoader = <
   let refetchAll = () => {
     if (document.hasFocus()) {
       for (let state of states.values()) {
-        // Only fetch if there are listeners, i.e., it's being used
-        // if (state.state.hasSubscribers()) {
+        // Only refetch mounted loader instances; otherwise mutations can fan out
+        // into stale cached variants from previously visited screens.
+        if (!state.state.hasSubscribers()) continue;
         getInstance(state.state.value!.input!).fetch({ force: true });
-        // }
       }
     }
   };

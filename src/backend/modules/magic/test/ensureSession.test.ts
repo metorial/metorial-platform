@@ -61,6 +61,9 @@ describe('ensureMagicMcpSubspaceSession', () => {
   });
 
   it('reuses a non-expired mapping', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-04-25T10:00:00.000Z'));
+
     let mapping = {
       oid: 1n,
       subspaceSessionId: 'ses_existing',

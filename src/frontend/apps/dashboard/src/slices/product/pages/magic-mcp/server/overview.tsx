@@ -114,8 +114,7 @@ export let MagicMcpServerOverviewPage = () => {
       let activeToken =
         tokens.data.items.find(
           t => t.status === 'active' && t.server?.id === server.data.id
-        ) ??
-        createdToken;
+        ) ?? createdToken;
       let activeTokenSecret = activeToken?.secret;
       let fullUrl =
         streamableHttpUrl && activeTokenSecret
@@ -257,9 +256,7 @@ export let MagicMcpServerOverviewPage = () => {
                   <Text size="2">
                     {creatingInitialToken
                       ? 'Creating a Magic MCP token for this server...'
-                      : hasRelatedActiveToken
-                        ? 'No token directly linked to this Magic MCP server found. Create a server-specific token from the Tokens tab to generate a guaranteed working connection snippet.'
-                        : 'No active Magic MCP token found for this server. Create one from the Tokens tab to connect clients.'}
+                      : 'No active Magic MCP token found for this server. Create one from the Tokens tab to connect clients.'}
                   </Text>
                 </Flex>
               }

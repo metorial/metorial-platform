@@ -156,6 +156,11 @@ export class SenderManager {
     if (d.connectionToken && !connection) {
       throw new ServiceError(notFoundError('connection'));
     }
+    if (isRecordDeleted(connection)) {
+      throw new ServiceError(
+        goneError({ message: 'Connection has been archived or deleted' })
+      );
+    }
 
     if (connection) {
       if (connection.isManuallyDisabled) {
