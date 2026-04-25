@@ -100,7 +100,32 @@ export class SenderManager {
     readonly transport: SessionConnectionTransport
   ) {}
 
-  static async create(d: SenderMangerProps): Promise<SenderManager> {
+  private static async resolveSession(d: SenderMangerProps) {
+    if (d.connectionToken) {
+      let connection = await db.sessionConnection.findFirst({
+        where: {
+          token: d.connectionToken,
+          tenant: { OR: [{ id: d.tenantId }, { identifier: d.tenantId }] },
+          solution: { OR: [{ id: d.solutionId }, { identifier: d.solutionId }] }
+        },
+        include: {
+          session: true,
+          participant: true,
+          tenant: true,
+          solution: true
+        }
+      });
+
+      if (connection) {
+        return {
+          ...connection.session,
+          tenant: connection.tenant,
+          solution: connection.solution,
+          connection: connection
+        };
+      }
+    }
+
     let session = await db.session.findFirst({
       where: {
         id: d.sessionId,
@@ -109,21 +134,25 @@ export class SenderManager {
       },
       include: {
         tenant: true,
-        solution: true,
-        connections: d.connectionToken
-          ? {
-              where: { token: d.connectionToken, status: 'active' },
-              include: { participant: true }
-            }
-          : false
+        solution: true
       }
     });
+    if (!session) return null;
+
+    return {
+      ...session,
+      connection: undefined
+    };
+  }
+
+  static async create(d: SenderMangerProps): Promise<SenderManager> {
+    let session = await this.resolveSession(d);
     if (!session) throw new ServiceError(notFoundError('session'));
     if (isRecordDeleted(session)) {
       throw new ServiceError(goneError({ message: 'Session has been archived or deleted' }));
     }
 
-    let connection = session.connections?.[0];
+    let connection = session.connection;
     if (d.connectionToken && !connection) {
       throw new ServiceError(notFoundError('connection'));
     }
