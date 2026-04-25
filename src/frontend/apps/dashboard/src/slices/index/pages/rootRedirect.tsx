@@ -3,6 +3,9 @@ import { lastInstanceIdStore, useBoot } from '@metorial/state';
 import { useLayoutEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
+let joinPaths = (...paths: (string | number | undefined)[]) =>
+  paths.filter(Boolean).join('/').replace(/\/+/g, '/');
+
 export let RootRedirect = () => {
   let boot = useBoot();
   let navigate = useNavigate();
@@ -68,7 +71,10 @@ export let RootRedirect = () => {
         if (intent === 'organization_settings')
           return Paths.organization.settings(organization);
 
-        return Paths.instance.home(organization, project, instance);
+        let homeBasePath = Paths.instance.home(organization, project, instance);
+        if (!path) return homeBasePath;
+
+        return joinPaths(homeBasePath, path);
       })
       .then(async path => {
         if (navigatedRef.current) return;
