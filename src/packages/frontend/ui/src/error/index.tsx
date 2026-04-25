@@ -23,6 +23,13 @@ export let Error = ({
 }) => {
   let sizeString = (typeof size == 'number' ? `${size}px` : size) || '14px';
 
+  let inner = children;
+
+  if (typeof children == 'string' && children.startsWith('[') && children.includes(']')) {
+    let endIndex = children.indexOf(']');
+    inner = children.substring(endIndex + 1);
+  }
+
   return (
     <Wrapper
       style={{
@@ -38,7 +45,7 @@ export let Error = ({
         <RiErrorWarningLine size={calc.multiply(sizeString, 1.3)} />
       </span>
 
-      <span>{children}</span>
+      <span>{inner}</span>
     </Wrapper>
   );
 };

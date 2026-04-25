@@ -45,6 +45,7 @@ class slateAuthConfigServiceImpl {
       ? fullVersion.specification?.slateAuthMethods.find(
           m =>
             m.authMethod.id === d.input.authMethodId ||
+            m.authMethod.identifier === d.input.authMethodId ||
             m.authMethod.type === d.input.authMethodId ||
             m.authMethod.key === d.input.authMethodId
         )

@@ -189,7 +189,7 @@ export class ProviderAuth extends IProviderAuth {
       tenantId: tenant.id,
       slateId: slate.id,
       slateVersionId: slateVersion.id,
-      authMethodId: data.authMethod.callableId,
+      authMethodId: data.authMethod.specId,
 
       input: data.input,
       redirectUrl: data.redirectUrl,
@@ -239,7 +239,7 @@ export class ProviderAuth extends IProviderAuth {
       tenantId: tenant.id,
       slateId: slate.id,
       slateVersionId: slateVersion.id,
-      authMethodId: data.authMethod.value.callableId,
+      authMethodId: data.authMethod.specId,
       authConfig: data.input
     });
 
