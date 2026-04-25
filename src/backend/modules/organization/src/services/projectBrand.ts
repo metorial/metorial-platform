@@ -183,29 +183,27 @@ class ProjectBrandService {
     project: Project & { organization: Organization };
     brand: { name: string; image: PrismaJson.EntityImage };
   }) {
-    return withTransaction(async db => {
-      let instance = await db.instance.findFirst({
-        where: { projectOid: d.project.oid, status: 'active' },
-        include: { project: true, organization: true }
-      });
-      if (!instance) return;
+    let instance = await db.instance.findFirst({
+      where: { projectOid: d.project.oid, status: 'active' },
+      include: { project: true, organization: true }
+    });
+    if (!instance) return;
 
-      let { tenant } = await getTenantForSubspace(instance);
+    let { tenant } = await getTenantForSubspace(instance);
 
-      let brand = await subspaceBrandService.upsert({
-        instance,
-        name: d.brand.name,
-        image: d.brand.image,
-        for: {
-          type: 'tenant',
-          tenantId: tenant.id
-        }
-      });
+    let brand = await subspaceBrandService.upsert({
+      instance,
+      name: d.brand.name,
+      image: d.brand.image,
+      for: {
+        type: 'tenant',
+        tenantId: tenant.id
+      }
+    });
 
-      await db.projectBrand.update({
-        where: { projectOid: d.project.oid },
-        data: { subspaceBrandId: brand.id }
-      });
+    await db.projectBrand.update({
+      where: { projectOid: d.project.oid },
+      data: { subspaceBrandId: brand.id }
     });
   }
 }
