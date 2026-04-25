@@ -330,6 +330,17 @@ export let ProviderSetupSessionEmbed = ({
     setError(null);
   };
 
+  let clearSetupSessionForRetry = () => {
+    if (setupWindowRef.current && !setupWindowRef.current.closed) {
+      setupWindowRef.current.close();
+    }
+
+    setupWindowRef.current = null;
+    pollingRef.current = false;
+    setSetupSession(null);
+    setSetupWindowBlocked(false);
+  };
+
   let handleMethodChange = (value: string) => {
     methodForm.setFieldValue('selectedMethodId', value);
     autoStartedManagedSetupRef.current = false;
@@ -620,6 +631,7 @@ export let ProviderSetupSessionEmbed = ({
               ? 'Setup session expired. Please start again.'
               : 'Setup session failed. Please try again.'
           );
+          clearSetupSessionForRetry();
           return;
         }
       }
@@ -627,6 +639,7 @@ export let ProviderSetupSessionEmbed = ({
       attempts += 1;
       if (attempts > 120) {
         setError('Authentication timed out. Please try again.');
+        clearSetupSessionForRetry();
         return;
       }
 
