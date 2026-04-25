@@ -74,6 +74,7 @@
     "@lowerdeck/shadow-id": "^1.0.7",
     "@lowerdeck/slugify": "^1.0.6",
     "@lowerdeck/snowflake": "^1.0.2",
+    "@lowerdeck/telemetry": "^1.1.1",
     "@lowerdeck/validation": "^1.0.10",
     "@metorial-io/data-hooks": "^1.0.1",
     "@metorial-io/layout": "^1.0.1",

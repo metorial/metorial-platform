@@ -1,10 +1,16 @@
 import { setSentry } from '@lowerdeck/sentry';
+import { initTelemetry } from '@lowerdeck/telemetry';
 import * as Sentry from '@sentry/bun';
 
 declare global {
   // eslint-disable-next-line no-var
   var sentryInitialized: boolean | undefined;
 }
+
+initTelemetry({
+  serviceName: 'mte-origin',
+  allowRootSpans: false
+});
 
 if (
   process.env.METORIAL_ENV !== 'development' &&

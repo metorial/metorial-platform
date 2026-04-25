@@ -55,6 +55,7 @@
     "@lowerdeck/service": "^1.0.3",
     "@lowerdeck/slugify": "^1.0.5",
     "@lowerdeck/snowflake": "^1.0.2",
+    "@lowerdeck/telemetry": "^1.1.1",
     "@lowerdeck/validation": "^1.0.4",
     "@prisma/adapter-pg": "^7.2.0",
     "@prisma/client": "^7.2.0",

@@ -52,6 +52,7 @@
     "@lowerdeck/service": "^1.0.7",
     "@lowerdeck/slugify": "^1.0.6",
     "@lowerdeck/snowflake": "^1.0.2",
+    "@lowerdeck/telemetry": "^1.1.1",
     "@lowerdeck/validation": "^1.0.10",
     "@octokit/auth-app": "^8.1.2",
     "@octokit/core": "^7.0.6",
