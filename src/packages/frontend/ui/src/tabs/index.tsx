@@ -8,6 +8,7 @@ import { getLink } from '../link';
 let Wrapper = styled('div')`
   position: relative;
   width: 100%;
+  user-select: none;
 `;
 
 let Inner = styled('div')`
@@ -20,6 +21,8 @@ let Inner = styled('div')`
   overflow-x: auto;
   white-space: nowrap;
   justify-content: center;
+  scrollbar-color: ${theme.colors.gray400} transparent;
+  scrollbar-width: thin;
 `;
 
 let List = styled('ul')`
@@ -28,6 +31,8 @@ let List = styled('ul')`
   max-width: 100%;
   overflow-x: auto;
   white-space: nowrap;
+  scrollbar-color: ${theme.colors.gray400} transparent;
+  scrollbar-width: thin;
 `;
 
 let Tab = styled('li')`
@@ -139,32 +144,55 @@ export let Tabs = ({
 
   let [listRef, setListRef] = useState<HTMLUListElement | null>(null);
   let [innerRef, setInnerRef] = useState<HTMLDivElement | null>(null);
+  let [wrapperRef, setWrapperRef] = useState<HTMLDivElement | null>(null);
+  let [scrollOffset, setScrollOffset] = useState(0);
 
   let [refs, setRefs] = useState<(HTMLLIElement | null)[]>([]);
 
   let renderIndicators = false;
 
-  let listOffset = Math.max(
-    ((innerRef?.clientWidth ?? 0) - (listRef?.clientWidth ?? 0)) / 2,
-    0
-  );
-
   let currentIndex = tabs.findIndex(t => ('to' in t ? t.to == current : t.id == current));
-  let indicatorOffset = 0;
+  let indicatorOffset = -scrollOffset;
   let indicatorWidth = refs[currentIndex]?.clientWidth ?? 0;
-  if (refs[currentIndex]) {
+  if (refs[currentIndex] && wrapperRef) {
     renderIndicators = true;
 
-    indicatorOffset = refs.reduce((acc, ref, i) => {
-      if (i < currentIndex && ref) return acc + ref.clientWidth;
-      return acc;
-    }, 0);
+    let tabRect = refs[currentIndex].getBoundingClientRect();
+    let wrapperRect = wrapperRef.getBoundingClientRect();
+
+    indicatorOffset = tabRect.left - wrapperRect.left;
+    indicatorWidth = tabRect.width;
   }
 
+  let clipIndicator = (indicator: { left: number; width: number }) => {
+    let overflowThreshold = 10;
+    let minLeft = -overflowThreshold;
+    let maxRight = (wrapperRef?.clientWidth ?? 0) + overflowThreshold;
+    let right = indicator.left + indicator.width;
+    let clippedLeft = Math.max(indicator.left, minLeft);
+    let clippedRight = Math.min(right, maxRight);
+
+    return {
+      left: clippedLeft,
+      width: Math.max(clippedRight - clippedLeft, 0),
+      visible: clippedRight - clippedLeft >= 30
+    };
+  };
+
+  let clippedLineIndicator = clipIndicator({
+    left: indicatorOffset,
+    width: indicatorWidth
+  });
+  let clippedTabIndicator = clipIndicator({
+    left: indicatorOffset - gap / 2,
+    width: indicatorWidth + gap
+  });
+
   return (
-    <Wrapper>
+    <Wrapper ref={setWrapperRef}>
       <Inner
         ref={setInnerRef}
+        onScroll={e => setScrollOffset(e.currentTarget.scrollLeft + (listRef?.scrollLeft ?? 0))}
         style={{
           width: '100%',
 
@@ -179,6 +207,7 @@ export let Tabs = ({
       >
         <List
           ref={setListRef}
+          onScroll={e => setScrollOffset((innerRef?.scrollLeft ?? 0) + e.currentTarget.scrollLeft)}
           style={{
             width: maxWidth,
             gap
@@ -210,20 +239,20 @@ export let Tabs = ({
 
       {renderIndicators && (
         <>
-          {lineIndicator && (
+          {lineIndicator && clippedLineIndicator.visible && (
             <LineIndicator
               style={{
-                left: indicatorOffset + currentIndex * gap + listOffset,
-                width: indicatorWidth
+                left: clippedLineIndicator.left,
+                width: clippedLineIndicator.width
               }}
             />
           )}
 
-          {tabIndicator && (
+          {tabIndicator && clippedTabIndicator.visible && (
             <TabIndicator
               style={{
-                left: indicatorOffset + (currentIndex - 0.5) * gap + listOffset,
-                width: indicatorWidth + gap,
+                left: clippedTabIndicator.left,
+                width: clippedTabIndicator.width,
                 height,
 
                 top: `calc(50% - ${padding.bottom / 2}px)`,
