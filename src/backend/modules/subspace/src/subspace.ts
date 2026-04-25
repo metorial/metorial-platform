@@ -1,14 +1,7 @@
 import { delay } from '@lowerdeck/delay';
 import { ProgrammablePromise } from '@lowerdeck/programmable-promise';
 import { createSubspaceControllerClient } from '@metorial-platform-systems/subspace-client';
-import {
-  db,
-  Organization,
-  OrganizationActor,
-  Project,
-  withTransaction,
-  type Instance
-} from '@metorial/db';
+import { db, Organization, OrganizationActor, Project, type Instance } from '@metorial/db';
 import { env } from './env';
 
 let solutionProm = new ProgrammablePromise<
@@ -92,7 +85,7 @@ export let getTenantForSubspace = async (
         getSubspaceEnvironmentIdentifier(currentInstance)
     });
 
-    instance = await withTransaction(async db => {
+    instance = await db.$transaction(async db => {
       instance = await db.instance.update({
         where: { oid: currentInstance.oid },
         data: {

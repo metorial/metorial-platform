@@ -278,16 +278,53 @@ let cleanupSessionConnections = async (d: { tenantOid: bigint; cutoffDate: Date 
         where: {
           tenantOid: d.tenantOid,
           createdAt: { lt: d.cutoffDate },
-          state: 'disconnected'
+          state: 'disconnected',
+          providerRuns: { none: {} }
         },
         orderBy: { createdAt: 'asc' },
         take: RETENTION_BATCH_SIZE,
         select: { oid: true }
       }),
-    deleteMany: records =>
-      db.sessionConnection.deleteMany({
-        where: { oid: { in: records.map(record => record.oid) } }
-      })
+    deleteMany: async records => {
+      let connectionOids = records.map(record => record.oid);
+
+      await withTransaction(async tx => {
+        await Promise.all([
+          tx.sessionEvent.updateMany({
+            where: { connectionOid: { in: connectionOids } },
+            data: {
+              connectionOid: null,
+              isParentDeleted: true
+            }
+          }),
+          tx.sessionMessage.updateMany({
+            where: { connectionOid: { in: connectionOids } },
+            data: {
+              connectionOid: null,
+              isParentDeleted: true
+            }
+          }),
+          tx.sessionError.updateMany({
+            where: { connectionOid: { in: connectionOids } },
+            data: {
+              connectionOid: null,
+              isParentDeleted: true
+            }
+          }),
+          tx.sessionWarning.updateMany({
+            where: { connectionOid: { in: connectionOids } },
+            data: {
+              connectionOid: null,
+              isParentDeleted: true
+            }
+          })
+        ]);
+
+        await tx.sessionConnection.deleteMany({
+          where: { oid: { in: connectionOids } }
+        });
+      });
+    }
   });
 };
 
