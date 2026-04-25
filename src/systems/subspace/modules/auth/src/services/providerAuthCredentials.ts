@@ -35,6 +35,7 @@ import {
   type ManagedProviderAuthCredentialsBackingSource,
   managedProviderAuthCredentialsBackingSourceInclude
 } from '../lib/managedProviderAuthCredentialsBacking';
+import { normalizeManagedOAuthScopeIds } from '../lib/managedOAuthScopes';
 import {
   providerAuthCredentialsArchivedQueue,
   providerAuthCredentialsCreatedQueue,
@@ -174,6 +175,7 @@ class providerAuthCredentialsServiceImpl {
     let origin = d.origin?.length ? d.origin : defaultListOrigins;
     let includeTenantCreated = origin.includes('tenant_created');
     let includeManagedBacking = origin.includes('managed_backing');
+
     let search = d.search
       ? await voyager.record.search({
           tenantId: d.tenant.id,
@@ -229,7 +231,7 @@ class providerAuthCredentialsServiceImpl {
                         tenant: d.tenant,
                         solution: d.solution,
                         ids: credentialIds,
-                        providerAuthMethodGlobalOids: authMethodsGlobal?.oidIn.oid.in
+                        providerAuthMethodGlobalOids: authMethodsGlobal?.oids
                       })
                     : undefined!
                 ].filter(Boolean)
@@ -347,7 +349,7 @@ class providerAuthCredentialsServiceImpl {
     });
 
     if (d.input.scopes && managedCredentials) {
-      let allowedScopes = new Set(managedCredentials.oauthScopes);
+      let allowedScopes = new Set(normalizeManagedOAuthScopeIds(managedCredentials.oauthScopes));
       let invalidScopes = d.input.scopes.filter(scope => !allowedScopes.has(scope));
       if (invalidScopes.length > 0) {
         throw new ServiceError(
