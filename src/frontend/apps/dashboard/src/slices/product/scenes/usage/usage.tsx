@@ -1,9 +1,96 @@
 import { Chart } from '@metorial/chart';
 import { renderWithLoader } from '@metorial/data-hooks';
 import { useCurrentOrganization, useInstances } from '@metorial/state';
-import { DatePicker, Select } from '@metorial/ui';
+import { CenteredSpinner, DatePicker, Select } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
+import styled from 'styled-components';
 import { useUsageState } from './state';
+
+let LoadingChartWrapper = styled.div`
+  position: relative;
+  min-height: 300px;
+`;
+
+let LoadingChartBackdrop = styled.div`
+  filter: grayscale(1) blur(3px);
+  opacity: 0.45;
+  pointer-events: none;
+`;
+
+let LoadingChartOverlay = styled.div`
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+let getPlaceholderUsageSeries = (from: Date, to: Date) => {
+  let fromTs = from.getTime();
+  let toTs = to.getTime();
+  let step = Math.max((toTs - fromTs) / 11, 1);
+
+  return [
+    {
+      id: 'placeholder-usage',
+      name: 'Usage',
+      entries: Array.from({ length: 12 }, (_, i) => ({
+        key: new Date(fromTs + step * i),
+        value: [12, 18, 15, 28, 24, 35, 31, 42, 38, 47, 43, 54][i]
+      }))
+    }
+  ];
+};
+
+let UsageChartLoading = ({ from, to }: { from: Date; to: Date }) => (
+  <LoadingChartWrapper>
+    <LoadingChartBackdrop>
+      <Chart height={300} type="line" series={getPlaceholderUsageSeries(from, to)} />
+    </LoadingChartBackdrop>
+
+    <LoadingChartOverlay>
+      <CenteredSpinner />
+    </LoadingChartOverlay>
+  </LoadingChartWrapper>
+);
+
+type UsageTimeline = {
+  entityId: string;
+  entityType: string;
+  ownerId: string;
+  entries: {
+    ts: Date;
+    count: number;
+  }[];
+};
+
+let UsageChart = ({
+  data,
+  isLoading,
+  getSeriesName
+}: {
+  data: UsageTimeline[];
+  isLoading?: boolean;
+  getSeriesName: (timeline: UsageTimeline) => string;
+}) => (
+  <LoadingChartWrapper>
+    <Chart
+      height={300}
+      type="line"
+      series={data.map(tl => ({
+        id: `${tl.ownerId}:${tl.entityType}:${tl.entityId}`,
+        name: getSeriesName(tl),
+        entries: tl.entries.map(e => ({ key: e.ts, value: e.count }))
+      }))}
+    />
+
+    {isLoading ? (
+      <LoadingChartOverlay>
+        <CenteredSpinner />
+      </LoadingChartOverlay>
+    ) : null}
+  </LoadingChartWrapper>
+);
 
 export let UsageScene = ({
   title,
@@ -126,18 +213,19 @@ export let UsageScene = ({
             here.
           </p>
         </>
+      ) : usage.data ? (
+        <UsageChart
+          data={usage.data}
+          isLoading={usage.isLoading}
+          getSeriesName={getSeriesName}
+        />
       ) : (
-        renderWithLoader({ usage })(({ usage }) => (
-          <Chart
-            height={300}
-            type="line"
-            series={usage.data.map(tl => ({
-              id: `${tl.ownerId}:${tl.entityType}:${tl.entityId}`,
-              name: getSeriesName(tl),
-              entries: tl.entries.map(e => ({ key: e.ts, value: e.count }))
-            }))}
-          />
-        ))
+        renderWithLoader(
+          { usage },
+          {
+            loading: () => <UsageChartLoading from={range.from} to={range.to} />
+          }
+        )(({ usage }) => <UsageChart data={usage.data} getSeriesName={getSeriesName} />)
       )}
     </Box>
   );
