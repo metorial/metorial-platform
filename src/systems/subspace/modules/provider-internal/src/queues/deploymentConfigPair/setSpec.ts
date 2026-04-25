@@ -8,6 +8,8 @@ import {
 import { env } from '../../env';
 import { providerVersionSetSpecificationQueue } from '../version/setSpec';
 
+let isUniqueConstraintError = (error: any) => error?.code === 'P2002';
+
 export let providerDeploymentConfigPairSetSpecificationQueue = createQueue<{
   providerDeploymentConfigPairOid: bigint;
   versionOid: bigint;
@@ -87,56 +89,76 @@ export let providerDeploymentConfigPairSetSpecificationQueueProcessor =
       };
     }
 
-    let newPairVersion = await withTransaction(async db => {
-      let newPairVersion = await db.providerDeploymentConfigPairProviderVersion.upsert({
-        where: {
-          pairOid_versionOid: filter
-        },
-        create: {
-          ...getId('providerDeploymentConfigPairProviderVersion'),
-          ...filter,
+    let savePairVersion = async (mode: 'upsert' | 'update') =>
+      withTransaction(async db => {
+        let pairVersionData = {
           ...result,
           previousPairVersionOid: previousPairVersion?.oid,
           latestDiscoveryRecordOid: data.result.discoveryRecordOid ?? null
-        },
-        update: {
-          ...result,
-          previousPairVersionOid: previousPairVersion?.oid,
-          latestDiscoveryRecordOid: data.result.discoveryRecordOid ?? null
-        },
-        include: {
-          specification: true
+        };
+
+        let newPairVersion =
+          mode === 'upsert'
+            ? await db.providerDeploymentConfigPairProviderVersion.upsert({
+                where: {
+                  pairOid_versionOid: filter
+                },
+                create: {
+                  ...getId('providerDeploymentConfigPairProviderVersion'),
+                  ...filter,
+                  ...pairVersionData
+                },
+                update: pairVersionData,
+                include: {
+                  specification: true
+                }
+              })
+            : await db.providerDeploymentConfigPairProviderVersion.update({
+                where: {
+                  pairOid_versionOid: filter
+                },
+                data: pairVersionData,
+                include: {
+                  specification: true
+                }
+              });
+
+        if (newPairVersion.specificationOid) {
+          let versionSpec = version.specificationOid
+            ? await db.providerSpecification.findFirst({
+                where: { oid: version.specificationOid }
+              })
+            : null;
+
+          if (versionSpec?.type !== 'full' && newPairVersion.specification?.type === 'full') {
+            // Update the version in this transaction
+            // to avoid eventually consistent issues
+            await db.providerVersion.update({
+              where: { oid: version.oid },
+              data: { specificationOid: newPairVersion.specificationOid }
+            });
+
+            await providerVersionSetSpecificationQueue.add({
+              versionOid: version.oid,
+              result: {
+                status: 'success',
+                specificationOid: newPairVersion.specificationOid,
+                source: 'pair'
+              }
+            });
+          }
         }
+
+        return newPairVersion;
       });
 
-      if (newPairVersion.specificationOid) {
-        let versionSpec = version.specificationOid
-          ? await db.providerSpecification.findFirst({
-              where: { oid: version.specificationOid }
-            })
-          : null;
-
-        if (versionSpec?.type !== 'full' && newPairVersion.specification?.type === 'full') {
-          // Update the version in this transaction
-          // to avoid eventually consistent issues
-          await db.providerVersion.update({
-            where: { oid: version.oid },
-            data: { specificationOid: newPairVersion.specificationOid }
-          });
-
-          await providerVersionSetSpecificationQueue.add({
-            versionOid: version.oid,
-            result: {
-              status: 'success',
-              specificationOid: newPairVersion.specificationOid,
-              source: 'pair'
-            }
-          });
-        }
-      }
-
-      return newPairVersion;
-    });
+    let newPairVersion: Awaited<ReturnType<typeof savePairVersion>>;
+    try {
+      newPairVersion = await savePairVersion('upsert');
+    } catch (error: any) {
+      if (!isUniqueConstraintError(error)) throw error;
+      newPairVersion = await savePairVersion('update');
+    }
 
     if (newPairVersion.specificationOid) {
       if (

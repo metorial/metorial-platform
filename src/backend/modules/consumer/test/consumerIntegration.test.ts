@@ -10,7 +10,8 @@ vi.mock('@metorial/db', () => {
       upsert: vi.fn()
     },
     consumerIntegration: {
-      upsert: vi.fn()
+      upsert: vi.fn(),
+      update: vi.fn()
     },
     consumerIntegrationEndpoint: {
       upsert: vi.fn()
@@ -176,6 +177,46 @@ describe('consumerIntegrationService', () => {
         })
       })
     );
+  });
+
+  it('updates the existing integration when a concurrent upsert wins the insert race', async () => {
+    (db.consumerIntegration.upsert as any).mockRejectedValue({
+      code: 'P2002',
+      meta: {
+        target: ['consumerProfileOid', 'magicMcpServerOid']
+      }
+    });
+    (db.consumerIntegration.update as any).mockResolvedValue({
+      id: 'consumerIntegration-1'
+    } as any);
+
+    await consumerIntegrationService.upsertConsumerIntegration({
+      consumerProfile: {
+        oid: 30n,
+        instanceOid: 10n,
+        consumerOid: 20n
+      },
+      magicMcpServer: {
+        oid: 50n,
+        instanceOid: 10n
+      },
+      isManaged: true
+    });
+
+    expect(db.consumerIntegration.update).toHaveBeenCalledWith({
+      where: {
+        consumerProfileOid_magicMcpServerOid: {
+          consumerProfileOid: 30n,
+          magicMcpServerOid: 50n
+        }
+      },
+      data: {
+        instanceOid: 10n,
+        consumerOid: 20n,
+        isManaged: undefined
+      },
+      include: expect.any(Object)
+    });
   });
 
   it('links auth attempts to an upserted consumer integration endpoint', async () => {

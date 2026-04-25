@@ -11,7 +11,7 @@ export let syncChangeNotificationsCron = createCron(
     cron: '* * * * *'
   },
   async () => {
-    await syncChangeNotificationsQueue.add({});
+    await syncChangeNotificationsQueue.add({}, { id: 'poll' });
   }
 );
 

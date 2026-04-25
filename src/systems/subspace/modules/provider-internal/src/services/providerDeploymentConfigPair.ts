@@ -13,6 +13,7 @@ import {
   type ProviderDeploymentConfigPairProviderVersion,
   type ProviderDeploymentVersion,
   type ProviderVersion,
+  type TransactionDB,
   withTransaction
 } from '@metorial-subspace/db';
 import {
@@ -33,12 +34,14 @@ let getPairIdentifier = (d: PairParts) =>
     d.authConfig ? d.authConfig.currentVersion!.oid.toString(36) : '$'
   }`;
 
+let isUniqueConstraintError = (error: any) => error?.code === 'P2002';
+
 class providerDeploymentConfigPairInternalServiceImpl {
   private async upsertDeploymentConfigPairWithoutCreatingVersion(
     d: PairParts & { version?: ProviderVersion }
   ) {
-    return withTransaction(async db => {
-      let existing = await db.providerDeploymentConfigPair.findUnique({
+    let getExisting = async (pdb: typeof db | TransactionDB = db) => {
+      let existing = await pdb.providerDeploymentConfigPair.findUnique({
         where: { identifier: getPairIdentifier(d) },
         include: {
           versions: d.version
@@ -49,6 +52,7 @@ class providerDeploymentConfigPairInternalServiceImpl {
             : false
         }
       });
+
       if (existing) {
         return {
           pair: existing,
@@ -61,54 +65,70 @@ class providerDeploymentConfigPairInternalServiceImpl {
         };
       }
 
-      let newId = getId('providerDeploymentConfigPair');
-      let pair = await db.providerDeploymentConfigPair.upsert({
-        where: { identifier: getPairIdentifier(d) },
-        create: {
-          ...newId,
+      return null;
+    };
 
-          identifier: getPairIdentifier(d),
+    try {
+      return await withTransaction(async db => {
+        let existing = await getExisting(db);
+        if (existing) return existing;
 
-          providerDeploymentVersionOid: d.deployment.currentVersion!.oid,
-          providerConfigVersionOid: d.config.currentVersion!.oid,
-          providerAuthConfigVersionOid: d.authConfig?.currentVersion?.oid,
+        let newId = getId('providerDeploymentConfigPair');
+        let pair = await db.providerDeploymentConfigPair.upsert({
+          where: { identifier: getPairIdentifier(d) },
+          create: {
+            ...newId,
 
-          tenantOid: d.deployment.tenantOid,
-          environmentOid: d.deployment.environmentOid
-        },
-        update: {}
+            identifier: getPairIdentifier(d),
+
+            providerDeploymentVersionOid: d.deployment.currentVersion!.oid,
+            providerConfigVersionOid: d.config.currentVersion!.oid,
+            providerAuthConfigVersionOid: d.authConfig?.currentVersion?.oid,
+
+            tenantOid: d.deployment.tenantOid,
+            environmentOid: d.deployment.environmentOid
+          },
+          update: {}
+        });
+
+        let created = pair.id === newId.id;
+
+        if (created) {
+          await addAfterTransactionHook(async () =>
+            providerDeploymentConfigPairCreatedQueue.add({
+              providerDeploymentConfigPairId: pair.id
+            })
+          );
+        }
+
+        let version = d.version
+          ? await db.providerDeploymentConfigPairProviderVersion.findFirst({
+              where: {
+                pairOid: pair.oid,
+                versionOid: d.version.oid
+              },
+              include: { latestDiscoveryRecord: true }
+            })
+          : null;
+
+        return {
+          pair,
+          created,
+          version: version ?? undefined
+        };
       });
-
-      let created = pair.id === newId.id;
-
-      if (created) {
-        await addAfterTransactionHook(async () =>
-          providerDeploymentConfigPairCreatedQueue.add({
-            providerDeploymentConfigPairId: pair.id
-          })
-        );
+    } catch (error: any) {
+      if (isUniqueConstraintError(error)) {
+        let existing = await getExisting();
+        if (existing) return existing;
       }
 
-      let version = d.version
-        ? await db.providerDeploymentConfigPairProviderVersion.findFirst({
-            where: {
-              pairOid: pair.oid,
-              versionOid: d.version.oid
-            },
-            include: { latestDiscoveryRecord: true }
-          })
-        : null;
-
-      return {
-        pair,
-        created,
-        version: version ?? undefined
-      };
-    });
+      throw error;
+    }
   }
 
   async upsertDeploymentConfigPair(d: PairParts & { version?: ProviderVersion }) {
-    return withTransaction(async db => {
+    try {
       let res = await this.upsertDeploymentConfigPairWithoutCreatingVersion(d);
 
       if (!d.version) {
@@ -117,6 +137,7 @@ class providerDeploymentConfigPairInternalServiceImpl {
           version: undefined
         };
       }
+      let providerVersion = d.version;
 
       if (res.version) {
         return {
@@ -125,37 +146,74 @@ class providerDeploymentConfigPairInternalServiceImpl {
         };
       }
 
-      let newId = getId('providerDeploymentConfigPairProviderVersion');
-      let version = await db.providerDeploymentConfigPairProviderVersion.upsert({
-        where: {
-          pairOid_versionOid: {
+      return await withTransaction(async db => {
+        let currentVersion = await db.providerDeploymentConfigPairProviderVersion.findFirst({
+          where: {
+            pairOid: res.pair.oid,
+            versionOid: providerVersion.oid
+          },
+          include: { latestDiscoveryRecord: true }
+        });
+
+        if (currentVersion) {
+          return {
+            pair: res.pair,
+            version: currentVersion
+          };
+        }
+
+        let newId = getId('providerDeploymentConfigPairProviderVersion');
+        let version = await db.providerDeploymentConfigPairProviderVersion.upsert({
+          where: {
+            pairOid_versionOid: {
+              pairOid: res.pair.oid,
+              versionOid: providerVersion.oid
+            }
+          },
+          create: {
+            ...newId,
+            pairOid: res.pair.oid,
+            versionOid: providerVersion.oid,
+            specificationDiscoveryStatus: 'discovering'
+          },
+          update: {},
+          include: { latestDiscoveryRecord: true }
+        });
+
+        if (version.id === newId.id) {
+          await addAfterTransactionHook(async () =>
+            providerDeploymentConfigPairVersionCreatedQueue.add({
+              providerDeploymentConfigPairVersionId: version.id
+            })
+          );
+        }
+
+        return {
+          pair: res.pair,
+          version
+        };
+      });
+    } catch (error: any) {
+      if (isUniqueConstraintError(error) && d.version) {
+        let res = await this.upsertDeploymentConfigPairWithoutCreatingVersion(d);
+        let version = await db.providerDeploymentConfigPairProviderVersion.findFirst({
+          where: {
             pairOid: res.pair.oid,
             versionOid: d.version.oid
-          }
-        },
-        create: {
-          ...newId,
-          pairOid: res.pair.oid,
-          versionOid: d.version.oid,
-          specificationDiscoveryStatus: 'discovering'
-        },
-        update: {},
-        include: { latestDiscoveryRecord: true }
-      });
+          },
+          include: { latestDiscoveryRecord: true }
+        });
 
-      if (version.id === newId.id) {
-        await addAfterTransactionHook(async () =>
-          providerDeploymentConfigPairVersionCreatedQueue.add({
-            providerDeploymentConfigPairVersionId: version.id
-          })
-        );
+        if (version) {
+          return {
+            pair: res.pair,
+            version
+          };
+        }
       }
 
-      return {
-        pair: res.pair,
-        version
-      };
-    });
+      throw error;
+    }
   }
 
   async useDeploymentConfigPair(d: PairParts & { version: ProviderVersion }) {

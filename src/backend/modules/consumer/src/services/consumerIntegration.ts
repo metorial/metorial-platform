@@ -62,6 +62,21 @@ type ConsumerIntegrationWithRelations = Prisma.ConsumerIntegrationGetPayload<{
   include: typeof consumerIntegrationInclude;
 }>;
 
+let isConsumerIntegrationDuplicateError = (error: unknown) => {
+  let err = error as {
+    code?: string;
+    meta?: { target?: string[] | string };
+    message?: string;
+  };
+  if (err.code !== 'P2002') return false;
+
+  let target = Array.isArray(err.meta?.target) ? err.meta.target.join(',') : err.meta?.target;
+  return (
+    (target?.includes('consumerProfileOid') || err.message?.includes('consumerProfileOid')) &&
+    (target?.includes('magicMcpServerOid') || err.message?.includes('magicMcpServerOid'))
+  );
+};
+
 let assertMagicResourceOwnership = <
   T extends {
     instanceOid: bigint;
@@ -153,28 +168,41 @@ class ConsumerIntegrationServiceImpl {
       resourceType: 'server'
     });
 
-    return await db.consumerIntegration.upsert({
-      where: {
-        consumerProfileOid_magicMcpServerOid: {
-          consumerProfileOid: d.consumerProfile.oid,
-          magicMcpServerOid: d.magicMcpServer.oid
-        }
-      },
-      create: {
-        id: await ID.generateId('consumerIntegration'),
-        instanceOid: d.consumerProfile.instanceOid,
-        consumerOid: d.consumerProfile.consumerOid,
+    let where = {
+      consumerProfileOid_magicMcpServerOid: {
         consumerProfileOid: d.consumerProfile.oid,
-        magicMcpServerOid: d.magicMcpServer.oid,
-        isManaged: d.isManaged
-      },
-      update: {
-        instanceOid: d.consumerProfile.instanceOid,
-        consumerOid: d.consumerProfile.consumerOid,
-        isManaged: d.isManaged ? undefined : false
-      },
-      include: consumerIntegrationInclude
-    });
+        magicMcpServerOid: d.magicMcpServer.oid
+      }
+    };
+    let update = {
+      instanceOid: d.consumerProfile.instanceOid,
+      consumerOid: d.consumerProfile.consumerOid,
+      isManaged: d.isManaged ? undefined : false
+    };
+
+    try {
+      return await db.consumerIntegration.upsert({
+        where,
+        create: {
+          id: await ID.generateId('consumerIntegration'),
+          instanceOid: d.consumerProfile.instanceOid,
+          consumerOid: d.consumerProfile.consumerOid,
+          consumerProfileOid: d.consumerProfile.oid,
+          magicMcpServerOid: d.magicMcpServer.oid,
+          isManaged: d.isManaged
+        },
+        update,
+        include: consumerIntegrationInclude
+      });
+    } catch (error) {
+      if (!isConsumerIntegrationDuplicateError(error)) throw error;
+
+      return await db.consumerIntegration.update({
+        where,
+        data: update,
+        include: consumerIntegrationInclude
+      });
+    }
   }
 
   async upsertConsumerIntegrationEndpoint(d: {
