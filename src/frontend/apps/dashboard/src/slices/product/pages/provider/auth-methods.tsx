@@ -1,7 +1,7 @@
 import { renderWithLoader, renderWithPagination } from '@metorial/data-hooks';
 import { useCurrentInstance, useProviderAuthMethods } from '@metorial/state';
 import { Badge, Button, Flex, Text } from '@metorial/ui';
-import { Table } from '@metorial/ui-product';
+import { ID, Table } from '@metorial/ui-product';
 import {
   getProviderAuthMethodTypeColor,
   getProviderAuthMethodTypeLabel,
@@ -20,7 +20,7 @@ export let ProviderAuthMethodsPage = () => {
   let authMethodsContent = renderWithPagination(authMethods)(authMethods => (
     <>
       <Table
-        headers={['Name', 'Type', '']}
+        headers={['Name', 'Type', 'ID', '']}
         data={authMethods.data.items.map(method => {
           let description =
             method.description && method.description.length > 110
@@ -52,6 +52,7 @@ export let ProviderAuthMethodsPage = () => {
                   {getProviderAuthMethodTypeLabel(method.type)}
                 </Badge>
               </Flex>,
+              <ID id={method.id} />,
               <Flex justify="end" style={{ width: '100%' }}>
                 <Button
                   size="1"

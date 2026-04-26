@@ -50,8 +50,10 @@ export let useCreateProviderSetupSession = (
             providerDeploymentId:
               body.providerDeploymentId ?? providerDeploymentId ?? undefined,
             configuration: {
+              ...body.configuration,
               ui: {
-                layout: 'light'
+                layout: 'light',
+                ...body.configuration?.ui
               }
             }
           })

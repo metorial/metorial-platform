@@ -270,7 +270,7 @@ let providerDeploymentsTable = new DashboardTable<
     },
     {
       id: 'id',
-      isDefault: false,
+      isDefault: true,
       header: 'Deployment ID',
       render: deployment => <ID id={deployment.id} />
     }

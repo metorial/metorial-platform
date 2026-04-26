@@ -1,5 +1,6 @@
 import { DashboardInstanceProvidersAuthMethodsListOutput } from '@metorial/dashboard-sdk';
-import { Badge, Dialog, Flex, Text, showModal, theme } from '@metorial/ui';
+import { Attributes, Badge, Dialog, Flex, Text, showModal, theme } from '@metorial/ui';
+import { ID } from '@metorial/ui-product';
 import { styled } from 'styled-components';
 import {
   getJsonSchemaObject,
@@ -39,9 +40,6 @@ let SchemaCard = styled.div`
   border-radius: 12px;
   background: #fff;
   overflow: hidden;
-  box-shadow:
-    0 1px 2px rgba(16, 24, 40, 0.04),
-    0 1px 3px rgba(16, 24, 40, 0.08);
 `;
 
 let SchemaCardHeader = styled.div`
@@ -237,9 +235,16 @@ export let showProviderAuthMethodDetailsModal = (method: ProviderAuthMethod) => 
   showModal(({ dialogProps }) => (
     <Dialog.Wrapper {...dialogProps} width={840}>
       <Dialog.Title>{method.name}</Dialog.Title>
-      <Dialog.Description>{method.description ?? 'No description.'}</Dialog.Description>
+      {method.description && <Dialog.Description>{method.description}</Dialog.Description>}
 
-      <Flex direction="column" gap={12} style={{ paddingTop: 8, paddingBottom: 20 }}>
+      <Flex direction="column" gap={12} style={{ paddingTop: 4 }}>
+        <Attributes
+          attributes={[
+            { label: 'Auth Method ID', content: <ID id={method.id} /> },
+            { label: 'Specification ID', content: <ID id={method.providerSpecificationId} /> }
+          ]}
+        />
+
         <SectionCard>
           <Flex gap={8} style={{ alignItems: 'center', flexWrap: 'wrap' }}>
             <Badge color={getProviderAuthMethodTypeColor(method.type)} size="1">
