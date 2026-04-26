@@ -313,7 +313,8 @@ class providerAuthConfigServiceImpl {
           environment: d.environment,
           provider: d.provider,
           providerDeployment: d.providerDeployment,
-          authMethodId: d.input.authMethodId
+          authMethodId: d.input.authMethodId,
+          credentials: d.credentials
         });
 
       let credentials = d.credentials;

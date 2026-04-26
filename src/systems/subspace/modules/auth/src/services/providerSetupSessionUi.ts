@@ -73,13 +73,31 @@ class providerSetupSessionUiServiceImpl {
       };
     }
 
-    return await providerConfigService.getProviderConfigSchema({
+    let schema = await providerConfigService.getProviderConfigSchema({
       tenant: fullSession.tenant,
       solution: fullSession.solution,
       environment: fullSession.environment,
       provider: fullSession.provider,
       providerDeployment: fullSession.deployment ?? undefined
     });
+
+    let configSchema = normalizeJsonSchema(schema.value.specification.configJsonSchema);
+    let hasProperties =
+      configSchema &&
+      typeof configSchema === 'object' &&
+      'properties' in configSchema &&
+      Object.keys(configSchema.properties || {}).length > 0;
+
+    if (!configSchema || !hasProperties) {
+      return {
+        type: 'none' as const
+      };
+    }
+
+    return {
+      type: 'required' as const,
+      schema: configSchema
+    };
   }
 
   async getConfigSchemaWithoutSession(d: {
@@ -103,13 +121,13 @@ class providerSetupSessionUiServiceImpl {
     });
 
     let configSchema = normalizeJsonSchema(schema.value.specification.configJsonSchema);
-    if (!configSchema) return { type: 'none' as const };
-
     let hasProperties =
       configSchema &&
       typeof configSchema === 'object' &&
       'properties' in configSchema &&
       Object.keys(configSchema.properties || {}).length > 0;
+
+    if (!configSchema) return { type: 'none' as const };
 
     if (!hasProperties) return { type: 'none' as const };
 

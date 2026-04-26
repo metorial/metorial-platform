@@ -101,6 +101,7 @@ class providerSetupSessionInternalServiceImpl {
         let inner: ProviderSetupSessionUncheckedUpdateInput = {};
         let credentials = d.credentials;
         let configInput = d.input.configInput;
+        let originalConcreteType = concreteType;
 
         if (concreteType === 'auth_only' || concreteType === 'auth_and_config') {
           let { authMethod } = await providerAuthConfigInternalService.getVersionAndAuthMethod(
@@ -110,11 +111,10 @@ class providerSetupSessionInternalServiceImpl {
               environment: d.environment,
               provider: d.provider,
               providerDeployment: d.providerDeployment,
-              authMethodId: d.input.authMethodId ?? (credentials ? 'oauth' : undefined)
+              authMethodId: d.input.authMethodId,
+              credentials
             }
           );
-
-          inner.authMethodOid = authMethod.oid;
 
           if (credentials && authMethod.type !== 'oauth') credentials = undefined;
           if (
@@ -135,43 +135,50 @@ class providerSetupSessionInternalServiceImpl {
             });
 
             if (!defaultCredentials) {
-              throw new ServiceError(
-                badRequestError({
-                  message: 'No default provider auth credentials found for oauth method',
-                  code: 'missing_oauth_credentials'
-                })
-              );
+              if (d.input.type === 'auto' && concreteType === 'auth_and_config') {
+                concreteType = 'config_only';
+              } else {
+                throw new ServiceError(
+                  badRequestError({
+                    message: 'No default provider auth credentials found for oauth method',
+                    code: 'missing_auth_credentials'
+                  })
+                );
+              }
+            } else {
+              credentials = defaultCredentials;
             }
-
-            credentials = defaultCredentials;
           }
 
-          inner.authCredentialsOid = credentials?.oid;
+          if (concreteType !== 'config_only') {
+            inner.authMethodOid = authMethod.oid;
+            inner.authCredentialsOid = credentials?.oid;
 
-          if (d.input.authConfigInput) {
-            let authConfigInner = await this.createProviderAuthConfig({
-              tenant: d.tenant,
-              solution: d.solution,
-              environment: d.environment,
-              provider: d.provider,
-              providerDeployment: d.providerDeployment,
-              credentials,
-              authMethod,
-              expiresAt: d.expiresAt,
-              input: {
-                name: d.input.name,
-                description: d.input.description,
-                metadata: d.input.metadata,
-                toolFilters: d.input.toolFilters,
-                config: d.input.authConfigInput
-              },
-              import: {
-                ip: d.import.ip,
-                ua: d.import.ua
-              }
-            });
+            if (d.input.authConfigInput) {
+              let authConfigInner = await this.createProviderAuthConfig({
+                tenant: d.tenant,
+                solution: d.solution,
+                environment: d.environment,
+                provider: d.provider,
+                providerDeployment: d.providerDeployment,
+                credentials,
+                authMethod,
+                expiresAt: d.expiresAt,
+                input: {
+                  name: d.input.name,
+                  description: d.input.description,
+                  metadata: d.input.metadata,
+                  toolFilters: d.input.toolFilters,
+                  config: d.input.authConfigInput
+                },
+                import: {
+                  ip: d.import.ip,
+                  ua: d.import.ua
+                }
+              });
 
-            inner = { ...inner, ...authConfigInner };
+              inner = { ...inner, ...authConfigInner };
+            }
           }
         }
 
@@ -257,7 +264,7 @@ class providerSetupSessionInternalServiceImpl {
         throw new ServiceError(
           badRequestError({
             message: 'No provider auth credentials provided for oauth method',
-            code: 'missing_oauth_credentials'
+            code: 'missing_auth_credentials'
           })
         );
       }
@@ -598,7 +605,9 @@ class providerSetupSessionInternalServiceImpl {
     });
 
     let configSchema = normalizeJsonSchema(schema.value.specification.configJsonSchema);
-    if (!configSchema) return { type: 'none' as const };
+    if (!configSchema) {
+      return { type: 'none' as const };
+    }
 
     let hasProperties =
       typeof configSchema === 'object' &&

@@ -6,6 +6,7 @@ import {
   db,
   type Environment,
   getId,
+  type Prisma,
   type Provider,
   type ProviderAuthConfig,
   type ProviderAuthConfigSource,
@@ -33,6 +34,12 @@ import type { ProviderAuthConfigCreateRes } from '@metorial-subspace/provider-ut
 import { providerAuthConfigCreatedQueue } from '../queues/lifecycle/providerAuthConfig';
 import { providerAuthConfigInclude } from './providerAuthConfig';
 
+type ProviderAuthMethodWithSpecification = Prisma.ProviderAuthMethodGetPayload<{
+  include: {
+    specification: true;
+  };
+}>;
+
 class providerAuthConfigInternalServiceImpl {
   async getVersionAndAuthMethod(d: {
     tenant: Tenant;
@@ -45,13 +52,18 @@ class providerAuthConfigInternalServiceImpl {
         | null;
     };
     authMethodId?: string;
-  }) {
+    credentials?: ProviderAuthCredentials;
+  }): Promise<{
+    version: ProviderVersion;
+    authMethod: ProviderAuthMethodWithSpecification;
+  }> {
     let version = await providerDeploymentInternalService.getCurrentVersionOptional({
       provider: d.provider,
       environment: d.environment,
       deployment: d.providerDeployment
     });
-    if (!version?.specificationOid) {
+    let specificationOid = version?.specificationOid;
+    if (specificationOid == null) {
       throw new ServiceError(
         badRequestError({
           message: 'Provider has not been discovered'
@@ -59,32 +71,91 @@ class providerAuthConfigInternalServiceImpl {
       );
     }
 
-    if (!d.authMethodId) {
-      let authMethod = await db.providerAuthMethod.findFirst({
-        where: {
-          providerOid: d.provider.oid,
-          specificationOid: version.specificationOid,
-          isDefault: true
-        },
-        include: {
-          specification: true
-        }
+    let managedCredentials = d.credentials
+      ? await this.getManagedProviderAuthCredentialsContext({
+          tenant: d.tenant,
+          solution: d.solution,
+          providerAuthCredentials: d.credentials
+        })
+      : null;
+    if (managedCredentials) {
+      let authMethod = await this.getManagedAuthMethodForVersion({
+        provider: d.provider,
+        specificationOid,
+        managedCredentials
       });
-      if (!authMethod) {
-        throw new ServiceError(
-          badRequestError({
-            message: 'Provider does not support authentication'
-          })
-        );
+
+      if (d.authMethodId) {
+        let requestedAuthMethod = await this.findAuthMethodForVersion({
+          provider: d.provider,
+          specificationOid,
+          authMethodId: d.authMethodId
+        });
+        if (!requestedAuthMethod || requestedAuthMethod.oid !== authMethod.oid) {
+          throw new ServiceError(
+            badRequestError({
+              message:
+                'Managed credentials can only be used with their configured auth method',
+              code: 'managed_credentials_auth_method_mismatch'
+            })
+          );
+        }
       }
 
-      return { version, authMethod };
+      return {
+        version: version as ProviderVersion,
+        authMethod: authMethod as ProviderAuthMethodWithSpecification
+      };
     }
 
-    let authMethod = await db.providerAuthMethod.findFirst({
+    let authMethod = d.authMethodId
+      ? await this.findAuthMethodForVersion({
+          provider: d.provider,
+          specificationOid,
+          authMethodId: d.authMethodId
+        })
+      : d.credentials?.type === 'oauth'
+        ? await this.findPreferredAuthMethodForVersion({
+            provider: d.provider,
+            specificationOid,
+            type: 'oauth'
+          })
+        : await this.findPreferredAuthMethodForVersion({
+            provider: d.provider,
+            specificationOid,
+            isDefault: true
+          });
+
+    if (!authMethod) {
+      throw new ServiceError(
+        badRequestError(
+          d.authMethodId
+            ? {
+                message: 'Invalid auth method for provider',
+                code: 'invalid_auth_method'
+              }
+            : {
+                message: 'Provider does not support authentication'
+              }
+        )
+      );
+    }
+
+    return {
+      version: version as ProviderVersion,
+      authMethod: authMethod as ProviderAuthMethodWithSpecification
+    };
+  }
+
+  private async findAuthMethodForVersion(d: {
+    provider: Provider;
+    specificationOid: bigint;
+    authMethodId: string;
+  }) {
+    return await db.providerAuthMethod.findFirst({
       where: {
         providerOid: d.provider.oid,
-        specificationOid: version.specificationOid,
+        specificationOid: d.specificationOid,
         OR: [
           { id: d.authMethodId },
           { specId: d.authMethodId },
@@ -98,18 +169,122 @@ class providerAuthConfigInternalServiceImpl {
       },
       include: {
         specification: true
-      }
+      },
+      orderBy: [{ isDefault: 'desc' }, { createdAt: 'asc' }]
     });
-    if (!authMethod) {
-      throw new ServiceError(
-        badRequestError({
-          message: 'Invalid auth method for provider',
-          code: 'invalid_auth_method'
-        })
-      );
+  }
+
+  private async findPreferredAuthMethodForVersion(d: {
+    provider: Provider;
+    specificationOid: bigint;
+    isDefault?: boolean;
+    type?: keyof typeof ProviderAuthMethodType;
+  }) {
+    return await db.providerAuthMethod.findFirst({
+      where: {
+        providerOid: d.provider.oid,
+        specificationOid: d.specificationOid,
+        isDefault: d.isDefault,
+        type: d.type as any
+      },
+      include: {
+        specification: true
+      },
+      orderBy: [{ isDefault: 'desc' }, { createdAt: 'asc' }]
+    });
+  }
+
+  private async getManagedAuthMethodForVersion(d: {
+    provider: Provider;
+    specificationOid: bigint;
+    managedCredentials: {
+      initialProviderAuthMethodOid: bigint;
+      providerAuthMethodGlobalOid: bigint | null;
+    };
+  }) {
+    let authMethod: ProviderAuthMethodWithSpecification | null = null;
+    let providerAuthMethodGlobalOid = d.managedCredentials.providerAuthMethodGlobalOid;
+
+    if (providerAuthMethodGlobalOid !== null) {
+      let result = await db.providerAuthMethod.findFirst({
+        where: {
+          providerOid: d.provider.oid,
+          specificationOid: d.specificationOid,
+          globalOid: providerAuthMethodGlobalOid
+        },
+        include: {
+          specification: true
+        }
+      });
+      authMethod = result as ProviderAuthMethodWithSpecification | null;
+    } else {
+      let result = await db.providerAuthMethod.findFirst({
+        where: {
+          oid: d.managedCredentials.initialProviderAuthMethodOid,
+          providerOid: d.provider.oid,
+          specificationOid: d.specificationOid
+        },
+        include: {
+          specification: true
+        }
+      });
+      authMethod = result as ProviderAuthMethodWithSpecification | null;
     }
 
-    return { version, authMethod };
+    if (authMethod) {
+      return authMethod;
+    }
+
+    throw new ServiceError(
+      badRequestError({
+        message: 'Managed credentials are not available for the resolved provider version',
+        code: 'managed_credentials_auth_method_unavailable'
+      })
+    );
+  }
+
+  private async getManagedProviderAuthCredentialsContext(d: {
+    tenant: Tenant;
+    solution: Solution;
+    providerAuthCredentials: ProviderAuthCredentials;
+  }) {
+    if (
+      d.providerAuthCredentials.origin === 'managed_public' &&
+      d.providerAuthCredentials.managedCredentialsOid
+    ) {
+      return await db.managedProviderAuthCredentials.findFirst({
+        where: {
+          oid: d.providerAuthCredentials.managedCredentialsOid,
+          solutionOid: d.solution.oid
+        },
+        select: {
+          initialProviderAuthMethodOid: true,
+          providerAuthMethodGlobalOid: true
+        }
+      });
+    }
+
+    if (d.providerAuthCredentials.origin !== 'managed_backing') {
+      return null;
+    }
+
+    let backing = await db.managedProviderAuthCredentialsBacking.findFirst({
+      where: {
+        providerAuthCredentialsOid: d.providerAuthCredentials.oid,
+        tenantOid: d.tenant.oid,
+        solutionOid: d.solution.oid
+      },
+      select: {
+        managedCredentials: {
+          select: {
+            initialProviderAuthMethodOid: true,
+            providerAuthMethodGlobalOid: true
+          }
+        }
+      }
+    });
+
+    return backing?.managedCredentials ?? null;
   }
 
   async createProviderAuthConfigInternal(d: {

@@ -114,7 +114,9 @@ class providerInternalServiceImpl {
             prettySlug,
             provider: {
               slug: { not: d.info.slug },
-              globalIdentifier: { not: d.info.globalIdentifier }
+              globalIdentifier: d.info.globalIdentifier
+                ? { not: d.info.globalIdentifier }
+                : undefined
             }
           }
         })

@@ -10,7 +10,6 @@ import {
   ID,
   type Provider,
   type ProviderAuthCredentials,
-  ProviderAuthMethodType,
   type ProviderDeployment,
   type ProviderDeploymentVersion,
   type ProviderOAuthSetup,
@@ -26,10 +25,7 @@ import {
   normalizeStatusForGet,
   normalizeStatusForList
 } from '@metorial-subspace/list-utils';
-import {
-  checkProviderMatch,
-  providerDeploymentInternalService
-} from '@metorial-subspace/module-provider-internal';
+import { checkProviderMatch } from '@metorial-subspace/module-provider-internal';
 import { checkTenant } from '@metorial-subspace/module-tenant';
 import { getBackend } from '@metorial-subspace/provider';
 import { addMinutes } from 'date-fns';
@@ -38,6 +34,7 @@ import {
   providerOAuthSetupCreatedQueue,
   providerOAuthSetupUpdatedQueue
 } from '../queues/lifecycle/providerOAuthSetup';
+import { providerAuthConfigInternalService } from './providerAuthConfigInternal';
 import { providerAuthCredentialsService } from './providerAuthCredentials';
 
 let include = {
@@ -139,7 +136,7 @@ class providerOAuthSetupServiceImpl {
       throw new ServiceError(
         badRequestError({
           message: 'No provider auth credentials provided for oauth method',
-          code: 'missing_oauth_credentials'
+          code: 'missing_auth_credentials'
         })
       );
     }
@@ -160,61 +157,24 @@ class providerOAuthSetupServiceImpl {
         throw new Error('Provider has no default variant');
       }
 
-      let version = await providerDeploymentInternalService.getCurrentVersionOptional({
-        provider: d.provider,
-        environment: d.environment,
-        deployment: d.providerDeployment
-      });
-      if (!version?.specificationOid) {
+      let { version, authMethod } =
+        await providerAuthConfigInternalService.getVersionAndAuthMethod({
+          tenant: d.tenant,
+          solution: d.solution,
+          environment: d.environment,
+          provider: d.provider,
+          providerDeployment: d.providerDeployment,
+          authMethodId: d.input.authMethodId,
+          credentials
+        });
+
+      if (authMethod.type !== 'oauth') {
         throw new ServiceError(
           badRequestError({
-            message: 'Provider has not been discovered'
-          })
-        );
-      }
-
-      let authMethod = d.input.authMethodId
-        ? await db.providerAuthMethod.findFirst({
-            where: {
-              providerOid: d.provider.oid,
-              specificationOid: version.specificationOid,
-              OR: [
-                { id: d.input.authMethodId },
-                { specId: d.input.authMethodId },
-                { specUniqueIdentifier: d.input.authMethodId },
-                { key: d.input.authMethodId },
-                { callableId: d.input.authMethodId },
-
-                ...(ProviderAuthMethodType[
-                  d.input.authMethodId as keyof typeof ProviderAuthMethodType
-                ]
-                  ? [{ type: d.input.authMethodId as any }]
-                  : [])
-              ]
-            }
-          })
-        : await db.providerAuthMethod.findFirst({
-            where: {
-              providerOid: d.provider.oid,
-              specificationOid: version.specificationOid,
-              type: 'oauth'
-            },
-            orderBy: { createdAt: 'asc' }
-          });
-      if (!authMethod) {
-        if (d.input.authMethodId) {
-          throw new ServiceError(
-            badRequestError({
-              message: 'Invalid auth method for provider',
-              code: 'invalid_auth_method'
-            })
-          );
-        }
-
-        throw new ServiceError(
-          badRequestError({
-            message: 'Provider has no OAuth auth method',
-            code: 'missing_oauth_method'
+            message: d.input.authMethodId
+              ? 'Invalid auth method for provider'
+              : 'Provider has no OAuth auth method',
+            code: d.input.authMethodId ? 'invalid_auth_method' : 'missing_oauth_method'
           })
         );
       }
