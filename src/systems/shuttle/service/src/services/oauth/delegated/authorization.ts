@@ -11,6 +11,7 @@ import { db } from '../../../db';
 import { getId } from '../../../id';
 import { callFunction } from '../../../lib/function/call';
 import { oauthErrorDescriptions } from '../../../lib/oauth/oauthErrors';
+import { normalizeAuthorizationUrl } from '../../../lib/oauth/normalizeAuthorizationUrl';
 import { functionServerInvocationService } from '../../functionServerInvocation';
 import { secretService } from '../../secret';
 import { serverEventService } from '../serverEvent';
@@ -131,7 +132,7 @@ class delegatedOauthAuthorizationServiceImpl {
     return {
       type: 'redirect' as const,
       setup,
-      redirectUrl: res.result.authorizationUrl,
+      redirectUrl: normalizeAuthorizationUrl(res.result.authorizationUrl),
       functionInvocationId: functionInvocation?.functionBayInvocationId ?? res.functionCallId
     };
   }

@@ -20,6 +20,7 @@ import {
   type TokenResponse,
   type UserProfile
 } from './types';
+import { normalizeAuthorizationUrl } from './normalizeAuthorizationUrl';
 
 axios.defaults.headers.common['Accept-Encoding'] = 'gzip';
 
@@ -63,7 +64,7 @@ export class OAuthUtils {
     state?: string;
     codeChallenge?: string;
   }): string {
-    let url = new URL(authEndpoint);
+    let url = new URL(normalizeAuthorizationUrl(authEndpoint));
 
     url.searchParams.set('response_type', 'code');
     url.searchParams.set('client_id', clientId);
