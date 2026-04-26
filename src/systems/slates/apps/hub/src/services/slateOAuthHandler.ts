@@ -4,6 +4,7 @@ import { db } from '../db';
 import { env } from '../env';
 import { getId, ID, snowflake } from '../id';
 import { extractExpiresAt } from '../lib/extractExpiresAt';
+import { normalizeAuthorizationUrl } from '../lib/normalizeAuthorizationUrl';
 import { processAuthQueue } from '../queues/instance/processAuth';
 import { secretService } from './secret';
 import { slateErrorService } from './slateError';
@@ -118,7 +119,7 @@ class slateOAuthHandlerServiceImpl {
 
     return {
       setupCookieValue: setup.id,
-      authorizationUrl: urlRes.data.authorizationUrl
+      authorizationUrl: normalizeAuthorizationUrl(urlRes.data.authorizationUrl)
     };
   }
 
