@@ -527,6 +527,7 @@ export let SetupSessionFlow = ({
           brand={brand}
           providerName={flowProvider?.name}
           providerImageUrl={flowProvider?.imageUrl}
+          isWhitelabel={isWhitelabel}
         >
           <DashboardEmbeddableLayout
             currentStep={currentStepIndex}

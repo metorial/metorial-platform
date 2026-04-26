@@ -2,6 +2,7 @@ import { Spacer, Title } from '@metorial/ui';
 import { AnimatePresence, motion } from 'framer-motion';
 import React from 'react';
 import { keyframes, styled } from 'styled-components';
+import { SecuredByFooter } from './stepLayout';
 import type { Brand } from '../types';
 
 let AnimatedInner = styled(motion.div)`
@@ -83,6 +84,7 @@ export let SetupLayout = ({
   brand,
   providerName,
   providerImageUrl,
+  isWhitelabel,
   animation = 'scale',
   duration = 0.4
 }: {
@@ -97,12 +99,13 @@ export let SetupLayout = ({
   brand?: Brand;
   providerName?: string | null;
   providerImageUrl?: string | null;
+  isWhitelabel?: boolean;
 
   animation?: 'scale' | 'fade';
   duration?: number;
 }) => {
   return (
-    <InnerLayout>
+    <InnerLayout isWhitelabel={isWhitelabel}>
       <AnimatePresence>
         {main && (
           <AnimatedInner
@@ -255,13 +258,30 @@ let Content = styled.div`
   margin: auto 0; /* vertical centering when content is small */
 `;
 
-let InnerLayout = ({ children }: { children: React.ReactNode }) => {
+let Footer = styled.div`
+  display: flex;
+  justify-content: center;
+  padding-top: 24px;
+`;
+
+let InnerLayout = ({
+  children,
+  isWhitelabel
+}: {
+  children: React.ReactNode;
+  isWhitelabel?: boolean;
+}) => {
   return (
     <Wrapper>
       <Box>
         <Inner>
           <Side style={{ background: 'rgba(255, 255, 255, 1)' }} className="padded">
             <Content>{children}</Content>
+            {!isWhitelabel && (
+              <Footer>
+                <SecuredByFooter isMetorialElement logoSize={16} />
+              </Footer>
+            )}
           </Side>
         </Inner>
       </Box>

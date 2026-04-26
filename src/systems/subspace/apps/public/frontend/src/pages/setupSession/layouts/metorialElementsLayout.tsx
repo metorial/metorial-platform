@@ -36,8 +36,8 @@ let Card = styled.div`
   /* border: 1px solid ${theme.colors.gray300}; */
   overflow: hidden;
   display: flex;
-  flex-direction: column;
   align-items: center;
+  flex-direction: column;
 
   @media (max-width: 640px) {
     min-height: 100dvh;
@@ -52,6 +52,14 @@ let Card = styled.div`
     width: 500px;
     min-height: 700px;
   }
+`;
+
+let CardInner = styled.div`
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  min-height: 100%;
 `;
 
 let Header = styled.div`
@@ -195,10 +203,6 @@ let Footer = styled.div`
   font-size: 12px;
   color: ${theme.colors.gray600};
   padding: 16px 24px 24px;
-
-  @media (max-width: 640px) {
-    display: none;
-  }
 `;
 
 let FooterLink = styled.a`
@@ -215,6 +219,8 @@ let FooterLogo = styled.img`
   height: 14px;
   border-radius: 3px;
 `;
+
+let ContentWrapper = styled.div``;
 
 interface MetorialElementsLayoutProps {
   brand: Brand;
@@ -256,93 +262,93 @@ export let MetorialElementsLayout = ({
               : undefined
           }
         >
-          {!hideHeader && (
-            <Header
-              style={
-                variant === 'light'
-                  ? {
-                      borderBottom: 'none'
-                    }
-                  : undefined
-              }
-            >
-              <IconsRow>
-                <BrandIcon src={brand.imageUrl} alt={brand.name} />
+          <CardInner style={variant === 'light' ? { justifyContent: 'center' } : undefined}>
+            {!hideHeader && (
+              <Header style={variant === 'light' ? { borderBottom: 'none' } : undefined}>
+                <IconsRow>
+                  <BrandIcon src={brand.imageUrl} alt={brand.name} />
 
-                <AnimatePresence>
-                  {providerImageUrl && (
-                    <motion.div
-                      initial={{ opacity: 0, width: 0 }}
-                      animate={{ opacity: 1, width: 'auto' }}
-                      style={{ overflow: 'hidden' }}
-                    >
-                      <IconsRow>
-                        <Chevrons>
-                          <ChevronIcon delay={0} />
-                          <ChevronIcon delay={0.3} />
-                          <ChevronIcon delay={0.6} />
-                        </Chevrons>
-                        <ProviderIcon
-                          style={{
-                            background: `url(${providerImageUrl}) center/contain no-repeat`
-                          }}
-                        />
-                      </IconsRow>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </IconsRow>
-
-              <HeaderText>
-                <Title size="5" weight="strong" style={{ textAlign: 'center' }}>
-                  {providerName ? `Connect to ${providerName}` : 'Choose a provider'}
-                </Title>
-              </HeaderText>
-            </Header>
-          )}
-
-          {stepLabels.length > 1 && (
-            <StepIndicator align="center">
-              {stepLabels.map((label, index) => {
-                let isActive = index === currentStep;
-                let isCompleted = index < currentStep;
-                let isLast = index === stepLabels.length - 1;
-
-                return (
-                  <Flex key={label} align="center" style={{ flex: isLast ? 0 : 1 }}>
-                    <Flex align="center" gap={8}>
-                      <StepNumber $isCompleted={isCompleted} $isActive={isActive}>
-                        {isCompleted ? <RiCheckLine size={12} /> : index + 1}
-                      </StepNumber>
-                      <StepLabel
-                        size="1"
-                        weight="medium"
-                        $isCompleted={isCompleted}
-                        $isActive={isActive}
+                  <AnimatePresence>
+                    {providerImageUrl && (
+                      <motion.div
+                        initial={{ opacity: 0, width: 0 }}
+                        animate={{ opacity: 1, width: 'auto' }}
+                        style={{ overflow: 'hidden' }}
                       >
-                        {label}
-                      </StepLabel>
-                    </Flex>
-                    {!isLast && <StepConnector $isCompleted={isCompleted} />}
-                  </Flex>
-                );
-              })}
-            </StepIndicator>
-          )}
+                        <IconsRow>
+                          <Chevrons>
+                            <ChevronIcon delay={0} />
+                            <ChevronIcon delay={0.3} />
+                            <ChevronIcon delay={0.6} />
+                          </Chevrons>
+                          <ProviderIcon
+                            style={{
+                              background: `url(${providerImageUrl}) center/contain no-repeat`
+                            }}
+                          />
+                        </IconsRow>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </IconsRow>
 
-          <AnimateHeight>
-            <Content $hideHeader={hideHeader}>{children}</Content>
-          </AnimateHeight>
+                <HeaderText>
+                  <Title size="5" weight="strong" style={{ textAlign: 'center' }}>
+                    {providerName ? `Connect to ${providerName}` : 'Choose a provider'}
+                  </Title>
+                </HeaderText>
+              </Header>
+            )}
 
-          {!isWhitelabel && (
-            <Footer>
-              <span>Secured by</span>
-              <FooterLink href="https://metorial.com" target="_blank" rel="noopener noreferrer">
-                <FooterLogo src={METORIAL_LOGO_URL} alt="Metorial" />
-                Metorial
-              </FooterLink>
-            </Footer>
-          )}
+            <ContentWrapper style={variant === 'box' ? { flexGrow: 1 } : undefined}>
+              {stepLabels.length > 1 && (
+                <StepIndicator align="center">
+                  {stepLabels.map((label, index) => {
+                    let isActive = index === currentStep;
+                    let isCompleted = index < currentStep;
+                    let isLast = index === stepLabels.length - 1;
+
+                    return (
+                      <Flex key={label} align="center" style={{ flex: isLast ? 0 : 1 }}>
+                        <Flex align="center" gap={8}>
+                          <StepNumber $isCompleted={isCompleted} $isActive={isActive}>
+                            {isCompleted ? <RiCheckLine size={12} /> : index + 1}
+                          </StepNumber>
+                          <StepLabel
+                            size="1"
+                            weight="medium"
+                            $isCompleted={isCompleted}
+                            $isActive={isActive}
+                          >
+                            {label}
+                          </StepLabel>
+                        </Flex>
+                        {!isLast && <StepConnector $isCompleted={isCompleted} />}
+                      </Flex>
+                    );
+                  })}
+                </StepIndicator>
+              )}
+
+              <AnimateHeight>
+                <Content $hideHeader={hideHeader}>{children}</Content>
+              </AnimateHeight>
+            </ContentWrapper>
+
+            {!isWhitelabel && (
+              <Footer>
+                <span>Secured by</span>
+                <FooterLink
+                  href="https://metorial.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <FooterLogo src={METORIAL_LOGO_URL} alt="Metorial" />
+                  Metorial
+                </FooterLink>
+              </Footer>
+            )}
+          </CardInner>
         </Card>
       </Inner>
     </Wrapper>
