@@ -1,13 +1,16 @@
 import { v } from '@lowerdeck/validation';
 import { providerSetupSessionUiService } from '@metorial-subspace/module-auth';
 import { brandService } from '@metorial-subspace/module-tenant';
-import {
-  brandPresenter,
-  getImageUrl,
-  providerOAuthSetupPresenter,
-  providerSetupSessionPresenter
-} from '@metorial-subspace/presenters';
 import { app } from './_app';
+import {
+  setupSessionBrandPresenter,
+  setupSessionOAuthSetupPresenter,
+  setupSessionPresenter,
+  setupSessionProviderListingItemPresenter,
+  setupSessionSchemaPresenter,
+  setupSessionSelectedProviderPresenter,
+  setupSessionToolPresenter
+} from './presenters';
 
 let sessionApp = app.use(async ctx => {
   let sessionId = ctx.body.sessionId;
@@ -44,23 +47,9 @@ export let getFullSession = async (
     session.brand ?? (await brandService.getBrandForTenant({ tenantId: session.tenant.id }));
 
   return {
-    provider: session.provider
-      ? {
-          id: session.provider.id,
-          name: session.provider.name,
-          description: session.provider.description,
-          slug: session.provider.slug,
-          imageUrl: session.provider.listing
-            ? getImageUrl(session.provider.listing)
-            : getImageUrl({
-                id: session.provider.id,
-                name: session.provider.name,
-                image: null
-              })
-        }
-      : null,
-    session: providerSetupSessionPresenter(session),
-    brand: brandPresenter(brand),
+    provider: session.provider ? setupSessionSelectedProviderPresenter(session.provider) : null,
+    session: setupSessionPresenter(session),
+    brand: setupSessionBrandPresenter(brand),
     isWhitelabel: session.tenant.isWhitelabel
   };
 };
@@ -98,7 +87,9 @@ export let setupSessionController = app.controller({
         providerSetupSession: ctx.session
       });
 
-      return { schema };
+      return {
+        schema: setupSessionSchemaPresenter('provider.setup_session.auth_config_schema', schema)
+      };
     }),
 
   getConfigSchema: sessionApp
@@ -114,7 +105,9 @@ export let setupSessionController = app.controller({
         providerSetupSession: ctx.session
       });
 
-      return { schema };
+      return {
+        schema: setupSessionSchemaPresenter('provider.setup_session.config_schema', schema)
+      };
     }),
 
   setConfig: sessionApp
@@ -183,22 +176,7 @@ export let setupSessionController = app.controller({
       });
 
       return {
-        items: providers.items.map(provider => ({
-          ...provider,
-          id: provider.listingId,
-          providerId: provider.id,
-          imageUrl: provider.image
-            ? getImageUrl({
-                id: provider.listingId,
-                name: provider.name,
-                image: provider.image as any
-              })
-            : getImageUrl({
-                id: provider.listingId,
-                name: provider.name,
-                image: null
-              })
-        })),
+        items: providers.items.map(provider => setupSessionProviderListingItemPresenter(provider)),
         pagination: {
           hasMoreBefore: providers.pagination.hasPreviousPage,
           hasMoreAfter: providers.pagination.hasNextPage
@@ -240,9 +218,11 @@ export let setupSessionController = app.controller({
     )
     .do(async ctx => {
       return {
-        items: await providerSetupSessionUiService.listTools({
-          providerSetupSession: ctx.session
-        })
+        items: (
+          await providerSetupSessionUiService.listTools({
+            providerSetupSession: ctx.session
+          })
+        ).map(tool => setupSessionToolPresenter(tool))
       };
     }),
 
@@ -260,6 +240,6 @@ export let setupSessionController = app.controller({
       });
       if (!oauthSetup) return null;
 
-      return providerOAuthSetupPresenter(oauthSetup);
+      return setupSessionOAuthSetupPresenter(oauthSetup);
     })
 });
