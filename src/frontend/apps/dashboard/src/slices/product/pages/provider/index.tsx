@@ -7,10 +7,11 @@ import {
   useProviderDeployments,
   useProviderListing
 } from '@metorial/state';
-import { Button, Spacer, Text } from '@metorial/ui';
+import { Attributes, Button, Spacer, Text } from '@metorial/ui';
 import { ID, SideBox } from '@metorial/ui-product';
 import dedent from 'dedent';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import styled from 'styled-components';
 import {
   createJavascriptSdkInstallInstruction,
   createPythonSdkInstallInstruction
@@ -21,6 +22,12 @@ import { useProviderVersionContext } from './_layout';
 import { InstructionItem, Instructions } from './components/instructions';
 import { KeySelector } from './components/keySelector';
 import { Skills } from './components/skills';
+
+let Header = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 20px;
+`;
 
 export let ProviderOverviewPage = () => {
   let instance = useCurrentInstance();
@@ -203,23 +210,39 @@ export let ProviderOverviewPage = () => {
 
   return renderWithLoader({ provider })(({ provider }) => (
     <>
-      <SideBox
-        title="Test this provider"
-        description="Use the Metorial Explorer to test this provider."
-      >
-        <Link
-          to={Paths.instance.explorer(
-            instance.data?.organization,
-            instance.data?.project,
-            instance.data,
-            { provider_id: provider.data?.id }
-          )}
+      <Header>
+        <Attributes
+          itemWidth="200px"
+          attributes={[
+            {
+              label: 'Identifier',
+              content: <ID id={listing.data?.slug ?? provider.data.slug} />
+            },
+            {
+              label: 'Publisher',
+              content: provider.data.publisher.name
+            }
+          ]}
+        />
+
+        <SideBox
+          title="Test this provider"
+          description="Use the Metorial Explorer to test this provider."
         >
-          <Button as="span" size="2">
-            Open Explorer
-          </Button>
-        </Link>
-      </SideBox>
+          <Link
+            to={Paths.instance.explorer(
+              instance.data?.organization,
+              instance.data?.project,
+              instance.data,
+              { provider_id: provider.data?.id }
+            )}
+          >
+            <Button as="span" size="2">
+              Open Explorer
+            </Button>
+          </Link>
+        </SideBox>
+      </Header>
 
       <Spacer height={15} />
 

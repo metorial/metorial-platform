@@ -5,10 +5,11 @@ enum ProviderListingStatus {
 }
 
 model ProviderListing {
-  oid    BigInt                @id
-  id     String                @unique
-  status ProviderListingStatus
-  isDeprecated Boolean @default(false)
+  oid BigInt @id
+  id  String @unique
+
+  status       ProviderListingStatus
+  isDeprecated Boolean               @default(false)
 
   isPublic     Boolean @default(true)
   isCustomized Boolean @default(false)
@@ -18,10 +19,9 @@ model ProviderListing {
   isOfficial Boolean @default(false)
 
   name       String
-  slug       String  @unique
-  prettySlug String? @unique
-
-  aliases String[]
+  slug       String   @unique
+  prettySlug String?  @unique
+  aliases    String[]
 
   /// [EntityImage]
   image Json?

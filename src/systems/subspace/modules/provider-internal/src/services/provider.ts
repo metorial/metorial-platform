@@ -110,10 +110,15 @@ class providerInternalServiceImpl {
     let prettySlug = d.info.prettySlug;
     let existingWithPrettySlug = prettySlug
       ? await db.providerListing.findFirst({
-          where: { prettySlug }
+          where: {
+            prettySlug,
+            provider: {
+              slug: { not: d.info.slug },
+              globalIdentifier: { not: d.info.globalIdentifier }
+            }
+          }
         })
       : null;
-
     if (existingWithPrettySlug) prettySlug = `${prettySlug}-${generateCode(5)}`;
 
     return withTransaction(
@@ -167,6 +172,7 @@ class providerInternalServiceImpl {
           name: d.info.name,
           description: d.info.description,
           slug: d.info.slug,
+          prettySlug,
 
           entryOid: entry.oid,
           publisherOid: d.publisher.oid,
@@ -209,8 +215,8 @@ class providerInternalServiceImpl {
 
           isDefault: true,
 
-          name: d.info.name,
-          description: d.info.description,
+          name: provider.name,
+          description: provider.description,
 
           backendOid: d.source.backend.oid,
           providerOid: provider.oid,
@@ -265,11 +271,11 @@ class providerInternalServiceImpl {
           let inner = {
             ...allData,
 
-            name: d.info.name,
-            description: d.info.description,
-            slug: d.info.slug,
+            name: provider.name,
+            description: provider.description,
+            slug: provider.slug,
 
-            prettySlug,
+            prettySlug: provider.prettySlug,
             aliases: [...new Set(d.info.aliases)],
 
             image: d.info.image ?? { type: 'default' as const },

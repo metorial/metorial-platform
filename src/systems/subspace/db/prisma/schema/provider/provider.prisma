@@ -32,9 +32,9 @@ model Provider {
   oid BigInt @id
   id  String @unique
 
-  access ProviderAccess
-  status ProviderStatus
-  isDeprecated Boolean @default(false)
+  access       ProviderAccess
+  status       ProviderStatus
+  isDeprecated Boolean        @default(false)
 
   hasEnvironments Boolean @default(false)
 
@@ -43,6 +43,7 @@ model Provider {
   globalIdentifier String? @unique
   name             String
   description      String?
+  prettySlug       String? @unique
 
   metadata Json?
 

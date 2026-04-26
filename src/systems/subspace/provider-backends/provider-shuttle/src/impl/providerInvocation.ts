@@ -66,8 +66,6 @@ export class ProviderInvocation extends IProviderInvocation {
   override async listProviderInvocations(
     data: ProviderInvocationListParam
   ): Promise<ProviderInvocationListRes> {
-    console.log('Listing provider invocations with data', data);
-
     let invocationMap = new Map<string, UnifiedProviderInvocation>();
     let queue = new PQueue({ concurrency: 5 });
     let serverConnectionLogsCache = new Map<
@@ -149,14 +147,10 @@ export class ProviderInvocation extends IProviderInvocation {
       let cached = serverConnectionLogsCache.get(serverConnectionId);
       if (cached) return await cached;
 
-      console.log(`Fetching logs for server connection ${serverConnectionId}`);
-
       let logsPromise = shuttle.serverConnection.getLogsSync({ serverConnectionId });
       serverConnectionLogsCache.set(serverConnectionId, logsPromise);
 
       let logs = await logsPromise;
-
-      console.log(`Fetched ${logs.length} logs for server connection ${serverConnectionId}`);
 
       return logs;
     };
@@ -170,10 +164,6 @@ export class ProviderInvocation extends IProviderInvocation {
 
       return await logsPromise;
     };
-
-    console.log(
-      `Processing ${localConnections.length} local connections and ${remoteInvocations.length} remote invocations`
-    );
 
     await queue.addAll(
       localConnections
@@ -212,17 +202,9 @@ export class ProviderInvocation extends IProviderInvocation {
         })
     );
 
-    console.log(`Finished processing local connections, now processing remote invocations`);
-
     await queue.addAll(
       remoteInvocations.map(invocation => async () => {
-        console.log(
-          `Processing function invocation ${invocation.id} for server connection ${invocation.serverConnectionId}`
-        );
         let logs = await getFunctionInvocationLogs(invocation.id);
-        console.log(
-          `Fetched ${logs.logs.length} logs for function invocation ${invocation.id}`
-        );
 
         let providerRunId = invocation.serverConnectionId
           ? (providerRunIdByConnectionId.get(invocation.serverConnectionId) ?? null)
@@ -265,8 +247,6 @@ export class ProviderInvocation extends IProviderInvocation {
         });
       })
     );
-
-    console.log(`Finished processing remote invocations, now processing auth config events`);
 
     await queue.addAll(
       authConfigEvents.map(event => async () => {
@@ -372,10 +352,6 @@ export class ProviderInvocation extends IProviderInvocation {
           createdAt: event.createdAt
         });
       })
-    );
-
-    console.log(
-      `Finished processing provider invocations, total unique invocations: ${invocationMap.size}`
     );
 
     return {

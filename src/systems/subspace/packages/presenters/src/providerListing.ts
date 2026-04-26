@@ -60,7 +60,7 @@ export let providerListingPresenter = (
 
   name: providerListing.name,
   description: providerListing.description,
-  slug: providerListing.prettySlug || providerListing.slug,
+  slug: providerListing.prettySlug ?? providerListing.slug,
   image: providerListing.image,
 
   aliases: providerListing.aliases,

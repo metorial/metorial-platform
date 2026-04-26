@@ -87,7 +87,7 @@ export let providerPresenter = (
 
     name: provider.name,
     description: provider.description,
-    slug: provider.slug,
+    slug: provider.prettySlug ?? provider.slug,
     globalIdentifier: provider.globalIdentifier,
     metadata: provider.metadata,
 
@@ -108,7 +108,7 @@ export let providerPreviewPresenter = (provider: Provider) => ({
 
   name: provider.name,
   description: provider.description,
-  slug: provider.slug,
+  slug: provider.prettySlug ?? provider.slug,
   metadata: provider.metadata,
 
   createdAt: provider.createdAt,
