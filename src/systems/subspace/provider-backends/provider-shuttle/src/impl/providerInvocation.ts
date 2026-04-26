@@ -66,11 +66,17 @@ export class ProviderInvocation extends IProviderInvocation {
   override async listProviderInvocations(
     data: ProviderInvocationListParam
   ): Promise<ProviderInvocationListRes> {
+    console.log('Listing provider invocations with data', data);
+
     let invocationMap = new Map<string, UnifiedProviderInvocation>();
     let queue = new PQueue({ concurrency: 5 });
     let serverConnectionLogsCache = new Map<
       string,
-      Awaited<ReturnType<typeof shuttle.serverConnection.getLogsSync>>
+      Promise<Awaited<ReturnType<typeof shuttle.serverConnection.getLogsSync>>>
+    >();
+    let functionInvocationLogsCache = new Map<
+      string,
+      Promise<Awaited<ReturnType<typeof shuttle.functionServerInvocation.getLogs>>>
     >();
 
     let messageProviderRuns = data.inputs.sessionMessageIds?.length
@@ -129,6 +135,11 @@ export class ProviderInvocation extends IProviderInvocation {
           serverConnectionIds: localConnections.map(connection => connection.id)
         })
       : [];
+    let serverConnectionIdsWithFunctionInvocations = new Set(
+      remoteInvocations
+        .map(invocation => invocation.serverConnectionId)
+        .filter((id): id is string => Boolean(id))
+    );
 
     let providerRunIdByConnectionId = new Map(
       localConnections.map(connection => [connection.id, connection.providerRun.id])
@@ -136,55 +147,82 @@ export class ProviderInvocation extends IProviderInvocation {
 
     let getServerConnectionLogs = async (serverConnectionId: string) => {
       let cached = serverConnectionLogsCache.get(serverConnectionId);
-      if (cached) return cached;
+      if (cached) return await cached;
 
-      let logs = await shuttle.serverConnection.getLogsSync({
-        serverConnectionId
-      });
-      serverConnectionLogsCache.set(serverConnectionId, logs);
+      console.log(`Fetching logs for server connection ${serverConnectionId}`);
+
+      let logsPromise = shuttle.serverConnection.getLogsSync({ serverConnectionId });
+      serverConnectionLogsCache.set(serverConnectionId, logsPromise);
+
+      let logs = await logsPromise;
+
+      console.log(`Fetched ${logs.length} logs for server connection ${serverConnectionId}`);
+
       return logs;
     };
 
-    await queue.addAll(
-      localConnections.map(connection => async () => {
-        let logs = await getServerConnectionLogs(connection.id);
-        let providerRunId = connection.providerRun.id;
+    let getFunctionInvocationLogs = async (functionInvocationId: string) => {
+      let cached = functionInvocationLogsCache.get(functionInvocationId);
+      if (cached) return await cached;
 
-        mergeInvocation(invocationMap, {
-          id: getShuttleServerConnectionProviderInvocationId(connection.id),
-          source: 'shuttle',
-          type: 'tool_call',
-          status: 'unknown',
-          providerRunIds: [providerRunId],
-          sessionMessageIds: sessionMessageIdsByProviderRunId.get(providerRunId) ?? [],
-          authConfigEventIds: [],
-          providerOAuthSetupIds: [],
-          toolCallId: null,
-          action: null,
-          requests: [],
-          responses: [],
-          requestTraces: [],
-          logs: logs.map(log => ({
-            timestamp: log.timestamp,
-            message: log.message,
-            outputType: log.outputType
-          })),
-          attachments: [],
-          error: null,
-          provider: null,
-          metadata: {
-            serverConnectionId: connection.id
-          },
-          createdAt: connection.providerRun.createdAt
-        });
-      })
+      let logsPromise = shuttle.functionServerInvocation.getLogs({ functionInvocationId });
+      functionInvocationLogsCache.set(functionInvocationId, logsPromise);
+
+      return await logsPromise;
+    };
+
+    console.log(
+      `Processing ${localConnections.length} local connections and ${remoteInvocations.length} remote invocations`
     );
 
     await queue.addAll(
+      localConnections
+        .filter(connection => !serverConnectionIdsWithFunctionInvocations.has(connection.id))
+        .map(connection => async () => {
+          let logs = await getServerConnectionLogs(connection.id);
+          let providerRunId = connection.providerRun.id;
+
+          mergeInvocation(invocationMap, {
+            id: getShuttleServerConnectionProviderInvocationId(connection.id),
+            source: 'shuttle',
+            type: 'tool_call',
+            status: 'unknown',
+            providerRunIds: [providerRunId],
+            sessionMessageIds: sessionMessageIdsByProviderRunId.get(providerRunId) ?? [],
+            authConfigEventIds: [],
+            providerOAuthSetupIds: [],
+            toolCallId: null,
+            action: null,
+            requests: [],
+            responses: [],
+            requestTraces: [],
+            logs: logs.map(log => ({
+              timestamp: log.timestamp,
+              message: log.message,
+              outputType: log.outputType
+            })),
+            attachments: [],
+            error: null,
+            provider: null,
+            metadata: {
+              serverConnectionId: connection.id
+            },
+            createdAt: connection.providerRun.createdAt
+          });
+        })
+    );
+
+    console.log(`Finished processing local connections, now processing remote invocations`);
+
+    await queue.addAll(
       remoteInvocations.map(invocation => async () => {
-        let logs = await shuttle.functionServerInvocation.getLogs({
-          functionInvocationId: invocation.id
-        });
+        console.log(
+          `Processing function invocation ${invocation.id} for server connection ${invocation.serverConnectionId}`
+        );
+        let logs = await getFunctionInvocationLogs(invocation.id);
+        console.log(
+          `Fetched ${logs.logs.length} logs for function invocation ${invocation.id}`
+        );
 
         let providerRunId = invocation.serverConnectionId
           ? (providerRunIdByConnectionId.get(invocation.serverConnectionId) ?? null)
@@ -228,6 +266,8 @@ export class ProviderInvocation extends IProviderInvocation {
       })
     );
 
+    console.log(`Finished processing remote invocations, now processing auth config events`);
+
     await queue.addAll(
       authConfigEvents.map(event => async () => {
         let type: UnifiedProviderInvocation['type'] = event.type.includes('oauth_setup')
@@ -244,9 +284,7 @@ export class ProviderInvocation extends IProviderInvocation {
           let invocation = await shuttle.functionServerInvocation.get({
             functionInvocationId: parsedId.sourceId
           });
-          let logs = await shuttle.functionServerInvocation.getLogs({
-            functionInvocationId: parsedId.sourceId
-          });
+          let logs = await getFunctionInvocationLogs(parsedId.sourceId);
 
           mergeInvocation(invocationMap, {
             id: getShuttleFunctionProviderInvocationId(invocation.id),
@@ -290,6 +328,7 @@ export class ProviderInvocation extends IProviderInvocation {
 
         let serverConnectionId = getServerConnectionIdFromPayload(event.payload);
         if (!serverConnectionId) return;
+        if (serverConnectionIdsWithFunctionInvocations.has(serverConnectionId)) return;
 
         let logs = await getServerConnectionLogs(serverConnectionId);
         let providerRunId = providerRunIdByConnectionId.get(serverConnectionId) ?? null;
@@ -333,6 +372,10 @@ export class ProviderInvocation extends IProviderInvocation {
           createdAt: event.createdAt
         });
       })
+    );
+
+    console.log(
+      `Finished processing provider invocations, total unique invocations: ${invocationMap.size}`
     );
 
     return {
@@ -482,8 +525,7 @@ export class ProviderInvocation extends IProviderInvocation {
     )
       ? 'failed'
       : relatedEvents.some(
-            event =>
-              event.type.endsWith('_completed') || event.type.endsWith('_succeeded')
+            event => event.type.endsWith('_completed') || event.type.endsWith('_succeeded')
           )
         ? 'succeeded'
         : 'unknown';

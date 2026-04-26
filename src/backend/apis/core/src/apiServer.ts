@@ -1,4 +1,8 @@
-import { consumerApiController, fullDashboardController, magnetarController } from './controllers';
+import {
+  consumerApiController,
+  fullDashboardController,
+  magnetarController
+} from './controllers';
 import { restServer } from './rest';
 
 export let apiServer = restServer.launch({

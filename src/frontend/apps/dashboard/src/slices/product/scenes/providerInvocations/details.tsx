@@ -42,7 +42,9 @@ export let ProviderInvocationDetails = ({
                 },
                 {
                   label: 'Type',
-                  value: formatTitleCase(invocation.type)
+                  value: formatTitleCase(
+                    invocation.type === 'unknown' ? 'Provider Call' : invocation.type
+                  )
                 },
                 {
                   label: 'Created',

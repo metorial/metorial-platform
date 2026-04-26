@@ -83,6 +83,8 @@ export let useConnectionTimeline = ({
   refetchConnectionRef.current = connectionQuery.refetch;
   let refetchProviderInvocationsRef = useRef(providerInvocations.refetch);
   refetchProviderInvocationsRef.current = providerInvocations.refetch;
+  let providerInvocationsLoadingRef = useRef(providerInvocations.isLoading);
+  providerInvocationsLoadingRef.current = providerInvocations.isLoading;
 
   useEffect(() => {
     if (!instanceId) return;
@@ -91,7 +93,9 @@ export let useConnectionTimeline = ({
       refetchMessagesRef.current?.();
       refetchEventsRef.current?.();
       refetchProviderRunsRef.current?.();
-      refetchProviderInvocationsRef.current?.();
+      if (!providerInvocationsLoadingRef.current) {
+        refetchProviderInvocationsRef.current?.();
+      }
     }, 5_000);
     return () => clearInterval(id);
   }, [instanceId, session.id, connection.id]);

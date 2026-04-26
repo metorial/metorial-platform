@@ -68,8 +68,13 @@ export let callFunction = async <T>(
 export let getFunctionCallLogs = async (d: {
   server: FunctionServer;
   functionCallId: string;
+  waitForLogs?: boolean;
+  attempts?: number;
+  delayMs?: number;
 }) => {
-  for (let i = 0; i < 10; i++) {
+  let attempts = d.waitForLogs ? (d.attempts ?? 10) : 1;
+
+  for (let i = 0; i < attempts; i++) {
     try {
       let out = await functionBay.functionInvocation.get({
         tenantId: d.server.functionBayTenantId,
@@ -77,10 +82,14 @@ export let getFunctionCallLogs = async (d: {
         functionInvocationId: d.functionCallId
       });
 
-      if (out.logs.length > 0) return out.logs;
-    } catch (err) {}
+      if (!d.waitForLogs || out.logs.length > 0) return out.logs;
+    } catch (err) {
+      if (!d.waitForLogs) return [];
+    }
 
-    await delay(1000); // Wait for logs to be available
+    if (i < attempts - 1) {
+      await delay(d.delayMs ?? 1000); // Wait for logs to be available
+    }
   }
 
   return [];
