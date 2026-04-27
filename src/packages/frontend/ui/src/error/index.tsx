@@ -27,7 +27,13 @@ export let Error = ({
 
   if (typeof children == 'string' && children.startsWith('[') && children.includes(']')) {
     let endIndex = children.indexOf(']');
-    inner = children.substring(endIndex + 1);
+    let str = children.substring(endIndex + 1);
+
+    if (str.startsWith(':')) {
+      str = str.substring(1);
+    }
+
+    inner = str.trim();
   }
 
   return (
