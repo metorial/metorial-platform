@@ -5,7 +5,7 @@ import {
 } from '@aws-sdk/client-lambda';
 import { delay } from '@lowerdeck/delay';
 import JSZip from 'jszip';
-import { env } from '../../env';
+import { env, lambdaNetworkConfig } from '../../env';
 import { lambdaClient } from './lambda';
 import { ensureLambdaExecutionRole } from './role';
 
@@ -49,7 +49,13 @@ export let checkLambdaAccess = async () => {
           Role: roleArn,
           Code: { ZipFile: zipBytes },
           Timeout: 3,
-          MemorySize: 128
+          MemorySize: 128,
+          VpcConfig: lambdaNetworkConfig
+            ? {
+                SubnetIds: lambdaNetworkConfig.subnetIds,
+                SecurityGroupIds: lambdaNetworkConfig.securityGroupIds
+              }
+            : undefined
         })
       );
 

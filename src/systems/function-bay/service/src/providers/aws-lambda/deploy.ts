@@ -6,6 +6,7 @@ import {
 import type { FunctionBayRuntimeConfig } from '@function-bay/types';
 import { delay } from '@lowerdeck/delay';
 import type { Function, FunctionDeployment, Runtime } from '../../../prisma/generated/client';
+import { lambdaNetworkConfig } from '../../env';
 import { lambdaClient } from './lambda';
 import { ensureLambdaExecutionRole } from './role';
 
@@ -71,6 +72,12 @@ export let deployFunction = async (d: {
       },
       Timeout: d.functionDeployment.configuration.timeoutSeconds,
       MemorySize: d.functionDeployment.configuration.memorySizeMb,
+      VpcConfig: lambdaNetworkConfig
+        ? {
+            SubnetIds: lambdaNetworkConfig.subnetIds,
+            SecurityGroupIds: lambdaNetworkConfig.securityGroupIds
+          }
+        : undefined,
       Environment: {
         Variables: {
           ...d.env,
