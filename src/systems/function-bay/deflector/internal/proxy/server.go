@@ -124,6 +124,11 @@ func (s *Server) handleHTTP(w http.ResponseWriter, r *http.Request, compiled *po
 	}
 	defer upstream.Close()
 
+	if isUpgradeRequest(r) {
+		s.handleUpgrade(w, r, upstream)
+		return
+	}
+
 	out := r.Clone(r.Context())
 	out.RequestURI = ""
 	out.URL.Scheme = ""
@@ -149,7 +154,68 @@ func (s *Server) handleHTTP(w http.ResponseWriter, r *http.Request, compiled *po
 		}
 	}
 	w.WriteHeader(resp.StatusCode)
-	_, _ = io.Copy(w, resp.Body)
+	copyStreaming(w, resp.Body)
+}
+
+func isUpgradeRequest(r *http.Request) bool {
+	hasUpgradeToken := false
+	for _, part := range strings.Split(r.Header.Get("Connection"), ",") {
+		if strings.EqualFold(strings.TrimSpace(part), "upgrade") {
+			hasUpgradeToken = true
+			break
+		}
+	}
+	return hasUpgradeToken && r.Header.Get("Upgrade") != ""
+}
+
+func (s *Server) handleUpgrade(w http.ResponseWriter, r *http.Request, upstream net.Conn) {
+	hijacker, ok := w.(http.Hijacker)
+	if !ok {
+		http.Error(w, "hijacking unsupported", http.StatusInternalServerError)
+		return
+	}
+
+	client, buffered, err := hijacker.Hijack()
+	if err != nil {
+		return
+	}
+	defer client.Close()
+
+	out := r.Clone(r.Context())
+	out.RequestURI = ""
+	out.URL.Scheme = ""
+	out.URL.Host = ""
+	out.Header.Del("Proxy-Authorization")
+	out.Header.Del("Proxy-Connection")
+
+	if err := out.Write(upstream); err != nil {
+		_, _ = client.Write([]byte("HTTP/1.1 502 Bad Gateway\r\n\r\n"))
+		return
+	}
+	if buffered.Reader.Buffered() > 0 {
+		_, _ = io.Copy(upstream, buffered)
+	}
+
+	pipe(client, upstream)
+}
+
+func copyStreaming(w http.ResponseWriter, r io.Reader) {
+	flusher, _ := w.(http.Flusher)
+	buf := make([]byte, 32*1024)
+	for {
+		n, readErr := r.Read(buf)
+		if n > 0 {
+			if _, writeErr := w.Write(buf[:n]); writeErr != nil {
+				return
+			}
+			if flusher != nil {
+				flusher.Flush()
+			}
+		}
+		if readErr != nil {
+			return
+		}
+	}
 }
 
 func (s *Server) dialAllowed(ctx context.Context, host string, port string, compiled *policy.Compiled) (net.Conn, error) {
