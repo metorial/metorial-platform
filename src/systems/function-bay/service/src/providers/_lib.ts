@@ -41,6 +41,10 @@ export interface FunctionInvocationParams {
   payload: Record<string, any>;
   providerData: any;
   functionBundle?: FunctionBundle | null;
+  egressPolicy?: {
+    allowedIps?: string[];
+    allowedHosts?: string[];
+  };
 }
 
 export type FunctionInvocationResult = (
