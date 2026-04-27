@@ -4,9 +4,7 @@ import {
   type SlateAction,
   type SlateAuthConfig,
   type SlateInstance,
-  type SlateTriggerDestination,
   type SlateTriggerReceiver,
-  type SlateTriggerReceiverDestination,
   type SlateTriggerReceiverTrigger
 } from '../../prisma/generated/client';
 import { getTriggerWebhookBaseUrl } from '../lib/triggerWebhook';
@@ -17,9 +15,6 @@ export let slateTriggerReceiverPresenter = (
     slateInstance: SlateInstance;
     authConfig: SlateAuthConfig | null;
     triggers: (SlateTriggerReceiverTrigger & { action: SlateAction })[];
-    destinations: (SlateTriggerReceiverDestination & {
-      destination: SlateTriggerDestination;
-    })[];
   }
 ) => ({
   object: 'slate.trigger.receiver',
@@ -30,6 +25,9 @@ export let slateTriggerReceiverPresenter = (
   authConfigId: receiver.authConfig?.id ?? null,
 
   status: receiver.status,
+  deliveryMode: receiver.deliveryMode,
+  callbackId: receiver.callbackId,
+  callbackInstanceId: receiver.callbackInstanceId,
   name: receiver.name,
   description: receiver.description,
   eventTypes: receiver.eventTypes,
@@ -59,14 +57,7 @@ export let slateTriggerReceiverPresenter = (
         : null
   })),
 
-  destinations: receiver.destinations.map(dest => ({
-    object: 'slate.trigger.destination',
-
-    id: dest.destination.id,
-    name: dest.destination.name,
-    url: dest.destination.url,
-    method: dest.destination.method
-  })),
+  destinations: [],
 
   createdAt: receiver.createdAt,
   updatedAt: receiver.updatedAt
