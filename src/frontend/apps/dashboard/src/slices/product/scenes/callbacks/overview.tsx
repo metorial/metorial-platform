@@ -317,32 +317,6 @@ export let CallbackOverview = (p: { callbackId: string | undefined }) => {
           <Spacer height={15} />
 
           <Box
-            title="Provider Triggers"
-            description="These provider triggers can create callback events for this callback."
-          >
-            {callback.data.providerTriggers.length > 0 ? (
-              <Table
-                headers={['Trigger', 'Key', 'Event Types']}
-                data={callback.data.providerTriggers.map(trigger => ({
-                  data: [
-                    <Text size="2" weight="strong">
-                      {trigger.providerTrigger.name}
-                    </Text>,
-                    trigger.providerTrigger.key,
-                    trigger.eventTypes.length ? trigger.eventTypes.join(', ') : 'All'
-                  ]
-                }))}
-              />
-            ) : (
-              <Callout color="gray">
-                No provider triggers have been attached to this callback yet.
-              </Callout>
-            )}
-          </Box>
-
-          <Spacer height={15} />
-
-          <Box
             title="Instances"
             description="Callback instances track registration state for provider configuration combinations."
             rightActions={
@@ -629,7 +603,7 @@ let CallbackInstanceDetails = (p: {
     ReturnType<typeof useCallbackInstances>['useDeleteMutator']
   >;
 }) => {
-  let firstTrigger = p.callbackInstance.triggers[0];
+  let firstTrigger = p.callbackInstance.triggers.find(trigger => trigger.webhookUrl);
 
   return (
     <>
@@ -701,7 +675,7 @@ let CallbackInstanceDetails = (p: {
 
       <Spacer height={15} />
 
-      {firstTrigger.webhookUrl && !firstTrigger.isWebhookRegistered && (
+      {firstTrigger?.webhookUrl && !firstTrigger.isWebhookRegistered && (
         <>
           <Box
             title="Trigger Endpoint"

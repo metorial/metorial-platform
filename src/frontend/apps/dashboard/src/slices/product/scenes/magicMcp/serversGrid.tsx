@@ -137,14 +137,18 @@ let magicServersTable = new DashboardTable<MagicMcpServersTableProps, Server>(
       id: 'providerTemplateId',
       isDefault: false,
       header: 'Provider Template ID',
-      render: server =>
-        server.providerTemplateId ? (
-          <ID id={server.providerTemplateId} />
+      render: server => {
+        let providerTemplateId = (server as { providerTemplateId?: string | null })
+          .providerTemplateId;
+
+        return providerTemplateId ? (
+          <ID id={providerTemplateId} />
         ) : (
           <Text size="2" color="gray600">
             -
           </Text>
-        )
+        );
+      }
     },
     {
       id: 'updatedAt',

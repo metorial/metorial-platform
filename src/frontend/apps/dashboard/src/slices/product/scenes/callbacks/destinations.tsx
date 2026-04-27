@@ -35,7 +35,13 @@ type CallbackNotificationListItem =
 export let CallbackDestinationsList = (p: { callbackId: string | undefined }) => {
   let instance = useCurrentInstance();
   let callback = useCallback(instance.data?.id, p.callbackId);
-  let destinations = useCallbackDestinations(instance.data?.id, { order: 'desc' });
+  let destinations = useCallbackDestinations(
+    instance.data?.id && p.callbackId ? instance.data.id : null,
+    {
+      callbackId: p.callbackId,
+      order: 'desc'
+    }
+  );
   let notifications = useCallbackNotifications(instance.data?.id, p.callbackId, {
     order: 'desc'
   });
@@ -59,7 +65,7 @@ export let CallbackDestinationsList = (p: { callbackId: string | undefined }) =>
       }
     }
 
-    let destinationItems = (callback.data?.destinations ?? []).map(destination => ({
+    let destinationItems = (destinations.data?.items ?? []).map(destination => ({
       destination,
       latestNotification: latestByDestination.get(destination.id)
     }));
@@ -67,7 +73,7 @@ export let CallbackDestinationsList = (p: { callbackId: string | undefined }) =>
     return {
       items: destinationItems
     };
-  }, [callback.data?.destinations, notifications.data?.items]);
+  }, [destinations.data?.items, notifications.data?.items]);
 
   let destinationSelectItems = (destinations.data?.items ?? []).map(destination => ({
     id: destination.id,
@@ -191,6 +197,8 @@ export let CallbackDestinationsList = (p: { callbackId: string | undefined }) =>
               updateCallback.mutate({
                 destinationIds: nextDestinationIds
               });
+
+              destinations.refetch();
             }
           })
         }
