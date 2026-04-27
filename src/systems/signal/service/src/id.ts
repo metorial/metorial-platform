@@ -5,6 +5,9 @@ export let ID = createIdGenerator({
   tenant: idType.sorted('stn_'),
   sender: idType.sorted('ssn_'),
 
+  callback: idType.sorted('scb_'),
+  callbackEvent: idType.sorted('cbe_'),
+
   eventDestination: idType.sorted('sed_'),
   event: idType.sorted('sev_'),
   eventDestinationWebhook: idType.sorted('sdw_'),
