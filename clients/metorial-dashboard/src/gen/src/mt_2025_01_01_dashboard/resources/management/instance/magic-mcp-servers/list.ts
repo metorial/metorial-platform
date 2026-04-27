@@ -6,14 +6,17 @@ export type ManagementInstanceMagicMcpServersListOutput = {
     id: string;
     status: 'active' | 'archived' | 'deleted';
     source: 'manual' | 'consumer_provider_template';
-    providerTemplateId: string | null;
     endpoints: { id: string; alias: string; url: string }[];
     name: string | null;
     description: string | null;
     metadata: Record<string, any>;
     createdAt: Date;
     updatedAt: Date;
-  } & { sessionTemplateId: string; sessionId: string | null })[];
+  } & {
+    sessionTemplateId: string;
+    providerTemplateId: string | null;
+    sessionId: string | null;
+  })[];
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
@@ -30,10 +33,6 @@ export let mapManagementInstanceMagicMcpServersListOutput =
               id: mtMap.objectField('id', mtMap.passthrough()),
               status: mtMap.objectField('status', mtMap.passthrough()),
               source: mtMap.objectField('source', mtMap.passthrough()),
-              providerTemplateId: mtMap.objectField(
-                'provider_template_id',
-                mtMap.passthrough()
-              ),
               endpoints: mtMap.objectField(
                 'endpoints',
                 mtMap.array(
@@ -54,6 +53,10 @@ export let mapManagementInstanceMagicMcpServersListOutput =
               updatedAt: mtMap.objectField('updated_at', mtMap.date()),
               sessionTemplateId: mtMap.objectField(
                 'session_template_id',
+                mtMap.passthrough()
+              ),
+              providerTemplateId: mtMap.objectField(
+                'provider_template_id',
                 mtMap.passthrough()
               ),
               sessionId: mtMap.objectField('session_id', mtMap.passthrough())

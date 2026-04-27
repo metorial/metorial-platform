@@ -9,7 +9,6 @@ export type MagicMcpSessionsListOutput = {
       id: string;
       status: 'active' | 'archived' | 'deleted';
       source: 'manual' | 'consumer_provider_template';
-      providerTemplateId: string | null;
       endpoints: { id: string; alias: string; url: string }[];
       name: string | null;
       description: string | null;
@@ -23,9 +22,6 @@ export type MagicMcpSessionsListOutput = {
       status: 'active' | 'archived' | 'deleted';
       slug: string;
       url: string;
-      consumerProfileId: string | null;
-      sessionTemplateId: string | null;
-      sessionId: string | null;
       servers: ({
         object: 'magic_mcp.server#preview';
         id: string;
@@ -83,10 +79,6 @@ export let mapMagicMcpSessionsListOutput =
               id: mtMap.objectField('id', mtMap.passthrough()),
               status: mtMap.objectField('status', mtMap.passthrough()),
               source: mtMap.objectField('source', mtMap.passthrough()),
-              providerTemplateId: mtMap.objectField(
-                'provider_template_id',
-                mtMap.passthrough()
-              ),
               endpoints: mtMap.objectField(
                 'endpoints',
                 mtMap.array(
@@ -115,15 +107,6 @@ export let mapMagicMcpSessionsListOutput =
               status: mtMap.objectField('status', mtMap.passthrough()),
               slug: mtMap.objectField('slug', mtMap.passthrough()),
               url: mtMap.objectField('url', mtMap.passthrough()),
-              consumerProfileId: mtMap.objectField(
-                'consumer_profile_id',
-                mtMap.passthrough()
-              ),
-              sessionTemplateId: mtMap.objectField(
-                'session_template_id',
-                mtMap.passthrough()
-              ),
-              sessionId: mtMap.objectField('session_id', mtMap.passthrough()),
               servers: mtMap.objectField(
                 'servers',
                 mtMap.array(
