@@ -335,7 +335,7 @@ export let CallbackEventsList = (p: { callbackId: string | undefined }) => {
       {renderWithPagination(events)(events => (
         <>
           <Table
-            headers={['Status', 'Delivery', 'Type', 'Created', '']}
+            headers={['Status', 'Type', 'Created', '']}
             data={events.data.items.map(event => ({
               data: [
                 getLifecycleStatusBadge(getLifecycleFields(event).status),

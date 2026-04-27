@@ -36,14 +36,9 @@ export let offloadCallbackEventPayloadQueueProcessor =
     await storage.putObject(env.storage.LOGS_BUCKET_NAME, key, payloadJson);
 
     await db.callbackEvent.updateMany({
-      where:
-        data.payloadType === 'input'
-          ? {
-              id: data.callbackEventId
-            }
-          : {
-              id: data.callbackEventId
-            },
+      where: {
+        id: data.callbackEventId
+      },
       data:
         data.payloadType === 'input'
           ? {
