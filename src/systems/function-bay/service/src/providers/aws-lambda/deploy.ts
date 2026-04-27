@@ -98,12 +98,36 @@ let nodeProxyWrapper = (originalHandler: string, bootstrapCode: string) => `
 ${bootstrapCode}
 const originalHandler = ${JSON.stringify(originalHandler)};
 const [modulePath, exportName = 'handler'] = originalHandler.split(/\\.([^.]*)$/).filter(Boolean);
+const path = require('path');
+const { pathToFileURL } = require('url');
 let loaded;
+
+async function loadOriginalModule() {
+  try {
+    return require('./' + modulePath);
+  } catch (err) {
+    const candidates = [
+      modulePath,
+      /\\.[cm]?js$/.test(modulePath) ? undefined : modulePath + '.js',
+      /\\.[cm]?js$/.test(modulePath) ? undefined : modulePath + '.mjs'
+    ].filter(Boolean);
+
+    let lastError = err;
+    for (const candidate of candidates) {
+      try {
+        return await import(pathToFileURL(path.resolve(__dirname, candidate)).href);
+      } catch (importErr) {
+        lastError = importErr;
+      }
+    }
+    throw lastError;
+  }
+}
 
 exports.handler = async (event, context) => {
   exports.applyDeflector(event);
   if (!loaded) {
-    loaded = require('./' + modulePath);
+    loaded = await loadOriginalModule();
   }
   const handler = loaded[exportName];
   if (typeof handler !== 'function') throw new Error('Original handler export not found');
@@ -191,7 +215,7 @@ let prepareZip = async (d: {
   }
 
   let zip = await JSZip.loadAsync(zipBytes);
-  zip.file('metorial_deflector_wrapper.js', await buildNodeProxyWrapper(d.runtimeConfig.handler));
+  zip.file('metorial_deflector_wrapper.cjs', await buildNodeProxyWrapper(d.runtimeConfig.handler));
 
   return {
     zipBytes: Buffer.from(await zip.generateAsync({ type: 'uint8array' })),
