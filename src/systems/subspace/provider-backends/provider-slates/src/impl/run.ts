@@ -175,13 +175,21 @@ export class ProviderRunConnection extends IProviderRunConnection {
       };
     }
 
+    let attachments = Array.isArray(res.attachments) ? res.attachments : [];
+    let output = attachments.length
+      ? {
+          ...res.output,
+          $attachments: attachments
+        }
+      : res.output;
+
     return {
       slateToolCall,
       output: {
         type: 'success',
         data: {
           type: 'tool.result',
-          data: res.output
+          data: output
         }
       }
     };
