@@ -108,6 +108,7 @@ export let ID = createIdGenerator({
   callbackReceiverRegistration: idType.sorted('cbrr'),
 
   toolCall: idType.sorted('tcl'),
+  toolCallAttachment: idType.sorted('tca'),
 
   identityActor: idType.sorted('iac'),
   identity: idType.sorted('idn'),

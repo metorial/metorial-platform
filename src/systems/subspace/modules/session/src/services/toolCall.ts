@@ -4,6 +4,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
   db,
+  type ToolCallAttachment,
   type ToolCall,
   type Environment,
   type Session,
@@ -29,6 +30,7 @@ import { env } from '../env';
 import { sessionMessageInclude, sessionMessageService } from './sessionMessage';
 
 let include = {
+  attachments: true,
   tool: {
     include: {
       provider: true,
@@ -43,7 +45,9 @@ let connectionInitLock = createLock({
 });
 
 class toolCallServiceImpl {
-  async enrichToolCalls<T extends ToolCall>(toolCalls: T[]) {
+  async enrichToolCalls<T extends ToolCall & { attachments?: ToolCallAttachment[] }>(
+    toolCalls: T[]
+  ) {
     let messageOids = toolCalls.map(tc => tc.messageOid).filter(Boolean);
     let messages = await sessionMessageService.enrichMessages(
       await db.sessionMessage.findMany({

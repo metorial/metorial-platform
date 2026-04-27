@@ -226,7 +226,7 @@ export let startReceiver = () => {
 
       let result = {
         message,
-        output: res.output ?? NO_OUTPUT_ERROR,
+        output: message.output ?? res.output ?? NO_OUTPUT_ERROR,
         status: res.status,
         completedAt: res.completedAt
       } satisfies ConduitResult;
