@@ -286,7 +286,15 @@ export let subspaceDevEnv: Env = [
   {
     key: 'SCOUT_TOKEN',
     isRequired: false
+  },
+  {
+    key: 'SIGNAL_API_URL',
+    defaultValue: `http://localhost:52050/metorial-signal`
   }
+  // {
+  //   key: 'SIGNAL_SENDER_IDENTIFIER',
+  //   defaultValue: 'dev-subspace'
+  // },
 ];
 
 export let subspaceDbEnv: Env = [
