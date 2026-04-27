@@ -4,6 +4,7 @@ import {
   SlateTriggerEventDeliveryStatus,
   SlateTriggerEventInputStatus,
   SlateTriggerInvocationType,
+  SlateTriggerReceiverDeliveryMode,
   SlateTriggerReceiverStatus,
   SlateTriggerReceiverTriggerSource,
   type SlateTriggerReceiverTrigger
@@ -69,6 +70,18 @@ export class SlateTriggerReceiverRuntime {
           errorMessage: 'Event input payload is missing.'
         }
       });
+      await this.core.recordCallbackEventLifecycle({
+        receiver: eventInput.receiverTrigger.receiver,
+        action: eventInput.receiverTrigger.action,
+        event: {
+          id: eventInput.id,
+          status: 'failed',
+          type: eventInput.receiverTrigger.action.key,
+          input: null,
+          errorCode: 'missing_input',
+          errorMessage: 'Event input payload is missing.'
+        }
+      });
       await db.slateTriggerReceiver.update({
         where: { oid: eventInput.receiverTrigger.receiver.oid },
         data: { consecutiveEventFailures: { increment: 1 } }
@@ -92,6 +105,16 @@ export class SlateTriggerReceiverRuntime {
         eventInput,
         data: { status: SlateTriggerEventInputStatus.skipped }
       });
+      await this.core.recordCallbackEventLifecycle({
+        receiver: eventInput.receiverTrigger.receiver,
+        action: eventInput.receiverTrigger.action,
+        event: {
+          id: eventInput.id,
+          status: 'skipped',
+          type: eventInput.receiverTrigger.action.key,
+          input: eventInput.input as Record<string, any> | null
+        }
+      });
       return;
     }
 
@@ -103,6 +126,16 @@ export class SlateTriggerReceiverRuntime {
         attemptCount,
         errorCode: null,
         errorMessage: null
+      }
+    });
+    await this.core.recordCallbackEventLifecycle({
+      receiver: eventInput.receiverTrigger.receiver,
+      action: eventInput.receiverTrigger.action,
+      event: {
+        id: eventInput.id,
+        status: 'processing',
+        type: eventInput.receiverTrigger.action.key,
+        input: eventInput.input as Record<string, any> | null
       }
     });
 
@@ -143,6 +176,19 @@ export class SlateTriggerReceiverRuntime {
             status,
             errorCode: mapRes.error.code,
             errorMessage: mapRes.error.message
+          }
+        });
+        await this.core.recordCallbackEventLifecycle({
+          receiver: eventInput.receiverTrigger.receiver,
+          action: eventInput.receiverTrigger.action,
+          event: {
+            id: eventInput.id,
+            status: status === SlateTriggerEventInputStatus.failed ? 'failed' : 'retrying',
+            type: eventInput.receiverTrigger.action.key,
+            input: eventInput.input as Record<string, any> | null,
+            errorCode: mapRes.error.code,
+            errorMessage: mapRes.error.message,
+            providerInvocation: mapRes.invocation
           }
         });
         await db.slateTriggerReceiver.update({
@@ -204,6 +250,19 @@ export class SlateTriggerReceiverRuntime {
             eventOid: existing.oid
           }
         });
+        await this.core.recordCallbackEventLifecycle({
+          receiver: eventInput.receiverTrigger.receiver,
+          action: eventInput.receiverTrigger.action,
+          event: {
+            id: eventInput.id,
+            status: 'skipped',
+            type: existing.type,
+            sourceId: existing.sourceId,
+            input: eventInput.input as Record<string, any> | null,
+            output: existing.output as Record<string, any>,
+            providerInvocation: mapRes.invocation
+          }
+        });
 
         return;
       }
@@ -215,18 +274,26 @@ export class SlateTriggerReceiverRuntime {
         receiver,
         eventType: mapRes.data.type
       });
+      if (
+        receiver.deliveryMode === SlateTriggerReceiverDeliveryMode.callback_v2 &&
+        (!receiver.eventTypes.length || receiver.eventTypes.includes(mapRes.data.type))
+      ) {
+        targets.shouldDeliver = true;
+        targets.signalDestinationIds = [];
+      }
 
       let signalEventId = await this.core.createSignalEvent({
         receiver,
         action: context.action,
         event: {
-          id: eventRecord.id,
+          id: eventInput.id,
           type: mapRes.data.type,
           sourceId: mapRes.data.id,
+          input: eventInput.input as Record<string, any> | null,
           output: mapRes.data.output,
-          createdAt
-        },
-        signalDestinationIds: targets.signalDestinationIds
+          createdAt,
+          providerInvocation: mapRes.invocation
+        }
       });
 
       let event = await db.slateTriggerEvent.create({
@@ -245,6 +312,8 @@ export class SlateTriggerReceiverRuntime {
             ? SlateTriggerEventDeliveryStatus.pending
             : SlateTriggerEventDeliveryStatus.skipped,
           signalEventId,
+          callbackId: receiver.callbackId,
+          callbackInstanceId: receiver.callbackInstanceId,
           invocationOid: mapRes.invocation.oid,
           createdAt
         }
@@ -292,6 +361,18 @@ export class SlateTriggerReceiverRuntime {
         eventInput,
         data: {
           status,
+          errorCode,
+          errorMessage
+        }
+      });
+      await this.core.recordCallbackEventLifecycle({
+        receiver: eventInput.receiverTrigger.receiver,
+        action: eventInput.receiverTrigger.action,
+        event: {
+          id: eventInput.id,
+          status: status === SlateTriggerEventInputStatus.failed ? 'failed' : 'retrying',
+          type: eventInput.receiverTrigger.action.key,
+          input: eventInput.input as Record<string, any> | null,
           errorCode,
           errorMessage
         }
@@ -381,6 +462,7 @@ export class SlateTriggerReceiverRuntime {
         id: event.id,
         type: event.type,
         sourceId: event.sourceId,
+        input: event.input as Record<string, any> | null,
         output: event.output as Record<string, any>,
         createdAt: event.createdAt,
         signalEventId: event.signalEventId

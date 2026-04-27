@@ -3,7 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { getSentry } from '@lowerdeck/sentry';
 import { Service } from '@lowerdeck/service';
 import {
-  SlateTriggerDestinationStatus,
+  SlateTriggerReceiverDeliveryMode,
   SlateTriggerReceiverTriggerSource,
   type Slate,
   type SlateAuthConfig,
@@ -12,7 +12,7 @@ import {
   type Tenant
 } from '../../prisma/generated/client';
 import { db } from '../db';
-import { getId, snowflake } from '../id';
+import { getId } from '../id';
 import { slateTriggerWebhookRegisterQueue } from '../queues/trigger/eventQueues';
 import { slateSessionService } from './slateSession';
 import { SlateTriggerReceiverCore } from './slateTriggerReceiverCore';
@@ -153,7 +153,6 @@ class slateTriggerReceiverServiceImpl {
       name?: string;
       description?: string;
       eventTypes?: string[];
-      destinations: string[];
       triggers: {
         triggerId: string;
         state?: Record<string, any> | null;
@@ -182,23 +181,6 @@ class slateTriggerReceiverServiceImpl {
       authConfig: d.authConfig ?? null,
       hasAuthMethods
     });
-
-    let destinations = await db.slateTriggerDestination.findMany({
-      where: {
-        tenantOid: d.tenant.oid,
-        id: { in: d.input.destinations },
-        status: SlateTriggerDestinationStatus.active
-      }
-    });
-
-    if (destinations.length !== d.input.destinations.length) {
-      throw new ServiceError(
-        badRequestError({
-          code: 'invalid_destination',
-          message: 'One or more trigger destinations were not found.'
-        })
-      );
-    }
 
     let triggerActions = await this.core.resolveActionsForTriggers({
       slate,
@@ -251,15 +233,6 @@ class slateTriggerReceiverServiceImpl {
         })
       );
 
-      await prisma.slateTriggerReceiverDestination.createMany({
-        skipDuplicates: true,
-        data: destinations.map(destination => ({
-          oid: snowflake.nextId(),
-          receiverOid: receiver.oid,
-          destinationOid: destination.oid
-        }))
-      });
-
       return { receiver, receiverTriggers };
     });
 
@@ -284,7 +257,6 @@ class slateTriggerReceiverServiceImpl {
       name?: string | null;
       description?: string | null;
       eventTypes?: string[];
-      destinations?: string[];
       triggers?: {
         triggerId: string;
         state?: Record<string, any> | null;
@@ -328,56 +300,6 @@ class slateTriggerReceiverServiceImpl {
         eventTypes: d.input.eventTypes ? normalizeEventTypes(d.input.eventTypes) : undefined
       }
     });
-
-    if (d.input.destinations) {
-      let destinations = await db.slateTriggerDestination.findMany({
-        where: {
-          tenantOid: d.tenant.oid,
-          id: { in: d.input.destinations },
-          status: SlateTriggerDestinationStatus.active
-        }
-      });
-
-      if (destinations.length !== d.input.destinations.length) {
-        throw new ServiceError(
-          badRequestError({
-            code: 'invalid_destination',
-            message: 'One or more trigger destinations were not found.'
-          })
-        );
-      }
-
-      let currentDestinationOids = new Set(
-        receiver.destinations.map(dest => dest.destinationOid)
-      );
-      let incomingDestinationOids = new Set(destinations.map(dest => dest.oid));
-
-      let destinationsToAdd = destinations.filter(
-        dest => !currentDestinationOids.has(dest.oid)
-      );
-      let destinationsToRemove = receiver.destinations.filter(
-        dest => !incomingDestinationOids.has(dest.destinationOid)
-      );
-
-      if (destinationsToAdd.length) {
-        await db.slateTriggerReceiverDestination.createMany({
-          skipDuplicates: true,
-          data: destinationsToAdd.map(dest => ({
-            oid: snowflake.nextId(),
-            receiverOid: receiver.oid,
-            destinationOid: dest.oid
-          }))
-        });
-      }
-
-      if (destinationsToRemove.length) {
-        await db.slateTriggerReceiverDestination.deleteMany({
-          where: {
-            oid: { in: destinationsToRemove.map(dest => dest.oid) }
-          }
-        });
-      }
-    }
 
     if (d.input.triggers) {
       let triggerActions = await this.core.resolveActionsForTriggers({
@@ -484,6 +406,79 @@ class slateTriggerReceiverServiceImpl {
         }
       }
     }
+
+    return await this.getTriggerReceiverById({
+      tenant: d.tenant,
+      id: receiver.id
+    });
+  }
+
+  async upsertTriggerReceiverForCallback(d: {
+    tenant: Tenant;
+    slateInstance: SlateInstance & {
+      slate: Slate;
+      currentConfig: SlateInstanceConfig | null;
+    };
+    authConfig?: SlateAuthConfig | null;
+    input: {
+      callbackId: string;
+      callbackInstanceId: string;
+      slateTriggerReceiverId?: string | null;
+      name?: string | null;
+      description?: string | null;
+      eventTypes?: string[];
+      triggers: {
+        triggerId: string;
+        state?: Record<string, any> | null;
+        pollIntervalSeconds?: number | null;
+      }[];
+    };
+  }) {
+    let existing = await db.slateTriggerReceiver.findFirst({
+      where: {
+        tenantOid: d.tenant.oid,
+        OR: [
+          d.input.slateTriggerReceiverId ? { id: d.input.slateTriggerReceiverId } : undefined!,
+          {
+            callbackId: d.input.callbackId,
+            callbackInstanceId: d.input.callbackInstanceId
+          }
+        ].filter(Boolean)
+      }
+    });
+
+    let receiver = existing
+      ? await this.updateTriggerReceiver({
+          tenant: d.tenant,
+          receiverId: existing.id,
+          input: {
+            authConfig: d.authConfig ?? null,
+            name: d.input.name,
+            description: d.input.description,
+            eventTypes: d.input.eventTypes,
+            triggers: d.input.triggers
+          }
+        })
+      : await this.createTriggerReceiver({
+          tenant: d.tenant,
+          slateInstance: d.slateInstance,
+          authConfig: d.authConfig ?? null,
+          input: {
+            name: d.input.name ?? undefined,
+            description: d.input.description ?? undefined,
+            eventTypes: d.input.eventTypes,
+            triggers: d.input.triggers
+          }
+        });
+
+    await db.slateTriggerReceiver.update({
+      where: { oid: receiver.oid },
+      data: {
+        deliveryMode: SlateTriggerReceiverDeliveryMode.callback_v2,
+        callbackId: d.input.callbackId,
+        callbackInstanceId: d.input.callbackInstanceId
+      }
+    });
 
     return await this.getTriggerReceiverById({
       tenant: d.tenant,

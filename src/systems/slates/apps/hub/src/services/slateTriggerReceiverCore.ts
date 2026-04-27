@@ -1,15 +1,18 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
+import { canonicalize } from '@lowerdeck/canonicalize';
+import { Hash } from '@lowerdeck/hash';
 import {
-  SlateTriggerDestinationStatus,
   SlateTriggerEventDeliveryStatus,
+  SlateTriggerReceiverDeliveryMode,
   type Slate,
   type SlateAction,
+  type SlateInvocation,
   type SlateTriggerInvocationType
 } from '../../prisma/generated/client';
 import { db } from '../db';
 import { getId } from '../id';
 import { slateTriggerEventProcessQueue } from '../queues/trigger/eventQueues';
-import { getTenantAndSenderForSignal, signal } from '../signal';
+import { getTenantAndSenderForSignal, getTenantForSignal, signal } from '../signal';
 import { slateAuthHandlerService } from './slateInstanceAuthHandler';
 import { slateInvocationService } from './slateInvocation';
 import { slateSessionService } from './slateSession';
@@ -19,6 +22,11 @@ import {
   receiverTriggerInclude,
   type ReceiverTriggerWithRelations
 } from './slateTriggerReceiverShared';
+
+let getCallbackEventOutput = (output: Record<string, any>) => {
+  let { url, method, headers, receivedAt, ...semanticOutput } = output;
+  return Object.keys(semanticOutput).length ? semanticOutput : output;
+};
 
 export class SlateTriggerReceiverCore {
   async getReceiverTriggerWithRelations(id: string) {
@@ -208,6 +216,26 @@ export class SlateTriggerReceiverCore {
       data: rows
     });
 
+    if (
+      d.receiverTrigger.receiver.deliveryMode === SlateTriggerReceiverDeliveryMode.callback_v2 &&
+      d.receiverTrigger.receiver.callbackId
+    ) {
+      await Promise.all(
+        rows.map(row =>
+          this.recordCallbackEventLifecycle({
+            receiver: d.receiverTrigger.receiver,
+            action: d.receiverTrigger.action,
+            event: {
+              id: row.id,
+              status: 'pending',
+              type: d.receiverTrigger.action.key,
+              input: row.input
+            }
+          })
+        )
+      );
+    }
+
     await slateTriggerEventProcessQueue.addManyWithOps(
       rows.map(row => ({
         data: { eventInputId: row.id },
@@ -220,22 +248,81 @@ export class SlateTriggerReceiverCore {
     receiver: ReceiverTriggerWithRelations['receiver'];
     eventType: string;
   }) {
-    let destinations = d.receiver.destinations
-      .map(r => r.destination)
-      .filter(dest => dest.status === SlateTriggerDestinationStatus.active);
-    let shouldDeliver = destinations.length > 0;
+    let shouldDeliver =
+      d.receiver.deliveryMode === SlateTriggerReceiverDeliveryMode.callback_v2;
 
     if (d.receiver.eventTypes.length && !d.receiver.eventTypes.includes(d.eventType)) {
       shouldDeliver = false;
     }
 
     return {
-      destinations,
       shouldDeliver,
-      signalDestinationIds: shouldDeliver
-        ? destinations.map(dest => dest.signalDestinationId!)
-        : []
+      signalDestinationIds: []
     };
+  }
+
+  async recordCallbackEventLifecycle(d: {
+    receiver: ReceiverTriggerWithRelations['receiver'];
+    action: SlateAction;
+    event: {
+      id: string;
+      status: 'pending' | 'processing' | 'retrying' | 'succeeded' | 'failed' | 'skipped';
+      type?: string | null;
+      sourceId?: string | null;
+      input?: Record<string, any> | null;
+      output?: Record<string, any> | null;
+      errorCode?: string | null;
+      errorMessage?: string | null;
+      providerInvocation?: Pick<SlateInvocation, 'id'> | null;
+    };
+  }) {
+    if (
+      d.receiver.deliveryMode !== SlateTriggerReceiverDeliveryMode.callback_v2 ||
+      !d.receiver.callbackId
+    ) {
+      return null;
+    }
+
+    let signalTenant = await getTenantForSignal(d.receiver.tenant);
+    let idempotencyKey = await Hash.sha256(
+      canonicalize(['callback-event', d.receiver.callbackId, d.event.id])
+    );
+    let eventType = d.event.type ?? d.action.key;
+    let deliveryPayloadJson: string | undefined;
+
+    if (d.event.status === 'succeeded' && d.event.output) {
+      let payload = {
+        object: 'callback.event_payload',
+
+        id: d.event.id,
+        type: eventType,
+        trigger: d.action.key,
+        idempotencyKey,
+        data: d.event.output
+      };
+
+      deliveryPayloadJson = JSON.stringify(payload);
+    }
+
+    return await signal.callback.recordEvent({
+      tenantId: signalTenant.id,
+      callbackId: d.receiver.callbackId,
+      eventId: d.event.id,
+      status: d.event.status,
+      callbackInstanceId: d.receiver.callbackInstanceId,
+      sourceId: d.event.sourceId,
+      triggerId: d.action.id,
+      triggerKey: d.action.key,
+      eventType,
+      deliveryPayloadJson,
+      inputJson: d.event.input === undefined ? undefined : JSON.stringify(d.event.input),
+      outputJson:
+        d.event.output === undefined
+          ? undefined
+          : JSON.stringify(d.event.output ? getCallbackEventOutput(d.event.output) : null),
+      errorCode: d.event.errorCode,
+      errorMessage: d.event.errorMessage
+    });
   }
 
   async createSignalEvent(d: {
@@ -245,13 +332,36 @@ export class SlateTriggerReceiverCore {
       id: string;
       type: string;
       sourceId: string;
+      input: Record<string, any> | null;
       output: Record<string, any>;
       createdAt: Date;
+      providerInvocation?: Pick<SlateInvocation, 'id'> | null;
     };
-    signalDestinationIds: string[];
   }) {
-    let { sender, tenant: signalTenant } = await getTenantAndSenderForSignal(
-      d.receiver.tenant
+    if (
+      d.receiver.deliveryMode === SlateTriggerReceiverDeliveryMode.callback_v2 &&
+      d.receiver.callbackId
+    ) {
+      let callbackEvent = await this.recordCallbackEventLifecycle({
+        receiver: d.receiver,
+        action: d.action,
+        event: {
+          id: d.event.id,
+          status: 'succeeded',
+          type: d.event.type,
+          sourceId: d.event.sourceId,
+          input: d.event.input,
+          output: d.event.output,
+          providerInvocation: d.event.providerInvocation
+        }
+      });
+
+      return callbackEvent!.eventId ?? callbackEvent!.id;
+    }
+
+    let signalTenant = await getTenantForSignal(d.receiver.tenant);
+    let idempotencyKey = await Hash.sha256(
+      canonicalize(['callback-event', d.receiver.callbackId, d.event.id])
     );
 
     let payload = {
@@ -259,15 +369,12 @@ export class SlateTriggerReceiverCore {
 
       id: d.event.id,
       type: d.event.type,
-      sourceId: d.event.sourceId,
-
       trigger: d.action.key,
-
-      data: d.event.output,
-
-      createdAt: d.event.createdAt
+      idempotencyKey,
+      data: d.event.output
     };
 
+    let { sender } = await getTenantAndSenderForSignal(d.receiver.tenant);
     let signalEvent = await signal.event.create({
       tenantId: signalTenant.id,
       senderId: sender.id,
@@ -287,7 +394,7 @@ export class SlateTriggerReceiverCore {
         'metorial-trigger-receiver-id': d.receiver.id,
         'metorial-trigger-id': d.action.id
       },
-      onlyForDestinations: d.signalDestinationIds
+      onlyForDestinations: []
     });
 
     return signalEvent.id;
@@ -301,6 +408,7 @@ export class SlateTriggerReceiverCore {
       id: string;
       type: string;
       sourceId: string;
+      input: Record<string, any> | null;
       output: Record<string, any>;
       createdAt: Date;
       signalEventId: string;
@@ -311,6 +419,13 @@ export class SlateTriggerReceiverCore {
       receiver,
       eventType: d.event.type
     });
+    if (
+      receiver.deliveryMode === SlateTriggerReceiverDeliveryMode.callback_v2 &&
+      (!receiver.eventTypes.length || receiver.eventTypes.includes(d.event.type))
+    ) {
+      targets.shouldDeliver = true;
+      targets.signalDestinationIds = [];
+    }
 
     if (!targets.shouldDeliver) {
       await db.slateTriggerEvent.update({
@@ -330,10 +445,10 @@ export class SlateTriggerReceiverCore {
           id: d.event.id,
           type: d.event.type,
           sourceId: d.event.sourceId,
+          input: d.event.input,
           output: d.event.output,
           createdAt: d.event.createdAt
-        },
-        signalDestinationIds: targets.signalDestinationIds
+        }
       });
     }
 
@@ -346,16 +461,6 @@ export class SlateTriggerReceiverCore {
           }
         });
       }
-
-      await prisma.slateTriggerDelivery.createMany({
-        data: targets.destinations.map(dest => ({
-          ...getId('slateTriggerDelivery'),
-          eventOid: d.event.oid,
-          destinationOid: dest.oid,
-          signalEventId
-        })),
-        skipDuplicates: true
-      });
 
       await prisma.slateTriggerEvent.update({
         where: { oid: d.event.oid },
