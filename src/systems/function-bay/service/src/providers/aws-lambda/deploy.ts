@@ -53,10 +53,71 @@ let getRuntime = (runtime: FunctionBayRuntimeConfig): AwsRuntime => {
 };
 
 let nodeProxyWrapperBootstrap = `
-const { bootstrap } = require('global-agent');
+const http = require('http');
+const https = require('https');
+const { syncBuiltinESMExports } = require('module');
+const { HttpProxyAgent } = require('http-proxy-agent');
+const { HttpsProxyAgent } = require('https-proxy-agent');
 const { ProxyAgent, setGlobalDispatcher } = require('undici');
 
-let bootstrapped = false;
+let originalHttpRequest;
+let originalHttpGet;
+let originalHttpsRequest;
+let originalHttpsGet;
+
+function patchNodeHttpAgents(proxyUrl) {
+  const httpAgent = new HttpProxyAgent(proxyUrl);
+  const httpsAgent = new HttpsProxyAgent(proxyUrl);
+
+  http.globalAgent = httpAgent;
+  https.globalAgent = httpsAgent;
+
+  if (!originalHttpRequest) {
+    originalHttpRequest = http.request;
+    originalHttpGet = http.get;
+    originalHttpsRequest = https.request;
+    originalHttpsGet = https.get;
+
+    http.request = function patchedHttpRequest(...args) {
+      args = withAgent(args, httpAgent);
+      return originalHttpRequest.apply(this, args);
+    };
+    http.get = function patchedHttpGet(...args) {
+      args = withAgent(args, httpAgent);
+      const req = originalHttpRequest.apply(this, args);
+      req.end();
+      return req;
+    };
+    https.request = function patchedHttpsRequest(...args) {
+      args = withAgent(args, httpsAgent);
+      return originalHttpsRequest.apply(this, args);
+    };
+    https.get = function patchedHttpsGet(...args) {
+      args = withAgent(args, httpsAgent);
+      const req = originalHttpsRequest.apply(this, args);
+      req.end();
+      return req;
+    };
+  }
+
+  syncBuiltinESMExports();
+}
+
+function withAgent(args, agent) {
+  if (typeof args[0] === 'string' || args[0] instanceof URL) {
+    if (args[1] && typeof args[1] === 'object' && typeof args[1] !== 'function') {
+      args[1] = { ...args[1], agent };
+    } else if (typeof args[1] === 'function' || args.length === 1) {
+      args.splice(1, 0, { agent });
+    }
+    return args;
+  }
+
+  if (args[0] && typeof args[0] === 'object') {
+    args[0] = { ...args[0], agent };
+  }
+  return args;
+}
 
 exports.applyDeflector = function applyDeflector(event) {
   const deflector = event && event.__functionBay && event.__functionBay.deflector;
@@ -71,9 +132,8 @@ exports.applyDeflector = function applyDeflector(event) {
   const noProxy = process.env.NO_PROXY || '169.254.169.254,169.254.170.2,localhost,127.0.0.1';
 
   // Avoid exposing the credentialed proxy URL through generic proxy env vars.
-  // Some OAuth/HTTP libraries eagerly parse those values and reject long JWT
-  // credentials as invalid URLs. global-agent still forces Node core http(s)
-  // through the proxy, and Undici receives the auth header explicitly below.
+  // Some OAuth/HTTP libraries eagerly parse those values or apply their own
+  // proxy logic, which can break CONNECT/TLS handling.
   delete process.env.HTTP_PROXY;
   delete process.env.HTTPS_PROXY;
   delete process.env.http_proxy;
@@ -82,19 +142,8 @@ exports.applyDeflector = function applyDeflector(event) {
   delete process.env.GRPC_PROXY;
   process.env.NO_PROXY = noProxy;
   process.env.no_proxy = noProxy;
-  process.env.GLOBAL_AGENT_HTTP_PROXY = proxyUrlWithAuth;
-  process.env.GLOBAL_AGENT_HTTPS_PROXY = proxyUrlWithAuth;
-  process.env.GLOBAL_AGENT_NO_PROXY = noProxy;
 
-  if (!bootstrapped) {
-    bootstrap();
-    bootstrapped = true;
-  } else if (globalThis.GLOBAL_AGENT) {
-    globalThis.GLOBAL_AGENT.HTTP_PROXY = proxyUrlWithAuth;
-    globalThis.GLOBAL_AGENT.HTTPS_PROXY = proxyUrlWithAuth;
-    globalThis.GLOBAL_AGENT.NO_PROXY = noProxy;
-  }
-
+  patchNodeHttpAgents(proxyUrlWithAuth);
   setGlobalDispatcher(new ProxyAgent({
     uri: deflector.proxyUrl,
     token: proxyAuthorization
@@ -149,7 +198,7 @@ let getNodeProxyWrapperBootstrapCachePath = () =>
   join(
     tmpdir(),
     'function-bay-wrapper-build',
-    `metorial-deflector-bootstrap-${process.version.replace(/[^a-zA-Z0-9.-]/g, '-')}.js`
+    `metorial-deflector-bootstrap-v2-${process.version.replace(/[^a-zA-Z0-9.-]/g, '-')}.js`
   );
 
 let bundleNodeProxyWrapperBootstrap = async () => {
