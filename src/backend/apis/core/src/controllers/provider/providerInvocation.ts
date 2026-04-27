@@ -63,6 +63,9 @@ export let providerInvocationController = Controller.create(
           session_message_id: v.optional(v.union([v.string(), v.array(v.string())]), {
             description: 'Filter by session message ID(s)'
           }),
+          callback_event_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+            description: 'Filter by callback event ID(s)'
+          }),
           auth_config_event_id: v.optional(v.union([v.string(), v.array(v.string())]), {
             description: 'Filter by auth config event ID(s)'
           })
@@ -73,6 +76,7 @@ export let providerInvocationController = Controller.create(
           instance: ctx.instance,
           providerRunIds: normalizeArrayParam(ctx.query.provider_run_id),
           sessionMessageIds: normalizeArrayParam(ctx.query.session_message_id),
+          callbackEventIds: normalizeArrayParam(ctx.query.callback_event_id),
           authConfigEventIds: normalizeArrayParam(ctx.query.auth_config_event_id)
         });
 

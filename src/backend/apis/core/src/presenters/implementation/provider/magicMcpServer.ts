@@ -52,7 +52,8 @@ export let dashboardMagicMcpServerPresenter = Presenter.create(magicMcpServerTyp
 
     return {
       ...inner,
-      session_template_id: magicMcpServer.subspaceSessionTemplateId
+      session_template_id: magicMcpServer.subspaceSessionTemplateId,
+      provider_template_id: magicMcpServer.providerTemplateId
     };
   })
   .schema(
@@ -60,6 +61,7 @@ export let dashboardMagicMcpServerPresenter = Presenter.create(magicMcpServerTyp
       v1MagicMcpServerPresenter.schema,
       v.object({
         session_template_id: v.string(),
+        provider_template_id: v.nullable(v.string()),
         session_id: v.nullable(v.string())
       })
     ])
