@@ -19,8 +19,6 @@ export * from './slateSession';
 export * from './slateSessionToolCall';
 export * from './slateSpecification';
 export * from './slateSpecificationChange';
-export * from './slateTriggerDestination';
-export * from './slateTriggerDelivery';
 export * from './slateTriggerEvent';
 export * from './slateTriggerEventInput';
 export * from './slateTriggerInvocation';

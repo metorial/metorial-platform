@@ -5,7 +5,6 @@ import {
   SlateTriggerEventInputStatus,
   SlateTriggerReceiverStatus,
   SlateTriggerReceiverTriggerSource,
-  type SlateTriggerDestinationType,
   type Tenant
 } from '../../../../prisma/generated/client';
 import { fixtures } from '../../../test/fixtures';
@@ -183,35 +182,32 @@ vi.mock('../../../signal', async () => {
           return created;
         }
       },
-      eventDestination: {
-        create: async (input: {
+      callback: {
+        recordEvent: async (input: {
           tenantId: string;
           senderId: string;
-          name: string;
-          description?: string;
-          eventTypes?: string[] | null;
-          variant: { type: SlateTriggerDestinationType; url: string; method: string };
+          callbackId: string;
+          callbackInstanceId?: string | null;
+          sourceId?: string | null;
+          triggerId?: string | null;
+          triggerKey?: string | null;
+          eventType: string;
+          deliveryPayloadJson: string;
+          inputJson?: string | null;
+          outputJson?: string | null;
         }) => {
-          let destination = {
-            id: signalState.nextId('dest'),
+          let event = {
+            id: signalState.nextId('event'),
             tenantId: input.tenantId,
             senderId: input.senderId,
-            name: input.name,
-            description: input.description ?? null,
-            eventTypes: input.eventTypes ?? null,
-            webhook: {
-              url: input.variant.url,
-              method: input.variant.method
-            }
+            topics: [`callback:${input.callbackId}`],
+            eventType: input.eventType,
+            payloadJson: input.deliveryPayloadJson,
+            headers: {},
+            onlyForDestinations: undefined
           };
-          signalState.destinations.push(destination);
-          return destination;
-        },
-        update: async () => {
-          throw new Error('signal.eventDestination.update not mocked for this test');
-        },
-        delete: async () => {
-          throw new Error('signal.eventDestination.delete not mocked for this test');
+          signalState.events.push(event);
+          return event;
         }
       },
       event: {
@@ -256,7 +252,6 @@ vi.mock('../../../signal', async () => {
   };
 });
 
-import { slateTriggerDestinationService } from '../../../services/slateTriggerDestination';
 import { slateTriggerReceiverService } from '../../../services/slateTriggerReceiver';
 import { hubApp } from '../index';
 
@@ -352,22 +347,21 @@ describe('slate:trigger webhook E2E', () => {
       });
     }
 
-    const destination = await slateTriggerDestinationService.createTriggerDestination({
-      tenant,
-      input: {
-        name: 'Webhook Destination',
-        url: 'https://example.com/webhook',
-        method: 'POST'
-      }
-    });
-
     const receiver = await slateTriggerReceiverService.createTriggerReceiver({
       tenant,
       slateInstance,
       input: {
-        destinations: [destination.id],
         triggers: [{ triggerId: triggerAction.id }],
         eventTypes: options?.receiverEventTypes
+      }
+    });
+
+    await testDb.slateTriggerReceiver.update({
+      where: { oid: receiver.oid },
+      data: {
+        deliveryMode: 'callback_v2',
+        callbackId: `callback_${receiver.id}`,
+        callbackInstanceId: `callback_instance_${receiver.id}`
       }
     });
 
@@ -389,7 +383,6 @@ describe('slate:trigger webhook E2E', () => {
       bucket,
       instance,
       triggerAction,
-      destination,
       receiver,
       receiverTrigger: receiver.triggers[0]!
     };
@@ -454,21 +447,19 @@ describe('slate:trigger webhook E2E', () => {
       key: 'trigger.test'
     });
 
-    const destination = await slateTriggerDestinationService.createTriggerDestination({
-      tenant,
-      input: {
-        name: 'Webhook Destination',
-        url: 'https://example.com/webhook',
-        method: 'POST'
-      }
-    });
-
     const receiver = await slateTriggerReceiverService.createTriggerReceiver({
       tenant,
       slateInstance,
       input: {
-        destinations: [destination.id],
         triggers: [{ triggerId: triggerAction.id }]
+      }
+    });
+    await testDb.slateTriggerReceiver.update({
+      where: { oid: receiver.oid },
+      data: {
+        deliveryMode: 'callback_v2',
+        callbackId: `callback_${receiver.id}`,
+        callbackInstanceId: `callback_instance_${receiver.id}`
       }
     });
 
@@ -556,9 +547,7 @@ describe('slate:trigger webhook E2E', () => {
 
     expect(signalState.events).toHaveLength(1);
     expect(triggerEvent?.signalEventId).toBe(signalState.events[0]!.id);
-    expect(signalState.events[0]!.onlyForDestinations).toEqual([
-      destination.signalDestinationId
-    ]);
+    expect(signalState.events[0]!.onlyForDestinations).toBeUndefined();
 
     const payload = JSON.parse(signalState.events[0]!.payloadJson);
     expect(payload).toMatchObject({

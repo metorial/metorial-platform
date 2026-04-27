@@ -1,7 +1,7 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import type { SlateTriggerInvocationType, Tenant } from '../../prisma/generated/client';
+import { SlateTriggerInvocationType, type Tenant } from '../../prisma/generated/client';
 import { db } from '../db';
 
 let include = {
@@ -39,6 +39,7 @@ class slateTriggerInvocationServiceImpl {
     receiverIds?: string[];
     receiverTriggerIds?: string[];
     eventIds?: string[];
+    eventInputIds?: string[];
     types?: SlateTriggerInvocationType[];
   }) {
     let receivers = d.receiverIds
@@ -68,6 +69,13 @@ class slateTriggerInvocationServiceImpl {
         })
       : undefined;
 
+    let eventInputInvocationOids = d.eventInputIds
+      ? await this.getTriggerInvocationOidsForEventInputs({
+          tenant: d.tenant,
+          eventInputIds: d.eventInputIds
+        })
+      : undefined;
+
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
@@ -80,12 +88,72 @@ class slateTriggerInvocationServiceImpl {
                 ? { in: receiverTriggers.map(rt => rt.oid) }
                 : undefined,
               eventOid: events ? { in: events.map(e => e.oid) } : undefined,
+              oid: eventInputInvocationOids ? { in: eventInputInvocationOids } : undefined,
               type: d.types ? { in: d.types } : undefined
             },
             include
           })
       )
     );
+  }
+
+  private async getTriggerInvocationOidsForEventInputs(d: {
+    tenant: Tenant;
+    eventInputIds: string[];
+  }) {
+    let eventInputs = await db.slateTriggerEventInput.findMany({
+      where: {
+        id: { in: d.eventInputIds },
+        receiver: { tenantOid: d.tenant.oid }
+      },
+      include: {
+        event: true
+      }
+    });
+
+    let invocationOids: bigint[] = [];
+
+    for (let eventInput of eventInputs) {
+      let sourceInvocation = await db.slateTriggerInvocation.findFirst({
+        where: {
+          receiverTriggerOid: eventInput.receiverTriggerOid,
+          type: {
+            in: [
+              SlateTriggerInvocationType.poll,
+              SlateTriggerInvocationType.webhook_handle
+            ]
+          },
+          createdAt: { lte: eventInput.createdAt }
+        },
+        orderBy: { createdAt: 'desc' }
+      });
+
+      if (sourceInvocation) invocationOids.push(sourceInvocation.oid);
+
+      if (eventInput.eventOid) {
+        let eventInvocations = await db.slateTriggerInvocation.findMany({
+          where: {
+            eventOid: eventInput.eventOid
+          }
+        });
+
+        invocationOids.push(...eventInvocations.map(invocation => invocation.oid));
+        continue;
+      }
+
+      let mapInvocation = await db.slateTriggerInvocation.findFirst({
+        where: {
+          receiverTriggerOid: eventInput.receiverTriggerOid,
+          type: SlateTriggerInvocationType.map_event,
+          createdAt: { gte: eventInput.createdAt }
+        },
+        orderBy: { createdAt: 'asc' }
+      });
+
+      if (mapInvocation) invocationOids.push(mapInvocation.oid);
+    }
+
+    return Array.from(new Set(invocationOids));
   }
 }
 
