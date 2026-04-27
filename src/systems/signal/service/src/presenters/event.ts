@@ -1,4 +1,4 @@
-import type { Event, Sender } from '../../prisma/generated/client';
+import type { Callback, Event, Sender } from '../../prisma/generated/client';
 import { env } from '../env';
 import { storageKey } from '../lib/storageKey';
 import { storage } from '../storage';
@@ -7,6 +7,7 @@ import { senderPresenter } from './sender';
 export let eventPresenter = async (
   event: Event & {
     sender: Sender;
+    callback?: Callback | null;
   },
   { includePayload }: { includePayload: boolean }
 ) => {
@@ -14,7 +15,7 @@ export let eventPresenter = async (
 
   if (includePayload) {
     try {
-      if (event.payloadJson) {
+      if (event.payloadJson !== null) {
         payload = {
           body: event.payloadJson,
           headers: event.headers
@@ -59,6 +60,10 @@ export let eventPresenter = async (
       : null,
 
     sender: senderPresenter(event.sender),
+    callbackId: event.callback?.id ?? null,
+    callbackInstanceId: event.callbackInstanceId,
+    callbackSourceId: event.callbackSourceId,
+    callbackTriggerId: event.callbackTriggerId,
 
     createdAt: event.createdAt,
     updatedAt: event.updatedAt

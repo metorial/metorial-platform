@@ -64,7 +64,8 @@ export let eventController = app.controller({
 
           eventTypes: v.optional(v.array(v.string())),
           topics: v.optional(v.array(v.string())),
-          senderIds: v.optional(v.array(v.string()))
+          senderIds: v.optional(v.array(v.string())),
+          callbackId: v.optional(v.string())
         })
       )
     )
@@ -74,7 +75,8 @@ export let eventController = app.controller({
 
         eventTypes: ctx.input.eventTypes,
         topics: ctx.input.topics,
-        senderIds: ctx.input.senderIds
+        senderIds: ctx.input.senderIds,
+        callbackId: ctx.input.callbackId
       });
 
       let list = await paginator.run(ctx.input);

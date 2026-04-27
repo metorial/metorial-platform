@@ -1,7 +1,7 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { eventDeliveryIntentPresenter } from '../presenters';
-import { eventDeliveryIntentService } from '../services';
+import { eventDeliveryAttemptService, eventDeliveryIntentService } from '../services';
 import { app } from './_app';
 import { tenantApp } from './tenant';
 
@@ -19,8 +19,15 @@ export let eventDeliveryIntentController = app.controller({
         id: ctx.input.eventDeliveryIntentId,
         tenant: ctx.tenant
       });
+      let attempts = await eventDeliveryAttemptService.listEventDeliveryAttemptsByIntentIds({
+        tenant: ctx.tenant,
+        intentIds: [ctx.input.eventDeliveryIntentId]
+      });
 
-      return eventDeliveryIntentPresenter(eventDeliveryIntent, { includePayload: true });
+      return eventDeliveryIntentPresenter(eventDeliveryIntent, {
+        includePayload: true,
+        attempts
+      });
     }),
 
   list: tenantApp

@@ -16,6 +16,7 @@ export let eventDestinationPresenter = (
   object: 'signal#event_destination',
 
   id: eventDestination.id,
+  externalId: eventDestination.externalId,
   name: eventDestination.name,
   description: eventDestination.description,
 
