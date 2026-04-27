@@ -66,31 +66,39 @@ exports.applyDeflector = function applyDeflector(event) {
   url.username = deflector.token;
   url.password = 'x';
 
-  const proxyUrl = url.toString();
+  const proxyUrlWithAuth = url.toString();
+  const proxyAuthorization = 'Basic ' + Buffer.from(deflector.token + ':x').toString('base64');
   const noProxy = process.env.NO_PROXY || '169.254.169.254,169.254.170.2,localhost,127.0.0.1';
 
-  process.env.HTTP_PROXY = proxyUrl;
-  process.env.HTTPS_PROXY = proxyUrl;
+  // Avoid exposing the credentialed proxy URL through generic proxy env vars.
+  // Some OAuth/HTTP libraries eagerly parse those values and reject long JWT
+  // credentials as invalid URLs. global-agent still forces Node core http(s)
+  // through the proxy, and Undici receives the auth header explicitly below.
+  delete process.env.HTTP_PROXY;
+  delete process.env.HTTPS_PROXY;
+  delete process.env.http_proxy;
+  delete process.env.https_proxy;
+  delete process.env.grpc_proxy;
+  delete process.env.GRPC_PROXY;
   process.env.NO_PROXY = noProxy;
-  process.env.http_proxy = proxyUrl;
-  process.env.https_proxy = proxyUrl;
   process.env.no_proxy = noProxy;
-  process.env.grpc_proxy = proxyUrl;
-  process.env.GRPC_PROXY = proxyUrl;
-  process.env.GLOBAL_AGENT_HTTP_PROXY = proxyUrl;
-  process.env.GLOBAL_AGENT_HTTPS_PROXY = proxyUrl;
+  process.env.GLOBAL_AGENT_HTTP_PROXY = proxyUrlWithAuth;
+  process.env.GLOBAL_AGENT_HTTPS_PROXY = proxyUrlWithAuth;
   process.env.GLOBAL_AGENT_NO_PROXY = noProxy;
 
   if (!bootstrapped) {
     bootstrap();
     bootstrapped = true;
   } else if (globalThis.GLOBAL_AGENT) {
-    globalThis.GLOBAL_AGENT.HTTP_PROXY = proxyUrl;
-    globalThis.GLOBAL_AGENT.HTTPS_PROXY = proxyUrl;
+    globalThis.GLOBAL_AGENT.HTTP_PROXY = proxyUrlWithAuth;
+    globalThis.GLOBAL_AGENT.HTTPS_PROXY = proxyUrlWithAuth;
     globalThis.GLOBAL_AGENT.NO_PROXY = noProxy;
   }
 
-  setGlobalDispatcher(new ProxyAgent(proxyUrl));
+  setGlobalDispatcher(new ProxyAgent({
+    uri: deflector.proxyUrl,
+    token: proxyAuthorization
+  }));
 };
 `;
 
