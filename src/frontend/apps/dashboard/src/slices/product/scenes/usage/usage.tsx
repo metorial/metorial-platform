@@ -31,6 +31,7 @@ let ChartFadeLayer = styled.div<{ $visible: boolean }>`
   inset: 0;
   opacity: ${({ $visible }) => ($visible ? 1 : 0)};
   transition: opacity 240ms ease;
+  pointer-events: none;
 `;
 
 let ChartContent = styled.div<{ $visible: boolean }>`

@@ -29,6 +29,7 @@ export let ProviderAuthConfigCreateButton = (
       providerDeploymentId: p.providerDeploymentId,
       providerId: p.providerId,
       initialAuthMethodId: authMethodId,
+      defaultAuthConfigName: p.defaultAuthConfigName,
       autoStartManagedCredentialSetup: p.autoStartManagedCredentialSetup,
       onCreate: p.onCreate,
       onBack: p.onBack

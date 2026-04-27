@@ -1,8 +1,7 @@
 import { CodeBlock } from '@metorial/code';
 import type { ReactNode } from 'react';
 
-export let getStatusBadgeColor = (status: string) =>
-  status === 'error' ? 'red' : 'green';
+export let getStatusBadgeColor = (status: string) => (status === 'error' ? 'red' : 'green');
 
 export let getMethodBadgeColor = (method: string | null | undefined) => {
   let normalized = method?.toUpperCase();
@@ -30,18 +29,123 @@ export let formatDuration = (durationMs: number | null | undefined) => {
 export let stringifyJson = (value: unknown) => {
   try {
     if (typeof value === 'string') {
-      let trimmed = value.trim();
-      if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
-        try {
-          return JSON.stringify(JSON.parse(trimmed), null, 2);
-        } catch {}
-      }
-      return value;
+      return formatJsonTextForDisplay(value).code;
     }
     return JSON.stringify(value, null, 2);
   } catch {
     return String(value);
   }
+};
+
+let tryParseJson = (value: string) => {
+  try {
+    return { ok: true as const, value: JSON.parse(value) };
+  } catch {
+    return { ok: false as const };
+  }
+};
+
+let looksLikeJsonText = (value: string) => {
+  let trimmed = value.trim();
+  return trimmed.startsWith('{') || trimmed.startsWith('[');
+};
+
+let prettyPrintJsonLikeText = (value: string) => {
+  let output = '';
+  let indent = 0;
+  let inString = false;
+  let isEscaped = false;
+
+  let newline = () => {
+    output = output.replace(/[ \t]+$/g, '');
+    if (!output.endsWith('\n')) output += '\n';
+    output += '  '.repeat(Math.max(indent, 0));
+  };
+
+  for (let character of value) {
+    if (inString) {
+      output += character;
+
+      if (isEscaped) {
+        isEscaped = false;
+      } else if (character === '\\') {
+        isEscaped = true;
+      } else if (character === '"') {
+        inString = false;
+      }
+
+      continue;
+    }
+
+    if (character === '"') {
+      inString = true;
+      output += character;
+      continue;
+    }
+
+    if (/\s/.test(character)) continue;
+
+    if (character === '{' || character === '[') {
+      output += character;
+      indent += 1;
+      newline();
+      continue;
+    }
+
+    if (character === '}' || character === ']') {
+      indent = Math.max(indent - 1, 0);
+      output = output.replace(/[ \t]+$/g, '');
+      if (!output.endsWith('\n')) output += '\n';
+      output += '  '.repeat(indent);
+      output += character;
+      continue;
+    }
+
+    if (character === ',') {
+      output += character;
+      newline();
+      continue;
+    }
+
+    if (character === ':') {
+      output += ': ';
+      continue;
+    }
+
+    output += character;
+  }
+
+  return output.trimEnd();
+};
+
+export let formatJsonTextForDisplay = (value: string) => {
+  let parsed = tryParseJson(value);
+  if (parsed.ok) {
+    return {
+      code: JSON.stringify(parsed.value, null, 2),
+      isValid: true,
+      isBestEffort: false,
+      isTruncated: false
+    };
+  }
+
+  if (!looksLikeJsonText(value)) {
+    return {
+      code: value,
+      isValid: false,
+      isBestEffort: false,
+      isTruncated: false
+    };
+  }
+
+  let trimmed = value.trim();
+
+  return {
+    code: prettyPrintJsonLikeText(value),
+    isValid: false,
+    isBestEffort: true,
+    isTruncated: /\[truncated\]\s*$/i.test(trimmed)
+  };
 };
 
 export let isEmptyValue = (value: unknown) => {
@@ -53,12 +157,7 @@ export let isEmptyValue = (value: unknown) => {
 };
 
 export let renderJsonCodeBlock = (value: unknown) => (
-  <CodeBlock
-    lineNumbers={false}
-    code={stringifyJson(value)}
-    language="json"
-    padding="12px"
-  />
+  <CodeBlock lineNumbers={false} code={stringifyJson(value)} language="json" padding="12px" />
 );
 
 export let headersToItems = (

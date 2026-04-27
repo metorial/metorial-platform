@@ -610,6 +610,7 @@ type ProviderSetupSectionsProps = {
   instanceId: string;
   providerId: string;
   providerName: string;
+  defaultAuthConfigName?: string;
   providerDeploymentId?: string | null;
   selectedConfiguration: ConfigurationSelection;
   onSelectedConfigurationChange: (value: ConfigurationSelection) => void;
@@ -912,6 +913,7 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
                 instanceId={p.instanceId}
                 providerDeploymentId={p.providerDeploymentId ?? undefined}
                 providerId={p.providerId}
+                defaultAuthConfigName={p.defaultAuthConfigName}
                 autoStartManagedCredentialSetup={autoStartManagedCredentialSetup}
                 onCreate={async authConfig => {
                   pendingCreatedAuthConfigIdRef.current = authConfig.id;

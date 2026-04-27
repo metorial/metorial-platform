@@ -53,6 +53,7 @@ let ProviderAuthConfigMethodPickerModalContent = (
           providerDeploymentId: p.providerDeploymentId,
           providerId: p.providerId,
           initialAuthMethodId: values.authMethodId,
+          defaultAuthConfigName: p.defaultAuthConfigName,
           autoStartManagedCredentialSetup: p.autoStartManagedCredentialSetup,
           onCreate: p.onCreate,
           onBack: p.onBack
@@ -94,6 +95,7 @@ let ProviderAuthConfigMethodPickerModalContent = (
         providerDeploymentId: p.providerDeploymentId,
         providerId: p.providerId,
         initialAuthMethodId: singleMethodId,
+        defaultAuthConfigName: p.defaultAuthConfigName,
         autoStartManagedCredentialSetup: p.autoStartManagedCredentialSetup,
         onCreate: onCreateRef.current,
         onBack: onBackRef.current

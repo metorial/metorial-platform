@@ -4,6 +4,7 @@ import { RiArrowDownLine, RiArrowUpLine, RiTimeLine } from '@remixicon/react';
 import type { ReactNode } from 'react';
 import {
   formatDuration,
+  formatJsonTextForDisplay,
   getMethodBadgeColor,
   getResponseBadgeColor,
   headersToItems,
@@ -69,10 +70,7 @@ let renderStructuredBody = (body: any): ReactNode => {
   }
 
   if (contentType?.includes('json') && typeof raw === 'string') {
-    let pretty = raw;
-    try {
-      pretty = JSON.stringify(JSON.parse(raw), null, 2);
-    } catch {}
+    let formattedJson = formatJsonTextForDisplay(raw);
 
     return (
       <>
@@ -80,7 +78,12 @@ let renderStructuredBody = (body: any): ReactNode => {
           <SectionSubHeading>Body</SectionSubHeading>
           {tag}
         </BodySubHeader>
-        <CodeBlock lineNumbers={false} code={pretty} language="json" padding="12px" />
+        <CodeBlock
+          lineNumbers={false}
+          code={formattedJson.code}
+          language="json"
+          padding="12px"
+        />
       </>
     );
   }

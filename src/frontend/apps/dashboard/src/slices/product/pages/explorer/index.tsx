@@ -203,12 +203,14 @@ export let ExplorerPage = () => {
         providerConfigId?: string;
         providerConfigVaultId?: string;
         providerAuthConfigId?: string;
+        name?: string;
       }
     ) => {
       if (!instance.data) return;
       setIsCreatingSession(true);
 
       let [res, err] = await createSession.mutate({
+        name: options?.name,
         providers: [
           {
             providerDeploymentId: deploymentId,
@@ -425,7 +427,9 @@ export let ExplorerPage = () => {
       !requiresProviderConfig &&
       !requiresAuthConfig
     ) {
-      createSessionForDeployment(providerDeploymentId);
+      createSessionForDeployment(providerDeploymentId, {
+        name: `Explorer Session - ${new Date().toLocaleString()}`
+      });
     }
   }, [
     providerDeploymentId,
@@ -483,6 +487,7 @@ export let ExplorerPage = () => {
               provider.data?.name ??
               'Provider'
             }
+            defaultAuthConfigName="Explorer Auth"
             providerDeploymentId={providerDeploymentId}
             selectedConfiguration={selectedConfiguration}
             onSelectedConfigurationChange={setSelectedConfiguration}
@@ -510,6 +515,8 @@ export let ExplorerPage = () => {
                       if (!canOpenExplorer) return;
 
                       createSessionForDeployment(providerDeploymentId, {
+                        name: `Explorer Session - ${new Date().toLocaleString()}`,
+
                         providerConfigId:
                           selectedConfiguration.kind === 'config'
                             ? selectedConfiguration.id

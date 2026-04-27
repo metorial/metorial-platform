@@ -5,10 +5,10 @@ import { ProviderSetupSessionEmbed } from '../providerDeployments/setupSessionEm
 import { AuthMethod } from './modalHelpers';
 import { PreviewMode, SetupFlowLayout, SetupFlowPreviewSidebar } from './previewSidebar';
 
-let onboardingAuthDetails = {
-  name: 'Onboarding Auth',
+let getDefaultAuthDetails = (defaultAuthConfigName: string) => ({
+  name: defaultAuthConfigName,
   description: ''
-};
+});
 
 export let ProviderAuthConfigSetupFlowCreateContent = (p: {
   instanceId: string;
@@ -16,6 +16,7 @@ export let ProviderAuthConfigSetupFlowCreateContent = (p: {
   providerId: string;
   providerName: string;
   providerImageUrl?: string | null;
+  defaultAuthConfigName?: string;
   selectedMethod: AuthMethod;
   autoStartManagedCredentialSetup?: boolean;
   previewMode: PreviewMode;
@@ -26,7 +27,8 @@ export let ProviderAuthConfigSetupFlowCreateContent = (p: {
   onWindowOpenStateChange?: (isOpen: boolean) => void;
   embedded?: boolean;
 }) => {
-  let [authPreviewDetails, setAuthPreviewDetails] = useState(onboardingAuthDetails);
+  let defaultAuthDetails = getDefaultAuthDetails(p.defaultAuthConfigName ?? 'Provider Auth');
+  let [authPreviewDetails, setAuthPreviewDetails] = useState(defaultAuthDetails);
 
   return (
     <>
@@ -49,7 +51,7 @@ export let ProviderAuthConfigSetupFlowCreateContent = (p: {
             flattenOAuthCredentialsFlow
             showExternalPreviewSidebar
             collectAuthConfigDetails
-            initialAuthConfigDetails={onboardingAuthDetails}
+            initialAuthConfigDetails={defaultAuthDetails}
             autoStartManagedCredentialSetup={p.autoStartManagedCredentialSetup}
             onAuthConfigDetailsChange={setAuthPreviewDetails}
             cancelLabel={p.onCancel ? 'Close' : 'Cancel'}

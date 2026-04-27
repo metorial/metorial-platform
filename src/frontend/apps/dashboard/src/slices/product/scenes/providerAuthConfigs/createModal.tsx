@@ -12,6 +12,7 @@ export type ProviderAuthConfigCreateModalProps = {
   providerDeploymentId?: string;
   providerId?: string;
   initialAuthMethodId: string;
+  defaultAuthConfigName?: string;
   autoStartManagedCredentialSetup?: boolean;
   onCreate?: (authConfig: { id: string; name?: string | null }) => void;
   onBack?: () => void;
@@ -160,6 +161,7 @@ export let ProviderAuthConfigCreateFlowContent = (
             providerId={providerId}
             providerName={providerName}
             providerImageUrl={authCreation.provider.data?.publisher.imageUrl}
+            defaultAuthConfigName={p.defaultAuthConfigName}
             selectedMethod={method}
             autoStartManagedCredentialSetup={p.autoStartManagedCredentialSetup}
             previewMode={previewMode}
