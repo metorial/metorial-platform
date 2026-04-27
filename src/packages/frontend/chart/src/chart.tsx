@@ -3,6 +3,16 @@ import { ApexOptions } from 'apexcharts';
 import { memo, useMemo } from 'react';
 import ReactApexChart from 'react-apexcharts';
 
+let chartColors = [
+  theme.colors.blue800,
+  theme.colors.purple800,
+  theme.colors.orange800,
+  theme.colors.cyan800,
+  theme.colors.indigo800,
+  theme.colors.violet800,
+  theme.colors.iris800
+];
+
 export let Chart = memo(
   ({
     height = 300,
@@ -48,14 +58,7 @@ export let Chart = memo(
     let options = useMemo(
       () =>
         ({
-          colors: [
-            theme.colors.red600,
-            theme.colors.green800,
-            theme.colors.blue800,
-            theme.colors.yellow800,
-            theme.colors.purple800,
-            theme.colors.orange800
-          ],
+          colors: chartColors,
           chart: {
             type: type == 'line' ? 'area' : type == 'pie' ? 'pie' : 'bar',
             height: 350,
@@ -99,10 +102,11 @@ export let Chart = memo(
               : {
                   type: 'gradient',
                   gradient: {
-                    shadeIntensity: 1,
+                    gradientToColors: chartColors,
+                    shadeIntensity: 0,
                     inverseColors: false,
                     opacityFrom: 0.5,
-                    opacityTo: 0,
+                    opacityTo: 0.05,
                     stops: [0, 90, 100]
                   }
                 },
