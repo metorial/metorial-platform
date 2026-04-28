@@ -47,6 +47,7 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import { uniqBy } from 'lodash';
 import { PING_MESSAGE_ID_PREFIX } from '../const';
+import { mcpOutputSchemaNormalizer } from '../lib/mcpOutputSchemaNormalizer';
 import { providerToolPresenter } from '../presenter';
 import { upsertParticipant } from '../shared/upsertParticipant';
 import type { McpControlMessageHandler } from './control';
@@ -57,43 +58,6 @@ let Sentry = getSentry();
 type ID = string | number;
 
 export type HandleResponseOpts = { waitForResponse: boolean };
-
-let toolCallAttachmentSchema = {
-  type: 'object',
-  properties: {
-    type: {
-      type: 'string',
-      enum: ['url']
-    },
-    url: {
-      type: 'string'
-    },
-    mimeType: {
-      type: 'string'
-    },
-    urlExpiresAt: {
-      type: 'string'
-    }
-  },
-  required: ['type', 'url'],
-  additionalProperties: false
-};
-
-let augmentToolOutputSchemaForAttachments = (schema: Record<string, any> | undefined) => {
-  if (!schema || schema.type !== 'object') return schema;
-  if (schema.properties?.$attachments) return schema;
-
-  return {
-    ...schema,
-    properties: {
-      ...(schema.properties ?? {}),
-      $attachments: {
-        type: 'array',
-        items: toolCallAttachmentSchema
-      }
-    }
-  };
-};
 
 export class McpSender {
   constructor(
@@ -414,8 +378,10 @@ export class McpSender {
 
               inputSchema: presented.inputJsonSchema as any,
               outputSchema:
-                presented.outputJsonSchema?.type === 'object'
-                  ? (augmentToolOutputSchemaForAttachments(presented.outputJsonSchema) as any)
+                presented.outputJsonSchema
+                  ? (mcpOutputSchemaNormalizer(presented.outputJsonSchema, {
+                      isRoot: presented.outputJsonSchema?.type === 'object'
+                    }) as any)
                   : undefined,
 
               icons: mcp?.icons,
