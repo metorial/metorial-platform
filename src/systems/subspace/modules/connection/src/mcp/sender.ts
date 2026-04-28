@@ -230,16 +230,16 @@ export class McpSender {
     }
 
     if (id === undefined || id === null || method.startsWith('notifications/')) {
-      console.warn(
-        'Received MCP message without id or with notification method, ignoring:',
-        msg
-      );
-
       if (method === 'notifications/initialized') {
         let initNotification = mcpValidate(id, InitializedNotificationSchema, msg);
         if (!initNotification.success) return { mcp: initNotification.error, store: false };
         return this.handleInitializedMessage(initNotification.data);
       }
+
+      console.warn(
+        'Received MCP message without id or with notification method, ignoring:',
+        msg
+      );
 
       // TODO: handle notification for mcp-compatible backends
       // -> send to all backends that support it

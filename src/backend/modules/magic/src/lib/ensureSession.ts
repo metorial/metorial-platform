@@ -281,13 +281,13 @@ let deleteSubspaceSessionSafe = async (d: {
   instance: Instance;
   subspaceSessionId: string;
 }) => {
-  try {
-    await subspaceSessionService.delete({
-      instance: d.instance,
-      sessionId: d.subspaceSessionId,
-      _allowMagicMcpDelete: true
-    });
-  } catch {}
+  // try {
+  //   await subspaceSessionService.delete({
+  //     instance: d.instance,
+  //     sessionId: d.subspaceSessionId,
+  //     _allowMagicMcpDelete: true
+  //   });
+  // } catch {}
 };
 
 let getSubspaceProviders = async (d: { instance: Instance; sessionTemplateId: string }) => {
@@ -298,7 +298,7 @@ let getSubspaceProviders = async (d: { instance: Instance; sessionTemplateId: st
   });
 
   return templateProviders.map(templateProvider => ({
-    sessionTemplateId: templateProvider.sessionTemplateId,
+    // sessionTemplateId: templateProvider.sessionTemplateId,
     providerDeployment: templateProvider.deployment?.id
       ? {
           type: 'reference' as const,
@@ -329,7 +329,7 @@ export let ensureMagicMcpSubspaceSession = async (magicMcpTarget: MagicMcpResolv
   let mapping = await getExistingMapping(target);
   let now = new Date();
 
-  if (isReusableMapping(mapping, target, now)) return mapping!;
+  if (false && isReusableMapping(mapping, target, now)) return mapping!;
 
   let providers = await getSubspaceProviders({
     instance: target.instance,

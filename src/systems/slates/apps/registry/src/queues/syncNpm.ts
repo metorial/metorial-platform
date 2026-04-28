@@ -112,6 +112,7 @@ export let syncNpmPackagesQueueProcessor = syncNpmPackagesQueue.process(async da
 
 let syncNpmPackageQueue = createQueue<{
   packageName: string;
+  notFoundAttempt?: number;
 }>({
   name: 'sreg/slate/npm/pkg',
   redisUrl: env.service.REDIS_URL,
@@ -119,10 +120,33 @@ let syncNpmPackageQueue = createQueue<{
 });
 
 export let syncNpmPackageQueueProcessor = syncNpmPackageQueue.process(async data => {
-  let metadata = await fetchJson<{
+  let metadata: {
     name: string;
     versions?: Record<string, { version: string; dist?: { tarball?: string } }>;
-  }>(`${getNpmRegistryUrl()}/${encodeURIComponent(data.packageName)}`);
+  };
+
+  try {
+    metadata = await fetchJson<any>(
+      `${getNpmRegistryUrl()}/${encodeURIComponent(data.packageName)}`
+    );
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('404')) {
+      let notFoundAttempt = (data.notFoundAttempt ?? 0) + 1;
+
+      if (notFoundAttempt > 50) {
+        throw new Error(`Package ${data.packageName} not found after 50 attempts`);
+      }
+
+      await syncNpmPackageQueue.add(
+        { packageName: data.packageName, notFoundAttempt },
+        { id: btoa(data.packageName), delay: 1000 * randomIntBetween(60, 60 * 2) }
+      );
+
+      return;
+    }
+
+    throw error;
+  }
   if (metadata.name !== data.packageName) return;
 
   let existingVersions = new Set(
