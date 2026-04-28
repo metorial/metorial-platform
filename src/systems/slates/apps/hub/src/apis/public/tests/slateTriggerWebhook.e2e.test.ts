@@ -248,6 +248,16 @@ vi.mock('../../../signal', async () => {
           identifier: signalTenant.identifier
         }
       };
+    },
+    getTenantForSignal: async (tenant: Tenant) => {
+      let signalTenant = tenant.signalTenantId
+        ? { id: tenant.signalTenantId, identifier: tenant.identifier, name: tenant.name }
+        : await ensureTenant(tenant);
+
+      return {
+        id: signalTenant.id,
+        identifier: signalTenant.identifier
+      };
     }
   };
 });

@@ -1,3 +1,4 @@
+import { isServiceError } from '@lowerdeck/error';
 import { db } from '@metorial-subspace/db';
 import { slates } from '@metorial-subspace/provider-slates/src/client';
 import { getTenantForSignal, signal } from '../../signal';
@@ -66,6 +67,48 @@ export let markRegistrationFailure = async (d: {
   });
 };
 
+let markCallbackV2IfReady = async (
+  callback: NonNullable<Awaited<ReturnType<typeof loadCallback>>>
+) => {
+  if (callback.isCallbacksV2) return;
+
+  if (!isCallbackSupported(callback) || callback.callbackProviderTriggers.length === 0) {
+    await db.callback.update({
+      where: { oid: callback.oid },
+      data: { isCallbacksV2: true }
+    });
+    return;
+  }
+
+  let attachedInstances = await db.callbackInstance.findMany({
+    where: {
+      callbackOid: callback.oid,
+      status: 'attached'
+    },
+    select: {
+      slateTriggerReceiverId: true,
+      activeRegistration: {
+        select: {
+          slateTriggerReceiverId: true
+        }
+      }
+    }
+  });
+
+  if (
+    attachedInstances.length === 0 ||
+    attachedInstances.some(
+      instance =>
+        !!(instance.slateTriggerReceiverId ?? instance.activeRegistration?.slateTriggerReceiverId)
+    )
+  ) {
+    await db.callback.update({
+      where: { oid: callback.oid },
+      data: { isCallbacksV2: true }
+    });
+  }
+};
+
 export let syncSignalCallback = async (d: { callbackId: string }) => {
   let callback = await loadCallback(d.callbackId);
   if (!callback) return;
@@ -97,10 +140,20 @@ export let syncSignalCallback = async (d: { callbackId: string }) => {
             }
           }))
         })
-      : await signal.callback.archive({
-          tenantId: signalTenant.id,
-          callbackId: callback.id
-        });
+      : await (async () => {
+          try {
+            return await signal.callback.archive({
+              tenantId: signalTenant.id,
+              callbackId: callback.id
+            });
+          } catch (error) {
+            if (isServiceError(error) && error.data.code === 'not_found') {
+              return null;
+            }
+
+            throw error;
+          }
+        })();
 
   if (signalCallback) {
     for (let link of signalCallback.destinations) {
@@ -118,10 +171,7 @@ export let syncSignalCallback = async (d: { callbackId: string }) => {
     }
   }
 
-  await db.callback.update({
-    where: { oid: callback.oid },
-    data: { isCallbacksV2: true }
-  });
+  await markCallbackV2IfReady(callback);
 };
 
 export let syncCallbackInstance = async (d: { callbackInstanceId: string }) => {
@@ -169,6 +219,8 @@ export let syncCallbackInstance = async (d: { callbackInstanceId: string }) => {
         }
       });
     }
+
+    await markCallbackV2IfReady(callback);
     return;
   }
 
@@ -203,6 +255,7 @@ export let syncCallbackInstance = async (d: { callbackInstanceId: string }) => {
       callbackInstanceOid: callbackInstance.oid,
       slateTriggerReceiverId: receiver.id
     });
+    await markCallbackV2IfReady(callback);
   } catch (error) {
     let message = error instanceof Error ? error.message : 'callback_reconcile_failed';
     await markRegistrationFailure({

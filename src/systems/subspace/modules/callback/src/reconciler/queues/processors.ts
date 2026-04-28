@@ -120,3 +120,5 @@ export let callbackV2MigrationCallbackQueueProcessor =
     await syncSignalCallback({ callbackId: data.callbackId });
     await callbackReconcileInstancesPageQueue.add({ callbackId: data.callbackId });
   });
+
+await callbackV2MigrationScanQueue.add({}, { id: 'callbacks-v2-migration' });

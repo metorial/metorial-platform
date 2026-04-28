@@ -7,7 +7,8 @@ import { db } from '../db';
 let include = {
   event: {
     include: {
-      sender: true
+      sender: true,
+      callback: true
     }
   },
   destination: {

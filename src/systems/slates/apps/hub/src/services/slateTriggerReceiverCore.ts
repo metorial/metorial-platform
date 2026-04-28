@@ -25,7 +25,7 @@ import {
 
 let getCallbackEventOutput = (output: Record<string, any>) => {
   let { url, method, headers, receivedAt, ...semanticOutput } = output;
-  return Object.keys(semanticOutput).length ? semanticOutput : output;
+  return semanticOutput;
 };
 
 export class SlateTriggerReceiverCore {

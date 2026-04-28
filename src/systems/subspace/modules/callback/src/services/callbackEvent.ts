@@ -90,8 +90,6 @@ class callbackEventServiceImpl {
       order: d.input.order
     });
 
-    console.log(res.items.map(e => JSON.stringify([e.id, e.createdAt])));
-
     return {
       object: res.object,
       items: res.items.map(toCallbackEvent),

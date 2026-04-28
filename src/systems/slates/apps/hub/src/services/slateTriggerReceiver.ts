@@ -153,6 +153,9 @@ class slateTriggerReceiverServiceImpl {
       name?: string;
       description?: string;
       eventTypes?: string[];
+      deliveryMode?: SlateTriggerReceiverDeliveryMode;
+      callbackId?: string | null;
+      callbackInstanceId?: string | null;
       triggers: {
         triggerId: string;
         state?: Record<string, any> | null;
@@ -201,6 +204,10 @@ class slateTriggerReceiverServiceImpl {
           slateOid: slate.oid,
           slateInstanceOid: slateInstance.oid,
           authConfigOid: authConfig?.oid ?? null,
+          deliveryMode:
+            d.input.deliveryMode ?? SlateTriggerReceiverDeliveryMode.legacy_signal_event,
+          callbackId: d.input.callbackId ?? null,
+          callbackInstanceId: d.input.callbackInstanceId ?? null,
           name: d.input.name,
           description: d.input.description,
           eventTypes: normalizeEventTypes(d.input.eventTypes)
@@ -257,6 +264,9 @@ class slateTriggerReceiverServiceImpl {
       name?: string | null;
       description?: string | null;
       eventTypes?: string[];
+      deliveryMode?: SlateTriggerReceiverDeliveryMode;
+      callbackId?: string | null;
+      callbackInstanceId?: string | null;
       triggers?: {
         triggerId: string;
         state?: Record<string, any> | null;
@@ -295,6 +305,9 @@ class slateTriggerReceiverServiceImpl {
       data: {
         authConfigOid:
           d.input.authConfig !== undefined ? (authConfig?.oid ?? null) : undefined,
+        deliveryMode: d.input.deliveryMode,
+        callbackId: d.input.callbackId,
+        callbackInstanceId: d.input.callbackInstanceId,
         name: d.input.name === null ? null : d.input.name,
         description: d.input.description === null ? null : d.input.description,
         eventTypes: d.input.eventTypes ? normalizeEventTypes(d.input.eventTypes) : undefined
@@ -453,6 +466,9 @@ class slateTriggerReceiverServiceImpl {
           receiverId: existing.id,
           input: {
             authConfig: d.authConfig ?? null,
+            deliveryMode: SlateTriggerReceiverDeliveryMode.callback_v2,
+            callbackId: d.input.callbackId,
+            callbackInstanceId: d.input.callbackInstanceId,
             name: d.input.name,
             description: d.input.description,
             eventTypes: d.input.eventTypes,
@@ -464,21 +480,15 @@ class slateTriggerReceiverServiceImpl {
           slateInstance: d.slateInstance,
           authConfig: d.authConfig ?? null,
           input: {
+            deliveryMode: SlateTriggerReceiverDeliveryMode.callback_v2,
+            callbackId: d.input.callbackId,
+            callbackInstanceId: d.input.callbackInstanceId,
             name: d.input.name ?? undefined,
             description: d.input.description ?? undefined,
             eventTypes: d.input.eventTypes,
             triggers: d.input.triggers
           }
         });
-
-    await db.slateTriggerReceiver.update({
-      where: { oid: receiver.oid },
-      data: {
-        deliveryMode: SlateTriggerReceiverDeliveryMode.callback_v2,
-        callbackId: d.input.callbackId,
-        callbackInstanceId: d.input.callbackInstanceId
-      }
-    });
 
     return await this.getTriggerReceiverById({
       tenant: d.tenant,

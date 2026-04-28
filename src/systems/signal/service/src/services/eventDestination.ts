@@ -245,67 +245,6 @@ class eventDestinationServiceImpl {
     });
   }
 
-  async upsertExternalEventDestination(d: {
-    input: {
-      externalId: string;
-      isCallbackDestination?: boolean;
-      name: string;
-      description?: string | null;
-      eventTypes?: string[] | null;
-
-      retry?: {
-        type: EventRetryType;
-        delaySeconds: number;
-        maxAttempts: number;
-      };
-
-      variant: {
-        type: 'http_endpoint';
-        url: string;
-        method: WebhookMethod;
-      };
-    };
-    tenant: Tenant;
-    sender: Sender;
-  }) {
-    let existing = await db.eventDestination.findFirst({
-      where: {
-        externalId: d.input.externalId,
-        tenantOid: d.tenant.oid,
-        senderOid: d.sender.oid
-      },
-      include
-    });
-
-    if (!existing) {
-      return await this.createEventDestination({
-        tenant: d.tenant,
-        sender: d.sender,
-        input: {
-          externalId: d.input.externalId,
-          isCallbackDestination: d.input.isCallbackDestination ?? true,
-          name: d.input.name,
-          description: d.input.description ?? undefined,
-          eventTypes: d.input.eventTypes ?? undefined,
-          retry: d.input.retry,
-          variant: d.input.variant
-        }
-      });
-    }
-
-    return await this.updateEventDestination({
-      eventDestination: existing,
-      input: {
-        isCallbackDestination: d.input.isCallbackDestination ?? true,
-        name: d.input.name,
-        description: d.input.description ?? undefined,
-        eventTypes: d.input.eventTypes ?? undefined,
-        retry: d.input.retry,
-        variant: d.input.variant
-      }
-    });
-  }
-
   async deleteEventDestination(d: { eventDestination: EventDestination }) {
     if (d.eventDestination.status == 'inactive') {
       throw new ServiceError(
