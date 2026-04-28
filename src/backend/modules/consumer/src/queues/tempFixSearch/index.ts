@@ -29,7 +29,9 @@ let startIndexingTempFixSearch = async () => {
   );
 };
 
-startIndexingTempFixSearch();
+setTimeout(async () => {
+  await startIndexingTempFixSearch();
+}, 1000 * 60);
 
 export let tempFixSearchCron = createCron(
   {

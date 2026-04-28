@@ -1,5 +1,6 @@
 import { apiMux } from '@lowerdeck/api-mux';
 import { rpcMux } from '@lowerdeck/rpc-server';
+import { withTracingSuppressed } from '@lowerdeck/telemetry';
 import { RedisClient } from 'bun';
 import { connectionApp, websocket } from './apis/connection';
 import { ShuttleRPC } from './apis/controllers';
@@ -61,26 +62,27 @@ let checkRedis = async () => {
 
 if (process.env.NODE_ENV === 'production') {
   Bun.serve({
-    fetch: async req => {
-      let step = 'initializing';
-      let path = new URL(req.url).pathname;
+    fetch: async req =>
+      withTracingSuppressed(async () => {
+        let step = 'initializing';
+        let path = new URL(req.url).pathname;
 
-      try {
-        step = 'checking database';
-        await checkDatabase();
+        try {
+          step = 'checking database';
+          await checkDatabase();
 
-        step = 'checking redis';
-        await checkRedis();
+          step = 'checking redis';
+          await checkRedis();
 
-        // step = 'checking holopod';
-        // await checkHolopodHealth();
+          // step = 'checking holopod';
+          // await checkHolopodHealth();
 
-        return new Response('OK');
-      } catch (e) {
-        console.error(`Health check failed at step: ${step}`, e);
-        return new Response('Service Unavailable', { status: 503 });
-      }
-    },
+          return new Response('OK');
+        } catch (e) {
+          console.error(`Health check failed at step: ${step}`, e);
+          return new Response('Service Unavailable', { status: 503 });
+        }
+      }),
     port: 12121
   });
 }

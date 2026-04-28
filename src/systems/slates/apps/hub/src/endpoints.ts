@@ -1,3 +1,4 @@
+import { withTracingSuppressed } from '@lowerdeck/telemetry';
 import { RedisClient } from 'bun';
 import { adminApi } from './apis/admin';
 import { slatesHubApi } from './apis/internal';
@@ -27,17 +28,18 @@ let redis = new RedisClient(process.env.REDIS_URL?.replace('rediss://', 'redis:/
 
 if (process.env.NODE_ENV === 'production') {
   Bun.serve({
-    fetch: async _ => {
-      try {
-        await db.hub.count();
+    fetch: async _ =>
+      withTracingSuppressed(async () => {
+        try {
+          await db.hub.count();
 
-        await redis.ping();
+          await redis.ping();
 
-        return new Response('OK');
-      } catch (e) {
-        return new Response('Service Unavailable', { status: 503 });
-      }
-    },
+          return new Response('OK');
+        } catch (e) {
+          return new Response('Service Unavailable', { status: 503 });
+        }
+      }),
     port: 12121
   });
 }

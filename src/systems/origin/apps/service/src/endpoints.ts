@@ -1,3 +1,4 @@
+import { withTracingSuppressed } from '@lowerdeck/telemetry';
 import { RedisClient } from 'bun';
 import { originApi } from './controllers';
 import { db } from './db';
@@ -24,16 +25,17 @@ let redis = new RedisClient(process.env.REDIS_URL?.replace('rediss://', 'redis:/
 });
 
 Bun.serve({
-  fetch: async _ => {
-    try {
-      await db.tenant.count();
+  fetch: async _ =>
+    withTracingSuppressed(async () => {
+      try {
+        await db.tenant.count();
 
-      await redis.ping();
+        await redis.ping();
 
-      return new Response('OK');
-    } catch (e) {
-      return new Response('Service Unavailable', { status: 503 });
-    }
-  },
+        return new Response('OK');
+      } catch (e) {
+        return new Response('Service Unavailable', { status: 503 });
+      }
+    }),
   port: 12121
 });
