@@ -104,9 +104,3 @@ export let isCallbackSupported = (
   callback.providerDeployment.provider.type.attributes.backend === 'slates' &&
   callback.providerDeployment.provider.type.attributes.triggers.status === 'enabled';
 
-export let getActiveDestinationIds = (
-  callback: NonNullable<Awaited<ReturnType<typeof loadCallback>>>
-) =>
-  callback.callbackDestinationLinks
-    .filter(link => link.callbackDestination.status === 'active')
-    .map(link => link.callbackDestination.slateTriggerDestinationId);

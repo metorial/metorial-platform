@@ -1,24 +1,15 @@
 import { db } from '@metorial-subspace/db';
 import { callbackRegistrationReconcileQueue } from '@metorial-subspace/module-provider-internal/src/queues/lifecycle/deploymentConfigPair';
-import {
-  callbackInclude,
-  getActiveDestinationIds,
-  getTenantForSlatesCached,
-  isCallbackSupported,
-  REGISTRATION_PAGE_SIZE,
-  TRIGGER_PAGE_SIZE
-} from '../lib/state';
-import {
-  detachOrphanRegistration,
-  detachRegistration,
-  syncCallbackInstance
-} from '../lib/sync';
+import { TRIGGER_PAGE_SIZE } from '../lib/state';
+import { syncCallbackInstance, syncSignalCallback } from '../lib/sync';
 import {
   callbackReconcileInstanceQueue,
   callbackReconcileInstancesPageQueue,
-  callbackReconcileRegistrationAuditQueue,
-  callbackReconcileRegistrationsPageQueue
+  callbackV2MigrationCallbackQueue,
+  callbackV2MigrationScanQueue
 } from './definitions';
+
+let CALLBACK_MIGRATION_PAGE_SIZE = 100;
 
 export let callbackReconcileQueueProcessor = callbackRegistrationReconcileQueue.process(
   async data => {
@@ -30,8 +21,8 @@ export let callbackReconcileQueueProcessor = callbackRegistrationReconcileQueue.
     }
 
     if (data.callbackId) {
+      await syncSignalCallback({ callbackId: data.callbackId });
       await callbackReconcileInstancesPageQueue.add({ callbackId: data.callbackId });
-      await callbackReconcileRegistrationsPageQueue.add({ callbackId: data.callbackId });
       return;
     }
 
@@ -95,78 +86,37 @@ export let callbackReconcileInstancesPageQueueProcessor =
     }
   });
 
-export let callbackReconcileRegistrationsPageQueueProcessor =
-  callbackReconcileRegistrationsPageQueue.process(async data => {
-    let rows = await db.callbackReceiverRegistration.findMany({
+export let callbackV2MigrationScanQueueProcessor = callbackV2MigrationScanQueue.process(
+  async data => {
+    let callbacks = await db.callback.findMany({
       where: {
-        callback: {
-          id: data.callbackId
-        },
-        status: 'active',
+        isCallbacksV2: false,
+        status: { not: 'deleted' },
         id: data.cursor ? { gt: data.cursor } : undefined
       },
       orderBy: { id: 'asc' },
-      take: REGISTRATION_PAGE_SIZE,
+      take: CALLBACK_MIGRATION_PAGE_SIZE,
       select: { id: true }
     });
-    if (!rows.length) return;
+    if (!callbacks.length) return;
 
-    await callbackReconcileRegistrationAuditQueue.addManyWithOps(
-      rows.map(row => ({
-        data: { registrationId: row.id },
-        opts: { id: row.id }
+    await callbackV2MigrationCallbackQueue.addManyWithOps(
+      callbacks.map(callback => ({
+        data: { callbackId: callback.id },
+        opts: { id: callback.id }
       }))
     );
 
-    if (rows.length === REGISTRATION_PAGE_SIZE) {
-      await callbackReconcileRegistrationsPageQueue.add({
-        callbackId: data.callbackId,
-        cursor: rows[rows.length - 1]!.id
+    if (callbacks.length === CALLBACK_MIGRATION_PAGE_SIZE) {
+      await callbackV2MigrationScanQueue.add({
+        cursor: callbacks[callbacks.length - 1]!.id
       });
     }
-  });
+  }
+);
 
-export let callbackReconcileRegistrationAuditQueueProcessor =
-  callbackReconcileRegistrationAuditQueue.process(async data => {
-    let registration = await db.callbackReceiverRegistration.findFirst({
-      where: { id: data.registrationId },
-      include: {
-        callback: {
-          include: callbackInclude
-        },
-        callbackInstance: {
-          select: {
-            oid: true,
-            activeRegistrationOid: true
-          }
-        }
-      }
-    });
-    if (!registration) return;
-
-    let slatesTenant = await getTenantForSlatesCached(registration.callback.tenant);
-
-    if (registration.callbackInstance.activeRegistrationOid !== registration.oid) {
-      await detachOrphanRegistration({
-        registrationOid: registration.oid,
-        slateTriggerReceiverId: registration.slateTriggerReceiverId,
-        slatesTenantId: slatesTenant.id
-      });
-      return;
-    }
-
-    let callback = registration.callback;
-    let destinationIds = getActiveDestinationIds(callback);
-    if (
-      !isCallbackSupported(callback) ||
-      !destinationIds.length ||
-      callback.callbackProviderTriggers.length === 0
-    ) {
-      await detachRegistration({
-        callbackInstanceOid: registration.callbackInstance.oid,
-        registrationOid: registration.oid,
-        slateTriggerReceiverId: registration.slateTriggerReceiverId,
-        slatesTenantId: slatesTenant.id
-      });
-    }
+export let callbackV2MigrationCallbackQueueProcessor =
+  callbackV2MigrationCallbackQueue.process(async data => {
+    await syncSignalCallback({ callbackId: data.callbackId });
+    await callbackReconcileInstancesPageQueue.add({ callbackId: data.callbackId });
   });

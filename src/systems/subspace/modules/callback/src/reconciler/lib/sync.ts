@@ -1,139 +1,126 @@
-import { db, getId, withTransaction } from '@metorial-subspace/db';
+import { db } from '@metorial-subspace/db';
 import { slates } from '@metorial-subspace/provider-slates/src/client';
+import { getTenantForSignal, signal } from '../../signal';
 import {
-  getActiveDestinationIds,
   getTenantForSlatesCached,
   isCallbackSupported,
+  loadCallback,
   loadCallbackInstance
 } from './state';
 
 export let detachRegistration = async (d: {
   callbackInstanceOid: bigint;
-  registrationOid: bigint;
-  slateTriggerReceiverId: string;
+  slateTriggerReceiverId?: string | null;
   slatesTenantId: string;
 }) => {
   try {
     if (d.slateTriggerReceiverId) {
-      await slates.slateTriggerReceiver.delete({
+      await slates.callbackRegistration.delete({
         tenantId: d.slatesTenantId,
         slateTriggerReceiverId: d.slateTriggerReceiverId
       });
     }
   } catch {}
 
-  await withTransaction(async db => {
-    await db.callbackReceiverRegistration.update({
-      where: { oid: d.registrationOid },
-      data: {
-        status: 'detached',
-        lastSyncedAt: new Date()
-      }
-    });
-
-    await db.callbackInstance.update({
-      where: { oid: d.callbackInstanceOid },
-      data: {
-        registrationStatus: 'registered',
-        activeRegistrationOid: null
-      }
-    });
-  });
-};
-
-export let detachOrphanRegistration = async (d: {
-  registrationOid: bigint;
-  slateTriggerReceiverId: string;
-  slatesTenantId: string;
-}) => {
-  try {
-    if (d.slateTriggerReceiverId) {
-      await slates.slateTriggerReceiver.delete({
-        tenantId: d.slatesTenantId,
-        slateTriggerReceiverId: d.slateTriggerReceiverId
-      });
-    }
-  } catch {}
-
-  await db.callbackReceiverRegistration.updateMany({
-    where: { oid: d.registrationOid },
+  await db.callbackInstance.update({
+    where: { oid: d.callbackInstanceOid },
     data: {
-      status: 'detached',
-      lastSyncedAt: new Date()
+      registrationStatus: 'registered',
+      slateTriggerReceiverId: null,
+      activeRegistrationOid: null,
+      lastSyncedAt: new Date(),
+      lastSyncErrorCode: null,
+      lastSyncErrorMessage: null
     }
   });
 };
 
 export let upsertActiveRegistration = async (d: {
   callbackInstanceOid: bigint;
-  callbackOid: bigint;
-  providerDeploymentConfigPairOid: bigint;
-  activeRegistrationOid?: bigint;
   slateTriggerReceiverId: string;
 }) =>
-  withTransaction(async db => {
-    let registrationOid = d.activeRegistrationOid;
-
-    if (registrationOid) {
-      await db.callbackReceiverRegistration.update({
-        where: { oid: registrationOid },
-        data: {
-          slateTriggerReceiverId: d.slateTriggerReceiverId,
-          status: 'active',
-          lastErrorCode: null,
-          lastErrorMessage: null,
-          lastSyncedAt: new Date()
-        }
-      });
-    } else {
-      let registration = await db.callbackReceiverRegistration.create({
-        data: {
-          ...getId('callbackReceiverRegistration'),
-          callbackOid: d.callbackOid,
-          providerDeploymentConfigPairOid: d.providerDeploymentConfigPairOid,
-          callbackInstanceOid: d.callbackInstanceOid,
-          slateTriggerReceiverId: d.slateTriggerReceiverId,
-          status: 'active',
-          lastErrorCode: null,
-          lastErrorMessage: null,
-          lastSyncedAt: new Date()
-        },
-        select: { oid: true }
-      });
-      registrationOid = registration.oid;
+  db.callbackInstance.update({
+    where: { oid: d.callbackInstanceOid },
+    data: {
+      registrationStatus: 'registered',
+      slateTriggerReceiverId: d.slateTriggerReceiverId,
+      activeRegistrationOid: null,
+      lastSyncedAt: new Date(),
+      lastSyncErrorCode: null,
+      lastSyncErrorMessage: null
     }
-
-    await db.callbackInstance.update({
-      where: { oid: d.callbackInstanceOid },
-      data: {
-        registrationStatus: 'registered',
-        activeRegistrationOid: registrationOid
-      }
-    });
   });
 
 export let markRegistrationFailure = async (d: {
   callbackInstanceOid: bigint;
-  activeRegistrationOid?: bigint;
   message: string;
 }) => {
-  if (d.activeRegistrationOid) {
-    await db.callbackReceiverRegistration.update({
-      where: { oid: d.activeRegistrationOid },
-      data: {
-        lastErrorCode: 'registration_failed',
-        lastErrorMessage: d.message,
-        lastSyncedAt: new Date()
-      }
-    });
-    return;
-  }
-
   await db.callbackInstance.update({
     where: { oid: d.callbackInstanceOid },
     data: {
-      registrationStatus: 'pending'
+      registrationStatus: 'pending',
+      lastSyncErrorCode: 'registration_failed',
+      lastSyncErrorMessage: d.message,
+      lastSyncedAt: new Date()
     }
+  });
+};
+
+export let syncSignalCallback = async (d: { callbackId: string }) => {
+  let callback = await loadCallback(d.callbackId);
+  if (!callback) return;
+
+  let signalTenant = await getTenantForSignal(callback.tenant);
+  let activeDestinations = callback.callbackDestinationLinks
+    .map(link => link.callbackDestination)
+    .filter(destination => destination.status === 'active');
+  let eventTypes = [
+    ...new Set(callback.callbackProviderTriggers.flatMap(trigger => trigger.eventTypes))
+  ];
+
+  let signalCallback =
+    callback.status === 'active' && isCallbackSupported(callback)
+      ? await signal.callback.upsert({
+          tenantId: signalTenant.id,
+          callbackId: callback.id,
+          name: callback.name,
+          description: callback.description,
+          eventTypes,
+          destinations: activeDestinations.map(destination => ({
+            externalId: destination.id,
+            name: destination.name,
+            description: destination.description,
+            variant: {
+              type: 'http_endpoint',
+              url: destination.url,
+              method: destination.method as 'POST' | 'PUT' | 'PATCH'
+            }
+          }))
+        })
+      : await signal.callback.archive({
+          tenantId: signalTenant.id,
+          callbackId: callback.id
+        });
+
+  if (signalCallback) {
+    for (let link of signalCallback.destinations) {
+      if (!link.destination.externalId) continue;
+      await db.callbackDestination.updateMany({
+        where: {
+          tenantOid: callback.tenantOid,
+          id: link.destination.externalId
+        },
+        data: {
+          signalEventDestinationId: link.destination.id,
+          lastSignalSyncedAt: new Date()
+        }
+      });
+    }
+  }
+
+  await db.callback.update({
+    where: { oid: callback.oid },
+    data: { isCallbacksV2: true }
   });
 };
 
@@ -142,7 +129,6 @@ export let syncCallbackInstance = async (d: { callbackInstanceId: string }) => {
   if (!callbackInstance) return;
 
   let callback = callbackInstance.callback;
-  let destinationIds = getActiveDestinationIds(callback);
   let providerTriggerInputs = callback.callbackProviderTriggers.map(trigger => ({
     triggerId: trigger.providerTrigger.specId,
     ...(callback.pollIntervalSecondsOverride !== null &&
@@ -153,21 +139,21 @@ export let syncCallbackInstance = async (d: { callbackInstanceId: string }) => {
   let eventTypes = [
     ...new Set(callback.callbackProviderTriggers.flatMap(trigger => trigger.eventTypes))
   ];
-  let activeRegistration = callbackInstance.activeRegistration;
+  let slateTriggerReceiverId =
+    callbackInstance.slateTriggerReceiverId ??
+    callbackInstance.activeRegistration?.slateTriggerReceiverId;
 
   if (
     callbackInstance.status !== 'attached' ||
     !isCallbackSupported(callback) ||
-    !destinationIds.length ||
     !providerTriggerInputs.length
   ) {
-    if (activeRegistration) {
+    if (slateTriggerReceiverId) {
       let slatesTenant = await getTenantForSlatesCached(callback.tenant);
 
       await detachRegistration({
         callbackInstanceOid: callbackInstance.oid,
-        registrationOid: activeRegistration.oid,
-        slateTriggerReceiverId: activeRegistration.slateTriggerReceiverId,
+        slateTriggerReceiverId,
         slatesTenantId: slatesTenant.id
       });
     } else {
@@ -175,7 +161,11 @@ export let syncCallbackInstance = async (d: { callbackInstanceId: string }) => {
         where: { oid: callbackInstance.oid },
         data: {
           registrationStatus: 'registered',
-          activeRegistrationOid: null
+          slateTriggerReceiverId: null,
+          activeRegistrationOid: null,
+          lastSyncedAt: new Date(),
+          lastSyncErrorCode: null,
+          lastSyncErrorMessage: null
         }
       });
     }
@@ -183,6 +173,8 @@ export let syncCallbackInstance = async (d: { callbackInstanceId: string }) => {
   }
 
   try {
+    await syncSignalCallback({ callbackId: callback.id });
+
     let slatesTenant = await getTenantForSlatesCached(callback.tenant);
     let slateInstanceId =
       callbackInstance.providerDeploymentConfigPair.providerConfigVersion.slateInstance?.id;
@@ -195,37 +187,26 @@ export let syncCallbackInstance = async (d: { callbackInstanceId: string }) => {
       callbackInstance.providerDeploymentConfigPair.providerAuthConfigVersion?.slateAuthConfig
         ?.id ?? null;
 
-    let receiver = activeRegistration
-      ? await slates.slateTriggerReceiver.update({
-          tenantId: slatesTenant.id,
-          slateTriggerReceiverId: activeRegistration.slateTriggerReceiverId,
-          authConfigId,
-          destinations: destinationIds,
-          triggers: providerTriggerInputs,
-          eventTypes
-        })
-      : await slates.slateTriggerReceiver.create({
-          tenantId: slatesTenant.id,
-          slateInstanceId,
-          authConfigId: authConfigId ?? undefined,
-          destinations: destinationIds,
-          triggers: providerTriggerInputs,
-          eventTypes,
-          name: `Callback ${callback.id}`
-        });
+    let receiver = await slates.callbackRegistration.upsert({
+      tenantId: slatesTenant.id,
+      callbackId: callback.id,
+      callbackInstanceId: callbackInstance.id,
+      slateTriggerReceiverId,
+      slateInstanceId,
+      authConfigId,
+      triggers: providerTriggerInputs,
+      eventTypes,
+      name: `Callback ${callback.id}`
+    });
 
     await upsertActiveRegistration({
       callbackInstanceOid: callbackInstance.oid,
-      callbackOid: callback.oid,
-      providerDeploymentConfigPairOid: callbackInstance.providerDeploymentConfigPairOid,
-      activeRegistrationOid: activeRegistration?.oid,
       slateTriggerReceiverId: receiver.id
     });
   } catch (error) {
     let message = error instanceof Error ? error.message : 'callback_reconcile_failed';
     await markRegistrationFailure({
       callbackInstanceOid: callbackInstance.oid,
-      activeRegistrationOid: activeRegistration?.oid,
       message
     });
   }

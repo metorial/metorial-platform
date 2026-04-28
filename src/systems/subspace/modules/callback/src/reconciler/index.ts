@@ -3,8 +3,8 @@ import {
   callbackReconcileInstanceQueueProcessor,
   callbackReconcileInstancesPageQueueProcessor,
   callbackReconcileQueueProcessor,
-  callbackReconcileRegistrationAuditQueueProcessor,
-  callbackReconcileRegistrationsPageQueueProcessor
+  callbackV2MigrationCallbackQueueProcessor,
+  callbackV2MigrationScanQueueProcessor
 } from './queues/processors';
 
 export * from './lib/state';
@@ -16,6 +16,6 @@ export let reconcilerQueueProcessor = combineQueueProcessors([
   callbackReconcileQueueProcessor,
   callbackReconcileInstanceQueueProcessor,
   callbackReconcileInstancesPageQueueProcessor,
-  callbackReconcileRegistrationsPageQueueProcessor,
-  callbackReconcileRegistrationAuditQueueProcessor
+  callbackV2MigrationScanQueueProcessor,
+  callbackV2MigrationCallbackQueueProcessor
 ]);

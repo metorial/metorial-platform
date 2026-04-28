@@ -26,26 +26,25 @@ export let callbackReconcileInstancesPageQueue = createQueue<{
   }
 });
 
-export let callbackReconcileRegistrationsPageQueue = createQueue<{
-  callbackId: string;
+export let callbackV2MigrationScanQueue = createQueue<{
   cursor?: string;
 }>({
-  name: 'sub/callback/reconcile/registrations/page',
+  name: 'sub/callback/v2-migration/scan',
   redisUrl: env.service.REDIS_URL,
   workerOpts: {
     concurrency: 1
   }
 });
 
-export let callbackReconcileRegistrationAuditQueue = createQueue<{
-  registrationId: string;
+export let callbackV2MigrationCallbackQueue = createQueue<{
+  callbackId: string;
 }>({
-  name: 'sub/callback/reconcile/registration/audit',
+  name: 'sub/callback/v2-migration/callback',
   redisUrl: env.service.REDIS_URL,
   workerOpts: {
-    concurrency: 10,
+    concurrency: 5,
     limiter: {
-      max: 20,
+      max: 10,
       duration: 1000
     }
   }
