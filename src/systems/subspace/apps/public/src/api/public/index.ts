@@ -28,6 +28,7 @@ let serveAsset = async (key: string) => {
 export let app = createHono()
   .options('*', c => c.text(''))
   .get('/ping', c => c.text('OK'))
+  .route('/tool-call-attachments', toolCallArtifactApp)
   .route('/tool-call-artifacts', toolCallArtifactApp)
   .get('/subspace-public/assets/:key*', async c => {
     let key = c.req.param('key*');
