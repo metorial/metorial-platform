@@ -2,7 +2,7 @@ import { createSubspaceService } from '../lib/subspaceService';
 import { subspace } from '../subspace';
 
 export let subspaceProviderInvocationService = createSubspaceService(
-  subspace.providerDeployment,
+  subspace.providerInvocation,
   ['get', 'list'],
   inner => ({})
 );
