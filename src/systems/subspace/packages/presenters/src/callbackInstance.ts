@@ -68,6 +68,7 @@ export let callbackInstancePresenter = (
           })
         | null;
     };
+    slateTriggerReceiverId?: string | null;
     activeRegistration?: CallbackReceiverRegistration | null;
   },
   receiverTriggers?: EnrichedCallbackInstanceTrigger[]

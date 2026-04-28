@@ -1,14 +1,41 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import {
-  CallbackReceiverRegistrationStatus,
   CallbackStatus,
   db,
   type Environment,
   type Solution,
   type Tenant
 } from '@metorial-subspace/db';
-import { getTenantForSlates, slates } from '@metorial-subspace/provider-slates/src/client';
+import { getTenantForSignal, signal } from '../signal';
+
+let emptyList = {
+  object: 'list',
+  items: [],
+  pagination: {
+    hasNextPage: false,
+    hasPreviousPage: false
+  }
+};
+
+let toCallbackEvent = (event: Awaited<ReturnType<typeof signal.callback.getEvent>>) => {
+  return {
+    id: event.id,
+    externalId: event.externalId ?? null,
+    type: event.type,
+    sourceId: event.sourceId ?? event.id,
+    triggerKey: event.triggerKey,
+    input: event.input,
+    output: event.output,
+    status: event.status,
+    error: event.error,
+    deliveryStatus: event.deliveryStatus as 'sent' | 'failed' | 'pending' | 'skipped',
+    callbackId: event.callbackId,
+    callbackInstanceId: event.callbackInstanceId ?? null,
+    providerDeploymentConfigPairId: null,
+    createdAt: event.createdAt
+  };
+};
 
 class callbackEventServiceImpl {
   private async resolveContext(d: {
@@ -30,20 +57,7 @@ class callbackEventServiceImpl {
       throw new ServiceError(notFoundError('callback', d.callbackId));
     }
 
-    let registrations = await db.callbackReceiverRegistration.findMany({
-      where: {
-        callbackOid: callback.oid,
-        status: CallbackReceiverRegistrationStatus.active
-      },
-      include: {
-        providerDeploymentConfigPair: true,
-        callbackInstance: true
-      }
-    });
-
-    let slatesTenant = await getTenantForSlates(d.tenant);
-
-    return { callback, registrations, slatesTenant };
+    return { callback };
   }
 
   async listCallbackEvents(d: {
@@ -61,13 +75,13 @@ class callbackEventServiceImpl {
     };
   }) {
     let context = await this.resolveContext(d);
-    let receiverIds = context.registrations
-      .map(reg => reg.slateTriggerReceiverId)
-      .filter(Boolean);
 
-    let res = await slates.slateTriggerEvent.list({
-      tenantId: context.slatesTenant.id,
-      triggerReceiverIds: receiverIds.length ? receiverIds : undefined,
+    if (!context.callback.isCallbacksV2) return emptyList;
+
+    let signalTenant = await getTenantForSignal(d.tenant);
+    let res = await signal.callback.listEvents({
+      tenantId: signalTenant.id,
+      callbackId: context.callback.id,
       eventTypes: d.input.eventTypes,
       limit: d.input.limit,
       after: d.input.after,
@@ -76,22 +90,15 @@ class callbackEventServiceImpl {
       order: d.input.order
     });
 
-    let registrationByReceiverId = new Map(
-      context.registrations.map(reg => [reg.slateTriggerReceiverId, reg] as const)
-    );
+    console.log(res.items.map(e => JSON.stringify([e.id, e.createdAt])));
 
     return {
-      ...res,
-      items: res.items.map(item => {
-        let registration = registrationByReceiverId.get(item.triggerReceiverId);
-        return {
-          ...item,
-          callbackId: context.callback.id,
-          providerDeploymentConfigPairId:
-            registration?.providerDeploymentConfigPair.id ?? null,
-          callbackInstanceId: registration?.callbackInstance.id ?? null
-        };
-      })
+      object: res.object,
+      items: res.items.map(toCallbackEvent),
+      pagination: {
+        hasNextPage: res.pagination.has_more_after,
+        hasPreviousPage: res.pagination.has_more_before
+      }
     };
   }
 
@@ -103,25 +110,30 @@ class callbackEventServiceImpl {
     slateTriggerEventId: string;
   }) {
     let context = await this.resolveContext(d);
-
-    let event = await slates.slateTriggerEvent.get({
-      tenantId: context.slatesTenant.id,
-      slateTriggerEventId: d.slateTriggerEventId
-    });
-
-    let registration = context.registrations.find(
-      reg => reg.slateTriggerReceiverId === event.triggerReceiverId
-    );
-    if (!registration) {
+    if (!context.callback.isCallbacksV2) {
       throw new ServiceError(notFoundError('callback.event', d.slateTriggerEventId));
     }
 
-    return {
-      ...event,
+    let signalTenant = await getTenantForSignal(d.tenant);
+    let event = await signal.callback.getEvent({
+      tenantId: signalTenant.id,
       callbackId: context.callback.id,
-      providerDeploymentConfigPairId: registration.providerDeploymentConfigPair.id,
-      callbackInstanceId: registration.callbackInstance.id
-    };
+      callbackEventId: d.slateTriggerEventId
+    });
+
+    return toCallbackEvent(event);
+  }
+
+  async listCallbackEventSourceIds(d: { tenant: Tenant; callbackEventIds: string[] }) {
+    if (d.callbackEventIds.length === 0) return [];
+
+    let signalTenant = await getTenantForSignal(d.tenant);
+    let events = await signal.callback.listEventsByIds({
+      tenantId: signalTenant.id,
+      callbackEventIds: d.callbackEventIds
+    });
+
+    return events.map(event => event.externalId).filter((id): id is string => Boolean(id));
   }
 }
 
