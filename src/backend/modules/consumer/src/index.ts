@@ -6,6 +6,7 @@ import { backfillAccessListingsProcessors } from './queues/backfillAccessListing
 import { consumerLifecycleQueueProcessor } from './queues/lifecycle';
 import { reconcileMagicMcpConsumerOwnershipProcessors } from './queues/reconcileMagicMcpConsumerOwnership';
 import { consumerSearchQueueProcessor } from './queues/search';
+import { tempFixSearchProcessors } from './queues/tempFixSearch';
 import {
   reconcileConsumerActorQueueProcessor,
   syncIdentityConsumerQueueProcessor
@@ -28,6 +29,7 @@ export let consumerQueueProcessor = combineQueueProcessors([
   reconcileConsumerActorQueueProcessor,
   backfillAccessListingsProcessors,
   reconcileMagicMcpConsumerOwnershipProcessors,
+  tempFixSearchProcessors,
 
   syncOrgMemberQueueProcessor,
   syncOrgMemberConsumerQueueProcessor,

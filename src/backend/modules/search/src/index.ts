@@ -5,7 +5,6 @@ type VoyagerIndex =
   | 'consumer'
   | 'consumerGroup'
   | 'consumerAccessRequest'
-  | 'consumerInvite'
   | 'providerTemplate'
   | 'magicMcpGroup'
   | 'magicMcpServer';
@@ -34,14 +33,6 @@ type ConsumerIndexInput = {
   instanceId: string;
   name?: string | null;
   email: string;
-};
-
-type ConsumerInviteIndexInput = {
-  id: string;
-  instanceId: string;
-  name?: string | null;
-  email: string;
-  message?: string | null;
 };
 
 type ConsumerGroupIndexInput = {
@@ -124,10 +115,6 @@ let voyagerIndexes = {
   magicMcpServer: {
     identifier: 'magic_mcp_server',
     name: 'Magic MCP Servers'
-  },
-  consumerInvite: {
-    identifier: 'consumer_invite',
-    name: 'Consumer Invites'
   }
 } satisfies Record<VoyagerIndex, { identifier: string; name: string }>;
 
@@ -243,13 +230,6 @@ export let searchConsumerIds = async (d: { instanceId: string; query: string }) 
     query: d.query
   });
 
-export let searchConsumerInviteIds = async (d: { instanceId: string; query: string }) =>
-  await searchByIndex({
-    index: 'consumerInvite',
-    instanceId: d.instanceId,
-    query: d.query
-  });
-
 export let searchConsumerGroupIds = async (d: { instanceId: string; query: string }) =>
   await searchByIndex({
     index: 'consumerGroup',
@@ -297,22 +277,6 @@ export let indexConsumerDocument = async (d: ConsumerIndexInput) =>
       id: d.id,
       name: d.name ?? undefined,
       email: d.email
-    }
-  });
-
-export let indexConsumerInviteDocument = async (d: ConsumerInviteIndexInput) =>
-  await indexByType({
-    index: 'consumerInvite',
-    id: d.id,
-    instanceId: d.instanceId,
-    fields: {
-      consumerInviteId: d.id
-    },
-    body: {
-      id: d.id,
-      name: d.name ?? undefined,
-      email: d.email,
-      message: d.message ?? undefined
     }
   });
 
