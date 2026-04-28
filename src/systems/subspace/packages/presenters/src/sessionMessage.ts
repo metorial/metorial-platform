@@ -10,6 +10,7 @@ import {
   type SessionMessage,
   type SessionParticipant,
   type SessionProvider,
+  type ToolCallAttachment,
   type ToolCall
 } from '@metorial-subspace/db';
 import { sessionErrorPresenter, type SessionErrorPresenterProps } from './sessionError';
@@ -25,6 +26,7 @@ export type SessionMessagePresenterProps = SessionMessage & {
   providerRun: ProviderRun | null;
   toolCall:
     | (ToolCall & {
+        attachments: ToolCallAttachment[];
         tool: ProviderTool & {
           provider: Provider;
           specification: Omit<ProviderSpecification, 'value'>;

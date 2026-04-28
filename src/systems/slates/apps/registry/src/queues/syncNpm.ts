@@ -147,6 +147,7 @@ export let syncNpmPackageQueueProcessor = syncNpmPackageQueue.process(async data
 
     throw error;
   }
+
   if (metadata.name !== data.packageName) return;
 
   let existingVersions = new Set(

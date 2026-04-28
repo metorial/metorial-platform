@@ -146,5 +146,26 @@ model ToolCall {
 
   createdAt DateTime @default(now())
 
+  attachments ToolCallAttachment[]
+
   @@index([createdAt])
+}
+
+model ToolCallAttachment {
+  oid BigInt @id
+  id  String @unique
+
+  urlKey String @unique
+  url    String
+
+  mimeType  String?
+  expiresAt DateTime?
+
+  toolCallOid BigInt
+  toolCall    ToolCall @relation(fields: [toolCallOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([toolCallOid])
 }

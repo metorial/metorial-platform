@@ -58,6 +58,43 @@ type ID = string | number;
 
 export type HandleResponseOpts = { waitForResponse: boolean };
 
+let toolCallAttachmentSchema = {
+  type: 'object',
+  properties: {
+    type: {
+      type: 'string',
+      enum: ['url']
+    },
+    url: {
+      type: 'string'
+    },
+    mimeType: {
+      type: 'string'
+    },
+    urlExpiresAt: {
+      type: 'string'
+    }
+  },
+  required: ['type', 'url'],
+  additionalProperties: false
+};
+
+let augmentToolOutputSchemaForAttachments = (schema: Record<string, any> | undefined) => {
+  if (!schema || schema.type !== 'object') return schema;
+  if (schema.properties?.$attachments) return schema;
+
+  return {
+    ...schema,
+    properties: {
+      ...(schema.properties ?? {}),
+      $attachments: {
+        type: 'array',
+        items: toolCallAttachmentSchema
+      }
+    }
+  };
+};
+
 export class McpSender {
   constructor(
     private readonly mcpTransport: SessionConnectionMcpConnectionTransport,
@@ -378,7 +415,7 @@ export class McpSender {
               inputSchema: presented.inputJsonSchema as any,
               outputSchema:
                 presented.outputJsonSchema?.type === 'object'
-                  ? (presented.outputJsonSchema as any)
+                  ? (augmentToolOutputSchemaForAttachments(presented.outputJsonSchema) as any)
                   : undefined,
 
               icons: mcp?.icons,
