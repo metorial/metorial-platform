@@ -5,7 +5,6 @@ type VoyagerIndex =
   | 'consumer'
   | 'consumerGroup'
   | 'consumerAccessRequest'
-  | 'consumerInvite'
   | 'providerTemplate'
   | 'magicMcpGroup'
   | 'magicMcpServer';
@@ -36,14 +35,6 @@ type ConsumerIndexInput = {
   email: string;
 };
 
-type ConsumerInviteIndexInput = {
-  id: string;
-  instanceId: string;
-  name?: string | null;
-  email: string;
-  message?: string | null;
-};
-
 type ConsumerGroupIndexInput = {
   id: string;
   instanceId: string;
@@ -70,6 +61,8 @@ type ConsumerAccessRequestIndexInput = {
   resolutionMessage?: string | null;
   requesterName?: string | null;
   requesterEmail?: string | null;
+  providerName?: string | null;
+  providerDescription?: string | null;
 };
 
 type MagicMcpGroupIndexInput = {
@@ -124,10 +117,6 @@ let voyagerIndexes = {
   magicMcpServer: {
     identifier: 'magic_mcp_server',
     name: 'Magic MCP Servers'
-  },
-  consumerInvite: {
-    identifier: 'consumer_invite',
-    name: 'Consumer Invites'
   }
 } satisfies Record<VoyagerIndex, { identifier: string; name: string }>;
 
@@ -243,13 +232,6 @@ export let searchConsumerIds = async (d: { instanceId: string; query: string }) 
     query: d.query
   });
 
-export let searchConsumerInviteIds = async (d: { instanceId: string; query: string }) =>
-  await searchByIndex({
-    index: 'consumerInvite',
-    instanceId: d.instanceId,
-    query: d.query
-  });
-
 export let searchConsumerGroupIds = async (d: { instanceId: string; query: string }) =>
   await searchByIndex({
     index: 'consumerGroup',
@@ -300,22 +282,6 @@ export let indexConsumerDocument = async (d: ConsumerIndexInput) =>
     }
   });
 
-export let indexConsumerInviteDocument = async (d: ConsumerInviteIndexInput) =>
-  await indexByType({
-    index: 'consumerInvite',
-    id: d.id,
-    instanceId: d.instanceId,
-    fields: {
-      consumerInviteId: d.id
-    },
-    body: {
-      id: d.id,
-      name: d.name ?? undefined,
-      email: d.email,
-      message: d.message ?? undefined
-    }
-  });
-
 export let indexConsumerGroupDocument = async (d: ConsumerGroupIndexInput) =>
   await indexByType({
     index: 'consumerGroup',
@@ -348,7 +314,9 @@ export let indexConsumerAccessRequestDocument = async (d: ConsumerAccessRequestI
       message: d.message ?? undefined,
       resolutionMessage: d.resolutionMessage ?? undefined,
       requesterName: d.requesterName ?? undefined,
-      requesterEmail: d.requesterEmail ?? undefined
+      requesterEmail: d.requesterEmail ?? undefined,
+      providerName: d.providerName ?? undefined,
+      providerDescription: d.providerDescription ?? undefined
     }
   });
 

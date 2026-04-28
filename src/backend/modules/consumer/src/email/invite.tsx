@@ -18,11 +18,15 @@ export let sendConsumerInviteEmail = notificationClient.createTemplate(
       consumerProfile: ConsumerProfile;
       invitedBy: OrganizationActor;
     }) => {
+      let url = new URL(portalUrl);
+      url.searchParams.set('consumer_invite_id', invite.id);
+      url.searchParams.set('consumer_profile_id', consumerProfile.id);
+
       return createEmail({
         subject: `You're invited to ${portal.name}`,
         preview: `${invitedBy.name} invited you to access ${portal.name} on Metorial.`,
         content: (
-          <Layout title={`Open ${portal.name}`}>
+          <Layout title={`Join ${portal.name} on Metorial`}>
             <Text>Hi {consumerProfile.name},</Text>
 
             <Text>
@@ -32,7 +36,7 @@ export let sendConsumerInviteEmail = notificationClient.createTemplate(
               much more. Metorial is managed by your organization administrators.
             </Text>
 
-            <Button href={portalUrl}>Open Metorial</Button>
+            <Button href={url.toString()}>Join {portal.name}</Button>
 
             {!!invite.message?.trim().length && (
               <Text>
