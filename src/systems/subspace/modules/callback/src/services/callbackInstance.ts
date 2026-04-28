@@ -205,17 +205,17 @@ class callbackInstanceServiceImpl {
       });
     }
 
-    await callbackRegistrationService.enqueueReconcile({
+    await callbackRegistrationService.syncCallbackInstance({
       callbackInstanceId: callbackInstance.id
     });
 
-    return callbackInstance;
+    return await this.getById({
+      callback: d.callback,
+      callbackInstanceId: callbackInstance.id
+    });
   }
 
-  async detach(d: {
-    tenant: Tenant;
-    callbackInstance: CallbackInstance;
-  }) {
+  async detach(d: { tenant: Tenant; callbackInstance: CallbackInstance }) {
     if (d.callbackInstance.slateTriggerReceiverId) {
       let slatesTenant = await getTenantForSlates(d.tenant);
       try {

@@ -1,7 +1,6 @@
 import { combineQueueProcessors } from '@lowerdeck/queue';
 import {
   callbackReconcileInstanceQueueProcessor,
-  callbackReconcileInstancesPageQueueProcessor,
   callbackReconcileQueueProcessor,
   callbackV2MigrationCallbackQueueProcessor,
   callbackV2MigrationScanQueueProcessor
@@ -15,7 +14,6 @@ export * from './queues/processors';
 export let reconcilerQueueProcessor = combineQueueProcessors([
   callbackReconcileQueueProcessor,
   callbackReconcileInstanceQueueProcessor,
-  callbackReconcileInstancesPageQueueProcessor,
   callbackV2MigrationScanQueueProcessor,
   callbackV2MigrationCallbackQueueProcessor
 ]);

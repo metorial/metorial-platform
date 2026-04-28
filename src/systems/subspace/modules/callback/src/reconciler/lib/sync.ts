@@ -6,7 +6,10 @@ import {
   getTenantForSlatesCached,
   isCallbackSupported,
   loadCallback,
-  loadCallbackInstance
+  loadFreshCallback,
+  loadFreshCallbackInstance,
+  loadCallbackInstance,
+  TRIGGER_PAGE_SIZE
 } from './state';
 
 export let detachRegistration = async (d: {
@@ -99,7 +102,10 @@ let markCallbackV2IfReady = async (
     attachedInstances.length === 0 ||
     attachedInstances.some(
       instance =>
-        !!(instance.slateTriggerReceiverId ?? instance.activeRegistration?.slateTriggerReceiverId)
+        !!(
+          instance.slateTriggerReceiverId ??
+          instance.activeRegistration?.slateTriggerReceiverId
+        )
     )
   ) {
     await db.callback.update({
@@ -109,10 +115,9 @@ let markCallbackV2IfReady = async (
   }
 };
 
-export let syncSignalCallback = async (d: { callbackId: string }) => {
-  let callback = await loadCallback(d.callbackId);
-  if (!callback) return;
-
+let syncLoadedSignalCallback = async (
+  callback: NonNullable<Awaited<ReturnType<typeof loadCallback>>>
+) => {
   let signalTenant = await getTenantForSignal(callback.tenant);
   let activeDestinations = callback.callbackDestinationLinks
     .map(link => link.callbackDestination)
@@ -174,8 +179,61 @@ export let syncSignalCallback = async (d: { callbackId: string }) => {
   await markCallbackV2IfReady(callback);
 };
 
-export let syncCallbackInstance = async (d: { callbackInstanceId: string }) => {
-  let callbackInstance = await loadCallbackInstance(d.callbackInstanceId);
+export let syncSignalCallback = async (d: { callbackId: string; fresh?: boolean }) => {
+  let callback = d.fresh
+    ? await loadFreshCallback(d.callbackId)
+    : await loadCallback(d.callbackId);
+  if (!callback) return;
+
+  await syncLoadedSignalCallback(callback);
+};
+
+export let syncCallback = async (d: {
+  callbackId: string;
+  fresh?: boolean;
+  throwOnError?: boolean;
+}) => {
+  await syncSignalCallback({ callbackId: d.callbackId, fresh: d.fresh });
+
+  let cursor: string | undefined;
+  while (true) {
+    let rows = await db.callbackInstance.findMany({
+      where: {
+        callback: {
+          id: d.callbackId
+        },
+        status: 'attached',
+        id: cursor ? { gt: cursor } : undefined
+      },
+      orderBy: { id: 'asc' },
+      take: TRIGGER_PAGE_SIZE,
+      select: { id: true }
+    });
+    if (!rows.length) return;
+
+    for (let row of rows) {
+      await syncCallbackInstance({
+        callbackInstanceId: row.id,
+        fresh: d.fresh,
+        skipSignalSync: true,
+        throwOnError: d.throwOnError
+      });
+    }
+
+    if (rows.length < TRIGGER_PAGE_SIZE) return;
+    cursor = rows[rows.length - 1]!.id;
+  }
+};
+
+export let syncCallbackInstance = async (d: {
+  callbackInstanceId: string;
+  fresh?: boolean;
+  skipSignalSync?: boolean;
+  throwOnError?: boolean;
+}) => {
+  let callbackInstance = d.fresh
+    ? await loadFreshCallbackInstance(d.callbackInstanceId)
+    : await loadCallbackInstance(d.callbackInstanceId);
   if (!callbackInstance) return;
 
   let callback = callbackInstance.callback;
@@ -225,7 +283,9 @@ export let syncCallbackInstance = async (d: { callbackInstanceId: string }) => {
   }
 
   try {
-    await syncSignalCallback({ callbackId: callback.id });
+    if (!d.skipSignalSync) {
+      await syncSignalCallback({ callbackId: callback.id, fresh: d.fresh });
+    }
 
     let slatesTenant = await getTenantForSlatesCached(callback.tenant);
     let slateInstanceId =
@@ -262,5 +322,9 @@ export let syncCallbackInstance = async (d: { callbackInstanceId: string }) => {
       callbackInstanceOid: callbackInstance.oid,
       message
     });
+
+    if (d.throwOnError) {
+      throw error;
+    }
   }
 };

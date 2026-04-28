@@ -1,10 +1,8 @@
 import { db } from '@metorial-subspace/db';
 import { callbackRegistrationReconcileQueue } from '@metorial-subspace/module-provider-internal/src/queues/lifecycle/deploymentConfigPair';
-import { TRIGGER_PAGE_SIZE } from '../lib/state';
-import { syncCallbackInstance, syncSignalCallback } from '../lib/sync';
+import { syncCallback, syncCallbackInstance } from '../lib/sync';
 import {
   callbackReconcileInstanceQueue,
-  callbackReconcileInstancesPageQueue,
   callbackV2MigrationCallbackQueue,
   callbackV2MigrationScanQueue
 } from './definitions';
@@ -17,12 +15,6 @@ export let callbackReconcileQueueProcessor = callbackRegistrationReconcileQueue.
       await callbackReconcileInstanceQueue.add({
         callbackInstanceId: data.callbackInstanceId
       });
-      return;
-    }
-
-    if (data.callbackId) {
-      await syncSignalCallback({ callbackId: data.callbackId });
-      await callbackReconcileInstancesPageQueue.add({ callbackId: data.callbackId });
       return;
     }
 
@@ -55,37 +47,6 @@ export let callbackReconcileInstanceQueueProcessor = callbackReconcileInstanceQu
   }
 );
 
-export let callbackReconcileInstancesPageQueueProcessor =
-  callbackReconcileInstancesPageQueue.process(async data => {
-    let rows = await db.callbackInstance.findMany({
-      where: {
-        callback: {
-          id: data.callbackId
-        },
-        status: 'attached',
-        id: data.cursor ? { gt: data.cursor } : undefined
-      },
-      orderBy: { id: 'asc' },
-      take: TRIGGER_PAGE_SIZE,
-      select: { id: true }
-    });
-    if (!rows.length) return;
-
-    await callbackReconcileInstanceQueue.addManyWithOps(
-      rows.map(row => ({
-        data: { callbackInstanceId: row.id },
-        opts: { id: row.id }
-      }))
-    );
-
-    if (rows.length === TRIGGER_PAGE_SIZE) {
-      await callbackReconcileInstancesPageQueue.add({
-        callbackId: data.callbackId,
-        cursor: rows[rows.length - 1]!.id
-      });
-    }
-  });
-
 export let callbackV2MigrationScanQueueProcessor = callbackV2MigrationScanQueue.process(
   async data => {
     let callbacks = await db.callback.findMany({
@@ -117,8 +78,7 @@ export let callbackV2MigrationScanQueueProcessor = callbackV2MigrationScanQueue.
 
 export let callbackV2MigrationCallbackQueueProcessor =
   callbackV2MigrationCallbackQueue.process(async data => {
-    await syncSignalCallback({ callbackId: data.callbackId });
-    await callbackReconcileInstancesPageQueue.add({ callbackId: data.callbackId });
+    await syncCallback({ callbackId: data.callbackId });
   });
 
 await callbackV2MigrationScanQueue.add({}, { id: 'callbacks-v2-migration' });

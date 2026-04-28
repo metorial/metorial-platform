@@ -555,11 +555,11 @@ describe('slate:trigger webhook E2E', () => {
     });
     expect(triggerEvent).toBeTruthy();
 
-    expect(signalState.events).toHaveLength(1);
-    expect(triggerEvent?.signalEventId).toBe(signalState.events[0]!.id);
-    expect(signalState.events[0]!.onlyForDestinations).toBeUndefined();
+    let signalEvent = signalState.events.find(event => event.id === triggerEvent?.signalEventId);
+    expect(signalEvent).toBeTruthy();
+    expect(signalEvent?.onlyForDestinations).toBeUndefined();
 
-    const payload = JSON.parse(signalState.events[0]!.payloadJson);
+    const payload = JSON.parse(signalEvent!.payloadJson);
     expect(payload).toMatchObject({
       object: 'callback.event_payload',
       trigger: triggerAction.key,

@@ -337,7 +337,7 @@ class callbackServiceImpl {
       }
     });
 
-    await callbackRegistrationService.enqueueReconcile({ callbackId: callback.id });
+    await callbackRegistrationService.syncCallback({ callbackId: callback.id });
 
     return await this.getCallbackById({
       tenant: d.tenant,
@@ -462,7 +462,7 @@ class callbackServiceImpl {
       }
     });
 
-    await callbackRegistrationService.enqueueReconcile({ callbackId: d.callback.id });
+    await callbackRegistrationService.syncCallback({ callbackId: d.callback.id });
 
     return await this.getCallbackById({
       tenant: d.tenant,
@@ -498,7 +498,7 @@ class callbackServiceImpl {
       return archived;
     });
 
-    await callbackRegistrationService.enqueueReconcile({ callbackId: archived.id });
+    await callbackRegistrationService.syncCallback({ callbackId: archived.id });
 
     return archived;
   }

@@ -15,17 +15,6 @@ export let callbackReconcileInstanceQueue = createQueue<{
   }
 });
 
-export let callbackReconcileInstancesPageQueue = createQueue<{
-  callbackId: string;
-  cursor?: string;
-}>({
-  name: 'sub/callback/reconcile/instances/page',
-  redisUrl: env.service.REDIS_URL,
-  workerOpts: {
-    concurrency: 1
-  }
-});
-
 export let callbackV2MigrationScanQueue = createQueue<{
   cursor?: string;
 }>({

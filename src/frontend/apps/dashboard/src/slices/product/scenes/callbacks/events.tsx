@@ -9,7 +9,6 @@ import {
 import {
   Attributes,
   Badge,
-  Button,
   Datalist,
   Error,
   Panel,
@@ -31,7 +30,6 @@ import {
   prismLanguageForContentType,
   renderJsonCodeBlock
 } from '../providerInvocations/helpers';
-import { showProviderInvocationPanel } from '../providerInvocations/panel';
 import {
   BodySubHeader,
   ContentTypeTag,
@@ -335,27 +333,14 @@ export let CallbackEventsList = (p: { callbackId: string | undefined }) => {
       {renderWithPagination(events)(events => (
         <>
           <Table
-            headers={['Status', 'Type', 'Created', '']}
+            headers={['Status', 'Type', 'Created']}
             data={events.data.items.map(event => ({
               data: [
                 getLifecycleStatusBadge(getLifecycleFields(event).status),
                 <Text size="2" weight="strong">
                   {event.type || event.triggerKey}
                 </Text>,
-                <RenderDate date={event.createdAt} />,
-                <Button
-                  size="1"
-                  variant="outline"
-                  onClick={e => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    showProviderInvocationPanel({
-                      callbackEventId: event.id
-                    });
-                  }}
-                >
-                  View Logs
-                </Button>
+                <RenderDate date={event.createdAt} />
               ],
               onClick: () =>
                 setSearchParams(params => {

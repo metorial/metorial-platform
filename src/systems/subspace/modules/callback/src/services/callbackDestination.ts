@@ -12,7 +12,6 @@ import {
 import { type DateFilter, normalizeDateFilter } from '@metorial-subspace/list-utils';
 import { callbackRegistrationService } from './callbackRegistration';
 import { getTenantForSignal, signal } from '../signal';
-import { syncSignalCallback } from '../reconciler/lib/sync';
 
 type SignalDestination = Awaited<ReturnType<typeof signal.eventDestination.get>>;
 type EnrichedCallbackDestination = CallbackDestination & {
@@ -20,22 +19,6 @@ type EnrichedCallbackDestination = CallbackDestination & {
 };
 
 class callbackDestinationServiceImpl {
-  private async syncLinkedCallbacksToSignal(d: {
-    tenant: Tenant;
-    callbackDestination: CallbackDestination;
-  }) {
-    let callbacks = await db.callbackDestinationLink.findMany({
-      where: { callbackDestinationOid: d.callbackDestination.oid },
-      select: { callback: { select: { id: true } } }
-    });
-
-    await Promise.all(
-      callbacks.map(async link => {
-        await syncSignalCallback({ callbackId: link.callback.id });
-      })
-    );
-  }
-
   async enrichCallbackDestination(d: {
     tenant: Tenant;
     callbackDestination: CallbackDestination;
@@ -216,18 +199,13 @@ class callbackDestinationServiceImpl {
       }
     });
 
-    await this.syncLinkedCallbacksToSignal({
-      tenant: d.tenant,
-      callbackDestination: updated
-    });
-
     let callbacks = await db.callbackDestinationLink.findMany({
       where: { callbackDestinationOid: updated.oid },
       select: { callback: { select: { id: true } } }
     });
     await Promise.all(
       callbacks.map(link =>
-        callbackRegistrationService.enqueueReconcile({ callbackId: link.callback.id })
+        callbackRegistrationService.syncCallback({ callbackId: link.callback.id })
       )
     );
 
@@ -250,11 +228,6 @@ class callbackDestinationServiceImpl {
       }
     });
 
-    await this.syncLinkedCallbacksToSignal({
-      tenant: d.tenant,
-      callbackDestination: archived
-    });
-
     let callbacks = await db.callbackDestinationLink.findMany({
       where: { callbackDestinationOid: destination.oid },
       select: { callback: { select: { id: true } } }
@@ -262,7 +235,7 @@ class callbackDestinationServiceImpl {
 
     await Promise.all(
       callbacks.map(link =>
-        callbackRegistrationService.enqueueReconcile({ callbackId: link.callback.id })
+        callbackRegistrationService.syncCallback({ callbackId: link.callback.id })
       )
     );
 

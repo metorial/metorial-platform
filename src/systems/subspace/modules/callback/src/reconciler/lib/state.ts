@@ -52,6 +52,8 @@ let loadCallbackUncached = async (callbackId: string) =>
     include: callbackInclude
   });
 
+export let loadFreshCallback = loadCallbackUncached;
+
 let loadCallbackCached = createLocallyCachedFunction({
   getHash: (callbackId: string) => callbackId,
   ttlSeconds: 5,
@@ -78,6 +80,8 @@ let loadCallbackInstanceUncached = async (callbackInstanceId: string) =>
     }
   });
 
+export let loadFreshCallbackInstance = loadCallbackInstanceUncached;
+
 let loadCallbackInstanceCached = createLocallyCachedFunction({
   getHash: (callbackInstanceId: string) => callbackInstanceId,
   ttlSeconds: 5,
@@ -103,4 +107,3 @@ export let isCallbackSupported = (
   callback.status === 'active' &&
   callback.providerDeployment.provider.type.attributes.backend === 'slates' &&
   callback.providerDeployment.provider.type.attributes.triggers.status === 'enabled';
-
