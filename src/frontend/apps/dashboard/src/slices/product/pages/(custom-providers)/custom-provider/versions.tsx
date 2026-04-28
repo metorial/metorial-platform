@@ -24,10 +24,12 @@ export let CustomProviderVersionsPage = () => {
             </Panel.Header>
 
             <Panel.Content>
-              <CustomProviderVersion
-                versionId={versionId}
-                customProvider={customProvider.data}
-              />
+              <div>
+                <CustomProviderVersion
+                  versionId={versionId}
+                  customProvider={customProvider.data}
+                />
+              </div>
             </Panel.Content>
           </>
         )}

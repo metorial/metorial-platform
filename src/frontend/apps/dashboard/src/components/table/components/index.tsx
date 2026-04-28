@@ -444,9 +444,13 @@ export let TableComponent = reactMemo(
       await props.actions[action.action as string](rows, hookState);
     };
 
+    let hasActiveSearch = search.trim().length > 0 || debouncedSearch.trim().length > 0;
+    let hasActiveFilters = filterState[0].length > 0;
+
     if (
       state.items.length == 0 &&
-      filterState[0].length == 0 &&
+      !hasActiveFilters &&
+      !hasActiveSearch &&
       !state.isLoading &&
       !state.error &&
       !state.hasMoreBefore &&

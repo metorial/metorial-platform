@@ -1,9 +1,9 @@
 import { db } from '@metorial/db';
-import { createQueue } from '@metorial/queue';
 import {
   deleteConsumerAccessRequestDocument,
   indexConsumerAccessRequestDocument
 } from '@metorial/module-search';
+import { createQueue } from '@metorial/queue';
 
 export let indexConsumerAccessRequestSearchQueue = createQueue<{
   consumerAccessRequestId: string;
@@ -18,6 +18,7 @@ export let indexConsumerAccessRequestSearchQueueProcessor =
         id: data.consumerAccessRequestId
       },
       include: {
+        consumerProfile: true,
         surface: {
           include: {
             instance: true
@@ -37,6 +38,8 @@ export let indexConsumerAccessRequestSearchQueueProcessor =
       instanceId: consumerAccessRequest.surface.instance.id,
       status: consumerAccessRequest.status,
       message: consumerAccessRequest.message,
-      resolutionMessage: consumerAccessRequest.resolutionMessage
+      resolutionMessage: consumerAccessRequest.resolutionMessage,
+      requesterEmail: consumerAccessRequest.consumerProfile.email,
+      requesterName: consumerAccessRequest.consumerProfile.name
     });
   });

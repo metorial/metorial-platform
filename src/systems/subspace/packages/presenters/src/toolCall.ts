@@ -5,13 +5,16 @@ import {
   type Provider,
   type ProviderSpecification,
   type ProviderTool,
+  type ToolCallAttachment,
   type ToolCall
 } from '@metorial-subspace/db';
 import { providerToolPresenter } from './providerTool';
 import { sessionErrorPresenter } from './sessionError';
 import type { SessionMessagePresenterProps } from './sessionMessage';
+import { presentToolCallAttachment } from '@metorial-subspace/db';
 
 export type ToolCallPresenterProps = ToolCall & {
+  attachments: ToolCallAttachment[];
   tool: ProviderTool & {
     provider: Provider;
     specification: Omit<ProviderSpecification, 'value'>;
@@ -54,6 +57,7 @@ export let toolCallPresenter = async (toolCall: ToolCallPresenterProps) => {
     output: toolCall.message.output
       ? await messageOutputToToolCall(toolCall.message.output, toolCall.message)
       : null,
+    attachments: toolCall.attachments.map(presentToolCallAttachment),
 
     error: toolCall.message.error ? await sessionErrorPresenter(toolCall.message.error) : null,
 

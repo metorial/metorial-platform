@@ -1,9 +1,11 @@
+import { createVoyagerClient } from '@metorial-services/voyager-client';
 import { env } from './env';
 
 type VoyagerIndex =
   | 'consumer'
   | 'consumerGroup'
   | 'consumerAccessRequest'
+  | 'consumerInvite'
   | 'providerTemplate'
   | 'magicMcpGroup'
   | 'magicMcpServer';
@@ -34,6 +36,14 @@ type ConsumerIndexInput = {
   email: string;
 };
 
+type ConsumerInviteIndexInput = {
+  id: string;
+  instanceId: string;
+  name?: string | null;
+  email: string;
+  message?: string | null;
+};
+
 type ConsumerGroupIndexInput = {
   id: string;
   instanceId: string;
@@ -58,6 +68,8 @@ type ConsumerAccessRequestIndexInput = {
   status: 'pending' | 'approved' | 'rejected';
   message?: string | null;
   resolutionMessage?: string | null;
+  requesterName?: string | null;
+  requesterEmail?: string | null;
 };
 
 type MagicMcpGroupIndexInput = {
@@ -79,13 +91,11 @@ type MagicMcpServerIndexInput = {
 let getIndexName = (suffix: string) =>
   [env.service.VOYAGER_INDEX_PREFIX, 'metorial', suffix].filter(Boolean).join('_');
 
-let loadModule = new Function('specifier', 'return import(specifier)') as (
-  specifier: string
-) => Promise<any>;
-
-export let voyager: any = null;
-let voyagerPromise: Promise<any> | null = null;
-let voyagerLoadFailed = false;
+export let voyager: ReturnType<typeof createVoyagerClient> | null = env.service.VOYAGER_URL
+  ? createVoyagerClient({
+      endpoint: env.service.VOYAGER_URL
+    })
+  : null;
 
 let voyagerSourcePromise: Promise<any> | null = null;
 let voyagerIndexPromises: Partial<Record<VoyagerIndex, Promise<any>>> = {};
@@ -114,41 +124,18 @@ let voyagerIndexes = {
   magicMcpServer: {
     identifier: 'magic_mcp_server',
     name: 'Magic MCP Servers'
+  },
+  consumerInvite: {
+    identifier: 'consumer_invite',
+    name: 'Consumer Invites'
   }
 } satisfies Record<VoyagerIndex, { identifier: string; name: string }>;
 
-let getVoyager = async () => {
-  if (!env.service.VOYAGER_URL || voyagerLoadFailed) return null;
-  if (voyager) return voyager;
-
-  if (!voyagerPromise) {
-    voyagerPromise = loadModule('@metorial-services/voyager-client')
-      .then(module =>
-        module.createVoyagerClient({
-          endpoint: env.service.VOYAGER_URL!
-        })
-      )
-      .then(client => {
-        voyager = client;
-        return client;
-      })
-      .catch((error: unknown) => {
-        voyagerPromise = null;
-        voyagerLoadFailed = true;
-        console.warn('[module-search] Voyager client is unavailable, disabling search', error);
-        return null;
-      });
-  }
-
-  return await voyagerPromise;
-};
-
 let ensureVoyagerSource = async () => {
-  let voyagerClient = await getVoyager();
-  if (!voyagerClient) return null;
+  if (!voyager) return null;
 
   if (!voyagerSourcePromise) {
-    voyagerSourcePromise = voyagerClient.source
+    voyagerSourcePromise = voyager.source
       .upsert({
         name: 'Metorial Platform',
         identifier: getIndexName('source')
@@ -163,15 +150,14 @@ let ensureVoyagerSource = async () => {
 };
 
 let ensureVoyagerIndex = async (index: VoyagerIndex) => {
-  let voyagerClient = await getVoyager();
-  if (!voyagerClient) return null;
+  if (!voyager) return null;
 
   if (!voyagerIndexPromises[index]) {
     voyagerIndexPromises[index] = (async () => {
       let source = await ensureVoyagerSource();
       if (!source) return null;
 
-      return await voyagerClient.index.upsert({
+      return await voyager.index.upsert({
         sourceId: source.id,
         identifier: getIndexName(voyagerIndexes[index].identifier),
         name: voyagerIndexes[index].name
@@ -189,21 +175,22 @@ let searchByIndex = async (d: VoyagerSearchInput): Promise<string[]> => {
   if (!d.query.trim()) return [];
 
   try {
-    let voyagerClient = await getVoyager();
-    if (!voyagerClient) return [];
+    if (!voyager) return [];
 
     let source = await ensureVoyagerSource();
     let index = await ensureVoyagerIndex(d.index);
     if (!source || !index) return [];
 
-    let records = await voyagerClient.record.search({
+    let records = await voyager.record.search({
       tenantId: d.instanceId,
       sourceId: source.id,
       indexId: index.id,
       query: d.query.trim()
     });
 
-    return records;
+    return records
+      .map(record => record.documentId)
+      .filter((documentId): documentId is string => !!documentId);
   } catch (error) {
     console.error(`[module-search] Voyager search failed for ${d.index}`, error);
     return [];
@@ -212,14 +199,13 @@ let searchByIndex = async (d: VoyagerSearchInput): Promise<string[]> => {
 
 let indexByType = async (d: VoyagerIndexInput) => {
   try {
-    let voyagerClient = await getVoyager();
-    if (!voyagerClient) return;
+    if (!voyager) return;
 
     let source = await ensureVoyagerSource();
     let index = await ensureVoyagerIndex(d.index);
     if (!source || !index) return;
 
-    await voyagerClient.record.index({
+    await voyager.record.index({
       sourceId: source.id,
       indexId: index.id,
       documentId: d.id,
@@ -234,14 +220,13 @@ let indexByType = async (d: VoyagerIndexInput) => {
 
 let deleteByType = async (d: VoyagerDeleteInput) => {
   try {
-    let voyagerClient = await getVoyager();
-    if (!voyagerClient) return;
+    if (!voyager) return;
 
     let source = await ensureVoyagerSource();
     let index = await ensureVoyagerIndex(d.index);
     if (!source || !index) return;
 
-    await voyagerClient.record.delete({
+    await voyager.record.delete({
       sourceId: source.id,
       indexId: index.id,
       documentIds: [d.id]
@@ -254,6 +239,13 @@ let deleteByType = async (d: VoyagerDeleteInput) => {
 export let searchConsumerIds = async (d: { instanceId: string; query: string }) =>
   await searchByIndex({
     index: 'consumer',
+    instanceId: d.instanceId,
+    query: d.query
+  });
+
+export let searchConsumerInviteIds = async (d: { instanceId: string; query: string }) =>
+  await searchByIndex({
+    index: 'consumerInvite',
     instanceId: d.instanceId,
     query: d.query
   });
@@ -308,6 +300,22 @@ export let indexConsumerDocument = async (d: ConsumerIndexInput) =>
     }
   });
 
+export let indexConsumerInviteDocument = async (d: ConsumerInviteIndexInput) =>
+  await indexByType({
+    index: 'consumerInvite',
+    id: d.id,
+    instanceId: d.instanceId,
+    fields: {
+      consumerInviteId: d.id
+    },
+    body: {
+      id: d.id,
+      name: d.name ?? undefined,
+      email: d.email,
+      message: d.message ?? undefined
+    }
+  });
+
 export let indexConsumerGroupDocument = async (d: ConsumerGroupIndexInput) =>
   await indexByType({
     index: 'consumerGroup',
@@ -338,7 +346,9 @@ export let indexConsumerAccessRequestDocument = async (d: ConsumerAccessRequestI
     body: {
       status: d.status,
       message: d.message ?? undefined,
-      resolutionMessage: d.resolutionMessage ?? undefined
+      resolutionMessage: d.resolutionMessage ?? undefined,
+      requesterName: d.requesterName ?? undefined,
+      requesterEmail: d.requesterEmail ?? undefined
     }
   });
 

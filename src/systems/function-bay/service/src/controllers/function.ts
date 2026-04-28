@@ -97,7 +97,13 @@ export let functionController = app.controller({
         tenantId: v.string(),
         functionId: v.string(),
 
-        payload: v.record(v.any())
+        payload: v.record(v.any()),
+        egressPolicy: v.optional(
+          v.object({
+            allowedIps: v.optional(v.array(v.string())),
+            allowedHosts: v.optional(v.array(v.string()))
+          })
+        )
       })
     )
     .do(
@@ -105,7 +111,8 @@ export let functionController = app.controller({
         await functionInvocationService.invokeFunction({
           functionId: ctx.input.functionId,
           tenantId: ctx.input.tenantId,
-          payload: ctx.input.payload
+          payload: ctx.input.payload,
+          egressPolicy: ctx.input.egressPolicy
         })
     )
 });

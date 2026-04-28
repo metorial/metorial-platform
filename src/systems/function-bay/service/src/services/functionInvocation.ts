@@ -42,6 +42,10 @@ class functionInvocationServiceImpl {
     functionId: string;
     versionId?: string;
     payload: Record<string, any>;
+    egressPolicy?: {
+      allowedIps?: string[];
+      allowedHosts?: string[];
+    };
   }) {
     let func = await getFunctionData({
       tenantId: d.tenantId,
@@ -72,7 +76,8 @@ class functionInvocationServiceImpl {
       function: func,
       functionVersion: version,
       providerData: version.providerData,
-      payload: d.payload
+      payload: d.payload,
+      egressPolicy: d.egressPolicy
     });
 
     (async () => {

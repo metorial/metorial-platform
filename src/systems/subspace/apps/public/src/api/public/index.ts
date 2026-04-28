@@ -3,6 +3,7 @@ import path from 'path';
 import { oauthCallbackApp } from './oauthCallback';
 import { oauthSetupApp } from './oauthSetup';
 import { setupSessionApp } from './setupSession';
+import { toolCallArtifactApp } from './toolCallArtifact';
 
 let assetsDir = path.join(process.cwd(), 'frontend', 'dist', 'assets');
 let assetCacheControl = 'public, max-age=31536000, immutable';
@@ -27,6 +28,7 @@ let serveAsset = async (key: string) => {
 export let app = createHono()
   .options('*', c => c.text(''))
   .get('/ping', c => c.text('OK'))
+  .route('/tool-call-artifacts', toolCallArtifactApp)
   .get('/subspace-public/assets/:key*', async c => {
     let key = c.req.param('key*');
     return await serveAsset(key);

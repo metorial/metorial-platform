@@ -1,11 +1,11 @@
 import { combineQueueProcessors } from '@metorial/queue';
-import { indexConsumerAccessRequestSearchQueueProcessor } from './consumerAccessRequest';
 import { indexConsumerSearchQueueProcessor } from './consumer';
+import { indexConsumerAccessRequestSearchQueueProcessor } from './consumerAccessRequest';
 import { indexConsumerGroupSearchQueueProcessor } from './consumerGroup';
 import { indexProviderTemplateSearchQueueProcessor } from './providerTemplate';
 
-export * from './consumerAccessRequest';
 export * from './consumer';
+export * from './consumerAccessRequest';
 export * from './consumerGroup';
 export * from './providerTemplate';
 

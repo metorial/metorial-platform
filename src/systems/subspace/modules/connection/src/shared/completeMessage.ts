@@ -1,11 +1,15 @@
 import {
   db,
+  getRawToolCallAttachmentsFromOutput,
   getId,
+  presentToolCallAttachment,
+  replaceToolCallAttachmentsInOutput,
   type ProviderRun,
   type SessionError,
   type SessionMessageFailureReason,
   type SessionParticipant
 } from '@metorial-subspace/db';
+import { generateCustomId } from '@lowerdeck/id';
 import { finalizeMessageQueue } from '../queues/message/finalizeMessage';
 import { createError, messageFailureReasonToErrorType } from './createError';
 
@@ -41,47 +45,100 @@ export let completeMessage = async (
     };
   }
 
+  let currentMessage =
+    data.status === 'failed' || data.output?.type === 'tool.result'
+      ? await db.sessionMessage.findFirstOrThrow({
+          where: 'messageId' in filter ? { id: filter.messageId } : { oid: filter.messageOid },
+          include: { connection: true, session: true, toolCall: true }
+        })
+      : undefined;
+
   let error: SessionError | undefined;
   if (data.status === 'failed') {
-    let message = await db.sessionMessage.findFirstOrThrow({
-      where: 'messageId' in filter ? { id: filter.messageId } : { oid: filter.messageOid },
-      include: { connection: true, session: true }
-    });
-
     error = await createError({
       type: messageFailureReasonToErrorType(data.failureReason ?? 'provider_error'),
-      session: message.session,
-      connection: message.connection,
+      session: currentMessage!.session,
+      connection: currentMessage!.connection,
       output: data.output!,
       providerRun: data.providerRun
     });
   }
 
-  let message = await db.sessionMessage.update({
-    where: {
-      ...('messageId' in filter ? { id: filter.messageId } : { oid: filter.messageOid }),
-      status: 'waiting_for_response'
-    },
-    data: {
-      output: data.output,
-      status: data.status,
-      completedAt: data.completedAt ?? new Date(),
-      failureReason: data.failureReason,
+  let toolCallAttachments =
+    currentMessage?.toolCall && data.output?.type === 'tool.result'
+      ? getRawToolCallAttachmentsFromOutput(data.output)
+      : [];
 
-      errorOid: error?.oid,
-      providerRunOid: data.providerRun?.oid,
-      slateToolCallOid: data.slateToolCall?.oid,
-      responderParticipantOid: data.responderParticipant.oid
-    },
-    include: { toolCall: true }
-  });
+  let toolCallAttachmentRecords = currentMessage?.toolCall
+    ? toolCallAttachments.map(attachment => ({
+        ...getId('toolCallAttachment'),
+        urlKey: generateCustomId('tca_link_', 35),
+        url: attachment.url,
+        mimeType: attachment.mimeType,
+        expiresAt: attachment.expiresAt,
+        toolCallOid: currentMessage.toolCall!.oid
+      }))
+    : [];
 
-  if (message.toolCall) {
-    await db.toolCall.updateMany({
-      where: { oid: message.toolCall.oid },
-      data: { providerRunOid: message.providerRunOid }
-    });
+  if (toolCallAttachmentRecords.length && data.output?.type === 'tool.result') {
+    data.output = replaceToolCallAttachmentsInOutput(
+      data.output,
+      toolCallAttachmentRecords.map(presentToolCallAttachment)
+    );
   }
+
+  let message = await db.$transaction(async tx => {
+    let message = await tx.sessionMessage.update({
+      where: {
+        ...('messageId' in filter ? { id: filter.messageId } : { oid: filter.messageOid }),
+        status: 'waiting_for_response'
+      },
+      data: {
+        output: data.output,
+        status: data.status,
+        completedAt: data.completedAt ?? new Date(),
+        failureReason: data.failureReason,
+
+        errorOid: error?.oid,
+        providerRunOid: data.providerRun?.oid,
+        slateToolCallOid: data.slateToolCall?.oid,
+        responderParticipantOid: data.responderParticipant.oid
+      },
+      include: {
+        toolCall: {
+          include: {
+            attachments: true
+          }
+        }
+      }
+    });
+
+    if (message.toolCall) {
+      await tx.toolCall.updateMany({
+        where: { oid: message.toolCall.oid },
+        data: { providerRunOid: message.providerRunOid }
+      });
+
+      if (toolCallAttachmentRecords.length) {
+        await tx.toolCallAttachment.createMany({
+          data: toolCallAttachmentRecords
+        });
+
+        message = await tx.sessionMessage.findFirstOrThrow({
+          where: { oid: message.oid },
+          include: {
+            toolCall: {
+              include: {
+                attachments: true
+              }
+            }
+          }
+        });
+      }
+    }
+
+    return message;
+  });
 
   (async () => {
     await db.sessionEvent.updateMany({

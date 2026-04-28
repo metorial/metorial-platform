@@ -6,7 +6,7 @@ import {
   UpdateAssumeRolePolicyCommand
 } from '@aws-sdk/client-iam';
 import { once } from '@lowerdeck/once';
-import { env } from '../../env';
+import { env, lambdaNetworkConfig } from '../../env';
 
 let iam =
   env.provider.DEFAULT_PROVIDER == 'aws.lambda'
@@ -42,7 +42,23 @@ let permissionsPolicy = {
       Effect: 'Allow',
       Action: ['logs:CreateLogGroup', 'logs:CreateLogStream', 'logs:PutLogEvents'],
       Resource: '*'
-    }
+    },
+    ...(lambdaNetworkConfig
+      ? [
+          {
+            Effect: 'Allow',
+            Action: [
+              'ec2:AssignPrivateIpAddresses',
+              'ec2:CreateNetworkInterface',
+              'ec2:DeleteNetworkInterface',
+              'ec2:DescribeNetworkInterfaces',
+              'ec2:DescribeSubnets',
+              'ec2:UnassignPrivateIpAddresses'
+            ],
+            Resource: '*'
+          }
+        ]
+      : [])
   ]
 };
 

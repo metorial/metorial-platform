@@ -47,6 +47,7 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import { uniqBy } from 'lodash';
 import { PING_MESSAGE_ID_PREFIX } from '../const';
+import { mcpOutputSchemaNormalizer } from '../lib/mcpOutputSchemaNormalizer';
 import { providerToolPresenter } from '../presenter';
 import { upsertParticipant } from '../shared/upsertParticipant';
 import type { McpControlMessageHandler } from './control';
@@ -230,16 +231,16 @@ export class McpSender {
     }
 
     if (id === undefined || id === null || method.startsWith('notifications/')) {
-      console.warn(
-        'Received MCP message without id or with notification method, ignoring:',
-        msg
-      );
-
       if (method === 'notifications/initialized') {
         let initNotification = mcpValidate(id, InitializedNotificationSchema, msg);
         if (!initNotification.success) return { mcp: initNotification.error, store: false };
         return this.handleInitializedMessage(initNotification.data);
       }
+
+      console.warn(
+        'Received MCP message without id or with notification method, ignoring:',
+        msg
+      );
 
       // TODO: handle notification for mcp-compatible backends
       // -> send to all backends that support it
@@ -378,7 +379,9 @@ export class McpSender {
               inputSchema: presented.inputJsonSchema as any,
               outputSchema:
                 presented.outputJsonSchema?.type === 'object'
-                  ? (presented.outputJsonSchema as any)
+                  ? (mcpOutputSchemaNormalizer(presented.outputJsonSchema, {
+                      isRoot: true
+                    }) as any)
                   : undefined,
 
               icons: mcp?.icons,

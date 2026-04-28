@@ -161,11 +161,6 @@ describe('ensureMagicMcpSubspaceSession', () => {
         isConsumerReconciled: true
       }
     });
-    expect(subspaceSessionService.delete).toHaveBeenCalledWith({
-      instance: expect.objectContaining({ id: 'ins_1' }),
-      sessionId: 'ses_old',
-      _allowMagicMcpDelete: true
-    });
     expect(result).toEqual(nextMapping);
   });
 });

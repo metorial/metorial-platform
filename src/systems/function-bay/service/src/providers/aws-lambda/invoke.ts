@@ -2,6 +2,7 @@ import { InvokeCommand, type InvokeCommandOutput } from '@aws-sdk/client-lambda'
 import { getSentry } from '@lowerdeck/sentry';
 import type { Function, FunctionVersion } from '../../../prisma/generated/client';
 import { parseInvocationPayload } from '../_lib';
+import { createDeflectorToken, getDeflectorProxyUrl } from './deflector';
 import { lambdaClient } from './lambda';
 
 let Sentry = getSentry();
@@ -40,6 +41,10 @@ export let invokeFunction = async (d: {
   functionVersion: FunctionVersion;
   function: Function;
   payload: Record<string, any>;
+  egressPolicy?: {
+    allowedIps?: string[];
+    allowedHosts?: string[];
+  };
   providerData: {
     functionArn: string;
     functionName: string;
@@ -58,12 +63,26 @@ export let invokeFunction = async (d: {
   let startTs = Date.now();
 
   try {
+    let deflectorToken = await createDeflectorToken({
+      functionId: d.function.id,
+      functionVersionId: d.functionVersion.id,
+      egressPolicy: d.egressPolicy
+    });
+
     res = await lambdaClient.send(
       new InvokeCommand({
         FunctionName: d.providerData.functionName,
         Payload: new TextEncoder().encode(
           JSON.stringify({
-            payload: d.payload
+            payload: d.payload,
+            __functionBay: deflectorToken
+              ? {
+                  deflector: {
+                    proxyUrl: getDeflectorProxyUrl(),
+                    token: deflectorToken
+                  }
+                }
+              : undefined
           })
         ),
         LogType: 'Tail'

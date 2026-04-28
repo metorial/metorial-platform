@@ -51,6 +51,7 @@ class sessionMessageServiceImpl {
         messageOid: { in: messages.map(m => m.oid).filter(Boolean) }
       },
       include: {
+        attachments: true,
         tool: {
           include: {
             provider: true,
