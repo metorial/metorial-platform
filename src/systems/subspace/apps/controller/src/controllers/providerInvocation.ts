@@ -58,6 +58,12 @@ export let providerInvocationController = app.controller({
         }
       });
 
-      return res.map(providerInvocationPresenter);
+      return {
+        items: res.map(providerInvocationPresenter),
+        pagination: {
+          has_more_after: false,
+          has_more_before: false
+        }
+      };
     })
 });

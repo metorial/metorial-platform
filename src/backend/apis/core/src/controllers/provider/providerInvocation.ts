@@ -72,15 +72,16 @@ export let providerInvocationController = Controller.create(
         })
       )
       .do(async ctx => {
-        let items = await subspaceProviderInvocationService.list({
+        let paginator = await subspaceProviderInvocationService.list({
           instance: ctx.instance,
           providerRunIds: normalizeArrayParam(ctx.query.provider_run_id),
           sessionMessageIds: normalizeArrayParam(ctx.query.session_message_id),
           callbackEventIds: normalizeArrayParam(ctx.query.callback_event_id),
           authConfigEventIds: normalizeArrayParam(ctx.query.auth_config_event_id)
         });
+        let list = await paginator.run({});
 
-        return providerInvocationsPresenter.present({ items });
+        return providerInvocationsPresenter.present({ items: list.items });
       })
   }
 );
