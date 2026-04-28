@@ -61,6 +61,8 @@ type ConsumerAccessRequestIndexInput = {
   resolutionMessage?: string | null;
   requesterName?: string | null;
   requesterEmail?: string | null;
+  providerName?: string | null;
+  providerDescription?: string | null;
 };
 
 type MagicMcpGroupIndexInput = {
@@ -312,7 +314,9 @@ export let indexConsumerAccessRequestDocument = async (d: ConsumerAccessRequestI
       message: d.message ?? undefined,
       resolutionMessage: d.resolutionMessage ?? undefined,
       requesterName: d.requesterName ?? undefined,
-      requesterEmail: d.requesterEmail ?? undefined
+      requesterEmail: d.requesterEmail ?? undefined,
+      providerName: d.providerName ?? undefined,
+      providerDescription: d.providerDescription ?? undefined
     }
   });
 

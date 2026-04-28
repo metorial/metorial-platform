@@ -74,7 +74,7 @@ export let consumerAccessRequestApprovedEmail = notificationClient.createTemplat
               ]}
             />
 
-            <Button href={url}>Open Metorial</Button>
+            <Button href={url}>Open {consumerSurface.name}</Button>
 
             <Text>
               You can now continue in the Metorial app and use the approved resource.

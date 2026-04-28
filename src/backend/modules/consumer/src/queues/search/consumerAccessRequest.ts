@@ -19,6 +19,8 @@ export let indexConsumerAccessRequestSearchQueueProcessor =
       },
       include: {
         consumerProfile: true,
+        providerTemplate: true,
+        magicMcpServer: true,
         surface: {
           include: {
             instance: true
@@ -40,6 +42,12 @@ export let indexConsumerAccessRequestSearchQueueProcessor =
       message: consumerAccessRequest.message,
       resolutionMessage: consumerAccessRequest.resolutionMessage,
       requesterEmail: consumerAccessRequest.consumerProfile.email,
-      requesterName: consumerAccessRequest.consumerProfile.name
+      requesterName: consumerAccessRequest.consumerProfile.name,
+      providerName:
+        consumerAccessRequest.providerTemplate?.name ??
+        consumerAccessRequest.magicMcpServer?.name,
+      providerDescription:
+        consumerAccessRequest.providerTemplate?.description ??
+        consumerAccessRequest.magicMcpServer?.description
     });
   });
