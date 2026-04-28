@@ -329,7 +329,7 @@ export let ensureMagicMcpSubspaceSession = async (magicMcpTarget: MagicMcpResolv
   let mapping = await getExistingMapping(target);
   let now = new Date();
 
-  if (false && isReusableMapping(mapping, target, now)) return mapping!;
+  if (isReusableMapping(mapping, target, now)) return mapping!;
 
   let providers = await getSubspaceProviders({
     instance: target.instance,
