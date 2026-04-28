@@ -164,5 +164,9 @@ export let backendEnv: Env = [
   {
     key: 'SUBSPACE_CONNECTION_URL',
     defaultValue: 'http://localhost:52072'
+  },
+  {
+    key: 'VOYAGER_URL',
+    defaultValue: 'http://services:52060/metorial-voyager'
   }
 ];

@@ -9,6 +9,9 @@ import { ContentSide, Overlay } from './styles';
 
 let Wrapper = styled(ContentSide)`
   transition: width 0.2s ease;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
 `;
 
 let Header = styled('header')`
@@ -29,11 +32,8 @@ let Header = styled('header')`
 let Content = styled('main')`
   display: flex;
   flex-direction: column;
-  flex: 1;
-  min-height: 0;
+  flex: 1 0 auto;
   padding: 15px 20px;
-  overflow: auto;
-  /* scrollbar-gutter: stable both-edges; */
 `;
 
 let Title = styled(RadixDialogDialog.Title)`

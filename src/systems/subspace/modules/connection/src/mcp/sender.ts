@@ -378,9 +378,9 @@ export class McpSender {
 
               inputSchema: presented.inputJsonSchema as any,
               outputSchema:
-                presented.outputJsonSchema
+                presented.outputJsonSchema?.type === 'object'
                   ? (mcpOutputSchemaNormalizer(presented.outputJsonSchema, {
-                      isRoot: presented.outputJsonSchema?.type === 'object'
+                      isRoot: true
                     }) as any)
                   : undefined,
 
