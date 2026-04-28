@@ -23,7 +23,9 @@ model CallbackDestination {
   url    String
   method String
 
-  slateTriggerDestinationId String
+  slateTriggerDestinationId String?
+  signalEventDestinationId  String?
+  lastSignalSyncedAt        DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
@@ -61,6 +63,7 @@ model Callback {
 
   status CallbackStatus
   mode   CallbackMode
+  isCallbacksV2 Boolean @default(false)
 
   name                        String
   description                 String?
@@ -136,6 +139,10 @@ model CallbackInstance {
 
   status             CallbackInstanceStatus
   registrationStatus CallbackInstanceRegistrationStatus
+  slateTriggerReceiverId String?
+  lastSyncErrorCode      String?
+  lastSyncErrorMessage   String?
+  lastSyncedAt           DateTime?
 
   activeRegistrationOid BigInt?                       @unique
   activeRegistration    CallbackReceiverRegistration? @relation("ActiveCallbackInstanceRegistration", fields: [activeRegistrationOid], references: [oid], onDelete: SetNull)

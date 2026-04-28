@@ -55,7 +55,8 @@ export let enrichCallbackInstanceTriggers = async (
 ): Promise<Map<string, EnrichedCallbackInstanceTrigger[]>> => {
   let receiverIdToInstanceIds = new Map<string, string[]>();
   for (let instance of instances) {
-    let receiverId = instance.activeRegistration?.slateTriggerReceiverId;
+    let receiverId =
+      instance.slateTriggerReceiverId ?? instance.activeRegistration?.slateTriggerReceiverId;
     if (!receiverId) continue;
     let ids = receiverIdToInstanceIds.get(receiverId);
     if (!ids) {
@@ -103,7 +104,8 @@ export let enrichSingleCallbackInstanceTriggers = async <
   callback: Callback,
   instance: I
 ): Promise<(EnrichedCallbackInstanceTrigger & I)[]> => {
-  let receiverId = instance.activeRegistration?.slateTriggerReceiverId;
+  let receiverId =
+    instance.slateTriggerReceiverId ?? instance.activeRegistration?.slateTriggerReceiverId;
   if (!receiverId) return [];
 
   let slatesTenant = await getTenantForSlates(tenant);
