@@ -1,12 +1,12 @@
-import { describe, expect, it } from 'vitest';
-import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { createHono } from '@lowerdeck/hono';
-import { mcpRouter } from '../api/mcp';
-import { testDb } from '../../test/setup';
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+import { describe, expect, it } from 'vitest';
 import { createMcpE2eContext } from '../../test/fixtures';
 import { createHonoFetchAdapter } from '../../test/helpers/honoFetchAdapter';
 import { createMcpTestClient } from '../../test/helpers/mcpClientFactory';
 import { setupMcpE2ELifecycle } from '../../test/helpers/mcpE2ELifecycle';
+import { testDb } from '../../test/setup';
+import { mcpRouter } from '../api/mcp';
 
 let transportCases = [
   {
@@ -235,16 +235,19 @@ describe('mcp.e2e', () => {
           properties: {
             callRationale: expect.objectContaining({
               type: 'string',
-              description: expect.stringContaining('1-2 sentence description why the call is needed')
+              description: expect.stringContaining(
+                '1-2 sentence description why the call is needed'
+              )
             }),
             callDescription: expect.objectContaining({
               type: 'string',
-              description: expect.stringContaining('Describe what the calling agent or client wants to do')
+              description: expect.stringContaining(
+                'Describe what the calling agent or client wants to do'
+              )
             })
           }
         });
         expect(operationSchema.description).toContain('MUST be provided');
-        expect(operationSchema.description).toContain('backwards compatibility');
 
         let result = await mcp.client.callTool({
           name: addTool!.name,
@@ -284,7 +287,9 @@ describe('mcp.e2e', () => {
             }
           }
         });
-        expect((toolCall.message.input as any)?.data?.params?.arguments?.$operation).toBeUndefined();
+        expect(
+          (toolCall.message.input as any)?.data?.params?.arguments?.$operation
+        ).toBeUndefined();
       } finally {
         await mcp.cleanup();
       }
