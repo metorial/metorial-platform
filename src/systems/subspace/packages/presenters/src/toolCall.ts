@@ -2,16 +2,16 @@ import { getOffloadedSessionMessage } from '@metorial-subspace/connection-utils'
 import {
   messageInputToToolCall,
   messageOutputToToolCall,
+  presentToolCallAttachment,
   type Provider,
   type ProviderSpecification,
   type ProviderTool,
-  type ToolCallAttachment,
-  type ToolCall
+  type ToolCall,
+  type ToolCallAttachment
 } from '@metorial-subspace/db';
 import { providerToolPresenter } from './providerTool';
 import { sessionErrorPresenter } from './sessionError';
 import type { SessionMessagePresenterProps } from './sessionMessage';
-import { presentToolCallAttachment } from '@metorial-subspace/db';
 
 export type ToolCallPresenterProps = ToolCall & {
   attachments: ToolCallAttachment[];

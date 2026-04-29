@@ -10,8 +10,8 @@ import {
   type SessionMessage,
   type SessionParticipant,
   type SessionProvider,
-  type ToolCallAttachment,
-  type ToolCall
+  type ToolCall,
+  type ToolCallAttachment
 } from '@metorial-subspace/db';
 import { sessionErrorPresenter, type SessionErrorPresenterProps } from './sessionError';
 import { sessionParticipantPresenter } from './sessionParticipant';

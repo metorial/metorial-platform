@@ -34,9 +34,12 @@ export let sessionParticipantController = app.controller({
               v.enumOf([
                 'unknown',
                 'provider',
+                'agent',
+                'system',
+
+                // Legacy
                 'mcp_client',
                 'metorial_protocol_client',
-                'system',
                 'tool_call'
               ])
             )
@@ -58,7 +61,11 @@ export let sessionParticipantController = app.controller({
         environment: ctx.environment,
         solution: ctx.solution,
 
-        types: ctx.input.types,
+        types: ctx.input.types?.map(t =>
+          t === 'mcp_client' || t === 'metorial_protocol_client' || t === 'tool_call'
+            ? 'agent'
+            : t
+        ),
 
         ids: ctx.input.ids,
         sessionIds: ctx.input.sessionIds,

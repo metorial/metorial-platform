@@ -8,7 +8,12 @@ export let sessionParticipantPresenter = (
   object: 'session.participant',
 
   id: participant.id,
-  type: participant.type,
+  type:
+    participant.type === 'legacy_mcp_client' ||
+    participant.type === 'legacy_metorial_protocol_client' ||
+    participant.type === 'legacy_tool_call'
+      ? 'agent'
+      : participant.type,
 
   identifier: participant.identifier,
   name: participant.name,

@@ -1,6 +1,9 @@
 import { apiMux } from '@lowerdeck/api-mux';
 import { createServer, type InferClient, rpcMux } from '@lowerdeck/rpc-server';
 import { app } from './_app';
+import { agentController } from './agent';
+import { agentClientController } from './agentClient';
+import { agentInstanceController } from './agentInstance';
 import { actorController } from './actor';
 import { authConfigErrorController } from './authConfigError';
 import { authConfigErrorGlobalController } from './authConfigErrorGlobal';
@@ -75,6 +78,9 @@ import { tenantController } from './tenant';
 import { toolCallController } from './toolCall';
 
 let systemControllers = {
+  agent: agentController,
+  agentClient: agentClientController,
+  agentInstance: agentInstanceController,
   environment: environmentController,
   actor: actorController,
   authConfigEvent: authConfigEventController,
