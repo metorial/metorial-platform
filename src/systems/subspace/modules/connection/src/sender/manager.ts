@@ -827,7 +827,7 @@ export class SenderManager {
         ? { type: 'system' }
         : {
             type: 'connection_client',
-            transport: d.mcpTransport === 'none' ? 'metorial' : 'mcp',
+            transport: d.mcpTransport === 'none' ? 'metorial_protocol' : 'mcp',
             participant: d.client
           }
     });

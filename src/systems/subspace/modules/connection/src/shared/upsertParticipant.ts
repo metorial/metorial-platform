@@ -3,6 +3,7 @@ import { Hash } from '@lowerdeck/hash';
 import {
   db,
   getId,
+  SessionParticipantConnectionType,
   type Provider,
   type Session,
   type SessionParticipantType
@@ -13,15 +14,12 @@ export let upsertParticipant = async (d: {
   from:
     | {
         type: 'connection_client';
-        transport: 'mcp' | 'metorial';
+        transport: SessionParticipantConnectionType;
         participant: PrismaJson.SessionParticipantPayload;
       }
     | {
         type: 'provider';
         provider: Provider;
-      }
-    | {
-        type: 'tool_call';
       }
     | {
         type: 'system';
@@ -33,12 +31,14 @@ export let upsertParticipant = async (d: {
   let hash: string = d.from.type;
   let participantData: PrismaJson.SessionParticipantPayload;
   let type: SessionParticipantType;
+  let connectionType: SessionParticipantConnectionType | undefined;
 
   switch (d.from.type) {
     case 'connection_client':
       participantData = d.from.participant;
       hash = await Hash.sha256(canonicalize([d.session.tenantOid, participantData]));
-      type = d.from.transport === 'mcp' ? 'mcp_client' : 'metorial_protocol_client';
+      connectionType = d.from.transport;
+      type = 'agent';
       break;
 
     case 'provider':
@@ -48,14 +48,6 @@ export let upsertParticipant = async (d: {
       };
       hash = `provider:${d.from.provider.id}`;
       type = 'provider';
-      break;
-
-    case 'tool_call':
-      participantData = {
-        identifier: 'tool_call',
-        name: 'Tool Call'
-      };
-      type = 'tool_call';
       break;
 
     case 'system':

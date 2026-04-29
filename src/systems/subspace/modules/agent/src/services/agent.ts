@@ -11,7 +11,6 @@ import {
   withTransaction
 } from '@metorial-subspace/db';
 import {
-  checkDeletedEdit,
   normalizeStatusForGet,
   normalizeStatusForList,
   resolveProviders
@@ -140,29 +139,69 @@ class agentServiceImpl {
     };
   }) {
     checkTenant(d, d.agent);
-    checkDeletedEdit(d.agent, 'update');
 
-    return withTransaction(async db => {
-      let actor = await db.identityActor.findFirstOrThrow({
-        where: { oid: d.agent.actorOid }
-      });
+    let actor = await identityActorService.getIdentityActorById({
+      identityActorId: (
+        await db.identityActor.findFirstOrThrow({
+          where: { oid: d.agent.actorOid },
+          select: { id: true }
+        })
+      ).id,
+      tenant: d.tenant,
+      solution: d.solution,
+      environment: d.environment,
+      allowDeleted: true
+    });
 
-      let agentActor = await identityActorService.updateIdentityActor({
-        tenant: d.tenant,
-        solution: d.solution,
-        environment: d.environment,
-        identityActor: actor,
-        input: {
-          name: d.input.name,
-          description: d.input.description,
-          metadata: d.input.metadata
-        }
-      });
+    let agentActor = await identityActorService.updateIdentityActor({
+      tenant: d.tenant,
+      solution: d.solution,
+      environment: d.environment,
+      identityActor: actor,
+      input: {
+        name: d.input.name,
+        description: d.input.description,
+        metadata: d.input.metadata
+      }
+    });
 
-      return await db.agent.findFirstOrThrow({
-        where: { actorOid: agentActor.oid },
-        include
-      });
+    return await db.agent.findFirstOrThrow({
+      where: { actorOid: agentActor.oid },
+      include
+    });
+  }
+
+  async archiveAgent(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    agent: Agent;
+  }) {
+    checkTenant(d, d.agent);
+
+    let actor = await identityActorService.getIdentityActorById({
+      identityActorId: (
+        await db.identityActor.findFirstOrThrow({
+          where: { oid: d.agent.actorOid },
+          select: { id: true }
+        })
+      ).id,
+      tenant: d.tenant,
+      solution: d.solution,
+      environment: d.environment,
+      allowDeleted: true
+    });
+
+    let archivedActor = await identityActorService.archiveIdentityActor({
+      tenant: d.tenant,
+      solution: d.solution,
+      environment: d.environment,
+      identityActor: actor
+    });
+
+    return await db.agent.findFirstOrThrow({
+      where: { actorOid: archivedActor.oid },
+      include
     });
   }
 }

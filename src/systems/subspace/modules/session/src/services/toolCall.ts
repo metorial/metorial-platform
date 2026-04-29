@@ -4,13 +4,13 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
   db,
-  type ToolCallAttachment,
-  type ToolCall,
   type Environment,
   type Session,
   type SessionMessageStatus,
   type Solution,
-  type Tenant
+  type Tenant,
+  type ToolCall,
+  type ToolCallAttachment
 } from '@metorial-subspace/db';
 import {
   checkDeletedRelation,

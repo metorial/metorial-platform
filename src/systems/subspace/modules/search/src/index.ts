@@ -95,6 +95,12 @@ export let voyagerIndex = {
     name: 'Agents'
   }),
 
+  agentClient: await voyager.index.upsert({
+    sourceId: (await voyagerSource).id,
+    identifier: getIndexName('agent_client'),
+    name: 'Agent Clients'
+  }),
+
   identity: await voyager.index.upsert({
     sourceId: (await voyagerSource).id,
     identifier: getIndexName('identity'),

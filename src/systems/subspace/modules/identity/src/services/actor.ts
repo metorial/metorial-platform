@@ -1,4 +1,4 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { generateCode } from '@lowerdeck/id';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
@@ -269,10 +269,24 @@ class identityActorServiceImpl {
     checkTenant(d, d.identityActor);
     checkDeletedEdit(d.identityActor, 'archive');
 
+    let existingIdentityActor = await db.identityActor.findUniqueOrThrow({
+      where: { oid: d.identityActor.oid },
+      include
+    });
+
+    if (existingIdentityActor.agent?.type === 'mcp_client') {
+      throw new ServiceError(
+        badRequestError({
+          message: 'MCP client agents cannot be deleted',
+          code: 'agent_delete_not_allowed'
+        })
+      );
+    }
+
     return withTransaction(async db => {
       let identityActor = await db.identityActor.update({
         where: {
-          oid: d.identityActor.oid,
+          oid: existingIdentityActor.oid,
           tenantOid: d.tenant.oid,
           solutionOid: d.solution.oid,
           environmentOid: d.environment.oid

@@ -2,9 +2,9 @@ import { db } from '@metorial-subspace/db';
 import {
   IProviderInvocation,
   type ProviderInvocationGetParam,
-  type ProviderInvocation as UnifiedProviderInvocation,
   type ProviderInvocationListParam,
   type ProviderInvocationListRes,
+  type ProviderInvocation as UnifiedProviderInvocation,
   createProviderInvocationId,
   parseStoredProviderInvocationId
 } from '@metorial-subspace/provider-utils';
@@ -155,7 +155,10 @@ export class ProviderInvocation extends IProviderInvocation {
         mergeInvocation(invocationMap, {
           id: getSlateProviderInvocationId(remote.id),
           source: 'slates',
-          type: event.sourceType === 'slates.auth_config_event' ? 'auth_config_event' : 'oauth_setup',
+          type:
+            event.sourceType === 'slates.auth_config_event'
+              ? 'auth_config_event'
+              : 'oauth_setup',
           status: getInvocationStatus(remote.status),
           providerRunIds: [],
           sessionMessageIds: [],
