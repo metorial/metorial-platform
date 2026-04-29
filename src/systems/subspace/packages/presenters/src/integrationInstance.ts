@@ -1,0 +1,78 @@
+import type {
+  Integration,
+  IntegrationInstance,
+  IntegrationInstanceProvider,
+  IntegrationInstanceProviderVersion,
+  IntegrationProvider,
+  IntegrationProviderVersion,
+  Provider,
+  ProviderAuthConfig,
+  ProviderAuthCredentials,
+  ProviderAuthMethod,
+  ProviderConfig,
+  ProviderDeployment,
+  ProviderSpecification
+} from '@metorial-subspace/db';
+import { integrationInstanceProviderPresenter } from './integrationInstanceProvider';
+
+export let integrationInstancePresenter = (
+  integrationInstance: IntegrationInstance & {
+    integration: Integration;
+    integrationInstanceProviders: (IntegrationInstanceProvider & {
+      integration: Integration;
+      integrationInstance: IntegrationInstance;
+      integrationProvider: IntegrationProvider & {
+        integration: Integration;
+        provider: Provider;
+        currentVersion:
+          | (IntegrationProviderVersion & {
+              deployment: ProviderDeployment;
+              authMethod:
+                | (ProviderAuthMethod & {
+                    specification: Omit<ProviderSpecification, 'value'>;
+                  })
+                | null;
+              authCredentials: ProviderAuthCredentials | null;
+              config: ProviderConfig | null;
+            })
+          | null;
+      };
+      currentVersion:
+        | (IntegrationInstanceProviderVersion & {
+            integrationProviderVersion: IntegrationProviderVersion & {
+              deployment: ProviderDeployment;
+              authMethod:
+                | (ProviderAuthMethod & {
+                    specification: Omit<ProviderSpecification, 'value'>;
+                  })
+                | null;
+              authCredentials: ProviderAuthCredentials | null;
+              config: ProviderConfig | null;
+            };
+            config: (ProviderConfig & { provider: Provider }) | null;
+            authConfig: (ProviderAuthConfig & { provider: Provider }) | null;
+          })
+        | null;
+    })[];
+  }
+) => ({
+  object: 'integration.instance',
+
+  id: integrationInstance.id,
+  status: integrationInstance.status,
+
+  name: integrationInstance.name,
+  description: integrationInstance.description,
+  metadata: integrationInstance.metadata,
+  privateMetadata: integrationInstance.privateMetadata,
+
+  integrationId: integrationInstance.integration.id,
+
+  providers: integrationInstance.integrationInstanceProviders.map(provider =>
+    integrationInstanceProviderPresenter(provider)
+  ),
+
+  createdAt: integrationInstance.createdAt,
+  updatedAt: integrationInstance.updatedAt,
+  archivedAt: integrationInstance.archivedAt
+});

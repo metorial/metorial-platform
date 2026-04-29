@@ -25,6 +25,30 @@ export let resolveIntegrationProviders = createResolver(async ({ ts, ids }) =>
   })
 );
 
+export let resolveIntegrationInstances = createResolver(async ({ ts, ids }) =>
+  db.integrationInstance.findMany({
+    where: {
+      id: { in: ids },
+      tenantOid: ts.tenantOid,
+      solutionOid: ts.solutionOid,
+      environmentOid: ts.environmentOid
+    },
+    select: { oid: true }
+  })
+);
+
+export let resolveIntegrationInstanceProviders = createResolver(async ({ ts, ids }) =>
+  db.integrationInstanceProvider.findMany({
+    where: {
+      id: { in: ids },
+      tenantOid: ts.tenantOid,
+      solutionOid: ts.solutionOid,
+      environmentOid: ts.environmentOid
+    },
+    select: { oid: true }
+  })
+);
+
 export let resolveIntegrationProviderVersions = createResolver(async ({ ts, ids }) =>
   db.integrationProviderVersion.findMany({
     where: {
