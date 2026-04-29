@@ -94,6 +94,7 @@ export let toolCallController = app.controller({
 
         sessionId: v.string(),
 
+        agentId: v.optional(v.string()),
         metadata: v.optional(v.record(v.any())),
         input: v.record(v.any()),
         toolId: v.string()
@@ -115,6 +116,7 @@ export let toolCallController = app.controller({
         session,
 
         input: {
+          agentId: ctx.input.agentId,
           metadata: ctx.input.metadata,
           input: ctx.input.input,
           toolId: ctx.input.toolId

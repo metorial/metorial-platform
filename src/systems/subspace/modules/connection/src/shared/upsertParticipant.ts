@@ -1,6 +1,7 @@
 import { canonicalize } from '@lowerdeck/canonicalize';
 import { Hash } from '@lowerdeck/hash';
 import {
+  type AgentInstance,
   db,
   getId,
   SessionParticipantConnectionType,
@@ -16,6 +17,7 @@ export let upsertParticipant = async (d: {
         type: 'connection_client';
         transport: SessionParticipantConnectionType;
         participant: PrismaJson.SessionParticipantPayload;
+        agentInstance?: AgentInstance | null;
       }
     | {
         type: 'provider';
@@ -81,11 +83,23 @@ export let upsertParticipant = async (d: {
       type,
       identifier: participantData.identifier,
       name: participantData.name,
+      connectionType,
       payload: participantData,
       tenantOid: d.session.tenantOid,
       environmentOid: d.session.environmentOid,
-      providerOid: d.from.type === 'provider' ? d.from.provider.oid : undefined
+      providerOid: d.from.type === 'provider' ? d.from.provider.oid : undefined,
+      agentInstanceOid:
+        d.from.type === 'connection_client' ? d.from.agentInstance?.oid : undefined
     },
-    update: {}
+    update:
+      d.from.type === 'connection_client'
+        ? {
+            identifier: participantData.identifier,
+            name: participantData.name,
+            payload: participantData,
+            connectionType,
+            agentInstanceOid: d.from.agentInstance?.oid
+          }
+        : {}
   });
 };

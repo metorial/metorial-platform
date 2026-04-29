@@ -47,7 +47,7 @@ export let agentInstanceController = app.controller({
           agentId: v.string(),
           allowDeleted: v.optional(v.boolean()),
 
-          types: v.optional(v.array(v.enumOf(['mcp_client']))),
+          types: v.optional(v.array(v.enumOf(['mcp_client', 'tool_call']))),
           ids: v.optional(v.array(v.string())),
           agentClientIds: v.optional(v.array(v.string())),
 

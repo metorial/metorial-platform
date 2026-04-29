@@ -71,6 +71,8 @@ model SessionConnection {
   mcpTransport       SessionConnectionMcpConnectionTransport
   mcpProtocolVersion String?
 
+  privateMetadata Json?
+
   createdAt DateTime @default(now())
 
   // When a connection is expired and a client tries to connect to it, 

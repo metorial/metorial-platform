@@ -19,6 +19,7 @@
     "@metorial-subspace/db": "^1.0.0",
     "@metorial-subspace/provider": "^1.0.0",
     "@metorial-subspace/list-utils": "^1.0.0",
+    "@metorial-subspace/module-agent": "^1.0.0",
     "@metorial-subspace/module-catalog": "^1.0.0",
     "@metorial-subspace/module-deployment": "^1.0.0",
     "@metorial-subspace/module-provider-internal": "^1.0.0",

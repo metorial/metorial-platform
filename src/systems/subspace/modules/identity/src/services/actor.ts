@@ -5,6 +5,7 @@ import { Service } from '@lowerdeck/service';
 import { createSlugGenerator } from '@lowerdeck/slugify';
 import {
   addAfterTransactionHook,
+  type AgentType,
   db,
   type Environment,
   getId,
@@ -143,6 +144,8 @@ class identityActorServiceImpl {
       type: IdentityActorType;
 
       _agentSlug?: string;
+      _agentHash?: string;
+      _agentType?: AgentType;
     };
   }) {
     return withTransaction(async db => {
@@ -176,6 +179,8 @@ class identityActorServiceImpl {
             description: d.input.description?.trim() || undefined,
             metadata: d.input.metadata,
             privateMetadata: d.input.privateMetadata,
+            hash: d.input._agentHash,
+            type: d.input._agentType,
 
             slug: await getAgentSlug(
               {
@@ -221,10 +226,24 @@ class identityActorServiceImpl {
     checkTenant(d, d.identityActor);
     checkDeletedEdit(d.identityActor, 'update');
 
+    let existingIdentityActor = await db.identityActor.findUniqueOrThrow({
+      where: { oid: d.identityActor.oid },
+      include
+    });
+
+    if (existingIdentityActor.agent?.type === 'tool_call') {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Special tool call agents cannot be updated',
+          code: 'agent_update_not_allowed'
+        })
+      );
+    }
+
     return withTransaction(async db => {
       let identityActor = await db.identityActor.update({
         where: {
-          oid: d.identityActor.oid,
+          oid: existingIdentityActor.oid,
           tenantOid: d.tenant.oid,
           solutionOid: d.solution.oid,
           environmentOid: d.environment.oid

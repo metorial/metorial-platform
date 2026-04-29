@@ -25,6 +25,7 @@ import {
   resolveProviderTools,
   resolveSessionTemplates
 } from '@metorial-subspace/list-utils';
+import { agentInstanceService, agentService } from '@metorial-subspace/module-agent';
 import { SenderManager } from '@metorial-subspace/module-connection';
 import { env } from '../env';
 import { sessionMessageInclude, sessionMessageService } from './sessionMessage';
@@ -183,9 +184,40 @@ class toolCallServiceImpl {
       metadata?: Record<string, any>;
       toolId: string;
       input: Record<string, any>;
+      agentId?: string;
     };
   }) {
     checkDeletedRelation(d.session);
+
+    let agent = d.input.agentId
+      ? await agentService.getAgentById({
+          agentId: d.input.agentId,
+          tenant: d.tenant,
+          solution: d.solution,
+          environment: d.environment
+        })
+      : await agentService.upsertAgent({
+          tenant: d.tenant,
+          solution: d.solution,
+          environment: d.environment,
+          input: {
+            name: 'Manual Tool Calls',
+            type: 'tool_call'
+          }
+        });
+
+    let agentInstance = await agentInstanceService.upsertAgentInstance({
+      tenant: d.tenant,
+      solution: d.solution,
+      environment: d.environment,
+      agent,
+      input: {
+        name: agent.name,
+        version: undefined,
+        description: undefined,
+        type: 'tool_call'
+      }
+    });
 
     let manager = await SenderManager.create({
       sessionId: d.session.id,
@@ -198,7 +230,10 @@ class toolCallServiceImpl {
       where: {
         state: 'connected',
         sessionOid: d.session.oid,
-        isForManualToolCalls: true
+        isForManualToolCalls: true,
+        participant: {
+          agentInstanceOid: agentInstance.oid
+        }
       }
     });
 
@@ -208,18 +243,22 @@ class toolCallServiceImpl {
           where: {
             state: 'connected',
             sessionOid: d.session.oid,
-            isForManualToolCalls: true
+            isForManualToolCalls: true,
+            participant: {
+              agentInstanceOid: agentInstance.oid
+            }
           }
         });
         if (existing) return existing;
 
         let connection = await manager.initialize({
           client: {
-            name: 'Manual Tool Calls',
-            identifier: 'metorial#tool_call'
+            name: agent.name,
+            identifier: `metorial#tool_call:${agentInstance.id}`
           },
           mcpTransport: 'none',
-          isManualConnection: true
+          isManualConnection: true,
+          agentInstance
         });
 
         return connection;

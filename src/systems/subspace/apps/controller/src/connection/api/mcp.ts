@@ -2,10 +2,42 @@ import { delay } from '@lowerdeck/delay';
 import { createHono } from '@lowerdeck/hono';
 import { McpConnection } from '@metorial-subspace/module-connection';
 import { streamSSE } from 'hono/streaming';
+import z from 'zod';
 
 let isDev = process.env.NODE_ENV !== 'production';
 
 type Transports = 'sse' | 'streamable_http';
+
+let agentClientHeaderSchema = z.object({
+  name: z.string(),
+  type: z.literal('mcp_client_oauth'),
+  privateMetadata: z.record(z.string(), z.any()).optional(),
+  oauthRegistrationId: z.string()
+});
+
+let privateMetadataHeaderSchema = z.record(z.string(), z.any());
+
+let parseOptionalJsonHeader = <T>(
+  value: string | undefined,
+  schema: z.ZodSchema<T>,
+  name: string
+) => {
+  if (!value) return { success: true as const, data: undefined };
+
+  let parsedJson: unknown;
+  try {
+    parsedJson = JSON.parse(value);
+  } catch {
+    return { success: false as const, message: `Invalid ${name} header JSON` };
+  }
+
+  let parsed = schema.safeParse(parsedJson);
+  if (!parsed.success) {
+    return { success: false as const, message: `Invalid ${name} header value` };
+  }
+
+  return { success: true as const, data: parsed.data };
+};
 
 export let mcpRouter = createHono().all(`/:key?`, async c => {
   if (isDev) {
@@ -13,7 +45,7 @@ export let mcpRouter = createHono().all(`/:key?`, async c => {
     c.res.headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, DELETE');
     c.res.headers.set(
       'Access-Control-Allow-Headers',
-      'Content-Type, Metorial-Proxy-URL, MCP-Protocol-Version, MCP-Session-ID, Authorization'
+      'Content-Type, Metorial-Proxy-URL, Metorial-Agent-Client, Metorial-Connection-Private-Metadata, MCP-Protocol-Version, MCP-Session-ID, Authorization'
     );
     c.res.headers.set('Access-Control-Allow-Credentials', 'true');
     c.res.headers.set(
@@ -38,7 +70,11 @@ export let mcpRouter = createHono().all(`/:key?`, async c => {
     sessionId: c.req.param('sessionId')!,
     solutionId: c.req.param('solutionId')!,
     tenantId: c.req.param('tenantId')!,
-    mcpTransport: transport
+    mcpTransport: transport,
+    agentClient: undefined as z.infer<typeof agentClientHeaderSchema> | undefined,
+    connectionPrivateMetadata: undefined as
+      | z.infer<typeof privateMetadataHeaderSchema>
+      | undefined
   };
 
   let metorialProxyUrl = c.req.header('metorial-proxy-url');
@@ -46,6 +82,25 @@ export let mcpRouter = createHono().all(`/:key?`, async c => {
     if (!isDev) return c.text('Missing Metorial-Proxy-URL header', 400);
     metorialProxyUrl = c.req.url;
   }
+
+  let agentClientHeader = parseOptionalJsonHeader(
+    c.req.header('metorial-agent-client'),
+    agentClientHeaderSchema,
+    'Metorial-Agent-Client'
+  );
+  if (!agentClientHeader.success) return c.text(agentClientHeader.message, 400);
+
+  let connectionPrivateMetadataHeader = parseOptionalJsonHeader(
+    c.req.header('metorial-connection-private-metadata'),
+    privateMetadataHeaderSchema,
+    'Metorial-Connection-Private-Metadata'
+  );
+  if (!connectionPrivateMetadataHeader.success) {
+    return c.text(connectionPrivateMetadataHeader.message, 400);
+  }
+
+  baseParams.agentClient = agentClientHeader.data;
+  baseParams.connectionPrivateMetadata = connectionPrivateMetadataHeader.data;
 
   if (transport === 'sse') {
     if (c.req.method === 'GET') {

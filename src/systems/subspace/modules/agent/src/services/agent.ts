@@ -1,9 +1,13 @@
+import { Hash } from '@lowerdeck/hash';
+import { generatePlainId } from '@lowerdeck/id';
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
+import { slugify } from '@lowerdeck/slugify';
 import {
   type Agent,
   AgentStatus,
+  AgentType,
   db,
   type Environment,
   type Solution,
@@ -20,6 +24,9 @@ import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-
 import { checkTenant } from '@metorial-subspace/module-tenant';
 
 let include = { actor: true };
+let isUniqueConstraintError = (error: any) => error?.code === 'P2002';
+let getAgentUpsertSlug = (name: string) =>
+  `${slugify(name)}-${generatePlainId(7).toLowerCase()}`;
 
 class agentServiceImpl {
   async listAgents(d: {
@@ -116,7 +123,8 @@ class agentServiceImpl {
           description: d.input.description,
           metadata: d.input.metadata,
           type: 'agent',
-          _agentSlug: d.input.slug
+          _agentSlug: d.input.slug,
+          _agentType: 'custom'
         }
       });
 
@@ -169,6 +177,71 @@ class agentServiceImpl {
       where: { actorOid: agentActor.oid },
       include
     });
+  }
+
+  async upsertAgent(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    input: {
+      name: string;
+      slug?: string;
+      description?: string;
+      metadata?: Record<string, any>;
+      privateMetadata?: Record<string, any>;
+      type?: AgentType;
+    };
+  }) {
+    let name = d.input.name.trim();
+    let type = d.input.type ?? 'custom';
+    let hash = await Hash.sha256(JSON.stringify([name, type]));
+
+    let getExisting = async () =>
+      await db.agent.findUnique({
+        where: {
+          environmentOid_hash: {
+            environmentOid: d.environment.oid,
+            hash
+          }
+        },
+        include
+      });
+
+    let existing = await getExisting();
+    if (existing) return existing;
+
+    try {
+      return await withTransaction(async db => {
+        let agentActor = await identityActorService.createIdentityActor({
+          tenant: d.tenant,
+          solution: d.solution,
+          environment: d.environment,
+
+          input: {
+            name,
+            description: d.input.description,
+            metadata: d.input.metadata,
+            privateMetadata: d.input.privateMetadata,
+            type: 'agent',
+            _agentSlug: d.input.slug?.trim() || getAgentUpsertSlug(name),
+            _agentHash: hash,
+            _agentType: type
+          }
+        });
+
+        return await db.agent.findFirstOrThrow({
+          where: { actorOid: agentActor.oid },
+          include
+        });
+      });
+    } catch (error) {
+      if (!isUniqueConstraintError(error)) throw error;
+
+      let existingAfterConflict = await getExisting();
+      if (existingAfterConflict) return existingAfterConflict;
+
+      throw error;
+    }
   }
 
   async archiveAgent(d: {

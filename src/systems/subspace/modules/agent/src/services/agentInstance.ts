@@ -1,11 +1,12 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
+import { Hash } from '@lowerdeck/hash';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
-  db,
   type Agent,
   type AgentClient,
   type AgentInstanceType,
+  db,
   type Environment,
   getId,
   type Solution,
@@ -52,7 +53,9 @@ class agentInstanceServiceImpl {
               AND: [
                 d.ids ? { id: { in: d.ids } } : undefined!,
                 d.types ? { type: { in: d.types } } : undefined!,
-                d.agentClientIds ? { agentClient: { id: { in: d.agentClientIds } } } : undefined!,
+                d.agentClientIds
+                  ? { agentClient: { id: { in: d.agentClientIds } } }
+                  : undefined!,
 
                 d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
                 d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
@@ -87,7 +90,7 @@ class agentInstanceServiceImpl {
     return agentInstance;
   }
 
-  async createAgentInstance(d: {
+  async upsertAgentInstance(d: {
     tenant: Tenant;
     solution: Solution;
     environment: Environment;
@@ -99,7 +102,6 @@ class agentInstanceServiceImpl {
       name: string;
       version?: string;
       description?: string;
-      hash: string;
       type: AgentInstanceType;
     };
   }) {
@@ -107,18 +109,51 @@ class agentInstanceServiceImpl {
     checkTenant(d, d.agentClient);
     checkDeletedRelation(d.agent);
 
+    if (d.agent.type === 'tool_call' && d.input.type !== 'tool_call') {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Agent cannot be used for this connection type'
+        })
+      );
+    }
+
+    let hash = await Hash.sha256(
+      JSON.stringify([
+        d.input.name,
+        d.input.version,
+        d.agent.id,
+        d.agentClient?.id ?? null,
+        d.input.type
+      ])
+    );
+
     return await withTransaction(async db => {
-      return await db.agentInstance.create({
-        data: {
+      return await db.agentInstance.upsert({
+        where: {
+          agentOid_hash: {
+            agentOid: d.agent.oid,
+            hash
+          }
+        },
+        create: {
           ...getId('agentInstance'),
 
           name: d.input.name.trim(),
           version: d.input.version?.trim() || undefined,
           description: d.input.description?.trim() || undefined,
-          hash: d.input.hash,
+          hash,
           type: d.input.type,
+          lastConnectedAt: new Date(),
 
           agentOid: d.agent.oid,
+          agentClientOid: d.agentClient?.oid
+        },
+        update: {
+          name: d.input.name.trim(),
+          version: d.input.version?.trim() || undefined,
+          description: d.input.description?.trim() || undefined,
+          type: d.input.type,
+          lastConnectedAt: new Date(),
           agentClientOid: d.agentClient?.oid
         },
         include

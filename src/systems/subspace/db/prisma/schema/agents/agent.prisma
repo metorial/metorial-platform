@@ -7,6 +7,7 @@ enum AgentStatus {
 enum AgentType {
   mcp_client
   custom
+  tool_call
 }
 
 model Agent {
@@ -80,6 +81,7 @@ model AgentClient {
 
 enum AgentInstanceType {
   mcp_client
+  tool_call
 }
 
 model AgentInstance {

@@ -3,8 +3,8 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
   addAfterTransactionHook,
-  db,
   type AgentClientType,
+  db,
   type Environment,
   getId,
   type Solution,
@@ -84,7 +84,7 @@ class agentClientServiceImpl {
     return agentClient;
   }
 
-  async createAgentClient(d: {
+  async upsertAgentClient(d: {
     tenant: Tenant;
     solution: Solution;
     environment: Environment;
@@ -96,28 +96,77 @@ class agentClientServiceImpl {
     };
   }) {
     return await withTransaction(async db => {
-      let agentClient = await db.agentClient.create({
-        data: {
-          ...getId('agentClient'),
+      let oauthRegistrationId = d.input.oauthRegistrationId?.trim() || undefined;
+      let newId = getId('agentClient');
 
-          name: d.input.name.trim(),
-          type: d.input.type,
+      let agentClient = oauthRegistrationId
+        ? await db.agentClient.upsert({
+            where: { oauthRegistrationId },
+            create: {
+              ...newId,
 
-          privateMetadata: d.input.privateMetadata,
-          oauthRegistrationId: d.input.oauthRegistrationId?.trim() || undefined,
+              name: d.input.name.trim(),
+              type: d.input.type,
 
-          tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
-          environmentOid: d.environment.oid
-        }
-      });
+              privateMetadata: d.input.privateMetadata,
+              oauthRegistrationId,
+              lastConnectedAt: new Date(),
 
-      await addAfterTransactionHook(async () =>
-        indexAgentClientQueue.add({ agentClientId: agentClient.id })
-      );
+              tenantOid: d.tenant.oid,
+              solutionOid: d.solution.oid,
+              environmentOid: d.environment.oid
+            },
+            update: {
+              name: d.input.name.trim(),
+              type: d.input.type,
+              privateMetadata: d.input.privateMetadata,
+              lastConnectedAt: new Date(),
+              tenantOid: d.tenant.oid,
+              solutionOid: d.solution.oid,
+              environmentOid: d.environment.oid
+            }
+          })
+        : await db.agentClient.create({
+            data: {
+              ...getId('agentClient'),
+
+              name: d.input.name.trim(),
+              type: d.input.type,
+
+              privateMetadata: d.input.privateMetadata,
+              oauthRegistrationId,
+              lastConnectedAt: new Date(),
+
+              tenantOid: d.tenant.oid,
+              solutionOid: d.solution.oid,
+              environmentOid: d.environment.oid
+            }
+          });
+
+      let isNew = agentClient.oid == newId.oid;
+
+      if (isNew) {
+        await addAfterTransactionHook(async () =>
+          indexAgentClientQueue.add({ agentClientId: agentClient.id })
+        );
+      }
 
       return agentClient;
     });
+  }
+
+  async createAgentClient(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    input: {
+      name: string;
+      type: AgentClientType;
+      privateMetadata?: Record<string, any>;
+      oauthRegistrationId?: string;
+    };
+  }) {
+    return await this.upsertAgentClient(d);
   }
 }
 

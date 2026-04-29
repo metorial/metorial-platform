@@ -11,6 +11,7 @@ import { createLock } from '@lowerdeck/lock';
 import { getSentry } from '@lowerdeck/sentry';
 import type { ConduitInput, ConduitResult } from '@metorial-subspace/connection-utils';
 import {
+  type AgentInstance,
   db,
   getId,
   ID,
@@ -28,6 +29,11 @@ import {
   type Tenant
 } from '@metorial-subspace/db';
 import { isRecordDeleted } from '@metorial-subspace/list-utils';
+import {
+  agentClientService,
+  agentInstanceService,
+  agentService
+} from '@metorial-subspace/module-agent';
 import {
   checkToolAccess,
   checkToolScopesSatisfied,
@@ -68,6 +74,7 @@ export interface InitProps {
   mcpCapabilities?: Record<string, any>;
   mcpProtocolVersion?: string;
   mcpTransport: SessionConnectionMcpConnectionTransport;
+  agentInstance?: AgentInstance | null;
 }
 
 export interface CallToolProps {
@@ -85,6 +92,13 @@ export interface SenderMangerProps {
   tenantId: string;
   connectionToken?: string;
   transport: SessionConnectionTransport;
+  agentClient?: {
+    name: string;
+    type: 'mcp_client_oauth';
+    privateMetadata?: Record<string, any>;
+    oauthRegistrationId: string;
+  };
+  connectionPrivateMetadata?: Record<string, any>;
 }
 
 export class SenderManager {
@@ -97,7 +111,9 @@ export class SenderManager {
       | undefined,
     readonly tenant: Tenant,
     readonly solution: Solution,
-    readonly transport: SessionConnectionTransport
+    readonly transport: SessionConnectionTransport,
+    readonly agentClient: SenderMangerProps['agentClient'],
+    readonly connectionPrivateMetadata: SenderMangerProps['connectionPrivateMetadata']
   ) {}
 
   private static async resolveSession(d: SenderMangerProps) {
@@ -235,8 +251,72 @@ export class SenderManager {
       connection,
       session.tenant,
       session.solution,
-      d.transport
+      d.transport,
+      d.agentClient,
+      d.connectionPrivateMetadata
     );
+  }
+
+  #upsertAgentClientPromise: ReturnType<typeof this.upsertAgentClientIfNeeded> | null = null;
+  private async upsertAgentClientIfNeeded() {
+    if (!this.agentClient) return null;
+
+    let environment = await db.environment.findUniqueOrThrow({
+      where: { oid: this.session.environmentOid }
+    });
+
+    return await agentClientService.upsertAgentClient({
+      tenant: this.tenant,
+      solution: this.solution,
+      environment,
+      input: this.agentClient
+    });
+  }
+
+  private async ensureAgentClientUpserted() {
+    if (!this.agentClient) return null;
+    if (this.#upsertAgentClientPromise) return await this.#upsertAgentClientPromise;
+
+    this.#upsertAgentClientPromise = this.upsertAgentClientIfNeeded();
+    return await this.#upsertAgentClientPromise;
+  }
+
+  private async ensureConnectionClientAgentContext(d: InitProps['client']) {
+    let agentClient = await this.ensureAgentClientUpserted();
+
+    let agent = await agentService.upsertAgent({
+      tenant: this.tenant,
+      solution: this.solution,
+      environment: await db.environment.findUniqueOrThrow({
+        where: { oid: this.session.environmentOid }
+      }),
+      input: {
+        name: d.name,
+        type: 'mcp_client'
+      }
+    });
+
+    let agentInstance = await agentInstanceService.upsertAgentInstance({
+      tenant: this.tenant,
+      solution: this.solution,
+      environment: await db.environment.findUniqueOrThrow({
+        where: { oid: this.session.environmentOid }
+      }),
+      agent,
+      agentClient,
+      input: {
+        name: d.name,
+        version: typeof d.version === 'string' ? d.version : undefined,
+        description: undefined,
+        type: 'mcp_client'
+      }
+    });
+
+    return {
+      agent,
+      agentClient,
+      agentInstance
+    };
   }
 
   private async ensureConnectionParticipant() {
@@ -725,6 +805,8 @@ export class SenderManager {
 
   #createConnectionPromise: Promise<SessionConnection> | null = null;
   async createConnection() {
+    await this.ensureAgentClientUpserted();
+
     if (this.connection) return this.connection;
     if (this.#createConnectionPromise) return await this.#createConnectionPromise;
 
@@ -747,6 +829,7 @@ export class SenderManager {
 
           mcpTransport: 'none',
           mcpProtocolVersion: null,
+          privateMetadata: this.connectionPrivateMetadata,
 
           sessionOid: this.session.oid,
           tenantOid: this.session.tenantOid,
@@ -810,6 +893,8 @@ export class SenderManager {
   }
 
   async initialize(d: InitProps & { isManualConnection?: boolean }) {
+    await this.ensureAgentClientUpserted();
+
     // Ignore if already initialized
     if (this.connection?.initState === 'completed') return this.connection;
 
@@ -821,14 +906,29 @@ export class SenderManager {
       );
     }
 
+    let connectionClientAgentContext = d.agentInstance
+      ? { agentInstance: d.agentInstance }
+      : d.client.identifier.startsWith('metorial#') || d.isManualConnection
+        ? null
+        : await this.ensureConnectionClientAgentContext(d.client);
+
     let participant = await upsertParticipant({
       session: this.session,
-      from: d.client.identifier.startsWith('metorial#')
+      from:
+        d.agentInstance
+          ? {
+              type: 'connection_client',
+              transport: d.mcpTransport === 'none' ? 'metorial_protocol' : 'mcp',
+              participant: d.client,
+              agentInstance: d.agentInstance
+            }
+          : d.client.identifier.startsWith('metorial#')
         ? { type: 'system' }
         : {
             type: 'connection_client',
             transport: d.mcpTransport === 'none' ? 'metorial_protocol' : 'mcp',
-            participant: d.client
+            participant: d.client,
+            agentInstance: connectionClientAgentContext?.agentInstance
           }
     });
 
@@ -878,6 +978,7 @@ export class SenderManager {
           tenantOid: this.tenant.oid,
           solutionOid: this.solution.oid,
           environmentOid: this.session.environmentOid,
+          privateMetadata: this.connectionPrivateMetadata,
           token: await ID.generateId('sessionConnection_token')
         },
         include: { participant: true }
