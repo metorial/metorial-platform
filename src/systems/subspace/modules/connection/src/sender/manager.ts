@@ -53,8 +53,8 @@ import { topics } from '../lib/topic';
 import { completeMessage } from '../shared/completeMessage';
 import { createError } from '../shared/createError';
 import { createMessage, type CreateMessageProps } from '../shared/createMessage';
-import { extractToolCallOperation } from '../shared/toolCallOperation';
 import { createWarning } from '../shared/createWarning';
+import { extractToolCallOperation } from '../shared/toolCallOperation';
 import { upsertParticipant } from '../shared/upsertParticipant';
 
 let Sentry = getSentry();
@@ -288,12 +288,14 @@ export class SenderManager {
   private async ensureConnectionClientAgentContext(d: InitProps['client']) {
     let agentClientContext = await this.ensureAgentClientUpserted();
 
+    let environment = await db.environment.findUniqueOrThrow({
+      where: { oid: this.session.environmentOid }
+    });
+
     let agent = await agentService.upsertAgent({
       tenant: this.tenant,
       solution: this.solution,
-      environment: await db.environment.findUniqueOrThrow({
-        where: { oid: this.session.environmentOid }
-      }),
+      environment,
       input: {
         name: d.name,
         type: 'mcp_client'
@@ -303,9 +305,7 @@ export class SenderManager {
     let agentInstance = await agentInstanceService.upsertAgentInstance({
       tenant: this.tenant,
       solution: this.solution,
-      environment: await db.environment.findUniqueOrThrow({
-        where: { oid: this.session.environmentOid }
-      }),
+      environment,
       agent,
       agentClient: agentClientContext?.agentClient,
       agentClientRegistration: agentClientContext?.agentClientRegistration,
@@ -927,22 +927,21 @@ export class SenderManager {
 
     let participant = await upsertParticipant({
       session: this.session,
-      from:
-        d.agentInstance
-          ? {
-              type: 'connection_client',
-              transport: d.mcpTransport === 'none' ? 'metorial_protocol' : 'mcp',
-              participant: d.client,
-              agentInstance: d.agentInstance
-            }
-          : d.client.identifier.startsWith('metorial#')
-        ? { type: 'system' }
-        : {
+      from: d.agentInstance
+        ? {
             type: 'connection_client',
             transport: d.mcpTransport === 'none' ? 'metorial_protocol' : 'mcp',
             participant: d.client,
-            agentInstance: connectionClientAgentContext?.agentInstance
+            agentInstance: d.agentInstance
           }
+        : d.client.identifier.startsWith('metorial#')
+          ? { type: 'system' }
+          : {
+              type: 'connection_client',
+              transport: d.mcpTransport === 'none' ? 'metorial_protocol' : 'mcp',
+              participant: d.client,
+              agentInstance: connectionClientAgentContext?.agentInstance
+            }
     });
 
     let connectionData = {

@@ -30,6 +30,9 @@ import { identityCredentialController } from './identityCredential';
 import { identityDelegationController } from './identityDelegation';
 import { identityDelegationConfigController } from './identityDelegationConfig';
 import { identityDelegationRequestController } from './identityDelegationRequest';
+import { integrationController } from './integration';
+import { integrationProviderController } from './integrationProvider';
+import { integrationVersionController } from './integrationVersion';
 import { managedProviderAuthCredentialsController } from './managedProviderAuthCredentials';
 import { networkingRulesetController } from './networkingRuleset';
 import { providerController } from './provider';
@@ -92,6 +95,9 @@ let systemControllers = {
   identityDelegationConfig: identityDelegationConfigController,
   identityDelegationRequest: identityDelegationRequestController,
   identityCredential: identityCredentialController,
+  integration: integrationController,
+  integrationProvider: integrationProviderController,
+  integrationVersion: integrationVersionController,
   solution: solutionController,
   tenant: tenantController
 };

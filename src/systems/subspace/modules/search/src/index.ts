@@ -83,6 +83,12 @@ export let voyagerIndex = {
     name: 'Custom Providers'
   }),
 
+  integration: await voyager.index.upsert({
+    sourceId: (await voyagerSource).id,
+    identifier: getIndexName('integration'),
+    name: 'Integrations'
+  }),
+
   identityActor: await voyager.index.upsert({
     sourceId: (await voyagerSource).id,
     identifier: getIndexName('identity_actor'),

@@ -10,6 +10,7 @@ import { connectionQueueProcessor } from '@metorial-subspace/module-connection';
 import { customProviderQueueProcessor } from '@metorial-subspace/module-custom-provider';
 import { deploymentQueueProcessor } from '@metorial-subspace/module-deployment';
 import { identityQueueProcessor } from '@metorial-subspace/module-identity';
+import { integrationQueueProcessor } from '@metorial-subspace/module-integration';
 import { providerInternalQueueProcessor } from '@metorial-subspace/module-provider-internal';
 import { sessionQueueProcessor } from '@metorial-subspace/module-session';
 import { tenantQueueProcessors } from '@metorial-subspace/module-tenant';
@@ -31,6 +32,7 @@ runQueueProcessors([
   customProviderQueueProcessor,
   callbackQueueProcessor,
   identityQueueProcessor,
+  integrationQueueProcessor,
   agentQueueProcessor
 ]);
 

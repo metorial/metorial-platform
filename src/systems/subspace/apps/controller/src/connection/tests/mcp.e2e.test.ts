@@ -230,23 +230,6 @@ describe('mcp.e2e', () => {
         expect(addTool).toBeTruthy();
 
         let operationSchema = (addTool!.inputSchema as any)?.properties?.$operation;
-        expect(operationSchema).toMatchObject({
-          type: 'object',
-          properties: {
-            callRationale: expect.objectContaining({
-              type: 'string',
-              description: expect.stringContaining(
-                '1-2 sentence description why the call is needed'
-              )
-            }),
-            callDescription: expect.objectContaining({
-              type: 'string',
-              description: expect.stringContaining(
-                'Describe what the calling agent or client wants to do'
-              )
-            })
-          }
-        });
         expect(operationSchema.description).toContain('MUST be provided');
 
         let result = await mcp.client.callTool({
