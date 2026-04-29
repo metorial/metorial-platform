@@ -97,10 +97,12 @@ class agentClientServiceImpl {
     };
   }) {
     return await withTransaction(async db => {
+      let newId = getId('agentClient');
+
       let agentClient = await db.agentClient.upsert({
         where: { foreignId: d.input.foreignId },
         create: {
-          ...getId('agentClient'),
+          ...newId,
 
           name: d.input.name.trim(),
           type: d.input.type,
@@ -139,9 +141,12 @@ class agentClientServiceImpl {
         }
       });
 
-      await addAfterTransactionHook(async () =>
-        indexAgentClientQueue.add({ agentClientId: agentClient.id })
-      );
+      let isNew = agentClient.id === newId.id;
+      if (isNew) {
+        await addAfterTransactionHook(async () =>
+          indexAgentClientQueue.add({ agentClientId: agentClient.id })
+        );
+      }
 
       return { agentClient, agentClientRegistration };
     });
