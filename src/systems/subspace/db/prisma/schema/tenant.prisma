@@ -88,6 +88,8 @@ model Tenant {
   identityDelegations                      IdentityDelegation[]
   identityDelegationRequests               IdentityDelegationRequest[]
   agentClients                             AgentClient[]
+  integrations                             Integration[]
+  integrationProviders                     IntegrationProvider[]
 }
 
 enum EnvironmentType {
@@ -149,6 +151,8 @@ model Environment {
   identityDelegations                      IdentityDelegation[]
   identityDelegationRequests               IdentityDelegationRequest[]
   agentClients                             AgentClient[]
+  integrations                             Integration[]
+  integrationProviders                     IntegrationProvider[]
 }
 
 enum TenantActorType {

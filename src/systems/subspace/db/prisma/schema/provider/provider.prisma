@@ -102,6 +102,7 @@ model Provider {
   providerUses                   ProviderUse[]
   identityCredentials            IdentityCredential[]
   managedProviderAuthCredentials ManagedProviderAuthCredentials[]
+  integrationProviders           IntegrationProvider[]
 
   @@index([status])
   @@index([access])

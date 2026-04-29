@@ -128,7 +128,13 @@ export let ID = createIdGenerator({
   agent: idType.sorted('agt'),
   agentClient: idType.sorted('agc'),
   agentClientRegistration: idType.sorted('agr'),
-  agentInstance: idType.sorted('agi')
+  agentInstance: idType.sorted('agi'),
+
+  integration: idType.sorted('int'),
+  integrationProvider: idType.sorted('inp'),
+  integrationProviderVersion: idType.sorted('ipv'),
+  integrationVersion: idType.sorted('inv'),
+  integrationVersionProvider: idType.sorted('ivp')
 });
 
 let workerIdBits = 12;

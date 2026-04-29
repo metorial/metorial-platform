@@ -51,17 +51,18 @@ model ProviderDeployment {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  providerOAuthSetups        ProviderOAuthSetup[]
-  providerConfigVaults       ProviderConfigVault[]
-  providerConfigs            ProviderConfig[]
-  providerAuthConfigs        ProviderAuthConfig[]
-  providerAuthImports        ProviderAuthImport[]
-  providerSetupSessions      ProviderSetupSession[]
-  sessionProviders           SessionProvider[]
-  sessionTemplateProviders   SessionTemplateProvider[]
-  providerDeploymentVersions ProviderDeploymentVersion[]
-  callbacks                  Callback[]
-  identityCredentials        IdentityCredential[]
+  providerOAuthSetups         ProviderOAuthSetup[]
+  providerConfigVaults        ProviderConfigVault[]
+  providerConfigs             ProviderConfig[]
+  providerAuthConfigs         ProviderAuthConfig[]
+  providerAuthImports         ProviderAuthImport[]
+  providerSetupSessions       ProviderSetupSession[]
+  sessionProviders            SessionProvider[]
+  sessionTemplateProviders    SessionTemplateProvider[]
+  providerDeploymentVersions  ProviderDeploymentVersion[]
+  callbacks                   Callback[]
+  identityCredentials         IdentityCredential[]
+  integrationProviderVersions IntegrationProviderVersion[]
 
   @@index([createdAt])
   @@index([updatedAt])

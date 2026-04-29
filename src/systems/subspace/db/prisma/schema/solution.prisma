@@ -56,4 +56,6 @@ model Solution {
   identityDelegations                      IdentityDelegation[]
   identityDelegationRequests               IdentityDelegationRequest[]
   agentClients                             AgentClient[]
+  integrations                             Integration[]
+  integrationProviders                     IntegrationProvider[]
 }
