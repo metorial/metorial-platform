@@ -2,6 +2,7 @@ import { createQueue } from '@lowerdeck/queue';
 import { db } from '@metorial-subspace/db';
 import { providerAuthConfigService } from '@metorial-subspace/module-auth';
 import { providerConfigService } from '@metorial-subspace/module-deployment';
+import { integrationInstanceProviderIdentityCredentialSyncQueue } from '@metorial-subspace/module-identity/src/queues/lifecycle/integrationInstanceProviderIdentityCredential';
 import { env } from '../../env';
 import { indexIntegrationInstanceQueue } from '../search/integrationInstance';
 
@@ -25,14 +26,23 @@ export let integrationInstanceProviderSetQueueProcessor =
       integrationInstanceId: data.integrationInstanceId
     });
 
+    await integrationInstanceProviderIdentityCredentialSyncQueue.add({
+      integrationInstanceProviderId: data.integrationInstanceProviderId
+    });
+
     if (integrationInstanceProvider.status === 'archived') {
       let versions = await db.integrationInstanceProviderVersion.findMany({
         where: { integrationInstanceProviderOid: integrationInstanceProvider.oid },
         include: { config: true, authConfig: true }
       });
 
+      let seen = new Set<string>();
+
       for (let current of versions) {
         if (current.config?.status === 'active') {
+          if (seen.has(current.config.oid.toString())) continue;
+          seen.add(current.config.oid.toString());
+
           await providerConfigService.archiveProviderConfig({
             tenant: integrationInstanceProvider.tenant,
             solution: integrationInstanceProvider.solution,
@@ -41,7 +51,11 @@ export let integrationInstanceProviderSetQueueProcessor =
             _canArchiveOwned: true
           });
         }
+
         if (current.authConfig?.status === 'active') {
+          if (seen.has(current.authConfig.oid.toString())) continue;
+          seen.add(current.authConfig.oid.toString());
+
           await providerAuthConfigService.archiveProviderAuthConfig({
             tenant: integrationInstanceProvider.tenant,
             solution: integrationInstanceProvider.solution,
