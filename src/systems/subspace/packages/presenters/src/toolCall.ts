@@ -36,6 +36,8 @@ export let toolCallPresenter = async (toolCall: ToolCallPresenterProps) => {
 
     id: toolCall.id,
     toolKey: toolCall.toolKey,
+    rationale: toolCall.rationale,
+    operation: toolCall.operation,
 
     type: 'tool_call',
     status: toolCall.message.status,

@@ -53,6 +53,7 @@ import { topics } from '../lib/topic';
 import { completeMessage } from '../shared/completeMessage';
 import { createError } from '../shared/createError';
 import { createMessage, type CreateMessageProps } from '../shared/createMessage';
+import { extractToolCallOperation } from '../shared/toolCallOperation';
 import { createWarning } from '../shared/createWarning';
 import { upsertParticipant } from '../shared/upsertParticipant';
 
@@ -82,6 +83,8 @@ export interface CallToolProps {
   input: PrismaJson.SessionMessageInput;
   waitForResponse: boolean;
   transport: SessionConnectionTransport;
+  rationale?: string;
+  operation?: string;
   clientMcpId?: PrismaJson.SessionMessageClientMcpId;
   parentMessage?: SessionMessage;
 }
@@ -723,6 +726,11 @@ export class SenderManager {
     }
 
     let { provider, tool, instance } = await this.getToolById({ toolId: d.toolId });
+    let extractedToolCall = extractToolCallOperation({
+      input: d.input,
+      rationale: d.rationale,
+      operation: d.operation
+    });
 
     let { allowed } = checkToolAccess(tool, provider, 'call');
 
@@ -734,7 +742,9 @@ export class SenderManager {
       status: 'waiting_for_response',
       type: d.transport === 'mcp' ? 'mcp_message' : 'tool_call',
       source: 'client',
-      input: d.input,
+      input: extractedToolCall.input,
+      rationale: extractedToolCall.rationale,
+      operation: extractedToolCall.operation,
       senderParticipant: participant,
       clientMcpId: d.clientMcpId,
       transport: d.transport,
@@ -755,7 +765,7 @@ export class SenderManager {
           toolId: tool.id,
           toolKey: tool.key,
 
-          input: d.input
+          input: extractedToolCall.input
         } satisfies ConduitInput);
 
         if (!res.success) {

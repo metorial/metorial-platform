@@ -206,4 +206,88 @@ describe('mcp.e2e', () => {
       }
     }
   );
+
+  it(
+    'injects $operation into tool schemas and stores extracted tool call metadata',
+    { timeout: 120_000 },
+    async () => {
+      let ctx = await createMcpE2eContext(testDb, {
+        remoteServerBaseUrl: lifecycle.getRemoteServerBaseUrl(),
+        transportCase: defaultTransportCase
+      });
+
+      let mcp = createMcpTestClient({
+        baseUrl: ctx.proxyUrl,
+        transportType: defaultTransportCase.clientTransport,
+        fetch: localFetch
+      });
+
+      try {
+        await mcp.connect();
+
+        let tools = await mcp.client.listTools();
+        let addTool = tools.tools.find(tool => /(^|[_.-])add([_.-]|$)/.test(tool.name));
+        expect(addTool).toBeTruthy();
+
+        let operationSchema = (addTool!.inputSchema as any)?.properties?.$operation;
+        expect(operationSchema).toMatchObject({
+          type: 'object',
+          properties: {
+            callRationale: expect.objectContaining({
+              type: 'string',
+              description: expect.stringContaining('1-2 sentence description why the call is needed')
+            }),
+            callDescription: expect.objectContaining({
+              type: 'string',
+              description: expect.stringContaining('Describe what the calling agent or client wants to do')
+            })
+          }
+        });
+        expect(operationSchema.description).toContain('MUST be provided');
+        expect(operationSchema.description).toContain('backwards compatibility');
+
+        let result = await mcp.client.callTool({
+          name: addTool!.name,
+          arguments: {
+            a: 1,
+            b: 2,
+            $operation: {
+              callRationale: 'We need the calculator tool to compute the user-requested sum.',
+              callDescription: 'Add the two provided numbers and return the result.'
+            }
+          }
+        });
+        let text = (
+          result as { content?: Array<{ type?: string; text?: string }> }
+        ).content?.find(p => p.type === 'text')?.text;
+
+        expect(text).toContain('Result: 3');
+
+        let toolCall = await testDb.toolCall.findFirstOrThrow({
+          where: {
+            sessionOid: ctx.session.oid,
+            rationale: 'We need the calculator tool to compute the user-requested sum.',
+            operation: 'Add the two provided numbers and return the result.'
+          },
+          orderBy: { createdAt: 'desc' },
+          include: { message: true }
+        });
+
+        expect(toolCall.message.input).toMatchObject({
+          type: 'mcp',
+          data: {
+            params: {
+              arguments: {
+                a: 1,
+                b: 2
+              }
+            }
+          }
+        });
+        expect((toolCall.message.input as any)?.data?.params?.arguments?.$operation).toBeUndefined();
+      } finally {
+        await mcp.cleanup();
+      }
+    }
+  );
 });

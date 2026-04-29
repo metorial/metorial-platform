@@ -185,6 +185,8 @@ class toolCallServiceImpl {
       toolId: string;
       input: Record<string, any>;
       agentId?: string;
+      rationale?: string;
+      operation?: string;
     };
   }) {
     checkDeletedRelation(d.session);
@@ -273,6 +275,8 @@ class toolCallServiceImpl {
         type: 'tool.call',
         data: d.input.input
       },
+      rationale: d.input.rationale,
+      operation: d.input.operation,
       waitForResponse: true,
       transport: 'tool_call'
     });

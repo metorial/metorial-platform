@@ -120,6 +120,9 @@ model ToolCall {
   toolKey  String
   metadata Json?
 
+  rationale String?
+  operation String?
+
   messageOid BigInt         @unique
   message    SessionMessage @relation(fields: [messageOid], references: [oid])
 

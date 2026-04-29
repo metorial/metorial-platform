@@ -49,6 +49,7 @@ import { uniqBy } from 'lodash';
 import { PING_MESSAGE_ID_PREFIX } from '../const';
 import { mcpOutputSchemaNormalizer } from '../lib/mcpOutputSchemaNormalizer';
 import { providerToolPresenter } from '../presenter';
+import { injectToolCallOperationIntoInputSchema } from '../shared/toolCallOperation';
 import { upsertParticipant } from '../shared/upsertParticipant';
 import type { McpControlMessageHandler } from './control';
 import type { McpManager } from './manager';
@@ -376,7 +377,9 @@ export class McpSender {
               name: presented.key,
               title: presented.title ?? presented.name,
 
-              inputSchema: presented.inputJsonSchema as any,
+              inputSchema: injectToolCallOperationIntoInputSchema(
+                presented.inputJsonSchema
+              ) as any,
               outputSchema:
                 presented.outputJsonSchema?.type === 'object'
                   ? (mcpOutputSchemaNormalizer(presented.outputJsonSchema, {

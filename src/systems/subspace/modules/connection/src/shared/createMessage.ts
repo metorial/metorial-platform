@@ -35,6 +35,8 @@ export interface CreateMessageProps {
   provider?: SessionProvider;
 
   tool?: ProviderTool;
+  rationale?: string;
+  operation?: string;
   methodOrToolKey?: string;
 
   isProductive: boolean;
@@ -121,6 +123,8 @@ export let createMessage = async (data: CreateMessagePropsFull) => {
               ...getId('toolCall'),
               toolOid: data.tool.oid,
               toolKey: data.tool.key,
+              rationale: data.rationale,
+              operation: data.operation,
               sessionOid: data.session.oid,
               tenantOid: data.session.tenantOid,
               solutionOid: data.session.solutionOid,

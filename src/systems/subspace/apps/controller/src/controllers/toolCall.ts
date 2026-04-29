@@ -96,6 +96,8 @@ export let toolCallController = app.controller({
 
         agentId: v.optional(v.string()),
         metadata: v.optional(v.record(v.any())),
+        rationale: v.optional(v.string()),
+        operation: v.optional(v.string()),
         input: v.record(v.any()),
         toolId: v.string()
       })
@@ -118,6 +120,8 @@ export let toolCallController = app.controller({
         input: {
           agentId: ctx.input.agentId,
           metadata: ctx.input.metadata,
+          rationale: ctx.input.rationale,
+          operation: ctx.input.operation,
           input: ctx.input.input,
           toolId: ctx.input.toolId
         }
