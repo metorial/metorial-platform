@@ -5,10 +5,6 @@ import { createSlugGenerator } from '@lowerdeck/slugify';
 import { Context } from '@metorial/context';
 import { db, ID, Instance, Organization, Portal, Prisma, withTransaction } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
-import {
-  consumerSurfaceService,
-  type ConsumerSurfaceWithPublishableApiKey
-} from '@metorial/module-consumer';
 import { env } from '../env';
 import {
   getPortalAllowedRedirectUrlFilters,
@@ -17,6 +13,10 @@ import {
   type PortalAllowedRedirectUrlFilter
 } from '../lib/oauth';
 import { buildPortalUrlFromTemplate, parsePortalIdFromTemplate } from '../portalUrlTemplate';
+import {
+  consumerSurfaceService,
+  type ConsumerSurfaceWithPublishableApiKey
+} from './consumerSurface';
 
 let include = {
   surface: {

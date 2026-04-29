@@ -203,7 +203,11 @@ let matchesPortalAllowedRedirectUrlFilterProtocol = (
   protocol: string
 ) => {
   if (protocolPattern == '*') {
-    return protocol != 'http' && protocol != 'https' && !blockedPortalRedirectProtocols.has(protocol);
+    return (
+      protocol != 'http' &&
+      protocol != 'https' &&
+      !blockedPortalRedirectProtocols.has(protocol)
+    );
   }
 
   return protocolPattern == protocol;

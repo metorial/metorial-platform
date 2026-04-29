@@ -25,17 +25,13 @@ import {
 } from '@metorial/db';
 import { type AnyAccessTagSelector } from '@metorial/module-access';
 import {
-  consumerIntegrationService,
-  consumerProfileService,
-  grantConsumerOwnedMagicMcpTokenAccess
-} from '@metorial/module-consumer';
-import {
   magicMcpEndpointService,
   magicMcpTokenService,
   resolveMagicMcpTargetByIdOrAlias,
   type MagicMcpResolvedTarget
 } from '@metorial/module-magic';
 import { addDays, addMinutes, addSeconds } from 'date-fns';
+import { grantConsumerOwnedMagicMcpTokenAccess } from '../lib/magicMcpTokenAccess';
 import {
   createCodeChallenge,
   getPortalAllowedRedirectUrlFilters,
@@ -45,6 +41,8 @@ import {
   validateRedirectUri,
   validateUrlString
 } from '../lib/oauth';
+import { consumerIntegrationService } from './consumerIntegration';
+import { consumerProfileService } from './consumerProfile';
 import { portalService } from './portal';
 
 let consumerAuthClientInclude = {

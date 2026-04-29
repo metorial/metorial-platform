@@ -47,13 +47,19 @@ vi.mock('@metorial/db', () => {
   };
 });
 
-vi.mock('@metorial/module-consumer', () => ({
+vi.mock('../src/services/consumerIntegration', () => ({
   consumerIntegrationService: {
     linkConsumerAuthAttemptToConsumerIntegrationEndpoint: vi.fn()
-  },
+  }
+}));
+
+vi.mock('../src/services/consumerProfile', () => ({
   consumerProfileService: {
     getGroupsForProfile: vi.fn()
-  },
+  }
+}));
+
+vi.mock('../src/lib/magicMcpTokenAccess', () => ({
   grantConsumerOwnedMagicMcpTokenAccess: vi.fn()
 }));
 
@@ -88,8 +94,8 @@ vi.mock('../src/services/portal', () => ({
 
 import { Hash } from '@lowerdeck/hash';
 import { db } from '@metorial/db';
-import { consumerIntegrationService } from '@metorial/module-consumer';
 import { magicMcpEndpointService } from '@metorial/module-magic';
+import { consumerIntegrationService } from '../src/services/consumerIntegration';
 import { consumerOAuthService } from '../src/services/consumerOAuth';
 
 describe('consumerOAuthService integration endpoint linking', () => {

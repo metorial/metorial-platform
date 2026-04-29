@@ -1,7 +1,7 @@
 import { db } from '@metorial/db';
-import { portalService } from '@metorial/module-portal';
 import { createQueue, QueueRetryError } from '@metorial/queue';
 import { consumerAccessRequestApprovedEmail } from '../../email/accessRequestApproved';
+import { portalService } from '../../services/portal';
 
 export let sendApprovedConsumerAccessRequestEmailQueue = createQueue<{
   consumerAccessRequestId: string;

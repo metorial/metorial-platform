@@ -1,4 +1,4 @@
-import { env as portalEnv, isAllowedPortalOriginForTemplate } from '@metorial/module-portal';
+import { isAllowedPortalOriginForTemplate, env as portalEnv } from '@metorial/module-consumer';
 import { createServer, InferClient, rpcMux } from '@metorial/rpc';
 import { authController } from './controllers/auth';
 import { bootController } from './controllers/boot';

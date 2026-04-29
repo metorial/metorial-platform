@@ -1,4 +1,4 @@
-import { portalService } from '@metorial/module-portal';
+import { portalService } from '@metorial/module-consumer';
 
 type PortalWithSurface = Awaited<ReturnType<typeof portalService.getPortalPublic>>;
 

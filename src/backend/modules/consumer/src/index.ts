@@ -4,9 +4,9 @@ import { sendApprovedConsumerAccessRequestEmailQueueProcessor } from './queues/a
 import { sendRejectedConsumerAccessRequestEmailQueueProcessor } from './queues/accessRequest/sendRejectedConsumerAccessRequestEmail';
 import { backfillAccessListingsProcessors } from './queues/backfillAccessListings';
 import { consumerLifecycleQueueProcessor } from './queues/lifecycle';
+import { reconcileConsumerClientProcessors } from './queues/reconcileConsumerClient';
 import { reconcileMagicMcpConsumerOwnershipProcessors } from './queues/reconcileMagicMcpConsumerOwnership';
 import { consumerSearchQueueProcessor } from './queues/search';
-import { tempFixSearchProcessors } from './queues/tempFixSearch';
 import {
   reconcileConsumerActorQueueProcessor,
   syncIdentityConsumerQueueProcessor
@@ -17,7 +17,11 @@ import {
   syncOrgMemberQueue,
   syncOrgMemberQueueProcessor
 } from './queues/syncOrgMember';
+import { tempFixSearchProcessors } from './queues/tempFixSearch';
 
+export * from './env';
+export * from './lib/oauth';
+export * from './portalUrlTemplate';
 export * from './services';
 
 export let consumerQueueProcessor = combineQueueProcessors([
@@ -29,6 +33,7 @@ export let consumerQueueProcessor = combineQueueProcessors([
   reconcileConsumerActorQueueProcessor,
   backfillAccessListingsProcessors,
   reconcileMagicMcpConsumerOwnershipProcessors,
+  reconcileConsumerClientProcessors,
   tempFixSearchProcessors,
 
   syncOrgMemberQueueProcessor,

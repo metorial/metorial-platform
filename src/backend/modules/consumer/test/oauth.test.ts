@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   defaultPortalAllowedRedirectUrlFilters,
-  portalAllowedRedirectUrlFiltersEqual,
   portalAllowedRedirectUrlFilterMatches,
-  validatePortalRedirectUriAgainstAllowedFilters,
+  portalAllowedRedirectUrlFiltersEqual,
   validatePortalAllowedRedirectUrlFilters,
+  validatePortalRedirectUriAgainstAllowedFilters,
   validatePortalRedirectUrisAgainstAllowedFilters,
   validateRedirectUri,
   validateUrlString

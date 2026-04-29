@@ -2,10 +2,10 @@ import { useRequestContext, useValidatedBody } from '@lowerdeck/hono';
 import { v } from '@lowerdeck/validation';
 import { AuthInfo } from '@metorial/module-access';
 import {
-  consumerOAuthService,
   consumerAuthAccessTokenTtlSeconds,
-  consumerAuthRefreshTokenTtlSeconds
-} from '@metorial/module-portal';
+  consumerAuthRefreshTokenTtlSeconds,
+  consumerOAuthService
+} from '@metorial/module-consumer';
 import { Authenticator } from '@metorial/rest';
 import { getMagicMcpTokenSecretFromRequest, handleMagicMcpRequest } from './magic';
 import {
@@ -55,7 +55,6 @@ export let createPortalHandler = (d: {
   metadataServer: ReturnType<typeof createPortalOAuthServers>['metadataServer'];
   connectPortalServer: ReturnType<typeof createPortalOAuthServers>['connectPortalServer'];
 } => {
-
   return createPortalOAuthServers({
     resolveRoute: async ({ portalId, magicMcpTargetId }) => {
       return await consumerOAuthService.resolvePortalRoute({
@@ -217,4 +216,3 @@ export let createPortalHandler = (d: {
     }
   });
 };
-

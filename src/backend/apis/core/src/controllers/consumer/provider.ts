@@ -3,6 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import {
   consumerAccessRequestService,
+  consumerOAuthService,
   consumerProfileService,
   ConsumerProviderCatalogEntry,
   ConsumerProviderCatalogItem,
@@ -12,7 +13,6 @@ import {
   consumerSurfaceProviderGroupService
 } from '@metorial/module-consumer';
 import { magicMcpServerService } from '@metorial/module-magic';
-import { consumerOAuthService } from '@metorial/module-portal';
 import { Controller } from '@metorial/rest';
 import { consumerGroup, consumerPath } from '../../middleware/consumerGroup';
 import { hasFlags } from '../../middleware/hasFlags';

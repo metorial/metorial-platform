@@ -1,5 +1,5 @@
 import { v } from '@lowerdeck/validation';
-import { portalService } from '@metorial/module-portal';
+import { portalService } from '@metorial/module-consumer';
 import { Presenter } from '@metorial/presenter';
 import { consumerInviteType } from '../types';
 
