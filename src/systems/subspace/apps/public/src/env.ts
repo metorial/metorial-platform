@@ -3,6 +3,6 @@ import { v } from '@lowerdeck/validation';
 
 export let env = createValidatedEnv({
   files: {
-    TOOL_CALL_ATTACHMENT_CAMO_URL: v.string()
+    TOOL_CALL_ATTACHMENT_CAMO_URL: v.optional(v.string())
   }
 });
