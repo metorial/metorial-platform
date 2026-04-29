@@ -69,6 +69,13 @@ let requireCurrentIntegrationProviderVersion = async (integrationProviderOid: bi
   return integrationProvider;
 };
 
+export type SetIntegrationInstanceProviderInput = {
+  providerId: string;
+  providerConfigId?: string;
+  providerAuthConfigId?: string;
+  toolFilters?: PrismaJson.ToolFilter | null;
+};
+
 class integrationInstanceProviderServiceImpl {
   async listIntegrationInstanceProviders(d: {
     tenant: Tenant;
@@ -189,164 +196,245 @@ class integrationInstanceProviderServiceImpl {
     return integrationInstanceProvider;
   }
 
-  async setIntegrationInstanceProvider(d: {
+  async setIntegrationInstanceProviders(d: {
     tenant: Tenant;
     solution: Solution;
     environment: Environment;
     integrationInstance: IntegrationInstance;
-    input: {
-      integrationProviderId?: string;
-      providerId?: string;
-      providerConfigId?: string;
-      providerAuthConfigId?: string;
-      toolFilters?: PrismaJson.ToolFilter | null;
-    };
+    input: SetIntegrationInstanceProviderInput[];
   }) {
     checkTenant(d, d.integrationInstance);
     checkDeletedRelation(d.integrationInstance);
 
-    let providerReference = d.input.integrationProviderId ?? d.input.providerId;
-    if (!providerReference) {
-      throw new ServiceError(
-        badRequestError({
-          message: 'Please provide an integration provider or provider.',
-          code: 'integration_instance_provider_target_required'
-        })
-      );
-    }
+    if (d.input.length === 0) return [];
 
-    let integrationProvider = await db.integrationProvider.findFirst({
+    let providerReferences = d.input.map(input => input.providerId);
+
+    let directIntegrationProviders = await db.integrationProvider.findMany({
       where: {
-        id: providerReference,
+        id: { in: providerReferences },
         tenantOid: d.tenant.oid,
         solutionOid: d.solution.oid,
         environmentOid: d.environment.oid
       }
     });
+    let integrationProvidersByReference = new Map(
+      directIntegrationProviders.map(integrationProvider => [
+        integrationProvider.id,
+        integrationProvider
+      ])
+    );
 
-    if (!integrationProvider) {
-      let provider = await providerService.getProviderById({
-        providerId: providerReference,
-        tenant: d.tenant,
-        solution: d.solution,
-        environment: d.environment
-      });
+    let missingReferences = providerReferences.filter(
+      reference => !integrationProvidersByReference.has(reference!)
+    );
+    let fallbackProviders = await Promise.all(
+      missingReferences.map(async reference => ({
+        reference: reference!,
+        provider: await providerService.getProviderById({
+          providerId: reference!,
+          tenant: d.tenant,
+          solution: d.solution,
+          environment: d.environment
+        })
+      }))
+    );
 
-      integrationProvider = await db.integrationProvider.findFirst({
+    if (fallbackProviders.length) {
+      let fallbackIntegrationProviders = await db.integrationProvider.findMany({
         where: {
           integrationOid: d.integrationInstance.integrationOid,
-          providerOid: provider.oid,
+          providerOid: { in: fallbackProviders.map(({ provider }) => provider.oid) },
           tenantOid: d.tenant.oid,
           solutionOid: d.solution.oid,
           environmentOid: d.environment.oid,
           status: 'active'
         }
       });
+
+      for (let { reference, provider } of fallbackProviders) {
+        let integrationProvider = fallbackIntegrationProviders.find(
+          integrationProvider => integrationProvider.providerOid === provider.oid
+        );
+        if (integrationProvider) {
+          integrationProvidersByReference.set(reference, integrationProvider);
+        }
+      }
     }
 
-    if (!integrationProvider) {
-      throw new ServiceError(notFoundError('integration.provider', providerReference));
+    let integrationProviders = providerReferences.map(reference => {
+      let integrationProvider = integrationProvidersByReference.get(reference!);
+      if (!integrationProvider) {
+        throw new ServiceError(notFoundError('integration.provider', reference));
+      }
+      return integrationProvider;
+    });
+
+    let seenIntegrationProviderOids = new Set<string>();
+    for (let integrationProvider of integrationProviders) {
+      checkDeletedRelation(integrationProvider);
+      if (integrationProvider.integrationOid !== d.integrationInstance.integrationOid) {
+        throw new ServiceError(
+          badRequestError({
+            message: 'Integration provider does not belong to this integration instance.',
+            code: 'integration_instance_provider_mismatch'
+          })
+        );
+      }
+
+      let oid = integrationProvider.oid.toString();
+      if (seenIntegrationProviderOids.has(oid)) {
+        throw new ServiceError(
+          badRequestError({
+            message: 'Integration instance provider inputs contain duplicates.',
+            code: 'duplicate_integration_instance_provider'
+          })
+        );
+      }
+      seenIntegrationProviderOids.add(oid);
     }
 
-    checkDeletedRelation(integrationProvider);
-    if (integrationProvider.integrationOid !== d.integrationInstance.integrationOid) {
-      throw new ServiceError(
-        badRequestError({
-          message: 'Integration provider does not belong to this integration instance.',
-          code: 'integration_instance_provider_mismatch'
-        })
-      );
-    }
-
-    let materialProvider = await requireCurrentIntegrationProviderVersion(
-      integrationProvider.oid
+    let materialProviders = await Promise.all(
+      integrationProviders.map(integrationProvider =>
+        requireCurrentIntegrationProviderVersion(integrationProvider.oid)
+      )
     );
 
-    let [combination] = await providerCombinationService.getCombinations({
+    let combinations = await providerCombinationService.getCombinations({
       tenant: d.tenant,
       solution: d.solution,
       environment: d.environment,
-      providers: [
-        {
-          deploymentId: materialProvider.currentVersion!.deployment.id,
-          configId: d.input.providerConfigId ?? materialProvider.currentVersion!.config?.id,
-          authConfigId: d.input.providerAuthConfigId
-        }
-      ]
+      providers: d.input.map((input, idx) => ({
+        deploymentId: materialProviders[idx]!.currentVersion!.deployment.id,
+        configId: input.providerConfigId ?? materialProviders[idx]!.currentVersion!.config?.id,
+        authConfigId: input.providerAuthConfigId
+      }))
     });
 
-    let toolFilter =
-      'toolFilters' in d.input
-        ? normalizeIntegrationProviderToolFilter(d.input.toolFilters)
-        : (materialProvider.currentVersion!.toolFilter as PrismaJson.ToolFilter);
+    let toolFilters = d.input.map((input, idx) =>
+      'toolFilters' in input
+        ? normalizeIntegrationProviderToolFilter(input.toolFilters)
+        : (materialProviders[idx]!.currentVersion!.toolFilter as PrismaJson.ToolFilter)
+    );
 
     return await withTransaction(async db => {
-      let existing = await db.integrationInstanceProvider.findUnique({
-        where: {
-          integrationInstanceOid_integrationProviderOid: {
+      let existingIntegrationInstanceProviders = await db.integrationInstanceProvider.findMany(
+        {
+          where: {
             integrationInstanceOid: d.integrationInstance.oid,
-            integrationProviderOid: integrationProvider.oid
+            integrationProviderOid: {
+              in: integrationProviders.map(integrationProvider => integrationProvider.oid)
+            }
           }
         }
-      });
+      );
+      let existingByIntegrationProviderOid = new Map(
+        existingIntegrationInstanceProviders.map(integrationInstanceProvider => [
+          integrationInstanceProvider.integrationProviderOid,
+          integrationInstanceProvider
+        ])
+      );
 
-      let integrationInstanceProvider = existing
-        ? await db.integrationInstanceProvider.update({
-            where: { oid: existing.oid },
-            data: {
-              status: 'active',
-              archivedAt: null,
-              isParentDeleted: false,
-              name: materialProvider.name,
-              description: materialProvider.description,
-              metadata: materialProvider.metadata,
-              integrationVersionOid: materialProvider.integration.currentVersion!.oid
-            }
-          })
-        : await db.integrationInstanceProvider.create({
-            data: {
-              ...getId('integrationInstanceProvider'),
-              status: 'active',
-              name: materialProvider.name,
-              description: materialProvider.description,
-              metadata: materialProvider.metadata,
-              integrationOid: d.integrationInstance.integrationOid,
-              integrationInstanceOid: d.integrationInstance.oid,
-              integrationProviderOid: integrationProvider.oid,
-              integrationVersionOid: materialProvider.integration.currentVersion!.oid,
-              tenantOid: d.tenant.oid,
-              solutionOid: d.solution.oid,
-              environmentOid: d.environment.oid
-            }
-          });
+      let integrationInstanceProviderOids: bigint[] = [];
 
-      await createIntegrationInstanceProviderVersion({
-        integrationInstanceProviderOid: integrationInstanceProvider.oid,
-        status: 'active',
-        integrationProviderVersionOid: materialProvider.currentVersion!.oid,
-        configOid: combination.config.oid,
-        authConfigOid: combination.authConfig?.oid,
-        toolFilter
-      });
+      for (let [idx, integrationProvider] of integrationProviders.entries()) {
+        let materialProvider = materialProviders[idx]!;
+        let combination = combinations[idx]!;
+        let existing = existingByIntegrationProviderOid.get(integrationProvider.oid);
+
+        let integrationInstanceProvider = existing
+          ? await db.integrationInstanceProvider.update({
+              where: { oid: existing.oid },
+              data: {
+                status: 'active',
+                archivedAt: null,
+                isParentDeleted: false,
+                name: materialProvider.name,
+                description: materialProvider.description,
+                metadata: materialProvider.metadata,
+                integrationVersionOid: materialProvider.integration.currentVersion!.oid
+              }
+            })
+          : await db.integrationInstanceProvider.create({
+              data: {
+                ...getId('integrationInstanceProvider'),
+                status: 'active',
+                name: materialProvider.name,
+                description: materialProvider.description,
+                metadata: materialProvider.metadata,
+                integrationOid: d.integrationInstance.integrationOid,
+                integrationInstanceOid: d.integrationInstance.oid,
+                integrationProviderOid: integrationProvider.oid,
+                integrationVersionOid: materialProvider.integration.currentVersion!.oid,
+                tenantOid: d.tenant.oid,
+                solutionOid: d.solution.oid,
+                environmentOid: d.environment.oid
+              }
+            });
+
+        await createIntegrationInstanceProviderVersion({
+          integrationInstanceProviderOid: integrationInstanceProvider.oid,
+          status: 'active',
+          integrationProviderVersionOid: materialProvider.currentVersion!.oid,
+          configOid: combination.config.oid,
+          authConfigOid: combination.authConfig?.oid,
+          toolFilter: toolFilters[idx]!
+        });
+
+        integrationInstanceProviderOids.push(integrationInstanceProvider.oid);
+      }
 
       await refreshIntegrationInstanceStatus({
         integrationInstanceOid: d.integrationInstance.oid
       });
 
-      let res = await db.integrationInstanceProvider.findUniqueOrThrow({
-        where: { oid: integrationInstanceProvider.oid },
+      let res = await db.integrationInstanceProvider.findMany({
+        where: { oid: { in: integrationInstanceProviderOids } },
         include: integrationInstanceProviderInclude
       });
+      let resByOid = new Map(
+        res.map(integrationInstanceProvider => [
+          integrationInstanceProvider.oid,
+          integrationInstanceProvider
+        ])
+      );
+      let orderedRes = integrationInstanceProviderOids.map(oid => resByOid.get(oid)!);
 
       await addAfterTransactionHook(async () =>
-        integrationInstanceProviderSetQueue.add({
-          integrationInstanceId: d.integrationInstance.id,
-          integrationInstanceProviderId: res.id
-        })
+        integrationInstanceProviderSetQueue.addMany(
+          orderedRes.map(integrationInstanceProvider => ({
+            integrationInstanceId: d.integrationInstance.id,
+            integrationInstanceProviderId: integrationInstanceProvider.id
+          }))
+        )
       );
 
-      return res;
+      return orderedRes;
     });
+  }
+
+  async setIntegrationInstanceProvider(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    integrationInstance: IntegrationInstance;
+    input: SetIntegrationInstanceProviderInput;
+  }) {
+    let [integrationInstanceProvider] = await this.setIntegrationInstanceProviders({
+      ...d,
+      input: [d.input]
+    });
+
+    if (!integrationInstanceProvider) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Integration instance provider could not be set.',
+          code: 'integration_instance_provider_not_set'
+        })
+      );
+    }
+
+    return integrationInstanceProvider;
   }
 
   async archiveIntegrationInstanceProvider(d: {

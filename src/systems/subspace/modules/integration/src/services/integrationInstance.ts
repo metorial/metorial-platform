@@ -32,6 +32,10 @@ import {
   integrationInstanceUpdatedQueue
 } from '../queues/lifecycle/integrationInstance';
 import { integrationProviderVersionInclude } from './integration';
+import {
+  integrationInstanceProviderService,
+  type SetIntegrationInstanceProviderInput
+} from './integrationInstanceProvider';
 
 export let integrationInstanceProviderVersionInclude = {
   integrationProviderVersion: {
@@ -173,6 +177,7 @@ class integrationInstanceServiceImpl {
       description?: string;
       metadata?: Record<string, any>;
       privateMetadata?: Record<string, any>;
+      providers?: SetIntegrationInstanceProviderInput[];
     };
   }) {
     checkTenant(d, d.integration);
@@ -195,6 +200,21 @@ class integrationInstanceServiceImpl {
         include: integrationInstanceInclude
       });
 
+      if (d.input.providers?.length) {
+        await integrationInstanceProviderService.setIntegrationInstanceProviders({
+          tenant: d.tenant,
+          solution: d.solution,
+          environment: d.environment,
+          integrationInstance,
+          input: d.input.providers
+        });
+
+        integrationInstance = await db.integrationInstance.findUniqueOrThrow({
+          where: { oid: integrationInstance.oid },
+          include: integrationInstanceInclude
+        });
+      }
+
       await addAfterTransactionHook(async () =>
         integrationInstanceCreatedQueue.add({ integrationInstanceId: integrationInstance.id })
       );
@@ -213,6 +233,7 @@ class integrationInstanceServiceImpl {
       description?: string | null;
       metadata?: Record<string, any> | null;
       privateMetadata?: Record<string, any> | null;
+      providers?: SetIntegrationInstanceProviderInput[];
     };
   }) {
     checkTenant(d, d.integrationInstance);
@@ -241,6 +262,21 @@ class integrationInstanceServiceImpl {
         },
         include: integrationInstanceInclude
       });
+
+      if (d.input.providers?.length) {
+        await integrationInstanceProviderService.setIntegrationInstanceProviders({
+          tenant: d.tenant,
+          solution: d.solution,
+          environment: d.environment,
+          integrationInstance,
+          input: d.input.providers
+        });
+
+        integrationInstance = await db.integrationInstance.findUniqueOrThrow({
+          where: { oid: integrationInstance.oid },
+          include: integrationInstanceInclude
+        });
+      }
 
       await addAfterTransactionHook(async () =>
         integrationInstanceUpdatedQueue.add({ integrationInstanceId: integrationInstance.id })

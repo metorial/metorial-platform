@@ -7,7 +7,16 @@ import {
 import { integrationInstancePresenter } from '@metorial-subspace/presenters';
 import { app } from './_app';
 import { createdAtValidator, updatedAtValidator } from './_dateFilter';
+import { normalizeToolFilters, toolFiltersValidator } from './sessionProvider';
 import { tenantApp } from './tenant';
+
+let integrationInstanceProviderInputValidator = v.object({
+  integrationProviderId: v.optional(v.string()),
+  providerId: v.optional(v.string()),
+  providerConfigId: v.optional(v.nullable(v.string())),
+  providerAuthConfigId: v.optional(v.nullable(v.string())),
+  toolFilters: toolFiltersValidator
+});
 
 export let integrationInstanceApp = tenantApp.use(async ctx => {
   let integrationInstanceId = ctx.body.integrationInstanceId;
@@ -96,7 +105,8 @@ export let integrationInstanceController = app.controller({
         name: v.string(),
         description: v.optional(v.string()),
         metadata: v.optional(v.record(v.any())),
-        privateMetadata: v.optional(v.record(v.any()))
+        privateMetadata: v.optional(v.record(v.any())),
+        providers: v.optional(v.array(integrationInstanceProviderInputValidator))
       })
     )
     .do(async ctx => {
@@ -116,7 +126,14 @@ export let integrationInstanceController = app.controller({
           name: ctx.input.name,
           description: ctx.input.description,
           metadata: ctx.input.metadata,
-          privateMetadata: ctx.input.privateMetadata
+          privateMetadata: ctx.input.privateMetadata,
+          providers: ctx.input.providers?.map(provider => ({
+            integrationProviderId: provider.integrationProviderId,
+            providerId: provider.providerId,
+            providerConfigId: provider.providerConfigId ?? undefined,
+            providerAuthConfigId: provider.providerAuthConfigId ?? undefined,
+            toolFilters: normalizeToolFilters(provider.toolFilters)
+          }))
         }
       });
 
@@ -135,7 +152,8 @@ export let integrationInstanceController = app.controller({
         name: v.optional(v.string()),
         description: v.optional(v.nullable(v.string())),
         metadata: v.optional(v.nullable(v.record(v.any()))),
-        privateMetadata: v.optional(v.nullable(v.record(v.any())))
+        privateMetadata: v.optional(v.nullable(v.record(v.any()))),
+        providers: v.optional(v.array(integrationInstanceProviderInputValidator))
       })
     )
     .do(async ctx => {
@@ -148,7 +166,14 @@ export let integrationInstanceController = app.controller({
           name: ctx.input.name,
           description: ctx.input.description,
           metadata: ctx.input.metadata,
-          privateMetadata: ctx.input.privateMetadata
+          privateMetadata: ctx.input.privateMetadata,
+          providers: ctx.input.providers?.map(provider => ({
+            integrationProviderId: provider.integrationProviderId,
+            providerId: provider.providerId,
+            providerConfigId: provider.providerConfigId ?? undefined,
+            providerAuthConfigId: provider.providerAuthConfigId ?? undefined,
+            toolFilters: normalizeToolFilters(provider.toolFilters)
+          }))
         }
       });
 
