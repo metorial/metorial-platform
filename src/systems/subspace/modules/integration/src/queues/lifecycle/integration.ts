@@ -6,6 +6,7 @@ import {
   createIntegrationVersion
 } from '../../lib/versions';
 import { indexIntegrationQueue } from '../search/integration';
+import { indexIntegrationInstanceQueue } from '../search/integrationInstance';
 import { integrationProviderArchivedQueue } from './integrationProvider';
 
 export let integrationCreatedQueue = createQueue<{ integrationId: string }>({
@@ -32,9 +33,63 @@ export let integrationArchivedQueue = createQueue<{ integrationId: string }>({
 });
 
 export let integrationArchivedQueueProcessor = integrationArchivedQueue.process(async data => {
+  let integration = await db.integration.findUnique({
+    where: { id: data.integrationId }
+  });
+  if (!integration || integration.status !== 'archived') return;
+
   await indexIntegrationQueue.add({ integrationId: data.integrationId });
+  await integrationArchiveInstancesManyQueue.add({ integrationId: data.integrationId });
   await integrationArchiveProvidersManyQueue.add({ integrationId: data.integrationId });
 });
+
+export let integrationArchiveInstancesManyQueue = createQueue<{
+  integrationId: string;
+  cursor?: string;
+}>({
+  name: 'sub/int/lc/integration/archiveInstancesMany',
+  redisUrl: env.service.REDIS_URL
+});
+
+export let integrationArchiveInstancesManyQueueProcessor =
+  integrationArchiveInstancesManyQueue.process(async data => {
+    let integration = await db.integration.findUnique({
+      where: { id: data.integrationId }
+    });
+    if (!integration || integration.status !== 'archived') return;
+
+    let integrationInstances = await db.integrationInstance.findMany({
+      where: {
+        integrationOid: integration.oid,
+        id: data.cursor ? { gt: data.cursor } : undefined
+      },
+      orderBy: { id: 'asc' },
+      take: 100,
+      select: { oid: true, id: true }
+    });
+    if (integrationInstances.length === 0) return;
+
+    await db.integrationInstance.updateMany({
+      where: {
+        oid: { in: integrationInstances.map(integrationInstance => integrationInstance.oid) }
+      },
+      data: { isParentDeleted: true }
+    });
+
+    await indexIntegrationInstanceQueue.addMany(
+      integrationInstances.map(integrationInstance => ({
+        integrationInstanceId: integrationInstance.id
+      }))
+    );
+
+    let lastIntegrationInstance = integrationInstances[integrationInstances.length - 1];
+    if (!lastIntegrationInstance) return;
+
+    await integrationArchiveInstancesManyQueue.add({
+      integrationId: data.integrationId,
+      cursor: lastIntegrationInstance.id
+    });
+  });
 
 export let integrationArchiveProvidersManyQueue = createQueue<{
   integrationId: string;
@@ -79,18 +134,12 @@ export let integrationArchiveProvidersManyQueueProcessor =
 
         await db.integrationProvider.updateMany({
           where: { oid: integrationProvider.oid },
-          data: {
-            status: 'archived',
-            archivedAt
-          }
+          data: { status: 'archived', archivedAt }
         });
       } else {
         await db.integrationProvider.updateMany({
           where: { oid: integrationProvider.oid },
-          data: {
-            status: 'archived',
-            archivedAt
-          }
+          data: { status: 'archived', archivedAt }
         });
       }
     }

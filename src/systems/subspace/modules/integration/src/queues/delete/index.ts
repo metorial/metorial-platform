@@ -4,9 +4,17 @@ import {
   integrationDeleteManyQueueProcessor,
   integrationDeleteQueueProcessor
 } from './integration';
+import {
+  integrationInstanceArchivedCleanupCron,
+  integrationInstanceDeleteManyQueueProcessor,
+  integrationInstanceDeleteQueueProcessor
+} from './integrationInstance';
 
 export let deleteQueues = combineQueueProcessors([
   integrationArchivedCleanupCron,
   integrationDeleteManyQueueProcessor,
-  integrationDeleteQueueProcessor
+  integrationDeleteQueueProcessor,
+  integrationInstanceArchivedCleanupCron,
+  integrationInstanceDeleteManyQueueProcessor,
+  integrationInstanceDeleteQueueProcessor
 ]);
