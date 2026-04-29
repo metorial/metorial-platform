@@ -58,4 +58,6 @@ model Solution {
   agentClients                             AgentClient[]
   integrations                             Integration[]
   integrationProviders                     IntegrationProvider[]
+  integrationInstances                     IntegrationInstance[]
+  integrationInstanceProviders             IntegrationInstanceProvider[]
 }

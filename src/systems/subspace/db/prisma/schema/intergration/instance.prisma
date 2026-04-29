@@ -1,0 +1,120 @@
+enum IntegrationInstanceStatus {
+  draft
+  active
+  archived
+  deleted
+}
+
+model IntegrationInstance {
+  oid BigInt @id
+  id  String @unique
+
+  status          IntegrationInstanceStatus
+  isParentDeleted Boolean                   @default(false)
+  archivedAt      DateTime?
+
+  name            String
+  description     String?
+  metadata        Json?
+  privateMetadata Json?
+
+  integrationOid BigInt
+  integration    Integration @relation(fields: [integrationOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
+
+  createdAt                    DateTime                      @default(now())
+  updatedAt                    DateTime                      @default(now()) @updatedAt
+  integrationInstanceProviders IntegrationInstanceProvider[]
+
+  @@index([tenantOid, solutionOid, environmentOid, status])
+  @@index([integrationOid, status])
+  @@index([status, archivedAt])
+}
+
+enum IntegrationInstanceProviderStatus {
+  active
+  archived
+  deleted
+}
+
+model IntegrationInstanceProvider {
+  oid BigInt @id
+  id  String @unique
+
+  status          IntegrationInstanceProviderStatus
+  isParentDeleted Boolean                           @default(false)
+  archivedAt      DateTime?
+
+  name            String
+  description     String?
+  metadata        Json?
+  privateMetadata Json?
+
+  currentVersionOid BigInt?
+  currentVersion    IntegrationInstanceProviderVersion? @relation(fields: [currentVersionOid], references: [oid], name: "currentVersion")
+
+  integrationOid BigInt
+  integration    Integration @relation(fields: [integrationOid], references: [oid])
+
+  integrationInstanceOid BigInt
+  integrationInstance    IntegrationInstance @relation(fields: [integrationInstanceOid], references: [oid], onDelete: Cascade)
+
+  integrationProviderOid BigInt
+  integrationProvider    IntegrationProvider @relation(fields: [integrationProviderOid], references: [oid], onDelete: Cascade)
+
+  integrationVersionOid BigInt
+  integrationVersion    IntegrationVersion @relation(fields: [integrationVersionOid], references: [oid], onDelete: Cascade)
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  integrationInstanceProviderVersions IntegrationInstanceProviderVersion[]
+
+  @@unique([integrationInstanceOid, integrationProviderOid])
+  @@index([tenantOid, solutionOid, environmentOid, status])
+  @@index([integrationInstanceOid, status])
+  @@index([integrationProviderOid, status])
+}
+
+model IntegrationInstanceProviderVersion {
+  oid BigInt @id
+  id  String @unique
+
+  status IntegrationInstanceProviderStatus
+
+  integrationInstanceProviderOid BigInt
+  integrationInstanceProvider    IntegrationInstanceProvider @relation(fields: [integrationInstanceProviderOid], references: [oid], onDelete: Cascade)
+
+  integrationProviderVersionOid BigInt
+  integrationProviderVersion    IntegrationProviderVersion @relation(fields: [integrationProviderVersionOid], references: [oid], onDelete: Cascade)
+
+  /// [ToolFilter]
+  toolFilter Json
+
+  configOid BigInt?
+  config    ProviderConfig? @relation(fields: [configOid], references: [oid])
+
+  authConfigOid BigInt?
+  authConfig    ProviderAuthConfig? @relation(fields: [authConfigOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  providers IntegrationInstanceProvider[] @relation("currentVersion")
+}

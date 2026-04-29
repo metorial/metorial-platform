@@ -75,17 +75,18 @@ model ProviderAuthConfig {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  providerOAuthSetups        ProviderOAuthSetup[]
-  deploymentAuthConfigs      ProviderDeployment[]        @relation("defaultAuthConfig")
-  providerAuthExports        ProviderAuthExport[]
-  providerAuthImports        ProviderAuthImport[]
-  providerAuthConfigUpdates  ProviderAuthConfigUpdate[]
-  sessionProviders           SessionProvider[]
-  sessionTemplateProviders   SessionTemplateProvider[]
-  providerAuthConfigVersions ProviderAuthConfigVersion[]
-  identityCredentials        IdentityCredential[]
-  authConfigEvents           ProviderAuthConfigEvent[]
-  authConfigErrors           ProviderAuthConfigError[]
+  providerOAuthSetups                 ProviderOAuthSetup[]
+  deploymentAuthConfigs               ProviderDeployment[]                 @relation("defaultAuthConfig")
+  providerAuthExports                 ProviderAuthExport[]
+  providerAuthImports                 ProviderAuthImport[]
+  providerAuthConfigUpdates           ProviderAuthConfigUpdate[]
+  sessionProviders                    SessionProvider[]
+  sessionTemplateProviders            SessionTemplateProvider[]
+  providerAuthConfigVersions          ProviderAuthConfigVersion[]
+  identityCredentials                 IdentityCredential[]
+  authConfigEvents                    ProviderAuthConfigEvent[]
+  authConfigErrors                    ProviderAuthConfigError[]
+  integrationInstanceProviderVersions IntegrationInstanceProviderVersion[]
 
   @@index([createdAt])
   @@index([updatedAt])

@@ -90,6 +90,8 @@ model Tenant {
   agentClients                             AgentClient[]
   integrations                             Integration[]
   integrationProviders                     IntegrationProvider[]
+  integrationInstances                     IntegrationInstance[]
+  integrationInstanceProviders             IntegrationInstanceProvider[]
 }
 
 enum EnvironmentType {
@@ -153,6 +155,8 @@ model Environment {
   agentClients                             AgentClient[]
   integrations                             Integration[]
   integrationProviders                     IntegrationProvider[]
+  integrationInstances                     IntegrationInstance[]
+  integrationInstanceProviders             IntegrationInstanceProvider[]
 }
 
 enum TenantActorType {

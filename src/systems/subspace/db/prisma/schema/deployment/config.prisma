@@ -54,15 +54,16 @@ model ProviderConfig {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  defaultForDeployment        ProviderDeployment?          @relation("defaultConfig")
-  vault                       ProviderConfigVault?
-  providerSetupSession        ProviderSetupSession?
-  sessionProviders            SessionProvider[]
-  sessionTemplateProviders    SessionTemplateProvider[]
-  providerConfigVersions      ProviderConfigVersion[]
-  providerConfigUpdates       ProviderConfigUpdate[]
-  identityCredentials         IdentityCredential[]
-  integrationProviderVersions IntegrationProviderVersion[]
+  defaultForDeployment                ProviderDeployment?                  @relation("defaultConfig")
+  vault                               ProviderConfigVault?
+  providerSetupSession                ProviderSetupSession?
+  sessionProviders                    SessionProvider[]
+  sessionTemplateProviders            SessionTemplateProvider[]
+  providerConfigVersions              ProviderConfigVersion[]
+  providerConfigUpdates               ProviderConfigUpdate[]
+  identityCredentials                 IdentityCredential[]
+  integrationProviderVersions         IntegrationProviderVersion[]
+  integrationInstanceProviderVersions IntegrationInstanceProviderVersion[]
 
   @@index([createdAt])
   @@index([updatedAt])
