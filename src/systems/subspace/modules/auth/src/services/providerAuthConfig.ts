@@ -544,9 +544,11 @@ class providerAuthConfigServiceImpl {
     solution: Solution;
     environment: Environment;
     providerAuthConfig: ProviderAuthConfig;
+    _canArchiveOwned?: boolean;
   }) {
     checkTenant(d, d.providerAuthConfig);
     checkDeletedEdit(d.providerAuthConfig, 'archive');
+    this.assertCanArchiveOwned(d);
 
     return withTransaction(async db => {
       let archivedAt = new Date();
@@ -573,6 +575,28 @@ class providerAuthConfigServiceImpl {
 
       return providerAuthConfig;
     });
+  }
+
+  private assertCanArchiveOwned(d: {
+    providerAuthConfig: ProviderAuthConfig;
+    _canArchiveOwned?: boolean;
+  }) {
+    if (d._canArchiveOwned) return;
+    if (
+      d.providerAuthConfig.owningIntegrationInstanceOid === null &&
+      d.providerAuthConfig.owningIntegrationInstanceProviderOid === null
+    ) {
+      return;
+    }
+
+    throw new ServiceError(
+      badRequestError({
+        message:
+          'Provider auth config is owned by an integration instance provider and cannot be archived directly.',
+        code: 'provider_auth_config_owned_archive_not_allowed',
+        data: { id: d.providerAuthConfig.id }
+      })
+    );
   }
 }
 

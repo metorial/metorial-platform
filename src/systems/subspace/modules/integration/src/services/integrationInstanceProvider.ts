@@ -9,6 +9,8 @@ import {
   type IntegrationInstance,
   type IntegrationInstanceProvider,
   type IntegrationInstanceProviderStatus,
+  type ProviderAuthConfig,
+  type ProviderConfig,
   type Solution,
   type Tenant,
   withTransaction
@@ -71,6 +73,38 @@ let requireCurrentIntegrationProviderVersion = async (integrationProviderOid: bi
 
 let isAllowAllToolFilter = (toolFilter: PrismaJson.ToolFilter | null | undefined) =>
   normalizeIntegrationProviderToolFilter(toolFilter).type === 'v1.allow_all';
+
+let configOwnershipError = (kind: 'config' | 'auth_config', id: string) =>
+  badRequestError({
+    message: `Provider ${kind === 'config' ? 'config' : 'auth config'} is already connected to another integration instance provider.`,
+    code:
+      kind === 'config'
+        ? 'provider_config_already_owned'
+        : 'provider_auth_config_already_owned',
+    data: { id }
+  });
+
+let assertCanUseOwnedResource = (d: {
+  kind: 'config' | 'auth_config';
+  resource: Pick<
+    ProviderConfig | ProviderAuthConfig,
+    'id' | 'owningIntegrationInstanceOid' | 'owningIntegrationInstanceProviderOid'
+  >;
+  integrationInstanceOid: bigint;
+  integrationInstanceProviderOid?: bigint;
+}) => {
+  let hasOwner =
+    d.resource.owningIntegrationInstanceOid !== null ||
+    d.resource.owningIntegrationInstanceProviderOid !== null;
+  if (!hasOwner) return;
+
+  if (
+    d.resource.owningIntegrationInstanceOid !== d.integrationInstanceOid ||
+    d.resource.owningIntegrationInstanceProviderOid !== d.integrationInstanceProviderOid
+  ) {
+    throw new ServiceError(configOwnershipError(d.kind, d.resource.id));
+  }
+};
 
 export type SetIntegrationInstanceProviderInput = {
   providerId: string;
@@ -429,6 +463,22 @@ class integrationInstanceProviderServiceImpl {
         let materialProvider = materialProviders[idx]!;
         let combination = combinations[idx]!;
         let existing = existingByIntegrationProviderOid.get(integrationProvider.oid);
+        let deploymentOid = materialProvider.currentVersion!.deploymentOid;
+
+        assertCanUseOwnedResource({
+          kind: 'config',
+          resource: combination.config,
+          integrationInstanceOid: d.integrationInstance.oid,
+          integrationInstanceProviderOid: existing?.oid
+        });
+        if (combination.authConfig) {
+          assertCanUseOwnedResource({
+            kind: 'auth_config',
+            resource: combination.authConfig,
+            integrationInstanceOid: d.integrationInstance.oid,
+            integrationInstanceProviderOid: existing?.oid
+          });
+        }
 
         let integrationInstanceProvider = existing
           ? await db.integrationInstanceProvider.update({
@@ -459,6 +509,58 @@ class integrationInstanceProviderServiceImpl {
                 environmentOid: d.environment.oid
               }
             });
+
+        let configUpdate = await db.providerConfig.updateMany({
+          where: {
+            oid: combination.config.oid,
+            OR: [
+              {
+                owningIntegrationInstanceOid: null,
+                owningIntegrationInstanceProviderOid: null
+              },
+              {
+                owningIntegrationInstanceOid: d.integrationInstance.oid,
+                owningIntegrationInstanceProviderOid: integrationInstanceProvider.oid
+              }
+            ]
+          },
+          data: {
+            owningIntegrationInstanceOid: d.integrationInstance.oid,
+            owningIntegrationInstanceProviderOid: integrationInstanceProvider.oid,
+            deploymentOid
+          }
+        });
+        if (configUpdate.count !== 1) {
+          throw new ServiceError(configOwnershipError('config', combination.config.id));
+        }
+
+        if (combination.authConfig) {
+          let authConfigUpdate = await db.providerAuthConfig.updateMany({
+            where: {
+              oid: combination.authConfig.oid,
+              OR: [
+                {
+                  owningIntegrationInstanceOid: null,
+                  owningIntegrationInstanceProviderOid: null
+                },
+                {
+                  owningIntegrationInstanceOid: d.integrationInstance.oid,
+                  owningIntegrationInstanceProviderOid: integrationInstanceProvider.oid
+                }
+              ]
+            },
+            data: {
+              owningIntegrationInstanceOid: d.integrationInstance.oid,
+              owningIntegrationInstanceProviderOid: integrationInstanceProvider.oid,
+              deploymentOid
+            }
+          });
+          if (authConfigUpdate.count !== 1) {
+            throw new ServiceError(
+              configOwnershipError('auth_config', combination.authConfig.id)
+            );
+          }
+        }
 
         await createIntegrationInstanceProviderVersion({
           integrationInstanceProviderOid: integrationInstanceProvider.oid,

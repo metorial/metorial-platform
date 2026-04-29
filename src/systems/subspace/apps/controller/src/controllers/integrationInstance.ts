@@ -11,8 +11,7 @@ import { normalizeToolFilters, toolFiltersValidator } from './sessionProvider';
 import { tenantApp } from './tenant';
 
 let integrationInstanceProviderInputValidator = v.object({
-  integrationProviderId: v.optional(v.string()),
-  providerId: v.optional(v.string()),
+  providerId: v.string(),
   providerConfigId: v.optional(v.nullable(v.string())),
   providerAuthConfigId: v.optional(v.nullable(v.string())),
   toolFilters: toolFiltersValidator,
@@ -129,7 +128,7 @@ export let integrationInstanceController = app.controller({
           metadata: ctx.input.metadata,
           privateMetadata: ctx.input.privateMetadata,
           providers: ctx.input.providers?.map(provider => ({
-            providerId: (provider.providerId ?? provider.integrationProviderId)!,
+            providerId: provider.providerId,
             providerConfigId: provider.providerConfigId,
             providerAuthConfigId: provider.providerAuthConfigId ?? undefined,
             isOverrideToolFilter: provider.isOverrideToolFilter,
@@ -171,7 +170,7 @@ export let integrationInstanceController = app.controller({
           metadata: ctx.input.metadata,
           privateMetadata: ctx.input.privateMetadata,
           providers: ctx.input.providers?.map(provider => ({
-            providerId: (provider.providerId ?? provider.integrationProviderId)!,
+            providerId: provider.providerId,
             providerConfigId: provider.providerConfigId,
             providerAuthConfigId: provider.providerAuthConfigId ?? undefined,
             isOverrideToolFilter: provider.isOverrideToolFilter,

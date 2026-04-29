@@ -30,9 +30,12 @@ model IntegrationInstance {
   solutionOid Int
   solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
 
-  createdAt                    DateTime                      @default(now())
-  updatedAt                    DateTime                      @default(now()) @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
   integrationInstanceProviders IntegrationInstanceProvider[]
+  providerConfigs              ProviderConfig[]
+  providerAuthConfigs          ProviderAuthConfig[]
 
   @@index([tenantOid, solutionOid, environmentOid, status])
   @@index([integrationOid, status])
@@ -86,6 +89,8 @@ model IntegrationInstanceProvider {
   updatedAt DateTime @default(now()) @updatedAt
 
   integrationInstanceProviderVersions IntegrationInstanceProviderVersion[]
+  providerConfigs                     ProviderConfig[]
+  providerAuthConfigs                 ProviderAuthConfig[]
 
   @@unique([integrationInstanceOid, integrationProviderOid])
   @@index([tenantOid, solutionOid, environmentOid, status])
