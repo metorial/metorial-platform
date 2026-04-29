@@ -63,6 +63,10 @@ export let integrationPresenter = (
   metadata: integration.metadata,
   privateMetadata: integration.privateMetadata,
 
+  canAttachCustomToolFilters: integration.canAttachCustomToolFilters,
+  canAttachCustomProviderConfig: integration.canAttachCustomProviderConfig,
+  canOverrideToolFilters: integration.canOverrideToolFilters,
+
   providers: integration.providers.map(provider =>
     integrationProviderPresenter({
       ...provider,

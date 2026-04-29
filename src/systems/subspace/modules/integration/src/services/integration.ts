@@ -153,6 +153,9 @@ class integrationServiceImpl {
       description?: string;
       metadata?: Record<string, any>;
       privateMetadata?: Record<string, any>;
+      canAttachCustomToolFilters?: boolean;
+      canAttachCustomProviderConfig?: boolean;
+      canOverrideToolFilters?: boolean;
     };
   }) {
     return await withTransaction(async db => {
@@ -165,6 +168,9 @@ class integrationServiceImpl {
           description: d.input.description?.trim(),
           metadata: d.input.metadata,
           privateMetadata: d.input.privateMetadata,
+          canAttachCustomToolFilters: d.input.canAttachCustomToolFilters ?? true,
+          canAttachCustomProviderConfig: d.input.canAttachCustomProviderConfig ?? false,
+          canOverrideToolFilters: d.input.canOverrideToolFilters ?? false,
           currentVersionIndex: 0,
           tenantOid: d.tenant.oid,
           solutionOid: d.solution.oid,
@@ -197,6 +203,9 @@ class integrationServiceImpl {
       description?: string | null;
       metadata?: Record<string, any> | null;
       privateMetadata?: Record<string, any> | null;
+      canAttachCustomToolFilters?: boolean;
+      canAttachCustomProviderConfig?: boolean;
+      canOverrideToolFilters?: boolean;
     };
   }) {
     checkTenant(d, d.integration);
@@ -216,11 +225,11 @@ class integrationServiceImpl {
             d.input.description === undefined
               ? d.integration.description
               : d.input.description?.trim() || null,
-          metadata: d.input.metadata === undefined ? d.integration.metadata : d.input.metadata,
-          privateMetadata:
-            d.input.privateMetadata === undefined
-              ? d.integration.privateMetadata
-              : d.input.privateMetadata
+          metadata: d.input.metadata,
+          privateMetadata: d.input.privateMetadata,
+          canAttachCustomToolFilters: d.input.canAttachCustomToolFilters,
+          canAttachCustomProviderConfig: d.input.canAttachCustomProviderConfig,
+          canOverrideToolFilters: d.input.canOverrideToolFilters
         },
         include: integrationInclude
       });

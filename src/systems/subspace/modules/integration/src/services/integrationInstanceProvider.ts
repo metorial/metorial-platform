@@ -69,11 +69,15 @@ let requireCurrentIntegrationProviderVersion = async (integrationProviderOid: bi
   return integrationProvider;
 };
 
+let isAllowAllToolFilter = (toolFilter: PrismaJson.ToolFilter | null | undefined) =>
+  normalizeIntegrationProviderToolFilter(toolFilter).type === 'v1.allow_all';
+
 export type SetIntegrationInstanceProviderInput = {
   providerId: string;
-  providerConfigId?: string;
+  providerConfigId?: string | null;
   providerAuthConfigId?: string;
   toolFilters?: PrismaJson.ToolFilter | null;
+  isOverrideToolFilter?: boolean;
 };
 
 class integrationInstanceProviderServiceImpl {
@@ -300,41 +304,125 @@ class integrationInstanceProviderServiceImpl {
       )
     );
 
+    let existingIntegrationInstanceProviders = await db.integrationInstanceProvider.findMany({
+      where: {
+        integrationInstanceOid: d.integrationInstance.oid,
+        integrationProviderOid: {
+          in: integrationProviders.map(integrationProvider => integrationProvider.oid)
+        }
+      },
+      include: {
+        currentVersion: {
+          include: {
+            config: true
+          }
+        }
+      }
+    });
+    let existingByIntegrationProviderOid = new Map(
+      existingIntegrationInstanceProviders.map(integrationInstanceProvider => [
+        integrationInstanceProvider.integrationProviderOid,
+        integrationInstanceProvider
+      ])
+    );
+
+    for (let [idx, input] of d.input.entries()) {
+      let materialProvider = materialProviders[idx]!;
+      let integration = materialProvider.integration;
+      let sharedConfigId = materialProvider.currentVersion!.config?.id;
+      let existing = existingByIntegrationProviderOid.get(integrationProviders[idx]!.oid);
+      let isOverrideToolFilter =
+        input.isOverrideToolFilter ?? existing?.currentVersion?.isOverrideToolFilter ?? false;
+
+      if (
+        !integration.canAttachCustomProviderConfig &&
+        input.providerConfigId &&
+        sharedConfigId &&
+        input.providerConfigId !== sharedConfigId
+      ) {
+        throw new ServiceError(
+          badRequestError({
+            message: 'Integration does not allow custom provider configs.',
+            code: 'custom_provider_config_not_allowed'
+          })
+        );
+      }
+
+      if (isOverrideToolFilter && !integration.canOverrideToolFilters) {
+        throw new ServiceError(
+          badRequestError({
+            message: 'Integration does not allow overriding tool filters.',
+            code: 'tool_filter_override_not_allowed'
+          })
+        );
+      }
+
+      if (
+        !integration.canAttachCustomToolFilters &&
+        input.toolFilters &&
+        !isAllowAllToolFilter(input.toolFilters)
+      ) {
+        throw new ServiceError(
+          badRequestError({
+            message: 'Integration does not allow custom tool filters.',
+            code: 'custom_tool_filters_not_allowed'
+          })
+        );
+      }
+    }
+
+    let configIds = d.input.map((input, idx) => {
+      if (input.providerConfigId === undefined) {
+        return existingByIntegrationProviderOid.get(integrationProviders[idx]!.oid)
+          ?.currentVersion?.config?.id;
+      }
+
+      if (input.providerConfigId === null) return undefined;
+
+      return input.providerConfigId;
+    });
+
     let combinations = await providerCombinationService.getCombinations({
       tenant: d.tenant,
       solution: d.solution,
       environment: d.environment,
       providers: d.input.map((input, idx) => ({
         deploymentId: materialProviders[idx]!.currentVersion!.deployment.id,
-        configId: input.providerConfigId ?? materialProviders[idx]!.currentVersion!.config?.id,
+        configId: configIds[idx],
         authConfigId: input.providerAuthConfigId
       }))
     });
 
-    let toolFilters = d.input.map((input, idx) =>
-      'toolFilters' in input
-        ? normalizeIntegrationProviderToolFilter(input.toolFilters)
-        : (materialProviders[idx]!.currentVersion!.toolFilter as PrismaJson.ToolFilter)
-    );
+    let toolFilters = d.input.map((input, idx) => {
+      let existing = existingByIntegrationProviderOid.get(integrationProviders[idx]!.oid);
+      let isOverrideToolFilter =
+        input.isOverrideToolFilter ?? existing?.currentVersion?.isOverrideToolFilter ?? false;
+
+      let toolFilter: PrismaJson.ToolFilter | null;
+      if (input.toolFilters === undefined) {
+        toolFilter = existing?.currentVersion?.toolFilter
+          ? normalizeIntegrationProviderToolFilter(
+              existing.currentVersion.toolFilter as PrismaJson.ToolFilter
+            )
+          : null;
+      } else {
+        toolFilter = normalizeIntegrationProviderToolFilter(input.toolFilters);
+      }
+
+      if (!isOverrideToolFilter && (!toolFilter || isAllowAllToolFilter(toolFilter))) {
+        return null;
+      }
+
+      return toolFilter ?? normalizeIntegrationProviderToolFilter(null);
+    });
+    let isOverrideToolFilters = d.input.map((input, idx) => {
+      let existing = existingByIntegrationProviderOid.get(integrationProviders[idx]!.oid);
+      return (
+        input.isOverrideToolFilter ?? existing?.currentVersion?.isOverrideToolFilter ?? false
+      );
+    });
 
     return await withTransaction(async db => {
-      let existingIntegrationInstanceProviders = await db.integrationInstanceProvider.findMany(
-        {
-          where: {
-            integrationInstanceOid: d.integrationInstance.oid,
-            integrationProviderOid: {
-              in: integrationProviders.map(integrationProvider => integrationProvider.oid)
-            }
-          }
-        }
-      );
-      let existingByIntegrationProviderOid = new Map(
-        existingIntegrationInstanceProviders.map(integrationInstanceProvider => [
-          integrationInstanceProvider.integrationProviderOid,
-          integrationInstanceProvider
-        ])
-      );
-
       let integrationInstanceProviderOids: bigint[] = [];
 
       for (let [idx, integrationProvider] of integrationProviders.entries()) {
@@ -378,7 +466,8 @@ class integrationInstanceProviderServiceImpl {
           integrationProviderVersionOid: materialProvider.currentVersion!.oid,
           configOid: combination.config.oid,
           authConfigOid: combination.authConfig?.oid,
-          toolFilter: toolFilters[idx]!
+          toolFilter: toolFilters[idx],
+          isOverrideToolFilter: isOverrideToolFilters[idx]
         });
 
         integrationInstanceProviderOids.push(integrationInstanceProvider.oid);
@@ -471,7 +560,8 @@ class integrationInstanceProviderServiceImpl {
           integrationProviderVersionOid: current.integrationProviderVersionOid,
           configOid: current.configOid,
           authConfigOid: current.authConfigOid,
-          toolFilter: current.toolFilter as PrismaJson.ToolFilter
+          toolFilter: current.toolFilter as PrismaJson.ToolFilter | null,
+          isOverrideToolFilter: current.isOverrideToolFilter
         });
       }
 

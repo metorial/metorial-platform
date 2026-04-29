@@ -235,7 +235,7 @@ class integrationProviderServiceImpl {
         tenantOid: d.tenant.oid,
         solutionOid: d.solution.oid,
         environmentOid: d.environment.oid,
-        ...(normalizeStatusForGet(d as any).noParent as any)
+        ...normalizeStatusForGet(d).noParent
       },
       include: integrationProviderInclude
     });
@@ -417,7 +417,7 @@ class integrationProviderServiceImpl {
       }
     });
     let toolFilter =
-      'toolFilters' in d.input
+      d.input.toolFilters !== undefined
         ? normalizeIntegrationProviderToolFilter(d.input.toolFilters)
         : (current.currentVersion?.toolFilter as PrismaJson.ToolFilter);
 

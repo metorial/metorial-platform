@@ -15,7 +15,8 @@ let integrationInstanceProviderInputValidator = v.object({
   providerId: v.optional(v.string()),
   providerConfigId: v.optional(v.nullable(v.string())),
   providerAuthConfigId: v.optional(v.nullable(v.string())),
-  toolFilters: toolFiltersValidator
+  toolFilters: toolFiltersValidator,
+  isOverrideToolFilter: v.optional(v.boolean())
 });
 
 export let integrationInstanceApp = tenantApp.use(async ctx => {
@@ -128,11 +129,13 @@ export let integrationInstanceController = app.controller({
           metadata: ctx.input.metadata,
           privateMetadata: ctx.input.privateMetadata,
           providers: ctx.input.providers?.map(provider => ({
-            integrationProviderId: provider.integrationProviderId,
-            providerId: provider.providerId,
-            providerConfigId: provider.providerConfigId ?? undefined,
+            providerId: (provider.providerId ?? provider.integrationProviderId)!,
+            providerConfigId: provider.providerConfigId,
             providerAuthConfigId: provider.providerAuthConfigId ?? undefined,
-            toolFilters: normalizeToolFilters(provider.toolFilters)
+            isOverrideToolFilter: provider.isOverrideToolFilter,
+            ...(provider.toolFilters !== undefined
+              ? { toolFilters: normalizeToolFilters(provider.toolFilters) }
+              : {})
           }))
         }
       });
@@ -168,11 +171,13 @@ export let integrationInstanceController = app.controller({
           metadata: ctx.input.metadata,
           privateMetadata: ctx.input.privateMetadata,
           providers: ctx.input.providers?.map(provider => ({
-            integrationProviderId: provider.integrationProviderId,
-            providerId: provider.providerId,
-            providerConfigId: provider.providerConfigId ?? undefined,
+            providerId: (provider.providerId ?? provider.integrationProviderId)!,
+            providerConfigId: provider.providerConfigId,
             providerAuthConfigId: provider.providerAuthConfigId ?? undefined,
-            toolFilters: normalizeToolFilters(provider.toolFilters)
+            isOverrideToolFilter: provider.isOverrideToolFilter,
+            ...(provider.toolFilters !== undefined
+              ? { toolFilters: normalizeToolFilters(provider.toolFilters) }
+              : {})
           }))
         }
       });

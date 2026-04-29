@@ -90,7 +90,10 @@ export let integrationController = app.controller({
         name: v.string(),
         description: v.optional(v.string()),
         metadata: v.optional(v.record(v.any())),
-        privateMetadata: v.optional(v.record(v.any()))
+        privateMetadata: v.optional(v.record(v.any())),
+        canAttachCustomToolFilters: v.optional(v.boolean()),
+        canAttachCustomProviderConfig: v.optional(v.boolean()),
+        canOverrideToolFilters: v.optional(v.boolean())
       })
     )
     .do(async ctx => {
@@ -102,7 +105,10 @@ export let integrationController = app.controller({
           name: ctx.input.name,
           description: ctx.input.description,
           metadata: ctx.input.metadata,
-          privateMetadata: ctx.input.privateMetadata
+          privateMetadata: ctx.input.privateMetadata,
+          canAttachCustomToolFilters: ctx.input.canAttachCustomToolFilters,
+          canAttachCustomProviderConfig: ctx.input.canAttachCustomProviderConfig,
+          canOverrideToolFilters: ctx.input.canOverrideToolFilters
         }
       });
 
@@ -121,7 +127,10 @@ export let integrationController = app.controller({
         name: v.optional(v.string()),
         description: v.optional(v.nullable(v.string())),
         metadata: v.optional(v.nullable(v.record(v.any()))),
-        privateMetadata: v.optional(v.nullable(v.record(v.any())))
+        privateMetadata: v.optional(v.nullable(v.record(v.any()))),
+        canAttachCustomToolFilters: v.optional(v.boolean()),
+        canAttachCustomProviderConfig: v.optional(v.boolean()),
+        canOverrideToolFilters: v.optional(v.boolean())
       })
     )
     .do(async ctx => {
@@ -134,7 +143,10 @@ export let integrationController = app.controller({
           name: ctx.input.name,
           description: ctx.input.description,
           metadata: ctx.input.metadata,
-          privateMetadata: ctx.input.privateMetadata
+          privateMetadata: ctx.input.privateMetadata,
+          canAttachCustomToolFilters: ctx.input.canAttachCustomToolFilters,
+          canAttachCustomProviderConfig: ctx.input.canAttachCustomProviderConfig,
+          canOverrideToolFilters: ctx.input.canOverrideToolFilters
         }
       });
 

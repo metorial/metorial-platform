@@ -1,4 +1,4 @@
-import { db, getId, withTransaction } from '@metorial-subspace/db';
+import { db, getId, Prisma, withTransaction } from '@metorial-subspace/db';
 import { normalizeToolFilters } from '../../../provider-internal/src/lib/toolFilter';
 export { hasMaterialIntegrationProviderChange } from './material';
 
@@ -106,14 +106,16 @@ export let createIntegrationInstanceProviderVersion = async (d: {
   integrationProviderVersionOid: bigint;
   configOid?: bigint | null;
   authConfigOid?: bigint | null;
-  toolFilter: PrismaJson.ToolFilter;
+  toolFilter?: PrismaJson.ToolFilter | null;
+  isOverrideToolFilter?: boolean;
 }) => {
   return await withTransaction(async () => {
     let version = await db.integrationInstanceProviderVersion.create({
       data: {
         ...getId('integrationInstanceProviderVersion'),
         status: d.status,
-        toolFilter: d.toolFilter,
+        toolFilter: d.toolFilter ?? Prisma.JsonNull,
+        isOverrideToolFilter: d.isOverrideToolFilter ?? false,
         integrationInstanceProviderOid: d.integrationInstanceProviderOid,
         integrationProviderVersionOid: d.integrationProviderVersionOid,
         configOid: d.configOid,

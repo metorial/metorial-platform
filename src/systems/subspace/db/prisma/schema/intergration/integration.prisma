@@ -17,6 +17,10 @@ model Integration {
   metadata        Json?
   privateMetadata Json?
 
+  canAttachCustomToolFilters    Boolean
+  canAttachCustomProviderConfig Boolean
+  canOverrideToolFilters        Boolean
+
   currentVersionIndex Int
 
   currentVersionOid BigInt?

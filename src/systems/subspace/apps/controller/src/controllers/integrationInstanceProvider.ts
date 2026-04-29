@@ -105,11 +105,11 @@ export let integrationInstanceProviderController = app.controller({
         environmentId: v.string(),
 
         integrationInstanceId: v.string(),
-        integrationProviderId: v.optional(v.string()),
-        providerId: v.optional(v.string()),
+        providerId: v.string(),
         providerConfigId: v.optional(v.nullable(v.string())),
         providerAuthConfigId: v.optional(v.nullable(v.string())),
-        toolFilters: toolFiltersValidator
+        toolFilters: toolFiltersValidator,
+        isOverrideToolFilter: v.optional(v.boolean())
       })
     )
     .do(async ctx => {
@@ -127,11 +127,13 @@ export let integrationInstanceProviderController = app.controller({
           solution: ctx.solution,
           integrationInstance,
           input: {
-            integrationProviderId: ctx.input.integrationProviderId,
             providerId: ctx.input.providerId,
-            providerConfigId: ctx.input.providerConfigId ?? undefined,
+            providerConfigId: ctx.input.providerConfigId,
             providerAuthConfigId: ctx.input.providerAuthConfigId ?? undefined,
-            toolFilters: normalizeToolFilters(ctx.input.toolFilters)
+            isOverrideToolFilter: ctx.input.isOverrideToolFilter,
+            ...(ctx.input.toolFilters !== undefined
+              ? { toolFilters: normalizeToolFilters(ctx.input.toolFilters) }
+              : {})
           }
         });
 

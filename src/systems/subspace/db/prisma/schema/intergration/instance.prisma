@@ -106,7 +106,8 @@ model IntegrationInstanceProviderVersion {
   integrationProviderVersion    IntegrationProviderVersion @relation(fields: [integrationProviderVersionOid], references: [oid], onDelete: Cascade)
 
   /// [ToolFilter]
-  toolFilter Json
+  toolFilter           Json?
+  isOverrideToolFilter Boolean
 
   configOid BigInt?
   config    ProviderConfig? @relation(fields: [configOid], references: [oid])
