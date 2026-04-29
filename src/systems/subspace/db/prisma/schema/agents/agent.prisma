@@ -4,6 +4,11 @@ enum AgentStatus {
   deleted
 }
 
+enum AgentType {
+  mcp_client
+  custom
+}
+
 model Agent {
   oid BigInt @id
   id  String @unique
@@ -16,6 +21,10 @@ model Agent {
   slug            String
   metadata        Json?
   privateMetadata Json?
+
+  hash String?
+
+  type AgentType @default(custom)
 
   actorOid BigInt        @unique
   actor    IdentityActor @relation(fields: [actorOid], references: [oid], onDelete: Cascade)
@@ -33,5 +42,68 @@ model Agent {
   updatedAt  DateTime  @default(now()) @updatedAt
   archivedAt DateTime?
 
+  agentInstances AgentInstance[]
+
   @@unique([environmentOid, slug])
+  @@unique([environmentOid, hash])
+}
+
+enum AgentClientType {
+  mcp_client_oauth
+}
+
+model AgentClient {
+  oid BigInt @id
+  id  String @unique
+
+  name String
+  type AgentClientType
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
+
+  privateMetadata     Json?
+  oauthRegistrationId String? @unique
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @default(now()) @updatedAt
+  lastConnectedAt DateTime?
+
+  agentInstances AgentInstance[]
+}
+
+enum AgentInstanceType {
+  mcp_client
+}
+
+model AgentInstance {
+  oid BigInt @id
+  id  String @unique
+
+  name        String
+  version     String?
+  description String?
+
+  hash String
+
+  type AgentInstanceType
+
+  agentOid BigInt
+  agent    Agent  @relation(fields: [agentOid], references: [oid], onDelete: Cascade)
+
+  agentClientOid BigInt?
+  agentClient    AgentClient? @relation(fields: [agentClientOid], references: [oid], onDelete: Cascade)
+
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @default(now()) @updatedAt
+  lastConnectedAt     DateTime?
+  sessionParticipants SessionParticipant[]
+
+  @@unique([agentOid, hash])
 }

@@ -125,7 +125,9 @@ export let ID = createIdGenerator({
   delegatedIdentityUpdate: idType.sorted('diu'),
   delegatedIdentityUpdateCredential: idType.sorted('diuc'),
   identityDelegationCredentialOverride: idType.sorted('idco'),
-  agent: idType.sorted('agt')
+  agent: idType.sorted('agt'),
+  agentClient: idType.sorted('agc'),
+  agentInstance: idType.sorted('agi')
 });
 
 let workerIdBits = 12;
