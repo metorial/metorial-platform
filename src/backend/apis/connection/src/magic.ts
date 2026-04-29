@@ -7,7 +7,7 @@ import {
 import { createExecutionContext, provideExecutionContext } from '@lowerdeck/execution-context';
 import { useRequestContext } from '@lowerdeck/hono';
 import { extractToken } from '@metorial/bearer';
-import { Instance } from '@metorial/db';
+import { db, Instance } from '@metorial/db';
 import { generateSnowflakeId } from '@metorial/id';
 import { AuthInfo } from '@metorial/module-access';
 import { consumerIntegrationService } from '@metorial/module-consumer';
@@ -20,7 +20,10 @@ import {
   resolveMagicMcpTargetByIdOrAlias,
   resolveMagicMcpTargetByIdOrAliasSafe
 } from '@metorial/module-magic';
-import { proxyMcpRequestToSubspace } from '@metorial/module-subspace';
+import {
+  proxyMcpRequestToSubspace,
+  type SubspaceProxyAgentClient
+} from '@metorial/module-subspace';
 import { Authenticator } from '@metorial/rest';
 import type { Context } from 'hono';
 import { authenticateAndResolveInstance } from './getSession';
@@ -34,6 +37,7 @@ export type MagicMcpSubspaceSessionInfo = {
   type: 'magic_mcp_subspace_session';
   magicMcpTarget: MagicMcpTargetForRouting;
   magicMcpSessionMapping: MagicMcpSubspaceMapping;
+  agentClient?: SubspaceProxyAgentClient | null;
 };
 
 export let getMagicMcpTokenSecretFromRequest = (request: Request, url: URL) => {
@@ -134,6 +138,45 @@ let ensureMagicMcpApiKeyAccess = async (d: {
       });
     }
   }
+};
+
+let resolveAgentClientForMagicMcpToken = async (d: {
+  magicMcpToken: MagicMcpTokenForRouting;
+}): Promise<SubspaceProxyAgentClient | null> => {
+  let consumerAuthAttempt = await db.consumerAuthAttempt.findFirst({
+    where: {
+      magicMcpTokenOid: d.magicMcpToken.oid
+    },
+    orderBy: {
+      updatedAt: 'desc'
+    },
+    select: {
+      consumerAuthClient: {
+        select: {
+          id: true,
+          name: true,
+          consumerClient: {
+            select: {
+              id: true,
+              name: true
+            }
+          }
+        }
+      }
+    }
+  });
+  if (!consumerAuthAttempt?.consumerAuthClient) {
+    return null;
+  }
+
+  let consumerAuthClient = consumerAuthAttempt.consumerAuthClient;
+
+  return {
+    name: consumerAuthClient.consumerClient?.name ?? consumerAuthClient.name,
+    type: 'mcp_client_oauth',
+    foreignId: consumerAuthClient.consumerClient?.id ?? consumerAuthClient.id,
+    oauthRegistrationId: consumerAuthClient.id
+  };
 };
 
 export let resolveMagicMcpSubspaceSession = async (d: {
@@ -243,10 +286,17 @@ export let resolveMagicMcpSubspaceSession = async (d: {
     });
   }
 
+  let agentClient = magicMcpToken
+    ? await resolveAgentClientForMagicMcpToken({
+        magicMcpToken
+      })
+    : null;
+
   return {
     type: 'magic_mcp_subspace_session',
     magicMcpTarget,
-    magicMcpSessionMapping
+    magicMcpSessionMapping,
+    agentClient
   };
 };
 
@@ -281,7 +331,10 @@ export let handleMagicMcpRequest = async (d: {
       return await proxyMcpRequestToSubspace(
         d.c,
         sessionInfo.magicMcpTarget.target.instance,
-        sessionInfo.magicMcpSessionMapping.subspaceSessionId
+        sessionInfo.magicMcpSessionMapping.subspaceSessionId,
+        {
+          agentClient: sessionInfo.agentClient
+        }
       );
     }
   );

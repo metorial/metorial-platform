@@ -127,6 +127,7 @@ export let ID = createIdGenerator({
   identityDelegationCredentialOverride: idType.sorted('idco'),
   agent: idType.sorted('agt'),
   agentClient: idType.sorted('agc'),
+  agentClientRegistration: idType.sorted('agr'),
   agentInstance: idType.sorted('agi')
 });
 

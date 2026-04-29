@@ -61,11 +61,23 @@ export let sessionParticipantController = app.controller({
         environment: ctx.environment,
         solution: ctx.solution,
 
-        types: ctx.input.types?.map(t =>
-          t === 'mcp_client' || t === 'metorial_protocol_client' || t === 'tool_call'
-            ? 'agent'
-            : t
-        ),
+        types: ctx.input.types?.flatMap(t => {
+          if (
+            t === 'mcp_client' ||
+            t === 'metorial_protocol_client' ||
+            t === 'tool_call' ||
+            t === 'agent'
+          ) {
+            return [
+              'legacy_mcp_client',
+              'legacy_metorial_protocol_client',
+              'legacy_tool_call',
+              'agent'
+            ] as const;
+          }
+
+          return t;
+        }),
 
         ids: ctx.input.ids,
         sessionIds: ctx.input.sessionIds,

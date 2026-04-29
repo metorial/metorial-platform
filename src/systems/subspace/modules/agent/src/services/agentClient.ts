@@ -92,66 +92,58 @@ class agentClientServiceImpl {
       name: string;
       type: AgentClientType;
       privateMetadata?: Record<string, any>;
-      oauthRegistrationId?: string;
+      foreignId: string;
+      oauthRegistrationId: string;
     };
   }) {
     return await withTransaction(async db => {
-      let oauthRegistrationId = d.input.oauthRegistrationId?.trim() || undefined;
-      let newId = getId('agentClient');
+      let agentClient = await db.agentClient.upsert({
+        where: { foreignId: d.input.foreignId },
+        create: {
+          ...getId('agentClient'),
 
-      let agentClient = oauthRegistrationId
-        ? await db.agentClient.upsert({
-            where: { oauthRegistrationId },
-            create: {
-              ...newId,
+          name: d.input.name.trim(),
+          type: d.input.type,
 
-              name: d.input.name.trim(),
-              type: d.input.type,
+          privateMetadata: d.input.privateMetadata,
+          foreignId: d.input.foreignId,
+          lastConnectedAt: new Date(),
 
-              privateMetadata: d.input.privateMetadata,
-              oauthRegistrationId,
-              lastConnectedAt: new Date(),
+          tenantOid: d.tenant.oid,
+          solutionOid: d.solution.oid,
+          environmentOid: d.environment.oid
+        },
+        update: {
+          name: d.input.name.trim(),
+          type: d.input.type,
+          privateMetadata: d.input.privateMetadata,
+          lastConnectedAt: new Date(),
+          tenantOid: d.tenant.oid,
+          solutionOid: d.solution.oid,
+          environmentOid: d.environment.oid
+        }
+      });
 
-              tenantOid: d.tenant.oid,
-              solutionOid: d.solution.oid,
-              environmentOid: d.environment.oid
-            },
-            update: {
-              name: d.input.name.trim(),
-              type: d.input.type,
-              privateMetadata: d.input.privateMetadata,
-              lastConnectedAt: new Date(),
-              tenantOid: d.tenant.oid,
-              solutionOid: d.solution.oid,
-              environmentOid: d.environment.oid
-            }
-          })
-        : await db.agentClient.create({
-            data: {
-              ...getId('agentClient'),
+      let agentClientRegistration = await db.agentClientRegistration.upsert({
+        where: { oauthRegistrationId: d.input.oauthRegistrationId },
+        create: {
+          ...getId('agentClientRegistration'),
 
-              name: d.input.name.trim(),
-              type: d.input.type,
+          oauthRegistrationId: d.input.oauthRegistrationId,
+          privateMetadata: d.input.privateMetadata,
+          agentClientOid: agentClient.oid
+        },
+        update: {
+          privateMetadata: d.input.privateMetadata,
+          agentClientOid: agentClient.oid
+        }
+      });
 
-              privateMetadata: d.input.privateMetadata,
-              oauthRegistrationId,
-              lastConnectedAt: new Date(),
+      await addAfterTransactionHook(async () =>
+        indexAgentClientQueue.add({ agentClientId: agentClient.id })
+      );
 
-              tenantOid: d.tenant.oid,
-              solutionOid: d.solution.oid,
-              environmentOid: d.environment.oid
-            }
-          });
-
-      let isNew = agentClient.oid == newId.oid;
-
-      if (isNew) {
-        await addAfterTransactionHook(async () =>
-          indexAgentClientQueue.add({ agentClientId: agentClient.id })
-        );
-      }
-
-      return agentClient;
+      return { agentClient, agentClientRegistration };
     });
   }
 
@@ -163,7 +155,8 @@ class agentClientServiceImpl {
       name: string;
       type: AgentClientType;
       privateMetadata?: Record<string, any>;
-      oauthRegistrationId?: string;
+      foreignId: string;
+      oauthRegistrationId: string;
     };
   }) {
     return await this.upsertAgentClient(d);

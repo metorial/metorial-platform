@@ -10,6 +10,14 @@ let baseConnectionUrl = env.subspace.SUBSPACE_CONNECTION_URL;
 
 let Sentry = getSentry();
 
+export type SubspaceProxyAgentClient = {
+  name: string;
+  type: 'mcp_client_oauth';
+  privateMetadata?: Record<string, any>;
+  foreignId: string;
+  oauthRegistrationId: string;
+};
+
 let getSubspaceMcpUrl = async (instance: Instance, sessionId: string, inputUrl: URL) => {
   let { tenant, solution } = await getTenantForSubspace(instance);
 
@@ -19,13 +27,17 @@ let getSubspaceMcpUrl = async (instance: Instance, sessionId: string, inputUrl: 
 export let proxyMcpRequestToSubspace = async (
   c: Context,
   instance: Instance,
-  sessionId: string
+  sessionId: string,
+  d?: {
+    agentClient?: SubspaceProxyAgentClient | null;
+  }
 ): Promise<Response> => {
   let inputUrl = new URL(c.req.url);
   let subspaceUrl = await getSubspaceMcpUrl(instance, sessionId, inputUrl);
 
   let headers = new Headers(c.req.raw.headers);
   headers.set('User-Agent', c.req.header('User-Agent') || 'unknown');
+  headers.delete('Metorial-Agent-Client');
 
   let finalHostName = inputUrl.hostname;
   if (
@@ -47,6 +59,10 @@ export let proxyMcpRequestToSubspace = async (
       ? `https://${inputUrl.hostname}${inputUrl.pathname}${inputUrl.search}`
       : `http://${inputUrl.host}${inputUrl.pathname}${inputUrl.search}`
   );
+
+  if (d?.agentClient) {
+    headers.set('Metorial-Agent-Client', JSON.stringify(d.agentClient));
+  }
 
   await Fabric.fire('provider.session_message.created:before', { instance });
 

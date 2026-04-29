@@ -1,10 +1,16 @@
-import type { Agent, AgentClient, AgentInstance } from '@metorial-subspace/db';
+import type {
+  Agent,
+  AgentClient,
+  AgentClientRegistration,
+  AgentInstance
+} from '@metorial-subspace/db';
 import { agentClientPresenter } from './agentClient';
 
 export let agentInstancePresenter = (
   agentInstance: AgentInstance & {
     agent: Agent;
     agentClient: AgentClient | null;
+    agentClientRegistration: AgentClientRegistration | null;
   }
 ) => ({
   object: 'agent.instance',
@@ -18,6 +24,7 @@ export let agentInstancePresenter = (
 
   agentId: agentInstance.agent.id,
   agentClientId: agentInstance.agentClient?.id ?? null,
+  agentClientRegistrationId: agentInstance.agentClientRegistration?.id ?? null,
   agentClient: agentInstance.agentClient ? agentClientPresenter(agentInstance.agentClient) : null,
 
   createdAt: agentInstance.createdAt,

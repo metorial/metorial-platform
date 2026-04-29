@@ -96,6 +96,7 @@ export interface SenderMangerProps {
     name: string;
     type: 'mcp_client_oauth';
     privateMetadata?: Record<string, any>;
+    foreignId: string;
     oauthRegistrationId: string;
   };
   connectionPrivateMetadata?: Record<string, any>;
@@ -282,7 +283,7 @@ export class SenderManager {
   }
 
   private async ensureConnectionClientAgentContext(d: InitProps['client']) {
-    let agentClient = await this.ensureAgentClientUpserted();
+    let agentClientContext = await this.ensureAgentClientUpserted();
 
     let agent = await agentService.upsertAgent({
       tenant: this.tenant,
@@ -303,7 +304,8 @@ export class SenderManager {
         where: { oid: this.session.environmentOid }
       }),
       agent,
-      agentClient,
+      agentClient: agentClientContext?.agentClient,
+      agentClientRegistration: agentClientContext?.agentClientRegistration,
       input: {
         name: d.name,
         version: typeof d.version === 'string' ? d.version : undefined,
@@ -314,7 +316,8 @@ export class SenderManager {
 
     return {
       agent,
-      agentClient,
+      agentClient: agentClientContext?.agentClient ?? null,
+      agentClientRegistration: agentClientContext?.agentClientRegistration ?? null,
       agentInstance
     };
   }

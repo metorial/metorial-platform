@@ -1,25 +1,10 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { agentInstanceService, agentService } from '@metorial-subspace/module-agent';
+import { agentInstanceService } from '@metorial-subspace/module-agent';
 import { agentInstancePresenter } from '@metorial-subspace/presenters';
 import { app } from './_app';
 import { createdAtValidator, updatedAtValidator } from './_dateFilter';
-import { tenantApp } from './tenant';
-
-let agentApp = tenantApp.use(async ctx => {
-  let agentId = ctx.body.agentId;
-  if (!agentId) throw new Error('Agent ID is required');
-
-  let agent = await agentService.getAgentById({
-    agentId,
-    tenant: ctx.tenant,
-    environment: ctx.environment,
-    solution: ctx.solution,
-    allowDeleted: ctx.body.allowDeleted
-  });
-
-  return { agent };
-});
+import { agentApp } from './agent';
 
 export let agentInstanceApp = agentApp.use(async ctx => {
   let agentInstanceId = ctx.body.agentInstanceId;

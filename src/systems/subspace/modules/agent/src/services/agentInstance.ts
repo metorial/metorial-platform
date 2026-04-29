@@ -5,6 +5,7 @@ import { Service } from '@lowerdeck/service';
 import {
   type Agent,
   type AgentClient,
+  type AgentClientRegistration,
   type AgentInstanceType,
   db,
   type Environment,
@@ -22,7 +23,8 @@ import { checkTenant } from '@metorial-subspace/module-tenant';
 
 let include = {
   agent: true,
-  agentClient: true
+  agentClient: true,
+  agentClientRegistration: true
 };
 
 class agentInstanceServiceImpl {
@@ -97,6 +99,7 @@ class agentInstanceServiceImpl {
 
     agent: Agent;
     agentClient?: AgentClient | null;
+    agentClientRegistration?: AgentClientRegistration | null;
 
     input: {
       name: string;
@@ -108,6 +111,18 @@ class agentInstanceServiceImpl {
     checkTenant(d, d.agent);
     checkTenant(d, d.agentClient);
     checkDeletedRelation(d.agent);
+
+    if (
+      d.agentClient &&
+      d.agentClientRegistration &&
+      d.agentClientRegistration.agentClientOid !== d.agentClient.oid
+    ) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Agent client registration does not belong to the provided agent client'
+        })
+      );
+    }
 
     if (d.agent.type === 'tool_call' && d.input.type !== 'tool_call') {
       throw new ServiceError(
@@ -123,6 +138,7 @@ class agentInstanceServiceImpl {
         d.input.version,
         d.agent.id,
         d.agentClient?.id ?? null,
+        d.agentClientRegistration?.id ?? null,
         d.input.type
       ])
     );
@@ -146,7 +162,8 @@ class agentInstanceServiceImpl {
           lastConnectedAt: new Date(),
 
           agentOid: d.agent.oid,
-          agentClientOid: d.agentClient?.oid
+          agentClientOid: d.agentClient?.oid,
+          agentClientRegistrationOid: d.agentClientRegistration?.oid
         },
         update: {
           name: d.input.name.trim(),
@@ -154,7 +171,8 @@ class agentInstanceServiceImpl {
           description: d.input.description?.trim() || undefined,
           type: d.input.type,
           lastConnectedAt: new Date(),
-          agentClientOid: d.agentClient?.oid
+          agentClientOid: d.agentClient?.oid,
+          agentClientRegistrationOid: d.agentClientRegistration?.oid
         },
         include
       });

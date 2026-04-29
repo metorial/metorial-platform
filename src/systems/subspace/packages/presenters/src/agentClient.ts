@@ -7,8 +7,8 @@ export let agentClientPresenter = (agentClient: AgentClient) => ({
   type: agentClient.type,
 
   name: agentClient.name,
+  foreignId: agentClient.foreignId,
   privateMetadata: agentClient.privateMetadata,
-  oauthRegistrationId: agentClient.oauthRegistrationId,
 
   createdAt: agentClient.createdAt,
   updatedAt: agentClient.updatedAt,

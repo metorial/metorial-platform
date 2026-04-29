@@ -69,12 +69,29 @@ model AgentClient {
   solutionOid Int
   solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
 
-  privateMetadata     Json?
-  oauthRegistrationId String? @unique
+  privateMetadata Json?
+  foreignId       String? @unique
 
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @default(now()) @updatedAt
   lastConnectedAt DateTime?
+
+  agentInstances           AgentInstance[]
+  agentClientRegistrations AgentClientRegistration[]
+}
+
+model AgentClientRegistration {
+  oid BigInt @id
+  id  String @unique
+
+  privateMetadata     Json?
+  oauthRegistrationId String? @unique
+
+  agentClientOid BigInt
+  agentClient    AgentClient @relation(fields: [agentClientOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 
   agentInstances AgentInstance[]
 }
@@ -102,9 +119,13 @@ model AgentInstance {
   agentClientOid BigInt?
   agentClient    AgentClient? @relation(fields: [agentClientOid], references: [oid], onDelete: Cascade)
 
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @default(now()) @updatedAt
-  lastConnectedAt     DateTime?
+  agentClientRegistrationOid BigInt?
+  agentClientRegistration    AgentClientRegistration? @relation(fields: [agentClientRegistrationOid], references: [oid], onDelete: Cascade)
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @default(now()) @updatedAt
+  lastConnectedAt DateTime?
+
   sessionParticipants SessionParticipant[]
 
   @@unique([agentOid, hash])

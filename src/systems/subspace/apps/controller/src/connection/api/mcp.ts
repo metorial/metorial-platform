@@ -12,7 +12,8 @@ let agentClientHeaderSchema = z.object({
   name: z.string(),
   type: z.literal('mcp_client_oauth'),
   privateMetadata: z.record(z.string(), z.any()).optional(),
-  oauthRegistrationId: z.string()
+  oauthRegistrationId: z.string(),
+  foreignId: z.string()
 });
 
 let privateMetadataHeaderSchema = z.record(z.string(), z.any());
