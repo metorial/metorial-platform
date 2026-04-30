@@ -1,4 +1,5 @@
 import { combineQueueProcessors } from '@lowerdeck/queue';
+import { archiveIntegrationInstanceQueueProcessor } from './archiveIntegrationInstance';
 import {
   integrationArchivedQueueProcessor,
   integrationArchiveInstancesManyQueueProcessor,
@@ -22,6 +23,7 @@ import {
 } from './integrationProvider';
 
 export let lifecycleQueues = combineQueueProcessors([
+  archiveIntegrationInstanceQueueProcessor,
   integrationCreatedQueueProcessor,
   integrationUpdatedQueueProcessor,
   integrationArchivedQueueProcessor,

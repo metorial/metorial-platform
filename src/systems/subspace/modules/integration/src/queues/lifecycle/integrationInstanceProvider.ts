@@ -2,7 +2,7 @@ import { createQueue } from '@lowerdeck/queue';
 import { db } from '@metorial-subspace/db';
 import { providerAuthConfigService } from '@metorial-subspace/module-auth';
 import { providerConfigService } from '@metorial-subspace/module-deployment';
-import { integrationInstanceProviderIdentityCredentialSyncQueue } from '@metorial-subspace/module-identity/src/queues/lifecycle/integrationInstanceProviderIdentityCredential';
+import { identityInternalService } from '@metorial-subspace/module-identity';
 import { env } from '../../env';
 import { indexIntegrationInstanceQueue } from '../search/integrationInstance';
 
@@ -25,8 +25,7 @@ export let integrationInstanceProviderSetQueueProcessor =
     await indexIntegrationInstanceQueue.add({
       integrationInstanceId: data.integrationInstanceId
     });
-
-    await integrationInstanceProviderIdentityCredentialSyncQueue.add({
+    await identityInternalService.syncIntegrationInstanceProviderCredential({
       integrationInstanceProviderId: data.integrationInstanceProviderId
     });
 

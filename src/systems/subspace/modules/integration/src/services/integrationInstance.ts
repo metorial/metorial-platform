@@ -6,6 +6,8 @@ import {
   db,
   type Environment,
   getId,
+  type Identity,
+  type IdentityActor,
   type Integration,
   type IntegrationInstance,
   type IntegrationInstanceStatus,
@@ -24,6 +26,10 @@ import {
   resolveIntegrations,
   resolveProviders
 } from '@metorial-subspace/list-utils';
+import {
+  identityActorService,
+  identityInternalService
+} from '@metorial-subspace/module-identity';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
 import { checkTenant } from '@metorial-subspace/module-tenant';
 import {
@@ -64,10 +70,67 @@ export let integrationInstanceProviderInclude = {
 
 export let integrationInstanceInclude = {
   integration: true,
+  identityActor: true,
+  identity: true,
   integrationInstanceProviders: {
     where: { status: 'active' as const, isParentDeleted: false },
     include: integrationInstanceProviderInclude
   }
+};
+
+type IntegrationIdentityInput = {
+  identityActorId?: string | null;
+  identityId?: string | null;
+};
+
+let mergeIntegrationIdentityInput = (d: {
+  current?: {
+    identityActor: Pick<IdentityActor, 'id'> | null;
+    identity: Pick<Identity, 'id'> | null;
+  } | null;
+  input: IntegrationIdentityInput;
+}) => ({
+  identityActorId:
+    d.input.identityActorId !== undefined
+      ? d.input.identityActorId
+      : (d.current?.identityActor?.id ?? null),
+  identityId:
+    d.input.identityActorId !== undefined
+      ? d.input.identityId !== undefined
+        ? d.input.identityId
+        : null
+      : d.input.identityId !== undefined
+        ? d.input.identityId
+        : (d.current?.identity?.id ?? null)
+});
+
+let resolveIntegrationIdentity = async (d: {
+  tenant: Tenant;
+  solution: Solution;
+  environment: Environment;
+  integrationInstance: IntegrationInstance;
+  input: {
+    identityActorId: string | null;
+    identityId: string | null;
+  };
+}) => {
+  let identityActor = d.input.identityActorId
+    ? await identityActorService.getIdentityActorById({
+        identityActorId: d.input.identityActorId,
+        tenant: d.tenant,
+        solution: d.solution,
+        environment: d.environment
+      })
+    : null;
+
+  return identityInternalService.ensureIntegrationIdentity({
+    tenant: d.tenant,
+    solution: d.solution,
+    environment: d.environment,
+    integrationInstance: d.integrationInstance,
+    actor: identityActor,
+    identityId: d.input.identityId
+  });
 };
 
 class integrationInstanceServiceImpl {
@@ -177,11 +240,20 @@ class integrationInstanceServiceImpl {
       description?: string;
       metadata?: Record<string, any>;
       privateMetadata?: Record<string, any>;
+      identityActorId?: string | null;
+      identityId?: string | null;
       providers?: SetIntegrationInstanceProviderInput[];
     };
   }) {
     checkTenant(d, d.integration);
     checkDeletedRelation(d.integration);
+
+    let mergedIdentityInput = mergeIntegrationIdentityInput({
+      input: {
+        identityActorId: d.input.identityActorId,
+        identityId: d.input.identityId
+      }
+    });
 
     return await withTransaction(async db => {
       let integrationInstance = await db.integrationInstance.create({
@@ -196,6 +268,22 @@ class integrationInstanceServiceImpl {
           tenantOid: d.tenant.oid,
           solutionOid: d.solution.oid,
           environmentOid: d.environment.oid
+        },
+        include: integrationInstanceInclude
+      });
+
+      let { actor, identity } = await resolveIntegrationIdentity({
+        tenant: d.tenant,
+        solution: d.solution,
+        environment: d.environment,
+        integrationInstance,
+        input: mergedIdentityInput
+      });
+      integrationInstance = await db.integrationInstance.update({
+        where: { oid: integrationInstance.oid },
+        data: {
+          identityActorOid: actor?.oid ?? null,
+          identityOid: identity?.oid ?? null
         },
         include: integrationInstanceInclude
       });
@@ -233,11 +321,39 @@ class integrationInstanceServiceImpl {
       description?: string | null;
       metadata?: Record<string, any> | null;
       privateMetadata?: Record<string, any> | null;
+      identityActorId?: string | null;
+      identityId?: string | null;
       providers?: SetIntegrationInstanceProviderInput[];
     };
   }) {
     checkTenant(d, d.integrationInstance);
     checkDeletedEdit(d.integrationInstance, 'update');
+
+    let current = await db.integrationInstance.findUniqueOrThrow({
+      where: { oid: d.integrationInstance.oid },
+      include: {
+        identityActor: {
+          select: { id: true }
+        },
+        identity: {
+          select: { id: true }
+        }
+      }
+    });
+    let mergedIdentityInput = mergeIntegrationIdentityInput({
+      current,
+      input: {
+        identityActorId: d.input.identityActorId,
+        identityId: d.input.identityId
+      }
+    });
+    let { actor, identity } = await resolveIntegrationIdentity({
+      tenant: d.tenant,
+      solution: d.solution,
+      environment: d.environment,
+      integrationInstance: d.integrationInstance,
+      input: mergedIdentityInput
+    });
 
     return await withTransaction(async db => {
       let integrationInstance = await db.integrationInstance.update({
@@ -258,7 +374,9 @@ class integrationInstanceServiceImpl {
           privateMetadata:
             d.input.privateMetadata === undefined
               ? d.integrationInstance.privateMetadata
-              : d.input.privateMetadata
+              : d.input.privateMetadata,
+          identityActorOid: actor?.oid ?? null,
+          identityOid: identity?.oid ?? null
         },
         include: integrationInstanceInclude
       });

@@ -1,5 +1,6 @@
 import { createQueue } from '@lowerdeck/queue';
 import { db } from '@metorial-subspace/db';
+import { identityInternalService } from '@metorial-subspace/module-identity';
 import { env } from '../../env';
 import {
   createIntegrationProviderVersion,
@@ -81,6 +82,24 @@ export let integrationArchiveInstancesManyQueueProcessor =
         integrationInstanceId: integrationInstance.id
       }))
     );
+    let integrationInstanceProviders = await db.integrationInstanceProvider.findMany({
+      where: {
+        integrationInstanceOid: {
+          in: integrationInstances.map(integrationInstance => integrationInstance.oid)
+        },
+        status: {
+          not: 'deleted'
+        }
+      },
+      select: {
+        id: true
+      }
+    });
+    await identityInternalService.syncIntegrationInstanceProviderCredentials({
+      integrationInstanceProviderIds: integrationInstanceProviders.map(
+        integrationInstanceProvider => integrationInstanceProvider.id
+      )
+    });
 
     let lastIntegrationInstance = integrationInstances[integrationInstances.length - 1];
     if (!lastIntegrationInstance) return;
