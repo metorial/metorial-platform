@@ -10,10 +10,9 @@ export type ScopeSource = {
 let intersectArrays = (
   arr1: string[] | null | undefined,
   arr2: string[] | null | undefined
-): string[] => {
-  if (!arr1 || !arr2) return [];
-  if (!arr1.length) return arr2;
-  if (!arr2.length) return arr1;
+): string[] | null => {
+  if (!arr1?.length) return arr2 ?? null;
+  if (!arr2?.length) return arr1;
 
   let set2 = new Set(arr2);
   return arr1.filter(item => set2.has(item));
