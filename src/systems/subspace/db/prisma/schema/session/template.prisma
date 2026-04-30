@@ -29,6 +29,9 @@ model SessionTemplate {
   integrationInstanceOid BigInt?
   integrationInstance    IntegrationInstance? @relation(fields: [integrationInstanceOid], references: [oid], onDelete: Cascade)
 
+  delegatedIntegrationInstanceOid BigInt?
+  delegatedIntegrationInstance    DelegatedIntegrationInstance? @relation(fields: [delegatedIntegrationInstanceOid], references: [oid], onDelete: Cascade)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
@@ -41,6 +44,7 @@ model SessionTemplate {
   @@index([archivedAt])
   @@index([status, archivedAt])
   @@index([integrationInstanceOid, status])
+  @@index([delegatedIntegrationInstanceOid, status])
 }
 
 enum SessionTemplateProviderStatus {
@@ -76,6 +80,9 @@ model SessionTemplateProvider {
   integrationInstanceProviderOid BigInt?
   integrationInstanceProvider    IntegrationInstanceProvider? @relation(fields: [integrationInstanceProviderOid], references: [oid], onDelete: Cascade)
 
+  delegatedIntegrationInstanceProviderOid BigInt?
+  delegatedIntegrationInstanceProvider    DelegatedIntegrationInstanceProvider? @relation(fields: [delegatedIntegrationInstanceProviderOid], references: [oid], onDelete: Cascade)
+
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
 
@@ -91,8 +98,10 @@ model SessionTemplateProvider {
   sessionProviders SessionProvider[]
 
   @@unique([sessionTemplateOid, integrationInstanceProviderOid])
+  @@unique([sessionTemplateOid, delegatedIntegrationInstanceProviderOid])
   @@index([createdAt])
   @@index([updatedAt])
   @@index([status])
   @@index([integrationInstanceProviderOid, status])
+  @@index([delegatedIntegrationInstanceProviderOid, status])
 }

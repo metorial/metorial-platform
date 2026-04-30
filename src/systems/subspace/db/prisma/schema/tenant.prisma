@@ -92,6 +92,9 @@ model Tenant {
   integrationProviders                     IntegrationProvider[]
   integrationInstances                     IntegrationInstance[]
   integrationInstanceProviders             IntegrationInstanceProvider[]
+  delegatedIntegrationInstances            DelegatedIntegrationInstance[]
+  delegatedIntegrationInstanceSources      DelegatedIntegrationInstanceSource[]
+  delegatedIntegrationInstanceProviders    DelegatedIntegrationInstanceProvider[]
 }
 
 enum EnvironmentType {
@@ -157,6 +160,9 @@ model Environment {
   integrationProviders                     IntegrationProvider[]
   integrationInstances                     IntegrationInstance[]
   integrationInstanceProviders             IntegrationInstanceProvider[]
+  delegatedIntegrationInstances            DelegatedIntegrationInstance[]
+  delegatedIntegrationInstanceSources      DelegatedIntegrationInstanceSource[]
+  delegatedIntegrationInstanceProviders    DelegatedIntegrationInstanceProvider[]
 }
 
 enum TenantActorType {

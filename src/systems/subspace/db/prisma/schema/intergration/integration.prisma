@@ -38,10 +38,11 @@ model Integration {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  providers                    IntegrationProvider[]
-  versions                     IntegrationVersion[]
-  integrationInstances         IntegrationInstance[]
-  integrationInstanceProviders IntegrationInstanceProvider[]
+  providers                             IntegrationProvider[]
+  versions                              IntegrationVersion[]
+  integrationInstances                  IntegrationInstance[]
+  integrationInstanceProviders          IntegrationInstanceProvider[]
+  delegatedIntegrationInstanceProviders DelegatedIntegrationInstanceProvider[]
 
   @@index([createdAt])
   @@index([updatedAt])
@@ -91,8 +92,9 @@ model IntegrationProvider {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  versions                     IntegrationProviderVersion[]
-  integrationInstanceProviders IntegrationInstanceProvider[]
+  versions                              IntegrationProviderVersion[]
+  integrationInstanceProviders          IntegrationInstanceProvider[]
+  delegatedIntegrationInstanceProviders DelegatedIntegrationInstanceProvider[]
 
   @@unique([integrationOid, providerOid])
   @@index([createdAt])

@@ -60,4 +60,7 @@ model Solution {
   integrationProviders                     IntegrationProvider[]
   integrationInstances                     IntegrationInstance[]
   integrationInstanceProviders             IntegrationInstanceProvider[]
+  delegatedIntegrationInstances            DelegatedIntegrationInstance[]
+  delegatedIntegrationInstanceSources      DelegatedIntegrationInstanceSource[]
+  delegatedIntegrationInstanceProviders    DelegatedIntegrationInstanceProvider[]
 }

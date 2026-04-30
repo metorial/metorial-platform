@@ -39,12 +39,14 @@ model IntegrationInstance {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  integrationInstanceProviders IntegrationInstanceProvider[]
-  providerConfigs              ProviderConfig[]
-  providerAuthConfigs          ProviderAuthConfig[]
-  identityCredentials          IdentityCredential[]
-  ownedIdentities              Identity[]                    @relation("ownedIdentities")
-  sessionTemplates             SessionTemplate[]
+  integrationInstanceProviders          IntegrationInstanceProvider[]
+  delegatedIntegrationInstanceSources   DelegatedIntegrationInstanceSource[]
+  delegatedIntegrationInstanceProviders DelegatedIntegrationInstanceProvider[]
+  providerConfigs                       ProviderConfig[]
+  providerAuthConfigs                   ProviderAuthConfig[]
+  identityCredentials                   IdentityCredential[]
+  ownedIdentities                       Identity[]                             @relation("ownedIdentities")
+  sessionTemplates                      SessionTemplate[]
 
   @@index([tenantOid, solutionOid, environmentOid, status])
   @@index([integrationOid, status])
@@ -97,11 +99,12 @@ model IntegrationInstanceProvider {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  integrationInstanceProviderVersions IntegrationInstanceProviderVersion[]
-  providerConfigs                     ProviderConfig[]
-  providerAuthConfigs                 ProviderAuthConfig[]
-  identityCredential                  IdentityCredential?
-  sessionTemplateProviders            SessionTemplateProvider[]
+  integrationInstanceProviderVersions   IntegrationInstanceProviderVersion[]
+  delegatedIntegrationInstanceProviders DelegatedIntegrationInstanceProvider[]
+  providerConfigs                       ProviderConfig[]
+  providerAuthConfigs                   ProviderAuthConfig[]
+  identityCredential                    IdentityCredential?
+  sessionTemplateProviders              SessionTemplateProvider[]
 
   @@unique([integrationInstanceOid, integrationProviderOid])
   @@index([tenantOid, solutionOid, environmentOid, status])
