@@ -23,6 +23,7 @@ import { customProviderCommitController } from './customProviderCommit';
 import { customProviderDeploymentController } from './customProviderDeployment';
 import { customProviderEnvironmentController } from './customProviderEnvironment';
 import { customProviderVersionController } from './customProviderVersion';
+import { ephemeralManagedSessionController } from './ephemeralManagedSession';
 import { integrationInstanceGroupController } from './integrationInstanceGroup';
 import { integrationInstanceGroupProviderController } from './integrationInstanceGroupProvider';
 import { environmentController } from './environment';
@@ -150,6 +151,7 @@ let providerControllers = {
 
 let sessionControllers = {
   session: sessionController,
+  ephemeralManagedSession: ephemeralManagedSessionController,
   sessionProvider: sessionProviderController,
   sessionConnection: sessionConnectionController,
   sessionError: sessionErrorController,

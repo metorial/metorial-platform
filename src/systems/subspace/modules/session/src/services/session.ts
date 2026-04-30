@@ -1,4 +1,4 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
@@ -27,6 +27,22 @@ import { checkTenant } from '@metorial-subspace/module-tenant';
 import { sessionArchivedQueue, sessionUpdatedQueue } from '../queues/lifecycle/session';
 import { createSessionRecord, sessionInclude as include } from './_shared/createSession';
 import { type SessionProviderInput } from './sessionProviderInput';
+
+let assertCanWriteSession = (
+  session: Pick<Session, 'ephemeralManagedSessionOid'>,
+  action: string
+) => {
+  if (!session.ephemeralManagedSessionOid) {
+    return;
+  }
+
+  throw new ServiceError(
+    badRequestError({
+      message: `Cannot ${action} a session that is managed by Metorial.`,
+      code: 'session_is_metorial_managed'
+    })
+  );
+};
 
 class sessionServiceImpl {
   async listSessions(d: {
@@ -184,6 +200,7 @@ class sessionServiceImpl {
   }) {
     checkTenant(d, d.session);
     checkDeletedEdit(d.session, 'update');
+    assertCanWriteSession(d.session, 'update');
 
     return withTransaction(async db => {
       let session = await db.session.update({
@@ -218,6 +235,7 @@ class sessionServiceImpl {
   }) {
     checkTenant(d, d.session);
     checkDeletedEdit(d.session, 'archive');
+    assertCanWriteSession(d.session, 'archive');
 
     return withTransaction(async db => {
       let archivedAt = new Date();

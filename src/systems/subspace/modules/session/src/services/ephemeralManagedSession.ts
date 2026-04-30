@@ -1,13 +1,20 @@
+import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { createLock } from '@lowerdeck/lock';
 import { Service } from '@lowerdeck/service';
 import {
+  addAfterTransactionHook,
   db,
+  type Environment,
+  getId,
   type Session,
+  type SessionTemplate,
   type Solution,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
+import { checkDeletedEdit } from '@metorial-subspace/list-utils';
 import { env } from '../env';
+import { sessionArchivedQueue } from '../queues/lifecycle/session';
 import { createSessionRecord } from './_shared/createSession';
 
 let ephemeralManagedSessionResolveLock = createLock({
@@ -72,6 +79,160 @@ let shouldRotateBackingSession = (ephemeralManagedSession: EphemeralManagedSessi
 };
 
 class ephemeralManagedSessionServiceImpl {
+  async getEphemeralManagedSessionById(d: {
+    ephemeralManagedSessionId: string;
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    allowDeleted?: boolean;
+  }) {
+    let ephemeralManagedSession = await db.ephemeralManagedSession.findFirst({
+      where: {
+        id: d.ephemeralManagedSessionId,
+        tenantOid: d.tenant.oid,
+        solutionOid: d.solution.oid,
+        environmentOid: d.environment.oid
+      },
+      include
+    });
+    if (!ephemeralManagedSession) {
+      throw new ServiceError(
+        notFoundError('ephemeral_managed_session', d.ephemeralManagedSessionId)
+      );
+    }
+
+    return ephemeralManagedSession;
+  }
+
+  async createEphemeralManagedSession(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    sessionTemplate: SessionTemplate;
+    input: {
+      maxSessionDurationInMinutes: number;
+    };
+  }) {
+    return withTransaction(async tx => {
+      let ephemeralManagedSession = await tx.ephemeralManagedSession.create({
+        data: {
+          ...getId('ephemeralManagedSession'),
+          status: 'active',
+          tenantOid: d.tenant.oid,
+          solutionOid: d.solution.oid,
+          environmentOid: d.environment.oid,
+          sessionTemplateOid: d.sessionTemplate.oid,
+          maxSessionDurationInMinutes: d.input.maxSessionDurationInMinutes,
+          templateHash: d.sessionTemplate.hash ?? null
+        },
+        include
+      });
+
+      let session = await createSessionRecord({
+        db: tx,
+        tenant: d.tenant,
+        solution: d.solution,
+        environment: d.environment,
+        isEphemeral: true,
+        ephemeralManagedSessionOid: ephemeralManagedSession.oid,
+        input: {
+          name: d.sessionTemplate.name ?? undefined,
+          description: d.sessionTemplate.description ?? undefined,
+          metadata: (d.sessionTemplate.metadata as Record<string, any> | null) ?? undefined,
+          privateMetadata:
+            (d.sessionTemplate.privateMetadata as Record<string, any> | null) ?? undefined,
+          providers: [{ sessionTemplateId: d.sessionTemplate.id }]
+        }
+      });
+
+      return await tx.ephemeralManagedSession.update({
+        where: { oid: ephemeralManagedSession.oid },
+        data: {
+          currentSessionOid: session.oid,
+          templateHash: d.sessionTemplate.hash ?? null
+        },
+        include
+      });
+    });
+  }
+
+  async archiveEphemeralManagedSession(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    ephemeralManagedSession: EphemeralManagedSessionRecord;
+  }) {
+    checkDeletedEdit(d.ephemeralManagedSession, 'archive');
+
+    return await ephemeralManagedSessionResolveLock.usingLock(
+      d.ephemeralManagedSession.id,
+      async () => {
+        let ephemeralManagedSession = await this.getEphemeralManagedSessionById({
+          ephemeralManagedSessionId: d.ephemeralManagedSession.id,
+          tenant: d.tenant,
+          solution: d.solution,
+          environment: d.environment
+        });
+
+        checkDeletedEdit(ephemeralManagedSession, 'archive');
+
+        return withTransaction(async tx => {
+          let archivedAt = new Date();
+          let sessions = await tx.session.findMany({
+            where: {
+              ephemeralManagedSessionOid: ephemeralManagedSession.oid,
+              status: 'active'
+            },
+            select: { oid: true, id: true }
+          });
+
+          if (sessions.length > 0) {
+            await tx.sessionProvider.updateMany({
+              where: {
+                sessionOid: { in: sessions.map(session => session.oid) }
+              },
+              data: {
+                status: 'archived'
+              }
+            });
+
+            await tx.session.updateMany({
+              where: {
+                oid: { in: sessions.map(session => session.oid) }
+              },
+              data: {
+                status: 'archived',
+                archivedAt,
+                connectionState: 'disconnected'
+              }
+            });
+          }
+
+          let archived = await tx.ephemeralManagedSession.update({
+            where: { oid: ephemeralManagedSession.oid },
+            data: {
+              status: 'archived',
+              archivedAt
+            },
+            include
+          });
+
+          if (sessions.length > 0) {
+            await addAfterTransactionHook(async () =>
+              sessionArchivedQueue.addMany(
+                sessions.map(session => ({
+                  sessionId: session.id
+                }))
+              )
+            );
+          }
+
+          return archived;
+        });
+      }
+    );
+  }
+
   async resolveBackingSessionById(d: {
     sessionId: string;
     tenantId: string;

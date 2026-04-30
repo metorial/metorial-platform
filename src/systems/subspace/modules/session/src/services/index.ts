@@ -2,6 +2,7 @@ export * from './providerInvocation';
 export * from './providerRun';
 export * from './providerRunLogs';
 export * from './providerRunUsageRecord';
+export * from './ephemeralManagedSession';
 export * from './session';
 export * from './sessionConnection';
 export * from './sessionError';
