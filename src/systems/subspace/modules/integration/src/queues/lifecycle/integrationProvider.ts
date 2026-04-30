@@ -1,6 +1,7 @@
 import { createQueue } from '@lowerdeck/queue';
 import { db } from '@metorial-subspace/db';
 import { identityInternalService } from '@metorial-subspace/module-identity';
+import { syncIntegrationInstanceSessionTemplatesQueue } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedSessionTemplate';
 import { env } from '../../env';
 import { indexIntegrationQueue } from '../search/integration';
 import { indexIntegrationInstanceQueue } from '../search/integrationInstance';
@@ -13,6 +14,14 @@ let indexParentIntegration = async (integrationProviderId: string) => {
   if (!integrationProvider) return;
 
   await indexIntegrationQueue.add({ integrationId: integrationProvider.integration.id });
+};
+
+let syncIntegrationInstanceSessionTemplates = async (integrationInstanceIds: string[]) => {
+  if (integrationInstanceIds.length === 0) return;
+
+  await syncIntegrationInstanceSessionTemplatesQueue.addMany(
+    integrationInstanceIds.map(integrationInstanceId => ({ integrationInstanceId }))
+  );
 };
 
 export let integrationProviderCreatedQueue = createQueue<{ integrationProviderId: string }>({
@@ -101,6 +110,9 @@ export let integrationProviderArchiveInstanceProvidersManyQueueProcessor =
       integrationInstanceProviders.map(provider => ({
         integrationInstanceId: provider.integrationInstance.id
       }))
+    );
+    await syncIntegrationInstanceSessionTemplates(
+      integrationInstanceProviders.map(provider => provider.integrationInstance.id)
     );
     await identityInternalService.syncIntegrationInstanceProviderCredentials({
       integrationInstanceProviderIds: integrationInstanceProviders.map(provider => provider.id)

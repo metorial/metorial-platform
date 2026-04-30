@@ -4,7 +4,10 @@ import {
   integrationInstanceService,
   integrationService
 } from '@metorial-subspace/module-integration';
-import { integrationInstancePresenter } from '@metorial-subspace/presenters';
+import {
+  integrationInstancePresenter,
+  sessionTemplatePresenter
+} from '@metorial-subspace/presenters';
 import { app } from './_app';
 import { createdAtValidator, updatedAtValidator } from './_dateFilter';
 import { normalizeToolFilters, toolFiltersValidator } from './sessionProvider';
@@ -57,6 +60,7 @@ export let integrationInstanceController = app.controller({
           providerDeploymentIds: v.optional(v.array(v.string())),
           providerConfigIds: v.optional(v.array(v.string())),
           providerAuthConfigIds: v.optional(v.array(v.string())),
+          sessionTemplateIds: v.optional(v.array(v.string())),
 
           createdAt: createdAtValidator,
           updatedAt: updatedAtValidator
@@ -84,6 +88,7 @@ export let integrationInstanceController = app.controller({
         providerDeploymentIds: ctx.input.providerDeploymentIds,
         providerConfigIds: ctx.input.providerConfigIds,
         providerAuthConfigIds: ctx.input.providerAuthConfigIds,
+        sessionTemplateIds: ctx.input.sessionTemplateIds,
 
         createdAt: ctx.input.createdAt,
         updatedAt: ctx.input.updatedAt
@@ -202,6 +207,38 @@ export let integrationInstanceController = app.controller({
       });
 
       return integrationInstancePresenter(integrationInstance);
+    }),
+
+  createSessionTemplate: integrationInstanceApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
+        integrationInstanceId: v.string(),
+
+        name: v.optional(v.string()),
+        description: v.optional(v.string()),
+        metadata: v.optional(v.record(v.any())),
+        privateMetadata: v.optional(v.record(v.any()))
+      })
+    )
+    .do(async ctx => {
+      let sessionTemplate =
+        await integrationInstanceService.createSessionTemplateForIntegrationInstance({
+          tenant: ctx.tenant,
+          environment: ctx.environment,
+          solution: ctx.solution,
+          integrationInstance: ctx.integrationInstance,
+          input: {
+            name: ctx.input.name,
+            description: ctx.input.description,
+            metadata: ctx.input.metadata,
+            privateMetadata: ctx.input.privateMetadata
+          }
+        });
+
+      return sessionTemplatePresenter(sessionTemplate);
     }),
 
   delete: integrationInstanceApp

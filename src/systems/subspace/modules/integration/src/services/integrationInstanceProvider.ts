@@ -28,7 +28,8 @@ import {
   resolveProviderAuthConfigs,
   resolveProviderConfigs,
   resolveProviderDeployments,
-  resolveProviders
+  resolveProviders,
+  resolveSessionTemplates
 } from '@metorial-subspace/list-utils';
 import { providerService } from '@metorial-subspace/module-catalog';
 import { providerCombinationService } from '@metorial-subspace/module-provider-internal';
@@ -133,6 +134,7 @@ class integrationInstanceProviderServiceImpl {
     providerDeploymentIds?: string[];
     providerConfigIds?: string[];
     providerAuthConfigIds?: string[];
+    sessionTemplateIds?: string[];
 
     createdAt?: DateFilter;
     updatedAt?: DateFilter;
@@ -144,6 +146,7 @@ class integrationInstanceProviderServiceImpl {
     let deployments = await resolveProviderDeployments(d, d.providerDeploymentIds);
     let configs = await resolveProviderConfigs(d, d.providerConfigIds);
     let authConfigs = await resolveProviderAuthConfigs(d, d.providerAuthConfigIds);
+    let sessionTemplates = await resolveSessionTemplates(d, d.sessionTemplateIds);
 
     d.search = d.search?.trim();
     if (!d.search?.length) d.search = undefined;
@@ -182,6 +185,15 @@ class integrationInstanceProviderServiceImpl {
                 configs ? { currentVersion: { configOid: configs.in } } : undefined!,
                 authConfigs
                   ? { currentVersion: { authConfigOid: authConfigs.in } }
+                  : undefined!,
+                sessionTemplates
+                  ? {
+                      integrationInstance: {
+                        sessionTemplates: {
+                          some: { oid: sessionTemplates.in }
+                        }
+                      }
+                    }
                   : undefined!,
                 d.search
                   ? {

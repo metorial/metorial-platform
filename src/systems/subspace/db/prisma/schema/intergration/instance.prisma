@@ -44,6 +44,7 @@ model IntegrationInstance {
   providerAuthConfigs          ProviderAuthConfig[]
   identityCredentials          IdentityCredential[]
   ownedIdentities              Identity[]                    @relation("ownedIdentities")
+  sessionTemplates             SessionTemplate[]
 
   @@index([tenantOid, solutionOid, environmentOid, status])
   @@index([integrationOid, status])
@@ -100,6 +101,7 @@ model IntegrationInstanceProvider {
   providerConfigs                     ProviderConfig[]
   providerAuthConfigs                 ProviderAuthConfig[]
   identityCredential                  IdentityCredential?
+  sessionTemplateProviders            SessionTemplateProvider[]
 
   @@unique([integrationInstanceOid, integrationProviderOid])
   @@index([tenantOid, solutionOid, environmentOid, status])

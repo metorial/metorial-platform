@@ -49,6 +49,7 @@ export let integrationInstanceProviderController = app.controller({
           providerDeploymentIds: v.optional(v.array(v.string())),
           providerConfigIds: v.optional(v.array(v.string())),
           providerAuthConfigIds: v.optional(v.array(v.string())),
+          sessionTemplateIds: v.optional(v.array(v.string())),
 
           createdAt: createdAtValidator,
           updatedAt: updatedAtValidator
@@ -75,6 +76,7 @@ export let integrationInstanceProviderController = app.controller({
           providerDeploymentIds: ctx.input.providerDeploymentIds,
           providerConfigIds: ctx.input.providerConfigIds,
           providerAuthConfigIds: ctx.input.providerAuthConfigIds,
+          sessionTemplateIds: ctx.input.sessionTemplateIds,
 
           createdAt: ctx.input.createdAt,
           updatedAt: ctx.input.updatedAt

@@ -1,4 +1,4 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
@@ -16,6 +16,10 @@ import {
   normalizeDateFilter,
   normalizeStatusForGet,
   normalizeStatusForList,
+  resolveIntegrationInstanceProviders,
+  resolveIntegrationInstances,
+  resolveIntegrationProviders,
+  resolveIntegrations,
   resolveProviderAuthConfigs,
   resolveProviderConfigs,
   resolveProviderDeployments,
@@ -35,9 +39,35 @@ let include = {
   deployment: true,
   config: true,
   authConfig: true,
-  sessionTemplate: true
+  integrationInstanceProvider: true,
+  sessionTemplate: {
+    include: {
+      integrationInstance: true
+    }
+  }
 };
 export let sessionTemplateProviderInclude = include;
+
+let assertCanWriteSessionTemplateProvider = (
+  provider: Pick<SessionTemplateProvider, 'integrationInstanceProviderOid'> & {
+    sessionTemplate?: Pick<SessionTemplate, 'integrationInstanceOid'> | null;
+  },
+  action: 'create' | 'update' | 'archive'
+) => {
+  if (
+    !provider.integrationInstanceProviderOid &&
+    !provider.sessionTemplate?.integrationInstanceOid
+  ) {
+    return;
+  }
+
+  throw new ServiceError(
+    badRequestError({
+      message: `Cannot ${action} an integration instance-linked session template provider.`,
+      code: 'integration_instance_linked_session_template_provider_readonly'
+    })
+  );
+};
 
 class sessionTemplateProviderServiceImpl {
   async listSessionTemplateProviders(d: {
@@ -54,6 +84,10 @@ class sessionTemplateProviderServiceImpl {
     providerDeploymentIds?: string[];
     providerConfigIds?: string[];
     providerAuthConfigIds?: string[];
+    integrationIds?: string[];
+    integrationInstanceIds?: string[];
+    integrationProviderIds?: string[];
+    integrationInstanceProviderIds?: string[];
     createdAt?: DateFilter;
     updatedAt?: DateFilter;
   }) {
@@ -62,6 +96,13 @@ class sessionTemplateProviderServiceImpl {
     let deployments = await resolveProviderDeployments(d, d.providerDeploymentIds);
     let configs = await resolveProviderConfigs(d, d.providerConfigIds);
     let authConfigs = await resolveProviderAuthConfigs(d, d.providerAuthConfigIds);
+    let integrations = await resolveIntegrations(d, d.integrationIds);
+    let integrationInstances = await resolveIntegrationInstances(d, d.integrationInstanceIds);
+    let integrationProviders = await resolveIntegrationProviders(d, d.integrationProviderIds);
+    let integrationInstanceProviders = await resolveIntegrationInstanceProviders(
+      d,
+      d.integrationInstanceProviderIds
+    );
 
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -86,6 +127,52 @@ class sessionTemplateProviderServiceImpl {
                 deployments ? { deploymentOid: deployments.in } : undefined!,
                 configs ? { configOid: configs.in } : undefined!,
                 authConfigs ? { authConfigOid: authConfigs.in } : undefined!,
+                integrations
+                  ? {
+                      OR: [
+                        {
+                          sessionTemplate: {
+                            integrationInstance: {
+                              integrationOid: integrations.in
+                            }
+                          }
+                        },
+                        {
+                          integrationInstanceProvider: {
+                            integrationOid: integrations.in
+                          }
+                        }
+                      ]
+                    }
+                  : undefined!,
+                integrationInstances
+                  ? {
+                      OR: [
+                        {
+                          sessionTemplate: {
+                            integrationInstanceOid: integrationInstances.in
+                          }
+                        },
+                        {
+                          integrationInstanceProvider: {
+                            integrationInstanceOid: integrationInstances.in
+                          }
+                        }
+                      ]
+                    }
+                  : undefined!,
+                integrationProviders
+                  ? {
+                      integrationInstanceProvider: {
+                        integrationProviderOid: integrationProviders.in
+                      }
+                    }
+                  : undefined!,
+                integrationInstanceProviders
+                  ? {
+                      integrationInstanceProviderOid: integrationInstanceProviders.in
+                    }
+                  : undefined!,
 
                 d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
                 d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
@@ -153,8 +240,18 @@ class sessionTemplateProviderServiceImpl {
 
     template: SessionTemplate;
     input: SessionProviderInput;
+    _allowLinked?: boolean;
   }) {
     checkDeletedRelation(d.template);
+    if (!d._allowLinked) {
+      assertCanWriteSessionTemplateProvider(
+        {
+          integrationInstanceProviderOid: null,
+          sessionTemplate: d.template
+        },
+        'create'
+      );
+    }
 
     let [res] = await sessionProviderInputService.createSessionTemplateProvidersForInput({
       tenant: d.tenant,
@@ -176,9 +273,13 @@ class sessionTemplateProviderServiceImpl {
     input: {
       toolFilters?: SessionProviderInputToolFilters;
     };
+    _allowLinked?: boolean;
   }) {
     checkTenant(d, d.sessionTemplateProvider);
     checkDeletedEdit(d.sessionTemplateProvider, 'update');
+    if (!d._allowLinked) {
+      assertCanWriteSessionTemplateProvider(d.sessionTemplateProvider, 'update');
+    }
 
     return await db.sessionTemplateProvider.update({
       where: {
@@ -199,9 +300,13 @@ class sessionTemplateProviderServiceImpl {
     solution: Solution;
     environment: Environment;
     sessionTemplateProvider: SessionTemplateProvider;
+    _allowLinked?: boolean;
   }) {
     checkTenant(d, d.sessionTemplateProvider);
     checkDeletedEdit(d.sessionTemplateProvider, 'archive');
+    if (!d._allowLinked) {
+      assertCanWriteSessionTemplateProvider(d.sessionTemplateProvider, 'archive');
+    }
 
     return await db.sessionTemplateProvider.update({
       where: {

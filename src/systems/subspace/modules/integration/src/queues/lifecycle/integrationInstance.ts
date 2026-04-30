@@ -2,6 +2,10 @@ import { createQueue } from '@lowerdeck/queue';
 import { db } from '@metorial-subspace/db';
 import { identityInternalService } from '@metorial-subspace/module-identity';
 import { identityDeletedQueue } from '@metorial-subspace/module-identity/src/queues/lifecycle/identity';
+import {
+  archiveIntegrationInstanceSessionTemplatesQueue,
+  syncIntegrationInstanceSessionTemplatesQueue
+} from '@metorial-subspace/module-session/src/queues/lifecycle/linkedSessionTemplate';
 import { env } from '../../env';
 import { indexIntegrationInstanceQueue } from '../search/integrationInstance';
 import { integrationInstanceProviderSetQueue } from './integrationInstanceProvider';
@@ -81,6 +85,9 @@ export let runIntegrationInstanceArchivedEffects = async (d: {
   await indexIntegrationInstanceQueue.add({
     integrationInstanceId: d.integrationInstanceId
   });
+  await archiveIntegrationInstanceSessionTemplatesQueue.add({
+    integrationInstanceId: d.integrationInstanceId
+  });
   if (archivedIntegrationInstanceProviders.length) {
     await integrationInstanceProviderSetQueue.addMany(
       archivedIntegrationInstanceProviders.map(integrationInstanceProvider => ({
@@ -102,6 +109,9 @@ export let integrationInstanceCreatedQueueProcessor = integrationInstanceCreated
     await indexIntegrationInstanceQueue.add({
       integrationInstanceId: data.integrationInstanceId
     });
+    await syncIntegrationInstanceSessionTemplatesQueue.add({
+      integrationInstanceId: data.integrationInstanceId
+    });
     await syncIntegrationInstanceProviderCredentials(data.integrationInstanceId);
   }
 );
@@ -114,6 +124,9 @@ export let integrationInstanceUpdatedQueue = createQueue<{ integrationInstanceId
 export let integrationInstanceUpdatedQueueProcessor = integrationInstanceUpdatedQueue.process(
   async data => {
     await indexIntegrationInstanceQueue.add({
+      integrationInstanceId: data.integrationInstanceId
+    });
+    await syncIntegrationInstanceSessionTemplatesQueue.add({
       integrationInstanceId: data.integrationInstanceId
     });
     await syncIntegrationInstanceProviderCredentials(data.integrationInstanceId);

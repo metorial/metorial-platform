@@ -3,6 +3,7 @@ import { db } from '@metorial-subspace/db';
 import { providerAuthConfigService } from '@metorial-subspace/module-auth';
 import { providerConfigService } from '@metorial-subspace/module-deployment';
 import { identityInternalService } from '@metorial-subspace/module-identity';
+import { syncIntegrationInstanceSessionTemplatesQueue } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedSessionTemplate';
 import { env } from '../../env';
 import { indexIntegrationInstanceQueue } from '../search/integrationInstance';
 
@@ -27,6 +28,9 @@ export let integrationInstanceProviderSetQueueProcessor =
     });
     await identityInternalService.syncIntegrationInstanceProviderCredential({
       integrationInstanceProviderId: data.integrationInstanceProviderId
+    });
+    await syncIntegrationInstanceSessionTemplatesQueue.add({
+      integrationInstanceId: data.integrationInstanceId
     });
 
     if (integrationInstanceProvider.status === 'archived') {

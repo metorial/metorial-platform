@@ -30,13 +30,15 @@ import {
   resolveProviderAuthConfigs,
   resolveProviderConfigs,
   resolveProviderDeployments,
-  resolveProviders
+  resolveProviders,
+  resolveSessionTemplates
 } from '@metorial-subspace/list-utils';
 import {
   identityActorService,
   identityInternalService
 } from '@metorial-subspace/module-identity';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
+import { syncIntegrationInstanceSessionTemplateQueue } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedSessionTemplate';
 import { checkTenant } from '@metorial-subspace/module-tenant';
 import {
   integrationInstanceArchivedQueue,
@@ -81,6 +83,25 @@ export let integrationInstanceInclude = {
   integrationInstanceProviders: {
     where: { status: 'active' as const, isParentDeleted: false },
     include: integrationInstanceProviderInclude
+  }
+} as const;
+
+let linkedSessionTemplateInclude = {
+  integrationInstance: true,
+  providers: {
+    where: { status: 'active' as const },
+    include: {
+      provider: true,
+      deployment: true,
+      config: true,
+      authConfig: true,
+      integrationInstanceProvider: true,
+      sessionTemplate: {
+        include: {
+          integrationInstance: true
+        }
+      }
+    }
   }
 } as const;
 
@@ -160,6 +181,7 @@ class integrationInstanceServiceImpl {
     providerDeploymentIds?: string[];
     providerConfigIds?: string[];
     providerAuthConfigIds?: string[];
+    sessionTemplateIds?: string[];
 
     createdAt?: DateFilter;
     updatedAt?: DateFilter;
@@ -176,6 +198,7 @@ class integrationInstanceServiceImpl {
     let deployments = await resolveProviderDeployments(d, d.providerDeploymentIds);
     let configs = await resolveProviderConfigs(d, d.providerConfigIds);
     let authConfigs = await resolveProviderAuthConfigs(d, d.providerAuthConfigIds);
+    let sessionTemplates = await resolveSessionTemplates(d, d.sessionTemplateIds);
     let search = d.search
       ? await voyager.record.search({
           tenantId: d.tenant.id,
@@ -279,6 +302,9 @@ class integrationInstanceServiceImpl {
                         { identityCredentials: { some: { authConfigOid: authConfigs.in } } }
                       ]
                     }
+                  : undefined!,
+                sessionTemplates
+                  ? { sessionTemplates: { some: { oid: sessionTemplates.in } } }
                   : undefined!,
                 d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
                 d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
@@ -484,6 +510,49 @@ class integrationInstanceServiceImpl {
       );
 
       return integrationInstance;
+    });
+  }
+
+  async createSessionTemplateForIntegrationInstance(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    integrationInstance: IntegrationInstance;
+    input: {
+      name?: string;
+      description?: string;
+      metadata?: Record<string, any>;
+      privateMetadata?: Record<string, any>;
+    };
+  }) {
+    checkTenant(d, d.integrationInstance);
+    checkDeletedRelation(d.integrationInstance);
+
+    return await withTransaction(async db => {
+      let sessionTemplate = await db.sessionTemplate.create({
+        data: {
+          ...getId('sessionTemplate'),
+          status: 'active',
+          name: d.input.name?.trim() || undefined,
+          description: d.input.description?.trim() || undefined,
+          metadata: d.input.metadata,
+          privateMetadata: d.input.privateMetadata,
+          isInternal: false,
+          integrationInstanceOid: d.integrationInstance.oid,
+          tenantOid: d.tenant.oid,
+          solutionOid: d.solution.oid,
+          environmentOid: d.environment.oid
+        },
+        include: linkedSessionTemplateInclude
+      });
+
+      await addAfterTransactionHook(async () =>
+        syncIntegrationInstanceSessionTemplateQueue.add({
+          sessionTemplateId: sessionTemplate.id
+        })
+      );
+
+      return sessionTemplate;
     });
   }
 

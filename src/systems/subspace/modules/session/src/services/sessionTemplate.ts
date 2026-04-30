@@ -6,8 +6,8 @@ import {
   db,
   type Environment,
   getId,
-  type SessionProviderStatus,
   type SessionTemplate,
+  type SessionTemplateStatus,
   type Solution,
   type Tenant,
   withTransaction
@@ -18,6 +18,10 @@ import {
   normalizeDateFilter,
   normalizeStatusForGet,
   normalizeStatusForList,
+  resolveIntegrationInstanceProviders,
+  resolveIntegrationInstances,
+  resolveIntegrationProviders,
+  resolveIntegrations,
   resolveProviderAuthConfigs,
   resolveProviderConfigs,
   resolveProviderDeployments,
@@ -35,6 +39,7 @@ import {
 import { sessionTemplateProviderInclude } from './sessionTemplateProvider';
 
 let include = {
+  integrationInstance: true,
   providers: {
     include: sessionTemplateProviderInclude,
     where: { status: 'active' as const }
@@ -47,7 +52,7 @@ class sessionTemplateServiceImpl {
     solution: Solution;
     environment: Environment;
 
-    status?: SessionProviderStatus[];
+    status?: SessionTemplateStatus[];
     allowDeleted?: boolean;
 
     ids?: string[];
@@ -57,6 +62,10 @@ class sessionTemplateServiceImpl {
     providerDeploymentIds?: string[];
     providerConfigIds?: string[];
     providerAuthConfigIds?: string[];
+    integrationIds?: string[];
+    integrationInstanceIds?: string[];
+    integrationProviderIds?: string[];
+    integrationInstanceProviderIds?: string[];
     createdAt?: DateFilter;
     updatedAt?: DateFilter;
   }) {
@@ -66,6 +75,13 @@ class sessionTemplateServiceImpl {
     let deployments = await resolveProviderDeployments(d, d.providerDeploymentIds);
     let configs = await resolveProviderConfigs(d, d.providerConfigIds);
     let authConfigs = await resolveProviderAuthConfigs(d, d.providerAuthConfigIds);
+    let integrations = await resolveIntegrations(d, d.integrationIds);
+    let integrationInstances = await resolveIntegrationInstances(d, d.integrationInstanceIds);
+    let integrationProviders = await resolveIntegrationProviders(d, d.integrationProviderIds);
+    let integrationInstanceProviders = await resolveIntegrationInstanceProviders(
+      d,
+      d.integrationInstanceProviderIds
+    );
 
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -100,6 +116,32 @@ class sessionTemplateServiceImpl {
                 configs ? { providers: { some: { configOid: configs.in } } } : undefined!,
                 authConfigs
                   ? { providers: { some: { authConfigOid: authConfigs.in } } }
+                  : undefined!,
+                integrations
+                  ? { integrationInstance: { integrationOid: integrations.in } }
+                  : undefined!,
+                integrationInstances
+                  ? { integrationInstanceOid: integrationInstances.in }
+                  : undefined!,
+                integrationProviders
+                  ? {
+                      providers: {
+                        some: {
+                          integrationInstanceProvider: {
+                            integrationProviderOid: integrationProviders.in
+                          }
+                        }
+                      }
+                    }
+                  : undefined!,
+                integrationInstanceProviders
+                  ? {
+                      providers: {
+                        some: {
+                          integrationInstanceProviderOid: integrationInstanceProviders.in
+                        }
+                      }
+                    }
                   : undefined!,
 
                 d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,

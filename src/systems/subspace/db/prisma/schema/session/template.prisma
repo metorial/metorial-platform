@@ -26,6 +26,9 @@ model SessionTemplate {
   solutionOid Int
   solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
 
+  integrationInstanceOid BigInt?
+  integrationInstance    IntegrationInstance? @relation(fields: [integrationInstanceOid], references: [oid], onDelete: Cascade)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
@@ -37,6 +40,7 @@ model SessionTemplate {
   @@index([status])
   @@index([archivedAt])
   @@index([status, archivedAt])
+  @@index([integrationInstanceOid, status])
 }
 
 enum SessionTemplateProviderStatus {
@@ -69,6 +73,9 @@ model SessionTemplateProvider {
   authConfigOid BigInt?
   authConfig    ProviderAuthConfig? @relation(fields: [authConfigOid], references: [oid])
 
+  integrationInstanceProviderOid BigInt?
+  integrationInstanceProvider    IntegrationInstanceProvider? @relation(fields: [integrationInstanceProviderOid], references: [oid], onDelete: Cascade)
+
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
 
@@ -83,7 +90,9 @@ model SessionTemplateProvider {
 
   sessionProviders SessionProvider[]
 
+  @@unique([sessionTemplateOid, integrationInstanceProviderOid])
   @@index([createdAt])
   @@index([updatedAt])
   @@index([status])
+  @@index([integrationInstanceProviderOid, status])
 }
